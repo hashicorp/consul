@@ -88,8 +88,12 @@ type leaderState struct {
 // setLeader is used to modify the current leader of the cluster
 func (r *Raft) setLeader(leader ServerAddress) {
 	r.leaderLock.Lock()
+	oldLeader := r.leader
 	r.leader = leader
 	r.leaderLock.Unlock()
+	if oldLeader != leader {
+		r.observe(LeaderObservation{leader: leader})
+	}
 }
 
 // requestConfigChange is a helper for the above functions that make
@@ -440,6 +444,7 @@ func (r *Raft) startStopReplication() {
 				currentTerm: r.getCurrentTerm(),
 				nextIndex:   lastIdx + 1,
 				lastContact: time.Now(),
+				notify:      make(map[*verifyFuture]struct{}),
 				notifyCh:    make(chan struct{}, 1),
 				stepDown:    r.leaderState.stepDown,
 			}
@@ -551,11 +556,17 @@ func (r *Raft) leaderLoop() {
 				r.logger.Printf("[WARN] raft: New leader elected, stepping down")
 				r.setState(Follower)
 				delete(r.leaderState.notify, v)
+				for _, repl := range r.leaderState.replState {
+					repl.cleanNotify(v)
+				}
 				v.respond(ErrNotLeader)
 
 			} else {
 				// Quorum of members agree, we are still leader
 				delete(r.leaderState.notify, v)
+				for _, repl := range r.leaderState.replState {
+					repl.cleanNotify(v)
+				}
 				v.respond(nil)
 			}
 
@@ -635,7 +646,7 @@ func (r *Raft) verifyLeader(v *verifyFuture) {
 	// Trigger immediate heartbeats
 	for _, repl := range r.leaderState.replState {
 		repl.notifyLock.Lock()
-		repl.notify = append(repl.notify, v)
+		repl.notify[v] = struct{}{}
 		repl.notifyLock.Unlock()
 		asyncNotifyCh(repl.notifyCh)
 	}
