@@ -24,6 +24,16 @@ type cacheEntry struct {
 	// entry. This is a pointer as its shared as a value in the
 	// expiryHeap as well.
 	Expiry *cacheEntryExpiry
+
+	// FetchedAt stores the time the cache entry was retrieved for determining
+	// it's age later.
+	FetchedAt time.Time
+
+	// RefreshLostContact stores the time background refresh failed. It gets reset
+	// to zero after a background fetch has returned successfully, or after a
+	// background request has be blocking for at least 5 seconds, which ever
+	// happens first.
+	RefreshLostContact time.Time
 }
 
 // cacheEntryExpiry contains the expiration information for a cache

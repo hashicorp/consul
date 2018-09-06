@@ -36,12 +36,13 @@ connection attempt.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required             |
-| ---------------- | ----------------- | ------------------------ |
-| `NO`             | `none`            | `service:write` |
+| Blocking Queries | Consistency Modes | Agent Caching        | ACL Required    |
+| ---------------- | ----------------- | -------------------- | --------------- |
+| `NO`             | `none`            | `background refresh` | `service:write` |
 
 ### Parameters
 
@@ -102,12 +103,13 @@ unavailable. This endpoint should be used by proxies and native integrations.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required               |
-| ---------------- | ----------------- | -------------------------- |
-| `YES`             | `all`            | `none` |
+| Blocking Queries | Consistency Modes | Agent Caching        | ACL Required |
+| ---------------- | ----------------- | -------------------- | ------------ |
+| `YES`            | `all`             | `background refresh` | `none`       |
 
 ### Sample Request
 
@@ -162,12 +164,13 @@ clients to efficiently wait for certificate rotations.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required               |
-| ---------------- | ----------------- | -------------------------- |
-| `YES`             | `all`            | `service:write` |
+| Blocking Queries | Consistency Modes | Agent Caching        | ACL Required    |
+| ---------------- | ----------------- | -------------------- | --------------- |
+| `YES`            | `all`             | `background refresh` | `service:write` |
 
 ### Parameters
 
@@ -229,16 +232,17 @@ a blocking query to detect any configuration changes.
 
 | Method | Path                         | Produces                   |
 | ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/agent/connect/proxy/:id`    | `application/json`         |
+| `GET`  | `/agent/connect/proxy/:id`    | `application/json`        |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required               |
-| ---------------- | ----------------- | -------------------------- |
-| `YES`             | `all`            | `service:write, proxy token` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required                 |
+| ---------------- | ----------------- | ------------- | ---------------------------- |
+| `YES`            | `all`             | `none`        | `service:write, proxy token` |
 
 ### Parameters
 

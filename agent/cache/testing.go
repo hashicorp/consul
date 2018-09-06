@@ -61,7 +61,17 @@ func TestRequest(t testing.T, info RequestInfo) *MockRequest {
 // TestType returns a MockType that can be used to setup expectations
 // on data fetching.
 func TestType(t testing.T) *MockType {
+	return testTypeInternal(t, true)
+}
+
+// TestTypeNonBlocking returns a MockType that returns false to SupportsBlocking.
+func TestTypeNonBlocking(t testing.T) *MockType {
+	return testTypeInternal(t, false)
+}
+
+func testTypeInternal(t testing.T, enableBlocking bool) *MockType {
 	typ := &MockType{}
+	typ.On("SupportsBlocking").Return(enableBlocking).Maybe()
 	return typ
 }
 

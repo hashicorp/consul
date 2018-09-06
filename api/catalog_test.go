@@ -2,6 +2,9 @@ package api
 
 import (
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/testutil/retry"
@@ -215,6 +218,45 @@ func TestAPI_CatalogService(t *testing.T) {
 	})
 }
 
+func TestAPI_CatalogServiceCached(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	catalog := c.Catalog()
+
+	q := &QueryOptions{
+		UseCache: true,
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		services, meta, err := catalog.Service("consul", "", q)
+		if err != nil {
+			r.Fatal(err)
+		}
+
+		if meta.LastIndex == 0 {
+			r.Fatalf("Bad: %v", meta)
+		}
+
+		if len(services) == 0 {
+			r.Fatalf("Bad: %v", services)
+		}
+
+		if services[0].Datacenter != "dc1" {
+			r.Fatalf("Bad datacenter: %v", services[0])
+		}
+	})
+
+	require := require.New(t)
+
+	// Got success, next hit must be cache hit
+	_, meta, err := catalog.Service("consul", "", q)
+	require.NoError(err)
+	require.True(meta.CacheHit)
+	require.Equal(time.Duration(0), meta.CacheAge)
+}
+
 func TestAPI_CatalogService_NodeMetaFilter(t *testing.T) {
 	t.Parallel()
 	meta := map[string]string{"somekey": "somevalue"}
@@ -316,6 +358,7 @@ func TestAPI_CatalogConnect(t *testing.T) {
 			r.Fatalf("Returned port should be for proxy: %v", services[0])
 		}
 	})
+
 }
 
 func TestAPI_CatalogConnectNative(t *testing.T) {
