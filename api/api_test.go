@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/testutil"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -381,6 +382,8 @@ func TestAPI_SetQueryOptions(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
+	assert := assert.New(t)
+
 	r := c.newRequest("GET", "/v1/kv/foo")
 	q := &QueryOptions{
 		Datacenter:        "foo",
@@ -414,6 +417,19 @@ func TestAPI_SetQueryOptions(t *testing.T) {
 	if r.params.Get("near") != "nodex" {
 		t.Fatalf("bad: %v", r.params)
 	}
+	assert.Equal("", r.header.Get("Cache-Control"))
+
+	r = c.newRequest("GET", "/v1/kv/foo")
+	q = &QueryOptions{
+		UseCache:     true,
+		MaxAge:       30 * time.Second,
+		StaleIfError: 345678 * time.Millisecond, // Fractional seconds should be rounded
+	}
+	r.setQueryOptions(q)
+
+	_, ok := r.params["cached"]
+	assert.True(ok)
+	assert.Equal("max-age=30, stale-if-error=346", r.header.Get("Cache-Control"))
 }
 
 func TestAPI_SetWriteOptions(t *testing.T) {

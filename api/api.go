@@ -78,6 +78,27 @@ type QueryOptions struct {
 	// read.
 	RequireConsistent bool
 
+	// UseCache requests that the agent cache results locally. See
+	// https://www.consul.io/api/index.html#agent-caching for more details on the
+	// semantics.
+	UseCache bool
+
+	// MaxAge limits how old a cached value will be returned if UseCache is true.
+	// If there is a cached response that is older than the MaxAge, it is treated
+	// as a cache miss and a new fetch invoked. If the fetch fails, the error is
+	// returned. Clients that wish to allow for stale results on error can set
+	// StaleIfError to a longer duration to change this behaviour. It is ignored
+	// if the endpoint supports background refresh caching. See
+	// https://www.consul.io/api/index.html#agent-caching for more details.
+	MaxAge time.Duration
+
+	// StaleIfError specifies how stale the client will accept a cached response
+	// if the servers are unavailable to fetch a fresh one. Only makes sense when
+	// UseCache is true and MaxAge is set to a lower, non-zero value. It is
+	// ignored if the endpoint supports background refresh caching. See
+	// https://www.consul.io/api/index.html#agent-caching for more details.
+	StaleIfError time.Duration
+
 	// WaitIndex is used to enable a blocking query. Waits
 	// until the timeout or the next index is reached
 	WaitIndex uint64
@@ -196,6 +217,13 @@ type QueryMeta struct {
 
 	// Is address translation enabled for HTTP responses on this agent
 	AddressTranslationEnabled bool
+
+	// CacheHit is true if the result was served from agent-local cache.
+	CacheHit bool
+
+	// CacheAge is set if request was ?cached and indicates how stale the cached
+	// response is.
+	CacheAge time.Duration
 }
 
 // WriteMeta is used to return meta data about a write
@@ -591,6 +619,20 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 	if q.Connect {
 		r.params.Set("connect", "true")
 	}
+	if q.UseCache && !q.RequireConsistent {
+		r.params.Set("cached", "")
+
+		cc := []string{}
+		if q.MaxAge > 0 {
+			cc = append(cc, fmt.Sprintf("max-age=%.0f", q.MaxAge.Seconds()))
+		}
+		if q.StaleIfError > 0 {
+			cc = append(cc, fmt.Sprintf("stale-if-error=%.0f", q.StaleIfError.Seconds()))
+		}
+		if len(cc) > 0 {
+			r.header.Set("Cache-Control", strings.Join(cc, ", "))
+		}
+	}
 	r.ctx = q.ctx
 }
 
@@ -800,6 +842,18 @@ func parseQueryMeta(resp *http.Response, q *QueryMeta) error {
 		q.AddressTranslationEnabled = true
 	default:
 		q.AddressTranslationEnabled = false
+	}
+
+	// Parse Cache info
+	if cacheStr := header.Get("X-Cache"); cacheStr != "" {
+		q.CacheHit = strings.EqualFold(cacheStr, "HIT")
+	}
+	if ageStr := header.Get("Age"); ageStr != "" {
+		age, err := strconv.ParseUint(ageStr, 10, 64)
+		if err != nil {
+			return fmt.Errorf("Failed to parse Age Header: %v", err)
+		}
+		q.CacheAge = time.Duration(age) * time.Second
 	}
 
 	return nil

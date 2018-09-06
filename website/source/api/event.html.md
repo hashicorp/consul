@@ -22,12 +22,13 @@ This endpoint triggers a new user event.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required  |
-| ---------------- | ----------------- | ------------- |
-| `NO`             | `none`            | `event:write` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
+| ---------------- | ----------------- | ------------- | ------------- |
+| `NO`             | `none`            | `none`        | `event:write` |
 
 ### Parameters
 
@@ -97,12 +98,13 @@ nor do they make a promise of delivery.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required |
-| ---------------- | ----------------- | ------------ |
-| `YES`            | `none`            | `event:read` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `YES`            | `none`            | `none`        | `event:read` |
 
 ### Parameters
 
