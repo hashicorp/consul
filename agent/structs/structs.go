@@ -119,10 +119,42 @@ type QueryOptions struct {
 	// servicing the request. Prevents a stale read.
 	RequireConsistent bool
 
+	// If set, the local agent may respond with an arbitrarily stale locally
+	// cached response. The semantics differ from AllowStale since the agent may
+	// be entirely partitioned from the servers and still considered "healthy" by
+	// operators. Stale responses from Servers are also arbitrarily stale, but can
+	// provide additional bounds on the last contact time from the leader. It's
+	// expected that servers that are partitioned are noticed and replaced in a
+	// timely way by operators while the same may not be true for client agents.
+	UseCache bool
+
 	// If set and AllowStale is true, will try first a stale
 	// read, and then will perform a consistent read if stale
-	// read is older than value
+	// read is older than value.
 	MaxStaleDuration time.Duration
+
+	// MaxAge limits how old a cached value will be returned if UseCache is true.
+	// If there is a cached response that is older than the MaxAge, it is treated
+	// as a cache miss and a new fetch invoked. If the fetch fails, the error is
+	// returned. Clients that wish to allow for stale results on error can set
+	// StaleIfError to a longer duration to change this behaviour. It is ignored
+	// if the endpoint supports background refresh caching. See
+	// https://www.consul.io/api/index.html#agent-caching for more details.
+	MaxAge time.Duration
+
+	// MustRevalidate forces the agent to fetch a fresh version of a cached
+	// resource or at least validate that the cached version is still fresh. It is
+	// implied by either max-age=0 or must-revalidate Cache-Control headers. It
+	// only makes sense when UseCache is true. We store it since MaxAge = 0 is the
+	// default unset value.
+	MustRevalidate bool
+
+	// StaleIfError specifies how stale the client will accept a cached response
+	// if the servers are unavailable to fetch a fresh one. Only makes sense when
+	// UseCache is true and MaxAge is set to a lower, non-zero value. It is
+	// ignored if the endpoint supports background refresh caching. See
+	// https://www.consul.io/api/index.html#agent-caching for more details.
+	StaleIfError time.Duration
 }
 
 // IsRead is always true for QueryOption.
@@ -283,10 +315,12 @@ func (r *DCSpecificRequest) RequestDatacenter() string {
 
 func (r *DCSpecificRequest) CacheInfo() cache.RequestInfo {
 	info := cache.RequestInfo{
-		Token:      r.Token,
-		Datacenter: r.Datacenter,
-		MinIndex:   r.MinQueryIndex,
-		Timeout:    r.MaxQueryTime,
+		Token:          r.Token,
+		Datacenter:     r.Datacenter,
+		MinIndex:       r.MinQueryIndex,
+		Timeout:        r.MaxQueryTime,
+		MaxAge:         r.MaxAge,
+		MustRevalidate: r.MustRevalidate,
 	}
 
 	// To calculate the cache key we only hash the node filters. The
@@ -325,6 +359,45 @@ type ServiceSpecificRequest struct {
 
 func (r *ServiceSpecificRequest) RequestDatacenter() string {
 	return r.Datacenter
+}
+
+func (r *ServiceSpecificRequest) CacheInfo() cache.RequestInfo {
+	info := cache.RequestInfo{
+		Token:          r.Token,
+		Datacenter:     r.Datacenter,
+		MinIndex:       r.MinQueryIndex,
+		Timeout:        r.MaxQueryTime,
+		MaxAge:         r.MaxAge,
+		MustRevalidate: r.MustRevalidate,
+	}
+
+	// To calculate the cache key we hash over all the fields that affect the
+	// output other than Datacenter and Token which are dealt with in the cache
+	// framework already. Note the order here is important for the outcome - if we
+	// ever care about cache-invalidation on updates e.g. because we persist
+	// cached results, we need to be careful we maintain the same order of fields
+	// here. We could alternatively use `hash:set` struct tag on an anonymous
+	// struct to make it more robust if it becomes significant.
+	v, err := hashstructure.Hash([]interface{}{
+		r.NodeMetaFilters,
+		r.ServiceName,
+		r.ServiceTag,
+		r.ServiceAddress,
+		r.TagFilter,
+		r.Connect,
+	}, nil)
+	if err == nil {
+		// If there is an error, we don't set the key. A blank key forces
+		// no cache for this request so the request is forwarded directly
+		// to the server.
+		info.Key = strconv.FormatUint(v, 10)
+	}
+
+	return info
+}
+
+func (r *ServiceSpecificRequest) CacheMinIndex() uint64 {
+	return r.QueryOptions.MinQueryIndex
 }
 
 // NodeSpecificRequest is used to request the information about a single node

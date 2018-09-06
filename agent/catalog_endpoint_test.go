@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCatalogRegister_Service_InvalidAddress(t *testing.T) {
@@ -486,6 +487,9 @@ func TestCatalogServiceNodes(t *testing.T) {
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
+	assert := assert.New(t)
+	require := require.New(t)
+
 	// Make sure an empty list is returned, not a nil
 	{
 		req, _ := http.NewRequest("GET", "/v1/catalog/service/api?tag=a", nil)
@@ -531,6 +535,63 @@ func TestCatalogServiceNodes(t *testing.T) {
 	nodes := obj.(structs.ServiceNodes)
 	if len(nodes) != 1 {
 		t.Fatalf("bad: %v", obj)
+	}
+
+	// Test caching
+	{
+		// List instances with cache enabled
+		req, _ := http.NewRequest("GET", "/v1/catalog/service/api?cached", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.CatalogServiceNodes(resp, req)
+		require.NoError(err)
+		nodes := obj.(structs.ServiceNodes)
+		assert.Len(nodes, 1)
+
+		// Should be a cache miss
+		assert.Equal("MISS", resp.Header().Get("X-Cache"))
+	}
+
+	{
+		// List instances with cache enabled
+		req, _ := http.NewRequest("GET", "/v1/catalog/service/api?cached", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.CatalogServiceNodes(resp, req)
+		require.NoError(err)
+		nodes := obj.(structs.ServiceNodes)
+		assert.Len(nodes, 1)
+
+		// Should be a cache HIT now!
+		assert.Equal("HIT", resp.Header().Get("X-Cache"))
+		assert.Equal("0", resp.Header().Get("Age"))
+	}
+
+	// Ensure background refresh works
+	{
+		// Register a new instance of the service
+		args2 := args
+		args2.Node = "bar"
+		args2.Address = "127.0.0.2"
+		require.NoError(a.RPC("Catalog.Register", args, &out))
+
+		retry.Run(t, func(r *retry.R) {
+			// List it again
+			req, _ := http.NewRequest("GET", "/v1/catalog/service/api?cached", nil)
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.CatalogServiceNodes(resp, req)
+			r.Check(err)
+
+			nodes := obj.(structs.ServiceNodes)
+			if len(nodes) != 2 {
+				r.Fatalf("Want 2 nodes")
+			}
+
+			// Should be a cache hit! The data should've updated in the cache
+			// in the background so this should've been fetched directly from
+			// the cache.
+			if resp.Header().Get("X-Cache") != "HIT" {
+				r.Fatalf("should be a cache hit")
+			}
+		})
 	}
 }
 

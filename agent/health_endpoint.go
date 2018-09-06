@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 )
@@ -184,14 +185,29 @@ func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Requ
 	// Make the RPC request
 	var out structs.IndexedCheckServiceNodes
 	defer setMeta(resp, &out.QueryMeta)
-RETRY_ONCE:
-	if err := s.agent.RPC("Health.ServiceNodes", &args, &out); err != nil {
-		return nil, err
-	}
-	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
-		args.AllowStale = false
-		args.MaxStaleDuration = 0
-		goto RETRY_ONCE
+
+	if args.QueryOptions.UseCache {
+		raw, m, err := s.agent.cache.Get(cachetype.HealthServicesName, &args)
+		if err != nil {
+			return nil, err
+		}
+		defer setCacheMeta(resp, &m)
+		reply, ok := raw.(*structs.IndexedCheckServiceNodes)
+		if !ok {
+			// This should never happen, but we want to protect against panics
+			return nil, fmt.Errorf("internal error: response type not correct")
+		}
+		out = *reply
+	} else {
+	RETRY_ONCE:
+		if err := s.agent.RPC("Health.ServiceNodes", &args, &out); err != nil {
+			return nil, err
+		}
+		if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
+			args.AllowStale = false
+			args.MaxStaleDuration = 0
+			goto RETRY_ONCE
+		}
 	}
 	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 
