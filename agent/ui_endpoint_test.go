@@ -168,6 +168,7 @@ func TestSummarizeServices(t *testing.T) {
 					Kind:    structs.ServiceKindConnectProxy,
 					Service: "web",
 					Tags:    []string{},
+					Meta:    map[string]string{"bar": "baz"},
 				},
 			},
 			Checks: []*structs.HealthCheck{
@@ -193,6 +194,7 @@ func TestSummarizeServices(t *testing.T) {
 					Kind:    structs.ServiceKindConnectProxy,
 					Service: "web",
 					Tags:    []string{},
+					Meta:    map[string]string{"foo": "bar"},
 				},
 			},
 			Checks: []*structs.HealthCheck{
@@ -249,6 +251,7 @@ func TestSummarizeServices(t *testing.T) {
 		Kind:           structs.ServiceKindConnectProxy,
 		Name:           "web",
 		Tags:           []string{},
+		Meta:           map[string]string{"foo": "bar", "bar": "baz"},
 		Nodes:          []string{"bar", "foo"},
 		ChecksPassing:  2,
 		ChecksWarning:  0,

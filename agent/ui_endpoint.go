@@ -15,6 +15,7 @@ type ServiceSummary struct {
 	Kind           structs.ServiceKind `json:",omitempty"`
 	Name           string
 	Tags           []string
+	Meta           map[string]string
 	Nodes          []string
 	ChecksPassing  int
 	ChecksWarning  int
@@ -152,6 +153,18 @@ func summarizeServices(dump structs.NodeDump) []*ServiceSummary {
 			sum.Tags = service.Tags
 			sum.Nodes = append(sum.Nodes, node.Node)
 			sum.Kind = service.Kind
+
+			// The service meta is per instance, but we aggregate it
+			// here for the UI to know it exists for _some_ instance.
+			if len(service.Meta) > 0 {
+				if len(sum.Meta) == 0 {
+					sum.Meta = make(map[string]string)
+				}
+				for k, v := range service.Meta {
+					sum.Meta[k] = v
+				}
+			}
+
 			nodeServices[idx] = sum
 		}
 		for _, check := range node.Checks {
