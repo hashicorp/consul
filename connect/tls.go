@@ -291,7 +291,7 @@ type tlsCfgUpdate struct {
 // newDynamicTLSConfig returns a dynamicTLSConfig constructed from base.
 // base.Certificates[0] is used as the initial leaf and base.RootCAs is used as
 // the initial roots.
-func newDynamicTLSConfig(base *tls.Config) *dynamicTLSConfig {
+func newDynamicTLSConfig(base *tls.Config, logger *log.Logger) *dynamicTLSConfig {
 	cfg := &dynamicTLSConfig{
 		base: base,
 	}
@@ -299,7 +299,9 @@ func newDynamicTLSConfig(base *tls.Config) *dynamicTLSConfig {
 		cfg.leaf = &base.Certificates[0]
 		// If this does error then future calls to Ready will fail
 		// It is better to handle not-Ready rather than failing
-		parseLeafX509Cert(cfg.leaf)
+		if err := parseLeafX509Cert(cfg.leaf); err != nil && logger != nil {
+			logger.Printf("[ERR] Error parsing configured leaf certificate: %v", err)
+		}
 	}
 	if base.RootCAs != nil {
 		cfg.roots = base.RootCAs

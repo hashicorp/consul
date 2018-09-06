@@ -299,7 +299,7 @@ func TestDynamicTLSConfig(t *testing.T) {
 	baseCfg := TestTLSConfig(t, "web", ca1)
 	newCfg := TestTLSConfig(t, "web", ca2)
 
-	c := newDynamicTLSConfig(baseCfg)
+	c := newDynamicTLSConfig(baseCfg, nil)
 
 	// Should set them from the base config
 	require.Equal(c.Leaf(), &baseCfg.Certificates[0])
@@ -365,7 +365,7 @@ func TestDynamicTLSConfig_Ready(t *testing.T) {
 	ca1 := connect.TestCA(t, nil)
 	baseCfg := TestTLSConfig(t, "web", ca1)
 
-	c := newDynamicTLSConfig(defaultTLSConfig())
+	c := newDynamicTLSConfig(defaultTLSConfig(), nil)
 	readyCh := c.ReadyWait()
 	assertBlocked(t, readyCh)
 	require.False(c.Ready(), "no roots or leaf, should not be ready")
