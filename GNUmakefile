@@ -195,6 +195,12 @@ test-ci: other-consul dev-build vet test-install-deps
 	fi
 
 test-flake: other-consul vet test-install-deps
+	@ if [ -z $(ARGS) ] ; then \
+		echo ""; \
+		echo "error: ARGS required for flake-repro"; \
+		echo "ex: make test-flake ARGS=\"-pkg api\""; \
+		exit 1; \
+	fi
 	@ cd build-support/flake-repro; \
 	go build -o flake-repro; \
 	./flake-repro $(ARGS); \
