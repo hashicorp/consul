@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/miekg/dns"
 )
@@ -1205,6 +1206,51 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 	}
 }
 
+func findWeight(node structs.CheckServiceNode) int {
+	// By default, when only_passing is false, warning and passing nodes are returned
+	// Those values will be used if using a client with support while server has no
+	// support for weights
+	weightPassing := 1
+	weightWarning := 1
+	if node.Service.Weights != nil {
+		weightPassing = node.Service.Weights.Passing
+		weightWarning = node.Service.Weights.Warning
+	}
+	serviceChecks := make(api.HealthChecks, 0)
+	for _, c := range node.Checks {
+		if c.ServiceName == node.Service.Service || c.ServiceName == "" {
+			healthCheck := &api.HealthCheck{
+				Node:        c.Node,
+				CheckID:     string(c.CheckID),
+				Name:        c.Name,
+				Status:      c.Status,
+				Notes:       c.Notes,
+				Output:      c.Output,
+				ServiceID:   c.ServiceID,
+				ServiceName: c.ServiceName,
+				ServiceTags: c.ServiceTags,
+			}
+			serviceChecks = append(serviceChecks, healthCheck)
+		}
+	}
+	status := serviceChecks.AggregatedStatus()
+	switch status {
+	case api.HealthWarning:
+		return weightWarning
+	case api.HealthPassing:
+		return weightPassing
+	case api.HealthMaint:
+		// Not used in theory
+		return 0
+	case api.HealthCritical:
+		// Should not happen since already filtered
+		return 0
+	default:
+		// When non-standard status, return 1
+		return 1
+	}
+}
+
 // serviceARecords is used to add the SRV records for a service lookup
 func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes, req, resp *dns.Msg, ttl time.Duration) {
 	handled := make(map[string]struct{})
@@ -1219,6 +1265,7 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes
 		}
 		handled[tuple] = struct{}{}
 
+		weight := findWeight(node)
 		// Add the SRV record
 		srvRec := &dns.SRV{
 			Hdr: dns.RR_Header{
@@ -1228,7 +1275,7 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes
 				Ttl:    uint32(ttl / time.Second),
 			},
 			Priority: 1,
-			Weight:   1,
+			Weight:   uint16(weight),
 			Port:     uint16(node.Service.Port),
 			Target:   fmt.Sprintf("%s.node.%s.%s", node.Node.Node, dc, d.domain),
 		}

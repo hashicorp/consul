@@ -1329,6 +1329,10 @@ func TestAgent_RegisterService(t *testing.T) {
 				TTL: 30 * time.Second,
 			},
 		},
+		Weights: &structs.Weights{
+			Passing: 100,
+			Warning: 3,
+		},
 	}
 	req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=abc123", jsonReader(args))
 
@@ -1346,6 +1350,12 @@ func TestAgent_RegisterService(t *testing.T) {
 	}
 	if val := a.State.Service("test").Meta["hello"]; val != "world" {
 		t.Fatalf("Missing meta: %v", a.State.Service("test").Meta)
+	}
+	if val := a.State.Service("test").Weights.Passing; val != 100 {
+		t.Fatalf("Expected 100 for Weights.Passing, got: %v", val)
+	}
+	if val := a.State.Service("test").Weights.Warning; val != 3 {
+		t.Fatalf("Expected 3 for Weights.Warning, got: %v", val)
 	}
 
 	// Ensure we have a check mapping
@@ -1370,7 +1380,7 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-	json := `{"name":"test", "port":8000, "enable_tag_override": true, "meta": {"some": "meta"}}`
+	json := `{"name":"test", "port":8000, "enable_tag_override": true, "meta": {"some": "meta"}, "weights":{"passing": 16}}`
 	req, _ := http.NewRequest("PUT", "/v1/agent/service/register", strings.NewReader(json))
 
 	obj, err := a.srv.AgentRegisterService(nil, req)
@@ -1386,6 +1396,7 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 		Meta:              map[string]string{"some": "meta"},
 		Port:              8000,
 		EnableTagOverride: true,
+		Weights:           &structs.Weights{Passing: 16, Warning: 0},
 	}
 
 	if got, want := a.State.Service("test"), svc; !verify.Values(t, "", got, want) {

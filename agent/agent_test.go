@@ -641,6 +641,10 @@ func verifyIndexChurn(t *testing.T, tags []string) {
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
+	weights := &structs.Weights{
+		Passing: 1,
+		Warning: 1,
+	}
 	// Ensure we have a leader before we start adding the services
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -649,6 +653,7 @@ func verifyIndexChurn(t *testing.T, tags []string) {
 		Service: "redis",
 		Port:    8000,
 		Tags:    tags,
+		Weights: weights,
 	}
 	if err := a.AddService(svc, nil, true, ""); err != nil {
 		t.Fatalf("err: %v", err)
