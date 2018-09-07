@@ -2,10 +2,7 @@ FROM travisci/ci-garnet:packer-1512502276-986baf0
 
 ENV GOLANG_VERSION 1.10.3
 
-RUN mkdir -p /home/travis/go/src/github.com/hashicorp && \
-	chown -R travis /home/travis/go
-
-WORKDIR /home/travis/go/src/github.com/hashicorp
+RUN mkdir -p /home/travis/go && chown -R travis /home/travis/go
 
 ENV GOPATH /home/travis/go
 
