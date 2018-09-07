@@ -38,6 +38,7 @@ import (
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/watch"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
@@ -448,6 +449,7 @@ func (a *Agent) Start() error {
 
 func (a *Agent) listenAndServeDNS() error {
 	notif := make(chan net.Addr, len(a.config.DNSAddrs))
+	errCh := make(chan error, len(a.config.DNSAddrs))
 	for _, addr := range a.config.DNSAddrs {
 		// create server
 		s, err := NewDNSServer(a)
@@ -462,23 +464,26 @@ func (a *Agent) listenAndServeDNS() error {
 			defer a.wgServers.Done()
 			err := s.ListenAndServe(addr.Network(), addr.String(), func() { notif <- addr })
 			if err != nil && !strings.Contains(err.Error(), "accept") {
-				a.logger.Printf("[ERR] agent: Error starting DNS server %s (%s): %v", addr.String(), addr.Network(), err)
+				errCh <- err
 			}
 		}(addr)
 	}
 
 	// wait for servers to be up
 	timeout := time.After(time.Second)
+	var merr *multierror.Error
 	for range a.config.DNSAddrs {
 		select {
 		case addr := <-notif:
 			a.logger.Printf("[INFO] agent: Started DNS server %s (%s)", addr.String(), addr.Network())
-			continue
+		case err := <-errCh:
+			merr = multierror.Append(merr, err)
 		case <-timeout:
-			return fmt.Errorf("agent: timeout starting DNS servers")
+			merr = multierror.Append(merr, fmt.Errorf("agent: timeout starting DNS servers"))
+			break
 		}
 	}
-	return nil
+	return merr.ErrorOrNil()
 }
 
 // listenHTTP binds listeners to the provided addresses and also returns
