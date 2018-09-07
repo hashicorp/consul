@@ -10,16 +10,22 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
+// metaExternalSource is the key name for the service instance meta that
+// defines the external syncing source. This is used by the UI APIs below
+// to extract this.
+const metaExternalSource = "external-source"
+
 // ServiceSummary is used to summarize a service
 type ServiceSummary struct {
-	Kind           structs.ServiceKind `json:",omitempty"`
-	Name           string
-	Tags           []string
-	Meta           map[string]string
-	Nodes          []string
-	ChecksPassing  int
-	ChecksWarning  int
-	ChecksCritical int
+	Kind              structs.ServiceKind `json:",omitempty"`
+	Name              string
+	Tags              []string
+	Nodes             []string
+	ChecksPassing     int
+	ChecksWarning     int
+	ChecksCritical    int
+	ExternalSources   []string
+	externalSourceSet map[string]struct{} // internal to track uniqueness
 }
 
 // UINodes is used to list the nodes in a given datacenter. We return a
@@ -154,14 +160,18 @@ func summarizeServices(dump structs.NodeDump) []*ServiceSummary {
 			sum.Nodes = append(sum.Nodes, node.Node)
 			sum.Kind = service.Kind
 
-			// The service meta is per instance, but we aggregate it
-			// here for the UI to know it exists for _some_ instance.
-			if len(service.Meta) > 0 {
-				if len(sum.Meta) == 0 {
-					sum.Meta = make(map[string]string)
+			// If there is an external source, add it to the list of external
+			// sources. We only want to add unique sources so there is extra
+			// accounting here with an unexported field to maintain the set
+			// of sources.
+			if len(service.Meta) > 0 && service.Meta[metaExternalSource] != "" {
+				source := service.Meta[metaExternalSource]
+				if sum.externalSourceSet == nil {
+					sum.externalSourceSet = make(map[string]struct{})
 				}
-				for k, v := range service.Meta {
-					sum.Meta[k] = v
+				if _, ok := sum.externalSourceSet[source]; !ok {
+					sum.externalSourceSet[source] = struct{}{}
+					sum.ExternalSources = append(sum.ExternalSources, source)
 				}
 			}
 
