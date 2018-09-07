@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"math/big"
 	"net/url"
@@ -16,6 +17,8 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 )
+
+var ErrNotInitialized = errors.New("provider not initialized")
 
 type ConsulProvider struct {
 	config   *structs.ConsulCAProviderConfig
@@ -31,83 +34,46 @@ type ConsulProviderStateDelegate interface {
 
 // NewConsulProvider returns a new instance of the Consul CA provider,
 // bootstrapping its state in the state store necessary
-func NewConsulProvider(rawConfig map[string]interface{}, delegate ConsulProviderStateDelegate) (*ConsulProvider, error) {
-	conf, err := ParseConsulCAConfig(rawConfig)
-	if err != nil {
-		return nil, err
-	}
-	provider := &ConsulProvider{
-		config:   conf,
+func NewConsulProvider(delegate ConsulProviderStateDelegate) *ConsulProvider {
+	return &ConsulProvider{
 		delegate: delegate,
-		id:       fmt.Sprintf("%s,%s", conf.PrivateKey, conf.RootCert),
 	}
+}
 
-	// Check if this configuration of the provider has already been
-	// initialized in the state store.
-	state := delegate.State()
-	_, providerState, err := state.CAProviderState(provider.id)
+func (c *ConsulProvider) Configure(clusterId string, isRoot bool, rawConfig map[string]interface{}) error {
+	// Parse the raw config and update our ID.
+	config, err := ParseConsulCAConfig(rawConfig)
 	if err != nil {
-		return nil, err
+		return err
+	}
+	c.config = config
+	c.id = fmt.Sprintf("%s,%s", config.PrivateKey, config.RootCert)
+
+	// Exit early if the state store has an entry for this provider's config.
+	_, providerState, err := c.delegate.State().CAProviderState(c.id)
+	if err != nil {
+		return err
 	}
 
-	// Exit early if the state store has already been populated for this config.
 	if providerState != nil {
-		return provider, nil
+		return nil
 	}
 
+	// Write the provider state to the state store.
 	newState := structs.CAConsulProviderState{
-		ID: provider.id,
+		ID:     c.id,
+		IsRoot: isRoot,
 	}
 
-	// Write the initial provider state to get the index to use for the
-	// CA serial number.
-	{
-		args := &structs.CARequest{
-			Op:            structs.CAOpSetProviderState,
-			ProviderState: &newState,
-		}
-		if err := delegate.ApplyCARequest(args); err != nil {
-			return nil, err
-		}
-	}
-
-	idx, _, err := state.CAProviderState(provider.id)
-	if err != nil {
-		return nil, err
-	}
-
-	// Generate a private key if needed
-	if conf.PrivateKey == "" {
-		_, pk, err := connect.GeneratePrivateKey()
-		if err != nil {
-			return nil, err
-		}
-		newState.PrivateKey = pk
-	} else {
-		newState.PrivateKey = conf.PrivateKey
-	}
-
-	// Generate the root CA if necessary
-	if conf.RootCert == "" {
-		ca, err := provider.generateCA(newState.PrivateKey, idx+1)
-		if err != nil {
-			return nil, fmt.Errorf("error generating CA: %v", err)
-		}
-		newState.RootCert = ca
-	} else {
-		newState.RootCert = conf.RootCert
-	}
-
-	// Write the provider state
 	args := &structs.CARequest{
 		Op:            structs.CAOpSetProviderState,
 		ProviderState: &newState,
 	}
-	if err := delegate.ApplyCARequest(args); err != nil {
-		return nil, err
+	if err := c.delegate.ApplyCARequest(args); err != nil {
+		return err
 	}
 
-	return provider, nil
+	return nil
 }
 
 // Return the active root CA and generate a new one if needed
@@ -119,6 +85,58 @@ func (c *ConsulProvider) ActiveRoot() (string, error) {
 	}
 
 	return providerState.RootCert, nil
+}
+
+func (c *ConsulProvider) GenerateRoot() error {
+	state := c.delegate.State()
+	idx, providerState, err := state.CAProviderState(c.id)
+	if err != nil {
+		return err
+	}
+
+	if providerState == nil {
+		return ErrNotInitialized
+	}
+	if !providerState.IsRoot {
+		return fmt.Errorf("provider is not the root certificate authority")
+	}
+	if providerState.RootCert != "" {
+		return nil
+	}
+
+	// Generate a private key if needed
+	newState := *providerState
+	if c.config.PrivateKey == "" {
+		_, pk, err := connect.GeneratePrivateKey()
+		if err != nil {
+			return err
+		}
+		newState.PrivateKey = pk
+	} else {
+		newState.PrivateKey = c.config.PrivateKey
+	}
+
+	// Generate the root CA if necessary
+	if c.config.RootCert == "" {
+		ca, err := c.generateCA(newState.PrivateKey, idx+1)
+		if err != nil {
+			return fmt.Errorf("error generating CA: %v", err)
+		}
+		newState.RootCert = ca
+	} else {
+		newState.RootCert = c.config.RootCert
+	}
+
+	// Write the provider state
+	args := &structs.CARequest{
+		Op:            structs.CAOpSetProviderState,
+		ProviderState: &newState,
+	}
+	if err := c.delegate.ApplyCARequest(args); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // We aren't maintaining separate root/intermediate CAs for the builtin

@@ -24,6 +24,7 @@ var ErrBackendNotInitialized = fmt.Errorf("backend not initialized")
 type VaultProvider struct {
 	config    *structs.VaultCAProviderConfig
 	client    *vaultapi.Client
+	isRoot    bool
 	clusterId string
 }
 
@@ -31,34 +32,43 @@ type VaultProvider struct {
 // backends mounted and initialized. If the root backend is not set up already,
 // it will be mounted/generated as needed, but any existing state will not be
 // overwritten.
-func NewVaultProvider(rawConfig map[string]interface{}, clusterId string) (*VaultProvider, error) {
-	conf, err := ParseVaultCAConfig(rawConfig)
+func NewVaultProvider() *VaultProvider {
+	return &VaultProvider{}
+}
+
+func (v *VaultProvider) Configure(clusterId string, isRoot bool, rawConfig map[string]interface{}) error {
+	config, err := ParseVaultCAConfig(rawConfig)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	// todo(kyhavlov): figure out the right way to pass the TLS config
 	clientConf := &vaultapi.Config{
-		Address: conf.Address,
+		Address: config.Address,
 	}
 	client, err := vaultapi.NewClient(clientConf)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	client.SetToken(conf.Token)
+	client.SetToken(config.Token)
+	v.config = config
+	v.client = client
+	v.isRoot = isRoot
+	v.clusterId = clusterId
 
-	provider := &VaultProvider{
-		config:    conf,
-		client:    client,
-		clusterId: clusterId,
+	return nil
+}
+
+func (v *VaultProvider) GenerateRoot() error {
+	if !v.isRoot {
+		return fmt.Errorf("provider is not the root certificate authority")
 	}
 
 	// Set up the root PKI backend if necessary.
-	_, err = provider.ActiveRoot()
+	_, err := v.ActiveRoot()
 	switch err {
 	case ErrBackendNotMounted:
-		err := client.Sys().Mount(conf.RootPKIPath, &vaultapi.MountInput{
+		err := v.client.Sys().Mount(v.config.RootPKIPath, &vaultapi.MountInput{
 			Type:        "pki",
 			Description: "root CA backend for Consul Connect",
 			Config: vaultapi.MountConfigInput{
@@ -67,35 +77,30 @@ func NewVaultProvider(rawConfig map[string]interface{}, clusterId string) (*Vaul
 		})
 
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		fallthrough
 	case ErrBackendNotInitialized:
-		spiffeID := connect.SpiffeIDSigning{ClusterID: clusterId, Domain: "consul"}
+		spiffeID := connect.SpiffeIDSigning{ClusterID: v.clusterId, Domain: "consul"}
 		uuid, err := uuid.GenerateUUID()
 		if err != nil {
-			return nil, err
+			return err
 		}
-		_, err = client.Logical().Write(conf.RootPKIPath+"root/generate/internal", map[string]interface{}{
+		_, err = v.client.Logical().Write(v.config.RootPKIPath+"root/generate/internal", map[string]interface{}{
 			"common_name": fmt.Sprintf("Vault CA Root Authority %s", uuid),
 			"uri_sans":    spiffeID.URI().String(),
 		})
 		if err != nil {
-			return nil, err
+			return err
 		}
 	default:
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
-	// Set up the intermediate backend.
-	if _, err := provider.GenerateIntermediate(); err != nil {
-		return nil, err
-	}
-
-	return provider, nil
+	return nil
 }
 
 func (v *VaultProvider) ActiveRoot() (string, error) {

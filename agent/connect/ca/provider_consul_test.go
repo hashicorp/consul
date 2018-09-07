@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -72,32 +71,33 @@ func testConsulCAConfig() *structs.CAConfiguration {
 func TestConsulCAProvider_Bootstrap(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
+	require := require.New(t)
 	conf := testConsulCAConfig()
 	delegate := newMockDelegate(t, conf)
 
-	provider, err := NewConsulProvider(conf.Config, delegate)
-	assert.NoError(err)
+	provider := NewConsulProvider(delegate)
+	require.NoError(provider.Configure(conf.ClusterID, true, conf.Config))
+	require.NoError(provider.GenerateRoot())
 
 	root, err := provider.ActiveRoot()
-	assert.NoError(err)
+	require.NoError(err)
 
 	// Intermediate should be the same cert.
 	inter, err := provider.ActiveIntermediate()
-	assert.NoError(err)
-	assert.Equal(root, inter)
+	require.NoError(err)
+	require.Equal(root, inter)
 
 	// Should be a valid cert
 	parsed, err := connect.ParseCert(root)
-	assert.NoError(err)
-	assert.Equal(parsed.URIs[0].String(), fmt.Sprintf("spiffe://%s.consul", conf.ClusterID))
+	require.NoError(err)
+	require.Equal(parsed.URIs[0].String(), fmt.Sprintf("spiffe://%s.consul", conf.ClusterID))
 }
 
 func TestConsulCAProvider_Bootstrap_WithCert(t *testing.T) {
 	t.Parallel()
 
 	// Make sure setting a custom private key/root cert works.
-	assert := assert.New(t)
+	require := require.New(t)
 	rootCA := connect.TestCA(t, nil)
 	conf := testConsulCAConfig()
 	conf.Config = map[string]interface{}{
@@ -106,12 +106,13 @@ func TestConsulCAProvider_Bootstrap_WithCert(t *testing.T) {
 	}
 	delegate := newMockDelegate(t, conf)
 
-	provider, err := NewConsulProvider(conf.Config, delegate)
-	assert.NoError(err)
+	provider := NewConsulProvider(delegate)
+	require.NoError(provider.Configure(conf.ClusterID, true, conf.Config))
+	require.NoError(provider.GenerateRoot())
 
 	root, err := provider.ActiveRoot()
-	assert.NoError(err)
-	assert.Equal(root, rootCA.RootCert)
+	require.NoError(err)
+	require.Equal(root, rootCA.RootCert)
 }
 
 func TestConsulCAProvider_SignLeaf(t *testing.T) {
@@ -122,8 +123,9 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 	conf.Config["LeafCertTTL"] = "1h"
 	delegate := newMockDelegate(t, conf)
 
-	provider, err := NewConsulProvider(conf.Config, delegate)
-	require.NoError(err)
+	provider := NewConsulProvider(delegate)
+	require.NoError(provider.Configure(conf.ClusterID, true, conf.Config))
+	require.NoError(provider.GenerateRoot())
 
 	spiffeService := &connect.SpiffeIDService{
 		Host:       "node1",
@@ -180,17 +182,20 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 
 func TestConsulCAProvider_CrossSignCA(t *testing.T) {
 	t.Parallel()
+	require := require.New(t)
 
 	conf1 := testConsulCAConfig()
 	delegate1 := newMockDelegate(t, conf1)
-	provider1, err := NewConsulProvider(conf1.Config, delegate1)
-	require.NoError(t, err)
+	provider1 := NewConsulProvider(delegate1)
+	require.NoError(provider1.Configure(conf1.ClusterID, true, conf1.Config))
+	require.NoError(provider1.GenerateRoot())
 
 	conf2 := testConsulCAConfig()
 	conf2.CreateIndex = 10
 	delegate2 := newMockDelegate(t, conf2)
-	provider2, err := NewConsulProvider(conf2.Config, delegate2)
-	require.NoError(t, err)
+	provider2 := NewConsulProvider(delegate2)
+	require.NoError(provider2.Configure(conf2.ClusterID, true, conf2.Config))
+	require.NoError(provider2.GenerateRoot())
 
 	testCrossSignProviders(t, provider1, provider2)
 }
