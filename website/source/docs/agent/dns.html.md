@@ -101,13 +101,14 @@ By default, SRV weights are all set at 1, but changing weights is supported usin
 Note that DNS is limited in size per request, even when performing DNS TCP
 queries.
 
-For services having many instances (more than 500 instances), it might not be possible to retrieve the complete list of instances for the service.
+For services having many instances (more than 500), it might not be possible to 
+retrieve the complete list of instances for the service.
 
-When DNS SRV response are sent, order is being randomized, but weights are not
-taken into account, so if different systems using SRV responses to build a
-topology of nodes will have a different view of instances of services, and
-weight of nodes will not be applied properly for a given SRV response.
-In that case, it is recommended to use HTTP API to retrieve the list of nodes.
+When DNS SRV response are sent, order is randomized, but weights are not
+taken into account. In the case of truncation different clients using weighted SRV 
+responses will have partial and inconsistent views of instances weights so the 
+request distribution could be skewed from the intended weights. In that case, 
+it is recommended to use the HTTP API to retrieve the list of nodes.
 
 ### Standard Lookup
 
