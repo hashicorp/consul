@@ -15,10 +15,10 @@
         {{tab-nav
             items=(compact
               (array
-              (if (gt item.Checks.length 0) 'Health Checks' '')
-                                            'Services'
-              (if tomography                'Round Trip Time' '')
-                                            'Lock Sessions'
+                             'Health Checks'
+                             'Services'
+              (if tomography 'Round Trip Time' '')
+                             'Lock Sessions'
               )
             )
             selected=selectedTab
@@ -47,10 +47,10 @@
         {{#each
             (compact
                 (array
-     (if (gt item.Checks.length 0)  (hash id=(slugify 'Health Checks') partial='dc/nodes/healthchecks') '')
-                                    (hash id=(slugify 'Services') partial='dc/nodes/services')
-     (if tomography                 (hash id=(slugify 'Round Trip Time') partial='dc/nodes/rtt') '')
-                                    (hash id=(slugify 'Lock Sessions') partial='dc/nodes/sessions')
+                    (hash id=(slugify 'Health Checks') partial='dc/nodes/healthchecks')
+                    (hash id=(slugify 'Services') partial='dc/nodes/services')
+     (if tomography (hash id=(slugify 'Round Trip Time') partial='dc/nodes/rtt') '')
+                    (hash id=(slugify 'Lock Sessions') partial='dc/nodes/sessions')
                 )
             ) as |panel|
         }}

@@ -38,7 +38,7 @@ Feature: dc / nodes / show: Show node
 
     When I click lockSessions on the tabs
     And I see lockSessionsIsSelected on the tabs
-  Scenario: Given 1 node with no checks all the tabs are visible and clickable and the Health Checks one isn't there
+  Scenario: Given 1 node with no checks all the tabs are visible but the Services tab is selected
     Given 1 datacenter model with the value "dc1"
     And 1 node models from yaml
     ---
@@ -50,10 +50,8 @@ Feature: dc / nodes / show: Show node
       dc: dc1
       node: node-0
     ---
-    And I don't see healthChecks on the tabs
-
-    When I click services on the tabs
+    And I see healthChecks on the tabs
+    And I see services on the tabs
+    And I see roundTripTime on the tabs
+    And I see lockSessions on the tabs
     And I see servicesIsSelected on the tabs
-
-    When I click lockSessions on the tabs
-    And I see lockSessionsIsSelected on the tabs
