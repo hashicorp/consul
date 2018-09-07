@@ -164,7 +164,7 @@ but excluded if the optional param `only_passing = true` is present in
 agent DNS configuration or `?passing` is used via the API.
 When DNS SRV requests are made, the response will include the weights
 specified given the state of the service.
-This allows some instances to be given hight weight if they have more capacity,
+This allows some instances to be given higher weight if they have more capacity,
 and optionally allows reducing load on services with checks in `warning` status
 by giving passing instances a higher weight.
 
