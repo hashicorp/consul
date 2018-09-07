@@ -8,6 +8,6 @@ ENV GOPATH /home/travis/go
 
 USER travis
 
-COPY test.sh /usr/local/bin/test.sh
+COPY flake.sh /usr/local/bin/flake.sh
 
-ENTRYPOINT [ "bash", "test.sh" ]
+ENTRYPOINT [ "bash", "flake.sh" ]

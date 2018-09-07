@@ -13,8 +13,6 @@ fi
 mv $TEST_BINARY $TEST_PKG/$TEST_BINARY
 cd $TEST_PKG
 
-echo "> Running tests... "
-echo
 for ((i=0; i < $ITERATIONS; i++)) ; do
 	echo "$(date +"%F %T") - ($((i+1))/$ITERATIONS)"
 	

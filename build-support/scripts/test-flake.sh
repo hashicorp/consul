@@ -57,29 +57,32 @@ function build_repro_env {
 
     APP=$(pwd | awk '{n=split($0, a, "/"); print a[n]}')
 
-    echo -e "App:\t\t$APP"
-    echo -e "Package:\t$1"
-    echo -e "Test:\t\t$2"
-    echo -e "CPUs:\t\t$3"
-    echo -e "Iterations:\t$4"
+    status_stage -e "App:\t\t$APP"
+    status_stage -e "Package:\t$1"
+    status_stage -e "Test:\t\t$2"
+    status_stage -e "CPUs:\t\t$3"
+    status_stage -e "Iterations:\t$4"
     echo
 
-    echo "-----> Cleaning up old containers..."
+    status_stage "----> Cleaning up old containers..."
     if docker ps -a | grep $CONTAINER ; then
         docker rm $(docker ps -a | grep $CONTAINER | awk '{print $1;}')
     fi
 
-    echo '----> Rebuilding image...'
+    status_stage '----> Rebuilding image...'
     (cd $IMG_DIR && docker build -q -t $IMAGE --no-cache -f Test-Flake.dockerfile .)
 
-    echo "---> Building app binary..."
+    status_stage "--> Building app binary..."
     env GOOS=$GOOS GOARCH=$GOARCH go build -o bin/$APP
 
-    echo "--> Building test binary..."
+    status_stage "-> Building test binary..."
     env GOOS=$GOOS GOARCH=$GOARCH go test -c "./$1" -o $TEST_BINARY
 
-    echo "-> Running container..."
+    status_stage "> Running container..."
+    status_stage
+
     docker run \
+    --rm \
     --name $CONTAINER \
     --cpus="$3" \
     -v $SOURCE_DIR:/home/travis/go/$APP \
@@ -89,8 +92,6 @@ function build_repro_env {
     -e ITERATIONS="$4" \
     -e APP="$APP" \
     $IMAGE
-
-    docker rm -f $CONTAINER > /dev/null
 }
 
 function err_usage {
