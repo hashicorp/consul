@@ -138,6 +138,8 @@ func testRemoteExecGetSpec(t *testing.T, hcl string, token string, shouldSucceed
 	defer a.Shutdown()
 	if dc != "" {
 		testrpc.WaitForLeader(t, a.RPC, dc)
+	} else {
+		testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	}
 	event := &remoteExecEvent{
 		Prefix:  "_rexec",
