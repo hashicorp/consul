@@ -140,6 +140,25 @@ and consider if they're appropriate for your deployment.
   This can be used to add additional configuration that isn't directly exposed
   by the chart.
 
+  - <a name="v-server-extravolumes" href="#v-server-extravolumes">`extraVolumes`</a> (`array: []`) -
+  A list of extra volumes to mount for server agents. This is useful for bringing
+  in extra data that can be referenced by other configurations at a well known
+  path, such as TLS certificates or Gossip encryption keys.
+  The value of this should be a list of objects. Each object has the following
+  supports the following keys:
+
+      * <a name="v-server-extravolumes-type" href="#v-server-extravolumes-type">`type`</a> (`string: required`) -
+      Type of the volume, must be one of "configMap" or "secret". Case sensitive.
+
+      * <a name="v-server-extravolumes-name" href="#v-server-extravolumes-name">`name`</a> (`string: required`) -
+      Name of the configMap or secret to be mounted. This also controls the path
+      that it is mounted to. The volume will be mounted to `/config/userconfig/<name>`.
+
+      * <a name="v-server-extravolumes-load" href="#v-server-extravolumes-load">`load`</a> (`boolean: false`) -
+      If true, then the agent will be configured to automatically load HCL/JSON
+      configuration files from this volume with `-config-dir`. This defaults
+      to false.
+
   - <a name="v-server-resources" href="#v-server-resources">`resources`</a> (`object: {}`) -
   The resource requests (CPU, memory, etc.) for each of the server agents.
   This should be an object mapping directly to a Kubernetes
@@ -175,6 +194,25 @@ and consider if they're appropriate for your deployment.
   will be saved as-is into a ConfigMap that is read by the Consul agents.
   This can be used to add additional configuration that isn't directly exposed
   by the chart.
+
+  - <a name="v-client-extravolumes" href="#v-client-extravolumes">`extraVolumes`</a> (`array: []`) -
+  A list of extra volumes to mount for client agents. This is useful for bringing
+  in extra data that can be referenced by other configurations at a well known
+  path, such as TLS certificates or Gossip encryption keys.
+  The value of this should be a list of objects. Each object has the following
+  supports the following keys:
+
+      * <a name="v-client-extravolumes-type" href="#v-client-extravolumes-type">`type`</a> (`string: required`) -
+      Type of the volume, must be one of "configMap" or "secret". Case sensitive.
+
+      * <a name="v-client-extravolumes-name" href="#v-client-extravolumes-name">`name`</a> (`string: required`) -
+      Name of the configMap or secret to be mounted. This also controls the path
+      that it is mounted to. The volume will be mounted to `/config/userconfig/<name>`.
+
+      * <a name="v-client-extravolumes-load" href="#v-client-extravolumes-load">`load`</a> (`boolean: false`) -
+      If true, then the agent will be configured to automatically load HCL/JSON
+      configuration files from this volume with `-config-dir`. This defaults
+      to false.
 
   - <a name="v-client-join" href="#v-client-join">`join`</a> (`array<string>: null`) -
   A list of values to specify to `-retry-join`. If this is `null` (default),
