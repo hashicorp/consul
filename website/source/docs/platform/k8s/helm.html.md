@@ -165,6 +165,12 @@ and consider if they're appropriate for your deployment.
   The name of the Docker image (including any tag) for the containers running
   Consul client agents.
 
+  - <a name="v-client-extraconfig" href="#v-client-extraconfig">`extraConfig`</a> (`string: "{}"`) -
+  A raw string of extra JSON or HCL configuration for Consul clients. This
+  will be saved as-is into a ConfigMap that is read by the Consul agents.
+  This can be used to add additional configuration that isn't directly exposed
+  by the chart.
+
   - <a name="v-client-join" href="#v-client-join">`join`</a> (`array<string>: null`) -
   A list of values to specify to `-retry-join`. If this is `null` (default),
   then the clients will attempt to automatically join the server cluster
