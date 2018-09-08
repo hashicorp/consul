@@ -79,6 +79,16 @@ and consider if they're appropriate for your deployment.
   This should be consistent throughout the chart, but can be overridden
   per-component as well.
 
+  - <a name="v-global-image" href="#v-global-image">`image`</a> (`string: "consul:latest"`) -
+  The name of the Docker image (including any tag) for the containers running
+  Consul agents.
+
+  - <a name="v-global-datacenter" href="#v-global-datacenter">`datacenter`</a> (`string: "dc1"`) -
+  The name of the datacenter that the agent cluster should register as.
+  This must not be changed once the cluster is bootstrapped and running,
+  since Consul doesn't yet support an automatic way to change this value.
+
+
 * <a name="v-server" href="#v-server">`server`</a> - Values that configure
   running a Consul server cluster within Kubernetes.
 
@@ -109,11 +119,6 @@ and consider if they're appropriate for your deployment.
   only enable usage of the feature. Consul will automatically initialize a new
   CA and set of certificates. Additional Connect settings can be configured
   by setting the `server.extraConfig` value.
-
-  - <a name="v-server-datacenter" href="#v-server-datacenter">`datacenter`</a> (`string: "dc1"`) -
-  The name of the datacenter that the server cluster should register as.
-  This must not be changed once the server is bootstrapped and running,
-  since Consul doesn't yet support an automatic way to change this value.
 
   - <a name="v-server-disruptionbudget" href="#v-server-disruptionbudget">`disruptionBudget`</a> -
   This configures the
@@ -177,6 +182,12 @@ and consider if they're appropriate for your deployment.
   running within Kubernetes. This means that with `server.enabled` set to true,
   clients will automatically join that cluster. If `server.enabled` is not
   true, then a value must be specified so the clients can join a valid cluster.
+
+  - <a name="v-client-resources" href="#v-client-resources">`resources`</a> (`object: {}`) -
+  The resource requests (CPU, memory, etc.) for each of the client agents.
+  This should be an object mapping directly to a Kubernetes
+  [ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.11/#resourcerequirements-v1-core) object. If this isn't specified, then the pods
+  won't request any specific amount of resources.
 
 * <a name="v-ui" href="#v-ui">`ui`</a> - Values that configure the Consul UI.
 
