@@ -717,6 +717,9 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		LeaveDrainTime:                          b.durationVal("performance.leave_drain_time", c.Performance.LeaveDrainTime),
 		LeaveOnTerm:                             leaveOnTerm,
 		LogLevel:                                b.stringVal(c.LogLevel),
+		LogFile:                                 b.stringVal(c.LogFile),
+		LogRotateBytes:                          b.intVal(c.LogRotateBytes),
+		LogRotateDuration:                       b.durationVal("log_rotate_duration", c.LogRotateDuration),
 		NodeID:                                  types.NodeID(b.stringVal(c.NodeID)),
 		NodeMeta:                                c.NodeMeta,
 		NodeName:                                b.nodeName(c.NodeName),
@@ -1083,6 +1086,19 @@ func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 	} else {
 		meta = v.Meta
 	}
+	serviceWeights := &structs.Weights{Passing: 1, Warning: 1}
+	if v.Weights != nil {
+		if v.Weights.Passing != nil {
+			serviceWeights.Passing = *v.Weights.Passing
+		}
+		if v.Weights.Warning != nil {
+			serviceWeights.Warning = *v.Weights.Warning
+		}
+	}
+
+	if err := structs.ValidateWeights(serviceWeights); err != nil {
+		b.err = multierror.Append(fmt.Errorf("Invalid weight definition for service %s: %s", b.stringVal(v.Name), err))
+	}
 	return &structs.ServiceDefinition{
 		Kind:              b.serviceKindVal(v.Kind),
 		ID:                b.stringVal(v.ID),
@@ -1093,6 +1109,7 @@ func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		Port:              b.intVal(v.Port),
 		Token:             b.stringVal(v.Token),
 		EnableTagOverride: b.boolVal(v.EnableTagOverride),
+		Weights:           serviceWeights,
 		Checks:            checks,
 		ProxyDestination:  b.stringVal(v.ProxyDestination),
 		Connect:           b.serviceConnectVal(v.Connect),

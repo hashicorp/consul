@@ -27,7 +27,7 @@ func TestConnectCASetConfigCommand(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	ui := cli.NewMockUi()
 	c := New(ui)
 	args := []string{

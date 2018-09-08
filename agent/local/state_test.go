@@ -47,6 +47,10 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		Service: "mysql",
 		Tags:    []string{"master"},
 		Port:    5000,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
 	}
 	a.State.AddService(srv1, "")
 	args.Service = srv1
@@ -60,6 +64,10 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		Service: "redis",
 		Tags:    []string{},
 		Port:    8000,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 0,
+		},
 	}
 	a.State.AddService(srv2, "")
 
@@ -77,6 +85,10 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		Service: "web",
 		Tags:    []string{},
 		Port:    80,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
 	}
 	a.State.AddService(srv3, "")
 
@@ -86,6 +98,10 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		Service: "lb",
 		Tags:    []string{},
 		Port:    443,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 0,
+		},
 	}
 	args.Service = srv4
 	if err := a.RPC("Catalog.Register", args, &out); err != nil {
@@ -99,6 +115,10 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		Tags:    []string{},
 		Address: "127.0.0.10",
 		Port:    8000,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
 	}
 	a.State.AddService(srv5, "")
 
@@ -116,6 +136,10 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		Service: "cache",
 		Tags:    []string{},
 		Port:    11211,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 0,
+		},
 	}
 	a.State.SetServiceState(&local.ServiceState{
 		Service: srv6,
@@ -257,6 +281,10 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 		Service:          "mysql-proxy",
 		Port:             5000,
 		ProxyDestination: "db",
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
 	}
 	a.State.AddService(srv1, "")
 	args.Service = srv1
@@ -269,6 +297,10 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 		Port:             8000,
 		Kind:             structs.ServiceKindConnectProxy,
 		ProxyDestination: "redis",
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 0,
+		},
 	}
 	a.State.AddService(srv2, "")
 
@@ -285,6 +317,10 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 		Port:             80,
 		Kind:             structs.ServiceKindConnectProxy,
 		ProxyDestination: "web",
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
 	}
 	a.State.AddService(srv3, "")
 
@@ -295,6 +331,10 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 		Port:             443,
 		Kind:             structs.ServiceKindConnectProxy,
 		ProxyDestination: "lb",
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 0,
+		},
 	}
 	args.Service = srv4
 	assert.Nil(a.RPC("Catalog.Register", args, &out))
@@ -306,6 +346,10 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 		Port:             11211,
 		Kind:             structs.ServiceKindConnectProxy,
 		ProxyDestination: "cache-proxy",
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
 	}
 	a.State.SetServiceState(&local.ServiceState{
 		Service: srv5,
@@ -394,6 +438,10 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 		Tags:              []string{"tag1"},
 		Port:              6100,
 		EnableTagOverride: true,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
 	}
 	a.State.AddService(srv1, "")
 
@@ -404,6 +452,10 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 		Tags:              []string{"tag2"},
 		Port:              6200,
 		EnableTagOverride: false,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
 	}
 	a.State.AddService(srv2, "")
 
@@ -421,6 +473,10 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 		Tags:              []string{"tag1_mod"},
 		Port:              7100,
 		EnableTagOverride: true,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
 	}
 	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -432,6 +488,10 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 		Tags:              []string{"tag2_mod"},
 		Port:              7200,
 		EnableTagOverride: false,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 0,
+		},
 	}
 	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -465,6 +525,10 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 				Tags:              []string{"tag1_mod"},
 				Port:              6100,
 				EnableTagOverride: true,
+				Weights: &structs.Weights{
+					Passing: 1,
+					Warning: 1,
+				},
 			}
 			if !verify.Values(t, "", got, want) {
 				t.FailNow()
@@ -651,6 +715,10 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 		Service: "mysql",
 		Tags:    []string{"master"},
 		Port:    5000,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
 	}
 	a.State.AddService(srv1, token)
 
@@ -660,6 +728,10 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 		Service: "api",
 		Tags:    []string{"foo"},
 		Port:    5001,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 0,
+		},
 	}
 	a.State.AddService(srv2, token)
 
@@ -990,6 +1062,10 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 		Service: "mysql",
 		Tags:    []string{"master"},
 		Port:    5000,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
 	}
 	a.State.AddService(srv1, "root")
 	srv2 := &structs.NodeService{
@@ -997,6 +1073,10 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 		Service: "api",
 		Tags:    []string{"foo"},
 		Port:    5001,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
 	}
 	a.State.AddService(srv2, "root")
 

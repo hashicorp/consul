@@ -496,7 +496,6 @@ func TestSessionGet(t *testing.T) {
 }
 
 func TestSessionList(t *testing.T) {
-	t.Parallel()
 	t.Run("", func(t *testing.T) {
 		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()

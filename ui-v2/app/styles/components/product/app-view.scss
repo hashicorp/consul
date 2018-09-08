@@ -1,0 +1,85 @@
+%app-view h2,
+%app-view header > div:last-of-type {
+  border-bottom: $decor-border-100;
+}
+%app-view header > div:last-of-type,
+%app-view h2 {
+  border-color: $keyline-light;
+}
+%app-content div > dl > dd {
+  color: $ui-gray-400;
+}
+[role='tabpanel'] > p:only-child,
+.template-error > div {
+  background-color: $ui-gray-050;
+  color: $ui-gray-400;
+}
+%app-content > p:only-child,
+%app-view > div.disabled > div {
+  background-color: $ui-gray-050;
+  color: $ui-gray-400;
+}
+%app-view header > div:last-of-type > div:first-child {
+  flex-grow: 1;
+}
+%app-view {
+  position: relative;
+}
+%app-view header .actions {
+  float: right;
+  display: flex;
+  align-items: flex-start;
+}
+%app-view {
+  margin-top: 50px;
+}
+%app-view h2 {
+  padding-bottom: 0.2em;
+  margin-bottom: 1.1em;
+}
+%app-view header + div > *:first-child {
+  margin-top: 1.25em;
+}
+%app-view header .actions > *:not(:last-child) {
+  margin-right: 7px;
+}
+%app-view header .actions a,
+%app-view header .actions button {
+  padding: calc(0.375em - 1px) calc(2.2em - 1px);
+  height: 2.25em;
+}
+
+// content
+%app-content div > dl > dt {
+  position: absolute;
+}
+%app-content div > dl {
+  position: relative;
+}
+[role='tabpanel'] > p:only-child,
+.template-error > div,
+%app-content > p:only-child,
+%app-view > div.disabled > div {
+  margin-top: 0;
+  padding: 50px;
+  text-align: center;
+}
+[role='tabpanel'] > *:first-child {
+  margin-top: 1.25em;
+}
+%app-view > div.disabled > div {
+  margin-top: 0 !important;
+}
+%app-content form:not(:last-child) {
+  margin-bottom: 2.2em;
+}
+%app-content div > dl > dt {
+  width: 120px;
+}
+%app-content div > dl > dd {
+  padding-left: 120px;
+}
+%app-content div > dl > * {
+  min-height: 1em;
+  margin-bottom: 0.3em;
+}

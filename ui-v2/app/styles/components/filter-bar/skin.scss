@@ -1,0 +1,38 @@
+// decoration/color
+%filter-bar > * {
+  border: $decor-border-100;
+  border-radius: $radius-small;
+}
+// TODO: Move this elsewhere
+@media #{$--horizontal-selects} {
+  %filter-bar label:not(:last-child) {
+    border-right: $decor-border-100;
+  }
+}
+@media #{$--lt-horizontal-selects} {
+  %filter-bar label:not(:last-child) {
+    border-bottom: $decor-border-100;
+  }
+}
+%filter-bar [role='radiogroup'] label {
+  cursor: pointer;
+  white-space: nowrap;
+}
+%filter-bar,
+%filter-bar > * {
+  background-color: $ui-gray-050;
+}
+%filter-bar > *,
+%filter-bar label:not(:last-child) {
+  border-color: $ui-gray-300 !important;
+}
+
+%filter-bar [role='radiogroup'] label {
+  color: $ui-gray-400;
+}
+%filter-bar .value-warning span::after {
+  border-color: $ui-gray-050;
+}
+%filter-bar .value-warning input:checked + span::after {
+  border-color: $ui-white;
+}

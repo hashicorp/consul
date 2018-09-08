@@ -1,5 +1,20 @@
 {{#hashicorp-consul id="wrapper" dcs=dcs dc=dc}}
     {{#app-view class="settings show"}}
+        {{#block-slot 'notification' as |status type|}}
+          {{#if (eq type 'update')}}
+            {{#if (eq status 'success') }}
+              Your settings were saved.
+            {{else}}
+              There was an error saving your settings.
+            {{/if}}
+          {{ else if (eq type 'delete')}}
+            {{#if (eq status 'success') }}
+              You settings have been reset.
+            {{else}}
+              There was an error resetting your settings.
+            {{/if}}
+          {{/if}}
+        {{/block-slot}}
         {{#block-slot 'header'}}
             <h1>
                 Settings

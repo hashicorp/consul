@@ -3,7 +3,7 @@ Feature: dc / nodes / sessions / invalidate: Invalidate Lock Sessions
   In order to invalidate a lock session
   As a user
   I should be able to invalidate a lock session by clicking a button and confirming
-  Scenario: Given 2 lock sessions
+  Background:
     Given 1 datacenter model with the value "dc1"
     And 1 node model from yaml
     ---
@@ -19,8 +19,20 @@ Feature: dc / nodes / sessions / invalidate: Invalidate Lock Sessions
       dc: dc1
       node: node-0
     ---
+    Then the url should be /dc1/nodes/node-0
     And I click lockSessions on the tabs
     Then I see lockSessionsIsSelected on the tabs
+  Scenario: Invalidating the lock session
     And I click delete on the sessions
     And I click confirmDelete on the sessions
     Then a PUT request is made to "/v1/session/destroy/7bbbd8bb-fff3-4292-b6e3-cfedd788546a?dc=dc1"
+    Then the url should be /dc1/nodes/node-0
+    And "[data-notification]" has the "notification-delete" class
+    And "[data-notification]" has the "success" class
+  Scenario: Invalidating a lock session and receiving an error
+    Given the url "/v1/session/destroy/7bbbd8bb-fff3-4292-b6e3-cfedd788546a?dc=dc1" responds with a 500 status
+    And I click delete on the sessions
+    And I click confirmDelete on the sessions
+    Then the url should be /dc1/nodes/node-0
+    And "[data-notification]" has the "notification-delete" class
+    And "[data-notification]" has the "error" class

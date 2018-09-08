@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/serf/coordinate"
 )
 
@@ -72,6 +73,7 @@ func TestCoordinate_Nodes(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	// Make sure an empty list is non-nil.
 	req, _ := http.NewRequest("GET", "/v1/coordinate/nodes?dc=dc1", nil)
@@ -182,6 +184,7 @@ func TestCoordinate_Node(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	// Make sure we get a 404 with no coordinates.
 	req, _ := http.NewRequest("GET", "/v1/coordinate/node/foo?dc=dc1", nil)

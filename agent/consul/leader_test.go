@@ -890,6 +890,7 @@ func TestLeader_ChangeServerID(t *testing.T) {
 	joinLAN(t, s2, s1)
 	joinLAN(t, s3, s1)
 	for _, s := range servers {
+		testrpc.WaitForTestAgent(t, s.RPC, "dc1")
 		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
 	}
 
