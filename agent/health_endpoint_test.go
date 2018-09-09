@@ -184,6 +184,7 @@ func TestHealthNodeChecks(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	req, _ := http.NewRequest("GET", "/v1/health/node/nope?dc=dc1", nil)
 	resp := httptest.NewRecorder()
