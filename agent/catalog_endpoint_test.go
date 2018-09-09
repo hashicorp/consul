@@ -81,6 +81,7 @@ func TestCatalogNodes(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -93,7 +94,6 @@ func TestCatalogNodes(t *testing.T) {
 	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?dc=dc1", nil)
 	resp := httptest.NewRecorder()
