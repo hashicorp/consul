@@ -460,7 +460,7 @@ function build_consul_local {
             
             mkdir -p "${outdir}"
             GOBIN_EXTRA=""
-            if test "${os}" != "$(go env GOOS)" -o "${arch}" != "$(go env GOARCH)"
+            if test "${os}" != "$(go env GOHOSTOS)" -o "${arch}" != "$(go env GOHOSTARCH)"
             then
                GOBIN_EXTRA="${os}_${arch}/"
             fi
