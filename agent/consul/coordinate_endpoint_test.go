@@ -488,7 +488,7 @@ func TestCoordinate_Node(t *testing.T) {
 
 	codec := rpcClient(t, s1)
 	defer codec.Close()
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Register some nodes.
 	nodes := []string{"foo", "bar"}

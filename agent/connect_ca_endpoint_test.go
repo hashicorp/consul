@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/testrpc"
+
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -35,6 +37,7 @@ func TestConnectCARoots_list(t *testing.T) {
 	assert := assert.New(t)
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Set some CAs. Note that NewTestAgent already bootstraps one CA so this just
 	// adds a second and makes it active.

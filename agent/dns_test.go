@@ -6171,7 +6171,7 @@ func TestDNS_Compression_Recurse(t *testing.T) {
 		recursors = ["`+recursor.Addr+`"]
 	`)
 	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	m := new(dns.Msg)
 	m.SetQuestion("apple.com.", dns.TypeANY)
