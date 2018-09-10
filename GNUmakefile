@@ -194,6 +194,9 @@ test-ci: other-consul dev-build vet test-install-deps
 	    fi \
 	fi
 
+test-flake: other-consul vet test-install-deps
+	@$(SHELL) $(CURDIR)/build-support/scripts/test-flake.sh --pkg "$(FLAKE_PKG)" --test "$(FLAKE_TEST)" --cpus "$(FLAKE_CPUS)" --n "$(FLAKE_N)"
+
 other-consul:
 	@echo "--> Checking for other consul instances"
 	@if ps -ef | grep 'consul agent' | grep -v grep ; then \
