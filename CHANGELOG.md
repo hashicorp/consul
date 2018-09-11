@@ -23,6 +23,7 @@ BUG FIXES:
 * connect: Fixed a bug where managed proxy instances registered for instances with different name and ID and with restrictive ACL would not be allowed. [[GH-4619](https://github.com/hashicorp/consul/issues/4619)]
 * connect: Fixed a bug where built-in CA state was not correctly restored from a snapshot [[GH-4535](https://github.com/hashicorp/consul/pull/4535)]
 * raft: Update raft vendoring to pull in a fix for a potential memory leak. [[GH-4539](https://github.com/hashicorp/consul/pull/4539)]
+* license: (Consul Enterprise) Fix an issue with the license not being reloaded from snapshots.
 
 ## 1.2.2 (July 30, 2018)
 
