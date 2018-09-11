@@ -1818,6 +1818,15 @@ func (a *Agent) RemoveService(serviceID string, persist bool) error {
 		}
 	}
 
+	// Remove the associated managed proxy if it exists
+	for proxyID, p := range a.State.Proxies() {
+		if p.Proxy.TargetServiceID == serviceID {
+			if err := a.RemoveProxy(proxyID, true); err != nil {
+				return err
+			}
+		}
+	}
+
 	a.logger.Printf("[DEBUG] agent: removed service %q", serviceID)
 	return nil
 }
