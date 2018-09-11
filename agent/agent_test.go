@@ -3054,3 +3054,21 @@ func TestAgent_ReLoadProxiesFromConfig(t *testing.T) {
 	proxies = a.State.Proxies()
 	require.Len(proxies, 0)
 }
+
+func TestAgent_ShouldRunProxyManager(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		Config                config.RuntimeConfig
+		ShouldRunProxyManager bool
+	}{
+		{config.RuntimeConfig{ConnectEnabled: true, ConnectTestDisableManagedProxies: true}, false},
+		{config.RuntimeConfig{ConnectEnabled: true, ConnectTestDisableManagedProxies: false}, true},
+		{config.RuntimeConfig{ConnectEnabled: false, ConnectTestDisableManagedProxies: true}, false},
+		{config.RuntimeConfig{ConnectEnabled: false, ConnectTestDisableManagedProxies: false}, false},
+	}
+	for _, tt := range tests {
+		if shouldRunProxyManager(&tt.Config) != tt.ShouldRunProxyManager {
+			t.Fatal("Mismatch")
+		}
+	}
+}
