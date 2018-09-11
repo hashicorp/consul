@@ -135,6 +135,9 @@ func (d *DNSServer) ListenAndServe(network, addr string, notif func()) error {
 	return d.Server.ListenAndServe()
 }
 
+// setEDNS is used to set the responses EDNS size headers and
+// possibly the ECS headers as well if they were present in the
+// original request
 func setEDNS(request *dns.Msg, response *dns.Msg, ecsGlobal bool) {
 	// Enable EDNS if enabled
 	if edns := request.IsEdns0(); edns != nil {
