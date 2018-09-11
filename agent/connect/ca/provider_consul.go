@@ -21,9 +21,11 @@ import (
 var ErrNotInitialized = errors.New("provider not initialized")
 
 type ConsulProvider struct {
-	config   *structs.ConsulCAProviderConfig
-	id       string
-	delegate ConsulProviderStateDelegate
+	Delegate ConsulProviderStateDelegate
+
+	config *structs.ConsulCAProviderConfig
+	id     string
+	isRoot bool
 	sync.RWMutex
 }
 
@@ -32,14 +34,7 @@ type ConsulProviderStateDelegate interface {
 	ApplyCARequest(*structs.CARequest) error
 }
 
-// NewConsulProvider returns a new instance of the Consul CA provider,
-// bootstrapping its state in the state store necessary
-func NewConsulProvider(delegate ConsulProviderStateDelegate) *ConsulProvider {
-	return &ConsulProvider{
-		delegate: delegate,
-	}
-}
-
+// Configure sets up the provider using the given configuration.
 func (c *ConsulProvider) Configure(clusterId string, isRoot bool, rawConfig map[string]interface{}) error {
 	// Parse the raw config and update our ID.
 	config, err := ParseConsulCAConfig(rawConfig)
@@ -47,10 +42,11 @@ func (c *ConsulProvider) Configure(clusterId string, isRoot bool, rawConfig map[
 		return err
 	}
 	c.config = config
+	c.isRoot = isRoot
 	c.id = fmt.Sprintf("%s,%s", config.PrivateKey, config.RootCert)
 
 	// Exit early if the state store has an entry for this provider's config.
-	_, providerState, err := c.delegate.State().CAProviderState(c.id)
+	_, providerState, err := c.Delegate.State().CAProviderState(c.id)
 	if err != nil {
 		return err
 	}
@@ -61,24 +57,23 @@ func (c *ConsulProvider) Configure(clusterId string, isRoot bool, rawConfig map[
 
 	// Write the provider state to the state store.
 	newState := structs.CAConsulProviderState{
-		ID:     c.id,
-		IsRoot: isRoot,
+		ID: c.id,
 	}
 
 	args := &structs.CARequest{
 		Op:            structs.CAOpSetProviderState,
 		ProviderState: &newState,
 	}
-	if err := c.delegate.ApplyCARequest(args); err != nil {
+	if err := c.Delegate.ApplyCARequest(args); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// Return the active root CA and generate a new one if needed
+// ActiveRoot returns the active root CA certificate.
 func (c *ConsulProvider) ActiveRoot() (string, error) {
-	state := c.delegate.State()
+	state := c.Delegate.State()
 	_, providerState, err := state.CAProviderState(c.id)
 	if err != nil {
 		return "", err
@@ -87,8 +82,10 @@ func (c *ConsulProvider) ActiveRoot() (string, error) {
 	return providerState.RootCert, nil
 }
 
+// GenerateRoot initializes a new root certificate and private key
+// if needed.
 func (c *ConsulProvider) GenerateRoot() error {
-	state := c.delegate.State()
+	state := c.Delegate.State()
 	idx, providerState, err := state.CAProviderState(c.id)
 	if err != nil {
 		return err
@@ -97,7 +94,7 @@ func (c *ConsulProvider) GenerateRoot() error {
 	if providerState == nil {
 		return ErrNotInitialized
 	}
-	if !providerState.IsRoot {
+	if !c.isRoot {
 		return fmt.Errorf("provider is not the root certificate authority")
 	}
 	if providerState.RootCert != "" {
@@ -132,7 +129,7 @@ func (c *ConsulProvider) GenerateRoot() error {
 		Op:            structs.CAOpSetProviderState,
 		ProviderState: &newState,
 	}
-	if err := c.delegate.ApplyCARequest(args); err != nil {
+	if err := c.Delegate.ApplyCARequest(args); err != nil {
 		return err
 	}
 
@@ -157,7 +154,7 @@ func (c *ConsulProvider) Cleanup() error {
 		Op:            structs.CAOpDeleteProviderState,
 		ProviderState: &structs.CAConsulProviderState{ID: c.id},
 	}
-	if err := c.delegate.ApplyCARequest(args); err != nil {
+	if err := c.Delegate.ApplyCARequest(args); err != nil {
 		return err
 	}
 
@@ -173,7 +170,7 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	defer c.Unlock()
 
 	// Get the provider state
-	state := c.delegate.State()
+	state := c.Delegate.State()
 	idx, providerState, err := state.CAProviderState(c.id)
 	if err != nil {
 		return "", err
@@ -265,7 +262,7 @@ func (c *ConsulProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 	defer c.Unlock()
 
 	// Get the provider state
-	state := c.delegate.State()
+	state := c.Delegate.State()
 	idx, providerState, err := state.CAProviderState(c.id)
 	if err != nil {
 		return "", err
@@ -333,7 +330,7 @@ func (c *ConsulProvider) incrementProviderIndex(providerState *structs.CAConsulP
 		Op:            structs.CAOpSetProviderState,
 		ProviderState: &newState,
 	}
-	if err := c.delegate.ApplyCARequest(args); err != nil {
+	if err := c.Delegate.ApplyCARequest(args); err != nil {
 		return err
 	}
 
@@ -342,7 +339,7 @@ func (c *ConsulProvider) incrementProviderIndex(providerState *structs.CAConsulP
 
 // generateCA makes a new root CA using the current private key
 func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error) {
-	state := c.delegate.State()
+	state := c.Delegate.State()
 	_, config, err := state.CAConfig()
 	if err != nil {
 		return "", err

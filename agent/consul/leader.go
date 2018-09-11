@@ -526,9 +526,9 @@ func parseCARoot(pemValue, provider string) (*structs.CARoot, error) {
 func (s *Server) createCAProvider(conf *structs.CAConfiguration) (ca.Provider, error) {
 	switch conf.Provider {
 	case structs.ConsulCAProvider:
-		return ca.NewConsulProvider(&consulCADelegate{s}), nil
+		return &ca.ConsulProvider{Delegate: &consulCADelegate{s}}, nil
 	case structs.VaultCAProvider:
-		return ca.NewVaultProvider(), nil
+		return &ca.VaultProvider{}, nil
 	default:
 		return nil, fmt.Errorf("unknown CA provider %q", conf.Provider)
 	}

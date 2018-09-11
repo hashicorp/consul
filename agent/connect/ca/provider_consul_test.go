@@ -75,7 +75,7 @@ func TestConsulCAProvider_Bootstrap(t *testing.T) {
 	conf := testConsulCAConfig()
 	delegate := newMockDelegate(t, conf)
 
-	provider := NewConsulProvider(delegate)
+	provider := &ConsulProvider{Delegate: delegate}
 	require.NoError(provider.Configure(conf.ClusterID, true, conf.Config))
 	require.NoError(provider.GenerateRoot())
 
@@ -106,7 +106,7 @@ func TestConsulCAProvider_Bootstrap_WithCert(t *testing.T) {
 	}
 	delegate := newMockDelegate(t, conf)
 
-	provider := NewConsulProvider(delegate)
+	provider := &ConsulProvider{Delegate: delegate}
 	require.NoError(provider.Configure(conf.ClusterID, true, conf.Config))
 	require.NoError(provider.GenerateRoot())
 
@@ -123,7 +123,7 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 	conf.Config["LeafCertTTL"] = "1h"
 	delegate := newMockDelegate(t, conf)
 
-	provider := NewConsulProvider(delegate)
+	provider := &ConsulProvider{Delegate: delegate}
 	require.NoError(provider.Configure(conf.ClusterID, true, conf.Config))
 	require.NoError(provider.GenerateRoot())
 
@@ -186,14 +186,14 @@ func TestConsulCAProvider_CrossSignCA(t *testing.T) {
 
 	conf1 := testConsulCAConfig()
 	delegate1 := newMockDelegate(t, conf1)
-	provider1 := NewConsulProvider(delegate1)
+	provider1 := &ConsulProvider{Delegate: delegate1}
 	require.NoError(provider1.Configure(conf1.ClusterID, true, conf1.Config))
 	require.NoError(provider1.GenerateRoot())
 
 	conf2 := testConsulCAConfig()
 	conf2.CreateIndex = 10
 	delegate2 := newMockDelegate(t, conf2)
-	provider2 := NewConsulProvider(delegate2)
+	provider2 := &ConsulProvider{Delegate: delegate2}
 	require.NoError(provider2.Configure(conf2.ClusterID, true, conf2.Config))
 	require.NoError(provider2.GenerateRoot())
 

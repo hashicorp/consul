@@ -253,7 +253,6 @@ type CAConsulProviderState struct {
 	ID               string
 	PrivateKey       string
 	RootCert         string
-	IsRoot           bool
 	IntermediateCert string
 
 	RaftIndex

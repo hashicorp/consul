@@ -28,14 +28,7 @@ type VaultProvider struct {
 	clusterId string
 }
 
-// NewVaultProvider returns a vault provider with its root and intermediate PKI
-// backends mounted and initialized. If the root backend is not set up already,
-// it will be mounted/generated as needed, but any existing state will not be
-// overwritten.
-func NewVaultProvider() *VaultProvider {
-	return &VaultProvider{}
-}
-
+// Configure sets up the provider using the given configuration.
 func (v *VaultProvider) Configure(clusterId string, isRoot bool, rawConfig map[string]interface{}) error {
 	config, err := ParseVaultCAConfig(rawConfig)
 	if err != nil {
@@ -59,6 +52,12 @@ func (v *VaultProvider) Configure(clusterId string, isRoot bool, rawConfig map[s
 	return nil
 }
 
+// ActiveRoot returns the active root CA certificate.
+func (v *VaultProvider) ActiveRoot() (string, error) {
+	return v.getCA(v.config.RootPKIPath)
+}
+
+// GenerateRoot mounts and initializes a new root PKI backend if needed.
 func (v *VaultProvider) GenerateRoot() error {
 	if !v.isRoot {
 		return fmt.Errorf("provider is not the root certificate authority")
@@ -103,10 +102,7 @@ func (v *VaultProvider) GenerateRoot() error {
 	return nil
 }
 
-func (v *VaultProvider) ActiveRoot() (string, error) {
-	return v.getCA(v.config.RootPKIPath)
-}
-
+// ActiveIntermediate returns the current intermediate certificate.
 func (v *VaultProvider) ActiveIntermediate() (string, error) {
 	return v.getCA(v.config.IntermediatePKIPath)
 }

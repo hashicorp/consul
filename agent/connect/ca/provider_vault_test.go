@@ -38,7 +38,7 @@ func testVaultClusterWithConfig(t *testing.T, rawConf map[string]interface{}) (*
 	}
 
 	require := require.New(t)
-	provider := NewVaultProvider()
+	provider := &VaultProvider{}
 	require.NoError(provider.Configure("asdf", true, conf))
 	require.NoError(provider.GenerateRoot())
 	_, err := provider.GenerateIntermediate()
