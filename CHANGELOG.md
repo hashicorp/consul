@@ -21,6 +21,7 @@ BUG FIXES:
 * server: Fixed a memory leak in blocking queries against /event/list. [[GH-4482](https://github.com/hashicorp/consul/issues/4482)]
 * snapshot: Fixed a bug where node metadata wasn't being included in or restored from the snapshots. [[GH-4524](https://github.com/hashicorp/consul/issues/4524)]
 * connect: Fixed a bug where managed proxy instances registered for instances with different name and ID and with restrictive ACL would not be allowed. [[GH-4619](https://github.com/hashicorp/consul/issues/4619)]
+* connect: Fixed a bug where built-in CA state was not correctly restored from a snapshot [[GH-4535](https://github.com/hashicorp/consul/pull/4535)]
 * raft: Update raft vendoring to pull in a fix for a potential memory leak. [[GH-4539](https://github.com/hashicorp/consul/pull/4539)]
 
 ## 1.2.2 (July 30, 2018)
