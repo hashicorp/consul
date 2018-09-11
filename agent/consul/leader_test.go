@@ -1020,7 +1020,7 @@ func TestLeader_CARootPruning(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Get the current root
 	rootReq := &structs.DCSpecificRequest{
