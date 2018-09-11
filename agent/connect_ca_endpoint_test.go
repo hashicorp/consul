@@ -23,6 +23,7 @@ func TestConnectCARoots_empty(t *testing.T) {
 	require := require.New(t)
 	a := NewTestAgent(t.Name(), "connect { enabled = false }")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	req, _ := http.NewRequest("GET", "/v1/connect/ca/roots", nil)
 	resp := httptest.NewRecorder()
@@ -66,6 +67,7 @@ func TestConnectCAConfig(t *testing.T) {
 	assert := assert.New(t)
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	expected := &structs.ConsulCAProviderConfig{
 		RotationPeriod: 90 * 24 * time.Hour,
