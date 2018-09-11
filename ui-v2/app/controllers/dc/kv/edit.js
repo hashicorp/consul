@@ -10,7 +10,7 @@ export default Controller.extend({
   encoder: service('btoa'),
   setProperties: function(model) {
     // TODO: Potentially save whether json has been clicked to the model
-    set(this, 'json', false);
+    set(this, 'json', true);
     this.changeset = new Changeset(model.item, lookupValidator(validations), validations);
     this._super({
       ...model,
