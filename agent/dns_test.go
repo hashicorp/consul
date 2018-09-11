@@ -755,6 +755,98 @@ func TestDNS_EDNS0(t *testing.T) {
 	}
 }
 
+func TestDNS_EDNS0_ECS(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Register a node with a service.
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				Service: "db",
+				Tags:    []string{"master"},
+				Port:    12345,
+			},
+		}
+
+		var out struct{}
+		require.NoError(t, a.RPC("Catalog.Register", args, &out))
+	}
+
+	// Register an equivalent prepared query.
+	var id string
+	{
+		args := &structs.PreparedQueryRequest{
+			Datacenter: "dc1",
+			Op:         structs.PreparedQueryCreate,
+			Query: &structs.PreparedQuery{
+				Name: "test",
+				Service: structs.ServiceQuery{
+					Service: "db",
+				},
+			},
+		}
+		require.NoError(t, a.RPC("PreparedQuery.Apply", args, &id))
+	}
+
+	cases := []struct {
+		Name          string
+		Question      string
+		SubnetAddr    string
+		SourceNetmask uint8
+		ExpectedScope uint8
+	}{
+		{"global", "db.service.consul.", "198.18.0.1", 32, 0},
+		{"query", "test.query.consul.", "198.18.0.1", 32, 32},
+		{"query-subnet", "test.query.consul.", "198.18.0.0", 21, 21},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			c := new(dns.Client)
+			// Query the service directly - should have a globally valid scope (0)
+			m := new(dns.Msg)
+			edns := new(dns.OPT)
+			edns.Hdr.Name = "."
+			edns.Hdr.Rrtype = dns.TypeOPT
+			edns.SetUDPSize(12345)
+			edns.SetDo(true)
+			subnetOp := new(dns.EDNS0_SUBNET)
+			subnetOp.Code = dns.EDNS0SUBNET
+			subnetOp.Family = 1
+			subnetOp.SourceNetmask = tc.SourceNetmask
+			subnetOp.Address = net.ParseIP(tc.SubnetAddr)
+			edns.Option = append(edns.Option, subnetOp)
+			m.Extra = append(m.Extra, edns)
+			m.SetQuestion(tc.Question, dns.TypeA)
+
+			in, _, err := c.Exchange(m, a.DNSAddr())
+			require.NoError(t, err)
+			require.Len(t, in.Answer, 1)
+			aRec, ok := in.Answer[0].(*dns.A)
+			require.True(t, ok)
+			require.Equal(t, "127.0.0.1", aRec.A.String())
+
+			optRR := in.IsEdns0()
+			require.NotNil(t, optRR)
+			require.Len(t, optRR.Option, 1)
+
+			subnet, ok := optRR.Option[0].(*dns.EDNS0_SUBNET)
+			require.True(t, ok)
+			require.Equal(t, uint16(1), subnet.Family)
+			require.Equal(t, tc.SourceNetmask, subnet.SourceNetmask)
+			// scope set to 0 for a globally valid reply
+			require.Equal(t, tc.ExpectedScope, subnet.SourceScope)
+			require.Equal(t, net.ParseIP(tc.SubnetAddr), subnet.Address)
+		})
+	}
+}
+
 func TestDNS_ReverseLookup(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
