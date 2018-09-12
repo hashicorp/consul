@@ -1170,9 +1170,23 @@ func (b *Builder) serviceConnectVal(v *ServiceConnect) *structs.ServiceConnect {
 		}
 	}
 
+	sidecar := b.serviceVal(v.SidecarService)
+	if sidecar != nil {
+		// Sanity checks
+		if sidecar.ID != "" {
+			b.err = multierror.Append(b.err, fmt.Errorf("sidecar_service can't speficy an ID"))
+			sidecar.ID = ""
+		}
+		if sidecar.Connect != nil && sidecar.Connect.SidecarService != nil {
+			b.err = multierror.Append(b.err, fmt.Errorf("sidecar_service can't have a nested sidecar_service"))
+			sidecar.Connect.SidecarService = nil
+		}
+	}
+
 	return &structs.ServiceConnect{
-		Native: b.boolVal(v.Native),
-		Proxy:  proxy,
+		Native:         b.boolVal(v.Native),
+		Proxy:          proxy,
+		SidecarService: sidecar,
 	}
 }
 

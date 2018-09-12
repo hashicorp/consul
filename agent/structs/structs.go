@@ -644,6 +644,15 @@ type ServiceConnect struct {
 	// only used for agent service definitions and is invalid for non-agent
 	// (catalog API) definitions.
 	Proxy *ServiceDefinitionConnectProxy
+
+	// SidecarService is a nested Service Definition to register at the same time.
+	// It's purely a convenience mechanism to allow specifying a sidecar service
+	// along with the application service definition. It's nested nature allows
+	// all of the fields to be defaulted which can reduce the amount of
+	// boilerplate needed to register a sidecar service separately, but the end
+	// result is identical to just making a second service registration via any
+	// other means.
+	SidecarService *ServiceDefinition
 }
 
 // Validate validates the node service configuration.
@@ -678,6 +687,20 @@ func (s *NodeService) Validate() error {
 		if s.Connect.Native {
 			result = multierror.Append(result, fmt.Errorf(
 				"A Proxy cannot also be Connect Native, only typical services"))
+		}
+	}
+
+	// Nested sidecar validation
+	if s.Connect.SidecarService != nil {
+		if s.Connect.SidecarService.ID != "" {
+			result = multierror.Append(result, fmt.Errorf(
+				"A SidecarService cannot specify an ID as this is managed by the "+
+					"agent"))
+		}
+		if s.Connect.SidecarService.Connect != nil &&
+			s.Connect.SidecarService.Connect.SidecarService != nil {
+			result = multierror.Append(result, fmt.Errorf(
+				"A SidecarService cannot have a nested SidecarService"))
 		}
 	}
 

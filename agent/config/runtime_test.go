@@ -1864,6 +1864,69 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			err: "Serf Advertise WAN address 10.0.0.1:1000 already configured for RPC Advertise",
 		},
 		{
+			desc: "sidecar_service can't have ID",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+				  "service": {
+						"name": "web",
+						"port": 1234,
+						"connect": {
+							"sidecar_service": {
+								"ID": "random-sidecar-id"
+							}
+						}
+					}
+				}`},
+			hcl: []string{`
+				service {
+					name = "web"
+					port = 1234
+					connect {
+						sidecar_service {
+							ID = "random-sidecar-id"
+						}
+					}
+				}
+			`},
+			err: "sidecar_service can't speficy an ID",
+		},
+		{
+			desc: "sidecar_service can't have nested sidecar",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+				  "service": {
+						"name": "web",
+						"port": 1234,
+						"connect": {
+							"sidecar_service": {
+								"connect": {
+									"sidecar_service": {}
+								}
+							}
+						}
+					}
+				}`},
+			hcl: []string{`
+				service {
+					name = "web"
+					port = 1234
+					connect {
+						sidecar_service {
+							connect {
+								sidecar_service {
+								}
+							}
+						}
+					}
+				}
+			`},
+			err: "sidecar_service can't have a nested sidecar_service",
+		},
+		{
 			desc: "telemetry.prefix_filter cannot be empty",
 			args: []string{
 				`-data-dir=` + dataDir,
@@ -2828,6 +2891,9 @@ func TestFullConfig(t *testing.T) {
 						"timeout": "38333s",
 						"ttl": "57201s",
 						"deregister_critical_service_after": "44214s"
+					},
+					"connect": {
+						"sidecar_service": {}
 					}
 				},
 				{
@@ -3344,6 +3410,9 @@ func TestFullConfig(t *testing.T) {
 						ttl = "57201s"
 						deregister_critical_service_after = "44214s"
 					}
+					connect {
+						sidecar_service {}
+					}
 				},
 				{
 					id = "MRHVMZuD"
@@ -3857,6 +3926,13 @@ func TestFullConfig(t *testing.T) {
 						TTL:                            57201 * time.Second,
 						DeregisterCriticalServiceAfter: 44214 * time.Second,
 					},
+				},
+				// Note that although this SidecarService is only syntax sugar for
+				// registering another service, that has to happen in the agent code so
+				// it can make intelligent decisions about automatic port assignments
+				// etc. So we expect config just to pass it through verbatim.
+				Connect: &structs.ServiceConnect{
+					SidecarService: &structs.ServiceDefinition{},
 				},
 			},
 			{
