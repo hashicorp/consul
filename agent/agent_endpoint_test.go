@@ -127,6 +127,7 @@ func TestAgent_Services_ExternalConnectProxy(t *testing.T) {
 	assert.Equal(api.ServiceKindConnectProxy, actual.Kind)
 	assert.Equal(srv1.Proxy.ToAPI(), actual.Proxy)
 
+	// DEPRECATED (ProxyDestination) - remove the next comment and assertion
 	// Should still have deprecated ProxyDestination filled in until we remove it
 	// completely at a major version bump.
 	assert.Equal(srv1.Proxy.DestinationServiceName, actual.ProxyDestination)
@@ -1760,9 +1761,10 @@ func TestAgent_RegisterService_UnmanagedConnectProxy(t *testing.T) {
 	// Register a proxy. Note that the destination doesn't exist here on this
 	// agent or in the catalog at all. This is intended and part of the design.
 	args := &api.AgentServiceRegistration{
-		Kind:             api.ServiceKindConnectProxy,
-		Name:             "connect-proxy",
-		Port:             8000,
+		Kind: api.ServiceKindConnectProxy,
+		Name: "connect-proxy",
+		Port: 8000,
+		// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
 		ProxyDestination: "bad_destination", // Deprecated, check it's overridden
 		Proxy: &api.AgentServiceConnectProxyConfig{
 			DestinationServiceName: "web",

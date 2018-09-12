@@ -394,6 +394,7 @@ func TestAPI_CatalogConnect(t *testing.T) {
 
 	proxy := proxyReg.Service
 
+	// DEPRECATED (ProxyDestination) - remove this case when the field is removed
 	deprecatedProxyReg := testUnmanagedProxyRegistration(t)
 	deprecatedProxyReg.Service.ProxyDestination = deprecatedProxyReg.Service.Proxy.DestinationServiceName
 	deprecatedProxyReg.Service.Proxy = nil
@@ -603,11 +604,13 @@ func TestAPI_CatalogRegistration(t *testing.T) {
 	}
 	// Register a connect proxy for that service too
 	proxy := &AgentService{
-		ID:               "redis-proxy1",
-		Service:          "redis-proxy",
-		Port:             8001,
-		Kind:             ServiceKindConnectProxy,
-		ProxyDestination: service.ID,
+		ID:      "redis-proxy1",
+		Service: "redis-proxy",
+		Port:    8001,
+		Kind:    ServiceKindConnectProxy,
+		Proxy: &AgentServiceConnectProxyConfig{
+			DestinationServiceName: service.Service,
+		},
 	}
 	proxyReg := &CatalogRegistration{
 		Datacenter: "dc1",

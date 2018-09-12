@@ -75,7 +75,7 @@ type AgentService struct {
 	EnableTagOverride bool
 	CreateIndex       uint64 `json:",omitempty"`
 	ModifyIndex       uint64 `json:",omitempty"`
-	// ProxyDestination is DEPRECATED
+	// DEPRECATED (ProxyDestination) - remove this field
 	ProxyDestination string                          `json:",omitempty"`
 	Proxy            *AgentServiceConnectProxyConfig `json:",omitempty"`
 	Connect          *AgentServiceConnect            `json:",omitempty"`
@@ -147,7 +147,7 @@ type AgentServiceRegistration struct {
 	Meta              map[string]string `json:",omitempty"`
 	Check             *AgentServiceCheck
 	Checks            AgentServiceChecks
-	// ProxyDestination is DEPRECATED
+	// DEPRECATED (ProxyDestination) - remove this field
 	ProxyDestination string                          `json:",omitempty"`
 	Proxy            *AgentServiceConnectProxyConfig `json:",omitempty"`
 	Connect          *AgentServiceConnect            `json:",omitempty"`

@@ -183,10 +183,6 @@ func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) 
 			EnableTagOverride: s.EnableTagOverride,
 			CreateIndex:       s.CreateIndex,
 			ModifyIndex:       s.ModifyIndex,
-			// We no longer set ProxyDestination in response which is a backward
-			// incompatible change from original Connect release. I think it's OK
-			// since that was "beta" and I doubt anyone has built managed proxy
-			// automation against it yet. If they have it's an easy fix.
 		}
 
 		if as.Tags == nil {
@@ -198,6 +194,7 @@ func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) 
 		// Attach Unmanaged Proxy config if exists
 		if s.Kind == structs.ServiceKindConnectProxy {
 			as.Proxy = s.Proxy.ToAPI()
+			// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
 			// Also set the deprecated ProxyDestination
 			as.ProxyDestination = as.Proxy.DestinationServiceName
 		}

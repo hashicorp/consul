@@ -150,6 +150,7 @@ func testServiceNode(t *testing.T) *ServiceNode {
 			ModifyIndex: 2,
 		},
 		ServiceProxy: TestConnectProxyConfig(t),
+		// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
 		// ServiceProxyDestination is deprecated bit must be set consistently with
 		// the value of ServiceProxy.DestinationServiceName otherwise a round-trip
 		// through ServiceNode -> NodeService and back will not match and fail

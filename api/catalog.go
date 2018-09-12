@@ -25,6 +25,7 @@ type CatalogService struct {
 	ServiceMeta              map[string]string
 	ServicePort              int
 	ServiceEnableTagOverride bool
+	// DEPRECATED (ProxyDestination) - remove the next comment!
 	// We forgot to ever add ServiceProxyDestination here so no need to deprecate!
 	ServiceProxy *AgentServiceConnectProxyConfig
 	CreateIndex  uint64

@@ -25,8 +25,8 @@ type ServiceDefinition struct {
 	Checks            CheckTypes
 	Token             string
 	EnableTagOverride bool
-	// ProxyDestination is deprecated in favour of
-	// Proxy.DestinationServiceName
+	// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
+	// ProxyDestination is deprecated in favour of Proxy.DestinationServiceName
 	ProxyDestination string `json:",omitempty"`
 
 	// Proxy is the configuration set for Kind = connect-proxy. It is mandatory in
@@ -35,7 +35,7 @@ type ServiceDefinition struct {
 	// the Connect.Proxy which configures a manageged proxy as part of the actual
 	// service's definition. This duplication is ugly but seemed better than the
 	// alternative which was to re-use the same struct fields for both cases even
-	// though the semantics are different and the non-shred fields make no sense
+	// though the semantics are different and the non-shared fields make no sense
 	// in the other case. ProxyConfig may be a more natural name here, but it's
 	// confusing for the UX because one of the fields in ConnectProxyConfig is
 	// also called just "Config"
@@ -67,6 +67,7 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 			}
 		}
 	} else {
+		// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
 		// Legacy convert ProxyDestination into a Proxy config
 		ns.Proxy.DestinationServiceName = s.ProxyDestination
 	}

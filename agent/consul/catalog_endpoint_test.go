@@ -362,6 +362,8 @@ func TestCatalog_Register_ConnectProxy(t *testing.T) {
 	assert.Equal(args.Service.Proxy.DestinationServiceName, v.ServiceProxy.DestinationServiceName)
 }
 
+// DEPRECATED (ProxyDestination) - remove this whole test case when removing
+// ProxyDestination
 func TestCatalog_Register_DeprecatedConnectProxy(t *testing.T) {
 	t.Parallel()
 

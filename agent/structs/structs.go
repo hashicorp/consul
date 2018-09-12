@@ -506,9 +506,10 @@ type ServiceNode struct {
 	ServiceMeta              map[string]string
 	ServicePort              int
 	ServiceEnableTagOverride bool
-	ServiceProxyDestination  string // Deprecated
-	ServiceProxy             ConnectProxyConfig
-	ServiceConnect           ServiceConnect
+	// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
+	ServiceProxyDestination string
+	ServiceProxy            ConnectProxyConfig
+	ServiceConnect          ServiceConnect
 
 	RaftIndex
 }
@@ -536,9 +537,10 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 		ServicePort:              s.ServicePort,
 		ServiceMeta:              nsmeta,
 		ServiceEnableTagOverride: s.ServiceEnableTagOverride,
-		ServiceProxyDestination:  s.ServiceProxyDestination,
-		ServiceProxy:             s.ServiceProxy,
-		ServiceConnect:           s.ServiceConnect,
+		// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
+		ServiceProxyDestination: s.ServiceProxyDestination,
+		ServiceProxy:            s.ServiceProxy,
+		ServiceConnect:          s.ServiceConnect,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,
@@ -610,6 +612,7 @@ type NodeService struct {
 	// proxy for. This is only valid if Kind is "connect-proxy". The destination
 	// may be a service that isn't present in the catalog. This is expected and
 	// allowed to allow for proxies to come up earlier than their target services.
+	// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
 	ProxyDestination string
 
 	// Proxy is the configuration set for Kind = connect-proxy. It is mandatory in
@@ -654,6 +657,7 @@ func (s *NodeService) Validate() error {
 
 	// ConnectProxy validation
 	if s.Kind == ServiceKindConnectProxy {
+		// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
 		// Fixup legacy requests that specify the ProxyDestination still
 		if s.ProxyDestination != "" && s.Proxy.DestinationServiceName == "" {
 			s.Proxy.DestinationServiceName = s.ProxyDestination
@@ -703,6 +707,7 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 
 // ToServiceNode converts the given node service to a service node.
 func (s *NodeService) ToServiceNode(node string) *ServiceNode {
+	// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
 	legacyProxyDest := s.Proxy.DestinationServiceName
 	if legacyProxyDest == "" {
 		legacyProxyDest = s.ProxyDestination
