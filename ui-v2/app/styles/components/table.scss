@@ -11,6 +11,12 @@ td dt.warning {
 td dt.critical {
   @extend %with-critical;
 }
+td span.zero {
+  @extend %with-no-healthchecks;
+  display: block;
+  text-indent: 20px;
+  color: $ui-gray-400;
+}
 table:not(.sessions) tr {
   cursor: pointer;
 }

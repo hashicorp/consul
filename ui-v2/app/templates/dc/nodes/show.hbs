@@ -10,13 +10,18 @@
     {{/block-slot}}
     {{#block-slot 'header'}}
         <h1>
-            {{ item.Node }}
+          {{ item.Node }}
         </h1>
         {{tab-nav
             items=(compact
-                (array 'Health Checks' 'Services' (if tomography 'Round Trip Time' '') 'Lock Sessions')
+              (array
+                             'Health Checks'
+                             'Services'
+              (if tomography 'Round Trip Time' '')
+                             'Lock Sessions'
+              )
             )
-            selected=(if selectedTab selectedTab 'health-checks')
+            selected=selectedTab
         }}
     {{/block-slot}}
     {{#block-slot 'actions'}}
@@ -49,7 +54,7 @@
                 )
             ) as |panel|
         }}
-            {{#tab-section id=panel.id selected=(eq (if selectedTab selectedTab 'health-checks') panel.id) onchange=(action "change")}}
+            {{#tab-section id=panel.id selected=(eq (if selectedTab selectedTab '') panel.id) onchange=(action "change")}}
                 {{partial panel.partial}}
             {{/tab-section}}
         {{/each}}
