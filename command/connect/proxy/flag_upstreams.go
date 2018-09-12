@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/connect/proxy"
 )
 
@@ -64,7 +65,7 @@ func (f *FlagUpstreams) Set(value string) error {
 		LocalBindAddress: addr,
 		LocalBindPort:    int(port),
 		DestinationName:  name,
-		DestinationType:  destinationType,
+		DestinationType:  api.UpstreamDestType(destinationType),
 	}
 
 	return nil

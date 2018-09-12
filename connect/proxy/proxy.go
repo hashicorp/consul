@@ -96,7 +96,6 @@ func (p *Proxy) Serve() error {
 			// start one of each and stop/modify if changes occur.
 			for _, uc := range newCfg.Upstreams {
 				uc.applyDefaults()
-				uc.resolver = UpstreamResolverFromClient(p.client, uc)
 
 				if uc.LocalBindPort < 1 {
 					p.logger.Printf("[ERR] upstream %s has no local_bind_port. "+
@@ -104,7 +103,7 @@ func (p *Proxy) Serve() error {
 					continue
 				}
 
-				l := NewUpstreamListener(p.service, uc, p.logger)
+				l := NewUpstreamListener(p.service, p.client, uc, p.logger)
 				err := p.startListener(uc.String(), l)
 				if err != nil {
 					p.logger.Printf("[ERR] failed to start upstream %s: %s", uc.String(),

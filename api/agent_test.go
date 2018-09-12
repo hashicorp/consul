@@ -207,6 +207,11 @@ func TestAPI_AgentServices_ManagedConnectProxy(t *testing.T) {
 				Config: map[string]interface{}{
 					"foo": "bar",
 				},
+				Upstreams: []Upstream{{
+					DestinationType: "prepared_query",
+					DestinationName: "bar",
+					LocalBindPort:   9191,
+				}},
 			},
 		},
 	}
@@ -235,7 +240,82 @@ func TestAPI_AgentServices_ManagedConnectProxy(t *testing.T) {
 		t.Fatalf("Bad: %#v", chk)
 	}
 
-	// Proxy config should be present in response
+	// Proxy config should be correct
+	require.Equal(t, reg.Connect, services["foo"].Connect)
+
+	if err := agent.ServiceDeregister("foo"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestAPI_AgentServices_ManagedConnectProxyDeprecatedUpstreams(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	reg := &AgentServiceRegistration{
+		Name: "foo",
+		Tags: []string{"bar", "baz"},
+		Port: 8000,
+		Check: &AgentServiceCheck{
+			TTL: "15s",
+		},
+		Connect: &AgentServiceConnect{
+			Proxy: &AgentServiceConnectProxy{
+				ExecMode: ProxyExecModeScript,
+				Command:  []string{"foo.rb"},
+				Config: map[string]interface{}{
+					"foo": "bar",
+					"upstreams": []interface{}{
+						map[string]interface{}{
+							"destination_type":   "prepared_query",
+							"destination_name":   "bar",
+							"local_bind_port":    9191,
+							"connect_timeout_ms": 1000,
+						},
+					},
+				},
+			},
+		},
+	}
+	if err := agent.ServiceRegister(reg); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	services, err := agent.Services()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, ok := services["foo"]; !ok {
+		t.Fatalf("missing service: %v", services)
+	}
+	checks, err := agent.Checks()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	chk, ok := checks["service:foo"]
+	if !ok {
+		t.Fatalf("missing check: %v", checks)
+	}
+
+	// Checks should default to critical
+	if chk.Status != HealthCritical {
+		t.Fatalf("Bad: %#v", chk)
+	}
+
+	// Proxy config should be present in response, minus the upstreams
+	delete(reg.Connect.Proxy.Config, "upstreams")
+	// Upstreams should be translated into proper field
+	reg.Connect.Proxy.Upstreams = []Upstream{{
+		DestinationType: "prepared_query",
+		DestinationName: "bar",
+		LocalBindPort:   9191,
+		Config: map[string]interface{}{
+			"connect_timeout_ms": float64(1000),
+		},
+	}}
 	require.Equal(t, reg.Connect, services["foo"].Connect)
 
 	if err := agent.ServiceDeregister("foo"); err != nil {
@@ -260,10 +340,12 @@ func TestAPI_AgentServices_ExternalConnectProxy(t *testing.T) {
 	}
 	// Register proxy
 	reg = &AgentServiceRegistration{
-		Kind:             ServiceKindConnectProxy,
-		Name:             "foo-proxy",
-		Port:             8001,
-		ProxyDestination: "foo",
+		Kind: ServiceKindConnectProxy,
+		Name: "foo-proxy",
+		Port: 8001,
+		Proxy: &AgentServiceConnectProxyConfig{
+			DestinationServiceName: "foo",
+		},
 	}
 	if err := agent.ServiceRegister(reg); err != nil {
 		t.Fatalf("err: %v", err)
@@ -1139,6 +1221,7 @@ func TestAPI_AgentConnectProxyConfig(t *testing.T) {
 				Config: map[string]interface{}{
 					"foo": "bar",
 				},
+				Upstreams: testUpstreams(t),
 			},
 		},
 	}
@@ -1152,15 +1235,16 @@ func TestAPI_AgentConnectProxyConfig(t *testing.T) {
 		ProxyServiceID:    "foo-proxy",
 		TargetServiceID:   "foo",
 		TargetServiceName: "foo",
-		ContentHash:       "2a29f8237db69d0e",
+		ContentHash:       "acdf5eb6f5794a14",
 		ExecMode:          "daemon",
 		Command:           []string{"consul", "connect", "proxy"},
 		Config: map[string]interface{}{
-			"bind_address": "127.0.0.1",
-			"bind_port":    float64(20000),
-			"foo":          "bar",
+			"bind_address":          "127.0.0.1",
+			"bind_port":             float64(20000),
+			"foo":                   "bar",
 			"local_service_address": "127.0.0.1:8000",
 		},
+		Upstreams: testExpectUpstreamsWithDefaults(t, reg.Connect.Proxy.Upstreams),
 	}
 	require.Equal(t, expectConfig, config)
 	require.Equal(t, expectConfig.ContentHash, qm.LastContentHash)

@@ -1452,7 +1452,7 @@ func TestDNS_ConnectServiceLookup(t *testing.T) {
 	{
 		args := structs.TestRegisterRequestProxy(t)
 		args.Address = "127.0.0.55"
-		args.Service.ProxyDestination = "db"
+		args.Service.Proxy.DestinationServiceName = "db"
 		args.Service.Address = ""
 		args.Service.Port = 12345
 		var out struct{}
