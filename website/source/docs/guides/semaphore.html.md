@@ -116,7 +116,7 @@ contender key ‘<prefix>/<session>’.
     "LockIndex": 0,
     "Key": "<lock>",
     "Flags": 0,
-    "Value": "{"Limit": 2,"Holders":{"<session>"}}",
+    "Value": "eyJMaW1pdCI6IDIsIkhvbGRlcnMiOnsiPHNlc3Npb24+In19",
     "Session": "",
     "CreateIndex": 898,
     "ModifyIndex": 901
@@ -132,6 +132,7 @@ contender key ‘<prefix>/<session>’.
   }
 ]
 ```
+Note that the Value we embedded into `<lock>` is Base64 encoded when returned by the API.
 
 When the `<lock>` is read, we can verify the remote `Limit` agrees with the `Holders` count. This
 is used to detect a potential conflict. The next step is to determine which of the current
