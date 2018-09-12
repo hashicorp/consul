@@ -344,9 +344,15 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	serfPortWAN := b.portVal("ports.serf_wan", c.Ports.SerfWAN)
 	proxyMinPort := b.portVal("ports.proxy_min_port", c.Ports.ProxyMinPort)
 	proxyMaxPort := b.portVal("ports.proxy_max_port", c.Ports.ProxyMaxPort)
+	sidecarMinPort := b.portVal("ports.sidecar_min_port", c.Ports.SidecarMinPort)
+	sidecarMaxPort := b.portVal("ports.sidecar_max_port", c.Ports.SidecarMaxPort)
 	if proxyMaxPort < proxyMinPort {
 		return RuntimeConfig{}, fmt.Errorf(
 			"proxy_min_port must be less than proxy_max_port. To disable, set both to zero.")
+	}
+	if sidecarMaxPort < sidecarMinPort {
+		return RuntimeConfig{}, fmt.Errorf(
+			"sidecar_min_port must be less than sidecar_max_port. To disable, set both to zero.")
 	}
 
 	// determine the default bind and advertise address
@@ -689,6 +695,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		ConnectProxyAllowManagedAPIRegistration: b.boolVal(c.Connect.Proxy.AllowManagedAPIRegistration),
 		ConnectProxyBindMinPort:                 proxyMinPort,
 		ConnectProxyBindMaxPort:                 proxyMaxPort,
+		ConnectSidecarMinPort:                   sidecarMinPort,
+		ConnectSidecarMaxPort:                   sidecarMaxPort,
 		ConnectProxyDefaultExecMode:             proxyDefaultExecMode,
 		ConnectProxyDefaultDaemonCommand:        proxyDefaultDaemonCommand,
 		ConnectProxyDefaultScriptCommand:        proxyDefaultScriptCommand,
@@ -1177,9 +1185,15 @@ func (b *Builder) serviceConnectVal(v *ServiceConnect) *structs.ServiceConnect {
 			b.err = multierror.Append(b.err, fmt.Errorf("sidecar_service can't speficy an ID"))
 			sidecar.ID = ""
 		}
-		if sidecar.Connect != nil && sidecar.Connect.SidecarService != nil {
-			b.err = multierror.Append(b.err, fmt.Errorf("sidecar_service can't have a nested sidecar_service"))
-			sidecar.Connect.SidecarService = nil
+		if sidecar.Connect != nil {
+			if sidecar.Connect.SidecarService != nil {
+				b.err = multierror.Append(b.err, fmt.Errorf("sidecar_service can't have a nested sidecar_service"))
+				sidecar.Connect.SidecarService = nil
+			}
+			if sidecar.Connect.Proxy != nil {
+				b.err = multierror.Append(b.err, fmt.Errorf("sidecar_service can't have a managed proxy"))
+				sidecar.Connect.Proxy = nil
+			}
 		}
 	}
 

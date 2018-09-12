@@ -697,10 +697,15 @@ func (s *NodeService) Validate() error {
 				"A SidecarService cannot specify an ID as this is managed by the "+
 					"agent"))
 		}
-		if s.Connect.SidecarService.Connect != nil &&
-			s.Connect.SidecarService.Connect.SidecarService != nil {
-			result = multierror.Append(result, fmt.Errorf(
-				"A SidecarService cannot have a nested SidecarService"))
+		if s.Connect.SidecarService.Connect != nil {
+			if s.Connect.SidecarService.Connect.SidecarService != nil {
+				result = multierror.Append(result, fmt.Errorf(
+					"A SidecarService cannot have a nested SidecarService"))
+			}
+			if s.Connect.SidecarService.Connect.Proxy != nil {
+				result = multierror.Append(result, fmt.Errorf(
+					"A SidecarService cannot have a managed proxy"))
+			}
 		}
 	}
 

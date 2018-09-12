@@ -617,6 +617,8 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 						})
 						translateUpstreams(proxyMap)
 					}
+					// TODO(banks): make this work for sidecar_service too. Also need to
+					// apply this recursively to the sidecar_service.
 				}
 			}
 		}
@@ -674,11 +676,43 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 		}
 	}
 
+	// Verify the sidecar check types
+	if args.Connect != nil && args.Connect.SidecarService != nil {
+		chkTypes, err := args.Connect.SidecarService.CheckTypes()
+		if err != nil {
+			resp.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(resp, fmt.Errorf("Invalid check in sidecar_service: %v", err))
+			return nil, nil
+		}
+		for _, check := range chkTypes {
+			if check.Status != "" && !structs.ValidStatus(check.Status) {
+				resp.WriteHeader(http.StatusBadRequest)
+				fmt.Fprint(resp, "Status for checks must 'passing', 'warning', 'critical'")
+				return nil, nil
+			}
+		}
+	}
+
 	// Get the provided token, if any, and vet against any ACL policies.
 	var token string
 	s.parseToken(req, &token)
 	if err := s.agent.vetServiceRegister(token, ns); err != nil {
 		return nil, err
+	}
+
+	// See if we have a sidecar to register too
+	sidecar, sidecarChecks, sidecarToken, err := s.agent.sidecarServiceFromNodeService(ns, token)
+	if err != nil {
+		return nil, &BadRequestError{
+			Reason: fmt.Sprintf("Invalid SidecarService: %s", err)}
+	}
+	if sidecar != nil {
+		// Make sure we are allowed to register the side car using the token
+		// specified (might be specific to sidecar or the same one as the overall
+		// request).
+		if err := s.agent.vetServiceRegister(sidecarToken, ns); err != nil {
+			return nil, err
+		}
 	}
 
 	// Get any proxy registrations
@@ -702,6 +736,12 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	// Add proxy (which will add proxy service so do it before we trigger sync)
 	if proxy != nil {
 		if err := s.agent.AddProxy(proxy, true, false, ""); err != nil {
+			return nil, err
+		}
+	}
+	// Add sidecar.
+	if sidecar != nil {
+		if err := s.agent.AddService(sidecar, sidecarChecks, true, sidecarToken); err != nil {
 			return nil, err
 		}
 	}

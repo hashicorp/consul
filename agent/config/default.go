@@ -107,6 +107,8 @@ func DefaultSource() Source {
 			server = ` + strconv.Itoa(consul.DefaultRPCPort) + `
 			proxy_min_port = 20000
 			proxy_max_port = 20255
+			sidecar_min_port = 21000
+			sidecar_max_port = 21255
 		}
 		telemetry = {
 			metrics_prefix = "consul"

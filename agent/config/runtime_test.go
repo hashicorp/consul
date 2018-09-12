@@ -1927,6 +1927,40 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			err: "sidecar_service can't have a nested sidecar_service",
 		},
 		{
+			desc: "sidecar_service can't have managed proxy",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+				  "service": {
+						"name": "web",
+						"port": 1234,
+						"connect": {
+							"sidecar_service": {
+								"connect": {
+									"proxy": {}
+								}
+							}
+						}
+					}
+				}`},
+			hcl: []string{`
+				service {
+					name = "web"
+					port = 1234
+					connect {
+						sidecar_service {
+							connect {
+								proxy {
+								}
+							}
+						}
+					}
+				}
+			`},
+			err: "sidecar_service can't have a managed proxy",
+		},
+		{
 			desc: "telemetry.prefix_filter cannot be empty",
 			args: []string{
 				`-data-dir=` + dataDir,
@@ -2745,7 +2779,9 @@ func TestFullConfig(t *testing.T) {
 				"https": 15127,
 				"server": 3757,
 				"proxy_min_port": 2000,
-				"proxy_max_port": 3000
+				"proxy_max_port": 3000,
+				"sidecar_min_port": 8888,
+				"sidecar_max_port": 9999
 			},
 			"protocol": 30793,
 			"raft_protocol": 19016,
@@ -3264,6 +3300,8 @@ func TestFullConfig(t *testing.T) {
 				server = 3757
 				proxy_min_port = 2000
 				proxy_max_port = 3000
+				sidecar_min_port = 8888
+				sidecar_max_port = 9999
 			}
 			protocol = 30793
 			raft_protocol = 19016
@@ -3791,6 +3829,8 @@ func TestFullConfig(t *testing.T) {
 		ConnectEnabled:          true,
 		ConnectProxyBindMinPort: 2000,
 		ConnectProxyBindMaxPort: 3000,
+		ConnectSidecarMinPort:   8888,
+		ConnectSidecarMaxPort:   9999,
 		ConnectCAProvider:       "consul",
 		ConnectCAConfig: map[string]interface{}{
 			"RotationPeriod": "90h",
@@ -4533,6 +4573,8 @@ func TestSanitize(t *testing.T) {
 		"ConnectProxyDefaultDaemonCommand": [],
 		"ConnectProxyDefaultExecMode": "",
 		"ConnectProxyDefaultScriptCommand": [],
+		"ConnectSidecarMaxPort": 0,
+		"ConnectSidecarMinPort": 0,
 		"ConnectTestDisableManagedProxies": false,
 		"ConsulCoordinateUpdateBatchSize": 0,
 		"ConsulCoordinateUpdateMaxBatches": 0,

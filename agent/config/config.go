@@ -555,14 +555,16 @@ type Telemetry struct {
 }
 
 type Ports struct {
-	DNS          *int `json:"dns,omitempty" hcl:"dns" mapstructure:"dns"`
-	HTTP         *int `json:"http,omitempty" hcl:"http" mapstructure:"http"`
-	HTTPS        *int `json:"https,omitempty" hcl:"https" mapstructure:"https"`
-	SerfLAN      *int `json:"serf_lan,omitempty" hcl:"serf_lan" mapstructure:"serf_lan"`
-	SerfWAN      *int `json:"serf_wan,omitempty" hcl:"serf_wan" mapstructure:"serf_wan"`
-	Server       *int `json:"server,omitempty" hcl:"server" mapstructure:"server"`
-	ProxyMinPort *int `json:"proxy_min_port,omitempty" hcl:"proxy_min_port" mapstructure:"proxy_min_port"`
-	ProxyMaxPort *int `json:"proxy_max_port,omitempty" hcl:"proxy_max_port" mapstructure:"proxy_max_port"`
+	DNS            *int `json:"dns,omitempty" hcl:"dns" mapstructure:"dns"`
+	HTTP           *int `json:"http,omitempty" hcl:"http" mapstructure:"http"`
+	HTTPS          *int `json:"https,omitempty" hcl:"https" mapstructure:"https"`
+	SerfLAN        *int `json:"serf_lan,omitempty" hcl:"serf_lan" mapstructure:"serf_lan"`
+	SerfWAN        *int `json:"serf_wan,omitempty" hcl:"serf_wan" mapstructure:"serf_wan"`
+	Server         *int `json:"server,omitempty" hcl:"server" mapstructure:"server"`
+	ProxyMinPort   *int `json:"proxy_min_port,omitempty" hcl:"proxy_min_port" mapstructure:"proxy_min_port"`
+	ProxyMaxPort   *int `json:"proxy_max_port,omitempty" hcl:"proxy_max_port" mapstructure:"proxy_max_port"`
+	SidecarMinPort *int `json:"sidecar_min_port,omitempty" hcl:"sidecar_min_port" mapstructure:"sidecar_min_port"`
+	SidecarMaxPort *int `json:"sidecar_max_port,omitempty" hcl:"sidecar_max_port" mapstructure:"sidecar_max_port"`
 }
 
 type UnixSocket struct {
