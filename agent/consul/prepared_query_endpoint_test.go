@@ -2652,7 +2652,7 @@ func TestPreparedQuery_Execute_ConnectExact(t *testing.T) {
 		case 2:
 			// Connect proxy
 			req.Service.Kind = structs.ServiceKindConnectProxy
-			req.Service.ProxyDestination = req.Service.Service
+			req.Service.Proxy.DestinationServiceName = req.Service.Service
 			req.Service.Service = "proxy"
 		}
 
@@ -2727,7 +2727,7 @@ func TestPreparedQuery_Execute_ConnectExact(t *testing.T) {
 		require.Equal(reply.Service, reply.Nodes[0].Service.Service)
 
 		require.Equal(structs.ServiceKindConnectProxy, reply.Nodes[1].Service.Kind)
-		require.Equal(reply.Service, reply.Nodes[1].Service.ProxyDestination)
+		require.Equal(reply.Service, reply.Nodes[1].Service.Proxy.DestinationServiceName)
 	}
 
 	// Update the query
@@ -2762,7 +2762,7 @@ func TestPreparedQuery_Execute_ConnectExact(t *testing.T) {
 		require.Equal(reply.Service, reply.Nodes[0].Service.Service)
 
 		require.Equal(structs.ServiceKindConnectProxy, reply.Nodes[1].Service.Kind)
-		require.Equal(reply.Service, reply.Nodes[1].Service.ProxyDestination)
+		require.Equal(reply.Service, reply.Nodes[1].Service.Proxy.DestinationServiceName)
 	}
 
 	// Unset the query

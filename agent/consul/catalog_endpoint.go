@@ -83,7 +83,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 
 		// Proxies must have write permission on their destination
 		if args.Service.Kind == structs.ServiceKindConnectProxy {
-			if rule != nil && !rule.ServiceWrite(args.Service.ProxyDestination, nil) {
+			if rule != nil && !rule.ServiceWrite(args.Service.Proxy.DestinationServiceName, nil) {
 				return acl.ErrPermissionDenied
 			}
 		}

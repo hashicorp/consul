@@ -273,7 +273,7 @@ func TestCatalogNodes_Blocking(t *testing.T) {
 	// an error channel instead.
 	errch := make(chan error, 2)
 	go func() {
-		testrpc.WaitForLeader(t, a.RPC, "dc1")
+		testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 		start := time.Now()
 
 		// register a service after the blocking call
@@ -846,6 +846,9 @@ func TestCatalogServiceNodes_ConnectProxy(t *testing.T) {
 	nodes := obj.(structs.ServiceNodes)
 	assert.Len(nodes, 1)
 	assert.Equal(structs.ServiceKindConnectProxy, nodes[0].ServiceKind)
+	assert.Equal(args.Service.Proxy, nodes[0].ServiceProxy)
+	// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
+	assert.Equal(args.Service.Proxy.DestinationServiceName, nodes[0].ServiceProxyDestination)
 }
 
 // Test that the Connect-compatible endpoints can be queried for a
@@ -864,7 +867,7 @@ func TestCatalogConnectServiceNodes_good(t *testing.T) {
 	assert.Nil(a.RPC("Catalog.Register", args, &out))
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf(
-		"/v1/catalog/connect/%s", args.Service.ProxyDestination), nil)
+		"/v1/catalog/connect/%s", args.Service.Proxy.DestinationServiceName), nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.CatalogConnectServiceNodes(resp, req)
 	assert.Nil(err)
@@ -874,6 +877,7 @@ func TestCatalogConnectServiceNodes_good(t *testing.T) {
 	assert.Len(nodes, 1)
 	assert.Equal(structs.ServiceKindConnectProxy, nodes[0].ServiceKind)
 	assert.Equal(args.Service.Address, nodes[0].ServiceAddress)
+	assert.Equal(args.Service.Proxy, nodes[0].ServiceProxy)
 }
 
 func TestCatalogNodeServices(t *testing.T) {
@@ -882,7 +886,7 @@ func TestCatalogNodeServices(t *testing.T) {
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-	// Register node
+	// Register node with a regular service and connect proxy
 	args := &structs.RegisterRequest{
 		Datacenter: "dc1",
 		Node:       "foo",
@@ -898,6 +902,10 @@ func TestCatalogNodeServices(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
+	// Register a connect proxy
+	args.Service = structs.TestNodeServiceProxy(t)
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
 	req, _ := http.NewRequest("GET", "/v1/catalog/node/foo?dc=dc1", nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.CatalogNodeServices(resp, req)
@@ -907,9 +915,12 @@ func TestCatalogNodeServices(t *testing.T) {
 	assertIndex(t, resp)
 
 	services := obj.(*structs.NodeServices)
-	if len(services.Services) != 1 {
+	if len(services.Services) != 2 {
 		t.Fatalf("bad: %v", obj)
 	}
+
+	// Proxy service should have it's config intact
+	require.Equal(t, args.Service.Proxy, services.Services["web-proxy"].Proxy)
 }
 
 // Test that the services on a node contain all the Connect proxies on

@@ -856,7 +856,7 @@ func TestHealthConnectServiceNodes(t *testing.T) {
 
 	// Request
 	req, _ := http.NewRequest("GET", fmt.Sprintf(
-		"/v1/health/connect/%s?dc=dc1", args.Service.ProxyDestination), nil)
+		"/v1/health/connect/%s?dc=dc1", args.Service.Proxy.DestinationServiceName), nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.HealthConnectServiceNodes(resp, req)
 	assert.Nil(err)
@@ -888,7 +888,7 @@ func TestHealthConnectServiceNodes_PassingFilter(t *testing.T) {
 	t.Run("bc_no_query_value", func(t *testing.T) {
 		assert := assert.New(t)
 		req, _ := http.NewRequest("GET", fmt.Sprintf(
-			"/v1/health/connect/%s?passing", args.Service.ProxyDestination), nil)
+			"/v1/health/connect/%s?passing", args.Service.Proxy.DestinationServiceName), nil)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.HealthConnectServiceNodes(resp, req)
 		assert.Nil(err)
@@ -902,7 +902,7 @@ func TestHealthConnectServiceNodes_PassingFilter(t *testing.T) {
 	t.Run("passing_true", func(t *testing.T) {
 		assert := assert.New(t)
 		req, _ := http.NewRequest("GET", fmt.Sprintf(
-			"/v1/health/connect/%s?passing=true", args.Service.ProxyDestination), nil)
+			"/v1/health/connect/%s?passing=true", args.Service.Proxy.DestinationServiceName), nil)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.HealthConnectServiceNodes(resp, req)
 		assert.Nil(err)
@@ -916,7 +916,7 @@ func TestHealthConnectServiceNodes_PassingFilter(t *testing.T) {
 	t.Run("passing_false", func(t *testing.T) {
 		assert := assert.New(t)
 		req, _ := http.NewRequest("GET", fmt.Sprintf(
-			"/v1/health/connect/%s?passing=false", args.Service.ProxyDestination), nil)
+			"/v1/health/connect/%s?passing=false", args.Service.Proxy.DestinationServiceName), nil)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.HealthConnectServiceNodes(resp, req)
 		assert.Nil(err)
@@ -930,7 +930,7 @@ func TestHealthConnectServiceNodes_PassingFilter(t *testing.T) {
 	t.Run("passing_bad", func(t *testing.T) {
 		assert := assert.New(t)
 		req, _ := http.NewRequest("GET", fmt.Sprintf(
-			"/v1/health/connect/%s?passing=nope-nope", args.Service.ProxyDestination), nil)
+			"/v1/health/connect/%s?passing=nope-nope", args.Service.Proxy.DestinationServiceName), nil)
 		resp := httptest.NewRecorder()
 		a.srv.HealthConnectServiceNodes(resp, req)
 		assert.Equal(400, resp.Code)
