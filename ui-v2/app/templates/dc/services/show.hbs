@@ -38,7 +38,7 @@
                         href=(href-to 'dc.nodes.show' item.Node.Node)
                         name=item.Node.Node
                         service=item.Service.ID
-                        address=(concat item.Service.Address ':' item.Service.Port)
+                        address=(concat (default item.Service.Address item.Node.Address) ':' item.Service.Port)
                         checks=item.Checks
                     }}
     {{/each}}
@@ -58,7 +58,7 @@
                     data-test-node=item.Node.Node
                     name=item.Node.Node
                     service=item.Service.ID
-                    address=(concat item.Service.Address ':' item.Service.Port)
+                    address=(concat (default item.Service.Address item.Node.Address) ':' item.Service.Port)
                     checks=item.Checks
                     status=item.Checks.[0].Status
                 }}
