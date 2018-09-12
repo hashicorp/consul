@@ -26,8 +26,23 @@ type ServiceDefinition struct {
 	Weights           *Weights
 	Token             string
 	EnableTagOverride bool
-	ProxyDestination  string
-	Connect           *ServiceConnect
+	// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
+	// ProxyDestination is deprecated in favour of Proxy.DestinationServiceName
+	ProxyDestination string `json:",omitempty"`
+
+	// Proxy is the configuration set for Kind = connect-proxy. It is mandatory in
+	// that case and an error to be set for any other kind. This config is part of
+	// a proxy service definition and is distinct from but shares some fields with
+	// the Connect.Proxy which configures a manageged proxy as part of the actual
+	// service's definition. This duplication is ugly but seemed better than the
+	// alternative which was to re-use the same struct fields for both cases even
+	// though the semantics are different and the non-shared fields make no sense
+	// in the other case. ProxyConfig may be a more natural name here, but it's
+	// confusing for the UX because one of the fields in ConnectProxyConfig is
+	// also called just "Config"
+	Proxy *ConnectProxyConfig
+
+	Connect *ServiceConnect
 }
 
 func (s *ServiceDefinition) NodeService() *NodeService {
@@ -41,10 +56,22 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 		Port:              s.Port,
 		Weights:           s.Weights,
 		EnableTagOverride: s.EnableTagOverride,
-		ProxyDestination:  s.ProxyDestination,
 	}
 	if s.Connect != nil {
 		ns.Connect = *s.Connect
+	}
+	if s.Proxy != nil {
+		ns.Proxy = *s.Proxy
+		// Ensure the Upstream type is defaulted
+		for i := range ns.Proxy.Upstreams {
+			if ns.Proxy.Upstreams[i].DestinationType == "" {
+				ns.Proxy.Upstreams[i].DestinationType = UpstreamDestTypeService
+			}
+		}
+	} else {
+		// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
+		// Legacy convert ProxyDestination into a Proxy config
+		ns.Proxy.DestinationServiceName = s.ProxyDestination
 	}
 	if ns.ID == "" && ns.Service != "" {
 		ns.ID = ns.Service
@@ -72,16 +99,98 @@ func (s *ServiceDefinition) ConnectManagedProxy() (*ConnectManagedProxy, error) 
 		return nil, err
 	}
 
+	// If upstreams were set in the config and NOT in the actual Upstreams field,
+	// extract them out to the new explicit Upstreams and unset in config to make
+	// transition smooth.
+	if deprecatedUpstreams, ok := s.Connect.Proxy.Config["upstreams"]; ok {
+		if len(s.Connect.Proxy.Upstreams) == 0 {
+			if slice, ok := deprecatedUpstreams.([]interface{}); ok {
+				for _, raw := range slice {
+					var oldU deprecatedBuiltInProxyUpstreamConfig
+					var decMeta mapstructure.Metadata
+					decCfg := &mapstructure.DecoderConfig{
+						Metadata: &decMeta,
+						Result:   &oldU,
+					}
+					dec, err := mapstructure.NewDecoder(decCfg)
+					if err != nil {
+						// Just skip it - we never used to parse this so never failed
+						// invalid stuff till it hit the proxy. This is a best-effort
+						// attempt to not break existing service definitions so it's not the
+						// end of the world if we don't have exactly the same failure mode
+						// for invalid input.
+						continue
+					}
+					err = dec.Decode(raw)
+					if err != nil {
+						// same logic as above
+						continue
+					}
+
+					newT := UpstreamDestTypeService
+					if oldU.DestinationType == "prepared_query" {
+						newT = UpstreamDestTypePreparedQuery
+					}
+					u := Upstream{
+						DestinationType:      newT,
+						DestinationName:      oldU.DestinationName,
+						DestinationNamespace: oldU.DestinationNamespace,
+						Datacenter:           oldU.DestinationDatacenter,
+						LocalBindAddress:     oldU.LocalBindAddress,
+						LocalBindPort:        oldU.LocalBindPort,
+					}
+					// Any unrecognized keys should be copied into the config map
+					if len(decMeta.Unused) > 0 {
+						u.Config = make(map[string]interface{})
+						// Paranoid type assertion - mapstructure would have errored if this
+						// wasn't safe but panics are bad...
+						if rawMap, ok := raw.(map[string]interface{}); ok {
+							for _, k := range decMeta.Unused {
+								u.Config[k] = rawMap[k]
+							}
+						}
+					}
+					s.Connect.Proxy.Upstreams = append(s.Connect.Proxy.Upstreams, u)
+				}
+			}
+		}
+		// Remove upstreams even if we didn't add them for consistency.
+		delete(s.Connect.Proxy.Config, "upstreams")
+	}
+
 	p := &ConnectManagedProxy{
-		ExecMode: execMode,
-		Command:  s.Connect.Proxy.Command,
-		Config:   s.Connect.Proxy.Config,
+		ExecMode:  execMode,
+		Command:   s.Connect.Proxy.Command,
+		Config:    s.Connect.Proxy.Config,
+		Upstreams: s.Connect.Proxy.Upstreams,
 		// ProxyService will be setup when the agent registers the configured
 		// proxies and starts them etc.
 		TargetServiceID: ns.ID,
 	}
 
+	// Ensure the Upstream type is defaulted
+	for i := range p.Upstreams {
+		if p.Upstreams[i].DestinationType == "" {
+			p.Upstreams[i].DestinationType = UpstreamDestTypeService
+		}
+	}
+
 	return p, nil
+}
+
+// deprecatedBuiltInProxyUpstreamConfig is a struct for extracting old
+// connect/proxy.UpstreamConfiguration syntax upstreams from existing managed
+// proxy configs to convert them to new first-class Upstreams.
+type deprecatedBuiltInProxyUpstreamConfig struct {
+	LocalBindAddress      string `json:"local_bind_address" hcl:"local_bind_address,attr" mapstructure:"local_bind_address"`
+	LocalBindPort         int    `json:"local_bind_port" hcl:"local_bind_port,attr" mapstructure:"local_bind_port"`
+	DestinationName       string `json:"destination_name" hcl:"destination_name,attr" mapstructure:"destination_name"`
+	DestinationNamespace  string `json:"destination_namespace" hcl:"destination_namespace,attr" mapstructure:"destination_namespace"`
+	DestinationType       string `json:"destination_type" hcl:"destination_type,attr" mapstructure:"destination_type"`
+	DestinationDatacenter string `json:"destination_datacenter" hcl:"destination_datacenter,attr" mapstructure:"destination_datacenter"`
+	// ConnectTimeoutMs is removed explicitly because any additional config we
+	// find including this field should be put into the opaque Config map in
+	// Upstream.
 }
 
 // Validate validates the service definition. This also calls the underlying
@@ -137,9 +246,10 @@ func (s *ServiceDefinition) CheckTypes() (checks CheckTypes, err error) {
 // registration. Note this is duplicated in config.ServiceConnectProxy and needs
 // to be kept in sync.
 type ServiceDefinitionConnectProxy struct {
-	Command  []string               `json:",omitempty"`
-	ExecMode string                 `json:",omitempty"`
-	Config   map[string]interface{} `json:",omitempty"`
+	Command   []string               `json:",omitempty"`
+	ExecMode  string                 `json:",omitempty"`
+	Config    map[string]interface{} `json:",omitempty"`
+	Upstreams []Upstream             `json:",omitempty"`
 }
 
 func (p *ServiceDefinitionConnectProxy) MarshalJSON() ([]byte, error) {

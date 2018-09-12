@@ -2,8 +2,8 @@ package proxy
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 
@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/consul/connect"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/watch"
-	"github.com/hashicorp/hcl"
 )
 
 // Config is the publicly configurable state for an entire proxy instance. It's
@@ -85,43 +84,21 @@ func (plc *PublicListenerConfig) applyDefaults() {
 	}
 }
 
-// UpstreamConfig configures an upstream (outgoing) listener.
-type UpstreamConfig struct {
-	// LocalAddress is the host/ip to listen on for local app connections. Defaults to 127.0.0.1.
-	LocalBindAddress string `json:"local_bind_address" hcl:"local_bind_address,attr" mapstructure:"local_bind_address"`
+// UpstreamConfig is an alias for api.Upstream so we can parse in a compatible
+// way but define custom methods for accessing the opaque config metadata.
+type UpstreamConfig api.Upstream
 
-	LocalBindPort int `json:"local_bind_port" hcl:"local_bind_port,attr" mapstructure:"local_bind_port"`
-
-	// DestinationName is the service name of the destination.
-	DestinationName string `json:"destination_name" hcl:"destination_name,attr" mapstructure:"destination_name"`
-
-	// DestinationNamespace is the namespace of the destination.
-	DestinationNamespace string `json:"destination_namespace" hcl:"destination_namespace,attr" mapstructure:"destination_namespace"`
-
-	// DestinationType determines which service discovery method is used to find a
-	// candidate instance to connect to.
-	DestinationType string `json:"destination_type" hcl:"destination_type,attr" mapstructure:"destination_type"`
-
-	// DestinationDatacenter is the datacenter the destination is in. If empty,
-	// defaults to discovery within the same datacenter.
-	DestinationDatacenter string `json:"destination_datacenter" hcl:"destination_datacenter,attr" mapstructure:"destination_datacenter"`
-
-	// ConnectTimeout is the timeout for establishing connections with the remote
-	// service instance. Defaults to 10,000 (10s).
-	ConnectTimeoutMs int `json:"connect_timeout_ms" hcl:"connect_timeout_ms,attr" mapstructure:"connect_timeout_ms"`
-
-	// resolver is used to plug in the service discover mechanism. It can be used
-	// in tests to bypass discovery. In real usage it is used to inject the
-	// api.Client dependency from the remainder of the config struct parsed from
-	// the user JSON using the UpstreamResolverFromClient helper.
-	resolver connect.Resolver
+// ConnectTimeout returns the connect timeout field of the nested config struct
+// or the default value.
+func (uc *UpstreamConfig) ConnectTimeout() time.Duration {
+	if ms, ok := uc.Config["connect_timeout_ms"].(int); ok {
+		return time.Duration(ms) * time.Millisecond
+	}
+	return 10000 * time.Millisecond
 }
 
 // applyDefaults sets zero-valued params to a sane default.
 func (uc *UpstreamConfig) applyDefaults() {
-	if uc.ConnectTimeoutMs == 0 {
-		uc.ConnectTimeoutMs = 10000
-	}
 	if uc.DestinationType == "" {
 		uc.DestinationType = "service"
 	}
@@ -140,25 +117,26 @@ func (uc *UpstreamConfig) String() string {
 		uc.DestinationType, uc.DestinationNamespace, uc.DestinationName)
 }
 
-// UpstreamResolverFromClient returns a ConsulResolver that can resolve the
-// given UpstreamConfig using the provided api.Client dependency.
-func UpstreamResolverFromClient(client *api.Client,
-	cfg UpstreamConfig) connect.Resolver {
-
-	// For now default to service as it has the most natural meaning and the error
-	// that the service doesn't exist is probably reasonable if misconfigured. We
-	// should probably handle actual configs that have invalid types at a higher
-	// level anyway (like when parsing).
-	typ := connect.ConsulResolverTypeService
-	if cfg.DestinationType == "prepared_query" {
-		typ = connect.ConsulResolverTypePreparedQuery
-	}
-	return &connect.ConsulResolver{
-		Client:     client,
-		Namespace:  cfg.DestinationNamespace,
-		Name:       cfg.DestinationName,
-		Type:       typ,
-		Datacenter: cfg.DestinationDatacenter,
+// UpstreamResolverFuncFromClient returns a closure that captures a consul
+// client and when called provides aConsulResolver that can resolve the given
+// UpstreamConfig using the provided api.Client dependency.
+func UpstreamResolverFuncFromClient(client *api.Client) func(cfg UpstreamConfig) (connect.Resolver, error) {
+	return func(cfg UpstreamConfig) (connect.Resolver, error) {
+		// For now default to service as it has the most natural meaning and the error
+		// that the service doesn't exist is probably reasonable if misconfigured. We
+		// should probably handle actual configs that have invalid types at a higher
+		// level anyway (like when parsing).
+		typ := connect.ConsulResolverTypeService
+		if cfg.DestinationType == "prepared_query" {
+			typ = connect.ConsulResolverTypePreparedQuery
+		}
+		return &connect.ConsulResolver{
+			Client:     client,
+			Namespace:  cfg.DestinationNamespace,
+			Name:       cfg.DestinationName,
+			Type:       typ,
+			Datacenter: cfg.Datacenter,
+		}, nil
 	}
 }
 
@@ -193,28 +171,6 @@ func NewStaticConfigWatcher(cfg *Config) *StaticConfigWatcher {
 // It returns itself on the channel once and then leaves it open.
 func (sc *StaticConfigWatcher) Watch() <-chan *Config {
 	return sc.ch
-}
-
-// ParseConfigFile parses proxy configuration from a file for local dev.
-func ParseConfigFile(filename string) (*Config, error) {
-	bs, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-
-	var cfg Config
-
-	err = hcl.Unmarshal(bs, &cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	cfg.PublicListener.applyDefaults()
-	for idx := range cfg.Upstreams {
-		cfg.Upstreams[idx].applyDefaults()
-	}
-
-	return &cfg, nil
 }
 
 // AgentConfigWatcher watches the local Consul agent for proxy config changes.
@@ -282,14 +238,10 @@ func (w *AgentConfigWatcher) handler(blockVal watch.BlockingParamVal,
 	}
 	cfg.PublicListener.applyDefaults()
 
-	err = mapstructure.Decode(resp.Config["upstreams"], &cfg.Upstreams)
-	if err != nil {
-		w.logger.Printf("[ERR] proxy config watch upstream listener config "+
-			"couldn't be parsed: %s", err)
-		return
-	}
-	for i := range cfg.Upstreams {
-		cfg.Upstreams[i].applyDefaults()
+	for _, u := range resp.Upstreams {
+		uc := UpstreamConfig(u)
+		uc.applyDefaults()
+		cfg.Upstreams = append(cfg.Upstreams, uc)
 	}
 
 	// Parsed config OK, deliver it!

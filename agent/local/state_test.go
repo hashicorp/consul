@@ -276,11 +276,11 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 
 	// Exists both same (noop)
 	srv1 := &structs.NodeService{
-		Kind:             structs.ServiceKindConnectProxy,
-		ID:               "mysql-proxy",
-		Service:          "mysql-proxy",
-		Port:             5000,
-		ProxyDestination: "db",
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "mysql-proxy",
+		Service: "mysql-proxy",
+		Port:    5000,
+		Proxy:   structs.ConnectProxyConfig{DestinationServiceName: "db"},
 		Weights: &structs.Weights{
 			Passing: 1,
 			Warning: 1,
@@ -292,11 +292,11 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 
 	// Exists both, different (update)
 	srv2 := &structs.NodeService{
-		ID:               "redis-proxy",
-		Service:          "redis-proxy",
-		Port:             8000,
-		Kind:             structs.ServiceKindConnectProxy,
-		ProxyDestination: "redis",
+		ID:      "redis-proxy",
+		Service: "redis-proxy",
+		Port:    8000,
+		Kind:    structs.ServiceKindConnectProxy,
+		Proxy:   structs.ConnectProxyConfig{DestinationServiceName: "redis"},
 		Weights: &structs.Weights{
 			Passing: 1,
 			Warning: 0,
@@ -312,11 +312,11 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 
 	// Exists local (create)
 	srv3 := &structs.NodeService{
-		ID:               "web-proxy",
-		Service:          "web-proxy",
-		Port:             80,
-		Kind:             structs.ServiceKindConnectProxy,
-		ProxyDestination: "web",
+		ID:      "web-proxy",
+		Service: "web-proxy",
+		Port:    80,
+		Kind:    structs.ServiceKindConnectProxy,
+		Proxy:   structs.ConnectProxyConfig{DestinationServiceName: "web"},
 		Weights: &structs.Weights{
 			Passing: 1,
 			Warning: 1,
@@ -326,11 +326,11 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 
 	// Exists remote (delete)
 	srv4 := &structs.NodeService{
-		ID:               "lb-proxy",
-		Service:          "lb-proxy",
-		Port:             443,
-		Kind:             structs.ServiceKindConnectProxy,
-		ProxyDestination: "lb",
+		ID:      "lb-proxy",
+		Service: "lb-proxy",
+		Port:    443,
+		Kind:    structs.ServiceKindConnectProxy,
+		Proxy:   structs.ConnectProxyConfig{DestinationServiceName: "lb"},
 		Weights: &structs.Weights{
 			Passing: 1,
 			Warning: 0,
@@ -341,11 +341,11 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 
 	// Exists local, in sync, remote missing (create)
 	srv5 := &structs.NodeService{
-		ID:               "cache-proxy",
-		Service:          "cache-proxy",
-		Port:             11211,
-		Kind:             structs.ServiceKindConnectProxy,
-		ProxyDestination: "cache-proxy",
+		ID:      "cache-proxy",
+		Service: "cache-proxy",
+		Port:    11211,
+		Kind:    structs.ServiceKindConnectProxy,
+		Proxy:   structs.ConnectProxyConfig{DestinationServiceName: "cache-proxy"},
 		Weights: &structs.Weights{
 			Passing: 1,
 			Warning: 1,
@@ -1862,7 +1862,7 @@ func TestStateProxyManagement(t *testing.T) {
 	assert.Equal("web-proxy", svc.ID)
 	assert.Equal("web-proxy", svc.Service)
 	assert.Equal(structs.ServiceKindConnectProxy, svc.Kind)
-	assert.Equal("web", svc.ProxyDestination)
+	assert.Equal("web", svc.Proxy.DestinationServiceName)
 	assert.Equal("", svc.Address, "should have empty address by default")
 	// Port is non-deterministic but could be either of 20000 or 20001
 	assert.Contains([]int{20000, 20001}, svc.Port)
@@ -1878,7 +1878,7 @@ func TestStateProxyManagement(t *testing.T) {
 		assert.Equal("web-proxy", svcDup.ID)
 		assert.Equal("web-proxy", svcDup.Service)
 		assert.Equal(structs.ServiceKindConnectProxy, svcDup.Kind)
-		assert.Equal("web", svcDup.ProxyDestination)
+		assert.Equal("web", svcDup.Proxy.DestinationServiceName)
 		assert.Equal("", svcDup.Address, "should have empty address by default")
 		// Port must be same as before
 		assert.Equal(svc.Port, svcDup.Port)

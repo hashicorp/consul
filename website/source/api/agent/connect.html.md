@@ -275,7 +275,22 @@ $ curl \
     "bind_address": "127.0.0.1",
     "bind_port": 20199,
     "local_service_address": "127.0.0.1:8181"
-  }
+  },
+  "Upstreams": [
+    {
+        "DestinationType": "service",
+        "DestinationName": "db",
+        "LocalBindPort": 1234,
+        "Config": {
+            "connect_timeout_ms": 1000
+        }
+    },
+    {
+        "DestinationType": "prepared_query",
+        "DestinationName": "geo-cache",
+        "LocalBindPort": 1235
+    }
+  ]
 }
 ```
 
@@ -295,3 +310,7 @@ $ curl \
 - `Config` `(map<string|any>)` - The configuration for the managed proxy. This
   is a map of primitive values (including arrays and maps) that is set by the
   user.
+
+- `Upstreams` `(array<Upstream>)` - The configured upstreams for the proxy. See 
+[Upstream Configuration Reference](/docs/connect/proxies.html#upstream-configuration-reference)
+for more details on the format.

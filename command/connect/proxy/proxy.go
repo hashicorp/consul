@@ -66,15 +66,6 @@ type cmd struct {
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 
-	c.flags.StringVar(&c.cfgFile, "dev-config", "",
-		"If set, proxy config is read on startup from this file (in HCL or JSON"+
-			"format). If a config file is given, the proxy will use that instead of "+
-			"querying the local agent for it's configuration. It will not reload it "+
-			"except on startup. In this mode the proxy WILL NOT authorize incoming "+
-			"connections with the local agent which is totally insecure. This is "+
-			"ONLY for internal development and testing and will probably be removed "+
-			"once proxy implementation is more complete..")
-
 	c.flags.StringVar(&c.proxyID, "proxy-id", "",
 		"The proxy's ID on the local agent.")
 
@@ -210,17 +201,6 @@ func (c *cmd) Run(args []string) int {
 }
 
 func (c *cmd) configWatcher(client *api.Client) (proxyImpl.ConfigWatcher, error) {
-	// Manual configuration file is specified.
-	if c.cfgFile != "" {
-		cfg, err := proxyImpl.ParseConfigFile(c.cfgFile)
-		if err != nil {
-			return nil, err
-		}
-
-		c.UI.Info("Configuration mode: File")
-		return proxyImpl.NewStaticConfigWatcher(cfg), nil
-	}
-
 	// Use the configured proxy ID
 	if c.proxyID != "" {
 		c.UI.Info("Configuration mode: Agent API")

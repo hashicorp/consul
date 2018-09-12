@@ -1428,16 +1428,16 @@ func TestStateStore_EnsureService_connectProxy(t *testing.T) {
 
 	// Create the service registration.
 	ns1 := &structs.NodeService{
-		Kind:             structs.ServiceKindConnectProxy,
-		ID:               "connect-proxy",
-		Service:          "connect-proxy",
-		Address:          "1.1.1.1",
-		Port:             1111,
-		ProxyDestination: "foo",
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "connect-proxy",
+		Service: "connect-proxy",
+		Address: "1.1.1.1",
+		Port:    1111,
 		Weights: &structs.Weights{
 			Passing: 1,
 			Warning: 1,
 		},
+		Proxy: structs.ConnectProxyConfig{DestinationServiceName: "foo"},
 	}
 
 	// Service successfully registers into the state store.
@@ -2032,8 +2032,8 @@ func TestStateStore_ConnectServiceNodes(t *testing.T) {
 	assert.Nil(s.EnsureNode(11, &structs.Node{Node: "bar", Address: "127.0.0.2"}))
 	assert.Nil(s.EnsureService(12, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: nil, Address: "", Port: 5000}))
 	assert.Nil(s.EnsureService(13, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
-	assert.Nil(s.EnsureService(14, "foo", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", ProxyDestination: "db", Port: 8000}))
-	assert.Nil(s.EnsureService(15, "bar", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", ProxyDestination: "db", Port: 8000}))
+	assert.Nil(s.EnsureService(14, "foo", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
+	assert.Nil(s.EnsureService(15, "bar", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
 	assert.Nil(s.EnsureService(16, "bar", &structs.NodeService{ID: "native-db", Service: "db", Connect: structs.ServiceConnect{Native: true}}))
 	assert.Nil(s.EnsureService(17, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"slave"}, Address: "", Port: 8001}))
 	assert.True(watchFired(ws))
@@ -2994,8 +2994,8 @@ func TestStateStore_CheckConnectServiceNodes(t *testing.T) {
 	assert.Nil(s.EnsureNode(11, &structs.Node{Node: "bar", Address: "127.0.0.2"}))
 	assert.Nil(s.EnsureService(12, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: nil, Address: "", Port: 5000}))
 	assert.Nil(s.EnsureService(13, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
-	assert.Nil(s.EnsureService(14, "foo", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", ProxyDestination: "db", Port: 8000}))
-	assert.Nil(s.EnsureService(15, "bar", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", ProxyDestination: "db", Port: 8000}))
+	assert.Nil(s.EnsureService(14, "foo", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
+	assert.Nil(s.EnsureService(15, "bar", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
 	assert.Nil(s.EnsureService(16, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"slave"}, Address: "", Port: 8001}))
 	assert.True(watchFired(ws))
 
@@ -3016,7 +3016,7 @@ func TestStateStore_CheckConnectServiceNodes(t *testing.T) {
 
 	for _, n := range nodes {
 		assert.Equal(structs.ServiceKindConnectProxy, n.Service.Kind)
-		assert.Equal("db", n.Service.ProxyDestination)
+		assert.Equal("db", n.Service.Proxy.DestinationServiceName)
 	}
 }
 
