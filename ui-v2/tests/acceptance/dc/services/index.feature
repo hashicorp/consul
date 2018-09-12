@@ -2,35 +2,38 @@
 Feature: dc / services: List Services
   Scenario:
     Given 1 datacenter model with the value "dc-1"
-    And 5 service models from yaml
+    And 6 service models from yaml
     ---
     - Name: Service 1
-      Meta:
-        external-source: consul
+      ExternalSources:
+        - consul
     - Name: Service 2
-      Meta:
-        external-source: nomad
+      ExternalSources:
+        - nomad
     - Name: Service 3
-      Meta:
-        external-source: terraform
+      ExternalSources:
+        - terraform
     - Name: Service 4
-      Meta:
-        external-source: kubernetes
+      ExternalSources:
+        - kubernetes
     - Name: Service 5
-      Meta: ~
+      ExternalSources: []
+    - Name: Service 6
+      ExternalSources: ~
     ---
     When I visit the services page for yaml
     ---
       dc: dc-1
     ---
     Then the url should be /dc-1/services
-    Then I see 5 service models
+    Then I see 6 service models
     And I see externalSource on the services like yaml
     ---
     - consul
     - nomad
     - terraform
     - kubernetes
+    - ~
     - ~
     ---
 
