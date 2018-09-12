@@ -64,7 +64,7 @@ Each value has a sane default tuned for an optimal getting started experience
 with Consul. Before going into production, please review the parameters below
 and consider if they're appropriate for your deployment.
 
-* <a name="v-global" href="#v-global">`server`</a> - These values are global values that affect multiple components of the chart.
+* <a name="v-global" href="#v-global">`global`</a> - These values are global values that affect multiple components of the chart.
 
   - <a name="v-global-enabled" href="#v-global-enabled">`enabled`</a> (`boolean: true`) -
   The master enabled/disabled configuration. If this is true, most components
@@ -81,7 +81,9 @@ and consider if they're appropriate for your deployment.
 
   - <a name="v-global-image" href="#v-global-image">`image`</a> (`string: "consul:latest"`) -
   The name of the Docker image (including any tag) for the containers running
-  Consul agents.
+  Consul agents. **This should be pinned to a specific version when running
+  in production.** Otherwise, other changes to the chart may inadvertently
+  upgrade your Consul version.
 
   - <a name="v-global-datacenter" href="#v-global-datacenter">`datacenter`</a> (`string: "dc1"`) -
   The name of the datacenter that the agent cluster should register as.
@@ -136,7 +138,7 @@ and consider if they're appropriate for your deployment.
 
   - <a name="v-server-extraconfig" href="#v-server-extraconfig">`extraConfig`</a> (`string: "{}"`) -
   A raw string of extra JSON or HCL configuration for Consul servers. This
-  will be saved as-is into a ConfigMap that is read by the Consul agents.
+  will be saved as-is into a ConfigMap that is read by the Consul server agents.
   This can be used to add additional configuration that isn't directly exposed
   by the chart.
 

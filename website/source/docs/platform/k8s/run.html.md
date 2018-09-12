@@ -112,10 +112,48 @@ value is specified. This should be set to resolve to the proper addresses of
 your existing Consul cluster.
 
 -> **Networking:** Note that for the Kubernetes nodes to join an existing
-cluster, the nodes (and specifically the agent pods) must be fully connected.
+cluster, the nodes (and specifically the agent pods) must be able to connect
+to all other server and client agents inside and _outside_ of Kubernetes.
 If this isn't possible, consider running the Kubernetes agents as a separate
 DC or adopting Enterprise for
 [network segments](/docs/enterprise/network-segments/index.html).
+
+### Accessing the Consul HTTP API
+
+The Consul HTTP API should be accessed by communicating to the local agent
+running on the same node. While technically any listening agent (client or
+server) can respond to the HTTP API, communicating with the local agent
+has important caching behavior, and allows you to use the simpler
+[`/agent` endpoints for services and checks](/api/agent.html).
+
+For Consul installed via the Helm chart, a client agent is installed on
+each Kubernetes node. This is explained in the [architecture](/docs/platform/k8s/run.html#client-agents)
+section. To access the agent, you may use the
+[downward API](https://kubernetes.io/docs/tasks/inject-data-application/downward-api-volume-expose-pod-information/).
+An example pod specification is shown below:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: consul-example
+spec:
+  containers:
+    - name: example
+      image: "consul:latest"
+      env:
+        - name: HOST_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+      command:
+        - "/bin/sh"
+        - "-ec"
+        - |
+            export CONSUL_HTTP_ADDR="${HOST_IP}:8500"
+            consul kv put hello world
+  restartPolicy: Never
+```
 
 ### Upgrading Consul on Kubernetes
 
@@ -161,7 +199,7 @@ everything is stable, begin by decreasing the `updatePartition` value by one,
 and running `helm upgrade` again. This should cause the first Consul server
 to be stopped and restarted with the new image.
 
-Wait until the Consul server cluster is healthy again (30s to a few minutes)l
+Wait until the Consul server cluster is healthy again (30s to a few minutes)
 then decrease `updatePartition` and upgrade again. Continue until
 `updatePartition` is `0`. At this point, you may remove the
 `updatePartition` configuration. Your server upgrade is complete.
@@ -191,7 +229,7 @@ Kubernetes cluster.
 The server agents are run as a **StatefulSet**, using persistent volume
 claims to store the server state. This also ensures that the
 [node ID](/docs/agent/options.html#_node_id) is persisted so that servers
-can be rescheduled onto new IP addresses without causing issues. The agents
+can be rescheduled onto new IP addresses without causing issues. The server agents
 are configured with
 [anti-affinity](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity)
 rules so that they are placed on different nodes. A readiness probe is
@@ -214,7 +252,9 @@ The client agents are run as a **DaemonSet**. This places one agent
 The clients expose the Consul HTTP API via a static port (default 8500)
 bound to the host port. This enables all other pods on the node to connect
 to the node-local agent using the host IP that can be retrieved via the
-Kubernetes downward API.
+Kubernetes downward API. See
+[accessing the Consul HTTP API](/docs/platform/k8s/run.html#accessing-the-consul-http-api)
+for an example.
 
 There is a major limitation to this: there is no way to bind to a local-only
 host port. Therefore, any other node can connect to the agent. This should be
