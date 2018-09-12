@@ -125,7 +125,7 @@ contender key ‘<prefix>/<session>’.
     "LockIndex": 1,
     "Key": "<prefix>/<session>",
     "Flags": 0,
-    "Value": "",
+    "Value": null,
     "Session": "<session>",
     "CreateIndex": 897,
     "ModifyIndex": 897
@@ -152,7 +152,7 @@ This is done with:
 ```text
 curl -X PUT -d <Updated Lock Body> http://localhost:8500/v1/kv/<lock>?cas=<lock-modify-index>
  ```
-`lock-modify-index` is the latest `ModifyIndex` value known for <lock>, 901 in this example.
+`lock-modify-index` is the latest `ModifyIndex` value known for `<lock>`, 901 in this example.
 
 If this request succeeds with `true`, the contender now holds a slot in the semaphore. 
 If this fails with `false`, then likely there was a race with another contender to acquire the slot.
