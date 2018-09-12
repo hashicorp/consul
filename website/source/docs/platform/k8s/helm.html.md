@@ -227,6 +227,14 @@ and consider if they're appropriate for your deployment.
   [ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.11/#resourcerequirements-v1-core) object. If this isn't specified, then the pods
   won't request any specific amount of resources.
 
+* <a name="v-dns" href="#v-dns">`dns`</a> - Values that configure the Consul DNS service.
+
+  - <a name="v-dns-enabled" href="#v-dns-enabled">`enabled`</a> (`boolean: global.enabled`) -
+  If true, a `consul-dns` service will be created that exposes port 53 for
+  TCP and UDP to the running Consul agents (servers and clients). This can
+  then be used to [configure kube-dns](/docs/platform/k8s/dns.html). The Helm
+  chart _does not_ automatically configure kube-dns.
+
 * <a name="v-ui" href="#v-ui">`ui`</a> - Values that configure the Consul UI.
 
   - <a name="v-ui-enabled" href="#v-ui-enabled">`enabled`</a> (`boolean: global.enabled`) -
