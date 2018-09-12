@@ -147,7 +147,7 @@ Connect proxy](/docs/connect/proxies.html#unmanaged-proxies) instance with the
 value `connect-proxy`. For typical non-proxy instances the `kind` field must be
 omitted. The `proxy` field is also required for unmanaged proxy registrations
 and is only valid if `kind` is `connect-proxy`. The only required `proxy` field
-is `destination_service_name`. From version 1.2.0 to 1.2.3 this was specified
+is `destination_service_name`. From version 1.2.0 to 1.3.0 this was specified
 using `proxy_destination` which still works but is now deprecated. See the
 [unmanaged proxy
 configuration](/docs/connect/proxies.html#complete-configuration-example)

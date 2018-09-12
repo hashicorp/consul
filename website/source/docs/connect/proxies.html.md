@@ -132,9 +132,9 @@ static port will be able to masquerade as the source service ("web" in the
 example above). You must either trust any loopback access on that port or
 use namespacing techniques provided by your operating system.
 
--> **Deprecation Note:** versions 1.2.0 to 1.2.3 required specifying `upstreams`
+-> **Deprecation Note:** versions 1.2.0 to 1.3.0 required specifying `upstreams`
 as part of the opaque `config` that is passed to the proxy. However, since
-1.2.3, the `upstreams` configuration is now specified directily under the
+1.3.0, the `upstreams` configuration is now specified directily under the
 `proxy` key. Old service definitions using the nested config will continue to
 work and have the values copied into the new location. This allows the upstreams
 to be registered centrally rather than being part of the local-only config
@@ -197,6 +197,17 @@ can be used.
 
 The following example shows all possible upstream configuration parameters.
 
+Note that in versions 1.2.0 to 1.3.0, managed proxy upstreams were specified
+inside the opaque `connect.proxy.config` map. The format is almost unchanged
+however managed proxy upstreams are now defined a level up in the
+`connect.proxy.upstreams`. The old location is deprecated and will be
+automatically converted into the new for an interim period before support is
+dropped in a future major release. The only difference in format between the
+upstream defintions is that the field `destination_datacenter` has been renamed
+to `datacenter` to reflect that it's the discovery target and not necessarily
+the same as the instance that will be returned in the case of a prepared query
+that fails over to another datacenter.
+
 Note that `snake_case` is used here as it works in both [config file and API
 registrations](/docs/agent/services.html#service-definition-parameter-case).
 
@@ -204,7 +215,7 @@ registrations](/docs/agent/services.html#service-definition-parameter-case).
 {
   "destination_type": "service",
   "destination_name": "redis",
-  "destination_datacenter": "dc1",
+  "datacenter": "dc1",
   "local_bind_address": "127.0.0.1",
   "local_bind_port": 1234,
   "config": {}
@@ -313,7 +324,7 @@ the following fields:
 
   * `proxy.destination_service_name` (string) must be set to the service that this
     proxy is representing. Note that this replaces `proxy_destination` in
-    versions 1.2.0 to 1.2.3.
+    versions 1.2.0 to 1.3.0.
 
   * `port` must be set so that other Connect services can discover the exact
     address for connections. `address` is optional if the service is being
