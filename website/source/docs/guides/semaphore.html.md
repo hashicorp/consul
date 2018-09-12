@@ -141,7 +141,7 @@ entries. By scanning those entries, we create a set of all the `Session` values.
 `Holders` that are not in that set are pruned. In effect, we are creating a set of live contenders
 based on the list results and doing a set difference with the `Holders` to detect and prune
 any potentially failed holders. In this example `<session>` is present in `Holders` and 
-also has an active key, so no pruning is required.
+is attached to the key `<prefix>/<session>`, so no pruning is required.
 
 If the number of holders after pruning is less than the limit, a contender attempts acquisition
 by adding its own session to the `Holders` list and doing a Check-And-Set update of the `<lock>`. 
