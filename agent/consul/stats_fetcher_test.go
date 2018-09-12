@@ -27,9 +27,9 @@ func TestStatsFetcher(t *testing.T) {
 
 	joinLAN(t, s2, s1)
 	joinLAN(t, s3, s1)
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	testrpc.WaitForLeader(t, s2.RPC, "dc1")
-	testrpc.WaitForLeader(t, s3.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s2.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s3.RPC, "dc1")
 
 	members := s1.serfLAN.Members()
 	if len(members) != 3 {
