@@ -190,23 +190,38 @@ func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) 
 			EnableTagOverride: s.EnableTagOverride,
 			CreateIndex:       s.CreateIndex,
 			ModifyIndex:       s.ModifyIndex,
-			ProxyDestination:  s.ProxyDestination,
 			Weights:           weights,
 		}
+
 		if as.Tags == nil {
 			as.Tags = []string{}
 		}
 		if as.Meta == nil {
 			as.Meta = map[string]string{}
 		}
-		// Attach Connect configs if the exist
+		// Attach Unmanaged Proxy config if exists
+		if s.Kind == structs.ServiceKindConnectProxy {
+			as.Proxy = s.Proxy.ToAPI()
+			// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
+			// Also set the deprecated ProxyDestination
+			as.ProxyDestination = as.Proxy.DestinationServiceName
+		}
+
+		// Attach Connect configs if the exist. We use the actual proxy state since
+		// that may have had defaults filled in compared to the config that was
+		// provided with the service as stored in the NodeService here.
 		if proxy, ok := proxies[id+"-proxy"]; ok {
 			as.Connect = &api.AgentServiceConnect{
 				Proxy: &api.AgentServiceConnectProxy{
-					ExecMode: api.ProxyExecMode(proxy.Proxy.ExecMode.String()),
-					Command:  proxy.Proxy.Command,
-					Config:   proxy.Proxy.Config,
+					ExecMode:  api.ProxyExecMode(proxy.Proxy.ExecMode.String()),
+					Command:   proxy.Proxy.Command,
+					Config:    proxy.Proxy.Config,
+					Upstreams: proxy.Proxy.Upstreams.ToAPI(),
 				},
+			}
+		} else if s.Connect.Native {
+			as.Connect = &api.AgentServiceConnect{
+				Native: true,
 			}
 		}
 		agentSvcs[id] = as
@@ -546,6 +561,29 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 			"enable_tag_override": "EnableTagOverride",
 		})
 
+		// Translate upstream keys - we have the same upstream format in two
+		// possible places.
+		translateUpstreams := func(rawMap map[string]interface{}) {
+			var upstreams []interface{}
+			if us, ok := rawMap["upstreams"].([]interface{}); ok {
+				upstreams = us
+			}
+			if us, ok := rawMap["Upstreams"].([]interface{}); ok {
+				upstreams = us
+			}
+			for _, u := range upstreams {
+				if uMap, ok := u.(map[string]interface{}); ok {
+					config.TranslateKeys(uMap, map[string]string{
+						"destination_name":      "DestinationName",
+						"destination_type":      "DestinationType",
+						"destination_namespace": "DestinationNamespace",
+						"local_bind_port":       "LocalBindPort",
+						"local_bind_address":    "LocalBindAddress",
+					})
+				}
+			}
+		}
+
 		for k, v := range rawMap {
 			switch strings.ToLower(k) {
 			case "check":
@@ -560,6 +598,32 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 				for _, chkType := range chkTypes {
 					if err := FixupCheckType(chkType); err != nil {
 						return err
+					}
+				}
+			case "proxy":
+				if valMap, ok := v.(map[string]interface{}); ok {
+					config.TranslateKeys(valMap, map[string]string{
+						"destination_service_name": "DestinationServiceName",
+						"destination_service_id":   "DestinationServiceID",
+						"local_service_port":       "LocalServicePort",
+						"local_service_address":    "LocalServiceAddress",
+					})
+					translateUpstreams(valMap)
+				}
+			case "connect":
+				if connectMap, ok := v.(map[string]interface{}); ok {
+					var proxyMap map[string]interface{}
+					if pMap, ok := connectMap["Proxy"].(map[string]interface{}); ok {
+						proxyMap = pMap
+					}
+					if pMap, ok := connectMap["proxy"].(map[string]interface{}); ok {
+						proxyMap = pMap
+					}
+					if proxyMap != nil {
+						config.TranslateKeys(proxyMap, map[string]string{
+							"exec_mode": "ExecMode",
+						})
+						translateUpstreams(proxyMap)
 					}
 				}
 			}
@@ -1109,6 +1173,7 @@ func (s *HTTPServer) AgentConnectProxyConfig(resp http.ResponseWriter, req *http
 				ExecMode:          api.ProxyExecMode(proxy.Proxy.ExecMode.String()),
 				Command:           proxy.Proxy.Command,
 				Config:            config,
+				Upstreams:         proxy.Proxy.Upstreams.ToAPI(),
 			}
 			return contentHash, reply, nil
 		})

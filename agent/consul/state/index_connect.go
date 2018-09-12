@@ -23,7 +23,7 @@ func (idx *IndexConnectService) FromObject(obj interface{}) (bool, []byte, error
 	switch {
 	case sn.ServiceKind == structs.ServiceKindConnectProxy:
 		// For proxies, this service supports Connect for the destination
-		result = []byte(strings.ToLower(sn.ServiceProxyDestination))
+		result = []byte(strings.ToLower(sn.ServiceProxy.DestinationServiceName))
 
 	case sn.ServiceConnect.Native:
 		// For native, this service supports Connect directly

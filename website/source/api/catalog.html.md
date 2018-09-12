@@ -446,7 +446,20 @@ $ curl \
     },
     "ServiceTags": [
       "tacos"
-    ]
+    ],
+    "ServiceProxyDestination": "",
+    "ServiceProxy": {
+        "DestinationServiceName": "",
+        "DestinationServiceID": "",
+        "LocalServiceAddress": "",
+        "LocalServicePort": 0,
+        "Config": null,
+        "Upstreams": null
+    },
+    "ServiceConnect": {
+        "Native": false,
+        "Proxy": null
+    },
   }
 ]
 ```
@@ -488,11 +501,16 @@ $ curl \
 - `ServiceKind` is the kind of service, usually "". See the Agent
   registration API for more information.
 
-- `ServiceProxyDestination` is the name of the service that is being proxied,
-  for "connect-proxy" type services.
+- `ServiceProxyDestination` **Deprecated** this field duplicates
+  `ServiceProxy.DestinationServiceName` for backwards compatibility. It will be
+  removed in a future major version release.
+
+- `ServiceProxy` is the proxy config as specified in
+[Unmanaged Proxies](/docs/connect/proxies.html#unmanaged-proxies).
 
 - `ServiceConnect` are the [Connect](/docs/connect/index.html) settings. The
-  value of this struct is equivalent to the `Connect` field for service registration.
+  value of this struct is equivalent to the `Connect` field for service
+  registration.
 
 ## List Nodes for Connect-capable Service
 

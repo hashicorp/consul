@@ -17,10 +17,10 @@ or added at runtime over the HTTP interface.
 
 ## Service Definition
 
-To configure a service, either provide the service definition as a `-config-file` option to
-the agent or place it inside the `-config-dir` of the agent. The file
-must end in the `.json` or `.hcl` extension to be loaded by Consul. Check
-definitions can be updated by sending a `SIGHUP` to the agent.
+To configure a service, either provide the service definition as a
+`-config-file` option to the agent or place it inside the `-config-dir` of the
+agent. The file must end in the `.json` or `.hcl` extension to be loaded by
+Consul. Check definitions can be updated by sending a `SIGHUP` to the agent.
 Alternatively, the service can be registered dynamically using the [HTTP
 API](/api/index.html).
 
@@ -46,6 +46,14 @@ example shows all possible fields, but note that only a few are required.
     ],
     "kind": "connect-proxy",
     "proxy_destination": "redis",
+    "proxy": {
+      "destination_service_name": "redis",
+      "destination_service_id": "redis1",
+      "local_service_name": "127.0.0.1",
+      "local_service_port": 9090,
+      "config": {},
+      "upstreams": []
+    }
     "connect": {
       "native": false,
       "proxy": {
@@ -88,9 +96,13 @@ and all the instances of a given service have their own copy of it.
 The `kind` field is used to optionally identify the service as an [unmanaged
 Connect proxy](/docs/connect/proxies.html#unmanaged-proxies) instance with the
 value `connect-proxy`. For typical non-proxy instances the `kind` field must be
-omitted. The `proxy_destination` field is also required for unmanaged proxy
-registrations and is only valid if `kind` is `connect-proxy`. It's value must be
-the _name_ of the service that the proxy is handling traffic for.
+omitted. The `proxy` field is also required for unmanaged proxy registrations
+and is only valid if `kind` is `connect-proxy`. The only required `proxy` field
+is `destination_service_name`. From version 1.2.0 to 1.3.0 this was specified
+using `proxy_destination` which still works but is now deprecated. See the
+[unmanaged proxy
+configuration](/docs/connect/proxies.html#complete-configuration-example)
+documentation for full details.
 
 The `connect` field can be specified to configure
 [Connect](/docs/connect/index.html) for a service. This field is available in
@@ -220,3 +232,11 @@ recommended to always use DNS-compliant service and tag names.
 DNS-compliant service and tag names may contain any alpha-numeric characters, as
 well as dashes. Dots are not supported because Consul internally uses them to
 delimit service tags.
+
+## Service Definition Parameter Case
+
+For historical reasons Consul's API uses `CamelCased` parameter names in
+responses, however it's configuration file syntax borrowed from HCL uses
+`snake_case`. For this reason the registration APIs accept both cases for
+service definition parameters although APIs will return the listings using
+`CamelCase`.

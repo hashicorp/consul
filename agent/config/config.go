@@ -84,8 +84,12 @@ func Parse(data string, format string) (c Config, err error) {
 		"services",
 		"services.checks",
 		"watches",
-		"service.connect.proxy.config.upstreams",
-		"services.connect.proxy.config.upstreams",
+		"service.connect.proxy.config.upstreams", // Deprecated
+		"services.connect.proxy.config.upstreams", // Deprecated
+		"service.connect.proxy.upstreams",
+		"services.connect.proxy.upstreams",
+		"service.proxy.upstreams",
+		"services.proxy.upstreams",
 	})
 
 	// There is a difference of representation of some fields depending on
@@ -341,8 +345,10 @@ type ServiceDefinition struct {
 	Token             *string           `json:"token,omitempty" hcl:"token" mapstructure:"token"`
 	Weights           *ServiceWeights   `json:"weights,omitempty" hcl:"weights" mapstructure:"weights"`
 	EnableTagOverride *bool             `json:"enable_tag_override,omitempty" hcl:"enable_tag_override" mapstructure:"enable_tag_override"`
-	ProxyDestination  *string           `json:"proxy_destination,omitempty" hcl:"proxy_destination" mapstructure:"proxy_destination"`
-	Connect           *ServiceConnect   `json:"connect,omitempty" hcl:"connect" mapstructure:"connect"`
+	// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
+	ProxyDestination *string         `json:"proxy_destination,omitempty" hcl:"proxy_destination" mapstructure:"proxy_destination"`
+	Proxy            *ServiceProxy   `json:"proxy,omitempty" hcl:"proxy" mapstructure:"proxy"`
+	Connect          *ServiceConnect `json:"connect,omitempty" hcl:"connect" mapstructure:"connect"`
 }
 
 type CheckDefinition struct {
@@ -380,9 +386,81 @@ type ServiceConnect struct {
 }
 
 type ServiceConnectProxy struct {
-	Command  []string               `json:"command,omitempty" hcl:"command" mapstructure:"command"`
-	ExecMode *string                `json:"exec_mode,omitempty" hcl:"exec_mode" mapstructure:"exec_mode"`
-	Config   map[string]interface{} `json:"config,omitempty" hcl:"config" mapstructure:"config"`
+	Command   []string               `json:"command,omitempty" hcl:"command" mapstructure:"command"`
+	ExecMode  *string                `json:"exec_mode,omitempty" hcl:"exec_mode" mapstructure:"exec_mode"`
+	Config    map[string]interface{} `json:"config,omitempty" hcl:"config" mapstructure:"config"`
+	Upstreams []Upstream             `json:"upstreams,omitempty" hcl:"upstreams" mapstructure:"upstreams"`
+}
+
+// ServiceProxy is the additional config needed for a Kind = connect-proxy
+// registration.
+type ServiceProxy struct {
+	// DestinationServiceName is required and is the name of the service to accept
+	// traffic for.
+	DestinationServiceName *string `json:"destination_service_name,omitempty" hcl:"destination_service_name" mapstructure:"destination_service_name"`
+
+	// DestinationServiceID is optional and should only be specified for
+	// "side-car" style proxies where the proxy is in front of just a single
+	// instance of the service. It should be set to the service ID of the instance
+	// being represented which must be registered to the same agent. It's valid to
+	// provide a service ID that does not yet exist to avoid timing issues when
+	// bootstrapping a service with a proxy.
+	DestinationServiceID *string `json:"destination_service_id,omitempty" hcl:"destination_service_id" mapstructure:"destination_service_id"`
+
+	// LocalServiceAddress is the address of the local service instance. It is
+	// optional and should only be specified for "side-car" style proxies. It will
+	// default to 127.0.0.1 if the proxy is a "side-car" (DestinationServiceID is
+	// set) but otherwise will be ignored.
+	LocalServiceAddress *string `json:"local_service_address,omitempty" hcl:"local_service_address" mapstructure:"local_service_address"`
+
+	// LocalServicePort is the port of the local service instance. It is optional
+	// and should only be specified for "side-car" style proxies. It will default
+	// to the registered port for the instance if the proxy is a "side-car"
+	// (DestinationServiceID is set) but otherwise will be ignored.
+	LocalServicePort *int `json:"local_service_port,omitempty" hcl:"local_service_port" mapstructure:"local_service_port"`
+
+	// Config is the arbitrary configuration data provided with the proxy
+	// registration.
+	Config map[string]interface{} `json:"config,omitempty" hcl:"config" mapstructure:"config"`
+
+	// Upstreams describes any upstream dependencies the proxy instance should
+	// setup.
+	Upstreams []Upstream `json:"upstreams,omitempty" hcl:"upstreams" mapstructure:"upstreams"`
+}
+
+// Upstream represents a single upstream dependency for a service or proxy. It
+// describes the mechanism used to discover instances to communicate with (the
+// Target) as well as any potential client configuration that may be useful such
+// as load balancer options, timeouts etc.
+type Upstream struct {
+	// Destination fields are the required ones for determining what this upstream
+	// points to. Depending on DestinationType some other fields below might
+	// further restrict the set of instances allowable.
+	//
+	// DestinationType would be better as an int constant but even with custom
+	// JSON marshallers it causes havoc with all the mapstructure mangling we do
+	// on service definitions in various places.
+	DestinationType      *string `json:"destination_type,omitempty" hcl:"destination_type" mapstructure:"destination_type"`
+	DestinationNamespace *string `json:"destination_namespace,omitempty" hcl:"destination_namespace" mapstructure:"destination_namespace"`
+	DestinationName      *string `json:"destination_name,omitempty" hcl:"destination_name" mapstructure:"destination_name"`
+
+	// Datacenter that the service discovery request should be run against. Note
+	// for prepared queries, the actual results might be from a different
+	// datacenter.
+	Datacenter *string `json:"datacenter,omitempty" hcl:"datacenter" mapstructure:"datacenter"`
+
+	// LocalBindAddress is the ip address a side-car proxy should listen on for
+	// traffic destined for this upstream service. Default if empty is 127.0.0.1.
+	LocalBindAddress *string `json:"local_bind_address,omitempty" hcl:"local_bind_address" mapstructure:"local_bind_address"`
+
+	// LocalBindPort is the ip address a side-car proxy should listen on for traffic
+	// destined for this upstream service. Required.
+	LocalBindPort *int `json:"local_bind_port,omitempty" hcl:"local_bind_port" mapstructure:"local_bind_port"`
+
+	// Config is an opaque config that is specific to the proxy process being run.
+	// It can be used to pass abritrary configuration for this specific upstream
+	// to the proxy.
+	Config map[string]interface{} `json:"config,omitempty" hcl:"config" mapstructure:"config"`
 }
 
 // Connect is the agent-global connect configuration.

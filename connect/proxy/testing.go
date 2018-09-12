@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/consul/connect"
 	"github.com/hashicorp/consul/lib/freeport"
 	"github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
@@ -109,4 +110,12 @@ func TestEchoConn(t testing.T, conn net.Conn, prefix string) {
 	// Addresses test flakiness around returning before Write or Read finish
 	// see PR #4498
 	time.Sleep(time.Millisecond)
+}
+
+// TestStaticUpstreamResolverFunc returns a function that will return a static
+// resolver for testing UpstreamListener.
+func TestStaticUpstreamResolverFunc(r connect.Resolver) func(UpstreamConfig) (connect.Resolver, error) {
+	return func(UpstreamConfig) (connect.Resolver, error) {
+		return r, nil
+	}
 }

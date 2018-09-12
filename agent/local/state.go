@@ -659,12 +659,14 @@ func (l *State) AddProxy(proxy *structs.ConnectManagedProxy, token,
 	// Construct almost all of the NodeService that needs to be registered by the
 	// caller outside of the lock.
 	svc := &structs.NodeService{
-		Kind:             structs.ServiceKindConnectProxy,
-		ID:               target.ID + "-proxy",
-		Service:          target.Service + "-proxy",
-		ProxyDestination: target.Service,
-		Address:          cfg.BindAddress,
-		Port:             cfg.BindPort,
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      target.ID + "-proxy",
+		Service: target.Service + "-proxy",
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: target.Service,
+		},
+		Address: cfg.BindAddress,
+		Port:    cfg.BindPort,
 	}
 
 	// Lock now. We can't lock earlier as l.Service would deadlock and shouldn't

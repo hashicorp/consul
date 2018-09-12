@@ -59,10 +59,12 @@ func TestConsulResolver_Resolve(t *testing.T) {
 	require.Nil(t, err)
 
 	regProxy := &api.AgentServiceRegistration{
-		Kind:             "connect-proxy",
-		Name:             "web-proxy",
-		Port:             9090,
-		ProxyDestination: "web",
+		Kind: "connect-proxy",
+		Name: "web-proxy",
+		Port: 9090,
+		Proxy: &api.AgentServiceConnectProxyConfig{
+			DestinationServiceName: "web",
+		},
 	}
 	err = client.Agent().ServiceRegister(regProxy)
 	require.Nil(t, err)
