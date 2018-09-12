@@ -132,10 +132,10 @@ contender key ‘<prefix>/<session>’.
   }
 ]
 ```
-Note that the Value we embedded into `<lock>` is Base64 encoded when returned by the API.
+Note that the `Value` we embedded into `<lock>` is Base64 encoded when returned by the API.
 
-When the `<lock>` is read, we can verify the remote `Limit` agrees with the `Holders` count. This
-is used to detect a potential conflict. The next step is to determine which of the current
+When the `<lock>` is read and its `Value` is decoded, we can verify the remote `Limit` agrees with the `Holders` count. 
+This is used to detect a potential conflict. The next step is to determine which of the current
 slot holders are still alive. As part of the results of the `GET`, we also have all the contender
 entries. By scanning those entries, we create a set of all the `Session` values. Any of the
 `Holders` that are not in that set are pruned. In effect, we are creating a set of live contenders
