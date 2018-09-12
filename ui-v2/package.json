@@ -86,7 +86,7 @@
     "loader.js": "^4.2.3",
     "prettier": "^1.10.2",
     "svgo": "^1.0.5",
-    "text-encoder-lite": "^1.0.1"
+    "text-encoding": "^0.6.4"
   },
   "engines": {
     "node": "^4.5 || 6.* || >= 7.*"
