@@ -271,3 +271,32 @@ func testCrossSignProviders(t *testing.T, provider1, provider2 Provider) {
 		require.NoError(err)
 	}
 }
+
+func TestConsulCAProvider_MigrateOldID(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	conf := testConsulCAConfig()
+	delegate := newMockDelegate(t, conf)
+
+	// Create an entry with an old-style ID.
+	err := delegate.ApplyCARequest(&structs.CARequest{
+		Op: structs.CAOpSetProviderState,
+		ProviderState: &structs.CAConsulProviderState{
+			ID: ",",
+		},
+	})
+	require.NoError(err)
+	_, providerState, err := delegate.state.CAProviderState(",")
+	require.NoError(err)
+	require.NotNil(providerState)
+
+	provider := &ConsulProvider{Delegate: delegate}
+	require.NoError(provider.Configure(conf.ClusterID, true, conf.Config))
+	require.NoError(provider.GenerateRoot())
+
+	// After running Configure, the old ID entry should be gone.
+	_, providerState, err = delegate.state.CAProviderState(",")
+	require.NoError(err)
+	require.Nil(providerState)
+}

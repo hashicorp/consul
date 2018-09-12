@@ -3,6 +3,7 @@ package ca
 import (
 	"bytes"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
@@ -10,6 +11,7 @@ import (
 	"fmt"
 	"math/big"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -35,7 +37,7 @@ type ConsulProviderStateDelegate interface {
 }
 
 // Configure sets up the provider using the given configuration.
-func (c *ConsulProvider) Configure(clusterId string, isRoot bool, rawConfig map[string]interface{}) error {
+func (c *ConsulProvider) Configure(clusterID string, isRoot bool, rawConfig map[string]interface{}) error {
 	// Parse the raw config and update our ID.
 	config, err := ParseConsulCAConfig(rawConfig)
 	if err != nil {
@@ -43,7 +45,8 @@ func (c *ConsulProvider) Configure(clusterId string, isRoot bool, rawConfig map[
 	}
 	c.config = config
 	c.isRoot = isRoot
-	c.id = fmt.Sprintf("%s,%s", config.PrivateKey, config.RootCert)
+	hash := sha256.Sum256([]byte(fmt.Sprintf("%s,%s,%v", config.PrivateKey, config.RootCert, isRoot)))
+	c.id = strings.Replace(fmt.Sprintf("% x", hash), " ", ":", -1)
 
 	// Exit early if the state store has an entry for this provider's config.
 	_, providerState, err := c.Delegate.State().CAProviderState(c.id)
@@ -52,6 +55,37 @@ func (c *ConsulProvider) Configure(clusterId string, isRoot bool, rawConfig map[
 	}
 
 	if providerState != nil {
+		return nil
+	}
+
+	// Check if there's an entry with the old ID scheme.
+	oldID := fmt.Sprintf("%s,%s", config.PrivateKey, config.RootCert)
+	_, providerState, err = c.Delegate.State().CAProviderState(oldID)
+	if err != nil {
+		return err
+	}
+
+	// Found an entry with the old ID, so update it to the new ID and
+	// delete the old entry.
+	if providerState != nil {
+		newState := *providerState
+		newState.ID = c.id
+		createReq := &structs.CARequest{
+			Op:            structs.CAOpSetProviderState,
+			ProviderState: &newState,
+		}
+		if err := c.Delegate.ApplyCARequest(createReq); err != nil {
+			return err
+		}
+
+		deleteReq := &structs.CARequest{
+			Op:            structs.CAOpDeleteProviderState,
+			ProviderState: providerState,
+		}
+		if err := c.Delegate.ApplyCARequest(deleteReq); err != nil {
+			return err
+		}
+
 		return nil
 	}
 
@@ -363,9 +397,9 @@ func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error
 	serialNum := &big.Int{}
 	serialNum.SetUint64(sn)
 	template := x509.Certificate{
-		SerialNumber: serialNum,
-		Subject:      pkix.Name{CommonName: name},
-		URIs:         []*url.URL{id.URI()},
+		SerialNumber:          serialNum,
+		Subject:               pkix.Name{CommonName: name},
+		URIs:                  []*url.URL{id.URI()},
 		BasicConstraintsValid: true,
 		KeyUsage: x509.KeyUsageCertSign |
 			x509.KeyUsageCRLSign |
