@@ -140,7 +140,7 @@ slot holders are still alive. As part of the results of the `GET`, we also have 
 entries. By scanning those entries, we create a set of all the `Session` values. Any of the
 `Holders` that are not in that set are pruned. In effect, we are creating a set of live contenders
 based on the list results and doing a set difference with the `Holders` to detect and prune
-any potentially failed holders. In this example `<session1>` is present in `Holders` and 
+any potentially failed holders. In this example `<session>` is present in `Holders` and 
 also has an active key, so no pruning is required.
 
 If the number of holders after pruning is less than the limit, a contender attempts acquisition
