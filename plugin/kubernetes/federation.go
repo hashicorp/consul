@@ -1,6 +1,8 @@
 package kubernetes
 
 import (
+	"errors"
+
 	"github.com/coredns/coredns/plugin/etcd/msg"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
 	"github.com/coredns/coredns/request"
@@ -36,6 +38,10 @@ func (k *Kubernetes) Federations(state request.Request, fname, fzone string) (ms
 
 	lz := node.Labels[LabelZone]
 	lr := node.Labels[LabelRegion]
+
+	if lz == "" || lr == "" {
+		return msg.Service{}, errors.New("local node missing zone/region labels")
+	}
 
 	if r.endpoint == "" {
 		return msg.Service{Host: dnsutil.Join([]string{r.service, r.namespace, fname, r.podOrSvc, lz, lr, fzone})}, nil

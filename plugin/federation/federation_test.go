@@ -54,7 +54,7 @@ func TestFederationKubernetes(t *testing.T) {
 	}
 
 	k := kubernetes.New([]string{"cluster.local."})
-	k.APIConn = &APIConnFederationTest{}
+	k.APIConn = &APIConnFederationTest{zone: "fd-az", region: "fd-r"}
 
 	fed := New()
 	fed.zones = []string{"cluster.local."}
@@ -77,5 +77,41 @@ func TestFederationKubernetes(t *testing.T) {
 
 		resp := rec.Msg
 		test.SortAndCheck(t, resp, tc)
+	}
+}
+
+func TestFederationKubernetesMissingLabels(t *testing.T) {
+	tests := []test.Case{
+		{
+			// service does not exist, do the federation dance.
+			Qname: "svc0.testns.prod.svc.cluster.local.", Qtype: dns.TypeA,
+			Rcode: dns.RcodeSuccess,
+			Answer: []dns.RR{
+				test.CNAME("svc0.testns.prod.svc.cluster.local.  303       IN      CNAME   svc0.testns.prod.svc.fd-az.fd-r.federal.example."),
+			},
+		},
+	}
+
+	k := kubernetes.New([]string{"cluster.local."})
+	k.APIConn = &APIConnFederationTest{zone: "", region: ""}
+
+	fed := New()
+	fed.zones = []string{"cluster.local."}
+	fed.Federations = k.Federations
+	fed.Next = k
+	fed.f = map[string]string{
+		"prod": "federal.example.",
+	}
+
+	ctx := context.TODO()
+	for _, tc := range tests {
+		m := tc.Msg()
+
+		rec := dnstest.NewRecorder(&test.ResponseWriter{})
+		_, err := fed.ServeDNS(ctx, rec, m)
+		if err == nil {
+			t.Errorf("Expected an error")
+			return
+		}
 	}
 }

@@ -8,7 +8,9 @@ import (
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type APIConnFederationTest struct{}
+type APIConnFederationTest struct {
+	zone, region string
+}
 
 func (APIConnFederationTest) HasSynced() bool                        { return true }
 func (APIConnFederationTest) Run()                                   { return }
@@ -176,13 +178,13 @@ func (APIConnFederationTest) EndpointsList() []*api.Endpoints {
 	return eps
 }
 
-func (APIConnFederationTest) GetNodeByName(name string) (*api.Node, error) {
+func (a APIConnFederationTest) GetNodeByName(name string) (*api.Node, error) {
 	return &api.Node{
 		ObjectMeta: meta.ObjectMeta{
 			Name: "test.node.foo.bar",
 			Labels: map[string]string{
-				kubernetes.LabelRegion: "fd-r",
-				kubernetes.LabelZone:   "fd-az",
+				kubernetes.LabelRegion: a.region,
+				kubernetes.LabelZone:   a.zone,
 			},
 		},
 	}, nil
