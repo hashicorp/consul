@@ -20,6 +20,8 @@ Feature: dc / intentions / update: Intention Create
     And I type "db" into ".ember-power-select-search-input"
     And I click ".ember-power-select-option:first-child"
     Then I see the text "db" in "[data-test-destination-element] .ember-power-select-selected-item"
+    # Specifically set deny
+    And I click "[value=deny]"
     And I submit
     Then a POST request is made to "/v1/connect/intentions?dc=datacenter" with the body from yaml
     ---
