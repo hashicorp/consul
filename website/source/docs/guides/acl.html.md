@@ -1137,7 +1137,7 @@ Consul clients must have [`primary_datacenter`](/docs/agent/options.html#primary
 in order to enable agent-level ACL features. If this is set, the agents will contact the Consul
 servers to determine if ACLs are enabled at the cluster level. If they detect that ACLs are not
 enabled, they will check at most every 2 minutes to see if they have become enabled, and will
-start enforcing ACLs automatically. If an agent has an `acl_daprimary_datacentertacenter` defined, operators will
+start enforcing ACLs automatically. If an agent has an `primary_datacenter` defined, operators will
 need to use the [`acl_agent_master_token`](/docs/agent/options.html#acl_agent_master_token) to
 perform agent-level operations if the Consul servers aren't present (such as for a manual join
 to the cluster), unless the [`acl_down_policy`](/docs/agent/options.html#acl_down_policy) on the

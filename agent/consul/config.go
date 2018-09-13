@@ -75,10 +75,14 @@ type Config struct {
 	// of nodes.
 	BootstrapExpect int
 
-	// Datacenter is the datacenter this Consul server represents
+	// Datacenter is the datacenter this Consul server represents.
 	Datacenter string
 
-	// DataDir is the directory to store our state in
+	// PrimaryDatacenter is the authoritative datacenter for features like ACLs
+	// and Connect.
+	PrimaryDatacenter string
+
+	// DataDir is the directory to store our state in.
 	DataDir string
 
 	// DevMode is used to enable a development server mode.
