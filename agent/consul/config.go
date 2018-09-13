@@ -355,6 +355,9 @@ type Config struct {
 	// CAConfig is used to apply the initial Connect CA configuration when
 	// bootstrapping.
 	CAConfig *structs.CAConfiguration
+
+	// ConnectReplicationToken is used to control Intention replication.
+	ConnectReplicationToken string
 }
 
 // CheckProtocolVersion validates the protocol version.
