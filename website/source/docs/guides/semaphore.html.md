@@ -95,9 +95,9 @@ of the current holders (initially only of the creator). A simple JSON body like 
 ```text
 {
     "Limit": 2,
-    "Holders": {
-        "<session>"
-    }
+    "Holders": [
+      "<session>"
+    ]
 }
 ```
 
@@ -116,7 +116,7 @@ contender key ‘<prefix>/<session>’.
     "LockIndex": 0,
     "Key": "<lock>",
     "Flags": 0,
-    "Value": "eyJMaW1pdCI6IDIsIkhvbGRlcnMiOnsiPHNlc3Npb24+In19",
+    "Value": "eyJMaW1pdCI6IDIsIkhvbGRlcnMiOlsiPHNlc3Npb24+Il19",
     "Session": "",
     "CreateIndex": 898,
     "ModifyIndex": 901
@@ -134,7 +134,7 @@ contender key ‘<prefix>/<session>’.
 ```
 Note that the `Value` we embedded into `<lock>` is Base64 encoded when returned by the API.
 
-When the `<lock>` is read and its `Value` is decoded, we can verify the remote `Limit` agrees with the `Holders` count. 
+When the `<lock>` is read and its `Value` is decoded, we can verify the `Limit` agrees with the `Holders` count. 
 This is used to detect a potential conflict. The next step is to determine which of the current
 slot holders are still alive. As part of the results of the `GET`, we also have all the contender
 entries. By scanning those entries, we create a set of all the `Session` values. Any of the
@@ -158,15 +158,17 @@ If this request succeeds with `true`, the contender now holds a slot in the sema
 If this fails with `false`, then likely there was a race with another contender to acquire the slot.
 
 To re-attempt the acquisition, we watch for changes on `<prefix>`. This is because a slot
-may be released, a node may fail, etc. Slot holders must also watch for changes since the
-slot may be released by an operator or automatically released due to a false positive
-in the failure detector.
+may be released, a node may fail, etc. Watching for changes is done via a blocking query
+against `/kv/<prefix>?recurse`. 
 
-Watching for changes is done via a blocking query against `/kv/<prefix>?recurse`. 
-If a contender holds a slot, then on any change to `<prefix>` the lock’s `Holders` 
-should be re-checked to ensure the slot is still held. If it is no longer held, 
-then the same acquisition logic can be triggered.
+Slot holders **must** continously watch for changes to `<prefix>` since their slot can be 
+released by an operator or automatically released due to a false positive in the failure detector. 
+On changes to `<prefix>` the lock’s `Holders` list must be re-checked to ensure the slot
+is still held. Additionally, if the watch fails to connect the slot should be considered lost. 
 
-If a slot holder ever wishes to release its slot voluntarily, it should be done by doing a
+This semaphore system is purely *advisory*. Therefore it is up to the client to verify
+that a slot is held before (and during) execution of some critical operation.
+
+Lastly, if a slot holder ever wishes to release its slot voluntarily, it should be done by doing a
 Check-And-Set operation against `<lock>` to remove its session from the `Holders` object.
 Once that is done, both its contender key `<prefix>/<session>` and session should be deleted.
