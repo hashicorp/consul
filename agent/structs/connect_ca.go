@@ -2,6 +2,7 @@ package structs
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
@@ -202,8 +203,9 @@ func (c *CAConfiguration) GetCommonConfig() (*CommonCAProviderConfig, error) {
 
 	var config CommonCAProviderConfig
 	decodeConf := &mapstructure.DecoderConfig{
-		DecodeHook: mapstructure.StringToTimeDurationHookFunc(),
-		Result:     &config,
+		DecodeHook:       ParseDurationFunc(),
+		Result:           &config,
+		WeaklyTypedInput: true,
 	}
 
 	decoder, err := mapstructure.NewDecoder(decodeConf)
@@ -264,4 +266,46 @@ type VaultCAProviderConfig struct {
 	Token               string
 	RootPKIPath         string
 	IntermediatePKIPath string
+}
+
+// ParseDurationFunc is a mapstructure hook for decoding a string or
+// []uint8 into a time.Duration value.
+func ParseDurationFunc() mapstructure.DecodeHookFunc {
+	return func(
+		f reflect.Type,
+		t reflect.Type,
+		data interface{}) (interface{}, error) {
+		var v time.Duration
+		if t != reflect.TypeOf(v) {
+			return data, nil
+		}
+
+		switch {
+		case f.Kind() == reflect.String:
+			if dur, err := time.ParseDuration(data.(string)); err != nil {
+				return nil, err
+			} else {
+				v = dur
+			}
+			return v, nil
+		case f == reflect.SliceOf(reflect.TypeOf(uint8(0))):
+			s := Uint8ToString(data.([]uint8))
+			if dur, err := time.ParseDuration(s); err != nil {
+				return nil, err
+			} else {
+				v = dur
+			}
+			return v, nil
+		default:
+			return data, nil
+		}
+	}
+}
+
+func Uint8ToString(bs []uint8) string {
+	b := make([]byte, len(bs))
+	for i, v := range bs {
+		b[i] = byte(v)
+	}
+	return string(b)
 }
