@@ -65,7 +65,10 @@ func testConsulCAConfig() *structs.CAConfiguration {
 	return &structs.CAConfiguration{
 		ClusterID: "asdf",
 		Provider:  "consul",
-		Config:    map[string]interface{}{},
+		Config: map[string]interface{}{
+			// Tests duration parsing after msgpack type mangling during raft apply.
+			"LeafCertTTL": []uint8("72h"),
+		},
 	}
 }
 

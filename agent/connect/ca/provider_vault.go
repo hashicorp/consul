@@ -289,7 +289,7 @@ func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderCon
 	}
 
 	decodeConf := &mapstructure.DecoderConfig{
-		DecodeHook:       mapstructure.StringToTimeDurationHookFunc(),
+		DecodeHook:       structs.ParseDurationFunc(),
 		Result:           &config,
 		WeaklyTypedInput: true,
 	}

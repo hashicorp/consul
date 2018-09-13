@@ -1038,10 +1038,10 @@ func TestLeader_CARootPruning(t *testing.T) {
 	newConfig := &structs.CAConfiguration{
 		Provider: "consul",
 		Config: map[string]interface{}{
-			"LeafCertTTL":    500 * time.Millisecond,
+			"LeafCertTTL":    "500ms",
 			"PrivateKey":     newKey,
 			"RootCert":       "",
-			"RotationPeriod": 90 * 24 * time.Hour,
+			"RotationPeriod": "2160h",
 			"SkipValidate":   true,
 		},
 	}
