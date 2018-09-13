@@ -208,6 +208,8 @@ func (c *ConsulProvider) GenerateIntermediateCSR() (string, error) {
 	return csr, nil
 }
 
+// SetIntermediate validates that the given intermediate is for the right private key
+// and writes the given intermediate and root certificates to the state.
 func (c *ConsulProvider) SetIntermediate(intermediatePEM, rootPEM string) error {
 	_, providerState, err := c.getState()
 	if err != nil {

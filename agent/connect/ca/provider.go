@@ -27,6 +27,8 @@ type Provider interface {
 	// true, calling this is an error.
 	GenerateIntermediateCSR() (string, error)
 
+	// SetIntermediate sets the provider to use the given intermediate certificate
+	// as well as the root it was signed by.
 	SetIntermediate(intermediatePEM, rootPEM string) error
 
 	// ActiveIntermediate returns the current signing cert used by this provider

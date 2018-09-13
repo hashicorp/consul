@@ -291,6 +291,12 @@ func TestConsulProvider_SignIntermediate(t *testing.T) {
 	provider2 := &ConsulProvider{Delegate: delegate2}
 	require.NoError(provider2.Configure(conf2.ClusterID, false, conf2.Config))
 
+	testSignIntermediateCrossDC(t, provider1, provider2)
+}
+
+func testSignIntermediateCrossDC(t *testing.T, provider1, provider2 Provider) {
+	require := require.New(t)
+
 	// Get the intermediate CSR from provider2.
 	csrPEM, err := provider2.GenerateIntermediateCSR()
 	require.NoError(err)
