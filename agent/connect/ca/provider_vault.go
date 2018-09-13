@@ -102,6 +102,14 @@ func (v *VaultProvider) GenerateRoot() error {
 	return nil
 }
 
+func (v *VaultProvider) GenerateIntermediateCSR() (string, error) {
+	return "", nil
+}
+
+func (v *VaultProvider) SetIntermediate(intermediatePEM, rootPEM string) error {
+	return nil
+}
+
 // ActiveIntermediate returns the current intermediate certificate.
 func (v *VaultProvider) ActiveIntermediate() (string, error) {
 	return v.getCA(v.config.IntermediatePKIPath)
@@ -247,6 +255,10 @@ func (v *VaultProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	}
 
 	return fmt.Sprintf("%s\n%s", cert, ca), nil
+}
+
+func (v *VaultProvider) SignIntermediate(*x509.CertificateRequest) (string, error) {
+	return "", nil
 }
 
 // CrossSignCA takes a CA certificate and cross-signs it to form a trust chain
