@@ -14,7 +14,7 @@ IMPROVEMENTS:
 * connect: TLS certificate readiness now performs x509 certificate verification to determine whether the cert is usable. [[GH-4540](https://github.com/hashicorp/consul/pull/4540)]
 * ui: The syntax highlighting/code editor is now on by default [[GH-4651]](https://github.com/hashicorp/consul/pull/4651)
 * ui: Fallback to showing `Node.Address` if `Service.Address` is not set [[GH-4579]](https://github.com/hashicorp/consul/issues/4579)
-* gossip: Improvements to Serf and memberlist improving gossip stability on very large clusters (over 35k tested) [[4511](https://github.com/hashicorp/consul/pull/4511)]
+* gossip: Improvements to Serf and memberlist improving gossip stability on very large clusters (over 35k tested) [[GH-4511](https://github.com/hashicorp/consul/pull/4511)]
 
 BUG FIXES:
 * agent: Avoid returning empty data on startup of a non-leader server [[GH-4554](https://github.com/hashicorp/consul/pull/4554)]
