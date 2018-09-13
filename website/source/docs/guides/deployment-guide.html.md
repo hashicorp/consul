@@ -34,7 +34,7 @@ These setup steps should be completed on all Consul hosts.
 
 ## Download Consul
 
-Precompiled Consul binaries are available for download at [https://releases.hashicorp.com/consul/](https://releases.hashicorp.com/vault/) and Consul Enterprise binaries are available for download by following the instructions made available to HashiCorp Consul customers.
+Precompiled Consul binaries are available for download at [https://releases.hashicorp.com/consul/](https://releases.hashicorp.com/consul/) and Consul Enterprise binaries are available for download by following the instructions made available to HashiCorp Consul customers.
 
 You should perform checksum verification of the zip packages using the SHA256SUMS and SHA256SUMS.sig files available for the specific release version. HashiCorp provides [a guide on checksum verification](https://www.hashicorp.com/security.html) for precompiled binaries.
 
