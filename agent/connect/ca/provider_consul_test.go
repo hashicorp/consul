@@ -67,7 +67,7 @@ func testConsulCAConfig() *structs.CAConfiguration {
 		Provider:  "consul",
 		Config: map[string]interface{}{
 			// Tests duration parsing after msgpack type mangling during raft apply.
-			"LeadCertTTL": []uint8("72h"),
+			"LeafCertTTL": []uint8("72h"),
 		},
 	}
 }
