@@ -18,6 +18,7 @@ BUG FIXES:
 * agent: Avoid returning empty data on startup of a non-leader server [[GH-4554](https://github.com/hashicorp/consul/pull/4554)]
 * agent: Fixed a panic when serf_wan port was -1 but a reconnect_timeout_wan value was set. [[GH-4515](https://github.com/hashicorp/consul/issues/4515)]
 * agent: Fixed a problem where errors regarding DNS server creation where never shown. [[GH-4578](https://github.com/hashicorp/consul/issues/4578)]
+* agent: Start with invalid http configuration again, even though the build-in proxy for connect won't start in that case. [[GH-4655](https://github.com/hashicorp/consul/pull/4655)]
 * catalog: Allow renaming nodes with IDs. [[GH-3974](https://github.com/hashicorp/consul/issues/3974)],[[GH-4413](https://github.com/hashicorp/consul/issues/4413)],[[GH-4415](https://github.com/hashicorp/consul/pull/4415)]
 * dns: Fixes a bug with the DNS recursor, where we would not move onto the next provided recursor if we encounter a **SERVFAIL** or **REFUSED** status. [[GH-4461](https://github.com/hashicorp/consul/pull/4461)]
 * server: Fixed a memory leak in blocking queries against /event/list. [[GH-4482](https://github.com/hashicorp/consul/issues/4482)]
