@@ -20,17 +20,17 @@ down to the [architecture](/docs/platform/k8s/run.html#architecture) section.
 ## Helm Chart
 
 The recommended way to run Consul on Kubernetes is via the
-[Helm Chart](/docs/platform/k8s/helm.html). This will install and configure
+[Helm chart](/docs/platform/k8s/helm.html). This will install and configure
 all the necessary components to run Consul. The configuration enables you
 to run just a server cluster, just a client cluster, or both. Using the Helm
-Chart, you can have a full Consul deployment up and running in seconds.
+chart, you can have a full Consul deployment up and running in seconds.
 
-While the Helm Chart exposes dozens of useful configurations and automatically
+While the Helm chart exposes dozens of useful configurations and automatically
 sets up complex resources, it **does not automatically operate Consul.**
 You are still reponsible for learning how to monitor, backup,
 upgrade, etc. the Consul cluster.
 
-The Helm Chart has no required configuration and will install a Consul
+The Helm chart has no required configuration and will install a Consul
 cluster with sane defaults out of the box. Prior to going to production,
 it is highly recommended that you
 [learn about the configuration options](/docs/platform/k8s/helm.html#configuration-values-).

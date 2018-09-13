@@ -3,13 +3,13 @@ layout: "docs"
 page_title: "Kubernetes"
 sidebar_current: "docs-platform-k8s-index"
 description: |-
-  Consul has many integrations with Kubernetes. You can deploy Consul to Kubernetes using the Helm Chart, sync services between Consul and Kubernetes, automatically secure Pod communication with Connect, and more. This section documents the official integrations between Consul and Kubernetes.
+  Consul has many integrations with Kubernetes. You can deploy Consul to Kubernetes using the Helm chart, sync services between Consul and Kubernetes, automatically secure Pod communication with Connect, and more. This section documents the official integrations between Consul and Kubernetes.
 ---
 
 # Kubernetes
 
 Consul has many integrations with Kubernetes. You can deploy Consul
-to Kubernetes using the Helm Chart, sync services between Consul and
+to Kubernetes using the Helm chart, sync services between Consul and
 Kubernetes, automatically secure Pod communication with Connect, and more.
 This section documents the official integrations between Consul and Kubernetes.
 
