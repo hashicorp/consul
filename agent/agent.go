@@ -277,6 +277,30 @@ func LocalConfig(cfg *config.RuntimeConfig) local.Config {
 	return lc
 }
 
+func (a *Agent) setupProxyManager() error {
+	acfg, err := a.config.APIConfig(true)
+	if err != nil {
+		return fmt.Errorf("[INFO] agent: Connect managed proxies are disabled due to providing an invalid HTTP configuration")
+	}
+	a.proxyManager = proxy.NewManager()
+	a.proxyManager.AllowRoot = a.config.ConnectProxyAllowManagedRoot
+	a.proxyManager.State = a.State
+	a.proxyManager.Logger = a.logger
+	if a.config.DataDir != "" {
+		// DataDir is required for all non-dev mode agents, but we want
+		// to allow setting the data dir for demos and so on for the agent,
+		// so do the check above instead.
+		a.proxyManager.DataDir = filepath.Join(a.config.DataDir, "proxy")
+
+		// Restore from our snapshot (if it exists)
+		if err := a.proxyManager.Restore(a.proxyManager.SnapshotPath()); err != nil {
+			a.logger.Printf("[WARN] agent: error restoring proxy state: %s", err)
+		}
+	}
+	a.proxyManager.ProxyEnv = acfg.GenerateEnv()
+	return nil
+}
+
 func (a *Agent) Start() error {
 	c := a.config
 
@@ -373,29 +397,11 @@ func (a *Agent) Start() error {
 	// done here after the local state above is loaded in so we can have
 	// a more accurate initial state view.
 	if !c.ConnectTestDisableManagedProxies {
-		a.proxyManager = proxy.NewManager()
-		a.proxyManager.AllowRoot = a.config.ConnectProxyAllowManagedRoot
-		a.proxyManager.State = a.State
-		a.proxyManager.Logger = a.logger
-		if a.config.DataDir != "" {
-			// DataDir is required for all non-dev mode agents, but we want
-			// to allow setting the data dir for demos and so on for the agent,
-			// so do the check above instead.
-			a.proxyManager.DataDir = filepath.Join(a.config.DataDir, "proxy")
-
-			// Restore from our snapshot (if it exists)
-			if err := a.proxyManager.Restore(a.proxyManager.SnapshotPath()); err != nil {
-				a.logger.Printf("[WARN] agent: error restoring proxy state: %s", err)
-			}
+		if err := a.setupProxyManager(); err != nil {
+			a.logger.Printf(err.Error())
+		} else {
+			go a.proxyManager.Run()
 		}
-
-		acfg, err := a.config.APIConfig(true)
-		if err != nil {
-			return err
-		}
-		a.proxyManager.ProxyEnv = acfg.GenerateEnv()
-
-		go a.proxyManager.Run()
 	}
 
 	// Start watching for critical services to deregister, based on their

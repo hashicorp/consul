@@ -3054,3 +3054,32 @@ func TestAgent_ReLoadProxiesFromConfig(t *testing.T) {
 	proxies = a.State.Proxies()
 	require.Len(proxies, 0)
 }
+
+func TestAgent_SetupProxyManager(t *testing.T) {
+	t.Parallel()
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	defer os.RemoveAll(dataDir)
+	hcl := `
+		ports { http = -1 }
+		data_dir = "` + dataDir + `"
+	`
+	c := TestConfig(
+		// randomPortsSource(false),
+		config.Source{Name: t.Name(), Format: "hcl", Data: hcl},
+	)
+	a, err := New(c)
+	require.NoError(t, err)
+	require.Error(t, a.setupProxyManager(), "setupProxyManager should fail with invalid HTTP API config")
+
+	hcl = `
+		ports { http = 8001 }
+		data_dir = "` + dataDir + `"
+	`
+	c = TestConfig(
+		// randomPortsSource(false),
+		config.Source{Name: t.Name(), Format: "hcl", Data: hcl},
+	)
+	a, err = New(c)
+	require.NoError(t, err)
+	require.NoError(t, a.setupProxyManager())
+}
