@@ -13,7 +13,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-msgpack/codec"
+
+	"github.com/ugorji/go/codec"
 )
 
 // msgpackHandle is a shared handle for encoding/decoding of

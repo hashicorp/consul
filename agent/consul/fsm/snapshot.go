@@ -7,8 +7,9 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/raft"
+
+	"github.com/ugorji/go/codec"
 )
 
 // snapshot is used to provide a snapshot of the current

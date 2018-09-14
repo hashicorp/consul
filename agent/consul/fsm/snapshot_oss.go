@@ -4,8 +4,9 @@ import (
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/raft"
+
+	"github.com/ugorji/go/codec"
 )
 
 func init() {
@@ -79,7 +80,7 @@ func (s *snapshot) persistNodes(sink raft.SnapshotSink,
 			Node:            n.Node,
 			Address:         n.Address,
 			TaggedAddresses: n.TaggedAddresses,
-			NodeMeta:	 n.Meta,
+			NodeMeta:        n.Meta,
 		}
 
 		// Register the node itself

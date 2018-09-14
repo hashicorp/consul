@@ -35,7 +35,7 @@ type IndexedCARoots struct {
 
 	// QueryMeta contains the meta sent via a header. We ignore for JSON
 	// so this whole structure can be returned.
-	QueryMeta `json:"-"`
+	QueryMeta `json:"-" codec:"query_meta"`
 }
 
 // CARoot represents a root CA certificate that is trusted.
@@ -80,7 +80,7 @@ type CARoot struct {
 	// RotatedOutAt is the time at which this CA was removed from the state.
 	// This will only be set on roots that have been rotated out from being the
 	// active root.
-	RotatedOutAt time.Time `json:"-"`
+	RotatedOutAt time.Time `json:"-" codec:"rotated_out_at"`
 
 	RaftIndex
 }
@@ -183,7 +183,7 @@ const (
 // CAConfiguration is the configuration for the current CA plugin.
 type CAConfiguration struct {
 	// ClusterID is a unique identifier for the cluster
-	ClusterID string `json:"-"`
+	ClusterID string `json:"-" codec:"cluster_id"`
 
 	// Provider is the CA provider implementation to use.
 	Provider string
