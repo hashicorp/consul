@@ -7,7 +7,7 @@
     {{#block-slot 'header'}}
       <h1>
         {{ item.Service.Service }}
-        <span data-test-external-source="{{service/external-source item.Service}}" style="background-image: {{css-var (concat '--' (service/external-source item.Service) '-color-svg') 'none'}}" data-tooltip="Registered via {{service/external-source item.Service}}">Registered via {{service/external-source item.Service}}</span>
+        <span data-test-external-source="{{service/external-source item.Service}}" style={{{ concat 'background-image: ' (css-var (concat '--' (service/external-source item.Service) '-color-svg') 'none')}}} data-tooltip="Registered via {{service/external-source item.Service}}">Registered via {{service/external-source item.Service}}</span>
       </h1>
     {{/block-slot}}
     {{#block-slot 'toolbar'}}
