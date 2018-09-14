@@ -566,6 +566,24 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 			"local_service_address":    "LocalServiceAddress",
 			// SidecarService
 			"sidecar_service": "SidecarService",
+
+			// DON'T Recurse into these opaque config maps or we might mangle user's
+			// keys. Note empty canonical is a special sentinel to prevent recursion.
+			"Meta": "",
+			// upstreams is an array but this prevents recursion into config field of
+			// any item in the array.
+			"Proxy.Config":                   "",
+			"Proxy.Upstreams.Config":         "",
+			"Connect.Proxy.Config":           "",
+			"Connect.Proxy.Upstreams.Config": "",
+
+			// Same exceptions as above, but for a nested sidecar_service note we use
+			// the canonical form SidecarService since that is translated by the time
+			// the lookup here happens. Note that sidecar service doesn't support
+			// managed proxies (connect.proxy).
+			"Connect.SidecarService.Meta":                   "",
+			"Connect.SidecarService.Proxy.Config":           "",
+			"Connect.SidecarService.Proxy.Upstreams.config": "",
 		})
 
 		for k, v := range rawMap {

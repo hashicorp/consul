@@ -1392,34 +1392,50 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 		"port":8000, 
 		"enable_tag_override": true, 
 		"meta": {
-			"some": "meta"
+			"some": "meta",
+			"enable_tag_override": "meta is 'opaque' so should not get translated"
 		},
-		"kind": "connect-proxy",
-		"proxy": {
+		"kind": "connect-proxy",` +
+		// Note the uppercase P is important here - it ensures translation works
+		// correctly in case-insensitive way. Without it this test can pass even
+		// when translation is broken for other valid inputs.
+		`"Proxy": {
 			"destination_service_name": "web",
 			"destination_service_id": "web",
 			"local_service_port": 1234,
 			"local_service_address": "127.0.0.1",
+			"config": {
+				"destination_type": "proxy.config is 'opaque' so should not get translated"
+			},
 			"upstreams": [
 				{
 					"destination_type": "service",
 					"destination_namespace": "default",
 					"destination_name": "db",
 		      "local_bind_address": "127.0.0.1",
-		      "local_bind_port": 1234
+		      "local_bind_port": 1234,
+					"config": {
+						"destination_type": "proxy.upstreams.config is 'opaque' so should not get translated"
+					}
 				}
 			]
 		},
 		"connect": {
 			"proxy": {
 				"exec_mode": "script",
+				"config": {
+					"destination_type": "connect.proxy.config is 'opaque' so should not get translated"
+				},
 				"upstreams": [
 					{
 						"destination_type": "service",
 						"destination_namespace": "default",
 						"destination_name": "db",
 						"local_bind_address": "127.0.0.1",
-						"local_bind_port": 1234
+						"local_bind_port": 1234,
+						"config": {
+							"destination_type": "connect.proxy.upstreams.config is 'opaque' so should not get translated"
+						}
 					}
 				]
 			},
@@ -1428,7 +1444,8 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 				"port":8001, 
 				"enable_tag_override": true, 
 				"meta": {
-					"some": "meta"
+					"some": "meta",
+					"enable_tag_override": "sidecar_service.meta is 'opaque' so should not get translated"
 				},
 				"kind": "connect-proxy",
 				"proxy": {
@@ -1442,7 +1459,10 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 							"destination_namespace": "default",
 							"destination_name": "db",
 							"local_bind_address": "127.0.0.1",
-							"local_bind_port": 1234
+							"local_bind_port": 1234,
+							"config": {
+								"destination_type": "sidecar_service.proxy.upstreams.config is 'opaque' so should not get translated"
+							}
 						}
 					]
 				}
@@ -1458,9 +1478,12 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 	require.Equal(t, 200, rr.Code, "body: %s", rr.Body)
 
 	svc := &structs.NodeService{
-		ID:                "test",
-		Service:           "test",
-		Meta:              map[string]string{"some": "meta"},
+		ID:      "test",
+		Service: "test",
+		Meta: map[string]string{
+			"some":                "meta",
+			"enable_tag_override": "meta is 'opaque' so should not get translated",
+		},
 		Port:              8000,
 		EnableTagOverride: true,
 		Kind:              structs.ServiceKindConnectProxy,
@@ -1469,6 +1492,9 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 			DestinationServiceID:   "web",
 			LocalServiceAddress:    "127.0.0.1",
 			LocalServicePort:       1234,
+			Config: map[string]interface{}{
+				"destination_type": "proxy.config is 'opaque' so should not get translated",
+			},
 			Upstreams: structs.Upstreams{
 				{
 					DestinationType:      structs.UpstreamDestTypeService,
@@ -1476,12 +1502,18 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 					DestinationNamespace: "default",
 					LocalBindAddress:     "127.0.0.1",
 					LocalBindPort:        1234,
+					Config: map[string]interface{}{
+						"destination_type": "proxy.upstreams.config is 'opaque' so should not get translated",
+					},
 				},
 			},
 		},
 		Connect: structs.ServiceConnect{
 			Proxy: &structs.ServiceDefinitionConnectProxy{
 				ExecMode: "script",
+				Config: map[string]interface{}{
+					"destination_type": "connect.proxy.config is 'opaque' so should not get translated",
+				},
 				Upstreams: structs.Upstreams{
 					{
 						DestinationType:      structs.UpstreamDestTypeService,
@@ -1489,13 +1521,18 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 						DestinationNamespace: "default",
 						LocalBindAddress:     "127.0.0.1",
 						LocalBindPort:        1234,
+						Config: map[string]interface{}{
+							"destination_type": "connect.proxy.upstreams.config is 'opaque' so should not get translated",
+						},
 					},
 				},
 			},
 			SidecarService: &structs.ServiceDefinition{
-				Name:              "test-proxy",
-				Meta:              map[string]string{"some": "meta"},
-				Port:              8001,
+				Name: "test-proxy",
+				Meta: map[string]string{
+					"some":                "meta",
+					"enable_tag_override": "sidecar_service.meta is 'opaque' so should not get translated",
+				}, Port: 8001,
 				EnableTagOverride: true,
 				Kind:              structs.ServiceKindConnectProxy,
 				Proxy: &structs.ConnectProxyConfig{
@@ -1510,6 +1547,9 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 							DestinationNamespace: "default",
 							LocalBindAddress:     "127.0.0.1",
 							LocalBindPort:        1234,
+							Config: map[string]interface{}{
+								"destination_type": "sidecar_service.proxy.upstreams.config is 'opaque' so should not get translated",
+							},
 						},
 					},
 				},
