@@ -189,7 +189,7 @@ func (c *ConsulProvider) GenerateIntermediateCSR() (string, error) {
 		return "", err
 	}
 
-	csr, err := connect.CreateCSR(c.spiffeID, signer)
+	csr, err := connect.CreateCACSR(c.spiffeID, signer)
 	if err != nil {
 		return "", err
 	}
@@ -248,6 +248,9 @@ func (c *ConsulProvider) SetIntermediate(intermediatePEM, rootPEM string) error 
 	// the given root cert.
 	if !intermediate.IsCA {
 		return fmt.Errorf("intermediate is not a CA certificate")
+	}
+	if uriCount := len(intermediate.URIs); uriCount != 1 {
+		return fmt.Errorf("incoming intermediate cert has unexpected number of URIs: %d", uriCount)
 	}
 	if got, want := intermediate.URIs[0].String(), c.spiffeID.URI().String(); got != want {
 		return fmt.Errorf("incoming cert URI %q does not match current URI: %q", got, want)
@@ -420,15 +423,15 @@ func (c *ConsulProvider) SignIntermediate(csr *x509.CertificateRequest) (string,
 		return "", err
 	}
 
-	if len(csr.URIs) < 1 {
-		return "", fmt.Errorf("intermediate CSR has no URIs")
+	if uriCount := len(csr.URIs); uriCount != 1 {
+		return "", fmt.Errorf("incoming CSR has unexpected number of URIs: %d", uriCount)
 	}
 	certURI, err := connect.ParseCertURI(csr.URIs[0])
 	if err != nil {
 		return "", err
 	}
 
-	// Verify that the trust domain is valid
+	// Verify that the trust domain is valid.
 	if !c.spiffeID.CanSign(certURI) {
 		return "", fmt.Errorf("incoming CSR domain %q is not valid for our domain %q",
 			certURI.URI().String(), c.spiffeID.URI().String())
@@ -438,9 +441,6 @@ func (c *ConsulProvider) SignIntermediate(csr *x509.CertificateRequest) (string,
 	signer, err := connect.ParseSigner(providerState.PrivateKey)
 	if err != nil {
 		return "", err
-	}
-	if signer == nil {
-		return "", ErrNotInitialized
 	}
 	subjectKeyId, err := connect.KeyId(csr.PublicKey)
 	if err != nil {

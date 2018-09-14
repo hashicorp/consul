@@ -330,8 +330,8 @@ func testSignIntermediateCrossDC(t *testing.T, provider1, provider2 Provider) {
 	cert, err := connect.ParseCert(leafPEM)
 	require.NoError(err)
 
-	// Check that the leaf signed by the new cert can be verified by either root
-	// certificate by using the new intermediate + cross-signed cert.
+	// Check that the leaf signed by the new cert can be verified using the
+	// returned cert chain (signed intermediate + remote root).
 	intermediatePool := x509.NewCertPool()
 	intermediatePool.AppendCertsFromPEM([]byte(intermediatePEM))
 	rootPool := x509.NewCertPool()

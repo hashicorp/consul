@@ -148,6 +148,7 @@ func (v *VaultProvider) generateIntermediateCSR() (string, error) {
 			"allowed_uri_sans": "spiffe://*",
 			"key_type":         "any",
 			"max_ttl":          v.config.LeafCertTTL.String(),
+			"no_store":         true,
 			"require_cn":       false,
 		})
 		if err != nil {
@@ -158,6 +159,8 @@ func (v *VaultProvider) generateIntermediateCSR() (string, error) {
 	// Generate a new intermediate CSR for the root to sign.
 	data, err := v.client.Logical().Write(v.config.IntermediatePKIPath+"intermediate/generate/internal", map[string]interface{}{
 		"common_name": "Vault CA Intermediate Authority",
+		"key_bits":    224,
+		"key_type":    "ec",
 		"uri_sans":    spiffeID.URI().String(),
 	})
 	if err != nil {
