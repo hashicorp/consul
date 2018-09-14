@@ -551,30 +551,22 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 		// and why we should get rid of it.
 		config.TranslateKeys(rawMap, map[string]string{
 			"enable_tag_override": "EnableTagOverride",
+			// Managed Proxy Config
+			"exec_mode": "ExecMode",
+			// Proxy Upstreams
+			"destination_name":      "DestinationName",
+			"destination_type":      "DestinationType",
+			"destination_namespace": "DestinationNamespace",
+			"local_bind_port":       "LocalBindPort",
+			"local_bind_address":    "LocalBindAddress",
+			// Proxy Config
+			"destination_service_name": "DestinationServiceName",
+			"destination_service_id":   "DestinationServiceID",
+			"local_service_port":       "LocalServicePort",
+			"local_service_address":    "LocalServiceAddress",
+			// SidecarService
+			"sidecar_service": "SidecarService",
 		})
-
-		// Translate upstream keys - we have the same upstream format in two
-		// possible places.
-		translateUpstreams := func(rawMap map[string]interface{}) {
-			var upstreams []interface{}
-			if us, ok := rawMap["upstreams"].([]interface{}); ok {
-				upstreams = us
-			}
-			if us, ok := rawMap["Upstreams"].([]interface{}); ok {
-				upstreams = us
-			}
-			for _, u := range upstreams {
-				if uMap, ok := u.(map[string]interface{}); ok {
-					config.TranslateKeys(uMap, map[string]string{
-						"destination_name":      "DestinationName",
-						"destination_type":      "DestinationType",
-						"destination_namespace": "DestinationNamespace",
-						"local_bind_port":       "LocalBindPort",
-						"local_bind_address":    "LocalBindAddress",
-					})
-				}
-			}
-		}
 
 		for k, v := range rawMap {
 			switch strings.ToLower(k) {
@@ -591,34 +583,6 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 					if err := FixupCheckType(chkType); err != nil {
 						return err
 					}
-				}
-			case "proxy":
-				if valMap, ok := v.(map[string]interface{}); ok {
-					config.TranslateKeys(valMap, map[string]string{
-						"destination_service_name": "DestinationServiceName",
-						"destination_service_id":   "DestinationServiceID",
-						"local_service_port":       "LocalServicePort",
-						"local_service_address":    "LocalServiceAddress",
-					})
-					translateUpstreams(valMap)
-				}
-			case "connect":
-				if connectMap, ok := v.(map[string]interface{}); ok {
-					var proxyMap map[string]interface{}
-					if pMap, ok := connectMap["Proxy"].(map[string]interface{}); ok {
-						proxyMap = pMap
-					}
-					if pMap, ok := connectMap["proxy"].(map[string]interface{}); ok {
-						proxyMap = pMap
-					}
-					if proxyMap != nil {
-						config.TranslateKeys(proxyMap, map[string]string{
-							"exec_mode": "ExecMode",
-						})
-						translateUpstreams(proxyMap)
-					}
-					// TODO(banks): make this work for sidecar_service too. Also need to
-					// apply this recursively to the sidecar_service.
 				}
 			}
 		}
@@ -680,15 +644,15 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	if args.Connect != nil && args.Connect.SidecarService != nil {
 		chkTypes, err := args.Connect.SidecarService.CheckTypes()
 		if err != nil {
-			resp.WriteHeader(http.StatusBadRequest)
-			fmt.Fprint(resp, fmt.Errorf("Invalid check in sidecar_service: %v", err))
-			return nil, nil
+			return nil, &BadRequestError{
+				Reason: fmt.Sprintf("Invalid check in sidecar_service: %v", err),
+			}
 		}
 		for _, check := range chkTypes {
 			if check.Status != "" && !structs.ValidStatus(check.Status) {
-				resp.WriteHeader(http.StatusBadRequest)
-				fmt.Fprint(resp, "Status for checks must 'passing', 'warning', 'critical'")
-				return nil, nil
+				return nil, &BadRequestError{
+					Reason: "Status for checks must 'passing', 'warning', 'critical'",
+				}
 			}
 		}
 	}
@@ -710,7 +674,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 		// Make sure we are allowed to register the side car using the token
 		// specified (might be specific to sidecar or the same one as the overall
 		// request).
-		if err := s.agent.vetServiceRegister(sidecarToken, ns); err != nil {
+		if err := s.agent.vetServiceRegister(sidecarToken, sidecar); err != nil {
 			return nil, err
 		}
 	}

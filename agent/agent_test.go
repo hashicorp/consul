@@ -1982,6 +1982,68 @@ func TestAgent_loadServices_token(t *testing.T) {
 	}
 }
 
+func TestAgent_loadServices_sidecar(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), `
+		service = {
+			id = "rabbitmq"
+			name = "rabbitmq"
+			port = 5672
+			token = "abc123"
+			connect = {
+				sidecar_service {}
+			}
+		}
+	`)
+	defer a.Shutdown()
+
+	services := a.State.Services()
+	if _, ok := services["rabbitmq"]; !ok {
+		t.Fatalf("missing service")
+	}
+	if token := a.State.ServiceToken("rabbitmq"); token != "abc123" {
+		t.Fatalf("bad: %s", token)
+	}
+	if _, ok := services["rabbitmq-sidecar-proxy"]; !ok {
+		t.Fatalf("missing service")
+	}
+	if token := a.State.ServiceToken("rabbitmq-sidecar-proxy"); token != "abc123" {
+		t.Fatalf("bad: %s", token)
+	}
+}
+
+func TestAgent_loadServices_sidecarSeparateToken(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), `
+		service = {
+			id = "rabbitmq"
+			name = "rabbitmq"
+			port = 5672
+			token = "abc123"
+			connect = {
+				sidecar_service {
+					token = "789xyz"
+				}
+			}
+		}
+	`)
+	defer a.Shutdown()
+
+	services := a.State.Services()
+	if _, ok := services["rabbitmq"]; !ok {
+		t.Fatalf("missing service")
+	}
+	if token := a.State.ServiceToken("rabbitmq"); token != "abc123" {
+		t.Fatalf("bad: %s", token)
+	}
+	if _, ok := services["rabbitmq-sidecar-proxy"]; !ok {
+		t.Fatalf("missing service")
+	}
+	if token := a.State.ServiceToken("rabbitmq-sidecar-proxy"); token != "789xyz" {
+		t.Fatalf("bad: %s", token)
+	}
+}
+
 func TestAgent_unloadServices(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
@@ -2189,8 +2251,8 @@ func TestAgent_Service_Reap(t *testing.T) {
 	}
 	chkTypes := []*structs.CheckType{
 		&structs.CheckType{
-			Status: api.HealthPassing,
-			TTL:    25 * time.Millisecond,
+			Status:                         api.HealthPassing,
+			TTL:                            25 * time.Millisecond,
 			DeregisterCriticalServiceAfter: 200 * time.Millisecond,
 		},
 	}

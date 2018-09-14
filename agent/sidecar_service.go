@@ -42,16 +42,22 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 
 	// Set some meta we can use to disambiguate between service instances we added
 	// later and are responsible for deregistering.
-	if sidecar.Meta == nil {
-		sidecar.Meta = make(map[string]string)
-	} else {
+	if sidecar.Meta != nil {
 		// Meta is non-nil validate it before we add the special key so we can
 		// enforce that user cannot add a consul- prefix one.
 		if err := structs.ValidateMetadata(sidecar.Meta, false); err != nil {
 			return nil, nil, "", err
 		}
 	}
-	sidecar.Meta["consul-sidecar"] = "y"
+	// Always copy Meta so it's safe for us to modify here without changing the
+	// map in the input struct that is reachable by the caller which is
+	// unexpected.
+	newMeta := make(map[string]string)
+	for k, v := range sidecar.Meta {
+		newMeta[k] = v
+	}
+	newMeta["consul-sidecar"] = "y"
+	sidecar.Meta = newMeta
 
 	// See if there is a more specific token for the sidecar registration
 	if ns.Connect.SidecarService.Token != "" {
