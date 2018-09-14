@@ -69,6 +69,19 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 		// Inherit address from the service if it's provided
 		sidecar.Address = ns.Address
 	}
+	// Proxy defaults
+	if sidecar.Proxy.DestinationServiceName == "" {
+		sidecar.Proxy.DestinationServiceName = ns.Service
+	}
+	if sidecar.Proxy.DestinationServiceID == "" {
+		sidecar.Proxy.DestinationServiceID = ns.ID
+	}
+	if sidecar.Proxy.LocalServiceAddress == "" {
+		sidecar.Proxy.LocalServiceAddress = "127.0.0.1"
+	}
+	if sidecar.Proxy.LocalServicePort < 1 {
+		sidecar.Proxy.LocalServicePort = ns.Port
+	}
 
 	// Allocate port if needed (min and max inclusive).
 	rangeLen := a.config.ConnectSidecarMaxPort - a.config.ConnectSidecarMinPort + 1
@@ -91,8 +104,16 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 	}
 	// If no ports left (or auto ports disabled) fail
 	if sidecar.Port < 1 {
+		// If ports are set to zero explicitly, config builder switches them to
+		// `-1`. In this case don't show the actual values since we don't know what
+		// was actually in config (zero or negative) and it might be confusing, we
+		// just know they explicitly disabled auto assignment.
+		if a.config.ConnectSidecarMinPort < 1 || a.config.ConnectSidecarMaxPort < 1 {
+			return nil, nil, "", fmt.Errorf("no port provided for sidecar_service " +
+				"and auto-assignement disabled in config")
+		}
 		return nil, nil, "", fmt.Errorf("no port provided for sidecar_service and none "+
-			" left in the configured range [%d, %d]", a.config.ConnectSidecarMinPort,
+			"left in the configured range [%d, %d]", a.config.ConnectSidecarMinPort,
 			a.config.ConnectSidecarMaxPort)
 	}
 
