@@ -20,6 +20,8 @@
   @extend %blink-in-fade-out;
 }
 %with-pseudo-tooltip:hover::after,
-%with-pseudo-tooltip:hover::before {
+%with-pseudo-tooltip:hover::before,
+%with-pseudo-tooltip:focus::after,
+%with-pseudo-tooltip:focus::before {
   @extend %blink-in-fade-out-active;
 }
