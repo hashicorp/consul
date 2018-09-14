@@ -13,7 +13,7 @@ import (
 
 func TestAPI_SemaphoreAcquireRelease(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := makeClientWithoutConnect(t)
 	defer s.Stop()
 
 	sema, err := c.SemaphorePrefix("test/semaphore", 2)
@@ -71,7 +71,7 @@ func TestAPI_SemaphoreAcquireRelease(t *testing.T) {
 
 func TestAPI_SemaphoreForceInvalidate(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := makeClientWithoutConnect(t)
 	defer s.Stop()
 
 	sema, err := c.SemaphorePrefix("test/semaphore", 2)
@@ -106,7 +106,7 @@ func TestAPI_SemaphoreForceInvalidate(t *testing.T) {
 
 func TestAPI_SemaphoreDeleteKey(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := makeClientWithoutConnect(t)
 	defer s.Stop()
 
 	sema, err := c.SemaphorePrefix("test/semaphore", 2)
@@ -140,7 +140,7 @@ func TestAPI_SemaphoreDeleteKey(t *testing.T) {
 
 func TestAPI_SemaphoreContend(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := makeClientWithoutConnect(t)
 	defer s.Stop()
 
 	wg := &sync.WaitGroup{}
@@ -193,7 +193,7 @@ func TestAPI_SemaphoreContend(t *testing.T) {
 
 func TestAPI_SemaphoreBadLimit(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := makeClientWithoutConnect(t)
 	defer s.Stop()
 
 	sema, err := c.SemaphorePrefix("test/semaphore", 0)
@@ -224,7 +224,7 @@ func TestAPI_SemaphoreBadLimit(t *testing.T) {
 
 func TestAPI_SemaphoreDestroy(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := makeClientWithoutConnect(t)
 	defer s.Stop()
 
 	sema, err := c.SemaphorePrefix("test/semaphore", 2)
@@ -280,7 +280,7 @@ func TestAPI_SemaphoreDestroy(t *testing.T) {
 
 func TestAPI_SemaphoreConflict(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := makeClientWithoutConnect(t)
 	defer s.Stop()
 
 	lock, err := c.LockKey("test/sema/.lock")
@@ -318,7 +318,7 @@ func TestAPI_SemaphoreConflict(t *testing.T) {
 
 func TestAPI_SemaphoreMonitorRetry(t *testing.T) {
 	t.Parallel()
-	raw, s := makeClient(t)
+	raw, s := makeClientWithoutConnect(t)
 	defer s.Stop()
 
 	// Set up a server that always responds with 500 errors.
@@ -435,7 +435,7 @@ func TestAPI_SemaphoreMonitorRetry(t *testing.T) {
 
 func TestAPI_SemaphoreOneShot(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := makeClientWithoutConnect(t)
 	defer s.Stop()
 
 	// Set up a semaphore as a one-shot.
