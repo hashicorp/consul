@@ -2387,6 +2387,181 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.ConnectProxyAllowManagedAPIRegistration = true
 			},
 		},
+
+		{
+			// This tests that we correct added the nested paths to arrays of objects
+			// to the exceptions in patchSliceOfMaps in config.go (for single service)
+			desc: "service.connectsidecar_service with checks and upstreams",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+				  "service": {
+						"name": "web",
+						"port": 1234,
+						"connect": {
+							"sidecar_service": {
+								"port": 2345,
+								"checks": [
+									{
+										"TCP": "127.0.0.1:2345",
+										"Interval": "10s"
+									}
+								],
+								"proxy": {
+									"upstreams": [
+										{
+											"destination_name": "db",
+											"local_bind_port": 7000
+										}
+									]
+								}
+							}
+						}
+					}
+				}`},
+			hcl: []string{`
+				service {
+					name = "web"
+					port = 1234
+					connect {
+						sidecar_service {
+							port = 2345
+							checks = [
+								{
+									tcp = "127.0.0.1:2345"
+									interval = "10s"
+								}
+							]
+							proxy {
+								upstreams = [
+									{
+										destination_name = "db"
+										local_bind_port = 7000
+									},
+								]
+							}
+						}
+					}
+				}
+			`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.Services = []*structs.ServiceDefinition{
+					{
+						Name: "web",
+						Port: 1234,
+						Connect: &structs.ServiceConnect{
+							SidecarService: &structs.ServiceDefinition{
+								Port: 2345,
+								Checks: structs.CheckTypes{
+									{
+										TCP:      "127.0.0.1:2345",
+										Interval: 10 * time.Second,
+									},
+								},
+								Proxy: &structs.ConnectProxyConfig{
+									Upstreams: structs.Upstreams{
+										structs.Upstream{
+											DestinationType: "service",
+											DestinationName: "db",
+											LocalBindPort:   7000,
+										},
+									},
+								},
+							},
+						},
+					},
+				}
+			},
+		},
+		{
+			// This tests that we correct added the nested paths to arrays of objects
+			// to the exceptions in patchSliceOfMaps in config.go (for service*s*)
+			desc: "services.connect.sidecar_service with checks and upstreams",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+				  "services": [{
+						"name": "web",
+						"port": 1234,
+						"connect": {
+							"sidecar_service": {
+								"port": 2345,
+								"checks": [
+									{
+										"TCP": "127.0.0.1:2345",
+										"Interval": "10s"
+									}
+								],
+								"proxy": {
+									"upstreams": [
+										{
+											"destination_name": "db",
+											"local_bind_port": 7000
+										}
+									]
+								}
+							}
+						}
+					}]
+				}`},
+			hcl: []string{`
+				services = [{
+					name = "web"
+					port = 1234
+					connect {
+						sidecar_service {
+							port = 2345
+							checks = [
+								{
+									tcp = "127.0.0.1:2345"
+									interval = "10s"
+								}
+							]
+							proxy {
+								upstreams = [
+									{
+										destination_name = "db"
+										local_bind_port = 7000
+									},
+								]
+							}
+						}
+					}
+				}]
+			`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.Services = []*structs.ServiceDefinition{
+					{
+						Name: "web",
+						Port: 1234,
+						Connect: &structs.ServiceConnect{
+							SidecarService: &structs.ServiceDefinition{
+								Port: 2345,
+								Checks: structs.CheckTypes{
+									{
+										TCP:      "127.0.0.1:2345",
+										Interval: 10 * time.Second,
+									},
+								},
+								Proxy: &structs.ConnectProxyConfig{
+									Upstreams: structs.Upstreams{
+										structs.Upstream{
+											DestinationType: "service",
+											DestinationName: "db",
+											LocalBindPort:   7000,
+										},
+									},
+								},
+							},
+						},
+					},
+				}
+			},
+		},
 	}
 
 	testConfig(t, tests, dataDir)

@@ -90,6 +90,13 @@ func Parse(data string, format string) (c Config, err error) {
 		"services.connect.proxy.upstreams",
 		"service.proxy.upstreams",
 		"services.proxy.upstreams",
+
+		// Need all the service(s) exceptions also for nested sidecar service except
+		// managed proxy which is explicitly not supported there.
+		"service.connect.sidecar_service.checks",
+		"services.connect.sidecar_service.checks",
+		"service.connect.sidecar_service.proxy.upstreams",
+		"services.connect.sidecar_service.proxy.upstreams",
 	})
 
 	// There is a difference of representation of some fields depending on
