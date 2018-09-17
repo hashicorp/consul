@@ -107,7 +107,7 @@ func (s *ConnectCA) ConfigurationSet(
 		return err
 	}
 
-	newActiveRoot, err := parseCARoot(newRootPEM, args.Config.Provider)
+	newActiveRoot, err := parseCARoot(newRootPEM, args.Config.Provider, args.Config.ClusterID)
 	if err != nil {
 		return err
 	}
@@ -276,16 +276,17 @@ func (s *ConnectCA) Roots(
 				// directly to the structure in the memdb store.
 
 				reply.Roots[i] = &structs.CARoot{
-					ID:                r.ID,
-					Name:              r.Name,
-					SerialNumber:      r.SerialNumber,
-					SigningKeyID:      r.SigningKeyID,
-					NotBefore:         r.NotBefore,
-					NotAfter:          r.NotAfter,
-					RootCert:          r.RootCert,
-					IntermediateCerts: r.IntermediateCerts,
-					RaftIndex:         r.RaftIndex,
-					Active:            r.Active,
+					ID:                  r.ID,
+					Name:                r.Name,
+					SerialNumber:        r.SerialNumber,
+					SigningKeyID:        r.SigningKeyID,
+					ExternalTrustDomain: r.ExternalTrustDomain,
+					NotBefore:           r.NotBefore,
+					NotAfter:            r.NotAfter,
+					RootCert:            r.RootCert,
+					IntermediateCerts:   r.IntermediateCerts,
+					RaftIndex:           r.RaftIndex,
+					Active:              r.Active,
 				}
 
 				if r.Active {

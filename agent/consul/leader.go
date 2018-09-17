@@ -445,7 +445,7 @@ func (s *Server) initializeCA() error {
 		return fmt.Errorf("error getting root cert: %v", err)
 	}
 
-	rootCA, err := parseCARoot(rootPEM, conf.Provider)
+	rootCA, err := parseCARoot(rootPEM, conf.Provider, conf.ClusterID)
 	if err != nil {
 		return err
 	}
@@ -501,7 +501,7 @@ func (s *Server) initializeCA() error {
 }
 
 // parseCARoot returns a filled-in structs.CARoot from a raw PEM value.
-func parseCARoot(pemValue, provider string) (*structs.CARoot, error) {
+func parseCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) {
 	id, err := connect.CalculateCertFingerprint(pemValue)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing root fingerprint: %v", err)
@@ -511,14 +511,15 @@ func parseCARoot(pemValue, provider string) (*structs.CARoot, error) {
 		return nil, fmt.Errorf("error parsing root cert: %v", err)
 	}
 	return &structs.CARoot{
-		ID:           id,
-		Name:         fmt.Sprintf("%s CA Root Cert", strings.Title(provider)),
-		SerialNumber: rootCert.SerialNumber.Uint64(),
-		SigningKeyID: connect.HexString(rootCert.AuthorityKeyId),
-		NotBefore:    rootCert.NotBefore,
-		NotAfter:     rootCert.NotAfter,
-		RootCert:     pemValue,
-		Active:       true,
+		ID:                  id,
+		Name:                fmt.Sprintf("%s CA Root Cert", strings.Title(provider)),
+		SerialNumber:        rootCert.SerialNumber.Uint64(),
+		SigningKeyID:        connect.HexString(rootCert.AuthorityKeyId),
+		ExternalTrustDomain: clusterID,
+		NotBefore:           rootCert.NotBefore,
+		NotAfter:            rootCert.NotAfter,
+		RootCert:            pemValue,
+		Active:              true,
 	}, nil
 }
 
