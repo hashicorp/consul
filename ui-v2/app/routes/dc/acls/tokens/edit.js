@@ -7,11 +7,13 @@ import WithTokenActions from 'consul-ui/mixins/token/with-actions';
 
 export default Route.extend(WithTokenActions, {
   repo: service('tokens'),
+  policiesRepo: service('policies'),
   settings: service('settings'),
   model: function(params) {
     return hash({
       isLoading: false,
       item: get(this, 'repo').findBySlug(params.id, this.modelFor('dc').dc.Name),
+      items: get(this, 'policiesRepo').findAllByDatacenter(this.modelFor('dc').dc.Name),
     });
   },
   setupController: function(controller, model) {

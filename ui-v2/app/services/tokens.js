@@ -15,6 +15,12 @@ export default Service.extend({
       dc: dc,
     });
   },
+  findByPolicy: function(id, dc) {
+    return get(this, 'store').query('token', {
+      policy: id,
+      dc: dc,
+    });
+  },
   create: function() {
     return get(this, 'store').createRecord('token');
   },

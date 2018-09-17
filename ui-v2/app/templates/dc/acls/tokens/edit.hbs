@@ -16,7 +16,36 @@
 {{/if}}
         </h1>
     {{/block-slot}}
+    {{#block-slot 'actions'}}
+{{#if (not create) }}
+        {{#confirmation-dialog message='Are you sure you want to use this ACL token?'}}
+            {{#block-slot 'action' as |confirm|}}
+                <button data-test-use type="button" {{ action confirm 'use' item }}>Use</button>
+            {{/block-slot}}
+            {{#block-slot 'dialog' as |execute cancel message|}}
+                <p>
+                    {{message}}
+                </p>
+                <button type="button" class="type-delete" {{action execute}}>Confirm Use</button>
+                <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
+            {{/block-slot}}
+        {{/confirmation-dialog}}
+        <button type="button" {{ action "clone" item }}>Duplicate</button>
+{{/if}}
+    {{/block-slot}}
     {{#block-slot 'content'}}
+{{#if (not create) }}
+      <dl>
+        <dt>AccessorID</dt>
+        <dd>
+          {{copy-button-feedback name="AccessorID" value=item.AccessorID}} {{item.AccessorID}}
+        </dd>
+        <dt>Token</dt>
+        <dd>
+          {{copy-button-feedback name="SecretID" value=item.SecretID}} {{secret-button value=item.SecretID}}
+        </dd>
+      </dl>
+{{/if}}
         {{ partial 'dc/acls/tokens/form'}}
     {{/block-slot}}
 {{/app-view}}

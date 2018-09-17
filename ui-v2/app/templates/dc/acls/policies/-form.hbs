@@ -16,6 +16,21 @@
             {{input value=item.Description name='description'}}
         </label>
     </fieldset>
+{{#if (gt items.length 0)}}
+    {{#tabular-collection
+        data-test-tokens
+        items=(sort-by 'AccessorID:asc' items) as |item index|
+    }}
+        {{#block-slot 'header'}}
+            <th>AccessorID</th>
+        {{/block-slot}}
+        {{#block-slot 'row'}}
+              <td>
+                <a href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>{{item.AccessorID}}</a>
+              </td>
+        {{/block-slot}}
+    {{/tabular-collection}}
+{{/if}}
     <div>
 {{#if create }}
         {{! we only need to check for an empty name here as ember munges autofocus, once we have autofocus back revisit this}}

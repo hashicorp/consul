@@ -1,10 +1,22 @@
-import Adapter, { DATACENTER_QUERY_PARAM as API_DATACENTER_KEY } from './application';
+import Adapter, {
+  REQUEST_CREATE,
+  REQUEST_UPDATE,
+  REQUEST_DELETE,
+  DATACENTER_QUERY_PARAM as API_DATACENTER_KEY,
+} from './application';
 
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/token';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 import { OK as HTTP_OK } from 'consul-ui/utils/http/status';
 
+import { get } from '@ember/object';
+
 export default Adapter.extend({
+  cleanQuery: function(_query) {
+    const query = this._super(...arguments);
+    delete _query.policy;
+    return query;
+  },
   urlForQuery: function(query, modelName) {
     return this.appendURL('acl/tokens', [], this.cleanQuery(query));
   },
@@ -46,5 +58,19 @@ export default Adapter.extend({
       }
     }
     return this._super(status, headers, response, requestData);
+  },
+  dataForRequest: function(params) {
+    const data = this._super(...arguments);
+    switch (params.requestType) {
+      case REQUEST_UPDATE:
+      case REQUEST_CREATE:
+        data.token.Policies = data.token.Policies.map(function(item) {
+          return {
+            ID: get(item, 'ID'),
+            Name: get(item, 'Name'),
+          };
+        });
+    }
+    return data;
   },
 });

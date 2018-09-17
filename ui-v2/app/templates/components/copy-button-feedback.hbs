@@ -1,0 +1,15 @@
+{{#feedback-dialog type='inline'}}
+  {{#block-slot 'action' as |success error|}}
+    {{#copy-button success=(action success) error=(action error) clipboardText=value title=(concat 'Copy' name 'to the clipboard')}}Copy {{name}}{{/copy-button}}
+  {{/block-slot}}
+  {{#block-slot 'success'}}
+    <p>
+      Copied {{name}}!
+    </p>
+  {{/block-slot}}
+  {{#block-slot 'error'}}
+    <p>
+      Sorry, something went wrong!
+    </p>
+  {{/block-slot}}
+{{/feedback-dialog}}

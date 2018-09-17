@@ -19,4 +19,9 @@ export default Controller.extend(WithFiltering, {
         .indexOf(sLower) !== -1
     );
   },
+  actions: {
+    sendClone: function(item) {
+      this.send('clone', item);
+    },
+  },
 });

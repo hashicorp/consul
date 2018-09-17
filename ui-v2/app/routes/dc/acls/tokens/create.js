@@ -8,6 +8,7 @@ import WithTokenActions from 'consul-ui/mixins/token/with-actions';
 export default Route.extend(WithTokenActions, {
   templateName: 'dc/acls/tokens/edit',
   repo: service('tokens'),
+  policiesRepo: service('policies'),
   beforeModel: function() {
     get(this, 'repo').invalidate();
   },
@@ -18,6 +19,7 @@ export default Route.extend(WithTokenActions, {
       create: true,
       isLoading: false,
       item: this.item,
+      items: get(this, 'policiesRepo').findAllByDatacenter(this.modelFor('dc').dc.Name),
     });
   },
   setupController: function(controller, model) {

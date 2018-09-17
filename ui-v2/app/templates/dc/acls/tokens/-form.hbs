@@ -1,9 +1,62 @@
 <form>
     <fieldset>
-        <label class="type-text">
-          <span>Description (should this be a text area?)</span>
-            {{input value=item.Description name='description'}}
-        </label>
+      <label class="type-toggle">
+        <span>Restrict this token to a local datacenter?</span>
+        <em>To create a folder, end a key with <code>/</code></em>
+        <input type="checkbox" name="Local" checked={{if Local 'checked' }} onchange={{action 'change'}} />
+      </label>
+      <label class="type-text">
+        <span>Description</span>
+        <textarea name="Description" oninput={{action 'change'}}></textarea>
+      </label>
+    </fieldset>
+    <fieldset>
+      <h2>Policies</h2>
+      <label class="type-text">
+        <span>Apply an existing policy</span>
+            {{#power-select
+              options=items
+              searchField='Name'
+              selected=DestinationName
+              searchPlaceholder='Type policy name'
+              onchange=(action 'change' 'Policy') as |policy|
+            }}
+              {{policy.Name}}
+            {{/power-select}}
+      </label>
+{{#if (gt item.Policies.length 0)}}
+    {{#tabular-collection
+        data-test-policies
+        items=(sort-by 'Name:asc' item.Policies) as |item index|
+    }}
+        {{#block-slot 'header'}}
+            <th>Name</th>
+            <th>ID</th>
+        {{/block-slot}}
+        {{#block-slot 'row'}}
+                <td>
+                  <a href={{href-to 'dc.acls.policies.edit' item.ID}}>{{item.Name}}</a>
+                </td>
+                <td>
+                    {{item.ID}}
+                </td>
+                <td>
+                    {{#confirmation-dialog message='Are you sure you want to remove this policy?'}}
+                        {{#block-slot 'action' as |confirm|}}
+                            <button data-test-delete type="button" class="type-delete" {{action confirm 'removePolicy' item}}>Remove</button>
+                        {{/block-slot}}
+                        {{#block-slot 'dialog' as |execute cancel message|}}
+                            <p>
+                                {{message}}
+                            </p>
+                            <button type="button" class="type-delete" {{action execute}}>Confirm Removal</button>
+                            <button type="button" class="type-cancel" {{ action cancel}}>Cancel</button>
+                        {{/block-slot}}
+                    {{/confirmation-dialog}}
+                </td>
+        {{/block-slot}}
+    {{/tabular-collection}}
+{{/if}}
     </fieldset>
     <div>
 {{#if create }}

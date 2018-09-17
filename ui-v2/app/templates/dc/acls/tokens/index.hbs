@@ -21,7 +21,6 @@
             {{#block-slot 'header'}}
                 <th>Accessor ID</th>
                 <th>Scope</th>
-                <th>Description</th>
                 <th>Policies</th>
             {{/block-slot}}
             {{#block-slot 'row'}}
@@ -29,13 +28,16 @@
                     <a href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>{{item.AccessorID}}</a>
                 </td>
                 <td>
-                  Scope in here
+                  {{if item.Local 'local' 'global' }}
                 </td>
                 <td>
-                  {{item.Description}}
-                </td>
-                <td>
-                  Policies in here
+  {{#if item.Legacy }}
+                    Legacy tokens have embedded policies
+  {{ else }}
+                    {{#each item.Policies as |item|}}
+                      <strong class={{if (eq item.ID '00000000-0000-0000-0000-000000000000') 'policy-management' }}>{{item.Name}}</strong>
+                    {{/each}}
+  {{/if}}
                 </td>
             {{/block-slot}}
             {{#block-slot 'actions' as |index change checked|}}
@@ -44,7 +46,16 @@
                         {{#action-group index=index onchange=(action change) checked=(if (eq checked index) 'checked')}}
                             <ul>
                                 <li>
-                                    <a data-test-edit href={{href-to 'dc.acls.edit' item.AccessorID}}>Edit</a>
+                                    <a data-test-edit href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>Copy AccessorID</a>
+                                </li>
+                                <li>
+                                    <a data-test-edit href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>Edit</a>
+                                </li>
+                                <li>
+                                    <a data-test-clone onclick={{action 'sendClone' item}}>Duplicate</a>
+                                </li>
+                                <li>
+                                    <a data-test-use onclick={{queue (action confirm 'use' item) (action change)}}>Use</a>
                                 </li>
                                 <li>
                                     <a data-test-delete onclick={{action confirm 'delete' item}}>Delete</a>

@@ -40,7 +40,7 @@
                         {{#action-group index=index onchange=(action change) checked=(if (eq checked index) 'checked')}}
                             <ul>
                                 <li>
-                                    <a data-test-edit href={{href-to 'dc.acls.edit' item.ID}}>Edit</a>
+                                    <a data-test-edit href={{href-to 'dc.acls.policies.edit' item.ID}}>Edit</a>
                                 </li>
                                 <li>
                                     <a data-test-delete onclick={{action confirm 'delete' item}}>Delete</a>
