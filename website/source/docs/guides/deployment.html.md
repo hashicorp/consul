@@ -3,8 +3,8 @@ layout: "docs"
 page_title: "Consul Reference Architecture"
 sidebar_current: "docs-guides-reference-architecture"
 description: |-
-  This document provides recommended practices and a reference architecture for
-  HashiCorp Consul production deployments.
+  This document provides recommended practices and a reference
+  architecture for HashiCorp Consul production deployments.
 product_version: 1.2
 ---
 
@@ -47,7 +47,7 @@ For more information on server requirements, review the [server performance](/do
 
 ## Infrastructure Diagram
 
-![consul-ref-arch-diagram](/assets/images/consul-ref-arch-diagram.png)
+![Reference Diagram](/assets/images/consul-arch.png "Reference Diagram")
 
 ## Datacenter Design
 
@@ -103,7 +103,7 @@ In a larger network that spans L2 segments, traffic typically traverses through 
 | HTTP API      | 8500 | `-1` to disable | Used by clients to talk to the HTTP API. TCP only. |
 | DNS Interface | 8600 | `-1` to disable | |
 
--> As mentioned in the [datacenter design section](#single-datacenter), network areas and network segments can be used to prevent opening up firewall ports between different subnets.
+-> As mentioned in the [datacenter design section](#datacenter-design), network areas and network segments can be used to prevent opening up firewall ports between different subnets.
 
 By default agents will only listen for HTTP and DNS traffic on the local interface.
 

@@ -23,7 +23,7 @@ This deployment guide is designed to work in combination with the [Consul Refere
 
 To provide a highly-available single cluster architecture, we recommend Consul server agents be deployed to more than one host, as shown in the [Consul Reference Architecture](/docs/guides/deployment.html).
 
-![Reference Diagram](/assets/images/consul-ref-arch-diagram.png "Reference Diagram")
+![Reference Diagram](/assets/images/consul-arch-single.png "Reference Diagram")
 
 These setup steps should be completed on all Consul hosts.
 
@@ -145,7 +145,7 @@ sudo chmod 640 /etc/consul.d/consul.hcl
 
 Add this configuration to the `consul.hcl` configuration file:
 
-~> Replace the `datacenter` parameter value with the identifier you will use for the datacenter this Consul cluster is deployed in. Replace the `encrypt` parameter value with the output from running `consul keygen` on any host with the `consul` binary installed.
+~> **NOTE** Replace the `datacenter` parameter value with the identifier you will use for the datacenter this Consul cluster is deployed in. Replace the `encrypt` parameter value with the output from running `consul keygen` on any host with the `consul` binary installed.
 
 ```hcl
 datacenter = "dc1"
@@ -167,7 +167,7 @@ The `retry_join` parameter allows you to configure all Consul agents to automati
 
 Add the retry_join parameter to the `consul.hcl` configuration file:
 
-~> Replace the `retry_join` parameter value with the correct DNS address, IP address or [cloud auto-join configuration](/docs/agent/cloud-auto-join.html) for your environment.
+~> **NOTE** Replace the `retry_join` parameter value with the correct DNS address, IP address or [cloud auto-join configuration](/docs/agent/cloud-auto-join.html) for your environment.
 
 ```hcl
 retry_join = "172.16.0.11"
@@ -214,7 +214,7 @@ sudo chmod 640 /etc/consul.d/server.hcl
 
 Add this configuration to the `server.hcl` configuration file:
 
-~> Replace the `bootstrap_expect` value with the number of Consul servers you will use; three or five [is recommended](/docs/internals/consensus.html#deployment-table).
+~> **NOTE** Replace the `bootstrap_expect` value with the number of Consul servers you will use; three or five [is recommended](/docs/internals/consensus.html#deployment-table).
 
 ```hcl
 server = true
@@ -228,7 +228,7 @@ bootstrap_expect = 3
 
 Consul features a web-based user interface, allowing you to easily view all services, nodes, intentions and more using a graphical user interface, rather than the CLI or API.
 
-~> You should consider running the Consul UI on select Consul hosts rather than all hosts. 
+~> **NOTE** You should consider running the Consul UI on select Consul hosts rather than all hosts.
 
 Optionally, add the UI configuration to the `server.hcl` configuration file to enable the Consul UI:
 
@@ -274,3 +274,6 @@ This spreads the load across nodes at the possible expense of losing full consis
 - Read [Outage Recovery](/docs/guides/outage.html) to learn the steps required
   for recovery from a Consul outage due to a majority of server nodes in a
   datacenter being lost.
+
+- Read [Server Performance](/docs/guides/performance.html) to learn about
+  additional configuration that benefits production deployments.
