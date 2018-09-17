@@ -275,6 +275,75 @@ func testCrossSignProviders(t *testing.T, provider1, provider2 Provider) {
 	}
 }
 
+func TestConsulProvider_SignIntermediate(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+
+	conf1 := testConsulCAConfig()
+	delegate1 := newMockDelegate(t, conf1)
+	provider1 := &ConsulProvider{Delegate: delegate1}
+	require.NoError(provider1.Configure(conf1.ClusterID, true, conf1.Config))
+	require.NoError(provider1.GenerateRoot())
+
+	conf2 := testConsulCAConfig()
+	conf2.CreateIndex = 10
+	delegate2 := newMockDelegate(t, conf2)
+	provider2 := &ConsulProvider{Delegate: delegate2}
+	require.NoError(provider2.Configure(conf2.ClusterID, false, conf2.Config))
+
+	testSignIntermediateCrossDC(t, provider1, provider2)
+}
+
+func testSignIntermediateCrossDC(t *testing.T, provider1, provider2 Provider) {
+	require := require.New(t)
+
+	// Get the intermediate CSR from provider2.
+	csrPEM, err := provider2.GenerateIntermediateCSR()
+	require.NoError(err)
+	csr, err := connect.ParseCSR(csrPEM)
+	require.NoError(err)
+
+	// Sign the CSR with provider1.
+	intermediatePEM, err := provider1.SignIntermediate(csr)
+	require.NoError(err)
+	rootPEM, err := provider1.ActiveRoot()
+	require.NoError(err)
+
+	// Give the new intermediate to provider2 to use.
+	require.NoError(provider2.SetIntermediate(intermediatePEM, rootPEM))
+
+	// Have provider2 sign a leaf cert and make sure the chain is correct.
+	spiffeService := &connect.SpiffeIDService{
+		Host:       "node1",
+		Namespace:  "default",
+		Datacenter: "dc1",
+		Service:    "foo",
+	}
+	raw, _ := connect.TestCSR(t, spiffeService)
+
+	leafCsr, err := connect.ParseCSR(raw)
+	require.NoError(err)
+
+	leafPEM, err := provider2.Sign(leafCsr)
+	require.NoError(err)
+
+	cert, err := connect.ParseCert(leafPEM)
+	require.NoError(err)
+
+	// Check that the leaf signed by the new cert can be verified using the
+	// returned cert chain (signed intermediate + remote root).
+	intermediatePool := x509.NewCertPool()
+	intermediatePool.AppendCertsFromPEM([]byte(intermediatePEM))
+	rootPool := x509.NewCertPool()
+	rootPool.AppendCertsFromPEM([]byte(rootPEM))
+
+	_, err = cert.Verify(x509.VerifyOptions{
+		Intermediates: intermediatePool,
+		Roots:         rootPool,
+	})
+	require.NoError(err)
+}
+
 func TestConsulCAProvider_MigrateOldID(t *testing.T) {
 	t.Parallel()
 

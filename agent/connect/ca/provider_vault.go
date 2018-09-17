@@ -102,6 +102,98 @@ func (v *VaultProvider) GenerateRoot() error {
 	return nil
 }
 
+// GenerateIntermediateCSR creates a private key and generates a CSR
+// for another datacenter's root to sign, overwriting the intermediate backend
+// in the process.
+func (v *VaultProvider) GenerateIntermediateCSR() (string, error) {
+	if v.isRoot {
+		return "", fmt.Errorf("provider is the root certificate authority, " +
+			"cannot generate an intermediate CSR")
+	}
+
+	return v.generateIntermediateCSR()
+}
+
+func (v *VaultProvider) generateIntermediateCSR() (string, error) {
+	mounts, err := v.client.Sys().ListMounts()
+	if err != nil {
+		return "", err
+	}
+
+	// Mount the backend if it isn't mounted already.
+	if _, ok := mounts[v.config.IntermediatePKIPath]; !ok {
+		err := v.client.Sys().Mount(v.config.IntermediatePKIPath, &vaultapi.MountInput{
+			Type:        "pki",
+			Description: "intermediate CA backend for Consul Connect",
+			Config: vaultapi.MountConfigInput{
+				MaxLeaseTTL: "2160h",
+			},
+		})
+
+		if err != nil {
+			return "", err
+		}
+	}
+
+	// Create the role for issuing leaf certs if it doesn't exist yet
+	rolePath := v.config.IntermediatePKIPath + "roles/" + VaultCALeafCertRole
+	role, err := v.client.Logical().Read(rolePath)
+	if err != nil {
+		return "", err
+	}
+	spiffeID := connect.SpiffeIDSigning{ClusterID: v.clusterId, Domain: "consul"}
+	if role == nil {
+		_, err := v.client.Logical().Write(rolePath, map[string]interface{}{
+			"allow_any_name":   true,
+			"allowed_uri_sans": "spiffe://*",
+			"key_type":         "any",
+			"max_ttl":          v.config.LeafCertTTL.String(),
+			"no_store":         true,
+			"require_cn":       false,
+		})
+		if err != nil {
+			return "", err
+		}
+	}
+
+	// Generate a new intermediate CSR for the root to sign.
+	data, err := v.client.Logical().Write(v.config.IntermediatePKIPath+"intermediate/generate/internal", map[string]interface{}{
+		"common_name": "Vault CA Intermediate Authority",
+		"key_bits":    224,
+		"key_type":    "ec",
+		"uri_sans":    spiffeID.URI().String(),
+	})
+	if err != nil {
+		return "", err
+	}
+	if data == nil || data.Data["csr"] == "" {
+		return "", fmt.Errorf("got empty value when generating intermediate CSR")
+	}
+	csr, ok := data.Data["csr"].(string)
+	if !ok {
+		return "", fmt.Errorf("csr result is not a string")
+	}
+
+	return csr, nil
+}
+
+// SetIntermediate writes the incoming intermediate and root certificates to the
+// intermediate backend (as a chain).
+func (v *VaultProvider) SetIntermediate(intermediatePEM, rootPEM string) error {
+	if v.isRoot {
+		return fmt.Errorf("cannot set an intermediate using another root in the primary datacenter")
+	}
+
+	_, err := v.client.Logical().Write(v.config.IntermediatePKIPath+"intermediate/set-signed", map[string]interface{}{
+		"certificate": fmt.Sprintf("%s\n%s", intermediatePEM, rootPEM),
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // ActiveIntermediate returns the current intermediate certificate.
 func (v *VaultProvider) ActiveIntermediate() (string, error) {
 	return v.getCA(v.config.IntermediatePKIPath)
@@ -141,61 +233,14 @@ func (v *VaultProvider) getCA(path string) (string, error) {
 // necessary, then generates and signs a new CA CSR using the root PKI backend
 // and updates the intermediate backend to use that new certificate.
 func (v *VaultProvider) GenerateIntermediate() (string, error) {
-	mounts, err := v.client.Sys().ListMounts()
+	csr, err := v.generateIntermediateCSR()
 	if err != nil {
 		return "", err
-	}
-
-	// Mount the backend if it isn't mounted already.
-	if _, ok := mounts[v.config.IntermediatePKIPath]; !ok {
-		err := v.client.Sys().Mount(v.config.IntermediatePKIPath, &vaultapi.MountInput{
-			Type:        "pki",
-			Description: "intermediate CA backend for Consul Connect",
-			Config: vaultapi.MountConfigInput{
-				MaxLeaseTTL: "2160h",
-			},
-		})
-
-		if err != nil {
-			return "", err
-		}
-	}
-
-	// Create the role for issuing leaf certs if it doesn't exist yet
-	rolePath := v.config.IntermediatePKIPath + "roles/" + VaultCALeafCertRole
-	role, err := v.client.Logical().Read(rolePath)
-	if err != nil {
-		return "", err
-	}
-	spiffeID := connect.SpiffeIDSigning{ClusterID: v.clusterId, Domain: "consul"}
-	if role == nil {
-		_, err := v.client.Logical().Write(rolePath, map[string]interface{}{
-			"allow_any_name":   true,
-			"allowed_uri_sans": "spiffe://*",
-			"key_type":         "any",
-			"max_ttl":          v.config.LeafCertTTL.String(),
-			"require_cn":       false,
-		})
-		if err != nil {
-			return "", err
-		}
-	}
-
-	// Generate a new intermediate CSR for the root to sign.
-	csr, err := v.client.Logical().Write(v.config.IntermediatePKIPath+"intermediate/generate/internal", map[string]interface{}{
-		"common_name": "Vault CA Intermediate Authority",
-		"uri_sans":    spiffeID.URI().String(),
-	})
-	if err != nil {
-		return "", err
-	}
-	if csr == nil || csr.Data["csr"] == "" {
-		return "", fmt.Errorf("got empty value when generating intermediate CSR")
 	}
 
 	// Sign the CSR with the root backend.
 	intermediate, err := v.client.Logical().Write(v.config.RootPKIPath+"root/sign-intermediate", map[string]interface{}{
-		"csr":    csr.Data["csr"],
+		"csr":    csr,
 		"format": "pem_bundle",
 	})
 	if err != nil {
@@ -247,6 +292,36 @@ func (v *VaultProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	}
 
 	return fmt.Sprintf("%s\n%s", cert, ca), nil
+}
+
+// SignIntermediate returns a signed CA certificate with a path length constraint
+// of 0 to ensure that the certificate cannot be used to generate further CA certs.
+func (v *VaultProvider) SignIntermediate(csr *x509.CertificateRequest) (string, error) {
+	var pemBuf bytes.Buffer
+	err := pem.Encode(&pemBuf, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csr.Raw})
+	if err != nil {
+		return "", err
+	}
+
+	// Sign the CSR with the root backend.
+	data, err := v.client.Logical().Write(v.config.RootPKIPath+"root/sign-intermediate", map[string]interface{}{
+		"csr":             pemBuf.String(),
+		"format":          "pem_bundle",
+		"max_path_length": 0,
+	})
+	if err != nil {
+		return "", err
+	}
+	if data == nil || data.Data["certificate"] == "" {
+		return "", fmt.Errorf("got empty value when generating intermediate certificate")
+	}
+
+	intermediate, ok := data.Data["certificate"].(string)
+	if !ok {
+		return "", fmt.Errorf("signed intermediate result is not a string")
+	}
+
+	return intermediate, nil
 }
 
 // CrossSignCA takes a CA certificate and cross-signs it to form a trust chain

@@ -49,7 +49,7 @@ func (id *SpiffeIDSigning) CanSign(cu CertURI) bool {
 		// that we could open this up later for example to support external
 		// federation of roots and cross-signing external roots that have different
 		// URI structure but it's simpler to start off restrictive.
-		return id == other
+		return id.URI().String() == other.URI().String()
 	case *SpiffeIDService:
 		// The host component of the service must be an exact match for now under
 		// ascii case folding (since hostnames are case-insensitive). Later we might
