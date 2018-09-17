@@ -1,10 +1,13 @@
 package route53
 
 import (
+	"context"
 	"strings"
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
+	clog "github.com/coredns/coredns/plugin/pkg/log"
+	"github.com/coredns/coredns/plugin/pkg/upstream"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -13,6 +16,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/route53/route53iface"
 	"github.com/mholt/caddy"
 )
+
+var log = clog.NewWithPlugin("route53")
 
 func init() {
 	caddy.RegisterPlugin("route53", caddy.Plugin{
@@ -30,7 +35,8 @@ func init() {
 
 func setup(c *caddy.Controller, f func(*credentials.Credentials) route53iface.Route53API) error {
 	keys := map[string]string{}
-	var credential *credentials.Credentials
+	credential := credentials.NewEnvCredentials()
+	up, _ := upstream.New(nil)
 	for c.Next() {
 		args := c.RemainingArgs()
 
@@ -57,32 +63,35 @@ func setup(c *caddy.Controller, f func(*credentials.Credentials) route53iface.Ro
 					return c.Errf("invalid access key '%v'", v)
 				}
 				credential = credentials.NewStaticCredentials(v[0], v[1], "")
+			case "upstream":
+				args := c.RemainingArgs()
+				// TODO(dilyevsky): There is a bug that causes coredns to crash
+				// when no upstream endpoint is provided.
+				if len(args) == 0 {
+					return c.Errf("local upstream not supported. please provide upstream endpoint")
+				}
+				var err error
+				up, err = upstream.New(args)
+				if err != nil {
+					return c.Errf("invalid upstream: %v", err)
+				}
 			default:
 				return c.Errf("unknown property '%s'", c.Val())
 			}
 		}
 	}
 	client := f(credential)
-	zones := []string{}
-	for zone, v := range keys {
-		// Make sure enough credentials is needed
-		if _, err := client.ListResourceRecordSets(&route53.ListResourceRecordSetsInput{
-			HostedZoneId: aws.String(v),
-			MaxItems:     aws.String("1"),
-		}); err != nil {
-			return c.Errf("aws error: '%s'", err)
-		}
-
-		zones = append(zones, zone)
+	ctx := context.Background()
+	h, err := New(ctx, client, keys, &up)
+	if err != nil {
+		return c.Errf("failed to create Route53 plugin: %v", err)
 	}
-
+	if err := h.Run(ctx); err != nil {
+		return c.Errf("failed to initialize Route53 plugin: %v", err)
+	}
 	dnsserver.GetConfig(c).AddPlugin(func(next plugin.Handler) plugin.Handler {
-		return Route53{
-			Next:   next,
-			keys:   keys,
-			zones:  zones,
-			client: client,
-		}
+		h.Next = next
+		return h
 	})
 
 	return nil
