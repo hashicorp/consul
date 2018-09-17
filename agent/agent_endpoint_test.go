@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
@@ -1972,8 +1973,8 @@ func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name        string
-		preRegister *structs.NodeService
+		name                      string
+		preRegister, preRegister2 *structs.NodeService
 		// Use raw JSON payloads rather than encoding to avoid subtleties with some
 		// internal representations and different ways they encode and decode. We
 		// rely on the payload being Unmarshalable to structs.ServiceDefinition
@@ -1984,6 +1985,7 @@ func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 		wantNS                      *structs.NodeService
 		wantErr                     string
 		wantSidecarIDLeftAfterDereg bool
+		assertStateFn               func(t *testing.T, state *local.State)
 	}{
 		{
 			name: "sanity check no sidecar case",
@@ -2247,6 +2249,73 @@ func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 			// original registration.
 			wantSidecarIDLeftAfterDereg: true,
 		},
+		{
+			name: "updates to sidecar should work",
+			// Add a valid sidecar already registered
+			preRegister: &structs.NodeService{
+				ID:                         "web-sidecar-proxy",
+				Service:                    "web-sidecar-proxy",
+				LocallyRegisteredAsSidecar: true,
+				Port:                       9999,
+			},
+			// Register web with Sidecar on different port
+			json: `
+			{
+				"name": "web",
+				"port": 1111,
+				"connect": {
+					"SidecarService": {
+						"Port": 6666
+					}
+				}
+			}
+			`,
+			// Note here that although the registration here didn't register it, we
+			// should still see the NodeService we pre-registered here.
+			wantNS: &structs.NodeService{
+				Kind:                       "connect-proxy",
+				ID:                         "web-sidecar-proxy",
+				Service:                    "web-sidecar-proxy",
+				LocallyRegisteredAsSidecar: true,
+				Port:                       6666,
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "web",
+					DestinationServiceID:   "web",
+					LocalServiceAddress:    "127.0.0.1",
+					LocalServicePort:       1111,
+				},
+			},
+		},
+		{
+			name: "update that removes sidecar should NOT deregister it",
+			// Add web with a valid sidecar already registered
+			preRegister: &structs.NodeService{
+				ID:      "web",
+				Service: "web",
+				Port:    1111,
+			},
+			preRegister2: testDefaultSidecar("web", 1111),
+			// Register (update) web and remove sidecar (and port for sanity check)
+			json: `
+			{
+				"name": "web",
+				"port": 2222
+			}
+			`,
+			// Sidecar should still be there such that API can update registration
+			// without accidentally removing a sidecar. This is equivalent to embedded
+			// checks which are not removed by just not being included in an update.
+			// We will document that sidecar registrations via API must be explicitiy
+			// deregistered.
+			wantNS: testDefaultSidecar("web", 1111),
+			// Sanity check the rest of the update happened though.
+			assertStateFn: func(t *testing.T, state *local.State) {
+				svcs := state.Services()
+				svc, ok := svcs["web"]
+				require.True(t, ok)
+				require.Equal(t, 2222, svc.Port)
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -2270,6 +2339,9 @@ func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 
 			if tt.preRegister != nil {
 				require.NoError(a.AddService(tt.preRegister, nil, false, ""))
+			}
+			if tt.preRegister2 != nil {
+				require.NoError(a.AddService(tt.preRegister2, nil, false, ""))
 			}
 
 			// Create an ACL token with require policy
@@ -2339,6 +2411,10 @@ func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 			svc, ok = svcs[tt.wantNS.ID]
 			require.True(ok, "no sidecar registered at "+tt.wantNS.ID)
 			assert.Equal(tt.wantNS, svc)
+
+			if tt.assertStateFn != nil {
+				tt.assertStateFn(t, a.State)
+			}
 
 			// Now verify deregistration also removes sidecar (if there was one and it
 			// was added via sidecar not just coincidental ID clash)
