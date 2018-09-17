@@ -2010,6 +2010,10 @@ func TestAgent_loadServices_sidecar(t *testing.T) {
 	if token := a.State.ServiceToken("rabbitmq-sidecar-proxy"); token != "abc123" {
 		t.Fatalf("bad: %s", token)
 	}
+
+	// Sanity check rabbitmq service should NOT have sidecar info in state since
+	// it's done it's job and should be a registration syntax sugar only.
+	assert.Nil(t, services["rabbitmq"].Connect.SidecarService)
 }
 
 func TestAgent_loadServices_sidecarSeparateToken(t *testing.T) {

@@ -49,15 +49,11 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 			return nil, nil, "", err
 		}
 	}
-	// Always copy Meta so it's safe for us to modify here without changing the
-	// map in the input struct that is reachable by the caller which is
-	// unexpected.
-	newMeta := make(map[string]string)
-	for k, v := range sidecar.Meta {
-		newMeta[k] = v
-	}
-	newMeta["consul-sidecar"] = "y"
-	sidecar.Meta = newMeta
+
+	// Flag this as a sidecar - this is not persisted in catalog but only needed
+	// in local agent state to disambiguate lineage when deregistereing the parent
+	// service later.
+	sidecar.LocallyRegisteredAsSidecar = true
 
 	// See if there is a more specific token for the sidecar registration
 	if ns.Connect.SidecarService.Token != "" {

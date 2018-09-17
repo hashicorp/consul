@@ -134,6 +134,57 @@ func TestAgent_Services_ExternalConnectProxy(t *testing.T) {
 	assert.Equal(srv1.Proxy.DestinationServiceName, actual.ProxyDestination)
 }
 
+// Thie tests that a sidecar-registered service is returned as expected.
+func TestAgent_Services_Sidecar(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	assert := assert.New(t)
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	srv1 := &structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "db-sidecar-proxy",
+		Service: "db-sidecar-proxy",
+		Port:    5000,
+		// Set this internal state that we expect sidecar registrations to have.
+		LocallyRegisteredAsSidecar: true,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "db",
+			Upstreams:              structs.TestUpstreams(t),
+		},
+	}
+	a.State.AddService(srv1, "")
+
+	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
+	obj, err := a.srv.AgentServices(nil, req)
+	require.NoError(err)
+	val := obj.(map[string]*api.AgentService)
+	assert.Len(val, 1)
+	actual := val["db-sidecar-proxy"]
+	require.NotNil(actual)
+	assert.Equal(api.ServiceKindConnectProxy, actual.Kind)
+	assert.Equal(srv1.Proxy.ToAPI(), actual.Proxy)
+
+	// DEPRECATED (ProxyDestination) - remove the next comment and assertion
+	// Should still have deprecated ProxyDestination filled in until we remove it
+	// completely at a major version bump.
+	assert.Equal(srv1.Proxy.DestinationServiceName, actual.ProxyDestination)
+
+	// Sanity check that LocalRegisteredAsSidecar is not in the output (assuming
+	// JSON encoding). Right now this is not the case becuase the services
+	// endpoint happens to use the api struct which doesn't include that field,
+	// but this test serves as a regression test incase we change the endpoint to
+	// return the internal struct later and accidentally expose some "internal"
+	// state.
+	output, err := json.Marshal(obj)
+	require.NoError(err)
+	assert.NotContains(string(output), "LocallyRegisteredAsSidecar")
+	assert.NotContains(string(output), "locally_registered_as_sidecar")
+}
+
 func TestAgent_Services_ACLFilter(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), TestACLConfig())
@@ -1894,9 +1945,11 @@ func testDefaultSidecar(svc string, port int, fns ...func(*structs.NodeService))
 		Kind:    structs.ServiceKindConnectProxy,
 		Service: svc + "-sidecar-proxy",
 		Port:    2222,
-		Meta: map[string]string{
-			"consul-sidecar": "y",
-		},
+		// Note that LocallyRegisteredAsSidecar should be true on the internal
+		// NodeService, but that we never want to see it in the HTTP response as
+		// it's internal only state. This is being compared directly to local state
+		// so should be present here.
+		LocallyRegisteredAsSidecar: true,
 		Proxy: structs.ConnectProxyConfig{
 			DestinationServiceName: svc,
 			DestinationServiceID:   svc,
@@ -1913,20 +1966,24 @@ func testDefaultSidecar(svc string, port int, fns ...func(*structs.NodeService))
 // This tests local agent service registration with a sidecar service. Note we
 // only test simple defaults for the sidecar here since the actual logic for
 // handling sidecar defaults and port assignment is tested thoroughly in
-// TestAgent_sidecarServiceFromNodeService.
-func TestAgent_RegisterService_Sidecar(t *testing.T) {
+// TestAgent_sidecarServiceFromNodeService. Note it also tests Deregister
+// explicitly too since setup is identical.
+func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name string
+		name        string
+		preRegister *structs.NodeService
 		// Use raw JSON payloads rather than encoding to avoid subtleties with some
 		// internal representations and different ways they encode and decode. We
-		// rely on
-		json       string
-		enableACL  bool
-		tokenRules string
-		wantNS     *structs.NodeService
-		wantErr    string
+		// rely on the payload being Unmarshalable to structs.ServiceDefinition
+		// directly.
+		json                        string
+		enableACL                   bool
+		tokenRules                  string
+		wantNS                      *structs.NodeService
+		wantErr                     string
+		wantSidecarIDLeftAfterDereg bool
 	}{
 		{
 			name: "sanity check no sidecar case",
@@ -2163,6 +2220,33 @@ func TestAgent_RegisterService_Sidecar(t *testing.T) {
 			wantNS:  nil,
 			wantErr: "Status for checks must 'passing', 'warning', 'critical'",
 		},
+		{
+			name: "another service registered with same ID as a sidecar should not be deregistered",
+			// Add another service with the same ID that a sidecar for web would have
+			preRegister: &structs.NodeService{
+				ID:      "web-sidecar-proxy",
+				Service: "fake-sidecar",
+				Port:    9999,
+			},
+			// Register web with NO SIDECAR
+			json: `
+			{
+				"name": "web",
+				"port": 1111
+			}
+			`,
+			// Note here that although the registration here didn't register it, we
+			// should still see the NodeService we pre-registered here.
+			wantNS: &structs.NodeService{
+				ID:      "web-sidecar-proxy",
+				Service: "fake-sidecar",
+				Port:    9999,
+			},
+			// After we deregister the web service above, the fake sidecar with
+			// clashing ID SHOULD NOT have been removed since it wasn't part of the
+			// original registration.
+			wantSidecarIDLeftAfterDereg: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -2183,6 +2267,10 @@ func TestAgent_RegisterService_Sidecar(t *testing.T) {
 			a := NewTestAgent(t.Name(), hcl)
 			defer a.Shutdown()
 			testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+			if tt.preRegister != nil {
+				require.NoError(a.AddService(tt.preRegister, nil, false, ""))
+			}
 
 			// Create an ACL token with require policy
 			var token string
@@ -2234,16 +2322,41 @@ func TestAgent_RegisterService_Sidecar(t *testing.T) {
 			require.True(ok, "has service "+svcID)
 			assert.Equal(sd.Name, svc.Service)
 			assert.Equal(sd.Port, svc.Port)
+			// Ensure that the actual registered service _doesn't_ still have it's
+			// sidecar info since it's duplicate and we don't want that synced up to
+			// the catalog or included in responses particulary - it's just
+			// registration syntax sugar.
+			assert.Nil(svc.Connect.SidecarService)
 
-			// Ensure sidecar
-			if tt.wantNS != nil {
-				svc, ok := svcs[tt.wantNS.ID]
-				require.True(ok, "no sidecar registered at "+tt.wantNS.ID)
-				assert.Equal(tt.wantNS, svc)
-			} else {
+			if tt.wantNS == nil {
 				// Sanity check that there was no service registered, we rely on there
 				// being no services at start of test so we can just use the count.
 				assert.Len(svcs, 1, "should be no sidecar registered")
+				return
+			}
+
+			// Ensure sidecar
+			svc, ok = svcs[tt.wantNS.ID]
+			require.True(ok, "no sidecar registered at "+tt.wantNS.ID)
+			assert.Equal(tt.wantNS, svc)
+
+			// Now verify deregistration also removes sidecar (if there was one and it
+			// was added via sidecar not just coincidental ID clash)
+			{
+				req := httptest.NewRequest("PUT",
+					"/v1/agent/service/deregister/"+svcID+"?token="+token, nil)
+				resp := httptest.NewRecorder()
+				obj, err := a.srv.AgentDeregisterService(resp, req)
+				require.NoError(err)
+				require.Nil(obj)
+
+				svcs := a.State.Services()
+				svc, ok = svcs[tt.wantNS.ID]
+				if tt.wantSidecarIDLeftAfterDereg {
+					require.True(ok, "removed non-sidecar service at "+tt.wantNS.ID)
+				} else {
+					require.False(ok, "sidecar not deregistered with service "+svcID)
+				}
 			}
 		})
 	}

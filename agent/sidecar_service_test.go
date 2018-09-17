@@ -44,11 +44,11 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 			},
 			token: "foo",
 			wantNS: &structs.NodeService{
-				Kind:    structs.ServiceKindConnectProxy,
-				ID:      "web1-sidecar-proxy",
-				Service: "web-sidecar-proxy",
-				Port:    2222,
-				Meta:    map[string]string{"consul-sidecar": "y"},
+				Kind:                       structs.ServiceKindConnectProxy,
+				ID:                         "web1-sidecar-proxy",
+				Service:                    "web-sidecar-proxy",
+				Port:                       2222,
+				LocallyRegisteredAsSidecar: true,
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "web",
 					DestinationServiceID:   "web1",
@@ -108,10 +108,10 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 				Tags:    []string{"foo", "bar"},
 				Address: "127.127.127.127",
 				Meta: map[string]string{
-					"foo":            "bar",
-					"consul-sidecar": "y",
+					"foo": "bar",
 				},
-				EnableTagOverride: true,
+				LocallyRegisteredAsSidecar: true,
+				EnableTagOverride:          true,
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "web",
 					DestinationServiceID:   "web1",

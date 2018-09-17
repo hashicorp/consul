@@ -695,6 +695,11 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 		if err := s.agent.vetServiceRegister(sidecarToken, sidecar); err != nil {
 			return nil, err
 		}
+		// We parsed the sidecar registration, now remove it from the NodeService
+		// for the actual service since it's done it's job and we don't want to
+		// persist it in the actual state/catalog. SidecarService is meant to be a
+		// registration syntax sugar so don't propagate it any further.
+		ns.Connect.SidecarService = nil
 	}
 
 	// Get any proxy registrations
