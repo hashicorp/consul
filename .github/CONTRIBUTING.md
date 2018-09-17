@@ -84,8 +84,43 @@ lives in the spot where the go cli tools are expecting to find it.
 
 ## Testing
 
-You can run tests locally by typing `make test`. The test suite may fail if over-parallelized, 
-so if you are seeing stochastic failures try `GOTEST_FLAGS="-p 2 -parallel 2" make test`.
+Before submitting changes, run **all** tests locally by typing `make test`. 
+The test suite may fail if over-parallelized, so if you are seeing stochastic 
+failures try `GOTEST_FLAGS="-p 2 -parallel 2" make test`. 
+
+Certain testing patterns such as creating a test `Client` in the `api` pkg 
+or a `TestAgent` followed by a session can lead to flaky tests. More generally, 
+any tests with components that rely on readiness of other components are often
+flaky. 
+
+Our makefile has some tooling built in to help validate the stability of single 
+or package-wide tests. By running the `test-flake` goal we spin up a local docker 
+container that mirrors a CPU constrained version of our CI environment. Here we can 
+surface uncommon failures that are typically hard to reproduce by re-running 
+tests multiple times. 
+
+The makefile goal accepts the following variables as arguments:
+
+* **FLAKE_PKG** Target package (required)
+
+* **FLAKE_TEST** Target test
+
+* **FLAKE_CPUS** Amount of CPU resources for container
+
+* **FLAKE_N** Number of times to run tests
+
+Examples:
+`make test-flake FLAKE_PKG=connect/proxy`
+`make test-flake FLAKE_PKG=connect/proxy FLAKE_TEST=TestUpstreamListener`
+`make test-flake FLAKE_PKG=connect/proxy FLAKE_TEST=TestUpstreamListener FLAKE_CPUS=0.15 FLAKE_N=30`
+
+The underlying script dumps the full Consul log output to `test.log` in 
+the directory of the target package. In the example above it would be 
+located at `consul/connect/proxy/test.log`. 
+
+Historically, the defaults for `FLAKE_CPUS` (30) and `FLAKE_N` (0.15) have been 
+sufficient to surface a flaky test. If a test is run in this environment and 
+it does not fail after 30 iterations, it should be sufficiently stable.
 
 ## Vendoring
 
