@@ -85,6 +85,12 @@ Thus:
 * Incoming Request Name: `ftp-us-west-1.example.org`
 * Re-written Request Name: `ftp.service.us-west-1.consul`
 
+The following example rewrites the `schmoogle.com` suffix to `google.com`.
+
+~~~
+rewrite name suffix .schmoogle.com. .google.com.
+~~~
+
 ### Response Rewrites
 
 When re-writing incoming DNS requests' names, CoreDNS re-writes the `QUESTION SECTION`
@@ -247,12 +253,6 @@ Examples:
 
 ~~~
 rewrite edns0 local set 0xffee {client_ip}
-~~~
-
-The following example rewrites the `schmoogle.com` suffix to `google.com`.
-
-~~~
-rewrite name suffix .schmoogle.com. .google.com.
 ~~~
 
 The following example uses metadata and an imaginary "some-plugin" that would provide "some-label" as metadata information.
