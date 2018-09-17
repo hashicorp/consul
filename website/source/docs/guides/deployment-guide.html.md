@@ -6,6 +6,7 @@ description: |-
   This deployment guide covers the steps required to install and
   configure a single HashiCorp Consul cluster as defined in the
   Consul Reference Architecture
+product_version: 1.2
 ---
 
 # Consul Deployment Guide
@@ -188,6 +189,8 @@ performance {
 
 - [`raft_multiplier`](/docs/agent/options.html#raft_multiplier) - An integer multiplier used by Consul servers to scale key Raft timing parameters. Setting this to a value of 1 will configure Raft to its highest-performance mode, equivalent to the default timing of Consul prior to 0.7, and is recommended for production Consul servers.
 
+For more information on Raft tuning and the `raft_multiplier` setting, see the [server performance](/docs/guides/performance.html) documentation.
+
 ### Telemetry stanza
 
 The [`telemetry`](/docs/agent/options.html#telemetry) stanza specifies various configurations for Consul to publish metrics to upstream systems.
@@ -246,6 +249,22 @@ sudo systemctl enable consul
 sudo systemctl start consul
 sudo systemctl status consul
 ```
+
+## Backups
+
+Creating server backups is an important step in production deployments. Backups provide a mechanism for the server to recover from an outage (network loss, operator error, or a corrupted data directory). All agents write to the `-data-dir` before commit. This directory persists the local agent’s state and &mdash; in the case of servers &mdash; it also holds the Raft information.
+
+Consul provides the [snapshot](/docs/commands/snapshot.html) command which can be run using the CLI command or the API. The `snapshot` command saves the point-in-time snapshot of the state of the Consul servers which includes KV entries, the service catalog, prepared queries, sessions, and ACL.
+
+With [Consul Enterprise](/docs/commands/snapshot/agent.html), the `snapshot agent` command runs periodically and writes to local or remote storage (such as Amazon S3).
+
+By default, all snapshots are taken using `consistent` mode where requests are forwarded to the leader which verifies that it is still in power before taking the snapshot. Snapshots will not be saved if the clusted is degraded or if no leader is available. To reduce the burden on the leader, it is possible to [run the snapshot](/docs/commands/snapshot/save.html) on any non-leader server using `stale` consistency mode:
+
+```text
+consul snapshot save -stale backup.snap
+```
+
+This spreads the load across nodes at the possible expense of losing full consistency guarantees. Typically this means that a very small number of recent writes may not be included. The omitted writes are typically limited to data written in the last `100ms` or less from the recovery point. This is usually suitable for disaster recovery. However, the system can’t guarantee how stale this may be if executed against a partitioned server.
 
 ## Next Steps
 
