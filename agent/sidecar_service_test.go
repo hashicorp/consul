@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 	tests := []struct {
 		name              string
+		maxPort           int
 		preRegister       *structs.ServiceDefinition
 		sd                *structs.ServiceDefinition
 		token             string
@@ -200,17 +202,74 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 			token:   "foo",
 			wantErr: "reserved for internal use",
 		},
+		{
+			name: "re-registering same sidecar with no port should pick same one",
+			// Allow multiple ports to be sure we get the right one
+			maxPort: 2500,
+			// Pre register the sidecar we want
+			preRegister: &structs.ServiceDefinition{
+				Kind: structs.ServiceKindConnectProxy,
+				ID:   "web1-sidecar-proxy",
+				Name: "web-sidecar-proxy",
+				Port: 2222,
+				Proxy: &structs.ConnectProxyConfig{
+					DestinationServiceName: "web",
+					DestinationServiceID:   "web1",
+					LocalServiceAddress:    "127.0.0.1",
+					LocalServicePort:       1111,
+				},
+			},
+			// Register same again but with different service port
+			sd: &structs.ServiceDefinition{
+				ID:   "web1",
+				Name: "web",
+				Port: 1112,
+				Connect: &structs.ServiceConnect{
+					SidecarService: &structs.ServiceDefinition{},
+				},
+			},
+			token: "foo",
+			wantNS: &structs.NodeService{
+				Kind:                       structs.ServiceKindConnectProxy,
+				ID:                         "web1-sidecar-proxy",
+				Service:                    "web-sidecar-proxy",
+				Port:                       2222, // Should claim the same port as before
+				LocallyRegisteredAsSidecar: true,
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "web",
+					DestinationServiceID:   "web1",
+					LocalServiceAddress:    "127.0.0.1",
+					LocalServicePort:       1112,
+				},
+			},
+			wantChecks: []*structs.CheckType{
+				&structs.CheckType{
+					Name:     "Connect Sidecar Listening",
+					TCP:      "127.0.0.1:2222",
+					Interval: 10 * time.Second,
+				},
+				&structs.CheckType{
+					Name:         "Connect Sidecar Aliasing web1",
+					AliasService: "web1",
+				},
+			},
+			wantToken: "foo",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Set port range to make it deterministic. This allows a single assigned
-			// port at 2222 thanks to being inclusive at both ends.
-			hcl := `
+			// Set port range to be tiny (one availabl) to test consuming all of it.
+			// This allows a single assigned port at 2222 thanks to being inclusive at
+			// both ends.
+			if tt.maxPort == 0 {
+				tt.maxPort = 2222
+			}
+			hcl := fmt.Sprintf(`
 			ports {
 				sidecar_min_port = 2222
-				sidecar_max_port = 2222
+				sidecar_max_port = %d
 			}
-			`
+			`, tt.maxPort)
 			if tt.autoPortsDisabled {
 				hcl = `
 				ports {
