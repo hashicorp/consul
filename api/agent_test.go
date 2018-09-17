@@ -323,6 +323,52 @@ func TestAPI_AgentServices_ManagedConnectProxyDeprecatedUpstreams(t *testing.T) 
 	}
 }
 
+func TestAPI_AgentServices_SidecarService(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	// Register service
+	reg := &AgentServiceRegistration{
+		Name: "foo",
+		Port: 8000,
+		Connect: &AgentServiceConnect{
+			SidecarService: &AgentServiceRegistration{},
+		},
+	}
+	if err := agent.ServiceRegister(reg); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	services, err := agent.Services()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, ok := services["foo"]; !ok {
+		t.Fatalf("missing service: %v", services)
+	}
+	if _, ok := services["foo-sidecar-proxy"]; !ok {
+		t.Fatalf("missing sidecar service: %v", services)
+	}
+
+	if err := agent.ServiceDeregister("foo"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Deregister should have removed both service and it's sidecar
+	services, err = agent.Services()
+	require.NoError(t, err)
+
+	if _, ok := services["foo"]; ok {
+		t.Fatalf("didn't remove service: %v", services)
+	}
+	if _, ok := services["foo-sidecar-proxy"]; ok {
+		t.Fatalf("didn't remove sidecar service: %v", services)
+	}
+}
+
 func TestAPI_AgentServices_ExternalConnectProxy(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
