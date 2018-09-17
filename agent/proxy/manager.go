@@ -431,6 +431,15 @@ func (m *Manager) newProxy(mp *local.ManagedProxy) (Proxy, error) {
 		// Build the command to execute.
 		var cmd exec.Cmd
 		cmd.Path = command[0]
+		if len(command) > 2 && command[0] == "consul" && command[1] == "connect" && command[2] == "proxy" {
+			// Get the path to the current exectuable. This is cached once by the
+			// library so this is effectively just a variable read.
+			execPath, err := os.Executable()
+			if err != nil {
+				return nil, err
+			}
+			cmd.Path = execPath
+		}
 		cmd.Args = command // idx 0 is path but preserved since it should be
 		if err := m.configureLogDir(id, &cmd); err != nil {
 			return nil, fmt.Errorf("error configuring proxy logs: %s", err)
