@@ -296,11 +296,32 @@
         </ul>
       </li>
 
+      <li<%= sidebar_current("docs-platform-k8s") %>>
+        <a href="/docs/platform/k8s/index.html">Kubernetes</a>
+        <ul class="nav">
+          <li<%= sidebar_current("docs-platform-k8s-run") %>>
+            <a href="/docs/platform/k8s/run.html">Running Consul</a>
+          </li>
+          <li<%= sidebar_current("docs-platform-k8s-helm") %>>
+            <a href="/docs/platform/k8s/helm.html">Helm Chart</a>
+          </li>
+          <li<%= sidebar_current("docs-platform-k8s-ooc-nodes") %>>
+            <a href="/docs/platform/k8s/out-of-cluster-nodes.html">Out-of-Cluster Nodes</a>
+          </li>
+          <li<%= sidebar_current("docs-platform-k8s-dns") %>>
+            <a href="/docs/platform/k8s/dns.html">Consul DNS</a>
+          </li>
+        </ul>
+      </li>
+
       <hr>
 
       <li<%= sidebar_current("docs-guides") %>>
         <a href="/docs/guides/index.html">Guides</a>
         <ul class="nav">
+          <li<%= sidebar_current("docs-guides-deployment") %>>
+            <a href="/docs/guides/deployment.html">Production Deployment</a>
+          </li>
           <li<%= sidebar_current("docs-guides-acl") %>>
             <a href="/docs/guides/acl.html">ACLs</a>
           </li>

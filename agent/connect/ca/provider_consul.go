@@ -3,12 +3,15 @@ package ca
 import (
 	"bytes"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"math/big"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -17,10 +20,14 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
+var ErrNotInitialized = errors.New("provider not initialized")
+
 type ConsulProvider struct {
-	config   *structs.ConsulCAProviderConfig
-	id       string
-	delegate ConsulProviderStateDelegate
+	Delegate ConsulProviderStateDelegate
+
+	config *structs.ConsulCAProviderConfig
+	id     string
+	isRoot bool
 	sync.RWMutex
 }
 
@@ -29,73 +36,126 @@ type ConsulProviderStateDelegate interface {
 	ApplyCARequest(*structs.CARequest) error
 }
 
-// NewConsulProvider returns a new instance of the Consul CA provider,
-// bootstrapping its state in the state store necessary
-func NewConsulProvider(rawConfig map[string]interface{}, delegate ConsulProviderStateDelegate) (*ConsulProvider, error) {
-	conf, err := ParseConsulCAConfig(rawConfig)
+// Configure sets up the provider using the given configuration.
+func (c *ConsulProvider) Configure(clusterID string, isRoot bool, rawConfig map[string]interface{}) error {
+	// Parse the raw config and update our ID.
+	config, err := ParseConsulCAConfig(rawConfig)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	provider := &ConsulProvider{
-		config:   conf,
-		delegate: delegate,
-		id:       fmt.Sprintf("%s,%s", conf.PrivateKey, conf.RootCert),
+	c.config = config
+	c.isRoot = isRoot
+	hash := sha256.Sum256([]byte(fmt.Sprintf("%s,%s,%v", config.PrivateKey, config.RootCert, isRoot)))
+	c.id = strings.Replace(fmt.Sprintf("% x", hash), " ", ":", -1)
+
+	// Exit early if the state store has an entry for this provider's config.
+	_, providerState, err := c.Delegate.State().CAProviderState(c.id)
+	if err != nil {
+		return err
 	}
 
-	// Check if this configuration of the provider has already been
-	// initialized in the state store.
-	state := delegate.State()
-	_, providerState, err := state.CAProviderState(provider.id)
-	if err != nil {
-		return nil, err
-	}
-
-	// Exit early if the state store has already been populated for this config.
 	if providerState != nil {
-		return provider, nil
+		return nil
 	}
 
-	newState := structs.CAConsulProviderState{
-		ID: provider.id,
+	// Check if there's an entry with the old ID scheme.
+	oldID := fmt.Sprintf("%s,%s", config.PrivateKey, config.RootCert)
+	_, providerState, err = c.Delegate.State().CAProviderState(oldID)
+	if err != nil {
+		return err
 	}
 
-	// Write the initial provider state to get the index to use for the
-	// CA serial number.
-	{
-		args := &structs.CARequest{
+	// Found an entry with the old ID, so update it to the new ID and
+	// delete the old entry.
+	if providerState != nil {
+		newState := *providerState
+		newState.ID = c.id
+		createReq := &structs.CARequest{
 			Op:            structs.CAOpSetProviderState,
 			ProviderState: &newState,
 		}
-		if err := delegate.ApplyCARequest(args); err != nil {
-			return nil, err
+		if err := c.Delegate.ApplyCARequest(createReq); err != nil {
+			return err
 		}
+
+		deleteReq := &structs.CARequest{
+			Op:            structs.CAOpDeleteProviderState,
+			ProviderState: providerState,
+		}
+		if err := c.Delegate.ApplyCARequest(deleteReq); err != nil {
+			return err
+		}
+
+		return nil
 	}
 
-	idx, _, err := state.CAProviderState(provider.id)
+	// Write the provider state to the state store.
+	newState := structs.CAConsulProviderState{
+		ID: c.id,
+	}
+
+	args := &structs.CARequest{
+		Op:            structs.CAOpSetProviderState,
+		ProviderState: &newState,
+	}
+	if err := c.Delegate.ApplyCARequest(args); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ActiveRoot returns the active root CA certificate.
+func (c *ConsulProvider) ActiveRoot() (string, error) {
+	state := c.Delegate.State()
+	_, providerState, err := state.CAProviderState(c.id)
 	if err != nil {
-		return nil, err
+		return "", err
+	}
+
+	return providerState.RootCert, nil
+}
+
+// GenerateRoot initializes a new root certificate and private key
+// if needed.
+func (c *ConsulProvider) GenerateRoot() error {
+	state := c.Delegate.State()
+	idx, providerState, err := state.CAProviderState(c.id)
+	if err != nil {
+		return err
+	}
+
+	if providerState == nil {
+		return ErrNotInitialized
+	}
+	if !c.isRoot {
+		return fmt.Errorf("provider is not the root certificate authority")
+	}
+	if providerState.RootCert != "" {
+		return nil
 	}
 
 	// Generate a private key if needed
-	if conf.PrivateKey == "" {
+	newState := *providerState
+	if c.config.PrivateKey == "" {
 		_, pk, err := connect.GeneratePrivateKey()
 		if err != nil {
-			return nil, err
+			return err
 		}
 		newState.PrivateKey = pk
 	} else {
-		newState.PrivateKey = conf.PrivateKey
+		newState.PrivateKey = c.config.PrivateKey
 	}
 
 	// Generate the root CA if necessary
-	if conf.RootCert == "" {
-		ca, err := provider.generateCA(newState.PrivateKey, idx+1)
+	if c.config.RootCert == "" {
+		ca, err := c.generateCA(newState.PrivateKey, idx+1)
 		if err != nil {
-			return nil, fmt.Errorf("error generating CA: %v", err)
+			return fmt.Errorf("error generating CA: %v", err)
 		}
 		newState.RootCert = ca
 	} else {
-		newState.RootCert = conf.RootCert
+		newState.RootCert = c.config.RootCert
 	}
 
 	// Write the provider state
@@ -103,22 +163,11 @@ func NewConsulProvider(rawConfig map[string]interface{}, delegate ConsulProvider
 		Op:            structs.CAOpSetProviderState,
 		ProviderState: &newState,
 	}
-	if err := delegate.ApplyCARequest(args); err != nil {
-		return nil, err
+	if err := c.Delegate.ApplyCARequest(args); err != nil {
+		return err
 	}
 
-	return provider, nil
-}
-
-// Return the active root CA and generate a new one if needed
-func (c *ConsulProvider) ActiveRoot() (string, error) {
-	state := c.delegate.State()
-	_, providerState, err := state.CAProviderState(c.id)
-	if err != nil {
-		return "", err
-	}
-
-	return providerState.RootCert, nil
+	return nil
 }
 
 // We aren't maintaining separate root/intermediate CAs for the builtin
@@ -139,7 +188,7 @@ func (c *ConsulProvider) Cleanup() error {
 		Op:            structs.CAOpDeleteProviderState,
 		ProviderState: &structs.CAConsulProviderState{ID: c.id},
 	}
-	if err := c.delegate.ApplyCARequest(args); err != nil {
+	if err := c.Delegate.ApplyCARequest(args); err != nil {
 		return err
 	}
 
@@ -155,7 +204,7 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	defer c.Unlock()
 
 	// Get the provider state
-	state := c.delegate.State()
+	state := c.Delegate.State()
 	idx, providerState, err := state.CAProviderState(c.id)
 	if err != nil {
 		return "", err
@@ -247,7 +296,7 @@ func (c *ConsulProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 	defer c.Unlock()
 
 	// Get the provider state
-	state := c.delegate.State()
+	state := c.Delegate.State()
 	idx, providerState, err := state.CAProviderState(c.id)
 	if err != nil {
 		return "", err
@@ -315,7 +364,7 @@ func (c *ConsulProvider) incrementProviderIndex(providerState *structs.CAConsulP
 		Op:            structs.CAOpSetProviderState,
 		ProviderState: &newState,
 	}
-	if err := c.delegate.ApplyCARequest(args); err != nil {
+	if err := c.Delegate.ApplyCARequest(args); err != nil {
 		return err
 	}
 
@@ -324,7 +373,7 @@ func (c *ConsulProvider) incrementProviderIndex(providerState *structs.CAConsulP
 
 // generateCA makes a new root CA using the current private key
 func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error) {
-	state := c.delegate.State()
+	state := c.Delegate.State()
 	_, config, err := state.CAConfig()
 	if err != nil {
 		return "", err
@@ -348,9 +397,9 @@ func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error
 	serialNum := &big.Int{}
 	serialNum.SetUint64(sn)
 	template := x509.Certificate{
-		SerialNumber: serialNum,
-		Subject:      pkix.Name{CommonName: name},
-		URIs:         []*url.URL{id.URI()},
+		SerialNumber:          serialNum,
+		Subject:               pkix.Name{CommonName: name},
+		URIs:                  []*url.URL{id.URI()},
 		BasicConstraintsValid: true,
 		KeyUsage: x509.KeyUsageCertSign |
 			x509.KeyUsageCRLSign |

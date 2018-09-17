@@ -1,0 +1,33 @@
+%healthchecked-resource {
+  border: $decor-border-100;
+  box-shadow: 0 4px 8px 0 rgba($ui-black, 0.05);
+}
+%healthchecked-resource li {
+  border-top: $decor-border-100;
+}
+%healthchecked-resource,
+%healthchecked-resource li {
+  border-color: $ui-gray-200;
+}
+%healthchecked-resource li.passing {
+  color: $ui-color-success;
+}
+%healthchecked-resource li.warning {
+  color: $ui-color-alert;
+}
+%healthchecked-resource li.critical {
+  color: $ui-color-failure;
+}
+%healthchecked-resource:hover,
+%healthchecked-resource:focus {
+  box-shadow: 0 8px 10px 0 rgba($ui-black, 0.1);
+}
+%healthchecked-resource {
+  border-radius: $radius-small;
+}
+%healthchecked-resource ul:empty {
+  @extend %with-no-healthchecks;
+}
+%healthchecked-resource ul:empty::before {
+  color: $ui-gray-400;
+}

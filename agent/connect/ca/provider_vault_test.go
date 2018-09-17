@@ -32,15 +32,19 @@ func testVaultClusterWithConfig(t *testing.T, rawConf map[string]interface{}) (*
 		"Token":               token,
 		"RootPKIPath":         "pki-root/",
 		"IntermediatePKIPath": "pki-intermediate/",
+		// Tests duration parsing after msgpack type mangling during raft apply.
+		"LeafCertTTL": []uint8("72h"),
 	}
 	for k, v := range rawConf {
 		conf[k] = v
 	}
 
-	provider, err := NewVaultProvider(conf, "asdf")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require := require.New(t)
+	provider := &VaultProvider{}
+	require.NoError(provider.Configure("asdf", true, conf))
+	require.NoError(provider.GenerateRoot())
+	_, err := provider.GenerateIntermediate()
+	require.NoError(err)
 
 	return provider, core, ln
 }

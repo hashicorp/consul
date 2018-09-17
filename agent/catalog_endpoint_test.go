@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/stretchr/testify/assert"
@@ -80,6 +81,7 @@ func TestCatalogNodes(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -105,7 +107,7 @@ func TestCatalogNodes(t *testing.T) {
 
 	nodes := obj.(structs.Nodes)
 	if len(nodes) != 2 {
-		t.Fatalf("bad: %v", obj)
+		t.Fatalf("bad: %v ; nodes:=%v", obj, nodes)
 	}
 }
 
@@ -113,6 +115,7 @@ func TestCatalogNodes_MetaFilter(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Register a node with a meta field
 	args := &structs.RegisterRequest{
@@ -157,6 +160,7 @@ func TestCatalogNodes_WanTranslation(t *testing.T) {
 		acl_datacenter = ""
 	`)
 	defer a1.Shutdown()
+	testrpc.WaitForTestAgent(t, a1.RPC, "dc1")
 
 	a2 := NewTestAgent(t.Name(), `
 		datacenter = "dc2"
@@ -164,12 +168,15 @@ func TestCatalogNodes_WanTranslation(t *testing.T) {
 		acl_datacenter = ""
 	`)
 	defer a2.Shutdown()
+	testrpc.WaitForTestAgent(t, a2.RPC, "dc2")
 
 	// Wait for the WAN join.
 	addr := fmt.Sprintf("127.0.0.1:%d", a1.Config.SerfPortWAN)
 	if _, err := a2.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	testrpc.WaitForLeader(t, a1.RPC, "dc1")
+	testrpc.WaitForLeader(t, a2.RPC, "dc2")
 	retry.Run(t, func(r *retry.R) {
 		if got, want := len(a1.WANMembers()), 2; got < want {
 			r.Fatalf("got %d WAN members want at least %d", got, want)
@@ -208,7 +215,7 @@ func TestCatalogNodes_WanTranslation(t *testing.T) {
 	// Expect that DC1 gives us a WAN address (since the node is in DC2).
 	nodes1 := obj1.(structs.Nodes)
 	if len(nodes1) != 2 {
-		t.Fatalf("bad: %v", obj1)
+		t.Fatalf("bad: %v, nodes:=%v", obj1, nodes1)
 	}
 	var address string
 	for _, node := range nodes1 {
@@ -247,6 +254,7 @@ func TestCatalogNodes_Blocking(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Register node
 	args := &structs.DCSpecificRequest{
@@ -264,6 +272,7 @@ func TestCatalogNodes_Blocking(t *testing.T) {
 	// an error channel instead.
 	errch := make(chan error, 2)
 	go func() {
+		testrpc.WaitForLeader(t, a.RPC, "dc1")
 		start := time.Now()
 
 		// register a service after the blocking call
@@ -315,6 +324,7 @@ func TestCatalogNodes_DistanceSort(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Register nodes.
 	args := &structs.RegisterRequest{
@@ -809,6 +819,7 @@ func TestCatalogNodeServices(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -848,6 +859,7 @@ func TestCatalogNodeServices_ConnectProxy(t *testing.T) {
 	assert := assert.New(t)
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Register
 	args := structs.TestRegisterRequestProxy(t)
@@ -875,6 +887,7 @@ func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 		acl_datacenter = ""
 	`)
 	defer a1.Shutdown()
+	testrpc.WaitForTestAgent(t, a1.RPC, "dc1")
 
 	a2 := NewTestAgent(t.Name(), `
 		datacenter = "dc2"
@@ -882,6 +895,7 @@ func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 		acl_datacenter = ""
 	`)
 	defer a2.Shutdown()
+	testrpc.WaitForTestAgent(t, a2.RPC, "dc2")
 
 	// Wait for the WAN join.
 	addr := fmt.Sprintf("127.0.0.1:%d", a1.Config.SerfPortWAN)

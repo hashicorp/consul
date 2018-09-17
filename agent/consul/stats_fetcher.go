@@ -92,6 +92,14 @@ func (f *StatsFetcher) Fetch(ctx context.Context, members []serf.Member) map[str
 	// canceled.
 	replies := make(map[string]*autopilot.ServerStats)
 	for _, workItem := range work {
+		// Drain the reply first if there is one.
+		select {
+		case reply := <-workItem.replyCh:
+			replies[workItem.server.ID] = reply
+			continue
+		default:
+		}
+
 		select {
 		case reply := <-workItem.replyCh:
 			replies[workItem.server.ID] = reply

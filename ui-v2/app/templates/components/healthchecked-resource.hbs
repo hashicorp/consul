@@ -1,12 +1,12 @@
-<header class={{if service 'with-service' }}>
+    <header class={{if service 'with-service' }}>
         <strong>{{address}}</strong>
         <a href={{href}}>
             <span>{{name}}</span>
             <em>{{service}}</em>
         </a>
     </header>
-    <ul>
-{{#if status }}
+    {{! its important to keep this <ul> with no whitespace so we can use :empty in css }}
+    <ul>{{#if status }}
         <li class={{status}}>
             <a href={{href}}>
                 <strong>{{status}}</strong>
@@ -29,5 +29,4 @@
             </a>
         </li>
     {{/if}}
-{{/if}}
-    </ul>
+{{/if}}</ul>

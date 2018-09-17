@@ -460,11 +460,15 @@ function build_consul_local {
             
             mkdir -p "${outdir}"
             GOBIN_EXTRA=""
-            if test "${os}" != "$(go env GOOS)" -o "${arch}" != "$(go env GOARCH)"
+            if test "${os}" != "$(go env GOHOSTOS)" -o "${arch}" != "$(go env GOHOSTARCH)"
             then
                GOBIN_EXTRA="${os}_${arch}/"
             fi
-            CGO_ENABLED=0 GOOS=${os} GOARCH=${arch} go install -ldflags "${GOLDFLAGS}" -tags "${GOTAGS}" && cp "${MAIN_GOPATH}/bin/${GOBIN_EXTRA}consul" "${outdir}/consul"
+            binname="consul"
+            if [ $os == "windows" ];then
+                binname="consul.exe"
+            fi
+            CGO_ENABLED=0 GOOS=${os} GOARCH=${arch} go install -ldflags "${GOLDFLAGS}" -tags "${GOTAGS}" && cp "${MAIN_GOPATH}/bin/${GOBIN_EXTRA}${binname}" "${outdir}/${binname}"
             if test $? -ne 0
             then
                err "ERROR: Failed to build Consul for ${osarch}"

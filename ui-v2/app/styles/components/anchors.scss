@@ -1,0 +1,18 @@
+@import './anchors/index';
+main a {
+  color: $ui-gray-900;
+}
+main a[rel*='help'] {
+  @extend %with-info;
+}
+main label a[rel*='help'] {
+  color: $ui-gray-400;
+}
+
+[role='tabpanel'] > p:only-child [rel*='help']::after {
+  content: none;
+}
+main p a,
+main dd a {
+  @extend %anchor;
+}

@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/testrpc"
 )
 
 func TestACL_Disabled_Response(t *testing.T) {
@@ -29,6 +30,7 @@ func TestACL_Disabled_Response(t *testing.T) {
 		a.srv.ACLReplicationStatus,
 		a.srv.AgentToken, // See TestAgent_Token.
 	}
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 	for i, tt := range tests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			req, _ := http.NewRequest("PUT", "/should/not/care", nil)
@@ -86,6 +88,7 @@ func TestACL_Bootstrap(t *testing.T) {
 		{"bootstrap", "PUT", http.StatusOK, true},
 		{"not again", "PUT", http.StatusForbidden, false},
 	}
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resp := httptest.NewRecorder()
@@ -119,6 +122,7 @@ func TestACL_Update(t *testing.T) {
 	a := NewTestAgent(t.Name(), TestACLConfig())
 	defer a.Shutdown()
 
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 	id := makeTestACL(t, a.srv)
 
 	body := bytes.NewBuffer(nil)
@@ -160,6 +164,8 @@ func TestACL_UpdateUpsert(t *testing.T) {
 
 	req, _ := http.NewRequest("PUT", "/v1/acl/update?token=root", body)
 	resp := httptest.NewRecorder()
+
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 	obj, err := a.srv.ACLUpdate(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -175,6 +181,7 @@ func TestACL_Destroy(t *testing.T) {
 	a := NewTestAgent(t.Name(), TestACLConfig())
 	defer a.Shutdown()
 
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 	id := makeTestACL(t, a.srv)
 	req, _ := http.NewRequest("PUT", "/v1/acl/destroy/"+id+"?token=root", nil)
 	resp := httptest.NewRecorder()
@@ -206,6 +213,7 @@ func TestACL_Clone(t *testing.T) {
 	a := NewTestAgent(t.Name(), TestACLConfig())
 	defer a.Shutdown()
 
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 	id := makeTestACL(t, a.srv)
 
 	req, _ := http.NewRequest("PUT", "/v1/acl/clone/"+id, nil)
@@ -252,6 +260,7 @@ func TestACL_Get(t *testing.T) {
 
 		req, _ := http.NewRequest("GET", "/v1/acl/info/nope", nil)
 		resp := httptest.NewRecorder()
+		testrpc.WaitForLeader(t, a.RPC, "dc1")
 		obj, err := a.srv.ACLGet(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
@@ -269,6 +278,7 @@ func TestACL_Get(t *testing.T) {
 		a := NewTestAgent(t.Name(), TestACLConfig())
 		defer a.Shutdown()
 
+		testrpc.WaitForLeader(t, a.RPC, "dc1")
 		id := makeTestACL(t, a.srv)
 
 		req, _ := http.NewRequest("GET", "/v1/acl/info/"+id, nil)
@@ -292,6 +302,7 @@ func TestACL_List(t *testing.T) {
 	a := NewTestAgent(t.Name(), TestACLConfig())
 	defer a.Shutdown()
 
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 	var ids []string
 	for i := 0; i < 10; i++ {
 		ids = append(ids, makeTestACL(t, a.srv))
@@ -321,6 +332,7 @@ func TestACLReplicationStatus(t *testing.T) {
 
 	req, _ := http.NewRequest("GET", "/v1/acl/replication", nil)
 	resp := httptest.NewRecorder()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 	obj, err := a.srv.ACLReplicationStatus(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)

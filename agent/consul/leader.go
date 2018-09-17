@@ -427,10 +427,16 @@ func (s *Server) initializeCA() error {
 		return err
 	}
 
-	// Initialize the right provider based on the config
+	// Initialize the provider based on the current config.
 	provider, err := s.createCAProvider(conf)
 	if err != nil {
 		return err
+	}
+	if err := provider.Configure(conf.ClusterID, true, conf.Config); err != nil {
+		return fmt.Errorf("error configuring provider: %v", err)
+	}
+	if err := provider.GenerateRoot(); err != nil {
+		return fmt.Errorf("error generating CA root certificate: %v", err)
 	}
 
 	// Get the active root cert from the CA
@@ -520,9 +526,9 @@ func parseCARoot(pemValue, provider string) (*structs.CARoot, error) {
 func (s *Server) createCAProvider(conf *structs.CAConfiguration) (ca.Provider, error) {
 	switch conf.Provider {
 	case structs.ConsulCAProvider:
-		return ca.NewConsulProvider(conf.Config, &consulCADelegate{s})
+		return &ca.ConsulProvider{Delegate: &consulCADelegate{s}}, nil
 	case structs.VaultCAProvider:
-		return ca.NewVaultProvider(conf.Config, conf.ClusterID)
+		return &ca.VaultProvider{}, nil
 	default:
 		return nil, fmt.Errorf("unknown CA provider %q", conf.Provider)
 	}

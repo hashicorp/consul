@@ -9,11 +9,13 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/testutil/retry"
 )
 
 func TestAPI_LockLockUnlock(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := makeClientWithoutConnect(t)
 	defer s.Stop()
 
 	lock, err := c.LockKey("test/lock")
@@ -71,42 +73,44 @@ func TestAPI_LockLockUnlock(t *testing.T) {
 
 func TestAPI_LockForceInvalidate(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := makeClientWithoutConnect(t)
 	defer s.Stop()
 
-	lock, err := c.LockKey("test/lock")
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	retry.Run(t, func(r *retry.R) {
+		lock, err := c.LockKey("test/lock")
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
 
-	// Should work
-	leaderCh, err := lock.Lock(nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if leaderCh == nil {
-		t.Fatalf("not leader")
-	}
-	defer lock.Unlock()
+		// Should work
+		leaderCh, err := lock.Lock(nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if leaderCh == nil {
+			t.Fatalf("not leader")
+		}
+		defer lock.Unlock()
 
-	go func() {
-		// Nuke the session, simulator an operator invalidation
-		// or a health check failure
-		session := c.Session()
-		session.Destroy(lock.lockSession, nil)
-	}()
+		go func() {
+			// Nuke the session, simulator an operator invalidation
+			// or a health check failure
+			session := c.Session()
+			session.Destroy(lock.lockSession, nil)
+		}()
 
-	// Should loose leadership
-	select {
-	case <-leaderCh:
-	case <-time.After(time.Second):
-		t.Fatalf("should not be leader")
-	}
+		// Should loose leadership
+		select {
+		case <-leaderCh:
+		case <-time.After(time.Second):
+			t.Fatalf("should not be leader")
+		}
+	})
 }
 
 func TestAPI_LockDeleteKey(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := makeClientWithoutConnect(t)
 	defer s.Stop()
 
 	// This uncovered some issues around special-case handling of low index
@@ -148,7 +152,7 @@ func TestAPI_LockDeleteKey(t *testing.T) {
 
 func TestAPI_LockContend(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := makeClientWithoutConnect(t)
 	defer s.Stop()
 
 	wg := &sync.WaitGroup{}
@@ -201,7 +205,7 @@ func TestAPI_LockContend(t *testing.T) {
 
 func TestAPI_LockDestroy(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := makeClientWithoutConnect(t)
 	defer s.Stop()
 
 	lock, err := c.LockKey("test/lock")
@@ -270,7 +274,7 @@ func TestAPI_LockDestroy(t *testing.T) {
 
 func TestAPI_LockConflict(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := makeClientWithoutConnect(t)
 	defer s.Stop()
 
 	sema, err := c.SemaphorePrefix("test/lock/", 2)
@@ -308,7 +312,7 @@ func TestAPI_LockConflict(t *testing.T) {
 
 func TestAPI_LockReclaimLock(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := makeClientWithoutConnect(t)
 	defer s.Stop()
 
 	session, _, err := c.Session().Create(&SessionEntry{}, nil)
@@ -376,7 +380,7 @@ func TestAPI_LockReclaimLock(t *testing.T) {
 
 func TestAPI_LockMonitorRetry(t *testing.T) {
 	t.Parallel()
-	raw, s := makeClient(t)
+	raw, s := makeClientWithoutConnect(t)
 	defer s.Stop()
 
 	// Set up a server that always responds with 500 errors.
@@ -491,7 +495,7 @@ func TestAPI_LockMonitorRetry(t *testing.T) {
 
 func TestAPI_LockOneShot(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := makeClientWithoutConnect(t)
 	defer s.Stop()
 
 	// Set up a lock as a one-shot.

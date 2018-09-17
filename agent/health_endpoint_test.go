@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/stretchr/testify/assert"
@@ -183,6 +184,7 @@ func TestHealthNodeChecks(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	req, _ := http.NewRequest("GET", "/v1/health/node/nope?dc=dc1", nil)
 	resp := httptest.NewRecorder()
@@ -217,6 +219,7 @@ func TestHealthServiceChecks(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	req, _ := http.NewRequest("GET", "/v1/health/checks/consul?dc=dc1", nil)
 	resp := httptest.NewRecorder()
@@ -268,6 +271,7 @@ func TestHealthServiceChecks_NodeMetaFilter(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	req, _ := http.NewRequest("GET", "/v1/health/checks/consul?dc=dc1&node-meta=somekey:somevalue", nil)
 	resp := httptest.NewRecorder()
@@ -320,6 +324,7 @@ func TestHealthServiceChecks_DistanceSort(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Create a service check
 	args := &structs.RegisterRequest{
@@ -399,6 +404,7 @@ func TestHealthServiceNodes(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	req, _ := http.NewRequest("GET", "/v1/health/service/consul?dc=dc1", nil)
 	resp := httptest.NewRecorder()
@@ -465,6 +471,7 @@ func TestHealthServiceNodes_NodeMetaFilter(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	req, _ := http.NewRequest("GET", "/v1/health/service/consul?dc=dc1&node-meta=somekey:somevalue", nil)
 	resp := httptest.NewRecorder()
@@ -517,10 +524,10 @@ func TestHealthServiceNodes_DistanceSort(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
-
+	dc := "dc1"
 	// Create a service check
 	args := &structs.RegisterRequest{
-		Datacenter: "dc1",
+		Datacenter: dc,
 		Node:       "bar",
 		Address:    "127.0.0.1",
 		Service: &structs.NodeService{
@@ -533,7 +540,7 @@ func TestHealthServiceNodes_DistanceSort(t *testing.T) {
 			ServiceID: "test",
 		},
 	}
-
+	testrpc.WaitForLeader(t, a.RPC, dc)
 	var out struct{}
 	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -597,9 +604,10 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
+	dc := "dc1"
 	// Create a failing service check
 	args := &structs.RegisterRequest{
-		Datacenter: "dc1",
+		Datacenter: dc,
 		Node:       a.Config.NodeName,
 		Address:    "127.0.0.1",
 		Check: &structs.HealthCheck{
@@ -610,6 +618,7 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 		},
 	}
 
+	testrpc.WaitForLeader(t, a.RPC, dc)
 	var out struct{}
 	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -694,6 +703,7 @@ func TestHealthServiceNodes_WanTranslation(t *testing.T) {
 		acl_datacenter = ""
 	`)
 	defer a1.Shutdown()
+	testrpc.WaitForLeader(t, a1.RPC, "dc1")
 
 	a2 := NewTestAgent(t.Name(), `
 		datacenter = "dc2"
@@ -701,6 +711,7 @@ func TestHealthServiceNodes_WanTranslation(t *testing.T) {
 		acl_datacenter = ""
 	`)
 	defer a2.Shutdown()
+	testrpc.WaitForLeader(t, a2.RPC, "dc2")
 
 	// Wait for the WAN join.
 	addr := fmt.Sprintf("127.0.0.1:%d", a1.Config.SerfPortWAN)

@@ -41,7 +41,7 @@ or "Burstable CPU".
 - The large size is for production environments where there is a
   consistently high workload.
 
-~> **NOTE** For high workloads, ensure that the disks support high IOPS to keep up with the high Raft log update rate.
+~> **NOTE** For large workloads, ensure that the disks support a high number of IOPS to keep up with the rapid Raft log update rate.
 
 For more information on server requirements, review the [server performance](/docs/guides/performance.html) documentation.
 
@@ -71,7 +71,7 @@ In cases where a full mesh among all agents cannot be established due to network
 
 Consul clusters in different datacenters running the same service can be joined by WAN links. The clusters operate independently and only communicate over the WAN on port `8302`. Unless explicitly configured via CLI or API, the Consul server will only return results from the local datacenter. Consul does not replicate data between multiple datacenters. The [consul-replicate](https://github.com/hashicorp/consul-replicate) tool can be used to replicate the KV data periodically.
 
--> **TIP** A good practice is to enable TLS server name checking to avoid accidental cross-joining of agents.
+-> A good practice is to enable TLS server name checking to avoid accidental cross-joining of agents.
 
 Advanced federation can be achieved with the [network areas](/api/operator/area.html) feature in Consul Enterprise.
 
@@ -81,21 +81,19 @@ Network areas allows peering between datacenters to make the services discoverab
 
 Consul’s [prepared queries](/api/query.html) allow clients to do a datacenter failover for service discovery. For example, if a service `payment` in the local datacenter dc1 goes down, a prepared query lets users define a geographic fallback order to the nearest datacenter to check for healthy instances of the same service.
 
-~> **NOTE** Consul clusters must be WAN linked for a prepared query to take effect.
+~> **NOTE** Consul clusters must be WAN linked for a prepared query to work across datacenters.
 
 Prepared queries, by default, resolve the query in the local datacenter first. Querying KV store features is not supported by the prepared query. Prepared queries work with ACL. Prepared query config/templates are maintained consistently in Raft and are executed on the servers.
 
 ## Network Connectivity
 
-LAN gossip occurs between all agents in a single datacenter with each agent sending a periodic probe to random agents from its member list. The initial probe is sent over UDP every second. If a node fails to acknowledge within `200ms`, the agent pings over TCP. If the TCP probe fails (10 second timeout), it asks configurable number of random nodes to probe the same node (also known as an indirect probe). If there is no response from the peers regarding the status of the node, that agent is marked as down.
+LAN gossip occurs between all agents in a single datacenter with each agent sending a periodic probe to random agents from its member list. Agents run in either client or server mode, both participate in the gossip. The initial probe is sent over UDP every second. If a node fails to acknowledge within `200ms`, the agent pings over TCP. If the TCP probe fails (10 second timeout), it asks configurable number of random nodes to probe the same node (also known as an indirect probe). If there is no response from the peers regarding the status of the node, that agent is marked as down.
 
 The agent's status directly affects the service discovery results. If an agent is down, the services it is monitoring will also be marked as down.
 
-In addition, the agent also periodically performs a full state sync over TCP which gossips each agent’s understanding of the member list around it (node names, IP addresses, and health status). These operations are expensive relative to the standard gossip protocol mentioned above and are synced every 30 seconds. For more details, refer to [Serf Gossip docs](https://www.serf.io/docs/internals/gossip.html)
+In addition, the agent also periodically performs a full state sync over TCP which gossips each agent’s understanding of the member list around it (node names, IP addresses, and health status). These operations are expensive relative to the standard gossip protocol mentioned above and are synced at a rate determined by cluster size to keep overhead low. It's typically between 30 seconds and 5 minutes. For more details, refer to [Serf Gossip docs](https://www.serf.io/docs/internals/gossip.html)
 
-Datacenter designs may opt for a layer 2 or a layer 3 network. Consul’s gossip protocol uses UDP probes initially to detect the health of its peers. In layer 2 networks, the ARP request will be forwarded to all the devices. If you are running a fairly large cluster (i.e. multi-thousand node Consul cluster), this may create some congestion as the gossip probe request for the nodes is sent approximately once per second. This can be improved by increasing the host ARP table size and ARP cache expiration timer.
-
-Layer 3 restricts the ARP requests to a smaller segment of the network. Traffic between the segments typically traverses through a firewall and/or a router. ACL or firewall rules must be updated to allow the following ports:
+In a larger network that spans L2 segments, traffic typically traverses through a firewall and/or a router. ACL or firewall rules must be updated to allow the following ports:
 
 | Name          | Port | Flag | Description |
 |---------------|------|------|-------------|
@@ -105,7 +103,9 @@ Layer 3 restricts the ARP requests to a smaller segment of the network. Traffic 
 | HTTP API      | 8500 | `-1` to disable | Used by clients to talk to the HTTP API. TCP only. |
 | DNS Interface | 8600 | `-1` to disable | |
 
--> **TIP** As mentioned in the [datacenter design section](#1-1-1-single-datacenter), network areas and network segments can be used to prevent opening up firewall ports between different subnets.
+-> As mentioned in the [datacenter design section](#single-datacenter), network areas and network segments can be used to prevent opening up firewall ports between different subnets.
+
+By default agents will only listen for HTTP and DNS traffic on the local interface.
 
 ## Next steps
 
