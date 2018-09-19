@@ -1,10 +1,8 @@
 import Component from '@ember/component';
 import SlotsMixin from 'ember-block-slots';
 import { get } from '@ember/object';
+import templatize from 'consul-ui/utils/templatize';
 const $html = document.documentElement;
-const templatize = function(arr = []) {
-  return arr.map(item => `template-${item}`);
-};
 export default Component.extend(SlotsMixin, {
   loading: false,
   classNames: ['app-view'],

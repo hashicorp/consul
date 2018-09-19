@@ -1,30 +1,24 @@
-import Route from '@ember/routing/route';
+import SingleRoute from 'consul-ui/routing/single';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
 
 import WithPolicyActions from 'consul-ui/mixins/policy/with-actions';
 
-export default Route.extend(WithPolicyActions, {
+export default SingleRoute.extend(WithPolicyActions, {
   repo: service('policies'),
   tokenRepo: service('tokens'),
-  settings: service('settings'),
+  datacenterRepo: service('dc'),
   model: function(params) {
     const dc = this.modelFor('dc').dc.Name;
-    return hash({
-      isLoading: false,
-      item: get(this, 'repo').findBySlug(params.id, dc),
-    }).then(model => {
+    return this._super(...arguments).then(model => {
       return hash({
         ...model,
         ...{
           items: get(this, 'tokenRepo').findByPolicy(get(model.item, 'ID'), dc),
+          datacenters: get(this, 'datacenterRepo').findAll(),
         },
       });
     });
-  },
-  setupController: function(controller, model) {
-    this._super(...arguments);
-    controller.setProperties(model);
   },
 });

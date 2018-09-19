@@ -1,34 +1,6 @@
-import Route from '@ember/routing/route';
-import { inject as service } from '@ember/service';
-import { hash } from 'rsvp';
-import { get, set } from '@ember/object';
+import Route from './edit';
+import CreatingRoute from 'consul-ui/mixins/creating-route';
 
-import WithTokenActions from 'consul-ui/mixins/token/with-actions';
-
-export default Route.extend(WithTokenActions, {
+export default Route.extend(CreatingRoute, {
   templateName: 'dc/acls/tokens/edit',
-  repo: service('tokens'),
-  policiesRepo: service('policies'),
-  beforeModel: function() {
-    get(this, 'repo').invalidate();
-  },
-  model: function(params) {
-    this.item = get(this, 'repo').create();
-    set(this.item, 'Datacenter', this.modelFor('dc').dc.Name);
-    return hash({
-      create: true,
-      isLoading: false,
-      item: this.item,
-      items: get(this, 'policiesRepo').findAllByDatacenter(this.modelFor('dc').dc.Name),
-    });
-  },
-  setupController: function(controller, model) {
-    this._super(...arguments);
-    controller.setProperties(model);
-  },
-  deactivate: function() {
-    if (get(this.item, 'isNew')) {
-      this.item.destroyRecord();
-    }
-  },
 });

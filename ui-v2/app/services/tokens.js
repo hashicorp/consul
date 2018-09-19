@@ -1,28 +1,40 @@
 import Service, { inject as service } from '@ember/service';
 import { get } from '@ember/object';
 import { typeOf } from '@ember/utils';
-import { PRIMARY_KEY } from 'consul-ui/models/token';
+import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/token';
+const MODEL_NAME = 'token';
 export default Service.extend({
-  store: service('store'),
-  findAllByDatacenter: function(dc) {
-    return get(this, 'store').query('token', {
-      dc: dc,
-    });
+  getModelName: function() {
+    return MODEL_NAME;
   },
-  findBySlug: function(slug, dc) {
-    return get(this, 'store').queryRecord('token', {
-      id: slug,
-      dc: dc,
-    });
+  getPrimaryKey: function() {
+    return PRIMARY_KEY;
+  },
+  getSlugKey: function() {
+    return SLUG_KEY;
   },
   findByPolicy: function(id, dc) {
-    return get(this, 'store').query('token', {
+    return get(this, 'store').query(this.getModelName(), {
       policy: id,
       dc: dc,
     });
   },
-  create: function() {
-    return get(this, 'store').createRecord('token');
+  // TODO: RepositoryService
+  store: service('store'),
+  findAllByDatacenter: function(dc) {
+    return get(this, 'store').query(this.getModelName(), {
+      dc: dc,
+    });
+  },
+  findBySlug: function(slug, dc) {
+    return get(this, 'store').queryRecord(this.getModelName(), {
+      id: slug,
+      dc: dc,
+    });
+  },
+  create: function(obj) {
+    // TODO: This should probably return a Promise
+    return get(this, 'store').createRecord(this.getModelName(), obj);
   },
   persist: function(item) {
     return item.save();
@@ -33,13 +45,13 @@ export default Service.extend({
       item = obj.get('data');
     }
     if (typeOf(item) === 'object') {
-      item = get(this, 'store').peekRecord('token', item[PRIMARY_KEY]);
+      item = get(this, 'store').peekRecord(this.getModelName(), item[this.getPrimaryKey()]);
     }
     return item.destroyRecord().then(item => {
       return get(this, 'store').unloadRecord(item);
     });
   },
   invalidate: function() {
-    get(this, 'store').unloadAll('token');
+    get(this, 'store').unloadAll(this.getModelName());
   },
 });

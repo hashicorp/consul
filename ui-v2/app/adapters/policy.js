@@ -1,4 +1,9 @@
-import Adapter, { DATACENTER_QUERY_PARAM as API_DATACENTER_KEY } from './application';
+import Adapter, {
+  REQUEST_CREATE,
+  REQUEST_UPDATE,
+  REQUEST_DELETE,
+  DATACENTER_QUERY_PARAM as API_DATACENTER_KEY,
+} from './application';
 
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/policy';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
@@ -31,6 +36,15 @@ export default Adapter.extend({
   },
   urlForTranslateRecord: function(modelName, snapshot) {
     return this.appendURL('acl/policy/translate', [], {});
+  },
+  dataForRequest: function(params) {
+    const data = this._super(...arguments);
+    switch (params.requestType) {
+      case REQUEST_UPDATE:
+      case REQUEST_CREATE:
+        return data.policy;
+    }
+    return data;
   },
   handleResponse: function(status, headers, payload, requestData) {
     let response = payload;

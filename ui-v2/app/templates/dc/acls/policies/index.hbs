@@ -23,12 +23,12 @@
                 <th>Datacenters</th>
                 <th>Description</th>
             {{/block-slot}}
-            {{#block-slot 'row'}}
+            {{#block-slot 'row' }}
                 <td data-test-policy="{{item.Name}}">
-                    <a href={{href-to 'dc.acls.policies.edit' item.ID}}>{{item.Name}}</a>
+                  <a href={{href-to 'dc.acls.policies.edit' item.ID}} class={{if (policy/is-management item) 'is-management'}}>{{item.Name}}</a>
                 </td>
                 <td>
-                  Datacenters in here
+                  {{join ', ' (policy/datacenters item)}}
                 </td>
                 <td>
                   {{item.Description}}
@@ -39,12 +39,19 @@
                     {{#block-slot 'action' as |confirm|}}
                         {{#action-group index=index onchange=(action change) checked=(if (eq checked index) 'checked')}}
                             <ul>
+{{#if (policy/is-management item)}}
+                                <li>
+                                    <a data-test-edit href={{href-to 'dc.acls.policies.edit' item.ID}}>View</a>
+                                </li>
+{{else}}
+
                                 <li>
                                     <a data-test-edit href={{href-to 'dc.acls.policies.edit' item.ID}}>Edit</a>
                                 </li>
                                 <li>
                                     <a data-test-delete onclick={{action confirm 'delete' item}}>Delete</a>
                                 </li>
+{{/if}}
                             </ul>
                         {{/action-group}}
                     {{/block-slot}}

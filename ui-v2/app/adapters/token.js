@@ -71,6 +71,6 @@ export default Adapter.extend({
           };
         });
     }
-    return data;
+    return data.token;
   },
 });

@@ -1,7 +1,8 @@
 %button {
   font-family: $typo-family-sans;
 }
-main p {
+main p,
+%modal-window p {
   margin-bottom: 1em;
 }
 %button,

@@ -3,30 +3,46 @@
         <label class="type-text{{if item.error.Name ' has-error'}}">
             <span>Name</span>
             {{input value=item.Name name='name' autofocus='autofocus'}}
+            <em>
+              Maximum 128 characters. May only include letters (uppercase and/or lowercase) and/or numbers. Must be unique.
+            </em>
         </label>
         <label class="type-text">
             <span>Rules <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
             {{code-editor class=(if item.error.Rules 'error') name='Rules' value=item.Rules onkeyup=(action 'change')}}
         </label>
-        <div role="radiogroup" class="">
-          DC's remember the class ^
-        </div>
-        <label class="type-text">
-          <span>Description (should this be a text area?)</span>
-            {{input value=item.Description name='description'}}
+        <label class="type-toggle">
+          <span>All</span>
+          <input type="checkbox" name="Local" checked={{if Local 'checked' }} onchange={{action 'change'}} />
         </label>
+        <div class="checkbox-group">
+          {{#each datacenters as |dc| }}
+            <label class="type-checkbox">
+              <input type="checkbox" name="Datacenters" value={{dc.Name}} checked={{if (contains dc.Name item.Datacenters) 'checked' }} onchange={{action 'change'}} />
+              <span>{{dc.Name}}</span>
+            </label>
+          {{/each}}
+        </div>
+      <label class="type-text">
+        <span>Description (Optional)</span>
+        <textarea name="Description" oninput={{action 'change'}}></textarea>
+      </label>
     </fieldset>
-{{#if (gt items.length 0)}}
+{{#if (gt items.length 100000)}}
     {{#tabular-collection
         data-test-tokens
         items=(sort-by 'AccessorID:asc' items) as |item index|
     }}
         {{#block-slot 'header'}}
             <th>AccessorID</th>
+            <th>Scope</th>
         {{/block-slot}}
         {{#block-slot 'row'}}
               <td>
                 <a href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>{{item.AccessorID}}</a>
+              </td>
+              <td>
+                {{if item.Local 'local' 'global' }}
               </td>
         {{/block-slot}}
     {{/tabular-collection}}
@@ -45,7 +61,44 @@
                 <button type="button" data-test-delete class="type-delete" {{action confirm 'delete' item}}>Delete</button>
             {{/block-slot}}
             {{#block-slot 'dialog' as |execute cancel message|}}
-              {{delete-confirmation message=message execute=execute cancel=cancel}}
+    {{#if (gt items.length 0)}}
+              {{#modal-dialog onclose=(action cancel)}}
+                  {{#block-slot 'header'}}
+                      <h2>Policy in Use</h2>
+                  {{/block-slot}}
+                  {{#block-slot 'content'}}
+                    <p>
+                      This Policy is currently in use. If you choose to delete this Policy, it will be removed from the following Tokens:
+                    </p>
+                    {{#tabular-collection
+                        data-test-tokens
+                        items=(sort-by 'AccessorID:asc' items) as |item index|
+                    }}
+                        {{#block-slot 'header'}}
+                            <th>AccessorID</th>
+                            <th>Scope</th>
+                        {{/block-slot}}
+                        {{#block-slot 'row'}}
+                              <td>
+                                <a target="_blank" href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>{{item.AccessorID}}</a>
+                              </td>
+                              <td>
+                                {{if item.Local 'local' 'global' }}
+                              </td>
+                        {{/block-slot}}
+                    {{/tabular-collection}}
+                    <p>
+                      This action cannot be undone. {{message}}
+                    </p>
+                  {{/block-slot}}
+                  {{#block-slot 'actions' as |close|}}
+                    <button type="button" class="type-delete" {{action execute}}>Yes, Delete</button>
+                    <button type="button" class="type-cancel" {{action close}}>Cancel</button>
+                  {{/block-slot}}
+                {{/modal-dialog}}
+    {{else}}
+                {{delete-confirmation message=message execute=execute cancel=cancel}}
+    {{/if}}
             {{/block-slot}}
         {{/confirmation-dialog}}
 {{/if}}
