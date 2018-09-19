@@ -3,7 +3,6 @@ package cache
 import (
 	"context"
 	"math"
-	"sync"
 	"time"
 
 	"github.com/coredns/coredns/plugin"
@@ -126,5 +125,3 @@ var (
 		Help:      "The number responses that are not cached, because the reply is malformed.",
 	}, []string{"server"})
 )
-
-var once sync.Once

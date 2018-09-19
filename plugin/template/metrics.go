@@ -1,8 +1,6 @@
 package template
 
 import (
-	"sync"
-
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/metrics"
 
@@ -34,13 +32,9 @@ var (
 // OnStartupMetrics sets up the metrics on startup.
 func setupMetrics(c *caddy.Controller) error {
 	c.OnStartup(func() error {
-		metricsOnce.Do(func() {
-			metrics.MustRegister(c, templateMatchesCount, templateFailureCount, templateRRFailureCount)
-		})
+		metrics.MustRegister(c, templateMatchesCount, templateFailureCount, templateRRFailureCount)
 		return nil
 	})
 
 	return nil
 }
-
-var metricsOnce sync.Once

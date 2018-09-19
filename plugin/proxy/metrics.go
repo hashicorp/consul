@@ -1,8 +1,6 @@
 package proxy
 
 import (
-	"sync"
-
 	"github.com/coredns/coredns/plugin"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -36,5 +34,3 @@ func familyToString(f int) string {
 	}
 	return ""
 }
-
-var once sync.Once

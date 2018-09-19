@@ -38,9 +38,7 @@ func setup(c *caddy.Controller) error {
 	})
 
 	c.OnStartup(func() error {
-		once.Do(func() {
-			metrics.MustRegister(c, RequestCount, RcodeCount, RequestDuration, HealthcheckFailureCount, SocketGauge)
-		})
+		metrics.MustRegister(c, RequestCount, RcodeCount, RequestDuration, HealthcheckFailureCount, SocketGauge)
 		return f.OnStartup()
 	})
 

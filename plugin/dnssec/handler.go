@@ -2,7 +2,6 @@ package dnssec
 
 import (
 	"context"
-	"sync"
 
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/metrics"
@@ -81,5 +80,3 @@ var (
 
 // Name implements the Handler interface.
 func (d Dnssec) Name() string { return "dnssec" }
-
-var once sync.Once

@@ -1,8 +1,6 @@
 package autopath
 
 import (
-	"sync"
-
 	"github.com/coredns/coredns/plugin"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -16,5 +14,3 @@ var (
 		Help:      "Counter of requests that did autopath.",
 	}, []string{"server"})
 )
-
-var once sync.Once
