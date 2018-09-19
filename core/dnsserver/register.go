@@ -9,6 +9,7 @@ import (
 
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
+	"github.com/coredns/coredns/plugin/pkg/parse"
 	"github.com/coredns/coredns/plugin/pkg/transport"
 
 	"github.com/mholt/caddy"
@@ -112,7 +113,7 @@ func (h *dnsContext) MakeServers() ([]caddy.Server, error) {
 	var servers []caddy.Server
 	for addr, group := range groups {
 		// switch on addr
-		switch tr, _ := transport.Parse(addr); tr {
+		switch tr, _ := parse.Transport(addr); tr {
 		case transport.DNS:
 			s, err := NewServer(addr, group)
 			if err != nil {
@@ -236,7 +237,7 @@ func groupConfigsByListenAddr(configs []*Config) (map[string][]*Config, error) {
 }
 
 // DefaultPort is the default port.
-const DefaultPort = "53"
+const DefaultPort = transport.Port
 
 // These "soft defaults" are configurable by
 // command line flags, etc.

@@ -6,8 +6,8 @@ import (
 	"github.com/miekg/dns"
 
 	"github.com/coredns/coredns/core/dnsserver"
-	"github.com/coredns/coredns/plugin/pkg/dnsutil"
 	"github.com/coredns/coredns/plugin/pkg/nonwriter"
+	"github.com/coredns/coredns/plugin/pkg/parse"
 	"github.com/coredns/coredns/plugin/proxy"
 	"github.com/coredns/coredns/request"
 )
@@ -27,7 +27,7 @@ func New(dests []string) (Upstream, error) {
 		return u, nil
 	}
 	u.self = false
-	ups, err := dnsutil.ParseHostPortOrFile(dests...)
+	ups, err := parse.HostPortOrFile(dests...)
 	if err != nil {
 		return u, err
 	}

@@ -8,7 +8,7 @@ import (
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/metrics"
-	"github.com/coredns/coredns/plugin/pkg/dnsutil"
+	"github.com/coredns/coredns/plugin/pkg/parse"
 	pkgtls "github.com/coredns/coredns/plugin/pkg/tls"
 	"github.com/coredns/coredns/plugin/pkg/transport"
 
@@ -103,14 +103,14 @@ func ParseForwardStanza(c *caddyfile.Dispenser) (*Forward, error) {
 		return f, c.ArgErr()
 	}
 
-	toHosts, err := dnsutil.ParseHostPortOrFile(to...)
+	toHosts, err := parse.HostPortOrFile(to...)
 	if err != nil {
 		return f, err
 	}
 
 	transports := make([]string, len(toHosts))
 	for i, host := range toHosts {
-		trans, h := transport.Parse(host)
+		trans, h := parse.Transport(host)
 		p := NewProxy(h, trans)
 		f.proxies = append(f.proxies, p)
 		transports[i] = trans

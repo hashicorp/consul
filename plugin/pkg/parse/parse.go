@@ -4,7 +4,8 @@ package parse
 import (
 	"fmt"
 
-	"github.com/coredns/coredns/plugin/pkg/dnsutil"
+	"github.com/coredns/coredns/plugin/pkg/transport"
+
 	"github.com/mholt/caddy"
 )
 
@@ -19,7 +20,7 @@ func Transfer(c *caddy.Controller, secondary bool) (tos, froms []string, err err
 		tos = c.RemainingArgs()
 		for i := range tos {
 			if tos[i] != "*" {
-				normalized, err := dnsutil.ParseHostPort(tos[i], "53")
+				normalized, err := HostPort(tos[i], transport.Port)
 				if err != nil {
 					return nil, nil, err
 				}
@@ -34,7 +35,7 @@ func Transfer(c *caddy.Controller, secondary bool) (tos, froms []string, err err
 		froms = c.RemainingArgs()
 		for i := range froms {
 			if froms[i] != "*" {
-				normalized, err := dnsutil.ParseHostPort(froms[i], "53")
+				normalized, err := HostPort(froms[i], transport.Port)
 				if err != nil {
 					return nil, nil, err
 				}

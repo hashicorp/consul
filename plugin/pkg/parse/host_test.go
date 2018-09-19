@@ -1,12 +1,14 @@
-package dnsutil
+package parse
 
 import (
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/coredns/coredns/plugin/pkg/transport"
 )
 
-func TestParseHostPortOrFile(t *testing.T) {
+func TestHostPortOrFile(t *testing.T) {
 	tests := []struct {
 		in        string
 		expected  string
@@ -41,7 +43,7 @@ func TestParseHostPortOrFile(t *testing.T) {
 	defer os.Remove("resolv.conf")
 
 	for i, tc := range tests {
-		got, err := ParseHostPortOrFile(tc.in)
+		got, err := HostPortOrFile(tc.in)
 		if err == nil && tc.shouldErr {
 			t.Errorf("Test %d, expected error, got nil", i)
 			continue
@@ -70,7 +72,7 @@ func TestParseHostPort(t *testing.T) {
 	}
 
 	for i, tc := range tests {
-		got, err := ParseHostPort(tc.in, "53")
+		got, err := HostPort(tc.in, transport.Port)
 		if err == nil && tc.shouldErr {
 			t.Errorf("Test %d, expected error, got nil", i)
 			continue

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/coredns/coredns/plugin"
+	"github.com/coredns/coredns/plugin/pkg/parse"
 	"github.com/coredns/coredns/plugin/pkg/transport"
 
 	"github.com/miekg/dns"
@@ -34,7 +35,7 @@ func normalizeZone(str string) (zoneAddr, error) {
 	var err error
 
 	var trans string
-	trans, str = transport.Parse(str)
+	trans, str = parse.Transport(str)
 
 	host, port, ipnet, err := plugin.SplitHostPort(str)
 	if err != nil {

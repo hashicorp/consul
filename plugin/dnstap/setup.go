@@ -6,8 +6,8 @@ import (
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/dnstap/dnstapio"
-	"github.com/coredns/coredns/plugin/pkg/dnsutil"
 	clog "github.com/coredns/coredns/plugin/pkg/log"
+	"github.com/coredns/coredns/plugin/pkg/parse"
 
 	"github.com/mholt/caddy"
 	"github.com/mholt/caddy/caddyfile"
@@ -44,7 +44,7 @@ func parseConfig(d *caddyfile.Dispenser) (c config, err error) {
 
 	if strings.HasPrefix(c.target, "tcp://") {
 		// remote IP endpoint
-		servers, err := dnsutil.ParseHostPortOrFile(c.target[6:])
+		servers, err := parse.HostPortOrFile(c.target[6:])
 		if err != nil {
 			return c, d.ArgErr()
 		}

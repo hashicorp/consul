@@ -1,4 +1,4 @@
-package dnsutil
+package parse
 
 import (
 	"fmt"
@@ -10,15 +10,15 @@ import (
 	"github.com/miekg/dns"
 )
 
-// ParseHostPortOrFile parses the strings in s, each string can either be a
+// HostPortOrFile parses the strings in s, each string can either be a
 // address, [scheme://]address:port or a filename. The address part is checked
 // and in case of filename a resolv.conf like file is (assumed) and parsed and
 // the nameservers found are returned.
-func ParseHostPortOrFile(s ...string) ([]string, error) {
+func HostPortOrFile(s ...string) ([]string, error) {
 	var servers []string
 	for _, h := range s {
 
-		trans, host := transport.Parse(h)
+		trans, host := Transport(h)
 
 		addr, _, err := net.SplitHostPort(host)
 		if err != nil {
@@ -35,7 +35,7 @@ func ParseHostPortOrFile(s ...string) ([]string, error) {
 			var ss string
 			switch trans {
 			case transport.DNS:
-				ss = net.JoinHostPort(host, "53")
+				ss = net.JoinHostPort(host, transport.Port)
 			case transport.TLS:
 				ss = transport.TLS + "://" + net.JoinHostPort(host, transport.TLSPort)
 			case transport.GRPC:
@@ -77,9 +77,9 @@ func tryFile(s string) ([]string, error) {
 	return servers, nil
 }
 
-// ParseHostPort will check if the host part is a valid IP address, if the
+// HostPort will check if the host part is a valid IP address, if the
 // IP address is valid, but no port is found, defaultPort is added.
-func ParseHostPort(s, defaultPort string) (string, error) {
+func HostPort(s, defaultPort string) (string, error) {
 	addr, port, err := net.SplitHostPort(s)
 	if port == "" {
 		port = defaultPort
