@@ -18,7 +18,7 @@ type Proxy struct {
 
 	// Connection caching
 	expire    time.Duration
-	transport *transport
+	transport *Transport
 
 	// health checking
 	probe  *up.Probe
@@ -26,7 +26,7 @@ type Proxy struct {
 }
 
 // NewProxy returns a new proxy.
-func NewProxy(addr string, protocol int) *Proxy {
+func NewProxy(addr, trans string) *Proxy {
 	p := &Proxy{
 		addr:      addr,
 		fails:     0,
@@ -34,7 +34,7 @@ func NewProxy(addr string, protocol int) *Proxy {
 		transport: newTransport(addr),
 		avgRtt:    int64(maxTimeout / 2),
 	}
-	p.health = NewHealthChecker(protocol)
+	p.health = NewHealthChecker(trans)
 	runtime.SetFinalizer(p, (*Proxy).finalizer)
 	return p
 }

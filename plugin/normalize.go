@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/coredns/coredns/plugin/pkg/transport"
+
 	"github.com/miekg/dns"
 )
 
@@ -61,22 +63,10 @@ type (
 // Normalize will return the host portion of host, stripping
 // of any port or transport. The host will also be fully qualified and lowercased.
 func (h Host) Normalize() string {
-
 	s := string(h)
+	_, s = transport.Parse(s)
 
-	switch {
-	case strings.HasPrefix(s, TransportTLS+"://"):
-		s = s[len(TransportTLS+"://"):]
-	case strings.HasPrefix(s, TransportDNS+"://"):
-		s = s[len(TransportDNS+"://"):]
-	case strings.HasPrefix(s, TransportGRPC+"://"):
-		s = s[len(TransportGRPC+"://"):]
-	case strings.HasPrefix(s, TransportHTTPS+"://"):
-		s = s[len(TransportHTTPS+"://"):]
-	}
-
-	// The error can be ignore here, because this function is called after the corefile
-	// has already been vetted.
+	// The error can be ignore here, because this function is called after the corefile has already been vetted.
 	host, _, _, _ := SplitHostPort(s)
 	return Name(host).Normalize()
 }
@@ -138,11 +128,3 @@ func SplitHostPort(s string) (host, port string, ipnet *net.IPNet, err error) {
 	}
 	return host, port, n, nil
 }
-
-// Duplicated from core/dnsserver/address.go !
-const (
-	TransportDNS   = "dns"
-	TransportTLS   = "tls"
-	TransportGRPC  = "grpc"
-	TransportHTTPS = "https"
-)

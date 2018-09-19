@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
+	"github.com/coredns/coredns/plugin/pkg/transport"
 	"github.com/coredns/coredns/plugin/test"
 	"github.com/coredns/coredns/request"
 
@@ -34,7 +35,7 @@ func TestLookupTruncated(t *testing.T) {
 	})
 	defer s.Close()
 
-	p := NewProxy(s.Addr, DNS)
+	p := NewProxy(s.Addr, transport.DNS)
 	f := New()
 	f.SetProxy(p)
 	defer f.Close()
@@ -88,9 +89,9 @@ func TestForwardTruncated(t *testing.T) {
 
 	f := New()
 
-	p1 := NewProxy(s.Addr, DNS)
+	p1 := NewProxy(s.Addr, transport.DNS)
 	f.SetProxy(p1)
-	p2 := NewProxy(s.Addr, DNS)
+	p2 := NewProxy(s.Addr, transport.DNS)
 	f.SetProxy(p2)
 	defer f.Close()
 

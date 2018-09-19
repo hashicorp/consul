@@ -7,6 +7,7 @@ package forward
 import (
 	"context"
 
+	"github.com/coredns/coredns/plugin/pkg/transport"
 	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
@@ -81,7 +82,7 @@ func (f *Forward) Lookup(state request.Request, name string, typ uint16) (*dns.M
 func NewLookup(addr []string) *Forward {
 	f := New()
 	for i := range addr {
-		p := NewProxy(addr[i], DNS)
+		p := NewProxy(addr[i], transport.DNS)
 		f.SetProxy(p)
 	}
 	return f

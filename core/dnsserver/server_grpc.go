@@ -8,6 +8,7 @@ import (
 	"net"
 
 	"github.com/coredns/coredns/pb"
+	"github.com/coredns/coredns/plugin/pkg/transport"
 	"github.com/coredns/coredns/plugin/pkg/watch"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
@@ -73,7 +74,7 @@ func (s *ServergRPC) ServePacket(p net.PacketConn) error { return nil }
 // Listen implements caddy.TCPServer interface.
 func (s *ServergRPC) Listen() (net.Listener, error) {
 
-	l, err := net.Listen("tcp", s.Addr[len(TransportGRPC+"://"):])
+	l, err := net.Listen("tcp", s.Addr[len(transport.GRPC+"://"):])
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +91,7 @@ func (s *ServergRPC) OnStartupComplete() {
 		return
 	}
 
-	out := startUpZones(TransportGRPC+"://", s.Addr, s.zones)
+	out := startUpZones(transport.GRPC+"://", s.Addr, s.zones)
 	if out != "" {
 		fmt.Print(out)
 	}

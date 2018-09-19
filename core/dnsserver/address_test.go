@@ -192,21 +192,3 @@ func TestOverlapAddressChecker(t *testing.T) {
 		}
 	}
 }
-
-func TestTransport(t *testing.T) {
-	for i, test := range []struct {
-		input    string
-		expected string
-	}{
-		{"dns://.:53", TransportDNS},
-		{"2003::1/64.:53", TransportDNS},
-		{"grpc://example.org:1443 ", TransportGRPC},
-		{"tls://example.org ", TransportTLS},
-		{"https://example.org ", TransportHTTPS},
-	} {
-		actual := Transport(test.input)
-		if actual != test.expected {
-			t.Errorf("Test %d: Expected %s but got %s", i, test.expected, actual)
-		}
-	}
-}

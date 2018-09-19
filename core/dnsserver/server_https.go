@@ -12,6 +12,7 @@ import (
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
 	"github.com/coredns/coredns/plugin/pkg/doh"
 	"github.com/coredns/coredns/plugin/pkg/response"
+	"github.com/coredns/coredns/plugin/pkg/transport"
 )
 
 // ServerHTTPS represents an instance of a DNS-over-HTTPS server.
@@ -60,7 +61,7 @@ func (s *ServerHTTPS) ServePacket(p net.PacketConn) error { return nil }
 // Listen implements caddy.TCPServer interface.
 func (s *ServerHTTPS) Listen() (net.Listener, error) {
 
-	l, err := net.Listen("tcp", s.Addr[len(TransportHTTPS+"://"):])
+	l, err := net.Listen("tcp", s.Addr[len(transport.HTTPS+"://"):])
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +78,7 @@ func (s *ServerHTTPS) OnStartupComplete() {
 		return
 	}
 
-	out := startUpZones(TransportHTTPS+"://", s.Addr, s.zones)
+	out := startUpZones(transport.HTTPS+"://", s.Addr, s.zones)
 	if out != "" {
 		fmt.Print(out)
 	}

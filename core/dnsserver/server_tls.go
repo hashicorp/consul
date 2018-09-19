@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/coredns/coredns/plugin/pkg/transport"
+
 	"github.com/miekg/dns"
 )
 
@@ -55,7 +57,7 @@ func (s *ServerTLS) ServePacket(p net.PacketConn) error { return nil }
 
 // Listen implements caddy.TCPServer interface.
 func (s *ServerTLS) Listen() (net.Listener, error) {
-	l, err := net.Listen("tcp", s.Addr[len(TransportTLS+"://"):])
+	l, err := net.Listen("tcp", s.Addr[len(transport.TLS+"://"):])
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +74,7 @@ func (s *ServerTLS) OnStartupComplete() {
 		return
 	}
 
-	out := startUpZones(TransportTLS+"://", s.Addr, s.zones)
+	out := startUpZones(transport.TLS+"://", s.Addr, s.zones)
 	if out != "" {
 		fmt.Print(out)
 	}

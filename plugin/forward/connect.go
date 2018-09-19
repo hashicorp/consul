@@ -35,16 +35,16 @@ func averageTimeout(currentAvg *int64, observedDuration time.Duration, weight in
 	atomic.AddInt64(currentAvg, int64(observedDuration-dt)/weight)
 }
 
-func (t *transport) dialTimeout() time.Duration {
+func (t *Transport) dialTimeout() time.Duration {
 	return limitTimeout(&t.avgDialTime, minDialTimeout, maxDialTimeout)
 }
 
-func (t *transport) updateDialTimeout(newDialTime time.Duration) {
+func (t *Transport) updateDialTimeout(newDialTime time.Duration) {
 	averageTimeout(&t.avgDialTime, newDialTime, cumulativeAvgWeight)
 }
 
 // Dial dials the address configured in transport, potentially reusing a connection or creating a new one.
-func (t *transport) Dial(proto string) (*dns.Conn, bool, error) {
+func (t *Transport) Dial(proto string) (*dns.Conn, bool, error) {
 	// If tls has been configured; use it.
 	if t.tlsConfig != nil {
 		proto = "tcp-tls"

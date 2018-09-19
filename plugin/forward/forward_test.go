@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
+	"github.com/coredns/coredns/plugin/pkg/transport"
 	"github.com/coredns/coredns/plugin/test"
 	"github.com/coredns/coredns/request"
 
@@ -19,7 +20,7 @@ func TestForward(t *testing.T) {
 	})
 	defer s.Close()
 
-	p := NewProxy(s.Addr, DNS)
+	p := NewProxy(s.Addr, transport.DNS)
 	f := New()
 	f.SetProxy(p)
 	defer f.Close()
@@ -51,7 +52,7 @@ func TestForwardRefused(t *testing.T) {
 	})
 	defer s.Close()
 
-	p := NewProxy(s.Addr, DNS)
+	p := NewProxy(s.Addr, transport.DNS)
 	f := New()
 	f.SetProxy(p)
 	defer f.Close()

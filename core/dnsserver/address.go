@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/coredns/coredns/plugin"
+	"github.com/coredns/coredns/plugin/pkg/transport"
 
 	"github.com/miekg/dns"
 )
@@ -27,43 +28,13 @@ func (z zoneAddr) String() string {
 	return s
 }
 
-// Transport returns the protocol of the string s
-func Transport(s string) string {
-	switch {
-	case strings.HasPrefix(s, TransportTLS+"://"):
-		return TransportTLS
-	case strings.HasPrefix(s, TransportDNS+"://"):
-		return TransportDNS
-	case strings.HasPrefix(s, TransportGRPC+"://"):
-		return TransportGRPC
-	case strings.HasPrefix(s, TransportHTTPS+"://"):
-		return TransportHTTPS
-	}
-	return TransportDNS
-}
-
 // normalizeZone parses an zone string into a structured format with separate
 // host, and port portions, as well as the original input string.
 func normalizeZone(str string) (zoneAddr, error) {
 	var err error
 
-	// Default to DNS if there isn't a transport protocol prefix.
-	trans := TransportDNS
-
-	switch {
-	case strings.HasPrefix(str, TransportTLS+"://"):
-		trans = TransportTLS
-		str = str[len(TransportTLS+"://"):]
-	case strings.HasPrefix(str, TransportDNS+"://"):
-		trans = TransportDNS
-		str = str[len(TransportDNS+"://"):]
-	case strings.HasPrefix(str, TransportGRPC+"://"):
-		trans = TransportGRPC
-		str = str[len(TransportGRPC+"://"):]
-	case strings.HasPrefix(str, TransportHTTPS+"://"):
-		trans = TransportHTTPS
-		str = str[len(TransportHTTPS+"://"):]
-	}
+	var trans string
+	trans, str = transport.Parse(str)
 
 	host, port, ipnet, err := plugin.SplitHostPort(str)
 	if err != nil {
@@ -71,17 +42,15 @@ func normalizeZone(str string) (zoneAddr, error) {
 	}
 
 	if port == "" {
-		if trans == TransportDNS {
+		switch trans {
+		case transport.DNS:
 			port = Port
-		}
-		if trans == TransportTLS {
-			port = TLSPort
-		}
-		if trans == TransportGRPC {
-			port = GRPCPort
-		}
-		if trans == TransportHTTPS {
-			port = HTTPSPort
+		case transport.TLS:
+			port = transport.TLSPort
+		case transport.GRPC:
+			port = transport.GRPCPort
+		case transport.HTTPS:
+			port = transport.HTTPSPort
 		}
 	}
 
@@ -102,14 +71,6 @@ func SplitProtocolHostPort(address string) (protocol string, ip string, port str
 		return "", "", "", fmt.Errorf("provided value is not in an address format : %s", address)
 	}
 }
-
-// Supported transports.
-const (
-	TransportDNS   = "dns"
-	TransportTLS   = "tls"
-	TransportGRPC  = "grpc"
-	TransportHTTPS = "https"
-)
 
 type zoneOverlap struct {
 	registeredAddr map[zoneAddr]zoneAddr // each zoneAddr is registered once by its key

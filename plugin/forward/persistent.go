@@ -15,10 +15,10 @@ type persistConn struct {
 	used time.Time
 }
 
-// transport hold the persistent cache.
-type transport struct {
+// Transport hold the persistent cache.
+type Transport struct {
 	avgDialTime int64                     // kind of average time of dial time
-	conns       map[string][]*persistConn //  Buckets for udp, tcp and tcp-tls.
+	conns       map[string][]*persistConn // Buckets for udp, tcp and tcp-tls.
 	expire      time.Duration             // After this duration a connection is expired.
 	addr        string
 	tlsConfig   *tls.Config
@@ -29,8 +29,8 @@ type transport struct {
 	stop  chan bool
 }
 
-func newTransport(addr string) *transport {
-	t := &transport{
+func newTransport(addr string) *Transport {
+	t := &Transport{
 		avgDialTime: int64(defaultDialTimeout / 2),
 		conns:       make(map[string][]*persistConn),
 		expire:      defaultExpire,
@@ -45,7 +45,7 @@ func newTransport(addr string) *transport {
 
 // len returns the number of connection, used for metrics. Can only be safely
 // used inside connManager() because of data races.
-func (t *transport) len() int {
+func (t *Transport) len() int {
 	l := 0
 	for _, conns := range t.conns {
 		l += len(conns)
@@ -54,7 +54,7 @@ func (t *transport) len() int {
 }
 
 // connManagers manages the persistent connection cache for UDP and TCP.
-func (t *transport) connManager() {
+func (t *Transport) connManager() {
 	ticker := time.NewTicker(t.expire)
 Wait:
 	for {
@@ -115,7 +115,7 @@ func closeConns(conns []*persistConn) {
 }
 
 // cleanup removes connections from cache.
-func (t *transport) cleanup(all bool) {
+func (t *Transport) cleanup(all bool) {
 	staleTime := time.Now().Add(-t.expire)
 	for proto, stack := range t.conns {
 		if len(stack) == 0 {
@@ -144,19 +144,19 @@ func (t *transport) cleanup(all bool) {
 }
 
 // Yield return the connection to transport for reuse.
-func (t *transport) Yield(c *dns.Conn) { t.yield <- c }
+func (t *Transport) Yield(c *dns.Conn) { t.yield <- c }
 
 // Start starts the transport's connection manager.
-func (t *transport) Start() { go t.connManager() }
+func (t *Transport) Start() { go t.connManager() }
 
 // Stop stops the transport's connection manager.
-func (t *transport) Stop() { close(t.stop) }
+func (t *Transport) Stop() { close(t.stop) }
 
 // SetExpire sets the connection expire time in transport.
-func (t *transport) SetExpire(expire time.Duration) { t.expire = expire }
+func (t *Transport) SetExpire(expire time.Duration) { t.expire = expire }
 
 // SetTLSConfig sets the TLS config in transport.
-func (t *transport) SetTLSConfig(cfg *tls.Config) { t.tlsConfig = cfg }
+func (t *Transport) SetTLSConfig(cfg *tls.Config) { t.tlsConfig = cfg }
 
 const (
 	defaultExpire      = 10 * time.Second

@@ -5,15 +5,21 @@ import (
 	"net"
 	"os"
 
+	"github.com/coredns/coredns/plugin/pkg/transport"
+
 	"github.com/miekg/dns"
 )
 
-// ParseHostPortOrFile parses the strings in s, each string can either be a address,
-// address:port or a filename. The address part is checked and the filename case a
-// resolv.conf like file is parsed and the nameserver found are returned.
+// ParseHostPortOrFile parses the strings in s, each string can either be a
+// address, [scheme://]address:port or a filename. The address part is checked
+// and in case of filename a resolv.conf like file is (assumed) and parsed and
+// the nameservers found are returned.
 func ParseHostPortOrFile(s ...string) ([]string, error) {
 	var servers []string
-	for _, host := range s {
+	for _, h := range s {
+
+		trans, host := transport.Parse(h)
+
 		addr, _, err := net.SplitHostPort(host)
 		if err != nil {
 			// Parse didn't work, it is not a addr:port combo
@@ -26,13 +32,23 @@ func ParseHostPortOrFile(s ...string) ([]string, error) {
 				}
 				return servers, fmt.Errorf("not an IP address or file: %q", host)
 			}
-			ss := net.JoinHostPort(host, "53")
+			var ss string
+			switch trans {
+			case transport.DNS:
+				ss = net.JoinHostPort(host, "53")
+			case transport.TLS:
+				ss = transport.TLS + "://" + net.JoinHostPort(host, transport.TLSPort)
+			case transport.GRPC:
+				ss = transport.GRPC + "://" + net.JoinHostPort(host, transport.GRPCPort)
+			case transport.HTTPS:
+				ss = transport.HTTPS + "://" + net.JoinHostPort(host, transport.HTTPSPort)
+			}
 			servers = append(servers, ss)
 			continue
 		}
 
 		if net.ParseIP(addr) == nil {
-			// No an IP address.
+			// Not an IP address.
 			ss, err := tryFile(host)
 			if err == nil {
 				servers = append(servers, ss...)
@@ -40,7 +56,7 @@ func ParseHostPortOrFile(s ...string) ([]string, error) {
 			}
 			return servers, fmt.Errorf("not an IP address or file: %q", host)
 		}
-		servers = append(servers, host)
+		servers = append(servers, h)
 	}
 	return servers, nil
 }

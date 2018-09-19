@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
+	"github.com/coredns/coredns/plugin/pkg/transport"
 	"github.com/coredns/coredns/plugin/test"
 
 	"github.com/miekg/dns"
@@ -25,7 +26,7 @@ func TestHealth(t *testing.T) {
 	})
 	defer s.Close()
 
-	p := NewProxy(s.Addr, DNS)
+	p := NewProxy(s.Addr, transport.DNS)
 	f := New()
 	f.SetProxy(p)
 	defer f.Close()
@@ -65,7 +66,7 @@ func TestHealthTimeout(t *testing.T) {
 	})
 	defer s.Close()
 
-	p := NewProxy(s.Addr, DNS)
+	p := NewProxy(s.Addr, transport.DNS)
 	f := New()
 	f.SetProxy(p)
 	defer f.Close()
@@ -109,7 +110,7 @@ func TestHealthFailTwice(t *testing.T) {
 	})
 	defer s.Close()
 
-	p := NewProxy(s.Addr, DNS)
+	p := NewProxy(s.Addr, transport.DNS)
 	f := New()
 	f.SetProxy(p)
 	defer f.Close()
@@ -132,7 +133,7 @@ func TestHealthMaxFails(t *testing.T) {
 	})
 	defer s.Close()
 
-	p := NewProxy(s.Addr, DNS)
+	p := NewProxy(s.Addr, transport.DNS)
 	f := New()
 	f.maxfails = 2
 	f.SetProxy(p)
@@ -163,7 +164,7 @@ func TestHealthNoMaxFails(t *testing.T) {
 	})
 	defer s.Close()
 
-	p := NewProxy(s.Addr, DNS)
+	p := NewProxy(s.Addr, transport.DNS)
 	f := New()
 	f.maxfails = 0
 	f.SetProxy(p)

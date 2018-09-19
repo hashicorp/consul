@@ -5,6 +5,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/coredns/coredns/plugin/pkg/transport"
+
 	"github.com/miekg/dns"
 )
 
@@ -17,10 +19,10 @@ type HealthChecker interface {
 // dnsHc is a health checker for a DNS endpoint (DNS, and DoT).
 type dnsHc struct{ c *dns.Client }
 
-// NewHealthChecker returns a new HealthChecker based on protocol.
-func NewHealthChecker(protocol int) HealthChecker {
-	switch protocol {
-	case DNS, TLS:
+// NewHealthChecker returns a new HealthChecker based on transport.
+func NewHealthChecker(trans string) HealthChecker {
+	switch trans {
+	case transport.DNS, transport.TLS:
 		c := new(dns.Client)
 		c.Net = "udp"
 		c.ReadTimeout = 1 * time.Second
