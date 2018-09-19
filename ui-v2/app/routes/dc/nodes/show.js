@@ -10,8 +10,8 @@ import WithBlockingActions from 'consul-ui/mixins/with-blocking-actions';
 const tomography = tomographyFactory(distance);
 
 export default Route.extend(WithBlockingActions, {
-  repo: service('nodes'),
-  sessionRepo: service('session'),
+  repo: service('repository/node'),
+  sessionRepo: service('repository/session'),
   queryParams: {
     s: {
       as: 'filter',

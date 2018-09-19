@@ -1,6 +1,6 @@
 import { moduleFor, test } from 'ember-qunit';
 
-moduleFor('service:coordinates', 'Unit | Service | coordinates', {
+moduleFor('service:repository/acl', 'Unit | Service | acl', {
   // Specify the other units that are required for this test.
   // needs: ['service:foo']
 });

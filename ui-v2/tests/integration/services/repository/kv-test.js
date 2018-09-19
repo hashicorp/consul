@@ -1,16 +1,9 @@
 import { moduleFor, test } from 'ember-qunit';
 import repo from 'consul-ui/tests/helpers/repo';
 const NAME = 'kv';
-moduleFor(`service:${NAME}`, `Integration | Service | ${NAME}s`, {
+moduleFor(`service:repository/${NAME}`, `Integration | Service | ${NAME}`, {
   // Specify the other units that are required for this test.
-  needs: [
-    'service:settings',
-    'service:store',
-    `adapter:${NAME}`,
-    `serializer:${NAME}`,
-    `model:${NAME}`,
-    'service:atob',
-  ],
+  integration: true,
 });
 const dc = 'dc-1';
 const id = 'key-name';

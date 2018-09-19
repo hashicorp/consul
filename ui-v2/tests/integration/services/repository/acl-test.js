@@ -1,27 +1,20 @@
 import { moduleFor, test } from 'ember-qunit';
 import repo from 'consul-ui/tests/helpers/repo';
-const NAME = 'intention';
-moduleFor(`service:${NAME}s`, `Integration | Service | ${NAME}s`, {
+const NAME = 'acl';
+moduleFor(`service:repository/${NAME}`, `Integration | Service | ${NAME}`, {
   // Specify the other units that are required for this test.
-  needs: [
-    'service:settings',
-    'service:store',
-    `adapter:${NAME}`,
-    `serializer:${NAME}`,
-    `model:${NAME}`,
-  ],
+  integration: true
 });
-
 const dc = 'dc-1';
 const id = 'token-name';
-test('findAllByDatacenter returns the correct data for list endpoint', function(assert) {
+test('findByDatacenter returns the correct data for list endpoint', function(assert) {
   return repo(
-    'Intention',
+    'Acl',
     'findAllByDatacenter',
     this.subject(),
     function retrieveStub(stub) {
-      return stub(`/v1/connect/intentions?dc=${dc}`, {
-        CONSUL_INTENTION_COUNT: '100',
+      return stub(`/v1/acl/list?dc=${dc}`, {
+        CONSUL_ACL_COUNT: '100',
       });
     },
     function performTest(service) {
@@ -33,8 +26,6 @@ test('findAllByDatacenter returns the correct data for list endpoint', function(
         expected(function(payload) {
           return payload.map(item =>
             Object.assign({}, item, {
-              CreatedAt: new Date(item.CreatedAt),
-              UpdatedAt: new Date(item.UpdatedAt),
               Datacenter: dc,
               uid: `["${dc}","${item.ID}"]`,
             })
@@ -46,23 +37,21 @@ test('findAllByDatacenter returns the correct data for list endpoint', function(
 });
 test('findBySlug returns the correct data for item endpoint', function(assert) {
   return repo(
-    'Intention',
+    'Acl',
     'findBySlug',
     this.subject(),
-    function(stub) {
-      return stub(`/v1/connect/intentions/${id}?dc=${dc}`);
+    function retrieveStub(stub) {
+      return stub(`/v1/acl/info/${id}?dc=${dc}`);
     },
-    function(service) {
+    function performTest(service) {
       return service.findBySlug(id, dc);
     },
-    function(actual, expected) {
+    function performAssertion(actual, expected) {
       assert.deepEqual(
         actual,
         expected(function(payload) {
-          const item = payload;
+          const item = payload[0];
           return Object.assign({}, item, {
-            CreatedAt: new Date(item.CreatedAt),
-            UpdatedAt: new Date(item.UpdatedAt),
             Datacenter: dc,
             uid: `["${dc}","${item.ID}"]`,
           });

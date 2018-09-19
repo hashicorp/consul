@@ -5,7 +5,7 @@ import { get } from '@ember/object';
 
 import WithBlockingActions from 'consul-ui/mixins/with-blocking-actions';
 export default Route.extend(WithBlockingActions, {
-  dcRepo: service('dc'),
+  dcRepo: service('repository/dc'),
   repo: service('settings'),
   model: function(params) {
     return hash({

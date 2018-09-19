@@ -1,19 +1,21 @@
 import { moduleFor, test } from 'ember-qunit';
+import { skip } from 'qunit';
 import repo from 'consul-ui/tests/helpers/repo';
-moduleFor('service:acls', 'Integration | Service | acls', {
+const NAME = 'service';
+moduleFor(`service:repository/${NAME}`, `Integration | Service | ${NAME}`, {
   // Specify the other units that are required for this test.
-  needs: ['service:store', 'model:acl', 'adapter:acl', 'serializer:acl', 'service:settings'],
+  integration: true,
 });
 const dc = 'dc-1';
 const id = 'token-name';
 test('findByDatacenter returns the correct data for list endpoint', function(assert) {
   return repo(
-    'Acl',
+    'Service',
     'findAllByDatacenter',
     this.subject(),
     function retrieveStub(stub) {
-      return stub(`/v1/acl/list?dc=${dc}`, {
-        CONSUL_ACL_COUNT: '100',
+      return stub(`/v1/internal/ui/services?dc=${dc}`, {
+        CONSUL_SERVICE_COUNT: '100',
       });
     },
     function performTest(service) {
@@ -26,7 +28,7 @@ test('findByDatacenter returns the correct data for list endpoint', function(ass
           return payload.map(item =>
             Object.assign({}, item, {
               Datacenter: dc,
-              uid: `["${dc}","${item.ID}"]`,
+              uid: `["${dc}","${item.Name}"]`,
             })
           );
         })
@@ -34,26 +36,40 @@ test('findByDatacenter returns the correct data for list endpoint', function(ass
     }
   );
 });
+skip('findBySlug returns a sane tree');
 test('findBySlug returns the correct data for item endpoint', function(assert) {
   return repo(
-    'Acl',
+    'Service',
     'findBySlug',
     this.subject(),
-    function retrieveStub(stub) {
-      return stub(`/v1/acl/info/${id}?dc=${dc}`);
+    function(stub) {
+      return stub(`/v1/health/service/${id}?dc=${dc}`, {
+        CONSUL_NODE_COUNT: 1,
+      });
     },
-    function performTest(service) {
+    function(service) {
       return service.findBySlug(id, dc);
     },
-    function performAssertion(actual, expected) {
+    function(actual, expected) {
       assert.deepEqual(
         actual,
         expected(function(payload) {
-          const item = payload[0];
-          return Object.assign({}, item, {
-            Datacenter: dc,
-            uid: `["${dc}","${item.ID}"]`,
-          });
+          // TODO: So this tree is all 'wrong', it's not having any major impact
+          // this this tree needs revisting to something that makes more sense
+          payload = Object.assign(
+            {},
+            { Nodes: payload },
+            {
+              Datacenter: dc,
+              uid: `["${dc}","${id}"]`,
+            }
+          );
+          const nodes = payload.Nodes;
+          const service = payload.Nodes[0];
+          service.Nodes = nodes;
+          service.Tags = payload.Nodes[0].Service.Tags;
+
+          return service;
         })
       );
     }

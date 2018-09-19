@@ -1,8 +1,8 @@
 import { moduleFor } from 'ember-qunit';
 import test from 'ember-sinon-qunit/test-support/test';
 import { getOwner } from '@ember/application';
-import Route from 'consul-ui/routes/dc/acls/index';
 import Service from '@ember/service';
+import Route from 'consul-ui/routes/dc/acls/index';
 
 import Mixin from 'consul-ui/mixins/acl/with-actions';
 
@@ -14,7 +14,7 @@ moduleFor('mixin:acl/with-actions', 'Unit | Mixin | acl/with actions', {
     'service:flashMessages',
     'service:logger',
     'service:settings',
-    'service:acls',
+    'service:repository/acl',
   ],
   subject: function() {
     const MixedIn = Route.extend(Mixin);
@@ -72,7 +72,7 @@ test('clone clones the token and calls afterDelete correctly', function(assert) 
   );
   const expected = { ID: 'id' };
   this.register(
-    'service:acls',
+    'service:repository/acl',
     Service.extend({
       clone: function(actual) {
         assert.deepEqual(actual, expected);
