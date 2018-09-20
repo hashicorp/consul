@@ -137,6 +137,15 @@ func testServerDCExpect(t *testing.T, dc string, expect int) (string, *Server) {
 	})
 }
 
+func testServerDCExpectNonVoter(t *testing.T, dc string, expect int) (string, *Server) {
+	return testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = dc
+		c.Bootstrap = false
+		c.BootstrapExpect = expect
+		c.NonVoter = true
+	})
+}
+
 func testServerWithConfig(t *testing.T, cb func(*Config)) (string, *Server) {
 	dir, config := testServerConfig(t)
 	if cb != nil {
@@ -577,6 +586,53 @@ func TestServer_Expect(t *testing.T) {
 	if termAfter != termBefore {
 		t.Fatalf("looks like an election took place")
 	}
+}
+
+func TestServer_Expect_NonVoters(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerDCExpectNonVoter(t, "dc1", 2)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerDCExpectNonVoter(t, "dc1", 2)
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	dir3, s3 := testServerDCExpect(t, "dc1", 2)
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	dir4, s4 := testServerDCExpect(t, "dc1", 2)
+	defer os.RemoveAll(dir4)
+	defer s4.Shutdown()
+
+	// Join the first three servers.
+	joinLAN(t, s2, s1)
+	joinLAN(t, s3, s1)
+
+	// Should have no peers yet since the bootstrap didn't occur.
+	retry.Run(t, func(r *retry.R) {
+		r.Check(wantPeers(s1, 0))
+		r.Check(wantPeers(s2, 0))
+		r.Check(wantPeers(s3, 0))
+	})
+
+	// Join the fourth node.
+	joinLAN(t, s4, s1)
+
+	// Now we have three servers so we should bootstrap.
+	retry.Run(t, func(r *retry.R) {
+		r.Check(wantPeers(s1, 4))
+		r.Check(wantPeers(s2, 4))
+		r.Check(wantPeers(s3, 4))
+		r.Check(wantPeers(s4, 4))
+	})
+
+	// Make sure a leader is elected
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	retry.Run(t, func(r *retry.R) {
+		r.Check(wantRaft([]*Server{s1, s2, s3, s4}))
+	})
 }
 
 func TestServer_BadExpect(t *testing.T) {
