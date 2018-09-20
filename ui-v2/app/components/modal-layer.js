@@ -6,7 +6,6 @@ const $$ = qsaFactory();
 export default Component.extend({
   actions: {
     change: function(e) {
-      console.log('change');
       [...$('[name="modal"]')]
         .filter(function(item) {
           return item.getAttribute('id') !== 'modal_close';
