@@ -7,7 +7,7 @@ const inset = function(num) {
   return insetSize * num;
 };
 const milliseconds = function(num, max) {
-  return max > 0 ? parseFloat((parseInt(max * num) / 100).toFixed(2)) : 0;
+  return max > 0 ? parseInt(max * num) / 100 : 0;
 };
 export default Component.extend({
   size: size,

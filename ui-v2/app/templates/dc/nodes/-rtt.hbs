@@ -3,19 +3,19 @@
         Minimum
     </dt>
     <dd>
-        {{ format-number tomography.min }}ms
+        {{ format-number tomography.min maximumFractionDigits=2}}ms
     </dd>
     <dt>
         Median
     </dt>
     <dd>
-        {{ format-number tomography.median }}ms
+        {{ format-number tomography.median maximumFractionDigits=2}}ms
     </dd>
     <dt>
         Maximum
     </dt>
     <dd>
-        {{ format-number tomography.max }}ms
+        {{ format-number tomography.max maximumFractionDigits=2}}ms
     </dd>
 </dl>
 {{tomography-graph tomography=tomography}}
