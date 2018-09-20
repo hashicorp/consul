@@ -9,31 +9,36 @@ effort. The worst that can happen is that you'll be politely asked to change
 something. We appreciate any sort of contributions, and don't want a wall of
 rules to get in the way of that.
 
-That said, if you want to ensure that a pull request is likely to be merged, talk to us! 
-A great way to do this is in issues themselves. When you want to work on an issue, comment on it first 
-and tell us the approach you want to take.
+That said, if you want to ensure that a pull request is likely to be merged, 
+talk to us! A great way to do this is in issues themselves. When you want to 
+work on an issue, comment on it first and tell us the approach you want to take.
 
 ## Getting Started
 ### Some Ways to Contribute
 * Report potential bugs.
 * Suggest product enhancements.
-* Improve our unit test coverage.
+* Increase our test coverage.
 * Fix a [bug](https://github.com/hashicorp/consul/labels/bug).
 * Implement a requested [enhancement](https://github.com/hashicorp/consul/labels/enhancement).
 * Improve our guides and documentation. Consul's [Guides](https://www.consul.io/docs/guides/index.html), [Docs](https://www.consul.io/docs/index.html), and [api godoc](https://godoc.org/github.com/hashicorp/consul/api)
-are hosted in this repo.
+are deployed from this repo.
 
 ### Reporting an Issue:
 >Note: Issues on GitHub for Consul are intended to be related to bugs or feature requests. 
 >Questions should be directed to other community resources such as the: [Mailing List](https://groups.google.com/group/consul-tool/), [FAQ](https://www.consul.io/docs/faq.html), or [Guides](https://www.consul.io/docs/guides/index.html).
 
-* Make sure you test against the latest released version. It is possible we already fixed the bug you're experiencing. However, if you are on an older version of Consul and feel the issue is critical, do let us know.
+* Make sure you test against the latest released version. It is possible we 
+already fixed the bug you're experiencing. However, if you are on an older 
+version of Consul and feel the issue is critical, do let us know.
 
-* Check existing issues (both open and closed) to make sure it has not been reported previously.
+* Check existing issues (both open and closed) to make sure it has not been 
+reported previously.
 
-* Provide a reproducible test case. If a contributor can't reproduce an issue, then it dramatically lowers the chances it'll get fixed. And in some cases, the issue will eventually be closed.
+* Provide a reproducible test case. If a contributor can't reproduce an issue, 
+then it dramatically lowers the chances it'll get fixed.
 
-* Aim to respond promptly to any questions made by the Consul team to your issue. Stale issues will be closed.
+* Aim to respond promptly to any questions made by the Consul team on your 
+issue. Stale issues will be closed.
 
 ### Issue Lifecycle
 
@@ -57,15 +62,16 @@ If you wish to work on Consul itself, you'll first need [Go](https://golang.org)
 installed (version 1.10+ is _required_). Make sure you have Go properly installed,
 including setting up your [GOPATH](https://golang.org/doc/code.html#GOPATH).
 
-Next, clone this repository into `$GOPATH/src/github.com/hashicorp/consul` and then type `make dev`. 
-In a few moments, you'll have a working `consul` executable in `consul/bin` and `$GOPATH/bin`:
+Next, clone this repository into `$GOPATH/src/github.com/hashicorp/consul` and 
+then run `make dev`. In a few moments, you'll have a working `consul` executable 
+in `consul/bin` and `$GOPATH/bin`:
 
 >Note: `make dev` will build for your local machine's os/architecture. If you wish to build for all os/architecture combinations use `make`.
 
 ## Making Changes to Consul
 
-The first step to making changes is to fork Consul. 
-Afterwards, the easiest way to work on the fork is to set it as a remote of the Consul project:
+The first step to making changes is to fork Consul. Afterwards, the easiest way 
+to work on the fork is to set it as a remote of the Consul project:
 
 1. Navigate to `$GOPATH/src/github.com/hashicorp/consul`
 2. Rename the existing remote's name: `git remote rename origin upstream`.
