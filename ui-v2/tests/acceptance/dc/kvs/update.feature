@@ -13,6 +13,8 @@ Feature: dc / kvs / update: KV Update
       kv: [Name]
     ---
     Then the url should be /datacenter/kv/[Name]/edit
+    # Turn the Code Editor off so we can fill the value easier
+    And I click "[name=json]"
     Then I fill in with yaml
     ---
       value: [Value]
@@ -39,6 +41,8 @@ Feature: dc / kvs / update: KV Update
       kv: key
     ---
     Then the url should be /datacenter/kv/key/edit
+    # Turn the Code Editor off so we can fill the value easier
+    And I click "[name=json]"
     Then I fill in with yaml
     ---
       value: '   '
@@ -59,6 +63,8 @@ Feature: dc / kvs / update: KV Update
       kv: key
     ---
     Then the url should be /datacenter/kv/key/edit
+    # Turn the Code Editor off so we can fill the value easier
+    And I click "[name=json]"
     Then I fill in with yaml
     ---
       value: ''
