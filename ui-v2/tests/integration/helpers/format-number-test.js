@@ -5,8 +5,7 @@ moduleForComponent('format-number', 'helper:format-number', {
   integration: true,
 });
 
-// Replace this with your real tests.
-test('it renders', function(assert) {
+test('it renders a formatted number when passed a number', function(assert) {
   this.set('inputValue', 1234);
 
   this.render(hbs`{{format-number inputValue}}`);
