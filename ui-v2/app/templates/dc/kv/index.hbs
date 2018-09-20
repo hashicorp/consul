@@ -20,6 +20,7 @@
                 {{ take 1 (drop 1 (reverse (split parent.Key '/'))) }}
             {{/if}}
         </h1>
+        <label for="toolbar-toggle"></label>
     {{/block-slot}}
     {{#block-slot 'toolbar'}}
 {{#if (gt items.length 0) }}

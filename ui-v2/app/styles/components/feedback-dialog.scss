@@ -2,3 +2,13 @@
 main .with-feedback {
   @extend %feedback-dialog-inline;
 }
+@media #{$--lt-spacious-page-header} {
+  .actions .with-feedback p {
+    bottom: auto;
+    top: 0px;
+  }
+  .actions .with-feedback p::after {
+    bottom: auto;
+    top: -5px;
+  }
+}

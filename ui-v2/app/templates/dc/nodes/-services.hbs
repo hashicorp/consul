@@ -1,4 +1,5 @@
 {{#if (gt items.length 0) }}
+    <input type="checkbox" id="toolbar-toggle" />
     <form class="filter-bar">
         {{freetext-filter onchange=(action 'filter') value=filter.s placeholder="Search by name/port"}}
     </form>
