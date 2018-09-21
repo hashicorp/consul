@@ -8,6 +8,7 @@ import Adapter, {
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/policy';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 import { OK as HTTP_OK } from 'consul-ui/utils/http/status';
+import makeAttrable from 'consul-ui/utils/makeAttrable';
 
 export default Adapter.extend({
   urlForQuery: function(query, modelName) {
@@ -46,6 +47,20 @@ export default Adapter.extend({
     }
     return data;
   },
+  isCreateRecord: function(url, method) {
+    return (
+      url.pathname ===
+      this.parseURL(this.urlForCreateRecord('policy', makeAttrable({ [DATACENTER_KEY]: '' })))
+        .pathname
+    );
+  },
+  isUpdateRecord: function(url, method) {
+    return (
+      url.pathname ===
+      this.parseURL(this.urlForUpdateRecord(null, 'policy', makeAttrable({ [DATACENTER_KEY]: '' })))
+        .pathname
+    );
+  },
   handleResponse: function(status, headers, payload, requestData) {
     let response = payload;
     const method = requestData.method;
@@ -55,6 +70,8 @@ export default Adapter.extend({
         case response === true:
           response = this.handleBooleanResponse(url, response, PRIMARY_KEY, SLUG_KEY);
           break;
+        case this.isUpdateRecord(url, method):
+        case this.isCreateRecord(url, method):
         case this.isQueryRecord(url, method):
           response = this.handleSingleResponse(url, response, PRIMARY_KEY, SLUG_KEY);
           break;

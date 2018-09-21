@@ -13,6 +13,9 @@ export default Service.extend({
   getSlugKey: function() {
     return SLUG_KEY;
   },
+  clone: function(item) {
+    return get(this, 'store').clone(this.getModelName(), get(item, PRIMARY_KEY));
+  },
   findByPolicy: function(id, dc) {
     return get(this, 'store').query(this.getModelName(), {
       policy: id,

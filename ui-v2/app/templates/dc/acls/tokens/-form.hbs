@@ -23,7 +23,7 @@
               {{/with}}
             {{/block-slot}}
             {{#block-slot 'actions' as |close|}}
-              <button type="button" {{action 'createPolicy' policy}}>Create and apply</button>
+              <button type="button" {{action 'createPolicy' policy close}}>Create and apply</button>
               <button type="button" class="type-cancel" {{action close}}>Cancel</button>
             {{/block-slot}}
           {{/modal-dialog}}
@@ -42,7 +42,7 @@
 {{#if (gt item.Policies.length 0)}}
     {{#tabular-collection
         data-test-policies
-        items=(sort-by 'Name:asc' item.Policies) as |item index|
+        items=(sort-by 'CreateTime:desc' 'Name:asc' item.Policies) as |item index|
     }}
         {{#block-slot 'header'}}
             <th>Name</th>
@@ -53,21 +53,23 @@
                   <a href={{href-to 'dc.acls.policies.edit' item.ID}}>{{item.Name}}</a>
                 </td>
                 <td>
-                    {{item.ID}}
+                    {{if (not item.isNew) item.ID 'Saving...'}}
                 </td>
                 <td>
-                    {{#confirmation-dialog message='Are you sure you want to remove this policy?'}}
-                        {{#block-slot 'action' as |confirm|}}
-                            <button data-test-delete type="button" class="type-delete" {{action confirm 'removePolicy' item}}>Remove</button>
-                        {{/block-slot}}
-                        {{#block-slot 'dialog' as |execute cancel message|}}
-                            <p>
-                                {{message}}
-                            </p>
-                            <button type="button" class="type-delete" {{action execute}}>Confirm Removal</button>
-                            <button type="button" class="type-cancel" {{ action cancel}}>Cancel</button>
-                        {{/block-slot}}
-                    {{/confirmation-dialog}}
+    {{#if (not item.isNew) }}
+                  {{#confirmation-dialog message='Are you sure you want to remove this policy?'}}
+                    {{#block-slot 'action' as |confirm|}}
+                        <button data-test-delete type="button" class="type-delete" {{action confirm 'removePolicy' item}}>Remove</button>
+                    {{/block-slot}}
+                    {{#block-slot 'dialog' as |execute cancel message|}}
+                        <p>
+                            {{message}}
+                        </p>
+                        <button type="button" class="type-delete" {{action execute}}>Confirm Removal</button>
+                        <button type="button" class="type-cancel" {{ action cancel}}>Cancel</button>
+                    {{/block-slot}}
+                  {{/confirmation-dialog}}
+    {{/if}}
                 </td>
         {{/block-slot}}
     {{/tabular-collection}}

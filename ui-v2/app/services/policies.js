@@ -18,8 +18,8 @@ export default Service.extend({
       dc: dc,
     });
   },
-  create: function() {
-    return get(this, 'store').createRecord('policy');
+  create: function(obj) {
+    return get(this, 'store').createRecord('policy', obj);
   },
   persist: function(item) {
     return item.save();

@@ -19,6 +19,8 @@ const model = Model.extend({
   }),
   Datacenter: attr('string'),
   Datacenters: attr(),
+  // frontend only
+  CreateTime: attr('date'),
   CreateIndex: attr('number'),
   ModifyIndex: attr('number'),
 });

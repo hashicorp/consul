@@ -27,7 +27,8 @@ export default Controller.extend({
           set(this.changeset, target.name, !get(this.item, target.name));
           break;
         case 'Policy':
-          get(this.changeset, 'Policies').pushObject(target.value);
+          this.send('addPolicy', target.value);
+          break;
       }
       this.changeset.validate();
     },

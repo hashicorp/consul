@@ -1,20 +1,17 @@
 import Mixin from '@ember/object/mixin';
 import WithBlockingActions from 'consul-ui/mixins/with-blocking-actions';
 import { get, set } from '@ember/object';
+import { inject as service } from '@ember/service';
 
 export default Mixin.create(WithBlockingActions, {
+  settings: service('settings'),
   actions: {
-    removePolicy: function(item) {
-      const token = get(this.controller, 'item');
-      const policies = get(token, 'Policies');
-      set(token, 'Policies', policies.without(item));
-    },
     use: function(item) {
       return get(this, 'feedback').execute(() => {
         return get(this, 'settings')
-          .persist({ token: get(item, 'ID') })
+          .persist({ token: get(item, 'SecretID') })
           .then(() => {
-            return this.transitionTo('dc.services');
+            return this.transitionTo('dc.acls.tokens');
           });
       }, 'use');
     },
