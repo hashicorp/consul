@@ -1,9 +1,9 @@
-%with-tooltip::before,
-%with-tooltip::after {
+%tooltip-bubble,
+%tooltip-tail {
   color: $ui-white;
   background-color: $ui-gray-800;
 }
-%with-tooltip::before {
+%tooltip-bubble {
   border-radius: $decor-radius-200;
   box-shadow: 0 3px 1px 0 rgba($ui-black, 0.12);
 }

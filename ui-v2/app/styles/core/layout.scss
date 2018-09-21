@@ -28,7 +28,7 @@ html.template-edit main {
 }
 @media #{$--lt-spacious-page-header} {
   .actions button.copy-btn {
-    margin-top: -42px;
+    margin-top: -56px;
     padding: 0;
   }
 }
@@ -38,7 +38,7 @@ main form + div .with-confirmation {
   margin-bottom: 2em;
 }
 @media #{$--lt-wide-form} {
-  main form [type="reset"] {
+  main form [type='reset'] {
     float: right;
     margin-right: 0 !important;
   }

@@ -4,15 +4,15 @@
             Copy Output
         {{/copy-button}}
     {{/block-slot}}
-    {{#block-slot 'success'}}
-        <p>
-            Copied output!
-        </p>
+    {{#block-slot 'success' as |transition|}}
+      <p class={{transition}}>
+        Copied IP Address!
+      </p>
     {{/block-slot}}
-    {{#block-slot 'error'}}
-        <p>
-            Sorry, something went wrong!
-        </p>
+    {{#block-slot 'error' as |transition|}}
+      <p class={{transition}}>
+        Sorry, something went wrong!
+      </p>
     {{/block-slot}}
 {{/feedback-dialog}}
 <dl>

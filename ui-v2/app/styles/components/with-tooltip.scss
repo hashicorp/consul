@@ -1,9 +1,4 @@
 @import './with-tooltip/index';
 %app-view h1 span {
-  @extend %with-tooltip;
-}
-%app-view h1 span {
-  text-indent: -9000px;
-  font-size: 0;
-  top: -9px;
+  @extend %with-pseudo-tooltip;
 }
