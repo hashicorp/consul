@@ -2,3 +2,19 @@
 div.with-confirmation {
   @extend %confirmation-dialog, %confirmation-dialog-inline;
 }
+table div.with-confirmation.confirming {
+  position: absolute;
+  right: 0;
+}
+@media #{$--lt-wide-form} {
+  %confirmation-dialog {
+    float: none;
+    margin-top: 1em;
+  }
+  %confirmation-dialog-inline {
+    display: block;
+  }
+  %confirmation-dialog-inline p {
+    margin-bottom: 1em;
+  }
+}

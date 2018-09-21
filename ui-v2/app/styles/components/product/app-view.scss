@@ -48,8 +48,7 @@
 }
 %app-view header .actions a,
 %app-view header .actions button {
-  padding: calc(0.375em - 1px) calc(2.2em - 1px);
-  height: 2.25em;
+  @extend %button-compact;
 }
 
 // content

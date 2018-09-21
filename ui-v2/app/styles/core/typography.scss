@@ -37,9 +37,11 @@ h2,
 %healthchecked-resource header span,
 %healthcheck-status dt,
 %copy-button,
-%form-element > span,
 %app-content div > dl > dt,
 td a {
+  font-weight: $typo-weight-semibold;
+}
+%form-element > span {
   font-weight: $typo-weight-semibold;
 }
 %button {
@@ -63,12 +65,6 @@ td:first-child em,
 %healthchecked-resource header em {
   font-style: normal;
 }
-%form-element > span {
-  text-transform: uppercase;
-}
-%form-element > span > * {
-  text-transform: none;
-}
 %footer > * {
   font-size: inherit;
 }
@@ -87,6 +83,7 @@ td {
   font-size: $typo-size-600;
 }
 th,
+%form-element > span,
 %with-tooltip::before,
 %healthchecked-resource strong,
 %footer {
@@ -100,9 +97,8 @@ th,
 %app-view > div.disabled > div,
 .template-error > div,
 %button,
-.with-confirmation p,
 %form-element > em,
-%form-element > span,
+.with-confirmation p,
 %feedback-dialog-inline p {
   font-size: $typo-size-800;
 }

@@ -1944,10 +1944,6 @@ builtins@^1.0.3:
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/builtins/-/builtins-1.0.3.tgz#cb94faeb61c8696451db36534e1422f94f0aee88"
 
-bulma@^0.6.2:
-  version "0.6.2"
-  resolved "https://registry.yarnpkg.com/bulma/-/bulma-0.6.2.tgz#f4b1d11d5acc51a79644eb0a2b0b10649d3d71f5"
-
 bytes@1:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/bytes/-/bytes-1.0.0.tgz#3569ede8ba34315fab99c3e92cb04c7220de1fa8"
@@ -3022,14 +3018,6 @@ ember-browserify@^1.2.2:
     through2 "^2.0.0"
     walk-sync "^0.2.7"
 
-ember-bulma-css@^0.2.1:
-  version "0.2.1"
-  resolved "https://registry.yarnpkg.com/ember-bulma-css/-/ember-bulma-css-0.2.1.tgz#4b168a74191c127d5bfec21dd3ceb0b279c72b1c"
-  dependencies:
-    bulma "^0.6.2"
-    ember-cli-babel "^6.6.0"
-    ember-cli-sass "^7.2.0"
-
 ember-changeset-validations@^1.2.11:
   version "1.2.11"
   resolved "https://registry.yarnpkg.com/ember-changeset-validations/-/ember-changeset-validations-1.2.11.tgz#b769c3557f42fae05398869f3904200e21a005d7"
@@ -3329,15 +3317,6 @@ ember-cli-qunit@^4.1.1:
 ember-cli-sass@^7.1.4:
   version "7.1.7"
   resolved "https://registry.yarnpkg.com/ember-cli-sass/-/ember-cli-sass-7.1.7.tgz#66899134788ec8d2406a45f5346d4db47a2aa012"
-  dependencies:
-    broccoli-funnel "^1.0.0"
-    broccoli-merge-trees "^1.1.0"
-    broccoli-sass-source-maps "^2.1.0"
-    ember-cli-version-checker "^2.1.0"
-
-ember-cli-sass@^7.2.0:
-  version "7.2.0"
-  resolved "https://registry.yarnpkg.com/ember-cli-sass/-/ember-cli-sass-7.2.0.tgz#293d1a94c43c1fdbb3835378e43d255e8ad5c961"
   dependencies:
     broccoli-funnel "^1.0.0"
     broccoli-merge-trees "^1.1.0"

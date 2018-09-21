@@ -1,5 +1,5 @@
 @import './tabs/index';
-main header nav:last-child {
+main header nav:last-of-type:not(:first-of-type) {
   @extend %tab-nav;
 }
 .tab-section {

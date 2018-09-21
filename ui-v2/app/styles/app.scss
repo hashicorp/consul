@@ -10,6 +10,7 @@
 @import 'components/anchors';
 @import 'components/buttons';
 @import 'components/tabs';
+@import 'components/pill';
 @import 'components/table';
 @import 'components/form-elements';
 
@@ -38,3 +39,4 @@
 @import 'routes/dc/nodes/index';
 @import 'routes/dc/intention/index';
 @import 'routes/dc/kv/index';
+@import 'routes/dc/acls/index';

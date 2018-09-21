@@ -58,13 +58,18 @@
   padding-left: 10px;
   display: inline-block;
 }
+%with-hashicorp {
+  background-color: $ui-white;
+}
 %with-hashicorp::before {
   @extend %pseudo-icon;
-  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="23" height="22" xmlns="http://www.w3.org/2000/svg"><g fill="%23a5b0b7"><path d="M9.753 1L1 5.541v10.911l3.288 1.707V7.25l5.465-2.837z"/><path d="M13.247 1v8.688H9.753V6.446l-3.29 1.708v11.131l3.29 1.711v-8.663h3.494v3.22l3.288-1.707V2.708z"/><path d="M13.247 21L22 16.459V5.548l-3.29-1.707v10.91l-5.463 2.837z"/></g></svg>');
-  width: 23px;
-  height: 22px;
+  opacity: .45;
+  background-image: $hashicorp-svg;
+  background-size: cover;
+  width: 20px;
+  height: 20px;
   left: -25px;
-  margin-top: -11px;
+  margin-top: -10px;
   background-color: $ui-color-transparent;
 }
 %with-clipboard {
