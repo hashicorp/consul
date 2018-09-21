@@ -165,10 +165,9 @@ func TestCatalog_Register_ACLDeny(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 	codec := rpcClient(t, s1)
 	defer codec.Close()
-
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create the ACL.
 	arg := structs.ACLRequest{
@@ -1473,6 +1472,7 @@ func TestCatalog_ListServices_Stale(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1" // Enable ACLs!
 		c.Bootstrap = false     // Disable bootstrap

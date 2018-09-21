@@ -16,10 +16,10 @@ import (
 )
 
 func testVaultCluster(t *testing.T) (*VaultProvider, *vault.Core, net.Listener) {
-	return testVaultClusterWithConfig(t, nil)
+	return testVaultClusterWithConfig(t, true, nil)
 }
 
-func testVaultClusterWithConfig(t *testing.T, rawConf map[string]interface{}) (*VaultProvider, *vault.Core, net.Listener) {
+func testVaultClusterWithConfig(t *testing.T, isRoot bool, rawConf map[string]interface{}) (*VaultProvider, *vault.Core, net.Listener) {
 	if err := vault.AddTestLogicalBackend("pki", pki.Factory); err != nil {
 		t.Fatal(err)
 	}
@@ -32,14 +32,20 @@ func testVaultClusterWithConfig(t *testing.T, rawConf map[string]interface{}) (*
 		"Token":               token,
 		"RootPKIPath":         "pki-root/",
 		"IntermediatePKIPath": "pki-intermediate/",
+		// Tests duration parsing after msgpack type mangling during raft apply.
+		"LeafCertTTL": []uint8("72h"),
 	}
 	for k, v := range rawConf {
 		conf[k] = v
 	}
 
-	provider, err := NewVaultProvider(conf, "asdf")
-	if err != nil {
-		t.Fatal(err)
+	require := require.New(t)
+	provider := &VaultProvider{}
+	require.NoError(provider.Configure("asdf", isRoot, conf))
+	if isRoot {
+		require.NoError(provider.GenerateRoot())
+		_, err := provider.GenerateIntermediate()
+		require.NoError(err)
 	}
 
 	return provider, core, ln
@@ -96,7 +102,7 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	provider, core, listener := testVaultClusterWithConfig(t, map[string]interface{}{
+	provider, core, listener := testVaultClusterWithConfig(t, true, map[string]interface{}{
 		"LeafCertTTL": "1h",
 	})
 	defer core.Shutdown()
@@ -171,4 +177,53 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 	defer listener2.Close()
 
 	testCrossSignProviders(t, provider1, provider2)
+}
+
+func TestVaultProvider_SignIntermediate(t *testing.T) {
+	t.Parallel()
+
+	provider1, core1, listener1 := testVaultCluster(t)
+	defer core1.Shutdown()
+	defer listener1.Close()
+
+	provider2, core2, listener2 := testVaultClusterWithConfig(t, false, nil)
+	defer core2.Shutdown()
+	defer listener2.Close()
+
+	testSignIntermediateCrossDC(t, provider1, provider2)
+}
+
+func TestVaultProvider_SignIntermediateConsul(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	// primary = Vault, secondary = Consul
+	{
+		provider1, core, listener := testVaultCluster(t)
+		defer core.Shutdown()
+		defer listener.Close()
+
+		conf := testConsulCAConfig()
+		delegate := newMockDelegate(t, conf)
+		provider2 := &ConsulProvider{Delegate: delegate}
+		require.NoError(provider2.Configure(conf.ClusterID, false, conf.Config))
+
+		testSignIntermediateCrossDC(t, provider1, provider2)
+	}
+
+	// primary = Consul, secondary = Vault
+	{
+		conf := testConsulCAConfig()
+		delegate := newMockDelegate(t, conf)
+		provider1 := &ConsulProvider{Delegate: delegate}
+		require.NoError(provider1.Configure(conf.ClusterID, true, conf.Config))
+		require.NoError(provider1.GenerateRoot())
+
+		provider2, core, listener := testVaultClusterWithConfig(t, false, nil)
+		defer core.Shutdown()
+		defer listener.Close()
+
+		testSignIntermediateCrossDC(t, provider1, provider2)
+	}
 }

@@ -38,6 +38,7 @@ import (
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/watch"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
@@ -276,6 +277,30 @@ func LocalConfig(cfg *config.RuntimeConfig) local.Config {
 	return lc
 }
 
+func (a *Agent) setupProxyManager() error {
+	acfg, err := a.config.APIConfig(true)
+	if err != nil {
+		return fmt.Errorf("[INFO] agent: Connect managed proxies are disabled due to providing an invalid HTTP configuration")
+	}
+	a.proxyManager = proxy.NewManager()
+	a.proxyManager.AllowRoot = a.config.ConnectProxyAllowManagedRoot
+	a.proxyManager.State = a.State
+	a.proxyManager.Logger = a.logger
+	if a.config.DataDir != "" {
+		// DataDir is required for all non-dev mode agents, but we want
+		// to allow setting the data dir for demos and so on for the agent,
+		// so do the check above instead.
+		a.proxyManager.DataDir = filepath.Join(a.config.DataDir, "proxy")
+
+		// Restore from our snapshot (if it exists)
+		if err := a.proxyManager.Restore(a.proxyManager.SnapshotPath()); err != nil {
+			a.logger.Printf("[WARN] agent: error restoring proxy state: %s", err)
+		}
+	}
+	a.proxyManager.ProxyEnv = acfg.GenerateEnv()
+	return nil
+}
+
 func (a *Agent) Start() error {
 	c := a.config
 
@@ -372,29 +397,11 @@ func (a *Agent) Start() error {
 	// done here after the local state above is loaded in so we can have
 	// a more accurate initial state view.
 	if !c.ConnectTestDisableManagedProxies {
-		a.proxyManager = proxy.NewManager()
-		a.proxyManager.AllowRoot = a.config.ConnectProxyAllowManagedRoot
-		a.proxyManager.State = a.State
-		a.proxyManager.Logger = a.logger
-		if a.config.DataDir != "" {
-			// DataDir is required for all non-dev mode agents, but we want
-			// to allow setting the data dir for demos and so on for the agent,
-			// so do the check above instead.
-			a.proxyManager.DataDir = filepath.Join(a.config.DataDir, "proxy")
-
-			// Restore from our snapshot (if it exists)
-			if err := a.proxyManager.Restore(a.proxyManager.SnapshotPath()); err != nil {
-				a.logger.Printf("[WARN] agent: error restoring proxy state: %s", err)
-			}
+		if err := a.setupProxyManager(); err != nil {
+			a.logger.Printf(err.Error())
+		} else {
+			go a.proxyManager.Run()
 		}
-
-		acfg, err := a.config.APIConfig(true)
-		if err != nil {
-			return err
-		}
-		a.proxyManager.ProxyEnv = acfg.GenerateEnv()
-
-		go a.proxyManager.Run()
 	}
 
 	// Start watching for critical services to deregister, based on their
@@ -448,6 +455,7 @@ func (a *Agent) Start() error {
 
 func (a *Agent) listenAndServeDNS() error {
 	notif := make(chan net.Addr, len(a.config.DNSAddrs))
+	errCh := make(chan error, len(a.config.DNSAddrs))
 	for _, addr := range a.config.DNSAddrs {
 		// create server
 		s, err := NewDNSServer(a)
@@ -462,23 +470,26 @@ func (a *Agent) listenAndServeDNS() error {
 			defer a.wgServers.Done()
 			err := s.ListenAndServe(addr.Network(), addr.String(), func() { notif <- addr })
 			if err != nil && !strings.Contains(err.Error(), "accept") {
-				a.logger.Printf("[ERR] agent: Error starting DNS server %s (%s): %v", addr.String(), addr.Network(), err)
+				errCh <- err
 			}
 		}(addr)
 	}
 
 	// wait for servers to be up
 	timeout := time.After(time.Second)
+	var merr *multierror.Error
 	for range a.config.DNSAddrs {
 		select {
 		case addr := <-notif:
 			a.logger.Printf("[INFO] agent: Started DNS server %s (%s)", addr.String(), addr.Network())
-			continue
+		case err := <-errCh:
+			merr = multierror.Append(merr, err)
 		case <-timeout:
-			return fmt.Errorf("agent: timeout starting DNS servers")
+			merr = multierror.Append(merr, fmt.Errorf("agent: timeout starting DNS servers"))
+			break
 		}
 	}
-	return nil
+	return merr.ErrorOrNil()
 }
 
 // listenHTTP binds listeners to the provided addresses and also returns
@@ -1810,6 +1821,15 @@ func (a *Agent) RemoveService(serviceID string, persist bool) error {
 		}
 		if err := a.RemoveCheck(checkID, persist); err != nil {
 			return err
+		}
+	}
+
+	// Remove the associated managed proxy if it exists
+	for proxyID, p := range a.State.Proxies() {
+		if p.Proxy.TargetServiceID == serviceID {
+			if err := a.RemoveProxy(proxyID, true); err != nil {
+				return err
+			}
 		}
 	}
 

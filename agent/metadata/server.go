@@ -38,6 +38,7 @@ type Server struct {
 	RaftVersion  int
 	Addr         net.Addr
 	Status       serf.MemberStatus
+	NonVoter     bool
 
 	// If true, use TLS when connecting to this server
 	UseTLS bool
@@ -139,6 +140,9 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		}
 	}
 
+	// Check if the server is a non voter
+	_, nonVoter := m.Tags["nonvoter"]
+
 	addr := &net.TCPAddr{IP: m.Addr, Port: port}
 
 	parts := &Server{
@@ -158,6 +162,7 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		RaftVersion:  raftVsn,
 		Status:       m.Status,
 		UseTLS:       useTLS,
+		NonVoter:     nonVoter,
 	}
 	return true, parts
 }

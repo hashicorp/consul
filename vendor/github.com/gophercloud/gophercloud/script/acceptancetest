@@ -1,0 +1,60 @@
+#!/bin/bash
+#
+set -x
+
+source `dirname $0`/stackenv
+
+timeout="60m"
+failed=
+
+# Run the acceptance tests.
+# Check the error code after each suite, but do not exit early if a suite failed.
+
+# Identity v3
+go test -v -timeout $timeout -tags "fixtures acceptance" ./acceptance/openstack/identity/v3/
+if [[ $? != 0 ]]; then
+  failed=1
+fi
+
+# Networking v2
+go test -v -timeout $timeout -tags "fixtures acceptance" ./acceptance/openstack/networking/v2/
+if [[ $? != 0 ]]; then
+  failed=1
+fi
+
+# Block Storage v2
+go test -v -timeout $timeout -tags "fixtures acceptance" ./acceptance/openstack/blockstorage/v2/
+if [[ $? != 0 ]]; then
+  failed=1
+fi
+
+# Block Storage v3
+go test -v -timeout $timeout -tags "fixtures acceptance" ./acceptance/openstack/blockstorage/v3/
+if [[ $? != 0 ]]; then
+  failed=1
+fi
+
+# Compute v2
+go test -v -timeout $timeout -tags "fixtures acceptance" ./acceptance/openstack/compute/v2/
+if [[ $? != 0 ]]; then
+  failed=1
+fi
+
+# Container v1
+go test -v -timeout $timeout -tags "fixtures acceptance" ./acceptance/openstack/container/v1/
+if [[ $? != 0 ]]; then
+  failed=1
+fi
+
+# Image Service v2
+go test -v -timeout $timeout -tags "fixtures acceptance" ./acceptance/openstack/imageservice/v2/
+if [[ $? != 0 ]]; then
+  failed=1
+fi
+
+# If any of the test suites failed, exit 1
+if [[ -n $failed ]]; then
+  exit 1
+fi
+
+exit 0

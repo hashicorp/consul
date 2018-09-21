@@ -6,6 +6,7 @@ go:
 branches:
   only:
     - master
+    - f-envoy
 
 matrix:
   include:

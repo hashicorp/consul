@@ -179,6 +179,10 @@ mapping.
 [root@localhost ~]# iptables -t nat -A OUTPUT -d localhost -p tcp -m tcp --dport 53 -j REDIRECT --to-ports 8600
 ```
 
+Binding to port 53 will usually require running either as a privileged user (or on Linux running with the 
+CAP_NET_BIND_SERVICE capability). If using the Consul docker image you will need to add the following to the
+environment to allow Consul to use the port: `CONSUL_ALLOW_PRIVILEGED_PORTS=yes` 
+
 Note: With this setup, PTR record queries will still be sent out
 to the other configured resolvers in addition to Consul. 
 

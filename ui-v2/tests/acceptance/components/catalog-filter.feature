@@ -61,9 +61,22 @@ Feature: components / catalog-filter
     -------------------------------------------------
   Scenario: Filtering [Model] in [Page]
     Given 1 datacenter model with the value "dc1"
-    And 2 node models from yaml
+    And 1 node model from yaml
     ---
-    - ID: node-0
+    ID: node-0
+    Services:
+    - ID: 'service-0-with-id'
+      Port: 65535
+      Service: 'service-0'
+      Tags: ['monitor', 'two', 'three']
+    - ID: 'service-1'
+      Port: 0
+      Service: 'service-1'
+      Tags: ['hard drive', 'monitor', 'three']
+    - ID: 'service-2'
+      Port: 1
+      Service: 'service-2'
+      Tags: ['one', 'two', 'three']
     ---
     When I visit the [Page] page for yaml
     ---
@@ -71,7 +84,6 @@ Feature: components / catalog-filter
       node: node-0
     ---
     # And I see 3 healthcheck model with the name "Disk Util"
-    # And then pause for 5000
     When I click services on the tabs
     And I see servicesIsSelected on the tabs
 

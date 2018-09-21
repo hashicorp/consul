@@ -317,7 +317,11 @@ export default function(assert) {
         // this will catch if we get aren't managing to select a component
         assert.ok(iterator.length > 0);
         iterator.forEach(function(item, i, arr) {
-          const actual = _component.objectAt(i)[property];
+          const actual =
+            typeof _component.objectAt(i)[property] === 'undefined'
+              ? null
+              : _component.objectAt(i)[property];
+
           // anything coming from the DOM is going to be text/strings
           // if the yaml has numbers, cast them to strings
           // TODO: This would get problematic for deeper objects
@@ -379,6 +383,13 @@ export default function(assert) {
       })
       .then(['I see $property'], function(property) {
         assert.ok(currentPage[property], `Expected to see ${property}`);
+      })
+      .then(['I see $property like "$value"'], function(property, value) {
+        assert.equal(
+          currentPage[property],
+          value,
+          `Expected to see ${property}, was ${currentPage[property]}`
+        );
       })
       .then(['I see the text "$text" in "$selector"'], function(text, selector) {
         assert.ok(

@@ -26,8 +26,8 @@ func TestProxy_public(t *testing.T) {
 
 	a := agent.NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	client := a.Client()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	// Register the service so we can get a leaf cert
 	_, err := client.Catalog().Register(&api.CatalogRegistration{

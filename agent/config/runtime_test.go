@@ -2005,16 +2005,22 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			json: []string{
 				`{ "service": { "name": "a", "port": 80 } }`,
-				`{ "service": { "name": "b", "port": 90, "meta": {"my": "value"} } }`,
+				`{ "service": { "name": "b", "port": 90, "meta": {"my": "value"}, "weights": {"passing": 13} } }`,
 			},
 			hcl: []string{
 				`service = { name = "a" port = 80 }`,
-				`service = { name = "b" port = 90 meta={my="value"}}`,
+				`service = { name = "b" port = 90 meta={my="value"}, weights={passing=13}}`,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Services = []*structs.ServiceDefinition{
-					&structs.ServiceDefinition{Name: "a", Port: 80},
-					&structs.ServiceDefinition{Name: "b", Port: 90, Meta: map[string]string{"my": "value"}},
+					&structs.ServiceDefinition{Name: "a", Port: 80, Weights: &structs.Weights{
+						Passing: 1,
+						Warning: 1,
+					}},
+					&structs.ServiceDefinition{Name: "b", Port: 90, Meta: map[string]string{"my": "value"}, Weights: &structs.Weights{
+						Passing: 13,
+						Warning: 1,
+					}},
 				}
 				rt.DataDir = dataDir
 			},
@@ -2108,6 +2114,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 								ScriptArgs:                     []string{"a", "b"},
 							},
 						},
+						Weights: &structs.Weights{
+							Passing: 1,
+							Warning: 1,
+						},
 					},
 				}
 				rt.DataDir = dataDir
@@ -2167,6 +2177,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 								},
 							},
 						},
+						Weights: &structs.Weights{
+							Passing: 1,
+							Warning: 1,
+						},
 					},
 				}
 			},
@@ -2210,6 +2224,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 									},
 								},
 							},
+						},
+						Weights: &structs.Weights{
+							Passing: 1,
+							Warning: 1,
 						},
 					},
 				}
@@ -2266,10 +2284,18 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 								},
 							},
 						},
+						Weights: &structs.Weights{
+							Passing: 1,
+							Warning: 1,
+						},
 					},
 					&structs.ServiceDefinition{
 						Name: "service-A2",
 						Port: 81,
+						Weights: &structs.Weights{
+							Passing: 1,
+							Warning: 1,
+						},
 					},
 				}
 			},
@@ -2747,6 +2773,10 @@ func TestFullConfig(t *testing.T) {
 				"address": "cOlSOhbp",
 				"token": "msy7iWER",
 				"port": 24237,
+				"weights": {
+					"passing": 100,
+					"warning": 1
+				},
 				"enable_tag_override": true,
 				"check": {
 					"id": "RMi85Dv8",
@@ -2855,6 +2885,10 @@ func TestFullConfig(t *testing.T) {
 					"address": "R6H6g8h0",
 					"token": "ZgY8gjMI",
 					"port": 38292,
+					"weights": {
+						"passing": 1979,
+						"warning": 6
+					},
 					"enable_tag_override": true,
 					"checks": [
 						{
@@ -3238,6 +3272,10 @@ func TestFullConfig(t *testing.T) {
 				address = "cOlSOhbp"
 				token = "msy7iWER"
 				port = 24237
+				weights = {
+					passing = 100,
+					warning = 1
+				}
 				enable_tag_override = true
 				check = {
 					id = "RMi85Dv8"
@@ -3346,6 +3384,10 @@ func TestFullConfig(t *testing.T) {
 					address = "R6H6g8h0"
 					token = "ZgY8gjMI"
 					port = 38292
+					weights = {
+						passing = 1979,
+						warning = 6
+					}
 					enable_tag_override = true
 					checks = [
 						{
@@ -3798,12 +3840,16 @@ func TestFullConfig(t *testing.T) {
 		ServerPort:  3757,
 		Services: []*structs.ServiceDefinition{
 			{
-				ID:                "wI1dzxS4",
-				Name:              "7IszXMQ1",
-				Tags:              []string{"0Zwg8l6v", "zebELdN5"},
-				Address:           "9RhqPSPB",
-				Token:             "myjKJkWH",
-				Port:              72219,
+				ID:      "wI1dzxS4",
+				Name:    "7IszXMQ1",
+				Tags:    []string{"0Zwg8l6v", "zebELdN5"},
+				Address: "9RhqPSPB",
+				Token:   "myjKJkWH",
+				Port:    72219,
+				Weights: &structs.Weights{
+					Passing: 1,
+					Warning: 1,
+				},
 				EnableTagOverride: true,
 				Checks: []*structs.CheckType{
 					&structs.CheckType{
@@ -3830,12 +3876,16 @@ func TestFullConfig(t *testing.T) {
 				},
 			},
 			{
-				ID:                "MRHVMZuD",
-				Name:              "6L6BVfgH",
-				Tags:              []string{"7Ale4y6o", "PMBW08hy"},
-				Address:           "R6H6g8h0",
-				Token:             "ZgY8gjMI",
-				Port:              38292,
+				ID:      "MRHVMZuD",
+				Name:    "6L6BVfgH",
+				Tags:    []string{"7Ale4y6o", "PMBW08hy"},
+				Address: "R6H6g8h0",
+				Token:   "ZgY8gjMI",
+				Port:    38292,
+				Weights: &structs.Weights{
+					Passing: 1979,
+					Warning: 6,
+				},
 				EnableTagOverride: true,
 				Checks: structs.CheckTypes{
 					&structs.CheckType{
@@ -3897,15 +3947,23 @@ func TestFullConfig(t *testing.T) {
 				Port:             31471,
 				Kind:             "connect-proxy",
 				ProxyDestination: "6L6BVfgH",
+				Weights: &structs.Weights{
+					Passing: 1,
+					Warning: 1,
+				},
 			},
 			{
-				ID:                "dLOXpSCI",
-				Name:              "o1ynPkp0",
-				Tags:              []string{"nkwshvM5", "NTDWn3ek"},
-				Address:           "cOlSOhbp",
-				Token:             "msy7iWER",
-				Meta:              map[string]string{"mymeta": "data"},
-				Port:              24237,
+				ID:      "dLOXpSCI",
+				Name:    "o1ynPkp0",
+				Tags:    []string{"nkwshvM5", "NTDWn3ek"},
+				Address: "cOlSOhbp",
+				Token:   "msy7iWER",
+				Meta:    map[string]string{"mymeta": "data"},
+				Port:    24237,
+				Weights: &structs.Weights{
+					Passing: 100,
+					Warning: 1,
+				},
 				EnableTagOverride: true,
 				Connect: &structs.ServiceConnect{
 					Native: true,
@@ -4324,6 +4382,10 @@ func TestSanitize(t *testing.T) {
 				Check: structs.CheckType{
 					Name: "blurb",
 				},
+				Weights: &structs.Weights{
+					Passing: 67,
+					Warning: 3,
+				},
 			},
 		},
 		Checks: []*structs.CheckDefinition{
@@ -4552,7 +4614,11 @@ func TestSanitize(t *testing.T) {
 			"Port": 0,
 			"ProxyDestination": "",
 			"Tags": [],
-			"Token": "hidden"
+			"Token": "hidden",
+			"Weights": {
+				"Passing": 67,
+				"Warning": 3
+			}
 		}],
 		"SessionTTLMin": "0s",
 		"SkipLeaveOnInt": false,

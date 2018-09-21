@@ -162,7 +162,7 @@ test-internal:
 	@# hide it from travis as it exceeds their log limits and causes job to be
 	@# terminated (over 4MB and over 10k lines in the UI). We need to output
 	@# _something_ to stop them terminating us due to inactivity...
-	{ go test $(GOTEST_FLAGS) -tags '$(GOTAGS)' $(GOTEST_PKGS) 2>&1 ; echo $$? > exit-code ; } | tee test.log | egrep '^(ok|FAIL|panic:|--- FAIL)'
+	{ go test -v $(GOTEST_FLAGS) -tags '$(GOTAGS)' $(GOTEST_PKGS) 2>&1 ; echo $$? > exit-code ; } | tee test.log | egrep '^(ok|FAIL|panic:|--- FAIL|--- PASS)'
 	@echo "Exit code: $$(cat exit-code)"
 	@# This prints all the race report between ====== lines
 	@awk '/^WARNING: DATA RACE/ {do_print=1; print "=================="} do_print==1 {print} /^={10,}/ {do_print=0}' test.log || true
@@ -186,13 +186,16 @@ test-ci: other-consul dev-build vet test-install-deps
 	    echo "    ============"; \
 	    echo "      Retrying 1/2"; \
 	    echo "    ============"; \
-	    if ! GOTEST_FLAGS="-timeout 8m -p 1 -parallel 1" make test-internal; then \
+	    if ! GOTEST_FLAGS="-timeout 9m -p 1 -parallel 1" make test-internal; then \
 	       echo "    ============"; \
 	       echo "      Retrying 2/2"; \
 	       echo "    ============"; \
 	       GOTEST_FLAGS="-timeout 9m -p 1 -parallel 1" make test-internal; \
 	    fi \
 	fi
+
+test-flake: other-consul vet test-install-deps
+	@$(SHELL) $(CURDIR)/build-support/scripts/test-flake.sh --pkg "$(FLAKE_PKG)" --test "$(FLAKE_TEST)" --cpus "$(FLAKE_CPUS)" --n "$(FLAKE_N)"
 
 other-consul:
 	@echo "--> Checking for other consul instances"

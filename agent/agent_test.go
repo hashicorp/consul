@@ -641,6 +641,10 @@ func verifyIndexChurn(t *testing.T, tags []string) {
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
+	weights := &structs.Weights{
+		Passing: 1,
+		Warning: 1,
+	}
 	// Ensure we have a leader before we start adding the services
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -649,6 +653,7 @@ func verifyIndexChurn(t *testing.T, tags []string) {
 		Service: "redis",
 		Port:    8000,
 		Tags:    tags,
+		Weights: weights,
 	}
 	if err := a.AddService(svc, nil, true, ""); err != nil {
 		t.Fatalf("err: %v", err)
@@ -2179,6 +2184,7 @@ func TestAgent_Service_Reap(t *testing.T) {
 		check_deregister_interval_min = "0s"
 	`)
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	svc := &structs.NodeService{
 		ID:      "redis",
@@ -3047,4 +3053,33 @@ func TestAgent_ReLoadProxiesFromConfig(t *testing.T) {
 	require.NoError(a.loadProxies(a.config))
 	proxies = a.State.Proxies()
 	require.Len(proxies, 0)
+}
+
+func TestAgent_SetupProxyManager(t *testing.T) {
+	t.Parallel()
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	defer os.RemoveAll(dataDir)
+	hcl := `
+		ports { http = -1 }
+		data_dir = "` + dataDir + `"
+	`
+	c := TestConfig(
+		// randomPortsSource(false),
+		config.Source{Name: t.Name(), Format: "hcl", Data: hcl},
+	)
+	a, err := New(c)
+	require.NoError(t, err)
+	require.Error(t, a.setupProxyManager(), "setupProxyManager should fail with invalid HTTP API config")
+
+	hcl = `
+		ports { http = 8001 }
+		data_dir = "` + dataDir + `"
+	`
+	c = TestConfig(
+		// randomPortsSource(false),
+		config.Source{Name: t.Name(), Format: "hcl", Data: hcl},
+	)
+	a, err = New(c)
+	require.NoError(t, err)
+	require.NoError(t, a.setupProxyManager())
 }

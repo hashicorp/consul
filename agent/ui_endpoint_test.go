@@ -168,6 +168,7 @@ func TestSummarizeServices(t *testing.T) {
 					Kind:    structs.ServiceKindConnectProxy,
 					Service: "web",
 					Tags:    []string{},
+					Meta:    map[string]string{metaExternalSource: "k8s"},
 				},
 			},
 			Checks: []*structs.HealthCheck{
@@ -193,6 +194,7 @@ func TestSummarizeServices(t *testing.T) {
 					Kind:    structs.ServiceKindConnectProxy,
 					Service: "web",
 					Tags:    []string{},
+					Meta:    map[string]string{metaExternalSource: "k8s"},
 				},
 			},
 			Checks: []*structs.HealthCheck{
@@ -246,14 +248,16 @@ func TestSummarizeServices(t *testing.T) {
 	}
 
 	expectWeb := &ServiceSummary{
-		Kind:           structs.ServiceKindConnectProxy,
-		Name:           "web",
-		Tags:           []string{},
-		Nodes:          []string{"bar", "foo"},
-		ChecksPassing:  2,
-		ChecksWarning:  0,
-		ChecksCritical: 1,
+		Kind:            structs.ServiceKindConnectProxy,
+		Name:            "web",
+		Tags:            []string{},
+		Nodes:           []string{"bar", "foo"},
+		ChecksPassing:   2,
+		ChecksWarning:   0,
+		ChecksCritical:  1,
+		ExternalSources: []string{"k8s"},
 	}
+	summary[2].externalSourceSet = nil
 	if !reflect.DeepEqual(summary[2], expectWeb) {
 		t.Fatalf("bad: %v", summary[2])
 	}

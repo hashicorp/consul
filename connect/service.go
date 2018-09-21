@@ -72,7 +72,7 @@ func NewServiceWithLogger(serviceName string, client *api.Client,
 		service:              serviceName,
 		client:               client,
 		logger:               logger,
-		tlsCfg:               newDynamicTLSConfig(defaultTLSConfig()),
+		tlsCfg:               newDynamicTLSConfig(defaultTLSConfig(), logger),
 		httpResolverFromAddr: ConsulResolverFromAddrFunc(client),
 	}
 
@@ -121,7 +121,7 @@ func NewDevServiceWithTLSConfig(serviceName string, logger *log.Logger,
 	s := &Service{
 		service: serviceName,
 		logger:  logger,
-		tlsCfg:  newDynamicTLSConfig(tlsCfg),
+		tlsCfg:  newDynamicTLSConfig(tlsCfg, logger),
 	}
 	return s, nil
 }
