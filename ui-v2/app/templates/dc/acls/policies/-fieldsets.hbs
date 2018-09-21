@@ -1,0 +1,30 @@
+    <fieldset>
+        <label class="type-text{{if item.error.Name ' has-error'}}">
+            <span>Name</span>
+            {{input value=item.Name name='name' autofocus='autofocus'}}
+            <em>
+              Maximum 128 characters. May only include letters (uppercase and/or lowercase) and/or numbers. Must be unique.
+            </em>
+        </label>
+        <label class="type-text">
+            <span>Rules <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
+            {{code-editor class=(if item.error.Rules 'error') name='Rules' value=item.Rules onkeyup=(action 'change')}}
+        </label>
+        <label class="type-toggle">
+          <span>All</span>
+          <input type="checkbox" name="Local" checked={{if Local 'checked' }} onchange={{action 'change'}} />
+        </label>
+        <div class="checkbox-group">
+          {{#each datacenters as |dc| }}
+            <label class="type-checkbox">
+              <input type="checkbox" name="Datacenters" value={{dc.Name}} checked={{if (contains dc.Name item.Datacenters) 'checked' }} onchange={{action 'change'}} />
+              <span>{{dc.Name}}</span>
+            </label>
+          {{/each}}
+        </div>
+      <label class="type-text">
+        <span>Description (Optional)</span>
+        <textarea name="Description" oninput={{action 'change'}}></textarea>
+      </label>
+    </fieldset>
+

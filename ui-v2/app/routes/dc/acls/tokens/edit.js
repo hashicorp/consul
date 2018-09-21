@@ -15,8 +15,12 @@ export default SingleRoute.extend(WithTokenActions, {
         ...model,
         ...{
           items: get(this, 'policiesRepo').findAllByDatacenter(dc),
+          policy: get(this, 'policiesRepo').create(),
         },
       });
     });
+  },
+  actions: {
+    createPolicy: function(item) {},
   },
 });

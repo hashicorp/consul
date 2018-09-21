@@ -12,6 +12,21 @@
     </fieldset>
     <fieldset>
       <h2>Policies</h2>
+          <label for="new-policy-toggle">New Policy</label>
+          {{#modal-dialog name="new-policy-toggle"}}
+            {{#block-slot 'header'}}
+                <h2>New Policy</h2>
+            {{/block-slot}}
+            {{#block-slot 'body'}}
+              {{#with policy as |item|}}
+                {{partial 'dc/acls/policies/fieldsets'}}
+              {{/with}}
+            {{/block-slot}}
+            {{#block-slot 'actions' as |close|}}
+              <button type="button" {{action 'createPolicy' policy}}>Create and apply</button>
+              <button type="button" class="type-cancel" {{action close}}>Cancel</button>
+            {{/block-slot}}
+          {{/modal-dialog}}
       <label class="type-text">
         <span>Apply an existing policy</span>
             {{#power-select

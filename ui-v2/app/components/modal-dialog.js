@@ -1,12 +1,20 @@
 import Component from 'consul-ui/components/dom-buffer';
+import { get, set } from '@ember/object';
 
 import templatize from 'consul-ui/utils/templatize';
 const $html = document.documentElement;
 export default Component.extend({
   // tagName: ''
-  didInsertElement: function() {
+  checked: true,
+  onclose: function() {},
+  didReceiveAttrs: function() {
     this._super(...arguments);
-    $html.classList.add(...templatize(['with-modal']));
+    if (get(this, 'name')) {
+      set(this, 'checked', false);
+    }
+    if (get(this, 'checked')) {
+      $html.classList.add(...templatize(['with-modal']));
+    }
   },
   didDestroyElement: function() {
     this._super(...arguments);
