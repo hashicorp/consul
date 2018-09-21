@@ -11,3 +11,7 @@ html.template-service.template-list td.tags span,
 html.template-service.template-show main dd span {
   @extend %pill;
 }
+html.template-node.template-show #services th:first-child,
+html.template-service.template-list main th:first-child {
+  text-indent: 28px;
+}
