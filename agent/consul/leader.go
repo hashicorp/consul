@@ -414,24 +414,8 @@ func (s *Server) initializeCAConfig() (*structs.CAConfiguration, error) {
 	return config, nil
 }
 
-// initializeCA sets up the CA provider when gaining leadership, bootstrapping
-// the root in the state store if necessary.
-func (s *Server) initializeCA() error {
-	// Bail if connect isn't enabled.
-	if !s.config.ConnectEnabled {
-		return nil
-	}
-
-	conf, err := s.initializeCAConfig()
-	if err != nil {
-		return err
-	}
-
-	// Initialize the provider based on the current config.
-	provider, err := s.createCAProvider(conf)
-	if err != nil {
-		return err
-	}
+// initializeRootCA runs the initialization logic for a root CA.
+func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfiguration) error {
 	if err := provider.Configure(conf.ClusterID, true, conf.Config); err != nil {
 		return fmt.Errorf("error configuring provider: %v", err)
 	}
@@ -495,7 +479,7 @@ func (s *Server) initializeCA() error {
 
 	s.setCAProvider(provider, rootCA)
 
-	s.logger.Printf("[INFO] connect: initialized CA with provider %q", conf.Provider)
+	s.logger.Printf("[INFO] connect: initialized primary datacenter CA with provider %q", conf.Provider)
 
 	return nil
 }
