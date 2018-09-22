@@ -72,7 +72,7 @@ as a payload along the request. The response also contains the Consul index as a
 The HTTP handler can be configured by setting `handler_type` to `http`. Additional handler options
 are set using `http_handler_config`. The only required parameter is the `path` field which specifies
 the URL to the HTTP endpoint. Consul uses `POST` as the default HTTP method, but this is also configurable.
-Other optional fields are `header`, `timeout` and`tls_skip_verify`. The watch invocation data is
+Other optional fields are `header`, `timeout` and `tls_skip_verify`. The watch invocation data is
 always sent as a JSON payload.
 
 Here is an example configuration:
