@@ -2,11 +2,12 @@ package rewrite
 
 import (
 	"context"
+	"reflect"
+	"testing"
+
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/plugin/test"
-	"reflect"
-	"testing"
 
 	"github.com/miekg/dns"
 )
@@ -40,11 +41,9 @@ func TestNewTtlRule(t *testing.T) {
 			failed = true
 		}
 		if !failed && !tc.expectedFail {
-			t.Logf("Test %d: PASS, passed as expected: (%s) %s", i, tc.next, tc.args)
 			continue
 		}
 		if failed && tc.expectedFail {
-			t.Logf("Test %d: PASS, failed as expected: (%s) %s: %s", i, tc.next, tc.args, err)
 			continue
 		}
 		t.Fatalf("Test %d: FAIL, expected fail=%t, but received fail=%t: (%s) %s, rule=%v", i, tc.expectedFail, failed, tc.next, tc.args, rule)
@@ -57,11 +56,9 @@ func TestNewTtlRule(t *testing.T) {
 			failed = true
 		}
 		if !failed && !tc.expectedFail {
-			t.Logf("Test %d: PASS, passed as expected: (%s) %s", i, tc.next, tc.args)
 			continue
 		}
 		if failed && tc.expectedFail {
-			t.Logf("Test %d: PASS, failed as expected: (%s) %s: %s", i, tc.next, tc.args, err)
 			continue
 		}
 		t.Fatalf("Test %d: FAIL, expected fail=%t, but received fail=%t: (%s) %s, rule=%v", i, tc.expectedFail, failed, tc.next, tc.args, rule)
@@ -119,7 +116,6 @@ func doTtlTests(rules []Rule, t *testing.T) {
 	}
 	ctx := context.TODO()
 	for i, tc := range tests {
-		failed := false
 		m := new(dns.Msg)
 		m.SetQuestion(tc.from, tc.fromType)
 		m.Question[0].Qclass = dns.ClassINET
@@ -134,21 +130,12 @@ func doTtlTests(rules []Rule, t *testing.T) {
 		resp := rec.Msg
 		if len(resp.Answer) == 0 {
 			t.Errorf("Test %d: FAIL %s (%d) Expected valid response but received %q", i, tc.from, tc.fromType, resp)
-			failed = true
 			continue
 		}
 		for _, a := range resp.Answer {
 			if a.Header().Ttl != tc.ttl {
 				t.Errorf("Test %d: FAIL %s (%d) Expected TTL to be %d but was %d", i, tc.from, tc.fromType, tc.ttl, a.Header().Ttl)
-				failed = true
 				break
-			}
-		}
-		if !failed {
-			if tc.noRewrite {
-				t.Logf("Test %d: PASS %s (%d) worked as expected, no rewrite for ttl %d", i, tc.from, tc.fromType, tc.ttl)
-			} else {
-				t.Logf("Test %d: PASS %s (%d) worked as expected, rewrote ttl to %d", i, tc.from, tc.fromType, tc.ttl)
 			}
 		}
 	}
