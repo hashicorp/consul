@@ -81,7 +81,7 @@ type dnsControl struct {
 
 	// watch-related items channel
 	watchChan        dnswatch.Chan
-	watched          map[string]bool
+	watched          map[string]struct{}
 	zones            []string
 	endpointNameMode bool
 }
@@ -105,7 +105,7 @@ func newdnsController(kubeClient *kubernetes.Clientset, opts dnsControlOpts) *dn
 		client:           kubeClient,
 		selector:         opts.selector,
 		stopCh:           make(chan struct{}),
-		watched:          make(map[string]bool),
+		watched:          make(map[string]struct{}),
 		zones:            opts.zones,
 		endpointNameMode: opts.endpointNameMode,
 	}
@@ -287,7 +287,7 @@ func (dns *dnsControl) Watch(qname string) error {
 	if dns.watchChan == nil {
 		return fmt.Errorf("cannot start watch because the channel has not been set")
 	}
-	dns.watched[qname] = true
+	dns.watched[qname] = struct{}{}
 	return nil
 }
 
