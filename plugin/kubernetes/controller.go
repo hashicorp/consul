@@ -157,7 +157,7 @@ func newdnsController(kubeClient *kubernetes.Clientset, opts dnsControlOpts) *dn
 func podIPIndexFunc(obj interface{}) ([]string, error) {
 	p, ok := obj.(*api.Pod)
 	if !ok {
-		return nil, errors.New("obj was not an *api.Pod")
+		return nil, errObj
 	}
 	return []string{p.Status.PodIP}, nil
 }
@@ -165,7 +165,7 @@ func podIPIndexFunc(obj interface{}) ([]string, error) {
 func svcIPIndexFunc(obj interface{}) ([]string, error) {
 	svc, ok := obj.(*api.Service)
 	if !ok {
-		return nil, errors.New("obj was not an *api.Service")
+		return nil, errObj
 	}
 	return []string{svc.Spec.ClusterIP}, nil
 }
@@ -173,7 +173,7 @@ func svcIPIndexFunc(obj interface{}) ([]string, error) {
 func svcNameNamespaceIndexFunc(obj interface{}) ([]string, error) {
 	s, ok := obj.(*api.Service)
 	if !ok {
-		return nil, errors.New("obj was not an *api.Service")
+		return nil, errObj
 	}
 	return []string{s.ObjectMeta.Name + "." + s.ObjectMeta.Namespace}, nil
 }
@@ -181,7 +181,7 @@ func svcNameNamespaceIndexFunc(obj interface{}) ([]string, error) {
 func epNameNamespaceIndexFunc(obj interface{}) ([]string, error) {
 	s, ok := obj.(*api.Endpoints)
 	if !ok {
-		return nil, errors.New("obj was not an *api.Endpoints")
+		return nil, errObj
 	}
 	return []string{s.ObjectMeta.Name + "." + s.ObjectMeta.Namespace}, nil
 }
@@ -189,7 +189,7 @@ func epNameNamespaceIndexFunc(obj interface{}) ([]string, error) {
 func epIPIndexFunc(obj interface{}) ([]string, error) {
 	ep, ok := obj.(*api.Endpoints)
 	if !ok {
-		return nil, errors.New("obj was not an *api.Endpoints")
+		return nil, errObj
 	}
 	var idx []string
 	for _, eps := range ep.Subsets {
@@ -206,9 +206,6 @@ func serviceListFunc(c *kubernetes.Clientset, ns string, s labels.Selector) func
 			opts.LabelSelector = s.String()
 		}
 		listV1, err := c.CoreV1().Services(ns).List(opts)
-		if err != nil {
-			return nil, err
-		}
 		return listV1, err
 	}
 }
@@ -219,9 +216,6 @@ func podListFunc(c *kubernetes.Clientset, ns string, s labels.Selector) func(met
 			opts.LabelSelector = s.String()
 		}
 		listV1, err := c.CoreV1().Pods(ns).List(opts)
-		if err != nil {
-			return nil, err
-		}
 		return listV1, err
 	}
 }
@@ -232,10 +226,7 @@ func serviceWatchFunc(c *kubernetes.Clientset, ns string, s labels.Selector) fun
 			options.LabelSelector = s.String()
 		}
 		w, err := c.CoreV1().Services(ns).Watch(options)
-		if err != nil {
-			return nil, err
-		}
-		return w, nil
+		return w, err
 	}
 }
 
@@ -245,10 +236,7 @@ func podWatchFunc(c *kubernetes.Clientset, ns string, s labels.Selector) func(op
 			options.LabelSelector = s.String()
 		}
 		w, err := c.CoreV1().Pods(ns).Watch(options)
-		if err != nil {
-			return nil, err
-		}
-		return w, nil
+		return w, err
 	}
 }
 
@@ -258,9 +246,6 @@ func endpointsListFunc(c *kubernetes.Clientset, ns string, s labels.Selector) fu
 			opts.LabelSelector = s.String()
 		}
 		listV1, err := c.CoreV1().Endpoints(ns).List(opts)
-		if err != nil {
-			return nil, err
-		}
 		return listV1, err
 	}
 }
@@ -271,10 +256,7 @@ func endpointsWatchFunc(c *kubernetes.Clientset, ns string, s labels.Selector) f
 			options.LabelSelector = s.String()
 		}
 		w, err := c.CoreV1().Endpoints(ns).Watch(options)
-		if err != nil {
-			return nil, err
-		}
-		return w, nil
+		return w, err
 	}
 }
 
@@ -284,9 +266,6 @@ func namespaceListFunc(c *kubernetes.Clientset, s labels.Selector) func(meta.Lis
 			opts.LabelSelector = s.String()
 		}
 		listV1, err := c.CoreV1().Namespaces().List(opts)
-		if err != nil {
-			return nil, err
-		}
 		return listV1, err
 	}
 }
@@ -297,10 +276,7 @@ func namespaceWatchFunc(c *kubernetes.Clientset, s labels.Selector) func(options
 			options.LabelSelector = s.String()
 		}
 		w, err := c.CoreV1().Namespaces().Watch(options)
-		if err != nil {
-			return nil, err
-		}
-		return w, nil
+		return w, err
 	}
 }
 
@@ -482,10 +458,7 @@ func (dns *dnsControl) EndpointsList() (eps []*api.Endpoints) {
 // sparingly. Currently this is only used for Federation.
 func (dns *dnsControl) GetNodeByName(name string) (*api.Node, error) {
 	v1node, err := dns.client.CoreV1().Nodes().Get(name, meta.GetOptions{})
-	if err != nil {
-		return &api.Node{}, err
-	}
-	return v1node, nil
+	return v1node, err
 }
 
 // GetNamespaceByName returns the namespace by name. If nothing is found an
@@ -573,8 +546,7 @@ func endpointsSubsetDiffs(a, b *api.Endpoints) *api.Endpoints {
 	return c
 }
 
-// sendUpdates sends a notification to the server if a watch
-// is enabled for the qname
+// sendUpdates sends a notification to the server if a watch is enabled for the qname.
 func (dns *dnsControl) sendUpdates(oldObj, newObj interface{}) {
 	// If both objects have the same resource version, they are identical.
 	if newObj != nil && oldObj != nil && (oldObj.(meta.Object).GetResourceVersion() == newObj.(meta.Object).GetResourceVersion()) {
@@ -671,3 +643,5 @@ func endpointsEquivalent(a, b *api.Endpoints) bool {
 	}
 	return true
 }
+
+var errObj = errors.New("obj was not of the correct type")
