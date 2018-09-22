@@ -130,7 +130,7 @@ func (f *Federation) isNameFederation(name, zone string) (string, string) {
 	fed := labels[ll-2]
 
 	if _, ok := f.f[fed]; ok {
-		without := dnsutil.Join(labels[:ll-2]) + labels[ll-1] + "." + zone
+		without := dnsutil.Join(labels[:ll-2]...) + labels[ll-1] + "." + zone
 		return without, fed
 	}
 	return "", ""

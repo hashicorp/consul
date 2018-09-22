@@ -26,7 +26,7 @@ func Domain(s string) string {
 	for i, j := 1, len(l)-1; i < j; i, j = i+1, j-1 {
 		l[i], l[j] = l[j], l[i]
 	}
-	return dnsutil.Join(l[1 : len(l)-1])
+	return dnsutil.Join(l[1 : len(l)-1]...)
 }
 
 // PathWithWildcard ascts as Path, but if a name contains wildcards (* or any), the name will be

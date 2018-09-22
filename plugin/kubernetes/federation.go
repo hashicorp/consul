@@ -44,8 +44,8 @@ func (k *Kubernetes) Federations(state request.Request, fname, fzone string) (ms
 	}
 
 	if r.endpoint == "" {
-		return msg.Service{Host: dnsutil.Join([]string{r.service, r.namespace, fname, r.podOrSvc, lz, lr, fzone})}, nil
+		return msg.Service{Host: dnsutil.Join(r.service, r.namespace, fname, r.podOrSvc, lz, lr, fzone)}, nil
 	}
 
-	return msg.Service{Host: dnsutil.Join([]string{r.endpoint, r.service, r.namespace, fname, r.podOrSvc, lz, lr, fzone})}, nil
+	return msg.Service{Host: dnsutil.Join(r.endpoint, r.service, r.namespace, fname, r.podOrSvc, lz, lr, fzone)}, nil
 }

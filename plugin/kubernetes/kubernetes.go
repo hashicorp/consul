@@ -296,14 +296,18 @@ func (k *Kubernetes) Records(state request.Request, exact bool) ([]msg.Service, 
 
 // serviceFQDN returns the k8s cluster dns spec service FQDN for the service (or endpoint) object.
 func serviceFQDN(obj meta.Object, zone string) string {
-	return dnsutil.Join(append([]string{}, obj.GetName(), obj.GetNamespace(), Svc, zone))
+	return dnsutil.Join(obj.GetName(), obj.GetNamespace(), Svc, zone)
 }
 
 // podFQDN returns the k8s cluster dns spec FQDN for the pod.
 func podFQDN(p *api.Pod, zone string) string {
-	name := strings.Replace(p.Status.PodIP, ".", "-", -1)
-	name = strings.Replace(name, ":", "-", -1)
-	return dnsutil.Join(append([]string{}, name, p.GetNamespace(), Pod, zone))
+	if strings.Contains(p.Status.PodIP, ".") {
+		name := strings.Replace(p.Status.PodIP, ".", "-", -1)
+		return dnsutil.Join(name, p.GetNamespace(), Pod, zone)
+	}
+
+	name := strings.Replace(p.Status.PodIP, ":", "-", -1)
+	return dnsutil.Join(name, p.GetNamespace(), Pod, zone)
 }
 
 // endpointFQDN returns a list of k8s cluster dns spec service FQDNs for each subset in the endpoint.
@@ -311,7 +315,7 @@ func endpointFQDN(ep *api.Endpoints, zone string, endpointNameMode bool) []strin
 	var names []string
 	for _, ss := range ep.Subsets {
 		for _, addr := range ss.Addresses {
-			names = append(names, dnsutil.Join(append([]string{}, endpointHostname(addr, endpointNameMode), serviceFQDN(ep, zone))))
+			names = append(names, dnsutil.Join(endpointHostname(addr, endpointNameMode), serviceFQDN(ep, zone)))
 		}
 	}
 	return names
@@ -319,7 +323,7 @@ func endpointFQDN(ep *api.Endpoints, zone string, endpointNameMode bool) []strin
 
 func endpointHostname(addr api.EndpointAddress, endpointNameMode bool) string {
 	if addr.Hostname != "" {
-		return strings.ToLower(addr.Hostname)
+		return addr.Hostname
 	}
 	if endpointNameMode && addr.TargetRef != nil && addr.TargetRef.Name != "" {
 		return addr.TargetRef.Name
@@ -328,7 +332,7 @@ func endpointHostname(addr api.EndpointAddress, endpointNameMode bool) string {
 		return strings.Replace(addr.IP, ".", "-", -1)
 	}
 	if strings.Contains(addr.IP, ":") {
-		return strings.ToLower(strings.Replace(addr.IP, ":", "-", -1))
+		return strings.Replace(addr.IP, ":", "-", -1)
 	}
 	return ""
 }

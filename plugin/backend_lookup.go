@@ -446,7 +446,7 @@ func checkForApex(b ServiceBackend, zone string, state request.Request, opt Opti
 	// this is equivalent to the NS search code.
 	old := state.QName()
 	state.Clear()
-	state.Req.Question[0].Name = dnsutil.Join([]string{"apex.dns", zone})
+	state.Req.Question[0].Name = dnsutil.Join("apex.dns", zone)
 
 	services, err := b.Services(state, false, opt)
 	if err == nil {

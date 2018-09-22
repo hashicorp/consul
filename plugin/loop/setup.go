@@ -85,7 +85,7 @@ func qname(zone string) string {
 	l1 := strconv.Itoa(r.Int())
 	l2 := strconv.Itoa(r.Int())
 
-	return dnsutil.Join([]string{l1, l2, zone})
+	return dnsutil.Join(l1, l2, zone)
 }
 
 var r = rand.New(rand.NewSource(time.Now().UnixNano()))

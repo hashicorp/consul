@@ -72,7 +72,7 @@ type dnsControl struct {
 	svcLister cache.Indexer
 	podLister cache.Indexer
 	epLister  cache.Indexer
-	nsLister  storeToNamespaceLister
+	nsLister  cache.Store
 
 	// stopLock is used to enforce only a single call to Stop is active.
 	// Needed because we allow stopping through an http endpoint and
@@ -146,7 +146,7 @@ func newdnsController(kubeClient *kubernetes.Clientset, opts dnsControlOpts) *dn
 			cache.Indexers{epNameNamespaceIndex: epNameNamespaceIndexFunc, epIPIndex: epIPIndexFunc})
 	}
 
-	dns.nsLister.Store, dns.nsController = cache.NewInformer(
+	dns.nsLister, dns.nsController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc:  namespaceListFunc(dns.client, dns.selector),
 			WatchFunc: namespaceWatchFunc(dns.client, dns.selector),
@@ -154,11 +154,6 @@ func newdnsController(kubeClient *kubernetes.Clientset, opts dnsControlOpts) *dn
 		&api.Namespace{}, opts.resyncPeriod, cache.ResourceEventHandlerFuncs{})
 
 	return &dns
-}
-
-// storeToNamespaceLister makes a Store that lists Namespaces.
-type storeToNamespaceLister struct {
-	cache.Store
 }
 
 func podIPIndexFunc(obj interface{}) ([]string, error) {
@@ -311,9 +306,8 @@ func namespaceWatchFunc(c *kubernetes.Clientset, s labels.Selector) func(options
 	}
 }
 
-func (dns *dnsControl) SetWatchChan(c dnswatch.Chan) {
-	dns.watchChan = c
-}
+func (dns *dnsControl) SetWatchChan(c dnswatch.Chan) { dns.watchChan = c }
+func (dns *dnsControl) StopWatching(qname string)    { delete(dns.watched, qname) }
 
 func (dns *dnsControl) Watch(qname string) error {
 	if dns.watchChan == nil {
@@ -321,10 +315,6 @@ func (dns *dnsControl) Watch(qname string) error {
 	}
 	dns.watched[qname] = true
 	return nil
-}
-
-func (dns *dnsControl) StopWatching(qname string) {
-	delete(dns.watched, qname)
 }
 
 // Stop stops the  controller.
@@ -621,15 +611,9 @@ func (dns *dnsControl) sendUpdates(oldObj, newObj interface{}) {
 	}
 }
 
-func (dns *dnsControl) Add(obj interface{}) {
-	dns.sendUpdates(nil, obj)
-}
-func (dns *dnsControl) Delete(obj interface{}) {
-	dns.sendUpdates(obj, nil)
-}
-func (dns *dnsControl) Update(oldObj, newObj interface{}) {
-	dns.sendUpdates(oldObj, newObj)
-}
+func (dns *dnsControl) Add(obj interface{})               { dns.sendUpdates(nil, obj) }
+func (dns *dnsControl) Delete(obj interface{})            { dns.sendUpdates(obj, nil) }
+func (dns *dnsControl) Update(oldObj, newObj interface{}) { dns.sendUpdates(oldObj, newObj) }
 
 // subsetsEquivalent checks if two endpoint subsets are significantly equivalent
 // I.e. that they have the same ready addresses, host names, ports (including protocol
