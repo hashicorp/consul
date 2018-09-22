@@ -140,7 +140,7 @@ func (h *Route53) updateZones(ctx context.Context) error {
 	errc := make(chan error)
 	defer close(errc)
 	for zName, z := range h.zones {
-		go func(zName string) {
+		go func(zName string, z *zone) {
 			var err error
 			defer func() {
 				errc <- err
@@ -170,7 +170,7 @@ func (h *Route53) updateZones(ctx context.Context) error {
 			h.zMu.Lock()
 			z.z = newZ
 			h.zMu.Unlock()
-		}(zName)
+		}(zName, z)
 	}
 	// Collect errors (if any). This will also sync on all zones updates
 	// completion.

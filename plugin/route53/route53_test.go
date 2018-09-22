@@ -71,7 +71,7 @@ func TestRoute53(t *testing.T) {
 		t.Fatalf("Expected errors for zone bad.")
 	}
 
-	r, err = New(ctx, fakeRoute53{}, map[string]string{"org.": "1234567890"}, &upstream.Upstream{})
+	r, err = New(ctx, fakeRoute53{}, map[string]string{"org.": "1234567890", "gov.": "Z098765432"}, &upstream.Upstream{})
 	if err != nil {
 		t.Fatalf("Failed to create Route53: %v", err)
 	}
