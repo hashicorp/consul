@@ -19,8 +19,6 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 )
 
-var namespace = api.NamespaceAll
-
 const (
 	podIPIndex            = "PodIP"
 	svcNameNamespaceIndex = "NameNamespace"
@@ -114,8 +112,8 @@ func newdnsController(kubeClient *kubernetes.Clientset, opts dnsControlOpts) *dn
 
 	dns.svcLister, dns.svcController = cache.NewIndexerInformer(
 		&cache.ListWatch{
-			ListFunc:  serviceListFunc(dns.client, namespace, dns.selector),
-			WatchFunc: serviceWatchFunc(dns.client, namespace, dns.selector),
+			ListFunc:  serviceListFunc(dns.client, api.NamespaceAll, dns.selector),
+			WatchFunc: serviceWatchFunc(dns.client, api.NamespaceAll, dns.selector),
 		},
 		&api.Service{},
 		opts.resyncPeriod,
@@ -125,8 +123,8 @@ func newdnsController(kubeClient *kubernetes.Clientset, opts dnsControlOpts) *dn
 	if opts.initPodCache {
 		dns.podLister, dns.podController = cache.NewIndexerInformer(
 			&cache.ListWatch{
-				ListFunc:  podListFunc(dns.client, namespace, dns.selector),
-				WatchFunc: podWatchFunc(dns.client, namespace, dns.selector),
+				ListFunc:  podListFunc(dns.client, api.NamespaceAll, dns.selector),
+				WatchFunc: podWatchFunc(dns.client, api.NamespaceAll, dns.selector),
 			},
 			&api.Pod{},
 			opts.resyncPeriod,
@@ -137,8 +135,8 @@ func newdnsController(kubeClient *kubernetes.Clientset, opts dnsControlOpts) *dn
 	if opts.initEndpointsCache {
 		dns.epLister, dns.epController = cache.NewIndexerInformer(
 			&cache.ListWatch{
-				ListFunc:  endpointsListFunc(dns.client, namespace, dns.selector),
-				WatchFunc: endpointsWatchFunc(dns.client, namespace, dns.selector),
+				ListFunc:  endpointsListFunc(dns.client, api.NamespaceAll, dns.selector),
+				WatchFunc: endpointsWatchFunc(dns.client, api.NamespaceAll, dns.selector),
 			},
 			&api.Endpoints{},
 			opts.resyncPeriod,

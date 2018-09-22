@@ -414,7 +414,7 @@ func (k *Kubernetes) findServices(r recordRequest, zone string) (services []msg.
 	err = errNoItems
 	if wildcard(r.service) && !wildcard(r.namespace) {
 		// If namespace exist, err should be nil, so that we return nodata instead of NXDOMAIN
-		if k.namespace(namespace) {
+		if k.namespace(r.namespace) {
 			err = nil
 		}
 	}
