@@ -1,5 +1,4 @@
 sudo: required
-# Trusty distribution is much faster when sudo is required
 dist: trusty
 
 services:
@@ -14,11 +13,16 @@ go_import_path: github.com/coredns/coredns
 git:
   depth: 3
 
+branches:
+  only:
+  - master
+
 env:
   - TEST_TYPE=coverage ETCD_VERSION=3.3.8
   - TEST_TYPE=integration ETCD_VERSION=3.3.8
   - TEST_TYPE=core ETCD_VERSION=3.3.8
   - TEST_TYPE=plugin ETCD_VERSION=3.3.8
+  - TEST_TYPE=benchmark ETCD_VERSION=3.3.8
 
 # In the Travis VM-based build environment, IPv6 networking is not
 # enabled by default. The sysctl operations below enable IPv6.
@@ -35,6 +39,7 @@ before_install:
 
 before_script:
   - docker run -d --net=host --name=etcd quay.io/coreos/etcd:v$ETCD_VERSION
+  - make godeps
 
 script:
   - make TEST_TYPE=$TEST_TYPE travis
