@@ -897,8 +897,8 @@ func (s *Store) serviceNodes(ws memdb.WatchSet, serviceName string, connect bool
 }
 
 // ServiceTagNodes returns the nodes associated with a given service, filtering
-// out services that don't contain the given tag.
-func (s *Store) ServiceTagNodes(ws memdb.WatchSet, service string, tag string) (uint64, structs.ServiceNodes, error) {
+// out services that don't contain the given tags.
+func (s *Store) ServiceTagNodes(ws memdb.WatchSet, service string, tags []string) (uint64, structs.ServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -916,7 +916,7 @@ func (s *Store) ServiceTagNodes(ws memdb.WatchSet, service string, tag string) (
 	var results structs.ServiceNodes
 	for service := services.Next(); service != nil; service = services.Next() {
 		svc := service.(*structs.ServiceNode)
-		if !serviceTagFilter(svc, tag) {
+		if !serviceTagsFilter(svc, tags) {
 			results = append(results, svc)
 		}
 	}
@@ -943,6 +943,20 @@ func serviceTagFilter(sn *structs.ServiceNode, tag string) bool {
 
 	// If we didn't hit the tag above then we should filter.
 	return true
+}
+
+// serviceTagsFilter returns true (should filter) if the given service node
+// doesn't contain the given set of tags.
+func serviceTagsFilter(sn *structs.ServiceNode, tags []string) bool {
+	for _, tag := range tags {
+		if serviceTagFilter(sn, tag) {
+			// If any one of the expected tags was not found, filter the service
+			return true
+		}
+	}
+
+	// If all tags were found, don't filter the service
+	return false
 }
 
 // ServiceAddressNodes returns the nodes associated with a given service, filtering
@@ -1614,7 +1628,7 @@ func (s *Store) checkServiceNodes(ws memdb.WatchSet, serviceName string, connect
 
 // CheckServiceTagNodes is used to query all nodes and checks for a given
 // service, filtering out services that don't contain the given tag.
-func (s *Store) CheckServiceTagNodes(ws memdb.WatchSet, serviceName, tag string) (uint64, structs.CheckServiceNodes, error) {
+func (s *Store) CheckServiceTagNodes(ws memdb.WatchSet, serviceName string, tags []string) (uint64, structs.CheckServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -1632,7 +1646,7 @@ func (s *Store) CheckServiceTagNodes(ws memdb.WatchSet, serviceName, tag string)
 	var results structs.ServiceNodes
 	for service := iter.Next(); service != nil; service = iter.Next() {
 		svc := service.(*structs.ServiceNode)
-		if !serviceTagFilter(svc, tag) {
+		if !serviceTagsFilter(svc, tags) {
 			results = append(results, svc)
 		}
 	}

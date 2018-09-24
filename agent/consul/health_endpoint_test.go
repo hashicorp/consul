@@ -602,6 +602,84 @@ func TestHealth_ServiceNodes(t *testing.T) {
 	}
 }
 
+func TestHealth_ServiceNodes_MultipleServiceTags(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	arg := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			ID:      "db",
+			Service: "db",
+			Tags:    []string{"master", "v2"},
+		},
+		Check: &structs.HealthCheck{
+			Name:      "db connect",
+			Status:    api.HealthPassing,
+			ServiceID: "db",
+		},
+	}
+	var out struct{}
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	arg = structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "bar",
+		Address:    "127.0.0.2",
+		Service: &structs.NodeService{
+			ID:      "db",
+			Service: "db",
+			Tags:    []string{"slave", "v2"},
+		},
+		Check: &structs.HealthCheck{
+			Name:      "db connect",
+			Status:    api.HealthWarning,
+			ServiceID: "db",
+		},
+	}
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	var out2 structs.IndexedCheckServiceNodes
+	req := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "db",
+		ServiceTags: []string{"master", "v2"},
+		TagFilter:   true,
+	}
+	if err := msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	nodes := out2.Nodes
+	if len(nodes) != 1 {
+		t.Fatalf("Bad: %v", nodes)
+	}
+	if nodes[0].Node.Node != "foo" {
+		t.Fatalf("Bad: %v", nodes[0])
+	}
+	if !lib.StrContains(nodes[0].Service.Tags, "v2") {
+		t.Fatalf("Bad: %v", nodes[0])
+	}
+	if !lib.StrContains(nodes[0].Service.Tags, "master") {
+		t.Fatalf("Bad: %v", nodes[0])
+	}
+	if nodes[0].Checks[0].Status != api.HealthPassing {
+		t.Fatalf("Bad: %v", nodes[0])
+	}
+}
+
 func TestHealth_ServiceNodes_NodeMetaFilter(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServer(t)

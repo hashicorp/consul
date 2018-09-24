@@ -273,7 +273,7 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 			}
 
 			if args.TagFilter {
-				return s.ServiceTagNodes(ws, args.ServiceName, args.ServiceTag)
+				return s.ServiceTagNodes(ws, args.ServiceName, args.ServiceTags)
 			}
 
 			return s.ServiceNodes(ws, args.ServiceName)
@@ -333,6 +333,14 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 		if args.ServiceTag != "" {
 			metrics.IncrCounterWithLabels([]string{"catalog", key, "query-tag"}, 1,
 				[]metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "tag", Value: args.ServiceTag}})
+		}
+		if len(args.ServiceTags) > 0 {
+			// Build metric labels
+			labels := []metrics.Label{{Name: "service", Value: args.ServiceName}}
+			for _, tag := range args.ServiceTags {
+				labels = append(labels, metrics.Label{Name: "tag", Value: tag})
+			}
+			metrics.IncrCounterWithLabels([]string{"catalog", key, "query-tags"}, 1, labels)
 		}
 		if len(reply.ServiceNodes) == 0 {
 			metrics.IncrCounterWithLabels([]string{"catalog", key, "not-found"}, 1,

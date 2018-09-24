@@ -161,10 +161,10 @@ func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Requ
 		return nil, nil
 	}
 
-	// Check for a tag
+	// Check for tags
 	params := req.URL.Query()
 	if _, ok := params["tag"]; ok {
-		args.ServiceTag = params.Get("tag")
+		args.ServiceTags = params["tag"]
 		args.TagFilter = true
 	}
 

@@ -1809,7 +1809,7 @@ func TestStateStore_ServiceTagNodes(t *testing.T) {
 
 	// Listing with no results returns an empty list.
 	ws := memdb.NewWatchSet()
-	idx, nodes, err := s.ServiceTagNodes(ws, "db", "master")
+	idx, nodes, err := s.ServiceTagNodes(ws, "db", []string{"master"})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1842,7 +1842,7 @@ func TestStateStore_ServiceTagNodes(t *testing.T) {
 
 	// Read everything back.
 	ws = memdb.NewWatchSet()
-	idx, nodes, err = s.ServiceTagNodes(ws, "db", "master")
+	idx, nodes, err = s.ServiceTagNodes(ws, "db", []string{"master"})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1903,7 +1903,7 @@ func TestStateStore_ServiceTagNodes_MultipleTags(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	idx, nodes, err := s.ServiceTagNodes(nil, "db", "master")
+	idx, nodes, err := s.ServiceTagNodes(nil, "db", []string{"master"})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1926,7 +1926,7 @@ func TestStateStore_ServiceTagNodes_MultipleTags(t *testing.T) {
 		t.Fatalf("bad: %v", nodes)
 	}
 
-	idx, nodes, err = s.ServiceTagNodes(nil, "db", "v2")
+	idx, nodes, err = s.ServiceTagNodes(nil, "db", []string{"v2"})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1937,7 +1937,31 @@ func TestStateStore_ServiceTagNodes_MultipleTags(t *testing.T) {
 		t.Fatalf("bad: %v", nodes)
 	}
 
-	idx, nodes, err = s.ServiceTagNodes(nil, "db", "dev")
+	// Test filtering on multiple tags
+	idx, nodes, err = s.ServiceTagNodes(nil, "db", []string{"v2", "slave"})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 19 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if len(nodes) != 2 {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if !lib.StrContains(nodes[0].ServiceTags, "v2") {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if !lib.StrContains(nodes[0].ServiceTags, "slave") {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if !lib.StrContains(nodes[1].ServiceTags, "v2") {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if !lib.StrContains(nodes[1].ServiceTags, "slave") {
+		t.Fatalf("bad: %v", nodes)
+	}
+
+	idx, nodes, err = s.ServiceTagNodes(nil, "db", []string{"dev"})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -3088,7 +3112,7 @@ func TestStateStore_CheckServiceTagNodes(t *testing.T) {
 	}
 
 	ws := memdb.NewWatchSet()
-	idx, nodes, err := s.CheckServiceTagNodes(ws, "db", "master")
+	idx, nodes, err := s.CheckServiceTagNodes(ws, "db", []string{"master"})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
