@@ -237,6 +237,27 @@ and consider if they're appropriate for your deployment.
   then be used to [configure kube-dns](/docs/platform/k8s/dns.html). The Helm
   chart _does not_ automatically configure kube-dns.
 
+* <a name="v-synccatalog" href="#v-synccatalog">`syncCatalog`</a> - Values that
+  configure running the [service sync](/docs/platform/k8s/service-sync.html)
+  process.
+
+  - <a name="v-synccatalog-enabled" href="#v-synccatalog-enabled">`enabled`</a> (`boolean: false`) -
+  If true, the chart will install all the resources necessary for the
+  catalog sync process to run.
+
+  - <a name="v-synccatalog-image" href="#v-synccatalog-image">`image`</a> (`string: global.imageK8S`) -
+  The name of the Docker image (including any tag) for
+  [consul-k8s](/docs/platform/k8s/index.html#quot-consul-k8s-quot-project)
+  to run the sync program.
+
+  - <a name="v-synccatalog-toconsul" href="#v-synccatalog-toconsul">`toConsul`</a> (`boolean: true`) -
+  If true, will sync Kubernetes services to Consul. This can be disabled to
+  have a one-way sync.
+
+  - <a name="v-synccatalog-tok8s" href="#v-synccatalog-tok8s">`toK8S`</a> (`boolean: true`) -
+  If true, will sync Consul services to Kubernetes. This can be disabled to
+  have a one-way sync.
+
 * <a name="v-ui" href="#v-ui">`ui`</a> - Values that configure the Consul UI.
 
   - <a name="v-ui-enabled" href="#v-ui-enabled">`enabled`</a> (`boolean: global.enabled`) -
