@@ -588,6 +588,9 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	proxyDefaultScriptCommand := c.Connect.ProxyDefaults.ScriptCommand
 	proxyDefaultConfig := c.Connect.ProxyDefaults.Config
 
+	enableRemoteScriptChecks := b.boolVal(c.EnableScriptChecks)
+	enableLocalScriptChecks := b.boolValWithDefault(c.EnableLocalScriptChecks, enableRemoteScriptChecks)
+
 	// ----------------------------------------------------------------
 	// build runtime config
 	//
@@ -743,7 +746,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		DiscoveryMaxStale:                       b.durationVal("discovery_max_stale", c.DiscoveryMaxStale),
 		EnableAgentTLSForChecks:                 b.boolVal(c.EnableAgentTLSForChecks),
 		EnableDebug:                             b.boolVal(c.EnableDebug),
-		EnableScriptChecks:                      b.boolVal(c.EnableScriptChecks),
+		EnableRemoteScriptChecks:                enableRemoteScriptChecks,
+		EnableLocalScriptChecks:                 enableLocalScriptChecks,
 		EnableSyslog:                            b.boolVal(c.EnableSyslog),
 		EnableUI:                                b.boolVal(c.UI),
 		EncryptKey:                              b.stringVal(c.EncryptKey),

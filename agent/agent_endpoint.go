@@ -570,7 +570,7 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 	}
 
 	// Add the check.
-	if err := s.agent.AddCheck(health, chkType, true, token); err != nil {
+	if err := s.agent.AddCheck(health, chkType, true, token, ConfigSourceRemote); err != nil {
 		return nil, err
 	}
 	s.syncChanges()
@@ -889,18 +889,18 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	}
 
 	// Add the service.
-	if err := s.agent.AddService(ns, chkTypes, true, token); err != nil {
+	if err := s.agent.AddService(ns, chkTypes, true, token, ConfigSourceRemote); err != nil {
 		return nil, err
 	}
 	// Add proxy (which will add proxy service so do it before we trigger sync)
 	if proxy != nil {
-		if err := s.agent.AddProxy(proxy, true, false, ""); err != nil {
+		if err := s.agent.AddProxy(proxy, true, false, "", ConfigSourceRemote); err != nil {
 			return nil, err
 		}
 	}
 	// Add sidecar.
 	if sidecar != nil {
-		if err := s.agent.AddService(sidecar, sidecarChecks, true, sidecarToken); err != nil {
+		if err := s.agent.AddService(sidecar, sidecarChecks, true, sidecarToken, ConfigSourceRemote); err != nil {
 			return nil, err
 		}
 	}

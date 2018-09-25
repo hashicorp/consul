@@ -191,6 +191,7 @@ type Config struct {
 	EnableAgentTLSForChecks          *bool                    `json:"enable_agent_tls_for_checks,omitempty" hcl:"enable_agent_tls_for_checks" mapstructure:"enable_agent_tls_for_checks"`
 	EnableDebug                      *bool                    `json:"enable_debug,omitempty" hcl:"enable_debug" mapstructure:"enable_debug"`
 	EnableScriptChecks               *bool                    `json:"enable_script_checks,omitempty" hcl:"enable_script_checks" mapstructure:"enable_script_checks"`
+	EnableLocalScriptChecks          *bool                    `json:"enable_local_script_checks,omitempty" hcl:"enable_local_script_checks" mapstructure:"enable_local_script_checks"`
 	EnableSyslog                     *bool                    `json:"enable_syslog,omitempty" hcl:"enable_syslog" mapstructure:"enable_syslog"`
 	EncryptKey                       *string                  `json:"encrypt,omitempty" hcl:"encrypt" mapstructure:"encrypt"`
 	EncryptVerifyIncoming            *bool                    `json:"encrypt_verify_incoming,omitempty" hcl:"encrypt_verify_incoming" mapstructure:"encrypt_verify_incoming"`

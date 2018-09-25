@@ -638,13 +638,21 @@ type RuntimeConfig struct {
 	// hcl: enable_debug = (true|false)
 	EnableDebug bool
 
-	// EnableScriptChecks controls whether health checks which execute
-	// scripts are enabled. This includes regular script checks and Docker
+	// EnableLocalScriptChecks controls whether health checks declared from the local
+	// config file which execute scripts are enabled. This includes regular script
+	// checks and Docker checks.
+	//
+	// hcl: (enable_script_checks|enable_local_script_checks) = (true|false)
+	// flag: -enable-script-checks, -enable-local-script-checks
+	EnableLocalScriptChecks bool
+
+	// EnableRemoeScriptChecks controls whether health checks declared from the http API
+	// which execute scripts are enabled. This includes regular script checks and Docker
 	// checks.
 	//
 	// hcl: enable_script_checks = (true|false)
 	// flag: -enable-script-checks
-	EnableScriptChecks bool
+	EnableRemoteScriptChecks bool
 
 	// EnableSyslog is used to also tee all the logs over to syslog. Only supported
 	// on linux and OSX. Other platforms will generate an error.
