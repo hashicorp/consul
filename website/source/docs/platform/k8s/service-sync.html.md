@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "Service Sync - Kubernetes"
 sidebar_current: "docs-platform-k8s-service-sync"
 description: |-
-  One of the primary query interfaces to Consul is the DNS interface. The Consul DNS interface can be exposed for all pods in Kubernetes using a stub-domain configuration.
+  The services in Kubernetes and Consul can be automatically synced so that Kubernetes services are available to Consul agents and services in Consul can be available as first-class Kubernetes services.
 ---
 
 # Syncing Kubernetes and Consul Services
