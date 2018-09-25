@@ -7,8 +7,10 @@ import (
 	"testing"
 
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
+	"github.com/coredns/coredns/plugin/pkg/fall"
 	"github.com/coredns/coredns/plugin/pkg/upstream"
 	"github.com/coredns/coredns/plugin/test"
+	crequest "github.com/coredns/coredns/request"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
@@ -75,7 +77,29 @@ func TestRoute53(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create Route53: %v", err)
 	}
-	r.Next = test.ErrorHandler()
+	r.Fall = fall.Zero
+	r.Fall.SetZonesFromArgs([]string{"gov."})
+	r.Next = test.HandlerFunc(func(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+		state := crequest.Request{W: w, Req: r}
+		qname := state.Name()
+		m := new(dns.Msg)
+		rcode := dns.RcodeServerFailure
+		if qname == "example.gov." {
+			m.SetReply(r)
+			rr, err := dns.NewRR("example.gov.  300 IN  A   2.4.6.8")
+			if err != nil {
+				t.Fatalf("Failed to create Resource Record: %v", err)
+			}
+			m.Answer = []dns.RR{rr}
+
+			m.Authoritative, m.RecursionAvailable = true, true
+			rcode = dns.RcodeSuccess
+		}
+
+		m.SetRcode(r, rcode)
+		w.WriteMsg(m)
+		return rcode, nil
+	})
 	err = r.Run(ctx)
 	if err != nil {
 		t.Fatalf("Failed to initialize Route53: %v", err)
@@ -155,6 +179,13 @@ func TestRoute53(t *testing.T) {
 			qtype:        dns.TypeA,
 			expectedCode: dns.RcodeSuccess,
 			wantNS: []string{"org.	300	IN	SOA	ns-1536.awsdns-00.co.uk. awsdns-hostmaster.amazon.com. 1 7200 900 1209600 86400"},
+		},
+		// 9. No record found. Fallthrough.
+		{
+			qname:        "example.gov",
+			qtype:        dns.TypeA,
+			expectedCode: dns.RcodeSuccess,
+			wantAnswer: []string{"example.gov.	300	IN	A	2.4.6.8"},
 		},
 	}
 

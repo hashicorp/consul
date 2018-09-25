@@ -10,6 +10,7 @@ import (
 
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/file"
+	"github.com/coredns/coredns/plugin/pkg/fall"
 	"github.com/coredns/coredns/plugin/pkg/upstream"
 	"github.com/coredns/coredns/request"
 
@@ -22,6 +23,7 @@ import (
 // Route53 is a plugin that returns RR from AWS route53.
 type Route53 struct {
 	Next plugin.Handler
+	Fall fall.F
 
 	zoneNames []string
 	client    route53iface.Route53API
@@ -102,6 +104,10 @@ func (h *Route53) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 	h.zMu.RLock()
 	m.Answer, m.Ns, m.Extra, result = z.z.Lookup(state, qname)
 	h.zMu.RUnlock()
+
+	if len(m.Answer) == 0 && h.Fall.Through(qname) {
+		return plugin.NextOrFailure(h.Name(), h.Next, ctx, w, r)
+	}
 
 	switch result {
 	case file.Success:

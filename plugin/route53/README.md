@@ -16,6 +16,7 @@ The route53 plugin can be used when coredns is deployed on AWS or elsewhere.
 route53 [ZONE:HOSTED_ZONE_ID...] {
     [aws_access_key AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY]
     upstream [ADDRESS...]
+    fallthrough [ZONES...]
 }
 ~~~
 
@@ -29,6 +30,12 @@ route53 [ZONE:HOSTED_ZONE_ID...] {
    to external hosts (eg. used to resolve CNAMEs). If no **ADDRESS** is given, CoreDNS will resolve
    against itself. **ADDRESS** can be an IP, an IP:port or a path to a file structured like
    resolv.conf (**NB**: Currently a bug (#2099) is preventing the use of self-resolver).
+   are used.
+* `fallthrough` If zone matches and no record can be generated, pass request to the next plugin.
+  If **[ZONES...]** is omitted, then fallthrough happens for all zones for which the plugin
+  is authoritative. If specific zones are listed (for example `in-addr.arpa` and `ip6.arpa`), then only
+  queries for those zones will be subject to fallthrough.
+* **ZONES** zones it should be authoritative for. If empty, the zones from the configuration block
 
 ## Examples
 
@@ -47,6 +54,16 @@ Enable route53 with explicit aws credentials:
 . {
     route53 example.org.:Z1Z2Z3Z4DZ5Z6Z7 {
       aws_access_key AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
-  }
+    }
+}
+~~~
+
+Enable route53 with fallthrough:
+
+~~~ txt
+. {
+    route53 example.org.:Z1Z2Z3Z4DZ5Z6Z7 example.gov.:Z654321543245 {
+      fallthrough example.gov.
+    }
 }
 ~~~

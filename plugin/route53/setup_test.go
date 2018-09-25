@@ -53,6 +53,9 @@ func TestSetupRoute53(t *testing.T) {
     aws_access_key ACCESS_KEY_ID SEKRIT_ACCESS_KEY
     upstream 1.2.3.4
 }`)
+	c = caddy.NewTestController("dns", `route53 example.org:12345678 {
+    fallthrough
+}`)
 	if err := setup(c, f); err != nil {
 		t.Fatalf("Unexpected errors: %v", err)
 	}
