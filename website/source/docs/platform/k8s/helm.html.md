@@ -85,6 +85,13 @@ and consider if they're appropriate for your deployment.
   in production.** Otherwise, other changes to the chart may inadvertently
   upgrade your Consul version.
 
+  - <a name="v-global-imagek8s" href="#v-global-imagek8s">`imageK8S`</a> (`string: "hashicorp/consul-k8s:latest"`) -
+  The name of the Docker image (including any tag) for the
+  [consul-k8s](https://github.com/hashicorp/consul-k8s) binary. This is
+  used by components such as catalog sync. **This should be pinned to a specific
+  version when running in production.** Otherwise, other changes to the chart may
+  inadvertently upgrade the version.
+
   - <a name="v-global-datacenter" href="#v-global-datacenter">`datacenter`</a> (`string: "dc1"`) -
   The name of the datacenter that the agent cluster should register as.
   This must not be changed once the cluster is bootstrapped and running,
@@ -249,6 +256,11 @@ and consider if they're appropriate for your deployment.
   The name of the Docker image (including any tag) for
   [consul-k8s](/docs/platform/k8s/index.html#quot-consul-k8s-quot-project)
   to run the sync program.
+
+  - <a name="v-synccatalog-k8sprefix" href="#v-synccatalog-k8sprefix">`k8sPrefix`</a> (`string: ""`) -
+  A prefix to prepend to all services registered in Kubernetes from Consul.
+  This defaults to `""` where no prefix is prepended; Consul services are
+  synced with the same name to Kubernetes.
 
   - <a name="v-synccatalog-toconsul" href="#v-synccatalog-toconsul">`toConsul`</a> (`boolean: true`) -
   If true, will sync Kubernetes services to Consul. This can be disabled to
