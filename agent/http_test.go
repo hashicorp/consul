@@ -22,7 +22,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil"
-	"github.com/hashicorp/go-cleanhttp"
+	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/http2"
@@ -1201,6 +1201,93 @@ func TestParseToken_ProxyTokenResolve(t *testing.T) {
 			_, err := check.handler(a.srv, resp, req)
 			require.NoError(t, err)
 		})
+	}
+}
+
+func TestAllowedNets(t *testing.T) {
+	type testVal struct {
+		nets     []string
+		ip       string
+		expected bool
+	}
+
+	for _, v := range []testVal{
+		{
+			ip:       "156.124.222.351",
+			expected: true,
+		},
+		{
+			ip:       "[::2]",
+			expected: true,
+		},
+		{
+			nets:     []string{"0.0.0.0/0"},
+			ip:       "115.124.32.64",
+			expected: true,
+		},
+		{
+			nets:     []string{"::0/0"},
+			ip:       "[::3]",
+			expected: true,
+		},
+		{
+			nets:     []string{"127.0.0.1/8"},
+			ip:       "127.0.0.1",
+			expected: true,
+		},
+		{
+			nets:     []string{"127.0.0.1/8"},
+			ip:       "128.0.0.1",
+			expected: false,
+		},
+		{
+			nets:     []string{"::1/8"},
+			ip:       "[::1]",
+			expected: true,
+		},
+		{
+			nets:     []string{"255.255.255.255/32"},
+			ip:       "127.0.0.1",
+			expected: false,
+		},
+		{
+			nets:     []string{"255.255.255.255/32", "127.0.0.1/8"},
+			ip:       "127.0.0.1",
+			expected: true,
+		},
+	} {
+		var nets []*net.IPNet
+		for _, n := range v.nets {
+			_, in, err := net.ParseCIDR(n)
+			if err != nil {
+				t.Fatal(err)
+			}
+			nets = append(nets, in)
+		}
+
+		a := &TestAgent{
+			Name: t.Name(),
+		}
+		a.Start()
+		defer a.Shutdown()
+		testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+		a.config.AllowWriteHTTPFrom = nets
+
+		err := a.srv.checkWriteAccess(&http.Request{
+			Method:     http.MethodPost,
+			RemoteAddr: fmt.Sprintf("%s:16544", v.ip),
+		})
+		actual := err == nil
+
+		if actual != v.expected {
+			t.Fatalf("bad checkWriteAccess for values %+v, got %v", v, err)
+		}
+
+		_, isForbiddenErr := err.(ForbiddenError)
+		if err != nil && !isForbiddenErr {
+			t.Fatalf("expected ForbiddenError but got: %s", err)
+		}
 	}
 }
 

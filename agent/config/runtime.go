@@ -320,6 +320,14 @@ type RuntimeConfig struct {
 	// hcl: http_config { block_endpoints = []string }
 	HTTPBlockEndpoints []string
 
+	// AllowWriteHTTPFrom restricts the agent write endpoints to the given
+	// networks. Any request to a protected endpoint that is not mactched
+	// by one of these networks will get a 403 response.
+	// An empty slice means no restriction.
+	//
+	// hcl: http_config { allow_write_http_from = []string }
+	AllowWriteHTTPFrom []*net.IPNet
+
 	// HTTPResponseHeaders are used to add HTTP header response fields to the HTTP API responses.
 	//
 	// hcl: http_config { response_headers = map[string]string }
