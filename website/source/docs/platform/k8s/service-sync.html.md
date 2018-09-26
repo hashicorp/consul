@@ -231,8 +231,11 @@ This enables external services to be discovered using native Kubernetes
 tooling. This can be used to ease software migration into or out of Kubernetes,
 across platforms, to and from hosted services, and more.
 
--> **Requires Consul DNS in Kubernetes:** This feature requires that
+-> **Requires Consul DNS via CoreDNS in Kubernetes:** This feature requires that
 [Consul DNS](/docs/platform/k8s/dns.html) is configured within Kubernetes.
+Additionally, **[CoreDNS](https://kubernetes.io/docs/tasks/administer-cluster/dns-custom-nameservers/#config-coredns)
+is required (instead of kube-dns)** to resolve an
+issue with resolving `externalName` services pointing to custom domains.
 In the future we hope to remove this requirement by syncing the instance
 addresses directly into service endpoints.
 
