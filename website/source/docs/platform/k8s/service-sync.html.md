@@ -16,9 +16,9 @@ automatically installed and configured using the
 [Consul Helm chart](/docs/platform/k8s/helm.html).
 
 **Why sync Kubernetes services to Consul?** Kubernetes services synced to the
-Consul catalog enable Kubernetes services to be accessed by non-Kubernetes
-nodes that are part of the Consul cluster or by other distinct Kubernetes
-clusters. For non-Kubernetes nodes, they can access services using the standard
+Consul catalog enable Kubernetes services to be accessed by any node that
+is part of the Consul cluster, including other distinct Kubernetes clusters.
+For non-Kubernetes nodes, they can access services using the standard
 [Consul DNS](/docs/agent/dns.html) or HTTP API.
 
 **Why sync Consul services to Kubernetes?** Syncing Consul services to
@@ -31,7 +31,7 @@ service discovery, including hosted services like databases.
 
 The service sync is done using an external long-running process in the
 [consul-k8s project](https://github.com/hashicorp/consul-k8s). This process
-can run both in or out of a Kubernetes cluster. However, running this within
+can run either in or out of a Kubernetes cluster. However, running this within
 the Kubernetes cluster is generally easier since it is automated using the
 [Helm chart](/docs/platform/k8s/helm.html).
 
@@ -99,7 +99,7 @@ node that has the representative pod running. While Kubernetes configures
 a static port on all nodes in the cluster, this limits the number of service
 instances to be equal to the nodes running the target pods.
 
-The service instances registered will be registered to the K8S node name
+The service instances will be registered to the Kubernetes node name
 that each instance lives on. This is guaranteed unique by Kubernetes. An
 existing node entry will be used if it is already part of the Consul
 cluster (for example if you're running a client agent on all Kubernetes
@@ -184,10 +184,11 @@ The annotation value may a name of a port (recommended) or an exact port value.
 
 ### Service Tags
 
-A service registered in Consul from K8S will always have the tag "k8s" added
+A service registered in Consul from Kubernetes will always have the tag "k8s" added
 to it. Additional tags can be specified with a comma-separated annotation value
 as shown below. This will also automatically include the "k8s" tag which can't
-be disabled.
+be disabled. The values should be specified comma-separated without any
+additional whitespace.
 
 ```yaml
 kind: Service
@@ -200,11 +201,11 @@ metadata:
 
 ### Service Meta
 
-A service registered in Consul from K8S will set the `external-source` key to
+A service registered in Consul from Kubernetes will set the `external-source` key to
 "kubernetes". This can be used by API consumers, the UI, CLI, etc. to filter
 service instances that are set in k8s. The Consul UI (in Consul 1.2.3 and later)
 will read this value to show a Kubernetes icon next to all externally
-registered services.
+registered services from Kubernetes.
 
 Additional metadata can be specified using annotations. The "KEY" below can be
 set to any key. This allows setting multiple meta values:
@@ -237,7 +238,7 @@ addresses directly into service endpoints.
 
 ### Sync Enable/Disable
 
-All Consul services visible with the given Consul ACL token to the sync process
+All Consul services visible to the sync process based on its given ACL token
 will be synced to Kubernetes.
 
 There is no way to change this behavior per service. For the opposite sync
@@ -250,12 +251,12 @@ In the future, we hope to support per-service configuration.
 ### Service Name
 
 When a Consul service is synced to Kubernetes, the name of the Kubernetes
-service will match exactly within Kubernetes.
+service will exactly match the name of the Consul service.
 
-A service name prefix can be specified to the sync program. If specified, this
-prefix will be attached to Consul services within Kubernetes. This defaults to
-no prefix. The prefix can be specified using the `-k8s-service-prefix` flag
-and can also be specified using Helm configuration.
+To change this default exact match behavior, it is possible to specify a
+prefix to be added to service names within Kubernetes by using the
+`-k8s-service-prefix` flag. This can also be specified in the Helm
+configuration.
 
 **If a conflicting service is found,** the service will not be synced. This
 does not match the Kubernetes to Consul behavior, but given the current
