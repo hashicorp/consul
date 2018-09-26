@@ -28,8 +28,13 @@ There are several different kinds of checks:
   Consul will wait for any child processes spawned by the script to finish. For any
   other system, Consul will attempt to force-kill the script and any child processes
   it has spawned once the timeout has passed.
-  In Consul 0.9.0 and later, the agent must be configured with [`enable_script_checks`]
-  (/docs/agent/options.html#_enable_script_checks) set to `true` in order to enable script checks.
+  In Consul 0.9.0 and later, script checks are not enabled by default. To use them you
+  can either use :
+  * [`enable_local_script_checks`](/docs/agent/options.html#_enable_local_script_checks):
+    enable script checks defile in local config files. Script checks defined via the HTTP
+    API will not be allowed.
+  * [`enable_script_checks`](/docs/agent/options.html#_enable_script_checks): enable
+    script checks regardless of how they are defined.
 
 * HTTP + Interval - These checks make an HTTP `GET` request every Interval (e.g.
   every 30 seconds) to the specified URL. The status of the service depends on
