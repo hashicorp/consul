@@ -85,6 +85,13 @@ and consider if they're appropriate for your deployment.
   in production.** Otherwise, other changes to the chart may inadvertently
   upgrade your Consul version.
 
+  - <a name="v-global-imagek8s" href="#v-global-imagek8s">`imageK8S`</a> (`string: "hashicorp/consul-k8s:latest"`) -
+  The name of the Docker image (including any tag) for the
+  [consul-k8s](https://github.com/hashicorp/consul-k8s) binary. This is
+  used by components such as catalog sync. **This should be pinned to a specific
+  version when running in production.** Otherwise, other changes to the chart may
+  inadvertently upgrade the version.
+
   - <a name="v-global-datacenter" href="#v-global-datacenter">`datacenter`</a> (`string: "dc1"`) -
   The name of the datacenter that the agent cluster should register as.
   This must not be changed once the cluster is bootstrapped and running,
@@ -236,6 +243,32 @@ and consider if they're appropriate for your deployment.
   TCP and UDP to the running Consul agents (servers and clients). This can
   then be used to [configure kube-dns](/docs/platform/k8s/dns.html). The Helm
   chart _does not_ automatically configure kube-dns.
+
+* <a name="v-synccatalog" href="#v-synccatalog">`syncCatalog`</a> - Values that
+  configure running the [service sync](/docs/platform/k8s/service-sync.html)
+  process.
+
+  - <a name="v-synccatalog-enabled" href="#v-synccatalog-enabled">`enabled`</a> (`boolean: false`) -
+  If true, the chart will install all the resources necessary for the
+  catalog sync process to run.
+
+  - <a name="v-synccatalog-image" href="#v-synccatalog-image">`image`</a> (`string: global.imageK8S`) -
+  The name of the Docker image (including any tag) for
+  [consul-k8s](/docs/platform/k8s/index.html#quot-consul-k8s-quot-project)
+  to run the sync program.
+
+  - <a name="v-synccatalog-k8sprefix" href="#v-synccatalog-k8sprefix">`k8sPrefix`</a> (`string: ""`) -
+  A prefix to prepend to all services registered in Kubernetes from Consul.
+  This defaults to `""` where no prefix is prepended; Consul services are
+  synced with the same name to Kubernetes.
+
+  - <a name="v-synccatalog-toconsul" href="#v-synccatalog-toconsul">`toConsul`</a> (`boolean: true`) -
+  If true, will sync Kubernetes services to Consul. This can be disabled to
+  have a one-way sync.
+
+  - <a name="v-synccatalog-tok8s" href="#v-synccatalog-tok8s">`toK8S`</a> (`boolean: true`) -
+  If true, will sync Consul services to Kubernetes. This can be disabled to
+  have a one-way sync.
 
 * <a name="v-ui" href="#v-ui">`ui`</a> - Values that configure the Consul UI.
 
