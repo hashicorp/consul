@@ -9,6 +9,7 @@
 @import 'components/breadcrumbs';
 @import 'components/anchors';
 @import 'components/buttons';
+@import 'components/secret-button';
 @import 'components/tabs';
 @import 'components/pill';
 @import 'components/table';
@@ -41,3 +42,4 @@
 @import 'routes/dc/intention/index';
 @import 'routes/dc/kv/index';
 @import 'routes/dc/acls/index';
+@import 'routes/dc/acls/tokens/index';

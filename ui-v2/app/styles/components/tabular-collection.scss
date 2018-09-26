@@ -1,10 +1,22 @@
 table {
   position: relative;
+  /* minimum of 4x50px heigh rows plus top/bottom margins*/
+  min-height: 249px;
 }
 table tbody {
-  width: 100%;
-  height: 100%;
+  /* tbodys are all absolute so,*/
+  /* make room for the header */
   top: 29px !important;
+  /* Make room for the header, plus 20px for a margin on the bottom */
+  height: calc(100% - 49px);
+  width: 100%;
+}
+table caption ~ tbody {
+  /* tbodys are all absolute so,*/
+  /* make room for the header */
+  top: 49px !important;
+  /* Make room for the header, plus 20px for a margin on the bottom */
+  height: calc(100% - 69px);
 }
 table tr {
   display: flex;
@@ -44,6 +56,11 @@ html.template-policy.template-list main table tr {
 }
 html.template-token.template-list main table tr {
   @extend %tokens-row;
+}
+html.template-token.template-list main table tr td.me,
+html.template-token.template-list main table tr td.me ~ td,
+html.template-token.template-list main table tr th {
+  @extend %tokens-your-row;
 }
 html.template-node.template-show main table tr {
   @extend %node-services-row;
@@ -93,12 +110,22 @@ html.template-node.template-show main table.sessions tr {
 %acls-row > *:last-child {
   width: 60px;
 }
-%tokens-row > * {
-  width: calc(25% - 15px);
+%tokens-row > *:first-child,
+%tokens-row > *:nth-child(2),
+%tokens-your-row:nth-last-child(2) {
+  width: 120px;
+}
+%tokens-row > *:nth-child(3),
+%tokens-row > *:nth-child(4) {
+  width: calc(50% - 150px);
+}
+%tokens-your-row:nth-child(4) {
+  width: calc(50% - 270px) !important;
 }
 %tokens-row > *:last-child {
   width: 60px;
 }
+
 %kvs-row > *:first-child {
   width: calc(100% - 60px);
 }

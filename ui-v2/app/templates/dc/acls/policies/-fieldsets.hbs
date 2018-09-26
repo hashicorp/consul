@@ -10,11 +10,15 @@
             <span>Rules <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
             {{code-editor class=(if item.error.Rules 'error') name='Rules' value=item.Rules onkeyup=(action 'change')}}
         </label>
-        <label class="type-toggle">
-          <span>All</span>
-          <input type="checkbox" name="Local" checked={{if Local 'checked' }} onchange={{action 'change'}} />
-        </label>
-        <div class="checkbox-group">
+        <div class="type-toggle">
+          <span>Valid datacenters</span>
+          <label>
+            <input type="checkbox" name="isScoped" checked={{if (not isScoped) 'checked' }} onchange={{action 'change'}} />
+            <span>All</span>
+          </label>
+        </div>
+{{#if isScoped }}
+        <div class="checkbox-group" role="group">
           {{#each datacenters as |dc| }}
             <label class="type-checkbox">
               <input type="checkbox" name="Datacenters" value={{dc.Name}} checked={{if (contains dc.Name item.Datacenters) 'checked' }} onchange={{action 'change'}} />
@@ -22,6 +26,7 @@
             </label>
           {{/each}}
         </div>
+{{/if}}
       <label class="type-text">
         <span>Description (Optional)</span>
         <textarea name="Description" oninput={{action 'change'}}></textarea>

@@ -5,6 +5,8 @@ import templatize from 'consul-ui/utils/templatize';
 const $html = document.documentElement;
 export default Component.extend(SlotsMixin, {
   loading: false,
+  authorized: true,
+  enabled: true,
   classNames: ['app-view'],
   didReceiveAttrs: function() {
     let cls = get(this, 'class') || '';

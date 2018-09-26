@@ -2,3 +2,6 @@
 .notice.warning {
   @extend %notice-warning;
 }
+.notice.info {
+  @extend %notice-info;
+}

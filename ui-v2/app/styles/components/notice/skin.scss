@@ -18,6 +18,8 @@
   color: $ui-color-success;
 }
 %notice-info {
+  /* %frame-blue-000*/
+  border-style: solid; /*TODO: this can go once we are using a frame*/
   @extend %with-passing; /* needs a better info button*/
   background-color: $ui-blue-050;
   border-color: $ui-color-action; /* TODO: change to info */

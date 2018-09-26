@@ -1,10 +1,14 @@
 <form>
+{{#if (not item.Legacy)}}
     <fieldset>
-      <label class="type-toggle">
+      <div class="type-toggle">
         <span>Restrict this token to a local datacenter?</span>
-        <em>To create a folder, end a key with <code>/</code></em>
-        <input type="checkbox" name="Local" checked={{if Local 'checked' }} onchange={{action 'change'}} />
-      </label>
+        <em>Local tokens get set in the Raft store of the local DC and do not ever get transmitted to the primary DC or replicated to any other DC.</em>
+        <label>
+          <input type="checkbox" name="Local" checked={{if Local 'checked' }} onchange={{action 'change'}} />
+          <span>No</span>
+        </label>
+      </div>
       <label class="type-text">
         <span>Description</span>
         <textarea name="Description" oninput={{action 'change'}}></textarea>
@@ -12,21 +16,23 @@
     </fieldset>
     <fieldset>
       <h2>Policies</h2>
-          <label for="new-policy-toggle">New Policy</label>
-          {{#modal-dialog name="new-policy-toggle"}}
-            {{#block-slot 'header'}}
-                <h2>New Policy</h2>
-            {{/block-slot}}
-            {{#block-slot 'body'}}
-              {{#with policy as |item|}}
-                {{partial 'dc/acls/policies/fieldsets'}}
-              {{/with}}
-            {{/block-slot}}
-            {{#block-slot 'actions' as |close|}}
-              <button type="button" {{action 'createPolicy' policy close}}>Create and apply</button>
-              <button type="button" class="type-cancel" {{action close}}>Cancel</button>
-            {{/block-slot}}
-          {{/modal-dialog}}
+      <label class="type-dialog" for="new-policy-toggle">
+        <span>Create new policy</span>
+        {{#modal-dialog name="new-policy-toggle"}}
+          {{#block-slot 'header'}}
+              <h2>New Policy</h2>
+          {{/block-slot}}
+          {{#block-slot 'body'}}
+            {{#with policy as |item|}}
+              {{partial 'dc/acls/policies/fieldsets'}}
+            {{/with}}
+          {{/block-slot}}
+          {{#block-slot 'actions' as |close|}}
+            <button type="button" {{action 'createPolicy' policy close}}>Create and apply</button>
+            <button type="button" class="type-cancel" {{action close}}>Cancel</button>
+          {{/block-slot}}
+        {{/modal-dialog}}
+      </label>
       <label class="type-text">
         <span>Apply an existing policy</span>
             {{#power-select
@@ -39,7 +45,7 @@
               {{policy.Name}}
             {{/power-select}}
       </label>
-{{#if (gt item.Policies.length 0)}}
+  {{#if (gt item.Policies.length 0)}}
     {{#tabular-collection
         data-test-policies
         items=(sort-by 'CreateTime:desc' 'Name:asc' item.Policies) as |item index|
@@ -73,8 +79,35 @@
                 </td>
         {{/block-slot}}
     {{/tabular-collection}}
+  {{/if}}
+    </fieldset>
+{{else}}
+    <fieldset>
+        <label class="type-text{{if item.error.Name ' has-error'}}">
+            <span>Name</span>
+            {{input value=item.Name name='name' autofocus='autofocus'}}
+        </label>
+        <div role="radiogroup" class={{if item.error.Type ' has-error'}}>
+            {{#each (array 'management' 'client') as |type|}}
+                <label>
+                    <span>{{capitalize type}}</span>
+                    <input type="radio" name="Type" value="{{type}}" checked={{if (eq item.Type type) 'checked'}} onchange={{ action 'change' }}/>
+                </label>
+            {{/each}}
+        </div>
+        <label class="type-text">
+            <span>Rules <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
+            {{code-editor class=(if item.error.Rules 'error') name='Rules' value=item.Rules onkeyup=(action 'change' 'Rules')}}
+        </label>
+{{#if create }}
+        <label class="type-text">
+            <span>ID</span>
+            {{ input value=item.ID }}
+            <em>We'll generate a UUID if this field is left empty.</em>
+        </label>
 {{/if}}
     </fieldset>
+{{/if}}
     <div>
 {{#if create }}
         <button type="submit" {{ action "create" item}} disabled={{if (or item.isPristine item.isInvalid) 'disabled'}}>Save</button>

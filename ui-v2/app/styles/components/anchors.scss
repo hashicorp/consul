@@ -1,24 +1,18 @@
 @import './anchors/index';
-// TODO: This shouldn't be done here, decide the best way to do this
-// %main-decoration ? %main-skin ? %content-skin ?
-main,
-%modal-window {
-  @extend %main;
-}
-%main a {
+%main-content a {
   color: $ui-gray-900;
 }
-%main a[rel*='help'] {
+%main-content a[rel*='help'] {
   @extend %with-info;
 }
-%main label a[rel*='help'] {
+%main-content label a[rel*='help'] {
   color: $ui-gray-400;
 }
 
 [role='tabpanel'] > p:only-child [rel*='help']::after {
   content: none;
 }
-%main p a,
-%main dd a {
+%main-content p a,
+%main-content dd a {
   @extend %anchor;
 }

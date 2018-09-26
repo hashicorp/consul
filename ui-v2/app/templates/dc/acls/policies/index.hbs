@@ -3,7 +3,10 @@
       {{partial 'dc/acls/policies/notifications'}}
     {{/block-slot}}
     {{#block-slot 'header'}}
-      {{partial 'dc/acls/nav'}}
+      <h1>
+        Access Controls
+      </h1>
+        {{partial 'dc/acls/nav'}}
     {{/block-slot}}
     {{#block-slot 'actions'}}
         <a data-test-create href="{{href-to 'dc.acls.policies.create'}}" class="type-create">Create</a>

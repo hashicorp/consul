@@ -8,6 +8,7 @@ import WithTokenActions from 'consul-ui/mixins/token/with-actions';
 export default SingleRoute.extend(WithTokenActions, {
   repo: service('tokens'),
   policiesRepo: service('policies'),
+  datacenterRepo: service('dc'),
   model: function(params, transition) {
     const dc = this.modelFor('dc').dc.Name;
     return this._super(...arguments).then(model => {
@@ -15,6 +16,7 @@ export default SingleRoute.extend(WithTokenActions, {
         ...model,
         ...{
           items: get(this, 'policiesRepo').findAllByDatacenter(dc),
+          datacenters: get(this, 'datacenterRepo').findAll(),
           policy: this.getEmptyPolicy(),
         },
       });

@@ -1,25 +1,24 @@
 /* TODO: Maybe move this to reset? */
 [type='radio'],
-%toggle span::before,
-%toggle span::after {
+%toggle label span::before,
+%toggle label span::after {
   cursor: pointer;
 }
-%toggle span::after {
+%toggle label span::after {
   border-radius: $decor-radius-full;
 }
-%toggle span::before {
+%toggle label span::before {
   border-radius: 7px;
 }
-%toggle input:checked + span::before {
+%toggle label input:checked + span::before {
   background-color: $ui-color-success;
 }
-%toggle span {
+%toggle label span {
   color: $ui-gray-900;
 }
-%toggle span::after {
+%toggle label span::after {
   background-color: $ui-white;
 }
-%toggle span::before {
+%toggle label span::before {
   background-color: $ui-gray-300;
 }
-

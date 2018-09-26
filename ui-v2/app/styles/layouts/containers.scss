@@ -17,6 +17,7 @@ $ideal-content-padding: 33px;
   margin-left: auto;
   margin-right: auto;
 }
+%modal-dialog > *,
 %content-container > * {
   box-sizing: border-box;
 }

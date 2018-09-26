@@ -1,6 +1,7 @@
 /*TODO: The old pseudo-icon was to specific */
 /* make a temporary one with the -- prefix */
 /* to make it more reusable temporarily */
+
 %--pseudo-icon {
   display: block;
   content: '';
@@ -144,6 +145,30 @@
   background-color: $ui-color-transparent;
   width: 16px;
   height: 16px;
+}
+%with-star::before {
+  /* these are better psuedo icons*/
+  content: '';
+  visibility: visible;
+  display: inline-block;
+  background-repeat: no-repeat;
+  background-position: center;
+  /**/
+  background-image: $star-svg;
+  width: 10px;
+  height: 9px;
+  padding-right: 12px;
+}
+%with-eye::before {
+  content: '';
+  visibility: visible;
+  display: inline-block;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-image: $eye-svg;
+  width: 16px;
+  height: 8px;
+  padding-right: 12px;
 }
 %with-tick {
   @extend %pseudo-icon;

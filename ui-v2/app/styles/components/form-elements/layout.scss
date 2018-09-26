@@ -47,9 +47,15 @@
 %form-element > span {
   margin-bottom: 0.4em !important;
 }
-%form-element,
-%radio-group {
+%form-row {
   margin-bottom: 1.55em;
+}
+%form-element,
+%radio-group,
+%checkbox-group {
+  /*TODO: Move all these elsewhere*/
+  /* is form-row the best name?*/
+  @extend %form-row;
 }
 %radio-group {
   overflow: hidden;
@@ -73,4 +79,14 @@
 %radio-group label,
 %radio-group label > span {
   margin-bottom: 0 !important;
+}
+
+%checkbox-group span {
+  display: inline-block;
+  margin-left: 10px;
+  min-width: 50px;
+}
+%checkbox-group label {
+  margin-right: 10px;
+  white-space: nowrap;
 }

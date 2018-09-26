@@ -42,7 +42,9 @@ h2,
 td a {
   font-weight: $typo-weight-semibold;
 }
-%form-element > span {
+%form-element > span,
+%toggle label span,
+caption {
   font-weight: $typo-weight-semibold;
 }
 %button {
@@ -84,13 +86,15 @@ td {
   font-size: $typo-size-600;
 }
 th,
+caption,
+.type-dialog,
 %form-element > span,
 %tooltip-bubble,
 %healthchecked-resource strong,
 %footer {
   font-size: $typo-size-700;
 }
-%toggle span {
+%toggle label span {
   font-size: $typo-size-700 !important;
 }
 %app-content > p:only-child,

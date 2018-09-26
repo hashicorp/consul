@@ -1,44 +1,66 @@
-{{#app-view class="token list" loading=isLoading}}
+{{#app-view class="token list" loading=isLoading authorized=isAuthorized enabled=isEnabled}}
     {{#block-slot 'notification' as |status type|}}
       {{partial 'dc/acls/tokens/notifications'}}
     {{/block-slot}}
     {{#block-slot 'header'}}
-      {{partial 'dc/acls/nav'}}
+      <h1>
+        Access Controls
+      </h1>
+      {{#if isAuthorized }}
+        {{partial 'dc/acls/nav'}}
+      {{/if}}
+    {{/block-slot}}
+    {{#block-slot 'disabled'}}
+      {{partial 'dc/acls/disabled'}}
+    {{/block-slot}}
+    {{#block-slot 'authorization'}}
+      {{partial 'dc/acls/authorization'}}
     {{/block-slot}}
     {{#block-slot 'actions'}}
         <a data-test-create href="{{href-to 'dc.acls.tokens.create'}}" class="type-create">Create</a>
     {{/block-slot}}
     {{#block-slot 'content'}}
+        {{#if isLegacy}}
+        {{/if}}
 {{#if (gt items.length 0) }}
         <form class="filter-bar">
             {{freetext-filter onchange=(action 'filter') value=filter.s placeholder="Search"}}
         </form>
 {{/if}}
+            <p class="notice info"><strong>Update.</strong> We've upgraded our ACL system by allowing you to create reusable Policies, which you can then apply to Tokens. Read more about the change and learn how to upgrade your legacy Tokens in our <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guide/acl.html" target="_blank" rel="noopener noreferrer">documentation</a>.</p>
 {{#if (gt filtered.length 0)}}
         {{#tabular-collection
-            items=(sort-by 'AccessorID:asc' filtered) as |item index|
+            items=filtered as |item index|
         }}
             {{#block-slot 'header'}}
                 <th>Accessor ID</th>
                 <th>Scope</th>
+                <th>Description</th>
                 <th>Policies</th>
+                <th>&nbsp;</th>
             {{/block-slot}}
             {{#block-slot 'row'}}
-                <td data-test-token="{{item.AccessorID}}">
-                    <a href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>{{item.AccessorID}}</a>
+                <td data-test-token="{{item.AccessorID}}" class={{if (eq item.AccessorID currentAccessorID) 'me' }}>
+                    <a href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>{{truncate item.AccessorID 8 false}}</a>
                 </td>
                 <td>
                   {{if item.Local 'local' 'global' }}
                 </td>
                 <td>
+                  {{item.Name}}
+                </td>
+                <td colspan={{if (not-eq item.AccessorID currentAccessorID) '2' }}>
   {{#if item.Legacy }}
-                    Legacy tokens have embedded policies
+                    Legacy tokens have embedded policies.
   {{ else }}
                     {{#each item.Policies as |item|}}
-                      <strong class={{if (eq item.ID '00000000-0000-0000-0000-000000000000') 'policy-management' }}>{{item.Name}}</strong>
+                      <strong class={{if (policy/is-management item) 'policy-management' }}>{{item.Name}}</strong>
                     {{/each}}
   {{/if}}
                 </td>
+  {{#if (eq item.AccessorID currentAccessorID)}}
+                <td>Your token</td>
+  {{/if}}
             {{/block-slot}}
             {{#block-slot 'actions' as |index change checked|}}
                 {{#confirmation-dialog confirming=false index=index message="Are you sure you want to delete this Token?"}}
@@ -54,9 +76,16 @@
                                 <li>
                                     <a data-test-clone onclick={{action 'sendClone' item}}>Duplicate</a>
                                 </li>
+{{#if (eq item.AccessorID currentAccessorID) }}
                                 <li>
-                                    <a data-test-use onclick={{queue (action confirm 'use' item) (action change)}}>Use</a>
+                                    <a data-test-use onclick={{queue (action confirm 'use' item) (action change)}}>Stop using</a>
                                 </li>
+{{else}}
+
+                                <li>
+                                    <a data-test-logout onclick={{queue (action confirm 'use' item) (action change)}}>Use</a>
+                                </li>
+{{/if}}
                                 <li>
                                     <a data-test-delete onclick={{action confirm 'delete' item}}>Delete</a>
                                 </li>

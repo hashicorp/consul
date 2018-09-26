@@ -10,8 +10,11 @@
 {{/each}}
     <div>
         <div class="actions">
+  {{#if authorized}}
             {{#yield-slot 'actions'}}{{yield}}{{/yield-slot}}
+  {{/if}}
         </div>
+
         <div>
             <nav aria-label="Breadcrumb">
                 {{#yield-slot 'breadcrumbs'}}{{yield}}{{/yield-slot}}
@@ -19,16 +22,24 @@
             {{#yield-slot 'header'}}{{yield}}{{/yield-slot}}
         </div>
     </div>
+  {{#if authorized}}
     {{#yield-slot 'toolbar'}}
       <input type="checkbox" id="toolbar-toggle" />
       {{yield}}
     {{/yield-slot}}
+  {{/if}}
 </header>
 {{/if}}
 <div>
-    {{#if loading}}
-        {{partial 'consul-loading'}}
+{{#if loading}}
+    {{partial 'consul-loading'}}
+{{else}}
+    {{#if (not enabled) }}
+      {{#yield-slot 'disabled'}}{{yield}}{{/yield-slot}}
+    {{else if (not authorized)}}
+      {{#yield-slot 'authorization'}}{{yield}}{{/yield-slot}}
     {{else}}
-        {{#yield-slot 'content'}}{{yield}}{{/yield-slot}}
+      {{#yield-slot 'content'}}{{yield}}{{/yield-slot}}
     {{/if}}
+{{/if}}
 </div>

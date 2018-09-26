@@ -136,6 +136,7 @@ export default Component.extend(SlotsMixin, WithResizing, {
   height: 500,
   style: style('getStyle'),
   checked: null,
+  hasCaption: false,
   init: function() {
     this._super(...arguments);
     this.change = change.bind(this);
@@ -165,7 +166,8 @@ export default Component.extend(SlotsMixin, WithResizing, {
   },
   willRender: function() {
     this._super(...arguments);
-    this.set('hasActions', this._isRegistered('actions'));
+    set(this, 'hasCaption', this._isRegistered('caption'));
+    set(this, 'hasActions', this._isRegistered('actions'));
   },
   // `ember-collection` bug workaround
   // https://github.com/emberjs/ember-collection/issues/138

@@ -7,6 +7,7 @@ const normalizeEmberTarget = function(e, value, target) {
   return e.target || { ...target, ...{ name: e, value: value } };
 };
 export default Controller.extend({
+  isScoped: false,
   setProperties: function(model) {
     this.changeset = new Changeset(model.item, lookupValidator(validations), validations);
     this._super({
@@ -26,8 +27,18 @@ export default Controller.extend({
         case 'Local':
           set(this.changeset, target.name, !get(this.item, target.name));
           break;
+        case 'isScoped':
+          set(this, target.name, !get(this, target.name));
+          break;
         case 'Policy':
           this.send('addPolicy', target.value);
+          break;
+        // Legacy
+        case 'Type':
+          set(this.changeset, target.name, target.value);
+          break;
+        case 'Rules':
+          set(this, 'item.Rules', target.value);
           break;
       }
       this.changeset.validate();

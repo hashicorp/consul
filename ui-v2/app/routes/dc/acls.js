@@ -1,7 +1,19 @@
 import Route from '@ember/routing/route';
+import { get } from '@ember/object';
+import { inject as service } from '@ember/service';
 
 export default Route.extend({
-  // beforeModel: function() {
-  //   this.transitionTo('dc.acls.tokens');
-  // },
+  settings: service('settings'),
+  // repo:
+  actions: {
+    authorize: function(token) {
+      get(this, 'settings')
+        .persist({
+          token: token,
+        })
+        .then(() => {
+          this.refresh();
+        });
+    },
+  },
 });

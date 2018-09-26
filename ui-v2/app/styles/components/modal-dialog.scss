@@ -8,3 +8,6 @@ input[name='modal'] {
 html.template-with-modal {
   @extend %with-modal;
 }
+%modal-dialog table {
+  min-height: 149px;
+}

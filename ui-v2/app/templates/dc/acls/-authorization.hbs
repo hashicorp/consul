@@ -1,0 +1,12 @@
+<p>
+  The Access Control List (ACL) system, which controls permissions for this UI, is enabled for this cluster. Your token ID will be saved locally and persist through visits.
+</p>
+<form>
+    <fieldset>
+        <label class="type-text">
+            <span>Token ID</span>
+            {{input type='password' value=token name="token" placeholder="Token ID"}}
+        </label>
+    </fieldset>
+    <button type="submit" {{action 'authorize' token}}>Save</button>
+</form>

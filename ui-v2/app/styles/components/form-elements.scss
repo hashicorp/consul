@@ -9,10 +9,18 @@ label span {
 .has-error {
   @extend %form-element-error;
 }
+%modal-dialog .type-text,
+%modal-dialog .type-toggle,
 %app-content .type-text,
 %app-content .type-toggle {
   @extend %form-element;
 }
 %app-content [role='radiogroup'] {
   @extend %radio-group;
+}
+.checkbox-group {
+  @extend %checkbox-group;
+}
+%toggle + .checkbox-group {
+  margin-top: -1em;
 }

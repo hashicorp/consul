@@ -15,6 +15,10 @@ import { get } from '@ember/object';
 import makeAttrable from 'consul-ui/utils/makeAttrable';
 
 const REQUEST_CLONE = 'cloneRecord';
+
+const uniqueName = function(haystack, needle) {
+  return `Duplicate of ${needle}`;
+};
 export default Adapter.extend({
   cleanQuery: function(_query) {
     const query = this._super(...arguments);
@@ -111,8 +115,8 @@ export default Adapter.extend({
       case REQUEST_UPDATE:
       case REQUEST_CREATE:
         data.token.Policies = data.token.Policies.filter(function(item) {
+          // Just incase, don't save any policies that aren't saved
           return !get(item, 'isNew');
-          // return get(item, 'ID') !== get(item, 'CreateTime')
         }).map(function(item) {
           return {
             ID: get(item, 'ID'),
@@ -131,6 +135,10 @@ export default Adapter.extend({
         // is essentially a single special case, add the AccessorID back in
         // here after its been removed
         data.token[SLUG_KEY] = params.snapshot.attr(SLUG_KEY);
+        data.token.Name = uniqueName(
+          params.store.peekAll('blog-post').toArray(),
+          params.snapshot.attr('Name')
+        );
         break;
     }
     return data.token;

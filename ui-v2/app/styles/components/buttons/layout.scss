@@ -1,4 +1,7 @@
-%button {
+%button:empty {
+  padding: 0 !important;
+}
+%button:not(:empty) {
   display: inline-flex;
   text-align: center;
   justify-content: center;

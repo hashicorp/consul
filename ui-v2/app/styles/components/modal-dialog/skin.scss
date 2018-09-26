@@ -1,5 +1,8 @@
 %modal-dialog > label {
-  background-color: rgba($ui-white, 0.7);
+  background-color: rgba($ui-white, 0.9);
+}
+%modal-window {
+  box-shadow: 2px 8px 8px 0 rgba($ui-black, 0.1);
 }
 %modal-window {
   /*%frame-gray-000*/
@@ -20,7 +23,7 @@
 %modal-window > header {
   border-bottom-width: 1px;
 }
-%modal-window > header {
+%modal-window.warning > header {
   @extend %with-warning;
   text-indent: 20px;
 }

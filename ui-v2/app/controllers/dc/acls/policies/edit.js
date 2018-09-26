@@ -5,6 +5,7 @@ import validations from 'consul-ui/validations/policy';
 import lookupValidator from 'ember-changeset-validations';
 
 export default Controller.extend({
+  isScoped: false,
   setProperties: function(model) {
     this.changeset = new Changeset(model.item, lookupValidator(validations), validations);
     this._super({
@@ -25,6 +26,9 @@ export default Controller.extend({
           break;
         case 'Rules':
           set(this, 'item.Rules', target.value);
+          break;
+        case 'isScoped':
+          set(this, 'isScoped', !get(this, 'isScoped'));
           break;
       }
     },

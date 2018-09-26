@@ -48,6 +48,10 @@ td {
 table {
   width: 100%;
 }
+table caption {
+  text-align: left;
+  margin-bottom: 0.5em;
+}
 td button {
   position: relative;
   top: -6px;
@@ -143,8 +147,7 @@ td dd {
   html.template-node.template-show #services tr > :last-child {
     display: none;
   }
-  html.template-node.template-show #lock-sessions tr >
-  :not(:first-child):not(:last-child) {
+  html.template-node.template-show #lock-sessions tr > :not(:first-child):not(:last-child) {
     display: none;
   }
   html.template-node.template-show #lock-sessions td:last-child {

@@ -1,10 +1,13 @@
 <form>
   {{partial 'dc/acls/policies/fieldsets'}}
-{{#if (gt items.length 100000)}}
+{{#if (gt items.length 0)}}
     {{#tabular-collection
         data-test-tokens
         items=(sort-by 'AccessorID:asc' items) as |item index|
     }}
+        {{#block-slot 'caption'}}
+          Applied to the following tokens:
+        {{/block-slot}}
         {{#block-slot 'header'}}
             <th>AccessorID</th>
             <th>Scope</th>
