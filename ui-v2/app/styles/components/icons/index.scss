@@ -3,26 +3,29 @@
 /* to make it more reusable temporarily */
 
 %--pseudo-icon {
-  display: block;
+  display: inline-block;
   content: '';
   visibility: visible;
-  position: absolute;
-  top: 50%;
   background-repeat: no-repeat;
-  background-position: center center;
+  background-position: center;
 }
 %pseudo-icon-bg-img {
   @extend %--pseudo-icon;
+  position: relative;
   background-size: contain;
   background-color: transparent;
 }
 %pseudo-icon-css {
   @extend %--pseudo-icon;
+  display: block;
+  position: absolute;
+  top: 50%;
   width: 1em;
   height: 1em;
   margin-top: -0.6em;
   background-color: currentColor;
 }
+/* %pseudo-icon-mask, %pseudo-icon-overlay ?*/
 %pseudo-icon {
   @extend %pseudo-icon-css;
 }
@@ -146,25 +149,24 @@
   width: 16px;
   height: 16px;
 }
-%with-star::before {
-  /* these are better psuedo icons*/
-  content: '';
-  visibility: visible;
-  display: inline-block;
-  background-repeat: no-repeat;
-  background-position: center;
-  /**/
+%with-star-before::before,
+%with-star-after::after {
+  @extend %pseudo-icon-bg-img;
   background-image: $star-svg;
   width: 10px;
   height: 9px;
+}
+%with-star-before::before {
   padding-right: 12px;
 }
+%with-star-after::after {
+  padding-left: 22px;
+}
+%with-star {
+  @extend %with-star-before;
+}
 %with-eye::before {
-  content: '';
-  visibility: visible;
-  display: inline-block;
-  background-repeat: no-repeat;
-  background-position: center;
+  @extend %pseudo-icon-bg-img;
   background-image: $eye-svg;
   width: 16px;
   height: 8px;

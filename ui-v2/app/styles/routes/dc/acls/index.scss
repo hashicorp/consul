@@ -1,3 +1,12 @@
+td a.is-management {
+  @extend %with-star-after;
+}
+td a.is-management::after {
+  height: 16px;
+  top: 2px;
+  padding-left: 32px;
+}
+
 @media #{$--lt-wide-form} {
   html.template-acl.template-edit main header .actions {
     float: none;
