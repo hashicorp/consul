@@ -35,6 +35,12 @@ can run either in or out of a Kubernetes cluster. However, running this within
 the Kubernetes cluster is generally easier since it is automated using the
 [Helm chart](/docs/platform/k8s/helm.html).
 
+The Consul server cluster can run either in or out of a Kubernetes cluster.
+The Consul server cluster does not need to be running on the same machine
+or same platform as the sync process. The sync process needs to be configured
+with the address to the Consul cluster as well as any additional access
+information such as ACL tokens.
+
 To install the sync, enable the catalog sync feature using
 [Helm values](/docs/platform/k8s/helm.html#configuration-values-) and
 upgrade the installation using `helm upgrade` for existing installs or
