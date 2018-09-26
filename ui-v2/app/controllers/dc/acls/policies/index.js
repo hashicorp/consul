@@ -14,7 +14,7 @@ export default Controller.extend(WithFiltering, {
       get(item, 'Name')
         .toLowerCase()
         .indexOf(sLower) !== -1 ||
-      get(item, 'ID')
+      get(item, 'Description')
         .toLowerCase()
         .indexOf(sLower) !== -1
     );

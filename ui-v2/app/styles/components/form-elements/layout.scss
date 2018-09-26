@@ -1,3 +1,9 @@
+%form-row {
+  margin-bottom: 1.55em;
+}
+%form-element {
+  @extend %form-row;
+}
 %form-element,
 %form-element > em,
 %form-element > span,
@@ -46,47 +52,4 @@
 }
 %form-element > span {
   margin-bottom: 0.4em !important;
-}
-%form-row {
-  margin-bottom: 1.55em;
-}
-%form-element,
-%radio-group,
-%checkbox-group {
-  /*TODO: Move all these elsewhere*/
-  /* is form-row the best name?*/
-  @extend %form-row;
-}
-%radio-group {
-  overflow: hidden;
-}
-%radio-group label {
-  float: left;
-}
-%radio-group label > span {
-  float: right;
-}
-%radio-group {
-  padding-left: 1px;
-}
-%radio-group label:not(:last-child) {
-  margin-right: 25px;
-}
-%radio-group label > span {
-  margin-left: 1em;
-  margin-top: 0.2em;
-}
-%radio-group label,
-%radio-group label > span {
-  margin-bottom: 0 !important;
-}
-
-%checkbox-group span {
-  display: inline-block;
-  margin-left: 10px;
-  min-width: 50px;
-}
-%checkbox-group label {
-  margin-right: 10px;
-  white-space: nowrap;
 }

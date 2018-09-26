@@ -32,6 +32,16 @@ tr > * dl {
 /* but this is another area where I am specifically */
 /* targetting table-like things. This is now a prime */
 /* area for a bit of refactoring/reorganizing */
+
+/* Every type of 'row' is given a placeholder which */
+/* can apply to all th's and td's in the table */
+/* (the placeholders refer to a tf so `> *` will get you */
+/* both th and td).
+/* Next, all the below calculations let you fix a width of */
+/* any number of cells, then size the remaining cells */
+/* using: */
+/* calc(<100% divided by number of non-fixed width cells> - <sum of widths of fixed cells divided by number of non-fixed width cells>) */
+
 html.template-service.template-list td:first-child a span,
 html.template-node.template-show #services td:first-child a span {
   @extend %with-external-source-icon;
@@ -39,6 +49,7 @@ html.template-node.template-show #services td:first-child a span {
   margin-right: 10px;
   margin-top: 2px;
 }
+/*TODO: trs only live in tables, get rid of table */
 html.template-service.template-list main table tr {
   @extend %services-row;
 }
@@ -56,6 +67,10 @@ html.template-policy.template-list main table tr {
 }
 html.template-token.template-list main table tr {
   @extend %tokens-row;
+}
+html.template-policy.template-edit [role='dialog'] table tr,
+html.template-policy.template-edit main table tr {
+  @extend %tokens-minimal-row;
 }
 html.template-token.template-list main table tr td.me,
 html.template-token.template-list main table tr td.me ~ td,
@@ -111,6 +126,7 @@ html.template-node.template-show main table.sessions tr {
   width: 60px;
 }
 %tokens-row > *:first-child,
+%tokens-minimal-row > *:not(last-child),
 %tokens-row > *:nth-child(2),
 %tokens-your-row:nth-last-child(2) {
   width: 120px;
@@ -124,6 +140,9 @@ html.template-node.template-show main table.sessions tr {
 }
 %tokens-row > *:last-child {
   width: 60px;
+}
+%tokens-minimal-row > *:last-child {
+  width: calc(100% - 240px);
 }
 
 %kvs-row > *:first-child {

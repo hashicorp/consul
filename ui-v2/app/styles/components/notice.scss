@@ -1,7 +1,16 @@
 @import './notice/index';
+%notice-policy-management {
+  @extend %notice;
+  border: $decor-border-100;
+  border-color: $ui-gray-300;
+  background-color: $ui-gray-050;
+}
 .notice.warning {
   @extend %notice-warning;
 }
 .notice.info {
   @extend %notice-info;
+}
+.notice.policy-management {
+  @extend %notice-policy-management;
 }

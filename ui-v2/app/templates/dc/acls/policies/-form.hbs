@@ -1,26 +1,7 @@
 <form>
   {{partial 'dc/acls/policies/fieldsets'}}
-{{#if (gt items.length 0)}}
-    {{#tabular-collection
-        data-test-tokens
-        items=(sort-by 'AccessorID:asc' items) as |item index|
-    }}
-        {{#block-slot 'caption'}}
-          Applied to the following tokens:
-        {{/block-slot}}
-        {{#block-slot 'header'}}
-            <th>AccessorID</th>
-            <th>Scope</th>
-        {{/block-slot}}
-        {{#block-slot 'row'}}
-              <td>
-                <a href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>{{item.AccessorID}}</a>
-              </td>
-              <td>
-                {{if item.Local 'local' 'global' }}
-              </td>
-        {{/block-slot}}
-    {{/tabular-collection}}
+{{#if (not create) }}
+  {{token-list caption="Applied to the following tokens:" items=items}}
 {{/if}}
     <div>
 {{#if create }}
@@ -43,25 +24,9 @@
                   {{/block-slot}}
                   {{#block-slot 'body'}}
                     <p>
-                      This Policy is currently in use. If you choose to delete this Policy, it will be removed from the following Tokens:
+                    This Policy is currently in use. If you choose to delete this Policy, it will be removed from the following <strong>{{items.length}} Tokens</strong>:
                     </p>
-                    {{#tabular-collection
-                        data-test-tokens
-                        items=(sort-by 'AccessorID:asc' items) as |item index|
-                    }}
-                        {{#block-slot 'header'}}
-                            <th>AccessorID</th>
-                            <th>Scope</th>
-                        {{/block-slot}}
-                        {{#block-slot 'row'}}
-                              <td>
-                                <a target="_blank" href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>{{item.AccessorID}}</a>
-                              </td>
-                              <td>
-                                {{if item.Local 'local' 'global' }}
-                              </td>
-                        {{/block-slot}}
-                    {{/tabular-collection}}
+                    {{token-list items=items target='_blank'}}
                     <p>
                       This action cannot be undone. {{message}}
                     </p>

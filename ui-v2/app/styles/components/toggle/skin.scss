@@ -1,7 +1,5 @@
 /* TODO: Maybe move this to reset? */
-[type='radio'],
-%toggle label span::before,
-%toggle label span::after {
+%toggle label span {
   cursor: pointer;
 }
 %toggle label span::after {
@@ -11,7 +9,7 @@
   border-radius: 7px;
 }
 %toggle label input:checked + span::before {
-  background-color: $ui-color-success;
+  background-color: $ui-blue-500;
 }
 %toggle label span {
   color: $ui-gray-900;

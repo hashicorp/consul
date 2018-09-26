@@ -12,11 +12,19 @@
 {{#if create }}
         New Policy
 {{else}}
-        Edit Policy
+  {{#if (policy/is-management item)}}
+    View Policy
+  {{else}}
+    Edit Policy
+  {{/if}}
 {{/if}}
         </h1>
     {{/block-slot}}
     {{#block-slot 'content'}}
-        {{ partial 'dc/acls/policies/form'}}
+{{#if (policy/is-management item)}}
+      {{ partial 'dc/acls/policies/view'}}
+{{else}}
+      {{ partial 'dc/acls/policies/form'}}
+{{/if}}
     {{/block-slot}}
 {{/app-view}}

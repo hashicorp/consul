@@ -1,8 +1,9 @@
+/*TODO: This remains a mix of form-elements */
+/* form-elements should probably be a collection of these */
 @import './form-elements/index';
 @import './toggle/index';
-.type-toggle {
-  @extend %toggle;
-}
+@import './radio-group/index';
+@import './checkbox-group/index';
 label span {
   @extend %user-select-none;
 }
@@ -10,13 +11,23 @@ label span {
   @extend %form-element-error;
 }
 %modal-dialog .type-text,
-%modal-dialog .type-toggle,
-%app-content .type-text,
-%app-content .type-toggle {
+%app-content .type-text {
   @extend %form-element;
+}
+.type-toggle {
+  @extend %form-element, %toggle;
+}
+%form-element,
+%radio-group,
+%checkbox-group,
+%app-content form dl {
+  @extend %form-row;
 }
 %app-content [role='radiogroup'] {
   @extend %radio-group;
+}
+%radio-group label {
+  @extend %form-element;
 }
 .checkbox-group {
   @extend %checkbox-group;

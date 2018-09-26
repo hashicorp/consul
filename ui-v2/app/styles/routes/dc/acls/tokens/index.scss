@@ -3,7 +3,7 @@
   cursor: pointer;
   float: right;
 }
-.policy-management {
+%pill.policy-management {
   @extend %with-star;
 }
 %token-yours {
