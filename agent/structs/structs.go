@@ -658,6 +658,25 @@ type NodeService struct {
 	// a pointer so that we never have to nil-check this.
 	Connect ServiceConnect
 
+	// LocallyRegisteredAsSidecar is private as it is only used by a local agent
+	// state to track if the service was registered from a nested sidecar_service
+	// block. We need to track that so we can know whether we need to deregister
+	// it automatically too if it's removed from the service definition or if the
+	// parent service is deregistered. Relying only on ID would cause us to
+	// deregister regular services if they happen to be registered using the same
+	// ID scheme as our sidecars do by default. We could use meta but that gets
+	// unpleasant because we can't use the consul- prefix from an agent (reserved
+	// for use internally but in practice that means within the state store or in
+	// responses only), and it leaks the detail publically which people might rely
+	// on which is a bit unpleasant for something that is meant to be config-file
+	// syntax sugar. Note this is not translated to ServiceNode and friends and
+	// may not be set on a NodeService that isn't the one the agent registered and
+	// keeps in it's local state. We never want this rendered in JSON as it's
+	// internal only. Right now our agent endpoints return api structs which don't
+	// include it but this is a safety net incase we change that or there is
+	// somewhere this is used in API output.
+	LocallyRegisteredAsSidecar bool `json:"-"`
+
 	RaftIndex
 }
 
@@ -665,12 +684,21 @@ type NodeService struct {
 // definitions from the agent to the state store.
 type ServiceConnect struct {
 	// Native is true when this service can natively understand Connect.
-	Native bool
+	Native bool `json:",omitempty"`
 
 	// Proxy configures a connect proxy instance for the service. This is
 	// only used for agent service definitions and is invalid for non-agent
 	// (catalog API) definitions.
-	Proxy *ServiceDefinitionConnectProxy
+	Proxy *ServiceDefinitionConnectProxy `json:",omitempty"`
+
+	// SidecarService is a nested Service Definition to register at the same time.
+	// It's purely a convenience mechanism to allow specifying a sidecar service
+	// along with the application service definition. It's nested nature allows
+	// all of the fields to be defaulted which can reduce the amount of
+	// boilerplate needed to register a sidecar service separately, but the end
+	// result is identical to just making a second service registration via any
+	// other means.
+	SidecarService *ServiceDefinition `json:",omitempty"`
 }
 
 // Validate validates the node service configuration.
@@ -705,6 +733,25 @@ func (s *NodeService) Validate() error {
 		if s.Connect.Native {
 			result = multierror.Append(result, fmt.Errorf(
 				"A Proxy cannot also be Connect Native, only typical services"))
+		}
+	}
+
+	// Nested sidecar validation
+	if s.Connect.SidecarService != nil {
+		if s.Connect.SidecarService.ID != "" {
+			result = multierror.Append(result, fmt.Errorf(
+				"A SidecarService cannot specify an ID as this is managed by the "+
+					"agent"))
+		}
+		if s.Connect.SidecarService.Connect != nil {
+			if s.Connect.SidecarService.Connect.SidecarService != nil {
+				result = multierror.Append(result, fmt.Errorf(
+					"A SidecarService cannot have a nested SidecarService"))
+			}
+			if s.Connect.SidecarService.Connect.Proxy != nil {
+				result = multierror.Append(result, fmt.Errorf(
+					"A SidecarService cannot have a managed proxy"))
+			}
 		}
 	}
 

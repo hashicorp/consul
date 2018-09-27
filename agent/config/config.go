@@ -90,6 +90,13 @@ func Parse(data string, format string) (c Config, err error) {
 		"services.connect.proxy.upstreams",
 		"service.proxy.upstreams",
 		"services.proxy.upstreams",
+
+		// Need all the service(s) exceptions also for nested sidecar service except
+		// managed proxy which is explicitly not supported there.
+		"service.connect.sidecar_service.checks",
+		"services.connect.sidecar_service.checks",
+		"service.connect.sidecar_service.proxy.upstreams",
+		"services.connect.sidecar_service.proxy.upstreams",
 	})
 
 	// There is a difference of representation of some fields depending on
@@ -383,6 +390,15 @@ type ServiceConnect struct {
 
 	// Proxy configures a connect proxy instance for the service
 	Proxy *ServiceConnectProxy `json:"proxy,omitempty" hcl:"proxy" mapstructure:"proxy"`
+
+	// SidecarService is a nested Service Definition to register at the same time.
+	// It's purely a convenience mechanism to allow specifying a sidecar service
+	// along with the application service definition. It's nested nature allows
+	// all of the fields to be defaulted which can reduce the amount of
+	// boilerplate needed to register a sidecar service separately, but the end
+	// result is identical to just making a second service registration via any
+	// other means.
+	SidecarService *ServiceDefinition `json:"sidecar_service,omitempty" hcl:"sidecar_service" mapstructure:"sidecar_service"`
 }
 
 type ServiceConnectProxy struct {
@@ -553,14 +569,16 @@ type Telemetry struct {
 }
 
 type Ports struct {
-	DNS          *int `json:"dns,omitempty" hcl:"dns" mapstructure:"dns"`
-	HTTP         *int `json:"http,omitempty" hcl:"http" mapstructure:"http"`
-	HTTPS        *int `json:"https,omitempty" hcl:"https" mapstructure:"https"`
-	SerfLAN      *int `json:"serf_lan,omitempty" hcl:"serf_lan" mapstructure:"serf_lan"`
-	SerfWAN      *int `json:"serf_wan,omitempty" hcl:"serf_wan" mapstructure:"serf_wan"`
-	Server       *int `json:"server,omitempty" hcl:"server" mapstructure:"server"`
-	ProxyMinPort *int `json:"proxy_min_port,omitempty" hcl:"proxy_min_port" mapstructure:"proxy_min_port"`
-	ProxyMaxPort *int `json:"proxy_max_port,omitempty" hcl:"proxy_max_port" mapstructure:"proxy_max_port"`
+	DNS            *int `json:"dns,omitempty" hcl:"dns" mapstructure:"dns"`
+	HTTP           *int `json:"http,omitempty" hcl:"http" mapstructure:"http"`
+	HTTPS          *int `json:"https,omitempty" hcl:"https" mapstructure:"https"`
+	SerfLAN        *int `json:"serf_lan,omitempty" hcl:"serf_lan" mapstructure:"serf_lan"`
+	SerfWAN        *int `json:"serf_wan,omitempty" hcl:"serf_wan" mapstructure:"serf_wan"`
+	Server         *int `json:"server,omitempty" hcl:"server" mapstructure:"server"`
+	ProxyMinPort   *int `json:"proxy_min_port,omitempty" hcl:"proxy_min_port" mapstructure:"proxy_min_port"`
+	ProxyMaxPort   *int `json:"proxy_max_port,omitempty" hcl:"proxy_max_port" mapstructure:"proxy_max_port"`
+	SidecarMinPort *int `json:"sidecar_min_port,omitempty" hcl:"sidecar_min_port" mapstructure:"sidecar_min_port"`
+	SidecarMaxPort *int `json:"sidecar_max_port,omitempty" hcl:"sidecar_max_port" mapstructure:"sidecar_max_port"`
 }
 
 type UnixSocket struct {

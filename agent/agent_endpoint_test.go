@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -19,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
@@ -131,6 +133,57 @@ func TestAgent_Services_ExternalConnectProxy(t *testing.T) {
 	// Should still have deprecated ProxyDestination filled in until we remove it
 	// completely at a major version bump.
 	assert.Equal(srv1.Proxy.DestinationServiceName, actual.ProxyDestination)
+}
+
+// Thie tests that a sidecar-registered service is returned as expected.
+func TestAgent_Services_Sidecar(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	assert := assert.New(t)
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	srv1 := &structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "db-sidecar-proxy",
+		Service: "db-sidecar-proxy",
+		Port:    5000,
+		// Set this internal state that we expect sidecar registrations to have.
+		LocallyRegisteredAsSidecar: true,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "db",
+			Upstreams:              structs.TestUpstreams(t),
+		},
+	}
+	a.State.AddService(srv1, "")
+
+	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
+	obj, err := a.srv.AgentServices(nil, req)
+	require.NoError(err)
+	val := obj.(map[string]*api.AgentService)
+	assert.Len(val, 1)
+	actual := val["db-sidecar-proxy"]
+	require.NotNil(actual)
+	assert.Equal(api.ServiceKindConnectProxy, actual.Kind)
+	assert.Equal(srv1.Proxy.ToAPI(), actual.Proxy)
+
+	// DEPRECATED (ProxyDestination) - remove the next comment and assertion
+	// Should still have deprecated ProxyDestination filled in until we remove it
+	// completely at a major version bump.
+	assert.Equal(srv1.Proxy.DestinationServiceName, actual.ProxyDestination)
+
+	// Sanity check that LocalRegisteredAsSidecar is not in the output (assuming
+	// JSON encoding). Right now this is not the case becuase the services
+	// endpoint happens to use the api struct which doesn't include that field,
+	// but this test serves as a regression test incase we change the endpoint to
+	// return the internal struct later and accidentally expose some "internal"
+	// state.
+	output, err := json.Marshal(obj)
+	require.NoError(err)
+	assert.NotContains(string(output), "LocallyRegisteredAsSidecar")
+	assert.NotContains(string(output), "locally_registered_as_sidecar")
 }
 
 func TestAgent_Services_ACLFilter(t *testing.T) {
@@ -1401,36 +1454,80 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 		"port":8000, 
 		"enable_tag_override": true, 
 		"meta": {
-			"some": "meta"
+			"some": "meta",
+			"enable_tag_override": "meta is 'opaque' so should not get translated"
 		},
-		"kind": "connect-proxy",
-		"proxy": {
+		"kind": "connect-proxy",` +
+		// Note the uppercase P is important here - it ensures translation works
+		// correctly in case-insensitive way. Without it this test can pass even
+		// when translation is broken for other valid inputs.
+		`"Proxy": {
 			"destination_service_name": "web",
 			"destination_service_id": "web",
 			"local_service_port": 1234,
 			"local_service_address": "127.0.0.1",
+			"config": {
+				"destination_type": "proxy.config is 'opaque' so should not get translated"
+			},
 			"upstreams": [
 				{
 					"destination_type": "service",
 					"destination_namespace": "default",
 					"destination_name": "db",
 		      "local_bind_address": "127.0.0.1",
-		      "local_bind_port": 1234
+		      "local_bind_port": 1234,
+					"config": {
+						"destination_type": "proxy.upstreams.config is 'opaque' so should not get translated"
+					}
 				}
 			]
 		},
 		"connect": {
 			"proxy": {
 				"exec_mode": "script",
+				"config": {
+					"destination_type": "connect.proxy.config is 'opaque' so should not get translated"
+				},
 				"upstreams": [
 					{
 						"destination_type": "service",
 						"destination_namespace": "default",
 						"destination_name": "db",
 						"local_bind_address": "127.0.0.1",
-						"local_bind_port": 1234
+						"local_bind_port": 1234,
+						"config": {
+							"destination_type": "connect.proxy.upstreams.config is 'opaque' so should not get translated"
+						}
 					}
 				]
+			},
+			"sidecar_service": {
+				"name":"test-proxy", 
+				"port":8001, 
+				"enable_tag_override": true, 
+				"meta": {
+					"some": "meta",
+					"enable_tag_override": "sidecar_service.meta is 'opaque' so should not get translated"
+				},
+				"kind": "connect-proxy",
+				"proxy": {
+					"destination_service_name": "test",
+					"destination_service_id": "test",
+					"local_service_port": 4321,
+					"local_service_address": "127.0.0.1",
+					"upstreams": [
+						{
+							"destination_type": "service",
+							"destination_namespace": "default",
+							"destination_name": "db",
+							"local_bind_address": "127.0.0.1",
+							"local_bind_port": 1234,
+							"config": {
+								"destination_type": "sidecar_service.proxy.upstreams.config is 'opaque' so should not get translated"
+							}
+						}
+					]
+				}
 			}
 		},
 		"weights":{
@@ -1446,9 +1543,12 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 	require.Equal(t, 200, rr.Code, "body: %s", rr.Body)
 
 	svc := &structs.NodeService{
-		ID:                "test",
-		Service:           "test",
-		Meta:              map[string]string{"some": "meta"},
+		ID:      "test",
+		Service: "test",
+		Meta: map[string]string{
+			"some":                "meta",
+			"enable_tag_override": "meta is 'opaque' so should not get translated",
+		},
 		Port:              8000,
 		EnableTagOverride: true,
 		Weights:           &structs.Weights{Passing: 16, Warning: 0},
@@ -1458,6 +1558,9 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 			DestinationServiceID:   "web",
 			LocalServiceAddress:    "127.0.0.1",
 			LocalServicePort:       1234,
+			Config: map[string]interface{}{
+				"destination_type": "proxy.config is 'opaque' so should not get translated",
+			},
 			Upstreams: structs.Upstreams{
 				{
 					DestinationType:      structs.UpstreamDestTypeService,
@@ -1465,12 +1568,18 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 					DestinationNamespace: "default",
 					LocalBindAddress:     "127.0.0.1",
 					LocalBindPort:        1234,
+					Config: map[string]interface{}{
+						"destination_type": "proxy.upstreams.config is 'opaque' so should not get translated",
+					},
 				},
 			},
 		},
 		Connect: structs.ServiceConnect{
 			Proxy: &structs.ServiceDefinitionConnectProxy{
 				ExecMode: "script",
+				Config: map[string]interface{}{
+					"destination_type": "connect.proxy.config is 'opaque' so should not get translated",
+				},
 				Upstreams: structs.Upstreams{
 					{
 						DestinationType:      structs.UpstreamDestTypeService,
@@ -1478,6 +1587,36 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 						DestinationNamespace: "default",
 						LocalBindAddress:     "127.0.0.1",
 						LocalBindPort:        1234,
+						Config: map[string]interface{}{
+							"destination_type": "connect.proxy.upstreams.config is 'opaque' so should not get translated",
+						},
+					},
+				},
+			},
+			SidecarService: &structs.ServiceDefinition{
+				Name: "test-proxy",
+				Meta: map[string]string{
+					"some":                "meta",
+					"enable_tag_override": "sidecar_service.meta is 'opaque' so should not get translated",
+				}, Port: 8001,
+				EnableTagOverride: true,
+				Kind:              structs.ServiceKindConnectProxy,
+				Proxy: &structs.ConnectProxyConfig{
+					DestinationServiceName: "test",
+					DestinationServiceID:   "test",
+					LocalServiceAddress:    "127.0.0.1",
+					LocalServicePort:       4321,
+					Upstreams: structs.Upstreams{
+						{
+							DestinationType:      structs.UpstreamDestTypeService,
+							DestinationName:      "db",
+							DestinationNamespace: "default",
+							LocalBindAddress:     "127.0.0.1",
+							LocalBindPort:        1234,
+							Config: map[string]interface{}{
+								"destination_type": "sidecar_service.proxy.upstreams.config is 'opaque' so should not get translated",
+							},
+						},
 					},
 				},
 			},
@@ -1813,6 +1952,504 @@ func TestAgent_RegisterService_UnmanagedConnectProxy(t *testing.T) {
 
 	// Ensure the token was configured
 	assert.Equal("abc123", a.State.ServiceToken("connect-proxy"))
+}
+
+func testDefaultSidecar(svc string, port int, fns ...func(*structs.NodeService)) *structs.NodeService {
+	ns := &structs.NodeService{
+		ID:      svc + "-sidecar-proxy",
+		Kind:    structs.ServiceKindConnectProxy,
+		Service: svc + "-sidecar-proxy",
+		Port:    2222,
+		// Note that LocallyRegisteredAsSidecar should be true on the internal
+		// NodeService, but that we never want to see it in the HTTP response as
+		// it's internal only state. This is being compared directly to local state
+		// so should be present here.
+		LocallyRegisteredAsSidecar: true,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: svc,
+			DestinationServiceID:   svc,
+			LocalServiceAddress:    "127.0.0.1",
+			LocalServicePort:       port,
+		},
+	}
+	for _, fn := range fns {
+		fn(ns)
+	}
+	return ns
+}
+
+// This tests local agent service registration with a sidecar service. Note we
+// only test simple defaults for the sidecar here since the actual logic for
+// handling sidecar defaults and port assignment is tested thoroughly in
+// TestAgent_sidecarServiceFromNodeService. Note it also tests Deregister
+// explicitly too since setup is identical.
+func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name                      string
+		preRegister, preRegister2 *structs.NodeService
+		// Use raw JSON payloads rather than encoding to avoid subtleties with some
+		// internal representations and different ways they encode and decode. We
+		// rely on the payload being Unmarshalable to structs.ServiceDefinition
+		// directly.
+		json                        string
+		enableACL                   bool
+		tokenRules                  string
+		wantNS                      *structs.NodeService
+		wantErr                     string
+		wantSidecarIDLeftAfterDereg bool
+		assertStateFn               func(t *testing.T, state *local.State)
+	}{
+		{
+			name: "sanity check no sidecar case",
+			json: `
+			{
+				"name": "web",
+				"port": 1111
+			}
+			`,
+			wantNS:  nil,
+			wantErr: "",
+		},
+		{
+			name: "default sidecar",
+			json: `
+			{
+				"name": "web",
+				"port": 1111,
+				"connect": {
+					"SidecarService": {}
+				}
+			}
+			`,
+			wantNS:  testDefaultSidecar("web", 1111),
+			wantErr: "",
+		},
+		{
+			name: "ACL OK defaults",
+			json: `
+			{
+				"name": "web",
+				"port": 1111,
+				"connect": {
+					"SidecarService": {}
+				}
+			}
+			`,
+			enableACL: true,
+			tokenRules: `
+			service "web" {
+				policy = "write"
+			}`,
+			wantNS:  testDefaultSidecar("web", 1111),
+			wantErr: "",
+		},
+		{
+			name: "ACL denied",
+			json: `
+			{
+				"name": "web",
+				"port": 1111,
+				"connect": {
+					"SidecarService": {}
+				}
+			}
+			`,
+			enableACL:  true,
+			tokenRules: ``, // No token rules means no valid token
+			wantNS:     nil,
+			wantErr:    "Permission denied",
+		},
+		{
+			name: "ACL OK for service but not for sidecar",
+			json: `
+			{
+				"name": "web",
+				"port": 1111,
+				"connect": {
+					"SidecarService": {}
+				}
+			}
+			`,
+			enableACL: true,
+			// This will become more common/reasonable when ACLs support exact match.
+			tokenRules: `
+			service "web-sidecar-proxy" {
+				policy = "deny"
+			}
+			service "web" {
+				policy = "write"
+			}`,
+			wantNS:  nil,
+			wantErr: "Permission denied",
+		},
+		{
+			name: "ACL OK for service and sidecar but not sidecar's overriden destination",
+			json: `
+			{
+				"name": "web",
+				"port": 1111,
+				"connect": {
+					"SidecarService": {
+						"proxy": {
+							"DestinationServiceName": "foo"
+						}
+					}
+				}
+			}
+			`,
+			enableACL: true,
+			tokenRules: `
+			service "web" {
+				policy = "write"
+			}`,
+			wantNS:  nil,
+			wantErr: "Permission denied",
+		},
+		{
+			name: "ACL OK for service but not for overridden sidecar",
+			json: `
+			{
+				"name": "web",
+				"port": 1111,
+				"connect": {
+					"SidecarService": {
+						"name": "foo-sidecar-proxy"
+					}
+				}
+			}
+			`,
+			enableACL: true,
+			tokenRules: `
+			service "web" {
+				policy = "write"
+			}`,
+			wantNS:  nil,
+			wantErr: "Permission denied",
+		},
+		{
+			name: "ACL OK for service but and overridden for sidecar",
+			// This test ensures that if the sidecar embeds it's own token with
+			// differnt privs from the main request token it will be honoured for the
+			// sidecar registration. We use the test root token since that should have
+			// permission.
+			json: `
+			{
+				"name": "web",
+				"port": 1111,
+				"connect": {
+					"SidecarService": {
+						"name": "foo",
+						"token": "root"
+					}
+				}
+			}
+			`,
+			enableACL: true,
+			tokenRules: `
+			service "web" {
+				policy = "write"
+			}`,
+			wantNS: testDefaultSidecar("web", 1111, func(ns *structs.NodeService) {
+				ns.Service = "foo"
+			}),
+			wantErr: "",
+		},
+		{
+			name: "invalid check definition in sidecar",
+			// Note no interval in the TCP check should fail validation
+			json: `
+			{
+				"name": "web",
+				"port": 1111,
+				"connect": {
+					"SidecarService": {
+						"check": {
+							"TCP": "foo"
+						}
+					}
+				}
+			}
+			`,
+			wantNS:  nil,
+			wantErr: "invalid check in sidecar_service",
+		},
+		{
+			name: "invalid checks definitions in sidecar",
+			// Note no interval in the TCP check should fail validation
+			json: `
+			{
+				"name": "web",
+				"port": 1111,
+				"connect": {
+					"SidecarService": {
+						"checks": [{
+							"TCP": "foo"
+						}]
+					}
+				}
+			}
+			`,
+			wantNS:  nil,
+			wantErr: "invalid check in sidecar_service",
+		},
+		{
+			name: "invalid check status in sidecar",
+			// Note no interval in the TCP check should fail validation
+			json: `
+			{
+				"name": "web",
+				"port": 1111,
+				"connect": {
+					"SidecarService": {
+						"check": {
+							"TCP": "foo",
+							"Interval": 10,
+							"Status": "unsupported-status"
+						}
+					}
+				}
+			}
+			`,
+			wantNS:  nil,
+			wantErr: "Status for checks must 'passing', 'warning', 'critical'",
+		},
+		{
+			name: "invalid checkS status in sidecar",
+			// Note no interval in the TCP check should fail validation
+			json: `
+			{
+				"name": "web",
+				"port": 1111,
+				"connect": {
+					"SidecarService": {
+						"checks": [{
+							"TCP": "foo",
+							"Interval": 10,
+							"Status": "unsupported-status"
+						}]
+					}
+				}
+			}
+			`,
+			wantNS:  nil,
+			wantErr: "Status for checks must 'passing', 'warning', 'critical'",
+		},
+		{
+			name: "another service registered with same ID as a sidecar should not be deregistered",
+			// Add another service with the same ID that a sidecar for web would have
+			preRegister: &structs.NodeService{
+				ID:      "web-sidecar-proxy",
+				Service: "fake-sidecar",
+				Port:    9999,
+			},
+			// Register web with NO SIDECAR
+			json: `
+			{
+				"name": "web",
+				"port": 1111
+			}
+			`,
+			// Note here that although the registration here didn't register it, we
+			// should still see the NodeService we pre-registered here.
+			wantNS: &structs.NodeService{
+				ID:      "web-sidecar-proxy",
+				Service: "fake-sidecar",
+				Port:    9999,
+			},
+			// After we deregister the web service above, the fake sidecar with
+			// clashing ID SHOULD NOT have been removed since it wasn't part of the
+			// original registration.
+			wantSidecarIDLeftAfterDereg: true,
+		},
+		{
+			name: "updates to sidecar should work",
+			// Add a valid sidecar already registered
+			preRegister: &structs.NodeService{
+				ID:                         "web-sidecar-proxy",
+				Service:                    "web-sidecar-proxy",
+				LocallyRegisteredAsSidecar: true,
+				Port:                       9999,
+			},
+			// Register web with Sidecar on different port
+			json: `
+			{
+				"name": "web",
+				"port": 1111,
+				"connect": {
+					"SidecarService": {
+						"Port": 6666
+					}
+				}
+			}
+			`,
+			// Note here that although the registration here didn't register it, we
+			// should still see the NodeService we pre-registered here.
+			wantNS: &structs.NodeService{
+				Kind:                       "connect-proxy",
+				ID:                         "web-sidecar-proxy",
+				Service:                    "web-sidecar-proxy",
+				LocallyRegisteredAsSidecar: true,
+				Port:                       6666,
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "web",
+					DestinationServiceID:   "web",
+					LocalServiceAddress:    "127.0.0.1",
+					LocalServicePort:       1111,
+				},
+			},
+		},
+		{
+			name: "update that removes sidecar should NOT deregister it",
+			// Add web with a valid sidecar already registered
+			preRegister: &structs.NodeService{
+				ID:      "web",
+				Service: "web",
+				Port:    1111,
+			},
+			preRegister2: testDefaultSidecar("web", 1111),
+			// Register (update) web and remove sidecar (and port for sanity check)
+			json: `
+			{
+				"name": "web",
+				"port": 2222
+			}
+			`,
+			// Sidecar should still be there such that API can update registration
+			// without accidentally removing a sidecar. This is equivalent to embedded
+			// checks which are not removed by just not being included in an update.
+			// We will document that sidecar registrations via API must be explicitiy
+			// deregistered.
+			wantNS: testDefaultSidecar("web", 1111),
+			// Sanity check the rest of the update happened though.
+			assertStateFn: func(t *testing.T, state *local.State) {
+				svcs := state.Services()
+				svc, ok := svcs["web"]
+				require.True(t, ok)
+				require.Equal(t, 2222, svc.Port)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert := assert.New(t)
+			require := require.New(t)
+
+			// Constrain auto ports to 1 available to make it deterministic
+			hcl := `ports { 
+				sidecar_min_port = 2222
+				sidecar_max_port = 2222
+			}
+			`
+			if tt.enableACL {
+				hcl = hcl + TestACLConfig()
+			}
+
+			a := NewTestAgent(t.Name(), hcl)
+			defer a.Shutdown()
+			testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+			if tt.preRegister != nil {
+				require.NoError(a.AddService(tt.preRegister, nil, false, ""))
+			}
+			if tt.preRegister2 != nil {
+				require.NoError(a.AddService(tt.preRegister2, nil, false, ""))
+			}
+
+			// Create an ACL token with require policy
+			var token string
+			if tt.enableACL && tt.tokenRules != "" {
+				args := map[string]interface{}{
+					"Name":  "User Token",
+					"Type":  "client",
+					"Rules": tt.tokenRules,
+				}
+				req, _ := http.NewRequest("PUT", "/v1/acl/create?token=root", jsonReader(args))
+				resp := httptest.NewRecorder()
+				obj, err := a.srv.ACLCreate(resp, req)
+				require.NoError(err)
+				require.NotNil(obj)
+				aclResp := obj.(aclCreateResponse)
+				token = aclResp.ID
+			}
+
+			br := bytes.NewBufferString(tt.json)
+
+			req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token="+token, br)
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.AgentRegisterService(resp, req)
+			if tt.wantErr != "" {
+				require.Error(err, "response code=%d, body:\n%s",
+					resp.Code, resp.Body.String())
+				require.Contains(strings.ToLower(err.Error()), strings.ToLower(tt.wantErr))
+				return
+			}
+			require.NoError(err)
+			assert.Nil(obj)
+			require.Equal(200, resp.Code, "request failed with body: %s",
+				resp.Body.String())
+
+			// Sanity the target service registration
+			svcs := a.State.Services()
+
+			// Parse the expected definition into a ServiceDefinition
+			var sd structs.ServiceDefinition
+			err = json.Unmarshal([]byte(tt.json), &sd)
+			require.NoError(err)
+			require.NotEmpty(sd.Name)
+
+			svcID := sd.ID
+			if svcID == "" {
+				svcID = sd.Name
+			}
+			svc, ok := svcs[svcID]
+			require.True(ok, "has service "+svcID)
+			assert.Equal(sd.Name, svc.Service)
+			assert.Equal(sd.Port, svc.Port)
+			// Ensure that the actual registered service _doesn't_ still have it's
+			// sidecar info since it's duplicate and we don't want that synced up to
+			// the catalog or included in responses particulary - it's just
+			// registration syntax sugar.
+			assert.Nil(svc.Connect.SidecarService)
+
+			if tt.wantNS == nil {
+				// Sanity check that there was no service registered, we rely on there
+				// being no services at start of test so we can just use the count.
+				assert.Len(svcs, 1, "should be no sidecar registered")
+				return
+			}
+
+			// Ensure sidecar
+			svc, ok = svcs[tt.wantNS.ID]
+			require.True(ok, "no sidecar registered at "+tt.wantNS.ID)
+			assert.Equal(tt.wantNS, svc)
+
+			if tt.assertStateFn != nil {
+				tt.assertStateFn(t, a.State)
+			}
+
+			// Now verify deregistration also removes sidecar (if there was one and it
+			// was added via sidecar not just coincidental ID clash)
+			{
+				req := httptest.NewRequest("PUT",
+					"/v1/agent/service/deregister/"+svcID+"?token="+token, nil)
+				resp := httptest.NewRecorder()
+				obj, err := a.srv.AgentDeregisterService(resp, req)
+				require.NoError(err)
+				require.Nil(obj)
+
+				svcs := a.State.Services()
+				svc, ok = svcs[tt.wantNS.ID]
+				if tt.wantSidecarIDLeftAfterDereg {
+					require.True(ok, "removed non-sidecar service at "+tt.wantNS.ID)
+				} else {
+					require.False(ok, "sidecar not deregistered with service "+svcID)
+				}
+			}
+		})
+	}
 }
 
 // This tests that connect proxy validation is done for local agent

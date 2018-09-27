@@ -90,8 +90,9 @@ type AgentService struct {
 
 // AgentServiceConnect represents the Connect configuration of a service.
 type AgentServiceConnect struct {
-	Native bool                      `json:",omitempty"`
-	Proxy  *AgentServiceConnectProxy `json:",omitempty"`
+	Native         bool                      `json:",omitempty"`
+	Proxy          *AgentServiceConnectProxy `json:",omitempty"`
+	SidecarService *AgentServiceRegistration `json:",omitempty"`
 }
 
 // AgentServiceConnectProxy represents the Connect Proxy configuration of a

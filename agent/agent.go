@@ -1795,6 +1795,7 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -1839,6 +1840,20 @@ func (a *Agent) RemoveService(serviceID string, persist bool) error {
 	}
 
 	a.logger.Printf("[DEBUG] agent: removed service %q", serviceID)
+
+	// If any Sidecar services exist for the removed service ID, remove them too.
+	if sidecar := a.State.Service(a.sidecarServiceID(serviceID)); sidecar != nil {
+		// Double check that it's not just an ID collision and we actually added
+		// this from a sidecar.
+		if sidecar.LocallyRegisteredAsSidecar {
+			// Remove it!
+			err := a.RemoveService(a.sidecarServiceID(serviceID), persist)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -2718,8 +2733,26 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig) error {
 		if err != nil {
 			return fmt.Errorf("Failed to validate checks for service %q: %v", service.Name, err)
 		}
+
+		// Grab and validate sidecar if there is one too
+		sidecar, sidecarChecks, sidecarToken, err := a.sidecarServiceFromNodeService(ns, service.Token)
+		if err != nil {
+			return fmt.Errorf("Failed to validate sidecar for service %q: %v", service.Name, err)
+		}
+
+		// Remove sidecar from NodeService now it's done it's job it's just a config
+		// syntax sugar and shouldn't be persisted in local or server state.
+		ns.Connect.SidecarService = nil
+
 		if err := a.AddService(ns, chkTypes, false, service.Token); err != nil {
 			return fmt.Errorf("Failed to register service %q: %v", service.Name, err)
+		}
+
+		// If there is a sidecar service, register that too.
+		if sidecar != nil {
+			if err := a.AddService(sidecar, sidecarChecks, false, sidecarToken); err != nil {
+				return fmt.Errorf("Failed to register sidecar for service %q: %v", service.Name, err)
+			}
 		}
 	}
 
