@@ -1864,6 +1864,103 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			err: "Serf Advertise WAN address 10.0.0.1:1000 already configured for RPC Advertise",
 		},
 		{
+			desc: "sidecar_service can't have ID",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+				  "service": {
+						"name": "web",
+						"port": 1234,
+						"connect": {
+							"sidecar_service": {
+								"ID": "random-sidecar-id"
+							}
+						}
+					}
+				}`},
+			hcl: []string{`
+				service {
+					name = "web"
+					port = 1234
+					connect {
+						sidecar_service {
+							ID = "random-sidecar-id"
+						}
+					}
+				}
+			`},
+			err: "sidecar_service can't speficy an ID",
+		},
+		{
+			desc: "sidecar_service can't have nested sidecar",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+				  "service": {
+						"name": "web",
+						"port": 1234,
+						"connect": {
+							"sidecar_service": {
+								"connect": {
+									"sidecar_service": {}
+								}
+							}
+						}
+					}
+				}`},
+			hcl: []string{`
+				service {
+					name = "web"
+					port = 1234
+					connect {
+						sidecar_service {
+							connect {
+								sidecar_service {
+								}
+							}
+						}
+					}
+				}
+			`},
+			err: "sidecar_service can't have a nested sidecar_service",
+		},
+		{
+			desc: "sidecar_service can't have managed proxy",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+				  "service": {
+						"name": "web",
+						"port": 1234,
+						"connect": {
+							"sidecar_service": {
+								"connect": {
+									"proxy": {}
+								}
+							}
+						}
+					}
+				}`},
+			hcl: []string{`
+				service {
+					name = "web"
+					port = 1234
+					connect {
+						sidecar_service {
+							connect {
+								proxy {
+								}
+							}
+						}
+					}
+				}
+			`},
+			err: "sidecar_service can't have a managed proxy",
+		},
+		{
 			desc: "telemetry.prefix_filter cannot be empty",
 			args: []string{
 				`-data-dir=` + dataDir,
@@ -2308,6 +2405,181 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.ConnectProxyAllowManagedAPIRegistration = true
 			},
 		},
+
+		{
+			// This tests that we correct added the nested paths to arrays of objects
+			// to the exceptions in patchSliceOfMaps in config.go (for single service)
+			desc: "service.connectsidecar_service with checks and upstreams",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+				  "service": {
+						"name": "web",
+						"port": 1234,
+						"connect": {
+							"sidecar_service": {
+								"port": 2345,
+								"checks": [
+									{
+										"TCP": "127.0.0.1:2345",
+										"Interval": "10s"
+									}
+								],
+								"proxy": {
+									"upstreams": [
+										{
+											"destination_name": "db",
+											"local_bind_port": 7000
+										}
+									]
+								}
+							}
+						}
+					}
+				}`},
+			hcl: []string{`
+				service {
+					name = "web"
+					port = 1234
+					connect {
+						sidecar_service {
+							port = 2345
+							checks = [
+								{
+									tcp = "127.0.0.1:2345"
+									interval = "10s"
+								}
+							]
+							proxy {
+								upstreams = [
+									{
+										destination_name = "db"
+										local_bind_port = 7000
+									},
+								]
+							}
+						}
+					}
+				}
+			`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.Services = []*structs.ServiceDefinition{
+					{
+						Name: "web",
+						Port: 1234,
+						Connect: &structs.ServiceConnect{
+							SidecarService: &structs.ServiceDefinition{
+								Port: 2345,
+								Checks: structs.CheckTypes{
+									{
+										TCP:      "127.0.0.1:2345",
+										Interval: 10 * time.Second,
+									},
+								},
+								Proxy: &structs.ConnectProxyConfig{
+									Upstreams: structs.Upstreams{
+										structs.Upstream{
+											DestinationType: "service",
+											DestinationName: "db",
+											LocalBindPort:   7000,
+										},
+									},
+								},
+							},
+						},
+					},
+				}
+			},
+		},
+		{
+			// This tests that we correct added the nested paths to arrays of objects
+			// to the exceptions in patchSliceOfMaps in config.go (for service*s*)
+			desc: "services.connect.sidecar_service with checks and upstreams",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+				  "services": [{
+						"name": "web",
+						"port": 1234,
+						"connect": {
+							"sidecar_service": {
+								"port": 2345,
+								"checks": [
+									{
+										"TCP": "127.0.0.1:2345",
+										"Interval": "10s"
+									}
+								],
+								"proxy": {
+									"upstreams": [
+										{
+											"destination_name": "db",
+											"local_bind_port": 7000
+										}
+									]
+								}
+							}
+						}
+					}]
+				}`},
+			hcl: []string{`
+				services = [{
+					name = "web"
+					port = 1234
+					connect {
+						sidecar_service {
+							port = 2345
+							checks = [
+								{
+									tcp = "127.0.0.1:2345"
+									interval = "10s"
+								}
+							]
+							proxy {
+								upstreams = [
+									{
+										destination_name = "db"
+										local_bind_port = 7000
+									},
+								]
+							}
+						}
+					}
+				}]
+			`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.Services = []*structs.ServiceDefinition{
+					{
+						Name: "web",
+						Port: 1234,
+						Connect: &structs.ServiceConnect{
+							SidecarService: &structs.ServiceDefinition{
+								Port: 2345,
+								Checks: structs.CheckTypes{
+									{
+										TCP:      "127.0.0.1:2345",
+										Interval: 10 * time.Second,
+									},
+								},
+								Proxy: &structs.ConnectProxyConfig{
+									Upstreams: structs.Upstreams{
+										structs.Upstream{
+											DestinationType: "service",
+											DestinationName: "db",
+											LocalBindPort:   7000,
+										},
+									},
+								},
+							},
+						},
+					},
+				}
+			},
+		},
 	}
 
 	testConfig(t, tests, dataDir)
@@ -2700,7 +2972,9 @@ func TestFullConfig(t *testing.T) {
 				"https": 15127,
 				"server": 3757,
 				"proxy_min_port": 2000,
-				"proxy_max_port": 3000
+				"proxy_max_port": 3000,
+				"sidecar_min_port": 8888,
+				"sidecar_max_port": 9999
 			},
 			"protocol": 30793,
 			"raft_protocol": 19016,
@@ -2850,6 +3124,9 @@ func TestFullConfig(t *testing.T) {
 						"timeout": "38333s",
 						"ttl": "57201s",
 						"deregister_critical_service_after": "44214s"
+					},
+					"connect": {
+						"sidecar_service": {}
 					}
 				},
 				{
@@ -3224,6 +3501,8 @@ func TestFullConfig(t *testing.T) {
 				server = 3757
 				proxy_min_port = 2000
 				proxy_max_port = 3000
+				sidecar_min_port = 8888
+				sidecar_max_port = 9999
 			}
 			protocol = 30793
 			raft_protocol = 19016
@@ -3373,6 +3652,9 @@ func TestFullConfig(t *testing.T) {
 						timeout = "38333s"
 						ttl = "57201s"
 						deregister_critical_service_after = "44214s"
+					}
+					connect {
+						sidecar_service {}
 					}
 				},
 				{
@@ -3756,6 +4038,8 @@ func TestFullConfig(t *testing.T) {
 		ConnectEnabled:          true,
 		ConnectProxyBindMinPort: 2000,
 		ConnectProxyBindMaxPort: 3000,
+		ConnectSidecarMinPort:   8888,
+		ConnectSidecarMaxPort:   9999,
 		ConnectCAProvider:       "consul",
 		ConnectCAConfig: map[string]interface{}{
 			"RotationPeriod": "90h",
@@ -3895,6 +4179,13 @@ func TestFullConfig(t *testing.T) {
 						TTL:                            57201 * time.Second,
 						DeregisterCriticalServiceAfter: 44214 * time.Second,
 					},
+				},
+				// Note that although this SidecarService is only syntax sugar for
+				// registering another service, that has to happen in the agent code so
+				// it can make intelligent decisions about automatic port assignments
+				// etc. So we expect config just to pass it through verbatim.
+				Connect: &structs.ServiceConnect{
+					SidecarService: &structs.ServiceDefinition{},
 				},
 			},
 			{
@@ -4511,6 +4802,8 @@ func TestSanitize(t *testing.T) {
 		"ConnectProxyDefaultDaemonCommand": [],
 		"ConnectProxyDefaultExecMode": "",
 		"ConnectProxyDefaultScriptCommand": [],
+		"ConnectSidecarMaxPort": 0,
+		"ConnectSidecarMinPort": 0,
 		"ConnectTestDisableManagedProxies": false,
 		"ConsulCoordinateUpdateBatchSize": 0,
 		"ConsulCoordinateUpdateMaxBatches": 0,

@@ -559,30 +559,40 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 		// and why we should get rid of it.
 		config.TranslateKeys(rawMap, map[string]string{
 			"enable_tag_override": "EnableTagOverride",
-		})
+			// Managed Proxy Config
+			"exec_mode": "ExecMode",
+			// Proxy Upstreams
+			"destination_name":      "DestinationName",
+			"destination_type":      "DestinationType",
+			"destination_namespace": "DestinationNamespace",
+			"local_bind_port":       "LocalBindPort",
+			"local_bind_address":    "LocalBindAddress",
+			// Proxy Config
+			"destination_service_name": "DestinationServiceName",
+			"destination_service_id":   "DestinationServiceID",
+			"local_service_port":       "LocalServicePort",
+			"local_service_address":    "LocalServiceAddress",
+			// SidecarService
+			"sidecar_service": "SidecarService",
 
-		// Translate upstream keys - we have the same upstream format in two
-		// possible places.
-		translateUpstreams := func(rawMap map[string]interface{}) {
-			var upstreams []interface{}
-			if us, ok := rawMap["upstreams"].([]interface{}); ok {
-				upstreams = us
-			}
-			if us, ok := rawMap["Upstreams"].([]interface{}); ok {
-				upstreams = us
-			}
-			for _, u := range upstreams {
-				if uMap, ok := u.(map[string]interface{}); ok {
-					config.TranslateKeys(uMap, map[string]string{
-						"destination_name":      "DestinationName",
-						"destination_type":      "DestinationType",
-						"destination_namespace": "DestinationNamespace",
-						"local_bind_port":       "LocalBindPort",
-						"local_bind_address":    "LocalBindAddress",
-					})
-				}
-			}
-		}
+			// DON'T Recurse into these opaque config maps or we might mangle user's
+			// keys. Note empty canonical is a special sentinel to prevent recursion.
+			"Meta": "",
+			// upstreams is an array but this prevents recursion into config field of
+			// any item in the array.
+			"Proxy.Config":                   "",
+			"Proxy.Upstreams.Config":         "",
+			"Connect.Proxy.Config":           "",
+			"Connect.Proxy.Upstreams.Config": "",
+
+			// Same exceptions as above, but for a nested sidecar_service note we use
+			// the canonical form SidecarService since that is translated by the time
+			// the lookup here happens. Note that sidecar service doesn't support
+			// managed proxies (connect.proxy).
+			"Connect.SidecarService.Meta":                   "",
+			"Connect.SidecarService.Proxy.Config":           "",
+			"Connect.SidecarService.Proxy.Upstreams.config": "",
+		})
 
 		for k, v := range rawMap {
 			switch strings.ToLower(k) {
@@ -598,32 +608,6 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 				for _, chkType := range chkTypes {
 					if err := FixupCheckType(chkType); err != nil {
 						return err
-					}
-				}
-			case "proxy":
-				if valMap, ok := v.(map[string]interface{}); ok {
-					config.TranslateKeys(valMap, map[string]string{
-						"destination_service_name": "DestinationServiceName",
-						"destination_service_id":   "DestinationServiceID",
-						"local_service_port":       "LocalServicePort",
-						"local_service_address":    "LocalServiceAddress",
-					})
-					translateUpstreams(valMap)
-				}
-			case "connect":
-				if connectMap, ok := v.(map[string]interface{}); ok {
-					var proxyMap map[string]interface{}
-					if pMap, ok := connectMap["Proxy"].(map[string]interface{}); ok {
-						proxyMap = pMap
-					}
-					if pMap, ok := connectMap["proxy"].(map[string]interface{}); ok {
-						proxyMap = pMap
-					}
-					if proxyMap != nil {
-						config.TranslateKeys(proxyMap, map[string]string{
-							"exec_mode": "ExecMode",
-						})
-						translateUpstreams(proxyMap)
 					}
 				}
 			}
@@ -689,11 +673,48 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 		}
 	}
 
+	// Verify the sidecar check types
+	if args.Connect != nil && args.Connect.SidecarService != nil {
+		chkTypes, err := args.Connect.SidecarService.CheckTypes()
+		if err != nil {
+			return nil, &BadRequestError{
+				Reason: fmt.Sprintf("Invalid check in sidecar_service: %v", err),
+			}
+		}
+		for _, check := range chkTypes {
+			if check.Status != "" && !structs.ValidStatus(check.Status) {
+				return nil, &BadRequestError{
+					Reason: "Status for checks must 'passing', 'warning', 'critical'",
+				}
+			}
+		}
+	}
+
 	// Get the provided token, if any, and vet against any ACL policies.
 	var token string
 	s.parseToken(req, &token)
 	if err := s.agent.vetServiceRegister(token, ns); err != nil {
 		return nil, err
+	}
+
+	// See if we have a sidecar to register too
+	sidecar, sidecarChecks, sidecarToken, err := s.agent.sidecarServiceFromNodeService(ns, token)
+	if err != nil {
+		return nil, &BadRequestError{
+			Reason: fmt.Sprintf("Invalid SidecarService: %s", err)}
+	}
+	if sidecar != nil {
+		// Make sure we are allowed to register the side car using the token
+		// specified (might be specific to sidecar or the same one as the overall
+		// request).
+		if err := s.agent.vetServiceRegister(sidecarToken, sidecar); err != nil {
+			return nil, err
+		}
+		// We parsed the sidecar registration, now remove it from the NodeService
+		// for the actual service since it's done it's job and we don't want to
+		// persist it in the actual state/catalog. SidecarService is meant to be a
+		// registration syntax sugar so don't propagate it any further.
+		ns.Connect.SidecarService = nil
 	}
 
 	// Get any proxy registrations
@@ -717,6 +738,12 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	// Add proxy (which will add proxy service so do it before we trigger sync)
 	if proxy != nil {
 		if err := s.agent.AddProxy(proxy, true, false, ""); err != nil {
+			return nil, err
+		}
+	}
+	// Add sidecar.
+	if sidecar != nil {
+		if err := s.agent.AddService(sidecar, sidecarChecks, true, sidecarToken); err != nil {
 			return nil, err
 		}
 	}

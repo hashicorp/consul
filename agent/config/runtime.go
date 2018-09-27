@@ -462,6 +462,16 @@ type RuntimeConfig struct {
 	// port is specified.
 	ConnectProxyBindMaxPort int
 
+	// ConnectSidecarMinPort is the inclusive start of the range of ports
+	// allocated to the agent for asigning to sidecar services where no port is
+	// specified.
+	ConnectSidecarMinPort int
+
+	// ConnectSidecarMaxPort is the inclusive end of the range of ports
+	// allocated to the agent for asigning to sidecar services where no port is
+	// specified
+	ConnectSidecarMaxPort int
+
 	// ConnectProxyAllowManagedRoot is true if Consul can execute managed
 	// proxies when running as root (EUID == 0).
 	ConnectProxyAllowManagedRoot bool
