@@ -149,6 +149,13 @@
   width: 16px;
   height: 16px;
 }
+/*TODO: All chevrons need merging */
+%with-chevron-down::before {
+  @extend %pseudo-icon-bg-img;
+  background-image: $chevron-svg;
+  width: 10px;
+  height: 6px;
+}
 %with-star-before::before,
 %with-star-after::after {
   @extend %pseudo-icon-bg-img;

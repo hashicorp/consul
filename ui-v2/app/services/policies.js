@@ -1,8 +1,18 @@
 import Service, { inject as service } from '@ember/service';
 import { get } from '@ember/object';
 import { typeOf } from '@ember/utils';
-import { PRIMARY_KEY } from 'consul-ui/models/policy';
+import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/policy';
+const MODEL_NAME = 'policy';
 export default Service.extend({
+  getModelName: function() {
+    return MODEL_NAME;
+  },
+  getPrimaryKey: function() {
+    return PRIMARY_KEY;
+  },
+  getSlugKey: function() {
+    return SLUG_KEY;
+  },
   store: service('store'),
   translate: function(item) {
     return get(this, 'store').translate('policy', get(item, 'Rules'));

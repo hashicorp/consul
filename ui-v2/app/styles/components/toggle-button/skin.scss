@@ -1,0 +1,11 @@
+%toggle-button {
+  border-radius: $radius-small;
+  cursor: pointer;
+}
+%toggle-button:hover,
+%toggle-button:focus {
+  background-color: $ui-gray-050;
+}
+%toggle-button:active {
+  background-color: $ui-gray-100;
+}

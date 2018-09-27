@@ -1,0 +1,13 @@
+%dom-recycling-table {
+  position: relative;
+}
+%dom-recycling-table tr {
+  display: flex;
+}
+%dom-recycling-table tr > * {
+  flex: 1 0 auto;
+}
+%dom-recycling-table tbody {
+  /* important required as ember-collection will inline an overflow: visible*/
+  overflow-x: hidden !important;
+}

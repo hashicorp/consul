@@ -5,7 +5,11 @@ import Grid from 'ember-collection/layouts/grid';
 import SlotsMixin from 'ember-block-slots';
 import WithResizing from 'consul-ui/mixins/with-resizing';
 import style from 'ember-computed-style';
-import qsaFactory from 'consul-ui/utils/qsa-factory';
+import qsaFactory from 'consul-ui/utils/dom/qsa-factory';
+import sibling from 'consul-ui/utils/dom/sibling';
+import closest from 'consul-ui/utils/dom/closest';
+import clickFirstAnchorFactory from 'consul-ui/utils/dom/click-first-anchor';
+const clickFirstAnchor = clickFirstAnchorFactory(closest);
 
 import { computed, get, set } from '@ember/object';
 /**
@@ -53,26 +57,6 @@ class ZIndexedGrid extends Grid {
     return style;
   }
 }
-// basic DOM closest utility to cope with no support
-// TODO: instead of degrading gracefully
-// add a while polyfill for closest
-const closest = function(sel, el) {
-  try {
-    return el.closest(sel);
-  } catch (e) {
-    return;
-  }
-};
-const sibling = function(el, name) {
-  let sibling = el;
-  while ((sibling = sibling.nextSibling)) {
-    if (sibling.nodeType === 1) {
-      if (sibling.nodeName.toLowerCase() === name) {
-        return sibling;
-      }
-    }
-  }
-};
 /**
  * The tabular-collection can contain 'actions' the UI for which
  * uses dropdown 'action groups', so a group of different actions.
@@ -131,6 +115,7 @@ const change = function(e) {
 };
 export default Component.extend(SlotsMixin, WithResizing, {
   tagName: 'table',
+  classNames: ['dom-recycling'],
   attributeBindings: ['style'],
   width: 1150,
   height: 500,
@@ -287,26 +272,7 @@ export default Component.extend(SlotsMixin, WithResizing, {
   },
   actions: {
     click: function(e) {
-      // click on row functionality
-      // so if you click the actual row but not a link
-      // find the first link and fire that instead
-      const name = e.target.nodeName.toLowerCase();
-      switch (name) {
-        case 'input':
-        case 'label':
-        case 'a':
-        case 'button':
-          return;
-      }
-      const $a = closest('tr', e.target).querySelector('a');
-      if ($a) {
-        const click = new MouseEvent('click', {
-          bubbles: true,
-          cancelable: true,
-          view: window,
-        });
-        $a.dispatchEvent(click);
-      }
+      return clickFirstAnchor(e);
     },
   },
 });

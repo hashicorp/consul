@@ -4,7 +4,9 @@ import { hash } from 'rsvp';
 import { get } from '@ember/object';
 
 import WithTokenActions from 'consul-ui/mixins/token/with-actions';
-const status = function(p, propName = 'items') {
+const status = function(obj) {
+  const propName = Object.keys(obj)[0];
+  const p = obj[propName];
   let authorize;
   let enable;
   return {
@@ -18,7 +20,7 @@ const status = function(p, propName = 'items') {
         resolve(bool);
       };
     }),
-    items: p
+    [propName]: p
       .catch(function(e) {
         switch (e.errors[0].status) {
           case '403':
@@ -28,7 +30,7 @@ const status = function(p, propName = 'items') {
             enable(false);
         }
         authorize(false);
-        return;
+        return [];
       })
       .then(function(res) {
         enable(true);
@@ -48,7 +50,9 @@ export default Route.extend(WithTokenActions, {
   },
   model: function(params) {
     return hash({
-      ...status(get(this, 'repo').findAllByDatacenter(this.modelFor('dc').dc.Name), 'items'),
+      ...status({
+        items: get(this, 'repo').findAllByDatacenter(this.modelFor('dc').dc.Name),
+      }),
       isLoading: false,
       currentAccessorID: get(this, 'settings').findBySlug('accessor_id'),
     }).then(function(model) {

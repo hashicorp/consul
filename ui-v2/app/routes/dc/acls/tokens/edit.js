@@ -4,6 +4,22 @@ import { hash } from 'rsvp';
 import { set, get } from '@ember/object';
 
 import WithTokenActions from 'consul-ui/mixins/token/with-actions';
+const updateObject = function(arr, item, prop) {
+  const id = get(item, prop);
+  const i = arr.reduce(function(prev, item, i) {
+    if (typeof prev === 'number') {
+      return prev;
+    }
+    if (get(item, prop) === id) {
+      return i;
+    }
+    return;
+  }, null);
+  const current = arr.objectAt(i);
+  Object.keys(item.get('data')).forEach(function(prop) {
+    set(current, prop, get(item, prop));
+  });
+};
 
 export default SingleRoute.extend(WithTokenActions, {
   repo: service('tokens'),
@@ -28,10 +44,19 @@ export default SingleRoute.extend(WithTokenActions, {
     return get(this, 'policiesRepo').create({ Datacenter: dc });
   },
   actions: {
-    removePolicy: function(item) {
-      const token = get(this.controller, 'item');
-      const policies = get(token, 'Policies');
-      set(token, 'Policies', policies.without(item));
+    loadPolicy: function(item) {
+      if (!get(item, 'Rules')) {
+        const dc = this.modelFor('dc').dc.Name;
+        const repo = get(this, 'policiesRepo');
+        const slug = get(item, repo.getSlugKey());
+        const policies = get(this.controller, 'item.Policies');
+        repo.findBySlug(slug, dc).then(item => {
+          updateObject(policies, item, repo.getSlugKey());
+        });
+      }
+    },
+    removePolicy: function(item, policy) {
+      set(item, 'Policies', get(item, 'Policies').without(policy));
     },
     addPolicy: function(item) {
       set(item, 'CreateTime', new Date().getTime());

@@ -1,5 +1,5 @@
 import Component from 'consul-ui/components/dom-buffer-flush';
-import qsaFactory from 'consul-ui/utils/qsa-factory';
+import qsaFactory from 'consul-ui/utils/dom/qsa-factory';
 
 const $$ = qsaFactory();
 

@@ -21,24 +21,25 @@ export default Controller.extend({
     change: function(e, value, _target) {
       const target = normalizeEmberTarget(e, value, _target);
       switch (target.name) {
-        case 'Description':
-          set(this.changeset, target.name, target.value);
+        case 'Policy':
+          this.send('addPolicy', target.value);
           break;
-        case 'Local':
-          set(this.changeset, target.name, !get(this.item, target.name));
+        case 'Details':
+          // only load on opening
+          if (e.target.checked) {
+            this.send('loadPolicy', value);
+          }
           break;
         case 'isScoped':
           set(this, target.name, !get(this, target.name));
           break;
-        case 'Policy':
-          this.send('addPolicy', target.value);
+        case 'Local':
+          set(this.changeset, target.name, !get(this.item, target.name));
           break;
-        // Legacy
-        case 'Type':
-          set(this.changeset, target.name, target.value);
-          break;
+        case 'Type': // Legacy
+        case 'Description':
         case 'Rules':
-          set(this, 'item.Rules', target.value);
+          set(this.changeset, target.name, target.value);
           break;
       }
       this.changeset.validate();
