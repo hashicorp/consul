@@ -277,6 +277,14 @@ func (a *Agent) vetServiceRegister(token string, service *structs.NodeService) e
 		}
 	}
 
+	// If the service is a proxy, ensure that it has write on the destination too
+	// since it can be discovered as an instance of that service.
+	if service.Kind == structs.ServiceKindConnectProxy {
+		if !rule.ServiceWrite(service.Proxy.DestinationServiceName, nil) {
+			return acl.ErrPermissionDenied
+		}
+	}
+
 	return nil
 }
 

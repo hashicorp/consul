@@ -14,7 +14,7 @@ import (
 type ConnectProxyConfig struct {
 	// DestinationServiceName is required and is the name of the service to accept
 	// traffic for.
-	DestinationServiceName string
+	DestinationServiceName string `json:",omitempty"`
 
 	// DestinationServiceID is optional and should only be specified for
 	// "side-car" style proxies where the proxy is in front of just a single
@@ -22,27 +22,27 @@ type ConnectProxyConfig struct {
 	// being represented which must be registered to the same agent. It's valid to
 	// provide a service ID that does not yet exist to avoid timing issues when
 	// bootstrapping a service with a proxy.
-	DestinationServiceID string
+	DestinationServiceID string `json:",omitempty"`
 
 	// LocalServiceAddress is the address of the local service instance. It is
 	// optional and should only be specified for "side-car" style proxies. It will
 	// default to 127.0.0.1 if the proxy is a "side-car" (DestinationServiceID is
 	// set) but otherwise will be ignored.
-	LocalServiceAddress string
+	LocalServiceAddress string `json:",omitempty"`
 
 	// LocalServicePort is the port of the local service instance. It is optional
 	// and should only be specified for "side-car" style proxies. It will default
 	// to the registered port for the instance if the proxy is a "side-car"
 	// (DestinationServiceID is set) but otherwise will be ignored.
-	LocalServicePort int
+	LocalServicePort int `json:",omitempty"`
 
 	// Config is the arbitrary configuration data provided with the proxy
 	// registration.
-	Config map[string]interface{}
+	Config map[string]interface{} `json:",omitempty"`
 
 	// Upstreams describes any upstream dependencies the proxy instance should
 	// setup.
-	Upstreams Upstreams
+	Upstreams Upstreams `json:",omitempty"`
 }
 
 // ToAPI returns the api struct with the same fields. We have duplicates to

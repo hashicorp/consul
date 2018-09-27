@@ -284,6 +284,62 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 	}
 }
 
+func TestStructs_NodeService_ValidateSidecarService(t *testing.T) {
+	cases := []struct {
+		Name   string
+		Modify func(*NodeService)
+		Err    string
+	}{
+		{
+			"valid",
+			func(x *NodeService) {},
+			"",
+		},
+
+		{
+			"ID can't be set",
+			func(x *NodeService) { x.Connect.SidecarService.ID = "foo" },
+			"SidecarService cannot specify an ID",
+		},
+
+		{
+			"Nested sidecar can't be set",
+			func(x *NodeService) {
+				x.Connect.SidecarService.Connect = &ServiceConnect{
+					SidecarService: &ServiceDefinition{},
+				}
+			},
+			"SidecarService cannot have a nested SidecarService",
+		},
+
+		{
+			"Sidecar can't have managed proxy",
+			func(x *NodeService) {
+				x.Connect.SidecarService.Connect = &ServiceConnect{
+					Proxy: &ServiceDefinitionConnectProxy{},
+				}
+			},
+			"SidecarService cannot have a managed proxy",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			assert := assert.New(t)
+			ns := TestNodeServiceSidecar(t)
+			tc.Modify(ns)
+
+			err := ns.Validate()
+			assert.Equal(err != nil, tc.Err != "", err)
+			if err == nil {
+				return
+			}
+
+			assert.Contains(strings.ToLower(err.Error()), strings.ToLower(tc.Err))
+		})
+	}
+}
+
 func TestStructs_NodeService_IsSame(t *testing.T) {
 	ns := &NodeService{
 		ID:      "node1",
