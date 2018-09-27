@@ -82,6 +82,7 @@ type AgentService struct {
 	EnableTagOverride bool
 	CreateIndex       uint64 `json:",omitempty"`
 	ModifyIndex       uint64 `json:",omitempty"`
+	ContentHash       string `json:",omitempty"`
 	// DEPRECATED (ProxyDestination) - remove this field
 	ProxyDestination string                          `json:",omitempty"`
 	Proxy            *AgentServiceConnectProxyConfig `json:",omitempty"`
@@ -262,10 +263,12 @@ type ConnectProxyConfig struct {
 	TargetServiceID   string
 	TargetServiceName string
 	ContentHash       string
-	ExecMode          ProxyExecMode
-	Command           []string
-	Config            map[string]interface{}
-	Upstreams         []Upstream
+	// DEPRECATED(managed-proxies) - this struct is re-used for sidecar configs
+	// but they don't need ExecMode or Command
+	ExecMode  ProxyExecMode `json:",omitempty"`
+	Command   []string      `json:",omitempty"`
+	Config    map[string]interface{}
+	Upstreams []Upstream
 }
 
 // Upstream is the response structure for a proxy upstream configuration.
@@ -382,6 +385,33 @@ func (a *Agent) Services() (map[string]*AgentService, error) {
 	}
 
 	return out, nil
+}
+
+// Service returns a locally registered service instance and allows for
+// hash-based blocking.
+//
+// Note that this uses an unconventional blocking mechanism since it's
+// agent-local state. That means there is no persistent raft index so we block
+// based on object hash instead.
+func (a *Agent) Service(serviceID string, q *QueryOptions) (*AgentService, *QueryMeta, error) {
+	r := a.c.newRequest("GET", "/v1/agent/service/"+serviceID)
+	r.setQueryOptions(q)
+	rtt, resp, err := requireOK(a.c.doRequest(r))
+	if err != nil {
+		return nil, nil, err
+	}
+	defer resp.Body.Close()
+
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+
+	var out *AgentService
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, nil, err
+	}
+
+	return out, qm, nil
 }
 
 // Members returns the known gossip members. The WAN

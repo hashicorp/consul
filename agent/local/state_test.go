@@ -417,6 +417,91 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 	assert.Nil(servicesInSync(a.State, 3))
 }
 
+func TestAgent_ServiceWatchCh(t *testing.T) {
+	t.Parallel()
+	a := &agent.TestAgent{Name: t.Name()}
+	a.Start()
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	require := require.New(t)
+
+	// register a local service
+	srv1 := &structs.NodeService{
+		ID:      "svc_id1",
+		Service: "svc1",
+		Tags:    []string{"tag1"},
+		Port:    6100,
+	}
+	require.NoError(a.State.AddService(srv1, ""))
+
+	verifyState := func(ss *local.ServiceState) {
+		require.NotNil(ss)
+		require.NotNil(ss.WatchCh)
+
+		// Sanity check WatchCh blocks
+		select {
+		case <-ss.WatchCh:
+			t.Fatal("should block until service changes")
+		default:
+		}
+	}
+
+	// Should be able to get a ServiceState
+	ss := a.State.ServiceState(srv1.ID)
+	verifyState(ss)
+
+	// Update service in another go routine
+	go func() {
+		srv2 := srv1
+		srv2.Port = 6200
+		require.NoError(a.State.AddService(srv2, ""))
+	}()
+
+	// We should observe WatchCh close
+	select {
+	case <-ss.WatchCh:
+		// OK!
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("timeout waiting for WatchCh to close")
+	}
+
+	// Should also fire for state being set explicitly
+	ss = a.State.ServiceState(srv1.ID)
+	verifyState(ss)
+
+	go func() {
+		a.State.SetServiceState(&local.ServiceState{
+			Service: ss.Service,
+			Token:   "foo",
+		})
+	}()
+
+	// We should observe WatchCh close
+	select {
+	case <-ss.WatchCh:
+		// OK!
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("timeout waiting for WatchCh to close")
+	}
+
+	// Should also fire for service being removed
+	ss = a.State.ServiceState(srv1.ID)
+	verifyState(ss)
+
+	go func() {
+		require.NoError(a.State.RemoveService(srv1.ID))
+	}()
+
+	// We should observe WatchCh close
+	select {
+	case <-ss.WatchCh:
+		// OK!
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("timeout waiting for WatchCh to close")
+	}
+}
+
 func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 	t.Parallel()
 	a := &agent.TestAgent{Name: t.Name()}

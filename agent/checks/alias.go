@@ -85,16 +85,22 @@ func (c *CheckAlias) runLocal(stopCh chan struct{}) {
 	c.Notify.AddAliasCheck(c.CheckID, c.ServiceID, notifyCh)
 	defer c.Notify.RemoveAliasCheck(c.CheckID, c.ServiceID)
 
+	updateStatus := func() {
+		checks := c.Notify.Checks()
+		checksList := make([]*structs.HealthCheck, 0, len(checks))
+		for _, chk := range checks {
+			checksList = append(checksList, chk)
+		}
+		c.processChecks(checksList)
+	}
+
+	// Immediately run to get the current state of the target service
+	updateStatus()
+
 	for {
 		select {
 		case <-notifyCh:
-			checks := c.Notify.Checks()
-			checksList := make([]*structs.HealthCheck, 0, len(checks))
-			for _, chk := range checks {
-				checksList = append(checksList, chk)
-			}
-			c.processChecks(checksList)
-
+			updateStatus()
 		case <-stopCh:
 			return
 		}

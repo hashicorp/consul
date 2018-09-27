@@ -11,6 +11,7 @@ import (
 	"os"
 	"sort"
 	"strconv"
+	"strings"
 
 	proxyAgent "github.com/hashicorp/consul/agent/proxyprocess"
 	"github.com/hashicorp/consul/api"
@@ -51,6 +52,7 @@ type cmd struct {
 	logLevel    string
 	cfgFile     string
 	proxyID     string
+	sidecarFor  string
 	pprofAddr   string
 	service     string
 	serviceAddr string
@@ -68,6 +70,12 @@ func (c *cmd) init() {
 
 	c.flags.StringVar(&c.proxyID, "proxy-id", "",
 		"The proxy's ID on the local agent.")
+
+	c.flags.StringVar(&c.sidecarFor, "sidecar-for", "",
+		"The ID of a service instance on the local agent that this proxy should "+
+			"become a sidecar for. It requires that the proxy service is registered "+
+			"with the agent as a connect-proxy with Proxy.DestinationServiceID set "+
+			"to this value. If more than one such proxy is registered it will fail.")
 
 	c.flags.StringVar(&c.logLevel, "log-level", "INFO",
 		"Specifies the log level.")
@@ -117,6 +125,9 @@ func (c *cmd) Run(args []string) int {
 	// Load the proxy ID and token from env vars if they're set
 	if c.proxyID == "" {
 		c.proxyID = os.Getenv(proxyAgent.EnvProxyID)
+	}
+	if c.sidecarFor == "" {
+		c.sidecarFor = os.Getenv(proxyAgent.EnvSidecarFor)
 	}
 	if c.http.Token() == "" {
 		c.http.SetToken(os.Getenv(proxyAgent.EnvProxyToken))
@@ -200,10 +211,51 @@ func (c *cmd) Run(args []string) int {
 	return 0
 }
 
+func (c *cmd) lookupProxyIDForSidecar(client *api.Client) (string, error) {
+	svcs, err := client.Agent().Services()
+	if err != nil {
+		return "", fmt.Errorf("Failed looking up sidecar proxy info for %s: %s",
+			c.sidecarFor, err)
+	}
+
+	var proxyIDs []string
+	for _, svc := range svcs {
+		if svc.Kind == api.ServiceKindConnectProxy && svc.Proxy != nil &&
+			strings.ToLower(svc.Proxy.DestinationServiceID) == c.sidecarFor {
+			proxyIDs = append(proxyIDs, svc.ID)
+		}
+	}
+
+	if len(proxyIDs) == 0 {
+		return "", fmt.Errorf("No sidecar proxy registereded for %s", c.sidecarFor)
+	}
+	if len(proxyIDs) > 1 {
+		return "", fmt.Errorf("More than one sidecar proxy registereded for %s.\n"+
+			"    Start proxy with -proxy-id and one of the following IDs: %s",
+			c.sidecarFor, strings.Join(proxyIDs, ", "))
+	}
+	return proxyIDs[0], nil
+}
+
 func (c *cmd) configWatcher(client *api.Client) (proxyImpl.ConfigWatcher, error) {
 	// Use the configured proxy ID
 	if c.proxyID != "" {
 		c.UI.Info("Configuration mode: Agent API")
+		c.UI.Info(fmt.Sprintf("          Proxy ID: %s", c.proxyID))
+		return proxyImpl.NewAgentConfigWatcher(client, c.proxyID, c.logger)
+	}
+
+	if c.sidecarFor != "" {
+		// Running as a sidecar, we need to find the proxy-id for the requested
+		// service
+		var err error
+		c.proxyID, err = c.lookupProxyIDForSidecar(client)
+		if err != nil {
+			return nil, err
+		}
+
+		c.UI.Info("Configuration mode: Agent API")
+		c.UI.Info(fmt.Sprintf("    Sidecar for ID: %s", c.sidecarFor))
 		c.UI.Info(fmt.Sprintf("          Proxy ID: %s", c.proxyID))
 		return proxyImpl.NewAgentConfigWatcher(client, c.proxyID, c.logger)
 	}
