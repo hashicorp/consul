@@ -34,3 +34,19 @@ func TestUpstreams(t testing.T) Upstreams {
 		},
 	}
 }
+
+// TestAddDefaultsToUpstreams takes an array of upstreams (such as that from
+// TestUpstreams) and adds default values that are populated during
+// refigistration. Use this for generating the expected Upstreams value after
+// registration.
+func TestAddDefaultsToUpstreams(t testing.T, upstreams []Upstream) []Upstream {
+	ups := make([]Upstream, len(upstreams))
+	for i := range upstreams {
+		ups[i] = upstreams[i]
+		// Fill in default fields we expect to have back explicitly in a response
+		if ups[i].DestinationType == "" {
+			ups[i].DestinationType = UpstreamDestTypeService
+		}
+	}
+	return ups
+}
