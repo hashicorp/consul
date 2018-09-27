@@ -736,6 +736,63 @@ func TestConnectProxyConfigWatch(t *testing.T) {
 	wg.Wait()
 }
 
+func TestAgentServiceWatch(t *testing.T) {
+	t.Parallel()
+	a := agent.NewTestAgent(t.Name(), ``)
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	// Register a local agent service
+	reg := &consulapi.AgentServiceRegistration{
+		Name: "web",
+		Port: 8080,
+	}
+	client := a.Client()
+	agent := client.Agent()
+	err := agent.ServiceRegister(reg)
+	require.NoError(t, err)
+
+	invoke := makeInvokeCh()
+	plan := mustParse(t, `{"type":"agent_service", "service_id":"web"}`)
+	plan.HybridHandler = func(blockParamVal watch.BlockingParamVal, raw interface{}) {
+		if raw == nil {
+			return // ignore
+		}
+		v, ok := raw.(*consulapi.AgentService)
+		if !ok || v == nil {
+			return // ignore
+		}
+		invoke <- nil
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		time.Sleep(20 * time.Millisecond)
+
+		// Change the service definition
+		reg.Port = 9090
+		err := agent.ServiceRegister(reg)
+		require.NoError(t, err)
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := plan.Run(a.HTTPAddr()); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}()
+
+	if err := <-invoke; err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	plan.Stop()
+	wg.Wait()
+}
+
 func mustParse(t *testing.T, q string) *watch.Plan {
 	t.Helper()
 	var params map[string]interface{}

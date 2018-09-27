@@ -26,6 +26,7 @@ func init() {
 		"connect_roots":        connectRootsWatch,
 		"connect_leaf":         connectLeafWatch,
 		"connect_proxy_config": connectProxyConfigWatch,
+		"agent_service":        agentServiceWatch,
 	}
 }
 
@@ -301,6 +302,33 @@ func connectProxyConfigWatch(params map[string]interface{}) (WatcherFunc, error)
 
 		// Return string ContentHash since we don't have Raft indexes to block on.
 		return WaitHashVal(config.ContentHash), config, err
+	}
+	return fn, nil
+}
+
+// agentServiceWatch is used to watch for changes to a single service instance
+// on the local agent. Note that this state is agent-local so the watch
+// mechanism uses `hash` rather than `index` for deciding whether to block.
+func agentServiceWatch(params map[string]interface{}) (WatcherFunc, error) {
+	// We don't support consistency modes since it's agent local data
+
+	var serviceID string
+	if err := assignValue(params, "service_id", &serviceID); err != nil {
+		return nil, err
+	}
+
+	fn := func(p *Plan) (BlockingParamVal, interface{}, error) {
+		agent := p.client.Agent()
+		opts := makeQueryOptionsWithContext(p, false)
+		defer p.cancelFunc()
+
+		svc, _, err := agent.Service(serviceID, &opts)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		// Return string ContentHash since we don't have Raft indexes to block on.
+		return WaitHashVal(svc.ContentHash), svc, err
 	}
 	return fn, nil
 }

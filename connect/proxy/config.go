@@ -194,8 +194,8 @@ func NewAgentConfigWatcher(client *api.Client, proxyID string,
 
 	// Setup watch plan for config
 	plan, err := watch.Parse(map[string]interface{}{
-		"type":             "connect_proxy_config",
-		"proxy_service_id": w.proxyID,
+		"type":       "agent_service",
+		"service_id": w.proxyID,
 	})
 	if err != nil {
 		return nil, err
@@ -209,20 +209,26 @@ func NewAgentConfigWatcher(client *api.Client, proxyID string,
 func (w *AgentConfigWatcher) handler(blockVal watch.BlockingParamVal,
 	val interface{}) {
 
-	resp, ok := val.(*api.ConnectProxyConfig)
+	resp, ok := val.(*api.AgentService)
 	if !ok {
 		w.logger.Printf("[WARN] proxy config watch returned bad response: %v", val)
+		return
+	}
+
+	if resp.Kind != api.ServiceKindConnectProxy {
+		w.logger.Printf("[ERR] service with id %s is not a valid connect proxy",
+			w.proxyID)
 		return
 	}
 
 	// Create proxy config from the response
 	cfg := &Config{
 		// Token should be already setup in the client
-		ProxiedServiceName:      resp.TargetServiceName,
+		ProxiedServiceName:      resp.Proxy.DestinationServiceName,
 		ProxiedServiceNamespace: "default",
 	}
 
-	if tRaw, ok := resp.Config["telemetry"]; ok {
+	if tRaw, ok := resp.Proxy.Config["telemetry"]; ok {
 		err := mapstructure.Decode(tRaw, &cfg.Telemetry)
 		if err != nil {
 			w.logger.Printf("[WARN] proxy telemetry config failed to parse: %s", err)
@@ -230,15 +236,18 @@ func (w *AgentConfigWatcher) handler(blockVal watch.BlockingParamVal,
 	}
 
 	// Unmarshal configs
-	err := mapstructure.Decode(resp.Config, &cfg.PublicListener)
+	err := mapstructure.Decode(resp.Proxy.Config, &cfg.PublicListener)
 	if err != nil {
-		w.logger.Printf("[ERR] proxy config watch public listener config "+
-			"couldn't be parsed: %s", err)
-		return
+		w.logger.Printf("[ERR] failed to parse public listener config: %s", err)
 	}
+	cfg.PublicListener.BindAddress = resp.Address
+	cfg.PublicListener.BindPort = resp.Port
+	cfg.PublicListener.LocalServiceAddress = fmt.Sprintf("%s:%d",
+		resp.Proxy.LocalServiceAddress, resp.Proxy.LocalServicePort)
+
 	cfg.PublicListener.applyDefaults()
 
-	for _, u := range resp.Upstreams {
+	for _, u := range resp.Proxy.Upstreams {
 		uc := UpstreamConfig(u)
 		uc.applyDefaults()
 		cfg.Upstreams = append(cfg.Upstreams, uc)
