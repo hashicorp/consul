@@ -39,7 +39,7 @@ func TestUpstreams(t testing.T) Upstreams {
 // TestUpstreams) and adds default values that are populated during
 // refigistration. Use this for generating the expected Upstreams value after
 // registration.
-func TestAddDefaultsToUpstreams(t testing.T, upstreams []Upstream) []Upstream {
+func TestAddDefaultsToUpstreams(t testing.T, upstreams []Upstream) Upstreams {
 	ups := make([]Upstream, len(upstreams))
 	for i := range upstreams {
 		ups[i] = upstreams[i]

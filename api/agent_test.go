@@ -642,6 +642,57 @@ func TestAPI_AgentServices_MultipleChecks(t *testing.T) {
 	}
 }
 
+func TestAPI_AgentService(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	require := require.New(t)
+
+	reg := &AgentServiceRegistration{
+		Name: "foo",
+		Tags: []string{"bar", "baz"},
+		Port: 8000,
+		Checks: AgentServiceChecks{
+			&AgentServiceCheck{
+				TTL: "15s",
+			},
+			&AgentServiceCheck{
+				TTL: "30s",
+			},
+		},
+	}
+	require.NoError(agent.ServiceRegister(reg))
+
+	got, qm, err := agent.Service("foo", nil)
+	require.NoError(err)
+
+	expect := &AgentService{
+		ID:          "foo",
+		Service:     "foo",
+		Tags:        []string{"bar", "baz"},
+		ContentHash: "bf5bd67c5d74b26d",
+		Port:        8000,
+	}
+	require.Equal(expect, got)
+	require.Equal(expect.ContentHash, qm.LastContentHash)
+
+	// Sanity check blocking behaviour - this is more thoroughly tested in the
+	// agent endpoint tests but this ensures that the API package is at least
+	// passing the hash param properly.
+	opts := QueryOptions{
+		WaitHash: "bf5bd67c5d74b26d",
+		WaitTime: 100 * time.Millisecond, // Just long enough to be reliably measurable
+	}
+	start := time.Now()
+	got, qm, err = agent.Service("foo", &opts)
+	elapsed := time.Since(start)
+	require.NoError(err)
+	require.True(elapsed >= opts.WaitTime)
+}
+
 func TestAPI_AgentSetTTLStatus(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)

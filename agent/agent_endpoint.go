@@ -1,8 +1,10 @@
 package agent
 
 import (
+	"errors"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -228,6 +230,154 @@ func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) 
 	}
 
 	return agentSvcs, nil
+}
+
+// GET /v1/agent/service/:service_id
+//
+// Returns the service definition for a single local services and allows
+// blocking watch using hash-based blocking.
+func (s *HTTPServer) AgentService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Get the proxy ID. Note that this is the ID of a proxy's service instance.
+	id := strings.TrimPrefix(req.URL.Path, "/v1/agent/service/")
+
+	// DEPRECATED(managed-proxies) - remove this whole hack.
+	//
+	// Support managed proxies until they are removed entirely. Since built-in
+	// proxy will now use this endpoint, in order to not break managed proxies in
+	// the interim until they are removed, we need to mirror the default-setting
+	// behaviour they had. Rather than thread that through this whole method as
+	// special cases that need to be unwound later (and duplicate logic in the
+	// proxy config endpoint) just defer to that and then translater the response.
+	if managedProxy := s.agent.State.Proxy(id); managedProxy != nil {
+		// This is for a managed proxy, use the old endpoint's behaviour
+		req.URL.Path = "/v1/agent/connect/proxy/" + id
+		obj, err := s.AgentConnectProxyConfig(resp, req)
+		if err != nil {
+			return obj, err
+		}
+		proxyCfg, ok := obj.(*api.ConnectProxyConfig)
+		if !ok {
+			return nil, errors.New("internal error")
+		}
+		// These are all set by defaults so type checks are just sanity checks that
+		// should never fail.
+		port, ok := proxyCfg.Config["bind_port"].(int)
+		if !ok || port < 1 {
+			return nil, errors.New("invalid proxy config")
+		}
+		addr, ok := proxyCfg.Config["bind_address"].(string)
+		if !ok || addr == "" {
+			return nil, errors.New("invalid proxy config")
+		}
+		localAddr, ok := proxyCfg.Config["local_service_address"].(string)
+		if !ok || localAddr == "" {
+			return nil, errors.New("invalid proxy config")
+		}
+		// Old local_service_address was a host:port
+		localAddress, localPortRaw, err := net.SplitHostPort(localAddr)
+		if err != nil {
+			return nil, err
+		}
+		localPort, err := strconv.Atoi(localPortRaw)
+		if err != nil {
+			return nil, err
+		}
+
+		reply := &api.AgentService{
+			Kind:        api.ServiceKindConnectProxy,
+			ID:          proxyCfg.ProxyServiceID,
+			Service:     managedProxy.Proxy.ProxyService.Service,
+			Port:        port,
+			Address:     addr,
+			ContentHash: proxyCfg.ContentHash,
+			Proxy: &api.AgentServiceConnectProxyConfig{
+				DestinationServiceName: proxyCfg.TargetServiceName,
+				DestinationServiceID:   proxyCfg.TargetServiceID,
+				LocalServiceAddress:    localAddress,
+				LocalServicePort:       localPort,
+				Config:                 proxyCfg.Config,
+				Upstreams:              proxyCfg.Upstreams,
+			},
+		}
+		return reply, nil
+	}
+
+	// Maybe block
+	var queryOpts structs.QueryOptions
+	if parseWait(resp, req, &queryOpts) {
+		// parseWait returns an error itself
+		return nil, nil
+	}
+
+	// Parse the token
+	var token string
+	s.parseToken(req, &token)
+
+	// Parse hash specially. Eventually this should happen in parseWait and end up
+	// in QueryOptions but I didn't want to make very general changes right away.
+	hash := req.URL.Query().Get("hash")
+
+	return s.agentLocalBlockingQuery(resp, hash, &queryOpts,
+		func(ws memdb.WatchSet) (string, interface{}, error) {
+
+			svcState := s.agent.State.ServiceState(id)
+			if svcState == nil {
+				resp.WriteHeader(http.StatusNotFound)
+				fmt.Fprintf(resp, "unknown proxy service ID: %s", id)
+				return "", nil, nil
+			}
+
+			svc := svcState.Service
+
+			// Setup watch on the service
+			ws.Add(svcState.WatchCh)
+
+			// Check ACLs.
+			rule, err := s.agent.resolveToken(token)
+			if err != nil {
+				return "", nil, err
+			}
+			if rule != nil && !rule.ServiceRead(svc.Service) {
+				return "", nil, acl.ErrPermissionDenied
+			}
+
+			var connect *api.AgentServiceConnect
+			var proxy *api.AgentServiceConnectProxyConfig
+
+			if svc.Connect.Native {
+				connect = &api.AgentServiceConnect{
+					Native: svc.Connect.Native,
+				}
+			}
+
+			if svc.Kind == structs.ServiceKindConnectProxy {
+				proxy = svc.Proxy.ToAPI()
+			}
+
+			// Calculate the content hash over the response, minus the hash field
+			reply := &api.AgentService{
+				Kind:              api.ServiceKind(svc.Kind),
+				ID:                svc.ID,
+				Service:           svc.Service,
+				Tags:              svc.Tags,
+				Meta:              svc.Meta,
+				Port:              svc.Port,
+				Address:           svc.Address,
+				EnableTagOverride: svc.EnableTagOverride,
+				Proxy:             proxy,
+				Connect:           connect,
+			}
+
+			rawHash, err := hashstructure.Hash(reply, nil)
+			if err != nil {
+				return "", nil, err
+			}
+
+			// Include the ContentHash in the response body
+			reply.ContentHash = fmt.Sprintf("%x", rawHash)
+
+			return reply.ContentHash, reply, nil
+		})
 }
 
 func (s *HTTPServer) AgentChecks(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -1254,7 +1404,17 @@ func (s *HTTPServer) agentLocalBlockingQuery(resp http.ResponseWriter, hash stri
 			return curResp, err
 		}
 		// Watch returned false indicating a change was detected, loop and repeat
-		// the callback to load the new value.
+		// the callback to load the new value. If agent sync is paused it means
+		// local state is currently being bulk-edited e.g. config reload. In this
+		// case it's likely that local state just got unloaded and may or may not be
+		// reloaded yet. Wait a short amount of time for Sync to resume to ride out
+		// typical config reloads.
+		if syncPauseCh := s.agent.syncPausedCh(); syncPauseCh != nil {
+			select {
+			case <-syncPauseCh:
+			case <-timeout.C:
+			}
+		}
 	}
 }
 

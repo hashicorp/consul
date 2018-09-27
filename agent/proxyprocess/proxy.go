@@ -20,6 +20,11 @@ const (
 	// EnvProxyToken is the name of the environment variable that is passed
 	// to managed proxies containing the proxy token.
 	EnvProxyToken = "CONNECT_PROXY_TOKEN"
+
+	// EnvSidecarFor is the name of the environment variable that is set for
+	// sidecar proxies containing the service ID of their target on the local
+	// agent
+	EnvSidecarFor = "CONNECT_SIDECAR_FOR"
 )
 
 // Proxy is the interface implemented by all types of managed proxies.
