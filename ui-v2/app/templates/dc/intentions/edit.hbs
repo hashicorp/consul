@@ -24,13 +24,13 @@
                     Copy UUID
                 {{/copy-button}}
             {{/block-slot}}
-            {{#block-slot 'success'}}
-                <p>
+            {{#block-slot 'success' as |transition|}}
+                <p class={{transition}}>
                     Copied UUID!
                 </p>
             {{/block-slot}}
-            {{#block-slot 'error'}}
-                <p>
+            {{#block-slot 'error' as |transition|}}
+                <p class={{transition}}>
                     Sorry, something went wrong!
                 </p>
             {{/block-slot}}

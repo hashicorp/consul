@@ -341,8 +341,8 @@ func TestSnapshot_Forward_Datacenter(t *testing.T) {
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	testrpc.WaitForLeader(t, s2.RPC, "dc2")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s2.RPC, "dc2")
 
 	// Try to WAN join.
 	joinWAN(t, s2, s1)

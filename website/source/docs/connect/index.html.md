@@ -107,7 +107,7 @@ a long period of inactivity (3 days by default), the cache will empty itself.
 
 ## Multi-Datacenter
 
-Connect currently only works for service-to-service connections wtihin a
+Connect currently only works for service-to-service connections within a
 single Consul datacenter. Connect may be enabled on multiple Consul datacenters,
 but only services within the same datacenters can establish Connect-based
 connections.

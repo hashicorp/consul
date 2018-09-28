@@ -1020,7 +1020,7 @@ func TestLeader_CARootPruning(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Get the current root
 	rootReq := &structs.DCSpecificRequest{
@@ -1038,10 +1038,10 @@ func TestLeader_CARootPruning(t *testing.T) {
 	newConfig := &structs.CAConfiguration{
 		Provider: "consul",
 		Config: map[string]interface{}{
-			"LeafCertTTL":    500 * time.Millisecond,
+			"LeafCertTTL":    "500ms",
 			"PrivateKey":     newKey,
 			"RootCert":       "",
-			"RotationPeriod": 90 * 24 * time.Hour,
+			"RotationPeriod": "2160h",
 			"SkipValidate":   true,
 		},
 	}

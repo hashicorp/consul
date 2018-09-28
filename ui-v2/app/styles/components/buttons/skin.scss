@@ -4,87 +4,84 @@
   cursor: pointer;
   white-space: nowrap;
 }
-%primary-button,
-%secondary-button,
-%copy-button,
-%dangerous-button {
-  @extend %button;
+%button:disabled {
+  cursor: default;
+  box-shadow: none;
+}
+%copy-button {
+  @extend %button, %with-clipboard;
 }
 %primary-button,
 %secondary-button,
 %dangerous-button {
-  border: $decor-border-100;
+  @extend %button;
+  border-width: 1px;
   border-radius: $radius-small;
   box-shadow: 0 3px 1px 0 rgba($ui-black, 0.12);
 }
-%primary-button,
-%copy-button {
-  border: 0;
-}
-%copy-button {
-  @extend %with-clipboard;
-}
 /* color */
-%secondary-button,
-%dangerous-button,
-%copy-button {
-  border-color: currentColor;
-}
-%secondary-button {
-  color: $ui-gray-400;
-}
-%secondary-button:hover,
-%secondary-button:focus {
-  color: $ui-gray-600;
-}
-%secondary-button:active {
-  color: $ui-gray-600;
-}
-%primary-button {
-  background-color: $ui-color-action;
-  color: $ui-white;
-}
-%primary-button:hover,
-%primary-button:focus {
-  background-color: $ui-blue-700;
-}
-%primary-button:disabled {
-  color: rgba($ui-white, 0.5);
-  background-color: rgba($ui-blue-700, 0.5);
-  box-shadow: none;
-}
-%primary-button:active {
-  background-color: $ui-blue-900;
-}
-%dangerous-button {
-  color: $ui-color-danger;
-}
-%dangerous-button:hover,
-%dangerous-button:focus {
-  background-color: $ui-color-danger;
-  border-color: $ui-color-danger;
-  color: $ui-white;
-}
-%dangerous-button:disabled {
-  color: rgba($ui-color-danger, 0.5);
-  border-color: rgba($ui-color-danger, 0.5);
-  background-color: $ui-white;
-  box-shadow: none;
-}
-%dangerous-button:active {
-  background-color: $ui-red-700;
-  border-color: $ui-red-700;
-  color: $ui-white;
-}
 %copy-button {
   color: $ui-color-action;
   background-color: $ui-color-transparent;
 }
-%copy-button:hover,
+%copy-button:hover:not(:disabled):not(:active),
 %copy-button:focus {
   color: $ui-color-action;
   background-color: $ui-gray-050;
 }
+%copy-button:disabled {
+}
 %copy-button:active {
   background-color: $ui-gray-200;
+}
+%primary-button {
+  @extend %frame-blue-800;
+}
+%primary-button:hover:not(:disabled):not(:active),
+%primary-button:focus {
+  @extend %frame-blue-700;
+}
+%primary-button:disabled {
+  @extend %frame-blue-600;
+}
+%primary-button:hover:active {
+  @extend %frame-blue-900;
+}
+/**/
+%secondary-button {
+  /* %frame-gray-something */
+  color: $ui-gray-800;
+  background-color: $ui-gray-050;
+  border-color: $ui-gray-300;
+  border-style: solid;
+}
+%secondary-button:hover:not(:disabled):not(:active),
+%secondary-button:focus {
+  /* %frame-gray-something */
+  background-color: $ui-white;
+  color: $ui-gray-800;
+  border-color: $ui-gray-700;
+}
+%secondary-button:disabled {
+  color: $ui-gray-600;
+}
+%secondary-button:active {
+  /* %frame-gray-something */
+  background-color: $ui-gray-200;
+  color: $ui-gray-800;
+  border-color: $ui-gray-700;
+}
+/**/
+%dangerous-button {
+  @extend %frame-red-300;
+}
+%dangerous-button:hover:not(:disabled):not(:active),
+%dangerous-button:focus {
+  @extend %frame-red-700;
+}
+%dangerous-button:disabled {
+  @extend %frame-red-600;
+}
+%dangerous-button:hover:active {
+  @extend %frame-red-900;
 }

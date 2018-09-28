@@ -151,7 +151,7 @@ EOF
 ```
 
 This configures a Consul-managed proxy for the service "web" that
-is listening on port 9191 to establish connects to "socat" as "web". The
+is listening on port 9191 to establish connections to "socat" as "web". The
 "web" service should then use that local port to talk to socat rather than
 directly attempting to connect.
 

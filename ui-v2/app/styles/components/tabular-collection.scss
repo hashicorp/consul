@@ -16,6 +16,17 @@ table tr > * {
 tr > * dl {
   float: left;
 }
+/* TODO: putting this here is less than ideal */
+/* but this is another area where I am specifically */
+/* targetting table-like things. This is now a prime */
+/* area for a bit of refactoring/reorganizing */
+html.template-service.template-list td:first-child a span,
+html.template-node.template-show #services td:first-child a span {
+  @extend %with-external-source-icon;
+  float: left;
+  margin-right: 10px;
+  margin-top: 2px;
+}
 html.template-service.template-list main table tr {
   @extend %services-row;
 }
@@ -34,7 +45,6 @@ html.template-node.template-show main table tr {
 html.template-node.template-show main table.sessions tr {
   @extend %node-sessions-row;
 }
-
 @media #{$--horizontal-session-list} {
   %node-sessions-row > * {
     // (100% / 7) - (300px / 6) - (120px / 6)

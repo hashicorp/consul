@@ -38,7 +38,6 @@
     "ember-ajax": "^3.0.0",
     "ember-block-slots": "^1.1.11",
     "ember-browserify": "^1.2.2",
-    "ember-bulma-css": "^0.2.1",
     "ember-changeset-validations": "^1.2.11",
     "ember-cli": "~2.18.2",
     "ember-cli-app-version": "^3.0.0",
@@ -86,7 +85,7 @@
     "loader.js": "^4.2.3",
     "prettier": "^1.10.2",
     "svgo": "^1.0.5",
-    "text-encoder-lite": "^1.0.1"
+    "text-encoding": "^0.6.4"
   },
   "engines": {
     "node": "^4.5 || 6.* || >= 7.*"

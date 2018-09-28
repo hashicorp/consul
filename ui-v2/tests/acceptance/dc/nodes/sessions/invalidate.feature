@@ -7,7 +7,7 @@ Feature: dc / nodes / sessions / invalidate: Invalidate Lock Sessions
     Given 1 datacenter model with the value "dc1"
     And 1 node model from yaml
     ---
-    - ID: node-0
+    ID: node-0
     ---
     And 2 session models from yaml
     ---

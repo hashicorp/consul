@@ -12,10 +12,6 @@
   white-space: nowrap;
 }
 %healthchecked-resource,
-%healthchecked-resource li {
-  border-color: $ui-gray-200;
-}
-%healthchecked-resource,
 %healthchecked-resource header,
 %healthchecked-resource li {
   position: relative;
@@ -75,4 +71,11 @@
 %healthchecked-resource li:not(.passing) strong,
 .healthy .healthchecked-resource li:only-child strong {
   display: none;
+}
+%healthchecked-resource ul:empty {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  width: 1em;
+  height: 1em;
 }

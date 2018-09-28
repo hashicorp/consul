@@ -1,5 +1,6 @@
 %notice {
   border-radius: $radius-small;
+  border-width: 1px;
 }
 %notice-success,
 %notice-info,
@@ -26,8 +27,7 @@
   color: $ui-color-action; /* change to info */
 }
 %notice-warning {
-  @extend %box-color-yellow-500, %with-warning;
-  border-width: 1px;
+  @extend %frame-yellow-500, %with-warning;
 }
 %notice-error {
   @extend %with-critical;

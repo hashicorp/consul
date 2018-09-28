@@ -1,6 +1,5 @@
 @import './product/index';
 @import './filter-bar';
-@import './form-elements/index';
 html body > svg {
   display: none;
 }
@@ -19,12 +18,10 @@ main {
 %app-view header form {
   @extend %filter-bar;
 }
-%app-content .type-text,
-%app-content .type-toggle {
-  @extend %form-element;
-}
-%app-content [role='radiogroup'] {
-  @extend %radio-group;
+@media #{$--lt-spacious-page-header} {
+  %app-view header .actions {
+    margin-top: 5px;
+  }
 }
 %loader circle {
   fill: $brand-magenta-100;
@@ -48,4 +45,38 @@ main {
 }
 #wrapper > footer {
   @extend %footer;
+}
+/*TODO: This should go in reset, and probably needs select etc adding  */
+@media (max-width: 420px) and (-webkit-min-device-pixel-ratio: 0) {
+  input {
+    font-size: 16px !important;
+  }
+}
+/* toggleable toolbar for short screens */
+[for='toolbar-toggle'] {
+  @extend %with-magnifier;
+  color: $ui-blue-500;
+  width: 20px;
+  height: 20px;
+  margin-left: 15px;
+  top: -3px;
+}
+#toolbar-toggle {
+  display: none;
+}
+@media #{$--expanded-filters} {
+  [for='toolbar-toggle'] {
+    display: none;
+  }
+}
+@media #{$--lt-expanded-filters} {
+  %app-view header h1 {
+    display: inline-block;
+  }
+  #toolbar-toggle + * {
+    display: none;
+  }
+  #toolbar-toggle:checked + * {
+    display: block;
+  }
 }

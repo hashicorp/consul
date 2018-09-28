@@ -2,7 +2,7 @@ GEM
   remote: https://rubygems.org/
   specs:
     execjs (2.7.0)
-    ffi (1.9.23)
+    ffi (1.9.25)
     libv8 (3.16.14.19)
     rb-fsevent (0.10.3)
     rb-inotify (0.9.10)
@@ -23,9 +23,10 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  ffi (~> 1.9.24)
   sass
   therubyracer
   uglifier
 
 BUNDLED WITH
-   1.16.0
+   1.16.1

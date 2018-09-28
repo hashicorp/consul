@@ -115,6 +115,7 @@ func TestCatalogNodes_MetaFilter(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Register a node with a meta field
 	args := &structs.RegisterRequest{
@@ -159,6 +160,7 @@ func TestCatalogNodes_WanTranslation(t *testing.T) {
 		acl_datacenter = ""
 	`)
 	defer a1.Shutdown()
+	testrpc.WaitForTestAgent(t, a1.RPC, "dc1")
 
 	a2 := NewTestAgent(t.Name(), `
 		datacenter = "dc2"
@@ -166,6 +168,7 @@ func TestCatalogNodes_WanTranslation(t *testing.T) {
 		acl_datacenter = ""
 	`)
 	defer a2.Shutdown()
+	testrpc.WaitForTestAgent(t, a2.RPC, "dc2")
 
 	// Wait for the WAN join.
 	addr := fmt.Sprintf("127.0.0.1:%d", a1.Config.SerfPortWAN)
@@ -333,7 +336,6 @@ func TestCatalogNodes_DistanceSort(t *testing.T) {
 	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	args = &structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -818,6 +820,7 @@ func TestCatalogNodeServices(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -857,6 +860,7 @@ func TestCatalogNodeServices_ConnectProxy(t *testing.T) {
 	assert := assert.New(t)
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Register
 	args := structs.TestRegisterRequestProxy(t)
@@ -884,6 +888,7 @@ func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 		acl_datacenter = ""
 	`)
 	defer a1.Shutdown()
+	testrpc.WaitForTestAgent(t, a1.RPC, "dc1")
 
 	a2 := NewTestAgent(t.Name(), `
 		datacenter = "dc2"
@@ -891,6 +896,7 @@ func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 		acl_datacenter = ""
 	`)
 	defer a2.Shutdown()
+	testrpc.WaitForTestAgent(t, a2.RPC, "dc2")
 
 	// Wait for the WAN join.
 	addr := fmt.Sprintf("127.0.0.1:%d", a1.Config.SerfPortWAN)

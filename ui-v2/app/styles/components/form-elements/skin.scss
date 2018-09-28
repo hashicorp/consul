@@ -1,65 +1,45 @@
+%radio-group label {
+  @extend %form-element;
+}
 %form-element-error > input,
 %form-element-error > textarea {
   border: $decor-border-100;
 }
-%radio-group label {
-  @extend %form-element;
-}
-[type='radio'],
-%toggle span::before,
-%toggle span::after {
-  cursor: pointer;
-}
 %form-element [type='text'],
-%form-element [type='password'] {
-  border: $decor-border-100;
+%form-element [type='password'],
+%form-element textarea {
   -moz-appearance: none;
   -webkit-appearance: none;
-}
-%form-element [type='text'],
-%form-element [type='password'] {
-  box-shadow: none;
-  border-radius: $radius-small;
+  box-shadow: inset 0 4px 1px rgba(0, 0, 0, .06);
+  border-radius: $decor-radius-100;
+  border: $decor-border-100;
 }
 %form-element [type='text']:focus,
 %form-element [type='password']:focus,
 %form-element textarea:focus {
   outline: none;
-  box-shadow: none;
-  border-color: $ui-gray-400;
+}
+%form-element > em > code {
+  border-radius: $decor-radius-100;
 }
 %form-element-error > input {
   border-color: $ui-color-failure !important;
 }
-%toggle input:checked + span::before {
-  background-color: $ui-color-success;
-}
-%toggle span {
-  color: $ui-gray-900;
-}
 %form-element > em {
   color: $ui-gray-400;
 }
-%toggle span::after {
-  border-radius: 100%;
-  background-color: $ui-white;
-}
-%toggle span::before {
-  background-color: $ui-gray-300;
-  border-radius: 7px;
+%form-element > em > code {
+  background-color: $ui-gray-200;
+  color: $brand-magenta-600;
+  border-radius: $decor-radius-100;
 }
 %form-element > span {
-  color: $ui-gray-500;
+  color: $ui-black;
 }
 %form-element [type='text'],
 %form-element [type='password'],
 %form-element textarea {
   color: $ui-gray-500;
-}
-%form-element [type='text'],
-%form-element [type='password'],
-%form-element textarea {
-  background-color: $ui-gray-050;
 }
 %form-element [type='text'],
 %form-element [type='password'],
@@ -69,5 +49,10 @@
 %form-element [type='text']:hover,
 %form-element [type='password']:hover,
 %form-element textarea:hover {
-  border-color: $ui-color-action;
+  border-color: $ui-gray-500;
+}
+%form-element [type='text']:focus,
+%form-element [type='password']:focus,
+%form-element textarea:focus {
+  border-color: $ui-blue-500;
 }

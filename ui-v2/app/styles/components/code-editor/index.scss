@@ -20,8 +20,14 @@ $syntax-dark-gray: #535f73;
 $syntax-gutter-grey: #2a2f36;
 $syntax-yellow: $ui-yellow-500;
 .CodeMirror {
+  max-width: 1150px;
   min-height: 300px;
   height: auto;
+  /* adds some space at the bottom of the editor for when a horizonal-scroll has appeared */
+  padding-bottom: 20px;
+}
+.CodeMirror-scroll {
+  overflow-x: hidden !important;
 }
 .CodeMirror-lint-tooltip {
   background-color: #f9f9fa;
@@ -59,13 +65,13 @@ $syntax-yellow: $ui-yellow-500;
   }
 
   &.CodeMirror-focused div.CodeMirror-selected {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgb(33, 66, 131);
   }
 
   .CodeMirror-line::selection,
   .CodeMirror-line > span::selection,
   .CodeMirror-line > span > span::selection {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgb(33, 66, 131);
   }
 
   .CodeMirror-line::-moz-selection,

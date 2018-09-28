@@ -43,7 +43,7 @@ func TestRegisterMonitor_heartbeat(t *testing.T) {
 	defer a.Shutdown()
 	client := a.Client()
 
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	m, _ := testMonitor(t, client)
 	defer m.Close()
 
