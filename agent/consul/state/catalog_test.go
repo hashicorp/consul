@@ -1,6 +1,7 @@
 package state
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"sort"
@@ -2933,7 +2934,8 @@ func TestStateStore_CheckServiceNodes(t *testing.T) {
 	}
 
 	// Service updates alter the returned index and fire the watch.
-	testRegisterService(t, s, 9, "node1", "service1")
+
+	testRegisterServiceWithChange(t, s, 9, "node1", "service1", true)
 	if !watchFired(ws) {
 		t.Fatalf("bad")
 	}
@@ -3289,6 +3291,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 					ID:      "service1",
 					Service: "service1",
 					Address: "1.1.1.1",
+					Meta:    make(map[string]string),
 					Port:    1111,
 					Weights: &structs.Weights{Passing: 1, Warning: 1},
 					RaftIndex: structs.RaftIndex{
@@ -3300,6 +3303,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 					ID:      "service2",
 					Service: "service2",
 					Address: "1.1.1.1",
+					Meta:    make(map[string]string),
 					Port:    1111,
 					Weights: &structs.Weights{Passing: 1, Warning: 1},
 					RaftIndex: structs.RaftIndex{
@@ -3341,6 +3345,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 					Service: "service1",
 					Address: "1.1.1.1",
 					Port:    1111,
+					Meta:    make(map[string]string),
 					Weights: &structs.Weights{Passing: 1, Warning: 1},
 					RaftIndex: structs.RaftIndex{
 						CreateIndex: 4,
@@ -3352,6 +3357,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 					Service: "service2",
 					Address: "1.1.1.1",
 					Port:    1111,
+					Meta:    make(map[string]string),
 					Weights: &structs.Weights{Passing: 1, Warning: 1},
 					RaftIndex: structs.RaftIndex{
 						CreateIndex: 5,
@@ -3372,7 +3378,9 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 		t.Fatalf("bad index: %d", idx)
 	}
 	if len(dump) != 1 || !reflect.DeepEqual(dump[0], expect[0]) {
-		t.Fatalf("bad: %#v", dump)
+		dump0, _ := json.Marshal(dump[0])
+		expect0, _ := json.Marshal(expect[0])
+		t.Fatalf("len(dump):= %v bad:\n%#v\nVS\n%#v", len(dump), string(dump0), string(expect0))
 	}
 
 	// Generate a dump of all the nodes

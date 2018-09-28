@@ -291,6 +291,7 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 		Port:              1234,
 		EnableTagOverride: true,
 		ProxyDestination:  "db",
+		Weights:           &Weights{Passing: 1, Warning: 1},
 	}
 	if !ns.IsSame(ns) {
 		t.Fatalf("should be equal to itself")
@@ -309,6 +310,7 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 			"meta1": "value1",
 		},
 		ProxyDestination: "db",
+		Weights:          &Weights{Passing: 1, Warning: 1},
 		RaftIndex: RaftIndex{
 			CreateIndex: 1,
 			ModifyIndex: 2,
@@ -345,6 +347,15 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 	check(func() { other.Kind = ServiceKindConnectProxy }, func() { other.Kind = "" })
 	check(func() { other.ProxyDestination = "" }, func() { other.ProxyDestination = "db" })
 	check(func() { other.Connect.Native = true }, func() { other.Connect.Native = false })
+	otherServiceNode := other.ToServiceNode("node1")
+	copyNodeService := otherServiceNode.ToNodeService()
+	if !copyNodeService.IsSame(other) {
+		t.Fatalf("copy should be the same, but was\n %#v\nVS\n %#v", copyNodeService, other)
+	}
+	otherServiceNodeCopy2 := copyNodeService.ToServiceNode("node1")
+	if !otherServiceNode.IsSame(otherServiceNodeCopy2) {
+		t.Fatalf("copy should be the same, but was\n %#v\nVS\n %#v", otherServiceNode, otherServiceNodeCopy2)
+	}
 }
 
 func TestStructs_HealthCheck_IsSame(t *testing.T) {
