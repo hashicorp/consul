@@ -1236,8 +1236,9 @@ func (s *Store) ensureCheckTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthChec
 
 	// Set the indexes
 	if existing != nil {
-		hc.CreateIndex = existing.(*structs.HealthCheck).CreateIndex
-		hc.ModifyIndex = idx
+		existingCheck := existing.(*structs.HealthCheck)
+		hc.CreateIndex = existingCheck.CreateIndex
+		hc.ModifyIndex = existingCheck.ModifyIndex
 	} else {
 		hc.CreateIndex = idx
 		hc.ModifyIndex = idx
@@ -1257,6 +1258,7 @@ func (s *Store) ensureCheckTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthChec
 		return ErrMissingNode
 	}
 
+	modified := true
 	// If the check is associated with a service, check that we have
 	// a registration for the service.
 	if hc.ServiceID != "" {
@@ -1272,14 +1274,24 @@ func (s *Store) ensureCheckTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthChec
 		svc := service.(*structs.ServiceNode)
 		hc.ServiceName = svc.ServiceName
 		hc.ServiceTags = svc.ServiceTags
-		if err = tx.Insert("index", &IndexEntry{serviceIndexName(svc.ServiceName), idx}); err != nil {
-			return fmt.Errorf("failed updating index: %s", err)
+		if existing != nil && existing.(*structs.HealthCheck).IsSame(hc) {
+			modified = false
+		} else {
+			// Check has been modified, we trigger a index service change
+			if err = tx.Insert("index", &IndexEntry{serviceIndexName(svc.ServiceName), idx}); err != nil {
+				return fmt.Errorf("failed updating index: %s", err)
+			}
 		}
 	} else {
-		// Update the status for all the services associated with this node
-		err = s.updateAllServiceIndexesOfNode(tx, idx, hc.Node)
-		if err != nil {
-			return err
+		if existing != nil && existing.(*structs.HealthCheck).IsSame(hc) {
+			modified = false
+		} else {
+			// Since the check has been modified, it impacts all services of node
+			// Update the status for all the services associated with this node
+			err = s.updateAllServiceIndexesOfNode(tx, idx, hc.Node)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -1302,6 +1314,13 @@ func (s *Store) ensureCheckTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthChec
 				return fmt.Errorf("failed deleting session: %s", err)
 			}
 		}
+	}
+	if modified {
+		// We update the modify index, ONLY if something has changed, thus
+		// With constant output, no change is seen when watching a service
+		// With huge number of nodes where anti-entropy updates continuously
+		// the checks, but not the values within the check
+		hc.ModifyIndex = idx
 	}
 
 	// Persist the check registration in the db.

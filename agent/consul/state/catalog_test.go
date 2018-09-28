@@ -294,7 +294,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 				CheckID:   "check1",
 				Name:      "check",
 				Status:    "critical",
-				RaftIndex: structs.RaftIndex{CreateIndex: 3, ModifyIndex: 4},
+				RaftIndex: structs.RaftIndex{CreateIndex: 3, ModifyIndex: 3},
 			},
 			&structs.HealthCheck{
 				Node:        "node1",
@@ -491,8 +491,8 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 		}
 		c1 := out[0]
 		if c1.Node != nodeName || c1.CheckID != "check1" || c1.Name != "check" ||
-			c1.CreateIndex != 3 || c1.ModifyIndex != 4 {
-			t.Fatalf("bad check returned: %#v", c1)
+			c1.CreateIndex != 3 || c1.ModifyIndex != 3 {
+			t.Fatalf("bad check returned, should not be modified: %#v", c1)
 		}
 
 		c2 := out[1]
@@ -2177,32 +2177,60 @@ func TestStateStore_EnsureCheck(t *testing.T) {
 		t.Fatalf("bad: %#v", checks[0])
 	}
 
-	// Modify the health check
-	check.Output = "bbb"
+	testCheckOutput := func(expectedNodeIndex, expectedIndexForCheck uint64, outputTxt string) {
+		// Check that we successfully updated
+		idx, checks, err = s.NodeChecks(nil, "node1")
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if idx != expectedNodeIndex {
+			t.Fatalf("bad index: %d", idx)
+		}
+
+		if len(checks) != 1 {
+			t.Fatalf("wrong number of checks: %d", len(checks))
+		}
+		if checks[0].Output != outputTxt {
+			t.Fatalf("wrong check output: %#v", checks[0])
+		}
+		if checks[0].CreateIndex != 3 || checks[0].ModifyIndex != expectedIndexForCheck {
+			t.Fatalf("bad index: %#v, expectedIndexForCheck:=%v ", checks[0], expectedIndexForCheck)
+		}
+	}
+	// Do not really modify the health check content the health check
+	check = &structs.HealthCheck{
+		Node:        "node1",
+		CheckID:     "check1",
+		Name:        "redis check",
+		Status:      api.HealthPassing,
+		Notes:       "test check",
+		Output:      "aaa",
+		ServiceID:   "service1",
+		ServiceName: "redis",
+	}
 	if err := s.EnsureCheck(4, check); err != nil {
 		t.Fatalf("err: %s", err)
 	}
+	testCheckOutput(4, 3, check.Output)
 
-	// Check that we successfully updated
-	idx, checks, err = s.NodeChecks(nil, "node1")
-	if err != nil {
+	// Do modify the heathcheck
+	check = &structs.HealthCheck{
+		Node:        "node1",
+		CheckID:     "check1",
+		Name:        "redis check",
+		Status:      api.HealthPassing,
+		Notes:       "test check",
+		Output:      "bbbmodified",
+		ServiceID:   "service1",
+		ServiceName: "redis",
+	}
+	if err := s.EnsureCheck(5, check); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx != 4 {
-		t.Fatalf("bad index: %d", idx)
-	}
-	if len(checks) != 1 {
-		t.Fatalf("wrong number of checks: %d", len(checks))
-	}
-	if checks[0].Output != "bbb" {
-		t.Fatalf("wrong check output: %#v", checks[0])
-	}
-	if checks[0].CreateIndex != 3 || checks[0].ModifyIndex != 4 {
-		t.Fatalf("bad index: %#v", checks[0])
-	}
+	testCheckOutput(5, 5, "bbbmodified")
 
 	// Index tables were updated
-	if idx := s.maxIndex("checks"); idx != 4 {
+	if idx := s.maxIndex("checks"); idx != 5 {
 		t.Fatalf("bad index: %d", idx)
 	}
 }
