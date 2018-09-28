@@ -227,6 +227,8 @@ func (s *Server) establishLeadership() error {
 		return err
 	}
 
+	s.startEnterpriseLeader()
+
 	s.startCARootPruning()
 
 	s.setConsistentReadReady()
@@ -244,6 +246,8 @@ func (s *Server) revokeLeadership() error {
 	if err := s.clearAllSessionTimers(); err != nil {
 		return err
 	}
+
+	s.stopEnterpriseLeader()
 
 	s.stopCARootPruning()
 

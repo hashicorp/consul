@@ -23,3 +23,7 @@ func (s *Server) initializeCA() error {
 
 	return s.initializeRootCA(provider, conf)
 }
+
+// Stub methods, only present in Consul Enterprise.
+func (s *Server) startEnterpriseLeader() {}
+func (s *Server) stopEnterpriseLeader()  {}

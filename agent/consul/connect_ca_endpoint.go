@@ -120,7 +120,10 @@ func (s *ConnectCA) ConfigurationSet(
 		return err
 	}
 
-	if root != nil && root.ID == newActiveRoot.ID {
+	// If the root didn't change or if this is a secondary DC, just update the
+	// config and return.
+	if (s.srv.config.Datacenter != s.srv.config.PrimaryDatacenter) ||
+		root != nil && root.ID == newActiveRoot.ID {
 		args.Op = structs.CAOpSetConfig
 		resp, err := s.srv.raftApply(structs.ConnectCARequestType, args)
 		if err != nil {
