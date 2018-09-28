@@ -41,7 +41,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 	}
 
 	// Fetch the ACL token, if any.
-	rule, err := c.srv.resolveToken(args.Token)
+	rule, err := c.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
@@ -139,7 +139,7 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 	}
 
 	// Fetch the ACL token, if any.
-	rule, err := c.srv.resolveToken(args.Token)
+	rule, err := c.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
@@ -285,7 +285,7 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 	// we're trying to find proxies for, so check that.
 	if args.Connect {
 		// Fetch the ACL token, if any.
-		rule, err := c.srv.resolveToken(args.Token)
+		rule, err := c.srv.ResolveToken(args.Token)
 		if err != nil {
 			return err
 		}

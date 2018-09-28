@@ -36,7 +36,7 @@ func (s *ConnectCA) ConfigurationGet(
 	}
 
 	// This action requires operator read access.
-	rule, err := s.srv.resolveToken(args.Token)
+	rule, err := s.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func (s *ConnectCA) ConfigurationSet(
 	}
 
 	// This action requires operator write access.
-	rule, err := s.srv.resolveToken(args.Token)
+	rule, err := s.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
@@ -349,7 +349,7 @@ func (s *ConnectCA) Sign(
 	}
 
 	// Verify that the ACL token provided has permission to act as this service
-	rule, err := s.srv.resolveToken(args.Token)
+	rule, err := s.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}

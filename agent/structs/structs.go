@@ -35,18 +35,21 @@ const (
 	DeregisterRequestType                  = 1
 	KVSRequestType                         = 2
 	SessionRequestType                     = 3
-	ACLRequestType                         = 4
+	ACLRequestType                         = 4 // DEPRECATED (ACL-Legacy-Compat)
 	TombstoneRequestType                   = 5
 	CoordinateBatchUpdateType              = 6
 	PreparedQueryRequestType               = 7
 	TxnRequestType                         = 8
 	AutopilotRequestType                   = 9
 	AreaRequestType                        = 10
-	ACLBootstrapRequestType                = 11 // FSM snapshots only.
+	ACLBootstrapRequestType                = 11
 	IntentionRequestType                   = 12
 	ConnectCARequestType                   = 13
 	ConnectCAProviderStateType             = 14
 	ConnectCAConfigType                    = 15 // FSM snapshots only.
+	IndexRequestType                       = 16 // FSM snapshots only.
+	ACLTokenRequestType                    = 17
+	ACLPolicyRequestType                   = 18
 )
 
 const (
@@ -95,7 +98,7 @@ type RPCInfo interface {
 	RequestDatacenter() string
 	IsRead() bool
 	AllowStaleRead() bool
-	ACLToken() string
+	TokenSecret() string
 }
 
 // QueryOptions is used to specify various flags for read queries
@@ -177,7 +180,7 @@ func (q QueryOptions) AllowStaleRead() bool {
 	return q.AllowStale
 }
 
-func (q QueryOptions) ACLToken() string {
+func (q QueryOptions) TokenSecret() string {
 	return q.Token
 }
 
@@ -196,7 +199,7 @@ func (w WriteRequest) AllowStaleRead() bool {
 	return false
 }
 
-func (w WriteRequest) ACLToken() string {
+func (w WriteRequest) TokenSecret() string {
 	return w.Token
 }
 

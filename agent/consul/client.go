@@ -48,6 +48,9 @@ const (
 type Client struct {
 	config *Config
 
+	// acls is used to resolve tokens to effective policies
+	acls *ACLResolver
+
 	// Connection pool to consul servers
 	connPool *pool.ConnPool
 
@@ -139,6 +142,11 @@ func NewClientLogger(config *Config, logger *log.Logger) (*Client, error) {
 	if err := c.initEnterprise(); err != nil {
 		c.Shutdown()
 		return nil, err
+	}
+
+	if c.acls, err = NewACLResolver(config, c, clientACLCacheConfig, true, logger, nil); err != nil {
+		c.Shutdown()
+		return nil, fmt.Errorf("Failed to create ACL resolver: %v", err)
 	}
 
 	// Initialize the LAN Serf

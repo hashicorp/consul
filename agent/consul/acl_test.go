@@ -33,7 +33,7 @@ func TestACL_Disabled(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	acl, err := s1.resolveToken("does not exist")
+	acl, err := s1.ResolveToken("does not exist")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -51,7 +51,7 @@ func TestACL_ResolveRootACL(t *testing.T) {
 	defer s1.Shutdown()
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	rule, err := s1.resolveToken("allow")
+	rule, err := s1.ResolveToken("allow")
 	if !acl.IsErrRootDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
@@ -59,7 +59,7 @@ func TestACL_ResolveRootACL(t *testing.T) {
 		t.Fatalf("bad: %v", rule)
 	}
 
-	rule, err = s1.resolveToken("deny")
+	rule, err = s1.ResolveToken("deny")
 	if !acl.IsErrRootDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
@@ -81,7 +81,7 @@ func TestACL_Authority_NotFound(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	rule, err := s1.resolveToken("does not exist")
+	rule, err := s1.ResolveToken("does not exist")
 	if !acl.IsErrNotFound(err) {
 		t.Fatalf("err: %v", err)
 	}
@@ -121,7 +121,7 @@ func TestACL_Authority_Found(t *testing.T) {
 	}
 
 	// Resolve the token
-	acl, err := s1.resolveToken(id)
+	acl, err := s1.ResolveToken(id)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -151,7 +151,7 @@ func TestACL_Authority_Anonymous_Found(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Resolve the token
-	acl, err := s1.resolveToken("")
+	acl, err := s1.ResolveToken("")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -179,7 +179,7 @@ func TestACL_Authority_Master_Found(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Resolve the token
-	acl, err := s1.resolveToken("foobar")
+	acl, err := s1.ResolveToken("foobar")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -208,7 +208,7 @@ func TestACL_Authority_Management(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Resolve the token
-	acl, err := s1.resolveToken("foobar")
+	acl, err := s1.ResolveToken("foobar")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -253,7 +253,7 @@ func TestACL_NonAuthority_NotFound(t *testing.T) {
 		nonAuth = s2
 	}
 
-	rule, err := nonAuth.resolveToken("does not exist")
+	rule, err := nonAuth.ResolveToken("does not exist")
 	if !acl.IsErrNotFound(err) {
 		t.Fatalf("err: %v", err)
 	}
@@ -311,7 +311,7 @@ func TestACL_NonAuthority_Found(t *testing.T) {
 	}
 
 	// Token should resolve
-	acl, err := nonAuth.resolveToken(id)
+	acl, err := nonAuth.ResolveToken(id)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -363,7 +363,7 @@ func TestACL_NonAuthority_Management(t *testing.T) {
 	}
 
 	// Resolve the token
-	acl, err := nonAuth.resolveToken("foobar")
+	acl, err := nonAuth.ResolveToken("foobar")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -434,7 +434,7 @@ func TestACL_DownPolicy_Deny(t *testing.T) {
 	auth.Shutdown()
 
 	// Token should resolve into a DenyAll
-	aclR, err := nonAuth.resolveToken(id)
+	aclR, err := nonAuth.ResolveToken(id)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -500,7 +500,7 @@ func TestACL_DownPolicy_Allow(t *testing.T) {
 	auth.Shutdown()
 
 	// Token should resolve into a AllowAll
-	aclR, err := nonAuth.resolveToken(id)
+	aclR, err := nonAuth.ResolveToken(id)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -568,7 +568,7 @@ func TestACL_DownPolicy_ExtendCache(t *testing.T) {
 		}
 
 		// Warm the caches
-		aclR, err := nonAuth.resolveToken(id)
+		aclR, err := nonAuth.ResolveToken(id)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -580,7 +580,7 @@ func TestACL_DownPolicy_ExtendCache(t *testing.T) {
 		auth.Shutdown()
 
 		// Token should resolve into cached copy
-		aclR2, err := nonAuth.resolveToken(id)
+		aclR2, err := nonAuth.ResolveToken(id)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -673,7 +673,7 @@ func TestACL_Replication(t *testing.T) {
 		s1.Shutdown()
 
 		// Token should resolve on s2, which has replication + extend-cache.
-		acl, err := s2.resolveToken(id)
+		acl, err := s2.ResolveToken(id)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -691,7 +691,7 @@ func TestACL_Replication(t *testing.T) {
 
 		// Although s3 has replication, and we verified that the ACL is there,
 		// it can not be used because of the down policy.
-		acl, err = s3.resolveToken(id)
+		acl, err = s3.ResolveToken(id)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -750,7 +750,7 @@ func TestACL_MultiDC_Found(t *testing.T) {
 	}
 
 	// Token should resolve
-	acl, err := s2.resolveToken(id)
+	acl, err := s2.ResolveToken(id)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

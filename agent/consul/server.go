@@ -17,7 +17,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/consul/acl"
 	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/consul/fsm"
@@ -94,11 +93,8 @@ type Server struct {
 	// sentinel is the Sentinel code engine (can be nil).
 	sentinel sentinel.Evaluator
 
-	// aclAuthCache is the authoritative ACL cache.
-	aclAuthCache *acl.Cache
-
-	// aclCache is the non-authoritative ACL cache.
-	aclCache *aclCache
+	// acls is used to resolve tokens to effective policies
+	acls *ACLResolver
 
 	// autopilot is the Autopilot instance for this server.
 	autopilot *autopilot.Autopilot
@@ -344,23 +340,11 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 	// Initialize the stats fetcher that autopilot will use.
 	s.statsFetcher = NewStatsFetcher(logger, s.connPool, s.config.Datacenter)
 
-	// Initialize the authoritative ACL cache.
 	s.sentinel = sentinel.New(logger)
-	s.aclAuthCache, err = acl.NewCache(aclCacheSize, s.aclLocalFault, s.sentinel)
-	if err != nil {
+	// Initialize the ACL resolver.
+	if s.acls, err = NewACLResolver(config, s, serverACLCacheConfig, false, logger, s.sentinel); err != nil {
 		s.Shutdown()
-		return nil, fmt.Errorf("Failed to create authoritative ACL cache: %v", err)
-	}
-
-	// Set up the non-authoritative ACL cache. A nil local function is given
-	// if ACL replication isn't enabled.
-	var local acl.FaultFunc
-	if s.IsACLReplicationEnabled() {
-		local = s.aclLocalFault
-	}
-	if s.aclCache, err = newACLCache(config, logger, s.RPC, local, s.sentinel); err != nil {
-		s.Shutdown()
-		return nil, fmt.Errorf("Failed to create non-authoritative ACL cache: %v", err)
+		return nil, fmt.Errorf("Failed to create ACL resolver: %v", err)
 	}
 
 	// Initialize the RPC layer.

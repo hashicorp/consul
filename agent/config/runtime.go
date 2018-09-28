@@ -136,6 +136,12 @@ type RuntimeConfig struct {
 	// hcl: acl_ttl = "duration"
 	ACLTTL time.Duration
 
+	// ACLTokenTTL is used to control the time-to-live of cached ACL tokens. This has
+	// a major impact on performance. By default, it is set to 30 seconds.
+	//
+	// hcl: acl_token_ttl = "duration"
+	ACLTokenTTL time.Duration
+
 	// ACLToken is the default token used to make requests if a per-request
 	// token is not provided. If not configured the 'anonymous' token is used.
 	//

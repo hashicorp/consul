@@ -88,7 +88,9 @@ type delegate interface {
 	LocalMember() serf.Member
 	JoinLAN(addrs []string) (n int, err error)
 	RemoveFailedNode(node string) error
+	ResolveToken(secretID string) (acl.Authorizer, error)
 	RPC(method string, args interface{}, reply interface{}) error
+	ACLsEnabled() bool
 	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error
 	Shutdown() error
 	Stats() map[string]map[string]string
@@ -127,8 +129,8 @@ type Agent struct {
 	// depending on the configuration
 	delegate delegate
 
-	// acls is an object that helps manage local ACL enforcement.
-	acls *aclManager
+	// aclMasterAuthorizer is an object that helps manage local ACL enforcement.
+	aclMasterAuthorizer acl.Authorizer
 
 	// state stores a local representation of the node,
 	// services and checks. Used for anti-entropy.
@@ -255,14 +257,9 @@ func New(c *config.RuntimeConfig) (*Agent, error) {
 	if c.DataDir == "" && !c.DevMode {
 		return nil, fmt.Errorf("Must configure a DataDir")
 	}
-	acls, err := newACLManager(c)
-	if err != nil {
-		return nil, err
-	}
 
 	a := &Agent{
 		config:          c,
-		acls:            acls,
 		checkReapAfter:  make(map[types.CheckID]time.Duration),
 		checkMonitors:   make(map[types.CheckID]*checks.CheckMonitor),
 		checkTTLs:       make(map[types.CheckID]*checks.CheckTTL),
@@ -279,6 +276,10 @@ func New(c *config.RuntimeConfig) (*Agent, error) {
 		shutdownCh:      make(chan struct{}),
 		endpoints:       make(map[string]string),
 		tokens:          new(token.Store),
+	}
+
+	if err := a.initializeACLs(); err != nil {
+		return nil, err
 	}
 
 	// Set up the initial state of the token store based on the config.
