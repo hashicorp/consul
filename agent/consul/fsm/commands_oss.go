@@ -14,6 +14,7 @@ func init() {
 	registerCommand(structs.DeregisterRequestType, (*FSM).applyDeregister)
 	registerCommand(structs.KVSRequestType, (*FSM).applyKVSOperation)
 	registerCommand(structs.SessionRequestType, (*FSM).applySessionOperation)
+	// DEPRECATED (ACL-Legacy-Compat) - Only needed for v1 ACL compat
 	registerCommand(structs.ACLRequestType, (*FSM).applyACLOperation)
 	registerCommand(structs.TombstoneRequestType, (*FSM).applyTombstoneOperation)
 	registerCommand(structs.CoordinateBatchUpdateType, (*FSM).applyCoordinateBatchUpdate)
@@ -22,6 +23,9 @@ func init() {
 	registerCommand(structs.AutopilotRequestType, (*FSM).applyAutopilotUpdate)
 	registerCommand(structs.IntentionRequestType, (*FSM).applyIntentionOperation)
 	registerCommand(structs.ConnectCARequestType, (*FSM).applyConnectCAOperation)
+	registerCommand(structs.ACLTokenRequestType, (*FSM).applyACLTokenOperation)
+	registerCommand(structs.ACLBootstrapRequestType, (*FSM).applyACLTokenBootstrap)
+	registerCommand(structs.ACLPolicyRequestType, (*FSM).applyACLPolicyOperation)
 }
 
 func (c *FSM) applyRegister(buf []byte, index uint64) interface{} {
@@ -134,7 +138,10 @@ func (c *FSM) applySessionOperation(buf []byte, index uint64) interface{} {
 	}
 }
 
+// DEPRECATED (ACL-Legacy-Compat) - Only needed for legacy compat
 func (c *FSM) applyACLOperation(buf []byte, index uint64) interface{} {
+	// TODO (ACL-Legacy-Compat) - Should we warn here somehow about using deprecated features
+	//                            maybe emit a second metric?
 	var req structs.ACLRequest
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
@@ -143,23 +150,24 @@ func (c *FSM) applyACLOperation(buf []byte, index uint64) interface{} {
 		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 	switch req.Op {
 	case structs.ACLBootstrapInit:
-		enabled, err := c.state.ACLBootstrapInit(index)
+		enabled, _, err := c.state.CanBootstrapACLToken()
 		if err != nil {
 			return err
 		}
 		return enabled
 	case structs.ACLBootstrapNow:
-		if err := c.state.ACLBootstrap(index, &req.ACL); err != nil {
+		// This a bootstrap request from a non-upgraded node
+		if err := c.state.ACLBootstrap(index, 0, req.ACL.Convert()); err != nil {
 			return err
 		}
 		return &req.ACL
 	case structs.ACLForceSet, structs.ACLSet:
-		if err := c.state.ACLSet(index, &req.ACL); err != nil {
+		if err := c.state.ACLTokenSet(index, req.ACL.Convert()); err != nil {
 			return err
 		}
 		return req.ACL.ID
 	case structs.ACLDelete:
-		return c.state.ACLDelete(index, req.ACL.ID)
+		return c.state.ACLTokenDeleteSecret(index, req.ACL.ID)
 	default:
 		c.logger.Printf("[WARN] consul.fsm: Invalid ACL operation '%s'", req.Op)
 		return fmt.Errorf("Invalid ACL operation '%s'", req.Op)
@@ -328,5 +336,60 @@ func (c *FSM) applyConnectCAOperation(buf []byte, index uint64) interface{} {
 	default:
 		c.logger.Printf("[WARN] consul.fsm: Invalid CA operation '%s'", req.Op)
 		return fmt.Errorf("Invalid CA operation '%s'", req.Op)
+	}
+}
+
+func (c *FSM) applyACLTokenOperation(buf []byte, index uint64) interface{} {
+	var req structs.ACLTokenWriteRequest
+	if err := structs.Decode(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode request: %v", err))
+	}
+	defer metrics.MeasureSinceWithLabels([]string{"fsm", "acl", "token"}, time.Now(),
+		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
+	switch req.Op {
+	case structs.ACLSet:
+		if err := c.state.ACLTokenSet(index, &req.ACLToken); err != nil {
+			return err
+		}
+		return &req.ACLToken
+	case structs.ACLDelete:
+		return c.state.ACLTokenDeleteAccessor(index, req.ACLToken.AccessorID)
+	default:
+		c.logger.Printf("[WARN] consul.fsm: Invalid ACL Token operation '%s'", req.Op)
+		return fmt.Errorf("Invalid ACL Token operation '%s'", req.Op)
+	}
+}
+
+func (c *FSM) applyACLTokenBootstrap(buf []byte, index uint64) interface{} {
+	var req structs.ACLTokenBootstrapRequest
+	if err := structs.Decode(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode request: %v", err))
+	}
+	defer metrics.MeasureSinceWithLabels([]string{"fsm", "acl", "token"}, time.Now(),
+		[]metrics.Label{{Name: "op", Value: "bootstrap"}})
+	if err := c.state.ACLBootstrap(index, req.ResetIndex, &req.ACLToken); err != nil {
+		return err
+	}
+	return &req.ACLToken
+}
+
+func (c *FSM) applyACLPolicyOperation(buf []byte, index uint64) interface{} {
+	var req structs.ACLPolicyWriteRequest
+	if err := structs.Decode(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode request: %v", err))
+	}
+	defer metrics.MeasureSinceWithLabels([]string{"fsm", "acl", "policy"}, time.Now(),
+		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
+	switch req.Op {
+	case structs.ACLSet:
+		if err := c.state.ACLPolicySet(index, &req.Policy); err != nil {
+			return err
+		}
+		return &req.Policy
+	case structs.ACLDelete:
+		return c.state.ACLPolicyDeleteByID(index, req.Policy.ID)
+	default:
+		c.logger.Printf("[WARN] consul.fsm: Invalid ACL Policy operation '%s'", req.Op)
+		return fmt.Errorf("Invalid ACL Policy operation '%s'", req.Op)
 	}
 }

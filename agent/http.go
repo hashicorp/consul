@@ -224,7 +224,7 @@ func (s *HTTPServer) nodeName() string {
 // And then the loop that looks for parameters called "token" does the last
 // step to get to the final redacted form.
 var (
-	aclEndpointRE = regexp.MustCompile("^(/v1/acl/[^/]+/)([^?]+)([?]?.*)$")
+	aclEndpointRE = regexp.MustCompile("^(/v1/acl/(create|update|destroy|info|clone|list)/)([^?]+)([?]?.*)$")
 )
 
 // wrap is used to wrap functions to make them more convenient

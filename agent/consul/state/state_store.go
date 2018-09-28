@@ -21,9 +21,21 @@ var (
 	// is attempted with an empty session ID.
 	ErrMissingSessionID = errors.New("Missing session ID")
 
-	// ErrMissingACLID is returned when an ACL set is called on
-	// an ACL with an empty ID.
-	ErrMissingACLID = errors.New("Missing ACL ID")
+	// ErrMissingACLTokenSecret is returned when an token set is called on
+	// an token with an empty SecretID.
+	ErrMissingACLTokenSecret = errors.New("Missing ACL Token SecretID")
+
+	// ErrMissingACLTokenAccessor is returned when an token set is called on
+	// an token with an empty AccessorID.
+	ErrMissingACLTokenAccessor = errors.New("Missing ACL Token AccessorID")
+
+	// ErrMissingACLPolicyID is returned when an policy set is called on
+	// an policy with an empty ID.
+	ErrMissingACLPolicyID = errors.New("Missing ACL Policy ID")
+
+	// ErrMissingACLPolicyName is returned when an policy set is called on
+	// an policy with an empty Name.
+	ErrMissingACLPolicyName = errors.New("Missing ACL Policy Name")
 
 	// ErrMissingQueryID is returned when a Query set is called on
 	// a Query with an empty ID.
@@ -136,6 +148,22 @@ func (s *Store) Snapshot() *Snapshot {
 // LastIndex returns that last index that affects the snapshotted data.
 func (s *Snapshot) LastIndex() uint64 {
 	return s.lastIndex
+}
+
+func (s *Snapshot) Indexes() (memdb.ResultIterator, error) {
+	iter, err := s.tx.Get("index", "id")
+	if err != nil {
+		return nil, err
+	}
+	return iter, nil
+}
+
+// IndexRestore is used to restore an index
+func (s *Restore) IndexRestore(idx *IndexEntry) error {
+	if err := s.tx.Insert("index", idx); err != nil {
+		return fmt.Errorf("index insert failed: %v", err)
+	}
+	return nil
 }
 
 // Close performs cleanup of a state snapshot.

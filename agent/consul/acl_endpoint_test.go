@@ -157,7 +157,7 @@ func TestACLEndpoint_Update_PurgeCache(t *testing.T) {
 	id := out
 
 	// Resolve
-	acl1, err := s1.resolveToken(id)
+	acl1, err := s1.ResolveToken(id)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -176,7 +176,7 @@ func TestACLEndpoint_Update_PurgeCache(t *testing.T) {
 	}
 
 	// Resolve again
-	acl2, err := s1.resolveToken(id)
+	acl2, err := s1.ResolveToken(id)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -198,7 +198,7 @@ func TestACLEndpoint_Update_PurgeCache(t *testing.T) {
 	}
 
 	// Resolve again
-	acl3, err := s1.resolveToken(id)
+	acl3, err := s1.ResolveToken(id)
 	if !acl.IsErrNotFound(err) {
 		t.Fatalf("err: %v", err)
 	}

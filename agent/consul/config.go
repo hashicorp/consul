@@ -231,6 +231,20 @@ type Config struct {
 	// a substantial cost.
 	ACLTTL time.Duration
 
+	// ACLTokenTTL controls the time-to-live of cached ACL tokens.
+	// It can be set to zero to disable caching, but this adds
+	// a substantial cost.
+	ACLTokenTTL time.Duration
+
+	// ACLPolicyTTL controls the time-to-live of cached ACL policies.
+	// It can be set to zero to disable caching, but this adds
+	// a substantial cost.
+	ACLPolicyTTL time.Duration
+
+	// ACLDisabledTTL is the time between checking if ACLs should be
+	// enabled. This
+	ACLDisabledTTL time.Duration
+
 	// ACLDefaultPolicy is used to control the ACL interaction when
 	// there is no defined policy. This can be "allow" which means
 	// ACLs are used to black-list, or "deny" which means ACLs are

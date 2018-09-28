@@ -7,230 +7,251 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func legacyPolicy(policy *Policy) *Policy {
+	return &Policy{
+		Agents:                policy.Agents,
+		AgentPrefixes:         policy.Agents,
+		Nodes:                 policy.Nodes,
+		NodePrefixes:          policy.Nodes,
+		Keys:                  policy.Keys,
+		KeyPrefixes:           policy.Keys,
+		Services:              policy.Services,
+		ServicePrefixes:       policy.Services,
+		Sessions:              policy.Sessions,
+		SessionPrefixes:       policy.Sessions,
+		Events:                policy.Events,
+		EventPrefixes:         policy.Events,
+		PreparedQueries:       policy.PreparedQueries,
+		PreparedQueryPrefixes: policy.PreparedQueries,
+		Keyring:               policy.Keyring,
+		Operator:              policy.Operator,
+	}
+}
+
 //
 // The following 1 line functions are created to all conform to what
 // can be stored in the aclCheck type to make defining ACL tests
 // nicer in the embedded struct within TestACL
 //
 
-func checkAllowACLList(t *testing.T, acl ACL, prefix string) {
-	require.True(t, acl.ACLList())
+func checkAllowACLRead(t *testing.T, authz Authorizer, prefix string) {
+	require.True(t, authz.ACLRead())
 }
 
-func checkAllowACLModify(t *testing.T, acl ACL, prefix string) {
-	require.True(t, acl.ACLModify())
+func checkAllowACLWrite(t *testing.T, authz Authorizer, prefix string) {
+	require.True(t, authz.ACLWrite())
 }
 
-func checkAllowAgentRead(t *testing.T, acl ACL, prefix string) {
-	require.True(t, acl.AgentRead(prefix))
+func checkAllowAgentRead(t *testing.T, authz Authorizer, prefix string) {
+	require.True(t, authz.AgentRead(prefix))
 }
 
-func checkAllowAgentWrite(t *testing.T, acl ACL, prefix string) {
-	require.True(t, acl.AgentWrite(prefix))
+func checkAllowAgentWrite(t *testing.T, authz Authorizer, prefix string) {
+	require.True(t, authz.AgentWrite(prefix))
 }
 
-func checkAllowEventRead(t *testing.T, acl ACL, prefix string) {
-	require.True(t, acl.EventRead(prefix))
+func checkAllowEventRead(t *testing.T, authz Authorizer, prefix string) {
+	require.True(t, authz.EventRead(prefix))
 }
 
-func checkAllowEventWrite(t *testing.T, acl ACL, prefix string) {
-	require.True(t, acl.EventWrite(prefix))
+func checkAllowEventWrite(t *testing.T, authz Authorizer, prefix string) {
+	require.True(t, authz.EventWrite(prefix))
 }
 
-func checkAllowIntentionDefaultAllow(t *testing.T, acl ACL, prefix string) {
-	require.True(t, acl.IntentionDefaultAllow())
+func checkAllowIntentionDefaultAllow(t *testing.T, authz Authorizer, prefix string) {
+	require.True(t, authz.IntentionDefaultAllow())
 }
 
-func checkAllowIntentionRead(t *testing.T, acl ACL, prefix string) {
-	require.True(t, acl.IntentionRead(prefix))
+func checkAllowIntentionRead(t *testing.T, authz Authorizer, prefix string) {
+	require.True(t, authz.IntentionRead(prefix))
 }
 
-func checkAllowIntentionWrite(t *testing.T, acl ACL, prefix string) {
-	require.True(t, acl.IntentionWrite(prefix))
+func checkAllowIntentionWrite(t *testing.T, authz Authorizer, prefix string) {
+	require.True(t, authz.IntentionWrite(prefix))
 }
 
-func checkAllowKeyRead(t *testing.T, acl ACL, prefix string) {
-	require.True(t, acl.KeyRead(prefix))
+func checkAllowKeyRead(t *testing.T, authz Authorizer, prefix string) {
+	require.True(t, authz.KeyRead(prefix))
 }
 
-func checkAllowKeyList(t *testing.T, acl ACL, prefix string) {
-	require.True(t, acl.KeyList(prefix))
+func checkAllowKeyList(t *testing.T, authz Authorizer, prefix string) {
+	require.True(t, authz.KeyList(prefix))
 }
 
-func checkAllowKeyringRead(t *testing.T, acl ACL, prefix string) {
-	require.True(t, acl.KeyringRead())
+func checkAllowKeyringRead(t *testing.T, authz Authorizer, prefix string) {
+	require.True(t, authz.KeyringRead())
 }
 
-func checkAllowKeyringWrite(t *testing.T, acl ACL, prefix string) {
-	require.True(t, acl.KeyringWrite())
+func checkAllowKeyringWrite(t *testing.T, authz Authorizer, prefix string) {
+	require.True(t, authz.KeyringWrite())
 }
 
-func checkAllowKeyWrite(t *testing.T, acl ACL, prefix string) {
-	require.True(t, acl.KeyWrite(prefix, nil))
+func checkAllowKeyWrite(t *testing.T, authz Authorizer, prefix string) {
+	require.True(t, authz.KeyWrite(prefix, nil))
 }
 
-func checkAllowKeyWritePrefix(t *testing.T, acl ACL, prefix string) {
-	require.True(t, acl.KeyWritePrefix(prefix))
+func checkAllowKeyWritePrefix(t *testing.T, authz Authorizer, prefix string) {
+	require.True(t, authz.KeyWritePrefix(prefix))
 }
 
-func checkAllowNodeRead(t *testing.T, acl ACL, prefix string) {
-	require.True(t, acl.NodeRead(prefix))
+func checkAllowNodeRead(t *testing.T, authz Authorizer, prefix string) {
+	require.True(t, authz.NodeRead(prefix))
 }
 
-func checkAllowNodeWrite(t *testing.T, acl ACL, prefix string) {
-	require.True(t, acl.NodeWrite(prefix, nil))
+func checkAllowNodeWrite(t *testing.T, authz Authorizer, prefix string) {
+	require.True(t, authz.NodeWrite(prefix, nil))
 }
 
-func checkAllowOperatorRead(t *testing.T, acl ACL, prefix string) {
-	require.True(t, acl.OperatorRead())
+func checkAllowOperatorRead(t *testing.T, authz Authorizer, prefix string) {
+	require.True(t, authz.OperatorRead())
 }
 
-func checkAllowOperatorWrite(t *testing.T, acl ACL, prefix string) {
-	require.True(t, acl.OperatorWrite())
+func checkAllowOperatorWrite(t *testing.T, authz Authorizer, prefix string) {
+	require.True(t, authz.OperatorWrite())
 }
 
-func checkAllowPreparedQueryRead(t *testing.T, acl ACL, prefix string) {
-	require.True(t, acl.PreparedQueryRead(prefix))
+func checkAllowPreparedQueryRead(t *testing.T, authz Authorizer, prefix string) {
+	require.True(t, authz.PreparedQueryRead(prefix))
 }
 
-func checkAllowPreparedQueryWrite(t *testing.T, acl ACL, prefix string) {
-	require.True(t, acl.PreparedQueryWrite(prefix))
+func checkAllowPreparedQueryWrite(t *testing.T, authz Authorizer, prefix string) {
+	require.True(t, authz.PreparedQueryWrite(prefix))
 }
 
-func checkAllowServiceRead(t *testing.T, acl ACL, prefix string) {
-	require.True(t, acl.ServiceRead(prefix))
+func checkAllowServiceRead(t *testing.T, authz Authorizer, prefix string) {
+	require.True(t, authz.ServiceRead(prefix))
 }
 
-func checkAllowServiceWrite(t *testing.T, acl ACL, prefix string) {
-	require.True(t, acl.ServiceWrite(prefix, nil))
+func checkAllowServiceWrite(t *testing.T, authz Authorizer, prefix string) {
+	require.True(t, authz.ServiceWrite(prefix, nil))
 }
 
-func checkAllowSessionRead(t *testing.T, acl ACL, prefix string) {
-	require.True(t, acl.SessionRead(prefix))
+func checkAllowSessionRead(t *testing.T, authz Authorizer, prefix string) {
+	require.True(t, authz.SessionRead(prefix))
 }
 
-func checkAllowSessionWrite(t *testing.T, acl ACL, prefix string) {
-	require.True(t, acl.SessionWrite(prefix))
+func checkAllowSessionWrite(t *testing.T, authz Authorizer, prefix string) {
+	require.True(t, authz.SessionWrite(prefix))
 }
 
-func checkAllowSnapshot(t *testing.T, acl ACL, prefix string) {
-	require.True(t, acl.Snapshot())
+func checkAllowSnapshot(t *testing.T, authz Authorizer, prefix string) {
+	require.True(t, authz.Snapshot())
 }
 
-func checkDenyACLList(t *testing.T, acl ACL, prefix string) {
-	require.False(t, acl.ACLList())
+func checkDenyACLRead(t *testing.T, authz Authorizer, prefix string) {
+	require.False(t, authz.ACLRead())
 }
 
-func checkDenyACLModify(t *testing.T, acl ACL, prefix string) {
-	require.False(t, acl.ACLModify())
+func checkDenyACLWrite(t *testing.T, authz Authorizer, prefix string) {
+	require.False(t, authz.ACLWrite())
 }
 
-func checkDenyAgentRead(t *testing.T, acl ACL, prefix string) {
-	require.False(t, acl.AgentRead(prefix))
+func checkDenyAgentRead(t *testing.T, authz Authorizer, prefix string) {
+	require.False(t, authz.AgentRead(prefix))
 }
 
-func checkDenyAgentWrite(t *testing.T, acl ACL, prefix string) {
-	require.False(t, acl.AgentWrite(prefix))
+func checkDenyAgentWrite(t *testing.T, authz Authorizer, prefix string) {
+	require.False(t, authz.AgentWrite(prefix))
 }
 
-func checkDenyEventRead(t *testing.T, acl ACL, prefix string) {
-	require.False(t, acl.EventRead(prefix))
+func checkDenyEventRead(t *testing.T, authz Authorizer, prefix string) {
+	require.False(t, authz.EventRead(prefix))
 }
 
-func checkDenyEventWrite(t *testing.T, acl ACL, prefix string) {
-	require.False(t, acl.EventWrite(prefix))
+func checkDenyEventWrite(t *testing.T, authz Authorizer, prefix string) {
+	require.False(t, authz.EventWrite(prefix))
 }
 
-func checkDenyIntentionDefaultAllow(t *testing.T, acl ACL, prefix string) {
-	require.False(t, acl.IntentionDefaultAllow())
+func checkDenyIntentionDefaultAllow(t *testing.T, authz Authorizer, prefix string) {
+	require.False(t, authz.IntentionDefaultAllow())
 }
 
-func checkDenyIntentionRead(t *testing.T, acl ACL, prefix string) {
-	require.False(t, acl.IntentionRead(prefix))
+func checkDenyIntentionRead(t *testing.T, authz Authorizer, prefix string) {
+	require.False(t, authz.IntentionRead(prefix))
 }
 
-func checkDenyIntentionWrite(t *testing.T, acl ACL, prefix string) {
-	require.False(t, acl.IntentionWrite(prefix))
+func checkDenyIntentionWrite(t *testing.T, authz Authorizer, prefix string) {
+	require.False(t, authz.IntentionWrite(prefix))
 }
 
-func checkDenyKeyRead(t *testing.T, acl ACL, prefix string) {
-	require.False(t, acl.KeyRead(prefix))
+func checkDenyKeyRead(t *testing.T, authz Authorizer, prefix string) {
+	require.False(t, authz.KeyRead(prefix))
 }
 
-func checkDenyKeyList(t *testing.T, acl ACL, prefix string) {
-	require.False(t, acl.KeyList(prefix))
+func checkDenyKeyList(t *testing.T, authz Authorizer, prefix string) {
+	require.False(t, authz.KeyList(prefix))
 }
 
-func checkDenyKeyringRead(t *testing.T, acl ACL, prefix string) {
-	require.False(t, acl.KeyringRead())
+func checkDenyKeyringRead(t *testing.T, authz Authorizer, prefix string) {
+	require.False(t, authz.KeyringRead())
 }
 
-func checkDenyKeyringWrite(t *testing.T, acl ACL, prefix string) {
-	require.False(t, acl.KeyringWrite())
+func checkDenyKeyringWrite(t *testing.T, authz Authorizer, prefix string) {
+	require.False(t, authz.KeyringWrite())
 }
 
-func checkDenyKeyWrite(t *testing.T, acl ACL, prefix string) {
-	require.False(t, acl.KeyWrite(prefix, nil))
+func checkDenyKeyWrite(t *testing.T, authz Authorizer, prefix string) {
+	require.False(t, authz.KeyWrite(prefix, nil))
 }
 
-func checkDenyKeyWritePrefix(t *testing.T, acl ACL, prefix string) {
-	require.False(t, acl.KeyWritePrefix(prefix))
+func checkDenyKeyWritePrefix(t *testing.T, authz Authorizer, prefix string) {
+	require.False(t, authz.KeyWritePrefix(prefix))
 }
 
-func checkDenyNodeRead(t *testing.T, acl ACL, prefix string) {
-	require.False(t, acl.NodeRead(prefix))
+func checkDenyNodeRead(t *testing.T, authz Authorizer, prefix string) {
+	require.False(t, authz.NodeRead(prefix))
 }
 
-func checkDenyNodeWrite(t *testing.T, acl ACL, prefix string) {
-	require.False(t, acl.NodeWrite(prefix, nil))
+func checkDenyNodeWrite(t *testing.T, authz Authorizer, prefix string) {
+	require.False(t, authz.NodeWrite(prefix, nil))
 }
 
-func checkDenyOperatorRead(t *testing.T, acl ACL, prefix string) {
-	require.False(t, acl.OperatorRead())
+func checkDenyOperatorRead(t *testing.T, authz Authorizer, prefix string) {
+	require.False(t, authz.OperatorRead())
 }
 
-func checkDenyOperatorWrite(t *testing.T, acl ACL, prefix string) {
-	require.False(t, acl.OperatorWrite())
+func checkDenyOperatorWrite(t *testing.T, authz Authorizer, prefix string) {
+	require.False(t, authz.OperatorWrite())
 }
 
-func checkDenyPreparedQueryRead(t *testing.T, acl ACL, prefix string) {
-	require.False(t, acl.PreparedQueryRead(prefix))
+func checkDenyPreparedQueryRead(t *testing.T, authz Authorizer, prefix string) {
+	require.False(t, authz.PreparedQueryRead(prefix))
 }
 
-func checkDenyPreparedQueryWrite(t *testing.T, acl ACL, prefix string) {
-	require.False(t, acl.PreparedQueryWrite(prefix))
+func checkDenyPreparedQueryWrite(t *testing.T, authz Authorizer, prefix string) {
+	require.False(t, authz.PreparedQueryWrite(prefix))
 }
 
-func checkDenyServiceRead(t *testing.T, acl ACL, prefix string) {
-	require.False(t, acl.ServiceRead(prefix))
+func checkDenyServiceRead(t *testing.T, authz Authorizer, prefix string) {
+	require.False(t, authz.ServiceRead(prefix))
 }
 
-func checkDenyServiceWrite(t *testing.T, acl ACL, prefix string) {
-	require.False(t, acl.ServiceWrite(prefix, nil))
+func checkDenyServiceWrite(t *testing.T, authz Authorizer, prefix string) {
+	require.False(t, authz.ServiceWrite(prefix, nil))
 }
 
-func checkDenySessionRead(t *testing.T, acl ACL, prefix string) {
-	require.False(t, acl.SessionRead(prefix))
+func checkDenySessionRead(t *testing.T, authz Authorizer, prefix string) {
+	require.False(t, authz.SessionRead(prefix))
 }
 
-func checkDenySessionWrite(t *testing.T, acl ACL, prefix string) {
-	require.False(t, acl.SessionWrite(prefix))
+func checkDenySessionWrite(t *testing.T, authz Authorizer, prefix string) {
+	require.False(t, authz.SessionWrite(prefix))
 }
 
-func checkDenySnapshot(t *testing.T, acl ACL, prefix string) {
-	require.False(t, acl.Snapshot())
+func checkDenySnapshot(t *testing.T, authz Authorizer, prefix string) {
+	require.False(t, authz.Snapshot())
 }
 
 func TestACL(t *testing.T) {
 	type aclCheck struct {
 		name   string
 		prefix string
-		check  func(t *testing.T, acl ACL, prefix string)
+		check  func(t *testing.T, authz Authorizer, prefix string)
 	}
 
 	type aclTest struct {
 		name          string
-		defaultPolicy ACL
+		defaultPolicy Authorizer
 		policyStack   []*Policy
 		checks        []aclCheck
 	}
@@ -240,8 +261,8 @@ func TestACL(t *testing.T) {
 			name:          "DenyAll",
 			defaultPolicy: DenyAll(),
 			checks: []aclCheck{
-				{name: "DenyACLList", check: checkDenyACLList},
-				{name: "DenyACLModify", check: checkDenyACLModify},
+				{name: "DenyACLRead", check: checkDenyACLRead},
+				{name: "DenyACLWrite", check: checkDenyACLWrite},
 				{name: "DenyAgentRead", check: checkDenyAgentRead},
 				{name: "DenyAgentWrite", check: checkDenyAgentWrite},
 				{name: "DenyEventRead", check: checkDenyEventRead},
@@ -270,8 +291,8 @@ func TestACL(t *testing.T) {
 			name:          "AllowAll",
 			defaultPolicy: AllowAll(),
 			checks: []aclCheck{
-				{name: "DenyACLList", check: checkDenyACLList},
-				{name: "DenyACLModify", check: checkDenyACLModify},
+				{name: "DenyACLRead", check: checkDenyACLRead},
+				{name: "DenyACLWrite", check: checkDenyACLWrite},
 				{name: "AllowAgentRead", check: checkAllowAgentRead},
 				{name: "AllowAgentWrite", check: checkAllowAgentWrite},
 				{name: "AllowEventRead", check: checkAllowEventRead},
@@ -300,8 +321,8 @@ func TestACL(t *testing.T) {
 			name:          "ManageAll",
 			defaultPolicy: ManageAll(),
 			checks: []aclCheck{
-				{name: "AllowACLList", check: checkAllowACLList},
-				{name: "AllowACLModify", check: checkAllowACLModify},
+				{name: "AllowACLRead", check: checkAllowACLRead},
+				{name: "AllowACLWrite", check: checkAllowACLWrite},
 				{name: "AllowAgentRead", check: checkAllowAgentRead},
 				{name: "AllowAgentWrite", check: checkAllowAgentWrite},
 				{name: "AllowEventRead", check: checkAllowEventRead},
@@ -330,7 +351,7 @@ func TestACL(t *testing.T) {
 			name:          "AgentBasicDefaultDeny",
 			defaultPolicy: DenyAll(),
 			policyStack: []*Policy{
-				&Policy{
+				legacyPolicy(&Policy{
 					Agents: []*AgentPolicy{
 						&AgentPolicy{
 							Node:   "root",
@@ -345,7 +366,7 @@ func TestACL(t *testing.T) {
 							Policy: PolicyWrite,
 						},
 					},
-				},
+				}),
 			},
 			checks: []aclCheck{
 				{name: "DefaultReadDenied", prefix: "ro", check: checkDenyAgentRead},
@@ -368,7 +389,7 @@ func TestACL(t *testing.T) {
 			name:          "AgentBasicDefaultAllow",
 			defaultPolicy: AllowAll(),
 			policyStack: []*Policy{
-				&Policy{
+				legacyPolicy(&Policy{
 					Agents: []*AgentPolicy{
 						&AgentPolicy{
 							Node:   "root",
@@ -383,7 +404,7 @@ func TestACL(t *testing.T) {
 							Policy: PolicyWrite,
 						},
 					},
-				},
+				}),
 			},
 			checks: []aclCheck{
 				{name: "DefaultReadDenied", prefix: "ro", check: checkAllowAgentRead},
@@ -406,14 +427,14 @@ func TestACL(t *testing.T) {
 			name:          "PreparedQueryDefaultAllow",
 			defaultPolicy: AllowAll(),
 			policyStack: []*Policy{
-				&Policy{
+				legacyPolicy(&Policy{
 					PreparedQueries: []*PreparedQueryPolicy{
 						&PreparedQueryPolicy{
 							Prefix: "other",
 							Policy: PolicyDeny,
 						},
 					},
-				},
+				}),
 			},
 			checks: []aclCheck{
 				// in version 1.2.1 and below this would have failed
@@ -428,7 +449,7 @@ func TestACL(t *testing.T) {
 			name:          "AgentNestedDefaultDeny",
 			defaultPolicy: DenyAll(),
 			policyStack: []*Policy{
-				&Policy{
+				legacyPolicy(&Policy{
 					Agents: []*AgentPolicy{
 						&AgentPolicy{
 							Node:   "root-nope",
@@ -447,8 +468,8 @@ func TestACL(t *testing.T) {
 							Policy: PolicyDeny,
 						},
 					},
-				},
-				&Policy{
+				}),
+				legacyPolicy(&Policy{
 					Agents: []*AgentPolicy{
 						&AgentPolicy{
 							Node:   "child-nope",
@@ -467,7 +488,7 @@ func TestACL(t *testing.T) {
 							Policy: PolicyWrite,
 						},
 					},
-				},
+				}),
 			},
 			checks: []aclCheck{
 				{name: "DefaultReadDenied", prefix: "nope", check: checkDenyAgentRead},
@@ -504,7 +525,7 @@ func TestACL(t *testing.T) {
 			name:          "AgentNestedDefaultAllow",
 			defaultPolicy: AllowAll(),
 			policyStack: []*Policy{
-				&Policy{
+				legacyPolicy(&Policy{
 					Agents: []*AgentPolicy{
 						&AgentPolicy{
 							Node:   "root-nope",
@@ -523,8 +544,8 @@ func TestACL(t *testing.T) {
 							Policy: PolicyDeny,
 						},
 					},
-				},
-				&Policy{
+				}),
+				legacyPolicy(&Policy{
 					Agents: []*AgentPolicy{
 						&AgentPolicy{
 							Node:   "child-nope",
@@ -543,7 +564,7 @@ func TestACL(t *testing.T) {
 							Policy: PolicyWrite,
 						},
 					},
-				},
+				}),
 			},
 			checks: []aclCheck{
 				{name: "DefaultReadAllowed", prefix: "nope", check: checkAllowAgentRead},
@@ -784,7 +805,7 @@ func TestACL(t *testing.T) {
 			name:          "NodeDefaultDeny",
 			defaultPolicy: DenyAll(),
 			policyStack: []*Policy{
-				&Policy{
+				legacyPolicy(&Policy{
 					Nodes: []*NodePolicy{
 						&NodePolicy{
 							Name:   "root-nope",
@@ -803,8 +824,8 @@ func TestACL(t *testing.T) {
 							Policy: PolicyDeny,
 						},
 					},
-				},
-				&Policy{
+				}),
+				legacyPolicy(&Policy{
 					Nodes: []*NodePolicy{
 						&NodePolicy{
 							Name:   "child-nope",
@@ -823,7 +844,7 @@ func TestACL(t *testing.T) {
 							Policy: PolicyWrite,
 						},
 					},
-				},
+				}),
 			},
 			checks: []aclCheck{
 				{name: "DefaultReadDenied", prefix: "nope", check: checkDenyNodeRead},
@@ -860,7 +881,7 @@ func TestACL(t *testing.T) {
 			name:          "NodeDefaultAllow",
 			defaultPolicy: AllowAll(),
 			policyStack: []*Policy{
-				&Policy{
+				legacyPolicy(&Policy{
 					Nodes: []*NodePolicy{
 						&NodePolicy{
 							Name:   "root-nope",
@@ -879,8 +900,8 @@ func TestACL(t *testing.T) {
 							Policy: PolicyDeny,
 						},
 					},
-				},
-				&Policy{
+				}),
+				legacyPolicy(&Policy{
 					Nodes: []*NodePolicy{
 						&NodePolicy{
 							Name:   "child-nope",
@@ -899,7 +920,7 @@ func TestACL(t *testing.T) {
 							Policy: PolicyWrite,
 						},
 					},
-				},
+				}),
 			},
 			checks: []aclCheck{
 				{name: "DefaultReadAllowed", prefix: "nope", check: checkAllowNodeRead},
@@ -936,7 +957,7 @@ func TestACL(t *testing.T) {
 			name:          "SessionDefaultDeny",
 			defaultPolicy: DenyAll(),
 			policyStack: []*Policy{
-				&Policy{
+				legacyPolicy(&Policy{
 					Sessions: []*SessionPolicy{
 						&SessionPolicy{
 							Node:   "root-nope",
@@ -955,8 +976,8 @@ func TestACL(t *testing.T) {
 							Policy: PolicyDeny,
 						},
 					},
-				},
-				&Policy{
+				}),
+				legacyPolicy(&Policy{
 					Sessions: []*SessionPolicy{
 						&SessionPolicy{
 							Node:   "child-nope",
@@ -975,7 +996,7 @@ func TestACL(t *testing.T) {
 							Policy: PolicyWrite,
 						},
 					},
-				},
+				}),
 			},
 			checks: []aclCheck{
 				{name: "DefaultReadDenied", prefix: "nope", check: checkDenySessionRead},
@@ -1012,7 +1033,7 @@ func TestACL(t *testing.T) {
 			name:          "SessionDefaultAllow",
 			defaultPolicy: AllowAll(),
 			policyStack: []*Policy{
-				&Policy{
+				legacyPolicy(&Policy{
 					Sessions: []*SessionPolicy{
 						&SessionPolicy{
 							Node:   "root-nope",
@@ -1031,8 +1052,8 @@ func TestACL(t *testing.T) {
 							Policy: PolicyDeny,
 						},
 					},
-				},
-				&Policy{
+				}),
+				legacyPolicy(&Policy{
 					Sessions: []*SessionPolicy{
 						&SessionPolicy{
 							Node:   "child-nope",
@@ -1051,7 +1072,7 @@ func TestACL(t *testing.T) {
 							Policy: PolicyWrite,
 						},
 					},
-				},
+				}),
 			},
 			checks: []aclCheck{
 				{name: "DefaultReadAllowed", prefix: "nope", check: checkAllowSessionRead},
@@ -1088,7 +1109,7 @@ func TestACL(t *testing.T) {
 			name:          "Parent",
 			defaultPolicy: DenyAll(),
 			policyStack: []*Policy{
-				&Policy{
+				legacyPolicy(&Policy{
 					Keys: []*KeyPolicy{
 						&KeyPolicy{
 							Prefix: "foo/",
@@ -1119,8 +1140,8 @@ func TestACL(t *testing.T) {
 							Policy: PolicyRead,
 						},
 					},
-				},
-				&Policy{
+				}),
+				legacyPolicy(&Policy{
 					Keys: []*KeyPolicy{
 						&KeyPolicy{
 							Prefix: "foo/priv/",
@@ -1147,7 +1168,7 @@ func TestACL(t *testing.T) {
 							Policy: PolicyDeny,
 						},
 					},
-				},
+				}),
 			},
 			checks: []aclCheck{
 				{name: "KeyReadDenied", prefix: "other", check: checkDenyKeyRead},
@@ -1185,8 +1206,8 @@ func TestACL(t *testing.T) {
 				{name: "PreparedQueryWriteDenied", prefix: "baz", check: checkDenyPreparedQueryWrite},
 				{name: "PreparedQueryReadDenied", prefix: "nope", check: checkDenyPreparedQueryRead},
 				{name: "PreparedQueryWriteDenied", prefix: "nope", check: checkDenyPreparedQueryWrite},
-				{name: "ACLListDenied", check: checkDenyACLList},
-				{name: "ACLModifyDenied", check: checkDenyACLModify},
+				{name: "ACLReadDenied", check: checkDenyACLRead},
+				{name: "ACLWriteDenied", check: checkDenyACLWrite},
 				{name: "SnapshotDenied", check: checkDenySnapshot},
 				{name: "IntentionDefaultAllowDenied", check: checkDenyIntentionDefaultAllow},
 			},
@@ -1195,7 +1216,7 @@ func TestACL(t *testing.T) {
 			name:          "ComplexDefaultAllow",
 			defaultPolicy: AllowAll(),
 			policyStack: []*Policy{
-				&Policy{
+				legacyPolicy(&Policy{
 					Events: []*EventPolicy{
 						&EventPolicy{
 							Event:  "",
@@ -1274,7 +1295,7 @@ func TestACL(t *testing.T) {
 							Intentions: PolicyDeny,
 						},
 					},
-				},
+				}),
 			},
 			checks: []aclCheck{
 				{name: "KeyReadAllowed", prefix: "other", check: checkAllowKeyRead},
@@ -1374,7 +1395,7 @@ func TestACL(t *testing.T) {
 		t.Run(tcase.name, func(t *testing.T) {
 			acl := tcase.defaultPolicy
 			for _, policy := range tcase.policyStack {
-				newACL, err := New(acl, policy, nil)
+				newACL, err := NewPolicyAuthorizer(acl, []*Policy{policy}, nil)
 				require.NoError(t, err)
 				acl = newACL
 			}
@@ -1392,11 +1413,11 @@ func TestACL(t *testing.T) {
 	}
 }
 
-func TestRootACL(t *testing.T) {
-	require.Equal(t, AllowAll(), RootACL("allow"))
-	require.Equal(t, DenyAll(), RootACL("deny"))
-	require.Equal(t, ManageAll(), RootACL("manage"))
-	require.Nil(t, RootACL("foo"))
+func TestRootAuthorizer(t *testing.T) {
+	require.Equal(t, AllowAll(), RootAuthorizer("allow"))
+	require.Equal(t, DenyAll(), RootAuthorizer("deny"))
+	require.Equal(t, ManageAll(), RootAuthorizer("manage"))
+	require.Nil(t, RootAuthorizer("foo"))
 }
 
 func TestACLEnforce(t *testing.T) {
