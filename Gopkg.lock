@@ -332,15 +332,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.robot.car/cruise/coredns"
-  packages = [
-    "plugin/file",
-    "plugin/pkg/log"
-  ]
-  revision = "18a77cd04557b810eba96a7239d39ee2d7a92157"
-
-[[projects]]
-  branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
   revision = "a49355c7e3f8fe157a85be2f77e6e269a0f89602"
@@ -591,6 +582,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9c6559abfab43b450cf71b6cb95c0ba93fac74999a8cdc341ea725e82c29cebf"
+  inputs-digest = "851e08825d02558de62afea288af58e89bc67fe93a534c5e81f487e35328df22"
   solver-name = "gps-cdcl"
   solver-version = 1
