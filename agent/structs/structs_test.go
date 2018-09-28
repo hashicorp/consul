@@ -152,6 +152,82 @@ func testServiceNode() *ServiceNode {
 	}
 }
 
+func TestNode_IsSame(t *testing.T) {
+	id := types.NodeID("e62f3b31-9284-4e26-ab14-2a59dea85b55")
+	node := "mynode1"
+	address := ""
+	datacenter := "dc1"
+	n := &Node{
+		ID:              id,
+		Node:            node,
+		Datacenter:      datacenter,
+		Address:         address,
+		TaggedAddresses: make(map[string]string),
+		Meta:            make(map[string]string),
+		RaftIndex: RaftIndex{
+			CreateIndex: 1,
+			ModifyIndex: 2,
+		},
+	}
+	other := &Node{
+		ID:              id,
+		Node:            node,
+		Datacenter:      datacenter,
+		Address:         address,
+		TaggedAddresses: make(map[string]string),
+		Meta:            make(map[string]string),
+		RaftIndex: RaftIndex{
+			CreateIndex: 1,
+			ModifyIndex: 3,
+		},
+	}
+	if !n.IsSame(other) {
+		t.Fatalf("should be equal, was %#v VS %#v", n, other)
+	}
+
+	other.ID = types.NodeID("")
+	if n.IsSame(other) {
+		t.Fatalf("should be different, was %#v VS %#v", n, other)
+	}
+	other.ID = id
+
+	other.Node = "other"
+	if n.IsSame(other) {
+		t.Fatalf("should be different, was %#v VS %#v", n, other)
+	}
+	other.Node = node
+
+	other.Datacenter = "dcX"
+	if n.IsSame(other) {
+		t.Fatalf("should be different, was %#v VS %#v", n, other)
+	}
+	other.Datacenter = datacenter
+
+	other.Address = "127.0.0.1"
+	if n.IsSame(other) {
+		t.Fatalf("should be different, was %#v VS %#v", n, other)
+	}
+	other.Address = address
+
+	other.TaggedAddresses = map[string]string{
+		"my": "address",
+	}
+	if n.IsSame(other) {
+		t.Fatalf("should be different, was %#v VS %#v", n, other)
+	}
+	other.TaggedAddresses = map[string]string{}
+	other.Meta = map[string]string{
+		"my": "meta",
+	}
+	if n.IsSame(other) {
+		t.Fatalf("should be different, was %#v VS %#v", n, other)
+	}
+	other.Meta = map[string]string{}
+	if !n.IsSame(other) {
+		t.Fatalf("should be equal, was %#v VS %#v", n, other)
+	}
+}
+
 func TestStructs_ServiceNode_PartialClone(t *testing.T) {
 	sn := testServiceNode()
 

@@ -364,6 +364,17 @@ type Node struct {
 }
 type Nodes []*Node
 
+// IsSame return whether nodes are similar without taking into account
+// RaftIndex fields.
+func (n *Node) IsSame(other *Node) bool {
+	return n.ID == other.ID &&
+		n.Node == other.Node &&
+		n.Address == other.Address &&
+		n.Datacenter == other.Datacenter &&
+		reflect.DeepEqual(n.TaggedAddresses, other.TaggedAddresses) &&
+		reflect.DeepEqual(n.Meta, other.Meta)
+}
+
 // ValidateMeta validates a set of key/value pairs from the agent config
 func ValidateMetadata(meta map[string]string, allowConsulPrefix bool) error {
 	if len(meta) > metaMaxKeyPairs {

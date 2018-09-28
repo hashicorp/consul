@@ -1,7 +1,6 @@
 package state
 
 import (
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"sort"
@@ -509,6 +508,9 @@ func deprecatedEnsureNodeWithoutIDCanRegister(t *testing.T, s *Store, nodeName s
 	in := &structs.Node{
 		Node:    nodeName,
 		Address: "1.1.1.9",
+		Meta: map[string]string{
+			"version": string(txIdx),
+		},
 	}
 	if err := s.EnsureNode(txIdx, in); err != nil {
 		t.Fatalf("err: %s", err)
@@ -518,10 +520,10 @@ func deprecatedEnsureNodeWithoutIDCanRegister(t *testing.T, s *Store, nodeName s
 		t.Fatalf("err: %s", err)
 	}
 	if idx != txIdx {
-		t.Fatalf("index should be %q, was: %q", txIdx, idx)
+		t.Fatalf("index should be %v, was: %v", txIdx, idx)
 	}
 	if out.Node != nodeName {
-		t.Fatalf("unexpected result out = %q, nodeName supposed to be %s", out, nodeName)
+		t.Fatalf("unexpected result out = %v, nodeName supposed to be %s", out, nodeName)
 	}
 }
 
@@ -727,8 +729,12 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	}
 
 	// Update the node registration
-	in.Address = "1.1.1.2"
-	if err := s.EnsureNode(2, in); err != nil {
+	in2 := &structs.Node{
+		ID:      in.ID,
+		Node:    in.Node,
+		Address: "1.1.1.2",
+	}
+	if err := s.EnsureNode(2, in2); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -746,15 +752,32 @@ func TestStateStore_EnsureNode(t *testing.T) {
 		t.Fatalf("bad index: %d", idx)
 	}
 
-	// Node upsert preserves the create index
-	if err := s.EnsureNode(3, in); err != nil {
+	// Re-inserting data should not modify ModifiedIndex
+	if err := s.EnsureNode(3, in2); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	idx, out, err = s.GetNode("node1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if out.CreateIndex != 1 || out.ModifyIndex != 3 || out.Address != "1.1.1.2" {
+	if out.CreateIndex != 1 || out.ModifyIndex != 2 || out.Address != "1.1.1.2" {
+		t.Fatalf("node was modified: %#v", out)
+	}
+
+	// Node upsert preserves the create index
+	in3 := &structs.Node{
+		ID:      in.ID,
+		Node:    in.Node,
+		Address: "1.1.1.3",
+	}
+	if err := s.EnsureNode(3, in3); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	idx, out, err = s.GetNode("node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if out.CreateIndex != 1 || out.ModifyIndex != 3 || out.Address != "1.1.1.3" {
 		t.Fatalf("node was modified: %#v", out)
 	}
 	if idx != 3 {
@@ -2919,7 +2942,7 @@ func TestStateStore_CheckServiceNodes(t *testing.T) {
 	}
 
 	// Node updates alter the returned index and fire the watch.
-	testRegisterNode(t, s, 8, "node1")
+	testRegisterNodeWithChange(t, s, 8, "node1")
 	if !watchFired(ws) {
 		t.Fatalf("bad")
 	}
@@ -3378,9 +3401,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 		t.Fatalf("bad index: %d", idx)
 	}
 	if len(dump) != 1 || !reflect.DeepEqual(dump[0], expect[0]) {
-		dump0, _ := json.Marshal(dump[0])
-		expect0, _ := json.Marshal(expect[0])
-		t.Fatalf("len(dump):= %v bad:\n%#v\nVS\n%#v", len(dump), string(dump0), string(expect0))
+		t.Fatalf("bad: len=%#v dump=%#v expect=%#v", len(dump), dump[0], expect[0])
 	}
 
 	// Generate a dump of all the nodes

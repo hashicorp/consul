@@ -430,6 +430,11 @@ func (s *Store) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) err
 	// Get the indexes.
 	if n != nil {
 		node.CreateIndex = n.CreateIndex
+		node.ModifyIndex = n.ModifyIndex
+		// We do not need to update anything
+		if node.IsSame(n) {
+			return nil
+		}
 		node.ModifyIndex = idx
 	} else {
 		node.CreateIndex = idx

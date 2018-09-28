@@ -40,6 +40,13 @@ func testRegisterNode(t *testing.T, s *Store, idx uint64, nodeID string) {
 	testRegisterNodeWithMeta(t, s, idx, nodeID, nil)
 }
 
+// testRegisterNodeWithChange registers a node and ensures it gets different from previous registration
+func testRegisterNodeWithChange(t *testing.T, s *Store, idx uint64, nodeID string) {
+	testRegisterNodeWithMeta(t, s, idx, nodeID, map[string]string{
+		"version": string(idx),
+	})
+}
+
 func testRegisterNodeWithMeta(t *testing.T, s *Store, idx uint64, nodeID string, meta map[string]string) {
 	node := &structs.Node{Node: nodeID, Meta: meta}
 	if err := s.EnsureNode(idx, node); err != nil {
