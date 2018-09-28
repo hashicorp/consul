@@ -1,0 +1,21 @@
+%app-view h2,
+%app-view header > div:last-of-type {
+  border-bottom: $decor-border-100;
+}
+%app-view header > div:last-of-type,
+%app-view h2 {
+  border-color: $keyline-light;
+}
+%app-content div > dl > dd {
+  color: $ui-gray-400;
+}
+[role='tabpanel'] > p:only-child,
+.template-error > div {
+  background-color: $ui-gray-050;
+  color: $ui-gray-400;
+}
+%app-content > p:only-child,
+%app-view > div.disabled > div {
+  background-color: $ui-gray-050;
+  color: $ui-gray-400;
+}

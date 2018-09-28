@@ -8,7 +8,9 @@ export default Component.extend(SlotsMixin, {
   authorized: true,
   enabled: true,
   classNames: ['app-view'],
+  classNameBindings: ['enabled::disabled', 'authorized::unauthorized'],
   didReceiveAttrs: function() {
+    // right now only manually added classes are hoisted to <html>
     let cls = get(this, 'class') || '';
     if (get(this, 'loading')) {
       cls += ' loading';

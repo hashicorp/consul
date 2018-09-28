@@ -1,0 +1,40 @@
+@import './app-view/index';
+@import './filter-bar/index';
+@import './buttons/index';
+main {
+  @extend %app-view;
+}
+%app-view > div > div {
+  @extend %app-content;
+}
+%app-view header form {
+  @extend %filter-bar;
+}
+@media #{$--lt-spacious-page-header} {
+  %app-view header .actions {
+    margin-top: 5px;
+  }
+}
+%app-view h1 span {
+  @extend %with-external-source-icon;
+}
+%app-view header .actions a,
+%app-view header .actions button {
+  @extend %button-compact;
+}
+%app-content div > dl {
+  @extend %form-row;
+}
+[role='tabpanel'] > p:only-child,
+.template-error > div,
+%app-content > p:only-child,
+%app-view > div.disabled > div,
+%app-view.empty > div {
+  @extend %app-content-empty;
+}
+[role='tabpanel'] > *:first-child {
+  margin-top: 1.25em;
+}
+%app-view > div.disabled > div {
+  margin-top: 0 !important;
+}
