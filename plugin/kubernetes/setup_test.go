@@ -397,6 +397,48 @@ kubernetes cluster.local`,
 			fall.Zero,
 			nil,
 		},
+		{
+			`kubernetes coredns.local {
+	kubeconfig
+}`,
+			true,
+			"Wrong argument count or unexpected line ending after",
+			-1,
+			0,
+			defaultResyncPeriod,
+			"",
+			podModeDisabled,
+			fall.Zero,
+			nil,
+		},
+		{
+			`kubernetes coredns.local {
+	kubeconfig file context extraarg
+}`,
+			true,
+			"Wrong argument count or unexpected line ending after",
+			-1,
+			0,
+			defaultResyncPeriod,
+			"",
+			podModeDisabled,
+			fall.Zero,
+			nil,
+		},
+		{
+			`kubernetes coredns.local {
+	kubeconfig file context
+}`,
+			false,
+			"",
+			1,
+			0,
+			defaultResyncPeriod,
+			"",
+			podModeDisabled,
+			fall.Zero,
+			nil,
+		},
 	}
 
 	for i, test := range tests {

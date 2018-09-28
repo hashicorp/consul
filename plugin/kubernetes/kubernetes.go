@@ -37,6 +37,7 @@ type Kubernetes struct {
 	APICertAuth      string
 	APIClientCert    string
 	APIClientKey     string
+	ClientConfig     clientcmd.ClientConfig
 	APIConn          dnsController
 	Namespaces       map[string]bool
 	podMode          string
@@ -153,6 +154,9 @@ func (k *Kubernetes) IsNameError(err error) bool {
 }
 
 func (k *Kubernetes) getClientConfig() (*rest.Config, error) {
+	if k.ClientConfig != nil {
+		return k.ClientConfig.ClientConfig()
+	}
 	loadingRules := &clientcmd.ClientConfigLoadingRules{}
 	overrides := &clientcmd.ConfigOverrides{}
 	clusterinfo := clientcmdapi.Cluster{}
