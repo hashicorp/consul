@@ -95,7 +95,7 @@ $ go get -u github.com/golang/dep/cmd/dep
 
 Use the following to update the locked versions of all dependencies
 ```sh
-$ dep ensure -update
+$ make dep-ensure
 ```
 
 To add a dependency to the project, you might run
