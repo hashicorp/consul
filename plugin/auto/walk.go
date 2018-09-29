@@ -52,7 +52,7 @@ func (a Auto) Walk() error {
 			return nil
 		}
 
-		zo.NoReload = a.loader.noReload
+		zo.ReloadInterval = a.loader.ReloadInterval
 		zo.Upstream = a.loader.upstream
 		zo.TransferTo = a.loader.transferTo
 

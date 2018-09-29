@@ -29,6 +29,7 @@ func TestZoneReload(t *testing.T) {
 	}
 
 	TickTime = 500 * time.Millisecond
+	z.ReloadInterval = 500 * time.Millisecond
 	z.Reload()
 	time.Sleep(time.Second)
 

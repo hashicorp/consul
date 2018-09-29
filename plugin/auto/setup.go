@@ -144,8 +144,15 @@ func autoParse(c *caddy.Controller) (Auto, error) {
 					a.loader.duration = time.Duration(i) * time.Second
 				}
 
+			case "reload":
+				d, err := time.ParseDuration(c.RemainingArgs()[0])
+				if err != nil {
+					return a, plugin.Error("file", err)
+				}
+				a.loader.ReloadInterval = d
+
 			case "no_reload":
-				a.loader.noReload = true
+				a.loader.ReloadInterval = 0
 
 			case "upstream":
 				args := c.RemainingArgs()

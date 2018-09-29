@@ -24,7 +24,9 @@ func TestZoneReload(t *testing.T) {
 
 	// Corefile with two stanzas
 	corefile := `example.org:0 {
-       file ` + name + `
+       file ` + name + ` {
+           reload 1s
+       }
 }
 
 example.net:0 {

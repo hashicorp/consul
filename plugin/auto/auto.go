@@ -32,7 +32,7 @@ type (
 
 		// In the future this should be something like ZoneMeta that contains all this stuff.
 		transferTo []string
-		noReload   bool
+		ReloadInterval time.Duration
 		upstream   upstream.Upstream // Upstream for looking up names during the resolution process.
 
 		duration time.Duration

@@ -5,15 +5,14 @@ import (
 	"time"
 )
 
-// TickTime is the default time we use to reload zone. Exported to be tweaked in tests.
-var TickTime = 1 * time.Minute
+// TickTime is clock resolution. By default ticks every second. Handler checks if reloadInterval has been reached on every tick.
+var TickTime = 1 * time.Second
 
 // Reload reloads a zone when it is changed on disk. If z.NoRoload is true, no reloading will be done.
 func (z *Zone) Reload() error {
-	if z.NoReload {
+	if z.ReloadInterval == 0 {
 		return nil
 	}
-
 	tick := time.NewTicker(TickTime)
 
 	go func() {
@@ -22,6 +21,13 @@ func (z *Zone) Reload() error {
 			select {
 
 			case <-tick.C:
+				if z.LastReloaded.Add(z.ReloadInterval).After(time.Now()) {
+					//reload interval not reached yet
+					continue
+				}
+				//saving timestamp of last attempted reload
+				z.LastReloaded = time.Now()
+
 				zFile := z.File()
 				reader, err := os.Open(zFile)
 				if err != nil {

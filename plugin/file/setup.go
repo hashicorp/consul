@@ -3,6 +3,7 @@ package file
 import (
 	"os"
 	"path"
+	"time"
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
@@ -91,7 +92,7 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 			names = append(names, origins[i])
 		}
 
-		noReload := false
+		reload := 1 * time.Minute
 		upstr := upstream.Upstream{}
 		t := []string{}
 		var e error
@@ -104,8 +105,15 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 					return Zones{}, e
 				}
 
+			case "reload":
+				d, err := time.ParseDuration(c.RemainingArgs()[0])
+				if err != nil {
+					return Zones{}, plugin.Error("file", err)
+				}
+				reload = d
+
 			case "no_reload":
-				noReload = true
+				reload = 0
 
 			case "upstream":
 				args := c.RemainingArgs()
@@ -122,7 +130,7 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 				if t != nil {
 					z[origin].TransferTo = append(z[origin].TransferTo, t...)
 				}
-				z[origin].NoReload = noReload
+				z[origin].ReloadInterval = reload
 				z[origin].Upstream = upstr
 			}
 		}
