@@ -58,7 +58,7 @@ type dnsControl struct {
 	// aligned ( we use sync.LoadAtomic with this )
 	modified int64
 
-	client *kubernetes.Clientset
+	client kubernetes.Interface
 
 	selector labels.Selector
 
@@ -100,7 +100,7 @@ type dnsControlOpts struct {
 }
 
 // newDNSController creates a controller for CoreDNS.
-func newdnsController(kubeClient *kubernetes.Clientset, opts dnsControlOpts) *dnsControl {
+func newdnsController(kubeClient kubernetes.Interface, opts dnsControlOpts) *dnsControl {
 	dns := dnsControl{
 		client:           kubeClient,
 		selector:         opts.selector,
@@ -200,7 +200,7 @@ func epIPIndexFunc(obj interface{}) ([]string, error) {
 	return idx, nil
 }
 
-func serviceListFunc(c *kubernetes.Clientset, ns string, s labels.Selector) func(meta.ListOptions) (runtime.Object, error) {
+func serviceListFunc(c kubernetes.Interface, ns string, s labels.Selector) func(meta.ListOptions) (runtime.Object, error) {
 	return func(opts meta.ListOptions) (runtime.Object, error) {
 		if s != nil {
 			opts.LabelSelector = s.String()
@@ -210,7 +210,7 @@ func serviceListFunc(c *kubernetes.Clientset, ns string, s labels.Selector) func
 	}
 }
 
-func podListFunc(c *kubernetes.Clientset, ns string, s labels.Selector) func(meta.ListOptions) (runtime.Object, error) {
+func podListFunc(c kubernetes.Interface, ns string, s labels.Selector) func(meta.ListOptions) (runtime.Object, error) {
 	return func(opts meta.ListOptions) (runtime.Object, error) {
 		if s != nil {
 			opts.LabelSelector = s.String()
@@ -220,7 +220,7 @@ func podListFunc(c *kubernetes.Clientset, ns string, s labels.Selector) func(met
 	}
 }
 
-func serviceWatchFunc(c *kubernetes.Clientset, ns string, s labels.Selector) func(options meta.ListOptions) (watch.Interface, error) {
+func serviceWatchFunc(c kubernetes.Interface, ns string, s labels.Selector) func(options meta.ListOptions) (watch.Interface, error) {
 	return func(options meta.ListOptions) (watch.Interface, error) {
 		if s != nil {
 			options.LabelSelector = s.String()
@@ -230,7 +230,7 @@ func serviceWatchFunc(c *kubernetes.Clientset, ns string, s labels.Selector) fun
 	}
 }
 
-func podWatchFunc(c *kubernetes.Clientset, ns string, s labels.Selector) func(options meta.ListOptions) (watch.Interface, error) {
+func podWatchFunc(c kubernetes.Interface, ns string, s labels.Selector) func(options meta.ListOptions) (watch.Interface, error) {
 	return func(options meta.ListOptions) (watch.Interface, error) {
 		if s != nil {
 			options.LabelSelector = s.String()
@@ -240,7 +240,7 @@ func podWatchFunc(c *kubernetes.Clientset, ns string, s labels.Selector) func(op
 	}
 }
 
-func endpointsListFunc(c *kubernetes.Clientset, ns string, s labels.Selector) func(meta.ListOptions) (runtime.Object, error) {
+func endpointsListFunc(c kubernetes.Interface, ns string, s labels.Selector) func(meta.ListOptions) (runtime.Object, error) {
 	return func(opts meta.ListOptions) (runtime.Object, error) {
 		if s != nil {
 			opts.LabelSelector = s.String()
@@ -250,7 +250,7 @@ func endpointsListFunc(c *kubernetes.Clientset, ns string, s labels.Selector) fu
 	}
 }
 
-func endpointsWatchFunc(c *kubernetes.Clientset, ns string, s labels.Selector) func(options meta.ListOptions) (watch.Interface, error) {
+func endpointsWatchFunc(c kubernetes.Interface, ns string, s labels.Selector) func(options meta.ListOptions) (watch.Interface, error) {
 	return func(options meta.ListOptions) (watch.Interface, error) {
 		if s != nil {
 			options.LabelSelector = s.String()
@@ -260,7 +260,7 @@ func endpointsWatchFunc(c *kubernetes.Clientset, ns string, s labels.Selector) f
 	}
 }
 
-func namespaceListFunc(c *kubernetes.Clientset, s labels.Selector) func(meta.ListOptions) (runtime.Object, error) {
+func namespaceListFunc(c kubernetes.Interface, s labels.Selector) func(meta.ListOptions) (runtime.Object, error) {
 	return func(opts meta.ListOptions) (runtime.Object, error) {
 		if s != nil {
 			opts.LabelSelector = s.String()
@@ -270,7 +270,7 @@ func namespaceListFunc(c *kubernetes.Clientset, s labels.Selector) func(meta.Lis
 	}
 }
 
-func namespaceWatchFunc(c *kubernetes.Clientset, s labels.Selector) func(options meta.ListOptions) (watch.Interface, error) {
+func namespaceWatchFunc(c kubernetes.Interface, s labels.Selector) func(options meta.ListOptions) (watch.Interface, error) {
 	return func(options meta.ListOptions) (watch.Interface, error) {
 		if s != nil {
 			options.LabelSelector = s.String()
