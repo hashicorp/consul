@@ -30,7 +30,7 @@ godeps:
 	go get -u github.com/prometheus/client_golang/prometheus/promhttp
 	go get -u github.com/prometheus/client_golang/prometheus
 	(cd $(GOPATH)/src/github.com/mholt/caddy              && git checkout -q v0.10.11)
-	(cd $(GOPATH)/src/github.com/miekg/dns                && git checkout -q v1.0.10)
+	(cd $(GOPATH)/src/github.com/miekg/dns                && git checkout -q v1.0.12)
 	(cd $(GOPATH)/src/github.com/prometheus/client_golang && git checkout -q v0.8.0)
 	@ # for travis only, if this fails we don't care, but don't see benchmarks
 	 go get -u golang.org/x/tools/cmd/benchcmp || true
