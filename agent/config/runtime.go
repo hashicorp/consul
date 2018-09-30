@@ -1467,6 +1467,7 @@ func (c *RuntimeConfig) APIConfig(includeClientCerts bool) (*api.Config, error) 
 		Datacenter: c.Datacenter,
 		TLSConfig:  api.TLSConfig{InsecureSkipVerify: !c.VerifyOutgoing},
 	}
+	dcfg := api.DefaultConfig()
 
 	unixAddr, httpAddr, httpsAddr := c.ClientAddress()
 
@@ -1475,7 +1476,7 @@ func (c *RuntimeConfig) APIConfig(includeClientCerts bool) (*api.Config, error) 
 		cfg.Scheme = "https"
 		cfg.TLSConfig.CAFile = c.CAFile
 		cfg.TLSConfig.CAPath = c.CAPath
-		cfg.TLSConfig.Address = httpsAddr
+		cfg.TLSConfig.Address = dcfg.TLSConfig.Address
 		if includeClientCerts {
 			cfg.TLSConfig.CertFile = c.CertFile
 			cfg.TLSConfig.KeyFile = c.KeyFile
