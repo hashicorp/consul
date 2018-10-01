@@ -48,11 +48,15 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 	newRootCACh := make(chan error, 1)
 	go c.waitNewRootCA(reqReal.Datacenter, newRootCACh, opts.Timeout)
 
+	// Generate a cache key to lookup/store the cert. We MUST generate a new cert
+	// per token used to ensure revocation by ACL token is robust.
+	issuedKey := fmt.Sprintf("%s/%s", reqReal.Service, reqReal.Token)
+
 	// Get our prior cert (if we had one) and use that to determine our
 	// expiration time. If no cert exists, we expire immediately since we
 	// need to generate.
 	c.issuedCertsLock.RLock()
-	lastCert := c.issuedCerts[reqReal.Service]
+	lastCert := c.issuedCerts[issuedKey]
 	c.issuedCertsLock.RUnlock()
 
 	var leafExpiryCh <-chan time.Time
@@ -62,6 +66,19 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 		if expiryDur := lastCert.ValidBefore.Sub(time.Now()); expiryDur > 0 {
 			leafExpiryCh = time.After(expiryDur - 1*time.Hour)
 			// TODO(mitchellh): 1 hour buffer is hardcoded above
+
+			// We should not depend on the cache package de-duplicating requests for
+			// the same service/token (which is all we care about keying our local
+			// issued cert cache on) since it might later make sense to partition
+			// clients for other reasons too. So if the request has a 0 MinIndex, and
+			// the cached cert is still valid, then the client is expecting an
+			// immediate response and hasn't already seen the cached cert, return it
+			// now.
+			if opts.MinIndex == 0 {
+				result.Value = lastCert
+				result.Index = lastCert.ModifyIndex
+				return result, nil
+			}
 		}
 	}
 
@@ -149,13 +166,13 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 	// check just in case.
 	c.issuedCertsLock.Lock()
 	defer c.issuedCertsLock.Unlock()
-	lastCert = c.issuedCerts[reqReal.Service]
+	lastCert = c.issuedCerts[issuedKey]
 	if lastCert == nil || lastCert.ModifyIndex < reply.ModifyIndex {
 		if c.issuedCerts == nil {
 			c.issuedCerts = make(map[string]*structs.IssuedCert)
 		}
 
-		c.issuedCerts[reqReal.Service] = &reply
+		c.issuedCerts[issuedKey] = &reply
 		lastCert = &reply
 	}
 
