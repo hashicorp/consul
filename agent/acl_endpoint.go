@@ -17,11 +17,11 @@ type aclBootstrapResponse struct {
 }
 
 type aclTokenResponse struct {
-	Legacy bool
+	Legacy bool `json:",omitempty"`
 	structs.ACLToken
 }
 
-func convertTokenForRespone(in *structs.ACLToken) *aclTokenResponse {
+func convertTokenForResponse(in *structs.ACLToken) *aclTokenResponse {
 	out := &aclTokenResponse{
 		ACLToken: *in,
 	}
@@ -262,7 +262,7 @@ func (s *HTTPServer) ACLTokenList(resp http.ResponseWriter, req *http.Request) (
 
 	tokens := make([]*aclTokenResponse, 0, len(out.Tokens))
 	for _, token := range out.Tokens {
-		tokens = append(tokens, convertTokenForRespone(token))
+		tokens = append(tokens, convertTokenForResponse(token))
 	}
 
 	return tokens, nil
@@ -323,7 +323,7 @@ func (s *HTTPServer) ACLTokenSelf(resp http.ResponseWriter, req *http.Request) (
 		return nil, acl.ErrNotFound
 	}
 
-	return convertTokenForRespone(out.Token), nil
+	return convertTokenForResponse(out.Token), nil
 }
 
 func (s *HTTPServer) ACLTokenCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -359,7 +359,7 @@ func (s *HTTPServer) ACLTokenRead(resp http.ResponseWriter, req *http.Request, t
 		return nil, acl.ErrNotFound
 	}
 
-	return convertTokenForRespone(out.Token), nil
+	return convertTokenForResponse(out.Token), nil
 }
 
 func (s *HTTPServer) ACLTokenWrite(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
@@ -385,7 +385,7 @@ func (s *HTTPServer) ACLTokenWrite(resp http.ResponseWriter, req *http.Request, 
 		return nil, err
 	}
 
-	return convertTokenForRespone(&out), nil
+	return convertTokenForResponse(&out), nil
 }
 
 func (s *HTTPServer) ACLTokenDelete(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
@@ -436,7 +436,7 @@ func (s *HTTPServer) ACLTokenClone(resp http.ResponseWriter, req *http.Request) 
 		return nil, err
 	}
 
-	return convertTokenForRespone(&out), nil
+	return convertTokenForResponse(&out), nil
 }
 
 func (s *HTTPServer) ACLTokenUpgrade(resp http.ResponseWriter, req *http.Request) (interface{}, error) {

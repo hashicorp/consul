@@ -897,7 +897,7 @@ func (f *aclFilter) filterPreparedQueries(queries *structs.PreparedQueries) {
 }
 
 func (f *aclFilter) redactTokenSecret(token **structs.ACLToken) {
-	if f.authorizer.ACLWrite() {
+	if token == nil || *token == nil || f == nil || f.authorizer.ACLWrite() {
 		return
 	}
 	clone := *(*token)
@@ -916,6 +916,9 @@ func (f *aclFilter) redactTokenSecrets(tokens *structs.ACLTokens) {
 }
 
 func (r *ACLResolver) filterACLWithAuthorizer(authorizer acl.Authorizer, subj interface{}) error {
+	if authorizer == nil {
+		return nil
+	}
 	// Create the filter
 	filt := newACLFilter(authorizer, r.logger)
 

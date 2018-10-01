@@ -150,10 +150,11 @@ func (a *ACL) TokenRead(args *structs.ACLTokenReadRequest, reply *structs.ACLTok
 
 	var rule acl.Authorizer
 	if args.IDType == structs.ACLTokenAccessor {
+		var err error
 		// Only ACLRead privileges are required to list tokens
 		// However if you do not have ACLWrite as well the token
 		// secrets will be redacted
-		if rule, err := a.srv.ResolveToken(args.Token); err != nil {
+		if rule, err = a.srv.ResolveToken(args.Token); err != nil {
 			return err
 		} else if rule == nil || !rule.ACLRead() {
 			return acl.ErrPermissionDenied
