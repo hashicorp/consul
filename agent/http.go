@@ -468,8 +468,11 @@ func setMeta(resp http.ResponseWriter, m *structs.QueryMeta) {
 
 // setCacheMeta sets http response headers to indicate cache status.
 func setCacheMeta(resp http.ResponseWriter, m *cache.ResultMeta) {
+	if m == nil {
+		return
+	}
 	str := "MISS"
-	if m != nil && m.Hit {
+	if m.Hit {
 		str = "HIT"
 	}
 	resp.Header().Set("X-Cache", str)
