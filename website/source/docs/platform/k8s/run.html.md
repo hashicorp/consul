@@ -130,7 +130,10 @@ For Consul installed via the Helm chart, a client agent is installed on
 each Kubernetes node. This is explained in the [architecture](/docs/platform/k8s/run.html#client-agents)
 section. To access the agent, you may use the
 [downward API](https://kubernetes.io/docs/tasks/inject-data-application/downward-api-volume-expose-pod-information/).
-An example pod specification is shown below:
+
+An example pod specification is shown below. In addition to pods, anything
+with a pod template can also access the downward API and can therefore also
+access Consul: StatefulSets, Deployments, Jobs, etc.
 
 ```yaml
 apiVersion: v1
@@ -153,6 +156,40 @@ spec:
             export CONSUL_HTTP_ADDR="${HOST_IP}:8500"
             consul kv put hello world
   restartPolicy: Never
+```
+
+An example `Deployment` is also shown below to show how the host IP can
+be accessed from nested pod specifications:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: consul-example-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: consul-example
+  template:
+    metadata:
+      labels:
+        app: consul-example
+    spec:
+      containers:
+        - name: example
+          image: "consul:latest"
+          env:
+            - name: HOST_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+          command:
+            - "/bin/sh"
+            - "-ec"
+            - |
+                export CONSUL_HTTP_ADDR="${HOST_IP}:8500"
+                consul kv put hello world
 ```
 
 ### Upgrading Consul on Kubernetes
