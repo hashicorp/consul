@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/services"
 	"github.com/mitchellh/cli"
@@ -16,14 +17,17 @@ func New(ui cli.Ui) *cmd {
 }
 
 type cmd struct {
-	UI    cli.Ui
-	flags *flag.FlagSet
-	http  *flags.HTTPFlags
-	help  string
+	UI     cli.Ui
+	flags  *flag.FlagSet
+	http   *flags.HTTPFlags
+	help   string
+	flagId string
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.StringVar(&c.flagId, "id", "",
+		"ID to delete. This must not be set if arguments are given.")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -38,15 +42,20 @@ func (c *cmd) Run(args []string) int {
 
 	// Check for arg validation
 	args = c.flags.Args()
-	if len(args) == 0 {
-		c.UI.Error("Service deregistration requires at least one argument.")
+	if len(args) == 0 && c.flagId == "" {
+		c.UI.Error("Service deregistration requires at least one argument or -id.")
 		return 1
 	}
 
-	svcs, err := services.ServicesFromFiles(args)
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error: %s", err))
-		return 1
+	svcs := []*api.AgentServiceRegistration{&api.AgentServiceRegistration{
+		ID: c.flagId}}
+	if len(args) > 0 {
+		var err error
+		svcs, err = services.ServicesFromFiles(args)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error: %s", err))
+			return 1
+		}
 	}
 
 	// Create and test the HTTP client

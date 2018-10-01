@@ -93,6 +93,36 @@ func TestCommand_File_nameOnly(t *testing.T) {
 	require.NotNil(svcs["db"])
 }
 
+func TestCommand_Flag(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	a := agent.NewTestAgent(t.Name(), ``)
+	defer a.Shutdown()
+	client := a.Client()
+
+	// Register a service
+	require.NoError(client.Agent().ServiceRegister(&api.AgentServiceRegistration{
+		Name: "web"}))
+	require.NoError(client.Agent().ServiceRegister(&api.AgentServiceRegistration{
+		Name: "db"}))
+
+	ui := cli.NewMockUi()
+	c := New(ui)
+
+	args := []string{
+		"-http-addr=" + a.HTTPAddr(),
+		"-id", "web",
+	}
+
+	require.Equal(0, c.Run(args), ui.ErrorWriter.String())
+
+	svcs, err := client.Agent().Services()
+	require.NoError(err)
+	require.Len(svcs, 1)
+	require.NotNil(svcs["db"])
+}
+
 func testFile(t *testing.T, suffix string) *os.File {
 	f := testutil.TempFile(t, "register-test-file")
 	if err := f.Close(); err != nil {
