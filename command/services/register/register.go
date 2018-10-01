@@ -2,8 +2,10 @@ package register
 
 import (
 	"flag"
+	"fmt"
 
-	//"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
 )
@@ -48,23 +50,65 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	/*
-		ixns, err := c.ixnsFromArgs(args)
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error: %s", err))
+	svcs, err := c.svcsFromFiles(args)
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error: %s", err))
+		return 1
+	}
+
+	// Create and test the HTTP client
+	client, err := c.http.APIClient()
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
+		return 1
+	}
+
+	// Create all the services
+	for _, svc := range svcs {
+		if err := client.Agent().ServiceRegister(svc); err != nil {
+			c.UI.Error(fmt.Sprintf("Error registering service %q: %s",
+				svc.Name, err))
 			return 1
 		}
-
-		// Create and test the HTTP client
-		/*
-			client, err := c.http.APIClient()
-			if err != nil {
-				c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
-				return 1
-			}
-	*/
+	}
 
 	return 0
+}
+
+// svcsFromFiles loads service definitions from a set of configuration
+// files and returns them. It will return an error if the configuration is
+// invalid in any way.
+func (c *cmd) svcsFromFiles(args []string) ([]*api.AgentServiceRegistration, error) {
+	// We set devMode to true so we can get the basic valid default
+	// configuration. devMode doesn't set any services by default so this
+	// is okay since we only look at services.
+	devMode := true
+	b, err := config.NewBuilder(config.Flags{
+		ConfigFiles: args,
+		DevMode:     &devMode,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	cfg, err := b.BuildAndValidate()
+	if err != nil {
+		return nil, err
+	}
+
+	// The services are now in "structs.ServiceDefinition" form and we need
+	// them in "api.AgentServiceRegistration" form so do the conversion.
+	result := make([]*api.AgentServiceRegistration, 0, len(cfg.Services))
+	for _, svc := range cfg.Services {
+		apiSvc, err := serviceToAgentService(svc)
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, apiSvc)
+	}
+
+	return result, nil
 }
 
 func (c *cmd) Synopsis() string {

@@ -3,23 +3,23 @@ package register
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/stretchr/testify/require"
 )
 
-func TestConfigToAgentService(t *testing.T) {
+func TestStructsToAgentService(t *testing.T) {
 	cases := []struct {
 		Name   string
-		Input  *config.ServiceDefinition
+		Input  *structs.ServiceDefinition
 		Output *api.AgentServiceRegistration
 	}{
 		{
 			"Basic service with port",
-			&config.ServiceDefinition{
-				Name: strPtr("web"),
+			&structs.ServiceDefinition{
+				Name: "web",
 				Tags: []string{"leader"},
-				Port: intPtr(1234),
+				Port: 1234,
 			},
 			&api.AgentServiceRegistration{
 				Name: "web",
@@ -29,10 +29,10 @@ func TestConfigToAgentService(t *testing.T) {
 		},
 		{
 			"Service with a check",
-			&config.ServiceDefinition{
-				Name: strPtr("web"),
-				Check: &config.CheckDefinition{
-					Name: strPtr("ping"),
+			&structs.ServiceDefinition{
+				Name: "web",
+				Check: structs.CheckType{
+					Name: "ping",
 				},
 			},
 			&api.AgentServiceRegistration{
@@ -44,14 +44,14 @@ func TestConfigToAgentService(t *testing.T) {
 		},
 		{
 			"Service with checks",
-			&config.ServiceDefinition{
-				Name: strPtr("web"),
-				Checks: []config.CheckDefinition{
-					config.CheckDefinition{
-						Name: strPtr("ping"),
+			&structs.ServiceDefinition{
+				Name: "web",
+				Checks: structs.CheckTypes{
+					&structs.CheckType{
+						Name: "ping",
 					},
-					config.CheckDefinition{
-						Name: strPtr("pong"),
+					&structs.CheckType{
+						Name: "pong",
 					},
 				},
 			},
@@ -72,7 +72,7 @@ func TestConfigToAgentService(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
 			require := require.New(t)
-			actual, err := configToAgentService(tc.Input)
+			actual, err := serviceToAgentService(tc.Input)
 			require.NoError(err)
 			require.Equal(tc.Output, actual)
 		})
