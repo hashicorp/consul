@@ -1,13 +1,49 @@
-package register
+package services
 
 import (
 	"reflect"
 	"time"
 
+	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/mitchellh/mapstructure"
 )
+
+// ServicesFromFiles returns the list of agent service registration structs
+// from a set of file arguments.
+func ServicesFromFiles(files []string) ([]*api.AgentServiceRegistration, error) {
+	// We set devMode to true so we can get the basic valid default
+	// configuration. devMode doesn't set any services by default so this
+	// is okay since we only look at services.
+	devMode := true
+	b, err := config.NewBuilder(config.Flags{
+		ConfigFiles: files,
+		DevMode:     &devMode,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	cfg, err := b.BuildAndValidate()
+	if err != nil {
+		return nil, err
+	}
+
+	// The services are now in "structs.ServiceDefinition" form and we need
+	// them in "api.AgentServiceRegistration" form so do the conversion.
+	result := make([]*api.AgentServiceRegistration, 0, len(cfg.Services))
+	for _, svc := range cfg.Services {
+		apiSvc, err := serviceToAgentService(svc)
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, apiSvc)
+	}
+
+	return result, nil
+}
 
 // serviceToAgentService converts a ServiceDefinition struct to an
 // AgentServiceRegistration API struct.

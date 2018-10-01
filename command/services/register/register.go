@@ -4,9 +4,8 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/config"
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
+	"github.com/hashicorp/consul/command/services"
 	"github.com/mitchellh/cli"
 )
 
@@ -50,7 +49,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	svcs, err := c.svcsFromFiles(args)
+	svcs, err := services.ServicesFromFiles(args)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error: %s", err))
 		return 1
@@ -75,42 +74,6 @@ func (c *cmd) Run(args []string) int {
 	return 0
 }
 
-// svcsFromFiles loads service definitions from a set of configuration
-// files and returns them. It will return an error if the configuration is
-// invalid in any way.
-func (c *cmd) svcsFromFiles(args []string) ([]*api.AgentServiceRegistration, error) {
-	// We set devMode to true so we can get the basic valid default
-	// configuration. devMode doesn't set any services by default so this
-	// is okay since we only look at services.
-	devMode := true
-	b, err := config.NewBuilder(config.Flags{
-		ConfigFiles: args,
-		DevMode:     &devMode,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	cfg, err := b.BuildAndValidate()
-	if err != nil {
-		return nil, err
-	}
-
-	// The services are now in "structs.ServiceDefinition" form and we need
-	// them in "api.AgentServiceRegistration" form so do the conversion.
-	result := make([]*api.AgentServiceRegistration, 0, len(cfg.Services))
-	for _, svc := range cfg.Services {
-		apiSvc, err := serviceToAgentService(svc)
-		if err != nil {
-			return nil, err
-		}
-
-		result = append(result, apiSvc)
-	}
-
-	return result, nil
-}
-
 func (c *cmd) Synopsis() string {
 	return synopsis
 }
@@ -119,33 +82,17 @@ func (c *cmd) Help() string {
 	return c.help
 }
 
-const synopsis = "Create intentions for service connections."
+const synopsis = "Register services with the local agent"
 const help = `
-Usage: consul intention create [options] SRC DST
-Usage: consul intention create [options] -file FILE...
+Usage: consul services register [options] [FILE...]
 
-  Create one or more intentions. The data can be specified as a single
-  source and destination pair or via a set of files when the "-file" flag
-  is specified.
+  Register one or more services using the local agent API. Services can
+  be registered from standard Consul configuration files (HCL or JSON) or
+  using flags. The service is registered and the command returns. The caller
+  must remember to call "consul services deregister" or a similar API to
+  deregister the service when complete.
 
-      $ consul intention create web db
-
-  To consume data from a set of files:
-
-      $ consul intention create -file one.json two.json
-
-  When specifying the "-file" flag, "-" may be used once to read from stdin:
-
-      $ echo "{ ... }" | consul intention create -file -
-
-  An "allow" intention is created by default (whitelist). To create a
-  "deny" intention, the "-deny" flag should be specified.
-
-  If a conflicting intention is found, creation will fail. To replace any
-  conflicting intentions, specify the "-replace" flag. This will replace any
-  conflicting intentions with the intention specified in this command.
-  Metadata and any other fields of the previous intention will not be
-  preserved.
+      $ consul services register web.json
 
   Additional flags and more advanced use cases are detailed below.
 `
