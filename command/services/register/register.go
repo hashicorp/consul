@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/services"
 	"github.com/mitchellh/cli"
@@ -22,14 +23,31 @@ type cmd struct {
 	help  string
 
 	// flags
-	flagMeta map[string]string
+	flagId      string
+	flagName    string
+	flagAddress string
+	flagPort    int
+	flagTags    []string
+	flagMeta    map[string]string
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.StringVar(&c.flagId, "id", "",
+		"ID of the service to register for arg-based registration. If this "+
+			"isn't set, it will default to the -name value.")
+	c.flags.StringVar(&c.flagName, "name", "",
+		"Name of the service to register for arg-based registration.")
+	c.flags.StringVar(&c.flagAddress, "address", "",
+		"Address of the service to register for arg-based registration.")
+	c.flags.IntVar(&c.flagPort, "port", 0,
+		"Port of the service to register for arg-based registration.")
 	c.flags.Var((*flags.FlagMapValue)(&c.flagMeta), "meta",
 		"Metadata to set on the intention, formatted as key=value. This flag "+
 			"may be specified multiple times to set multiple meta fields.")
+	c.flags.Var((*flags.AppendSliceValue)(&c.flagTags), "tag",
+		"Tag to add to the service. This flag can be specified multiple "+
+			"times to set multiple tags.")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -42,17 +60,32 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	svcs := []*api.AgentServiceRegistration{&api.AgentServiceRegistration{
+		ID:      c.flagId,
+		Name:    c.flagName,
+		Address: c.flagAddress,
+		Port:    c.flagPort,
+		Tags:    c.flagTags,
+		Meta:    c.flagMeta,
+	}}
+
 	// Check for arg validation
 	args = c.flags.Args()
-	if len(args) == 0 {
-		c.UI.Error("Service registration requires at least one argument.")
+	if len(args) == 0 && c.flagName == "" {
+		c.UI.Error("Service registration requires at least one argument or flags.")
+		return 1
+	} else if len(args) > 0 && c.flagName != "" {
+		c.UI.Error("Service registration requires arguments or -id, not both.")
 		return 1
 	}
 
-	svcs, err := services.ServicesFromFiles(args)
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error: %s", err))
-		return 1
+	if len(args) > 0 {
+		var err error
+		svcs, err = services.ServicesFromFiles(args)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error: %s", err))
+			return 1
+		}
 	}
 
 	// Create and test the HTTP client
