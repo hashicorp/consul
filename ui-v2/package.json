@@ -13,10 +13,12 @@
     "lint:dev:js": "eslint -c .dev.eslintrc.js --fix ./*.js ./.*.js app config lib server tests",
     "lint:js": "eslint -c .eslintrc.js --fix ./*.js ./.*.js app config lib server tests",
     "format:js": "prettier --write \"{app,config,lib,server,tests}/**/*.js\" ./*.js ./.*.js",
-    "start": "ember serve",
+    "start": "ember serve --port=${EMBER_SERVE_PORT:-4200} --live-reload-port=${EMBER_LIVE_RELOAD_PORT:-7020}",
     "start:api": "api-double --dir ./node_modules/@hashicorp/consul-api-double",
-    "test": "ember test",
-    "test:view": "ember test --server"
+    "test": "ember test --test-port=${EMBER_TEST_PORT:-7357}",
+    "test:view": "ember test --server --test-port=${EMBER_TEST_PORT:-7357}",
+    "test:coverage": "COVERAGE=true ember test --test-port=${EMBER_TEST_PORT:-7357}",
+    "test:view:coverage": "COVERAGE=true ember test --server --test-port=${EMBER_TEST_PORT:-7357}"
   },
   "husky": {
     "hooks": {
