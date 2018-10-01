@@ -292,7 +292,9 @@ func (a *ACL) TokenWrite(args *structs.ACLTokenWriteRequest, reply *structs.ACLT
 			if existing == nil {
 				return fmt.Errorf("Cannot find token %q", token.AccessorID)
 			}
-			if existing.SecretID != token.SecretID {
+			if token.SecretID == "" {
+				token.SecretID = existing.SecretID
+			} else if existing.SecretID != token.SecretID {
 				return fmt.Errorf("Changing a tokens SecretID is not permitted")
 			}
 

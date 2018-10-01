@@ -375,8 +375,9 @@ func (s *HTTPServer) ACLTokenWrite(resp http.ResponseWriter, req *http.Request, 
 
 	// TODO (ACL-V2) - should we do more validation here or just defer to the RPC layer
 
-	// TODO (ACL-V2) - Should we allow not specifying the ID in the payload when its specified in the URL
-	if tokenID != "" && args.ACLToken.AccessorID != tokenID {
+	if args.ACLToken.AccessorID == "" {
+		args.ACLToken.AccessorID = tokenID
+	} else if tokenID != "" && args.ACLToken.AccessorID != tokenID {
 		return nil, BadRequestError{Reason: "Token Accessor ID in URL and payload do not match"}
 	}
 
