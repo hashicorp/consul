@@ -157,6 +157,23 @@ func (u *Upstream) ToAPI() api.Upstream {
 	}
 }
 
+// Identifier returns a string representation that identifies the upstream in an
+// unambiguous but human readable way.
+func (u *Upstream) Identifier() string {
+	name := u.DestinationName
+	if u.DestinationNamespace != "" && u.DestinationNamespace != "default" {
+		name = u.DestinationNamespace + "/" + u.DestinationName
+	}
+	if u.Datacenter != "" {
+		name += "?dc=" + u.Datacenter
+	}
+	typ := u.DestinationType
+	if typ == "" {
+		typ = UpstreamDestTypeService
+	}
+	return typ + ":" + name
+}
+
 // UpstreamFromAPI is a helper for converting api.Upstream to Upstream.
 func UpstreamFromAPI(u api.Upstream) Upstream {
 	return Upstream{
