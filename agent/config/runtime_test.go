@@ -839,11 +839,11 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{
 					"client_addr":"0.0.0.0",
-					"ports": { "dns":-1, "http":-2, "https":-3 }
+					"ports": { "dns":-1, "http":-2, "https":-3, "grpc":-4 }
 				}`},
 			hcl: []string{`
 					client_addr = "0.0.0.0"
-					ports { dns = -1 http = -2 https = -3 }
+					ports { dns = -1 http = -2 https = -3 grpc = -4 }
 				`},
 			patch: func(rt *RuntimeConfig) {
 				rt.ClientAddrs = []*net.IPAddr{ipAddr("0.0.0.0")}
@@ -851,6 +851,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DNSAddrs = nil
 				rt.HTTPPort = -1
 				rt.HTTPAddrs = nil
+				// HTTPS and gRPC default to disabled so shouldn't be different from
+				// default rt.
 				rt.DataDir = dataDir
 			},
 		},
@@ -859,11 +861,11 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{
 					"client_addr":"0.0.0.0",
-					"ports":{ "dns": 1, "http": 2, "https": 3 }
+					"ports":{ "dns": 1, "http": 2, "https": 3, "grpc": 4 }
 				}`},
 			hcl: []string{`
 					client_addr = "0.0.0.0"
-					ports { dns = 1 http = 2 https = 3 }
+					ports { dns = 1 http = 2 https = 3 grpc = 4 }
 				`},
 			patch: func(rt *RuntimeConfig) {
 				rt.ClientAddrs = []*net.IPAddr{ipAddr("0.0.0.0")}
@@ -873,6 +875,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.HTTPAddrs = []net.Addr{tcpAddr("0.0.0.0:2")}
 				rt.HTTPSPort = 3
 				rt.HTTPSAddrs = []net.Addr{tcpAddr("0.0.0.0:3")}
+				rt.GRPCPort = 4
+				rt.GRPCAddrs = []net.Addr{tcpAddr("0.0.0.0:4")}
 				rt.DataDir = dataDir
 			},
 		},
@@ -882,18 +886,20 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{
 					"client_addr":"0.0.0.0",
-					"addresses": { "dns": "1.1.1.1", "http": "2.2.2.2", "https": "3.3.3.3" },
+					"addresses": { "dns": "1.1.1.1", "http": "2.2.2.2", "https": "3.3.3.3", "grpc": "4.4.4.4" },
 					"ports":{}
 				}`},
 			hcl: []string{`
 					client_addr = "0.0.0.0"
-					addresses = { dns = "1.1.1.1" http = "2.2.2.2" https = "3.3.3.3" }
+					addresses = { dns = "1.1.1.1" http = "2.2.2.2" https = "3.3.3.3" grpc = "4.4.4.4" }
 					ports {}
 				`},
 			patch: func(rt *RuntimeConfig) {
 				rt.ClientAddrs = []*net.IPAddr{ipAddr("0.0.0.0")}
 				rt.DNSAddrs = []net.Addr{tcpAddr("1.1.1.1:8600"), udpAddr("1.1.1.1:8600")}
 				rt.HTTPAddrs = []net.Addr{tcpAddr("2.2.2.2:8500")}
+				// HTTPS and gRPC default to disabled so shouldn't be different from
+				// default rt.
 				rt.DataDir = dataDir
 			},
 		},
@@ -902,13 +908,13 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{
 					"client_addr":"0.0.0.0",
-					"addresses": { "dns": "1.1.1.1", "http": "2.2.2.2", "https": "3.3.3.3" },
-					"ports": { "dns":-1, "http":-2, "https":-3 }
+					"addresses": { "dns": "1.1.1.1", "http": "2.2.2.2", "https": "3.3.3.3", "grpc": "4.4.4.4" },
+					"ports": { "dns":-1, "http":-2, "https":-3, "grpc":-4 }
 				}`},
 			hcl: []string{`
 					client_addr = "0.0.0.0"
-					addresses = { dns = "1.1.1.1" http = "2.2.2.2" https = "3.3.3.3" }
-					ports { dns = -1 http = -2 https = -3 }
+					addresses = { dns = "1.1.1.1" http = "2.2.2.2" https = "3.3.3.3" grpc = "4.4.4.4" }
+					ports { dns = -1 http = -2 https = -3 grpc = -4 }
 				`},
 			patch: func(rt *RuntimeConfig) {
 				rt.ClientAddrs = []*net.IPAddr{ipAddr("0.0.0.0")}
@@ -916,6 +922,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DNSAddrs = nil
 				rt.HTTPPort = -1
 				rt.HTTPAddrs = nil
+				// HTTPS and gRPC default to disabled so shouldn't be different from
+				// default rt.
 				rt.DataDir = dataDir
 			},
 		},
@@ -924,13 +932,13 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{
 					"client_addr": "0.0.0.0",
-					"addresses": { "dns": "1.1.1.1", "http": "2.2.2.2", "https": "3.3.3.3" },
-					"ports":{ "dns":1, "http":2, "https":3 }
+					"addresses": { "dns": "1.1.1.1", "http": "2.2.2.2", "https": "3.3.3.3", "grpc": "4.4.4.4" },
+					"ports":{ "dns":1, "http":2, "https":3, "grpc":4 }
 				}`},
 			hcl: []string{`
 					client_addr = "0.0.0.0"
-					addresses = { dns = "1.1.1.1" http = "2.2.2.2" https = "3.3.3.3" }
-					ports { dns = 1 http = 2 https = 3 }
+					addresses = { dns = "1.1.1.1" http = "2.2.2.2" https = "3.3.3.3" grpc = "4.4.4.4" }
+					ports { dns = 1 http = 2 https = 3 grpc = 4 }
 				`},
 			patch: func(rt *RuntimeConfig) {
 				rt.ClientAddrs = []*net.IPAddr{ipAddr("0.0.0.0")}
@@ -940,6 +948,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.HTTPAddrs = []net.Addr{tcpAddr("2.2.2.2:2")}
 				rt.HTTPSPort = 3
 				rt.HTTPSAddrs = []net.Addr{tcpAddr("3.3.3.3:3")}
+				rt.GRPCPort = 4
+				rt.GRPCAddrs = []net.Addr{tcpAddr("4.4.4.4:4")}
 				rt.DataDir = dataDir
 			},
 		},
@@ -948,11 +958,11 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{
 					"client_addr": "{{ printf \"1.2.3.4 2001:db8::1\" }}",
-					"ports":{ "dns":1, "http":2, "https":3 }
+					"ports":{ "dns":1, "http":2, "https":3, "grpc":4 }
 				}`},
 			hcl: []string{`
 					client_addr = "{{ printf \"1.2.3.4 2001:db8::1\" }}"
-					ports { dns = 1 http = 2 https = 3 }
+					ports { dns = 1 http = 2 https = 3 grpc = 4 }
 				`},
 			patch: func(rt *RuntimeConfig) {
 				rt.ClientAddrs = []*net.IPAddr{ipAddr("1.2.3.4"), ipAddr("2001:db8::1")}
@@ -962,6 +972,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.HTTPAddrs = []net.Addr{tcpAddr("1.2.3.4:2"), tcpAddr("[2001:db8::1]:2")}
 				rt.HTTPSPort = 3
 				rt.HTTPSAddrs = []net.Addr{tcpAddr("1.2.3.4:3"), tcpAddr("[2001:db8::1]:3")}
+				rt.GRPCPort = 4
+				rt.GRPCAddrs = []net.Addr{tcpAddr("1.2.3.4:4"), tcpAddr("[2001:db8::1]:4")}
 				rt.DataDir = dataDir
 			},
 		},
@@ -973,9 +985,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					"addresses": {
 						"dns": "{{ printf \"1.1.1.1 2001:db8::10 \" }}",
 						"http": "{{ printf \"2.2.2.2 unix://http 2001:db8::20 \" }}",
-						"https": "{{ printf \"3.3.3.3 unix://https 2001:db8::30 \" }}"
+						"https": "{{ printf \"3.3.3.3 unix://https 2001:db8::30 \" }}",
+						"grpc": "{{ printf \"4.4.4.4 unix://grpc 2001:db8::40 \" }}"
 					},
-					"ports":{ "dns":1, "http":2, "https":3 }
+					"ports":{ "dns":1, "http":2, "https":3, "grpc":4 }
 				}`},
 			hcl: []string{`
 					client_addr = "{{ printf \"1.2.3.4 2001:db8::1\" }}"
@@ -983,8 +996,9 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 						dns = "{{ printf \"1.1.1.1 2001:db8::10 \" }}"
 						http = "{{ printf \"2.2.2.2 unix://http 2001:db8::20 \" }}"
 						https = "{{ printf \"3.3.3.3 unix://https 2001:db8::30 \" }}"
+						grpc = "{{ printf \"4.4.4.4 unix://grpc 2001:db8::40 \" }}"
 					}
-					ports { dns = 1 http = 2 https = 3 }
+					ports { dns = 1 http = 2 https = 3 grpc = 4 }
 				`},
 			patch: func(rt *RuntimeConfig) {
 				rt.ClientAddrs = []*net.IPAddr{ipAddr("1.2.3.4"), ipAddr("2001:db8::1")}
@@ -994,6 +1008,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.HTTPAddrs = []net.Addr{tcpAddr("2.2.2.2:2"), unixAddr("unix://http"), tcpAddr("[2001:db8::20]:2")}
 				rt.HTTPSPort = 3
 				rt.HTTPSAddrs = []net.Addr{tcpAddr("3.3.3.3:3"), unixAddr("unix://https"), tcpAddr("[2001:db8::30]:3")}
+				rt.GRPCPort = 4
+				rt.GRPCAddrs = []net.Addr{tcpAddr("4.4.4.4:4"), unixAddr("unix://grpc"), tcpAddr("[2001:db8::40]:4")}
 				rt.DataDir = dataDir
 			},
 		},
@@ -2761,7 +2777,8 @@ func TestFullConfig(t *testing.T) {
 			"addresses": {
 				"dns": "93.95.95.81",
 				"http": "83.39.91.39",
-				"https": "95.17.17.19"
+				"https": "95.17.17.19",
+				"grpc": "32.31.61.91"
 			},
 			"advertise_addr": "17.99.29.16",
 			"advertise_addr_wan": "78.63.37.19",
@@ -2953,6 +2970,7 @@ func TestFullConfig(t *testing.T) {
 				"http": 7999,
 				"https": 15127,
 				"server": 3757,
+				"grpc": 4881,
 				"proxy_min_port": 2000,
 				"proxy_max_port": 3000,
 				"sidecar_min_port": 8888,
@@ -3280,6 +3298,7 @@ func TestFullConfig(t *testing.T) {
 				dns = "93.95.95.81"
 				http = "83.39.91.39"
 				https = "95.17.17.19"
+				grpc = "32.31.61.91"
 			}
 			advertise_addr = "17.99.29.16"
 			advertise_addr_wan = "78.63.37.19"
@@ -3473,6 +3492,7 @@ func TestFullConfig(t *testing.T) {
 				http = 7999,
 				https = 15127
 				server = 3757
+				grpc = 4881
 				proxy_min_port = 2000
 				proxy_max_port = 3000
 				sidecar_min_port = 8888
@@ -4057,6 +4077,8 @@ func TestFullConfig(t *testing.T) {
 		EncryptKey:                       "A4wELWqH",
 		EncryptVerifyIncoming:            true,
 		EncryptVerifyOutgoing:            true,
+		GRPCPort:                         4881,
+		GRPCAddrs:                        []net.Addr{tcpAddr("32.31.61.91:4881")},
 		HTTPAddrs:                        []net.Addr{tcpAddr("83.39.91.39:7999")},
 		HTTPBlockEndpoints:               []string{"RBvAFcGD", "fWOWFznh"},
 		HTTPPort:                         7999,
@@ -4809,6 +4831,8 @@ func TestSanitize(t *testing.T) {
 		"EncryptKey": "hidden",
 		"EncryptVerifyIncoming": false,
 		"EncryptVerifyOutgoing": false,
+		"GRPCAddrs": [],
+		"GRPCPort": 0,
 		"HTTPAddrs": [
 			"tcp://1.2.3.4:5678",
 			"unix:///var/run/foo"

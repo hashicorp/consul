@@ -102,6 +102,7 @@ func DefaultSource() Source {
 			dns = 8600
 			http = 8500
 			https = -1
+			grpc = -1
 			serf_lan = ` + strconv.Itoa(consul.DefaultLANSerfPort) + `
 			serf_wan = ` + strconv.Itoa(consul.DefaultWANSerfPort) + `
 			server = ` + strconv.Itoa(consul.DefaultRPCPort) + `
