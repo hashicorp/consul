@@ -42,9 +42,23 @@ const (
 	authorizerCacheSize = 1024
 )
 
+type ACLVersion string
+
+const (
+	// ACLs are disabled by configuration
+	ACLVersionDisabled ACLVersion = "0"
+	// ACLs are enabled but the node is still discovering which version to use.
+	ACLVersionDiscovery ACLVersion = "1"
+	// ACLs are enabled and using legacy ACLs
+	ACLVersionLegacy ACLVersion = "2"
+	// ACLs are enabled and using new ACLs
+	ACLVersionCurrent ACLVersion = "3"
+)
+
 type ACLResolverDelegate interface {
 	ACLsEnabled() bool
 	ACLDatacenter(legacy bool) string
+	// UseLegacyACLs
 	UseLegacyACLs() bool
 	ResolveIdentityFromToken(token string) (bool, structs.ACLIdentity, error)
 	ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy, error)

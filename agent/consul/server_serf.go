@@ -69,6 +69,12 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	if s.config.UseTLS {
 		conf.Tags["use_tls"] = "1"
 	}
+
+	if s.config.ACLDatacenter != "" {
+		conf.Tags["acls"] = string(ACLVersionDiscovery)
+	} else {
+		conf.Tags["acls"] = string(ACLVersionDisabled)
+	}
 	if s.logger == nil {
 		conf.MemberlistConfig.LogOutput = s.config.LogOutput
 		conf.LogOutput = s.config.LogOutput

@@ -119,15 +119,18 @@ type ACLToken struct {
 	// Even though we are going to auto upgrade management tokens we still
 	// want to be able to have the old APIs operate on the upgraded management tokens
 	// so this field is being kept to identify legacy tokens even after an auto-upgrade
-	Type string `json:",omitempty"`
+	Type string `json:"-,omitempty"`
 
 	// Rules is the V1 acl rules associated with
 	// DEPRECATED (ACL-Legacy-Compat) - remove once we no longer support v1 ACL compat
-	Rules string `json:",omitempty"`
+	Rules string `json:"-,omitempty"`
 
 	// Whether this token is DC local. This means that it will not be synced
 	// to the ACL datacenter and replicated to others.
 	Local bool
+
+	// The time when this token was created
+	CreateTime time.Time `hash:"ignore"`
 
 	// Hash of the contents of the token
 	//

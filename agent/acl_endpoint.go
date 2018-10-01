@@ -16,6 +16,23 @@ type aclBootstrapResponse struct {
 	structs.ACLToken
 }
 
+type aclTokenResponse struct {
+	Legacy bool
+	structs.ACLToken
+}
+
+func convertTokenForRespone(in *structs.ACLToken) *aclTokenResponse {
+	out := &aclTokenResponse{
+		ACLToken: *in,
+	}
+
+	if in.Rules != "" || in.Type == structs.ACLTokenTypeClient || in.AccessorID == "" {
+		out.Legacy = true
+	}
+
+	return out
+}
+
 // checkACLDisabled will return a standard response if ACLs are disabled. This
 // returns true if they are disabled and we should not continue.
 func (s *HTTPServer) checkACLDisabled(resp http.ResponseWriter, req *http.Request) bool {
@@ -243,12 +260,12 @@ func (s *HTTPServer) ACLTokenList(resp http.ResponseWriter, req *http.Request) (
 		return nil, err
 	}
 
-	// Use empty list instead of nil
-	if out.Tokens == nil {
-		out.Tokens = make(structs.ACLTokens, 0)
+	tokens := make([]*aclTokenResponse, 0, len(out.Tokens))
+	for _, token := range out.Tokens {
+		tokens = append(tokens, convertTokenForRespone(token))
 	}
 
-	return out.Tokens, nil
+	return tokens, nil
 }
 
 func (s *HTTPServer) ACLTokenCRUD(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -306,7 +323,7 @@ func (s *HTTPServer) ACLTokenSelf(resp http.ResponseWriter, req *http.Request) (
 		return nil, acl.ErrNotFound
 	}
 
-	return out.Token, nil
+	return convertTokenForRespone(out.Token), nil
 }
 
 func (s *HTTPServer) ACLTokenCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -342,7 +359,7 @@ func (s *HTTPServer) ACLTokenRead(resp http.ResponseWriter, req *http.Request, t
 		return nil, acl.ErrNotFound
 	}
 
-	return out.Token, nil
+	return convertTokenForRespone(out.Token), nil
 }
 
 func (s *HTTPServer) ACLTokenWrite(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
@@ -368,7 +385,7 @@ func (s *HTTPServer) ACLTokenWrite(resp http.ResponseWriter, req *http.Request, 
 		return nil, err
 	}
 
-	return &out, nil
+	return convertTokenForRespone(&out), nil
 }
 
 func (s *HTTPServer) ACLTokenDelete(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
@@ -419,7 +436,7 @@ func (s *HTTPServer) ACLTokenClone(resp http.ResponseWriter, req *http.Request) 
 		return nil, err
 	}
 
-	return &out, nil
+	return convertTokenForRespone(&out), nil
 }
 
 func (s *HTTPServer) ACLTokenUpgrade(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
