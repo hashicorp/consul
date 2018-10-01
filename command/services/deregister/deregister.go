@@ -45,6 +45,9 @@ func (c *cmd) Run(args []string) int {
 	if len(args) == 0 && c.flagId == "" {
 		c.UI.Error("Service deregistration requires at least one argument or -id.")
 		return 1
+	} else if len(args) > 0 && c.flagId != "" {
+		c.UI.Error("Service deregistration requires arguments or -id, not both.")
+		return 1
 	}
 
 	svcs := []*api.AgentServiceRegistration{&api.AgentServiceRegistration{

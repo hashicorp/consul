@@ -19,6 +19,47 @@ func TestCommand_noTabs(t *testing.T) {
 	}
 }
 
+func TestCommand_Validation(t *testing.T) {
+	t.Parallel()
+
+	ui := cli.NewMockUi()
+	c := New(ui)
+
+	cases := map[string]struct {
+		args   []string
+		output string
+	}{
+		"no args or id": {
+			[]string{},
+			"at least one",
+		},
+		"args and -id": {
+			[]string{"-id", "web", "foo.json"},
+			"not both",
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			require := require.New(t)
+
+			c.init()
+
+			// Ensure our buffer is always clear
+			if ui.ErrorWriter != nil {
+				ui.ErrorWriter.Reset()
+			}
+			if ui.OutputWriter != nil {
+				ui.OutputWriter.Reset()
+			}
+
+			require.Equal(1, c.Run(tc.args))
+			output := ui.ErrorWriter.String()
+			require.Contains(output, tc.output)
+		})
+	}
+}
+
 func TestCommand_File_id(t *testing.T) {
 	t.Parallel()
 
