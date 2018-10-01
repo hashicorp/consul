@@ -27,6 +27,46 @@ func TestConfigToAgentService(t *testing.T) {
 				Port: 1234,
 			},
 		},
+		{
+			"Service with a check",
+			&config.ServiceDefinition{
+				Name: strPtr("web"),
+				Check: &config.CheckDefinition{
+					Name: strPtr("ping"),
+				},
+			},
+			&api.AgentServiceRegistration{
+				Name: "web",
+				Check: &api.AgentServiceCheck{
+					Name: "ping",
+				},
+			},
+		},
+		{
+			"Service with checks",
+			&config.ServiceDefinition{
+				Name: strPtr("web"),
+				Checks: []config.CheckDefinition{
+					config.CheckDefinition{
+						Name: strPtr("ping"),
+					},
+					config.CheckDefinition{
+						Name: strPtr("pong"),
+					},
+				},
+			},
+			&api.AgentServiceRegistration{
+				Name: "web",
+				Checks: api.AgentServiceChecks{
+					&api.AgentServiceCheck{
+						Name: "ping",
+					},
+					&api.AgentServiceCheck{
+						Name: "pong",
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range cases {
