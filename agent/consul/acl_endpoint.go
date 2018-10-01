@@ -107,6 +107,7 @@ func (a *ACL) Bootstrap(args *structs.DCSpecificRequest, reply *structs.ACLToken
 					ID: structs.ACLPolicyGlobalManagementID,
 				},
 			},
+			CreateTime: time.Now(),
 			// DEPRECATED (ACL-Legacy-Compat) - This is used so that the bootstrap token is still visible via the v1 acl APIs
 			Type:  structs.ACLTokenTypeManagement,
 			Local: false,
@@ -207,6 +208,7 @@ func (a *ACL) TokenClone(args *structs.ACLTokenWriteRequest, reply *structs.ACLT
 	if token.Rules != "" {
 		return fmt.Errorf("Cannot clone a legacy ACL with this endpoint")
 	}
+
 	cloneReq := structs.ACLTokenWriteRequest{
 		Datacenter: args.Datacenter,
 		Op:         structs.ACLSet,
@@ -262,6 +264,8 @@ func (a *ACL) TokenWrite(args *structs.ACLTokenWriteRequest, reply *structs.ACLT
 			if err != nil {
 				return err
 			}
+
+			token.CreateTime = time.Now()
 		} else {
 			// Token Update
 			if _, err := uuid.ParseUUID(token.AccessorID); err != nil {
@@ -295,6 +299,8 @@ func (a *ACL) TokenWrite(args *structs.ACLTokenWriteRequest, reply *structs.ACLT
 			if token.Local != existing.Local {
 				return fmt.Errorf("cannot toggle local mode of %s", token.AccessorID)
 			}
+
+			token.CreateTime = existing.CreateTime
 		}
 
 		// Validate all the policy names and convert them to policy IDs

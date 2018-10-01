@@ -367,46 +367,43 @@ func (s *Server) initializeACL() error {
 	// leader.
 	s.acls.cache.Purge()
 
-	var minVersion = version.Must(version.NewVersion("1.4.0"))
-	if !ServersMeetMinimumVersion(s.LANMembers(), minVersion) {
-		// Some servers in the cluster have not been upgraded yet
-		// when this is the case we cannot apply any new ACL
-		// operations to raft or they will all error out.
-		return s.initializeLegacyACL()
-	}
-
-	state := s.fsm.State()
-
-	// Create the builtin global-management policy
-	_, policy, err := state.ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID)
-	if err != nil {
-		return fmt.Errorf("failed to get the builtin global-management policy")
-	}
-	if policy == nil {
-		policy := structs.ACLPolicy{
-			ID:          structs.ACLPolicyGlobalManagementID,
-			Name:        "global-management",
-			Description: "Builtin Policy that grants unlimited access",
-			Rules:       structs.ACLPolicyGlobalManagement,
-			Syntax:      acl.SyntaxCurrent,
-		}
-		policy.SetHash(true)
-
-		req := structs.ACLPolicyWriteRequest{
-			Datacenter: s.config.Datacenter,
-			Op:         structs.ACLSet,
-			Policy:     policy,
-		}
-		_, err := s.raftApply(structs.ACLPolicyRequestType, &req)
-		if err != nil {
-			return fmt.Errorf("failed to create global-management policy: %v", err)
-		}
-		s.logger.Printf("[INFO] consul: Created ACL 'global-management' policy")
-	}
-
 	if s.InACLDatacenter() {
-		// TODO (ACL-V2) - Should this only be initialized in the ACL DC? Should we
-		// instead make them local tokens?
+		var minVersion = version.Must(version.NewVersion("1.4.0"))
+		if !ServersMeetMinimumVersion(s.LANMembers(), minVersion) {
+			// Some servers in the cluster have not been upgraded yet
+			// when this is the case we cannot apply any new ACL
+			// operations to raft or they will all error out.
+			return s.initializeLegacyACL()
+		}
+
+		state := s.fsm.State()
+
+		// Create the builtin global-management policy
+		_, policy, err := state.ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID)
+		if err != nil {
+			return fmt.Errorf("failed to get the builtin global-management policy")
+		}
+		if policy == nil {
+			policy := structs.ACLPolicy{
+				ID:          structs.ACLPolicyGlobalManagementID,
+				Name:        "global-management",
+				Description: "Builtin Policy that grants unlimited access",
+				Rules:       structs.ACLPolicyGlobalManagement,
+				Syntax:      acl.SyntaxCurrent,
+			}
+			policy.SetHash(true)
+
+			req := structs.ACLPolicyWriteRequest{
+				Datacenter: s.config.Datacenter,
+				Op:         structs.ACLSet,
+				Policy:     policy,
+			}
+			_, err := s.raftApply(structs.ACLPolicyRequestType, &req)
+			if err != nil {
+				return fmt.Errorf("failed to create global-management policy: %v", err)
+			}
+			s.logger.Printf("[INFO] consul: Created ACL 'global-management' policy")
+		}
 
 		// Check for configured master token.
 		if master := s.config.ACLMasterToken; len(master) > 0 {
@@ -478,9 +475,6 @@ func (s *Server) initializeACL() error {
 					AccessorID:  structs.ACLTokenAnonymousID,
 					SecretID:    structs.ACLTokenAnonymousID,
 					Description: "Anonymous Token",
-
-					// DEPRECATED (ACL-Legacy-Compat) - only needed for compatibility
-					Type: structs.ACLTokenTypeClient,
 				}
 
 				token.SetHash(true)
