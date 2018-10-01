@@ -20,9 +20,7 @@ test('it renders', function(assert) {
 
   // Template block usage:
   this.render(hbs`
-    {{#copy-button-feedback}}
-      template block text
-    {{/copy-button-feedback}}
+    {{#copy-button-feedback value="template block text"}}{{/copy-button-feedback}}
   `);
 
   assert.equal(
