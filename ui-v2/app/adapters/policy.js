@@ -1,7 +1,6 @@
 import Adapter, {
   REQUEST_CREATE,
   REQUEST_UPDATE,
-  REQUEST_DELETE,
   DATACENTER_QUERY_PARAM as API_DATACENTER_KEY,
 } from './application';
 

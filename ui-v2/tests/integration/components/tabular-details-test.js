@@ -15,13 +15,12 @@ test('it renders', function(assert) {
     this.$()
       .text()
       .trim(),
-    ''
+    'Actions'
   );
 
   // Template block usage:
   this.render(hbs`
     {{#tabular-details}}
-      template block text
     {{/tabular-details}}
   `);
 
@@ -29,6 +28,6 @@ test('it renders', function(assert) {
     this.$()
       .text()
       .trim(),
-    'template block text'
+    'Actions'
   );
 });

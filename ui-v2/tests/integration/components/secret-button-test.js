@@ -11,24 +11,23 @@ test('it renders', function(assert) {
 
   this.render(hbs`{{secret-button}}`);
 
-  assert.equal(
+  assert.ok(
     this.$()
       .text()
-      .trim(),
-    ''
+      .trim()
+      .indexOf('Reveal') !== -1
   );
 
   // Template block usage:
   this.render(hbs`
     {{#secret-button}}
-      template block text
     {{/secret-button}}
   `);
 
-  assert.equal(
+  assert.ok(
     this.$()
       .text()
-      .trim(),
-    'template block text'
+      .trim()
+      .indexOf('Reveal') !== -1
   );
 });

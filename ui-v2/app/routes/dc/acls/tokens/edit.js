@@ -32,6 +32,7 @@ export default SingleRoute.extend(WithTokenActions, {
         ...model,
         ...{
           items: get(this, 'policiesRepo').findAllByDatacenter(dc),
+          // TODO: I only need these to create a new policy
           datacenters: get(this, 'datacenterRepo').findAll(),
           policy: this.getEmptyPolicy(),
         },
@@ -76,7 +77,7 @@ export default SingleRoute.extend(WithTokenActions, {
         get(this, 'policiesRepo')
           .persist(item)
           .then(item => {
-            console.log(item.get('data'));
+            // console.log(item.get('data'));
           });
       }, 1000);
     },

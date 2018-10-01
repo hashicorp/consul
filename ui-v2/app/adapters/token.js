@@ -1,7 +1,6 @@
 import Adapter, {
   REQUEST_CREATE,
   REQUEST_UPDATE,
-  REQUEST_DELETE,
   DATACENTER_QUERY_PARAM as API_DATACENTER_KEY,
 } from './application';
 
@@ -11,8 +10,6 @@ import { OK as HTTP_OK } from 'consul-ui/utils/http/status';
 import { PUT as HTTP_PUT } from 'consul-ui/utils/http/method';
 
 import { get } from '@ember/object';
-
-import makeAttrable from 'consul-ui/utils/makeAttrable';
 
 const REQUEST_CLONE = 'cloneRecord';
 
@@ -141,6 +138,6 @@ export default Adapter.extend({
         );
         break;
     }
-    return data.token;
+    return data;
   },
 });

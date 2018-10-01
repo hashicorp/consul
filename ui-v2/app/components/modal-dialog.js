@@ -1,9 +1,10 @@
 import Component from 'consul-ui/components/dom-buffer';
 import { get, set } from '@ember/object';
+import SlotsMixin from 'ember-block-slots';
 
 import templatize from 'consul-ui/utils/templatize';
 const $html = document.documentElement;
-export default Component.extend({
+export default Component.extend(SlotsMixin, {
   // tagName: ''
   checked: true,
   onclose: function() {},

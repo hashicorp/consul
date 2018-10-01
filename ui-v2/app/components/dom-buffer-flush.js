@@ -1,5 +1,5 @@
 import { inject as service } from '@ember/service';
-import { get, set } from '@ember/object';
+import { get } from '@ember/object';
 import Component from '@ember/component';
 const append = function(content) {
   this.element.appendChild(content);

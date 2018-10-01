@@ -21,7 +21,6 @@ test('it renders', function(assert) {
   // Template block usage:
   this.render(hbs`
     {{#token-list}}
-      template block text
     {{/token-list}}
   `);
 
@@ -29,6 +28,6 @@ test('it renders', function(assert) {
     this.$()
       .text()
       .trim(),
-    'template block text'
+    ''
   );
 });

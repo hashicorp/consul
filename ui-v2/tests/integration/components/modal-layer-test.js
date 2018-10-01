@@ -11,24 +11,12 @@ test('it renders', function(assert) {
 
   this.render(hbs`{{modal-layer}}`);
 
-  assert.equal(
-    this.$()
-      .text()
-      .trim(),
-    ''
-  );
+  assert.ok(this.$('#modal_close').length === 1);
 
   // Template block usage:
   this.render(hbs`
     {{#modal-layer}}
-      template block text
     {{/modal-layer}}
   `);
-
-  assert.equal(
-    this.$()
-      .text()
-      .trim(),
-    'template block text'
-  );
+  assert.ok(this.$('#modal_close').length === 1);
 });

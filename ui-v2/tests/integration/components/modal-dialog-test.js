@@ -11,24 +11,23 @@ test('it renders', function(assert) {
 
   this.render(hbs`{{modal-dialog}}`);
 
-  assert.equal(
+  assert.ok(
     this.$()
       .text()
-      .trim(),
-    ''
+      .trim()
+      .indexOf('Close') !== -1
   );
 
   // Template block usage:
   this.render(hbs`
     {{#modal-dialog}}
-      template block text
     {{/modal-dialog}}
   `);
 
-  assert.equal(
+  assert.ok(
     this.$()
       .text()
-      .trim(),
-    'template block text'
+      .trim()
+      .indexOf('Close') !== -1
   );
 });

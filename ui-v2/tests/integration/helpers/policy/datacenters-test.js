@@ -7,7 +7,7 @@ moduleForComponent('policy/datacenters', 'helper:policy/datacenters', {
 
 // Replace this with your real tests.
 test('it renders', function(assert) {
-  this.set('inputValue', '1234');
+  this.set('inputValue', {});
 
   this.render(hbs`{{policy/datacenters inputValue}}`);
 
@@ -15,6 +15,6 @@ test('it renders', function(assert) {
     this.$()
       .text()
       .trim(),
-    '1234'
+    'All'
   );
 });

@@ -1,6 +1,6 @@
 import Mixin from '@ember/object/mixin';
 import WithBlockingActions from 'consul-ui/mixins/with-blocking-actions';
-import { get, set } from '@ember/object';
+import { get } from '@ember/object';
 import { inject as service } from '@ember/service';
 
 export default Mixin.create(WithBlockingActions, {

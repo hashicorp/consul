@@ -7,7 +7,7 @@ moduleForComponent('policy/is-management', 'helper:policy/is-management', {
 
 // Replace this with your real tests.
 test('it renders', function(assert) {
-  this.set('inputValue', '1234');
+  this.set('inputValue', {});
 
   this.render(hbs`{{policy/is-management inputValue}}`);
 
@@ -15,6 +15,6 @@ test('it renders', function(assert) {
     this.$()
       .text()
       .trim(),
-    '1234'
+    'false'
   );
 });

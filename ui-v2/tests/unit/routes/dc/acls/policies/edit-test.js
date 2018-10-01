@@ -4,6 +4,8 @@ moduleFor('route:dc/acls/policies/edit', 'Unit | Route | dc/acls/policies/edit',
   // Specify the other units that are required for this test.
   needs: [
     'service:policies',
+    'service:tokens',
+    'service:dc',
     'service:feedback',
     'service:logger',
     'service:settings',
