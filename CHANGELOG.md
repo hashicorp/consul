@@ -8,6 +8,7 @@ FEATURES:
 BUG FIXES:
 
 * agent: (Consul Enterprise) Fixed an issue where the `non_voting_server` setting could be ignored when bootstrapping the cluster. [[GH-4699](https://github.com/hashicorp/consul/pull/4699)]
+* cli: forward SIGTERM to child process of 'lock' and 'watch' subcommands [[GH-4737](https://github.com/hashicorp/consul/pull/4737)]
 
 ## 1.2.3 (September 13, 2018)
 
