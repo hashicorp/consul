@@ -12,6 +12,7 @@ import (
 	caset "github.com/hashicorp/consul/command/connect/ca/set"
 	"github.com/hashicorp/consul/command/connect/envoy"
 	"github.com/hashicorp/consul/command/connect/proxy"
+	"github.com/hashicorp/consul/command/debug"
 	"github.com/hashicorp/consul/command/event"
 	"github.com/hashicorp/consul/command/exec"
 	"github.com/hashicorp/consul/command/forceleave"
@@ -79,6 +80,7 @@ func init() {
 	Register("connect ca set-config", func(ui cli.Ui) (cli.Command, error) { return caset.New(ui), nil })
 	Register("connect proxy", func(ui cli.Ui) (cli.Command, error) { return proxy.New(ui, MakeShutdownCh()), nil })
 	Register("connect envoy", func(ui cli.Ui) (cli.Command, error) { return envoy.New(ui), nil })
+	Register("debug", func(ui cli.Ui) (cli.Command, error) { return debug.New(ui, MakeShutdownCh()), nil })
 	Register("event", func(ui cli.Ui) (cli.Command, error) { return event.New(ui), nil })
 	Register("exec", func(ui cli.Ui) (cli.Command, error) { return exec.New(ui, MakeShutdownCh()), nil })
 	Register("force-leave", func(ui cli.Ui) (cli.Command, error) { return forceleave.New(ui), nil })
