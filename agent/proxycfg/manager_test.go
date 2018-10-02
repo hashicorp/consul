@@ -66,7 +66,14 @@ func TestManager_BasicLifecycle(t *testing.T) {
 	state.TriggerSyncChanges = func() {}
 
 	// Create manager
-	m := NewManager(logger, c, state, source)
+	m, err := NewManager(ManagerConfig{c, state, source, logger})
+	require.NoError(err)
+
+	// And run it
+	go func() {
+		err := m.Run()
+		require.NoError(err)
+	}()
 
 	// Register a proxy for "web"
 	webProxy := &structs.NodeService{

@@ -192,7 +192,7 @@ type State struct {
 
 	// notifyHandlers is a map of registered channel listeners that are sent
 	// messages whenever state changes occur. For now these events only include
-	// service registratrion and deregistration since that is all that is needed
+	// service registration and deregistration since that is all that is needed
 	// but the same mechanism could be used for other state changes.
 	//
 	// Note that we haven't refactored managedProxyHandlers into this mechanism
