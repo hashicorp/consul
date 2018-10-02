@@ -153,6 +153,9 @@ func DevSource() Source {
 		performance = {
 			raft_multiplier = 1
 		}
+		ports = {
+			grpc = 8502
+		}
 	`,
 	}
 }

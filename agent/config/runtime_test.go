@@ -295,6 +295,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.GossipWANProbeTimeout = 100 * time.Millisecond
 				rt.GossipWANSuspicionMult = 3
 				rt.ConsulServerHealthInterval = 10 * time.Millisecond
+				rt.GRPCPort = 8502
+				rt.GRPCAddrs = []net.Addr{tcpAddr("127.0.0.1:8502")}
 			},
 		},
 		{
