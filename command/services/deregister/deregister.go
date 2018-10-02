@@ -83,6 +83,8 @@ func (c *cmd) Run(args []string) int {
 				svc.Name, err))
 			return 1
 		}
+
+		c.UI.Output(fmt.Sprintf("Deregistered service: %s", id))
 	}
 
 	return 0

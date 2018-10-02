@@ -102,6 +102,8 @@ func (c *cmd) Run(args []string) int {
 				svc.Name, err))
 			return 1
 		}
+
+		c.UI.Output(fmt.Sprintf("Registered service: %s", svc.Name))
 	}
 
 	return 0
