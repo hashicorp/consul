@@ -13,6 +13,18 @@ import (
 	"github.com/mitchellh/hashstructure"
 )
 
+type ACLMode string
+
+const (
+	// ACLs are disabled by configuration
+	ACLModeDisabled ACLMode = "0"
+	// ACLs are enabled
+	ACLModeEnabled ACLMode = "1"
+	// DEPRECATED (ACL-Legacy-Compat) - only needed while legacy ACLs are supported
+	// ACLs are enabled and using legacy ACLs
+	ACLModeLegacy ACLMode = "2"
+)
+
 // ACLOp is used in RPCs to encode ACL operations.
 type ACLOp string
 

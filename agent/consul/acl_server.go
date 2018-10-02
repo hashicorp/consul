@@ -1,8 +1,15 @@
 package consul
 
 import (
+	"net"
+	"time"
+
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/serf/serf"
 )
 
 var serverACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
@@ -51,13 +58,89 @@ func (s *Server) checkPolicyUUID(id string) (bool, error) {
 	return !structs.ACLIDReserved(id), nil
 }
 
+func (s *Server) updateACLAdvertisement() {
+
+	// always advertise to all the LAN Members
+	lib.UpdateSerfTag(s.serfLAN, "acls", string(structs.ACLModeEnabled))
+
+	if s.InACLDatacenter() {
+		// advertise on the WAN only when we are inside the ACL datacenter
+		lib.UpdateSerfTag(s.serfWAN, "acls", string(structs.ACLModeEnabled))
+	}
+}
+
+func (s *Server) monitorACLMode() {
+	minVersion := version.Must(version.NewVersion("1.4.0"))
+
+	for {
+		waitTime := aclModeCheckInterval
+		canUpgrade := true
+
+		if !s.InACLDatacenter() {
+			// need to check that all nodes in the ACL DC are in the current ACL mode
+			for _, member := range s.WANMembers() {
+				if valid, parts := metadata.IsConsulServer(member); valid && parts.Status == serf.StatusAlive {
+					if parts.Datacenter != s.config.ACLDatacenter {
+						continue
+					}
+
+					if parts.ACLs != structs.ACLModeEnabled {
+						// no reason to continue, until all the servers in the ACL DC are speaking new
+						// ACLs this DC cannot upgrade
+						canUpgrade = false
+						break
+					}
+				}
+			}
+		}
+
+		if canUpgrade {
+			if s.IsLeader() {
+				if s.isReadyForConsistentReads() && ServersMeetMinimumVersion(s.LANMembers(), minVersion) {
+					// The ordering here is important
+
+					// Set the flag to indicate we are now going to use new ACLs
+					s.useNewACLs.Set(true)
+					// Initialize the ACL system
+					s.initializeACLs()
+					// Advertise to the rest of the DC that we are using the new ACLs
+					s.updateACLAdvertisement()
+					return
+				}
+			} else {
+				leader := string(s.raft.Leader())
+				for _, member := range s.LANMembers() {
+					if valid, parts := metadata.IsConsulServer(member); valid && parts.Status == serf.StatusAlive {
+						if memberAddr := (&net.TCPAddr{IP: member.Addr, Port: parts.Port}).String(); memberAddr == leader {
+							if parts.ACLs == structs.ACLModeEnabled {
+								s.useNewACLs.Set(true)
+								s.updateACLAdvertisement()
+								return
+							} else {
+								break
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// sleep a while before checking again - 30 seconds?
+		select {
+		case <-s.shutdownCh:
+			return
+		case <-time.After(waitTime):
+			// do nothing
+		}
+	}
+}
+
 func (s *Server) InACLDatacenter() bool {
 	return s.config.Datacenter == s.config.ACLDatacenter
 }
 
 func (s *Server) UseLegacyACLs() bool {
-	// TODO (ACL-V2) - implement the real check here
-	return false
+	return !s.useNewACLs.IsSet()
 }
 
 func (s *Server) ACLDatacenter(legacy bool) string {

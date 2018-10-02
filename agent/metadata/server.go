@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
 )
@@ -39,6 +40,7 @@ type Server struct {
 	Addr         net.Addr
 	Status       serf.MemberStatus
 	NonVoter     bool
+	ACLs         structs.ACLMode
 
 	// If true, use TLS when connecting to this server
 	UseTLS bool

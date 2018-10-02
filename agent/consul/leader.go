@@ -196,7 +196,7 @@ WAIT:
 func (s *Server) establishLeadership() error {
 	// This will create the anonymous token and master token (if that is
 	// configured).
-	if err := s.initializeACL(); err != nil {
+	if err := s.initializeACLs(); err != nil {
 		return err
 	}
 
@@ -354,9 +354,9 @@ func (s *Server) initializeLegacyACL() error {
 	return nil
 }
 
-// initializeACL is used to setup the ACLs if we are the leader
+// initializeACLs is used to setup the ACLs if we are the leader
 // and need to do this.
-func (s *Server) initializeACL() error {
+func (s *Server) initializeACLs() error {
 	if !s.ACLsEnabled() {
 		return nil
 	}
@@ -368,11 +368,7 @@ func (s *Server) initializeACL() error {
 	s.acls.cache.Purge()
 
 	if s.InACLDatacenter() {
-		var minVersion = version.Must(version.NewVersion("1.4.0"))
-		if !ServersMeetMinimumVersion(s.LANMembers(), minVersion) {
-			// Some servers in the cluster have not been upgraded yet
-			// when this is the case we cannot apply any new ACL
-			// operations to raft or they will all error out.
+		if s.UseLegacyACLs() {
 			return s.initializeLegacyACL()
 		}
 

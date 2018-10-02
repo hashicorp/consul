@@ -51,6 +51,10 @@ type Client struct {
 	// acls is used to resolve tokens to effective policies
 	acls *ACLResolver
 
+	// DEPRECATED (ACL-Legacy-Compat) - Only needed while we support both
+	// useNewACLs is a flag to indicate whether we are using the new ACL system
+	useNewACLs *lib.AtomicBool
+
 	// Connection pool to consul servers
 	connPool *pool.ConnPool
 
@@ -144,6 +148,7 @@ func NewClientLogger(config *Config, logger *log.Logger) (*Client, error) {
 		return nil, err
 	}
 
+	c.useNewACLs = lib.NewAtomicBool(false)
 	if c.acls, err = NewACLResolver(config, c, clientACLCacheConfig, true, logger, nil); err != nil {
 		c.Shutdown()
 		return nil, fmt.Errorf("Failed to create ACL resolver: %v", err)
@@ -155,6 +160,10 @@ func NewClientLogger(config *Config, logger *log.Logger) (*Client, error) {
 	if err != nil {
 		c.Shutdown()
 		return nil, fmt.Errorf("Failed to start lan serf: %v", err)
+	}
+
+	if c.acls.ACLsEnabled() {
+		go c.monitorACLMode()
 	}
 
 	// Start maintenance task for servers
