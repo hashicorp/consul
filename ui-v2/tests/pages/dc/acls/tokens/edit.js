@@ -6,6 +6,12 @@ export default function(visitable, submitable, deletable, cancelable, clickable,
           visit: visitable(['/:dc/acls/tokens/:token', '/:dc/acls/tokens/create']),
           policies: collection(
             '[data-test-tabular-row]',
+            deletable(
+              {
+                expand: clickable('label')
+              },
+              '+ tr'
+            )
           ),
         },
         'form > div'
