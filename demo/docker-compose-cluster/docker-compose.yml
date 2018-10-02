@@ -2,26 +2,32 @@ version: '3'
 
 services:
 
-  consul-agent-1: &consul-agent
+  &a-1 consul-agent-1: &consul-agent
+    hostname: *a-1
     image: consul:latest
     networks:
       - consul-demo
     command: "agent -retry-join consul-server-bootstrap -client 0.0.0.0"
 
-  consul-agent-2:
+  &a-2 consul-agent-2:
+    hostname: *a-2
     <<: *consul-agent
 
-  consul-agent-3:
+  &a-3 consul-agent-3:
+    hostname: *a-3
     <<: *consul-agent
 
-  consul-server-1: &consul-server
+  &s-1 consul-server-1: &consul-server
+    hostname: *s-1
     <<: *consul-agent
     command: "agent -server -retry-join consul-server-bootstrap -client 0.0.0.0"
 
-  consul-server-2:
+  &s-2 consul-server-2:
+    hostname: *s-2
     <<: *consul-server
 
-  consul-server-bootstrap:
+  &s-b consul-server-bootstrap:
+    hostname: *s-b
     <<: *consul-agent
     ports:
       - "8400:8400"
