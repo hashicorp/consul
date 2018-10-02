@@ -28,8 +28,8 @@ func SerfDefaultConfig() *serf.Config {
 
 func UpdateSerfTag(serf *serf.Serf, tag, value string) {
 	tags := make(map[string]string)
-	for tag, value := range serf.LocalMember().Tags {
-		tags[tag] = value
+	for k, v := range serf.LocalMember().Tags {
+		tags[k] = v
 	}
 	tags[tag] = value
 
