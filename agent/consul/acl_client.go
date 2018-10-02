@@ -1,8 +1,13 @@
 package consul
 
 import (
+	"time"
+
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/serf/serf"
 )
 
 var clientACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
@@ -21,8 +26,33 @@ var clientACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
 }
 
 func (c *Client) UseLegacyACLs() bool {
-	// TODO (ACL-V2) - implement the real check here
-	return false
+	return c.useNewACLs.IsSet() == false
+}
+
+func (c *Client) monitorACLMode() {
+	for {
+		canUpgrade := true
+		for _, member := range c.LANMembers() {
+			if valid, parts := metadata.IsConsulServer(member); valid && parts.Status == serf.StatusAlive {
+				if parts.ACLs != structs.ACLModeEnabled {
+					canUpgrade = false
+					break
+				}
+			}
+		}
+
+		if canUpgrade {
+			c.useNewACLs.Set(true)
+			lib.UpdateSerfTag(c.serf, "acls", string(structs.ACLModeEnabled))
+		}
+
+		select {
+		case <-c.shutdownCh:
+			return
+		case <-time.After(aclModeCheckInterval):
+			// do nothing
+		}
+	}
 }
 
 func (c *Client) ACLDatacenter(legacy bool) string {

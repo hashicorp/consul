@@ -40,19 +40,11 @@ const (
 	// policies that get compiled into the authorizer. Therefore this size is the
 	// amount of unique policy combinations which can be cached.
 	authorizerCacheSize = 1024
-)
 
-type ACLVersion string
-
-const (
-	// ACLs are disabled by configuration
-	ACLVersionDisabled ACLVersion = "0"
-	// ACLs are enabled but the node is still discovering which version to use.
-	ACLVersionDiscovery ACLVersion = "1"
-	// ACLs are enabled and using legacy ACLs
-	ACLVersionLegacy ACLVersion = "2"
-	// ACLs are enabled and using new ACLs
-	ACLVersionCurrent ACLVersion = "3"
+	// DEPRECATED (ACL-Legacy-Compat)
+	// aclModeCheckInterval controls how often the agent checks if it should
+	// be using the new or legacy ACL system.
+	aclModeCheckInterval = 30 * time.Second
 )
 
 type ACLResolverDelegate interface {

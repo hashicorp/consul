@@ -25,3 +25,13 @@ func SerfDefaultConfig() *serf.Config {
 
 	return base
 }
+
+func UpdateSerfTag(serf *serf.Serf, tag, value string) {
+	tags := make(map[string]string)
+	for tag, value := range serf.LocalMember().Tags {
+		tags[tag] = value
+	}
+	tags[tag] = value
+
+	serf.SetTags(tags)
+}

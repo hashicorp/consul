@@ -96,6 +96,10 @@ type Server struct {
 	// acls is used to resolve tokens to effective policies
 	acls *ACLResolver
 
+	// DEPRECATED (ACL-Legacy-Compat) - only needed while we support both
+	// useNewACLs is used to determine whether we can use new ACLs or not
+	useNewACLs *lib.AtomicBool
+
 	// autopilot is the Autopilot instance for this server.
 	autopilot *autopilot.Autopilot
 
@@ -341,6 +345,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 	s.statsFetcher = NewStatsFetcher(logger, s.connPool, s.config.Datacenter)
 
 	s.sentinel = sentinel.New(logger)
+	s.useNewACLs = lib.NewAtomicBool(false)
 	// Initialize the ACL resolver.
 	if s.acls, err = NewACLResolver(config, s, serverACLCacheConfig, false, logger, s.sentinel); err != nil {
 		s.Shutdown()
@@ -439,6 +444,10 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 	// Start monitoring leadership. This must happen after Serf is set up
 	// since it can fire events when leadership is obtained.
 	go s.monitorLeadership()
+
+	if s.ACLsEnabled() {
+		go s.monitorACLMode()
+	}
 
 	// Start ACL replication.
 	if s.IsACLReplicationEnabled() {
