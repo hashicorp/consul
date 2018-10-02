@@ -3,12 +3,33 @@ package services
 import (
 	"testing"
 
+	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/stretchr/testify/require"
 )
 
+// This test ensures that dev mode doesn't register services by default.
+// We depend on this behavior for ServiesFromFiles so we want to fail
+// tests if that ever changes.
+func TestDevModeHasNoServices(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+
+	devMode := true
+	b, err := config.NewBuilder(config.Flags{
+		DevMode: &devMode,
+	})
+	require.NoError(err)
+
+	cfg, err := b.BuildAndValidate()
+	require.NoError(err)
+	require.Empty(cfg.Services)
+}
+
 func TestStructsToAgentService(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		Name   string
 		Input  *structs.ServiceDefinition
@@ -71,6 +92,7 @@ func TestStructsToAgentService(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
+			t.Parallel()
 			require := require.New(t)
 			actual, err := serviceToAgentService(tc.Input)
 			require.NoError(err)
