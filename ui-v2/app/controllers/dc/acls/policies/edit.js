@@ -25,7 +25,8 @@ export default Controller.extend({
           );
           break;
         case 'Rules':
-          set(this, 'item.Rules', target.value);
+        case 'Description':
+          set(this.changeset, target.name, target.value);
           break;
         case 'isScoped':
           set(this, 'isScoped', !get(this, 'isScoped'));

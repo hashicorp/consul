@@ -41,7 +41,6 @@ test("it does nothing if an anchor isn't found", function(assert) {
 });
 test('it dispatches the result of `click` if an anchor is found', function(assert) {
   assert.expect(1);
-  const t = this;
   const expected = 'click';
   const closest = function() {
     return {

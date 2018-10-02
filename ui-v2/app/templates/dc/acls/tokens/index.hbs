@@ -86,14 +86,30 @@
                                     <a data-test-logout onclick={{queue (action confirm 'use' item) (action change)}}>Use</a>
                                 </li>
 {{/if}}
+{{#unless (token/is-anonymous item) }}
                                 <li>
                                     <a data-test-delete onclick={{action confirm 'delete' item}}>Delete</a>
                                 </li>
+{{/unless}}
                             </ul>
                         {{/action-group}}
                     {{/block-slot}}
                     {{#block-slot 'dialog' as |execute cancel message name|}}
-                      {{delete-confirmation message=message execute=execute cancel=cancel}}
+                        <p>
+                            {{#if (eq name 'delete')}}
+                              {{message}}
+                            {{ else if (eq name 'use')}}
+                                Are you sure you want to use this ACL token?
+                            {{/if}}
+                        </p>
+                        <button type="button" class="type-delete" {{action execute}}>
+                            {{#if (eq name 'delete')}}
+                                Confirm Delete
+                            {{ else if (eq name 'use')}}
+                                Confirm Use
+                            {{/if}}
+                        </button>
+                        <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
                     {{/block-slot}}
                 {{/confirmation-dialog}}
             {{/block-slot}}

@@ -80,6 +80,13 @@ export default Adapter.extend({
     // TODO: private..
     return this._makeRequest(request);
   },
+  handleSingleResponse: function(url, response, primary, slug) {
+    // Sometimes we get `Policies: null`, make null equal an empty array
+    if (response.Policies === null) {
+      response.Policies = [];
+    }
+    return this._super(url, response, primary, slug);
+  },
   handleResponse: function(status, headers, payload, requestData) {
     let response = payload;
     const method = requestData.method;
@@ -133,7 +140,7 @@ export default Adapter.extend({
         // here after its been removed
         data.token[SLUG_KEY] = params.snapshot.attr(SLUG_KEY);
         data.token.Name = uniqueName(
-          params.store.peekAll('blog-post').toArray(),
+          params.store.peekAll('token').toArray(),
           params.snapshot.attr('Name')
         );
         break;

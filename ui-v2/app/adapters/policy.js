@@ -7,6 +7,7 @@ import Adapter, {
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/policy';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 import { OK as HTTP_OK } from 'consul-ui/utils/http/status';
+import { PUT as HTTP_PUT } from 'consul-ui/utils/http/method';
 import makeAttrable from 'consul-ui/utils/makeAttrable';
 
 export default Adapter.extend({
@@ -79,5 +80,12 @@ export default Adapter.extend({
       }
     }
     return this._super(status, headers, response, requestData);
+  },
+  methodForRequest: function(params) {
+    switch (params.requestType) {
+      case REQUEST_CREATE:
+        return HTTP_PUT;
+    }
+    return this._super(...arguments);
   },
 });

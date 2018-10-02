@@ -37,6 +37,7 @@ export default Controller.extend({
           set(this.changeset, target.name, !get(this.item, target.name));
           break;
         case 'Type': // Legacy
+        case 'Name': // Legacy
         case 'Description':
         case 'Rules':
           set(this.changeset, target.name, target.value);

@@ -9,8 +9,13 @@ const model = Model.extend({
   [PRIMARY_KEY]: attr('string'),
   [SLUG_KEY]: attr('string'),
   SecretID: attr('string'),
-  Type: attr('string'), // Legacy only
+  // Legacy
+  Type: attr('string'),
   Name: attr('string', {
+    defaultValue: '',
+  }),
+  // End Legacy
+  Description: attr('string', {
     defaultValue: '',
   }),
   Datacenter: attr('string'),
@@ -25,5 +30,6 @@ const model = Model.extend({
   CreateIndex: attr('number'),
   ModifyIndex: attr('number'),
 });
-export const ATTRS = writable(model, ['Name', 'Policies']);
+// Name is only for Legacy tokens, not sure if they get upgraded yet?
+export const ATTRS = writable(model, ['Name', 'Description', 'Policies', 'AccessorID']);
 export default model;

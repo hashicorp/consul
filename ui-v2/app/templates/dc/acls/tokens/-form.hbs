@@ -12,7 +12,7 @@
         <button type="submit" {{ action "update" item}} disabled={{if item.isInvalid 'disabled'}}>Save</button>
 {{/if}}
         <button type="reset" {{ action "cancel" item}}>Cancel</button>
-{{# if (not create) }}
+{{# if (or (not create) (not token/is-anonymous item)) }}
         {{#confirmation-dialog message='Are you sure you want to delete this Token?'}}
             {{#block-slot 'action' as |confirm|}}
                 <button type="button" data-test-delete class="type-delete" {{action confirm 'delete' item}}>Delete</button>
