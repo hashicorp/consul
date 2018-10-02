@@ -107,6 +107,12 @@ type ResultMeta struct {
 	// For simple cache types, Age is the time since the result being returned was
 	// fetched from the servers.
 	Age time.Duration
+
+	// Index is the internal ModifyIndex for the cache entry. Not all types
+	// support blocking and all that do will likely have this in their result type
+	// already but this allows generic code to reason about whether cache values
+	// have changed.
+	Index uint64
 }
 
 // Options are options for the Cache.
@@ -204,13 +210,20 @@ func (c *Cache) RegisterType(n string, typ Type, opts *RegisterOptions) {
 // error is returned on timeout. This matches the behavior of Consul blocking
 // queries.
 func (c *Cache) Get(t string, r Request) (interface{}, ResultMeta, error) {
+	return c.getWithIndex(t, r, r.CacheInfo().MinIndex)
+}
+
+// getWithIndex implements the main Get functionality but allows internal
+// callers (Watch) to manipulate the blocking index separately from the actual
+// request object.
+func (c *Cache) getWithIndex(t string, r Request, minIndex uint64) (interface{}, ResultMeta, error) {
 	info := r.CacheInfo()
 	if info.Key == "" {
 		metrics.IncrCounter([]string{"consul", "cache", "bypass"}, 1)
 
 		// If no key is specified, then we do not cache this request.
 		// Pass directly through to the backend.
-		return c.fetchDirect(t, r)
+		return c.fetchDirect(t, r, minIndex)
 	}
 
 	// Get the actual key for our entry
@@ -223,11 +236,6 @@ func (c *Cache) Get(t string, r Request) (interface{}, ResultMeta, error) {
 	var timeoutCh <-chan time.Time
 
 RETRY_GET:
-	// Get the current value
-	c.entriesLock.RLock()
-	entry, ok := c.entries[key]
-	c.entriesLock.RUnlock()
-
 	// Get the type that we're fetching
 	c.typesLock.RLock()
 	tEntry, ok := c.types[t]
@@ -238,6 +246,11 @@ RETRY_GET:
 		return nil, ResultMeta{}, fmt.Errorf("unknown type in cache: %s", t)
 	}
 
+	// Get the current value
+	c.entriesLock.RLock()
+	entry, ok := c.entries[key]
+	c.entriesLock.RUnlock()
+
 	// Check if we have a hit
 	cacheHit := ok && entry.Valid
 
@@ -246,7 +259,7 @@ RETRY_GET:
 	// Check index is not specified or lower than value, or the type doesn't
 	// support blocking.
 	if cacheHit && supportsBlocking &&
-		info.MinIndex > 0 && info.MinIndex >= entry.Index {
+		minIndex > 0 && minIndex >= entry.Index {
 		// MinIndex was given and matches or is higher than current value so we
 		// ignore the cache and fallthrough to blocking on a new value below.
 		cacheHit = false
@@ -266,7 +279,7 @@ RETRY_GET:
 	}
 
 	if cacheHit {
-		meta := ResultMeta{}
+		meta := ResultMeta{Index: entry.Index}
 		if first {
 			metrics.IncrCounter([]string{"consul", "cache", t, "hit"}, 1)
 			meta.Hit = true
@@ -306,14 +319,14 @@ RETRY_GET:
 	// timeout. Instead, we make one effort to fetch a new value, and if
 	// there was an error, we return.
 	if !first && entry.Error != nil {
-		return entry.Value, ResultMeta{}, entry.Error
+		return entry.Value, ResultMeta{Index: entry.Index}, entry.Error
 	}
 
 	if first {
 		// We increment two different counters for cache misses depending on
 		// whether we're missing because we didn't have the data at all,
 		// or if we're missing because we're blocking on a set index.
-		if info.MinIndex == 0 {
+		if minIndex == 0 {
 			metrics.IncrCounter([]string{"consul", "cache", t, "miss_new"}, 1)
 		} else {
 			metrics.IncrCounter([]string{"consul", "cache", t, "miss_block"}, 1)
@@ -332,17 +345,17 @@ RETRY_GET:
 	// value we have is too old. We need to wait for new data.
 	waiterCh, err := c.fetch(t, key, r, true, 0)
 	if err != nil {
-		return nil, ResultMeta{}, err
+		return nil, ResultMeta{Index: entry.Index}, err
 	}
 
 	select {
 	case <-waiterCh:
-		// Our fetch returned, retry the get from the cache
+		// Our fetch returned, retry the get from the cache.
 		goto RETRY_GET
 
 	case <-timeoutCh:
 		// Timeout on the cache read, just return whatever we have.
-		return entry.Value, ResultMeta{}, nil
+		return entry.Value, ResultMeta{Index: entry.Index}, nil
 	}
 }
 
@@ -552,7 +565,7 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool, attempt uint) (<-
 // fetchDirect fetches the given request with no caching. Because this
 // bypasses the caching entirely, multiple matching requests will result
 // in multiple actual RPC calls (unlike fetch).
-func (c *Cache) fetchDirect(t string, r Request) (interface{}, ResultMeta, error) {
+func (c *Cache) fetchDirect(t string, r Request, minIndex uint64) (interface{}, ResultMeta, error) {
 	// Get the type that we're fetching
 	c.typesLock.RLock()
 	tEntry, ok := c.types[t]
@@ -563,7 +576,7 @@ func (c *Cache) fetchDirect(t string, r Request) (interface{}, ResultMeta, error
 
 	// Fetch it with the min index specified directly by the request.
 	result, err := tEntry.Type.Fetch(FetchOptions{
-		MinIndex: r.CacheInfo().MinIndex,
+		MinIndex: minIndex,
 	}, r)
 	if err != nil {
 		return nil, ResultMeta{}, err
@@ -571,6 +584,21 @@ func (c *Cache) fetchDirect(t string, r Request) (interface{}, ResultMeta, error
 
 	// Return the result and ignore the rest
 	return result.Value, ResultMeta{}, nil
+}
+
+func backOffWait(failures uint) time.Duration {
+	if failures > CacheRefreshBackoffMin {
+		shift := failures - CacheRefreshBackoffMin
+		waitTime := CacheRefreshMaxWait
+		if shift < 31 {
+			waitTime = (1 << shift) * time.Second
+		}
+		if waitTime > CacheRefreshMaxWait {
+			waitTime = CacheRefreshMaxWait
+		}
+		return waitTime
+	}
+	return 0
 }
 
 // refresh triggers a fetch for a specific Request according to the
@@ -586,17 +614,8 @@ func (c *Cache) refresh(opts *RegisterOptions, attempt uint, t string, key strin
 	}
 
 	// If we're over the attempt minimum, start an exponential backoff.
-	if attempt > CacheRefreshBackoffMin {
-		shift := attempt - CacheRefreshBackoffMin
-		waitTime := CacheRefreshMaxWait
-		if shift < 31 {
-			waitTime = (1 << shift) * time.Second
-		}
-		if waitTime > CacheRefreshMaxWait {
-			waitTime = CacheRefreshMaxWait
-		}
-
-		time.Sleep(waitTime)
+	if wait := backOffWait(attempt); wait > 0 {
+		time.Sleep(wait)
 	}
 
 	// If we have a timer, wait for it
