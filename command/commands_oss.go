@@ -44,6 +44,9 @@ import (
 	operraftremove "github.com/hashicorp/consul/command/operator/raft/removepeer"
 	"github.com/hashicorp/consul/command/reload"
 	"github.com/hashicorp/consul/command/rtt"
+	"github.com/hashicorp/consul/command/services"
+	svcsderegister "github.com/hashicorp/consul/command/services/deregister"
+	svcsregister "github.com/hashicorp/consul/command/services/register"
 	"github.com/hashicorp/consul/command/snapshot"
 	snapinspect "github.com/hashicorp/consul/command/snapshot/inspect"
 	snaprestore "github.com/hashicorp/consul/command/snapshot/restore"
@@ -107,6 +110,9 @@ func init() {
 	Register("operator raft remove-peer", func(ui cli.Ui) (cli.Command, error) { return operraftremove.New(ui), nil })
 	Register("reload", func(ui cli.Ui) (cli.Command, error) { return reload.New(ui), nil })
 	Register("rtt", func(ui cli.Ui) (cli.Command, error) { return rtt.New(ui), nil })
+	Register("services", func(cli.Ui) (cli.Command, error) { return services.New(), nil })
+	Register("services register", func(ui cli.Ui) (cli.Command, error) { return svcsregister.New(ui), nil })
+	Register("services deregister", func(ui cli.Ui) (cli.Command, error) { return svcsderegister.New(ui), nil })
 	Register("snapshot", func(cli.Ui) (cli.Command, error) { return snapshot.New(), nil })
 	Register("snapshot inspect", func(ui cli.Ui) (cli.Command, error) { return snapinspect.New(ui), nil })
 	Register("snapshot restore", func(ui cli.Ui) (cli.Command, error) { return snaprestore.New(ui), nil })
