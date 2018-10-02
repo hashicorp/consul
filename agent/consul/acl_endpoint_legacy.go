@@ -172,9 +172,17 @@ func (a *ACL) List(args *structs.DCSpecificRequest,
 	return a.srv.blockingQuery(&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, acls, err := state.ACLList(ws)
+			index, tokens, err := state.ACLTokenList(ws)
 			if err != nil {
 				return err
+			}
+
+			var acls structs.ACLs
+			for _, token := range tokens {
+				acl := token.Convert()
+				if acl != nil {
+					acls = append(acls, acl)
+				}
 			}
 
 			reply.Index, reply.ACLs = index, acls

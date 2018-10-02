@@ -390,46 +390,6 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet) (uint64, structs.ACLTokens, erro
 	return idx, result, nil
 }
 
-func (s *Store) ACLGet(ws memdb.WatchSet, aclID string) (uint64, *structs.ACL, error) {
-	tx := s.db.Txn(false)
-	defer tx.Abort()
-
-	// Get the table index.
-	idx := maxIndexTxn(tx, "acl-tokens")
-
-	// Query for the existing ACL
-	watchCh, token, err := tx.FirstWatch("acl-tokens", "secret", aclID)
-	if err != nil {
-		return 0, nil, fmt.Errorf("failed acl lookup: %s", err)
-	}
-	ws.Add(watchCh)
-
-	if token != nil {
-		acl, _ := token.(*structs.ACLToken).Convert()
-		if acl != nil {
-			return idx, acl, nil
-		}
-	}
-	return idx, nil, nil
-}
-
-// DEPRECATED (ACL-Legacy-Compat) - Only needed for V1 compat
-func (s *Store) ACLList(ws memdb.WatchSet) (uint64, structs.ACLs, error) {
-	var result structs.ACLs
-	idx, tokens, err := s.ACLTokenList(ws)
-	if err != nil {
-		return 0, nil, err
-	}
-
-	for _, token := range tokens {
-		if compat, err := token.Convert(); err == nil && compat != nil {
-			result = append(result, compat)
-		}
-	}
-
-	return idx, result, nil
-}
-
 // ACLTokenDeleteSecret is used to remove an existing ACL from the state store. If
 // the ACL does not exist this is a no-op and no error is returned.
 func (s *Store) ACLTokenDeleteSecret(idx uint64, secret string) error {
@@ -442,10 +402,31 @@ func (s *Store) ACLTokenDeleteAccessor(idx uint64, accessor string) error {
 	return s.aclTokenDelete(idx, accessor, "id")
 }
 
+func (s *Store) ACLTokensDelete(idx uint64, tokenIDs []string) error {
+	tx := s.db.Txn(true)
+	defer tx.Abort()
+
+	for _, tokenID := range tokenIDs {
+		if err := s.aclTokenDeleteTxn(tx, idx, tokenID, "id"); err != nil {
+			return err
+		}
+	}
+
+	tx.Commit()
+	return nil
+}
+
 func (s *Store) aclTokenDelete(idx uint64, value, index string) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
+	s.aclTokenDeleteTxn(tx, idx, value, index)
+
+	tx.Commit()
+	return nil
+}
+
+func (s *Store) aclTokenDeleteTxn(tx *memdb.Txn, idx uint64, value, index string) error {
 	// Look up the existing token
 	token, err := tx.First("acl-tokens", index, value)
 	if err != nil {
