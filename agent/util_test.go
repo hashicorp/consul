@@ -170,7 +170,6 @@ func TestHelperProcess(t *testing.T) {
 	switch cmd {
 	case "parent-signal":
 		// This subcommand forwards signals to a child process subcommand "print-signal".
-		testname := args[0]
 
 		limitProcessLifetime(2 * time.Minute)
 
@@ -180,20 +179,20 @@ func TestHelperProcess(t *testing.T) {
 		cmd.Stderr = os.Stderr
 
 		if err := cmd.Start(); err != nil {
-			fmt.Fprintf(os.Stderr, "%s: child process failed to start: %v\n", testname, err)
+			fmt.Fprintf(os.Stderr, "child process failed to start: %v\n", err)
 			os.Exit(1)
 		}
 
 		doneCh := make(chan struct{})
 		defer func() { close(doneCh) }()
 		logFn := func(err error) {
-			fmt.Fprintf(os.Stderr, "%s: could not forward signal: %s\n", testname, err)
+			fmt.Fprintf(os.Stderr, "could not forward signal: %s\n", err)
 			os.Exit(1)
 		}
 		ForwardSignals(cmd, logFn, doneCh)
 
 		if err := cmd.Wait(); err != nil {
-			fmt.Fprintf(os.Stderr, "%s: unexpected error waiting for child: %v", testname, err)
+			fmt.Fprintf(os.Stderr, "unexpected error waiting for child: %v", err)
 			os.Exit(1)
 		}
 
@@ -229,14 +228,14 @@ func limitProcessLifetime(dur time.Duration) {
 
 func TestForwardSignals(t *testing.T) {
 	for _, s := range forwardSignals {
-		testForwardSignal(t, s)
+		t.Run("signal-"+s.String(), func(t *testing.T) {
+			testForwardSignal(t, s)
+		})
 	}
 }
 
 func testForwardSignal(t *testing.T, s os.Signal) {
 	t.Helper()
-
-	testname := fmt.Sprintf("for signal %q", s)
 
 	if s == os.Kill {
 		t.Fatalf("you can't forward SIGKILL")
@@ -245,44 +244,44 @@ func testForwardSignal(t *testing.T, s os.Signal) {
 	// Launch a child process which registers the forwarding signal handler
 	// under test and then that in turn launches a grand child process that is
 	// our test instrument.
-	cmd, destroy := helperProcess("parent-signal", testname)
+	cmd, destroy := helperProcess("parent-signal")
 	defer destroy()
 
 	cmd.Stderr = os.Stderr
 	prc, err := cmd.StdoutPipe()
 	if err != nil {
-		t.Fatalf("%s: could not open stdout pipe for child process: %v", testname, err)
+		t.Fatalf("could not open stdout pipe for child process: %v", err)
 	}
 	defer prc.Close()
 
 	if err := cmd.Start(); err != nil {
-		t.Fatalf("%s: child process failed to start: %v", testname, err)
+		t.Fatalf("child process failed to start: %v", err)
 	}
 	scan := bufio.NewScanner(prc)
 
 	// Wait until the grandchild relays back to us that it's ready to receive
 	// signals.
-	expectLine(t, testname, "ready", scan)
+	expectLine(t, "ready", scan)
 
 	// Relay our chosen signal down through the intermediary process.
 	if err := cmd.Process.Signal(s); err != nil {
-		t.Fatalf("%s: signalling child failed: %v", testname, err)
+		t.Fatalf("signalling child failed: %v", err)
 	}
 
 	// Verify that the signal we intended made it all the way to the grandchild.
-	expectLine(t, testname, "signal: "+s.String(), scan)
+	expectLine(t, "signal: "+s.String(), scan)
 }
 
-func expectLine(t *testing.T, testname string, expect string, scan *bufio.Scanner) {
+func expectLine(t *testing.T, expect string, scan *bufio.Scanner) {
 	if !scan.Scan() {
 		if scan.Err() != nil {
-			t.Fatalf("%s: expected to read line %q but failed: %v", testname, expect, scan.Err())
+			t.Fatalf("expected to read line %q but failed: %v", expect, scan.Err())
 		} else {
-			t.Fatalf("%s: expected to read line %q but got no line", testname, expect)
+			t.Fatalf("expected to read line %q but got no line", expect)
 		}
 	}
 
 	if line := scan.Text(); expect != line {
-		t.Fatalf("%s: expected to read line %q but got %q", testname, expect, line)
+		t.Fatalf("expected to read line %q but got %q", expect, line)
 	}
 }
