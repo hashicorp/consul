@@ -19,6 +19,14 @@ import (
 	"github.com/mholt/caddy"
 	"github.com/miekg/dns"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	// Excluding azure because it is failing to compile
+	// pull this in here, because we want it excluded if plugin.cfg doesn't have k8s
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	// pull this in here, because we want it excluded if plugin.cfg doesn't have k8s
+	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
+	// pull this in here, because we want it excluded if plugin.cfg doesn't have k8s
+	_ "k8s.io/client-go/plugin/pkg/client/auth/openstack"
 	"k8s.io/client-go/tools/clientcmd"
 )
 

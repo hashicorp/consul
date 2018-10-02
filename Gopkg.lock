@@ -2,6 +2,14 @@
 
 
 [[projects]]
+  digest = "1:1acadbbc24182315b628f727b2e9ac653266d1644ca4007e0766c28110afc072"
+  name = "cloud.google.com/go"
+  packages = ["compute/metadata"]
+  pruneopts = ""
+  revision = "97efc2c9ffd9fe8ef47f7f3203dc60bbca547374"
+  version = "v0.28.0"
+
+[[projects]]
   digest = "1:6aa683f91e93784ec7b76fe1568492f419aa3aa0b72f2087912c8c2cada7a375"
   name = "github.com/DataDog/dd-trace-go"
   packages = [
@@ -226,6 +234,22 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:c29d304a0d86a51588fe4a90e7e891a11877ebd31f6f263304f8d463bbeeed96"
+  name = "github.com/gophercloud/gophercloud"
+  packages = [
+    ".",
+    "openstack",
+    "openstack/identity/v2/tenants",
+    "openstack/identity/v2/tokens",
+    "openstack/identity/v3/tokens",
+    "openstack/utils",
+    "pagination",
+  ]
+  pruneopts = ""
+  revision = "bfc006765209a570e9a783bd7e4372e24fb72781"
+
+[[projects]]
+  branch = "master"
   digest = "1:009a1928b8c096338b68b5822d838a72b4d8520715c1463614476359f3282ec8"
   name = "github.com/gregjones/httpcache"
   packages = [
@@ -428,6 +452,7 @@
   name = "golang.org/x/net"
   packages = [
     "context",
+    "context/ctxhttp",
     "http/httpguts",
     "http2",
     "http2/hpack",
@@ -437,6 +462,20 @@
   ]
   pruneopts = ""
   revision = "4cb1c02c05b0e749b0365f61ae859a8e0cfceed9"
+
+[[projects]]
+  branch = "master"
+  digest = "1:b697592485cb412be4188c08ca0beed9aab87f36b86418e21acc4a3998f63734"
+  name = "golang.org/x/oauth2"
+  packages = [
+    ".",
+    "google",
+    "internal",
+    "jws",
+    "jwt",
+  ]
+  pruneopts = ""
+  revision = "d2e6202438beef2727060aa7cabdd924d92ebfd9"
 
 [[projects]]
   branch = "master"
@@ -479,6 +518,25 @@
   packages = ["rate"]
   pruneopts = ""
   revision = "fbb02b2291d28baffd63558aa44b4b56f178d650"
+
+[[projects]]
+  digest = "1:8c432632a230496c35a15cfdf441436f04c90e724ad99c8463ef0c82bbe93edb"
+  name = "google.golang.org/appengine"
+  packages = [
+    ".",
+    "internal",
+    "internal/app_identity",
+    "internal/base",
+    "internal/datastore",
+    "internal/log",
+    "internal/modules",
+    "internal/remote_api",
+    "internal/urlfetch",
+    "urlfetch",
+  ]
+  pruneopts = ""
+  revision = "ae0ab99deb4dc413a2b4bd6c8bdd0eb67f1e4d06"
+  version = "v1.2.0"
 
 [[projects]]
   branch = "master"
@@ -697,9 +755,13 @@
     "pkg/apis/clientauthentication/v1beta1",
     "pkg/version",
     "plugin/pkg/client/auth/exec",
+    "plugin/pkg/client/auth/gcp",
+    "plugin/pkg/client/auth/oidc",
+    "plugin/pkg/client/auth/openstack",
     "rest",
     "rest/watch",
     "testing",
+    "third_party/forked/golang/template",
     "tools/auth",
     "tools/cache",
     "tools/clientcmd",
@@ -716,6 +778,7 @@
     "util/flowcontrol",
     "util/homedir",
     "util/integer",
+    "util/jsonpath",
     "util/retry",
   ]
   pruneopts = ""
@@ -763,6 +826,9 @@
     "k8s.io/apimachinery/pkg/watch",
     "k8s.io/client-go/kubernetes",
     "k8s.io/client-go/kubernetes/fake",
+    "k8s.io/client-go/plugin/pkg/client/auth/gcp",
+    "k8s.io/client-go/plugin/pkg/client/auth/oidc",
+    "k8s.io/client-go/plugin/pkg/client/auth/openstack",
     "k8s.io/client-go/rest",
     "k8s.io/client-go/tools/cache",
     "k8s.io/client-go/tools/clientcmd",
