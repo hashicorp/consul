@@ -1,5 +1,10 @@
 ## UNRELEASED
 
+FEATURES:
+
+* New command `consul services register` and `consul services deregister` for
+  registering and deregistering services from the command line. [[GH-4732](https://github.com/hashicorp/consul/issues/4732)]
+
 BUG FIXES:
 
 * agent: (Consul Enterprise) Fixed an issue where the `non_voting_server` setting could be ignored when bootstrapping the cluster. [[GH-4699](https://github.com/hashicorp/consul/pull/4699)]
