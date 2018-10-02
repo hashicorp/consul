@@ -127,6 +127,7 @@ export default Adapter.extend({
             Name: get(item, 'Name'),
           };
         });
+        data = data.token;
         break;
       case REQUEST_CLONE:
         data = {};

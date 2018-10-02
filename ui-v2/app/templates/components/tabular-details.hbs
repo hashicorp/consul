@@ -8,7 +8,7 @@
   </thead>
   <tbody>
     {{#each items as |item index|}}
-      <tr onclick={{action 'click'}}>
+      <tr data-test-tabular-row onclick={{action 'click'}}>
           {{#yield-slot 'row'}}{{yield item index}}{{/yield-slot}}
           <td class="actions">
             <label for={{concat name '-summary-' index '-toggle'}}><span>Show details</span></label>

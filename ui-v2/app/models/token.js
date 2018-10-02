@@ -30,6 +30,6 @@ const model = Model.extend({
   CreateIndex: attr('number'),
   ModifyIndex: attr('number'),
 });
-// Name is only for Legacy tokens, not sure if they get upgraded yet?
-export const ATTRS = writable(model, ['Name', 'Description', 'Policies', 'AccessorID']);
+// Name and Type is only for legacy tokens
+export const ATTRS = writable(model, ['Name', 'Type', 'Description', 'Policies', 'AccessorID']);
 export default model;

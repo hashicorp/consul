@@ -78,12 +78,12 @@
                                 </li>
 {{#if (eq item.AccessorID currentAccessorID) }}
                                 <li>
-                                    <a data-test-use onclick={{queue (action confirm 'use' item) (action change)}}>Stop using</a>
+                                    <a data-test-logout onclick={{queue (action confirm 'use' item) (action change)}}>Stop using</a>
                                 </li>
 {{else}}
 
                                 <li>
-                                    <a data-test-logout onclick={{queue (action confirm 'use' item) (action change)}}>Use</a>
+                                    <a data-test-use onclick={{queue (action confirm 'use' item) (action change)}}>Use</a>
                                 </li>
 {{/if}}
 {{#unless (token/is-anonymous item) }}

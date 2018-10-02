@@ -172,7 +172,7 @@ export default function(assert) {
           assert.equal(
             body[key],
             data[key],
-            `Expected the payload to contain ${key} to equal ${body[key]}, ${key} was ${data[key]}`
+            `Expected the payload to contain ${key} equaling ${data[key]}, ${key} was ${body[key]}`
           );
         });
       })

@@ -13,7 +13,7 @@
           <th>Description</th>
       {{/block-slot}}
       {{#block-slot 'row'}}
-          <td>
+          <td data-test-token="{{item.AccessorID}}">
             <a href={{href-to 'dc.acls.tokens.edit' item.AccessorID}} target={{or target ''}}>{{truncate item.AccessorID 8 false}}</a>
           </td>
           <td>

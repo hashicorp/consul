@@ -48,11 +48,11 @@ export default {
   policies: create(
     policies(visitable, deletable, creatable, clickable, attribute, collection, freetextFilter)
   ),
-  policy: create(policy(visitable, submitable, deletable, cancelable, clickable)),
+  policy: create(policy(visitable, submitable, deletable, cancelable, clickable, attribute, collection)),
   tokens: create(
     tokens(visitable, deletable, creatable, clickable, attribute, collection, freetextFilter)
   ),
-  token: create(token(visitable, submitable, deletable, cancelable, clickable)),
+  token: create(token(visitable, submitable, deletable, cancelable, clickable, attribute, collection)),
   intentions: create(
     intentions(visitable, deletable, creatable, clickable, attribute, collection, intentionFilter)
   ),
