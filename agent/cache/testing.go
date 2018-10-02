@@ -6,6 +6,7 @@ import (
 
 	"github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 // TestCache returns a Cache instance configuring for testing.
@@ -48,6 +49,43 @@ func TestCacheGetChResult(t testing.T, ch <-chan interface{}, expected interface
 	case <-time.After(50 * time.Millisecond):
 		t.Fatalf("Result not sent on channel")
 	}
+}
+
+// TestCacheNotifyChResult tests that the expected updated was delivered on a
+// Notify() chan within a reasonable period of time (it expects it to be
+// "immediate" but waits some milliseconds). Expected may be given multiple
+// times and if so these are all waited for and asserted to match but IN ANY
+// ORDER to ensure we aren't timing dependent.
+func TestCacheNotifyChResult(t testing.T, ch <-chan UpdateEvent, expected ...UpdateEvent) {
+	t.Helper()
+
+	expectLen := len(expected)
+	if expectLen < 1 {
+		panic("asserting nothing")
+	}
+
+	got := make([]UpdateEvent, 0, expectLen)
+	timeoutCh := time.After(50 * time.Millisecond)
+
+OUT:
+	for {
+		select {
+		case result := <-ch:
+			// Ignore age as it's non-deterministic
+			result.Meta.Age = 0
+			got = append(got, result)
+			if len(got) == expectLen {
+				break OUT
+			}
+
+		case <-timeoutCh:
+			t.Fatalf("got %d results on chan in 50ms, want %d", len(got), expectLen)
+		}
+	}
+
+	// We already asserted len since you can only get here if we appended enough.
+	// Just check all the results we got are in the expected slice
+	require.ElementsMatch(t, expected, got)
 }
 
 // TestRequest returns a Request that returns the given cache key and index.
