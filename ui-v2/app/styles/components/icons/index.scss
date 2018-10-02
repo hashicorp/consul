@@ -63,7 +63,7 @@
 }
 %with-hashicorp::before {
   @extend %pseudo-icon;
-  opacity: .45;
+  opacity: 0.45;
   background-image: $hashicorp-svg;
   background-size: cover;
   width: 20px;
@@ -152,7 +152,7 @@
 %with-inverted-tick {
   @extend %pseudo-icon;
   background-color: $ui-color-transparent;
-  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="10" height="8" xmlns="http://www.w3.org/2000/svg"><path d="M8.95 0L10 .985 3.734 8 0 4.737l.924-1.11 2.688 2.349z" fill="#{$magenta-800-url-encoded}"/></svg>');
+  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="10" height="8" xmlns="http://www.w3.org/2000/svg"><path d="M8.95 0L10 .985 3.734 8 0 4.737l.924-1.11 2.688 2.349z" fill="##{$magenta-800-no-hash}"/></svg>');
   height: 20px !important;
   width: 16px !important;
 }
