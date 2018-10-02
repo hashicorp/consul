@@ -7,6 +7,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/hashicorp/consul/testrpc"
+
 	"github.com/hashicorp/consul/agent"
 	agConnect "github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/api"
@@ -24,6 +26,7 @@ func TestProxy_public(t *testing.T) {
 
 	a := agent.NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	client := a.Client()
 
 	// Register the service so we can get a leaf cert

@@ -18,6 +18,9 @@ module.exports = function(defaults) {
     'ember-cli-babel': {
       includePolyfill: true
     },
+    'ember-cli-string-helpers': {
+      only: ['capitalize']
+    },
     'babel': {
       plugins: [
         'transform-object-rest-spread'
@@ -45,6 +48,9 @@ module.exports = function(defaults) {
         "ie 11"
       ]
     },
+    'ember-cli-string-helpers': {
+      only: ['lowercase']
+    }
   });
   // Use `app.import` to add additional libraries to the generated
   // output files.

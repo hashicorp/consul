@@ -39,7 +39,7 @@ The table below shows this endpoint's support for
 ```text
 $ curl \
     --request PUT \
-    https://consul.rocks/v1/acl/bootstrap
+    http://127.0.0.1:8500/v1/acl/bootstrap
 ```
 
 ### Sample Response
@@ -104,7 +104,7 @@ The table below shows this endpoint's support for
 $ curl \
     --request PUT \
     --data @payload.json \
-    https://consul.rocks/v1/acl/create
+    http://127.0.0.1:8500/v1/acl/create
 ```
 
 ### Sample Response
@@ -155,7 +155,7 @@ required.
 $ curl \
     --request PUT \
     --data @payload.json \
-    https://consul.rocks/v1/acl/update
+    http://127.0.0.1:8500/v1/acl/update
 ```
 
 ## Delete ACL Token
@@ -185,7 +185,7 @@ The table below shows this endpoint's support for
 ```text
 $ curl \
     --request PUT \
-    https://consul.rocks/v1/acl/destroy/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
+    http://127.0.0.1:8500/v1/acl/destroy/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
 ```
 
 ## Read ACL Token
@@ -216,7 +216,7 @@ Note: No ACL is required because the ACL is specified in the URL path.
 
 ```text
 $ curl \
-    https://consul.rocks/v1/acl/info/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
+    http://127.0.0.1:8500/v1/acl/info/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
 ```
 
 ### Sample Response
@@ -263,7 +263,7 @@ The table below shows this endpoint's support for
 ```text
 $ curl \
     --request PUT \
-    https://consul.rocks/v1/acl/clone/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
+    http://127.0.0.1:8500/v1/acl/clone/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
 ```
 
 ### Sample Response
@@ -295,7 +295,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/acl/list
+    http://127.0.0.1:8500/v1/acl/list
 ```
 
 ### Sample Response
@@ -345,7 +345,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/acl/replication
+    http://127.0.0.1:8500/v1/acl/replication
 ```
 
 ### Sample Response

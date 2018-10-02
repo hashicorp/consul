@@ -1,0 +1,16 @@
+@import './buttons/index';
+button[type='submit'],
+a.type-create {
+  @extend %primary-button;
+}
+button[type='reset'],
+button[type='button']:not(.copy-btn):not(.type-delete),
+html.template-error div > a {
+  @extend %secondary-button;
+}
+button.type-delete {
+  @extend %dangerous-button;
+}
+button.copy-btn {
+  @extend %copy-button;
+}

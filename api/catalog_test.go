@@ -33,6 +33,9 @@ func TestAPI_CatalogNodes(t *testing.T) {
 	catalog := c.Catalog()
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
 		nodes, meta, err := catalog.Nodes(nil)
+		// We're not concerned about the createIndex of an agent
+		// Hence we're setting it to the default value
+		nodes[0].CreateIndex = 0
 		if err != nil {
 			r.Fatal(err)
 		}
@@ -52,7 +55,12 @@ func TestAPI_CatalogNodes(t *testing.T) {
 				Meta: map[string]string{
 					"consul-network-segment": "",
 				},
-				CreateIndex: meta.LastIndex - 1,
+				// CreateIndex will never always be meta.LastIndex - 1
+				// The purpose of this test is not to test CreateIndex value of an agent
+				// rather to check if the client agent can get the correct number
+				// of agents with a particular service, KV pair, etc...
+				// Hence reverting this to the default value here.
+				CreateIndex: 0,
 				ModifyIndex: meta.LastIndex,
 			},
 		}

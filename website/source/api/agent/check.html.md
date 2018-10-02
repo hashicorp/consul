@@ -40,7 +40,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/agent/checks
+    http://127.0.0.1:8500/v1/agent/checks
 ```
 
 ### Sample Response
@@ -204,7 +204,7 @@ The table below shows this endpoint's support for
 $ curl \
    --request PUT \
    --data @payload.json \
-   https://consul.rocks/v1/agent/check/register
+   http://127.0.0.1:8500/v1/agent/check/register
 ```
 
 ## Deregister Check
@@ -236,7 +236,7 @@ The table below shows this endpoint's support for
 ```text
 $ curl \
     --request PUT \
-    https://consul.rocks/v1/agent/check/deregister/my-check-id
+    http://127.0.0.1:8500/v1/agent/check/deregister/my-check-id
 ```
 
 ## TTL Check Pass
@@ -269,7 +269,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/agent/check/pass/my-check-id
+    http://127.0.0.1:8500/v1/agent/check/pass/my-check-id
 ```
 
 ## TTL Check Warn
@@ -302,7 +302,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/agent/check/warn/my-check-id
+    http://127.0.0.1:8500/v1/agent/check/warn/my-check-id
 ```
 
 ## TTL Check Fail
@@ -335,7 +335,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/agent/check/fail/my-check-id
+    http://127.0.0.1:8500/v1/agent/check/fail/my-check-id
 ```
 
 ## TTL Check Update
@@ -382,5 +382,5 @@ The table below shows this endpoint's support for
 $ curl \
     --request PUT \
     --data @payload.json \
-    https://consul.rocks/v1/agent/check/update/my-check-id
+    http://127.0.0.1:8500/v1/agent/check/update/my-check-id
 ```

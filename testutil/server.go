@@ -395,3 +395,56 @@ func (s *TestServer) waitForLeader() error {
 	}
 	return nil
 }
+
+// WaitForSerfCheck ensures we have a node with serfHealth check registered
+// Behavior mirrors testrpc.WaitForTestAgent but avoids the dependency cycle in api pkg
+func (s *TestServer) WaitForSerfCheck(t *testing.T) {
+	retry.Run(t, func(r *retry.R) {
+		// Query the API and check the status code.
+		url := s.url("/v1/catalog/nodes?index=0")
+		resp, err := s.HTTPClient.Get(url)
+		if err != nil {
+			r.Fatal("failed http get", err)
+		}
+		defer resp.Body.Close()
+		if err := s.requireOK(resp); err != nil {
+			r.Fatal("failed OK response", err)
+		}
+
+		// Watch for the anti-entropy sync to finish.
+		var payload []map[string]interface{}
+		dec := json.NewDecoder(resp.Body)
+		if err := dec.Decode(&payload); err != nil {
+			r.Fatal(err)
+		}
+		if len(payload) < 1 {
+			r.Fatal("No nodes")
+		}
+
+		// Ensure the serfHealth check is registered
+		url = s.url(fmt.Sprintf("/v1/health/node/%s", payload[0]["Node"]))
+		resp, err = s.HTTPClient.Get(url)
+		if err != nil {
+			r.Fatal("failed http get", err)
+		}
+		defer resp.Body.Close()
+		if err := s.requireOK(resp); err != nil {
+			r.Fatal("failed OK response", err)
+		}
+		dec = json.NewDecoder(resp.Body)
+		if err = dec.Decode(&payload); err != nil {
+			r.Fatal(err)
+		}
+
+		var found bool
+		for _, check := range payload {
+			if check["CheckID"].(string) == "serfHealth" {
+				found = true
+				break
+			}
+		}
+		if !found {
+			r.Fatal("missing serfHealth registration")
+		}
+	})
+}

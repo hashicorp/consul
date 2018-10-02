@@ -1,4 +1,7 @@
 {{#app-view class="kv edit" loading=isLoading}}
+    {{#block-slot 'notification' as |status type|}}
+      {{partial 'dc/kv/notifications'}}
+    {{/block-slot}}
     {{#block-slot 'breadcrumbs'}}
         <ol>
             <li><a data-test-back href={{href-to 'dc.kv.index'}}>Key / Values</a></li>
@@ -24,7 +27,7 @@
         {{/if}}
         {{partial 'dc/kv/form'}}
         {{#if session}}
-            <div>
+            <div data-test-session>
                 <h2><a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/internals/sessions.html#session-design" rel="help noopener noreferrer" target="_blank">Lock Session</a></h2>
                 <dl>
                     <dt>Name</dt>
@@ -54,7 +57,7 @@
                 </dl>
                 {{#confirmation-dialog message='Are you sure you want to invalidate this session?'}}
                     {{#block-slot 'action' as |confirm|}}
-                        <button type="button" class="type-delete" {{ action confirm "invalidateSession" session }}>Invalidate Session</button>
+                        <button type="button" data-test-delete class="type-delete" {{ action confirm "invalidateSession" session }}>Invalidate Session</button>
                     {{/block-slot}}
                     {{#block-slot 'dialog' as |execute cancel message|}}
                         <p>

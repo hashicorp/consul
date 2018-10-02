@@ -15,7 +15,12 @@ export default Controller.extend(WithFiltering, {
   },
   setProperties: function() {
     this._super(...arguments);
-    set(this, 'selectedTab', 'health-checks');
+    // the default selected tab depends on whether you have any healthchecks or not
+    // so check the length here.
+    // This method is called immediately after `Route::setupController`, and done here rather than there
+    // as this is a variable used purely for view level things, if the view was different we might not
+    // need this variable
+    set(this, 'selectedTab', get(this.item, 'Checks.length') > 0 ? 'health-checks' : 'services');
   },
   filter: function(item, { s = '' }) {
     const term = s.toLowerCase();

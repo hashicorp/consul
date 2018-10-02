@@ -2,7 +2,6 @@ import Controller from '@ember/controller';
 import { computed, get } from '@ember/object';
 import WithFiltering from 'consul-ui/mixins/with-filtering';
 import ucfirst from 'consul-ui/utils/ucfirst';
-import numeral from 'numeral';
 // TODO: DRY out in acls at least
 const createCounter = function(prop) {
   return function(items, val) {
@@ -24,9 +23,10 @@ export default Controller.extend(WithFiltering, {
     const items = get(this, 'items');
     return ['', 'allow', 'deny'].map(function(item) {
       return {
-        label: `${item === '' ? 'All' : ucfirst(item)} (${numeral(
-          countAction(items, item)
-        ).format()})`,
+        label: `${item === '' ? 'All' : ucfirst(item)} (${countAction(
+          items,
+          item
+        ).toLocaleString()})`,
         value: item,
       };
     });

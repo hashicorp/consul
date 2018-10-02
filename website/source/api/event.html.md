@@ -63,7 +63,7 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit...
 $ curl \
     --request PUT \
     --data @payload \
-    https://consul.rocks/v1/event/fire/my-event
+    http://127.0.0.1:8500/v1/event/fire/my-event
 ```
 
 ### Sample Response
@@ -122,7 +122,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/event/list
+    http://127.0.0.1:8500/v1/event/list
 ```
 
 ### Sample Response

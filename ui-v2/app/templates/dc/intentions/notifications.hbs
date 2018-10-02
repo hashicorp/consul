@@ -1,0 +1,22 @@
+{{#if (eq type 'create')}}
+  {{#if (eq status 'success') }}
+    Your intention has been added.
+  {{else if (eq status 'exists') }}
+    An intention already exists for this Source-Destination pair. Please enter a different combination of Services, or search the intentions to edit an existing intention.
+  {{else}}
+    There was an error adding your intention.
+  {{/if}}
+{{else if (eq type 'update') }}
+  {{#if (eq status 'success') }}
+    Your intention has been saved.
+  {{else}}
+    There was an error saving your intention.
+  {{/if}}
+{{ else if (eq type 'delete')}}
+  {{#if (eq status 'success') }}
+    Your intention was deleted.
+  {{else}}
+    There was an error deleting your intention.
+  {{/if}}
+{{/if}}
+

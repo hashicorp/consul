@@ -172,6 +172,13 @@ func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) 
 
 	// Use empty list instead of nil
 	for id, s := range services {
+		weights := api.AgentWeights{Passing: 1, Warning: 1}
+		if s.Weights != nil {
+			if s.Weights.Passing > 0 {
+				weights.Passing = s.Weights.Passing
+			}
+			weights.Warning = s.Weights.Warning
+		}
 		as := &api.AgentService{
 			Kind:              api.ServiceKind(s.Kind),
 			ID:                s.ID,
@@ -184,6 +191,7 @@ func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) 
 			CreateIndex:       s.CreateIndex,
 			ModifyIndex:       s.ModifyIndex,
 			ProxyDestination:  s.ProxyDestination,
+			Weights:           weights,
 		}
 		if as.Tags == nil {
 			as.Tags = []string{}
@@ -581,6 +589,13 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 
 	// Get the node service.
 	ns := args.NodeService()
+	if ns.Weights != nil {
+		if err := structs.ValidateWeights(ns.Weights); err != nil {
+			resp.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(resp, fmt.Errorf("Invalid Weights: %v", err))
+			return nil, nil
+		}
+	}
 	if err := structs.ValidateMetadata(ns.Meta, false); err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, fmt.Errorf("Invalid Service Meta: %v", err))
@@ -665,15 +680,6 @@ func (s *HTTPServer) AgentDeregisterService(resp http.ResponseWriter, req *http.
 
 	if err := s.agent.RemoveService(serviceID, true); err != nil {
 		return nil, err
-	}
-
-	// Remove the associated managed proxy if it exists
-	for proxyID, p := range s.agent.State.Proxies() {
-		if p.Proxy.TargetServiceID == serviceID {
-			if err := s.agent.RemoveProxy(proxyID, true); err != nil {
-				return nil, err
-			}
-		}
 	}
 
 	s.syncChanges()

@@ -1,8 +1,12 @@
-<input type="radio" name="actions" id="actions_{{index}}" checked={{if (eq checked 'checked') 'checked' }} onchange={{action onchange}} value={{index}} />
-<label for="actions_{{index}}">
-    <span>Open</span>
-</label>
-<label for="actions_close">
-    <span>Close</span>
-</label>
-{{yield}}
+{{! action groups are block only components, you MUST specify a list of actions in the component body }}
+{{! therefore if you call this component as an inline component, nothing is produced }}
+{{#if hasBlock }}
+  <input type="radio" name="actions" id="actions_{{index}}" checked={{if (eq checked 'checked') 'checked' }} onchange={{action onchange}} value={{index}} />
+  <label for="actions_{{index}}">
+      <span>Open</span>
+  </label>
+  <label for="actions_close">
+      <span>Close</span>
+  </label>
+  {{yield}}
+{{/if}}

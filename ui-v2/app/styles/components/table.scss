@@ -1,24 +1,49 @@
-@import './icons';
-@import './tag';
-td strong {
-  @extend %tag;
-  background-color: $gray;
+@import './icons/index';
+td.folder {
+  @extend %with-folder;
 }
-th {
-  color: $text-light !important;
+td dt.passing {
+  @extend %with-passing;
+}
+td dt.warning {
+  @extend %with-warning;
+}
+td dt.critical {
+  @extend %with-critical;
+}
+td span.zero {
+  @extend %with-no-healthchecks;
+  display: block;
+  text-indent: 20px;
+  color: $ui-gray-400;
+}
+table:not(.sessions) tr {
+  cursor: pointer;
 }
 th,
 td {
-  border-bottom: 1px solid;
+  border-bottom: $decor-border-100;
+}
+td dt.passing,
+td dt.passing + dd {
+  color: $ui-color-success;
+}
+td dt.warning,
+td dt.warning + dd {
+  color: $ui-color-alert;
+}
+td dt.critical,
+td dt.critical + dd {
+  color: $ui-color-failure;
+}
+th {
+  color: $ui-gray-400 !important;
 }
 th {
   border-color: $keyline-dark;
 }
 td {
   border-color: $keyline-mid;
-}
-td.folder {
-  @extend %with-folder;
 }
 table {
   width: 100%;
@@ -56,7 +81,8 @@ table td a {
   display: block;
 }
 tbody {
-  overflow-x: visible !important;
+  /* important required as ember-collection will inline an overflow: visible*/
+  overflow-x: hidden !important;
 }
 th,
 td:not(.actions),
@@ -84,24 +110,8 @@ td dd.zero {
 td dt {
   text-indent: -9000px;
 }
-td dt.passing,
-td dt.passing + dd {
-  color: $green;
-}
-td dt.warning,
-td dt.warning + dd {
-  color: $orange;
-}
-td dt.critical,
-td dt.critical + dd {
-  color: $red;
-}
-td dt.passing {
-  @extend %with-passing;
-}
 td dt.warning {
   overflow: visible;
-  @extend %with-warning;
 }
 td dt.warning::before {
   top: 7px;
@@ -110,11 +120,37 @@ td dt.warning::after {
   left: -2px;
   top: -1px;
 }
-td dt.critical {
-  @extend %with-critical;
-}
 td dd {
   box-sizing: content-box;
   margin-left: 22px;
   padding-right: 10px;
+}
+/* hide actions on narrow screens, you can always click in do everything from there */
+@media #{$--lt-wide-table} {
+  tr > .actions {
+    display: none;
+  }
+}
+/* ideally these would be in route css files, but left here as they */
+/* accomplish the same thing (hide non-essential columns for tables) */
+@media #{$--lt-wide-table} {
+  html.template-intention.template-list tr > :nth-last-child(2) {
+    display: none;
+  }
+  html.template-service.template-list tr > :last-child {
+    display: none;
+  }
+  html.template-node.template-show #services tr > :last-child {
+    display: none;
+  }
+  html.template-node.template-show #lock-sessions tr >
+  :not(:first-child):not(:last-child) {
+    display: none;
+  }
+  html.template-node.template-show #lock-sessions td:last-child {
+    padding: 0;
+  }
+  html.template-node.template-show #lock-sessions td:last-child button {
+    float: right;
+  }
 }
