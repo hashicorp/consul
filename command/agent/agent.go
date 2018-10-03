@@ -256,8 +256,8 @@ func (c *cmd) run(args []string) int {
 	c.UI.Info(fmt.Sprintf("     Node name: '%s'", config.NodeName))
 	c.UI.Info(fmt.Sprintf("    Datacenter: '%s' (Segment: '%s')", config.Datacenter, segment))
 	c.UI.Info(fmt.Sprintf("        Server: %v (Bootstrap: %v)", config.ServerMode, config.Bootstrap))
-	c.UI.Info(fmt.Sprintf("   Client Addr: %v (HTTP: %d, HTTPS: %d, DNS: %d)", config.ClientAddrs,
-		config.HTTPPort, config.HTTPSPort, config.DNSPort))
+	c.UI.Info(fmt.Sprintf("   Client Addr: %v (HTTP: %d, HTTPS: %d, gRPC: %d, DNS: %d)", config.ClientAddrs,
+		config.HTTPPort, config.HTTPSPort, config.GRPCPort, config.DNSPort))
 	c.UI.Info(fmt.Sprintf("  Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
 		config.SerfPortLAN, config.SerfPortWAN))
 	c.UI.Info(fmt.Sprintf("       Encrypt: Gossip: %v, TLS-Outgoing: %v, TLS-Incoming: %v",
