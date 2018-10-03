@@ -48,7 +48,7 @@ func listenersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]pr
 // makeListener returns a listener with name and bind details set. Filters must
 // be added before it's useful.
 //
-// Note on names: Envoy listeners attempt gracefull transitions of connections
+// Note on names: Envoy listeners attempt graceful transitions of connections
 // when their config changes but that means they can't have their bind address
 // or port changed in a running instance. Since our users might choose to change
 // a bind address or port for the public or upstream listeners, we need to
@@ -83,7 +83,7 @@ func makeListener(name, addr string, port int) *envoy.Listener {
 func makeListenerFromUserConfig(configJSON string) (*envoy.Listener, error) {
 	// Figure out if there is an @type field. We don't require is since we know
 	// this will be a listener but unmarshalling into types.Any fails if it's not
-	// there and unmarshaling into listener directly fails if it is...
+	// there and unmarshalling into listener directly fails if it is...
 	var jsonFields map[string]*json.RawMessage
 	if err := json.Unmarshal([]byte(configJSON), &jsonFields); err != nil {
 		return nil, err
@@ -249,7 +249,7 @@ func makeFilter(name string, cfg proto.Message) (envoylistener.Filter, error) {
 }
 
 func makeCommonTLSContext(cfgSnap *proxycfg.ConfigSnapshot) *envoyauth.CommonTlsContext {
-	// Concatenate all the root pems into one.
+	// Concatenate all the root PEMs into one.
 	// TODO(banks): verify this actually works with Envoy (docs are not clear).
 	rootPEMS := ""
 	for _, root := range cfgSnap.Roots.Roots {
