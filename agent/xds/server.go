@@ -55,34 +55,25 @@ type ConnectAuthz interface {
 	ConnectAuthorize(token string, req *structs.ConnectAuthorizeRequest) (authz bool, reason string, m *cache.ResultMeta, err error)
 }
 
-// ConfigManager is the interface the config manager implements to make testing
-// the server without a full mocker manager, state and cache. In normal use this
-// is satisfied directly by a pointer to the agent's proxycfg.Manager.
+// ConfigManager is the interface xds.Server requires to consume proxy config
+// updates. It's satisfied normally by the agent's proxycfg.Manager, but allows
+// easier testing without several layers of mocked cache, local state and
+// proxycfg.Manager.
 type ConfigManager interface {
 	Watch(proxyID string) (<-chan *proxycfg.ConfigSnapshot, func())
 }
 
 // Server represents a gRPC server that can handle both XDS and ext_authz
-// requests from Envoy.
+// requests from Envoy. All of it's public members must be set before the gRPC
+// server is started.
 //
 // A full description of the XDS protocol can be found at
 // https://github.com/envoyproxy/data-plane-api/blob/master/XDS_PROTOCOL.md
 type Server struct {
-	logger       *log.Logger
-	cfgMgr       ConfigManager
-	authz        ConnectAuthz
-	resolveToken ACLResolverFunc
-}
-
-// NewServer creates a usable server instance.
-func NewServer(logger *log.Logger, cfgMgr ConfigManager,
-	aclFn ACLResolverFunc, authz ConnectAuthz) *Server {
-	return &Server{
-		logger:       logger,
-		cfgMgr:       cfgMgr,
-		authz:        authz,
-		resolveToken: aclFn,
-	}
+	Logger       *log.Logger
+	CfgMgr       ConfigManager
+	Authz        ConnectAuthz
+	ResolveToken ACLResolverFunc
 }
 
 // StreamAggregatedResources implements
@@ -108,7 +99,7 @@ func (s *Server) StreamAggregatedResources(stream ADSStream) error {
 
 	err := s.process(stream, reqCh)
 	if err != nil {
-		s.logger.Printf("[DEBUG] Error handling ADS stream: %s", err)
+		s.Logger.Printf("[DEBUG] Error handling ADS stream: %s", err)
 	}
 
 	// prevents writing to a closed channel if send failed on blocked recv
@@ -171,12 +162,12 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *v2.DiscoveryRequest) er
 
 	for {
 		select {
-		case <-stream.Context().Done():
-			// TODO: Not sure if we should error here, this presumably happens during
-			// a normal shutdown where client goes away too.
-			return nil
 		case req, ok = <-reqCh:
 			if !ok {
+				// reqCh is closed when stream.Recv errors which is how we detect client
+				// going away. AFAICT the stream.Context() is only cancelled once the
+				// RPC method returns which it can't until we return from this one so
+				// there's no point in blocking on that.
 				return nil
 			}
 			if req.TypeUrl == "" {
@@ -202,7 +193,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *v2.DiscoveryRequest) er
 			proxyID = req.Node.Id
 
 			// Start watching config for that proxy
-			stateCh, watchCancel = s.cfgMgr.Watch(proxyID)
+			stateCh, watchCancel = s.CfgMgr.Watch(proxyID)
 			defer watchCancel()
 
 			// Now wait for the config so we can check ACL
@@ -214,7 +205,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *v2.DiscoveryRequest) er
 			}
 			// Got config, try to authenticate
 			token := tokenFromStream(stream)
-			rule, err := s.resolveToken(token)
+			rule, err := s.ResolveToken(token)
 			if err != nil {
 				return err
 			}
@@ -379,7 +370,7 @@ func (s *Server) Check(ctx context.Context, r *authz.CheckRequest) (*authz.Check
 		// revocation later.
 	}
 	token := tokenFromContext(ctx)
-	authed, reason, _, err := s.authz.ConnectAuthorize(token, req)
+	authed, reason, _, err := s.Authz.ConnectAuthorize(token, req)
 	if err != nil {
 		if err == acl.ErrPermissionDenied {
 			return nil, status.Error(codes.PermissionDenied, err.Error())

@@ -113,7 +113,7 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	envoy := NewTestEnvoy(t, "web-sidecar-proxy", "")
 	defer envoy.Close()
 
-	s := NewServer(logger, mgr, aclResolve, mgr)
+	s := Server{logger, mgr, mgr, aclResolve}
 
 	go func() {
 		err := s.StreamAggregatedResources(envoy.stream)
@@ -601,7 +601,7 @@ func TestServer_StreamAggregatedResources_ACLEnforcment(t *testing.T) {
 			envoy := NewTestEnvoy(t, "web-sidecar-proxy", tt.token)
 			defer envoy.Close()
 
-			s := NewServer(logger, mgr, aclResolve, mgr)
+			s := Server{logger, mgr, mgr, aclResolve}
 
 			errCh := make(chan error, 1)
 			go func() {
@@ -741,7 +741,7 @@ func TestServer_Check(t *testing.T) {
 			envoy := NewTestEnvoy(t, "web-sidecar-proxy", token)
 			defer envoy.Close()
 
-			s := NewServer(logger, mgr, aclResolve, mgr)
+			s := Server{logger, mgr, mgr, aclResolve}
 
 			// Create a context with the correct token
 			ctx := metadata.NewIncomingContext(context.Background(),

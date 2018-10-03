@@ -3,6 +3,7 @@ package xds
 import (
 	"context"
 	"fmt"
+	"io"
 	"sync"
 	"time"
 
@@ -42,7 +43,11 @@ func (s *TestADSStream) Send(r *v2.DiscoveryResponse) error {
 
 // Recv implements ADSStream
 func (s *TestADSStream) Recv() (*v2.DiscoveryRequest, error) {
-	return <-s.recvCh, nil
+	r := <-s.recvCh
+	if r == nil {
+		return nil, io.EOF
+	}
+	return r, nil
 }
 
 // SetHeader implements ADSStream
@@ -117,6 +122,9 @@ func hexString(v uint64) string {
 
 // SendReq sends a request from the test server.
 func (e *TestEnvoy) SendReq(t testing.T, typeURL string, version, nonce uint64) {
+	e.Lock()
+	defer e.Unlock()
+
 	req := &v2.DiscoveryRequest{
 		VersionInfo: hexString(version),
 		Node: &core.Node{
@@ -135,6 +143,14 @@ func (e *TestEnvoy) SendReq(t testing.T, typeURL string, version, nonce uint64) 
 
 // Close closes the client and cancels it's request context.
 func (e *TestEnvoy) Close() error {
+	e.Lock()
+	defer e.Unlock()
+
+	// unblock the recv chan to simulate recv error when client disconnects
+	if e.stream != nil && e.stream.recvCh != nil {
+		close(e.stream.recvCh)
+		e.stream.recvCh = nil
+	}
 	if e.cancel != nil {
 		e.cancel()
 	}
