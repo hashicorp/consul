@@ -1901,6 +1901,67 @@ func checksInSync(state *local.State, wantChecks int) error {
 	return nil
 }
 
+func TestState_Notify(t *testing.T) {
+	t.Parallel()
+
+	state := local.NewState(local.Config{},
+		log.New(os.Stderr, "", log.LstdFlags), &token.Store{})
+
+	// Stub state syncing
+	state.TriggerSyncChanges = func() {}
+
+	require := require.New(t)
+	assert := assert.New(t)
+
+	// Register a notifier
+	notifyCh := make(chan struct{}, 1)
+	state.Notify(notifyCh)
+	defer state.StopNotify(notifyCh)
+	assert.Empty(notifyCh)
+	drainCh(notifyCh)
+
+	// Add a service
+	err := state.AddService(&structs.NodeService{
+		Service: "web",
+	}, "fake-token-web")
+	require.NoError(err)
+
+	// Should have a notification
+	assert.NotEmpty(notifyCh)
+	drainCh(notifyCh)
+
+	// Re-Add same service
+	err = state.AddService(&structs.NodeService{
+		Service: "web",
+		Port:    4444,
+	}, "fake-token-web")
+	require.NoError(err)
+
+	// Should have a notification
+	assert.NotEmpty(notifyCh)
+	drainCh(notifyCh)
+
+	// Remove service
+	require.NoError(state.RemoveService("web"))
+
+	// Should have a notification
+	assert.NotEmpty(notifyCh)
+	drainCh(notifyCh)
+
+	// Stopping should... stop
+	state.StopNotify(notifyCh)
+
+	// Add a service
+	err = state.AddService(&structs.NodeService{
+		Service: "web",
+	}, "fake-token-web")
+	require.NoError(err)
+
+	// Should NOT have a notification
+	assert.Empty(notifyCh)
+	drainCh(notifyCh)
+}
+
 func TestStateProxyManagement(t *testing.T) {
 	t.Parallel()
 
