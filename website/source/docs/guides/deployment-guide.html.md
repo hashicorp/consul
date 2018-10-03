@@ -64,7 +64,7 @@ consul -autocomplete-install
 complete -C /usr/local/bin/consul consul
 ```
 
-Create a unique, non-privileged system user to run Consul and create it’s data directory.
+Create a unique, non-privileged system user to run Consul and create its data directory.
 
 ```text
 sudo useradd --system --home /etc/consul.d --shell /bin/false consul
@@ -134,7 +134,7 @@ Consul server agents typically require a superset of configuration required by C
 
 ### General configuration
 
-Create a configuration file at /etc/consul.d/consul.hcl:
+Create a configuration file at `/etc/consul.d/consul.hcl`:
 
 ```text
 sudo mkdir --parents /etc/consul.d
@@ -203,7 +203,7 @@ The [Creating Certificates](/docs/guides/creating-certificates.html) guide provi
 
 ### Server configuration
 
-Create a configuration file at /etc/consul.d/server.hcl:
+Create a configuration file at `/etc/consul.d/server.hcl`:
 
 ```text
 sudo mkdir --parents /etc/consul.d
