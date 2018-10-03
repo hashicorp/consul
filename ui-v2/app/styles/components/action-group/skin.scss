@@ -2,7 +2,7 @@
   @extend %toggle-button;
 }
 %action-group input[type='radio']:checked + label:first-of-type {
-  @extend %toggle-button:hover;
+  background-color: $ui-gray-050;
 }
 %action-group label {
   cursor: pointer;
