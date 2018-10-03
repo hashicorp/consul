@@ -1354,6 +1354,11 @@ func (a *Agent) ShutdownAgent() error {
 		}
 	}
 
+	// Stop the cache background work
+	if a.cache != nil {
+		a.cache.Close()
+	}
+
 	var err error
 	if a.delegate != nil {
 		err = a.delegate.Shutdown()

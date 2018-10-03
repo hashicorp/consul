@@ -18,6 +18,7 @@ import (
 	"container/heap"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -71,6 +72,12 @@ type Cache struct {
 	entriesLock       sync.RWMutex
 	entries           map[string]cacheEntry
 	entriesExpiryHeap *expiryHeap
+
+	// stopped is used as an atomic flag to signal that the Cache has been
+	// discarded so background fetches and expiry processing should stop.
+	stopped uint32
+	// stopCh is closed when Close is called
+	stopCh chan struct{}
 }
 
 // typeEntry is a single type that is registered with a Cache.
@@ -104,6 +111,7 @@ func New(*Options) *Cache {
 		types:             make(map[string]typeEntry),
 		entries:           make(map[string]cacheEntry),
 		entriesExpiryHeap: h,
+		stopCh:            make(chan struct{}),
 	}
 
 	// Start the expiry watcher
@@ -467,6 +475,10 @@ func (c *Cache) refresh(opts *RegisterOptions, attempt uint, t string, key strin
 	if !opts.Refresh {
 		return
 	}
+	// Check if cache was stopped
+	if atomic.LoadUint32(&c.stopped) == 1 {
+		return
+	}
 
 	// If we're over the attempt minimum, start an exponential backoff.
 	if attempt > CacheRefreshBackoffMin {
@@ -511,6 +523,8 @@ func (c *Cache) runExpiryLoop() {
 		c.entriesLock.RUnlock()
 
 		select {
+		case <-c.stopCh:
+			return
 		case <-c.entriesExpiryHeap.NotifyCh:
 			// Entries changed, so the heap may have changed. Restart loop.
 
@@ -533,4 +547,19 @@ func (c *Cache) runExpiryLoop() {
 			c.entriesLock.Unlock()
 		}
 	}
+}
+
+// Close stops any background work and frees all resources for the cache.
+// Current Fetch requests are allowed to continue to completion and callers may
+// still access the current cache values so coordination isn't needed with
+// callers, however no background activity will continue. It's intended to close
+// the cache at agent shutdown so no further requests should be made, however
+// concurrent or in-flight ones won't break.
+func (c *Cache) Close() error {
+	wasStopped := atomic.SwapUint32(&c.stopped, 1)
+	if wasStopped == 0 {
+		// First time only, close stop chan
+		close(c.stopCh)
+	}
+	return nil
 }
