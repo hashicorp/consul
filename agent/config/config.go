@@ -315,6 +315,7 @@ type Addresses struct {
 	DNS   *string `json:"dns,omitempty" hcl:"dns" mapstructure:"dns"`
 	HTTP  *string `json:"http,omitempty" hcl:"http" mapstructure:"http"`
 	HTTPS *string `json:"https,omitempty" hcl:"https" mapstructure:"https"`
+	GRPC  *string `json:"grpc,omitempty" hcl:"grpc" mapstructure:"grpc"`
 }
 
 type AdvertiseAddrsConfig struct {
@@ -575,6 +576,7 @@ type Ports struct {
 	SerfLAN        *int `json:"serf_lan,omitempty" hcl:"serf_lan" mapstructure:"serf_lan"`
 	SerfWAN        *int `json:"serf_wan,omitempty" hcl:"serf_wan" mapstructure:"serf_wan"`
 	Server         *int `json:"server,omitempty" hcl:"server" mapstructure:"server"`
+	GRPC           *int `json:"grpc,omitempty" hcl:"grpc" mapstructure:"grpc"`
 	ProxyMinPort   *int `json:"proxy_min_port,omitempty" hcl:"proxy_min_port" mapstructure:"proxy_min_port"`
 	ProxyMaxPort   *int `json:"proxy_max_port,omitempty" hcl:"proxy_max_port" mapstructure:"proxy_max_port"`
 	SidecarMinPort *int `json:"sidecar_min_port,omitempty" hcl:"sidecar_min_port" mapstructure:"sidecar_min_port"`
