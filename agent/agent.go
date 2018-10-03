@@ -18,6 +18,8 @@ import (
 	"sync"
 	"time"
 
+	"google.golang.org/grpc"
+
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/ae"
@@ -27,10 +29,12 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/local"
+	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/proxyprocess"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/systemd"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
@@ -218,8 +222,23 @@ type Agent struct {
 	// proxyManager is the proxy process manager for managed Connect proxies.
 	proxyManager *proxyprocess.Manager
 
-	// proxyLock protects proxy information in the local state from concurrent modification
+	// proxyLock protects _managed_ proxy information in the local state from
+	// concurrent modification. It is not needed to work with proxyConfig state.
 	proxyLock sync.Mutex
+
+	// proxyConfig is the manager for proxy service (Kind = connect-proxy)
+	// configuration state. This ensures all state needed by a proxy registration
+	// is maintained in cache and handles pushing updates to that state into XDS
+	// server to be pushed out to Envoy. This is NOT related to managed proxies
+	// directly.
+	proxyConfig *proxycfg.Manager
+
+	// xdsServer is the Server instance that serves xDS gRPC API.
+	xdsServer *xds.Server
+
+	// grpcServer is the server instance used currently to serve xDS API for
+	// Envoy.
+	grpcServer *grpc.Server
 }
 
 func New(c *config.RuntimeConfig) (*Agent, error) {
@@ -409,6 +428,21 @@ func (a *Agent) Start() error {
 		}
 	}
 
+	// Start the proxy config manager.
+	a.proxyConfig, err = proxycfg.NewManager(proxycfg.ManagerConfig{
+		Cache:  a.cache,
+		Logger: a.logger,
+		State:  a.State,
+		Source: &structs.QuerySource{
+			Node:       a.config.NodeName,
+			Datacenter: a.config.Datacenter,
+			Segment:    a.config.SegmentName,
+		},
+	})
+	if err != nil {
+		return err
+	}
+
 	// Start watching for critical services to deregister, based on their
 	// checks.
 	go a.reapServices()
@@ -446,6 +480,11 @@ func (a *Agent) Start() error {
 		a.httpServers = append(a.httpServers, srv)
 	}
 
+	// Start gRPC server.
+	if err := a.listenAndServeGRPC(); err != nil {
+		return err
+	}
+
 	// register watches
 	if err := a.reloadWatches(a.config); err != nil {
 		return err
@@ -455,6 +494,43 @@ func (a *Agent) Start() error {
 	go a.retryJoinLAN()
 	go a.retryJoinWAN()
 
+	return nil
+}
+
+func (a *Agent) listenAndServeGRPC() error {
+	if len(a.config.GRPCAddrs) < 1 {
+		return nil
+	}
+
+	a.xdsServer = &xds.Server{
+		Logger: a.logger,
+		CfgMgr: a.proxyConfig,
+		Authz:  a,
+		ResolveToken: func(id string) (acl.ACL, error) {
+			return a.resolveToken(id)
+		},
+	}
+	var err error
+	a.grpcServer, err = a.xdsServer.GRPCServer(a.config.CertFile, a.config.KeyFile)
+	if err != nil {
+		return err
+	}
+
+	ln, err := a.startListeners(a.config.GRPCAddrs)
+	if err != nil {
+		return err
+	}
+
+	for _, l := range ln {
+		go func(innerL net.Listener) {
+			a.logger.Printf("[INFO] agent: Started gRPC server on %s (%s)",
+				innerL.Addr().String(), innerL.Addr().Network())
+			err := a.grpcServer.Serve(innerL)
+			if err != nil {
+				a.logger.Printf("[ERR] gRPC server failed: %s", err)
+			}
+		}(l)
+	}
 	return nil
 }
 
@@ -497,6 +573,34 @@ func (a *Agent) listenAndServeDNS() error {
 	return merr.ErrorOrNil()
 }
 
+func (a *Agent) startListeners(addrs []net.Addr) ([]net.Listener, error) {
+	var ln []net.Listener
+	for _, addr := range addrs {
+		var l net.Listener
+		var err error
+
+		switch x := addr.(type) {
+		case *net.UnixAddr:
+			l, err = a.listenSocket(x.Name)
+			if err != nil {
+				return nil, err
+			}
+
+		case *net.TCPAddr:
+			l, err = net.Listen("tcp", x.String())
+			if err != nil {
+				return nil, err
+			}
+			l = &tcpKeepAliveListener{l.(*net.TCPListener)}
+
+		default:
+			return nil, fmt.Errorf("unsupported address type %T", addr)
+		}
+		ln = append(ln, l)
+	}
+	return ln, nil
+}
+
 // listenHTTP binds listeners to the provided addresses and also returns
 // pre-configured HTTP servers which are not yet started. The motivation is
 // that in the current startup/shutdown setup we de-couple the listener
@@ -516,38 +620,21 @@ func (a *Agent) listenHTTP() ([]*HTTPServer, error) {
 	var ln []net.Listener
 	var servers []*HTTPServer
 	start := func(proto string, addrs []net.Addr) error {
-		for _, addr := range addrs {
-			var l net.Listener
+		listeners, err := a.startListeners(addrs)
+		if err != nil {
+			return err
+		}
+
+		for _, l := range listeners {
 			var tlscfg *tls.Config
-			var err error
-
-			switch x := addr.(type) {
-			case *net.UnixAddr:
-				l, err = a.listenSocket(x.Name)
+			_, isTCP := l.(*tcpKeepAliveListener)
+			if isTCP && proto == "https" {
+				tlscfg, err = a.config.IncomingHTTPSConfig()
 				if err != nil {
 					return err
 				}
-
-			case *net.TCPAddr:
-				l, err = net.Listen("tcp", x.String())
-				if err != nil {
-					return err
-				}
-				l = &tcpKeepAliveListener{l.(*net.TCPListener)}
-
-				if proto == "https" {
-					tlscfg, err = a.config.IncomingHTTPSConfig()
-					if err != nil {
-						return err
-					}
-					l = tls.NewListener(l, tlscfg)
-				}
-
-			default:
-				return fmt.Errorf("unsupported address type %T", addr)
+				l = tls.NewListener(l, tlscfg)
 			}
-			ln = append(ln, l)
-
 			srv := &HTTPServer{
 				Server: &http.Server{
 					Addr:      l.Addr().String(),
@@ -569,6 +656,7 @@ func (a *Agent) listenHTTP() ([]*HTTPServer, error) {
 				}
 			}
 
+			ln = append(ln, l)
 			servers = append(servers, srv)
 		}
 		return nil
@@ -1341,7 +1429,17 @@ func (a *Agent) ShutdownAgent() error {
 		chk.Stop()
 	}
 
-	// Stop the proxy manager
+	// Stop gRPC
+	if a.grpcServer != nil {
+		a.grpcServer.Stop()
+	}
+
+	// Stop the proxy config manager
+	if a.proxyConfig != nil {
+		a.proxyConfig.Close()
+	}
+
+	// Stop the proxy process manager
 	if a.proxyManager != nil {
 		// If persistence is disabled (implies DevMode but a subset of DevMode) then
 		// don't leave the proxies running since the agent will not be able to

@@ -4938,6 +4938,7 @@ func TestAgentConnectAuthorize_badBody(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
+	require := require.New(t)
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
@@ -4945,16 +4946,19 @@ func TestAgentConnectAuthorize_badBody(t *testing.T) {
 	args := []string{}
 	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
 	resp := httptest.NewRecorder()
-	_, err := a.srv.AgentConnectAuthorize(resp, req)
-	assert.Nil(err)
-	assert.Equal(400, resp.Code)
-	assert.Contains(resp.Body.String(), "decode")
+	respRaw, err := a.srv.AgentConnectAuthorize(resp, req)
+	require.Error(err)
+	assert.Nil(respRaw)
+	// Note that BadRequestError is handled outside the endpoint handler so we
+	// still see a 200 if we check here.
+	assert.Contains(err.Error(), "decode failed")
 }
 
 func TestAgentConnectAuthorize_noTarget(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
+	require := require.New(t)
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
@@ -4962,10 +4966,12 @@ func TestAgentConnectAuthorize_noTarget(t *testing.T) {
 	args := &structs.ConnectAuthorizeRequest{}
 	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
 	resp := httptest.NewRecorder()
-	_, err := a.srv.AgentConnectAuthorize(resp, req)
-	assert.Nil(err)
-	assert.Equal(400, resp.Code)
-	assert.Contains(resp.Body.String(), "Target service")
+	respRaw, err := a.srv.AgentConnectAuthorize(resp, req)
+	require.Error(err)
+	assert.Nil(respRaw)
+	// Note that BadRequestError is handled outside the endpoint handler so we
+	// still see a 200 if we check here.
+	assert.Contains(err.Error(), "Target service must be specified")
 }
 
 // Client ID is not in the valid URI format
@@ -4973,6 +4979,7 @@ func TestAgentConnectAuthorize_idInvalidFormat(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
+	require := require.New(t)
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
@@ -4984,12 +4991,11 @@ func TestAgentConnectAuthorize_idInvalidFormat(t *testing.T) {
 	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
 	resp := httptest.NewRecorder()
 	respRaw, err := a.srv.AgentConnectAuthorize(resp, req)
-	assert.Nil(err)
-	assert.Equal(200, resp.Code)
-
-	obj := respRaw.(*connectAuthorizeResp)
-	assert.False(obj.Authorized)
-	assert.Contains(obj.Reason, "Invalid client")
+	require.Error(err)
+	assert.Nil(respRaw)
+	// Note that BadRequestError is handled outside the endpoint handler so we
+	// still see a 200 if we check here.
+	assert.Contains(err.Error(), "ClientCertURI not a valid Connect identifier")
 }
 
 // Client ID is a valid URI but its not a service URI
@@ -4997,6 +5003,7 @@ func TestAgentConnectAuthorize_idNotService(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
+	require := require.New(t)
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
@@ -5008,12 +5015,11 @@ func TestAgentConnectAuthorize_idNotService(t *testing.T) {
 	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
 	resp := httptest.NewRecorder()
 	respRaw, err := a.srv.AgentConnectAuthorize(resp, req)
-	assert.Nil(err)
-	assert.Equal(200, resp.Code)
-
-	obj := respRaw.(*connectAuthorizeResp)
-	assert.False(obj.Authorized)
-	assert.Contains(obj.Reason, "must be a valid")
+	require.Error(err)
+	assert.Nil(respRaw)
+	// Note that BadRequestError is handled outside the endpoint handler so we
+	// still see a 200 if we check here.
+	assert.Contains(err.Error(), "ClientCertURI not a valid Service identifier")
 }
 
 // Test when there is an intention allowing the connection
@@ -5162,6 +5168,7 @@ func TestAgentConnectAuthorize_denyTrustDomain(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
+	require := require.New(t)
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
@@ -5182,7 +5189,7 @@ func TestAgentConnectAuthorize_denyTrustDomain(t *testing.T) {
 		req.Intention.Action = structs.IntentionActionAllow
 
 		var reply string
-		assert.Nil(a.RPC("Intention.Apply", &req, &reply))
+		require.NoError(a.RPC("Intention.Apply", &req, &reply))
 	}
 
 	{
@@ -5193,7 +5200,7 @@ func TestAgentConnectAuthorize_denyTrustDomain(t *testing.T) {
 		req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
 		resp := httptest.NewRecorder()
 		respRaw, err := a.srv.AgentConnectAuthorize(resp, req)
-		assert.Nil(err)
+		require.NoError(err)
 		assert.Equal(200, resp.Code)
 
 		obj := respRaw.(*connectAuthorizeResp)
@@ -5206,6 +5213,7 @@ func TestAgentConnectAuthorize_denyWildcard(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
+	require := require.New(t)
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -5227,7 +5235,7 @@ func TestAgentConnectAuthorize_denyWildcard(t *testing.T) {
 		req.Intention.Action = structs.IntentionActionDeny
 
 		var reply string
-		assert.Nil(a.RPC("Intention.Apply", &req, &reply))
+		require.NoError(a.RPC("Intention.Apply", &req, &reply))
 	}
 	{
 		// Allow web to DB
@@ -5255,7 +5263,7 @@ func TestAgentConnectAuthorize_denyWildcard(t *testing.T) {
 		req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
 		resp := httptest.NewRecorder()
 		respRaw, err := a.srv.AgentConnectAuthorize(resp, req)
-		assert.Nil(err)
+		require.NoError(err)
 		assert.Equal(200, resp.Code)
 
 		obj := respRaw.(*connectAuthorizeResp)
@@ -5272,7 +5280,7 @@ func TestAgentConnectAuthorize_denyWildcard(t *testing.T) {
 		req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
 		resp := httptest.NewRecorder()
 		respRaw, err := a.srv.AgentConnectAuthorize(resp, req)
-		assert.Nil(err)
+		require.NoError(err)
 		assert.Equal(200, resp.Code)
 
 		obj := respRaw.(*connectAuthorizeResp)

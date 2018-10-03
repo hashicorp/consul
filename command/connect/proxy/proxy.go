@@ -212,27 +212,37 @@ func (c *cmd) Run(args []string) int {
 }
 
 func (c *cmd) lookupProxyIDForSidecar(client *api.Client) (string, error) {
+	return LookupProxyIDForSidecar(client, c.sidecarFor)
+}
+
+// LookupProxyIDForSidecar finds candidate local proxy registrations that are a
+// sidcar for the given service. It will return an ID if and only if there is
+// exactly one registed connect proxy with `Proxy.DestinationServiceID` set to
+// the specified service ID.
+//
+// This is exported to share it with the connect envoy command.
+func LookupProxyIDForSidecar(client *api.Client, sidecarFor string) (string, error) {
 	svcs, err := client.Agent().Services()
 	if err != nil {
 		return "", fmt.Errorf("Failed looking up sidecar proxy info for %s: %s",
-			c.sidecarFor, err)
+			sidecarFor, err)
 	}
 
 	var proxyIDs []string
 	for _, svc := range svcs {
 		if svc.Kind == api.ServiceKindConnectProxy && svc.Proxy != nil &&
-			strings.ToLower(svc.Proxy.DestinationServiceID) == c.sidecarFor {
+			strings.ToLower(svc.Proxy.DestinationServiceID) == sidecarFor {
 			proxyIDs = append(proxyIDs, svc.ID)
 		}
 	}
 
 	if len(proxyIDs) == 0 {
-		return "", fmt.Errorf("No sidecar proxy registereded for %s", c.sidecarFor)
+		return "", fmt.Errorf("No sidecar proxy registereded for %s", sidecarFor)
 	}
 	if len(proxyIDs) > 1 {
 		return "", fmt.Errorf("More than one sidecar proxy registereded for %s.\n"+
 			"    Start proxy with -proxy-id and one of the following IDs: %s",
-			c.sidecarFor, strings.Join(proxyIDs, ", "))
+			sidecarFor, strings.Join(proxyIDs, ", "))
 	}
 	return proxyIDs[0], nil
 }
