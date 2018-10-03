@@ -190,6 +190,17 @@ type State struct {
 	// tokens contains the ACL tokens
 	tokens *token.Store
 
+	// notifyHandlers is a map of registered channel listeners that are sent
+	// messages whenever state changes occur. For now these events only include
+	// service registration and deregistration since that is all that is needed
+	// but the same mechanism could be used for other state changes.
+	//
+	// Note that we haven't refactored managedProxyHandlers into this mechanism
+	// yet because that is soon to be deprecated and removed so it's easier to
+	// just leave them separate until managed proxies are removed entirely. Any
+	// future notifications should re-use this mechanism though.
+	notifyHandlers map[chan<- struct{}]struct{}
+
 	// managedProxies is a map of all managed connect proxies registered locally on
 	// this agent. This is NOT kept in sync with servers since it's agent-local
 	// config only. Proxy instances have separate service registrations in the
@@ -215,6 +226,7 @@ func NewState(c Config, lg *log.Logger, tokens *token.Store) *State {
 		checkAliases:         make(map[string]map[types.CheckID]chan<- struct{}),
 		metadata:             make(map[string]string),
 		tokens:               tokens,
+		notifyHandlers:       make(map[chan<- struct{}]struct{}),
 		managedProxies:       make(map[string]*ManagedProxy),
 		managedProxyHandlers: make(map[chan<- struct{}]struct{}),
 	}
@@ -290,6 +302,7 @@ func (l *State) RemoveService(id string) error {
 		s.WatchCh = nil
 	}
 	l.TriggerSyncChanges()
+	l.broadcastUpdateLocked()
 
 	return nil
 }
@@ -355,6 +368,7 @@ func (l *State) SetServiceState(s *ServiceState) {
 	}
 
 	l.TriggerSyncChanges()
+	l.broadcastUpdateLocked()
 }
 
 // ServiceStates returns a shallow copy of all service state records.
@@ -683,9 +697,16 @@ func (l *State) AddProxy(proxy *structs.ConnectManagedProxy, token,
 		Service: target.Service + "-proxy",
 		Proxy: structs.ConnectProxyConfig{
 			DestinationServiceName: target.Service,
+			LocalServiceAddress:    cfg.LocalServiceAddress,
+			LocalServicePort:       cfg.LocalServicePort,
 		},
 		Address: cfg.BindAddress,
 		Port:    cfg.BindPort,
+	}
+
+	// Set default port now while the target is known
+	if svc.Proxy.LocalServicePort < 1 {
+		svc.Proxy.LocalServicePort = target.Port
 	}
 
 	// Lock now. We can't lock earlier as l.Service would deadlock and shouldn't
@@ -819,6 +840,41 @@ func (l *State) Proxies() map[string]*ManagedProxy {
 		m[id] = p
 	}
 	return m
+}
+
+// broadcastUpdateLocked assumes l is locked and delivers an update to all
+// registered watchers.
+func (l *State) broadcastUpdateLocked() {
+	for ch := range l.notifyHandlers {
+		// Do not block
+		select {
+		case ch <- struct{}{}:
+		default:
+		}
+	}
+}
+
+// Notify will register a channel to receive messages when the local state
+// changes. Only service add/remove are supported for now. See notes on
+// l.notifyHandlers for more details.
+//
+// This will not block on channel send so ensure the channel has a buffer. Note
+// that any buffer size is generally fine since actual data is not sent over the
+// channel, so a dropped send due to a full buffer does not result in any loss
+// of data. The fact that a buffer already contains a notification means that
+// the receiver will still be notified that changes occurred.
+func (l *State) Notify(ch chan<- struct{}) {
+	l.Lock()
+	defer l.Unlock()
+	l.notifyHandlers[ch] = struct{}{}
+}
+
+// StopNotify will deregister a channel receiving state change notifications.
+// Pair this with all calls to Notify to clean up state.
+func (l *State) StopNotify(ch chan<- struct{}) {
+	l.Lock()
+	defer l.Unlock()
+	delete(l.notifyHandlers, ch)
 }
 
 // NotifyProxy will register a channel to receive messages when the
