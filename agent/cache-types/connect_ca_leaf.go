@@ -1,6 +1,7 @@
 package cachetype
 
 import (
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"sync"
@@ -27,6 +28,19 @@ type ConnectCALeaf struct {
 	Cache *cache.Cache // Cache that has CA root certs via ConnectCARoot
 }
 
+// issuedKey returns the issuedCerts cache key for a given service and token. We
+// use a hash rather than concatenating strings to provide resilience against
+// user input containing our separator - both service name and token ID can be
+// freely manipulated by user so may contain any delimiter we choose. It also
+// has the benefit of not leaking the ACL token to a new place in memory it
+// might get accidentally dumped etc.
+func issuedKey(service, token string) string {
+	hash := sha256.New()
+	hash.Write([]byte(service))
+	hash.Write([]byte(token))
+	return fmt.Sprintf("%x", hash.Sum(nil))
+}
+
 func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
@@ -50,7 +64,7 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 
 	// Generate a cache key to lookup/store the cert. We MUST generate a new cert
 	// per token used to ensure revocation by ACL token is robust.
-	issuedKey := fmt.Sprintf("%s/%s", reqReal.Service, reqReal.Token)
+	issuedKey := issuedKey(reqReal.Service, reqReal.Token)
 
 	// Get our prior cert (if we had one) and use that to determine our
 	// expiration time. If no cert exists, we expire immediately since we
