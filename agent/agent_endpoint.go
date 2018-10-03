@@ -108,7 +108,7 @@ func (s *HTTPServer) AgentMetrics(resp http.ResponseWriter, req *http.Request) (
 	if enablePrometheusOutput(req) {
 		if s.agent.config.Telemetry.PrometheusRetentionTime < 1 {
 			resp.WriteHeader(http.StatusUnsupportedMediaType)
-			fmt.Fprint(resp, "Prometheus is not enable since its retention time is not positive")
+			fmt.Fprint(resp, "Prometheus is not enabled since its retention time is not positive")
 			return nil, nil
 		}
 		handlerOptions := promhttp.HandlerOpts{
