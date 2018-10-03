@@ -114,8 +114,10 @@ type ConnectManagedProxy struct {
 // ConnectManagedProxy.Config that we care about. They are all optional anyway
 // and this is used to decode them with mapstructure.
 type ConnectManagedProxyConfig struct {
-	BindAddress string `mapstructure:"bind_address"`
-	BindPort    int    `mapstructure:"bind_port"`
+	BindAddress         string `mapstructure:"bind_address"`
+	BindPort            int    `mapstructure:"bind_port"`
+	LocalServiceAddress string `mapstructure:"local_service_address"`
+	LocalServicePort    int    `mapstructure:"local_service_port"`
 }
 
 // ParseConfig attempts to read the fields we care about from the otherwise
