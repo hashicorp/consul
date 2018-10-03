@@ -47,15 +47,12 @@ type cmd struct {
 	shutdownCh <-chan struct{}
 
 	// flags
-	interval      time.Duration
-	duration      time.Duration
-	output        string
-	archive       bool
-	capture       []string
-	client        *api.Client
-	staticOutputs struct {
-		host map[string]interface{}
-	}
+	interval time.Duration
+	duration time.Duration
+	output   string
+	archive  bool
+	capture  []string
+	client   *api.Client
 }
 
 func (c *cmd) init() {
@@ -90,6 +87,7 @@ func (c *cmd) init() {
 
 func (c *cmd) Run(args []string) int {
 	if err := c.flags.Parse(args); err != nil {
+		c.UI.Error(fmt.Sprintf("Error parsing flags: %s", err))
 		return 1
 	}
 
@@ -141,6 +139,8 @@ func (c *cmd) Run(args []string) int {
 	if err != nil {
 		c.UI.Warn(fmt.Sprintf("Static capture failed: %v", err))
 	}
+
+	c.UI.Info(fmt.Sprintf("Saved debug archive: %s", c.output))
 
 	// Block and monitor for duration
 	return 0
@@ -194,25 +194,31 @@ func (c *cmd) captureStatic() error {
 	outputs := make(map[string]interface{}, 0)
 
 	// Capture host information
-	host, err := c.client.Agent().Host()
-	if err != nil {
-		errors = multierror.Append(errors, err)
+	if c.configuredTarget("host") {
+		host, err := c.client.Agent().Host()
+		if err != nil {
+			errors = multierror.Append(errors, err)
+		}
+		outputs["host"] = host
 	}
-	outputs["host"] = host
 
 	// Capture agent information
-	agent, err := c.client.Agent().Self()
-	if err != nil {
-		errors = multierror.Append(errors, err)
+	if c.configuredTarget("agent") {
+		agent, err := c.client.Agent().Self()
+		if err != nil {
+			errors = multierror.Append(errors, err)
+		}
+		outputs["agent"] = agent
 	}
-	outputs["agent"] = agent
 
 	// Capture cluster members information, including WAN
-	members, err := c.client.Agent().Members(true)
-	if err != nil {
-		errors = multierror.Append(errors, err)
+	if c.configuredTarget("cluster") {
+		members, err := c.client.Agent().Members(true)
+		if err != nil {
+			errors = multierror.Append(errors, err)
+		}
+		outputs["members"] = members
 	}
-	outputs["members"] = members
 
 	// Write all outputs to disk
 	for output, v := range outputs {
@@ -252,7 +258,7 @@ func (c *cmd) configuredTarget(target string) bool {
 }
 
 func (c *cmd) defaultTargets() []string {
-	return []string{"metrics", "pprof", "logs", "host", "config", "agent", "cluster", "license"}
+	return []string{"metrics", "pprof", "logs", "host", "agent", "cluster"}
 }
 
 func (c *cmd) Synopsis() string {
