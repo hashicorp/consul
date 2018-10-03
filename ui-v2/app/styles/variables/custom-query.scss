@@ -23,11 +23,8 @@ $--lt-tall-footer: '(max-height: 814px)';
 $--wide-footer: '(min-width: 421px)';
 $--lt-wide-footer: '(max-width: 420px)';
 
-$--expanded-filters: '(min-width: 421px) (min-height: 815px)';
-$--lt-expanded-filters: '(max-width: 420px) (max-height: 814px)';
-
-$--spacious-page-header: '(min-width: 421px) (min-height: 815px)';
-$--lt-spacious-page-header: '(max-width: 420px) (max-height: 814px)';
+$--spacious-page-header: '(min-width: 850px)';
+$--lt-spacious-page-header: '(max-width: 849px)';
 
 $--spacious-healthcheck-status: '(min-width: 421px)';
 $--lt-spacious-healthcheck-status: '(max-width: 420px)';

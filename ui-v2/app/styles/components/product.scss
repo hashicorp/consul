@@ -64,12 +64,12 @@ main {
 #toolbar-toggle {
   display: none;
 }
-@media #{$--expanded-filters} {
+@media #{$--horizontal-selects} {
   [for='toolbar-toggle'] {
     display: none;
   }
 }
-@media #{$--lt-expanded-filters} {
+@media #{$--lt-horizontal-selects} {
   %app-view header h1 {
     display: inline-block;
   }

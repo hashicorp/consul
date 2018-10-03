@@ -19,7 +19,10 @@ module.exports = function(defaults) {
       includePolyfill: true
     },
     'ember-cli-string-helpers': {
-      only: ['capitalize']
+      only: ['capitalize', 'lowercase']
+    },
+    'ember-cli-math-helpers': {
+      only: ['div']
     },
     'babel': {
       plugins: [
@@ -38,6 +41,7 @@ module.exports = function(defaults) {
       },
     },
     'sassOptions': {
+      implementation: require('dart-sass'),
       sourceMapEmbed: sourcemaps,
     },
     'autoprefixer': {
@@ -48,9 +52,6 @@ module.exports = function(defaults) {
         "ie 11"
       ]
     },
-    'ember-cli-string-helpers': {
-      only: ['lowercase']
-    }
   });
   // Use `app.import` to add additional libraries to the generated
   // output files.
