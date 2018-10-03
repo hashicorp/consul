@@ -38,7 +38,7 @@ type Manager struct {
 	ManagerConfig
 
 	// stateCh is notified for any service changes in local state. We only use
-	// this to triger on _new_ service addition since it has no data and we don't
+	// this to trigger on _new_ service addition since it has no data and we don't
 	// want to maintain a full copy of the state in order to diff and figure out
 	// what changed. Luckily each service has it's own WatchCh so we can figure
 	// out changes and removals with those efficiently.
@@ -55,7 +55,7 @@ type Manager struct {
 // panic. The ManagerConfig is passed by value to NewManager so the passed value
 // can be mutated safely.
 type ManagerConfig struct {
-	// Cache is the agent's cache instance that can be used to retreive, store and
+	// Cache is the agent's cache instance that can be used to retrieve, store and
 	// monitor state for the proxies.
 	Cache *cache.Cache
 	// state is the agent's local state to be watched for new proxy registrations.
@@ -86,7 +86,7 @@ func NewManager(cfg ManagerConfig) (*Manager, error) {
 	return m, nil
 }
 
-// Run is the long-running method that handles state synching. It should be run
+// Run is the long-running method that handles state syncing. It should be run
 // in it's own goroutine and will continue until a fatal error is hit or Close
 // is called. Run will return an error if it is called more than once, or called
 // after Close.
@@ -97,7 +97,7 @@ func (m *Manager) Run() error {
 	stateCh := m.stateCh
 	m.mu.Unlock()
 
-	// Protect against multuple Run calls.
+	// Protect against multiple Run calls.
 	if alreadyStarted {
 		return ErrStarted
 	}
@@ -121,7 +121,7 @@ func (m *Manager) Run() error {
 				continue
 			}
 			// TODO(banks): need to work out when to default some stuff. For example
-			// Proxy.LocalServicePort is practially necessary for any sidecar and can
+			// Proxy.LocalServicePort is practically necessary for any sidecar and can
 			// default to the port of the sidecar service, but only if it's already
 			// registered and once we get past here, we don't have enough context to
 			// know that so we'd need to set it here if not during registration of the
@@ -154,7 +154,7 @@ func (m *Manager) Run() error {
 	}
 }
 
-// ensureProxyServiceLocked adss or changes the proxy to our state.
+// ensureProxyServiceLocked adds or changes the proxy to our state.
 func (m *Manager) ensureProxyServiceLocked(ns *structs.NodeService, token string) error {
 	state, ok := m.proxies[ns.ID]
 
@@ -196,7 +196,7 @@ func (m *Manager) ensureProxyServiceLocked(ns *structs.NodeService, token string
 	return nil
 }
 
-// removeProxyService is called when a service deregisteres and frees all
+// removeProxyService is called when a service deregisters and frees all
 // resources for that service.
 func (m *Manager) removeProxyServiceLocked(proxyID string) {
 	state, ok := m.proxies[proxyID]

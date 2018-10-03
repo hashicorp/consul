@@ -104,7 +104,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 	require.NoError(state.AddService(webProxy, "my-token"))
 
 	// We should see the initial config delivered but not until after the
-	// coallesce timeout
+	// coalesce timeout
 	expectSnap := &ConfigSnapshot{
 		ProxyID: webProxy.ID,
 		Address: webProxy.Address,
@@ -118,7 +118,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 	}
 	start := time.Now()
 	assertWatchChanRecvs(t, wCh, expectSnap)
-	require.True(time.Since(start) >= coallesceTimeout)
+	require.True(time.Since(start) >= coalesceTimeout)
 
 	assertLastReqArgs(t, types, "my-token", source)
 
@@ -215,7 +215,7 @@ func assertWatchChanRecvs(t *testing.T, ch <-chan *ConfigSnapshot, expect *Confi
 		if expect == nil {
 			require.False(t, ok, "watch chan should be closed")
 		}
-	case <-time.After(50*time.Millisecond + coallesceTimeout):
+	case <-time.After(50*time.Millisecond + coalesceTimeout):
 		t.Fatal("recv timeout")
 	}
 }
@@ -246,7 +246,7 @@ func TestManager_deliverLatest(t *testing.T) {
 		Port:    2222,
 	}
 
-	// Put an overall time limit on this test case so we don't have to gaurd every
+	// Put an overall time limit on this test case so we don't have to guard every
 	// call to ensure the whole test doesn't deadlock.
 	time.AfterFunc(100*time.Millisecond, func() {
 		t.Fatal("test timed out")

@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	coallesceTimeout      = 200 * time.Millisecond
+	coalesceTimeout       = 200 * time.Millisecond
 	rootsWatchID          = "roots"
 	leafWatchID           = "leaf"
 	intentionsWatchID     = "intentions"
@@ -213,7 +213,7 @@ func (s *state) run() {
 	// vs waiting in order to know to reset it. So just use a chan to send
 	// ourselves messages.
 	sendCh := make(chan struct{})
-	var coallesceTimer *time.Timer
+	var coalesceTimer *time.Timer
 
 	for {
 		select {
@@ -236,7 +236,7 @@ func (s *state) run() {
 			}
 			s.snapCh <- *snapCopy
 			// Allow the next change to trigger a send
-			coallesceTimer = nil
+			coalesceTimer = nil
 
 			// Skip rest of loop - there is nothing to send since nothing changed on
 			// this iteration
@@ -268,8 +268,8 @@ func (s *state) run() {
 		if snap.Valid() {
 			// Don't send it right away, set a short timer that will wait for updates
 			// from any of the other cache values and deliver them all together.
-			if coallesceTimer == nil {
-				coallesceTimer = time.AfterFunc(coallesceTimeout, func() {
+			if coalesceTimer == nil {
+				coalesceTimer = time.AfterFunc(coalesceTimeout, func() {
 					// This runs in another goroutine so we can't just do the send
 					// directly here as access to snap is racy. Instead, signal the main
 					// loop above.
