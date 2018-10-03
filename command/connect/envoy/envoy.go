@@ -2,6 +2,7 @@ package envoy
 
 import (
 	"bytes"
+	"errors"
 	"flag"
 	"fmt"
 	"html/template"
@@ -10,7 +11,6 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
-	"syscall"
 
 	proxyAgent "github.com/hashicorp/consul/agent/proxyprocess"
 	"github.com/hashicorp/consul/agent/xds"
@@ -72,7 +72,7 @@ func (c *cmd) init() {
 			"as it has full control over the secrets and config of the proxy.")
 
 	c.flags.BoolVar(&c.bootstrap, "bootstrap", false,
-		"Generate the bootstrap.yaml but don't exec envoy")
+		"Generate the bootstrap.json but don't exec envoy")
 
 	c.flags.StringVar(&c.grpcAddr, "grpc-addr", "",
 		"Set the agent's gRPC address and port (in http(s)://host:port format). "+
@@ -135,7 +135,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	// Generate config
-	bootstrapYaml, err := c.generateConfig()
+	bootstrapJson, err := c.generateConfig()
 	if err != nil {
 		c.UI.Error(err.Error())
 		return 1
@@ -143,7 +143,7 @@ func (c *cmd) Run(args []string) int {
 
 	if c.bootstrap {
 		// Just output it and we are done
-		fmt.Println(bootstrapYaml)
+		os.Stdout.Write(bootstrapJson)
 		return 0
 	}
 
@@ -154,25 +154,22 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	// First argument needs to be the executable name.
-
-	// TODO(banks): passing config including an ACL token on command line is jank
-	// - this is world readable. It's easiest thing for now. Temp files are kinda
-	// gross in a different way - we can limit to same-user access which is much
-	// better but we are leaving the ACL secret on disk unencrypted for an
-	// uncontrolled amount of time and in a location the operator doesn't even
-	// know about. Envoy doesn't support reading bootstrap from stdin or ENV
-	envoyArgs := []string{binary, "--config-yaml", bootstrapYaml}
-	envoyArgs = append(envoyArgs, passThroughArgs...)
-
-	// Exec
-	err = syscall.Exec(binary, envoyArgs, os.Environ())
-	if err != nil {
-		c.UI.Error("Failed to exec envoy: " + err.Error())
+	err = execEnvoy(binary, nil, passThroughArgs, bootstrapJson)
+	if err == errUnsupportedOS {
+		c.UI.Error("Directly running Envoy is only supported on linux and macOS " +
+			"since envoy itself doesn't build on other platforms currently.")
+		c.UI.Error("Use the -bootstrap option to generate the JSON to use when running envoy " +
+			"on a supported OS or via a container or VM.")
+		return 1
+	} else if err != nil {
+		c.UI.Error(err.Error())
 		return 1
 	}
+
 	return 0
 }
+
+var errUnsupportedOS = errors.New("envoy: not implemented on this operating system")
 
 func (c *cmd) findBinary() (string, error) {
 	if c.envoyBin != "" {
@@ -183,7 +180,7 @@ func (c *cmd) findBinary() (string, error) {
 
 // TODO(banks) this method ended up with a few subtleties that should be unit
 // tested.
-func (c *cmd) generateConfig() (string, error) {
+func (c *cmd) generateConfig() ([]byte, error) {
 	var t = template.Must(template.New("bootstrap").Parse(bootstrapTemplate))
 
 	httpCfg := api.DefaultConfig()
@@ -212,7 +209,7 @@ func (c *cmd) generateConfig() (string, error) {
 
 	agentAddr, agentPort, err := net.SplitHostPort(addrPort)
 	if err != nil {
-		return "", fmt.Errorf("Invalid Consul HTTP address: %s", err)
+		return nil, fmt.Errorf("Invalid Consul HTTP address: %s", err)
 	}
 	if agentAddr == "" {
 		agentAddr = "127.0.0.1"
@@ -226,19 +223,19 @@ func (c *cmd) generateConfig() (string, error) {
 	// can't connect.
 	agentIP, err := net.ResolveIPAddr("ip", agentAddr)
 	if err != nil {
-		return "", fmt.Errorf("Failed to resolve agent address: %s", err)
+		return nil, fmt.Errorf("Failed to resolve agent address: %s", err)
 	}
 
 	adminAddr, adminPort, err := net.SplitHostPort(c.adminBind)
 	if err != nil {
-		return "", fmt.Errorf("Invalid Consul HTTP address: %s", err)
+		return nil, fmt.Errorf("Invalid Consul HTTP address: %s", err)
 	}
 
 	// Envoy requires IP addresses to bind too when using static so resolve DNS or
 	// localhost here.
 	adminBindIP, err := net.ResolveIPAddr("ip", adminAddr)
 	if err != nil {
-		return "", fmt.Errorf("Failed to resolve admin bind address: %s", err)
+		return nil, fmt.Errorf("Failed to resolve admin bind address: %s", err)
 	}
 
 	args := templateArgs{
@@ -257,9 +254,9 @@ func (c *cmd) generateConfig() (string, error) {
 	var buf bytes.Buffer
 	err = t.Execute(&buf, args)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return buf.String(), nil
+	return buf.Bytes(), nil
 }
 
 func (c *cmd) lookupProxyIDForSidecar() (string, error) {
@@ -285,7 +282,7 @@ Usage: consul connect envoy [options]
   It will search $PATH for the envoy binary but this can be overridden with
   -envoy-binary.
 
-  It can instead only generate the bootstrap.yaml based on the current ENV and
+  It can instead only generate the bootstrap.json based on the current ENV and
   arguments using -bootstrap.
 
   The proxy requires service:write permissions for the service it represents.
