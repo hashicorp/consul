@@ -181,7 +181,7 @@ func (c *cmd) findBinary() (string, error) {
 	return exec.LookPath("envoy")
 }
 
-// TODO(banks) this method ended up with a few subtelties that should be unit
+// TODO(banks) this method ended up with a few subtleties that should be unit
 // tested.
 func (c *cmd) generateConfig() (string, error) {
 	var t = template.Must(template.New("bootstrap").Parse(bootstrapTemplate))
@@ -278,23 +278,23 @@ const synopsis = "Runs or Configures Envoy as a Connect proxy"
 const help = `
 Usage: consul connect envoy [options]
 
-	Generates the bootstrap configuration needed to start an Envoy proxy instance 
-	for use as a Connect sidecar for a particular service instance. By default it 
-	will generate the config and then exec Envoy directly until it exits normally.
+  Generates the bootstrap configuration needed to start an Envoy proxy instance
+  for use as a Connect sidecar for a particular service instance. By default it
+  will generate the config and then exec Envoy directly until it exits normally.
 
-	It will search $PATH for the envoy binary but this can be overridden with 
-	-envoy-binary.
+  It will search $PATH for the envoy binary but this can be overridden with
+  -envoy-binary.
 
-	It can instead only generate the bootstrap.yaml based on the current ENV and 
-	arguments using -bootstrap.
+  It can instead only generate the bootstrap.yaml based on the current ENV and
+  arguments using -bootstrap.
 
   The proxy requires service:write permissions for the service it represents.
   The token may be passed via the CLI or the CONSUL_TOKEN environment
-	variable.
+  variable.
 
-	The example below shows how to start a local proxy as a sidecar to a "web" 
-	service instance. It assumes that the proxy was already registered with it's 
-	Config for example via a sidecar_service block.
+  The example below shows how to start a local proxy as a sidecar to a "web"
+  service instance. It assumes that the proxy was already registered with it's
+  Config for example via a sidecar_service block.
 
     $ consul connect envoy -sidecar-for web
 

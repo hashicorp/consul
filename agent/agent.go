@@ -422,12 +422,19 @@ func (a *Agent) Start() error {
 	}
 
 	// Start the proxy config manager.
-	a.proxyConfig = proxycfg.NewManager(a.logger, a.cache, a.State,
-		&structs.QuerySource{
+	a.proxyConfig, err = proxycfg.NewManager(proxycfg.ManagerConfig{
+		Cache:  a.cache,
+		Logger: a.logger,
+		State:  a.State,
+		Source: &structs.QuerySource{
 			Node:       a.config.NodeName,
 			Datacenter: a.config.Datacenter,
 			Segment:    a.config.SegmentName,
-		})
+		},
+	})
+	if err != nil {
+		return err
+	}
 
 	// Start watching for critical services to deregister, based on their
 	// checks.
@@ -488,10 +495,14 @@ func (a *Agent) listenAndServeGRPC() error {
 		return nil
 	}
 
-	a.xdsServer = xds.NewServer(a.logger, a.proxyConfig, func(id string) (acl.ACL, error) {
-		return a.resolveToken(id)
-	}, a)
-
+	a.xdsServer = &xds.Server{
+		Logger: a.logger,
+		CfgMgr: a.proxyConfig,
+		Authz:  a,
+		ResolveToken: func(id string) (acl.ACL, error) {
+			return a.resolveToken(id)
+		},
+	}
 	var err error
 	a.grpcServer, err = a.xdsServer.GRPCServer(a.config.CertFile, a.config.KeyFile)
 	if err != nil {

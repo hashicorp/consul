@@ -76,7 +76,7 @@ type ConnectAuthz interface {
 // easier testing without several layers of mocked cache, local state and
 // proxycfg.Manager.
 type ConfigManager interface {
-	Watch(proxyID string) (<-chan *proxycfg.ConfigSnapshot, func())
+	Watch(proxyID string) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc)
 }
 
 // Server represents a gRPC server that can handle both XDS and ext_authz

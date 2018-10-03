@@ -18,35 +18,37 @@ import (
 // The ACL token and the auth request are provided and the auth decision (true
 // means authorised) and reason string are returned.
 //
-// If the request input is invalide the error returned will be a
-// BadRequestError, if the token doesn't grant necessary access then an
-// acl.ErrPermissionDenied error is returned, otherwise error indicates an
-// unexpected server failure. If access is denied, no error is returned but the
-// first return value is false.
+// If the request input is invalid the error returned will be a BadRequestError,
+// if the token doesn't grant necessary access then an acl.ErrPermissionDenied
+// error is returned, otherwise error indicates an unexpected server failure. If
+// access is denied, no error is returned but the first return value is false.
 func (a *Agent) ConnectAuthorize(token string,
 	req *structs.ConnectAuthorizeRequest) (authz bool, reason string, m *cache.ResultMeta, err error) {
+
+	// Helper to make the error cases read better without resorting to named
+	// returns which get messy and prone to mistakes in a method this long.
+	returnErr := func(err error) (bool, string, *cache.ResultMeta, error) {
+		return false, "", nil, err
+	}
+
 	if req == nil {
-		err = BadRequestError{"Invalid request"}
-		return
+		return returnErr(BadRequestError{"Invalid request"})
 	}
 
 	// We need to have a target to check intentions
 	if req.Target == "" {
-		err = BadRequestError{"Target service must be specified"}
-		return
+		return returnErr(BadRequestError{"Target service must be specified"})
 	}
 
 	// Parse the certificate URI from the client ID
 	uri, err := connect.ParseCertURIFromString(req.ClientCertURI)
 	if err != nil {
-		err = BadRequestError{"ClientCertURI not a valid Connect identifier"}
-		return
+		return returnErr(BadRequestError{"ClientCertURI not a valid Connect identifier"})
 	}
 
 	uriService, ok := uri.(*connect.SpiffeIDService)
 	if !ok {
-		err = BadRequestError{"ClientCertURI not a valid Service identifier"}
-		return
+		return returnErr(BadRequestError{"ClientCertURI not a valid Service identifier"})
 	}
 
 	// We need to verify service:write permissions for the given token.
@@ -54,11 +56,10 @@ func (a *Agent) ConnectAuthorize(token string,
 	// service:read.
 	rule, err := a.resolveToken(token)
 	if err != nil {
-		return
+		return returnErr(err)
 	}
 	if rule != nil && !rule.ServiceWrite(req.Target, nil) {
-		err = acl.ErrPermissionDenied
-		return
+		return returnErr(acl.ErrPermissionDenied)
 	}
 
 	// Validate the trust domain matches ours. Later we will support explicit
@@ -66,23 +67,20 @@ func (a *Agent) ConnectAuthorize(token string,
 	rootArgs := &structs.DCSpecificRequest{Datacenter: a.config.Datacenter}
 	raw, _, err := a.cache.Get(cachetype.ConnectCARootName, rootArgs)
 	if err != nil {
-		return
+		return returnErr(err)
 	}
 
 	roots, ok := raw.(*structs.IndexedCARoots)
 	if !ok {
-		err = fmt.Errorf("internal error: roots response type not correct")
-		return
+		return returnErr(fmt.Errorf("internal error: roots response type not correct"))
 	}
 	if roots.TrustDomain == "" {
-		err = fmt.Errorf("Connect CA not bootstrapped yet")
-		return
+		return returnErr(fmt.Errorf("Connect CA not bootstrapped yet"))
 	}
 	if roots.TrustDomain != strings.ToLower(uriService.Host) {
-		authz = false
 		reason = fmt.Sprintf("Identity from an external trust domain: %s",
 			uriService.Host)
-		return
+		return false, reason, nil, nil
 	}
 
 	// TODO(banks): Implement revocation list checking here.
@@ -99,48 +97,42 @@ func (a *Agent) ConnectAuthorize(token string,
 				},
 			},
 		},
+		QueryOptions: structs.QueryOptions{Token: token},
 	}
-	args.Token = token
 
 	raw, meta, err := a.cache.Get(cachetype.IntentionMatchName, args)
 	if err != nil {
-		return
+		return returnErr(err)
 	}
-	m = &meta
 
 	reply, ok := raw.(*structs.IndexedIntentionMatches)
 	if !ok {
-		err = fmt.Errorf("internal error: response type not correct")
-		return
+		return returnErr(fmt.Errorf("internal error: response type not correct"))
 	}
 	if len(reply.Matches) != 1 {
-		err = fmt.Errorf("Internal error loading matches")
-		return
+		return returnErr(fmt.Errorf("Internal error loading matches"))
 	}
 
 	// Test the authorization for each match
 	for _, ixn := range reply.Matches[0] {
 		if auth, ok := uriService.Authorize(ixn); ok {
-			authz = auth
 			reason = fmt.Sprintf("Matched intention: %s", ixn.String())
-			return
+			return auth, reason, &meta, nil
 		}
 	}
 
 	// No match, we need to determine the default behavior. We do this by
-	// specifying the anonymous token token, which will get that behavior.
-	// The default behavior if ACLs are disabled is to allow connections
-	// to mimic the behavior of Consul itself: everything is allowed if
-	// ACLs are disabled.
+	// specifying the anonymous token, which will get the default behavior. The
+	// default behavior if ACLs are disabled is to allow connections to mimic the
+	// behavior of Consul itself: everything is allowed if ACLs are disabled.
 	rule, err = a.resolveToken("")
 	if err != nil {
-		return
+		return returnErr(err)
 	}
-	authz = true
-	reason = "ACLs disabled, access is allowed by default"
-	if rule != nil {
-		authz = rule.IntentionDefaultAllow()
-		reason = "Default behavior configured by ACLs"
+	if rule == nil {
+		// ACLs not enabled at all, the default is allow all.
+		return true, "ACLs disabled, access is allowed by default", &meta, nil
 	}
-	return
+	reason = "Default behavior configured by ACLs"
+	return rule.IntentionDefaultAllow(), reason, &meta, nil
 }
