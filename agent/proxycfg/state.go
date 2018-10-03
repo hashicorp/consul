@@ -76,9 +76,16 @@ func newState(ns *structs.NodeService, token string) (*state, error) {
 		port:     ns.Port,
 		proxyCfg: proxyCfg,
 		token:    token,
-		ch:       make(chan cache.UpdateEvent, 10),
-		snapCh:   make(chan ConfigSnapshot, 1),
-		reqCh:    make(chan chan *ConfigSnapshot, 1),
+		// 10 is fairly arbitrary here but allow for the 3 mandatory and a
+		// reasonable number of upstream watches to all deliver their initial
+		// messages in parallel without blocking the cache.Notify loops. It's not a
+		// huge deal if we do for a short period so we don't need to be more
+		// conservative to handle larger numbers of upstreams correctly but gives
+		// some head room for normal operation to be non-blocking in most typical
+		// cases.
+		ch:     make(chan cache.UpdateEvent, 10),
+		snapCh: make(chan ConfigSnapshot, 1),
+		reqCh:  make(chan chan *ConfigSnapshot, 1),
 	}, nil
 }
 
@@ -168,17 +175,20 @@ func (s *state) initWatches() error {
 			// }, u.Identifier(), ch)
 		case structs.UpstreamDestTypeService:
 			fallthrough
-		default:
+		case "": // Treat unset as the default Service type
 			err = s.cache.Notify(s.ctx, cachetype.HealthServicesName, &structs.ServiceSpecificRequest{
 				Datacenter:   dc,
 				QueryOptions: structs.QueryOptions{Token: s.token},
 				ServiceName:  u.DestinationName,
 				Connect:      true,
 			}, u.Identifier(), s.ch)
-		}
 
-		if err != nil {
-			return err
+			if err != nil {
+				return err
+			}
+
+		default:
+			return fmt.Errorf("unknown upstream type: %q", u.DestinationType)
 		}
 	}
 	return nil

@@ -11,9 +11,14 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-// ErrStopped signals that the manager instance has already been stopped and
-// can't be run again.
-var ErrStopped = errors.New("manager stopped")
+var (
+	// ErrStopped is returned from Run if the manager instance has already been
+	// stopped.
+	ErrStopped = errors.New("manager stopped")
+
+	// ErrStarted is returned from Run if the manager instance has already run.
+	ErrStarted = errors.New("manager was already run")
+)
 
 // CancelFunc is a type for a returned function that can be called to cancel a
 // watch.
@@ -30,7 +35,7 @@ type CancelFunc func()
 // certificates, intentions, and service discovery results for any declared
 // upstreams. See package docs for more detail.
 type Manager struct {
-	cfg ManagerConfig
+	ManagerConfig
 
 	// stateCh is notified for any service changes in local state. We only use
 	// this to triger on _new_ service addition since it has no data and we don't
@@ -40,13 +45,15 @@ type Manager struct {
 	stateCh chan struct{}
 
 	mu       sync.Mutex
+	started  bool
 	proxies  map[string]*state
 	watchers map[string]map[uint64]chan *ConfigSnapshot
 }
 
 // ManagerConfig holds the required external dependencies for a Manager
 // instance. All fields must be set to something valid or the manager will
-// panic.
+// panic. The ManagerConfig is passed by value to NewManager so the passed value
+// can be mutated safely.
 type ManagerConfig struct {
 	// Cache is the agent's cache instance that can be used to retreive, store and
 	// monitor state for the proxies.
@@ -69,7 +76,7 @@ func NewManager(cfg ManagerConfig) (*Manager, error) {
 		return nil, errors.New("all ManagerConfig fields must be provided")
 	}
 	m := &Manager{
-		cfg: cfg,
+		ManagerConfig: cfg,
 		// Single item buffer is enough since there is no data transferred so this
 		// is "level triggering" and we can't miss actual data.
 		stateCh:  make(chan struct{}, 1),
@@ -81,26 +88,34 @@ func NewManager(cfg ManagerConfig) (*Manager, error) {
 
 // Run is the long-running method that handles state synching. It should be run
 // in it's own goroutine and will continue until a fatal error is hit or Close
-// is called.
+// is called. Run will return an error if it is called more than once, or called
+// after Close.
 func (m *Manager) Run() error {
 	m.mu.Lock()
+	alreadyStarted := m.started
+	m.started = true
 	stateCh := m.stateCh
 	m.mu.Unlock()
 
-	// Protect against being run again after Close.
+	// Protect against multuple Run calls.
+	if alreadyStarted {
+		return ErrStarted
+	}
+
+	// Protect against being run after Close.
 	if stateCh == nil {
 		return ErrStopped
 	}
 
 	// Register for notifications about state changes
-	m.cfg.State.Notify(stateCh)
-	defer m.cfg.State.StopNotify(stateCh)
+	m.State.Notify(stateCh)
+	defer m.State.StopNotify(stateCh)
 
 	for {
 		m.mu.Lock()
 
 		// Traverse the local state and ensure all proxy services are registered
-		services := m.cfg.State.Services()
+		services := m.State.Services()
 		for svcID, svc := range services {
 			if svc.Kind != structs.ServiceKindConnectProxy {
 				continue
@@ -113,9 +128,9 @@ func (m *Manager) Run() error {
 			// proxy service. Sidecar Service and managed proxies in the interim can
 			// do that, but we should validate more generally that that is always
 			// true.
-			err := m.ensureProxyServiceLocked(svc, m.cfg.State.ServiceToken(svcID))
+			err := m.ensureProxyServiceLocked(svc, m.State.ServiceToken(svcID))
 			if err != nil {
-				m.cfg.Logger.Printf("[ERR] failed to watch proxy service %s: %s", svc.ID,
+				m.Logger.Printf("[ERR] failed to watch proxy service %s: %s", svc.ID,
 					err)
 			}
 		}
@@ -160,9 +175,9 @@ func (m *Manager) ensureProxyServiceLocked(ns *structs.NodeService, token string
 	}
 
 	// Set the necessary dependencies
-	state.logger = m.cfg.Logger
-	state.cache = m.cfg.Cache
-	state.source = m.cfg.Source
+	state.logger = m.Logger
+	state.cache = m.Cache
+	state.source = m.Source
 
 	ch, err := state.Watch()
 	if err != nil {
@@ -223,6 +238,42 @@ func (m *Manager) notify(snap *ConfigSnapshot) {
 	}
 }
 
+// deliverLatest delivers the snapshot to a watch chan. If the delivery blocks,
+// it will drain the chan and then re-attempt delivery so that a slow consumer
+// gets the latest config earlier. This MUST be called from a method where m.mu
+// is held to be safe since it assumes we are the only goroutine sending on ch.
+func (m *Manager) deliverLatest(snap *ConfigSnapshot, ch chan *ConfigSnapshot) {
+	// Send if chan is empty
+	select {
+	case ch <- snap:
+		return
+	default:
+	}
+
+	// Not empty, drain the chan of older snapshots and redeliver. For now we only
+	// use 1-buffered chans but this will still work if we change that later.
+OUTER:
+	for {
+		select {
+		case <-ch:
+			continue
+		default:
+			break OUTER
+		}
+	}
+
+	// Now send again
+	select {
+	case ch <- snap:
+		return
+	default:
+		// This should not be possible since we should be the only sender, enforced
+		// by m.mu but error and drop the update rather than panic.
+		m.Logger.Printf("[ERR] proxycfg: failed to deliver ConfigSnapshot to %q",
+			snap.ProxyID)
+	}
+}
+
 // Watch registers a watch on a proxy. It might not exist yet in which case this
 // will not fail, but no updates will be delivered until the proxy is
 // registered. If there is already a valid snapshot in memory, it will be
@@ -245,6 +296,9 @@ func (m *Manager) Watch(proxyID string) (<-chan *ConfigSnapshot, CancelFunc) {
 	// Deliver the current snapshot immediately if there is one ready
 	if state, ok := m.proxies[proxyID]; ok {
 		if snap := state.CurrentSnapshot(); snap != nil {
+			// We rely on ch being buffered above and that it's not been passed
+			// anywhere so we must be the only writer so this will never block and
+			// deadlock.
 			ch <- snap
 		}
 	}

@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
@@ -217,4 +218,71 @@ func assertWatchChanRecvs(t *testing.T, ch <-chan *ConfigSnapshot, expect *Confi
 	case <-time.After(50*time.Millisecond + coallesceTimeout):
 		t.Fatal("recv timeout")
 	}
+}
+
+func TestManager_deliverLatest(t *testing.T) {
+	// None of these need to do anything to test this method just be valid
+	logger := log.New(os.Stderr, "", log.LstdFlags)
+	cfg := ManagerConfig{
+		Cache: cache.New(nil),
+		State: local.NewState(local.Config{}, logger, &token.Store{}),
+		Source: &structs.QuerySource{
+			Node:       "node1",
+			Datacenter: "dc1",
+		},
+		Logger: logger,
+	}
+	require := require.New(t)
+
+	m, err := NewManager(cfg)
+	require.NoError(err)
+
+	snap1 := &ConfigSnapshot{
+		ProxyID: "test-proxy",
+		Port:    1111,
+	}
+	snap2 := &ConfigSnapshot{
+		ProxyID: "test-proxy",
+		Port:    2222,
+	}
+
+	// Put an overall time limit on this test case so we don't have to gaurd every
+	// call to ensure the whole test doesn't deadlock.
+	time.AfterFunc(100*time.Millisecond, func() {
+		t.Fatal("test timed out")
+	})
+
+	// test 1 buffered chan
+	ch1 := make(chan *ConfigSnapshot, 1)
+
+	// Sending to an unblocked chan should work
+	m.deliverLatest(snap1, ch1)
+
+	// Check it was delivered
+	require.Equal(snap1, <-ch1)
+
+	// Now send both without reading simulating a slow client
+	m.deliverLatest(snap1, ch1)
+	m.deliverLatest(snap2, ch1)
+
+	// Check we got the _second_ one
+	require.Equal(snap2, <-ch1)
+
+	// Same again for 5-buffered chan
+	ch5 := make(chan *ConfigSnapshot, 5)
+
+	// Sending to an unblocked chan should work
+	m.deliverLatest(snap1, ch5)
+
+	// Check it was delivered
+	require.Equal(snap1, <-ch5)
+
+	// Now send enough to fill the chan simulating a slow client
+	for i := 0; i < 5; i++ {
+		m.deliverLatest(snap1, ch5)
+	}
+	m.deliverLatest(snap2, ch5)
+
+	// Check we got the _second_ one
+	require.Equal(snap2, <-ch5)
 }
