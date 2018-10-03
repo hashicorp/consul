@@ -22,6 +22,7 @@ import (
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/logutils"
 	"github.com/mitchellh/cli"
+	"google.golang.org/grpc/grpclog"
 )
 
 func New(ui cli.Ui, revision, version, versionPre, versionHuman string, shutdownCh <-chan struct{}) *cmd {
@@ -201,6 +202,9 @@ func (c *cmd) run(args []string) int {
 	c.logFilter = logFilter
 	c.logOutput = logOutput
 	c.logger = log.New(logOutput, "", log.LstdFlags)
+
+	// Setup gRPC logger to use the same output/filtering
+	grpclog.SetLoggerV2(logger.NewGRPCLogger(logConfig, c.logger))
 
 	memSink, err := lib.InitTelemetry(config.Telemetry)
 	if err != nil {

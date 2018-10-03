@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -182,5 +183,12 @@ func testConfig(t *testing.T, cw proxy.ConfigWatcher) *proxy.Config {
 	case <-time.After(1 * time.Second):
 		t.Fatal("no configuration loaded")
 		return nil // satisfy compiler
+	}
+}
+
+func TestCatalogCommand_noTabs(t *testing.T) {
+	t.Parallel()
+	if strings.ContainsRune(New(nil, nil).Help(), '\t') {
+		t.Fatal("help has tabs")
 	}
 }
