@@ -6,7 +6,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -20,7 +19,6 @@ import (
 	"github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
-	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
@@ -1432,132 +1430,14 @@ func (s *HTTPServer) AgentConnectAuthorize(resp http.ResponseWriter, req *http.R
 	// Decode the request from the request body
 	var authReq structs.ConnectAuthorizeRequest
 	if err := decodeBody(req, &authReq, nil); err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "Request decode failed: %v", err)
-		return nil, nil
+		return nil, BadRequestError{fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
-	// We need to have a target to check intentions
-	if authReq.Target == "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "Target service must be specified")
-		return nil, nil
-	}
-
-	// Parse the certificate URI from the client ID
-	uriRaw, err := url.Parse(authReq.ClientCertURI)
-	if err != nil {
-		return &connectAuthorizeResp{
-			Authorized: false,
-			Reason:     fmt.Sprintf("Client ID must be a URI: %s", err),
-		}, nil
-	}
-	uri, err := connect.ParseCertURI(uriRaw)
-	if err != nil {
-		return &connectAuthorizeResp{
-			Authorized: false,
-			Reason:     fmt.Sprintf("Invalid client ID: %s", err),
-		}, nil
-	}
-
-	uriService, ok := uri.(*connect.SpiffeIDService)
-	if !ok {
-		return &connectAuthorizeResp{
-			Authorized: false,
-			Reason:     "Client ID must be a valid SPIFFE service URI",
-		}, nil
-	}
-
-	// We need to verify service:write permissions for the given token.
-	// We do this manually here since the RPC request below only verifies
-	// service:read.
-	rule, err := s.agent.resolveToken(token)
+	authz, reason, cacheMeta, err := s.agent.ConnectAuthorize(token, &authReq)
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && !rule.ServiceWrite(authReq.Target, nil) {
-		return nil, acl.ErrPermissionDenied
-	}
-
-	// Validate the trust domain matches ours. Later we will support explicit
-	// external federation but not built yet.
-	rootArgs := &structs.DCSpecificRequest{Datacenter: s.agent.config.Datacenter}
-	raw, _, err := s.agent.cache.Get(cachetype.ConnectCARootName, rootArgs)
-	if err != nil {
-		return nil, err
-	}
-
-	roots, ok := raw.(*structs.IndexedCARoots)
-	if !ok {
-		return nil, fmt.Errorf("internal error: roots response type not correct")
-	}
-	if roots.TrustDomain == "" {
-		return nil, fmt.Errorf("connect CA not bootstrapped yet")
-	}
-	if roots.TrustDomain != strings.ToLower(uriService.Host) {
-		return &connectAuthorizeResp{
-			Authorized: false,
-			Reason: fmt.Sprintf("Identity from an external trust domain: %s",
-				uriService.Host),
-		}, nil
-	}
-
-	// TODO(banks): Implement revocation list checking here.
-
-	// Get the intentions for this target service.
-	args := &structs.IntentionQueryRequest{
-		Datacenter: s.agent.config.Datacenter,
-		Match: &structs.IntentionQueryMatch{
-			Type: structs.IntentionMatchDestination,
-			Entries: []structs.IntentionMatchEntry{
-				{
-					Namespace: structs.IntentionDefaultNamespace,
-					Name:      authReq.Target,
-				},
-			},
-		},
-	}
-	args.Token = token
-
-	raw, m, err := s.agent.cache.Get(cachetype.IntentionMatchName, args)
-	if err != nil {
-		return nil, err
-	}
-	setCacheMeta(resp, &m)
-
-	reply, ok := raw.(*structs.IndexedIntentionMatches)
-	if !ok {
-		return nil, fmt.Errorf("internal error: response type not correct")
-	}
-	if len(reply.Matches) != 1 {
-		return nil, fmt.Errorf("Internal error loading matches")
-	}
-
-	// Test the authorization for each match
-	for _, ixn := range reply.Matches[0] {
-		if auth, ok := uriService.Authorize(ixn); ok {
-			return &connectAuthorizeResp{
-				Authorized: auth,
-				Reason:     fmt.Sprintf("Matched intention: %s", ixn.String()),
-			}, nil
-		}
-	}
-
-	// No match, we need to determine the default behavior. We do this by
-	// specifying the anonymous token token, which will get that behavior.
-	// The default behavior if ACLs are disabled is to allow connections
-	// to mimic the behavior of Consul itself: everything is allowed if
-	// ACLs are disabled.
-	rule, err = s.agent.resolveToken("")
-	if err != nil {
-		return nil, err
-	}
-	authz := true
-	reason := "ACLs disabled, access is allowed by default"
-	if rule != nil {
-		authz = rule.IntentionDefaultAllow()
-		reason = "Default behavior configured by ACLs"
-	}
+	setCacheMeta(resp, cacheMeta)
 
 	return &connectAuthorizeResp{
 		Authorized: authz,

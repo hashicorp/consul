@@ -70,7 +70,7 @@ func (m *testManager) DeliverConfig(t *testing.T, proxyID string, cfg *proxycfg.
 }
 
 // Watch implements ConfigManager
-func (m *testManager) Watch(proxyID string) (<-chan *proxycfg.ConfigSnapshot, func()) {
+func (m *testManager) Watch(proxyID string) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc) {
 	m.Lock()
 	defer m.Unlock()
 	// ch might be nil but then it will just block forever
