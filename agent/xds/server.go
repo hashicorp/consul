@@ -202,7 +202,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 		case stateInit:
 			if req == nil {
 				// This can't happen (tm) since stateCh is nil until after the first req
-				// is recieved but lets not panic about it.
+				// is received but lets not panic about it.
 				continue
 			}
 			// Start authentication process, we need the proxyID
@@ -210,6 +210,11 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 
 			// Start watching config for that proxy
 			stateCh, watchCancel = s.CfgMgr.Watch(proxyID)
+			// Note that in this case we _intend_ the defer to only be triggered when
+			// this whole process method ends (i.e. when streaming RPC aborts) not at
+			// the end of the current loop iteration. We have to do it in the loop
+			// here since we can't start watching until we get to this state in the
+			// state machine.
 			defer watchCancel()
 
 			// Now wait for the config so we can check ACL
@@ -239,15 +244,14 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 			// range the map which has no determined order. It's important because:
 			//
 			//  1. Envoy needs to see a consistent snapshot to avoid potentially
-			//     dropping or misrouting traffic due to inconsitencies. This is the
+			//     dropping traffic due to inconsistencies. This is the
 			//     main win of ADS after all - we get to control this order.
-			//  2. Non-determinsic order of complex protobug responses which are
+			//  2. Non-determinsic order of complex protobuf responses which are
 			//     compared for non-exact JSON equivalence makes the tests uber-messy
 			//     to handle
 			for _, typeURL := range []string{ClusterType, EndpointType, RouteType, ListenerType} {
 				handler := handlers[typeURL]
-				err := handler.SendIfNew(cfgSnap, configVersion, &nonce)
-				if err != nil {
+				if err := handler.SendIfNew(cfgSnap, configVersion, &nonce); err != nil {
 					return err
 				}
 			}
@@ -345,7 +349,7 @@ func deniedResponse(reason string) (*envoyauthz.CheckResponse, error) {
 	}, nil
 }
 
-// Check implementents envoyauthz.AuthorizationServer.
+// Check implements envoyauthz.AuthorizationServer.
 func (s *Server) Check(ctx context.Context, r *envoyauthz.CheckRequest) (*envoyauthz.CheckResponse, error) {
 	// Sanity checks
 	if r.Attributes == nil || r.Attributes.Source == nil || r.Attributes.Destination == nil {
@@ -376,7 +380,7 @@ func (s *Server) Check(ctx context.Context, r *envoyauthz.CheckRequest) (*envoya
 	// configured. Our threat model _requires_ correctly configured and well
 	// behaved proxies given that they have ACLs to fetch certs and so can do
 	// whatever they want including not authorizing traffic at all or routing it
-	// do a different service than they authed against.
+	// do a different service than they auth'd against.
 
 	// Create an authz request
 	req := &structs.ConnectAuthorizeRequest{
