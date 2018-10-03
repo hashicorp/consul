@@ -13,9 +13,9 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	authz "github.com/envoyproxy/go-control-plane/envoy/service/auth/v2alpha"
-	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
+	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoyauthz "github.com/envoyproxy/go-control-plane/envoy/service/auth/v2alpha"
+	envoydisco "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"github.com/gogo/googleapis/google/rpc"
 	"github.com/gogo/protobuf/proto"
 	"github.com/hashicorp/consul/acl"
@@ -26,19 +26,35 @@ import (
 )
 
 // ADSStream is a shorter way of referring to this thing...
-type ADSStream = discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer
+type ADSStream = envoydisco.AggregatedDiscoveryService_StreamAggregatedResourcesServer
 
-// Resource types in xDS v2. These are copied from
-// envoyproxy/go-control-plane/pkg/cache/resource.go since we don't need any of
-// the rest of that package.
 const (
-	typePrefix   = "type.googleapis.com/envoy.api.v2."
+	// Resource types in xDS v2. These are copied from
+	// envoyproxy/go-control-plane/pkg/cache/resource.go since we don't need any of
+	// the rest of that package.
+	typePrefix = "type.googleapis.com/envoy.api.v2."
+
+	// EndpointType is the TypeURL for Endpoint discovery responses.
 	EndpointType = typePrefix + "ClusterLoadAssignment"
-	ClusterType  = typePrefix + "Cluster"
-	RouteType    = typePrefix + "RouteConfiguration"
+
+	// ClusterType is the TypeURL for Cluster discovery responses.
+	ClusterType = typePrefix + "Cluster"
+
+	// RouteType is the TypeURL for Route discovery responses.
+	RouteType = typePrefix + "RouteConfiguration"
+
+	// ListenerType is the TypeURL for Listener discovery responses.
 	ListenerType = typePrefix + "Listener"
 
-	LocalAppClusterName   = "local_app"
+	// PublicListenerName is the name we give the public listener in Envoy config.
+	PublicListenerName = "public_listener"
+
+	// LocalAppClusterName is the name we give the local application "cluster" in
+	// Envoy config.
+	LocalAppClusterName = "local_app"
+
+	// LocalAgentClusterName is the name we give the local agent "cluster" in
+	// Envoy config.
 	LocalAgentClusterName = "local_agent"
 )
 
@@ -77,11 +93,11 @@ type Server struct {
 }
 
 // StreamAggregatedResources implements
-// discovery.AggregatedDiscoveryServiceServer. This is the ADS endpoint which is
+// envoydisco.AggregatedDiscoveryServiceServer. This is the ADS endpoint which is
 // the only xDS API we directly support for now.
 func (s *Server) StreamAggregatedResources(stream ADSStream) error {
 	// a channel for receiving incoming requests
-	reqCh := make(chan *v2.DiscoveryRequest)
+	reqCh := make(chan *envoy.DiscoveryRequest)
 	reqStop := int32(0)
 	go func() {
 		for {
@@ -114,7 +130,7 @@ const (
 	stateRunning
 )
 
-func (s *Server) process(stream ADSStream, reqCh <-chan *v2.DiscoveryRequest) error {
+func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest) error {
 	// xDS requires a unique nonce to correlate response/request pairs
 	var nonce uint64
 
@@ -127,7 +143,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *v2.DiscoveryRequest) er
 
 	// Loop state
 	var cfgSnap *proxycfg.ConfigSnapshot
-	var req *v2.DiscoveryRequest
+	var req *envoy.DiscoveryRequest
 	var ok bool
 	var stateCh <-chan *proxycfg.ConfigSnapshot
 	var watchCancel func()
@@ -242,7 +258,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *v2.DiscoveryRequest) er
 type xDSType struct {
 	typeURL   string
 	stream    ADSStream
-	req       *v2.DiscoveryRequest
+	req       *envoy.DiscoveryRequest
 	lastNonce string
 	// lastVersion is the version that was last sent to the proxy. It is needed
 	// because we don't want to send the same version more than once.
@@ -255,7 +271,7 @@ type xDSType struct {
 	resources   func(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error)
 }
 
-func (t *xDSType) Recv(req *v2.DiscoveryRequest) {
+func (t *xDSType) Recv(req *envoy.DiscoveryRequest) {
 	if t.lastNonce == "" || t.lastNonce == req.GetResponseNonce() {
 		t.req = req
 	}
@@ -315,13 +331,13 @@ func tokenFromContext(ctx context.Context) string {
 	return ""
 }
 
-// IncrementalAggregatedResources implements discovery.AggregatedDiscoveryServiceServer
-func (s *Server) IncrementalAggregatedResources(_ discovery.AggregatedDiscoveryService_IncrementalAggregatedResourcesServer) error {
+// IncrementalAggregatedResources implements envoydisco.AggregatedDiscoveryServiceServer
+func (s *Server) IncrementalAggregatedResources(_ envoydisco.AggregatedDiscoveryService_IncrementalAggregatedResourcesServer) error {
 	return errors.New("not implemented")
 }
 
-func deniedResponse(reason string) (*authz.CheckResponse, error) {
-	return &authz.CheckResponse{
+func deniedResponse(reason string) (*envoyauthz.CheckResponse, error) {
+	return &envoyauthz.CheckResponse{
 		Status: &rpc.Status{
 			Code:    int32(rpc.PERMISSION_DENIED),
 			Message: "Denied: " + reason,
@@ -329,8 +345,8 @@ func deniedResponse(reason string) (*authz.CheckResponse, error) {
 	}, nil
 }
 
-// Check implementents authz.AuthorizationServer.
-func (s *Server) Check(ctx context.Context, r *authz.CheckRequest) (*authz.CheckResponse, error) {
+// Check implementents envoyauthz.AuthorizationServer.
+func (s *Server) Check(ctx context.Context, r *envoyauthz.CheckRequest) (*envoyauthz.CheckResponse, error) {
 	// Sanity checks
 	if r.Attributes == nil || r.Attributes.Source == nil || r.Attributes.Destination == nil {
 		return nil, status.Error(codes.InvalidArgument, "source and destination attributes are required")
@@ -381,7 +397,7 @@ func (s *Server) Check(ctx context.Context, r *authz.CheckRequest) (*authz.Check
 		return deniedResponse(reason)
 	}
 
-	return &authz.CheckResponse{
+	return &envoyauthz.CheckResponse{
 		Status: &rpc.Status{
 			Code:    int32(rpc.OK),
 			Message: "ALLOWED: " + reason,
@@ -403,7 +419,7 @@ func (s *Server) GRPCServer(certFile, keyFile string) (*grpc.Server, error) {
 		opts = append(opts, grpc.Creds(creds))
 	}
 	srv := grpc.NewServer(opts...)
-	discovery.RegisterAggregatedDiscoveryServiceServer(srv, s)
-	authz.RegisterAuthorizationServer(srv, s)
+	envoydisco.RegisterAggregatedDiscoveryServiceServer(srv, s)
+	envoyauthz.RegisterAuthorizationServer(srv, s)
 	return srv, nil
 }

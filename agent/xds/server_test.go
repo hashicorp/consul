@@ -1,6 +1,7 @@
 package xds
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -9,19 +10,20 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"text/template"
 	"time"
 
+	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/gogo/protobuf/jsonpb"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/stretchr/testify/require"
 )
 
 // testManager is a mock of proxycfg.Manager that's simpler to control for
@@ -445,35 +447,21 @@ func expectClustersJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token strin
 }
 
 func expectedUpstreamTLSContextJSON(t *testing.T, snap *proxycfg.ConfigSnapshot) string {
-	// Assume just one root for now, can get fancier later if needed.
-	caPEM := snap.Roots.Roots[0].RootCert
-	return `{
-		"commonTlsContext": {
-			"tlsParams": {
-
-			},
-			"tlsCertificates": [
-				{
-					"certificateChain": {
-						"inlineString": "` + strings.Replace(snap.Leaf.CertPEM, "\n", "\\n", -1) + `"
-					},
-					"privateKey": {
-						"inlineString": "` + strings.Replace(snap.Leaf.PrivateKeyPEM, "\n", "\\n", -1) + `"
-					}
-				}
-			],
-			"validationContext": {
-				"trustedCa": {
-					"inlineString": "` + strings.Replace(caPEM, "\n", "\\n", -1) + `"
-				}
-			}
-		}
-	}`
+	return expectedTLSContextJSON(t, snap, false)
 }
 
 func expectedPublicTLSContextJSON(t *testing.T, snap *proxycfg.ConfigSnapshot) string {
+	return expectedTLSContextJSON(t, snap, true)
+}
+
+func expectedTLSContextJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, requireClientCert bool) string {
 	// Assume just one root for now, can get fancier later if needed.
 	caPEM := snap.Roots.Roots[0].RootCert
+	reqClient := ""
+	if requireClientCert {
+		reqClient = `,
+		"requireClientCertificate": true`
+	}
 	return `{
 		"commonTlsContext": {
 			"tlsParams": {},
@@ -492,12 +480,12 @@ func expectedPublicTLSContextJSON(t *testing.T, snap *proxycfg.ConfigSnapshot) s
 					"inlineString": "` + strings.Replace(caPEM, "\n", "\\n", -1) + `"
 				}
 			}
-		},
-		"requireClientCertificate": true
+		}
+		` + reqClient + `
 	}`
 }
 
-func assertChanBlocked(t *testing.T, ch chan *v2.DiscoveryResponse) {
+func assertChanBlocked(t *testing.T, ch chan *envoy.DiscoveryResponse) {
 	t.Helper()
 	select {
 	case r := <-ch:
@@ -507,7 +495,7 @@ func assertChanBlocked(t *testing.T, ch chan *v2.DiscoveryResponse) {
 	}
 }
 
-func assertResponseSent(t *testing.T, ch chan *v2.DiscoveryResponse, wantJSON string) {
+func assertResponseSent(t *testing.T, ch chan *envoy.DiscoveryResponse, wantJSON string) {
 	t.Helper()
 	select {
 	case r := <-ch:
@@ -517,11 +505,11 @@ func assertResponseSent(t *testing.T, ch chan *v2.DiscoveryResponse, wantJSON st
 	}
 }
 
-// assertResponse is a helper to test a v2.DiscoveryResponse matches the
+// assertResponse is a helper to test a envoy.DiscoveryResponse matches the
 // JSON representaion we expect. We use JSON because the responses use protobuf
 // Any type which includes binary protobuf encoding and would make creating
 // expected structs require the same code that is under test!
-func assertResponse(t *testing.T, r *v2.DiscoveryResponse, wantJSON string) {
+func assertResponse(t *testing.T, r *envoy.DiscoveryResponse, wantJSON string) {
 	t.Helper()
 	m := jsonpb.Marshaler{
 		Indent: "  ",
@@ -793,12 +781,22 @@ func TestServer_ConfigOverrides(t *testing.T) {
 			name: "custom public_listener no type",
 			setup: func(snap *proxycfg.ConfigSnapshot) string {
 				snap.Proxy.Config["envoy_public_listener_json"] =
-					customListenerJSON("custom-public-listen", false)
+					customListenerJSON(t, customListenerJSONOptions{
+						Name:        "custom-public-listen",
+						IncludeType: false,
+					})
 				resources := expectListenerJSONResources(t, snap, "my-token", 1, 1)
 
 				// Replace the public listener with the custom one WITH type since
-				// that's how it comes out the other end.
-				resources["public_listener"] = customListenerJSON("custom-public-listen", true)
+				// that's how it comes out the other end, and with TLS and authz
+				// overridden.
+				resources["public_listener"] = customListenerJSON(t, customListenerJSONOptions{
+					Name: "custom-public-listen",
+					// We should add type, TLS and authz
+					IncludeType:   true,
+					OverrideAuthz: true,
+					TLSContext:    expectedPublicTLSContextJSON(t, snap),
+				})
 				return expectListenerJSONFromResources(t, snap, "my-token", 1, 1, resources)
 			},
 		},
@@ -806,12 +804,46 @@ func TestServer_ConfigOverrides(t *testing.T) {
 			name: "custom public_listener with type",
 			setup: func(snap *proxycfg.ConfigSnapshot) string {
 				snap.Proxy.Config["envoy_public_listener_json"] =
-					customListenerJSON("custom-public-listen", true)
+					customListenerJSON(t, customListenerJSONOptions{
+						Name:        "custom-public-listen",
+						IncludeType: true,
+					})
 				resources := expectListenerJSONResources(t, snap, "my-token", 1, 1)
 
 				// Replace the public listener with the custom one WITH type since
-				// that's how it comes out the other end.
-				resources["public_listener"] = customListenerJSON("custom-public-listen", true)
+				// that's how it comes out the other end, and with TLS and authz
+				// overridden.
+				resources["public_listener"] = customListenerJSON(t, customListenerJSONOptions{
+					Name: "custom-public-listen",
+					// We should add type, TLS and authz
+					IncludeType:   true,
+					OverrideAuthz: true,
+					TLSContext:    expectedPublicTLSContextJSON(t, snap),
+				})
+				return expectListenerJSONFromResources(t, snap, "my-token", 1, 1, resources)
+			},
+		},
+		{
+			name: "custom public_listener with TLS should be overridden",
+			setup: func(snap *proxycfg.ConfigSnapshot) string {
+				snap.Proxy.Config["envoy_public_listener_json"] =
+					customListenerJSON(t, customListenerJSONOptions{
+						Name:        "custom-public-listen",
+						IncludeType: true,
+						TLSContext:  `{"requireClientCertificate": false}`,
+					})
+				resources := expectListenerJSONResources(t, snap, "my-token", 1, 1)
+
+				// Replace the public listener with the custom one WITH type since
+				// that's how it comes out the other end, and with TLS and authz
+				// overridden.
+				resources["public_listener"] = customListenerJSON(t, customListenerJSONOptions{
+					Name: "custom-public-listen",
+					// We should add type, TLS and authz
+					IncludeType:   true,
+					OverrideAuthz: true,
+					TLSContext:    expectedPublicTLSContextJSON(t, snap),
+				})
 				return expectListenerJSONFromResources(t, snap, "my-token", 1, 1, resources)
 			},
 		},
@@ -819,12 +851,20 @@ func TestServer_ConfigOverrides(t *testing.T) {
 			name: "custom upstream no type",
 			setup: func(snap *proxycfg.ConfigSnapshot) string {
 				snap.Proxy.Upstreams[0].Config["envoy_listener_json"] =
-					customListenerJSON("custom-upstream", false)
+					customListenerJSON(t, customListenerJSONOptions{
+						Name:        "custom-upstream",
+						IncludeType: false,
+					})
 				resources := expectListenerJSONResources(t, snap, "my-token", 1, 1)
 
-				// Replace the public listener with the custom one WITH type since
-				// that's how it comes out the other end.
-				resources["service:db"] = customListenerJSON("custom-upstream", true)
+				// Replace an upstream listener with the custom one WITH type since
+				// that's how it comes out the other end. Note we do override TLS
+				resources["service:db"] =
+					customListenerJSON(t, customListenerJSONOptions{
+						Name: "custom-upstream",
+						// We should add type
+						IncludeType: true,
+					})
 				return expectListenerJSONFromResources(t, snap, "my-token", 1, 1, resources)
 			},
 		},
@@ -832,12 +872,20 @@ func TestServer_ConfigOverrides(t *testing.T) {
 			name: "custom upstream with type",
 			setup: func(snap *proxycfg.ConfigSnapshot) string {
 				snap.Proxy.Upstreams[0].Config["envoy_listener_json"] =
-					customListenerJSON("custom-upstream", true)
+					customListenerJSON(t, customListenerJSONOptions{
+						Name:        "custom-upstream",
+						IncludeType: true,
+					})
 				resources := expectListenerJSONResources(t, snap, "my-token", 1, 1)
 
-				// Replace the public listener with the custom one WITH type since
+				// Replace an upstream listener with the custom one WITH type since
 				// that's how it comes out the other end.
-				resources["service:db"] = customListenerJSON("custom-upstream", true)
+				resources["service:db"] =
+					customListenerJSON(t, customListenerJSONOptions{
+						Name: "custom-upstream",
+						// We should add type
+						IncludeType: true,
+					})
 				return expectListenerJSONFromResources(t, snap, "my-token", 1, 1, resources)
 			},
 		},
@@ -861,32 +909,67 @@ func TestServer_ConfigOverrides(t *testing.T) {
 	}
 }
 
-func customListenerJSON(name string, withType bool) string {
-	typ := ""
-	if withType {
-		typ = `"@type": "type.googleapis.com/envoy.api.v2.Listener",`
-	}
-	return `{
-		` + typ + `
-		"name": "` + name + `",
-		"address": {
-			"socketAddress": {
-				"address": "11.11.11.11",
-				"portValue": 11111
-			}
-		},
-		"filterChains": [
-			{
-				"filters": [
-					{
-						"name": "envoy.tcp_proxy",
-						"config": {
-								"cluster": "random-cluster",
-								"stat_prefix": "foo-stats"
-							}
-					}
-				]
-			}
-		]
-	}`
+type customListenerJSONOptions struct {
+	Name          string
+	IncludeType   bool
+	OverrideAuthz bool
+	TLSContext    string
+}
+
+const customListenerJSONTpl = `{
+	{{ if .IncludeType -}}
+	"@type": "type.googleapis.com/envoy.api.v2.Listener",
+	{{- end }}
+	"name": "{{ .Name }}",
+	"address": {
+		"socketAddress": {
+			"address": "11.11.11.11",
+			"portValue": 11111
+		}
+	},
+	"filterChains": [
+		{
+			{{ if .TLSContext -}}
+			"tlsContext": {{ .TLSContext }},
+			{{- end }}
+			"filters": [
+				{{ if .OverrideAuthz -}}
+				{
+					"name": "envoy.ext_authz",
+					"config": {
+							"grpc_service": {
+										"envoy_grpc": {
+													"cluster_name": "local_agent"
+												},
+										"initial_metadata": [
+													{
+																"key": "x-consul-token",
+																"value": "my-token"
+															}
+												]
+									},
+							"stat_prefix": "connect_authz"
+						}
+				},
+				{{- end }}
+				{
+					"name": "envoy.tcp_proxy",
+					"config": {
+							"cluster": "random-cluster",
+							"stat_prefix": "foo-stats"
+						}
+				}
+			]
+		}
+	]
+}`
+
+var customListenerJSONTemplate = template.Must(template.New("").Parse(customListenerJSONTpl))
+
+func customListenerJSON(t *testing.T, opts customListenerJSONOptions) string {
+	t.Helper()
+	var buf bytes.Buffer
+	err := customListenerJSONTemplate.Execute(&buf, opts)
+	require.NoError(t, err)
+	return buf.String()
 }

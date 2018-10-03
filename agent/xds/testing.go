@@ -7,14 +7,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/envoyproxy/go-control-plane/envoy/service/auth/v2alpha"
-	"github.com/hashicorp/consul/agent/connect"
-
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	authz "github.com/envoyproxy/go-control-plane/envoy/service/auth/v2alpha"
+	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	envoyauth "github.com/envoyproxy/go-control-plane/envoy/service/auth/v2alpha"
 	"github.com/mitchellh/go-testing-interface"
 	"google.golang.org/grpc/metadata"
+
+	"github.com/hashicorp/consul/agent/connect"
 )
 
 // TestADSStream mocks
@@ -22,27 +21,27 @@ import (
 // testing ADS handler.
 type TestADSStream struct {
 	ctx    context.Context
-	sendCh chan *v2.DiscoveryResponse
-	recvCh chan *v2.DiscoveryRequest
+	sendCh chan *envoy.DiscoveryResponse
+	recvCh chan *envoy.DiscoveryRequest
 }
 
 // NewTestADSStream makes a new TestADSStream
 func NewTestADSStream(t testing.T, ctx context.Context) *TestADSStream {
 	return &TestADSStream{
 		ctx:    ctx,
-		sendCh: make(chan *v2.DiscoveryResponse, 1),
-		recvCh: make(chan *v2.DiscoveryRequest, 1),
+		sendCh: make(chan *envoy.DiscoveryResponse, 1),
+		recvCh: make(chan *envoy.DiscoveryRequest, 1),
 	}
 }
 
 // Send implements ADSStream
-func (s *TestADSStream) Send(r *v2.DiscoveryResponse) error {
+func (s *TestADSStream) Send(r *envoy.DiscoveryResponse) error {
 	s.sendCh <- r
 	return nil
 }
 
 // Recv implements ADSStream
-func (s *TestADSStream) Recv() (*v2.DiscoveryRequest, error) {
+func (s *TestADSStream) Recv() (*envoy.DiscoveryRequest, error) {
 	r := <-s.recvCh
 	if r == nil {
 		return nil, io.EOF
@@ -125,9 +124,9 @@ func (e *TestEnvoy) SendReq(t testing.T, typeURL string, version, nonce uint64) 
 	e.Lock()
 	defer e.Unlock()
 
-	req := &v2.DiscoveryRequest{
+	req := &envoy.DiscoveryRequest{
 		VersionInfo: hexString(version),
-		Node: &core.Node{
+		Node: &envoycore.Node{
 			Id:      e.proxyID,
 			Cluster: e.proxyID,
 		},
@@ -157,20 +156,20 @@ func (e *TestEnvoy) Close() error {
 	return nil
 }
 
-// TestCheckRequest creates an authz.CheckRequest with the source and
+// TestCheckRequest creates an envoyauth.CheckRequest with the source and
 // destination service names.
-func TestCheckRequest(t testing.T, source, dest string) *authz.CheckRequest {
-	return &authz.CheckRequest{
-		Attributes: &authz.AttributeContext{
+func TestCheckRequest(t testing.T, source, dest string) *envoyauth.CheckRequest {
+	return &envoyauth.CheckRequest{
+		Attributes: &envoyauth.AttributeContext{
 			Source:      makeAttributeContextPeer(t, source),
 			Destination: makeAttributeContextPeer(t, dest),
 		},
 	}
 }
 
-func makeAttributeContextPeer(t testing.T, svc string) *authz.AttributeContext_Peer {
+func makeAttributeContextPeer(t testing.T, svc string) *envoyauth.AttributeContext_Peer {
 	spiffeID := connect.TestSpiffeIDService(t, svc)
-	return &v2alpha.AttributeContext_Peer{
+	return &envoyauth.AttributeContext_Peer{
 		// We don't care about IP for now might later though
 		Address: makeAddressPtr("10.0.0.1", 1234),
 		// Note we don't set Service since that is an advisory only mechanism in

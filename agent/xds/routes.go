@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 )
 
-// routesFromSnapshot returns the xDS API reprepsentation of the "routes"
+// routesFromSnapshot returns the xDS API representation of the "routes"
 // in the snapshot.
 func routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
 	if cfgSnap == nil {

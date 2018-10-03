@@ -1,13 +1,13 @@
 package xds
 
 import (
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
 )
 
-func createResponse(typeURL string, version, nonce string, resources []proto.Message) (*v2.DiscoveryResponse, error) {
+func createResponse(typeURL string, version, nonce string, resources []proto.Message) (*envoy.DiscoveryResponse, error) {
 	anys := make([]types.Any, len(resources))
 	for i, r := range resources {
 		if r == nil {
@@ -26,7 +26,7 @@ func createResponse(typeURL string, version, nonce string, resources []proto.Mes
 			Value:   data,
 		}
 	}
-	resp := &v2.DiscoveryResponse{
+	resp := &envoy.DiscoveryResponse{
 		VersionInfo: version,
 		Resources:   anys,
 		TypeUrl:     typeURL,
@@ -35,12 +35,12 @@ func createResponse(typeURL string, version, nonce string, resources []proto.Mes
 	return resp, nil
 }
 
-func makeAddress(ip string, port int) core.Address {
-	return core.Address{
-		Address: &core.Address_SocketAddress{
-			SocketAddress: &core.SocketAddress{
+func makeAddress(ip string, port int) envoycore.Address {
+	return envoycore.Address{
+		Address: &envoycore.Address_SocketAddress{
+			SocketAddress: &envoycore.SocketAddress{
 				Address: ip,
-				PortSpecifier: &core.SocketAddress_PortValue{
+				PortSpecifier: &envoycore.SocketAddress_PortValue{
 					PortValue: uint32(port),
 				},
 			},
@@ -48,7 +48,7 @@ func makeAddress(ip string, port int) core.Address {
 	}
 }
 
-func makeAddressPtr(ip string, port int) *core.Address {
+func makeAddressPtr(ip string, port int) *envoycore.Address {
 	a := makeAddress(ip, port)
 	return &a
 }
