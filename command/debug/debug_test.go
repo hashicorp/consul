@@ -207,10 +207,9 @@ func TestDebugCommand_CaptureTargets(t *testing.T) {
 			[]string{"*/metrics.json"},
 			[]string{"agent.json", "host.json", "members.json"},
 		},
-		"all": {
+		"all-but-pprof": {
 			[]string{
 				"metrics",
-				"pprof",
 				"logs",
 				"host",
 				"agent",
@@ -275,7 +274,7 @@ func TestDebugCommand_CaptureTargets(t *testing.T) {
 			// Glob ignores file system errors
 			fs, _ := filepath.Glob(path)
 			if len(fs) <= 0 {
-				t.Fatalf("%s: output data should exist for %s: %v", name, f, fs)
+				t.Fatalf("%s: output data should exist for %s", name, f)
 			}
 		}
 
@@ -285,8 +284,59 @@ func TestDebugCommand_CaptureTargets(t *testing.T) {
 			// Glob ignores file system errors
 			fs, _ := filepath.Glob(path)
 			if len(fs) > 0 {
-				t.Fatalf("%s: output data should not exist for %s: %v", name, f, fs)
+				t.Fatalf("%s: output data should not exist for %s", name, f)
 			}
 		}
+	}
+}
+
+func TestDebugCommand_ProfilesExist(t *testing.T) {
+	t.Parallel()
+
+	testDir := testutil.TempDir(t, "debug")
+	defer os.RemoveAll(testDir)
+
+	a := agent.NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	ui := cli.NewMockUi()
+	cmd := New(ui, nil)
+
+	outputPath := fmt.Sprintf("%s/debug", testDir)
+	args := []string{
+		"-http-addr=" + a.HTTPAddr(),
+		"-output=" + outputPath,
+		// CPU profile has a minimum of 1s
+		"-duration=2s",
+		"-interval=1s",
+	}
+
+	if code := cmd.Run(args); code != 0 {
+		t.Fatalf("should exit 0, got code: %d", code)
+	}
+
+	// Sanity check other files
+	fs, _ := filepath.Glob(fmt.Sprintf("%s/*/consul.log", outputPath))
+	if len(fs) > 0 {
+		t.Fatalf("output data should exist for consul.log")
+	}
+
+	// Glob ignores file system errors
+	fs, _ = filepath.Glob(fmt.Sprintf("%s/*/heap.prof", outputPath))
+	if len(fs) > 0 {
+		t.Fatalf("output data should exist for heap")
+	}
+
+	// Glob ignores file system errors
+	fs, _ = filepath.Glob(fmt.Sprintf("%s/*/profile.prof", outputPath))
+	if len(fs) > 0 {
+		t.Fatalf("output data should exist for profile")
+	}
+
+	// Glob ignores file system errors
+	fs, _ = filepath.Glob(fmt.Sprintf("%s/*/goroutine.prof", outputPath))
+	if len(fs) > 0 {
+		t.Fatalf("output data should exist for goroutine")
 	}
 }

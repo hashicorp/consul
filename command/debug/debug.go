@@ -28,6 +28,10 @@ const (
 	// debugDuration is the total duration that debug runs before being
 	// shut down
 	debugDuration = 1 * time.Minute
+
+	// profileStagger is subtracted from the interval time to ensure
+	// a profile can be captured prior to completion of the interval
+	profileStagger = 2 * time.Second
 )
 
 func New(ui cli.Ui, shutdownCh <-chan struct{}) *cmd {
@@ -245,7 +249,7 @@ func (c *cmd) captureStatic() error {
 		outputs["members"] = members
 	}
 
-	// Write all outputs to disk
+	// Write all outputs to disk as JSON
 	for output, v := range outputs {
 		marshaled, err := json.MarshalIndent(v, "", "\t")
 		if err != nil {
@@ -261,6 +265,9 @@ func (c *cmd) captureStatic() error {
 	return errors
 }
 
+// captureDynamic blocks for the duration of the command
+// specified by the duration flag, capturing the dynamic
+// targets at the interval specified
 func (c *cmd) captureDynamic() error {
 	successChan := make(chan int64)
 	errCh := make(chan error)
@@ -268,12 +275,10 @@ func (c *cmd) captureDynamic() error {
 	durationChn := time.After(c.duration)
 
 	capture := func() {
-		// Collect the named JSON outputs here
-		jsonOutputs := make(map[string]interface{}, 0)
-
 		timestamp := time.Now().UTC().UnixNano()
 
-		// Make the directory for this intervals data
+		// Make the directory that will store all captured data
+		// for this interval
 		timestampDir := fmt.Sprintf("%s/%d", c.output, timestamp)
 		err := os.MkdirAll(timestampDir, 0755)
 		if err != nil {
@@ -287,17 +292,52 @@ func (c *cmd) captureDynamic() error {
 				errCh <- err
 			}
 
-			jsonOutputs["metrics"] = metrics
-		}
-
-		// Capture pprof
-		if c.configuredTarget("metrics") {
-			metrics, err := c.client.Agent().Metrics()
+			marshaled, err := json.MarshalIndent(metrics, "", "\t")
 			if err != nil {
 				errCh <- err
 			}
 
-			jsonOutputs["metrics"] = metrics
+			err = ioutil.WriteFile(fmt.Sprintf("%s/%s.json", timestampDir, "metrics"), marshaled, 0755)
+			if err != nil {
+				errCh <- err
+			}
+		}
+
+		// Capture pprof
+		if c.configuredTarget("pprof") {
+			pprofOutputs := make(map[string][]byte, 0)
+
+			heap, err := c.client.Debug().Heap()
+			if err != nil {
+				errCh <- err
+			}
+			pprofOutputs["heap"] = heap
+
+			// Capture a profile in less time than the interval to ensure
+			// it completes, with a minimum of 1s
+			s := c.interval.Seconds() - profileStagger.Seconds()
+			if s < 1 {
+				s = 1
+			}
+			prof, err := c.client.Debug().Profile(int(s))
+			if err != nil {
+				errCh <- err
+			}
+			pprofOutputs["profile"] = prof
+
+			gr, err := c.client.Debug().Goroutine()
+			if err != nil {
+				errCh <- err
+			}
+			pprofOutputs["goroutine"] = gr
+
+			// Write profiles to disk
+			for output, v := range pprofOutputs {
+				err = ioutil.WriteFile(fmt.Sprintf("%s/%s.prof", timestampDir, output), v, 0755)
+				if err != nil {
+					errCh <- err
+				}
+			}
 		}
 
 		// Capture logs
@@ -313,29 +353,21 @@ func (c *cmd) captureDynamic() error {
 				select {
 				case log := <-logCh:
 					if log == "" {
-						break OUTER
+						log = "debug: no data for interval"
 					}
+					// Append the line
 					logData = logData + log
+				// Stop collecting the logs after the interval specified
 				case <-time.After(c.interval):
 					break OUTER
+				// Upstream close
 				case <-endLogChn:
 					break OUTER
 				}
 			}
 
-			err = ioutil.WriteFile(timestampDir+"/consul.log", []byte(logData), 0755)
-			if err != nil {
-				errCh <- err
-			}
-		}
-
-		for output, v := range jsonOutputs {
-			marshaled, err := json.MarshalIndent(v, "", "\t")
-			if err != nil {
-				errCh <- err
-			}
-
-			err = ioutil.WriteFile(fmt.Sprintf("%s/%s.json", timestampDir, output), marshaled, 0644)
+			// Write all log data collected for the interval
+			err = ioutil.WriteFile(fmt.Sprintf("%s/%s", timestampDir, "consul.log"), []byte(logData), 0755)
 			if err != nil {
 				errCh <- err
 			}
@@ -383,6 +415,8 @@ func (c *cmd) configuredTarget(target string) bool {
 	return false
 }
 
+// createArchive walks the files in the temporary directory
+// and creates a tar file that is gzipped with the contents
 func (c *cmd) createArchive() error {
 	f, err := os.Create(c.output + ".tar.gz")
 	if err != nil {
@@ -443,14 +477,20 @@ func (c *cmd) createArchive() error {
 	return nil
 }
 
+// defaultTargets specifies the list of all targets that
+// will be captured by default
 func (c *cmd) defaultTargets() []string {
 	return append(c.dynamicTargets(), c.staticTargets()...)
 }
 
+// dynamicTargets returns all the supported targets
+// that are retrieved at the interval specified
 func (c *cmd) dynamicTargets() []string {
 	return []string{"metrics", "logs", "pprof"}
 }
 
+// staticTargets returns all the supported targets
+// that are retrieved at the start of the command execution
 func (c *cmd) staticTargets() []string {
 	return []string{"host", "agent", "cluster"}
 }
