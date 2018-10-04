@@ -2505,7 +2505,15 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 										},
 									},
 								},
+								Weights: &structs.Weights{
+									Passing: 1,
+									Warning: 1,
+								},
 							},
+						},
+						Weights: &structs.Weights{
+							Passing: 1,
+							Warning: 1,
 						},
 					},
 				}
@@ -2592,7 +2600,15 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 										},
 									},
 								},
+								Weights: &structs.Weights{
+									Passing: 1,
+									Warning: 1,
+								},
 							},
+						},
+						Weights: &structs.Weights{
+							Passing: 1,
+							Warning: 1,
 						},
 					},
 				}
@@ -4209,7 +4225,12 @@ func TestFullConfig(t *testing.T) {
 				// it can make intelligent decisions about automatic port assignments
 				// etc. So we expect config just to pass it through verbatim.
 				Connect: &structs.ServiceConnect{
-					SidecarService: &structs.ServiceDefinition{},
+					SidecarService: &structs.ServiceDefinition{
+						Weights: &structs.Weights{
+							Passing: 1,
+							Warning: 1,
+						},
+					},
 				},
 			},
 			{

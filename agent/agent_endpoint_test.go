@@ -250,6 +250,10 @@ func TestAgent_Service(t *testing.T) {
 		},
 		Port:  8000,
 		Proxy: &proxy,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
 	}
 
 	// Define an updated version. Be careful to copy it.
@@ -268,20 +272,28 @@ func TestAgent_Service(t *testing.T) {
 		Service:     "web-sidecar-proxy",
 		Port:        8000,
 		Proxy:       expectProxy.ToAPI(),
-		ContentHash: "26959a754e182054",
+		ContentHash: "3442362e971c43d1",
+		Weights: api.AgentWeights{
+			Passing: 1,
+			Warning: 1,
+		},
 	}
 
 	// Copy and modify
 	updatedResponse := *expectedResponse
 	updatedResponse.Port = 9999
-	updatedResponse.ContentHash = "1bdcf042660b33f6"
+	updatedResponse.ContentHash = "90b5c19bf0f5073"
 
-	// Simple response for non-proxy service regustered in TestAgent config
+	// Simple response for non-proxy service registered in TestAgent config
 	expectWebResponse := &api.AgentService{
 		ID:          "web",
 		Service:     "web",
 		Port:        8181,
-		ContentHash: "7be2b0411161d3b1",
+		ContentHash: "69351c1ac865b034",
+		Weights: api.AgentWeights{
+			Passing: 1,
+			Warning: 1,
+		},
 	}
 
 	tests := []struct {

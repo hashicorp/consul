@@ -673,7 +673,7 @@ func TestAPI_AgentService(t *testing.T) {
 		ID:          "foo",
 		Service:     "foo",
 		Tags:        []string{"bar", "baz"},
-		ContentHash: "bf5bd67c5d74b26d",
+		ContentHash: "5d286f5494330b04",
 		Port:        8000,
 	}
 	require.Equal(expect, got)
@@ -683,7 +683,7 @@ func TestAPI_AgentService(t *testing.T) {
 	// agent endpoint tests but this ensures that the API package is at least
 	// passing the hash param properly.
 	opts := QueryOptions{
-		WaitHash: "bf5bd67c5d74b26d",
+		WaitHash: "5d286f5494330b04",
 		WaitTime: 100 * time.Millisecond, // Just long enough to be reliably measurable
 	}
 	start := time.Now()
