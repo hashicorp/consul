@@ -8,7 +8,8 @@ GOTOOLS = \
 	golang.org/x/tools/cmd/stringer \
 	github.com/axw/gocov/gocov \
 	gopkg.in/matm/v1/gocov-html \
-	github.com/golang/protobuf/protoc-gen-go
+	github.com/golang/protobuf/protoc-gen-go \
+	github.com/vektra/mockery/cmd/mockery
 
 GOTAGS ?=
 GOFILES ?= $(shell go list ./... | grep -v /vendor/)
