@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/consul/api"
@@ -27,11 +28,22 @@ const (
 
 	// debugDuration is the total duration that debug runs before being
 	// shut down
-	debugDuration = 1 * time.Minute
+	debugDuration = 2 * time.Minute
 
-	// profileStagger is subtracted from the interval time to ensure
-	// a profile can be captured prior to completion of the interval
-	profileStagger = 2 * time.Second
+	// debugDurationGrace is a period of time added to the specified
+	// duration to allow intervals to capture within that time
+	debugDurationGrace = 2 * time.Second
+
+	// debugMinInterval is the minimum a user can configure the interval
+	// to prevent accidental DOS
+	debugMinInterval = 5 * time.Second
+
+	// debugMinDuration is the minimum a user can configure the duration
+	// to ensure that all information can be collected in time
+	debugMinDuration = 10 * time.Second
+
+	// The extension for archive files
+	debugArchiveExtension = ".tar.gz"
 )
 
 func New(ui cli.Ui, shutdownCh <-chan struct{}) *cmd {
@@ -62,6 +74,9 @@ type cmd struct {
 	archive  bool
 	capture  []string
 	client   *api.Client
+	// validateTiming can be used to skip validation of interval, duration. This
+	// is primarily useful for testing
+	validateTiming bool
 }
 
 func (c *cmd) init() {
@@ -74,11 +89,9 @@ func (c *cmd) init() {
 			"to capture a subset of information, and defaults to capturing "+
 			"everything available. Possible information for capture: "+
 			"This can be repeated multiple times.")
-	// TODO(pearkes): set a reasonable minimum
 	c.flags.DurationVar(&c.interval, "interval", debugInterval,
 		fmt.Sprintf("The interval in which to capture dynamic information such as "+
 			"telemetry, and profiling. Defaults to %s.", debugInterval))
-	// TODO(pearkes): set a reasonable minimum
 	c.flags.DurationVar(&c.duration, "duration", debugDuration,
 		fmt.Sprintf("The total time to record information. "+
 			"Defaults to %s.", debugDuration))
@@ -94,6 +107,8 @@ func (c *cmd) init() {
 	// TODO do we need server flags?
 	flags.Merge(c.flags, c.http.ServerFlags())
 	c.help = flags.Usage(help, c.flags)
+
+	c.validateTiming = true
 }
 
 func (c *cmd) Run(args []string) int {
@@ -110,40 +125,31 @@ func (c *cmd) Run(args []string) int {
 	}
 	c.client = client
 
-	// Retrieve and process agent information necessary to validate
-	self, err := client.Agent().Self()
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error querying target agent: %s. Verify connectivity and agent address.", err))
-		return 1
-	}
-
-	version, ok := self["Config"]["Version"].(string)
-	if !ok {
-		c.UI.Error(fmt.Sprintf("Agent response did not contain version key: %v", self))
-		return 1
-	}
-
-	debugEnabled, ok := self["DebugConfig"]["EnableDebug"].(bool)
-	if !ok {
-		c.UI.Error(fmt.Sprintf("Agent response did not contain debug key: %v", self))
-		return 1
-	}
-
-	err = c.prepare(debugEnabled)
+	version, err := c.prepare()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Capture validation failed: %v", err))
 		return 1
 	}
 
+	archiveName := c.output
+	// Show the user the final file path if archiving
+	if c.archive {
+		archiveName = archiveName + debugArchiveExtension
+	}
+
 	c.UI.Output("Starting debugger and capturing static information...")
 
 	// Output metadata about target agent
-	c.UI.Info(fmt.Sprintf(" Agent Address: '%s'", "something"))
+	c.UI.Info(fmt.Sprintf(" Agent Address: '%s'", "TODO"))
 	c.UI.Info(fmt.Sprintf(" Agent Version: '%s'", version))
 	c.UI.Info(fmt.Sprintf("      Interval: '%s'", c.interval))
 	c.UI.Info(fmt.Sprintf("      Duration: '%s'", c.duration))
-	c.UI.Info(fmt.Sprintf("        Output: '%s'", c.output))
+	c.UI.Info(fmt.Sprintf("        Output: '%s'", archiveName))
 	c.UI.Info(fmt.Sprintf("       Capture: '%s'", strings.Join(c.capture, ", ")))
+
+	// Add the extra grace period to ensure
+	// all intervals will be captured within the time allotted
+	c.duration = c.duration + debugDurationGrace
 
 	// Capture static information from the target agent
 	err = c.captureStatic()
@@ -170,13 +176,44 @@ func (c *cmd) Run(args []string) int {
 		}
 	}
 
-	c.UI.Info(fmt.Sprintf("Saved debug archive: %s", c.output+".tar.gz"))
+	c.UI.Info(fmt.Sprintf("Saved debug archive: %s", archiveName))
 
 	return 0
 }
 
 // prepare validates agent settings against targets and prepares the environment for capturing
-func (c *cmd) prepare(debugEnabled bool) error {
+func (c *cmd) prepare() (version string, err error) {
+	// Ensure realistic duration and intervals exists
+	if c.validateTiming {
+		if c.duration < debugMinDuration {
+			return "", fmt.Errorf("duration must be longer than %s", debugMinDuration)
+		}
+
+		if c.interval < debugMinInterval {
+			return "", fmt.Errorf("interval must be longer than %s", debugMinDuration)
+		}
+
+		if c.duration < c.interval {
+			return "", fmt.Errorf("duration (%s) must be longer than interval (%s)", c.duration, c.interval)
+		}
+	}
+
+	// Retrieve and process agent information necessary to validate
+	self, err := c.client.Agent().Self()
+	if err != nil {
+		return "", fmt.Errorf("error querying target agent: %s. verify connectivity and agent address", err)
+	}
+
+	version, ok := self["Config"]["Version"].(string)
+	if !ok {
+		return "", fmt.Errorf("agent response did not contain version key")
+	}
+
+	debugEnabled, ok := self["DebugConfig"]["EnableDebug"].(bool)
+	if !ok {
+		return version, fmt.Errorf("agent response did not contain debug key")
+	}
+
 	// If none are specified we will collect information from
 	// all by default
 	if len(c.capture) == 0 {
@@ -196,20 +233,20 @@ func (c *cmd) prepare(debugEnabled bool) error {
 
 	for _, t := range c.capture {
 		if !c.allowedTarget(t) {
-			return fmt.Errorf("target not found: %s", t)
+			return version, fmt.Errorf("target not found: %s", t)
 		}
 	}
 
 	if _, err := os.Stat(c.output); os.IsNotExist(err) {
 		err := os.MkdirAll(c.output, 0755)
 		if err != nil {
-			return fmt.Errorf("could not create output directory: %s", err)
+			return version, fmt.Errorf("could not create output directory: %s", err)
 		}
 	} else {
-		return fmt.Errorf("output directory already exists: %s", c.output)
+		return version, fmt.Errorf("output directory already exists: %s", c.output)
 	}
 
-	return nil
+	return version, nil
 }
 
 // captureStatic captures static target information and writes it
@@ -271,11 +308,17 @@ func (c *cmd) captureStatic() error {
 func (c *cmd) captureDynamic() error {
 	successChan := make(chan int64)
 	errCh := make(chan error)
-	endLogChn := make(chan struct{})
 	durationChn := time.After(c.duration)
+	intervalCount := 0
+
+	c.UI.Output(fmt.Sprintf("Beginning capture interval %s (%d)", time.Now().Local().String(), intervalCount))
+
+	// We'll wait for all of the targets configured to be
+	// captured before continuing
+	var wg sync.WaitGroup
 
 	capture := func() {
-		timestamp := time.Now().UTC().UnixNano()
+		timestamp := time.Now().Local().Unix()
 
 		// Make the directory that will store all captured data
 		// for this interval
@@ -287,92 +330,122 @@ func (c *cmd) captureDynamic() error {
 
 		// Capture metrics
 		if c.configuredTarget("metrics") {
-			metrics, err := c.client.Agent().Metrics()
-			if err != nil {
-				errCh <- err
-			}
+			wg.Add(1)
 
-			marshaled, err := json.MarshalIndent(metrics, "", "\t")
-			if err != nil {
-				errCh <- err
-			}
+			go func() {
+				metrics, err := c.client.Agent().Metrics()
+				if err != nil {
+					errCh <- err
+				}
 
-			err = ioutil.WriteFile(fmt.Sprintf("%s/%s.json", timestampDir, "metrics"), marshaled, 0755)
-			if err != nil {
-				errCh <- err
-			}
+				marshaled, err := json.MarshalIndent(metrics, "", "\t")
+				if err != nil {
+					errCh <- err
+				}
+
+				err = ioutil.WriteFile(fmt.Sprintf("%s/%s.json", timestampDir, "metrics"), marshaled, 0755)
+				if err != nil {
+					errCh <- err
+				}
+
+				// Sleep as other dynamic targets wait collect for the whole interv	al
+				time.Sleep(c.interval)
+
+				wg.Done()
+			}()
 		}
 
 		// Capture pprof
 		if c.configuredTarget("pprof") {
-			pprofOutputs := make(map[string][]byte, 0)
+			wg.Add(1)
 
-			heap, err := c.client.Debug().Heap()
-			if err != nil {
-				errCh <- err
-			}
-			pprofOutputs["heap"] = heap
+			go func() {
+				pprofOutputs := make(map[string][]byte, 0)
 
-			// Capture a profile in less time than the interval to ensure
-			// it completes, with a minimum of 1s
-			s := c.interval.Seconds() - profileStagger.Seconds()
-			if s < 1 {
-				s = 1
-			}
-			prof, err := c.client.Debug().Profile(int(s))
-			if err != nil {
-				errCh <- err
-			}
-			pprofOutputs["profile"] = prof
-
-			gr, err := c.client.Debug().Goroutine()
-			if err != nil {
-				errCh <- err
-			}
-			pprofOutputs["goroutine"] = gr
-
-			// Write profiles to disk
-			for output, v := range pprofOutputs {
-				err = ioutil.WriteFile(fmt.Sprintf("%s/%s.prof", timestampDir, output), v, 0755)
+				heap, err := c.client.Debug().Heap()
 				if err != nil {
 					errCh <- err
 				}
-			}
+				pprofOutputs["heap"] = heap
+
+				// Capture a profile with a minimum of 1s
+				// TODO should be min across the board
+				s := c.interval.Seconds()
+				if s < 1 {
+					s = 1
+				}
+
+				// This will block for the interval
+				prof, err := c.client.Debug().Profile(int(s))
+				if err != nil {
+					errCh <- err
+				}
+				pprofOutputs["profile"] = prof
+
+				gr, err := c.client.Debug().Goroutine()
+				if err != nil {
+					errCh <- err
+				}
+				pprofOutputs["goroutine"] = gr
+
+				// Write profiles to disk
+				for output, v := range pprofOutputs {
+					err = ioutil.WriteFile(fmt.Sprintf("%s/%s.prof", timestampDir, output), v, 0755)
+					if err != nil {
+						errCh <- err
+					}
+				}
+
+				wg.Done()
+			}()
 		}
 
 		// Capture logs
 		if c.configuredTarget("logs") {
-			logData := ""
-			logCh, err := c.client.Agent().Monitor("DEBUG", endLogChn, nil)
-			if err != nil {
-				errCh <- err
-			}
+			wg.Add(1)
 
-		OUTER:
-			for {
-				select {
-				case log := <-logCh:
-					if log == "" {
-						log = "debug: no data for interval"
-					}
-					// Append the line
-					logData = logData + log
-				// Stop collecting the logs after the interval specified
-				case <-time.After(c.interval):
-					break OUTER
-				// Upstream close
-				case <-endLogChn:
-					break OUTER
+			go func() {
+				endLogChn := make(chan struct{})
+				logCh, err := c.client.Agent().Monitor("DEBUG", endLogChn, nil)
+				if err != nil {
+					errCh <- err
 				}
-			}
+				// Close the log stream
+				defer close(endLogChn)
 
-			// Write all log data collected for the interval
-			err = ioutil.WriteFile(fmt.Sprintf("%s/%s", timestampDir, "consul.log"), []byte(logData), 0755)
-			if err != nil {
-				errCh <- err
-			}
+				// Create the log file for writing
+				f, err := os.Create(fmt.Sprintf("%s/%s", timestampDir, "consul.log"))
+				if err != nil {
+					errCh <- err
+				}
+				defer f.Close()
+
+				intervalChn := time.After(c.interval)
+
+			OUTER:
+
+				for {
+					select {
+					case log := <-logCh:
+						// Append the line to the file
+						if _, err = f.WriteString(log + "\n"); err != nil {
+							errCh <- err
+							break OUTER
+						}
+					// Stop collecting the logs after the interval specified
+					case <-intervalChn:
+						break OUTER
+					}
+				}
+
+				wg.Done()
+			}()
 		}
 
+		// Wait for all captures to complete
+		wg.Wait()
+
+		// Send down the timestamp for UI output
 		successChan <- timestamp
 	}
 
@@ -381,11 +454,11 @@ func (c *cmd) captureDynamic() error {
 	for {
 		select {
 		case t := <-successChan:
-			c.UI.Output(fmt.Sprintf("Capture successful %d", t))
-			time.Sleep(c.interval)
+			intervalCount++
+			c.UI.Output(fmt.Sprintf("Capture successful %s (%d)", time.Unix(t, 0).Local().String(), intervalCount))
 			go capture()
 		case e := <-errCh:
-			c.UI.Error(fmt.Sprintf("capture failure %s", e))
+			c.UI.Error(fmt.Sprintf("Capture failure %s", e))
 		case <-durationChn:
 			return nil
 		case <-c.shutdownCh:
@@ -418,7 +491,7 @@ func (c *cmd) configuredTarget(target string) bool {
 // createArchive walks the files in the temporary directory
 // and creates a tar file that is gzipped with the contents
 func (c *cmd) createArchive() error {
-	f, err := os.Create(c.output + ".tar.gz")
+	f, err := os.Create(c.output + debugArchiveExtension)
 	if err != nil {
 		return fmt.Errorf("failed to create compressed archive: %s", err)
 	}

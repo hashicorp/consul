@@ -33,11 +33,14 @@ func TestDebugCommand(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), `
 	enable_debug = true
 	`)
+	a.Agent.LogWriter = logger.NewLogWriter(512)
+
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
 	cmd := New(ui, nil)
+	cmd.validateTiming = false
 
 	outputPath := fmt.Sprintf("%s/debug", testDir)
 	args := []string{
@@ -47,8 +50,10 @@ func TestDebugCommand(t *testing.T) {
 		"-interval=50ms",
 	}
 
-	if code := cmd.Run(args); code != 0 {
-		t.Fatalf("should exit 0, got code: %d", code)
+	code := cmd.Run(args)
+
+	if code != 0 {
+		t.Errorf("should exit 0, got code: %d", code)
 	}
 
 	errOutput := ui.ErrorWriter.String()
@@ -71,6 +76,7 @@ func TestDebugCommand_Archive(t *testing.T) {
 
 	ui := cli.NewMockUi()
 	cmd := New(ui, nil)
+	cmd.validateTiming = false
 
 	outputPath := fmt.Sprintf("%s/debug", testDir)
 	args := []string{
@@ -83,7 +89,7 @@ func TestDebugCommand_Archive(t *testing.T) {
 		t.Fatalf("should exit 0, got code: %d", code)
 	}
 
-	archivePath := fmt.Sprintf("%s.tar.gz", outputPath)
+	archivePath := fmt.Sprintf("%s%s", outputPath, debugArchiveExtension)
 	file, err := os.Open(archivePath)
 	if err != nil {
 		t.Fatalf("failed to open archive: %s", err)
@@ -125,6 +131,7 @@ func TestDebugCommand_OutputPathBad(t *testing.T) {
 
 	ui := cli.NewMockUi()
 	cmd := New(ui, nil)
+	cmd.validateTiming = false
 
 	outputPath := ""
 	args := []string{
@@ -151,11 +158,13 @@ func TestDebugCommand_OutputPathExists(t *testing.T) {
 	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t.Name(), "")
+	a.Agent.LogWriter = logger.NewLogWriter(512)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
 	cmd := New(ui, nil)
+	cmd.validateTiming = false
 
 	outputPath := fmt.Sprintf("%s/debug", testDir)
 	args := []string{
@@ -240,6 +249,7 @@ func TestDebugCommand_CaptureTargets(t *testing.T) {
 
 		ui := cli.NewMockUi()
 		cmd := New(ui, nil)
+		cmd.validateTiming = false
 
 		outputPath := fmt.Sprintf("%s/debug-%s", testDir, name)
 		args := []string{
@@ -296,19 +306,135 @@ func TestDebugCommand_ProfilesExist(t *testing.T) {
 	testDir := testutil.TempDir(t, "debug")
 	defer os.RemoveAll(testDir)
 
-	a := agent.NewTestAgent(t.Name(), "")
+	a := agent.NewTestAgent(t.Name(), `
+	enable_debug = true
+	`)
+	a.Agent.LogWriter = logger.NewLogWriter(512)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
 	cmd := New(ui, nil)
+	cmd.validateTiming = false
+
+	outputPath := fmt.Sprintf("%s/debug", testDir)
+	println(outputPath)
+	args := []string{
+		"-http-addr=" + a.HTTPAddr(),
+		"-output=" + outputPath,
+		// CPU profile has a minimum of 1s
+		"-archive=false",
+		"-duration=1s",
+		"-interval=1s",
+		"-capture=pprof",
+	}
+
+	if code := cmd.Run(args); code != 0 {
+		t.Fatalf("should exit 0, got code: %d", code)
+	}
+
+	profiles := []string{"heap", "profile", "goroutine"}
+	// Glob ignores file system errors
+	for _, v := range profiles {
+		fs, _ := filepath.Glob(fmt.Sprintf("%s/*/%s.prof", outputPath, v))
+		if len(fs) == 0 {
+			t.Errorf("output data should exist for %s", v)
+		}
+	}
+
+	errOutput := ui.ErrorWriter.String()
+	if errOutput != "" {
+		t.Errorf("expected no error output, got %s", errOutput)
+	}
+}
+
+func TestDebugCommand_ValidateTiming(t *testing.T) {
+	t.Parallel()
+
+	cases := map[string]struct {
+		duration string
+		interval string
+		output   string
+		code     int
+	}{
+		"both": {
+			"20ms",
+			"10ms",
+			"duration must be longer",
+			1,
+		},
+		"short interval": {
+			"10s",
+			"10ms",
+			"interval must be longer",
+			1,
+		},
+		"lower duration": {
+			"20s",
+			"30s",
+			"must be longer than interval",
+			1,
+		},
+	}
+
+	for name, tc := range cases {
+		// Because we're only testng validation, we want to shut down
+		// the valid duration test to avoid hanging
+		shutdownCh := make(chan struct{})
+
+		testDir := testutil.TempDir(t, "debug")
+		defer os.RemoveAll(testDir)
+
+		a := agent.NewTestAgent(t.Name(), "")
+		defer a.Shutdown()
+		testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+		ui := cli.NewMockUi()
+		cmd := New(ui, shutdownCh)
+
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-duration=" + tc.duration,
+			"-interval=" + tc.interval,
+			"-capture=agent",
+		}
+		code := cmd.Run(args)
+
+		if code != tc.code {
+			t.Errorf("%s: should exit %d, got code: %d", name, tc.code, code)
+		}
+
+		errOutput := ui.ErrorWriter.String()
+		if !strings.Contains(errOutput, tc.output) {
+			t.Errorf("%s: expected error output '%s', got '%q'", name, tc.output, errOutput)
+		}
+	}
+}
+
+func TestDebugCommand_DebugDisabled(t *testing.T) {
+	t.Parallel()
+
+	testDir := testutil.TempDir(t, "debug")
+	defer os.RemoveAll(testDir)
+
+	a := agent.NewTestAgent(t.Name(), `
+	enable_debug = false
+	`)
+	a.Agent.LogWriter = logger.NewLogWriter(512)
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	ui := cli.NewMockUi()
+	cmd := New(ui, nil)
+	cmd.validateTiming = false
 
 	outputPath := fmt.Sprintf("%s/debug", testDir)
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
 		"-output=" + outputPath,
+		"-archive=false",
 		// CPU profile has a minimum of 1s
-		"-duration=2s",
+		"-duration=1s",
 		"-interval=1s",
 	}
 
@@ -316,27 +442,17 @@ func TestDebugCommand_ProfilesExist(t *testing.T) {
 		t.Fatalf("should exit 0, got code: %d", code)
 	}
 
-	// Sanity check other files
-	fs, _ := filepath.Glob(fmt.Sprintf("%s/*/consul.log", outputPath))
-	if len(fs) > 0 {
-		t.Fatalf("output data should exist for consul.log")
+	profiles := []string{"heap", "profile", "goroutine"}
+	// Glob ignores file system errors
+	for _, v := range profiles {
+		fs, _ := filepath.Glob(fmt.Sprintf("%s/*/%s.prof", outputPath, v))
+		if len(fs) > 0 {
+			t.Errorf("output data should not exist for %s", v)
+		}
 	}
 
-	// Glob ignores file system errors
-	fs, _ = filepath.Glob(fmt.Sprintf("%s/*/heap.prof", outputPath))
-	if len(fs) > 0 {
-		t.Fatalf("output data should exist for heap")
-	}
-
-	// Glob ignores file system errors
-	fs, _ = filepath.Glob(fmt.Sprintf("%s/*/profile.prof", outputPath))
-	if len(fs) > 0 {
-		t.Fatalf("output data should exist for profile")
-	}
-
-	// Glob ignores file system errors
-	fs, _ = filepath.Glob(fmt.Sprintf("%s/*/goroutine.prof", outputPath))
-	if len(fs) > 0 {
-		t.Fatalf("output data should exist for goroutine")
+	errOutput := ui.ErrorWriter.String()
+	if !strings.Contains(errOutput, "Unable to capture pprof") {
+		t.Errorf("expected warn output, got %s", errOutput)
 	}
 }
