@@ -52,7 +52,7 @@ message SignIntermediateResponse {
 }
 
 message CrossSignCAResponse {
-    bytes crt = 1;
+    string crt_pem = 1;
 }
 
 message Empty {}

@@ -50,6 +50,36 @@ func (p *providerPluginRPCServer) GenerateIntermediate(_ struct{}, resp *Generat
 	return err
 }
 
+func (p *providerPluginRPCServer) Sign(args *SignRequest, resp *SignResponse) error {
+	csr, err := x509.ParseCertificateRequest(args.Csr)
+	if err != nil {
+		return err
+	}
+
+	resp.CrtPem, err = p.impl.Sign(csr)
+	return err
+}
+
+func (p *providerPluginRPCServer) SignIntermediate(args *SignIntermediateRequest, resp *SignIntermediateResponse) error {
+	csr, err := x509.ParseCertificateRequest(args.Csr)
+	if err != nil {
+		return err
+	}
+
+	resp.CrtPem, err = p.impl.SignIntermediate(csr)
+	return err
+}
+
+func (p *providerPluginRPCServer) CrossSignCA(args *CrossSignCARequest, resp *CrossSignCAResponse) error {
+	crt, err := x509.ParseCertificate(args.Crt)
+	if err != nil {
+		return err
+	}
+
+	resp.CrtPem, err = p.impl.CrossSignCA(crt)
+	return err
+}
+
 func (p *providerPluginRPCServer) Cleanup(struct{}, *struct{}) error {
 	return p.impl.Cleanup()
 }
@@ -109,19 +139,28 @@ func (p *providerPluginRPCClient) GenerateIntermediate() (string, error) {
 	return resp.CrtPem, err
 }
 
-func (p *providerPluginRPCClient) Sign(*x509.CertificateRequest) (string, error) {
-	// TODO(mitchellh)
-	return "", nil
+func (p *providerPluginRPCClient) Sign(csr *x509.CertificateRequest) (string, error) {
+	var resp SignResponse
+	err := p.client.Call("Plugin.Sign", &SignRequest{
+		Csr: csr.Raw,
+	}, &resp)
+	return resp.CrtPem, err
 }
 
-func (p *providerPluginRPCClient) SignIntermediate(*x509.CertificateRequest) (string, error) {
-	// TODO(mitchellh)
-	return "", nil
+func (p *providerPluginRPCClient) SignIntermediate(csr *x509.CertificateRequest) (string, error) {
+	var resp SignIntermediateResponse
+	err := p.client.Call("Plugin.SignIntermediate", &SignIntermediateRequest{
+		Csr: csr.Raw,
+	}, &resp)
+	return resp.CrtPem, err
 }
 
-func (p *providerPluginRPCClient) CrossSignCA(*x509.Certificate) (string, error) {
-	// TODO(mitchellh)
-	return "", nil
+func (p *providerPluginRPCClient) CrossSignCA(crt *x509.Certificate) (string, error) {
+	var resp CrossSignCAResponse
+	err := p.client.Call("Plugin.CrossSignCA", &CrossSignCARequest{
+		Crt: crt.Raw,
+	}, &resp)
+	return resp.CrtPem, err
 }
 
 func (p *providerPluginRPCClient) Cleanup() error {

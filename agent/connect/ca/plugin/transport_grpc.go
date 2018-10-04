@@ -24,39 +24,61 @@ func (p *providerPluginGRPCServer) Configure(_ context.Context, req *ConfigureRe
 }
 
 func (p *providerPluginGRPCServer) GenerateRoot(context.Context, *Empty) (*Empty, error) {
-	return nil, nil
+	return &Empty{}, p.impl.GenerateRoot()
 }
 
 func (p *providerPluginGRPCServer) ActiveRoot(context.Context, *Empty) (*ActiveRootResponse, error) {
-	return nil, nil
+	pem, err := p.impl.ActiveRoot()
+	return &ActiveRootResponse{CrtPem: pem}, err
 }
 
 func (p *providerPluginGRPCServer) GenerateIntermediateCSR(context.Context, *Empty) (*GenerateIntermediateCSRResponse, error) {
-	return nil, nil
+	pem, err := p.impl.GenerateIntermediateCSR()
+	return &GenerateIntermediateCSRResponse{CsrPem: pem}, err
 }
 
-func (p *providerPluginGRPCServer) SetIntermediate(context.Context, *SetIntermediateRequest) (*Empty, error) {
-	return nil, nil
+func (p *providerPluginGRPCServer) SetIntermediate(_ context.Context, req *SetIntermediateRequest) (*Empty, error) {
+	return &Empty{}, p.impl.SetIntermediate(req.IntermediatePem, req.RootPem)
 }
 
 func (p *providerPluginGRPCServer) ActiveIntermediate(context.Context, *Empty) (*ActiveIntermediateResponse, error) {
-	return nil, nil
+	pem, err := p.impl.ActiveIntermediate()
+	return &ActiveIntermediateResponse{CrtPem: pem}, err
 }
 
 func (p *providerPluginGRPCServer) GenerateIntermediate(context.Context, *Empty) (*GenerateIntermediateResponse, error) {
-	return nil, nil
+	pem, err := p.impl.GenerateIntermediate()
+	return &GenerateIntermediateResponse{CrtPem: pem}, err
 }
 
-func (p *providerPluginGRPCServer) Sign(context.Context, *SignRequest) (*SignResponse, error) {
-	return nil, nil
+func (p *providerPluginGRPCServer) Sign(_ context.Context, req *SignRequest) (*SignResponse, error) {
+	csr, err := x509.ParseCertificateRequest(req.Csr)
+	if err != nil {
+		return nil, err
+	}
+
+	crtPEM, err := p.impl.Sign(csr)
+	return &SignResponse{CrtPem: crtPEM}, err
 }
 
-func (p *providerPluginGRPCServer) SignIntermediate(context.Context, *SignIntermediateRequest) (*SignIntermediateResponse, error) {
-	return nil, nil
+func (p *providerPluginGRPCServer) SignIntermediate(_ context.Context, req *SignIntermediateRequest) (*SignIntermediateResponse, error) {
+	csr, err := x509.ParseCertificateRequest(req.Csr)
+	if err != nil {
+		return nil, err
+	}
+
+	crtPEM, err := p.impl.SignIntermediate(csr)
+	return &SignIntermediateResponse{CrtPem: crtPEM}, err
 }
 
-func (p *providerPluginGRPCServer) CrossSignCA(context.Context, *CrossSignCARequest) (*CrossSignCAResponse, error) {
-	return nil, nil
+func (p *providerPluginGRPCServer) CrossSignCA(_ context.Context, req *CrossSignCARequest) (*CrossSignCAResponse, error) {
+	crt, err := x509.ParseCertificate(req.Crt)
+	if err != nil {
+		return nil, err
+	}
+
+	crtPEM, err := p.impl.CrossSignCA(crt)
+	return &CrossSignCAResponse{CrtPem: crtPEM}, err
 }
 
 func (p *providerPluginGRPCServer) Cleanup(context.Context, *Empty) (*Empty, error) {
@@ -137,19 +159,37 @@ func (p *providerPluginGRPCClient) GenerateIntermediate() (string, error) {
 	return resp.CrtPem, nil
 }
 
-func (p *providerPluginGRPCClient) Sign(*x509.CertificateRequest) (string, error) {
-	// TODO(mitchellh)
-	return "", nil
+func (p *providerPluginGRPCClient) Sign(csr *x509.CertificateRequest) (string, error) {
+	resp, err := p.client.Sign(p.doneCtx, &SignRequest{
+		Csr: csr.Raw,
+	})
+	if err != nil {
+		return "", p.err(err)
+	}
+
+	return resp.CrtPem, nil
 }
 
-func (p *providerPluginGRPCClient) SignIntermediate(*x509.CertificateRequest) (string, error) {
-	// TODO(mitchellh)
-	return "", nil
+func (p *providerPluginGRPCClient) SignIntermediate(csr *x509.CertificateRequest) (string, error) {
+	resp, err := p.client.SignIntermediate(p.doneCtx, &SignIntermediateRequest{
+		Csr: csr.Raw,
+	})
+	if err != nil {
+		return "", p.err(err)
+	}
+
+	return resp.CrtPem, nil
 }
 
-func (p *providerPluginGRPCClient) CrossSignCA(*x509.Certificate) (string, error) {
-	// TODO(mitchellh)
-	return "", nil
+func (p *providerPluginGRPCClient) CrossSignCA(crt *x509.Certificate) (string, error) {
+	resp, err := p.client.CrossSignCA(p.doneCtx, &CrossSignCARequest{
+		Crt: crt.Raw,
+	})
+	if err != nil {
+		return "", p.err(err)
+	}
+
+	return resp.CrtPem, nil
 }
 
 func (p *providerPluginGRPCClient) Cleanup() error {
