@@ -5,7 +5,9 @@ import (
 	"github.com/hashicorp/go-plugin"
 )
 
-const pluginName = "consul-connect-ca"
+// Name is the name of the plugin that users of the package should use
+// with *plugin.Client.Dispense to get the proper plugin instance.
+const Name = "consul-connect-ca"
 
 // handshakeConfig is the HandshakeConfig used to configure clients and servers.
 var handshakeConfig = plugin.HandshakeConfig{
@@ -25,7 +27,7 @@ func Serve(p ca.Provider) {
 	plugin.Serve(&plugin.ServeConfig{
 		HandshakeConfig: handshakeConfig,
 		Plugins: map[string]plugin.Plugin{
-			pluginName: &ProviderPlugin{Impl: p},
+			Name: &ProviderPlugin{Impl: p},
 		},
 	})
 }

@@ -279,12 +279,12 @@ func testPlugin(t *testing.T, f func(t *testing.T, m *ca.MockProvider, actual ca
 		// Create a mock provider
 		mockP := new(ca.MockProvider)
 		client, _ := plugin.TestPluginRPCConn(t, map[string]plugin.Plugin{
-			pluginName: &ProviderPlugin{Impl: mockP},
+			Name: &ProviderPlugin{Impl: mockP},
 		}, nil)
 		defer client.Close()
 
 		// Request the provider
-		raw, err := client.Dispense(pluginName)
+		raw, err := client.Dispense(Name)
 		require.NoError(t, err)
 		provider := raw.(ca.Provider)
 
@@ -296,12 +296,12 @@ func testPlugin(t *testing.T, f func(t *testing.T, m *ca.MockProvider, actual ca
 		// Create a mock provider
 		mockP := new(ca.MockProvider)
 		client, _ := plugin.TestPluginGRPCConn(t, map[string]plugin.Plugin{
-			pluginName: &ProviderPlugin{Impl: mockP},
+			Name: &ProviderPlugin{Impl: mockP},
 		})
 		defer client.Close()
 
 		// Request the provider
-		raw, err := client.Dispense(pluginName)
+		raw, err := client.Dispense(Name)
 		require.NoError(t, err)
 		provider := raw.(ca.Provider)
 
