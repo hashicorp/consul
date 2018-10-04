@@ -15,19 +15,18 @@ Feature: dc / acls / policies / update: ACL Policy Update
     Then the url should be /datacenter/acls/policies/policy-id
     Then I see 3 token models
   Scenario: Update to [Name], [Rules], [Description]
-    Then I fill in the policy with yaml
+    Then I fill in the policy form with yaml
     ---
       Name: [Name]
       Description: [Description]
-      # Rules: [Rules]
+      Rules: [Rules]
     ---
-    # And I click "[value=[Type]]"
     And I submit
     Then a PUT request is made to "/v1/acl/policy/policy-id?dc=datacenter" with the body from yaml
     ---
       Name: [Name]
       Description: [Description]
-      # Rules: [Rules]
+      Rules: [Rules]
     ---
     Then the url should be /datacenter/acls/policies
     And "[data-notification]" has the "notification-update" class
@@ -45,6 +44,3 @@ Feature: dc / acls / policies / update: ACL Policy Update
     Then the url should be /datacenter/acls/policies/policy-id
     Then "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "error" class
-@ignore
-  Scenario: Updating with rules
-    The ok

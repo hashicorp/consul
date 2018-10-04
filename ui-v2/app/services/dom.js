@@ -11,6 +11,7 @@ let $_;
 
 export default Service.extend({
   init: function() {
+    this._super(...arguments);
     $_ = getComponentFactory(getOwner(this));
   },
   element: function(selector, context) {

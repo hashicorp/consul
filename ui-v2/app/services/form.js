@@ -2,17 +2,24 @@ import Service from '@ember/service';
 // TODO: Probably move this to utils/form/parse-element-name
 import getFormNameProperty from 'consul-ui/utils/get-form-name-property';
 import { get, set } from '@ember/object';
+import Changeset from 'ember-changeset';
+import lookupValidator from 'ember-changeset-validations';
 const builder = function(name = '', obj = {}) {
   let _data;
   const _name = name;
   const _children = {};
+  let _validators = null;
   // TODO make this into a class to reuse prototype
   return {
     getName: function() {
       return _name;
     },
     setData: function(data) {
-      _data = data;
+      if (_validators) {
+        _data = new Changeset(data, lookupValidator(_validators), _validators);
+      } else {
+        _data = data;
+      }
       return this;
     },
     getData: function() {
@@ -74,6 +81,10 @@ const builder = function(name = '', obj = {}) {
         }
       }
       return this.validate();
+    },
+    setValidators: function(validators) {
+      _validators = validators;
+      return this;
     },
     validate: function() {
       const data = this.getData();

@@ -22,6 +22,15 @@ const lastRequest = function(method) {
       return item.method === method;
     });
 };
+const fillInElement = function(page, name, value) {
+  const cm = document.querySelector(`textarea[name="${name}"] + .CodeMirror`);
+  if (cm) {
+    cm.CodeMirror.setValue(value);
+    return page;
+  } else {
+    return page.fillIn(name, value);
+  }
+};
 var currentPage;
 export default function(assert) {
   return (
@@ -129,14 +138,15 @@ export default function(assert) {
       })
       .then(['I fill in with yaml\n$yaml', 'I fill in with json\n$json'], function(data) {
         return Object.keys(data).reduce(function(prev, item, i, arr) {
-          return prev.fillIn(item, data[item]);
+          return fillInElement(prev, item, data[item]);
         }, currentPage);
       })
       .then(
-        ['I fill in the $modal with yaml\n$yaml', 'I fill in the $model with json\n$json'],
-        function(model, data) {
+        ['I fill in the $form form with yaml\n$yaml', 'I fill in the $form with json\n$json'],
+        function(form, data) {
           return Object.keys(data).reduce(function(prev, item, i, arr) {
-            return prev.fillIn(`${model}[${item}]`, data[item]);
+            const name = `${form}[${item}]`;
+            return fillInElement(prev, name, data[item]);
           }, currentPage);
         }
       )
@@ -275,6 +285,7 @@ export default function(assert) {
         data
       ) {
         const request = lastRequest(method);
+        assert.ok(request, `Expected a ${method} request`);
         assert.equal(
           request.method,
           method,

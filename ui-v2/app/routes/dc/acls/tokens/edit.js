@@ -68,7 +68,7 @@ export default SingleRoute.extend(WithTokenActions, {
       return item;
     },
     // from modal
-    clearPolicy: function() {
+    clearPolicy: function(cb) {
       set(this.controller, 'policy', this.getEmptyPolicy());
       if (typeof cb === 'function') {
         cb();

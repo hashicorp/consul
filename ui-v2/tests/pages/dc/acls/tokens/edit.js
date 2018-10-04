@@ -5,10 +5,8 @@ export default function(
   cancelable,
   clickable,
   attribute,
-  collection,
-  withPolicyForm
+  collection
 ) {
-  console.log(submitable({}));
   return submitable(
     cancelable(
       deletable(

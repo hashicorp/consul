@@ -1,9 +1,9 @@
 import Controller from '@ember/controller';
+import { inject as service } from '@ember/service';
 import { get, set } from '@ember/object';
 import Changeset from 'ember-changeset';
-import validations from 'consul-ui/validations/policy';
 import lookupValidator from 'ember-changeset-validations';
-import { inject as service } from '@ember/service';
+import validations from 'consul-ui/validations/policy';
 const normalizeEmberTarget = function(e, value, target = {}) {
   return e.target || { ...target, ...{ name: e, value: value } };
 };
@@ -28,7 +28,7 @@ export default Controller.extend({
     });
   },
   actions: {
-    change: function(e, value, _target) {
+    change: function(e, value, item) {
       try {
         get(this, 'form').handleEvent({ target: normalizeEmberTarget(e, value) });
       } catch (e) {

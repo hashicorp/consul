@@ -14,17 +14,20 @@ Feature: dc / acls / tokens / policies: Add new
     ---
     Then the url should be /datacenter/acls/tokens/key
     And I click newPolicy
-    Then I fill in the policy with yaml
+    Then I fill in the policy form with yaml
     ---
       Name: New Policy
       Description: New Description
-      # Rules: [Rules]
+      Rules: rules here
     ---
     And I click submit on the policyForm
     Then the last PUT request was made to "/v1/acl/policy?dc=datacenter" with the body from yaml
     ---
       Name: New Policy
       Description: New Description
-      # Rules: [Rules]
+      Rules: rules here
     ---
+@pending:
+  Scenario: Click the cancel form
+    Then ok
     # And I click cancel on the policyForm

@@ -1,9 +1,8 @@
 import Controller from '@ember/controller';
 import { inject as service } from '@ember/service';
 import { get, set } from '@ember/object';
-import Changeset from 'ember-changeset';
-import validations from 'consul-ui/validations/token';
-import lookupValidator from 'ember-changeset-validations';
+import token from 'consul-ui/validations/token';
+import policy from 'consul-ui/validations/policy';
 const normalizeEmberTarget = function(e, value, target) {
   return e.target || { ...target, ...{ name: e, value: value } };
 };
@@ -12,22 +11,24 @@ export default Controller.extend({
   builder: service('form'),
   isScoped: false,
   setProperties: function(model) {
-    this.changeset = new Changeset(model.item, lookupValidator(validations), validations);
     const builder = get(this, 'builder').build;
+    // TODO: Eventually set forms up elsewhere
+    const policyForm = builder('policy', {
+      Datacenters: {
+        type: 'array',
+      },
+    })
+      .setValidators(policy)
+      .setData(model.policy);
     this.form = builder()
-      .setData(this.changeset)
-      .add(
-        // TODO: Eventually set forms up elsewhere
-        builder('policy', {
-          Datacenters: {
-            type: 'array',
-          },
-        }).setData(get(model, 'policy'))
-      );
+      .setValidators(token)
+      .setData(model.item)
+      .add(policyForm);
     this._super({
       ...model,
       ...{
-        item: this.changeset,
+        item: this.form.getData(),
+        policy: policyForm.getData(),
       },
     });
   },
@@ -37,14 +38,16 @@ export default Controller.extend({
       this.send('clearPolicy', item);
     },
     refreshCodeEditor: function() {
+      // TODO: Shouldn't need to assign an id anymore
+      // probably need to unwrap the code-editor element
       get(this, 'dom')
         .component('#policy_rules')
         .didAppear();
     },
-    change: function(e, value, _target) {
+    change: function(e, value, item) {
       const form = get(this, 'form');
       try {
-        form.handleEvent({ target: normalizeEmberTarget(e, value, _target) });
+        form.handleEvent({ target: normalizeEmberTarget(e, value) });
       } catch (e) {
         switch (e.target.name) {
           case 'policy[isScoped]':
