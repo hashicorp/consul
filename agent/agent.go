@@ -442,6 +442,11 @@ func (a *Agent) Start() error {
 	if err != nil {
 		return err
 	}
+	go func() {
+		if err := a.proxyConfig.Run(); err != nil {
+			a.logger.Printf("[ERR] Proxy Config Manager exited: %s", err)
+		}
+	}()
 
 	// Start watching for critical services to deregister, based on their
 	// checks.
