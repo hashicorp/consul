@@ -41,10 +41,19 @@ const (
 	// amount of unique policy combinations which can be cached.
 	authorizerCacheSize = 1024
 
-	// DEPRECATED (ACL-Legacy-Compat)
-	// aclModeCheckInterval controls how often the agent checks if it should
-	// be using the new or legacy ACL system.
-	aclModeCheckInterval = 30 * time.Second
+	// TODO (ACL-V2) Is 128 tokens per batch appropriate for auto-upgrades of tokens
+	// aclUpgradeBatchSize controls how many tokens are in each raft/memdb transaction
+	// for the auto-upgrade process
+	aclUpgradeBatchSize = 128
+
+	// DEPRECATED (ACL-Legacy-Compat) aclModeCheck* are all only for legacy usage
+	// aclModeCheckMinInterval is the minimum amount of time between checking if the
+	// agent should be using the new or legacy ACL system
+	aclModeCheckMinInterval = 100 * time.Millisecond
+
+	// aclModeCheckMaxInterval controls the maximum interval for how often the agent
+	// checks if it should be using the new or legacy ACL system.
+	aclModeCheckMaxInterval = 30 * time.Second
 )
 
 type ACLResolverDelegate interface {
@@ -127,14 +136,6 @@ func NewACLResolver(config *Config, delegate ACLResolverDelegate, cacheConfig *s
 		asyncLegacyResults:   make(map[string][]chan (*remoteACLLegacyResult)),
 		autoDisable:          autoDisable,
 	}, nil
-}
-
-func (r *ACLResolver) AnonymousTokenID() string {
-	if r.delegate.UseLegacyACLs() {
-		return anonymousToken
-	}
-
-	return structs.ACLTokenAnonymousID
 }
 
 func (r *ACLResolver) fireAsyncLegacyResult(token string, authorizer acl.Authorizer, err error) {
@@ -275,9 +276,9 @@ func (r *ACLResolver) fireAsyncTokenResult(token string, identity structs.ACLIde
 
 func (r *ACLResolver) resolveIdentityFromTokenAsync(token string, cached *structs.IdentityCacheEntry) {
 	req := structs.ACLTokenReadRequest{
-		Datacenter: r.delegate.ACLDatacenter(false),
-		ID:         token,
-		IDType:     structs.ACLTokenSecret,
+		Datacenter:  r.delegate.ACLDatacenter(false),
+		TokenID:     token,
+		TokenIDType: structs.ACLTokenSecret,
 		QueryOptions: structs.QueryOptions{
 			Token:      token,
 			AllowStale: true,
@@ -376,7 +377,7 @@ func (r *ACLResolver) fireAsyncPolicyResult(policyID string, policy *structs.ACL
 func (r *ACLResolver) resolvePoliciesAsyncForIdentity(identity structs.ACLIdentity, policyIDs []string, cached map[string]*structs.PolicyCacheEntry) {
 	req := structs.ACLPolicyResolveRequest{
 		Datacenter: r.delegate.ACLDatacenter(false),
-		IDs:        policyIDs,
+		PolicyIDs:  policyIDs,
 		QueryOptions: structs.QueryOptions{
 			Token:      identity.SecretToken(),
 			AllowStale: true,
@@ -564,7 +565,7 @@ func (r *ACLResolver) ResolveToken(token string) (acl.Authorizer, error) {
 
 	// handle the anonymous token
 	if token == "" {
-		token = r.AnonymousTokenID()
+		token = anonymousToken
 	}
 
 	if r.delegate.UseLegacyACLs() {

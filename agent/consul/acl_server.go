@@ -1,15 +1,9 @@
 package consul
 
 import (
-	"net"
-	"time"
-
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/serf/serf"
 )
 
 var serverACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
@@ -59,6 +53,7 @@ func (s *Server) checkPolicyUUID(id string) (bool, error) {
 }
 
 func (s *Server) updateACLAdvertisement() {
+	// TODO (ACL-V2) - does this need to support transitioning to old ACLs?
 
 	// always advertise to all the LAN Members
 	lib.UpdateSerfTag(s.serfLAN, "acls", string(structs.ACLModeEnabled))
@@ -69,70 +64,26 @@ func (s *Server) updateACLAdvertisement() {
 	}
 }
 
-func (s *Server) monitorACLMode() {
-	minVersion := version.Must(version.NewVersion("1.4.0"))
-
-	for {
-		waitTime := aclModeCheckInterval
-		canUpgrade := true
-
-		if !s.InACLDatacenter() {
-			// need to check that all nodes in the ACL DC are in the current ACL mode
-			for _, member := range s.WANMembers() {
-				if valid, parts := metadata.IsConsulServer(member); valid && parts.Status == serf.StatusAlive {
-					if parts.Datacenter != s.config.ACLDatacenter {
-						continue
-					}
-
-					if parts.ACLs != structs.ACLModeEnabled {
-						// no reason to continue, until all the servers in the ACL DC are speaking new
-						// ACLs this DC cannot upgrade
-						canUpgrade = false
-						break
-					}
-				}
-			}
-		}
-
-		if canUpgrade {
-			if s.IsLeader() {
-				if s.isReadyForConsistentReads() && ServersMeetMinimumVersion(s.LANMembers(), minVersion) {
-					// The ordering here is important
-
-					// Set the flag to indicate we are now going to use new ACLs
-					s.useNewACLs.Set(true)
-					// Initialize the ACL system
-					s.initializeACLs()
-					// Advertise to the rest of the DC that we are using the new ACLs
-					s.updateACLAdvertisement()
-					return
-				}
-			} else {
-				leader := string(s.raft.Leader())
-				for _, member := range s.LANMembers() {
-					if valid, parts := metadata.IsConsulServer(member); valid && parts.Status == serf.StatusAlive {
-						if memberAddr := (&net.TCPAddr{IP: member.Addr, Port: parts.Port}).String(); memberAddr == leader {
-							if parts.ACLs == structs.ACLModeEnabled {
-								s.useNewACLs.Set(true)
-								s.updateACLAdvertisement()
-								return
-							} else {
-								break
-							}
-						}
-					}
-				}
-			}
-		}
-
-		// sleep a while before checking again - 30 seconds?
-		select {
-		case <-s.shutdownCh:
-			return
-		case <-time.After(waitTime):
-			// do nothing
+func (s *Server) canUpgradeToNewACLs(isLeader bool) bool {
+	if !s.InACLDatacenter() {
+		mode, _ := ServersGetACLMode(s.WANMembers(), "", s.config.ACLDatacenter)
+		if mode != structs.ACLModeEnabled {
+			return false
 		}
 	}
+
+	if isLeader {
+		if mode, _ := ServersGetACLMode(s.LANMembers(), "", ""); mode == structs.ACLModeLegacy {
+			return true
+		}
+	} else {
+		leader := string(s.raft.Leader())
+		if _, leaderMode := ServersGetACLMode(s.LANMembers(), leader, ""); leaderMode == structs.ACLModeEnabled {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (s *Server) InACLDatacenter() bool {

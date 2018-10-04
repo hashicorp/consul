@@ -97,8 +97,7 @@ func (a *ACL) Bootstrap(args *structs.DCSpecificRequest, reply *structs.ACLToken
 	}
 
 	req := structs.ACLTokenBootstrapRequest{
-		Datacenter: a.srv.config.Datacenter,
-		ACLToken: structs.ACLToken{
+		Token: structs.ACLToken{
 			AccessorID:  accessor,
 			SecretID:    secret,
 			Description: "Bootstrap Token (Global Management)",
@@ -108,30 +107,26 @@ func (a *ACL) Bootstrap(args *structs.DCSpecificRequest, reply *structs.ACLToken
 				},
 			},
 			CreateTime: time.Now(),
+			Local:      false,
 			// DEPRECATED (ACL-Legacy-Compat) - This is used so that the bootstrap token is still visible via the v1 acl APIs
-			Type:  structs.ACLTokenTypeManagement,
-			Local: false,
+			Type: structs.ACLTokenTypeManagement,
 		},
 		ResetIndex: specifiedIndex,
 	}
 
-	req.ACLToken.SetHash(true)
+	req.Token.SetHash(true)
 
 	resp, err := a.srv.raftApply(structs.ACLBootstrapRequestType, &req)
 	if err != nil {
 		return err
 	}
-	switch v := resp.(type) {
-	case error:
-		return v
 
-	case *structs.ACLToken:
-		*reply = *v
+	if err, ok := resp.(error); ok {
+		return err
+	}
 
-	default:
-		// Just log this, since it looks like the bootstrap may have
-		// completed.
-		a.srv.logger.Printf("[ERR] consul.acl: Unexpected response during bootstrap: %T", v)
+	if _, token, err := state.ACLTokenGetByAccessor(nil, accessor); err == nil {
+		*reply = *token
 	}
 
 	a.srv.logger.Printf("[INFO] consul.acl: ACL bootstrap completed")
@@ -149,7 +144,7 @@ func (a *ACL) TokenRead(args *structs.ACLTokenReadRequest, reply *structs.ACLTok
 	}
 
 	var rule acl.Authorizer
-	if args.IDType == structs.ACLTokenAccessor {
+	if args.TokenIDType == structs.ACLTokenAccessor {
 		var err error
 		// Only ACLRead privileges are required to list tokens
 		// However if you do not have ACLWrite as well the token
@@ -167,13 +162,13 @@ func (a *ACL) TokenRead(args *structs.ACLTokenReadRequest, reply *structs.ACLTok
 			var token *structs.ACLToken
 			var err error
 
-			if args.IDType == structs.ACLTokenAccessor {
-				index, token, err = state.ACLTokenGetByAccessor(ws, args.ID)
+			if args.TokenIDType == structs.ACLTokenAccessor {
+				index, token, err = state.ACLTokenGetByAccessor(ws, args.TokenID)
 				if token != nil {
 					a.srv.filterACLWithAuthorizer(rule, &token)
 				}
 			} else {
-				index, token, err = state.ACLTokenGetBySecret(ws, args.ID)
+				index, token, err = state.ACLTokenGetBySecret(ws, args.TokenID)
 			}
 
 			if err != nil {
@@ -185,7 +180,7 @@ func (a *ACL) TokenRead(args *structs.ACLTokenReadRequest, reply *structs.ACLTok
 		})
 }
 
-func (a *ACL) TokenClone(args *structs.ACLTokenWriteRequest, reply *structs.ACLToken) error {
+func (a *ACL) TokenClone(args *structs.ACLTokenUpsertRequest, reply *structs.ACLToken) error {
 	// TODO (ACL-V2) - handle local tokens
 	if done, err := a.srv.forward("ACL.TokenClone", args, args, reply); done {
 		return err
@@ -210,34 +205,30 @@ func (a *ACL) TokenClone(args *structs.ACLTokenWriteRequest, reply *structs.ACLT
 		return fmt.Errorf("Cannot clone a legacy ACL with this endpoint")
 	}
 
-	cloneReq := structs.ACLTokenWriteRequest{
+	cloneReq := structs.ACLTokenUpsertRequest{
 		Datacenter: args.Datacenter,
-		Op:         structs.ACLSet,
 		ACLToken: structs.ACLToken{
 			Policies:    token.Policies,
 			Local:       token.Local,
 			Description: token.Description,
 		},
+		WriteRequest: args.WriteRequest,
 	}
-
-	cloneReq.Token = args.Token
 
 	if args.ACLToken.Description != "" {
 		cloneReq.ACLToken.Description = args.ACLToken.Description
 	}
 
-	return a.TokenWrite(&cloneReq, reply)
-
+	return a.tokenUpsertInternal(&cloneReq, reply)
 }
 
-func (a *ACL) TokenWrite(args *structs.ACLTokenWriteRequest, reply *structs.ACLToken) error {
-	token := &args.ACLToken
+func (a *ACL) TokenUpsert(args *structs.ACLTokenUpsertRequest, reply *structs.ACLToken) error {
 	// TODO (ACL-V2) - handle local tokens
-	if done, err := a.srv.forward("ACL.TokenWrite", args, args, reply); done {
+	if done, err := a.srv.forward("ACL.TokenUpsert", args, args, reply); done {
 		return err
 	}
 
-	defer metrics.MeasureSince([]string{"acl", "token", "write"}, time.Now())
+	defer metrics.MeasureSince([]string{"acl", "token", "upsert"}, time.Now())
 
 	// Verify token is permitted to modify ACLs
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
@@ -246,105 +237,103 @@ func (a *ACL) TokenWrite(args *structs.ACLTokenWriteRequest, reply *structs.ACLT
 		return acl.ErrPermissionDenied
 	}
 
+	return a.tokenUpsertInternal(args, reply)
+}
+
+func (a *ACL) tokenUpsertInternal(args *structs.ACLTokenUpsertRequest, reply *structs.ACLToken) error {
+	token := &args.ACLToken
+
 	state := a.srv.fsm.State()
 
-	switch args.Op {
-	case structs.ACLSet:
-		if token.AccessorID == "" {
-			// Token Create
-			var err error
+	if token.AccessorID == "" {
+		// Token Create
+		var err error
 
-			// Generate the AccessorID
-			token.AccessorID, err = lib.GenerateUUID(a.srv.checkTokenUUID)
-			if err != nil {
-				return err
-			}
-
-			// Generate the SecretID - not supporting non-UUID secrets
-			token.SecretID, err = lib.GenerateUUID(a.srv.checkTokenUUID)
-			if err != nil {
-				return err
-			}
-
-			token.CreateTime = time.Now()
-		} else {
-			// Token Update
-			if _, err := uuid.ParseUUID(token.AccessorID); err != nil {
-				return fmt.Errorf("AccessorID is not a valid UUID")
-			}
-
-			// DEPRECATED (ACL-Legacy-Compat) - maybe get rid of this in the future
-			//   and instead do a ParseUUID check. New tokens will not have
-			//   secrets generated by users but rather they will always be UUIDs.
-			//   However if users just continue the upgrade cycle they may still
-			//   have tokens using secrets that are not UUIDS
-			// TODO (ACL-V2) - Do we really need a RootAuthorizer check here? If so should
-			//   the message be updated?
-			if acl.RootAuthorizer(token.SecretID) != nil {
-				return acl.PermissionDeniedError{Cause: "Cannot modify root ACL"}
-			}
-
-			// Verify the token exists
-			_, existing, err := state.ACLTokenGetByAccessor(nil, token.AccessorID)
-			if err != nil {
-				return fmt.Errorf("Failed to lookup the acl token %q: %v", token.AccessorID, err)
-			}
-			if existing == nil {
-				return fmt.Errorf("Cannot find token %q", token.AccessorID)
-			}
-			if token.SecretID == "" {
-				token.SecretID = existing.SecretID
-			} else if existing.SecretID != token.SecretID {
-				return fmt.Errorf("Changing a tokens SecretID is not permitted")
-			}
-
-			// Cannot toggle the "Global" mode
-			if token.Local != existing.Local {
-				return fmt.Errorf("cannot toggle local mode of %s", token.AccessorID)
-			}
-
-			token.CreateTime = existing.CreateTime
+		// Generate the AccessorID
+		token.AccessorID, err = lib.GenerateUUID(a.srv.checkTokenUUID)
+		if err != nil {
+			return err
 		}
 
-		// Validate all the policy names and convert them to policy IDs
-		for linkIndex, link := range token.Policies {
-			if link.ID == "" {
-				_, policy, err := state.ACLPolicyGetByName(nil, link.Name)
-				if err != nil {
-					return fmt.Errorf("Error looking up policy for name %q: %v", link.Name, err)
-				}
-				if policy == nil {
-					return fmt.Errorf("No such ACL policy with name %q", link.Name)
-				}
-				token.Policies[linkIndex].ID = policy.ID
-			}
-
-			// Do not store the policy name within raft/memdb as the policy could be renamed in the future.
-			token.Policies[linkIndex].Name = ""
+		// Generate the SecretID - not supporting non-UUID secrets
+		token.SecretID, err = lib.GenerateUUID(a.srv.checkTokenUUID)
+		if err != nil {
+			return err
 		}
 
-		if token.Rules != "" {
-			return fmt.Errorf("Rules cannot be specified for this token")
-		}
-
-		if token.Type != "" {
-			return fmt.Errorf("Type cannot be specified for this token")
-		}
-
-		token.SetHash(true)
-	case structs.ACLDelete:
+		token.CreateTime = time.Now()
+	} else {
+		// Token Update
 		if _, err := uuid.ParseUUID(token.AccessorID); err != nil {
-			return fmt.Errorf("Accessor ID is missing or an invalid UUID for operation: %v", args.Op)
+			return fmt.Errorf("AccessorID is not a valid UUID")
 		}
 
-		if token.AccessorID == structs.ACLTokenAnonymousID {
-			return fmt.Errorf("Delete operation not permitted on the anonymous token")
+		// DEPRECATED (ACL-Legacy-Compat) - maybe get rid of this in the future
+		//   and instead do a ParseUUID check. New tokens will not have
+		//   secrets generated by users but rather they will always be UUIDs.
+		//   However if users just continue the upgrade cycle they may still
+		//   have tokens using secrets that are not UUIDS
+		// TODO (ACL-V2) - Do we really need a RootAuthorizer check here? If so should
+		//   the message be updated?
+		if acl.RootAuthorizer(token.SecretID) != nil {
+			return acl.PermissionDeniedError{Cause: "Cannot modify root ACL"}
 		}
-	default:
-		return fmt.Errorf("Invalid TokenWrite operation: %v", args.Op)
+
+		// Verify the token exists
+		_, existing, err := state.ACLTokenGetByAccessor(nil, token.AccessorID)
+		if err != nil {
+			return fmt.Errorf("Failed to lookup the acl token %q: %v", token.AccessorID, err)
+		}
+		if existing == nil {
+			return fmt.Errorf("Cannot find token %q", token.AccessorID)
+		}
+		if token.SecretID == "" {
+			token.SecretID = existing.SecretID
+		} else if existing.SecretID != token.SecretID {
+			return fmt.Errorf("Changing a tokens SecretID is not permitted")
+		}
+
+		// Cannot toggle the "Global" mode
+		if token.Local != existing.Local {
+			return fmt.Errorf("cannot toggle local mode of %s", token.AccessorID)
+		}
+
+		token.CreateTime = existing.CreateTime
 	}
 
-	resp, err := a.srv.raftApply(structs.ACLTokenRequestType, args)
+	// Validate all the policy names and convert them to policy IDs
+	for linkIndex, link := range token.Policies {
+		if link.ID == "" {
+			_, policy, err := state.ACLPolicyGetByName(nil, link.Name)
+			if err != nil {
+				return fmt.Errorf("Error looking up policy for name %q: %v", link.Name, err)
+			}
+			if policy == nil {
+				return fmt.Errorf("No such ACL policy with name %q", link.Name)
+			}
+			token.Policies[linkIndex].ID = policy.ID
+		}
+
+		// Do not store the policy name within raft/memdb as the policy could be renamed in the future.
+		token.Policies[linkIndex].Name = ""
+	}
+
+	if token.Rules != "" {
+		return fmt.Errorf("Rules cannot be specified for this token")
+	}
+
+	if token.Type != "" {
+		return fmt.Errorf("Type cannot be specified for this token")
+	}
+
+	token.SetHash(true)
+
+	req := &structs.ACLTokenBatchUpsertRequest{
+		Tokens:      structs.ACLTokens{token},
+		AllowCreate: true,
+	}
+
+	resp, err := a.srv.raftApply(structs.ACLTokenUpsertRequestType, req)
 	if err != nil {
 		return fmt.Errorf("Failed to apply token write request: %v", err)
 	}
@@ -356,15 +345,70 @@ func (a *ACL) TokenWrite(args *structs.ACLTokenWriteRequest, reply *structs.ACLT
 		return respErr
 	}
 
-	if respToken, ok := resp.(*structs.ACLToken); ok {
-		*reply = *respToken
+	if _, updatedToken, err := a.srv.fsm.State().ACLTokenGetByAccessor(nil, token.AccessorID); err == nil && token != nil {
+		*reply = *updatedToken
+	} else {
+		return fmt.Errorf("Failed to retrieve the token after insertion")
 	}
 
 	return nil
 }
 
-func (a *ACL) TokenList(args *structs.DCSpecificRequest, reply *structs.ACLTokensResponse) error {
-	// TODO (ACL-V2) - Implement listing  local tokens prior to hitting the ACL DC
+func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) error {
+	// TODO (ACL-V2) - handle local tokens
+	if done, err := a.srv.forward("ACL.TokenDelete", args, args, reply); done {
+		return err
+	}
+
+	defer metrics.MeasureSince([]string{"acl", "token", "delete"}, time.Now())
+
+	// Verify token is permitted to modify ACLs
+	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
+		return err
+	} else if rule == nil || !rule.ACLWrite() {
+		return acl.ErrPermissionDenied
+	}
+
+	if _, err := uuid.ParseUUID(args.TokenID); err != nil {
+		return fmt.Errorf("Accessor ID is missing or an invalid UUID")
+	}
+
+	if args.TokenID == structs.ACLTokenAnonymousID {
+		return fmt.Errorf("Delete operation not permitted on the anonymous token")
+	}
+
+	// grab the token here so we can invalidate our cache later on
+	_, token, err := a.srv.fsm.State().ACLTokenGetByAccessor(nil, args.TokenID)
+	if err != nil {
+		return err
+	}
+
+	req := &structs.ACLTokenBatchDeleteRequest{
+		TokenIDs: []string{args.TokenID},
+	}
+
+	resp, err := a.srv.raftApply(structs.ACLTokenDeleteRequestType, req)
+	if err != nil {
+		return fmt.Errorf("Failed to apply token delete request: %v", err)
+	}
+
+	// Purge the identity from the cache to prevent using the previous definition of the identity
+	if token != nil {
+		a.srv.acls.cache.RemoveIdentity(token.SecretID)
+	}
+
+	if respErr, ok := resp.(error); ok {
+		return respErr
+	}
+
+	if reply != nil {
+		*reply = token.AccessorID
+	}
+
+	return nil
+}
+
+func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTokensResponse) error {
 	if done, err := a.srv.forward("ACL.TokenList", args, args, reply); done {
 		return err
 	}
@@ -377,9 +421,8 @@ func (a *ACL) TokenList(args *structs.DCSpecificRequest, reply *structs.ACLToken
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
-		// TODO (ACL-V2) - implement secret removal
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, tokens, err := state.ACLTokenList(ws)
+			index, tokens, err := state.ACLTokenList(ws, args.IncludeLocal, args.IncludeGlobal)
 			if err != nil {
 				return err
 			}
@@ -410,10 +453,10 @@ func (a *ACL) PolicyRead(args *structs.ACLPolicyReadRequest, reply *structs.ACLP
 			var index uint64
 			var policy *structs.ACLPolicy
 			var err error
-			if args.IDType == structs.ACLPolicyID {
-				index, policy, err = state.ACLPolicyGetByID(ws, args.ID)
+			if args.PolicyIDType == structs.ACLPolicyID {
+				index, policy, err = state.ACLPolicyGetByID(ws, args.PolicyID)
 			} else {
-				index, policy, err = state.ACLPolicyGetByName(ws, args.ID)
+				index, policy, err = state.ACLPolicyGetByName(ws, args.PolicyID)
 			}
 
 			if err != nil {
@@ -425,15 +468,15 @@ func (a *ACL) PolicyRead(args *structs.ACLPolicyReadRequest, reply *structs.ACLP
 		})
 }
 
-func (a *ACL) PolicyWrite(args *structs.ACLPolicyWriteRequest, reply *structs.ACLPolicy) error {
+func (a *ACL) PolicyUpsert(args *structs.ACLPolicyUpsertRequest, reply *structs.ACLPolicy) error {
 	// make sure this RPC is destined for the ACLDatacenter
 	args.Datacenter = a.srv.config.ACLDatacenter
 
-	if done, err := a.srv.forward("ACL.PolicyWrite", args, args, reply); done {
+	if done, err := a.srv.forward("ACL.PolicyUpsert", args, args, reply); done {
 		return err
 	}
 
-	defer metrics.MeasureSince([]string{"acl", "policy", "write"}, time.Now())
+	defer metrics.MeasureSince([]string{"acl", "policy", "upsert"}, time.Now())
 
 	// Verify token is permitted to modify ACLs
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
@@ -448,87 +491,134 @@ func (a *ACL) PolicyWrite(args *structs.ACLPolicyWriteRequest, reply *structs.AC
 	// Almost all of the checks here are also done in the state store. However,
 	// we want to prevent the raft operations when we know they are going to fail
 	// so we still do them here.
-	switch args.Op {
-	case structs.ACLSet:
-		// ensure a name is set
-		if policy.Name == "" {
-			return fmt.Errorf("Invalid Policy: no Name is set")
-		}
 
-		if !validPolicyName.MatchString(policy.Name) {
-			return fmt.Errorf("Invalid Policy: invalid Name. Only alphanumeric characters, '-' and '_' are allowed")
-		}
+	// ensure a name is set
+	if policy.Name == "" {
+		return fmt.Errorf("Invalid Policy: no Name is set")
+	}
 
-		if policy.ID == "" {
-			// with no policy ID one will be generated
-			var err error
+	if !validPolicyName.MatchString(policy.Name) {
+		return fmt.Errorf("Invalid Policy: invalid Name. Only alphanumeric characters, '-' and '_' are allowed")
+	}
 
-			policy.ID, err = lib.GenerateUUID(a.srv.checkPolicyUUID)
-			if err != nil {
-				return err
-			}
+	if policy.ID == "" {
+		// with no policy ID one will be generated
+		var err error
 
-			// validate the name is unique
-			if _, existing, err := state.ACLPolicyGetByName(nil, policy.Name); err != nil {
-				return fmt.Errorf("acl policy lookup by name failed: %v", err)
-			} else if existing != nil {
-				return fmt.Errorf("Invalid Policy: A Policy with Name %q already exists", policy.Name)
-			}
-		} else {
-			if _, err := uuid.ParseUUID(policy.ID); err != nil {
-				return fmt.Errorf("Policy ID invalid UUID for operation: %v", args.Op)
-			}
-
-			// Verify the policy exists
-			_, existing, err := state.ACLPolicyGetByID(nil, policy.ID)
-			if err != nil {
-				return fmt.Errorf("acl policy lookup failed: %v", err)
-			} else if existing == nil {
-				return fmt.Errorf("cannot find policy %s", policy.ID)
-			}
-
-			if existing.Name != policy.Name {
-				if _, nameMatch, err := state.ACLPolicyGetByName(nil, policy.Name); err != nil {
-					return fmt.Errorf("acl policy lookup by name failed: %v", err)
-				} else if nameMatch != nil {
-					return fmt.Errorf("Invalid Policy: A policy with name %q already exists", policy.Name)
-				}
-			}
-
-			if policy.ID == structs.ACLPolicyGlobalManagementID {
-				if policy.Datacenters != nil || len(policy.Datacenters) > 0 {
-					return fmt.Errorf("Changing the Datacenters of the builtin global-management policy is not permitted")
-				}
-
-				if policy.Rules != existing.Rules {
-					return fmt.Errorf("Changing the Rules for the builtin global-management policy is not permitted")
-				}
-			}
-		}
-
-		// validate the rules
-		_, err := acl.NewPolicyFromSource("", 0, policy.Rules, policy.Syntax, a.srv.sentinel)
+		policy.ID, err = lib.GenerateUUID(a.srv.checkPolicyUUID)
 		if err != nil {
 			return err
 		}
 
-		// calcualte the hash for this policy
-		policy.SetHash(true)
-	case structs.ACLDelete:
+		// validate the name is unique
+		if _, existing, err := state.ACLPolicyGetByName(nil, policy.Name); err != nil {
+			return fmt.Errorf("acl policy lookup by name failed: %v", err)
+		} else if existing != nil {
+			return fmt.Errorf("Invalid Policy: A Policy with Name %q already exists", policy.Name)
+		}
+	} else {
 		if _, err := uuid.ParseUUID(policy.ID); err != nil {
-			return fmt.Errorf("Policy ID is missing or an invalid UUID for operation: %v", args.Op)
+			return fmt.Errorf("Policy ID invalid UUID")
+		}
+
+		// Verify the policy exists
+		_, existing, err := state.ACLPolicyGetByID(nil, policy.ID)
+		if err != nil {
+			return fmt.Errorf("acl policy lookup failed: %v", err)
+		} else if existing == nil {
+			return fmt.Errorf("cannot find policy %s", policy.ID)
+		}
+
+		if existing.Name != policy.Name {
+			if _, nameMatch, err := state.ACLPolicyGetByName(nil, policy.Name); err != nil {
+				return fmt.Errorf("acl policy lookup by name failed: %v", err)
+			} else if nameMatch != nil {
+				return fmt.Errorf("Invalid Policy: A policy with name %q already exists", policy.Name)
+			}
 		}
 
 		if policy.ID == structs.ACLPolicyGlobalManagementID {
-			return fmt.Errorf("Delete operation not permitted on the builtin global-management policy")
+			if policy.Datacenters != nil || len(policy.Datacenters) > 0 {
+				return fmt.Errorf("Changing the Datacenters of the builtin global-management policy is not permitted")
+			}
+
+			if policy.Rules != existing.Rules {
+				return fmt.Errorf("Changing the Rules for the builtin global-management policy is not permitted")
+			}
 		}
-	default:
-		return fmt.Errorf("Invalid operation for the PolicyWrite RPC: %v", args.Op)
 	}
 
-	resp, err := a.srv.raftApply(structs.ACLPolicyRequestType, args)
+	// validate the rules
+	_, err := acl.NewPolicyFromSource("", 0, policy.Rules, policy.Syntax, a.srv.sentinel)
 	if err != nil {
-		return fmt.Errorf("Failed to apply policy write request: %v", err)
+		return err
+	}
+
+	// calcualte the hash for this policy
+	policy.SetHash(true)
+
+	req := &structs.ACLPolicyBatchUpsertRequest{
+		Policies: structs.ACLPolicies{policy},
+	}
+
+	resp, err := a.srv.raftApply(structs.ACLPolicyUpsertRequestType, req)
+	if err != nil {
+		return fmt.Errorf("Failed to apply policy upsert request: %v", err)
+	}
+
+	a.srv.acls.cache.RemovePolicy(policy.ID)
+
+	if respErr, ok := resp.(error); ok {
+		return respErr
+	}
+
+	if _, policy, err := a.srv.fsm.State().ACLPolicyGetByID(nil, policy.ID); err == nil && policy != nil {
+		*reply = *policy
+	}
+
+	return nil
+}
+
+func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) error {
+	// make sure this RPC is destined for the ACLDatacenter
+	args.Datacenter = a.srv.config.ACLDatacenter
+
+	if done, err := a.srv.forward("ACL.PolicyUpsert", args, args, reply); done {
+		return err
+	}
+
+	defer metrics.MeasureSince([]string{"acl", "policy", "delete"}, time.Now())
+
+	// Verify token is permitted to modify ACLs
+	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
+		return err
+	} else if rule == nil || !rule.ACLWrite() {
+		return acl.ErrPermissionDenied
+	}
+
+	// Almost all of the checks here are also done in the state store. However,
+	// we want to prevent the raft operations when we know they are going to fail
+	// so we still do them here.
+	if _, err := uuid.ParseUUID(args.PolicyID); err != nil {
+		return fmt.Errorf("Policy ID is missing or an invalid UUID")
+	}
+
+	if args.PolicyID == structs.ACLPolicyGlobalManagementID {
+		return fmt.Errorf("Delete operation not permitted on the builtin global-management policy")
+	}
+
+	_, policy, err := a.srv.fsm.State().ACLPolicyGetByID(nil, args.PolicyID)
+	if err != nil {
+		return err
+	}
+
+	req := structs.ACLPolicyBatchDeleteRequest{
+		PolicyIDs: []string{args.PolicyID},
+	}
+
+	resp, err := a.srv.raftApply(structs.ACLPolicyDeleteRequestType, &req)
+	if err != nil {
+		return fmt.Errorf("Failed to apply policy delete request: %v", err)
 	}
 
 	a.srv.acls.cache.RemovePolicy(policy.ID)
@@ -541,8 +631,8 @@ func (a *ACL) PolicyWrite(args *structs.ACLPolicyWriteRequest, reply *structs.AC
 		return respErr
 	}
 
-	if respPolicy, ok := resp.(*structs.ACLPolicy); ok {
-		*reply = *respPolicy
+	if policy != nil {
+		*reply = policy.Name
 	}
 
 	return nil
@@ -571,6 +661,8 @@ func (a *ACL) PolicyList(args *structs.DCSpecificRequest, reply *structs.ACLPoli
 		})
 }
 
+// PolicyResolve is used to retrieve a subset of the policies associated with a given token
+// The policy ids in the args simply act as a filter on the policy set assigned to the token
 func (a *ACL) PolicyResolve(args *structs.ACLPolicyResolveRequest, reply *structs.ACLPolicyMultiResponse) error {
 	if done, err := a.srv.forward("ACL.PolicyResolve", args, args, reply); done {
 		return err
@@ -582,9 +674,10 @@ func (a *ACL) PolicyResolve(args *structs.ACLPolicyResolveRequest, reply *struct
 		return err
 	}
 
+	// TODO (ACL-V2) - should we optimize this? Its probably not worth it.
 	// filter down the requested list to just what was requested
 	for _, policy := range policies {
-		for _, policyID := range args.IDs {
+		for _, policyID := range args.PolicyIDs {
 			if policy.ID == policyID {
 				reply.Policies = append(reply.Policies, policy)
 				break

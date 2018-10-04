@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -166,9 +167,9 @@ func (s *HTTPServer) ACLPolicyCRUD(resp http.ResponseWriter, req *http.Request) 
 
 func (s *HTTPServer) ACLPolicyRead(resp http.ResponseWriter, req *http.Request, policyID string) (interface{}, error) {
 	args := structs.ACLPolicyReadRequest{
-		Datacenter: s.agent.config.Datacenter,
-		ID:         policyID,
-		IDType:     structs.ACLPolicyID,
+		Datacenter:   s.agent.config.Datacenter,
+		PolicyID:     policyID,
+		PolicyIDType: structs.ACLPolicyID,
 	}
 
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
@@ -196,14 +197,34 @@ func (s *HTTPServer) ACLPolicyCreate(resp http.ResponseWriter, req *http.Request
 	return s.ACLPolicyWrite(resp, req, "")
 }
 
+// fixCreateTime is used to help in decoding the CreateTime attribute from
+// both the ACL Token and ACL Policy creation/update requests. It is needed
+// to help mapstructure decode things properly when decodeBody is used.
+func fixCreateTime(raw interface{}) error {
+	rawMap, ok := raw.(map[string]interface{})
+	if !ok {
+		return nil
+	}
+
+	if val, ok := rawMap["CreateTime"]; ok {
+		if sval, ok := val.(string); ok {
+			t, err := time.Parse(time.RFC3339, sval)
+			if err != nil {
+				return err
+			}
+			rawMap["CreateTime"] = t
+		}
+	}
+	return nil
+}
+
 func (s *HTTPServer) ACLPolicyWrite(resp http.ResponseWriter, req *http.Request, policyID string) (interface{}, error) {
-	args := structs.ACLPolicyWriteRequest{
+	args := structs.ACLPolicyUpsertRequest{
 		Datacenter: s.agent.config.Datacenter,
-		Op:         structs.ACLSet,
 	}
 	s.parseToken(req, &args.Token)
 
-	if err := decodeBody(req, &args.Policy, nil); err != nil {
+	if err := decodeBody(req, &args.Policy, fixCreateTime); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Policy decoding failed: %v", err)}
 	}
 
@@ -215,7 +236,7 @@ func (s *HTTPServer) ACLPolicyWrite(resp http.ResponseWriter, req *http.Request,
 	}
 
 	var out structs.ACLPolicy
-	if err := s.agent.RPC("ACL.PolicyWrite", args, &out); err != nil {
+	if err := s.agent.RPC("ACL.PolicyUpsert", args, &out); err != nil {
 		return nil, err
 	}
 
@@ -223,17 +244,14 @@ func (s *HTTPServer) ACLPolicyWrite(resp http.ResponseWriter, req *http.Request,
 }
 
 func (s *HTTPServer) ACLPolicyDelete(resp http.ResponseWriter, req *http.Request, policyID string) (interface{}, error) {
-	args := structs.ACLPolicyWriteRequest{
+	args := structs.ACLPolicyDeleteRequest{
 		Datacenter: s.agent.config.Datacenter,
-		Op:         structs.ACLDelete,
-		Policy: structs.ACLPolicy{
-			ID: policyID,
-		},
+		PolicyID:   policyID,
 	}
 	s.parseToken(req, &args.Token)
 
-	var out structs.ACLPolicy
-	if err := s.agent.RPC("ACL.PolicyWrite", args, &out); err != nil {
+	var out string
+	if err := s.agent.RPC("ACL.PolicyDelete", args, &out); err != nil {
 		return nil, err
 	}
 
@@ -245,7 +263,10 @@ func (s *HTTPServer) ACLTokenList(resp http.ResponseWriter, req *http.Request) (
 		return nil, nil
 	}
 
-	var args structs.DCSpecificRequest
+	args := &structs.ACLTokenListRequest{
+		IncludeLocal:  true,
+		IncludeGlobal: true,
+	}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
@@ -299,7 +320,7 @@ func (s *HTTPServer) ACLTokenCRUD(resp http.ResponseWriter, req *http.Request) (
 
 func (s *HTTPServer) ACLTokenSelf(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	args := structs.ACLTokenReadRequest{
-		IDType: structs.ACLTokenSecret,
+		TokenIDType: structs.ACLTokenSecret,
 	}
 
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
@@ -307,7 +328,7 @@ func (s *HTTPServer) ACLTokenSelf(resp http.ResponseWriter, req *http.Request) (
 	}
 
 	// copy the token parameter to the ID
-	args.ID = args.Token
+	args.TokenID = args.Token
 
 	if args.Datacenter == "" {
 		args.Datacenter = s.agent.config.Datacenter
@@ -336,9 +357,9 @@ func (s *HTTPServer) ACLTokenCreate(resp http.ResponseWriter, req *http.Request)
 
 func (s *HTTPServer) ACLTokenRead(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
 	args := structs.ACLTokenReadRequest{
-		Datacenter: s.agent.config.Datacenter,
-		ID:         tokenID,
-		IDType:     structs.ACLTokenAccessor,
+		Datacenter:  s.agent.config.Datacenter,
+		TokenID:     tokenID,
+		TokenIDType: structs.ACLTokenAccessor,
 	}
 
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
@@ -363,13 +384,12 @@ func (s *HTTPServer) ACLTokenRead(resp http.ResponseWriter, req *http.Request, t
 }
 
 func (s *HTTPServer) ACLTokenWrite(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
-	args := structs.ACLTokenWriteRequest{
+	args := structs.ACLTokenUpsertRequest{
 		Datacenter: s.agent.config.Datacenter,
-		Op:         structs.ACLSet,
 	}
 	s.parseToken(req, &args.Token)
 
-	if err := decodeBody(req, &args.ACLToken, nil); err != nil {
+	if err := decodeBody(req, &args.ACLToken, fixCreateTime); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Token decoding failed: %v", err)}
 	}
 
@@ -382,7 +402,7 @@ func (s *HTTPServer) ACLTokenWrite(resp http.ResponseWriter, req *http.Request, 
 	}
 
 	var out structs.ACLToken
-	if err := s.agent.RPC("ACL.TokenWrite", args, &out); err != nil {
+	if err := s.agent.RPC("ACL.TokenUpsert", args, &out); err != nil {
 		return nil, err
 	}
 
@@ -390,20 +410,16 @@ func (s *HTTPServer) ACLTokenWrite(resp http.ResponseWriter, req *http.Request, 
 }
 
 func (s *HTTPServer) ACLTokenDelete(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
-	args := structs.ACLTokenWriteRequest{
+	args := structs.ACLTokenDeleteRequest{
 		Datacenter: s.agent.config.Datacenter,
-		Op:         structs.ACLDelete,
-		ACLToken: structs.ACLToken{
-			AccessorID: tokenID,
-		},
+		TokenID:    tokenID,
 	}
 	s.parseToken(req, &args.Token)
 
-	var out structs.ACLToken
-	if err := s.agent.RPC("ACL.TokenWrite", args, &out); err != nil {
+	var out string
+	if err := s.agent.RPC("ACL.TokenDelete", args, &out); err != nil {
 		return nil, err
 	}
-
 	return true, nil
 }
 
@@ -417,15 +433,12 @@ func (s *HTTPServer) ACLTokenClone(resp http.ResponseWriter, req *http.Request) 
 		return nil, BadRequestError{Reason: "Missing token ID"}
 	}
 
-	args := structs.ACLTokenWriteRequest{
+	args := structs.ACLTokenUpsertRequest{
 		Datacenter: s.agent.config.Datacenter,
-		Op:         structs.ACLSet,
 	}
 
-	if req.Body != nil {
-		if err := decodeBody(req, &args.ACLToken, nil); err != nil {
-			return nil, BadRequestError{Reason: fmt.Sprintf("Token decoding failed: %v", err)}
-		}
+	if err := decodeBody(req, &args.ACLToken, fixCreateTime); err != nil && err.Error() != "EOF" {
+		return nil, BadRequestError{Reason: fmt.Sprintf("Token decoding failed: %v", err)}
 	}
 	s.parseToken(req, &args.Token)
 

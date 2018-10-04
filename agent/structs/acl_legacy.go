@@ -116,16 +116,6 @@ func (r *ACLRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
-// Convert rewrites a legacy write request as a new ADCTokenWriteRequest
-func (r *ACLRequest) Convert() *ACLTokenWriteRequest {
-	return &ACLTokenWriteRequest{
-		Datacenter:   r.Datacenter,
-		Op:           r.Op,
-		ACLToken:     *r.ACL.Convert(),
-		WriteRequest: r.WriteRequest,
-	}
-}
-
 // ACLRequests is a list of ACL change requests.
 type ACLRequests []*ACLRequest
 

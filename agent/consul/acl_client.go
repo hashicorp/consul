@@ -30,6 +30,7 @@ func (c *Client) UseLegacyACLs() bool {
 }
 
 func (c *Client) monitorACLMode() {
+	waitTime := aclModeCheckMinInterval
 	for {
 		canUpgrade := true
 		for _, member := range c.LANMembers() {
@@ -49,8 +50,14 @@ func (c *Client) monitorACLMode() {
 		select {
 		case <-c.shutdownCh:
 			return
-		case <-time.After(aclModeCheckInterval):
+		case <-time.After(waitTime):
 			// do nothing
+		}
+
+		// calculate the amount of time to wait for the next round
+		waitTime = waitTime * 2
+		if waitTime > aclModeCheckMaxInterval {
+			waitTime = aclModeCheckMaxInterval
 		}
 	}
 }
