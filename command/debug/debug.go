@@ -1,11 +1,16 @@
 package debug
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -65,9 +70,11 @@ func (c *cmd) init() {
 			"to capture a subset of information, and defaults to capturing "+
 			"everything available. Possible information for capture: "+
 			"This can be repeated multiple times.")
+	// TODO(pearkes): set a reasonable minimum
 	c.flags.DurationVar(&c.interval, "interval", debugInterval,
 		fmt.Sprintf("The interval in which to capture dynamic information such as "+
 			"telemetry, and profiling. Defaults to %s.", debugInterval))
+	// TODO(pearkes): set a reasonable minimum
 	c.flags.DurationVar(&c.duration, "duration", debugDuration,
 		fmt.Sprintf("The total time to record information. "+
 			"Defaults to %s.", debugDuration))
@@ -140,9 +147,27 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Warn(fmt.Sprintf("Static capture failed: %v", err))
 	}
 
-	c.UI.Info(fmt.Sprintf("Saved debug archive: %s", c.output))
+	// Capture dynamic information from the target agent, blocking for duration
+	// TODO(pearkes): figure out a cleaner way to do this
+	if c.configuredTarget("metrics") || c.configuredTarget("logs") || c.configuredTarget("pprof") {
+		err = c.captureDynamic()
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error encountered during collection: %v", err))
+		}
+	}
 
-	// Block and monitor for duration
+	// Archive the data if configured to
+	if c.archive {
+		err = c.createArchive()
+
+		if err != nil {
+			c.UI.Warn(fmt.Sprintf("Archive creation failed: %v", err))
+			return 1
+		}
+	}
+
+	c.UI.Info(fmt.Sprintf("Saved debug archive: %s", c.output+".tar.gz"))
+
 	return 0
 }
 
@@ -236,6 +261,107 @@ func (c *cmd) captureStatic() error {
 	return errors
 }
 
+func (c *cmd) captureDynamic() error {
+	successChan := make(chan int64)
+	errCh := make(chan error)
+	endLogChn := make(chan struct{})
+	durationChn := time.After(c.duration)
+
+	capture := func() {
+		// Collect the named JSON outputs here
+		jsonOutputs := make(map[string]interface{}, 0)
+
+		timestamp := time.Now().UTC().UnixNano()
+
+		// Make the directory for this intervals data
+		timestampDir := fmt.Sprintf("%s/%d", c.output, timestamp)
+		err := os.MkdirAll(timestampDir, 0755)
+		if err != nil {
+			errCh <- err
+		}
+
+		// Capture metrics
+		if c.configuredTarget("metrics") {
+			metrics, err := c.client.Agent().Metrics()
+			if err != nil {
+				errCh <- err
+			}
+
+			jsonOutputs["metrics"] = metrics
+		}
+
+		// Capture pprof
+		if c.configuredTarget("metrics") {
+			metrics, err := c.client.Agent().Metrics()
+			if err != nil {
+				errCh <- err
+			}
+
+			jsonOutputs["metrics"] = metrics
+		}
+
+		// Capture logs
+		if c.configuredTarget("logs") {
+			logData := ""
+			logCh, err := c.client.Agent().Monitor("DEBUG", endLogChn, nil)
+			if err != nil {
+				errCh <- err
+			}
+
+		OUTER:
+			for {
+				select {
+				case log := <-logCh:
+					if log == "" {
+						break OUTER
+					}
+					logData = logData + log
+				case <-time.After(c.interval):
+					break OUTER
+				case <-endLogChn:
+					break OUTER
+				}
+			}
+
+			err = ioutil.WriteFile(timestampDir+"/consul.log", []byte(logData), 0755)
+			if err != nil {
+				errCh <- err
+			}
+		}
+
+		for output, v := range jsonOutputs {
+			marshaled, err := json.MarshalIndent(v, "", "\t")
+			if err != nil {
+				errCh <- err
+			}
+
+			err = ioutil.WriteFile(fmt.Sprintf("%s/%s.json", timestampDir, output), marshaled, 0644)
+			if err != nil {
+				errCh <- err
+			}
+		}
+
+		successChan <- timestamp
+	}
+
+	go capture()
+
+	for {
+		select {
+		case t := <-successChan:
+			c.UI.Output(fmt.Sprintf("Capture successful %d", t))
+			time.Sleep(c.interval)
+			go capture()
+		case e := <-errCh:
+			c.UI.Error(fmt.Sprintf("capture failure %s", e))
+		case <-durationChn:
+			return nil
+		case <-c.shutdownCh:
+			return errors.New("stopping collection due to shutdown signal")
+		}
+	}
+}
+
 // allowedTarget returns a boolean if the target is able to be captured
 func (c *cmd) allowedTarget(target string) bool {
 	for _, dt := range c.defaultTargets() {
@@ -257,8 +383,76 @@ func (c *cmd) configuredTarget(target string) bool {
 	return false
 }
 
+func (c *cmd) createArchive() error {
+	f, err := os.Create(c.output + ".tar.gz")
+	if err != nil {
+		return fmt.Errorf("failed to create compressed archive: %s", err)
+	}
+	defer f.Close()
+
+	g := gzip.NewWriter(f)
+	defer g.Close()
+	t := tar.NewWriter(f)
+	defer t.Close()
+
+	err = filepath.Walk(c.output, func(file string, fi os.FileInfo, err error) error {
+		if err != nil {
+			return fmt.Errorf("failed to walk filepath for archive: %s", err)
+		}
+
+		header, err := tar.FileInfoHeader(fi, fi.Name())
+		if err != nil {
+			return fmt.Errorf("failed to create compressed archive header: %s", err)
+		}
+
+		header.Name = filepath.Join(filepath.Base(c.output), strings.TrimPrefix(file, c.output))
+
+		if err := t.WriteHeader(header); err != nil {
+			return fmt.Errorf("failed to write compressed archive header: %s", err)
+		}
+
+		// Only copy files
+		if !fi.Mode().IsRegular() {
+			return nil
+		}
+
+		f, err := os.Open(file)
+		if err != nil {
+			return fmt.Errorf("failed to open target files for archive: %s", err)
+		}
+
+		if _, err := io.Copy(t, f); err != nil {
+			return fmt.Errorf("failed to copy files for archive: %s", err)
+		}
+
+		f.Close()
+
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to walk output path for archive: %s", err)
+	}
+
+	// Remove directory that has been archived
+	err = os.RemoveAll(c.output)
+	if err != nil {
+		return fmt.Errorf("failed to remove archived directory: %s", err)
+	}
+
+	return nil
+}
+
 func (c *cmd) defaultTargets() []string {
-	return []string{"metrics", "pprof", "logs", "host", "agent", "cluster"}
+	return append(c.dynamicTargets(), c.staticTargets()...)
+}
+
+func (c *cmd) dynamicTargets() []string {
+	return []string{"metrics", "logs", "pprof"}
+}
+
+func (c *cmd) staticTargets() []string {
+	return []string{"host", "agent", "cluster"}
 }
 
 func (c *cmd) Synopsis() string {

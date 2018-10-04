@@ -1,12 +1,16 @@
 package debug
 
 import (
+	"archive/tar"
 	"fmt"
+	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/mitchellh/cli"
@@ -36,7 +40,12 @@ func TestDebugCommand(t *testing.T) {
 	cmd := New(ui, nil)
 
 	outputPath := fmt.Sprintf("%s/debug", testDir)
-	args := []string{"-http-addr=" + a.HTTPAddr(), "-output=" + outputPath}
+	args := []string{
+		"-http-addr=" + a.HTTPAddr(),
+		"-output=" + outputPath,
+		"-duration=100ms",
+		"-interval=50ms",
+	}
 
 	if code := cmd.Run(args); code != 0 {
 		t.Fatalf("should exit 0, got code: %d", code)
@@ -46,12 +55,62 @@ func TestDebugCommand(t *testing.T) {
 	if errOutput != "" {
 		t.Errorf("expected no error output, got %q", errOutput)
 	}
+}
 
-	// Ensure the debug data was written
-	_, err := os.Stat(outputPath)
-	if err != nil {
-		t.Fatalf("output path should exist: %s", err)
+func TestDebugCommand_Archive(t *testing.T) {
+	t.Parallel()
+
+	testDir := testutil.TempDir(t, "debug")
+	defer os.RemoveAll(testDir)
+
+	a := agent.NewTestAgent(t.Name(), `
+	enable_debug = true
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	ui := cli.NewMockUi()
+	cmd := New(ui, nil)
+
+	outputPath := fmt.Sprintf("%s/debug", testDir)
+	args := []string{
+		"-http-addr=" + a.HTTPAddr(),
+		"-output=" + outputPath,
+		"-capture=agent",
 	}
+
+	if code := cmd.Run(args); code != 0 {
+		t.Fatalf("should exit 0, got code: %d", code)
+	}
+
+	archivePath := fmt.Sprintf("%s.tar.gz", outputPath)
+	file, err := os.Open(archivePath)
+	if err != nil {
+		t.Fatalf("failed to open archive: %s", err)
+	}
+	tr := tar.NewReader(file)
+
+	for {
+		h, err := tr.Next()
+
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatalf("failed to read file in archive: %s", err)
+		}
+
+		// ignore the outer directory
+		if h.Name == "debug" {
+			continue
+		}
+
+		// should only contain this one capture target
+		if h.Name != "debug/agent.json" {
+			t.Fatalf("archive contents do not match: %s", h.Name)
+		}
+	}
+
 }
 
 func TestDebugCommand_OutputPathBad(t *testing.T) {
@@ -68,7 +127,12 @@ func TestDebugCommand_OutputPathBad(t *testing.T) {
 	cmd := New(ui, nil)
 
 	outputPath := ""
-	args := []string{"-output=" + outputPath}
+	args := []string{
+		"-http-addr=" + a.HTTPAddr(),
+		"-output=" + outputPath,
+		"-duration=100ms",
+		"-interval=50ms",
+	}
 
 	if code := cmd.Run(args); code == 0 {
 		t.Fatalf("should exit non-zero, got code: %d", code)
@@ -94,7 +158,12 @@ func TestDebugCommand_OutputPathExists(t *testing.T) {
 	cmd := New(ui, nil)
 
 	outputPath := fmt.Sprintf("%s/debug", testDir)
-	args := []string{"-output=" + outputPath}
+	args := []string{
+		"-http-addr=" + a.HTTPAddr(),
+		"-output=" + outputPath,
+		"-duration=100ms",
+		"-interval=50ms",
+	}
 
 	// Make a directory that conflicts with the output path
 	err := os.Mkdir(outputPath, 0755)
@@ -131,7 +200,12 @@ func TestDebugCommand_CaptureTargets(t *testing.T) {
 		"static": {
 			[]string{"agent", "host", "cluster"},
 			[]string{"agent.json", "host.json", "members.json"},
-			[]string{},
+			[]string{"*/metrics.json"},
+		},
+		"metrics-only": {
+			[]string{"metrics"},
+			[]string{"*/metrics.json"},
+			[]string{"agent.json", "host.json", "members.json"},
 		},
 		"all": {
 			[]string{
@@ -143,12 +217,11 @@ func TestDebugCommand_CaptureTargets(t *testing.T) {
 				"cluster",
 			},
 			[]string{
-				// "metrics/something.json",
-				// "pprof/something.pprof",
-				// "logs/something.log",
 				"host.json",
 				"agent.json",
 				"members.json",
+				"*/metrics.json",
+				"*/consul.log",
 			},
 			[]string{},
 		},
@@ -161,6 +234,8 @@ func TestDebugCommand_CaptureTargets(t *testing.T) {
 		a := agent.NewTestAgent(t.Name(), `
 		enable_debug = true
 		`)
+		a.Agent.LogWriter = logger.NewLogWriter(512)
+
 		defer a.Shutdown()
 		testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -171,6 +246,9 @@ func TestDebugCommand_CaptureTargets(t *testing.T) {
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"-output=" + outputPath,
+			"-archive=false",
+			"-duration=100ms",
+			"-interval=50ms",
 		}
 		for _, t := range tc.targets {
 			args = append(args, "-capture="+t)
@@ -191,19 +269,23 @@ func TestDebugCommand_CaptureTargets(t *testing.T) {
 			t.Fatalf("output path should exist: %s", err)
 		}
 
-		// Ensure the captured files exist
+		// Ensure the captured static files exist
 		for _, f := range tc.files {
-			_, err := os.Stat(outputPath + "/" + f)
-			if err != nil {
-				t.Fatalf("%s: output data should exist for %s: %s", name, f, err)
+			path := fmt.Sprintf("%s/%s", outputPath, f)
+			// Glob ignores file system errors
+			fs, _ := filepath.Glob(path)
+			if len(fs) <= 0 {
+				t.Fatalf("%s: output data should exist for %s: %v", name, f, fs)
 			}
 		}
 
 		// Ensure any excluded files do not exist
 		for _, f := range tc.excludedFiles {
-			_, err := os.Stat(outputPath + "/" + f)
-			if err == nil {
-				t.Fatalf("%s: output data should not exist for %s: %s", name, f, err)
+			path := fmt.Sprintf("%s/%s", outputPath, f)
+			// Glob ignores file system errors
+			fs, _ := filepath.Glob(path)
+			if len(fs) > 0 {
+				t.Fatalf("%s: output data should not exist for %s: %v", name, f, fs)
 			}
 		}
 	}
