@@ -14,6 +14,14 @@ const create = function(number, name, value) {
   // I don't need it to wait
   api.server.createList(name, number, value);
 };
+const lastRequest = function(method) {
+  return api.server.history
+    .slice(0)
+    .reverse()
+    .find(function(item) {
+      return item.method === method;
+    });
+};
 var currentPage;
 export default function(assert) {
   return (
@@ -108,8 +116,9 @@ export default function(assert) {
         try {
           return func();
         } catch (e) {
-          console.error(e);
-          throw new Error(`The '${prop}' property on the '${component}' page object doesn't exist`);
+          throw new Error(
+            `The '${prop}' property on the '${component}' page object doesn't exist.\n${e.message}`
+          );
         }
       })
       .when('I submit', function(selector) {
@@ -123,6 +132,14 @@ export default function(assert) {
           return prev.fillIn(item, data[item]);
         }, currentPage);
       })
+      .then(
+        ['I fill in the $modal with yaml\n$yaml', 'I fill in the $model with json\n$json'],
+        function(model, data) {
+          return Object.keys(data).reduce(function(prev, item, i, arr) {
+            return prev.fillIn(`${model}[${item}]`, data[item]);
+          }, currentPage);
+        }
+      )
       .then(['I type "$text" into "$selector"'], function(text, selector) {
         return fillIn(selector, text);
       })
@@ -169,7 +186,7 @@ export default function(assert) {
         assert.equal(request.url, url, `Expected the request url to be ${url}, was ${request.url}`);
         const body = JSON.parse(request.requestBody);
         Object.keys(data).forEach(function(key, i, arr) {
-          assert.equal(
+          assert.deepEqual(
             body[key],
             data[key],
             `Expected the payload to contain ${key} equaling ${data[key]}, ${key} was ${body[key]}`
@@ -244,13 +261,34 @@ export default function(assert) {
         assert.equal(request.url, url, `Expected the request url to be ${url}, was ${request.url}`);
       })
       .then('the last $method request was made to "$url"', function(method, url) {
-        const request = api.server.history
-          .slice(0)
-          .reverse()
-          .find(function(item) {
-            return item.method === method;
-          });
+        const request = lastRequest(method);
+        assert.equal(
+          request.method,
+          method,
+          `Expected the request method to be ${method}, was ${request.method}`
+        );
         assert.equal(request.url, url, `Expected the request url to be ${url}, was ${request.url}`);
+      })
+      .then('the last $method request was made to "$url" with the body from yaml\n$yaml', function(
+        method,
+        url,
+        data
+      ) {
+        const request = lastRequest(method);
+        assert.equal(
+          request.method,
+          method,
+          `Expected the request method to be ${method}, was ${request.method}`
+        );
+        assert.equal(request.url, url, `Expected the request url to be ${url}, was ${request.url}`);
+        const body = JSON.parse(request.requestBody);
+        Object.keys(data).forEach(function(key, i, arr) {
+          assert.deepEqual(
+            body[key],
+            data[key],
+            `Expected the payload to contain ${key} equaling ${data[key]}, ${key} was ${body[key]}`
+          );
+        });
       })
       .then('the last $method requests were like yaml\n$yaml', function(method, data) {
         const requests = api.server.history.reverse().filter(function(item) {

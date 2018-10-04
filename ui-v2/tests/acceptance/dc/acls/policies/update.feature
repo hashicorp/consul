@@ -14,10 +14,10 @@ Feature: dc / acls / policies / update: ACL Policy Update
     ---
     Then the url should be /datacenter/acls/policies/policy-id
     Then I see 3 token models
-  Scenario: Update to [Name], [Type], [Description]
-    Then I fill in with yaml
+  Scenario: Update to [Name], [Rules], [Description]
+    Then I fill in the policy with yaml
     ---
-      name: [Name]
+      Name: [Name]
       Description: [Description]
       # Rules: [Rules]
     ---

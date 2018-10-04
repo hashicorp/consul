@@ -1,5 +1,5 @@
 @setupApplicationTest
-Feature: dc / acls / tokens / policies: ACL Token Policies
+Feature: dc / acls / tokens / policies: List
   Scenario:
     Given 1 datacenter model with the value "datacenter"
     And 1 token model from yaml

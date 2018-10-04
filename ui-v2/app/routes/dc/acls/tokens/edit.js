@@ -41,7 +41,7 @@ export default SingleRoute.extend(WithTokenActions, {
   },
   getEmptyPolicy: function() {
     const dc = this.modelFor('dc').dc.Name;
-    //TODO: Check to make sure we actually scope to a DC?
+    // TODO: Check to make sure we actually scope to a DC?
     return get(this, 'policiesRepo').create({ Datacenter: dc });
   },
   actions: {
@@ -67,19 +67,25 @@ export default SingleRoute.extend(WithTokenActions, {
       get(this.controller, 'item.Policies').pushObject(item);
       return item;
     },
+    // from modal
+    clearPolicy: function() {
+      set(this.controller, 'policy', this.getEmptyPolicy());
+      if (typeof cb === 'function') {
+        cb();
+      }
+    },
     createPolicy: function(item, cb) {
       if (typeof cb === 'function') {
         cb();
       }
       this.send('addPolicy', item);
+      this.send('clearPolicy', item);
       set(this.controller, 'policy', this.getEmptyPolicy());
-      setTimeout(() => {
-        get(this, 'policiesRepo')
-          .persist(item)
-          .then(item => {
-            // console.log(item.get('data'));
-          });
-      }, 1000);
+      get(this, 'policiesRepo')
+        .persist(item)
+        .then(item => {
+          // console.log(item.get('data'));
+        });
     },
   },
 });

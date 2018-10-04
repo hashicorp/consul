@@ -1,5 +1,5 @@
 @setupApplicationTest
-Feature: dc / acls / tokens / policies: ACL Token Policies
+Feature: dc / acls / tokens / policies: Remove
   Scenario:
     Given 1 datacenter model with the value "datacenter"
     And 1 token model from yaml
@@ -22,8 +22,8 @@ Feature: dc / acls / tokens / policies: ACL Token Policies
     And I click confirmDelete on the policies
     And I see 0 policy models
     And I submit
-    # Then a PUT request is made to "/v1/acl/token/key?dc=datacenter" with the body from yaml
-    # ---
-    #   Policies: []
-    # ---
+    Then a PUT request is made to "/v1/acl/token/key?dc=datacenter" with the body from yaml
+    ---
+      Policies: []
+    ---
     Then the url should be /datacenter/acls/tokens

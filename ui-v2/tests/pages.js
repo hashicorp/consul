@@ -11,6 +11,9 @@ import freetextFilter from 'consul-ui/tests/pages/components/freetext-filter';
 import catalogFilter from 'consul-ui/tests/pages/components/catalog-filter';
 import aclFilter from 'consul-ui/tests/pages/components/acl-filter';
 import intentionFilter from 'consul-ui/tests/pages/components/intention-filter';
+// TODO: should this specifically be modal or form?
+// should all forms be forms?
+import createPolicyForm from 'consul-ui/tests/pages/components/policy-form';
 
 import index from 'consul-ui/tests/pages/index';
 import dcs from 'consul-ui/tests/pages/dc';
@@ -34,6 +37,7 @@ const deletable = createDeletable(clickable);
 const submitable = createSubmitable(clickable, is);
 const creatable = createCreatable(clickable, is);
 const cancelable = createCancelable(clickable, is);
+const policyForm = createPolicyForm(submitable, cancelable);
 export default {
   index: create(index(visitable, collection)),
   dcs: create(dcs(visitable, clickable, attribute, collection)),
@@ -48,11 +52,25 @@ export default {
   policies: create(
     policies(visitable, deletable, creatable, clickable, attribute, collection, freetextFilter)
   ),
-  policy: create(policy(visitable, submitable, deletable, cancelable, clickable, attribute, collection)),
+  policy: create(
+    policy(visitable, submitable, deletable, cancelable, clickable, attribute, collection)
+  ),
   tokens: create(
     tokens(visitable, deletable, creatable, clickable, attribute, collection, freetextFilter)
   ),
-  token: create(token(visitable, submitable, deletable, cancelable, clickable, attribute, collection)),
+  token: create(
+    token(
+      visitable,
+      submitable,
+      deletable,
+      cancelable,
+      clickable,
+      attribute,
+      collection,
+      //
+      policyForm
+    )
+  ),
   intentions: create(
     intentions(visitable, deletable, creatable, clickable, attribute, collection, intentionFilter)
   ),

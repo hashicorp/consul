@@ -1,4 +1,5 @@
 import Controller from '@ember/controller';
+import { inject as service } from '@ember/service';
 import { get, set } from '@ember/object';
 import Changeset from 'ember-changeset';
 import validations from 'consul-ui/validations/token';
@@ -7,9 +8,22 @@ const normalizeEmberTarget = function(e, value, target) {
   return e.target || { ...target, ...{ name: e, value: value } };
 };
 export default Controller.extend({
+  dom: service('dom'),
+  builder: service('form'),
   isScoped: false,
   setProperties: function(model) {
     this.changeset = new Changeset(model.item, lookupValidator(validations), validations);
+    const builder = get(this, 'builder').build;
+    this.form = builder()
+      .setData(this.changeset)
+      .add(
+        // TODO: Eventually set forms up elsewhere
+        builder('policy', {
+          Datacenters: {
+            type: 'array',
+          },
+        }).setData(get(model, 'policy'))
+      );
     this._super({
       ...model,
       ...{
@@ -18,32 +32,40 @@ export default Controller.extend({
     });
   },
   actions: {
+    sendClearPolicy: function(item) {
+      set(this, 'isScoped', false);
+      this.send('clearPolicy', item);
+    },
+    refreshCodeEditor: function() {
+      get(this, 'dom')
+        .component('#policy_rules')
+        .didAppear();
+    },
     change: function(e, value, _target) {
-      const target = normalizeEmberTarget(e, value, _target);
-      switch (target.name) {
-        case 'Policy':
-          this.send('addPolicy', target.value);
-          break;
-        case 'Details':
-          // only load on opening
-          if (e.target.checked) {
-            this.send('loadPolicy', value);
-          }
-          break;
-        case 'isScoped':
-          set(this, target.name, !get(this, target.name));
-          break;
-        case 'Local':
-          set(this.changeset, target.name, !get(this.item, target.name));
-          break;
-        case 'Type': // Legacy
-        case 'Name': // Legacy
-        case 'Description':
-        case 'Rules':
-          set(this.changeset, target.name, target.value);
-          break;
+      const form = get(this, 'form');
+      try {
+        form.handleEvent({ target: normalizeEmberTarget(e, value, _target) });
+      } catch (e) {
+        switch (e.target.name) {
+          case 'policy[isScoped]':
+            set(this, 'isScoped', !get(this, 'isScoped'));
+            set(this, 'policy[Datacenters]', null);
+            break;
+          case 'Policy':
+            this.send('addPolicy', value);
+            form.validate();
+            break;
+          case 'Details':
+            // the Details expander toggle
+            // only load on opening
+            if (e.target.checked) {
+              this.send('loadPolicy', value);
+            }
+            break;
+          default:
+            throw e;
+        }
       }
-      this.changeset.validate();
     },
   },
 });

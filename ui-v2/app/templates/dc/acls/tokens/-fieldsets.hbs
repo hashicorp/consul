@@ -7,18 +7,18 @@
           <span>No</span>
         </label>
       </div>
-      <label class="type-text">
-        <span>Description</span>
+      <label class="type-text validate-optional">
+        <span>Description (Optional)</span>
         <textarea name="Description" oninput={{action 'change'}}></textarea>
       </label>
     </fieldset>
     <fieldset>
       <h2>Policies</h2>
-      <label class="type-dialog" for="new-policy-toggle">
+      <label data-test-new-policy class="type-dialog" for="new-policy-toggle">
         <span>Create new policy</span>
-        {{#modal-dialog name="new-policy-toggle"}}
+        {{#modal-dialog data-test-policy-form onclose=(action 'sendClearPolicy') onopen=(action 'refreshCodeEditor') name="new-policy-toggle"}}
           {{#block-slot 'header'}}
-              <h2>New Policy</h2>
+            <h2>New Policy</h2>
           {{/block-slot}}
           {{#block-slot 'body'}}
             {{#with policy as |item|}}
@@ -26,8 +26,8 @@
             {{/with}}
           {{/block-slot}}
           {{#block-slot 'actions' as |close|}}
-            <button type="button" {{action 'createPolicy' policy close}}>Create and apply</button>
-            <button type="button" class="type-cancel" {{action close}}>Cancel</button>
+            <button type="submit" {{action 'createPolicy' policy close}}>Create and apply</button>
+            <button type="reset" {{action close}}>Cancel</button>
           {{/block-slot}}
         {{/modal-dialog}}
       </label>
