@@ -98,6 +98,7 @@ type TestServerConfig struct {
 	VerifyOutgoing      bool                   `json:"verify_outgoing,omitempty"`
 	EnableScriptChecks  bool                   `json:"enable_script_checks,omitempty"`
 	Connect             map[string]interface{} `json:"connect,omitempty"`
+	EnableDebug         bool                   `json:"enable_debug,omitempty"`
 	ReadyTimeout        time.Duration          `json:"-"`
 	Stdout, Stderr      io.Writer              `json:"-"`
 	Args                []string               `json:"-"`
