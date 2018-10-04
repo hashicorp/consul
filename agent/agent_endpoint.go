@@ -352,6 +352,14 @@ func (s *HTTPServer) AgentService(resp http.ResponseWriter, req *http.Request) (
 				proxy = svc.Proxy.ToAPI()
 			}
 
+			var weights api.AgentWeights
+			if svc.Weights != nil {
+				err := mapstructure.Decode(svc.Weights, &weights)
+				if err != nil {
+					return "", nil, err
+				}
+			}
+
 			// Calculate the content hash over the response, minus the hash field
 			reply := &api.AgentService{
 				Kind:              api.ServiceKind(svc.Kind),
@@ -362,6 +370,7 @@ func (s *HTTPServer) AgentService(resp http.ResponseWriter, req *http.Request) (
 				Port:              svc.Port,
 				Address:           svc.Address,
 				EnableTagOverride: svc.EnableTagOverride,
+				Weights:           weights,
 				Proxy:             proxy,
 				Connect:           connect,
 			}

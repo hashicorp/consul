@@ -88,9 +88,47 @@ func TestStructsToAgentService(t *testing.T) {
 				},
 			},
 		},
+		{
+			"Proxy service",
+			&structs.ServiceDefinition{
+				Name: "web-proxy",
+				Kind: structs.ServiceKindConnectProxy,
+				Tags: []string{"leader"},
+				Port: 1234,
+				Proxy: &structs.ConnectProxyConfig{
+					DestinationServiceID:   "web1",
+					DestinationServiceName: "web",
+					LocalServiceAddress:    "127.0.0.1",
+					LocalServicePort:       8181,
+					Upstreams:              structs.TestUpstreams(t),
+					Config: map[string]interface{}{
+						"foo": "bar",
+					},
+				},
+			},
+			&api.AgentServiceRegistration{
+				Name: "web-proxy",
+				Tags: []string{"leader"},
+				Port: 1234,
+				Kind: api.ServiceKindConnectProxy,
+				Proxy: &api.AgentServiceConnectProxyConfig{
+					DestinationServiceID:   "web1",
+					DestinationServiceName: "web",
+					LocalServiceAddress:    "127.0.0.1",
+					LocalServicePort:       8181,
+					Upstreams:              structs.TestUpstreams(t).ToAPI(),
+					Config: map[string]interface{}{
+						"foo": "bar",
+					},
+				},
+			},
+		},
 	}
 
-	for _, tc := range cases {
+	for _, tt := range cases {
+		// Capture the loop variable locally otherwise parallel will cause us to run
+		// N copies of the last test case but with different names!!
+		tc := tt
 		t.Run(tc.Name, func(t *testing.T) {
 			t.Parallel()
 			require := require.New(t)
@@ -100,6 +138,3 @@ func TestStructsToAgentService(t *testing.T) {
 		})
 	}
 }
-
-func intPtr(v int) *int       { return &v }
-func strPtr(v string) *string { return &v }
