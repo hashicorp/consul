@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"crypto/x509"
 	"net/rpc"
 
 	"github.com/hashicorp/consul/agent/connect/ca"
@@ -19,6 +20,38 @@ func (p *providerPluginRPCServer) Configure(args *ConfigureRPCRequest, _ *struct
 
 func (p *providerPluginRPCServer) GenerateRoot(struct{}, *struct{}) error {
 	return p.impl.GenerateRoot()
+}
+
+func (p *providerPluginRPCServer) ActiveRoot(_ struct{}, resp *ActiveRootResponse) error {
+	var err error
+	resp.CrtPem, err = p.impl.ActiveRoot()
+	return err
+}
+
+func (p *providerPluginRPCServer) GenerateIntermediateCSR(_ struct{}, resp *GenerateIntermediateCSRResponse) error {
+	var err error
+	resp.CsrPem, err = p.impl.GenerateIntermediateCSR()
+	return err
+}
+
+func (p *providerPluginRPCServer) SetIntermediate(args *SetIntermediateRPCRequest, _ *struct{}) error {
+	return p.impl.SetIntermediate(args.IntermediatePEM, args.RootPEM)
+}
+
+func (p *providerPluginRPCServer) ActiveIntermediate(_ struct{}, resp *ActiveIntermediateResponse) error {
+	var err error
+	resp.CrtPem, err = p.impl.ActiveIntermediate()
+	return err
+}
+
+func (p *providerPluginRPCServer) GenerateIntermediate(_ struct{}, resp *GenerateIntermediateResponse) error {
+	var err error
+	resp.CrtPem, err = p.impl.GenerateIntermediate()
+	return err
+}
+
+func (p *providerPluginRPCServer) Cleanup(struct{}, *struct{}) error {
+	return p.impl.Cleanup()
 }
 
 // providerPluginRPCClient implements a net/rpc backed transport for
@@ -41,8 +74,62 @@ func (p *providerPluginRPCClient) Configure(
 	}, &struct{}{})
 }
 
+func (p *providerPluginRPCClient) GenerateRoot() error {
+	return p.client.Call("Plugin.GenerateRoot", struct{}{}, &struct{}{})
+}
+
+func (p *providerPluginRPCClient) ActiveRoot() (string, error) {
+	var resp ActiveRootResponse
+	err := p.client.Call("Plugin.ActiveRoot", struct{}{}, &resp)
+	return resp.CrtPem, err
+}
+
+func (p *providerPluginRPCClient) GenerateIntermediateCSR() (string, error) {
+	var resp GenerateIntermediateCSRResponse
+	err := p.client.Call("Plugin.GenerateIntermediateCSR", struct{}{}, &resp)
+	return resp.CsrPem, err
+}
+
+func (p *providerPluginRPCClient) SetIntermediate(intermediatePEM, rootPEM string) error {
+	return p.client.Call("Plugin.SetIntermediate", &SetIntermediateRPCRequest{
+		IntermediatePEM: intermediatePEM,
+		RootPEM:         rootPEM,
+	}, &struct{}{})
+}
+
+func (p *providerPluginRPCClient) ActiveIntermediate() (string, error) {
+	var resp ActiveIntermediateResponse
+	err := p.client.Call("Plugin.ActiveIntermediate", struct{}{}, &resp)
+	return resp.CrtPem, err
+}
+
+func (p *providerPluginRPCClient) GenerateIntermediate() (string, error) {
+	var resp GenerateIntermediateResponse
+	err := p.client.Call("Plugin.GenerateIntermediate", struct{}{}, &resp)
+	return resp.CrtPem, err
+}
+
+func (p *providerPluginRPCClient) Sign(*x509.CertificateRequest) (string, error) {
+	// TODO(mitchellh)
+	return "", nil
+}
+
+func (p *providerPluginRPCClient) SignIntermediate(*x509.CertificateRequest) (string, error) {
+	// TODO(mitchellh)
+	return "", nil
+}
+
+func (p *providerPluginRPCClient) CrossSignCA(*x509.Certificate) (string, error) {
+	// TODO(mitchellh)
+	return "", nil
+}
+
+func (p *providerPluginRPCClient) Cleanup() error {
+	return p.client.Call("Plugin.Cleanup", struct{}{}, &struct{}{})
+}
+
 // Verification
-// var _ ca.Provider = &providerPluginRPCClient{}
+var _ ca.Provider = &providerPluginRPCClient{}
 
 //-------------------------------------------------------------------
 // Structs for net/rpc request and response
@@ -51,4 +138,9 @@ type ConfigureRPCRequest struct {
 	ClusterId string
 	IsRoot    bool
 	RawConfig map[string]interface{}
+}
+
+type SetIntermediateRPCRequest struct {
+	IntermediatePEM string
+	RootPEM         string
 }
