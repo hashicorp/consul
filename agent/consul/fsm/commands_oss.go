@@ -159,12 +159,12 @@ func (c *FSM) applyACLOperation(buf []byte, index uint64) interface{} {
 		return enabled
 	case structs.ACLBootstrapNow:
 		// This a bootstrap request from a non-upgraded node
-		if err := c.state.ACLBootstrap(index, 0, req.ACL.Convert()); err != nil {
+		if err := c.state.ACLBootstrap(index, 0, req.ACL.Convert(), true); err != nil {
 			return err
 		}
 		return &req.ACL
 	case structs.ACLForceSet, structs.ACLSet:
-		if err := c.state.ACLTokenSet(index, req.ACL.Convert()); err != nil {
+		if err := c.state.ACLTokenSet(index, req.ACL.Convert(), true); err != nil {
 			return err
 		}
 		return req.ACL.ID
@@ -370,7 +370,7 @@ func (c *FSM) applyACLTokenBootstrap(buf []byte, index uint64) interface{} {
 	}
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "acl", "token"}, time.Now(),
 		[]metrics.Label{{Name: "op", Value: "bootstrap"}})
-	return c.state.ACLBootstrap(index, req.ResetIndex, &req.Token)
+	return c.state.ACLBootstrap(index, req.ResetIndex, &req.Token, false)
 }
 
 func (c *FSM) applyACLPolicyUpsertOperation(buf []byte, index uint64) interface{} {

@@ -219,7 +219,7 @@ func (a *ACL) TokenClone(args *structs.ACLTokenUpsertRequest, reply *structs.ACL
 		cloneReq.ACLToken.Description = args.ACLToken.Description
 	}
 
-	return a.tokenUpsertInternal(&cloneReq, reply)
+	return a.tokenUpsertInternal(&cloneReq, reply, false)
 }
 
 func (a *ACL) TokenUpsert(args *structs.ACLTokenUpsertRequest, reply *structs.ACLToken) error {
@@ -237,10 +237,52 @@ func (a *ACL) TokenUpsert(args *structs.ACLTokenUpsertRequest, reply *structs.AC
 		return acl.ErrPermissionDenied
 	}
 
-	return a.tokenUpsertInternal(args, reply)
+	return a.tokenUpsertInternal(args, reply, false)
 }
 
-func (a *ACL) tokenUpsertInternal(args *structs.ACLTokenUpsertRequest, reply *structs.ACLToken) error {
+func (a *ACL) TokenUpgrade(args *structs.ACLTokenUpsertRequest, reply *structs.ACLToken) error {
+	token := &args.ACLToken
+	if done, err := a.srv.forward("ACL.TokenUpgrade", args, args, reply); done {
+		return err
+	}
+
+	defer metrics.MeasureSince([]string{"acl", "token", "upgrade"}, time.Now())
+
+	// Verify token is permitted to modify ACLs
+	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
+		return err
+	} else if rule == nil || !rule.ACLWrite() {
+		return acl.ErrPermissionDenied
+	}
+
+	_, existing, err := a.srv.fsm.State().ACLTokenGetByAccessor(nil, token.AccessorID)
+	if err != nil {
+		return fmt.Errorf("Failed to lookup the acl token %q: %v", token.AccessorID, err)
+	}
+	if existing == nil {
+		return fmt.Errorf("Cannot find token %q", token.AccessorID)
+	}
+
+	if token.SecretID == "" {
+		token.SecretID = existing.SecretID
+	}
+
+	if token.Description == "" {
+		token.Description = existing.Description
+	}
+
+	if token.Local {
+		return fmt.Errorf("Cannot upgrade a legacy token into a local token")
+	}
+
+	// ensure that these are not set
+	token.Type = ""
+	token.Rules = ""
+
+	return a.tokenUpsertInternal(args, reply, true)
+}
+
+func (a *ACL) tokenUpsertInternal(args *structs.ACLTokenUpsertRequest, reply *structs.ACLToken, upgrade bool) error {
 	token := &args.ACLToken
 
 	state := a.srv.fsm.State()
@@ -298,7 +340,15 @@ func (a *ACL) tokenUpsertInternal(args *structs.ACLTokenUpsertRequest, reply *st
 			return fmt.Errorf("cannot toggle local mode of %s", token.AccessorID)
 		}
 
-		token.CreateTime = existing.CreateTime
+		if upgrade {
+			token.CreateTime = time.Now()
+		} else {
+			token.CreateTime = existing.CreateTime
+		}
+
+		if existing.Rules != "" && !upgrade {
+			return fmt.Errorf("Refusing to update a legacy token - please use the upgrade endpoint")
+		}
 	}
 
 	// Validate all the policy names and convert them to policy IDs

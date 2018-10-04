@@ -250,7 +250,7 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 				logURL = strings.Replace(logURL, token, "<hidden>", -1)
 			}
 		}
-		logURL = aclEndpointRE.ReplaceAllString(logURL, "$1<hidden>$3")
+		logURL = aclEndpointRE.ReplaceAllString(logURL, "$1<hidden>$4")
 
 		if s.blacklist.Block(req.URL.Path) {
 			errMsg := "Endpoint is blocked by agent configuration"

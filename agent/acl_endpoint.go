@@ -27,7 +27,7 @@ func convertTokenForResponse(in *structs.ACLToken) *aclTokenResponse {
 		ACLToken: *in,
 	}
 
-	if in.Rules != "" || in.Type == structs.ACLTokenTypeClient || in.AccessorID == "" {
+	if in.Rules != "" || in.AccessorID == "" {
 		out.Legacy = true
 	}
 
@@ -224,7 +224,7 @@ func (s *HTTPServer) ACLPolicyWrite(resp http.ResponseWriter, req *http.Request,
 	}
 	s.parseToken(req, &args.Token)
 
-	if err := decodeBody(req, &args.Policy, fixCreateTime); err != nil {
+	if err := decodeBody(req, &args.Policy, nil); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Policy decoding failed: %v", err)}
 	}
 
@@ -393,8 +393,6 @@ func (s *HTTPServer) ACLTokenWrite(resp http.ResponseWriter, req *http.Request, 
 		return nil, BadRequestError{Reason: fmt.Sprintf("Token decoding failed: %v", err)}
 	}
 
-	// TODO (ACL-V2) - should we do more validation here or just defer to the RPC layer
-
 	if args.ACLToken.AccessorID == "" {
 		args.ACLToken.AccessorID = tokenID
 	} else if tokenID != "" && args.ACLToken.AccessorID != tokenID {
@@ -457,5 +455,31 @@ func (s *HTTPServer) ACLTokenUpgrade(resp http.ResponseWriter, req *http.Request
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
-	return nil, fmt.Errorf("// TODO (ACL-V2) - Implement token upgrade once I have other backwards compat worked out")
+
+	args := structs.ACLTokenUpsertRequest{
+		Datacenter: s.agent.config.Datacenter,
+	}
+	s.parseToken(req, &args.Token)
+
+	tokenID := strings.TrimPrefix(req.URL.Path, "/v1/acl/token/upgrade/")
+	if tokenID == "" {
+		return nil, BadRequestError{Reason: "Missing token ID"}
+	}
+
+	if err := decodeBody(req, &args.ACLToken, fixCreateTime); err != nil {
+		return nil, BadRequestError{Reason: fmt.Sprintf("Token decoding failed: %v", err)}
+	}
+
+	if args.ACLToken.AccessorID == "" {
+		args.ACLToken.AccessorID = tokenID
+	} else if tokenID != "" && args.ACLToken.AccessorID != tokenID {
+		return nil, BadRequestError{Reason: "Token Accessor ID in URL and payload do not match"}
+	}
+
+	var out structs.ACLToken
+	if err := s.agent.RPC("ACL.TokenUpgrade", args, &out); err != nil {
+		return nil, err
+	}
+
+	return convertTokenForResponse(&out), nil
 }

@@ -63,9 +63,8 @@ func tokensTableSchema() *memdb.TableSchema {
 		Name: "acl-tokens",
 		Indexes: map[string]*memdb.IndexSchema{
 			"accessor": &memdb.IndexSchema{
-				Name: "accessor",
-				// This must not be missing but can be an empty string
-				AllowMissing: false,
+				Name:         "accessor",
+				AllowMissing: true,
 				Unique:       true,
 				Indexer: &memdb.UUIDFieldIndex{
 					Field: "AccessorID",
@@ -195,7 +194,7 @@ func (s *Restore) ACLPolicy(policy *structs.ACLPolicy) error {
 
 // ACLBootstrap is used to perform a one-time ACL bootstrap operation on a
 // cluster to get the first management token.
-func (s *Store) ACLBootstrap(idx, resetIndex uint64, token *structs.ACLToken) error {
+func (s *Store) ACLBootstrap(idx, resetIndex uint64, token *structs.ACLToken, legacy bool) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
@@ -212,7 +211,7 @@ func (s *Store) ACLBootstrap(idx, resetIndex uint64, token *structs.ACLToken) er
 		}
 	}
 
-	if err := s.aclTokenSetTxn(tx, idx, token, true); err != nil {
+	if err := s.aclTokenSetTxn(tx, idx, token, true, legacy); err != nil {
 		return fmt.Errorf("failed inserting bootstrap token: %v", err)
 	}
 	if err := indexUpdateMaxTxn(tx, idx, "acl-tokens"); err != nil {
@@ -278,12 +277,12 @@ func (s *Store) resolveTokenPolicyLinks(tx *memdb.Txn, token *structs.ACLToken, 
 }
 
 // ACLTokenSet is used to insert an ACL rule into the state store.
-func (s *Store) ACLTokenSet(idx uint64, token *structs.ACLToken) error {
+func (s *Store) ACLTokenSet(idx uint64, token *structs.ACLToken, legacy bool) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
 	// Call set on the ACL
-	if err := s.aclTokenSetTxn(tx, idx, token, true); err != nil {
+	if err := s.aclTokenSetTxn(tx, idx, token, true, legacy); err != nil {
 		return err
 	}
 
@@ -300,7 +299,7 @@ func (s *Store) ACLTokensUpsert(idx uint64, tokens structs.ACLTokens, allowCreat
 	defer tx.Abort()
 
 	for _, token := range tokens {
-		if err := s.aclTokenSetTxn(tx, idx, token, allowCreate); err != nil {
+		if err := s.aclTokenSetTxn(tx, idx, token, allowCreate, false); err != nil {
 			return err
 		}
 	}
@@ -315,13 +314,13 @@ func (s *Store) ACLTokensUpsert(idx uint64, tokens structs.ACLTokens, allowCreat
 
 // aclTokenSetTxn is the inner method used to insert an ACL token with the
 // proper indexes into the state store.
-func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToken, allowCreate bool) error {
+func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToken, allowCreate bool, legacy bool) error {
 	// Check that the ID is set
 	if token.SecretID == "" {
 		return ErrMissingACLTokenSecret
 	}
 
-	if token.AccessorID == "" {
+	if !legacy && token.AccessorID == "" {
 		return ErrMissingACLTokenAccessor
 	}
 
