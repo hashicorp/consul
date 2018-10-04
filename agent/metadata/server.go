@@ -94,6 +94,13 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		return false, nil
 	}
 
+	var acls structs.ACLMode
+	if aclMode, ok := m.Tags["acls"]; ok {
+		acls = structs.ACLMode(aclMode)
+	} else {
+		acls = structs.ACLModeUnknown
+	}
+
 	segmentAddrs := make(map[string]string)
 	segmentPorts := make(map[string]int)
 	for name, value := range m.Tags {
@@ -165,6 +172,7 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		Status:       m.Status,
 		UseTLS:       useTLS,
 		NonVoter:     nonVoter,
+		ACLs:         acls,
 	}
 	return true, parts
 }

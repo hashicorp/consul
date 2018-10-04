@@ -9,7 +9,6 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/sentinel"
-	"github.com/hashicorp/golang-lru"
 	"github.com/mitchellh/hashstructure"
 )
 
@@ -23,6 +22,9 @@ const (
 	// DEPRECATED (ACL-Legacy-Compat) - only needed while legacy ACLs are supported
 	// ACLs are enabled and using legacy ACLs
 	ACLModeLegacy ACLMode = "2"
+	// DEPRECATED (ACL-Legacy-Compat) - only needed while legacy ACLs are supported
+	// ACLs are assumed enabled but not being advertised
+	ACLModeUnknown ACLMode = "3"
 )
 
 // ACLOp is used in RPCs to encode ACL operations.
@@ -239,51 +241,6 @@ func (token *ACLToken) IsSame(other *ACLToken) bool {
 	return true
 }
 
-type ACLTokenWriteRequest struct {
-	Datacenter string   // The DC to perform the request within
-	Op         ACLOp    // The operation to perform (supports bootstrap, set and delete)
-	ACLToken   ACLToken // Token to manipulate - I really dislike this name but to satis
-	WriteRequest
-}
-
-func (r *ACLTokenWriteRequest) RequestDatacenter() string {
-	return r.Datacenter
-}
-
-type ACLTokenBootstrapRequest struct {
-	Datacenter string   // The DC to perform the request within
-	ACLToken   ACLToken // Token to use for bootstrapping
-	ResetIndex uint64   // Reset index
-	WriteRequest
-}
-
-func (r *ACLTokenBootstrapRequest) RequestDatacenter() string {
-	return r.Datacenter
-}
-
-type ACLTokenReadRequest struct {
-	Datacenter string         // The DC to perform the request within
-	ID         string         // id used for the token lookup
-	IDType     ACLTokenIDType // The Type of ID used to lookup the token
-	QueryOptions
-}
-
-func (r *ACLTokenReadRequest) RequestDatacenter() string {
-	return r.Datacenter
-}
-
-// ACLTokenResponse returns a single Token + metadata
-type ACLTokenResponse struct {
-	Token *ACLToken
-	QueryMeta
-}
-
-// ACLTokensResponse returns multiple Tokens associated with the same metadata
-type ACLTokensResponse struct {
-	Tokens []*ACLToken
-	QueryMeta
-}
-
 type ACLPolicy struct {
 	// This is the internal UUID associated with the policy
 	ID string `hash:"ignore"`
@@ -345,268 +302,6 @@ func (p *ACLPolicy) SetHash(force bool) uint64 {
 		p.Hash, _ = hashstructure.Hash(p, nil)
 	}
 	return p.Hash
-}
-
-type ACLPolicyWriteRequest struct {
-	Datacenter string    // The DC to perform the request within
-	Op         ACLOp     // Supports either "set" or "delete"
-	Policy     ACLPolicy // The policy to manipulate
-	WriteRequest
-}
-
-func (r *ACLPolicyWriteRequest) RequestDatacenter() string {
-	return r.Datacenter
-}
-
-type ACLPolicyReadRequest struct {
-	Datacenter string          // The DC to perform the request within
-	ID         string          // id used for the policy lookup
-	IDType     ACLPolicyIDType // The type of id used to lookup the token
-	QueryOptions
-}
-
-func (r *ACLPolicyReadRequest) RequestDatacenter() string {
-	return r.Datacenter
-}
-
-type ACLPolicyResolveRequest struct {
-	Datacenter string
-	IDs        []string
-	QueryOptions
-}
-
-func (r *ACLPolicyResolveRequest) RequestDatacenter() string {
-	return r.Datacenter
-}
-
-// ACLPolicyResponse returns a single policy + metadata
-type ACLPolicyResponse struct {
-	Policy *ACLPolicy
-	QueryMeta
-}
-
-type ACLPolicyMultiResponse struct {
-	Policies []*ACLPolicy
-	QueryMeta
-}
-
-// ACLReplicationStatus provides information about the health of the ACL
-// replication system.
-type ACLReplicationStatus struct {
-	Enabled          bool
-	Running          bool
-	SourceDatacenter string
-	ReplicatedIndex  uint64
-	LastSuccess      time.Time
-	LastError        time.Time
-}
-
-type ACLCachesConfig struct {
-	Identities     int
-	Policies       int
-	ParsedPolicies int
-	Authorizers    int
-}
-
-type ACLCaches struct {
-	identities     *lru.TwoQueueCache // identity id -> structs.ACLIdentity
-	parsedPolicies *lru.TwoQueueCache // policy content hash -> acl.Policy
-	policies       *lru.TwoQueueCache // policy ID -> ACLPolicy
-	authorizers    *lru.TwoQueueCache // token secret -> acl.Authorizer
-
-	legacy *lru.TwoQueueCache // po
-}
-
-type IdentityCacheEntry struct {
-	Identity  ACLIdentity
-	CacheTime time.Time
-}
-
-func (e *IdentityCacheEntry) Age() time.Duration {
-	return time.Since(e.CacheTime)
-}
-
-type ParsedPolicyCacheEntry struct {
-	Policy    *acl.Policy
-	CacheTime time.Time
-}
-
-func (e *ParsedPolicyCacheEntry) Age() time.Duration {
-	return time.Since(e.CacheTime)
-}
-
-type PolicyCacheEntry struct {
-	Policy    *ACLPolicy
-	CacheTime time.Time
-}
-
-func (e *PolicyCacheEntry) Age() time.Duration {
-	return time.Since(e.CacheTime)
-}
-
-type AuthorizerCacheEntry struct {
-	Authorizer acl.Authorizer
-	CacheTime  time.Time
-}
-
-func (e *AuthorizerCacheEntry) Age() time.Duration {
-	return time.Since(e.CacheTime)
-}
-
-func NewACLCaches(config *ACLCachesConfig) (*ACLCaches, error) {
-	cache := &ACLCaches{}
-
-	if config != nil && config.Identities > 0 {
-		identCache, err := lru.New2Q(config.Identities)
-		if err != nil {
-			return nil, err
-		}
-
-		cache.identities = identCache
-	}
-
-	if config != nil && config.Policies > 0 {
-		policyCache, err := lru.New2Q(config.Policies)
-		if err != nil {
-			return nil, err
-		}
-
-		cache.policies = policyCache
-	}
-
-	if config != nil && config.ParsedPolicies > 0 {
-		parsedCache, err := lru.New2Q(config.ParsedPolicies)
-		if err != nil {
-			return nil, err
-		}
-
-		cache.parsedPolicies = parsedCache
-	}
-
-	if config != nil && config.Authorizers > 0 {
-		authCache, err := lru.New2Q(config.Authorizers)
-		if err != nil {
-			return nil, err
-		}
-
-		cache.authorizers = authCache
-	}
-
-	return cache, nil
-}
-
-// GetIdentity fetches an identity from the cache and returns it
-func (c *ACLCaches) GetIdentity(id string) *IdentityCacheEntry {
-	if c == nil || c.identities == nil {
-		return nil
-	}
-
-	if raw, ok := c.identities.Get(id); ok {
-		return raw.(*IdentityCacheEntry)
-	}
-
-	return nil
-}
-
-// GetPolicy fetches a policy from the cache and returns it
-func (c *ACLCaches) GetPolicy(policyID string) *PolicyCacheEntry {
-	if c == nil || c.policies == nil {
-		return nil
-	}
-
-	if raw, ok := c.policies.Get(policyID); ok {
-		return raw.(*PolicyCacheEntry)
-	}
-
-	return nil
-}
-
-// GetPolicy fetches a policy from the cache and returns it
-func (c *ACLCaches) GetParsedPolicy(id uint64) *ParsedPolicyCacheEntry {
-	if c == nil || c.parsedPolicies == nil {
-		return nil
-	}
-
-	if raw, ok := c.parsedPolicies.Get(id); ok {
-		return raw.(*ParsedPolicyCacheEntry)
-	}
-
-	return nil
-}
-
-// GetAuthorizer fetches a acl from the cache and returns it
-func (c *ACLCaches) GetAuthorizer(id uint64) *AuthorizerCacheEntry {
-	if c == nil || c.authorizers == nil {
-		return nil
-	}
-
-	if raw, ok := c.authorizers.Get(id); ok {
-		return raw.(*AuthorizerCacheEntry)
-	}
-
-	return nil
-}
-
-// PutIdentity adds a new identity to the cache
-func (c *ACLCaches) PutIdentity(id string, ident ACLIdentity) {
-	if c == nil || c.identities == nil {
-		return
-	}
-
-	c.identities.Add(id, &IdentityCacheEntry{Identity: ident, CacheTime: time.Now()})
-}
-
-func (c *ACLCaches) PutPolicy(policyId string, policy *ACLPolicy) {
-	if c == nil || c.policies == nil {
-		return
-	}
-
-	c.policies.Add(policyId, &PolicyCacheEntry{Policy: policy, CacheTime: time.Now()})
-}
-
-func (c *ACLCaches) PutParsedPolicy(id uint64, policy *acl.Policy) {
-	if c == nil || c.parsedPolicies == nil {
-		return
-	}
-
-	c.parsedPolicies.Add(id, &ParsedPolicyCacheEntry{Policy: policy, CacheTime: time.Now()})
-}
-
-func (c *ACLCaches) PutAuthorizer(id uint64, authorizer acl.Authorizer) {
-	if c == nil || c.authorizers == nil {
-		return
-	}
-
-	c.authorizers.Add(id, &AuthorizerCacheEntry{Authorizer: authorizer, CacheTime: time.Now()})
-}
-
-func (c *ACLCaches) RemoveIdentity(id string) {
-	if c != nil && c.identities != nil {
-		c.identities.Remove(id)
-	}
-}
-
-func (c *ACLCaches) RemovePolicy(policyID string) {
-	if c != nil && c.policies != nil {
-		c.policies.Remove(policyID)
-	}
-}
-
-func (c *ACLCaches) Purge() {
-	if c != nil {
-		if c.identities != nil {
-			c.identities.Purge()
-		}
-		if c.policies != nil {
-			c.policies.Purge()
-		}
-		if c.parsedPolicies != nil {
-			c.parsedPolicies.Purge()
-		}
-		if c.authorizers != nil {
-			c.authorizers.Purge()
-		}
-	}
 }
 
 func (policies ACLPolicies) HashKey() uint64 {
@@ -682,4 +377,188 @@ func (policies ACLPolicies) Merge(cache *ACLCaches, sentinel sentinel.Evaluator)
 	}
 
 	return acl.MergePolicies(parsed), nil
+}
+
+// ACLReplicationStatus provides information about the health of the ACL
+// replication system.
+type ACLReplicationStatus struct {
+	Enabled          bool
+	Running          bool
+	SourceDatacenter string
+	ReplicatedIndex  uint64
+	LastSuccess      time.Time
+	LastError        time.Time
+}
+
+// ACLTokenUpsertRequest is used for token creation and update operations
+// at the RPC layer
+type ACLTokenUpsertRequest struct {
+	ACLToken   ACLToken // Token to manipulate - I really dislike this name but "Token" is taken in the WriteRequest
+	Datacenter string   // The datacenter to perform the request within
+	WriteRequest
+}
+
+func (r *ACLTokenUpsertRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+// ACLTokenReadRequest is used for token read operations at the RPC layer
+type ACLTokenReadRequest struct {
+	TokenID     string         // id used for the token lookup
+	TokenIDType ACLTokenIDType // The Type of ID used to lookup the token
+	Datacenter  string         // The datacenter to perform the request within
+	QueryOptions
+}
+
+func (r *ACLTokenReadRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+// ACLTokenDeleteRequest is used for token deletion operations at the RPC layer
+type ACLTokenDeleteRequest struct {
+	TokenID    string // ID of the token to delete
+	Datacenter string // The datacenter to perform the request within
+	WriteRequest
+}
+
+func (r *ACLTokenDeleteRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+// ACLTokenListRequest is used for token listing operations at the RPC layer
+type ACLTokenListRequest struct {
+	IncludeLocal  bool   // Whether local tokens should be included
+	IncludeGlobal bool   // Whether global tokens should be included
+	Datacenter    string // The datacenter to perform the request within
+	QueryOptions
+}
+
+func (r *ACLTokenListRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+// ACLTokenBatchUpsertRequest is used only at the Raft layer
+// for batching multiple token creation/update operations
+//
+// This is particularly useful during token replication and during
+// automatic legacy token upgrades.
+type ACLTokenBatchUpsertRequest struct {
+	Tokens      ACLTokens
+	AllowCreate bool
+}
+
+// ACLTokenBatchDeleteRequest is used only at the Raft layer
+// for batching multiple token deletions.
+//
+// This is particularly useful during token replication when
+// multiple tokens need to be removed from the local DCs state.
+type ACLTokenBatchDeleteRequest struct {
+	TokenIDs []string // Tokens to delete
+}
+
+// ACLTokenBootstrapRequest is used only at the Raft layer
+// for ACL bootstrapping
+//
+// The RPC layer will use a generic DCSpecificRequest to indicate
+// that bootstrapping must be performed but the actual token
+// and the resetIndex will be generated by that RPC endpoint
+type ACLTokenBootstrapRequest struct {
+	Token      ACLToken // Token to use for bootstrapping
+	ResetIndex uint64   // Reset index
+}
+
+// ACLTokenResponse returns a single Token + metadata
+type ACLTokenResponse struct {
+	Token *ACLToken
+	QueryMeta
+}
+
+// ACLTokensResponse returns multiple Tokens associated with the same metadata
+type ACLTokensResponse struct {
+	Tokens []*ACLToken
+	QueryMeta
+}
+
+// ACLPolicyUpsertRequest is used at the RPC layer for creation and update requests
+type ACLPolicyUpsertRequest struct {
+	Policy     ACLPolicy // The policy to upsert
+	Datacenter string    // The datacenter to perform the request within
+	WriteRequest
+}
+
+func (r *ACLPolicyUpsertRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+// ACLPolicyDeleteRequest is used at the RPC layer deletion requests
+type ACLPolicyDeleteRequest struct {
+	PolicyID   string // The id of the policy to delete
+	Datacenter string // The datacenter to perform the request within
+	WriteRequest
+}
+
+func (r *ACLPolicyDeleteRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+// ACLPolicyReadRequest is used at the RPC layer to perform policy read operations
+type ACLPolicyReadRequest struct {
+	PolicyID     string          // id used for the policy lookup
+	PolicyIDType ACLPolicyIDType // The type of id used to lookup the token
+	Datacenter   string          // The datacenter to perform the request within
+	QueryOptions
+}
+
+func (r *ACLPolicyReadRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+// ACLPolicyListRequest is used at the RPC layer to request a listing of policies
+type ACLPolicyListRequest struct {
+	DCScope    string
+	Datacenter string // The datacenter to perform the request within
+	QueryOptions
+}
+
+func (r *ACLPolicyListRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+// ACLPolicyResolveRequest is used at the RPC layer to request a subset of
+// the policies associated with the token used for retrieval
+type ACLPolicyResolveRequest struct {
+	PolicyIDs  []string
+	Datacenter string // The datacenter to perform the request within
+	QueryOptions
+}
+
+func (r *ACLPolicyResolveRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+// ACLPolicyResponse returns a single policy + metadata
+type ACLPolicyResponse struct {
+	Policy *ACLPolicy
+	QueryMeta
+}
+
+type ACLPolicyMultiResponse struct {
+	Policies []*ACLPolicy
+	QueryMeta
+}
+
+// ACLPolicyBatchUpsertRequest is used at the Raft layer for batching
+// multiple policy creations and updates
+//
+// This is particularly useful during replication
+type ACLPolicyBatchUpsertRequest struct {
+	Policies ACLPolicies
+}
+
+// ACLPolicyBatchDeleteRequest is used at the Raft layer for batching
+// multiple policy deletions
+//
+// This is particularly useful during replication
+type ACLPolicyBatchDeleteRequest struct {
+	PolicyIDs []string
 }

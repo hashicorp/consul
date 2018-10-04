@@ -96,6 +96,12 @@ type Server struct {
 	// acls is used to resolve tokens to effective policies
 	acls *ACLResolver
 
+	// aclUpgradeCh is used to shut down the ACL upgrade goroutine when we
+	// lose leadership
+	aclUpgradeCh      chan struct{}
+	aclUpgradeLock    sync.RWMutex
+	aclUpgradeEnabled bool
+
 	// DEPRECATED (ACL-Legacy-Compat) - only needed while we support both
 	// useNewACLs is used to determine whether we can use new ACLs or not
 	useNewACLs *lib.AtomicBool
@@ -444,10 +450,6 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 	// Start monitoring leadership. This must happen after Serf is set up
 	// since it can fire events when leadership is obtained.
 	go s.monitorLeadership()
-
-	if s.ACLsEnabled() {
-		go s.monitorACLMode()
-	}
 
 	// Start ACL replication.
 	if s.IsACLReplicationEnabled() {
