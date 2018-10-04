@@ -2,43 +2,7 @@ import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
-
 import WithTokenActions from 'consul-ui/mixins/token/with-actions';
-const status = function(obj) {
-  const propName = Object.keys(obj)[0];
-  const p = obj[propName];
-  let authorize;
-  let enable;
-  return {
-    isAuthorized: new Promise(function(resolve) {
-      authorize = function(bool) {
-        resolve(bool);
-      };
-    }),
-    isEnabled: new Promise(function(resolve) {
-      enable = function(bool) {
-        resolve(bool);
-      };
-    }),
-    [propName]: p
-      .catch(function(e) {
-        switch (e.errors[0].status) {
-          case '403':
-            enable(true);
-            break;
-          default:
-            enable(false);
-        }
-        authorize(false);
-        return [];
-      })
-      .then(function(res) {
-        enable(true);
-        authorize(true);
-        return res;
-      }),
-  };
-};
 export default Route.extend(WithTokenActions, {
   repo: service('tokens'),
   settings: service('settings'),
@@ -49,9 +13,10 @@ export default Route.extend(WithTokenActions, {
     },
   },
   model: function(params) {
+    const repo = get(this, 'repo');
     return hash({
-      ...status({
-        items: get(this, 'repo').findAllByDatacenter(this.modelFor('dc').dc.Name),
+      ...repo.status({
+        items: repo.findAllByDatacenter(this.modelFor('dc').dc.Name),
       }),
       isLoading: false,
       currentAccessorID: get(this, 'settings').findBySlug('accessor_id'),

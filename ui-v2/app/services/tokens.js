@@ -2,6 +2,9 @@ import Service, { inject as service } from '@ember/service';
 import { get } from '@ember/object';
 import { typeOf } from '@ember/utils';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/token';
+import { Promise } from 'rsvp';
+import statusFactory from 'consul-ui/utils/acls-status';
+const status = statusFactory(Promise);
 const MODEL_NAME = 'token';
 export default Service.extend({
   getModelName: function() {
@@ -12,6 +15,9 @@ export default Service.extend({
   },
   getSlugKey: function() {
     return SLUG_KEY;
+  },
+  status: function(obj) {
+    return status(obj);
   },
   clone: function(item) {
     return get(this, 'store').clone(this.getModelName(), get(item, PRIMARY_KEY));

@@ -1,4 +1,4 @@
-{{#app-view class="policy list" loading=isLoading}}
+{{#app-view class="policy list" loading=isLoading authorized=isAuthorized enabled=isEnabled}}
     {{#block-slot 'notification' as |status type|}}
       {{partial 'dc/acls/policies/notifications'}}
     {{/block-slot}}
@@ -6,7 +6,15 @@
       <h1>
         Access Controls
       </h1>
+      {{#if isAuthorized }}
         {{partial 'dc/acls/nav'}}
+      {{/if}}
+    {{/block-slot}}
+    {{#block-slot 'disabled'}}
+      {{partial 'dc/acls/disabled'}}
+    {{/block-slot}}
+    {{#block-slot 'authorization'}}
+      {{partial 'dc/acls/authorization'}}
     {{/block-slot}}
     {{#block-slot 'actions'}}
         <a data-test-create href="{{href-to 'dc.acls.policies.create'}}" class="type-create">Create</a>

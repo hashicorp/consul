@@ -3,9 +3,6 @@ import { inject as service } from '@ember/service';
 import { get, set } from '@ember/object';
 import token from 'consul-ui/validations/token';
 import policy from 'consul-ui/validations/policy';
-const normalizeEmberTarget = function(e, value, target) {
-  return e.target || { ...target, ...{ name: e, value: value } };
-};
 export default Controller.extend({
   dom: service('dom'),
   builder: service('form'),
@@ -22,8 +19,8 @@ export default Controller.extend({
       .setData(model.policy);
     this.form = builder()
       .setValidators(token)
-      .setData(model.item)
-      .add(policyForm);
+      .add(policyForm)
+      .setData(model.item);
     this._super({
       ...model,
       ...{
@@ -47,16 +44,17 @@ export default Controller.extend({
     change: function(e, value, item) {
       const form = get(this, 'form');
       try {
-        form.handleEvent({ target: normalizeEmberTarget(e, value) });
+        form.handleEvent(get(this, 'dom').normalizeEvent(e, value));
       } catch (e) {
-        switch (e.target.name) {
+        const target = e.target || { name: null };
+        switch (target.name) {
           case 'policy[isScoped]':
             set(this, 'isScoped', !get(this, 'isScoped'));
             set(this, 'policy[Datacenters]', null);
             break;
           case 'Policy':
             this.send('addPolicy', value);
-            form.validate();
+            // form.validate();
             break;
           case 'Details':
             // the Details expander toggle

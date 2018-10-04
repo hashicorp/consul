@@ -2,6 +2,9 @@ import Service, { inject as service } from '@ember/service';
 import { get } from '@ember/object';
 import { typeOf } from '@ember/utils';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/policy';
+import { Promise } from 'rsvp';
+import statusFactory from 'consul-ui/utils/acls-status';
+const status = statusFactory(Promise);
 const MODEL_NAME = 'policy';
 export default Service.extend({
   getModelName: function() {
@@ -14,6 +17,9 @@ export default Service.extend({
     return SLUG_KEY;
   },
   store: service('store'),
+  status: function(obj) {
+    return status(obj);
+  },
   translate: function(item) {
     return get(this, 'store').translate('policy', get(item, 'Rules'));
   },

@@ -2,7 +2,9 @@ import Service from '@ember/service';
 import { getOwner } from '@ember/application';
 
 import qsaFactory from 'consul-ui/utils/dom/qsa-factory';
+// TODO: Move to utils/dom
 import getComponentFactory from 'consul-ui/utils/get-component-factory';
+import normalizeEvent from 'consul-ui/utils/dom/normalize-event';
 
 // ember-eslint doesn't like you using a single $ so use double
 // use $_ for components
@@ -13,6 +15,9 @@ export default Service.extend({
   init: function() {
     this._super(...arguments);
     $_ = getComponentFactory(getOwner(this));
+  },
+  normalizeEvent: function() {
+    return normalizeEvent(...arguments);
   },
   element: function(selector, context) {
     return $$(selector, context);
