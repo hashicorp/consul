@@ -170,7 +170,7 @@ Add the retry_join parameter to the `consul.hcl` configuration file:
 ~> **NOTE** Replace the `retry_join` parameter value with the correct DNS address, IP address or [cloud auto-join configuration](/docs/agent/cloud-auto-join.html) for your environment.
 
 ```hcl
-retry_join = "172.16.0.11"
+retry_join = ["172.16.0.11"]
 ```
 
 - [`retry_join`](/docs/agent/options.html#retry-join) - Address of another agent to join upon starting up.
