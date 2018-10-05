@@ -692,7 +692,14 @@ func (s *Store) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *st
 	// conversion doesn't populate any of the node-specific information.
 	// That's always populated when we read from the state store.
 	entry := svc.ToServiceNode(node)
-	modified := true
+	// Get the node
+	n, err := tx.First("nodes", "id", node)
+	if err != nil {
+		return fmt.Errorf("failed node lookup: %s", err)
+	}
+	if n == nil {
+		return ErrMissingNode
+	}
 	if existing != nil {
 		serviceNode := existing.(*structs.ServiceNode)
 		entry.CreateIndex = serviceNode.CreateIndex
@@ -702,35 +709,22 @@ func (s *Store) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *st
 		// Enforcing saving the entry also ensures that if we add default values in .ToServiceNode()
 		// those values will be saved even if node is not really modified for a while.
 		if entry.IsSame(serviceNode) {
-			modified = false
-		} else {
-			entry.ModifyIndex = idx
+			return nil
 		}
 	} else {
 		entry.CreateIndex = idx
-		entry.ModifyIndex = idx
 	}
-
-	// Get the node
-	n, err := tx.First("nodes", "id", node)
-	if err != nil {
-		return fmt.Errorf("failed node lookup: %s", err)
-	}
-	if n == nil {
-		return ErrMissingNode
-	}
+	entry.ModifyIndex = idx
 
 	// Insert the service and update the index
 	if err := tx.Insert("services", entry); err != nil {
 		return fmt.Errorf("failed inserting service: %s", err)
 	}
-	if modified {
-		if err := tx.Insert("index", &IndexEntry{"services", idx}); err != nil {
-			return fmt.Errorf("failed updating index: %s", err)
-		}
-		if err := tx.Insert("index", &IndexEntry{serviceIndexName(svc.Service), idx}); err != nil {
-			return fmt.Errorf("failed updating index: %s", err)
-		}
+	if err := tx.Insert("index", &IndexEntry{"services", idx}); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
+	if err := tx.Insert("index", &IndexEntry{serviceIndexName(svc.Service), idx}); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
 	}
 
 	return nil
