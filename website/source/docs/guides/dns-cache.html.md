@@ -81,8 +81,11 @@ Service TTLs can be specified in a more granular fashion. You can set TTLs
 per-service, with a wildcard TTL as the default. This is specified using the
 [`dns_config.service_ttl`](/docs/agent/options.html#service_ttl) map. The "*"
 is supported at the end of any prefix and a less precedence than strict match,
-when performing wildcard matches, the longest path is taken into account, it
-means that "*".
+so 'my-service-x' has precedence over 'my-service-*', when performing wildcard
+match, the longuest path is taken into account, thus 'my-service-*' TTL will
+be used instead of 'my-*' or '*'. With the same rule, '*' is the default value
+when nothing else matches. If no '*', then the TTL is set to value 0 if no match
+has been found.
 
 For example, a [`dns_config`](/docs/agent/options.html#dns_config) that provides
 a wildcard TTL and a specific TTL for a service might look like this:
