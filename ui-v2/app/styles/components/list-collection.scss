@@ -13,15 +13,27 @@
 .unhealthy > div {
   margin-bottom: 20px;
 }
+.healthy > div > ul > li {
+  padding-right: 23px;
+  padding-bottom: 20px;
+}
 %card-grid > ul,
 %card-grid > ol {
   list-style-type: none;
   display: grid;
-  grid-gap: 20px 2%;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   grid-auto-rows: 12px;
 }
-.healthy > div > ul > li {
-  padding-right: 23px;
-  padding-bottom: 20px;
+@media #{$--fixed-grid} {
+  %card-grid > ul,
+  %card-grid > ol {
+    grid-gap: 20px 20px;
+    grid-template-columns: repeat(4, minmax(220px, 1fr));
+  }
+}
+@media #{$--lt-fixed-grid} {
+  %card-grid > ul,
+  %card-grid > ol {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-gap: 20px 2%;
+  }
 }
