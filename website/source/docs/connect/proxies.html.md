@@ -88,7 +88,9 @@ traffic to. In this case the following fields must may also be set:
 ### Complete Configuration Example
 
 The following is a complete example showing all the options available when
-registering a proxy instance.
+registering a proxy instance. Note that as with all service definitions, [both
+CamelCase and snake_case fields are
+supported](/docs/agent/services.html#service-definition-parameter-case).
 
 ```json
 {
@@ -105,6 +107,11 @@ registering a proxy instance.
   "port": 8181
 }
 ```
+
+-> **Deprecation Notice:** From version 1.2.0 to 1.3.0, proxy destination was
+specified using `proxy_destination` at the top level. This will continue to work
+until at least 1.5.0 but it's highly recommended to switch to using
+`proxy.destination_service_name`.
 
 #### Proxy Parameters
 
