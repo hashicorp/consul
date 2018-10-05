@@ -653,8 +653,11 @@ func (s *ServiceNode) IsSame(other *ServiceNode) bool {
 		!reflect.DeepEqual(s.ServiceTags, other.ServiceTags) ||
 		s.ServiceAddress != other.ServiceAddress ||
 		s.ServicePort != other.ServicePort ||
+		s.Datacenter != other.Datacenter ||
+		!reflect.DeepEqual(s.NodeMeta, other.NodeMeta) ||
 		!reflect.DeepEqual(s.ServiceMeta, other.ServiceMeta) ||
 		!reflect.DeepEqual(s.ServiceWeights, other.ServiceWeights) ||
+		!reflect.DeepEqual(s.TaggedAddresses, other.TaggedAddresses) ||
 		s.ServiceEnableTagOverride != other.ServiceEnableTagOverride ||
 		s.ServiceProxyDestination != other.ServiceProxyDestination ||
 		s.ServiceConnect != other.ServiceConnect {
