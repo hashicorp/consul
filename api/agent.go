@@ -191,6 +191,8 @@ type AgentServiceCheck struct {
 	TLSSkipVerify     bool                `json:",omitempty"`
 	GRPC              string              `json:",omitempty"`
 	GRPCUseTLS        bool                `json:",omitempty"`
+	AliasNode         string              `json:",omitempty"`
+	AliasService      string              `json:",omitempty"`
 
 	// In Consul 0.7 and later, checks that are associated with a service
 	// may also contain this optional DeregisterCriticalServiceAfter field,
