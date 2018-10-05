@@ -583,4 +583,31 @@ Usage: consul debug [options]
   Monitors a Consul agent for the specified period of time, recording
   information about the agent, cluster, and environment to an archive
   written to the relative directory.
+
+  If ACLs are enabled, an agent token must be supplied in order to perform
+  this operation.
+
+  To create a debug archive in the relative directory for the default
+  duration and interval, capturing all information available:
+
+      $ consul debug
+
+  Flags can be used to customize the duration and interval of the
+  operation. Note that the duration must be longer than the interval.
+
+      $ consul debug -interval=20s -duration=1m
+
+  By default, the archive containing the debugging information is
+  saved to the relative directory as a .tar.gz file. The
+  output path can be specified, as well as an option to disable
+  archiving, leaving the directory intact.
+
+      $ consul debug -output=/foo/bar/my-debugging -archive=false
+
+  Note: Information collected by this command has the potential
+  to be highly sensitive. We strongly recommend review of the
+  data within the archive prior to transmitting it.
+
+  For a full list of options and examples, please see the Consul
+  documentation.
 `
