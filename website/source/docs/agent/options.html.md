@@ -883,7 +883,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
       defaults to true.
 
     * <a name="soa"></a><a href="#soa">`soa`</a> Allow to tune the setting set up in SOA.
-      Non specified values fallback to their default values, all values are integer and
+      Non specified values fallback to their default values, all values are integers and
       expressed as seconds.
 
       The following settings are available:

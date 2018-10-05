@@ -65,7 +65,7 @@ client and Consul and set the cache values appropriately. In many cases
 "appropriately" simply is turning negative response caching off to get the best
 recovery time when a service becomes available again.
 
-With versions of Consul greater than 1.3.1, it is now possible to tune SOA
+With versions of Consul greater than 1.3.0, it is now possible to tune SOA
 responses and modify the negative TTL cache for some resolvers. It can
 be achieved using the [`soa.min_ttl`](/docs/agent/options.html#soa_min_ttl)
 configuration within the [`soa`](/docs/agent/options.html#soa) configuration.
