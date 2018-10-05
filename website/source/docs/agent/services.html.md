@@ -62,14 +62,10 @@ example shows all possible fields, but note that only a few are required.
 ```
 
 A service definition must include a `name` and may optionally provide an
-`id`, `tags`, `address`, `port`, `check`, `meta` and `enable_tag_override`.
+`id`, `tags`, `address`, `meta`, `port`, `enable_tag_override`,  and `check`.
 The `id` is set to the `name` if not provided. It is required that all
 services have a unique ID per node, so if names might conflict then
 unique IDs should be provided.
-
-For Consul 0.9.3 and earlier you need to use `enableTagOverride`. Consul 1.0
-supports both `enable_tag_override` and `enableTagOverride` but the latter is
-deprecated and has been removed in Consul 1.1.
 
 The `tags` property is a list of values that are opaque to Consul but
 can be used to distinguish between `primary` or `secondary` nodes,
@@ -88,55 +84,6 @@ characters for keys, 512 for values. This object has the same limitations as the
 meta object in node definition.
 All those meta data can be retrieved individually per instance of the service
 and all the instances of a given service have their own copy of it.
-
-Services may also contain a `token` field to provide an ACL token. This token is
-used for any interaction with the catalog for the service, including
-[anti-entropy syncs](/docs/internals/anti-entropy.html) and deregistration.
-
-A service can have an associated health check. This is a powerful feature as
-it allows a web balancer to gracefully remove failing nodes, a database
-to replace a failed secondary, etc. The health check is strongly integrated in
-the DNS interface as well. If a service is failing its health check or a
-node has any failing system-level check, the DNS interface will omit that
-node from any service query.
-
-The check must be of the script, HTTP, TCP or TTL type. If it is a script type,
-`args` and `interval` must be provided. If it is a HTTP type, `http` and
-`interval` must be provided. If it is a TCP type, `tcp` and `interval` must be
-provided. If it is a TTL type, then only `ttl` must be provided. The check name
-is automatically generated as `service:<service-id>`. If there are multiple
-service checks registered, the ID will be generated as
-`service:<service-id>:<num>` where `<num>` is an incrementing number starting
-from `1`.
-
--> **Note:** There is more information about [checks here](/docs/agent/checks.html).
-
-The `enable_tag_override` can optionally be specified to disable the
-anti-entropy feature for this service. If `enable_tag_override` is set to
-`TRUE` then external agents can update this service in the
-[catalog](/api/catalog.html) and modify the tags. Subsequent
-local sync operations by this agent will ignore the updated tags. For
-example, if an external agent modified both the tags and the port for
-this service and `enable_tag_override` was set to `TRUE` then after the next
-sync cycle the service's port would revert to the original value but the
-tags would maintain the updated value. As a counter example: If an
-external agent modified both the tags and port for this service and
-`enable_tag_override` was set to `FALSE` then after the next sync cycle the
-service's port *and* the tags would revert to the original value and all
-modifications would be lost.
-
-It's important to note that this applies only to the locally registered
-service. If you have multiple nodes all registering the same service
-their `enable_tag_override` configuration and all other service
-configuration items are independent of one another. Updating the tags
-for the service registered on one node is independent of the same
-service (by name) registered on another node. If `enable_tag_override` is
-not specified the default value is false. See [anti-entropy
-syncs](/docs/internals/anti-entropy.html) for more info.
-
-For Consul 0.9.3 and earlier you need to use `enableTagOverride`. Consul 1.0
-supports both `enable_tag_override` and `enableTagOverride` but the latter is
-deprecated and has been removed as of Consul 1.1.
 
 The `kind` field is used to optionally identify the service as an [unmanaged
 Connect proxy](/docs/connect/proxies.html#unmanaged-proxies) instance with the
@@ -167,6 +114,53 @@ specified given the state of the service.
 This allows some instances to be given higher weight if they have more capacity,
 and optionally allows reducing load on services with checks in `warning` status
 by giving passing instances a higher weight.
+
+### Checks
+
+A service can have an associated health check. This is a powerful feature as
+it allows a web balancer to gracefully remove failing nodes, a database
+to replace a failed secondary, etc. The health check is strongly integrated in
+the DNS interface as well. If a service is failing its health check or a
+node has any failing system-level check, the DNS interface will omit that
+node from any service query.
+
+The check must be of the script, HTTP, TCP or TTL type. If it is a script type,
+`args` and `interval` must be provided. If it is a HTTP type, `http` and
+`interval` must be provided. If it is a TCP type, `tcp` and `interval` must be
+provided. If it is a TTL type, then only `ttl` must be provided. The check name
+is automatically generated as `service:<service-id>`. If there are multiple
+service checks registered, the ID will be generated as
+`service:<service-id>:<num>` where `<num>` is an incrementing number starting
+from `1`.
+
+-> **Note:** There is more information about [checks here](/docs/agent/checks.html).
+
+### Enable Tag Override and Anti-Entropy
+
+Services may also contain a `token` field to provide an ACL token. This token is
+used for any interaction with the catalog for the service, including
+[anti-entropy syncs](/docs/internals/anti-entropy.html) and deregistration.
+
+You can optionally disable the anti-entropy feature for this service using the
+`enable_tag_override` flag. External agents can modify tags on services in the
+catalog, so subsequent sync operations can either maintain tag modifications or
+revert them. If `enable_tag_override` is set to `TRUE`, the next sync cycle may
+revert some service properties, **but** the tags would maintain the updated value.
+If `enable_tag_override` is set to `FALSE`, the next sync cycle will revert any
+updated service properties, **including** tags, to their original value.
+
+It's important to note that this applies only to the locally registered
+service. If you have multiple nodes all registering the same service
+their `enable_tag_override` configuration and all other service
+configuration items are independent of one another. Updating the tags
+for the service registered on one node is independent of the same
+service (by name) registered on another node. If `enable_tag_override` is
+not specified the default value is false. See [anti-entropy
+syncs](/docs/internals/anti-entropy.html) for more info.
+
+For Consul 0.9.3 and earlier you need to use `enableTagOverride`. Consul 1.0
+supports both `enable_tag_override` and `enableTagOverride` but the latter is
+deprecated and has been removed as of Consul 1.1.
 
 ## Multiple Service Definitions
 

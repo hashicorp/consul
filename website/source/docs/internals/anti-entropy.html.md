@@ -136,7 +136,7 @@ If an error is encountered during an anti-entropy run, the error is logged and
 the agent continues to run. The anti-entropy mechanism is run periodically to
 automatically recover from these types of transient failures.
 
-### EnableTagOverride
+### Enable Tag Override
 
 Synchronization of service registration can be partially modified to
 allow external agents to change the tags for a service. This can be
@@ -146,7 +146,7 @@ database and its monitoring service Redis Sentinel have this kind of
 relationship. Redis instances are responsible for much of their
 configuration, but Sentinels determine whether the Redis instance is a
 primary or a secondary. Using the Consul service configuration item
-[EnableTagOverride](/docs/agent/services.html) you can instruct the
+[enable_tag_override](/docs/agent/services.html) you can instruct the
 Consul agent on which the Redis database is running to NOT update the
 tags during anti-entropy synchronization. For more information see
-[Services](/docs/agent/services.html) page.
+[Services](/docs/agent/services.html#enable-tag-override-and-anti-entropy) page.
