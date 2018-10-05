@@ -48,35 +48,6 @@ Full, comprehensive documentation is viewable on the Consul website:
 
 https://www.consul.io/docs
 
-## Developing Consul
+## Contributing
 
-If you wish to work on Consul itself, you'll first need [Go](https://golang.org)
-installed (version 1.10+ is _required_). Make sure you have Go properly installed,
-including setting up your [GOPATH](https://golang.org/doc/code.html#GOPATH).
-
-Next, clone this repository into `$GOPATH/src/github.com/hashicorp/consul` and
-then just type `make`. In a few moments, you'll have a working `consul` executable:
-
-```
-$ make
-...
-$ bin/consul
-...
-```
-
-*Note: `make` will build all os/architecture combinations. Set the environment variable `CONSUL_DEV=1` to build it just for your local machine's os/architecture, or use `make dev`.*
-
-*Note: `make` will also place a copy of the binary in the first part of your `$GOPATH`.*
-
-You can run tests by typing `make test`. The test suite may fail if
-over-parallelized, so if you are seeing stochastic failures try
-`GOTEST_FLAGS="-p 2 -parallel 2" make test`.
-
-If you make any changes to the code, run `make format` in order to automatically
-format the code according to Go standards.
-
-## Vendoring
-
-Consul currently uses [govendor](https://github.com/kardianos/govendor) for
-vendoring and [vendorfmt](https://github.com/magiconair/vendorfmt) for formatting
-`vendor.json` to a more merge-friendly "one line per package" format.
+Thank you for your interest in contributing! Please refer to [CONTRIBUTING.md](https://github.com/hashicorp/consul/blob/master/.github/CONTRIBUTING.md) for guidance.
