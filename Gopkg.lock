@@ -348,6 +348,7 @@
     ".",
     "ext",
     "log",
+    "mocktracer",
   ]
   pruneopts = ""
   revision = "1949ddbfd147afd4d964a9f00b24eb291e0e7c38"
@@ -812,9 +813,11 @@
     "github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc",
     "github.com/matttproud/golang_protobuf_extensions/pbutil",
     "github.com/opentracing/opentracing-go",
+    "github.com/opentracing/opentracing-go/mocktracer",
     "github.com/openzipkin/zipkin-go-opentracing",
     "github.com/prometheus/client_model/go",
     "github.com/prometheus/common/expfmt",
+    "golang.org/x/sys/unix",
     "google.golang.org/grpc",
     "google.golang.org/grpc/credentials",
     "google.golang.org/grpc/grpclog",

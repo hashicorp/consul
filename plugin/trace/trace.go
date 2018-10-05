@@ -10,13 +10,22 @@ import (
 
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/metrics"
+	"github.com/coredns/coredns/plugin/pkg/dnstest"
+	"github.com/coredns/coredns/plugin/pkg/rcode"
 	// Plugin the trace package.
 	_ "github.com/coredns/coredns/plugin/pkg/trace"
+	"github.com/coredns/coredns/request"
 
 	ddtrace "github.com/DataDog/dd-trace-go/opentracing"
 	"github.com/miekg/dns"
 	ot "github.com/opentracing/opentracing-go"
 	zipkin "github.com/openzipkin/zipkin-go-opentracing"
+)
+
+const (
+	tagName  = "coredns.io/name"
+	tagType  = "coredns.io/type"
+	tagRcode = "coredns.io/rcode"
 )
 
 type trace struct {
@@ -94,10 +103,26 @@ func (t *trace) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 			trace = true
 		}
 	}
-	if span := ot.SpanFromContext(ctx); span == nil && trace {
-		span := t.Tracer().StartSpan("servedns:" + metrics.WithServer(ctx))
-		defer span.Finish()
-		ctx = ot.ContextWithSpan(ctx, span)
+	span := ot.SpanFromContext(ctx)
+	if !trace || span != nil {
+		return plugin.NextOrFailure(t.Name(), t.Next, ctx, w, r)
 	}
-	return plugin.NextOrFailure(t.Name(), t.Next, ctx, w, r)
+
+	req := request.Request{W: w, Req: r}
+	span = t.Tracer().StartSpan(spanName(ctx, req))
+	defer span.Finish()
+
+	rw := dnstest.NewRecorder(w)
+	ctx = ot.ContextWithSpan(ctx, span)
+	status, err := plugin.NextOrFailure(t.Name(), t.Next, ctx, rw, r)
+
+	span.SetTag(tagName, req.Name())
+	span.SetTag(tagType, req.Type())
+	span.SetTag(tagRcode, rcode.ToString(rw.Rcode))
+
+	return status, err
+}
+
+func spanName(ctx context.Context, req request.Request) string {
+	return "servedns:" + metrics.WithServer(ctx) + " " + req.Name()
 }
