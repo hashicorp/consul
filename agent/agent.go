@@ -750,7 +750,7 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 
 			addr := config.Address
 			if config.Scheme == "https" {
-				addr = "https://" + config.TLSConfig.Address
+				addr = "https://" + addr
 			}
 
 			if err := wp.RunWithConfig(addr, config); err != nil {
