@@ -113,10 +113,18 @@ port, the proxy establishes a connection to the target service
 ("static-server" in this example) using
 mutual TLS and identifying as the source service ("static-client" in this
 example).
+
+The injector will also set environment variables `<NAME>_CONNECT_SERVICE_HOST`
+and `<NAME>_CONNECT_SERVICE_PORT` for every defined upstream. This is
+analogous to the standard Kubernetes service environment variables, but
+point instead to the correct local proxy port to establish connections via
+Connect.
+
 Any containers running in the pod that need to establish connections
 to dependencies must be reconfigured to use the local upstream address.
 This means pods should not use Kubernetes service DNS or environment
 variables for these connections.
+
 
 We can verify access to the static text server using `kubectl exec`. Notice
 that we `curl` the local address and local port 1234 specified with our
