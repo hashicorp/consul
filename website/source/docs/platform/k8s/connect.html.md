@@ -13,7 +13,7 @@ automatic service-to-service authorization and connection encryption across
 your Consul services. Connect can be used with Kubernetes to secure pod
 communication with other services.
 
-Consul can automatically inject [Envoy as a sidecar](#)
+The Connect sidecar running [Envoy](#) can be automatically injected
 into pods in your cluster. This makes Connect configuration for Kubernetes automatic.
 This functionality is provided by the
 [consul-k8s project](https://github.com/hashicorp/consul-k8s) and can be
@@ -40,19 +40,19 @@ connections. Notice that the pod would still be fully functional without
 Connect. Minimal to zero modifications are required to pod specifications to
 enable Connect in Kubernetes.
 
-This pod specification starts an "echo" server that responds to any
+This pod specification starts an server that responds to any
 HTTP request with the static text "hello world".
 
 ```yaml
 apiVersion: v1
 kind: Pod
 metadata:
-  name: echo-server
+  name: static-server
   annotations:
     "consul.hashicorp.com/connect-inject": "true"
 spec:
   containers:
-    - name: echo-server
+    - name: static-server
       image: hashicorp/http-echo:latest
       args:
         - -text="hello world"
@@ -78,27 +78,27 @@ all available upstream proxies and their public ports.
 In the example above, the server is listening on `:8080`. This means
 the server will still bind to the pod IP and allow external connections.
 This is useful to transition to Connect by allowing both Connect and
-non-Connect connections. To restrict only Connect connections, any listeners
-should bind to localhost only (such as `127.0.0.1`).
+non-Connect connections. To restrict access to only Connect-authorized clients,
+any listeners should bind to localhost only (such as `127.0.0.1`).
 
 ### Connecting to Connect-Enabled Services
 
 The example pod specification below configures a pod that is capable
-of establishing connections to our previous example "echo" service. The
-connection to this echo service happens over an authorized and encrypted
+of establishing connections to our previous example "static-server" service. The
+connection to this static text service happens over an authorized and encrypted
 connection via Connect.
 
 ```yaml
 apiVersion: v1
 kind: Pod
 metadata:
-  name: echo-client
+  name: static-client
   annotations:
     "consul.hashicorp.com/connect-inject": "true"
-    "consul.hashicorp.com/connect-service-upstreams": "echo-server:1234"
+    "consul.hashicorp.com/connect-service-upstreams": "static-server:1234"
 spec:
   containers:
-    - name: echo-client
+    - name: static-client
       image: tutum/curl:latest
       # Just spin & wait forever, we'll use `kubectl exec` to demo
       command: [ "/bin/sh", "-c", "--" ]
@@ -110,31 +110,31 @@ Pods must specify upstream dependencies with the
 This annotation declares the names of any upstream dependencies and a
 local port to listen on. When a connection is established to that local
 port, the proxy establishes a connection to the target service
-("echo-server" in this example) using
-mutual TLS and identifying as the source service ("echo-client" in this
+("static-server" in this example) using
+mutual TLS and identifying as the source service ("static-client" in this
 example).
 Any containers running in the pod that need to establish connections
 to dependencies must be reconfigured to use the local upstream address.
 This means pods should not use Kubernetes service DNS or environment
 variables for these connections.
 
-We can verify access to the echo server using `kubectl exec`. Notice
+We can verify access to the static text server using `kubectl exec`. Notice
 that we `curl` the local address and local port 1234 specified with our
 upstreams.
 
 ```sh
-$ kubectl exec echo-client -- curl -s http://127.0.0.1:1234/
+$ kubectl exec static-client -- curl -s http://127.0.0.1:1234/
 "hello world"
 ```
 
 If you use the Consul UI or [CLI](/docs/commands/intention/create.html) to
 create a deny [intention](/docs/connect/intentions.html) between
-"echo-client" and "echo-server", connections are immediately rejected
+"static-client" and "static-server", connections are immediately rejected
 without updating either of the running pods. You can then remove this
 intention to allow connections again.
 
 ```sh
-$ kubectl exec echo-client -- curl -s http://127.0.0.1:1234/
+$ kubectl exec static-client -- curl -s http://127.0.0.1:1234/
 command terminated with exit code 52
 ```
 
@@ -242,7 +242,7 @@ The Consul server cluster can run either in or out of a Kubernetes cluster.
 To verify the installation, run the
 ["Accepting Inbound Connections"](/docs/platform/k8s/connect.html#accepting-inbound-connections)
 example from the "Usage" section above. After running this example, run
-`kubectl get pod echo-server -o yaml`. In the raw YAML output, you should
+`kubectl get pod static-server -o yaml`. In the raw YAML output, you should
 see injected Connect containers and an annotation
 `consul.hashicorp.com/connect-inject-status` set to `injected`. This
 confirms that injection is working properly.
