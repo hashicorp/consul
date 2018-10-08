@@ -42,13 +42,12 @@ type cmd struct {
 	client *api.Client
 
 	// flags
-	proxyID     string
-	sidecarFor  string
-	adminBind   string
-	envoyBin    string
-	dockerImage string
-	bootstrap   bool
-	grpcAddr    string
+	proxyID    string
+	sidecarFor string
+	adminBind  string
+	envoyBin   string
+	bootstrap  bool
+	grpcAddr   string
 }
 
 func (c *cmd) init() {
