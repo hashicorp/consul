@@ -9,29 +9,14 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+
+	"github.com/hashicorp/go-uuid"
 )
 
 // aclCreateResponse is used to wrap the ACL ID
 type aclBootstrapResponse struct {
 	ID string
 	structs.ACLToken
-}
-
-type aclTokenResponse struct {
-	Legacy bool `json:",omitempty"`
-	structs.ACLToken
-}
-
-func convertTokenForResponse(in *structs.ACLToken) *aclTokenResponse {
-	out := &aclTokenResponse{
-		ACLToken: *in,
-	}
-
-	if in.Rules != "" || in.AccessorID == "" {
-		out.Legacy = true
-	}
-
-	return out
 }
 
 // checkACLDisabled will return a standard response if ACLs are disabled. This
@@ -93,7 +78,7 @@ func (s *HTTPServer) ACLReplicationStatus(resp http.ResponseWriter, req *http.Re
 	return out, nil
 }
 
-func (s *HTTPServer) ACLPolicyTranslate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPServer) ACLRulesTranslate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	policyBytes, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Failed to read body: %v", err)}
@@ -102,6 +87,50 @@ func (s *HTTPServer) ACLPolicyTranslate(resp http.ResponseWriter, req *http.Requ
 	translated, err := acl.TranslateLegacyRules(policyBytes)
 	if err != nil {
 		return nil, BadRequestError{Reason: err.Error()}
+	}
+
+	resp.Write(translated)
+	return nil, nil
+}
+
+func (s *HTTPServer) ACLRulesTranslateLegacyToken(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	tokenID := strings.TrimPrefix(req.URL.Path, "/v1/acl/rules/translate/")
+	if tokenID == "" {
+		return nil, BadRequestError{Reason: "Missing token ID"}
+	}
+
+	args := structs.ACLTokenReadRequest{
+		Datacenter:  s.agent.config.Datacenter,
+		TokenID:     tokenID,
+		TokenIDType: structs.ACLTokenAccessor,
+	}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	if args.Datacenter == "" {
+		args.Datacenter = s.agent.config.Datacenter
+	}
+
+	args.QueryOptions.MinQueryIndex = 0
+
+	var out structs.ACLTokenResponse
+	defer setMeta(resp, &out.QueryMeta)
+	if err := s.agent.RPC("ACL.TokenRead", &args, &out); err != nil {
+		return nil, err
+	}
+
+	if out.Token == nil {
+		return nil, acl.ErrNotFound
+	}
+
+	if out.Token.Rules == "" {
+		return nil, fmt.Errorf("The specified token does not have any rules set")
+	}
+
+	translated, err := acl.TranslateLegacyRules([]byte(out.Token.Rules))
+	if err != nil {
+		return nil, fmt.Errorf("Failed to parse legacy rules: %v", err)
 	}
 
 	resp.Write(translated)
@@ -128,9 +157,14 @@ func (s *HTTPServer) ACLPolicyList(resp http.ResponseWriter, req *http.Request) 
 		return nil, err
 	}
 
+	var stubs []*structs.ACLPolicyListStub
 	// Use empty list instead of nil
 	if out.Policies == nil {
 		out.Policies = make(structs.ACLPolicies, 0)
+	}
+
+	for _, policy := range out.Policies {
+		stubs = append(stubs, policy.Stub())
 	}
 
 	return out.Policies, nil
@@ -141,7 +175,7 @@ func (s *HTTPServer) ACLPolicyCRUD(resp http.ResponseWriter, req *http.Request) 
 		return nil, nil
 	}
 
-	var fn func(resp http.ResponseWriter, req *http.Request, policyID string) (interface{}, error)
+	var fn func(resp http.ResponseWriter, req *http.Request, policyID string, policyIDType structs.ACLPolicyIDType) (interface{}, error)
 
 	switch req.Method {
 	case "GET":
@@ -162,16 +196,28 @@ func (s *HTTPServer) ACLPolicyCRUD(resp http.ResponseWriter, req *http.Request) 
 		return nil, BadRequestError{Reason: "Missing policy ID"}
 	}
 
-	return fn(resp, req, policyID)
+	policyIDType := structs.ACLPolicyID
+
+	if idType := req.URL.Query().Get("idType"); idType != "" {
+		switch idType {
+		case "id":
+			policyIDType = structs.ACLPolicyID
+		case "name":
+			policyIDType = structs.ACLPolicyName
+		default:
+			return nil, BadRequestError{Reason: "Invalid value for idType parameter"}
+		}
+	}
+
+	return fn(resp, req, policyID, policyIDType)
 }
 
-func (s *HTTPServer) ACLPolicyRead(resp http.ResponseWriter, req *http.Request, policyID string) (interface{}, error) {
+func (s *HTTPServer) ACLPolicyRead(resp http.ResponseWriter, req *http.Request, policyID string, policyIDType structs.ACLPolicyIDType) (interface{}, error) {
 	args := structs.ACLPolicyReadRequest{
 		Datacenter:   s.agent.config.Datacenter,
 		PolicyID:     policyID,
-		PolicyIDType: structs.ACLPolicyID,
+		PolicyIDType: policyIDType,
 	}
-
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
@@ -194,7 +240,7 @@ func (s *HTTPServer) ACLPolicyRead(resp http.ResponseWriter, req *http.Request, 
 }
 
 func (s *HTTPServer) ACLPolicyCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	return s.ACLPolicyWrite(resp, req, "")
+	return s.ACLPolicyWrite(resp, req, "", structs.ACLPolicyID)
 }
 
 // fixCreateTime is used to help in decoding the CreateTime attribute from
@@ -218,7 +264,7 @@ func fixCreateTime(raw interface{}) error {
 	return nil
 }
 
-func (s *HTTPServer) ACLPolicyWrite(resp http.ResponseWriter, req *http.Request, policyID string) (interface{}, error) {
+func (s *HTTPServer) ACLPolicyWrite(resp http.ResponseWriter, req *http.Request, policyID string, policyIDType structs.ACLPolicyIDType) (interface{}, error) {
 	args := structs.ACLPolicyUpsertRequest{
 		Datacenter: s.agent.config.Datacenter,
 	}
@@ -231,8 +277,15 @@ func (s *HTTPServer) ACLPolicyWrite(resp http.ResponseWriter, req *http.Request,
 	args.Policy.Syntax = acl.SyntaxCurrent
 
 	// TODO (ACL-V2) - Should we allow not specifying the ID in the payload when its specified in the URL
-	if policyID != "" && args.Policy.ID != policyID {
-		return nil, BadRequestError{Reason: "Policy ID in URL and payload do not match"}
+	switch policyIDType {
+	case structs.ACLPolicyID:
+		if policyID != "" && args.Policy.ID != policyID {
+			return nil, BadRequestError{Reason: "Policy ID in URL and payload do not match"}
+		}
+	case structs.ACLPolicyName:
+		if policyID != "" && args.Policy.Name != policyID {
+			return nil, BadRequestError{Reason: "Policy Name in URL and payload do not match"}
+		}
 	}
 
 	var out structs.ACLPolicy
@@ -243,10 +296,11 @@ func (s *HTTPServer) ACLPolicyWrite(resp http.ResponseWriter, req *http.Request,
 	return &out, nil
 }
 
-func (s *HTTPServer) ACLPolicyDelete(resp http.ResponseWriter, req *http.Request, policyID string) (interface{}, error) {
+func (s *HTTPServer) ACLPolicyDelete(resp http.ResponseWriter, req *http.Request, policyID string, policyIDType structs.ACLPolicyIDType) (interface{}, error) {
 	args := structs.ACLPolicyDeleteRequest{
-		Datacenter: s.agent.config.Datacenter,
-		PolicyID:   policyID,
+		Datacenter:   s.agent.config.Datacenter,
+		PolicyID:     policyID,
+		PolicyIDType: policyIDType,
 	}
 	s.parseToken(req, &args.Token)
 
@@ -275,18 +329,20 @@ func (s *HTTPServer) ACLTokenList(resp http.ResponseWriter, req *http.Request) (
 		args.Datacenter = s.agent.config.Datacenter
 	}
 
+	args.Policy = req.URL.Query().Get("policy")
+
 	var out structs.ACLTokensResponse
 	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC("ACL.TokenList", &args, &out); err != nil {
 		return nil, err
 	}
 
-	tokens := make([]*aclTokenResponse, 0, len(out.Tokens))
+	var stubs []*structs.ACLTokenListStub
 	for _, token := range out.Tokens {
-		tokens = append(tokens, convertTokenForResponse(token))
+		stubs = append(stubs, token.Stub())
 	}
 
-	return tokens, nil
+	return stubs, nil
 }
 
 func (s *HTTPServer) ACLTokenCRUD(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -344,7 +400,7 @@ func (s *HTTPServer) ACLTokenSelf(resp http.ResponseWriter, req *http.Request) (
 		return nil, acl.ErrNotFound
 	}
 
-	return convertTokenForResponse(out.Token), nil
+	return out.Token, nil
 }
 
 func (s *HTTPServer) ACLTokenCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -380,7 +436,7 @@ func (s *HTTPServer) ACLTokenRead(resp http.ResponseWriter, req *http.Request, t
 		return nil, acl.ErrNotFound
 	}
 
-	return convertTokenForResponse(out.Token), nil
+	return out.Token, nil
 }
 
 func (s *HTTPServer) ACLTokenWrite(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
@@ -404,7 +460,7 @@ func (s *HTTPServer) ACLTokenWrite(resp http.ResponseWriter, req *http.Request, 
 		return nil, err
 	}
 
-	return convertTokenForResponse(&out), nil
+	return &out, nil
 }
 
 func (s *HTTPServer) ACLTokenDelete(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
@@ -448,7 +504,7 @@ func (s *HTTPServer) ACLTokenClone(resp http.ResponseWriter, req *http.Request) 
 		return nil, err
 	}
 
-	return convertTokenForResponse(&out), nil
+	return &out, nil
 }
 
 func (s *HTTPServer) ACLTokenUpgrade(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -481,5 +537,5 @@ func (s *HTTPServer) ACLTokenUpgrade(resp http.ResponseWriter, req *http.Request
 		return nil, err
 	}
 
-	return convertTokenForResponse(&out), nil
+	return &out, nil
 }

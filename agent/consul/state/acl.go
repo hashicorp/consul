@@ -391,14 +391,38 @@ func (s *Store) aclTokenGet(ws memdb.WatchSet, value, index string) (uint64, *st
 }
 
 // ACLTokenList is used to list out all of the ACLs in the state store.
-func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool) (uint64, structs.ACLTokens, error) {
+func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy string) (uint64, structs.ACLTokens, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	var iter memdb.ResultIterator
 	var err error
 
-	if global == local {
+	// Note global == local works when both are true or false. It is not valid to set both
+	// to false but for defaulted structs (zero values for both) we want it to list out
+	// all tokens so our checks just ensure that global == local
+
+	if policy != "" {
+		fmt.Println("Listing by policy")
+		iter, err = tx.Get("acl-tokens", "policies", policy)
+		if err == nil && global != local {
+			iter = memdb.NewFilterIterator(iter, func(raw interface{}) bool {
+				token, ok := raw.(*structs.ACLToken)
+				if !ok {
+					return false
+				}
+
+				if global && !token.Local {
+					return true
+				} else if local && token.Local {
+					return true
+				}
+
+				fmt.Printf("Filtering")
+				return false
+			})
+		}
+	} else if global == local {
 		iter, err = tx.Get("acl-tokens", "id")
 	} else if global {
 		iter, err = tx.Get("acl-tokens", "local", false)
@@ -654,12 +678,17 @@ func (s *Store) ACLPolicyDeleteByName(idx uint64, name string) error {
 	return s.aclPolicyDelete(idx, name, "name")
 }
 
-func (s *Store) ACLPoliciesDelete(idx uint64, policyIDs []string) error {
+func (s *Store) ACLPoliciesDelete(idx uint64, policyIDs []string, idType structs.ACLPolicyIDType) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
+	index := "id"
+	if idType == structs.ACLPolicyName {
+		index = "name"
+	}
+
 	for _, policyID := range policyIDs {
-		s.aclPolicyDeleteTxn(tx, idx, policyID, "id")
+		s.aclPolicyDeleteTxn(tx, idx, policyID, index)
 	}
 
 	if err := indexUpdateMaxTxn(tx, idx, "acl-policies"); err != nil {

@@ -137,7 +137,7 @@ type ACLToken struct {
 
 	// Rules is the V1 acl rules associated with
 	// DEPRECATED (ACL-Legacy-Compat) - remove once we no longer support v1 ACL compat
-	Rules string `json:"-"`
+	Rules string `json:",omitempty"`
 
 	// Whether this token is DC local. This means that it will not be synced
 	// to the ACL datacenter and replicated to others.
@@ -216,6 +216,32 @@ func (t *ACLToken) SetHash(force bool) uint64 {
 // ACLTokens is a slice of ACLTokens.
 type ACLTokens []*ACLToken
 
+type ACLTokenListStub struct {
+	AccessorID  string
+	Description string
+	Policies    []ACLTokenPolicyLink
+	Local       bool
+	CreateTime  time.Time `json:",omitempty"`
+	Hash        uint64
+	CreateIndex uint64
+	ModifyIndex uint64
+	Legacy      bool
+}
+
+func (token *ACLToken) Stub() *ACLTokenListStub {
+	return &ACLTokenListStub{
+		AccessorID:  token.AccessorID,
+		Description: token.Description,
+		Policies:    token.Policies,
+		Local:       token.Local,
+		CreateTime:  token.CreateTime,
+		Hash:        token.Hash,
+		CreateIndex: token.CreateIndex,
+		ModifyIndex: token.ModifyIndex,
+		Legacy:      token.Rules != "",
+	}
+}
+
 // IsSame checks if one ACL is the same as another, without looking
 // at the Raft information (that's why we didn't call it IsEqual). This is
 // useful for seeing if an update would be idempotent for all the functional
@@ -275,6 +301,27 @@ type ACLPolicy struct {
 
 	// Embedded Raft Metadata
 	RaftIndex `hash:"ignore"`
+}
+
+type ACLPolicyListStub struct {
+	ID          string
+	Name        string
+	Description string
+	Datacenters []string
+	Hash        uint64
+	CreateIndex uint64
+	ModifyIndex uint64
+}
+
+func (p *ACLPolicy) Stub() *ACLPolicyListStub {
+	return &ACLPolicyListStub{
+		Name:        p.Name,
+		Description: p.Description,
+		Datacenters: p.Datacenters,
+		Hash:        p.Hash,
+		CreateIndex: p.CreateIndex,
+		ModifyIndex: p.ModifyIndex,
+	}
 }
 
 type ACLPolicies []*ACLPolicy
@@ -379,15 +426,25 @@ func (policies ACLPolicies) Merge(cache *ACLCaches, sentinel sentinel.Evaluator)
 	return acl.MergePolicies(parsed), nil
 }
 
+type ACLReplicationType string
+
+const (
+	ACLReplicateLegacy  ACLReplicationType = "legacy"
+	ACLReplicatePolicie ACLReplicationType = "policies"
+	ACLReplicateTokens  ACLReplicationType = "tokens"
+)
+
 // ACLReplicationStatus provides information about the health of the ACL
 // replication system.
 type ACLReplicationStatus struct {
-	Enabled          bool
-	Running          bool
-	SourceDatacenter string
-	ReplicatedIndex  uint64
-	LastSuccess      time.Time
-	LastError        time.Time
+	Enabled              bool
+	ReplicationType      ACLReplicationType
+	Running              bool
+	SourceDatacenter     string
+	ReplicatedIndex      uint64
+	ReplicatedTokenIndex uint64
+	LastSuccess          time.Time
+	LastError            time.Time
 }
 
 // ACLTokenUpsertRequest is used for token creation and update operations
@@ -429,6 +486,7 @@ func (r *ACLTokenDeleteRequest) RequestDatacenter() string {
 type ACLTokenListRequest struct {
 	IncludeLocal  bool   // Whether local tokens should be included
 	IncludeGlobal bool   // Whether global tokens should be included
+	Policy        string // Policy filter
 	Datacenter    string // The datacenter to perform the request within
 	QueryOptions
 }
@@ -492,8 +550,9 @@ func (r *ACLPolicyUpsertRequest) RequestDatacenter() string {
 
 // ACLPolicyDeleteRequest is used at the RPC layer deletion requests
 type ACLPolicyDeleteRequest struct {
-	PolicyID   string // The id of the policy to delete
-	Datacenter string // The datacenter to perform the request within
+	PolicyID     string          // The id of the policy to delete
+	PolicyIDType ACLPolicyIDType // Whether the PolicyIDs are Names or IDs
+	Datacenter   string          // The datacenter to perform the request within
 	WriteRequest
 }
 
@@ -560,5 +619,6 @@ type ACLPolicyBatchUpsertRequest struct {
 //
 // This is particularly useful during replication
 type ACLPolicyBatchDeleteRequest struct {
-	PolicyIDs []string
+	PolicyIDs    []string
+	PolicyIDType ACLPolicyIDType
 }
