@@ -1,4 +1,4 @@
-{{#app-view class="token list" loading=isLoading authorized=isAuthorized enabled=isEnabled}}
+{{#app-view class=(concat 'token ' (if (not isAuthorized) 'edit' 'list')) loading=isLoading authorized=isAuthorized enabled=isEnabled}}
     {{#block-slot 'notification' as |status type|}}
       {{partial 'dc/acls/tokens/notifications'}}
     {{/block-slot}}
@@ -40,7 +40,7 @@
                 <th>&nbsp;</th>
             {{/block-slot}}
             {{#block-slot 'row'}}
-                <td data-test-token="{{item.AccessorID}}" class={{if (eq item.AccessorID currentAccessorID) 'me' }}>
+                <td data-test-token="{{item.AccessorID}}" class={{if (eq item.AccessorID token.AccessorID) 'me' }}>
                     <a href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>{{truncate item.AccessorID 8 false}}</a>
                 </td>
                 <td>
@@ -49,7 +49,7 @@
                 <td>
                   {{item.Name}}
                 </td>
-                <td colspan={{if (not-eq item.AccessorID currentAccessorID) '2' }}>
+                <td colspan={{if (not-eq item.AccessorID token.AccessorID) '2' }}>
   {{#if item.Legacy }}
                     Legacy tokens have embedded policies.
   {{ else }}
@@ -58,7 +58,7 @@
                     {{/each}}
   {{/if}}
                 </td>
-  {{#if (eq item.AccessorID currentAccessorID)}}
+  {{#if (eq item.AccessorID token.AccessorID)}}
                 <td>Your token</td>
   {{/if}}
             {{/block-slot}}
@@ -76,9 +76,9 @@
                                 <li>
                                     <a data-test-clone onclick={{action 'sendClone' item}}>Duplicate</a>
                                 </li>
-{{#if (eq item.AccessorID currentAccessorID) }}
+{{#if (eq item.AccessorID token.AccessorID) }}
                                 <li>
-                                    <a data-test-logout onclick={{queue (action confirm 'use' item) (action change)}}>Stop using</a>
+                                    <a data-test-logout onclick={{queue (action confirm 'logout' item) (action change)}}>Stop using</a>
                                 </li>
 {{else}}
 
@@ -98,13 +98,17 @@
                         <p>
                             {{#if (eq name 'delete')}}
                               {{message}}
-                            {{ else if (eq name 'use')}}
+                            {{else if (eq name 'logout')}}
+                                Are you sure you want to stop using this ACL token? This will log you out.
+                            {{else if (eq name 'use')}}
                                 Are you sure you want to use this ACL token?
                             {{/if}}
                         </p>
                         <button type="button" class="type-delete" {{action execute}}>
                             {{#if (eq name 'delete')}}
                                 Confirm Delete
+                            {{else if (eq name 'logout')}}
+                                Confirm Logout
                             {{ else if (eq name 'use')}}
                                 Confirm Use
                             {{/if}}

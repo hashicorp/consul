@@ -19,7 +19,7 @@ export default Route.extend(WithTokenActions, {
         items: repo.findAllByDatacenter(this.modelFor('dc').dc.Name),
       }),
       isLoading: false,
-      currentAccessorID: get(this, 'settings').findBySlug('accessor_id'),
+      token: get(this, 'settings').findBySlug('token'),
     }).then(function(model) {
       return hash({
         ...model,

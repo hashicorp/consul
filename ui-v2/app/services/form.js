@@ -15,7 +15,8 @@ const builder = function(name = '', obj = {}) {
       return _name;
     },
     setData: function(data) {
-      if (_validators) {
+      // Array check temporarily for when we get an empty array from repo.status
+      if (_validators && !Array.isArray(data)) {
         _data = new Changeset(data, lookupValidator(_validators), _validators);
       } else {
         _data = data;

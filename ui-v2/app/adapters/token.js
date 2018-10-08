@@ -12,6 +12,7 @@ import { PUT as HTTP_PUT } from 'consul-ui/utils/http/method';
 import { get } from '@ember/object';
 
 const REQUEST_CLONE = 'cloneRecord';
+const REQUEST_SELF = 'querySelf';
 
 const uniqueName = function(haystack, needle) {
   return `Duplicate of ${needle}`;
@@ -19,7 +20,10 @@ const uniqueName = function(haystack, needle) {
 export default Adapter.extend({
   cleanQuery: function(_query) {
     const query = this._super(...arguments);
+    // TODO: Make sure policy is being passed through
     delete _query.policy;
+    //take off the token for /self
+    delete query.token;
     return query;
   },
   urlForQuery: function(query, modelName) {
@@ -30,6 +34,9 @@ export default Adapter.extend({
       throw new Error('You must specify an id');
     }
     return this.appendURL('acl/token', [query.id], this.cleanQuery(query));
+  },
+  urlForQuerySelf: function(query, modelName) {
+    return this.appendURL('acl/token/self', [], this.cleanQuery(query));
   },
   urlForCreateRecord: function(modelName, snapshot) {
     return this.appendURL('acl/token', [], {
@@ -50,6 +57,8 @@ export default Adapter.extend({
     switch (requestType) {
       case 'cloneRecord':
         return this.urlForCloneRecord(type.modelName, snapshot);
+      case 'querySelf':
+        return this.urlForQuerySelf(snapshot, type.modelName);
     }
     return this._super(...arguments);
   },
@@ -61,6 +70,26 @@ export default Adapter.extend({
   isCloneRecord: function(url, method) {
     const last = url.pathname.split('/').pop();
     return last === 'clone';
+  },
+  isQuerySelf: function(url, method) {
+    return url.pathname === this.urlForQuerySelf({});
+  },
+  self: function(store, modelClass, snapshot) {
+    const params = {
+      store: store,
+      type: modelClass,
+      snapshot: snapshot,
+      requestType: 'querySelf',
+    };
+    // _requestFor is private... but these methods aren't, until they disappear..
+    const request = {
+      method: this.methodForRequest(params),
+      url: this.urlForRequest(params),
+      headers: this.headersForRequest(params),
+      data: this.dataForRequest(params),
+    };
+    // TODO: private..
+    return this._makeRequest(request);
   },
   clone: function(store, modelClass, id, snapshot) {
     const params = {
@@ -96,6 +125,7 @@ export default Adapter.extend({
         case response === true:
           response = this.handleBooleanResponse(url, response, PRIMARY_KEY, SLUG_KEY);
           break;
+        case this.isQuerySelf(url, method):
         case this.isCloneRecord(url, method):
         case this.isQueryRecord(url, method):
           response = this.handleSingleResponse(url, response, PRIMARY_KEY, SLUG_KEY);
@@ -110,6 +140,15 @@ export default Adapter.extend({
     switch (params.requestType) {
       case REQUEST_CLONE:
         return HTTP_PUT;
+    }
+    return this._super(...arguments);
+  },
+  headersForRequest: function(params) {
+    switch (params.requestType) {
+      case REQUEST_SELF:
+        return {
+          'X-Consul-Token': params.token,
+        };
     }
     return this._super(...arguments);
   },
@@ -129,6 +168,8 @@ export default Adapter.extend({
         });
         data = data.token;
         break;
+      case REQUEST_SELF:
+        return {};
       case REQUEST_CLONE:
         data = {};
         params.store

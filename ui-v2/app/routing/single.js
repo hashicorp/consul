@@ -18,7 +18,11 @@ export default Route.extend({
     return hash({
       isLoading: false,
       create: create,
-      item: create ? repo.create({ Datacenter: dc }) : repo.findBySlug(params.id, dc),
+      ...repo.status({
+        item: create
+          ? Promise.resolve(repo.create({ Datacenter: dc }))
+          : repo.findBySlug(params.id, dc),
+      }),
     });
   },
   setupController: function(controller, model) {

@@ -16,9 +16,11 @@
         </div>
 
         <div>
+  {{#if authorized}}
             <nav aria-label="Breadcrumb">
                 {{#yield-slot 'breadcrumbs'}}{{yield}}{{/yield-slot}}
             </nav>
+  {{/if}}
             {{#yield-slot 'header'}}{{yield}}{{/yield-slot}}
         </div>
     </div>

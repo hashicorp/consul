@@ -8,5 +8,6 @@
             {{input type='password' value=token name="token" placeholder="Token ID"}}
         </label>
     </fieldset>
+    {{! authorize is in the routes/dc/acls.js route }}
     <button type="submit" {{action 'authorize' token}}>Save</button>
 </form>

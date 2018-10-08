@@ -19,6 +19,12 @@ export default Service.extend({
   status: function(obj) {
     return status(obj);
   },
+  self: function(token, dc) {
+    return get(this, 'store').self(this.getModelName(), {
+      token: token,
+      dc: dc,
+    });
+  },
   clone: function(item) {
     return get(this, 'store').clone(this.getModelName(), get(item, PRIMARY_KEY));
   },

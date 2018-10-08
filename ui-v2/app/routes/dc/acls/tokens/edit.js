@@ -27,15 +27,18 @@ export default SingleRoute.extend(WithTokenActions, {
   datacenterRepo: service('dc'),
   model: function(params, transition) {
     const dc = this.modelFor('dc').dc.Name;
+    const policiesRepo = get(this, 'policiesRepo');
     return this._super(...arguments).then(model => {
       return hash({
         ...model,
         ...{
-          items: get(this, 'policiesRepo').findAllByDatacenter(dc),
           // TODO: I only need these to create a new policy
           datacenters: get(this, 'datacenterRepo').findAll(),
           policy: this.getEmptyPolicy(),
         },
+        ...policiesRepo.status({
+          items: policiesRepo.findAllByDatacenter(dc),
+        }),
       });
     });
   },
@@ -84,7 +87,8 @@ export default SingleRoute.extend(WithTokenActions, {
       get(this, 'policiesRepo')
         .persist(item)
         .then(item => {
-          // console.log(item.get('data'));
+          // TODO: User is notified by the policy table
+          // but what about errors?
         });
     },
   },

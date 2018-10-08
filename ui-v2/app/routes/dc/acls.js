@@ -4,15 +4,23 @@ import { inject as service } from '@ember/service';
 
 export default Route.extend({
   settings: service('settings'),
-  // repo:
+  repo: service('tokens'),
   actions: {
     authorize: function(token) {
-      get(this, 'settings')
-        .persist({
-          token: token,
-        })
-        .then(() => {
-          this.refresh();
+      const dc = this.modelFor('dc').dc.Name;
+      get(this, 'repo')
+        .self(token, dc)
+        .then(item => {
+          get(this, 'settings')
+            .persist({
+              token: {
+                AccessorID: get(item, 'AccessorID'),
+                SecretID: token,
+              },
+            })
+            .then(() => {
+              this.refresh();
+            });
         });
     },
   },
