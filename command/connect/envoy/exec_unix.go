@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/y0ssar1an/q"
 	"golang.org/x/sys/unix"
 )
 
@@ -84,7 +83,6 @@ func execEnvoy(binary string, prefixArgs, suffixArgs []string, bootstrapJson []b
 	}
 	envoyArgs = append(envoyArgs, suffixArgs...)
 
-	q.Q(envoyArgs)
 	// Exec
 	if err = unix.Exec(binary, envoyArgs, os.Environ()); err != nil {
 		return errors.New("Failed to exec envoy: " + err.Error())
