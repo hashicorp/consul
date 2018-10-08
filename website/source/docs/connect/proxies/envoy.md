@@ -124,6 +124,10 @@ $ docker run --rm -d --network host \
 d8399b54ee0c1f67d729bc4c8b6e624e86d63d2d9225935971bcb4534233012b
 ```
 
+The `-admin-bind` flag on the second proxy command is needed because both
+proxies are running on the host network and so can't bind to the same port for
+their admin API (which cannot be disabled).
+
 To see the output of these you can use `docker logs`. To see more verbose
 information you can add `-- -l debug` to the end of the command above. This is
 passing the `-l` (log-level) option directly through to envoy. With debug level
@@ -190,3 +194,136 @@ Hello?
 Hello?
 ^C
 ```
+
+## Advanced Listener Configuration
+
+Consul 1.3.0 includes initial envoy support which includes automatic Layer 4
+(TCP) proxying over mTLS, and authorization. Near future versions of Consul will
+bring Layer 7 features like HTTP-path-based routing, retries, tracing and more.
+
+-> **Advanced Topic!** This section covers an optional way of taking almost
+complete control of envoy's listener configuration which is provided as a way to
+experiment with advanced integrations ahead of full layer 7 feature support.
+While we don't plan to remove the ability to do this in the future, it should be
+considered experimental and requires in-depth knowledge of envoy's configuration
+format.
+
+For advanced users there is an "escape hatch" available in 1.3.0 - the "opaque"
+proxy configuration map in the [proxy service
+definition](/docs/connect/proxies.html#proxy-service-definitions) may contain a
+special key called `envoy_public_listener_json`. If this is set, it's value must
+be a string containing the serialized proto3 JSON encoding of a complete [envoy
+listener
+config](https://www.envoyproxy.io/docs/envoy/v1.8.0/api-v2/api/v2/lds.proto).
+Each upstream listener may also be customized in the same way by adding a
+`envoy_listener_json` key to the `config` map of [the upstream
+definition](/docs/connect/proxies.html#upstream-configuration-reference).
+
+The JSON supplied may describe a `types.Any` message with `@type` set to
+`type.googleapis.com/envoy.api.v2.Listener`, or it may be the direct encoding of
+the listener with no `@type`. It must parse correctly as one of those though.
+
+Once parsed, it is passed verbatim to Envoy in place of the listener config that
+Consul would typically configure. The only modifications Consul will make to the
+config provided are noted below along.
+
+#### Public Listener Configuration
+
+For the `proxy.config.envoy_public_listener_json`, very `FilterChain` added to
+the listener will have it's `TlsContext` overwritten with the Connect TLS
+certificates. For now this means there is no way to override Connect TLS
+settings or the requirement for clients to present valid Connect certificates.
+
+Also, every `FilterChain` will have the `envoy.ext_authz` filter prepended to
+the filters array to ensure that all incoming connections must be authorized
+explicitly by the Consul agent based on the client certificate.
+
+To work properly with Consul Connect, the public listener should bind to the
+same address in the service definition so it is discoverable. It may also use
+the special cluster name `local_app` to forward requests to a single local
+instance if the proxy was configured [as a
+sidecar](/docs/connect/proxies.html#sidecar-proxy-fields).
+
+#### Example
+
+The following example shows a public listener being configured with an http
+connection manager. As specified this behaves exactly like the default TCP proxy
+filter however it provides metrics on HTTP request volume and response codes.
+
+If additional config outside of the listener is needed (for example the
+top-level `tracing` configuration to send traces to a collecting service), those
+currently need to be added to a custom bootstrap. You may generate the default
+connect bootstrap with the [`consul connect envoy -bootstrap`
+command](/docs/commands/connect/envoy.html) and then add the required additional
+resources.
+
+```text
+service {
+  kind = "connect-proxy"
+  name = "web-http-aware-proxy"
+  port = 8080
+  proxy {
+    destination_service_name web
+    destination_service_id web
+    config {
+      envoy_public_listener_json = <<EOL
+        {
+          "@type": "type.googleapis.com/envoy.api.v2.Listener",
+          "name": "public_listener:0.0.0.0:18080",
+          "address": {
+            "socketAddress": {
+              "address": "0.0.0.0",
+              "portValue": 8080
+            }
+          },
+          "filterChains": [
+            {
+              "filters": [
+                {
+                  "name": "envoy.http_connection_manager",
+                  "config": {
+                    "stat_prefix": "public_listener",
+                    "route_config": {
+                      "name": "local_route",
+                      "virtual_hosts": [
+                        {
+                          "name": "backend",
+                          "domains": ["*"],
+                          "routes": [
+                            {
+                              "match": {
+                                "prefix": "/"
+                              },
+                              "route": {
+                                "cluster": "local_app"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    "http_filters": [
+                      {
+                        "name": "envoy.router",
+                        "config": {}
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+        EOL
+    }
+  }
+}
+```
+
+#### Upstream Listener Configuration
+
+For the upstream listeners `proxy.upstreams[].config.envoy_listener_json`, no
+modification is performed. The `Clusters` served via the xDS API all have the
+correct client certificates and verification contexts configured so outbound
+traffic should be authenticated.
+
