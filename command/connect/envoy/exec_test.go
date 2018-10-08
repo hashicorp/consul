@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 	"time"
 
@@ -15,35 +16,124 @@ import (
 )
 
 func TestExecEnvoy(t *testing.T) {
-	require := require.New(t)
-
-	cmd, destroy := helperProcess("exec-fake-envoy")
-	defer destroy()
-
-	cmd.Stderr = os.Stderr
-	outBytes, err := cmd.Output()
-	require.NoError(err)
-
-	var got FakeEnvoyExecData
-	require.NoError(json.Unmarshal(outBytes, &got))
-
-	expectArgs := []string{
-		"--v2-config-only",
-		"--disable-hot-restart",
-		"--config-path",
-		// Different platforms produce different file descriptors here so we use the
-		// value we got back. This is somewhat tautological but we do sanity check
-		// that value further below.
-		got.ConfigPath,
-		"--fake-envoy-arg",
+	cases := []struct {
+		Name     string
+		Args     []string
+		WantArgs []string
+	}{
+		{
+			Name: "default",
+			Args: []string{},
+			WantArgs: []string{
+				"--v2-config-only",
+				"--config-path",
+				// Different platforms produce different file descriptors here so we use the
+				// value we got back. This is somewhat tautological but we do sanity check
+				// that value further below.
+				"{{ got.ConfigPath }}",
+				"--disable-hot-restart",
+				"--fake-envoy-arg",
+			},
+		},
+		{
+			Name: "hot-restart-epoch",
+			Args: []string{"--restart-epoch", "1"},
+			WantArgs: []string{
+				"--v2-config-only",
+				"--config-path",
+				// Different platforms produce different file descriptors here so we use the
+				// value we got back. This is somewhat tautological but we do sanity check
+				// that value further below.
+				"{{ got.ConfigPath }}",
+				// No --disable-hot-restart
+				"--fake-envoy-arg",
+				"--restart-epoch",
+				"1",
+			},
+		},
+		{
+			Name: "hot-restart-version",
+			Args: []string{"--drain-time-s", "10"},
+			WantArgs: []string{
+				"--v2-config-only",
+				"--config-path",
+				// Different platforms produce different file descriptors here so we use the
+				// value we got back. This is somewhat tautological but we do sanity check
+				// that value further below.
+				"{{ got.ConfigPath }}",
+				// No --disable-hot-restart
+				"--fake-envoy-arg",
+				// Restart epoch defaults to 0 if not given and not disabled.
+				"--drain-time-s",
+				"10",
+			},
+		},
+		{
+			Name: "hot-restart-version",
+			Args: []string{"--parent-shutdown-time-s", "20"},
+			WantArgs: []string{
+				"--v2-config-only",
+				"--config-path",
+				// Different platforms produce different file descriptors here so we use the
+				// value we got back. This is somewhat tautological but we do sanity check
+				// that value further below.
+				"{{ got.ConfigPath }}",
+				// No --disable-hot-restart
+				"--fake-envoy-arg",
+				// Restart epoch defaults to 0 if not given and not disabled.
+				"--parent-shutdown-time-s",
+				"20",
+			},
+		},
+		{
+			Name: "hot-restart-version",
+			Args: []string{"--hot-restart-version", "foobar1"},
+			WantArgs: []string{
+				"--v2-config-only",
+				"--config-path",
+				// Different platforms produce different file descriptors here so we use the
+				// value we got back. This is somewhat tautological but we do sanity check
+				// that value further below.
+				"{{ got.ConfigPath }}",
+				// No --disable-hot-restart
+				"--fake-envoy-arg",
+				// Restart epoch defaults to 0 if not given and not disabled.
+				"--hot-restart-version",
+				"foobar1",
+			},
+		},
 	}
-	expectConfigData := fakeEnvoyTestData
 
-	require.Equal(expectArgs, got.Args)
-	require.Equal(expectConfigData, got.ConfigData)
-	// Sanity check the config path in a non-brittle way since we used it to
-	// generate expectation for the args.
-	require.Regexp(`^/dev/fd/\d+$`, got.ConfigPath)
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			require := require.New(t)
+
+			args := append([]string{"exec-fake-envoy"}, tc.Args...)
+			cmd, destroy := helperProcess(args...)
+			defer destroy()
+
+			cmd.Stderr = os.Stderr
+			outBytes, err := cmd.Output()
+			require.NoError(err)
+
+			var got FakeEnvoyExecData
+			require.NoError(json.Unmarshal(outBytes, &got))
+
+			expectConfigData := fakeEnvoyTestData
+
+			// Substitute the right FD path
+			for idx := range tc.WantArgs {
+				tc.WantArgs[idx] = strings.Replace(tc.WantArgs[idx],
+					"{{ got.ConfigPath }}", got.ConfigPath, 1)
+			}
+
+			require.Equal(tc.WantArgs, got.Args)
+			require.Equal(expectConfigData, got.ConfigData)
+			// Sanity check the config path in a non-brittle way since we used it to
+			// generate expectation for the args.
+			require.Regexp(`^/dev/fd/\d+$`, got.ConfigPath)
+		})
+	}
 }
 
 type FakeEnvoyExecData struct {
@@ -111,7 +201,7 @@ func TestHelperProcess(t *testing.T) {
 				helperProcessSentinel,
 				"fake-envoy",
 			},
-			[]string{"--fake-envoy-arg"},
+			append([]string{"--fake-envoy-arg"}, args...),
 			[]byte(fakeEnvoyTestData),
 		)
 		if err != nil {
