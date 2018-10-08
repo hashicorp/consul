@@ -316,8 +316,10 @@ func TestAPI_HealthService_MultipleTags(t *testing.T) {
 		conf.NodeName = "node123"
 	})
 	defer s.Stop()
+
 	agent := c.Agent()
 	health := c.Health()
+
 	// Make two services with a check
 	reg := &AgentServiceRegistration{
 		Name: "foo",
@@ -330,6 +332,7 @@ func TestAPI_HealthService_MultipleTags(t *testing.T) {
 	}
 	require.NoError(t, agent.ServiceRegister(reg))
 	defer agent.ServiceDeregister("foo1")
+
 	reg2 := &AgentServiceRegistration{
 		Name: "foo",
 		ID:   "foo2",
@@ -341,16 +344,20 @@ func TestAPI_HealthService_MultipleTags(t *testing.T) {
 	}
 	require.NoError(t, agent.ServiceRegister(reg2))
 	defer agent.ServiceDeregister("foo2")
+
 	// Test searching with one tag (two results)
 	retry.Run(t, func(r *retry.R) {
 		services, meta, err := health.ServiceMultipleTags("foo", []string{"bar"}, true, nil)
+
 		require.NoError(t, err)
 		require.NotEqual(t, meta.LastIndex, 0)
 		require.Len(t, services, 2)
 	})
+
 	// Test searching with two tags (one result)
 	retry.Run(t, func(r *retry.R) {
 		services, meta, err := health.ServiceMultipleTags("foo", []string{"bar", "v2"}, true, nil)
+
 		require.NoError(t, err)
 		require.NotEqual(t, meta.LastIndex, 0)
 		require.Len(t, services, 1)

@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHealth_ChecksInState(t *testing.T) {
@@ -628,9 +629,7 @@ func TestHealth_ServiceNodes_MultipleServiceTags(t *testing.T) {
 		},
 	}
 	var out struct{}
-	if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
 
 	arg = structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -647,9 +646,7 @@ func TestHealth_ServiceNodes_MultipleServiceTags(t *testing.T) {
 			ServiceID: "db",
 		},
 	}
-	if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
 
 	var out2 structs.IndexedCheckServiceNodes
 	req := structs.ServiceSpecificRequest{
@@ -658,26 +655,14 @@ func TestHealth_ServiceNodes_MultipleServiceTags(t *testing.T) {
 		ServiceTags: []string{"master", "v2"},
 		TagFilter:   true,
 	}
-	if err := msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2))
 
 	nodes := out2.Nodes
-	if len(nodes) != 1 {
-		t.Fatalf("Bad: %v", nodes)
-	}
-	if nodes[0].Node.Node != "foo" {
-		t.Fatalf("Bad: %v", nodes[0])
-	}
-	if !lib.StrContains(nodes[0].Service.Tags, "v2") {
-		t.Fatalf("Bad: %v", nodes[0])
-	}
-	if !lib.StrContains(nodes[0].Service.Tags, "master") {
-		t.Fatalf("Bad: %v", nodes[0])
-	}
-	if nodes[0].Checks[0].Status != api.HealthPassing {
-		t.Fatalf("Bad: %v", nodes[0])
-	}
+	require.Len(t, nodes, 1)
+	require.Equal(t, nodes[0].Node.Node, "foo")
+	require.Contains(t, nodes[0].Service.Tags, "v2")
+	require.Contains(t, nodes[0].Service.Tags, "master")
+	require.Equal(t, nodes[0].Checks[0].Status, api.HealthPassing)
 }
 
 func TestHealth_ServiceNodes_NodeMetaFilter(t *testing.T) {

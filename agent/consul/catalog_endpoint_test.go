@@ -1728,13 +1728,8 @@ func TestCatalog_ListServiceNodes_NodeMetaFilter(t *testing.T) {
 			TagFilter:       len(tc.tags) > 0,
 		}
 		var out structs.IndexedServiceNodes
-		if err := msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &args, &out); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
-		if len(out.ServiceNodes) != len(tc.services) {
-			t.Fatalf("bad: %v", out)
-		}
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &args, &out))
+		require.Len(t, out.ServiceNodes, len(tc.services))
 
 		for i, serviceNode := range out.ServiceNodes {
 			if serviceNode.Node != tc.services[i].Node || serviceNode.ServiceID != tc.services[i].ServiceID {
