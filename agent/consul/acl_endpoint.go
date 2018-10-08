@@ -472,7 +472,7 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, tokens, err := state.ACLTokenList(ws, args.IncludeLocal, args.IncludeGlobal)
+			index, tokens, err := state.ACLTokenList(ws, args.IncludeLocal, args.IncludeGlobal, args.Policy)
 			if err != nil {
 				return err
 			}
@@ -646,24 +646,31 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 		return acl.ErrPermissionDenied
 	}
 
-	// Almost all of the checks here are also done in the state store. However,
-	// we want to prevent the raft operations when we know they are going to fail
-	// so we still do them here.
-	if _, err := uuid.ParseUUID(args.PolicyID); err != nil {
-		return fmt.Errorf("Policy ID is missing or an invalid UUID")
+	var policy *structs.ACLPolicy
+	var err error
+	switch args.PolicyIDType {
+	case structs.ACLPolicyID:
+		_, policy, err = a.srv.fsm.State().ACLPolicyGetByID(nil, args.PolicyID)
+	case structs.ACLPolicyName:
+		_, policy, err = a.srv.fsm.State().ACLPolicyGetByName(nil, args.PolicyID)
+	default:
+		return fmt.Errorf("Invalid policy id type")
 	}
-
-	if args.PolicyID == structs.ACLPolicyGlobalManagementID {
-		return fmt.Errorf("Delete operation not permitted on the builtin global-management policy")
-	}
-
-	_, policy, err := a.srv.fsm.State().ACLPolicyGetByID(nil, args.PolicyID)
 	if err != nil {
 		return err
 	}
 
+	if policy == nil {
+		return nil
+	}
+
+	if policy.ID == structs.ACLPolicyGlobalManagementID {
+		return fmt.Errorf("Delete operation not permitted on the builtin global-management policy")
+	}
+
 	req := structs.ACLPolicyBatchDeleteRequest{
-		PolicyIDs: []string{args.PolicyID},
+		PolicyIDs:    []string{args.PolicyID},
+		PolicyIDType: args.PolicyIDType,
 	}
 
 	resp, err := a.srv.raftApply(structs.ACLPolicyDeleteRequestType, &req)
