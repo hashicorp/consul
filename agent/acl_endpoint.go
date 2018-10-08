@@ -155,12 +155,7 @@ func (s *HTTPServer) ACLPolicyList(resp http.ResponseWriter, req *http.Request) 
 		return nil, err
 	}
 
-	var stubs []*structs.ACLPolicyListStub
-	// Use empty list instead of nil
-	if out.Policies == nil {
-		out.Policies = make(structs.ACLPolicies, 0)
-	}
-
+	stubs := make([]*structs.ACLPolicyListStub, 0, len(out.Policies))
 	for _, policy := range out.Policies {
 		stubs = append(stubs, policy.Stub())
 	}
@@ -277,12 +272,16 @@ func (s *HTTPServer) ACLPolicyWrite(resp http.ResponseWriter, req *http.Request,
 	// TODO (ACL-V2) - Should we allow not specifying the ID in the payload when its specified in the URL
 	switch policyIDType {
 	case structs.ACLPolicyID:
-		if policyID != "" && args.Policy.ID != policyID {
+		if policyID != "" && args.Policy.ID != "" && args.Policy.ID != policyID {
 			return nil, BadRequestError{Reason: "Policy ID in URL and payload do not match"}
+		} else if args.Policy.ID == "" {
+			args.Policy.ID = policyID
 		}
 	case structs.ACLPolicyName:
-		if policyID != "" && args.Policy.Name != policyID {
+		if policyID != "" && args.Policy.Name != "" && args.Policy.Name != policyID {
 			return nil, BadRequestError{Reason: "Policy Name in URL and payload do not match"}
+		} else if args.Policy.Name == "" {
+			args.Policy.Name = ""
 		}
 	}
 
@@ -335,7 +334,7 @@ func (s *HTTPServer) ACLTokenList(resp http.ResponseWriter, req *http.Request) (
 		return nil, err
 	}
 
-	var stubs []*structs.ACLTokenListStub
+	stubs := make([]*structs.ACLTokenListStub, 0, len(out.Tokens))
 	for _, token := range out.Tokens {
 		stubs = append(stubs, token.Stub())
 	}
