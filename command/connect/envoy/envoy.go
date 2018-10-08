@@ -100,8 +100,9 @@ func (c *cmd) Run(args []string) int {
 		c.grpcAddr = os.Getenv(api.GRPCAddrEnvName)
 	}
 	if c.grpcAddr == "" {
-		c.UI.Error("Either -grpc-addr or CONSUL_GRPC_ADDR must be specified")
-		return 1
+		// This is the dev mode default and recommended production setting if
+		// enabled.
+		c.grpcAddr = "localhost:8502"
 	}
 	if c.http.Token() == "" {
 		// Extra check needed since CONSUL_HTTP_TOKEN has not been consulted yet but
@@ -178,11 +179,7 @@ func (c *cmd) findBinary() (string, error) {
 	return exec.LookPath("envoy")
 }
 
-// TODO(banks) this method ended up with a few subtleties that should be unit
-// tested.
-func (c *cmd) generateConfig() ([]byte, error) {
-	var t = template.Must(template.New("bootstrap").Parse(bootstrapTemplate))
-
+func (c *cmd) templateArgs() (*templateArgs, error) {
 	httpCfg := api.DefaultConfig()
 	c.http.MergeOntoConfig(httpCfg)
 
@@ -238,19 +235,26 @@ func (c *cmd) generateConfig() ([]byte, error) {
 		return nil, fmt.Errorf("Failed to resolve admin bind address: %s", err)
 	}
 
-	args := templateArgs{
+	return &templateArgs{
 		ProxyCluster:          c.proxyID,
 		ProxyID:               c.proxyID,
-		AgentHTTPAddress:      agentIP.String(),
-		AgentHTTPPort:         agentPort,
+		AgentAddress:          agentIP.String(),
+		AgentPort:             agentPort,
 		AgentTLS:              useTLS,
 		AgentCAFile:           httpCfg.TLSConfig.CAFile,
 		AdminBindAddress:      adminBindIP.String(),
 		AdminBindPort:         adminPort,
 		Token:                 httpCfg.Token,
 		LocalAgentClusterName: xds.LocalAgentClusterName,
-	}
+	}, nil
+}
 
+func (c *cmd) generateConfig() ([]byte, error) {
+	args, err := c.templateArgs()
+	if err != nil {
+		return nil, err
+	}
+	var t = template.Must(template.New("bootstrap").Parse(bootstrapTemplate))
 	var buf bytes.Buffer
 	err = t.Execute(&buf, args)
 	if err != nil {

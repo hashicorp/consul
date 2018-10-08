@@ -22,9 +22,7 @@ func TestExecEnvoy(t *testing.T) {
 
 	cmd.Stderr = os.Stderr
 	outBytes, err := cmd.Output()
-	if err != nil {
-		t.Fatalf("error launching child process: %v", err)
-	}
+	require.NoError(err)
 
 	var got FakeEnvoyExecData
 	require.NoError(json.Unmarshal(outBytes, &got))
@@ -33,15 +31,19 @@ func TestExecEnvoy(t *testing.T) {
 		"--v2-config-only",
 		"--disable-hot-restart",
 		"--config-path",
-		"/dev/fd/3",
+		// Different platforms produce different file descriptors here so we use the
+		// value we got back. This is somewhat tautological but we do sanity check
+		// that value further below.
+		got.ConfigPath,
 		"--fake-envoy-arg",
 	}
-	expectConfigPath := "/dev/fd/3"
 	expectConfigData := fakeEnvoyTestData
 
 	require.Equal(expectArgs, got.Args)
-	require.Equal(expectConfigPath, got.ConfigPath)
 	require.Equal(expectConfigData, got.ConfigData)
+	// Sanity check the config path in a non-brittle way since we used it to
+	// generate expectation for the args.
+	require.Regexp(`^/dev/fd/\d+$`, got.ConfigPath)
 }
 
 type FakeEnvoyExecData struct {
