@@ -466,7 +466,7 @@ func TestDebugCommand_DebugDisabled(t *testing.T) {
 		t.Fatalf("should exit 0, got code: %d", code)
 	}
 
-	profiles := []string{"heap", "profile", "goroutine"}
+	profiles := []string{"heap", "profile", "goroutine", "trace"}
 	// Glob ignores file system errors
 	for _, v := range profiles {
 		fs, _ := filepath.Glob(fmt.Sprintf("%s/*/%s.prof", outputPath, v))

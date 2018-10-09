@@ -363,41 +363,69 @@ func (c *cmd) captureDynamic() error {
 			wg.Add(1)
 
 			go func() {
-				pprofOutputs := make(map[string][]byte, 0)
+				// We need to capture profiles and traces at the same time
+				// and block for both of them
+				var wgProf sync.WaitGroup
 
 				heap, err := c.client.Debug().Heap()
 				if err != nil {
 					errCh <- err
 				}
-				pprofOutputs["heap"] = heap
 
-				// Capture a profile with a minimum of 1s
-				// TODO should be min across the board
+				err = ioutil.WriteFile(fmt.Sprintf("%s/heap.prof", timestampDir), heap, 0644)
+				if err != nil {
+					errCh <- err
+				}
+
+				// Capture a profile/trace with a minimum of 1s
 				s := c.interval.Seconds()
 				if s < 1 {
 					s = 1
 				}
 
-				// This will block for the interval
-				prof, err := c.client.Debug().Profile(int(s))
-				if err != nil {
-					errCh <- err
-				}
-				pprofOutputs["profile"] = prof
+				go func() {
+					wgProf.Add(1)
+
+					prof, err := c.client.Debug().Profile(int(s))
+					if err != nil {
+						errCh <- err
+					}
+
+					err = ioutil.WriteFile(fmt.Sprintf("%s/profile.prof", timestampDir), prof, 0644)
+					if err != nil {
+						errCh <- err
+					}
+
+					wgProf.Done()
+				}()
+
+				go func() {
+					wgProf.Add(1)
+
+					trace, err := c.client.Debug().Trace(int(s))
+					if err != nil {
+						errCh <- err
+					}
+
+					err = ioutil.WriteFile(fmt.Sprintf("%s/trace.prof", timestampDir), trace, 0644)
+					if err != nil {
+						errCh <- err
+					}
+
+					wgProf.Done()
+				}()
 
 				gr, err := c.client.Debug().Goroutine()
 				if err != nil {
 					errCh <- err
 				}
-				pprofOutputs["goroutine"] = gr
 
-				// Write profiles to disk
-				for output, v := range pprofOutputs {
-					err = ioutil.WriteFile(fmt.Sprintf("%s/%s.prof", timestampDir, output), v, 0644)
-					if err != nil {
-						errCh <- err
-					}
+				err = ioutil.WriteFile(fmt.Sprintf("%s/goroutine.prof", timestampDir), gr, 0644)
+				if err != nil {
+					errCh <- err
 				}
+
+				wgProf.Wait()
 
 				wg.Done()
 			}()
