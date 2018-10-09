@@ -97,7 +97,7 @@ func (c *cmd) init() {
 			"Defaults to %s.", debugDuration))
 	c.flags.BoolVar(&c.archive, "archive", true, "Boolean value for if the files "+
 		"should be archived and compressed. Setting this to false will skip the "+
-		"archive step and leave the directory of information on the relative path.")
+		"archive step and leave the directory of information on the current path.")
 	c.flags.StringVar(&c.output, "output", defaultFilename, "The path "+
 		"to the compressed archive that will be created with the "+
 		"information after collection.")
@@ -576,18 +576,18 @@ func (c *cmd) Help() string {
 	return c.help
 }
 
-const synopsis = "Monitors a Consul agent for the specified period of time, recording information about the agent, cluster, and environment to an archive written to the relative directory."
+const synopsis = "Monitors a Consul agent for the specified period of time, recording information about the agent, cluster, and environment to an archive written to the current directory."
 const help = `
 Usage: consul debug [options]
 
   Monitors a Consul agent for the specified period of time, recording
   information about the agent, cluster, and environment to an archive
-  written to the relative directory.
+  written to the specified path.
 
-  If ACLs are enabled, an agent token must be supplied in order to perform
-  this operation.
+  If ACLs are enabled, an 'operator:read' token must be supplied in order
+  to perform this operation.
 
-  To create a debug archive in the relative directory for the default
+  To create a debug archive in the current directory for the default
   duration and interval, capturing all information available:
 
       $ consul debug
@@ -595,10 +595,15 @@ Usage: consul debug [options]
   Flags can be used to customize the duration and interval of the
   operation. Note that the duration must be longer than the interval.
 
-      $ consul debug -interval=20s -duration=1m
+	  $ consul debug -interval=20s -duration=1m
+
+  The capture flag can be specified multiple times to limit information
+  retrieved.
+
+		$ consul debug -capture metrics -capture agent
 
   By default, the archive containing the debugging information is
-  saved to the relative directory as a .tar.gz file. The
+  saved to the current directory as a .tar.gz file. The
   output path can be specified, as well as an option to disable
   archiving, leaving the directory intact.
 
