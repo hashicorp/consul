@@ -50,6 +50,11 @@ func (p *Proxy) SetExpire(expire time.Duration) { p.transport.SetExpire(expire) 
 
 // Healthcheck kicks of a round of health checks for this proxy.
 func (p *Proxy) Healthcheck() {
+	if p.health == nil {
+		log.Warning("No healthchecker")
+		return
+	}
+
 	p.probe.Do(func() error {
 		return p.health.Check(p)
 	})

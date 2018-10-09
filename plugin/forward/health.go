@@ -31,6 +31,7 @@ func NewHealthChecker(trans string) HealthChecker {
 		return &dnsHc{c: c}
 	}
 
+	log.Warningf("No healthchecker for transport %q", trans)
 	return nil
 }
 
