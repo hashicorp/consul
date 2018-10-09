@@ -596,7 +596,10 @@ Usage: consul debug [options]
       $ consul debug
 
   Flags can be used to customize the duration and interval of the
-  operation. Note that the duration must be longer than the interval.
+  operation. Duration is the total time to capture data for from the target
+  agent, whereas how often to capture dyanmic data for the length of the
+  duration is specified with the interval. Note that the duration must be .
+  longer than the interval.
 
       $ consul debug -interval=20s -duration=1m
 
@@ -613,8 +616,10 @@ Usage: consul debug [options]
       $ consul debug -output=/foo/bar/my-debugging -archive=false
 
   Note: Information collected by this command has the potential
-  to be highly sensitive. We strongly recommend review of the
-  data within the archive prior to transmitting it.
+  to be highly sensitive. Sensitive material such as ACL tokens and
+  other commonly secret material are redacted automatically, but we
+  strongly recommend review of the data within the archive prior to
+  transmitting it.
 
   For a full list of options and examples, please see the Consul
   documentation.
