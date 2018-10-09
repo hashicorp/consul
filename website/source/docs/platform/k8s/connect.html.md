@@ -3,18 +3,18 @@ layout: "docs"
 page_title: "Connect Sidecar - Kubernetes"
 sidebar_current: "docs-platform-k8s-connect"
 description: |-
-  Connect is a feature built-in to Consul that enables automatic service-to-service authorization and connection encryption across your Consul services. Connect can be used with Kubernetes to secure pod communication with other services.
+  Connect is a feature built into to Consul that enables automatic service-to-service authorization and connection encryption across your Consul services. Connect can be used with Kubernetes to secure pod communication with other services.
 ---
 
 # Connect Sidecar on Kubernetes
 
-[Connect](/docs/connect/index.html) is a feature built-in to Consul that enables
+[Connect](/docs/connect/index.html) is a feature built into to Consul that enables
 automatic service-to-service authorization and connection encryption across
 your Consul services. Connect can be used with Kubernetes to secure pod
-communication with other services.
+communication with other pods and external Kubernetes services.
 
-The Connect sidecar running [Envoy](#) can be automatically injected
-into pods in your cluster. This makes Connect configuration for Kubernetes automatic.
+The Connect sidecar running Envoy can be automatically injected into pods in
+your cluster, making configuration for Kubernetes automatic.
 This functionality is provided by the
 [consul-k8s project](https://github.com/hashicorp/consul-k8s) and can be
 automatically installed and configured using the
@@ -24,7 +24,7 @@ automatically installed and configured using the
 
 When the
 [Connect injector is installed](/docs/platform/k8s/connect.html#installation-and-configuration),
-the Connect sidecar is automatically added to pods. This sidecar can both
+the Connect sidecar is automatically added to all pods. This sidecar can both
 accept and establish connections using Connect, enabling the pod to communicate
 to clients and dependencies exclusively over authorized and encrypted
 connections.
@@ -32,6 +32,8 @@ connections.
 -> **Note:** The pod specifications in this section are valid and use
 publicly available images. If you've installed the Connect injector, feel free
 to run the pod specifications in this section to try Connect with Kubernetes.
+Please note the documentation below this sectionn on how to properly install
+and configure the Connect injector.
 
 ### Accepting Inbound Connections
 
@@ -40,7 +42,7 @@ connections. Notice that the pod would still be fully functional without
 Connect. Minimal to zero modifications are required to pod specifications to
 enable Connect in Kubernetes.
 
-This pod specification starts an server that responds to any
+This pod specification starts a server that responds to any
 HTTP request with the static text "hello world".
 
 ```yaml
@@ -71,7 +73,7 @@ installation requires opt-in using the annotation shown above.
 
 This will start a Connect sidecar that listens on a random port registered
 with Consul and proxies valid inbound connections to port 8080 in the pod.
-To establish a connection to the pod, a client must use another Connect
+To establish a connection to the pod using Connect, a client must use another Connect
 proxy. The client Connect proxy will use Consul service discovery to find
 all available upstream proxies and their public ports.
 
@@ -108,33 +110,35 @@ spec:
 Pods must specify upstream dependencies with the
 [`consul.hashicorp.com/connect-service-upstreams` annotation](/docs/platform/k8s/connect.html#consul-hashicorp-com-connect-service-upstreams).
 This annotation declares the names of any upstream dependencies and a
-local port to listen on. When a connection is established to that local
+local port for the proxy to listen on. When a connection is established to that local
 port, the proxy establishes a connection to the target service
 ("static-server" in this example) using
 mutual TLS and identifying as the source service ("static-client" in this
 example).
 
 The injector will also set environment variables `<NAME>_CONNECT_SERVICE_HOST`
-and `<NAME>_CONNECT_SERVICE_PORT` for every defined upstream. This is
-analogous to the standard Kubernetes service environment variables, but
+and `<NAME>_CONNECT_SERVICE_PORT` in every container in the pod for every defined
+upstream. This is analogous to the standard Kubernetes service environment variables, but
 point instead to the correct local proxy port to establish connections via
 Connect.
 
 Any containers running in the pod that need to establish connections
-to dependencies must be reconfigured to use the local upstream address.
+to dependencies must be reconfigured to use the local upstream address either
+directly or using the environment variables set by the injector (defined above).
 This means pods should not use Kubernetes service DNS or environment
 variables for these connections.
 
 
 We can verify access to the static text server using `kubectl exec`. Notice
-that we `curl` the local address and local port 1234 specified with our
-upstreams.
+that we use the local address and port from the upstream annotation (1234)
+for this verification.
 
 ```sh
 $ kubectl exec static-client -- curl -s http://127.0.0.1:1234/
 "hello world"
 ```
 
+We can control access to the server using [intentions](/docs/connect/intentions.html).
 If you use the Consul UI or [CLI](/docs/commands/intention/create.html) to
 create a deny [intention](/docs/connect/intentions.html) between
 "static-client" and "static-server", connections are immediately rejected
@@ -152,9 +156,9 @@ Annotations can be used to configure the injection behavior.
 
 * `consul.hashicorp.com/connect-inject` - If this is "true" then injection
   is enabled. If this is "false" then injection is explicitly disabled.
-  The default is configurable on the injector itself. When installing
-  the injector, the default behavior requires pod specify this to opt-in to
-  injection.
+  The default injector behavior requires pods to opt-in to injection by
+  specifying this value as "true". This default can be changed in the
+  injector's configuration if desired.
 
 * `consul.hashicorp.com/connect-service` - For pods that accept inbound
   connections, this specifies the name of the service that is being
@@ -162,10 +166,11 @@ Annotations can be used to configure the injection behavior.
 
 * `consul.hashicorp.com/connect-service-port` - For pods that accept inbound
   connections, this specifies the port to route inbound connections to. This
-  is the port that the service is listening on. The proxy will listen on
-  a dynamic port. This defaults to the first exposed port on any container
-  in the pod. If specified, the value can be the _name_ of a configured port,
-  such as "http" or it can be a direct port value such as "8080".
+  is the port that the service is listening on. The service port defaults to
+  the first exposed port on any container in the pod. If specified, the value
+  can be the _name_ of a configured port, such as "http" or it can be a direct
+  port value such as "8080". This is the port of the _service_, the proxy
+  public listener will listen on a dynamic port.
 
 * `consul.hashicorp.com/connect-service-upstreams` - The list of upstream
   services that this pod needs to connect to via Connect along with a static

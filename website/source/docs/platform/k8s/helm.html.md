@@ -320,10 +320,12 @@ and consider if they're appropriate for your deployment.
   If true, the injector will inject the Connect sidecar into all pods by
   default. Otherwise, pods must specify the
   [injection annotation](/docs/platform/k8s/connect.html#consul-hashicorp-com-connect-inject)
-  to opt-in to Connect injection.
+  to opt-in to Connect injection. If this is true, pods can use the same
+  annotation to explicitly opt-out of injection.
 
   - <a name="v-connectinject-namespaceselector" href="#v-connectinject-namespaceselector">`namespaceSelector`</a> (`string: ""`) -
-  A selector for restricting injection to only matching namespaces. By default
+  A [selector](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/)
+  for restricting injection to only matching namespaces. By default
   all namespaces except the system namespace will have injection enabled.
 
   - <a name="v-connectinject-certs" href="#v-connectinject-certs">`certs`</a> -
@@ -332,10 +334,10 @@ and consider if they're appropriate for your deployment.
   webhook. By default, the injector will generate and manage its own certs,
   but this requires the ability for the injector to update its own
   `MutatingWebhookConfiguration`. In a production environment, custom certs
-  should probaly be used. Configure the values below to enable this.
+  should probably be used. Configure the values below to enable this.
 
       * <a name="v-connectinject-certs-secretname" href="#v-connectinject-certs-secretname">`secretName`</a> (`string: null`) -
-      secretName is the name of the secret that has the TLS certificate and
+      secretName is the name of the Kubernetes secret that has the TLS certificate and
       private key to serve the injector webhook. If this is null, then the
       injector will default to its automatic management mode.
 
