@@ -1063,6 +1063,7 @@ func TestAPI_AgentConnectCARoots_list(t *testing.T) {
 	defer s.Stop()
 
 	agent := c.Agent()
+	s.WaitForSerfCheck(t)
 	list, meta, err := agent.ConnectCARoots(nil)
 	require.NoError(err)
 	require.True(meta.LastIndex > 0)
@@ -1107,6 +1108,7 @@ func TestAPI_AgentConnectAuthorize(t *testing.T) {
 	defer s.Stop()
 
 	agent := c.Agent()
+	s.WaitForSerfCheck(t)
 	params := &AgentAuthorizeParams{
 		Target:           "foo",
 		ClientCertSerial: "fake",
