@@ -708,7 +708,7 @@ func (s *Store) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *st
 		// It might be modified in future, but it requires changing many unit tests
 		// Enforcing saving the entry also ensures that if we add default values in .ToServiceNode()
 		// those values will be saved even if node is not really modified for a while.
-		if entry.IsSame(serviceNode) {
+		if entry.IsSameService(serviceNode) {
 			return nil
 		}
 	} else {

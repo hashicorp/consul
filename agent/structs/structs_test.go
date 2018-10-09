@@ -182,6 +182,7 @@ func TestNode_IsSame(t *testing.T) {
 		},
 	}
 	check := func(twiddle, restore func()) {
+		t.Helper()
 		if !n.IsSame(other) || !other.IsSame(n) {
 			t.Fatalf("should be the same")
 		}
@@ -206,6 +207,54 @@ func TestNode_IsSame(t *testing.T) {
 	if !n.IsSame(other) {
 		t.Fatalf("should be equal, was %#v VS %#v", n, other)
 	}
+}
+
+func TestStructs_ServiceNode_IsSameService(t *testing.T) {
+	sn := testServiceNode()
+	node := "node1"
+	serviceID := sn.ServiceID
+	serviceAddress := sn.ServiceAddress
+	serviceEnableTagOverride := sn.ServiceEnableTagOverride
+	serviceMeta := make(map[string]string)
+	for k, v := range sn.ServiceMeta {
+		serviceMeta[k] = v
+	}
+	serviceName := sn.ServiceName
+	servicePort := sn.ServicePort
+	serviceTags := sn.ServiceTags
+	serviceWeights := Weights{Passing: 2, Warning: 1}
+	sn.ServiceWeights = serviceWeights
+
+	n := sn.ToNodeService().ToServiceNode(node)
+	other := sn.ToNodeService().ToServiceNode(node)
+
+	check := func(twiddle, restore func()) {
+		t.Helper()
+		if !n.IsSameService(other) || !other.IsSameService(n) {
+			t.Fatalf("should be the same")
+		}
+
+		twiddle()
+		if n.IsSameService(other) || other.IsSameService(n) {
+			t.Fatalf("should be different, was %#v VS %#v", n, other)
+		}
+
+		restore()
+		if !n.IsSameService(other) || !other.IsSameService(n) {
+			t.Fatalf("should be the same after restore, was:\n %#v VS\n %#v", n, other)
+		}
+	}
+
+	check(func() { other.ServiceID = "66fb695a-c782-472f-8d36-4f3edd754b37" }, func() { other.ServiceID = serviceID })
+	check(func() { other.Node = "other" }, func() { other.Node = node })
+	check(func() { other.ServiceAddress = "1.2.3.4" }, func() { other.ServiceAddress = serviceAddress })
+	check(func() { other.ServiceEnableTagOverride = !serviceEnableTagOverride }, func() { other.ServiceEnableTagOverride = serviceEnableTagOverride })
+	check(func() { other.ServiceKind = "newKind" }, func() { other.ServiceKind = "" })
+	check(func() { other.ServiceMeta = map[string]string{"my": "meta"} }, func() { other.ServiceMeta = serviceMeta })
+	check(func() { other.ServiceName = "duck" }, func() { other.ServiceName = serviceName })
+	check(func() { other.ServicePort = 65534 }, func() { other.ServicePort = servicePort })
+	check(func() { other.ServiceTags = []string{"new", "tags"} }, func() { other.ServiceTags = serviceTags })
+	check(func() { other.ServiceWeights = Weights{Passing: 42, Warning: 41} }, func() { other.ServiceWeights = serviceWeights })
 }
 
 func TestStructs_ServiceNode_PartialClone(t *testing.T) {
@@ -253,6 +302,23 @@ func TestStructs_ServiceNode_PartialClone(t *testing.T) {
 	sn.ServiceMeta["new_meta"] = "new_value"
 	if reflect.DeepEqual(sn, clone) {
 		t.Fatalf("clone wasn't independent of the original for Meta")
+	}
+}
+
+func TestStructs_ServiceNode_IsSame(t *testing.T) {
+	sn := testServiceNode()
+
+	sn2 := sn.ToNodeService().ToServiceNode("node1")
+	// These two fields get lost in the conversion, so we have to zero-value
+	// them out before we do the compare.
+	sn.ID = ""
+	sn.Address = ""
+	sn.Datacenter = ""
+	sn.TaggedAddresses = nil
+	sn.NodeMeta = nil
+	sn.ServiceWeights = Weights{Passing: 1, Warning: 1}
+	if !reflect.DeepEqual(sn, sn2) {
+		t.Fatalf("bad: %#v, but expected %#v", sn2, sn)
 	}
 }
 
@@ -409,7 +475,7 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 		t.Fatalf("copy should be the same, but was\n %#v\nVS\n %#v", copyNodeService, other)
 	}
 	otherServiceNodeCopy2 := copyNodeService.ToServiceNode("node1")
-	if !otherServiceNode.IsSame(otherServiceNodeCopy2) {
+	if !otherServiceNode.IsSameService(otherServiceNodeCopy2) {
 		t.Fatalf("copy should be the same, but was\n %#v\nVS\n %#v", otherServiceNode, otherServiceNodeCopy2)
 	}
 }

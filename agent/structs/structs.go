@@ -640,11 +640,18 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 	return true
 }
 
-// IsSame checks if one ServiceNode is the same as another, without looking
+// IsSameService checks if one ServiceNode is the same as another, without looking
 // at the Raft information (that's why we didn't call it IsEqual). This is
 // useful for seeing if an update would be idempotent for all the functional
 // parts of the structure.
-func (s *ServiceNode) IsSame(other *ServiceNode) bool {
+// In a similar fashion as ToNodeService(), fields related to Node are ignored
+// see ServiceNode for more information.
+func (s *ServiceNode) IsSameService(other *ServiceNode) bool {
+	// Skip the following fields, see ServiceNode definition
+	// Address                  string
+	// Datacenter               string
+	// TaggedAddresses          map[string]string
+	// NodeMeta                 map[string]string
 	if s.ID != other.ID ||
 		s.Node != other.Node ||
 		s.ServiceKind != other.ServiceKind ||
@@ -653,11 +660,8 @@ func (s *ServiceNode) IsSame(other *ServiceNode) bool {
 		!reflect.DeepEqual(s.ServiceTags, other.ServiceTags) ||
 		s.ServiceAddress != other.ServiceAddress ||
 		s.ServicePort != other.ServicePort ||
-		s.Datacenter != other.Datacenter ||
-		!reflect.DeepEqual(s.NodeMeta, other.NodeMeta) ||
 		!reflect.DeepEqual(s.ServiceMeta, other.ServiceMeta) ||
 		!reflect.DeepEqual(s.ServiceWeights, other.ServiceWeights) ||
-		!reflect.DeepEqual(s.TaggedAddresses, other.TaggedAddresses) ||
 		s.ServiceEnableTagOverride != other.ServiceEnableTagOverride ||
 		s.ServiceProxyDestination != other.ServiceProxyDestination ||
 		s.ServiceConnect != other.ServiceConnect {
