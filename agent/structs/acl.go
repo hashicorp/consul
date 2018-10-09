@@ -225,7 +225,7 @@ type ACLTokenListStub struct {
 	Hash        uint64
 	CreateIndex uint64
 	ModifyIndex uint64
-	Legacy      bool
+	Legacy      bool `json:",omitempty"`
 }
 
 func (token *ACLToken) Stub() *ACLTokenListStub {
@@ -429,9 +429,9 @@ func (policies ACLPolicies) Merge(cache *ACLCaches, sentinel sentinel.Evaluator)
 type ACLReplicationType string
 
 const (
-	ACLReplicateLegacy  ACLReplicationType = "legacy"
-	ACLReplicatePolicie ACLReplicationType = "policies"
-	ACLReplicateTokens  ACLReplicationType = "tokens"
+	ACLReplicateLegacy   ACLReplicationType = "legacy"
+	ACLReplicatePolicies ACLReplicationType = "policies"
+	ACLReplicateTokens   ACLReplicationType = "tokens"
 )
 
 // ACLReplicationStatus provides information about the health of the ACL
@@ -492,6 +492,26 @@ type ACLTokenListRequest struct {
 }
 
 func (r *ACLTokenListRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+// ACLTokenListResponse is used to return the secret data free stubs
+// of the tokens
+type ACLTokenListResponse struct {
+	Tokens []*ACLTokenListStub
+	QueryMeta
+}
+
+// ACLTokenBatchReadRequest is used for reading multiple tokens, this is
+// different from the the token list request in that only tokens with the
+// the requested ids are returned
+type ACLTokenBatchReadRequest struct {
+	AccessorIDs []string // List of accessor ids to fetch
+	Datacenter  string   // The datacenter to perform the request within
+	QueryOptions
+}
+
+func (r *ACLTokenBatchReadRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
@@ -583,15 +603,15 @@ func (r *ACLPolicyListRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
-// ACLPolicyResolveRequest is used at the RPC layer to request a subset of
+// ACLPolicyBatchReadRequest is used at the RPC layer to request a subset of
 // the policies associated with the token used for retrieval
-type ACLPolicyResolveRequest struct {
-	PolicyIDs  []string
-	Datacenter string // The datacenter to perform the request within
+type ACLPolicyBatchReadRequest struct {
+	PolicyIDs  []string // List of policy ids to fetch
+	Datacenter string   // The datacenter to perform the request within
 	QueryOptions
 }
 
-func (r *ACLPolicyResolveRequest) RequestDatacenter() string {
+func (r *ACLPolicyBatchReadRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
@@ -601,7 +621,7 @@ type ACLPolicyResponse struct {
 	QueryMeta
 }
 
-type ACLPolicyMultiResponse struct {
+type ACLPoliciesResponse struct {
 	Policies []*ACLPolicy
 	QueryMeta
 }

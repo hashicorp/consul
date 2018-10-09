@@ -149,7 +149,7 @@ func (s *HTTPServer) ACLPolicyList(resp http.ResponseWriter, req *http.Request) 
 		args.Datacenter = s.agent.config.Datacenter
 	}
 
-	var out structs.ACLPolicyMultiResponse
+	var out structs.ACLPoliciesResponse
 	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC("ACL.PolicyList", &args, &out); err != nil {
 		return nil, err
@@ -328,18 +328,13 @@ func (s *HTTPServer) ACLTokenList(resp http.ResponseWriter, req *http.Request) (
 
 	args.Policy = req.URL.Query().Get("policy")
 
-	var out structs.ACLTokensResponse
+	var out structs.ACLTokenListResponse
 	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC("ACL.TokenList", &args, &out); err != nil {
 		return nil, err
 	}
 
-	stubs := make([]*structs.ACLTokenListStub, 0, len(out.Tokens))
-	for _, token := range out.Tokens {
-		stubs = append(stubs, token.Stub())
-	}
-
-	return stubs, nil
+	return out.Tokens, nil
 }
 
 func (s *HTTPServer) ACLTokenCRUD(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -364,6 +359,10 @@ func (s *HTTPServer) ACLTokenCRUD(resp http.ResponseWriter, req *http.Request) (
 	}
 
 	tokenID := strings.TrimPrefix(req.URL.Path, "/v1/acl/token/")
+	if strings.HasSuffix(tokenID, "/clone") && req.Method == "PUT" {
+		tokenID = tokenID[:len(tokenID)-6]
+		fn = s.ACLTokenClone
+	}
 	if tokenID == "" && req.Method != "PUT" {
 		return nil, BadRequestError{Reason: "Missing token ID"}
 	}
@@ -474,14 +473,9 @@ func (s *HTTPServer) ACLTokenDelete(resp http.ResponseWriter, req *http.Request,
 	return true, nil
 }
 
-func (s *HTTPServer) ACLTokenClone(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPServer) ACLTokenClone(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
-	}
-
-	tokenID := strings.TrimPrefix(req.URL.Path, "/v1/acl/token/clone/")
-	if tokenID == "" {
-		return nil, BadRequestError{Reason: "Missing token ID"}
 	}
 
 	args := structs.ACLTokenUpsertRequest{
