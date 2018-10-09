@@ -181,48 +181,28 @@ func TestNode_IsSame(t *testing.T) {
 			ModifyIndex: 3,
 		},
 	}
-	if !n.IsSame(other) {
-		t.Fatalf("should be equal, was %#v VS %#v", n, other)
-	}
+	check := func(twiddle, restore func()) {
+		if !n.IsSame(other) || !other.IsSame(n) {
+			t.Fatalf("should be the same")
+		}
 
-	other.ID = types.NodeID("")
-	if n.IsSame(other) {
-		t.Fatalf("should be different, was %#v VS %#v", n, other)
-	}
-	other.ID = id
+		twiddle()
+		if n.IsSame(other) || other.IsSame(n) {
+			t.Fatalf("should be different, was %#v VS %#v", n, other)
+		}
 
-	other.Node = "other"
-	if n.IsSame(other) {
-		t.Fatalf("should be different, was %#v VS %#v", n, other)
+		restore()
+		if !n.IsSame(other) || !other.IsSame(n) {
+			t.Fatalf("should be the same")
+		}
 	}
-	other.Node = node
+	check(func() { other.ID = types.NodeID("") }, func() { other.ID = id })
+	check(func() { other.Node = "other" }, func() { other.Node = node })
+	check(func() { other.Datacenter = "dcX" }, func() { other.Datacenter = datacenter })
+	check(func() { other.Address = "127.0.0.1" }, func() { other.Address = address })
+	check(func() { other.TaggedAddresses = map[string]string{"my": "address"} }, func() { other.TaggedAddresses = map[string]string{} })
+	check(func() { other.Meta = map[string]string{"my": "meta"} }, func() { other.Meta = map[string]string{} })
 
-	other.Datacenter = "dcX"
-	if n.IsSame(other) {
-		t.Fatalf("should be different, was %#v VS %#v", n, other)
-	}
-	other.Datacenter = datacenter
-
-	other.Address = "127.0.0.1"
-	if n.IsSame(other) {
-		t.Fatalf("should be different, was %#v VS %#v", n, other)
-	}
-	other.Address = address
-
-	other.TaggedAddresses = map[string]string{
-		"my": "address",
-	}
-	if n.IsSame(other) {
-		t.Fatalf("should be different, was %#v VS %#v", n, other)
-	}
-	other.TaggedAddresses = map[string]string{}
-	other.Meta = map[string]string{
-		"my": "meta",
-	}
-	if n.IsSame(other) {
-		t.Fatalf("should be different, was %#v VS %#v", n, other)
-	}
-	other.Meta = map[string]string{}
 	if !n.IsSame(other) {
 		t.Fatalf("should be equal, was %#v VS %#v", n, other)
 	}
