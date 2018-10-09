@@ -371,23 +371,53 @@ func (s *Store) aclTokenGet(ws memdb.WatchSet, value, index string) (uint64, *st
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	watchCh, rawToken, err := tx.FirstWatch("acl-tokens", index, value)
+	token, err := s.aclTokenGetTxn(tx, ws, value, index)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed acl token lookup: %v", err)
 	}
-	ws.Add(watchCh)
 
 	idx := maxIndexTxn(tx, "acl-tokens")
+	return idx, token, nil
+}
+
+func (s *Store) ACLTokenBatchRead(ws memdb.WatchSet, accessors []string) (uint64, structs.ACLTokens, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	tokens := make(structs.ACLTokens, 0)
+	for _, accessor := range accessors {
+		token, err := s.aclTokenGetTxn(tx, ws, accessor, "accessor")
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed acl token lookup: %v", err)
+		}
+
+		// token == nil is valid and will indic
+		if token != nil {
+			tokens = append(tokens, token)
+		}
+	}
+
+	idx := maxIndexTxn(tx, "acl-tokens")
+
+	return idx, tokens, nil
+}
+
+func (s *Store) aclTokenGetTxn(tx *memdb.Txn, ws memdb.WatchSet, value, index string) (*structs.ACLToken, error) {
+	watchCh, rawToken, err := tx.FirstWatch("acl-tokens", index, value)
+	if err != nil {
+		return nil, fmt.Errorf("failed acl token lookup: %v", err)
+	}
+	ws.Add(watchCh)
 
 	if rawToken != nil {
 		token := rawToken.(*structs.ACLToken)
 		if err := s.resolveTokenPolicyLinks(tx, token, true); err != nil {
-			return 0, nil, err
+			return nil, err
 		}
-		return idx, token, nil
+		return token, nil
 	}
 
-	return idx, nil, nil
+	return nil, nil
 }
 
 // ACLTokenList is used to list out all of the ACLs in the state store.
@@ -619,6 +649,27 @@ func (s *Store) ACLPolicyGetByID(ws memdb.WatchSet, id string) (uint64, *structs
 
 func (s *Store) ACLPolicyGetByName(ws memdb.WatchSet, name string) (uint64, *structs.ACLPolicy, error) {
 	return s.aclPolicyGet(ws, name, "name")
+}
+
+func (s *Store) ACLPolicyBatchRead(ws memdb.WatchSet, ids []string) (uint64, structs.ACLPolicies, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	policies := make(structs.ACLPolicies, 0)
+	for _, pid := range ids {
+		policy, err := s.getPolicyWithTxn(tx, ws, pid, "id")
+		if err != nil {
+			return 0, nil, err
+		}
+
+		if policy != nil {
+			policies = append(policies, policy)
+		}
+	}
+
+	idx := maxIndexTxn(tx, "acl-policies")
+
+	return idx, policies, nil
 }
 
 func (s *Store) getPolicyWithTxn(tx *memdb.Txn, ws memdb.WatchSet, value, index string) (*structs.ACLPolicy, error) {

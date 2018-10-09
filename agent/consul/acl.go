@@ -375,7 +375,7 @@ func (r *ACLResolver) fireAsyncPolicyResult(policyID string, policy *structs.ACL
 }
 
 func (r *ACLResolver) resolvePoliciesAsyncForIdentity(identity structs.ACLIdentity, policyIDs []string, cached map[string]*structs.PolicyCacheEntry) {
-	req := structs.ACLPolicyResolveRequest{
+	req := structs.ACLPolicyBatchReadRequest{
 		Datacenter: r.delegate.ACLDatacenter(false),
 		PolicyIDs:  policyIDs,
 		QueryOptions: structs.QueryOptions{
@@ -385,7 +385,7 @@ func (r *ACLResolver) resolvePoliciesAsyncForIdentity(identity structs.ACLIdenti
 	}
 
 	var found map[string]struct{}
-	var resp *structs.ACLPolicyMultiResponse
+	var resp *structs.ACLPoliciesResponse
 	err := r.delegate.RPC("ACL.PolicyResolve", &req, &resp)
 	if err == nil {
 		for _, policy := range resp.Policies {

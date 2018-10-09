@@ -18,7 +18,6 @@ func init() {
 	registerEndpoint("/v1/acl/rules/translate/", []string{"GET"}, (*HTTPServer).ACLRulesTranslateLegacyToken)
 	registerEndpoint("/v1/acl/tokens", []string{"GET"}, (*HTTPServer).ACLTokenList)
 	registerEndpoint("/v1/acl/token", []string{"PUT"}, (*HTTPServer).ACLTokenCreate)
-	registerEndpoint("/v1/acl/token/clone/", []string{"PUT"}, (*HTTPServer).ACLTokenClone)
 	registerEndpoint("/v1/acl/token/self", []string{"GET"}, (*HTTPServer).ACLTokenSelf)
 	registerEndpoint("/v1/acl/token/", []string{"GET", "PUT", "DELETE"}, (*HTTPServer).ACLTokenCRUD)
 	registerEndpoint("/v1/agent/token/", []string{"PUT"}, (*HTTPServer).AgentToken)

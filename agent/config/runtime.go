@@ -130,6 +130,10 @@ type RuntimeConfig struct {
 	// hcl: acl_replication_token = string
 	ACLReplicationToken string
 
+	// ACLReplicateTokens is used to indicate that both tokens and policies
+	// should be replicated instead of just policies
+	ACLReplicateTokens bool
+
 	// ACLTTL is used to control the time-to-live of cached ACLs . This has
 	// a major impact on performance. By default, it is set to 30 seconds.
 	//

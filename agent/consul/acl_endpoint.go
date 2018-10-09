@@ -345,10 +345,6 @@ func (a *ACL) tokenUpsertInternal(args *structs.ACLTokenUpsertRequest, reply *st
 		} else {
 			token.CreateTime = existing.CreateTime
 		}
-
-		if existing.Rules != "" && !upgrade {
-			return fmt.Errorf("Refusing to update a legacy token - please use the upgrade endpoint")
-		}
 	}
 
 	// Validate all the policy names and convert them to policy IDs
@@ -458,7 +454,7 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 	return nil
 }
 
-func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTokensResponse) error {
+func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTokenListResponse) error {
 	if done, err := a.srv.forward("ACL.TokenList", args, args, reply); done {
 		return err
 	}
@@ -477,7 +473,34 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 				return err
 			}
 
-			a.srv.filterACLWithAuthorizer(rule, &tokens)
+			stubs := make([]*structs.ACLTokenListStub, 0, len(tokens))
+			for _, token := range tokens {
+				stubs = append(stubs, token.Stub())
+			}
+			reply.Index, reply.Tokens = index, stubs
+			return nil
+		})
+}
+
+func (a *ACL) TokenBatchRead(args *structs.ACLTokenBatchReadRequest, reply *structs.ACLTokensResponse) error {
+	if done, err := a.srv.forward("ACL.TokenBatchRead", args, args, reply); done {
+		return err
+	}
+
+	rule, err := a.srv.ResolveToken(args.Token)
+	if err != nil {
+		return err
+	} else if rule == nil || !rule.ACLWrite() {
+		return acl.ErrPermissionDenied
+	}
+
+	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			index, tokens, err := state.ACLTokenBatchRead(ws, args.AccessorIDs)
+			if err != nil {
+				return err
+			}
+
 			reply.Index, reply.Tokens = index, tokens
 			return nil
 		})
@@ -514,6 +537,33 @@ func (a *ACL) PolicyRead(args *structs.ACLPolicyReadRequest, reply *structs.ACLP
 			}
 
 			reply.Index, reply.Policy = index, policy
+			return nil
+		})
+}
+
+func (a *ACL) PolicyBatchRead(args *structs.ACLPolicyBatchReadRequest, reply *structs.ACLPoliciesResponse) error {
+	if done, err := a.srv.forward("ACL.PolicyBatchRead", args, args, reply); done {
+		return err
+	}
+
+	if !a.srv.ACLsEnabled() {
+		return acl.ErrDisabled
+	}
+
+	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
+		return err
+	} else if rule == nil || !rule.ACLRead() {
+		return acl.ErrPermissionDenied
+	}
+
+	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			index, policies, err := state.ACLPolicyBatchRead(ws, args.PolicyIDs)
+			if err != nil {
+				return err
+			}
+
+			reply.Index, reply.Policies = index, policies
 			return nil
 		})
 }
@@ -695,7 +745,7 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 	return nil
 }
 
-func (a *ACL) PolicyList(args *structs.DCSpecificRequest, reply *structs.ACLPolicyMultiResponse) error {
+func (a *ACL) PolicyList(args *structs.DCSpecificRequest, reply *structs.ACLPoliciesResponse) error {
 	if done, err := a.srv.forward("ACL.PolicyList", args, args, reply); done {
 		return err
 	}
@@ -720,7 +770,7 @@ func (a *ACL) PolicyList(args *structs.DCSpecificRequest, reply *structs.ACLPoli
 
 // PolicyResolve is used to retrieve a subset of the policies associated with a given token
 // The policy ids in the args simply act as a filter on the policy set assigned to the token
-func (a *ACL) PolicyResolve(args *structs.ACLPolicyResolveRequest, reply *structs.ACLPolicyMultiResponse) error {
+func (a *ACL) PolicyResolve(args *structs.ACLPolicyBatchReadRequest, reply *structs.ACLPoliciesResponse) error {
 	if done, err := a.srv.forward("ACL.PolicyResolve", args, args, reply); done {
 		return err
 	}
