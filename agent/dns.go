@@ -364,12 +364,11 @@ func (d *DNSServer) soa() *dns.SOA {
 			Name:   d.domain,
 			Rrtype: dns.TypeSOA,
 			Class:  dns.ClassINET,
-			Ttl:    0,
+			// Has to be consistent with MinTTL to avoid invalidation
+			Ttl: d.config.dnsSOAConfig.Minttl,
 		},
-		Ns:     "ns." + d.domain,
-		Serial: uint32(time.Now().Unix()),
-
-		// todo(fs): make these configurable
+		Ns:      "ns." + d.domain,
+		Serial:  uint32(time.Now().Unix()),
 		Mbox:    "hostmaster." + d.domain,
 		Refresh: d.config.dnsSOAConfig.Refresh,
 		Retry:   d.config.dnsSOAConfig.Retry,

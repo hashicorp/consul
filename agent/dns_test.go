@@ -1136,6 +1136,7 @@ func TestDNS_SOA_Settings(t *testing.T) {
 		require.Equal(t, uint32(expire), soaRec.Expire)
 		require.Equal(t, uint32(refresh), soaRec.Refresh)
 		require.Equal(t, uint32(retry), soaRec.Retry)
+		require.Equal(t, uint32(ttl), soaRec.Hdr.Ttl)
 	}
 	// Default configuration
 	testSoaWithConfig("", 0, 86400, 3600, 600)
