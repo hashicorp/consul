@@ -595,12 +595,12 @@ Usage: consul debug [options]
   Flags can be used to customize the duration and interval of the
   operation. Note that the duration must be longer than the interval.
 
-	  $ consul debug -interval=20s -duration=1m
+      $ consul debug -interval=20s -duration=1m
 
   The capture flag can be specified multiple times to limit information
   retrieved.
 
-		$ consul debug -capture metrics -capture agent
+      $ consul debug -capture metrics -capture agent
 
   By default, the archive containing the debugging information is
   saved to the current directory as a .tar.gz file. The

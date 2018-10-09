@@ -315,7 +315,8 @@ func (a *Agent) Self() (map[string]map[string]interface{}, error) {
 }
 
 // Host is used to retrieve information about the host the
-// agent is running on such as CPU, memory, and disk
+// agent is running on such as CPU, memory, and disk. Requires
+// a operator:read ACL token.
 func (a *Agent) Host() (map[string]interface{}, error) {
 	r := a.c.newRequest("GET", "/v1/agent/host")
 	_, resp, err := requireOK(a.c.doRequest(r))

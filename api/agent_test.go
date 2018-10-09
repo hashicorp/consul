@@ -59,7 +59,7 @@ func TestAPI_AgentHost(t *testing.T) {
 	defer s.Stop()
 
 	agent := c.Agent()
-	timer := &retry.Timer{Timeout: 10 * time.Second, Wait: 500 * time.Millisecond}
+	timer := &retry.Timer{}
 	retry.RunWith(timer, t, func(r *retry.R) {
 		host, err := agent.Host()
 		if err != nil {
