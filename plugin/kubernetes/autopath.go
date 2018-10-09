@@ -2,9 +2,8 @@ package kubernetes
 
 import (
 	"github.com/coredns/coredns/plugin"
+	"github.com/coredns/coredns/plugin/kubernetes/object"
 	"github.com/coredns/coredns/request"
-
-	api "k8s.io/api/core/v1"
 )
 
 // AutoPath implements the AutoPathFunc call from the autopath plugin.
@@ -40,7 +39,7 @@ func (k *Kubernetes) AutoPath(state request.Request) []string {
 }
 
 // podWithIP return the api.Pod for source IP ip. It returns nil if nothing can be found.
-func (k *Kubernetes) podWithIP(ip string) *api.Pod {
+func (k *Kubernetes) podWithIP(ip string) *object.Pod {
 	ps := k.APIConn.PodIndex(ip)
 	if len(ps) == 0 {
 		return nil

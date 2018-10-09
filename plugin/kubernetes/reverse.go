@@ -38,13 +38,13 @@ func (k *Kubernetes) serviceRecordForIP(ip, name string) []msg.Service {
 	}
 	// If no cluster ips match, search endpoints
 	for _, ep := range k.APIConn.EpIndexReverse(ip) {
-		if len(k.Namespaces) > 0 && !k.namespaceExposed(ep.ObjectMeta.Namespace) {
+		if len(k.Namespaces) > 0 && !k.namespaceExposed(ep.Namespace) {
 			continue
 		}
 		for _, eps := range ep.Subsets {
 			for _, addr := range eps.Addresses {
 				if addr.IP == ip {
-					domain := strings.Join([]string{endpointHostname(addr, k.endpointNameMode), ep.ObjectMeta.Name, ep.ObjectMeta.Namespace, Svc, k.primaryZone()}, ".")
+					domain := strings.Join([]string{endpointHostname(addr, k.endpointNameMode), ep.Name, ep.Namespace, Svc, k.primaryZone()}, ".")
 					return []msg.Service{{Host: domain, TTL: k.ttl}}
 				}
 			}

@@ -32,7 +32,7 @@ func (k *Kubernetes) localNodeName() string {
 		for _, eps := range ep.Subsets {
 			for _, addr := range eps.Addresses {
 				if localIP.Equal(net.ParseIP(addr.IP)) {
-					return *addr.NodeName
+					return addr.NodeName
 				}
 			}
 		}

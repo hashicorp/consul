@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/coredns/coredns/plugin/kubernetes/object"
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/plugin/pkg/watch"
 	"github.com/coredns/coredns/plugin/test"
@@ -183,6 +184,16 @@ var dnsTestCases = []test.Case{
 			test.AAAA("5678-abcd--2.hdls1.testns.svc.cluster.local.	5	IN	AAAA	5678:abcd::2"),
 			test.A("dup-name.hdls1.testns.svc.cluster.local.	5	IN	A	172.0.0.4"),
 			test.A("dup-name.hdls1.testns.svc.cluster.local.	5	IN	A	172.0.0.5"),
+		},
+	},
+	{ // An A record query for an existing headless service should return a record for each of its ipv4 endpoints
+		Qname: "hdls1.testns.svc.cluster.local.", Qtype: dns.TypeA,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.A("hdls1.testns.svc.cluster.local.	5	IN	A	172.0.0.2"),
+			test.A("hdls1.testns.svc.cluster.local.	5	IN	A	172.0.0.3"),
+			test.A("hdls1.testns.svc.cluster.local.	5	IN	A	172.0.0.4"),
+			test.A("hdls1.testns.svc.cluster.local.	5	IN	A	172.0.0.5"),
 		},
 	},
 	// SRV Service (Headless and portless)
@@ -368,263 +379,188 @@ func TestServeDNS(t *testing.T) {
 
 type APIConnServeTest struct{}
 
-func (APIConnServeTest) HasSynced() bool                        { return true }
-func (APIConnServeTest) Run()                                   { return }
-func (APIConnServeTest) Stop() error                            { return nil }
-func (APIConnServeTest) EpIndexReverse(string) []*api.Endpoints { return nil }
-func (APIConnServeTest) SvcIndexReverse(string) []*api.Service  { return nil }
-func (APIConnServeTest) Modified() int64                        { return time.Now().Unix() }
-func (APIConnServeTest) SetWatchChan(watch.Chan)                {}
-func (APIConnServeTest) Watch(string) error                     { return nil }
-func (APIConnServeTest) StopWatching(string)                    {}
+func (APIConnServeTest) HasSynced() bool                           { return true }
+func (APIConnServeTest) Run()                                      { return }
+func (APIConnServeTest) Stop() error                               { return nil }
+func (APIConnServeTest) EpIndexReverse(string) []*object.Endpoints { return nil }
+func (APIConnServeTest) SvcIndexReverse(string) []*object.Service  { return nil }
+func (APIConnServeTest) Modified() int64                           { return time.Now().Unix() }
+func (APIConnServeTest) SetWatchChan(watch.Chan)                   {}
+func (APIConnServeTest) Watch(string) error                        { return nil }
+func (APIConnServeTest) StopWatching(string)                       {}
 
-func (APIConnServeTest) PodIndex(string) []*api.Pod {
-	a := []*api.Pod{{
-		ObjectMeta: meta.ObjectMeta{
-			Namespace: "podns",
-		},
-		Status: api.PodStatus{
-			PodIP: "10.240.0.1", // Remote IP set in test.ResponseWriter
-		},
-	}}
+func (APIConnServeTest) PodIndex(string) []*object.Pod {
+	a := []*object.Pod{
+		{Namespace: "podns", PodIP: "10.240.0.1"}, // Remote IP set in test.ResponseWriter
+	}
 	return a
 }
 
-var svcIndex = map[string][]*api.Service{
-	"svc1.testns": {{
-		ObjectMeta: meta.ObjectMeta{
+var svcIndex = map[string][]*object.Service{
+	"svc1.testns": {
+		{
 			Name:      "svc1",
 			Namespace: "testns",
-		},
-		Spec: api.ServiceSpec{
 			Type:      api.ServiceTypeClusterIP,
 			ClusterIP: "10.0.0.1",
-			Ports: []api.ServicePort{{
-				Name:     "http",
-				Protocol: "tcp",
-				Port:     80,
-			}},
+			Ports: []api.ServicePort{
+				{Name: "http", Protocol: "tcp", Port: 80},
+			},
 		},
-	}},
-	"svcempty.testns": {{
-		ObjectMeta: meta.ObjectMeta{
+	},
+	"svcempty.testns": {
+		{
 			Name:      "svcempty",
 			Namespace: "testns",
-		},
-		Spec: api.ServiceSpec{
 			Type:      api.ServiceTypeClusterIP,
 			ClusterIP: "10.0.0.1",
-			Ports: []api.ServicePort{{
-				Name:     "http",
-				Protocol: "tcp",
-				Port:     80,
-			}},
+			Ports: []api.ServicePort{
+				{Name: "http", Protocol: "tcp", Port: 80},
+			},
 		},
-	}},
-	"svc6.testns": {{
-		ObjectMeta: meta.ObjectMeta{
+	},
+	"svc6.testns": {
+		{
 			Name:      "svc6",
 			Namespace: "testns",
-		},
-		Spec: api.ServiceSpec{
 			Type:      api.ServiceTypeClusterIP,
 			ClusterIP: "1234:abcd::1",
-			Ports: []api.ServicePort{{
-				Name:     "http",
-				Protocol: "tcp",
-				Port:     80,
-			}},
+			Ports: []api.ServicePort{
+				{Name: "http", Protocol: "tcp", Port: 80},
+			},
 		},
-	}},
-	"hdls1.testns": {{
-		ObjectMeta: meta.ObjectMeta{
+	},
+	"hdls1.testns": {
+		{
 			Name:      "hdls1",
 			Namespace: "testns",
-		},
-		Spec: api.ServiceSpec{
 			Type:      api.ServiceTypeClusterIP,
 			ClusterIP: api.ClusterIPNone,
 		},
-	}},
-	"external.testns": {{
-		ObjectMeta: meta.ObjectMeta{
-			Name:      "external",
-			Namespace: "testns",
-		},
-		Spec: api.ServiceSpec{
+	},
+	"external.testns": {
+		{
+			Name:         "external",
+			Namespace:    "testns",
 			ExternalName: "ext.interwebs.test",
-			Ports: []api.ServicePort{{
-				Name:     "http",
-				Protocol: "tcp",
-				Port:     80,
-			}},
-			Type: api.ServiceTypeExternalName,
+			Type:         api.ServiceTypeExternalName,
+			Ports: []api.ServicePort{
+				{Name: "http", Protocol: "tcp", Port: 80},
+			},
 		},
-	}},
-	"external-to-service.testns": {{
-		ObjectMeta: meta.ObjectMeta{
-			Name:      "external-to-service",
-			Namespace: "testns",
-		},
-		Spec: api.ServiceSpec{
+	},
+	"external-to-service.testns": {
+		{
+			Name:         "external-to-service",
+			Namespace:    "testns",
 			ExternalName: "svc1.testns.svc.cluster.local.",
-			Ports: []api.ServicePort{{
-				Name:     "http",
-				Protocol: "tcp",
-				Port:     80,
-			}},
-			Type: api.ServiceTypeExternalName,
+			Type:         api.ServiceTypeExternalName,
+			Ports: []api.ServicePort{
+				{Name: "http", Protocol: "tcp", Port: 80},
+			},
 		},
-	}},
-	"hdlsprtls.testns": {{
-		ObjectMeta: meta.ObjectMeta{
+	},
+	"hdlsprtls.testns": {
+		{
 			Name:      "hdlsprtls",
 			Namespace: "testns",
-		},
-		Spec: api.ServiceSpec{
 			Type:      api.ServiceTypeClusterIP,
 			ClusterIP: api.ClusterIPNone,
 		},
-	}},
-	"svc1.unexposedns": {{
-		ObjectMeta: meta.ObjectMeta{
+	},
+	"svc1.unexposedns": {
+		{
 			Name:      "svc1",
 			Namespace: "unexposedns",
-		},
-		Spec: api.ServiceSpec{
 			Type:      api.ServiceTypeClusterIP,
 			ClusterIP: "10.0.0.2",
-			Ports: []api.ServicePort{{
-				Name:     "http",
-				Protocol: "tcp",
-				Port:     80,
-			}},
+			Ports: []api.ServicePort{
+				{Name: "http", Protocol: "tcp", Port: 80},
+			},
 		},
-	}},
+	},
 }
 
-func (APIConnServeTest) SvcIndex(s string) []*api.Service {
-	return svcIndex[s]
-}
+func (APIConnServeTest) SvcIndex(s string) []*object.Service { return svcIndex[s] }
 
-func (APIConnServeTest) ServiceList() []*api.Service {
-	var svcs []*api.Service
+func (APIConnServeTest) ServiceList() []*object.Service {
+	var svcs []*object.Service
 	for _, svc := range svcIndex {
 		svcs = append(svcs, svc...)
 	}
 	return svcs
 }
 
-var epsIndex = map[string][]*api.Endpoints{
+var epsIndex = map[string][]*object.Endpoints{
 	"svc1.testns": {{
-		Subsets: []api.EndpointSubset{
+		Subsets: []object.EndpointSubset{
 			{
-				Addresses: []api.EndpointAddress{
-					{
-						IP:       "172.0.0.1",
-						Hostname: "ep1a",
-					},
+				Addresses: []object.EndpointAddress{
+					{IP: "172.0.0.1", Hostname: "ep1a"},
 				},
-				Ports: []api.EndpointPort{
-					{
-						Port:     80,
-						Protocol: "tcp",
-						Name:     "http",
-					},
+				Ports: []object.EndpointPort{
+					{Port: 80, Protocol: "tcp", Name: "http"},
 				},
 			},
 		},
-		ObjectMeta: meta.ObjectMeta{
-			Name:      "svc1",
-			Namespace: "testns",
-		},
+		Name:      "svc1",
+		Namespace: "testns",
 	}},
 	"svcempty.testns": {{
-		Subsets: []api.EndpointSubset{
+		Subsets: []object.EndpointSubset{
 			{
 				Addresses: nil,
-				Ports: []api.EndpointPort{
-					{
-						Port:     80,
-						Protocol: "tcp",
-						Name:     "http",
-					},
+				Ports: []object.EndpointPort{
+					{Port: 80, Protocol: "tcp", Name: "http"},
 				},
 			},
 		},
-		ObjectMeta: meta.ObjectMeta{
-			Name:      "svcempty",
-			Namespace: "testns",
-		},
+		Name:      "svcempty",
+		Namespace: "testns",
 	}},
 	"hdls1.testns": {{
-		Subsets: []api.EndpointSubset{
+		Subsets: []object.EndpointSubset{
 			{
-				Addresses: []api.EndpointAddress{
-					{
-						IP: "172.0.0.2",
-					},
-					{
-						IP: "172.0.0.3",
-					},
-					{
-						IP:       "172.0.0.4",
-						Hostname: "dup-name",
-					},
-					{
-						IP:       "172.0.0.5",
-						Hostname: "dup-name",
-					},
-					{
-						IP: "5678:abcd::1",
-					},
-					{
-						IP: "5678:abcd::2",
-					},
+				Addresses: []object.EndpointAddress{
+					{IP: "172.0.0.2"},
+					{IP: "172.0.0.3"},
+					{IP: "172.0.0.4", Hostname: "dup-name"},
+					{IP: "172.0.0.5", Hostname: "dup-name"},
+					{IP: "5678:abcd::1"},
+					{IP: "5678:abcd::2"},
 				},
-				Ports: []api.EndpointPort{
-					{
-						Port:     80,
-						Protocol: "tcp",
-						Name:     "http",
-					},
+				Ports: []object.EndpointPort{
+					{Port: 80, Protocol: "tcp", Name: "http"},
 				},
 			},
 		},
-		ObjectMeta: meta.ObjectMeta{
-			Name:      "hdls1",
-			Namespace: "testns",
-		},
+		Name:      "hdls1",
+		Namespace: "testns",
 	}},
 	"hdlsprtls.testns": {{
-		Subsets: []api.EndpointSubset{
+		Subsets: []object.EndpointSubset{
 			{
-				Addresses: []api.EndpointAddress{
-					{
-						IP: "172.0.0.20",
-					},
+				Addresses: []object.EndpointAddress{
+					{IP: "172.0.0.20"},
 				},
-				Ports: []api.EndpointPort{},
+				Ports: []object.EndpointPort{{Port: -1}},
 			},
 		},
-		ObjectMeta: meta.ObjectMeta{
-			Name:      "hdlsprtls",
-			Namespace: "testns",
-		},
+		Name:      "hdlsprtls",
+		Namespace: "testns",
 	}},
 }
 
-func (APIConnServeTest) EpIndex(s string) []*api.Endpoints {
+func (APIConnServeTest) EpIndex(s string) []*object.Endpoints {
 	return epsIndex[s]
 }
 
-func (APIConnServeTest) EndpointsList() []*api.Endpoints {
-	var eps []*api.Endpoints
+func (APIConnServeTest) EndpointsList() []*object.Endpoints {
+	var eps []*object.Endpoints
 	for _, ep := range epsIndex {
 		eps = append(eps, ep...)
 	}
 	return eps
-
 }
 
 func (APIConnServeTest) GetNodeByName(name string) (*api.Node, error) {

@@ -82,13 +82,13 @@ func (k *Kubernetes) transfer(c chan dns.RR, zone string) {
 			continue
 		}
 		svcBase := []string{zonePath, Svc, svc.Namespace, svc.Name}
-		switch svc.Spec.Type {
+		switch svc.Type {
 		case api.ServiceTypeClusterIP, api.ServiceTypeNodePort, api.ServiceTypeLoadBalancer:
-			clusterIP := net.ParseIP(svc.Spec.ClusterIP)
+			clusterIP := net.ParseIP(svc.ClusterIP)
 			if clusterIP != nil {
-				for _, p := range svc.Spec.Ports {
+				for _, p := range svc.Ports {
 
-					s := msg.Service{Host: svc.Spec.ClusterIP, Port: int(p.Port), TTL: k.ttl}
+					s := msg.Service{Host: svc.ClusterIP, Port: int(p.Port), TTL: k.ttl}
 					s.Key = strings.Join(svcBase, "/")
 
 					// Change host from IP to Name for SRV records
@@ -117,7 +117,7 @@ func (k *Kubernetes) transfer(c chan dns.RR, zone string) {
 			endpointsList := k.APIConn.EpIndex(svc.Name + "." + svc.Namespace)
 
 			for _, ep := range endpointsList {
-				if ep.ObjectMeta.Name != svc.Name || ep.ObjectMeta.Namespace != svc.Namespace {
+				if ep.Name != svc.Name || ep.Namespace != svc.Namespace {
 					continue
 				}
 
@@ -153,7 +153,7 @@ func (k *Kubernetes) transfer(c chan dns.RR, zone string) {
 
 		case api.ServiceTypeExternalName:
 
-			s := msg.Service{Key: strings.Join(svcBase, "/"), Host: svc.Spec.ExternalName, TTL: k.ttl}
+			s := msg.Service{Key: strings.Join(svcBase, "/"), Host: svc.ExternalName, TTL: k.ttl}
 			if t, _ := s.HostType(); t == dns.TypeCNAME {
 				c <- s.NewCNAME(msg.Domain(s.Key), s.Host)
 			}
