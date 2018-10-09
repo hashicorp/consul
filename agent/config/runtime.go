@@ -665,7 +665,7 @@ type RuntimeConfig struct {
 	EncryptVerifyOutgoing bool
 
 	// GRPCPort is the port the gRPC server listens on. Currently this only
-	// exposes the xDS and ext_authx APIs for Envoy and it disabled by default.
+	// exposes the xDS and ext_authz APIs for Envoy and it is disabled by default.
 	//
 	// hcl: ports { grpc = int }
 	// flags: -grpc-port int

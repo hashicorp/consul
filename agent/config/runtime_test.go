@@ -1908,7 +1908,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					}
 				}
 			`},
-			err: "sidecar_service can't speficy an ID",
+			err: "sidecar_service can't specify an ID",
 		},
 		{
 			desc: "sidecar_service can't have nested sidecar",

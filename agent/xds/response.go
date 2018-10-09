@@ -8,23 +8,23 @@ import (
 )
 
 func createResponse(typeURL string, version, nonce string, resources []proto.Message) (*envoy.DiscoveryResponse, error) {
-	anys := make([]types.Any, len(resources))
-	for i, r := range resources {
+	anys := make([]types.Any, 0, len(resources))
+	for _, r := range resources {
 		if r == nil {
 			continue
 		}
 		if any, ok := r.(*types.Any); ok {
-			anys[i] = *any
+			anys = append(anys, *any)
 			continue
 		}
 		data, err := proto.Marshal(r)
 		if err != nil {
 			return nil, err
 		}
-		anys[i] = types.Any{
+		anys = append(anys, types.Any{
 			TypeUrl: typeURL,
 			Value:   data,
-		}
+		})
 	}
 	resp := &envoy.DiscoveryResponse{
 		VersionInfo: version,

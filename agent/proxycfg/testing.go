@@ -14,7 +14,7 @@ import (
 )
 
 // TestCacheTypes encapsulates all the different cache types proxycfg.State will
-// watch/request for contolling one during testing.
+// watch/request for controlling one during testing.
 type TestCacheTypes struct {
 	roots      *ControllableCacheType
 	leaf       *ControllableCacheType
@@ -68,7 +68,7 @@ func TestCacheWithTypes(t testing.T, types *TestCacheTypes) *cache.Cache {
 	return c
 }
 
-// TestCerts genereates a CA and Leaf suitable for returning as mock CA
+// TestCerts generates a CA and Leaf suitable for returning as mock CA
 // root/leaf cache requests.
 func TestCerts(t testing.T) (*structs.IndexedCARoots, *structs.IssuedCert) {
 	t.Helper()
@@ -82,8 +82,8 @@ func TestCerts(t testing.T) (*structs.IndexedCARoots, *structs.IssuedCert) {
 	return roots, TestLeafForCA(t, ca)
 }
 
-// TestLeafForCA genereates new Leaf suitable for returning as mock CA
-// leaf cache resonse, signed by an existing CA.
+// TestLeafForCA generates new Leaf suitable for returning as mock CA
+// leaf cache response, signed by an existing CA.
 func TestLeafForCA(t testing.T, ca *structs.CARoot) *structs.IssuedCert {
 	leafPEM, pkPEM := connect.TestLeaf(t, "web", ca)
 
@@ -171,14 +171,14 @@ func TestConfigSnapshot(t testing.T) *ConfigSnapshot {
 }
 
 // ControllableCacheType is a cache.Type that simulates a typical blocking RPC
-// but lets us controll the responses and when they are deliverd easily.
+// but lets us control the responses and when they are delivered easily.
 type ControllableCacheType struct {
 	index uint64
 	value atomic.Value
 	// Need a condvar to trigger all blocking requests (there might be multiple
 	// for same type due to background refresh and timing issues) when values
 	// change. Chans make it nondeterministic which one triggers or need extra
-	// locking to coodrinate rplacing after close etc.
+	// locking to coordinate replacing after close etc.
 	triggerMu sync.Mutex
 	trigger   *sync.Cond
 	blocking  bool

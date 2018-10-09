@@ -4,7 +4,6 @@ import (
 	"errors"
 	"log"
 	"sync"
-	"time"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/local"
@@ -112,44 +111,49 @@ func (m *Manager) Run() error {
 	defer m.State.StopNotify(stateCh)
 
 	for {
-		m.mu.Lock()
-
-		// Traverse the local state and ensure all proxy services are registered
-		services := m.State.Services()
-		for svcID, svc := range services {
-			if svc.Kind != structs.ServiceKindConnectProxy {
-				continue
-			}
-			// TODO(banks): need to work out when to default some stuff. For example
-			// Proxy.LocalServicePort is practically necessary for any sidecar and can
-			// default to the port of the sidecar service, but only if it's already
-			// registered and once we get past here, we don't have enough context to
-			// know that so we'd need to set it here if not during registration of the
-			// proxy service. Sidecar Service and managed proxies in the interim can
-			// do that, but we should validate more generally that that is always
-			// true.
-			err := m.ensureProxyServiceLocked(svc, m.State.ServiceToken(svcID))
-			if err != nil {
-				m.Logger.Printf("[ERR] failed to watch proxy service %s: %s", svc.ID,
-					err)
-			}
-		}
-
-		// Now see if any proxies were removed
-		for proxyID := range m.proxies {
-			if _, ok := services[proxyID]; !ok {
-				// Remove them
-				m.removeProxyServiceLocked(proxyID)
-			}
-		}
-
-		m.mu.Unlock()
+		m.syncState()
 
 		// Wait for a state change
 		_, ok := <-stateCh
 		if !ok {
 			// Stopped
 			return nil
+		}
+	}
+}
+
+// syncState is called whenever the local state notifies a change. It holds the
+// lock while finding any new or updated proxies and removing deleted ones.
+func (m *Manager) syncState() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	// Traverse the local state and ensure all proxy services are registered
+	services := m.State.Services()
+	for svcID, svc := range services {
+		if svc.Kind != structs.ServiceKindConnectProxy {
+			continue
+		}
+		// TODO(banks): need to work out when to default some stuff. For example
+		// Proxy.LocalServicePort is practically necessary for any sidecar and can
+		// default to the port of the sidecar service, but only if it's already
+		// registered and once we get past here, we don't have enough context to
+		// know that so we'd need to set it here if not during registration of the
+		// proxy service. Sidecar Service and managed proxies in the interim can
+		// do that, but we should validate more generally that that is always
+		// true.
+		err := m.ensureProxyServiceLocked(svc, m.State.ServiceToken(svcID))
+		if err != nil {
+			m.Logger.Printf("[ERR] failed to watch proxy service %s: %s", svc.ID,
+				err)
+		}
+	}
+
+	// Now see if any proxies were removed
+	for proxyID := range m.proxies {
+		if _, ok := services[proxyID]; !ok {
+			// Remove them
+			m.removeProxyServiceLocked(proxyID)
 		}
 	}
 }
@@ -226,15 +230,7 @@ func (m *Manager) notify(snap *ConfigSnapshot) {
 	}
 
 	for _, ch := range watchers {
-		// Attempt delivery but don't let slow consumers block us forever. They
-		// might miss updates but it's better than breaking everything.
-		//
-		// TODO(banks): should we close their chan here to force them to eventually
-		// notice they are too slow? Not sure if it really helps.
-		select {
-		case ch <- snap:
-		case <-time.After(100 * time.Millisecond):
-		}
+		m.deliverLatest(snap, ch)
 	}
 }
 
