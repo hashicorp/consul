@@ -348,7 +348,7 @@ func (c *cmd) captureDynamic() error {
 					errCh <- err
 				}
 
-				err = ioutil.WriteFile(fmt.Sprintf("%s/%s.json", timestampDir, "metrics"), marshaled, 0755)
+				err = ioutil.WriteFile(fmt.Sprintf("%s/%s.json", timestampDir, "metrics"), marshaled, 0644)
 				if err != nil {
 					errCh <- err
 				}
@@ -395,7 +395,7 @@ func (c *cmd) captureDynamic() error {
 
 				// Write profiles to disk
 				for output, v := range pprofOutputs {
-					err = ioutil.WriteFile(fmt.Sprintf("%s/%s.prof", timestampDir, output), v, 0755)
+					err = ioutil.WriteFile(fmt.Sprintf("%s/%s.prof", timestampDir, output), v, 0644)
 					if err != nil {
 						errCh <- err
 					}
