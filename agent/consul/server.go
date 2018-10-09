@@ -248,17 +248,20 @@ type Server struct {
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
 
+	// clock is used to timestamp healthchecks
+	clock func() time.Time
+
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseServer
 }
 
-func NewServer(config *Config) (*Server, error) {
-	return NewServerLogger(config, nil, new(token.Store))
+func NewServer(config *Config, clock func() time.Time) (*Server, error) {
+	return NewServerLogger(config, nil, new(token.Store), clock)
 }
 
 // NewServer is used to construct a new Consul server from the
 // configuration, potentially returning an error
-func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*Server, error) {
+func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, clock func() time.Time) (*Server, error) {
 	// Check the protocol version.
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -346,6 +349,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		tombstoneGC:      gc,
 		serverLookup:     NewServerLookup(),
 		shutdownCh:       shutdownCh,
+		clock:            clock,
 	}
 
 	// Initialize enterprise specific server functionality

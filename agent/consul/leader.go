@@ -1311,11 +1311,12 @@ AFTER_CHECK:
 		Address:    member.Addr.String(),
 		Service:    service,
 		Check: &structs.HealthCheck{
-			Node:    member.Name,
-			CheckID: structs.SerfCheckID,
-			Name:    structs.SerfCheckName,
-			Status:  api.HealthPassing,
-			Output:  structs.SerfCheckAliveOutput,
+			Node:                 member.Name,
+			CheckID:              structs.SerfCheckID,
+			Name:                 structs.SerfCheckName,
+			Status:               api.HealthPassing,
+			Output:               structs.SerfCheckAliveOutput,
+			LastStatusModifyTime: s.clock(),
 		},
 
 		// If there's existing information about the node, do not
@@ -1356,11 +1357,12 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 		ID:         types.NodeID(member.Tags["id"]),
 		Address:    member.Addr.String(),
 		Check: &structs.HealthCheck{
-			Node:    member.Name,
-			CheckID: structs.SerfCheckID,
-			Name:    structs.SerfCheckName,
-			Status:  api.HealthCritical,
-			Output:  structs.SerfCheckFailedOutput,
+			Node:                 member.Name,
+			CheckID:              structs.SerfCheckID,
+			Name:                 structs.SerfCheckName,
+			Status:               api.HealthCritical,
+			Output:               structs.SerfCheckFailedOutput,
+			LastStatusModifyTime: s.clock(),
 		},
 
 		// If there's existing information about the node, do not

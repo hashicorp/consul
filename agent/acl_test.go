@@ -80,7 +80,7 @@ func NewTestACLAgent(name string, hcl string, resolveFn func(string) (acl.Author
 	agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
 
 	a.Agent.delegate = a
-	a.Agent.State = local.NewState(LocalConfig(a.Config), a.Agent.logger, a.Agent.tokens)
+	a.Agent.State = local.NewState(LocalConfig(a.Config), a.Agent.logger, a.Agent.tokens, time.Now)
 	a.Agent.State.TriggerSyncChanges = func() {}
 	return a
 }

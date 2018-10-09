@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -2130,16 +2131,18 @@ func TestStateStore_Service_Snapshot(t *testing.T) {
 func TestStateStore_EnsureCheck(t *testing.T) {
 	s := testStateStore(t)
 
+	now := time.Now()
 	// Create a check associated with the node
 	check := &structs.HealthCheck{
-		Node:        "node1",
-		CheckID:     "check1",
-		Name:        "redis check",
-		Status:      api.HealthPassing,
-		Notes:       "test check",
-		Output:      "aaa",
-		ServiceID:   "service1",
-		ServiceName: "redis",
+		Node:                 "node1",
+		CheckID:              "check1",
+		Name:                 "redis check",
+		Status:               api.HealthPassing,
+		Notes:                "test check",
+		Output:               "aaa",
+		ServiceID:            "service1",
+		ServiceName:          "redis",
+		LastStatusModifyTime: now,
 	}
 
 	// Creating a check without a node returns error

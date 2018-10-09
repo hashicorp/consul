@@ -1381,6 +1381,75 @@ func TestAgent_UpdateCheck_DiscardOutput(t *testing.T) {
 	}
 }
 
+func TestAgent_UpdateCheck_LastStatusModifyTime(t *testing.T) {
+	t.Parallel()
+	a := agent.NewTestAgent(t.Name(), `
+		discard_check_output = true
+		check_update_interval = "0s" # set to "0s" since otherwise output checks are deferred
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	checkLastModifyTime := func(t *testing.T, id string, expected time.Time) {
+		chkReq := structs.NodeSpecificRequest{
+			Datacenter: "dc1",
+			Node:       a.Config.NodeName,
+		}
+		var checks structs.IndexedHealthChecks
+		if err := a.RPC("Health.NodeChecks", &chkReq, &checks); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		for _, check := range checks.HealthChecks {
+			if check.CheckID != types.CheckID(id) {
+				continue
+			}
+
+			require.Equal(t, expected.Round(0), check.LastStatusModifyTime)
+			return
+		}
+
+		require.Failf(t, "", "could not find check %s", id)
+	}
+
+	// register a check
+	check := &structs.HealthCheck{
+		Node:    a.Config.NodeName,
+		CheckID: "web",
+		Name:    "web",
+		Status:  api.HealthPassing,
+		Output:  "first output",
+	}
+
+	err := a.State.AddCheck(check, "")
+	require.Nil(t, err)
+	a.State.SyncFull()
+	require.Nil(t, err)
+	checkLastModifyTime(t, "web", a.Now)
+
+	t1 := a.Now
+	a.Now = a.Now.Add(time.Hour)
+	// no change, should not modify LastModifyTime
+	a.State.UpdateCheck(types.CheckID("web"), api.HealthPassing, "")
+	a.State.SyncFull()
+	require.Nil(t, err)
+	checkLastModifyTime(t, "web", t1)
+
+	a.Now = a.Now.Add(time.Hour)
+	// output change, should not modify LastModifyTime
+	a.State.UpdateCheck(types.CheckID("web"), api.HealthPassing, "new OUTPUT")
+	a.State.SyncFull()
+	require.Nil(t, err)
+	checkLastModifyTime(t, "web", t1)
+
+	a.Now = a.Now.Add(time.Hour)
+	// change status, shoud update LastModifyTime
+	a.State.UpdateCheck(types.CheckID("web"), api.HealthWarning, "new OUTPUT")
+	a.State.SyncFull()
+	require.Nil(t, err)
+	checkLastModifyTime(t, "web", a.Now)
+}
+
 func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	t.Parallel()
 	a := &agent.TestAgent{Name: t.Name(), HCL: `
@@ -1648,7 +1717,7 @@ func TestAgent_ServiceTokens(t *testing.T) {
 	tokens := new(token.Store)
 	tokens.UpdateUserToken("default")
 	cfg := config.DefaultRuntimeConfig(`bind_addr = "127.0.0.1" data_dir = "dummy"`)
-	l := local.NewState(agent.LocalConfig(cfg), nil, tokens)
+	l := local.NewState(agent.LocalConfig(cfg), nil, tokens, time.Now)
 	l.TriggerSyncChanges = func() {}
 
 	l.AddService(&structs.NodeService{ID: "redis"}, "")
@@ -1677,7 +1746,7 @@ func TestAgent_CheckTokens(t *testing.T) {
 	tokens := new(token.Store)
 	tokens.UpdateUserToken("default")
 	cfg := config.DefaultRuntimeConfig(`bind_addr = "127.0.0.1" data_dir = "dummy"`)
-	l := local.NewState(agent.LocalConfig(cfg), nil, tokens)
+	l := local.NewState(agent.LocalConfig(cfg), nil, tokens, time.Now)
 	l.TriggerSyncChanges = func() {}
 
 	// Returns default when no token is set
@@ -1702,7 +1771,7 @@ func TestAgent_CheckTokens(t *testing.T) {
 func TestAgent_CheckCriticalTime(t *testing.T) {
 	t.Parallel()
 	cfg := config.DefaultRuntimeConfig(`bind_addr = "127.0.0.1" data_dir = "dummy"`)
-	l := local.NewState(agent.LocalConfig(cfg), nil, new(token.Store))
+	l := local.NewState(agent.LocalConfig(cfg), nil, new(token.Store), time.Now)
 	l.TriggerSyncChanges = func() {}
 
 	svc := &structs.NodeService{ID: "redis", Service: "redis", Port: 8000}
@@ -1766,7 +1835,7 @@ func TestAgent_CheckCriticalTime(t *testing.T) {
 func TestAgent_AddCheckFailure(t *testing.T) {
 	t.Parallel()
 	cfg := config.DefaultRuntimeConfig(`bind_addr = "127.0.0.1" data_dir = "dummy"`)
-	l := local.NewState(agent.LocalConfig(cfg), nil, new(token.Store))
+	l := local.NewState(agent.LocalConfig(cfg), nil, new(token.Store), time.Now)
 	l.TriggerSyncChanges = func() {}
 
 	// Add a check for a service that does not exist and verify that it fails
@@ -1789,7 +1858,7 @@ func TestAgent_AliasCheck(t *testing.T) {
 
 	require := require.New(t)
 	cfg := config.DefaultRuntimeConfig(`bind_addr = "127.0.0.1" data_dir = "dummy"`)
-	l := local.NewState(agent.LocalConfig(cfg), nil, new(token.Store))
+	l := local.NewState(agent.LocalConfig(cfg), nil, new(token.Store), time.Now)
 	l.TriggerSyncChanges = func() {}
 
 	// Add checks
@@ -1905,7 +1974,7 @@ func TestState_Notify(t *testing.T) {
 	t.Parallel()
 
 	state := local.NewState(local.Config{},
-		log.New(os.Stderr, "", log.LstdFlags), &token.Store{})
+		log.New(os.Stderr, "", log.LstdFlags), &token.Store{}, time.Now)
 
 	// Stub state syncing
 	state.TriggerSyncChanges = func() {}
@@ -1968,7 +2037,7 @@ func TestStateProxyManagement(t *testing.T) {
 	state := local.NewState(local.Config{
 		ProxyBindMinPort: 20000,
 		ProxyBindMaxPort: 20001,
-	}, log.New(os.Stderr, "", log.LstdFlags), &token.Store{})
+	}, log.New(os.Stderr, "", log.LstdFlags), &token.Store{}, time.Now)
 
 	// Stub state syncing
 	state.TriggerSyncChanges = func() {}
@@ -2158,7 +2227,7 @@ func TestStateProxyRestore(t *testing.T) {
 		// Wide random range to make it very unlikely to pass by chance
 		ProxyBindMinPort: 10000,
 		ProxyBindMaxPort: 20000,
-	}, log.New(os.Stderr, "", log.LstdFlags), &token.Store{})
+	}, log.New(os.Stderr, "", log.LstdFlags), &token.Store{}, time.Now)
 
 	// Stub state syncing
 	state.TriggerSyncChanges = func() {}
@@ -2191,7 +2260,7 @@ func TestStateProxyRestore(t *testing.T) {
 		// Wide random range to make it very unlikely to pass by chance
 		ProxyBindMinPort: 10000,
 		ProxyBindMaxPort: 20000,
-	}, log.New(os.Stderr, "", log.LstdFlags), &token.Store{})
+	}, log.New(os.Stderr, "", log.LstdFlags), &token.Store{}, time.Now)
 
 	// Stub state syncing
 	state2.TriggerSyncChanges = func() {}

@@ -175,7 +175,7 @@ func newServer(c *Config) (*Server, error) {
 		w = os.Stderr
 	}
 	logger := log.New(w, c.NodeName+" - ", log.LstdFlags|log.Lmicroseconds)
-	srv, err := NewServerLogger(c, logger, new(token.Store))
+	srv, err := NewServerLogger(c, logger, new(token.Store), time.Now)
 	if err != nil {
 		return nil, err
 	}

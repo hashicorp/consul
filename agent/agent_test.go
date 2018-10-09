@@ -451,6 +451,8 @@ func TestAgent_AddService(t *testing.T) {
 			for k, v := range tt.healthChks {
 				t.Run(k, func(t *testing.T) {
 					got, want := a.State.Checks()[types.CheckID(k)], v
+					want.LastStatusModifyTime = a.Now
+					fmt.Println(want.LastStatusModifyTime, got.LastStatusModifyTime)
 					verify.Values(t, k, got, want)
 				})
 			}
@@ -653,9 +655,11 @@ func TestAgent_RemoveServiceRemovesAllChecks(t *testing.T) {
 	}
 
 	// check that both checks are there
+	hchk1.LastStatusModifyTime = a.Now
 	if got, want := a.State.Checks()["chk1"], hchk1; !verify.Values(t, "", got, want) {
 		t.FailNow()
 	}
+	hchk2.LastStatusModifyTime = a.Now
 	if got, want := a.State.Checks()["chk2"], hchk2; !verify.Values(t, "", got, want) {
 		t.FailNow()
 	}
@@ -1978,11 +1982,12 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 		t.Fatalf("missing check registration")
 	}
 	expected := &structs.HealthCheck{
-		Node:    a2.Config.NodeName,
-		CheckID: "mem",
-		Name:    "memory check",
-		Status:  api.HealthCritical,
-		Notes:   "my cool notes",
+		Node:                 a2.Config.NodeName,
+		CheckID:              "mem",
+		Name:                 "memory check",
+		Status:               api.HealthCritical,
+		Notes:                "my cool notes",
+		LastStatusModifyTime: a2.Now,
 	}
 	if got, want := result, expected; !verify.Values(t, "", got, want) {
 		t.FailNow()

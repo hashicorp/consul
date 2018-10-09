@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"time"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/types"
 )
@@ -18,8 +20,9 @@ type persistedCheck struct {
 // expiration timestamp which is used to determine staleness on later
 // agent restarts.
 type persistedCheckState struct {
-	CheckID types.CheckID
-	Output  string
-	Status  string
-	Expires int64
+	CheckID              types.CheckID
+	Output               string
+	Status               string
+	LastStatusModifyTime time.Time
+	Expires              int64
 }

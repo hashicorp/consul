@@ -249,6 +249,9 @@ type Agent struct {
 	// grpcServer is the server instance used currently to serve xDS API for
 	// Envoy.
 	grpcServer *grpc.Server
+
+	// clock is used to timestamp healthchecks
+	clock func() time.Time
 }
 
 func New(c *config.RuntimeConfig) (*Agent, error) {
@@ -277,6 +280,7 @@ func New(c *config.RuntimeConfig) (*Agent, error) {
 		shutdownCh:      make(chan struct{}),
 		endpoints:       make(map[string]string),
 		tokens:          new(token.Store),
+		clock:           time.Now,
 	}
 
 	if err := a.initializeACLs(); err != nil {
@@ -363,7 +367,7 @@ func (a *Agent) Start() error {
 	}
 
 	// create the local state
-	a.State = local.NewState(LocalConfig(c), a.logger, a.tokens)
+	a.State = local.NewState(LocalConfig(c), a.logger, a.tokens, a.clock)
 
 	// create the state synchronization manager which performs
 	// regular and on-demand state synchronizations (anti-entropy).
@@ -385,7 +389,7 @@ func (a *Agent) Start() error {
 
 	// Setup either the client or the server.
 	if c.ServerMode {
-		server, err := consul.NewServerLogger(consulCfg, a.logger, a.tokens)
+		server, err := consul.NewServerLogger(consulCfg, a.logger, a.tokens, a.clock)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
@@ -2799,6 +2803,7 @@ func (a *Agent) loadCheckState(check *structs.HealthCheck) error {
 	// Restore the fields from the state
 	check.Output = p.Output
 	check.Status = p.Status
+	check.LastStatusModifyTime = p.LastStatusModifyTime
 	return nil
 }
 

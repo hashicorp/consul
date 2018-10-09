@@ -88,6 +88,8 @@ type TestAgent struct {
 	// Agent is the embedded consul agent.
 	// It is valid after Start().
 	*Agent
+
+	Now time.Time
 }
 
 // NewTestAgent returns a started agent with the given name and
@@ -95,7 +97,7 @@ type TestAgent struct {
 // caller should call Shutdown() to stop the agent and remove temporary
 // directories.
 func NewTestAgent(name string, hcl string) *TestAgent {
-	a := &TestAgent{Name: name, HCL: hcl}
+	a := &TestAgent{Name: name, HCL: hcl, Now: time.Now().UTC()}
 	a.Start()
 	return a
 }
@@ -157,6 +159,9 @@ func (a *TestAgent) Start() *TestAgent {
 		agent.LogWriter = a.LogWriter
 		agent.logger = log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
 		agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
+		agent.clock = func() time.Time {
+			return a.Now
+		}
 
 		// we need the err var in the next exit condition
 		if err := agent.Start(); err == nil {

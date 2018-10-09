@@ -214,10 +214,12 @@ type State struct {
 	// are sent a message each time a proxy changes via Add or RemoveProxy.
 	managedProxies       map[string]*ManagedProxy
 	managedProxyHandlers map[chan<- struct{}]struct{}
+
+	clock func() time.Time
 }
 
 // NewState creates a new local state for the agent.
-func NewState(c Config, lg *log.Logger, tokens *token.Store) *State {
+func NewState(c Config, lg *log.Logger, tokens *token.Store, clock func() time.Time) *State {
 	l := &State{
 		config:               c,
 		logger:               lg,
@@ -229,6 +231,7 @@ func NewState(c Config, lg *log.Logger, tokens *token.Store) *State {
 		notifyHandlers:       make(map[chan<- struct{}]struct{}),
 		managedProxies:       make(map[string]*ManagedProxy),
 		managedProxyHandlers: make(map[chan<- struct{}]struct{}),
+		clock:                clock,
 	}
 	l.SetDiscardCheckOutput(c.DiscardCheckOutput)
 	return l
@@ -434,6 +437,9 @@ func (l *State) AddCheck(check *structs.HealthCheck, token string) error {
 	// hard-set the node name
 	check.Node = l.config.NodeName
 
+	// init last status modify time
+	check.LastStatusModifyTime = l.clock().UTC()
+
 	l.SetCheckState(&CheckState{
 		Check: check,
 		Token: token,
@@ -572,6 +578,7 @@ func (l *State) UpdateCheck(id types.CheckID, status, output string) {
 	// Update status and mark out of sync
 	c.Check.Status = status
 	c.Check.Output = output
+	c.Check.LastStatusModifyTime = l.clock().UTC()
 	c.InSync = false
 	l.TriggerSyncChanges()
 }

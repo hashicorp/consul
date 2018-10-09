@@ -57,7 +57,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 		})
 
 	logger := log.New(os.Stderr, "", log.LstdFlags)
-	state := local.NewState(local.Config{}, logger, &token.Store{})
+	state := local.NewState(local.Config{}, logger, &token.Store{}, time.Now)
 	source := &structs.QuerySource{
 		Node:       "node1",
 		Datacenter: "dc1",
@@ -225,7 +225,7 @@ func TestManager_deliverLatest(t *testing.T) {
 	logger := log.New(os.Stderr, "", log.LstdFlags)
 	cfg := ManagerConfig{
 		Cache: cache.New(nil),
-		State: local.NewState(local.Config{}, logger, &token.Store{}),
+		State: local.NewState(local.Config{}, logger, &token.Store{}, time.Now),
 		Source: &structs.QuerySource{
 			Node:       "node1",
 			Datacenter: "dc1",

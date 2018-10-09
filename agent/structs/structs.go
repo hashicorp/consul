@@ -890,6 +890,8 @@ type HealthCheck struct {
 	Definition HealthCheckDefinition
 
 	RaftIndex
+
+	LastStatusModifyTime time.Time
 }
 
 type HealthCheckDefinition struct {
