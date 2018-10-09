@@ -85,10 +85,10 @@ func (c *cmd) init() {
 	defaultFilename := fmt.Sprintf("consul-debug-%d", time.Now().Unix())
 
 	c.flags.Var((*flags.AppendSliceValue)(&c.capture), "capture",
-		"One or more types of information to capture. This can be used "+
+		fmt.Sprintf("One or more types of information to capture. This can be used "+
 			"to capture a subset of information, and defaults to capturing "+
-			"everything available. Possible information for capture: "+
-			"This can be repeated multiple times.")
+			"everything available. Possible information for capture: %s. "+
+			"This can be repeated multiple times.", strings.Join(c.defaultTargets(), ", ")))
 	c.flags.DurationVar(&c.interval, "interval", debugInterval,
 		fmt.Sprintf("The interval in which to capture dynamic information such as "+
 			"telemetry, and profiling. Defaults to %s.", debugInterval))
@@ -114,6 +114,11 @@ func (c *cmd) init() {
 func (c *cmd) Run(args []string) int {
 	if err := c.flags.Parse(args); err != nil {
 		c.UI.Error(fmt.Sprintf("Error parsing flags: %s", err))
+		return 1
+	}
+
+	if len(c.flags.Args()) > 0 {
+		c.UI.Error("debug: Too many arguments provided, expected 0")
 		return 1
 	}
 
@@ -576,7 +581,7 @@ func (c *cmd) Help() string {
 	return c.help
 }
 
-const synopsis = "Monitors a Consul agent for the specified period of time, recording information about the agent, cluster, and environment to an archive written to the current directory."
+const synopsis = "Records a debugging archive for operators"
 const help = `
 Usage: consul debug [options]
 

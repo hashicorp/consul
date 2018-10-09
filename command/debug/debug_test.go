@@ -119,6 +119,30 @@ func TestDebugCommand_Archive(t *testing.T) {
 
 }
 
+func TestDebugCommand_ArgsBad(t *testing.T) {
+	t.Parallel()
+
+	testDir := testutil.TempDir(t, "debug")
+	defer os.RemoveAll(testDir)
+
+	ui := cli.NewMockUi()
+	cmd := New(ui, nil)
+
+	args := []string{
+		"foo",
+		"bad",
+	}
+
+	if code := cmd.Run(args); code == 0 {
+		t.Fatalf("should exit non-zero, got code: %d", code)
+	}
+
+	errOutput := ui.ErrorWriter.String()
+	if !strings.Contains(errOutput, "Too many arguments") {
+		t.Errorf("expected error output, got %q", errOutput)
+	}
+}
+
 func TestDebugCommand_OutputPathBad(t *testing.T) {
 	t.Parallel()
 
