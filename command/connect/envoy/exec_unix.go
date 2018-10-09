@@ -9,9 +9,39 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"golang.org/x/sys/unix"
 )
+
+func isHotRestartOption(s string) bool {
+	restartOpts := []string{
+		"--restart-epoch",
+		"--hot-restart-version",
+		"--drain-time-s",
+		"--parent-shutdown-time-s",
+	}
+	for _, opt := range restartOpts {
+		if s == opt {
+			return true
+		}
+		if strings.HasPrefix(s, opt+"=") {
+			return true
+		}
+	}
+	return false
+}
+
+func hasHotRestartOption(argSets ...[]string) bool {
+	for _, args := range argSets {
+		for _, opt := range args {
+			if isHotRestartOption(opt) {
+				return true
+			}
+		}
+	}
+	return false
+}
 
 func execEnvoy(binary string, prefixArgs, suffixArgs []string, bootstrapJson []byte) error {
 	// Write the Envoy bootstrap config file out to disk in a pocket universe
@@ -34,14 +64,23 @@ func execEnvoy(binary string, prefixArgs, suffixArgs []string, bootstrapJson []b
 	// /dev/fd/$FDNUMBER.
 	magicPath := filepath.Join("/dev/fd", strconv.Itoa(int(fd)))
 
+	// We default to disabling hot restart because it makes it easier to run
+	// multiple envoys locally for testing without them trying to share memory and
+	// unix sockets and complain about being different IDs. But if user is
+	// actually configuring hot-restart explicitly with the --restart-epoch option
+	// then don't disable it!
+	disableHotRestart := !hasHotRestartOption(prefixArgs, suffixArgs)
+
 	// First argument needs to be the executable name.
 	envoyArgs := []string{binary}
 	envoyArgs = append(envoyArgs, prefixArgs...)
 	envoyArgs = append(envoyArgs, "--v2-config-only",
-		"--disable-hot-restart",
 		"--config-path",
 		magicPath,
 	)
+	if disableHotRestart {
+		envoyArgs = append(envoyArgs, "--disable-hot-restart")
+	}
 	envoyArgs = append(envoyArgs, suffixArgs...)
 
 	// Exec

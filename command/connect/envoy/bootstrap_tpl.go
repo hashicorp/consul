@@ -2,8 +2,8 @@ package envoy
 
 type templateArgs struct {
 	ProxyCluster, ProxyID string
-	AgentHTTPAddress      string
-	AgentHTTPPort         string
+	AgentAddress          string
+	AgentPort             string
 	AgentTLS              bool
 	AgentCAFile           string
 	AdminBindAddress      string
@@ -12,8 +12,7 @@ type templateArgs struct {
 	Token                 string
 }
 
-const bootstrapTemplate = `
-{
+const bootstrapTemplate = `{
   "admin": {
     "access_log_path": "/dev/null",
     "address": {
@@ -33,7 +32,7 @@ const bootstrapTemplate = `
         "name": "{{ .LocalAgentClusterName }}",
         "connect_timeout": "1s",
         "type": "STATIC",
-        {{ if .AgentTLS -}}
+        {{- if .AgentTLS -}}
         "tls_context": {
           "common_tls_context": {
             "validation_context": {
@@ -48,8 +47,8 @@ const bootstrapTemplate = `
         "hosts": [
           {
             "socket_address": {
-              "address": "{{ .AgentHTTPAddress }}",
-              "port_value": {{ .AgentHTTPPort }}
+              "address": "{{ .AgentAddress }}",
+              "port_value": {{ .AgentPort }}
             }
           }
         ]
