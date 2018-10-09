@@ -112,7 +112,7 @@ func TestCommandConfigWatcher(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			require := require.New(t)
 
-			// Registere a few services with 0, 1 and 2 sidecars
+			// Register a few services with 0, 1 and 2 sidecars
 			a := agent.NewTestAgent(t.Name(), `
 			services {
 				name = "no-sidecar"
