@@ -44,7 +44,30 @@ func (d *Debug) Profile(seconds int) ([]byte, error) {
 	r := d.c.newRequest("GET", "/debug/pprof/profile")
 
 	// Capture a profile for the specified number of seconds
-	r.params.Set("seconds", strconv.Itoa(1))
+	r.params.Set("seconds", strconv.Itoa(seconds))
+
+	_, resp, err := d.c.doRequest(r)
+	if err != nil {
+		return nil, fmt.Errorf("error making request: %s", err)
+	}
+	defer resp.Body.Close()
+
+	// We return a raw response because we're just passing through a response
+	// from the pprof handlers
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding body: %s", err)
+	}
+
+	return body, nil
+}
+
+// Trace returns an execution trace
+func (d *Debug) Trace(seconds int) ([]byte, error) {
+	r := d.c.newRequest("GET", "/debug/pprof/trace")
+
+	// Capture a trace for the specified number of seconds
+	r.params.Set("seconds", strconv.Itoa(seconds))
 
 	_, resp, err := d.c.doRequest(r)
 	if err != nil {
