@@ -1470,7 +1470,8 @@ type connectAuthorizeResp struct {
 // GET /v1/agent/host
 //
 // Retrieves information about resources available and in-use for the
-// host the agent is running on such as CPU, memory, and disk usage.
+// host the agent is running on such as CPU, memory, and disk usage. Requires
+// a operator:read ACL token.
 func (s *HTTPServer) AgentHost(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
@@ -1481,7 +1482,7 @@ func (s *HTTPServer) AgentHost(resp http.ResponseWriter, req *http.Request) (int
 	}
 	// TODO(pearkes): Is agent:read appropriate here? There could be relatively
 	// sensitive information made available in this API
-	if rule != nil && !rule.AgentRead(s.agent.config.NodeName) {
+	if rule != nil && !rule.OperatorRead() {
 		return nil, acl.ErrPermissionDenied
 	}
 
