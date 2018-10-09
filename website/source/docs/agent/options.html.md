@@ -205,7 +205,7 @@ will exit with an error at startup.
 
 * <a name="_enable_local_script_checks"></a><a href="#_enable_local_script_checks">`-enable-local-script-checks`</a> 
   Like [`enable_script_checks`](#_enable_script_checks), but only enable them when they are defined in the local
-  config files. Checks defined with the HTTP API will not be allowed.
+  config files. Script checks defined in HTTP API registratrions will still not be allowed.
 
 * <a name="_encrypt"></a><a href="#_encrypt">`-encrypt`</a> - Specifies the secret key to
   use for encryption of Consul
