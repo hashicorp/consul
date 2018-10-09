@@ -251,8 +251,9 @@ term in a future version of Consul.
 ## Discover More Connect
 
 This quick guide has given a taste of what Connect can do but there is much
-more. Take a look at [getting started with Connect]() for more guides on
-setting up Connect with Envoy proxy, with Docker and in Kubernetes.
+more. Take a look at [getting started with
+Connect](/docs/connect/index.html#getting-started-with-connect) for more guides
+on setting up Connect with Envoy proxy, with Docker and in Kubernetes.
 
 ## Next Steps
 
