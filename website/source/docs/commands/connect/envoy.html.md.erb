@@ -10,22 +10,22 @@ description: >
 
 Command: `consul connect envoy`
 
-The connect envoy command is used to generate a bootstrap configuration for
-[envoy proxy](https://envoyproxy.io) for use with [Consul
+The connect Envoy command is used to generate a bootstrap configuration for
+[Envoy proxy](https://envoyproxy.io) for use with [Consul
 Connect](/docs/connect/).
 
 The default behaviour is to generate the necessary bootstrap configuration for
-envoy based on the environment variables and options provided and by taking to
-the local Consul agent. It calls `exec` the envoy binary with that configuration
-leaving the envoy process running in the foreground. An error is returned on
-operating systems other than linux or macOS since envoy does not build for other
-platforms currently.
+Envoy based on the environment variables and options provided and by taking to
+the local Consul agent. It `exec`s an external Envoy binary with that
+configuration leaving the Envoy process running in the foreground. An error is
+returned on operating systems other than linux or macOS since Envoy does not
+build for other platforms currently.
 
 If the `-bootstrap` option is specified, the bootstrap config is generated in
 the same way and then printed to stdout. This allows it to be redirected to a
 file and used with `envoy -c bootstrap.json`. This works on all operating
-systems allowing configuration to be generated on a host that envoy doesn't
-build on but then used in a virtualized environment that can run envoy.
+systems allowing configuration to be generated on a host that Envoy doesn't
+build on but then used in a virtualized environment that can run Envoy.
 
 ## Usage
 
@@ -71,16 +71,16 @@ proxy configuration needed.
   This token authorizes the proxy to obtain TLS certificates representing the
   target service.
 
- * `-envoy-binary` - The full path to a specific envoy binary to exec. By
+ * `-envoy-binary` - The full path to a specific Envoy binary to exec. By
    default the current `$PATH` is searched for `envoy`.
 
- * `-admin-bind` - The `host:port` to bind envoy's admin HTTP API. Default is
+ * `-admin-bind` - The `host:port` to bind Envoy's admin HTTP API. Default is
    `localhost:19000`. Envoy requires that this be enabled. The host part must be
    resolvable DNS name or IP address.
 
  * `-bootstrap` - If present, the command will simply output the generated
    bootstrap config to stdout in JSON protobuf form. This can be directed to a
-   file and used to start envoy with `envoy -c bootstrap.json`.
+   file and used to start Envoy with `envoy -c bootstrap.json`.
 
 ~> **Security Note:** If ACLs are enabled the bootstrap JSON will contain the
 ACL token from `-token` or the environment and so should be handled as a secret.
@@ -89,7 +89,7 @@ for and so can be used to access any upstream service that that service is
 allowed to access by [Connect intentions](/docs/connect/intentions.html).
 
  * `-- [pass-through options]` - Any options given after a double dash are passed
-   directly through to the `envoy` invocation. See [envoy's
+   directly through to the `envoy` invocation. See [Envoy's
    documentation](https://www.envoyproxy.io/docs) for more details. The command
    always specifies `--config-file` and `--v2-config-only` and by default passes
    `--disable-hot-restart` see [hot restart](#hot-restart).
@@ -108,7 +108,7 @@ service {
 }
 ```
 
-The sidecar envoy process can be started with.
+The sidecar Envoy process can be started with.
 
 ```text
 $ consul connect envoy -sidecar-for web
@@ -118,7 +118,7 @@ This example assumes that the correct [environment variables](#api-options) are
 used to set the local agent connection information and ACL token, or that the
 agent is using all-default configuration.
 
-To pass additional arguments directly to envoy, for example output logging
+To pass additional arguments directly to Envoy, for example output logging
 level, you can use:
 
 ```text
@@ -135,7 +135,7 @@ $ consul connect envoy -sidecar-for db -admin-bind localhost:19001
 
 ## Exec Security Details
 
-The command needs to pass the bootstrap config through to envoy. Envoy currently
+The command needs to pass the bootstrap config through to Envoy. Envoy currently
 only supports passing this as a file path or passing a whole string on the
 command line with `--config-yaml`. Since the bootstrap needs to contain the ACL
 token to authorize the proxy, this secret needs careful handling.
@@ -151,28 +151,28 @@ of time and in a location that is opaque to the operator.
 To work around these issues, the command currently creates a temporary file and
 immediately unlinks it so it can't be read by any other process that doesn't
 already have the file descriptor. It then writes the bootstrap JSON, and unsets
-the CLOEXEC bit on the file handle so that it remains available to the envoy
-process after exec. Finally it `exec`s envoy with `--config-file /dev/fd/X`
+the CLOEXEC bit on the file handle so that it remains available to the Envoy
+process after exec. Finally it `exec`s Envoy with `--config-file /dev/fd/X`
 where `X` is the the file descriptor number of the temp file.
 
-This ensures that envoy can read the file without any other normal user process
+This ensures that Envoy can read the file without any other normal user process
 being able to (assuming they don't have privileged access to /proc). Once the
-envoy process stops, there is no longer any reference to the file to clean up.
+Envoy process stops, there is no longer any reference to the file to clean up.
 
 ## Envoy Hot Restart
 
 Envoy supports hot restart which requires simple external coordination. By
-default, this command will add `--disable-hot-restart` when it runs envoy.
+default, this command will add `--disable-hot-restart` when it runs Envoy.
 
 The reason for this default behavior is to make it easy to test and run local
-demonstrations with multiple envoy instances outside of cgroups or network
+demonstrations with multiple Envoy instances outside of cgroups or network
 namespaces.
 
-To use hot restart, envoy needs to be started with either the `--restart-epoch`
+To use hot restart, Envoy needs to be started with either the `--restart-epoch`
 option. If this command detects that option in the pass-through flags it will
 _not_ add `--disable-hot-restart` allowing hot restart to work normally.
 
-The only difference to note over running envoy directly is that
+The only difference to note over running Envoy directly is that
 `--restart-epoch` must be explicitly set to `0` for the initial launch of the
-envoy instance to avoid disabling hot restart entirely. The official
+Envoy instance to avoid disabling hot restart entirely. The official
 `hot-restarter.py` always sets this option so should work as recommended.

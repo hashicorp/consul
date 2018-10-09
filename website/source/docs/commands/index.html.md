@@ -209,7 +209,7 @@ CONSUL_TLS_SERVER_NAME=consulserver.domain
 
 Like [`CONSUL_HTTP_ADDR`](#consul_http_addr) but configures the address the
 local agent is listening for gRPC requests. Currently gRPC is only used for
-integrating [envoy proxy](/docs/connect/proxies/envoy.html) and must be [enabled
+integrating [Envoy proxy](/docs/connect/proxies/envoy.html) and must be [enabled
 explicitly](/docs/agent/options.html#grpc_port) in agent configuration.
 
 ```

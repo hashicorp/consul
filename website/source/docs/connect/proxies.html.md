@@ -193,7 +193,7 @@ registrations](/docs/agent/services.html#service-definition-parameter-case).
   configuration
   reference](/docs/connect/configuration.html#built-in-proxy-options) for
   options available when using the built-in proxy. If using Envoy as a proxy,
-  see [envoy configuration
+  see [Envoy configuration
   reference](/docs/connect/configuration.html#envoy-options)
 
 

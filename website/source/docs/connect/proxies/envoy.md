@@ -9,8 +9,8 @@ description: |-
 # Envoy Integration
 
 Consul Connect has first class support for using
-[envoy](https://www.envoyproxy.io) as a proxy. Consul configures envoy by
-optionally exposing a gRPC service on the local agent that serves [envoy's xDS
+[Envoy](https://www.envoyproxy.io) as a proxy. Consul configures Envoy by
+optionally exposing a gRPC service on the local agent that serves [Envoy's xDS
 configuration
 API](https://github.com/envoyproxy/data-plane-api/blob/master/XDS_PROTOCOL.md).
 
@@ -18,24 +18,24 @@ Currently Consul only supports TCP proxying between services, however HTTP and
 gRPC features are planned for the near future along with first class ways to
 configure them in Consul.
 
-As an interim solution, [custom envoy configuration](#custom-configuration) can
+As an interim solution, [custom Envoy configuration](#custom-configuration) can
 be specified in [proxy service definition](/docs/connect/proxies.html) allowing
-more powerful features of envoy to be used.
+more powerful features of Envoy to be used.
 
 ## Getting Started
 
 ### Installing Envoy
 
-The simplest way to try out envoy with Consul locally is using Docker. Envoy
+The simplest way to try out Envoy with Consul locally is using Docker. Envoy
 doesn't release binaries outside of their official Docker image. If you can
-build envoy directly then the [`consul connect envoy`
+build Envoy directly then the [`consul connect envoy`
 command](/docs/commands/connect/envoy.html) command can be used directly on your
-local machine to start envoy, however for this guide we'll use the Docker image.
+local machine to start Envoy, however for this guide we'll use the Docker image.
 
 While the [`consul connect envoy` command](/docs/commands/connect/envoy.html)
 supports generating bootstrap config on the host that we could then mount in to
-the standard envoy Docker container, it's simpler to be able to use it to run
-docker directly which requires both consul and envoy binaries in one container.
+the standard Envoy Docker container, it's simpler to be able to use it to run
+docker directly which requires both consul and Envoy binaries in one container.
 
 Using Docker 17.05 or higher (with multi-stage builds), create a Dockerfile with
 the following content:
@@ -48,7 +48,7 @@ ENTRYPOINT ["dumb-init", "consul", "connect", "envoy"]
 ```
 
 This takes the consul binary from the latest release image and copies it into a
-new image based on the official envoy build.
+new image based on the official Envoy build.
 
 This can be built locally with:
 
@@ -112,7 +112,7 @@ $ docker run --rm -d -v$(pwd)/envoy_demo.hcl:/etc/consul/envoy_demo.hcl \
 
 ### Running Envoy
 
-With the above setup, envoy proxies for each service instance can now be run
+With the above setup, Envoy proxies for each service instance can now be run
 using:
 
 ```text
@@ -130,7 +130,7 @@ their admin API (which cannot be disabled).
 
 To see the output of these you can use `docker logs`. To see more verbose
 information you can add `-- -l debug` to the end of the command above. This is
-passing the `-l` (log-level) option directly through to envoy. With debug level
+passing the `-l` (log-level) option directly through to Envoy. With debug level
 logs you should see the config being delivered to the proxy.
 
 ### Testing Connectivity
@@ -180,7 +180,7 @@ Anyone there?
 ^C
 ```
 
--> **Note:** envoy will not re-authenticate already established TCP connections
+-> **Note:** Envoy will not re-authenticate already established TCP connections
 so if you still have the netcat terminal open from before that will still be
 able to communicate with the "db". _New_ connections should be denied though.
 
@@ -195,17 +195,22 @@ Hello?
 ^C
 ```
 
-## Advanced Listener Configuration
+## Supported Versions
 
-Consul 1.3.0 includes initial envoy support which includes automatic Layer 4
+Consul's Envoy support was added in version 1.3.0. It has been tested against
+Envoy 1.7.1 and 1.8.0.
+
+## Advanced Configuration
+
+Consul 1.3.0 includes initial Envoy support which includes automatic Layer 4
 (TCP) proxying over mTLS, and authorization. Near future versions of Consul will
 bring Layer 7 features like HTTP-path-based routing, retries, tracing and more.
 
 -> **Advanced Topic!** This section covers an optional way of taking almost
-complete control of envoy's listener configuration which is provided as a way to
+complete control of Envoy's listener configuration which is provided as a way to
 experiment with advanced integrations ahead of full layer 7 feature support.
 While we don't plan to remove the ability to do this in the future, it should be
-considered experimental and requires in-depth knowledge of envoy's configuration
+considered experimental and requires in-depth knowledge of Envoy's configuration
 format.
 
 For advanced users there is an "escape hatch" available in 1.3.0 - the "opaque"
@@ -326,4 +331,12 @@ For the upstream listeners `proxy.upstreams[].config.envoy_listener_json`, no
 modification is performed. The `Clusters` served via the xDS API all have the
 correct client certificates and verification contexts configured so outbound
 traffic should be authenticated.
+
+Each upstream may separately choose to define a custom listener config. If
+multiple upstreams define them care must be taken to ensure they all listen on
+separate ports.
+
+Currently there is no way to disable a listener for an upstream, or modify how
+upstream service discovery clusters are delivered. Richer support for features
+like this is planned for the near future.
 
