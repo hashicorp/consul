@@ -104,8 +104,6 @@ func (c *cmd) init() {
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
-	// TODO do we need server flags?
-	flags.Merge(c.flags, c.http.ServerFlags())
 	c.help = flags.Usage(help, c.flags)
 
 	c.validateTiming = true
