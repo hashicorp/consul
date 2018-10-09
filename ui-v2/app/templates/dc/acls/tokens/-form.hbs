@@ -7,7 +7,8 @@
     {{!TODO: Make this into a slotted component}}
     <div>
 {{#if create }}
-        <button type="submit" {{ action "create" item}} disabled={{if (or item.isPristine item.isInvalid) 'disabled'}}>Save</button>
+  {{! new tokens can be saved without you filling anything in, old tokens remain using isPristine }}
+        <button type="submit" {{ action "create" item}} disabled={{if (or (and item.Legacy item.isPristine) item.isInvalid) 'disabled'}}>Save</button>
 {{ else }}
         <button type="submit" {{ action "update" item}} disabled={{if item.isInvalid 'disabled'}}>Save</button>
 {{/if}}

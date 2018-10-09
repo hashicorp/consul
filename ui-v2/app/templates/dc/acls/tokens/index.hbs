@@ -47,7 +47,7 @@
                   {{if item.Local 'local' 'global' }}
                 </td>
                 <td>
-                  {{item.Name}}
+                  {{default item.Description item.Name}}
                 </td>
                 <td colspan={{if (not-eq item.AccessorID token.AccessorID) '2' }}>
   {{#if item.Legacy }}
@@ -67,9 +67,11 @@
                     {{#block-slot 'action' as |confirm|}}
                         {{#action-group index=index onchange=(action change) checked=(if (eq checked index) 'checked')}}
                             <ul>
+                              {{#if false}}
                                 <li>
-                                    <a data-test-edit href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>Copy AccessorID</a>
+                                  {{#copy-button-feedback title="Copy AccessorID to the clipboard" copy=item.AccessorID name="AccessorID"}}Copy AccessorID{{/copy-button-feedback}}
                                 </li>
+                              {{/if}}
                                 <li>
                                     <a data-test-edit href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>Edit</a>
                                 </li>

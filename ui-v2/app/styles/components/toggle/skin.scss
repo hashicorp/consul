@@ -8,8 +8,11 @@
 %toggle label span::before {
   border-radius: 7px;
 }
-%toggle label input:checked + span::before {
-  background-color: $ui-blue-500;
+%toggle-negative {
+  border: 0;
+}
+%toggle.type-negative {
+  @extend %toggle-negative;
 }
 %toggle label span {
   color: $ui-gray-900;
@@ -17,6 +20,11 @@
 %toggle label span::after {
   background-color: $ui-white;
 }
-%toggle label span::before {
+%toggle label input:checked + span::before,
+%toggle-negative label input + span::before {
+  background-color: $ui-blue-500;
+}
+%toggle label span::before,
+%toggle-negative label input:checked + span::before {
   background-color: $ui-gray-300;
 }

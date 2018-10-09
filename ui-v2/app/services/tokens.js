@@ -19,9 +19,9 @@ export default Service.extend({
   status: function(obj) {
     return status(obj);
   },
-  self: function(token, dc) {
+  self: function(secret, dc) {
     return get(this, 'store').self(this.getModelName(), {
-      token: token,
+      secret: secret,
       dc: dc,
     });
   },

@@ -22,8 +22,8 @@ export default Adapter.extend({
     const query = this._super(...arguments);
     // TODO: Make sure policy is being passed through
     delete _query.policy;
-    //take off the token for /self
-    delete query.token;
+    // take off the secret for /self
+    delete query.secret;
     return query;
   },
   urlForQuery: function(query, modelName) {
@@ -66,13 +66,6 @@ export default Adapter.extend({
     return this.appendURL('acl/token', [snapshot.attr(SLUG_KEY), 'clone'], {
       [API_DATACENTER_KEY]: snapshot.attr(DATACENTER_KEY),
     });
-  },
-  isCloneRecord: function(url, method) {
-    const last = url.pathname.split('/').pop();
-    return last === 'clone';
-  },
-  isQuerySelf: function(url, method) {
-    return url.pathname === this.urlForQuerySelf({});
   },
   self: function(store, modelClass, snapshot) {
     const params = {
@@ -125,13 +118,11 @@ export default Adapter.extend({
         case response === true:
           response = this.handleBooleanResponse(url, response, PRIMARY_KEY, SLUG_KEY);
           break;
-        case this.isQuerySelf(url, method):
-        case this.isCloneRecord(url, method):
-        case this.isQueryRecord(url, method):
-          response = this.handleSingleResponse(url, response, PRIMARY_KEY, SLUG_KEY);
+        case Array.isArray(response):
+          response = this.handleBatchResponse(url, response, PRIMARY_KEY, SLUG_KEY);
           break;
         default:
-          response = this.handleBatchResponse(url, response, PRIMARY_KEY, SLUG_KEY);
+          response = this.handleSingleResponse(url, response, PRIMARY_KEY, SLUG_KEY);
       }
     }
     return this._super(status, headers, response, requestData);
@@ -139,6 +130,7 @@ export default Adapter.extend({
   methodForRequest: function(params) {
     switch (params.requestType) {
       case REQUEST_CLONE:
+      case REQUEST_CREATE:
         return HTTP_PUT;
     }
     return this._super(...arguments);
@@ -147,7 +139,7 @@ export default Adapter.extend({
     switch (params.requestType) {
       case REQUEST_SELF:
         return {
-          'X-Consul-Token': params.token,
+          'X-Consul-Token': params.snapshot.secret,
         };
     }
     return this._super(...arguments);

@@ -28,6 +28,7 @@
     {{/block-slot}}
     {{#block-slot 'actions'}}
 {{#if (not create) }}
+  {{#if (not-eq item.AccessorID token.AccessorID)}}
         {{#confirmation-dialog message='Are you sure you want to use this ACL token?'}}
             {{#block-slot 'action' as |confirm|}}
                 <button data-test-use type="button" {{ action confirm 'use' item }}>Use</button>
@@ -40,6 +41,7 @@
                 <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
             {{/block-slot}}
         {{/confirmation-dialog}}
+  {{/if}}
         <button type="button" {{ action "clone" item }}>Duplicate</button>
 {{/if}}
     {{/block-slot}}
@@ -50,13 +52,19 @@
 {{#if (not create) }}
       <div>
           <dl>
+{{#if (and (not item.Legacy) (not create))}}
+            <dt>Scope</dt>
+            <dd>
+              {{if item.Local 'local' 'global' }}
+            </dd>
+{{/if}}
             <dt>AccessorID</dt>
             <dd>
               {{copy-button-feedback title="Copy AccessorID to the clipboard" copy=item.AccessorID name="AccessorID"}} {{item.AccessorID}}
             </dd>
             <dt>Token</dt>
             <dd>
-            {{copy-button-feedback title="Copy SecretID to the clipboard" copy=item.SecretID name="Token"}} {{#secret-button}}{{item.SecretID}}{{/secret-button}}
+              {{copy-button-feedback title="Copy SecretID to the clipboard" copy=item.SecretID name="Token"}} {{#secret-button}}{{item.SecretID}}{{/secret-button}}
             </dd>
           </dl>
       </div>

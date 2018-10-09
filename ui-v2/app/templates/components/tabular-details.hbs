@@ -16,7 +16,7 @@
       </tr>
       <tr>
         <td colspan="3">
-          <input type="checkbox" name={{name}} id={{{ concat name '-summary-' index '-toggle'}}} onchange={{action 'change' item}} />
+          <input type="checkbox" value={{index}} name={{name}} id={{{ concat name '-summary-' index '-toggle'}}} onchange={{action 'change' item}} />
           <div>
             <label for={{concat name '-summary-' index '-toggle'}}><span>Hide details</span></label>
             <div>

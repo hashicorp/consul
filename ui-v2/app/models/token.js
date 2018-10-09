@@ -10,7 +10,7 @@ const model = Model.extend({
   [SLUG_KEY]: attr('string'),
   SecretID: attr('string'),
   // Legacy
-  Type: attr('string'),
+  // Type: attr('string'),
   Name: attr('string', {
     defaultValue: '',
   }),
@@ -30,6 +30,13 @@ const model = Model.extend({
   CreateIndex: attr('number'),
   ModifyIndex: attr('number'),
 });
-// Name and Type is only for legacy tokens
-export const ATTRS = writable(model, ['Name', 'Type', 'Description', 'Policies', 'AccessorID']);
+// Name and Rules is only for legacy tokens
+export const ATTRS = writable(model, [
+  'Name',
+  'Rules',
+  'Local',
+  'Description',
+  'Policies',
+  'AccessorID',
+]);
 export default model;

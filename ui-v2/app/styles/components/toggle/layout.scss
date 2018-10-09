@@ -22,11 +22,15 @@
   margin-top: -5px;
 }
 %toggle label span::after {
-  left: 2px;
   margin-top: -3px;
   width: 8px;
   height: 8px;
 }
-%toggle label input:checked + span::after {
+%toggle label input:checked + span::after,
+%toggle-negative label input + span::after {
   left: 10px;
+}
+%toggle label span::after,
+%toggle-negative label input:checked + span::after {
+  left: 2px;
 }

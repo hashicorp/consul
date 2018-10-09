@@ -6,6 +6,11 @@ td a.is-management::after {
   top: 2px;
   padding-left: 32px;
 }
+.template-policy.template-list main header .actions,
+.template-token.template-list main header .actions {
+  position: relative;
+  top: 50px;
+}
 
 @media #{$--lt-wide-form} {
   html.template-acl.template-edit main header .actions {

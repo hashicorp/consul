@@ -47,20 +47,6 @@ export default Adapter.extend({
     }
     return data;
   },
-  isCreateRecord: function(url, method) {
-    return (
-      url.pathname ===
-      this.parseURL(this.urlForCreateRecord('policy', makeAttrable({ [DATACENTER_KEY]: '' })))
-        .pathname
-    );
-  },
-  isUpdateRecord: function(url, method) {
-    return (
-      url.pathname ===
-      this.parseURL(this.urlForUpdateRecord(null, 'policy', makeAttrable({ [DATACENTER_KEY]: '' })))
-        .pathname
-    );
-  },
   handleResponse: function(status, headers, payload, requestData) {
     let response = payload;
     const method = requestData.method;
@@ -70,13 +56,11 @@ export default Adapter.extend({
         case response === true:
           response = this.handleBooleanResponse(url, response, PRIMARY_KEY, SLUG_KEY);
           break;
-        case this.isUpdateRecord(url, method):
-        case this.isCreateRecord(url, method):
-        case this.isQueryRecord(url, method):
-          response = this.handleSingleResponse(url, response, PRIMARY_KEY, SLUG_KEY);
+        case Array.isArray(response):
+          response = this.handleBatchResponse(url, response, PRIMARY_KEY, SLUG_KEY);
           break;
         default:
-          response = this.handleBatchResponse(url, response, PRIMARY_KEY, SLUG_KEY);
+          response = this.handleSingleResponse(url, response, PRIMARY_KEY, SLUG_KEY);
       }
     }
     return this._super(status, headers, response, requestData);

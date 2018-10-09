@@ -19,10 +19,6 @@
 .me ~ :nth-last-child(2) {
   @extend %token-yours;
 }
-.template-token.template-list main header .actions {
-  position: relative;
-  top: 50px;
-}
 .template-token.template-list main .notice {
   margin-top: -20px;
 }

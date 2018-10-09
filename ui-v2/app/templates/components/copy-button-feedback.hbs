@@ -1,6 +1,6 @@
 {{#feedback-dialog type='inline'}}
   {{#block-slot 'action' as |success error|}}
-    {{#copy-button success=(action success) error=(action error) clipboardText=copy title=(concat 'Copy ' name 'to the clipboard')}}{{value}}{{/copy-button}}
+    {{#copy-button success=(action success) error=(action error) clipboardText=copy title=(concat 'Copy ' name 'to the clipboard')}}{{#if hasBlock }}{{yield}}{{else}}{{value}}{{/if}}{{/copy-button}}
   {{/block-slot}}
   {{#block-slot 'success' as |transition|}}
     <p class={{transition}}>

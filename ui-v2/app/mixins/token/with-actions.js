@@ -8,22 +8,20 @@ export default Mixin.create(WithBlockingActions, {
   repo: service('settings'),
   actions: {
     use: function(item) {
-      return get(this, 'feedback').execute(() => {
-        return get(this, 'repo')
-          .findBySlug(get(item, 'AccessorID'), this.modelFor('dc').dc.Name)
-          .then(item => {
-            return get(this, 'settings')
-              .persist({
-                token: {
-                  AccessorID: get(item, 'AccessorID'),
-                  SecretID: get(item, 'SecretID'),
-                },
-              })
-              .then(() => {
-                return this.refresh();
-              });
-          });
-      }, 'use');
+      return get(this, 'repo')
+        .findBySlug(get(item, 'AccessorID'), this.modelFor('dc').dc.Name)
+        .then(item => {
+          return get(this, 'settings')
+            .persist({
+              token: {
+                AccessorID: get(item, 'AccessorID'),
+                SecretID: get(item, 'SecretID'),
+              },
+            })
+            .then(() => {
+              return this.refresh();
+            });
+        });
     },
     logout: function(item) {
       return get(this, 'feedback').execute(() => {
