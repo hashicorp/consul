@@ -33,7 +33,7 @@ type ServiceDefinition struct {
 	// Proxy is the configuration set for Kind = connect-proxy. It is mandatory in
 	// that case and an error to be set for any other kind. This config is part of
 	// a proxy service definition and is distinct from but shares some fields with
-	// the Connect.Proxy which configures a manageged proxy as part of the actual
+	// the Connect.Proxy which configures a managed proxy as part of the actual
 	// service's definition. This duplication is ugly but seemed better than the
 	// alternative which was to re-use the same struct fields for both cases even
 	// though the semantics are different and the non-shared fields make no sense

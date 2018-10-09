@@ -207,7 +207,7 @@ func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) 
 			as.ProxyDestination = as.Proxy.DestinationServiceName
 		}
 
-		// Attach Connect configs if the exist. We use the actual proxy state since
+		// Attach Connect configs if they exist. We use the actual proxy state since
 		// that may have had defaults filled in compared to the config that was
 		// provided with the service as stored in the NodeService here.
 		if proxy, ok := proxies[id+"-proxy"]; ok {
@@ -861,7 +861,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 			Reason: fmt.Sprintf("Invalid SidecarService: %s", err)}
 	}
 	if sidecar != nil {
-		// Make sure we are allowed to register the side car using the token
+		// Make sure we are allowed to register the sidecar using the token
 		// specified (might be specific to sidecar or the same one as the overall
 		// request).
 		if err := s.agent.vetServiceRegister(sidecarToken, sidecar); err != nil {

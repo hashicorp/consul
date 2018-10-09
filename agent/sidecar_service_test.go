@@ -165,7 +165,7 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 				},
 			},
 			token:   "foo",
-			wantErr: "auto-assignement disabled in config",
+			wantErr: "auto-assignment disabled in config",
 		},
 		{
 			name: "invalid check type",

@@ -631,7 +631,7 @@ type NodeService struct {
 	// ProxyDestination is DEPRECATED in favor of Proxy.DestinationServiceName.
 	// It's retained since this struct is used to parse input for
 	// /catalog/register but nothing else internal should use it - once
-	// request/config definitinos are passes all internal uses of NodeService
+	// request/config definitions are passes all internal uses of NodeService
 	// should have this empty and use the Proxy.DestinationServiceNames field
 	// below.
 	//
@@ -645,7 +645,7 @@ type NodeService struct {
 	// Proxy is the configuration set for Kind = connect-proxy. It is mandatory in
 	// that case and an error to be set for any other kind. This config is part of
 	// a proxy service definition and is distinct from but shares some fields with
-	// the Connect.Proxy which configures a manageged proxy as part of the actual
+	// the Connect.Proxy which configures a managed proxy as part of the actual
 	// service's definition. This duplication is ugly but seemed better than the
 	// alternative which was to re-use the same struct fields for both cases even
 	// though the semantics are different and the non-shred fields make no sense
@@ -667,7 +667,7 @@ type NodeService struct {
 	// ID scheme as our sidecars do by default. We could use meta but that gets
 	// unpleasant because we can't use the consul- prefix from an agent (reserved
 	// for use internally but in practice that means within the state store or in
-	// responses only), and it leaks the detail publically which people might rely
+	// responses only), and it leaks the detail publicly which people might rely
 	// on which is a bit unpleasant for something that is meant to be config-file
 	// syntax sugar. Note this is not translated to ServiceNode and friends and
 	// may not be set on a NodeService that isn't the one the agent registered and

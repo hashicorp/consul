@@ -50,7 +50,7 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 	}
 
 	// Flag this as a sidecar - this is not persisted in catalog but only needed
-	// in local agent state to disambiguate lineage when deregistereing the parent
+	// in local agent state to disambiguate lineage when deregistering the parent
 	// service later.
 	sidecar.LocallyRegisteredAsSidecar = true
 
@@ -88,13 +88,13 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 	rangeLen := a.config.ConnectSidecarMaxPort - a.config.ConnectSidecarMinPort + 1
 	if sidecar.Port < 1 && a.config.ConnectSidecarMinPort > 0 && rangeLen > 0 {
 		// This did pick at random which was simpler but consul reload would assign
-		// new ports to all the sidecar since it unloads all state and re-populates.
-		// It also made this more difficult to test (have to pin the range to one
-		// etc.). Instead we assign sequentially, but rather than N^2 lookups, just
-		// iterated services once and find the set of used ports in allocation
-		// range. We could maintain this state permenantly in agent but it doesn't
-		// seem to be necessary - even with thousands of services this is not
-		// expensive to compute.
+		// new ports to all the sidecars since it unloads all state and
+		// re-populates. It also made this more difficult to test (have to pin the
+		// range to one etc.). Instead we assign sequentially, but rather than N^2
+		// lookups, just iterated services once and find the set of used ports in
+		// allocation range. We could maintain this state permanently in agent but
+		// it doesn't seem to be necessary - even with thousands of services this is
+		// not expensive to compute.
 		usedPorts := make(map[int]struct{})
 		for _, otherNS := range a.State.Services() {
 			// Check if other port is in auto-assign range
@@ -136,7 +136,7 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 		// just know they explicitly disabled auto assignment.
 		if a.config.ConnectSidecarMinPort < 1 || a.config.ConnectSidecarMaxPort < 1 {
 			return nil, nil, "", fmt.Errorf("no port provided for sidecar_service " +
-				"and auto-assignement disabled in config")
+				"and auto-assignment disabled in config")
 		}
 		return nil, nil, "", fmt.Errorf("no port provided for sidecar_service and none "+
 			"left in the configured range [%d, %d]", a.config.ConnectSidecarMinPort,

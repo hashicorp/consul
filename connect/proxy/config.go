@@ -118,7 +118,7 @@ func (uc *UpstreamConfig) String() string {
 }
 
 // UpstreamResolverFuncFromClient returns a closure that captures a consul
-// client and when called provides aConsulResolver that can resolve the given
+// client and when called provides a ConsulResolver that can resolve the given
 // UpstreamConfig using the provided api.Client dependency.
 func UpstreamResolverFuncFromClient(client *api.Client) func(cfg UpstreamConfig) (connect.Resolver, error) {
 	return func(cfg UpstreamConfig) (connect.Resolver, error) {
@@ -141,7 +141,7 @@ func UpstreamResolverFuncFromClient(client *api.Client) func(cfg UpstreamConfig)
 }
 
 // ConfigWatcher is a simple interface to allow dynamic configurations from
-// plugggable sources.
+// pluggable sources.
 type ConfigWatcher interface {
 	// Watch returns a channel that will deliver new Configs if something external
 	// provokes it.

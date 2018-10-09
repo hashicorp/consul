@@ -1200,7 +1200,7 @@ func (b *Builder) serviceConnectVal(v *ServiceConnect) *structs.ServiceConnect {
 	if sidecar != nil {
 		// Sanity checks
 		if sidecar.ID != "" {
-			b.err = multierror.Append(b.err, fmt.Errorf("sidecar_service can't speficy an ID"))
+			b.err = multierror.Append(b.err, fmt.Errorf("sidecar_service can't specify an ID"))
 			sidecar.ID = ""
 		}
 		if sidecar.Connect != nil {

@@ -84,7 +84,7 @@ func TestCommandConfigWatcher(t *testing.T) {
 				"-sidecar-for", "two-sidecars",
 			},
 			// Order is non-deterministic so don't assert the list of proxy IDs here
-			WantErr: `More than one sidecar proxy registereded for two-sidecars.
+			WantErr: `More than one sidecar proxy registered for two-sidecars.
     Start proxy with -proxy-id and one of the following IDs: `,
 		},
 
