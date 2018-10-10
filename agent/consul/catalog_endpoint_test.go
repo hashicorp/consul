@@ -940,8 +940,8 @@ func TestCatalog_ListNodes_StaleRead(t *testing.T) {
 	// Try to join
 	joinLAN(t, s2, s1)
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	testrpc.WaitForLeader(t, s2.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s2.RPC, "dc1")
 
 	// Use the follower as the client
 	var codec rpc.ClientCodec
