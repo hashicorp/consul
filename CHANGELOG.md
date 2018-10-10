@@ -4,6 +4,7 @@ FEATURES:
 
 * New command `consul services register` and `consul services deregister` for
   registering and deregistering services from the command line. [[GH-4732](https://github.com/hashicorp/consul/issues/4732)]
+* dns: Added SOA configuration for DNS settings [[GH-4713](https://github.com/hashicorp/consul/issues/4713)]
 
 BUG FIXES:
 
