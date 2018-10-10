@@ -25,6 +25,17 @@
     </noscript>
     {{content-for "body"}}
     <script src="{{rootURL}}assets/vendor.js"></script>
+    <script>
+      var appendScript = function(src) {
+        var $script = document.createElement('script');
+        $script.src = src;
+        document.body.appendChild($script);
+      }
+      if(!('TextDecoder' in window)) {
+        appendScript('{{rootURL}}assets/encoding-indexes.js');
+        appendScript('{{rootURL}}assets/encoding.js');
+      }
+    </script>
     <script src="{{rootURL}}assets/consul-ui.js"></script>
 
     {{content-for "body-footer"}}

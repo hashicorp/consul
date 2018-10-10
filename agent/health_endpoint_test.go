@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHealthChecksInState(t *testing.T) {
@@ -406,6 +407,9 @@ func TestHealthServiceNodes(t *testing.T) {
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
+	assert := assert.New(t)
+	require := require.New(t)
+
 	req, _ := http.NewRequest("GET", "/v1/health/service/consul?dc=dc1", nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.HealthServiceNodes(resp, req)
@@ -464,6 +468,62 @@ func TestHealthServiceNodes(t *testing.T) {
 	nodes = obj.(structs.CheckServiceNodes)
 	if len(nodes) != 1 || nodes[0].Checks == nil || len(nodes[0].Checks) != 0 {
 		t.Fatalf("bad: %v", obj)
+	}
+
+	// Test caching
+	{
+		// List instances with cache enabled
+		req, _ := http.NewRequest("GET", "/v1/health/service/test?cached", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.HealthServiceNodes(resp, req)
+		require.NoError(err)
+		nodes := obj.(structs.CheckServiceNodes)
+		assert.Len(nodes, 1)
+
+		// Should be a cache miss
+		assert.Equal("MISS", resp.Header().Get("X-Cache"))
+	}
+
+	{
+		// List instances with cache enabled
+		req, _ := http.NewRequest("GET", "/v1/health/service/test?cached", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.HealthServiceNodes(resp, req)
+		require.NoError(err)
+		nodes := obj.(structs.CheckServiceNodes)
+		assert.Len(nodes, 1)
+
+		// Should be a cache HIT now!
+		assert.Equal("HIT", resp.Header().Get("X-Cache"))
+	}
+
+	// Ensure background refresh works
+	{
+		// Register a new instance of the service
+		args2 := args
+		args2.Node = "baz"
+		args2.Address = "127.0.0.2"
+		require.NoError(a.RPC("Catalog.Register", args, &out))
+
+		retry.Run(t, func(r *retry.R) {
+			// List it again
+			req, _ := http.NewRequest("GET", "/v1/health/service/test?cached", nil)
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.HealthServiceNodes(resp, req)
+			r.Check(err)
+
+			nodes := obj.(structs.CheckServiceNodes)
+			if len(nodes) != 2 {
+				r.Fatalf("Want 2 nodes")
+			}
+
+			// Should be a cache hit! The data should've updated in the cache
+			// in the background so this should've been fetched directly from
+			// the cache.
+			if resp.Header().Get("X-Cache") != "HIT" {
+				r.Fatalf("should be a cache hit")
+			}
+		})
 	}
 }
 
@@ -796,7 +856,7 @@ func TestHealthConnectServiceNodes(t *testing.T) {
 
 	// Request
 	req, _ := http.NewRequest("GET", fmt.Sprintf(
-		"/v1/health/connect/%s?dc=dc1", args.Service.ProxyDestination), nil)
+		"/v1/health/connect/%s?dc=dc1", args.Service.Proxy.DestinationServiceName), nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.HealthConnectServiceNodes(resp, req)
 	assert.Nil(err)
@@ -828,7 +888,7 @@ func TestHealthConnectServiceNodes_PassingFilter(t *testing.T) {
 	t.Run("bc_no_query_value", func(t *testing.T) {
 		assert := assert.New(t)
 		req, _ := http.NewRequest("GET", fmt.Sprintf(
-			"/v1/health/connect/%s?passing", args.Service.ProxyDestination), nil)
+			"/v1/health/connect/%s?passing", args.Service.Proxy.DestinationServiceName), nil)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.HealthConnectServiceNodes(resp, req)
 		assert.Nil(err)
@@ -842,7 +902,7 @@ func TestHealthConnectServiceNodes_PassingFilter(t *testing.T) {
 	t.Run("passing_true", func(t *testing.T) {
 		assert := assert.New(t)
 		req, _ := http.NewRequest("GET", fmt.Sprintf(
-			"/v1/health/connect/%s?passing=true", args.Service.ProxyDestination), nil)
+			"/v1/health/connect/%s?passing=true", args.Service.Proxy.DestinationServiceName), nil)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.HealthConnectServiceNodes(resp, req)
 		assert.Nil(err)
@@ -856,7 +916,7 @@ func TestHealthConnectServiceNodes_PassingFilter(t *testing.T) {
 	t.Run("passing_false", func(t *testing.T) {
 		assert := assert.New(t)
 		req, _ := http.NewRequest("GET", fmt.Sprintf(
-			"/v1/health/connect/%s?passing=false", args.Service.ProxyDestination), nil)
+			"/v1/health/connect/%s?passing=false", args.Service.Proxy.DestinationServiceName), nil)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.HealthConnectServiceNodes(resp, req)
 		assert.Nil(err)
@@ -870,7 +930,7 @@ func TestHealthConnectServiceNodes_PassingFilter(t *testing.T) {
 	t.Run("passing_bad", func(t *testing.T) {
 		assert := assert.New(t)
 		req, _ := http.NewRequest("GET", fmt.Sprintf(
-			"/v1/health/connect/%s?passing=nope-nope", args.Service.ProxyDestination), nil)
+			"/v1/health/connect/%s?passing=nope-nope", args.Service.Proxy.DestinationServiceName), nil)
 		resp := httptest.NewRecorder()
 		a.srv.HealthConnectServiceNodes(resp, req)
 		assert.Equal(400, resp.Code)

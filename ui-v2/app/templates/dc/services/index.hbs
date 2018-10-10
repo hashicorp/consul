@@ -30,7 +30,7 @@
 
                 <td data-test-service="{{item.Name}}" style={{remainingWidth}}>
                   <a href={{href-to 'dc.services.show' item.Name}}>
-                    <span data-test-external-source="{{service/external-source item}}" style="background-image: {{css-var (concat '--' (service/external-source item) '-color-svg') 'none'}}"></span>
+                    <span data-test-external-source="{{service/external-source item}}" style={{{ concat 'background-image: ' (css-var (concat '--' (service/external-source item) '-color-svg') 'none')}}}></span>
                     {{item.Name}}
                   </a>
                 </td>
@@ -40,11 +40,11 @@
 {{else}}
                     <dl>
                         <dt title="Passing" class="passing{{if (lt item.ChecksPassing 1) ' zero'}}">Healthchecks Passing</dt>
-                        <dd title="Passing" class={{if (lt item.ChecksPassing 1) 'zero'}} style={{passingWidth}}>{{format_number item.ChecksPassing}}</dd>
+                        <dd title="Passing" class={{if (lt item.ChecksPassing 1) 'zero'}} style={{passingWidth}}>{{format-number item.ChecksPassing}}</dd>
                         <dt title="Warning" class="warning{{if (lt item.ChecksWarning 1) ' zero'}}">Healthchecks Warning</dt>
-                        <dd title="Warning" class={{if (lt item.ChecksWarning 1) 'zero'}} style={{warningWidth}}>{{format_number item.ChecksWarning}}</dd>
+                        <dd title="Warning" class={{if (lt item.ChecksWarning 1) 'zero'}} style={{warningWidth}}>{{format-number item.ChecksWarning}}</dd>
                         <dt title="Critical" class="critical{{if (lt item.ChecksCritical 1) ' zero'}}">Healthchecks Critical</dt>
-                        <dd title="Critical" class={{if (lt item.ChecksCritical 1) 'zero'}} style={{criticalWidth}}>{{format_number item.ChecksCritical}}</dd>
+                        <dd title="Critical" class={{if (lt item.ChecksCritical 1) 'zero'}} style={{criticalWidth}}>{{format-number item.ChecksCritical}}</dd>
                     </dl>
 {{/if}}
                 </td>

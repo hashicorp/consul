@@ -276,11 +276,11 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 
 	// Exists both same (noop)
 	srv1 := &structs.NodeService{
-		Kind:             structs.ServiceKindConnectProxy,
-		ID:               "mysql-proxy",
-		Service:          "mysql-proxy",
-		Port:             5000,
-		ProxyDestination: "db",
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "mysql-proxy",
+		Service: "mysql-proxy",
+		Port:    5000,
+		Proxy:   structs.ConnectProxyConfig{DestinationServiceName: "db"},
 		Weights: &structs.Weights{
 			Passing: 1,
 			Warning: 1,
@@ -292,11 +292,11 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 
 	// Exists both, different (update)
 	srv2 := &structs.NodeService{
-		ID:               "redis-proxy",
-		Service:          "redis-proxy",
-		Port:             8000,
-		Kind:             structs.ServiceKindConnectProxy,
-		ProxyDestination: "redis",
+		ID:      "redis-proxy",
+		Service: "redis-proxy",
+		Port:    8000,
+		Kind:    structs.ServiceKindConnectProxy,
+		Proxy:   structs.ConnectProxyConfig{DestinationServiceName: "redis"},
 		Weights: &structs.Weights{
 			Passing: 1,
 			Warning: 0,
@@ -312,11 +312,11 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 
 	// Exists local (create)
 	srv3 := &structs.NodeService{
-		ID:               "web-proxy",
-		Service:          "web-proxy",
-		Port:             80,
-		Kind:             structs.ServiceKindConnectProxy,
-		ProxyDestination: "web",
+		ID:      "web-proxy",
+		Service: "web-proxy",
+		Port:    80,
+		Kind:    structs.ServiceKindConnectProxy,
+		Proxy:   structs.ConnectProxyConfig{DestinationServiceName: "web"},
 		Weights: &structs.Weights{
 			Passing: 1,
 			Warning: 1,
@@ -326,11 +326,11 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 
 	// Exists remote (delete)
 	srv4 := &structs.NodeService{
-		ID:               "lb-proxy",
-		Service:          "lb-proxy",
-		Port:             443,
-		Kind:             structs.ServiceKindConnectProxy,
-		ProxyDestination: "lb",
+		ID:      "lb-proxy",
+		Service: "lb-proxy",
+		Port:    443,
+		Kind:    structs.ServiceKindConnectProxy,
+		Proxy:   structs.ConnectProxyConfig{DestinationServiceName: "lb"},
 		Weights: &structs.Weights{
 			Passing: 1,
 			Warning: 0,
@@ -341,11 +341,11 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 
 	// Exists local, in sync, remote missing (create)
 	srv5 := &structs.NodeService{
-		ID:               "cache-proxy",
-		Service:          "cache-proxy",
-		Port:             11211,
-		Kind:             structs.ServiceKindConnectProxy,
-		ProxyDestination: "cache-proxy",
+		ID:      "cache-proxy",
+		Service: "cache-proxy",
+		Port:    11211,
+		Kind:    structs.ServiceKindConnectProxy,
+		Proxy:   structs.ConnectProxyConfig{DestinationServiceName: "cache-proxy"},
 		Weights: &structs.Weights{
 			Passing: 1,
 			Warning: 1,
@@ -415,6 +415,91 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 	}
 
 	assert.Nil(servicesInSync(a.State, 3))
+}
+
+func TestAgent_ServiceWatchCh(t *testing.T) {
+	t.Parallel()
+	a := &agent.TestAgent{Name: t.Name()}
+	a.Start()
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	require := require.New(t)
+
+	// register a local service
+	srv1 := &structs.NodeService{
+		ID:      "svc_id1",
+		Service: "svc1",
+		Tags:    []string{"tag1"},
+		Port:    6100,
+	}
+	require.NoError(a.State.AddService(srv1, ""))
+
+	verifyState := func(ss *local.ServiceState) {
+		require.NotNil(ss)
+		require.NotNil(ss.WatchCh)
+
+		// Sanity check WatchCh blocks
+		select {
+		case <-ss.WatchCh:
+			t.Fatal("should block until service changes")
+		default:
+		}
+	}
+
+	// Should be able to get a ServiceState
+	ss := a.State.ServiceState(srv1.ID)
+	verifyState(ss)
+
+	// Update service in another go routine
+	go func() {
+		srv2 := srv1
+		srv2.Port = 6200
+		require.NoError(a.State.AddService(srv2, ""))
+	}()
+
+	// We should observe WatchCh close
+	select {
+	case <-ss.WatchCh:
+		// OK!
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("timeout waiting for WatchCh to close")
+	}
+
+	// Should also fire for state being set explicitly
+	ss = a.State.ServiceState(srv1.ID)
+	verifyState(ss)
+
+	go func() {
+		a.State.SetServiceState(&local.ServiceState{
+			Service: ss.Service,
+			Token:   "foo",
+		})
+	}()
+
+	// We should observe WatchCh close
+	select {
+	case <-ss.WatchCh:
+		// OK!
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("timeout waiting for WatchCh to close")
+	}
+
+	// Should also fire for service being removed
+	ss = a.State.ServiceState(srv1.ID)
+	verifyState(ss)
+
+	go func() {
+		require.NoError(a.State.RemoveService(srv1.ID))
+	}()
+
+	// We should observe WatchCh close
+	select {
+	case <-ss.WatchCh:
+		// OK!
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("timeout waiting for WatchCh to close")
+	}
 }
 
 func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
@@ -1816,6 +1901,67 @@ func checksInSync(state *local.State, wantChecks int) error {
 	return nil
 }
 
+func TestState_Notify(t *testing.T) {
+	t.Parallel()
+
+	state := local.NewState(local.Config{},
+		log.New(os.Stderr, "", log.LstdFlags), &token.Store{})
+
+	// Stub state syncing
+	state.TriggerSyncChanges = func() {}
+
+	require := require.New(t)
+	assert := assert.New(t)
+
+	// Register a notifier
+	notifyCh := make(chan struct{}, 1)
+	state.Notify(notifyCh)
+	defer state.StopNotify(notifyCh)
+	assert.Empty(notifyCh)
+	drainCh(notifyCh)
+
+	// Add a service
+	err := state.AddService(&structs.NodeService{
+		Service: "web",
+	}, "fake-token-web")
+	require.NoError(err)
+
+	// Should have a notification
+	assert.NotEmpty(notifyCh)
+	drainCh(notifyCh)
+
+	// Re-Add same service
+	err = state.AddService(&structs.NodeService{
+		Service: "web",
+		Port:    4444,
+	}, "fake-token-web")
+	require.NoError(err)
+
+	// Should have a notification
+	assert.NotEmpty(notifyCh)
+	drainCh(notifyCh)
+
+	// Remove service
+	require.NoError(state.RemoveService("web"))
+
+	// Should have a notification
+	assert.NotEmpty(notifyCh)
+	drainCh(notifyCh)
+
+	// Stopping should... stop
+	state.StopNotify(notifyCh)
+
+	// Add a service
+	err = state.AddService(&structs.NodeService{
+		Service: "web",
+	}, "fake-token-web")
+	require.NoError(err)
+
+	// Should NOT have a notification
+	assert.Empty(notifyCh)
+	drainCh(notifyCh)
+}
+
 func TestStateProxyManagement(t *testing.T) {
 	t.Parallel()
 
@@ -1862,7 +2008,7 @@ func TestStateProxyManagement(t *testing.T) {
 	assert.Equal("web-proxy", svc.ID)
 	assert.Equal("web-proxy", svc.Service)
 	assert.Equal(structs.ServiceKindConnectProxy, svc.Kind)
-	assert.Equal("web", svc.ProxyDestination)
+	assert.Equal("web", svc.Proxy.DestinationServiceName)
 	assert.Equal("", svc.Address, "should have empty address by default")
 	// Port is non-deterministic but could be either of 20000 or 20001
 	assert.Contains([]int{20000, 20001}, svc.Port)
@@ -1878,7 +2024,7 @@ func TestStateProxyManagement(t *testing.T) {
 		assert.Equal("web-proxy", svcDup.ID)
 		assert.Equal("web-proxy", svcDup.Service)
 		assert.Equal(structs.ServiceKindConnectProxy, svcDup.Kind)
-		assert.Equal("web", svcDup.ProxyDestination)
+		assert.Equal("web", svcDup.Proxy.DestinationServiceName)
 		assert.Equal("", svcDup.Address, "should have empty address by default")
 		// Port must be same as before
 		assert.Equal(svc.Port, svcDup.Port)

@@ -24,7 +24,7 @@ func TestRegisterMonitor_good(t *testing.T) {
 
 	// Verify the settings
 	require.Equal(api.ServiceKindConnectProxy, service.Kind)
-	require.Equal("foo", service.ProxyDestination)
+	require.Equal("foo", service.Proxy.DestinationServiceName)
 	require.Equal("127.0.0.1", service.Address)
 	require.Equal(1234, service.Port)
 

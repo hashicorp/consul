@@ -1,10 +1,11 @@
 package agent
 
 import (
+	"errors"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -18,7 +19,6 @@ import (
 	"github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
-	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
@@ -108,7 +108,7 @@ func (s *HTTPServer) AgentMetrics(resp http.ResponseWriter, req *http.Request) (
 	if enablePrometheusOutput(req) {
 		if s.agent.config.Telemetry.PrometheusRetentionTime < 1 {
 			resp.WriteHeader(http.StatusUnsupportedMediaType)
-			fmt.Fprint(resp, "Prometheus is not enable since its retention time is not positive")
+			fmt.Fprint(resp, "Prometheus is not enabled since its retention time is not positive")
 			return nil, nil
 		}
 		handlerOptions := promhttp.HandlerOpts{
@@ -190,29 +190,201 @@ func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) 
 			EnableTagOverride: s.EnableTagOverride,
 			CreateIndex:       s.CreateIndex,
 			ModifyIndex:       s.ModifyIndex,
-			ProxyDestination:  s.ProxyDestination,
 			Weights:           weights,
 		}
+
 		if as.Tags == nil {
 			as.Tags = []string{}
 		}
 		if as.Meta == nil {
 			as.Meta = map[string]string{}
 		}
-		// Attach Connect configs if the exist
+		// Attach Unmanaged Proxy config if exists
+		if s.Kind == structs.ServiceKindConnectProxy {
+			as.Proxy = s.Proxy.ToAPI()
+			// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
+			// Also set the deprecated ProxyDestination
+			as.ProxyDestination = as.Proxy.DestinationServiceName
+		}
+
+		// Attach Connect configs if they exist. We use the actual proxy state since
+		// that may have had defaults filled in compared to the config that was
+		// provided with the service as stored in the NodeService here.
 		if proxy, ok := proxies[id+"-proxy"]; ok {
 			as.Connect = &api.AgentServiceConnect{
 				Proxy: &api.AgentServiceConnectProxy{
-					ExecMode: api.ProxyExecMode(proxy.Proxy.ExecMode.String()),
-					Command:  proxy.Proxy.Command,
-					Config:   proxy.Proxy.Config,
+					ExecMode:  api.ProxyExecMode(proxy.Proxy.ExecMode.String()),
+					Command:   proxy.Proxy.Command,
+					Config:    proxy.Proxy.Config,
+					Upstreams: proxy.Proxy.Upstreams.ToAPI(),
 				},
+			}
+		} else if s.Connect.Native {
+			as.Connect = &api.AgentServiceConnect{
+				Native: true,
 			}
 		}
 		agentSvcs[id] = as
 	}
 
 	return agentSvcs, nil
+}
+
+// GET /v1/agent/service/:service_id
+//
+// Returns the service definition for a single local services and allows
+// blocking watch using hash-based blocking.
+func (s *HTTPServer) AgentService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Get the proxy ID. Note that this is the ID of a proxy's service instance.
+	id := strings.TrimPrefix(req.URL.Path, "/v1/agent/service/")
+
+	// DEPRECATED(managed-proxies) - remove this whole hack.
+	//
+	// Support managed proxies until they are removed entirely. Since built-in
+	// proxy will now use this endpoint, in order to not break managed proxies in
+	// the interim until they are removed, we need to mirror the default-setting
+	// behaviour they had. Rather than thread that through this whole method as
+	// special cases that need to be unwound later (and duplicate logic in the
+	// proxy config endpoint) just defer to that and then translater the response.
+	if managedProxy := s.agent.State.Proxy(id); managedProxy != nil {
+		// This is for a managed proxy, use the old endpoint's behaviour
+		req.URL.Path = "/v1/agent/connect/proxy/" + id
+		obj, err := s.AgentConnectProxyConfig(resp, req)
+		if err != nil {
+			return obj, err
+		}
+		proxyCfg, ok := obj.(*api.ConnectProxyConfig)
+		if !ok {
+			return nil, errors.New("internal error")
+		}
+		// These are all set by defaults so type checks are just sanity checks that
+		// should never fail.
+		port, ok := proxyCfg.Config["bind_port"].(int)
+		if !ok || port < 1 {
+			return nil, errors.New("invalid proxy config")
+		}
+		addr, ok := proxyCfg.Config["bind_address"].(string)
+		if !ok || addr == "" {
+			return nil, errors.New("invalid proxy config")
+		}
+		localAddr, ok := proxyCfg.Config["local_service_address"].(string)
+		if !ok || localAddr == "" {
+			return nil, errors.New("invalid proxy config")
+		}
+		// Old local_service_address was a host:port
+		localAddress, localPortRaw, err := net.SplitHostPort(localAddr)
+		if err != nil {
+			return nil, err
+		}
+		localPort, err := strconv.Atoi(localPortRaw)
+		if err != nil {
+			return nil, err
+		}
+
+		reply := &api.AgentService{
+			Kind:        api.ServiceKindConnectProxy,
+			ID:          proxyCfg.ProxyServiceID,
+			Service:     managedProxy.Proxy.ProxyService.Service,
+			Port:        port,
+			Address:     addr,
+			ContentHash: proxyCfg.ContentHash,
+			Proxy: &api.AgentServiceConnectProxyConfig{
+				DestinationServiceName: proxyCfg.TargetServiceName,
+				DestinationServiceID:   proxyCfg.TargetServiceID,
+				LocalServiceAddress:    localAddress,
+				LocalServicePort:       localPort,
+				Config:                 proxyCfg.Config,
+				Upstreams:              proxyCfg.Upstreams,
+			},
+		}
+		return reply, nil
+	}
+
+	// Maybe block
+	var queryOpts structs.QueryOptions
+	if parseWait(resp, req, &queryOpts) {
+		// parseWait returns an error itself
+		return nil, nil
+	}
+
+	// Parse the token
+	var token string
+	s.parseToken(req, &token)
+
+	// Parse hash specially. Eventually this should happen in parseWait and end up
+	// in QueryOptions but I didn't want to make very general changes right away.
+	hash := req.URL.Query().Get("hash")
+
+	return s.agentLocalBlockingQuery(resp, hash, &queryOpts,
+		func(ws memdb.WatchSet) (string, interface{}, error) {
+
+			svcState := s.agent.State.ServiceState(id)
+			if svcState == nil {
+				resp.WriteHeader(http.StatusNotFound)
+				fmt.Fprintf(resp, "unknown proxy service ID: %s", id)
+				return "", nil, nil
+			}
+
+			svc := svcState.Service
+
+			// Setup watch on the service
+			ws.Add(svcState.WatchCh)
+
+			// Check ACLs.
+			rule, err := s.agent.resolveToken(token)
+			if err != nil {
+				return "", nil, err
+			}
+			if rule != nil && !rule.ServiceRead(svc.Service) {
+				return "", nil, acl.ErrPermissionDenied
+			}
+
+			var connect *api.AgentServiceConnect
+			var proxy *api.AgentServiceConnectProxyConfig
+
+			if svc.Connect.Native {
+				connect = &api.AgentServiceConnect{
+					Native: svc.Connect.Native,
+				}
+			}
+
+			if svc.Kind == structs.ServiceKindConnectProxy {
+				proxy = svc.Proxy.ToAPI()
+			}
+
+			var weights api.AgentWeights
+			if svc.Weights != nil {
+				err := mapstructure.Decode(svc.Weights, &weights)
+				if err != nil {
+					return "", nil, err
+				}
+			}
+
+			// Calculate the content hash over the response, minus the hash field
+			reply := &api.AgentService{
+				Kind:              api.ServiceKind(svc.Kind),
+				ID:                svc.ID,
+				Service:           svc.Service,
+				Tags:              svc.Tags,
+				Meta:              svc.Meta,
+				Port:              svc.Port,
+				Address:           svc.Address,
+				EnableTagOverride: svc.EnableTagOverride,
+				Weights:           weights,
+				Proxy:             proxy,
+				Connect:           connect,
+			}
+
+			rawHash, err := hashstructure.Hash(reply, nil)
+			if err != nil {
+				return "", nil, err
+			}
+
+			// Include the ContentHash in the response body
+			reply.ContentHash = fmt.Sprintf("%x", rawHash)
+
+			return reply.ContentHash, reply, nil
+		})
 }
 
 func (s *HTTPServer) AgentChecks(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -544,6 +716,39 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 		// and why we should get rid of it.
 		config.TranslateKeys(rawMap, map[string]string{
 			"enable_tag_override": "EnableTagOverride",
+			// Managed Proxy Config
+			"exec_mode": "ExecMode",
+			// Proxy Upstreams
+			"destination_name":      "DestinationName",
+			"destination_type":      "DestinationType",
+			"destination_namespace": "DestinationNamespace",
+			"local_bind_port":       "LocalBindPort",
+			"local_bind_address":    "LocalBindAddress",
+			// Proxy Config
+			"destination_service_name": "DestinationServiceName",
+			"destination_service_id":   "DestinationServiceID",
+			"local_service_port":       "LocalServicePort",
+			"local_service_address":    "LocalServiceAddress",
+			// SidecarService
+			"sidecar_service": "SidecarService",
+
+			// DON'T Recurse into these opaque config maps or we might mangle user's
+			// keys. Note empty canonical is a special sentinel to prevent recursion.
+			"Meta": "",
+			// upstreams is an array but this prevents recursion into config field of
+			// any item in the array.
+			"Proxy.Config":                   "",
+			"Proxy.Upstreams.Config":         "",
+			"Connect.Proxy.Config":           "",
+			"Connect.Proxy.Upstreams.Config": "",
+
+			// Same exceptions as above, but for a nested sidecar_service note we use
+			// the canonical form SidecarService since that is translated by the time
+			// the lookup here happens. Note that sidecar service doesn't support
+			// managed proxies (connect.proxy).
+			"Connect.SidecarService.Meta":                   "",
+			"Connect.SidecarService.Proxy.Config":           "",
+			"Connect.SidecarService.Proxy.Upstreams.config": "",
 		})
 
 		for k, v := range rawMap {
@@ -625,11 +830,48 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 		}
 	}
 
+	// Verify the sidecar check types
+	if args.Connect != nil && args.Connect.SidecarService != nil {
+		chkTypes, err := args.Connect.SidecarService.CheckTypes()
+		if err != nil {
+			return nil, &BadRequestError{
+				Reason: fmt.Sprintf("Invalid check in sidecar_service: %v", err),
+			}
+		}
+		for _, check := range chkTypes {
+			if check.Status != "" && !structs.ValidStatus(check.Status) {
+				return nil, &BadRequestError{
+					Reason: "Status for checks must 'passing', 'warning', 'critical'",
+				}
+			}
+		}
+	}
+
 	// Get the provided token, if any, and vet against any ACL policies.
 	var token string
 	s.parseToken(req, &token)
 	if err := s.agent.vetServiceRegister(token, ns); err != nil {
 		return nil, err
+	}
+
+	// See if we have a sidecar to register too
+	sidecar, sidecarChecks, sidecarToken, err := s.agent.sidecarServiceFromNodeService(ns, token)
+	if err != nil {
+		return nil, &BadRequestError{
+			Reason: fmt.Sprintf("Invalid SidecarService: %s", err)}
+	}
+	if sidecar != nil {
+		// Make sure we are allowed to register the sidecar using the token
+		// specified (might be specific to sidecar or the same one as the overall
+		// request).
+		if err := s.agent.vetServiceRegister(sidecarToken, sidecar); err != nil {
+			return nil, err
+		}
+		// We parsed the sidecar registration, now remove it from the NodeService
+		// for the actual service since it's done it's job and we don't want to
+		// persist it in the actual state/catalog. SidecarService is meant to be a
+		// registration syntax sugar so don't propagate it any further.
+		ns.Connect.SidecarService = nil
 	}
 
 	// Get any proxy registrations
@@ -653,6 +895,12 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	// Add proxy (which will add proxy service so do it before we trigger sync)
 	if proxy != nil {
 		if err := s.agent.AddProxy(proxy, true, false, ""); err != nil {
+			return nil, err
+		}
+	}
+	// Add sidecar.
+	if sidecar != nil {
+		if err := s.agent.AddService(sidecar, sidecarChecks, true, sidecarToken); err != nil {
 			return nil, err
 		}
 	}
@@ -1109,6 +1357,7 @@ func (s *HTTPServer) AgentConnectProxyConfig(resp http.ResponseWriter, req *http
 				ExecMode:          api.ProxyExecMode(proxy.Proxy.ExecMode.String()),
 				Command:           proxy.Proxy.Command,
 				Config:            config,
+				Upstreams:         proxy.Proxy.Upstreams.ToAPI(),
 			}
 			return contentHash, reply, nil
 		})
@@ -1162,7 +1411,17 @@ func (s *HTTPServer) agentLocalBlockingQuery(resp http.ResponseWriter, hash stri
 			return curResp, err
 		}
 		// Watch returned false indicating a change was detected, loop and repeat
-		// the callback to load the new value.
+		// the callback to load the new value. If agent sync is paused it means
+		// local state is currently being bulk-edited e.g. config reload. In this
+		// case it's likely that local state just got unloaded and may or may not be
+		// reloaded yet. Wait a short amount of time for Sync to resume to ride out
+		// typical config reloads.
+		if syncPauseCh := s.agent.syncPausedCh(); syncPauseCh != nil {
+			select {
+			case <-syncPauseCh:
+			case <-timeout.C:
+			}
+		}
 	}
 }
 
@@ -1180,132 +1439,14 @@ func (s *HTTPServer) AgentConnectAuthorize(resp http.ResponseWriter, req *http.R
 	// Decode the request from the request body
 	var authReq structs.ConnectAuthorizeRequest
 	if err := decodeBody(req, &authReq, nil); err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "Request decode failed: %v", err)
-		return nil, nil
+		return nil, BadRequestError{fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
-	// We need to have a target to check intentions
-	if authReq.Target == "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "Target service must be specified")
-		return nil, nil
-	}
-
-	// Parse the certificate URI from the client ID
-	uriRaw, err := url.Parse(authReq.ClientCertURI)
-	if err != nil {
-		return &connectAuthorizeResp{
-			Authorized: false,
-			Reason:     fmt.Sprintf("Client ID must be a URI: %s", err),
-		}, nil
-	}
-	uri, err := connect.ParseCertURI(uriRaw)
-	if err != nil {
-		return &connectAuthorizeResp{
-			Authorized: false,
-			Reason:     fmt.Sprintf("Invalid client ID: %s", err),
-		}, nil
-	}
-
-	uriService, ok := uri.(*connect.SpiffeIDService)
-	if !ok {
-		return &connectAuthorizeResp{
-			Authorized: false,
-			Reason:     "Client ID must be a valid SPIFFE service URI",
-		}, nil
-	}
-
-	// We need to verify service:write permissions for the given token.
-	// We do this manually here since the RPC request below only verifies
-	// service:read.
-	rule, err := s.agent.resolveToken(token)
+	authz, reason, cacheMeta, err := s.agent.ConnectAuthorize(token, &authReq)
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && !rule.ServiceWrite(authReq.Target, nil) {
-		return nil, acl.ErrPermissionDenied
-	}
-
-	// Validate the trust domain matches ours. Later we will support explicit
-	// external federation but not built yet.
-	rootArgs := &structs.DCSpecificRequest{Datacenter: s.agent.config.Datacenter}
-	raw, _, err := s.agent.cache.Get(cachetype.ConnectCARootName, rootArgs)
-	if err != nil {
-		return nil, err
-	}
-
-	roots, ok := raw.(*structs.IndexedCARoots)
-	if !ok {
-		return nil, fmt.Errorf("internal error: roots response type not correct")
-	}
-	if roots.TrustDomain == "" {
-		return nil, fmt.Errorf("connect CA not bootstrapped yet")
-	}
-	if roots.TrustDomain != strings.ToLower(uriService.Host) {
-		return &connectAuthorizeResp{
-			Authorized: false,
-			Reason: fmt.Sprintf("Identity from an external trust domain: %s",
-				uriService.Host),
-		}, nil
-	}
-
-	// TODO(banks): Implement revocation list checking here.
-
-	// Get the intentions for this target service.
-	args := &structs.IntentionQueryRequest{
-		Datacenter: s.agent.config.Datacenter,
-		Match: &structs.IntentionQueryMatch{
-			Type: structs.IntentionMatchDestination,
-			Entries: []structs.IntentionMatchEntry{
-				{
-					Namespace: structs.IntentionDefaultNamespace,
-					Name:      authReq.Target,
-				},
-			},
-		},
-	}
-	args.Token = token
-
-	raw, m, err := s.agent.cache.Get(cachetype.IntentionMatchName, args)
-	if err != nil {
-		return nil, err
-	}
-	setCacheMeta(resp, &m)
-
-	reply, ok := raw.(*structs.IndexedIntentionMatches)
-	if !ok {
-		return nil, fmt.Errorf("internal error: response type not correct")
-	}
-	if len(reply.Matches) != 1 {
-		return nil, fmt.Errorf("Internal error loading matches")
-	}
-
-	// Test the authorization for each match
-	for _, ixn := range reply.Matches[0] {
-		if auth, ok := uriService.Authorize(ixn); ok {
-			return &connectAuthorizeResp{
-				Authorized: auth,
-				Reason:     fmt.Sprintf("Matched intention: %s", ixn.String()),
-			}, nil
-		}
-	}
-
-	// No match, we need to determine the default behavior. We do this by
-	// specifying the anonymous token token, which will get that behavior.
-	// The default behavior if ACLs are disabled is to allow connections
-	// to mimic the behavior of Consul itself: everything is allowed if
-	// ACLs are disabled.
-	rule, err = s.agent.resolveToken("")
-	if err != nil {
-		return nil, err
-	}
-	authz := true
-	reason := "ACLs disabled, access is allowed by default"
-	if rule != nil {
-		authz = rule.IntentionDefaultAllow()
-		reason = "Default behavior configured by ACLs"
-	}
+	setCacheMeta(resp, cacheMeta)
 
 	return &connectAuthorizeResp{
 		Authorized: authz,

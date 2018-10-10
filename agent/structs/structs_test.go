@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestEncodeDecode(t *testing.T) {
@@ -122,7 +123,7 @@ func TestStructs_RegisterRequest_ChangesNode(t *testing.T) {
 }
 
 // testServiceNode gives a fully filled out ServiceNode instance.
-func testServiceNode() *ServiceNode {
+func testServiceNode(t *testing.T) *ServiceNode {
 	return &ServiceNode{
 		ID:         types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5"),
 		Node:       "node1",
@@ -144,10 +145,19 @@ func testServiceNode() *ServiceNode {
 			"service": "metadata",
 		},
 		ServiceEnableTagOverride: true,
-		ServiceProxyDestination:  "cats",
 		RaftIndex: RaftIndex{
 			CreateIndex: 1,
 			ModifyIndex: 2,
+		},
+		ServiceProxy: TestConnectProxyConfig(t),
+		// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
+		// ServiceProxyDestination is deprecated bit must be set consistently with
+		// the value of ServiceProxy.DestinationServiceName otherwise a round-trip
+		// through ServiceNode -> NodeService and back will not match and fail
+		// tests.
+		ServiceProxyDestination: "web",
+		ServiceConnect: ServiceConnect{
+			Native: true,
 		},
 	}
 }
@@ -210,7 +220,7 @@ func TestNode_IsSame(t *testing.T) {
 }
 
 func TestStructs_ServiceNode_IsSameService(t *testing.T) {
-	sn := testServiceNode()
+	sn := testServiceNode(t)
 	node := "node1"
 	serviceID := sn.ServiceID
 	serviceAddress := sn.ServiceAddress
@@ -258,7 +268,7 @@ func TestStructs_ServiceNode_IsSameService(t *testing.T) {
 }
 
 func TestStructs_ServiceNode_PartialClone(t *testing.T) {
-	sn := testServiceNode()
+	sn := testServiceNode(t)
 
 	clone := sn.PartialClone()
 
@@ -278,9 +288,7 @@ func TestStructs_ServiceNode_PartialClone(t *testing.T) {
 	sn.Datacenter = ""
 	sn.TaggedAddresses = nil
 	sn.NodeMeta = nil
-	if !reflect.DeepEqual(sn, clone) {
-		t.Fatalf("bad: %v", clone)
-	}
+	require.Equal(t, sn, clone)
 
 	sn.ServiceTags = append(sn.ServiceTags, "hello")
 	if reflect.DeepEqual(sn, clone) {
@@ -306,7 +314,7 @@ func TestStructs_ServiceNode_PartialClone(t *testing.T) {
 }
 
 func TestStructs_ServiceNode_IsSame(t *testing.T) {
-	sn := testServiceNode()
+	sn := testServiceNode(t)
 
 	sn2 := sn.ToNodeService().ToServiceNode("node1")
 	// These two fields get lost in the conversion, so we have to zero-value
@@ -323,7 +331,7 @@ func TestStructs_ServiceNode_IsSame(t *testing.T) {
 }
 
 func TestStructs_ServiceNode_Conversions(t *testing.T) {
-	sn := testServiceNode()
+	sn := testServiceNode(t)
 
 	sn2 := sn.ToNodeService().ToServiceNode("node1")
 
@@ -335,9 +343,7 @@ func TestStructs_ServiceNode_Conversions(t *testing.T) {
 	sn.TaggedAddresses = nil
 	sn.NodeMeta = nil
 	sn.ServiceWeights = Weights{Passing: 1, Warning: 1}
-	if !reflect.DeepEqual(sn, sn2) {
-		t.Fatalf("bad: %#v, but expected %#v", sn2, sn)
-	}
+	require.Equal(t, sn, sn2)
 }
 
 func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
@@ -354,19 +360,19 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 
 		{
 			"connect-proxy: no ProxyDestination",
-			func(x *NodeService) { x.ProxyDestination = "" },
-			"ProxyDestination must be",
+			func(x *NodeService) { x.Proxy.DestinationServiceName = "" },
+			"Proxy.DestinationServiceName must be",
 		},
 
 		{
 			"connect-proxy: whitespace ProxyDestination",
-			func(x *NodeService) { x.ProxyDestination = "  " },
-			"ProxyDestination must be",
+			func(x *NodeService) { x.Proxy.DestinationServiceName = "  " },
+			"Proxy.DestinationServiceName must be",
 		},
 
 		{
 			"connect-proxy: valid ProxyDestination",
-			func(x *NodeService) { x.ProxyDestination = "hello" },
+			func(x *NodeService) { x.Proxy.DestinationServiceName = "hello" },
 			"",
 		},
 
@@ -400,6 +406,62 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 	}
 }
 
+func TestStructs_NodeService_ValidateSidecarService(t *testing.T) {
+	cases := []struct {
+		Name   string
+		Modify func(*NodeService)
+		Err    string
+	}{
+		{
+			"valid",
+			func(x *NodeService) {},
+			"",
+		},
+
+		{
+			"ID can't be set",
+			func(x *NodeService) { x.Connect.SidecarService.ID = "foo" },
+			"SidecarService cannot specify an ID",
+		},
+
+		{
+			"Nested sidecar can't be set",
+			func(x *NodeService) {
+				x.Connect.SidecarService.Connect = &ServiceConnect{
+					SidecarService: &ServiceDefinition{},
+				}
+			},
+			"SidecarService cannot have a nested SidecarService",
+		},
+
+		{
+			"Sidecar can't have managed proxy",
+			func(x *NodeService) {
+				x.Connect.SidecarService.Connect = &ServiceConnect{
+					Proxy: &ServiceDefinitionConnectProxy{},
+				}
+			},
+			"SidecarService cannot have a managed proxy",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			assert := assert.New(t)
+			ns := TestNodeServiceSidecar(t)
+			tc.Modify(ns)
+
+			err := ns.Validate()
+			assert.Equal(err != nil, tc.Err != "", err)
+			if err == nil {
+				return
+			}
+
+			assert.Contains(strings.ToLower(err.Error()), strings.ToLower(tc.Err))
+		})
+	}
+}
+
 func TestStructs_NodeService_IsSame(t *testing.T) {
 	ns := &NodeService{
 		ID:      "node1",
@@ -412,8 +474,13 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 		},
 		Port:              1234,
 		EnableTagOverride: true,
-		ProxyDestination:  "db",
-		Weights:           &Weights{Passing: 1, Warning: 1},
+		Proxy: ConnectProxyConfig{
+			DestinationServiceName: "db",
+			Config: map[string]interface{}{
+				"foo": "bar",
+			},
+		},
+		Weights: &Weights{Passing: 1, Warning: 1},
 	}
 	if !ns.IsSame(ns) {
 		t.Fatalf("should be equal to itself")
@@ -431,8 +498,13 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 			"meta2": "value2",
 			"meta1": "value1",
 		},
-		ProxyDestination: "db",
-		Weights:          &Weights{Passing: 1, Warning: 1},
+		Proxy: ConnectProxyConfig{
+			DestinationServiceName: "db",
+			Config: map[string]interface{}{
+				"foo": "bar",
+			},
+		},
+		Weights: &Weights{Passing: 1, Warning: 1},
 		RaftIndex: RaftIndex{
 			CreateIndex: 1,
 			ModifyIndex: 2,
@@ -443,6 +515,7 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 	}
 
 	check := func(twiddle, restore func()) {
+		t.Helper()
 		if !ns.IsSame(other) || !other.IsSame(ns) {
 			t.Fatalf("should be the same")
 		}
@@ -454,7 +527,7 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 
 		restore()
 		if !ns.IsSame(other) || !other.IsSame(ns) {
-			t.Fatalf("should be the same")
+			t.Fatalf("should be the same again")
 		}
 	}
 
@@ -467,7 +540,11 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 	check(func() { other.Meta["meta2"] = "wrongValue" }, func() { other.Meta["meta2"] = "value2" })
 	check(func() { other.EnableTagOverride = false }, func() { other.EnableTagOverride = true })
 	check(func() { other.Kind = ServiceKindConnectProxy }, func() { other.Kind = "" })
-	check(func() { other.ProxyDestination = "" }, func() { other.ProxyDestination = "db" })
+	check(func() { other.Proxy.DestinationServiceName = "" }, func() { other.Proxy.DestinationServiceName = "db" })
+	check(func() { other.Proxy.DestinationServiceID = "XXX" }, func() { other.Proxy.DestinationServiceID = "" })
+	check(func() { other.Proxy.LocalServiceAddress = "XXX" }, func() { other.Proxy.LocalServiceAddress = "" })
+	check(func() { other.Proxy.LocalServicePort = 9999 }, func() { other.Proxy.LocalServicePort = 0 })
+	check(func() { other.Proxy.Config["baz"] = "XXX" }, func() { delete(other.Proxy.Config, "baz") })
 	check(func() { other.Connect.Native = true }, func() { other.Connect.Native = false })
 	otherServiceNode := other.ToServiceNode("node1")
 	copyNodeService := otherServiceNode.ToNodeService()
