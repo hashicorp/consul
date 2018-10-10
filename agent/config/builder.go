@@ -301,6 +301,22 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		dnsServiceTTL[k] = b.durationVal(fmt.Sprintf("dns_config.service_ttl[%q]", k), &v)
 	}
 
+	soa := RuntimeSOAConfig{Refresh: 3600, Retry: 600, Expire: 86400, Minttl: 0}
+	if c.DNS.SOA != nil {
+		if c.DNS.SOA.Expire != nil {
+			soa.Expire = *c.DNS.SOA.Expire
+		}
+		if c.DNS.SOA.Minttl != nil {
+			soa.Minttl = *c.DNS.SOA.Minttl
+		}
+		if c.DNS.SOA.Refresh != nil {
+			soa.Refresh = *c.DNS.SOA.Refresh
+		}
+		if c.DNS.SOA.Retry != nil {
+			soa.Retry = *c.DNS.SOA.Retry
+		}
+	}
+
 	leaveOnTerm := !b.boolVal(c.ServerMode)
 	if c.LeaveOnTerm != nil {
 		leaveOnTerm = b.boolVal(c.LeaveOnTerm)
@@ -558,6 +574,15 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		})
 	}
 
+	primaryDatacenter := strings.ToLower(b.stringVal(c.PrimaryDatacenter))
+	if c.ACLDatacenter != nil {
+		b.warn("The 'acl_datacenter' field is deprecated. Use the 'primary_datacenter' field instead.")
+
+		if primaryDatacenter == "" {
+			primaryDatacenter = strings.ToLower(b.stringVal(c.ACLDatacenter))
+		}
+	}
+
 	proxyDefaultExecMode := b.stringVal(c.Connect.ProxyDefaults.ExecMode)
 	proxyDefaultDaemonCommand := c.Connect.ProxyDefaults.DaemonCommand
 	proxyDefaultScriptCommand := c.Connect.ProxyDefaults.ScriptCommand
@@ -640,6 +665,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		DNSRecursorTimeout:    b.durationVal("recursor_timeout", c.DNS.RecursorTimeout),
 		DNSRecursors:          dnsRecursors,
 		DNSServiceTTL:         dnsServiceTTL,
+		DNSSOA:                soa,
 		DNSUDPAnswerLimit:     b.intVal(c.DNS.UDPAnswerLimit),
 		DNSNodeMetaTXT:        b.boolValWithDefault(c.DNS.NodeMetaTXT, true),
 
@@ -737,6 +763,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		NodeName:                                b.nodeName(c.NodeName),
 		NonVotingServer:                         b.boolVal(c.NonVotingServer),
 		PidFile:                                 b.stringVal(c.PidFile),
+		PrimaryDatacenter:                       primaryDatacenter,
 		RPCAdvertiseAddr:                        rpcAdvertiseAddr,
 		RPCBindAddr:                             rpcBindAddr,
 		RPCHoldTimeout:                          b.durationVal("performance.rpc_hold_timeout", c.Performance.RPCHoldTimeout),

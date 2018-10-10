@@ -1379,7 +1379,9 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			patch: func(rt *RuntimeConfig) {
 				rt.ACLDatacenter = "a"
 				rt.DataDir = dataDir
+				rt.PrimaryDatacenter = "a"
 			},
+			warns: []string{`The 'acl_datacenter' field is deprecated. Use the 'primary_datacenter' field instead.`},
 		},
 		{
 			desc: "acl_replication_token enables acl replication",
@@ -1472,9 +1474,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				`-datacenter=a`,
 				`-data-dir=` + dataDir,
 			},
-			json: []string{`{ "acl_datacenter": "%" }`},
-			hcl:  []string{`acl_datacenter = "%"`},
-			err:  `acl_datacenter cannot be "%". Please use only [a-z0-9-_]`,
+			json:  []string{`{ "acl_datacenter": "%" }`},
+			hcl:   []string{`acl_datacenter = "%"`},
+			err:   `acl_datacenter cannot be "%". Please use only [a-z0-9-_]`,
+			warns: []string{`The 'acl_datacenter' field is deprecated. Use the 'primary_datacenter' field instead.`},
 		},
 		{
 			desc: "autopilot.max_trailing_logs invalid",
@@ -3013,6 +3016,7 @@ func TestFullConfig(t *testing.T) {
 				"sidecar_max_port": 9999
 			},
 			"protocol": 30793,
+			"primary_datacenter": "ejtmd43d",
 			"raft_protocol": 19016,
 			"raft_snapshot_threshold": 16384,
 			"raft_snapshot_interval": "30s",
@@ -3543,6 +3547,7 @@ func TestFullConfig(t *testing.T) {
 				sidecar_max_port = 9999
 			}
 			protocol = 30793
+			primary_datacenter = "ejtmd43d"
 			raft_protocol = 19016
 			raft_snapshot_threshold = 16384
 			raft_snapshot_interval = "30s"
@@ -4105,6 +4110,7 @@ func TestFullConfig(t *testing.T) {
 		DNSPort:                          7001,
 		DNSRecursorTimeout:               4427 * time.Second,
 		DNSRecursors:                     []string{"63.38.39.58", "92.49.18.18"},
+		DNSSOA:                           RuntimeSOAConfig{Refresh: 3600, Retry: 600, Expire: 86400, Minttl: 0},
 		DNSServiceTTL:                    map[string]time.Duration{"*": 32030 * time.Second},
 		DNSUDPAnswerLimit:                29909,
 		DNSNodeMetaTXT:                   true,
@@ -4146,6 +4152,7 @@ func TestFullConfig(t *testing.T) {
 		NodeName:                         "otlLxGaI",
 		NonVotingServer:                  true,
 		PidFile:                          "43xN80Km",
+		PrimaryDatacenter:                "ejtmd43d",
 		RPCAdvertiseAddr:                 tcpAddr("17.99.29.16:3757"),
 		RPCBindAddr:                      tcpAddr("16.99.34.17:3757"),
 		RPCHoldTimeout:                   15707 * time.Second,
@@ -4488,6 +4495,7 @@ func TestFullConfig(t *testing.T) {
 	}
 
 	warns := []string{
+		`The 'acl_datacenter' field is deprecated. Use the 'primary_datacenter' field instead.`,
 		`bootstrap_expect > 0: expecting 53 servers`,
 	}
 
@@ -4747,6 +4755,7 @@ func TestSanitize(t *testing.T) {
 			&net.TCPAddr{IP: net.ParseIP("1.2.3.4"), Port: 5678},
 			&net.UDPAddr{IP: net.ParseIP("1.2.3.4"), Port: 5678},
 		},
+		DNSSOA: RuntimeSOAConfig{Refresh: 3600, Retry: 600, Expire: 86400, Minttl: 0},
 		HTTPAddrs: []net.Addr{
 			&net.TCPAddr{IP: net.ParseIP("1.2.3.4"), Port: 5678},
 			&net.UnixAddr{Name: "/var/run/foo"},
@@ -4849,6 +4858,7 @@ func TestSanitize(t *testing.T) {
 		"ConnectProxyDefaultScriptCommand": [],
 		"ConnectSidecarMaxPort": 0,
 		"ConnectSidecarMinPort": 0,
+		"ConnectReplicationToken": "hidden",
 		"ConnectTestDisableManagedProxies": false,
 		"ConsulCoordinateUpdateBatchSize": 0,
 		"ConsulCoordinateUpdateMaxBatches": 0,
@@ -4886,6 +4896,12 @@ func TestSanitize(t *testing.T) {
 		"DNSRecursorTimeout": "0s",
 		"DNSRecursors": [],
 		"DNSServiceTTL": {},
+		"DNSSOA": {
+			"Refresh": 3600,
+			"Retry": 600,
+			"Expire": 86400,
+			"Minttl": 0
+		},
 		"DNSUDPAnswerLimit": 0,
 		"DataDir": "",
 		"Datacenter": "",
@@ -4931,6 +4947,7 @@ func TestSanitize(t *testing.T) {
 		"NodeName": "",
 		"NonVotingServer": false,
 		"PidFile": "",
+		"PrimaryDatacenter": "",
 		"RPCAdvertiseAddr": "",
 		"RPCBindAddr": "",
 		"RPCHoldTimeout": "0s",

@@ -1115,6 +1115,39 @@ func TestDNS_ServiceReverseLookup_CustomDomain(t *testing.T) {
 	}
 }
 
+func TestDNS_SOA_Settings(t *testing.T) {
+	t.Parallel()
+	testSoaWithConfig := func(config string, ttl, expire, refresh, retry uint) {
+		a := NewTestAgent(t.Name(), config)
+		defer a.Shutdown()
+		testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+		// lookup a non-existing node, we should receive a SOA
+		m := new(dns.Msg)
+		m.SetQuestion("nofoo.node.dc1.consul.", dns.TypeANY)
+
+		c := new(dns.Client)
+		in, _, err := c.Exchange(m, a.DNSAddr())
+		require.NoError(t, err)
+		require.Len(t, in.Ns, 1)
+		soaRec, ok := in.Ns[0].(*dns.SOA)
+		require.True(t, ok, "NS RR is not a SOA record")
+		require.Equal(t, uint32(ttl), soaRec.Minttl)
+		require.Equal(t, uint32(expire), soaRec.Expire)
+		require.Equal(t, uint32(refresh), soaRec.Refresh)
+		require.Equal(t, uint32(retry), soaRec.Retry)
+		require.Equal(t, uint32(ttl), soaRec.Hdr.Ttl)
+	}
+	// Default configuration
+	testSoaWithConfig("", 0, 86400, 3600, 600)
+	// Override all settings
+	testSoaWithConfig("dns_config={soa={min_ttl=60,expire=43200,refresh=1800,retry=300}}", 60, 43200, 1800, 300)
+	// Override partial settings
+	testSoaWithConfig("dns_config={soa={min_ttl=60,expire=43200}}", 60, 43200, 3600, 600)
+	// Override partial settings, part II
+	testSoaWithConfig("dns_config={soa={refresh=1800,retry=300}}", 0, 86400, 1800, 300)
+}
+
 func TestDNS_ServiceReverseLookupNodeAddress(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
