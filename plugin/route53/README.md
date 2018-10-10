@@ -21,7 +21,9 @@ route53 [ZONE:HOSTED_ZONE_ID...] {
 }
 ~~~
 
-* **ZONE** the name of the domain to be accessed.
+* **ZONE** the name of the domain to be accessed. When there are multiple zones with overlapping domains
+  (private vs. public hosted zone), CoreDNS does the lookup in the given order here. Therefore, for a
+  non-existing resource record, SOA response will be from the rightmost zone.
 * **HOSTED_ZONE_ID** the ID of the hosted zone that contains the resource record sets to be accessed.
 * **AWS_ACCESS_KEY_ID** and **AWS_SECRET_ACCESS_KEY** the AWS access key ID and secret access key
    to be used when query AWS (optional).  If they are not provided, then coredns tries to access
@@ -79,5 +81,13 @@ Enable route53 with AWS credentials file:
     route53 example.org.:Z1Z2Z3Z4DZ5Z6Z7 {
       credentials_file some-user
     }
+}
+~~~
+
+Enable route53 with multiple hosted zones with the same domain:
+
+~~~ txt
+. {
+    route53 example.org.:Z1Z2Z3Z4DZ5Z6Z7 example.org.:Z93A52145678156
 }
 ~~~

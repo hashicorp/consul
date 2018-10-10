@@ -31,19 +31,26 @@ func (fakeRoute53) ListResourceRecordSetsPagesWithContext(_ aws.Context, in *rou
 	if aws.StringValue(in.HostedZoneId) == "0987654321" {
 		return errors.New("bad. zone is bad")
 	}
-	var rrs []*route53.ResourceRecordSet
+	rrsResponse := map[string][]*route53.ResourceRecordSet{}
 	for _, r := range []struct {
-		rType, name, value string
+		rType, name, value, hostedZoneID string
 	}{
-		{"A", "example.org.", "1.2.3.4"},
-		{"AAAA", "example.org.", "2001:db8:85a3::8a2e:370:7334"},
-		{"CNAME", "sample.example.org.", "example.org"},
-		{"PTR", "example.org.", "ptr.example.org."},
-		{"SOA", "org.", "ns-1536.awsdns-00.co.uk. awsdns-hostmaster.amazon.com. 1 7200 900 1209600 86400"},
-		{"NS", "com.", "ns-1536.awsdns-00.co.uk."},
+		{"A", "example.org.", "1.2.3.4", "1234567890"},
+		{"AAAA", "example.org.", "2001:db8:85a3::8a2e:370:7334", "1234567890"},
+		{"CNAME", "sample.example.org.", "example.org", "1234567890"},
+		{"PTR", "example.org.", "ptr.example.org.", "1234567890"},
+		{"SOA", "org.", "ns-1536.awsdns-00.co.uk. awsdns-hostmaster.amazon.com. 1 7200 900 1209600 86400", "1234567890"},
+		{"NS", "com.", "ns-1536.awsdns-00.co.uk.", "1234567890"},
 		// Unsupported type should be ignored.
-		{"YOLO", "swag.", "foobar"},
+		{"YOLO", "swag.", "foobar", "1234567890"},
+		// hosted zone with the same name, but a different id
+		{"A", "other-example.org.", "3.5.7.9", "1357986420"},
+		{"SOA", "org.", "ns-15.awsdns-00.co.uk. awsdns-hostmaster.amazon.com. 1 7200 900 1209600 86400", "1357986420"},
 	} {
+		rrs, ok := rrsResponse[r.hostedZoneID]
+		if !ok {
+			rrs = make([]*route53.ResourceRecordSet, 0)
+		}
 		rrs = append(rrs, &route53.ResourceRecordSet{Type: aws.String(r.rType),
 			Name: aws.String(r.name),
 			ResourceRecords: []*route53.ResourceRecord{
@@ -53,9 +60,11 @@ func (fakeRoute53) ListResourceRecordSetsPagesWithContext(_ aws.Context, in *rou
 			},
 			TTL: aws.Int64(300),
 		})
+		rrsResponse[r.hostedZoneID] = rrs
 	}
+
 	if ok := fn(&route53.ListResourceRecordSetsOutput{
-		ResourceRecordSets: rrs,
+		ResourceRecordSets: rrsResponse[aws.StringValue(in.HostedZoneId)],
 	}, true); !ok {
 		return errors.New("paging function return false")
 	}
@@ -65,7 +74,7 @@ func (fakeRoute53) ListResourceRecordSetsPagesWithContext(_ aws.Context, in *rou
 func TestRoute53(t *testing.T) {
 	ctx := context.Background()
 
-	r, err := New(ctx, fakeRoute53{}, map[string]string{"bad.": "0987654321"}, &upstream.Upstream{})
+	r, err := New(ctx, fakeRoute53{}, map[string][]string{"bad.": []string{"0987654321"}}, &upstream.Upstream{})
 	if err != nil {
 		t.Fatalf("Failed to create Route53: %v", err)
 	}
@@ -73,7 +82,7 @@ func TestRoute53(t *testing.T) {
 		t.Fatalf("Expected errors for zone bad.")
 	}
 
-	r, err = New(ctx, fakeRoute53{}, map[string]string{"org.": "1234567890", "gov.": "Z098765432"}, &upstream.Upstream{})
+	r, err = New(ctx, fakeRoute53{}, map[string][]string{"org.": []string{"1357986420", "1234567890"}, "gov": []string{"Z098765432"}}, &upstream.Upstream{})
 	if err != nil {
 		t.Fatalf("Failed to create Route53: %v", err)
 	}
@@ -158,7 +167,7 @@ func TestRoute53(t *testing.T) {
 			qname:        "example.org",
 			qtype:        dns.TypeSOA,
 			expectedCode: dns.RcodeSuccess,
-			wantAnswer: []string{"org.	300	IN	SOA	ns-1536.awsdns-00.co.uk. awsdns-hostmaster.amazon.com. 1 7200 900 1209600 86400"},
+			wantAnswer: []string{"org.	300	IN	SOA	ns-15.awsdns-00.co.uk. awsdns-hostmaster.amazon.com. 1 7200 900 1209600 86400"},
 		},
 		// 6. Explicit SOA query for example.org.
 		{
@@ -186,6 +195,13 @@ func TestRoute53(t *testing.T) {
 			qtype:        dns.TypeA,
 			expectedCode: dns.RcodeSuccess,
 			wantAnswer: []string{"example.gov.	300	IN	A	2.4.6.8"},
+		},
+		// 10. other-zone.example.org is stored in a different hosted zone. success
+		{
+			qname:        "other-example.org",
+			qtype:        dns.TypeA,
+			expectedCode: dns.RcodeSuccess,
+			wantAnswer: []string{"other-example.org.	300	IN	A	3.5.7.9"},
 		},
 	}
 
