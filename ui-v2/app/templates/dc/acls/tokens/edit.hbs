@@ -27,8 +27,9 @@
         </h1>
     {{/block-slot}}
     {{#block-slot 'actions'}}
-{{#if (not create) }}
-  {{#if (not-eq item.AccessorID token.AccessorID)}}
+{{#if (not item.Legacy)}}
+  {{#if (not create)}}
+    {{#if (not-eq item.AccessorID token.AccessorID)}}
         {{#confirmation-dialog message='Are you sure you want to use this ACL token?'}}
             {{#block-slot 'action' as |confirm|}}
                 <button data-test-use type="button" {{ action confirm 'use' item }}>Use</button>
@@ -41,8 +42,9 @@
                 <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
             {{/block-slot}}
         {{/confirmation-dialog}}
-  {{/if}}
+    {{/if}}
         <button type="button" {{ action "clone" item }}>Duplicate</button>
+  {{/if}}
 {{/if}}
     {{/block-slot}}
     {{#block-slot 'content'}}

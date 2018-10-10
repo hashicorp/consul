@@ -75,9 +75,11 @@
                                 <li>
                                     <a data-test-edit href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>Edit</a>
                                 </li>
+{{#if (not item.Legacy)}}
                                 <li>
                                     <a data-test-clone onclick={{action 'sendClone' item}}>Duplicate</a>
                                 </li>
+{{/if}}
 {{#if (eq item.AccessorID token.AccessorID) }}
                                 <li>
                                     <a data-test-logout onclick={{queue (action confirm 'logout' item) (action change)}}>Stop using</a>
