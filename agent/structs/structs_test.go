@@ -234,6 +234,9 @@ func TestStructs_ServiceNode_IsSameService(t *testing.T) {
 	serviceTags := sn.ServiceTags
 	serviceWeights := Weights{Passing: 2, Warning: 1}
 	sn.ServiceWeights = serviceWeights
+	serviceProxyDestination := sn.ServiceProxyDestination
+	serviceProxy := sn.ServiceProxy
+	serviceConnect := sn.ServiceConnect
 
 	n := sn.ToNodeService().ToServiceNode(node)
 	other := sn.ToNodeService().ToServiceNode(node)
@@ -263,8 +266,11 @@ func TestStructs_ServiceNode_IsSameService(t *testing.T) {
 	check(func() { other.ServiceMeta = map[string]string{"my": "meta"} }, func() { other.ServiceMeta = serviceMeta })
 	check(func() { other.ServiceName = "duck" }, func() { other.ServiceName = serviceName })
 	check(func() { other.ServicePort = 65534 }, func() { other.ServicePort = servicePort })
+	check(func() { other.ServiceProxyDestination = "duck" }, func() { other.ServiceProxyDestination = serviceProxyDestination })
 	check(func() { other.ServiceTags = []string{"new", "tags"} }, func() { other.ServiceTags = serviceTags })
 	check(func() { other.ServiceWeights = Weights{Passing: 42, Warning: 41} }, func() { other.ServiceWeights = serviceWeights })
+	check(func() { other.ServiceProxy = ConnectProxyConfig{} }, func() { other.ServiceProxy = serviceProxy })
+	check(func() { other.ServiceConnect = ServiceConnect{} }, func() { other.ServiceConnect = serviceConnect })
 }
 
 func TestStructs_ServiceNode_PartialClone(t *testing.T) {

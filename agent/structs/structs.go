@@ -817,7 +817,7 @@ func (s *ServiceNode) IsSameService(other *ServiceNode) bool {
 		s.ServiceEnableTagOverride != other.ServiceEnableTagOverride ||
 		s.ServiceProxyDestination != other.ServiceProxyDestination ||
 		!reflect.DeepEqual(s.ServiceProxy, other.ServiceProxy) ||
-		s.ServiceConnect != other.ServiceConnect {
+		!reflect.DeepEqual(s.ServiceConnect, other.ServiceConnect) {
 		return false
 	}
 
