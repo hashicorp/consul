@@ -198,6 +198,11 @@ and consider if they're appropriate for your deployment.
   The name of the Docker image (including any tag) for the containers running
   Consul client agents.
 
+  - <a name="v-client-grpc" href="#v-client-grpc">`grpc`</a> (`boolean: false`) -
+  If true, agents will enable their GRPC listener on port 8502 and expose
+  it to the host. This will use slightly more resources, but is required for
+  [Connect](/docs/platform/k8s/connect.html).
+
   - <a name="v-client-extraconfig" href="#v-client-extraconfig">`extraConfig`</a> (`string: "{}"`) -
   A raw string of extra JSON or HCL configuration for Consul clients. This
   will be saved as-is into a ConfigMap that is read by the Consul agents.
@@ -292,3 +297,60 @@ and consider if they're appropriate for your deployment.
       by Kubernetes. The available service types are documented on
       [the Kubernetes website](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types).
 
+* <a name="v-connectinject" href="#v-connectinject">`connectInject`</a> - Values that
+  configure running the [Connect injector](/docs/platform/k8s/connect.html).
+
+  - <a name="v-connectinject-enabled" href="#v-connectinject-enabled">`enabled`</a> (`boolean: false`) -
+  If true, the chart will install all the resources necessary for the
+  Connect injector process to run. This will enable the injector but will
+  require pods to opt-in with an annotation by default.
+
+  - <a name="v-connectinject-imageConsul" href="#v-connectinject-imageConsul">`imageConsul`</a> (`string: global.image`) -
+  The name of the Docker image (including any tag) for Consul. This is used
+  for proxy service registration, Envoy configuration, etc.
+
+  - <a name="v-connectinject-imageEnvoy" href="#v-connectinject-imageEnvoy">`imageEnvoy`</a> (`string: ""`) -
+  The name of the Docker image (including any tag) for the Envoy sidecar.
+  `envoy` must be on the executable path within this image. This Envoy
+  version must be compatible with the Consul version used by the injector.
+  This defaults to letting the injector choose the Envoy image, which is
+  usually `envoy/envoy-alpine`.
+
+  - <a name="v-connectinject-default" href="#v-connectinject-default">`default`</a> (`boolean: false`) -
+  If true, the injector will inject the Connect sidecar into all pods by
+  default. Otherwise, pods must specify the
+  [injection annotation](/docs/platform/k8s/connect.html#consul-hashicorp-com-connect-inject)
+  to opt-in to Connect injection. If this is true, pods can use the same
+  annotation to explicitly opt-out of injection.
+
+  - <a name="v-connectinject-namespaceselector" href="#v-connectinject-namespaceselector">`namespaceSelector`</a> (`string: ""`) -
+  A [selector](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/)
+  for restricting injection to only matching namespaces. By default
+  all namespaces except the system namespace will have injection enabled.
+
+  - <a name="v-connectinject-certs" href="#v-connectinject-certs">`certs`</a> -
+  The certs section configures how the webhook TLS certs are configured.
+  These are the TLS certs for the Kube apiserver communicating to the
+  webhook. By default, the injector will generate and manage its own certs,
+  but this requires the ability for the injector to update its own
+  `MutatingWebhookConfiguration`. In a production environment, custom certs
+  should probably be used. Configure the values below to enable this.
+
+      * <a name="v-connectinject-certs-secretname" href="#v-connectinject-certs-secretname">`secretName`</a> (`string: null`) -
+      secretName is the name of the Kubernetes secret that has the TLS certificate and
+      private key to serve the injector webhook. If this is null, then the
+      injector will default to its automatic management mode.
+
+      * <a name="v-connectinject-cabundle" href="#v-connectinject-cabundle">`caBundle`</a> (`string: ""`) -
+      The PEM-encoded CA public certificate bundle for the TLS certificate served by the
+      injector. This must be specified as a string and can't come from a
+      secret because it must be statically configured on the Kubernetes
+      `MutatingAdmissionWebhook` resource. This only needs to be specified
+      if `secretName` is not null.
+
+      * <a name="v-connectinject-certs-certname" href="#v-connectinject-certs-certname">`certName`</a> (`string: "tls.crt"`) -
+      The name of the certificate file within the `secretName` secret.
+
+      * <a name="v-connectinject-certs-keynamkeyname" href="#v-connectinject-certs-keyname">`keyName`</a> (`string: "tls.key"`) -
+      The name of the private key for the certificate file within the
+      `secretName` secret.
