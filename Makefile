@@ -3,7 +3,7 @@ GITCOMMIT:=$(shell git describe --dirty --always)
 BINARY:=coredns
 SYSTEM:=
 CHECKS:=check godeps
-VERBOSE:=-v
+BUILDOPTS:=-v
 GOPATH?=$(HOME)/go
 PRESUBMIT:=core coremain plugin test request
 MAKEPWD:=$(dir $(realpath $(firstword $(MAKEFILE_LIST))))
@@ -13,7 +13,7 @@ all: coredns
 
 .PHONY: coredns
 coredns: $(CHECKS)
-	CGO_ENABLED=$(CGO_ENABLED) $(SYSTEM) go build $(VERBOSE) -ldflags="-s -w -X github.com/coredns/coredns/coremain.GitCommit=$(GITCOMMIT)" -o $(BINARY)
+	CGO_ENABLED=$(CGO_ENABLED) $(SYSTEM) go build $(BUILDOPTS) -ldflags="-s -w -X github.com/coredns/coredns/coremain.GitCommit=$(GITCOMMIT)" -o $(BINARY)
 
 .PHONY: check
 check: presubmit core/zplugin.go core/dnsserver/zdirectives.go godeps

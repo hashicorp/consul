@@ -69,12 +69,12 @@ build:
 	@echo Cleaning old builds
 	@rm -rf build && mkdir build
 	@echo Building: darwin/amd64 - $(VERSION)
-	mkdir -p build/darwin/amd64 && $(MAKE) coredns BINARY=build/darwin/amd64/$(NAME) SYSTEM="GOOS=darwin GOARCH=amd64" CHECKS="godeps" VERBOSE=""
+	mkdir -p build/darwin/amd64 && $(MAKE) coredns BINARY=build/darwin/amd64/$(NAME) SYSTEM="GOOS=darwin GOARCH=amd64" CHECKS="godeps" BUILDOPTS=""
 	@echo Building: windows/amd64 - $(VERSION)
-	mkdir -p build/windows/amd64 && $(MAKE) coredns BINARY=build/windows/amd64/$(NAME).exe SYSTEM="GOOS=windows GOARCH=amd64" CHECKS="" VERBOSE=""
+	mkdir -p build/windows/amd64 && $(MAKE) coredns BINARY=build/windows/amd64/$(NAME).exe SYSTEM="GOOS=windows GOARCH=amd64" CHECKS="" BUILDOPTS=""
 	@echo Building: linux/$(LINUX_ARCH) - $(VERSION) ;\
 	for arch in $(LINUX_ARCH); do \
-	    mkdir -p build/linux/$$arch  && $(MAKE) coredns BINARY=build/linux/$$arch/$(NAME) SYSTEM="GOOS=linux GOARCH=$$arch" CHECKS="" VERBOSE="" ;\
+	    mkdir -p build/linux/$$arch  && $(MAKE) coredns BINARY=build/linux/$$arch/$(NAME) SYSTEM="GOOS=linux GOARCH=$$arch" CHECKS="" BUILDOPTS="" ;\
 	done
 
 .PHONY: tar
