@@ -791,9 +791,10 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 	return true
 }
 
-// IsSameService checks if one ServiceNode is the same as another, without looking
-// at the Raft information (that's why we didn't call it IsEqual). This is
-// useful for seeing if an update would be idempotent for all the functional
+// IsSameService checks if one Service of a ServiceNode is the same as another,
+// without looking at the Raft information or Node information (that's why we
+// didn't call it IsEqual).
+// This is useful for seeing if an update would be idempotent for all the functional
 // parts of the structure.
 // In a similar fashion as ToNodeService(), fields related to Node are ignored
 // see ServiceNode for more information.
