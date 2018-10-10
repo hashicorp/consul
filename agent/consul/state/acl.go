@@ -141,6 +141,15 @@ func policiesTableSchema() *memdb.TableSchema {
 					Lowercase: true,
 				},
 			},
+			"datacenters": &memdb.IndexSchema{
+				Name:         "datacenters",
+				AllowMissing: true,
+				Unique:       false,
+				Indexer: &memdb.StringSliceFieldIndex{
+					Field:     "Datacenters",
+					Lowercase: false,
+				},
+			},
 		},
 	}
 }
@@ -700,11 +709,19 @@ func (s *Store) aclPolicyGet(ws memdb.WatchSet, value, index string) (uint64, *s
 	return idx, policy, nil
 }
 
-func (s *Store) ACLPolicyList(ws memdb.WatchSet) (uint64, structs.ACLPolicies, error) {
+func (s *Store) ACLPolicyList(ws memdb.WatchSet, datacenter string) (uint64, structs.ACLPolicies, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	iter, err := tx.Get("acl-policies", "id")
+	var iter memdb.ResultIterator
+	var err error
+
+	if datacenter != "" {
+		iter, err = tx.Get("acl-policies", "datacenters", datacenter)
+	} else {
+		iter, err = tx.Get("acl-policies", "id")
+	}
+
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed acl policy lookup: %v", err)
 	}

@@ -94,6 +94,18 @@ func (s *Server) UseLegacyACLs() bool {
 	return !s.useNewACLs.IsSet()
 }
 
+func (s *Server) LocalTokensEnabled() bool {
+	// in ACL datacenter so local tokens are always enabled
+	if s.InACLDatacenter() {
+		return true
+	}
+
+	// TODO (ACL-V2) should we check if a replication token is set
+
+	// token replication is off so local tokens are disabled
+	return s.config.ACLReplicateTokens
+}
+
 func (s *Server) ACLDatacenter(legacy bool) string {
 	// For resolution running on servers the only option
 	// is to contact the configured ACL Datacenter
@@ -117,7 +129,12 @@ func (s *Server) ResolveIdentityFromToken(token string) (bool, structs.ACLIdenti
 		return true, aclToken, nil
 	}
 
-	return s.config.ACLDatacenter == s.config.Datacenter, nil, nil
+	// only allow remote RPC resolution when token replication is off and
+	// when not in the ACL datacenter
+	if !s.InACLDatacenter() && !s.config.ACLReplicateTokens {
+		return false, nil, nil
+	}
+	return true, nil, nil
 }
 
 func (s *Server) ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy, error) {

@@ -46,6 +46,8 @@ const (
 	// for the auto-upgrade process
 	aclUpgradeBatchSize = 128
 
+	aclReplicationBatchSize
+
 	// DEPRECATED (ACL-Legacy-Compat) aclModeCheck* are all only for legacy usage
 	// aclModeCheckMinInterval is the minimum amount of time between checking if the
 	// agent should be using the new or legacy ACL system

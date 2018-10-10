@@ -102,6 +102,12 @@ type Server struct {
 	aclUpgradeLock    sync.RWMutex
 	aclUpgradeEnabled bool
 
+	// aclReplicationCh is used to shut down the ACL replication goroutine
+	// when we lose leadership
+	aclReplicationCh      chan struct{}
+	aclReplicationLock    sync.RWMutex
+	aclReplicationEnabled bool
+
 	// DEPRECATED (ACL-Legacy-Compat) - only needed while we support both
 	// useNewACLs is used to determine whether we can use new ACLs or not
 	useNewACLs *lib.AtomicBool
@@ -450,11 +456,6 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 	// Start monitoring leadership. This must happen after Serf is set up
 	// since it can fire events when leadership is obtained.
 	go s.monitorLeadership()
-
-	// Start ACL replication.
-	if s.IsACLReplicationEnabled() {
-		go s.runACLReplication()
-	}
 
 	// Start listening for RPC requests.
 	go s.listen(s.Listener)
