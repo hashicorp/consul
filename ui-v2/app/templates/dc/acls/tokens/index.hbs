@@ -20,14 +20,14 @@
         <a data-test-create href="{{href-to 'dc.acls.tokens.create'}}" class="type-create">Create</a>
     {{/block-slot}}
     {{#block-slot 'content'}}
-        {{#if isLegacy}}
-        {{/if}}
 {{#if (gt items.length 0) }}
         <form class="filter-bar">
             {{freetext-filter onchange=(action 'filter') value=filter.s placeholder="Search"}}
         </form>
 {{/if}}
+        {{#if (find-by 'legacy' true items)}}
             <p class="notice info"><strong>Update.</strong> We've upgraded our ACL system by allowing you to create reusable Policies, which you can then apply to Tokens. Read more about the change and learn how to upgrade your legacy Tokens in our <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guide/acl.html" target="_blank" rel="noopener noreferrer">documentation</a>.</p>
+        {{/if}}
 {{#if (gt filtered.length 0)}}
         {{#tabular-collection
             items=filtered as |item index|

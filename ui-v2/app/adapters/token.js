@@ -14,9 +14,6 @@ import { get } from '@ember/object';
 const REQUEST_CLONE = 'cloneRecord';
 const REQUEST_SELF = 'querySelf';
 
-const uniqueName = function(haystack, needle) {
-  return `Duplicate of ${needle}`;
-};
 export default Adapter.extend({
   cleanQuery: function(_query) {
     const query = this._super(...arguments);
@@ -164,19 +161,6 @@ export default Adapter.extend({
         return {};
       case REQUEST_CLONE:
         data = {};
-        params.store
-          .serializerFor(params.type.modelName)
-          .serializeIntoHash(data, params.type, params.snapshot);
-        // Usually we never save the AccessorID, so it is removed in the
-        // Model (via Serializer.attrs).
-        // Cloning needs the AccessorID to be able to clone, so as this
-        // is essentially a single special case, add the AccessorID back in
-        // here after its been removed
-        data.token[SLUG_KEY] = params.snapshot.attr(SLUG_KEY);
-        data.token.Name = uniqueName(
-          params.store.peekAll('token').toArray(),
-          params.snapshot.attr('Name')
-        );
         break;
     }
     return data;

@@ -10,7 +10,7 @@ const model = Model.extend({
   [SLUG_KEY]: attr('string'),
   SecretID: attr('string'),
   // Legacy
-  // Type: attr('string'),
+  Type: attr('string'),
   Name: attr('string', {
     defaultValue: '',
   }),

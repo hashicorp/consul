@@ -14,15 +14,15 @@
 %app-view {
   margin-top: 50px;
 }
+%app-view header + div > *:first-child {
+  margin-top: 1.8em;
+}
 %app-view h2 {
   padding-bottom: 0.2em;
   margin-bottom: 1.1em;
 }
-%app-view header + div > *:first-child {
-  margin-top: 1.25em;
-}
 %app-view header .actions > *:not(:last-child) {
-  margin-right: 7px;
+  margin-right: 12px;
 }
 
 // content

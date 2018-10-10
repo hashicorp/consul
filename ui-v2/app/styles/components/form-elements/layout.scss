@@ -1,5 +1,5 @@
 %form-row {
-  margin-bottom: 1.55em;
+  margin-bottom: 1.4em;
 }
 %form-element {
   @extend %form-row;
@@ -22,6 +22,10 @@
   resize: vertical;
 }
 %form-element > span {
+  margin-bottom: 0.5em;
+}
+%form-element > span + em {
+  margin-top: -0.5em;
   margin-bottom: 0.5em;
 }
 %form-element textarea {

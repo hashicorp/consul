@@ -20,15 +20,6 @@ export default Route.extend(WithTokenActions, {
       }),
       isLoading: false,
       token: get(this, 'settings').findBySlug('token'),
-    }).then(function(model) {
-      return hash({
-        ...model,
-        ...{
-          isLegacy: model.items.find(function(item) {
-            return get(item, 'Legacy') === true;
-          }),
-        },
-      });
     });
   },
   setupController: function(controller, model) {

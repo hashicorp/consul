@@ -1,4 +1,8 @@
 /* TODO: rename: %details-table */
+%tabular-details {
+  width: 100%;
+  table-layout: fixed;
+}
 %tabular-details tr > .actions {
   @extend %table-actions;
   position: relative;
@@ -19,6 +23,12 @@
 }
 %tabular-details tr:nth-child(even) td > * {
   display: none;
+}
+%tabular-details tr:nth-child(odd) td {
+  width: calc(50% - 30px);
+}
+%tabular-details tr:nth-child(odd) td:last-child {
+  width: 60px;
 }
 %tabular-detail > label {
   @extend %tabular-details-toggle-button;
