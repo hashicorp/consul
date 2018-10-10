@@ -297,6 +297,8 @@ func (s *Server) fetchACLTokens(lastRemoteIndex uint64) (*structs.ACLTokenListRe
 			MinQueryIndex: lastRemoteIndex,
 			Token:         s.tokens.ACLReplicationToken(),
 		},
+		IncludeLocal: false
+		IncludeGlobal: true
 	}
 
 	var response structs.ACLTokenListResponse
