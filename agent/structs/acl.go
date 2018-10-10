@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"hash/fnv"
+	"sort"
 	"strings"
 	"time"
 
@@ -213,6 +214,15 @@ func (t *ACLToken) SetHash(force bool) uint64 {
 	return t.Hash
 }
 
+func (t *ACLToken) EstimateSize() int {
+	// 33 = 16 (RaftIndex) + 8 (Hash) + 8 (CreateTime) + 1 (Local)
+	size := 33 + len(t.AccessorID) + len(t.SecretID) + len(t.Description) + len(t.Type) + len(t.Rules)
+	for _, link := range t.Policies {
+		size += len(link.ID) + len(link.Name)
+	}
+	return size
+}
+
 // ACLTokens is a slice of ACLTokens.
 type ACLTokens []*ACLToken
 
@@ -228,6 +238,8 @@ type ACLTokenListStub struct {
 	Legacy      bool `json:",omitempty"`
 }
 
+type ACLTokenListStubs []*ACLTokenListStub
+
 func (token *ACLToken) Stub() *ACLTokenListStub {
 	return &ACLTokenListStub{
 		AccessorID:  token.AccessorID,
@@ -240,6 +252,18 @@ func (token *ACLToken) Stub() *ACLTokenListStub {
 		ModifyIndex: token.ModifyIndex,
 		Legacy:      token.Rules != "",
 	}
+}
+
+func (tokens ACLTokens) Sort() {
+	sort.Slice(tokens, func(i, j int) bool {
+		return tokens[i].AccessorID < tokens[j].AccessorID
+	})
+}
+
+func (tokens ACLTokenListStubs) Sort() {
+	sort.Slice(tokens, func(i, j int) bool {
+		return tokens[i].AccessorID < tokens[j].AccessorID
+	})
 }
 
 // IsSame checks if one ACL is the same as another, without looking
@@ -325,6 +349,7 @@ func (p *ACLPolicy) Stub() *ACLPolicyListStub {
 }
 
 type ACLPolicies []*ACLPolicy
+type ACLPolicyListStubs []*ACLPolicyListStub
 
 func (policy *ACLPolicy) IsSame(other *ACLPolicy) bool {
 	if policy.ID != other.ID ||
@@ -351,6 +376,54 @@ func (p *ACLPolicy) SetHash(force bool) uint64 {
 	return p.Hash
 }
 
+/*
+	ID string `hash:"ignore"`
+
+	// Unique name to reference the policy by.
+	//   - Valid Characters: [a-zA-Z0-9-]
+	//   - Valid Lengths: 1 - 128
+	Name string
+
+	// Human readable description (Optional)
+	Description string
+
+	// The rule set (using the updated rule syntax)
+	Rules string
+
+	// DEPRECATED (ACL-Legacy-Compat) - This is only needed while we support the legacy ACLS
+	Syntax acl.SyntaxVersion `json:"-"`
+
+	// Datacenters that the policy is valid within.
+	//   - No wildcards allowed
+	//   - If empty then the policy is valid within all datacenters
+	Datacenters []string `json:",omitempty" hash:"set"`
+
+	// Hash of the contents of the policy
+	// This does not take into account the ID (which is immutable)
+	// nor the raft metadata.
+	//
+	// This is needed mainly for replication purposes. When replicating from
+	// one DC to another keeping the content Hash will allow us to avoid
+	// unnecessary calls to the authoritative DC
+	Hash uint64 `hash:"ignore"`
+
+	// Embedded Raft Metadata
+	RaftIndex `hash:"ignore"`
+}*/
+
+func (p *ACLPolicy) EstimateSize() int {
+	// This is just an estimate. There is other data structure overhead
+	// pointers etc that this does not account for.
+
+	// 64 = 36 (uuid) + 16 (RaftIndex) + 8 (Hash) + 4 (Syntax)
+	size := 64 + len(p.Name) + len(p.Description) + len(p.Rules)
+	for _, dc := range p.Datacenters {
+		size += len(dc)
+	}
+
+	return size
+}
+
 func (policies ACLPolicies) HashKey() uint64 {
 	var key uint64
 
@@ -366,6 +439,18 @@ func (policies ACLPolicies) HashKey() uint64 {
 		key = key ^ policy.Hash
 	}
 	return key
+}
+
+func (policies ACLPolicies) Sort() {
+	sort.Slice(policies, func(i, j int) bool {
+		return policies[i].ID < policies[j].ID
+	})
+}
+
+func (policies ACLPolicyListStubs) Sort() {
+	sort.Slice(policies, func(i, j int) bool {
+		return policies[i].ID < policies[j].ID
+	})
 }
 
 func (policies ACLPolicies) resolveWithCache(cache *ACLCaches, sentinel sentinel.Evaluator) ([]*acl.Policy, error) {
@@ -438,9 +523,9 @@ const (
 // replication system.
 type ACLReplicationStatus struct {
 	Enabled              bool
-	ReplicationType      ACLReplicationType
 	Running              bool
 	SourceDatacenter     string
+	ReplicationType      ACLReplicationType
 	ReplicatedIndex      uint64
 	ReplicatedTokenIndex uint64
 	LastSuccess          time.Time
@@ -601,6 +686,11 @@ type ACLPolicyListRequest struct {
 
 func (r *ACLPolicyListRequest) RequestDatacenter() string {
 	return r.Datacenter
+}
+
+type ACLPolicyListResponse struct {
+	Policies ACLPolicyListStubs
+	QueryMeta
 }
 
 // ACLPolicyBatchReadRequest is used at the RPC layer to request a subset of

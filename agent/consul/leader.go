@@ -504,6 +504,23 @@ func (s *Server) initializeACLs(upgrade bool) error {
 			}
 		}
 		s.startACLUpgrade()
+	} else {
+		if s.IsACLReplicationEnabled() {
+			// set replication to enabled and configure the source datacenter etc.
+			s.initReplicationStatus()
+
+			if s.UseLegacyACLs() && !upgrade {
+				s.startLegacyACLReplication()
+			} else {
+				if upgrade {
+					s.stopACLReplication()
+				}
+
+				s.startACLReplication()
+			}
+		} else {
+			s.stopACLReplication()
+		}
 	}
 
 	// launch the upgrade go routine to generate accessors for everything
@@ -600,6 +617,131 @@ func (s *Server) stopACLUpgrade() {
 
 	close(s.aclUpgradeCh)
 	s.aclUpgradeEnabled = false
+}
+
+func (s *Server) startLegacyACLReplication() {
+	s.aclReplicationLock.Lock()
+	defer s.aclReplicationLock.Unlock()
+
+	if s.aclReplicationEnabled {
+		return
+	}
+
+	s.aclReplicationCh = make(chan struct{})
+
+	go func(stopCh <-chan struct{}) {
+		var lastRemoteIndex uint64
+
+		for {
+			select {
+			case <-stopCh:
+				return
+			case <-time.After(s.config.ACLReplicationInterval):
+				index, exit, err := s.replicateLegacyACLs(lastRemoteIndex, stopCh)
+				if exit {
+					return
+				}
+
+				if err != nil {
+					lastRemoteIndex = 0
+					s.updateACLReplicationStatusError()
+					s.logger.Printf("[WARN] consul: Legacy ACL replication error (will retry if still leader): %v", err)
+				} else {
+					lastRemoteIndex = index
+					s.updateACLReplicationStatusIndex(index)
+					s.logger.Printf("[DEBUG] consul: Legacy ACL replication completed through remote index %d", index)
+				}
+			}
+		}
+	}(s.aclReplicationCh)
+
+	s.updateACLReplicationStatusRunning(structs.ACLReplicateLegacy)
+	s.aclReplicationEnabled = true
+}
+
+func (s *Server) startACLReplication() {
+	s.aclReplicationLock.Lock()
+	defer s.aclReplicationLock.Unlock()
+
+	if s.aclReplicationEnabled {
+		return
+	}
+
+	s.aclReplicationCh = make(chan struct{})
+
+	replicationType := structs.ACLReplicatePolicies
+
+	go func(stopCh <-chan struct{}) {
+		var lastRemoteIndex uint64
+		for {
+			select {
+			case <-stopCh:
+				return
+			case <-time.After(s.config.ACLReplicationInterval):
+				index, exit, err := s.replicateACLPolicies(lastRemoteIndex, stopCh)
+				if exit {
+					return
+				}
+
+				if err != nil {
+					lastRemoteIndex = 0
+					s.updateACLReplicationStatusError()
+					s.logger.Printf("[WARN] consul: ACL policy replication error (will retry if still leader): %v", err)
+				} else {
+					lastRemoteIndex = index
+					s.updateACLReplicationStatusIndex(index)
+					s.logger.Printf("[DEBUG] consul: ACL policy replication completed through remote index %d", index)
+				}
+			}
+		}
+	}(s.aclReplicationCh)
+
+	if s.config.ACLReplicateTokens {
+		replicationType = structs.ACLReplicateTokens
+
+		go func(stopCh <-chan struct{}) {
+			var lastRemoteIndex uint64
+			for {
+				select {
+				case <-stopCh:
+					return
+				case <-time.After(s.config.ACLReplicationInterval):
+					index, exit, err := s.replicateACLTokens(lastRemoteIndex, stopCh)
+					if exit {
+						return
+					}
+
+					if err != nil {
+						lastRemoteIndex = 0
+						s.updateACLReplicationStatusError()
+						s.logger.Printf("[WARN] consul: ACL token replication error (will retry if still leader): %v", err)
+					} else {
+						lastRemoteIndex = index
+						s.updateACLReplicationStatusTokenIndex(index)
+						s.logger.Printf("[DEBUG] consul: ACL token replication completed through remote index %d", index)
+					}
+				}
+			}
+		}(s.aclReplicationCh)
+	}
+
+	s.updateACLReplicationStatusRunning(replicationType)
+
+	s.aclReplicationEnabled = true
+}
+
+func (s *Server) stopACLReplication() {
+	s.aclReplicationLock.Lock()
+	defer s.aclReplicationLock.Unlock()
+
+	if !s.aclReplicationEnabled {
+		return
+	}
+
+	close(s.aclReplicationCh)
+	s.aclReplicationEnabled = false
+
+	s.updateACLReplicationStatusStopped()
 }
 
 // getOrCreateAutopilotConfig is used to get the autopilot config, initializing it if necessary

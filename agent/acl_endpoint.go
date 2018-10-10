@@ -140,7 +140,7 @@ func (s *HTTPServer) ACLPolicyList(resp http.ResponseWriter, req *http.Request) 
 		return nil, nil
 	}
 
-	var args structs.DCSpecificRequest
+	var args structs.ACLPolicyListRequest
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
@@ -149,15 +149,15 @@ func (s *HTTPServer) ACLPolicyList(resp http.ResponseWriter, req *http.Request) 
 		args.Datacenter = s.agent.config.Datacenter
 	}
 
-	var out structs.ACLPoliciesResponse
+	var out structs.ACLPolicyListResponse
 	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC("ACL.PolicyList", &args, &out); err != nil {
 		return nil, err
 	}
 
-	stubs := make([]*structs.ACLPolicyListStub, 0, len(out.Policies))
-	for _, policy := range out.Policies {
-		stubs = append(stubs, policy.Stub())
+	// make sure we return an array and not nil
+	if out.Policies == nil {
+		out.Policies = make(structs.ACLPolicyListStubs, 0)
 	}
 
 	return out.Policies, nil
