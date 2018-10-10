@@ -11,6 +11,7 @@ import normalizeEvent from 'consul-ui/utils/dom/normalize-event';
 const $$ = qsaFactory();
 let $_;
 
+const $html = document.documentElement;
 export default Service.extend({
   init: function() {
     this._super(...arguments);
@@ -19,6 +20,13 @@ export default Service.extend({
   normalizeEvent: function() {
     return normalizeEvent(...arguments);
   },
+  root: function() {
+    return $html;
+  },
+  elements: function(selector, context) {
+    return $$(selector, context);
+  },
+  // TODO: This should return a single element
   element: function(selector, context) {
     return $$(selector, context);
   },

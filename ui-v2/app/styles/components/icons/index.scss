@@ -1,7 +1,10 @@
 /*TODO: The old pseudo-icon was to specific */
 /* make a temporary one with the -- prefix */
 /* to make it more reusable temporarily */
-
+%bg-icon {
+  background-repeat: no-repeat;
+  background-position: center;
+}
 %--pseudo-icon {
   display: inline-block;
   content: '';

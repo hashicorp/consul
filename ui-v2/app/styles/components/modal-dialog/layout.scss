@@ -32,22 +32,25 @@
   justify-content: center;
   height: 100%;
 }
+%modal-window.overflowing {
+  overflow: auto;
+  height: 100%;
+}
 %modal-window {
   max-width: 855px;
   position: relative;
   z-index: 1;
 }
 %modal-window > * {
-  padding-left: 20px;
-  padding-right: 20px;
+  padding-left: 15px;
+  padding-right: 15px;
 }
 %modal-window > div {
-  padding-top: 20px;
-  padding-bottom: 20px;
+  padding: 20px 23px;
 }
 %modal-window > footer,
 %modal-window > header {
-  padding-top: 10px;
+  padding-top: 12px;
   padding-bottom: 10px;
 }
 %modal-window table {
@@ -62,26 +65,6 @@
 %modal-window > header [for='modal_close'] {
   float: right;
   text-indent: -9000px;
-  position: relative;
-  width: 22px;
-  height: 22px;
-}
-
-/*TODO: Should probably by %with-dom-cross or similar */
-%modal-window > header [for='modal_close']::after,
-%modal-window > header [for='modal_close']::before {
-  content: '';
-  display: block;
-  height: 2px;
-  width: 16px;
-  top: 50%;
-  left: 50%;
-  margin-left: -8px;
-  position: absolute;
-}
-%modal-window > header [for='modal_close']::before {
-  transform: rotate(45deg);
-}
-%modal-window > header [for='modal_close']::after {
-  transform: rotate(-45deg);
+  width: 23px;
+  height: 23px;
 }
