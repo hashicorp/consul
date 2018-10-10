@@ -313,23 +313,6 @@ func TestStructs_ServiceNode_PartialClone(t *testing.T) {
 	}
 }
 
-func TestStructs_ServiceNode_IsSame(t *testing.T) {
-	sn := testServiceNode(t)
-
-	sn2 := sn.ToNodeService().ToServiceNode("node1")
-	// These two fields get lost in the conversion, so we have to zero-value
-	// them out before we do the compare.
-	sn.ID = ""
-	sn.Address = ""
-	sn.Datacenter = ""
-	sn.TaggedAddresses = nil
-	sn.NodeMeta = nil
-	sn.ServiceWeights = Weights{Passing: 1, Warning: 1}
-	if !reflect.DeepEqual(sn, sn2) {
-		t.Fatalf("bad: %#v, but expected %#v", sn2, sn)
-	}
-}
-
 func TestStructs_ServiceNode_Conversions(t *testing.T) {
 	sn := testServiceNode(t)
 
@@ -344,6 +327,17 @@ func TestStructs_ServiceNode_Conversions(t *testing.T) {
 	sn.NodeMeta = nil
 	sn.ServiceWeights = Weights{Passing: 1, Warning: 1}
 	require.Equal(t, sn, sn2)
+	if !sn.IsSameService(sn2) || !sn2.IsSameService(sn) {
+		t.Fatalf("bad: %#v, should be the same %#v", sn2, sn)
+	}
+	// Those fields are lost in conversion, so IsSameService() should not take them into account
+	sn.Address = "y"
+	sn.Datacenter = "z"
+	sn.TaggedAddresses = map[string]string{"one": "1", "two": "2"}
+	sn.NodeMeta = map[string]string{"meta": "data"}
+	if !sn.IsSameService(sn2) || !sn2.IsSameService(sn) {
+		t.Fatalf("bad: %#v, should be the same %#v", sn2, sn)
+	}
 }
 
 func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
