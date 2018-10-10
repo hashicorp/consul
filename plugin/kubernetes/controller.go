@@ -20,21 +20,19 @@ import (
 )
 
 const (
-	podIPIndex            = "PodIP"
-	svcNameNamespaceIndex = "NameNamespace"
-	svcIPIndex            = "ServiceIP"
-	epNameNamespaceIndex  = "EndpointNameNamespace"
-	epIPIndex             = "EndpointsIP"
+	podIPIndex = "PodIP"
+	svcIPIndex = "ServiceIP"
+	epIPIndex  = "EndpointsIP"
 )
 
 type dnsController interface {
 	ServiceList() []*object.Service
 	EndpointsList() []*object.Endpoints
-	SvcIndex(string) []*object.Service
-	SvcIndexReverse(string) []*object.Service
+	SvcIndex(string) *object.Service
+	SvcIndexReverse(string) *object.Service
 	PodIndex(string) []*object.Pod
-	EpIndex(string) []*object.Endpoints
-	EpIndexReverse(string) []*object.Endpoints
+	EpIndex(string) *object.Endpoints
+	EpIndexReverse(string) *object.Endpoints
 
 	GetNodeByName(string) (*api.Node, error)
 	GetNamespaceByName(string) (*api.Namespace, error)
@@ -118,7 +116,7 @@ func newdnsController(kubeClient kubernetes.Interface, opts dnsControlOpts) *dns
 		&object.Service{},
 		opts.resyncPeriod,
 		cache.ResourceEventHandlerFuncs{AddFunc: dns.Add, UpdateFunc: dns.Update, DeleteFunc: dns.Delete},
-		cache.Indexers{svcNameNamespaceIndex: svcNameNamespaceIndexFunc, svcIPIndex: svcIPIndexFunc},
+		cache.Indexers{svcIPIndex: svcIPIndexFunc},
 		object.ToService,
 	)
 
@@ -145,7 +143,7 @@ func newdnsController(kubeClient kubernetes.Interface, opts dnsControlOpts) *dns
 			&api.Endpoints{},
 			opts.resyncPeriod,
 			cache.ResourceEventHandlerFuncs{AddFunc: dns.Add, UpdateFunc: dns.Update, DeleteFunc: dns.Delete},
-			cache.Indexers{epNameNamespaceIndex: epNameNamespaceIndexFunc, epIPIndex: epIPIndexFunc},
+			cache.Indexers{epIPIndex: epIPIndexFunc},
 			object.ToEndpoints)
 	}
 
@@ -173,22 +171,6 @@ func svcIPIndexFunc(obj interface{}) ([]string, error) {
 		return nil, errObj
 	}
 	return []string{svc.ClusterIP}, nil
-}
-
-func svcNameNamespaceIndexFunc(obj interface{}) ([]string, error) {
-	s, ok := obj.(*object.Service)
-	if !ok {
-		return nil, errObj
-	}
-	return []string{s.Index}, nil
-}
-
-func epNameNamespaceIndexFunc(obj interface{}) ([]string, error) {
-	s, ok := obj.(*object.Endpoints)
-	if !ok {
-		return nil, errObj
-	}
-	return []string{s.Index}, nil
 }
 
 func epIPIndexFunc(obj interface{}) ([]string, error) {
@@ -359,6 +341,9 @@ func (dns *dnsControl) EndpointsList() (eps []*object.Endpoints) {
 }
 
 func (dns *dnsControl) PodIndex(ip string) (pods []*object.Pod) {
+	if dns.podLister == nil {
+		return nil
+	}
 	os, err := dns.podLister.ByIndex(podIPIndex, ip)
 	if err != nil {
 		return nil
@@ -368,27 +353,24 @@ func (dns *dnsControl) PodIndex(ip string) (pods []*object.Pod) {
 		if !ok {
 			continue
 		}
-		pods = append(pods, p)
+		return []*object.Pod{p}
 	}
-	return pods
+	return nil
 }
 
-func (dns *dnsControl) SvcIndex(idx string) (svcs []*object.Service) {
-	os, err := dns.svcLister.ByIndex(svcNameNamespaceIndex, idx)
+func (dns *dnsControl) SvcIndex(key string) *object.Service {
+	o, _, err := dns.svcLister.GetByKey(key)
 	if err != nil {
 		return nil
 	}
-	for _, o := range os {
-		s, ok := o.(*object.Service)
-		if !ok {
-			continue
-		}
-		svcs = append(svcs, s)
+	s, ok := o.(*object.Service)
+	if !ok {
+		return nil
 	}
-	return svcs
+	return s
 }
 
-func (dns *dnsControl) SvcIndexReverse(ip string) (svcs []*object.Service) {
+func (dns *dnsControl) SvcIndexReverse(ip string) *object.Service {
 	os, err := dns.svcLister.ByIndex(svcIPIndex, ip)
 	if err != nil {
 		return nil
@@ -399,27 +381,27 @@ func (dns *dnsControl) SvcIndexReverse(ip string) (svcs []*object.Service) {
 		if !ok {
 			continue
 		}
-		svcs = append(svcs, s)
+		return s
 	}
-	return svcs
+	return nil
 }
 
-func (dns *dnsControl) EpIndex(idx string) (ep []*object.Endpoints) {
-	os, err := dns.epLister.ByIndex(epNameNamespaceIndex, idx)
+func (dns *dnsControl) EpIndex(key string) (ep *object.Endpoints) {
+	o, _, err := dns.epLister.GetByKey(key)
 	if err != nil {
 		return nil
 	}
-	for _, o := range os {
-		e, ok := o.(*object.Endpoints)
-		if !ok {
-			continue
-		}
-		ep = append(ep, e)
+	e, ok := o.(*object.Endpoints)
+	if !ok {
+		return nil
 	}
-	return ep
+	return e
 }
 
-func (dns *dnsControl) EpIndexReverse(ip string) (ep []*object.Endpoints) {
+func (dns *dnsControl) EpIndexReverse(ip string) (ep *object.Endpoints) {
+	if dns.epLister == nil {
+		return nil
+	}
 	os, err := dns.epLister.ByIndex(epIPIndex, ip)
 	if err != nil {
 		return nil
@@ -429,9 +411,9 @@ func (dns *dnsControl) EpIndexReverse(ip string) (ep []*object.Endpoints) {
 		if !ok {
 			continue
 		}
-		ep = append(ep, e)
+		return e
 	}
-	return ep
+	return nil
 }
 
 // GetNodeByName return the node by name. If nothing is found an error is
@@ -450,7 +432,7 @@ func (dns *dnsControl) GetNamespaceByName(name string) (*api.Namespace, error) {
 		if !ok {
 			continue
 		}
-		if name == ns.ObjectMeta.Name {
+		if name == ns.GetName() {
 			return ns, nil
 		}
 	}

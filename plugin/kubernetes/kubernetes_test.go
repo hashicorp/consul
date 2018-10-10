@@ -59,43 +59,24 @@ func TestEndpointHostname(t *testing.T) {
 
 type APIConnServiceTest struct{}
 
-func (APIConnServiceTest) HasSynced() bool                           { return true }
-func (APIConnServiceTest) Run()                                      { return }
-func (APIConnServiceTest) Stop() error                               { return nil }
-func (APIConnServiceTest) PodIndex(string) []*object.Pod             { return nil }
-func (APIConnServiceTest) SvcIndexReverse(string) []*object.Service  { return nil }
-func (APIConnServiceTest) EpIndexReverse(string) []*object.Endpoints { return nil }
-func (APIConnServiceTest) Modified() int64                           { return 0 }
-func (APIConnServiceTest) SetWatchChan(watch.Chan)                   {}
-func (APIConnServiceTest) Watch(string) error                        { return nil }
-func (APIConnServiceTest) StopWatching(string)                       {}
+func (APIConnServiceTest) HasSynced() bool                         { return true }
+func (APIConnServiceTest) Run()                                    { return }
+func (APIConnServiceTest) Stop() error                             { return nil }
+func (APIConnServiceTest) PodIndex(string) []*object.Pod           { return nil }
+func (APIConnServiceTest) SvcIndexReverse(string) *object.Service  { return nil }
+func (APIConnServiceTest) EpIndexReverse(string) *object.Endpoints { return nil }
+func (APIConnServiceTest) Modified() int64                         { return 0 }
+func (APIConnServiceTest) SetWatchChan(watch.Chan)                 {}
+func (APIConnServiceTest) Watch(string) error                      { return nil }
+func (APIConnServiceTest) StopWatching(string)                     {}
 
-func (APIConnServiceTest) SvcIndex(string) []*object.Service {
-	svcs := []*object.Service{
-		{
-			Name:      "svc1",
-			Namespace: "testns",
-			ClusterIP: "10.0.0.1",
-			Ports: []api.ServicePort{
-				{Name: "http", Protocol: "tcp", Port: 80},
-			},
-		},
-		{
-			Name:      "hdls1",
-			Namespace: "testns",
-			ClusterIP: api.ClusterIPNone,
-		},
-		{
-			Name:         "external",
-			Namespace:    "testns",
-			ExternalName: "coredns.io",
-			Type:         api.ServiceTypeExternalName,
-			Ports: []api.ServicePort{
-				{Name: "http", Protocol: "tcp", Port: 80},
-			},
-		},
+func (a APIConnServiceTest) SvcIndex(key string) *object.Service {
+	for _, s := range a.ServiceList() {
+		if object.ServiceKey(s.Namespace, s.Name) == key {
+			return s
+		}
 	}
-	return svcs
+	return nil
 }
 
 func (APIConnServiceTest) ServiceList() []*object.Service {
@@ -126,61 +107,13 @@ func (APIConnServiceTest) ServiceList() []*object.Service {
 	return svcs
 }
 
-func (APIConnServiceTest) EpIndex(string) []*object.Endpoints {
-	eps := []*object.Endpoints{
-		{
-			Subsets: []object.EndpointSubset{
-				{
-					Addresses: []object.EndpointAddress{
-						{IP: "172.0.0.1", Hostname: "ep1a"},
-					},
-					Ports: []object.EndpointPort{
-						{Port: 80, Protocol: "tcp", Name: "http"},
-					},
-				},
-			},
-			Name:      "svc1",
-			Namespace: "testns",
-		},
-		{
-			Subsets: []object.EndpointSubset{
-				{
-					Addresses: []object.EndpointAddress{
-						{IP: "172.0.0.2"},
-					},
-					Ports: []object.EndpointPort{
-						{Port: 80, Protocol: "tcp", Name: "http"},
-					},
-				},
-			},
-			Name:      "hdls1",
-			Namespace: "testns",
-		},
-		{
-			Subsets: []object.EndpointSubset{
-				{
-					Addresses: []object.EndpointAddress{
-						{IP: "172.0.0.3"},
-					},
-					Ports: []object.EndpointPort{
-						{Port: 80, Protocol: "tcp", Name: "http"},
-					},
-				},
-			},
-			Name:      "hdls1",
-			Namespace: "testns",
-		},
-		{
-			Subsets: []object.EndpointSubset{
-				{
-					Addresses: []object.EndpointAddress{
-						{IP: "10.9.8.7", NodeName: "test.node.foo.bar"},
-					},
-				},
-			},
-		},
+func (a APIConnServiceTest) EpIndex(key string) *object.Endpoints {
+	for _, e := range a.EndpointsList() {
+		if object.EndpointsKey(e.Namespace, e.Name) == key {
+			return e
+		}
 	}
-	return eps
+	return nil
 }
 
 func (APIConnServiceTest) EndpointsList() []*object.Endpoints {
@@ -224,7 +157,7 @@ func (APIConnServiceTest) EndpointsList() []*object.Endpoints {
 					},
 				},
 			},
-			Name:      "hdls1",
+			Name:      "hdls2",
 			Namespace: "testns",
 		},
 		{
@@ -235,6 +168,8 @@ func (APIConnServiceTest) EndpointsList() []*object.Endpoints {
 					},
 				},
 			},
+			Name:      "testsvc",
+			Namespace: "testns",
 		},
 	}
 	return eps

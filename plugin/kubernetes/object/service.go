@@ -20,7 +20,7 @@ type Service struct {
 }
 
 // ServiceKey return a string using for the index.
-func ServiceKey(name, namespace string) string { return name + "." + namespace }
+func ServiceKey(namespace, name string) string { return namespace + "/" + name }
 
 // ToService converts an api.Service to a *Service.
 func ToService(obj interface{}) interface{} {

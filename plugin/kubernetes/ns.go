@@ -4,6 +4,7 @@ import (
 	"net"
 	"strings"
 
+	"github.com/coredns/coredns/plugin/kubernetes/object"
 	"github.com/miekg/dns"
 	api "k8s.io/api/core/v1"
 )
@@ -22,8 +23,9 @@ func (k *Kubernetes) nsAddr() *dns.A {
 	localIP := k.interfaceAddrsFunc()
 	rr.A = localIP
 
-FindEndpoint:
-	for _, ep := range k.APIConn.EpIndexReverse(localIP.String()) {
+	ep := k.APIConn.EpIndexReverse(localIP.String())
+	if ep != nil {
+	FindEndpoint:
 		for _, eps := range ep.Subsets {
 			for _, addr := range eps.Addresses {
 				if localIP.Equal(net.ParseIP(addr.IP)) {
@@ -41,15 +43,12 @@ FindEndpoint:
 		return rr
 	}
 
-FindService:
-	for _, svc := range k.APIConn.ServiceList() {
-		if svcName == svc.Name && svcNamespace == svc.Namespace {
-			if svc.ClusterIP == api.ClusterIPNone {
-				rr.A = localIP
-			} else {
-				rr.A = net.ParseIP(svc.ClusterIP)
-			}
-			break FindService
+	svc := k.APIConn.SvcIndex(object.ServiceKey(svcNamespace, svcName))
+	if svc != nil {
+		if svc.ClusterIP == api.ClusterIPNone {
+			rr.A = localIP
+		} else {
+			rr.A = net.ParseIP(svc.ClusterIP)
 		}
 	}
 

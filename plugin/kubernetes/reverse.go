@@ -18,35 +18,35 @@ func (k *Kubernetes) Reverse(state request.Request, exact bool, opt plugin.Optio
 		return nil, e
 	}
 
-	records := k.serviceRecordForIP(ip, state.Name())
-	if len(records) == 0 {
-		return records, errNoItems
+	record := k.serviceRecordForIP(ip, state.Name())
+	if record == nil {
+		return nil, errNoItems
 	}
-	return records, nil
+	return []msg.Service{*record}, nil
 }
 
 // serviceRecordForIP gets a service record with a cluster ip matching the ip argument
 // If a service cluster ip does not match, it checks all endpoints
-func (k *Kubernetes) serviceRecordForIP(ip, name string) []msg.Service {
+func (k *Kubernetes) serviceRecordForIP(ip, name string) *msg.Service {
 	// First check services with cluster ips
-	for _, service := range k.APIConn.SvcIndexReverse(ip) {
+	service := k.APIConn.SvcIndexReverse(ip)
+	if service != nil {
 		if len(k.Namespaces) > 0 && !k.namespaceExposed(service.Namespace) {
-			continue
+			return nil
 		}
 		domain := strings.Join([]string{service.Name, service.Namespace, Svc, k.primaryZone()}, ".")
-		return []msg.Service{{Host: domain, TTL: k.ttl}}
+		return &msg.Service{Host: domain, TTL: k.ttl}
 	}
 	// If no cluster ips match, search endpoints
-	for _, ep := range k.APIConn.EpIndexReverse(ip) {
-		if len(k.Namespaces) > 0 && !k.namespaceExposed(ep.Namespace) {
-			continue
-		}
-		for _, eps := range ep.Subsets {
-			for _, addr := range eps.Addresses {
-				if addr.IP == ip {
-					domain := strings.Join([]string{endpointHostname(addr, k.endpointNameMode), ep.Name, ep.Namespace, Svc, k.primaryZone()}, ".")
-					return []msg.Service{{Host: domain, TTL: k.ttl}}
-				}
+	ep := k.APIConn.EpIndexReverse(ip)
+	if ep == nil || len(k.Namespaces) > 0 && !k.namespaceExposed(ep.Namespace) {
+		return nil
+	}
+	for _, eps := range ep.Subsets {
+		for _, addr := range eps.Addresses {
+			if addr.IP == ip {
+				domain := strings.Join([]string{endpointHostname(addr, k.endpointNameMode), ep.Name, ep.Namespace, Svc, k.primaryZone()}, ".")
+				return &msg.Service{Host: domain, TTL: k.ttl}
 			}
 		}
 	}
