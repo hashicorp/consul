@@ -6,7 +6,7 @@ description: |-
   This guide describes best practices for running Consul Connect in production.
 ---
 
-## Running Connect in Production
+# Running Connect in Production
 
 Consul Connect can secure all inter-service communication via mutual TLS. It's
 designed to work with [minimal configuration out of the
