@@ -18,6 +18,7 @@ func init() {
 	registerEndpoint("/v1/agent/monitor", []string{"GET"}, (*HTTPServer).AgentMonitor)
 	registerEndpoint("/v1/agent/metrics", []string{"GET"}, (*HTTPServer).AgentMetrics)
 	registerEndpoint("/v1/agent/services", []string{"GET"}, (*HTTPServer).AgentServices)
+	registerEndpoint("/v1/agent/service/", []string{"GET"}, (*HTTPServer).AgentService)
 	registerEndpoint("/v1/agent/checks", []string{"GET"}, (*HTTPServer).AgentChecks)
 	registerEndpoint("/v1/agent/members", []string{"GET"}, (*HTTPServer).AgentMembers)
 	registerEndpoint("/v1/agent/join/", []string{"PUT"}, (*HTTPServer).AgentJoin)

@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/command/connect/ca"
 	caget "github.com/hashicorp/consul/command/connect/ca/get"
 	caset "github.com/hashicorp/consul/command/connect/ca/set"
+	"github.com/hashicorp/consul/command/connect/envoy"
 	"github.com/hashicorp/consul/command/connect/proxy"
 	"github.com/hashicorp/consul/command/event"
 	"github.com/hashicorp/consul/command/exec"
@@ -44,6 +45,9 @@ import (
 	operraftremove "github.com/hashicorp/consul/command/operator/raft/removepeer"
 	"github.com/hashicorp/consul/command/reload"
 	"github.com/hashicorp/consul/command/rtt"
+	"github.com/hashicorp/consul/command/services"
+	svcsderegister "github.com/hashicorp/consul/command/services/deregister"
+	svcsregister "github.com/hashicorp/consul/command/services/register"
 	"github.com/hashicorp/consul/command/snapshot"
 	snapinspect "github.com/hashicorp/consul/command/snapshot/inspect"
 	snaprestore "github.com/hashicorp/consul/command/snapshot/restore"
@@ -74,6 +78,7 @@ func init() {
 	Register("connect ca get-config", func(ui cli.Ui) (cli.Command, error) { return caget.New(ui), nil })
 	Register("connect ca set-config", func(ui cli.Ui) (cli.Command, error) { return caset.New(ui), nil })
 	Register("connect proxy", func(ui cli.Ui) (cli.Command, error) { return proxy.New(ui, MakeShutdownCh()), nil })
+	Register("connect envoy", func(ui cli.Ui) (cli.Command, error) { return envoy.New(ui), nil })
 	Register("event", func(ui cli.Ui) (cli.Command, error) { return event.New(ui), nil })
 	Register("exec", func(ui cli.Ui) (cli.Command, error) { return exec.New(ui, MakeShutdownCh()), nil })
 	Register("force-leave", func(ui cli.Ui) (cli.Command, error) { return forceleave.New(ui), nil })
@@ -107,6 +112,9 @@ func init() {
 	Register("operator raft remove-peer", func(ui cli.Ui) (cli.Command, error) { return operraftremove.New(ui), nil })
 	Register("reload", func(ui cli.Ui) (cli.Command, error) { return reload.New(ui), nil })
 	Register("rtt", func(ui cli.Ui) (cli.Command, error) { return rtt.New(ui), nil })
+	Register("services", func(cli.Ui) (cli.Command, error) { return services.New(), nil })
+	Register("services register", func(ui cli.Ui) (cli.Command, error) { return svcsregister.New(ui), nil })
+	Register("services deregister", func(ui cli.Ui) (cli.Command, error) { return svcsderegister.New(ui), nil })
 	Register("snapshot", func(cli.Ui) (cli.Command, error) { return snapshot.New(), nil })
 	Register("snapshot inspect", func(ui cli.Ui) (cli.Command, error) { return snapinspect.New(ui), nil })
 	Register("snapshot restore", func(ui cli.Ui) (cli.Command, error) { return snaprestore.New(ui), nil })

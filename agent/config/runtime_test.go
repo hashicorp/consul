@@ -295,6 +295,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.GossipWANProbeTimeout = 100 * time.Millisecond
 				rt.GossipWANSuspicionMult = 3
 				rt.ConsulServerHealthInterval = 10 * time.Millisecond
+				rt.GRPCPort = 8502
+				rt.GRPCAddrs = []net.Addr{tcpAddr("127.0.0.1:8502")}
 			},
 		},
 		{
@@ -839,11 +841,11 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{
 					"client_addr":"0.0.0.0",
-					"ports": { "dns":-1, "http":-2, "https":-3 }
+					"ports": { "dns":-1, "http":-2, "https":-3, "grpc":-4 }
 				}`},
 			hcl: []string{`
 					client_addr = "0.0.0.0"
-					ports { dns = -1 http = -2 https = -3 }
+					ports { dns = -1 http = -2 https = -3 grpc = -4 }
 				`},
 			patch: func(rt *RuntimeConfig) {
 				rt.ClientAddrs = []*net.IPAddr{ipAddr("0.0.0.0")}
@@ -851,6 +853,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DNSAddrs = nil
 				rt.HTTPPort = -1
 				rt.HTTPAddrs = nil
+				// HTTPS and gRPC default to disabled so shouldn't be different from
+				// default rt.
 				rt.DataDir = dataDir
 			},
 		},
@@ -859,11 +863,11 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{
 					"client_addr":"0.0.0.0",
-					"ports":{ "dns": 1, "http": 2, "https": 3 }
+					"ports":{ "dns": 1, "http": 2, "https": 3, "grpc": 4 }
 				}`},
 			hcl: []string{`
 					client_addr = "0.0.0.0"
-					ports { dns = 1 http = 2 https = 3 }
+					ports { dns = 1 http = 2 https = 3 grpc = 4 }
 				`},
 			patch: func(rt *RuntimeConfig) {
 				rt.ClientAddrs = []*net.IPAddr{ipAddr("0.0.0.0")}
@@ -873,6 +877,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.HTTPAddrs = []net.Addr{tcpAddr("0.0.0.0:2")}
 				rt.HTTPSPort = 3
 				rt.HTTPSAddrs = []net.Addr{tcpAddr("0.0.0.0:3")}
+				rt.GRPCPort = 4
+				rt.GRPCAddrs = []net.Addr{tcpAddr("0.0.0.0:4")}
 				rt.DataDir = dataDir
 			},
 		},
@@ -882,18 +888,20 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{
 					"client_addr":"0.0.0.0",
-					"addresses": { "dns": "1.1.1.1", "http": "2.2.2.2", "https": "3.3.3.3" },
+					"addresses": { "dns": "1.1.1.1", "http": "2.2.2.2", "https": "3.3.3.3", "grpc": "4.4.4.4" },
 					"ports":{}
 				}`},
 			hcl: []string{`
 					client_addr = "0.0.0.0"
-					addresses = { dns = "1.1.1.1" http = "2.2.2.2" https = "3.3.3.3" }
+					addresses = { dns = "1.1.1.1" http = "2.2.2.2" https = "3.3.3.3" grpc = "4.4.4.4" }
 					ports {}
 				`},
 			patch: func(rt *RuntimeConfig) {
 				rt.ClientAddrs = []*net.IPAddr{ipAddr("0.0.0.0")}
 				rt.DNSAddrs = []net.Addr{tcpAddr("1.1.1.1:8600"), udpAddr("1.1.1.1:8600")}
 				rt.HTTPAddrs = []net.Addr{tcpAddr("2.2.2.2:8500")}
+				// HTTPS and gRPC default to disabled so shouldn't be different from
+				// default rt.
 				rt.DataDir = dataDir
 			},
 		},
@@ -902,13 +910,13 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{
 					"client_addr":"0.0.0.0",
-					"addresses": { "dns": "1.1.1.1", "http": "2.2.2.2", "https": "3.3.3.3" },
-					"ports": { "dns":-1, "http":-2, "https":-3 }
+					"addresses": { "dns": "1.1.1.1", "http": "2.2.2.2", "https": "3.3.3.3", "grpc": "4.4.4.4" },
+					"ports": { "dns":-1, "http":-2, "https":-3, "grpc":-4 }
 				}`},
 			hcl: []string{`
 					client_addr = "0.0.0.0"
-					addresses = { dns = "1.1.1.1" http = "2.2.2.2" https = "3.3.3.3" }
-					ports { dns = -1 http = -2 https = -3 }
+					addresses = { dns = "1.1.1.1" http = "2.2.2.2" https = "3.3.3.3" grpc = "4.4.4.4" }
+					ports { dns = -1 http = -2 https = -3 grpc = -4 }
 				`},
 			patch: func(rt *RuntimeConfig) {
 				rt.ClientAddrs = []*net.IPAddr{ipAddr("0.0.0.0")}
@@ -916,6 +924,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DNSAddrs = nil
 				rt.HTTPPort = -1
 				rt.HTTPAddrs = nil
+				// HTTPS and gRPC default to disabled so shouldn't be different from
+				// default rt.
 				rt.DataDir = dataDir
 			},
 		},
@@ -924,13 +934,13 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{
 					"client_addr": "0.0.0.0",
-					"addresses": { "dns": "1.1.1.1", "http": "2.2.2.2", "https": "3.3.3.3" },
-					"ports":{ "dns":1, "http":2, "https":3 }
+					"addresses": { "dns": "1.1.1.1", "http": "2.2.2.2", "https": "3.3.3.3", "grpc": "4.4.4.4" },
+					"ports":{ "dns":1, "http":2, "https":3, "grpc":4 }
 				}`},
 			hcl: []string{`
 					client_addr = "0.0.0.0"
-					addresses = { dns = "1.1.1.1" http = "2.2.2.2" https = "3.3.3.3" }
-					ports { dns = 1 http = 2 https = 3 }
+					addresses = { dns = "1.1.1.1" http = "2.2.2.2" https = "3.3.3.3" grpc = "4.4.4.4" }
+					ports { dns = 1 http = 2 https = 3 grpc = 4 }
 				`},
 			patch: func(rt *RuntimeConfig) {
 				rt.ClientAddrs = []*net.IPAddr{ipAddr("0.0.0.0")}
@@ -940,6 +950,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.HTTPAddrs = []net.Addr{tcpAddr("2.2.2.2:2")}
 				rt.HTTPSPort = 3
 				rt.HTTPSAddrs = []net.Addr{tcpAddr("3.3.3.3:3")}
+				rt.GRPCPort = 4
+				rt.GRPCAddrs = []net.Addr{tcpAddr("4.4.4.4:4")}
 				rt.DataDir = dataDir
 			},
 		},
@@ -948,11 +960,11 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{
 					"client_addr": "{{ printf \"1.2.3.4 2001:db8::1\" }}",
-					"ports":{ "dns":1, "http":2, "https":3 }
+					"ports":{ "dns":1, "http":2, "https":3, "grpc":4 }
 				}`},
 			hcl: []string{`
 					client_addr = "{{ printf \"1.2.3.4 2001:db8::1\" }}"
-					ports { dns = 1 http = 2 https = 3 }
+					ports { dns = 1 http = 2 https = 3 grpc = 4 }
 				`},
 			patch: func(rt *RuntimeConfig) {
 				rt.ClientAddrs = []*net.IPAddr{ipAddr("1.2.3.4"), ipAddr("2001:db8::1")}
@@ -962,6 +974,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.HTTPAddrs = []net.Addr{tcpAddr("1.2.3.4:2"), tcpAddr("[2001:db8::1]:2")}
 				rt.HTTPSPort = 3
 				rt.HTTPSAddrs = []net.Addr{tcpAddr("1.2.3.4:3"), tcpAddr("[2001:db8::1]:3")}
+				rt.GRPCPort = 4
+				rt.GRPCAddrs = []net.Addr{tcpAddr("1.2.3.4:4"), tcpAddr("[2001:db8::1]:4")}
 				rt.DataDir = dataDir
 			},
 		},
@@ -973,9 +987,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					"addresses": {
 						"dns": "{{ printf \"1.1.1.1 2001:db8::10 \" }}",
 						"http": "{{ printf \"2.2.2.2 unix://http 2001:db8::20 \" }}",
-						"https": "{{ printf \"3.3.3.3 unix://https 2001:db8::30 \" }}"
+						"https": "{{ printf \"3.3.3.3 unix://https 2001:db8::30 \" }}",
+						"grpc": "{{ printf \"4.4.4.4 unix://grpc 2001:db8::40 \" }}"
 					},
-					"ports":{ "dns":1, "http":2, "https":3 }
+					"ports":{ "dns":1, "http":2, "https":3, "grpc":4 }
 				}`},
 			hcl: []string{`
 					client_addr = "{{ printf \"1.2.3.4 2001:db8::1\" }}"
@@ -983,8 +998,9 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 						dns = "{{ printf \"1.1.1.1 2001:db8::10 \" }}"
 						http = "{{ printf \"2.2.2.2 unix://http 2001:db8::20 \" }}"
 						https = "{{ printf \"3.3.3.3 unix://https 2001:db8::30 \" }}"
+						grpc = "{{ printf \"4.4.4.4 unix://grpc 2001:db8::40 \" }}"
 					}
-					ports { dns = 1 http = 2 https = 3 }
+					ports { dns = 1 http = 2 https = 3 grpc = 4 }
 				`},
 			patch: func(rt *RuntimeConfig) {
 				rt.ClientAddrs = []*net.IPAddr{ipAddr("1.2.3.4"), ipAddr("2001:db8::1")}
@@ -994,6 +1010,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.HTTPAddrs = []net.Addr{tcpAddr("2.2.2.2:2"), unixAddr("unix://http"), tcpAddr("[2001:db8::20]:2")}
 				rt.HTTPSPort = 3
 				rt.HTTPSAddrs = []net.Addr{tcpAddr("3.3.3.3:3"), unixAddr("unix://https"), tcpAddr("[2001:db8::30]:3")}
+				rt.GRPCPort = 4
+				rt.GRPCAddrs = []net.Addr{tcpAddr("4.4.4.4:4"), unixAddr("unix://grpc"), tcpAddr("[2001:db8::40]:4")}
 				rt.DataDir = dataDir
 			},
 		},
@@ -1864,6 +1882,103 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			err: "Serf Advertise WAN address 10.0.0.1:1000 already configured for RPC Advertise",
 		},
 		{
+			desc: "sidecar_service can't have ID",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+				  "service": {
+						"name": "web",
+						"port": 1234,
+						"connect": {
+							"sidecar_service": {
+								"ID": "random-sidecar-id"
+							}
+						}
+					}
+				}`},
+			hcl: []string{`
+				service {
+					name = "web"
+					port = 1234
+					connect {
+						sidecar_service {
+							ID = "random-sidecar-id"
+						}
+					}
+				}
+			`},
+			err: "sidecar_service can't specify an ID",
+		},
+		{
+			desc: "sidecar_service can't have nested sidecar",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+				  "service": {
+						"name": "web",
+						"port": 1234,
+						"connect": {
+							"sidecar_service": {
+								"connect": {
+									"sidecar_service": {}
+								}
+							}
+						}
+					}
+				}`},
+			hcl: []string{`
+				service {
+					name = "web"
+					port = 1234
+					connect {
+						sidecar_service {
+							connect {
+								sidecar_service {
+								}
+							}
+						}
+					}
+				}
+			`},
+			err: "sidecar_service can't have a nested sidecar_service",
+		},
+		{
+			desc: "sidecar_service can't have managed proxy",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+				  "service": {
+						"name": "web",
+						"port": 1234,
+						"connect": {
+							"sidecar_service": {
+								"connect": {
+									"proxy": {}
+								}
+							}
+						}
+					}
+				}`},
+			hcl: []string{`
+				service {
+					name = "web"
+					port = 1234
+					connect {
+						sidecar_service {
+							connect {
+								proxy {
+								}
+							}
+						}
+					}
+				}
+			`},
+			err: "sidecar_service can't have a managed proxy",
+		},
+		{
 			desc: "telemetry.prefix_filter cannot be empty",
 			args: []string{
 				`-data-dir=` + dataDir,
@@ -2140,53 +2255,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		},
 
 		{
-			desc: "HCL service managed proxy 'upstreams'",
-			args: []string{
-				`-data-dir=` + dataDir,
-			},
-			hcl: []string{
-				`service {
-					name = "web"
-					port = 8080
-					connect {
-						proxy {
-							config {
-								upstreams {
-									local_bind_port = 1234
-								}
-							}
-						}
-					}
-				}`,
-			},
-			skipformat: true, // skipping JSON cause we get slightly diff types (okay)
-			patch: func(rt *RuntimeConfig) {
-				rt.DataDir = dataDir
-				rt.Services = []*structs.ServiceDefinition{
-					&structs.ServiceDefinition{
-						Name: "web",
-						Port: 8080,
-						Connect: &structs.ServiceConnect{
-							Proxy: &structs.ServiceDefinitionConnectProxy{
-								Config: map[string]interface{}{
-									"upstreams": []map[string]interface{}{
-										map[string]interface{}{
-											"local_bind_port": 1234,
-										},
-									},
-								},
-							},
-						},
-						Weights: &structs.Weights{
-							Passing: 1,
-							Warning: 1,
-						},
-					},
-				}
-			},
-		},
-		{
-			desc: "JSON service managed proxy 'upstreams'",
+			desc: "Service managed proxy 'upstreams'",
 			args: []string{
 				`-data-dir=` + dataDir,
 			},
@@ -2197,17 +2266,29 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 							"port": 8080,
 							"connect": {
 								"proxy": {
-									"config": {
-										"upstreams": [{
-											"local_bind_port": 1234
-										}]
-									}
+									"upstreams": [{
+										"destination_name": "db",
+										"local_bind_port": 1234
+									}]
 								}
 							}
 						}
 					}`,
 			},
-			skipformat: true, // skipping HCL cause we get slightly diff types (okay)
+			hcl: []string{
+				`service {
+					name = "web"
+					port = 8080
+					connect {
+						proxy {
+							upstreams {
+								destination_name = "db"
+								local_bind_port = 1234
+							}
+						}
+					}
+				}`,
+			},
 			patch: func(rt *RuntimeConfig) {
 				rt.DataDir = dataDir
 				rt.Services = []*structs.ServiceDefinition{
@@ -2216,11 +2297,11 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 						Port: 8080,
 						Connect: &structs.ServiceConnect{
 							Proxy: &structs.ServiceDefinitionConnectProxy{
-								Config: map[string]interface{}{
-									"upstreams": []interface{}{
-										map[string]interface{}{
-											"local_bind_port": float64(1234),
-										},
+								Upstreams: structs.Upstreams{
+									{
+										DestinationName: "db",
+										DestinationType: structs.UpstreamDestTypeService,
+										LocalBindPort:   1234,
 									},
 								},
 							},
@@ -2235,35 +2316,49 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		},
 
 		{
-			desc: "JSON multiple services managed proxy 'upstreams'",
+			desc: "Multiple service managed proxy 'upstreams'",
 			args: []string{
 				`-data-dir=` + dataDir,
 			},
 			json: []string{
 				`{
-						"services": [{
+						"service": {
 							"name": "web",
 							"port": 8080,
 							"connect": {
 								"proxy": {
-									"config": {
-										"upstreams": [{
-											"local_bind_port": 1234
-										}, {
-											"local_bind_port": 2345
-										}]
-									}
+									"upstreams": [{
+										"destination_name": "db",
+										"local_bind_port": 1234
+									}, {
+										"destination_name": "cache",
+										"local_bind_port": 2345
+									}]
 								}
 							}
-						},{
-							"name": "service-A2",
-							"port": 81,
-							"tags": [],
-							"checks": []
-						}]
+						}
 					}`,
 			},
-			skipformat: true, // skipping HCL cause we get slightly diff types (okay)
+			hcl: []string{
+				`service {
+					name = "web"
+					port = 8080
+					connect {
+						proxy {
+							upstreams = [
+								{
+									destination_name = "db"
+									local_bind_port = 1234
+								},
+							  {
+									destination_name = "cache"
+									local_bind_port = 2345
+								}
+							]
+						}
+					}
+				}`,
+			},
 			patch: func(rt *RuntimeConfig) {
 				rt.DataDir = dataDir
 				rt.Services = []*structs.ServiceDefinition{
@@ -2272,26 +2367,20 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 						Port: 8080,
 						Connect: &structs.ServiceConnect{
 							Proxy: &structs.ServiceDefinitionConnectProxy{
-								Config: map[string]interface{}{
-									"upstreams": []interface{}{
-										map[string]interface{}{
-											"local_bind_port": float64(1234),
-										},
-										map[string]interface{}{
-											"local_bind_port": float64(2345),
-										},
+								Upstreams: structs.Upstreams{
+									{
+										DestinationName: "db",
+										DestinationType: structs.UpstreamDestTypeService,
+										LocalBindPort:   1234,
+									},
+									{
+										DestinationName: "cache",
+										DestinationType: structs.UpstreamDestTypeService,
+										LocalBindPort:   2345,
 									},
 								},
 							},
 						},
-						Weights: &structs.Weights{
-							Passing: 1,
-							Warning: 1,
-						},
-					},
-					&structs.ServiceDefinition{
-						Name: "service-A2",
-						Port: 81,
 						Weights: &structs.Weights{
 							Passing: 1,
 							Warning: 1,
@@ -2332,6 +2421,197 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			patch: func(rt *RuntimeConfig) {
 				rt.DataDir = dataDir
 				rt.ConnectProxyAllowManagedAPIRegistration = true
+			},
+		},
+
+		{
+			// This tests that we correct added the nested paths to arrays of objects
+			// to the exceptions in patchSliceOfMaps in config.go (for single service)
+			desc: "service.connectsidecar_service with checks and upstreams",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+				  "service": {
+						"name": "web",
+						"port": 1234,
+						"connect": {
+							"sidecar_service": {
+								"port": 2345,
+								"checks": [
+									{
+										"TCP": "127.0.0.1:2345",
+										"Interval": "10s"
+									}
+								],
+								"proxy": {
+									"upstreams": [
+										{
+											"destination_name": "db",
+											"local_bind_port": 7000
+										}
+									]
+								}
+							}
+						}
+					}
+				}`},
+			hcl: []string{`
+				service {
+					name = "web"
+					port = 1234
+					connect {
+						sidecar_service {
+							port = 2345
+							checks = [
+								{
+									tcp = "127.0.0.1:2345"
+									interval = "10s"
+								}
+							]
+							proxy {
+								upstreams = [
+									{
+										destination_name = "db"
+										local_bind_port = 7000
+									},
+								]
+							}
+						}
+					}
+				}
+			`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.Services = []*structs.ServiceDefinition{
+					{
+						Name: "web",
+						Port: 1234,
+						Connect: &structs.ServiceConnect{
+							SidecarService: &structs.ServiceDefinition{
+								Port: 2345,
+								Checks: structs.CheckTypes{
+									{
+										TCP:      "127.0.0.1:2345",
+										Interval: 10 * time.Second,
+									},
+								},
+								Proxy: &structs.ConnectProxyConfig{
+									Upstreams: structs.Upstreams{
+										structs.Upstream{
+											DestinationType: "service",
+											DestinationName: "db",
+											LocalBindPort:   7000,
+										},
+									},
+								},
+								Weights: &structs.Weights{
+									Passing: 1,
+									Warning: 1,
+								},
+							},
+						},
+						Weights: &structs.Weights{
+							Passing: 1,
+							Warning: 1,
+						},
+					},
+				}
+			},
+		},
+		{
+			// This tests that we correct added the nested paths to arrays of objects
+			// to the exceptions in patchSliceOfMaps in config.go (for service*s*)
+			desc: "services.connect.sidecar_service with checks and upstreams",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+				  "services": [{
+						"name": "web",
+						"port": 1234,
+						"connect": {
+							"sidecar_service": {
+								"port": 2345,
+								"checks": [
+									{
+										"TCP": "127.0.0.1:2345",
+										"Interval": "10s"
+									}
+								],
+								"proxy": {
+									"upstreams": [
+										{
+											"destination_name": "db",
+											"local_bind_port": 7000
+										}
+									]
+								}
+							}
+						}
+					}]
+				}`},
+			hcl: []string{`
+				services = [{
+					name = "web"
+					port = 1234
+					connect {
+						sidecar_service {
+							port = 2345
+							checks = [
+								{
+									tcp = "127.0.0.1:2345"
+									interval = "10s"
+								}
+							]
+							proxy {
+								upstreams = [
+									{
+										destination_name = "db"
+										local_bind_port = 7000
+									},
+								]
+							}
+						}
+					}
+				}]
+			`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.Services = []*structs.ServiceDefinition{
+					{
+						Name: "web",
+						Port: 1234,
+						Connect: &structs.ServiceConnect{
+							SidecarService: &structs.ServiceDefinition{
+								Port: 2345,
+								Checks: structs.CheckTypes{
+									{
+										TCP:      "127.0.0.1:2345",
+										Interval: 10 * time.Second,
+									},
+								},
+								Proxy: &structs.ConnectProxyConfig{
+									Upstreams: structs.Upstreams{
+										structs.Upstream{
+											DestinationType: "service",
+											DestinationName: "db",
+											LocalBindPort:   7000,
+										},
+									},
+								},
+								Weights: &structs.Weights{
+									Passing: 1,
+									Warning: 1,
+								},
+							},
+						},
+						Weights: &structs.Weights{
+							Passing: 1,
+							Warning: 1,
+						},
+					},
+				}
 			},
 		},
 	}
@@ -2533,7 +2813,8 @@ func TestFullConfig(t *testing.T) {
 			"addresses": {
 				"dns": "93.95.95.81",
 				"http": "83.39.91.39",
-				"https": "95.17.17.19"
+				"https": "95.17.17.19",
+				"grpc": "32.31.61.91"
 			},
 			"advertise_addr": "17.99.29.16",
 			"advertise_addr_wan": "78.63.37.19",
@@ -2725,8 +3006,11 @@ func TestFullConfig(t *testing.T) {
 				"http": 7999,
 				"https": 15127,
 				"server": 3757,
+				"grpc": 4881,
 				"proxy_min_port": 2000,
-				"proxy_max_port": 3000
+				"proxy_max_port": 3000,
+				"sidecar_min_port": 8888,
+				"sidecar_max_port": 9999
 			},
 			"protocol": 30793,
 			"raft_protocol": 19016,
@@ -2876,6 +3160,9 @@ func TestFullConfig(t *testing.T) {
 						"timeout": "38333s",
 						"ttl": "57201s",
 						"deregister_critical_service_after": "44214s"
+					},
+					"connect": {
+						"sidecar_service": {}
 					}
 				},
 				{
@@ -2946,10 +3233,34 @@ func TestFullConfig(t *testing.T) {
 				},
 				{
 					"id": "Kh81CPF6",
+					"kind": "connect-proxy",
 					"name": "Kh81CPF6-proxy",
 					"port": 31471,
-					"kind": "connect-proxy",
-					"proxy_destination": "6L6BVfgH"
+					"proxy": {
+						"config": {
+								"cedGGtZf": "pWrUNiWw"
+						},
+						"destination_service_id": "6L6BVfgH-id",
+						"destination_service_name": "6L6BVfgH",
+						"local_service_address": "127.0.0.2",
+						"local_service_port": 23759,
+						"upstreams": [
+							{
+								"destination_name": "KPtAj2cb",
+								"local_bind_port": 4051,
+								"config": {
+									"kzRnZOyd": "nUNKoL8H"
+								}
+							},
+							{
+								"destination_name": "KSd8HsRl",
+								"destination_namespace": "9nakw0td",
+								"destination_type": "prepared_query",
+								"local_bind_address": "127.24.88.0",
+								"local_bind_port": 11884
+							}
+						]
+					}
 				}
 			],
 			"session_ttl_min": "26627s",
@@ -3031,6 +3342,7 @@ func TestFullConfig(t *testing.T) {
 				dns = "93.95.95.81"
 				http = "83.39.91.39"
 				https = "95.17.17.19"
+				grpc = "32.31.61.91"
 			}
 			advertise_addr = "17.99.29.16"
 			advertise_addr_wan = "78.63.37.19"
@@ -3224,8 +3536,11 @@ func TestFullConfig(t *testing.T) {
 				http = 7999,
 				https = 15127
 				server = 3757
+				grpc = 4881
 				proxy_min_port = 2000
 				proxy_max_port = 3000
+				sidecar_min_port = 8888
+				sidecar_max_port = 9999
 			}
 			protocol = 30793
 			raft_protocol = 19016
@@ -3376,6 +3691,9 @@ func TestFullConfig(t *testing.T) {
 						ttl = "57201s"
 						deregister_critical_service_after = "44214s"
 					}
+					connect {
+						sidecar_service {}
+					}
 				},
 				{
 					id = "MRHVMZuD"
@@ -3448,7 +3766,31 @@ func TestFullConfig(t *testing.T) {
 					name = "Kh81CPF6-proxy"
 					port = 31471
 					kind = "connect-proxy"
-					proxy_destination = "6L6BVfgH"
+					proxy {
+						destination_service_name = "6L6BVfgH"
+						destination_service_id = "6L6BVfgH-id"
+						local_service_address = "127.0.0.2"
+						local_service_port = 23759
+						config {
+							cedGGtZf = "pWrUNiWw"
+						}
+						upstreams = [
+							{
+								destination_name = "KPtAj2cb"
+								local_bind_port = 4051
+								config {
+									kzRnZOyd = "nUNKoL8H"
+								}
+							},
+							{
+								destination_type = "prepared_query"
+								destination_namespace = "9nakw0td"
+								destination_name = "KSd8HsRl"
+								local_bind_port = 11884
+								local_bind_address = "127.24.88.0"
+							},
+						]
+					}
 				}
 			]
 			session_ttl_min = "26627s"
@@ -3672,14 +4014,14 @@ func TestFullConfig(t *testing.T) {
 					"ZBfTin3L": []string{"1sDbEqYG", "lJGASsWK"},
 					"Ui0nU99X": []string{"LMccm3Qe", "k5H5RggQ"},
 				},
-				Method:            "aldrIQ4l",
-				TCP:               "RJQND605",
-				Interval:          22164 * time.Second,
-				DockerContainerID: "ipgdFtjd",
-				Shell:             "qAeOYy0M",
-				TLSSkipVerify:     true,
-				Timeout:           1813 * time.Second,
-				TTL:               21743 * time.Second,
+				Method:                         "aldrIQ4l",
+				TCP:                            "RJQND605",
+				Interval:                       22164 * time.Second,
+				DockerContainerID:              "ipgdFtjd",
+				Shell:                          "qAeOYy0M",
+				TLSSkipVerify:                  true,
+				Timeout:                        1813 * time.Second,
+				TTL:                            21743 * time.Second,
 				DeregisterCriticalServiceAfter: 14232 * time.Second,
 			},
 			&structs.CheckDefinition{
@@ -3695,14 +4037,14 @@ func TestFullConfig(t *testing.T) {
 					"zcqwA8dO": []string{"qb1zx0DL", "sXCxPFsD"},
 					"qxvdnSE9": []string{"6wBPUYdF", "YYh8wtSZ"},
 				},
-				Method:            "gLrztrNw",
-				TCP:               "4jG5casb",
-				Interval:          28767 * time.Second,
-				DockerContainerID: "THW6u7rL",
-				Shell:             "C1Zt3Zwh",
-				TLSSkipVerify:     true,
-				Timeout:           18506 * time.Second,
-				TTL:               31006 * time.Second,
+				Method:                         "gLrztrNw",
+				TCP:                            "4jG5casb",
+				Interval:                       28767 * time.Second,
+				DockerContainerID:              "THW6u7rL",
+				Shell:                          "C1Zt3Zwh",
+				TLSSkipVerify:                  true,
+				Timeout:                        18506 * time.Second,
+				TTL:                            31006 * time.Second,
 				DeregisterCriticalServiceAfter: 2366 * time.Second,
 			},
 			&structs.CheckDefinition{
@@ -3718,14 +4060,14 @@ func TestFullConfig(t *testing.T) {
 					"hBq0zn1q": {"2a9o9ZKP", "vKwA5lR6"},
 					"f3r6xFtM": {"RyuIdDWv", "QbxEcIUM"},
 				},
-				Method:            "Dou0nGT5",
-				TCP:               "JY6fTTcw",
-				Interval:          18714 * time.Second,
-				DockerContainerID: "qF66POS9",
-				Shell:             "sOnDy228",
-				TLSSkipVerify:     true,
-				Timeout:           5954 * time.Second,
-				TTL:               30044 * time.Second,
+				Method:                         "Dou0nGT5",
+				TCP:                            "JY6fTTcw",
+				Interval:                       18714 * time.Second,
+				DockerContainerID:              "qF66POS9",
+				Shell:                          "sOnDy228",
+				TLSSkipVerify:                  true,
+				Timeout:                        5954 * time.Second,
+				TTL:                            30044 * time.Second,
 				DeregisterCriticalServiceAfter: 13209 * time.Second,
 			},
 		},
@@ -3734,6 +4076,8 @@ func TestFullConfig(t *testing.T) {
 		ConnectEnabled:          true,
 		ConnectProxyBindMinPort: 2000,
 		ConnectProxyBindMaxPort: 3000,
+		ConnectSidecarMinPort:   8888,
+		ConnectSidecarMaxPort:   9999,
 		ConnectCAProvider:       "consul",
 		ConnectCAConfig: map[string]interface{}{
 			"RotationPeriod": "90h",
@@ -3785,6 +4129,8 @@ func TestFullConfig(t *testing.T) {
 		EncryptKey:                       "A4wELWqH",
 		EncryptVerifyIncoming:            true,
 		EncryptVerifyOutgoing:            true,
+		GRPCPort:                         4881,
+		GRPCAddrs:                        []net.Addr{tcpAddr("32.31.61.91:4881")},
 		HTTPAddrs:                        []net.Addr{tcpAddr("83.39.91.39:7999")},
 		HTTPBlockEndpoints:               []string{"RBvAFcGD", "fWOWFznh"},
 		HTTPPort:                         7999,
@@ -3863,15 +4209,27 @@ func TestFullConfig(t *testing.T) {
 							"UkpmZ3a3": {"2dfzXuxZ"},
 							"cVFpko4u": {"gGqdEB6k", "9LsRo22u"},
 						},
-						Method:            "X5DrovFc",
-						TCP:               "ICbxkpSF",
-						Interval:          24392 * time.Second,
-						DockerContainerID: "ZKXr68Yb",
-						Shell:             "CEfzx0Fo",
-						TLSSkipVerify:     true,
-						Timeout:           38333 * time.Second,
-						TTL:               57201 * time.Second,
+						Method:                         "X5DrovFc",
+						TCP:                            "ICbxkpSF",
+						Interval:                       24392 * time.Second,
+						DockerContainerID:              "ZKXr68Yb",
+						Shell:                          "CEfzx0Fo",
+						TLSSkipVerify:                  true,
+						Timeout:                        38333 * time.Second,
+						TTL:                            57201 * time.Second,
 						DeregisterCriticalServiceAfter: 44214 * time.Second,
+					},
+				},
+				// Note that although this SidecarService is only syntax sugar for
+				// registering another service, that has to happen in the agent code so
+				// it can make intelligent decisions about automatic port assignments
+				// etc. So we expect config just to pass it through verbatim.
+				Connect: &structs.ServiceConnect{
+					SidecarService: &structs.ServiceDefinition{
+						Weights: &structs.Weights{
+							Passing: 1,
+							Warning: 1,
+						},
 					},
 				},
 			},
@@ -3899,14 +4257,14 @@ func TestFullConfig(t *testing.T) {
 							"MUlReo8L": {"AUZG7wHG", "gsN0Dc2N"},
 							"1UJXjVrT": {"OJgxzTfk", "xZZrFsq7"},
 						},
-						Method:            "5wkAxCUE",
-						TCP:               "MN3oA9D2",
-						Interval:          32718 * time.Second,
-						DockerContainerID: "cU15LMet",
-						Shell:             "nEz9qz2l",
-						TLSSkipVerify:     true,
-						Timeout:           34738 * time.Second,
-						TTL:               22773 * time.Second,
+						Method:                         "5wkAxCUE",
+						TCP:                            "MN3oA9D2",
+						Interval:                       32718 * time.Second,
+						DockerContainerID:              "cU15LMet",
+						Shell:                          "nEz9qz2l",
+						TLSSkipVerify:                  true,
+						Timeout:                        34738 * time.Second,
+						TTL:                            22773 * time.Second,
 						DeregisterCriticalServiceAfter: 84282 * time.Second,
 					},
 					&structs.CheckType{
@@ -3920,14 +4278,14 @@ func TestFullConfig(t *testing.T) {
 							"cXPmnv1M": {"imDqfaBx", "NFxZ1bQe"},
 							"vr7wY7CS": {"EtCoNPPL", "9vAarJ5s"},
 						},
-						Method:            "wzByP903",
-						TCP:               "2exjZIGE",
-						Interval:          5656 * time.Second,
-						DockerContainerID: "5tDBWpfA",
-						Shell:             "rlTpLM8s",
-						TLSSkipVerify:     true,
-						Timeout:           4868 * time.Second,
-						TTL:               11222 * time.Second,
+						Method:                         "wzByP903",
+						TCP:                            "2exjZIGE",
+						Interval:                       5656 * time.Second,
+						DockerContainerID:              "5tDBWpfA",
+						Shell:                          "rlTpLM8s",
+						TLSSkipVerify:                  true,
+						Timeout:                        4868 * time.Second,
+						TTL:                            11222 * time.Second,
 						DeregisterCriticalServiceAfter: 68482 * time.Second,
 					},
 				},
@@ -3942,11 +4300,36 @@ func TestFullConfig(t *testing.T) {
 				},
 			},
 			{
-				ID:               "Kh81CPF6",
-				Name:             "Kh81CPF6-proxy",
-				Port:             31471,
-				Kind:             "connect-proxy",
-				ProxyDestination: "6L6BVfgH",
+				ID:   "Kh81CPF6",
+				Name: "Kh81CPF6-proxy",
+				Port: 31471,
+				Kind: "connect-proxy",
+				Proxy: &structs.ConnectProxyConfig{
+					DestinationServiceName: "6L6BVfgH",
+					DestinationServiceID:   "6L6BVfgH-id",
+					LocalServiceAddress:    "127.0.0.2",
+					LocalServicePort:       23759,
+					Config: map[string]interface{}{
+						"cedGGtZf": "pWrUNiWw",
+					},
+					Upstreams: structs.Upstreams{
+						{
+							DestinationType: "service", // Default should be explicitly filled
+							DestinationName: "KPtAj2cb",
+							LocalBindPort:   4051,
+							Config: map[string]interface{}{
+								"kzRnZOyd": "nUNKoL8H",
+							},
+						},
+						{
+							DestinationType:      "prepared_query",
+							DestinationNamespace: "9nakw0td",
+							DestinationName:      "KSd8HsRl",
+							LocalBindPort:        11884,
+							LocalBindAddress:     "127.24.88.0",
+						},
+					},
+				},
 				Weights: &structs.Weights{
 					Passing: 1,
 					Warning: 1,
@@ -3980,14 +4363,14 @@ func TestFullConfig(t *testing.T) {
 							"gv5qefTz": {"5Olo2pMG", "PvvKWQU5"},
 							"SHOVq1Vv": {"jntFhyym", "GYJh32pp"},
 						},
-						Method:            "T66MFBfR",
-						TCP:               "bNnNfx2A",
-						Interval:          22224 * time.Second,
-						DockerContainerID: "ipgdFtjd",
-						Shell:             "omVZq7Sz",
-						TLSSkipVerify:     true,
-						Timeout:           18913 * time.Second,
-						TTL:               44743 * time.Second,
+						Method:                         "T66MFBfR",
+						TCP:                            "bNnNfx2A",
+						Interval:                       22224 * time.Second,
+						DockerContainerID:              "ipgdFtjd",
+						Shell:                          "omVZq7Sz",
+						TLSSkipVerify:                  true,
+						Timeout:                        18913 * time.Second,
+						TTL:                            44743 * time.Second,
 						DeregisterCriticalServiceAfter: 8482 * time.Second,
 					},
 					&structs.CheckType{
@@ -4001,14 +4384,14 @@ func TestFullConfig(t *testing.T) {
 							"4ebP5vL4": {"G20SrL5Q", "DwPKlMbo"},
 							"p2UI34Qz": {"UsG1D0Qh", "NHhRiB6s"},
 						},
-						Method:            "ciYHWors",
-						TCP:               "FfvCwlqH",
-						Interval:          12356 * time.Second,
-						DockerContainerID: "HBndBU6R",
-						Shell:             "hVI33JjA",
-						TLSSkipVerify:     true,
-						Timeout:           38282 * time.Second,
-						TTL:               1181 * time.Second,
+						Method:                         "ciYHWors",
+						TCP:                            "FfvCwlqH",
+						Interval:                       12356 * time.Second,
+						DockerContainerID:              "HBndBU6R",
+						Shell:                          "hVI33JjA",
+						TLSSkipVerify:                  true,
+						Timeout:                        38282 * time.Second,
+						TTL:                            1181 * time.Second,
 						DeregisterCriticalServiceAfter: 4992 * time.Second,
 					},
 					&structs.CheckType{
@@ -4022,14 +4405,14 @@ func TestFullConfig(t *testing.T) {
 							"rjm4DEd3": {"2m3m2Fls"},
 							"l4HwQ112": {"fk56MNlo", "dhLK56aZ"},
 						},
-						Method:            "9afLm3Mj",
-						TCP:               "fjiLFqVd",
-						Interval:          23926 * time.Second,
-						DockerContainerID: "dO5TtRHk",
-						Shell:             "e6q2ttES",
-						TLSSkipVerify:     true,
-						Timeout:           38483 * time.Second,
-						TTL:               10943 * time.Second,
+						Method:                         "9afLm3Mj",
+						TCP:                            "fjiLFqVd",
+						Interval:                       23926 * time.Second,
+						DockerContainerID:              "dO5TtRHk",
+						Shell:                          "e6q2ttES",
+						TLSSkipVerify:                  true,
+						Timeout:                        38483 * time.Second,
+						TTL:                            10943 * time.Second,
 						DeregisterCriticalServiceAfter: 68787 * time.Second,
 					},
 				},
@@ -4464,6 +4847,8 @@ func TestSanitize(t *testing.T) {
 		"ConnectProxyDefaultDaemonCommand": [],
 		"ConnectProxyDefaultExecMode": "",
 		"ConnectProxyDefaultScriptCommand": [],
+		"ConnectSidecarMaxPort": 0,
+		"ConnectSidecarMinPort": 0,
 		"ConnectTestDisableManagedProxies": false,
 		"ConsulCoordinateUpdateBatchSize": 0,
 		"ConsulCoordinateUpdateMaxBatches": 0,
@@ -4523,6 +4908,8 @@ func TestSanitize(t *testing.T) {
 		"EncryptKey": "hidden",
 		"EncryptVerifyIncoming": false,
 		"EncryptVerifyOutgoing": false,
+		"GRPCAddrs": [],
+		"GRPCPort": 0,
 		"HTTPAddrs": [
 			"tcp://1.2.3.4:5678",
 			"unix:///var/run/foo"
@@ -4612,6 +4999,7 @@ func TestSanitize(t *testing.T) {
 			"Meta": {},
 			"Name": "foo",
 			"Port": 0,
+			"Proxy": null,
 			"ProxyDestination": "",
 			"Tags": [],
 			"Token": "hidden",

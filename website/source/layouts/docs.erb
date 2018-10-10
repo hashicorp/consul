@@ -185,6 +185,18 @@
             <a href="/docs/commands/rtt.html">rtt</a>
           </li>
 
+          <li<%= sidebar_current("docs-commands-services") %>>
+            <a href="/docs/commands/services.html">services</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-commands-services-register") %>>
+                <a href="/docs/commands/services/register.html">register</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-services-deregister") %>>
+                <a href="/docs/commands/services/deregister.html">deregister</a>
+              </li>
+            </ul>
+          </li>
+
           <li<%= sidebar_current("docs-commands-snapshot") %>>
             <a href="/docs/commands/snapshot.html">snapshot</a>
             <ul class="nav">
@@ -290,6 +302,9 @@
           <li<%= sidebar_current("docs-connect-platform-nomad") %>>
             <a href="/docs/connect/platform/nomad.html">Nomad</a>
           </li>
+          <li<%= sidebar_current("docs-connect-platform-k8s") %>>
+            <a href="/docs/platform/k8s/connect.html">Kubernetes</a>
+          </li>
           <li<%= sidebar_current("docs-connect-security") %>>
             <a href="/docs/connect/security.html">Security</a>
           </li>
@@ -311,6 +326,12 @@
           <li<%= sidebar_current("docs-platform-k8s-dns") %>>
             <a href="/docs/platform/k8s/dns.html">Consul DNS</a>
           </li>
+          <li<%= sidebar_current("docs-platform-k8s-service-sync") %>>
+            <a href="/docs/platform/k8s/service-sync.html">Service Sync</a>
+          </li>
+          <li<%= sidebar_current("docs-platform-k8s-connect") %>>
+            <a href="/docs/platform/k8s/connect.html">Connect Sidecar</a>
+          </li>
         </ul>
       </li>
 
@@ -319,9 +340,6 @@
       <li<%= sidebar_current("docs-guides") %>>
         <a href="/docs/guides/index.html">Guides</a>
         <ul class="nav">
-          <li<%= sidebar_current("docs-guides-deployment") %>>
-            <a href="/docs/guides/deployment.html">Production Deployment</a>
-          </li>
           <li<%= sidebar_current("docs-guides-acl") %>>
             <a href="/docs/guides/acl.html">ACLs</a>
           </li>
@@ -341,8 +359,10 @@
             <a href="/docs/guides/consul-containers.html">Consul with Containers</a>
           </li>
           <li<%= sidebar_current("docs-guides-creating-certificates") %>>
-            <a href="/docs/guides/creating-certificates.html">Creating
-Certificates</a>
+            <a href="/docs/guides/creating-certificates.html">Creating Certificates</a>
+          </li>
+          <li<%= sidebar_current("docs-guides-deployment-guide") %>>
+            <a href="/docs/guides/deployment-guide.html">Deployment Guide</a>
           </li>
           <li<%= sidebar_current("docs-guides-dns-cache") %>>
             <a href="/docs/guides/dns-cache.html">DNS Caching</a>
@@ -371,14 +391,17 @@ Certificates</a>
           <li<%= sidebar_current("docs-guides-segments") %>>
             <a href="/docs/guides/segments.html">Network Segments</a>
           </li>
-          <li<%= sidebar_current("docs-guides-sentinel") %>>
-            <a href="/docs/guides/sentinel.html">Sentinel</a>
-          </li>
           <li<%= sidebar_current("docs-guides-outage") %>>
             <a href="/docs/guides/outage.html">Outage Recovery</a>
           </li>
+          <li<%= sidebar_current("docs-guides-reference-architecture") %>>
+            <a href="/docs/guides/deployment.html">Reference Architecture</a>
+          </li>
           <li<%= sidebar_current("docs-guides-semaphore") %>>
             <a href="/docs/guides/semaphore.html">Semaphore</a>
+          </li>
+          <li<%= sidebar_current("docs-guides-sentinel") %>>
+            <a href="/docs/guides/sentinel.html">Sentinel</a>
           </li>
           <li<%= sidebar_current("docs-guides-performance") %>>
             <a href="/docs/guides/performance.html">Server Performance</a>

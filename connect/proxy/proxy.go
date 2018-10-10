@@ -1,7 +1,6 @@
 package proxy
 
 import (
-	"bytes"
 	"crypto/x509"
 	"log"
 
@@ -69,12 +68,17 @@ func (p *Proxy) Serve() error {
 
 				go func() {
 					<-service.ReadyWait()
-					p.logger.Printf("[INFO] proxy loaded config and ready to serve")
+					p.logger.Printf("[INFO] Proxy loaded config and ready to serve")
 					tcfg := service.ServerTLSConfig()
 					cert, _ := tcfg.GetCertificate(nil)
 					leaf, _ := x509.ParseCertificate(cert.Certificate[0])
-					p.logger.Printf("[DEBUG] leaf: %s roots: %s", leaf.URIs[0],
-						bytes.Join(tcfg.RootCAs.Subjects(), []byte(",")))
+					p.logger.Printf("[INFO] TLS Identity: %s", leaf.URIs[0])
+					roots, err := connect.CommonNamesFromCertPool(tcfg.RootCAs)
+					if err != nil {
+						p.logger.Printf("[ERR] Failed to parse root subjects: %s", err)
+					} else {
+						p.logger.Printf("[INFO] TLS Roots   : %v", roots)
+					}
 
 					// Only start a listener if we have a port set. This allows
 					// the configuration to disable our public listener.
@@ -87,6 +91,7 @@ func (p *Proxy) Serve() error {
 							p.logger.Printf("[ERR] failed to start public listener: %s", err)
 							failCh <- err
 						}
+
 					}
 				}()
 			}
@@ -96,7 +101,6 @@ func (p *Proxy) Serve() error {
 			// start one of each and stop/modify if changes occur.
 			for _, uc := range newCfg.Upstreams {
 				uc.applyDefaults()
-				uc.resolver = UpstreamResolverFromClient(p.client, uc)
 
 				if uc.LocalBindPort < 1 {
 					p.logger.Printf("[ERR] upstream %s has no local_bind_port. "+
@@ -104,7 +108,7 @@ func (p *Proxy) Serve() error {
 					continue
 				}
 
-				l := NewUpstreamListener(p.service, uc, p.logger)
+				l := NewUpstreamListener(p.service, p.client, uc, p.logger)
 				err := p.startListener(uc.String(), l)
 				if err != nil {
 					p.logger.Printf("[ERR] failed to start upstream %s: %s", uc.String(),

@@ -1,23 +1,12 @@
 %feedback-dialog-inline {
-  position: relative;
-  display: flex;
-  justify-content: center;
+  @extend %tooltip;
 }
+
 %feedback-dialog-inline p::after {
-  content: '';
-  display: block;
-  position: absolute;
-  left: 50%;
-  margin-left: -5px;
-  bottom: -5px;
-  width: 10px;
-  height: 10px;
-  transform: rotate(45deg);
+  @extend %tooltip-tail;
+  top: auto !important;
+  bottom: -13px;
 }
 %feedback-dialog-inline p {
-  padding: 10px;
-  position: absolute;
-  bottom: 100%;
-  text-align: center;
-  white-space: nowrap; //temp
+  @extend %tooltip-bubble;
 }

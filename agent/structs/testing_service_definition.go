@@ -8,13 +8,18 @@ import (
 func TestServiceDefinition(t testing.T) *ServiceDefinition {
 	return &ServiceDefinition{
 		Name: "db",
+		Port: 1234,
 	}
 }
 
 // TestServiceDefinitionProxy returns a ServiceDefinition for a proxy.
 func TestServiceDefinitionProxy(t testing.T) *ServiceDefinition {
 	return &ServiceDefinition{
-		Kind:             ServiceKindConnectProxy,
-		ProxyDestination: "db",
+		Kind: ServiceKindConnectProxy,
+		Name: "foo-proxy",
+		Port: 1234,
+		Proxy: &ConnectProxyConfig{
+			DestinationServiceName: "db",
+		},
 	}
 }

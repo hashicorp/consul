@@ -176,6 +176,7 @@ if desired.
 
 #### S3 Storage Options
 Note that despite the AWS references, any S3-compatible endpoint can be specified with `-aws-s3-endpoint`.
+
 * `-aws-access-key-id` and `-aws-secret-access-key` - These arguments supply
   authentication information for connecting to S3. These may also be supplied using
   the following alternative methods:<br>
@@ -186,7 +187,8 @@ Note that despite the AWS references, any S3-compatible endpoint can be specifie
   - EC2 instance role metadata
 
 * `-aws-s3-bucket` - S3 bucket to use. Required for S3 storage, and setting this
-  disables local storage.
+  disables local storage. This should be only the bucket name without any
+  part of the key prefix.
 
 * `-aws-s3-key-prefix` - Prefix to use for snapshot files in S3. Defaults to
    "consul-snapshot".
@@ -204,6 +206,49 @@ Note that despite the AWS references, any S3-compatible endpoint can be specifie
 * `-aws-s3-enable-kms` - Enables using [Amazon KMS](https://aws.amazon.com/kms/) for encrypting snapshots.
 
 * `-aws-s3-kms-key` -  Optional Amazon KMS key to use, if this is not set the default KMS master key will be used. Set this if you want to manage key rotation yourself.
+
+#### S3 Required Permissions
+
+Different S3 permissions are required depending on the configuration of the snapshot agent. In particular extra permissions are required when
+snapshot rotation is enabled. S3 storage snapshot rotation is enabled when the `retain` configuration is greater than 0 and when there is
+no `aws-s3-static-snapshot-name` configured.
+
+| Permission           | Resource                           | When you need it                                |
+| -------------------- | ---------------------------------- | ----------------------------------------------- |
+| `PutObject`          | `arn:aws:s3:::<bucket name>/<key>` | Required for all operations.                    |
+| `DeleteObject`       | `arn:aws:s3:::<bucket name>/<key>` | Required only when snapshot rotation is enabled |
+| `ListBucket`         | `arn:aws:s3:::<bucket name>`       | Required only when snapshot rotation is enabled |
+| `ListBucketVersions` | `arn:aws:s3:::<bucket name>`       | Required only when snapshot rotation is enabled |
+
+Within the table `<key>` refers to the the key used to store the snapshot. When `aws-s3-static-snapshot-name` is configured the `<key>` is simply the value of that configuration. Otherwise the `<key>` will be the `<aws-s3-key-prefix configuration>/consul-*.snap`.
+
+The following example IAM policy document assumes that the `aws-s3-bucket` is `consul-data` with defaults for `aws-s3-key-prefix`, `aws-s3-static-snapshot-name` and `retain`:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": "arn:aws:s3:::consul-data/consul-snapshots/consul-*.snap"
+    },
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucketVersions",
+        "s3:ListBucket"
+      ],
+      "Resource": "arn:aws:s3:::consul-data"
+    }
+  ]
+}
+```
 
 ## Examples
 

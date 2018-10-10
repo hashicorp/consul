@@ -19,7 +19,10 @@
             {{#yield-slot 'header'}}{{yield}}{{/yield-slot}}
         </div>
     </div>
-    {{#yield-slot 'toolbar'}}{{yield}}{{/yield-slot}}
+    {{#yield-slot 'toolbar'}}
+      <input type="checkbox" id="toolbar-toggle" />
+      {{yield}}
+    {{/yield-slot}}
 </header>
 {{/if}}
 <div>

@@ -37,9 +37,11 @@ h2,
 %healthchecked-resource header span,
 %healthcheck-status dt,
 %copy-button,
-%form-element > span,
 %app-content div > dl > dt,
 td a {
+  font-weight: $typo-weight-semibold;
+}
+%form-element > span {
   font-weight: $typo-weight-semibold;
 }
 %button {
@@ -49,7 +51,7 @@ th,
 %breadcrumbs a,
 %action-group a,
 %tab-nav,
-%with-tooltip::before {
+%tooltip-bubble {
   font-weight: $typo-weight-medium;
 }
 main label a[rel*='help'],
@@ -62,12 +64,6 @@ td:first-child em,
 td:first-child em,
 %healthchecked-resource header em {
   font-style: normal;
-}
-%form-element > span {
-  text-transform: uppercase;
-}
-%form-element > span > * {
-  text-transform: none;
 }
 %footer > * {
   font-size: inherit;
@@ -87,7 +83,8 @@ td {
   font-size: $typo-size-600;
 }
 th,
-%with-tooltip::before,
+%form-element > span,
+%tooltip-bubble,
 %healthchecked-resource strong,
 %footer {
   font-size: $typo-size-700;
@@ -100,9 +97,8 @@ th,
 %app-view > div.disabled > div,
 .template-error > div,
 %button,
-.with-confirmation p,
 %form-element > em,
-%form-element > span,
+.with-confirmation p,
 %feedback-dialog-inline p {
   font-size: $typo-size-800;
 }

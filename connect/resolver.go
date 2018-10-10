@@ -170,7 +170,7 @@ func (cr *ConsulResolver) resolveServiceEntry(entry *api.ServiceEntry) (string, 
 	}
 	port := entry.Service.Port
 
-	service := entry.Service.ProxyDestination
+	service := entry.Service.Proxy.DestinationServiceName
 	if entry.Service.Connect != nil && entry.Service.Connect.Native {
 		service = entry.Service.Service
 	}

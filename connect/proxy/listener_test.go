@@ -176,13 +176,9 @@ func TestUpstreamListener(t *testing.T) {
 		DestinationType:      "service",
 		DestinationNamespace: "default",
 		DestinationName:      "db",
-		ConnectTimeoutMs:     100,
+		Config:               map[string]interface{}{"connect_timeout_ms": 100},
 		LocalBindAddress:     "localhost",
 		LocalBindPort:        ports[0],
-		resolver: &connect.StaticResolver{
-			Addr:    testSvr.Addr,
-			CertURI: agConnect.TestSpiffeIDService(t, "db"),
-		},
 	}
 
 	// Setup metrics to test they are recorded
@@ -190,7 +186,12 @@ func TestUpstreamListener(t *testing.T) {
 
 	svc := connect.TestService(t, "web", ca)
 
-	l := NewUpstreamListener(svc, cfg, log.New(os.Stderr, "", log.LstdFlags))
+	// Setup with a statuc resolver instead
+	rf := TestStaticUpstreamResolverFunc(&connect.StaticResolver{
+		Addr:    testSvr.Addr,
+		CertURI: agConnect.TestSpiffeIDService(t, "db"),
+	})
+	l := newUpstreamListenerWithResolver(svc, cfg, rf, log.New(os.Stderr, "", log.LstdFlags))
 
 	// Run proxy
 	go func() {

@@ -42,3 +42,18 @@ vice versa) over a fully encrypted connection.
 **And more!** Consul can run directly on Kubernetes, so in addition to the
 native integrations provided by Consul itself, any other tool built for
 Kubernetes can choose to leverage Consul.
+
+## "consul-k8s" Project
+
+The dedicated [consul-k8s project](https://github.com/hashicorp/consul-k8s)
+contains the integration functionality between Consul and Kubernetes.
+You generally will not need to invoke this project directly since the
+[Helm chart](/docs/platform/k8s/helm.html) automates the installation and
+configuration of the project when necessary.
+
+We may integrate this functionality directly into Consul in the future,
+but the separate project allows us to iterate and version the Kubernetes
+functionality separately. Additionally, a lot of the functionality works
+across multiple Consul versions, so you're able to update and resolve any
+Kubernetes integration issues without also upgrading Consul itself which
+can be more difficult.

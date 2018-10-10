@@ -1,14 +1,14 @@
-%with-tooltip {
+%tooltip {
   position: relative;
   display: inline-flex;
   justify-content: center;
   align-items: center;
 }
-%with-tooltip::before,
-%with-tooltip::after {
+%tooltip-bubble,
+%tooltip-tail {
   position: absolute;
 }
-%with-tooltip::before {
+%tooltip-bubble {
   padding: 10px;
   bottom: calc(100% + 5px);
   text-align: center;
@@ -18,22 +18,16 @@
   // text of the element %with-tooltip
   text-indent: 0;
 }
-%with-tooltip::after {
+%tooltip-tail {
   content: '';
   left: 50%;
-  margin-left: -5px;
+  margin-left: -10px;
   top: -10px;
-  width: 10px;
-  height: 10px;
-  transform: rotate(45deg);
-}
-%with-tooltip::after,
-%with-tooltip::before {
-  display: none;
-}
-%with-tooltip:hover::after,
-%with-tooltip:hover::before,
-%with-tooltip:focus::after,
-%with-tooltip:focus::before {
-  display: block;
+  transform: scale(1, 0.5);
+  width: 0;
+  height: 0;
+  background-color: transparent !important;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-top: 18px solid $ui-gray-800;
 }

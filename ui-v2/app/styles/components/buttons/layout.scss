@@ -9,3 +9,9 @@
 %button:not(:last-child) {
   margin-right: 7px;
 }
+%button-compact {
+  // @extend %button;
+  padding-left: calc(1.75em - 1px);
+  padding-right: calc(1.75em - 1px);
+  height: 2.1em;
+}

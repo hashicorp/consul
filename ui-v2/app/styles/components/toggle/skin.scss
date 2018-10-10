@@ -1,0 +1,25 @@
+/* TODO: Maybe move this to reset? */
+[type='radio'],
+%toggle span::before,
+%toggle span::after {
+  cursor: pointer;
+}
+%toggle span::after {
+  border-radius: $decor-radius-full;
+}
+%toggle span::before {
+  border-radius: 7px;
+}
+%toggle input:checked + span::before {
+  background-color: $ui-color-success;
+}
+%toggle span {
+  color: $ui-gray-900;
+}
+%toggle span::after {
+  background-color: $ui-white;
+}
+%toggle span::before {
+  background-color: $ui-gray-300;
+}
+

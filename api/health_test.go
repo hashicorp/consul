@@ -302,10 +302,12 @@ func TestAPI_HealthConnect(t *testing.T) {
 
 	// Register the proxy
 	proxyReg := &AgentServiceRegistration{
-		Name:             "foo-proxy",
-		Port:             8001,
-		Kind:             ServiceKindConnectProxy,
-		ProxyDestination: "foo",
+		Name: "foo-proxy",
+		Port: 8001,
+		Kind: ServiceKindConnectProxy,
+		Proxy: &AgentServiceConnectProxyConfig{
+			DestinationServiceName: "foo",
+		},
 	}
 	err = agent.ServiceRegister(proxyReg)
 	require.NoError(t, err)

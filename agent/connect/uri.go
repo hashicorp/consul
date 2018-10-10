@@ -33,6 +33,17 @@ var (
 		`^/ns/([^/]+)/dc/([^/]+)/svc/([^/]+)$`)
 )
 
+// ParseCertURIFromString attempts to parse a string representation of a
+// certificate URI as a convenince helper around ParseCertURI.
+func ParseCertURIFromString(input string) (CertURI, error) {
+	// Parse the certificate URI from the string
+	uriRaw, err := url.Parse(input)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCertURI(uriRaw)
+}
+
 // ParseCertURI parses a the URI value from a TLS certificate.
 func ParseCertURI(input *url.URL) (CertURI, error) {
 	if input.Scheme != "spiffe" {

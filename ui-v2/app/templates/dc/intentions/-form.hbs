@@ -43,7 +43,7 @@
         <div role="radiogroup" class={{if item.error.Action ' has-error'}}>
             {{#each intents as |intent|}}
                 <label>
-                    <span>{{intent}}</span>
+                    <span>{{ capitalize intent }}</span>
                     <input type="radio" name="Action" value="{{intent}}" checked={{if (eq item.Action intent) 'checked'}} onchange={{ action 'change' }}/>
                 </label>
             {{/each}}

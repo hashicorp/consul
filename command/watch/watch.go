@@ -135,7 +135,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	if strings.HasPrefix(wp.Type, "connect_") {
+	if strings.HasPrefix(wp.Type, "connect_") || strings.HasPrefix(wp.Type, "agent_") {
 		c.UI.Error(fmt.Sprintf("Type %s is not supported in the CLI tool", wp.Type))
 		return 1
 	}

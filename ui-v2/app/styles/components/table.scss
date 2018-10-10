@@ -81,7 +81,8 @@ table td a {
   display: block;
 }
 tbody {
-  overflow-x: visible !important;
+  /* important required as ember-collection will inline an overflow: visible*/
+  overflow-x: hidden !important;
 }
 th,
 td:not(.actions),
@@ -123,4 +124,33 @@ td dd {
   box-sizing: content-box;
   margin-left: 22px;
   padding-right: 10px;
+}
+/* hide actions on narrow screens, you can always click in do everything from there */
+@media #{$--lt-wide-table} {
+  tr > .actions {
+    display: none;
+  }
+}
+/* ideally these would be in route css files, but left here as they */
+/* accomplish the same thing (hide non-essential columns for tables) */
+@media #{$--lt-wide-table} {
+  html.template-intention.template-list tr > :nth-last-child(2) {
+    display: none;
+  }
+  html.template-service.template-list tr > :last-child {
+    display: none;
+  }
+  html.template-node.template-show #services tr > :last-child {
+    display: none;
+  }
+  html.template-node.template-show #lock-sessions tr >
+  :not(:first-child):not(:last-child) {
+    display: none;
+  }
+  html.template-node.template-show #lock-sessions td:last-child {
+    padding: 0;
+  }
+  html.template-node.template-show #lock-sessions td:last-child button {
+    float: right;
+  }
 }

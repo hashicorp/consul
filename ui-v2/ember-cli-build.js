@@ -18,6 +18,12 @@ module.exports = function(defaults) {
     'ember-cli-babel': {
       includePolyfill: true
     },
+    'ember-cli-string-helpers': {
+      only: ['capitalize', 'lowercase']
+    },
+    'ember-cli-math-helpers': {
+      only: ['div']
+    },
     'babel': {
       plugins: [
         'transform-object-rest-spread'
@@ -35,6 +41,7 @@ module.exports = function(defaults) {
       },
     },
     'sassOptions': {
+      implementation: require('dart-sass'),
       sourceMapEmbed: sourcemaps,
     },
     'autoprefixer': {
@@ -45,9 +52,6 @@ module.exports = function(defaults) {
         "ie 11"
       ]
     },
-    'ember-cli-string-helpers': {
-      only: ['lowercase']
-    }
   });
   // Use `app.import` to add additional libraries to the generated
   // output files.
@@ -61,6 +65,8 @@ module.exports = function(defaults) {
   // modules that you would like to import into your application
   // please specify an object with the list of modules as keys
   // along with the exports of each module as its value.
+  app.import('node_modules/text-encoding/lib/encoding-indexes.js', {outputFile: 'assets/encoding-indexes.js'})
+  app.import('node_modules/text-encoding/lib/encoding.js', {outputFile: 'assets/encoding.js'})
   let tree = app.toTree();
   return tree;
 };
