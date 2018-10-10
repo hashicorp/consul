@@ -42,8 +42,13 @@ const (
 	// to ensure that all information can be collected in time
 	debugMinDuration = 10 * time.Second
 
-	// The extension for archive files
+	// debugArchiveExtension is the extension for archive files
 	debugArchiveExtension = ".tar.gz"
+
+	// debugProtocolVersion is the version of the package that is
+	// generated. If this format changes interface, this version
+	// can be incremented so clients can selectively support packages
+	debugProtocolVersion = 1
 )
 
 func New(ui cli.Ui, shutdownCh <-chan struct{}) *cmd {
@@ -77,6 +82,23 @@ type cmd struct {
 	// validateTiming can be used to skip validation of interval, duration. This
 	// is primarily useful for testing
 	validateTiming bool
+
+	index *debugIndex
+}
+
+// debugIndex is used to manage the summary of all data recorded
+// during the debug, to be written to json at the end of the run
+// and stored at the root. Each attribute corresponds to a file or files.
+type debugIndex struct {
+	// Version of the debug package
+	Version int
+	// Version of the target Consul agent
+	AgentVersion string
+
+	Interval string
+	Duration string
+
+	Targets []string
 }
 
 func (c *cmd) init() {
@@ -150,6 +172,15 @@ func (c *cmd) Run(args []string) int {
 	c.UI.Info(fmt.Sprintf("        Output: '%s'", archiveName))
 	c.UI.Info(fmt.Sprintf("       Capture: '%s'", strings.Join(c.capture, ", ")))
 
+	// Record some information for the index at the root of the archive
+	index := &debugIndex{
+		Version:      debugProtocolVersion,
+		AgentVersion: version,
+		Interval:     c.interval.String(),
+		Duration:     c.duration.String(),
+		Targets:      c.capture,
+	}
+
 	// Add the extra grace period to ensure
 	// all intervals will be captured within the time allotted
 	c.duration = c.duration + debugDurationGrace
@@ -161,12 +192,24 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	// Capture dynamic information from the target agent, blocking for duration
-	// TODO(pearkes): figure out a cleaner way to do this
 	if c.configuredTarget("metrics") || c.configuredTarget("logs") || c.configuredTarget("pprof") {
 		err = c.captureDynamic()
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error encountered during collection: %v", err))
 		}
+	}
+
+	// Write the index document
+	idxMarshalled, err := json.MarshalIndent(index, "", "\t")
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error marshalling index document: %v", err))
+		return 1
+	}
+
+	err = ioutil.WriteFile(fmt.Sprintf("%s/index.json", c.output), idxMarshalled, 0644)
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error creating index document: %v", err))
+		return 1
 	}
 
 	// Archive the data if configured to
