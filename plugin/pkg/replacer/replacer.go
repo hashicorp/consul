@@ -164,6 +164,6 @@ func addrToRFC3986(addr string) string {
 }
 
 const (
-	timeFormat     = "2006/01/02 15:04:05"
+	timeFormat     = "02/Jan/2006:15:04:05 -0700"
 	headerReplacer = "{>"
 )
