@@ -16,6 +16,13 @@ import (
 	"golang.org/x/time/rate"
 )
 
+type RuntimeSOAConfig struct {
+	Refresh uint32 // 3600 by default
+	Retry   uint32 // 600
+	Expire  uint32 // 86400
+	Minttl  uint32 // 0,
+}
+
 // RuntimeConfig specifies the configuration the consul agent actually
 // uses. Is is derived from one or more Config structures which can come
 // from files, flags and/or environment variables.
@@ -537,6 +544,10 @@ type RuntimeConfig struct {
 	// hcl: ports { dns = int }
 	// flags: -dns-port int
 	DNSPort int
+
+	// DNSSOA is the settings applied for DNS SOA
+	// hcl: soa {}
+	DNSSOA RuntimeSOAConfig
 
 	// DataDir is the path to the directory where the local state is stored.
 	//

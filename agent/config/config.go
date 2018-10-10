@@ -521,6 +521,14 @@ type ConnectProxyDefaults struct {
 	Config map[string]interface{} `json:"config,omitempty" hcl:"config" mapstructure:"config"`
 }
 
+// SOA is the configuration of SOA for DNS
+type SOA struct {
+	Refresh *uint32 `json:"refresh,omitempty" hcl:"refresh" mapstructure:"refresh"`
+	Retry   *uint32 `json:"retry,omitempty" hcl:"retry" mapstructure:"retry"`
+	Expire  *uint32 `json:"expire,omitempty" hcl:"expire" mapstructure:"expire"`
+	Minttl  *uint32 `json:"min_ttl,omitempty" hcl:"min_ttl" mapstructure:"min_ttl"`
+}
+
 type DNS struct {
 	AllowStale         *bool             `json:"allow_stale,omitempty" hcl:"allow_stale" mapstructure:"allow_stale"`
 	ARecordLimit       *int              `json:"a_record_limit,omitempty" hcl:"a_record_limit" mapstructure:"a_record_limit"`
@@ -533,6 +541,7 @@ type DNS struct {
 	ServiceTTL         map[string]string `json:"service_ttl,omitempty" hcl:"service_ttl" mapstructure:"service_ttl"`
 	UDPAnswerLimit     *int              `json:"udp_answer_limit,omitempty" hcl:"udp_answer_limit" mapstructure:"udp_answer_limit"`
 	NodeMetaTXT        *bool             `json:"enable_additional_node_meta_txt,omitempty" hcl:"enable_additional_node_meta_txt" mapstructure:"enable_additional_node_meta_txt"`
+	SOA                *SOA              `json:"soa,omitempty" hcl:"soa" mapstructure:"soa"`
 }
 
 type HTTPConfig struct {

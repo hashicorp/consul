@@ -884,6 +884,28 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
       same TXT records when they would be added to the Answer section of the response like when querying with type TXT or ANY. This
       defaults to true.
 
+    * <a name="soa"></a><a href="#soa">`soa`</a> Allow to tune the setting set up in SOA.
+      Non specified values fallback to their default values, all values are integers and
+      expressed as seconds.
+
+      The following settings are available:
+
+      * <a name="soa_expire"></a><a href="soa_expire">expire</a> -
+        Configure SOA Expire duration in seconds, default value is 86400, ie: 24 hours.
+
+      * <a name="soa_min_ttl"></a><a href="soa_min_ttl">`min_ttl`</a> -
+        Configure SOA DNS minimum TTL.
+        As explained in [RFC-2308](https://tools.ietf.org/html/rfc2308) this also controls
+        negative cache TTL in most implementations. Default value is 0, ie: no minimum
+        delay or negative TTL.
+
+      * <a name="soa_refresh"></a><a href="soa_refresh">refresh</a> -
+        Configure SOA Refresh duration in seconds, default value is `3600`, ie: 1 hour.
+
+      *  <a name="soa_retry"></a><a href="soa_retry">retry</a> -
+        Configures the Retry duration expressed in seconds, default value is
+        600, ie: 10 minutes.
+
 * <a name="domain"></a><a href="#domain">`domain`</a> Equivalent to the
   [`-domain` command-line flag](#_domain).
 

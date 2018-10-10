@@ -39,6 +39,13 @@ const (
 
 var InvalidDnsRe = regexp.MustCompile(`[^A-Za-z0-9\\-]+`)
 
+type dnsSOAConfig struct {
+	Refresh uint32 // 3600 by default
+	Retry   uint32 // 600
+	Expire  uint32 // 86400
+	Minttl  uint32 // 0,
+}
+
 type dnsConfig struct {
 	AllowStale      bool
 	Datacenter      string
@@ -53,6 +60,7 @@ type dnsConfig struct {
 	UDPAnswerLimit  int
 	ARecordLimit    int
 	NodeMetaTXT     bool
+	dnsSOAConfig    dnsSOAConfig
 }
 
 // DNSServer is used to wrap an Agent and expose various
@@ -97,6 +105,7 @@ func NewDNSServer(a *Agent) (*DNSServer, error) {
 	return srv, nil
 }
 
+// GetDNSConfig takes global config and creates the config used by DNS server
 func GetDNSConfig(conf *config.RuntimeConfig) *dnsConfig {
 	return &dnsConfig{
 		AllowStale:      conf.DNSAllowStale,
@@ -112,6 +121,12 @@ func GetDNSConfig(conf *config.RuntimeConfig) *dnsConfig {
 		ServiceTTL:      conf.DNSServiceTTL,
 		UDPAnswerLimit:  conf.DNSUDPAnswerLimit,
 		NodeMetaTXT:     conf.DNSNodeMetaTXT,
+		dnsSOAConfig: dnsSOAConfig{
+			Expire:  conf.DNSSOA.Expire,
+			Minttl:  conf.DNSSOA.Minttl,
+			Refresh: conf.DNSSOA.Refresh,
+			Retry:   conf.DNSSOA.Retry,
+		},
 	}
 }
 
@@ -349,17 +364,16 @@ func (d *DNSServer) soa() *dns.SOA {
 			Name:   d.domain,
 			Rrtype: dns.TypeSOA,
 			Class:  dns.ClassINET,
-			Ttl:    0,
+			// Has to be consistent with MinTTL to avoid invalidation
+			Ttl: d.config.dnsSOAConfig.Minttl,
 		},
-		Ns:     "ns." + d.domain,
-		Serial: uint32(time.Now().Unix()),
-
-		// todo(fs): make these configurable
+		Ns:      "ns." + d.domain,
+		Serial:  uint32(time.Now().Unix()),
 		Mbox:    "hostmaster." + d.domain,
-		Refresh: 3600,
-		Retry:   600,
-		Expire:  86400,
-		Minttl:  0,
+		Refresh: d.config.dnsSOAConfig.Refresh,
+		Retry:   d.config.dnsSOAConfig.Retry,
+		Expire:  d.config.dnsSOAConfig.Expire,
+		Minttl:  d.config.dnsSOAConfig.Minttl,
 	}
 }
 

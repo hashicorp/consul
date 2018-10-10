@@ -4110,6 +4110,7 @@ func TestFullConfig(t *testing.T) {
 		DNSPort:                          7001,
 		DNSRecursorTimeout:               4427 * time.Second,
 		DNSRecursors:                     []string{"63.38.39.58", "92.49.18.18"},
+		DNSSOA:                           RuntimeSOAConfig{Refresh: 3600, Retry: 600, Expire: 86400, Minttl: 0},
 		DNSServiceTTL:                    map[string]time.Duration{"*": 32030 * time.Second},
 		DNSUDPAnswerLimit:                29909,
 		DNSNodeMetaTXT:                   true,
@@ -4754,6 +4755,7 @@ func TestSanitize(t *testing.T) {
 			&net.TCPAddr{IP: net.ParseIP("1.2.3.4"), Port: 5678},
 			&net.UDPAddr{IP: net.ParseIP("1.2.3.4"), Port: 5678},
 		},
+		DNSSOA: RuntimeSOAConfig{Refresh: 3600, Retry: 600, Expire: 86400, Minttl: 0},
 		HTTPAddrs: []net.Addr{
 			&net.TCPAddr{IP: net.ParseIP("1.2.3.4"), Port: 5678},
 			&net.UnixAddr{Name: "/var/run/foo"},
@@ -4894,6 +4896,12 @@ func TestSanitize(t *testing.T) {
 		"DNSRecursorTimeout": "0s",
 		"DNSRecursors": [],
 		"DNSServiceTTL": {},
+		"DNSSOA": {
+			"Refresh": 3600,
+			"Retry": 600,
+			"Expire": 86400,
+			"Minttl": 0
+		},
 		"DNSUDPAnswerLimit": 0,
 		"DataDir": "",
 		"Datacenter": "",
