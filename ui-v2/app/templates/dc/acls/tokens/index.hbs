@@ -1,5 +1,5 @@
 {{#app-view class=(concat 'token ' (if (not isAuthorized) 'edit' 'list')) loading=isLoading authorized=isAuthorized enabled=isEnabled}}
-    {{#block-slot 'notification' as |status type|}}
+    {{#block-slot 'notification' as |status type subject|}}
       {{partial 'dc/acls/tokens/notifications'}}
     {{/block-slot}}
     {{#block-slot 'header'}}

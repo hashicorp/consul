@@ -42,6 +42,9 @@ export default Mixin.create(WithBlockingActions, {
             // whereas if you clone form another token, take me back to the listing page
             // so I can see it
             return this.afterDelete(...arguments);
+          })
+          .then(function() {
+            return item;
           });
       }, 'clone');
     },

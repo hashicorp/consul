@@ -18,11 +18,14 @@ export default Service.extend({
     return (
       handle()
         //TODO: pass this through to getAction..
-        .then(target => {
+        .then(item => {
+          // TODO right now the majority of `item` is a Transition
+          // but you can resolve an object
           notify.add({
             type: getStatus(TYPE_SUCCESS),
             // here..
             action: getAction(),
+            item: item,
           });
         })
         .catch(e => {
