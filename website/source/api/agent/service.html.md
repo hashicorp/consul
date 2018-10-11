@@ -9,7 +9,7 @@ description: |-
 
 # Service - Agent HTTP API
 
-The `/agent/service` endpoints interact with checks on the local agent in
+The `/agent/service` endpoints interact with services on the local agent in
 Consul. These should not be confused with services in the catalog.
 
 ## List Services
