@@ -52,7 +52,7 @@ func TestHTTPAPI_MethodNotAllowed_OSS(t *testing.T) {
 	defer a.Shutdown()
 
 	all := []string{"GET", "PUT", "POST", "DELETE", "HEAD", "OPTIONS"}
-	const testTimeout = 5 * time.Second
+	const testTimeout = 10 * time.Second
 	client := &http.Client{
 		Timeout: testTimeout,
 		Transport: &http.Transport{
