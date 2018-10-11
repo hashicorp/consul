@@ -37,6 +37,26 @@ config if they prefer more frequent snapshots. See the documentation for [raft_s
 and [raft_snapshot_threshold](/docs/agent/options.html#_raft_snapshot_threshold) to understand the trade-offs
 when tuning these.
 
+## Consul 1.0.7
+
+When requesting a specific service (`/v1/health/:service` or
+`/v1/catalog/:service` endpoints), the `X-Consul-Index` returned is now the
+index at which that _specific service_ was last modified. In version 1.0.6 and
+earlier the `X-Consul-Index` returned was the index at which _any_ service was
+last modified. See [GH-3890](https://github.com/hashicorp/consul/issues/3890)
+for more details.
+
+During upgrades from 1.0.6 or lower to 1.0.7 or higher, watchers are likely to
+see `X-Consul-Index` for these endpoints decrease between blocking calls.
+
+Consul’s watch feature and `consul-template` should gracefully handle this case.
+Other tools relying on blocking service or health queries are also likely to
+work; some may require a restart. It is possible external tools could break and
+either stop working or continually re-request data without blocking if they
+have assumed indexes can never decrease or be reset and/or persist index
+values. Please test any blocking query integrations in a controlled environment
+before proceeding.
+
 ## Consul 1.0.1
 
 #### Carefully Check and Remove Stale Servers During Rolling Upgrades
