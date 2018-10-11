@@ -393,7 +393,10 @@ func (c *cmd) captureDynamic() error {
 					errCh <- err
 				}
 
-				// Sleep as other dynamic targets wait collect for the whole interv	al
+				// We need to sleep for the configured interval in the case
+				// of metrics being the only target captured. When it is,
+				// the waitgroup would return on Wait() and repeat without
+				// waiting for the interval.
 				time.Sleep(c.interval)
 
 				wg.Done()
