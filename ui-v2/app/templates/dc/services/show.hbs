@@ -49,10 +49,7 @@
 {{#if (gt healthy.length 0) }}
         <div data-test-healthy class="healthy">
             <h2>Healthy Nodes</h2>
-            {{#list-collection
-                items=healthy
-                cell-layout=(percentage-columns-layout healthy.length columns 113) as |item index|
-            }}
+            {{#list-collection cellHeight=113 items=healthy as |item index|}}
                 {{healthchecked-resource
                     href=(href-to 'dc.nodes.show' item.Node.Node)
                     data-test-node=item.Node.Node
