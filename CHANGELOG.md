@@ -6,11 +6,17 @@ FEATURES:
   registering and deregistering services from the command line. [[GH-4732](https://github.com/hashicorp/consul/issues/4732)]
 * dns: Added SOA configuration for DNS settings [[GH-4713](https://github.com/hashicorp/consul/issues/4713)]
 
+IMPROVEMENTS:
+
+* ui: Improve layout of node 'cards' by restricting the grid layout to a maximum of 4 columns [[GH-4761]](https://github.com/hashicorp/consul/pull/4761)
+* ui: Load the TextEncoder/Decoder polyfill dynamically so it's not downloaded to browsers with native support [[GH-4767]](https://github.com/hashicorp/consul/pull/4767)
+
 BUG FIXES:
 
 * agent: (Consul Enterprise) Fixed an issue where the `non_voting_server` setting could be ignored when bootstrapping the cluster. [[GH-4699](https://github.com/hashicorp/consul/pull/4699)]
 * cli: forward SIGTERM to child process of 'lock' and 'watch' subcommands [[GH-4737](https://github.com/hashicorp/consul/pull/4737)]
 * watch: Fix issue with HTTPs only agents not executing watches properly. [[GH-4727](https://github.com/hashicorp/consul/pull/4727)]
+* ui: Ensure service names that contain slashes are displayable [[GH-4756]](https://github.com/hashicorp/consul/pull/4756)
 
 ## 1.2.3 (September 13, 2018)
 
