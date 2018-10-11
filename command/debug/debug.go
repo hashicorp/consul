@@ -329,7 +329,7 @@ func (c *cmd) captureStatic() error {
 		if err != nil {
 			errors = multierror.Append(errors, err)
 		}
-		outputs["members"] = members
+		outputs["cluster"] = members
 	}
 
 	// Write all outputs to disk as JSON
