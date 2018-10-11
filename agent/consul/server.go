@@ -274,15 +274,6 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		config.UseTLS = true
 	}
 
-	// Set the primary DC if it wasn't set.
-	if config.PrimaryDatacenter == "" {
-		if config.ACLDatacenter != "" {
-			config.PrimaryDatacenter = config.ACLDatacenter
-		} else {
-			config.PrimaryDatacenter = config.Datacenter
-		}
-	}
-
 	// Create the TLS wrapper for outgoing connections.
 	tlsConf := config.tlsConfig()
 	tlsWrap, err := tlsConf.OutgoingTLSWrapper()

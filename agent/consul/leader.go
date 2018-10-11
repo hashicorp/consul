@@ -227,8 +227,6 @@ func (s *Server) establishLeadership() error {
 		return err
 	}
 
-	s.startEnterpriseLeader()
-
 	s.startCARootPruning()
 
 	s.setConsistentReadReady()
@@ -246,8 +244,6 @@ func (s *Server) revokeLeadership() error {
 	if err := s.clearAllSessionTimers(); err != nil {
 		return err
 	}
-
-	s.stopEnterpriseLeader()
 
 	s.stopCARootPruning()
 
@@ -418,8 +414,24 @@ func (s *Server) initializeCAConfig() (*structs.CAConfiguration, error) {
 	return config, nil
 }
 
-// initializeRootCA runs the initialization logic for a root CA.
-func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfiguration) error {
+// initializeCA sets up the CA provider when gaining leadership, bootstrapping
+// the root in the state store if necessary.
+func (s *Server) initializeCA() error {
+	// Bail if connect isn't enabled.
+	if !s.config.ConnectEnabled {
+		return nil
+	}
+
+	conf, err := s.initializeCAConfig()
+	if err != nil {
+		return err
+	}
+
+	// Initialize the provider based on the current config.
+	provider, err := s.createCAProvider(conf)
+	if err != nil {
+		return err
+	}
 	if err := provider.Configure(conf.ClusterID, true, conf.Config); err != nil {
 		return fmt.Errorf("error configuring provider: %v", err)
 	}
@@ -433,7 +445,7 @@ func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfigur
 		return fmt.Errorf("error getting root cert: %v", err)
 	}
 
-	rootCA, err := parseCARoot(rootPEM, conf.Provider, conf.ClusterID)
+	rootCA, err := parseCARoot(rootPEM, conf.Provider)
 	if err != nil {
 		return err
 	}
@@ -483,13 +495,13 @@ func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfigur
 
 	s.setCAProvider(provider, rootCA)
 
-	s.logger.Printf("[INFO] connect: initialized primary datacenter CA with provider %q", conf.Provider)
+	s.logger.Printf("[INFO] connect: initialized CA with provider %q", conf.Provider)
 
 	return nil
 }
 
 // parseCARoot returns a filled-in structs.CARoot from a raw PEM value.
-func parseCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) {
+func parseCARoot(pemValue, provider string) (*structs.CARoot, error) {
 	id, err := connect.CalculateCertFingerprint(pemValue)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing root fingerprint: %v", err)
@@ -499,15 +511,14 @@ func parseCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) 
 		return nil, fmt.Errorf("error parsing root cert: %v", err)
 	}
 	return &structs.CARoot{
-		ID:                  id,
-		Name:                fmt.Sprintf("%s CA Root Cert", strings.Title(provider)),
-		SerialNumber:        rootCert.SerialNumber.Uint64(),
-		SigningKeyID:        connect.HexString(rootCert.AuthorityKeyId),
-		ExternalTrustDomain: clusterID,
-		NotBefore:           rootCert.NotBefore,
-		NotAfter:            rootCert.NotAfter,
-		RootCert:            pemValue,
-		Active:              true,
+		ID:           id,
+		Name:         fmt.Sprintf("%s CA Root Cert", strings.Title(provider)),
+		SerialNumber: rootCert.SerialNumber.Uint64(),
+		SigningKeyID: connect.HexString(rootCert.AuthorityKeyId),
+		NotBefore:    rootCert.NotBefore,
+		NotAfter:     rootCert.NotAfter,
+		RootCert:     pemValue,
+		Active:       true,
 	}, nil
 }
 

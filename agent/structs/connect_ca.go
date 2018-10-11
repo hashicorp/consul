@@ -54,9 +54,6 @@ type CARoot struct {
 	// private key used to sign the certificate.
 	SigningKeyID string
 
-	// ExternalTrustDomain is the trust domain this root was generated under.
-	ExternalTrustDomain string
-
 	// Time validity bounds.
 	NotBefore time.Time
 	NotAfter  time.Time

@@ -1380,9 +1380,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			patch: func(rt *RuntimeConfig) {
 				rt.ACLDatacenter = "a"
 				rt.DataDir = dataDir
-				rt.PrimaryDatacenter = "a"
 			},
-			warns: []string{`The 'acl_datacenter' field is deprecated. Use the 'primary_datacenter' field instead.`},
 		},
 		{
 			desc: "acl_replication_token enables acl replication",
@@ -1475,10 +1473,9 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				`-datacenter=a`,
 				`-data-dir=` + dataDir,
 			},
-			json:  []string{`{ "acl_datacenter": "%" }`},
-			hcl:   []string{`acl_datacenter = "%"`},
-			err:   `acl_datacenter cannot be "%". Please use only [a-z0-9-_]`,
-			warns: []string{`The 'acl_datacenter' field is deprecated. Use the 'primary_datacenter' field instead.`},
+			json: []string{`{ "acl_datacenter": "%" }`},
+			hcl:  []string{`acl_datacenter = "%"`},
+			err:  `acl_datacenter cannot be "%". Please use only [a-z0-9-_]`,
 		},
 		{
 			desc: "autopilot.max_trailing_logs invalid",
@@ -3018,7 +3015,6 @@ func TestFullConfig(t *testing.T) {
 				"sidecar_max_port": 9999
 			},
 			"protocol": 30793,
-			"primary_datacenter": "ejtmd43d",
 			"raft_protocol": 19016,
 			"raft_snapshot_threshold": 16384,
 			"raft_snapshot_interval": "30s",
@@ -3550,7 +3546,6 @@ func TestFullConfig(t *testing.T) {
 				sidecar_max_port = 9999
 			}
 			protocol = 30793
-			primary_datacenter = "ejtmd43d"
 			raft_protocol = 19016
 			raft_snapshot_threshold = 16384
 			raft_snapshot_interval = "30s"
@@ -4156,7 +4151,6 @@ func TestFullConfig(t *testing.T) {
 		NodeName:                         "otlLxGaI",
 		NonVotingServer:                  true,
 		PidFile:                          "43xN80Km",
-		PrimaryDatacenter:                "ejtmd43d",
 		RPCAdvertiseAddr:                 tcpAddr("17.99.29.16:3757"),
 		RPCBindAddr:                      tcpAddr("16.99.34.17:3757"),
 		RPCHoldTimeout:                   15707 * time.Second,
@@ -4499,7 +4493,6 @@ func TestFullConfig(t *testing.T) {
 	}
 
 	warns := []string{
-		`The 'acl_datacenter' field is deprecated. Use the 'primary_datacenter' field instead.`,
 		`bootstrap_expect > 0: expecting 53 servers`,
 	}
 
@@ -4862,7 +4855,6 @@ func TestSanitize(t *testing.T) {
 		"ConnectProxyDefaultScriptCommand": [],
 		"ConnectSidecarMaxPort": 0,
 		"ConnectSidecarMinPort": 0,
-		"ConnectReplicationToken": "hidden",
 		"ConnectTestDisableManagedProxies": false,
 		"ConsulCoordinateUpdateBatchSize": 0,
 		"ConsulCoordinateUpdateMaxBatches": 0,
@@ -4952,7 +4944,6 @@ func TestSanitize(t *testing.T) {
 		"NodeName": "",
 		"NonVotingServer": false,
 		"PidFile": "",
-		"PrimaryDatacenter": "",
 		"RPCAdvertiseAddr": "",
 		"RPCBindAddr": "",
 		"RPCHoldTimeout": "0s",
