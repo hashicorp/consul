@@ -10,6 +10,7 @@ export default Route.extend({
       const dc = this.modelFor('dc').dc.Name;
       get(this, 'repo')
         .self(token, dc)
+        // TODO: What happens when there is an error?
         .then(item => {
           get(this, 'settings')
             .persist({

@@ -13,6 +13,8 @@ export default Mixin.create({
     get(this, 'repo').invalidate();
   },
   deactivate: function() {
+    // TODO: This is dependent on ember-changeset
+    // Change changeset to support ember-data props
     const item = get(this.controller, 'item.data');
     if (get(item, 'isNew')) {
       item.destroyRecord();

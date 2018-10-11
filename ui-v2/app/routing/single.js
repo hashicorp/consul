@@ -1,7 +1,7 @@
 import Route from '@ember/routing/route';
 import { get } from '@ember/object';
 import { assert } from '@ember/debug';
-import { hash } from 'rsvp';
+import { Promise, hash } from 'rsvp';
 export default Route.extend({
   // repo: service('repositoryName'),
   isCreate: function(params, transition) {
@@ -24,9 +24,5 @@ export default Route.extend({
           : repo.findBySlug(params.id, dc),
       }),
     });
-  },
-  setupController: function(controller, model) {
-    this._super(...arguments);
-    controller.setProperties(model);
   },
 });

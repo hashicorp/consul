@@ -1,3 +1,4 @@
+import { get, set } from '@ember/object';
 export default function(arr, item, prop, value) {
   value = typeof value === 'undefined' ? get(item, prop) : value;
   const current = arr.findBy(prop, value);

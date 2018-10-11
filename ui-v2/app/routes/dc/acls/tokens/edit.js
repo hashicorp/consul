@@ -29,6 +29,10 @@ export default SingleRoute.extend(WithTokenActions, {
       });
     });
   },
+  setupController: function(controller, model) {
+    this._super(...arguments);
+    controller.setProperties(model);
+  },
   getEmptyPolicy: function() {
     const dc = this.modelFor('dc').dc.Name;
     // TODO: Check to make sure we actually scope to a DC?
@@ -69,7 +73,9 @@ export default SingleRoute.extend(WithTokenActions, {
     },
     // from modal
     clearPolicy: function(cb) {
-      set(this.controller, 'policy', this.getEmptyPolicy());
+      get(this.controller, 'form')
+        .form('policy')
+        .setData(this.getEmptyPolicy());
       if (typeof cb === 'function') {
         cb();
       }
@@ -77,14 +83,18 @@ export default SingleRoute.extend(WithTokenActions, {
     createPolicy: function(item, cb) {
       const repo = get(this, 'policiesRepo');
       const policies = get(this.controller, 'item.Policies');
-      this.send('clearPolicy', cb);
-      get(this, 'policiesRepo')
-        .persist(item)
-        .then(item => {
-          try {
-            this.send('addPolicy', item);
-          } catch (e) {}
+      const p = get(this, 'policiesRepo').persist(item);
+      try {
+        p.then(item => {
+          this.send('addPolicy', item);
+          this.send('clearPolicy', cb);
+        }).catch(e => {
+          const error = e.errors[0];
+          get(this.controller, 'form')
+            .form('policy')
+            .addError('Name', error.detail);
         });
+      } catch (e) {}
     },
   },
 });
