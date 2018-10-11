@@ -22,6 +22,10 @@ and unified solution in an upcoming Nomad release.
 for tasks in a task group. As a result, running Connect with Nomad should
 assume the same [security checklist](/docs/connect/security.html#prevent-non-connect-traffic-to-services) as running directly on a machine without namespacing.
 
+-> **Envoy Support:** Using the [Envoy Connect integration](/docs/connect/proxies/envoy.html)
+with Nomad is not currently possible following this guide. This guide relies on some features
+of the built-in proxy that are not possible via Envoy.
+
 ## Requirements
 
 To use Connect with Nomad, the following requirements must be first be
