@@ -165,7 +165,6 @@ func (c *cmd) Run(args []string) int {
 	c.UI.Output("Starting debugger and capturing static information...")
 
 	// Output metadata about target agent
-	c.UI.Info(fmt.Sprintf(" Agent Address: '%s'", "TODO"))
 	c.UI.Info(fmt.Sprintf(" Agent Version: '%s'", version))
 	c.UI.Info(fmt.Sprintf("      Interval: '%s'", c.interval))
 	c.UI.Info(fmt.Sprintf("      Duration: '%s'", c.duration))
