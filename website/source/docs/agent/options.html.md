@@ -200,9 +200,13 @@ will exit with an error at startup.
 
 * <a name="_enable_script_checks"></a><a href="#_enable_script_checks">`-enable-script-checks`</a> This
   controls whether [health checks that execute scripts](/docs/agent/checks.html) are enabled on
-  this agent, and defaults to `false` so operators must opt-in to allowing these. If enabled,
-  it is recommended to [enable ACLs](/docs/guides/acl.html) as well to control which users are
-  allowed to register new checks to execute scripts. This was added in Consul 0.9.0.
+  this agent, and defaults to `false` so operators must opt-in to allowing these. If enabled, it is recommended
+  to [enable ACLs](/docs/guides/acl.html) as well to control which users are allowed to register new checks to 
+  execute scripts. This was added in Consul 0.9.0.
+
+* <a name="_enable_local_script_checks"></a><a href="#_enable_local_script_checks">`-enable-local-script-checks`</a> 
+  Like [`enable_script_checks`](#_enable_script_checks), but only enable them when they are defined in the local
+  config files. Script checks defined in HTTP API registratrions will still not be allowed.
 
 * <a name="_encrypt"></a><a href="#_encrypt">`-encrypt`</a> - Specifies the secret key to
   use for encryption of Consul
@@ -747,7 +751,7 @@ default will automatically work with some tooling.
         #### Common CA Config Options
 
         <p>There are also a number of common configuration options supported by all providers:</p>
-        
+
         * <a name="ca_leaf_cert_ttl"></a><a href="#ca_leaf_cert_ttl">`leaf_cert_ttl`</a> The upper bound on the
         lease duration of a leaf certificate issued for a service. In most cases a new leaf certificate will be
         requested by a proxy before this limit is reached. This is also the effective limit on how long a server
@@ -959,72 +963,72 @@ default will automatically work with some tooling.
   [`-disable-keyring-file` command-line flag](#_disable_keyring_file).
 
 * <a name="gossip_lan"></a><a href="#gossip_lan">`gossip_lan`</a> - **(Advanced)** This object contains a number of sub-keys
-  which can be set to tune the LAN gossip communications. These are only provided for users running especially large 
+  which can be set to tune the LAN gossip communications. These are only provided for users running especially large
   clusters that need fine tuning and are prepared to spend significant effort correctly tuning them for their
   environment and workload. **Tuning these improperly can cause Consul to fail in unexpected ways**.
   The default values are appropriate in almost all deployments.
-  
+
   * <a name="gossip_nodes"></a><a href="#gossip_nodes">`gossip_nodes`</a> - The number of random nodes to send
-     gossip messages to per gossip_interval. Increasing this number causes the gossip messages to propagate 
+     gossip messages to per gossip_interval. Increasing this number causes the gossip messages to propagate
      across the cluster more quickly at the expense of increased bandwidth. The default is 3.
-  
+
   * <a name="gossip_interval"></a><a href="#gossip_interval">`gossip_interval`</a> - The interval between sending
-    messages that need to be gossiped that haven't been able to piggyback on probing messages. If this is set to 
+    messages that need to be gossiped that haven't been able to piggyback on probing messages. If this is set to
     zero, non-piggyback gossip is disabled. By lowering this value (more frequent) gossip messages are propagated
     across the cluster more quickly at the expense of increased bandwidth. The default is 200ms.
-  
+
   * <a name="probe_interval"></a><a href="#probe_interval">`probe_interval`</a> - The interval between random node
-    probes. Setting this lower (more frequent) will cause the cluster to detect failed nodes more quickly 
+    probes. Setting this lower (more frequent) will cause the cluster to detect failed nodes more quickly
     at the expense of increased bandwidth usage. The default is 1s.
-  
+
   * <a name="probe_timeout"></a><a href="#probe_timeout">`probe_timeout`</a> - The timeout to wait for an ack from
     a probed node before assuming it is unhealthy. This should be at least the 99-percentile of RTT (round-trip time) on
     your network. The default is 500ms and is a conservative value suitable for almost all realistic deployments.
-  
-  * <a name="retransmit_mult"></a><a href="#retransmit_mult">`retransmit_mult`</a> - The multiplier for the number 
+
+  * <a name="retransmit_mult"></a><a href="#retransmit_mult">`retransmit_mult`</a> - The multiplier for the number
     of retransmissions that are attempted for messages broadcasted over gossip. The number of retransmits is scaled
     using this multiplier and the cluster size. The higher the multiplier, the more likely a failed broadcast is to
     converge at the expense of increased bandwidth. The default is 4.
-  
+
   * <a name="suspicion_mult"></a><a href="#suspicion_mult">`suspicion_mult`</a> - The multiplier for determining the
     time an inaccessible node is considered suspect before declaring it dead. The timeout is scaled with the cluster
-    size and the probe_interval. This allows the timeout to scale properly with expected propagation delay with a 
-    larger cluster size. The higher the multiplier, the longer an inaccessible node is considered part of the 
+    size and the probe_interval. This allows the timeout to scale properly with expected propagation delay with a
+    larger cluster size. The higher the multiplier, the longer an inaccessible node is considered part of the
     cluster before declaring it dead, giving that suspect node more time to refute if it is indeed still alive. The
     default is 4.
-  
+
 * <a name="gossip_wan"></a><a href="#gossip_wan">`gossip_wan`</a> - **(Advanced)** This object contains a number of sub-keys
-  which can be set to tune the WAN gossip communications. These are only provided for users running especially large 
+  which can be set to tune the WAN gossip communications. These are only provided for users running especially large
   clusters that need fine tuning and are prepared to spend significant effort correctly tuning them for their
   environment and workload. **Tuning these improperly can cause Consul to fail in unexpected ways**.
   The default values are appropriate in almost all deployments.
-  
+
     * <a name="gossip_nodes"></a><a href="#gossip_nodes">`gossip_nodes`</a> - The number of random nodes to send
-     gossip messages to per gossip_interval. Increasing this number causes the gossip messages to propagate 
+     gossip messages to per gossip_interval. Increasing this number causes the gossip messages to propagate
      across the cluster more quickly at the expense of increased bandwidth. The default is 3.
-  
+
   * <a name="gossip_interval"></a><a href="#gossip_interval">`gossip_interval`</a> - The interval between sending
-    messages that need to be gossiped that haven't been able to piggyback on probing messages. If this is set to 
+    messages that need to be gossiped that haven't been able to piggyback on probing messages. If this is set to
     zero, non-piggyback gossip is disabled. By lowering this value (more frequent) gossip messages are propagated
     across the cluster more quickly at the expense of increased bandwidth. The default is 200ms.
-  
+
   * <a name="probe_interval"></a><a href="#probe_interval">`probe_interval`</a> - The interval between random node
-    probes. Setting this lower (more frequent) will cause the cluster to detect failed nodes more quickly 
+    probes. Setting this lower (more frequent) will cause the cluster to detect failed nodes more quickly
     at the expense of increased bandwidth usage. The default is 1s.
-  
+
   * <a name="probe_timeout"></a><a href="#probe_timeout">`probe_timeout`</a> - The timeout to wait for an ack from
     a probed node before assuming it is unhealthy. This should be at least the 99-percentile of RTT (round-trip time) on
     your network. The default is 500ms and is a conservative value suitable for almost all realistic deployments.
-  
-  * <a name="retransmit_mult"></a><a href="#retransmit_mult">`retransmit_mult`</a> - The multiplier for the number 
+
+  * <a name="retransmit_mult"></a><a href="#retransmit_mult">`retransmit_mult`</a> - The multiplier for the number
     of retransmissions that are attempted for messages broadcasted over gossip. The number of retransmits is scaled
     using this multiplier and the cluster size. The higher the multiplier, the more likely a failed broadcast is to
     converge at the expense of increased bandwidth. The default is 4.
-  
+
   * <a name="suspicion_mult"></a><a href="#suspicion_mult">`suspicion_mult`</a> - The multiplier for determining the
     time an inaccessible node is considered suspect before declaring it dead. The timeout is scaled with the cluster
-    size and the probe_interval. This allows the timeout to scale properly with expected propagation delay with a 
-    larger cluster size. The higher the multiplier, the longer an inaccessible node is considered part of the 
+    size and the probe_interval. This allows the timeout to scale properly with expected propagation delay with a
+    larger cluster size. The higher the multiplier, the longer an inaccessible node is considered part of the
     cluster before declaring it dead, giving that suspect node more time to refute if it is indeed still alive. The
     default is 4.
 

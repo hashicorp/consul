@@ -996,8 +996,9 @@ to use for registration events:
    access.
 
 In addition to ACLs, in Consul 0.9.0 and later, the agent must be configured with
-[`enable_script_checks`](/docs/agent/options.html#_enable_script_checks) set to `true` in order to enable
-script checks.
+[`enable_script_checks`](/docs/agent/options.html#_enable_script_checks) or
+[`enable_local_script_checks`](/docs/agent/options.html#_enable_local_script_checks)
+set to `true` in order to enable script checks.
 
 
 #### Session Rules

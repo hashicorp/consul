@@ -69,6 +69,13 @@ const (
 		"service, but no reason was provided. This is a default message."
 )
 
+type configSource int
+
+const (
+	ConfigSourceLocal configSource = iota
+	ConfigSourceRemote
+)
+
 // delegate defines the interface shared by both
 // consul.Client and consul.Server.
 type delegate interface {
@@ -1858,7 +1865,7 @@ func (a *Agent) purgeCheck(checkID types.CheckID) error {
 // AddService is used to add a service entry.
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
-func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string) error {
+func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string, source configSource) error {
 	if service.Service == "" {
 		return fmt.Errorf("Service name missing")
 	}
@@ -1940,7 +1947,7 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 		if chkType.Status != "" {
 			check.Status = chkType.Status
 		}
-		if err := a.AddCheck(check, chkType, persist, token); err != nil {
+		if err := a.AddCheck(check, chkType, persist, token, source); err != nil {
 			return err
 		}
 	}
@@ -2010,7 +2017,7 @@ func (a *Agent) RemoveService(serviceID string, persist bool) error {
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered. The Check may include a CheckType which
 // is used to automatically update the check status
-func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType, persist bool, token string) error {
+func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType, persist bool, token string, source configSource) error {
 	if check.CheckID == "" {
 		return fmt.Errorf("CheckID missing")
 	}
@@ -2020,8 +2027,14 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			return fmt.Errorf("Check is not valid: %v", err)
 		}
 
-		if chkType.IsScript() && !a.config.EnableScriptChecks {
-			return fmt.Errorf("Scripts are disabled on this agent; to enable, configure 'enable_script_checks' to true")
+		if chkType.IsScript() {
+			if source == ConfigSourceLocal && !a.config.EnableLocalScriptChecks {
+				return fmt.Errorf("Scripts are disabled on this agent; to enable, configure 'enable_script_checks' or 'enable_local_script_checks' to true")
+			}
+
+			if source == ConfigSourceRemote && !a.config.EnableRemoteScriptChecks {
+				return fmt.Errorf("Scripts are disabled on this agent from remote calls; to enable, configure 'enable_script_checks' to true")
+			}
 		}
 	}
 
@@ -2330,7 +2343,7 @@ func (a *Agent) RemoveCheck(checkID types.CheckID, persist bool) error {
 // assigned. We need to restore from disk to enable to continue authenticating
 // running proxies that already had that credential injected.
 func (a *Agent) addProxyLocked(proxy *structs.ConnectManagedProxy, persist, FromFile bool,
-	restoredProxyToken string) error {
+	restoredProxyToken string, source configSource) error {
 	// Lookup the target service token in state if there is one.
 	token := a.State.ServiceToken(proxy.TargetServiceID)
 
@@ -2372,7 +2385,7 @@ func (a *Agent) addProxyLocked(proxy *structs.ConnectManagedProxy, persist, From
 		}
 	}
 
-	err = a.AddService(proxyService, chkTypes, persist, token)
+	err = a.AddService(proxyService, chkTypes, persist, token, source)
 	if err != nil {
 		// Remove the state too
 		a.State.RemoveProxy(proxyService.ID)
@@ -2402,10 +2415,10 @@ func (a *Agent) addProxyLocked(proxy *structs.ConnectManagedProxy, persist, From
 // assigned. We need to restore from disk to enable to continue authenticating
 // running proxies that already had that credential injected.
 func (a *Agent) AddProxy(proxy *structs.ConnectManagedProxy, persist, FromFile bool,
-	restoredProxyToken string) error {
+	restoredProxyToken string, source configSource) error {
 	a.proxyLock.Lock()
 	defer a.proxyLock.Unlock()
-	return a.addProxyLocked(proxy, persist, FromFile, restoredProxyToken)
+	return a.addProxyLocked(proxy, persist, FromFile, restoredProxyToken, source)
 }
 
 // resolveProxyCheckAddress returns the best address to use for a TCP check of
@@ -2893,13 +2906,13 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig) error {
 		// syntax sugar and shouldn't be persisted in local or server state.
 		ns.Connect.SidecarService = nil
 
-		if err := a.AddService(ns, chkTypes, false, service.Token); err != nil {
+		if err := a.AddService(ns, chkTypes, false, service.Token, ConfigSourceLocal); err != nil {
 			return fmt.Errorf("Failed to register service %q: %v", service.Name, err)
 		}
 
 		// If there is a sidecar service, register that too.
 		if sidecar != nil {
-			if err := a.AddService(sidecar, sidecarChecks, false, sidecarToken); err != nil {
+			if err := a.AddService(sidecar, sidecarChecks, false, sidecarToken, ConfigSourceLocal); err != nil {
 				return fmt.Errorf("Failed to register sidecar for service %q: %v", service.Name, err)
 			}
 		}
@@ -2962,7 +2975,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig) error {
 		} else {
 			a.logger.Printf("[DEBUG] agent: restored service definition %q from %q",
 				serviceID, file)
-			if err := a.AddService(p.Service, nil, false, p.Token); err != nil {
+			if err := a.AddService(p.Service, nil, false, p.Token, ConfigSourceLocal); err != nil {
 				return fmt.Errorf("failed adding service %q: %s", serviceID, err)
 			}
 		}
@@ -2988,7 +3001,7 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig) error {
 	for _, check := range conf.Checks {
 		health := check.HealthCheck(conf.NodeName)
 		chkType := check.CheckType()
-		if err := a.AddCheck(health, chkType, false, check.Token); err != nil {
+		if err := a.AddCheck(health, chkType, false, check.Token, ConfigSourceLocal); err != nil {
 			return fmt.Errorf("Failed to register check '%s': %v %v", check.Name, err, check)
 		}
 	}
@@ -3043,7 +3056,7 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig) error {
 			// services into the active pool
 			p.Check.Status = api.HealthCritical
 
-			if err := a.AddCheck(p.Check, p.ChkType, false, p.Token); err != nil {
+			if err := a.AddCheck(p.Check, p.ChkType, false, p.Token, ConfigSourceLocal); err != nil {
 				// Purge the check if it is unable to be restored.
 				a.logger.Printf("[WARN] agent: Failed to restore check %q: %s",
 					checkID, err)
@@ -3144,7 +3157,7 @@ func (a *Agent) loadProxies(conf *config.RuntimeConfig) error {
 				restoredToken = persisted.ProxyToken
 			}
 
-			if err := a.addProxyLocked(proxy, true, true, restoredToken); err != nil {
+			if err := a.addProxyLocked(proxy, true, true, restoredToken, ConfigSourceLocal); err != nil {
 				return fmt.Errorf("failed adding proxy: %s", err)
 			}
 		}
@@ -3161,7 +3174,7 @@ func (a *Agent) loadProxies(conf *config.RuntimeConfig) error {
 		} else if !persisted.FromFile {
 			if a.State.Proxy(proxyID) == nil {
 				a.logger.Printf("[DEBUG] agent: restored proxy definition %q", proxyID)
-				if err := a.addProxyLocked(persisted.Proxy, false, false, persisted.ProxyToken); err != nil {
+				if err := a.addProxyLocked(persisted.Proxy, false, false, persisted.ProxyToken, ConfigSourceLocal); err != nil {
 					return fmt.Errorf("failed adding proxy %q: %v", proxyID, err)
 				}
 			} else {
@@ -3251,7 +3264,7 @@ func (a *Agent) EnableServiceMaintenance(serviceID, reason, token string) error 
 		ServiceName: service.Service,
 		Status:      api.HealthCritical,
 	}
-	a.AddCheck(check, nil, true, token)
+	a.AddCheck(check, nil, true, token, ConfigSourceLocal)
 	a.logger.Printf("[INFO] agent: Service %q entered maintenance mode", serviceID)
 
 	return nil
@@ -3297,7 +3310,7 @@ func (a *Agent) EnableNodeMaintenance(reason, token string) {
 		Notes:   reason,
 		Status:  api.HealthCritical,
 	}
-	a.AddCheck(check, nil, true, token)
+	a.AddCheck(check, nil, true, token, ConfigSourceLocal)
 	a.logger.Printf("[INFO] agent: Node entered maintenance mode")
 }
 
