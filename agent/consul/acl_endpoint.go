@@ -61,7 +61,7 @@ func (a *ACL) aclPreCheck() error {
 		return acl.ErrDisabled
 	}
 
-	if !a.srv.UseLegacyACLs() {
+	if a.srv.UseLegacyACLs() {
 		return fmt.Errorf("The ACL system is currently in legacy mode.")
 	}
 
@@ -152,14 +152,15 @@ func (a *ACL) TokenRead(args *structs.ACLTokenReadRequest, reply *structs.ACLTok
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
-	if done, err := a.srv.forward("ACL.TokenRead", args, args, reply); done {
-		return err
+
+	// clients will not know whether the server has local token store. In the case
+	// where it doesnt' we will transparently forward requests.
+	if !a.srv.LocalTokensEnabled() {
+		args.Datacenter = a.srv.config.ACLDatacenter
 	}
 
-	if !a.srv.LocalTokensEnabled() {
-		// local token operations
-		// TODO (ACL-V2) - should this be a different error
-		return fmt.Errorf("Cannot read tokens within this datacenter")
+	if done, err := a.srv.forward("ACL.TokenRead", args, args, reply); done {
+		return err
 	}
 
 	var rule acl.Authorizer
@@ -203,14 +204,15 @@ func (a *ACL) TokenClone(args *structs.ACLTokenUpsertRequest, reply *structs.ACL
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
-	if done, err := a.srv.forward("ACL.TokenClone", args, args, reply); done {
-		return err
+	
+	// clients will not know whether the server has local token store. In the case
+	// where it doesnt' we will transparently forward requests.
+	if !a.srv.LocalTokensEnabled() {
+		args.Datacenter = a.srv.config.ACLDatacenter
 	}
 
-	if !a.srv.LocalTokensEnabled() {
-		// local token operations
-		// TODO (ACL-V2) - should this be a different error
-		return fmt.Errorf("Cannot clone tokens within this datacenter")
+	if done, err := a.srv.forward("ACL.TokenClone", args, args, reply); done {
+		return err
 	}
 
 	defer metrics.MeasureSince([]string{"acl", "token", "clone"}, time.Now())
@@ -227,9 +229,9 @@ func (a *ACL) TokenClone(args *structs.ACLTokenUpsertRequest, reply *structs.ACL
 	} else if token == nil {
 		return acl.ErrNotFound
 	} else if !a.srv.InACLDatacenter() && !token.Local {
-		// TODO (ACL-V2) - better error code/message
-		// cannot clone a global token in a non primary DC
-		return fmt.Errorf("Cannot clone global tokens in this datacenter")
+		// global token writes must be forwarded to the primary DC
+		args.Datacenter = a.srv.config.ACLDatacenter
+		return a.srv.forwardDC("ACL.TokenClone", a.srv.config.ACLDatacenter, args, reply)
 	}
 
 	if token.Rules != "" {
@@ -257,7 +259,11 @@ func (a *ACL) TokenUpsert(args *structs.ACLTokenUpsertRequest, reply *structs.AC
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
-	// TODO (ACL-V2) - handle local tokens
+	
+	if !a.srv.LocalTokensEnabled() || !args.ACLToken.Local {
+		args.Datacenter = a.srv.config.ACLDatacenter
+	}
+	
 	if done, err := a.srv.forward("ACL.TokenUpsert", args, args, reply); done {
 		return err
 	}
@@ -404,16 +410,15 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
-	// TODO (ACL-V2) - handle local tokens
+	
+	if !a.srv.LocalTokensEnabled() {
+		args.Datacenter = a.srv.config.ACLDatacenter
+	}
+	
 	if done, err := a.srv.forward("ACL.TokenDelete", args, args, reply); done {
 		return err
 	}
 
-	if !a.srv.LocalTokensEnabled() {
-		// local token operations
-		// TODO (ACL-V2) - should this be a different error
-		return fmt.Errorf("Cannot upsert tokens within this datacenter")
-	}
 
 	defer metrics.MeasureSince([]string{"acl", "token", "delete"}, time.Now())
 
@@ -439,7 +444,8 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 	}
 
 	if !a.srv.InACLDatacenter() && !token.Local {
-		return fmt.Errorf("Cannot delete global tokens within this datacenter")
+		args.Datacenter = a.srv.config.ACLDatacenter
+		return a.srv.forwardDC("ACL.TokenDelete", a.srv.config.ACLDatacenter, args, reply)
 	}
 
 	req := &structs.ACLTokenBatchDeleteRequest{
@@ -471,13 +477,13 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
+	
+	if !a.srv.LocalTokensEnabled() {
+		args.Datacenter = a.srv.config.ACLDatacenter
+	}
+	
 	if done, err := a.srv.forward("ACL.TokenList", args, args, reply); done {
 		return err
-	}
-
-	if !a.srv.LocalTokensEnabled() {
-		// local token operations
-		return fmt.Errorf("Cannot list tokens within this datacenter")
 	}
 
 	rule, err := a.srv.ResolveToken(args.Token)
@@ -507,13 +513,13 @@ func (a *ACL) TokenBatchRead(args *structs.ACLTokenBatchReadRequest, reply *stru
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
+	
+	if !a.srv.LocalTokensEnabled() {
+		args.Datacenter = a.srv.config.ACLDatacenter
+	}
+	
 	if done, err := a.srv.forward("ACL.TokenBatchRead", args, args, reply); done {
 		return err
-	}
-
-	if !a.srv.LocalTokensEnabled() {
-		// local token operations
-		return fmt.Errorf("Cannot read tokens within this datacenter")
 	}
 
 	rule, err := a.srv.ResolveToken(args.Token)
@@ -539,12 +545,9 @@ func (a *ACL) PolicyRead(args *structs.ACLPolicyReadRequest, reply *structs.ACLP
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
+	
 	if done, err := a.srv.forward("ACL.PolicyRead", args, args, reply); done {
 		return err
-	}
-
-	if !a.srv.ACLsEnabled() {
-		return acl.ErrDisabled
 	}
 
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
@@ -577,12 +580,9 @@ func (a *ACL) PolicyBatchRead(args *structs.ACLPolicyBatchReadRequest, reply *st
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
+	
 	if done, err := a.srv.forward("ACL.PolicyBatchRead", args, args, reply); done {
 		return err
-	}
-
-	if !a.srv.ACLsEnabled() {
-		return acl.ErrDisabled
 	}
 
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
@@ -606,6 +606,10 @@ func (a *ACL) PolicyBatchRead(args *structs.ACLPolicyBatchReadRequest, reply *st
 func (a *ACL) PolicyUpsert(args *structs.ACLPolicyUpsertRequest, reply *structs.ACLPolicy) error {
 	if err := a.aclPreCheck(); err != nil {
 		return err
+	}
+	
+	if !a.srv.InACLDatacenter() {
+		args.Datacenter = a.srv.config.ACLDatacenter
 	}
 
 	if done, err := a.srv.forward("ACL.PolicyUpsert", args, args, reply); done {
@@ -719,6 +723,10 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
+	
+	if !a.srv.InACLDatacenter() {
+		args.Datacenter = a.srv.config.ACLDatacenter
+	}
 
 	if done, err := a.srv.forward("ACL.PolicyDelete", args, args, reply); done {
 		return err
@@ -786,6 +794,7 @@ func (a *ACL) PolicyList(args *structs.ACLPolicyListRequest, reply *structs.ACLP
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
+	
 	if done, err := a.srv.forward("ACL.PolicyList", args, args, reply); done {
 		return err
 	}
@@ -803,7 +812,7 @@ func (a *ACL) PolicyList(args *structs.ACLPolicyListRequest, reply *structs.ACLP
 				return err
 			}
 
-			var stubs []*structs.ACLPolicyListStub
+			var stubs structs.ACLPolicyListStubs
 			for _, policy := range policies {
 				stubs = append(stubs, policy.Stub())
 			}
@@ -819,6 +828,7 @@ func (a *ACL) PolicyResolve(args *structs.ACLPolicyBatchReadRequest, reply *stru
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
+	
 	if done, err := a.srv.forward("ACL.PolicyResolve", args, args, reply); done {
 		return err
 	}

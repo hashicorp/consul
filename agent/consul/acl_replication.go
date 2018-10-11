@@ -24,7 +24,9 @@ func diffACLPolicies(local structs.ACLPolicies, remote structs.ACLPolicyListStub
 
 	var deletions []string
 	var updates []string
-	for localIdx, remoteIdx := 0, 0; localIdx < len(local) && remoteIdx < len(remote); {
+	var localIdx int
+	var remoteIdx int
+	for localIdx, remoteIdx = 0, 0; localIdx < len(local) && remoteIdx < len(remote); {
 		if local[localIdx].ID == remote[remoteIdx].ID {
 			// policy is in both the local and remote state - need to check raft indices and
 			if remote[remoteIdx].ModifyIndex > lastRemoteIndex && remote[remoteIdx].Hash != local[localIdx].Hash {
@@ -46,6 +48,14 @@ func diffACLPolicies(local structs.ACLPolicies, remote structs.ACLPolicyListStub
 			// increment just the remote index
 			remoteIdx += 1
 		}
+	}
+
+	for ; localIdx < len(local); localIdx += 1 {
+		deletions = append(deletions, local[localIdx].ID)
+	}
+
+	for ; remoteIdx < len(remote); remoteIdx += 1 {
+		updates = append(updates, remote[remoteIdx].ID)
 	}
 
 	return deletions, updates
@@ -297,8 +307,8 @@ func (s *Server) fetchACLTokens(lastRemoteIndex uint64) (*structs.ACLTokenListRe
 			MinQueryIndex: lastRemoteIndex,
 			Token:         s.tokens.ACLReplicationToken(),
 		},
-		IncludeLocal: false
-		IncludeGlobal: true
+		IncludeLocal:  false,
+		IncludeGlobal: true,
 	}
 
 	var response structs.ACLTokenListResponse
@@ -342,9 +352,13 @@ func (s *Server) replicateACLPolicies(lastRemoteIndex uint64, stopCh <-chan stru
 		lastRemoteIndex = 0
 	}
 
+	s.logger.Printf("[DEBUG] acl: policy replication - local: %d, remote: %d", len(local), len(remote.Policies))
+
 	// Calculate the changes required to bring the state into sync and then
 	// apply them.
 	deletions, updates := diffACLPolicies(local, remote.Policies, lastRemoteIndex)
+
+	s.logger.Printf("[DEBUG] acl: policy replication - deletions: %v, updates: %v", deletions, updates)
 	policies, err := s.fetchACLPoliciesBatch(updates)
 	if err != nil {
 		return 0, false, fmt.Errorf("failed to retrieve ACL policy updates: %v", err)

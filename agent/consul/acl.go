@@ -291,7 +291,7 @@ func (r *ACLResolver) resolveIdentityFromTokenAsync(token string, cached *struct
 	//   It seems unsafe although thats how the old code did it (with a comment about potentially being unsafe)
 	//   Putting a new identity into the cache will insert the new value while the cache is locked.
 
-	var resp *structs.ACLTokenResponse
+	var resp structs.ACLTokenResponse
 	err := r.delegate.RPC("ACL.TokenRead", &req, &resp)
 	if err == nil {
 		r.fireAsyncTokenResult(token, resp.Token, nil)
@@ -386,8 +386,8 @@ func (r *ACLResolver) resolvePoliciesAsyncForIdentity(identity structs.ACLIdenti
 		},
 	}
 
-	var found map[string]struct{}
-	var resp *structs.ACLPoliciesResponse
+	found := make(map[string]struct{})
+	var resp structs.ACLPoliciesResponse
 	err := r.delegate.RPC("ACL.PolicyResolve", &req, &resp)
 	if err == nil {
 		for _, policy := range resp.Policies {
