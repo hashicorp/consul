@@ -119,7 +119,8 @@ The "parent" service refers to the service definition that embeds the sidecar
 proxy.
 
  - `id` - ID defaults to being `<parent-service-id>-sidecar-proxy`. This can't
-   be overridden as it is used to manage the lifecycle of the registration.
+   be overridden as it is used to [manage the lifecycle](#lifecycle) of the
+   registration.
  - `name` - Defaults to being `<parent-service-name>-sidecar-proxy`.
  - `port` - Defaults to being auto-assigned from a [configurable
    range](/docs/agent/options.html#sidecar_min_port) that is
@@ -151,3 +152,27 @@ set on the `connect.sidecar_service` except for the following:
    sidecar.
  - `connect.native` - Currently the `kind` is fixed to `connect-proxy` and it's
    an error to register a `connect-proxy` that is also Connect-native.
+
+## Lifecycle
+
+Sidecar service registration is mostly a configuration syntax helper to avoid
+adding lots of boiler plate for basic sidecar options, however the agent does
+have some specific behavior around their lifecycle that makes them easier to
+work with.
+
+The agent fixes the ID of the sidecar service to be based on the parent
+service's ID. This enables the following behavior.
+
+ - A service instance can _only ever have one_ sidecar service registered.
+ - When re-registering via API or reloading from configuration file:
+   - If something changes in the nested sidecar service definition, the change
+     will _update_ the current sidecar registration instead of creating a new
+     one.
+   - If a service registration removes the nested `sidecar_service` then the
+     previously registered sidecar for that service will be deregistered
+     automatically.
+ - When reloading the configuration files, if a service definition changes it's
+   ID, then a new service instance _and_ a new sidecar instance will be
+   registered. The old ones will be removed since they are no longer found in
+   the config files.
+

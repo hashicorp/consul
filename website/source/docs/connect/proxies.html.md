@@ -88,9 +88,7 @@ traffic to. In this case the following fields must may also be set:
 ### Complete Configuration Example
 
 The following is a complete example showing all the options available when
-registering a proxy instance. Note that as with all service definitions, [both
-CamelCase and snake_case fields are
-supported](/docs/agent/services.html#service-definition-parameter-case).
+registering a proxy instance.
 
 ```json
 {

@@ -27,6 +27,9 @@ proof-of-concept deployments of Consul Connect. Anyone using managed proxies
 though should aim to change their workflow as soon as possible to avoid issues
 with a later upgrade.
 
+While the current functionality will remain present for a few major releases,
+**new and known issues will not be fixed**.
+
 ## Deprecation Rationale
 
 Originally managed proxies traded higher implementation complexity for an easier

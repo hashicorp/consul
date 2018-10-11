@@ -33,6 +33,34 @@ Envoy 1.7.1 and 1.8.0.
 To get started with Envoy and see a working example you can follow the [Using
 Envoy with Connect](/docs/guides/connect-envoy.html) guide.
 
+## Limitations
+
+The following list limitations of the Envoy integration as released in 1.3.0.
+All of these are planned to be lifted in the near future.
+
+ * Default Envoy configuration only supports Layer 4 (TCP) proxying. More
+   [advanced listener configuration](#advanced-listener-configuration) is
+   possible but experimental and requires deep Envoy knowledge. First class
+   workflows for configuring Layer 7 features across the cluster are planned for
+   the near future.
+ * There is currently no way to override the configuration of upstream clusters
+   which makes it impossible to configure Envoy features like circuit breakers,
+   load balancing policy, custom protocol settings etc. This will be fixed in a
+   near-future release first with an "escape hatch" similar to the one for
+   listeners below, then later with first-class support.
+ * The configuration delivered to Envoy is suitable for a sidecar proxy
+   currently. Later we plan to support more flexibility to be able to configure
+   Envoy as an edge router or gateway and similar.
+ * There is currently no way to disable the public listener and have a "client
+   only" sidecar for services that don't expose Connect-enabled service but want
+   to consume others. This will be fixed in a near-future release.
+ * Once authorized, a persistent TCP connection will not be closed if the
+   intentions change to deny access. This is currently a limitation of how TCP
+   proxy and network authz filter work in Envoy. All new connections will be
+   denied though and destination services can limit exposure by closing inbound
+   connections periodically or by a rolling restart of the destination service
+   as an emergency measure.
+
 ## Bootstrap Configuration
 
 Envoy requires an initial bootstrap configuration that directs it to the local

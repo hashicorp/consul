@@ -98,24 +98,6 @@ Services may also contain a `token` field to provide an ACL token. This token is
 used for any interaction with the catalog for the service, including
 [anti-entropy syncs](/docs/internals/anti-entropy.html) and deregistration.
 
-A service can have an associated health check. This is a powerful feature as
-it allows a web balancer to gracefully remove failing nodes, a database
-to replace a failed secondary, etc. The health check is strongly integrated in
-the DNS interface as well. If a service is failing its health check or a
-node has any failing system-level check, the DNS interface will omit that
-node from any service query.
-
-The check must be of the script, HTTP, TCP or TTL type. If it is a script type,
-`args` and `interval` must be provided. If it is a HTTP type, `http` and
-`interval` must be provided. If it is a TCP type, `tcp` and `interval` must be
-provided. If it is a TTL type, then only `ttl` must be provided. The check name
-is automatically generated as `service:<service-id>`. If there are multiple
-service checks registered, the ID will be generated as
-`service:<service-id>:<num>` where `<num>` is an incrementing number starting
-from `1`.
-
--> **Note:** There is more information about [checks here](/docs/agent/checks.html).
-
 The `enable_tag_override` can optionally be specified to disable the
 anti-entropy feature for this service. If `enable_tag_override` is set to
 `TRUE` then external agents can update this service in the
@@ -142,6 +124,8 @@ syncs](/docs/internals/anti-entropy.html) for more info.
 For Consul 0.9.3 and earlier you need to use `enableTagOverride`. Consul 1.0
 supports both `enable_tag_override` and `enableTagOverride` but the latter is
 deprecated and has been removed as of Consul 1.1.
+
+### Connect
 
 The `kind` field is used to optionally identify the service as a [Connect
 proxy](/docs/connect/proxies.html) instance with the value `connect-proxy`. For
@@ -170,17 +154,6 @@ supported "Managed" proxies which are specified with the `connect.proxy` field.
 [Managed Proxies are deprecated](/docs/connect/proxies/managed-deprecated.html)
 and the `connect.proxy` field will be removed in a future major release.
 
-The `weights` field is an optional field to specify the weight of a service in
-DNS SRV responses. If this field is not specified, its default value is:
-`"weights": {"passing": 1, "warning": 1}`. When a service is `critical`, it is
-excluded from DNS responses. Services with warning checks are included in
-responses by default, but excluded if the optional param `only_passing = true`
-is present in agent DNS configuration or `?passing` is used via the API. When
-DNS SRV requests are made, the response will include the weights specified given
-the state of the service. This allows some instances to be given higher weight
-if they have more capacity, and optionally allows reducing load on services with
-checks in `warning` status by giving passing instances a higher weight.
-
 ### Checks
 
 A service can have an associated health check. This is a powerful feature as
@@ -190,16 +163,28 @@ the DNS interface as well. If a service is failing its health check or a
 node has any failing system-level check, the DNS interface will omit that
 node from any service query.
 
-The check must be of the script, HTTP, TCP or TTL type. If it is a script type,
-`args` and `interval` must be provided. If it is a HTTP type, `http` and
-`interval` must be provided. If it is a TCP type, `tcp` and `interval` must be
-provided. If it is a TTL type, then only `ttl` must be provided. The check name
-is automatically generated as `service:<service-id>`. If there are multiple
-service checks registered, the ID will be generated as
-`service:<service-id>:<num>` where `<num>` is an incrementing number starting
-from `1`.
+There are several check types that have differing required options as
+[documented here](/docs/agent/checks.html). The check name is automatically
+generated as `service:<service-id>`. If there are multiple service checks
+registered, the ID will be generated as `service:<service-id>:<num>` where
+`<num>` is an incrementing number starting from `1`.
 
 -> **Note:** There is more information about [checks here](/docs/agent/checks.html).
+
+### DNS SRV Weights
+
+The `weights` field is an optional field to specify the weight of a service in
+DNS SRV responses. If this field is not specified, its default value is:
+`"weights": {"passing": 1, "warning": 1}`. When a service is `critical`, it is
+excluded from DNS responses. Services with warning checks are included in
+responses by default, but excluded if the optional param `only_passing = true`
+is present in agent DNS configuration or `?passing` is used via the API.
+
+When DNS SRV requests are made, the response will include the weights specified
+given the state of the service. This allows some instances to be given higher
+weight if they have more capacity, and optionally allows reducing load on
+services with checks in `warning` status by giving passing instances a higher
+weight.
 
 ### Enable Tag Override and Anti-Entropy
 
@@ -290,7 +275,12 @@ delimit service tags.
 ## Service Definition Parameter Case
 
 For historical reasons Consul's API uses `CamelCased` parameter names in
-responses, however it's configuration file syntax borrowed from HCL uses
-`snake_case`. For this reason the registration APIs accept both cases for
-service definition parameters although APIs will return the listings using
-`CamelCase`.
+responses, however it's configuration file uses `snake_case` for both HCL and
+JSON representations. For this reason the registration _HTTP APIs_ accept both
+name styles for service definition parameters although APIs will return the
+listings using `CamelCase`. 
+
+Note though that **all config file formats require
+`snake_case` fields**. We always document service definition examples using
+`snake_case` and JSON since this format works in both config files and API
+calls.
