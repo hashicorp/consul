@@ -2386,7 +2386,7 @@ func (a *Agent) addProxyLocked(proxy *structs.ConnectManagedProxy, persist, From
 	return nil
 }
 
-// addProxyLocked adds a new local Connect Proxy instance to be managed by the agent.
+// AddProxy adds a new local Connect Proxy instance to be managed by the agent.
 //
 // It REQUIRES that the service that is being proxied is already present in the
 // local state. Note that this is only used for agent-managed proxies so we can

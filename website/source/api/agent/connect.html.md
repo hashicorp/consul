@@ -218,12 +218,14 @@ $ curl \
 - `ValidBefore` `(string)` - The time before which the certificate is valid.
   Used with `ValidAfter` this can determine the validity period of the certificate.
 
-## Managed Proxy Configuration
+## Managed Proxy Configuration ([Deprecated](/docs/connect/proxies/managed-deprecated.html))
 
-This endpoint returns the configuration for a
-[managed proxy](/docs/connect/proxies.html).
-Ths endpoint is only useful for _managed proxies_ and not relevant
-for unmanaged proxies.
+This endpoint returns the configuration for a [managed
+proxy](/docs/connect/proxies.html). Ths endpoint is only useful for _managed
+proxies_ and not relevant for unmanaged proxies. This endpoint will be removed
+in a future major release as part of [managed proxy
+deprecation].(/docs/connect/proxies/managed-deprecated.html). The equivalent API
+for use will all future proxies is the more generic `
 
 Managed proxy configuration is set in the service definition. When Consul
 starts the managed proxy, it provides the service ID and ACL token. The proxy
@@ -242,7 +244,10 @@ The table below shows this endpoint's support for
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required                 |
 | ---------------- | ----------------- | ------------- | ---------------------------- |
-| `YES`            | `all`             | `none`        | `service:write, proxy token` |
+| `YES`<sup>1</sup>| `all`             | `none`        | `service:write, proxy token` |
+
+<sup>1</sup> Supports [hash-based
+blocking](/api/index.html#hash-based-blocking-queries) only.
 
 ### Parameters
 

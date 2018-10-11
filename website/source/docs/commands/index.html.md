@@ -115,7 +115,7 @@ These environment variables and their purpose are described below:
 ## `CONSUL_HTTP_ADDR`
 
 This is the HTTP API address to the *local* Consul agent
-(not the remote server) specified as a URI:
+(not the remote server) specified as a URI with optional scheme:
 
 ```
 CONSUL_HTTP_ADDR=127.0.0.1:8500
@@ -126,6 +126,8 @@ or as a Unix socket path:
 ```
 CONSUL_HTTP_ADDR=unix://var/run/consul_http.sock
 ```
+
+If the `https://` scheme is used, `CONSUL_HTTP_SSL` is implied to be true.
 
 ### `CONSUL_HTTP_TOKEN`
 
@@ -155,8 +157,9 @@ CONSUL_HTTP_SSL=true
 
 ### `CONSUL_HTTP_SSL_VERIFY`
 
-This is a boolean value (default true) to specify SSL certificate verification; setting this value to `false` is not recommended for production use. Example
-for development purposes:
+This is a boolean value (default true) to specify SSL certificate verification;
+setting this value to `false` is not recommended for production use. Example for
+development purposes:
 
 ```
 CONSUL_HTTP_SSL_VERIFY=false
@@ -201,3 +204,26 @@ The server name to use as the SNI host when connecting via TLS.
 ```
 CONSUL_TLS_SERVER_NAME=consulserver.domain
 ```
+
+### `CONSUL_GRPC_ADDR`
+
+Like [`CONSUL_HTTP_ADDR`](#consul_http_addr) but configures the address the
+local agent is listening for gRPC requests. Currently gRPC is only used for
+integrating [Envoy proxy](/docs/connect/proxies/envoy.html) and must be [enabled
+explicitly](/docs/agent/options.html#grpc_port) in agent configuration.
+
+```
+CONSUL_GRPC_ADDR=127.0.0.1:8502
+```
+
+or as a Unix socket path:
+
+```
+CONSUL_GRPC_ADDR=unix://var/run/consul_grpc.sock
+```
+
+If the agent is [configured with TLS
+certificates](/docs/agent/encryption.html#rpc-encryption-with-tls), then the
+gRPC listener will require TLS and present the same certificate as the https
+listener. As with `CONSUL_HTTP_ADDR`, if TLS is enabled either the `https://`
+scheme should be used, or `CONSUL_HTTP_SSL` set.

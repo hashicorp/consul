@@ -506,7 +506,7 @@ $ curl \
   removed in a future major version release.
 
 - `ServiceProxy` is the proxy config as specified in
-[Unmanaged Proxies](/docs/connect/proxies.html#unmanaged-proxies).
+[Connect Proxies](/docs/connect/proxies.html).
 
 - `ServiceConnect` are the [Connect](/docs/connect/index.html) settings. The
   value of this struct is equivalent to the `Connect` field for service

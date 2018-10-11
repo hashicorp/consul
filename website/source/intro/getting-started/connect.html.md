@@ -28,11 +28,10 @@ guide](/docs/guides/connect-production.html) to understand the tradeoffs.
 
 ## Starting a Connect-unaware Service
 
-Let's begin by starting a service that is unaware of Connect all. To
-keep it simple, let's just use `socat` to start a basic echo service. This
-service will accept TCP connections and echo back any data sent to it. If
-`socat` isn't installed on your machine, it should be easily available via
-a package manager.
+Let's begin by starting a service that is unaware of Connect. To keep it simple,
+let's just use `socat` to start a basic echo service. This service will accept
+TCP connections and echo back any data sent to it. If `socat` isn't installed on
+your machine, it should be easily available via a package manager.
 
 ```sh
 $ socat -v tcp-l:8181,fork exec:"/bin/cat"
@@ -67,7 +66,7 @@ $ cat <<EOF | sudo tee /etc/consul.d/socat.json
   "service": {
     "name": "socat",
     "port": 8181,
-    "connect": { "proxy": {} }
+    "connect": { "sidecar_service": {} }
   }
 }
 EOF
@@ -76,20 +75,34 @@ EOF
 After saving this, run `consul reload` or send a `SIGHUP` signal to Consul
 so it reads the new configuration.
 
-Notice the only difference is the line starting with `"connect"`. The
-existence of this empty configuration notifies Consul to manage a
-proxy process for this process.
-The proxy process represents that specific service. It accepts inbound
+Notice the only difference is the line starting with `"connect"`. The existence
+of this empty configuration notifies Consul to register a sidecar proxy for this
+process. The proxy process represents that specific service. It accepts inbound
 connections on a dynamically allocated port, verifies and authorizes the TLS
 connection, and proxies back a standard TCP connection to the process.
 
+The sidecar service registration here is just telling Consul that a proxy should
+be running, Consul won't actually run a proxy process for you.
+
+We need to start the proxy process in another terminal:
+
+```sh
+$ consul connect proxy -sidecar-for socat
+==> Consul Connect proxy starting...
+    Configuration mode: Agent API
+        Sidecar for ID: socat
+              Proxy ID: socat-sidecar-proxy
+
+...
+```
+
 ## Connecting to the Service
 
-Next, let's connect to the service. We'll first do this by using the
-`consul connect proxy` command directly. This command manually runs a local
-proxy that can represent a service. This is a useful tool for development
-since it'll let you masquerade as any service (that you have permissions for)
-and establish connections to other services via Connect.
+Next, let's connect to the service. We'll first do this by using the `consul
+connect proxy` command again directly. This time we use the command to configure
+and run a local proxy that can represent a service. This is a useful tool for
+development since it'll let you masquerade as any service (that you have
+permissions for) and establish connections to other services via Connect.
 
 The command below starts a proxy representing a service "web". We request
 an upstream dependency of "socat" (the service we previously registered)
@@ -124,10 +137,10 @@ machine is always encrypted.
 
 ## Registering a Dependent Service
 
-We previously established a connection by directly running
-`consul connect proxy`. Realistically, services need to establish connections
+We previously established a connection by directly running `consul connect
+proxy` in developer mode. Realistically, services need to establish connections
 to dependencies over Connect. Let's register a service "web" that registers
-"socat" as an upstream dependency:
+"socat" as an upstream dependency in it's sidecar registration:
 
 ```sh
 $ cat <<EOF | sudo tee /etc/consul.d/web.json
@@ -136,8 +149,8 @@ $ cat <<EOF | sudo tee /etc/consul.d/web.json
     "name": "web",
     "port": 8080,
     "connect": {
-      "proxy": {
-        "config": {
+      "sidecar_service": {
+        "proxy": {
           "upstreams": [{
              "destination_name": "socat",
              "local_bind_port": 9191
@@ -150,14 +163,50 @@ $ cat <<EOF | sudo tee /etc/consul.d/web.json
 EOF
 ```
 
-This configures a Consul-managed proxy for the service "web" that
-is listening on port 9191 to establish connections to "socat" as "web". The
+This registers a sidecar proxy for the service "web" that
+should listen on port 9191 to establish connections to "socat" as "web". The
 "web" service should then use that local port to talk to socat rather than
 directly attempting to connect.
+
+With that file in place, use `consul reload` or SIGHUP to reload Consul. If the
+proxy command from the previous section (with the inline upstream listener) is
+still running, stop it with `Ctrl-C`. Now we can start the web proxy using the
+configuration from the sidecar registration as we did for socat.
+
+```sh
+$ consul connect proxy -sidecar-for web
+==> Consul Connect proxy starting...
+    Configuration mode: Agent API
+        Sidecar for ID: web
+              Proxy ID: web-sidecar-proxy
+
+==> Log data will now stream in as it occurs:
+
+    2018/10/09 12:34:20 [INFO] 127.0.0.1:9191->service:default/socat starting on 127.0.0.1:9191
+    2018/10/09 12:34:20 [INFO] Proxy loaded config and ready to serve
+    2018/10/09 12:34:20 [INFO] TLS Identity: spiffe://df34ef6b-5971-ee61-0790-ca8622c3c287.consul/ns/default/dc/dc1/svc/web
+    2018/10/09 12:34:20 [INFO] TLS Roots   : [Consul CA 7]
+```
+
+Note in the first log line that the proxy discovered its configuration from the
+local agent and setup a local listener on port 9191 that will proxy to the socat
+service just as we configured in the sidecar registration.
+
+You can also see the identity URL from the certificate it loaded from the agent
+identifying it as the "web" service and the set of trusted root CAs it knows
+about.
 
 -> **Security note:** The Connect security model requires trusting
 loopback connections when proxies are in use. To further secure this,
 tools like network namespacing may be used.
+
+We can verify it works by establishing a new connection:
+
+```
+$ nc 127.0.0.1 9191
+hello
+hello
+```
 
 ## Controlling Access with Intentions
 
@@ -180,15 +229,31 @@ $ nc 127.0.0.1 9191
 $
 ```
 
-Try deleting the intention (or updating it to allow) and attempting the
-connection again. Intentions allow services to be segmented via a centralized
-control plane (Consul). To learn more, read the reference documentation on
+Try deleting the intention and attempt the connection again. 
+
+```sh
+$ consul intention delete web socat
+Intention deleted.
+$ nc 127.0.0.1 9191
+hello
+hello
+```
+
+Intentions allow services to be segmented via a centralized control plane
+(Consul). To learn more, read the reference documentation on
 [intentions](/docs/connect/intentions.html).
 
 Note that in the current release of Consul, changing intentions will not
 affect existing connections. Therefore, you must establish a new connection
 to see the effects of a changed intention. This will be addressed in the near
 term in a future version of Consul.
+
+## Discover More Connect
+
+This quick guide has given a taste of what Connect can do but there is much
+more. Take a look at [getting started with
+Connect](/docs/connect/index.html#getting-started-with-connect) for more guides
+on setting up Connect with Envoy proxy, with Docker and in Kubernetes.
 
 ## Next Steps
 

@@ -6,7 +6,7 @@ description: |-
   This guide describes best practices for running Consul Connect in production.
 ---
 
-## Running Connect in Production
+# Running Connect in Production
 
 Consul Connect can secure all inter-service communication via mutual TLS. It's
 designed to work with [minimal configuration out of the
@@ -159,22 +159,21 @@ ports.
 
 In addition to Consul agent's [communication
 ports](/docs/agent/options.html#ports) any
-[managed proxies](/docs/connect/proxies.html#managed-proxies) will need to have
+[proxies](/docs/connect/proxies.html) will need to have
 ports open to accept incoming connections.
 
-Consul will by default assign them ports from [a configurable
-range](/docs/agent/options.html#ports) the default
-range is 20000 - 20255. If this feature is used, the agent assumes all ports in
-that range are both free to use (no other processes listening on them) and are
-exposed in the firewall to accept connections from other service hosts.
+If using [sidecar service
+registration](/docs/connect/proxies/sidecar-service.html) Consul will by default
+assign ports from [a configurable
+range](/docs/agent/options.html#sidecar_min_port) the default range is 21000 -
+21255. If this feature is used, the agent assumes all ports in that range are
+both free to use (no other processes listening on them) and are exposed in the
+firewall to accept connections from other service hosts.
 
-Alternatively, managed proxies can have their public ports specified as part of
-the [proxy
-configuration](/docs/connect/configuration.html#local_bind_port) in the
-service definition. It is possible to use this exclusively and prevent
-automated port selection by [configuring `proxy_min_port` and
-`proxy_max_port`](/docs/agent/options.html#ports) to both be `0`, forcing any
-managed proxies to have an explicit port configured.
+It is possible to prevent automated port selection by [configuring
+`sidecar_min_port` and
+`sidecar_max_port`](/docs/agent/options.html#sidecar_min_port) to both be `0`,
+forcing any sidecar service registrations to need an explicit port configured.
 
 It then becomes the same problem as opening ports necessary for any other
 application and might be managed by configuration management or a scheduler.
@@ -190,13 +189,9 @@ be set.
 For registration via the API [the token is passed in the request
 header](/api/index.html#acls) or by using the [Go
 client configuration](https://godoc.org/github.com/hashicorp/consul/api#Config).
-Note that by default API registration will not allow managed proxies to be
-configured since it potentially opens a remote execution vulnerability if the
-agent API endpoints are publicly accessible. This can be [configured
-per-agent](/docs/agent/options.html#connect_proxy).
 
-For examples of service definitions with managed or unmanaged proxies see
-[proxies documentation](/docs/connect/proxies.html#managed-proxies).
+For examples of proxy service definitions see the [proxy
+documentation](/docs/connect/proxies.html).
 
 To avoid the overhead of a proxy, applications may [natively
 integrate](/docs/connect/native.html) with connect.

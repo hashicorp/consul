@@ -172,10 +172,11 @@ will exit with an error at startup.
 * <a name="_dev"></a><a href="#_dev">`-dev`</a> - Enable development server
   mode. This is useful for quickly starting a Consul agent with all persistence
   options turned off, enabling an in-memory server which can be used for rapid
-  prototyping or developing against the API. In this mode,
-  [Connect is enabled](/docs/connect/configuration.html) and will by default
-  create a new root CA certificate on startup. This mode is **not** intended for
-  production use as it does not write any data to disk.
+  prototyping or developing against the API. In this mode, [Connect is
+  enabled](/docs/connect/configuration.html) and will by default create a new
+  root CA certificate on startup. This mode is **not** intended for production
+  use as it does not write any data to disk. The gRPC port is also defaulted to
+  `8502` in this mode.
 
 * <a name="_disable_host_node_id"></a><a href="#_disable_host_node_id">`-disable-host-node-id`</a> - Setting
   this to true will prevent Consul from using information from the host to generate a deterministic node ID,
@@ -216,6 +217,10 @@ will exit with an error at startup.
   initialized with an encryption key, then the provided key is ignored and
   a warning will be displayed.
 
+* <a name="_grpc_port"></a><a href="#_grpc_port">`-grpc-port`</a> - the gRPC API
+  port to listen on. Default -1 (gRPC disabled). See [ports](#ports)
+  documentation for more detail.
+
 * <a name="_hcl"></a><a href="#_hcl">`-hcl`</a> - A HCL configuration fragment.
   This HCL configuration fragment is appended to the configuration and allows
   to specify the full range of options of a config file on the command line.
@@ -225,6 +230,7 @@ will exit with an error at startup.
   This overrides the default port 8500. This option is very useful when deploying Consul
   to an environment which communicates the HTTP port through the environment e.g. PaaS like CloudFoundry, allowing
   you to set the port directly via a Procfile.
+
 * <a name="_log_file"></a><a href="#_log_file">`-log-file`</a> - to redirect all the Consul agent log messages to a file. This can be specified with the complete path along with the name of the log. In case the path doesn't have the filename, the filename defaults to Consul-timestamp.log .  Can be combined with <a href="#_log_rotate_bytes"> -log-rotate-bytes</a> and <a href="#_log_rotate_duration"> -log-rotate-duration </a> for a fine-grained log rotation experience. 
 
 * <a name="_log_rotate_bytes"></a><a href="#_log_rotate_bytes">`-log-rotate-bytes`</a> - to specify the number of bytes that should be written to a log before it needs to be rotated. Unless specified, there is no limit to the number of bytes that can be written to a log file.
@@ -477,7 +483,7 @@ definitions support being updated during a reload.
     "https": "0.0.0.0"
   },
   "ports": {
-    "https": 8080
+    "https": 8501
   },
   "key_file": "/etc/pki/tls/private/my.key",
   "cert_file": "/etc/pki/tls/certs/my.crt",
@@ -489,11 +495,13 @@ See, especially, the use of the `ports` setting:
 
 ```javascript
 "ports": {
-  "https": 8080
+  "https": 8501
 }
 ```
 
-Consul will not enable TLS for the HTTP API unless the `https` port has been assigned a port number `> 0`.
+Consul will not enable TLS for the HTTP API unless the `https` port has been
+assigned a port number `> 0`. We recommend using `8501` for `https` as this
+default will automatically work with some tooling.
 
 #### Configuration Key Reference
 
@@ -586,24 +594,27 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
     addresses to bind to, or a [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
     template that can potentially resolve to multiple addresses.
 
-    `http` supports binding to a Unix domain socket. A socket can be
-    specified in the form `unix:///path/to/socket`. A new domain socket will be
-    created at the given path. If the specified file path already exists, Consul
-    will attempt to clear the file and create the domain socket in its place. The
-    permissions of the socket file are tunable via the [`unix_sockets` config construct](#unix_sockets).
+    `http`, `https` and `grpc` all support binding to a Unix domain socket. A
+    socket can be specified in the form `unix:///path/to/socket`. A new domain
+    socket will be created at the given path. If the specified file path already
+    exists, Consul will attempt to clear the file and create the domain socket
+    in its place. The permissions of the socket file are tunable via the
+    [`unix_sockets` config construct](#unix_sockets).
 
     When running Consul agent commands against Unix socket interfaces, use the
     `-http-addr` argument to specify the path to the socket. You can also place
     the desired values in the `CONSUL_HTTP_ADDR` environment variable.
 
-    For TCP addresses, the variable values should be an IP address with the port. For
-    example: `10.0.0.1:8500` and not `10.0.0.1`. However, ports are set separately in the
-    <a href="#ports">`ports`</a> structure when defining them in a configuration file.
+    For TCP addresses, the environment variable value should be an IP address
+    _with the port_. For example: `10.0.0.1:8500` and not `10.0.0.1`. However,
+    ports are set separately in the <a href="#ports">`ports`</a> structure when
+    defining them in a configuration file.
 
     The following keys are valid:
     - `dns` - The DNS server. Defaults to `client_addr`
     - `http` - The HTTP API. Defaults to `client_addr`
     - `https` - The HTTPS API. Defaults to `client_addr`
+    - `grpc` - The gRPC API. Defaults to `client_addr`
 
 * <a name="advertise_addr"></a><a href="#advertise_addr">`advertise_addr`</a> Equivalent to
   the [`-advertise` command-line flag](#_advertise).
@@ -748,13 +759,13 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
         has been inactive (rotated out) for more than twice the *current* `leaf_cert_ttl`, it will be removed from
         the trusted list.
 
-    * <a name="connect_proxy"></a><a href="#connect_proxy">`proxy`</a> This object allows setting options for the Connect proxies. The following sub-keys are available:
+    * <a name="connect_proxy"></a><a href="#connect_proxy">`proxy`</a> [**Deprecated**](/docs/connect/proxies/managed-deprecated.html) This object allows setting options for the Connect proxies. The following sub-keys are available:
 
-        * <a name="connect_proxy_allow_managed_registration"></a><a href="#connect_proxy_allow_managed_registration">`allow_managed_api_registration`</a> Allows managed proxies to be configured with services that are registered via the Agent HTTP API. Enabling this would allow anyone with permission to register a service to define a command to execute for the proxy. By default, this is false to protect against arbitrary process execution.
+        * <a name="connect_proxy_allow_managed_registration"></a><a href="#connect_proxy_allow_managed_registration">`allow_managed_api_registration`</a> [**Deprecated**](/docs/connect/proxies/managed-deprecated.html) Allows managed proxies to be configured with services that are registered via the Agent HTTP API. Enabling this would allow anyone with permission to register a service to define a command to execute for the proxy. By default, this is false to protect against arbitrary process execution.
 
-        * <a name="connect_proxy_allow_managed_root"></a><a href="#connect_proxy_allow_managed_root">`allow_managed_root`</a> Allows Consul to start managed proxies if Consul is running as root (EUID of the process is zero). We recommend running Consul as a non-root user. By default, this is false to protect inadvertently running external processes as root.
+        * <a name="connect_proxy_allow_managed_root"></a><a href="#connect_proxy_allow_managed_root">`allow_managed_root`</a> [**Deprecated**](/docs/connect/proxies/managed-deprecated.html) Allows Consul to start managed proxies if Consul is running as root (EUID of the process is zero). We recommend running Consul as a non-root user. By default, this is false to protect inadvertently running external processes as root.
 
-    * <a name="connect_proxy_defaults"></a><a href="#connect_proxy_defaults">`proxy_defaults`</a> This object configures the default proxy settings for [service definitions with managed proxies](/docs/agent/services.html). It accepts the fields `exec_mode`, `daemon_command`, and `config`. These are used as default values for the respective fields in the service definition.
+    * <a name="connect_proxy_defaults"></a><a href="#connect_proxy_defaults">`proxy_defaults`</a> [**Deprecated**](/docs/connect/proxies/managed-deprecated.html) This object configures the default proxy settings for service definitions with [managed proxies](/docs/connect/proxies/managed-deprecated.html) (now deprecated). It accepts the fields `exec_mode`, `daemon_command`, and `config`. These are used as default values for the respective fields in the service definition.
 
     * <a name="replication_token"></a><a href="#replication_token">`replication_token`</a> When provided, this will enable Connect replication using this token to retrieve and replicate the Intentions to the non-authoritative local datacenter.
 
@@ -1134,14 +1145,31 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   the bind ports for the following keys:
     * <a name="dns_port"></a><a href="#dns_port">`dns`</a> - The DNS server, -1 to disable. Default 8600.
     * <a name="http_port"></a><a href="#http_port">`http`</a> - The HTTP API, -1 to disable. Default 8500.
-    * <a name="https_port"></a><a href="#https_port">`https`</a> - The HTTPS API, -1 to disable. Default -1 (disabled).
+    * <a name="https_port"></a><a href="#https_port">`https`</a> - The HTTPS
+      API, -1 to disable. Default -1 (disabled). **We recommend using `8501`** for
+      `https` by convention as some tooling will work automatically with this.
+    * <a name="grpc_port"></a><a href="#grpc_port">`grpc`</a> - The gRPC API, -1
+      to disable. Default -1 (disabled). **We recommend using `8502`** for
+      `grpc` by convention as some tooling will work automatically with this.
+      This is set to `8502` by default when the agent runs in `-dev` mode.
+      Currently gRPC is only used to expose Envoy xDS API to Envoy proxies.
     * <a name="serf_lan_port"></a><a href="#serf_lan_port">`serf_lan`</a> - The Serf LAN port. Default 8301.
     * <a name="serf_wan_port"></a><a href="#serf_wan_port">`serf_wan`</a> - The Serf WAN port. Default 8302. Set to -1
       to disable. **Note**: this will disable WAN federation which is not recommended. Various catalog and WAN related
       endpoints will return errors or empty results.
     * <a name="server_rpc_port"></a><a href="#server_rpc_port">`server`</a> - Server RPC address. Default 8300.
-    * <a name="proxy_min_port"></a><a href="#proxy_min_port">`proxy_min_port`</a> - Minimum port number to use for automatically assigned [managed Connect proxies](/docs/connect/proxies.html). If Connect is disabled, managed proxies are unused, or ports are always specified, then this value is unused. Defaults to 20000.
-    * <a name="proxy_max_port"></a><a href="#proxy_max_port">`proxy_max_port`</a> - Maximum port number to use for automatically assigned [managed Connect proxies](/docs/connect/proxies.html). See [`proxy_min_port`](#proxy_min_port) for more information. Defaults to 20255.
+    * <a name="proxy_min_port"></a><a href="#proxy_min_port">`proxy_min_port`</a> [**Deprecated**](/docs/connect/proxies/managed-deprecated.html) - Minimum port number to use for automatically assigned [managed proxies](/docs/connect/proxies/managed-deprecated.html). Default 20000.
+    * <a name="proxy_max_port"></a><a href="#proxy_max_port">`proxy_max_port`</a> [**Deprecated**](/docs/connect/proxies/managed-deprecated.html) - Maximum port number to use for automatically assigned [managed proxies](/docs/connect/proxies/managed-deprecated.html). Default 20255.
+    * <a name="sidecar_min_port"></a><a
+      href="#sidecar_min_port">`sidecar_min_port`</a> - Inclusive minimum port
+      number to use for automatically assigned [sidecar service
+      registrations](/docs/connect/proxies/sidecar-service.html). Default 21000.
+      Set to `0` to disable automatic port assignment.
+    * <a name="sidecar_max_port"></a><a
+      href="#sidecar_max_port">`sidecar_max_port`</a> - Inclusive maximum port
+      number to use for automatically assigned [sidecar service
+      registrations](/docs/connect/proxies/sidecar-service.html). Default 21255.
+      Set to `0` to disable automatic port assignment.
 
 * <a name="protocol"></a><a href="#protocol">`protocol`</a> Equivalent to the
   [`-protocol` command-line flag](#_protocol).
