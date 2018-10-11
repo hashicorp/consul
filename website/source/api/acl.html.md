@@ -377,7 +377,7 @@ $ curl \
 
 - `SourceDatacenter` is the authoritative ACL datacenter that ACLs are being
   replicated from, and will match the
-  [`primary_datacenter`](/docs/agent/options.html#primary_datacenter) configuration.
+  [`acl_datacenter`](/docs/agent/options.html#acl_datacenter) configuration.
 
 - `ReplicatedIndex` is the last index that was successfully replicated. You can
   compare this to the `X-Consul-Index` header returned by the
