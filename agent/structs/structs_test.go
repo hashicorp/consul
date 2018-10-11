@@ -162,6 +162,117 @@ func testServiceNode(t *testing.T) *ServiceNode {
 	}
 }
 
+func TestNode_IsSame(t *testing.T) {
+	id := types.NodeID("e62f3b31-9284-4e26-ab14-2a59dea85b55")
+	node := "mynode1"
+	address := ""
+	datacenter := "dc1"
+	n := &Node{
+		ID:              id,
+		Node:            node,
+		Datacenter:      datacenter,
+		Address:         address,
+		TaggedAddresses: make(map[string]string),
+		Meta:            make(map[string]string),
+		RaftIndex: RaftIndex{
+			CreateIndex: 1,
+			ModifyIndex: 2,
+		},
+	}
+	other := &Node{
+		ID:              id,
+		Node:            node,
+		Datacenter:      datacenter,
+		Address:         address,
+		TaggedAddresses: make(map[string]string),
+		Meta:            make(map[string]string),
+		RaftIndex: RaftIndex{
+			CreateIndex: 1,
+			ModifyIndex: 3,
+		},
+	}
+	check := func(twiddle, restore func()) {
+		t.Helper()
+		if !n.IsSame(other) || !other.IsSame(n) {
+			t.Fatalf("should be the same")
+		}
+
+		twiddle()
+		if n.IsSame(other) || other.IsSame(n) {
+			t.Fatalf("should be different, was %#v VS %#v", n, other)
+		}
+
+		restore()
+		if !n.IsSame(other) || !other.IsSame(n) {
+			t.Fatalf("should be the same")
+		}
+	}
+	check(func() { other.ID = types.NodeID("") }, func() { other.ID = id })
+	check(func() { other.Node = "other" }, func() { other.Node = node })
+	check(func() { other.Datacenter = "dcX" }, func() { other.Datacenter = datacenter })
+	check(func() { other.Address = "127.0.0.1" }, func() { other.Address = address })
+	check(func() { other.TaggedAddresses = map[string]string{"my": "address"} }, func() { other.TaggedAddresses = map[string]string{} })
+	check(func() { other.Meta = map[string]string{"my": "meta"} }, func() { other.Meta = map[string]string{} })
+
+	if !n.IsSame(other) {
+		t.Fatalf("should be equal, was %#v VS %#v", n, other)
+	}
+}
+
+func TestStructs_ServiceNode_IsSameService(t *testing.T) {
+	sn := testServiceNode(t)
+	node := "node1"
+	serviceID := sn.ServiceID
+	serviceAddress := sn.ServiceAddress
+	serviceEnableTagOverride := sn.ServiceEnableTagOverride
+	serviceMeta := make(map[string]string)
+	for k, v := range sn.ServiceMeta {
+		serviceMeta[k] = v
+	}
+	serviceName := sn.ServiceName
+	servicePort := sn.ServicePort
+	serviceTags := sn.ServiceTags
+	serviceWeights := Weights{Passing: 2, Warning: 1}
+	sn.ServiceWeights = serviceWeights
+	serviceProxyDestination := sn.ServiceProxyDestination
+	serviceProxy := sn.ServiceProxy
+	serviceConnect := sn.ServiceConnect
+
+	n := sn.ToNodeService().ToServiceNode(node)
+	other := sn.ToNodeService().ToServiceNode(node)
+
+	check := func(twiddle, restore func()) {
+		t.Helper()
+		if !n.IsSameService(other) || !other.IsSameService(n) {
+			t.Fatalf("should be the same")
+		}
+
+		twiddle()
+		if n.IsSameService(other) || other.IsSameService(n) {
+			t.Fatalf("should be different, was %#v VS %#v", n, other)
+		}
+
+		restore()
+		if !n.IsSameService(other) || !other.IsSameService(n) {
+			t.Fatalf("should be the same after restore, was:\n %#v VS\n %#v", n, other)
+		}
+	}
+
+	check(func() { other.ServiceID = "66fb695a-c782-472f-8d36-4f3edd754b37" }, func() { other.ServiceID = serviceID })
+	check(func() { other.Node = "other" }, func() { other.Node = node })
+	check(func() { other.ServiceAddress = "1.2.3.4" }, func() { other.ServiceAddress = serviceAddress })
+	check(func() { other.ServiceEnableTagOverride = !serviceEnableTagOverride }, func() { other.ServiceEnableTagOverride = serviceEnableTagOverride })
+	check(func() { other.ServiceKind = "newKind" }, func() { other.ServiceKind = "" })
+	check(func() { other.ServiceMeta = map[string]string{"my": "meta"} }, func() { other.ServiceMeta = serviceMeta })
+	check(func() { other.ServiceName = "duck" }, func() { other.ServiceName = serviceName })
+	check(func() { other.ServicePort = 65534 }, func() { other.ServicePort = servicePort })
+	check(func() { other.ServiceProxyDestination = "duck" }, func() { other.ServiceProxyDestination = serviceProxyDestination })
+	check(func() { other.ServiceTags = []string{"new", "tags"} }, func() { other.ServiceTags = serviceTags })
+	check(func() { other.ServiceWeights = Weights{Passing: 42, Warning: 41} }, func() { other.ServiceWeights = serviceWeights })
+	check(func() { other.ServiceProxy = ConnectProxyConfig{} }, func() { other.ServiceProxy = serviceProxy })
+	check(func() { other.ServiceConnect = ServiceConnect{} }, func() { other.ServiceConnect = serviceConnect })
+}
+
 func TestStructs_ServiceNode_PartialClone(t *testing.T) {
 	sn := testServiceNode(t)
 
@@ -222,6 +333,17 @@ func TestStructs_ServiceNode_Conversions(t *testing.T) {
 	sn.NodeMeta = nil
 	sn.ServiceWeights = Weights{Passing: 1, Warning: 1}
 	require.Equal(t, sn, sn2)
+	if !sn.IsSameService(sn2) || !sn2.IsSameService(sn) {
+		t.Fatalf("bad: %#v, should be the same %#v", sn2, sn)
+	}
+	// Those fields are lost in conversion, so IsSameService() should not take them into account
+	sn.Address = "y"
+	sn.Datacenter = "z"
+	sn.TaggedAddresses = map[string]string{"one": "1", "two": "2"}
+	sn.NodeMeta = map[string]string{"meta": "data"}
+	if !sn.IsSameService(sn2) || !sn2.IsSameService(sn) {
+		t.Fatalf("bad: %#v, should be the same %#v", sn2, sn)
+	}
 }
 
 func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
@@ -358,6 +480,7 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 				"foo": "bar",
 			},
 		},
+		Weights: &Weights{Passing: 1, Warning: 1},
 	}
 	if !ns.IsSame(ns) {
 		t.Fatalf("should be equal to itself")
@@ -381,6 +504,7 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 				"foo": "bar",
 			},
 		},
+		Weights: &Weights{Passing: 1, Warning: 1},
 		RaftIndex: RaftIndex{
 			CreateIndex: 1,
 			ModifyIndex: 2,
@@ -422,6 +546,15 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 	check(func() { other.Proxy.LocalServicePort = 9999 }, func() { other.Proxy.LocalServicePort = 0 })
 	check(func() { other.Proxy.Config["baz"] = "XXX" }, func() { delete(other.Proxy.Config, "baz") })
 	check(func() { other.Connect.Native = true }, func() { other.Connect.Native = false })
+	otherServiceNode := other.ToServiceNode("node1")
+	copyNodeService := otherServiceNode.ToNodeService()
+	if !copyNodeService.IsSame(other) {
+		t.Fatalf("copy should be the same, but was\n %#v\nVS\n %#v", copyNodeService, other)
+	}
+	otherServiceNodeCopy2 := copyNodeService.ToServiceNode("node1")
+	if !otherServiceNode.IsSameService(otherServiceNodeCopy2) {
+		t.Fatalf("copy should be the same, but was\n %#v\nVS\n %#v", otherServiceNode, otherServiceNodeCopy2)
+	}
 }
 
 func TestStructs_HealthCheck_IsSame(t *testing.T) {
