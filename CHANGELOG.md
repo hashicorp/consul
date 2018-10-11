@@ -2,21 +2,42 @@
 
 FEATURES:
 
+* **Connect Envoy Support**: This release includes support for using Envoy as a
+  Proxy with Consul Connect (Beta). Read the [announcement blog
+  post](https://www.hashicorp.com/blog/consul-1-3-envoy) or [reference
+  documentation](https://www.consul.io/docs/connect/proxies/envoy.html)
+  for more detail.
+* **Sidecar Service Registration**: As part of the ongoing Connect Beta we add a
+  new, more convenient way to [register sidecar
+  proxies](https://www.consul.io/docs/connect/proxies/sidecar-service.html)
+  from within a regular service definition.
+* **Deprecating Managed Proxies**: The Connect Beta launched with a feature
+  named "managed proxies". These will no longer be supported in favour of the
+  simpler sidecar service registration. Existing functionality will not be
+  removed until a later major release but will not be supported with fixes. See
+  the [deprecation
+  notice](https://www.consul.io/docs/connect/proxies/managed-deprecated.html)
+  for full details.
 * New command `consul services register` and `consul services deregister` for
   registering and deregistering services from the command line. [[GH-4732](https://github.com/hashicorp/consul/issues/4732)]
+* api: Service discovery endpoints now support [caching results in the local agent](https://www.consul.io/api/index.html#agent-caching). [[GH-4541](https://github.com/hashicorp/consul/pull/4541)]
 * dns: Added SOA configuration for DNS settings [[GH-4713](https://github.com/hashicorp/consul/issues/4713)]
 
 IMPROVEMENTS:
 
 * ui: Improve layout of node 'cards' by restricting the grid layout to a maximum of 4 columns [[GH-4761]](https://github.com/hashicorp/consul/pull/4761)
 * ui: Load the TextEncoder/Decoder polyfill dynamically so it's not downloaded to browsers with native support [[GH-4767]](https://github.com/hashicorp/consul/pull/4767)
+* cli: `consul connect proxy` now supports a [`--sidecar-for`
+  option](https://www.consul.io/docs/commands/connect/proxy.html#sidecar-for) to
+  allow simple integration with new sidecar service registrations.
 
 BUG FIXES:
 
 * agent: (Consul Enterprise) Fixed an issue where the `non_voting_server` setting could be ignored when bootstrapping the cluster. [[GH-4699](https://github.com/hashicorp/consul/pull/4699)]
 * cli: forward SIGTERM to child process of 'lock' and 'watch' subcommands [[GH-4737](https://github.com/hashicorp/consul/pull/4737)]
-* watch: Fix issue with HTTPs only agents not executing watches properly. [[GH-4727](https://github.com/hashicorp/consul/pull/4727)]
+* connect: Fix to ensure leaf certificates for a service are not shared between clients on the same agent using different ACL tokens [[GH-4736](https://github.com/hashicorp/consul/pull/4736)]
 * ui: Ensure service names that contain slashes are displayable [[GH-4756]](https://github.com/hashicorp/consul/pull/4756)
+* watch: Fix issue with HTTPs only agents not executing watches properly. [[GH-4727](https://github.com/hashicorp/consul/pull/4727)]
 
 ## 1.2.3 (September 13, 2018)
 
