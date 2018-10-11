@@ -170,6 +170,13 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 			metrics.IncrCounterWithLabels([]string{"health", key, "query-tag"}, 1,
 				[]metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "tag", Value: args.ServiceTag}})
 		}
+		if len(args.ServiceTags) > 0 {
+			labels := []metrics.Label{{Name: "service", Value: args.ServiceName}}
+			for _, tag := range args.ServiceTags {
+				labels = append(labels, metrics.Label{Name: "tag", Value: tag})
+			}
+			metrics.IncrCounterWithLabels([]string{"health", key, "query-tags"}, 1, labels)
+		}
 		if len(reply.Nodes) == 0 {
 			metrics.IncrCounterWithLabels([]string{"health", key, "not-found"}, 1,
 				[]metrics.Label{{Name: "service", Value: args.ServiceName}})
@@ -186,7 +193,12 @@ func (h *Health) serviceNodesConnect(ws memdb.WatchSet, s *state.Store, args *st
 }
 
 func (h *Health) serviceNodesTagFilter(ws memdb.WatchSet, s *state.Store, args *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error) {
-	return s.CheckServiceTagNodes(ws, args.ServiceName, args.ServiceTag)
+	// DNS service lookups populate the ServiceTag field. In this case,
+	// use ServiceTag instead of the ServiceTags field.
+	if args.ServiceTag != "" {
+		return s.CheckServiceTagNodes(ws, args.ServiceName, []string{args.ServiceTag})
+	}
+	return s.CheckServiceTagNodes(ws, args.ServiceName, args.ServiceTags)
 }
 
 func (h *Health) serviceNodesDefault(ws memdb.WatchSet, s *state.Store, args *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error) {

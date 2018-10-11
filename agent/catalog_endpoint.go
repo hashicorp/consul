@@ -188,7 +188,7 @@ func (s *HTTPServer) catalogServiceNodes(resp http.ResponseWriter, req *http.Req
 	// Check for a tag
 	params := req.URL.Query()
 	if _, ok := params["tag"]; ok {
-		args.ServiceTag = params.Get("tag")
+		args.ServiceTags = params["tag"]
 		args.TagFilter = true
 	}
 

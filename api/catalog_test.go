@@ -5,11 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPI_CatalogDatacenters(t *testing.T) {
@@ -293,6 +292,84 @@ func TestAPI_CatalogServiceCached(t *testing.T) {
 	require.NoError(err)
 	require.True(meta.CacheHit)
 	require.Equal(time.Duration(0), meta.CacheAge)
+}
+
+func TestAPI_CatalogService_SingleTag(t *testing.T) {
+	t.Parallel()
+	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+		conf.NodeName = "node123"
+	})
+	defer s.Stop()
+
+	agent := c.Agent()
+	catalog := c.Catalog()
+
+	reg := &AgentServiceRegistration{
+		Name: "foo",
+		ID:   "foo1",
+		Tags: []string{"bar"},
+	}
+	require.NoError(t, agent.ServiceRegister(reg))
+	defer agent.ServiceDeregister("foo1")
+
+	retry.Run(t, func(r *retry.R) {
+		services, meta, err := catalog.Service("foo", "bar", nil)
+		require.NoError(t, err)
+		require.NotEqual(t, meta.LastIndex, 0)
+		require.Len(t, services, 1)
+		require.Equal(t, services[0].ServiceID, "foo1")
+	})
+}
+
+func TestAPI_CatalogService_MultipleTags(t *testing.T) {
+	t.Parallel()
+	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+		conf.NodeName = "node123"
+	})
+	defer s.Stop()
+
+	agent := c.Agent()
+	catalog := c.Catalog()
+
+	// Make two services with a check
+	reg := &AgentServiceRegistration{
+		Name: "foo",
+		ID:   "foo1",
+		Tags: []string{"bar"},
+	}
+	require.NoError(t, agent.ServiceRegister(reg))
+	defer agent.ServiceDeregister("foo1")
+
+	reg2 := &AgentServiceRegistration{
+		Name: "foo",
+		ID:   "foo2",
+		Tags: []string{"bar", "v2"},
+	}
+	require.NoError(t, agent.ServiceRegister(reg2))
+	defer agent.ServiceDeregister("foo2")
+
+	// Test searching with one tag (two results)
+	retry.Run(t, func(r *retry.R) {
+		services, meta, err := catalog.ServiceMultipleTags("foo", []string{"bar"}, nil)
+
+		require.NoError(t, err)
+		require.NotEqual(t, meta.LastIndex, 0)
+
+		// Should be 2 services with the `bar` tag
+		require.Len(t, services, 2)
+	})
+
+	// Test searching with two tags (one result)
+	retry.Run(t, func(r *retry.R) {
+		services, meta, err := catalog.ServiceMultipleTags("foo", []string{"bar", "v2"}, nil)
+
+		require.NoError(t, err)
+		require.NotEqual(t, meta.LastIndex, 0)
+
+		// Should be exactly 1 service, named "foo2"
+		require.Len(t, services, 1)
+		require.Equal(t, services[0].ServiceID, "foo2")
+	})
 }
 
 func TestAPI_CatalogService_NodeMetaFilter(t *testing.T) {

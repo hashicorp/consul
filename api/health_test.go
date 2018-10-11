@@ -283,6 +283,108 @@ func TestAPI_HealthService(t *testing.T) {
 	})
 }
 
+func TestAPI_HealthService_SingleTag(t *testing.T) {
+	t.Parallel()
+	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+		conf.NodeName = "node123"
+	})
+	defer s.Stop()
+	agent := c.Agent()
+	health := c.Health()
+	reg := &AgentServiceRegistration{
+		Name: "foo",
+		ID:   "foo1",
+		Tags: []string{"bar"},
+		Check: &AgentServiceCheck{
+			Status: HealthPassing,
+			TTL:    "15s",
+		},
+	}
+	require.NoError(t, agent.ServiceRegister(reg))
+	defer agent.ServiceDeregister("foo1")
+	retry.Run(t, func(r *retry.R) {
+		services, meta, err := health.Service("foo", "bar", true, nil)
+		require.NoError(t, err)
+		require.NotEqual(t, meta.LastIndex, 0)
+		require.Len(t, services, 1)
+		require.Equal(t, services[0].Service.ID, "foo1")
+	})
+}
+func TestAPI_HealthService_MultipleTags(t *testing.T) {
+	t.Parallel()
+	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+		conf.NodeName = "node123"
+	})
+	defer s.Stop()
+
+	agent := c.Agent()
+	health := c.Health()
+
+	// Make two services with a check
+	reg := &AgentServiceRegistration{
+		Name: "foo",
+		ID:   "foo1",
+		Tags: []string{"bar"},
+		Check: &AgentServiceCheck{
+			Status: HealthPassing,
+			TTL:    "15s",
+		},
+	}
+	require.NoError(t, agent.ServiceRegister(reg))
+	defer agent.ServiceDeregister("foo1")
+
+	reg2 := &AgentServiceRegistration{
+		Name: "foo",
+		ID:   "foo2",
+		Tags: []string{"bar", "v2"},
+		Check: &AgentServiceCheck{
+			Status: HealthPassing,
+			TTL:    "15s",
+		},
+	}
+	require.NoError(t, agent.ServiceRegister(reg2))
+	defer agent.ServiceDeregister("foo2")
+
+	// Test searching with one tag (two results)
+	retry.Run(t, func(r *retry.R) {
+		services, meta, err := health.ServiceMultipleTags("foo", []string{"bar"}, true, nil)
+
+		require.NoError(t, err)
+		require.NotEqual(t, meta.LastIndex, 0)
+		require.Len(t, services, 2)
+	})
+
+	// Test searching with two tags (one result)
+	retry.Run(t, func(r *retry.R) {
+		services, meta, err := health.ServiceMultipleTags("foo", []string{"bar", "v2"}, true, nil)
+
+		require.NoError(t, err)
+		require.NotEqual(t, meta.LastIndex, 0)
+		require.Len(t, services, 1)
+		require.Equal(t, services[0].Service.ID, "foo2")
+	})
+}
+
+func TestAPI_HealthService_NodeMetaFilter(t *testing.T) {
+	t.Parallel()
+	meta := map[string]string{"somekey": "somevalue"}
+	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+		conf.NodeMeta = meta
+	})
+	defer s.Stop()
+
+	health := c.Health()
+	retry.Run(t, func(r *retry.R) {
+		// consul service should always exist...
+		checks, meta, err := health.Service("consul", "", true, &QueryOptions{NodeMeta: meta})
+		require.NoError(t, err)
+		require.NotEqual(t, meta.LastIndex, 0)
+		require.NotEqual(t, len(checks), 0)
+		require.Equal(t, checks[0].Node.Datacenter, "dc1")
+		require.Contains(t, checks[0].Node.TaggedAddresses, "wan")
+	})
+}
+
 func TestAPI_HealthConnect(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
@@ -331,36 +433,6 @@ func TestAPI_HealthConnect(t *testing.T) {
 		}
 		if services[0].Service.Port != proxyReg.Port {
 			r.Fatalf("Bad port: %v", services[0])
-		}
-	})
-}
-
-func TestAPI_HealthService_NodeMetaFilter(t *testing.T) {
-	t.Parallel()
-	meta := map[string]string{"somekey": "somevalue"}
-	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
-		conf.NodeMeta = meta
-	})
-	defer s.Stop()
-
-	health := c.Health()
-	retry.Run(t, func(r *retry.R) {
-		// consul service should always exist...
-		checks, meta, err := health.Service("consul", "", true, &QueryOptions{NodeMeta: meta})
-		if err != nil {
-			r.Fatal(err)
-		}
-		if meta.LastIndex == 0 {
-			r.Fatalf("bad: %v", meta)
-		}
-		if len(checks) == 0 {
-			r.Fatalf("Bad: %v", checks)
-		}
-		if _, ok := checks[0].Node.TaggedAddresses["wan"]; !ok {
-			r.Fatalf("Bad: %v", checks[0].Node)
-		}
-		if checks[0].Node.Datacenter != "dc1" {
-			r.Fatalf("Bad datacenter: %v", checks[0].Node)
 		}
 	})
 }

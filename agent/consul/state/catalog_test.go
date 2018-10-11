@@ -15,6 +15,7 @@ import (
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func makeRandomNodeID(t *testing.T) types.NodeID {
@@ -1833,7 +1834,7 @@ func TestStateStore_ServiceTagNodes(t *testing.T) {
 
 	// Listing with no results returns an empty list.
 	ws := memdb.NewWatchSet()
-	idx, nodes, err := s.ServiceTagNodes(ws, "db", "master")
+	idx, nodes, err := s.ServiceTagNodes(ws, "db", []string{"master"})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1866,7 +1867,7 @@ func TestStateStore_ServiceTagNodes(t *testing.T) {
 
 	// Read everything back.
 	ws = memdb.NewWatchSet()
-	idx, nodes, err = s.ServiceTagNodes(ws, "db", "master")
+	idx, nodes, err = s.ServiceTagNodes(ws, "db", []string{"master"})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1927,62 +1928,38 @@ func TestStateStore_ServiceTagNodes_MultipleTags(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	idx, nodes, err := s.ServiceTagNodes(nil, "db", "master")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if idx != 19 {
-		t.Fatalf("bad: %v", idx)
-	}
-	if len(nodes) != 1 {
-		t.Fatalf("bad: %v", nodes)
-	}
-	if nodes[0].Node != "foo" {
-		t.Fatalf("bad: %v", nodes)
-	}
-	if nodes[0].Address != "127.0.0.1" {
-		t.Fatalf("bad: %v", nodes)
-	}
-	if !lib.StrContains(nodes[0].ServiceTags, "master") {
-		t.Fatalf("bad: %v", nodes)
-	}
-	if nodes[0].ServicePort != 8000 {
-		t.Fatalf("bad: %v", nodes)
-	}
+	idx, nodes, err := s.ServiceTagNodes(nil, "db", []string{"master"})
+	require.NoError(t, err)
+	require.Equal(t, int(idx), 19)
+	require.Len(t, nodes, 1)
+	require.Equal(t, nodes[0].Node, "foo")
+	require.Equal(t, nodes[0].Address, "127.0.0.1")
+	require.Contains(t, nodes[0].ServiceTags, "master")
+	require.Equal(t, nodes[0].ServicePort, 8000)
 
-	idx, nodes, err = s.ServiceTagNodes(nil, "db", "v2")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if idx != 19 {
-		t.Fatalf("bad: %v", idx)
-	}
-	if len(nodes) != 3 {
-		t.Fatalf("bad: %v", nodes)
-	}
+	idx, nodes, err = s.ServiceTagNodes(nil, "db", []string{"v2"})
+	require.NoError(t, err)
+	require.Equal(t, int(idx), 19)
+	require.Len(t, nodes, 3)
 
-	idx, nodes, err = s.ServiceTagNodes(nil, "db", "dev")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if idx != 19 {
-		t.Fatalf("bad: %v", idx)
-	}
-	if len(nodes) != 1 {
-		t.Fatalf("bad: %v", nodes)
-	}
-	if nodes[0].Node != "foo" {
-		t.Fatalf("bad: %v", nodes)
-	}
-	if nodes[0].Address != "127.0.0.1" {
-		t.Fatalf("bad: %v", nodes)
-	}
-	if !lib.StrContains(nodes[0].ServiceTags, "dev") {
-		t.Fatalf("bad: %v", nodes)
-	}
-	if nodes[0].ServicePort != 8001 {
-		t.Fatalf("bad: %v", nodes)
-	}
+	// Test filtering on multiple tags
+	idx, nodes, err = s.ServiceTagNodes(nil, "db", []string{"v2", "slave"})
+	require.NoError(t, err)
+	require.Equal(t, int(idx), 19)
+	require.Len(t, nodes, 2)
+	require.Contains(t, nodes[0].ServiceTags, "v2")
+	require.Contains(t, nodes[0].ServiceTags, "slave")
+	require.Contains(t, nodes[1].ServiceTags, "v2")
+	require.Contains(t, nodes[1].ServiceTags, "slave")
+
+	idx, nodes, err = s.ServiceTagNodes(nil, "db", []string{"dev"})
+	require.NoError(t, err)
+	require.Equal(t, int(idx), 19)
+	require.Len(t, nodes, 1)
+	require.Equal(t, nodes[0].Node, "foo")
+	require.Equal(t, nodes[0].Address, "127.0.0.1")
+	require.Contains(t, nodes[0].ServiceTags, "dev")
+	require.Equal(t, nodes[0].ServicePort, 8001)
 }
 
 func TestStateStore_DeleteService(t *testing.T) {
@@ -3141,7 +3118,7 @@ func TestStateStore_CheckServiceTagNodes(t *testing.T) {
 	}
 
 	ws := memdb.NewWatchSet()
-	idx, nodes, err := s.CheckServiceTagNodes(ws, "db", "master")
+	idx, nodes, err := s.CheckServiceTagNodes(ws, "db", []string{"master"})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
