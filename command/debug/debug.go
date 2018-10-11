@@ -668,11 +668,14 @@ Usage: consul debug [options]
 
       $ consul debug
 
+  The command stores captured data at the configured output path
+  through the duration, and will archive the data at the same
+  path if interrupted.
+
   Flags can be used to customize the duration and interval of the
   operation. Duration is the total time to capture data for from the target
-  agent, whereas how often to capture dyanmic data for the length of the
-  duration is specified with the interval. Note that the duration must be .
-  longer than the interval.
+  agent and interval controls how often dynamic data such as metrics
+  are scraped.
 
       $ consul debug -interval=20s -duration=1m
 
