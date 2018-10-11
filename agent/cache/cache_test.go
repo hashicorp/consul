@@ -883,8 +883,12 @@ func TestCacheGet_refreshAge(t *testing.T) {
 	// Now fail the next background sync
 	atomic.StoreUint64(&shouldFail, 1)
 
-	// Wait until the current request times out and starts failing
-	time.Sleep(6 * time.Millisecond)
+	// Wait until the current request times out and starts failing. The request
+	// should take a maximum of 5ms to return but give it some headroom to allow
+	// it to finish 5ms sleep, unblock and next background request to be attemoted
+	// and fail and state updated in noisy CI... We might want to retry if this is
+	// still flaky but see if a longer wait is sufficient for now.
+	time.Sleep(50 * time.Millisecond)
 
 	var lastAge time.Duration
 	{
@@ -897,7 +901,7 @@ func TestCacheGet_refreshAge(t *testing.T) {
 		lastAge = meta.Age
 	}
 	// Wait a bit longer - age should increase by at least this much
-	time.Sleep(1 * time.Millisecond)
+	time.Sleep(5 * time.Millisecond)
 	{
 		result, meta, err := c.Get("t", TestRequest(t, RequestInfo{Key: "hello"}))
 		require.NoError(err)
