@@ -45,6 +45,18 @@ func includePathInTest(path string) bool {
 	return !ignored
 }
 
+func newHttpClient(timeout time.Duration) *http.Client {
+	return &http.Client{
+		Timeout: timeout,
+		Transport: &http.Transport{
+			Dial: (&net.Dialer{
+				Timeout: timeout,
+			}).Dial,
+			TLSHandshakeTimeout: timeout,
+		},
+	}
+}
+
 func TestHTTPAPI_MethodNotAllowed_OSS(t *testing.T) {
 
 	a := NewTestAgent(t.Name(), `acl_datacenter = "dc1"`)
@@ -53,18 +65,19 @@ func TestHTTPAPI_MethodNotAllowed_OSS(t *testing.T) {
 
 	all := []string{"GET", "PUT", "POST", "DELETE", "HEAD", "OPTIONS"}
 	const testTimeout = 10 * time.Second
-	client := &http.Client{
-		Timeout: testTimeout,
-		Transport: &http.Transport{
-			Dial: (&net.Dialer{
-				Timeout: testTimeout,
-			}).Dial,
-			TLSHandshakeTimeout: testTimeout,
-		},
-	}
+
+	fastClient := newHttpClient(10 * time.Second)
+	slowClient := newHttpClient(30 * time.Second)
 
 	testMethodNotAllowed := func(method string, path string, allowedMethods []string) {
 		t.Run(method+" "+path, func(t *testing.T) {
+			client := fastClient
+			if path == "/v1/agent/leave" {
+				// there are actual sleeps in this code that should take longer
+				client = slowClient
+				t.Logf("Using slow http client for leave tests")
+			}
+
 			uri := fmt.Sprintf("http://%s%s", a.HTTPAddr(), path)
 			req, _ := http.NewRequest(method, uri, nil)
 			resp, err := client.Do(req)
