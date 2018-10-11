@@ -25,37 +25,23 @@ fallback to a backward compatible mode of operation otherwise.
 For most upgrades, the process is simple. Assuming the current version of
 Consul is A, and version B is released.
 
-1. On each server, install version B of Consul.
+1. Check the [version's upgrade notes](/docs/upgrade-specific.html) to ensure
+   there are no compatibility issues that will affect your workload. If there
+   are plan accordingly before continuing.
 
-2. Shut down version A, restart with version B.
+2. On each server, install version B of Consul.
 
-3. Once all the servers are upgraded, begin a rollout of clients following
+3. One server at a time, shut down version A, restart with version B. Wait until
+   the server is healthy and has rejoined the cluster before moving on to the
+   next server.
+
+4. Once all the servers are upgraded, begin a rollout of clients following
    the same process.
 
-4. Done! You are now running the latest Consul agent. You can verify this
+5. Done! You are now running the latest Consul agent. You can verify this
    by running `consul members` to make sure all members have the latest
    build and highest protocol version.
 
-## Upgrade from Version 1.0.6 to higher
-
-In version 1.0.7 and higher, when requesting a specific service
-(`/v1/health/:service` or `/v1/catalog/:service` endpoints), the
-`X-Consul-Index` returned is now the index at which that specific service was
-last modified.
-In version 1.0.6 and earlier the X-Consul-Index returned was the index at
-which any service was last modified. See
-[GH-3890](https://github.com/hashicorp/consul/issues/3890) for more details.
-
-During upgrades from 1.0.6 or lower to 1.0.7 or higher, watchers are likely to
-see `X-Consul-Index` for these endpoints decrease between blocking calls.
-
-Consul’s watch feature and consul-template should gracefully handle this case.
-Other tools relying on blocking service or health queries are also likely to
-work; some may require a restart. It is possible external tools could break and
-either stop working or continually re-request data without blocking if they
-have assumed indexes can never decrease or be reset and/or persist index
-values. Please test any blocking query integrations in a controlled environment
-before proceeding.
 
 ## Backward Incompatible Upgrades
 
@@ -68,12 +54,15 @@ version B comes out.
 
 1. On each node, install version B of Consul.
 
-2. Shut down version A, and start version B with the `-protocol=PREVIOUS`
-   flag, where "PREVIOUS" is the protocol version of version A (which can
-   be discovered by running `consul -v` or `consul members`).
+2. One server at a time, shut down version A, and start version B with the
+   `-protocol=PREVIOUS` flag, where "PREVIOUS" is the protocol version of
+   version A (which can be discovered by running `consul -v` or `consul
+   members`). Wait until the server is healthy and has rejoined the cluster
+   before moving on to the next server.
 
-3. Once all nodes are running version B, go through every node and restart
-   the version B agent _without_ the `-protocol` flag.
+3. Once all nodes are running version B, go through every node and restart the
+   version B agent _without_ the `-protocol` flag, again wait for each server to
+   rejoin the cluster before continuing.
 
 4. Done! You're now running the latest Consul agent speaking the latest protocol.
    You can verify this is the case by running `consul members` to

@@ -50,15 +50,9 @@ The certificate served by the remote endpoint can be verified against the
 root certificates from the
 [`/v1/agent/connect/ca/roots`](/api/agent/connect.html) endpoint.
 
-## Managed Mode Support
+## Configuration Discovery
 
-Any custom proxy can also run as a [custom managed proxy](/docs/connect/proxies.html#custom-managed-proxy).
-If you want the proxy you're integrating to support this mode, then it should accept
-two environment variables that Consul populates on process startup. These
-are both required to make the necessary API requests for configuration.
+Any proxy can discover proxy configuration registered with a local service
+instance using the [agent/service/:service_id
+endpoint](/api/agent/service.html#get-service-configuration).
 
-  * `CONSUL_PROXY_TOKEN` - The ACL token to use for all requests to proxy-related
-    API endpoints.
-
-  * `CONSUL_PROXY_ID` - The service ID for requesting configuration for the
-    proxy from [`/v1/agent/connect/proxy/`](/api/agent/connect.html).

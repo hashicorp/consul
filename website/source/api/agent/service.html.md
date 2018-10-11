@@ -63,6 +63,90 @@ $ curl \
 }
 ```
 
+## Get Service Configuration
+
+This endpoint was added in Consul 1.3.0 and returns the full service definition
+for a single service instance registered on the local agent. It is used by
+[Connect proxies](/docs/connect/proxies.html) to discover the embedded proxy
+configuration that was registered with the instance.
+
+It is important to note that the services known by the agent may be different
+from those reported by the catalog. This is usually due to changes being made
+while there is no leader elected. The agent performs active
+[anti-entropy](/docs/internals/anti-entropy.html), so in most situations
+everything will be in sync within a few seconds.
+
+| Method | Path                         | Produces                   |
+| ------ | ---------------------------- | -------------------------- |
+| `GET`  | `/agent/service/:service_id` | `application/json`         |
+
+The table below shows this endpoint's support for
+[blocking queries](/api/index.html#blocking-queries),
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
+[required ACLs](/api/index.html#acls).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
+| ---------------- | ----------------- | ------------- | -------------- |
+| `YES`<sup>1</sup>| `none`            | `none`        | `service:read` |
+
+<sup>1</sup> Supports [hash-based
+blocking](/api/index.html#hash-based-blocking-queries) only.
+
+### Parameters
+
+- `service_id` `(string: <required>)` - Specifies the ID of the service to
+  fetch. This is specified as part of the URL.
+
+### Sample Request
+
+```text
+$ curl \
+    http://127.0.0.1:8500/v1/agent/service/web-sidecar-proxy
+```
+
+### Sample Response
+
+```json
+{
+    "Kind": "connect-proxy",
+    "ID": "web-sidecar-proxy",
+    "Service": "web-sidecar-proxy",
+    "Tags": null,
+    "Meta": null,
+    "Port": 18080,
+    "Address": "",
+    "Weights": {
+        "Passing": 1,
+        "Warning": 1
+    },
+    "EnableTagOverride": false,
+    "ContentHash": "4ecd29c7bc647ca8",
+    "Proxy": {
+        "DestinationServiceName": "web",
+        "DestinationServiceID": "web",
+        "LocalServiceAddress": "127.0.0.1",
+        "LocalServicePort": 8080,
+        "Config": {
+            "foo": "bar"
+        },
+        "Upstreams": [
+            {
+                "DestinationType": "service",
+                "DestinationName": "db",
+                "LocalBindPort": 9191
+            }
+        ]
+    }
+}
+```
+
+The response has the same structure as the [service
+definition](/docs/agent/services.html) with one extra field `ContentHash` which
+contains the [hash-based blocking
+query](/api/index.html#hash-based-blocking-queries) hash for the result. The
+same hash is also present in `X-Consul-ContentHash`.
+
 ## Register Service
 
 This endpoint adds a new service, with an optional health check, to the local
@@ -126,8 +210,7 @@ service definition keys for compatibility with the config file format.
 
 - `Proxy` `(Proxy: nil)` - From 1.2.3 on, specifies the configuration for a
   Connect proxy instance. This is only valid if `Kind == "connect-proxy"`. See
-  the [Unmanaged Proxy](/docs/connect/proxies.html#unmanaged-proxies)
-  documentation for full details.
+  the [Proxy documentation](/docs/connect/proxies.html) for full details.
 
 - `Connect` `(Connect: nil)` - Specifies the 
   [configuration for Connect](/docs/connect/configuration.html). See the 
@@ -178,10 +261,14 @@ For the `Connect` field, the parameters are:
   the [Connect](/docs/connect/index.html) protocol [natively](/docs/connect/native.html).
   If this is true, then Connect proxies, DNS queries, etc. will be able to
   service discover this service.
-- `Proxy` `(Proxy: nil)` - Specifies that a managed Connect proxy should be
-  started for this service instance, and optionally provides configuration for
-  the proxy. The format is as documented in 
-  [Managed Proxies](/docs/connect/proxies.html#managed-proxies) .
+- `Proxy` `(Proxy: nil)` -
+  [**Deprecated**](/docs/connect/proxies/managed-deprecated.html) Specifies that
+  a managed Connect proxy should be started for this service instance, and
+  optionally provides configuration for the proxy. The format is as documented
+  in [Managed Proxy Deprecation](/docs/connect/proxies/managed-deprecated.html).
+- `SidecarService` `(ServiceDefinition: nil)` - Specifies an optional nested
+  service definition to register. For more information see
+  [Sidecar Service Registration](/docs/connect/proxies/sidecar-service.html).
 
 ### Sample Payload
 
