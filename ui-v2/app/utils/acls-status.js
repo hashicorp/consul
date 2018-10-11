@@ -25,11 +25,17 @@ export default function(P = Promise) {
           switch (e.errors[0].status) {
             case '403':
               enable(true);
+              authorize(false);
+              break;
+            case '401':
+              enable(false);
+              authorize(false);
               break;
             default:
               enable(false);
+              authorize(false);
+              throw e;
           }
-          authorize(false);
           return [];
         })
         .then(function(res) {

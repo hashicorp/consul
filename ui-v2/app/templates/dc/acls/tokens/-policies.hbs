@@ -10,8 +10,8 @@
       {{/with}}
     {{/block-slot}}
     {{#block-slot 'actions' as |close|}}
-      <button type="submit" {{action 'createPolicy' policy close}} disabled={{if (or policy.isPristine policy.isInvalid) 'disabled'}}>Create and apply</button>
-      <button type="reset" {{action close}}>Cancel</button>
+      <button type="submit" {{action 'createPolicy' policy close}} disabled={{if (or policy.isSaving policy.isPristine policy.isInvalid) 'disabled'}}>Create and apply</button>
+      <button type="reset" disabled={{if policy.isSaving 'disabled'}} {{action close}}>Cancel</button>
     {{/block-slot}}
   {{/modal-dialog}}
 </label>

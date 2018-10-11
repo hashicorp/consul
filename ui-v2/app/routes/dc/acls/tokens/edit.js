@@ -6,6 +6,8 @@ import updateArrayObject from 'consul-ui/utils/update-array-object';
 
 import WithTokenActions from 'consul-ui/mixins/token/with-actions';
 
+const ERROR_PARSE_RULES = 'Failed to parse ACL rules';
+const ERROR_NAME_EXISTS = 'Invalid Policy: A Policy with Name';
 export default SingleRoute.extend(WithTokenActions, {
   repo: service('tokens'),
   policiesRepo: service('policies'),
@@ -41,7 +43,6 @@ export default SingleRoute.extend(WithTokenActions, {
   actions: {
     // TODO: Some of this could potentially be moved to the
     // repo services
-
     // triggered when an accordian pane is opened
     loadPolicy: function(item) {
       if (!get(item, 'Rules')) {
@@ -61,6 +62,7 @@ export default SingleRoute.extend(WithTokenActions, {
     // adding an already existing policy
     // also called after a createPolicy
     addPolicy: function(item, now = new Date().getTime()) {
+      const controller = get(this, 'controller');
       // abuse CreateTime to get the ordering so the most recently
       // added policy is at the top
       // CreateTime is never sent back to the server
@@ -68,33 +70,49 @@ export default SingleRoute.extend(WithTokenActions, {
       if (!get(item, 'ID')) {
         set(item, 'ID', get(item, 'CreateTime'));
       }
-      get(this.controller.item, 'Policies').pushObject(item);
+      get(controller, 'item.Policies').pushObject(item);
       return item;
     },
     // from modal
     clearPolicy: function(cb) {
-      get(this.controller, 'form')
-        .form('policy')
-        .setData(this.getEmptyPolicy());
+      const controller = get(this, 'controller');
+      controller.setProperties({
+        policy: this.getEmptyPolicy(),
+      });
       if (typeof cb === 'function') {
         cb();
       }
     },
     createPolicy: function(item, cb) {
       const repo = get(this, 'policiesRepo');
-      const policies = get(this.controller, 'item.Policies');
-      const p = get(this, 'policiesRepo').persist(item);
-      try {
-        p.then(item => {
-          this.send('addPolicy', item);
-          this.send('clearPolicy', cb);
-        }).catch(e => {
+      const controller = get(this, 'controller');
+      const policies = get(controller, 'item.Policies');
+      get(this, 'policiesRepo')
+        .persist(item)
+        .then(item => {
+          try {
+            this.send('addPolicy', item);
+            this.send('clearPolicy', cb);
+          } catch (e) {}
+        })
+        .catch(e => {
           const error = e.errors[0];
-          get(this.controller, 'form')
-            .form('policy')
-            .addError('Name', error.detail);
+          let prop;
+          let message = error.detail;
+          switch (true) {
+            case message.indexOf(ERROR_PARSE_RULES) === 0:
+              prop = 'Rules';
+              message = error.detail;
+              break;
+            case message.indexOf(ERROR_NAME_EXISTS) === 0:
+              prop = 'Name';
+              message = message.substr(ERROR_NAME_EXISTS.indexOf(':') + 1);
+              break;
+          }
+          if (prop) {
+            item.addError(prop, message);
+          }
         });
-      } catch (e) {}
     },
   },
 });

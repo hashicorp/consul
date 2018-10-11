@@ -1,4 +1,4 @@
-import { get, set } from '@ember/object';
+import { get, set, computed } from '@ember/object';
 import Changeset from 'ember-changeset';
 import lookupValidator from 'ember-changeset-validations';
 
@@ -6,7 +6,11 @@ import lookupValidator from 'ember-changeset-validations';
 // TODO: Probably move this to utils/form/parse-element-name
 import parseElementName from 'consul-ui/utils/get-form-name-property';
 const defaultChangeset = function(data, validators) {
-  return new Changeset(data, lookupValidator(validators), validators);
+  const changeset = new Changeset(data, lookupValidator(validators), validators);
+  changeset.isSaving = computed(function() {
+    return get(data, 'isSaving');
+  });
+  return changeset;
 };
 /**
  * Form builder/Form factory (WIP)
@@ -112,6 +116,13 @@ export default function(changeset = defaultChangeset, getFormNameProperty = pars
         // validate everything
         return this.validate();
       },
+      reset: function() {
+        const data = this.getData();
+        if (typeof data.rollbackAttributes === 'function') {
+          this.getData().rollbackAttributes();
+        }
+        return this;
+      },
       setValidators: function(validators) {
         _validators = validators;
         return this;
@@ -123,6 +134,12 @@ export default function(changeset = defaultChangeset, getFormNameProperty = pars
           data.validate();
         }
         return this;
+      },
+      addError: function(name, message) {
+        const data = this.getData();
+        if (typeof data.addError === 'function') {
+          data.addError(...arguments);
+        }
       },
       form: function(name) {
         if (name == null) {

@@ -60,6 +60,7 @@ th,
 main label a[rel*='help'],
 td:first-child em,
 %pill,
+%form-element > strong,
 %healthchecked-resource strong {
   font-weight: $typo-weight-normal;
 }
@@ -103,6 +104,7 @@ caption,
 .template-error > div,
 %button,
 %form-element > em,
+%form-element > strong,
 .with-confirmation p,
 %feedback-dialog-inline p {
   font-size: $typo-size-800;

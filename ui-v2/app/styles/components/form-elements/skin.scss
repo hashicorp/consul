@@ -1,3 +1,6 @@
+%form-element > strong {
+  @extend %with-error;
+}
 %form-element-error > input,
 %form-element-error > textarea {
   border: $decor-border-100;
@@ -21,6 +24,9 @@
 }
 %form-element-error > input {
   border-color: $ui-color-failure !important;
+}
+%form-element > strong {
+  color: $ui-color-failure;
 }
 %form-element > em {
   color: $ui-gray-400;

@@ -253,3 +253,11 @@
   @extend %with-minus;
   border-radius: 20%;
 }
+%with-error {
+  position: relative;
+  padding-left: 18px;
+}
+%with-error::before {
+  @extend %with-cross;
+  margin-top: -0.5em;
+}

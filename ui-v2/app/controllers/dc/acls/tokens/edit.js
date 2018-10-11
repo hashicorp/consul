@@ -5,18 +5,28 @@ export default Controller.extend({
   dom: service('dom'),
   builder: service('form'),
   isScoped: false,
-  setProperties: function(model) {
+  init: function() {
+    this._super(...arguments);
     this.form = get(this, 'builder').form('token');
-    this.form.setData(model.item);
-    this.form.form('policy').setData(model.policy);
+  },
+  setProperties: function(model) {
     // essentially this replaces the data with changesets
-    this._super({
-      ...model,
-      ...{
-        item: this.form.getData(),
-        policy: this.form.form('policy').getData(),
-      },
-    });
+    this._super(
+      Object.keys(model).reduce((prev, key, i) => {
+        switch (key) {
+          case 'item':
+            prev[key] = this.form.setData(prev[key]).getData();
+            break;
+          case 'policy':
+            prev[key] = this.form
+              .form(key)
+              .setData(prev[key])
+              .getData();
+            break;
+        }
+        return prev;
+      }, model)
+    );
   },
   actions: {
     sendClearPolicy: function(item) {

@@ -10,9 +10,8 @@ import normalizeEvent from 'consul-ui/utils/dom/normalize-event';
 // use $_ for components
 const $$ = qsaFactory();
 let $_;
-
-const $html = document.documentElement;
 export default Service.extend({
+  doc: document,
   init: function() {
     this._super(...arguments);
     $_ = getComponentFactory(getOwner(this));
@@ -21,7 +20,16 @@ export default Service.extend({
     return normalizeEvent(...arguments);
   },
   root: function() {
-    return $html;
+    return get(this, 'doc').documentElement;
+  },
+  // TODO: Should I change these to use the standard names
+  // even though they don't have a standard signature (querySelector*)
+  elementById: function(id) {
+    return get(this, 'doc').getElementById(id);
+  },
+  elementsByTagName: function(name, context) {
+    context = typeof context === 'undefined' ? get(this, 'doc') : context;
+    return context.getElementByTagName(name);
   },
   elements: function(selector, context) {
     return $$(selector, context);
