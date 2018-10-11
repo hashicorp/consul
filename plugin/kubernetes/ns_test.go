@@ -11,26 +11,18 @@ import (
 
 type APIConnTest struct{}
 
-func (APIConnTest) HasSynced() bool                        { return true }
-func (APIConnTest) Run()                                   { return }
-func (APIConnTest) Stop() error                            { return nil }
-func (APIConnTest) PodIndex(string) []*object.Pod          { return nil }
-func (APIConnTest) SvcIndexReverse(string) *object.Service { return nil }
-func (APIConnTest) EpIndex(string) *object.Endpoints       { return nil }
-func (APIConnTest) EndpointsList() []*object.Endpoints     { return nil }
-func (APIConnTest) Modified() int64                        { return 0 }
-func (APIConnTest) SetWatchChan(watch.Chan)                {}
-func (APIConnTest) Watch(string) error                     { return nil }
-func (APIConnTest) StopWatching(string)                    {}
-
-func (a APIConnTest) SvcIndex(key string) *object.Service {
-	for _, s := range a.ServiceList() {
-		if object.ServiceKey(s.Namespace, s.Name) == key {
-			return s
-		}
-	}
-	return nil
-}
+func (APIConnTest) HasSynced() bool                          { return true }
+func (APIConnTest) Run()                                     { return }
+func (APIConnTest) Stop() error                              { return nil }
+func (APIConnTest) PodIndex(string) []*object.Pod            { return nil }
+func (APIConnTest) SvcIndex(string) []*object.Service        { return nil }
+func (APIConnTest) SvcIndexReverse(string) []*object.Service { return nil }
+func (APIConnTest) EpIndex(string) []*object.Endpoints       { return nil }
+func (APIConnTest) EndpointsList() []*object.Endpoints       { return nil }
+func (APIConnTest) Modified() int64                          { return 0 }
+func (APIConnTest) SetWatchChan(watch.Chan)                  {}
+func (APIConnTest) Watch(string) error                       { return nil }
+func (APIConnTest) StopWatching(string)                      {}
 
 func (APIConnTest) ServiceList() []*object.Service {
 	svcs := []*object.Service{
@@ -43,21 +35,23 @@ func (APIConnTest) ServiceList() []*object.Service {
 	return svcs
 }
 
-func (APIConnTest) EpIndexReverse(string) *object.Endpoints {
-	eps := object.Endpoints{
-		Subsets: []object.EndpointSubset{
-			{
-				Addresses: []object.EndpointAddress{
-					{
-						IP: "127.0.0.1",
+func (APIConnTest) EpIndexReverse(string) []*object.Endpoints {
+	eps := []*object.Endpoints{
+		{
+			Subsets: []object.EndpointSubset{
+				{
+					Addresses: []object.EndpointAddress{
+						{
+							IP: "127.0.0.1",
+						},
 					},
 				},
 			},
+			Name:      "dns-service",
+			Namespace: "kube-system",
 		},
-		Name:      "dns-service",
-		Namespace: "kube-system",
 	}
-	return &eps
+	return eps
 }
 
 func (APIConnTest) GetNodeByName(name string) (*api.Node, error) { return &api.Node{}, nil }

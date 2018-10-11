@@ -9,7 +9,6 @@ import (
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/etcd/msg"
 	"github.com/coredns/coredns/request"
-	"k8s.io/client-go/tools/cache"
 
 	"github.com/miekg/dns"
 	api "k8s.io/api/core/v1"
@@ -115,36 +114,39 @@ func (k *Kubernetes) transfer(c chan dns.RR, zone string) {
 				continue
 			}
 
-			key, err := cache.MetaNamespaceKeyFunc(svc)
-			if err != nil {
-				return
-			}
-			ep := k.APIConn.EpIndex(key)
-			for _, eps := range ep.Subsets {
-				srvWeight := calcSRVWeight(len(eps.Addresses))
-				for _, addr := range eps.Addresses {
-					s := msg.Service{Host: addr.IP, TTL: k.ttl}
-					s.Key = strings.Join(svcBase, "/")
-					// We don't need to change the msg.Service host from IP to Name yet
-					// so disregard the return value here
-					emitAddressRecord(c, s)
+			endpointsList := k.APIConn.EpIndex(svc.Name + "." + svc.Namespace)
 
-					s.Key = strings.Join(append(svcBase, endpointHostname(addr, k.endpointNameMode)), "/")
-					// Change host from IP to Name for SRV records
-					host := emitAddressRecord(c, s)
-					s.Host = host
+			for _, ep := range endpointsList {
+				if ep.Name != svc.Name || ep.Namespace != svc.Namespace {
+					continue
+				}
 
-					for _, p := range eps.Ports {
-						// As per spec unnamed ports do not have a srv record
-						// https://github.com/kubernetes/dns/blob/master/docs/specification.md#232---srv-records
-						if p.Name == "" {
-							continue
+				for _, eps := range ep.Subsets {
+					srvWeight := calcSRVWeight(len(eps.Addresses))
+					for _, addr := range eps.Addresses {
+						s := msg.Service{Host: addr.IP, TTL: k.ttl}
+						s.Key = strings.Join(svcBase, "/")
+						// We don't need to change the msg.Service host from IP to Name yet
+						// so disregard the return value here
+						emitAddressRecord(c, s)
+
+						s.Key = strings.Join(append(svcBase, endpointHostname(addr, k.endpointNameMode)), "/")
+						// Change host from IP to Name for SRV records
+						host := emitAddressRecord(c, s)
+						s.Host = host
+
+						for _, p := range eps.Ports {
+							// As per spec unnamed ports do not have a srv record
+							// https://github.com/kubernetes/dns/blob/master/docs/specification.md#232---srv-records
+							if p.Name == "" {
+								continue
+							}
+
+							s.Port = int(p.Port)
+
+							s.Key = strings.Join(append(svcBase, strings.ToLower("_"+string(p.Protocol)), strings.ToLower("_"+string(p.Name))), "/")
+							c <- s.NewSRV(msg.Domain(s.Key), srvWeight)
 						}
-
-						s.Port = int(p.Port)
-
-						s.Key = strings.Join(append(svcBase, strings.ToLower("_"+string(p.Protocol)), strings.ToLower("_"+string(p.Name))), "/")
-						c <- s.NewSRV(msg.Domain(s.Key), srvWeight)
 					}
 				}
 			}
