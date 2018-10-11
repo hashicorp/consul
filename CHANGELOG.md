@@ -26,10 +26,12 @@ FEATURES:
 IMPROVEMENTS:
 
 * ui: Improve layout of node 'cards' by restricting the grid layout to a maximum of 4 columns [[GH-4761]](https://github.com/hashicorp/consul/pull/4761)
-* ui: Load the TextEncoder/Decoder polyfill dynamically so it's not downloaded to browsers with native support [[GH-4767]](https://github.com/hashicorp/consul/pull/4767)
+* ui: Load the TextEncoder/Decoder polyfill dynamically so it's not downloaded to browsers with native support [[GH-4767](https://github.com/hashicorp/consul/pull/4767)]
 * cli: `consul connect proxy` now supports a [`--sidecar-for`
   option](https://www.consul.io/docs/commands/connect/proxy.html#sidecar-for) to
   allow simple integration with new sidecar service registrations.
+* api: /health and /catalog endpoints now support filtering by multiple tags [[GH-1781](https://github.com/hashicorp/consul/issues/1781)]
+* agent: Only update service `ModifyIndex` when it's state actually changes. This makes service watches much more efficient on large clusters. [[GH-4720](https://github.com/hashicorp/consul/pull/4720)]
 
 BUG FIXES:
 
