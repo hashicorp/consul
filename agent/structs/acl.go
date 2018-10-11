@@ -339,6 +339,7 @@ type ACLPolicyListStub struct {
 
 func (p *ACLPolicy) Stub() *ACLPolicyListStub {
 	return &ACLPolicyListStub{
+		ID:          p.ID,
 		Name:        p.Name,
 		Description: p.Description,
 		Datacenters: p.Datacenters,

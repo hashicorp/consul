@@ -139,9 +139,16 @@ func (s *Server) ResolveIdentityFromToken(token string) (bool, structs.ACLIdenti
 
 func (s *Server) ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy, error) {
 	_, policy, err := s.fsm.State().ACLPolicyGetByID(nil, policyID)
-	// always returning true for the first value here will prevent any RPC calls to
-	// resolve the policy when none is found.
-	return true, policy, err
+	if err != nil {
+		return true, nil, err
+	} else if policy != nil {
+		return true, policy, nil
+	}
+
+	// If the max index of the policies table is non-zero then we have acls, until then
+	// we may need to allow remote resolution. This is particularly useful to allow updating
+	// the replication token via the API in a non-primary dc.
+	return false, policy, err
 }
 
 func (s *Server) ResolveToken(token string) (acl.Authorizer, error) {
