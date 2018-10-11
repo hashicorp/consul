@@ -1,3 +1,4 @@
+%healthchecked-resource header strong,
 %healthchecked-resource header span,
 %healthchecked-resource header em,
 %healthchecked-resource li:not(:last-child) span {
@@ -48,7 +49,7 @@
 }
 %healthchecked-resource header strong {
   top: 2.8em;
-  left: 15px;
+  padding: 0 15px;
 }
 %healthchecked-resource header span {
   margin-bottom: 1.75em;
