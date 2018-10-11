@@ -2,10 +2,12 @@ package agent
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/logger"
 )
@@ -50,7 +52,16 @@ func TestHTTPAPI_MethodNotAllowed_OSS(t *testing.T) {
 	defer a.Shutdown()
 
 	all := []string{"GET", "PUT", "POST", "DELETE", "HEAD", "OPTIONS"}
-	client := http.Client{}
+	const testTimeout = 5 * time.Second
+	client := &http.Client{
+		Timeout: testTimeout,
+		Transport: &http.Transport{
+			Dial: (&net.Dialer{
+				Timeout: testTimeout,
+			}).Dial,
+			TLSHandshakeTimeout: testTimeout,
+		},
+	}
 
 	testMethodNotAllowed := func(method string, path string, allowedMethods []string) {
 		t.Run(method+" "+path, func(t *testing.T) {
