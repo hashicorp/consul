@@ -49,7 +49,7 @@ func (l *Loop) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 	}
 
 	if l.seen() > 2 {
-		log.Fatalf("Seen \"HINFO IN %s\" more than twice, loop detected", l.qname)
+		log.Fatalf("Forwarding loop detected in \"%s\" zone. Exiting. See https://coredns.io/plugins/loop#troubleshooting. Probe query: \"HINFO %s\".", l.zone, l.qname)
 	}
 
 	return plugin.NextOrFailure(l.Name(), l.Next, ctx, w, r)
