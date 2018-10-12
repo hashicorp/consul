@@ -656,9 +656,8 @@ func (r *ACLPolicyUpsertRequest) RequestDatacenter() string {
 
 // ACLPolicyDeleteRequest is used at the RPC layer deletion requests
 type ACLPolicyDeleteRequest struct {
-	PolicyID     string          // The id of the policy to delete
-	PolicyIDType ACLPolicyIDType // Whether the PolicyIDs are Names or IDs
-	Datacenter   string          // The datacenter to perform the request within
+	PolicyID   string // The id of the policy to delete
+	Datacenter string // The datacenter to perform the request within
 	WriteRequest
 }
 
@@ -668,9 +667,8 @@ func (r *ACLPolicyDeleteRequest) RequestDatacenter() string {
 
 // ACLPolicyReadRequest is used at the RPC layer to perform policy read operations
 type ACLPolicyReadRequest struct {
-	PolicyID     string          // id used for the policy lookup
-	PolicyIDType ACLPolicyIDType // The type of id used to lookup the token
-	Datacenter   string          // The datacenter to perform the request within
+	PolicyID   string // id used for the policy lookup
+	Datacenter string // The datacenter to perform the request within
 	QueryOptions
 }
 
@@ -730,6 +728,5 @@ type ACLPolicyBatchUpsertRequest struct {
 //
 // This is particularly useful during replication
 type ACLPolicyBatchDeleteRequest struct {
-	PolicyIDs    []string
-	PolicyIDType ACLPolicyIDType
+	PolicyIDs []string
 }

@@ -557,14 +557,7 @@ func (a *ACL) PolicyRead(args *structs.ACLPolicyReadRequest, reply *structs.ACLP
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			var index uint64
-			var policy *structs.ACLPolicy
-			var err error
-			if args.PolicyIDType == structs.ACLPolicyID {
-				index, policy, err = state.ACLPolicyGetByID(ws, args.PolicyID)
-			} else {
-				index, policy, err = state.ACLPolicyGetByName(ws, args.PolicyID)
-			}
+			index, policy, err := state.ACLPolicyGetByID(ws, args.PolicyID)
 
 			if err != nil {
 				return err
@@ -740,16 +733,7 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 		return acl.ErrPermissionDenied
 	}
 
-	var policy *structs.ACLPolicy
-	var err error
-	switch args.PolicyIDType {
-	case structs.ACLPolicyID:
-		_, policy, err = a.srv.fsm.State().ACLPolicyGetByID(nil, args.PolicyID)
-	case structs.ACLPolicyName:
-		_, policy, err = a.srv.fsm.State().ACLPolicyGetByName(nil, args.PolicyID)
-	default:
-		return fmt.Errorf("Invalid policy id type")
-	}
+	_, policy, err := a.srv.fsm.State().ACLPolicyGetByID(nil, args.PolicyID)
 	if err != nil {
 		return err
 	}
@@ -763,8 +747,7 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 	}
 
 	req := structs.ACLPolicyBatchDeleteRequest{
-		PolicyIDs:    []string{args.PolicyID},
-		PolicyIDType: args.PolicyIDType,
+		PolicyIDs: []string{args.PolicyID},
 	}
 
 	resp, err := a.srv.raftApply(structs.ACLPolicyDeleteRequestType, &req)

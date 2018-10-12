@@ -66,9 +66,7 @@ func (s *Server) deleteLocalACLPolicies(deletions []string, stopCh <-chan struct
 	defer ticker.Stop()
 
 	for i := 0; i < len(deletions); i += aclBatchDeleteSize {
-		req := structs.ACLPolicyBatchDeleteRequest{
-			PolicyIDType: structs.ACLPolicyID,
-		}
+		req := structs.ACLPolicyBatchDeleteRequest{}
 
 		if i+aclBatchDeleteSize > len(deletions) {
 			req.PolicyIDs = deletions[i:]
