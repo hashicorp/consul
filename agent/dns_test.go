@@ -4651,7 +4651,7 @@ func TestDNS_ServiceLookup_TTL(t *testing.T) {
 	expectResult("dblb.service.consul.", 66)
 	// Should match d*
 	expectResult("dk.service.consul.", 42)
-	// Should be the default value
+	// Should match *
 	expectResult("api.service.consul.", 5)
 }
 
