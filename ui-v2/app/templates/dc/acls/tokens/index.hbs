@@ -102,6 +102,9 @@
                         <p>
                             {{#if (eq name 'delete')}}
                               {{message}}
+  {{#if (eq item.AccessorID token.AccessorID)}}
+                              Warning: This is the token you are currently using!
+  {{/if}}
                             {{else if (eq name 'logout')}}
                                 Are you sure you want to stop using this ACL token? This will log you out.
                             {{else if (eq name 'use')}}

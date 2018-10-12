@@ -12,7 +12,11 @@ th.actions {
 }
 td.actions .with-confirmation.confirming {
   position: absolute;
-  right: 0;
+  bottom: 4px;
+  right: 1px;
+}
+td.actions .with-confirmation.confirming p {
+  margin-bottom: 1em;
 }
 table caption {
   text-align: left;
