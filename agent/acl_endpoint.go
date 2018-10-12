@@ -168,7 +168,7 @@ func (s *HTTPServer) ACLPolicyCRUD(resp http.ResponseWriter, req *http.Request) 
 		return nil, nil
 	}
 
-	var fn func(resp http.ResponseWriter, req *http.Request, policyID string, policyIDType structs.ACLPolicyIDType) (interface{}, error)
+	var fn func(resp http.ResponseWriter, req *http.Request, policyID string) (interface{}, error)
 
 	switch req.Method {
 	case "GET":
@@ -189,27 +189,13 @@ func (s *HTTPServer) ACLPolicyCRUD(resp http.ResponseWriter, req *http.Request) 
 		return nil, BadRequestError{Reason: "Missing policy ID"}
 	}
 
-	policyIDType := structs.ACLPolicyID
-
-	if idType := req.URL.Query().Get("idType"); idType != "" {
-		switch idType {
-		case "id":
-			policyIDType = structs.ACLPolicyID
-		case "name":
-			policyIDType = structs.ACLPolicyName
-		default:
-			return nil, BadRequestError{Reason: "Invalid value for idType parameter"}
-		}
-	}
-
-	return fn(resp, req, policyID, policyIDType)
+	return fn(resp, req, policyID)
 }
 
-func (s *HTTPServer) ACLPolicyRead(resp http.ResponseWriter, req *http.Request, policyID string, policyIDType structs.ACLPolicyIDType) (interface{}, error) {
+func (s *HTTPServer) ACLPolicyRead(resp http.ResponseWriter, req *http.Request, policyID string) (interface{}, error) {
 	args := structs.ACLPolicyReadRequest{
-		Datacenter:   s.agent.config.Datacenter,
-		PolicyID:     policyID,
-		PolicyIDType: policyIDType,
+		Datacenter: s.agent.config.Datacenter,
+		PolicyID:   policyID,
 	}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
@@ -233,7 +219,7 @@ func (s *HTTPServer) ACLPolicyRead(resp http.ResponseWriter, req *http.Request, 
 }
 
 func (s *HTTPServer) ACLPolicyCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	return s.ACLPolicyWrite(resp, req, "", structs.ACLPolicyID)
+	return s.ACLPolicyWrite(resp, req, "")
 }
 
 // fixCreateTime is used to help in decoding the CreateTime attribute from
@@ -257,7 +243,7 @@ func fixCreateTime(raw interface{}) error {
 	return nil
 }
 
-func (s *HTTPServer) ACLPolicyWrite(resp http.ResponseWriter, req *http.Request, policyID string, policyIDType structs.ACLPolicyIDType) (interface{}, error) {
+func (s *HTTPServer) ACLPolicyWrite(resp http.ResponseWriter, req *http.Request, policyID string) (interface{}, error) {
 	args := structs.ACLPolicyUpsertRequest{
 		Datacenter: s.agent.config.Datacenter,
 	}
@@ -270,19 +256,10 @@ func (s *HTTPServer) ACLPolicyWrite(resp http.ResponseWriter, req *http.Request,
 	args.Policy.Syntax = acl.SyntaxCurrent
 
 	// TODO (ACL-V2) - Should we allow not specifying the ID in the payload when its specified in the URL
-	switch policyIDType {
-	case structs.ACLPolicyID:
-		if policyID != "" && args.Policy.ID != "" && args.Policy.ID != policyID {
-			return nil, BadRequestError{Reason: "Policy ID in URL and payload do not match"}
-		} else if args.Policy.ID == "" {
-			args.Policy.ID = policyID
-		}
-	case structs.ACLPolicyName:
-		if policyID != "" && args.Policy.Name != "" && args.Policy.Name != policyID {
-			return nil, BadRequestError{Reason: "Policy Name in URL and payload do not match"}
-		} else if args.Policy.Name == "" {
-			args.Policy.Name = ""
-		}
+	if policyID != "" && args.Policy.ID != "" && args.Policy.ID != policyID {
+		return nil, BadRequestError{Reason: "Policy ID in URL and payload do not match"}
+	} else if args.Policy.ID == "" {
+		args.Policy.ID = policyID
 	}
 
 	var out structs.ACLPolicy
@@ -293,11 +270,10 @@ func (s *HTTPServer) ACLPolicyWrite(resp http.ResponseWriter, req *http.Request,
 	return &out, nil
 }
 
-func (s *HTTPServer) ACLPolicyDelete(resp http.ResponseWriter, req *http.Request, policyID string, policyIDType structs.ACLPolicyIDType) (interface{}, error) {
+func (s *HTTPServer) ACLPolicyDelete(resp http.ResponseWriter, req *http.Request, policyID string) (interface{}, error) {
 	args := structs.ACLPolicyDeleteRequest{
-		Datacenter:   s.agent.config.Datacenter,
-		PolicyID:     policyID,
-		PolicyIDType: policyIDType,
+		Datacenter: s.agent.config.Datacenter,
+		PolicyID:   policyID,
 	}
 	s.parseToken(req, &args.Token)
 

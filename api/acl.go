@@ -469,12 +469,9 @@ func (a *ACL) PolicyUpdate(policy *ACLPolicy, q *WriteOptions) (*ACLPolicy, *Wri
 	return &out, wm, nil
 }
 
-func (a *ACL) PolicyDelete(policyID string, byName bool, q *WriteOptions) (*WriteMeta, error) {
+func (a *ACL) PolicyDelete(policyID string, q *WriteOptions) (*WriteMeta, error) {
 	r := a.c.newRequest("DELETE", "/v1/acl/policy/"+policyID)
 	r.setWriteOptions(q)
-	if byName {
-		r.params.Set("idType", "name")
-	}
 	rtt, resp, err := requireOK(a.c.doRequest(r))
 	if err != nil {
 		return nil, err
@@ -485,12 +482,9 @@ func (a *ACL) PolicyDelete(policyID string, byName bool, q *WriteOptions) (*Writ
 	return wm, nil
 }
 
-func (a *ACL) PolicyRead(policyID string, byName bool, q *QueryOptions) (*ACLPolicy, *QueryMeta, error) {
+func (a *ACL) PolicyRead(policyID string, q *QueryOptions) (*ACLPolicy, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/acl/policy/"+policyID)
 	r.setQueryOptions(q)
-	if byName {
-		r.params.Set("idType", "name")
-	}
 	rtt, resp, err := requireOK(a.c.doRequest(r))
 	if err != nil {
 		return nil, nil, err

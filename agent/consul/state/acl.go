@@ -746,17 +746,12 @@ func (s *Store) ACLPolicyDeleteByName(idx uint64, name string) error {
 	return s.aclPolicyDelete(idx, name, "name")
 }
 
-func (s *Store) ACLPoliciesDelete(idx uint64, policyIDs []string, idType structs.ACLPolicyIDType) error {
+func (s *Store) ACLPoliciesDelete(idx uint64, policyIDs []string) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
-	index := "id"
-	if idType == structs.ACLPolicyName {
-		index = "name"
-	}
-
 	for _, policyID := range policyIDs {
-		s.aclPolicyDeleteTxn(tx, idx, policyID, index)
+		s.aclPolicyDeleteTxn(tx, idx, policyID, "id")
 	}
 
 	if err := indexUpdateMaxTxn(tx, idx, "acl-policies"); err != nil {

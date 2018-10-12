@@ -392,5 +392,5 @@ func (c *FSM) applyACLPolicyDeleteOperation(buf []byte, index uint64) interface{
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "acl", "policy"}, time.Now(),
 		[]metrics.Label{{Name: "op", Value: "delete"}})
 
-	return c.state.ACLPoliciesDelete(index, req.PolicyIDs, req.PolicyIDType)
+	return c.state.ACLPoliciesDelete(index, req.PolicyIDs)
 }
