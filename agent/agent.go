@@ -969,8 +969,11 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	if a.config.ACLDatacenter != "" {
 		base.ACLDatacenter = a.config.ACLDatacenter
 	}
-	if a.config.ACLTTL != 0 {
-		base.ACLTTL = a.config.ACLTTL
+	if a.config.ACLTokenTTL != 0 {
+		base.ACLTokenTTL = a.config.ACLTokenTTL
+	}
+	if a.config.ACLPolicyTTL != 0 {
+		base.ACLPolicyTTL = a.config.ACLPolicyTTL
 	}
 	if a.config.ACLDefaultPolicy != "" {
 		base.ACLDefaultPolicy = a.config.ACLDefaultPolicy
@@ -978,10 +981,8 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	if a.config.ACLDownPolicy != "" {
 		base.ACLDownPolicy = a.config.ACLDownPolicy
 	}
-	base.EnableACLReplication = a.config.EnableACLReplication
-	if a.config.ACLEnforceVersion8 {
-		base.ACLEnforceVersion8 = a.config.ACLEnforceVersion8
-	}
+	base.ACLEnforceVersion8 = a.config.ACLEnforceVersion8
+	base.ACLTokenReplication = a.config.ACLTokenReplication
 	if a.config.ACLEnableKeyListPolicy {
 		base.ACLEnableKeyListPolicy = a.config.ACLEnableKeyListPolicy
 	}

@@ -121,6 +121,10 @@ func (s *Server) updateLocalACLPolicies(policies structs.ACLPolicies, stopCh <-c
 		if respErr, ok := resp.(error); ok && err != nil {
 			return false, fmt.Errorf("Failed to apply policy upsert: %v", respErr)
 		}
+		s.logger.Printf("[DEBUG] acl: policy replication - upserted 1 batch with %d policies of size %d", batchEnd-batchStart, batchSize)
+
+		// policies[batchEnd] wasn't include as the slicing doesn't include the element at the stop index
+		batchStart = batchEnd
 
 		// prevent waiting if we are done
 		if batchEnd < len(policies) {
@@ -128,8 +132,7 @@ func (s *Server) updateLocalACLPolicies(policies structs.ACLPolicies, stopCh <-c
 			case <-stopCh:
 				return true, nil
 			case <-ticker.C:
-				// policies[batchEnd] wasn't include as the slicing doesn't include the element at the stop index
-				batchStart = batchEnd
+				// nothing to do - just rate limiting
 			}
 		}
 	}
@@ -179,7 +182,9 @@ func diffACLTokens(local structs.ACLTokens, remote structs.ACLTokenListStubs, la
 
 	var deletions []string
 	var updates []string
-	for localIdx, remoteIdx := 0, 0; localIdx < len(local) && remoteIdx < len(remote); {
+	var localIdx int
+	var remoteIdx int
+	for localIdx, remoteIdx = 0, 0; localIdx < len(local) && remoteIdx < len(remote); {
 		if local[localIdx].AccessorID == remote[remoteIdx].AccessorID {
 			// policy is in both the local and remote state - need to check raft indices and
 			if remote[remoteIdx].ModifyIndex > lastRemoteIndex && remote[remoteIdx].Hash != local[localIdx].Hash {
@@ -201,6 +206,14 @@ func diffACLTokens(local structs.ACLTokens, remote structs.ACLTokenListStubs, la
 			// increment just the remote index
 			remoteIdx += 1
 		}
+	}
+
+	for ; localIdx < len(local); localIdx += 1 {
+		deletions = append(deletions, local[localIdx].AccessorID)
+	}
+
+	for ; remoteIdx < len(remote); remoteIdx += 1 {
+		updates = append(updates, remote[remoteIdx].AccessorID)
 	}
 
 	return deletions, updates
@@ -254,7 +267,8 @@ func (s *Server) updateLocalACLTokens(tokens structs.ACLTokens, stopCh <-chan st
 		}
 
 		req := structs.ACLTokenBatchUpsertRequest{
-			Tokens: tokens[batchStart:batchEnd],
+			Tokens:      tokens[batchStart:batchEnd],
+			AllowCreate: true,
 		}
 
 		resp, err := s.raftApply(structs.ACLTokenUpsertRequestType, &req)
@@ -265,14 +279,18 @@ func (s *Server) updateLocalACLTokens(tokens structs.ACLTokens, stopCh <-chan st
 			return false, fmt.Errorf("Failed to apply token upserts: %v", respErr)
 		}
 
+		s.logger.Printf("[DEBUG] acl: token replication - upserted 1 batch with %d tokens of size %d", batchEnd-batchStart, batchSize)
+
+		// tokens[batchEnd] wasn't include as the slicing doesn't include the element at the stop index
+		batchStart = batchEnd
+
 		// prevent waiting if we are done
 		if batchEnd < len(tokens) {
 			select {
 			case <-stopCh:
 				return true, nil
 			case <-ticker.C:
-				// policies[batchEnd] wasn't include as the slicing doesn't include the element at the stop index
-				batchStart = batchEnd
+				// nothing to do - just rate limiting here
 			}
 		}
 	}
@@ -324,6 +342,8 @@ func (s *Server) replicateACLPolicies(lastRemoteIndex uint64, stopCh <-chan stru
 		return 0, false, fmt.Errorf("failed to retrieve remote ACL policies: %v", err)
 	}
 
+	s.logger.Printf("[DEBUG] acl: finished fetching policies tokens: %d", len(remote.Policies))
+
 	// Need to check if we should be stopping. This will be common as the fetching process is a blocking
 	// RPC which could have been hanging around for a long time and during that time leadership could
 	// have been lost.
@@ -353,31 +373,44 @@ func (s *Server) replicateACLPolicies(lastRemoteIndex uint64, stopCh <-chan stru
 	}
 
 	s.logger.Printf("[DEBUG] acl: policy replication - local: %d, remote: %d", len(local), len(remote.Policies))
-
 	// Calculate the changes required to bring the state into sync and then
 	// apply them.
 	deletions, updates := diffACLPolicies(local, remote.Policies, lastRemoteIndex)
 
-	s.logger.Printf("[DEBUG] acl: policy replication - deletions: %v, updates: %v", deletions, updates)
-	policies, err := s.fetchACLPoliciesBatch(updates)
-	if err != nil {
-		return 0, false, fmt.Errorf("failed to retrieve ACL policy updates: %v", err)
+	s.logger.Printf("[DEBUG] acl: policy replication - deletions: %d, updates: %d", len(deletions), len(updates))
+
+	var policies *structs.ACLPoliciesResponse
+	if len(updates) > 0 {
+		policies, err = s.fetchACLPoliciesBatch(updates)
+		if err != nil {
+			return 0, false, fmt.Errorf("failed to retrieve ACL policy updates: %v", err)
+		}
+		s.logger.Printf("[DEBUG] acl: policy replication - downloaded %d policies", len(policies.Policies))
 	}
 
-	exit, err := s.deleteLocalACLPolicies(deletions, stopCh)
-	if exit {
-		return 0, true, nil
-	}
-	if err != nil {
-		return 0, false, fmt.Errorf("failed to delete local ACL policies: %v", err)
+	if len(deletions) > 0 {
+		s.logger.Printf("[DEBUG] acl: policy replication - performing deletions")
+
+		exit, err := s.deleteLocalACLPolicies(deletions, stopCh)
+		if exit {
+			return 0, true, nil
+		}
+		if err != nil {
+			return 0, false, fmt.Errorf("failed to delete local ACL policies: %v", err)
+		}
+		s.logger.Printf("[DEBUG] acl: policy replication - finished deletions")
 	}
 
-	exit, err = s.updateLocalACLPolicies(policies.Policies, stopCh)
-	if exit {
-		return 0, true, nil
-	}
-	if err != nil {
-		return 0, false, fmt.Errorf("failed to update local ACL policies: %v", err)
+	if len(updates) > 0 {
+		s.logger.Printf("[DEBUG] acl: policy replication - performing updates")
+		exit, err := s.updateLocalACLPolicies(policies.Policies, stopCh)
+		if exit {
+			return 0, true, nil
+		}
+		if err != nil {
+			return 0, false, fmt.Errorf("failed to update local ACL policies: %v", err)
+		}
+		s.logger.Printf("[DEBUG] acl: policy replication - finished updates")
 	}
 
 	// Return the index we got back from the remote side, since we've synced
@@ -390,6 +423,8 @@ func (s *Server) replicateACLTokens(lastRemoteIndex uint64, stopCh <-chan struct
 	if err != nil {
 		return 0, false, fmt.Errorf("failed to retrieve remote ACL tokens: %v", err)
 	}
+
+	s.logger.Printf("[DEBUG] acl: finished fetching remote tokens: %d", len(remote.Tokens))
 
 	// Need to check if we should be stopping. This will be common as the fetching process is a blocking
 	// RPC which could have been hanging around for a long time and during that time leadership could
@@ -419,28 +454,46 @@ func (s *Server) replicateACLTokens(lastRemoteIndex uint64, stopCh <-chan struct
 		lastRemoteIndex = 0
 	}
 
+	s.logger.Printf("[DEBUG] acl: token replication - local: %d, remote: %d", len(local), len(remote.Tokens))
+
 	// Calculate the changes required to bring the state into sync and then
 	// apply them.
 	deletions, updates := diffACLTokens(local, remote.Tokens, lastRemoteIndex)
-	tokens, err := s.fetchACLTokensBatch(updates)
-	if err != nil {
-		return 0, false, fmt.Errorf("failed to retrieve ACL token updates: %v", err)
+	s.logger.Printf("[DEBUG] acl: token replication - deletions: %d, updates: %d", len(deletions), len(updates))
+
+	var tokens *structs.ACLTokensResponse
+	if len(updates) > 0 {
+		tokens, err = s.fetchACLTokensBatch(updates)
+		if err != nil {
+			return 0, false, fmt.Errorf("failed to retrieve ACL token updates: %v", err)
+		}
+
+		s.logger.Printf("[DEBUG] acl: token replication - downloaded %d tokens", len(tokens.Tokens))
 	}
 
-	exit, err := s.deleteLocalACLTokens(deletions, stopCh)
-	if exit {
-		return 0, true, nil
-	}
-	if err != nil {
-		return 0, false, fmt.Errorf("failed to delete local ACL tokens: %v", err)
+	if len(deletions) > 0 {
+		s.logger.Printf("[DEBUG] acl: token replication - performing deletions")
+
+		exit, err := s.deleteLocalACLTokens(deletions, stopCh)
+		if exit {
+			return 0, true, nil
+		}
+		if err != nil {
+			return 0, false, fmt.Errorf("failed to delete local ACL tokens: %v", err)
+		}
+		s.logger.Printf("[DEBUG] acl: token replication - finished deletions")
 	}
 
-	exit, err = s.updateLocalACLTokens(tokens.Tokens, stopCh)
-	if exit {
-		return 0, true, nil
-	}
-	if err != nil {
-		return 0, false, fmt.Errorf("failed to update local ACL tokens: %v", err)
+	if len(updates) > 0 {
+		s.logger.Printf("[DEBUG] acl: token replication - performing updates")
+		exit, err := s.updateLocalACLTokens(tokens.Tokens, stopCh)
+		if exit {
+			return 0, true, nil
+		}
+		if err != nil {
+			return 0, false, fmt.Errorf("failed to update local ACL tokens: %v", err)
+		}
+		s.logger.Printf("[DEBUG] acl: token replication - finished updates")
 	}
 
 	// Return the index we got back from the remote side, since we've synced
@@ -449,10 +502,11 @@ func (s *Server) replicateACLTokens(lastRemoteIndex uint64, stopCh <-chan struct
 }
 
 // IsACLReplicationEnabled returns true if ACL replication is enabled.
+// DEPRECATED (ACL-Legacy-Compat) - with new ACLs at least policy replication is required
 func (s *Server) IsACLReplicationEnabled() bool {
 	authDC := s.config.ACLDatacenter
 	return len(authDC) > 0 && (authDC != s.config.Datacenter) &&
-		s.config.EnableACLReplication
+		s.config.ACLTokenReplication
 }
 
 func (s *Server) updateACLReplicationStatusError() {

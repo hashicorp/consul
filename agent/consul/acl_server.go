@@ -100,10 +100,12 @@ func (s *Server) LocalTokensEnabled() bool {
 		return true
 	}
 
-	// TODO (ACL-V2) should we check if a replication token is set
+	if !s.config.ACLTokenReplication || s.tokens.ACLReplicationToken() == "" {
+		return false
+	}
 
 	// token replication is off so local tokens are disabled
-	return s.config.ACLReplicateTokens
+	return true
 }
 
 func (s *Server) ACLDatacenter(legacy bool) string {
@@ -122,23 +124,24 @@ func (s *Server) ACLsEnabled() bool {
 }
 
 func (s *Server) ResolveIdentityFromToken(token string) (bool, structs.ACLIdentity, error) {
-	_, aclToken, err := s.fsm.State().ACLTokenGetBySecret(nil, token)
+	// only allow remote RPC resolution when token replication is off and
+	// when not in the ACL datacenter
+	if !s.InACLDatacenter() && !s.config.ACLTokenReplication {
+		return false, nil, nil
+	}
+
+	index, aclToken, err := s.fsm.State().ACLTokenGetBySecret(nil, token)
 	if err != nil {
 		return true, nil, err
 	} else if aclToken != nil {
 		return true, aclToken, nil
 	}
 
-	// only allow remote RPC resolution when token replication is off and
-	// when not in the ACL datacenter
-	if !s.InACLDatacenter() && !s.config.ACLReplicateTokens {
-		return false, nil, nil
-	}
-	return true, nil, nil
+	return s.InACLDatacenter() || index > 0, nil, nil
 }
 
 func (s *Server) ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy, error) {
-	_, policy, err := s.fsm.State().ACLPolicyGetByID(nil, policyID)
+	index, policy, err := s.fsm.State().ACLPolicyGetByID(nil, policyID)
 	if err != nil {
 		return true, nil, err
 	} else if policy != nil {
@@ -148,7 +151,7 @@ func (s *Server) ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy,
 	// If the max index of the policies table is non-zero then we have acls, until then
 	// we may need to allow remote resolution. This is particularly useful to allow updating
 	// the replication token via the API in a non-primary dc.
-	return false, policy, err
+	return s.InACLDatacenter() || index > 0, policy, err
 }
 
 func (s *Server) ResolveToken(token string) (acl.Authorizer, error) {
