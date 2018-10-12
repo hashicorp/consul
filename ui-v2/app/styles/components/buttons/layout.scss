@@ -1,3 +1,16 @@
+%button {
+  position: relative;
+}
+%button .progress.indeterminate {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin-left: -12px;
+  margin-top: -12px;
+}
+%button:disabled .progress + * {
+  visibility: hidden;
+}
 %button:empty {
   padding: 0 !important;
 }

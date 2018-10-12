@@ -7,8 +7,8 @@ import lookupValidator from 'ember-changeset-validations';
 import parseElementName from 'consul-ui/utils/get-form-name-property';
 const defaultChangeset = function(data, validators) {
   const changeset = new Changeset(data, lookupValidator(validators), validators);
-  changeset.isSaving = computed(function() {
-    return get(data, 'isSaving');
+  changeset.isSaving = computed('data.isSaving', function() {
+    return get(this, 'data.isSaving');
   });
   return changeset;
 };
