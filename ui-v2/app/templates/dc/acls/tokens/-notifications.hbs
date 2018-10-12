@@ -28,5 +28,11 @@
   {{else}}
     There was an error cloning the token.
   {{/if}}
+{{ else if (eq type 'authorize')}}
+  {{#if (eq status 'success') }}
+    You are now logged in.
+  {{else}}
+    There was an error, please check your SecretID/Token
+  {{/if}}
 {{/if}}
 
