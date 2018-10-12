@@ -596,7 +596,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	//
 	rt = RuntimeConfig{
 		// non-user configurable values
-		ACLDisabledTTL:             b.durationVal("acl_disabled_ttl", c.ACLDisabledTTL),
+		ACLDisabledTTL:             b.durationValWithDefault("acl.disabled_ttl", c.ACL.DisabledTTL, b.durationVal("acl_disabled_ttl", c.ACLDisabledTTL)),
 		AEInterval:                 b.durationVal("ae_interval", c.AEInterval),
 		CheckDeregisterIntervalMin: b.durationVal("check_deregister_interval_min", c.CheckDeregisterIntervalMin),
 		CheckReapInterval:          b.durationVal("check_reap_interval", c.CheckReapInterval),
@@ -632,18 +632,20 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		GossipWANRetransmitMult: b.intVal(c.GossipWAN.RetransmitMult),
 
 		// ACL
-		ACLAgentMasterToken:    b.stringVal(c.ACLAgentMasterToken),
-		ACLAgentToken:          b.stringVal(c.ACLAgentToken),
+		ACLEnforceVersion8:     b.boolValWithDefault(c.ACLEnforceVersion8, true),
+		ACLEnabled:             b.boolVal(c.ACL.Enabled),
+		ACLAgentMasterToken:    b.stringValWithDefault(c.ACL.Tokens.AgentMaster, b.stringVal(c.ACLAgentMasterToken)),
+		ACLAgentToken:          b.stringValWithDefault(c.ACL.Tokens.Agent, b.stringVal(c.ACLAgentToken)),
 		ACLDatacenter:          strings.ToLower(b.stringVal(c.ACLDatacenter)),
-		ACLDefaultPolicy:       b.stringVal(c.ACLDefaultPolicy),
-		ACLDownPolicy:          b.stringVal(c.ACLDownPolicy),
-		ACLEnforceVersion8:     b.boolVal(c.ACLEnforceVersion8),
-		ACLEnableKeyListPolicy: b.boolVal(c.ACLEnableKeyListPolicy),
-		ACLMasterToken:         b.stringVal(c.ACLMasterToken),
-		ACLReplicationToken:    b.stringVal(c.ACLReplicationToken),
-		ACLTTL:                 b.durationVal("acl_ttl", c.ACLTTL),
-		ACLToken:               b.stringVal(c.ACLToken),
-		EnableACLReplication:   b.boolVal(c.EnableACLReplication),
+		ACLDefaultPolicy:       b.stringValWithDefault(c.ACL.DefaultPolicy, b.stringVal(c.ACLDefaultPolicy)),
+		ACLDownPolicy:          b.stringValWithDefault(c.ACL.DownPolicy, b.stringVal(c.ACLDownPolicy)),
+		ACLEnableKeyListPolicy: b.boolValWithDefault(c.ACL.EnableKeyListPolicy, b.boolVal(c.ACLEnableKeyListPolicy)),
+		ACLMasterToken:         b.stringValWithDefault(c.ACL.Tokens.Master, b.stringVal(c.ACLMasterToken)),
+		ACLReplicationToken:    b.stringValWithDefault(c.ACL.Tokens.Replication, b.stringVal(c.ACLReplicationToken)),
+		ACLTokenTTL:            b.durationValWithDefault("acl.token_ttl", c.ACL.TokenTTL, b.durationVal("acl_ttl", c.ACLTTL)),
+		ACLPolicyTTL:           b.durationVal("acl.policy_ttl", c.ACL.PolicyTTL),
+		ACLToken:               b.stringValWithDefault(c.ACL.Tokens.Default, b.stringVal(c.ACLToken)),
+		ACLTokenReplication:    b.boolValWithDefault(c.ACL.TokenReplication, b.boolVal(c.EnableACLReplication)),
 
 		// Autopilot
 		AutopilotCleanupDeadServers:      b.boolVal(c.Autopilot.CleanupDeadServers),
@@ -824,10 +826,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		rt.Bootstrap = true
 		rt.BootstrapExpect = 0
 		b.warn(`BootstrapExpect is set to 1; this is the same as Bootstrap mode.`)
-	}
-
-	if rt.ACLReplicationToken != "" {
-		rt.EnableACLReplication = true
 	}
 
 	return rt, nil
@@ -1253,9 +1251,9 @@ func (b *Builder) serviceConnectVal(v *ServiceConnect) *structs.ServiceConnect {
 	}
 }
 
-func (b *Builder) boolValWithDefault(v *bool, default_val bool) bool {
+func (b *Builder) boolValWithDefault(v *bool, defaultVal bool) bool {
 	if v == nil {
-		return default_val
+		return defaultVal
 	}
 
 	return *v
@@ -1265,15 +1263,19 @@ func (b *Builder) boolVal(v *bool) bool {
 	return b.boolValWithDefault(v, false)
 }
 
-func (b *Builder) durationVal(name string, v *string) (d time.Duration) {
+func (b *Builder) durationValWithDefault(name string, v *string, defaultVal time.Duration) (d time.Duration) {
 	if v == nil {
-		return 0
+		return defaultVal
 	}
 	d, err := time.ParseDuration(*v)
 	if err != nil {
 		b.err = multierror.Append(fmt.Errorf("%s: invalid duration: %q: %s", name, *v, err))
 	}
 	return d
+}
+
+func (b *Builder) durationVal(name string, v *string) (d time.Duration) {
+	return b.durationValWithDefault(name, v, 0)
 }
 
 func (b *Builder) intVal(v *int) int {
@@ -1293,11 +1295,15 @@ func (b *Builder) portVal(name string, v *int) int {
 	return *v
 }
 
-func (b *Builder) stringVal(v *string) string {
+func (b *Builder) stringValWithDefault(v *string, defaultVal string) string {
 	if v == nil {
-		return ""
+		return defaultVal
 	}
 	return *v
+}
+
+func (b *Builder) stringVal(v *string) string {
+	return b.stringValWithDefault(v, "")
 }
 
 func (b *Builder) float64Val(v *float64) float64 {

@@ -32,19 +32,23 @@ func (c *Client) UseLegacyACLs() bool {
 func (c *Client) monitorACLMode() {
 	waitTime := aclModeCheckMinInterval
 	for {
-		canUpgrade := true
+		canUpgrade := false
 		for _, member := range c.LANMembers() {
 			if valid, parts := metadata.IsConsulServer(member); valid && parts.Status == serf.StatusAlive {
 				if parts.ACLs != structs.ACLModeEnabled {
 					canUpgrade = false
 					break
+				} else {
+					canUpgrade = true
 				}
 			}
 		}
 
 		if canUpgrade {
+			c.logger.Printf("[DEBUG] acl: transition out of legacy ACL mode")
 			c.useNewACLs.Set(true)
 			lib.UpdateSerfTag(c.serf, "acls", string(structs.ACLModeEnabled))
+			return
 		}
 
 		select {

@@ -55,7 +55,9 @@ const (
 
 	// aclModeCheckMaxInterval controls the maximum interval for how often the agent
 	// checks if it should be using the new or legacy ACL system.
-	aclModeCheckMaxInterval = 30 * time.Second
+	// TODO (ACL-V2) - is this too short - potentially every 10 seconds we have to
+	// check the serf metadata for every LAN member
+	aclModeCheckMaxInterval = 10 * time.Second
 )
 
 type ACLResolverDelegate interface {
@@ -294,7 +296,11 @@ func (r *ACLResolver) resolveIdentityFromTokenAsync(token string, cached *struct
 	var resp structs.ACLTokenResponse
 	err := r.delegate.RPC("ACL.TokenRead", &req, &resp)
 	if err == nil {
-		r.fireAsyncTokenResult(token, resp.Token, nil)
+		if resp.Token == nil {
+			r.fireAsyncTokenResult(token, nil, acl.ErrNotFound)
+		} else {
+			r.fireAsyncTokenResult(token, resp.Token, nil)
+		}
 		return
 	}
 
@@ -315,7 +321,6 @@ func (r *ACLResolver) resolveIdentityFromTokenAsync(token string, cached *struct
 }
 
 func (r *ACLResolver) resolveIdentityFromToken(token string) (structs.ACLIdentity, error) {
-
 	// Attempt to resolve locally first (local results are not cached)
 	if done, identity, err := r.delegate.ResolveIdentityFromToken(token); done {
 		return identity, err

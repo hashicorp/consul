@@ -204,7 +204,7 @@ func (a *ACL) TokenClone(args *structs.ACLTokenUpsertRequest, reply *structs.ACL
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
-	
+
 	// clients will not know whether the server has local token store. In the case
 	// where it doesnt' we will transparently forward requests.
 	if !a.srv.LocalTokensEnabled() {
@@ -259,11 +259,11 @@ func (a *ACL) TokenUpsert(args *structs.ACLTokenUpsertRequest, reply *structs.AC
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
-	
+
 	if !a.srv.LocalTokensEnabled() || !args.ACLToken.Local {
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
-	
+
 	if done, err := a.srv.forward("ACL.TokenUpsert", args, args, reply); done {
 		return err
 	}
@@ -410,15 +410,14 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
-	
+
 	if !a.srv.LocalTokensEnabled() {
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
-	
+
 	if done, err := a.srv.forward("ACL.TokenDelete", args, args, reply); done {
 		return err
 	}
-
 
 	defer metrics.MeasureSince([]string{"acl", "token", "delete"}, time.Now())
 
@@ -477,11 +476,11 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
-	
+
 	if !a.srv.LocalTokensEnabled() {
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
-	
+
 	if done, err := a.srv.forward("ACL.TokenList", args, args, reply); done {
 		return err
 	}
@@ -513,11 +512,11 @@ func (a *ACL) TokenBatchRead(args *structs.ACLTokenBatchReadRequest, reply *stru
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
-	
+
 	if !a.srv.LocalTokensEnabled() {
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
-	
+
 	if done, err := a.srv.forward("ACL.TokenBatchRead", args, args, reply); done {
 		return err
 	}
@@ -545,7 +544,7 @@ func (a *ACL) PolicyRead(args *structs.ACLPolicyReadRequest, reply *structs.ACLP
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
-	
+
 	if done, err := a.srv.forward("ACL.PolicyRead", args, args, reply); done {
 		return err
 	}
@@ -580,7 +579,7 @@ func (a *ACL) PolicyBatchRead(args *structs.ACLPolicyBatchReadRequest, reply *st
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
-	
+
 	if done, err := a.srv.forward("ACL.PolicyBatchRead", args, args, reply); done {
 		return err
 	}
@@ -607,7 +606,7 @@ func (a *ACL) PolicyUpsert(args *structs.ACLPolicyUpsertRequest, reply *structs.
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
-	
+
 	if !a.srv.InACLDatacenter() {
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
@@ -723,7 +722,7 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
-	
+
 	if !a.srv.InACLDatacenter() {
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
@@ -794,7 +793,7 @@ func (a *ACL) PolicyList(args *structs.ACLPolicyListRequest, reply *structs.ACLP
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
-	
+
 	if done, err := a.srv.forward("ACL.PolicyList", args, args, reply); done {
 		return err
 	}
@@ -828,7 +827,7 @@ func (a *ACL) PolicyResolve(args *structs.ACLPolicyBatchReadRequest, reply *stru
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
-	
+
 	if done, err := a.srv.forward("ACL.PolicyResolve", args, args, reply); done {
 		return err
 	}
@@ -874,7 +873,7 @@ func (a *ACL) GetPolicy(args *structs.ACLPolicyResolveLegacyRequest, reply *stru
 	// Get the policy via the cache
 	parent := a.srv.config.ACLDefaultPolicy
 
-	policy, err := a.srv.acls.GetMergedPolicyForToken(args.TokenSecret())
+	policy, err := a.srv.acls.GetMergedPolicyForToken(args.ACL)
 	if err != nil {
 		return err
 	}
