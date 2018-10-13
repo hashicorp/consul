@@ -2,6 +2,7 @@ package dnssec
 
 import (
 	"fmt"
+	"path"
 	"strconv"
 	"strings"
 
@@ -113,6 +114,7 @@ func dnssecParse(c *caddy.Controller) ([]string, []*DNSKEY, int, error) {
 
 func keyParse(c *caddy.Controller) ([]*DNSKEY, error) {
 	keys := []*DNSKEY{}
+	config := dnsserver.GetConfig(c)
 
 	if !c.NextArg() {
 		return nil, c.ArgErr()
@@ -132,6 +134,9 @@ func keyParse(c *caddy.Controller) ([]*DNSKEY, error) {
 			}
 			if strings.HasSuffix(k, ".private") {
 				base = k[:len(k)-8]
+			}
+			if !path.IsAbs(base) && config.Root != "" {
+				base = path.Join(config.Root, base)
 			}
 			k, err := ParseKeyFile(base+".key", base+".private")
 			if err != nil {
