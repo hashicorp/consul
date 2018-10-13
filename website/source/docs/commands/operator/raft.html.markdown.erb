@@ -23,6 +23,7 @@ removing invalid peers.
 
 Subcommands:
 
+    health         Display health information about the raft cluster
     list-peers     Display the current Raft peer configuration
     remove-peer    Remove a Consul server from the Raft configuration
 ```
@@ -81,3 +82,20 @@ Usage: `consul operator raft remove-peer -address="IP:port"`
 * `-id` - ID of the server to remove.
 
 The return code will indicate success or failure.
+
+## health
+
+This command displays heath information about the current Raft consensus.
+
+Usage: `consul operator raft health`
+
+The output look like this:
+
+```
+Name       Status  Leader  LastContact  LastIndex  Voter  Healthy
+server1    alive   true    0s           39         true   true
+server2    alive   false   1.43ms       39         true   true
+0 servers can fail without causing an outage
+```
+
+The return code will be 0 when the cluster is healthy and 2 when it is not.

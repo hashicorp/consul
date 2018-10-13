@@ -43,6 +43,7 @@ import (
 	operraft "github.com/hashicorp/consul/command/operator/raft"
 	operraftlist "github.com/hashicorp/consul/command/operator/raft/listpeers"
 	operraftremove "github.com/hashicorp/consul/command/operator/raft/removepeer"
+	operrafthealth "github.com/hashicorp/consul/command/operator/raft/health"
 	"github.com/hashicorp/consul/command/reload"
 	"github.com/hashicorp/consul/command/rtt"
 	"github.com/hashicorp/consul/command/services"
@@ -110,6 +111,7 @@ func init() {
 	Register("operator raft", func(cli.Ui) (cli.Command, error) { return operraft.New(), nil })
 	Register("operator raft list-peers", func(ui cli.Ui) (cli.Command, error) { return operraftlist.New(ui), nil })
 	Register("operator raft remove-peer", func(ui cli.Ui) (cli.Command, error) { return operraftremove.New(ui), nil })
+	Register("operator raft health", func(ui cli.Ui) (cli.Command, error) { return operrafthealth.New(ui), nil })
 	Register("reload", func(ui cli.Ui) (cli.Command, error) { return reload.New(ui), nil })
 	Register("rtt", func(ui cli.Ui) (cli.Command, error) { return rtt.New(ui), nil })
 	Register("services", func(cli.Ui) (cli.Command, error) { return services.New(), nil })
