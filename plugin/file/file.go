@@ -121,6 +121,12 @@ func (s *serialErr) Error() string {
 // it returns an error indicating nothing was read.
 func Parse(f io.Reader, origin, fileName string, serial int64) (*Zone, error) {
 	tokens := dns.ParseZone(f, dns.Fqdn(origin), fileName)
+	defer func() {
+		// Drain the tokens chan so that large zone files won't
+		// leak goroutines and memory.
+		for range tokens {
+		}
+	}()
 	z := NewZone(origin, fileName)
 	seenSOA := false
 	for x := range tokens {
