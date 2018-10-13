@@ -48,7 +48,7 @@ func (c *cmd) Run(args []string) int {
 
 	policies, _, err := client.ACL().PolicyList(nil)
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Failed to get retrieve the policy list: %v", err))
+		c.UI.Error(fmt.Sprintf("Failed to retrieve the policy list: %v", err))
 		return 1
 	}
 
