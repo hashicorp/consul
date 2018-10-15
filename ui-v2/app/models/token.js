@@ -39,6 +39,9 @@ export const ATTRS = writable(model, [
   'Local',
   'Description',
   'Policies',
+  // SecretID isn't writable but we need it to identify an
+  // update via the old API, see TokenAdapter dataForRequest
+  'SecretID',
   'AccessorID',
 ]);
 export default model;

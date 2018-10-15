@@ -41,13 +41,27 @@ module('Integration | Adapter | token | url', function(hooks) {
     );
     assert.equal(actual, expected);
   });
-  test('urlForUpdateRecord returns the correct url', function(assert) {
+  test('urlForUpdateRecord returns the correct url (without Rules it uses the v2 API)', function(assert) {
     const adapter = this.owner.lookup('adapter:token');
     const expected = `/v1/acl/token/${id}?dc=${dc}`;
     const actual = adapter.urlForUpdateRecord(
       id,
       'token',
       makeAttrable({
+        Datacenter: dc,
+        AccessorID: id,
+      })
+    );
+    assert.equal(actual, expected);
+  });
+  test('urlForUpdateRecord returns the correct url (with Rules it uses the v1 API)', function(assert) {
+    const adapter = this.owner.lookup('adapter:token');
+    const expected = `/v1/acl/update?dc=${dc}`;
+    const actual = adapter.urlForUpdateRecord(
+      id,
+      'token',
+      makeAttrable({
+        Rules: 'key {}',
         Datacenter: dc,
         AccessorID: id,
       })

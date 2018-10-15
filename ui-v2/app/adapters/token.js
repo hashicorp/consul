@@ -1,3 +1,4 @@
+import { inject as service } from '@ember/service';
 import Adapter, {
   REQUEST_CREATE,
   REQUEST_UPDATE,
@@ -15,6 +16,7 @@ const REQUEST_CLONE = 'cloneRecord';
 const REQUEST_SELF = 'querySelf';
 
 export default Adapter.extend({
+  store: service('store'),
   cleanQuery: function(_query) {
     const query = this._super(...arguments);
     // TODO: Make sure policy is being passed through
@@ -41,6 +43,12 @@ export default Adapter.extend({
     });
   },
   urlForUpdateRecord: function(id, modelName, snapshot) {
+    // If a token has Rules, use the old API
+    if (typeof snapshot.attr('Rules') !== 'undefined') {
+      return this.appendURL('acl/update', [], {
+        [API_DATACENTER_KEY]: snapshot.attr(DATACENTER_KEY),
+      });
+    }
     return this.appendURL('acl/token', [snapshot.attr(SLUG_KEY)], {
       [API_DATACENTER_KEY]: snapshot.attr(DATACENTER_KEY),
     });
@@ -101,8 +109,18 @@ export default Adapter.extend({
   },
   handleSingleResponse: function(url, response, primary, slug) {
     // Sometimes we get `Policies: null`, make null equal an empty array
-    if (response.Policies === null) {
+    if (typeof response.Policies === 'undefined' || response.Policies === null) {
       response.Policies = [];
+    }
+    // Convert an old style update response to a new style
+    if (typeof response['ID'] !== 'undefined') {
+      const item = get(this, 'store')
+        .peekAll('token')
+        .findBy('SecretID', response['ID']);
+      if (item) {
+        response['SecretID'] = response['ID'];
+        response['AccessorID'] = get(item, 'AccessorID');
+      }
     }
     return this._super(url, response, primary, slug);
   },
@@ -144,16 +162,25 @@ export default Adapter.extend({
     let data = this._super(...arguments);
     switch (params.requestType) {
       case REQUEST_UPDATE:
+        // If a token has Rules, use the old API
+        if (typeof data.token['Rules'] !== 'undefined') {
+          data.token['ID'] = data.token['SecretID'];
+        }
+      // falls through
       case REQUEST_CREATE:
-        data.token.Policies = data.token.Policies.filter(function(item) {
-          // Just incase, don't save any policies that aren't saved
-          return !get(item, 'isNew');
-        }).map(function(item) {
-          return {
-            ID: get(item, 'ID'),
-            Name: get(item, 'Name'),
-          };
-        });
+        if (Array.isArray(data.token.Policies)) {
+          data.token.Policies = data.token.Policies.filter(function(item) {
+            // Just incase, don't save any policies that aren't saved
+            return !get(item, 'isNew');
+          }).map(function(item) {
+            return {
+              ID: get(item, 'ID'),
+              Name: get(item, 'Name'),
+            };
+          });
+        } else {
+          delete data.token.Policies;
+        }
         data = data.token;
         break;
       case REQUEST_SELF:
@@ -161,6 +188,10 @@ export default Adapter.extend({
       case REQUEST_CLONE:
         data = {};
         break;
+    }
+    // make sure we never send the SecretID
+    if (data && typeof data['SecretID'] !== 'undefined') {
+      delete data['SecretID'];
     }
     return data;
   },
