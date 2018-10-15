@@ -213,7 +213,7 @@ func (c *cmd) templateArgs() (*templateArgs, error) {
 	}
 
 	// We use STATIC for agent which means we need to resolve DNS names like
-	// `localhost` ourselves. We could use STRICT_DNS or DYNAMIC_DNS with envoy
+	// `localhost` ourselves. We could use STRICT_DNS or LOGICAL_DNS with envoy
 	// but Envoy resolves `localhost` differently to go on macOS at least which
 	// causes paper cuts like default dev agent (which binds specifically to
 	// 127.0.0.1) isn't reachable since Envoy resolves localhost to `[::]` and
