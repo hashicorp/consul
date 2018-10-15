@@ -12,6 +12,8 @@ export default function(
       deletable(
         {
           visit: visitable(['/:dc/acls/tokens/:token', '/:dc/acls/tokens/create']),
+          use: clickable('[data-test-use]'),
+          confirmUse: clickable('button.type-delete'),
           newPolicy: clickable('[data-test-new-policy]'),
           policyForm: submitable(
             cancelable({}, '[data-test-policy-form]'),

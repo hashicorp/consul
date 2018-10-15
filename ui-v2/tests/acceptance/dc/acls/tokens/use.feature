@@ -5,6 +5,7 @@ Feature: dc / acls / tokens / use: Using an ACL token
     And 1 token model from yaml
     ---
       AccessorID: token
+      SecretID: ee52203d-989f-4f7a-ab5a-2bef004164ca
     ---
   Scenario: Using an ACL token from the listing page
     When I visit the tokens page for yaml
@@ -13,7 +14,7 @@ Feature: dc / acls / tokens / use: Using an ACL token
     ---
     Then I have settings like yaml
     ---
-      token: ~
+    consul:token: ~
     ---
     And I click actions on the tokens
     And I click use on the tokens
@@ -22,7 +23,7 @@ Feature: dc / acls / tokens / use: Using an ACL token
     And "[data-notification]" has the "success" class
     Then I have settings like yaml
     ---
-      token: token
+    consul:token: "{\"AccessorID\":\"token\",\"SecretID\":\"ee52203d-989f-4f7a-ab5a-2bef004164ca\"}"
     ---
   Scenario: Using an ACL token from the detail page
     When I visit the token page for yaml
@@ -32,7 +33,7 @@ Feature: dc / acls / tokens / use: Using an ACL token
     ---
     Then I have settings like yaml
     ---
-      token: ~
+    consul:token: ~
     ---
     And I click use
     And I click confirmUse
@@ -40,5 +41,5 @@ Feature: dc / acls / tokens / use: Using an ACL token
     And "[data-notification]" has the "success" class
     Then I have settings like yaml
     ---
-      token: token
+    consul:token: "{\"AccessorID\":\"token\",\"SecretID\":\"ee52203d-989f-4f7a-ab5a-2bef004164ca\"}"
     ---

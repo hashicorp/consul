@@ -21,7 +21,6 @@ export default Store.extend({
   self: function(modelName, token) {
     // TODO: no normalization, type it properly for the moment
     const adapter = this.adapterFor(modelName);
-    const options = {};
     return adapter.self(this, { modelName: modelName }, token);
   },
 });

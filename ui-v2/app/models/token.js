@@ -14,12 +14,13 @@ const model = Model.extend({
   Name: attr('string', {
     defaultValue: '',
   }),
+  Rules: attr('string'),
   // End Legacy
+  Legacy: attr('boolean'),
   Description: attr('string', {
     defaultValue: '',
   }),
   Datacenter: attr('string'),
-  Legacy: attr('boolean'),
   Local: attr('boolean'),
   Policies: attr({
     defaultValue: function() {
@@ -34,6 +35,7 @@ const model = Model.extend({
 export const ATTRS = writable(model, [
   'Name',
   'Rules',
+  'Type',
   'Local',
   'Description',
   'Policies',

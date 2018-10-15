@@ -108,7 +108,6 @@ export default Adapter.extend({
   },
   handleResponse: function(status, headers, payload, requestData) {
     let response = payload;
-    const method = requestData.method;
     if (status === HTTP_OK) {
       const url = this.parseURL(requestData.url);
       switch (true) {

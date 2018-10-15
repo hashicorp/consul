@@ -10,5 +10,4 @@ Feature: dc / acls / tokens / index: ACL Token List
     ---
     Then the url should be /dc-1/acls/tokens
     And I click actions on the tokens
-    Then I don't see delete on the tokens
     Then I see 3 token models

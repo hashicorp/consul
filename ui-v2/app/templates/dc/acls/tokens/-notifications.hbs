@@ -34,5 +34,11 @@
   {{else}}
     There was an error, please check your SecretID/Token
   {{/if}}
+{{ else if (eq type 'use')}}
+  {{#if (eq status 'success') }}
+    You are now using the new ACL token
+  {{else}}
+    There was an error using that ACL token.
+  {{/if}}
 {{/if}}
 

@@ -5,7 +5,8 @@ Feature: dc / acls / tokens / update: ACL Token Update
     And 1 token model from yaml
     ---
       AccessorID: key
-      Legacy: true
+      Rules: ''
+      Type: client
       Policies: ~
     ---
     When I visit the token page for yaml
@@ -14,29 +15,31 @@ Feature: dc / acls / tokens / update: ACL Token Update
       token: key
     ---
     Then the url should be /datacenter/acls/tokens/key
-  Scenario: Update to [Name], [Type], [Rules]
+  Scenario: Update to [Name]
     Then I fill in with yaml
     ---
       name: [Name]
     ---
-    And I click "[value=[Type]]"
+    # TODO: Remove this when I'm 100% sure token types are gone
+    # And I click "[value=[Type]]"
     And I submit
     Then a PUT request is made to "/v1/acl/token/key?dc=datacenter" with the body from yaml
+    # You can no longer edit Type but make sure it gets sent
     ---
       Name: [Name]
-      Type: [Type]
+      Type: client
     ---
     Then the url should be /datacenter/acls/tokens
     And "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "success" class
     Where:
-      ----------------------------------------------------------
-      | Name       | Type       |  Rules                       |
-      | key-name   | client     |  node "0" {policy = "read"}  |
-      | key name   | management |  node "0" {policy = "write"} |
-      | key%20name | client     |  node "0" {policy = "read"}  |
-      | utf8?      | management |  node "0" {policy = "write"} |
-      ----------------------------------------------------------
+      ---------------------------------------------
+      | Name       |  Rules                       |
+      | key-name   |  node "0" {policy = "read"}  |
+      | key name   |  node "0" {policy = "write"} |
+      | key%20name |  node "0" {policy = "read"}  |
+      | utf8?      |  node "0" {policy = "write"} |
+      ---------------------------------------------
   Scenario: There was an error saving the key
     Given the url "/v1/acl/token/key" responds with a 500 status
     And I submit

@@ -1,5 +1,6 @@
 import Service from '@ember/service';
 import { getOwner } from '@ember/application';
+import { get } from '@ember/object';
 
 import qsaFactory from 'consul-ui/utils/dom/qsa-factory';
 // TODO: Move to utils/dom

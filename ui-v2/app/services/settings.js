@@ -43,9 +43,9 @@ export default Service.extend({
   },
   findAll: function(key) {
     const storage = get(this, 'storage');
-    const item = Object.keys(storage).reduce(function(prev, item, i, arr) {
+    const item = Object.keys(storage).reduce((prev, item, i, arr) => {
       if (item.indexOf(`${SCHEME}:`) === 0) {
-        return (prev[item] = getValue(get(this, 'storage'), item));
+        prev[item] = getValue(get(this, 'storage'), item);
       }
       return prev;
     }, {});

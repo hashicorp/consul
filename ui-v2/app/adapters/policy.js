@@ -8,9 +8,26 @@ import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/policy';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 import { OK as HTTP_OK } from 'consul-ui/utils/http/status';
 import { PUT as HTTP_PUT } from 'consul-ui/utils/http/method';
-import makeAttrable from 'consul-ui/utils/makeAttrable';
 
 export default Adapter.extend({
+  // _ajaxRequest(options) {
+  //   const hash = Object.assign(
+  //     {},
+  //     options,
+  //     {
+  //       success: function(payload, textStatus, jqXHR) {
+  //         setTimeout(
+  //           () => {
+  //             return options.success(...arguments);
+  //           },
+  //           2000
+
+  //         );
+  //       }
+  //     }
+  //   );
+  //   $.ajax(hash);
+  // },
   urlForQuery: function(query, modelName) {
     return this.appendURL('acl/policies', [], this.cleanQuery(query));
   },
@@ -49,7 +66,6 @@ export default Adapter.extend({
   },
   handleResponse: function(status, headers, payload, requestData) {
     let response = payload;
-    const method = requestData.method;
     if (status === HTTP_OK) {
       const url = this.parseURL(requestData.url);
       switch (true) {

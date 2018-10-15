@@ -84,16 +84,15 @@ export default SingleRoute.extend(WithTokenActions, {
       }
     },
     createPolicy: function(item, cb) {
-      const repo = get(this, 'policiesRepo');
-      const controller = get(this, 'controller');
-      const policies = get(controller, 'item.Policies');
       get(this, 'policiesRepo')
         .persist(item)
         .then(item => {
           try {
             this.send('addPolicy', item);
             this.send('clearPolicy', cb);
-          } catch (e) {}
+          } catch (e) {
+            // continue
+          }
         })
         .catch(e => {
           const error = e.errors[0];

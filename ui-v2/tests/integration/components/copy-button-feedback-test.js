@@ -9,24 +9,24 @@ test('it renders', function(assert) {
   // Set any properties with this.set('myProperty', 'value');
   // Handle any actions with this.on('myAction', function(val) { ... });
 
-  this.render(hbs`{{copy-button-feedback}}`);
+  this.render(hbs`{{copy-button-feedback value='Click Me'}}`);
 
   assert.equal(
     this.$()
       .text()
       .trim(),
-    ''
+    'Click Me'
   );
 
   // Template block usage:
   this.render(hbs`
-    {{#copy-button-feedback value="template block text"}}{{/copy-button-feedback}}
+    {{#copy-button-feedback}}Click Me{{/copy-button-feedback}}
   `);
 
   assert.equal(
     this.$()
       .text()
       .trim(),
-    'template block text'
+    'Click Me'
   );
 });

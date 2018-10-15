@@ -19,10 +19,12 @@ export default Component.extend(SlotsMixin, WithResizing, {
   _open: function(e) {
     set(this, 'checked', true);
     if (get(this, 'height') === null) {
-      const win = [...get(this, 'dom').element('[role="dialog"] > div > div', this.element)][0];
-      const rect = win.getBoundingClientRect();
-      set(this, 'window', win);
-      set(this, 'height', rect.height);
+      if (this.element) {
+        const win = [...get(this, 'dom').element('[role="dialog"] > div > div', this.element)][0];
+        const rect = win.getBoundingClientRect();
+        set(this, 'window', win);
+        set(this, 'height', rect.height);
+      }
     }
     this.onopen(e);
   },
