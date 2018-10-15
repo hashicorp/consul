@@ -107,7 +107,7 @@ func (s *ConnectCA) ConfigurationSet(
 		return err
 	}
 
-	newActiveRoot, err := parseCARoot(newRootPEM, args.Config.Provider)
+	newActiveRoot, err := parseCARoot(newRootPEM, args.Config.Provider, args.Config.ClusterID)
 	if err != nil {
 		return err
 	}
@@ -120,7 +120,10 @@ func (s *ConnectCA) ConfigurationSet(
 		return err
 	}
 
-	if root != nil && root.ID == newActiveRoot.ID {
+	// If the root didn't change or if this is a secondary DC, just update the
+	// config and return.
+	if (s.srv.config.Datacenter != s.srv.config.PrimaryDatacenter) ||
+		root != nil && root.ID == newActiveRoot.ID {
 		args.Op = structs.CAOpSetConfig
 		resp, err := s.srv.raftApply(structs.ConnectCARequestType, args)
 		if err != nil {
@@ -276,16 +279,17 @@ func (s *ConnectCA) Roots(
 				// directly to the structure in the memdb store.
 
 				reply.Roots[i] = &structs.CARoot{
-					ID:                r.ID,
-					Name:              r.Name,
-					SerialNumber:      r.SerialNumber,
-					SigningKeyID:      r.SigningKeyID,
-					NotBefore:         r.NotBefore,
-					NotAfter:          r.NotAfter,
-					RootCert:          r.RootCert,
-					IntermediateCerts: r.IntermediateCerts,
-					RaftIndex:         r.RaftIndex,
-					Active:            r.Active,
+					ID:                  r.ID,
+					Name:                r.Name,
+					SerialNumber:        r.SerialNumber,
+					SigningKeyID:        r.SigningKeyID,
+					ExternalTrustDomain: r.ExternalTrustDomain,
+					NotBefore:           r.NotBefore,
+					NotAfter:            r.NotAfter,
+					RootCert:            r.RootCert,
+					IntermediateCerts:   r.IntermediateCerts,
+					RaftIndex:           r.RaftIndex,
+					Active:              r.Active,
 				}
 
 				if r.Active {

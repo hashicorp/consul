@@ -574,6 +574,15 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		})
 	}
 
+	primaryDatacenter := strings.ToLower(b.stringVal(c.PrimaryDatacenter))
+	if c.ACLDatacenter != nil {
+		b.warn("The 'acl_datacenter' field is deprecated. Use the 'primary_datacenter' field instead.")
+
+		if primaryDatacenter == "" {
+			primaryDatacenter = strings.ToLower(b.stringVal(c.ACLDatacenter))
+		}
+	}
+
 	proxyDefaultExecMode := b.stringVal(c.Connect.ProxyDefaults.ExecMode)
 	proxyDefaultDaemonCommand := c.Connect.ProxyDefaults.DaemonCommand
 	proxyDefaultScriptCommand := c.Connect.ProxyDefaults.ScriptCommand
@@ -758,6 +767,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		NodeName:                                b.nodeName(c.NodeName),
 		NonVotingServer:                         b.boolVal(c.NonVotingServer),
 		PidFile:                                 b.stringVal(c.PidFile),
+		PrimaryDatacenter:                       primaryDatacenter,
 		RPCAdvertiseAddr:                        rpcAdvertiseAddr,
 		RPCBindAddr:                             rpcBindAddr,
 		RPCHoldTimeout:                          b.durationVal("performance.rpc_hold_timeout", c.Performance.RPCHoldTimeout),
