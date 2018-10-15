@@ -981,6 +981,7 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	}
 	base.ACLEnforceVersion8 = a.config.ACLEnforceVersion8
 	base.ACLTokenReplication = a.config.ACLTokenReplication
+	base.ACLsEnabled = a.config.ACLsEnabled
 	if a.config.ACLEnableKeyListPolicy {
 		base.ACLEnableKeyListPolicy = a.config.ACLEnableKeyListPolicy
 	}

@@ -6,16 +6,16 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/structs"
+	"golang.org/x/time/rate"
 )
 
 const (
-	// aclBatchDeleteSize is the number of deletions to send in a single batch operation. 4096 should produce a batch that is <150KB
-	// in size but should be sufficiently large to handle 1 replication round in a single batch
-	aclBatchDeleteSize = 4096
+	// aclReplicationRateLimit is used to rate limit how often data is replicated
+	// between the primary and secondary datacenters
+	aclReplicationRateLimit rate.Limit = 10.0
 
-	// aclBatchUpsertSize is the target size in bytes we want to submit for a batch upsert request. We estimate the size at runtime
-	// due to the data being more variable in its size.
-	aclBatchUpsertSize = 256 * 1024
+	// aclReplicationMaxRetryBackoff is the max number of seconds to sleep between ACL replication RPC errors
+	aclReplicationMaxRetryBackoff = 64
 )
 
 func diffACLPolicies(local structs.ACLPolicies, remote structs.ACLPolicyListStubs, lastRemoteIndex uint64) ([]string, []string) {

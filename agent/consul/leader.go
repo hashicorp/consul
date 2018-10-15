@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
+	"golang.org/x/time/rate"
 )
 
 const (
@@ -402,10 +403,9 @@ func (s *Server) initializeACLs(upgrade bool) error {
 		}
 
 		s.logger.Printf("[INFO] acl: initializing new acls")
-		state := s.fsm.State()
 
 		// Create the builtin global-management policy
-		_, policy, err := state.ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID)
+		_, policy, err := s.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID)
 		if err != nil {
 			return fmt.Errorf("failed to get the builtin global-management policy")
 		}
@@ -431,6 +431,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 
 		// Check for configured master token.
 		if master := s.config.ACLMasterToken; len(master) > 0 {
+			state := s.fsm.State()
 			if _, err := uuid.ParseUUID(master); err != nil {
 				s.logger.Printf("[WARN] consul: Configuring a non-UUID master token is deprecated")
 			}
@@ -454,6 +455,8 @@ func (s *Server) initializeACLs(upgrade bool) error {
 							ID: structs.ACLPolicyGlobalManagementID,
 						},
 					},
+					CreateTime: time.Now(),
+					Local:      false,
 
 					// DEPRECATED (ACL-Legacy-Compat) - only needed for compatibility
 					Type: structs.ACLTokenTypeManagement,
@@ -461,17 +464,33 @@ func (s *Server) initializeACLs(upgrade bool) error {
 
 				token.SetHash(true)
 
-				req := structs.ACLTokenBatchUpsertRequest{
-					Tokens: structs.ACLTokens{&token},
+				done := false
+				if canBootstrap, _, err := state.CanBootstrapACLToken(); err == nil && canBootstrap {
+					req := structs.ACLTokenBootstrapRequest{
+						Token:      token,
+						ResetIndex: 0,
+					}
+					if _, err := s.raftApply(structs.ACLBootstrapRequestType, &req); err == nil {
+						s.logger.Printf("[INFO] consul: Bootstrapped ACL master token from configuration")
+						done = true
+					}
 				}
-				_, err = s.raftApply(structs.ACLTokenUpsertRequestType, &req)
-				if err != nil {
-					return fmt.Errorf("failed to create master token: %v", err)
+
+				if !done {
+					// either we didn't attempt to or setting the token with a bootstrap request failed.
+					req := structs.ACLTokenBatchUpsertRequest{
+						Tokens: structs.ACLTokens{&token},
+					}
+					if _, err := s.raftApply(structs.ACLTokenUpsertRequestType, &req); err != nil {
+						return fmt.Errorf("failed to create master token: %v", err)
+					}
+
+					s.logger.Printf("[INFO] consul: Created ACL master token from configuration")
 				}
-				s.logger.Printf("[INFO] consul: Created ACL master token from configuration")
 			}
 		}
 
+		state := s.fsm.State()
 		_, token, err := state.ACLTokenGetBySecret(nil, structs.ACLTokenAnonymousID)
 		if err != nil {
 			return fmt.Errorf("failed to get anonymous token: %v", err)
@@ -664,31 +683,46 @@ func (s *Server) startACLReplication() {
 		return
 	}
 
+	s.initReplicationStatus()
 	s.aclReplicationCh = make(chan struct{})
 
 	replicationType := structs.ACLReplicatePolicies
 
 	go func(stopCh <-chan struct{}) {
+		var failedAttempts uint
+		limiter := rate.NewLimiter(aclReplicationRateLimit, int(aclReplicationRateLimit))
+		ctx := &lib.StopChannelContext{StopCh: stopCh}
+
 		var lastRemoteIndex uint64
 		for {
-			select {
-			case <-stopCh:
+			if err := limiter.Wait(ctx); err != nil {
 				return
-			case <-time.After(s.config.ACLReplicationInterval):
-				index, exit, err := s.replicateACLPolicies(lastRemoteIndex, stopCh)
-				if exit {
-					return
+			}
+
+			index, exit, err := s.replicateACLPolicies(lastRemoteIndex, stopCh)
+			if exit {
+				return
+			}
+
+			if err != nil {
+				lastRemoteIndex = 0
+				s.updateACLReplicationStatusError()
+				s.logger.Printf("[WARN] consul: ACL policy replication error (will retry if still leader): %v", err)
+				if (1 << failedAttempts) < aclReplicationMaxRetryBackoff {
+					failedAttempts++
 				}
 
-				if err != nil {
-					lastRemoteIndex = 0
-					s.updateACLReplicationStatusError()
-					s.logger.Printf("[WARN] consul: ACL policy replication error (will retry if still leader): %v", err)
-				} else {
-					lastRemoteIndex = index
-					s.updateACLReplicationStatusIndex(index)
-					s.logger.Printf("[DEBUG] consul: ACL policy replication completed through remote index %d", index)
+				select {
+				case <-stopCh:
+					return
+				case <-time.After((1 << failedAttempts) * time.Second):
+					// do nothing
 				}
+			} else {
+				lastRemoteIndex = index
+				s.updateACLReplicationStatusIndex(index)
+				s.logger.Printf("[DEBUG] consul: ACL policy replication completed through remote index %d", index)
+				failedAttempts = 0
 			}
 		}
 	}(s.aclReplicationCh)
@@ -699,26 +733,39 @@ func (s *Server) startACLReplication() {
 		replicationType = structs.ACLReplicateTokens
 
 		go func(stopCh <-chan struct{}) {
+			var failedAttempts uint
+			limiter := rate.NewLimiter(aclReplicationRateLimit, int(aclReplicationRateLimit))
+			ctx := &lib.StopChannelContext{StopCh: stopCh}
 			var lastRemoteIndex uint64
 			for {
-				select {
-				case <-stopCh:
+				if err := limiter.Wait(ctx); err != nil {
 					return
-				case <-time.After(s.config.ACLReplicationInterval):
-					index, exit, err := s.replicateACLTokens(lastRemoteIndex, stopCh)
-					if exit {
-						return
+				}
+
+				index, exit, err := s.replicateACLTokens(lastRemoteIndex, stopCh)
+				if exit {
+					return
+				}
+
+				if err != nil {
+					lastRemoteIndex = 0
+					s.updateACLReplicationStatusError()
+					s.logger.Printf("[WARN] consul: ACL token replication error (will retry if still leader): %v", err)
+					if (1 << failedAttempts) < aclReplicationMaxRetryBackoff {
+						failedAttempts++
 					}
 
-					if err != nil {
-						lastRemoteIndex = 0
-						s.updateACLReplicationStatusError()
-						s.logger.Printf("[WARN] consul: ACL token replication error (will retry if still leader): %v", err)
-					} else {
-						lastRemoteIndex = index
-						s.updateACLReplicationStatusTokenIndex(index)
-						s.logger.Printf("[DEBUG] consul: ACL token replication completed through remote index %d", index)
+					select {
+					case <-stopCh:
+						return
+					case <-time.After((1 << failedAttempts) * time.Second):
+						// do nothing
 					}
+				} else {
+					lastRemoteIndex = index
+					s.updateACLReplicationStatusTokenIndex(index)
+					s.logger.Printf("[DEBUG] consul: ACL token replication completed through remote index %d", index)
+					failedAttempts = 0
 				}
 			}
 		}(s.aclReplicationCh)

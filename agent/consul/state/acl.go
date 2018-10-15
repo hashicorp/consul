@@ -220,7 +220,7 @@ func (s *Store) ACLBootstrap(idx, resetIndex uint64, token *structs.ACLToken, le
 		}
 	}
 
-	if err := s.aclTokenSetTxn(tx, idx, token, true, legacy); err != nil {
+	if err := s.aclTokenSetTxn(tx, idx, token, true, false, legacy); err != nil {
 		return fmt.Errorf("failed inserting bootstrap token: %v", err)
 	}
 	if err := indexUpdateMaxTxn(tx, idx, "acl-tokens"); err != nil {
@@ -291,7 +291,7 @@ func (s *Store) ACLTokenSet(idx uint64, token *structs.ACLToken, legacy bool) er
 	defer tx.Abort()
 
 	// Call set on the ACL
-	if err := s.aclTokenSetTxn(tx, idx, token, true, legacy); err != nil {
+	if err := s.aclTokenSetTxn(tx, idx, token, true, false, legacy); err != nil {
 		return err
 	}
 
@@ -308,7 +308,9 @@ func (s *Store) ACLTokensUpsert(idx uint64, tokens structs.ACLTokens, allowCreat
 	defer tx.Abort()
 
 	for _, token := range tokens {
-		if err := s.aclTokenSetTxn(tx, idx, token, allowCreate, false); err != nil {
+		// this is only used when doing batch insertions for upgrades and replication. Therefore
+		// we take whatever those said.
+		if err := s.aclTokenSetTxn(tx, idx, token, allowCreate, true, false); err != nil {
 			return err
 		}
 	}
@@ -323,7 +325,7 @@ func (s *Store) ACLTokensUpsert(idx uint64, tokens structs.ACLTokens, allowCreat
 
 // aclTokenSetTxn is the inner method used to insert an ACL token with the
 // proper indexes into the state store.
-func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToken, allowCreate bool, legacy bool) error {
+func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToken, allowCreate, allowMissingPolicyIDs, legacy bool) error {
 	// Check that the ID is set
 	if token.SecretID == "" {
 		return ErrMissingACLTokenSecret
@@ -344,7 +346,7 @@ func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToke
 		return nil
 	}
 
-	if err := s.resolveTokenPolicyLinks(tx, token, false); err != nil {
+	if err := s.resolveTokenPolicyLinks(tx, token, allowMissingPolicyIDs); err != nil {
 		return err
 	}
 
@@ -475,8 +477,12 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy strin
 	ws.Add(iter.WatchCh())
 
 	var result structs.ACLTokens
-	for token := iter.Next(); token != nil; token = iter.Next() {
-		result = append(result, token.(*structs.ACLToken))
+	for raw := iter.Next(); raw != nil; raw = iter.Next() {
+		token := raw.(*structs.ACLToken)
+		if err := s.resolveTokenPolicyLinks(tx, token, true); err != nil {
+			return 0, nil, err
+		}
+		result = append(result, token)
 	}
 
 	// Get the table index.

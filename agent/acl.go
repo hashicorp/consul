@@ -23,7 +23,10 @@ func (a *Agent) resolveToken(id string) (acl.Authorizer, error) {
 
 func (a *Agent) initializeACLs() error {
 	// Build a policy for the agent master token.
-	// TODO (ACL-V2) - should the agent master policy use an Agent Prefix rule instead of an exact match rule?
+	// The builtin agent master policy allows reading any node information
+	// and allows writes to the agent with the node name of the running agent
+	// only. This used to allow a prefix match on agent names but that seems
+	// entirely unnecessary so it is now using an exact match.
 	policy := &acl.Policy{
 		Agents: []*acl.AgentPolicy{
 			&acl.AgentPolicy{

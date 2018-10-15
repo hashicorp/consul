@@ -255,7 +255,6 @@ func (s *HTTPServer) ACLPolicyWrite(resp http.ResponseWriter, req *http.Request,
 
 	args.Policy.Syntax = acl.SyntaxCurrent
 
-	// TODO (ACL-V2) - Should we allow not specifying the ID in the payload when its specified in the URL
 	if policyID != "" && args.Policy.ID != "" && args.Policy.ID != policyID {
 		return nil, BadRequestError{Reason: "Policy ID in URL and payload do not match"}
 	} else if args.Policy.ID == "" {

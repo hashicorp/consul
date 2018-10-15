@@ -7,21 +7,22 @@ import (
 )
 
 var serverACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
-	// TODO (ACL-V2) - Is 10240 enough? In a DC with 30k agents we can only
-	//   cache 1/3 of the tokens if 1 is given to each agent
-	Identities: 10 * 1024,
-	// No unparsed policies are cached as they should all be resolvable from
-	// the local state store
-	Policies: 0,
-	// TODO (ACL-V2) - 512 should be enough right. Will any users have more
-	//   than 512 policies in-use within a given DC?
+	// The servers ACL caching has a few underlying assumptions:
+	//
+	// 1 - All policies can be resolved locally. Hence we do not cache any
+	//     unparsed policies as we have memdb for that.
+	// 2 - While there could be many identities being used within a DC the
+	//     number of distinct policies and combined multi-policy authorizers
+	//     will be much less.
+	// 3 - If you need more than 10k tokens cached then you should probably
+	//     enabled token replication or be using DC local tokens. In both
+	//     cases resolving the tokens from memdb will avoid the cache
+	//     entirely
+	//
+	Identities:     10 * 1024,
+	Policies:       0,
 	ParsedPolicies: 512,
-	// TODO (ACL-V2) 1024 should be enough right? Will any users have more
-	//   than 1024 policy combinations in-use within a given DC. If so that
-	//   would imply there are over 1024 unique sets of permissions being used
-	//   as multiple identities using the same policies will use the same
-	//   authorizer.
-	Authorizers: 1024,
+	Authorizers:    1024,
 }
 
 func (s *Server) checkTokenUUID(id string) (bool, error) {
@@ -53,7 +54,9 @@ func (s *Server) checkPolicyUUID(id string) (bool, error) {
 }
 
 func (s *Server) updateACLAdvertisement() {
-	// TODO (ACL-V2) - does this need to support transitioning to old ACLs?
+	// One thing to note is that once in new ACL mode the server will
+	// never transition to legacy ACL mode. This is not currently a
+	// supported use case.
 
 	// always advertise to all the LAN Members
 	lib.UpdateSerfTag(s.serfLAN, "acls", string(structs.ACLModeEnabled))
@@ -111,12 +114,18 @@ func (s *Server) LocalTokensEnabled() bool {
 func (s *Server) ACLDatacenter(legacy bool) string {
 	// For resolution running on servers the only option
 	// is to contact the configured ACL Datacenter
-	return s.config.ACLDatacenter
+	if s.config.ACLDatacenter != "" {
+		return s.config.ACLDatacenter
+	}
+
+	// This function only gets called if ACLs are enabled.
+	// When no ACL DC is set then it is assumed that this DC
+	// is the primary DC
+	return s.config.Datacenter
 }
 
 func (s *Server) ACLsEnabled() bool {
-	// TODO (ACL-V2) implement full checking
-	if len(s.config.ACLDatacenter) > 0 {
+	if len(s.config.ACLDatacenter) > 0 || s.config.ACLsEnabled {
 		return true
 	}
 
