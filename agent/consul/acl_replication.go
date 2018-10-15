@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"bytes"
 	"fmt"
 	"time"
 
@@ -29,7 +30,7 @@ func diffACLPolicies(local structs.ACLPolicies, remote structs.ACLPolicyListStub
 	for localIdx, remoteIdx = 0, 0; localIdx < len(local) && remoteIdx < len(remote); {
 		if local[localIdx].ID == remote[remoteIdx].ID {
 			// policy is in both the local and remote state - need to check raft indices and
-			if remote[remoteIdx].ModifyIndex > lastRemoteIndex && remote[remoteIdx].Hash != local[localIdx].Hash {
+			if remote[remoteIdx].ModifyIndex > lastRemoteIndex && !bytes.Equal(remote[remoteIdx].Hash, local[localIdx].Hash) {
 				updates = append(updates, remote[remoteIdx].ID)
 			}
 			// increment both indices when equal
@@ -185,7 +186,7 @@ func diffACLTokens(local structs.ACLTokens, remote structs.ACLTokenListStubs, la
 	for localIdx, remoteIdx = 0, 0; localIdx < len(local) && remoteIdx < len(remote); {
 		if local[localIdx].AccessorID == remote[remoteIdx].AccessorID {
 			// policy is in both the local and remote state - need to check raft indices and
-			if remote[remoteIdx].ModifyIndex > lastRemoteIndex && remote[remoteIdx].Hash != local[localIdx].Hash {
+			if remote[remoteIdx].ModifyIndex > lastRemoteIndex && !bytes.Equal(remote[remoteIdx].Hash, local[localIdx].Hash) {
 				updates = append(updates, remote[remoteIdx].AccessorID)
 			}
 			// increment both indices when equal

@@ -29,7 +29,7 @@ type ACLToken struct {
 	Policies    []*ACLTokenPolicyLink
 	Local       bool
 	CreateTime  time.Time
-	Hash        uint64
+	Hash        []byte
 
 	// DEPRECATED (ACL-Legacy-Compat)
 	// Rules will only be present for legacy tokens returned via the new APIs
@@ -44,7 +44,7 @@ type ACLTokenListEntry struct {
 	Policies    []*ACLTokenPolicyLink
 	Local       bool
 	CreateTime  time.Time
-	Hash        uint64
+	Hash        []byte
 	Legacy      bool
 }
 
@@ -76,7 +76,7 @@ type ACLPolicy struct {
 	Description string
 	Rules       string
 	Datacenters []string
-	Hash        uint64
+	Hash        []byte
 	CreateIndex uint64
 	ModifyIndex uint64
 }
@@ -86,7 +86,7 @@ type ACLPolicyListEntry struct {
 	Name        string
 	Description string
 	Datacenters []string
-	Hash        uint64
+	Hash        []byte
 	CreateIndex uint64
 	ModifyIndex uint64
 }
