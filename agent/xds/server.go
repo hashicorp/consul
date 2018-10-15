@@ -62,7 +62,7 @@ const (
 // entirely agent-local and all uses private methods this allows a simple shim
 // to be written in the agent package to allow resolving without tightly
 // coupling this to the agent.
-type ACLResolverFunc func(id string) (acl.ACL, error)
+type ACLResolverFunc func(id string) (acl.Authorizer, error)
 
 // ConnectAuthz is the interface the agent needs to expose to be able to re-use
 // the authorization logic between both APIs.
