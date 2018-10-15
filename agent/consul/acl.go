@@ -41,23 +41,32 @@ const (
 	// amount of unique policy combinations which can be cached.
 	authorizerCacheSize = 1024
 
-	// TODO (ACL-V2) Is 128 tokens per batch appropriate for auto-upgrades of tokens
-	// aclUpgradeBatchSize controls how many tokens are in each raft/memdb transaction
-	// for the auto-upgrade process
+	// aclUpgradeBatchSize controls how many tokens we look at during each round of upgrading. Individual raft logs
+	// will be further capped using the aclBatchUpsertSize. This limit just prevents us from creating a single slice
+	// with all tokens in it.
 	aclUpgradeBatchSize = 128
 
-	aclReplicationBatchSize
+	// aclBatchDeleteSize is the number of deletions to send in a single batch operation. 4096 should produce a batch that is <150KB
+	// in size but should be sufficiently large to handle 1 replication round in a single batch
+	aclBatchDeleteSize = 4096
+
+	// aclBatchUpsertSize is the target size in bytes we want to submit for a batch upsert request. We estimate the size at runtime
+	// due to the data being more variable in its size.
+	aclBatchUpsertSize = 256 * 1024
 
 	// DEPRECATED (ACL-Legacy-Compat) aclModeCheck* are all only for legacy usage
 	// aclModeCheckMinInterval is the minimum amount of time between checking if the
-	// agent should be using the new or legacy ACL system
-	aclModeCheckMinInterval = 100 * time.Millisecond
+	// agent should be using the new or legacy ACL system. All the places it is
+	// currently used will backoff as it detects that it is remaining in legacy mode.
+	// However the initial min value is kept small so that new cluster creation
+	// can enter into new ACL mode quickly.
+	aclModeCheckMinInterval = 50 * time.Millisecond
 
 	// aclModeCheckMaxInterval controls the maximum interval for how often the agent
 	// checks if it should be using the new or legacy ACL system.
 	// TODO (ACL-V2) - is this too short - potentially every 10 seconds we have to
 	// check the serf metadata for every LAN member
-	aclModeCheckMaxInterval = 10 * time.Second
+	aclModeCheckMaxInterval = 30 * time.Second
 )
 
 type ACLResolverDelegate interface {

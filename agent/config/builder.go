@@ -633,7 +633,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 
 		// ACL
 		ACLEnforceVersion8:     b.boolValWithDefault(c.ACLEnforceVersion8, true),
-		ACLEnabled:             b.boolVal(c.ACL.Enabled),
+		ACLsEnabled:            b.boolVal(c.ACL.Enabled),
 		ACLAgentMasterToken:    b.stringValWithDefault(c.ACL.Tokens.AgentMaster, b.stringVal(c.ACLAgentMasterToken)),
 		ACLAgentToken:          b.stringValWithDefault(c.ACL.Tokens.Agent, b.stringVal(c.ACLAgentToken)),
 		ACLDatacenter:          strings.ToLower(b.stringVal(c.ACLDatacenter)),

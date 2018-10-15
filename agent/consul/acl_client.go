@@ -11,17 +11,18 @@ import (
 )
 
 var clientACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
-	// TODO (ACL-V2) - Is 1024 enough? If more are needed that means there
-	//   are more than 1024 identities/tokens being used on a single client agent
+	// The ACL cache configuration on client agents is more conservative than
+	// on the servers. It is assumed that individual client agents will have
+	// fewer distinct identities accessing the client than a server would
+	// and thus can put smaller limits on the amount of ACL caching done.
+	//
+	// Identities - number of identities/acl tokens that can be cached
 	Identities: 1024,
-	// TODO (ACL-V2) - 128 should be enough right? Will more than 128 unique
-	//   policies be in use on a single client agent?
+	// Policies - number of unparsed ACL policies that can be cached
 	Policies: 128,
-	// TODO (ACL-V2) - 128 should be enough right. Will any users have more
-	//   than 128 policies in-use for a single client agent?
+	// ParsedPolicies - number of parsed ACL policies that can be cached
 	ParsedPolicies: 128,
-	// TODO (ACL-V2) 256 should be enough right? Will any users have more
-	//   than 256 policy combinations in-use on a single client agent.
+	// Authorizers - number of compiled multi-policy effective policies that can be cached
 	Authorizers: 256,
 }
 
@@ -70,8 +71,10 @@ func (c *Client) ACLDatacenter(legacy bool) string {
 	// For resolution running on clients, when not in
 	// legacy mode the servers within the current datacenter
 	// must be queried first to pick up local tokens. When
-	// in legacy mode the clients can directly query the ACL Datacenter
-	if legacy {
+	// in legacy mode the clients should directly query the
+	// ACL Datacenter. When no ACL datacenter has been set
+	// then we assume that the local DC is the ACL DC
+	if legacy && c.config.ACLDatacenter != "" {
 		return c.config.ACLDatacenter
 	}
 
@@ -79,8 +82,9 @@ func (c *Client) ACLDatacenter(legacy bool) string {
 }
 
 func (c *Client) ACLsEnabled() bool {
-	// TODO (ACL-V2) implement full check
-	if len(c.config.ACLDatacenter) > 0 {
+	// ACLs are enabled if a primary datacenter is set or if
+	// the acl.enabled configuration entry is set.
+	if len(c.config.ACLDatacenter) > 0 || c.config.ACLsEnabled {
 		return true
 	}
 

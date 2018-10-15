@@ -218,7 +218,7 @@ type Config struct {
 	Build string
 
 	// ACLEnabled is used to enable ACLs
-	ACLEnabled bool
+	ACLsEnabled bool
 
 	// ACLEnforceVersion8 is used to gate a set of ACL policy features that
 	// are opt-in prior to Consul 0.8 and opt-out in Consul 0.8 and later.

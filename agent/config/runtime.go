@@ -56,10 +56,10 @@ type RuntimeConfig struct {
 	// hcl: acl.disabled_ttl = "duration"
 	ACLDisabledTTL time.Duration
 
-	// ACLEnabled is used to determine whether ACLs should be enabled
+	// ACLsEnabled is used to determine whether ACLs should be enabled
 	//
 	// hcl: acl.enabled = boolean
-	ACLEnabled bool
+	ACLsEnabled bool
 
 	// ACLAgentMasterToken is a special token that has full read and write
 	// privileges for this agent, and can be used to call agent endpoints
