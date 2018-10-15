@@ -149,12 +149,21 @@ func (c *cmd) Synopsis() string {
 }
 
 func (c *cmd) Help() string {
-	return flags.Usage(help, nil)
+	return flags.Usage(c.help, nil)
 }
 
 const synopsis = "Update an ACL Token"
 const help = `
 Usage: consul acl token update [options]
 
-  Need more help usage
+	This command will update a token. Some parts such as marking the token local
+	cannot be changed.
+
+	Update a token description and take the policies from the existing token:
+
+		$ consul acl token update -id abcd -description "replication" -merge-policies
+
+  	Update all editable fields of the token:
+
+  		$ consul acl token update -id abcd -description "replication" -policy-name "token-replication"
 `
