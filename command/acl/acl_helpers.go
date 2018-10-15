@@ -15,7 +15,7 @@ func PrintToken(token *api.ACLToken, ui cli.Ui, showMeta bool) {
 	ui.Info(fmt.Sprintf("Local:        %t", token.Local))
 	ui.Info(fmt.Sprintf("Create Time:  %v", token.CreateTime))
 	if showMeta {
-		ui.Info(fmt.Sprintf("Hash:         %d", token.Hash))
+		ui.Info(fmt.Sprintf("Hash:         %x", token.Hash))
 		ui.Info(fmt.Sprintf("Create Index: %d", token.CreateIndex))
 		ui.Info(fmt.Sprintf("Modify Index: %d", token.ModifyIndex))
 	}
@@ -36,7 +36,7 @@ func PrintTokenListEntry(token *api.ACLTokenListEntry, ui cli.Ui, showMeta bool)
 	ui.Info(fmt.Sprintf("Create Time:  %v", token.CreateTime))
 	ui.Info(fmt.Sprintf("Legacy:       %t", token.Legacy))
 	if showMeta {
-		ui.Info(fmt.Sprintf("Hash:         %d", token.Hash))
+		ui.Info(fmt.Sprintf("Hash:         %x", token.Hash))
 		ui.Info(fmt.Sprintf("Create Index: %d", token.CreateIndex))
 		ui.Info(fmt.Sprintf("Modify Index: %d", token.ModifyIndex))
 	}
@@ -52,7 +52,7 @@ func PrintPolicy(policy *api.ACLPolicy, ui cli.Ui, showMeta bool) {
 	ui.Info(fmt.Sprintf("Description:  %s", policy.Description))
 	ui.Info(fmt.Sprintf("Datacenters:  %s", strings.Join(policy.Datacenters, ", ")))
 	if showMeta {
-		ui.Info(fmt.Sprintf("Hash:         %d", policy.Hash))
+		ui.Info(fmt.Sprintf("Hash:         %x", policy.Hash))
 		ui.Info(fmt.Sprintf("Create Index: %d", policy.CreateIndex))
 		ui.Info(fmt.Sprintf("Modify Index: %d", policy.ModifyIndex))
 	}
@@ -66,7 +66,7 @@ func PrintPolicyListEntry(policy *api.ACLPolicyListEntry, ui cli.Ui, showMeta bo
 	ui.Info(fmt.Sprintf("   Description:  %s", policy.Description))
 	ui.Info(fmt.Sprintf("   Datacenters:  %s", strings.Join(policy.Datacenters, ", ")))
 	if showMeta {
-		ui.Info(fmt.Sprintf("   Hash:         %s", policy.Hash))
+		ui.Info(fmt.Sprintf("   Hash:         %x", policy.Hash))
 		ui.Info(fmt.Sprintf("   Create Index: %s", policy.CreateIndex))
 		ui.Info(fmt.Sprintf("   Modify Index: %s", policy.ModifyIndex))
 	}

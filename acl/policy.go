@@ -4,13 +4,12 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"hash/fnv"
-	"strconv"
 
 	"github.com/hashicorp/consul/sentinel"
 	"github.com/hashicorp/hcl"
 	"github.com/hashicorp/hcl/hcl/ast"
 	hclprinter "github.com/hashicorp/hcl/hcl/printer"
+	"golang.org/x/crypto/blake2b"
 )
 
 type SyntaxVersion int
@@ -480,19 +479,16 @@ func takesPrecedenceOver(a, b string) bool {
 	return false
 }
 
-func multiPolicyID(policies []*Policy) uint64 {
-	var id uint64
-	hasher := fnv.New64a()
-
-	for _, policy := range policies {
-		hasher.Reset()
-		binary.Write(hasher, binary.LittleEndian, policy.Revision)
-		hasher.Write([]byte(policy.ID))
-
-		id = id ^ hasher.Sum64()
+func multiPolicyID(policies []*Policy) []byte {
+	cacheKeyHash, err := blake2b.New256(nil)
+	if err != nil {
+		panic(err)
 	}
-
-	return id
+	for _, policy := range policies {
+		cacheKeyHash.Write([]byte(policy.ID))
+		binary.Write(cacheKeyHash, binary.BigEndian, policy.Revision)
+	}
+	return cacheKeyHash.Sum(nil)
 }
 
 // MergePolicies merges multiple ACL policies into one policy
@@ -766,7 +762,7 @@ func MergePolicies(policies []*Policy) *Policy {
 		merged.SessionPrefixes = append(merged.SessionPrefixes, policy)
 	}
 
-	merged.ID = strconv.FormatUint(multiPolicyID(policies), 16)
+	merged.ID = fmt.Sprintf("%x", multiPolicyID(policies))
 
 	return merged
 }

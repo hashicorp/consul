@@ -1,6 +1,7 @@
 package structs
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"hash/fnv"
@@ -10,7 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/sentinel"
-	"github.com/mitchellh/hashstructure"
+	"golang.org/x/crypto/blake2b"
 )
 
 type ACLMode string
@@ -127,7 +128,7 @@ type ACLToken struct {
 	// List of policy links - nil/empty for legacy tokens
 	// Note this is the list of IDs and not the names. Prior to token creation
 	// the list of policy names gets validated and the policy IDs get stored herein
-	Policies []ACLTokenPolicyLink `hash:"set"`
+	Policies []ACLTokenPolicyLink
 
 	// Type is the V1 Token Type
 	// DEPRECATED (ACL-Legacy-Compat) - remove once we no longer support v1 ACL compat
@@ -145,17 +146,17 @@ type ACLToken struct {
 	Local bool
 
 	// The time when this token was created
-	CreateTime time.Time `json:",omitempty" hash:"ignore"`
+	CreateTime time.Time `json:",omitempty"`
 
 	// Hash of the contents of the token
 	//
 	// This is needed mainly for replication purposes. When replicating from
 	// one DC to another keeping the content Hash will allow us to avoid
 	// unnecessary calls to the authoritative DC
-	Hash uint64 `hash:"ignore"`
+	Hash []byte
 
 	// Embedded Raft Metadata
-	RaftIndex `hash:"ignore"`
+	RaftIndex
 }
 
 func (t *ACLToken) ID() string {
@@ -207,9 +208,34 @@ func (t *ACLToken) IsManagement() bool {
 	return t.Type == ACLTokenTypeManagement && len(t.Policies) == 0
 }
 
-func (t *ACLToken) SetHash(force bool) uint64 {
-	if force || t.Hash == 0 {
-		t.Hash, _ = hashstructure.Hash(t, nil)
+func (t *ACLToken) SetHash(force bool) []byte {
+	if force || t.Hash == nil {
+		// Initialize a 256bit Blake2 hash (32 bytes)
+		hash, err := blake2b.New256(nil)
+		if err != nil {
+			panic(err)
+		}
+
+		// Write all the user set fields
+		hash.Write([]byte(t.Description))
+		hash.Write([]byte(t.Type))
+		hash.Write([]byte(t.Rules))
+
+		if t.Local {
+			hash.Write([]byte("local"))
+		} else {
+			hash.Write([]byte("global"))
+		}
+
+		for _, link := range t.Policies {
+			hash.Write([]byte(link.ID))
+		}
+
+		// Finalize the hash
+		hashVal := hash.Sum(nil)
+
+		// Set and return the hash
+		t.Hash = hashVal
 	}
 	return t.Hash
 }
@@ -232,7 +258,7 @@ type ACLTokenListStub struct {
 	Policies    []ACLTokenPolicyLink
 	Local       bool
 	CreateTime  time.Time `json:",omitempty"`
-	Hash        uint64
+	Hash        []byte
 	CreateIndex uint64
 	ModifyIndex uint64
 	Legacy      bool `json:",omitempty"`
@@ -293,7 +319,7 @@ func (token *ACLToken) IsSame(other *ACLToken) bool {
 
 type ACLPolicy struct {
 	// This is the internal UUID associated with the policy
-	ID string `hash:"ignore"`
+	ID string
 
 	// Unique name to reference the policy by.
 	//   - Valid Characters: [a-zA-Z0-9-]
@@ -312,7 +338,7 @@ type ACLPolicy struct {
 	// Datacenters that the policy is valid within.
 	//   - No wildcards allowed
 	//   - If empty then the policy is valid within all datacenters
-	Datacenters []string `json:",omitempty" hash:"set"`
+	Datacenters []string `json:",omitempty"`
 
 	// Hash of the contents of the policy
 	// This does not take into account the ID (which is immutable)
@@ -321,7 +347,7 @@ type ACLPolicy struct {
 	// This is needed mainly for replication purposes. When replicating from
 	// one DC to another keeping the content Hash will allow us to avoid
 	// unnecessary calls to the authoritative DC
-	Hash uint64 `hash:"ignore"`
+	Hash []byte
 
 	// Embedded Raft Metadata
 	RaftIndex `hash:"ignore"`
@@ -332,7 +358,7 @@ type ACLPolicyListStub struct {
 	Name        string
 	Description string
 	Datacenters []string
-	Hash        uint64
+	Hash        []byte
 	CreateIndex uint64
 	ModifyIndex uint64
 }
@@ -370,9 +396,27 @@ func (policy *ACLPolicy) IsSame(other *ACLPolicy) bool {
 	return true
 }
 
-func (p *ACLPolicy) SetHash(force bool) uint64 {
-	if force || p.Hash == 0 {
-		p.Hash, _ = hashstructure.Hash(p, nil)
+func (p *ACLPolicy) SetHash(force bool) []byte {
+	if force || p.Hash == nil {
+		// Initialize a 256bit Blake2 hash (32 bytes)
+		hash, err := blake2b.New256(nil)
+		if err != nil {
+			panic(err)
+		}
+
+		// Write all the user set fields
+		hash.Write([]byte(p.Name))
+		hash.Write([]byte(p.Description))
+		hash.Write([]byte(p.Rules))
+		for _, dc := range p.Datacenters {
+			hash.Write([]byte(dc))
+		}
+
+		// Finalize the hash
+		hashVal := hash.Sum(nil)
+
+		// Set and return the hash
+		p.Hash = hashVal
 	}
 	return p.Hash
 }
@@ -425,21 +469,17 @@ func (p *ACLPolicy) EstimateSize() int {
 	return size
 }
 
-func (policies ACLPolicies) HashKey() uint64 {
-	var key uint64
-
-	// Not just using hashstructure.Hash on the policies slice because it
-	// will perform an ordered hash. Instead the xor is what hashstructure
-	// would do if the policies slice was in a struct and the struct field
-	// were tagged like `hash:"set"`
-	//
-	// Also if we have computed the hash of the policies previously we
-	// will not recompute the hash.
-	for _, policy := range policies {
-		policy.SetHash(false)
-		key = key ^ policy.Hash
+// ACLPolicyListHash returns a consistent hash for a set of policies.
+func (policies ACLPolicies) HashKey() string {
+	cacheKeyHash, err := blake2b.New256(nil)
+	if err != nil {
+		panic(err)
 	}
-	return key
+	for _, policy := range policies {
+		cacheKeyHash.Write([]byte(policy.ID))
+		binary.Write(cacheKeyHash, binary.BigEndian, policy.ModifyIndex)
+	}
+	return fmt.Sprintf("%x", cacheKeyHash.Sum(nil))
 }
 
 func (policies ACLPolicies) Sort() {
@@ -459,7 +499,8 @@ func (policies ACLPolicies) resolveWithCache(cache *ACLCaches, sentinel sentinel
 	parsed := make([]*acl.Policy, 0, len(policies))
 	for _, policy := range policies {
 		policy.SetHash(false)
-		cachedPolicy := cache.GetParsedPolicy(policy.Hash)
+		cacheKey := fmt.Sprintf("%x", policy.Hash)
+		cachedPolicy := cache.GetParsedPolicy(cacheKey)
 		if cachedPolicy != nil {
 			// policies are content hashed so no need to check the age
 			parsed = append(parsed, cachedPolicy.Policy)
@@ -471,7 +512,7 @@ func (policies ACLPolicies) resolveWithCache(cache *ACLCaches, sentinel sentinel
 			return nil, fmt.Errorf("failed to parse %q: %v", policy.Name, err)
 		}
 
-		cache.PutParsedPolicy(policy.Hash, p)
+		cache.PutParsedPolicy(cacheKey, p)
 		parsed = append(parsed, p)
 	}
 

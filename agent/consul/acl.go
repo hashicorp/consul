@@ -2,7 +2,6 @@ package consul
 
 import (
 	"fmt"
-	"hash/fnv"
 	"log"
 	"os"
 	"sync"
@@ -94,12 +93,6 @@ type remoteACLPolicyResult struct {
 	err    error
 }
 
-func tokenHashKey(token string) uint64 {
-	hasher := fnv.New64a()
-	hasher.Write([]byte(token))
-	return hasher.Sum64()
-}
-
 type ACLResolver struct {
 	config *Config
 	logger *log.Logger
@@ -153,7 +146,7 @@ func NewACLResolver(config *Config, delegate ACLResolverDelegate, cacheConfig *s
 
 func (r *ACLResolver) fireAsyncLegacyResult(token string, authorizer acl.Authorizer, err error) {
 	// cache the result: positive or negative
-	r.cache.PutAuthorizer(tokenHashKey(token), authorizer)
+	r.cache.PutAuthorizer(token, authorizer)
 
 	// get the list of channels to send the result to
 	r.asyncLegacyMutex.Lock()
@@ -231,8 +224,7 @@ func (r *ACLResolver) resolveTokenLegacy(token string) (acl.Authorizer, error) {
 	}
 
 	// Look in the cache prior to making a RPC request
-	cacheKey := tokenHashKey(token)
-	entry := r.cache.GetAuthorizer(cacheKey)
+	entry := r.cache.GetAuthorizer(token)
 
 	if entry != nil && entry.Age() <= r.config.ACLTokenTTL {
 		metrics.IncrCounter([]string{"acl", "token", "cache_hit"}, 1)

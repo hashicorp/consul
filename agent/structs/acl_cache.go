@@ -128,7 +128,7 @@ func (c *ACLCaches) GetPolicy(policyID string) *PolicyCacheEntry {
 }
 
 // GetPolicy fetches a policy from the cache and returns it
-func (c *ACLCaches) GetParsedPolicy(id uint64) *ParsedPolicyCacheEntry {
+func (c *ACLCaches) GetParsedPolicy(id string) *ParsedPolicyCacheEntry {
 	if c == nil || c.parsedPolicies == nil {
 		return nil
 	}
@@ -141,7 +141,7 @@ func (c *ACLCaches) GetParsedPolicy(id uint64) *ParsedPolicyCacheEntry {
 }
 
 // GetAuthorizer fetches a acl from the cache and returns it
-func (c *ACLCaches) GetAuthorizer(id uint64) *AuthorizerCacheEntry {
+func (c *ACLCaches) GetAuthorizer(id string) *AuthorizerCacheEntry {
 	if c == nil || c.authorizers == nil {
 		return nil
 	}
@@ -170,7 +170,7 @@ func (c *ACLCaches) PutPolicy(policyId string, policy *ACLPolicy) {
 	c.policies.Add(policyId, &PolicyCacheEntry{Policy: policy, CacheTime: time.Now()})
 }
 
-func (c *ACLCaches) PutParsedPolicy(id uint64, policy *acl.Policy) {
+func (c *ACLCaches) PutParsedPolicy(id string, policy *acl.Policy) {
 	if c == nil || c.parsedPolicies == nil {
 		return
 	}
@@ -178,7 +178,7 @@ func (c *ACLCaches) PutParsedPolicy(id uint64, policy *acl.Policy) {
 	c.parsedPolicies.Add(id, &ParsedPolicyCacheEntry{Policy: policy, CacheTime: time.Now()})
 }
 
-func (c *ACLCaches) PutAuthorizer(id uint64, authorizer acl.Authorizer) {
+func (c *ACLCaches) PutAuthorizer(id string, authorizer acl.Authorizer) {
 	if c == nil || c.authorizers == nil {
 		return
 	}

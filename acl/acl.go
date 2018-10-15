@@ -38,7 +38,7 @@ func init() {
 	}
 }
 
-// ACL is the interface for policy enforcement.
+// Authorizer is the interface for policy enforcement.
 type Authorizer interface {
 	// ACLRead checks for permission to list all the ACLs
 	ACLRead() bool
@@ -406,7 +406,7 @@ func enforce(rule string, requiredPermission string) (allow, recurse bool) {
 	}
 }
 
-// New is used to construct a policy based ACL from a set of policies
+// NewPolicyAuthorizer is used to construct a policy based ACL from a set of policies
 // and a parent policy to resolve missing cases.
 func NewPolicyAuthorizer(parent Authorizer, policies []*Policy, sentinel sentinel.Evaluator) (*PolicyAuthorizer, error) {
 	p := &PolicyAuthorizer{
@@ -728,11 +728,19 @@ func (p *PolicyAuthorizer) KeyWrite(key string, scope sentinel.ScopeFn) bool {
 }
 
 // KeyWritePrefix returns if a prefix is allowed to be written
+//
+// This is mainly used to detect whether a whole tree within
+// the KV can be removed. For that reason we must be able to
+// delete everything under the prefix. First we must have "write"
+// on the prefix itself
 func (p *PolicyAuthorizer) KeyWritePrefix(prefix string) bool {
 	// Look for a matching rule that denies
 	prefixAllowed := true
 	found := false
 
+	// Look for a prefix rule that would apply to the prefix we are checking
+	// WalkPath starts at the root and walks down to the given prefix.
+	// Therefore the last prefix rule we see is the one that matters
 	p.keyRules.WalkPath(prefix, func(path string, leaf interface{}) bool {
 		rule := leaf.(*policyAuthorizerRadixLeaf)
 
@@ -751,7 +759,8 @@ func (p *PolicyAuthorizer) KeyWritePrefix(prefix string) bool {
 		return false
 	}
 
-	// Look if any of our children have a deny policy
+	// Look if any of our children do not allow write access. This loop takes
+	// into account both prefix and exact match rules.
 	deny := false
 	p.keyRules.WalkPrefix(prefix, func(path string, leaf interface{}) bool {
 		found = true
