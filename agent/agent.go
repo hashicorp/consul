@@ -516,12 +516,10 @@ func (a *Agent) listenAndServeGRPC() error {
 	}
 
 	a.xdsServer = &xds.Server{
-		Logger: a.logger,
-		CfgMgr: a.proxyConfig,
-		Authz:  a,
-		ResolveToken: func(id string) (acl.ACL, error) {
-			return a.resolveToken(id)
-		},
+		Logger:       a.logger,
+		CfgMgr:       a.proxyConfig,
+		Authz:        a,
+		ResolveToken: a.resolveToken,
 	}
 	var err error
 	a.grpcServer, err = a.xdsServer.GRPCServer(a.config.CertFile, a.config.KeyFile)
