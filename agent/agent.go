@@ -881,6 +881,7 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	// todo(fs): these are now always set in the runtime config so we can simplify this
 	// todo(fs): or is there a reason to keep it like that?
 	base.Datacenter = a.config.Datacenter
+	base.PrimaryDatacenter = a.config.PrimaryDatacenter
 	base.DataDir = a.config.DataDir
 	base.NodeName = a.config.NodeName
 
@@ -1054,6 +1055,7 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	// Copy the Connect CA bootstrap config
 	if a.config.ConnectEnabled {
 		base.ConnectEnabled = true
+		base.ConnectReplicationToken = a.config.ConnectReplicationToken
 
 		// Allow config to specify cluster_id provided it's a valid UUID. This is
 		// meant only for tests where a deterministic ID makes fixtures much simpler
