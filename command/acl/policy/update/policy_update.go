@@ -161,5 +161,17 @@ const synopsis = "Update an ACL Policy"
 const help = `
 Usage: consul acl policy update [options]
 
-  Need more help usage
+  Updates a policy. By default it will merge the policy information with its
+  current state so that you do not have to provide all parameters. This
+  behavior can be disabled by passing -no-merge.
+
+  Rename the Policy:
+
+  		$ consul acl policy update -id abcd -name "better-name"
+
+  Override all policy attributes:
+
+  		# this will remove any datacenter scope if provided and will remove
+  		# the description
+  		$consul acl policy update -id abcd -name "better-name" -rules @rules.hcl
 `
