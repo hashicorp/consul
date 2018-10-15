@@ -5,6 +5,7 @@ Feature: dc / acls / tokens / policies: Add new
     And 1 token model from yaml
     ---
       AccessorID: key
+      Description: The Description
       Policies: ~
     ---
     When I visit the token page for yaml
@@ -27,6 +28,17 @@ Feature: dc / acls / tokens / policies: Add new
       Description: New Description
       Rules: rules here
     ---
+    And I submit
+    Then a PUT request is made to "/v1/acl/token/key?dc=datacenter" with the body from yaml
+    ---
+      Description: The Description
+      Policies:
+      - Name: New Policy
+        ID: ee52203d-989f-4f7a-ab5a-2bef004164ca
+    ---
+    Then the url should be /datacenter/acls/tokens
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "success" class
 @pending:
   Scenario: Click the cancel form
     Then ok

@@ -61,15 +61,8 @@ export default SingleRoute.extend(WithTokenActions, {
     },
     // adding an already existing policy
     // also called after a createPolicy
-    addPolicy: function(item, now = new Date().getTime()) {
+    addPolicy: function(item) {
       const controller = get(this, 'controller');
-      // abuse CreateTime to get the ordering so the most recently
-      // added policy is at the top
-      // CreateTime is never sent back to the server
-      set(item, 'CreateTime', now);
-      if (!get(item, 'ID')) {
-        set(item, 'ID', get(item, 'CreateTime'));
-      }
       get(controller, 'item.Policies').pushObject(item);
       return item;
     },
