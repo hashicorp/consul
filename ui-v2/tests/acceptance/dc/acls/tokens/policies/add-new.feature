@@ -17,14 +17,14 @@ Feature: dc / acls / tokens / policies: Add new
     And I click newPolicy
     Then I fill in the policy form with yaml
     ---
-      Name: New Policy
+      Name: New-Policy
       Description: New Description
       Rules: key {}
     ---
     And I click submit on the policyForm
     Then the last PUT request was made to "/v1/acl/policy?dc=datacenter" with the body from yaml
     ---
-      Name: New Policy
+      Name: New-Policy
       Description: New Description
       Rules: key {}
     ---
@@ -33,7 +33,7 @@ Feature: dc / acls / tokens / policies: Add new
     ---
       Description: The Description
       Policies:
-        - Name: New Policy
+        - Name: New-Policy
           ID: ee52203d-989f-4f7a-ab5a-2bef004164ca-1
     ---
     Then the url should be /datacenter/acls/tokens
