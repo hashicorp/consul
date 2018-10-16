@@ -90,24 +90,30 @@ func (s *Server) monitorLeadership() {
 				s.logger.Printf("[INFO] consul: cluster leadership lost")
 			}
 		case <-aclUpgradeCh:
-			aclModeCheckWait = aclModeCheckWait * 2
-			if aclModeCheckWait > aclModeCheckMaxInterval {
-				aclModeCheckWait = aclModeCheckMaxInterval
-			}
-			aclUpgradeCh = time.After(aclModeCheckWait)
-
-			if canUpgrade := s.canUpgradeToNewACLs(weAreLeaderCh != nil); canUpgrade {
-				if weAreLeaderCh != nil {
-					if err := s.initializeACLs(true); err != nil {
-						s.logger.Printf("[ERR] consul: error transitioning to using new ACLs: %v", err)
-						continue
-					}
+			if atomic.LoadInt32(&s.useNewACLs) == 0 {
+				aclModeCheckWait = aclModeCheckWait * 2
+				if aclModeCheckWait > aclModeCheckMaxInterval {
+					aclModeCheckWait = aclModeCheckMaxInterval
 				}
+				aclUpgradeCh = time.After(aclModeCheckWait)
 
-				s.logger.Printf("[DEBUG] acl: transitioning out of legacy ACL mode")
-				atomic.StoreInt32(&s.useNewACLs, 1)
-				s.updateACLAdvertisement()
-				// setting this to nil ensures that we will never hit this case again
+				if canUpgrade := s.canUpgradeToNewACLs(weAreLeaderCh != nil); canUpgrade {
+					if weAreLeaderCh != nil {
+						if err := s.initializeACLs(true); err != nil {
+							s.logger.Printf("[ERR] consul: error transitioning to using new ACLs: %v", err)
+							continue
+						}
+					}
+
+					s.logger.Printf("[DEBUG] acl: transitioning out of legacy ACL mode")
+					atomic.StoreInt32(&s.useNewACLs, 1)
+					s.updateACLAdvertisement()
+
+					// setting this to nil ensures that we will never hit this case again
+					aclUpgradeCh = nil
+				}
+			} else {
+				// establishLeadership probably transitioned us
 				aclUpgradeCh = nil
 			}
 		case <-s.shutdownCh:
@@ -223,6 +229,18 @@ WAIT:
 // previously inflight transactions have been committed and that our
 // state is up-to-date.
 func (s *Server) establishLeadership() error {
+	// check for the upgrade here - this helps us transition to new ACLs much
+	// quicker if this is a new cluster or this is a test agent
+	if canUpgrade := s.canUpgradeToNewACLs(true); canUpgrade {
+		if err := s.initializeACLs(true); err != nil {
+			return err
+		}
+		atomic.StoreInt32(&s.useNewACLs, 1)
+		s.updateACLAdvertisement()
+	} else if err := s.initializeACLs(false); err != nil {
+		return err
+	}
+
 	// This will create the anonymous token and master token (if that is
 	// configured).
 	if err := s.initializeACLs(false); err != nil {

@@ -70,6 +70,11 @@ func (s *Server) updateACLAdvertisement() {
 }
 
 func (s *Server) canUpgradeToNewACLs(isLeader bool) bool {
+	if atomic.LoadInt32(&s.useNewACLs) != 0 {
+		// can't upgrade because we are already upgraded
+		return false
+	}
+
 	if !s.InACLDatacenter() {
 		mode, _ := ServersGetACLMode(s.WANMembers(), "", s.config.ACLDatacenter)
 		if mode != structs.ACLModeEnabled {
