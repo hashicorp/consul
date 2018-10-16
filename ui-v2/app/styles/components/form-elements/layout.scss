@@ -10,6 +10,9 @@
 %form-element textarea {
   display: block;
 }
+%form-element a {
+  display: inline;
+}
 %form-element > em > code {
   display: inline-block;
 }

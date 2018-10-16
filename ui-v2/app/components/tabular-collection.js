@@ -135,12 +135,13 @@ export default Component.extend(SlotsMixin, WithResizing, {
     };
   }),
   resize: function(e) {
-    const $tbody = [...$$('tbody', this.element)][0];
+    const $tbody = this.element;
     const $appContent = [...$$('main > div')][0];
     if ($appContent) {
+      const border = 1;
       const rect = $tbody.getBoundingClientRect();
       const $footer = [...$$('footer[role="contentinfo"]')][0];
-      const space = rect.top + $footer.clientHeight;
+      const space = rect.top + $footer.clientHeight + border;
       const height = e.detail.height - space;
       this.set('height', Math.max(0, height));
       // TODO: The row height should auto calculate properly from the CSS
