@@ -15,6 +15,16 @@ import (
 // clients. Some of the enforcement is normative (e.g. self and monitor)
 // and some is informative (e.g. catalog and health).
 func (a *Agent) resolveToken(id string) (acl.Authorizer, error) {
+	// ACLs are disabled
+	if !a.delegate.ACLsEnabled() {
+		return nil, nil
+	}
+
+	// Disable ACLs if version 8 enforcement isn't enabled.
+	if !a.config.ACLEnforceVersion8 {
+		return nil, nil
+	}
+
 	if a.tokens.IsAgentMasterToken(id) {
 		return a.aclMasterAuthorizer, nil
 	}
