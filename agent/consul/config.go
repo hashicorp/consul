@@ -268,12 +268,14 @@ type Config struct {
 	// "allow" can be used to allow all requests. This is not recommended.
 	ACLDownPolicy string
 
-	// ACLReplicationInterval is the interval at which replication passes
-	// will occur. Queries to the ACLDatacenter may block, so replication
-	// can happen less often than this, but the interval forms the upper
-	// limit to how fast we will go if there was constant ACL churn on the
-	// remote end.
-	ACLReplicationInterval time.Duration
+	// ACLReplicationRate is the max number of replication rounds that can
+	// be run per second. Note that either 1 or 2 RPCs are used during each replication
+	// round
+	ACLReplicationRate int
+
+	// ACLReplicationBurst is how many replication RPCs can be bursted after a
+	// period of idleness
+	ACLReplicationBurst int
 
 	// ACLReplicationApplyLimit is the max number of replication-related
 	// apply operations that we allow during a one second period. This is
@@ -431,7 +433,8 @@ func DefaultConfig() *Config {
 		ACLTokenTTL:              30 * time.Second,
 		ACLDefaultPolicy:         "allow",
 		ACLDownPolicy:            "extend-cache",
-		ACLReplicationInterval:   30 * time.Second,
+		ACLReplicationRate:       1,
+		ACLReplicationBurst:      5,
 		ACLReplicationApplyLimit: 100, // ops / sec
 		TombstoneTTL:             15 * time.Minute,
 		TombstoneTTLGranularity:  30 * time.Second,

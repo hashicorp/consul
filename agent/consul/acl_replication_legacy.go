@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"time"
@@ -175,7 +176,7 @@ func (s *Server) fetchRemoteLegacyACLs(lastRemoteIndex uint64) (*structs.Indexed
 
 // UpdateLocalACLs is given a list of changes to apply in order to bring the
 // local ACLs in-line with the remote ACLs from the ACL datacenter.
-func (s *Server) updateLocalLegacyACLs(changes structs.ACLRequests, stopCh <-chan struct{}) (bool, error) {
+func (s *Server) updateLocalLegacyACLs(changes structs.ACLRequests, ctx context.Context) (bool, error) {
 	defer metrics.MeasureSince([]string{"leader", "updateLocalACLs"}, time.Now())
 
 	minTimePerOp := time.Second / time.Duration(s.config.ACLReplicationApplyLimit)
@@ -199,7 +200,7 @@ func (s *Server) updateLocalLegacyACLs(changes structs.ACLRequests, stopCh <-cha
 		// time will be negative and we will just move on.
 		elapsed := time.Since(start)
 		select {
-		case <-stopCh:
+		case <-ctx.Done():
 			return true, nil
 		case <-time.After(minTimePerOp - elapsed):
 			// do nothing
@@ -212,7 +213,7 @@ func (s *Server) updateLocalLegacyACLs(changes structs.ACLRequests, stopCh <-cha
 // a remote ACL datacenter to local state. If there's any error, this will return
 // 0 for the lastRemoteIndex, which will cause us to immediately do a full sync
 // next time.
-func (s *Server) replicateLegacyACLs(lastRemoteIndex uint64, stopCh <-chan struct{}) (uint64, bool, error) {
+func (s *Server) replicateLegacyACLs(lastRemoteIndex uint64, ctx context.Context) (uint64, bool, error) {
 	remote, err := s.fetchRemoteLegacyACLs(lastRemoteIndex)
 	if err != nil {
 		return 0, false, fmt.Errorf("failed to retrieve remote ACLs: %v", err)
@@ -222,7 +223,7 @@ func (s *Server) replicateLegacyACLs(lastRemoteIndex uint64, stopCh <-chan struc
 	// RPC which could have been hanging around for a long time and during that time leadership could
 	// have been lost.
 	select {
-	case <-stopCh:
+	case <-ctx.Done():
 		return 0, true, nil
 	default:
 		// do nothing
@@ -249,7 +250,7 @@ func (s *Server) replicateLegacyACLs(lastRemoteIndex uint64, stopCh <-chan struc
 	// Calculate the changes required to bring the state into sync and then
 	// apply them.
 	changes := reconcileLegacyACLs(local, remote.ACLs, lastRemoteIndex)
-	exit, err := s.updateLocalLegacyACLs(changes, stopCh)
+	exit, err := s.updateLocalLegacyACLs(changes, ctx)
 	if exit {
 		return 0, true, nil
 	}

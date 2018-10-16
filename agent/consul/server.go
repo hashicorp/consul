@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -96,15 +97,15 @@ type Server struct {
 	// acls is used to resolve tokens to effective policies
 	acls *ACLResolver
 
-	// aclUpgradeCh is used to shut down the ACL upgrade goroutine when we
+	// aclUpgradeCancel is used to cancel the ACL upgrade goroutine when we
 	// lose leadership
-	aclUpgradeCh      chan struct{}
+	aclUpgradeCancel  context.CancelFunc
 	aclUpgradeLock    sync.RWMutex
 	aclUpgradeEnabled bool
 
-	// aclReplicationCh is used to shut down the ACL replication goroutine
+	// aclReplicationCancel is used to shut down the ACL replication goroutine
 	// when we lose leadership
-	aclReplicationCh      chan struct{}
+	aclReplicationCancel  context.CancelFunc
 	aclReplicationLock    sync.RWMutex
 	aclReplicationEnabled bool
 

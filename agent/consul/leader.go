@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"strconv"
@@ -553,70 +554,70 @@ func (s *Server) startACLUpgrade() {
 		return
 	}
 
-	s.aclUpgradeCh = make(chan struct{})
+	ctx, cancel := context.WithCancel(context.Background())
+	s.aclUpgradeCancel = cancel
 
 	go func() {
-		// TODO (ACL-V2) - rate limit the upgrade process
+		limiter := rate.NewLimiter(aclUpgradeRateLimit, int(aclUpgradeRateLimit))
 		for {
-			select {
-			case <-s.aclUpgradeCh:
+			if err := limiter.Wait(ctx); err != nil {
 				return
-			default:
-				// actually run the upgrade here
-				state := s.fsm.State()
-				tokens, waitCh, err := state.ACLTokenListUpgradeable(aclUpgradeBatchSize)
-				if err != nil {
-					s.logger.Printf("[WARN] acl: encountered an error while searching for tokens without accessor ids: %v", err)
-				}
+			}
 
-				if len(tokens) == 0 {
-					ws := memdb.NewWatchSet()
-					ws.Add(state.AbandonCh())
-					ws.Add(waitCh)
-					ws.Add(s.aclUpgradeCh)
+			// actually run the upgrade here
+			state := s.fsm.State()
+			tokens, waitCh, err := state.ACLTokenListUpgradeable(aclUpgradeBatchSize)
+			if err != nil {
+				s.logger.Printf("[WARN] acl: encountered an error while searching for tokens without accessor ids: %v", err)
+			}
 
-					// wait for more tokens to need upgrading or the aclUpgradeCh to be closed
-					ws.Watch(nil)
+			if len(tokens) == 0 {
+				ws := memdb.NewWatchSet()
+				ws.Add(state.AbandonCh())
+				ws.Add(waitCh)
+				ws.Add(ctx.Done())
+
+				// wait for more tokens to need upgrading or the aclUpgradeCh to be closed
+				ws.Watch(nil)
+				continue
+			}
+
+			var newTokens structs.ACLTokens
+			for _, token := range tokens {
+				// This should be entirely unnessary but is just a small safeguard against changing accessor IDs
+				if token.AccessorID != "" {
 					continue
 				}
 
-				var newTokens structs.ACLTokens
-				for _, token := range tokens {
-					// This should be entirely unnessary but is just a small safeguard against changing accessor IDs
-					if token.AccessorID != "" {
+				newToken := *token
+				if token.SecretID == anonymousToken {
+					newToken.AccessorID = structs.ACLTokenAnonymousID
+				} else {
+					accessor, err := lib.GenerateUUID(s.checkTokenUUID)
+					if err != nil {
+						s.logger.Printf("[WARN] acl: failed to generate accessor during token auto-upgrade: %v", err)
 						continue
 					}
-
-					newToken := *token
-					if token.SecretID == anonymousToken {
-						newToken.AccessorID = structs.ACLTokenAnonymousID
-					} else {
-						accessor, err := lib.GenerateUUID(s.checkTokenUUID)
-						if err != nil {
-							s.logger.Printf("[WARN] acl: failed to generate accessor during token auto-upgrade: %v", err)
-							continue
-						}
-						newToken.AccessorID = accessor
-					}
-
-					// Assign the global-management policy to legacy management tokens
-					if len(newToken.Policies) == 0 && newToken.Type == structs.ACLTokenTypeManagement {
-						newToken.Policies = append(newToken.Policies, structs.ACLTokenPolicyLink{ID: structs.ACLPolicyGlobalManagementID})
-					}
-
-					newTokens = append(newTokens, &newToken)
+					newToken.AccessorID = accessor
 				}
 
-				req := &structs.ACLTokenBatchUpsertRequest{Tokens: newTokens, AllowCreate: false}
-
-				resp, err := s.raftApply(structs.ACLTokenUpsertRequestType, req)
-				if err != nil {
-					s.logger.Printf("[ERR] acl: failed to apply acl token upgrade batch: %v", err)
+				// Assign the global-management policy to legacy management tokens
+				if len(newToken.Policies) == 0 && newToken.Type == structs.ACLTokenTypeManagement {
+					newToken.Policies = append(newToken.Policies, structs.ACLTokenPolicyLink{ID: structs.ACLPolicyGlobalManagementID})
 				}
 
-				if err, ok := resp.(error); ok {
-					s.logger.Printf("[ERR] acl: failed to apply acl token upgrade batch: %v", err)
-				}
+				newTokens = append(newTokens, &newToken)
+			}
+
+			req := &structs.ACLTokenBatchUpsertRequest{Tokens: newTokens, AllowCreate: false}
+
+			resp, err := s.raftApply(structs.ACLTokenUpsertRequestType, req)
+			if err != nil {
+				s.logger.Printf("[ERR] acl: failed to apply acl token upgrade batch: %v", err)
+			}
+
+			if err, ok := resp.(error); ok {
+				s.logger.Printf("[ERR] acl: failed to apply acl token upgrade batch: %v", err)
 			}
 		}
 	}()
@@ -632,7 +633,8 @@ func (s *Server) stopACLUpgrade() {
 		return
 	}
 
-	close(s.aclUpgradeCh)
+	s.aclUpgradeCancel()
+	s.aclUpgradeCancel = nil
 	s.aclUpgradeEnabled = false
 }
 
@@ -644,33 +646,39 @@ func (s *Server) startLegacyACLReplication() {
 		return
 	}
 
-	s.aclReplicationCh = make(chan struct{})
+	s.initReplicationStatus()
+	ctx, cancel := context.WithCancel(context.Background())
+	s.aclReplicationCancel = cancel
 
-	go func(stopCh <-chan struct{}) {
+	go func() {
 		var lastRemoteIndex uint64
+		limiter := rate.NewLimiter(rate.Limit(s.config.ACLReplicationRate), s.config.ACLReplicationBurst)
 
 		for {
-			select {
-			case <-stopCh:
+			if err := limiter.Wait(ctx); err != nil {
 				return
-			case <-time.After(s.config.ACLReplicationInterval):
-				index, exit, err := s.replicateLegacyACLs(lastRemoteIndex, stopCh)
-				if exit {
-					return
-				}
+			}
 
-				if err != nil {
-					lastRemoteIndex = 0
-					s.updateACLReplicationStatusError()
-					s.logger.Printf("[WARN] consul: Legacy ACL replication error (will retry if still leader): %v", err)
-				} else {
-					lastRemoteIndex = index
-					s.updateACLReplicationStatusIndex(index)
-					s.logger.Printf("[DEBUG] consul: Legacy ACL replication completed through remote index %d", index)
-				}
+			if s.tokens.ACLReplicationToken() == "" {
+				continue
+			}
+
+			index, exit, err := s.replicateLegacyACLs(lastRemoteIndex, ctx)
+			if exit {
+				return
+			}
+
+			if err != nil {
+				lastRemoteIndex = 0
+				s.updateACLReplicationStatusError()
+				s.logger.Printf("[WARN] consul: Legacy ACL replication error (will retry if still leader): %v", err)
+			} else {
+				lastRemoteIndex = index
+				s.updateACLReplicationStatusIndex(index)
+				s.logger.Printf("[DEBUG] consul: Legacy ACL replication completed through remote index %d", index)
 			}
 		}
-	}(s.aclReplicationCh)
+	}()
 
 	s.updateACLReplicationStatusRunning(structs.ACLReplicateLegacy)
 	s.aclReplicationEnabled = true
@@ -685,14 +693,14 @@ func (s *Server) startACLReplication() {
 	}
 
 	s.initReplicationStatus()
-	s.aclReplicationCh = make(chan struct{})
+	ctx, cancel := context.WithCancel(context.Background())
+	s.aclReplicationCancel = cancel
 
 	replicationType := structs.ACLReplicatePolicies
 
-	go func(stopCh <-chan struct{}) {
+	go func() {
 		var failedAttempts uint
-		limiter := rate.NewLimiter(aclReplicationRateLimit, int(aclReplicationRateLimit))
-		ctx := &lib.StopChannelContext{StopCh: stopCh}
+		limiter := rate.NewLimiter(rate.Limit(s.config.ACLReplicationRate), s.config.ACLReplicationBurst)
 
 		var lastRemoteIndex uint64
 		for {
@@ -700,7 +708,11 @@ func (s *Server) startACLReplication() {
 				return
 			}
 
-			index, exit, err := s.replicateACLPolicies(lastRemoteIndex, stopCh)
+			if s.tokens.ACLReplicationToken() == "" {
+				continue
+			}
+
+			index, exit, err := s.replicateACLPolicies(lastRemoteIndex, ctx)
 			if exit {
 				return
 			}
@@ -714,7 +726,7 @@ func (s *Server) startACLReplication() {
 				}
 
 				select {
-				case <-stopCh:
+				case <-ctx.Done():
 					return
 				case <-time.After((1 << failedAttempts) * time.Second):
 					// do nothing
@@ -726,24 +738,27 @@ func (s *Server) startACLReplication() {
 				failedAttempts = 0
 			}
 		}
-	}(s.aclReplicationCh)
+	}()
 
 	s.logger.Printf("[INFO] acl: started ACL Policy replication")
 
 	if s.config.ACLTokenReplication {
 		replicationType = structs.ACLReplicateTokens
 
-		go func(stopCh <-chan struct{}) {
+		go func() {
 			var failedAttempts uint
-			limiter := rate.NewLimiter(aclReplicationRateLimit, int(aclReplicationRateLimit))
-			ctx := &lib.StopChannelContext{StopCh: stopCh}
+			limiter := rate.NewLimiter(rate.Limit(s.config.ACLReplicationRate), s.config.ACLReplicationBurst)
 			var lastRemoteIndex uint64
 			for {
 				if err := limiter.Wait(ctx); err != nil {
 					return
 				}
 
-				index, exit, err := s.replicateACLTokens(lastRemoteIndex, stopCh)
+				if s.tokens.ACLReplicationToken() == "" {
+					continue
+				}
+
+				index, exit, err := s.replicateACLTokens(lastRemoteIndex, ctx)
 				if exit {
 					return
 				}
@@ -757,7 +772,7 @@ func (s *Server) startACLReplication() {
 					}
 
 					select {
-					case <-stopCh:
+					case <-ctx.Done():
 						return
 					case <-time.After((1 << failedAttempts) * time.Second):
 						// do nothing
@@ -769,7 +784,7 @@ func (s *Server) startACLReplication() {
 					failedAttempts = 0
 				}
 			}
-		}(s.aclReplicationCh)
+		}()
 
 		s.logger.Printf("[INFO] acl: started ACL Token replication")
 	}
@@ -787,10 +802,10 @@ func (s *Server) stopACLReplication() {
 		return
 	}
 
-	close(s.aclReplicationCh)
-	s.aclReplicationEnabled = false
-
+	s.aclReplicationCancel()
+	s.aclReplicationCancel = nil
 	s.updateACLReplicationStatusStopped()
+	s.aclReplicationEnabled = false
 }
 
 // getOrCreateAutopilotConfig is used to get the autopilot config, initializing it if necessary

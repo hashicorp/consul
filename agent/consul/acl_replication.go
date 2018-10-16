@@ -2,6 +2,7 @@ package consul
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"time"
 
@@ -62,7 +63,7 @@ func diffACLPolicies(local structs.ACLPolicies, remote structs.ACLPolicyListStub
 	return deletions, updates
 }
 
-func (s *Server) deleteLocalACLPolicies(deletions []string, stopCh <-chan struct{}) (bool, error) {
+func (s *Server) deleteLocalACLPolicies(deletions []string, ctx context.Context) (bool, error) {
 	ticker := time.NewTicker(time.Second / time.Duration(s.config.ACLReplicationApplyLimit))
 	defer ticker.Stop()
 
@@ -85,7 +86,7 @@ func (s *Server) deleteLocalACLPolicies(deletions []string, stopCh <-chan struct
 
 		if i+aclBatchDeleteSize < len(deletions) {
 			select {
-			case <-stopCh:
+			case <-ctx.Done():
 				return true, nil
 			case <-ticker.C:
 				// do nothing - ready for the next batch
@@ -96,7 +97,7 @@ func (s *Server) deleteLocalACLPolicies(deletions []string, stopCh <-chan struct
 	return false, nil
 }
 
-func (s *Server) updateLocalACLPolicies(policies structs.ACLPolicies, stopCh <-chan struct{}) (bool, error) {
+func (s *Server) updateLocalACLPolicies(policies structs.ACLPolicies, ctx context.Context) (bool, error) {
 	ticker := time.NewTicker(time.Second / time.Duration(s.config.ACLReplicationApplyLimit))
 	defer ticker.Stop()
 
@@ -128,7 +129,7 @@ func (s *Server) updateLocalACLPolicies(policies structs.ACLPolicies, stopCh <-c
 		// prevent waiting if we are done
 		if batchEnd < len(policies) {
 			select {
-			case <-stopCh:
+			case <-ctx.Done():
 				return true, nil
 			case <-ticker.C:
 				// nothing to do - just rate limiting
@@ -218,7 +219,7 @@ func diffACLTokens(local structs.ACLTokens, remote structs.ACLTokenListStubs, la
 	return deletions, updates
 }
 
-func (s *Server) deleteLocalACLTokens(deletions []string, stopCh <-chan struct{}) (bool, error) {
+func (s *Server) deleteLocalACLTokens(deletions []string, ctx context.Context) (bool, error) {
 	ticker := time.NewTicker(time.Second / time.Duration(s.config.ACLReplicationApplyLimit))
 	defer ticker.Stop()
 
@@ -241,7 +242,7 @@ func (s *Server) deleteLocalACLTokens(deletions []string, stopCh <-chan struct{}
 
 		if i+aclBatchDeleteSize < len(deletions) {
 			select {
-			case <-stopCh:
+			case <-ctx.Done():
 				return true, nil
 			case <-ticker.C:
 				// do nothing - ready for the next batch
@@ -252,7 +253,7 @@ func (s *Server) deleteLocalACLTokens(deletions []string, stopCh <-chan struct{}
 	return false, nil
 }
 
-func (s *Server) updateLocalACLTokens(tokens structs.ACLTokens, stopCh <-chan struct{}) (bool, error) {
+func (s *Server) updateLocalACLTokens(tokens structs.ACLTokens, ctx context.Context) (bool, error) {
 	ticker := time.NewTicker(time.Second / time.Duration(s.config.ACLReplicationApplyLimit))
 	defer ticker.Stop()
 
@@ -286,7 +287,7 @@ func (s *Server) updateLocalACLTokens(tokens structs.ACLTokens, stopCh <-chan st
 		// prevent waiting if we are done
 		if batchEnd < len(tokens) {
 			select {
-			case <-stopCh:
+			case <-ctx.Done():
 				return true, nil
 			case <-ticker.C:
 				// nothing to do - just rate limiting here
@@ -335,7 +336,7 @@ func (s *Server) fetchACLTokens(lastRemoteIndex uint64) (*structs.ACLTokenListRe
 	return &response, nil
 }
 
-func (s *Server) replicateACLPolicies(lastRemoteIndex uint64, stopCh <-chan struct{}) (uint64, bool, error) {
+func (s *Server) replicateACLPolicies(lastRemoteIndex uint64, ctx context.Context) (uint64, bool, error) {
 	remote, err := s.fetchACLPolicies(lastRemoteIndex)
 	if err != nil {
 		return 0, false, fmt.Errorf("failed to retrieve remote ACL policies: %v", err)
@@ -347,7 +348,7 @@ func (s *Server) replicateACLPolicies(lastRemoteIndex uint64, stopCh <-chan stru
 	// RPC which could have been hanging around for a long time and during that time leadership could
 	// have been lost.
 	select {
-	case <-stopCh:
+	case <-ctx.Done():
 		return 0, true, nil
 	default:
 		// do nothing
@@ -390,7 +391,7 @@ func (s *Server) replicateACLPolicies(lastRemoteIndex uint64, stopCh <-chan stru
 	if len(deletions) > 0 {
 		s.logger.Printf("[DEBUG] acl: policy replication - performing deletions")
 
-		exit, err := s.deleteLocalACLPolicies(deletions, stopCh)
+		exit, err := s.deleteLocalACLPolicies(deletions, ctx)
 		if exit {
 			return 0, true, nil
 		}
@@ -402,7 +403,7 @@ func (s *Server) replicateACLPolicies(lastRemoteIndex uint64, stopCh <-chan stru
 
 	if len(updates) > 0 {
 		s.logger.Printf("[DEBUG] acl: policy replication - performing updates")
-		exit, err := s.updateLocalACLPolicies(policies.Policies, stopCh)
+		exit, err := s.updateLocalACLPolicies(policies.Policies, ctx)
 		if exit {
 			return 0, true, nil
 		}
@@ -417,7 +418,7 @@ func (s *Server) replicateACLPolicies(lastRemoteIndex uint64, stopCh <-chan stru
 	return remote.QueryMeta.Index, false, nil
 }
 
-func (s *Server) replicateACLTokens(lastRemoteIndex uint64, stopCh <-chan struct{}) (uint64, bool, error) {
+func (s *Server) replicateACLTokens(lastRemoteIndex uint64, ctx context.Context) (uint64, bool, error) {
 	remote, err := s.fetchACLTokens(lastRemoteIndex)
 	if err != nil {
 		return 0, false, fmt.Errorf("failed to retrieve remote ACL tokens: %v", err)
@@ -429,7 +430,7 @@ func (s *Server) replicateACLTokens(lastRemoteIndex uint64, stopCh <-chan struct
 	// RPC which could have been hanging around for a long time and during that time leadership could
 	// have been lost.
 	select {
-	case <-stopCh:
+	case <-ctx.Done():
 		return 0, true, nil
 	default:
 		// do nothing
@@ -473,7 +474,7 @@ func (s *Server) replicateACLTokens(lastRemoteIndex uint64, stopCh <-chan struct
 	if len(deletions) > 0 {
 		s.logger.Printf("[DEBUG] acl: token replication - performing deletions")
 
-		exit, err := s.deleteLocalACLTokens(deletions, stopCh)
+		exit, err := s.deleteLocalACLTokens(deletions, ctx)
 		if exit {
 			return 0, true, nil
 		}
@@ -485,7 +486,7 @@ func (s *Server) replicateACLTokens(lastRemoteIndex uint64, stopCh <-chan struct
 
 	if len(updates) > 0 {
 		s.logger.Printf("[DEBUG] acl: token replication - performing updates")
-		exit, err := s.updateLocalACLTokens(tokens.Tokens, stopCh)
+		exit, err := s.updateLocalACLTokens(tokens.Tokens, ctx)
 		if exit {
 			return 0, true, nil
 		}
