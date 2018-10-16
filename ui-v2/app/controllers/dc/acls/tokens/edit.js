@@ -48,8 +48,8 @@ export default Controller.extend({
       const form = get(this, 'form');
       try {
         form.handleEvent(get(this, 'dom').normalizeEvent(e, value));
-      } catch (e) {
-        const target = e.target || { name: null };
+      } catch (err) {
+        const target = err.target || { name: null };
         switch (target.name) {
           case 'policy[isScoped]':
             set(this, 'isScoped', !get(this, 'isScoped'));
@@ -61,8 +61,8 @@ export default Controller.extend({
           case 'Details':
             // the Details expander toggle
             // only load on opening
-            if (e.target.checked) {
-              this.send('refreshCodeEditor', '.code-editor', e.target.parentNode);
+            if (err.target.checked) {
+              this.send('refreshCodeEditor', '.code-editor', err.target.parentNode);
               if (!get(value, 'Rules')) {
                 this.send('loadPolicy', value, get(this, 'item.Policies'));
               }

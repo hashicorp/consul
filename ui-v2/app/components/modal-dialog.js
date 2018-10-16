@@ -39,6 +39,7 @@ export default Component.extend(SlotsMixin, WithResizing, {
   },
   didReceiveAttrs: function() {
     this._super(...arguments);
+    // TODO: Why does setting name mean checked it false?
     if (get(this, 'name')) {
       set(this, 'checked', false);
     }

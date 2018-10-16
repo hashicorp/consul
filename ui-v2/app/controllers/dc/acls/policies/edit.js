@@ -27,15 +27,15 @@ export default Controller.extend({
     change: function(e, value, item) {
       try {
         get(this, 'form').handleEvent(get(this, 'dom').normalizeEvent(e, value));
-      } catch (e) {
-        const target = e.target || { name: null };
+      } catch (err) {
+        const target = err.target || { name: null };
         switch (target.name) {
           case 'policy[isScoped]':
             set(this, 'isScoped', !get(this, 'isScoped'));
             set(this.item, 'Datacenters', null);
             break;
           default:
-            throw e;
+            throw err;
         }
       }
     },
