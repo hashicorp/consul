@@ -936,7 +936,8 @@ default will automatically work with some tooling.
   be checked using the agent's credentials. This was added in Consul 1.0.1 and defaults to false.
 
 * <a name="enable_debug"></a><a href="#enable_debug">`enable_debug`</a> When set, enables some
-  additional debugging features. Currently, this is only used to set the runtime profiling HTTP endpoints.
+  additional debugging features. Currently, this is only used to access runtime profiling HTTP endpoints, which
+  are available with an `operator:read` ACL regardles of the value of `enable_debug`.
 
 * <a name="enable_script_checks"></a><a href="#enable_script_checks">`enable_script_checks`</a> Equivalent to the
   [`-enable-script-checks` command-line flag](#_enable_script_checks).
