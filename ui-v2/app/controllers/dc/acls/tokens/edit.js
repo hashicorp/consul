@@ -56,6 +56,7 @@ export default Controller.extend({
             set(this.policy, 'Datacenters', null);
             break;
           case 'Policy':
+            set(value, 'CreateTime', new Date().getTime());
             get(this, 'item.Policies').pushObject(value);
             break;
           case 'Details':

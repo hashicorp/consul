@@ -38,7 +38,7 @@
           data-test-policies
           onchange=(action 'change')
           name="Details"
-          items=(sort-by 'CreateIndex:desc' 'Name:asc' item.Policies) as |item index|
+          items=(sort-by 'CreateTime:desc' 'Name:asc' item.Policies) as |item index|
       }}
         {{#block-slot 'header'}}
           <th>Name</th>
