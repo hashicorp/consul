@@ -100,8 +100,29 @@ type ACLResolverConfig struct {
 	Sentinel sentinel.Evaluator
 }
 
-// ACLResolver is the single point for ACL resolution. It handles resolving locally (state store on servers)
-// and remotely via RPC requests. It handles both legacy and new ACL resolution.
+// ACLResolver is the type to handle all your token and policy resolution needs.
+//
+// Supports:
+//   - Resolving tokens locally via the ACLResolverDelegate
+//   - Resolving policies locally via the ACLResolverDelegate
+//   - Resolving legacy tokens remotely via a ACL.GetPolicy RPC
+//   - Resolving tokens remotely via an ACL.TokenRead RPC
+//   - Resolving policies remotely via an ACL.PolicyResolve RPC
+//
+// Remote Resolution:
+//   Remote resolution can be done syncrhonously or asynchronously depending
+//   on the ACLDownPolicy in the Config passed to the resolver.
+//
+//   When the down policy is set to async-cache and we have already cached values
+//   then go routines will be spawned to perform the RPCs in the background
+//   and then will udpate the cache with either the positive or negative result.
+//
+//   When the down policy is set to extend-cache or the token/policy is not already
+//   cached then the same go routines are spawned to do the RPCs in the background.
+//   However in this mode channels are created to receive the results of the RPC
+//   and are registered with the resolver. Those channels are immediately read/blocked
+//   upon.
+//
 type ACLResolver struct {
 	config *Config
 	logger *log.Logger
@@ -157,6 +178,7 @@ func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
 	}, nil
 }
 
+// fireAsyncLegacyResult is used to notify any watchers that legacy resolution of a token is complete
 func (r *ACLResolver) fireAsyncLegacyResult(token string, authorizer acl.Authorizer, err error) {
 	// cache the result: positive or negative
 	r.cache.PutAuthorizer(token, authorizer)
@@ -170,6 +192,7 @@ func (r *ACLResolver) fireAsyncLegacyResult(token string, authorizer acl.Authori
 	// notify all watchers of the RPC results
 	result := &remoteACLLegacyResult{authorizer, err}
 	for _, cx := range channels {
+		// only chans that are being blocked on will be in the list of channels so this cannot block
 		cx <- result
 		close(cx)
 	}
@@ -247,21 +270,29 @@ func (r *ACLResolver) resolveTokenLegacy(token string) (acl.Authorizer, error) {
 	metrics.IncrCounter([]string{"acl", "token", "cache_miss"}, 1)
 
 	// Resolve the token in the background and wait on the result if we must
-	waitChan := make(chan *remoteACLLegacyResult)
+	var waitChan chan *remoteACLLegacyResult
 	waitForResult := entry == nil || r.config.ACLDownPolicy != "async-cache"
 
 	r.asyncLegacyMutex.Lock()
-	clients, ok := r.asyncLegacyResults[token]
-	if !ok || clients == nil {
-		clients = make([]chan *remoteACLLegacyResult, 0)
+
+	// check if resolution for this token is already happening
+	waiters, ok := r.asyncLegacyResults[token]
+	if !ok || waiters == nil {
+		// initialize the slice of waiters if not already done
+		waiters = make([]chan *remoteACLLegacyResult, 0)
 	}
 	if waitForResult {
-		r.asyncLegacyResults[token] = append(clients, waitChan)
+		// create the waitChan only if we are going to block waiting
+		// for the response and then append it to the list of waiters
+		// Because we will block (not select or discard this chan) we
+		// do not need to create it as buffered
+		waitChan = make(chan *remoteACLLegacyResult)
+		r.asyncLegacyResults[token] = append(waiters, waitChan)
 	}
 	r.asyncLegacyMutex.Unlock()
 
 	if !ok {
-		// only start the RPC if one isn't in flight
+		// start the async RPC if it wasn't already ongoing
 		go r.resolveTokenLegacyAsync(token, entry)
 	}
 
@@ -270,6 +301,7 @@ func (r *ACLResolver) resolveTokenLegacy(token string) (acl.Authorizer, error) {
 		return entry.Authorizer, nil
 	}
 
+	// block waiting for the async RPC to finish.
 	res := <-waitChan
 	return res.authorizer, res.err
 }
@@ -287,6 +319,7 @@ func (r *ACLResolver) fireAsyncTokenResult(token string, identity structs.ACLIde
 	// notify all watchers of the RPC results
 	result := &remoteACLIdentityResult{identity, err}
 	for _, cx := range channels {
+		// cannot block because all wait chans will have another goroutine blocked on the read
 		cx <- result
 		close(cx)
 	}
@@ -350,16 +383,24 @@ func (r *ACLResolver) resolveIdentityFromToken(token string) (structs.ACLIdentit
 	metrics.IncrCounter([]string{"acl", "token", "cache_miss"}, 1)
 
 	// Background a RPC request and wait on it if we must
-	waitChan := make(chan *remoteACLIdentityResult)
+	var waitChan chan *remoteACLIdentityResult
+
 	waitForResult := cacheEntry == nil || r.config.ACLDownPolicy != "async-cache"
 
 	r.asyncIdentityResultsMutex.Lock()
-	clients, ok := r.asyncIdentityResults[token]
-	if !ok || clients == nil {
-		clients = make([]chan *remoteACLIdentityResult, 0)
+	// check if resolution of this token is already ongoing
+	waiters, ok := r.asyncIdentityResults[token]
+	if !ok || waiters == nil {
+		// only initialize the slice of waiters if need be (when this token resolution isn't ongoing)
+		waiters = make([]chan *remoteACLIdentityResult, 0)
 	}
 	if waitForResult {
-		r.asyncIdentityResults[token] = append(clients, waitChan)
+		// create the waitChan only if we are going to block waiting
+		// for the response and then append it to the list of waiters
+		// Because we will block (not select or discard this chan) we
+		// do not need to create it as buffered
+		waitChan = make(chan *remoteACLIdentityResult)
+		r.asyncIdentityResults[token] = append(waiters, waitChan)
 	}
 	r.asyncIdentityResultsMutex.Unlock()
 
@@ -373,6 +414,7 @@ func (r *ACLResolver) resolveIdentityFromToken(token string) (structs.ACLIdentit
 		return cacheEntry.Identity, nil
 	}
 
+	// block on the read here, this is why we don't need chan buffering
 	res := <-waitChan
 	return res.identity, res.err
 }
@@ -391,6 +433,7 @@ func (r *ACLResolver) fireAsyncPolicyResult(policyID string, policy *structs.ACL
 	result := &remoteACLPolicyResult{policy, err}
 	for _, cx := range channels {
 		// not closing the channel as there could be more events to be fired.
+		//
 		cx <- result
 	}
 }
@@ -508,8 +551,12 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 	}
 
 	// Background a RPC request and wait on it if we must
-	waitChan := make(chan *remoteACLPolicyResult, len(fetchIDs))
+	var waitChan chan *remoteACLPolicyResult
 	waitForResult := len(missing) > 0 || r.config.ACLDownPolicy != "async-cache"
+	if waitForResult {
+		// buffered because there are going to be multiple go routines that send data to this chan
+		waitChan = make(chan *remoteACLPolicyResult, len(fetchIDs))
+	}
 
 	var newAsyncFetchIds []string
 	r.asyncPolicyResultsMutex.Lock()
@@ -534,7 +581,7 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 	}
 
 	if !waitForResult {
-		// waitForResult being false requires the cacheEntry to not be nil
+		// waitForResult being false requires that all the policies were cached already
 		policies = append(policies, expired...)
 		return policies, nil
 	}
