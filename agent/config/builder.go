@@ -596,7 +596,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	//
 	rt = RuntimeConfig{
 		// non-user configurable values
-		ACLDisabledTTL:             b.durationValWithDefault("acl.disabled_ttl", c.ACL.DisabledTTL, b.durationVal("acl_disabled_ttl", c.ACLDisabledTTL)),
+		ACLDisabledTTL:             b.durationVal("acl.disabled_ttl", c.ACL.DisabledTTL),
 		AEInterval:                 b.durationVal("ae_interval", c.AEInterval),
 		CheckDeregisterIntervalMin: b.durationVal("check_deregister_interval_min", c.CheckDeregisterIntervalMin),
 		CheckReapInterval:          b.durationVal("check_reap_interval", c.CheckReapInterval),
@@ -636,7 +636,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		ACLsEnabled:            b.boolVal(c.ACL.Enabled),
 		ACLAgentMasterToken:    b.stringValWithDefault(c.ACL.Tokens.AgentMaster, b.stringVal(c.ACLAgentMasterToken)),
 		ACLAgentToken:          b.stringValWithDefault(c.ACL.Tokens.Agent, b.stringVal(c.ACLAgentToken)),
-		ACLDatacenter:          strings.ToLower(b.stringVal(c.ACLDatacenter)),
+		ACLDatacenter:          strings.ToLower(b.stringValWithDefault(c.ACLDatacenter, c.PrimaryDatacenter)),
 		ACLDefaultPolicy:       b.stringValWithDefault(c.ACL.DefaultPolicy, b.stringVal(c.ACLDefaultPolicy)),
 		ACLDownPolicy:          b.stringValWithDefault(c.ACL.DownPolicy, b.stringVal(c.ACLDownPolicy)),
 		ACLEnableKeyListPolicy: b.boolValWithDefault(c.ACL.EnableKeyListPolicy, b.boolVal(c.ACLEnableKeyListPolicy)),
