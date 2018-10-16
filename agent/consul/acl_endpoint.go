@@ -117,7 +117,7 @@ func (a *ACL) Bootstrap(args *structs.DCSpecificRequest, reply *structs.ACLToken
 		// Check if there is a reset index specified
 		specifiedIndex = a.fileBootstrapResetIndex()
 		if specifiedIndex == 0 {
-			return fmt.Errorf("ACL bootstrap already done (reset index: %d)", resetIdx)
+			return fmt.Errorf("ACL bootstrap no longer allowed (reset index: %d)", resetIdx)
 		} else if specifiedIndex != resetIdx {
 			return fmt.Errorf("Invalid bootstrap reset index (specified %d, reset index: %d)", specifiedIndex, resetIdx)
 		}
