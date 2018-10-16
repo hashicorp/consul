@@ -1,6 +1,8 @@
 package consul
 
 import (
+	"sync/atomic"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
@@ -94,7 +96,7 @@ func (s *Server) InACLDatacenter() bool {
 }
 
 func (s *Server) UseLegacyACLs() bool {
-	return !s.useNewACLs.IsSet()
+	return atomic.LoadInt32(&s.useNewACLs) == 0
 }
 
 func (s *Server) LocalTokensEnabled() bool {
