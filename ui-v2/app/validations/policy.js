@@ -1,5 +1,8 @@
-import { validatePresence, validateLength } from 'ember-changeset-validations/validators';
+import {
+  validatePresence,
+  validateLength,
+  validateFormat,
+} from 'ember-changeset-validations/validators';
 export default {
-  Name: [validatePresence(true), validateLength({ min: 1, max: 128 })],
-  Rules: validatePresence(true),
+  Name: validateFormat({ regex: /^[A-Za-z0-9\-_]{1,128}$/ }),
 };
