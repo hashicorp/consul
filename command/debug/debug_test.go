@@ -357,10 +357,10 @@ func TestDebugCommand_ProfilesExist(t *testing.T) {
 		t.Fatalf("should exit 0, got code: %d", code)
 	}
 
-	profiles := []string{"heap", "profile", "goroutine"}
+	profiles := []string{"heap.prof", "profile.prof", "goroutine.prof", "trace.out"}
 	// Glob ignores file system errors
 	for _, v := range profiles {
-		fs, _ := filepath.Glob(fmt.Sprintf("%s/*/%s.prof", outputPath, v))
+		fs, _ := filepath.Glob(fmt.Sprintf("%s/*/%s", outputPath, v))
 		if len(fs) == 0 {
 			t.Errorf("output data should exist for %s", v)
 		}
@@ -466,10 +466,10 @@ func TestDebugCommand_DebugDisabled(t *testing.T) {
 		t.Fatalf("should exit 0, got code: %d", code)
 	}
 
-	profiles := []string{"heap", "profile", "goroutine", "trace"}
+	profiles := []string{"heap.prof", "profile.prof", "goroutine.prof", "trace.out"}
 	// Glob ignores file system errors
 	for _, v := range profiles {
-		fs, _ := filepath.Glob(fmt.Sprintf("%s/*/%s.prof", outputPath, v))
+		fs, _ := filepath.Glob(fmt.Sprintf("%s/*/%s", outputPath, v))
 		if len(fs) > 0 {
 			t.Errorf("output data should not exist for %s", v)
 		}

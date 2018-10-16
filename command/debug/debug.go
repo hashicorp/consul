@@ -452,7 +452,7 @@ func (c *cmd) captureDynamic() error {
 						errCh <- err
 					}
 
-					err = ioutil.WriteFile(fmt.Sprintf("%s/trace.prof", timestampDir), trace, 0644)
+					err = ioutil.WriteFile(fmt.Sprintf("%s/trace.out", timestampDir), trace, 0644)
 					if err != nil {
 						errCh <- err
 					}
