@@ -137,6 +137,16 @@ html.template-node.template-show main table.sessions tr {
 %tokens-minimal-row > *:last-child {
   width: calc(100% - 240px);
 }
+@media #{$--lt-medium-table} {
+  /* Token > Policies */
+  /* Token > Your Token */
+  html.template-token.template-list tr > :nth-child(2),
+  html.template-token.template-list tr > :nth-child(4),
+  html.template-token.template-list tr th:nth-child(5),
+  html.template-token.template-list main table tr td.me ~ td:nth-of-type(5) {
+    display: none;
+  }
+}
 
 %kvs-row > *:first-child {
   width: calc(100% - 60px);
@@ -155,10 +165,10 @@ html.template-node.template-show main table.sessions tr {
 }
 // this will get auto calculated later in tabular-collection.js
 // keeping this here for reference
-%services-row > * {
-  // (100% / 2) - (160px / 2)
-  // width: calc(50% - 160px);
-}
+// %services-row > * {
+// (100% / 2) - (160px / 2)
+// width: calc(50% - 160px);
+// }
 %services-row > * {
   width: auto;
 }

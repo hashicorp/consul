@@ -32,8 +32,13 @@ $--lt-spacious-healthcheck-status: '(max-width: 420px)';
 $--wide-form: '(min-width: 421px)';
 $--lt-wide-form: '(max-width: 420px)';
 
+/* If these are needed for usage on the same table */
+/* they will need re-figuring out */
 $--wide-table: '(min-width: 421px)';
 $--lt-wide-table: '(max-width: 420px)';
 
+$--medium-table: '(min-width: 850px)';
+$--lt-medium-table: '(max-width: 849px)';
+/* */
 $--fixed-grid: '(min-width: 1260px)';
 $--lt-fixed-grid: '(max-width: 1259px)';
