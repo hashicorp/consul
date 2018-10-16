@@ -29,7 +29,7 @@ func diffACLPolicies(local structs.ACLPolicies, remote structs.ACLPolicyListStub
 	var remoteIdx int
 	for localIdx, remoteIdx = 0, 0; localIdx < len(local) && remoteIdx < len(remote); {
 		if local[localIdx].ID == remote[remoteIdx].ID {
-			// policy is in both the local and remote state - need to check raft indices and
+			// policy is in both the local and remote state - need to check raft indices and the Hash
 			if remote[remoteIdx].ModifyIndex > lastRemoteIndex && !bytes.Equal(remote[remoteIdx].Hash, local[localIdx].Hash) {
 				updates = append(updates, remote[remoteIdx].ID)
 			}
