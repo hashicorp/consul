@@ -358,8 +358,16 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 
 	s.sentinel = sentinel.New(logger)
 	s.useNewACLs = 0
+	aclConfig := ACLResolverConfig{
+		Config:      config,
+		Delegate:    s,
+		CacheConfig: serverACLCacheConfig,
+		AutoDisable: false,
+		Logger:      logger,
+		Sentinel:    s.sentinel,
+	}
 	// Initialize the ACL resolver.
-	if s.acls, err = NewACLResolver(config, s, serverACLCacheConfig, false, logger, s.sentinel); err != nil {
+	if s.acls, err = NewACLResolver(&aclConfig); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to create ACL resolver: %v", err)
 	}

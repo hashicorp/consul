@@ -24,22 +24,6 @@ const (
 	// are not allowed to be displayed.
 	redactedToken = "<hidden>"
 
-	// TODO (ACL-V2) - Is 10240 enough? In a DC with 30k agents we can only
-	//   cache 1/3 of the tokens if 1 is given to each agent
-	// identityCacheSize is the number of identities that can be cached
-	identityCacheSize = 10 * 1024
-
-	// TODO (ACL-V2) - 512 should be enough right?
-	// The max number of policies that will be cached.
-	policyCacheSize = 512
-
-	// TODO (ACL-V2) 1024 should be enough right?
-	// authorizerCacheSize is the maximum number of authorizers that may be cached
-	// The authorizer cache is access via a hash key that takes into account the
-	// policies that get compiled into the authorizer. Therefore this size is the
-	// amount of unique policy combinations which can be cached.
-	authorizerCacheSize = 1024
-
 	// aclUpgradeBatchSize controls how many tokens we look at during each round of upgrading. Individual raft logs
 	// will be further capped using the aclBatchUpsertSize. This limit just prevents us from creating a single slice
 	// with all tokens in it.
@@ -93,6 +77,27 @@ type remoteACLPolicyResult struct {
 	err    error
 }
 
+// ACLResolverConfig holds all the configuration necessary to create an ACLResolver
+type ACLResolverConfig struct {
+	Config *Config
+	Logger *log.Logger
+
+	// CacheConfig is a pass through configuration for ACL cache limits
+	CacheConfig *structs.ACLCachesConfig
+
+	// Delegate that implements some helper functionality that is server/client specific
+	Delegate ACLResolverDelegate
+
+	// AutoDisable indicates that RPC responses should be checked and if they indicate ACLs are disabled
+	// remotely then disable them locally as well. This is particularly useful for the client agent
+	// so that it can detect when the servers have gotten ACLs enabled.
+	AutoDisable bool
+
+	Sentinel sentinel.Evaluator
+}
+
+// ACLResolver is the single point for ACL resolution. It handles resolving locally (state store on servers)
+// and remotely via RPC requests. It handles both legacy and new ACL resolution.
 type ACLResolver struct {
 	config *Config
 	logger *log.Logger
@@ -113,34 +118,38 @@ type ACLResolver struct {
 	disabledLock sync.RWMutex
 }
 
-func NewACLResolver(config *Config, delegate ACLResolverDelegate, cacheConfig *structs.ACLCachesConfig, autoDisable bool, logger *log.Logger, sentinel sentinel.Evaluator) (*ACLResolver, error) {
+func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
 	if config == nil {
 		return nil, fmt.Errorf("ACL Resolver must be initialized with a config")
 	}
 
-	if delegate == nil {
+	if config.Config == nil {
+		return nil, fmt.Errorf("ACLResolverConfig.Config must not be nil")
+	}
+
+	if config.Delegate == nil {
 		return nil, fmt.Errorf("ACL Resolver must be initialized with a valid delegate")
 	}
 
-	if logger == nil {
-		logger = log.New(os.Stderr, "", log.LstdFlags)
+	if config.Logger == nil {
+		config.Logger = log.New(os.Stderr, "", log.LstdFlags)
 	}
 
-	cache, err := structs.NewACLCaches(cacheConfig)
+	cache, err := structs.NewACLCaches(config.CacheConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	return &ACLResolver{
-		config:               config,
-		logger:               logger,
-		delegate:             delegate,
-		sentinel:             sentinel,
+		config:               config.Config,
+		logger:               config.Logger,
+		delegate:             config.Delegate,
+		sentinel:             config.Sentinel,
 		cache:                cache,
 		asyncIdentityResults: make(map[string][]chan (*remoteACLIdentityResult)),
 		asyncPolicyResults:   make(map[string][]chan (*remoteACLPolicyResult)),
 		asyncLegacyResults:   make(map[string][]chan (*remoteACLLegacyResult)),
-		autoDisable:          autoDisable,
+		autoDisable:          config.AutoDisable,
 	}, nil
 }
 
