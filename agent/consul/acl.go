@@ -306,6 +306,7 @@ func (r *ACLResolver) resolveTokenLegacy(token string) (acl.Authorizer, error) {
 	return res.authorizer, res.err
 }
 
+// fireAsyncTokenResult is used to notify all waiters that the results of a token resolution is complete
 func (r *ACLResolver) fireAsyncTokenResult(token string, identity structs.ACLIdentity, err error) {
 	// cache the result: positive or negative
 	r.cache.PutIdentity(token, identity)
@@ -419,6 +420,7 @@ func (r *ACLResolver) resolveIdentityFromToken(token string) (structs.ACLIdentit
 	return res.identity, res.err
 }
 
+// fireAsyncPolicyResult is used to notify all waiters that policy resolution is complete.
 func (r *ACLResolver) fireAsyncPolicyResult(policyID string, policy *structs.ACLPolicy, err error) {
 	// cache the result: positive or negative
 	r.cache.PutPolicy(policyID, policy)
