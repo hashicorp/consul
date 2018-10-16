@@ -12,7 +12,7 @@ import (
 
 const (
 	// aclReplicationRateLimit is used to rate limit how often data is replicated
-	// between the primary and secondary datacenters
+	// between the primary and secondary datacenters. This is 10 times per second
 	aclReplicationRateLimit rate.Limit = 10.0
 
 	// aclReplicationMaxRetryBackoff is the max number of seconds to sleep between ACL replication RPC errors
