@@ -701,7 +701,6 @@ func newACLFilter(authorizer acl.Authorizer, logger *log.Logger) *aclFilter {
 
 // allowService is used to determine if a service is accessible for an ACL.
 func (f *aclFilter) allowService(service string) bool {
-	// TODO (ACL-V2) - is this check needed?
 	if service == "" {
 		return true
 	}

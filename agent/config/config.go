@@ -629,7 +629,7 @@ type Segment struct {
 
 type ACL struct {
 	Enabled             *bool   `json:"enabled,omitempty" hcl:"enabled" mapstructure:"enabled"`
-	TokenReplication    *bool   `json:"token_replication,omitempty" hcl:"token_replication" mapstructure:"token_replication"`
+	TokenReplication    *bool   `json:"enable_token_replication,omitempty" hcl:"enable_token_replication" mapstructure:"enable_token_replication"`
 	PolicyTTL           *string `json:"policy_ttl,omitempty" hcl:"policy_ttl" mapstructure:"policy_ttl"`
 	TokenTTL            *string `json:"token_ttl,omitempty" hcl:"token_ttl" mapstructure:"token_ttl"`
 	DownPolicy          *string `json:"down_policy,omitempty" hcl:"down_policy" mapstructure:"down_policy"`

@@ -44,7 +44,7 @@ func DefaultSource() Source {
 		acl_enforce_version_8 = true
 		acl_ttl = "30s"
 		acl = {
-			token_replication = false
+			enable_token_replication = false
 			policy_ttl = "30s"
 		}
 		bind_addr = "0.0.0.0"
