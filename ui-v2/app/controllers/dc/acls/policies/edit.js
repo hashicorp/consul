@@ -25,10 +25,12 @@ export default Controller.extend({
   },
   actions: {
     change: function(e, value, item) {
+      const form = get(this, 'form');
+      const event = get(this, 'dom').normalizeEvent(e, value);
       try {
-        get(this, 'form').handleEvent(get(this, 'dom').normalizeEvent(e, value));
+        form.handleEvent(event);
       } catch (err) {
-        const target = err.target || { name: null };
+        const target = event.target;
         switch (target.name) {
           case 'policy[isScoped]':
             set(this, 'isScoped', !get(this, 'isScoped'));
