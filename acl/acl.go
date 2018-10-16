@@ -522,7 +522,7 @@ func NewPolicyAuthorizer(parent Authorizer, policies []*Policy, sentinel sentine
 
 	// Load the session policy (exact matches)
 	for _, sp := range policy.Sessions {
-		insertPolicyIntoRadix(sp.Node, p.sessionRules, nil, sp.Policy)
+		insertPolicyIntoRadix(sp.Node, p.sessionRules, sp.Policy, nil)
 	}
 
 	// Load the session policy (prefix matches)
@@ -532,7 +532,7 @@ func NewPolicyAuthorizer(parent Authorizer, policies []*Policy, sentinel sentine
 
 	// Load the event policy (exact matches)
 	for _, ep := range policy.Events {
-		insertPolicyIntoRadix(ep.Event, p.eventRules, nil, ep.Policy)
+		insertPolicyIntoRadix(ep.Event, p.eventRules, ep.Policy, nil)
 	}
 
 	// Load the event policy (prefix matches)
@@ -542,7 +542,7 @@ func NewPolicyAuthorizer(parent Authorizer, policies []*Policy, sentinel sentine
 
 	// Load the prepared query policy (exact matches)
 	for _, qp := range policy.PreparedQueries {
-		insertPolicyIntoRadix(qp.Prefix, p.preparedQueryRules, nil, qp.Policy)
+		insertPolicyIntoRadix(qp.Prefix, p.preparedQueryRules, qp.Policy, nil)
 	}
 
 	// Load the prepared query policy (prefix matches)

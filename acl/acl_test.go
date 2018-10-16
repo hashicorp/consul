@@ -1389,6 +1389,321 @@ func TestACL(t *testing.T) {
 				{name: "PreparedQueryWriteAllowed", prefix: "zookeeper", check: checkAllowPreparedQueryWrite},
 			},
 		},
+		{
+			name:          "ExactMatchPrecedence",
+			defaultPolicy: DenyAll(),
+			policyStack: []*Policy{
+				&Policy{
+					Agents: []*AgentPolicy{
+						&AgentPolicy{
+							Node:   "foo",
+							Policy: PolicyWrite,
+						},
+						&AgentPolicy{
+							Node:   "football",
+							Policy: PolicyDeny,
+						},
+					},
+					AgentPrefixes: []*AgentPolicy{
+						&AgentPolicy{
+							Node:   "foot",
+							Policy: PolicyRead,
+						},
+						&AgentPolicy{
+							Node:   "fo",
+							Policy: PolicyRead,
+						},
+					},
+					Keys: []*KeyPolicy{
+						&KeyPolicy{
+							Prefix: "foo",
+							Policy: PolicyWrite,
+						},
+						&KeyPolicy{
+							Prefix: "football",
+							Policy: PolicyDeny,
+						},
+					},
+					KeyPrefixes: []*KeyPolicy{
+						&KeyPolicy{
+							Prefix: "foot",
+							Policy: PolicyRead,
+						},
+						&KeyPolicy{
+							Prefix: "fo",
+							Policy: PolicyRead,
+						},
+					},
+					Nodes: []*NodePolicy{
+						&NodePolicy{
+							Name:   "foo",
+							Policy: PolicyWrite,
+						},
+						&NodePolicy{
+							Name:   "football",
+							Policy: PolicyDeny,
+						},
+					},
+					NodePrefixes: []*NodePolicy{
+						&NodePolicy{
+							Name:   "foot",
+							Policy: PolicyRead,
+						},
+						&NodePolicy{
+							Name:   "fo",
+							Policy: PolicyRead,
+						},
+					},
+					Services: []*ServicePolicy{
+						&ServicePolicy{
+							Name:       "foo",
+							Policy:     PolicyWrite,
+							Intentions: PolicyWrite,
+						},
+						&ServicePolicy{
+							Name:   "football",
+							Policy: PolicyDeny,
+						},
+					},
+					ServicePrefixes: []*ServicePolicy{
+						&ServicePolicy{
+							Name:       "foot",
+							Policy:     PolicyRead,
+							Intentions: PolicyRead,
+						},
+						&ServicePolicy{
+							Name:       "fo",
+							Policy:     PolicyRead,
+							Intentions: PolicyRead,
+						},
+					},
+					Sessions: []*SessionPolicy{
+						&SessionPolicy{
+							Node:   "foo",
+							Policy: PolicyWrite,
+						},
+						&SessionPolicy{
+							Node:   "football",
+							Policy: PolicyDeny,
+						},
+					},
+					SessionPrefixes: []*SessionPolicy{
+						&SessionPolicy{
+							Node:   "foot",
+							Policy: PolicyRead,
+						},
+						&SessionPolicy{
+							Node:   "fo",
+							Policy: PolicyRead,
+						},
+					},
+					Events: []*EventPolicy{
+						&EventPolicy{
+							Event:  "foo",
+							Policy: PolicyWrite,
+						},
+						&EventPolicy{
+							Event:  "football",
+							Policy: PolicyDeny,
+						},
+					},
+					EventPrefixes: []*EventPolicy{
+						&EventPolicy{
+							Event:  "foot",
+							Policy: PolicyRead,
+						},
+						&EventPolicy{
+							Event:  "fo",
+							Policy: PolicyRead,
+						},
+					},
+					PreparedQueries: []*PreparedQueryPolicy{
+						&PreparedQueryPolicy{
+							Prefix: "foo",
+							Policy: PolicyWrite,
+						},
+						&PreparedQueryPolicy{
+							Prefix: "football",
+							Policy: PolicyDeny,
+						},
+					},
+					PreparedQueryPrefixes: []*PreparedQueryPolicy{
+						&PreparedQueryPolicy{
+							Prefix: "foot",
+							Policy: PolicyRead,
+						},
+						&PreparedQueryPolicy{
+							Prefix: "fo",
+							Policy: PolicyRead,
+						},
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "AgentReadPrefixAllowed", prefix: "fo", check: checkAllowAgentRead},
+				{name: "AgentWritePrefixDenied", prefix: "fo", check: checkDenyAgentWrite},
+				{name: "AgentReadPrefixAllowed", prefix: "for", check: checkAllowAgentRead},
+				{name: "AgentWritePrefixDenied", prefix: "for", check: checkDenyAgentWrite},
+				{name: "AgentReadAllowed", prefix: "foo", check: checkAllowAgentRead},
+				{name: "AgentWriteAllowed", prefix: "foo", check: checkAllowAgentWrite},
+				{name: "AgentReadPrefixAllowed", prefix: "foot", check: checkAllowAgentRead},
+				{name: "AgentWritePrefixDenied", prefix: "foot", check: checkDenyAgentWrite},
+				{name: "AgentReadPrefixAllowed", prefix: "foot2", check: checkAllowAgentRead},
+				{name: "AgentWritePrefixDenied", prefix: "foot2", check: checkDenyAgentWrite},
+				{name: "AgentReadPrefixAllowed", prefix: "food", check: checkAllowAgentRead},
+				{name: "AgentWritePrefixDenied", prefix: "food", check: checkDenyAgentWrite},
+				{name: "AgentReadDenied", prefix: "football", check: checkDenyAgentRead},
+				{name: "AgentWriteDenied", prefix: "football", check: checkDenyAgentWrite},
+
+				{name: "KeyReadPrefixAllowed", prefix: "fo", check: checkAllowKeyRead},
+				{name: "KeyWritePrefixDenied", prefix: "fo", check: checkDenyKeyWrite},
+				{name: "KeyReadPrefixAllowed", prefix: "for", check: checkAllowKeyRead},
+				{name: "KeyWritePrefixDenied", prefix: "for", check: checkDenyKeyWrite},
+				{name: "KeyReadAllowed", prefix: "foo", check: checkAllowKeyRead},
+				{name: "KeyWriteAllowed", prefix: "foo", check: checkAllowKeyWrite},
+				{name: "KeyReadPrefixAllowed", prefix: "foot", check: checkAllowKeyRead},
+				{name: "KeyWritePrefixDenied", prefix: "foot", check: checkDenyKeyWrite},
+				{name: "KeyReadPrefixAllowed", prefix: "foot2", check: checkAllowKeyRead},
+				{name: "KeyWritePrefixDenied", prefix: "foot2", check: checkDenyKeyWrite},
+				{name: "KeyReadPrefixAllowed", prefix: "food", check: checkAllowKeyRead},
+				{name: "KeyWritePrefixDenied", prefix: "food", check: checkDenyKeyWrite},
+				{name: "KeyReadDenied", prefix: "football", check: checkDenyKeyRead},
+				{name: "KeyWriteDenied", prefix: "football", check: checkDenyKeyWrite},
+
+				{name: "NodeReadPrefixAllowed", prefix: "fo", check: checkAllowNodeRead},
+				{name: "NodeWritePrefixDenied", prefix: "fo", check: checkDenyNodeWrite},
+				{name: "NodeReadPrefixAllowed", prefix: "for", check: checkAllowNodeRead},
+				{name: "NodeWritePrefixDenied", prefix: "for", check: checkDenyNodeWrite},
+				{name: "NodeReadAllowed", prefix: "foo", check: checkAllowNodeRead},
+				{name: "NodeWriteAllowed", prefix: "foo", check: checkAllowNodeWrite},
+				{name: "NodeReadPrefixAllowed", prefix: "foot", check: checkAllowNodeRead},
+				{name: "NodeWritePrefixDenied", prefix: "foot", check: checkDenyNodeWrite},
+				{name: "NodeReadPrefixAllowed", prefix: "foot2", check: checkAllowNodeRead},
+				{name: "NodeWritePrefixDenied", prefix: "foot2", check: checkDenyNodeWrite},
+				{name: "NodeReadPrefixAllowed", prefix: "food", check: checkAllowNodeRead},
+				{name: "NodeWritePrefixDenied", prefix: "food", check: checkDenyNodeWrite},
+				{name: "NodeReadDenied", prefix: "football", check: checkDenyNodeRead},
+				{name: "NodeWriteDenied", prefix: "football", check: checkDenyNodeWrite},
+
+				{name: "ServiceReadPrefixAllowed", prefix: "fo", check: checkAllowServiceRead},
+				{name: "ServiceWritePrefixDenied", prefix: "fo", check: checkDenyServiceWrite},
+				{name: "ServiceReadPrefixAllowed", prefix: "for", check: checkAllowServiceRead},
+				{name: "ServiceWritePrefixDenied", prefix: "for", check: checkDenyServiceWrite},
+				{name: "ServiceReadAllowed", prefix: "foo", check: checkAllowServiceRead},
+				{name: "ServiceWriteAllowed", prefix: "foo", check: checkAllowServiceWrite},
+				{name: "ServiceReadPrefixAllowed", prefix: "foot", check: checkAllowServiceRead},
+				{name: "ServiceWritePrefixDenied", prefix: "foot", check: checkDenyServiceWrite},
+				{name: "ServiceReadPrefixAllowed", prefix: "foot2", check: checkAllowServiceRead},
+				{name: "ServiceWritePrefixDenied", prefix: "foot2", check: checkDenyServiceWrite},
+				{name: "ServiceReadPrefixAllowed", prefix: "food", check: checkAllowServiceRead},
+				{name: "ServiceWritePrefixDenied", prefix: "food", check: checkDenyServiceWrite},
+				{name: "ServiceReadDenied", prefix: "football", check: checkDenyServiceRead},
+				{name: "ServiceWriteDenied", prefix: "football", check: checkDenyServiceWrite},
+
+				{name: "NodeReadPrefixAllowed", prefix: "fo", check: checkAllowNodeRead},
+				{name: "NodeWritePrefixDenied", prefix: "fo", check: checkDenyNodeWrite},
+				{name: "NodeReadPrefixAllowed", prefix: "for", check: checkAllowNodeRead},
+				{name: "NodeWritePrefixDenied", prefix: "for", check: checkDenyNodeWrite},
+				{name: "NodeReadAllowed", prefix: "foo", check: checkAllowNodeRead},
+				{name: "NodeWriteAllowed", prefix: "foo", check: checkAllowNodeWrite},
+				{name: "NodeReadPrefixAllowed", prefix: "foot", check: checkAllowNodeRead},
+				{name: "NodeWritePrefixDenied", prefix: "foot", check: checkDenyNodeWrite},
+				{name: "NodeReadPrefixAllowed", prefix: "foot2", check: checkAllowNodeRead},
+				{name: "NodeWritePrefixDenied", prefix: "foot2", check: checkDenyNodeWrite},
+				{name: "NodeReadPrefixAllowed", prefix: "food", check: checkAllowNodeRead},
+				{name: "NodeWritePrefixDenied", prefix: "food", check: checkDenyNodeWrite},
+				{name: "NodeReadDenied", prefix: "football", check: checkDenyNodeRead},
+				{name: "NodeWriteDenied", prefix: "football", check: checkDenyNodeWrite},
+
+				{name: "IntentionReadPrefixAllowed", prefix: "fo", check: checkAllowIntentionRead},
+				{name: "IntentionWritePrefixDenied", prefix: "fo", check: checkDenyIntentionWrite},
+				{name: "IntentionReadPrefixAllowed", prefix: "for", check: checkAllowIntentionRead},
+				{name: "IntentionWritePrefixDenied", prefix: "for", check: checkDenyIntentionWrite},
+				{name: "IntentionReadAllowed", prefix: "foo", check: checkAllowIntentionRead},
+				{name: "IntentionWriteAllowed", prefix: "foo", check: checkAllowIntentionWrite},
+				{name: "IntentionReadPrefixAllowed", prefix: "foot", check: checkAllowIntentionRead},
+				{name: "IntentionWritePrefixDenied", prefix: "foot", check: checkDenyIntentionWrite},
+				{name: "IntentionReadPrefixAllowed", prefix: "foot2", check: checkAllowIntentionRead},
+				{name: "IntentionWritePrefixDenied", prefix: "foot2", check: checkDenyIntentionWrite},
+				{name: "IntentionReadPrefixAllowed", prefix: "food", check: checkAllowIntentionRead},
+				{name: "IntentionWritePrefixDenied", prefix: "food", check: checkDenyIntentionWrite},
+				{name: "IntentionReadDenied", prefix: "football", check: checkDenyIntentionRead},
+				{name: "IntentionWriteDenied", prefix: "football", check: checkDenyIntentionWrite},
+
+				{name: "SessionReadPrefixAllowed", prefix: "fo", check: checkAllowSessionRead},
+				{name: "SessionWritePrefixDenied", prefix: "fo", check: checkDenySessionWrite},
+				{name: "SessionReadPrefixAllowed", prefix: "for", check: checkAllowSessionRead},
+				{name: "SessionWritePrefixDenied", prefix: "for", check: checkDenySessionWrite},
+				{name: "SessionReadAllowed", prefix: "foo", check: checkAllowSessionRead},
+				{name: "SessionWriteAllowed", prefix: "foo", check: checkAllowSessionWrite},
+				{name: "SessionReadPrefixAllowed", prefix: "foot", check: checkAllowSessionRead},
+				{name: "SessionWritePrefixDenied", prefix: "foot", check: checkDenySessionWrite},
+				{name: "SessionReadPrefixAllowed", prefix: "foot2", check: checkAllowSessionRead},
+				{name: "SessionWritePrefixDenied", prefix: "foot2", check: checkDenySessionWrite},
+				{name: "SessionReadPrefixAllowed", prefix: "food", check: checkAllowSessionRead},
+				{name: "SessionWritePrefixDenied", prefix: "food", check: checkDenySessionWrite},
+				{name: "SessionReadDenied", prefix: "football", check: checkDenySessionRead},
+				{name: "SessionWriteDenied", prefix: "football", check: checkDenySessionWrite},
+
+				{name: "EventReadPrefixAllowed", prefix: "fo", check: checkAllowEventRead},
+				{name: "EventWritePrefixDenied", prefix: "fo", check: checkDenyEventWrite},
+				{name: "EventReadPrefixAllowed", prefix: "for", check: checkAllowEventRead},
+				{name: "EventWritePrefixDenied", prefix: "for", check: checkDenyEventWrite},
+				{name: "EventReadAllowed", prefix: "foo", check: checkAllowEventRead},
+				{name: "EventWriteAllowed", prefix: "foo", check: checkAllowEventWrite},
+				{name: "EventReadPrefixAllowed", prefix: "foot", check: checkAllowEventRead},
+				{name: "EventWritePrefixDenied", prefix: "foot", check: checkDenyEventWrite},
+				{name: "EventReadPrefixAllowed", prefix: "foot2", check: checkAllowEventRead},
+				{name: "EventWritePrefixDenied", prefix: "foot2", check: checkDenyEventWrite},
+				{name: "EventReadPrefixAllowed", prefix: "food", check: checkAllowEventRead},
+				{name: "EventWritePrefixDenied", prefix: "food", check: checkDenyEventWrite},
+				{name: "EventReadDenied", prefix: "football", check: checkDenyEventRead},
+				{name: "EventWriteDenied", prefix: "football", check: checkDenyEventWrite},
+
+				{name: "PreparedQueryReadPrefixAllowed", prefix: "fo", check: checkAllowPreparedQueryRead},
+				{name: "PreparedQueryWritePrefixDenied", prefix: "fo", check: checkDenyPreparedQueryWrite},
+				{name: "PreparedQueryReadPrefixAllowed", prefix: "for", check: checkAllowPreparedQueryRead},
+				{name: "PreparedQueryWritePrefixDenied", prefix: "for", check: checkDenyPreparedQueryWrite},
+				{name: "PreparedQueryReadAllowed", prefix: "foo", check: checkAllowPreparedQueryRead},
+				{name: "PreparedQueryWriteAllowed", prefix: "foo", check: checkAllowPreparedQueryWrite},
+				{name: "PreparedQueryReadPrefixAllowed", prefix: "foot", check: checkAllowPreparedQueryRead},
+				{name: "PreparedQueryWritePrefixDenied", prefix: "foot", check: checkDenyPreparedQueryWrite},
+				{name: "PreparedQueryReadPrefixAllowed", prefix: "foot2", check: checkAllowPreparedQueryRead},
+				{name: "PreparedQueryWritePrefixDenied", prefix: "foot2", check: checkDenyPreparedQueryWrite},
+				{name: "PreparedQueryReadPrefixAllowed", prefix: "food", check: checkAllowPreparedQueryRead},
+				{name: "PreparedQueryWritePrefixDenied", prefix: "food", check: checkDenyPreparedQueryWrite},
+				{name: "PreparedQueryReadDenied", prefix: "football", check: checkDenyPreparedQueryRead},
+				{name: "PreparedQueryWriteDenied", prefix: "football", check: checkDenyPreparedQueryWrite},
+			},
+		},
+		{
+			name:          "ACLRead",
+			defaultPolicy: DenyAll(),
+			policyStack: []*Policy{
+				&Policy{
+					ACL: PolicyRead,
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadAllowed", check: checkAllowACLRead},
+				// in version 1.2.1 and below this would have failed
+				{name: "WriteDenied", check: checkDenyACLWrite},
+			},
+		},
+		{
+			name:          "ACLRead",
+			defaultPolicy: DenyAll(),
+			policyStack: []*Policy{
+				&Policy{
+					ACL: PolicyWrite,
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadAllowed", check: checkAllowACLRead},
+				// in version 1.2.1 and below this would have failed
+				{name: "WriteAllowed", check: checkAllowACLWrite},
+			},
+		},
 	}
 
 	for _, tcase := range tests {
