@@ -94,18 +94,21 @@ func TestACL_Bootstrap(t *testing.T) {
 			resp := httptest.NewRecorder()
 			req, _ := http.NewRequest(tt.method, "/v1/acl/bootstrap", nil)
 			out, err := a.srv.ACLBootstrap(resp, req)
-			if err != nil {
+			if tt.token && err != nil {
 				t.Fatalf("err: %v", err)
 			}
 			if got, want := resp.Code, tt.code; got != want {
 				t.Fatalf("got %d want %d", got, want)
 			}
 			if tt.token {
-				wrap, ok := out.(aclCreateResponse)
+				wrap, ok := out.(*aclBootstrapResponse)
 				if !ok {
 					t.Fatalf("bad: %T", out)
 				}
 				if len(wrap.ID) != len("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx") {
+					t.Fatalf("bad: %v", wrap)
+				}
+				if wrap.ID != wrap.SecretID {
 					t.Fatalf("bad: %v", wrap)
 				}
 			} else {
