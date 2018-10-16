@@ -527,10 +527,11 @@ func MergePolicies(policies []*Policy) *Policy {
 		for _, ap := range policy.Agents {
 			update := true
 			if permission, found := agentPolicies[ap.Node]; found {
-				update = !takesPrecedenceOver(ap.Policy, permission.Policy)
+				update = takesPrecedenceOver(ap.Policy, permission.Policy)
 			}
 
 			if update {
+
 				agentPolicies[ap.Node] = ap
 			}
 		}
@@ -538,7 +539,7 @@ func MergePolicies(policies []*Policy) *Policy {
 		for _, ap := range policy.AgentPrefixes {
 			update := true
 			if permission, found := agentPrefixPolicies[ap.Node]; found {
-				update = !takesPrecedenceOver(ap.Policy, permission.Policy)
+				update = takesPrecedenceOver(ap.Policy, permission.Policy)
 			}
 
 			if update {
@@ -549,7 +550,7 @@ func MergePolicies(policies []*Policy) *Policy {
 		for _, ep := range policy.Events {
 			update := true
 			if permission, found := eventPolicies[ep.Event]; found {
-				update = !takesPrecedenceOver(ep.Policy, permission.Policy)
+				update = takesPrecedenceOver(ep.Policy, permission.Policy)
 			}
 
 			if update {
@@ -560,7 +561,7 @@ func MergePolicies(policies []*Policy) *Policy {
 		for _, ep := range policy.EventPrefixes {
 			update := true
 			if permission, found := eventPrefixPolicies[ep.Event]; found {
-				update = !takesPrecedenceOver(ep.Policy, permission.Policy)
+				update = takesPrecedenceOver(ep.Policy, permission.Policy)
 			}
 
 			if update {
@@ -575,7 +576,7 @@ func MergePolicies(policies []*Policy) *Policy {
 		for _, kp := range policy.Keys {
 			update := true
 			if permission, found := keyPolicies[kp.Prefix]; found {
-				update = !takesPrecedenceOver(kp.Policy, permission.Policy)
+				update = takesPrecedenceOver(kp.Policy, permission.Policy)
 			}
 
 			if update {
@@ -586,7 +587,7 @@ func MergePolicies(policies []*Policy) *Policy {
 		for _, kp := range policy.KeyPrefixes {
 			update := true
 			if permission, found := keyPrefixPolicies[kp.Prefix]; found {
-				update = !takesPrecedenceOver(kp.Policy, permission.Policy)
+				update = takesPrecedenceOver(kp.Policy, permission.Policy)
 			}
 
 			if update {
@@ -597,7 +598,7 @@ func MergePolicies(policies []*Policy) *Policy {
 		for _, np := range policy.Nodes {
 			update := true
 			if permission, found := nodePolicies[np.Name]; found {
-				update = !takesPrecedenceOver(np.Policy, permission.Policy)
+				update = takesPrecedenceOver(np.Policy, permission.Policy)
 			}
 
 			if update {
@@ -608,7 +609,7 @@ func MergePolicies(policies []*Policy) *Policy {
 		for _, np := range policy.NodePrefixes {
 			update := true
 			if permission, found := nodePrefixPolicies[np.Name]; found {
-				update = !takesPrecedenceOver(np.Policy, permission.Policy)
+				update = takesPrecedenceOver(np.Policy, permission.Policy)
 			}
 
 			if update {
@@ -623,7 +624,7 @@ func MergePolicies(policies []*Policy) *Policy {
 		for _, qp := range policy.PreparedQueries {
 			update := true
 			if permission, found := preparedQueryPolicies[qp.Prefix]; found {
-				update = !takesPrecedenceOver(qp.Policy, permission.Policy)
+				update = takesPrecedenceOver(qp.Policy, permission.Policy)
 			}
 
 			if update {
@@ -634,7 +635,7 @@ func MergePolicies(policies []*Policy) *Policy {
 		for _, qp := range policy.PreparedQueryPrefixes {
 			update := true
 			if permission, found := preparedQueryPrefixPolicies[qp.Prefix]; found {
-				update = !takesPrecedenceOver(qp.Policy, permission.Policy)
+				update = takesPrecedenceOver(qp.Policy, permission.Policy)
 			}
 
 			if update {
@@ -681,7 +682,7 @@ func MergePolicies(policies []*Policy) *Policy {
 		for _, sp := range policy.Sessions {
 			update := true
 			if permission, found := sessionPolicies[sp.Node]; found {
-				update = !takesPrecedenceOver(sp.Policy, permission.Policy)
+				update = takesPrecedenceOver(sp.Policy, permission.Policy)
 			}
 
 			if update {
@@ -692,7 +693,7 @@ func MergePolicies(policies []*Policy) *Policy {
 		for _, sp := range policy.SessionPrefixes {
 			update := true
 			if permission, found := sessionPrefixPolicies[sp.Node]; found {
-				update = !takesPrecedenceOver(sp.Policy, permission.Policy)
+				update = takesPrecedenceOver(sp.Policy, permission.Policy)
 			}
 
 			if update {
@@ -789,6 +790,8 @@ func TranslateLegacyRules(policyBytes []byte) ([]byte, error) {
 				n.Token.Text = "service_prefix"
 			case "session":
 				n.Token.Text = "session_prefix"
+			case "event":
+				n.Token.Text = "event_prefix"
 			}
 		}
 
