@@ -52,8 +52,14 @@ func (a *ACL) fileBootstrapResetIndex() uint64 {
 	}
 
 	// Return the reset index
-	a.srv.logger.Printf("[WARN] acl.bootstrap: parsed %q: reset index %d", path, resetIdx)
+	a.srv.logger.Printf("[DEBUG] acl.bootstrap: parsed %q: reset index %d", path, resetIdx)
 	return resetIdx
+}
+
+func (a *ACL) removeBootstrapResetFile() {
+	if err := os.Remove(filepath.Join(a.srv.config.DataDir, aclBootstrapReset)); err != nil {
+		a.srv.logger.Printf("[WARN] acl.bootstrap: failed to remove bootstrap file: %v", err)
+	}
 }
 
 func (a *ACL) aclPreCheck() error {
@@ -99,8 +105,13 @@ func (a *ACL) Bootstrap(args *structs.DCSpecificRequest, reply *structs.ACLToken
 		} else if specifiedIndex != resetIdx {
 			return fmt.Errorf("Invalid bootstrap reset index (specified %d, reset index: %d)", specifiedIndex, resetIdx)
 		}
-
 	}
+
+	// remove the bootstrap override file now that we have the index from it and it was valid.
+	// whether bootstrapping works or not is irrelevant as we really don't want this file hanging around
+	// in case a snapshot restore is done. In that case we don't want to accidentally allow re-bootstrapping
+	// just becuase the file was unchanged.
+	a.removeBootstrapResetFile()
 
 	accessor, err := lib.GenerateUUID(a.srv.checkTokenUUID)
 	if err != nil {
