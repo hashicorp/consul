@@ -537,7 +537,8 @@ func TestACLEndpoint_ReplicationStatus(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc2"
 		c.EnableACLReplication = true
-		c.ACLReplicationInterval = 10 * time.Millisecond
+		c.ACLReplicationRate = 100
+		c.ACLReplicationBurst = 100
 	})
 	s1.tokens.UpdateACLReplicationToken("secret")
 	defer os.RemoveAll(dir1)

@@ -343,7 +343,8 @@ func TestACLReplication(t *testing.T) {
 		c.Datacenter = "dc2"
 		c.ACLDatacenter = "dc1"
 		c.EnableACLReplication = true
-		c.ACLReplicationInterval = 10 * time.Millisecond
+		c.ACLReplicationRate = 100
+		c.ACLReplicationBurst = 100
 		c.ACLReplicationApplyLimit = 1000000
 	})
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")

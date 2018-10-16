@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sentinel"
+	"golang.org/x/time/rate"
 )
 
 // These must be kept in sync with the constants in command/agent/acl.go.
@@ -28,6 +29,9 @@ const (
 	// will be further capped using the aclBatchUpsertSize. This limit just prevents us from creating a single slice
 	// with all tokens in it.
 	aclUpgradeBatchSize = 128
+
+	// aclUpgradeRateLimit is the number of batch upgrade requests per second.
+	aclUpgradeRateLimit rate.Limit = 1.0
 
 	// aclBatchDeleteSize is the number of deletions to send in a single batch operation. 4096 should produce a batch that is <150KB
 	// in size but should be sufficiently large to handle 1 replication round in a single batch
