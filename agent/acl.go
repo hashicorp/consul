@@ -25,6 +25,10 @@ func (a *Agent) resolveToken(id string) (acl.Authorizer, error) {
 		return nil, nil
 	}
 
+	if acl.RootAuthorizer(id) != nil {
+		return nil, acl.ErrRootDenied
+	}
+
 	if a.tokens.IsAgentMasterToken(id) {
 		return a.aclMasterAuthorizer, nil
 	}

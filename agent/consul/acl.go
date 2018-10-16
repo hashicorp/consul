@@ -633,6 +633,10 @@ func (r *ACLResolver) ResolveToken(token string) (acl.Authorizer, error) {
 		return nil, nil
 	}
 
+	if acl.RootAuthorizer(token) != nil {
+		return nil, acl.ErrRootDenied
+	}
+
 	// handle the anonymous token
 	if token == "" {
 		token = anonymousToken

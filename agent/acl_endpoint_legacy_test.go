@@ -322,8 +322,9 @@ func TestACL_List(t *testing.T) {
 		t.Fatalf("should work")
 	}
 
-	// 10 + anonymous + master
-	if len(respObj) != 12 {
+	// 10  + master
+	// anonymous token is a new token and wont show up in this list
+	if len(respObj) != 11 {
 		t.Fatalf("bad: %v", respObj)
 	}
 }
