@@ -421,41 +421,6 @@ func (p *ACLPolicy) SetHash(force bool) []byte {
 	return p.Hash
 }
 
-/*
-	ID string `hash:"ignore"`
-
-	// Unique name to reference the policy by.
-	//   - Valid Characters: [a-zA-Z0-9-]
-	//   - Valid Lengths: 1 - 128
-	Name string
-
-	// Human readable description (Optional)
-	Description string
-
-	// The rule set (using the updated rule syntax)
-	Rules string
-
-	// DEPRECATED (ACL-Legacy-Compat) - This is only needed while we support the legacy ACLS
-	Syntax acl.SyntaxVersion `json:"-"`
-
-	// Datacenters that the policy is valid within.
-	//   - No wildcards allowed
-	//   - If empty then the policy is valid within all datacenters
-	Datacenters []string `json:",omitempty" hash:"set"`
-
-	// Hash of the contents of the policy
-	// This does not take into account the ID (which is immutable)
-	// nor the raft metadata.
-	//
-	// This is needed mainly for replication purposes. When replicating from
-	// one DC to another keeping the content Hash will allow us to avoid
-	// unnecessary calls to the authoritative DC
-	Hash uint64 `hash:"ignore"`
-
-	// Embedded Raft Metadata
-	RaftIndex `hash:"ignore"`
-}*/
-
 func (p *ACLPolicy) EstimateSize() int {
 	// This is just an estimate. There is other data structure overhead
 	// pointers etc that this does not account for.

@@ -110,7 +110,7 @@ type Server struct {
 
 	// DEPRECATED (ACL-Legacy-Compat) - only needed while we support both
 	// useNewACLs is used to determine whether we can use new ACLs or not
-	useNewACLs *lib.AtomicBool
+	useNewACLs int32
 
 	// autopilot is the Autopilot instance for this server.
 	autopilot *autopilot.Autopilot
@@ -357,7 +357,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 	s.statsFetcher = NewStatsFetcher(logger, s.connPool, s.config.Datacenter)
 
 	s.sentinel = sentinel.New(logger)
-	s.useNewACLs = lib.NewAtomicBool(false)
+	s.useNewACLs = 0
 	// Initialize the ACL resolver.
 	if s.acls, err = NewACLResolver(config, s, serverACLCacheConfig, false, logger, s.sentinel); err != nil {
 		s.Shutdown()

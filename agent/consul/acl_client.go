@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/consul/acl"
@@ -27,7 +28,7 @@ var clientACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
 }
 
 func (c *Client) UseLegacyACLs() bool {
-	return c.useNewACLs.IsSet() == false
+	return atomic.LoadInt32(&c.useNewACLs) == 0
 }
 
 func (c *Client) monitorACLMode() {
@@ -47,7 +48,7 @@ func (c *Client) monitorACLMode() {
 
 		if canUpgrade {
 			c.logger.Printf("[DEBUG] acl: transition out of legacy ACL mode")
-			c.useNewACLs.Set(true)
+			atomic.StoreInt32(&c.useNewACLs, 1)
 			lib.UpdateSerfTag(c.serf, "acls", string(structs.ACLModeEnabled))
 			return
 		}

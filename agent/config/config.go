@@ -151,15 +151,15 @@ type Config struct {
 	ACLAgentMasterToken *string `json:"acl_agent_master_token,omitempty" hcl:"acl_agent_master_token" mapstructure:"acl_agent_master_token"`
 	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
 	ACLAgentToken *string `json:"acl_agent_token,omitempty" hcl:"acl_agent_token" mapstructure:"acl_agent_token"`
-	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
+	// DEPRECATED (ACL-Legacy-Compat) - moved to "primary_datacenter"
 	ACLDatacenter *string `json:"acl_datacenter,omitempty" hcl:"acl_datacenter" mapstructure:"acl_datacenter"`
-	// DEPRECATED (ACL-Legacy-Compat) - moved to primary_datacenter
+	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
 	ACLDefaultPolicy *string `json:"acl_default_policy,omitempty" hcl:"acl_default_policy" mapstructure:"acl_default_policy"`
 	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
 	ACLDownPolicy *string `json:"acl_down_policy,omitempty" hcl:"acl_down_policy" mapstructure:"acl_down_policy"`
 	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
 	ACLEnableKeyListPolicy *bool `json:"acl_enable_key_list_policy,omitempty" hcl:"acl_enable_key_list_policy" mapstructure:"acl_enable_key_list_policy"`
-	// DEPRECATED (ACL-Legacy-Compat) - we don't support non version8 enforcement anymore.
+	// DEPRECATED (ACL-Legacy-Compat) -  pre-version8 enforcement is deprecated.
 	ACLEnforceVersion8 *bool `json:"acl_enforce_version_8,omitempty" hcl:"acl_enforce_version_8" mapstructure:"acl_enforce_version_8"`
 	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
 	ACLMasterToken *string `json:"acl_master_token,omitempty" hcl:"acl_master_token" mapstructure:"acl_master_token"`

@@ -110,6 +110,7 @@ func (s *HTTPServer) ACLRulesTranslateLegacyToken(resp http.ResponseWriter, req 
 		args.Datacenter = s.agent.config.Datacenter
 	}
 
+	// Do not allow blocking
 	args.QueryOptions.MinQueryIndex = 0
 
 	var out structs.ACLTokenResponse
