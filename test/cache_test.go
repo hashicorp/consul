@@ -43,17 +43,28 @@ func TestLookupCache(t *testing.T) {
 	p := proxy.NewLookup([]string{udp})
 	state := request.Request{W: &test.ResponseWriter{}, Req: new(dns.Msg)}
 
-	resp, err := p.Lookup(state, "example.org.", dns.TypeA)
+	t.Run("Long TTL", func(t *testing.T) {
+		testCase(t, state, p, "example.org.", 2, 10)
+	})
+
+	t.Run("Short TTL", func(t *testing.T) {
+		testCase(t, state, p, "short.example.org.", 1, 1)
+	})
+
+}
+
+func testCase(t *testing.T, state request.Request, p proxy.Proxy, name string, expectAnsLen int, expectTTL uint32) {
+	resp, err := p.Lookup(state, name, dns.TypeA)
 	if err != nil {
 		t.Fatal("Expected to receive reply, but didn't")
 	}
-	// expect answer section with A record in it
-	if len(resp.Answer) == 0 {
-		t.Fatal("Expected to at least one RR in the answer section, got none")
+
+	if len(resp.Answer) != expectAnsLen {
+		t.Fatalf("Expected %v RR in the answer section, got %v.", expectAnsLen, len(resp.Answer))
 	}
 
 	ttl := resp.Answer[0].Header().Ttl
-	if ttl != 10 { // as set in the Corefile
-		t.Errorf("Expected TTL to be %d, got %d", 10, ttl)
+	if ttl != expectTTL {
+		t.Errorf("Expected TTL to be %d, got %d", expectTTL, ttl)
 	}
 }

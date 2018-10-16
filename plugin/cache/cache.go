@@ -239,9 +239,9 @@ func (w *ResponseWriter) Write(buf []byte) (int, error) {
 
 const (
 	maxTTL  = dnsutil.MaximumDefaulTTL
-	minTTL  = dnsutil.MinimalDefaultTTL
+	minTTL  = 0
 	maxNTTL = dnsutil.MaximumDefaulTTL / 2
-	minNTTL = dnsutil.MinimalDefaultTTL
+	minNTTL = 0
 
 	defaultCap = 10000 // default capacity of the cache.
 

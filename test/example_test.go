@@ -7,6 +7,7 @@ example.org.		IN	NS	b.iana-servers.net.
 example.org.		IN	NS	a.iana-servers.net.
 example.org.		IN	A	127.0.0.1
 example.org.		IN	A	127.0.0.2
+short.example.org.	1	IN	A	127.0.0.3
 *.w.example.org.        IN      TXT     "Wildcard"
 a.b.c.w.example.org.    IN      TXT     "Not a wildcard"
 cname.example.org.      IN      CNAME   www.example.net.
