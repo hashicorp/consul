@@ -7,6 +7,7 @@ import (
 	"net/rpc"
 	"os"
 	"reflect"
+	"runtime/debug"
 	"sort"
 	"strings"
 	"testing"
@@ -20,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/coordinate"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -2691,6 +2693,299 @@ func TestPreparedQuery_Execute_ForwardLeader(t *testing.T) {
 	}
 }
 
+func TestPreparedQuery_Execute_Blocking(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerDC(t, "dc1")
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec1 := rpcClient(t, s1)
+	queryCodec := rpcClient(t, s1)
+	defer codec1.Close()
+
+	dir2, s2 := testServerDC(t, "dc2")
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+	codec2 := rpcClient(t, s2)
+	defer codec2.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s2.RPC, "dc2")
+
+	// Try to WAN join.
+	joinWAN(t, s2, s1)
+	retry.Run(t, func(r *retry.R) {
+		if got, want := len(s1.WANMembers()), 2; got != want {
+			r.Fatalf("got %d WAN members want %d", got, want)
+		}
+	})
+
+	// Set up a service query.
+	query := structs.PreparedQueryRequest{
+		Datacenter: "dc1",
+		Op:         structs.PreparedQueryCreate,
+		Query: &structs.PreparedQuery{
+			Name: "test",
+			Service: structs.ServiceQuery{
+				Service: "foo",
+				Failover: structs.QueryDatacenterOptions{
+					NearestN: 1,
+				},
+			},
+			DNS: structs.QueryDNSOptions{
+				TTL: "10s",
+			},
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &query, &query.Query.ID); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	registerNode := func(dc string, serviceName string, serviceID string) {
+		var codec rpc.ClientCodec
+		switch dc {
+		case "dc1":
+			codec = codec1
+		case "dc2":
+			codec = codec2
+		}
+
+		req := structs.RegisterRequest{
+			Datacenter: dc,
+			Node:       fmt.Sprintf("node-%s", serviceID),
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				Service: serviceName,
+				ID:      serviceID,
+				Port:    8000,
+				Tags:    []string{},
+			},
+		}
+
+		var reply struct{}
+		err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &req, &reply)
+		require.Nil(t, err, "error registering node dc:%s, service_name:%s, service_id:%s", dc, serviceName, serviceID)
+	}
+
+	deregisterNode := func(dc string, serviceID string) {
+		var codec rpc.ClientCodec
+		switch dc {
+		case "dc1":
+			codec = codec1
+		case "dc2":
+			codec = codec2
+		}
+
+		arg := structs.DeregisterRequest{
+			Datacenter: dc,
+			ServiceID:  serviceID,
+			Node:       fmt.Sprintf("node-%s", serviceID),
+		}
+		var out struct{}
+
+		err := msgpackrpc.CallWithCodec(codec, "Catalog.Deregister", &arg, &out)
+		require.Nil(t, err)
+	}
+
+	exec := func(cb func(structs.PreparedQueryExecuteResponse)) {
+		req := structs.PreparedQueryExecuteRequest{
+			Datacenter:    "dc1",
+			QueryIDOrName: query.Query.ID,
+		}
+
+		var reply structs.PreparedQueryExecuteResponse
+		err := msgpackrpc.CallWithCodec(queryCodec, "PreparedQuery.Execute", &req, &reply)
+		require.Nil(t, err)
+
+		cb(reply)
+	}
+
+	execShouldUnblock := func(indexes map[string]uint64, do func(), cb func(structs.PreparedQueryExecuteResponse)) {
+		req := structs.PreparedQueryExecuteRequest{
+			Datacenter:    "dc1",
+			QueryIDOrName: query.Query.ID,
+			QueryOptions: structs.QueryOptions{
+				MaxQueryTime:         1 * time.Second,
+				MinQueryCrossDCIndex: indexes,
+			},
+		}
+
+		c := make(chan structs.PreparedQueryExecuteResponse)
+
+		go func() {
+			var reply structs.PreparedQueryExecuteResponse
+			err := msgpackrpc.CallWithCodec(queryCodec, "PreparedQuery.Execute", &req, &reply)
+			require.Nil(t, err)
+			c <- reply
+		}()
+
+		time.Sleep(100 * time.Millisecond)
+		select {
+		case <-c:
+			t.Fatalf("unexpected blocking query release")
+		default:
+		}
+
+		do()
+
+		timer := time.NewTimer(2 * time.Second)
+		select {
+		case reply := <-c:
+			cb(reply)
+		case <-timer.C:
+			t.Fatalf("query timeout: %s", string(debug.Stack()))
+		}
+	}
+
+	execShouldNotUnblock := func(indexes map[string]uint64, do func()) {
+		req := structs.PreparedQueryExecuteRequest{
+			Datacenter:    "dc1",
+			QueryIDOrName: query.Query.ID,
+			QueryOptions: structs.QueryOptions{
+				MaxQueryTime:         time.Second,
+				MinQueryCrossDCIndex: indexes,
+			},
+		}
+
+		c := make(chan structs.PreparedQueryExecuteResponse)
+
+		do()
+
+		start := time.Now()
+		go func() {
+			var reply structs.PreparedQueryExecuteResponse
+			err := msgpackrpc.CallWithCodec(queryCodec, "PreparedQuery.Execute", &req, &reply)
+			require.Nil(t, err)
+			c <- reply
+		}()
+
+		timer := time.NewTimer(2 * time.Second)
+		select {
+		case <-c:
+			require.True(t, time.Since(start) > time.Second)
+		case <-timer.C:
+			t.Fatalf("query timeout: %s", string(debug.Stack()))
+		}
+	}
+
+	var indexes map[string]uint64
+
+	// run the query a first time to get the DCs indexes
+	exec(func(reply structs.PreparedQueryExecuteResponse) {
+		require.Equal(t, 0, len(reply.Nodes))
+		indexes = reply.CrossDCIndex
+	})
+
+	// test MaxQueryTime
+	req := structs.PreparedQueryExecuteRequest{
+		Datacenter:    "dc1",
+		QueryIDOrName: query.Query.ID,
+		QueryOptions: structs.QueryOptions{
+			MaxQueryTime:         1 * time.Second,
+			MinQueryCrossDCIndex: indexes,
+		},
+	}
+	//start := time.Now()
+	var reply structs.PreparedQueryExecuteResponse
+	err := msgpackrpc.CallWithCodec(queryCodec, "PreparedQuery.Execute", &req, &reply)
+	require.Nil(t, err)
+	//require.InDelta(t, time.Second, time.Since(start), float64(100*time.Millisecond))
+
+	// we should block is registered on either DC
+	// from local DC
+	execShouldUnblock(indexes,
+		func() {
+			registerNode("dc1", "foo", "foo-02")
+		},
+		func(reply structs.PreparedQueryExecuteResponse) {
+			require.Equal(t, 1, len(reply.Nodes))
+			require.Equal(t, "dc1", reply.Datacenter)
+			require.Equal(t, 0, reply.Failovers)
+			require.True(t, reply.CrossDCIndex["dc1"] > indexes["dc1"])
+			require.True(t, reply.CrossDCIndex["dc2"] == 0)
+			indexes = reply.CrossDCIndex
+		},
+	)
+	// reset
+	deregisterNode("dc1", "foo-02")
+	exec(func(reply structs.PreparedQueryExecuteResponse) {
+		require.Equal(t, 0, len(reply.Nodes))
+		indexes = reply.CrossDCIndex
+	})
+	// from remote DC
+	execShouldUnblock(indexes,
+		func() {
+			registerNode("dc2", "foo", "foo-01")
+		},
+		func(reply structs.PreparedQueryExecuteResponse) {
+			require.Equal(t, 1, len(reply.Nodes))
+			require.Equal(t, "dc2", reply.Datacenter)
+			require.Equal(t, 1, reply.Failovers)
+			require.True(t, reply.CrossDCIndex["dc1"] == indexes["dc1"])
+			require.True(t, reply.CrossDCIndex["dc2"] > indexes["dc2"])
+			indexes = reply.CrossDCIndex
+		},
+	)
+
+	// register a node on dc1, this should unblock the query and return dc1's node since it has higher priority than dc2
+	execShouldUnblock(indexes,
+		func() {
+			registerNode("dc1", "foo", "foo-02")
+		},
+		func(reply structs.PreparedQueryExecuteResponse) {
+			require.Equal(t, 1, len(reply.Nodes))
+			require.Equal(t, "dc1", reply.Datacenter)
+			require.Equal(t, 0, reply.Failovers)
+			require.True(t, reply.CrossDCIndex["dc1"] > indexes["dc1"])
+			require.True(t, reply.CrossDCIndex["dc2"] == 0)
+			indexes = reply.CrossDCIndex
+		},
+	)
+
+	// modifications happening in other DCs should not impact the query if we have results from a closer DC
+	execShouldNotUnblock(indexes, func() {
+		deregisterNode("dc2", "foo-01")
+	})
+	execShouldNotUnblock(indexes, func() {
+		registerNode("dc2", "foo", "foo-01")
+	})
+
+	// deregister dc1's node, we should fallback to dc2
+	execShouldUnblock(indexes,
+		func() {
+			deregisterNode("dc1", "foo-02")
+		},
+		func(reply structs.PreparedQueryExecuteResponse) {
+			require.Equal(t, 1, len(reply.Nodes))
+			require.Equal(t, "dc2", reply.Datacenter)
+			require.Equal(t, 1, reply.Failovers)
+			require.True(t, reply.CrossDCIndex["dc1"] > indexes["dc1"])
+			require.True(t, reply.CrossDCIndex["dc2"] > 0)
+			indexes = reply.CrossDCIndex
+		},
+	)
+
+	// deregister dc2's node, we should be notified that no nodes are available anymore
+	execShouldUnblock(indexes,
+		func() {
+			deregisterNode("dc2", "foo-01")
+		},
+		func(reply structs.PreparedQueryExecuteResponse) {
+			require.Equal(t, 0, len(reply.Nodes))
+			require.Equal(t, "dc2", reply.Datacenter)
+			require.Equal(t, 1, reply.Failovers)
+			require.True(t, reply.CrossDCIndex["dc1"] == indexes["dc1"])
+			require.True(t, reply.CrossDCIndex["dc2"] > indexes["dc2"])
+			indexes = reply.CrossDCIndex
+		},
+	)
+
+	// registering another service should not unblock the query
+	execShouldNotUnblock(indexes, func() {
+		registerNode("dc1", "bar", "bar-01")
+	})
+}
+
 func TestPreparedQuery_Execute_ConnectExact(t *testing.T) {
 	t.Parallel()
 
@@ -2964,17 +3259,14 @@ func TestPreparedQuery_Wrapper(t *testing.T) {
 	joinWAN(t, s2, s1)
 
 	// Try all the operations on a real server via the wrapper.
-	wrapper := &queryServerWrapper{s1}
+	wrapper := &queryServerWrapper{&PreparedQuery{s1}}
 	wrapper.GetLogger().Printf("[DEBUG] Test")
 
-	ret, err := wrapper.GetOtherDatacentersByDistance()
+	ret, err := wrapper.GetDatacentersByDistance()
 	wrapper.GetLogger().Println("Returned value: ", ret)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if len(ret) != 1 || ret[0] != "dc2" {
-		t.Fatalf("bad: %v", ret)
-	}
+	require.Nil(t, err)
+	require.Equal(t, []string{"dc1", "dc2"}, ret)
+
 	// Since we have no idea when the joinWAN operation completes
 	// we keep on querying until the the join operation completes.
 	retry.Run(t, func(r *retry.R) {
@@ -2985,14 +3277,10 @@ func TestPreparedQuery_Wrapper(t *testing.T) {
 type mockQueryServer struct {
 	Datacenters      []string
 	DatacentersError error
-	QueryLog         []string
-	QueryFn          func(dc string, args interface{}, reply interface{}) error
+	QueriedDCs       []string
+	QueryFn          func(query *structs.PreparedQuery, args structs.PreparedQueryExecuteRequest) (*structs.PreparedQueryExecuteResponse, error)
 	Logger           *log.Logger
 	LogBuffer        *bytes.Buffer
-}
-
-func (m *mockQueryServer) JoinQueryLog() string {
-	return strings.Join(m.QueryLog, "|")
 }
 
 func (m *mockQueryServer) GetLogger() *log.Logger {
@@ -3003,22 +3291,25 @@ func (m *mockQueryServer) GetLogger() *log.Logger {
 	return m.Logger
 }
 
-func (m *mockQueryServer) GetOtherDatacentersByDistance() ([]string, error) {
+func (m *mockQueryServer) GetDatacentersByDistance() ([]string, error) {
 	return m.Datacenters, m.DatacentersError
 }
 
-func (m *mockQueryServer) ForwardDC(method, dc string, args interface{}, reply interface{}) error {
-	m.QueryLog = append(m.QueryLog, fmt.Sprintf("%s:%s", dc, method))
-	if ret, ok := reply.(*structs.PreparedQueryExecuteResponse); ok {
-		ret.Datacenter = dc
-	}
-	if m.QueryFn != nil {
-		return m.QueryFn(dc, args, reply)
-	}
-	return nil
+func (m *mockQueryServer) LocalDC() string {
+	return m.Datacenters[0]
 }
 
-func TestPreparedQuery_queryFailover(t *testing.T) {
+func (m *mockQueryServer) Exec(query *structs.PreparedQuery, args structs.PreparedQueryExecuteRequest) (*structs.PreparedQueryExecuteResponse, error) {
+	m.QueriedDCs = append(m.QueriedDCs, args.Datacenter)
+
+	if m.QueryFn != nil {
+		return m.QueryFn(query, args)
+	}
+
+	return &structs.PreparedQueryExecuteResponse{}, nil
+}
+
+func TestPreparedQuery_fetchQueryResults(t *testing.T) {
 	t.Parallel()
 	query := &structs.PreparedQuery{
 		Name: "test",
@@ -3047,14 +3338,14 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 	// Datacenters are available but the query doesn't use them.
 	{
 		mock := &mockQueryServer{
-			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
+			Datacenters: []string{"local", "dc1", "dc2", "dc3", "xxx", "dc4"},
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		if err := queryFailover(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
+		if err := fetchQueryResults(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		if len(reply.Nodes) != 0 || reply.Datacenter != "" || reply.Failovers != 0 {
+		if len(reply.Nodes) != 0 || reply.Datacenter != "local" || reply.Failovers != 0 {
 			t.Fatalf("bad: %v", reply)
 		}
 	}
@@ -3062,12 +3353,12 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 	// Make it fail to get datacenters.
 	{
 		mock := &mockQueryServer{
-			Datacenters:      []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
+			Datacenters:      []string{"local", "dc1", "dc2", "dc3", "xxx", "dc4"},
 			DatacentersError: fmt.Errorf("XXX"),
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		err := queryFailover(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply)
+		err := fetchQueryResults(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply)
 		if err == nil || !strings.Contains(err.Error(), "XXX") {
 			t.Fatalf("bad: %v", err)
 		}
@@ -3080,14 +3371,14 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 	query.Service.Failover.NearestN = 3
 	{
 		mock := &mockQueryServer{
-			Datacenters: []string{},
+			Datacenters: []string{"local"},
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		if err := queryFailover(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
+		if err := fetchQueryResults(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		if len(reply.Nodes) != 0 || reply.Datacenter != "" || reply.Failovers != 0 {
+		if len(reply.Nodes) != 0 || reply.Datacenter != "local" || reply.Failovers != 0 {
 			t.Fatalf("bad: %v", reply)
 		}
 	}
@@ -3096,46 +3387,46 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 	query.Service.Failover.NearestN = 3
 	{
 		mock := &mockQueryServer{
-			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
-			QueryFn: func(dc string, args interface{}, reply interface{}) error {
-				ret := reply.(*structs.PreparedQueryExecuteResponse)
-				if dc == "dc1" {
+			Datacenters: []string{"local", "dc1", "dc2", "dc3", "xxx", "dc4"},
+			QueryFn: func(query *structs.PreparedQuery, args structs.PreparedQueryExecuteRequest) (*structs.PreparedQueryExecuteResponse, error) {
+				ret := &structs.PreparedQueryExecuteResponse{}
+				if args.Datacenter == "dc1" {
+					ret.Datacenter = "dc1"
 					ret.Nodes = nodes()
 				}
-				return nil
+				return ret, nil
 			},
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		if err := queryFailover(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
+		if err := fetchQueryResults(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if len(reply.Nodes) != 3 ||
 			reply.Datacenter != "dc1" || reply.Failovers != 1 ||
 			!reflect.DeepEqual(reply.Nodes, nodes()) {
-			t.Fatalf("bad: %v", reply)
+			t.Fatalf("bad: %+v", reply)
 		}
-		if queries := mock.JoinQueryLog(); queries != "dc1:PreparedQuery.ExecuteRemote" {
-			t.Fatalf("bad: %s", queries)
-		}
+		require.Equal(t, []string{"local", "dc1"}, mock.QueriedDCs)
 	}
 
 	// Try the first three nearest datacenters, last one has the data.
 	query.Service.Failover.NearestN = 3
 	{
 		mock := &mockQueryServer{
-			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
-			QueryFn: func(dc string, args interface{}, reply interface{}) error {
-				ret := reply.(*structs.PreparedQueryExecuteResponse)
-				if dc == "dc3" {
+			Datacenters: []string{"local", "dc1", "dc2", "dc3", "xxx", "dc4"},
+			QueryFn: func(query *structs.PreparedQuery, args structs.PreparedQueryExecuteRequest) (*structs.PreparedQueryExecuteResponse, error) {
+				ret := &structs.PreparedQueryExecuteResponse{}
+				if args.Datacenter == "dc3" {
+					ret.Datacenter = "dc3"
 					ret.Nodes = nodes()
 				}
-				return nil
+				return ret, nil
 			},
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		if err := queryFailover(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
+		if err := fetchQueryResults(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if len(reply.Nodes) != 3 ||
@@ -3143,29 +3434,25 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 			!reflect.DeepEqual(reply.Nodes, nodes()) {
 			t.Fatalf("bad: %v", reply)
 		}
-		if queries := mock.JoinQueryLog(); queries != "dc1:PreparedQuery.ExecuteRemote|dc2:PreparedQuery.ExecuteRemote|dc3:PreparedQuery.ExecuteRemote" {
-			t.Fatalf("bad: %s", queries)
-		}
+		require.Equal(t, []string{"local", "dc1", "dc2", "dc3"}, mock.QueriedDCs)
 	}
 
 	// Try the first four nearest datacenters, nobody has the data.
 	query.Service.Failover.NearestN = 4
 	{
 		mock := &mockQueryServer{
-			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
+			Datacenters: []string{"local", "dc1", "dc2", "dc3", "xxx", "dc4"},
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		if err := queryFailover(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
+		if err := fetchQueryResults(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if len(reply.Nodes) != 0 ||
 			reply.Datacenter != "xxx" || reply.Failovers != 4 {
 			t.Fatalf("bad: %v", reply)
 		}
-		if queries := mock.JoinQueryLog(); queries != "dc1:PreparedQuery.ExecuteRemote|dc2:PreparedQuery.ExecuteRemote|dc3:PreparedQuery.ExecuteRemote|xxx:PreparedQuery.ExecuteRemote" {
-			t.Fatalf("bad: %s", queries)
-		}
+		require.Equal(t, []string{"local", "dc1", "dc2", "dc3", "xxx"}, mock.QueriedDCs)
 	}
 
 	// Try the first two nearest datacenters, plus a user-specified one that
@@ -3174,18 +3461,19 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 	query.Service.Failover.Datacenters = []string{"dc4"}
 	{
 		mock := &mockQueryServer{
-			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
-			QueryFn: func(dc string, args interface{}, reply interface{}) error {
-				ret := reply.(*structs.PreparedQueryExecuteResponse)
-				if dc == "dc4" {
+			Datacenters: []string{"local", "dc1", "dc2", "dc3", "xxx", "dc4"},
+			QueryFn: func(query *structs.PreparedQuery, args structs.PreparedQueryExecuteRequest) (*structs.PreparedQueryExecuteResponse, error) {
+				ret := &structs.PreparedQueryExecuteResponse{}
+				if args.Datacenter == "dc4" {
+					ret.Datacenter = "dc4"
 					ret.Nodes = nodes()
 				}
-				return nil
+				return ret, nil
 			},
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		if err := queryFailover(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
+		if err := fetchQueryResults(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if len(reply.Nodes) != 3 ||
@@ -3193,9 +3481,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 			!reflect.DeepEqual(reply.Nodes, nodes()) {
 			t.Fatalf("bad: %v", reply)
 		}
-		if queries := mock.JoinQueryLog(); queries != "dc1:PreparedQuery.ExecuteRemote|dc2:PreparedQuery.ExecuteRemote|dc4:PreparedQuery.ExecuteRemote" {
-			t.Fatalf("bad: %s", queries)
-		}
+		require.Equal(t, []string{"local", "dc1", "dc2", "dc4"}, mock.QueriedDCs)
 	}
 
 	// Add in a hard-coded value that overlaps with the nearest list.
@@ -3203,18 +3489,19 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 	query.Service.Failover.Datacenters = []string{"dc4", "dc1"}
 	{
 		mock := &mockQueryServer{
-			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
-			QueryFn: func(dc string, args interface{}, reply interface{}) error {
-				ret := reply.(*structs.PreparedQueryExecuteResponse)
-				if dc == "dc4" {
+			Datacenters: []string{"local", "dc1", "dc2", "dc3", "xxx", "dc4"},
+			QueryFn: func(query *structs.PreparedQuery, args structs.PreparedQueryExecuteRequest) (*structs.PreparedQueryExecuteResponse, error) {
+				ret := &structs.PreparedQueryExecuteResponse{}
+				if args.Datacenter == "dc4" {
+					ret.Datacenter = "dc4"
 					ret.Nodes = nodes()
 				}
-				return nil
+				return ret, nil
 			},
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		if err := queryFailover(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
+		if err := fetchQueryResults(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if len(reply.Nodes) != 3 ||
@@ -3222,9 +3509,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 			!reflect.DeepEqual(reply.Nodes, nodes()) {
 			t.Fatalf("bad: %v", reply)
 		}
-		if queries := mock.JoinQueryLog(); queries != "dc1:PreparedQuery.ExecuteRemote|dc2:PreparedQuery.ExecuteRemote|dc4:PreparedQuery.ExecuteRemote" {
-			t.Fatalf("bad: %s", queries)
-		}
+		require.Equal(t, []string{"local", "dc1", "dc2", "dc4"}, mock.QueriedDCs)
 	}
 
 	// Now add a bogus user-defined one to the mix.
@@ -3232,18 +3517,19 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 	query.Service.Failover.Datacenters = []string{"nope", "dc4", "dc1"}
 	{
 		mock := &mockQueryServer{
-			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
-			QueryFn: func(dc string, args interface{}, reply interface{}) error {
-				ret := reply.(*structs.PreparedQueryExecuteResponse)
-				if dc == "dc4" {
+			Datacenters: []string{"local", "dc1", "dc2", "dc3", "xxx", "dc4"},
+			QueryFn: func(query *structs.PreparedQuery, args structs.PreparedQueryExecuteRequest) (*structs.PreparedQueryExecuteResponse, error) {
+				ret := &structs.PreparedQueryExecuteResponse{}
+				if args.Datacenter == "dc4" {
+					ret.Datacenter = "dc4"
 					ret.Nodes = nodes()
 				}
-				return nil
+				return ret, nil
 			},
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		if err := queryFailover(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
+		if err := fetchQueryResults(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if len(reply.Nodes) != 3 ||
@@ -3251,9 +3537,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 			!reflect.DeepEqual(reply.Nodes, nodes()) {
 			t.Fatalf("bad: %v", reply)
 		}
-		if queries := mock.JoinQueryLog(); queries != "dc1:PreparedQuery.ExecuteRemote|dc2:PreparedQuery.ExecuteRemote|dc4:PreparedQuery.ExecuteRemote" {
-			t.Fatalf("bad: %s", queries)
-		}
+		require.Equal(t, []string{"local", "dc1", "dc2", "dc4"}, mock.QueriedDCs)
 		if !strings.Contains(mock.LogBuffer.String(), "Skipping unknown datacenter") {
 			t.Fatalf("bad: %s", mock.LogBuffer.String())
 		}
@@ -3265,20 +3549,21 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 	query.Service.Failover.Datacenters = []string{"dc4", "dc1"}
 	{
 		mock := &mockQueryServer{
-			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
-			QueryFn: func(dc string, args interface{}, reply interface{}) error {
-				ret := reply.(*structs.PreparedQueryExecuteResponse)
-				if dc == "dc1" {
-					return fmt.Errorf("XXX")
-				} else if dc == "dc4" {
+			Datacenters: []string{"local", "dc1", "dc2", "dc3", "xxx", "dc4"},
+			QueryFn: func(query *structs.PreparedQuery, args structs.PreparedQueryExecuteRequest) (*structs.PreparedQueryExecuteResponse, error) {
+				ret := &structs.PreparedQueryExecuteResponse{}
+				if args.Datacenter == "dc1" {
+					return nil, fmt.Errorf("XXX")
+				} else if args.Datacenter == "dc4" {
+					ret.Datacenter = "dc4"
 					ret.Nodes = nodes()
 				}
-				return nil
+				return ret, nil
 			},
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		if err := queryFailover(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
+		if err := fetchQueryResults(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if len(reply.Nodes) != 3 ||
@@ -3286,9 +3571,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 			!reflect.DeepEqual(reply.Nodes, nodes()) {
 			t.Fatalf("bad: %v", reply)
 		}
-		if queries := mock.JoinQueryLog(); queries != "dc1:PreparedQuery.ExecuteRemote|dc2:PreparedQuery.ExecuteRemote|dc4:PreparedQuery.ExecuteRemote" {
-			t.Fatalf("bad: %s", queries)
-		}
+		require.Equal(t, []string{"local", "dc1", "dc2", "dc4"}, mock.QueriedDCs)
 		if !strings.Contains(mock.LogBuffer.String(), "Failed querying") {
 			t.Fatalf("bad: %s", mock.LogBuffer.String())
 		}
@@ -3299,54 +3582,52 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 	query.Service.Failover.Datacenters = []string{"dc3", "xxx"}
 	{
 		mock := &mockQueryServer{
-			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
-			QueryFn: func(dc string, args interface{}, reply interface{}) error {
-				ret := reply.(*structs.PreparedQueryExecuteResponse)
-				if dc == "xxx" {
+			Datacenters: []string{"local", "dc1", "dc2", "dc3", "xxx", "dc4"},
+			QueryFn: func(query *structs.PreparedQuery, args structs.PreparedQueryExecuteRequest) (*structs.PreparedQueryExecuteResponse, error) {
+				ret := &structs.PreparedQueryExecuteResponse{}
+				if args.Datacenter == "xxx" {
+					ret.Datacenter = "xxx"
 					ret.Nodes = nodes()
 				}
-				return nil
+				return ret, nil
 			},
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		if err := queryFailover(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
+		if err := fetchQueryResults(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if len(reply.Nodes) != 3 ||
 			reply.Datacenter != "xxx" || reply.Failovers != 2 ||
 			!reflect.DeepEqual(reply.Nodes, nodes()) {
-			t.Fatalf("bad: %v", reply)
+			t.Fatalf("bad: %+v", reply)
 		}
-		if queries := mock.JoinQueryLog(); queries != "dc3:PreparedQuery.ExecuteRemote|xxx:PreparedQuery.ExecuteRemote" {
-			t.Fatalf("bad: %s", queries)
-		}
+		require.Equal(t, []string{"local", "dc3", "xxx"}, mock.QueriedDCs)
 	}
-
 	// Make sure the limit and query options are plumbed through.
 	query.Service.Failover.NearestN = 0
 	query.Service.Failover.Datacenters = []string{"xxx"}
 	{
 		mock := &mockQueryServer{
-			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
-			QueryFn: func(dc string, args interface{}, reply interface{}) error {
-				inp := args.(*structs.PreparedQueryExecuteRemoteRequest)
-				ret := reply.(*structs.PreparedQueryExecuteResponse)
-				if dc == "xxx" {
-					if inp.Limit != 5 {
-						t.Fatalf("bad: %d", inp.Limit)
+			Datacenters: []string{"local", "dc1", "dc2", "xxx", "dc3", "dc4"},
+			QueryFn: func(query *structs.PreparedQuery, args structs.PreparedQueryExecuteRequest) (*structs.PreparedQueryExecuteResponse, error) {
+				ret := &structs.PreparedQueryExecuteResponse{}
+				if args.Datacenter == "xxx" {
+					if args.Limit != 5 {
+						t.Fatalf("bad: %d", args.Limit)
 					}
-					if inp.RequireConsistent != true {
-						t.Fatalf("bad: %v", inp.RequireConsistent)
+					if args.RequireConsistent != true {
+						t.Fatalf("bad: %v", args.RequireConsistent)
 					}
+					ret.Datacenter = "xxx"
 					ret.Nodes = nodes()
 				}
-				return nil
+				return ret, nil
 			},
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		if err := queryFailover(mock, query, &structs.PreparedQueryExecuteRequest{
+		if err := fetchQueryResults(mock, query, &structs.PreparedQueryExecuteRequest{
 			Limit:        5,
 			QueryOptions: structs.QueryOptions{RequireConsistent: true},
 		}, &reply); err != nil {
@@ -3357,8 +3638,302 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 			!reflect.DeepEqual(reply.Nodes, nodes()) {
 			t.Fatalf("bad: %v", reply)
 		}
-		if queries := mock.JoinQueryLog(); queries != "xxx:PreparedQuery.ExecuteRemote" {
-			t.Fatalf("bad: %s", queries)
+		require.Equal(t, []string{"local", "xxx"}, mock.QueriedDCs)
+	}
+}
+
+func TestPreparedQuery_fetchQueryResults_Blocking(t *testing.T) {
+	t.Parallel()
+	query := &structs.PreparedQuery{
+		Name: "test",
+		Service: structs.ServiceQuery{
+			Failover: structs.QueryDatacenterOptions{
+				NearestN:    1,
+				Datacenters: []string{""},
+			},
+		},
+	}
+
+	type execFunc func(query *structs.PreparedQuery, args structs.PreparedQueryExecuteRequest) (*structs.PreparedQueryExecuteResponse, error)
+
+	makeMock := func(dcsFns map[string][]execFunc) *mockQueryServer {
+		dcs := []string{}
+		for dc := range dcsFns {
+			dcs = append(dcs, dc)
 		}
+		sort.Strings(dcs)
+
+		runs := map[string]int{}
+
+		return &mockQueryServer{
+			Datacenters: dcs,
+			QueryFn: func(query *structs.PreparedQuery, args structs.PreparedQueryExecuteRequest) (*structs.PreparedQueryExecuteResponse, error) {
+				dc := args.Datacenter
+				_, ok := dcsFns[dc]
+				if !ok {
+					t.Fatalf("unexpected call to dc %s", dc)
+				}
+
+				if runs[dc] >= len(dcsFns[dc]) {
+					t.Fatalf("dc %s should not have been called more than %d time(s)", dc, len(dcsFns[dc]))
+				}
+
+				defer func() {
+					runs[dc]++
+				}()
+				return dcsFns[dc][runs[dc]](query, args)
+			},
+		}
+	}
+
+	// DC1 has the results, DC2 is not queried
+	{
+		mock := makeMock(map[string][]execFunc{
+			"dc1": []execFunc{
+				func(query *structs.PreparedQuery, args structs.PreparedQueryExecuteRequest) (*structs.PreparedQueryExecuteResponse, error) {
+					assert.Equal(t, uint64(10), args.MinQueryIndex)
+					time.Sleep(100 * time.Millisecond)
+					return &structs.PreparedQueryExecuteResponse{
+						Nodes: structs.CheckServiceNodes{
+							structs.CheckServiceNode{
+								Node: &structs.Node{Node: "node1"},
+							},
+						},
+						Datacenter: "dc1",
+						QueryMeta: structs.QueryMeta{
+							Index: 11,
+						},
+					}, nil
+				},
+			},
+			"dc2": nil,
+		})
+
+		var reply structs.PreparedQueryExecuteResponse
+		err := fetchQueryResults(mock, query, &structs.PreparedQueryExecuteRequest{
+			QueryOptions: structs.QueryOptions{
+				MinQueryCrossDCIndex: map[string]uint64{
+					"dc1": 10,
+				},
+				MaxQueryTime: 200 * time.Millisecond,
+			},
+		}, &reply)
+		require.Nil(t, err)
+		require.Equal(t, 1, len(reply.Nodes))
+		require.Equal(t, uint64(11), reply.CrossDCIndex["dc1"])
+		require.Equal(t, uint64(0), reply.CrossDCIndex["dc2"])
+	}
+
+	// DC1 Fails, still failing
+	{
+		mock := makeMock(map[string][]execFunc{
+			"dc1": []execFunc{
+				func(query *structs.PreparedQuery, args structs.PreparedQueryExecuteRequest) (*structs.PreparedQueryExecuteResponse, error) {
+					assert.Equal(t, uint64(10), args.MinQueryIndex)
+					time.Sleep(100 * time.Millisecond)
+					return &structs.PreparedQueryExecuteResponse{
+						Datacenter: "dc1",
+						QueryMeta: structs.QueryMeta{
+							Index: 11,
+						},
+					}, nil
+				},
+				func(query *structs.PreparedQuery, args structs.PreparedQueryExecuteRequest) (*structs.PreparedQueryExecuteResponse, error) {
+					return &structs.PreparedQueryExecuteResponse{}, nil
+				},
+			},
+			"dc2": nil,
+		})
+
+		var reply structs.PreparedQueryExecuteResponse
+		err := fetchQueryResults(mock, query, &structs.PreparedQueryExecuteRequest{
+			QueryOptions: structs.QueryOptions{
+				MinQueryCrossDCIndex: map[string]uint64{
+					"dc1": 10,
+				},
+				MaxQueryTime: 100 * time.Millisecond,
+			},
+		}, &reply)
+		require.Nil(t, err)
+		require.Equal(t, 0, len(reply.Nodes))
+		require.Equal(t, uint64(11), reply.CrossDCIndex["dc1"])
+	}
+
+	// DC1 Fails, Fallback to DC2
+	{
+		mock := makeMock(map[string][]execFunc{
+			"dc1": []execFunc{
+				func(query *structs.PreparedQuery, args structs.PreparedQueryExecuteRequest) (*structs.PreparedQueryExecuteResponse, error) {
+					assert.Equal(t, uint64(10), args.MinQueryIndex)
+					time.Sleep(50 * time.Millisecond)
+					return &structs.PreparedQueryExecuteResponse{
+						Datacenter: "dc1",
+						QueryMeta: structs.QueryMeta{
+							Index: 11,
+						},
+					}, nil
+				},
+				func(query *structs.PreparedQuery, args structs.PreparedQueryExecuteRequest) (*structs.PreparedQueryExecuteResponse, error) {
+					return &structs.PreparedQueryExecuteResponse{}, nil
+				},
+			},
+			"dc2": []execFunc{
+				func(query *structs.PreparedQuery, args structs.PreparedQueryExecuteRequest) (*structs.PreparedQueryExecuteResponse, error) {
+					assert.Equal(t, uint64(0), args.MinQueryIndex)
+					return &structs.PreparedQueryExecuteResponse{
+						Nodes: structs.CheckServiceNodes{
+							structs.CheckServiceNode{
+								Node: &structs.Node{Node: "node1"},
+							},
+						},
+						Datacenter: "dc2",
+						QueryMeta: structs.QueryMeta{
+							Index: 13,
+						},
+					}, nil
+				},
+			},
+		})
+
+		var reply structs.PreparedQueryExecuteResponse
+		err := fetchQueryResults(mock, query, &structs.PreparedQueryExecuteRequest{
+			QueryOptions: structs.QueryOptions{
+				MinQueryCrossDCIndex: map[string]uint64{
+					"dc1": 10,
+				},
+				MaxQueryTime: 100 * time.Millisecond,
+			},
+		}, &reply)
+		require.Nil(t, err)
+		require.Equal(t, 1, len(reply.Nodes))
+		require.Equal(t, "dc2", reply.Datacenter)
+		require.Equal(t, uint64(11), reply.CrossDCIndex["dc1"])
+		require.Equal(t, uint64(13), reply.CrossDCIndex["dc2"])
+	}
+
+	// A DC fails and comes back
+	{
+		mock := makeMock(map[string][]execFunc{
+			"dc1": []execFunc{
+				func(query *structs.PreparedQuery, args structs.PreparedQueryExecuteRequest) (*structs.PreparedQueryExecuteResponse, error) {
+					assert.Equal(t, uint64(10), args.MinQueryIndex)
+					time.Sleep(100 * time.Millisecond)
+					return &structs.PreparedQueryExecuteResponse{
+						Datacenter: "dc1",
+						QueryMeta: structs.QueryMeta{
+							Index: 11,
+						},
+					}, nil
+				},
+				func(query *structs.PreparedQuery, args structs.PreparedQueryExecuteRequest) (*structs.PreparedQueryExecuteResponse, error) {
+					time.Sleep(50 * time.Millisecond)
+					assert.Equal(t, uint64(11), args.MinQueryIndex)
+					return &structs.PreparedQueryExecuteResponse{
+						Datacenter: "dc1",
+						Nodes: structs.CheckServiceNodes{
+							structs.CheckServiceNode{
+								Node: &structs.Node{Node: "node1"},
+							},
+						},
+						QueryMeta: structs.QueryMeta{
+							Index: 12,
+						},
+					}, nil
+				},
+			},
+			"dc2": []execFunc{
+				func(query *structs.PreparedQuery, args structs.PreparedQueryExecuteRequest) (*structs.PreparedQueryExecuteResponse, error) {
+					assert.Equal(t, uint64(15), args.MinQueryIndex)
+
+					time.Sleep(200 * time.Millisecond)
+					return &structs.PreparedQueryExecuteResponse{
+						Datacenter: "dc2",
+						QueryMeta: structs.QueryMeta{
+							Index: 15,
+						},
+					}, nil
+				},
+			},
+		})
+
+		var reply structs.PreparedQueryExecuteResponse
+		err := fetchQueryResults(mock, query, &structs.PreparedQueryExecuteRequest{
+			QueryOptions: structs.QueryOptions{
+				MinQueryCrossDCIndex: map[string]uint64{
+					"dc1": 10,
+					"dc2": 15,
+				},
+				MaxQueryTime: 200 * time.Millisecond,
+			},
+		}, &reply)
+		require.Nil(t, err)
+		require.Equal(t, 1, len(reply.Nodes))
+		require.Equal(t, uint64(12), reply.CrossDCIndex["dc1"])
+		require.Equal(t, uint64(0), reply.CrossDCIndex["dc2"])
+	}
+
+	// DC2 has results, DC1 comes back
+	{
+		mock := makeMock(map[string][]execFunc{
+			"dc1": []execFunc{
+				func(query *structs.PreparedQuery, args structs.PreparedQueryExecuteRequest) (*structs.PreparedQueryExecuteResponse, error) {
+					assert.Equal(t, uint64(10), args.MinQueryIndex)
+					time.Sleep(50 * time.Millisecond)
+					return &structs.PreparedQueryExecuteResponse{
+						Datacenter: "dc1",
+						QueryMeta: structs.QueryMeta{
+							Index: 11,
+						},
+					}, nil
+				},
+				func(query *structs.PreparedQuery, args structs.PreparedQueryExecuteRequest) (*structs.PreparedQueryExecuteResponse, error) {
+					assert.Equal(t, uint64(11), args.MinQueryIndex)
+					return &structs.PreparedQueryExecuteResponse{
+						Datacenter: "dc1",
+						Nodes: structs.CheckServiceNodes{
+							structs.CheckServiceNode{
+								Node: &structs.Node{Node: "node1"},
+							},
+						},
+						QueryMeta: structs.QueryMeta{
+							Index: 12,
+						},
+					}, nil
+				},
+			},
+			"dc2": []execFunc{
+				func(query *structs.PreparedQuery, args structs.PreparedQueryExecuteRequest) (*structs.PreparedQueryExecuteResponse, error) {
+					assert.Equal(t, uint64(12), args.MinQueryIndex)
+					time.Sleep(100 * time.Millisecond)
+					return &structs.PreparedQueryExecuteResponse{
+						Nodes: structs.CheckServiceNodes{
+							structs.CheckServiceNode{
+								Node: &structs.Node{Node: "node1"},
+							},
+						},
+						Datacenter: "dc2",
+						QueryMeta: structs.QueryMeta{
+							Index: 13,
+						},
+					}, nil
+				},
+			},
+		})
+
+		var reply structs.PreparedQueryExecuteResponse
+		err := fetchQueryResults(mock, query, &structs.PreparedQueryExecuteRequest{
+			QueryOptions: structs.QueryOptions{
+				MinQueryCrossDCIndex: map[string]uint64{
+					"dc1": 10,
+					"dc2": 12,
+				},
+				MaxQueryTime: 200 * time.Millisecond,
+			},
+		}, &reply)
+		require.Nil(t, err)
+		require.Equal(t, 1, len(reply.Nodes))
+		require.Equal(t, "dc1", reply.Datacenter)
+		require.Equal(t, uint64(12), reply.CrossDCIndex["dc1"])
+		require.Equal(t, uint64(0), reply.CrossDCIndex["dc2"])
 	}
 }

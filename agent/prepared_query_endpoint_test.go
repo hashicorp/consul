@@ -205,8 +205,9 @@ func TestPreparedQuery_List(t *testing.T) {
 				expected := &structs.DCSpecificRequest{
 					Datacenter: "dc1",
 					QueryOptions: structs.QueryOptions{
-						Token:             "my-token",
-						RequireConsistent: true,
+						Token:                "my-token",
+						RequireConsistent:    true,
+						MinQueryCrossDCIndex: map[string]uint64{},
 					},
 				}
 				if !reflect.DeepEqual(args, expected) {
@@ -298,8 +299,9 @@ func TestPreparedQuery_Execute(t *testing.T) {
 						Node:       a.Config.NodeName,
 					},
 					QueryOptions: structs.QueryOptions{
-						Token:             "my-token",
-						RequireConsistent: true,
+						Token:                "my-token",
+						RequireConsistent:    true,
+						MinQueryCrossDCIndex: map[string]uint64{},
 					},
 				}
 				if !reflect.DeepEqual(args, expected) {
@@ -354,8 +356,9 @@ func TestPreparedQuery_Execute(t *testing.T) {
 						Node:       a.Config.NodeName,
 					},
 					QueryOptions: structs.QueryOptions{
-						Token:             "my-token",
-						RequireConsistent: true,
+						Token:                "my-token",
+						RequireConsistent:    true,
+						MinQueryCrossDCIndex: map[string]uint64{},
 					},
 				}
 				if !reflect.DeepEqual(args, expected) {
@@ -411,8 +414,9 @@ func TestPreparedQuery_Execute(t *testing.T) {
 						Node:       a.Config.NodeName,
 					},
 					QueryOptions: structs.QueryOptions{
-						Token:             "my-token",
-						RequireConsistent: true,
+						Token:                "my-token",
+						RequireConsistent:    true,
+						MinQueryCrossDCIndex: map[string]uint64{},
 					},
 				}
 				if !reflect.DeepEqual(args, expected) {
@@ -691,8 +695,9 @@ func TestPreparedQuery_Explain(t *testing.T) {
 						Node:       a.Config.NodeName,
 					},
 					QueryOptions: structs.QueryOptions{
-						Token:             "my-token",
-						RequireConsistent: true,
+						Token:                "my-token",
+						RequireConsistent:    true,
+						MinQueryCrossDCIndex: map[string]uint64{},
 					},
 				}
 				if !reflect.DeepEqual(args, expected) {
@@ -777,12 +782,13 @@ func TestPreparedQuery_Get(t *testing.T) {
 					Datacenter: "dc1",
 					QueryID:    "my-id",
 					QueryOptions: structs.QueryOptions{
-						Token:             "my-token",
-						RequireConsistent: true,
+						Token:                "my-token",
+						RequireConsistent:    true,
+						MinQueryCrossDCIndex: make(map[string]uint64),
 					},
 				}
 				if !reflect.DeepEqual(args, expected) {
-					t.Fatalf("bad: %v", args)
+					t.Fatalf("bad: %+v", args)
 				}
 
 				query := &structs.PreparedQuery{

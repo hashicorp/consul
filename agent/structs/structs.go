@@ -116,6 +116,8 @@ type QueryOptions struct {
 	// with MaxQueryTime.
 	MinQueryIndex uint64
 
+	MinQueryCrossDCIndex map[string]uint64
+
 	// Provided with MinQueryIndex to wait for change.
 	MaxQueryTime time.Duration
 
@@ -213,6 +215,10 @@ func (w WriteRequest) TokenSecret() string {
 type QueryMeta struct {
 	// This is the index associated with the read
 	Index uint64
+
+	// In case of cross dc reads, contains each dc index associated
+	// with the read
+	CrossDCIndex map[string]uint64
 
 	// If AllowStale is used, this is time elapsed since
 	// last contact between the follower and leader. This

@@ -574,6 +574,22 @@ func setIndex(resp http.ResponseWriter, index uint64) {
 	resp.Header().Set("X-Consul-Index", strconv.FormatUint(index, 10))
 }
 
+func setCrossDCIndex(resp http.ResponseWriter, cdcindex map[string]uint64) {
+	if cdcindex == nil || len(cdcindex) == 0 {
+		return
+	}
+	idx := ""
+	i := 0
+	for dc, index := range cdcindex {
+		if i > 0 {
+			idx += ","
+		}
+		idx += dc + ":" + strconv.FormatUint(index, 10)
+		i++
+	}
+	resp.Header().Set("X-Consul-CrossDC-Index", idx)
+}
+
 // setKnownLeader is used to set the known leader header
 func setKnownLeader(resp http.ResponseWriter, known bool) {
 	s := "true"
@@ -601,6 +617,7 @@ func setLastContact(resp http.ResponseWriter, last time.Duration) {
 // setMeta is used to set the query response meta data
 func setMeta(resp http.ResponseWriter, m *structs.QueryMeta) {
 	setIndex(resp, m.Index)
+	setCrossDCIndex(resp, m.CrossDCIndex)
 	setLastContact(resp, m.LastContact)
 	setKnownLeader(resp, m.KnownLeader)
 	setConsistency(resp, m.ConsistencyLevel)
@@ -649,6 +666,30 @@ func parseWait(resp http.ResponseWriter, req *http.Request, b *structs.QueryOpti
 			return true
 		}
 		b.MinQueryIndex = index
+	}
+	b.MinQueryCrossDCIndex = make(map[string]uint64)
+	if cdcidx := query.Get("cdcindex"); cdcidx != "" {
+		dcs := strings.Split(cdcidx, ",")
+		for _, dc := range dcs {
+			eqPos := strings.IndexByte(dc, ':')
+			if eqPos == -1 {
+				resp.WriteHeader(http.StatusBadRequest)
+				fmt.Fprint(resp, "Invalid cdcindex")
+				return true
+			}
+			if eqPos == len(dc)-1 {
+				resp.WriteHeader(http.StatusBadRequest)
+				fmt.Fprint(resp, "Invalid cdcindex")
+				return true
+			}
+			index, err := strconv.ParseUint(dc[eqPos+1:], 10, 64)
+			if err != nil {
+				resp.WriteHeader(http.StatusBadRequest)
+				fmt.Fprint(resp, "Invalid cdcindex")
+				return true
+			}
+			b.MinQueryCrossDCIndex[dc[:eqPos]] = index
+		}
 	}
 	return false
 }
