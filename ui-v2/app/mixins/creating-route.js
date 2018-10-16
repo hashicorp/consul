@@ -16,6 +16,7 @@ export default Mixin.create({
     // TODO: This is dependent on ember-changeset
     // Change changeset to support ember-data props
     const item = get(this.controller, 'item.data');
+    // TODO: Look and see if rollbackAttributes is good here
     if (get(item, 'isNew')) {
       item.destroyRecord();
     }

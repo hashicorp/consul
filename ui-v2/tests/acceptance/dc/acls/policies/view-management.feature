@@ -1,11 +1,12 @@
 @setupApplicationTest
 Feature: dc / acls / policies / view managment: Readonly management policy
-  Scenario:
+  Background:
     Given 1 datacenter model with the value "datacenter"
     And 1 policy model from yaml
     ---
       ID: 00000000-0000-0000-0000-000000000001
     ---
+  Scenario:
     When I visit the policy page for yaml
     ---
       dc: datacenter
@@ -13,7 +14,7 @@ Feature: dc / acls / policies / view managment: Readonly management policy
     ---
     Then the url should be /datacenter/acls/policies/00000000-0000-0000-0000-000000000001
     Then I see the text "View Policy" in "h1"
-@ignore
-  Scenario: Check the rest of the view policy content is correct
-    Then ok
+    Then I don't see confirmDelete
+    Then I don't see cancel
+    And I see tokens
 

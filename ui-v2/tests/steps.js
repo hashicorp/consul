@@ -432,6 +432,17 @@ export default function(assert) {
           `Expected to not see ${property} on ${component}`
         );
       })
+      .then(["I don't see $property"], function(property) {
+        assert.throws(
+          function() {
+            currentPage[property]();
+          },
+          function(e) {
+            return e.toString().indexOf('Element not found') !== -1;
+          },
+          `Expected to not see ${property}`
+        );
+      })
       .then(['I see $property'], function(property) {
         assert.ok(currentPage[property], `Expected to see ${property}`);
       })
