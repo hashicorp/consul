@@ -149,7 +149,15 @@ func NewClientLogger(config *Config, logger *log.Logger) (*Client, error) {
 	}
 
 	c.useNewACLs = 0
-	if c.acls, err = NewACLResolver(config, c, clientACLCacheConfig, true, logger, nil); err != nil {
+	aclConfig := ACLResolverConfig{
+		Config:      config,
+		Delegate:    c,
+		Logger:      logger,
+		AutoDisable: true,
+		CacheConfig: clientACLCacheConfig,
+		Sentinel:    nil,
+	}
+	if c.acls, err = NewACLResolver(&aclConfig); err != nil {
 		c.Shutdown()
 		return nil, fmt.Errorf("Failed to create ACL resolver: %v", err)
 	}
