@@ -86,7 +86,7 @@ export default SingleRoute.extend(WithTokenActions, {
               item.addError(prop, message);
             }
           } else {
-            throw e;
+            throw err;
           }
         });
     },
