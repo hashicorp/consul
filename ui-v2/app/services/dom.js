@@ -35,9 +35,12 @@ export default Service.extend({
   elements: function(selector, context) {
     return $$(selector, context);
   },
-  // TODO: This should return a single element
   element: function(selector, context) {
-    return $$(selector, context);
+    if (selector.substr(0, 1) === '#') {
+      return this.elementById(selector.substr(1));
+    }
+    // TODO: This can just use querySelector
+    return [...$$(selector, context)][0];
   },
   // ember components aren't strictly 'dom-like'
   // but if you think of them as a web component 'shim'
@@ -46,6 +49,6 @@ export default Service.extend({
   // method as you could just get to their methods from the dom element
   component: function(selector, context) {
     // TODO: support passing a dom element, when we need to do that
-    return $_([...this.element(selector, context)][0]);
+    return $_(this.element(selector, context));
   },
 });

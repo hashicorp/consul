@@ -5,14 +5,13 @@ import SlotsMixin from 'ember-block-slots';
 import WithResizing from 'consul-ui/mixins/with-resizing';
 
 import templatize from 'consul-ui/utils/templatize';
-const $html = document.documentElement;
 export default Component.extend(SlotsMixin, WithResizing, {
   // tagName: ''
   dom: service('dom'),
   checked: true,
   height: null,
-  // WithResizing already uses `win`
-  window: null,
+  // dialog is a reference to the modal-dialog 'panel' so its 'window'
+  dialog: null,
   overflowingClass: 'overflowing',
   onclose: function() {},
   onopen: function() {},
@@ -20,9 +19,9 @@ export default Component.extend(SlotsMixin, WithResizing, {
     set(this, 'checked', true);
     if (get(this, 'height') === null) {
       if (this.element) {
-        const win = [...get(this, 'dom').element('[role="dialog"] > div > div', this.element)][0];
-        const rect = win.getBoundingClientRect();
-        set(this, 'window', win);
+        const dialogPanel = get(this, 'dom').element('[role="dialog"] > div > div', this.element);
+        const rect = dialogPanel.getBoundingClientRect();
+        set(this, 'dialog', dialogPanel);
         set(this, 'height', rect.height);
       }
     }
@@ -30,10 +29,10 @@ export default Component.extend(SlotsMixin, WithResizing, {
   },
   _close: function(e) {
     set(this, 'checked', false);
-    const win = get(this, 'window');
+    const dialogPanel = get(this, 'dialog');
     const overflowing = get(this, 'overflowingClass');
-    if (win.classList.contains(overflowing)) {
-      win.classList.remove(overflowing);
+    if (dialogPanel.classList.contains(overflowing)) {
+      dialogPanel.classList.remove(overflowing);
     }
     this.onclose(e);
   },
@@ -46,27 +45,31 @@ export default Component.extend(SlotsMixin, WithResizing, {
     if (get(this, 'checked')) {
       // TODO: probably need an event here
       this._open({ target: {} });
-      $html.classList.add(...templatize(['with-modal']));
+      get(this, 'dom')
+        .root()
+        .classList.add(...templatize(['with-modal']));
     }
   },
   didDestroyElement: function() {
     this._super(...arguments);
-    $html.classList.remove(...templatize(['with-modal']));
+    get(this, 'dom')
+      .root()
+      .classList.remove(...templatize(['with-modal']));
   },
   resize: function(e) {
     if (get(this, 'checked')) {
       const height = get(this, 'height');
       if (height !== null) {
-        const win = get(this, 'window');
+        const dialogPanel = get(this, 'dialog');
         const overflowing = get(this, 'overflowingClass');
         if (height > e.detail.height) {
-          if (!win.classList.contains(overflowing)) {
-            win.classList.add(overflowing);
+          if (!dialogPanel.classList.contains(overflowing)) {
+            dialogPanel.classList.add(overflowing);
           }
           return;
         } else {
-          if (win.classList.contains(overflowing)) {
-            win.classList.remove(overflowing);
+          if (dialogPanel.classList.contains(overflowing)) {
+            dialogPanel.classList.remove(overflowing);
           }
         }
       }
@@ -81,7 +84,7 @@ export default Component.extend(SlotsMixin, WithResizing, {
       }
     },
     close: function() {
-      document.getElementById('modal_close').checked = true;
+      get(this, 'dom').element('#modal_close').checked = true;
       this.onclose();
     },
   },

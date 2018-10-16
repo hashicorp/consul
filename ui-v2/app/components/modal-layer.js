@@ -1,12 +1,12 @@
 import Component from 'consul-ui/components/dom-buffer-flush';
-import qsaFactory from 'consul-ui/utils/dom/qsa-factory';
-
-const $$ = qsaFactory();
+import { inject as service } from '@ember/service';
+import { get } from '@ember/object';
 
 export default Component.extend({
+  dom: service('dom'),
   actions: {
     change: function(e) {
-      [...$$('[name="modal"]')]
+      [...get(this, 'dom').elements('[name="modal"]')]
         .filter(function(item) {
           return item.getAttribute('id') !== 'modal_close';
         })
