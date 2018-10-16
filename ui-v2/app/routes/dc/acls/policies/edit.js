@@ -17,10 +17,16 @@ export default SingleRoute.extend(WithPolicyActions, {
         ...model,
         ...{
           datacenters: get(this, 'datacenterRepo').findAll(),
+          items: tokensRepo.findByPolicy(get(model.item, 'ID'), dc).catch(function(e) {
+            switch (get(e, 'errors.firstObject.status')) {
+              case '403':
+              case '401':
+                // do nothing the SingleRoute will have caught it already
+                return;
+            }
+            throw e;
+          }),
         },
-        ...tokensRepo.status({
-          items: tokensRepo.findByPolicy(get(model.item, 'ID'), dc),
-        }),
       });
     });
   },

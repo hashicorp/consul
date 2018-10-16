@@ -24,10 +24,16 @@ export default SingleRoute.extend(WithTokenActions, {
           datacenters: get(this, 'datacenterRepo').findAll(),
           policy: this.getEmptyPolicy(),
           token: get(this, 'settings').findBySlug('token'),
+          items: policiesRepo.findAllByDatacenter(dc).catch(function(e) {
+            switch (get(e, 'errors.firstObject.status')) {
+              case '403':
+              case '401':
+                // do nothing the SingleRoute will have caught it already
+                return;
+            }
+            throw e;
+          }),
         },
-        ...policiesRepo.status({
-          items: policiesRepo.findAllByDatacenter(dc),
-        }),
       });
     });
   },
