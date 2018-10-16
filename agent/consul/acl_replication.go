@@ -8,14 +8,9 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/structs"
-	"golang.org/x/time/rate"
 )
 
 const (
-	// aclReplicationRateLimit is used to rate limit how often data is replicated
-	// between the primary and secondary datacenters. This is 10 times per second
-	aclReplicationRateLimit rate.Limit = 10.0
-
 	// aclReplicationMaxRetryBackoff is the max number of seconds to sleep between ACL replication RPC errors
 	aclReplicationMaxRetryBackoff = 64
 )
@@ -186,7 +181,7 @@ func diffACLTokens(local structs.ACLTokens, remote structs.ACLTokenListStubs, la
 	var remoteIdx int
 	for localIdx, remoteIdx = 0, 0; localIdx < len(local) && remoteIdx < len(remote); {
 		if local[localIdx].AccessorID == remote[remoteIdx].AccessorID {
-			// policy is in both the local and remote state - need to check raft indices and
+			// policy is in both the local and remote state - need to check raft indices and Hash
 			if remote[remoteIdx].ModifyIndex > lastRemoteIndex && !bytes.Equal(remote[remoteIdx].Hash, local[localIdx].Hash) {
 				updates = append(updates, remote[remoteIdx].AccessorID)
 			}
