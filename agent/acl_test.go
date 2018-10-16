@@ -40,10 +40,10 @@ func TestACL_Bad_Config(t *testing.T) {
 }
 
 type MockServer struct {
-	getPolicyFn func(*structs.ACLPolicyRequest, *structs.ACLPolicy) error
+	getPolicyFn func(*structs.ACLPolicyResolveLegacyRequest, *structs.ACLPolicyResolveLegacyResponse) error
 }
 
-func (m *MockServer) GetPolicy(args *structs.ACLPolicyRequest, reply *structs.ACLPolicy) error {
+func (m *MockServer) GetPolicy(args *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
 	if m.getPolicyFn != nil {
 		return m.getPolicyFn(args, reply)
 	}
@@ -61,7 +61,7 @@ func TestACL_Version8(t *testing.T) {
 
 		testrpc.WaitForLeader(t, a.RPC, "dc1")
 		m := MockServer{
-			getPolicyFn: func(*structs.ACLPolicyRequest, *structs.ACLPolicy) error {
+			getPolicyFn: func(*structs.ACLPolicyResolveLegacyRequest, *structs.ACLPolicyResolveLegacyResponse) error {
 				t.Fatalf("should not have called to server")
 				return nil
 			},
@@ -84,7 +84,7 @@ func TestACL_Version8(t *testing.T) {
 		testrpc.WaitForLeader(t, a.RPC, "dc1")
 		var called bool
 		m := MockServer{
-			getPolicyFn: func(*structs.ACLPolicyRequest, *structs.ACLPolicy) error {
+			getPolicyFn: func(*structs.ACLPolicyResolveLegacyRequest, *structs.ACLPolicyResolveLegacyResponse) error {
 				called = true
 				return fmt.Errorf("token not found")
 			},
@@ -114,7 +114,7 @@ func TestACL_Disabled(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 	m := MockServer{
 		// Fetch a token without ACLs enabled and make sure the manager sees it.
-		getPolicyFn: func(*structs.ACLPolicyRequest, *structs.ACLPolicy) error {
+		getPolicyFn: func(*structs.ACLPolicyResolveLegacyRequest, *structs.ACLPolicyResolveLegacyResponse) error {
 			return rawacl.ErrDisabled
 		},
 	}
@@ -122,25 +122,25 @@ func TestACL_Disabled(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if a.acls.isDisabled() {
+	if !a.delegate.ACLsEnabled() {
 		t.Fatalf("should not be disabled yet")
 	}
 	if token, err := a.resolveToken("nope"); token != nil || err != nil {
 		t.Fatalf("bad: %v err: %v", token, err)
 	}
-	if !a.acls.isDisabled() {
+	if a.delegate.ACLsEnabled() {
 		t.Fatalf("should be disabled")
 	}
 
 	// Now turn on ACLs and check right away, it should still think ACLs are
 	// disabled since we don't check again right away.
-	m.getPolicyFn = func(*structs.ACLPolicyRequest, *structs.ACLPolicy) error {
+	m.getPolicyFn = func(*structs.ACLPolicyResolveLegacyRequest, *structs.ACLPolicyResolveLegacyResponse) error {
 		return rawacl.ErrNotFound
 	}
 	if token, err := a.resolveToken("nope"); token != nil || err != nil {
 		t.Fatalf("bad: %v err: %v", token, err)
 	}
-	if !a.acls.isDisabled() {
+	if a.delegate.ACLsEnabled() {
 		t.Fatalf("should be disabled")
 	}
 
@@ -152,7 +152,7 @@ func TestACL_Disabled(t *testing.T) {
 		if !rawacl.IsErrNotFound(err) {
 			t.Fatalf("err: %v", err)
 		}
-		if a.acls.isDisabled() {
+		if !a.delegate.ACLsEnabled() {
 			t.Fatalf("should not be disabled")
 		}
 	}
@@ -169,7 +169,7 @@ func TestACL_Special_IDs(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 	m := MockServer{
 		// An empty ID should get mapped to the anonymous token.
-		getPolicyFn: func(req *structs.ACLPolicyRequest, reply *structs.ACLPolicy) error {
+		getPolicyFn: func(req *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
 			if req.ACL != "anonymous" {
 				t.Fatalf("bad: %#v", *req)
 			}
@@ -185,7 +185,7 @@ func TestACL_Special_IDs(t *testing.T) {
 	}
 
 	// A root ACL request should get rejected and not call the server.
-	m.getPolicyFn = func(*structs.ACLPolicyRequest, *structs.ACLPolicy) error {
+	m.getPolicyFn = func(*structs.ACLPolicyResolveLegacyRequest, *structs.ACLPolicyResolveLegacyResponse) error {
 		t.Fatalf("should not have called to server")
 		return nil
 	}
@@ -228,7 +228,7 @@ func TestACL_Down_Deny(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 	m := MockServer{
 		// Resolve with ACLs down.
-		getPolicyFn: func(*structs.ACLPolicyRequest, *structs.ACLPolicy) error {
+		getPolicyFn: func(*structs.ACLPolicyResolveLegacyRequest, *structs.ACLPolicyResolveLegacyResponse) error {
 			return fmt.Errorf("ACLs are broken")
 		},
 	}
@@ -259,7 +259,7 @@ func TestACL_Down_Allow(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 	m := MockServer{
 		// Resolve with ACLs down.
-		getPolicyFn: func(*structs.ACLPolicyRequest, *structs.ACLPolicy) error {
+		getPolicyFn: func(*structs.ACLPolicyResolveLegacyRequest, *structs.ACLPolicyResolveLegacyResponse) error {
 			return fmt.Errorf("ACLs are broken")
 		},
 	}
@@ -292,8 +292,8 @@ func TestACL_Down_Extend(t *testing.T) {
 		testrpc.WaitForLeader(t, a.RPC, "dc1")
 		m := MockServer{
 			// Populate the cache for one of the tokens.
-			getPolicyFn: func(req *structs.ACLPolicyRequest, reply *structs.ACLPolicy) error {
-				*reply = structs.ACLPolicy{
+			getPolicyFn: func(req *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
+				*reply = structs.ACLPolicyResolveLegacyResponse{
 					Parent: "allow",
 					Policy: &rawacl.Policy{
 						Agents: []*rawacl.AgentPolicy{
@@ -326,7 +326,7 @@ func TestACL_Down_Extend(t *testing.T) {
 		}
 
 		// Now take down ACLs and make sure a new token fails to resolve.
-		m.getPolicyFn = func(*structs.ACLPolicyRequest, *structs.ACLPolicy) error {
+		m.getPolicyFn = func(*structs.ACLPolicyResolveLegacyRequest, *structs.ACLPolicyResolveLegacyResponse) error {
 			return fmt.Errorf("ACLs are broken")
 		}
 		acl, err = a.resolveToken("nope")
@@ -371,8 +371,8 @@ func TestACL_Cache(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 	m := MockServer{
 		// Populate the cache for one of the tokens.
-		getPolicyFn: func(req *structs.ACLPolicyRequest, reply *structs.ACLPolicy) error {
-			*reply = structs.ACLPolicy{
+		getPolicyFn: func(req *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
+			*reply = structs.ACLPolicyResolveLegacyResponse{
 				ETag:   "hash1",
 				Parent: "deny",
 				Policy: &rawacl.Policy{
@@ -410,7 +410,7 @@ func TestACL_Cache(t *testing.T) {
 	}
 
 	// Fetch right away and make sure it uses the cache.
-	m.getPolicyFn = func(*structs.ACLPolicyRequest, *structs.ACLPolicy) error {
+	m.getPolicyFn = func(*structs.ACLPolicyResolveLegacyRequest, *structs.ACLPolicyResolveLegacyResponse) error {
 		t.Fatalf("should not have called to server")
 		return nil
 	}
@@ -434,7 +434,7 @@ func TestACL_Cache(t *testing.T) {
 	// Wait for the TTL to expire and try again. This time the token will be
 	// gone.
 	time.Sleep(20 * time.Millisecond)
-	m.getPolicyFn = func(req *structs.ACLPolicyRequest, reply *structs.ACLPolicy) error {
+	m.getPolicyFn = func(req *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
 		return rawacl.ErrNotFound
 	}
 	_, err = a.resolveToken("yep")
@@ -443,8 +443,8 @@ func TestACL_Cache(t *testing.T) {
 	}
 
 	// Page it back in with a new tag and different policy
-	m.getPolicyFn = func(req *structs.ACLPolicyRequest, reply *structs.ACLPolicy) error {
-		*reply = structs.ACLPolicy{
+	m.getPolicyFn = func(req *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
+		*reply = structs.ACLPolicyResolveLegacyResponse{
 			ETag:   "hash2",
 			Parent: "deny",
 			Policy: &rawacl.Policy{
@@ -481,8 +481,8 @@ func TestACL_Cache(t *testing.T) {
 	// behavior.
 	time.Sleep(20 * time.Millisecond)
 	var didRefresh bool
-	m.getPolicyFn = func(req *structs.ACLPolicyRequest, reply *structs.ACLPolicy) error {
-		*reply = structs.ACLPolicy{
+	m.getPolicyFn = func(req *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
+		*reply = structs.ACLPolicyResolveLegacyResponse{
 			ETag: "hash2",
 			TTL:  10 * time.Millisecond,
 		}
@@ -512,7 +512,7 @@ func TestACL_Cache(t *testing.T) {
 
 // catalogPolicy supplies some standard policies to help with testing the
 // catalog-related vet and filter functions.
-func catalogPolicy(req *structs.ACLPolicyRequest, reply *structs.ACLPolicy) error {
+func catalogPolicy(req *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
 	reply.Policy = &rawacl.Policy{}
 
 	switch req.ACL {

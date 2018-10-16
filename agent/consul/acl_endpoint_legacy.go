@@ -138,7 +138,10 @@ func (a *ACL) Get(args *structs.ACLSpecificRequest,
 
 			// converting an ACLToken to an ACL will return nil and an error
 			// (which we ignore) when it is unconvertible.
-			acl, _ := token.Convert()
+			var acl *structs.ACL
+			if token != nil {
+				acl, _ = token.Convert()
+			}
 
 			reply.Index = index
 			if acl != nil {
