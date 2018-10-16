@@ -53,6 +53,8 @@ export default SingleRoute.extend(WithTokenActions, {
       return items.removeObject(item);
     },
     clearPolicy: function() {
+      // TODO: I should be able to reset the ember-data object
+      // back to it original state?
       const controller = get(this, 'controller');
       controller.setProperties({
         policy: this.getEmptyPolicy(),
@@ -65,9 +67,9 @@ export default SingleRoute.extend(WithTokenActions, {
           set(item, 'CreateTime', new Date().getTime());
           policies.pushObject(item);
         })
-        .catch(e => {
-          if (typeof e.errors !== 'undefined') {
-            const error = e.errors[0];
+        .catch(err => {
+          if (typeof err.errors !== 'undefined') {
+            const error = err.errors[0];
             let prop;
             let message = error.detail;
             switch (true) {
