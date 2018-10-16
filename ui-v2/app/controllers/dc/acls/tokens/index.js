@@ -17,6 +17,9 @@ export default Controller.extend(WithFiltering, {
       get(item, 'Name')
         .toLowerCase()
         .indexOf(sLower) !== -1 ||
+      get(item, 'Description')
+        .toLowerCase()
+        .indexOf(sLower) !== -1 ||
       (get(item, 'Policies') || []).some(function(item) {
         return item.Name.toLowerCase().indexOf(sLower) !== -1;
       })

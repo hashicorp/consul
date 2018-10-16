@@ -1,7 +1,7 @@
 import SingleRoute from 'consul-ui/routing/single';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
-import { set, get } from '@ember/object';
+import { get } from '@ember/object';
 import updateArrayObject from 'consul-ui/utils/update-array-object';
 
 import WithTokenActions from 'consul-ui/mixins/token/with-actions';
@@ -37,72 +37,53 @@ export default SingleRoute.extend(WithTokenActions, {
   },
   getEmptyPolicy: function() {
     const dc = this.modelFor('dc').dc.Name;
-    // TODO: Check to make sure we actually scope to a DC?
     return get(this, 'policiesRepo').create({ Datacenter: dc });
   },
   actions: {
-    // TODO: Some of this could potentially be moved to the
-    // repo services
-    // triggered when an accordian pane is opened
-    loadPolicy: function(item) {
-      if (!get(item, 'Rules')) {
-        const dc = this.modelFor('dc').dc.Name;
-        const repo = get(this, 'policiesRepo');
-        const slug = get(item, repo.getSlugKey());
-        const policies = get(this.controller, 'item.Policies');
-        repo.findBySlug(slug, dc).then(item => {
-          updateArrayObject(policies, item, repo.getSlugKey());
-        });
-      }
+    // TODO: Some of this could potentially be moved to the repo services
+    loadPolicy: function(item, items) {
+      const repo = get(this, 'policiesRepo');
+      const dc = this.modelFor('dc').dc.Name;
+      const slug = get(item, repo.getSlugKey());
+      repo.findBySlug(slug, dc).then(item => {
+        updateArrayObject(items, item, repo.getSlugKey());
+      });
     },
-    // removing, not deleting, a policy associated with this token
-    removePolicy: function(item, policy) {
-      set(item, 'Policies', get(item, 'Policies').without(policy));
+    remove: function(item, items) {
+      return items.removeObject(item);
     },
-    // adding an already existing policy
-    // also called after a createPolicy
-    addPolicy: function(item) {
-      const controller = get(this, 'controller');
-      get(controller, 'item.Policies').pushObject(item);
-      return item;
-    },
-    // from modal
-    clearPolicy: function(cb) {
+    clearPolicy: function() {
       const controller = get(this, 'controller');
       controller.setProperties({
         policy: this.getEmptyPolicy(),
       });
-      if (typeof cb === 'function') {
-        cb();
-      }
     },
-    createPolicy: function(item, cb) {
+    createPolicy: function(item, policies) {
       get(this, 'policiesRepo')
         .persist(item)
         .then(item => {
-          try {
-            this.send('addPolicy', item);
-            this.send('clearPolicy', cb);
-          } catch (e) {
-            // continue
-          }
+          policies.pushObject(item);
         })
         .catch(e => {
-          const error = e.errors[0];
-          let prop;
-          let message = error.detail;
-          switch (true) {
-            case message.indexOf(ERROR_PARSE_RULES) === 0:
-              prop = 'Rules';
-              message = error.detail;
-              break;
-            case message.indexOf(ERROR_NAME_EXISTS) === 0:
-              prop = 'Name';
-              message = message.substr(ERROR_NAME_EXISTS.indexOf(':') + 1);
-              break;
-          }
-          if (prop) {
-            item.addError(prop, message);
+          if (typeof e.errors !== 'undefined') {
+            const error = e.errors[0];
+            let prop;
+            let message = error.detail;
+            switch (true) {
+              case message.indexOf(ERROR_PARSE_RULES) === 0:
+                prop = 'Rules';
+                message = error.detail;
+                break;
+              case message.indexOf(ERROR_NAME_EXISTS) === 0:
+                prop = 'Name';
+                message = message.substr(ERROR_NAME_EXISTS.indexOf(':') + 1);
+                break;
+            }
+            if (prop) {
+              item.addError(prop, message);
+            }
+          } else {
+            throw e;
           }
         });
     },

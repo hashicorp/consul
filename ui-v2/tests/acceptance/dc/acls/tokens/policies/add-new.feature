@@ -19,22 +19,22 @@ Feature: dc / acls / tokens / policies: Add new
     ---
       Name: New Policy
       Description: New Description
-      Rules: rules here
+      Rules: key {}
     ---
     And I click submit on the policyForm
     Then the last PUT request was made to "/v1/acl/policy?dc=datacenter" with the body from yaml
     ---
       Name: New Policy
       Description: New Description
-      Rules: rules here
+      Rules: key {}
     ---
     And I submit
     Then a PUT request is made to "/v1/acl/token/key?dc=datacenter" with the body from yaml
     ---
       Description: The Description
       Policies:
-      - Name: New Policy
-        ID: ee52203d-989f-4f7a-ab5a-2bef004164ca
+        - Name: New Policy
+          ID: ee52203d-989f-4f7a-ab5a-2bef004164ca-1
     ---
     Then the url should be /datacenter/acls/tokens
     And "[data-notification]" has the "notification-update" class

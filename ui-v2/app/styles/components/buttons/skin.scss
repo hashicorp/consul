@@ -10,7 +10,7 @@
 }
 %copy-button {
   @extend %button, %with-clipboard;
-  min-width: 40px;
+  min-height: 17px;
 }
 %primary-button,
 %secondary-button,

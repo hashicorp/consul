@@ -5,7 +5,6 @@ import { inject as service } from '@ember/service';
 
 export default Mixin.create(WithBlockingActions, {
   settings: service('settings'),
-  repo: service('settings'),
   actions: {
     use: function(item) {
       return get(this, 'feedback').execute(() => {

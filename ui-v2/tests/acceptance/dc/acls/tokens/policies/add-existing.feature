@@ -25,8 +25,12 @@ Feature: dc / acls / tokens / policies: ACL Token add existing policy
     And I click ".ember-power-select-option:first-child"
     And I see 1 policy model
     And I click "[data-test-policy-element] .ember-power-select-trigger"
-    And I click ".ember-power-select-option:nth-child(2)"
+    And I click ".ember-power-select-option:nth-child(1)"
     And I see 2 policy models
+    Then I fill in with yaml
+    ---
+      Description: The Description
+    ---
     And I submit
     Then a PUT request is made to "/v1/acl/token/key?dc=datacenter" with the body from yaml
     ---

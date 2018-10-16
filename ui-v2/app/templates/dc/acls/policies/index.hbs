@@ -27,7 +27,7 @@
 {{/if}}
 {{#if (gt filtered.length 0)}}
         {{#tabular-collection
-            items=(sort-by 'Name:asc' filtered) as |item index|
+            items=(sort-by 'CreateIndex:desc' 'Name:asc' filtered) as |item index|
         }}
             {{#block-slot 'header'}}
                 <th>Name</th>

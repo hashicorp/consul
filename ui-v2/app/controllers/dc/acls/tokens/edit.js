@@ -31,7 +31,10 @@ export default Controller.extend({
   actions: {
     sendClearPolicy: function(item) {
       set(this, 'isScoped', false);
-      this.send('clearPolicy', item);
+      this.send('clearPolicy');
+    },
+    sendCreatePolicy: function(item, policies) {
+      this.send('createPolicy', item, policies);
     },
     refreshCodeEditor: function(selector, parent) {
       if (parent.target) {
@@ -53,14 +56,16 @@ export default Controller.extend({
             set(this.policy, 'Datacenters', null);
             break;
           case 'Policy':
-            this.send('addPolicy', value);
+            get(this, 'item.Policies').pushObject(value);
             break;
           case 'Details':
             // the Details expander toggle
             // only load on opening
             if (e.target.checked) {
               this.send('refreshCodeEditor', '.code-editor', e.target.parentNode);
-              this.send('loadPolicy', value);
+              if (!get(value, 'Rules')) {
+                this.send('loadPolicy', value, get(this, 'item.Policies'));
+              }
             }
             break;
           default:

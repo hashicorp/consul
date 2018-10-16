@@ -10,7 +10,7 @@
       {{/with}}
     {{/block-slot}}
     {{#block-slot 'actions' as |close|}}
-      <button type="submit" {{action 'createPolicy' policy close}} disabled={{if (or policy.isSaving policy.isPristine policy.isInvalid) 'disabled'}}>
+      <button type="submit" {{action (pipe (action 'sendCreatePolicy' policy item.Policies) (action close))}} disabled={{if (or policy.isSaving policy.isPristine policy.isInvalid) 'disabled'}}>
         {{#if policy.isSaving }}
           <div class="progress indeterminate"></div>
         {{/if}}
@@ -23,7 +23,7 @@
 <label class="type-text" data-test-policy-element>
   <span>Apply an existing policy</span>
       {{#power-select
-        options=items
+        options=(difference items item.Policies item.Policies.length)
         searchField='Name'
         selected=DestinationName
         searchPlaceholder='Type policy name'
@@ -38,13 +38,13 @@
           data-test-policies
           onchange=(action 'change')
           name="Details"
-          items=(sort-by 'CreateTime:desc' 'Name:asc' item.Policies) as |item index|
+          items=(sort-by 'CreateIndex:desc' 'Name:asc' item.Policies) as |item index|
       }}
         {{#block-slot 'header'}}
           <th>Name</th>
           <th>Datacenters</th>
         {{/block-slot}}
-        {{#block-slot 'row' as |for| }}
+        {{#block-slot 'row'}}
           <td>
             <a href={{href-to 'dc.acls.policies.edit' item.ID}}>{{item.Name}}</a>
           </td>
@@ -52,7 +52,7 @@
             {{if (not item.isSaving) (join ', ' (policy/datacenters item)) 'Saving...'}}
           </td>
         {{/block-slot}}
-        {{#block-slot 'details' }}
+        {{#block-slot 'details'}}
             <label class="type-text">
               <span>Rules <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
               {{code-editor readonly=true value=item.Rules}}
@@ -60,14 +60,14 @@
             <div>
               {{#confirmation-dialog message='Are you sure you want to remove this policy from this token?'}}
                 {{#block-slot 'action' as |confirm|}}
-                  <button data-test-delete type="button" class="type-delete" {{action confirm 'removePolicy' token item}}>Remove</button>
+                  <button data-test-delete type="button" class="type-delete" {{action confirm 'remove' item token.Policies}}>Remove</button>
                 {{/block-slot}}
                 {{#block-slot 'dialog' as |execute cancel message|}}
                   <p>
                     {{message}}
                   </p>
                   <button type="button" class="type-delete" {{action execute}}>Confirm remove</button>
-                  <button type="button" class="type-cancel" {{ action cancel}}>Cancel</button>
+                  <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
                 {{/block-slot}}
               {{/confirmation-dialog}}
             </div>

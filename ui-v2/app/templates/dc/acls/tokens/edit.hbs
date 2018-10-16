@@ -49,17 +49,11 @@
     {{/block-slot}}
     {{#block-slot 'content'}}
         {{#if (token/is-legacy item)}}
-            <p class="notice info"><strong>Update.</strong> We've upgraded our ACL system by allowing you to create reusable policies which you can then apply to tokens. Don't worry, even though this token was written in the old style, it is still valid. However, we do recommend upgrading your old Tokens to the new style. Learn how in our <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guide/acl.html" target="_blank" rel="noopener noreferrer">documentation</a>.</p>
+            <p class="notice info"><strong>Update.</strong> We've upgraded our ACL system by allowing you to create reusable policies which you can then apply to tokens. Don't worry, even though this token was written in the old style, it is still valid. However, we do recommend upgrading your old Tokens to the new style. Learn how in our <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guides/acl.html" target="_blank" rel="noopener noreferrer">documentation</a>.</p>
         {{/if}}
 {{#if (not create) }}
       <div>
           <dl>
-{{#if (and (not (token/is-legacy item)) (not create))}}
-            <dt>Scope</dt>
-            <dd>
-              {{if item.Local 'local' 'global' }}
-            </dd>
-{{/if}}
             <dt>AccessorID</dt>
             <dd>
               {{copy-button-feedback title="Copy AccessorID to the clipboard" copy=item.AccessorID name="AccessorID"}} {{item.AccessorID}}
@@ -68,6 +62,12 @@
             <dd>
               {{copy-button-feedback title="Copy SecretID to the clipboard" copy=item.SecretID name="Token"}} {{#secret-button}}{{item.SecretID}}{{/secret-button}}
             </dd>
+{{#if (and (not (token/is-legacy item)) (not create))}}
+            <dt>Scope</dt>
+            <dd>
+              {{if item.Local 'local' 'global' }}
+            </dd>
+{{/if}}
           </dl>
       </div>
 {{/if}}

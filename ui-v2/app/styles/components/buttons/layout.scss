@@ -12,7 +12,12 @@
   visibility: hidden;
 }
 %button:empty {
-  padding: 0 !important;
+  padding-right: 0 !important;
+  padding-left: 18px !important;
+  margin-right: 5px;
+}
+%button:empty::before {
+  left: 1px;
 }
 %button:not(:empty) {
   display: inline-flex;
