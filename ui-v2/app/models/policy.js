@@ -18,7 +18,7 @@ const model = Model.extend({
     defaultValue: '',
   }),
   // frontend only for ordering where CreateIndex can't be used
-  CreateTime: attr('data'),
+  CreateTime: attr('date'),
   //
   Datacenter: attr('string'),
   Datacenters: attr(),
