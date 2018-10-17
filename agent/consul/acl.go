@@ -54,6 +54,19 @@ const (
 	aclModeCheckMaxInterval = 30 * time.Second
 )
 
+type ACLRemoteError struct {
+	Err error
+}
+
+func (e ACLRemoteError) Error() string {
+	return fmt.Sprintf("Error communicating with the ACL Datacenter: %v", e.Err)
+}
+
+func IsACLRemoteError(err error) bool {
+	_, ok := err.(ACLRemoteError)
+	return ok
+}
+
 type ACLResolverDelegate interface {
 	ACLsEnabled() bool
 	ACLDatacenter(legacy bool) string
@@ -136,6 +149,8 @@ type ACLResolver struct {
 	asyncLegacyResults        map[string][]chan (*remoteACLLegacyResult)
 	asyncLegacyMutex          sync.RWMutex
 
+	down acl.Authorizer
+
 	autoDisable  bool
 	disabled     time.Time
 	disabledLock sync.RWMutex
@@ -163,6 +178,18 @@ func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
 		return nil, err
 	}
 
+	var down acl.Authorizer
+	switch config.Config.ACLDownPolicy {
+	case "allow":
+		down = acl.AllowAll()
+	case "deny":
+		down = acl.DenyAll()
+	case "async-cache", "extend-cache":
+		// Leave the down policy as nil to signal this.
+	default:
+		return nil, fmt.Errorf("invalid ACL down policy %q", config.Config.ACLDownPolicy)
+	}
+
 	return &ACLResolver{
 		config:               config.Config,
 		logger:               config.Logger,
@@ -173,6 +200,7 @@ func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
 		asyncPolicyResults:   make(map[string][]chan (*remoteACLPolicyResult)),
 		asyncLegacyResults:   make(map[string][]chan (*remoteACLLegacyResult)),
 		autoDisable:          config.AutoDisable,
+		down:                 down,
 	}, nil
 }
 
@@ -411,6 +439,10 @@ func (r *ACLResolver) resolveIdentityFromToken(token string) (structs.ACLIdentit
 
 	// block on the read here, this is why we don't need chan buffering
 	res := <-waitChan
+
+	if res.err != nil && !acl.IsErrNotFound(res.err) {
+		return res.identity, ACLRemoteError{Err: res.err}
+	}
 	return res.identity, res.err
 }
 
@@ -477,7 +509,7 @@ func (r *ACLResolver) resolvePoliciesAsyncForIdentity(identity structs.ACLIdenti
 		if entry, ok := cached[policyID]; extendCache && ok {
 			r.fireAsyncPolicyResult(policyID, entry.Policy, nil)
 		} else {
-			r.fireAsyncPolicyResult(policyID, nil, nil)
+			r.fireAsyncPolicyResult(policyID, nil, ACLRemoteError{Err: err})
 		}
 	}
 	return
@@ -643,7 +675,12 @@ func (r *ACLResolver) ResolveToken(token string) (acl.Authorizer, error) {
 
 	policies, err := r.resolveTokenToPolicies(token)
 	if err != nil {
-		return nil, r.disableACLsWhenUpstreamDisabled(err)
+		r.disableACLsWhenUpstreamDisabled(err)
+		if IsACLRemoteError(err) {
+			r.logger.Printf("[ERR] consul.acl: %v", err)
+			return r.down, nil
+		}
+		return nil, err
 	}
 
 	// Build the Authorizer
