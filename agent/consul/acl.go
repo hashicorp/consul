@@ -51,8 +51,6 @@ const (
 
 	// aclModeCheckMaxInterval controls the maximum interval for how often the agent
 	// checks if it should be using the new or legacy ACL system.
-	// TODO (ACL-V2) - is this too short - potentially every 10 seconds we have to
-	// check the serf metadata for every LAN member
 	aclModeCheckMaxInterval = 30 * time.Second
 )
 
@@ -337,10 +335,6 @@ func (r *ACLResolver) resolveIdentityFromTokenAsync(token string, cached *struct
 		},
 	}
 
-	// TODO (ACL-V2) - for a few of these cases should we attempt to update the cache entry in place?
-	//   It seems unsafe although thats how the old code did it (with a comment about potentially being unsafe)
-	//   Putting a new identity into the cache will insert the new value while the cache is locked.
-
 	var resp structs.ACLTokenResponse
 	err := r.delegate.RPC("ACL.TokenRead", &req, &resp)
 	if err == nil {
@@ -519,8 +513,6 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 			if policy != nil {
 				policies = append(policies, policy)
 			} else {
-				// TODO (ACL-V2) - should we warn here? We cannot prevent policy deletion when its still in use so we
-				//   need to fail gracefully. A warning seems appropriate to me right now.
 				r.logger.Printf("[WARN] acl: policy %q not found for identity %q", policyID, identity.ID())
 			}
 
