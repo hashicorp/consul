@@ -19,8 +19,6 @@ type ACLCaches struct {
 	parsedPolicies *lru.TwoQueueCache // policy content hash -> acl.Policy
 	policies       *lru.TwoQueueCache // policy ID -> ACLPolicy
 	authorizers    *lru.TwoQueueCache // token secret -> acl.Authorizer
-
-	legacy *lru.TwoQueueCache // po
 }
 
 type IdentityCacheEntry struct {
