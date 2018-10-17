@@ -782,7 +782,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name:  "User token",
-			Type:  structs.ACLTypeClient,
+			Type:  structs.ACLTokenTypeClient,
 			Rules: testRegisterRules,
 		},
 		WriteRequest: structs.WriteRequest{
@@ -1129,7 +1129,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name:  "User token",
-			Type:  structs.ACLTypeClient,
+			Type:  structs.ACLTokenTypeClient,
 			Rules: testRegisterRules,
 		},
 		WriteRequest: structs.WriteRequest{

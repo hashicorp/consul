@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"reflect"
@@ -216,7 +217,7 @@ func TestACLReplication_reconcileACLs(t *testing.T) {
 	}
 	for i, test := range tests {
 		local, remote := parseACLs(test.local), parseACLs(test.remote)
-		changes := reconcileACLs(local, remote, test.lastRemoteIndex)
+		changes := reconcileLegacyACLs(local, remote, test.lastRemoteIndex)
 		if actual := parseChanges(changes); actual != test.expected {
 			t.Errorf("test case %d failed: %s", i, actual)
 		}
@@ -247,7 +248,7 @@ func TestACLReplication_updateLocalACLs_RateLimit(t *testing.T) {
 
 	// Should be throttled to 1 Hz.
 	start := time.Now()
-	if err := s1.updateLocalACLs(changes); err != nil {
+	if _, err := s1.updateLocalLegacyACLs(changes, context.Background()); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if dur := time.Since(start); dur < time.Second {
@@ -265,7 +266,7 @@ func TestACLReplication_updateLocalACLs_RateLimit(t *testing.T) {
 
 	// Should be throttled to 1 Hz.
 	start = time.Now()
-	if err := s1.updateLocalACLs(changes); err != nil {
+	if _, err := s1.updateLocalLegacyACLs(changes, context.Background()); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if dur := time.Since(start); dur < 2*time.Second {
@@ -303,7 +304,7 @@ func TestACLReplication_IsACLReplicationEnabled(t *testing.T) {
 	dir3, s3 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.ACLDatacenter = "dc1"
-		c.EnableACLReplication = true
+		c.ACLTokenReplication = true
 	})
 	defer os.RemoveAll(dir3)
 	defer s3.Shutdown()
@@ -317,7 +318,7 @@ func TestACLReplication_IsACLReplicationEnabled(t *testing.T) {
 	dir4, s4 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
 		c.ACLDatacenter = "dc1"
-		c.EnableACLReplication = true
+		c.ACLTokenReplication = true
 	})
 	defer os.RemoveAll(dir4)
 	defer s4.Shutdown()
@@ -342,7 +343,7 @@ func TestACLReplication(t *testing.T) {
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.ACLDatacenter = "dc1"
-		c.EnableACLReplication = true
+		c.ACLTokenReplication = true
 		c.ACLReplicationRate = 100
 		c.ACLReplicationBurst = 100
 		c.ACLReplicationApplyLimit = 1000000
@@ -365,7 +366,7 @@ func TestACLReplication(t *testing.T) {
 			Op:         structs.ACLSet,
 			ACL: structs.ACL{
 				Name:  "User token",
-				Type:  structs.ACLTypeClient,
+				Type:  structs.ACLTokenTypeClient,
 				Rules: testACLPolicy,
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
@@ -376,19 +377,21 @@ func TestACLReplication(t *testing.T) {
 	}
 
 	checkSame := func() error {
-		index, remote, err := s1.fsm.State().ACLList(nil)
+		index, remote, err := s1.fsm.State().ACLTokenList(nil, true, true, "")
 		if err != nil {
 			return err
 		}
-		_, local, err := s2.fsm.State().ACLList(nil)
+		_, local, err := s2.fsm.State().ACLTokenList(nil, true, true, "")
 		if err != nil {
 			return err
 		}
 		if got, want := len(remote), len(local); got != want {
 			return fmt.Errorf("got %d remote ACLs want %d", got, want)
 		}
-		for i, acl := range remote {
-			if !acl.IsSame(local[i]) {
+		for i, token := range remote {
+			acl, _ := token.Convert()
+			acl2, _ := local[i].Convert()
+			if !acl.IsSame(acl2) {
 				return fmt.Errorf("ACLs differ")
 			}
 		}
@@ -419,7 +422,7 @@ func TestACLReplication(t *testing.T) {
 			Op:         structs.ACLSet,
 			ACL: structs.ACL{
 				Name:  "User token",
-				Type:  structs.ACLTypeClient,
+				Type:  structs.ACLTokenTypeClient,
 				Rules: testACLPolicy,
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},

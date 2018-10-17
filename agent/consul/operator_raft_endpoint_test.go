@@ -94,7 +94,7 @@ func TestOperator_RaftGetConfiguration_ACLDeny(t *testing.T) {
 			Op:         structs.ACLSet,
 			ACL: structs.ACL{
 				Name:  "User token",
-				Type:  structs.ACLTypeClient,
+				Type:  structs.ACLTokenTypeClient,
 				Rules: rules,
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
@@ -231,7 +231,7 @@ func TestOperator_RaftRemovePeerByAddress_ACLDeny(t *testing.T) {
 			Op:         structs.ACLSet,
 			ACL: structs.ACL{
 				Name:  "User token",
-				Type:  structs.ACLTypeClient,
+				Type:  structs.ACLTokenTypeClient,
 				Rules: rules,
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
@@ -349,7 +349,7 @@ func TestOperator_RaftRemovePeerByID_ACLDeny(t *testing.T) {
 			Op:         structs.ACLSet,
 			ACL: structs.ACL{
 				Name:  "User token",
-				Type:  structs.ACLTypeClient,
+				Type:  structs.ACLTokenTypeClient,
 				Rules: rules,
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},

@@ -157,7 +157,7 @@ func TestSession_Apply_ACLDeny(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 			Rules: `
 session "foo" {
 	policy = "write"
@@ -348,7 +348,7 @@ func TestSession_Get_List_NodeSessions_ACLFilter(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 			Rules: `
 session "foo" {
 	policy = "read"
@@ -721,7 +721,7 @@ func TestSession_Renew_ACLDeny(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 			Rules: `
 session "foo" {
 	policy = "write"

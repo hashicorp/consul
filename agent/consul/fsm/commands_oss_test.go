@@ -796,7 +796,7 @@ func TestFSM_ACL_CRUD(t *testing.T) {
 		ACL: structs.ACL{
 			ID:   generateUUID(),
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 		},
 	}
 	buf, err := structs.Encode(structs.ACLRequestType, req)
@@ -825,7 +825,7 @@ func TestFSM_ACL_CRUD(t *testing.T) {
 	if acl.Name != "User token" {
 		t.Fatalf("bad: %v", *acl)
 	}
-	if acl.Type != structs.ACLTypeClient {
+	if acl.Type != structs.ACLTokenTypeClient {
 		t.Fatalf("bad: %v", *acl)
 	}
 

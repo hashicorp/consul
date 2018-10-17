@@ -680,19 +680,29 @@ func (r *ACLResolver) GetMergedPolicyForToken(token string) (*acl.Policy, error)
 // aclFilter is used to filter results from our state store based on ACL rules
 // configured for the provided token.
 type aclFilter struct {
-	authorizer acl.Authorizer
-	logger     *log.Logger
+	authorizer      acl.Authorizer
+	logger          *log.Logger
+	enforceVersion8 bool
 }
 
 // newACLFilter constructs a new aclFilter.
-func newACLFilter(authorizer acl.Authorizer, logger *log.Logger) *aclFilter {
+func newACLFilter(authorizer acl.Authorizer, logger *log.Logger, enforceVersion8 bool) *aclFilter {
 	if logger == nil {
 		logger = log.New(os.Stderr, "", log.LstdFlags)
 	}
 	return &aclFilter{
-		authorizer: authorizer,
-		logger:     logger,
+		authorizer:      authorizer,
+		logger:          logger,
+		enforceVersion8: enforceVersion8,
 	}
+}
+
+// allowNode is used to determine if a node is accessible for an ACL.
+func (f *aclFilter) allowNode(node string) bool {
+	if !f.enforceVersion8 {
+		return true
+	}
+	return f.authorizer.NodeRead(node)
 }
 
 // allowService is used to determine if a service is accessible for an ACL.
@@ -701,7 +711,19 @@ func (f *aclFilter) allowService(service string) bool {
 		return true
 	}
 
+	if !f.enforceVersion8 && service == structs.ConsulServiceID {
+		return true
+	}
 	return f.authorizer.ServiceRead(service)
+}
+
+// allowSession is used to determine if a session for a node is accessible for
+// an ACL.
+func (f *aclFilter) allowSession(node string) bool {
+	if !f.enforceVersion8 {
+		return true
+	}
+	return f.authorizer.SessionRead(node)
 }
 
 // filterHealthChecks is used to filter a set of health checks down based on
@@ -710,7 +732,7 @@ func (f *aclFilter) filterHealthChecks(checks *structs.HealthChecks) {
 	hc := *checks
 	for i := 0; i < len(hc); i++ {
 		check := hc[i]
-		if f.authorizer.NodeRead(check.Node) && f.allowService(check.ServiceName) {
+		if f.allowNode(check.Node) && f.allowService(check.ServiceName) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping check %q from result due to ACLs", check.CheckID)
@@ -737,7 +759,7 @@ func (f *aclFilter) filterServiceNodes(nodes *structs.ServiceNodes) {
 	sn := *nodes
 	for i := 0; i < len(sn); i++ {
 		node := sn[i]
-		if f.authorizer.NodeRead(node.Node) && f.allowService(node.ServiceName) {
+		if f.allowNode(node.Node) && f.allowService(node.ServiceName) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping node %q from result due to ACLs", node.Node)
@@ -753,7 +775,7 @@ func (f *aclFilter) filterNodeServices(services **structs.NodeServices) {
 		return
 	}
 
-	if !f.authorizer.NodeRead((*services).Node.Node) {
+	if !f.allowNode((*services).Node.Node) {
 		*services = nil
 		return
 	}
@@ -772,7 +794,7 @@ func (f *aclFilter) filterCheckServiceNodes(nodes *structs.CheckServiceNodes) {
 	csn := *nodes
 	for i := 0; i < len(csn); i++ {
 		node := csn[i]
-		if f.authorizer.NodeRead(node.Node.Node) && f.allowService(node.Service.Service) {
+		if f.allowNode(node.Node.Node) && f.allowService(node.Service.Service) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping node %q from result due to ACLs", node.Node.Node)
@@ -787,7 +809,7 @@ func (f *aclFilter) filterSessions(sessions *structs.Sessions) {
 	s := *sessions
 	for i := 0; i < len(s); i++ {
 		session := s[i]
-		if f.authorizer.SessionRead(session.Node) {
+		if f.allowSession(session.Node) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping session %q from result due to ACLs", session.ID)
@@ -803,7 +825,7 @@ func (f *aclFilter) filterCoordinates(coords *structs.Coordinates) {
 	c := *coords
 	for i := 0; i < len(c); i++ {
 		node := c[i].Node
-		if f.authorizer.NodeRead(node) {
+		if f.allowNode(node) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping node %q from result due to ACLs", node)
@@ -848,7 +870,7 @@ func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
 		info := nd[i]
 
 		// Filter nodes
-		if node := info.Node; !f.authorizer.NodeRead(node) {
+		if node := info.Node; !f.allowNode(node) {
 			f.logger.Printf("[DEBUG] consul: dropping node %q from result due to ACLs", node)
 			nd = append(nd[:i], nd[i+1:]...)
 			i--
@@ -886,7 +908,7 @@ func (f *aclFilter) filterNodes(nodes *structs.Nodes) {
 	n := *nodes
 	for i := 0; i < len(n); i++ {
 		node := n[i].Node
-		if f.authorizer.NodeRead(node) {
+		if f.allowNode(node) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping node %q from result due to ACLs", node)
@@ -978,7 +1000,7 @@ func (r *ACLResolver) filterACLWithAuthorizer(authorizer acl.Authorizer, subj in
 		return nil
 	}
 	// Create the filter
-	filt := newACLFilter(authorizer, r.logger)
+	filt := newACLFilter(authorizer, r.logger, r.config.ACLEnforceVersion8)
 
 	switch v := subj.(type) {
 	case *structs.CheckServiceNodes:

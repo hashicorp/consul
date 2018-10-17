@@ -359,7 +359,7 @@ func TestConnectCASignValidation(t *testing.T) {
 			Op:         structs.ACLSet,
 			ACL: structs.ACL{
 				Name: "User token",
-				Type: structs.ACLTypeClient,
+				Type: structs.ACLTokenTypeClient,
 				Rules: `
 				service "web" {
 					policy = "write"

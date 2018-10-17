@@ -223,7 +223,7 @@ func TestCoordinate_Update_ACLDeny(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 			Rules: `
 node "node1" {
 	policy = "write"
@@ -456,7 +456,7 @@ func TestCoordinate_ListNodes_ACLFilter(t *testing.T) {
 			Op:         structs.ACLSet,
 			ACL: structs.ACL{
 				Name: "User token",
-				Type: structs.ACLTypeClient,
+				Type: structs.ACLTokenTypeClient,
 				Rules: `
 node "foo" {
 	policy = "read"
@@ -597,7 +597,7 @@ func TestCoordinate_Node_ACLDeny(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 			Rules: `
 node "node1" {
 	policy = "read"

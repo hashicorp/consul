@@ -184,7 +184,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 			Op:         structs.ACLSet,
 			ACL: structs.ACL{
 				Name:  "User token",
-				Type:  structs.ACLTypeClient,
+				Type:  structs.ACLTokenTypeClient,
 				Rules: testListRules,
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
@@ -508,7 +508,7 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 			Op:         structs.ACLSet,
 			ACL: structs.ACL{
 				Name:  "User token",
-				Type:  structs.ACLTypeClient,
+				Type:  structs.ACLTokenTypeClient,
 				Rules: testListRules,
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},

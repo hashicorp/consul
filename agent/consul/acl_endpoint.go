@@ -92,11 +92,11 @@ func (a *ACL) aclPreCheck() error {
 
 // Bootstrap is used to perform a one-time ACL bootstrap operation on
 // a cluster to get the first management token.
-func (a *ACL) Bootstrap(args *structs.DCSpecificRequest, reply *structs.ACLToken) error {
+func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.ACLToken) error {
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
-	if done, err := a.srv.forward("ACL.Bootstrap", args, args, reply); done {
+	if done, err := a.srv.forward("ACL.BootstrapTokens", args, args, reply); done {
 		return err
 	}
 

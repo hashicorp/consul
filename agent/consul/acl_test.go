@@ -5,7 +5,6 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -110,7 +109,7 @@ func TestACL_Authority_Found(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name:  "User token",
-			Type:  structs.ACLTypeClient,
+			Type:  structs.ACLTokenTypeClient,
 			Rules: testACLPolicy,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
@@ -292,7 +291,7 @@ func TestACL_NonAuthority_Found(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name:  "User token",
-			Type:  structs.ACLTypeClient,
+			Type:  structs.ACLTokenTypeClient,
 			Rules: testACLPolicy,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
@@ -409,7 +408,7 @@ func TestACL_DownPolicy_Deny(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name:  "User token",
-			Type:  structs.ACLTypeClient,
+			Type:  structs.ACLTokenTypeClient,
 			Rules: testACLPolicy,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
@@ -475,7 +474,7 @@ func TestACL_DownPolicy_Allow(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name:  "User token",
-			Type:  structs.ACLTypeClient,
+			Type:  structs.ACLTokenTypeClient,
 			Rules: testACLPolicy,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
@@ -516,7 +515,7 @@ func TestACL_DownPolicy_ExtendCache(t *testing.T) {
 	for _, aclDownPolicy := range aclExtendPolicies {
 		dir1, s1 := testServerWithConfig(t, func(c *Config) {
 			c.ACLDatacenter = "dc1"
-			c.ACLTTL = 0
+			c.ACLTokenTTL = 0
 			c.ACLDownPolicy = aclDownPolicy
 			c.ACLMasterToken = "root"
 		})
@@ -527,7 +526,7 @@ func TestACL_DownPolicy_ExtendCache(t *testing.T) {
 
 		dir2, s2 := testServerWithConfig(t, func(c *Config) {
 			c.ACLDatacenter = "dc1" // Enable ACLs!
-			c.ACLTTL = 0
+			c.ACLTokenTTL = 0
 			c.ACLDownPolicy = aclDownPolicy
 			c.Bootstrap = false // Disable bootstrap
 		})
@@ -546,7 +545,7 @@ func TestACL_DownPolicy_ExtendCache(t *testing.T) {
 			Op:         structs.ACLSet,
 			ACL: structs.ACL{
 				Name:  "User token",
-				Type:  structs.ACLTypeClient,
+				Type:  structs.ACLTokenTypeClient,
 				Rules: testACLPolicy,
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
@@ -609,7 +608,7 @@ func TestACL_Replication(t *testing.T) {
 			c.ACLDatacenter = "dc1"
 			c.ACLDefaultPolicy = "deny"
 			c.ACLDownPolicy = aclDownPolicy
-			c.EnableACLReplication = true
+			c.ACLTokenReplication = true
 			c.ACLReplicationRate = 100
 			c.ACLReplicationBurst = 100
 			c.ACLReplicationApplyLimit = 1000000
@@ -622,7 +621,7 @@ func TestACL_Replication(t *testing.T) {
 			c.Datacenter = "dc3"
 			c.ACLDatacenter = "dc1"
 			c.ACLDownPolicy = "deny"
-			c.EnableACLReplication = true
+			c.ACLTokenReplication = true
 			c.ACLReplicationRate = 100
 			c.ACLReplicationBurst = 100
 			c.ACLReplicationApplyLimit = 1000000
@@ -644,7 +643,7 @@ func TestACL_Replication(t *testing.T) {
 			Op:         structs.ACLSet,
 			ACL: structs.ACL{
 				Name:  "User token",
-				Type:  structs.ACLTypeClient,
+				Type:  structs.ACLTokenTypeClient,
 				Rules: testACLPolicy,
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
@@ -655,14 +654,14 @@ func TestACL_Replication(t *testing.T) {
 		}
 		// Wait for replication to occur.
 		retry.Run(t, func(r *retry.R) {
-			_, acl, err := s2.fsm.State().ACLGet(nil, id)
+			_, acl, err := s2.fsm.State().ACLTokenGetBySecret(nil, id)
 			if err != nil {
 				r.Fatal(err)
 			}
 			if acl == nil {
 				r.Fatal(nil)
 			}
-			_, acl, err = s3.fsm.State().ACLGet(nil, id)
+			_, acl, err = s3.fsm.State().ACLTokenGetBySecret(nil, id)
 			if err != nil {
 				r.Fatal(err)
 			}
@@ -741,7 +740,7 @@ func TestACL_MultiDC_Found(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name:  "User token",
-			Type:  structs.ACLTypeClient,
+			Type:  structs.ACLTokenTypeClient,
 			Rules: testACLPolicy,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
@@ -803,15 +802,15 @@ func TestACL_filterHealthChecks(t *testing.T) {
 	}
 
 	// Allowed to see the service but not the node.
-	policy, err := acl.Parse(`
+	policy, err := acl.NewPolicyFromSource("", 0, `
 service "foo" {
   policy = "read"
 }
-`, nil)
+`, acl.SyntaxLegacy, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err := acl.New(acl.DenyAll(), policy, nil)
+	perms, err := acl.NewPolicyAuthorizer(acl.DenyAll(), []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -837,15 +836,15 @@ service "foo" {
 	}
 
 	// Chain on access to the node.
-	policy, err = acl.Parse(`
+	policy, err = acl.NewPolicyFromSource("", 0, `
 node "node1" {
   policy = "read"
 }
-`, nil)
+`, acl.SyntaxLegacy, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err = acl.New(perms, policy, nil)
+	perms, err = acl.NewPolicyAuthorizer(perms, []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -895,13 +894,13 @@ func TestACL_filterIntentions(t *testing.T) {
 	}
 
 	// Policy to see one
-	policy, err := acl.Parse(`
+	policy, err := acl.NewPolicyFromSource("", 0, `
 service "foo" {
   policy = "read"
 }
-`, nil)
+`, acl.SyntaxLegacy, nil)
 	assert.Nil(err)
-	perms, err := acl.New(acl.DenyAll(), policy, nil)
+	perms, err := acl.NewPolicyAuthorizer(acl.DenyAll(), []*acl.Policy{policy}, nil)
 	assert.Nil(err)
 
 	// Filter
@@ -980,15 +979,15 @@ func TestACL_filterServiceNodes(t *testing.T) {
 	}
 
 	// Allowed to see the service but not the node.
-	policy, err := acl.Parse(`
+	policy, err := acl.NewPolicyFromSource("", 0, `
 service "foo" {
   policy = "read"
 }
-`, nil)
+`, acl.SyntaxLegacy, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err := acl.New(acl.DenyAll(), policy, nil)
+	perms, err := acl.NewPolicyAuthorizer(acl.DenyAll(), []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1014,15 +1013,15 @@ service "foo" {
 	}
 
 	// Chain on access to the node.
-	policy, err = acl.Parse(`
+	policy, err = acl.NewPolicyFromSource("", 0, `
 node "node1" {
   policy = "read"
 }
-`, nil)
+`, acl.SyntaxLegacy, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err = acl.New(perms, policy, nil)
+	perms, err = acl.NewPolicyAuthorizer(perms, []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1086,15 +1085,15 @@ func TestACL_filterNodeServices(t *testing.T) {
 	}
 
 	// Allowed to see the service but not the node.
-	policy, err := acl.Parse(`
+	policy, err := acl.NewPolicyFromSource("", 0, `
 service "foo" {
   policy = "read"
 }
-`, nil)
+`, acl.SyntaxLegacy, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err := acl.New(acl.DenyAll(), policy, nil)
+	perms, err := acl.NewPolicyAuthorizer(acl.DenyAll(), []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1120,15 +1119,15 @@ service "foo" {
 	}
 
 	// Chain on access to the node.
-	policy, err = acl.Parse(`
+	policy, err = acl.NewPolicyFromSource("", 0, `
 node "node1" {
   policy = "read"
 }
-`, nil)
+`, acl.SyntaxLegacy, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err = acl.New(perms, policy, nil)
+	perms, err = acl.NewPolicyAuthorizer(perms, []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1192,15 +1191,15 @@ func TestACL_filterCheckServiceNodes(t *testing.T) {
 	}
 
 	// Allowed to see the service but not the node.
-	policy, err := acl.Parse(`
+	policy, err := acl.NewPolicyFromSource("", 0, `
 service "foo" {
   policy = "read"
 }
-`, nil)
+`, acl.SyntaxLegacy, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err := acl.New(acl.DenyAll(), policy, nil)
+	perms, err := acl.NewPolicyAuthorizer(acl.DenyAll(), []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1229,15 +1228,15 @@ service "foo" {
 	}
 
 	// Chain on access to the node.
-	policy, err = acl.Parse(`
+	policy, err = acl.NewPolicyFromSource("", 0, `
 node "node1" {
   policy = "read"
 }
-`, nil)
+`, acl.SyntaxLegacy, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err = acl.New(perms, policy, nil)
+	perms, err = acl.NewPolicyAuthorizer(perms, []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1383,15 +1382,15 @@ func TestACL_filterNodeDump(t *testing.T) {
 	}
 
 	// Allowed to see the service but not the node.
-	policy, err := acl.Parse(`
+	policy, err := acl.NewPolicyFromSource("", 0, `
 service "foo" {
   policy = "read"
 }
-`, nil)
+`, acl.SyntaxLegacy, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err := acl.New(acl.DenyAll(), policy, nil)
+	perms, err := acl.NewPolicyAuthorizer(acl.DenyAll(), []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1423,15 +1422,15 @@ service "foo" {
 	}
 
 	// Chain on access to the node.
-	policy, err = acl.Parse(`
+	policy, err = acl.NewPolicyFromSource("", 0, `
 node "node1" {
   policy = "read"
 }
-`, nil)
+`, acl.SyntaxLegacy, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err = acl.New(perms, policy, nil)
+	perms, err = acl.NewPolicyAuthorizer(perms, []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1625,15 +1624,15 @@ func TestACL_vetRegisterWithACL(t *testing.T) {
 	}
 
 	// Create a basic node policy.
-	policy, err := acl.Parse(`
+	policy, err := acl.NewPolicyFromSource("", 0, `
 node "node" {
   policy = "write"
 }
-`, nil)
+`, acl.SyntaxLegacy, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err := acl.New(acl.DenyAll(), policy, nil)
+	perms, err := acl.NewPolicyAuthorizer(acl.DenyAll(), []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1670,15 +1669,15 @@ node "node" {
 	}
 
 	// Chain on a basic service policy.
-	policy, err = acl.Parse(`
+	policy, err = acl.NewPolicyFromSource("", 0, `
 service "service" {
   policy = "write"
 }
-`, nil)
+`, acl.SyntaxLegacy, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err = acl.New(perms, policy, nil)
+	perms, err = acl.NewPolicyAuthorizer(perms, []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1700,15 +1699,15 @@ service "service" {
 	}
 
 	// Chain on a policy that allows them to write to the other service.
-	policy, err = acl.Parse(`
+	policy, err = acl.NewPolicyFromSource("", 0, `
 service "other" {
   policy = "write"
 }
-`, nil)
+`, acl.SyntaxLegacy, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err = acl.New(perms, policy, nil)
+	perms, err = acl.NewPolicyAuthorizer(perms, []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1774,15 +1773,15 @@ service "other" {
 	}
 
 	// Chain on a policy that forbids them to write to the other service.
-	policy, err = acl.Parse(`
+	policy, err = acl.NewPolicyFromSource("", 0, `
 service "other" {
   policy = "deny"
 }
-`, nil)
+`, acl.SyntaxLegacy, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err = acl.New(perms, policy, nil)
+	perms, err = acl.NewPolicyAuthorizer(perms, []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1804,15 +1803,15 @@ service "other" {
 	}
 
 	// Chain on a policy that forbids them to write to the node.
-	policy, err = acl.Parse(`
+	policy, err = acl.NewPolicyFromSource("", 0, `
 node "node" {
   policy = "deny"
 }
-`, nil)
+`, acl.SyntaxLegacy, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err = acl.New(perms, policy, nil)
+	perms, err = acl.NewPolicyAuthorizer(perms, []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1851,18 +1850,18 @@ func TestACL_vetDeregisterWithACL(t *testing.T) {
 	}
 
 	// Create a basic node policy.
-	policy, err := acl.Parse(`
+	policy, err := acl.NewPolicyFromSource("", 0, `
 node "node" {
   policy = "write"
 }
 service "service" {
   policy = "write"
 }
-`, nil)
+`, acl.SyntaxLegacy, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err := acl.New(acl.DenyAll(), policy, nil)
+	perms, err := acl.NewPolicyAuthorizer(acl.DenyAll(), []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
