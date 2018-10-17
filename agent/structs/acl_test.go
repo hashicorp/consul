@@ -154,7 +154,7 @@ func TestStructs_ACLToken_SetHash(t *testing.T) {
 		require.Equal(t, original, h)
 	})
 
-	t.Run("Hash Set - Dont Generate", func(t *testing.T) {
+	t.Run("Hash Set - Generate", func(t *testing.T) {
 		original := token.Hash
 		h := token.SetHash(true)
 		require.NotEqual(t, original, h)
@@ -296,247 +296,125 @@ func TestStructs_ACLTokenListStubs_Sort(t *testing.T) {
 	require.Equal(t, tokens[3].AccessorID, "c9dd9980-8d54-472f-9e5e-74c02143e1f4")
 }
 
-func TestStructs_ACLTokens_IsSame(t *testing.T) {
+func TestStructs_ACLPolicy_Stub(t *testing.T) {
 	t.Parallel()
 
-	t.Run("Same - Except for Raft Meta", func(t *testing.T) {
-		t.Parallel()
-		token1 := &ACLToken{
-			AccessorID:  "09d1c059-961a-46bd-a2e4-76adebe35fa5",
-			SecretID:    "65e98e67-9b29-470c-8ffa-7c5a23cc67c8",
-			Description: "test",
-			Policies: []ACLTokenPolicyLink{
-				ACLTokenPolicyLink{
-					ID: "one",
-				},
-				ACLTokenPolicyLink{
-					ID: "two",
-				},
-				ACLTokenPolicyLink{
-					ID: "three",
-				},
-			},
-			RaftIndex: RaftIndex{CreateIndex: 1, ModifyIndex: 3},
-		}
-		token2 := &ACLToken{
-			AccessorID:  "09d1c059-961a-46bd-a2e4-76adebe35fa5",
-			SecretID:    "65e98e67-9b29-470c-8ffa-7c5a23cc67c8",
-			Description: "test",
-			Policies: []ACLTokenPolicyLink{
-				ACLTokenPolicyLink{
-					ID: "one",
-				},
-				ACLTokenPolicyLink{
-					ID: "two",
-				},
-				ACLTokenPolicyLink{
-					ID: "three",
-				},
-			},
-			RaftIndex: RaftIndex{CreateIndex: 2, ModifyIndex: 5},
-		}
+	policy := &ACLPolicy{
+		ID:          "09d1c059-961a-46bd-a2e4-76adebe35fa5",
+		Name:        "test",
+		Description: "test",
+		Rules:       `acl = "read"`,
+	}
 
-		require.True(t, token1.IsSame(token2))
+	stub := policy.Stub()
+
+	require.Equal(t, policy.ID, stub.ID)
+	require.Equal(t, policy.Name, stub.Name)
+	require.Equal(t, policy.Description, stub.Description)
+	require.Equal(t, policy.Datacenters, stub.Datacenters)
+	require.Equal(t, policy.Hash, stub.Hash)
+	require.Equal(t, policy.CreateIndex, stub.CreateIndex)
+	require.Equal(t, policy.ModifyIndex, stub.ModifyIndex)
+}
+
+func TestStructs_ACLPolicy_SetHash(t *testing.T) {
+	t.Parallel()
+
+	policy := &ACLPolicy{
+		ID:          "09d1c059-961a-46bd-a2e4-76adebe35fa5",
+		Name:        "test",
+		Description: "test",
+		Rules:       `acl = "read"`,
+	}
+
+	t.Run("Nil Hash - Generate", func(t *testing.T) {
+		require.Nil(t, policy.Hash)
+		h := policy.SetHash(false)
+		require.NotNil(t, h)
+		require.NotEqual(t, []byte{}, h)
+		require.Equal(t, h, policy.Hash)
 	})
 
-	t.Run("Different - Accessor", func(t *testing.T) {
-		t.Parallel()
-		token1 := &ACLToken{
-			AccessorID:  "19d1c059-961a-46bd-a2e4-76adebe35fa5",
-			SecretID:    "65e98e67-9b29-470c-8ffa-7c5a23cc67c8",
-			Description: "test",
+	t.Run("Hash Set - Dont Generate", func(t *testing.T) {
+		original := policy.Hash
+		h := policy.SetHash(false)
+		require.Equal(t, original, h)
 
-			RaftIndex: RaftIndex{CreateIndex: 1, ModifyIndex: 3},
-		}
-		token2 := &ACLToken{
-			AccessorID:  "09d1c059-961a-46bd-a2e4-76adebe35fa5",
-			SecretID:    "65e98e67-9b29-470c-8ffa-7c5a23cc67c8",
-			Description: "test",
-			RaftIndex:   RaftIndex{CreateIndex: 2, ModifyIndex: 5},
-		}
-
-		require.False(t, token1.IsSame(token2))
+		policy.Description = "changed"
+		h = policy.SetHash(false)
+		require.Equal(t, original, h)
 	})
 
-	t.Run("Different - Secret", func(t *testing.T) {
-		t.Parallel()
-		token1 := &ACLToken{
-			AccessorID:  "09d1c059-961a-46bd-a2e4-76adebe35fa5",
-			SecretID:    "75e98e67-9b29-470c-8ffa-7c5a23cc67c8",
-			Description: "test",
-
-			RaftIndex: RaftIndex{CreateIndex: 1, ModifyIndex: 3},
-		}
-		token2 := &ACLToken{
-			AccessorID:  "09d1c059-961a-46bd-a2e4-76adebe35fa5",
-			SecretID:    "65e98e67-9b29-470c-8ffa-7c5a23cc67c8",
-			Description: "test",
-			RaftIndex:   RaftIndex{CreateIndex: 2, ModifyIndex: 5},
-		}
-
-		require.False(t, token1.IsSame(token2))
+	t.Run("Hash Set - Generate", func(t *testing.T) {
+		original := policy.Hash
+		h := policy.SetHash(true)
+		require.NotEqual(t, original, h)
 	})
+}
 
-	t.Run("Different - Description", func(t *testing.T) {
-		t.Parallel()
-		token1 := &ACLToken{
-			AccessorID:  "09d1c059-961a-46bd-a2e4-76adebe35fa5",
-			SecretID:    "65e98e67-9b29-470c-8ffa-7c5a23cc67c8",
-			Description: "test - diff",
+func TestStructs_ACLPolicy_EstimateSize(t *testing.T) {
+	t.Parallel()
 
-			RaftIndex: RaftIndex{CreateIndex: 1, ModifyIndex: 3},
-		}
-		token2 := &ACLToken{
-			AccessorID:  "09d1c059-961a-46bd-a2e4-76adebe35fa5",
-			SecretID:    "65e98e67-9b29-470c-8ffa-7c5a23cc67c8",
-			Description: "test",
-			RaftIndex:   RaftIndex{CreateIndex: 2, ModifyIndex: 5},
-		}
+	policy := ACLPolicy{
+		ID:          "09d1c059-961a-46bd-a2e4-76adebe35fa5",
+		Name:        "test",
+		Description: "test",
+		Rules:       `acl = "read"`,
+	}
 
-		require.False(t, token1.IsSame(token2))
-	})
+	// this test is very contrived. Basically just tests that the
+	// math is okay and returns the value.
+	require.Equal(t, 84, policy.EstimateSize())
+	policy.Datacenters = []string{"dc1", "dc2"}
+	require.Equal(t, 90, policy.EstimateSize())
+}
 
-	t.Run("Different - Local", func(t *testing.T) {
-		t.Parallel()
-		token1 := &ACLToken{
-			AccessorID:  "09d1c059-961a-46bd-a2e4-76adebe35fa5",
-			SecretID:    "65e98e67-9b29-470c-8ffa-7c5a23cc67c8",
-			Description: "test",
-			Local:       true,
+func TestStructs_ACLPolicies_Sort(t *testing.T) {
+	t.Parallel()
 
-			RaftIndex: RaftIndex{CreateIndex: 1, ModifyIndex: 3},
-		}
-		token2 := &ACLToken{
-			AccessorID:  "09d1c059-961a-46bd-a2e4-76adebe35fa5",
-			SecretID:    "65e98e67-9b29-470c-8ffa-7c5a23cc67c8",
-			Description: "test",
-			RaftIndex:   RaftIndex{CreateIndex: 2, ModifyIndex: 5},
-		}
+	policies := ACLPolicies{
+		&ACLPolicy{
+			ID: "9db509a9-c809-48c1-895d-99f845b7a9d5",
+		},
+		&ACLPolicy{
+			ID: "6bd01084-1695-43b8-898d-b2dd7874754d",
+		},
+		&ACLPolicy{
+			ID: "614a4cef-9149-4271-b878-7edb1ad661f8",
+		},
+		&ACLPolicy{
+			ID: "c9dd9980-8d54-472f-9e5e-74c02143e1f4",
+		},
+	}
 
-		require.False(t, token1.IsSame(token2))
-	})
+	policies.Sort()
+	require.Equal(t, policies[0].ID, "614a4cef-9149-4271-b878-7edb1ad661f8")
+	require.Equal(t, policies[1].ID, "6bd01084-1695-43b8-898d-b2dd7874754d")
+	require.Equal(t, policies[2].ID, "9db509a9-c809-48c1-895d-99f845b7a9d5")
+	require.Equal(t, policies[3].ID, "c9dd9980-8d54-472f-9e5e-74c02143e1f4")
+}
 
-	t.Run("Different - Num Policies", func(t *testing.T) {
-		t.Parallel()
-		token1 := &ACLToken{
-			AccessorID:  "09d1c059-961a-46bd-a2e4-76adebe35fa5",
-			SecretID:    "65e98e67-9b29-470c-8ffa-7c5a23cc67c8",
-			Description: "test",
-			Policies: []ACLTokenPolicyLink{
-				ACLTokenPolicyLink{ID: "irrelevant"},
-			},
+func TestStructs_ACLPolicyListStubs_Sort(t *testing.T) {
+	t.Parallel()
 
-			RaftIndex: RaftIndex{CreateIndex: 1, ModifyIndex: 3},
-		}
-		token2 := &ACLToken{
-			AccessorID:  "09d1c059-961a-46bd-a2e4-76adebe35fa5",
-			SecretID:    "65e98e67-9b29-470c-8ffa-7c5a23cc67c8",
-			Description: "test",
-			RaftIndex:   RaftIndex{CreateIndex: 2, ModifyIndex: 5},
-		}
+	policies := ACLPolicyListStubs{
+		&ACLPolicyListStub{
+			ID: "9db509a9-c809-48c1-895d-99f845b7a9d5",
+		},
+		&ACLPolicyListStub{
+			ID: "6bd01084-1695-43b8-898d-b2dd7874754d",
+		},
+		&ACLPolicyListStub{
+			ID: "614a4cef-9149-4271-b878-7edb1ad661f8",
+		},
+		&ACLPolicyListStub{
+			ID: "c9dd9980-8d54-472f-9e5e-74c02143e1f4",
+		},
+	}
 
-		require.False(t, token1.IsSame(token2))
-	})
-
-	t.Run("Different - Policies", func(t *testing.T) {
-		t.Parallel()
-		token1 := &ACLToken{
-			AccessorID:  "09d1c059-961a-46bd-a2e4-76adebe35fa5",
-			SecretID:    "65e98e67-9b29-470c-8ffa-7c5a23cc67c8",
-			Description: "test",
-			Policies: []ACLTokenPolicyLink{
-				ACLTokenPolicyLink{ID: "irrelevant"},
-			},
-
-			RaftIndex: RaftIndex{CreateIndex: 1, ModifyIndex: 3},
-		}
-		token2 := &ACLToken{
-			AccessorID:  "09d1c059-961a-46bd-a2e4-76adebe35fa5",
-			SecretID:    "65e98e67-9b29-470c-8ffa-7c5a23cc67c8",
-			Description: "test",
-			Policies: []ACLTokenPolicyLink{
-				ACLTokenPolicyLink{ID: "foo"},
-			},
-			RaftIndex: RaftIndex{CreateIndex: 2, ModifyIndex: 5},
-		}
-
-		require.False(t, token1.IsSame(token2))
-	})
-
-	t.Run("Different - Policy Names", func(t *testing.T) {
-		t.Parallel()
-		token1 := &ACLToken{
-			AccessorID:  "09d1c059-961a-46bd-a2e4-76adebe35fa5",
-			SecretID:    "65e98e67-9b29-470c-8ffa-7c5a23cc67c8",
-			Description: "test",
-			Policies: []ACLTokenPolicyLink{
-				ACLTokenPolicyLink{ID: "irrelevant"},
-			},
-
-			RaftIndex: RaftIndex{CreateIndex: 1, ModifyIndex: 3},
-		}
-		token2 := &ACLToken{
-			AccessorID:  "09d1c059-961a-46bd-a2e4-76adebe35fa5",
-			SecretID:    "65e98e67-9b29-470c-8ffa-7c5a23cc67c8",
-			Description: "test",
-			Policies: []ACLTokenPolicyLink{
-				ACLTokenPolicyLink{ID: "irrelevant", Name: "foo"},
-			},
-			RaftIndex: RaftIndex{CreateIndex: 2, ModifyIndex: 5},
-		}
-
-		require.False(t, token1.IsSame(token2))
-	})
-
-	t.Run("Different - Type", func(t *testing.T) {
-		t.Parallel()
-		token1 := &ACLToken{
-			AccessorID:  "09d1c059-961a-46bd-a2e4-76adebe35fa5",
-			SecretID:    "65e98e67-9b29-470c-8ffa-7c5a23cc67c8",
-			Description: "test",
-			Policies: []ACLTokenPolicyLink{
-				ACLTokenPolicyLink{
-					ID: ACLPolicyGlobalManagementID,
-				},
-			},
-			Type: ACLTokenTypeManagement,
-
-			RaftIndex: RaftIndex{CreateIndex: 1, ModifyIndex: 3},
-		}
-		token2 := &ACLToken{
-			AccessorID:  "09d1c059-961a-46bd-a2e4-76adebe35fa5",
-			SecretID:    "65e98e67-9b29-470c-8ffa-7c5a23cc67c8",
-			Description: "test",
-			Policies: []ACLTokenPolicyLink{
-				ACLTokenPolicyLink{
-					ID: ACLPolicyGlobalManagementID,
-				},
-			},
-			RaftIndex: RaftIndex{CreateIndex: 2, ModifyIndex: 5},
-		}
-
-		require.False(t, token1.IsSame(token2))
-	})
-
-	t.Run("Different - Rules", func(t *testing.T) {
-		t.Parallel()
-		token1 := &ACLToken{
-			AccessorID:  "09d1c059-961a-46bd-a2e4-76adebe35fa5",
-			SecretID:    "65e98e67-9b29-470c-8ffa-7c5a23cc67c8",
-			Description: "test",
-			Rules:       `key "" { policy "read" }`,
-
-			RaftIndex: RaftIndex{CreateIndex: 1, ModifyIndex: 3},
-		}
-		token2 := &ACLToken{
-			AccessorID:  "09d1c059-961a-46bd-a2e4-76adebe35fa5",
-			SecretID:    "65e98e67-9b29-470c-8ffa-7c5a23cc67c8",
-			Description: "test",
-			Rules:       `key "" { policy "write" }`,
-			RaftIndex:   RaftIndex{CreateIndex: 2, ModifyIndex: 5},
-		}
-
-		require.False(t, token1.IsSame(token2))
-	})
-
+	policies.Sort()
+	require.Equal(t, policies[0].ID, "614a4cef-9149-4271-b878-7edb1ad661f8")
+	require.Equal(t, policies[1].ID, "6bd01084-1695-43b8-898d-b2dd7874754d")
+	require.Equal(t, policies[2].ID, "9db509a9-c809-48c1-895d-99f845b7a9d5")
+	require.Equal(t, policies[3].ID, "c9dd9980-8d54-472f-9e5e-74c02143e1f4")
 }
