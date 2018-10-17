@@ -5,7 +5,7 @@ export default Component.extend({
   buffer: service('dom-buffer'),
   getBufferName: function() {
     // TODO: Right now we are only using this for the modal layer
-    // moving forwads you'll be able to name your buffers
+    // moving forwards you'll be able to name your buffers
     return 'modal';
   },
   didInsertElement: function() {
