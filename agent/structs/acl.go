@@ -590,7 +590,7 @@ func (r *ACLTokenListRequest) RequestDatacenter() string {
 // ACLTokenListResponse is used to return the secret data free stubs
 // of the tokens
 type ACLTokenListResponse struct {
-	Tokens []*ACLTokenListStub
+	Tokens ACLTokenListStubs
 	QueryMeta
 }
 
