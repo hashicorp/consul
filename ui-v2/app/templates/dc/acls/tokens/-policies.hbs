@@ -10,7 +10,7 @@
       {{/with}}
     {{/block-slot}}
     {{#block-slot 'actions' as |close|}}
-      <button type="submit" {{action (pipe (action 'sendCreatePolicy' policy item.Policies) (action close))}} disabled={{if (or policy.isSaving policy.isPristine policy.isInvalid) 'disabled'}}>
+      <button type="submit" {{action 'sendCreatePolicy' policy item.Policies close}} disabled={{if (or policy.isSaving policy.isPristine policy.isInvalid) 'disabled'}}>
         {{#if policy.isSaving }}
           <div class="progress indeterminate"></div>
         {{/if}}

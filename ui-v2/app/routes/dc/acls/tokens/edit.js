@@ -61,17 +61,22 @@ export default SingleRoute.extend(WithTokenActions, {
     clearPolicy: function() {
       // TODO: I should be able to reset the ember-data object
       // back to it original state?
+      // possibly Forms could know how to create
       const controller = get(this, 'controller');
       controller.setProperties({
         policy: this.getEmptyPolicy(),
       });
     },
-    createPolicy: function(item, policies) {
+    createPolicy: function(item, policies, success) {
       get(this, 'policiesRepo')
         .persist(item)
         .then(item => {
           set(item, 'CreateTime', new Date().getTime());
           policies.pushObject(item);
+          return item;
+        })
+        .then(function() {
+          success();
         })
         .catch(err => {
           if (typeof err.errors !== 'undefined') {

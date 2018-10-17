@@ -33,8 +33,8 @@ export default Controller.extend({
       set(this, 'isScoped', false);
       this.send('clearPolicy');
     },
-    sendCreatePolicy: function(item, policies) {
-      this.send('createPolicy', item, policies);
+    sendCreatePolicy: function(item, policies, success) {
+      this.send('createPolicy', item, policies, success);
     },
     refreshCodeEditor: function(selector, parent) {
       if (parent.target) {
