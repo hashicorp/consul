@@ -13,6 +13,7 @@ func init() {
 	registerEndpoint("/v1/acl/replication", []string{"GET"}, (*HTTPServer).ACLReplicationStatus)
 	registerEndpoint("/v1/agent/token/", []string{"PUT"}, (*HTTPServer).AgentToken)
 	registerEndpoint("/v1/agent/self", []string{"GET"}, (*HTTPServer).AgentSelf)
+	registerEndpoint("/v1/agent/host", []string{"GET"}, (*HTTPServer).AgentHost)
 	registerEndpoint("/v1/agent/maintenance", []string{"PUT"}, (*HTTPServer).AgentNodeMaintenance)
 	registerEndpoint("/v1/agent/reload", []string{"PUT"}, (*HTTPServer).AgentReload)
 	registerEndpoint("/v1/agent/monitor", []string{"GET"}, (*HTTPServer).AgentMonitor)

@@ -142,6 +142,41 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 		mux.Handle(pattern, gzipHandler)
 	}
 
+	// handlePProf takes the given pattern and pprof handler
+	// and wraps it to add authorization and metrics
+	handlePProf := func(pattern string, handler http.HandlerFunc) {
+		wrapper := func(resp http.ResponseWriter, req *http.Request) {
+			var token string
+			s.parseToken(req, &token)
+
+			rule, err := s.agent.resolveToken(token)
+			if err != nil {
+				resp.WriteHeader(http.StatusForbidden)
+				return
+			}
+
+			// If enableDebug is not set, and ACLs are disabled, write
+			// an unauthorized response
+			if !enableDebug {
+				if s.checkACLDisabled(resp, req) {
+					return
+				}
+			}
+
+			// If the token provided does not have the necessary permissions,
+			// write a forbidden response
+			if rule != nil && !rule.OperatorRead() {
+				resp.WriteHeader(http.StatusForbidden)
+				return
+			}
+
+			// Call the pprof handler
+			handler(resp, req)
+		}
+
+		handleFuncMetrics(pattern, http.HandlerFunc(wrapper))
+	}
+
 	mux.HandleFunc("/", s.Index)
 	for pattern, fn := range endpoints {
 		thisFn := fn
@@ -151,12 +186,13 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 		}
 		handleFuncMetrics(pattern, s.wrap(bound, methods))
 	}
-	if enableDebug {
-		handleFuncMetrics("/debug/pprof/", pprof.Index)
-		handleFuncMetrics("/debug/pprof/cmdline", pprof.Cmdline)
-		handleFuncMetrics("/debug/pprof/profile", pprof.Profile)
-		handleFuncMetrics("/debug/pprof/symbol", pprof.Symbol)
-	}
+
+	// Register wrapped pprof handlers
+	handlePProf("/debug/pprof/", pprof.Index)
+	handlePProf("/debug/pprof/cmdline", pprof.Cmdline)
+	handlePProf("/debug/pprof/profile", pprof.Profile)
+	handlePProf("/debug/pprof/symbol", pprof.Symbol)
+	handlePProf("/debug/pprof/trace", pprof.Trace)
 
 	if s.IsUIEnabled() {
 		legacy_ui, err := strconv.ParseBool(os.Getenv("CONSUL_UI_LEGACY"))
