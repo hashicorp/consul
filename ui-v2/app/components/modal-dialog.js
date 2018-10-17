@@ -45,6 +45,8 @@ export default Component.extend(SlotsMixin, WithResizing, {
     }
     if (get(this, 'checked')) {
       // TODO: probably need an event here
+      // possibly this.element for the target
+      // or find the input
       this._open({ target: {} });
       get(this, 'dom')
         .root()
