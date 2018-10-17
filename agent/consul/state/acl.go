@@ -252,17 +252,6 @@ func (s *Store) CanBootstrapACLToken() (bool, uint64, error) {
 	return false, out.(*IndexEntry).Value, nil
 }
 
-// ACLGetBootstrap returns the ACL bootstrap status for the cluster, which might
-// be nil if it hasn't yet been initialized.
-func (s *Store) ACLGetBootstrap() (bool, uint64, error) {
-	_, index, err := s.CanBootstrapACLToken()
-	if err != nil {
-		return false, 0, fmt.Errorf("failed acl bootstrap lookup: %v", err)
-	}
-
-	return index != 0, index, nil
-}
-
 func (s *Store) resolveTokenPolicyLinks(tx *memdb.Txn, token *structs.ACLToken, allowMissing bool) error {
 	for linkIndex, link := range token.Policies {
 		if link.ID != "" {

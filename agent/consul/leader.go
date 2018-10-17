@@ -370,11 +370,11 @@ func (s *Server) initializeLegacyACL() error {
 	// servers consuming snapshots, so we have to wait to create it.
 	var minVersion = version.Must(version.NewVersion("0.9.1"))
 	if ServersMeetMinimumVersion(s.LANMembers(), minVersion) {
-		bs, _, err := state.ACLGetBootstrap()
+		canBootstrap, _, err := state.CanBootstrapACLToken()
 		if err != nil {
 			return fmt.Errorf("failed looking for ACL bootstrap info: %v", err)
 		}
-		if !bs {
+		if canBootstrap {
 			req := structs.ACLRequest{
 				Datacenter: authDC,
 				Op:         structs.ACLBootstrapInit,

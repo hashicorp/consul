@@ -268,18 +268,13 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	if a.ModifyIndex <= 1 {
 		t.Fatalf("bad index: %d", idx)
 	}
-	gotB, err := fsm2.state.ACLGetBootstrap()
+	canBootstrap, _, err := fsm2.state.CanBootstrapACLToken()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	wantB := &structs.ACLBootstrap{
-		AllowBootstrap: true,
-		RaftIndex: structs.RaftIndex{
-			CreateIndex: 10,
-			ModifyIndex: 10,
-		},
+	if !canBootstrap {
+		t.Fatalf("bad: should be able to bootstrap")
 	}
-	verify.Values(t, "", gotB, wantB)
 
 	// Verify tombstones are restored
 	func() {

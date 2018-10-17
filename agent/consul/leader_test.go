@@ -990,21 +990,16 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 				t.Fatalf("anonymous token wasn't created")
 			}
 
-			bs, err := s1.fsm.State().ACLGetBootstrap()
+			canBootstrap, _, err := s1.fsm.State().CanBootstrapACLToken()
 			if err != nil {
 				t.Fatalf("err: %v", err)
 			}
 			if !tt.init {
-				if bs != nil {
+				if !canBootstrap {
 					t.Fatalf("bootstrap should not be initialized")
 				}
-			} else {
-				if bs == nil {
-					t.Fatalf("bootstrap should be initialized")
-				}
-				if got, want := bs.AllowBootstrap, tt.bootstrap; got != want {
-					t.Fatalf("got %v want %v", got, want)
-				}
+			} else if canBootstrap {
+				t.Fatalf("bootstrap should be initialized")
 			}
 		})
 	}
