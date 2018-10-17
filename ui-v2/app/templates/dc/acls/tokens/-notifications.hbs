@@ -24,7 +24,7 @@
   {{/if}}
 {{ else if (eq type 'clone')}}
   {{#if (eq status 'success') }}
-    The token has been cloned.
+    The token has been cloned as {{truncate subject.AccessorID 8 false}}
   {{else}}
     There was an error cloning the token.
   {{/if}}
