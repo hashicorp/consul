@@ -204,10 +204,6 @@ func (t *ACLToken) EmbeddedPolicy() *ACLPolicy {
 	return policy
 }
 
-func (t *ACLToken) IsManagement() bool {
-	return t.Type == ACLTokenTypeManagement && len(t.Policies) == 0
-}
-
 func (t *ACLToken) SetHash(force bool) []byte {
 	if force || t.Hash == nil {
 		// Initialize a 256bit Blake2 hash (32 bytes)
@@ -308,8 +304,13 @@ func (token *ACLToken) IsSame(other *ACLToken) bool {
 		return false
 	}
 
+	// TODO (ACL-V2) - this is order dependent but maybe it shouldn't be
 	for idx, policy := range token.Policies {
-		if policy != other.Policies[idx] {
+		if policy.ID != other.Policies[idx].ID {
+			return false
+		}
+
+		if policy.Name != other.Policies[idx].Name {
 			return false
 		}
 	}
