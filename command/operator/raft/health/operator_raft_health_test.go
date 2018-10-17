@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/mitchellh/cli"
 )
 
@@ -25,17 +26,19 @@ func TestOperatorRaftHealthCommand(t *testing.T) {
 	c := New(ui)
 	args := []string{"-http-addr=" + a.HTTPAddr()}
 
-	code := c.Run(args)
-	if code != 0 {
-		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
-	}
-	output := strings.TrimSpace(ui.OutputWriter.String())
-	expected := "alive   true    0s"
-	if !strings.Contains(output, expected) {
-		t.Fatalf("bad: %q, %q", output, expected)
-	}
-	expected = "0 servers can fail without causing an outage"
-	if !strings.Contains(output, expected) {
-		t.Fatalf("bad: %q, %q", output, expected)
-	}
+	retry.Run(t, func(r *retry.R) {
+		code := c.Run(args)
+		if code != 0 {
+			r.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+		}
+		output := strings.TrimSpace(ui.OutputWriter.String())
+		expected := "alive   true    0s"
+		if !strings.Contains(output, expected) {
+			r.Fatalf("bad: %q, %q", output, expected)
+		}
+		expected = "0 servers can fail without causing an outage"
+		if !strings.Contains(output, expected) {
+			r.Fatalf("bad: %q, %q", output, expected)
+		}
+	})
 }
