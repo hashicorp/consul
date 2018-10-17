@@ -2848,16 +2848,68 @@ func TestIndexIndependence(t *testing.T) {
 	ensureServiceVersion(t, s, ws, "service_shared", 17, 0)
 
 	testRegisterService(t, s, 18, "node1", "service_new")
-	// Since service does not exists anymore, its index should be last insert
-	// The behaviour is the same as all non-existing services, meaning
-	// we properly did collect garbage
-	ensureServiceVersion(t, s, ws, "service_shared", 18, 0)
+
+	// Since service does not exists anymore, its index should be that of
+	// the last deleted service
+	ensureServiceVersion(t, s, ws, "service_shared", 17, 0)
+
 	// No index should exist anymore, it must have been garbage collected
 	ensureIndexForService(t, s, ws, "service_shared", 0)
 	if !watchFired(ws) {
 		t.Fatalf("bad")
 	}
+}
 
+func TestMissingServiceIndex(t *testing.T) {
+	s := testStateStore(t)
+
+	// Querying with no matches gives an empty response
+	ws := memdb.NewWatchSet()
+	idx, res, err := s.CheckServiceNodes(ws, "service1")
+	require.Nil(t, err)
+	require.Nil(t, res)
+
+	// index should be 0 for a non existing service at startup
+	require.Equal(t, uint64(0), idx)
+
+	testRegisterNode(t, s, 0, "node1")
+
+	// node operations should not affect missing service index
+	ensureServiceVersion(t, s, ws, "service1", 0, 0)
+
+	testRegisterService(t, s, 10, "node1", "service1")
+	ensureServiceVersion(t, s, ws, "service1", 10, 1)
+
+	s.DeleteService(11, "node1", "service1")
+	// service1 is now missing, its index is now that of the last index a service was
+	// deleted at
+	ensureServiceVersion(t, s, ws, "service1", 11, 0)
+
+	testRegisterService(t, s, 12, "node1", "service2")
+	ensureServiceVersion(t, s, ws, "service2", 12, 1)
+
+	// missing service index does not change even though another service have been
+	// registered
+	ensureServiceVersion(t, s, ws, "service1", 11, 0)
+	ensureServiceVersion(t, s, ws, "i_do_not_exist", 11, 0)
+
+	// registering a service on another node does not affect missing service
+	// index
+	testRegisterNode(t, s, 13, "node2")
+	testRegisterService(t, s, 14, "node2", "service3")
+	ensureServiceVersion(t, s, ws, "service3", 14, 1)
+	ensureServiceVersion(t, s, ws, "service1", 11, 0)
+
+	// unregistering a service bumps missing service index
+	s.DeleteService(15, "node2", "service3")
+	ensureServiceVersion(t, s, ws, "service3", 15, 0)
+	ensureServiceVersion(t, s, ws, "service2", 12, 1)
+	ensureServiceVersion(t, s, ws, "service1", 15, 0)
+	ensureServiceVersion(t, s, ws, "i_do_not_exist", 15, 0)
+
+	// registering again a missing service correctly updates its index
+	testRegisterService(t, s, 16, "node1", "service1")
+	ensureServiceVersion(t, s, ws, "service1", 16, 1)
 }
 
 func TestStateStore_CheckServiceNodes(t *testing.T) {
