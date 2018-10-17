@@ -8,17 +8,17 @@ export default Route.extend(WithBlockingActions, {
   feedback: service('feedback'),
   repo: service('tokens'),
   actions: {
-    authorize: function(token) {
+    authorize: function(secret) {
       const dc = this.modelFor('dc').dc.Name;
       return get(this, 'feedback').execute(() => {
         return get(this, 'repo')
-          .self(token, dc)
+          .self(secret, dc)
           .then(item => {
             get(this, 'settings')
               .persist({
                 token: {
                   AccessorID: get(item, 'AccessorID'),
-                  SecretID: token,
+                  SecretID: secret,
                 },
               })
               .then(() => {
