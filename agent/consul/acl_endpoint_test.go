@@ -39,7 +39,7 @@ func TestACLEndpoint_Bootstrap(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	if len(out.ID) != len("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx") ||
-		out.Name != "Bootstrap Token" ||
+		!strings.HasPrefix(out.Name, "Bootstrap Token") ||
 		out.Type != structs.ACLTokenTypeManagement ||
 		out.CreateIndex == 0 || out.ModifyIndex == 0 {
 		t.Fatalf("bad: %#v", out)
@@ -477,8 +477,8 @@ func TestACLEndpoint_List(t *testing.T) {
 		t.Fatalf("Bad: %v", acls)
 	}
 
-	// 5 + anonymous + master
-	if len(acls.ACLs) != 7 {
+	// 5  + master
+	if len(acls.ACLs) != 6 {
 		t.Fatalf("Bad: %v", acls.ACLs)
 	}
 	for i := 0; i < len(acls.ACLs); i++ {
