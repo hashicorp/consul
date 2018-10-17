@@ -288,36 +288,6 @@ func (tokens ACLTokenListStubs) Sort() {
 	})
 }
 
-// IsSame checks if one ACL is the same as another, without looking
-// at the Raft information (that's why we didn't call it IsEqual). This is
-// useful for seeing if an update would be idempotent for all the functional
-// parts of the structure.
-func (token *ACLToken) IsSame(other *ACLToken) bool {
-	if token.AccessorID != other.AccessorID ||
-		token.SecretID != other.SecretID ||
-		token.Description != other.Description ||
-		token.Local != other.Local ||
-		len(token.Policies) != len(other.Policies) ||
-		// DEPRECATED (ACL-Legacy-Compat) - remove these 2 checks when v1 acl support is removed
-		token.Type != other.Type ||
-		token.Rules != other.Rules {
-		return false
-	}
-
-	// TODO (ACL-V2) - this is order dependent but maybe it shouldn't be
-	for idx, policy := range token.Policies {
-		if policy.ID != other.Policies[idx].ID {
-			return false
-		}
-
-		if policy.Name != other.Policies[idx].Name {
-			return false
-		}
-	}
-
-	return true
-}
-
 type ACLPolicy struct {
 	// This is the internal UUID associated with the policy
 	ID string
@@ -378,24 +348,6 @@ func (p *ACLPolicy) Stub() *ACLPolicyListStub {
 
 type ACLPolicies []*ACLPolicy
 type ACLPolicyListStubs []*ACLPolicyListStub
-
-func (policy *ACLPolicy) IsSame(other *ACLPolicy) bool {
-	if policy.ID != other.ID ||
-		policy.Name != other.Name ||
-		policy.Description != other.Description ||
-		policy.Rules != other.Rules ||
-		len(policy.Datacenters) != len(other.Datacenters) {
-		return false
-	}
-
-	for idx, dc := range policy.Datacenters {
-		if dc != other.Datacenters[idx] {
-			return false
-		}
-	}
-
-	return true
-}
 
 func (p *ACLPolicy) SetHash(force bool) []byte {
 	if force || p.Hash == nil {
