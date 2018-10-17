@@ -3,6 +3,7 @@ package health
 import (
 	"flag"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
@@ -47,19 +48,26 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	result := []string{"Name|Status|Leader|LastContact|LastIndex|Voter|Healthy"}
 	// Fetch health informations
 	q := &api.QueryOptions{}
 	reply, err := client.Operator().AutopilotServerHealth(q)
 	if err != nil {
+		// This is expected when the cluster is not healthy
+		if strings.HasPrefix(err.Error(), "Unexpected response code: 429") {
+			ret := columnize.SimpleFormat(result)
+			ret += fmt.Sprintf("\n0 servers can fail without causing an outage")
+			c.UI.Output(ret)
+			return 2
+		}
 		c.UI.Error(fmt.Sprintf("Failed to retrieve cluster health: %v", err))
 		return 1
 	}
 
 	// Format the result
-	result := []string{"Name|Status|Leader|LastContact|LastIndex|Voter|Healthy"}
 	for _, s := range reply.Servers {
 		result = append(result, fmt.Sprintf("%v|%v|%v|%v|%v|%v|%v",
-			s.Name, s.SerfStatus, s.Leader, s.LastContact, s.LastIndex, 
+			s.Name, s.SerfStatus, s.Leader, s.LastContact, s.LastIndex,
 			s.Voter, s.Healthy,
 		))
 	}
@@ -68,9 +76,6 @@ func (c *cmd) Run(args []string) int {
 	ret += fmt.Sprintf("\n%v servers can fail without causing an outage", reply.FailureTolerance)
 
 	c.UI.Output(ret)
-	if reply.Healthy == false {
-		return 2
-	}
 	return 0
 }
 

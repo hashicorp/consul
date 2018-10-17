@@ -42,3 +42,28 @@ func TestOperatorRaftHealthCommand(t *testing.T) {
 		}
 	})
 }
+
+func TestOperatorRaftHealthCommand_Unhealthy(t *testing.T) {
+	t.Parallel()
+	a := agent.NewTestAgent(t.Name(), ``)
+	defer a.Shutdown()
+
+	// Test the health subcommand directly
+	ui := cli.NewMockUi()
+	c := New(ui)
+	args := []string{"-http-addr=" + a.HTTPAddr()}
+
+	code := c.Run(args)
+	if code != 2 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+	output := strings.TrimSpace(ui.OutputWriter.String())
+	expected := "Name  Status  Leader  LastContact  LastIndex  Voter  Healthy\n0 servers can fail without causing an outage"
+	if !strings.Contains(output, expected) {
+		t.Fatalf("bad: %q, %q", output, expected)
+	}
+	expected = "0 servers can fail without causing an outage"
+	if !strings.Contains(output, expected) {
+		t.Fatalf("bad: %q, %q", output, expected)
+	}
+}
