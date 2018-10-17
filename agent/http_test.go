@@ -816,12 +816,12 @@ func TestPProfHandlers_ACLs(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	for i, c := range cases {
-		req, _ := http.NewRequest("GET", fmt.Sprintf("%s?token=%s", c.endpoint, c.token), nil)
-		resp := httptest.NewRecorder()
-
-		a.srv.Handler.ServeHTTP(resp, req)
-
-		assert.Equal(c.code, resp.Code, "case %d: %#v", i, c)
+		t.Run(fmt.Sprintf("case %d (%#v)", i, c), func(t *testing.T) {
+			req, _ := http.NewRequest("GET", fmt.Sprintf("%s?token=%s", c.endpoint, c.token), nil)
+			resp := httptest.NewRecorder()
+			a.srv.Handler.ServeHTTP(resp, req)
+			assert.Equal(c.code, resp.Code)
+		})
 	}
 }
 
