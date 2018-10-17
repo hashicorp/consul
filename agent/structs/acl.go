@@ -395,6 +395,8 @@ func (policies ACLPolicies) HashKey() string {
 	}
 	for _, policy := range policies {
 		cacheKeyHash.Write([]byte(policy.ID))
+		// including the modify index prevents a policy set from being
+		// cached if one of the policies has changed
 		binary.Write(cacheKeyHash, binary.BigEndian, policy.ModifyIndex)
 	}
 	return fmt.Sprintf("%x", cacheKeyHash.Sum(nil))
