@@ -32,22 +32,7 @@ func TestACLEndpoint_Bootstrap(t *testing.T) {
 		Datacenter: "dc1",
 	}
 	var out structs.ACL
-	err := msgpackrpc.CallWithCodec(codec, "ACL.Bootstrap", &arg, &out)
-	if err.Error() != structs.ACLBootstrapNotInitializedErr.Error() {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Manually do an init.
-	req := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLBootstrapInit,
-	}
-	_, err = s1.raftApply(structs.ACLRequestType, &req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Try again, this time it should go through. We can only do some high
+	// We can only do some high
 	// level checks on the ACL since we don't have control over the UUID or
 	// Raft indexes at this level.
 	if err := msgpackrpc.CallWithCodec(codec, "ACL.Bootstrap", &arg, &out); err != nil {
@@ -61,7 +46,7 @@ func TestACLEndpoint_Bootstrap(t *testing.T) {
 	}
 
 	// Finally, make sure that another attempt is rejected.
-	err = msgpackrpc.CallWithCodec(codec, "ACL.Bootstrap", &arg, &out)
+	err := msgpackrpc.CallWithCodec(codec, "ACL.Bootstrap", &arg, &out)
 	if err.Error() != structs.ACLBootstrapNotAllowedErr.Error() {
 		t.Fatalf("err: %v", err)
 	}
