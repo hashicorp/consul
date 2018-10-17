@@ -143,7 +143,7 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 	}
 
 	// handlePProf takes the given pattern and pprof handler
-	// and wraps it to authorization and metrics
+	// and wraps it to add authorization and metrics
 	handlePProf := func(pattern string, handler http.HandlerFunc) {
 		wrapper := func(resp http.ResponseWriter, req *http.Request) {
 			var token string
