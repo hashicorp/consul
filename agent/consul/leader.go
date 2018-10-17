@@ -469,7 +469,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 				token := structs.ACLToken{
 					AccessorID:  accessor,
 					SecretID:    master,
-					Description: "Master Token from the Consul configuration",
+					Description: "Master Token",
 					Policies: []structs.ACLTokenPolicyLink{
 						{
 							ID: structs.ACLPolicyGlobalManagementID,

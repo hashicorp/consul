@@ -119,7 +119,7 @@ func TestACL_HTTP(t *testing.T) {
 
 	idMap := make(map[string]string)
 	policyMap := make(map[string]*structs.ACLPolicy)
-	// tokenMap := make(map[string]*structs.ACLToken)
+	tokenMap := make(map[string]*structs.ACLToken)
 
 	// This is all done as a subtest for a couple reasons
 	// 1. It uses only 1 test agent and these are
@@ -355,115 +355,242 @@ func TestACL_HTTP(t *testing.T) {
 		})
 	})
 
-}
+	t.Run("Token", func(t *testing.T) {
+		t.Run("Create", func(t *testing.T) {
+			tokenInput := &structs.ACLToken{
+				Description: "test",
+				Policies: []structs.ACLTokenPolicyLink{
+					structs.ACLTokenPolicyLink{
+						ID:   idMap["policy-test"],
+						Name: policyMap[idMap["policy-test"]].Name,
+					},
+					structs.ACLTokenPolicyLink{
+						ID:   idMap["policy-read-all-nodes"],
+						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
+					},
+				},
+			}
 
-/*
+			req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(tokenInput))
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.ACLTokenCreate(resp, req)
+			require.NoError(t, err)
 
-func TestACL_PolicyCRUD(t *testing.T) {
-	t.Parallel()
-	a := NewTestAgent(t.Name(), TestACLConfig())
-	defer a.Shutdown()
+			token, ok := obj.(*structs.ACLToken)
+			require.True(t, ok)
 
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
+			// 36 = length of the string form of uuids
+			require.Len(t, token.AccessorID, 36)
+			require.Len(t, token.SecretID, 36)
+			require.Equal(t, tokenInput.Description, token.Description)
+			require.Equal(t, tokenInput.Policies, token.Policies)
+			require.True(t, token.CreateIndex > 0)
+			require.Equal(t, token.CreateIndex, token.ModifyIndex)
+			require.NotNil(t, token.Hash)
+			require.NotEqual(t, token.Hash, []byte{})
 
-	t.Run("Create", func(t *testing.T) {
-		policyInput := &structs.ACLPolicy{
-			Name:        "test",
-			Description: "test",
-			Rules:       `acl = "read"`,
-			Datacenters: []string{"dc1"},
-		}
+			idMap["token-test"] = token.AccessorID
+			tokenMap[token.AccessorID] = token
+		})
+		t.Run("Create Local", func(t *testing.T) {
+			tokenInput := &structs.ACLToken{
+				Description: "local",
+				Policies: []structs.ACLTokenPolicyLink{
+					structs.ACLTokenPolicyLink{
+						ID:   idMap["policy-test"],
+						Name: policyMap[idMap["policy-test"]].Name,
+					},
+					structs.ACLTokenPolicyLink{
+						ID:   idMap["policy-read-all-nodes"],
+						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
+					},
+				},
+				Local: true,
+			}
 
-		req, _ := http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonBody(policyInput))
-		resp := httptest.NewRecorder()
-		obj, err := a.srv.ACLPolicyCreate(resp, req)
-		require.NoError(t, err)
+			req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(tokenInput))
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.ACLTokenCreate(resp, req)
+			require.NoError(t, err)
 
-		policy, ok := obj.(*structs.ACLPolicy)
-		require.True(t, ok)
+			token, ok := obj.(*structs.ACLToken)
+			require.True(t, ok)
 
-		// 36 = length of the string form of uuids
-		require.Len(t, policy.ID, 36)
-		require.Equal(t, policyInput.Name, policy.Name)
-		require.Equal(t, policyInput.Description, policy.Description)
-		require.Equal(t, policyInput.Rules, policy.Rules)
-		require.Equal(t, policyInput.Datacenters, policy.Datacenters)
-		require.True(t, policy.CreateIndex > 0)
-		require.Equal(t, policy.CreateIndex, policy.ModifyIndex)
-		require.NotNil(t, policy.Hash)
-		require.NotEqual(t, policy.Hash, []byte{})
+			// 36 = length of the string form of uuids
+			require.Len(t, token.AccessorID, 36)
+			require.Len(t, token.SecretID, 36)
+			require.Equal(t, tokenInput.Description, token.Description)
+			require.Equal(t, tokenInput.Policies, token.Policies)
+			require.True(t, token.CreateIndex > 0)
+			require.Equal(t, token.CreateIndex, token.ModifyIndex)
+			require.NotNil(t, token.Hash)
+			require.NotEqual(t, token.Hash, []byte{})
+
+			idMap["token-local"] = token.AccessorID
+			tokenMap[token.AccessorID] = token
+		})
+		t.Run("Read", func(t *testing.T) {
+			expected := tokenMap[idMap["token-test"]]
+			req, _ := http.NewRequest("GET", "/v1/acl/token/"+expected.AccessorID+"?token=root", nil)
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.ACLTokenCRUD(resp, req)
+			require.NoError(t, err)
+			token, ok := obj.(*structs.ACLToken)
+			require.True(t, ok)
+			require.Equal(t, expected, token)
+		})
+		t.Run("Self", func(t *testing.T) {
+			expected := tokenMap[idMap["token-test"]]
+			req, _ := http.NewRequest("GET", "/v1/acl/token/self?token="+expected.SecretID, nil)
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.ACLTokenSelf(resp, req)
+			require.NoError(t, err)
+			token, ok := obj.(*structs.ACLToken)
+			require.True(t, ok)
+			require.Equal(t, expected, token)
+		})
+		t.Run("Clone", func(t *testing.T) {
+			tokenInput := &structs.ACLToken{
+				Description: "cloned token",
+			}
+
+			baseToken := tokenMap[idMap["token-test"]]
+
+			req, _ := http.NewRequest("PUT", "/v1/acl/token/"+baseToken.AccessorID+"/clone?token=root", jsonBody(tokenInput))
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.ACLTokenCRUD(resp, req)
+			require.NoError(t, err)
+			token, ok := obj.(*structs.ACLToken)
+			require.True(t, ok)
+
+			require.NotEqual(t, baseToken.AccessorID, token.AccessorID)
+			require.NotEqual(t, baseToken.SecretID, token.SecretID)
+			require.Equal(t, tokenInput.Description, token.Description)
+			require.Equal(t, baseToken.Policies, token.Policies)
+			require.True(t, token.CreateIndex > 0)
+			require.Equal(t, token.CreateIndex, token.ModifyIndex)
+			require.NotNil(t, token.Hash)
+			require.NotEqual(t, token.Hash, []byte{})
+
+			idMap["token-cloned"] = token.AccessorID
+			tokenMap[token.AccessorID] = token
+		})
+		t.Run("Update", func(t *testing.T) {
+			originalToken := tokenMap[idMap["token-cloned"]]
+
+			// Accessor and Secret will be filled in
+			tokenInput := &structs.ACLToken{
+				Description: "Better description for this cloned token",
+				Policies: []structs.ACLTokenPolicyLink{
+					structs.ACLTokenPolicyLink{
+						ID:   idMap["policy-read-all-nodes"],
+						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
+					},
+				},
+			}
+
+			req, _ := http.NewRequest("PUT", "/v1/acl/token/"+originalToken.AccessorID+"?token=root", jsonBody(tokenInput))
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.ACLTokenCRUD(resp, req)
+			require.NoError(t, err)
+			token, ok := obj.(*structs.ACLToken)
+			require.True(t, ok)
+
+			require.Equal(t, originalToken.AccessorID, token.AccessorID)
+			require.Equal(t, originalToken.SecretID, token.SecretID)
+			require.Equal(t, tokenInput.Description, token.Description)
+			require.Equal(t, tokenInput.Policies, token.Policies)
+			require.True(t, token.CreateIndex > 0)
+			require.True(t, token.CreateIndex < token.ModifyIndex)
+			require.NotNil(t, token.Hash)
+			require.NotEqual(t, token.Hash, []byte{})
+			require.NotEqual(t, token.Hash, originalToken.Hash)
+
+			tokenMap[token.AccessorID] = token
+		})
+
+		t.Run("CRUD Missing Token Accessor ID", func(t *testing.T) {
+			req, _ := http.NewRequest("GET", "/v1/acl/token/?token=root", nil)
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.ACLTokenCRUD(resp, req)
+			require.Error(t, err)
+			require.Nil(t, obj)
+			_, ok := err.(BadRequestError)
+			require.True(t, ok)
+		})
+		t.Run("Update Accessor Mismatch", func(t *testing.T) {
+			originalToken := tokenMap[idMap["token-cloned"]]
+
+			// Accessor and Secret will be filled in
+			tokenInput := &structs.ACLToken{
+				AccessorID:  "e8aeb69a-0ace-42b9-b95f-d1d9eafe1561",
+				Description: "Better description for this cloned token",
+				Policies: []structs.ACLTokenPolicyLink{
+					structs.ACLTokenPolicyLink{
+						ID:   idMap["policy-read-all-nodes"],
+						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
+					},
+				},
+			}
+
+			req, _ := http.NewRequest("PUT", "/v1/acl/token/"+originalToken.AccessorID+"?token=root", jsonBody(tokenInput))
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.ACLTokenCRUD(resp, req)
+			require.Error(t, err)
+			require.Nil(t, obj)
+			_, ok := err.(BadRequestError)
+			require.True(t, ok)
+		})
+		t.Run("Delete", func(t *testing.T) {
+			req, _ := http.NewRequest("DELETE", "/v1/acl/token/"+idMap["token-cloned"]+"?token=root", nil)
+			resp := httptest.NewRecorder()
+			_, err := a.srv.ACLTokenCRUD(resp, req)
+			require.NoError(t, err)
+			delete(tokenMap, idMap["token-cloned"])
+			delete(idMap, "token-cloned")
+		})
+		t.Run("List", func(t *testing.T) {
+			req, _ := http.NewRequest("GET", "/v1/acl/tokens?token=root", nil)
+			resp := httptest.NewRecorder()
+			raw, err := a.srv.ACLTokenList(resp, req)
+			require.NoError(t, err)
+			tokens, ok := raw.(structs.ACLTokenListStubs)
+			require.True(t, ok)
+
+			// 3 tokens created but 1 was deleted + master token + anon token
+			require.Len(t, tokens, 4)
+
+			// this loop doesn't verify anything about the master token
+			for tokenID, expected := range tokenMap {
+				found := false
+				for _, actual := range tokens {
+					if actual.AccessorID == tokenID {
+						require.Equal(t, expected.Description, actual.Description)
+						require.Equal(t, expected.Policies, actual.Policies)
+						require.Equal(t, expected.Local, actual.Local)
+						require.Equal(t, expected.CreateTime, actual.CreateTime)
+						require.Equal(t, expected.Hash, actual.Hash)
+						require.Equal(t, expected.CreateIndex, actual.CreateIndex)
+						require.Equal(t, expected.ModifyIndex, actual.ModifyIndex)
+						found = true
+						break
+					}
+				}
+				require.True(t, found)
+			}
+		})
+		t.Run("List by Policy", func(t *testing.T) {
+			req, _ := http.NewRequest("GET", "/v1/acl/tokens?token=root&policy="+structs.ACLPolicyGlobalManagementID, nil)
+			resp := httptest.NewRecorder()
+			raw, err := a.srv.ACLTokenList(resp, req)
+			require.NoError(t, err)
+			tokens, ok := raw.(structs.ACLTokenListStubs)
+			require.True(t, ok)
+			require.Len(t, tokens, 1)
+			token := tokens[0]
+			require.Equal(t, "Master Token", token.Description)
+			require.Len(t, token.Policies, 1)
+			require.Equal(t, structs.ACLPolicyGlobalManagementID, token.Policies[0].ID)
+		})
 	})
-
-	t.Run("ID Supplied", func(t *testing.T) {
-		policyInput := &structs.ACLPolicy{
-			ID:          "12123d01-37f1-47e6-b55b-32328652bd38",
-			Name:        "with-id",
-			Description: "test",
-			Rules:       `acl = "read"`,
-			Datacenters: []string{"dc1"},
-		}
-
-		req, _ := http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonBody(policyInput))
-		resp := httptest.NewRecorder()
-		_, err := a.srv.ACLPolicyCreate(resp, req)
-		require.Error(t, err)
-		_, ok := err.(BadRequestError)
-		require.True(t, ok)
-	})
-
-	t.Run("Invalid payload", func(t *testing.T) {
-		body := bytes.NewBuffer(nil)
-		body.Write([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
-
-		req, _ := http.NewRequest("PUT", "/v1/acl/policy?token=root", body)
-		resp := httptest.NewRecorder()
-		_, err := a.srv.ACLPolicyCreate(resp, req)
-		require.Error(t, err)
-		_, ok := err.(BadRequestError)
-		require.True(t, ok)
-	})
 }
-
-func TestACL_PolicyUpdate(t *testing.T) {
-
-}
-
-func TestACL_PolicyRead(t *testing.T) {
-
-}
-
-func TestACL_PolicyDelete(t *testing.T) {
-
-}
-
-func TestACL_PolicyList(t *testing.T) {
-   t.Parallel()
-   a := NewTestAgent(t.Name(), TestACLConfig())
-   defer a.Shutdown()
-
-   testrpc.WaitForLeader(t, a.RPC, "dc1")
-
-
-   var ids []string
-   for i := 0; i < 10; i++ {
-      ids = append(ids, makeTestACL(t, a.srv))
-   }
-
-   req, _ := http.NewRequest("GET", "/v1/acl/list?token=root", nil)
-   resp := httptest.NewRecorder()
-   obj, err := a.srv.ACLList(resp, req)
-   if err != nil {
-      t.Fatalf("err: %v", err)
-   }
-   respObj, ok := obj.(structs.ACLs)
-   if !ok {
-      t.Fatalf("should work")
-   }
-
-   // 10  + master
-   // anonymous token is a new token and wont show up in this list
-   if len(respObj) != 11 {
-      t.Fatalf("bad: %v", respObj)
-   }
-}
-*/

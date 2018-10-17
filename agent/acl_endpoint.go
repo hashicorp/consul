@@ -437,10 +437,10 @@ func (s *HTTPServer) ACLTokenWrite(resp http.ResponseWriter, req *http.Request, 
 		return nil, BadRequestError{Reason: fmt.Sprintf("Token decoding failed: %v", err)}
 	}
 
-	if args.ACLToken.AccessorID == "" {
-		args.ACLToken.AccessorID = tokenID
-	} else if tokenID != "" && args.ACLToken.AccessorID != tokenID {
+	if args.ACLToken.AccessorID != "" && args.ACLToken.AccessorID != tokenID {
 		return nil, BadRequestError{Reason: "Token Accessor ID in URL and payload do not match"}
+	} else if args.ACLToken.AccessorID == "" {
+		args.ACLToken.AccessorID = tokenID
 	}
 
 	var out structs.ACLToken
@@ -484,39 +484,6 @@ func (s *HTTPServer) ACLTokenClone(resp http.ResponseWriter, req *http.Request, 
 
 	var out structs.ACLToken
 	if err := s.agent.RPC("ACL.TokenClone", args, &out); err != nil {
-		return nil, err
-	}
-
-	return &out, nil
-}
-
-func (s *HTTPServer) ACLTokenUpgrade(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
-	}
-
-	args := structs.ACLTokenUpsertRequest{
-		Datacenter: s.agent.config.Datacenter,
-	}
-	s.parseToken(req, &args.Token)
-
-	tokenID := strings.TrimPrefix(req.URL.Path, "/v1/acl/token/upgrade/")
-	if tokenID == "" {
-		return nil, BadRequestError{Reason: "Missing token ID"}
-	}
-
-	if err := decodeBody(req, &args.ACLToken, fixCreateTime); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Token decoding failed: %v", err)}
-	}
-
-	if args.ACLToken.AccessorID == "" {
-		args.ACLToken.AccessorID = tokenID
-	} else if tokenID != "" && args.ACLToken.AccessorID != tokenID {
-		return nil, BadRequestError{Reason: "Token Accessor ID in URL and payload do not match"}
-	}
-
-	var out structs.ACLToken
-	if err := s.agent.RPC("ACL.TokenUpgrade", args, &out); err != nil {
 		return nil, err
 	}
 
