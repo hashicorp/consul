@@ -973,7 +973,7 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 			testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 			if tt.master != "" {
-				_, master, err := s1.fsm.State().ACLGet(nil, tt.master)
+				_, master, err := s1.fsm.State().ACLTokenGetBySecret(nil, tt.master)
 				if err != nil {
 					t.Fatalf("err: %v", err)
 				}
@@ -982,7 +982,7 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 				}
 			}
 
-			_, anon, err := s1.fsm.State().ACLGet(nil, anonymousToken)
+			_, anon, err := s1.fsm.State().ACLTokenGetBySecret(nil, anonymousToken)
 			if err != nil {
 				t.Fatalf("err: %v", err)
 			}

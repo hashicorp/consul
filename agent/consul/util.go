@@ -288,7 +288,8 @@ func ServersGetACLMode(members []serf.Member, leader string, datacenter string) 
 	mode = structs.ACLModeEnabled
 	leaderMode = structs.ACLModeDisabled
 	for _, member := range members {
-		if valid, parts := metadata.IsConsulServer(member); valid && parts.Status == serf.StatusAlive {
+		if valid, parts := metadata.IsConsulServer(member); valid {
+
 			if datacenter != "" && parts.Datacenter != datacenter {
 				continue
 			}
@@ -304,7 +305,7 @@ func ServersGetACLMode(members []serf.Member, leader string, datacenter string) 
 				// do nothing
 			case structs.ACLModeLegacy:
 				// This covers legacy mode and older server versions that don't advertise ACL support
-				if mode != structs.ACLModeDisabled {
+				if mode != structs.ACLModeDisabled && mode != structs.ACLModeUnknown {
 					mode = structs.ACLModeLegacy
 				}
 			default:

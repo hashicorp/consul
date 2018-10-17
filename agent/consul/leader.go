@@ -422,7 +422,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 			return s.initializeLegacyACL()
 		}
 
-		s.logger.Printf("[INFO] acl: initializing new acls")
+		s.logger.Printf("[INFO] acl: initializing acls")
 
 		// Create the builtin global-management policy
 		_, policy, err := s.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID)

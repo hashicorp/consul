@@ -40,19 +40,33 @@ func (s *HTTPServer) ACLBootstrap(resp http.ResponseWriter, req *http.Request) (
 		Datacenter: s.agent.config.Datacenter,
 	}
 
-	var out structs.ACLToken
-	err := s.agent.RPC("ACL.Bootstrap", &args, &out)
-	if err != nil {
-		if strings.Contains(err.Error(), structs.ACLBootstrapNotAllowedErr.Error()) {
-			resp.WriteHeader(http.StatusForbidden)
-			fmt.Fprint(resp, acl.PermissionDeniedError{Cause: err.Error()}.Error())
-			return nil, nil
-		} else {
-			return nil, err
+	if s.agent.delegate.UseLegacyACLs() {
+		var out structs.ACL
+		err := s.agent.RPC("ACL.Bootstrap", &args, &out)
+		if err != nil {
+			if strings.Contains(err.Error(), structs.ACLBootstrapNotAllowedErr.Error()) {
+				resp.WriteHeader(http.StatusForbidden)
+				fmt.Fprint(resp, acl.PermissionDeniedError{Cause: err.Error()}.Error())
+				return nil, nil
+			} else {
+				return nil, err
+			}
 		}
+		return &aclBootstrapResponse{ID: out.ID}, nil
+	} else {
+		var out structs.ACLToken
+		err := s.agent.RPC("ACL.BootsrapTokens", &args, &out)
+		if err != nil {
+			if strings.Contains(err.Error(), structs.ACLBootstrapNotAllowedErr.Error()) {
+				resp.WriteHeader(http.StatusForbidden)
+				fmt.Fprint(resp, acl.PermissionDeniedError{Cause: err.Error()}.Error())
+				return nil, nil
+			} else {
+				return nil, err
+			}
+		}
+		return &aclBootstrapResponse{ID: out.SecretID, ACLToken: out}, nil
 	}
-
-	return &aclBootstrapResponse{ID: out.SecretID, ACLToken: out}, nil
 }
 
 func (s *HTTPServer) ACLReplicationStatus(resp http.ResponseWriter, req *http.Request) (interface{}, error) {

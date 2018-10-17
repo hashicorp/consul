@@ -55,7 +55,7 @@ func TestACLEndpoint_Bootstrap(t *testing.T) {
 	}
 	if len(out.ID) != len("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx") ||
 		out.Name != "Bootstrap Token" ||
-		out.Type != structs.ACLTypeManagement ||
+		out.Type != structs.ACLTokenTypeManagement ||
 		out.CreateIndex == 0 || out.ModifyIndex == 0 {
 		t.Fatalf("bad: %#v", out)
 	}
@@ -85,7 +85,7 @@ func TestACLEndpoint_Apply(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
@@ -97,17 +97,17 @@ func TestACLEndpoint_Apply(t *testing.T) {
 
 	// Verify
 	state := s1.fsm.State()
-	_, s, err := state.ACLGet(nil, out)
+	_, s, err := state.ACLTokenGetBySecret(nil, out)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if s == nil {
 		t.Fatalf("should not be nil")
 	}
-	if s.ID != out {
+	if s.SecretID != out {
 		t.Fatalf("bad: %v", s)
 	}
-	if s.Name != "User token" {
+	if s.Description != "User token" {
 		t.Fatalf("bad: %v", s)
 	}
 
@@ -119,7 +119,7 @@ func TestACLEndpoint_Apply(t *testing.T) {
 	}
 
 	// Verify
-	_, s, err = state.ACLGet(nil, id)
+	_, s, err = state.ACLTokenGetBySecret(nil, id)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -146,7 +146,7 @@ func TestACLEndpoint_Update_PurgeCache(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
@@ -226,7 +226,7 @@ func TestACLEndpoint_Apply_CustomID(t *testing.T) {
 		ACL: structs.ACL{
 			ID:   "foobarbaz", // Specify custom ID, does not exist
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
@@ -240,17 +240,17 @@ func TestACLEndpoint_Apply_CustomID(t *testing.T) {
 
 	// Verify
 	state := s1.fsm.State()
-	_, s, err := state.ACLGet(nil, out)
+	_, s, err := state.ACLTokenGetBySecret(nil, out)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if s == nil {
 		t.Fatalf("should not be nil")
 	}
-	if s.ID != out {
+	if s.SecretID != out {
 		t.Fatalf("bad: %v", s)
 	}
-	if s.Name != "User token" {
+	if s.Description != "User token" {
 		t.Fatalf("bad: %v", s)
 	}
 }
@@ -272,7 +272,7 @@ func TestACLEndpoint_Apply_Denied(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 		},
 	}
 	var out string
@@ -301,7 +301,7 @@ func TestACLEndpoint_Apply_DeleteAnon(t *testing.T) {
 		ACL: structs.ACL{
 			ID:   anonymousToken,
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
@@ -331,7 +331,7 @@ func TestACLEndpoint_Apply_RootChange(t *testing.T) {
 		ACL: structs.ACL{
 			ID:   "manage",
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
@@ -360,7 +360,7 @@ func TestACLEndpoint_Get(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
@@ -408,7 +408,7 @@ func TestACLEndpoint_GetPolicy(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
@@ -417,11 +417,11 @@ func TestACLEndpoint_GetPolicy(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	getR := structs.ACLPolicyRequest{
+	getR := structs.ACLPolicyResolveLegacyRequest{
 		Datacenter: "dc1",
 		ACL:        out,
 	}
-	var acls structs.ACLPolicy
+	var acls structs.ACLPolicyResolveLegacyResponse
 	if err := msgpackrpc.CallWithCodec(codec, "ACL.GetPolicy", &getR, &acls); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -435,7 +435,7 @@ func TestACLEndpoint_GetPolicy(t *testing.T) {
 
 	// Do a conditional lookup with etag
 	getR.ETag = acls.ETag
-	var out2 structs.ACLPolicy
+	var out2 structs.ACLPolicyResolveLegacyResponse
 	if err := msgpackrpc.CallWithCodec(codec, "ACL.GetPolicy", &getR, &out2); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -468,7 +468,7 @@ func TestACLEndpoint_List(t *testing.T) {
 			Op:         structs.ACLSet,
 			ACL: structs.ACL{
 				Name: "User token",
-				Type: structs.ACLTypeClient,
+				Type: structs.ACLTokenTypeClient,
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
@@ -536,7 +536,7 @@ func TestACLEndpoint_ReplicationStatus(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc2"
-		c.EnableACLReplication = true
+		c.ACLTokenReplication = true
 		c.ACLReplicationRate = 100
 		c.ACLReplicationBurst = 100
 	})

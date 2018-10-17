@@ -175,7 +175,7 @@ func TestCatalog_Register_ACLDeny(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 			Rules: `
 service "foo" {
 	policy = "write"
@@ -440,7 +440,7 @@ func TestCatalog_Register_ConnectProxy_ACLProxyDestination(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 			Rules: `
 service "foo" {
 	policy = "write"
@@ -554,7 +554,7 @@ func TestCatalog_Deregister_ACLDeny(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 			Rules: `
 node "node" {
 	policy = "write"
@@ -1231,7 +1231,7 @@ func TestCatalog_ListNodes_ACLFilter(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 			Rules: fmt.Sprintf(`
 node "%s" {
 	policy = "read"
@@ -1974,7 +1974,7 @@ func TestCatalog_ListServiceNodes_ConnectProxy_ACL(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 			Rules: `
 service "foo" {
 	policy = "write"
@@ -2243,7 +2243,7 @@ func testACLFilterServer(t *testing.T) (dir, token string, srv *Server, codec rp
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 			Rules: `
 service "foo" {
 	policy = "write"
@@ -2415,7 +2415,7 @@ func TestCatalog_NodeServices_ACLDeny(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 			Rules: fmt.Sprintf(`
 node "%s" {
 	policy = "read"

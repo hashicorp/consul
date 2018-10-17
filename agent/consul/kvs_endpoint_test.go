@@ -90,7 +90,7 @@ func TestKVS_Apply_ACLDeny(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name:  "User token",
-			Type:  structs.ACLTypeClient,
+			Type:  structs.ACLTokenTypeClient,
 			Rules: testListRules,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
@@ -432,7 +432,7 @@ func TestKVSEndpoint_List_ACLDeny(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name:  "User token",
-			Type:  structs.ACLTypeClient,
+			Type:  structs.ACLTokenTypeClient,
 			Rules: testListRules,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
@@ -530,7 +530,7 @@ key "zip" {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name:  "User token",
-			Type:  structs.ACLTypeClient,
+			Type:  structs.ACLTokenTypeClient,
 			Rules: testListRules1,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
@@ -715,7 +715,7 @@ func TestKVSEndpoint_ListKeys_ACLDeny(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name:  "User token",
-			Type:  structs.ACLTypeClient,
+			Type:  structs.ACLTokenTypeClient,
 			Rules: testListRules,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
