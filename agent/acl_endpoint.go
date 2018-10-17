@@ -77,6 +77,10 @@ func (s *HTTPServer) ACLReplicationStatus(resp http.ResponseWriter, req *http.Re
 }
 
 func (s *HTTPServer) ACLRulesTranslate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if s.checkACLDisabled(resp, req) {
+		return nil, nil
+	}
+
 	policyBytes, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Failed to read body: %v", err)}
@@ -92,6 +96,10 @@ func (s *HTTPServer) ACLRulesTranslate(resp http.ResponseWriter, req *http.Reque
 }
 
 func (s *HTTPServer) ACLRulesTranslateLegacyToken(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if s.checkACLDisabled(resp, req) {
+		return nil, nil
+	}
+
 	tokenID := strings.TrimPrefix(req.URL.Path, "/v1/acl/rules/translate/")
 	if tokenID == "" {
 		return nil, BadRequestError{Reason: "Missing token ID"}
@@ -220,6 +228,10 @@ func (s *HTTPServer) ACLPolicyRead(resp http.ResponseWriter, req *http.Request, 
 }
 
 func (s *HTTPServer) ACLPolicyCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if s.checkACLDisabled(resp, req) {
+		return nil, nil
+	}
+
 	return s.ACLPolicyWrite(resp, req, "")
 }
 
@@ -256,7 +268,7 @@ func (s *HTTPServer) ACLPolicyWrite(resp http.ResponseWriter, req *http.Request,
 
 	args.Policy.Syntax = acl.SyntaxCurrent
 
-	if policyID != "" && args.Policy.ID != "" && args.Policy.ID != policyID {
+	if args.Policy.ID != "" && args.Policy.ID != policyID {
 		return nil, BadRequestError{Reason: "Policy ID in URL and payload do not match"}
 	} else if args.Policy.ID == "" {
 		args.Policy.ID = policyID
@@ -347,6 +359,10 @@ func (s *HTTPServer) ACLTokenCRUD(resp http.ResponseWriter, req *http.Request) (
 }
 
 func (s *HTTPServer) ACLTokenSelf(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if s.checkACLDisabled(resp, req) {
+		return nil, nil
+	}
+
 	args := structs.ACLTokenReadRequest{
 		TokenIDType: structs.ACLTokenSecret,
 	}

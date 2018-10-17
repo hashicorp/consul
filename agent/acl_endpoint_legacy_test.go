@@ -14,21 +14,18 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 )
 
-func TestACL_Disabled_Response(t *testing.T) {
+func TestACL_Legacy_Disabled_Response(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	tests := []func(resp http.ResponseWriter, req *http.Request) (interface{}, error){
-		a.srv.ACLBootstrap,
 		a.srv.ACLDestroy,
 		a.srv.ACLCreate,
 		a.srv.ACLUpdate,
 		a.srv.ACLClone,
 		a.srv.ACLGet,
 		a.srv.ACLList,
-		a.srv.ACLReplicationStatus,
-		a.srv.AgentToken, // See TestAgent_Token.
 	}
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 	for i, tt := range tests {
@@ -72,55 +69,7 @@ func makeTestACL(t *testing.T, srv *HTTPServer) string {
 	return aclResp.ID
 }
 
-func TestACL_Bootstrap(t *testing.T) {
-	t.Parallel()
-	a := NewTestAgent(t.Name(), TestACLConfig()+`
-		acl_master_token = ""
-	`)
-	defer a.Shutdown()
-
-	tests := []struct {
-		name   string
-		method string
-		code   int
-		token  bool
-	}{
-		{"bootstrap", "PUT", http.StatusOK, true},
-		{"not again", "PUT", http.StatusForbidden, false},
-	}
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			resp := httptest.NewRecorder()
-			req, _ := http.NewRequest(tt.method, "/v1/acl/bootstrap", nil)
-			out, err := a.srv.ACLBootstrap(resp, req)
-			if tt.token && err != nil {
-				t.Fatalf("err: %v", err)
-			}
-			if got, want := resp.Code, tt.code; got != want {
-				t.Fatalf("got %d want %d", got, want)
-			}
-			if tt.token {
-				wrap, ok := out.(*aclBootstrapResponse)
-				if !ok {
-					t.Fatalf("bad: %T", out)
-				}
-				if len(wrap.ID) != len("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx") {
-					t.Fatalf("bad: %v", wrap)
-				}
-				if wrap.ID != wrap.SecretID {
-					t.Fatalf("bad: %v", wrap)
-				}
-			} else {
-				if out != nil {
-					t.Fatalf("bad: %T", out)
-				}
-			}
-		})
-	}
-}
-
-func TestACL_Update(t *testing.T) {
+func TestACL_Legacy_Update(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), TestACLConfig())
 	defer a.Shutdown()
@@ -150,7 +99,7 @@ func TestACL_Update(t *testing.T) {
 	}
 }
 
-func TestACL_UpdateUpsert(t *testing.T) {
+func TestACL_Legacy_UpdateUpsert(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), TestACLConfig())
 	defer a.Shutdown()
@@ -179,7 +128,7 @@ func TestACL_UpdateUpsert(t *testing.T) {
 	}
 }
 
-func TestACL_Destroy(t *testing.T) {
+func TestACL_Legacy_Destroy(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), TestACLConfig())
 	defer a.Shutdown()
@@ -211,7 +160,7 @@ func TestACL_Destroy(t *testing.T) {
 	}
 }
 
-func TestACL_Clone(t *testing.T) {
+func TestACL_Legacy_Clone(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), TestACLConfig())
 	defer a.Shutdown()
@@ -255,7 +204,7 @@ func TestACL_Clone(t *testing.T) {
 	}
 }
 
-func TestACL_Get(t *testing.T) {
+func TestACL_Legacy_Get(t *testing.T) {
 	t.Parallel()
 	t.Run("wrong id", func(t *testing.T) {
 		a := NewTestAgent(t.Name(), TestACLConfig())
@@ -300,7 +249,7 @@ func TestACL_Get(t *testing.T) {
 	})
 }
 
-func TestACL_List(t *testing.T) {
+func TestACL_Legacy_List(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), TestACLConfig())
 	defer a.Shutdown()
