@@ -25,6 +25,7 @@ export default Component.extend(SlotsMixin, WithResizing, {
         set(this, 'height', rect.height);
       }
     }
+    this.didAppear();
     this.onopen(e);
   },
   _close: function(e) {
