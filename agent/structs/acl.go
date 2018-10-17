@@ -168,11 +168,6 @@ func (t *ACLToken) SecretToken() string {
 }
 
 func (t *ACLToken) PolicyIDs() []string {
-	if len(t.Policies) == 0 && t.Type == ACLTokenTypeManagement {
-		return []string{
-			ACLPolicyGlobalManagementID,
-		}
-	}
 	var ids []string
 	for _, link := range t.Policies {
 		ids = append(ids, link.ID)
@@ -185,19 +180,25 @@ func (t *ACLToken) EmbeddedPolicy() *ACLPolicy {
 	//
 	// For legacy tokens with embedded rules this provides a way to map those
 	// rules to an ACLPolicy. This function can just return nil once legacy
-	// acl compatibility is no longer needed
-	if t.Rules == "" {
+	// acl compatibility is no longer needed.
+	//
+	// Additionally for management tokens we must embed the policy rules
+	// as well
+	policy := &ACLPolicy{}
+	if t.Rules != "" {
+		hasher := fnv.New128a()
+		policy.ID = fmt.Sprintf("%x", hasher.Sum([]byte(t.Rules)))
+		policy.Name = fmt.Sprintf("legacy-policy-%s", policy.ID)
+		policy.Rules = t.Rules
+		policy.Syntax = acl.SyntaxLegacy
+	} else if t.Type == ACLTokenTypeManagement {
+		hasher := fnv.New128a()
+		policy.ID = fmt.Sprintf("%x", hasher.Sum([]byte(ACLPolicyGlobalManagement)))
+		policy.Name = "legacy-management"
+		policy.Rules = ACLPolicyGlobalManagement
+		policy.Syntax = acl.SyntaxCurrent
+	} else {
 		return nil
-	}
-
-	hasher := fnv.New128a()
-	ruleID := fmt.Sprintf("%x", hasher.Sum([]byte(t.Rules)))
-
-	policy := &ACLPolicy{
-		ID:     ruleID,
-		Name:   fmt.Sprintf("legacy-policy-%s", ruleID),
-		Rules:  t.Rules,
-		Syntax: acl.SyntaxLegacy,
 	}
 
 	policy.SetHash(true)

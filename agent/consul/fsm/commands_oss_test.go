@@ -868,15 +868,13 @@ func TestFSM_ACL_CRUD(t *testing.T) {
 	if enabled, ok := resp.(bool); !ok || !enabled {
 		t.Fatalf("resp: %v", resp)
 	}
-	gotB, err := fsm.state.ACLGetBootstrap()
+	canBootstrap, _, err := fsm.state.CanBootstrapACLToken()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	wantB := &structs.ACLBootstrap{
-		AllowBootstrap: true,
-		RaftIndex:      gotB.RaftIndex,
+	if !canBootstrap {
+		t.Fatalf("bad: shouldn't be able to bootstrap")
 	}
-	verify.Values(t, "", gotB, wantB)
 
 	// Do a bootstrap.
 	bootstrap := structs.ACLRequest{
