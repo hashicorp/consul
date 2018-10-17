@@ -1877,9 +1877,9 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 
 	json := `
 	{
-		"name":"test", 
-		"port":8000, 
-		"enable_tag_override": true, 
+		"name":"test",
+		"port":8000,
+		"enable_tag_override": true,
 		"meta": {
 			"some": "meta",
 			"enable_tag_override": "meta is 'opaque' so should not get translated"
@@ -1929,9 +1929,9 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 				]
 			},
 			"sidecar_service": {
-				"name":"test-proxy", 
-				"port":8001, 
-				"enable_tag_override": true, 
+				"name":"test-proxy",
+				"port":8001,
+				"enable_tag_override": true,
 				"meta": {
 					"some": "meta",
 					"enable_tag_override": "sidecar_service.meta is 'opaque' so should not get translated"
@@ -2791,7 +2791,7 @@ func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 			require := require.New(t)
 
 			// Constrain auto ports to 1 available to make it deterministic
-			hcl := `ports { 
+			hcl := `ports {
 				sidecar_min_port = 2222
 				sidecar_max_port = 2222
 			}
