@@ -162,7 +162,17 @@ func (c *FSM) applyACLOperation(buf []byte, index uint64) interface{} {
 		if err := c.state.ACLBootstrap(index, 0, req.ACL.Convert(), true); err != nil {
 			return err
 		}
-		return &req.ACL
+
+		if _, token, err := c.state.ACLTokenGetBySecret(nil, req.ACL.ID); err != nil {
+			return err
+		} else {
+			acl, err := token.Convert()
+			if err != nil {
+				return err
+			}
+			return acl
+		}
+
 	case structs.ACLForceSet, structs.ACLSet:
 		if err := c.state.ACLTokenSet(index, req.ACL.Convert(), true); err != nil {
 			return err

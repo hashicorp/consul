@@ -81,10 +81,11 @@ func (tok *ACLToken) Convert() (*ACL, error) {
 	}
 
 	compat := &ACL{
-		ID:    tok.SecretID,
-		Name:  tok.Description,
-		Type:  tok.Type,
-		Rules: tok.Rules,
+		ID:        tok.SecretID,
+		Name:      tok.Description,
+		Type:      tok.Type,
+		Rules:     tok.Rules,
+		RaftIndex: tok.RaftIndex,
 	}
 	return compat, nil
 }
