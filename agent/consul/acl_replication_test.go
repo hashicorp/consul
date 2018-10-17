@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -348,8 +349,8 @@ func TestACLReplication(t *testing.T) {
 		c.ACLReplicationBurst = 100
 		c.ACLReplicationApplyLimit = 1000000
 	})
-	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 	s2.tokens.UpdateACLReplicationToken("root")
+	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
 
@@ -389,9 +390,7 @@ func TestACLReplication(t *testing.T) {
 			return fmt.Errorf("got %d remote ACLs want %d", got, want)
 		}
 		for i, token := range remote {
-			acl, _ := token.Convert()
-			acl2, _ := local[i].Convert()
-			if !acl.IsSame(acl2) {
+			if !bytes.Equal(token.Hash, local[i].Hash) {
 				return fmt.Errorf("ACLs differ")
 			}
 		}
@@ -401,7 +400,7 @@ func TestACLReplication(t *testing.T) {
 		status = s2.aclReplicationStatus
 		s2.aclReplicationStatusLock.RUnlock()
 		if !status.Enabled || !status.Running ||
-			status.ReplicatedIndex != index ||
+			status.ReplicatedTokenIndex != index ||
 			status.SourceDatacenter != "dc1" {
 			return fmt.Errorf("ACL replication status differs")
 		}
