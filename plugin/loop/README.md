@@ -54,6 +54,7 @@ DNS servers.  This is a fatal error because operating with an infinite loop will
 memory and CPU until eventual out of memory death by the host.
 
 A forwarding loop is usually caused by:
+
 * Most commonly, CoreDNS forwarding requests directly to itself. e.g. to `127.0.0.1` or `127.0.0.53`
 * Less commonly, CoreDNS forwarding to an upstream server that in turn, forwards requests back to CoreDNS.
 
@@ -75,6 +76,7 @@ to proxy/forward requests to.  Since it contains a local address, CoreDNS ends u
 requests to itself.
 
 There are many ways to work around this issue, some are listed here:
+
 * Add the following to `kubelet`: `--resolv-conf /run/systemd/resolve/resolv.conf`.  This flag
 tells `kubelet` to pass an alternate `resolv.conf` to Pods. For `systemd-resolved`,
 `/run/systemd/resolve/resolv.conf` is typically the location of the "original" `/etc/resolv.conf`.
