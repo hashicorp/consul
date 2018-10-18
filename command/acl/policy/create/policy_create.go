@@ -132,22 +132,22 @@ const synopsis = "Create an ACL Policy"
 const help = `
 Usage: consul acl policy create -name NAME [options]
 
-	Both the -rules and -from-token option values allow loading the value
-	from stdin, a file or the raw value. To use stdin pass '-' as the value.
-	To load the value from a file prefix the value with an '@'. Any other
-	values will be used directly.
+    Both the -rules and -from-token option values allow loading the value
+    from stdin, a file or the raw value. To use stdin pass '-' as the value.
+    To load the value from a file prefix the value with an '@'. Any other
+    values will be used directly.
 
-	Create a new policy:
+    Create a new policy:
 
-  		$ consul acl policy create -name “new-policy” \
+          $ consul acl policy create -name “new-policy” \
                                  -description “This is an example policy” \
                                  -datacenter “dc1” \
                                  -datacenter “dc2” \
                                  -rules @rules.hcl
 
-	Creation a policy from a legacy token:
+    Creation a policy from a legacy token:
 
-		$ consul acl policy create -name “legacy-policy” \
-        			                  -description “Token Converted to Policy” \
-               		            -from-token “c1e34113-e7ab-4451-b1a6-336ddcc58fc6”
+        $ consul acl policy create -name “legacy-policy” \
+                                      -description “Token Converted to Policy” \
+                                   -from-token “c1e34113-e7ab-4451-b1a6-336ddcc58fc6”
 `
