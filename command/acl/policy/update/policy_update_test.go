@@ -53,7 +53,7 @@ func TestPolicyUpdateCommand(t *testing.T) {
 
 	// Create a policy
 	client := a.Client()
-	assert.NoError(err)
+
 	policy, _, err := client.ACL().PolicyCreate(
 		&api.ACLPolicy{Name: "test-policy"},
 		&api.WriteOptions{Token: "root"},
