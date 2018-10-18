@@ -167,11 +167,11 @@ Usage: consul acl policy update [options]
 
   Rename the Policy:
 
-  		$ consul acl policy update -id abcd -name "better-name"
+          $ consul acl policy update -id abcd -name "better-name"
 
   Override all policy attributes:
 
-  		# this will remove any datacenter scope if provided and will remove
-  		# the description
-  		$consul acl policy update -id abcd -name "better-name" -rules @rules.hcl
+          # this will remove any datacenter scope if provided and will remove
+          # the description
+          $consul acl policy update -id abcd -name "better-name" -rules @rules.hcl
 `
