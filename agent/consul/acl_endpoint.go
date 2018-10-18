@@ -908,6 +908,9 @@ func (a *ACL) GetPolicy(args *structs.ACLPolicyResolveLegacyRequest, reply *stru
 		return err
 	}
 
+	// translates the structures internals to most closely match what could be expressed in the original rule language
+	policy = policy.ConvertToLegacy()
+
 	// Generate an ETag
 	etag := makeACLETag(parent, policy)
 

@@ -54,6 +54,13 @@ const (
 	aclModeCheckMaxInterval = 30 * time.Second
 )
 
+func minTTL(a time.Duration, b time.Duration) time.Duration {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 type ACLRemoteError struct {
 	Err error
 }
@@ -205,9 +212,9 @@ func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
 }
 
 // fireAsyncLegacyResult is used to notify any watchers that legacy resolution of a token is complete
-func (r *ACLResolver) fireAsyncLegacyResult(token string, authorizer acl.Authorizer, err error) {
+func (r *ACLResolver) fireAsyncLegacyResult(token string, authorizer acl.Authorizer, ttl time.Duration, err error) {
 	// cache the result: positive or negative
-	r.cache.PutAuthorizer(token, authorizer)
+	r.cache.PutAuthorizerWithTTL(token, authorizer, ttl)
 
 	// get the list of channels to send the result to
 	r.asyncLegacyMutex.Lock()
@@ -230,40 +237,50 @@ func (r *ACLResolver) resolveTokenLegacyAsync(token string, cached *structs.Auth
 		ACL:        token,
 	}
 
-	// TODO (ACL-V2) - Should we attempt to keep the ETag from the old ACLs in use
+	cacheTTL := r.config.ACLTokenTTL
+	if cached != nil {
+		cacheTTL = cached.TTL
+	}
 
 	var reply structs.ACLPolicyResolveLegacyResponse
 	err := r.delegate.RPC("ACL.GetPolicy", &req, &reply)
 	if err == nil {
 		parent := acl.RootAuthorizer(reply.Parent)
 		if parent == nil {
-			r.fireAsyncLegacyResult(token, cached.Authorizer, acl.ErrInvalidParent)
+			r.fireAsyncLegacyResult(token, cached.Authorizer, cacheTTL, acl.ErrInvalidParent)
 			return
 		}
-		authorizer, err := acl.NewPolicyAuthorizer(parent, []*acl.Policy{reply.Policy}, r.sentinel)
-		r.fireAsyncLegacyResult(token, authorizer, err)
+
+		var policies []*acl.Policy
+		policy := reply.Policy
+		if policy != nil {
+			policies = append(policies, policy.ConvertFromLegacy())
+		}
+
+		authorizer, err := acl.NewPolicyAuthorizer(parent, policies, r.sentinel)
+		r.fireAsyncLegacyResult(token, authorizer, reply.TTL, err)
 		return
 	}
 
 	if acl.IsErrNotFound(err) {
 		// Make sure to remove from the cache if it was deleted
-		r.fireAsyncLegacyResult(token, nil, acl.ErrNotFound)
+		r.fireAsyncLegacyResult(token, nil, cacheTTL, acl.ErrNotFound)
 		return
 	}
 
 	// some other RPC error
 	switch r.config.ACLDownPolicy {
 	case "allow":
-		r.fireAsyncLegacyResult(token, acl.AllowAll(), nil)
+		r.fireAsyncLegacyResult(token, acl.AllowAll(), cacheTTL, nil)
 		return
 	case "async-cache", "extend-cache":
 		if cached != nil {
-			r.fireAsyncLegacyResult(token, cached.Authorizer, nil)
+			r.fireAsyncLegacyResult(token, cached.Authorizer, cacheTTL, nil)
 			return
 		}
 		fallthrough
 	default:
-		r.fireAsyncLegacyResult(token, acl.DenyAll(), nil)
+		r.fireAsyncLegacyResult(token, acl.DenyAll(), cacheTTL, nil)
 		return
 	}
 }
@@ -290,9 +307,12 @@ func (r *ACLResolver) resolveTokenLegacy(token string) (acl.Authorizer, error) {
 	// Look in the cache prior to making a RPC request
 	entry := r.cache.GetAuthorizer(token)
 
-	if entry != nil && entry.Age() <= r.config.ACLTokenTTL {
+	if entry != nil && entry.Age() <= minTTL(entry.TTL, r.config.ACLTokenTTL) {
 		metrics.IncrCounter([]string{"acl", "token", "cache_hit"}, 1)
-		return entry.Authorizer, nil
+		if entry.Authorizer != nil {
+			return entry.Authorizer, nil
+		}
+		return nil, acl.ErrNotFound
 	}
 
 	metrics.IncrCounter([]string{"acl", "token", "cache_miss"}, 1)
@@ -326,7 +346,10 @@ func (r *ACLResolver) resolveTokenLegacy(token string) (acl.Authorizer, error) {
 
 	if !waitForResult {
 		// waitForResult being false requires the cacheEntry to not be nil
-		return entry.Authorizer, nil
+		if entry.Authorizer != nil {
+			return entry.Authorizer, nil
+		}
+		return nil, acl.ErrNotFound
 	}
 
 	// block waiting for the async RPC to finish.
@@ -735,6 +758,9 @@ func (r *ACLResolver) GetMergedPolicyForToken(token string) (*acl.Policy, error)
 	policies, err := r.resolveTokenToPolicies(token)
 	if err != nil {
 		return nil, err
+	}
+	if len(policies) == 0 {
+		return nil, acl.ErrNotFound
 	}
 
 	return policies.Merge(r.cache, r.sentinel)

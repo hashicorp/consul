@@ -220,6 +220,7 @@ func (d *ACLResolverTestDelegate) RPC(method string, args interface{}, reply int
 func newTestACLResolver(t *testing.T, delegate ACLResolverDelegate, cb func(*ACLResolverConfig)) *ACLResolver {
 	config := DefaultConfig()
 	config.ACLDefaultPolicy = "deny"
+	config.ACLDownPolicy = "extend-cache"
 	rconf := &ACLResolverConfig{
 		Config: config,
 		Logger: log.New(os.Stdout, t.Name()+" - ", log.LstdFlags|log.Lmicroseconds),
@@ -781,6 +782,271 @@ func TestACLResolver_LocalPolicies(t *testing.T) {
 		require.NotNil(t, authz)
 		require.False(t, authz.OperatorRead())
 		require.True(t, authz.ServiceRead("foo"))
+	})
+}
+
+func TestACLResolver_Legacy(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Cached", func(t *testing.T) {
+		t.Parallel()
+		cached := false
+		delegate := &ACLResolverTestDelegate{
+			enabled:       true,
+			datacenter:    "dc1",
+			legacy:        true,
+			localTokens:   false,
+			localPolicies: false,
+			getPolicyFn: func(args *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
+				if !cached {
+					reply.Parent = "deny"
+					reply.TTL = 30
+					reply.ETag = "nothing"
+					reply.Policy = &acl.Policy{
+						ID: "not-needed",
+						Nodes: []*acl.NodePolicy{
+							&acl.NodePolicy{
+								Name:   "foo",
+								Policy: acl.PolicyWrite,
+							},
+						},
+					}
+					cached = true
+					return nil
+				}
+				return fmt.Errorf("Induced RPC Error")
+			},
+		}
+		r := newTestACLResolver(t, delegate, nil)
+
+		authz, err := r.ResolveToken("foo")
+		require.NoError(t, err)
+		require.NotNil(t, authz)
+		// there is a bit of translation that happens
+		require.True(t, authz.NodeWrite("foo", nil))
+		require.True(t, authz.NodeWrite("foo/bar", nil))
+		require.False(t, authz.NodeWrite("fo", nil))
+
+		// this should be from the cache
+		authz, err = r.ResolveToken("foo")
+		require.NoError(t, err)
+		require.NotNil(t, authz)
+		// there is a bit of translation that happens
+		require.True(t, authz.NodeWrite("foo", nil))
+		require.True(t, authz.NodeWrite("foo/bar", nil))
+		require.False(t, authz.NodeWrite("fo", nil))
+	})
+
+	t.Run("Cache-Expiry-Extend", func(t *testing.T) {
+		t.Parallel()
+		cached := false
+		delegate := &ACLResolverTestDelegate{
+			enabled:       true,
+			datacenter:    "dc1",
+			legacy:        true,
+			localTokens:   false,
+			localPolicies: false,
+			getPolicyFn: func(args *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
+				if !cached {
+					reply.Parent = "deny"
+					reply.TTL = 0
+					reply.ETag = "nothing"
+					reply.Policy = &acl.Policy{
+						ID: "not-needed",
+						Nodes: []*acl.NodePolicy{
+							&acl.NodePolicy{
+								Name:   "foo",
+								Policy: acl.PolicyWrite,
+							},
+						},
+					}
+					cached = true
+					return nil
+				}
+				return fmt.Errorf("Induced RPC Error")
+			},
+		}
+		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
+			config.Config.ACLTokenTTL = 0
+		})
+
+		authz, err := r.ResolveToken("foo")
+		require.NoError(t, err)
+		require.NotNil(t, authz)
+		// there is a bit of translation that happens
+		require.True(t, authz.NodeWrite("foo", nil))
+		require.True(t, authz.NodeWrite("foo/bar", nil))
+		require.False(t, authz.NodeWrite("fo", nil))
+
+		// this should be from the cache
+		authz, err = r.ResolveToken("foo")
+		require.NoError(t, err)
+		require.NotNil(t, authz)
+		// there is a bit of translation that happens
+		require.True(t, authz.NodeWrite("foo", nil))
+		require.True(t, authz.NodeWrite("foo/bar", nil))
+		require.False(t, authz.NodeWrite("fo", nil))
+	})
+
+	t.Run("Cache-Expiry-Allow", func(t *testing.T) {
+		t.Parallel()
+		cached := false
+		delegate := &ACLResolverTestDelegate{
+			enabled:       true,
+			datacenter:    "dc1",
+			legacy:        true,
+			localTokens:   false,
+			localPolicies: false,
+			getPolicyFn: func(args *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
+				if !cached {
+					reply.Parent = "deny"
+					reply.TTL = 0
+					reply.ETag = "nothing"
+					reply.Policy = &acl.Policy{
+						ID: "not-needed",
+						Nodes: []*acl.NodePolicy{
+							&acl.NodePolicy{
+								Name:   "foo",
+								Policy: acl.PolicyWrite,
+							},
+						},
+					}
+					cached = true
+					return nil
+				}
+				return fmt.Errorf("Induced RPC Error")
+			},
+		}
+		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
+			config.Config.ACLDownPolicy = "allow"
+			config.Config.ACLTokenTTL = 0
+		})
+
+		authz, err := r.ResolveToken("foo")
+		require.NoError(t, err)
+		require.NotNil(t, authz)
+		// there is a bit of translation that happens
+		require.True(t, authz.NodeWrite("foo", nil))
+		require.True(t, authz.NodeWrite("foo/bar", nil))
+		require.False(t, authz.NodeWrite("fo", nil))
+
+		// this should be from the cache
+		authz, err = r.ResolveToken("foo")
+		require.NoError(t, err)
+		require.NotNil(t, authz)
+		// there is a bit of translation that happens
+		require.True(t, authz.NodeWrite("foo", nil))
+		require.True(t, authz.NodeWrite("foo/bar", nil))
+		require.True(t, authz.NodeWrite("fo", nil))
+	})
+
+	t.Run("Cache-Expiry-Deny", func(t *testing.T) {
+		t.Parallel()
+		cached := false
+		delegate := &ACLResolverTestDelegate{
+			enabled:       true,
+			datacenter:    "dc1",
+			legacy:        true,
+			localTokens:   false,
+			localPolicies: false,
+			getPolicyFn: func(args *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
+				if !cached {
+					reply.Parent = "deny"
+					reply.TTL = 0
+					reply.ETag = "nothing"
+					reply.Policy = &acl.Policy{
+						ID: "not-needed",
+						Nodes: []*acl.NodePolicy{
+							&acl.NodePolicy{
+								Name:   "foo",
+								Policy: acl.PolicyWrite,
+							},
+						},
+					}
+					cached = true
+					return nil
+				}
+				return fmt.Errorf("Induced RPC Error")
+			},
+		}
+		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
+			config.Config.ACLDownPolicy = "deny"
+			config.Config.ACLTokenTTL = 0
+		})
+
+		authz, err := r.ResolveToken("foo")
+		require.NoError(t, err)
+		require.NotNil(t, authz)
+		// there is a bit of translation that happens
+		require.True(t, authz.NodeWrite("foo", nil))
+		require.True(t, authz.NodeWrite("foo/bar", nil))
+		require.False(t, authz.NodeWrite("fo", nil))
+
+		// this should be from the cache
+		authz, err = r.ResolveToken("foo")
+		require.NoError(t, err)
+		require.NotNil(t, authz)
+		// there is a bit of translation that happens
+		require.False(t, authz.NodeWrite("foo", nil))
+		require.False(t, authz.NodeWrite("foo/bar", nil))
+		require.False(t, authz.NodeWrite("fo", nil))
+	})
+
+	t.Run("Cache-Expiry-Async-Cache", func(t *testing.T) {
+		t.Parallel()
+		cached := false
+		delegate := &ACLResolverTestDelegate{
+			enabled:       true,
+			datacenter:    "dc1",
+			legacy:        true,
+			localTokens:   false,
+			localPolicies: false,
+			getPolicyFn: func(args *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
+				if !cached {
+					reply.Parent = "deny"
+					reply.TTL = 0
+					reply.ETag = "nothing"
+					reply.Policy = &acl.Policy{
+						ID: "not-needed",
+						Nodes: []*acl.NodePolicy{
+							&acl.NodePolicy{
+								Name:   "foo",
+								Policy: acl.PolicyWrite,
+							},
+						},
+					}
+					cached = true
+					return nil
+				}
+				return acl.ErrNotFound
+			},
+		}
+		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
+			config.Config.ACLDownPolicy = "async-cache"
+			config.Config.ACLTokenTTL = 0
+		})
+
+		authz, err := r.ResolveToken("foo")
+		require.NoError(t, err)
+		require.NotNil(t, authz)
+		// there is a bit of translation that happens
+		require.True(t, authz.NodeWrite("foo", nil))
+		require.True(t, authz.NodeWrite("foo/bar", nil))
+		require.False(t, authz.NodeWrite("fo", nil))
+
+		// delivered from the cache
+		authz2, err := r.ResolveToken("foo")
+		require.NoError(t, err)
+		require.NotNil(t, authz)
+		require.True(t, authz == authz2)
+
+		// the go routine spawned will eventually return and this will be a not found error
+		retry.Run(t, func(t *retry.R) {
+			authz3, err := r.ResolveToken("foo")
+			assert.Error(t, err)
+			assert.True(t, acl.IsErrNotFound(err))
+			assert.Nil(t, authz3)
+		})
 	})
 }
 
