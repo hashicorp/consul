@@ -51,6 +51,7 @@ func (e *PolicyCacheEntry) Age() time.Duration {
 type AuthorizerCacheEntry struct {
 	Authorizer acl.Authorizer
 	CacheTime  time.Time
+	TTL        time.Duration
 }
 
 func (e *AuthorizerCacheEntry) Age() time.Duration {
@@ -182,6 +183,14 @@ func (c *ACLCaches) PutAuthorizer(id string, authorizer acl.Authorizer) {
 	}
 
 	c.authorizers.Add(id, &AuthorizerCacheEntry{Authorizer: authorizer, CacheTime: time.Now()})
+}
+
+func (c *ACLCaches) PutAuthorizerWithTTL(id string, authorizer acl.Authorizer, ttl time.Duration) {
+	if c == nil || c.authorizers == nil {
+		return
+	}
+
+	c.authorizers.Add(id, &AuthorizerCacheEntry{Authorizer: authorizer, CacheTime: time.Now(), TTL: ttl})
 }
 
 func (c *ACLCaches) RemoveIdentity(id string) {
