@@ -714,6 +714,47 @@ func TestACLEndpoint_TokenUpsert(t *testing.T) {
 		assert.Equal(token.AccessorID, resp.AccessorID)
 	}
 }
+func TestACLEndpoint_TokenUpsert_anon(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	policy, err := upsertTestPolicy(codec, "root", "dc1")
+	assert.NoError(err)
+
+	acl := ACL{srv: s1}
+
+	// Assign the policies to a token
+	tokenUpsertReq := structs.ACLTokenUpsertRequest{
+		Datacenter: "dc1",
+		ACLToken: structs.ACLToken{
+			AccessorID: structs.ACLTokenAnonymousID,
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID: policy.ID,
+				},
+			},
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	token := structs.ACLToken{}
+	err = acl.TokenUpsert(&tokenUpsertReq, &token)
+	assert.NoError(err)
+	assert.NotEmpty(token.SecretID)
+
+	tokenResp, err := retrieveTestToken(codec, "root", "dc1", structs.ACLTokenAnonymousID)
+	assert.Equal(len(tokenResp.Token.Policies), 1)
+	assert.Equal(tokenResp.Token.Policies[0].ID, policy.ID)
+}
 
 func TestACLEndpoint_TokenDelete(t *testing.T) {
 	t.Parallel()
