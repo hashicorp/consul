@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-KUBERNETES" "7" "August 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-KUBERNETES" "7" "October 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIkubernetes\fR \- enables the reading zone data from a Kubernetes cluster\.
@@ -59,6 +59,9 @@ kubernetes [ZONES\.\.\.] {
 .
 .IP "\(bu" 4
 \fBtls\fR \fBCERT\fR \fBKEY\fR \fBCACERT\fR are the TLS cert, key and the CA cert file names for remote k8s connection\. This option is ignored if connecting in\-cluster (i\.e\. endpoint is not specified)\.
+.
+.IP "\(bu" 4
+\fBkubeconfig\fR \fBKUBECONFIG\fR \fBCONTEXT\fR authenticates the connection to a remote k8s cluster using a kubeconfig file\. It supports TLS, username and password, or token\-based authentication\. This option is ignored if connecting in\-cluster (i\.e\. endpoint is not specified)\.
 .
 .IP "\(bu" 4
 \fBnamespaces\fR \fBNAMESPACE [NAMESPACE\.\.\.]\fR, only exposes the k8s namespaces listed\. If this option is omitted all namespaces are exposed

@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-FILE" "7" "June 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-FILE" "7" "October 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIfile\fR \- enables serving zone data from an RFC 1035\-style master file\.
@@ -34,6 +34,7 @@ If you want to round robin A and AAAA responses look at the \fIloadbalance\fR pl
 
 file DBFILE [ZONES\.\.\. ] {
     transfer to ADDRESS\.\.\.
+    reload DURATION
     no_reload
     upstream [ADDRESS\.\.\.]
 }
@@ -46,7 +47,10 @@ file DBFILE [ZONES\.\.\. ] {
 \fBtransfer\fR enables zone transfers\. It may be specified multiples times\. \fBTo\fR or \fBfrom\fR signals the direction\. \fBADDRESS\fR must be denoted in CIDR notation (127\.0\.0\.1/32 etc\.) or just as plain addresses\. The special wildcard \fB*\fR means: the entire internet (only valid for \'transfer to\')\. When an address is specified a notify message will be send whenever the zone is reloaded\.
 .
 .IP "\(bu" 4
-\fBno_reload\fR by default CoreDNS will try to reload a zone every minute and reloads if the SOA\'s serial has changed\. This option disables that behavior\.
+\fBreload\fR interval to perform reload of zone if SOA version changes\. Default is one minute\. Value of \fB0\fR means to not scan for changes and reload\. eg\. \fB30s\fR checks zonefile every 30 seconds and reloads zone when serial changes\.
+.
+.IP "\(bu" 4
+\fBno_reload\fR deprecated\. Sets reload to 0\.
 .
 .IP "\(bu" 4
 \fBupstream\fR defines upstream resolvers to be used resolve external names found (think CNAMEs) pointing to external names\. This is only really useful when CoreDNS is configured as a proxy, for normal authoritative serving you don\'t need \fIor\fR want to use this\. \fBADDRESS\fR can be an IP address, and IP:port or a string pointing to a file that is structured as /etc/resolv\.conf\. If no \fBADDRESS\fR is given, CoreDNS will resolve CNAMEs against itself\.

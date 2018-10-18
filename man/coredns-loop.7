@@ -1,13 +1,13 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-LOOP" "7" "August 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-LOOP" "7" "October 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIloop\fR \- detect simple forwarding loops and halt the server\.
 .
 .SH "DESCRIPTION"
-The \fIloop\fR plugin will send a random query to ourselves and will then keep track of how many times we see it\. If we see it more than twice, we assume CoreDNS is looping and we halt the process\.
+The \fIloop\fR plugin will send a random probe query to ourselves and will then keep track of how many times we see it\. If we see it more than twice, we assume CoreDNS is looping and we halt the process\.
 .
 .P
 The plugin will try to send the query for up to 30 seconds\. This is done to give CoreDNS enough time to start up\. Once a query has been successfully sent \fIloop\fR disables itself to prevent a query of death\.
@@ -46,7 +46,7 @@ After CoreDNS has started it stops the process while logging:
 .
 .nf
 
-plugin/loop: Seen "HINFO IN 5577006791947779410\.8674665223082153551\." more than twice, loop detected
+plugin/loop: Forwarding loop detected in "\." zone\. Exiting\. See https://coredns\.io/plugins/loop#troubleshooting\. Probe query: "HINFO 5577006791947779410\.8674665223082153551\."\.
 .
 .fi
 .
@@ -62,4 +62,21 @@ the loop must be present at start up time\.
 the loop must occur for at least the \fBHINFO\fR query type\.
 .
 .IP "" 0
-
+.
+.SH "TROUBLESHOOTING"
+When CoreDNS logs contain the message \fBForwarding loop detected \.\.\.\fR, this means that the \fBloop\fR detection plugin has detected an infinite forwarding loop in one of the upstream DNS servers\. This is a fatal error because operating with an infinite loop will consume memory and CPU until eventual out of memory death by the host\.
+.
+.P
+A forwarding loop is usually caused by: * Most commonly, CoreDNS forwarding requests directly to itself\. e\.g\. to \fB127\.0\.0\.1\fR or \fB127\.0\.0\.53\fR * Less commonly, CoreDNS forwarding to an upstream server that in turn, forwards requests back to CoreDNS\.
+.
+.P
+To troubleshoot this problem, look in your Corefile for any \fBproxy\fR or \fBforward\fR to the zone in which the loop was detected\. Make sure that they are not forwarding to a local address or to another DNS server that is forwarding requests back to CoreDNS\. If \fBproxy\fR or \fBforward\fR are using a file (e\.g\. \fB/etc/resolv\.conf\fR), make sure that file does not contain local addresses\.
+.
+.SS "TROUBLESHOOTING LOOPS IN KUBERNETES CLUSTERS"
+When a CoreDNS Pod deployed in Kubernetes detects a loop, the CoreDNS Pod will start to "CrashLoopBackOff"\. This is because Kubernetes will try to restart the Pod every time CoreDNS detects the loop and exits\.
+.
+.P
+A common cause of forwarding loops in Kubernetes clusters is an interaction with \fBsystemd\-resolved\fR on the host node\. \fBsystemd\-resolved\fR will, in certain configurations, put \fB127\.0\.0\.53\fR as an upstream into \fB/etc/resolv\.conf\fR\. Kubernetes (\fBkubelet\fR) by default will pass this \fB/etc/resolv/conf\fR file to all Pods using the \fBdefault\fR dnsPolicy (this includes CoreDNS Pods)\. CoreDNS then uses this \fB/etc/resolv\.conf\fR as a list of upstreams to proxy/forward requests to\. Since it contains a local address, CoreDNS ends up forwarding requests to itself\.
+.
+.P
+There are many ways to work around this issue, some are listed here: * Add the following to \fBkubelet\fR: \fB\-\-resolv\-conf /run/systemd/resolve/resolv\.conf\fR\. This flag tells \fBkubelet\fR to pass an alternate \fBresolv\.conf\fR to Pods\. For \fBsystemd\-resolved\fR, \fB/run/systemd/resolve/resolv\.conf\fR is typically the location of the "original" \fB/etc/resolv\.conf\fR\. * Disable \fBsystemd\-resolved\fR on host nodes, and restore \fB/etc/resolv\.conf\fR to the original\. * A quick and dirty fix is to edit your Corefile, replacing \fBproxy \. /etc/resolv\.conf\fR with the ip address of your upstream DNS, for example \fBproxy \. 8\.8\.8\.8\fR\.
