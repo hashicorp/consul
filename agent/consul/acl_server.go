@@ -153,7 +153,7 @@ func (s *Server) ResolveIdentityFromToken(token string) (bool, structs.ACLIdenti
 		return true, aclToken, nil
 	}
 
-	return s.InACLDatacenter() || index > 0, nil, nil
+	return s.InACLDatacenter() || index > 0, nil, acl.ErrNotFound
 }
 
 func (s *Server) ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy, error) {
@@ -167,7 +167,7 @@ func (s *Server) ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy,
 	// If the max index of the policies table is non-zero then we have acls, until then
 	// we may need to allow remote resolution. This is particularly useful to allow updating
 	// the replication token via the API in a non-primary dc.
-	return s.InACLDatacenter() || index > 0, policy, err
+	return s.InACLDatacenter() || index > 0, policy, acl.ErrNotFound
 }
 
 func (s *Server) ResolveToken(token string) (acl.Authorizer, error) {
