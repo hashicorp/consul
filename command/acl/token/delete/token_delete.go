@@ -81,11 +81,11 @@ Usage: consul acl token delete [options] -id TOKEN
 
   Deletes an ACL token by providing either the ID or a unique ID prefix.
 
-  	Delete by prefix:
+      Delete by prefix:
 
-  		$ consul acl token delete -id b6b85
+          $ consul acl token delete -id b6b85
 
-  	Delete by full ID:
+      Delete by full ID:
 
-  		$ consul acl token delete -id b6b856da-5193-4e78-845a-7d61ca8371ba
+          $ consul acl token delete -id b6b856da-5193-4e78-845a-7d61ca8371ba
 `
