@@ -84,9 +84,9 @@ Usage: consul acl token read [options] -id TOKENID
 
   Using a partial ID:
 
-  		$ consul acl token read -id 4be56c77-82
+          $ consul acl token read -id 4be56c77-82
 
   Using the full ID:
 
-  		$ consul acl token read -id 4be56c77-8244-4c7d-b08c-667b8c71baed
+          $ consul acl token read -id 4be56c77-8244-4c7d-b08c-667b8c71baed
 `
