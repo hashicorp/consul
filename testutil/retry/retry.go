@@ -56,6 +56,11 @@ func (r *R) Error(args ...interface{}) {
 	r.fail = true
 }
 
+func (r *R) Errorf(format string, args ...interface{}) {
+	r.log(fmt.Sprintf(format, args...))
+	r.fail = true
+}
+
 func (r *R) Check(err error) {
 	if err != nil {
 		r.log(err.Error())
