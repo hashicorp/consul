@@ -569,7 +569,7 @@ func (a *ACL) TokenBatchRead(args *structs.ACLTokenBatchReadRequest, reply *stru
 	rule, err := a.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
-	} else if rule == nil || !rule.ACLWrite() {
+	} else if rule == nil || !rule.ACLRead() {
 		return acl.ErrPermissionDenied
 	}
 
@@ -579,6 +579,8 @@ func (a *ACL) TokenBatchRead(args *structs.ACLTokenBatchReadRequest, reply *stru
 			if err != nil {
 				return err
 			}
+
+			a.srv.filterACLWithAuthorizer(rule, &tokens)
 
 			reply.Index, reply.Tokens = index, tokens
 			return nil

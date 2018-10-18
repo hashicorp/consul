@@ -15,8 +15,8 @@ import (
 type SyntaxVersion int
 
 const (
-	SyntaxLegacy SyntaxVersion = iota
-	SyntaxCurrent
+	SyntaxCurrent SyntaxVersion = iota
+	SyntaxLegacy
 )
 
 const (
