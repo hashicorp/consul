@@ -823,6 +823,34 @@ func TestACLEndpoint_TokenDelete_anon(t *testing.T) {
 	tokenResp, err := retrieveTestToken(codec, "root", "dc1", structs.ACLTokenAnonymousID)
 	assert.NotNil(tokenResp.Token)
 }
+func TestACLEndpoint_TokenDelete_globalManagement(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	acl := ACL{srv: s1}
+
+	req := structs.ACLTokenDeleteRequest{
+		Datacenter:   "dc1",
+		TokenID:      structs.ACLPolicyGlobalManagementID,
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+
+	var resp string
+
+	err := acl.TokenDelete(&req, &resp)
+	assert.EqualError(err, "Delete operation not permitted on the global management token")
+}
 
 func TestACLEndpoint_TokenList(t *testing.T) {
 	t.Parallel()
