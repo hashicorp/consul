@@ -106,7 +106,7 @@ Usage: consul acl token create [options]
 
   Create a new token:
 
-  		$ consul acl token create -description "Replication token"
-  										  -policy-id b52fc3de-5
-  										  -policy-name "acl-replication"
+          $ consul acl token create -description "Replication token"
+                                            -policy-id b52fc3de-5
+                                            -policy-name "acl-replication"
 `
