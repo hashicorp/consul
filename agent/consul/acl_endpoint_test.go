@@ -560,6 +560,8 @@ func TestACLEndpoint_ReplicationStatus(t *testing.T) {
 
 func TestACLEndpoint_TokenRead(t *testing.T) {
 	t.Parallel()
+	assert := assert.New(t)
+
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -578,22 +580,58 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 
 	acl := ACL{srv: s1}
 
-	req := structs.ACLTokenReadRequest{
-		Datacenter:   "dc1",
-		TokenID:      token.AccessorID,
-		TokenIDType:  structs.ACLTokenAccessor,
-		QueryOptions: structs.QueryOptions{Token: "root"},
+	// exists and matches what we created
+	{
+		req := structs.ACLTokenReadRequest{
+			Datacenter:   "dc1",
+			TokenID:      token.AccessorID,
+			TokenIDType:  structs.ACLTokenAccessor,
+			QueryOptions: structs.QueryOptions{Token: "root"},
+		}
+
+		resp := structs.ACLTokenResponse{}
+
+		err := acl.TokenRead(&req, &resp)
+		assert.NoError(err)
+
+		if !reflect.DeepEqual(resp.Token, token) {
+			t.Fatalf("tokens are not equal: %v != %v", resp.Token, token)
+		}
 	}
 
-	resp := structs.ACLTokenResponse{}
+	// nil when token does not exist
+	{
+		fakeID, err := uuid.GenerateUUID()
+		assert.NoError(err)
 
-	err = acl.TokenRead(&req, &resp)
-	if err != nil {
-		t.Fatalf("err: %v", err)
+		req := structs.ACLTokenReadRequest{
+			Datacenter:   "dc1",
+			TokenID:      fakeID,
+			TokenIDType:  structs.ACLTokenAccessor,
+			QueryOptions: structs.QueryOptions{Token: "root"},
+		}
+
+		resp := structs.ACLTokenResponse{}
+
+		err = acl.TokenRead(&req, &resp)
+		assert.Nil(resp.Token)
+		assert.NoError(err)
 	}
 
-	if !reflect.DeepEqual(resp.Token, token) {
-		t.Fatalf("tokens are not equal: %v != %v", resp.Token, token)
+	// validates ID format
+	{
+		req := structs.ACLTokenReadRequest{
+			Datacenter:   "dc1",
+			TokenID:      "definitely-really-certainly-not-a-uuid",
+			TokenIDType:  structs.ACLTokenAccessor,
+			QueryOptions: structs.QueryOptions{Token: "root"},
+		}
+
+		resp := structs.ACLTokenResponse{}
+
+		err := acl.TokenRead(&req, &resp)
+		assert.Nil(resp.Token)
+		assert.EqualError(err, "failed acl token lookup: failed acl token lookup: index error: UUID must be 36 characters")
 	}
 }
 
@@ -613,9 +651,7 @@ func TestACLEndpoint_TokenClone(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	t1, err := upsertTestToken(codec, "root", "dc1")
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	assert.NoError(err)
 
 	acl := ACL{srv: s1}
 
@@ -628,9 +664,7 @@ func TestACLEndpoint_TokenClone(t *testing.T) {
 	t2 := structs.ACLToken{}
 
 	err = acl.TokenClone(&req, &t2)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	assert.NoError(err)
 
 	assert.Equal(t1.Description, t2.Description)
 	assert.Equal(t1.Policies, t2.Policies)
@@ -673,9 +707,7 @@ func TestACLEndpoint_TokenUpsert(t *testing.T) {
 		resp := structs.ACLToken{}
 
 		err := acl.TokenUpsert(&req, &resp)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		assert.NoError(err)
 
 		// Get the token directly to validate that it exists
 		tokenResp, err := retrieveTestToken(codec, "root", "dc1", resp.AccessorID)
@@ -776,20 +808,46 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 
 	acl := ACL{srv: s1}
 
-	req := structs.ACLTokenDeleteRequest{
-		Datacenter:   "dc1",
-		TokenID:      existingToken.AccessorID,
-		WriteRequest: structs.WriteRequest{Token: "root"},
+	// deletes a token
+	{
+		req := structs.ACLTokenDeleteRequest{
+			Datacenter:   "dc1",
+			TokenID:      existingToken.AccessorID,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		var resp string
+
+		err = acl.TokenDelete(&req, &resp)
+		assert.NoError(err)
+
+		// Make sure the token is gone
+		tokenResp, err := retrieveTestToken(codec, "root", "dc1", existingToken.AccessorID)
+		assert.Nil(tokenResp.Token)
+		assert.NoError(err)
 	}
 
-	var resp string
+	// errors when token doesn't exist
+	{
+		fakeID, err := uuid.GenerateUUID()
+		assert.NoError(err)
 
-	err = acl.TokenDelete(&req, &resp)
-	assert.NoError(err)
+		req := structs.ACLTokenDeleteRequest{
+			Datacenter:   "dc1",
+			TokenID:      fakeID,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
 
-	// Make sure the token is gone
-	tokenResp, err := retrieveTestToken(codec, "root", "dc1", existingToken.AccessorID)
-	assert.Nil(tokenResp.Token)
+		var resp string
+
+		err = acl.TokenDelete(&req, &resp)
+		assert.NoError(err)
+
+		// token should be nil
+		tokenResp, err := retrieveTestToken(codec, "root", "dc1", existingToken.AccessorID)
+		assert.Nil(tokenResp.Token)
+		assert.NoError(err)
+	}
 }
 func TestACLEndpoint_TokenDelete_anon(t *testing.T) {
 	t.Parallel()
