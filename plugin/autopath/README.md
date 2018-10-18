@@ -47,3 +47,7 @@ autopath @kubernetes
 ~~~
 
 Use the search path dynamically retrieved from the *kubernetes* plugin.
+
+## Known Issues
+
+Autopath is not compatible with pods running from Windows nodes.
