@@ -1168,6 +1168,35 @@ func TestACLEndpoint_PolicyDelete(t *testing.T) {
 	assert.Nil(tokenResp.Policy)
 }
 
+func TestACLEndpoint_PolicyDelete_globalManagement(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	acl := ACL{srv: s1}
+
+	req := structs.ACLPolicyDeleteRequest{
+		Datacenter:   "dc1",
+		PolicyID:     structs.ACLPolicyGlobalManagementID,
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var resp string
+
+	err := acl.PolicyDelete(&req, &resp)
+
+	assert.EqualError(err, "Delete operation not permitted on the builtin global-management policy")
+}
+
 func TestACLEndpoint_PolicyList(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
