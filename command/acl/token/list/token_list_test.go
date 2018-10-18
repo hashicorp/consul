@@ -49,7 +49,7 @@ func TestTokenListCommand(t *testing.T) {
 
 	var tokenIds []string
 
-	// Create a couple polices to list
+	// Create a couple tokens to list
 	client := a.Client()
 	for i := 0; i < 5; i++ {
 		description := fmt.Sprintf("test token %d", i)

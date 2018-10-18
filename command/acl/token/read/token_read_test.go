@@ -47,7 +47,7 @@ func TestTokenReadCommand(t *testing.T) {
 	ui := cli.NewMockUi()
 	cmd := New(ui)
 
-	// Create a policy
+	// Create a token
 	client := a.Client()
 
 	token, _, err := client.ACL().TokenCreate(
