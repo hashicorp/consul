@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -40,7 +41,13 @@ func (s *HTTPServer) ACLBootstrap(resp http.ResponseWriter, req *http.Request) (
 		Datacenter: s.agent.config.Datacenter,
 	}
 
-	if s.agent.delegate.UseLegacyACLs() {
+	legacy := false
+	legacyStr := req.URL.Query().Get("legacy")
+	if legacyStr != "" {
+		legacy, _ = strconv.ParseBool(legacyStr)
+	}
+
+	if legacy && s.agent.delegate.UseLegacyACLs() {
 		var out structs.ACL
 		err := s.agent.RPC("ACL.Bootstrap", &args, &out)
 		if err != nil {
@@ -55,7 +62,7 @@ func (s *HTTPServer) ACLBootstrap(resp http.ResponseWriter, req *http.Request) (
 		return &aclBootstrapResponse{ID: out.ID}, nil
 	} else {
 		var out structs.ACLToken
-		err := s.agent.RPC("ACL.BootsrapTokens", &args, &out)
+		err := s.agent.RPC("ACL.BootstrapTokens", &args, &out)
 		if err != nil {
 			if strings.Contains(err.Error(), structs.ACLBootstrapNotAllowedErr.Error()) {
 				resp.WriteHeader(http.StatusForbidden)
