@@ -534,7 +534,7 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 	// Get all associated policies
 	var missing []string
 	var expired []*structs.ACLPolicy
-	var expCacheMap map[string]*structs.PolicyCacheEntry
+	expCacheMap := make(map[string]*structs.PolicyCacheEntry)
 
 	for _, policyID := range policyIDs {
 		if done, policy, err := r.delegate.ResolvePolicyFromID(policyID); done {
