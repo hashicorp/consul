@@ -11,7 +11,7 @@
         </label>
         <label class="type-text">
             <span>Rules <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
-            {{code-editor id="policy_rules" class=(if item.error.Rules 'error') name='policy[Rules]' value=item.Rules onkeyup=(action 'change' 'policy[Rules]')}}
+            {{code-editor id="policy_rules" syntax='hcl' class=(if item.error.Rules 'error') name='policy[Rules]' value=item.Rules onkeyup=(action 'change' 'policy[Rules]')}}
             {{#if item.error.Rules}}
               <strong>{{item.error.Rules.validation}}</strong>
             {{/if}}

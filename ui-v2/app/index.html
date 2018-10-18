@@ -37,7 +37,20 @@
       }
     </script>
     <script src="{{rootURL}}assets/consul-ui.js"></script>
-
+    <script>
+      CodeMirror.modeURL = {
+        replace: function(n, mode) {
+          switch(mode) {
+            case 'javascript':
+              return '{{rootURL}}assets/codemirror/mode/javascript/javascript.js';
+            case 'ruby':
+              return '{{rootURL}}assets/codemirror/mode/ruby/ruby.js';
+            case 'yaml':
+              return '{{rootURL}}assets/codemirror/mode/yaml/yaml.js';
+          }
+        }
+      };
+    </script>
     {{content-for "body-footer"}}
   </body>
 </html>
