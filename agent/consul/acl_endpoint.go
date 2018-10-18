@@ -745,6 +745,7 @@ func (a *ACL) PolicyUpsert(args *structs.ACLPolicyUpsertRequest, reply *structs.
 		return fmt.Errorf("Failed to apply policy upsert request: %v", err)
 	}
 
+	// Remove from the cache to prevent stale cache usage
 	a.srv.acls.cache.RemovePolicy(policy.ID)
 
 	if respErr, ok := resp.(error); ok {

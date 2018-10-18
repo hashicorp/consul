@@ -49,8 +49,11 @@ func TestStructs_ACLToken_PolicyIDs(t *testing.T) {
 		token := a.Convert()
 
 		policyIDs := token.PolicyIDs()
-		require.Len(t, policyIDs, 1)
-		require.Equal(t, ACLPolicyGlobalManagementID, policyIDs[0])
+		require.Len(t, policyIDs, 0)
+
+		embedded := token.EmbeddedPolicy()
+		require.NotNil(t, embedded)
+		require.Equal(t, ACLPolicyGlobalManagement, embedded.Rules)
 	})
 
 	t.Run("No Policies", func(t *testing.T) {
