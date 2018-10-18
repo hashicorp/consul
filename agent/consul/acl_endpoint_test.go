@@ -406,17 +406,21 @@ func TestACLEndpoint_GetPolicy(t *testing.T) {
 		Datacenter: "dc1",
 		ACL:        out,
 	}
-	var acls structs.ACLPolicyResolveLegacyResponse
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.GetPolicy", &getR, &acls); err != nil {
-		t.Fatalf("err: %v", err)
-	}
 
-	if acls.Policy == nil {
-		t.Fatalf("Bad: %v", acls)
-	}
-	if acls.TTL != 30*time.Second {
-		t.Fatalf("bad: %v", acls)
-	}
+	var acls structs.ACLPolicyResolveLegacyResponse
+	retry.Run(t, func(r *retry.R) {
+
+		if err := msgpackrpc.CallWithCodec(codec, "ACL.GetPolicy", &getR, &acls); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if acls.Policy == nil {
+			t.Fatalf("Bad: %v", acls)
+		}
+		if acls.TTL != 30*time.Second {
+			t.Fatalf("bad: %v", acls)
+		}
+	})
 
 	// Do a conditional lookup with etag
 	getR.ETag = acls.ETag
