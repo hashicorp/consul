@@ -75,7 +75,7 @@ query_prefix "" {
 }
 service_prefix "" {
 	policy = "write"
-	intention = "write"
+	intentions = "write"
 }
 session_prefix "" {
 	policy = "write"
@@ -185,7 +185,7 @@ func (t *ACLToken) EmbeddedPolicy() *ACLPolicy {
 	// Additionally for management tokens we must embed the policy rules
 	// as well
 	policy := &ACLPolicy{}
-	if t.Rules != "" {
+	if t.Rules != "" || t.Type == ACLTokenTypeClient {
 		hasher := fnv.New128a()
 		policy.ID = fmt.Sprintf("%x", hasher.Sum([]byte(t.Rules)))
 		policy.Name = fmt.Sprintf("legacy-policy-%s", policy.ID)
