@@ -272,6 +272,8 @@ func (r *ACLResolver) resolveTokenLegacy(token string) (acl.Authorizer, error) {
 	defer metrics.MeasureSince([]string{"acl", "resolveTokenLegacy"}, time.Now())
 
 	// Attempt to resolve locally first (local results are not cached)
+	// This is only useful for servers where either legacy replication is being
+	// done or the server is within the primary datacenter.
 	if done, identity, err := r.delegate.ResolveIdentityFromToken(token); done {
 		if err == nil && identity != nil {
 			policies, err := r.resolvePoliciesForIdentity(identity)
@@ -461,7 +463,6 @@ func (r *ACLResolver) fireAsyncPolicyResult(policyID string, policy *structs.ACL
 	result := &remoteACLPolicyResult{policy, err}
 	for _, cx := range channels {
 		// not closing the channel as there could be more events to be fired.
-		//
 		cx <- result
 	}
 }
@@ -487,8 +488,7 @@ func (r *ACLResolver) resolvePoliciesAsyncForIdentity(identity structs.ACLIdenti
 
 		for _, policyID := range policyIDs {
 			if _, ok := found[policyID]; !ok {
-				// its not an error, it just doesnt exist
-				r.fireAsyncPolicyResult(policyID, nil, nil)
+				r.fireAsyncPolicyResult(policyID, nil, acl.ErrNotFound)
 			}
 		}
 		return
@@ -497,7 +497,7 @@ func (r *ACLResolver) resolvePoliciesAsyncForIdentity(identity structs.ACLIdenti
 	if acl.IsErrNotFound(err) {
 		for _, policyID := range policyIDs {
 			// Make sure to remove from the cache if it was deleted
-			r.fireAsyncTokenResult(policyID, nil, nil)
+			r.fireAsyncTokenResult(policyID, nil, acl.ErrNotFound)
 		}
 		return
 	}
@@ -513,6 +513,25 @@ func (r *ACLResolver) resolvePoliciesAsyncForIdentity(identity structs.ACLIdenti
 		}
 	}
 	return
+}
+
+func (r *ACLResolver) filterPoliciesByScope(policies structs.ACLPolicies) structs.ACLPolicies {
+	var out structs.ACLPolicies
+	for _, policy := range policies {
+		if len(policy.Datacenters) == 0 {
+			out = append(out, policy)
+			continue
+		}
+
+		for _, dc := range policy.Datacenters {
+			if dc == r.config.Datacenter {
+				out = append(out, policy)
+				continue
+			}
+		}
+	}
+
+	return out
 }
 
 func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (structs.ACLPolicies, error) {
@@ -538,7 +557,7 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 
 	for _, policyID := range policyIDs {
 		if done, policy, err := r.delegate.ResolvePolicyFromID(policyID); done {
-			if err != nil {
+			if err != nil && !acl.IsErrNotFound(err) {
 				return nil, err
 			}
 
@@ -558,7 +577,12 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 			continue
 		}
 
-		if entry.Age() <= r.config.ACLPolicyTTL {
+		if entry.Policy == nil {
+			// this happens when we cache a negative response for the policies existence
+			continue
+		}
+
+		if entry.Age() >= r.config.ACLPolicyTTL {
 			expired = append(expired, entry.Policy)
 			expCacheMap[policyID] = entry
 		} else {
@@ -568,7 +592,7 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 
 	// Hot-path if we have no missing or expired policies
 	if len(missing)+len(expired) == 0 {
-		return policies, nil
+		return r.filterPoliciesByScope(policies), nil
 	}
 
 	fetchIDs := missing
@@ -609,11 +633,12 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 	if !waitForResult {
 		// waitForResult being false requires that all the policies were cached already
 		policies = append(policies, expired...)
-		return policies, nil
+		return r.filterPoliciesByScope(policies), nil
 	}
 
 	for i := 0; i < len(newAsyncFetchIds); i++ {
 		res := <-waitChan
+
 		if res.err != nil {
 			return nil, res.err
 		}
@@ -623,7 +648,7 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 		}
 	}
 
-	return policies, nil
+	return r.filterPoliciesByScope(policies), nil
 }
 
 func (r *ACLResolver) resolveTokenToPolicies(token string) (structs.ACLPolicies, error) {
@@ -680,6 +705,7 @@ func (r *ACLResolver) ResolveToken(token string) (acl.Authorizer, error) {
 			r.logger.Printf("[ERR] consul.acl: %v", err)
 			return r.down, nil
 		}
+
 		return nil, err
 	}
 
