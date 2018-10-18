@@ -5,6 +5,7 @@ module.exports = function(defaults) {
   const env = EmberApp.env();
   const prodlike = ['production', 'staging'];
   const isProd = env === 'production';
+  // leave this in for now for when I start a proper staging env
   // const isProdLike = prodlike.indexOf(env) > -1;
   const sourcemaps = !isProd;
   let app = new EmberApp(

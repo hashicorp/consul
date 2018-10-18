@@ -28,10 +28,6 @@
   text-indent: 20px;
 }
 
-// %modal-window > header [for='modal_close']::after,
-// %modal-window > header [for='modal_close']::before {
-//   background-color: $ui-black;
-// }
 %modal-window > header [for='modal_close'] {
   @extend %bg-icon;
   background-image: $cancel-plain-svg;

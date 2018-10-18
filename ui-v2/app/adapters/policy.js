@@ -10,24 +10,6 @@ import { OK as HTTP_OK } from 'consul-ui/utils/http/status';
 import { PUT as HTTP_PUT } from 'consul-ui/utils/http/method';
 
 export default Adapter.extend({
-  // _ajaxRequest(options) {
-  //   const hash = Object.assign(
-  //     {},
-  //     options,
-  //     {
-  //       success: function(payload, textStatus, jqXHR) {
-  //         setTimeout(
-  //           () => {
-  //             return options.success(...arguments);
-  //           },
-  //           2000
-
-  //         );
-  //       }
-  //     }
-  //   );
-  //   $.ajax(hash);
-  // },
   urlForQuery: function(query, modelName) {
     return this.appendURL('acl/policies', [], this.cleanQuery(query));
   },
