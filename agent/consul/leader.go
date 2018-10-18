@@ -241,12 +241,6 @@ func (s *Server) establishLeadership() error {
 		return err
 	}
 
-	// This will create the anonymous token and master token (if that is
-	// configured).
-	if err := s.initializeACLs(false); err != nil {
-		return err
-	}
-
 	// Hint the tombstone expiration timer. When we freshly establish leadership
 	// we become the authoritative timer, and so we need to start the clock
 	// on any pending GC events.
