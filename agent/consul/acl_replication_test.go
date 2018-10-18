@@ -12,9 +12,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/stretchr/testify/require"
 )
 
 func TestACLReplication_Sorter(t *testing.T) {
@@ -457,4 +459,208 @@ func TestACLReplication(t *testing.T) {
 			r.Fatal(err)
 		}
 	})
+}
+
+func TestACLReplication_diffACLPolicies(t *testing.T) {
+	local := structs.ACLPolicies{
+		&structs.ACLPolicy{
+			ID:          "44ef9aec-7654-4401-901b-4d4a8b3c80fc",
+			Name:        "policy1",
+			Description: "policy1 - already in sync",
+			Rules:       `acl = "read"`,
+			Syntax:      acl.SyntaxCurrent,
+			Datacenters: nil,
+			Hash:        []byte{1, 2, 3, 4},
+			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
+		},
+		&structs.ACLPolicy{
+			ID:          "8ea41efb-8519-4091-bc91-c42da0cda9ae",
+			Name:        "policy2",
+			Description: "policy2 - updated but not changed",
+			Rules:       `acl = "read"`,
+			Syntax:      acl.SyntaxCurrent,
+			Datacenters: nil,
+			Hash:        []byte{1, 2, 3, 4},
+			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 25},
+		},
+		&structs.ACLPolicy{
+			ID:          "539f1cb6-40aa-464f-ae66-a900d26bc1b2",
+			Name:        "policy3",
+			Description: "policy3 - updated and changed",
+			Rules:       `acl = "read"`,
+			Syntax:      acl.SyntaxCurrent,
+			Datacenters: nil,
+			Hash:        []byte{1, 2, 3, 4},
+			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 25},
+		},
+		&structs.ACLPolicy{
+			ID:          "e9d33298-6490-4466-99cb-ba93af64fa76",
+			Name:        "policy4",
+			Description: "policy4 - needs deleting",
+			Rules:       `acl = "read"`,
+			Syntax:      acl.SyntaxCurrent,
+			Datacenters: nil,
+			Hash:        []byte{1, 2, 3, 4},
+			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 25},
+		},
+	}
+
+	remote := structs.ACLPolicyListStubs{
+		&structs.ACLPolicyListStub{
+			ID:          "44ef9aec-7654-4401-901b-4d4a8b3c80fc",
+			Name:        "policy1",
+			Description: "policy1 - already in sync",
+			Datacenters: nil,
+			Hash:        []byte{1, 2, 3, 4},
+			CreateIndex: 1,
+			ModifyIndex: 2,
+		},
+		&structs.ACLPolicyListStub{
+			ID:          "8ea41efb-8519-4091-bc91-c42da0cda9ae",
+			Name:        "policy2",
+			Description: "policy2 - updated but not changed",
+			Datacenters: nil,
+			Hash:        []byte{1, 2, 3, 4},
+			CreateIndex: 1,
+			ModifyIndex: 50,
+		},
+		&structs.ACLPolicyListStub{
+			ID:          "539f1cb6-40aa-464f-ae66-a900d26bc1b2",
+			Name:        "policy3",
+			Description: "policy3 - updated and changed",
+			Datacenters: nil,
+			Hash:        []byte{5, 6, 7, 8},
+			CreateIndex: 1,
+			ModifyIndex: 50,
+		},
+		&structs.ACLPolicyListStub{
+			ID:          "c6e8fffd-cbd9-4ecd-99fe-ab2f200c7926",
+			Name:        "policy5",
+			Description: "policy5 - needs adding",
+			Datacenters: nil,
+			Hash:        []byte{1, 2, 3, 4},
+			CreateIndex: 1,
+			ModifyIndex: 50,
+		},
+	}
+
+	// Do the full diff. This full exercises the main body of the loop
+	deletions, updates := diffACLPolicies(local, remote, 28)
+	require.Len(t, updates, 2)
+	require.ElementsMatch(t, updates, []string{
+		"c6e8fffd-cbd9-4ecd-99fe-ab2f200c7926",
+		"539f1cb6-40aa-464f-ae66-a900d26bc1b2"})
+
+	require.Len(t, deletions, 1)
+	require.Equal(t, "e9d33298-6490-4466-99cb-ba93af64fa76", deletions[0])
+
+	deletions, updates = diffACLPolicies(local, nil, 28)
+	require.Len(t, updates, 0)
+	require.Len(t, deletions, 4)
+	require.ElementsMatch(t, deletions, []string{
+		"44ef9aec-7654-4401-901b-4d4a8b3c80fc",
+		"8ea41efb-8519-4091-bc91-c42da0cda9ae",
+		"539f1cb6-40aa-464f-ae66-a900d26bc1b2",
+		"e9d33298-6490-4466-99cb-ba93af64fa76"})
+
+	deletions, updates = diffACLPolicies(nil, remote, 28)
+	require.Len(t, deletions, 0)
+	require.Len(t, updates, 4)
+	require.ElementsMatch(t, updates, []string{
+		"44ef9aec-7654-4401-901b-4d4a8b3c80fc",
+		"8ea41efb-8519-4091-bc91-c42da0cda9ae",
+		"539f1cb6-40aa-464f-ae66-a900d26bc1b2",
+		"c6e8fffd-cbd9-4ecd-99fe-ab2f200c7926"})
+}
+
+func TestACLReplication_diffACLTokens(t *testing.T) {
+	local := structs.ACLTokens{
+		&structs.ACLToken{
+			AccessorID:  "44ef9aec-7654-4401-901b-4d4a8b3c80fc",
+			SecretID:    "44ef9aec-7654-4401-901b-4d4a8b3c80fc",
+			Description: "token1 - already in sync",
+			Hash:        []byte{1, 2, 3, 4},
+			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
+		},
+		&structs.ACLToken{
+			AccessorID:  "8ea41efb-8519-4091-bc91-c42da0cda9ae",
+			SecretID:    "8ea41efb-8519-4091-bc91-c42da0cda9ae",
+			Description: "token2 - updated but not changed",
+			Hash:        []byte{1, 2, 3, 4},
+			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 25},
+		},
+		&structs.ACLToken{
+			AccessorID:  "539f1cb6-40aa-464f-ae66-a900d26bc1b2",
+			SecretID:    "539f1cb6-40aa-464f-ae66-a900d26bc1b2",
+			Description: "token3 - updated and changed",
+			Hash:        []byte{1, 2, 3, 4},
+			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 25},
+		},
+		&structs.ACLToken{
+			AccessorID:  "e9d33298-6490-4466-99cb-ba93af64fa76",
+			SecretID:    "e9d33298-6490-4466-99cb-ba93af64fa76",
+			Description: "token4 - needs deleting",
+			Hash:        []byte{1, 2, 3, 4},
+			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 25},
+		},
+	}
+
+	remote := structs.ACLTokenListStubs{
+		&structs.ACLTokenListStub{
+			AccessorID:  "44ef9aec-7654-4401-901b-4d4a8b3c80fc",
+			Description: "token1 - already in sync",
+			Hash:        []byte{1, 2, 3, 4},
+			CreateIndex: 1,
+			ModifyIndex: 2,
+		},
+		&structs.ACLTokenListStub{
+			AccessorID:  "8ea41efb-8519-4091-bc91-c42da0cda9ae",
+			Description: "token2 - updated but not changed",
+			Hash:        []byte{1, 2, 3, 4},
+			CreateIndex: 1,
+			ModifyIndex: 50,
+		},
+		&structs.ACLTokenListStub{
+			AccessorID:  "539f1cb6-40aa-464f-ae66-a900d26bc1b2",
+			Description: "token3 - updated and changed",
+			Hash:        []byte{5, 6, 7, 8},
+			CreateIndex: 1,
+			ModifyIndex: 50,
+		},
+		&structs.ACLTokenListStub{
+			AccessorID:  "c6e8fffd-cbd9-4ecd-99fe-ab2f200c7926",
+			Description: "token5 - needs adding",
+			Hash:        []byte{1, 2, 3, 4},
+			CreateIndex: 1,
+			ModifyIndex: 50,
+		},
+	}
+
+	// Do the full diff. This full exercises the main body of the loop
+	deletions, updates := diffACLTokens(local, remote, 28)
+	require.Len(t, updates, 2)
+	require.ElementsMatch(t, updates, []string{
+		"c6e8fffd-cbd9-4ecd-99fe-ab2f200c7926",
+		"539f1cb6-40aa-464f-ae66-a900d26bc1b2"})
+
+	require.Len(t, deletions, 1)
+	require.Equal(t, "e9d33298-6490-4466-99cb-ba93af64fa76", deletions[0])
+
+	deletions, updates = diffACLTokens(local, nil, 28)
+	require.Len(t, updates, 0)
+	require.Len(t, deletions, 4)
+	require.ElementsMatch(t, deletions, []string{
+		"44ef9aec-7654-4401-901b-4d4a8b3c80fc",
+		"8ea41efb-8519-4091-bc91-c42da0cda9ae",
+		"539f1cb6-40aa-464f-ae66-a900d26bc1b2",
+		"e9d33298-6490-4466-99cb-ba93af64fa76"})
+
+	deletions, updates = diffACLTokens(nil, remote, 28)
+	require.Len(t, deletions, 0)
+	require.Len(t, updates, 4)
+	require.ElementsMatch(t, updates, []string{
+		"44ef9aec-7654-4401-901b-4d4a8b3c80fc",
+		"8ea41efb-8519-4091-bc91-c42da0cda9ae",
+		"539f1cb6-40aa-464f-ae66-a900d26bc1b2",
+		"c6e8fffd-cbd9-4ecd-99fe-ab2f200c7926"})
 }
