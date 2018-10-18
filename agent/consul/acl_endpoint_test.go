@@ -1125,6 +1125,7 @@ func TestACLEndpoint_PolicyResolve(t *testing.T) {
 	resp := structs.ACLPoliciesResponse{}
 	req := structs.ACLPolicyBatchReadRequest{
 		Datacenter:   "dc1",
+		PolicyIDs:    []string{p1.ID, p2.ID},
 		QueryOptions: structs.QueryOptions{Token: token.SecretID},
 	}
 	err = acl.PolicyResolve(&req, &resp)
