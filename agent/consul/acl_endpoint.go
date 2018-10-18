@@ -505,7 +505,7 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 		return respErr
 	}
 
-	if reply != nil {
+	if reply != nil && token != nil {
 		*reply = token.AccessorID
 	}
 

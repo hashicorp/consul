@@ -1,50 +1,63 @@
 package state
 
 import (
-	"reflect"
+	// "reflect"
 	"testing"
+	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-memdb"
-	"github.com/pascaldekloe/goe/verify"
+	// "github.com/hashicorp/go-memdb"
+	// "github.com/pascaldekloe/goe/verify"
 
 	"github.com/stretchr/testify/require"
 )
 
+func setupGlobalManagement(t *testing.T, s *Store) {
+	policy := structs.ACLPolicy{
+		ID:          structs.ACLPolicyGlobalManagementID,
+		Name:        "global-management",
+		Description: "Builtin Policy that grants unlimited access",
+		Rules:       structs.ACLPolicyGlobalManagement,
+		Syntax:      acl.SyntaxCurrent,
+	}
+	policy.SetHash(true)
+	require.NoError(t, s.ACLPolicySet(1, &policy))
+}
+
 func TestStateStore_ACLBootstrap(t *testing.T) {
 	token1 := &structs.ACLToken{
-		AccessorID: "30fca056-9fbb-4455-b94a-bf0e2bc575d6",
-		SecretID: "cbe1c6fd-d865-4034-9d6d-64fef7fb46a9",
+		AccessorID:  "30fca056-9fbb-4455-b94a-bf0e2bc575d6",
+		SecretID:    "cbe1c6fd-d865-4034-9d6d-64fef7fb46a9",
 		Description: "Bootstrap Token (Global Management)",
 		Policies: []structs.ACLTokenPolicyLink{
-				{
-					ID: structs.ACLPolicyGlobalManagementID,
-				},
+			{
+				ID: structs.ACLPolicyGlobalManagementID,
 			},
-			CreateTime: time.Now(),
-			Local:      false,
-			// DEPRECATED (ACL-Legacy-Compat) - This is used so that the bootstrap token is still visible via the v1 acl APIs
-			Type: structs.ACLTokenTypeManagement,
 		},
+		CreateTime: time.Now(),
+		Local:      false,
+		// DEPRECATED (ACL-Legacy-Compat) - This is used so that the bootstrap token is still visible via the v1 acl APIs
+		Type: structs.ACLTokenTypeManagement,
 	}
 
 	token2 := &structs.ACLToken{
-		AccessorID: "fd5c17fa-1503-4422-a424-dd44cdf35919",
-		SecretID: "7fd776b1-ded1-4d15-931b-db4770fc2317",
+		AccessorID:  "fd5c17fa-1503-4422-a424-dd44cdf35919",
+		SecretID:    "7fd776b1-ded1-4d15-931b-db4770fc2317",
 		Description: "Bootstrap Token (Global Management)",
 		Policies: []structs.ACLTokenPolicyLink{
-				{
-					ID: structs.ACLPolicyGlobalManagementID,
-				},
+			{
+				ID: structs.ACLPolicyGlobalManagementID,
 			},
-			CreateTime: time.Now(),
-			Local:      false,
-			// DEPRECATED (ACL-Legacy-Compat) - This is used so that the bootstrap token is still visible via the v1 acl APIs
-			Type: structs.ACLTokenTypeManagement,
 		},
+		CreateTime: time.Now(),
+		Local:      false,
+		// DEPRECATED (ACL-Legacy-Compat) - This is used so that the bootstrap token is still visible via the v1 acl APIs
+		Type: structs.ACLTokenTypeManagement,
 	}
 
 	s := testStateStore(t)
+	setupGlobalManagement(t, s)
 
 	canBootstrap, index, err := s.CanBootstrapACLToken()
 	require.NoError(t, err)
@@ -55,28 +68,43 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 	require.NoError(t, s.ACLBootstrap(3, 0, token1, false))
 
 	// Make sure we can't bootstrap again
-	canBootstrap, index, err := s.CanBootstrapACLToken()
+	canBootstrap, index, err = s.CanBootstrapACLToken()
 	require.NoError(t, err)
 	require.False(t, canBootstrap)
 	require.Equal(t, uint64(3), index)
 
 	// Make sure another attempt fails.
-	err := s.ACLBootstrap(4, token2)
+	err = s.ACLBootstrap(4, 0, token2, false)
 	require.Error(t, err)
 	require.Equal(t, structs.ACLBootstrapNotAllowedErr, err)
 
 	// Check that the bootstrap state remains the same.
-	canBootstrap, index, err := s.CanBootstrapACLToken()
+	canBootstrap, index, err = s.CanBootstrapACLToken()
 	require.NoError(t, err)
 	require.False(t, canBootstrap)
 	require.Equal(t, uint64(3), index)
 
 	// Make sure the ACLs are in an expected state.
-	_, tokens, err := s.ACLtokenList(nil, true, true, "")
+	_, tokens, err := s.ACLTokenList(nil, true, true, "")
 	require.NoError(t, err)
-	require.Len(t, tokens, 0)
+	require.Len(t, tokens, 1)
 	require.Equal(t, token1, tokens[0])
+
+	// bootstrap reset
+	err = s.ACLBootstrap(32, index-1, token2, false)
+	require.Error(t, err)
+	require.Equal(t, structs.ACLBootstrapInvalidResetIndexErr, err)
+
+	// bootstrap reset
+	err = s.ACLBootstrap(32, index, token2, false)
+	require.NoError(t, err)
+
+	_, tokens, err = s.ACLTokenList(nil, true, true, "")
+	require.NoError(t, err)
+	require.Len(t, tokens, 2)
 }
+
+/*
 
 func TestStateStore_ACLBootstrap_InitialTokens(t *testing.T) {
 	acl1 := &structs.ACL{
@@ -477,3 +505,5 @@ func TestStateStore_ACL_Snapshot_Restore(t *testing.T) {
 		}
 	}()
 }
+
+*/

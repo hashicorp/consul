@@ -487,6 +487,11 @@ func (s *Server) initializeACLs(upgrade bool) error {
 					if _, err := s.raftApply(structs.ACLBootstrapRequestType, &req); err == nil {
 						s.logger.Printf("[INFO] consul: Bootstrapped ACL master token from configuration")
 						done = true
+					} else {
+						if err.Error() != structs.ACLBootstrapNotAllowedErr.Error() &&
+							err.Error() != structs.ACLBootstrapInvalidResetIndexErr.Error() {
+							return fmt.Errorf("failed to bootstrap master token: %v", err)
+						}
 					}
 				}
 

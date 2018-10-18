@@ -101,6 +101,10 @@ const (
 // longer be done since the cluster was bootstrapped
 var ACLBootstrapNotAllowedErr = errors.New("ACL bootstrap no longer allowed")
 
+// ACLBootstrapInvalidResetIndexErr is returned when bootstrap is requested with a non-zero
+// reset index but the index doesn't match the bootstrap index
+var ACLBootstrapInvalidResetIndexErr = errors.New("Invalid ACL bootstrap reset index")
+
 type ACLIdentity interface {
 	// ID returns a string that can be used for logging and telemetry. This should not
 	// contain any secret data used for authentication

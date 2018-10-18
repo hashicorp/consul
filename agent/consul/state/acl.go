@@ -214,9 +214,9 @@ func (s *Store) ACLBootstrap(idx, resetIndex uint64, token *structs.ACLToken, le
 	}
 	if existing != nil {
 		if resetIndex == 0 {
-			return fmt.Errorf("ACL bootstrap was already done")
+			return structs.ACLBootstrapNotAllowedErr
 		} else if resetIndex != existing.(*IndexEntry).Value {
-			return fmt.Errorf("invalid reset index for ACL bootstrap")
+			return structs.ACLBootstrapInvalidResetIndexErr
 		}
 	}
 
