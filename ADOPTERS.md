@@ -22,3 +22,4 @@
 * [ObjectRocket](https://www.objectrocket.com) uses CoreDNS on its numerous Kubernetes' clusters, using refined configurations. Address both Lab and Production environment
 * [Devino Telecom](https://devinotele.com) uses CoreDNS with default configuration for Kubernetes for its Lab and its Production.
 * [Yandex Money](https://money.yandex.ru) uses CoreDNS in Lab and Production, using default configuration for Kubernetes.
+* [AdGuard](https://adguard.com/) uses CoreDNS in [AdGuard Home](https://github.com/AdguardTeam/AdGuardHome) and, therefore, in production public AdGuard DNS servers.
