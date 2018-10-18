@@ -950,13 +950,12 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 		name      string
 		build     string
 		master    string
-		init      bool
 		bootstrap bool
 	}{
-		{"old version, no master", "0.8.0", "", false, false},
-		{"old version, master", "0.8.0", "root", false, false},
-		{"new version, no master", "0.9.1", "", true, true},
-		{"new version, master", "0.9.1", "root", true, false},
+		{"old version, no master", "0.8.0", "", true},
+		{"old version, master", "0.8.0", "root", false},
+		{"new version, no master", "0.9.1", "", true},
+		{"new version, master", "0.9.1", "root", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -994,12 +993,12 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 			if err != nil {
 				t.Fatalf("err: %v", err)
 			}
-			if !tt.init {
+			if tt.bootstrap {
 				if !canBootstrap {
-					t.Fatalf("bootstrap should not be initialized")
+					t.Fatalf("bootstrap should be allowed")
 				}
 			} else if canBootstrap {
-				t.Fatalf("bootstrap should be initialized")
+				t.Fatalf("bootstrap should not be allowed")
 			}
 		})
 	}
