@@ -110,6 +110,18 @@ func (s *Store) txnKVS(tx *memdb.Txn, idx uint64, op *structs.TxnKVOp) (structs.
 	return nil, nil
 }
 
+// txnIntention handles all Intention-related operations.
+func (s *Store) txnIntention(tx *memdb.Txn, idx uint64, op *structs.TxnIntentionOp) error {
+	switch op.Op {
+	case structs.IntentionOpCreate, structs.IntentionOpUpdate:
+		return s.intentionSetTxn(tx, idx, op.Intention)
+	case structs.IntentionOpDelete:
+		return s.intentionDeleteTxn(tx, idx, op.Intention.ID)
+	default:
+		return fmt.Errorf("unknown Intention verb %q", op.Op)
+	}
+}
+
 // txnDispatch runs the given operations inside the state store transaction.
 func (s *Store) txnDispatch(tx *memdb.Txn, idx uint64, ops structs.TxnOps) (structs.TxnResults, structs.TxnErrors) {
 	results := make(structs.TxnResults, 0, len(ops))
@@ -119,9 +131,12 @@ func (s *Store) txnDispatch(tx *memdb.Txn, idx uint64, ops structs.TxnOps) (stru
 		var err error
 
 		// Dispatch based on the type of operation.
-		if op.KV != nil {
+		switch {
+		case op.KV != nil:
 			ret, err = s.txnKVS(tx, idx, op.KV)
-		} else {
+		case op.Intention != nil:
+			err = s.txnIntention(tx, idx, op.Intention)
+		default:
 			err = fmt.Errorf("no operation specified")
 		}
 
