@@ -731,9 +731,7 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	existingToken, err := upsertTestToken(codec, "root", "dc1")
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	assert.NoError(err)
 
 	acl := ACL{srv: s1}
 
@@ -751,6 +749,38 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 	// Make sure the token is gone
 	tokenResp, err := retrieveTestToken(codec, "root", "dc1", existingToken.AccessorID)
 	assert.Nil(tokenResp.Token)
+}
+func TestACLEndpoint_TokenDelete_anon(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	acl := ACL{srv: s1}
+
+	req := structs.ACLTokenDeleteRequest{
+		Datacenter:   "dc1",
+		TokenID:      structs.ACLTokenAnonymousID,
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+
+	var resp string
+
+	err := acl.TokenDelete(&req, &resp)
+	assert.EqualError(err, "Delete operation not permitted on the anonymous token")
+
+	// Make sure the token is still there
+	tokenResp, err := retrieveTestToken(codec, "root", "dc1", structs.ACLTokenAnonymousID)
+	assert.NotNil(tokenResp.Token)
 }
 
 func TestACLEndpoint_TokenList(t *testing.T) {
@@ -1139,7 +1169,7 @@ func TestACLEndpoint_PolicyResolve(t *testing.T) {
 	assert.EqualValues(retrievedPolicies, policies)
 }
 
-// upsertToken creates a token for testing purposes
+// upsertTestToken creates a token for testing purposes
 func upsertTestToken(codec rpc.ClientCodec, masterToken string, datacenter string) (*structs.ACLToken, error) {
 	arg := structs.ACLTokenUpsertRequest{
 		Datacenter: datacenter,
