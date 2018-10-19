@@ -1,16 +1,35 @@
 /* eslint no-console: "off" */
+import Inflector from 'ember-inflector';
 import yadda from './helpers/yadda';
 import { currentURL, click, triggerKeyEvent, fillIn, find } from '@ember/test-helpers';
 import getDictionary from '@hashicorp/ember-cli-api-double/dictionary';
 import pages from 'consul-ui/tests/pages';
 import api from 'consul-ui/tests/helpers/api';
-
 // const dont = `( don't| shouldn't| can't)?`;
-
+const pluralize = function(str) {
+  return Inflector.inflector.pluralize(str);
+};
 const create = function(number, name, value) {
   // don't return a promise here as
   // I don't need it to wait
   api.server.createList(name, number, value);
+};
+const lastRequest = function(method) {
+  return api.server.history
+    .slice(0)
+    .reverse()
+    .find(function(item) {
+      return item.method === method;
+    });
+};
+const fillInElement = function(page, name, value) {
+  const cm = document.querySelector(`textarea[name="${name}"] + .CodeMirror`);
+  if (cm) {
+    cm.CodeMirror.setValue(value);
+    return page;
+  } else {
+    return page.fillIn(name, value);
+  }
 };
 var currentPage;
 export default function(assert) {
@@ -106,8 +125,9 @@ export default function(assert) {
         try {
           return func();
         } catch (e) {
-          console.error(e);
-          throw new Error(`The '${prop}' property on the '${component}' page object doesn't exist`);
+          throw new Error(
+            `The '${prop}' property on the '${component}' page object doesn't exist.\n${e.message}`
+          );
         }
       })
       .when('I submit', function(selector) {
@@ -118,9 +138,18 @@ export default function(assert) {
       })
       .then(['I fill in with yaml\n$yaml', 'I fill in with json\n$json'], function(data) {
         return Object.keys(data).reduce(function(prev, item, i, arr) {
-          return prev.fillIn(item, data[item]);
+          return fillInElement(prev, item, data[item]);
         }, currentPage);
       })
+      .then(
+        ['I fill in the $form form with yaml\n$yaml', 'I fill in the $form with json\n$json'],
+        function(form, data) {
+          return Object.keys(data).reduce(function(prev, item, i, arr) {
+            const name = `${form}[${item}]`;
+            return fillInElement(prev, name, data[item]);
+          }, currentPage);
+        }
+      )
       .then(['I type "$text" into "$selector"'], function(text, selector) {
         return fillIn(selector, text);
       })
@@ -167,10 +196,10 @@ export default function(assert) {
         assert.equal(request.url, url, `Expected the request url to be ${url}, was ${request.url}`);
         const body = JSON.parse(request.requestBody);
         Object.keys(data).forEach(function(key, i, arr) {
-          assert.equal(
+          assert.deepEqual(
             body[key],
             data[key],
-            `Expected the payload to contain ${key} to equal ${body[key]}, ${key} was ${data[key]}`
+            `Expected the payload to contain ${key} equaling ${data[key]}, ${key} was ${body[key]}`
           );
         });
       })
@@ -242,13 +271,35 @@ export default function(assert) {
         assert.equal(request.url, url, `Expected the request url to be ${url}, was ${request.url}`);
       })
       .then('the last $method request was made to "$url"', function(method, url) {
-        const request = api.server.history
-          .slice(0)
-          .reverse()
-          .find(function(item) {
-            return item.method === method;
-          });
+        const request = lastRequest(method);
+        assert.equal(
+          request.method,
+          method,
+          `Expected the request method to be ${method}, was ${request.method}`
+        );
         assert.equal(request.url, url, `Expected the request url to be ${url}, was ${request.url}`);
+      })
+      .then('the last $method request was made to "$url" with the body from yaml\n$yaml', function(
+        method,
+        url,
+        data
+      ) {
+        const request = lastRequest(method);
+        assert.ok(request, `Expected a ${method} request`);
+        assert.equal(
+          request.method,
+          method,
+          `Expected the request method to be ${method}, was ${request.method}`
+        );
+        assert.equal(request.url, url, `Expected the request url to be ${url}, was ${request.url}`);
+        const body = JSON.parse(request.requestBody);
+        Object.keys(data).forEach(function(key, i, arr) {
+          assert.deepEqual(
+            body[key],
+            data[key],
+            `Expected the payload to contain ${key} equaling ${data[key]}, ${key} was ${body[key]}`
+          );
+        });
       })
       .then('the last $method requests were like yaml\n$yaml', function(method, data) {
         const requests = api.server.history.reverse().filter(function(item) {
@@ -274,11 +325,11 @@ export default function(assert) {
         num,
         model
       ) {
-        const len = currentPage[`${model}s`].filter(function(item) {
+        const len = currentPage[pluralize(model)].filter(function(item) {
           return item.isVisible;
         }).length;
 
-        assert.equal(len, num, `Expected ${num} ${model}s, saw ${len}`);
+        assert.equal(len, num, `Expected ${num} ${pluralize(model)}, saw ${len}`);
       })
       // TODO: I${ dont } see
       .then([`I see $num $model model[s]? with the $property "$value"`], function(
@@ -288,13 +339,13 @@ export default function(assert) {
         property,
         value
       ) {
-        const len = currentPage[`${model}s`].filter(function(item) {
+        const len = currentPage[pluralize(model)].filter(function(item) {
           return item.isVisible && item[property] == value;
         }).length;
         assert.equal(
           len,
           num,
-          `Expected ${num} ${model}s with ${property} set to "${value}", saw ${len}`
+          `Expected ${num} ${pluralize(model)} with ${property} set to "${value}", saw ${len}`
         );
       })
       // TODO: Make this accept a 'contains' word so you can search for text containing also
@@ -379,6 +430,17 @@ export default function(assert) {
             return e.toString().indexOf('Element not found') !== -1;
           },
           `Expected to not see ${property} on ${component}`
+        );
+      })
+      .then(["I don't see $property"], function(property) {
+        assert.throws(
+          function() {
+            currentPage[property]();
+          },
+          function(e) {
+            return e.toString().indexOf('Element not found') !== -1;
+          },
+          `Expected to not see ${property}`
         );
       })
       .then(['I see $property'], function(property) {

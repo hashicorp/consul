@@ -1,7 +1,8 @@
 %button {
   font-family: $typo-family-sans;
 }
-main p {
+main p,
+%modal-window p {
   margin-bottom: 1em;
 }
 %button,
@@ -41,7 +42,9 @@ h2,
 td a {
   font-weight: $typo-weight-semibold;
 }
-%form-element > span {
+%form-element > span,
+%toggle label span,
+caption {
   font-weight: $typo-weight-semibold;
 }
 %button {
@@ -57,6 +60,7 @@ th,
 main label a[rel*='help'],
 td:first-child em,
 %pill,
+%form-element > strong,
 %healthchecked-resource strong {
   font-weight: $typo-weight-normal;
 }
@@ -69,7 +73,7 @@ td:first-child em,
   font-size: inherit;
 }
 h1 {
-  font-size: $typo-size-400;
+  font-size: $typo-header-100;
 }
 h2,
 %header-drop-nav .is-active {
@@ -83,13 +87,15 @@ td {
   font-size: $typo-size-600;
 }
 th,
+caption,
+.type-dialog,
 %form-element > span,
 %tooltip-bubble,
 %healthchecked-resource strong,
 %footer {
   font-size: $typo-size-700;
 }
-%toggle span {
+%toggle label span {
   font-size: $typo-size-700 !important;
 }
 %app-content > p:only-child,
@@ -98,6 +104,7 @@ th,
 .template-error > div,
 %button,
 %form-element > em,
+%form-element > strong,
 .with-confirmation p,
 %feedback-dialog-inline p {
   font-size: $typo-size-800;

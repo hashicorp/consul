@@ -1,4 +1,5 @@
 @setupApplicationTest
+@ignore
 Feature: dc / acls / use: Using an ACL token
   Background:
     Given 1 datacenter model with the value "datacenter"

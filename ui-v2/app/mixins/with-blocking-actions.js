@@ -83,7 +83,7 @@ export default Mixin.create({
         }
       );
     },
-    update: function(item, parent) {
+    update: function(item) {
       return get(this, 'feedback').execute(
         () => {
           return get(this, 'repo')
@@ -98,7 +98,7 @@ export default Mixin.create({
         }
       );
     },
-    delete: function(item, parent) {
+    delete: function(item) {
       return get(this, 'feedback').execute(
         () => {
           return get(this, 'repo')

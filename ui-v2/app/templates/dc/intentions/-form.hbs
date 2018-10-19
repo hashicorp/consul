@@ -67,11 +67,7 @@
                 <button data-test-delete type="button" class="type-delete" {{action confirm 'delete' item parent}}>Delete</button>
             {{/block-slot}}
             {{#block-slot 'dialog' as |execute cancel message|}}
-                <p>
-                    {{message}}
-                </p>
-                <button type="button" class="type-delete" {{action execute}}>Confirm Delete</button>
-                <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
+              {{delete-confirmation message=message execute=execute cancel=cancel}}
             {{/block-slot}}
         {{/confirmation-dialog}}
 {{/if}}

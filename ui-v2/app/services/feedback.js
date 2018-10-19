@@ -7,6 +7,12 @@ const TYPE_ERROR = 'error';
 const defaultStatus = function(type, obj) {
   return type;
 };
+const notificationDefaults = function() {
+  return {
+    timeout: 6000,
+    extendedTimeout: 300,
+  };
+};
 export default Service.extend({
   notify: service('flashMessages'),
   logger: service('logger'),
@@ -18,23 +24,29 @@ export default Service.extend({
     return (
       handle()
         //TODO: pass this through to getAction..
-        .then(target => {
+        .then(item => {
+          // TODO right now the majority of `item` is a Transition
+          // but you can resolve an object
           notify.add({
+            ...notificationDefaults(),
             type: getStatus(TYPE_SUCCESS),
             // here..
             action: getAction(),
+            item: item,
           });
         })
         .catch(e => {
           get(this, 'logger').execute(e);
           if (e.name === 'TransitionAborted') {
             notify.add({
+              ...notificationDefaults(),
               type: getStatus(TYPE_SUCCESS),
               // and here
               action: getAction(),
             });
           } else {
             notify.add({
+              ...notificationDefaults(),
               type: getStatus(TYPE_ERROR, e),
               action: getAction(),
             });

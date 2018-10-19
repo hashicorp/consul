@@ -9,20 +9,6 @@ html.ember-loading body > svg {
 html.template-loading main > div {
   @extend %loader;
 }
-main {
-  @extend %app-view;
-}
-%app-view > div > div {
-  @extend %app-content;
-}
-%app-view header form {
-  @extend %filter-bar;
-}
-@media #{$--lt-spacious-page-header} {
-  %app-view header .actions {
-    margin-top: 5px;
-  }
-}
 %loader circle {
   fill: $brand-magenta-100;
 }

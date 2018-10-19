@@ -21,6 +21,7 @@ export default Model.extend({
   EnableTagOverride: attr('boolean'),
   CreateIndex: attr('number'),
   ModifyIndex: attr('number'),
+  // TODO: These should be typed
   ChecksPassing: attr(),
   ChecksCritical: attr(),
   ChecksWarning: attr(),

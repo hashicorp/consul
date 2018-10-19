@@ -1,4 +1,4 @@
-import qsaFactory from 'consul-ui/utils/qsa-factory';
+import qsaFactory from 'consul-ui/utils/dom/qsa-factory';
 import { module, test } from 'qunit';
 
 module('Unit | Utility | qsa factory');

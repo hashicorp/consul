@@ -5,7 +5,8 @@ module.exports = function(defaults) {
   const env = EmberApp.env();
   const prodlike = ['production', 'staging'];
   const isProd = env === 'production';
-  const isProdLike = prodlike.indexOf(env) > -1;
+  // leave this in for now for when I start a proper staging env
+  // const isProdLike = prodlike.indexOf(env) > -1;
   const sourcemaps = !isProd;
   let app = new EmberApp(
     Object.assign(
@@ -19,7 +20,7 @@ module.exports = function(defaults) {
       includePolyfill: true
     },
     'ember-cli-string-helpers': {
-      only: ['capitalize', 'lowercase']
+      only: ['capitalize', 'lowercase', 'truncate']
     },
     'ember-cli-math-helpers': {
       only: ['div']
@@ -41,7 +42,7 @@ module.exports = function(defaults) {
       },
     },
     'sassOptions': {
-      implementation: require('dart-sass'),
+      implementation: require('node-sass'),
       sourceMapEmbed: sourcemaps,
     },
     'autoprefixer': {

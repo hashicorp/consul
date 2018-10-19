@@ -2,7 +2,7 @@ import Controller from '@ember/controller';
 import { get, set } from '@ember/object';
 import { getOwner } from '@ember/application';
 import WithFiltering from 'consul-ui/mixins/with-filtering';
-import qsaFactory from 'consul-ui/utils/qsa-factory';
+import qsaFactory from 'consul-ui/utils/dom/qsa-factory';
 import getComponentFactory from 'consul-ui/utils/get-component-factory';
 
 const $$ = qsaFactory();

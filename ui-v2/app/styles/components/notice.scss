@@ -2,3 +2,9 @@
 .notice.warning {
   @extend %notice-warning;
 }
+.notice.info {
+  @extend %notice-info;
+}
+.notice.policy-management {
+  @extend %notice-highlight;
+}

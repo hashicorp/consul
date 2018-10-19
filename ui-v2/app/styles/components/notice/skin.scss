@@ -4,6 +4,7 @@
 }
 %notice-success,
 %notice-info,
+%notice-highlight,
 %notice-error,
 %notice-warning {
   @extend %notice;
@@ -18,13 +19,27 @@
   color: $ui-color-success;
 }
 %notice-info {
+  /* %frame-blue-000*/
+  border-style: solid; /*TODO: this can go once we are using a frame*/
   @extend %with-passing; /* needs a better info button*/
   background-color: $ui-blue-050;
   border-color: $ui-color-action; /* TODO: change to info */
   color: $ui-blue-700;
 }
+%notice-highlight {
+  /* %frame-blue-000*/
+  border-style: solid; /*TODO: this can go once we are using a frame*/
+  @extend %with-star;
+  border-color: $ui-gray-300;
+  background-color: $ui-gray-050;
+}
 %notice-info::before {
   color: $ui-color-action; /* change to info */
+}
+%notice-highlight::before {
+  /* %with-star, bigger */
+  width: 16px;
+  height: 16px;
 }
 %notice-warning {
   @extend %frame-yellow-500, %with-warning;

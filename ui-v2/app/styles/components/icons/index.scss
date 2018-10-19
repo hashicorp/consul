@@ -1,27 +1,34 @@
 /*TODO: The old pseudo-icon was to specific */
 /* make a temporary one with the -- prefix */
 /* to make it more reusable temporarily */
+%bg-icon {
+  background-repeat: no-repeat;
+  background-position: center;
+}
 %--pseudo-icon {
-  display: block;
+  display: inline-block;
   content: '';
   visibility: visible;
-  position: absolute;
-  top: 50%;
   background-repeat: no-repeat;
-  background-position: center center;
+  background-position: center;
 }
 %pseudo-icon-bg-img {
   @extend %--pseudo-icon;
+  position: relative;
   background-size: contain;
   background-color: transparent;
 }
 %pseudo-icon-css {
   @extend %--pseudo-icon;
+  display: block;
+  position: absolute;
+  top: 50%;
   width: 1em;
   height: 1em;
   margin-top: -0.6em;
   background-color: currentColor;
 }
+/* %pseudo-icon-mask, %pseudo-icon-overlay ?*/
 %pseudo-icon {
   @extend %pseudo-icon-css;
 }
@@ -145,6 +152,36 @@
   width: 16px;
   height: 16px;
 }
+/*TODO: All chevrons need merging */
+%with-chevron-down::before {
+  @extend %pseudo-icon-bg-img;
+  background-image: $chevron-svg;
+  width: 10px;
+  height: 6px;
+}
+%with-star-before::before,
+%with-star-after::after {
+  @extend %pseudo-icon-bg-img;
+  background-image: $star-svg;
+  width: 10px;
+  height: 9px;
+}
+%with-star-before::before {
+  padding-right: 12px;
+}
+%with-star-after::after {
+  padding-left: 22px;
+}
+%with-star {
+  @extend %with-star-before;
+}
+%with-eye::before {
+  @extend %pseudo-icon-bg-img;
+  background-image: $eye-svg;
+  width: 16px;
+  height: 8px;
+  padding-right: 12px;
+}
 %with-tick {
   @extend %pseudo-icon;
   background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="10" height="8" xmlns="http://www.w3.org/2000/svg"><path d="M8.95 0L10 .985 3.734 8 0 4.737l.924-1.11 2.688 2.349z" fill="%23FFF"/></svg>');
@@ -215,4 +252,12 @@
 %with-no-healthchecks::before {
   @extend %with-minus;
   border-radius: 20%;
+}
+%with-error {
+  position: relative;
+  padding-left: 18px;
+}
+%with-error::before {
+  @extend %with-cross;
+  margin-top: -0.5em;
 }

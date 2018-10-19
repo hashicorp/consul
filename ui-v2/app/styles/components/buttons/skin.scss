@@ -10,6 +10,10 @@
 }
 %copy-button {
   @extend %button, %with-clipboard;
+  min-height: 17px;
+}
+%copy-button:not(:empty) {
+  padding-left: 38px !important;
 }
 %primary-button,
 %secondary-button,

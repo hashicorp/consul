@@ -12,16 +12,16 @@ Feature: dc / intentions / update: Intention Update
       intention: intention-id
     ---
     Then the url should be /datacenter/intentions/intention-id
-  Scenario: Update to [Description], [Action], [Rules]
+  Scenario: Update to [Description], [Action]
     Then I fill in with yaml
     ---
-      Description: [Name]
+      Description: [Description]
     ---
     And I click "[value=[Action]]"
     And I submit
     Then a PUT request is made to "/v1/connect/intentions/intention-id?dc=datacenter" with the body from yaml
     ---
-      Description: [Name]
+      Description: [Description]
       Action: [Action]
     ---
     Then the url should be /datacenter/intentions
