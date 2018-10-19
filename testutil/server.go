@@ -86,8 +86,10 @@ type TestServerConfig struct {
 	RaftProtocol        int                    `json:"raft_protocol,omitempty"`
 	ACLMasterToken      string                 `json:"acl_master_token,omitempty"`
 	ACLDatacenter       string                 `json:"acl_datacenter,omitempty"`
+	PrimaryDatacenter   string                 `json:"primary_datacenter,omitempty"`
 	ACLDefaultPolicy    string                 `json:"acl_default_policy,omitempty"`
 	ACLEnforceVersion8  bool                   `json:"acl_enforce_version_8"`
+	ACL                 TestACLs               `json:"acl",omitempty`
 	Encrypt             string                 `json:"encrypt,omitempty"`
 	CAFile              string                 `json:"ca_file,omitempty"`
 	CertFile            string                 `json:"cert_file,omitempty"`
@@ -102,6 +104,26 @@ type TestServerConfig struct {
 	ReadyTimeout        time.Duration          `json:"-"`
 	Stdout, Stderr      io.Writer              `json:"-"`
 	Args                []string               `json:"-"`
+}
+
+type TestACLs struct {
+	Enabled             bool       `json:"enabled,omitempty"`
+	TokenReplication    bool       `json:"enable_token_replication,omitempty"`
+	PolicyTTL           string     `json:"policy_ttl,omitempty"`
+	TokenTTL            string     `json:"token_ttl,omitempty"`
+	DownPolicy          string     `json:"down_policy,omitempty"`
+	DefaultPolicy       string     `json:"default_policy,omitempty"`
+	EnableKeyListPolicy bool       `json:"enable_key_list_policy,omitempty"`
+	Tokens              TestTokens `json:"tokens,omitempty"`
+	DisabledTTL         string     `json:"disabled_ttl,omitempty"`
+}
+
+type TestTokens struct {
+	Master      string `json:"master,omitempty"`
+	Replication string `json:"replication,omitempty"`
+	AgentMaster string `json:"agent_master,omitempty"`
+	Default     string `json:"default,omitempty"`
+	Agent       string `json:"agent,omitempty"`
 }
 
 // ServerConfigCallback is a function interface which can be
