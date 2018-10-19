@@ -50,7 +50,7 @@
                   {{default item.Description item.Name}}
                 </td>
                 <td colspan={{if (not-eq item.AccessorID token.AccessorID) '2' }}>
-  {{#if item.Legacy }}
+  {{#if (token/is-legacy item) }}
                     Legacy tokens have embedded policies.
   {{ else }}
                     {{#each item.Policies as |item|}}
@@ -75,7 +75,7 @@
                                 <li>
                                     <a data-test-edit href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>Edit</a>
                                 </li>
-{{#if (not item.Legacy)}}
+{{#if (not (token/is-legacy item))}}
                                 <li>
                                     <a data-test-clone onclick={{action 'sendClone' item}}>Duplicate</a>
                                 </li>
