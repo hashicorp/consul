@@ -214,7 +214,6 @@ func (d *ACLResolverTestDelegate) RPC(method string, args interface{}, reply int
 		panic("Bad Test Implmentation: should provide a policyResolveFn to the ACLResolverTestDelegate")
 	}
 	panic("Bad Test Implementation: Was the ACLResolver updated to use new RPC methods")
-	return nil
 }
 
 func newTestACLResolver(t *testing.T, delegate ACLResolverDelegate, cb func(*ACLResolverConfig)) *ACLResolver {

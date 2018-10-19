@@ -89,7 +89,7 @@ type TestServerConfig struct {
 	PrimaryDatacenter   string                 `json:"primary_datacenter,omitempty"`
 	ACLDefaultPolicy    string                 `json:"acl_default_policy,omitempty"`
 	ACLEnforceVersion8  bool                   `json:"acl_enforce_version_8"`
-	ACL                 TestACLs               `json:"acl",omitempty`
+	ACL                 TestACLs               `json:"acl,omitempty"`
 	Encrypt             string                 `json:"encrypt,omitempty"`
 	CAFile              string                 `json:"ca_file,omitempty"`
 	CertFile            string                 `json:"cert_file,omitempty"`

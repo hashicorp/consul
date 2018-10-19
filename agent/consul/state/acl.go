@@ -210,7 +210,7 @@ func (s *Store) ACLBootstrap(idx, resetIndex uint64, token *structs.ACLToken, le
 	// We must have initialized before this will ever be possible.
 	existing, err := tx.First("index", "id", "acl-token-bootstrap")
 	if err != nil {
-		fmt.Errorf("bootstrap check failed: %v", err)
+		return fmt.Errorf("bootstrap check failed: %v", err)
 	}
 	if existing != nil {
 		if resetIndex == 0 {
