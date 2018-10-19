@@ -90,6 +90,10 @@ func (a *TestACLAgent) ACLsEnabled() bool {
 	return true
 }
 
+func (a *TestACLAgent) UseLegacyACLs() bool {
+	return false
+}
+
 func (a *TestACLAgent) ResolveToken(secretID string) (acl.Authorizer, error) {
 	if a.resolveTokenFn == nil {
 		panic("This agent is useless without providing a token resolution function")
