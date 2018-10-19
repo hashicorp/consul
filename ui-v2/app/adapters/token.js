@@ -165,6 +165,7 @@ export default Adapter.extend({
         // If a token has Rules, use the old API
         if (typeof data.token['Rules'] !== 'undefined') {
           data.token['ID'] = data.token['SecretID'];
+          data.token['Name'] = data.token['Description'];
         }
       // falls through
       case REQUEST_CREATE:
