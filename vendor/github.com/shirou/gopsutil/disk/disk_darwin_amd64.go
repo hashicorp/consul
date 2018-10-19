@@ -38,7 +38,7 @@ const (
 	MntNFS4ACLs     = 0x00000010
 )
 
-type Statfs_t struct {
+type Statfs struct {
 	Bsize       uint32
 	Iosize      int32
 	Blocks      uint64

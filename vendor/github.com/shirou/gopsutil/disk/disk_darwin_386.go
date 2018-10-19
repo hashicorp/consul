@@ -1,5 +1,5 @@
 // +build darwin
-// +build arm64
+// +build 386
 
 package disk
 
@@ -38,6 +38,7 @@ const (
 	MntNFS4ACLs     = 0x00000010
 )
 
+// https://github.com/golang/go/blob/master/src/syscall/ztypes_darwin_386.go#L82
 type Statfs struct {
 	Bsize       uint32
 	Iosize      int32

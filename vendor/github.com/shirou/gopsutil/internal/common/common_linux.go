@@ -9,15 +9,13 @@ import (
 )
 
 func DoSysctrl(mib string) ([]string, error) {
-	err := os.Setenv("LC_ALL", "C")
-	if err != nil {
-		return []string{}, err
-	}
 	sysctl, err := exec.LookPath("/sbin/sysctl")
 	if err != nil {
 		return []string{}, err
 	}
-	out, err := exec.Command(sysctl, "-n", mib).Output()
+	cmd := exec.Command(sysctl, "-n", mib)
+	cmd.Env = getSysctrlEnv(os.Environ())
+	out, err := cmd.Output()
 	if err != nil {
 		return []string{}, err
 	}
@@ -33,9 +31,9 @@ func NumProcs() (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-
-	list, err := f.Readdir(-1)
 	defer f.Close()
+
+	list, err := f.Readdirnames(-1)
 	if err != nil {
 		return 0, err
 	}
