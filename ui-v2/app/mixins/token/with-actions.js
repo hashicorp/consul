@@ -40,10 +40,12 @@ export default Mixin.create(WithBlockingActions, {
       }, 'logout');
     },
     clone: function(item) {
+      let cloned;
       return get(this, 'feedback').execute(() => {
         return get(this, 'repo')
           .clone(item)
           .then(item => {
+            cloned = item;
             // cloning is similar to delete in that
             // if you clone from the listing page, stay on the listing page
             // whereas if you clone from another token, take me back to the listing page
@@ -51,7 +53,7 @@ export default Mixin.create(WithBlockingActions, {
             return this.afterDelete(...arguments);
           })
           .then(function() {
-            return item;
+            return cloned;
           });
       }, 'clone');
     },
