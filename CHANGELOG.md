@@ -13,10 +13,12 @@ FEATURES:
     * Update to the rules language to allow for exact-matching rules in addition to prefix matching rules
     * Added DC local tokens.
     * Auto-Transitioning from legacy mode to normal mode as the cluster's servers get upgraded.
+    * ACL UI
 
 IMPROVEMENTS:
 
 * dns: Implement prefix lookups for DNS TTL. [[GH-4605](https://github.com/hashicorp/consul/issues/4605)]
+* ui: Add JSON and YAML linting to the KV code editor [[GH-4814](https://github.com/hashicorp/consul/pull/4814)]
 
 
 ## 1.3.0 (October 11, 2018)
