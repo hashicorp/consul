@@ -1,25 +1,40 @@
-table {
-  position: relative;
+@import './dom-recycling-table/index';
+table.dom-recycling {
+  @extend %dom-recycling-table;
 }
-table tbody {
-  width: 100%;
-  height: 100%;
+/* project specific */
+%dom-recycling-table {
+  /* minimum of 4x50px heigh rows plus top/bottom margins*/
+  min-height: 249px;
+}
+%dom-recycling-table tbody {
+  /* tbodys are all absolute so,*/
+  /* make room for the header */
   top: 29px !important;
+  /* Make room for the header, plus 20px for a margin on the bottom */
+  width: 100%;
 }
-table tr {
-  display: flex;
-}
-table tr > * {
-  flex: 1 0 auto;
+%dom-recycling-table caption ~ tbody {
+  /* tbodys are all absolute so,*/
+  /* make room for the header */
+  top: 57px !important;
+  /* Make room for the header, plus 20px for a margin on the bottom */
 }
 
-tr > * dl {
-  float: left;
-}
 /* TODO: putting this here is less than ideal */
 /* but this is another area where I am specifically */
 /* targetting table-like things. This is now a prime */
 /* area for a bit of refactoring/reorganizing */
+
+/* Every type of 'row' is given a placeholder which */
+/* can apply to all th's and td's in the table */
+/* (the placeholders refer to a tf so `> *` will get you */
+/* both th and td).
+/* Next, all the below calculations let you fix a width of */
+/* any number of cells, then size the remaining cells */
+/* using: */
+/* calc(<100% divided by number of non-fixed width cells> - <sum of widths of fixed cells divided by number of non-fixed width cells>) */
+
 html.template-service.template-list td:first-child a span,
 html.template-node.template-show #services td:first-child a span {
   @extend %with-external-source-icon;
@@ -27,6 +42,7 @@ html.template-node.template-show #services td:first-child a span {
   margin-right: 10px;
   margin-top: 2px;
 }
+/*TODO: trs only live in tables, get rid of table */
 html.template-service.template-list main table tr {
   @extend %services-row;
 }
@@ -38,6 +54,21 @@ html.template-kv.template-list main table tr {
 }
 html.template-acl.template-list main table tr {
   @extend %acls-row;
+}
+html.template-policy.template-list main table tr {
+  @extend %policies-row;
+}
+html.template-token.template-list main table tr {
+  @extend %tokens-row;
+}
+html.template-policy.template-edit [role='dialog'] table tr,
+html.template-policy.template-edit main table tr {
+  @extend %tokens-minimal-row;
+}
+html.template-token.template-list main table tr td.me,
+html.template-token.template-list main table tr td.me ~ td,
+html.template-token.template-list main table tr th {
+  @extend %tokens-your-row;
 }
 html.template-node.template-show main table tr {
   @extend %node-services-row;
@@ -76,32 +107,68 @@ html.template-node.template-show main table.sessions tr {
   }
 }
 %intentions-row > * {
-  width: calc(25% - 60px);
+  width: calc(25% - 15px);
 }
 %intentions-row > *:last-child {
-  width: 60px;
-}
-%kvs-row > *:first-child {
-  width: calc(100% - 60px);
-}
-%kvs-row > *:last-child {
-  width: 60px;
-}
-%node-services-row > * {
-  width: 33%;
+  @extend %table-actions;
 }
 %acls-row > * {
   width: calc(50% - 30px);
 }
 %acls-row > *:last-child {
-  width: 60px;
+  @extend %table-actions;
+}
+%tokens-row > *:first-child,
+%tokens-minimal-row > *:not(last-child),
+%tokens-row > *:nth-child(2),
+%tokens-your-row:nth-last-child(2) {
+  width: 120px;
+}
+%tokens-row > *:nth-child(3),
+%tokens-row > *:nth-child(4) {
+  width: calc(50% - 150px);
+}
+%tokens-your-row:nth-child(4) {
+  width: calc(50% - 270px) !important;
+}
+%tokens-row > *:last-child {
+  @extend %table-actions;
+}
+%tokens-minimal-row > *:last-child {
+  width: calc(100% - 240px);
+}
+@media #{$--lt-medium-table} {
+  /* Token > Policies */
+  /* Token > Your Token */
+  html.template-token.template-list tr > :nth-child(2),
+  html.template-token.template-list tr > :nth-child(4),
+  html.template-token.template-list tr th:nth-child(5),
+  html.template-token.template-list main table tr td.me ~ td:nth-of-type(5) {
+    display: none;
+  }
+}
+
+%kvs-row > *:first-child {
+  width: calc(100% - 60px);
+}
+%kvs-row > *:last-child {
+  @extend %table-actions;
+}
+%node-services-row > * {
+  width: 33%;
+}
+%policies-row > * {
+  width: calc(33% - 20px);
+}
+%policies-row > *:last-child {
+  @extend %table-actions;
 }
 // this will get auto calculated later in tabular-collection.js
 // keeping this here for reference
-%services-row > * {
-  // (100% / 2) - (160px / 2)
-  // width: calc(50% - 160px);
-}
+// %services-row > * {
+// (100% / 2) - (160px / 2)
+// width: calc(50% - 160px);
+// }
 %services-row > * {
   width: auto;
 }

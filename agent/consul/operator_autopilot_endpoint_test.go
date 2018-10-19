@@ -44,6 +44,7 @@ func TestOperator_Autopilot_GetConfiguration_ACLDeny(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 		c.AutopilotConfig.CleanupDeadServers = false
@@ -77,7 +78,7 @@ func TestOperator_Autopilot_GetConfiguration_ACLDeny(t *testing.T) {
 			Op:         structs.ACLSet,
 			ACL: structs.ACL{
 				Name:  "User token",
-				Type:  structs.ACLTypeClient,
+				Type:  structs.ACLTokenTypeClient,
 				Rules: rules,
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
@@ -138,6 +139,7 @@ func TestOperator_Autopilot_SetConfiguration_ACLDeny(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 		c.AutopilotConfig.CleanupDeadServers = false
@@ -174,7 +176,7 @@ func TestOperator_Autopilot_SetConfiguration_ACLDeny(t *testing.T) {
 			Op:         structs.ACLSet,
 			ACL: structs.ACL{
 				Name:  "User token",
-				Type:  structs.ACLTypeClient,
+				Type:  structs.ACLTokenTypeClient,
 				Rules: rules,
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},

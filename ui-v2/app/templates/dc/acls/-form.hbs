@@ -27,9 +27,7 @@
     <div>
 {{#if create }}
         {{! we only need to check for an empty name here as ember munges autofocus, once we have autofocus back revisit this}}
-        <button type="submit" {{ action "create" item}} disabled={{if (or item.isPristine item.isInvalid (eq item.Name '')) 'disabled'}}>Save</button>
-{{ else }}
-        <button type="submit" {{ action "update" item}} disabled={{if item.isInvalid 'disabled'}}>Save</button>
+        <button type="submit" {{ action "create" item}} disabled={{if (or item.isPristine item.isInvalid (eq item.Name '')) 'disabled'}}>Save</button>{{else}}<button type="submit" {{ action "update" item}} disabled={{if item.isInvalid 'disabled'}}>Save</button>
 {{/if}}
         <button type="reset" {{ action "cancel" item}}>Cancel</button>
 {{# if (and (not create) (not-eq item.ID 'anonymous')) }}
@@ -38,11 +36,7 @@
                 <button type="button" data-test-delete class="type-delete" {{action confirm 'delete' item parent}}>Delete</button>
             {{/block-slot}}
             {{#block-slot 'dialog' as |execute cancel message|}}
-                <p>
-                    {{message}}
-                </p>
-                <button type="button" class="type-delete" {{action execute}}>Confirm Delete</button>
-                <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
+              {{delete-confirmation message=message execute=execute cancel=cancel}}
             {{/block-slot}}
         {{/confirmation-dialog}}
 {{/if}}

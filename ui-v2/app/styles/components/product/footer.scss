@@ -22,14 +22,14 @@
 }
 @media #{$--tall-footer} {
   %footer {
-    padding-top: 25px;
-    padding-bottom: 25px;
+    padding-top: 12px;
+    padding-bottom: 12px;
   }
 }
 @media #{$--wide-footer} {
   %footer {
-    padding-left: 25px;
-    padding-right: 25px;
+    padding-left: 12px;
+    padding-right: 12px;
   }
   %footer > * {
     padding: 11px;

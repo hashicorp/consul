@@ -74,6 +74,7 @@ func TestKVS_Apply_ACLDeny(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 	})
@@ -90,7 +91,7 @@ func TestKVS_Apply_ACLDeny(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name:  "User token",
-			Type:  structs.ACLTypeClient,
+			Type:  structs.ACLTokenTypeClient,
 			Rules: testListRules,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
@@ -185,6 +186,7 @@ func TestKVS_Get_ACLDeny(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 	})
@@ -393,6 +395,7 @@ func TestKVSEndpoint_List_ACLDeny(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 	})
@@ -432,7 +435,7 @@ func TestKVSEndpoint_List_ACLDeny(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name:  "User token",
-			Type:  structs.ACLTypeClient,
+			Type:  structs.ACLTokenTypeClient,
 			Rules: testListRules,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
@@ -478,6 +481,7 @@ func TestKVSEndpoint_List_ACLEnableKeyListPolicy(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 		c.ACLEnableKeyListPolicy = true
@@ -530,7 +534,7 @@ key "zip" {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name:  "User token",
-			Type:  structs.ACLTypeClient,
+			Type:  structs.ACLTokenTypeClient,
 			Rules: testListRules1,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
@@ -676,6 +680,7 @@ func TestKVSEndpoint_ListKeys_ACLDeny(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 	})
@@ -715,7 +720,7 @@ func TestKVSEndpoint_ListKeys_ACLDeny(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name:  "User token",
-			Type:  structs.ACLTypeClient,
+			Type:  structs.ACLTokenTypeClient,
 			Rules: testListRules,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},

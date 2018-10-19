@@ -147,17 +147,29 @@ func Parse(data string, format string) (c Config, err error) {
 // configuration it should be treated as an external API which cannot be
 // changed and refactored at will since this will break existing setups.
 type Config struct {
-	ACLAgentMasterToken              *string                  `json:"acl_agent_master_token,omitempty" hcl:"acl_agent_master_token" mapstructure:"acl_agent_master_token"`
-	ACLAgentToken                    *string                  `json:"acl_agent_token,omitempty" hcl:"acl_agent_token" mapstructure:"acl_agent_token"`
-	ACLDatacenter                    *string                  `json:"acl_datacenter,omitempty" hcl:"acl_datacenter" mapstructure:"acl_datacenter"`
-	ACLDefaultPolicy                 *string                  `json:"acl_default_policy,omitempty" hcl:"acl_default_policy" mapstructure:"acl_default_policy"`
-	ACLDownPolicy                    *string                  `json:"acl_down_policy,omitempty" hcl:"acl_down_policy" mapstructure:"acl_down_policy"`
-	ACLEnableKeyListPolicy           *bool                    `json:"acl_enable_key_list_policy,omitempty" hcl:"acl_enable_key_list_policy" mapstructure:"acl_enable_key_list_policy"`
-	ACLEnforceVersion8               *bool                    `json:"acl_enforce_version_8,omitempty" hcl:"acl_enforce_version_8" mapstructure:"acl_enforce_version_8"`
-	ACLMasterToken                   *string                  `json:"acl_master_token,omitempty" hcl:"acl_master_token" mapstructure:"acl_master_token"`
-	ACLReplicationToken              *string                  `json:"acl_replication_token,omitempty" hcl:"acl_replication_token" mapstructure:"acl_replication_token"`
-	ACLTTL                           *string                  `json:"acl_ttl,omitempty" hcl:"acl_ttl" mapstructure:"acl_ttl"`
+	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
+	ACLAgentMasterToken *string `json:"acl_agent_master_token,omitempty" hcl:"acl_agent_master_token" mapstructure:"acl_agent_master_token"`
+	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
+	ACLAgentToken *string `json:"acl_agent_token,omitempty" hcl:"acl_agent_token" mapstructure:"acl_agent_token"`
+	// DEPRECATED (ACL-Legacy-Compat) - moved to "primary_datacenter"
+	ACLDatacenter *string `json:"acl_datacenter,omitempty" hcl:"acl_datacenter" mapstructure:"acl_datacenter"`
+	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
+	ACLDefaultPolicy *string `json:"acl_default_policy,omitempty" hcl:"acl_default_policy" mapstructure:"acl_default_policy"`
+	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
+	ACLDownPolicy *string `json:"acl_down_policy,omitempty" hcl:"acl_down_policy" mapstructure:"acl_down_policy"`
+	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
+	ACLEnableKeyListPolicy *bool `json:"acl_enable_key_list_policy,omitempty" hcl:"acl_enable_key_list_policy" mapstructure:"acl_enable_key_list_policy"`
+	// DEPRECATED (ACL-Legacy-Compat) -  pre-version8 enforcement is deprecated.
+	ACLEnforceVersion8 *bool `json:"acl_enforce_version_8,omitempty" hcl:"acl_enforce_version_8" mapstructure:"acl_enforce_version_8"`
+	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
+	ACLMasterToken *string `json:"acl_master_token,omitempty" hcl:"acl_master_token" mapstructure:"acl_master_token"`
+	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
+	ACLReplicationToken *string `json:"acl_replication_token,omitempty" hcl:"acl_replication_token" mapstructure:"acl_replication_token"`
+	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
+	ACLTTL *string `json:"acl_ttl,omitempty" hcl:"acl_ttl" mapstructure:"acl_ttl"`
+	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
 	ACLToken                         *string                  `json:"acl_token,omitempty" hcl:"acl_token" mapstructure:"acl_token"`
+	ACL                              ACL                      `json:"acl,omitempty" hcl:"acl" mapstructure:"acl"`
 	Addresses                        Addresses                `json:"addresses,omitempty" hcl:"addresses" mapstructure:"addresses"`
 	AdvertiseAddrLAN                 *string                  `json:"advertise_addr,omitempty" hcl:"advertise_addr" mapstructure:"advertise_addr"`
 	AdvertiseAddrWAN                 *string                  `json:"advertise_addr_wan,omitempty" hcl:"advertise_addr_wan" mapstructure:"advertise_addr_wan"`
@@ -213,6 +225,7 @@ type Config struct {
 	Performance                      Performance              `json:"performance,omitempty" hcl:"performance" mapstructure:"performance"`
 	PidFile                          *string                  `json:"pid_file,omitempty" hcl:"pid_file" mapstructure:"pid_file"`
 	Ports                            Ports                    `json:"ports,omitempty" hcl:"ports" mapstructure:"ports"`
+	PrimaryDatacenter                *string                  `json:"primary_datacenter,omitempty" hcl:"primary_datacenter" mapstructure:"primary_datacenter"`
 	RPCProtocol                      *int                     `json:"protocol,omitempty" hcl:"protocol" mapstructure:"protocol"`
 	RaftProtocol                     *int                     `json:"raft_protocol,omitempty" hcl:"raft_protocol" mapstructure:"raft_protocol"`
 	RaftSnapshotThreshold            *int                     `json:"raft_snapshot_threshold,omitempty" hcl:"raft_snapshot_threshold" mapstructure:"raft_snapshot_threshold"`
@@ -262,6 +275,7 @@ type Config struct {
 	SnapshotAgent map[string]interface{} `json:"snapshot_agent,omitempty" hcl:"snapshot_agent" mapstructure:"snapshot_agent"`
 
 	// non-user configurable values
+	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
 	ACLDisabledTTL             *string  `json:"acl_disabled_ttl,omitempty" hcl:"acl_disabled_ttl" mapstructure:"acl_disabled_ttl"`
 	AEInterval                 *string  `json:"ae_interval,omitempty" hcl:"ae_interval" mapstructure:"ae_interval"`
 	CheckDeregisterIntervalMin *string  `json:"check_deregister_interval_min,omitempty" hcl:"check_deregister_interval_min" mapstructure:"check_deregister_interval_min"`
@@ -485,11 +499,12 @@ type Upstream struct {
 type Connect struct {
 	// Enabled opts the agent into connect. It should be set on all clients and
 	// servers in a cluster for correct connect operation.
-	Enabled       *bool                  `json:"enabled,omitempty" hcl:"enabled" mapstructure:"enabled"`
-	Proxy         ConnectProxy           `json:"proxy,omitempty" hcl:"proxy" mapstructure:"proxy"`
-	ProxyDefaults ConnectProxyDefaults   `json:"proxy_defaults,omitempty" hcl:"proxy_defaults" mapstructure:"proxy_defaults"`
-	CAProvider    *string                `json:"ca_provider,omitempty" hcl:"ca_provider" mapstructure:"ca_provider"`
-	CAConfig      map[string]interface{} `json:"ca_config,omitempty" hcl:"ca_config" mapstructure:"ca_config"`
+	Enabled          *bool                  `json:"enabled,omitempty" hcl:"enabled" mapstructure:"enabled"`
+	Proxy            ConnectProxy           `json:"proxy,omitempty" hcl:"proxy" mapstructure:"proxy"`
+	ProxyDefaults    ConnectProxyDefaults   `json:"proxy_defaults,omitempty" hcl:"proxy_defaults" mapstructure:"proxy_defaults"`
+	CAProvider       *string                `json:"ca_provider,omitempty" hcl:"ca_provider" mapstructure:"ca_provider"`
+	CAConfig         map[string]interface{} `json:"ca_config,omitempty" hcl:"ca_config" mapstructure:"ca_config"`
+	ReplicationToken *string                `json:"replication_token,omitempty" hcl:"replication_token" mapstructure:"replication_token"`
 }
 
 // ConnectProxy is the agent-global connect proxy configuration.
@@ -610,4 +625,24 @@ type Segment struct {
 	Name        *string `json:"name,omitempty" hcl:"name" mapstructure:"name"`
 	Port        *int    `json:"port,omitempty" hcl:"port" mapstructure:"port"`
 	RPCListener *bool   `json:"rpc_listener,omitempty" hcl:"rpc_listener" mapstructure:"rpc_listener"`
+}
+
+type ACL struct {
+	Enabled             *bool   `json:"enabled,omitempty" hcl:"enabled" mapstructure:"enabled"`
+	TokenReplication    *bool   `json:"enable_token_replication,omitempty" hcl:"enable_token_replication" mapstructure:"enable_token_replication"`
+	PolicyTTL           *string `json:"policy_ttl,omitempty" hcl:"policy_ttl" mapstructure:"policy_ttl"`
+	TokenTTL            *string `json:"token_ttl,omitempty" hcl:"token_ttl" mapstructure:"token_ttl"`
+	DownPolicy          *string `json:"down_policy,omitempty" hcl:"down_policy" mapstructure:"down_policy"`
+	DefaultPolicy       *string `json:"default_policy,omitempty" hcl:"default_policy" mapstructure:"default_policy"`
+	EnableKeyListPolicy *bool   `json:"enable_key_list_policy,omitempty" hcl:"enable_key_list_policy" mapstructure:"enable_key_list_policy"`
+	Tokens              Tokens  `json:"tokens,omitempty" hcl:"tokens" mapstructure:"tokens"`
+	DisabledTTL         *string `json:"disabled_ttl,omitempty" hcl:"disabled_ttl" mapstructure:"disabled_ttl"`
+}
+
+type Tokens struct {
+	Master      *string `json:"master,omitempty" hcl:"master" mapstructure:"master"`
+	Replication *string `json:"replication,omitempty" hcl:"replication" mapstructure:"replication"`
+	AgentMaster *string `json:"agent_master,omitempty" hcl:"agent_master" mapstructure:"agent_master"`
+	Default     *string `json:"default,omitempty" hcl:"default" mapstructure:"default"`
+	Agent       *string `json:"agent,omitempty" hcl:"agent" mapstructure:"agent"`
 }

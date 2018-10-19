@@ -224,7 +224,11 @@ $ curl \
       "Meta": {
         "redis_version": "4.0"
       },
-      "Port": 8000
+      "Port": 8000,
+      "Weights": {
+        "Passing": 10,
+        "Warning": 1
+      }
     },
     "Checks": [
       {

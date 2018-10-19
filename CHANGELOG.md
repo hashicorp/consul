@@ -1,4 +1,14 @@
-## UNRELEASED
+## 1.4.0 (UNRELEASED)
+
+FEATURES:
+
+* New command `consul debug` which gathers information about the cluster to help
+  resolve incidents and debug issues faster. [[GH-4754](https://github.com/hashicorp/consul/issues/4754)]
+
+IMPROVEMENTS:
+
+* dns: Implement prefix lookups for DNS TTL. [[GH-4605](https://github.com/hashicorp/consul/issues/4605)]
+
 
 ## 1.3.0 (October 11, 2018)
 
@@ -23,7 +33,7 @@ FEATURES:
 * New command `consul services register` and `consul services deregister` for
   registering and deregistering services from the command line. [[GH-4732](https://github.com/hashicorp/consul/issues/4732)]
 * api: Service discovery endpoints now support [caching results in the local agent](https://www.consul.io/api/index.html#agent-caching). [[GH-4541](https://github.com/hashicorp/consul/pull/4541)]
-* dns: Added SOA configuration for DNS settings [[GH-4713](https://github.com/hashicorp/consul/issues/4713)]
+* dns: Added SOA configuration for DNS settings. [[GH-4713](https://github.com/hashicorp/consul/issues/4713)]
 
 IMPROVEMENTS:
 

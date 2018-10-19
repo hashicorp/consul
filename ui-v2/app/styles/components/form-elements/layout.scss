@@ -1,8 +1,17 @@
+%form-row {
+  margin-bottom: 1.4em;
+}
+%form-element {
+  @extend %form-row;
+}
 %form-element,
 %form-element > em,
 %form-element > span,
 %form-element textarea {
   display: block;
+}
+%form-element a {
+  display: inline;
 }
 %form-element > em > code {
   display: inline-block;
@@ -16,6 +25,10 @@
   resize: vertical;
 }
 %form-element > span {
+  margin-bottom: 0.5em;
+}
+%form-element > span + em {
+  margin-top: -0.5em;
   margin-bottom: 0.5em;
 }
 %form-element textarea {
@@ -46,31 +59,4 @@
 }
 %form-element > span {
   margin-bottom: 0.4em !important;
-}
-%form-element,
-%radio-group {
-  margin-bottom: 1.55em;
-}
-%radio-group {
-  overflow: hidden;
-}
-%radio-group label {
-  float: left;
-}
-%radio-group label > span {
-  float: right;
-}
-%radio-group {
-  padding-left: 1px;
-}
-%radio-group label:not(:last-child) {
-  margin-right: 25px;
-}
-%radio-group label > span {
-  margin-left: 1em;
-  margin-top: 0.2em;
-}
-%radio-group label,
-%radio-group label > span {
-  margin-bottom: 0 !important;
 }

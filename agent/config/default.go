@@ -30,6 +30,11 @@ func DefaultSource() Source {
 	serfLAN := cfg.SerfLANConfig.MemberlistConfig
 	serfWAN := cfg.SerfWANConfig.MemberlistConfig
 
+	// DEPRECATED (ACL-Legacy-Compat) - when legacy ACL support is removed these defaults
+	//   the acl_* config entries here should be transitioned to their counterparts in the
+	//   acl stanza for now we need to be able to detect the new entries not being set (not
+	//   just set to the defaults here) so that we can use the old entries. So the true
+	//   default still needs to reside in the original config values
 	return Source{
 		Name:   "default",
 		Format: "hcl",
@@ -38,6 +43,9 @@ func DefaultSource() Source {
 		acl_down_policy = "extend-cache"
 		acl_enforce_version_8 = true
 		acl_ttl = "30s"
+		acl = {
+			policy_ttl = "30s"
+		}
 		bind_addr = "0.0.0.0"
 		bootstrap = false
 		bootstrap_expect = 0
@@ -115,7 +123,7 @@ func DefaultSource() Source {
 			metrics_prefix = "consul"
 			filter_default = true
 		}
-		
+
 	`,
 	}
 }
@@ -167,7 +175,9 @@ func NonUserSource() Source {
 		Name:   "non-user",
 		Format: "hcl",
 		Data: `
-		acl_disabled_ttl = "120s"
+		acl = {
+			disabled_ttl = "120s"
+		}
 		check_deregister_interval_min = "1m"
 		check_reap_interval = "30s"
 		ae_interval = "1m"

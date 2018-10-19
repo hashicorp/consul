@@ -1,5 +1,13 @@
 @import '../layouts/index';
 
+// TODO: This shouldn't be done here, decide the best way to do this
+// %main-decoration ? %main-skin ? %content-skin ?
+// it includes layouts of components, but not layout of itself?
+// %main-components? What about %app-content
+main,
+%modal-window {
+  @extend %main-content;
+}
 html.template-with-vertical-menu,
 html.template-with-vertical-menu body {
   overflow: hidden;
@@ -33,8 +41,8 @@ html.template-edit main {
   }
 }
 /* TODO: keep margin below forms, move elsewhere */
-main form,
-main form + div .with-confirmation {
+%main-content form,
+%main-content form + div .with-confirmation {
   margin-bottom: 2em;
 }
 @media #{$--lt-wide-form} {

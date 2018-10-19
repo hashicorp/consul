@@ -2,7 +2,7 @@
 div.with-confirmation {
   @extend %confirmation-dialog, %confirmation-dialog-inline;
 }
-table div.with-confirmation.confirming {
+table td > div.with-confirmation.confirming {
   position: absolute;
   right: 0;
 }

@@ -4615,7 +4615,9 @@ func TestDNS_ServiceLookup_TTL(t *testing.T) {
 	a := NewTestAgent(t.Name(), `
 		dns_config {
 			service_ttl = {
+				"d*" = "42s"
 				"db" = "10s"
+				"db*" = "66s"
 				"*" = "5s"
 			}
 		allow_stale = true
@@ -4624,91 +4626,66 @@ func TestDNS_ServiceLookup_TTL(t *testing.T) {
 	`)
 	defer a.Shutdown()
 
-	// Register node with 2 services
-	args := &structs.RegisterRequest{
-		Datacenter: "dc1",
-		Node:       "foo",
-		Address:    "127.0.0.1",
-		Service: &structs.NodeService{
-			Service: "db",
-			Tags:    []string{"master"},
-			Port:    12345,
-		},
-	}
+	for idx, service := range []string{"db", "dblb", "dk", "api"} {
+		nodeName := fmt.Sprintf("foo%d", idx)
+		address := fmt.Sprintf("127.0.0.%d", idx)
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       nodeName,
+			Address:    address,
+			Service: &structs.NodeService{
+				Service: service,
+				Tags:    []string{"master"},
+				Port:    12345 + idx,
+			},
+		}
 
-	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
-		t.Fatalf("err: %v", err)
+		var out struct{}
+		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 	}
-
-	args = &structs.RegisterRequest{
-		Datacenter: "dc1",
-		Node:       "foo",
-		Address:    "127.0.0.1",
-		Service: &structs.NodeService{
-			Service: "api",
-			Port:    2222,
-		},
-	}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	m := new(dns.Msg)
-	m.SetQuestion("db.service.consul.", dns.TypeSRV)
 
 	c := new(dns.Client)
-	in, _, err := c.Exchange(m, a.DNSAddr())
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	expectResult := func(dnsQuery string, expectedTTL uint32) {
+		t.Run(dnsQuery, func(t *testing.T) {
+			m := new(dns.Msg)
+			m.SetQuestion(dnsQuery, dns.TypeSRV)
 
-	if len(in.Answer) != 1 {
-		t.Fatalf("Bad: %#v", in)
-	}
+			in, _, err := c.Exchange(m, a.DNSAddr())
+			if err != nil {
+				t.Fatalf("err: %v", err)
+			}
 
-	srvRec, ok := in.Answer[0].(*dns.SRV)
-	if !ok {
-		t.Fatalf("Bad: %#v", in.Answer[0])
-	}
-	if srvRec.Hdr.Ttl != 10 {
-		t.Fatalf("Bad: %#v", in.Answer[0])
-	}
+			if len(in.Answer) != 1 {
+				t.Fatalf("Bad: %#v, len is %d", in, len(in.Answer))
+			}
 
-	aRec, ok := in.Extra[0].(*dns.A)
-	if !ok {
-		t.Fatalf("Bad: %#v", in.Extra[0])
-	}
-	if aRec.Hdr.Ttl != 10 {
-		t.Fatalf("Bad: %#v", in.Extra[0])
-	}
+			srvRec, ok := in.Answer[0].(*dns.SRV)
+			if !ok {
+				t.Fatalf("Bad: %#v", in.Answer[0])
+			}
+			if srvRec.Hdr.Ttl != expectedTTL {
+				t.Fatalf("Bad: %#v", in.Answer[0])
+			}
 
-	m = new(dns.Msg)
-	m.SetQuestion("api.service.consul.", dns.TypeSRV)
-	in, _, err = c.Exchange(m, a.DNSAddr())
-	if err != nil {
-		t.Fatalf("err: %v", err)
+			aRec, ok := in.Extra[0].(*dns.A)
+			if !ok {
+				t.Fatalf("Bad: %#v", in.Extra[0])
+			}
+			if aRec.Hdr.Ttl != expectedTTL {
+				t.Fatalf("Bad: %#v", in.Extra[0])
+			}
+		})
 	}
-
-	if len(in.Answer) != 1 {
-		t.Fatalf("Bad: %#v", in)
-	}
-
-	srvRec, ok = in.Answer[0].(*dns.SRV)
-	if !ok {
-		t.Fatalf("Bad: %#v", in.Answer[0])
-	}
-	if srvRec.Hdr.Ttl != 5 {
-		t.Fatalf("Bad: %#v", in.Answer[0])
-	}
-
-	aRec, ok = in.Extra[0].(*dns.A)
-	if !ok {
-		t.Fatalf("Bad: %#v", in.Extra[0])
-	}
-	if aRec.Hdr.Ttl != 5 {
-		t.Fatalf("Bad: %#v", in.Extra[0])
-	}
+	// Should have its exact TTL
+	expectResult("db.service.consul.", 10)
+	// Should match db*
+	expectResult("dblb.service.consul.", 66)
+	// Should match d*
+	expectResult("dk.service.consul.", 42)
+	// Should match *
+	expectResult("api.service.consul.", 5)
 }
 
 func TestDNS_PreparedQuery_TTL(t *testing.T) {
@@ -4716,7 +4693,9 @@ func TestDNS_PreparedQuery_TTL(t *testing.T) {
 	a := NewTestAgent(t.Name(), `
 		dns_config {
 			service_ttl = {
+				"d*" = "42s"
 				"db" = "10s"
+				"db*" = "66s"
 				"*" = "5s"
 			}
 		allow_stale = true
@@ -4726,16 +4705,17 @@ func TestDNS_PreparedQuery_TTL(t *testing.T) {
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-	// Register a node and a service.
-	{
+	for idx, service := range []string{"db", "dblb", "dk", "api"} {
+		nodeName := fmt.Sprintf("foo%d", idx)
+		address := fmt.Sprintf("127.0.0.%d", idx)
 		args := &structs.RegisterRequest{
 			Datacenter: "dc1",
-			Node:       "foo",
-			Address:    "127.0.0.1",
+			Node:       nodeName,
+			Address:    address,
 			Service: &structs.NodeService{
-				Service: "db",
+				Service: service,
 				Tags:    []string{"master"},
-				Port:    12345,
+				Port:    12345 + idx,
 			},
 		}
 
@@ -4743,162 +4723,89 @@ func TestDNS_PreparedQuery_TTL(t *testing.T) {
 		if err := a.RPC("Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
+		// Register prepared query without TTL and with TTL
+		{
+			args := &structs.PreparedQueryRequest{
+				Datacenter: "dc1",
+				Op:         structs.PreparedQueryCreate,
+				Query: &structs.PreparedQuery{
+					Name: service,
+					Service: structs.ServiceQuery{
+						Service: service,
+					},
+				},
+			}
 
-		args = &structs.RegisterRequest{
-			Datacenter: "dc1",
-			Node:       "foo",
-			Address:    "127.0.0.1",
-			Service: &structs.NodeService{
-				Service: "api",
-				Port:    2222,
-			},
-		}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
-			t.Fatalf("err: %v", err)
+			var id string
+			if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+				t.Fatalf("err: %v", err)
+			}
+			queryTTL := fmt.Sprintf("%s-ttl", service)
+			args = &structs.PreparedQueryRequest{
+				Datacenter: "dc1",
+				Op:         structs.PreparedQueryCreate,
+				Query: &structs.PreparedQuery{
+					Name: queryTTL,
+					Service: structs.ServiceQuery{
+						Service: service,
+					},
+					DNS: structs.QueryDNSOptions{
+						TTL: "18s",
+					},
+				},
+			}
+
+			if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+				t.Fatalf("err: %v", err)
+			}
 		}
 	}
-
-	// Register prepared queries with and without a TTL set for "db", as
-	// well as one for "api".
-	{
-		args := &structs.PreparedQueryRequest{
-			Datacenter: "dc1",
-			Op:         structs.PreparedQueryCreate,
-			Query: &structs.PreparedQuery{
-				Name: "db-ttl",
-				Service: structs.ServiceQuery{
-					Service: "db",
-				},
-				DNS: structs.QueryDNSOptions{
-					TTL: "18s",
-				},
-			},
-		}
-
-		var id string
-		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
-		args = &structs.PreparedQueryRequest{
-			Datacenter: "dc1",
-			Op:         structs.PreparedQueryCreate,
-			Query: &structs.PreparedQuery{
-				Name: "db-nottl",
-				Service: structs.ServiceQuery{
-					Service: "db",
-				},
-			},
-		}
-
-		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
-		args = &structs.PreparedQueryRequest{
-			Datacenter: "dc1",
-			Op:         structs.PreparedQueryCreate,
-			Query: &structs.PreparedQuery{
-				Name: "api-nottl",
-				Service: structs.ServiceQuery{
-					Service: "api",
-				},
-			},
-		}
-
-		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
-
-	// Make sure the TTL is set when requested, and overrides the agent-
-	// specific config since the query takes precedence.
-	m := new(dns.Msg)
-	m.SetQuestion("db-ttl.query.consul.", dns.TypeSRV)
 
 	c := new(dns.Client)
-	in, _, err := c.Exchange(m, a.DNSAddr())
-	if err != nil {
-		t.Fatalf("err: %v", err)
+	expectResult := func(dnsQuery string, expectedTTL uint32) {
+		t.Run(dnsQuery, func(t *testing.T) {
+			m := new(dns.Msg)
+			m.SetQuestion(dnsQuery, dns.TypeSRV)
+
+			in, _, err := c.Exchange(m, a.DNSAddr())
+			if err != nil {
+				t.Fatalf("err: %v", err)
+			}
+
+			if len(in.Answer) != 1 {
+				t.Fatalf("Bad: %#v, len is %d", in, len(in.Answer))
+			}
+
+			srvRec, ok := in.Answer[0].(*dns.SRV)
+			if !ok {
+				t.Fatalf("Bad: %#v", in.Answer[0])
+			}
+			if srvRec.Hdr.Ttl != expectedTTL {
+				t.Fatalf("Bad: %#v", in.Answer[0])
+			}
+
+			aRec, ok := in.Extra[0].(*dns.A)
+			if !ok {
+				t.Fatalf("Bad: %#v", in.Extra[0])
+			}
+			if aRec.Hdr.Ttl != expectedTTL {
+				t.Fatalf("Bad: %#v", in.Extra[0])
+			}
+		})
 	}
 
-	if len(in.Answer) != 1 {
-		t.Fatalf("Bad: %#v", in)
-	}
-
-	srvRec, ok := in.Answer[0].(*dns.SRV)
-	if !ok {
-		t.Fatalf("Bad: %#v", in.Answer[0])
-	}
-	if srvRec.Hdr.Ttl != 18 {
-		t.Fatalf("Bad: %#v", in.Answer[0])
-	}
-
-	aRec, ok := in.Extra[0].(*dns.A)
-	if !ok {
-		t.Fatalf("Bad: %#v", in.Extra[0])
-	}
-	if aRec.Hdr.Ttl != 18 {
-		t.Fatalf("Bad: %#v", in.Extra[0])
-	}
-
-	// And the TTL should take the service-specific value from the agent's
-	// config otherwise.
-	m = new(dns.Msg)
-	m.SetQuestion("db-nottl.query.consul.", dns.TypeSRV)
-	in, _, err = c.Exchange(m, a.DNSAddr())
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if len(in.Answer) != 1 {
-		t.Fatalf("Bad: %#v", in)
-	}
-
-	srvRec, ok = in.Answer[0].(*dns.SRV)
-	if !ok {
-		t.Fatalf("Bad: %#v", in.Answer[0])
-	}
-	if srvRec.Hdr.Ttl != 10 {
-		t.Fatalf("Bad: %#v", in.Answer[0])
-	}
-
-	aRec, ok = in.Extra[0].(*dns.A)
-	if !ok {
-		t.Fatalf("Bad: %#v", in.Extra[0])
-	}
-	if aRec.Hdr.Ttl != 10 {
-		t.Fatalf("Bad: %#v", in.Extra[0])
-	}
-
-	// If there's no query TTL and no service-specific value then the wild
-	// card value should be used.
-	m = new(dns.Msg)
-	m.SetQuestion("api-nottl.query.consul.", dns.TypeSRV)
-	in, _, err = c.Exchange(m, a.DNSAddr())
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if len(in.Answer) != 1 {
-		t.Fatalf("Bad: %#v", in)
-	}
-
-	srvRec, ok = in.Answer[0].(*dns.SRV)
-	if !ok {
-		t.Fatalf("Bad: %#v", in.Answer[0])
-	}
-	if srvRec.Hdr.Ttl != 5 {
-		t.Fatalf("Bad: %#v", in.Answer[0])
-	}
-
-	aRec, ok = in.Extra[0].(*dns.A)
-	if !ok {
-		t.Fatalf("Bad: %#v", in.Extra[0])
-	}
-	if aRec.Hdr.Ttl != 5 {
-		t.Fatalf("Bad: %#v", in.Extra[0])
-	}
+	// Should have its exact TTL
+	expectResult("db.query.consul.", 10)
+	expectResult("db-ttl.query.consul.", 18)
+	// Should match db*
+	expectResult("dblb.query.consul.", 66)
+	expectResult("dblb-ttl.query.consul.", 18)
+	// Should match d*
+	expectResult("dk.query.consul.", 42)
+	expectResult("dk-ttl.query.consul.", 18)
+	// Should be the default value
+	expectResult("api.query.consul.", 5)
+	expectResult("api-ttl.query.consul.", 18)
 }
 
 func TestDNS_PreparedQuery_Failover(t *testing.T) {

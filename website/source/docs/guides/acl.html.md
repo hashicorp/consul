@@ -85,8 +85,8 @@ Constructing rules from these policies is covered in detail in the
 
 #### ACL Datacenter
 
-All nodes (clients and servers) must be configured with an
-[`acl_datacenter`](/docs/agent/options.html#acl_datacenter) which enables ACL
+All nodes (clients and servers) must be configured with a
+[`primary_datacenter`](/docs/agent/options.html#primary_datacenter) which enables ACL
 enforcement but also specifies the authoritative datacenter. Consul relies on
 [RPC forwarding](/docs/internals/architecture.html) to support multi-datacenter
 configurations. However, because requests can be made across datacenter boundaries,
@@ -115,7 +115,7 @@ as to whether they are set on servers, clients, or both.
 
 | Configuration Option | Servers | Clients | Purpose |
 | -------------------- | ------- | ------- | ------- |
-| [`acl_datacenter`](/docs/agent/options.html#acl_datacenter) | `REQUIRED` | `REQUIRED` | Master control that enables ACLs by defining the authoritative Consul datacenter for ACLs |
+| [`primary_datacenter`](/docs/agent/options.html#primary_datacenter) | `REQUIRED` | `REQUIRED` | Master control that enables ACLs by defining the authoritative Consul datacenter for ACLs |
 | [`acl_default_policy`](/docs/agent/options.html#acl_default_policy) | `OPTIONAL` | `N/A` | Determines whitelist or blacklist mode |
 | [`acl_down_policy`](/docs/agent/options.html#acl_down_policy) | `OPTIONAL` | `OPTIONAL` | Determines what to do when the ACL datacenter is offline |
 | [`acl_ttl`](/docs/agent/options.html#acl_ttl) | `OPTIONAL` | `OPTIONAL` | Determines time-to-live for cached ACLs |
@@ -200,7 +200,7 @@ Here's the corresponding JSON configuration file:
 
 ```json
 {
-  "acl_datacenter": "dc1",
+  "primary_datacenter": "dc1",
   "acl_master_token": "b1gs33cr3t",
   "acl_default_policy": "deny",
   "acl_down_policy": "extend-cache"
@@ -273,7 +273,7 @@ configuration and restart the servers once more to apply it:
 
 ```json
 {
-  "acl_datacenter": "dc1",
+  "primary_datacenter": "dc1",
   "acl_master_token": "b1gs33cr3t",
   "acl_default_policy": "deny",
   "acl_down_policy": "extend-cache",
@@ -310,7 +310,7 @@ with a configuration file that enables ACLs:
 
 ```json
 {
-  "acl_datacenter": "dc1",
+  "primary_datacenter": "dc1",
   "acl_down_policy": "extend-cache",
   "acl_agent_token": "fe3b8d40-0ee0-8783-6cc2-ab1aa9bb16c1"
 }
@@ -1030,7 +1030,7 @@ name that starts with "admin".
 #### Outages and ACL Replication
 
 The Consul ACL system is designed with flexible rules to accommodate for an outage
-of the [`acl_datacenter`](/docs/agent/options.html#acl_datacenter) or networking
+of the [`primary_datacenter`](/docs/agent/options.html#primary_datacenter) or networking
 issues preventing access to it. In this case, it may be impossible for
 agents in non-authoritative datacenters to resolve tokens. Consul provides
 a number of configurable [`acl_down_policy`](/docs/agent/options.html#acl_down_policy)
@@ -1083,10 +1083,10 @@ using the [ACL replication status](/api/acl.html#acl_replication_status)
 endpoint.
 2. Turn down the old authoritative datacenter servers.
 3. Rolling restart the agents in the target datacenter and change the
-`acl_datacenter` servers to itself. This will automatically turn off
+`primary_datacenter` servers to itself. This will automatically turn off
 replication and will enable the datacenter to start acting as the authoritative
 datacenter, using its replicated ACLs from before.
-3. Rolling restart the agents in other datacenters and change their `acl_datacenter`
+3. Rolling restart the agents in other datacenters and change their `primary_datacenter`
 configuration to the target datacenter.
 
 <a name="version_8_acls"></a>
@@ -1134,11 +1134,11 @@ Since clients now resolve ACLs locally, the [`acl_down_policy`](/docs/agent/opti
 now applies to Consul clients as well as Consul servers. This will determine what the
 client will do in the event that the servers are down.
 
-Consul clients must have [`acl_datacenter`](/docs/agent/options.html#acl_datacenter) configured
+Consul clients must have [`primary_datacenter`](/docs/agent/options.html#primary_datacenter) configured
 in order to enable agent-level ACL features. If this is set, the agents will contact the Consul
 servers to determine if ACLs are enabled at the cluster level. If they detect that ACLs are not
 enabled, they will check at most every 2 minutes to see if they have become enabled, and will
-start enforcing ACLs automatically. If an agent has an `acl_datacenter` defined, operators will
+start enforcing ACLs automatically. If an agent has an `primary_datacenter` defined, operators will
 need to use the [`acl_agent_master_token`](/docs/agent/options.html#acl_agent_master_token) to
 perform agent-level operations if the Consul servers aren't present (such as for a manual join
 to the cluster), unless the [`acl_down_policy`](/docs/agent/options.html#acl_down_policy) on the

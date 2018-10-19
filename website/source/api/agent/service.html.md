@@ -58,7 +58,11 @@ $ curl \
       },
       "Port": 8000,
       "Address": "",
-      "EnableTagOverride": false
+      "EnableTagOverride": false,
+      "Weights": {
+          "Passing": 10,
+          "Warning": 1
+      }
   }
 }
 ```
@@ -222,7 +226,7 @@ service definition keys for compatibility with the config file format.
   will be generated. To provide a custom id and/or name set the `CheckID`
   and/or `Name` field.
 
-- `Checks` `(array<Check>: nil`) - Specifies a list of checks. Please see the
+- `Checks` `(array<Check>: nil)` - Specifies a list of checks. Please see the
   [check documentation](/api/agent/check.html) for more information about the
   accepted fields. If you don't provide a name or id for the check then they
   will be generated. To provide a custom id and/or name set the `CheckID`
@@ -243,6 +247,11 @@ service definition keys for compatibility with the config file format.
   `EnableTagOverride` was set to `false` then after the next sync cycle the
   service's port _and_ the tags would revert to the original value and all
   modifications would be lost.
+
+- `Weights` `(Weights: nil)` - Specifies weights for the service. Please see the
+  [service documentation](/docs/agent/services.html) for more information about
+  weights. If this field is not provided weights will default to
+  `{"Passing": 1, "Warning": 1}`.
 
     It is important to note that this applies only to the locally registered
     service. If you have multiple nodes all registering the same service their
@@ -292,6 +301,10 @@ For the `Connect` field, the parameters are:
     "HTTP": "http://localhost:5000/health",
     "Interval": "10s",
     "TTL": "15s"
+  },
+  "Weights": {
+    "Passing": 10,
+    "Warning": 1
   }
 }
 ```

@@ -6,32 +6,7 @@
 
 @import 'ember-power-select';
 
-@import 'components/breadcrumbs';
-@import 'components/anchors';
-@import 'components/buttons';
-@import 'components/tabs';
-@import 'components/pill';
-@import 'components/table';
-@import 'components/form-elements';
-
-@import 'components/tabular-collection';
-@import 'components/list-collection';
-
-@import 'components/product';
-
-@import 'components/healthcheck-status';
-@import 'components/healthchecked-resource';
-@import 'components/freetext-filter';
-@import 'components/filter-bar';
-@import 'components/tomography-graph';
-@import 'components/action-group';
-@import 'components/flash-message';
-@import 'components/code-editor';
-@import 'components/confirmation-dialog';
-@import 'components/feedback-dialog';
-@import 'components/notice';
-@import 'components/with-tooltip';
-
+@import 'components/index';
 @import 'core/typography';
 @import 'core/layout';
 
@@ -40,3 +15,5 @@
 @import 'routes/dc/intention/index';
 @import 'routes/dc/kv/index';
 @import 'routes/dc/acls/index';
+@import 'routes/dc/acls/tokens/index';
+@import 'routes/dc/acls/policies/index';

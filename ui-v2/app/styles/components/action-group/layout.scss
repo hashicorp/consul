@@ -27,6 +27,7 @@
   z-index: -1;
   top: 0;
 }
+/* this is actually the group */
 %action-group ul {
   position: absolute;
   right: -10px;
@@ -71,6 +72,6 @@
 %action-group input[type='radio']:checked ~ .with-confirmation > ul {
   display: block;
 }
-%action-group input[type='radio']:checked ~ label[for="actions_close"] {
+%action-group input[type='radio']:checked ~ label[for='actions_close'] {
   z-index: 1;
 }

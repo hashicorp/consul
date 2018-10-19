@@ -1,7 +1,7 @@
 import Component from '@ember/component';
 import { get, set } from '@ember/object';
 import { inject as service } from '@ember/service';
-import qsaFactory from 'consul-ui/utils/qsa-factory';
+import qsaFactory from 'consul-ui/utils/dom/qsa-factory';
 const $$ = qsaFactory();
 
 import SlotsMixin from 'ember-block-slots';

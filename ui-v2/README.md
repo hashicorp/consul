@@ -19,12 +19,35 @@ You will need the following things properly installed on your computer.
 
 ## Running / Development
 
+The source code comes with a small server that runs enough of the consul API
+as a set of mocks/fixtures to be able to run the UI without having to run
+consul.
+
 * `make start-api` or `yarn start:api` (this starts a Consul API double running
 on http://localhost:3000)
 * `make start` or `yarn start` to start the ember app that connects to the
 above API double
 * Visit your app at [http://localhost:4200](http://localhost:4200).
-* Visit your tests at [http://localhost:4200/tests](http://localhost:4200/tests).
+
+To enable ACLs using the mock API, use Web Inspector to set a cookie as follows:
+
+```
+CONSUL_ACLS_ENABLE=1
+```
+
+This will enable the ACLs login page, to which you can login with any ACL
+token/secret.
+
+You can also use a number of other cookie key/values to set various things whilst
+developing the UI, such as (but not limited to):
+
+```
+CONSUL_SERVICE_COUNT=1000
+CONSUL_NODE_CODE=1000
+// etc etc
+```
+
+See `./node_modules/@hashicorp/consul-api-double` for more details.
 
 
 ### Code Generators
@@ -33,7 +56,7 @@ Make use of the many generators for code, try `ember help generate` for more det
 
 ### Running Tests
 
-You do not need to run `make start-api`/`yarn run start:api` to run the tests
+Please note: You do not need to run `make start-api`/`yarn run start:api` to run the tests, but the same mock consul API is used.
 
 * `make test` or `yarn run test`
 * `make test-view` or `yarn run test:view` to view the tests running in Chrome

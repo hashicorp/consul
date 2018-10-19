@@ -108,9 +108,9 @@ func (m *testManager) ConnectAuthorize(token string, req *structs.ConnectAuthori
 func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	logger := log.New(os.Stderr, "", log.LstdFlags)
 	mgr := newTestManager(t)
-	aclResolve := func(id string) (acl.ACL, error) {
+	aclResolve := func(id string) (acl.Authorizer, error) {
 		// Allow all
-		return acl.RootACL("manage"), nil
+		return acl.RootAuthorizer("manage"), nil
 	}
 	envoy := NewTestEnvoy(t, "web-sidecar-proxy", "")
 	defer envoy.Close()
@@ -570,21 +570,21 @@ func TestServer_StreamAggregatedResources_ACLEnforcment(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			logger := log.New(os.Stderr, "", log.LstdFlags)
 			mgr := newTestManager(t)
-			aclResolve := func(id string) (acl.ACL, error) {
+			aclResolve := func(id string) (acl.Authorizer, error) {
 				if !tt.defaultDeny {
 					// Allow all
-					return acl.RootACL("allow"), nil
+					return acl.RootAuthorizer("allow"), nil
 				}
 				if tt.acl == "" {
 					// No token and defaultDeny is denied
-					return acl.RootACL("deny"), nil
+					return acl.RootAuthorizer("deny"), nil
 				}
 				// Ensure the correct token was passed
 				require.Equal(t, tt.token, id)
 				// Parse the ACL and enforce it
-				policy, err := acl.Parse(tt.acl, nil)
+				policy, err := acl.NewPolicyFromSource("", 0, tt.acl, acl.SyntaxLegacy, nil)
 				require.NoError(t, err)
-				return acl.New(acl.RootACL("deny"), policy, nil)
+				return acl.NewPolicyAuthorizer(acl.RootAuthorizer("deny"), []*acl.Policy{policy}, nil)
 			}
 			envoy := NewTestEnvoy(t, "web-sidecar-proxy", tt.token)
 			defer envoy.Close()
@@ -723,7 +723,7 @@ func TestServer_Check(t *testing.T) {
 			// goroutine is touching this yet.
 			mgr.authz[token] = tt.authzResult
 
-			aclResolve := func(id string) (acl.ACL, error) {
+			aclResolve := func(id string) (acl.Authorizer, error) {
 				return nil, nil
 			}
 			envoy := NewTestEnvoy(t, "web-sidecar-proxy", token)

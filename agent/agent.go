@@ -88,7 +88,10 @@ type delegate interface {
 	LocalMember() serf.Member
 	JoinLAN(addrs []string) (n int, err error)
 	RemoveFailedNode(node string) error
+	ResolveToken(secretID string) (acl.Authorizer, error)
 	RPC(method string, args interface{}, reply interface{}) error
+	ACLsEnabled() bool
+	UseLegacyACLs() bool
 	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error
 	Shutdown() error
 	Stats() map[string]map[string]string
@@ -127,8 +130,8 @@ type Agent struct {
 	// depending on the configuration
 	delegate delegate
 
-	// acls is an object that helps manage local ACL enforcement.
-	acls *aclManager
+	// aclMasterAuthorizer is an object that helps manage local ACL enforcement.
+	aclMasterAuthorizer acl.Authorizer
 
 	// state stores a local representation of the node,
 	// services and checks. Used for anti-entropy.
@@ -255,14 +258,9 @@ func New(c *config.RuntimeConfig) (*Agent, error) {
 	if c.DataDir == "" && !c.DevMode {
 		return nil, fmt.Errorf("Must configure a DataDir")
 	}
-	acls, err := newACLManager(c)
-	if err != nil {
-		return nil, err
-	}
 
 	a := &Agent{
 		config:          c,
-		acls:            acls,
 		checkReapAfter:  make(map[types.CheckID]time.Duration),
 		checkMonitors:   make(map[types.CheckID]*checks.CheckMonitor),
 		checkTTLs:       make(map[types.CheckID]*checks.CheckTTL),
@@ -279,6 +277,10 @@ func New(c *config.RuntimeConfig) (*Agent, error) {
 		shutdownCh:      make(chan struct{}),
 		endpoints:       make(map[string]string),
 		tokens:          new(token.Store),
+	}
+
+	if err := a.initializeACLs(); err != nil {
+		return nil, err
 	}
 
 	// Set up the initial state of the token store based on the config.
@@ -515,12 +517,10 @@ func (a *Agent) listenAndServeGRPC() error {
 	}
 
 	a.xdsServer = &xds.Server{
-		Logger: a.logger,
-		CfgMgr: a.proxyConfig,
-		Authz:  a,
-		ResolveToken: func(id string) (acl.ACL, error) {
-			return a.resolveToken(id)
-		},
+		Logger:       a.logger,
+		CfgMgr:       a.proxyConfig,
+		Authz:        a,
+		ResolveToken: a.resolveToken,
 	}
 	var err error
 	a.grpcServer, err = a.xdsServer.GRPCServer(a.config.CertFile, a.config.KeyFile)
@@ -881,6 +881,7 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	// todo(fs): these are now always set in the runtime config so we can simplify this
 	// todo(fs): or is there a reason to keep it like that?
 	base.Datacenter = a.config.Datacenter
+	base.PrimaryDatacenter = a.config.PrimaryDatacenter
 	base.DataDir = a.config.DataDir
 	base.NodeName = a.config.NodeName
 
@@ -967,8 +968,11 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	if a.config.ACLDatacenter != "" {
 		base.ACLDatacenter = a.config.ACLDatacenter
 	}
-	if a.config.ACLTTL != 0 {
-		base.ACLTTL = a.config.ACLTTL
+	if a.config.ACLTokenTTL != 0 {
+		base.ACLTokenTTL = a.config.ACLTokenTTL
+	}
+	if a.config.ACLPolicyTTL != 0 {
+		base.ACLPolicyTTL = a.config.ACLPolicyTTL
 	}
 	if a.config.ACLDefaultPolicy != "" {
 		base.ACLDefaultPolicy = a.config.ACLDefaultPolicy
@@ -976,10 +980,9 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	if a.config.ACLDownPolicy != "" {
 		base.ACLDownPolicy = a.config.ACLDownPolicy
 	}
-	base.EnableACLReplication = a.config.EnableACLReplication
-	if a.config.ACLEnforceVersion8 {
-		base.ACLEnforceVersion8 = a.config.ACLEnforceVersion8
-	}
+	base.ACLEnforceVersion8 = a.config.ACLEnforceVersion8
+	base.ACLTokenReplication = a.config.ACLTokenReplication
+	base.ACLsEnabled = a.config.ACLsEnabled
 	if a.config.ACLEnableKeyListPolicy {
 		base.ACLEnableKeyListPolicy = a.config.ACLEnableKeyListPolicy
 	}
@@ -1054,6 +1057,7 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	// Copy the Connect CA bootstrap config
 	if a.config.ConnectEnabled {
 		base.ConnectEnabled = true
+		base.ConnectReplicationToken = a.config.ConnectReplicationToken
 
 		// Allow config to specify cluster_id provided it's a valid UUID. This is
 		// meant only for tests where a deterministic ID makes fixtures much simpler

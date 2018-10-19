@@ -159,6 +159,7 @@ func TestCatalog_Register_ACLDeny(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 		c.ACLEnforceVersion8 = false
@@ -175,7 +176,7 @@ func TestCatalog_Register_ACLDeny(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 			Rules: `
 service "foo" {
 	policy = "write"
@@ -424,6 +425,7 @@ func TestCatalog_Register_ConnectProxy_ACLProxyDestination(t *testing.T) {
 	assert := assert.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 	})
@@ -440,7 +442,7 @@ func TestCatalog_Register_ConnectProxy_ACLProxyDestination(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 			Rules: `
 service "foo" {
 	policy = "write"
@@ -537,6 +539,7 @@ func TestCatalog_Deregister_ACLDeny(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 		c.ACLEnforceVersion8 = false
@@ -554,7 +557,7 @@ func TestCatalog_Deregister_ACLDeny(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 			Rules: `
 node "node" {
 	policy = "write"
@@ -1184,6 +1187,7 @@ func TestCatalog_ListNodes_ACLFilter(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 		c.ACLEnforceVersion8 = false
@@ -1231,7 +1235,7 @@ func TestCatalog_ListNodes_ACLFilter(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 			Rules: fmt.Sprintf(`
 node "%s" {
 	policy = "read"
@@ -1340,7 +1344,7 @@ func TestCatalog_ListServices_NodeMetaFilter(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Add a new node with the right meta k/v pair
 	node := &structs.Node{Node: "foo", Address: "127.0.0.1", Meta: map[string]string{"somekey": "somevalue"}}
@@ -1501,6 +1505,7 @@ func TestCatalog_ListServices_Stale(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1508,7 +1513,8 @@ func TestCatalog_ListServices_Stale(t *testing.T) {
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1" // Enable ACLs!
-		c.Bootstrap = false     // Disable bootstrap
+		c.ACLsEnabled = true
+		c.Bootstrap = false // Disable bootstrap
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
@@ -1958,6 +1964,7 @@ func TestCatalog_ListServiceNodes_ConnectProxy_ACL(t *testing.T) {
 	assert := assert.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 	})
@@ -1974,7 +1981,7 @@ func TestCatalog_ListServiceNodes_ConnectProxy_ACL(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 			Rules: `
 service "foo" {
 	policy = "write"
@@ -2229,6 +2236,7 @@ func TestCatalog_Register_FailedCase1(t *testing.T) {
 func testACLFilterServer(t *testing.T) (dir, token string, srv *Server, codec rpc.ClientCodec) {
 	dir, srv = testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 		c.ACLEnforceVersion8 = false
@@ -2243,7 +2251,7 @@ func testACLFilterServer(t *testing.T) (dir, token string, srv *Server, codec rp
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 			Rules: `
 service "foo" {
 	policy = "write"
@@ -2376,6 +2384,7 @@ func TestCatalog_NodeServices_ACLDeny(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 		c.ACLEnforceVersion8 = false
@@ -2415,7 +2424,7 @@ func TestCatalog_NodeServices_ACLDeny(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 			Rules: fmt.Sprintf(`
 node "%s" {
 	policy = "read"

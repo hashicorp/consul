@@ -20,6 +20,7 @@ func TestLeader_RegisterMember(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 		c.ACLEnforceVersion8 = true
@@ -89,6 +90,7 @@ func TestLeader_FailedMember(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 		c.ACLEnforceVersion8 = true
@@ -150,6 +152,7 @@ func TestLeader_LeftMember(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 		c.ACLEnforceVersion8 = true
@@ -196,6 +199,7 @@ func TestLeader_ReapMember(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 		c.ACLEnforceVersion8 = true
@@ -257,6 +261,7 @@ func TestLeader_ReapServer(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "allow"
 		c.ACLEnforceVersion8 = true
@@ -267,6 +272,7 @@ func TestLeader_ReapServer(t *testing.T) {
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "allow"
 		c.ACLEnforceVersion8 = true
@@ -277,6 +283,7 @@ func TestLeader_ReapServer(t *testing.T) {
 
 	dir3, s3 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "allow"
 		c.ACLEnforceVersion8 = true
@@ -332,6 +339,7 @@ func TestLeader_Reconcile_ReapMember(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 		c.ACLEnforceVersion8 = true
@@ -381,6 +389,7 @@ func TestLeader_Reconcile(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 		c.ACLEnforceVersion8 = true
@@ -710,6 +719,7 @@ func TestLeader_ReapTombstones(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 		c.TombstoneTTL = 50 * time.Millisecond
@@ -950,13 +960,12 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 		name      string
 		build     string
 		master    string
-		init      bool
 		bootstrap bool
 	}{
-		{"old version, no master", "0.8.0", "", false, false},
-		{"old version, master", "0.8.0", "root", false, false},
-		{"new version, no master", "0.9.1", "", true, true},
-		{"new version, master", "0.9.1", "root", true, false},
+		{"old version, no master", "0.8.0", "", true},
+		{"old version, master", "0.8.0", "root", false},
+		{"new version, no master", "0.9.1", "", true},
+		{"new version, master", "0.9.1", "root", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -965,6 +974,7 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 				c.Bootstrap = true
 				c.Datacenter = "dc1"
 				c.ACLDatacenter = "dc1"
+				c.ACLsEnabled = true
 				c.ACLMasterToken = tt.master
 			}
 			dir1, s1 := testServerWithConfig(t, conf)
@@ -973,7 +983,7 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 			testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 			if tt.master != "" {
-				_, master, err := s1.fsm.State().ACLGet(nil, tt.master)
+				_, master, err := s1.fsm.State().ACLTokenGetBySecret(nil, tt.master)
 				if err != nil {
 					t.Fatalf("err: %v", err)
 				}
@@ -982,7 +992,7 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 				}
 			}
 
-			_, anon, err := s1.fsm.State().ACLGet(nil, anonymousToken)
+			_, anon, err := s1.fsm.State().ACLTokenGetBySecret(nil, anonymousToken)
 			if err != nil {
 				t.Fatalf("err: %v", err)
 			}
@@ -990,21 +1000,16 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 				t.Fatalf("anonymous token wasn't created")
 			}
 
-			bs, err := s1.fsm.State().ACLGetBootstrap()
+			canBootstrap, _, err := s1.fsm.State().CanBootstrapACLToken()
 			if err != nil {
 				t.Fatalf("err: %v", err)
 			}
-			if !tt.init {
-				if bs != nil {
-					t.Fatalf("bootstrap should not be initialized")
+			if tt.bootstrap {
+				if !canBootstrap {
+					t.Fatalf("bootstrap should be allowed")
 				}
-			} else {
-				if bs == nil {
-					t.Fatalf("bootstrap should be initialized")
-				}
-				if got, want := bs.AllowBootstrap, tt.bootstrap; got != want {
-					t.Fatalf("got %v want %v", got, want)
-				}
+			} else if canBootstrap {
+				t.Fatalf("bootstrap should not be allowed")
 			}
 		})
 	}

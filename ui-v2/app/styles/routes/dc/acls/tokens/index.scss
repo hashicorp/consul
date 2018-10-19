@@ -1,0 +1,33 @@
+.template-token.template-edit [for='new-policy-toggle'] {
+  @extend %anchor;
+  cursor: pointer;
+  float: right;
+}
+%pill.policy-management {
+  @extend %with-star;
+}
+%token-yours {
+  text-indent: 20px;
+  color: $ui-blue-500;
+  padding-left: 15px;
+}
+%token-yours::after {
+  @extend %with-tick;
+  border-radius: 100%;
+  background-color: $ui-blue-500;
+}
+.me ~ :nth-last-child(2) {
+  @extend %token-yours;
+}
+.template-token.template-list main .notice {
+  margin-top: -20px;
+}
+.template-token.template-edit dd {
+  display: flex;
+}
+.template-token.template-edit dl {
+  @extend %form-row;
+}
+.template-token.template-edit dd .with-feedback {
+  top: -5px;
+}

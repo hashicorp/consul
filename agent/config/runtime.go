@@ -30,13 +30,6 @@ type RuntimeConfig struct {
 	// non-user configurable values
 	AEInterval time.Duration
 
-	// ACLDisabledTTL is used by clients to determine how long they will
-	// wait to check again with the servers if they discover ACLs are not
-	// enabled. (not user configurable)
-	//
-	// hcl: acl_disabled_ttl = "duration"
-	ACLDisabledTTL time.Duration
-
 	CheckDeregisterIntervalMin time.Duration
 	CheckReapInterval          time.Duration
 	SegmentLimit               int
@@ -56,18 +49,30 @@ type RuntimeConfig struct {
 	ConsulRaftLeaderLeaseTimeout     time.Duration
 	ConsulServerHealthInterval       time.Duration
 
+	// ACLDisabledTTL is used by agents to determine how long they will
+	// wait to check again with the servers if they discover ACLs are not
+	// enabled. (not user configurable)
+	//
+	// hcl: acl.disabled_ttl = "duration"
+	ACLDisabledTTL time.Duration
+
+	// ACLsEnabled is used to determine whether ACLs should be enabled
+	//
+	// hcl: acl.enabled = boolean
+	ACLsEnabled bool
+
 	// ACLAgentMasterToken is a special token that has full read and write
 	// privileges for this agent, and can be used to call agent endpoints
 	// when no servers are available.
 	//
-	// hcl: acl_agent_master_token = string
+	// hcl: acl.tokens.agent_master = string
 	ACLAgentMasterToken string
 
 	// ACLAgentToken is the default token used to make requests for the agent
 	// itself, such as for registering itself with the catalog. If not
 	// configured, the 'acl_token' will be used.
 	//
-	// hcl: acl_agent_token = string
+	// hcl: acl.tokens.agent = string
 	ACLAgentToken string
 
 	// ACLDatacenter is the central datacenter that holds authoritative
@@ -82,7 +87,7 @@ type RuntimeConfig struct {
 	// ACLs are used to black-list, or "deny" which means ACLs are
 	// white-lists.
 	//
-	// hcl: acl_default_policy = ("allow"|"deny")
+	// hcl: acl.default_policy = ("allow"|"deny")
 	ACLDefaultPolicy string
 
 	// ACLDownPolicy is used to control the ACL interaction when we cannot
@@ -97,9 +102,10 @@ type RuntimeConfig struct {
 	//   * async-cache - Same behaviour as extend-cache, but perform ACL
 	//                   Lookups asynchronously when cache TTL is expired.
 	//
-	// hcl: acl_down_policy = ("allow"|"deny"|"extend-cache"|"async-cache")
+	// hcl: acl.down_policy = ("allow"|"deny"|"extend-cache"|"async-cache")
 	ACLDownPolicy string
 
+	// DEPRECATED (ACL-Legacy-Compat)
 	// ACLEnforceVersion8 is used to gate a set of ACL policy features that
 	// are opt-in prior to Consul 0.8 and opt-out in Consul 0.8 and later.
 	//
@@ -112,14 +118,14 @@ type RuntimeConfig struct {
 	// See https://www.consul.io/docs/guides/acl.html#list-policy-for-keys for
 	// more details.
 	//
-	// hcl: acl_enable_key_list_policy = (true|false)
+	// hcl: acl.enable_key_list_policy = (true|false)
 	ACLEnableKeyListPolicy bool
 
 	// ACLMasterToken is used to bootstrap the ACL system. It should be specified
 	// on the servers in the ACLDatacenter. When the leader comes online, it ensures
 	// that the Master token is available. This provides the initial token.
 	//
-	// hcl: acl_master_token = string
+	// hcl: acl.tokens.master = string
 	ACLMasterToken string
 
 	// ACLReplicationToken is used to fetch ACLs from the ACLDatacenter in
@@ -127,19 +133,31 @@ type RuntimeConfig struct {
 	// also enables replication. Replication is only available in datacenters
 	// other than the ACLDatacenter.
 	//
-	// hcl: acl_replication_token = string
+	// hcl: acl.tokens.replication = string
 	ACLReplicationToken string
 
-	// ACLTTL is used to control the time-to-live of cached ACLs . This has
+	// ACLtokenReplication is used to indicate that both tokens and policies
+	// should be replicated instead of just policies
+	//
+	// hcl: acl.token_replication = boolean
+	ACLTokenReplication bool
+
+	// ACLTokenTTL is used to control the time-to-live of cached ACL tokens. This has
 	// a major impact on performance. By default, it is set to 30 seconds.
 	//
-	// hcl: acl_ttl = "duration"
-	ACLTTL time.Duration
+	// hcl: acl.policy_ttl = "duration"
+	ACLTokenTTL time.Duration
+
+	// ACLPolicyTTL is used to control the time-to-live of cached ACL policies. This has
+	// a major impact on performance. By default, it is set to 30 seconds.
+	//
+	// hcl: acl.token_ttl = "duration"
+	ACLPolicyTTL time.Duration
 
 	// ACLToken is the default token used to make requests if a per-request
 	// token is not provided. If not configured the 'anonymous' token is used.
 	//
-	// hcl: acl_token = string
+	// hcl: acl.tokens.default = string
 	ACLToken string
 
 	// AutopilotCleanupDeadServers enables the automatic cleanup of dead servers when new ones
@@ -510,6 +528,9 @@ type RuntimeConfig struct {
 	// ConnectCAConfig is the config to use for the CA provider.
 	ConnectCAConfig map[string]interface{}
 
+	// ConnectReplicationToken is the ACL token used for replicating intentions.
+	ConnectReplicationToken string
+
 	// ConnectTestDisableManagedProxies is not exposed to public config but us
 	// used by TestAgent to prevent self-executing the test binary in the
 	// background if a managed proxy is created for a test. The only place we
@@ -613,15 +634,6 @@ type RuntimeConfig struct {
 	//
 	// hcl: discard_check_output = (true|false)
 	DiscardCheckOutput bool
-
-	// EnableACLReplication is used to turn on ACL replication when using
-	// /v1/agent/token/acl_replication_token to introduce the token, instead
-	// of setting acl_replication_token in the config. Setting the token via
-	// config will also set this to true for backward compatibility.
-	//
-	// hcl: enable_acl_replication = (true|false)
-	// todo(fs): rename to ACLEnableReplication
-	EnableACLReplication bool
 
 	// EnableAgentTLSForChecks is used to apply the agent's TLS settings in
 	// order to configure the HTTP client used for health checks. Enabling
@@ -818,6 +830,13 @@ type RuntimeConfig struct {
 	//
 	// hcl: pid_file = string
 	PidFile string
+
+	// PrimaryDatacenter is the central datacenter that holds authoritative
+	// ACL records, replicates intentions and holds the root CA for Connect.
+	// This must be the same for the entire cluster. Off by default.
+	//
+	// hcl: primary_datacenter = string
+	PrimaryDatacenter string
 
 	// RPCAdvertiseAddr is the TCP address Consul advertises for its RPC endpoint.
 	// By default this is the bind address on the default RPC Server port. If the

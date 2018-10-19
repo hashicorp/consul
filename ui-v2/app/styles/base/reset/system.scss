@@ -74,7 +74,9 @@ fieldset {
   border: none;
   width: 100%;
 }
-a {
+a,
+input[type='checkbox'],
+input[type='radio'] {
   cursor: pointer;
 }
 hr {

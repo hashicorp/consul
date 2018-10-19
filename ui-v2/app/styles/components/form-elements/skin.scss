@@ -1,5 +1,5 @@
-%radio-group label {
-  @extend %form-element;
+%form-element > strong {
+  @extend %with-error;
 }
 %form-element-error > input,
 %form-element-error > textarea {
@@ -10,7 +10,7 @@
 %form-element textarea {
   -moz-appearance: none;
   -webkit-appearance: none;
-  box-shadow: inset 0 4px 1px rgba(0, 0, 0, .06);
+  box-shadow: inset 0 4px 1px rgba(0, 0, 0, 0.06);
   border-radius: $decor-radius-100;
   border: $decor-border-100;
 }
@@ -24,6 +24,9 @@
 }
 %form-element-error > input {
   border-color: $ui-color-failure !important;
+}
+%form-element > strong {
+  color: $ui-color-failure;
 }
 %form-element > em {
   color: $ui-gray-400;

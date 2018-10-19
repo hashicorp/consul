@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
@@ -68,6 +69,13 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	}
 	if s.config.UseTLS {
 		conf.Tags["use_tls"] = "1"
+	}
+
+	if s.config.ACLDatacenter != "" {
+		// we start in legacy mode and allow upgrading later
+		conf.Tags["acls"] = string(structs.ACLModeLegacy)
+	} else {
+		conf.Tags["acls"] = string(structs.ACLModeDisabled)
 	}
 	if s.logger == nil {
 		conf.MemberlistConfig.LogOutput = s.config.LogOutput

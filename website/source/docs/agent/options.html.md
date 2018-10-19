@@ -509,23 +509,23 @@ default will automatically work with some tooling.
 
 #### Configuration Key Reference
 
-* <a name="acl_datacenter"></a><a href="#acl_datacenter">`acl_datacenter`</a> - This designates
-  the datacenter which is authoritative for ACL information. It must be provided to enable ACLs.
-  All servers and datacenters must agree on the ACL datacenter. Setting it on the servers is all
-  you need for cluster-level enforcement, but for the APIs to forward properly from the clients,
-  it must be set on them too. In Consul 0.8 and later, this also enables agent-level enforcement
-  of ACLs. Please see the [ACL Guide](/docs/guides/acl.html) for more details.
+* <a name="acl_datacenter"></a><a href="#acl_datacenter">`acl_datacenter`</a> - **This field is
+  deprecated in Consul 1.4.0. See the [`primary_datacenter`](#primary_datacenter) field instead.**
+
+    This designates the datacenter which is authoritative for ACL information. It must be provided to enable ACLs. All servers and datacenters must agree on the ACL datacenter. Setting it on the servers is all you need for cluster-level enforcement, but for the APIs to forward properly from the clients,
+    it must be set on them too. In Consul 0.8 and later, this also enables agent-level enforcement
+    of ACLs. Please see the [ACL Guide](/docs/guides/acl.html) for more details.
 
 * <a name="acl_default_policy"></a><a href="#acl_default_policy">`acl_default_policy`</a> - Either
   "allow" or "deny"; defaults to "allow". The default policy controls the behavior of a token when
   there is no matching rule. In "allow" mode, ACLs are a blacklist: any operation not specifically
   prohibited is allowed. In "deny" mode, ACLs are a whitelist: any operation not
-  specifically allowed is blocked. *Note*: this will not take effect until you've set `acl_datacenter`
+  specifically allowed is blocked. *Note*: this will not take effect until you've set `primary_datacenter`
   to enable ACL support.
 
 * <a name="acl_down_policy"></a><a href="#acl_down_policy">`acl_down_policy`</a> - Either
   "allow", "deny", "extend-cache" or "async-cache"; "extend-cache" is the default. In the case that the
-  policy for a token cannot be read from the [`acl_datacenter`](#acl_datacenter) or leader
+  policy for a token cannot be read from the [`primary_datacenter`](#primary_datacenter) or leader
   node, the down policy is applied. In "allow" mode, all actions are permitted, "deny" restricts
   all operations, and "extend-cache" allows any cached ACLs to be used, ignoring their TTL
   values. If a non-cached ACL is used, "extend-cache" acts like "deny".
@@ -558,7 +558,7 @@ default will automatically work with some tooling.
   Please see the [ACL Guide](/docs/guides/acl.html#version_8_acls) for more details.
 
 *   <a name="acl_master_token"></a><a href="#acl_master_token">`acl_master_token`</a> - Only used
-    for servers in the [`acl_datacenter`](#acl_datacenter). This token will be created with management-level
+    for servers in the [`primary_datacenter`](#primary_datacenter). This token will be created with management-level
     permissions if it does not exist. It allows operators to bootstrap the ACL system
     with a token ID that is well-known.
 
@@ -570,7 +570,7 @@ default will automatically work with some tooling.
     the same as the other tokens, but isn't strictly necessary.
 
 *   <a name="acl_replication_token"></a><a href="#acl_replication_token">`acl_replication_token`</a> -
-    Only used for servers outside the [`acl_datacenter`](#acl_datacenter) running Consul 0.7 or later.
+    Only used for servers outside the [`primary_datacenter`](#primary_datacenter) running Consul 0.7 or later.
     When provided, this will enable [ACL replication](/docs/guides/acl.html#replication) using this
     token to retrieve and replicate the ACLs to the non-authoritative local datacenter. In Consul 0.9.1
     and later you can enable ACL replication using [`enable_acl_replication`](#enable_acl_replication)
@@ -771,6 +771,8 @@ default will automatically work with some tooling.
 
     * <a name="connect_proxy_defaults"></a><a href="#connect_proxy_defaults">`proxy_defaults`</a> [**Deprecated**](/docs/connect/proxies/managed-deprecated.html) This object configures the default proxy settings for service definitions with [managed proxies](/docs/connect/proxies/managed-deprecated.html) (now deprecated). It accepts the fields `exec_mode`, `daemon_command`, and `config`. These are used as default values for the respective fields in the service definition.
 
+    * <a name="replication_token"></a><a href="#replication_token">`replication_token`</a> When provided, this will enable Connect replication using this token to retrieve and replicate the Intentions to the non-authoritative local datacenter.
+
 * <a name="datacenter"></a><a href="#datacenter">`datacenter`</a> Equivalent to the
   [`-datacenter` command-line flag](#_datacenter).
 
@@ -934,7 +936,8 @@ default will automatically work with some tooling.
   be checked using the agent's credentials. This was added in Consul 1.0.1 and defaults to false.
 
 * <a name="enable_debug"></a><a href="#enable_debug">`enable_debug`</a> When set, enables some
-  additional debugging features. Currently, this is only used to set the runtime profiling HTTP endpoints.
+  additional debugging features. Currently, this is only used to access runtime profiling HTTP endpoints, which
+  are available with an `operator:read` ACL regardles of the value of `enable_debug`.
 
 * <a name="enable_script_checks"></a><a href="#enable_script_checks">`enable_script_checks`</a> Equivalent to the
   [`-enable-script-checks` command-line flag](#_enable_script_checks).
@@ -1175,6 +1178,12 @@ default will automatically work with some tooling.
 
 * <a name="protocol"></a><a href="#protocol">`protocol`</a> Equivalent to the
   [`-protocol` command-line flag](#_protocol).
+
+* <a name="primary_datacenter"></a><a href="#primary_datacenter">`primary_datacenter`</a> - This 
+  designates the datacenter which is authoritative for ACL information, intentions and is the root
+  Certificate Authority for Connect. It must be provided to enable ACLs. All servers and datacenters
+  must agree on the primary datacenter. Setting it on the servers is all you need for cluster-level enforcement, but for the APIs to forward properly from the clients, it must be set on them too. In
+  Consul 0.8 and later, this also enables agent-level enforcement of ACLs. Please see the [ACL Guide](/docs/guides/acl.html) for more details.
 
 * <a name="raft_protocol"></a><a href="#raft_protocol">`raft_protocol`</a> Equivalent to the
   [`-raft-protocol` command-line flag](#_raft_protocol).
