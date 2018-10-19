@@ -12,6 +12,7 @@ import (
 	"regexp"
 
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-radix"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
@@ -72,6 +73,9 @@ type DNSServer struct {
 	domain    string
 	recursors []string
 	logger    *log.Logger
+	// Those are handling prefix lookups
+	ttlRadix  *radix.Tree
+	ttlStrict map[string]time.Duration
 
 	// disableCompression is the config.DisableCompression flag that can
 	// be safely changed at runtime. It always contains a bool and is
@@ -99,7 +103,21 @@ func NewDNSServer(a *Agent) (*DNSServer, error) {
 		domain:    domain,
 		logger:    a.logger,
 		recursors: recursors,
+		ttlRadix:  radix.New(),
+		ttlStrict: make(map[string]time.Duration),
 	}
+	if dnscfg.ServiceTTL != nil {
+		for key, ttl := range dnscfg.ServiceTTL {
+			// All suffix with '*' are put in radix
+			// This include '*' that will match anything
+			if strings.HasSuffix(key, "*") {
+				srv.ttlRadix.Insert(key[:len(key)-1], ttl)
+			} else {
+				srv.ttlStrict[key] = ttl
+			}
+		}
+	}
+
 	srv.disableCompression.Store(a.config.DNSDisableCompression)
 
 	return srv, nil
@@ -128,6 +146,22 @@ func GetDNSConfig(conf *config.RuntimeConfig) *dnsConfig {
 			Retry:   conf.DNSSOA.Retry,
 		},
 	}
+}
+
+// GetTTLForService Find the TTL for a given service.
+// return ttl, true if found, 0, false otherwise
+func (d *DNSServer) GetTTLForService(service string) (time.Duration, bool) {
+	if d.config.ServiceTTL != nil {
+		ttl, ok := d.ttlStrict[service]
+		if ok {
+			return ttl, true
+		}
+		_, ttlRaw, ok := d.ttlRadix.LongestPrefix(service)
+		if ok {
+			return ttlRaw.(time.Duration), true
+		}
+	}
+	return time.Duration(0), false
 }
 
 func (d *DNSServer) ListenAndServe(network, addr string, notif func()) error {
@@ -1027,14 +1061,7 @@ func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, conn
 	out.Nodes.Shuffle()
 
 	// Determine the TTL
-	var ttl time.Duration
-	if d.config.ServiceTTL != nil {
-		var ok bool
-		ttl, ok = d.config.ServiceTTL[service]
-		if !ok {
-			ttl = d.config.ServiceTTL["*"]
-		}
-	}
+	ttl, _ := d.GetTTLForService(service)
 
 	// Add various responses depending on the request
 	qType := req.Question[0].Qtype
@@ -1155,11 +1182,7 @@ RPC:
 			d.logger.Printf("[WARN] dns: Failed to parse TTL '%s' for prepared query '%s', ignoring", out.DNS.TTL, query)
 		}
 	} else if d.config.ServiceTTL != nil {
-		var ok bool
-		ttl, ok = d.config.ServiceTTL[out.Service]
-		if !ok {
-			ttl = d.config.ServiceTTL["*"]
-		}
+		ttl, _ = d.GetTTLForService(out.Service)
 	}
 
 	// If we have no nodes, return not found!
