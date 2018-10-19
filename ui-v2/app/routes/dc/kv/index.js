@@ -34,7 +34,13 @@ export default Route.extend(WithKvActions, {
         ...model,
         ...{
           items: repo.findAllBySlug(get(model.parent, 'Key'), dc).catch(e => {
-            return this.transitionTo('dc.kv.index');
+            const status = get(e, 'errors.firstObject.status');
+            switch (status) {
+              case '403':
+                return this.transitionTo('dc.acls.tokens');
+              default:
+                return this.transitionTo('dc.kv.index');
+            }
           }),
         },
       });
