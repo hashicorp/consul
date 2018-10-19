@@ -132,11 +132,7 @@ func (s *Server) ACLDatacenter(legacy bool) string {
 }
 
 func (s *Server) ACLsEnabled() bool {
-	if len(s.config.ACLDatacenter) > 0 || s.config.ACLsEnabled {
-		return true
-	}
-
-	return false
+	return s.config.ACLsEnabled
 }
 
 func (s *Server) ResolveIdentityFromToken(token string) (bool, structs.ACLIdentity, error) {

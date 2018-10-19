@@ -574,6 +574,9 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		})
 	}
 
+	datacenter := strings.ToLower(b.stringVal(c.Datacenter))
+
+	aclsEnabled := false
 	primaryDatacenter := strings.ToLower(b.stringVal(c.PrimaryDatacenter))
 	if c.ACLDatacenter != nil {
 		b.warn("The 'acl_datacenter' field is deprecated. Use the 'primary_datacenter' field instead.")
@@ -581,6 +584,18 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		if primaryDatacenter == "" {
 			primaryDatacenter = strings.ToLower(b.stringVal(c.ACLDatacenter))
 		}
+
+		// when the acl_datacenter config is used it implicitly enables acls
+		aclsEnabled = true
+	}
+
+	if c.ACL.Enabled != nil {
+		aclsEnabled = b.boolVal(c.ACL.Enabled)
+	}
+
+	aclDC := primaryDatacenter
+	if aclsEnabled && aclDC == "" {
+		aclDC = datacenter
 	}
 
 	proxyDefaultExecMode := b.stringVal(c.Connect.ProxyDefaults.ExecMode)
@@ -633,10 +648,10 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 
 		// ACL
 		ACLEnforceVersion8:     b.boolValWithDefault(c.ACLEnforceVersion8, true),
-		ACLsEnabled:            b.boolVal(c.ACL.Enabled),
+		ACLsEnabled:            aclsEnabled,
 		ACLAgentMasterToken:    b.stringValWithDefault(c.ACL.Tokens.AgentMaster, b.stringVal(c.ACLAgentMasterToken)),
 		ACLAgentToken:          b.stringValWithDefault(c.ACL.Tokens.Agent, b.stringVal(c.ACLAgentToken)),
-		ACLDatacenter:          primaryDatacenter,
+		ACLDatacenter:          aclDC,
 		ACLDefaultPolicy:       b.stringValWithDefault(c.ACL.DefaultPolicy, b.stringVal(c.ACLDefaultPolicy)),
 		ACLDownPolicy:          b.stringValWithDefault(c.ACL.DownPolicy, b.stringVal(c.ACLDownPolicy)),
 		ACLEnableKeyListPolicy: b.boolValWithDefault(c.ACL.EnableKeyListPolicy, b.boolVal(c.ACLEnableKeyListPolicy)),
@@ -735,7 +750,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		ConnectProxyDefaultScriptCommand:        proxyDefaultScriptCommand,
 		ConnectProxyDefaultConfig:               proxyDefaultConfig,
 		DataDir:                                 b.stringVal(c.DataDir),
-		Datacenter:                              strings.ToLower(b.stringVal(c.Datacenter)),
+		Datacenter:                              datacenter,
 		DevMode:                                 b.boolVal(b.Flags.DevMode),
 		DisableAnonymousSignature:               b.boolVal(c.DisableAnonymousSignature),
 		DisableCoordinates:                      b.boolVal(c.DisableCoordinates),

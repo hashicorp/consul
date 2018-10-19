@@ -83,13 +83,7 @@ func (c *Client) ACLDatacenter(legacy bool) string {
 }
 
 func (c *Client) ACLsEnabled() bool {
-	// ACLs are enabled if a primary datacenter is set or if
-	// the acl.enabled configuration entry is set.
-	if len(c.config.ACLDatacenter) > 0 || c.config.ACLsEnabled {
-		return true
-	}
-
-	return false
+	return c.config.ACLsEnabled
 }
 
 func (c *Client) ResolveIdentityFromToken(token string) (bool, structs.ACLIdentity, error) {
