@@ -49,11 +49,6 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	// func (a *Agent) UpdateACLToken(token string, q *WriteOptions) (*WriteMeta, error) {
-	// func (a *Agent) UpdateACLAgentToken(token string, q *WriteOptions) (*WriteMeta, error) {
-	// func (a *Agent) UpdateACLAgentMasterToken(token string, q *WriteOptions) (*WriteMeta, error) {
-	// func (a *Agent) UpdateACLReplicationToken(token string, q *WriteOptions) (*WriteMeta, error) {
-
 	switch tokenType {
 	case "default":
 		_, err = client.Agent().UpdateACLToken(token, nil)
