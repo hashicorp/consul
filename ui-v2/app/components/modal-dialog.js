@@ -6,7 +6,6 @@ import WithResizing from 'consul-ui/mixins/with-resizing';
 
 import templatize from 'consul-ui/utils/templatize';
 export default Component.extend(SlotsMixin, WithResizing, {
-  // tagName: ''
   dom: service('dom'),
   checked: true,
   height: null,
