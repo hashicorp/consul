@@ -934,6 +934,12 @@ These metrics give insight into the health of the cluster as a whole.
     <td>counter</td>
   </tr>
   <tr>
+    <td>`consul.catalog.service.query-tags.<service>.<tags>`</td>
+    <td>This increments for each catalog query for the given service with the given tags.</td>
+    <td>queries</td>
+    <td>counter</td>
+  </tr>
+  <tr>
     <td>`consul.catalog.service.not-found.<service>`</td>
     <td>This increments for each catalog query where the given service could not be found.</td>
     <td>queries</td>
@@ -948,6 +954,12 @@ These metrics give insight into the health of the cluster as a whole.
   <tr>
     <td>`consul.health.service.query-tag.<service>.<tag>`</td>
     <td>This increments for each health query for the given service with the given tag.</td>
+    <td>queries</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.health.service.query-tags.<service>.<tags>`</td>
+    <td>This increments for each health query for the given service with the given tags.</td>
     <td>queries</td>
     <td>counter</td>
   </tr>

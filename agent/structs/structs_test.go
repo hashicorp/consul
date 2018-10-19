@@ -55,7 +55,10 @@ func TestStructs_Implements(t *testing.T) {
 		_ RPCInfo          = &SessionRequest{}
 		_ RPCInfo          = &SessionSpecificRequest{}
 		_ RPCInfo          = &EventFireRequest{}
-		_ RPCInfo          = &ACLPolicyRequest{}
+		_ RPCInfo          = &ACLPolicyResolveLegacyRequest{}
+		_ RPCInfo          = &ACLPolicyBatchReadRequest{}
+		_ RPCInfo          = &ACLPolicyReadRequest{}
+		_ RPCInfo          = &ACLTokenReadRequest{}
 		_ RPCInfo          = &KeyringRequest{}
 		_ CompoundResponse = &KeyringResponses{}
 	)

@@ -1378,6 +1378,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			json: []string{`{ "acl_datacenter": "A" }`},
 			hcl:  []string{`acl_datacenter = "A"`},
 			patch: func(rt *RuntimeConfig) {
+				rt.ACLsEnabled = true
 				rt.ACLDatacenter = "a"
 				rt.DataDir = dataDir
 				rt.PrimaryDatacenter = "a"
@@ -1391,7 +1392,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			hcl:  []string{`acl_replication_token = "a"`},
 			patch: func(rt *RuntimeConfig) {
 				rt.ACLReplicationToken = "a"
-				rt.EnableACLReplication = true
+				rt.ACLTokenReplication = true
 				rt.DataDir = dataDir
 			},
 		},
@@ -2809,11 +2810,27 @@ func TestFullConfig(t *testing.T) {
 			"acl_default_policy": "ArK3WIfE",
 			"acl_down_policy": "vZXMfMP0",
 			"acl_enforce_version_8": true,
-		        "acl_enable_key_list_policy": true,
+			"acl_enable_key_list_policy": true,
 			"acl_master_token": "C1Q1oIwh",
 			"acl_replication_token": "LMmgy5dO",
 			"acl_token": "O1El0wan",
 			"acl_ttl": "18060s",
+			"acl" : {
+				"enabled" : true,
+				"down_policy" : "03eb2aee",
+				"default_policy" : "72c2e7a0",
+				"enable_key_list_policy": false,
+				"policy_ttl": "1123s",
+				"token_ttl": "3321s",
+				"enable_token_replication" : true,
+				"tokens" : {
+					"master" : "8a19ac27",
+					"agent_master" : "64fd0e08",
+					"replication" : "5795983a",
+					"agent" : "bed2377c",
+					"default" : "418fdff1"
+				}
+			},
 			"addresses": {
 				"dns": "93.95.95.81",
 				"http": "83.39.91.39",
@@ -3344,6 +3361,22 @@ func TestFullConfig(t *testing.T) {
 			acl_replication_token = "LMmgy5dO"
 			acl_token = "O1El0wan"
 			acl_ttl = "18060s"
+			acl = {
+				enabled = true
+				down_policy = "03eb2aee"
+				default_policy = "72c2e7a0"
+				enable_key_list_policy = false
+				policy_ttl = "1123s"
+				token_ttl = "3321s"
+				enable_token_replication = true
+				tokens = {
+					master = "8a19ac27",
+					agent_master = "64fd0e08",
+					replication = "5795983a",
+					agent = "bed2377c",
+					default = "418fdff1"
+				}
+			}
 			addresses = {
 				dns = "93.95.95.81"
 				http = "83.39.91.39"
@@ -3871,6 +3904,9 @@ func TestFullConfig(t *testing.T) {
 				Data: `
 				{
 					"acl_disabled_ttl": "957s",
+					"acl" : {
+						"disabled_ttl" : "957s"
+					},
 					"ae_interval": "10003s",
 					"check_deregister_interval_min": "27870s",
 					"check_reap_interval": "10662s",
@@ -3910,6 +3946,9 @@ func TestFullConfig(t *testing.T) {
 				Format: "hcl",
 				Data: `
 					acl_disabled_ttl = "957s"
+					acl = {
+						disabled_ttl = "957s"
+					}
 					ae_interval = "10003s"
 					check_deregister_interval_min = "27870s"
 					check_reap_interval = "10662s"
@@ -3982,17 +4021,20 @@ func TestFullConfig(t *testing.T) {
 
 		// user configurable values
 
-		ACLAgentMasterToken:              "furuQD0b",
-		ACLAgentToken:                    "cOshLOQ2",
-		ACLDatacenter:                    "m3urck3z",
-		ACLDefaultPolicy:                 "ArK3WIfE",
-		ACLDownPolicy:                    "vZXMfMP0",
+		ACLAgentMasterToken:              "64fd0e08",
+		ACLAgentToken:                    "bed2377c",
+		ACLsEnabled:                      true,
+		ACLDatacenter:                    "ejtmd43d",
+		ACLDefaultPolicy:                 "72c2e7a0",
+		ACLDownPolicy:                    "03eb2aee",
 		ACLEnforceVersion8:               true,
-		ACLEnableKeyListPolicy:           true,
-		ACLMasterToken:                   "C1Q1oIwh",
-		ACLReplicationToken:              "LMmgy5dO",
-		ACLTTL:                           18060 * time.Second,
-		ACLToken:                         "O1El0wan",
+		ACLEnableKeyListPolicy:           false,
+		ACLMasterToken:                   "8a19ac27",
+		ACLReplicationToken:              "5795983a",
+		ACLTokenTTL:                      3321 * time.Second,
+		ACLPolicyTTL:                     1123 * time.Second,
+		ACLToken:                         "418fdff1",
+		ACLTokenReplication:              true,
 		AdvertiseAddrLAN:                 ipAddr("17.99.29.16"),
 		AdvertiseAddrWAN:                 ipAddr("78.63.37.19"),
 		AutopilotCleanupDeadServers:      true,
@@ -4129,7 +4171,6 @@ func TestFullConfig(t *testing.T) {
 		DisableUpdateCheck:               true,
 		DiscardCheckOutput:               true,
 		DiscoveryMaxStale:                5 * time.Second,
-		EnableACLReplication:             true,
 		EnableAgentTLSForChecks:          true,
 		EnableDebug:                      true,
 		EnableRemoteScriptChecks:         true,
@@ -4802,9 +4843,12 @@ func TestSanitize(t *testing.T) {
 		"ACLEnableKeyListPolicy": false,
 		"ACLEnforceVersion8": false,
 		"ACLMasterToken": "hidden",
+		"ACLPolicyTTL": "0s",
 		"ACLReplicationToken": "hidden",
-		"ACLTTL": "0s",
+		"ACLTokenReplication": false,
+		"ACLTokenTTL": "0s",
 		"ACLToken": "hidden",
+		"ACLsEnabled": false,
 		"AEInterval": "0s",
 		"AdvertiseAddrLAN": "",
 		"AdvertiseAddrWAN": "",
@@ -4919,7 +4963,6 @@ func TestSanitize(t *testing.T) {
 		"DisableUpdateCheck": false,
 		"DiscardCheckOutput": false,
 		"DiscoveryMaxStale": "0s",
-		"EnableACLReplication": false,
 		"EnableAgentTLSForChecks": false,
 		"EnableDebug": false,
 		"EnableLocalScriptChecks": false,

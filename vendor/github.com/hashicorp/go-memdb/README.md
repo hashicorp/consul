@@ -3,7 +3,7 @@
 Provides the `memdb` package that implements a simple in-memory database
 built on immutable radix trees. The database provides Atomicity, Consistency
 and Isolation from ACID. Being that it is in-memory, it does not provide durability.
-The database is instantiated with a schema that specifies the tables and indicies
+The database is instantiated with a schema that specifies the tables and indices
 that exist and allows transactions to be executed.
 
 The database provides the following:

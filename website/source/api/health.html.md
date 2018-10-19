@@ -178,7 +178,9 @@ The table below shows this endpoint's support for
   part of the URL as a query parameter.
 
 - `tag` `(string: "")` - Specifies the tag to filter the list. This is
-  specifies as part of the URL as a query parameter.
+  specified as part of the URL as a query parameter. Can be used multiple times 
+  for additional filtering, returning only the results that include all of the tag 
+  values provided.
 
 - `node-meta` `(string: "")` - Specifies a desired node metadata key/value pair
   of the form `key:value`. This parameter can be specified multiple times, and

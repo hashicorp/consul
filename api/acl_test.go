@@ -122,7 +122,8 @@ func TestAPI_ACLList(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if len(acls) < 2 {
+	// anon token is a new token
+	if len(acls) < 1 {
 		t.Fatalf("bad: %v", acls)
 	}
 

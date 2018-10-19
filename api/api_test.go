@@ -35,8 +35,9 @@ func makeACLClient(t *testing.T) (*Client, *testutil.TestServer) {
 	return makeClientWithConfig(t, func(clientConfig *Config) {
 		clientConfig.Token = "root"
 	}, func(serverConfig *testutil.TestServerConfig) {
+		serverConfig.PrimaryDatacenter = "dc1"
 		serverConfig.ACLMasterToken = "root"
-		serverConfig.ACLDatacenter = "dc1"
+		serverConfig.ACL.Enabled = true
 		serverConfig.ACLDefaultPolicy = "deny"
 	})
 }

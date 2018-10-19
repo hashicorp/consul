@@ -1,6 +1,22 @@
 package command
 
 import (
+	"github.com/hashicorp/consul/command/acl"
+	aclagent "github.com/hashicorp/consul/command/acl/agenttokens"
+	aclbootstrap "github.com/hashicorp/consul/command/acl/bootstrap"
+	aclpolicy "github.com/hashicorp/consul/command/acl/policy"
+	aclpcreate "github.com/hashicorp/consul/command/acl/policy/create"
+	aclpdelete "github.com/hashicorp/consul/command/acl/policy/delete"
+	aclplist "github.com/hashicorp/consul/command/acl/policy/list"
+	aclpread "github.com/hashicorp/consul/command/acl/policy/read"
+	aclpupdate "github.com/hashicorp/consul/command/acl/policy/update"
+	aclrules "github.com/hashicorp/consul/command/acl/rules"
+	acltoken "github.com/hashicorp/consul/command/acl/token"
+	acltcreate "github.com/hashicorp/consul/command/acl/token/create"
+	acltdelete "github.com/hashicorp/consul/command/acl/token/delete"
+	acltlist "github.com/hashicorp/consul/command/acl/token/list"
+	acltread "github.com/hashicorp/consul/command/acl/token/read"
+	acltupdate "github.com/hashicorp/consul/command/acl/token/update"
 	"github.com/hashicorp/consul/command/agent"
 	"github.com/hashicorp/consul/command/catalog"
 	catlistdc "github.com/hashicorp/consul/command/catalog/list/dc"
@@ -67,6 +83,22 @@ func init() {
 	verPre := consulversion.VersionPrerelease
 	verHuman := consulversion.GetHumanVersion()
 
+	Register("acl", func(cli.Ui) (cli.Command, error) { return acl.New(), nil })
+	Register("acl bootstrap", func(ui cli.Ui) (cli.Command, error) { return aclbootstrap.New(ui), nil })
+	Register("acl policy", func(cli.Ui) (cli.Command, error) { return aclpolicy.New(), nil })
+	Register("acl policy create", func(ui cli.Ui) (cli.Command, error) { return aclpcreate.New(ui), nil })
+	Register("acl policy list", func(ui cli.Ui) (cli.Command, error) { return aclplist.New(ui), nil })
+	Register("acl policy read", func(ui cli.Ui) (cli.Command, error) { return aclpread.New(ui), nil })
+	Register("acl policy update", func(ui cli.Ui) (cli.Command, error) { return aclpupdate.New(ui), nil })
+	Register("acl policy delete", func(ui cli.Ui) (cli.Command, error) { return aclpdelete.New(ui), nil })
+	Register("acl translate-rules", func(ui cli.Ui) (cli.Command, error) { return aclrules.New(ui), nil })
+	Register("acl set-agent-token", func(ui cli.Ui) (cli.Command, error) { return aclagent.New(ui), nil })
+	Register("acl token", func(cli.Ui) (cli.Command, error) { return acltoken.New(), nil })
+	Register("acl token create", func(ui cli.Ui) (cli.Command, error) { return acltcreate.New(ui), nil })
+	Register("acl token list", func(ui cli.Ui) (cli.Command, error) { return acltlist.New(ui), nil })
+	Register("acl token read", func(ui cli.Ui) (cli.Command, error) { return acltread.New(ui), nil })
+	Register("acl token update", func(ui cli.Ui) (cli.Command, error) { return acltupdate.New(ui), nil })
+	Register("acl token delete", func(ui cli.Ui) (cli.Command, error) { return acltdelete.New(ui), nil })
 	Register("agent", func(ui cli.Ui) (cli.Command, error) {
 		return agent.New(ui, rev, ver, verPre, verHuman, make(chan struct{})), nil
 	})

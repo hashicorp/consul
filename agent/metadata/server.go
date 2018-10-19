@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
 )
@@ -39,6 +40,7 @@ type Server struct {
 	Addr         net.Addr
 	Status       serf.MemberStatus
 	NonVoter     bool
+	ACLs         structs.ACLMode
 
 	// If true, use TLS when connecting to this server
 	UseTLS bool
@@ -90,6 +92,13 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 	port, err := strconv.Atoi(portStr)
 	if err != nil {
 		return false, nil
+	}
+
+	var acls structs.ACLMode
+	if aclMode, ok := m.Tags["acls"]; ok {
+		acls = structs.ACLMode(aclMode)
+	} else {
+		acls = structs.ACLModeUnknown
 	}
 
 	segmentAddrs := make(map[string]string)
@@ -163,6 +172,7 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		Status:       m.Status,
 		UseTLS:       useTLS,
 		NonVoter:     nonVoter,
+		ACLs:         acls,
 	}
 	return true, parts
 }

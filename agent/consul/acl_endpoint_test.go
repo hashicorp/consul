@@ -1,7 +1,12 @@
 package consul
 
 import (
+	"fmt"
+	"io/ioutil"
+	"net/rpc"
 	"os"
+	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -11,7 +16,10 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil/retry"
+	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestACLEndpoint_Bootstrap(t *testing.T) {
@@ -19,6 +27,7 @@ func TestACLEndpoint_Bootstrap(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Build = "0.8.0" // Too low for auto init of bootstrap.
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -32,45 +41,81 @@ func TestACLEndpoint_Bootstrap(t *testing.T) {
 		Datacenter: "dc1",
 	}
 	var out structs.ACL
-	err := msgpackrpc.CallWithCodec(codec, "ACL.Bootstrap", &arg, &out)
-	if err.Error() != structs.ACLBootstrapNotInitializedErr.Error() {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Manually do an init.
-	req := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLBootstrapInit,
-	}
-	_, err = s1.raftApply(structs.ACLRequestType, &req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Try again, this time it should go through. We can only do some high
+	// We can only do some high
 	// level checks on the ACL since we don't have control over the UUID or
 	// Raft indexes at this level.
 	if err := msgpackrpc.CallWithCodec(codec, "ACL.Bootstrap", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if len(out.ID) != len("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx") ||
-		out.Name != "Bootstrap Token" ||
-		out.Type != structs.ACLTypeManagement ||
+		!strings.HasPrefix(out.Name, "Bootstrap Token") ||
+		out.Type != structs.ACLTokenTypeManagement ||
 		out.CreateIndex == 0 || out.ModifyIndex == 0 {
 		t.Fatalf("bad: %#v", out)
 	}
 
 	// Finally, make sure that another attempt is rejected.
-	err = msgpackrpc.CallWithCodec(codec, "ACL.Bootstrap", &arg, &out)
+	err := msgpackrpc.CallWithCodec(codec, "ACL.Bootstrap", &arg, &out)
 	if err.Error() != structs.ACLBootstrapNotAllowedErr.Error() {
 		t.Fatalf("err: %v", err)
 	}
+}
+
+func TestACLEndpoint_BootstrapTokens(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLsEnabled = true
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Expect an error initially since ACL bootstrap is not initialized.
+	arg := structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+	var out structs.ACLToken
+	// We can only do some high
+	// level checks on the ACL since we don't have control over the UUID or
+	// Raft indexes at this level.
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.BootstrapTokens", &arg, &out))
+	require.Equal(t, 36, len(out.AccessorID))
+	require.True(t, strings.HasPrefix(out.Description, "Bootstrap Token"))
+	require.Equal(t, out.Type, structs.ACLTokenTypeManagement)
+	require.True(t, out.CreateIndex > 0)
+	require.Equal(t, out.CreateIndex, out.ModifyIndex)
+
+	// Finally, make sure that another attempt is rejected.
+	err := msgpackrpc.CallWithCodec(codec, "ACL.BootstrapTokens", &arg, &out)
+	require.Error(t, err)
+	require.True(t, strings.HasPrefix(err.Error(), structs.ACLBootstrapNotAllowedErr.Error()))
+
+	_, resetIdx, err := s1.fsm.State().CanBootstrapACLToken()
+
+	resetPath := filepath.Join(dir1, "acl-bootstrap-reset")
+	require.NoError(t, ioutil.WriteFile(resetPath, []byte(fmt.Sprintf("%d", resetIdx)), 0600))
+
+	oldID := out.AccessorID
+	// Finally, make sure that another attempt is rejected.
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.BootstrapTokens", &arg, &out))
+	require.Equal(t, 36, len(out.AccessorID))
+	require.NotEqual(t, oldID, out.AccessorID)
+	require.True(t, strings.HasPrefix(out.Description, "Bootstrap Token"))
+	require.Equal(t, out.Type, structs.ACLTokenTypeManagement)
+	require.True(t, out.CreateIndex > 0)
+	require.Equal(t, out.CreateIndex, out.ModifyIndex)
 }
 
 func TestACLEndpoint_Apply(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -85,7 +130,7 @@ func TestACLEndpoint_Apply(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
@@ -97,17 +142,17 @@ func TestACLEndpoint_Apply(t *testing.T) {
 
 	// Verify
 	state := s1.fsm.State()
-	_, s, err := state.ACLGet(nil, out)
+	_, s, err := state.ACLTokenGetBySecret(nil, out)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if s == nil {
 		t.Fatalf("should not be nil")
 	}
-	if s.ID != out {
+	if s.SecretID != out {
 		t.Fatalf("bad: %v", s)
 	}
-	if s.Name != "User token" {
+	if s.Description != "User token" {
 		t.Fatalf("bad: %v", s)
 	}
 
@@ -119,7 +164,7 @@ func TestACLEndpoint_Apply(t *testing.T) {
 	}
 
 	// Verify
-	_, s, err = state.ACLGet(nil, id)
+	_, s, err = state.ACLTokenGetBySecret(nil, id)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -132,6 +177,7 @@ func TestACLEndpoint_Update_PurgeCache(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -146,7 +192,7 @@ func TestACLEndpoint_Update_PurgeCache(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
@@ -157,7 +203,7 @@ func TestACLEndpoint_Update_PurgeCache(t *testing.T) {
 	id := out
 
 	// Resolve
-	acl1, err := s1.resolveToken(id)
+	acl1, err := s1.ResolveToken(id)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -176,7 +222,7 @@ func TestACLEndpoint_Update_PurgeCache(t *testing.T) {
 	}
 
 	// Resolve again
-	acl2, err := s1.resolveToken(id)
+	acl2, err := s1.ResolveToken(id)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -198,7 +244,7 @@ func TestACLEndpoint_Update_PurgeCache(t *testing.T) {
 	}
 
 	// Resolve again
-	acl3, err := s1.resolveToken(id)
+	acl3, err := s1.ResolveToken(id)
 	if !acl.IsErrNotFound(err) {
 		t.Fatalf("err: %v", err)
 	}
@@ -211,6 +257,7 @@ func TestACLEndpoint_Apply_CustomID(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -226,7 +273,7 @@ func TestACLEndpoint_Apply_CustomID(t *testing.T) {
 		ACL: structs.ACL{
 			ID:   "foobarbaz", // Specify custom ID, does not exist
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
@@ -240,17 +287,17 @@ func TestACLEndpoint_Apply_CustomID(t *testing.T) {
 
 	// Verify
 	state := s1.fsm.State()
-	_, s, err := state.ACLGet(nil, out)
+	_, s, err := state.ACLTokenGetBySecret(nil, out)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if s == nil {
 		t.Fatalf("should not be nil")
 	}
-	if s.ID != out {
+	if s.SecretID != out {
 		t.Fatalf("bad: %v", s)
 	}
-	if s.Name != "User token" {
+	if s.Description != "User token" {
 		t.Fatalf("bad: %v", s)
 	}
 }
@@ -259,6 +306,7 @@ func TestACLEndpoint_Apply_Denied(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -272,7 +320,7 @@ func TestACLEndpoint_Apply_Denied(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 		},
 	}
 	var out string
@@ -286,6 +334,7 @@ func TestACLEndpoint_Apply_DeleteAnon(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -301,7 +350,7 @@ func TestACLEndpoint_Apply_DeleteAnon(t *testing.T) {
 		ACL: structs.ACL{
 			ID:   anonymousToken,
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
@@ -316,6 +365,7 @@ func TestACLEndpoint_Apply_RootChange(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -331,7 +381,7 @@ func TestACLEndpoint_Apply_RootChange(t *testing.T) {
 		ACL: structs.ACL{
 			ID:   "manage",
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
@@ -346,6 +396,7 @@ func TestACLEndpoint_Get(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -360,7 +411,7 @@ func TestACLEndpoint_Get(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
@@ -394,6 +445,7 @@ func TestACLEndpoint_GetPolicy(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -408,7 +460,7 @@ func TestACLEndpoint_GetPolicy(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
@@ -417,25 +469,29 @@ func TestACLEndpoint_GetPolicy(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	getR := structs.ACLPolicyRequest{
+	getR := structs.ACLPolicyResolveLegacyRequest{
 		Datacenter: "dc1",
 		ACL:        out,
 	}
-	var acls structs.ACLPolicy
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.GetPolicy", &getR, &acls); err != nil {
-		t.Fatalf("err: %v", err)
-	}
 
-	if acls.Policy == nil {
-		t.Fatalf("Bad: %v", acls)
-	}
-	if acls.TTL != 30*time.Second {
-		t.Fatalf("bad: %v", acls)
-	}
+	var acls structs.ACLPolicyResolveLegacyResponse
+	retry.Run(t, func(r *retry.R) {
+
+		if err := msgpackrpc.CallWithCodec(codec, "ACL.GetPolicy", &getR, &acls); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if acls.Policy == nil {
+			t.Fatalf("Bad: %v", acls)
+		}
+		if acls.TTL != 30*time.Second {
+			t.Fatalf("bad: %v", acls)
+		}
+	})
 
 	// Do a conditional lookup with etag
 	getR.ETag = acls.ETag
-	var out2 structs.ACLPolicy
+	var out2 structs.ACLPolicyResolveLegacyResponse
 	if err := msgpackrpc.CallWithCodec(codec, "ACL.GetPolicy", &getR, &out2); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -452,6 +508,7 @@ func TestACLEndpoint_List(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -468,7 +525,7 @@ func TestACLEndpoint_List(t *testing.T) {
 			Op:         structs.ACLSet,
 			ACL: structs.ACL{
 				Name: "User token",
-				Type: structs.ACLTypeClient,
+				Type: structs.ACLTokenTypeClient,
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
@@ -492,8 +549,8 @@ func TestACLEndpoint_List(t *testing.T) {
 		t.Fatalf("Bad: %v", acls)
 	}
 
-	// 5 + anonymous + master
-	if len(acls.ACLs) != 7 {
+	// 5  + master
+	if len(acls.ACLs) != 6 {
 		t.Fatalf("Bad: %v", acls.ACLs)
 	}
 	for i := 0; i < len(acls.ACLs); i++ {
@@ -514,6 +571,7 @@ func TestACLEndpoint_List_Denied(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -536,8 +594,10 @@ func TestACLEndpoint_ReplicationStatus(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc2"
-		c.EnableACLReplication = true
-		c.ACLReplicationInterval = 10 * time.Millisecond
+		c.ACLsEnabled = true
+		c.ACLTokenReplication = true
+		c.ACLReplicationRate = 100
+		c.ACLReplicationBurst = 100
 	})
 	s1.tokens.UpdateACLReplicationToken("secret")
 	defer os.RemoveAll(dir1)
@@ -561,4 +621,918 @@ func TestACLEndpoint_ReplicationStatus(t *testing.T) {
 			r.Fatalf("bad: %#v", status)
 		}
 	})
+}
+
+func TestACLEndpoint_TokenRead(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	token, err := upsertTestToken(codec, "root", "dc1")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	acl := ACL{srv: s1}
+
+	// exists and matches what we created
+	{
+		req := structs.ACLTokenReadRequest{
+			Datacenter:   "dc1",
+			TokenID:      token.AccessorID,
+			TokenIDType:  structs.ACLTokenAccessor,
+			QueryOptions: structs.QueryOptions{Token: "root"},
+		}
+
+		resp := structs.ACLTokenResponse{}
+
+		err := acl.TokenRead(&req, &resp)
+		assert.NoError(err)
+
+		if !reflect.DeepEqual(resp.Token, token) {
+			t.Fatalf("tokens are not equal: %v != %v", resp.Token, token)
+		}
+	}
+
+	// nil when token does not exist
+	{
+		fakeID, err := uuid.GenerateUUID()
+		assert.NoError(err)
+
+		req := structs.ACLTokenReadRequest{
+			Datacenter:   "dc1",
+			TokenID:      fakeID,
+			TokenIDType:  structs.ACLTokenAccessor,
+			QueryOptions: structs.QueryOptions{Token: "root"},
+		}
+
+		resp := structs.ACLTokenResponse{}
+
+		err = acl.TokenRead(&req, &resp)
+		assert.Nil(resp.Token)
+		assert.NoError(err)
+	}
+
+	// validates ID format
+	{
+		req := structs.ACLTokenReadRequest{
+			Datacenter:   "dc1",
+			TokenID:      "definitely-really-certainly-not-a-uuid",
+			TokenIDType:  structs.ACLTokenAccessor,
+			QueryOptions: structs.QueryOptions{Token: "root"},
+		}
+
+		resp := structs.ACLTokenResponse{}
+
+		err := acl.TokenRead(&req, &resp)
+		assert.Nil(resp.Token)
+		assert.EqualError(err, "failed acl token lookup: failed acl token lookup: index error: UUID must be 36 characters")
+	}
+}
+
+func TestACLEndpoint_TokenClone(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	t1, err := upsertTestToken(codec, "root", "dc1")
+	assert.NoError(err)
+
+	acl := ACL{srv: s1}
+
+	req := structs.ACLTokenUpsertRequest{
+		Datacenter:   "dc1",
+		ACLToken:     structs.ACLToken{AccessorID: t1.AccessorID},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+
+	t2 := structs.ACLToken{}
+
+	err = acl.TokenClone(&req, &t2)
+	assert.NoError(err)
+
+	assert.Equal(t1.Description, t2.Description)
+	assert.Equal(t1.Policies, t2.Policies)
+	assert.Equal(t1.Rules, t2.Rules)
+	assert.Equal(t1.Local, t2.Local)
+	assert.NotEqual(t1.AccessorID, t2.AccessorID)
+	assert.NotEqual(t1.SecretID, t2.SecretID)
+}
+
+func TestACLEndpoint_TokenUpsert(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	acl := ACL{srv: s1}
+	var tokenID string
+
+	// Create it
+	{
+		req := structs.ACLTokenUpsertRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				Description: "foobar",
+				Policies:    nil,
+				Local:       false,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		resp := structs.ACLToken{}
+
+		err := acl.TokenUpsert(&req, &resp)
+		assert.NoError(err)
+
+		// Get the token directly to validate that it exists
+		tokenResp, err := retrieveTestToken(codec, "root", "dc1", resp.AccessorID)
+		assert.NoError(err)
+		token := tokenResp.Token
+
+		assert.NotNil(token.AccessorID)
+		assert.Equal(token.Description, "foobar")
+		assert.Equal(token.AccessorID, resp.AccessorID)
+
+		tokenID = token.AccessorID
+	}
+	// Update it
+	{
+		req := structs.ACLTokenUpsertRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				Description: "new-description",
+				AccessorID:  tokenID,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		resp := structs.ACLToken{}
+
+		err := acl.TokenUpsert(&req, &resp)
+		assert.NoError(err)
+
+		// Get the token directly to validate that it exists
+		tokenResp, err := retrieveTestToken(codec, "root", "dc1", resp.AccessorID)
+		assert.NoError(err)
+		token := tokenResp.Token
+
+		assert.NotNil(token.AccessorID)
+		assert.Equal(token.Description, "new-description")
+		assert.Equal(token.AccessorID, resp.AccessorID)
+	}
+}
+func TestACLEndpoint_TokenUpsert_anon(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	policy, err := upsertTestPolicy(codec, "root", "dc1")
+	assert.NoError(err)
+
+	acl := ACL{srv: s1}
+
+	// Assign the policies to a token
+	tokenUpsertReq := structs.ACLTokenUpsertRequest{
+		Datacenter: "dc1",
+		ACLToken: structs.ACLToken{
+			AccessorID: structs.ACLTokenAnonymousID,
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID: policy.ID,
+				},
+			},
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	token := structs.ACLToken{}
+	err = acl.TokenUpsert(&tokenUpsertReq, &token)
+	assert.NoError(err)
+	assert.NotEmpty(token.SecretID)
+
+	tokenResp, err := retrieveTestToken(codec, "root", "dc1", structs.ACLTokenAnonymousID)
+	assert.Equal(len(tokenResp.Token.Policies), 1)
+	assert.Equal(tokenResp.Token.Policies[0].ID, policy.ID)
+}
+
+func TestACLEndpoint_TokenDelete(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	existingToken, err := upsertTestToken(codec, "root", "dc1")
+	assert.NoError(err)
+
+	acl := ACL{srv: s1}
+
+	// deletes a token
+	{
+		req := structs.ACLTokenDeleteRequest{
+			Datacenter:   "dc1",
+			TokenID:      existingToken.AccessorID,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		var resp string
+
+		err = acl.TokenDelete(&req, &resp)
+		assert.NoError(err)
+
+		// Make sure the token is gone
+		tokenResp, err := retrieveTestToken(codec, "root", "dc1", existingToken.AccessorID)
+		assert.Nil(tokenResp.Token)
+		assert.NoError(err)
+	}
+
+	// errors when token doesn't exist
+	{
+		fakeID, err := uuid.GenerateUUID()
+		assert.NoError(err)
+
+		req := structs.ACLTokenDeleteRequest{
+			Datacenter:   "dc1",
+			TokenID:      fakeID,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		var resp string
+
+		err = acl.TokenDelete(&req, &resp)
+		assert.NoError(err)
+
+		// token should be nil
+		tokenResp, err := retrieveTestToken(codec, "root", "dc1", existingToken.AccessorID)
+		assert.Nil(tokenResp.Token)
+		assert.NoError(err)
+	}
+}
+func TestACLEndpoint_TokenDelete_anon(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	acl := ACL{srv: s1}
+
+	req := structs.ACLTokenDeleteRequest{
+		Datacenter:   "dc1",
+		TokenID:      structs.ACLTokenAnonymousID,
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+
+	var resp string
+
+	err := acl.TokenDelete(&req, &resp)
+	assert.EqualError(err, "Delete operation not permitted on the anonymous token")
+
+	// Make sure the token is still there
+	tokenResp, err := retrieveTestToken(codec, "root", "dc1", structs.ACLTokenAnonymousID)
+	assert.NotNil(tokenResp.Token)
+}
+
+func TestACLEndpoint_TokenList(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	t1, err := upsertTestToken(codec, "root", "dc1")
+	assert.NoError(err)
+
+	t2, err := upsertTestToken(codec, "root", "dc1")
+	assert.NoError(err)
+
+	acl := ACL{srv: s1}
+
+	req := structs.ACLTokenListRequest{
+		Datacenter:   "dc1",
+		QueryOptions: structs.QueryOptions{Token: "root"},
+	}
+
+	resp := structs.ACLTokenListResponse{}
+
+	err = acl.TokenList(&req, &resp)
+	assert.NoError(err)
+
+	tokens := []string{t1.AccessorID, t2.AccessorID}
+	var retrievedTokens []string
+
+	for _, v := range resp.Tokens {
+		retrievedTokens = append(retrievedTokens, v.AccessorID)
+	}
+	assert.Subset(retrievedTokens, tokens)
+}
+
+func TestACLEndpoint_TokenBatchRead(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	t1, err := upsertTestToken(codec, "root", "dc1")
+	assert.NoError(err)
+
+	t2, err := upsertTestToken(codec, "root", "dc1")
+	assert.NoError(err)
+
+	acl := ACL{srv: s1}
+	tokens := []string{t1.AccessorID, t2.AccessorID}
+
+	req := structs.ACLTokenBatchReadRequest{
+		Datacenter:   "dc1",
+		AccessorIDs:  tokens,
+		QueryOptions: structs.QueryOptions{Token: "root"},
+	}
+
+	resp := structs.ACLTokensResponse{}
+
+	err = acl.TokenBatchRead(&req, &resp)
+	assert.NoError(err)
+
+	var retrievedTokens []string
+
+	for _, v := range resp.Tokens {
+		retrievedTokens = append(retrievedTokens, v.AccessorID)
+	}
+	assert.EqualValues(retrievedTokens, tokens)
+}
+
+func TestACLEndpoint_PolicyRead(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	policy, err := upsertTestPolicy(codec, "root", "dc1")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	acl := ACL{srv: s1}
+
+	req := structs.ACLPolicyReadRequest{
+		Datacenter:   "dc1",
+		PolicyID:     policy.ID,
+		QueryOptions: structs.QueryOptions{Token: "root"},
+	}
+
+	resp := structs.ACLPolicyResponse{}
+
+	err = acl.PolicyRead(&req, &resp)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if !reflect.DeepEqual(resp.Policy, policy) {
+		t.Fatalf("tokens are not equal: %v != %v", resp.Policy, policy)
+	}
+}
+
+func TestACLEndpoint_PolicyBatchRead(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	t1, err := upsertTestToken(codec, "root", "dc1")
+	assert.NoError(err)
+
+	t2, err := upsertTestToken(codec, "root", "dc1")
+	assert.NoError(err)
+
+	acl := ACL{srv: s1}
+	tokens := []string{t1.AccessorID, t2.AccessorID}
+
+	req := structs.ACLTokenBatchReadRequest{
+		Datacenter:   "dc1",
+		AccessorIDs:  tokens,
+		QueryOptions: structs.QueryOptions{Token: "root"},
+	}
+
+	resp := structs.ACLTokensResponse{}
+
+	err = acl.TokenBatchRead(&req, &resp)
+	assert.NoError(err)
+
+	var retrievedTokens []string
+
+	for _, v := range resp.Tokens {
+		retrievedTokens = append(retrievedTokens, v.AccessorID)
+	}
+	assert.EqualValues(retrievedTokens, tokens)
+}
+
+func TestACLEndpoint_PolicyUpsert(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	acl := ACL{srv: s1}
+	var policyID string
+
+	// Create it
+	{
+		req := structs.ACLPolicyUpsertRequest{
+			Datacenter: "dc1",
+			Policy: structs.ACLPolicy{
+				Description: "foobar",
+				Name:        "baz",
+				Rules:       "service \"\" { policy = \"read\" }",
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		resp := structs.ACLPolicy{}
+
+		err := acl.PolicyUpsert(&req, &resp)
+		assert.NoError(err)
+		assert.NotNil(resp.ID)
+
+		// Get the policy directly to validate that it exists
+		policyResp, err := retrieveTestPolicy(codec, "root", "dc1", resp.ID)
+		assert.NoError(err)
+		policy := policyResp.Policy
+
+		assert.NotNil(policy.ID)
+		assert.Equal(policy.Description, "foobar")
+		assert.Equal(policy.Name, "baz")
+		assert.Equal(policy.Rules, "service \"\" { policy = \"read\" }")
+
+		policyID = policy.ID
+	}
+
+	// Update it
+	{
+		req := structs.ACLPolicyUpsertRequest{
+			Datacenter: "dc1",
+			Policy: structs.ACLPolicy{
+				ID:          policyID,
+				Description: "bat",
+				Name:        "bar",
+				Rules:       "service \"\" { policy = \"write\" }",
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		resp := structs.ACLPolicy{}
+
+		err := acl.PolicyUpsert(&req, &resp)
+		assert.NoError(err)
+		assert.NotNil(resp.ID)
+
+		// Get the policy directly to validate that it exists
+		policyResp, err := retrieveTestPolicy(codec, "root", "dc1", resp.ID)
+		assert.NoError(err)
+		policy := policyResp.Policy
+
+		assert.NotNil(policy.ID)
+		assert.Equal(policy.Description, "bat")
+		assert.Equal(policy.Name, "bar")
+		assert.Equal(policy.Rules, "service \"\" { policy = \"write\" }")
+	}
+}
+
+func TestACLEndpoint_PolicyUpsert_globalManagement(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	acl := ACL{srv: s1}
+
+	// Can't change the rules
+	{
+
+		req := structs.ACLPolicyUpsertRequest{
+			Datacenter: "dc1",
+			Policy: structs.ACLPolicy{
+				ID:    structs.ACLPolicyGlobalManagementID,
+				Name:  "foobar", // This is required to get past validation
+				Rules: "service \"\" { policy = \"write\" }",
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		resp := structs.ACLPolicy{}
+
+		err := acl.PolicyUpsert(&req, &resp)
+		assert.EqualError(err, "Changing the Rules for the builtin global-management policy is not permitted")
+	}
+
+	// Can rename it
+	{
+		req := structs.ACLPolicyUpsertRequest{
+			Datacenter: "dc1",
+			Policy: structs.ACLPolicy{
+				ID:    structs.ACLPolicyGlobalManagementID,
+				Name:  "foobar",
+				Rules: structs.ACLPolicyGlobalManagement,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		resp := structs.ACLPolicy{}
+
+		err := acl.PolicyUpsert(&req, &resp)
+		assert.NoError(err)
+
+		// Get the policy again
+		policyResp, err := retrieveTestPolicy(codec, "root", "dc1", structs.ACLPolicyGlobalManagementID)
+		assert.NoError(err)
+		policy := policyResp.Policy
+
+		assert.Equal(policy.ID, structs.ACLPolicyGlobalManagementID)
+		assert.Equal(policy.Name, "foobar")
+
+	}
+}
+
+func TestACLEndpoint_PolicyDelete(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	existingPolicy, err := upsertTestPolicy(codec, "root", "dc1")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	acl := ACL{srv: s1}
+
+	req := structs.ACLPolicyDeleteRequest{
+		Datacenter:   "dc1",
+		PolicyID:     existingPolicy.ID,
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+
+	var resp string
+
+	err = acl.PolicyDelete(&req, &resp)
+	assert.NoError(err)
+
+	// Make sure the policy is gone
+	tokenResp, err := retrieveTestPolicy(codec, "root", "dc1", existingPolicy.ID)
+	assert.Nil(tokenResp.Policy)
+}
+
+func TestACLEndpoint_PolicyDelete_globalManagement(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	acl := ACL{srv: s1}
+
+	req := structs.ACLPolicyDeleteRequest{
+		Datacenter:   "dc1",
+		PolicyID:     structs.ACLPolicyGlobalManagementID,
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var resp string
+
+	err := acl.PolicyDelete(&req, &resp)
+
+	assert.EqualError(err, "Delete operation not permitted on the builtin global-management policy")
+}
+
+func TestACLEndpoint_PolicyList(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	p1, err := upsertTestPolicy(codec, "root", "dc1")
+	assert.NoError(err)
+
+	p2, err := upsertTestPolicy(codec, "root", "dc1")
+	assert.NoError(err)
+
+	acl := ACL{srv: s1}
+
+	req := structs.ACLPolicyListRequest{
+		Datacenter:   "dc1",
+		QueryOptions: structs.QueryOptions{Token: "root"},
+	}
+
+	resp := structs.ACLPolicyListResponse{}
+
+	err = acl.PolicyList(&req, &resp)
+	assert.NoError(err)
+
+	policies := []string{p1.ID, p2.ID}
+	var retrievedPolicies []string
+
+	for _, v := range resp.Policies {
+		retrievedPolicies = append(retrievedPolicies, v.ID)
+	}
+	assert.Subset(retrievedPolicies, policies)
+}
+
+func TestACLEndpoint_PolicyResolve(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	p1, err := upsertTestPolicy(codec, "root", "dc1")
+	assert.NoError(err)
+
+	p2, err := upsertTestPolicy(codec, "root", "dc1")
+	assert.NoError(err)
+
+	acl := ACL{srv: s1}
+
+	policies := []string{p1.ID, p2.ID}
+
+	// Assign the policies to a token
+	tokenUpsertReq := structs.ACLTokenUpsertRequest{
+		Datacenter: "dc1",
+		ACLToken: structs.ACLToken{
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID: p1.ID,
+				},
+				structs.ACLTokenPolicyLink{
+					ID: p2.ID,
+				},
+			},
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	token := structs.ACLToken{}
+	err = acl.TokenUpsert(&tokenUpsertReq, &token)
+	assert.NoError(err)
+	assert.NotEmpty(token.SecretID)
+
+	resp := structs.ACLPoliciesResponse{}
+	req := structs.ACLPolicyBatchReadRequest{
+		Datacenter:   "dc1",
+		PolicyIDs:    []string{p1.ID, p2.ID},
+		QueryOptions: structs.QueryOptions{Token: token.SecretID},
+	}
+	err = acl.PolicyResolve(&req, &resp)
+	assert.NoError(err)
+
+	var retrievedPolicies []string
+
+	for _, v := range resp.Policies {
+		retrievedPolicies = append(retrievedPolicies, v.ID)
+	}
+	assert.EqualValues(retrievedPolicies, policies)
+}
+
+// upsertTestToken creates a token for testing purposes
+func upsertTestToken(codec rpc.ClientCodec, masterToken string, datacenter string) (*structs.ACLToken, error) {
+	arg := structs.ACLTokenUpsertRequest{
+		Datacenter: datacenter,
+		ACLToken: structs.ACLToken{
+			Description: "User token",
+			Local:       false,
+			Policies:    nil,
+		},
+		WriteRequest: structs.WriteRequest{Token: masterToken},
+	}
+
+	var out structs.ACLToken
+
+	err := msgpackrpc.CallWithCodec(codec, "ACL.TokenUpsert", &arg, &out)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if out.AccessorID == "" {
+		return nil, fmt.Errorf("AccessorID is nil: %v", out)
+	}
+
+	return &out, nil
+}
+
+// retrieveTestToken returns a policy for testing purposes
+func retrieveTestToken(codec rpc.ClientCodec, masterToken string, datacenter string, id string) (*structs.ACLTokenResponse, error) {
+	arg := structs.ACLTokenReadRequest{
+		Datacenter:   datacenter,
+		TokenID:      id,
+		TokenIDType:  structs.ACLTokenAccessor,
+		QueryOptions: structs.QueryOptions{Token: masterToken},
+	}
+
+	var out structs.ACLTokenResponse
+
+	err := msgpackrpc.CallWithCodec(codec, "ACL.TokenRead", &arg, &out)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+// upsertTestPolicy creates a policy for testing purposes
+func upsertTestPolicy(codec rpc.ClientCodec, masterToken string, datacenter string) (*structs.ACLPolicy, error) {
+	// Make sure test policies can't collide
+	policyUnq, err := uuid.GenerateUUID()
+	if err != nil {
+		return nil, err
+	}
+
+	arg := structs.ACLPolicyUpsertRequest{
+		Datacenter: datacenter,
+		Policy: structs.ACLPolicy{
+			Name: fmt.Sprintf("test-policy-%s", policyUnq),
+		},
+		WriteRequest: structs.WriteRequest{Token: masterToken},
+	}
+
+	var out structs.ACLPolicy
+
+	err = msgpackrpc.CallWithCodec(codec, "ACL.PolicyUpsert", &arg, &out)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if out.ID == "" {
+		return nil, fmt.Errorf("ID is nil: %v", out)
+	}
+
+	return &out, nil
+}
+
+// retrieveTestPolicy returns a policy for testing purposes
+func retrieveTestPolicy(codec rpc.ClientCodec, masterToken string, datacenter string, id string) (*structs.ACLPolicyResponse, error) {
+	arg := structs.ACLPolicyReadRequest{
+		Datacenter:   datacenter,
+		PolicyID:     id,
+		QueryOptions: structs.QueryOptions{Token: masterToken},
+	}
+
+	var out structs.ACLPolicyResponse
+
+	err := msgpackrpc.CallWithCodec(codec, "ACL.PolicyRead", &arg, &out)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &out, nil
 }

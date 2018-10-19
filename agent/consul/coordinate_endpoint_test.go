@@ -181,6 +181,7 @@ func TestCoordinate_Update_ACLDeny(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 		c.ACLEnforceVersion8 = false
@@ -223,7 +224,7 @@ func TestCoordinate_Update_ACLDeny(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 			Rules: `
 node "node1" {
 	policy = "write"
@@ -351,6 +352,7 @@ func TestCoordinate_ListNodes_ACLFilter(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 		c.ACLEnforceVersion8 = false
@@ -456,7 +458,7 @@ func TestCoordinate_ListNodes_ACLFilter(t *testing.T) {
 			Op:         structs.ACLSet,
 			ACL: structs.ACL{
 				Name: "User token",
-				Type: structs.ACLTypeClient,
+				Type: structs.ACLTokenTypeClient,
 				Rules: `
 node "foo" {
 	policy = "read"
@@ -538,6 +540,7 @@ func TestCoordinate_Node_ACLDeny(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 		c.ACLEnforceVersion8 = false
@@ -597,7 +600,7 @@ func TestCoordinate_Node_ACLDeny(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name: "User token",
-			Type: structs.ACLTypeClient,
+			Type: structs.ACLTokenTypeClient,
 			Rules: `
 node "node1" {
 	policy = "read"

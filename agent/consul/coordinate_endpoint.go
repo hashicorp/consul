@@ -134,7 +134,7 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 	}
 
 	// Fetch the ACL token, if any, and enforce the node policy if enabled.
-	rule, err := c.srv.resolveToken(args.Token)
+	rule, err := c.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
@@ -205,7 +205,7 @@ func (c *Coordinate) Node(args *structs.NodeSpecificRequest, reply *structs.Inde
 	}
 
 	// Fetch the ACL token, if any, and enforce the node policy if enabled.
-	rule, err := c.srv.resolveToken(args.Token)
+	rule, err := c.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}

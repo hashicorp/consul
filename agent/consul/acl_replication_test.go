@@ -1,6 +1,8 @@
 package consul
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"reflect"
@@ -10,9 +12,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/stretchr/testify/require"
 )
 
 func TestACLReplication_Sorter(t *testing.T) {
@@ -216,7 +220,7 @@ func TestACLReplication_reconcileACLs(t *testing.T) {
 	}
 	for i, test := range tests {
 		local, remote := parseACLs(test.local), parseACLs(test.remote)
-		changes := reconcileACLs(local, remote, test.lastRemoteIndex)
+		changes := reconcileLegacyACLs(local, remote, test.lastRemoteIndex)
 		if actual := parseChanges(changes); actual != test.expected {
 			t.Errorf("test case %d failed: %s", i, actual)
 		}
@@ -228,6 +232,7 @@ func TestACLReplication_updateLocalACLs_RateLimit(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLReplicationApplyLimit = 1
 	})
 	s1.tokens.UpdateACLReplicationToken("secret")
@@ -247,7 +252,7 @@ func TestACLReplication_updateLocalACLs_RateLimit(t *testing.T) {
 
 	// Should be throttled to 1 Hz.
 	start := time.Now()
-	if err := s1.updateLocalACLs(changes); err != nil {
+	if _, err := s1.updateLocalLegacyACLs(changes, context.Background()); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if dur := time.Since(start); dur < time.Second {
@@ -265,7 +270,7 @@ func TestACLReplication_updateLocalACLs_RateLimit(t *testing.T) {
 
 	// Should be throttled to 1 Hz.
 	start = time.Now()
-	if err := s1.updateLocalACLs(changes); err != nil {
+	if _, err := s1.updateLocalLegacyACLs(changes, context.Background()); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if dur := time.Since(start); dur < 2*time.Second {
@@ -278,6 +283,7 @@ func TestACLReplication_IsACLReplicationEnabled(t *testing.T) {
 	// ACLs not enabled.
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = ""
+		c.ACLsEnabled = false
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -289,6 +295,7 @@ func TestACLReplication_IsACLReplicationEnabled(t *testing.T) {
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
@@ -303,7 +310,8 @@ func TestACLReplication_IsACLReplicationEnabled(t *testing.T) {
 	dir3, s3 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.ACLDatacenter = "dc1"
-		c.EnableACLReplication = true
+		c.ACLsEnabled = true
+		c.ACLTokenReplication = true
 	})
 	defer os.RemoveAll(dir3)
 	defer s3.Shutdown()
@@ -317,7 +325,8 @@ func TestACLReplication_IsACLReplicationEnabled(t *testing.T) {
 	dir4, s4 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
 		c.ACLDatacenter = "dc1"
-		c.EnableACLReplication = true
+		c.ACLsEnabled = true
+		c.ACLTokenReplication = true
 	})
 	defer os.RemoveAll(dir4)
 	defer s4.Shutdown()
@@ -331,6 +340,7 @@ func TestACLReplication(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -342,12 +352,14 @@ func TestACLReplication(t *testing.T) {
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.ACLDatacenter = "dc1"
-		c.EnableACLReplication = true
-		c.ACLReplicationInterval = 10 * time.Millisecond
+		c.ACLsEnabled = true
+		c.ACLTokenReplication = true
+		c.ACLReplicationRate = 100
+		c.ACLReplicationBurst = 100
 		c.ACLReplicationApplyLimit = 1000000
 	})
-	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 	s2.tokens.UpdateACLReplicationToken("root")
+	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
 
@@ -364,7 +376,7 @@ func TestACLReplication(t *testing.T) {
 			Op:         structs.ACLSet,
 			ACL: structs.ACL{
 				Name:  "User token",
-				Type:  structs.ACLTypeClient,
+				Type:  structs.ACLTokenTypeClient,
 				Rules: testACLPolicy,
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
@@ -375,19 +387,19 @@ func TestACLReplication(t *testing.T) {
 	}
 
 	checkSame := func() error {
-		index, remote, err := s1.fsm.State().ACLList(nil)
+		index, remote, err := s1.fsm.State().ACLTokenList(nil, true, true, "")
 		if err != nil {
 			return err
 		}
-		_, local, err := s2.fsm.State().ACLList(nil)
+		_, local, err := s2.fsm.State().ACLTokenList(nil, true, true, "")
 		if err != nil {
 			return err
 		}
 		if got, want := len(remote), len(local); got != want {
 			return fmt.Errorf("got %d remote ACLs want %d", got, want)
 		}
-		for i, acl := range remote {
-			if !acl.IsSame(local[i]) {
+		for i, token := range remote {
+			if !bytes.Equal(token.Hash, local[i].Hash) {
 				return fmt.Errorf("ACLs differ")
 			}
 		}
@@ -397,7 +409,7 @@ func TestACLReplication(t *testing.T) {
 		status = s2.aclReplicationStatus
 		s2.aclReplicationStatusLock.RUnlock()
 		if !status.Enabled || !status.Running ||
-			status.ReplicatedIndex != index ||
+			status.ReplicatedTokenIndex != index ||
 			status.SourceDatacenter != "dc1" {
 			return fmt.Errorf("ACL replication status differs")
 		}
@@ -418,7 +430,7 @@ func TestACLReplication(t *testing.T) {
 			Op:         structs.ACLSet,
 			ACL: structs.ACL{
 				Name:  "User token",
-				Type:  structs.ACLTypeClient,
+				Type:  structs.ACLTokenTypeClient,
 				Rules: testACLPolicy,
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
@@ -454,4 +466,208 @@ func TestACLReplication(t *testing.T) {
 			r.Fatal(err)
 		}
 	})
+}
+
+func TestACLReplication_diffACLPolicies(t *testing.T) {
+	local := structs.ACLPolicies{
+		&structs.ACLPolicy{
+			ID:          "44ef9aec-7654-4401-901b-4d4a8b3c80fc",
+			Name:        "policy1",
+			Description: "policy1 - already in sync",
+			Rules:       `acl = "read"`,
+			Syntax:      acl.SyntaxCurrent,
+			Datacenters: nil,
+			Hash:        []byte{1, 2, 3, 4},
+			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
+		},
+		&structs.ACLPolicy{
+			ID:          "8ea41efb-8519-4091-bc91-c42da0cda9ae",
+			Name:        "policy2",
+			Description: "policy2 - updated but not changed",
+			Rules:       `acl = "read"`,
+			Syntax:      acl.SyntaxCurrent,
+			Datacenters: nil,
+			Hash:        []byte{1, 2, 3, 4},
+			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 25},
+		},
+		&structs.ACLPolicy{
+			ID:          "539f1cb6-40aa-464f-ae66-a900d26bc1b2",
+			Name:        "policy3",
+			Description: "policy3 - updated and changed",
+			Rules:       `acl = "read"`,
+			Syntax:      acl.SyntaxCurrent,
+			Datacenters: nil,
+			Hash:        []byte{1, 2, 3, 4},
+			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 25},
+		},
+		&structs.ACLPolicy{
+			ID:          "e9d33298-6490-4466-99cb-ba93af64fa76",
+			Name:        "policy4",
+			Description: "policy4 - needs deleting",
+			Rules:       `acl = "read"`,
+			Syntax:      acl.SyntaxCurrent,
+			Datacenters: nil,
+			Hash:        []byte{1, 2, 3, 4},
+			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 25},
+		},
+	}
+
+	remote := structs.ACLPolicyListStubs{
+		&structs.ACLPolicyListStub{
+			ID:          "44ef9aec-7654-4401-901b-4d4a8b3c80fc",
+			Name:        "policy1",
+			Description: "policy1 - already in sync",
+			Datacenters: nil,
+			Hash:        []byte{1, 2, 3, 4},
+			CreateIndex: 1,
+			ModifyIndex: 2,
+		},
+		&structs.ACLPolicyListStub{
+			ID:          "8ea41efb-8519-4091-bc91-c42da0cda9ae",
+			Name:        "policy2",
+			Description: "policy2 - updated but not changed",
+			Datacenters: nil,
+			Hash:        []byte{1, 2, 3, 4},
+			CreateIndex: 1,
+			ModifyIndex: 50,
+		},
+		&structs.ACLPolicyListStub{
+			ID:          "539f1cb6-40aa-464f-ae66-a900d26bc1b2",
+			Name:        "policy3",
+			Description: "policy3 - updated and changed",
+			Datacenters: nil,
+			Hash:        []byte{5, 6, 7, 8},
+			CreateIndex: 1,
+			ModifyIndex: 50,
+		},
+		&structs.ACLPolicyListStub{
+			ID:          "c6e8fffd-cbd9-4ecd-99fe-ab2f200c7926",
+			Name:        "policy5",
+			Description: "policy5 - needs adding",
+			Datacenters: nil,
+			Hash:        []byte{1, 2, 3, 4},
+			CreateIndex: 1,
+			ModifyIndex: 50,
+		},
+	}
+
+	// Do the full diff. This full exercises the main body of the loop
+	deletions, updates := diffACLPolicies(local, remote, 28)
+	require.Len(t, updates, 2)
+	require.ElementsMatch(t, updates, []string{
+		"c6e8fffd-cbd9-4ecd-99fe-ab2f200c7926",
+		"539f1cb6-40aa-464f-ae66-a900d26bc1b2"})
+
+	require.Len(t, deletions, 1)
+	require.Equal(t, "e9d33298-6490-4466-99cb-ba93af64fa76", deletions[0])
+
+	deletions, updates = diffACLPolicies(local, nil, 28)
+	require.Len(t, updates, 0)
+	require.Len(t, deletions, 4)
+	require.ElementsMatch(t, deletions, []string{
+		"44ef9aec-7654-4401-901b-4d4a8b3c80fc",
+		"8ea41efb-8519-4091-bc91-c42da0cda9ae",
+		"539f1cb6-40aa-464f-ae66-a900d26bc1b2",
+		"e9d33298-6490-4466-99cb-ba93af64fa76"})
+
+	deletions, updates = diffACLPolicies(nil, remote, 28)
+	require.Len(t, deletions, 0)
+	require.Len(t, updates, 4)
+	require.ElementsMatch(t, updates, []string{
+		"44ef9aec-7654-4401-901b-4d4a8b3c80fc",
+		"8ea41efb-8519-4091-bc91-c42da0cda9ae",
+		"539f1cb6-40aa-464f-ae66-a900d26bc1b2",
+		"c6e8fffd-cbd9-4ecd-99fe-ab2f200c7926"})
+}
+
+func TestACLReplication_diffACLTokens(t *testing.T) {
+	local := structs.ACLTokens{
+		&structs.ACLToken{
+			AccessorID:  "44ef9aec-7654-4401-901b-4d4a8b3c80fc",
+			SecretID:    "44ef9aec-7654-4401-901b-4d4a8b3c80fc",
+			Description: "token1 - already in sync",
+			Hash:        []byte{1, 2, 3, 4},
+			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
+		},
+		&structs.ACLToken{
+			AccessorID:  "8ea41efb-8519-4091-bc91-c42da0cda9ae",
+			SecretID:    "8ea41efb-8519-4091-bc91-c42da0cda9ae",
+			Description: "token2 - updated but not changed",
+			Hash:        []byte{1, 2, 3, 4},
+			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 25},
+		},
+		&structs.ACLToken{
+			AccessorID:  "539f1cb6-40aa-464f-ae66-a900d26bc1b2",
+			SecretID:    "539f1cb6-40aa-464f-ae66-a900d26bc1b2",
+			Description: "token3 - updated and changed",
+			Hash:        []byte{1, 2, 3, 4},
+			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 25},
+		},
+		&structs.ACLToken{
+			AccessorID:  "e9d33298-6490-4466-99cb-ba93af64fa76",
+			SecretID:    "e9d33298-6490-4466-99cb-ba93af64fa76",
+			Description: "token4 - needs deleting",
+			Hash:        []byte{1, 2, 3, 4},
+			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 25},
+		},
+	}
+
+	remote := structs.ACLTokenListStubs{
+		&structs.ACLTokenListStub{
+			AccessorID:  "44ef9aec-7654-4401-901b-4d4a8b3c80fc",
+			Description: "token1 - already in sync",
+			Hash:        []byte{1, 2, 3, 4},
+			CreateIndex: 1,
+			ModifyIndex: 2,
+		},
+		&structs.ACLTokenListStub{
+			AccessorID:  "8ea41efb-8519-4091-bc91-c42da0cda9ae",
+			Description: "token2 - updated but not changed",
+			Hash:        []byte{1, 2, 3, 4},
+			CreateIndex: 1,
+			ModifyIndex: 50,
+		},
+		&structs.ACLTokenListStub{
+			AccessorID:  "539f1cb6-40aa-464f-ae66-a900d26bc1b2",
+			Description: "token3 - updated and changed",
+			Hash:        []byte{5, 6, 7, 8},
+			CreateIndex: 1,
+			ModifyIndex: 50,
+		},
+		&structs.ACLTokenListStub{
+			AccessorID:  "c6e8fffd-cbd9-4ecd-99fe-ab2f200c7926",
+			Description: "token5 - needs adding",
+			Hash:        []byte{1, 2, 3, 4},
+			CreateIndex: 1,
+			ModifyIndex: 50,
+		},
+	}
+
+	// Do the full diff. This full exercises the main body of the loop
+	deletions, updates := diffACLTokens(local, remote, 28)
+	require.Len(t, updates, 2)
+	require.ElementsMatch(t, updates, []string{
+		"c6e8fffd-cbd9-4ecd-99fe-ab2f200c7926",
+		"539f1cb6-40aa-464f-ae66-a900d26bc1b2"})
+
+	require.Len(t, deletions, 1)
+	require.Equal(t, "e9d33298-6490-4466-99cb-ba93af64fa76", deletions[0])
+
+	deletions, updates = diffACLTokens(local, nil, 28)
+	require.Len(t, updates, 0)
+	require.Len(t, deletions, 4)
+	require.ElementsMatch(t, deletions, []string{
+		"44ef9aec-7654-4401-901b-4d4a8b3c80fc",
+		"8ea41efb-8519-4091-bc91-c42da0cda9ae",
+		"539f1cb6-40aa-464f-ae66-a900d26bc1b2",
+		"e9d33298-6490-4466-99cb-ba93af64fa76"})
+
+	deletions, updates = diffACLTokens(nil, remote, 28)
+	require.Len(t, deletions, 0)
+	require.Len(t, updates, 4)
+	require.ElementsMatch(t, updates, []string{
+		"44ef9aec-7654-4401-901b-4d4a8b3c80fc",
+		"8ea41efb-8519-4091-bc91-c42da0cda9ae",
+		"539f1cb6-40aa-464f-ae66-a900d26bc1b2",
+		"c6e8fffd-cbd9-4ecd-99fe-ab2f200c7926"})
 }

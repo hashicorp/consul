@@ -260,7 +260,7 @@ func (s *HTTPServer) nodeName() string {
 // And then the loop that looks for parameters called "token" does the last
 // step to get to the final redacted form.
 var (
-	aclEndpointRE = regexp.MustCompile("^(/v1/acl/[^/]+/)([^?]+)([?]?.*)$")
+	aclEndpointRE = regexp.MustCompile("^(/v1/acl/(create|update|destroy|info|clone|list)/)([^?]+)([?]?.*)$")
 )
 
 // wrap is used to wrap functions to make them more convenient
@@ -286,7 +286,7 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 				logURL = strings.Replace(logURL, token, "<hidden>", -1)
 			}
 		}
-		logURL = aclEndpointRE.ReplaceAllString(logURL, "$1<hidden>$3")
+		logURL = aclEndpointRE.ReplaceAllString(logURL, "$1<hidden>$4")
 
 		if s.blacklist.Block(req.URL.Path) {
 			errMsg := "Endpoint is blocked by agent configuration"

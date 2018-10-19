@@ -399,7 +399,9 @@ The table below shows this endpoint's support for
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter.
 
-- `tag` `(string: "")` - Specifies the tag to filter on.
+- `tag` `(string: "")` - Specifies the tag to filter on. This is specified as part of 
+  the URL as a query parameter. Can be used multiple times for additional filtering,
+  returning only the results that include all of the tag values provided.
 
 - `near` `(string: "")` - Specifies a node name to sort the node list in
   ascending order based on the estimated round trip time from that node. Passing
