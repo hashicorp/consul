@@ -316,13 +316,13 @@ function build_consul {
    fi
    XC_OS=${XC_OS:-"solaris darwin freebsd linux windows"}
    XC_ARCH=${XC_ARCH:-"386 amd64 arm arm64"}
-   
+
    if test -n "${extra_dir_name}"
    then
       extra_dir="${extra_dir_name}/"
    fi
 
-   local container_id=$(docker create -it -e CGO_ENABLED=0 ${image_name} gox -os="${XC_OS}" -arch="${XC_ARCH}" -osarch="!darwin/arm !darwin/arm64" -ldflags "${GOLDFLAGS}" -output "pkg/bin/${extra_dir}{{.OS}}_{{.Arch}}/consul" -tags="${GOTAGS}")
+   local container_id=$(docker create -it -e CGO_ENABLED=0 ${image_name} gox -os="${XC_OS}" -arch="${XC_ARCH}" -osarch="!darwin/arm !freebsd/arm !darwin/arm64" -ldflags "${GOLDFLAGS}" -output "pkg/bin/${extra_dir}{{.OS}}_{{.Arch}}/consul" -tags="${GOTAGS}")
    ret=$?
 
    if test $ret -eq 0
@@ -393,39 +393,39 @@ function build_consul_local {
       then
          XC_OS=$(go env GOOS)
       fi
-      
+
       if test -z "${XC_ARCH}"
       then
          XC_ARCH=$(go env GOARCH)
       fi
-   fi   
+   fi
    XC_OS=${XC_OS:-"solaris darwin freebsd linux windows"}
    XC_ARCH=${XC_ARCH:-"386 amd64 arm arm64"}
-   
+
    if test -z "${build_os}"
    then
       build_os="${XC_OS}"
    fi
-   
+
    if test -z "${build_arch}"
    then
       build_arch="${XC_ARCH}"
    fi
-   
+
    local use_gox=1
    is_set "${NOGOX}" && use_gox=0
    which gox > /dev/null || use_gox=0
-   
+
    status_stage "==> Building Consul - OSes: ${build_os}, Architectures: ${build_arch}"
    mkdir pkg.bin.new 2> /dev/null
    if is_set "${use_gox}"
-   then 
+   then
       status "Using gox for concurrent compilation"
-      
+
       CGO_ENABLED=0 gox \
          -os="${build_os}" \
          -arch="${build_arch}" \
-         -osarch="!darwin/arm !darwin/arm64" \
+         -osarch="!darwin/arm !darwin/arm64 !freebsd/arm"  \
          -ldflags="${GOLDFLAGS}" \
          -output "pkg.bin.new/${extra_dir}{{.OS}}_{{.Arch}}/consul" \
          -tags="${GOTAGS}" \
@@ -445,19 +445,19 @@ function build_consul_local {
          do
             outdir="pkg.bin.new/${extra_dir}${os}_${arch}"
             osarch="${os}/${arch}"
-            if test "${osarch}" == "darwin/arm" -o "${osarch}" == "darwin/arm64" -o "${osarch}" == "freebsd/arm64" -o "${osarch}" == "windows/arm" -o "${osarch}" == "windows/arm64"
+            if test "${osarch}" == "darwin/arm" -o "${osarch}" == "darwin/arm64" -o "${osarch}" == "freebsd/arm64" -o "${osarch}" == "windows/arm" -o "${osarch}" == "windows/arm64" -o "${osarch}" == "freebsd/arm"
             then
                continue
             fi
-            
+
             if test "${os}" == "solaris" -a "${arch}" != "amd64"
             then
-               continue 
+               continue
             fi
-            
+
             echo "--->   ${osarch}"
-            
-            
+
+
             mkdir -p "${outdir}"
             GOBIN_EXTRA=""
             if test "${os}" != "$(go env GOHOSTOS)" -o "${arch}" != "$(go env GOHOSTARCH)"
