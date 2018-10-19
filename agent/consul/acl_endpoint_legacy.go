@@ -93,6 +93,11 @@ func aclApplyInternal(srv *Server, args *structs.ACLRequest, reply *string) erro
 			return fmt.Errorf("Invalid ACL Type")
 		}
 
+		_, existing, _ := srv.fsm.State().ACLTokenGetBySecret(nil, args.ACL.ID)
+		if existing != nil && len(existing.Policies) > 0 {
+			return fmt.Errorf("Cannot use legacy endpoint to modify a non-legacy token")
+		}
+
 		// Verify this is not a root ACL
 		if acl.RootAuthorizer(args.ACL.ID) != nil {
 			return acl.PermissionDeniedError{Cause: "Cannot modify root ACL"}

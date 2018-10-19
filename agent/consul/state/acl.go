@@ -335,6 +335,15 @@ func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToke
 		return nil
 	}
 
+	if legacy && existing != nil {
+		original := existing.(*structs.ACLToken)
+		if len(original.Policies) > 0 {
+			return fmt.Errorf("failed inserting acl token: cannot use legacy endpoint to modify a non-legacy token")
+		}
+
+		token.AccessorID = original.AccessorID
+	}
+
 	if err := s.resolveTokenPolicyLinks(tx, token, allowMissingPolicyIDs); err != nil {
 		return err
 	}
