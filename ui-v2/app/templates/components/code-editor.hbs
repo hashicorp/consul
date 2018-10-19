@@ -1,7 +1,18 @@
 {{ivy-codemirror
     value=value
+    readonly=readonly
     name=name
     class=class
-    options=(hash readOnly=readonly lineNumbers=true mode=mode theme='hashi' showCursorWhenSelecting=true)
+    options=options
     valueUpdated=(action onkeyup)
 }}
+{{#if (not syntax)}}
+{{#power-select
+  onchange=(action onchange)
+  selected=mode
+  searchEnabled=false
+  options=modes as |mode|
+}}
+  {{mode.name}}
+{{/power-select}}
+{{/if}}
