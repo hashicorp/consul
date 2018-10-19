@@ -4,6 +4,15 @@ FEATURES:
 
 * New command `consul debug` which gathers information about the cluster to help
   resolve incidents and debug issues faster. [[GH-4754](https://github.com/hashicorp/consul/issues/4754)]
+* ACL system rewrite [[GH-4791](https://github.com/hashicorp/consul/pull/4791)]
+    * ACL CLI
+    * New ACL HTTP APIs
+    * Splitting ACL Tokens into Tokens and Policies with rules being defined on policies and tokens being linked to policies.
+    * ACL Tokens have a public accessor ID now in addition to the secret ID that they used to have.
+    * Setting a replication token is now required but it only needs "read" permissions on ACLs.
+    * Update to the rules language to allow for exact-matching rules in addition to prefix matching rules
+    * Added DC local tokens.
+    * Auto-Transitioning from legacy mode to normal mode as the cluster's servers get upgraded.
 
 IMPROVEMENTS:
 
