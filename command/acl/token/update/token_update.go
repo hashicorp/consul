@@ -156,14 +156,14 @@ const synopsis = "Update an ACL Token"
 const help = `
 Usage: consul acl token update [options]
 
-	This command will update a token. Some parts such as marking the token local
-	cannot be changed.
+    This command will update a token. Some parts such as marking the token local
+    cannot be changed.
 
-	Update a token description and take the policies from the existing token:
+    Update a token description and take the policies from the existing token:
 
-		$ consul acl token update -id abcd -description "replication" -merge-policies
+        $ consul acl token update -id abcd -description "replication" -merge-policies
 
-  	Update all editable fields of the token:
+      Update all editable fields of the token:
 
-  		$ consul acl token update -id abcd -description "replication" -policy-name "token-replication"
+          $ consul acl token update -id abcd -description "replication" -policy-name "token-replication"
 `

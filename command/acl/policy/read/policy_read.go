@@ -85,15 +85,15 @@ const synopsis = "Read an ACL Policy"
 const help = `
 Usage: consul acl policy read [options] POLICY
 
-	This command will retrieve and print out the details
-	of a single policy
+    This command will retrieve and print out the details
+    of a single policy
 
-	Read:
+    Read:
 
-		$ consul acl policy read fdabbcb5-9de5-4b1a-961f-77214ae88cba
+        $ consul acl policy read fdabbcb5-9de5-4b1a-961f-77214ae88cba
 
-	Read by name:
+    Read by name:
 
-		$ consul acl policy read -by-name my-policy
+        $ consul acl policy read -by-name my-policy
 
 `

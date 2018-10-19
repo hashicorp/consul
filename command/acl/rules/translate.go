@@ -50,7 +50,7 @@ func (c *cmd) Run(args []string) int {
 
 	data, err := c.dataFromArgs(c.flags.Args())
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error! $s", err))
+		c.UI.Error(fmt.Sprintf("Error! %v", err))
 		return 1
 	}
 

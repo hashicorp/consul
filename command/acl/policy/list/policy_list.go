@@ -1,4 +1,4 @@
-package policydelete
+package policylist
 
 import (
 	"flag"
@@ -71,7 +71,7 @@ const synopsis = "Delete an ACL Policy"
 const help = `
 Usage: consul acl policy list [options]
 
-	Lists all the ACL policies
+    Lists all the ACL policies
 
-  		$ consul acl policy list
+          $ consul acl policy list
 `

@@ -78,5 +78,5 @@ Usage: consul acl token list [options]
 
   List all the ALC tokens
 
-  		$ consul acl token list
+          $ consul acl token list
 `
