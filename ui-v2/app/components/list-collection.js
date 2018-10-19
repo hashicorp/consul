@@ -17,6 +17,7 @@ export default Component.extend(WithResizing, {
     this.columns = [25, 25, 25, 25];
   },
   didReceiveAttrs: function() {
+    this._super(...arguments);
     this._cellLayout = this['cell-layout'] = new PercentageColumns(
       get(this, 'items.length'),
       get(this, 'columns'),
