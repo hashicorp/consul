@@ -4,15 +4,18 @@ package host
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/shirou/gopsutil/internal/common"
@@ -29,6 +32,10 @@ type LSB struct {
 const USER_PROCESS = 7
 
 func Info() (*InfoStat, error) {
+	return InfoWithContext(context.Background())
+}
+
+func InfoWithContext(ctx context.Context) (*InfoStat, error) {
 	ret := &InfoStat{
 		OS: runtime.GOOS,
 	}
@@ -84,29 +91,68 @@ func Info() (*InfoStat, error) {
 	return ret, nil
 }
 
+// cachedBootTime must be accessed via atomic.Load/StoreUint64
+var cachedBootTime uint64
+
 // BootTime returns the system boot time expressed in seconds since the epoch.
 func BootTime() (uint64, error) {
-	if cachedBootTime != 0 {
-		return cachedBootTime, nil
+	return BootTimeWithContext(context.Background())
+}
+
+func BootTimeWithContext(ctx context.Context) (uint64, error) {
+	t := atomic.LoadUint64(&cachedBootTime)
+	if t != 0 {
+		return t, nil
 	}
-	filename := common.HostProc("stat")
+
+	system, role, err := Virtualization()
+	if err != nil {
+		return 0, err
+	}
+
+	statFile := "stat"
+	if system == "lxc" && role == "guest" {
+		// if lxc, /proc/uptime is used.
+		statFile = "uptime"
+	} else if system == "docker" && role == "guest" {
+		// also docker, guest
+		statFile = "uptime"
+	}
+
+	filename := common.HostProc(statFile)
 	lines, err := common.ReadLines(filename)
 	if err != nil {
 		return 0, err
 	}
-	for _, line := range lines {
-		if strings.HasPrefix(line, "btime") {
-			f := strings.Fields(line)
-			if len(f) != 2 {
-				return 0, fmt.Errorf("wrong btime format")
+
+	if statFile == "stat" {
+		for _, line := range lines {
+			if strings.HasPrefix(line, "btime") {
+				f := strings.Fields(line)
+				if len(f) != 2 {
+					return 0, fmt.Errorf("wrong btime format")
+				}
+				b, err := strconv.ParseInt(f[1], 10, 64)
+				if err != nil {
+					return 0, err
+				}
+				t = uint64(b)
+				atomic.StoreUint64(&cachedBootTime, t)
+				return t, nil
 			}
-			b, err := strconv.ParseInt(f[1], 10, 64)
-			if err != nil {
-				return 0, err
-			}
-			cachedBootTime = uint64(b)
-			return cachedBootTime, nil
 		}
+	} else if statFile == "uptime" {
+		if len(lines) != 1 {
+			return 0, fmt.Errorf("wrong uptime format")
+		}
+		f := strings.Fields(lines[0])
+		b, err := strconv.ParseFloat(f[0], 64)
+		if err != nil {
+			return 0, err
+		}
+		t = uint64(time.Now().Unix()) - uint64(b)
+		atomic.StoreUint64(&cachedBootTime, t)
+		return t, nil
 	}
 
 	return 0, fmt.Errorf("could not find btime")
@@ -117,6 +163,10 @@ func uptime(boot uint64) uint64 {
 }
 
 func Uptime() (uint64, error) {
+	return UptimeWithContext(context.Background())
+}
+
+func UptimeWithContext(ctx context.Context) (uint64, error) {
 	boot, err := BootTime()
 	if err != nil {
 		return 0, err
@@ -125,12 +175,17 @@ func Uptime() (uint64, error) {
 }
 
 func Users() ([]UserStat, error) {
-	utmpfile := "/var/run/utmp"
+	return UsersWithContext(context.Background())
+}
+
+func UsersWithContext(ctx context.Context) ([]UserStat, error) {
+	utmpfile := common.HostVar("run/utmp")
 
 	file, err := os.Open(utmpfile)
 	if err != nil {
 		return nil, err
 	}
+	defer file.Close()
 
 	buf, err := ioutil.ReadAll(file)
 	if err != nil {
@@ -241,6 +296,10 @@ func getLSB() (*LSB, error) {
 }
 
 func PlatformInformation() (platform string, family string, version string, err error) {
+	return PlatformInformationWithContext(context.Background())
+}
+
+func PlatformInformationWithContext(ctx context.Context) (platform string, family string, version string, err error) {
 
 	lsb, err := getLSB()
 	if err != nil {
@@ -259,6 +318,12 @@ func PlatformInformation() (platform string, family string, version string, err 
 		contents, err := common.ReadLines(common.HostEtc("enterprise-release"))
 		if err == nil {
 			version = getRedhatishVersion(contents)
+		}
+	} else if common.PathExists(common.HostEtc("slackware-version")) {
+		platform = "slackware"
+		contents, err := common.ReadLines(common.HostEtc("slackware-version"))
+		if err == nil {
+			version = getSlackwareVersion(contents)
 		}
 	} else if common.PathExists(common.HostEtc("debian_version")) {
 		if lsb.ID == "Ubuntu" {
@@ -363,6 +428,10 @@ func PlatformInformation() (platform string, family string, version string, err 
 }
 
 func KernelVersion() (version string, err error) {
+	return KernelVersionWithContext(context.Background())
+}
+
+func KernelVersionWithContext(ctx context.Context) (version string, err error) {
 	filename := common.HostProc("sys/kernel/osrelease")
 	if common.PathExists(filename) {
 		contents, err := common.ReadLines(filename)
@@ -376,6 +445,12 @@ func KernelVersion() (version string, err error) {
 	}
 
 	return version, nil
+}
+
+func getSlackwareVersion(contents []string) string {
+	c := strings.ToLower(strings.Join(contents, ""))
+	c = strings.Replace(c, "slackware ", "", 1)
+	return c
 }
 
 func getRedhatishVersion(contents []string) string {
@@ -422,6 +497,10 @@ func getSusePlatform(contents []string) string {
 }
 
 func Virtualization() (string, string, error) {
+	return VirtualizationWithContext(context.Background())
+}
+
+func VirtualizationWithContext(ctx context.Context) (string, string, error) {
 	var system string
 	var role string
 
@@ -430,8 +509,8 @@ func Virtualization() (string, string, error) {
 		system = "xen"
 		role = "guest" // assume guest
 
-		if common.PathExists(filename + "/capabilities") {
-			contents, err := common.ReadLines(filename + "/capabilities")
+		if common.PathExists(filepath.Join(filename, "capabilities")) {
+			contents, err := common.ReadLines(filepath.Join(filename, "capabilities"))
 			if err == nil {
 				if common.StringsContains(contents, "control_d") {
 					role = "host"
@@ -453,6 +532,9 @@ func Virtualization() (string, string, error) {
 			} else if common.StringsContains(contents, "vboxguest") {
 				system = "vbox"
 				role = "guest"
+			} else if common.StringsContains(contents, "vmware") {
+				system = "vmware"
+				role = "guest"
 			}
 		}
 	}
@@ -471,17 +553,17 @@ func Virtualization() (string, string, error) {
 	}
 
 	filename = common.HostProc()
-	if common.PathExists(filename + "/bc/0") {
+	if common.PathExists(filepath.Join(filename, "bc", "0")) {
 		system = "openvz"
 		role = "host"
-	} else if common.PathExists(filename + "/vz") {
+	} else if common.PathExists(filepath.Join(filename, "vz")) {
 		system = "openvz"
 		role = "guest"
 	}
 
 	// not use dmidecode because it requires root
-	if common.PathExists(filename + "/self/status") {
-		contents, err := common.ReadLines(filename + "/self/status")
+	if common.PathExists(filepath.Join(filename, "self", "status")) {
+		contents, err := common.ReadLines(filepath.Join(filename, "self", "status"))
 		if err == nil {
 
 			if common.StringsContains(contents, "s_context:") ||
@@ -492,8 +574,8 @@ func Virtualization() (string, string, error) {
 		}
 	}
 
-	if common.PathExists(filename + "/self/cgroup") {
-		contents, err := common.ReadLines(filename + "/self/cgroup")
+	if common.PathExists(filepath.Join(filename, "self", "cgroup")) {
+		contents, err := common.ReadLines(filepath.Join(filename, "self", "cgroup"))
 		if err == nil {
 			if common.StringsContains(contents, "lxc") {
 				system = "lxc"
@@ -519,4 +601,69 @@ func Virtualization() (string, string, error) {
 		}
 	}
 	return system, role, nil
+}
+
+func SensorsTemperatures() ([]TemperatureStat, error) {
+	return SensorsTemperaturesWithContext(context.Background())
+}
+
+func SensorsTemperaturesWithContext(ctx context.Context) ([]TemperatureStat, error) {
+	var temperatures []TemperatureStat
+	files, err := filepath.Glob(common.HostSys("/class/hwmon/hwmon*/temp*_*"))
+	if err != nil {
+		return temperatures, err
+	}
+	if len(files) == 0 {
+		// CentOS has an intermediate /device directory:
+		// https://github.com/giampaolo/psutil/issues/971
+		files, err = filepath.Glob(common.HostSys("/class/hwmon/hwmon*/device/temp*_*"))
+		if err != nil {
+			return temperatures, err
+		}
+	}
+
+	// example directory
+	// device/           temp1_crit_alarm  temp2_crit_alarm  temp3_crit_alarm  temp4_crit_alarm  temp5_crit_alarm  temp6_crit_alarm  temp7_crit_alarm
+	// name              temp1_input       temp2_input       temp3_input       temp4_input       temp5_input       temp6_input       temp7_input
+	// power/            temp1_label       temp2_label       temp3_label       temp4_label       temp5_label       temp6_label       temp7_label
+	// subsystem/        temp1_max         temp2_max         temp3_max         temp4_max         temp5_max         temp6_max         temp7_max
+	// temp1_crit        temp2_crit        temp3_crit        temp4_crit        temp5_crit        temp6_crit        temp7_crit        uevent
+	for _, file := range files {
+		filename := strings.Split(filepath.Base(file), "_")
+		if filename[1] == "label" {
+			// Do not try to read the temperature of the label file
+			continue
+		}
+
+		// Get the label of the temperature you are reading
+		var label string
+		c, _ := ioutil.ReadFile(filepath.Join(filepath.Dir(file), filename[0]+"_label"))
+		if c != nil {
+			//format the label from "Core 0" to "core0_"
+			label = fmt.Sprintf("%s_", strings.Join(strings.Split(strings.TrimSpace(strings.ToLower(string(c))), " "), ""))
+		}
+
+		// Get the name of the tempearture you are reading
+		name, err := ioutil.ReadFile(filepath.Join(filepath.Dir(file), "name"))
+		if err != nil {
+			return temperatures, err
+		}
+
+		// Get the temperature reading
+		current, err := ioutil.ReadFile(file)
+		if err != nil {
+			return temperatures, err
+		}
+		temperature, err := strconv.ParseFloat(strings.TrimSpace(string(current)), 64)
+		if err != nil {
+			continue
+		}
+
+		tempName := strings.TrimSpace(strings.ToLower(string(strings.Join(filename[1:], ""))))
+		temperatures = append(temperatures, TemperatureStat{
+			SensorKey:   fmt.Sprintf("%s_%s%s", strings.TrimSpace(string(name)), label, tempName),
+			Temperature: temperature / 1000.0,
+		})
+	}
+	return temperatures, nil
 }

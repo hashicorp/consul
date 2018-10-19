@@ -3,13 +3,13 @@
 package cpu
 
 import (
+	"context"
 	"fmt"
-	"syscall"
 	"unsafe"
 
 	"github.com/StackExchange/wmi"
-
 	"github.com/shirou/gopsutil/internal/common"
+	"golang.org/x/sys/windows"
 )
 
 type Win32_Processor struct {
@@ -23,10 +23,38 @@ type Win32_Processor struct {
 	MaxClockSpeed             uint32
 }
 
-// TODO: Get percpu
-func Times(percpu bool) ([]TimesStat, error) {
-	var ret []TimesStat
+// Win32_PerfFormattedData_Counters_ProcessorInformation stores instance value of the perf counters
+type Win32_PerfFormattedData_Counters_ProcessorInformation struct {
+	Name                  string
+	PercentDPCTime        uint64
+	PercentIdleTime       uint64
+	PercentUserTime       uint64
+	PercentProcessorTime  uint64
+	PercentInterruptTime  uint64
+	PercentPriorityTime   uint64
+	PercentPrivilegedTime uint64
+	InterruptsPerSec      uint32
+	ProcessorFrequency    uint32
+	DPCRate               uint32
+}
 
+// Win32_PerfFormattedData_PerfOS_System struct to have count of processes and processor queue length
+type Win32_PerfFormattedData_PerfOS_System struct {
+	Processes            uint32
+	ProcessorQueueLength uint32
+}
+
+// Times returns times stat per cpu and combined for all CPUs
+func Times(percpu bool) ([]TimesStat, error) {
+	return TimesWithContext(context.Background(), percpu)
+}
+
+func TimesWithContext(ctx context.Context, percpu bool) ([]TimesStat, error) {
+	if percpu {
+		return perCPUTimes()
+	}
+
+	var ret []TimesStat
 	var lpIdleTime common.FILETIME
 	var lpKernelTime common.FILETIME
 	var lpUserTime common.FILETIME
@@ -35,7 +63,7 @@ func Times(percpu bool) ([]TimesStat, error) {
 		uintptr(unsafe.Pointer(&lpKernelTime)),
 		uintptr(unsafe.Pointer(&lpUserTime)))
 	if r == 0 {
-		return ret, syscall.GetLastError()
+		return ret, windows.GetLastError()
 	}
 
 	LOT := float64(0.0000001)
@@ -46,6 +74,7 @@ func Times(percpu bool) ([]TimesStat, error) {
 	system := (kernel - idle)
 
 	ret = append(ret, TimesStat{
+		CPU:    "cpu-total",
 		Idle:   float64(idle),
 		User:   float64(user),
 		System: float64(system),
@@ -54,11 +83,14 @@ func Times(percpu bool) ([]TimesStat, error) {
 }
 
 func Info() ([]InfoStat, error) {
+	return InfoWithContext(context.Background())
+}
+
+func InfoWithContext(ctx context.Context) ([]InfoStat, error) {
 	var ret []InfoStat
 	var dst []Win32_Processor
 	q := wmi.CreateQuery(&dst, "")
-	err := wmi.Query(q, &dst)
-	if err != nil {
+	if err := common.WMIQueryWithContext(ctx, q, &dst); err != nil {
 		return ret, err
 	}
 
@@ -82,5 +114,59 @@ func Info() ([]InfoStat, error) {
 		ret = append(ret, cpu)
 	}
 
+	return ret, nil
+}
+
+// PerfInfo returns the performance counter's instance value for ProcessorInformation.
+// Name property is the key by which overall, per cpu and per core metric is known.
+func PerfInfo() ([]Win32_PerfFormattedData_Counters_ProcessorInformation, error) {
+	return PerfInfoWithContext(context.Background())
+}
+
+func PerfInfoWithContext(ctx context.Context) ([]Win32_PerfFormattedData_Counters_ProcessorInformation, error) {
+	var ret []Win32_PerfFormattedData_Counters_ProcessorInformation
+
+	q := wmi.CreateQuery(&ret, "")
+	err := common.WMIQueryWithContext(ctx, q, &ret)
+	if err != nil {
+		return []Win32_PerfFormattedData_Counters_ProcessorInformation{}, err
+	}
+
+	return ret, err
+}
+
+// ProcInfo returns processes count and processor queue length in the system.
+// There is a single queue for processor even on multiprocessors systems.
+func ProcInfo() ([]Win32_PerfFormattedData_PerfOS_System, error) {
+	return ProcInfoWithContext(context.Background())
+}
+
+func ProcInfoWithContext(ctx context.Context) ([]Win32_PerfFormattedData_PerfOS_System, error) {
+	var ret []Win32_PerfFormattedData_PerfOS_System
+	q := wmi.CreateQuery(&ret, "")
+	err := common.WMIQueryWithContext(ctx, q, &ret)
+	if err != nil {
+		return []Win32_PerfFormattedData_PerfOS_System{}, err
+	}
+	return ret, err
+}
+
+// perCPUTimes returns times stat per cpu, per core and overall for all CPUs
+func perCPUTimes() ([]TimesStat, error) {
+	var ret []TimesStat
+	stats, err := PerfInfo()
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range stats {
+		c := TimesStat{
+			CPU:    v.Name,
+			User:   float64(v.PercentUserTime),
+			System: float64(v.PercentPrivilegedTime),
+			Idle:   float64(v.PercentIdleTime),
+			Irq:    float64(v.PercentInterruptTime),
+		}
+		ret = append(ret, c)
+	}
 	return ret, nil
 }

@@ -4,12 +4,11 @@ package disk
 
 import (
 	"bytes"
-	"syscall"
+	"context"
 	"unsafe"
 
-	"github.com/StackExchange/wmi"
-
 	"github.com/shirou/gopsutil/internal/common"
+	"golang.org/x/sys/windows"
 )
 
 var (
@@ -37,13 +36,17 @@ type Win32_PerfFormattedData struct {
 const WaitMSec = 500
 
 func Usage(path string) (*UsageStat, error) {
+	return UsageWithContext(context.Background(), path)
+}
+
+func UsageWithContext(ctx context.Context, path string) (*UsageStat, error) {
 	ret := &UsageStat{}
 
 	lpFreeBytesAvailable := int64(0)
 	lpTotalNumberOfBytes := int64(0)
 	lpTotalNumberOfFreeBytes := int64(0)
 	diskret, _, err := procGetDiskFreeSpaceExW.Call(
-		uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(path))),
+		uintptr(unsafe.Pointer(windows.StringToUTF16Ptr(path))),
 		uintptr(unsafe.Pointer(&lpFreeBytesAvailable)),
 		uintptr(unsafe.Pointer(&lpTotalNumberOfBytes)),
 		uintptr(unsafe.Pointer(&lpTotalNumberOfFreeBytes)))
@@ -65,6 +68,10 @@ func Usage(path string) (*UsageStat, error) {
 }
 
 func Partitions(all bool) ([]PartitionStat, error) {
+	return PartitionsWithContext(context.Background(), all)
+}
+
+func PartitionsWithContext(ctx context.Context, all bool) ([]PartitionStat, error) {
 	var ret []PartitionStat
 	lpBuffer := make([]byte, 254)
 	diskret, _, err := procGetLogicalDriveStringsW.Call(
@@ -79,20 +86,20 @@ func Partitions(all bool) ([]PartitionStat, error) {
 			if path == "A:" || path == "B:" { // skip floppy drives
 				continue
 			}
-			typepath, _ := syscall.UTF16PtrFromString(path)
+			typepath, _ := windows.UTF16PtrFromString(path)
 			typeret, _, _ := procGetDriveType.Call(uintptr(unsafe.Pointer(typepath)))
 			if typeret == 0 {
-				return ret, syscall.GetLastError()
+				return ret, windows.GetLastError()
 			}
-			// 2: DRIVE_REMOVABLE 3: DRIVE_FIXED 5: DRIVE_CDROM
+			// 2: DRIVE_REMOVABLE 3: DRIVE_FIXED 4: DRIVE_REMOTE 5: DRIVE_CDROM
 
-			if typeret == 2 || typeret == 3 || typeret == 5 {
+			if typeret == 2 || typeret == 3 || typeret == 4 || typeret == 5 {
 				lpVolumeNameBuffer := make([]byte, 256)
 				lpVolumeSerialNumber := int64(0)
 				lpMaximumComponentLength := int64(0)
 				lpFileSystemFlags := int64(0)
 				lpFileSystemNameBuffer := make([]byte, 256)
-				volpath, _ := syscall.UTF16PtrFromString(string(v) + ":/")
+				volpath, _ := windows.UTF16PtrFromString(string(v) + ":/")
 				driveret, _, err := provGetVolumeInformation.Call(
 					uintptr(unsafe.Pointer(volpath)),
 					uintptr(unsafe.Pointer(&lpVolumeNameBuffer[0])),
@@ -103,7 +110,7 @@ func Partitions(all bool) ([]PartitionStat, error) {
 					uintptr(unsafe.Pointer(&lpFileSystemNameBuffer[0])),
 					uintptr(len(lpFileSystemNameBuffer)))
 				if driveret == 0 {
-					if typeret == 5 {
+					if typeret == 5 || typeret == 2 {
 						continue //device is not ready will happen if there is no disk in the drive
 					}
 					return ret, err
@@ -129,11 +136,15 @@ func Partitions(all bool) ([]PartitionStat, error) {
 	return ret, nil
 }
 
-func IOCounters() (map[string]IOCountersStat, error) {
+func IOCounters(names ...string) (map[string]IOCountersStat, error) {
+	return IOCountersWithContext(context.Background(), names...)
+}
+
+func IOCountersWithContext(ctx context.Context, names ...string) (map[string]IOCountersStat, error) {
 	ret := make(map[string]IOCountersStat, 0)
 	var dst []Win32_PerfFormattedData
 
-	err := wmi.Query("SELECT * FROM Win32_PerfFormattedData_PerfDisk_LogicalDisk ", &dst)
+	err := common.WMIQueryWithContext(ctx, "SELECT * FROM Win32_PerfFormattedData_PerfDisk_LogicalDisk", &dst)
 	if err != nil {
 		return ret, err
 	}
@@ -141,6 +152,11 @@ func IOCounters() (map[string]IOCountersStat, error) {
 		if len(d.Name) > 3 { // not get _Total or Harddrive
 			continue
 		}
+
+		if len(names) > 0 && !common.StringsHas(names, d.Name) {
+			continue
+		}
+
 		ret[d.Name] = IOCountersStat{
 			Name:       d.Name,
 			ReadCount:  uint64(d.AvgDiskReadQueueLength),
