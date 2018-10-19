@@ -598,6 +598,13 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		aclDC = datacenter
 	}
 
+	enableTokenReplication := false
+	if c.ACLReplicationToken != nil {
+		enableTokenReplication = true
+	}
+
+	b.boolValWithDefault(c.ACL.TokenReplication, b.boolValWithDefault(c.EnableACLReplication, enableTokenReplication))
+
 	proxyDefaultExecMode := b.stringVal(c.Connect.ProxyDefaults.ExecMode)
 	proxyDefaultDaemonCommand := c.Connect.ProxyDefaults.DaemonCommand
 	proxyDefaultScriptCommand := c.Connect.ProxyDefaults.ScriptCommand
@@ -660,7 +667,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		ACLTokenTTL:            b.durationValWithDefault("acl.token_ttl", c.ACL.TokenTTL, b.durationVal("acl_ttl", c.ACLTTL)),
 		ACLPolicyTTL:           b.durationVal("acl.policy_ttl", c.ACL.PolicyTTL),
 		ACLToken:               b.stringValWithDefault(c.ACL.Tokens.Default, b.stringVal(c.ACLToken)),
-		ACLTokenReplication:    b.boolValWithDefault(c.ACL.TokenReplication, b.boolVal(c.EnableACLReplication)),
+		ACLTokenReplication:    b.boolValWithDefault(c.ACL.TokenReplication, b.boolValWithDefault(c.EnableACLReplication, enableTokenReplication)),
 
 		// Autopilot
 		AutopilotCleanupDeadServers:      b.boolVal(c.Autopilot.CleanupDeadServers),

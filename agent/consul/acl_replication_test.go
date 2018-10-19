@@ -232,6 +232,7 @@ func TestACLReplication_updateLocalACLs_RateLimit(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLReplicationApplyLimit = 1
 	})
 	s1.tokens.UpdateACLReplicationToken("secret")
@@ -282,6 +283,7 @@ func TestACLReplication_IsACLReplicationEnabled(t *testing.T) {
 	// ACLs not enabled.
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = ""
+		c.ACLsEnabled = false
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -293,6 +295,7 @@ func TestACLReplication_IsACLReplicationEnabled(t *testing.T) {
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
@@ -307,6 +310,7 @@ func TestACLReplication_IsACLReplicationEnabled(t *testing.T) {
 	dir3, s3 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLTokenReplication = true
 	})
 	defer os.RemoveAll(dir3)
@@ -321,6 +325,7 @@ func TestACLReplication_IsACLReplicationEnabled(t *testing.T) {
 	dir4, s4 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLTokenReplication = true
 	})
 	defer os.RemoveAll(dir4)
@@ -335,6 +340,7 @@ func TestACLReplication(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -346,6 +352,7 @@ func TestACLReplication(t *testing.T) {
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLTokenReplication = true
 		c.ACLReplicationRate = 100
 		c.ACLReplicationBurst = 100

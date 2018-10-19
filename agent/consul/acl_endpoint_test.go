@@ -2,8 +2,10 @@ package consul
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/rpc"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -17,6 +19,7 @@ import (
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestACLEndpoint_Bootstrap(t *testing.T) {
@@ -24,6 +27,7 @@ func TestACLEndpoint_Bootstrap(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Build = "0.8.0" // Too low for auto init of bootstrap.
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -57,10 +61,61 @@ func TestACLEndpoint_Bootstrap(t *testing.T) {
 	}
 }
 
+func TestACLEndpoint_BootstrapTokens(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLsEnabled = true
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Expect an error initially since ACL bootstrap is not initialized.
+	arg := structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+	var out structs.ACLToken
+	// We can only do some high
+	// level checks on the ACL since we don't have control over the UUID or
+	// Raft indexes at this level.
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.BootstrapTokens", &arg, &out))
+	require.Equal(t, 36, len(out.AccessorID))
+	require.True(t, strings.HasPrefix(out.Description, "Bootstrap Token"))
+	require.Equal(t, out.Type, structs.ACLTokenTypeManagement)
+	require.True(t, out.CreateIndex > 0)
+	require.Equal(t, out.CreateIndex, out.ModifyIndex)
+
+	// Finally, make sure that another attempt is rejected.
+	err := msgpackrpc.CallWithCodec(codec, "ACL.BootstrapTokens", &arg, &out)
+	require.Error(t, err)
+	require.True(t, strings.HasPrefix(err.Error(), structs.ACLBootstrapNotAllowedErr.Error()))
+
+	_, resetIdx, err := s1.fsm.State().CanBootstrapACLToken()
+
+	resetPath := filepath.Join(dir1, "acl-bootstrap-reset")
+	require.NoError(t, ioutil.WriteFile(resetPath, []byte(fmt.Sprintf("%d", resetIdx)), 0600))
+
+	oldID := out.AccessorID
+	// Finally, make sure that another attempt is rejected.
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.BootstrapTokens", &arg, &out))
+	require.Equal(t, 36, len(out.AccessorID))
+	require.NotEqual(t, oldID, out.AccessorID)
+	require.True(t, strings.HasPrefix(out.Description, "Bootstrap Token"))
+	require.Equal(t, out.Type, structs.ACLTokenTypeManagement)
+	require.True(t, out.CreateIndex > 0)
+	require.Equal(t, out.CreateIndex, out.ModifyIndex)
+}
+
 func TestACLEndpoint_Apply(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -122,6 +177,7 @@ func TestACLEndpoint_Update_PurgeCache(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -201,6 +257,7 @@ func TestACLEndpoint_Apply_CustomID(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -249,6 +306,7 @@ func TestACLEndpoint_Apply_Denied(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -276,6 +334,7 @@ func TestACLEndpoint_Apply_DeleteAnon(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -306,6 +365,7 @@ func TestACLEndpoint_Apply_RootChange(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -336,6 +396,7 @@ func TestACLEndpoint_Get(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -384,6 +445,7 @@ func TestACLEndpoint_GetPolicy(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -446,6 +508,7 @@ func TestACLEndpoint_List(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -508,6 +571,7 @@ func TestACLEndpoint_List_Denied(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -530,6 +594,7 @@ func TestACLEndpoint_ReplicationStatus(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc2"
+		c.ACLsEnabled = true
 		c.ACLTokenReplication = true
 		c.ACLReplicationRate = 100
 		c.ACLReplicationBurst = 100
@@ -564,6 +629,7 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -641,6 +707,7 @@ func TestACLEndpoint_TokenClone(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -680,6 +747,7 @@ func TestACLEndpoint_TokenUpsert(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -752,6 +820,7 @@ func TestACLEndpoint_TokenUpsert_anon(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -794,6 +863,7 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -855,6 +925,7 @@ func TestACLEndpoint_TokenDelete_anon(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -888,6 +959,7 @@ func TestACLEndpoint_TokenList(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -930,6 +1002,7 @@ func TestACLEndpoint_TokenBatchRead(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -971,6 +1044,7 @@ func TestACLEndpoint_PolicyRead(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -1011,6 +1085,7 @@ func TestACLEndpoint_PolicyBatchRead(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -1054,6 +1129,7 @@ func TestACLEndpoint_PolicyUpsert(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -1132,6 +1208,7 @@ func TestACLEndpoint_PolicyUpsert_globalManagement(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -1194,6 +1271,7 @@ func TestACLEndpoint_PolicyDelete(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -1232,6 +1310,7 @@ func TestACLEndpoint_PolicyDelete_globalManagement(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -1261,6 +1340,7 @@ func TestACLEndpoint_PolicyList(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -1303,6 +1383,7 @@ func TestACLEndpoint_PolicyResolve(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
