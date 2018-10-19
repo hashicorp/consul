@@ -4,7 +4,7 @@ FEATURES:
 
 * **New ACL System:** The ACL system has been redesigned while allowing for in-place
   upgrades that will automatically migrate to the new system while retaining
-  compability for now legacy API tokens for clusters where ACLs are enabled. This
+  compatibility for now legacy API tokens for clusters where ACLs are enabled. This
   new system introduces a number of improvements to tokens including accessor IDs
   and a new policy model. It also includes a new CLI for ACL interactions and a
   completely redesigned UI experience to manage ACLs and policies. WAN
