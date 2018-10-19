@@ -446,7 +446,7 @@ func restoreACLBootstrap(header *snapshotHeader, restore *state.Restore, decoder
 
 	// With V2 ACLs whether bootstrapping has been performed is stored in the index table like nomad
 	// so this "restores" into that index table.
-	return restore.IndexRestore(&state.IndexEntry{"acl-token-bootstrap", req.ModifyIndex})
+	return restore.IndexRestore(&state.IndexEntry{Key: "acl-token-bootstrap", Value: req.ModifyIndex})
 }
 
 func restoreCoordinates(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
