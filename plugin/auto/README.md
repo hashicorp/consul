@@ -32,8 +32,8 @@ are used.
   name `db.example.com`, the extracted origin will be `example.com`. **TIMEOUT** specifies how often
   CoreDNS should scan the directory; the default is every 60 seconds. This value is in seconds.
   The minimum value is 1 second.
-* `reload` interval to perform reload of zone if SOA version changes. Default is one minute. 
-  Value of `0` means to not scan for changes and reload. eg. `30s` checks zonefile every 30 seconds 
+* `reload` interval to perform reload of zone if SOA version changes. Default is one minute.
+  Value of `0` means to not scan for changes and reload. eg. `30s` checks zonefile every 30 seconds
   and reloads zone when serial changes.
 * `no_reload` deprecated. Sets reload to 0.
 * `upstream` defines upstream resolvers to be used resolve external names found (think CNAMEs)
