@@ -28,12 +28,12 @@ type ACLToken struct {
 	Description string
 	Policies    []*ACLTokenPolicyLink
 	Local       bool
-	CreateTime  time.Time
-	Hash        []byte
+	CreateTime  time.Time `json:",omitempty"`
+	Hash        []byte    `json:",omitempty"`
 
 	// DEPRECATED (ACL-Legacy-Compat)
 	// Rules will only be present for legacy tokens returned via the new APIs
-	Rules string
+	Rules string `json:",omitempty"`
 }
 
 type ACLTokenListEntry struct {

@@ -256,10 +256,10 @@ func (s *HTTPServer) ACLPolicyCreate(resp http.ResponseWriter, req *http.Request
 	return s.ACLPolicyWrite(resp, req, "")
 }
 
-// fixCreateTime is used to help in decoding the CreateTime attribute from
-// both the ACL Token and ACL Policy creation/update requests. It is needed
+// fixCreateTimeAndHash is used to help in decoding the CreateTime and Hash
+// attributes from the ACL Token create/update requests. It is needed
 // to help mapstructure decode things properly when decodeBody is used.
-func fixCreateTime(raw interface{}) error {
+func fixCreateTimeAndHash(raw interface{}) error {
 	rawMap, ok := raw.(map[string]interface{})
 	if !ok {
 		return nil
@@ -272,6 +272,12 @@ func fixCreateTime(raw interface{}) error {
 				return err
 			}
 			rawMap["CreateTime"] = t
+		}
+	}
+
+	if val, ok := rawMap["Hash"]; ok {
+		if sval, ok := val.(string); ok {
+			rawMap["Hash"] = []byte(sval)
 		}
 	}
 	return nil
@@ -454,7 +460,7 @@ func (s *HTTPServer) ACLTokenWrite(resp http.ResponseWriter, req *http.Request, 
 	}
 	s.parseToken(req, &args.Token)
 
-	if err := decodeBody(req, &args.ACLToken, fixCreateTime); err != nil {
+	if err := decodeBody(req, &args.ACLToken, fixCreateTimeAndHash); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Token decoding failed: %v", err)}
 	}
 
@@ -495,7 +501,7 @@ func (s *HTTPServer) ACLTokenClone(resp http.ResponseWriter, req *http.Request, 
 		Datacenter: s.agent.config.Datacenter,
 	}
 
-	if err := decodeBody(req, &args.ACLToken, fixCreateTime); err != nil && err.Error() != "EOF" {
+	if err := decodeBody(req, &args.ACLToken, fixCreateTimeAndHash); err != nil && err.Error() != "EOF" {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Token decoding failed: %v", err)}
 	}
 	s.parseToken(req, &args.Token)

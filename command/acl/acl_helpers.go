@@ -67,8 +67,8 @@ func PrintPolicyListEntry(policy *api.ACLPolicyListEntry, ui cli.Ui, showMeta bo
 	ui.Info(fmt.Sprintf("   Datacenters:  %s", strings.Join(policy.Datacenters, ", ")))
 	if showMeta {
 		ui.Info(fmt.Sprintf("   Hash:         %x", policy.Hash))
-		ui.Info(fmt.Sprintf("   Create Index: %s", policy.CreateIndex))
-		ui.Info(fmt.Sprintf("   Modify Index: %s", policy.ModifyIndex))
+		ui.Info(fmt.Sprintf("   Create Index: %d", policy.CreateIndex))
+		ui.Info(fmt.Sprintf("   Modify Index: %d", policy.ModifyIndex))
 	}
 }
 
