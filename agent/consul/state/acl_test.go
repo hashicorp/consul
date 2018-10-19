@@ -106,125 +106,6 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 
 /*
 
-func TestStateStore_ACLBootstrap_InitialTokens(t *testing.T) {
-	acl1 := &structs.ACL{
-		ID:   "03f43a07-7e78-1f72-6c72-5a4e3b1ac3df",
-		Type: structs.ACLTokenTypeManagement,
-	}
-
-	acl2 := &structs.ACL{
-		ID:   "0546a993-aa7a-741e-fb7f-09159ae56ec1",
-		Type: structs.ACLTokenTypeManagement,
-	}
-
-	s := testStateStore(t)
-
-	// Make a management token manually. This also makes sure that it's ok
-	// to set a token if bootstrap has not been initialized.
-	if err := s.ACLSet(1, acl1); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Initialize bootstrapping, which should not be enabled since an
-	// existing token is present.
-	enabled, err := s.ACLBootstrapInit(2)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if enabled {
-		t.Fatalf("bad")
-	}
-
-	// Read it back.
-	gotB, err := s.CanBootstrapACLToken()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	wantB := &structs.ACLBootstrap{
-		AllowBootstrap: false,
-		RaftIndex: structs.RaftIndex{
-			CreateIndex: 2,
-			ModifyIndex: 2,
-		},
-	}
-	verify.Values(t, "", gotB, wantB)
-
-	// Make sure an attempt fails.
-	if err := s.ACLBootstrap(3, acl2); err != structs.ACLBootstrapNotAllowedErr {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Check that the bootstrap state remains the same.
-	gotB, err = s.CanBootstrapACLToken()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	verify.Values(t, "", gotB, wantB)
-
-	// Make sure the ACLs are in an expected state.
-	_, gotA, err := s.ACLList(nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	wantA := structs.ACLs{
-		&structs.ACL{
-			ID:   acl1.ID,
-			Type: acl1.Type,
-			RaftIndex: structs.RaftIndex{
-				CreateIndex: 1,
-				ModifyIndex: 1,
-			},
-		},
-	}
-	verify.Values(t, "", gotA, wantA)
-}
-
-func TestStateStore_ACLBootstrap_Snapshot_Restore(t *testing.T) {
-	s := testStateStore(t)
-
-	enabled, err := s.ACLBootstrapInit(1)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if !enabled {
-		t.Fatalf("bad")
-	}
-
-	gotB, err := s.CanBootstrapACLToken()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	wantB := &structs.ACLBootstrap{
-		AllowBootstrap: true,
-		RaftIndex: structs.RaftIndex{
-			CreateIndex: 1,
-			ModifyIndex: 1,
-		},
-	}
-	verify.Values(t, "", gotB, wantB)
-
-	snap := s.Snapshot()
-	defer snap.Close()
-	bs, err := snap.ACLBootstrap()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	verify.Values(t, "", bs, wantB)
-
-	r := testStateStore(t)
-	restore := r.Restore()
-	if err := restore.ACLBootstrap(bs); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	restore.Commit()
-
-	gotB, err = r.CanBootstrapACLToken()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	verify.Values(t, "", gotB, wantB)
-}
-
 func TestStateStore_ACLSet_ACLGet(t *testing.T) {
 	s := testStateStore(t)
 
@@ -420,90 +301,144 @@ func TestStateStore_ACLDelete(t *testing.T) {
 		t.Fatalf("expected nil, got: %#v", result)
 	}
 }
+*/
 
-func TestStateStore_ACL_Snapshot_Restore(t *testing.T) {
+func TestStateStore_ACLTokens_Snapshot_Restore(t *testing.T) {
 	s := testStateStore(t)
 
-	// Insert some ACLs.
-	acls := structs.ACLs{
-		&structs.ACL{
-			ID:    "acl1",
-			Type:  structs.ACLTokenTypeClient,
-			Rules: "rules1",
-			RaftIndex: structs.RaftIndex{
-				CreateIndex: 1,
-				ModifyIndex: 1,
+	tokens := structs.ACLTokens{
+		&structs.ACLToken{
+			AccessorID:  "68016c3d-835b-450c-a6f9-75db9ba740be",
+			SecretID:    "838f72b5-5c15-4a9e-aa6d-31734c3a0286",
+			Description: "token1",
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID:   "ca1fc52c-3676-4050-82ed-ca223e38b2c9",
+					Name: "policy1",
+				},
+				structs.ACLTokenPolicyLink{
+					ID:   "7b70fa0f-58cd-412d-93c3-a0f17bb19a3e",
+					Name: "policy2",
+				},
 			},
+			Hash:      []byte{1, 2, 3, 4},
+			RaftIndex: structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 		},
-		&structs.ACL{
-			ID:    "acl2",
-			Type:  structs.ACLTokenTypeClient,
-			Rules: "rules2",
-			RaftIndex: structs.RaftIndex{
-				CreateIndex: 2,
-				ModifyIndex: 2,
+		&structs.ACLToken{
+			AccessorID:  "b2125a1b-2a52-41d4-88f3-c58761998a46",
+			SecretID:    "ba5d9239-a4ab-49b9-ae09-1f19eed92204",
+			Description: "token2",
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID:   "ca1fc52c-3676-4050-82ed-ca223e38b2c9",
+					Name: "policy1",
+				},
+				structs.ACLTokenPolicyLink{
+					ID:   "7b70fa0f-58cd-412d-93c3-a0f17bb19a3e",
+					Name: "policy2",
+				},
 			},
+			Hash:      []byte{1, 2, 3, 4},
+			RaftIndex: structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 		},
 	}
-	for _, acl := range acls {
-		if err := s.ACLSet(acl.ModifyIndex, acl); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
+
+	require.NoError(t, s.ACLTokensUpsert(2, tokens, true))
 
 	// Snapshot the ACLs.
 	snap := s.Snapshot()
 	defer snap.Close()
 
 	// Alter the real state store.
-	if err := s.ACLDelete(3, "acl1"); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.NoError(t, s.ACLTokenDeleteAccessor(3, tokens[0].AccessorID))
 
 	// Verify the snapshot.
-	if idx := snap.LastIndex(); idx != 2 {
-		t.Fatalf("bad index: %d", idx)
+	require.Equal(t, uint64(2), snap.LastIndex())
+
+	iter, err := snap.ACLTokens()
+	require.NoError(t, err)
+
+	var dump structs.ACLTokens
+	for token := iter.Next(); token != nil; token = iter.Next() {
+		dump = append(dump, token.(*structs.ACLToken))
 	}
-	iter, err := snap.ACLs()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	var dump structs.ACLs
-	for acl := iter.Next(); acl != nil; acl = iter.Next() {
-		dump = append(dump, acl.(*structs.ACL))
-	}
-	if !reflect.DeepEqual(dump, acls) {
-		t.Fatalf("bad: %#v", dump)
-	}
+	require.ElementsMatch(t, dump, tokens)
 
 	// Restore the values into a new state store.
 	func() {
 		s := testStateStore(t)
 		restore := s.Restore()
-		for _, acl := range dump {
-			if err := restore.ACL(acl); err != nil {
-				t.Fatalf("err: %s", err)
-			}
+		for _, token := range dump {
+			require.NoError(t, restore.ACLToken(token))
 		}
 		restore.Commit()
 
 		// Read the restored ACLs back out and verify that they match.
-		idx, res, err := s.ACLList(nil)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		if idx != 2 {
-			t.Fatalf("bad index: %d", idx)
-		}
-		if !reflect.DeepEqual(res, acls) {
-			t.Fatalf("bad: %#v", res)
-		}
-
-		// Check that the index was updated.
-		if idx := s.maxIndex("acls"); idx != 2 {
-			t.Fatalf("bad index: %d", idx)
-		}
+		idx, res, err := s.ACLTokenList(nil, true, true, "")
+		require.NoError(t, err)
+		require.Equal(t, uint64(2), idx)
+		require.ElementsMatch(t, tokens, res)
+		require.Equal(t, uint64(2), s.maxIndex("acl-tokens"))
 	}()
 }
 
-*/
+func TestStateStore_ACLPolicies_Snapshot_Restore(t *testing.T) {
+	s := testStateStore(t)
+
+	policies := structs.ACLPolicies{
+		&structs.ACLPolicy{
+			ID:          "68016c3d-835b-450c-a6f9-75db9ba740be",
+			Name:        "838f72b5-5c15-4a9e-aa6d-31734c3a0286",
+			Description: "policy1",
+			Rules:       `acl = "read"`,
+			Hash:        []byte{1, 2, 3, 4},
+			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
+		},
+		&structs.ACLPolicy{
+			ID:          "b2125a1b-2a52-41d4-88f3-c58761998a46",
+			Name:        "ba5d9239-a4ab-49b9-ae09-1f19eed92204",
+			Description: "policy2",
+			Rules:       `operator = "read"`,
+			Hash:        []byte{1, 2, 3, 4},
+			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
+		},
+	}
+
+	require.NoError(t, s.ACLPoliciesUpsert(2, policies))
+
+	// Snapshot the ACLs.
+	snap := s.Snapshot()
+	defer snap.Close()
+
+	// Alter the real state store.
+	require.NoError(t, s.ACLPolicyDeleteByID(3, policies[0].ID))
+
+	// Verify the snapshot.
+	require.Equal(t, uint64(2), snap.LastIndex())
+
+	iter, err := snap.ACLPolicies()
+	require.NoError(t, err)
+
+	var dump structs.ACLPolicies
+	for policy := iter.Next(); policy != nil; policy = iter.Next() {
+		dump = append(dump, policy.(*structs.ACLPolicy))
+	}
+	require.ElementsMatch(t, dump, policies)
+
+	// Restore the values into a new state store.
+	func() {
+		s := testStateStore(t)
+		restore := s.Restore()
+		for _, policy := range dump {
+			require.NoError(t, restore.ACLPolicy(policy))
+		}
+		restore.Commit()
+
+		// Read the restored ACLs back out and verify that they match.
+		idx, res, err := s.ACLPolicyList(nil, "")
+		require.NoError(t, err)
+		require.Equal(t, uint64(2), idx)
+		require.ElementsMatch(t, policies, res)
+		require.Equal(t, uint64(2), s.maxIndex("acl-policies"))
+	}()
+}
