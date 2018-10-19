@@ -1,7 +1,10 @@
+/*global CodeMirror*/
+
 // CodeMirror doesn't seem to have anyway to hook into whether a mode
 // has already loaded, or when a mode has finished loading
 // follow more or less what CodeMirror does but doesn't expose
 // see codemirror/addon/mode/loadmode.js
+
 export const createLoader = function(
   $$ = document.getElementsByTagName.bind(document),
   CM = CodeMirror
