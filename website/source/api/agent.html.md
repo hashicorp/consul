@@ -246,6 +246,11 @@ In order to enable [Prometheus](https://prometheus.io/) support, you need to use
 configuration directive
 [`prometheus_retention_time`](/docs/agent/options.html#telemetry-prometheus_retention_time).
 
+Note: If your metric includes labels that use the same key name multiple times 
+(i.e. tag=tag2 and tag=tag1), only the sorted last value (tag=tag2) will be visible on 
+this endpoint due to a display issue. The complete label set is correctly applied and 
+passed to external metrics providers even though it is not visible through this endpoint.
+
 | Method | Path                               | Produces                                   |
 | ------ | ---------------------------------- | ------------------------------------------ |
 | `GET`  | `/agent/metrics`                   | `application/json`                         |

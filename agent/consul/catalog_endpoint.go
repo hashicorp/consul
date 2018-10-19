@@ -2,6 +2,7 @@ package consul
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -335,6 +336,10 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 				[]metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "tag", Value: args.ServiceTag}})
 		}
 		if len(args.ServiceTags) > 0 {
+			// Sort tags so that the metric is the same even if the request
+			// tags are in a different order
+			sort.Strings(args.ServiceTags)
+
 			// Build metric labels
 			labels := []metrics.Label{{Name: "service", Value: args.ServiceName}}
 			for _, tag := range args.ServiceTags {
