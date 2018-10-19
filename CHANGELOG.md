@@ -9,6 +9,7 @@ IMPROVEMENTS:
 
 * dns: Implement prefix lookups for DNS TTL. [[GH-4605](https://github.com/hashicorp/consul/issues/4605)]
 
+
 ## 1.3.0 (October 11, 2018)
 
 FEATURES:
@@ -44,8 +45,6 @@ IMPROVEMENTS:
 * api: /health and /catalog endpoints now support filtering by multiple tags [[GH-1781](https://github.com/hashicorp/consul/issues/1781)]
 * agent: Only update service `ModifyIndex` when it's state actually changes. This makes service watches much more efficient on large clusters. [[GH-4720](https://github.com/hashicorp/consul/pull/4720)]
 * config: Operators can now enable script checks from local config files only. [[GH-4711](https://github.com/hashicorp/consul/issues/4711)]
-* dns: Implement prefix lookups for DNS TTL. [[GH-4605](https://github.com/hashicorp/consul/issues/4605)]
-* website: Add service weights documentation. [[GH-4776](https://github.com/hashicorp/consul/issues/4776)]
 
 BUG FIXES:
 
