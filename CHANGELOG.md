@@ -2,24 +2,36 @@
 
 FEATURES:
 
-* New command `consul debug` which gathers information about the cluster to help
-  resolve incidents and debug issues faster. [[GH-4754](https://github.com/hashicorp/consul/issues/4754)]
-* ACL system rewrite [[GH-4791](https://github.com/hashicorp/consul/pull/4791)]
-    * ACL CLI
-    * New ACL HTTP APIs
+* **New ACL System:** The ACL system has been redesigned while allowing for in-place
+  upgrades that will automatically migrate to the new system while retaining
+  compability for now legacy API tokens for clusters where ACLs are enabled. This
+  new system introduces a number of improvements to tokens including accessor IDs
+  and a new policy model. It also includes a new CLI for ACL interactions and a
+  completely redesigned UI experience to manage ACLs and policies. WAN
+  federated clusters will need to add the additional replication token
+  configuration in order to ensure WAN ACL replication in the new system.
+  [[GH-4791](https://github.com/hashicorp/consul/pull/4791)]
+    * ACL CLI.
+    * New ACL HTTP APIs.
     * Splitting ACL Tokens into Tokens and Policies with rules being defined on policies and tokens being linked to policies.
     * ACL Tokens have a public accessor ID now in addition to the secret ID that they used to have.
     * Setting a replication token is now required but it only needs "read" permissions on ACLs.
     * Update to the rules language to allow for exact-matching rules in addition to prefix matching rules
     * Added DC local tokens.
     * Auto-Transitioning from legacy mode to normal mode as the cluster's servers get upgraded.
-    * ACL UI
+    * ACL UI updates to support new functionality.
+
+* **Multi-DC Connect:** (Consul Enterprise) Consul Connect now supports multi-dc connections and
+replicates intentions. This allows WAN federated DCs to provide connections
+from source and destination proxies in any DC.
+
+* New command `consul debug` which gathers information about the cluster to help
+  resolve incidents and debug issues faster. [[GH-4754](https://github.com/hashicorp/consul/issues/4754)]
 
 IMPROVEMENTS:
 
 * dns: Implement prefix lookups for DNS TTL. [[GH-4605](https://github.com/hashicorp/consul/issues/4605)]
 * ui: Add JSON and YAML linting to the KV code editor [[GH-4814](https://github.com/hashicorp/consul/pull/4814)]
-
 
 ## 1.3.0 (October 11, 2018)
 
