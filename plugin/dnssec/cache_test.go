@@ -24,7 +24,7 @@ func TestCacheSet(t *testing.T) {
 	m := testMsg()
 	state := request.Request{Req: m, Zone: "miek.nl."}
 	k := hash(m.Answer) // calculate *before* we add the sig
-	d := New([]string{"miek.nl."}, []*DNSKEY{dnskey}, nil, c)
+	d := New([]string{"miek.nl."}, []*DNSKEY{dnskey}, false, nil, c)
 	d.Sign(state, time.Now().UTC(), server)
 
 	_, ok := d.get(k, server)
@@ -48,7 +48,7 @@ func TestCacheNotValidExpired(t *testing.T) {
 	m := testMsg()
 	state := request.Request{Req: m, Zone: "miek.nl."}
 	k := hash(m.Answer) // calculate *before* we add the sig
-	d := New([]string{"miek.nl."}, []*DNSKEY{dnskey}, nil, c)
+	d := New([]string{"miek.nl."}, []*DNSKEY{dnskey}, false, nil, c)
 	d.Sign(state, time.Now().UTC().AddDate(0, 0, -9), server)
 
 	_, ok := d.get(k, server)
@@ -72,7 +72,7 @@ func TestCacheNotValidYet(t *testing.T) {
 	m := testMsg()
 	state := request.Request{Req: m, Zone: "miek.nl."}
 	k := hash(m.Answer) // calculate *before* we add the sig
-	d := New([]string{"miek.nl."}, []*DNSKEY{dnskey}, nil, c)
+	d := New([]string{"miek.nl."}, []*DNSKEY{dnskey}, false, nil, c)
 	d.Sign(state, time.Now().UTC().AddDate(0, 0, +9), server)
 
 	_, ok := d.get(k, server)

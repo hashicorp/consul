@@ -28,6 +28,7 @@ func ParseKeyFile(pubFile, privFile string) (*DNSKEY, error) {
 	if e != nil {
 		return nil, e
 	}
+	defer f.Close()
 	k, e := dns.ReadRR(f, pubFile)
 	if e != nil {
 		return nil, e
@@ -37,6 +38,7 @@ func ParseKeyFile(pubFile, privFile string) (*DNSKEY, error) {
 	if e != nil {
 		return nil, e
 	}
+	defer f.Close()
 
 	dk, ok := k.(*dns.DNSKEY)
 	if !ok {
@@ -75,4 +77,14 @@ func (d Dnssec) getDNSKEY(state request.Request, zone string, do bool, server st
 		m.Answer = append(m.Answer, sigs...)
 	}
 	return m
+}
+
+// Return true iff this is a zone key with the SEP bit unset. This implies a ZSK (rfc4034 2.1.1).
+func (k DNSKEY) isZSK() bool {
+	return k.K.Flags & (1<<8) == (1<<8) && k.K.Flags & 1 == 0
+}
+
+// Return true iff this is a zone key with the SEP bit set. This implies a KSK (rfc4034 2.1.1).
+func (k DNSKEY) isKSK() bool {
+	return k.K.Flags & (1<<8) == (1<<8) && k.K.Flags & 1 == 1
 }

@@ -21,8 +21,13 @@ dnssec [ZONES... ] {
 }
 ~~~
 
-The specified key is used for all signing operations. The DNSSEC signing will treat this key as a
-CSK (common signing key), forgoing the ZSK/KSK split. All signing operations are done online.
+The signing behavior depends on the keys specified. If multiple keys are specified of which there is
+at least one key with the SEP bit set and at least one key with the SEP bit unset, signing will happen
+in split ZSK/KSK mode. DNSKEY records will be signed with all keys that have the SEP bit set. All other
+records will be signed with all keys that do not have the SEP bit set.
+
+In any other case, each specified key will be treated as a CSK (common signing key), forgoing the
+ZSK/KSK split. All signing operations are done online.
 Authenticated denial of existence is implemented with NSEC black lies. Using ECDSA as an algorithm
 is preferred as this leads to smaller signatures (compared to RSA). NSEC3 is *not* supported.
 

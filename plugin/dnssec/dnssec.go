@@ -18,19 +18,21 @@ import (
 type Dnssec struct {
 	Next plugin.Handler
 
-	zones    []string
-	keys     []*DNSKEY
-	inflight *singleflight.Group
-	cache    *cache.Cache
+	zones     []string
+	keys      []*DNSKEY
+	splitkeys bool
+	inflight  *singleflight.Group
+	cache     *cache.Cache
 }
 
 // New returns a new Dnssec.
-func New(zones []string, keys []*DNSKEY, next plugin.Handler, c *cache.Cache) Dnssec {
+func New(zones []string, keys []*DNSKEY, splitkeys bool, next plugin.Handler, c *cache.Cache) Dnssec {
 	return Dnssec{Next: next,
-		zones:    zones,
-		keys:     keys,
-		cache:    c,
-		inflight: new(singleflight.Group),
+		zones:     zones,
+		keys:      keys,
+		splitkeys: splitkeys,
+		cache:     c,
+		inflight:  new(singleflight.Group),
 	}
 }
 
@@ -97,15 +99,29 @@ func (d Dnssec) sign(rrs []dns.RR, signerName string, ttl, incep, expir uint32, 
 	}
 
 	sigs, err := d.inflight.Do(k, func() (interface{}, error) {
-		sigs := make([]dns.RR, len(d.keys))
-		var e error
-		for i, k := range d.keys {
+		var sigs []dns.RR
+		for _, k := range d.keys {
+			if d.splitkeys {
+				if len(rrs) > 0 && rrs[0].Header().Rrtype == dns.TypeDNSKEY {
+					// We are signing a DNSKEY RRSet. With split keys, we need to use a KSK here.
+					if !k.isKSK() {
+						continue
+					}
+				} else {
+					// For non-DNSKEY RRSets, we want to use a ZSK.
+					if !k.isZSK() {
+						continue
+					}
+				}
+			}
 			sig := k.newRRSIG(signerName, ttl, incep, expir)
-			e = sig.Sign(k.s, rrs)
-			sigs[i] = sig
+			if e := sig.Sign(k.s, rrs); e != nil {
+				return sigs, e
+			}
+			sigs = append(sigs, sig)
 		}
 		d.set(k, sigs)
-		return sigs, e
+		return sigs, nil
 	})
 	return sigs.([]dns.RR), err
 }
