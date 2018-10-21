@@ -2,7 +2,7 @@ package auto
 
 import (
 	"os"
-	"path"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"time"
@@ -104,8 +104,8 @@ func autoParse(c *caddy.Controller) (Auto, error) {
 					return a, c.ArgErr()
 				}
 				a.loader.directory = c.Val()
-				if !path.IsAbs(a.loader.directory) && config.Root != "" {
-					a.loader.directory = path.Join(config.Root, a.loader.directory)
+				if !filepath.IsAbs(a.loader.directory) && config.Root != "" {
+					a.loader.directory = filepath.Join(config.Root, a.loader.directory)
 				}
 				_, err := os.Stat(a.loader.directory)
 				if err != nil {

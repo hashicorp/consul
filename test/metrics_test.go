@@ -3,7 +3,7 @@ package test
 import (
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -145,7 +145,7 @@ func TestMetricsAuto(t *testing.T) {
 	defer i.Stop()
 
 	// Write db.example.org to get example.org.
-	if err = ioutil.WriteFile(path.Join(tmpdir, "db.example.org"), []byte(zoneContent), 0644); err != nil {
+	if err = ioutil.WriteFile(filepath.Join(tmpdir, "db.example.org"), []byte(zoneContent), 0644); err != nil {
 		t.Fatal(err)
 	}
 	// TODO(miek): make the auto sleep even less.
@@ -169,7 +169,7 @@ func TestMetricsAuto(t *testing.T) {
 	}
 
 	// Remove db.example.org again. And see if the metric stops increasing.
-	os.Remove(path.Join(tmpdir, "db.example.org"))
+	os.Remove(filepath.Join(tmpdir, "db.example.org"))
 	time.Sleep(1100 * time.Millisecond) // wait for it to be picked up
 	if _, err := dns.Exchange(m, udp); err != nil {
 		t.Fatalf("Could not send message: %s", err)

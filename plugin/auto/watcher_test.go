@@ -2,7 +2,7 @@ package auto
 
 import (
 	"os"
-	"path"
+	"path/filepath"
 	"regexp"
 	"testing"
 )
@@ -39,7 +39,7 @@ func TestWatcher(t *testing.T) {
 	}
 
 	// Now remove one file, rescan and see if it's gone.
-	if err := os.Remove(path.Join(tempdir, "db.example.com")); err != nil {
+	if err := os.Remove(filepath.Join(tempdir, "db.example.com")); err != nil {
 		t.Fatal(err)
 	}
 
@@ -78,15 +78,15 @@ func TestSymlinks(t *testing.T) {
 	a.Walk()
 
 	// Now create a duplicate file in a subdirectory and repoint the symlink
-	if err := os.Remove(path.Join(tempdir, "db.example.com")); err != nil {
+	if err := os.Remove(filepath.Join(tempdir, "db.example.com")); err != nil {
 		t.Fatal(err)
 	}
-	dataDir := path.Join(tempdir, "..data")
+	dataDir := filepath.Join(tempdir, "..data")
 	if err = os.Mkdir(dataDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	newFile := path.Join(dataDir, "db.example.com")
-	if err = os.Symlink(path.Join(tempdir, "db.example.org"), newFile); err != nil {
+	newFile := filepath.Join(dataDir, "db.example.com")
+	if err = os.Symlink(filepath.Join(tempdir, "db.example.org"), newFile); err != nil {
 		t.Fatal(err)
 	}
 

@@ -3,7 +3,7 @@ package auto
 import (
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"regexp"
 	"testing"
 )
@@ -73,15 +73,15 @@ func createFiles() (string, error) {
 	}
 
 	for _, name := range dbFiles {
-		if err := ioutil.WriteFile(path.Join(dir, name), []byte(zoneContent), 0644); err != nil {
+		if err := ioutil.WriteFile(filepath.Join(dir, name), []byte(zoneContent), 0644); err != nil {
 			return dir, err
 		}
 	}
 	// symlinks
-	if err = os.Symlink(path.Join(dir, "db.example.org"), path.Join(dir, "db.example.com")); err != nil {
+	if err = os.Symlink(filepath.Join(dir, "db.example.org"), filepath.Join(dir, "db.example.com")); err != nil {
 		return dir, err
 	}
-	if err = os.Symlink(path.Join(dir, "db.example.org"), path.Join(dir, "aa.example.com")); err != nil {
+	if err = os.Symlink(filepath.Join(dir, "db.example.org"), filepath.Join(dir, "aa.example.com")); err != nil {
 		return dir, err
 	}
 

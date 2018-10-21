@@ -2,7 +2,7 @@ package file
 
 import (
 	"os"
-	"path"
+	"path/filepath"
 	"time"
 
 	"github.com/coredns/coredns/core/dnsserver"
@@ -71,8 +71,8 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 			origins = args
 		}
 
-		if !path.IsAbs(fileName) && config.Root != "" {
-			fileName = path.Join(config.Root, fileName)
+		if !filepath.IsAbs(fileName) && config.Root != "" {
+			fileName = filepath.Join(config.Root, fileName)
 		}
 
 		reader, err := os.Open(fileName)

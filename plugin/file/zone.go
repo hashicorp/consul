@@ -3,7 +3,7 @@ package file
 import (
 	"fmt"
 	"net"
-	"path"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -48,7 +48,7 @@ func NewZone(name, file string) *Zone {
 	z := &Zone{
 		origin:         dns.Fqdn(name),
 		origLen:        dns.CountLabel(dns.Fqdn(name)),
-		file:           path.Clean(file),
+		file:           filepath.Clean(file),
 		Tree:           &tree.Tree{},
 		Expired:        new(bool),
 		reloadShutdown: make(chan bool),
