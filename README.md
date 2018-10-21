@@ -208,3 +208,5 @@ repository](https://github.com/coredns/deployment).
 If you find a security vulnerability or any security related issues, please DO NOT file a public
 issue, instead send your report privately to `security@coredns.io`. Security reports are greatly
 appreciated and we will publicly thank you for it.
+
+Please consult [security vulnerability disclosures and security fix and release process document](https://github.com/coredns/coredns/SECURITY-RELEASE-PROCESS.md)
