@@ -87,12 +87,12 @@ Usage: consul acl policy delete [options] -id POLICY
 
     Deletes an ACL policy by providing either the ID or a unique ID prefix.
 
-      Delete by prefix:
+    Delete by prefix:
 
-          $ consul acl policy delete -id b6b85
+        $ consul acl policy delete -id b6b85
 
-      Delete by full ID:
+    Delete by full ID:
 
-          $ consul acl policy delete -id b6b856da-5193-4e78-845a-7d61ca8371ba
+        $ consul acl policy delete -id b6b856da-5193-4e78-845a-7d61ca8371ba
 
 `

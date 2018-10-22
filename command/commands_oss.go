@@ -12,6 +12,7 @@ import (
 	aclpupdate "github.com/hashicorp/consul/command/acl/policy/update"
 	aclrules "github.com/hashicorp/consul/command/acl/rules"
 	acltoken "github.com/hashicorp/consul/command/acl/token"
+	acltclone "github.com/hashicorp/consul/command/acl/token/clone"
 	acltcreate "github.com/hashicorp/consul/command/acl/token/create"
 	acltdelete "github.com/hashicorp/consul/command/acl/token/delete"
 	acltlist "github.com/hashicorp/consul/command/acl/token/list"
@@ -95,6 +96,7 @@ func init() {
 	Register("acl set-agent-token", func(ui cli.Ui) (cli.Command, error) { return aclagent.New(ui), nil })
 	Register("acl token", func(cli.Ui) (cli.Command, error) { return acltoken.New(), nil })
 	Register("acl token create", func(ui cli.Ui) (cli.Command, error) { return acltcreate.New(ui), nil })
+	Register("acl token clone", func(ui cli.Ui) (cli.Command, error) { return acltclone.New(ui), nil })
 	Register("acl token list", func(ui cli.Ui) (cli.Command, error) { return acltlist.New(ui), nil })
 	Register("acl token read", func(ui cli.Ui) (cli.Command, error) { return acltread.New(ui), nil })
 	Register("acl token update", func(ui cli.Ui) (cli.Command, error) { return acltupdate.New(ui), nil })

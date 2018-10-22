@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/acl"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
@@ -21,11 +22,17 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
-	tokenID string
+	tokenID  string
+	self     bool
+	showMeta bool
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.BoolVar(&c.showMeta, "meta", false, "Indicates that token metadata such "+
+		"as the content hash and Raft indices should be shown for each entry")
+	c.flags.BoolVar(&c.self, "self", false, "Indicates that the current HTTP token "+
+		"should be read by secret ID instead of expecting a -id option")
 	c.flags.StringVar(&c.tokenID, "id", "", "The Accessor ID of the token to read. "+
 		"It may be specified as a unique ID prefix but will error if the prefix "+
 		"matches multiple token Accessor IDs")
@@ -40,7 +47,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	if c.tokenID == "" {
+	if c.tokenID == "" && !c.self {
 		c.UI.Error(fmt.Sprintf("Must specify the -id parameter"))
 		return 1
 	}
@@ -51,19 +58,28 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	tokenID, err := acl.GetTokenIDFromPartial(client, c.tokenID)
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error determining token ID: %v", err))
-		return 1
+	var token *api.ACLToken
+	if !c.self {
+		tokenID, err := acl.GetTokenIDFromPartial(client, c.tokenID)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error determining token ID: %v", err))
+			return 1
+		}
+
+		token, _, err = client.ACL().TokenRead(tokenID, nil)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error reading token %q: %v", tokenID, err))
+			return 1
+		}
+	} else {
+		token, _, err = client.ACL().TokenReadSelf(nil)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error reading token: %v", err))
+			return 1
+		}
 	}
 
-	token, _, err := client.ACL().TokenRead(tokenID, nil)
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error reading token %q: %v", tokenID, err))
-		return 1
-	}
-
-	acl.PrintToken(token, c.UI, true)
+	acl.PrintToken(token, c.UI, c.showMeta)
 	return 0
 }
 

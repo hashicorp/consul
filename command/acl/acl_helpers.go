@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/mitchellh/cli"
 )
@@ -73,6 +74,10 @@ func PrintPolicyListEntry(policy *api.ACLPolicyListEntry, ui cli.Ui, showMeta bo
 }
 
 func GetTokenIDFromPartial(client *api.Client, partialID string) (string, error) {
+	if partialID == "anonymous" {
+		return structs.ACLTokenAnonymousID, nil
+	}
+
 	// the full UUID string was given
 	if len(partialID) == 36 {
 		return partialID, nil
@@ -101,6 +106,9 @@ func GetTokenIDFromPartial(client *api.Client, partialID string) (string, error)
 }
 
 func GetPolicyIDFromPartial(client *api.Client, partialID string) (string, error) {
+	if partialID == "global-management" {
+		return structs.ACLPolicyGlobalManagementID, nil
+	}
 	// The full UUID string was given
 	if len(partialID) == 36 {
 		return partialID, nil
@@ -148,8 +156,12 @@ func GetPolicyIDByName(client *api.Client, name string) (string, error) {
 }
 
 func GetRulesFromLegacyToken(client *api.Client, tokenID string, isSecret bool) (string, error) {
+	tokenID, err := GetTokenIDFromPartial(client, tokenID)
+	if err != nil {
+		return "", err
+	}
+
 	var token *api.ACLToken
-	var err error
 	if isSecret {
 		qopts := api.QueryOptions{
 			Token: tokenID,

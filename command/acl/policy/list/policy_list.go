@@ -73,5 +73,7 @@ Usage: consul acl policy list [options]
 
     Lists all the ACL policies
 
-          $ consul acl policy list
+    Example:
+
+        $ consul acl policy list
 `

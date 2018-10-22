@@ -305,7 +305,7 @@ func (a *ACL) TokenClone(tokenID string, description string, q *WriteOptions) (*
 		return nil, nil, fmt.Errorf("Must specify a tokenID for Token Cloning")
 	}
 
-	r := a.c.newRequest("PUT", "/v1/acl/token/clone/"+tokenID)
+	r := a.c.newRequest("PUT", "/v1/acl/token/"+tokenID+"/clone")
 	r.setWriteOptions(q)
 	r.obj = struct{ Description string }{description}
 	rtt, resp, err := requireOK(a.c.doRequest(r))

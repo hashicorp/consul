@@ -23,10 +23,13 @@ type cmd struct {
 
 	policyID   string
 	policyName string
+	showMeta   bool
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.BoolVar(&c.showMeta, "meta", false, "Indicates that policy metadata such "+
+		"as the content hash and raft indices should be show for each entry")
 	c.flags.StringVar(&c.policyID, "id", "", "The ID of the policy to read. "+
 		"It may be specified as a unique ID prefix but will error if the prefix "+
 		"matches multiple policy IDs")
@@ -69,7 +72,7 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error(fmt.Sprintf("Error reading policy %q: %v", policyID, err))
 		return 1
 	}
-	acl.PrintPolicy(policy, c.UI, true)
+	acl.PrintPolicy(policy, c.UI, c.showMeta)
 	return 0
 }
 
