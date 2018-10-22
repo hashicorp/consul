@@ -48,7 +48,7 @@ func TestLookupCache(t *testing.T) {
 	})
 
 	t.Run("Short TTL", func(t *testing.T) {
-		testCase(t, state, p, "short.example.org.", 1, 1)
+		testCase(t, state, p, "short.example.org.", 1, 5)
 	})
 
 }
