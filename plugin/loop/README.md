@@ -55,7 +55,7 @@ memory and CPU until eventual out of memory death by the host.
 
 A forwarding loop is usually caused by:
 
-* Most commonly, CoreDNS forwarding requests directly to itself. e.g. to `127.0.0.1` or `127.0.0.53`
+* Most commonly, CoreDNS forwarding requests directly to itself. e.g. via a loopback address such as `127.0.0.1`, `::1` or `127.0.0.53`
 * Less commonly, CoreDNS forwarding to an upstream server that in turn, forwards requests back to CoreDNS.
 
 To troubleshoot this problem, look in your Corefile for any `proxy` or `forward` to the zone
