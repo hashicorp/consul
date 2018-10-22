@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/yamux"
 )
 
@@ -124,6 +126,23 @@ func TestConfig_OutgoingTLS_VerifyOutgoing(t *testing.T) {
 	}
 	if !tls.InsecureSkipVerify {
 		t.Fatalf("should skip built-in verification")
+	}
+}
+
+func TestConfig_SkipBuiltinVerify(t *testing.T) {
+	type variant struct {
+		config Config
+		result bool
+	}
+	table := []variant{
+		variant{Config{ServerName: "", VerifyServerHostname: true}, false},
+		variant{Config{ServerName: "", VerifyServerHostname: false}, true},
+		variant{Config{ServerName: "consul", VerifyServerHostname: true}, false},
+		variant{Config{ServerName: "consul", VerifyServerHostname: false}, false},
+	}
+
+	for _, v := range table {
+		require.Equal(t, v.result, v.config.skipBuiltinVerify())
 	}
 }
 
@@ -373,7 +392,7 @@ func TestConfig_wrapTLS_OK(t *testing.T) {
 		t.Fatalf("OutgoingTLSConfig err: %v", err)
 	}
 
-	tlsClient, err := WrapTLSClient(client, clientConfig)
+	tlsClient, err := config.wrapTLSClient(client, clientConfig)
 	if err != nil {
 		t.Fatalf("wrapTLS err: %v", err)
 	} else {
@@ -406,7 +425,7 @@ func TestConfig_wrapTLS_BadCert(t *testing.T) {
 		t.Fatalf("OutgoingTLSConfig err: %v", err)
 	}
 
-	tlsClient, err := WrapTLSClient(client, clientTLSConfig)
+	tlsClient, err := clientConfig.wrapTLSClient(client, clientTLSConfig)
 	if err == nil {
 		t.Fatalf("wrapTLS no err")
 	}
