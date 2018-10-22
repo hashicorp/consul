@@ -185,9 +185,6 @@ func TestConfig_OutgoingTLS_VerifyHostname(t *testing.T) {
 	if len(tls.RootCAs.Subjects()) != 1 {
 		t.Fatalf("expect root cert")
 	}
-	if tls.ServerName != "VerifyServerHostname" {
-		t.Fatalf("expect server name")
-	}
 	if tls.InsecureSkipVerify {
 		t.Fatalf("should not skip built-in verification")
 	}

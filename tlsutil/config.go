@@ -142,10 +142,6 @@ func (c *Config) OutgoingTLSConfig() (*tls.Config, error) {
 		InsecureSkipVerify: c.skipBuiltinVerify(),
 		ServerName:         c.ServerName,
 	}
-	if c.VerifyServerHostname {
-		// ServerName is filled in dynamically based on the target DC
-		tlsConfig.ServerName = "VerifyServerHostname"
-	}
 	if len(c.CipherSuites) != 0 {
 		tlsConfig.CipherSuites = c.CipherSuites
 	}
