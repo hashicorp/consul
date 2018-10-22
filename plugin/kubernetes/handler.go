@@ -65,6 +65,10 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 		if k.Fall.Through(state.Name()) {
 			return plugin.NextOrFailure(k.Name(), k.Next, ctx, w, r)
 		}
+		if !k.APIConn.HasSynced() {
+			// If we haven't synchronized with the kubernetes cluster, return server failure
+			return plugin.BackendError(&k, zone, dns.RcodeServerFailure, state, nil /* err */, opt)
+		}
 		return plugin.BackendError(&k, zone, dns.RcodeNameError, state, nil /* err */, opt)
 	}
 	if err != nil {

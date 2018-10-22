@@ -77,13 +77,19 @@ func (k *Kubernetes) RegisterKubeCache(c *caddy.Controller) {
 		if k.APIProxy != nil {
 			k.APIProxy.Run()
 		}
-		synced := false
-		for synced == false {
-			synced = k.APIConn.HasSynced()
-			time.Sleep(100 * time.Millisecond)
-		}
 
-		return nil
+		timeout := time.After(5 * time.Second)
+		ticker := time.NewTicker(100 * time.Millisecond)
+		for {
+			select {
+			case <-ticker.C:
+				if k.APIConn.HasSynced() {
+					return nil
+				}
+			case <-timeout:
+				return nil
+			}
+		}
 	})
 
 	c.OnShutdown(func() error {

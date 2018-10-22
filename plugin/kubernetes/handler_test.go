@@ -377,9 +377,58 @@ func TestServeDNS(t *testing.T) {
 	}
 }
 
-type APIConnServeTest struct{}
+var notSyncedTestCases = []test.Case{
+	{
+		// We should get ServerFailure instead of NameError for missing records when we kubernetes hasn't synced
+		Qname: "svc0.testns.svc.cluster.local.", Qtype: dns.TypeA,
+		Rcode: dns.RcodeServerFailure,
+		Ns: []dns.RR{
+			test.SOA("cluster.local.	303	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1499347823 7200 1800 86400 60"),
+		},
+	},
+}
 
-func (APIConnServeTest) HasSynced() bool                           { return true }
+func TestNotSyncedServeDNS(t *testing.T) {
+
+	k := New([]string{"cluster.local."})
+	k.APIConn = &APIConnServeTest{
+		notSynced: true,
+	}
+	k.Next = test.NextHandler(dns.RcodeSuccess, nil)
+	k.Namespaces = map[string]bool{"testns": true}
+	ctx := context.TODO()
+
+	for i, tc := range notSyncedTestCases {
+		r := tc.Msg()
+
+		w := dnstest.NewRecorder(&test.ResponseWriter{})
+
+		_, err := k.ServeDNS(ctx, w, r)
+		if err != tc.Error {
+			t.Errorf("Test %d expected no error, got %v", i, err)
+			return
+		}
+		if tc.Error != nil {
+			continue
+		}
+
+		resp := w.Msg
+		if resp == nil {
+			t.Fatalf("Test %d, got nil message and no error for %q", i, r.Question[0].Name)
+		}
+
+		// Before sorting, make sure that CNAMES do not appear after their target records
+		test.CNAMEOrder(t, resp)
+
+		test.SortAndCheck(t, resp, tc)
+	}
+}
+
+type APIConnServeTest struct {
+	notSynced bool
+}
+
+func (a APIConnServeTest) HasSynced() bool                         { return !a.notSynced }
 func (APIConnServeTest) Run()                                      { return }
 func (APIConnServeTest) Stop() error                               { return nil }
 func (APIConnServeTest) EpIndexReverse(string) []*object.Endpoints { return nil }
