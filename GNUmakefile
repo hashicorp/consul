@@ -118,7 +118,7 @@ dev-build:
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-local.sh -o $(GOOS) -a $(GOARCH)
 
 dev-docker: go-build-image
-	@docker build -t '$(CONSUL_DEV_IMAGE)' --build-arg 'GIT_COMMIT=$(GIT_COMMIT)' --build-arg 'GIT_DIRTY=$(GIT_DIRTY)' --build-arg 'GIT_DESCRIBE=$(GIT_DESCRIBE)' --build-arg 'CONSUL_BUILD_IMAGE=$(GO_BUILD_TAG)' -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile $(CURDIR)
+	@docker build -t '$(CONSUL_DEV_IMAGE)' --build-arg 'GIT_COMMIT=$(GIT_COMMIT)' --build-arg 'GIT_DIRTY=$(GIT_DIRTY)' --build-arg 'GIT_DESCRIBE=$(GIT_DESCRIBE)' --build-arg 'CONSUL_BUILD_IMAGE=$(GO_BUILD_TAG)' -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile '$(CURDIR)'
 
 vendorfmt:
 	@echo "--> Formatting vendor/vendor.json"
