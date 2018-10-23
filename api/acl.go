@@ -305,7 +305,7 @@ func (a *ACL) TokenClone(tokenID string, description string, q *WriteOptions) (*
 		return nil, nil, fmt.Errorf("Must specify a tokenID for Token Cloning")
 	}
 
-	r := a.c.newRequest("PUT", "/v1/acl/token/clone/"+tokenID)
+	r := a.c.newRequest("PUT", "/v1/acl/token/"+tokenID+"/clone")
 	r.setWriteOptions(q)
 	r.obj = struct{ Description string }{description}
 	rtt, resp, err := requireOK(a.c.doRequest(r))
@@ -396,31 +396,6 @@ func (a *ACL) TokenList(q *QueryOptions) ([]*ACLTokenListEntry, *QueryMeta, erro
 		return nil, nil, err
 	}
 	return entries, qm, nil
-}
-
-// TokenUpgrade performs an almost identical operation as TokenUpdate. The only difference is
-// that not all parts of the token must be specified here and the server will patch the token
-// with the existing secret id, description etc.
-func (a *ACL) TokenUpgrade(token *ACLToken, q *WriteOptions) (*ACLToken, *WriteMeta, error) {
-	if token.AccessorID == "" {
-		return nil, nil, fmt.Errorf("Must specify an AccessorID for Token Updating")
-	}
-	r := a.c.newRequest("PUT", "/v1/acl/token/upgrade"+token.AccessorID)
-	r.setWriteOptions(q)
-	r.obj = token
-	rtt, resp, err := requireOK(a.c.doRequest(r))
-	if err != nil {
-		return nil, nil, err
-	}
-	defer resp.Body.Close()
-
-	wm := &WriteMeta{RequestTime: rtt}
-	var out ACLToken
-	if err := decodeBody(resp, &out); err != nil {
-		return nil, nil, err
-	}
-
-	return &out, wm, nil
 }
 
 func (a *ACL) PolicyCreate(policy *ACLPolicy, q *WriteOptions) (*ACLPolicy, *WriteMeta, error) {
@@ -523,8 +498,8 @@ func (a *ACL) PolicyList(q *QueryOptions) ([]*ACLPolicyListEntry, *QueryMeta, er
 	return entries, qm, nil
 }
 
-func (a *ACL) PolicyTranslate(rules string) (string, error) {
-	r := a.c.newRequest("POST", "/v1/acl/policy/translate")
+func (a *ACL) RulesTranslate(rules string) (string, error) {
+	r := a.c.newRequest("POST", "/v1/acl/rules/translate")
 	r.obj = rules
 	rtt, resp, err := requireOK(a.c.doRequest(r))
 	if err != nil {
@@ -541,5 +516,23 @@ func (a *ACL) PolicyTranslate(rules string) (string, error) {
 	}
 
 	return string(ruleBytes), nil
+}
 
+func (a *ACL) RulesTranslateToken(tokenID string) (string, error) {
+	r := a.c.newRequest("GET", "/v1/acl/rules/translate/"+tokenID)
+	rtt, resp, err := requireOK(a.c.doRequest(r))
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+
+	ruleBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("Failed to read translated rule body: %v", err)
+	}
+
+	return string(ruleBytes), nil
 }
