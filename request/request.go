@@ -226,11 +226,7 @@ func (r *Request) SizeAndDo(m *dns.Msg) bool {
 	return true
 }
 
-// Scrub is a noop function, added for backwards compatibility reasons. The original Scrub is now called
-// automatically by the server on writing the reply. See ScrubWriter.
-func (r *Request) Scrub(reply *dns.Msg) (*dns.Msg, int) { return reply, 0 }
-
-// scrub scrubs the reply message so that it will fit the client's buffer. It will first
+// Scrub scrubs the reply message so that it will fit the client's buffer. It will first
 // check if the reply fits without compression and then *with* compression.
 // Scrub will then use binary search to find a save cut off point in the additional section.
 // If even *without* the additional section the reply still doesn't fit we
@@ -238,7 +234,7 @@ func (r *Request) Scrub(reply *dns.Msg) (*dns.Msg, int) { return reply, 0 }
 // we set the TC bit on the reply; indicating the client should retry over TCP.
 // Note, the TC bit will be set regardless of protocol, even TCP message will
 // get the bit, the client should then retry with pigeons.
-func (r *Request) scrub(reply *dns.Msg) *dns.Msg {
+func (r *Request) Scrub(reply *dns.Msg) *dns.Msg {
 	size := r.Size()
 
 	reply.Compress = false

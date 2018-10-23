@@ -15,6 +15,6 @@ func NewScrubWriter(req *dns.Msg, w dns.ResponseWriter) *ScrubWriter { return &S
 // scrub on the message m and will then write it to the client.
 func (s *ScrubWriter) WriteMsg(m *dns.Msg) error {
 	state := Request{Req: s.req, W: s.ResponseWriter}
-	new, _ := state.Scrub(m)
-	return s.ResponseWriter.WriteMsg(new)
+	n := state.Scrub(m)
+	return s.ResponseWriter.WriteMsg(n)
 }

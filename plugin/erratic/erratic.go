@@ -19,6 +19,7 @@ type Erratic struct {
 	duration time.Duration
 
 	truncate uint64
+	large    bool // undocumented feature; return large responses for A request (>512B, to test compression).
 
 	q uint64 // counter of queries
 }
@@ -57,6 +58,11 @@ func (e *Erratic) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 		rr := *(rrA.(*dns.A))
 		rr.Header().Name = state.QName()
 		m.Answer = append(m.Answer, &rr)
+		if e.large {
+			for i := 0; i < 29; i++ {
+				m.Answer = append(m.Answer, &rr)
+			}
+		}
 	case dns.TypeAAAA:
 		rr := *(rrAAAA.(*dns.AAAA))
 		rr.Header().Name = state.QName()

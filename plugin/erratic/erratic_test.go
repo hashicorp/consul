@@ -98,3 +98,19 @@ func TestAxfr(t *testing.T) {
 		t.Errorf("Expected for record to be %d, got %d", dns.TypeSOA, x)
 	}
 }
+
+func TestErratic(t *testing.T) {
+	e := &Erratic{drop: 0, delay: 0}
+
+	ctx := context.TODO()
+
+	req := new(dns.Msg)
+	req.SetQuestion("example.org.", dns.TypeA)
+
+	rec := dnstest.NewRecorder(&test.ResponseWriter{})
+	e.ServeDNS(ctx, rec, req)
+
+	if rec.Msg.Answer[0].Header().Rrtype != dns.TypeA {
+		t.Errorf("Expected A response, got %d type", rec.Msg.Answer[0].Header().Rrtype)
+	}
+}

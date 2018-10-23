@@ -104,6 +104,8 @@ func parseErratic(c *caddy.Controller) (*Erratic, error) {
 					return nil, fmt.Errorf("illegal amount value given %q", args[0])
 				}
 				e.truncate = uint64(amount)
+			case "large":
+				e.large = true
 			default:
 				return nil, c.Errf("unknown property '%s'", c.Val())
 			}

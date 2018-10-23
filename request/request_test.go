@@ -73,7 +73,7 @@ func TestRequestScrubAnswer(t *testing.T) {
 			fmt.Sprintf("large.example.com. 10 IN SRV 0 0 80 10-0-0-%d.default.pod.k8s.example.com.", i)))
 	}
 
-	req.scrub(reply)
+	req.Scrub(reply)
 	if want, got := req.Size(), reply.Len(); want < got {
 		t.Errorf("Want scrub to reduce message length below %d bytes, got %d bytes", want, got)
 	}
@@ -94,7 +94,7 @@ func TestRequestScrubExtra(t *testing.T) {
 			fmt.Sprintf("large.example.com. 10 IN SRV 0 0 80 10-0-0-%d.default.pod.k8s.example.com.", i)))
 	}
 
-	req.scrub(reply)
+	req.Scrub(reply)
 	if want, got := req.Size(), reply.Len(); want < got {
 		t.Errorf("Want scrub to reduce message length below %d bytes, got %d bytes", want, got)
 	}
@@ -116,7 +116,7 @@ func TestRequestScrubExtraEdns0(t *testing.T) {
 			fmt.Sprintf("large.example.com. 10 IN SRV 0 0 80 10-0-0-%d.default.pod.k8s.example.com.", i)))
 	}
 
-	req.scrub(reply)
+	req.Scrub(reply)
 	if want, got := req.Size(), reply.Len(); want < got {
 		t.Errorf("Want scrub to reduce message length below %d bytes, got %d bytes", want, got)
 	}
@@ -146,7 +146,7 @@ func TestRequestScrubExtraRegression(t *testing.T) {
 			fmt.Sprintf("10-0-0-%d.default.pod.k8s.example.com. 10 IN A 10.0.0.%d", i, i)))
 	}
 
-	reply = req.scrub(reply)
+	reply = req.Scrub(reply)
 	if want, got := req.Size(), reply.Len(); want < got {
 		t.Errorf("Want scrub to reduce message length below %d bytes, got %d bytes", want, got)
 	}
@@ -171,7 +171,7 @@ func TestRequestScrubAnswerExact(t *testing.T) {
 		reply.Answer = append(reply.Answer, test.A(fmt.Sprintf("large.example.com. 10 IN A 127.0.0.%d", i)))
 	}
 
-	req.scrub(reply)
+	req.Scrub(reply)
 	if want, got := req.Size(), reply.Len(); want < got {
 		t.Errorf("Want scrub to reduce message length below %d bytes, got %d bytes", want, got)
 	}
