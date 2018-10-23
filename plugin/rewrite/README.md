@@ -185,6 +185,16 @@ follows:
 rewrite [continue|stop] name regex STRING STRING answer name STRING STRING
 ```
 
+When using `exact` name rewrite rules, answer gets re-written automatically,
+and there is no need defining `answer name` instruction. The below rule
+rewrites the name in a request from `RED` to `BLUE`, and subsequently
+rewrites the name in a corresponding response from `BLUE` to `RED`. The
+client in the request would see only `RED` and no `BLUE`.
+
+```
+rewrite [continue|stop] name exact RED BLUE
+```
+
 ### TTL Field Rewrites
 
 At times, the need for rewriting TTL value could arise. For example, a DNS server
