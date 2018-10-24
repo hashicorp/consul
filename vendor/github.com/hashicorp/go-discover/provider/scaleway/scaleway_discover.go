@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 
-	"github.com/nicolai86/scaleway-sdk/api"
+	api "github.com/nicolai86/scaleway-sdk"
 )
 
 type Provider struct{}
@@ -58,7 +58,7 @@ func (p *Provider) Addrs(args map[string]string, l *log.Logger) ([]string, error
 	// Filter servers by tag
 	var addrs []string
 	if servers != nil {
-		for _, server := range *servers {
+		for _, server := range servers {
 			if stringInSlice(tagName, server.Tags) {
 				l.Printf("[DEBUG] discover-scaleway: Found server (%s) - %s with private IP: %s",
 					server.Name, server.Hostname, server.PrivateIP)

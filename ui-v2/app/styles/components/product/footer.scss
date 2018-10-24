@@ -1,0 +1,46 @@
+%footer > a:first-child {
+  @extend %with-hashicorp;
+}
+%footer {
+  border-top: $decor-border-100;
+}
+%footer {
+  border-color: $ui-gray-200;
+  background-color: $ui-white;
+}
+%footer > * {
+  color: $ui-gray-400;
+}
+%footer {
+  display: flex;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+%footer > * {
+  display: block;
+}
+@media #{$--tall-footer} {
+  %footer {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+}
+@media #{$--wide-footer} {
+  %footer {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  %footer > * {
+    padding: 11px;
+  }
+}
+@media #{$--lt-wide-footer} {
+  %footer > :first-child {
+    padding: 5px;
+    margin-left: 20px;
+  }
+  %footer > :not(:first-child) {
+    display: none;
+  }
+}

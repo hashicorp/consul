@@ -9,7 +9,7 @@ description: |-
 
 # License - Operator HTTP API
 
-~> **Enterprise Only!** This API endpoint and functionality only exists in 
+~> **Enterprise Only!** This API endpoint and functionality only exists in
 Consul Enterprise. This is not present in the open source version of Consul.
 
 The licensing functionality described here is available only in
@@ -25,24 +25,25 @@ This endpoint gets information about the current license.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required     |
-| ---------------- | ----------------- | ---------------- |
-| `NO`             | `all`             | `none`            |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
+| ---------------- | ----------------- | ------------- | ---------------- |
+| `NO`             | `all`             | `none`        | `none`           |
 
 ### Parameters
 
-- `dc` `(string: "")` - Specifies the datacenter whose license should be retrieved. 
-  This will default to the datacenter of the agent serving the HTTP request. 
+- `dc` `(string: "")` - Specifies the datacenter whose license should be retrieved.
+  This will default to the datacenter of the agent serving the HTTP request.
   This is specified as a URL query parameter.
-  
+
 ### Sample Request
 
 ```text
 $ curl \
-    https://consul.rocks/v1/operator/license
+    http://127.0.0.1:8500/v1/operator/license
 ```
 
 ### Sample Response
@@ -77,7 +78,7 @@ $ curl \
 
 ## Updating the Consul License
 
-This endpoint updates the Consul license and returns some of the 
+This endpoint updates the Consul license and returns some of the
 license contents as well as any warning messages regarding its validity.
 
 | Method | Path                         | Produces                   |
@@ -86,30 +87,31 @@ license contents as well as any warning messages regarding its validity.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required     |
-| ---------------- | ----------------- | ---------------- |
-| `NO`             | `none`            | `operator:write` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
+| ---------------- | ----------------- | ------------- | ---------------- |
+| `NO`             | `none`            | `none`        | `operator:write` |
 
 ### Parameters
 
-- `dc` `(string: "")` - Specifies the datacenter whose license should be updated. 
-  This will default to the datacenter of the agent serving the HTTP request. 
+- `dc` `(string: "")` - Specifies the datacenter whose license should be updated.
+  This will default to the datacenter of the agent serving the HTTP request.
   This is specified as a URL query parameter.
-  
+
 ### Sample Payload
 
 The payload is the raw license blob.
 
-### Sample Request 
+### Sample Request
 
 ```text
 $ curl \
     --request PUT \
     --data @consul.license \
-    https://consul.rocks/v1/operator/license
+    http://127.0.0.1:8500/v1/operator/license
 ```
 
 ### Sample Response

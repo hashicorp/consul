@@ -65,6 +65,11 @@ client and Consul and set the cache values appropriately. In many cases
 "appropriately" simply is turning negative response caching off to get the best
 recovery time when a service becomes available again.
 
+With versions of Consul greater than 1.3.0, it is now possible to tune SOA
+responses and modify the negative TTL cache for some resolvers. It can
+be achieved using the [`soa.min_ttl`](/docs/agent/options.html#soa_min_ttl)
+configuration within the [`soa`](/docs/agent/options.html#soa) configuration.
+
 <a name="ttl"></a>
 ## TTL Values
 
@@ -80,7 +85,11 @@ To enable caching of node lookups (e.g. "foo.node.consul"), we can set the
 Service TTLs can be specified in a more granular fashion. You can set TTLs
 per-service, with a wildcard TTL as the default. This is specified using the
 [`dns_config.service_ttl`](/docs/agent/options.html#service_ttl) map. The "*"
-service is the wildcard service.
+is supported at the end of any prefix and a lower precedence than strict match,
+so 'my-service-x' has precedence over 'my-service-*', when performing wildcard
+match, the longest path is taken into account, thus 'my-service-*' TTL will
+be used instead of 'my-*' or '*'. With the same rule, '*' is the default value
+when nothing else matches. If no match is found the TTL defaults to 0.
 
 For example, a [`dns_config`](/docs/agent/options.html#dns_config) that provides
 a wildcard TTL and a specific TTL for a service might look like this:
@@ -90,7 +99,9 @@ a wildcard TTL and a specific TTL for a service might look like this:
   "dns_config": {
     "service_ttl": {
       "*": "5s",
-      "web": "30s"
+      "web": "30s",
+      "db*": "10s",
+      "db-master": "3s"
     }
   }
 }
@@ -99,6 +110,9 @@ a wildcard TTL and a specific TTL for a service might look like this:
 This sets all lookups to "web.service.consul" to use a 30 second TTL
 while lookups to "db.service.consul" or "api.service.consul" will use the
 5 second TTL from the wildcard.
+
+All lookups matching "db*" would get a 10 seconds TTL except "db-master"
+that would have a 3 seconds TTL.
 
 [Prepared Queries](/api/query.html) provide an additional
 level of control over TTL. They allow for the TTL to be defined along with

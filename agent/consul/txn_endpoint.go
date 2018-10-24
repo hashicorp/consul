@@ -16,13 +16,13 @@ type Txn struct {
 
 // preCheck is used to verify the incoming operations before any further
 // processing takes place. This checks things like ACLs.
-func (t *Txn) preCheck(acl acl.ACL, ops structs.TxnOps) structs.TxnErrors {
+func (t *Txn) preCheck(authorizer acl.Authorizer, ops structs.TxnOps) structs.TxnErrors {
 	var errors structs.TxnErrors
 
 	// Perform the pre-apply checks for any KV operations.
 	for i, op := range ops {
 		if op.KV != nil {
-			ok, err := kvsPreApply(t.srv, acl, op.KV.Verb, &op.KV.DirEnt)
+			ok, err := kvsPreApply(t.srv, authorizer, op.KV.Verb, &op.KV.DirEnt)
 			if err != nil {
 				errors = append(errors, &structs.TxnError{
 					OpIndex: i,
@@ -49,11 +49,11 @@ func (t *Txn) Apply(args *structs.TxnRequest, reply *structs.TxnResponse) error 
 	defer metrics.MeasureSince([]string{"txn", "apply"}, time.Now())
 
 	// Run the pre-checks before we send the transaction into Raft.
-	acl, err := t.srv.resolveToken(args.Token)
+	authorizer, err := t.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	reply.Errors = t.preCheck(acl, args.Ops)
+	reply.Errors = t.preCheck(authorizer, args.Ops)
 	if len(reply.Errors) > 0 {
 		return nil
 	}
@@ -71,8 +71,8 @@ func (t *Txn) Apply(args *structs.TxnRequest, reply *structs.TxnResponse) error 
 	// Convert the return type. This should be a cheap copy since we are
 	// just taking the two slices.
 	if txnResp, ok := resp.(structs.TxnResponse); ok {
-		if acl != nil {
-			txnResp.Results = FilterTxnResults(acl, txnResp.Results)
+		if authorizer != nil {
+			txnResp.Results = FilterTxnResults(authorizer, txnResp.Results)
 		}
 		*reply = txnResp
 	} else {
@@ -100,11 +100,11 @@ func (t *Txn) Read(args *structs.TxnReadRequest, reply *structs.TxnReadResponse)
 	}
 
 	// Run the pre-checks before we perform the read.
-	acl, err := t.srv.resolveToken(args.Token)
+	authorizer, err := t.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	reply.Errors = t.preCheck(acl, args.Ops)
+	reply.Errors = t.preCheck(authorizer, args.Ops)
 	if len(reply.Errors) > 0 {
 		return nil
 	}
@@ -112,8 +112,8 @@ func (t *Txn) Read(args *structs.TxnReadRequest, reply *structs.TxnReadResponse)
 	// Run the read transaction.
 	state := t.srv.fsm.State()
 	reply.Results, reply.Errors = state.TxnRO(args.Ops)
-	if acl != nil {
-		reply.Results = FilterTxnResults(acl, reply.Results)
+	if authorizer != nil {
+		reply.Results = FilterTxnResults(authorizer, reply.Results)
 	}
 	return nil
 }

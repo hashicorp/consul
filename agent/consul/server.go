@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -17,7 +18,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/consul/acl"
 	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/consul/fsm"
@@ -94,11 +94,24 @@ type Server struct {
 	// sentinel is the Sentinel code engine (can be nil).
 	sentinel sentinel.Evaluator
 
-	// aclAuthCache is the authoritative ACL cache.
-	aclAuthCache *acl.Cache
+	// acls is used to resolve tokens to effective policies
+	acls *ACLResolver
 
-	// aclCache is the non-authoritative ACL cache.
-	aclCache *aclCache
+	// aclUpgradeCancel is used to cancel the ACL upgrade goroutine when we
+	// lose leadership
+	aclUpgradeCancel  context.CancelFunc
+	aclUpgradeLock    sync.RWMutex
+	aclUpgradeEnabled bool
+
+	// aclReplicationCancel is used to shut down the ACL replication goroutine
+	// when we lose leadership
+	aclReplicationCancel  context.CancelFunc
+	aclReplicationLock    sync.RWMutex
+	aclReplicationEnabled bool
+
+	// DEPRECATED (ACL-Legacy-Compat) - only needed while we support both
+	// useNewACLs is used to determine whether we can use new ACLs or not
+	useNewACLs int32
 
 	// autopilot is the Autopilot instance for this server.
 	autopilot *autopilot.Autopilot
@@ -274,6 +287,15 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		config.UseTLS = true
 	}
 
+	// Set the primary DC if it wasn't set.
+	if config.PrimaryDatacenter == "" {
+		if config.ACLDatacenter != "" {
+			config.PrimaryDatacenter = config.ACLDatacenter
+		} else {
+			config.PrimaryDatacenter = config.Datacenter
+		}
+	}
+
 	// Create the TLS wrapper for outgoing connections.
 	tlsConf := config.tlsConfig()
 	tlsWrap, err := tlsConf.OutgoingTLSWrapper()
@@ -335,23 +357,20 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 	// Initialize the stats fetcher that autopilot will use.
 	s.statsFetcher = NewStatsFetcher(logger, s.connPool, s.config.Datacenter)
 
-	// Initialize the authoritative ACL cache.
 	s.sentinel = sentinel.New(logger)
-	s.aclAuthCache, err = acl.NewCache(aclCacheSize, s.aclLocalFault, s.sentinel)
-	if err != nil {
-		s.Shutdown()
-		return nil, fmt.Errorf("Failed to create authoritative ACL cache: %v", err)
+	s.useNewACLs = 0
+	aclConfig := ACLResolverConfig{
+		Config:      config,
+		Delegate:    s,
+		CacheConfig: serverACLCacheConfig,
+		AutoDisable: false,
+		Logger:      logger,
+		Sentinel:    s.sentinel,
 	}
-
-	// Set up the non-authoritative ACL cache. A nil local function is given
-	// if ACL replication isn't enabled.
-	var local acl.FaultFunc
-	if s.IsACLReplicationEnabled() {
-		local = s.aclLocalFault
-	}
-	if s.aclCache, err = newACLCache(config, logger, s.RPC, local, s.sentinel); err != nil {
+	// Initialize the ACL resolver.
+	if s.acls, err = NewACLResolver(&aclConfig); err != nil {
 		s.Shutdown()
-		return nil, fmt.Errorf("Failed to create non-authoritative ACL cache: %v", err)
+		return nil, fmt.Errorf("Failed to create ACL resolver: %v", err)
 	}
 
 	// Initialize the RPC layer.
@@ -446,11 +465,6 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 	// Start monitoring leadership. This must happen after Serf is set up
 	// since it can fire events when leadership is obtained.
 	go s.monitorLeadership()
-
-	// Start ACL replication.
-	if s.IsACLReplicationEnabled() {
-		go s.runACLReplication()
-	}
 
 	// Start listening for RPC requests.
 	go s.listen(s.Listener)

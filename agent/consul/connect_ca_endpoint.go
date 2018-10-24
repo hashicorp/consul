@@ -36,7 +36,7 @@ func (s *ConnectCA) ConfigurationGet(
 	}
 
 	// This action requires operator read access.
-	rule, err := s.srv.resolveToken(args.Token)
+	rule, err := s.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func (s *ConnectCA) ConfigurationSet(
 	}
 
 	// This action requires operator write access.
-	rule, err := s.srv.resolveToken(args.Token)
+	rule, err := s.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
@@ -95,13 +95,19 @@ func (s *ConnectCA) ConfigurationSet(
 	if err != nil {
 		return fmt.Errorf("could not initialize provider: %v", err)
 	}
+	if err := newProvider.Configure(args.Config.ClusterID, true, args.Config.Config); err != nil {
+		return fmt.Errorf("error configuring provider: %v", err)
+	}
+	if err := newProvider.GenerateRoot(); err != nil {
+		return fmt.Errorf("error generating CA root certificate: %v", err)
+	}
 
 	newRootPEM, err := newProvider.ActiveRoot()
 	if err != nil {
 		return err
 	}
 
-	newActiveRoot, err := parseCARoot(newRootPEM, args.Config.Provider)
+	newActiveRoot, err := parseCARoot(newRootPEM, args.Config.Provider, args.Config.ClusterID)
 	if err != nil {
 		return err
 	}
@@ -114,7 +120,10 @@ func (s *ConnectCA) ConfigurationSet(
 		return err
 	}
 
-	if root != nil && root.ID == newActiveRoot.ID {
+	// If the root didn't change or if this is a secondary DC, just update the
+	// config and return.
+	if (s.srv.config.Datacenter != s.srv.config.PrimaryDatacenter) ||
+		root != nil && root.ID == newActiveRoot.ID {
 		args.Op = structs.CAOpSetConfig
 		resp, err := s.srv.raftApply(structs.ConnectCARequestType, args)
 		if err != nil {
@@ -270,16 +279,17 @@ func (s *ConnectCA) Roots(
 				// directly to the structure in the memdb store.
 
 				reply.Roots[i] = &structs.CARoot{
-					ID:                r.ID,
-					Name:              r.Name,
-					SerialNumber:      r.SerialNumber,
-					SigningKeyID:      r.SigningKeyID,
-					NotBefore:         r.NotBefore,
-					NotAfter:          r.NotAfter,
-					RootCert:          r.RootCert,
-					IntermediateCerts: r.IntermediateCerts,
-					RaftIndex:         r.RaftIndex,
-					Active:            r.Active,
+					ID:                  r.ID,
+					Name:                r.Name,
+					SerialNumber:        r.SerialNumber,
+					SigningKeyID:        r.SigningKeyID,
+					ExternalTrustDomain: r.ExternalTrustDomain,
+					NotBefore:           r.NotBefore,
+					NotAfter:            r.NotAfter,
+					RootCert:            r.RootCert,
+					IntermediateCerts:   r.IntermediateCerts,
+					RaftIndex:           r.RaftIndex,
+					Active:              r.Active,
 				}
 
 				if r.Active {
@@ -339,7 +349,7 @@ func (s *ConnectCA) Sign(
 	}
 
 	// Verify that the ACL token provided has permission to act as this service
-	rule, err := s.srv.resolveToken(args.Token)
+	rule, err := s.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}

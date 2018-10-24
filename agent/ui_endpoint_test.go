@@ -12,6 +12,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/hashicorp/consul/testrpc"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testutil"
@@ -29,6 +31,7 @@ func TestUiIndex(t *testing.T) {
 		ui_dir = "`+uiDir+`"
 	`)
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	// Create file
 	path := filepath.Join(a.Config.UIDir, "my-file")
@@ -65,6 +68,7 @@ func TestUiNodes(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	args := &structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -102,6 +106,7 @@ func TestUiNodeInfo(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/internal/ui/node/%s", a.Config.NodeName), nil)
 	resp := httptest.NewRecorder()
@@ -163,6 +168,7 @@ func TestSummarizeServices(t *testing.T) {
 					Kind:    structs.ServiceKindConnectProxy,
 					Service: "web",
 					Tags:    []string{},
+					Meta:    map[string]string{metaExternalSource: "k8s"},
 				},
 			},
 			Checks: []*structs.HealthCheck{
@@ -188,6 +194,7 @@ func TestSummarizeServices(t *testing.T) {
 					Kind:    structs.ServiceKindConnectProxy,
 					Service: "web",
 					Tags:    []string{},
+					Meta:    map[string]string{metaExternalSource: "k8s"},
 				},
 			},
 			Checks: []*structs.HealthCheck{
@@ -241,14 +248,16 @@ func TestSummarizeServices(t *testing.T) {
 	}
 
 	expectWeb := &ServiceSummary{
-		Kind:           structs.ServiceKindConnectProxy,
-		Name:           "web",
-		Tags:           []string{},
-		Nodes:          []string{"bar", "foo"},
-		ChecksPassing:  2,
-		ChecksWarning:  0,
-		ChecksCritical: 1,
+		Kind:            structs.ServiceKindConnectProxy,
+		Name:            "web",
+		Tags:            []string{},
+		Nodes:           []string{"bar", "foo"},
+		ChecksPassing:   2,
+		ChecksWarning:   0,
+		ChecksCritical:  1,
+		ExternalSources: []string{"k8s"},
 	}
+	summary[2].externalSourceSet = nil
 	if !reflect.DeepEqual(summary[2], expectWeb) {
 		t.Fatalf("bad: %v", summary[2])
 	}

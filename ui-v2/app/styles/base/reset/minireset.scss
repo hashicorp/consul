@@ -1,0 +1,64 @@
+html,
+body,
+p,
+ol,
+ul,
+li,
+dl,
+dt,
+dd,
+blockquote,
+figure,
+fieldset,
+legend,
+textarea,
+pre,
+iframe,
+hr,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  @extend %reset-box;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  @extend %reset-typo;
+}
+ul {
+  @extend %reset-list;
+}
+table {
+  @extend %reset-table;
+}
+img,
+embed,
+object,
+audio,
+video {
+  @extend %responsive-media;
+}
+button,
+input,
+select,
+textarea {
+  margin: 0;
+}
+iframe {
+  border: 0;
+}
+article,
+aside,
+figure,
+footer,
+header,
+hgroup,
+section {
+  display: block;
+}

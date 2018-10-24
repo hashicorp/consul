@@ -17,10 +17,10 @@ or added at runtime over the HTTP interface.
 
 ## Service Definition
 
-To configure a service, either provide the service definition as a `-config-file` option to
-the agent or place it inside the `-config-dir` of the agent. The file
-must end in the `.json` or `.hcl` extension to be loaded by Consul. Check
-definitions can be updated by sending a `SIGHUP` to the agent.
+To configure a service, either provide the service definition as a
+`-config-file` option to the agent or place it inside the `-config-dir` of the
+agent. The file must end in the `.json` or `.hcl` extension to be loaded by
+Consul. Check definitions can be updated by sending a `SIGHUP` to the agent.
 Alternatively, the service can be registered dynamically using the [HTTP
 API](/api/index.html).
 
@@ -45,27 +45,36 @@ example shows all possible fields, but note that only a few are required.
       }
     ],
     "kind": "connect-proxy",
-    "proxy_destination": "redis",
+    "proxy_destination": "redis", // Deprecated
+    "proxy": {
+      "destination_service_name": "redis",
+      "destination_service_id": "redis1",
+      "local_service_name": "127.0.0.1",
+      "local_service_port": 9090,
+      "config": {},
+      "upstreams": []
+    }
     "connect": {
       "native": false,
-      "proxy": {
+      "sidecar_service": {}
+      "proxy": {  // Deprecated
         "command": [],
         "config": {}
       }
+    },
+    "weights": {
+      "passing": 5,
+      "warning": 1
     }
   }
 }
 ```
 
 A service definition must include a `name` and may optionally provide an
-`id`, `tags`, `address`, `port`, `check`, `meta` and `enable_tag_override`.
+`id`, `tags`, `address`, `meta`, `port`, `enable_tag_override`,  and `check`.
 The `id` is set to the `name` if not provided. It is required that all
 services have a unique ID per node, so if names might conflict then
 unique IDs should be provided.
-
-For Consul 0.9.3 and earlier you need to use `enableTagOverride`. Consul 1.0
-supports both `enable_tag_override` and `enableTagOverride` but the latter is
-deprecated and has been removed in Consul 1.1.
 
 The `tags` property is a list of values that are opaque to Consul but
 can be used to distinguish between `primary` or `secondary` nodes,
@@ -88,24 +97,6 @@ and all the instances of a given service have their own copy of it.
 Services may also contain a `token` field to provide an ACL token. This token is
 used for any interaction with the catalog for the service, including
 [anti-entropy syncs](/docs/internals/anti-entropy.html) and deregistration.
-
-A service can have an associated health check. This is a powerful feature as
-it allows a web balancer to gracefully remove failing nodes, a database
-to replace a failed secondary, etc. The health check is strongly integrated in
-the DNS interface as well. If a service is failing its health check or a
-node has any failing system-level check, the DNS interface will omit that
-node from any service query.
-
-The check must be of the script, HTTP, TCP or TTL type. If it is a script type,
-`args` and `interval` must be provided. If it is a HTTP type, `http` and
-`interval` must be provided. If it is a TCP type, `tcp` and `interval` must be
-provided. If it is a TTL type, then only `ttl` must be provided. The check name
-is automatically generated as `service:<service-id>`. If there are multiple
-service checks registered, the ID will be generated as
-`service:<service-id>:<num>` where `<num>` is an incrementing number starting
-from `1`.
-
--> **Note:** There is more information about [checks here](/docs/agent/checks.html).
 
 The `enable_tag_override` can optionally be specified to disable the
 anti-entropy feature for this service. If `enable_tag_override` is set to
@@ -134,22 +125,93 @@ For Consul 0.9.3 and earlier you need to use `enableTagOverride`. Consul 1.0
 supports both `enable_tag_override` and `enableTagOverride` but the latter is
 deprecated and has been removed as of Consul 1.1.
 
-The `kind` field is used to optionally identify the service as an [unmanaged
-Connect proxy](/docs/connect/proxies.html#unmanaged-proxies) instance with the
-value `connect-proxy`. For typical non-proxy instances the `kind` field must be
-omitted. The `proxy_destination` field is also required for unmanaged proxy
-registrations and is only valid if `kind` is `connect-proxy`. It's value must be
-the _name_ of the service that the proxy is handling traffic for.
+### Connect
+
+The `kind` field is used to optionally identify the service as a [Connect
+proxy](/docs/connect/proxies.html) instance with the value `connect-proxy`. For
+typical non-proxy instances the `kind` field must be omitted. The `proxy` field
+is also required for Connect proxy registrations and is only valid if `kind` is
+`connect-proxy`. The only required `proxy` field is `destination_service_name`.
+For more detail please see [complete proxy configuration
+example](/docs/connect/proxies.html#complete-configuration-example)
+
+-> **Deprecation Notice:** From version 1.2.0 to 1.3.0, proxy destination was
+specified using `proxy_destination` at the top level. This will continue to work
+until at least 1.5.0 but it's highly recommended to switch to using
+`proxy.destination_service_name`.
 
 The `connect` field can be specified to configure
 [Connect](/docs/connect/index.html) for a service. This field is available in
-Consul 1.2 and later. The `native` value can be set to true to advertise the
-service as [Connect-native](/docs/connect/native.html). If the `proxy` field is
-set (even to an empty object), then this will enable a [managed
-proxy](/docs/connect/proxies.html) for the service. The fields within `proxy`
-are used to configure the proxy and are specified in the [proxy
-docs](/docs/connect/proxies.html). If `native` is true, it is an error to also
-specifiy a managed proxy instance.
+Consul 1.2.0 and later. The `native` value can be set to true to advertise the
+service as [Connect-native](/docs/connect/native.html). The `sidecar_service`
+field is an optional nested service definition its behavior and defaults are
+described in [Sidecar Service
+Registration](/docs/connect/proxies/sidecar-service.html). If `native` is true,
+it is an error to also specify a sidecar service registration.
+
+-> **Deprecation Notice:** From version 1.2.0 to 1.3.0 during beta, Connect
+supported "Managed" proxies which are specified with the `connect.proxy` field.
+[Managed Proxies are deprecated](/docs/connect/proxies/managed-deprecated.html)
+and the `connect.proxy` field will be removed in a future major release.
+
+### Checks
+
+A service can have an associated health check. This is a powerful feature as
+it allows a web balancer to gracefully remove failing nodes, a database
+to replace a failed secondary, etc. The health check is strongly integrated in
+the DNS interface as well. If a service is failing its health check or a
+node has any failing system-level check, the DNS interface will omit that
+node from any service query.
+
+There are several check types that have differing required options as
+[documented here](/docs/agent/checks.html). The check name is automatically
+generated as `service:<service-id>`. If there are multiple service checks
+registered, the ID will be generated as `service:<service-id>:<num>` where
+`<num>` is an incrementing number starting from `1`.
+
+-> **Note:** There is more information about [checks here](/docs/agent/checks.html).
+
+### DNS SRV Weights
+
+The `weights` field is an optional field to specify the weight of a service in
+DNS SRV responses. If this field is not specified, its default value is:
+`"weights": {"passing": 1, "warning": 1}`. When a service is `critical`, it is
+excluded from DNS responses. Services with warning checks are included in
+responses by default, but excluded if the optional param `only_passing = true`
+is present in agent DNS configuration or `?passing` is used via the API.
+
+When DNS SRV requests are made, the response will include the weights specified
+given the state of the service. This allows some instances to be given higher
+weight if they have more capacity, and optionally allows reducing load on
+services with checks in `warning` status by giving passing instances a higher
+weight.
+
+### Enable Tag Override and Anti-Entropy
+
+Services may also contain a `token` field to provide an ACL token. This token is
+used for any interaction with the catalog for the service, including
+[anti-entropy syncs](/docs/internals/anti-entropy.html) and deregistration.
+
+You can optionally disable the anti-entropy feature for this service using the
+`enable_tag_override` flag. External agents can modify tags on services in the
+catalog, so subsequent sync operations can either maintain tag modifications or
+revert them. If `enable_tag_override` is set to `TRUE`, the next sync cycle may
+revert some service properties, **but** the tags would maintain the updated value.
+If `enable_tag_override` is set to `FALSE`, the next sync cycle will revert any
+updated service properties, **including** tags, to their original value.
+
+It's important to note that this applies only to the locally registered
+service. If you have multiple nodes all registering the same service
+their `enable_tag_override` configuration and all other service
+configuration items are independent of one another. Updating the tags
+for the service registered on one node is independent of the same
+service (by name) registered on another node. If `enable_tag_override` is
+not specified the default value is false. See [anti-entropy
+syncs](/docs/internals/anti-entropy.html) for more info.
+
+For Consul 0.9.3 and earlier you need to use `enableTagOverride`. Consul 1.0
+supports both `enable_tag_override` and `enableTagOverride` but the latter is
+deprecated and has been removed as of Consul 1.1.
 
 ## Multiple Service Definitions
 
@@ -209,3 +271,16 @@ recommended to always use DNS-compliant service and tag names.
 DNS-compliant service and tag names may contain any alpha-numeric characters, as
 well as dashes. Dots are not supported because Consul internally uses them to
 delimit service tags.
+
+## Service Definition Parameter Case
+
+For historical reasons Consul's API uses `CamelCased` parameter names in
+responses, however it's configuration file uses `snake_case` for both HCL and
+JSON representations. For this reason the registration _HTTP APIs_ accept both
+name styles for service definition parameters although APIs will return the
+listings using `CamelCase`. 
+
+Note though that **all config file formats require
+`snake_case` fields**. We always document service definition examples using
+`snake_case` and JSON since this format works in both config files and API
+calls.

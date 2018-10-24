@@ -138,6 +138,8 @@ func testRemoteExecGetSpec(t *testing.T, hcl string, token string, shouldSucceed
 	defer a.Shutdown()
 	if dc != "" {
 		testrpc.WaitForLeader(t, a.RPC, dc)
+	} else {
+		testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	}
 	event := &remoteExecEvent{
 		Prefix:  "_rexec",
@@ -210,7 +212,7 @@ func testRemoteExecWrites(t *testing.T, hcl string, token string, shouldSucceed 
 		testrpc.WaitForLeader(t, a.RPC, dc)
 	} else {
 		// For slow machines, ensure we wait a bit
-		time.Sleep(1 * time.Millisecond)
+		testrpc.WaitForLeader(t, a.RPC, "dc1")
 	}
 	event := &remoteExecEvent{
 		Prefix:  "_rexec",
@@ -268,6 +270,7 @@ func testRemoteExecWrites(t *testing.T, hcl string, token string, shouldSucceed 
 func testHandleRemoteExec(t *testing.T, command string, expectedSubstring string, expectedReturnCode string) {
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	retry.Run(t, func(r *retry.R) {
 		event := &remoteExecEvent{
 			Prefix:  "_rexec",

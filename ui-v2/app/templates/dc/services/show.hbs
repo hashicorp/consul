@@ -5,9 +5,10 @@
         </ol>
     {{/block-slot}}
     {{#block-slot 'header'}}
-        <h1>
-            {{ item.Service.Service }}
-        </h1>
+      <h1>
+        {{ item.Service.Service }}
+        <span data-test-external-source="{{service/external-source item.Service}}" style={{{ concat 'background-image: ' (css-var (concat '--' (service/external-source item.Service) '-color-svg') 'none')}}} data-tooltip="Registered via {{service/external-source item.Service}}">Registered via {{service/external-source item.Service}}</span>
+      </h1>
     {{/block-slot}}
     {{#block-slot 'toolbar'}}
 {{#if (gt items.length 0) }}
@@ -37,7 +38,7 @@
                         href=(href-to 'dc.nodes.show' item.Node.Node)
                         name=item.Node.Node
                         service=item.Service.ID
-                        address=(concat item.Service.Address ':' item.Service.Port)
+                        address=(concat (default item.Service.Address item.Node.Address) ':' item.Service.Port)
                         checks=item.Checks
                     }}
     {{/each}}
@@ -48,16 +49,13 @@
 {{#if (gt healthy.length 0) }}
         <div data-test-healthy class="healthy">
             <h2>Healthy Nodes</h2>
-            {{#list-collection
-                items=healthy
-                cell-layout=(percentage-columns-layout healthy.length columns 113) as |item index|
-            }}
+            {{#list-collection cellHeight=113 items=healthy as |item index|}}
                 {{healthchecked-resource
                     href=(href-to 'dc.nodes.show' item.Node.Node)
                     data-test-node=item.Node.Node
                     name=item.Node.Node
                     service=item.Service.ID
-                    address=(concat item.Service.Address ':' item.Service.Port)
+                    address=(concat (default item.Service.Address item.Node.Address) ':' item.Service.Port)
                     checks=item.Checks
                     status=item.Checks.[0].Status
                 }}

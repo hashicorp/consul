@@ -1,0 +1,16 @@
+%flash-message p {
+  border-width: 1px;
+  border-radius: $decor-radius-100;
+}
+%flash-message p.success strong {
+  @extend %with-passing;
+}
+%flash-message p.error strong {
+  @extend %with-critical;
+}
+%flash-message p.success {
+  @extend %frame-green-500;
+}
+%flash-message p.error {
+  @extend %frame-red-500;
+}

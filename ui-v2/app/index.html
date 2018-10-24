@@ -25,8 +25,32 @@
     </noscript>
     {{content-for "body"}}
     <script src="{{rootURL}}assets/vendor.js"></script>
+    <script>
+      var appendScript = function(src) {
+        var $script = document.createElement('script');
+        $script.src = src;
+        document.body.appendChild($script);
+      }
+      if(!('TextDecoder' in window)) {
+        appendScript('{{rootURL}}assets/encoding-indexes.js');
+        appendScript('{{rootURL}}assets/encoding.js');
+      }
+    </script>
     <script src="{{rootURL}}assets/consul-ui.js"></script>
-
+    <script>
+      CodeMirror.modeURL = {
+        replace: function(n, mode) {
+          switch(mode) {
+            case 'javascript':
+              return '{{rootURL}}assets/codemirror/mode/javascript/javascript.js';
+            case 'ruby':
+              return '{{rootURL}}assets/codemirror/mode/ruby/ruby.js';
+            case 'yaml':
+              return '{{rootURL}}assets/codemirror/mode/yaml/yaml.js';
+          }
+        }
+      };
+    </script>
     {{content-for "body-footer"}}
   </body>
 </html>

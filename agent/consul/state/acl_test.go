@@ -1,299 +1,110 @@
 package state
 
 import (
-	"reflect"
+	// "reflect"
 	"testing"
+	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-memdb"
-	"github.com/pascaldekloe/goe/verify"
+	// "github.com/hashicorp/go-memdb"
+	// "github.com/pascaldekloe/goe/verify"
+
+	"github.com/stretchr/testify/require"
 )
 
-func TestStateStore_ACLBootstrap(t *testing.T) {
-	acl1 := &structs.ACL{
-		ID:   "03f43a07-7e78-1f72-6c72-5a4e3b1ac3df",
-		Type: structs.ACLTypeManagement,
+func setupGlobalManagement(t *testing.T, s *Store) {
+	policy := structs.ACLPolicy{
+		ID:          structs.ACLPolicyGlobalManagementID,
+		Name:        "global-management",
+		Description: "Builtin Policy that grants unlimited access",
+		Rules:       structs.ACLPolicyGlobalManagement,
+		Syntax:      acl.SyntaxCurrent,
 	}
-
-	acl2 := &structs.ACL{
-		ID:   "0546a993-aa7a-741e-fb7f-09159ae56ec1",
-		Type: structs.ACLTypeManagement,
-	}
-
-	setup := func() *Store {
-		s := testStateStore(t)
-
-		// The clean state store should initially have no bootstrap record.
-		bs, err := s.ACLGetBootstrap()
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if bs != nil {
-			t.Fatalf("bad: %#v", bs)
-		}
-
-		// Make sure that a bootstrap attempt fails in this state.
-		if err := s.ACLBootstrap(1, acl1); err != structs.ACLBootstrapNotInitializedErr {
-			t.Fatalf("err: %v", err)
-		}
-		_, gotA, err := s.ACLList(nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		verify.Values(t, "", gotA, structs.ACLs{})
-
-		// Initialize bootstrapping.
-		enabled, err := s.ACLBootstrapInit(2)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if !enabled {
-			t.Fatalf("bad")
-		}
-
-		// Read it back.
-		gotB, err := s.ACLGetBootstrap()
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		wantB := &structs.ACLBootstrap{
-			AllowBootstrap: true,
-			RaftIndex: structs.RaftIndex{
-				CreateIndex: 2,
-				ModifyIndex: 2,
-			},
-		}
-		verify.Values(t, "", gotB, wantB)
-
-		return s
-	}
-
-	// This is the bootstrap happy path.
-	t.Run("bootstrap", func(t *testing.T) {
-		s := setup()
-
-		// Perform a regular bootstrap.
-		if err := s.ACLBootstrap(3, acl1); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
-		// Read it back.
-		gotB, err := s.ACLGetBootstrap()
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		wantB := &structs.ACLBootstrap{
-			AllowBootstrap: false,
-			RaftIndex: structs.RaftIndex{
-				CreateIndex: 2,
-				ModifyIndex: 3,
-			},
-		}
-		verify.Values(t, "", gotB, wantB)
-
-		// Make sure another attempt fails.
-		if err := s.ACLBootstrap(4, acl2); err != structs.ACLBootstrapNotAllowedErr {
-			t.Fatalf("err: %v", err)
-		}
-
-		// Check that the bootstrap state remains the same.
-		gotB, err = s.ACLGetBootstrap()
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		verify.Values(t, "", gotB, wantB)
-
-		// Make sure the ACLs are in an expected state.
-		_, gotA, err := s.ACLList(nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		wantA := structs.ACLs{
-			&structs.ACL{
-				ID:   acl1.ID,
-				Type: acl1.Type,
-				RaftIndex: structs.RaftIndex{
-					CreateIndex: 3,
-					ModifyIndex: 3,
-				},
-			},
-		}
-		verify.Values(t, "", gotA, wantA)
-	})
-
-	// This case initialized bootstrap but it gets canceled because a
-	// management token gets created manually.
-	t.Run("bootstrap canceled", func(t *testing.T) {
-		s := setup()
-
-		// Make a management token manually.
-		if err := s.ACLSet(3, acl1); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
-		// Bootstrapping should have gotten disabled.
-		gotB, err := s.ACLGetBootstrap()
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		wantB := &structs.ACLBootstrap{
-			AllowBootstrap: false,
-			RaftIndex: structs.RaftIndex{
-				CreateIndex: 2,
-				ModifyIndex: 3,
-			},
-		}
-		verify.Values(t, "", gotB, wantB)
-
-		// Make sure another attempt fails.
-		if err := s.ACLBootstrap(4, acl2); err != structs.ACLBootstrapNotAllowedErr {
-			t.Fatalf("err: %v", err)
-		}
-
-		// Check that the bootstrap state remains the same.
-		gotB, err = s.ACLGetBootstrap()
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		verify.Values(t, "", gotB, wantB)
-
-		// Make sure the ACLs are in an expected state.
-		_, gotA, err := s.ACLList(nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		wantA := structs.ACLs{
-			&structs.ACL{
-				ID:   acl1.ID,
-				Type: acl1.Type,
-				RaftIndex: structs.RaftIndex{
-					CreateIndex: 3,
-					ModifyIndex: 3,
-				},
-			},
-		}
-		verify.Values(t, "", gotA, wantA)
-	})
+	policy.SetHash(true)
+	require.NoError(t, s.ACLPolicySet(1, &policy))
 }
 
-func TestStateStore_ACLBootstrap_InitialTokens(t *testing.T) {
-	acl1 := &structs.ACL{
-		ID:   "03f43a07-7e78-1f72-6c72-5a4e3b1ac3df",
-		Type: structs.ACLTypeManagement,
+func TestStateStore_ACLBootstrap(t *testing.T) {
+	token1 := &structs.ACLToken{
+		AccessorID:  "30fca056-9fbb-4455-b94a-bf0e2bc575d6",
+		SecretID:    "cbe1c6fd-d865-4034-9d6d-64fef7fb46a9",
+		Description: "Bootstrap Token (Global Management)",
+		Policies: []structs.ACLTokenPolicyLink{
+			{
+				ID: structs.ACLPolicyGlobalManagementID,
+			},
+		},
+		CreateTime: time.Now(),
+		Local:      false,
+		// DEPRECATED (ACL-Legacy-Compat) - This is used so that the bootstrap token is still visible via the v1 acl APIs
+		Type: structs.ACLTokenTypeManagement,
 	}
 
-	acl2 := &structs.ACL{
-		ID:   "0546a993-aa7a-741e-fb7f-09159ae56ec1",
-		Type: structs.ACLTypeManagement,
+	token2 := &structs.ACLToken{
+		AccessorID:  "fd5c17fa-1503-4422-a424-dd44cdf35919",
+		SecretID:    "7fd776b1-ded1-4d15-931b-db4770fc2317",
+		Description: "Bootstrap Token (Global Management)",
+		Policies: []structs.ACLTokenPolicyLink{
+			{
+				ID: structs.ACLPolicyGlobalManagementID,
+			},
+		},
+		CreateTime: time.Now(),
+		Local:      false,
+		// DEPRECATED (ACL-Legacy-Compat) - This is used so that the bootstrap token is still visible via the v1 acl APIs
+		Type: structs.ACLTokenTypeManagement,
 	}
 
 	s := testStateStore(t)
+	setupGlobalManagement(t, s)
 
-	// Make a management token manually. This also makes sure that it's ok
-	// to set a token if bootstrap has not been initialized.
-	if err := s.ACLSet(1, acl1); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	canBootstrap, index, err := s.CanBootstrapACLToken()
+	require.NoError(t, err)
+	require.True(t, canBootstrap)
+	require.Equal(t, uint64(0), index)
 
-	// Initialize bootstrapping, which should not be enabled since an
-	// existing token is present.
-	enabled, err := s.ACLBootstrapInit(2)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if enabled {
-		t.Fatalf("bad")
-	}
+	// Perform a regular bootstrap.
+	require.NoError(t, s.ACLBootstrap(3, 0, token1, false))
 
-	// Read it back.
-	gotB, err := s.ACLGetBootstrap()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	wantB := &structs.ACLBootstrap{
-		AllowBootstrap: false,
-		RaftIndex: structs.RaftIndex{
-			CreateIndex: 2,
-			ModifyIndex: 2,
-		},
-	}
-	verify.Values(t, "", gotB, wantB)
+	// Make sure we can't bootstrap again
+	canBootstrap, index, err = s.CanBootstrapACLToken()
+	require.NoError(t, err)
+	require.False(t, canBootstrap)
+	require.Equal(t, uint64(3), index)
 
-	// Make sure an attempt fails.
-	if err := s.ACLBootstrap(3, acl2); err != structs.ACLBootstrapNotAllowedErr {
-		t.Fatalf("err: %v", err)
-	}
+	// Make sure another attempt fails.
+	err = s.ACLBootstrap(4, 0, token2, false)
+	require.Error(t, err)
+	require.Equal(t, structs.ACLBootstrapNotAllowedErr, err)
 
 	// Check that the bootstrap state remains the same.
-	gotB, err = s.ACLGetBootstrap()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	verify.Values(t, "", gotB, wantB)
+	canBootstrap, index, err = s.CanBootstrapACLToken()
+	require.NoError(t, err)
+	require.False(t, canBootstrap)
+	require.Equal(t, uint64(3), index)
 
 	// Make sure the ACLs are in an expected state.
-	_, gotA, err := s.ACLList(nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	wantA := structs.ACLs{
-		&structs.ACL{
-			ID:   acl1.ID,
-			Type: acl1.Type,
-			RaftIndex: structs.RaftIndex{
-				CreateIndex: 1,
-				ModifyIndex: 1,
-			},
-		},
-	}
-	verify.Values(t, "", gotA, wantA)
+	_, tokens, err := s.ACLTokenList(nil, true, true, "")
+	require.NoError(t, err)
+	require.Len(t, tokens, 1)
+	require.Equal(t, token1, tokens[0])
+
+	// bootstrap reset
+	err = s.ACLBootstrap(32, index-1, token2, false)
+	require.Error(t, err)
+	require.Equal(t, structs.ACLBootstrapInvalidResetIndexErr, err)
+
+	// bootstrap reset
+	err = s.ACLBootstrap(32, index, token2, false)
+	require.NoError(t, err)
+
+	_, tokens, err = s.ACLTokenList(nil, true, true, "")
+	require.NoError(t, err)
+	require.Len(t, tokens, 2)
 }
 
-func TestStateStore_ACLBootstrap_Snapshot_Restore(t *testing.T) {
-	s := testStateStore(t)
-
-	enabled, err := s.ACLBootstrapInit(1)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if !enabled {
-		t.Fatalf("bad")
-	}
-
-	gotB, err := s.ACLGetBootstrap()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	wantB := &structs.ACLBootstrap{
-		AllowBootstrap: true,
-		RaftIndex: structs.RaftIndex{
-			CreateIndex: 1,
-			ModifyIndex: 1,
-		},
-	}
-	verify.Values(t, "", gotB, wantB)
-
-	snap := s.Snapshot()
-	defer snap.Close()
-	bs, err := snap.ACLBootstrap()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	verify.Values(t, "", bs, wantB)
-
-	r := testStateStore(t)
-	restore := r.Restore()
-	if err := restore.ACLBootstrap(bs); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	restore.Commit()
-
-	gotB, err = r.ACLGetBootstrap()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	verify.Values(t, "", gotB, wantB)
-}
+/*
 
 func TestStateStore_ACLSet_ACLGet(t *testing.T) {
 	s := testStateStore(t)
@@ -322,7 +133,7 @@ func TestStateStore_ACLSet_ACLGet(t *testing.T) {
 	acl := &structs.ACL{
 		ID:    "acl1",
 		Name:  "First ACL",
-		Type:  structs.ACLTypeClient,
+		Type:  structs.ACLTokenTypeClient,
 		Rules: "rules1",
 	}
 	if err := s.ACLSet(1, acl); err != nil {
@@ -351,7 +162,7 @@ func TestStateStore_ACLSet_ACLGet(t *testing.T) {
 	expect := &structs.ACL{
 		ID:    "acl1",
 		Name:  "First ACL",
-		Type:  structs.ACLTypeClient,
+		Type:  structs.ACLTokenTypeClient,
 		Rules: "rules1",
 		RaftIndex: structs.RaftIndex{
 			CreateIndex: 1,
@@ -366,7 +177,7 @@ func TestStateStore_ACLSet_ACLGet(t *testing.T) {
 	acl = &structs.ACL{
 		ID:    "acl1",
 		Name:  "First ACL",
-		Type:  structs.ACLTypeClient,
+		Type:  structs.ACLTokenTypeClient,
 		Rules: "rules2",
 	}
 	if err := s.ACLSet(2, acl); err != nil {
@@ -385,7 +196,7 @@ func TestStateStore_ACLSet_ACLGet(t *testing.T) {
 	expect = &structs.ACL{
 		ID:    "acl1",
 		Name:  "First ACL",
-		Type:  structs.ACLTypeClient,
+		Type:  structs.ACLTokenTypeClient,
 		Rules: "rules2",
 		RaftIndex: structs.RaftIndex{
 			CreateIndex: 1,
@@ -411,7 +222,7 @@ func TestStateStore_ACLList(t *testing.T) {
 	acls := structs.ACLs{
 		&structs.ACL{
 			ID:    "acl1",
-			Type:  structs.ACLTypeClient,
+			Type:  structs.ACLTokenTypeClient,
 			Rules: "rules1",
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 1,
@@ -420,7 +231,7 @@ func TestStateStore_ACLList(t *testing.T) {
 		},
 		&structs.ACL{
 			ID:    "acl2",
-			Type:  structs.ACLTypeClient,
+			Type:  structs.ACLTokenTypeClient,
 			Rules: "rules2",
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 2,
@@ -490,88 +301,144 @@ func TestStateStore_ACLDelete(t *testing.T) {
 		t.Fatalf("expected nil, got: %#v", result)
 	}
 }
+*/
 
-func TestStateStore_ACL_Snapshot_Restore(t *testing.T) {
+func TestStateStore_ACLTokens_Snapshot_Restore(t *testing.T) {
 	s := testStateStore(t)
 
-	// Insert some ACLs.
-	acls := structs.ACLs{
-		&structs.ACL{
-			ID:    "acl1",
-			Type:  structs.ACLTypeClient,
-			Rules: "rules1",
-			RaftIndex: structs.RaftIndex{
-				CreateIndex: 1,
-				ModifyIndex: 1,
+	tokens := structs.ACLTokens{
+		&structs.ACLToken{
+			AccessorID:  "68016c3d-835b-450c-a6f9-75db9ba740be",
+			SecretID:    "838f72b5-5c15-4a9e-aa6d-31734c3a0286",
+			Description: "token1",
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID:   "ca1fc52c-3676-4050-82ed-ca223e38b2c9",
+					Name: "policy1",
+				},
+				structs.ACLTokenPolicyLink{
+					ID:   "7b70fa0f-58cd-412d-93c3-a0f17bb19a3e",
+					Name: "policy2",
+				},
 			},
+			Hash:      []byte{1, 2, 3, 4},
+			RaftIndex: structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 		},
-		&structs.ACL{
-			ID:    "acl2",
-			Type:  structs.ACLTypeClient,
-			Rules: "rules2",
-			RaftIndex: structs.RaftIndex{
-				CreateIndex: 2,
-				ModifyIndex: 2,
+		&structs.ACLToken{
+			AccessorID:  "b2125a1b-2a52-41d4-88f3-c58761998a46",
+			SecretID:    "ba5d9239-a4ab-49b9-ae09-1f19eed92204",
+			Description: "token2",
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID:   "ca1fc52c-3676-4050-82ed-ca223e38b2c9",
+					Name: "policy1",
+				},
+				structs.ACLTokenPolicyLink{
+					ID:   "7b70fa0f-58cd-412d-93c3-a0f17bb19a3e",
+					Name: "policy2",
+				},
 			},
+			Hash:      []byte{1, 2, 3, 4},
+			RaftIndex: structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 		},
 	}
-	for _, acl := range acls {
-		if err := s.ACLSet(acl.ModifyIndex, acl); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
+
+	require.NoError(t, s.ACLTokensUpsert(2, tokens, true))
 
 	// Snapshot the ACLs.
 	snap := s.Snapshot()
 	defer snap.Close()
 
 	// Alter the real state store.
-	if err := s.ACLDelete(3, "acl1"); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.NoError(t, s.ACLTokenDeleteAccessor(3, tokens[0].AccessorID))
 
 	// Verify the snapshot.
-	if idx := snap.LastIndex(); idx != 2 {
-		t.Fatalf("bad index: %d", idx)
+	require.Equal(t, uint64(2), snap.LastIndex())
+
+	iter, err := snap.ACLTokens()
+	require.NoError(t, err)
+
+	var dump structs.ACLTokens
+	for token := iter.Next(); token != nil; token = iter.Next() {
+		dump = append(dump, token.(*structs.ACLToken))
 	}
-	iter, err := snap.ACLs()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	var dump structs.ACLs
-	for acl := iter.Next(); acl != nil; acl = iter.Next() {
-		dump = append(dump, acl.(*structs.ACL))
-	}
-	if !reflect.DeepEqual(dump, acls) {
-		t.Fatalf("bad: %#v", dump)
-	}
+	require.ElementsMatch(t, dump, tokens)
 
 	// Restore the values into a new state store.
 	func() {
 		s := testStateStore(t)
 		restore := s.Restore()
-		for _, acl := range dump {
-			if err := restore.ACL(acl); err != nil {
-				t.Fatalf("err: %s", err)
-			}
+		for _, token := range dump {
+			require.NoError(t, restore.ACLToken(token))
 		}
 		restore.Commit()
 
 		// Read the restored ACLs back out and verify that they match.
-		idx, res, err := s.ACLList(nil)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		if idx != 2 {
-			t.Fatalf("bad index: %d", idx)
-		}
-		if !reflect.DeepEqual(res, acls) {
-			t.Fatalf("bad: %#v", res)
-		}
+		idx, res, err := s.ACLTokenList(nil, true, true, "")
+		require.NoError(t, err)
+		require.Equal(t, uint64(2), idx)
+		require.ElementsMatch(t, tokens, res)
+		require.Equal(t, uint64(2), s.maxIndex("acl-tokens"))
+	}()
+}
 
-		// Check that the index was updated.
-		if idx := s.maxIndex("acls"); idx != 2 {
-			t.Fatalf("bad index: %d", idx)
+func TestStateStore_ACLPolicies_Snapshot_Restore(t *testing.T) {
+	s := testStateStore(t)
+
+	policies := structs.ACLPolicies{
+		&structs.ACLPolicy{
+			ID:          "68016c3d-835b-450c-a6f9-75db9ba740be",
+			Name:        "838f72b5-5c15-4a9e-aa6d-31734c3a0286",
+			Description: "policy1",
+			Rules:       `acl = "read"`,
+			Hash:        []byte{1, 2, 3, 4},
+			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
+		},
+		&structs.ACLPolicy{
+			ID:          "b2125a1b-2a52-41d4-88f3-c58761998a46",
+			Name:        "ba5d9239-a4ab-49b9-ae09-1f19eed92204",
+			Description: "policy2",
+			Rules:       `operator = "read"`,
+			Hash:        []byte{1, 2, 3, 4},
+			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
+		},
+	}
+
+	require.NoError(t, s.ACLPoliciesUpsert(2, policies))
+
+	// Snapshot the ACLs.
+	snap := s.Snapshot()
+	defer snap.Close()
+
+	// Alter the real state store.
+	require.NoError(t, s.ACLPolicyDeleteByID(3, policies[0].ID))
+
+	// Verify the snapshot.
+	require.Equal(t, uint64(2), snap.LastIndex())
+
+	iter, err := snap.ACLPolicies()
+	require.NoError(t, err)
+
+	var dump structs.ACLPolicies
+	for policy := iter.Next(); policy != nil; policy = iter.Next() {
+		dump = append(dump, policy.(*structs.ACLPolicy))
+	}
+	require.ElementsMatch(t, dump, policies)
+
+	// Restore the values into a new state store.
+	func() {
+		s := testStateStore(t)
+		restore := s.Restore()
+		for _, policy := range dump {
+			require.NoError(t, restore.ACLPolicy(policy))
 		}
+		restore.Commit()
+
+		// Read the restored ACLs back out and verify that they match.
+		idx, res, err := s.ACLPolicyList(nil, "")
+		require.NoError(t, err)
+		require.Equal(t, uint64(2), idx)
+		require.ElementsMatch(t, policies, res)
+		require.Equal(t, uint64(2), s.maxIndex("acl-policies"))
 	}()
 }

@@ -2,7 +2,6 @@ import Mixin from '@ember/object/mixin';
 import WithFiltering from 'consul-ui/mixins/with-filtering';
 import { computed, get } from '@ember/object';
 import ucfirst from 'consul-ui/utils/ucfirst';
-import numeral from 'numeral';
 
 const countStatus = function(items, status) {
   if (status === '') {
@@ -36,15 +35,16 @@ export default Mixin.create(WithFiltering, {
       const count = countStatus(items, item);
       return {
         count: count,
-        label: `${item === '' ? 'All' : ucfirst(item)} (${numeral(count).format()})`,
+        label: `${item === '' ? 'All' : ucfirst(item)} (${count.toLocaleString()})`,
         value: item,
       };
     });
-    objs[0].label = `All (${numeral(
-      objs.slice(1).reduce(function(prev, item, i, arr) {
+    objs[0].label = `All (${objs
+      .slice(1)
+      .reduce(function(prev, item, i, arr) {
         return prev + item.count;
       }, 0)
-    ).format()})`;
+      .toLocaleString()})`;
     return objs;
   }),
 });

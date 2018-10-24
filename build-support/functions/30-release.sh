@@ -256,7 +256,6 @@ function check_release_one {
    expected_files+=("${CONSUL_PKG_NAME}_${2}_darwin_amd64.zip")
    expected_files+=("${CONSUL_PKG_NAME}_${2}_freebsd_386.zip")
    expected_files+=("${CONSUL_PKG_NAME}_${2}_freebsd_amd64.zip")
-   expected_files+=("${CONSUL_PKG_NAME}_${2}_freebsd_arm.zip")
    expected_files+=("${CONSUL_PKG_NAME}_${2}_linux_386.zip")
    expected_files+=("${CONSUL_PKG_NAME}_${2}_linux_amd64.zip")
    expected_files+=("${CONSUL_PKG_NAME}_${2}_linux_arm.zip")

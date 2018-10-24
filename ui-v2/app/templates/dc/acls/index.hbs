@@ -1,8 +1,12 @@
 {{#app-view class="acl list" loading=isLoading}}
+    {{#block-slot 'notification' as |status type|}}
+      {{partial 'dc/acls/notifications'}}
+    {{/block-slot}}
     {{#block-slot 'header'}}
         <h1>
             ACL Tokens
         </h1>
+        <label for="toolbar-toggle"></label>
     {{/block-slot}}
     {{#block-slot 'actions'}}
         <a data-test-create href="{{href-to 'dc.acls.create'}}" class="type-create">Create</a>

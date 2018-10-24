@@ -1,0 +1,35 @@
+%action-group label:first-of-type {
+  @extend %toggle-button;
+}
+%action-group input[type='radio']:checked + label:first-of-type {
+  background-color: $ui-gray-050;
+}
+%action-group label {
+  cursor: pointer;
+}
+%action-group label::after,
+%action-group label::before,
+%action-group::before {
+  @extend %with-dot;
+}
+%action-group ul {
+  border: $decor-border-100;
+  border-radius: $radius-small;
+  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.21);
+}
+%action-group ul::before {
+  border-top: $decor-border-100;
+  border-left: $decor-border-100;
+}
+%action-group ul,
+%action-group ul::before {
+  border-color: $ui-color-action;
+}
+%action-group li a:hover {
+  background-color: $ui-color-action;
+  color: $ui-white;
+}
+%action-group ul,
+%action-group ul::before {
+  background-color: $ui-white;
+}

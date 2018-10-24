@@ -122,26 +122,44 @@ Permissions for intentions are _destination-oriented_, meaning the ACLs
 for managing intentions are looked up based on the destination value
 of the intention, not the source.
 
-Intention permissions are first inherited from `service` management permissions.
-For example, the ACL below would allow _read_ access to intentions with a
-destination starting with "web":
-
-```hcl
-service "web" {
-  policy = "read"
-}
-```
-
-ACLs may also specify service-specific intention permissions. In the example
-below, the ACL token may register a "web"-prefixed service but _may not_ read or write
-intentions:
+Intention permissions are by default implicitly granted at `read` level
+when granting `service:read` or `service:write`. This is because a
+service registered that wants to use Connect needs `intentions:read`
+for its own service name in order to know whether or not to authorize
+connections. The following ACL policy will implicitly grant `intentions:read` 
+(note _read_) for service `web`.
 
 ```hcl
 service "web" {
   policy = "write"
-  intention = "deny"
 }
 ```
+
+It is possible to explicitly specify intention permissions. For example,
+the following policy will allow a service to be discovered without granting
+access to read intentions for it.
+
+```hcl
+service "web" {
+  policy = "read"
+  intentions = "deny"
+}
+```
+
+Note that `intentions:read` is required for a token that a Connect-enabled
+service uses to register itself or it's proxy. If the token used does not
+have `intentions:read` then the agent will be unable to resolve intentions
+for the service and so will not be able to authorize any incoming connections.
+
+~> **Security Note:** Explicitly allowing `intentions:write` on the token you
+provide to a service instance at registration time opens up a significant
+additional vulnerability. Although you may trust the service _team_ to define
+which inbound connections they accept, using a combined token for registration 
+allows a compromised instance to to redefine the intentions which allows many 
+additional attack vectors and may be hard to detect. We strongly recommend only 
+delegating `intentions:write` using tokens that are used by operations teams or
+orchestrators rather than spread via application config, or only manage 
+intentions with management tokens.
 
 ## Performance and Intention Updates
 

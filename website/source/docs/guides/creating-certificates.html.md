@@ -96,8 +96,8 @@ Consul node be difficult, but using a hostname provides no security or
 functional benefits to Consul. To fulfill the desired security properties
 (above) Consul certificates are signed with their region and role such as:
 
-* `client.node.global.consul` for a client node in the `global` region
-* `server.node.us-west.consul` for a server node in the `us-west` region
+* `client.global.consul` for a client node in the `global` region
+* `server.us-west.consul` for a server node in the `us-west` region
 
 To create certificates for the client and server in the cluster with
 [cfssl][cfssl], create the following configuration file as `cfssl.json` to increase the default certificate expiration time:
@@ -121,11 +121,11 @@ To create certificates for the client and server in the cluster with
 ```shell
 # Generate a certificate for the Consul server
 $ echo '{"key":{"algo":"rsa","size":2048}}' | cfssl gencert -ca=consul-ca.pem -ca-key=consul-ca-key.pem -config=cfssl.json \
-    -hostname="server.node.global.consul,localhost,127.0.0.1" - | cfssljson -bare server
+    -hostname="server.global.consul,localhost,127.0.0.1" - | cfssljson -bare server
 
 # Generate a certificate for the Consul client
 $ echo '{"key":{"algo":"rsa","size":2048}}' | cfssl gencert -ca=consul-ca.pem -ca-key=consul-ca-key.pem -config=cfssl.json \
-    -hostname="client.node.global.consul,localhost,127.0.0.1" - | cfssljson -bare client
+    -hostname="client.global.consul,localhost,127.0.0.1" - | cfssljson -bare client
 
 # Generate a certificate for the CLI
 $ echo '{"key":{"algo":"rsa","size":2048}}' | cfssl gencert -ca=consul-ca.pem -ca-key=consul-ca-key.pem -profile=client \

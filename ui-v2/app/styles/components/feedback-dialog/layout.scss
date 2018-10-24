@@ -1,0 +1,12 @@
+%feedback-dialog-inline {
+  @extend %tooltip;
+}
+
+%feedback-dialog-inline p::after {
+  @extend %tooltip-tail;
+  top: auto !important;
+  bottom: -13px;
+}
+%feedback-dialog-inline p {
+  @extend %tooltip-bubble;
+}

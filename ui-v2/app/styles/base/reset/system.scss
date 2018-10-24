@@ -1,0 +1,101 @@
+a {
+  text-decoration: none;
+}
+td,
+th,
+span,
+strong {
+  color: inherit;
+}
+body {
+  color: $ui-gray-900;
+}
+a {
+  color: $ui-color-action;
+}
+html {
+  background-color: $ui-white;
+}
+hr {
+  background-color: $ui-gray-500;
+}
+html {
+  font-size: $typo-size-000;
+}
+body {
+  line-height: 1.5;
+}
+body,
+button,
+input,
+select,
+textarea {
+  font-family: $typo-family-sans;
+}
+code,
+pre {
+  font-family: $typo-family-mono;
+}
+strong {
+  font-style: inherit;
+  font-weight: $typo-weight-bold;
+}
+html {
+  text-rendering: optimizeLegibility;
+  text-size-adjust: 100%;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: antialiased;
+}
+code,
+pre {
+  -moz-osx-font-smoothing: auto;
+  -webkit-font-smoothing: auto;
+}
+
+pre {
+  -webkit-overflow-scrolling: touch;
+  overflow-x: auto;
+  white-space: pre;
+  word-wrap: normal;
+}
+html {
+  overflow-x: hidden;
+  overflow-y: scroll;
+}
+html {
+  box-sizing: border-box;
+}
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+}
+fieldset {
+  border: none;
+  width: 100%;
+}
+a,
+input[type='checkbox'],
+input[type='radio'] {
+  cursor: pointer;
+}
+hr {
+  border: none;
+  display: block;
+}
+input[type='checkbox'],
+input[type='radio'] {
+  vertical-align: baseline;
+}
+td,
+th {
+  text-align: left;
+  vertical-align: top;
+}
+html {
+  min-width: 300px;
+}
+hr {
+  height: 1px;
+  margin: 1.5rem 0;
+}

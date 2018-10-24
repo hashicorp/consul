@@ -1,0 +1,42 @@
+%reset-margin {
+  margin: 0;
+}
+%reset-box {
+  margin: 0;
+  padding: 0;
+}
+%reset-typo {
+  font-size: 100%;
+  font-weight: normal;
+}
+%reset-list {
+  list-style: none;
+}
+%reset-table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+%reset-table th,
+%reset-table td {
+  padding: 0;
+  text-align: left;
+}
+/* move to layout? */
+%responsive-media {
+  height: auto;
+  max-width: 100%;
+}
+%user-select-none {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+%user-select-text {
+  -webkit-touch-callout: default;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}

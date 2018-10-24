@@ -326,3 +326,40 @@ $ consul agent -retry-join "provider=packet auth_token=token project=uuid url=..
 - `auth_token` (required) -  the authentication token for packet
 - `url` (optional) - 		 a REST URL for packet
 - `address_type` (optional) - the type of address to check for in this provider  ("private_v4", "public_v4" or "public_v6".                                   Defaults to "private_v4")
+
+
+### Kubernetes (k8s)
+
+The Kubernetes provider finds the IP addresses of pods with the matching
+[label or field selector](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/).
+This is useful for non-Kubernetes agents that are joining a server cluster
+running within Kubernetes.
+
+The pod IP is used by default, which requires that the agent connecting can
+network to the pod IP. The `host_network` boolean can be set to true to use
+the host IP instead, but this requires the agent ports (Gossip, RPC, etc.)
+to be exported to the host as well.
+
+By default, no port is specified. This causes Consul to use the default
+gossip port (default behavior with all join requests). The pod may specify
+the `consul.hashicorp.com/auto-join-port` annotation to set the port. The value
+may be an integer or a named port.
+
+```sh
+$ consul agent -retry-join "provider=k8s label_selector=\"app=consul,component=server\""
+```
+
+```json
+{
+        "retry-join": ["provider=k8s label_selector=..."]
+}
+```
+
+- `provider` (required)	-	the name of the provider ("k8s" is the provider here)
+- `kubeconfig` (optional) 	- 	path to the kubeconfig file. If this isn't
+  set, then in-cluster auth will be attempted. If that fails, the default
+  kubeconfig paths are tried (`$HOME/.kube/config`).
+- `namespace` (optional) -  the namespace to search for pods. If this isn't
+  set, it defaults to all namespaces.
+- `label_selector` (optional) - the label selector for matching pods.
+- `field_selector` (optional) - the field selector for matching pods.

@@ -7,14 +7,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
-	"github.com/pascaldekloe/goe/verify"
+	// "github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFSM_SnapshotRestore_OSS(t *testing.T) {
@@ -66,11 +68,31 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	})
 	session := &structs.Session{ID: generateUUID(), Node: "foo"}
 	fsm.state.SessionCreate(9, session)
-	acl := &structs.ACL{ID: generateUUID(), Name: "User Token"}
-	fsm.state.ACLSet(10, acl)
-	if _, err := fsm.state.ACLBootstrapInit(10); err != nil {
-		t.Fatalf("err: %v", err)
+	policy := structs.ACLPolicy{
+		ID:          structs.ACLPolicyGlobalManagementID,
+		Name:        "global-management",
+		Description: "Builtin Policy that grants unlimited access",
+		Rules:       structs.ACLPolicyGlobalManagement,
+		Syntax:      acl.SyntaxCurrent,
 	}
+	policy.SetHash(true)
+	require.NoError(t, fsm.state.ACLPolicySet(1, &policy))
+
+	token := &structs.ACLToken{
+		AccessorID:  "30fca056-9fbb-4455-b94a-bf0e2bc575d6",
+		SecretID:    "cbe1c6fd-d865-4034-9d6d-64fef7fb46a9",
+		Description: "Bootstrap Token (Global Management)",
+		Policies: []structs.ACLTokenPolicyLink{
+			{
+				ID: structs.ACLPolicyGlobalManagementID,
+			},
+		},
+		CreateTime: time.Now(),
+		Local:      false,
+		// DEPRECATED (ACL-Legacy-Compat) - This is used so that the bootstrap token is still visible via the v1 acl APIs
+		Type: structs.ACLTokenTypeManagement,
+	}
+	require.NoError(t, fsm.state.ACLBootstrap(10, 0, token, false))
 
 	fsm.state.KVSSet(11, &structs.DirEntry{
 		Key:   "/remove",
@@ -257,29 +279,21 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		t.Fatalf("bad index: %d", idx)
 	}
 
-	// Verify ACL is restored
-	_, a, err := fsm2.state.ACLGet(nil, acl.ID)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if a.Name != "User Token" {
-		t.Fatalf("bad: %v", a)
-	}
-	if a.ModifyIndex <= 1 {
-		t.Fatalf("bad index: %d", idx)
-	}
-	gotB, err := fsm2.state.ACLGetBootstrap()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	wantB := &structs.ACLBootstrap{
-		AllowBootstrap: true,
-		RaftIndex: structs.RaftIndex{
-			CreateIndex: 10,
-			ModifyIndex: 10,
-		},
-	}
-	verify.Values(t, "", gotB, wantB)
+	// Verify ACL Token is restored
+	_, a, err := fsm2.state.ACLTokenGetByAccessor(nil, token.AccessorID)
+	require.NoError(t, err)
+	require.Equal(t, token.AccessorID, a.AccessorID)
+	require.Equal(t, token.ModifyIndex, a.ModifyIndex)
+
+	// Verify the acl-token-bootstrap index was restored
+	canBootstrap, index, err := fsm2.state.CanBootstrapACLToken()
+	require.False(t, canBootstrap)
+	require.True(t, index > 0)
+
+	// Verify ACL Policy is restored
+	_, policy2, err := fsm2.state.ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID)
+	require.NoError(t, err)
+	require.Equal(t, policy.Name, policy2.Name)
 
 	// Verify tombstones are restored
 	func() {

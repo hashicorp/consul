@@ -9,7 +9,7 @@ description: |-
 
 # Service - Agent HTTP API
 
-The `/agent/service` endpoints interact with checks on the local agent in
+The `/agent/service` endpoints interact with services on the local agent in
 Consul. These should not be confused with services in the catalog.
 
 ## List Services
@@ -30,18 +30,19 @@ everything will be in sync within a few seconds.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required   |
-| ---------------- | ----------------- | -------------- |
-| `NO`             | `none`            | `service:read` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
+| ---------------- | ----------------- | ------------- | -------------- |
+| `NO`             | `none`            | `none`        | `service:read` |
 
 ### Sample Request
 
 ```text
 $ curl \
-    https://consul.rocks/v1/agent/services
+    http://127.0.0.1:8500/v1/agent/services
 ```
 
 ### Sample Response
@@ -49,17 +50,106 @@ $ curl \
 ```json
 {
   "redis": {
-    "ID": "redis",
-    "Service": "redis",
-    "Tags": [],
-    "Address": "",
-    "Meta": {
-      "redis_version": "4.0"
-    },
-    "Port": 8000
+      "ID": "redis",
+      "Service": "redis",
+      "Tags": [],
+      "Meta": {
+          "redis_version": "4.0"
+      },
+      "Port": 8000,
+      "Address": "",
+      "EnableTagOverride": false,
+      "Weights": {
+          "Passing": 10,
+          "Warning": 1
+      }
   }
 }
 ```
+
+## Get Service Configuration
+
+This endpoint was added in Consul 1.3.0 and returns the full service definition
+for a single service instance registered on the local agent. It is used by
+[Connect proxies](/docs/connect/proxies.html) to discover the embedded proxy
+configuration that was registered with the instance.
+
+It is important to note that the services known by the agent may be different
+from those reported by the catalog. This is usually due to changes being made
+while there is no leader elected. The agent performs active
+[anti-entropy](/docs/internals/anti-entropy.html), so in most situations
+everything will be in sync within a few seconds.
+
+| Method | Path                         | Produces                   |
+| ------ | ---------------------------- | -------------------------- |
+| `GET`  | `/agent/service/:service_id` | `application/json`         |
+
+The table below shows this endpoint's support for
+[blocking queries](/api/index.html#blocking-queries),
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
+[required ACLs](/api/index.html#acls).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
+| ---------------- | ----------------- | ------------- | -------------- |
+| `YES`<sup>1</sup>| `none`            | `none`        | `service:read` |
+
+<sup>1</sup> Supports [hash-based
+blocking](/api/index.html#hash-based-blocking-queries) only.
+
+### Parameters
+
+- `service_id` `(string: <required>)` - Specifies the ID of the service to
+  fetch. This is specified as part of the URL.
+
+### Sample Request
+
+```text
+$ curl \
+    http://127.0.0.1:8500/v1/agent/service/web-sidecar-proxy
+```
+
+### Sample Response
+
+```json
+{
+    "Kind": "connect-proxy",
+    "ID": "web-sidecar-proxy",
+    "Service": "web-sidecar-proxy",
+    "Tags": null,
+    "Meta": null,
+    "Port": 18080,
+    "Address": "",
+    "Weights": {
+        "Passing": 1,
+        "Warning": 1
+    },
+    "EnableTagOverride": false,
+    "ContentHash": "4ecd29c7bc647ca8",
+    "Proxy": {
+        "DestinationServiceName": "web",
+        "DestinationServiceID": "web",
+        "LocalServiceAddress": "127.0.0.1",
+        "LocalServicePort": 8080,
+        "Config": {
+            "foo": "bar"
+        },
+        "Upstreams": [
+            {
+                "DestinationType": "service",
+                "DestinationName": "db",
+                "LocalBindPort": 9191
+            }
+        ]
+    }
+}
+```
+
+The response has the same structure as the [service
+definition](/docs/agent/services.html) with one extra field `ContentHash` which
+contains the [hash-based blocking
+query](/api/index.html#hash-based-blocking-queries) hash for the result. The
+same hash is also present in `X-Consul-ContentHash`.
 
 ## Register Service
 
@@ -71,7 +161,7 @@ sending updates about its local services to the servers to keep the global
 catalog in sync.
 
 For "connect-proxy" kind services, the `service:write` ACL for the
-`ProxyDestination` value is also required to register the service.
+`Proxy.DestinationServiceName` value is also required to register the service.
 
 | Method | Path                         | Produces                   |
 | ------ | ---------------------------- | -------------------------- |
@@ -79,14 +169,18 @@ For "connect-proxy" kind services, the `service:write` ACL for the
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required    |
-| ---------------- | ----------------- | --------------- |
-| `NO`             | `none`            | `service:write` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
+| ---------------- | ----------------- | ------------- | --------------- |
+| `NO`             | `none`            | `none`        | `service:write` |
 
 ### Parameters
+
+Note that this endpoint, unlike most also [supports `snake_case`](/docs/agent/services.html#service-definition-parameter-case)
+service definition keys for compatibility with the config file format.
 
 - `Name` `(string: <required>)` - Specifies the logical name of the service.
   Many service instances may share the same logical service name.
@@ -112,14 +206,19 @@ The table below shows this endpoint's support for
   services that are [Connect-capable](/docs/connect/index.html)
   proxies representing another service.
 
-- `ProxyDestination` `(string: "")` - For "connect-proxy" `Kind` services,
-  this must be set to the name of the service that the proxy represents. This
-  service doesn't need to be registered, but the caller must have an ACL token
-  with permissions for this service.
+- `ProxyDestination` `(string: "")` - **Deprecated** From 1.2.0 to 1.2.3 this
+  was used for "connect-proxy" `Kind` services however the equivalent field is
+  now in `Proxy.DestinationServiceName`. Registrations using this field will
+  continue to work until some later major version where this will be removed
+  entirely. It's strongly recommended to switch to using the new field.
 
-- `Connect` `(Connect: nil)` - Specifies the configuration for
-  [Connect](/docs/connect/index.html). See the [Connect structure](#connect-structure)
-  section for supported fields.
+- `Proxy` `(Proxy: nil)` - From 1.2.3 on, specifies the configuration for a
+  Connect proxy instance. This is only valid if `Kind == "connect-proxy"`. See
+  the [Proxy documentation](/docs/connect/proxies.html) for full details.
+
+- `Connect` `(Connect: nil)` - Specifies the 
+  [configuration for Connect](/docs/connect/configuration.html). See the 
+  [Connect Structure](#connect-structure) section below for supported fields.
 
 - `Check` `(Check: nil)` - Specifies a check. Please see the
   [check documentation](/api/agent/check.html) for more information about the
@@ -127,7 +226,7 @@ The table below shows this endpoint's support for
   will be generated. To provide a custom id and/or name set the `CheckID`
   and/or `Name` field.
 
-- `Checks` `(array<Check>: nil`) - Specifies a list of checks. Please see the
+- `Checks` `(array<Check>: nil)` - Specifies a list of checks. Please see the
   [check documentation](/api/agent/check.html) for more information about the
   accepted fields. If you don't provide a name or id for the check then they
   will be generated. To provide a custom id and/or name set the `CheckID`
@@ -149,6 +248,11 @@ The table below shows this endpoint's support for
   service's port _and_ the tags would revert to the original value and all
   modifications would be lost.
 
+- `Weights` `(Weights: nil)` - Specifies weights for the service. Please see the
+  [service documentation](/docs/agent/services.html) for more information about
+  weights. If this field is not provided weights will default to
+  `{"Passing": 1, "Warning": 1}`.
+
     It is important to note that this applies only to the locally registered
     service. If you have multiple nodes all registering the same service their
     `EnableTagOverride` configuration and all other service configuration items
@@ -166,6 +270,14 @@ For the `Connect` field, the parameters are:
   the [Connect](/docs/connect/index.html) protocol [natively](/docs/connect/native.html).
   If this is true, then Connect proxies, DNS queries, etc. will be able to
   service discover this service.
+- `Proxy` `(Proxy: nil)` -
+  [**Deprecated**](/docs/connect/proxies/managed-deprecated.html) Specifies that
+  a managed Connect proxy should be started for this service instance, and
+  optionally provides configuration for the proxy. The format is as documented
+  in [Managed Proxy Deprecation](/docs/connect/proxies/managed-deprecated.html).
+- `SidecarService` `(ServiceDefinition: nil)` - Specifies an optional nested
+  service definition to register. For more information see
+  [Sidecar Service Registration](/docs/connect/proxies/sidecar-service.html).
 
 ### Sample Payload
 
@@ -189,6 +301,10 @@ For the `Connect` field, the parameters are:
     "HTTP": "http://localhost:5000/health",
     "Interval": "10s",
     "TTL": "15s"
+  },
+  "Weights": {
+    "Passing": 10,
+    "Warning": 1
   }
 }
 ```
@@ -199,7 +315,7 @@ For the `Connect` field, the parameters are:
 $ curl \
     --request PUT \
     --data @payload.json \
-    https://consul.rocks/v1/agent/service/register
+    http://127.0.0.1:8500/v1/agent/service/register
 ```
 
 ## Deregister Service
@@ -216,12 +332,13 @@ is an associated check, that is also deregistered.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required    |
-| ---------------- | ----------------- | --------------- |
-| `NO`             | `none`            | `service:write` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
+| ---------------- | ----------------- | ------------- | --------------- |
+| `NO`             | `none`            | `none`        | `service:write` |
 
 ### Parameters
 
@@ -233,7 +350,7 @@ The table below shows this endpoint's support for
 ```text
 $ curl \
     --request PUT \
-    https://consul.rocks/v1/agent/service/deregister/my-service-id
+    http://127.0.0.1:8500/v1/agent/service/deregister/my-service-id
 ```
 
 ## Enable Maintenance Mode
@@ -249,12 +366,13 @@ will be automatically restored on agent restart.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required    |
-| ---------------- | ----------------- | --------------- |
-| `NO`             | `none`            | `service:write` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
+| ---------------- | ----------------- | ------------- | --------------- |
+| `NO`             | `none`            | `none`        | `service:write` |
 
 ### Parameters
 
@@ -276,5 +394,5 @@ The table below shows this endpoint's support for
 ```text
 $ curl \
     --request PUT \
-    https://consul.rocks/v1/agent/service/maintenance/my-service-id?enable=true&reason=For+the+docs
+    http://127.0.0.1:8500/v1/agent/service/maintenance/my-service-id?enable=true&reason=For+the+docs
 ```

@@ -1,4 +1,5 @@
 @setupApplicationTest
+@ignore
 Feature: dc / acls / use: Using an ACL token
   Background:
     Given 1 datacenter model with the value "datacenter"
@@ -18,6 +19,8 @@ Feature: dc / acls / use: Using an ACL token
     And I click actions on the acls
     And I click use on the acls
     And I click confirmUse on the acls
+    Then "[data-notification]" has the "notification-use" class
+    And "[data-notification]" has the "success" class
     Then I have settings like yaml
     ---
       token: token
@@ -34,6 +37,8 @@ Feature: dc / acls / use: Using an ACL token
     ---
     And I click use
     And I click confirmUse
+    Then "[data-notification]" has the "notification-use" class
+    And "[data-notification]" has the "success" class
     Then I have settings like yaml
     ---
       token: token

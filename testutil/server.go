@@ -86,8 +86,10 @@ type TestServerConfig struct {
 	RaftProtocol        int                    `json:"raft_protocol,omitempty"`
 	ACLMasterToken      string                 `json:"acl_master_token,omitempty"`
 	ACLDatacenter       string                 `json:"acl_datacenter,omitempty"`
+	PrimaryDatacenter   string                 `json:"primary_datacenter,omitempty"`
 	ACLDefaultPolicy    string                 `json:"acl_default_policy,omitempty"`
 	ACLEnforceVersion8  bool                   `json:"acl_enforce_version_8"`
+	ACL                 TestACLs               `json:"acl,omitempty"`
 	Encrypt             string                 `json:"encrypt,omitempty"`
 	CAFile              string                 `json:"ca_file,omitempty"`
 	CertFile            string                 `json:"cert_file,omitempty"`
@@ -98,9 +100,30 @@ type TestServerConfig struct {
 	VerifyOutgoing      bool                   `json:"verify_outgoing,omitempty"`
 	EnableScriptChecks  bool                   `json:"enable_script_checks,omitempty"`
 	Connect             map[string]interface{} `json:"connect,omitempty"`
+	EnableDebug         bool                   `json:"enable_debug,omitempty"`
 	ReadyTimeout        time.Duration          `json:"-"`
 	Stdout, Stderr      io.Writer              `json:"-"`
 	Args                []string               `json:"-"`
+}
+
+type TestACLs struct {
+	Enabled             bool       `json:"enabled,omitempty"`
+	TokenReplication    bool       `json:"enable_token_replication,omitempty"`
+	PolicyTTL           string     `json:"policy_ttl,omitempty"`
+	TokenTTL            string     `json:"token_ttl,omitempty"`
+	DownPolicy          string     `json:"down_policy,omitempty"`
+	DefaultPolicy       string     `json:"default_policy,omitempty"`
+	EnableKeyListPolicy bool       `json:"enable_key_list_policy,omitempty"`
+	Tokens              TestTokens `json:"tokens,omitempty"`
+	DisabledTTL         string     `json:"disabled_ttl,omitempty"`
+}
+
+type TestTokens struct {
+	Master      string `json:"master,omitempty"`
+	Replication string `json:"replication,omitempty"`
+	AgentMaster string `json:"agent_master,omitempty"`
+	Default     string `json:"default,omitempty"`
+	Agent       string `json:"agent,omitempty"`
 }
 
 // ServerConfigCallback is a function interface which can be
@@ -394,4 +417,57 @@ func (s *TestServer) waitForLeader() error {
 		return errors.New("failed waiting for leader")
 	}
 	return nil
+}
+
+// WaitForSerfCheck ensures we have a node with serfHealth check registered
+// Behavior mirrors testrpc.WaitForTestAgent but avoids the dependency cycle in api pkg
+func (s *TestServer) WaitForSerfCheck(t *testing.T) {
+	retry.Run(t, func(r *retry.R) {
+		// Query the API and check the status code.
+		url := s.url("/v1/catalog/nodes?index=0")
+		resp, err := s.HTTPClient.Get(url)
+		if err != nil {
+			r.Fatal("failed http get", err)
+		}
+		defer resp.Body.Close()
+		if err := s.requireOK(resp); err != nil {
+			r.Fatal("failed OK response", err)
+		}
+
+		// Watch for the anti-entropy sync to finish.
+		var payload []map[string]interface{}
+		dec := json.NewDecoder(resp.Body)
+		if err := dec.Decode(&payload); err != nil {
+			r.Fatal(err)
+		}
+		if len(payload) < 1 {
+			r.Fatal("No nodes")
+		}
+
+		// Ensure the serfHealth check is registered
+		url = s.url(fmt.Sprintf("/v1/health/node/%s", payload[0]["Node"]))
+		resp, err = s.HTTPClient.Get(url)
+		if err != nil {
+			r.Fatal("failed http get", err)
+		}
+		defer resp.Body.Close()
+		if err := s.requireOK(resp); err != nil {
+			r.Fatal("failed OK response", err)
+		}
+		dec = json.NewDecoder(resp.Body)
+		if err = dec.Decode(&payload); err != nil {
+			r.Fatal(err)
+		}
+
+		var found bool
+		for _, check := range payload {
+			if check["CheckID"].(string) == "serfHealth" {
+				found = true
+				break
+			}
+		}
+		if !found {
+			r.Fatal("missing serfHealth registration")
+		}
+	})
 }

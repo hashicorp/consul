@@ -1,0 +1,23 @@
+@media #{$--horizontal-selects} {
+  %expanded-single-select {
+    display: flex;
+  }
+  %expanded-single-select label {
+    flex-grow: 1;
+  }
+}
+%expanded-single-select input[type='radio'] {
+  display: none;
+}
+%expanded-single-select label,
+%expanded-single-select label span {
+  display: block;
+}
+%expanded-single-select,
+%expanded-single-select label,
+%expanded-single-select label span {
+  height: 100%;
+}
+%expanded-single-select label span {
+  padding: 5px 14px;
+}

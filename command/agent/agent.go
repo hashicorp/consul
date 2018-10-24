@@ -22,6 +22,7 @@ import (
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/logutils"
 	"github.com/mitchellh/cli"
+	"google.golang.org/grpc/grpclog"
 )
 
 func New(ui cli.Ui, revision, version, versionPre, versionHuman string, shutdownCh <-chan struct{}) *cmd {
@@ -187,9 +188,12 @@ func (c *cmd) run(args []string) int {
 
 	// Setup the log outputs
 	logConfig := &logger.Config{
-		LogLevel:       config.LogLevel,
-		EnableSyslog:   config.EnableSyslog,
-		SyslogFacility: config.SyslogFacility,
+		LogLevel:          config.LogLevel,
+		EnableSyslog:      config.EnableSyslog,
+		SyslogFacility:    config.SyslogFacility,
+		LogFilePath:       config.LogFile,
+		LogRotateDuration: config.LogRotateDuration,
+		LogRotateBytes:    config.LogRotateBytes,
 	}
 	logFilter, logGate, logWriter, logOutput, ok := logger.Setup(logConfig, c.UI)
 	if !ok {
@@ -198,6 +202,9 @@ func (c *cmd) run(args []string) int {
 	c.logFilter = logFilter
 	c.logOutput = logOutput
 	c.logger = log.New(logOutput, "", log.LstdFlags)
+
+	// Setup gRPC logger to use the same output/filtering
+	grpclog.SetLoggerV2(logger.NewGRPCLogger(logConfig, c.logger))
 
 	memSink, err := lib.InitTelemetry(config.Telemetry)
 	if err != nil {
@@ -253,8 +260,8 @@ func (c *cmd) run(args []string) int {
 	c.UI.Info(fmt.Sprintf("     Node name: '%s'", config.NodeName))
 	c.UI.Info(fmt.Sprintf("    Datacenter: '%s' (Segment: '%s')", config.Datacenter, segment))
 	c.UI.Info(fmt.Sprintf("        Server: %v (Bootstrap: %v)", config.ServerMode, config.Bootstrap))
-	c.UI.Info(fmt.Sprintf("   Client Addr: %v (HTTP: %d, HTTPS: %d, DNS: %d)", config.ClientAddrs,
-		config.HTTPPort, config.HTTPSPort, config.DNSPort))
+	c.UI.Info(fmt.Sprintf("   Client Addr: %v (HTTP: %d, HTTPS: %d, gRPC: %d, DNS: %d)", config.ClientAddrs,
+		config.HTTPPort, config.HTTPSPort, config.GRPCPort, config.DNSPort))
 	c.UI.Info(fmt.Sprintf("  Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
 		config.SerfPortLAN, config.SerfPortWAN))
 	c.UI.Info(fmt.Sprintf("       Encrypt: Gossip: %v, TLS-Outgoing: %v, TLS-Incoming: %v",

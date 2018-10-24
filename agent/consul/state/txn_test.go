@@ -7,7 +7,114 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/require"
 )
+
+func TestStateStore_Txn_Intention(t *testing.T) {
+	require := require.New(t)
+	s := testStateStore(t)
+
+	// Create some intentions.
+	ixn1 := &structs.Intention{
+		ID:              testUUID(),
+		SourceNS:        "default",
+		SourceName:      "web",
+		DestinationNS:   "default",
+		DestinationName: "db",
+		Meta:            map[string]string{},
+	}
+	ixn2 := &structs.Intention{
+		ID:              testUUID(),
+		SourceNS:        "default",
+		SourceName:      "db",
+		DestinationNS:   "default",
+		DestinationName: "*",
+		Action:          structs.IntentionActionDeny,
+		Meta:            map[string]string{},
+	}
+	ixn3 := &structs.Intention{
+		ID:              testUUID(),
+		SourceNS:        "default",
+		SourceName:      "foo",
+		DestinationNS:   "default",
+		DestinationName: "*",
+		Meta:            map[string]string{},
+	}
+
+	// Write the first two to the state store, leave the third
+	// to be created by the transaction operation.
+	require.NoError(s.IntentionSet(1, ixn1))
+	require.NoError(s.IntentionSet(2, ixn2))
+
+	// Set up a transaction that hits every operation.
+	ops := structs.TxnOps{
+		&structs.TxnOp{
+			Intention: &structs.TxnIntentionOp{
+				Op:        structs.IntentionOpUpdate,
+				Intention: ixn1,
+			},
+		},
+		&structs.TxnOp{
+			Intention: &structs.TxnIntentionOp{
+				Op:        structs.IntentionOpDelete,
+				Intention: ixn2,
+			},
+		},
+		&structs.TxnOp{
+			Intention: &structs.TxnIntentionOp{
+				Op:        structs.IntentionOpCreate,
+				Intention: ixn3,
+			},
+		},
+	}
+	results, errors := s.TxnRW(3, ops)
+	if len(errors) > 0 {
+		t.Fatalf("err: %v", errors)
+	}
+
+	// Make sure the response looks as expected.
+	expected := structs.TxnResults{}
+	verify.Values(t, "", results, expected)
+
+	// Pull the resulting state store contents.
+	idx, actual, err := s.Intentions(nil)
+	require.NoError(err)
+	if idx != 3 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Make sure it looks as expected.
+	intentions := structs.Intentions{
+		&structs.Intention{
+			ID:              ixn1.ID,
+			SourceNS:        "default",
+			SourceName:      "web",
+			DestinationNS:   "default",
+			DestinationName: "db",
+			Meta:            map[string]string{},
+			Precedence:      9,
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 1,
+				ModifyIndex: 3,
+			},
+		},
+		&structs.Intention{
+			ID:              ixn3.ID,
+			SourceNS:        "default",
+			SourceName:      "foo",
+			DestinationNS:   "default",
+			DestinationName: "*",
+			Meta:            map[string]string{},
+			Precedence:      6,
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 3,
+				ModifyIndex: 3,
+			},
+		},
+	}
+	verify.Values(t, "", actual, intentions)
+}
 
 func TestStateStore_Txn_KVS(t *testing.T) {
 	s := testStateStore(t)

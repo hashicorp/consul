@@ -32,12 +32,13 @@ restore.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required |
-| ---------------- | ----------------- | ------------ |
-| `NO`             | `default,stale`   | `management` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`             | `default,stale`   | `none`        | `management` |
 
 ### Parameters
 
@@ -60,7 +61,7 @@ The table below shows this endpoint's support for
 With a custom datacenter:
 
 ```text
-$ curl https://consul.rocks/v1/snapshot?dc=my-datacenter -o snapshot.tgz
+$ curl http://127.0.0.1:8500/v1/snapshot?dc=my-datacenter -o snapshot.tgz
 ```
 
 The above example results in a tarball named `snapshot.tgz` in the current working directory.
@@ -86,12 +87,13 @@ call to the `GET` method.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required |
-| ---------------- | ----------------- | ------------ |
-| `NO`             | `none`            | `management` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`             | `none`            | `none`        | `management` |
 ### Parameters
 
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default
@@ -104,7 +106,7 @@ The table below shows this endpoint's support for
 $ curl \
     --request PUT \
     --data-binary @snapshot \
-    https://consul.rocks/v1/snapshot
+    http://127.0.0.1:8500/v1/snapshot
 ```
 
 ~> Some tools default to www/encoded uploads. Consul expects the snapshot to be

@@ -1,0 +1,54 @@
+$ideal-viewport-width-num: 1260;
+$ideal-viewport-width: #{$ideal-viewport-width-num}px;
+$ideal-content-width-num: 1150;
+$ideal-content-width: #{$ideal-content-width-num}px;
+$ideal-viewport-padding-num: 24;
+$ideal-viewport-padding: #{$ideal-viewport-padding-num}px;
+$minimum-viewport-padding: 10px;
+$ideal-content-padding: 33px;
+
+// workaround bulma's sweeping box-sizing
+// so we can verify the ideal widths are the same
+
+%viewport-container {
+  box-sizing: content-box;
+}
+%viewport-container {
+  margin-left: auto;
+  margin-right: auto;
+}
+%modal-dialog > *,
+%content-container > * {
+  box-sizing: border-box;
+}
+%content-container-restricted {
+  max-width: $ideal-content-width;
+}
+%viewport-container {
+  padding-left: calc(#{$ideal-viewport-padding-num}% / (#{$ideal-viewport-width-num} / 100));
+  padding-right: calc(#{$ideal-viewport-padding-num}% / (#{$ideal-viewport-width-num} / 100));
+  padding-left: calc(#{$ideal-viewport-padding-num}vw / (#{$ideal-viewport-width-num} / 100));
+  padding-right: calc(#{$ideal-viewport-padding-num}vw / (#{$ideal-viewport-width-num} / 100));
+}
+%content-container {
+  padding-left: calc(33% / (#{$ideal-viewport-width-num} / 100));
+  padding-right: calc(33% / (#{$ideal-viewport-width-num} / 100));
+  padding-left: calc(24vw / (#{$ideal-viewport-width-num} / 100));
+  padding-right: calc(24vw / (#{$ideal-viewport-width-num} / 100));
+}
+@media #{$--min-padding} {
+  %viewport-container {
+    padding-left: $minimum-viewport-padding;
+    padding-right: $minimum-viewport-padding;
+  }
+}
+@media #{$--max-padding} {
+  %viewport-container {
+    padding-left: $ideal-viewport-padding;
+    padding-right: $ideal-viewport-padding;
+  }
+  %content-container {
+    padding-left: $ideal-viewport-padding;
+    padding-right: $ideal-viewport-padding;
+  }
+}

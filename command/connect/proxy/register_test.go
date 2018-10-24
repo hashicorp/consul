@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/stretchr/testify/require"
 )
@@ -23,7 +24,7 @@ func TestRegisterMonitor_good(t *testing.T) {
 
 	// Verify the settings
 	require.Equal(api.ServiceKindConnectProxy, service.Kind)
-	require.Equal("foo", service.ProxyDestination)
+	require.Equal("foo", service.Proxy.DestinationServiceName)
 	require.Equal("127.0.0.1", service.Address)
 	require.Equal(1234, service.Port)
 
@@ -42,6 +43,7 @@ func TestRegisterMonitor_heartbeat(t *testing.T) {
 	defer a.Shutdown()
 	client := a.Client()
 
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	m, _ := testMonitor(t, client)
 	defer m.Close()
 

@@ -1,0 +1,10 @@
+%breadcrumbs {
+  position: absolute;
+  top: -38px; // %app-view:margin-top - 15px;
+}
+%breadcrumbs ol {
+  display: flex;
+}
+%breadcrumbs li {
+  margin-right: 5px;
+}
