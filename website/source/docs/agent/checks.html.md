@@ -347,7 +347,7 @@ key in your configuration file.
     {
       "id": "chk3",
       "name": "cpu",
-      "script": "/bin/check_cpu",
+      "args": ["/bin/check_cpu"],
       "interval": "10s"
     },
     ...
