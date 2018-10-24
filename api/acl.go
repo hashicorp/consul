@@ -62,12 +62,14 @@ type ACLEntry struct {
 
 // ACLReplicationStatus is used to represent the status of ACL replication.
 type ACLReplicationStatus struct {
-	Enabled          bool
-	Running          bool
-	SourceDatacenter string
-	ReplicatedIndex  uint64
-	LastSuccess      time.Time
-	LastError        time.Time
+	Enabled              bool
+	Running              bool
+	SourceDatacenter     string
+	ReplicationType      string
+	ReplicatedIndex      uint64
+	ReplicatedTokenIndex uint64
+	LastSuccess          time.Time
+	LastError            time.Time
 }
 
 // ACLPolicy represents an ACL Policy.

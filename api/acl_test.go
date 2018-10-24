@@ -665,21 +665,27 @@ func TestAPI_RulesTranslate_Raw(t *testing.T) {
 agent "" {
    policy = "read"
 }
+
 node "" {
    policy = "read"
 }
+
 service "" {
    policy = "read"
 }
+
 key "" {
    policy = "read"
 }
+
 session "" {
    policy = "read"
 }
+
 event "" {
    policy = "read"
 }
+
 query "" {
    policy = "read"
 }`
@@ -688,21 +694,27 @@ query "" {
 agent_prefix "" {
   policy = "read"
 }
+
 node_prefix "" {
   policy = "read"
 }
+
 service_prefix "" {
   policy = "read"
 }
+
 key_prefix "" {
   policy = "read"
 }
+
 session_prefix "" {
   policy = "read"
 }
+
 event_prefix "" {
   policy = "read"
 }
+
 query_prefix "" {
   policy = "read"
 }`
