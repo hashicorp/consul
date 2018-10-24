@@ -33,6 +33,10 @@ type cmd struct {
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.BoolVar(&c.tokenAccessor, "token-accessor", false, "Specifies that "+
+		"the TRANSLATE argument refers to a ACL token SecretID. "+
+		"The rules to translate will then be read from the retrieved token")
+
 	c.flags.BoolVar(&c.tokenSecret, "token-secret", false,
 		"Specifies that the TRANSLATE argument refers to a ACL token SecretID. "+
 			"The rules to translate will then be read from the retrieved token")
@@ -54,7 +58,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	if c.tokenSecret {
+	if c.tokenSecret || c.tokenAccessor {
 		client, err := c.http.APIClient()
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error connecting to Consul Agent: %s", err))

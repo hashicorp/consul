@@ -33,12 +33,14 @@ type cmd struct {
 	rulesSet       bool
 	rules          string
 	noMerge        bool
-
-	testStdin io.Reader
+	showMeta       bool
+	testStdin      io.Reader
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.BoolVar(&c.showMeta, "meta", false, "Indicates that policy metadata such "+
+		"as the content hash and raft indices should be show for each entry")
 	c.flags.StringVar(&c.policyID, "id", "", "The ID of the policy to update. "+
 		"It may be specified as a unique ID prefix but will error if the prefix "+
 		"matches multiple policy IDs")
@@ -145,7 +147,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	c.UI.Info(fmt.Sprintf("Policy updated successfully"))
-	acl.PrintPolicy(policy, c.UI, true)
+	acl.PrintPolicy(policy, c.UI, c.showMeta)
 	return 0
 }
 
@@ -154,7 +156,7 @@ func (c *cmd) Synopsis() string {
 }
 
 func (c *cmd) Help() string {
-	return flags.Usage(help, nil)
+	return flags.Usage(c.help, nil)
 }
 
 const synopsis = "Update an ACL Policy"

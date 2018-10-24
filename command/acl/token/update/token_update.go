@@ -22,16 +22,18 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
-	tokenID     string
-	policyIDs   []string
-	policyNames []string
-	description string
-
+	tokenID       string
+	policyIDs     []string
+	policyNames   []string
+	description   string
 	mergePolicies bool
+	showMeta      bool
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.BoolVar(&c.showMeta, "meta", false, "Indicates that token metadata such "+
+		"as the content hash and raft indices should be shown for each entry")
 	c.flags.BoolVar(&c.mergePolicies, "merge-policies", false, "Merge the new policies "+
 		"with the existing policies")
 	c.flags.StringVar(&c.tokenID, "id", "", "The Accessor ID of the token to read. "+
@@ -140,7 +142,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	c.UI.Info("Token updated successfully.")
-	acl.PrintToken(token, c.UI, true)
+	acl.PrintToken(token, c.UI, c.showMeta)
 	return 0
 }
 

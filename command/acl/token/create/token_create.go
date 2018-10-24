@@ -26,10 +26,13 @@ type cmd struct {
 	policyNames []string
 	description string
 	local       bool
+	showMeta    bool
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.BoolVar(&c.showMeta, "meta", false, "Indicates that token metadata such "+
+		"as the content hash and raft indices should be shown for each entry")
 	c.flags.BoolVar(&c.local, "local", false, "Create this as a datacenter local token")
 	c.flags.StringVar(&c.description, "description", "", "A description of the token")
 	c.flags.Var((*flags.AppendSliceValue)(&c.policyIDs), "policy-id", "ID of a "+
@@ -84,7 +87,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	acl.PrintToken(token, c.UI, false)
+	acl.PrintToken(token, c.UI, c.showMeta)
 	return 0
 }
 
