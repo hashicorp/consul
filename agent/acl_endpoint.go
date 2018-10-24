@@ -102,6 +102,18 @@ func (s *HTTPServer) ACLRulesTranslate(resp http.ResponseWriter, req *http.Reque
 		return nil, nil
 	}
 
+	var token string
+	s.parseToken(req, &token)
+	rule, err := s.agent.resolveToken(token)
+	if err != nil {
+		return nil, err
+	}
+	// Should this require lesser permissions? Really the only reason to require authorization at all is
+	// to prevent external entities from DoS Consul with repeated rule translation requests
+	if rule != nil && !rule.ACLRead() {
+		return nil, acl.ErrPermissionDenied
+	}
+
 	policyBytes, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Failed to read body: %v", err)}
