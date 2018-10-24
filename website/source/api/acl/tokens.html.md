@@ -407,7 +407,7 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `id` `(string: <required>)` - Specifies the accessor ID of the ACL policy to
+- `AccessorID` `(string: <required>)` - Specifies the accessor ID of the ACL policy to
   delete. This is required and is specified as part of the URL path.
 
 ### Sample Request
