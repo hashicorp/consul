@@ -984,33 +984,21 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 
 			if tt.master != "" {
 				_, master, err := s1.fsm.State().ACLTokenGetBySecret(nil, tt.master)
-				if err != nil {
-					t.Fatalf("err: %v", err)
-				}
-				if master == nil {
-					t.Fatalf("master token wasn't created")
-				}
+				require.NoError(t, err)
+				require.NotNil(t, master)
 			}
 
 			_, anon, err := s1.fsm.State().ACLTokenGetBySecret(nil, anonymousToken)
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
-			if anon == nil {
-				t.Fatalf("anonymous token wasn't created")
-			}
+			require.NoError(t, err)
+			require.NotNil(t, anon)
 
 			canBootstrap, _, err := s1.fsm.State().CanBootstrapACLToken()
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
-			if tt.bootstrap {
-				if !canBootstrap {
-					t.Fatalf("bootstrap should be allowed")
-				}
-			} else if canBootstrap {
-				t.Fatalf("bootstrap should not be allowed")
-			}
+			require.NoError(t, err)
+			require.Equal(t, tt.bootstrap, canBootstrap)
+
+			_, policy, err := s1.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID)
+			require.NoError(t, err)
+			require.NotNil(t, policy)
 		})
 	}
 }
