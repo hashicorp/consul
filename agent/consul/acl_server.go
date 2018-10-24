@@ -97,7 +97,7 @@ func (s *Server) canUpgradeToNewACLs(isLeader bool) bool {
 }
 
 func (s *Server) InACLDatacenter() bool {
-	return s.config.Datacenter == s.config.ACLDatacenter
+	return s.config.ACLDatacenter == "" || s.config.Datacenter == s.config.ACLDatacenter
 }
 
 func (s *Server) UseLegacyACLs() bool {

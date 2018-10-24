@@ -145,7 +145,7 @@ func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
 	defer metrics.MeasureSince([]string{"acl", "apply"}, time.Now())
 
 	// Verify we are allowed to serve this request
-	if a.srv.config.ACLDatacenter != a.srv.config.Datacenter {
+	if !a.srv.ACLsEnabled() {
 		return acl.ErrDisabled
 	}
 
@@ -189,7 +189,7 @@ func (a *ACL) Get(args *structs.ACLSpecificRequest,
 	}
 
 	// Verify we are allowed to serve this request
-	if a.srv.config.ACLDatacenter != a.srv.config.Datacenter {
+	if !a.srv.ACLsEnabled() {
 		return acl.ErrDisabled
 	}
 
@@ -226,7 +226,7 @@ func (a *ACL) List(args *structs.DCSpecificRequest,
 	}
 
 	// Verify we are allowed to serve this request
-	if a.srv.config.ACLDatacenter != a.srv.config.Datacenter {
+	if !a.srv.ACLsEnabled() {
 		return acl.ErrDisabled
 	}
 
