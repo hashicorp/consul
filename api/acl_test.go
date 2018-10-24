@@ -1,6 +1,7 @@
 package api
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/testutil/retry"
@@ -175,7 +176,7 @@ func TestAPI_ACLPolicy_CreateReadDelete(t *testing.T) {
 
 	acl := c.ACL()
 
-	created, _, err := acl.PolicyCreate(&ACLPolicy{
+	created, wm, err := acl.PolicyCreate(&ACLPolicy{
 		Name:        "test-policy",
 		Description: "test-policy description",
 		Rules:       `node_prefix "" { policy = "read" }`,
@@ -185,14 +186,18 @@ func TestAPI_ACLPolicy_CreateReadDelete(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, created)
 	require.NotEqual(t, "", created.ID)
+	require.NotEqual(t, 0, wm.RequestTime)
 
-	read, _, err := acl.PolicyRead(created.ID, nil)
+	read, qm, err := acl.PolicyRead(created.ID, nil)
 	require.NoError(t, err)
+	require.NotEqual(t, 0, qm.LastIndex)
+	require.True(t, qm.KnownLeader)
 
 	require.Equal(t, created, read)
 
-	_, err = acl.PolicyDelete(created.ID, nil)
+	wm, err = acl.PolicyDelete(created.ID, nil)
 	require.NoError(t, err)
+	require.NotEqual(t, 0, wm.RequestTime)
 
 	read, _, err = acl.PolicyRead(created.ID, nil)
 	require.Nil(t, read)
@@ -224,7 +229,7 @@ func TestAPI_ACLPolicy_CreateUpdate(t *testing.T) {
 	read.Rules += ` service_prefix "" { policy = "read" }`
 	read.Datacenters = nil
 
-	updated, _, err := acl.PolicyUpdate(read, nil)
+	updated, wm, err := acl.PolicyUpdate(read, nil)
 	require.NoError(t, err)
 	require.Equal(t, created.ID, updated.ID)
 	require.Equal(t, created.Description, updated.Description)
@@ -232,6 +237,7 @@ func TestAPI_ACLPolicy_CreateUpdate(t *testing.T) {
 	require.Equal(t, created.CreateIndex, updated.CreateIndex)
 	require.NotEqual(t, created.ModifyIndex, updated.ModifyIndex)
 	require.Nil(t, updated.Datacenters)
+	require.NotEqual(t, 0, wm.RequestTime)
 
 	updated_read, _, err := acl.PolicyRead(created.ID, nil)
 	require.NoError(t, err)
@@ -277,9 +283,11 @@ func TestAPI_ACLPolicy_List(t *testing.T) {
 	require.NotNil(t, created3)
 	require.NotEqual(t, "", created3.ID)
 
-	policies, _, err := acl.PolicyList(nil)
+	policies, qm, err := acl.PolicyList(nil)
 	require.NoError(t, err)
 	require.Len(t, policies, 4)
+	require.NotEqual(t, 0, qm.LastIndex)
+	require.True(t, qm.KnownLeader)
 
 	policyMap := make(map[string]*ACLPolicyListEntry)
 	for _, policy := range policies {
@@ -376,7 +384,7 @@ func TestAPI_ACLToken_CreateReadDelete(t *testing.T) {
 
 	policies := prepTokenPolicies(t, acl)
 
-	created, _, err := acl.TokenCreate(&ACLToken{
+	created, wm, err := acl.TokenCreate(&ACLToken{
 		Description: "token created",
 		Policies: []*ACLTokenPolicyLink{
 			&ACLTokenPolicyLink{
@@ -398,10 +406,13 @@ func TestAPI_ACLToken_CreateReadDelete(t *testing.T) {
 	require.NotNil(t, created)
 	require.NotEqual(t, "", created.AccessorID)
 	require.NotEqual(t, "", created.SecretID)
+	require.NotEqual(t, 0, wm.RequestTime)
 
-	read, _, err := acl.TokenRead(created.AccessorID, nil)
+	read, qm, err := acl.TokenRead(created.AccessorID, nil)
 	require.NoError(t, err)
 	require.Equal(t, created, read)
+	require.NotEqual(t, 0, qm.LastIndex)
+	require.True(t, qm.KnownLeader)
 
 	acl.c.config.Token = created.SecretID
 	self, _, err := acl.TokenReadSelf(nil)
@@ -465,7 +476,7 @@ func TestAPI_ACLToken_CreateUpdate(t *testing.T) {
 		},
 	}
 
-	updated, _, err := acl.TokenUpdate(read, nil)
+	updated, wm, err := acl.TokenUpdate(read, nil)
 	require.NoError(t, err)
 	require.Equal(t, created.AccessorID, updated.AccessorID)
 	require.Equal(t, created.SecretID, updated.SecretID)
@@ -473,6 +484,7 @@ func TestAPI_ACLToken_CreateUpdate(t *testing.T) {
 	require.Equal(t, created.CreateIndex, updated.CreateIndex)
 	require.NotEqual(t, created.ModifyIndex, updated.ModifyIndex)
 	require.ElementsMatch(t, expectedPolicies, updated.Policies)
+	require.NotEqual(t, 0, wm.RequestTime)
 
 	updated_read, _, err := acl.TokenRead(created.AccessorID, nil)
 	require.NoError(t, err)
@@ -530,10 +542,12 @@ func TestAPI_ACLToken_List(t *testing.T) {
 	require.NotEqual(t, "", created3.AccessorID)
 	require.NotEqual(t, "", created3.SecretID)
 
-	tokens, _, err := acl.TokenList(nil)
+	tokens, qm, err := acl.TokenList(nil)
 	require.NoError(t, err)
 	// 3 + anon + master
 	require.Len(t, tokens, 5)
+	require.NotEqual(t, 0, qm.LastIndex)
+	require.True(t, qm.KnownLeader)
 
 	tokenMap := make(map[string]*ACLTokenListEntry)
 	for _, token := range tokens {
@@ -633,10 +647,11 @@ func TestAPI_RulesTranslate_FromToken(t *testing.T) {
 		require.NotEqual(t, "", token.AccessorID)
 		accessor = token.AccessorID
 	})
+	acl.c.config.Token = "root"
 
 	rules, err := acl.RulesTranslateToken(accessor)
 	require.NoError(t, err)
-	require.Equal(t, `key_prefix "" { policy = "deny" }`, rules)
+	require.Equal(t, "key_prefix \"\" {\n  policy = \"deny\"\n}", rules)
 }
 
 func TestAPI_RulesTranslate_Raw(t *testing.T) {
@@ -646,51 +661,53 @@ func TestAPI_RulesTranslate_Raw(t *testing.T) {
 
 	acl := c.ACL()
 
-	input := `agent "" {
-		policy = "read"
-	}
-	node "" {
-		policy = "read"
-	}
-	service "" {
-		policy = "read"
-	}
-	key "" {
-		policy = "read"
-	}
-	session "" {
-		policy = "read"
-	}
-	event "" {
-		policy = "read"
-	}
-	query "" {
-		policy = "read"
-	}`
+	input := `#start of policy
+agent "" {
+   policy = "read"
+}
+node "" {
+   policy = "read"
+}
+service "" {
+   policy = "read"
+}
+key "" {
+   policy = "read"
+}
+session "" {
+   policy = "read"
+}
+event "" {
+   policy = "read"
+}
+query "" {
+   policy = "read"
+}`
 
-	expected := `agent_prefix "" {
-		policy = "read"
-	}
-	node_prefix "" {
-		policy = "read"
-	}
-	service_prefix "" {
-		policy = "read"
-	}
-	key_prefix "" {
-		policy = "read"
-	}
-	session_prefix "" {
-		policy = "read"
-	}
-	event_prefix "" {
-		policy = "read"
-	}
-	query_prefix "" {
-		policy = "read"
-	}`
+	expected := `#start of policy
+agent_prefix "" {
+  policy = "read"
+}
+node_prefix "" {
+  policy = "read"
+}
+service_prefix "" {
+  policy = "read"
+}
+key_prefix "" {
+  policy = "read"
+}
+session_prefix "" {
+  policy = "read"
+}
+event_prefix "" {
+  policy = "read"
+}
+query_prefix "" {
+  policy = "read"
+}`
 
-	rules, err := acl.RulesTranslate(input)
+	rules, err := acl.RulesTranslate(strings.NewReader(input))
 	require.NoError(t, err)
 	require.Equal(t, expected, rules)
 }

@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"time"
 )
@@ -498,9 +499,9 @@ func (a *ACL) PolicyList(q *QueryOptions) ([]*ACLPolicyListEntry, *QueryMeta, er
 	return entries, qm, nil
 }
 
-func (a *ACL) RulesTranslate(rules string) (string, error) {
+func (a *ACL) RulesTranslate(rules io.Reader) (string, error) {
 	r := a.c.newRequest("POST", "/v1/acl/rules/translate")
-	r.obj = rules
+	r.body = rules
 	rtt, resp, err := requireOK(a.c.doRequest(r))
 	if err != nil {
 		return "", err
