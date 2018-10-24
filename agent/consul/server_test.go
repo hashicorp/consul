@@ -622,10 +622,10 @@ func TestServer_Expect_NonVoters(t *testing.T) {
 
 	// Now we have three servers so we should bootstrap.
 	retry.Run(t, func(r *retry.R) {
-		r.Check(wantPeers(s1, 4))
-		r.Check(wantPeers(s2, 4))
-		r.Check(wantPeers(s3, 4))
-		r.Check(wantPeers(s4, 4))
+		r.Check(wantPeers(s1, 2))
+		r.Check(wantPeers(s2, 2))
+		r.Check(wantPeers(s3, 2))
+		r.Check(wantPeers(s4, 2))
 	})
 
 	// Make sure a leader is elected
