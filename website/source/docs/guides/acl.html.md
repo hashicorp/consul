@@ -312,7 +312,7 @@ Policies:
 
 ```
 
-We can now add this to our Consul server
+We can now assign the SecretID of this token in our Consul server
 configuration and restart the servers once more to apply it:
 
 ```json
@@ -324,7 +324,7 @@ configuration and restart the servers once more to apply it:
     "down_policy" : "extend-cache",
     "tokens" : {
       "master" : "b1gs33cr3t",
-      "agent" : "fcd68580-c566-2bd2-891f-336eadc02357"
+      "agent" : "da666809-98ca-0e94-a99c-893c4bf5f9eb"
     }
   }
 }
@@ -334,7 +334,7 @@ In Consul 0.9.1 and later you can also introduce the agent token using an API,
 so it doesn't need to be set in the configuration file:
 
 ```bash
-$ consul acl set-agent-token agent fcd68580-c566-2bd2-891f-336eadc02357
+$ consul acl set-agent-token agent da666809-98ca-0e94-a99c-893c4bf5f9eb 
 
 ACL token "agent" set successfully
 ```
