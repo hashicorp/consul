@@ -161,6 +161,14 @@ $ curl \
     http://127.0.0.1:8500/v1/acl/update
 ```
 
+### Sample Response
+
+```json
+{
+  "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
+}
+```
+
 ## Delete ACL Token
 
 This endpoint deletes an ACL token with the given ID.
@@ -168,6 +176,8 @@ This endpoint deletes an ACL token with the given ID.
 | Method | Path                         | Produces                   |
 | ------ | ---------------------------- | -------------------------- |
 | `PUT`  | `/acl/destroy/:uuid`         | `application/json`         |
+
+Even though the return type is application/json, the value is either true or false, indicating whether the delete succeeded.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -191,6 +201,13 @@ $ curl \
     --request PUT \
     http://127.0.0.1:8500/v1/acl/destroy/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
 ```
+
+### Sample Response
+
+```json
+true
+```
+
 
 ## Read ACL Token
 
