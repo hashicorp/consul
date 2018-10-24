@@ -488,7 +488,7 @@ state allows its old entries to be removed.
 
 | Method | Path                         | Produces                   |
 | ------ | ---------------------------- | -------------------------- |
-| `PUT`  | `/agent/force-leave`         | `application/json`         |
+| `PUT`  | `/agent/force-leave/:node`   | `application/json`         |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -500,12 +500,16 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------- |
 | `NO`             | `none`            | `none`        | `agent:write` |
 
+### Parameters
+
+- `node` `(string: <required>)` - Specifies the name of the node to be forced into `left` state. This is specified as part of the URL.
+
 ### Sample Request
 
 ```text
 $ curl \
     --request PUT \
-    http://127.0.0.1:8500/v1/agent/force-leave
+    http://127.0.0.1:8500/v1/agent/force-leave/agent-one
 ```
 
 ## Update ACL Tokens
