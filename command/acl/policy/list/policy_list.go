@@ -67,7 +67,7 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Delete an ACL Policy"
+const synopsis = "Lists ACL Policies"
 const help = `
 Usage: consul acl policy list [options]
 

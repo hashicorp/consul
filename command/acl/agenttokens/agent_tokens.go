@@ -103,7 +103,7 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Interact with the Consul's ACLs"
+const synopsis = "Assign tokens for the Consul Agent's usage"
 const help = `
 Usage: consul acl set-agent-token [options] TYPE TOKEN
 
