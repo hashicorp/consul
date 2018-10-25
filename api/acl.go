@@ -123,6 +123,8 @@ func (a *ACL) Bootstrap() (*ACLToken, *WriteMeta, error) {
 }
 
 // Create is used to generate a new token with the given parameters
+//
+// Deprecated: Use TokenCreate instead.
 func (a *ACL) Create(acl *ACLEntry, q *WriteOptions) (string, *WriteMeta, error) {
 	r := a.c.newRequest("PUT", "/v1/acl/create")
 	r.setWriteOptions(q)
@@ -142,6 +144,8 @@ func (a *ACL) Create(acl *ACLEntry, q *WriteOptions) (string, *WriteMeta, error)
 }
 
 // Update is used to update the rules of an existing token
+//
+// Deprecated: Use TokenUpdate instead.
 func (a *ACL) Update(acl *ACLEntry, q *WriteOptions) (*WriteMeta, error) {
 	r := a.c.newRequest("PUT", "/v1/acl/update")
 	r.setWriteOptions(q)
@@ -157,6 +161,8 @@ func (a *ACL) Update(acl *ACLEntry, q *WriteOptions) (*WriteMeta, error) {
 }
 
 // Destroy is used to destroy a given ACL token ID
+//
+// Deprecated: Use TokenDelete instead.
 func (a *ACL) Destroy(id string, q *WriteOptions) (*WriteMeta, error) {
 	r := a.c.newRequest("PUT", "/v1/acl/destroy/"+id)
 	r.setWriteOptions(q)
@@ -171,6 +177,8 @@ func (a *ACL) Destroy(id string, q *WriteOptions) (*WriteMeta, error) {
 }
 
 // Clone is used to return a new token cloned from an existing one
+//
+// Deprecated: Use TokenClone instead.
 func (a *ACL) Clone(id string, q *WriteOptions) (string, *WriteMeta, error) {
 	r := a.c.newRequest("PUT", "/v1/acl/clone/"+id)
 	r.setWriteOptions(q)
@@ -189,6 +197,8 @@ func (a *ACL) Clone(id string, q *WriteOptions) (string, *WriteMeta, error) {
 }
 
 // Info is used to query for information about an ACL token
+//
+// Deprecated: Use TokenRead instead.
 func (a *ACL) Info(id string, q *QueryOptions) (*ACLEntry, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/acl/info/"+id)
 	r.setQueryOptions(q)
@@ -213,6 +223,8 @@ func (a *ACL) Info(id string, q *QueryOptions) (*ACLEntry, *QueryMeta, error) {
 }
 
 // List is used to get all the ACL tokens
+//
+// Deprecated: Use TokenList instead.
 func (a *ACL) List(q *QueryOptions) ([]*ACLEntry, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/acl/list")
 	r.setQueryOptions(q)
@@ -254,6 +266,8 @@ func (a *ACL) Replication(q *QueryOptions) (*ACLReplicationStatus, *QueryMeta, e
 	return entries, qm, nil
 }
 
+// TokenCreate creates a new ACL token. It requires that the AccessorID and SecretID fields
+// of the ACLToken structure to be empty as these will be filled in by Consul.
 func (a *ACL) TokenCreate(token *ACLToken, q *WriteOptions) (*ACLToken, *WriteMeta, error) {
 	if token.AccessorID != "" {
 		return nil, nil, fmt.Errorf("Cannot specify an AccessorID in Token Creation")
@@ -281,6 +295,9 @@ func (a *ACL) TokenCreate(token *ACLToken, q *WriteOptions) (*ACLToken, *WriteMe
 	return &out, wm, nil
 }
 
+// TokenUpdate updates a token in place without modifying its AccessorID or SecretID. A valid
+// AccessorID must be set in the ACLToken structure passed to this function but the SecretID may
+// be omitted and will be filled in by Consul with its existing value.
 func (a *ACL) TokenUpdate(token *ACLToken, q *WriteOptions) (*ACLToken, *WriteMeta, error) {
 	if token.AccessorID == "" {
 		return nil, nil, fmt.Errorf("Must specify an AccessorID for Token Updating")
@@ -303,6 +320,10 @@ func (a *ACL) TokenUpdate(token *ACLToken, q *WriteOptions) (*ACLToken, *WriteMe
 	return &out, wm, nil
 }
 
+// TokenClone will create a new token with the same policies and locality as the original
+// token but will have its own auto-generated AccessorID and SecretID as well having the
+// description passed to this function. The tokenID parameter must be a valid Accessor ID
+// of an existing token.
 func (a *ACL) TokenClone(tokenID string, description string, q *WriteOptions) (*ACLToken, *WriteMeta, error) {
 	if tokenID == "" {
 		return nil, nil, fmt.Errorf("Must specify a tokenID for Token Cloning")
@@ -326,6 +347,8 @@ func (a *ACL) TokenClone(tokenID string, description string, q *WriteOptions) (*
 	return &out, wm, nil
 }
 
+// TokenDelete removes a single ACL token. The tokenID parameter must be a valid
+// Accessor ID of an existing token.
 func (a *ACL) TokenDelete(tokenID string, q *WriteOptions) (*WriteMeta, error) {
 	r := a.c.newRequest("DELETE", "/v1/acl/token/"+tokenID)
 	r.setWriteOptions(q)
@@ -339,6 +362,8 @@ func (a *ACL) TokenDelete(tokenID string, q *WriteOptions) (*WriteMeta, error) {
 	return wm, nil
 }
 
+// TokenRead retrieves the full token details. The tokenID parameter must be a valid
+// Accessor ID of an existing token.
 func (a *ACL) TokenRead(tokenID string, q *QueryOptions) (*ACLToken, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/acl/token/"+tokenID)
 	r.setQueryOptions(q)
@@ -360,6 +385,9 @@ func (a *ACL) TokenRead(tokenID string, q *QueryOptions) (*ACLToken, *QueryMeta,
 	return &out, qm, nil
 }
 
+// TokenReadSelf retrieves the full token details of the token currently
+// assigned to the API Client. In this manner its possible to read a token
+// by its Secret ID.
 func (a *ACL) TokenReadSelf(q *QueryOptions) (*ACLToken, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/acl/token/self")
 	r.setQueryOptions(q)
@@ -381,6 +409,8 @@ func (a *ACL) TokenReadSelf(q *QueryOptions) (*ACLToken, *QueryMeta, error) {
 	return &out, qm, nil
 }
 
+// TokenList lists all tokens. The listing does not contain any SecretIDs as those
+// may only be retrieved by a call to TokenRead.
 func (a *ACL) TokenList(q *QueryOptions) ([]*ACLTokenListEntry, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/acl/tokens")
 	r.setQueryOptions(q)
@@ -401,6 +431,8 @@ func (a *ACL) TokenList(q *QueryOptions) ([]*ACLTokenListEntry, *QueryMeta, erro
 	return entries, qm, nil
 }
 
+// PolicyCreate will create a new policy. It is not allowed for the policy parameters
+// ID field to be set as this will be generated by Consul while processing the request.
 func (a *ACL) PolicyCreate(policy *ACLPolicy, q *WriteOptions) (*ACLPolicy, *WriteMeta, error) {
 	if policy.ID != "" {
 		return nil, nil, fmt.Errorf("Cannot specify an ID in Policy Creation")
@@ -424,6 +456,8 @@ func (a *ACL) PolicyCreate(policy *ACLPolicy, q *WriteOptions) (*ACLPolicy, *Wri
 	return &out, wm, nil
 }
 
+// PolicyUpdate updates a policy. The ID field of the policy parameter must be set to an
+// existing policy ID
 func (a *ACL) PolicyUpdate(policy *ACLPolicy, q *WriteOptions) (*ACLPolicy, *WriteMeta, error) {
 	if policy.ID == "" {
 		return nil, nil, fmt.Errorf("Must specify an ID in Policy Creation")
@@ -447,6 +481,7 @@ func (a *ACL) PolicyUpdate(policy *ACLPolicy, q *WriteOptions) (*ACLPolicy, *Wri
 	return &out, wm, nil
 }
 
+// PolicyDelete deletes a policy given its ID.
 func (a *ACL) PolicyDelete(policyID string, q *WriteOptions) (*WriteMeta, error) {
 	r := a.c.newRequest("DELETE", "/v1/acl/policy/"+policyID)
 	r.setWriteOptions(q)
@@ -460,6 +495,7 @@ func (a *ACL) PolicyDelete(policyID string, q *WriteOptions) (*WriteMeta, error)
 	return wm, nil
 }
 
+// PolicyRead retrieves the policy details including the rule set.
 func (a *ACL) PolicyRead(policyID string, q *QueryOptions) (*ACLPolicy, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/acl/policy/"+policyID)
 	r.setQueryOptions(q)
@@ -481,6 +517,8 @@ func (a *ACL) PolicyRead(policyID string, q *QueryOptions) (*ACLPolicy, *QueryMe
 	return &out, qm, nil
 }
 
+// PolicyList retrieves a listing of all policies. The listing does not include the
+// rules for any policy as those should be retrieved by subsequent calls to PolicyRead.
 func (a *ACL) PolicyList(q *QueryOptions) ([]*ACLPolicyListEntry, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/acl/policies")
 	r.setQueryOptions(q)
@@ -501,6 +539,10 @@ func (a *ACL) PolicyList(q *QueryOptions) ([]*ACLPolicyListEntry, *QueryMeta, er
 	return entries, qm, nil
 }
 
+// RulesTranslate translates the legacy rule syntax into the current syntax.
+//
+// Deprecated: Support for the legacy syntax translation will be removed
+// when legacy ACL support is removed.
 func (a *ACL) RulesTranslate(rules io.Reader) (string, error) {
 	r := a.c.newRequest("POST", "/v1/acl/rules/translate")
 	r.body = rules
@@ -521,6 +563,11 @@ func (a *ACL) RulesTranslate(rules io.Reader) (string, error) {
 	return string(ruleBytes), nil
 }
 
+// RulesTranslateToken translates the rules associated with the legacy syntax
+// into the current syntax and returns the results.
+//
+// Deprecated: Support for the legacy syntax translation will be removed
+// when legacy ACL support is removed.
 func (a *ACL) RulesTranslateToken(tokenID string) (string, error) {
 	r := a.c.newRequest("GET", "/v1/acl/rules/translate/"+tokenID)
 	rtt, resp, err := requireOK(a.c.doRequest(r))
