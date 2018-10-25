@@ -257,7 +257,7 @@ func (s *HTTPServer) ACLPolicyCreate(resp http.ResponseWriter, req *http.Request
 }
 
 // fixCreateTimeAndHash is used to help in decoding the CreateTime and Hash
-// attributes from the ACL Token create/update requests. It is needed
+// attributes from the ACL Token/Policy create/update requests. It is needed
 // to help mapstructure decode things properly when decodeBody is used.
 func fixCreateTimeAndHash(raw interface{}) error {
 	rawMap, ok := raw.(map[string]interface{})
@@ -289,7 +289,7 @@ func (s *HTTPServer) ACLPolicyWrite(resp http.ResponseWriter, req *http.Request,
 	}
 	s.parseToken(req, &args.Token)
 
-	if err := decodeBody(req, &args.Policy, nil); err != nil {
+	if err := decodeBody(req, &args.Policy, fixCreateTimeAndHash); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Policy decoding failed: %v", err)}
 	}
 
