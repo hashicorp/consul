@@ -573,8 +573,8 @@ func (r *ACLTokenBatchReadRequest) RequestDatacenter() string {
 // This is particularly useful during token replication and during
 // automatic legacy token upgrades.
 type ACLTokenBatchUpsertRequest struct {
-	Tokens      ACLTokens
-	AllowCreate bool
+	Tokens ACLTokens
+	CAS    bool
 }
 
 // ACLTokenBatchDeleteRequest is used only at the Raft layer

@@ -354,7 +354,191 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 }
 
 func TestStateStore_ACLTokens_UpsertListBatchRead(t *testing.T) {
+	t.Parallel()
 
+	t.Run("CAS - Deleted", func(t *testing.T) {
+		t.Parallel()
+		s := testACLTokensStateStore(t)
+
+		// CAS op + nonexistent token should not work. This prevents modifying
+		// deleted tokens
+
+		tokens := structs.ACLTokens{
+			&structs.ACLToken{
+				AccessorID: "a4f68bd6-3af5-4f56-b764-3c6f20247879",
+				SecretID:   "00ff4564-dd96-4d1b-8ad6-578a08279f79",
+				RaftIndex:  structs.RaftIndex{CreateIndex: 2, ModifyIndex: 3},
+			},
+		}
+
+		require.NoError(t, s.ACLTokensUpsert(2, tokens, true))
+
+		_, token, err := s.ACLTokenGetByAccessor(nil, tokens[0].AccessorID)
+		require.NoError(t, err)
+		require.Nil(t, token)
+	})
+
+	t.Run("CAS - Updated", func(t *testing.T) {
+		t.Parallel()
+		s := testACLTokensStateStore(t)
+
+		// CAS op + nonexistent token should not work. This prevents modifying
+		// deleted tokens
+
+		tokens := structs.ACLTokens{
+			&structs.ACLToken{
+				AccessorID: "a4f68bd6-3af5-4f56-b764-3c6f20247879",
+				SecretID:   "00ff4564-dd96-4d1b-8ad6-578a08279f79",
+			},
+		}
+
+		require.NoError(t, s.ACLTokensUpsert(5, tokens, true))
+
+		updated := structs.ACLTokens{
+			&structs.ACLToken{
+				AccessorID:  "a4f68bd6-3af5-4f56-b764-3c6f20247879",
+				SecretID:    "00ff4564-dd96-4d1b-8ad6-578a08279f79",
+				Description: "wont update",
+				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 4},
+			},
+		}
+
+		require.NoError(t, s.ACLTokensUpsert(6, updated, true))
+
+		_, token, err := s.ACLTokenGetByAccessor(nil, tokens[0].AccessorID)
+		require.NoError(t, err)
+		require.NotNil(t, token)
+		require.Equal(t, "", token.Description)
+	})
+
+	t.Run("CAS - Already Exists", func(t *testing.T) {
+		t.Parallel()
+		s := testACLTokensStateStore(t)
+
+		tokens := structs.ACLTokens{
+			&structs.ACLToken{
+				AccessorID: "a4f68bd6-3af5-4f56-b764-3c6f20247879",
+				SecretID:   "00ff4564-dd96-4d1b-8ad6-578a08279f79",
+			},
+		}
+
+		require.NoError(t, s.ACLTokensUpsert(5, tokens, true))
+
+		updated := structs.ACLTokens{
+			&structs.ACLToken{
+				AccessorID:  "a4f68bd6-3af5-4f56-b764-3c6f20247879",
+				SecretID:    "00ff4564-dd96-4d1b-8ad6-578a08279f79",
+				Description: "wont update",
+			},
+		}
+
+		require.NoError(t, s.ACLTokensUpsert(6, updated, true))
+
+		_, token, err := s.ACLTokenGetByAccessor(nil, tokens[0].AccessorID)
+		require.NoError(t, err)
+		require.NotNil(t, token)
+		require.Equal(t, "", token.Description)
+	})
+
+	t.Run("Normal", func(t *testing.T) {
+		t.Parallel()
+		s := testACLTokensStateStore(t)
+
+		tokens := structs.ACLTokens{
+			&structs.ACLToken{
+				AccessorID: "a4f68bd6-3af5-4f56-b764-3c6f20247879",
+				SecretID:   "00ff4564-dd96-4d1b-8ad6-578a08279f79",
+			},
+			&structs.ACLToken{
+				AccessorID: "a2719052-40b3-4a4b-baeb-f3df1831a217",
+				SecretID:   "ff826eaf-4b88-4881-aaef-52b1089e5d5d",
+			},
+		}
+
+		require.NoError(t, s.ACLTokensUpsert(2, tokens, false))
+
+		idx, rtokens, err := s.ACLTokenBatchRead(nil, []string{
+			"a4f68bd6-3af5-4f56-b764-3c6f20247879",
+			"a2719052-40b3-4a4b-baeb-f3df1831a217"})
+
+		require.NoError(t, err)
+		require.Equal(t, uint64(2), idx)
+		require.Len(t, rtokens, 2)
+		require.ElementsMatch(t, tokens, rtokens)
+		require.Equal(t, uint64(2), rtokens[0].CreateIndex)
+		require.Equal(t, uint64(2), rtokens[0].ModifyIndex)
+		require.Equal(t, uint64(2), rtokens[1].CreateIndex)
+		require.Equal(t, uint64(2), rtokens[1].ModifyIndex)
+	})
+
+	t.Run("Update", func(t *testing.T) {
+		t.Parallel()
+		s := testACLTokensStateStore(t)
+
+		tokens := structs.ACLTokens{
+			&structs.ACLToken{
+				AccessorID: "a4f68bd6-3af5-4f56-b764-3c6f20247879",
+				SecretID:   "00ff4564-dd96-4d1b-8ad6-578a08279f79",
+			},
+			&structs.ACLToken{
+				AccessorID: "a2719052-40b3-4a4b-baeb-f3df1831a217",
+				SecretID:   "ff826eaf-4b88-4881-aaef-52b1089e5d5d",
+			},
+		}
+
+		require.NoError(t, s.ACLTokensUpsert(2, tokens, false))
+
+		updates := structs.ACLTokens{
+			&structs.ACLToken{
+				AccessorID:  "a4f68bd6-3af5-4f56-b764-3c6f20247879",
+				SecretID:    "00ff4564-dd96-4d1b-8ad6-578a08279f79",
+				Description: "first token",
+				Policies: []structs.ACLTokenPolicyLink{
+					structs.ACLTokenPolicyLink{
+						ID: "a0625e95-9b3e-42de-a8d6-ceef5b6f3286",
+					},
+				},
+			},
+			&structs.ACLToken{
+				AccessorID:  "a2719052-40b3-4a4b-baeb-f3df1831a217",
+				SecretID:    "ff826eaf-4b88-4881-aaef-52b1089e5d5d",
+				Description: "second token",
+				Policies: []structs.ACLTokenPolicyLink{
+					structs.ACLTokenPolicyLink{
+						ID: structs.ACLPolicyGlobalManagementID,
+					},
+				},
+			},
+		}
+
+		require.NoError(t, s.ACLTokensUpsert(3, updates, false))
+
+		idx, rtokens, err := s.ACLTokenBatchRead(nil, []string{
+			"a4f68bd6-3af5-4f56-b764-3c6f20247879",
+			"a2719052-40b3-4a4b-baeb-f3df1831a217"})
+
+		require.NoError(t, err)
+		require.Equal(t, uint64(3), idx)
+		require.Len(t, rtokens, 2)
+		rtokens.Sort()
+		require.Equal(t, "a2719052-40b3-4a4b-baeb-f3df1831a217", rtokens[0].AccessorID)
+		require.Equal(t, "ff826eaf-4b88-4881-aaef-52b1089e5d5d", rtokens[0].SecretID)
+		require.Equal(t, "second token", rtokens[0].Description)
+		require.Len(t, rtokens[0].Policies, 1)
+		require.Equal(t, structs.ACLPolicyGlobalManagementID, rtokens[0].Policies[0].ID)
+		require.Equal(t, "global-management", rtokens[0].Policies[0].Name)
+		require.Equal(t, uint64(2), rtokens[0].CreateIndex)
+		require.Equal(t, uint64(3), rtokens[0].ModifyIndex)
+
+		require.Equal(t, "a4f68bd6-3af5-4f56-b764-3c6f20247879", rtokens[1].AccessorID)
+		require.Equal(t, "00ff4564-dd96-4d1b-8ad6-578a08279f79", rtokens[1].SecretID)
+		require.Equal(t, "first token", rtokens[1].Description)
+		require.Len(t, rtokens[1].Policies, 1)
+		require.Equal(t, "a0625e95-9b3e-42de-a8d6-ceef5b6f3286", rtokens[1].Policies[0].ID)
+		require.Equal(t, "node-read", rtokens[1].Policies[0].Name)
+		require.Equal(t, uint64(2), rtokens[1].CreateIndex)
+		require.Equal(t, uint64(3), rtokens[1].ModifyIndex)
+	})
 }
 
 func TestStateStore_ACLTokens_ListUpgradeable(t *testing.T) {
@@ -604,7 +788,7 @@ func TestStateStore_ACLTokens_Snapshot_Restore(t *testing.T) {
 		},
 	}
 
-	require.NoError(t, s.ACLTokensUpsert(2, tokens, true))
+	require.NoError(t, s.ACLTokensUpsert(2, tokens, false))
 
 	// Snapshot the ACLs.
 	snap := s.Snapshot()

@@ -421,8 +421,8 @@ func (a *ACL) tokenUpsertInternal(args *structs.ACLTokenUpsertRequest, reply *st
 	token.SetHash(true)
 
 	req := &structs.ACLTokenBatchUpsertRequest{
-		Tokens:      structs.ACLTokens{token},
-		AllowCreate: true,
+		Tokens: structs.ACLTokens{token},
+		CAS:    false,
 	}
 
 	resp, err := a.srv.raftApply(structs.ACLTokenUpsertRequestType, req)

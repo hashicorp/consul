@@ -262,8 +262,8 @@ func (s *Server) updateLocalACLTokens(tokens structs.ACLTokens, ctx context.Cont
 		}
 
 		req := structs.ACLTokenBatchUpsertRequest{
-			Tokens:      tokens[batchStart:batchEnd],
-			AllowCreate: true,
+			Tokens: tokens[batchStart:batchEnd],
+			CAS:    false,
 		}
 
 		resp, err := s.raftApply(structs.ACLTokenUpsertRequestType, &req)

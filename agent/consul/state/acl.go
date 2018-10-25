@@ -281,7 +281,7 @@ func (s *Store) ACLTokenSet(idx uint64, token *structs.ACLToken, legacy bool) er
 	defer tx.Abort()
 
 	// Call set on the ACL
-	if err := s.aclTokenSetTxn(tx, idx, token, true, false, legacy); err != nil {
+	if err := s.aclTokenSetTxn(tx, idx, token, false, false, legacy); err != nil {
 		return err
 	}
 
@@ -293,14 +293,14 @@ func (s *Store) ACLTokenSet(idx uint64, token *structs.ACLToken, legacy bool) er
 	return nil
 }
 
-func (s *Store) ACLTokensUpsert(idx uint64, tokens structs.ACLTokens, allowCreate bool) error {
+func (s *Store) ACLTokensUpsert(idx uint64, tokens structs.ACLTokens, cas bool) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
 	for _, token := range tokens {
 		// this is only used when doing batch insertions for upgrades and replication. Therefore
 		// we take whatever those said.
-		if err := s.aclTokenSetTxn(tx, idx, token, allowCreate, true, false); err != nil {
+		if err := s.aclTokenSetTxn(tx, idx, token, cas, true, false); err != nil {
 			return err
 		}
 	}
@@ -315,7 +315,7 @@ func (s *Store) ACLTokensUpsert(idx uint64, tokens structs.ACLTokens, allowCreat
 
 // aclTokenSetTxn is the inner method used to insert an ACL token with the
 // proper indexes into the state store.
-func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToken, allowCreate, allowMissingPolicyIDs, legacy bool) error {
+func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToken, cas, allowMissingPolicyIDs, legacy bool) error {
 	// Check that the ID is set
 	if token.SecretID == "" {
 		return ErrMissingACLTokenSecret
@@ -332,12 +332,28 @@ func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToke
 		return fmt.Errorf("failed token lookup: %s", err)
 	}
 
-	if existing == nil && !allowCreate {
-		return nil
+	var original *structs.ACLToken
+
+	if existing != nil {
+		original = existing.(*structs.ACLToken)
 	}
 
-	if legacy && existing != nil {
-		original := existing.(*structs.ACLToken)
+	if cas {
+		// set-if-unset case
+		if token.ModifyIndex == 0 && original != nil {
+			return nil
+		}
+		// token already deleted
+		if token.ModifyIndex != 0 && original == nil {
+			return nil
+		}
+		// check for other modifications
+		if token.ModifyIndex != 0 && token.ModifyIndex != original.ModifyIndex {
+			return nil
+		}
+	}
+
+	if legacy && original != nil {
 		if len(original.Policies) > 0 || original.Type == "" {
 			return fmt.Errorf("failed inserting acl token: cannot use legacy endpoint to modify a non-legacy token")
 		}

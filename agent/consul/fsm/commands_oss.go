@@ -359,7 +359,7 @@ func (c *FSM) applyACLTokenUpsertOperation(buf []byte, index uint64) interface{}
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "acl", "token"}, time.Now(),
 		[]metrics.Label{{Name: "op", Value: "upsert"}})
 
-	return c.state.ACLTokensUpsert(index, req.Tokens, req.AllowCreate)
+	return c.state.ACLTokensUpsert(index, req.Tokens, req.CAS)
 }
 
 func (c *FSM) applyACLTokenDeleteOperation(buf []byte, index uint64) interface{} {
