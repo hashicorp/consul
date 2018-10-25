@@ -63,7 +63,8 @@ func tokensTableSchema() *memdb.TableSchema {
 		Name: "acl-tokens",
 		Indexes: map[string]*memdb.IndexSchema{
 			"accessor": &memdb.IndexSchema{
-				Name:         "accessor",
+				Name: "accessor",
+				// DEPRECATED (ACL-Legacy-Compat) - we should not AllowMissing here once legacy compat is removed
 				AllowMissing: true,
 				Unique:       true,
 				Indexer: &memdb.UUIDFieldIndex{
@@ -337,7 +338,7 @@ func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToke
 
 	if legacy && existing != nil {
 		original := existing.(*structs.ACLToken)
-		if len(original.Policies) > 0 {
+		if len(original.Policies) > 0 || original.Type == "" {
 			return fmt.Errorf("failed inserting acl token: cannot use legacy endpoint to modify a non-legacy token")
 		}
 

@@ -25,7 +25,33 @@ func setupGlobalManagement(t *testing.T, s *Store) {
 	require.NoError(t, s.ACLPolicySet(1, &policy))
 }
 
+func setupExtraPolicies(t *testing.T, s *Store) {
+	policies := structs.ACLPolicies{
+		&structs.ACLPolicy{
+			ID:          "a0625e95-9b3e-42de-a8d6-ceef5b6f3286",
+			Name:        "node-read",
+			Description: "Allows reading all node information",
+			Rules:       `node_prefix "" { policy = "read" }`,
+			Syntax:      acl.SyntaxCurrent,
+		},
+	}
+
+	for _, policy := range policies {
+		policy.SetHash(true)
+	}
+
+	require.NoError(t, s.ACLPoliciesUpsert(2, policies))
+}
+
+func testACLTokensStateStore(t *testing.T) *Store {
+	s := testStateStore(t)
+	setupGlobalManagement(t, s)
+	setupExtraPolicies(t, s)
+	return s
+}
+
 func TestStateStore_ACLBootstrap(t *testing.T) {
+	t.Parallel()
 	token1 := &structs.ACLToken{
 		AccessorID:  "30fca056-9fbb-4455-b94a-bf0e2bc575d6",
 		SecretID:    "cbe1c6fd-d865-4034-9d6d-64fef7fb46a9",
@@ -102,6 +128,241 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 	_, tokens, err = s.ACLTokenList(nil, true, true, "")
 	require.NoError(t, err)
 	require.Len(t, tokens, 2)
+}
+
+func TestStateStore_ACLToken_SetGet_Legacy(t *testing.T) {
+	t.Parallel()
+	t.Run("Legacy - Existing With Policies", func(t *testing.T) {
+		t.Parallel()
+		s := testACLTokensStateStore(t)
+
+		token := &structs.ACLToken{
+			AccessorID: "c8d0378c-566a-4535-8fc9-c883a8cc9849",
+			SecretID:   "6d48ce91-2558-4098-bdab-8737e4e57d5f",
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID: "a0625e95-9b3e-42de-a8d6-ceef5b6f3286",
+				},
+			},
+		}
+
+		require.NoError(t, s.ACLTokenSet(2, token, false))
+
+		// legacy flag is set so it should disallow setting this token
+		err := s.ACLTokenSet(3, token, true)
+		require.Error(t, err)
+	})
+
+	t.Run("Legacy - Empty Type", func(t *testing.T) {
+		t.Parallel()
+		s := testACLTokensStateStore(t)
+		token := &structs.ACLToken{
+			AccessorID: "271cd056-0038-4fd3-90e5-f97f50fb3ac8",
+			SecretID:   "c0056225-5785-43b3-9b77-3954f06d6aee",
+		}
+
+		require.NoError(t, s.ACLTokenSet(2, token, false))
+
+		// legacy flag is set so it should disallow setting this token
+		err := s.ACLTokenSet(3, token, true)
+		require.Error(t, err)
+	})
+
+	t.Run("Legacy - New", func(t *testing.T) {
+		t.Parallel()
+		s := testACLTokensStateStore(t)
+		token := &structs.ACLToken{
+			SecretID: "2989e271-6169-4f34-8fec-4618d70008fb",
+			Type:     structs.ACLTokenTypeClient,
+			Rules:    `service "" { policy = "read" }`,
+		}
+
+		require.NoError(t, s.ACLTokenSet(2, token, true))
+
+		idx, rtoken, err := s.ACLTokenGetBySecret(nil, token.SecretID)
+		require.NoError(t, err)
+		require.Equal(t, uint64(2), idx)
+		require.NotNil(t, rtoken)
+		require.Equal(t, "", rtoken.AccessorID)
+		require.Equal(t, "2989e271-6169-4f34-8fec-4618d70008fb", rtoken.SecretID)
+		require.Equal(t, "", rtoken.Description)
+		require.Len(t, rtoken.Policies, 0)
+		require.Equal(t, structs.ACLTokenTypeClient, rtoken.Type)
+		require.Equal(t, uint64(2), rtoken.CreateIndex)
+		require.Equal(t, uint64(2), rtoken.ModifyIndex)
+	})
+
+	t.Run("Legacy - Update", func(t *testing.T) {
+		t.Parallel()
+		s := testACLTokensStateStore(t)
+		original := &structs.ACLToken{
+			SecretID: "2989e271-6169-4f34-8fec-4618d70008fb",
+			Type:     structs.ACLTokenTypeClient,
+			Rules:    `service "" { policy = "read" }`,
+		}
+
+		require.NoError(t, s.ACLTokenSet(2, original, true))
+
+		updatedRules := `service "" { policy = "read" } service "foo" { policy = "deny"}`
+		update := &structs.ACLToken{
+			SecretID: "2989e271-6169-4f34-8fec-4618d70008fb",
+			Type:     structs.ACLTokenTypeClient,
+			Rules:    updatedRules,
+		}
+
+		require.NoError(t, s.ACLTokenSet(3, update, true))
+
+		idx, rtoken, err := s.ACLTokenGetBySecret(nil, original.SecretID)
+		require.NoError(t, err)
+		require.Equal(t, uint64(3), idx)
+		require.NotNil(t, rtoken)
+		require.Equal(t, "", rtoken.AccessorID)
+		require.Equal(t, "2989e271-6169-4f34-8fec-4618d70008fb", rtoken.SecretID)
+		require.Equal(t, "", rtoken.Description)
+		require.Len(t, rtoken.Policies, 0)
+		require.Equal(t, structs.ACLTokenTypeClient, rtoken.Type)
+		require.Equal(t, updatedRules, rtoken.Rules)
+		require.Equal(t, uint64(2), rtoken.CreateIndex)
+		require.Equal(t, uint64(3), rtoken.ModifyIndex)
+	})
+}
+
+func TestStateStore_ACLToken_SetGet(t *testing.T) {
+	t.Parallel()
+	t.Run("Missing Secret", func(t *testing.T) {
+		t.Parallel()
+		s := testACLTokensStateStore(t)
+		token := &structs.ACLToken{
+			AccessorID: "39171632-6f34-4411-827f-9416403687f4",
+		}
+
+		err := s.ACLTokenSet(2, token, false)
+		require.Error(t, err)
+		require.Equal(t, ErrMissingACLTokenSecret, err)
+	})
+
+	t.Run("Missing Accessor", func(t *testing.T) {
+		t.Parallel()
+		s := testACLTokensStateStore(t)
+		token := &structs.ACLToken{
+			SecretID: "39171632-6f34-4411-827f-9416403687f4",
+		}
+
+		err := s.ACLTokenSet(2, token, false)
+		require.Error(t, err)
+		require.Equal(t, ErrMissingACLTokenAccessor, err)
+	})
+
+	t.Run("Missing Policy ID", func(t *testing.T) {
+		t.Parallel()
+		s := testACLTokensStateStore(t)
+		token := &structs.ACLToken{
+			AccessorID: "daf37c07-d04d-4fd5-9678-a8206a57d61a",
+			SecretID:   "39171632-6f34-4411-827f-9416403687f4",
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					Name: "no-id",
+				},
+			},
+		}
+
+		err := s.ACLTokenSet(2, token, false)
+		require.Error(t, err)
+	})
+
+	t.Run("Unresolvable Policy ID", func(t *testing.T) {
+		t.Parallel()
+		s := testACLTokensStateStore(t)
+		token := &structs.ACLToken{
+			AccessorID: "daf37c07-d04d-4fd5-9678-a8206a57d61a",
+			SecretID:   "39171632-6f34-4411-827f-9416403687f4",
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID: "4f20e379-b496-4b99-9599-19a197126490",
+				},
+			},
+		}
+
+		err := s.ACLTokenSet(2, token, false)
+		require.Error(t, err)
+	})
+
+	t.Run("New", func(t *testing.T) {
+		t.Parallel()
+		s := testACLTokensStateStore(t)
+		token := &structs.ACLToken{
+			AccessorID: "daf37c07-d04d-4fd5-9678-a8206a57d61a",
+			SecretID:   "39171632-6f34-4411-827f-9416403687f4",
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID: "a0625e95-9b3e-42de-a8d6-ceef5b6f3286",
+				},
+			},
+		}
+
+		require.NoError(t, s.ACLTokenSet(2, token, false))
+
+		idx, rtoken, err := s.ACLTokenGetByAccessor(nil, "daf37c07-d04d-4fd5-9678-a8206a57d61a")
+		require.NoError(t, err)
+		require.Equal(t, uint64(2), idx)
+		// pointer equality
+		require.True(t, rtoken == token)
+		require.Equal(t, uint64(2), rtoken.CreateIndex)
+		require.Equal(t, uint64(2), rtoken.ModifyIndex)
+		require.Len(t, rtoken.Policies, 1)
+		require.Equal(t, "node-read", rtoken.Policies[0].Name)
+	})
+
+	t.Run("Update", func(t *testing.T) {
+		t.Parallel()
+		s := testACLTokensStateStore(t)
+		token := &structs.ACLToken{
+			AccessorID: "daf37c07-d04d-4fd5-9678-a8206a57d61a",
+			SecretID:   "39171632-6f34-4411-827f-9416403687f4",
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID: "a0625e95-9b3e-42de-a8d6-ceef5b6f3286",
+				},
+			},
+		}
+
+		require.NoError(t, s.ACLTokenSet(2, token, false))
+
+		updated := &structs.ACLToken{
+			AccessorID: "daf37c07-d04d-4fd5-9678-a8206a57d61a",
+			SecretID:   "39171632-6f34-4411-827f-9416403687f4",
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID: structs.ACLPolicyGlobalManagementID,
+				},
+			},
+		}
+
+		require.NoError(t, s.ACLTokenSet(3, updated, false))
+
+		idx, rtoken, err := s.ACLTokenGetByAccessor(nil, "daf37c07-d04d-4fd5-9678-a8206a57d61a")
+		require.NoError(t, err)
+		require.Equal(t, uint64(3), idx)
+		// pointer equality
+		require.True(t, rtoken == updated)
+		require.Equal(t, uint64(2), rtoken.CreateIndex)
+		require.Equal(t, uint64(3), rtoken.ModifyIndex)
+		require.Len(t, rtoken.Policies, 1)
+		require.Equal(t, structs.ACLPolicyGlobalManagementID, rtoken.Policies[0].ID)
+		require.Equal(t, "global-management", rtoken.Policies[0].Name)
+	})
+}
+
+func TestStateStore_ACLTokens_UpsertListBatchRead(t *testing.T) {
+
+}
+
+func TestStateStore_ACLTokens_ListUpgradeable(t *testing.T) {
+
+}
+
+func TestStateStore_ACLTokens_Delete(t *testing.T) {
+
 }
 
 /*
