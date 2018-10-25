@@ -1071,6 +1071,17 @@ func (s *Server) Stats() map[string]map[string]string {
 		"serf_lan": s.serfLAN.Stats(),
 		"runtime":  runtimeStats(),
 	}
+
+	if s.ACLsEnabled() {
+		if s.UseLegacyACLs() {
+			stats["consul"]["acl"] = "legacy"
+		} else {
+			stats["consul"]["acl"] = "enabled"
+		}
+	} else {
+		stats["consul"]["acl"] = "disabled"
+	}
+
 	if s.serfWAN != nil {
 		stats["serf_wan"] = s.serfWAN.Stats()
 	}

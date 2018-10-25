@@ -384,6 +384,16 @@ func (c *Client) Stats() map[string]map[string]string {
 		"runtime":  runtimeStats(),
 	}
 
+	if c.ACLsEnabled() {
+		if c.UseLegacyACLs() {
+			stats["consul"]["acl"] = "legacy"
+		} else {
+			stats["consul"]["acl"] = "enabled"
+		}
+	} else {
+		stats["consul"]["acl"] = "disabled"
+	}
+
 	for outerKey, outerValue := range c.enterpriseStats() {
 		if _, ok := stats[outerKey]; ok {
 			for innerKey, innerValue := range outerValue {
