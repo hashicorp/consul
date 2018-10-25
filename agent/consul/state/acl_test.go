@@ -542,11 +542,292 @@ func TestStateStore_ACLTokens_UpsertListBatchRead(t *testing.T) {
 }
 
 func TestStateStore_ACLTokens_ListUpgradeable(t *testing.T) {
+	t.Parallel()
+	s := testACLTokensStateStore(t)
 
+	require.NoError(t, s.ACLTokenSet(2, &structs.ACLToken{
+		SecretID: "34ec8eb3-095d-417a-a937-b439af7a8e8b",
+		Type:     structs.ACLTokenTypeManagement,
+	}, true))
+
+	require.NoError(t, s.ACLTokenSet(3, &structs.ACLToken{
+		SecretID: "8de2dd39-134d-4cb1-950b-b7ab96ea20ba",
+		Type:     structs.ACLTokenTypeManagement,
+	}, true))
+
+	require.NoError(t, s.ACLTokenSet(4, &structs.ACLToken{
+		SecretID: "548bdb8e-c0d6-477b-bcc4-67fb836e9e61",
+		Type:     structs.ACLTokenTypeManagement,
+	}, true))
+
+	require.NoError(t, s.ACLTokenSet(5, &structs.ACLToken{
+		SecretID: "3ee33676-d9b8-4144-bf0b-92618cff438b",
+		Type:     structs.ACLTokenTypeManagement,
+	}, true))
+
+	require.NoError(t, s.ACLTokenSet(6, &structs.ACLToken{
+		SecretID: "fa9d658a-6e26-42ab-a5f0-1ea05c893dee",
+		Type:     structs.ACLTokenTypeManagement,
+	}, true))
+
+	tokens, _, err := s.ACLTokenListUpgradeable(3)
+	require.NoError(t, err)
+	require.Len(t, tokens, 3)
+
+	tokens, _, err = s.ACLTokenListUpgradeable(10)
+	require.NoError(t, err)
+	require.Len(t, tokens, 5)
+
+	updates := structs.ACLTokens{
+		&structs.ACLToken{
+			AccessorID: "f1093997-b6c7-496d-bfb8-6b1b1895641b",
+			SecretID:   "34ec8eb3-095d-417a-a937-b439af7a8e8b",
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID: structs.ACLPolicyGlobalManagementID,
+				},
+			},
+		},
+		&structs.ACLToken{
+			AccessorID: "54866514-3cf2-4fec-8a8a-710583831834",
+			SecretID:   "8de2dd39-134d-4cb1-950b-b7ab96ea20ba",
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID: structs.ACLPolicyGlobalManagementID,
+				},
+			},
+		},
+		&structs.ACLToken{
+			AccessorID: "47eea4da-bda1-48a6-901c-3e36d2d9262f",
+			SecretID:   "548bdb8e-c0d6-477b-bcc4-67fb836e9e61",
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID: structs.ACLPolicyGlobalManagementID,
+				},
+			},
+		},
+		&structs.ACLToken{
+			AccessorID: "af1dffe5-8ac2-4282-9336-aeed9f7d951a",
+			SecretID:   "3ee33676-d9b8-4144-bf0b-92618cff438b",
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID: structs.ACLPolicyGlobalManagementID,
+				},
+			},
+		},
+		&structs.ACLToken{
+			AccessorID: "511df589-3316-4784-b503-6e25ead4d4e1",
+			SecretID:   "fa9d658a-6e26-42ab-a5f0-1ea05c893dee",
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID: structs.ACLPolicyGlobalManagementID,
+				},
+			},
+		},
+	}
+
+	require.NoError(t, s.ACLTokensUpsert(7, updates, false))
+
+	tokens, _, err = s.ACLTokenListUpgradeable(10)
+	require.NoError(t, err)
+	require.Len(t, tokens, 0)
 }
 
-func TestStateStore_ACLTokens_Delete(t *testing.T) {
+func TestStateStore_ACLToken_List(t *testing.T) {
+	t.Parallel()
+	s := testACLTokensStateStore(t)
 
+	tokens := structs.ACLTokens{
+		// the local token
+		&structs.ACLToken{
+			AccessorID: "f1093997-b6c7-496d-bfb8-6b1b1895641b",
+			SecretID:   "34ec8eb3-095d-417a-a937-b439af7a8e8b",
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID: structs.ACLPolicyGlobalManagementID,
+				},
+			},
+			Local: true,
+		},
+		// the global token
+		&structs.ACLToken{
+			AccessorID: "54866514-3cf2-4fec-8a8a-710583831834",
+			SecretID:   "8de2dd39-134d-4cb1-950b-b7ab96ea20ba",
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID: structs.ACLPolicyGlobalManagementID,
+				},
+			},
+		},
+		// the policy specific token
+		&structs.ACLToken{
+			AccessorID: "47eea4da-bda1-48a6-901c-3e36d2d9262f",
+			SecretID:   "548bdb8e-c0d6-477b-bcc4-67fb836e9e61",
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID: "a0625e95-9b3e-42de-a8d6-ceef5b6f3286",
+				},
+			},
+		},
+		// the policy specific token and local
+		&structs.ACLToken{
+			AccessorID: "4915fc9d-3726-4171-b588-6c271f45eecd",
+			SecretID:   "f6998577-fd9b-4e6c-b202-cc3820513d32",
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID: "a0625e95-9b3e-42de-a8d6-ceef5b6f3286",
+				},
+			},
+			Local: true,
+		},
+	}
+
+	require.NoError(t, s.ACLTokensUpsert(2, tokens, false))
+
+	type testCase struct {
+		name      string
+		local     bool
+		global    bool
+		policy    string
+		accessors []string
+	}
+
+	cases := []testCase{
+		{
+			name:   "Global",
+			local:  false,
+			global: true,
+			policy: "",
+			accessors: []string{
+				"47eea4da-bda1-48a6-901c-3e36d2d9262f",
+				"54866514-3cf2-4fec-8a8a-710583831834",
+			},
+		},
+		{
+			name:   "Local",
+			local:  true,
+			global: false,
+			policy: "",
+			accessors: []string{
+				"4915fc9d-3726-4171-b588-6c271f45eecd",
+				"f1093997-b6c7-496d-bfb8-6b1b1895641b",
+			},
+		},
+		{
+			name:   "Policy",
+			local:  true,
+			global: true,
+			policy: "a0625e95-9b3e-42de-a8d6-ceef5b6f3286",
+			accessors: []string{
+				"47eea4da-bda1-48a6-901c-3e36d2d9262f",
+				"4915fc9d-3726-4171-b588-6c271f45eecd",
+			},
+		},
+		{
+			name:   "Policy - Local",
+			local:  true,
+			global: false,
+			policy: "a0625e95-9b3e-42de-a8d6-ceef5b6f3286",
+			accessors: []string{
+				"4915fc9d-3726-4171-b588-6c271f45eecd",
+			},
+		},
+		{
+			name:   "Policy - Global",
+			local:  false,
+			global: true,
+			policy: "a0625e95-9b3e-42de-a8d6-ceef5b6f3286",
+			accessors: []string{
+				"47eea4da-bda1-48a6-901c-3e36d2d9262f",
+				"4915fc9d-3726-4171-b588-6c271f45eecd",
+			},
+		},
+		{
+			name:   "All",
+			local:  true,
+			global: true,
+			policy: "",
+			accessors: []string{
+				"47eea4da-bda1-48a6-901c-3e36d2d9262f",
+				"4915fc9d-3726-4171-b588-6c271f45eecd",
+				"54866514-3cf2-4fec-8a8a-710583831834",
+				"f1093997-b6c7-496d-bfb8-6b1b1895641b",
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			_, tokens, err := s.ACLTokenList(nil, tc.local, tc.global, tc.policy)
+			require.NoError(t, err)
+			require.Len(t, tokens, len(tc.accessors))
+			tokens.Sort()
+			for i, token := range tokens {
+				require.Equal(t, tc.accessors[i], token.AccessorID)
+			}
+		})
+	}
+}
+
+func TestStateStore_ACLToken_Delete(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Accessor", func(t *testing.T) {
+		t.Parallel()
+		s := testACLTokensStateStore(t)
+
+		token := &structs.ACLToken{
+			AccessorID: "f1093997-b6c7-496d-bfb8-6b1b1895641b",
+			SecretID:   "34ec8eb3-095d-417a-a937-b439af7a8e8b",
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID: structs.ACLPolicyGlobalManagementID,
+				},
+			},
+			Local: true,
+		}
+
+		require.NoError(t, s.ACLTokenSet(2, token, false))
+
+		_, rtoken, err := s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b")
+		require.NoError(t, err)
+		require.NotNil(t, rtoken)
+
+		require.NoError(t, s.ACLTokenDeleteAccessor(3, "f1093997-b6c7-496d-bfb8-6b1b1895641b"))
+
+		_, rtoken, err = s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b")
+		require.NoError(t, err)
+		require.Nil(t, rtoken)
+	})
+
+	t.Run("Accessor", func(t *testing.T) {
+		t.Parallel()
+		s := testACLTokensStateStore(t)
+
+		token := &structs.ACLToken{
+			AccessorID: "f1093997-b6c7-496d-bfb8-6b1b1895641b",
+			SecretID:   "34ec8eb3-095d-417a-a937-b439af7a8e8b",
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID: structs.ACLPolicyGlobalManagementID,
+				},
+			},
+			Local: true,
+		}
+
+		require.NoError(t, s.ACLTokenSet(2, token, false))
+
+		_, rtoken, err := s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b")
+		require.NoError(t, err)
+		require.NotNil(t, rtoken)
+
+		require.NoError(t, s.ACLTokenDeleteSecret(3, "34ec8eb3-095d-417a-a937-b439af7a8e8b"))
+
+		_, rtoken, err = s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b")
+		require.NoError(t, err)
+		require.Nil(t, rtoken)
+	})
 }
 
 /*
