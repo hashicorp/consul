@@ -53,7 +53,7 @@ $ helm install --dry-run ./
 ~> **Warning:** By default, the chart will install _everything_: a
 Consul server cluster, client agents on all nodes, feature components, etc.
 This provides a nice out-of-box experience for new users, but may not be
-appropriate for a production setup. Considering setting the `global.enabled`
+appropriate for a production setup. Consider setting the `global.enabled`
 value to `false` and opt-in to the various components.
 
 ## Configuration (Values)
@@ -94,7 +94,7 @@ and consider if they're appropriate for your deployment.
 
   - <a name="v-global-datacenter" href="#v-global-datacenter">`datacenter`</a> (`string: "dc1"`) -
   The name of the datacenter that the agent cluster should register as.
-  This must not be changed once the cluster is bootstrapped and running,
+  This may not be changed once the cluster is bootstrapped and running,
   since Consul doesn't yet support an automatic way to change this value.
 
 
@@ -153,8 +153,7 @@ and consider if they're appropriate for your deployment.
   A list of extra volumes to mount for server agents. This is useful for bringing
   in extra data that can be referenced by other configurations at a well known
   path, such as TLS certificates or Gossip encryption keys.
-  The value of this should be a list of objects. Each object has the following
-  supports the following keys:
+  The value of this should be a list of objects. Each object supports the following keys:
 
       * <a name="v-server-extravolumes-type" href="#v-server-extravolumes-type">`type`</a> (`string: required`) -
       Type of the volume, must be one of "configMap" or "secret". Case sensitive.
@@ -213,8 +212,7 @@ and consider if they're appropriate for your deployment.
   A list of extra volumes to mount for client agents. This is useful for bringing
   in extra data that can be referenced by other configurations at a well known
   path, such as TLS certificates or Gossip encryption keys.
-  The value of this should be a list of objects. Each object has the following
-  supports the following keys:
+  The value of this should be a list of objects. Each object supports the following keys:
 
       * <a name="v-client-extravolumes-type" href="#v-client-extravolumes-type">`type`</a> (`string: required`) -
       Type of the volume, must be one of "configMap" or "secret". Case sensitive.
@@ -306,6 +304,17 @@ and consider if they're appropriate for your deployment.
   Connect injector process to run. This will enable the injector but will
   require pods to opt-in with an annotation by default.
 
+  - <a name="v-connectinject-image" href="#v-connectinject-image">`image`</a> (`string: global.imageK8S`) -
+  The name of the Docker image (including any tag) for the
+  [consul-k8s](https://github.com/hashicorp/consul-k8s) binary.
+
+  - <a name="v-connectinject-default" href="#v-connectinject-default">`default`</a> (`boolean: false`) -
+  If true, the injector will inject the Connect sidecar into all pods by
+  default. Otherwise, pods must specify the
+  [injection annotation](/docs/platform/k8s/connect.html#consul-hashicorp-com-connect-inject)
+  to opt-in to Connect injection. If this is true, pods can use the same
+  annotation to explicitly opt-out of injection.
+
   - <a name="v-connectinject-imageConsul" href="#v-connectinject-imageConsul">`imageConsul`</a> (`string: global.image`) -
   The name of the Docker image (including any tag) for Consul. This is used
   for proxy service registration, Envoy configuration, etc.
@@ -316,13 +325,6 @@ and consider if they're appropriate for your deployment.
   version must be compatible with the Consul version used by the injector.
   This defaults to letting the injector choose the Envoy image, which is
   usually `envoy/envoy-alpine`.
-
-  - <a name="v-connectinject-default" href="#v-connectinject-default">`default`</a> (`boolean: false`) -
-  If true, the injector will inject the Connect sidecar into all pods by
-  default. Otherwise, pods must specify the
-  [injection annotation](/docs/platform/k8s/connect.html#consul-hashicorp-com-connect-inject)
-  to opt-in to Connect injection. If this is true, pods can use the same
-  annotation to explicitly opt-out of injection.
 
   - <a name="v-connectinject-namespaceselector" href="#v-connectinject-namespaceselector">`namespaceSelector`</a> (`string: ""`) -
   A [selector](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/)
