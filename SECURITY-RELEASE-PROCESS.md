@@ -16,7 +16,7 @@ The initial Product Security Team will consist of the set of maintainers that vo
 ### mailing lists
 
 * security@coredns.io : for any security concerns. Received by Product Security Team members, and used by this Team to discuss security issues and fixes.
-* coredns-distributors-announce@googlegroup.com: for early private information on Security patch releases. see below how CoreDNS distributors can apply for this list.
+* coredns-distributors-announce@lists.cncf.io: for early private information on Security patch releases. see below how CoreDNS distributors can apply for this list.
 
 
 ## Disclosures
@@ -106,7 +106,7 @@ They should know when to block time to apply patches, understand exact mitigatio
 - The Fix Lead will make a determination with the help of the Fix Team if an issue is critical enough to require early disclosure to distributors.
 Generally this Private Distributor Disclosure process should be reserved for remotely exploitable or privilege escalation issues. 
 Otherwise, this process can be skipped.
-- The Fix Lead will email the patches to coredns-distributors-announce@googlegroup.com so distributors can prepare their own release to be available to users on the day of the issue's announcement.
+- The Fix Lead will email the patches to coredns-distributors-announce@lists.cncf.io so distributors can prepare their own release to be available to users on the day of the issue's announcement.
 Distributors should read about the [Private Distributor List](#private-distributor-list) to find out the requirements for being added to this list.
 - **What if a distributor breaks embargo?** The PST will assess the damage and may make the call to release earlier or continue with the plan.
 When in doubt push forward and go public ASAP.
@@ -131,7 +131,7 @@ individuals to find out about security issues.
 
 ### Embargo Policy
 
-The information members receive on coredns-distributors-announce@googlegroup.com must not be
+The information members receive on coredns-distributors-announce@lists.cncf.io must not be
 made public, shared, nor even hinted at anywhere beyond the need-to-know within
 your specific team except with the list's explicit approval. 
 This holds true until the public disclosure date/time that was agreed upon by the list.
@@ -168,7 +168,7 @@ could be in the form of the following:
 
 ### Membership Criteria
 
-To be eligible for the coredns-distributors-announce@googlegroup.com mailing list, your
+To be eligible for the coredns-distributors-announce@lists.cncf.io mailing list, your
 distribution should:
 
 1. Be an active distributor of CoreDNS component.
