@@ -4,9 +4,9 @@ import { getOwner } from '@ember/application';
 import Controller from '@ember/controller';
 import Mixin from 'consul-ui/mixins/with-searching';
 
-moduleFor('mixin:with-blocking-actions', 'Unit | Mixin | with searching', {
+moduleFor('mixin:with-searching', 'Unit | Mixin | with searching', {
   // Specify the other units that are required for this test.
-  needs: ['service:search'],
+  needs: ['service:search', 'service:dom'],
   subject: function() {
     const MixedIn = Controller.extend(Mixin);
     this.register('test-container:with-searching-object', MixedIn);
