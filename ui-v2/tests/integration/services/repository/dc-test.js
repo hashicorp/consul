@@ -2,18 +2,9 @@ import { moduleFor, test } from 'ember-qunit';
 import { skip } from 'qunit';
 import repo from 'consul-ui/tests/helpers/repo';
 const NAME = 'dc';
-moduleFor(`service:${NAME}`, `Integration | Service | ${NAME}s`, {
+moduleFor(`service:repository/${NAME}`, `Integration | Service | ${NAME}`, {
   // Specify the other units that are required for this test.
-  needs: [
-    'service:settings',
-    'service:store',
-    `adapter:${NAME}`,
-    `serializer:${NAME}`,
-    `model:${NAME}`,
-    // relationships
-    'model:service',
-    'model:node',
-  ],
+  integration: true,
 });
 skip("findBySlug (doesn't interact with the API) but still needs an int test");
 test('findAll returns the correct data for list endpoint', function(assert) {

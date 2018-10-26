@@ -1,8 +1,8 @@
 import { moduleFor, test } from 'ember-qunit';
 
-moduleFor('service:nodes', 'Unit | Service | nodes', {
+moduleFor('service:repository/intention', 'Unit | Service | intention', {
   // Specify the other units that are required for this test.
-  needs: ['service:coordinates'],
+  // needs: ['service:foo']
 });
 
 // Replace this with your real tests.

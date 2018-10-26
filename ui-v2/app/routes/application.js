@@ -11,7 +11,7 @@ export default Route.extend({
   init: function() {
     this._super(...arguments);
   },
-  repo: service('dc'),
+  repo: service('repository/dc'),
   actions: {
     loading: function(transition, originRoute) {
       let dc = null;

@@ -1,7 +1,7 @@
 import { moduleFor, test } from 'ember-qunit';
 import repo from 'consul-ui/tests/helpers/repo';
-const NAME = 'node';
-moduleFor(`service:${NAME}s`, `Integration | Service | ${NAME}s`, {
+const NAME = 'intention';
+moduleFor(`service:repository/${NAME}`, `Integration | Service | ${NAME}`, {
   // Specify the other units that are required for this test.
   needs: [
     'service:settings',
@@ -9,23 +9,19 @@ moduleFor(`service:${NAME}s`, `Integration | Service | ${NAME}s`, {
     `adapter:${NAME}`,
     `serializer:${NAME}`,
     `model:${NAME}`,
-    'service:coordinates',
-    'adapter:coordinate',
-    'serializer:coordinate',
-    'model:coordinate',
   ],
 });
 
 const dc = 'dc-1';
 const id = 'token-name';
-test('findByDatacenter returns the correct data for list endpoint', function(assert) {
+test('findAllByDatacenter returns the correct data for list endpoint', function(assert) {
   return repo(
-    'Node',
+    'Intention',
     'findAllByDatacenter',
     this.subject(),
     function retrieveStub(stub) {
-      return stub(`/v1/internal/ui/nodes?dc=${dc}`, {
-        CONSUL_NODE_COUNT: '100',
+      return stub(`/v1/connect/intentions?dc=${dc}`, {
+        CONSUL_INTENTION_COUNT: '100',
       });
     },
     function performTest(service) {
@@ -37,6 +33,8 @@ test('findByDatacenter returns the correct data for list endpoint', function(ass
         expected(function(payload) {
           return payload.map(item =>
             Object.assign({}, item, {
+              CreatedAt: new Date(item.CreatedAt),
+              UpdatedAt: new Date(item.UpdatedAt),
               Datacenter: dc,
               uid: `["${dc}","${item.ID}"]`,
             })
@@ -48,11 +46,11 @@ test('findByDatacenter returns the correct data for list endpoint', function(ass
 });
 test('findBySlug returns the correct data for item endpoint', function(assert) {
   return repo(
-    'Node',
+    'Intention',
     'findBySlug',
     this.subject(),
     function(stub) {
-      return stub(`/v1/internal/ui/node/${id}?dc=${dc}`);
+      return stub(`/v1/connect/intentions/${id}?dc=${dc}`);
     },
     function(service) {
       return service.findBySlug(id, dc);
@@ -63,6 +61,8 @@ test('findBySlug returns the correct data for item endpoint', function(assert) {
         expected(function(payload) {
           const item = payload;
           return Object.assign({}, item, {
+            CreatedAt: new Date(item.CreatedAt),
+            UpdatedAt: new Date(item.UpdatedAt),
             Datacenter: dc,
             uid: `["${dc}","${item.ID}"]`,
           });

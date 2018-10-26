@@ -7,7 +7,7 @@ import WithAclActions from 'consul-ui/mixins/acl/with-actions';
 
 export default Route.extend(WithAclActions, {
   templateName: 'dc/acls/edit',
-  repo: service('acls'),
+  repo: service('repository/acl'),
   beforeModel: function() {
     get(this, 'repo').invalidate();
   },

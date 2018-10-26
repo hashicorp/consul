@@ -12,7 +12,7 @@ export default Route.extend(WithKvActions, {
       replace: true,
     },
   },
-  repo: service('kv'),
+  repo: service('repository/kv'),
   beforeModel: function() {
     // we are index or folder, so if the key doesn't have a trailing slash
     // add one to force a fake findBySlug

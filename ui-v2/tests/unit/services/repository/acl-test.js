@@ -1,8 +1,8 @@
 import { moduleFor, test } from 'ember-qunit';
 
-moduleFor('service:dc', 'Unit | Service | dc', {
+moduleFor('service:acl', 'Unit | Service | acl', {
   // Specify the other units that are required for this test.
-  needs: ['service:settings'],
+  // needs: ['service:foo']
 });
 
 // Replace this with your real tests.

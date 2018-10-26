@@ -1,10 +1,21 @@
-import Service, { inject as service } from '@ember/service';
+import RepositoryService from 'consul-ui/services/repository';
+import { inject as service } from '@ember/service';
 import { get } from '@ember/object';
 import Error from '@ember/error';
 
-export default Service.extend({
-  store: service('store'),
+const modelName = 'dc';
+export default RepositoryService.extend({
   settings: service('settings'),
+  getModelName: function() {
+    return modelName;
+  },
+  findAll: function() {
+    return get(this, 'store')
+      .findAll(this.getModelName())
+      .then(function(items) {
+        return items.sortBy('Name');
+      });
+  },
   findBySlug: function(name, items) {
     if (name != null) {
       const item = items.findBy('Name', name);
@@ -33,12 +44,5 @@ export default Service.extend({
         });
       }
     );
-  },
-  findAll: function() {
-    return get(this, 'store')
-      .findAll('dc')
-      .then(function(items) {
-        return items.sortBy('Name');
-      });
   },
 });

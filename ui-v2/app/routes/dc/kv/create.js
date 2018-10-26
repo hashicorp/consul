@@ -6,7 +6,7 @@ import WithKvActions from 'consul-ui/mixins/kv/with-actions';
 
 export default Route.extend(WithKvActions, {
   templateName: 'dc/kv/edit',
-  repo: service('kv'),
+  repo: service('repository/kv'),
   beforeModel: function() {
     get(this, 'repo').invalidate();
   },

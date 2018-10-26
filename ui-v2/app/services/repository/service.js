@@ -1,18 +1,12 @@
-import Service, { inject as service } from '@ember/service';
+import RepositoryService from 'consul-ui/services/repository';
 import { get, set } from '@ember/object';
-
-export default Service.extend({
-  store: service('store'),
-  findAllByDatacenter: function(dc) {
-    return get(this, 'store').query('service', { dc: dc });
+const modelName = 'service';
+export default RepositoryService.extend({
+  getModelName: function() {
+    return modelName;
   },
   findBySlug: function(slug, dc) {
-    return get(this, 'store')
-      .queryRecord('service', {
-        id: slug,
-        dc: dc,
-      })
-      .then(function(item) {
+    return this._super(...arguments).then(function(item) {
         const nodes = get(item, 'Nodes');
         const service = get(nodes, 'firstObject');
         const tags = nodes

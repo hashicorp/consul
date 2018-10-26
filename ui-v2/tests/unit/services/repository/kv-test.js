@@ -1,6 +1,6 @@
 import { moduleFor, test } from 'ember-qunit';
 
-moduleFor('service:intentions', 'Unit | Service | intentions', {
+moduleFor('service:repository/kv', 'Unit | Service | kv', {
   // Specify the other units that are required for this test.
   // needs: ['service:foo']
 });

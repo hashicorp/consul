@@ -1,17 +1,22 @@
-import Service, { inject as service } from '@ember/service';
-import { typeOf } from '@ember/utils';
+import RepositoryService from 'consul-ui/services/repository';
 import { Promise } from 'rsvp';
 import isFolder from 'consul-ui/utils/isFolder';
 import { get, set } from '@ember/object';
 import { PRIMARY_KEY } from 'consul-ui/models/kv';
 
-export default Service.extend({
-  store: service('store'),
+const modelName = 'kv';
+export default RepositoryService.extend({
+  getModelName: function() {
+    return modelName;
+  },
+  getPrimaryKey: function() {
+    return PRIMARY_KEY;
+  },
   // this one gives you the full object so key,values and meta
   findBySlug: function(key, dc) {
     if (isFolder(key)) {
       const id = JSON.stringify([dc, key]);
-      let item = get(this, 'store').peekRecord('kv', id);
+      let item = get(this, 'store').peekRecord(this.getModelName(), id);
       if (!item) {
         item = this.create();
         set(item, 'Key', key);
@@ -19,7 +24,7 @@ export default Service.extend({
       }
       return Promise.resolve(item);
     }
-    return get(this, 'store').queryRecord('kv', {
+    return get(this, 'store').queryRecord(this.getModelName(), {
       id: key,
       dc: dc,
     });
@@ -31,7 +36,7 @@ export default Service.extend({
       key = '';
     }
     return this.get('store')
-      .query('kv', {
+      .query(this.getModelName(), {
         id: key,
         dc: dc,
         separator: '/',
@@ -44,33 +49,12 @@ export default Service.extend({
       .catch(e => {
         if (e.errors && e.errors[0] && e.errors[0].status == '404') {
           const id = JSON.stringify([dc, key]);
-          const record = get(this, 'store').peekRecord('kv', id);
+          const record = get(this, 'store').peekRecord(this.getModelName(), id);
           if (record) {
             record.destroyRecord();
           }
         }
         throw e;
       });
-  },
-  create: function() {
-    return get(this, 'store').createRecord('kv');
-  },
-  persist: function(item) {
-    return item.save();
-  },
-  remove: function(obj) {
-    let item = obj;
-    if (typeof obj.destroyRecord === 'undefined') {
-      item = obj.get('data');
-    }
-    if (typeOf(item) === 'object') {
-      item = get(this, 'store').peekRecord('kv', item[PRIMARY_KEY]);
-    }
-    return item.destroyRecord().then(item => {
-      return get(this, 'store').unloadRecord(item);
-    });
-  },
-  invalidate: function() {
-    return get(this, 'store').unloadAll('kv');
   },
 });
