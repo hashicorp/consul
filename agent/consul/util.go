@@ -284,15 +284,19 @@ func ServersMeetMinimumVersion(members []serf.Member, minVersion *version.Versio
 	return true
 }
 
-func ServersGetACLMode(members []serf.Member, leader string, datacenter string) (mode structs.ACLMode, leaderMode structs.ACLMode) {
+func ServersGetACLMode(members []serf.Member, leader string, datacenter string) (numServers int, mode structs.ACLMode, leaderMode structs.ACLMode) {
+	numServers = 0
 	mode = structs.ACLModeEnabled
-	leaderMode = structs.ACLModeDisabled
+	leaderMode = structs.ACLModeUnknown
 	for _, member := range members {
 		if valid, parts := metadata.IsConsulServer(member); valid {
 
 			if datacenter != "" && parts.Datacenter != datacenter {
 				continue
 			}
+
+			numServers += 1
+
 			if memberAddr := (&net.TCPAddr{IP: member.Addr, Port: parts.Port}).String(); memberAddr == leader {
 				leaderMode = parts.ACLs
 			}

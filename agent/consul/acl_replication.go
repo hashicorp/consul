@@ -354,7 +354,7 @@ func (s *Server) replicateACLPolicies(lastRemoteIndex uint64, ctx context.Contex
 	// replication process is.
 	defer metrics.MeasureSince([]string{"leader", "replication", "acl", "policy", "apply"}, time.Now())
 
-	_, local, err := s.fsm.State().ACLPolicyList(nil, "")
+	_, local, err := s.fsm.State().ACLPolicyList(nil)
 	if err != nil {
 		return 0, false, fmt.Errorf("failed to retrieve local ACL policies: %v", err)
 	}

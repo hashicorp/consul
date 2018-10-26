@@ -279,10 +279,10 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 		cloneReq.ACLToken.Description = args.ACLToken.Description
 	}
 
-	return a.tokenUpsertInternal(&cloneReq, reply, false)
+	return a.tokenSetInternal(&cloneReq, reply, false)
 }
 
-func (a *ACL) TokenUpsert(args *structs.ACLTokenSetRequest, reply *structs.ACLToken) error {
+func (a *ACL) TokenSet(args *structs.ACLTokenSetRequest, reply *structs.ACLToken) error {
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
@@ -294,7 +294,7 @@ func (a *ACL) TokenUpsert(args *structs.ACLTokenSetRequest, reply *structs.ACLTo
 		return fmt.Errorf("Local tokens are disabled")
 	}
 
-	if done, err := a.srv.forward("ACL.TokenUpsert", args, args, reply); done {
+	if done, err := a.srv.forward("ACL.TokenSet", args, args, reply); done {
 		return err
 	}
 
@@ -307,10 +307,10 @@ func (a *ACL) TokenUpsert(args *structs.ACLTokenSetRequest, reply *structs.ACLTo
 		return acl.ErrPermissionDenied
 	}
 
-	return a.tokenUpsertInternal(args, reply, false)
+	return a.tokenSetInternal(args, reply, false)
 }
 
-func (a *ACL) tokenUpsertInternal(args *structs.ACLTokenSetRequest, reply *structs.ACLToken, upgrade bool) error {
+func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.ACLToken, upgrade bool) error {
 	token := &args.ACLToken
 
 	if !a.srv.LocalTokensEnabled() {
@@ -642,7 +642,7 @@ func (a *ACL) PolicyBatchRead(args *structs.ACLPolicyBatchGetRequest, reply *str
 		})
 }
 
-func (a *ACL) PolicyUpsert(args *structs.ACLPolicySetRequest, reply *structs.ACLPolicy) error {
+func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPolicy) error {
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
@@ -651,7 +651,7 @@ func (a *ACL) PolicyUpsert(args *structs.ACLPolicySetRequest, reply *structs.ACL
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
 
-	if done, err := a.srv.forward("ACL.PolicyUpsert", args, args, reply); done {
+	if done, err := a.srv.forward("ACL.PolicySet", args, args, reply); done {
 		return err
 	}
 

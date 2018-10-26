@@ -302,7 +302,7 @@ func (s *HTTPServer) ACLPolicyWrite(resp http.ResponseWriter, req *http.Request,
 	}
 
 	var out structs.ACLPolicy
-	if err := s.agent.RPC("ACL.PolicyUpsert", args, &out); err != nil {
+	if err := s.agent.RPC("ACL.PolicySet", args, &out); err != nil {
 		return nil, err
 	}
 
@@ -361,10 +361,10 @@ func (s *HTTPServer) ACLTokenCRUD(resp http.ResponseWriter, req *http.Request) (
 
 	switch req.Method {
 	case "GET":
-		fn = s.ACLTokenRead
+		fn = s.ACLTokenGet
 
 	case "PUT":
-		fn = s.ACLTokenWrite
+		fn = s.ACLTokenSet
 
 	case "DELETE":
 		fn = s.ACLTokenDelete
@@ -423,10 +423,10 @@ func (s *HTTPServer) ACLTokenCreate(resp http.ResponseWriter, req *http.Request)
 		return nil, nil
 	}
 
-	return s.ACLTokenWrite(resp, req, "")
+	return s.ACLTokenSet(resp, req, "")
 }
 
-func (s *HTTPServer) ACLTokenRead(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
+func (s *HTTPServer) ACLTokenGet(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
 	args := structs.ACLTokenGetRequest{
 		Datacenter:  s.agent.config.Datacenter,
 		TokenID:     tokenID,
@@ -454,7 +454,7 @@ func (s *HTTPServer) ACLTokenRead(resp http.ResponseWriter, req *http.Request, t
 	return out.Token, nil
 }
 
-func (s *HTTPServer) ACLTokenWrite(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
+func (s *HTTPServer) ACLTokenSet(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
 	args := structs.ACLTokenSetRequest{
 		Datacenter: s.agent.config.Datacenter,
 	}
@@ -471,7 +471,7 @@ func (s *HTTPServer) ACLTokenWrite(resp http.ResponseWriter, req *http.Request, 
 	}
 
 	var out structs.ACLToken
-	if err := s.agent.RPC("ACL.TokenUpsert", args, &out); err != nil {
+	if err := s.agent.RPC("ACL.TokenSet", args, &out); err != nil {
 		return nil, err
 	}
 

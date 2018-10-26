@@ -741,7 +741,7 @@ func TestACLEndpoint_TokenClone(t *testing.T) {
 	assert.NotEqual(t1.SecretID, t2.SecretID)
 }
 
-func TestACLEndpoint_TokenUpsert(t *testing.T) {
+func TestACLEndpoint_TokenSet(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 
@@ -774,7 +774,7 @@ func TestACLEndpoint_TokenUpsert(t *testing.T) {
 
 		resp := structs.ACLToken{}
 
-		err := acl.TokenUpsert(&req, &resp)
+		err := acl.TokenSet(&req, &resp)
 		assert.NoError(err)
 
 		// Get the token directly to validate that it exists
@@ -801,7 +801,7 @@ func TestACLEndpoint_TokenUpsert(t *testing.T) {
 
 		resp := structs.ACLToken{}
 
-		err := acl.TokenUpsert(&req, &resp)
+		err := acl.TokenSet(&req, &resp)
 		assert.NoError(err)
 
 		// Get the token directly to validate that it exists
@@ -814,7 +814,7 @@ func TestACLEndpoint_TokenUpsert(t *testing.T) {
 		assert.Equal(token.AccessorID, resp.AccessorID)
 	}
 }
-func TestACLEndpoint_TokenUpsert_anon(t *testing.T) {
+func TestACLEndpoint_TokenSet_anon(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 
@@ -848,7 +848,7 @@ func TestACLEndpoint_TokenUpsert_anon(t *testing.T) {
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	token := structs.ACLToken{}
-	err = acl.TokenUpsert(&tokenUpsertReq, &token)
+	err = acl.TokenSet(&tokenUpsertReq, &token)
 	assert.NoError(err)
 	assert.NotEmpty(token.SecretID)
 
@@ -1123,7 +1123,7 @@ func TestACLEndpoint_PolicyBatchRead(t *testing.T) {
 	assert.EqualValues(retrievedTokens, tokens)
 }
 
-func TestACLEndpoint_PolicyUpsert(t *testing.T) {
+func TestACLEndpoint_PolicySet(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 
@@ -1155,7 +1155,7 @@ func TestACLEndpoint_PolicyUpsert(t *testing.T) {
 		}
 		resp := structs.ACLPolicy{}
 
-		err := acl.PolicyUpsert(&req, &resp)
+		err := acl.PolicySet(&req, &resp)
 		assert.NoError(err)
 		assert.NotNil(resp.ID)
 
@@ -1186,7 +1186,7 @@ func TestACLEndpoint_PolicyUpsert(t *testing.T) {
 		}
 		resp := structs.ACLPolicy{}
 
-		err := acl.PolicyUpsert(&req, &resp)
+		err := acl.PolicySet(&req, &resp)
 		assert.NoError(err)
 		assert.NotNil(resp.ID)
 
@@ -1202,7 +1202,7 @@ func TestACLEndpoint_PolicyUpsert(t *testing.T) {
 	}
 }
 
-func TestACLEndpoint_PolicyUpsert_globalManagement(t *testing.T) {
+func TestACLEndpoint_PolicySet_globalManagement(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 
@@ -1234,7 +1234,7 @@ func TestACLEndpoint_PolicyUpsert_globalManagement(t *testing.T) {
 		}
 		resp := structs.ACLPolicy{}
 
-		err := acl.PolicyUpsert(&req, &resp)
+		err := acl.PolicySet(&req, &resp)
 		assert.EqualError(err, "Changing the Rules for the builtin global-management policy is not permitted")
 	}
 
@@ -1251,7 +1251,7 @@ func TestACLEndpoint_PolicyUpsert_globalManagement(t *testing.T) {
 		}
 		resp := structs.ACLPolicy{}
 
-		err := acl.PolicyUpsert(&req, &resp)
+		err := acl.PolicySet(&req, &resp)
 		assert.NoError(err)
 
 		// Get the policy again
@@ -1419,7 +1419,7 @@ func TestACLEndpoint_PolicyResolve(t *testing.T) {
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	token := structs.ACLToken{}
-	err = acl.TokenUpsert(&tokenUpsertReq, &token)
+	err = acl.TokenSet(&tokenUpsertReq, &token)
 	assert.NoError(err)
 	assert.NotEmpty(token.SecretID)
 
@@ -1454,7 +1454,7 @@ func upsertTestToken(codec rpc.ClientCodec, masterToken string, datacenter strin
 
 	var out structs.ACLToken
 
-	err := msgpackrpc.CallWithCodec(codec, "ACL.TokenUpsert", &arg, &out)
+	err := msgpackrpc.CallWithCodec(codec, "ACL.TokenSet", &arg, &out)
 
 	if err != nil {
 		return nil, err
@@ -1505,7 +1505,7 @@ func upsertTestPolicy(codec rpc.ClientCodec, masterToken string, datacenter stri
 
 	var out structs.ACLPolicy
 
-	err = msgpackrpc.CallWithCodec(codec, "ACL.PolicyUpsert", &arg, &out)
+	err = msgpackrpc.CallWithCodec(codec, "ACL.PolicySet", &arg, &out)
 
 	if err != nil {
 		return nil, err
