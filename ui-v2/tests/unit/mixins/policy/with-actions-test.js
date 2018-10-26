@@ -13,7 +13,7 @@ moduleFor('mixin:policy/with-actions', 'Unit | Mixin | policy/with actions', {
     'service:flashMessages',
     'service:logger',
     'service:settings',
-    'service:policies',
+    'service:repository/policy',
   ],
   subject: function() {
     const MixedIn = Route.extend(Mixin);
