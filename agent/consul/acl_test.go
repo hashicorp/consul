@@ -163,8 +163,8 @@ type ACLResolverTestDelegate struct {
 	localTokens     bool
 	localPolicies   bool
 	getPolicyFn     func(*structs.ACLPolicyResolveLegacyRequest, *structs.ACLPolicyResolveLegacyResponse) error
-	tokenReadFn     func(*structs.ACLTokenReadRequest, *structs.ACLTokenResponse) error
-	policyResolveFn func(*structs.ACLPolicyBatchReadRequest, *structs.ACLPoliciesResponse) error
+	tokenReadFn     func(*structs.ACLTokenGetRequest, *structs.ACLTokenResponse) error
+	policyResolveFn func(*structs.ACLPolicyBatchGetRequest, *structs.ACLPolicyBatchResponse) error
 }
 
 func (d *ACLResolverTestDelegate) ACLsEnabled() bool {
@@ -204,12 +204,12 @@ func (d *ACLResolverTestDelegate) RPC(method string, args interface{}, reply int
 		panic("Bad Test Implmentation: should provide a getPolicyFn to the ACLResolverTestDelegate")
 	case "ACL.TokenRead":
 		if d.tokenReadFn != nil {
-			return d.tokenReadFn(args.(*structs.ACLTokenReadRequest), reply.(*structs.ACLTokenResponse))
+			return d.tokenReadFn(args.(*structs.ACLTokenGetRequest), reply.(*structs.ACLTokenResponse))
 		}
 		panic("Bad Test Implmentation: should provide a tokenReadFn to the ACLResolverTestDelegate")
 	case "ACL.PolicyResolve":
 		if d.policyResolveFn != nil {
-			return d.policyResolveFn(args.(*structs.ACLPolicyBatchReadRequest), reply.(*structs.ACLPoliciesResponse))
+			return d.policyResolveFn(args.(*structs.ACLPolicyBatchGetRequest), reply.(*structs.ACLPolicyBatchResponse))
 		}
 		panic("Bad Test Implmentation: should provide a policyResolveFn to the ACLResolverTestDelegate")
 	}
@@ -300,7 +300,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 			legacy:        false,
 			localTokens:   false,
 			localPolicies: true,
-			tokenReadFn: func(*structs.ACLTokenReadRequest, *structs.ACLTokenResponse) error {
+			tokenReadFn: func(*structs.ACLTokenGetRequest, *structs.ACLTokenResponse) error {
 				return fmt.Errorf("Induced RPC Error")
 			},
 		}
@@ -322,7 +322,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 			legacy:        false,
 			localTokens:   false,
 			localPolicies: true,
-			tokenReadFn: func(*structs.ACLTokenReadRequest, *structs.ACLTokenResponse) error {
+			tokenReadFn: func(*structs.ACLTokenGetRequest, *structs.ACLTokenResponse) error {
 				return fmt.Errorf("Induced RPC Error")
 			},
 		}
@@ -345,7 +345,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 			legacy:        false,
 			localTokens:   true,
 			localPolicies: false,
-			policyResolveFn: func(args *structs.ACLPolicyBatchReadRequest, reply *structs.ACLPoliciesResponse) error {
+			policyResolveFn: func(args *structs.ACLPolicyBatchGetRequest, reply *structs.ACLPolicyBatchResponse) error {
 				if !policyCached {
 					for _, policyID := range args.PolicyIDs {
 						_, policy, _ := testPolicyForID(policyID)
@@ -388,7 +388,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 			legacy:        false,
 			localTokens:   false,
 			localPolicies: true,
-			tokenReadFn: func(args *structs.ACLTokenReadRequest, reply *structs.ACLTokenResponse) error {
+			tokenReadFn: func(args *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
 				if !cached {
 					_, token, _ := testIdentityForToken("found")
 					reply.Token = token.(*structs.ACLToken)
@@ -425,7 +425,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 			legacy:        false,
 			localTokens:   true,
 			localPolicies: false,
-			policyResolveFn: func(args *structs.ACLPolicyBatchReadRequest, reply *structs.ACLPoliciesResponse) error {
+			policyResolveFn: func(args *structs.ACLPolicyBatchGetRequest, reply *structs.ACLPolicyBatchResponse) error {
 				if !policyCached {
 					for _, policyID := range args.PolicyIDs {
 						_, policy, _ := testPolicyForID(policyID)
@@ -468,7 +468,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 			legacy:        false,
 			localTokens:   true,
 			localPolicies: false,
-			policyResolveFn: func(args *structs.ACLPolicyBatchReadRequest, reply *structs.ACLPoliciesResponse) error {
+			policyResolveFn: func(args *structs.ACLPolicyBatchGetRequest, reply *structs.ACLPolicyBatchResponse) error {
 				if !policyCached {
 					for _, policyID := range args.PolicyIDs {
 						_, policy, _ := testPolicyForID(policyID)
@@ -523,7 +523,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 			legacy:        false,
 			localTokens:   false,
 			localPolicies: false,
-			tokenReadFn: func(args *structs.ACLTokenReadRequest, reply *structs.ACLTokenResponse) error {
+			tokenReadFn: func(args *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
 				if !tokenCached {
 					_, token, _ := testIdentityForToken("found")
 					reply.Token = token.(*structs.ACLToken)
@@ -532,7 +532,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 				}
 				return fmt.Errorf("Induced RPC Error")
 			},
-			policyResolveFn: func(args *structs.ACLPolicyBatchReadRequest, reply *structs.ACLPoliciesResponse) error {
+			policyResolveFn: func(args *structs.ACLPolicyBatchGetRequest, reply *structs.ACLPolicyBatchResponse) error {
 				if !policyCached {
 					for _, policyID := range args.PolicyIDs {
 						_, policy, _ := testPolicyForID(policyID)
@@ -576,7 +576,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 			legacy:        false,
 			localTokens:   false,
 			localPolicies: true,
-			tokenReadFn: func(args *structs.ACLTokenReadRequest, reply *structs.ACLTokenResponse) error {
+			tokenReadFn: func(args *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
 				if !cached {
 					_, token, _ := testIdentityForToken("found")
 					reply.Token = token.(*structs.ACLToken)
@@ -725,7 +725,7 @@ func TestACLResolver_LocalPolicies(t *testing.T) {
 		legacy:        false,
 		localTokens:   false,
 		localPolicies: true,
-		tokenReadFn: func(args *structs.ACLTokenReadRequest, reply *structs.ACLTokenResponse) error {
+		tokenReadFn: func(args *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
 			_, token, err := testIdentityForToken(args.TokenID)
 
 			if token != nil {

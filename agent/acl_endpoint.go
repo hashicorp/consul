@@ -126,7 +126,7 @@ func (s *HTTPServer) ACLRulesTranslateLegacyToken(resp http.ResponseWriter, req 
 		return nil, BadRequestError{Reason: "Missing token ID"}
 	}
 
-	args := structs.ACLTokenReadRequest{
+	args := structs.ACLTokenGetRequest{
 		Datacenter:  s.agent.config.Datacenter,
 		TokenID:     tokenID,
 		TokenIDType: structs.ACLTokenAccessor,
@@ -223,7 +223,7 @@ func (s *HTTPServer) ACLPolicyCRUD(resp http.ResponseWriter, req *http.Request) 
 }
 
 func (s *HTTPServer) ACLPolicyRead(resp http.ResponseWriter, req *http.Request, policyID string) (interface{}, error) {
-	args := structs.ACLPolicyReadRequest{
+	args := structs.ACLPolicyGetRequest{
 		Datacenter: s.agent.config.Datacenter,
 		PolicyID:   policyID,
 	}
@@ -284,7 +284,7 @@ func fixCreateTimeAndHash(raw interface{}) error {
 }
 
 func (s *HTTPServer) ACLPolicyWrite(resp http.ResponseWriter, req *http.Request, policyID string) (interface{}, error) {
-	args := structs.ACLPolicyUpsertRequest{
+	args := structs.ACLPolicySetRequest{
 		Datacenter: s.agent.config.Datacenter,
 	}
 	s.parseToken(req, &args.Token)
@@ -390,7 +390,7 @@ func (s *HTTPServer) ACLTokenSelf(resp http.ResponseWriter, req *http.Request) (
 		return nil, nil
 	}
 
-	args := structs.ACLTokenReadRequest{
+	args := structs.ACLTokenGetRequest{
 		TokenIDType: structs.ACLTokenSecret,
 	}
 
@@ -427,7 +427,7 @@ func (s *HTTPServer) ACLTokenCreate(resp http.ResponseWriter, req *http.Request)
 }
 
 func (s *HTTPServer) ACLTokenRead(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
-	args := structs.ACLTokenReadRequest{
+	args := structs.ACLTokenGetRequest{
 		Datacenter:  s.agent.config.Datacenter,
 		TokenID:     tokenID,
 		TokenIDType: structs.ACLTokenAccessor,
@@ -455,7 +455,7 @@ func (s *HTTPServer) ACLTokenRead(resp http.ResponseWriter, req *http.Request, t
 }
 
 func (s *HTTPServer) ACLTokenWrite(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
-	args := structs.ACLTokenUpsertRequest{
+	args := structs.ACLTokenSetRequest{
 		Datacenter: s.agent.config.Datacenter,
 	}
 	s.parseToken(req, &args.Token)
@@ -497,7 +497,7 @@ func (s *HTTPServer) ACLTokenClone(resp http.ResponseWriter, req *http.Request, 
 		return nil, nil
 	}
 
-	args := structs.ACLTokenUpsertRequest{
+	args := structs.ACLTokenSetRequest{
 		Datacenter: s.agent.config.Datacenter,
 	}
 

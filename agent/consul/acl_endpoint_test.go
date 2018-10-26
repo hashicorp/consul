@@ -648,7 +648,7 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 
 	// exists and matches what we created
 	{
-		req := structs.ACLTokenReadRequest{
+		req := structs.ACLTokenGetRequest{
 			Datacenter:   "dc1",
 			TokenID:      token.AccessorID,
 			TokenIDType:  structs.ACLTokenAccessor,
@@ -670,7 +670,7 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 		fakeID, err := uuid.GenerateUUID()
 		assert.NoError(err)
 
-		req := structs.ACLTokenReadRequest{
+		req := structs.ACLTokenGetRequest{
 			Datacenter:   "dc1",
 			TokenID:      fakeID,
 			TokenIDType:  structs.ACLTokenAccessor,
@@ -686,7 +686,7 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 
 	// validates ID format
 	{
-		req := structs.ACLTokenReadRequest{
+		req := structs.ACLTokenGetRequest{
 			Datacenter:   "dc1",
 			TokenID:      "definitely-really-certainly-not-a-uuid",
 			TokenIDType:  structs.ACLTokenAccessor,
@@ -722,7 +722,7 @@ func TestACLEndpoint_TokenClone(t *testing.T) {
 
 	acl := ACL{srv: s1}
 
-	req := structs.ACLTokenUpsertRequest{
+	req := structs.ACLTokenSetRequest{
 		Datacenter:   "dc1",
 		ACLToken:     structs.ACLToken{AccessorID: t1.AccessorID},
 		WriteRequest: structs.WriteRequest{Token: "root"},
@@ -762,7 +762,7 @@ func TestACLEndpoint_TokenUpsert(t *testing.T) {
 
 	// Create it
 	{
-		req := structs.ACLTokenUpsertRequest{
+		req := structs.ACLTokenSetRequest{
 			Datacenter: "dc1",
 			ACLToken: structs.ACLToken{
 				Description: "foobar",
@@ -790,7 +790,7 @@ func TestACLEndpoint_TokenUpsert(t *testing.T) {
 	}
 	// Update it
 	{
-		req := structs.ACLTokenUpsertRequest{
+		req := structs.ACLTokenSetRequest{
 			Datacenter: "dc1",
 			ACLToken: structs.ACLToken{
 				Description: "new-description",
@@ -835,7 +835,7 @@ func TestACLEndpoint_TokenUpsert_anon(t *testing.T) {
 	acl := ACL{srv: s1}
 
 	// Assign the policies to a token
-	tokenUpsertReq := structs.ACLTokenUpsertRequest{
+	tokenUpsertReq := structs.ACLTokenSetRequest{
 		Datacenter: "dc1",
 		ACLToken: structs.ACLToken{
 			AccessorID: structs.ACLTokenAnonymousID,
@@ -1021,13 +1021,13 @@ func TestACLEndpoint_TokenBatchRead(t *testing.T) {
 	acl := ACL{srv: s1}
 	tokens := []string{t1.AccessorID, t2.AccessorID}
 
-	req := structs.ACLTokenBatchReadRequest{
+	req := structs.ACLTokenBatchGetRequest{
 		Datacenter:   "dc1",
 		AccessorIDs:  tokens,
 		QueryOptions: structs.QueryOptions{Token: "root"},
 	}
 
-	resp := structs.ACLTokensResponse{}
+	resp := structs.ACLTokenBatchResponse{}
 
 	err = acl.TokenBatchRead(&req, &resp)
 	assert.NoError(err)
@@ -1061,7 +1061,7 @@ func TestACLEndpoint_PolicyRead(t *testing.T) {
 
 	acl := ACL{srv: s1}
 
-	req := structs.ACLPolicyReadRequest{
+	req := structs.ACLPolicyGetRequest{
 		Datacenter:   "dc1",
 		PolicyID:     policy.ID,
 		QueryOptions: structs.QueryOptions{Token: "root"},
@@ -1104,13 +1104,13 @@ func TestACLEndpoint_PolicyBatchRead(t *testing.T) {
 	acl := ACL{srv: s1}
 	tokens := []string{t1.AccessorID, t2.AccessorID}
 
-	req := structs.ACLTokenBatchReadRequest{
+	req := structs.ACLTokenBatchGetRequest{
 		Datacenter:   "dc1",
 		AccessorIDs:  tokens,
 		QueryOptions: structs.QueryOptions{Token: "root"},
 	}
 
-	resp := structs.ACLTokensResponse{}
+	resp := structs.ACLTokenBatchResponse{}
 
 	err = acl.TokenBatchRead(&req, &resp)
 	assert.NoError(err)
@@ -1144,7 +1144,7 @@ func TestACLEndpoint_PolicyUpsert(t *testing.T) {
 
 	// Create it
 	{
-		req := structs.ACLPolicyUpsertRequest{
+		req := structs.ACLPolicySetRequest{
 			Datacenter: "dc1",
 			Policy: structs.ACLPolicy{
 				Description: "foobar",
@@ -1174,7 +1174,7 @@ func TestACLEndpoint_PolicyUpsert(t *testing.T) {
 
 	// Update it
 	{
-		req := structs.ACLPolicyUpsertRequest{
+		req := structs.ACLPolicySetRequest{
 			Datacenter: "dc1",
 			Policy: structs.ACLPolicy{
 				ID:          policyID,
@@ -1223,7 +1223,7 @@ func TestACLEndpoint_PolicyUpsert_globalManagement(t *testing.T) {
 	// Can't change the rules
 	{
 
-		req := structs.ACLPolicyUpsertRequest{
+		req := structs.ACLPolicySetRequest{
 			Datacenter: "dc1",
 			Policy: structs.ACLPolicy{
 				ID:    structs.ACLPolicyGlobalManagementID,
@@ -1240,7 +1240,7 @@ func TestACLEndpoint_PolicyUpsert_globalManagement(t *testing.T) {
 
 	// Can rename it
 	{
-		req := structs.ACLPolicyUpsertRequest{
+		req := structs.ACLPolicySetRequest{
 			Datacenter: "dc1",
 			Policy: structs.ACLPolicy{
 				ID:    structs.ACLPolicyGlobalManagementID,
@@ -1404,7 +1404,7 @@ func TestACLEndpoint_PolicyResolve(t *testing.T) {
 	policies := []string{p1.ID, p2.ID}
 
 	// Assign the policies to a token
-	tokenUpsertReq := structs.ACLTokenUpsertRequest{
+	tokenUpsertReq := structs.ACLTokenSetRequest{
 		Datacenter: "dc1",
 		ACLToken: structs.ACLToken{
 			Policies: []structs.ACLTokenPolicyLink{
@@ -1423,8 +1423,8 @@ func TestACLEndpoint_PolicyResolve(t *testing.T) {
 	assert.NoError(err)
 	assert.NotEmpty(token.SecretID)
 
-	resp := structs.ACLPoliciesResponse{}
-	req := structs.ACLPolicyBatchReadRequest{
+	resp := structs.ACLPolicyBatchResponse{}
+	req := structs.ACLPolicyBatchGetRequest{
 		Datacenter:   "dc1",
 		PolicyIDs:    []string{p1.ID, p2.ID},
 		QueryOptions: structs.QueryOptions{Token: token.SecretID},
@@ -1442,7 +1442,7 @@ func TestACLEndpoint_PolicyResolve(t *testing.T) {
 
 // upsertTestToken creates a token for testing purposes
 func upsertTestToken(codec rpc.ClientCodec, masterToken string, datacenter string) (*structs.ACLToken, error) {
-	arg := structs.ACLTokenUpsertRequest{
+	arg := structs.ACLTokenSetRequest{
 		Datacenter: datacenter,
 		ACLToken: structs.ACLToken{
 			Description: "User token",
@@ -1469,7 +1469,7 @@ func upsertTestToken(codec rpc.ClientCodec, masterToken string, datacenter strin
 
 // retrieveTestToken returns a policy for testing purposes
 func retrieveTestToken(codec rpc.ClientCodec, masterToken string, datacenter string, id string) (*structs.ACLTokenResponse, error) {
-	arg := structs.ACLTokenReadRequest{
+	arg := structs.ACLTokenGetRequest{
 		Datacenter:   datacenter,
 		TokenID:      id,
 		TokenIDType:  structs.ACLTokenAccessor,
@@ -1495,7 +1495,7 @@ func upsertTestPolicy(codec rpc.ClientCodec, masterToken string, datacenter stri
 		return nil, err
 	}
 
-	arg := structs.ACLPolicyUpsertRequest{
+	arg := structs.ACLPolicySetRequest{
 		Datacenter: datacenter,
 		Policy: structs.ACLPolicy{
 			Name: fmt.Sprintf("test-policy-%s", policyUnq),
@@ -1520,7 +1520,7 @@ func upsertTestPolicy(codec rpc.ClientCodec, masterToken string, datacenter stri
 
 // retrieveTestPolicy returns a policy for testing purposes
 func retrieveTestPolicy(codec rpc.ClientCodec, masterToken string, datacenter string, id string) (*structs.ACLPolicyResponse, error) {
-	arg := structs.ACLPolicyReadRequest{
+	arg := structs.ACLPolicyGetRequest{
 		Datacenter:   datacenter,
 		PolicyID:     id,
 		QueryOptions: structs.QueryOptions{Token: masterToken},
