@@ -1474,8 +1474,7 @@ default will automatically work with some tooling.
       (it might have an impact on Consul's memory usage). A good value for this parameter is at least 2 times the interval of scrape
       of Prometheus, but you might also put a very high retention time such as a few days (for instance 744h to enable retention
       to 31 days).
-      Fetching the metrics using prometheus can then be performed using the `/v1/agent/metrics?format=prometheus` URL or by sending
-      the Accept header with value `text/plain; version=0.0.4; charset=utf-8`  to the `/v1/agent/metrics` (as done by Prometheus).
+      Fetching the metrics using prometheus can then be performed using the [`/v1/agent/metrics?format=prometheus`](/api/agent.html#view-metrics) endpoint.
       The format is compatible natively with prometheus. When running in this mode, it is recommended to also enable the option
       <a href="#telemetry-disable_hostname">`disable_hostname`</a> to avoid having prefixed metrics with hostname.
       Consul does not use the default Prometheus path, so Prometheus must be configured as follows.
