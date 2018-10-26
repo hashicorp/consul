@@ -999,19 +999,19 @@ default will automatically work with some tooling.
 
       The following settings are available:
 
-      * <a name="soa_expire"></a><a href="soa_expire">expire</a> -
+      * <a name="soa_expire"></a><a href="#soa_expire">expire</a> -
         Configure SOA Expire duration in seconds, default value is 86400, ie: 24 hours.
 
-      * <a name="soa_min_ttl"></a><a href="soa_min_ttl">`min_ttl`</a> -
+      * <a name="soa_min_ttl"></a><a href="#soa_min_ttl">`min_ttl`</a> -
         Configure SOA DNS minimum TTL.
         As explained in [RFC-2308](https://tools.ietf.org/html/rfc2308) this also controls
         negative cache TTL in most implementations. Default value is 0, ie: no minimum
         delay or negative TTL.
 
-      * <a name="soa_refresh"></a><a href="soa_refresh">refresh</a> -
+      * <a name="soa_refresh"></a><a href="#soa_refresh">refresh</a> -
         Configure SOA Refresh duration in seconds, default value is `3600`, ie: 1 hour.
 
-      *  <a name="soa_retry"></a><a href="soa_retry">retry</a> -
+      * <a name="soa_retry"></a><a href="#soa_retry">retry</a> -
         Configures the Retry duration expressed in seconds, default value is
         600, ie: 10 minutes.
 

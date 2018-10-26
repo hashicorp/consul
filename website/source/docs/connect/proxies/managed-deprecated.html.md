@@ -4,7 +4,7 @@ page_title: "Connect - Deprecated Managed Proxies"
 sidebar_current: "docs-connect-proxies"
 description: |-
   Consul 1.2 launched it's Connect Beta period with a feature named Managed
-  Proxies which are now deprecated. This page describes how they worked and why 
+  Proxies which are now deprecated. This page describes how they worked and why
   they are no longer supported.
 ---
 
@@ -57,7 +57,7 @@ page will document how they work in the interim.
 
 -> **Deprecation Note:** It's _strongly_ recommended you do not build anything
 using Managed proxies and consider using [sidecar service
-registrations](/docs/connect/proxies.html/sidecar-service.html) instead.
+registrations](/docs/connect/proxies/sidecar-service.html) instead.
 
 Managed proxies are given
 a unique proxy-specific ACL token that allows read-only access to Connect
