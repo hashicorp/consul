@@ -1,6 +1,12 @@
 package structs
 
-import "github.com/hashicorp/consul/types"
+import (
+	"strconv"
+
+	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/types"
+	"github.com/mitchellh/hashstructure"
+)
 
 // QueryDatacenterOptions sets options about how we fail over if there are no
 // healthy nodes in the local datacenter.
@@ -225,6 +231,39 @@ type PreparedQueryExecuteRequest struct {
 // RequestDatacenter returns the datacenter for a given request.
 func (q *PreparedQueryExecuteRequest) RequestDatacenter() string {
 	return q.Datacenter
+}
+
+// CacheInfo implements cache.Request allowing requests to be cached on agent.
+func (q *PreparedQueryExecuteRequest) CacheInfo() cache.RequestInfo {
+	info := cache.RequestInfo{
+		Token:          q.Token,
+		Datacenter:     q.Datacenter,
+		MinIndex:       q.MinQueryIndex,
+		Timeout:        q.MaxQueryTime,
+		MaxAge:         q.MaxAge,
+		MustRevalidate: q.MustRevalidate,
+	}
+
+	// To calculate the cache key we hash over all the fields that affect the
+	// output other than Datacenter and Token which are dealt with in the cache
+	// framework already. Note the order here is important for the outcome - if we
+	// ever care about cache-invalidation on updates e.g. because we persist
+	// cached results, we need to be careful we maintain the same order of fields
+	// here. We could alternatively use `hash:set` struct tag on an anonymous
+	// struct to make it more robust if it becomes significant.
+	v, err := hashstructure.Hash([]interface{}{
+		q.QueryIDOrName,
+		q.Limit,
+		q.Connect,
+	}, nil)
+	if err == nil {
+		// If there is an error, we don't set the key. A blank key forces
+		// no cache for this request so the request is forwarded directly
+		// to the server.
+		info.Key = strconv.FormatUint(v, 10)
+	}
+
+	return info
 }
 
 // PreparedQueryExecuteRemoteRequest is used when running a local query in a

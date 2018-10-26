@@ -2,3 +2,19 @@
 main .with-feedback {
   @extend %feedback-dialog-inline;
 }
+%feedback-dialog-inline .feedback-dialog-out {
+  @extend %blink-in-fade-out;
+  transition-delay: 3s;
+}
+@media #{$--lt-spacious-page-header} {
+  .actions .with-feedback p {
+    bottom: auto;
+    top: 0px;
+  }
+  .actions .with-feedback p::after {
+    bottom: auto;
+    top: -13px !important;
+    border-bottom: 18px solid $ui-gray-800;
+    border-top: 0;
+  }
+}

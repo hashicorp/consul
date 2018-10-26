@@ -22,7 +22,15 @@ The following guides are available:
 
 * [Bootstrapping](/docs/guides/bootstrapping.html) - This guide covers bootstrapping a new datacenter. This covers safely adding the initial Consul servers.
 
+* [Connect in Production](/docs/guides/connect-production.html) - This guide describes critical aspects of operating Consul Connect in Production.
+
+* [Connect with Envoy](/docs/guides/connect-envoy.html) - This guide will describe how to setup a development-mode Consul server and two Envoy proxies on a single machine using Docker.
+
 * [Consul with Containers](/docs/guides/consul-containers.html) - This guide describes critical aspects of operating a Consul cluster that's run inside containers.
+
+* [Creating Certificates](/docs/guides/creating-certificates.html) - This guide describes how to setup CA and certificates to secure a Consul cluster with TLS.
+
+* [Deployment Guide](/docs/guides/deployment-guide.html) - This deployment guide covers the steps required to install and configure a single HashiCorp Consul cluster as defined in the Consul Reference Architecture.
 
 * [DNS Caching](/docs/guides/dns-cache.html) - Enabling TTLs for DNS query caching
 
@@ -36,9 +44,13 @@ The following guides are available:
 
 * [Leader Election](/docs/guides/leader-election.html) - The goal of this guide is to cover how to build client-side leader election using Consul.
 
+* [Monitoring Consul with Telegraf](/docs/guides/monitoring-telegraf.html) - This guide demonstrates how to setup Consul for monitoring with Telegraf.
+
 * [Network Segments](/docs/guides/segments.html) - Configuring Consul to support partial LAN connectivity using Network Segments.
 
 * [Outage Recovery](/docs/guides/outage.html) - This guide covers recovering a cluster that has become unavailable due to server failures.
+
+* [Consul Reference Architecture](/docs/guides/deployment.html) - This document provides recommended practices and a reference architecture, including system requirements, datacenter design, networking, and performance optimizations for Consul production deployments.
 
 * [Semaphore](/docs/guides/semaphore.html) - This guide covers using the KV store to implement a semaphore.
 

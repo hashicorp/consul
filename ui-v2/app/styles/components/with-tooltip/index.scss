@@ -1,2 +1,27 @@
 @import './skin';
 @import './layout';
+%with-pseudo-tooltip {
+  @extend %tooltip;
+}
+%with-pseudo-tooltip::before {
+  @extend %tooltip-bubble;
+}
+%with-pseudo-tooltip::after {
+  @extend %tooltip-tail;
+}
+%with-pseudo-tooltip {
+  text-indent: -9000px;
+  font-size: 0;
+  top: -9px;
+}
+
+%with-pseudo-tooltip::after,
+%with-pseudo-tooltip::before {
+  @extend %blink-in-fade-out;
+}
+%with-pseudo-tooltip:hover::after,
+%with-pseudo-tooltip:hover::before,
+%with-pseudo-tooltip:focus::after,
+%with-pseudo-tooltip:focus::before {
+  @extend %blink-in-fade-out-active;
+}

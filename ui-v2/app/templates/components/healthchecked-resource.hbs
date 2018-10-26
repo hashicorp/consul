@@ -1,5 +1,5 @@
     <header class={{if service 'with-service' }}>
-        <strong>{{address}}</strong>
+      <strong>{{address}}</strong>
         <a href={{href}}>
             <span>{{name}}</span>
             <em>{{service}}</em>
@@ -25,7 +25,7 @@
         <li class="passing">
             <a href={{href}}>
                 <strong>{{healthy.length}}</strong>
-                <span>other passing {{pluralize-word healthy.length 'check' omitCount=true}}</span>
+                <span>other passing {{pluralize healthy.length 'check' without-count=true}}</span>
             </a>
         </li>
     {{/if}}

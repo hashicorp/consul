@@ -48,6 +48,13 @@ const (
 type Client struct {
 	config *Config
 
+	// acls is used to resolve tokens to effective policies
+	acls *ACLResolver
+
+	// DEPRECATED (ACL-Legacy-Compat) - Only needed while we support both
+	// useNewACLs is a flag to indicate whether we are using the new ACL system
+	useNewACLs int32
+
 	// Connection pool to consul servers
 	connPool *pool.ConnPool
 
@@ -141,12 +148,30 @@ func NewClientLogger(config *Config, logger *log.Logger) (*Client, error) {
 		return nil, err
 	}
 
+	c.useNewACLs = 0
+	aclConfig := ACLResolverConfig{
+		Config:      config,
+		Delegate:    c,
+		Logger:      logger,
+		AutoDisable: true,
+		CacheConfig: clientACLCacheConfig,
+		Sentinel:    nil,
+	}
+	if c.acls, err = NewACLResolver(&aclConfig); err != nil {
+		c.Shutdown()
+		return nil, fmt.Errorf("Failed to create ACL resolver: %v", err)
+	}
+
 	// Initialize the LAN Serf
 	c.serf, err = c.setupSerf(config.SerfLANConfig,
 		c.eventCh, serfLANSnapshot)
 	if err != nil {
 		c.Shutdown()
 		return nil, fmt.Errorf("Failed to start lan serf: %v", err)
+	}
+
+	if c.acls.ACLsEnabled() {
+		go c.monitorACLMode()
 	}
 
 	// Start maintenance task for servers

@@ -6,6 +6,7 @@
         <h1>
             Intentions
         </h1>
+        <label for="toolbar-toggle"></label>
     {{/block-slot}}
     {{#block-slot 'actions'}}
         <a data-test-create href="{{href-to 'dc.intentions.create'}}" class="type-create">Create</a>
@@ -67,11 +68,7 @@
                         {{/action-group}}
                     {{/block-slot}}
                     {{#block-slot 'dialog' as |execute cancel message|}}
-                        <p>
-                            {{message}}
-                        </p>
-                        <button type="button" class="type-delete" {{action execute}}>Confirm Delete</button>
-                        <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
+                      {{delete-confirmation message=message execute=execute cancel=cancel}}
                     {{/block-slot}}
                 {{/confirmation-dialog}}
             {{/block-slot}}

@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCatalogRegister_Service_InvalidAddress(t *testing.T) {
@@ -272,7 +273,7 @@ func TestCatalogNodes_Blocking(t *testing.T) {
 	// an error channel instead.
 	errch := make(chan error, 2)
 	go func() {
-		testrpc.WaitForLeader(t, a.RPC, "dc1")
+		testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 		start := time.Now()
 
 		// register a service after the blocking call
@@ -409,6 +410,7 @@ func TestCatalogServices(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -486,6 +488,9 @@ func TestCatalogServiceNodes(t *testing.T) {
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
+	assert := assert.New(t)
+	require := require.New(t)
+
 	// Make sure an empty list is returned, not a nil
 	{
 		req, _ := http.NewRequest("GET", "/v1/catalog/service/api?tag=a", nil)
@@ -531,6 +536,63 @@ func TestCatalogServiceNodes(t *testing.T) {
 	nodes := obj.(structs.ServiceNodes)
 	if len(nodes) != 1 {
 		t.Fatalf("bad: %v", obj)
+	}
+
+	// Test caching
+	{
+		// List instances with cache enabled
+		req, _ := http.NewRequest("GET", "/v1/catalog/service/api?cached", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.CatalogServiceNodes(resp, req)
+		require.NoError(err)
+		nodes := obj.(structs.ServiceNodes)
+		assert.Len(nodes, 1)
+
+		// Should be a cache miss
+		assert.Equal("MISS", resp.Header().Get("X-Cache"))
+	}
+
+	{
+		// List instances with cache enabled
+		req, _ := http.NewRequest("GET", "/v1/catalog/service/api?cached", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.CatalogServiceNodes(resp, req)
+		require.NoError(err)
+		nodes := obj.(structs.ServiceNodes)
+		assert.Len(nodes, 1)
+
+		// Should be a cache HIT now!
+		assert.Equal("HIT", resp.Header().Get("X-Cache"))
+		assert.Equal("0", resp.Header().Get("Age"))
+	}
+
+	// Ensure background refresh works
+	{
+		// Register a new instance of the service
+		args2 := args
+		args2.Node = "bar"
+		args2.Address = "127.0.0.2"
+		require.NoError(a.RPC("Catalog.Register", args, &out))
+
+		retry.Run(t, func(r *retry.R) {
+			// List it again
+			req, _ := http.NewRequest("GET", "/v1/catalog/service/api?cached", nil)
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.CatalogServiceNodes(resp, req)
+			r.Check(err)
+
+			nodes := obj.(structs.ServiceNodes)
+			if len(nodes) != 2 {
+				r.Fatalf("Want 2 nodes")
+			}
+
+			// Should be a cache hit! The data should've updated in the cache
+			// in the background so this should've been fetched directly from
+			// the cache.
+			if resp.Header().Get("X-Cache") != "HIT" {
+				r.Fatalf("should be a cache hit")
+			}
+		})
 	}
 }
 
@@ -785,6 +847,9 @@ func TestCatalogServiceNodes_ConnectProxy(t *testing.T) {
 	nodes := obj.(structs.ServiceNodes)
 	assert.Len(nodes, 1)
 	assert.Equal(structs.ServiceKindConnectProxy, nodes[0].ServiceKind)
+	assert.Equal(args.Service.Proxy, nodes[0].ServiceProxy)
+	// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
+	assert.Equal(args.Service.Proxy.DestinationServiceName, nodes[0].ServiceProxyDestination)
 }
 
 // Test that the Connect-compatible endpoints can be queried for a
@@ -803,7 +868,7 @@ func TestCatalogConnectServiceNodes_good(t *testing.T) {
 	assert.Nil(a.RPC("Catalog.Register", args, &out))
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf(
-		"/v1/catalog/connect/%s", args.Service.ProxyDestination), nil)
+		"/v1/catalog/connect/%s", args.Service.Proxy.DestinationServiceName), nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.CatalogConnectServiceNodes(resp, req)
 	assert.Nil(err)
@@ -813,6 +878,7 @@ func TestCatalogConnectServiceNodes_good(t *testing.T) {
 	assert.Len(nodes, 1)
 	assert.Equal(structs.ServiceKindConnectProxy, nodes[0].ServiceKind)
 	assert.Equal(args.Service.Address, nodes[0].ServiceAddress)
+	assert.Equal(args.Service.Proxy, nodes[0].ServiceProxy)
 }
 
 func TestCatalogNodeServices(t *testing.T) {
@@ -821,7 +887,7 @@ func TestCatalogNodeServices(t *testing.T) {
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-	// Register node
+	// Register node with a regular service and connect proxy
 	args := &structs.RegisterRequest{
 		Datacenter: "dc1",
 		Node:       "foo",
@@ -837,6 +903,10 @@ func TestCatalogNodeServices(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
+	// Register a connect proxy
+	args.Service = structs.TestNodeServiceProxy(t)
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
 	req, _ := http.NewRequest("GET", "/v1/catalog/node/foo?dc=dc1", nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.CatalogNodeServices(resp, req)
@@ -846,9 +916,12 @@ func TestCatalogNodeServices(t *testing.T) {
 	assertIndex(t, resp)
 
 	services := obj.(*structs.NodeServices)
-	if len(services.Services) != 1 {
+	if len(services.Services) != 2 {
 		t.Fatalf("bad: %v", obj)
 	}
+
+	// Proxy service should have it's config intact
+	require.Equal(t, args.Service.Proxy, services.Services["web-proxy"].Proxy)
 }
 
 // Test that the services on a node contain all the Connect proxies on

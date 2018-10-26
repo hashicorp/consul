@@ -60,7 +60,7 @@ func main() {
   }
 
   // Serve!
-  server.ListenAndServerTLS("", "")
+  server.ListenAndServeTLS("", "")
 }
 ```
 

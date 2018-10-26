@@ -69,6 +69,23 @@ local caching, background updating, and support blocking queries. As a result,
 most API calls operate on purely local in-memory data and can respond
 in microseconds.
 
+## Getting Started With Connect
+
+There are several ways to try Connect in different environments.
+
+ * The [Connect introduction](/intro/getting-started/connect.html) in the
+   Getting Started guide provides a simple walk through of getting two services
+   to communicate via Connect using only Consul directly on your local machine.
+
+ * The [Envoy guide](/docs/guides/connect-envoy.html) walks through getting
+   started with Envoy as a proxy, and uses Docker to run components locally
+   without installing anything else.
+
+ * The [Kubernetes documentation](/docs/platform/k8s/run.html) shows how to get
+   from an empty Kubernetes cluster to having Consul installed and Envoy
+   configured to proxy application traffic automatically using the official helm
+   chart.
+
 ## Agent Caching and Performance
 
 To enable microsecond-speed responses on

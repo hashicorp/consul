@@ -41,10 +41,22 @@ func TestNodeService(t testing.T) *NodeService {
 // Connect proxy.
 func TestNodeServiceProxy(t testing.T) *NodeService {
 	return &NodeService{
-		Kind:             ServiceKindConnectProxy,
-		Service:          "connect-proxy",
-		Address:          "127.0.0.2",
-		Port:             2222,
-		ProxyDestination: "web",
+		Kind:    ServiceKindConnectProxy,
+		Service: "web-proxy",
+		Address: "127.0.0.2",
+		Port:    2222,
+		Proxy:   TestConnectProxyConfig(t),
+	}
+}
+
+// TestNodeServiceSidecar returns a *NodeService representing a service
+// registration with a nested Sidecar registration.
+func TestNodeServiceSidecar(t testing.T) *NodeService {
+	return &NodeService{
+		Service: "web",
+		Port:    2222,
+		Connect: ServiceConnect{
+			SidecarService: &ServiceDefinition{},
+		},
 	}
 }

@@ -1,0 +1,49 @@
+---
+layout: "docs"
+page_title: "Commands: ACL Set Agent Token"
+sidebar_current: "docs-commands-acl-set-agent-token"
+---
+
+# Consul ACL Set Agent Token
+
+Command: `consul acl set-agent-token`
+
+This command updates the ACL tokens currently in use by the agent. It can be used to introduce
+ACL tokens to the agent for the first time, or to update tokens that were initially loaded from
+the agent's configuration. Tokens are not persisted, so will need to be updated again if the
+agent is restarted.
+
+## Usage
+
+Usage: consul acl set-agent-token [options] TYPE TOKEN
+
+
+### Token Types
+
+* `default` - The default token is the token that the agent will use for
+   both internal agent operations and operations initiated by the HTTP
+   and DNS interfaces when no specific token is provided. If not set the
+   agent will use the anonymous token.
+
+* `agent` - The token that the agent will use for internal agent operations.
+   If not given then the default token is used for these operations.
+
+* `master` - This sets the token that can be used to access the Agent APIs in
+   the event that the ACL datacenter cannot be reached.
+
+* `replication` - This is the token that the agent will use for replication
+   operations. This token will need to be configured with read access to
+   whatever data is being replicated.
+
+### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
+
+## Examples
+
+Set the `default` token:
+
+```
+$ consul acl set-agent-token default c4d0f8df-3aba-4ab6-a7a0-35b760dc29a1
+```

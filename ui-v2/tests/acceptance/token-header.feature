@@ -1,4 +1,5 @@
 @setupApplicationTest
+@ignore
 Feature: token headers
   In order to authenticate with tokens
   As a user

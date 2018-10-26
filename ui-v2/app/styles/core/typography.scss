@@ -1,7 +1,8 @@
 %button {
   font-family: $typo-family-sans;
 }
-main p {
+main p,
+%modal-window p {
   margin-bottom: 1em;
 }
 %button,
@@ -37,9 +38,13 @@ h2,
 %healthchecked-resource header span,
 %healthcheck-status dt,
 %copy-button,
-%form-element > span,
 %app-content div > dl > dt,
 td a {
+  font-weight: $typo-weight-semibold;
+}
+%form-element > span,
+%toggle label span,
+caption {
   font-weight: $typo-weight-semibold;
 }
 %button {
@@ -49,12 +54,13 @@ th,
 %breadcrumbs a,
 %action-group a,
 %tab-nav,
-%with-tooltip::before {
+%tooltip-bubble {
   font-weight: $typo-weight-medium;
 }
 main label a[rel*='help'],
 td:first-child em,
 %pill,
+%form-element > strong,
 %healthchecked-resource strong {
   font-weight: $typo-weight-normal;
 }
@@ -63,17 +69,11 @@ td:first-child em,
 %healthchecked-resource header em {
   font-style: normal;
 }
-%form-element > span {
-  text-transform: uppercase;
-}
-%form-element > span > * {
-  text-transform: none;
-}
 %footer > * {
   font-size: inherit;
 }
 h1 {
-  font-size: $typo-size-400;
+  font-size: $typo-header-100;
 }
 h2,
 %header-drop-nav .is-active {
@@ -87,12 +87,15 @@ td {
   font-size: $typo-size-600;
 }
 th,
-%with-tooltip::before,
+caption,
+.type-dialog,
+%form-element > span,
+%tooltip-bubble,
 %healthchecked-resource strong,
 %footer {
   font-size: $typo-size-700;
 }
-%toggle span {
+%toggle label span {
   font-size: $typo-size-700 !important;
 }
 %app-content > p:only-child,
@@ -100,9 +103,9 @@ th,
 %app-view > div.disabled > div,
 .template-error > div,
 %button,
-.with-confirmation p,
 %form-element > em,
-%form-element > span,
+%form-element > strong,
+.with-confirmation p,
 %feedback-dialog-inline p {
   font-size: $typo-size-800;
 }

@@ -1,4 +1,81 @@
-## UNRELEASED
+## 1.4.0 (UNRELEASED)
+
+FEATURES:
+
+* **New ACL System:** The ACL system has been redesigned while allowing for in-place
+  upgrades that will automatically migrate to the new system while retaining
+  compatibility for now legacy API tokens for clusters where ACLs are enabled. This
+  new system introduces a number of improvements to tokens including accessor IDs
+  and a new policy model. It also includes a new CLI for ACL interactions and a
+  completely redesigned UI experience to manage ACLs and policies. WAN
+  federated clusters will need to add the additional replication token
+  configuration in order to ensure WAN ACL replication in the new system.
+  [[GH-4791](https://github.com/hashicorp/consul/pull/4791)]
+    * ACL CLI.
+    * New ACL HTTP APIs.
+    * Splitting ACL Tokens into Tokens and Policies with rules being defined on policies and tokens being linked to policies.
+    * ACL Tokens have a public accessor ID now in addition to the secret ID that they used to have.
+    * Setting a replication token is now required but it only needs "read" permissions on ACLs.
+    * Update to the rules language to allow for exact-matching rules in addition to prefix matching rules
+    * Added DC local tokens.
+    * Auto-Transitioning from legacy mode to normal mode as the cluster's servers get upgraded.
+    * ACL UI updates to support new functionality.
+
+* **Multi-DC Connect:** (Consul Enterprise) Consul Connect now supports multi-dc connections and
+replicates intentions. This allows WAN federated DCs to provide connections
+from source and destination proxies in any DC.
+
+* New command `consul debug` which gathers information about the cluster to help
+  resolve incidents and debug issues faster. [[GH-4754](https://github.com/hashicorp/consul/issues/4754)]
+
+IMPROVEMENTS:
+
+* dns: Implement prefix lookups for DNS TTL. [[GH-4605](https://github.com/hashicorp/consul/issues/4605)]
+* ui: Add JSON and YAML linting to the KV code editor [[GH-4814](https://github.com/hashicorp/consul/pull/4814)]
+
+## 1.3.0 (October 11, 2018)
+
+FEATURES:
+
+* **Connect Envoy Support**: This release includes support for using Envoy as a
+  Proxy with Consul Connect (Beta). Read the [announcement blog
+  post](https://www.hashicorp.com/blog/consul-1-3-envoy) or [reference
+  documentation](https://www.consul.io/docs/connect/proxies/envoy.html)
+  for more detail.
+* **Sidecar Service Registration**: As part of the ongoing Connect Beta we add a
+  new, more convenient way to [register sidecar
+  proxies](https://www.consul.io/docs/connect/proxies/sidecar-service.html)
+  from within a regular service definition.
+* **Deprecating Managed Proxies**: The Connect Beta launched with a feature
+  named "managed proxies". These will no longer be supported in favour of the
+  simpler sidecar service registration. Existing functionality will not be
+  removed until a later major release but will not be supported with fixes. See
+  the [deprecation
+  notice](https://www.consul.io/docs/connect/proxies/managed-deprecated.html)
+  for full details.
+* New command `consul services register` and `consul services deregister` for
+  registering and deregistering services from the command line. [[GH-4732](https://github.com/hashicorp/consul/issues/4732)]
+* api: Service discovery endpoints now support [caching results in the local agent](https://www.consul.io/api/index.html#agent-caching). [[GH-4541](https://github.com/hashicorp/consul/pull/4541)]
+* dns: Added SOA configuration for DNS settings. [[GH-4713](https://github.com/hashicorp/consul/issues/4713)]
+
+IMPROVEMENTS:
+
+* ui: Improve layout of node 'cards' by restricting the grid layout to a maximum of 4 columns [[GH-4761]](https://github.com/hashicorp/consul/pull/4761)
+* ui: Load the TextEncoder/Decoder polyfill dynamically so it's not downloaded to browsers with native support [[GH-4767](https://github.com/hashicorp/consul/pull/4767)]
+* cli: `consul connect proxy` now supports a [`--sidecar-for`
+  option](https://www.consul.io/docs/commands/connect/proxy.html#sidecar-for) to
+  allow simple integration with new sidecar service registrations.
+* api: /health and /catalog endpoints now support filtering by multiple tags [[GH-1781](https://github.com/hashicorp/consul/issues/1781)]
+* agent: Only update service `ModifyIndex` when it's state actually changes. This makes service watches much more efficient on large clusters. [[GH-4720](https://github.com/hashicorp/consul/pull/4720)]
+* config: Operators can now enable script checks from local config files only. [[GH-4711](https://github.com/hashicorp/consul/issues/4711)]
+
+BUG FIXES:
+
+* agent: (Consul Enterprise) Fixed an issue where the `non_voting_server` setting could be ignored when bootstrapping the cluster. [[GH-4699](https://github.com/hashicorp/consul/pull/4699)]
+* cli: forward SIGTERM to child process of 'lock' and 'watch' subcommands [[GH-4737](https://github.com/hashicorp/consul/pull/4737)]
+* connect: Fix to ensure leaf certificates for a service are not shared between clients on the same agent using different ACL tokens [[GH-4736](https://github.com/hashicorp/consul/pull/4736)]
+* ui: Ensure service names that contain slashes are displayable [[GH-4756]](https://github.com/hashicorp/consul/pull/4756)
+* watch: Fix issue with HTTPs only agents not executing watches properly. [[GH-4727](https://github.com/hashicorp/consul/pull/4727)]
 
 ## 1.2.3 (September 13, 2018)
 

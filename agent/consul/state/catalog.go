@@ -430,6 +430,11 @@ func (s *Store) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) err
 	// Get the indexes.
 	if n != nil {
 		node.CreateIndex = n.CreateIndex
+		node.ModifyIndex = n.ModifyIndex
+		// We do not need to update anything
+		if node.IsSame(n) {
+			return nil
+		}
 		node.ModifyIndex = idx
 	} else {
 		node.CreateIndex = idx
@@ -687,14 +692,6 @@ func (s *Store) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *st
 	// conversion doesn't populate any of the node-specific information.
 	// That's always populated when we read from the state store.
 	entry := svc.ToServiceNode(node)
-	if existing != nil {
-		entry.CreateIndex = existing.(*structs.ServiceNode).CreateIndex
-		entry.ModifyIndex = idx
-	} else {
-		entry.CreateIndex = idx
-		entry.ModifyIndex = idx
-	}
-
 	// Get the node
 	n, err := tx.First("nodes", "id", node)
 	if err != nil {
@@ -703,6 +700,21 @@ func (s *Store) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *st
 	if n == nil {
 		return ErrMissingNode
 	}
+	if existing != nil {
+		serviceNode := existing.(*structs.ServiceNode)
+		entry.CreateIndex = serviceNode.CreateIndex
+		entry.ModifyIndex = serviceNode.ModifyIndex
+		// We cannot return here because: we want to keep existing behaviour (ex: failed node lookup -> ErrMissingNode)
+		// It might be modified in future, but it requires changing many unit tests
+		// Enforcing saving the entry also ensures that if we add default values in .ToServiceNode()
+		// those values will be saved even if node is not really modified for a while.
+		if entry.IsSameService(serviceNode) {
+			return nil
+		}
+	} else {
+		entry.CreateIndex = idx
+	}
+	entry.ModifyIndex = idx
 
 	// Insert the service and update the index
 	if err := tx.Insert("services", entry); err != nil {
@@ -897,8 +909,8 @@ func (s *Store) serviceNodes(ws memdb.WatchSet, serviceName string, connect bool
 }
 
 // ServiceTagNodes returns the nodes associated with a given service, filtering
-// out services that don't contain the given tag.
-func (s *Store) ServiceTagNodes(ws memdb.WatchSet, service string, tag string) (uint64, structs.ServiceNodes, error) {
+// out services that don't contain the given tags.
+func (s *Store) ServiceTagNodes(ws memdb.WatchSet, service string, tags []string) (uint64, structs.ServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -916,7 +928,7 @@ func (s *Store) ServiceTagNodes(ws memdb.WatchSet, service string, tag string) (
 	var results structs.ServiceNodes
 	for service := services.Next(); service != nil; service = services.Next() {
 		svc := service.(*structs.ServiceNode)
-		if !serviceTagFilter(svc, tag) {
+		if !serviceTagsFilter(svc, tags) {
 			results = append(results, svc)
 		}
 	}
@@ -943,6 +955,20 @@ func serviceTagFilter(sn *structs.ServiceNode, tag string) bool {
 
 	// If we didn't hit the tag above then we should filter.
 	return true
+}
+
+// serviceTagsFilter returns true (should filter) if the given service node
+// doesn't contain the given set of tags.
+func serviceTagsFilter(sn *structs.ServiceNode, tags []string) bool {
+	for _, tag := range tags {
+		if serviceTagFilter(sn, tag) {
+			// If any one of the expected tags was not found, filter the service
+			return true
+		}
+	}
+
+	// If all tags were found, don't filter the service
+	return false
 }
 
 // ServiceAddressNodes returns the nodes associated with a given service, filtering
@@ -1236,8 +1262,9 @@ func (s *Store) ensureCheckTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthChec
 
 	// Set the indexes
 	if existing != nil {
-		hc.CreateIndex = existing.(*structs.HealthCheck).CreateIndex
-		hc.ModifyIndex = idx
+		existingCheck := existing.(*structs.HealthCheck)
+		hc.CreateIndex = existingCheck.CreateIndex
+		hc.ModifyIndex = existingCheck.ModifyIndex
 	} else {
 		hc.CreateIndex = idx
 		hc.ModifyIndex = idx
@@ -1257,6 +1284,7 @@ func (s *Store) ensureCheckTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthChec
 		return ErrMissingNode
 	}
 
+	modified := true
 	// If the check is associated with a service, check that we have
 	// a registration for the service.
 	if hc.ServiceID != "" {
@@ -1272,14 +1300,24 @@ func (s *Store) ensureCheckTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthChec
 		svc := service.(*structs.ServiceNode)
 		hc.ServiceName = svc.ServiceName
 		hc.ServiceTags = svc.ServiceTags
-		if err = tx.Insert("index", &IndexEntry{serviceIndexName(svc.ServiceName), idx}); err != nil {
-			return fmt.Errorf("failed updating index: %s", err)
+		if existing != nil && existing.(*structs.HealthCheck).IsSame(hc) {
+			modified = false
+		} else {
+			// Check has been modified, we trigger a index service change
+			if err = tx.Insert("index", &IndexEntry{serviceIndexName(svc.ServiceName), idx}); err != nil {
+				return fmt.Errorf("failed updating index: %s", err)
+			}
 		}
 	} else {
-		// Update the status for all the services associated with this node
-		err = s.updateAllServiceIndexesOfNode(tx, idx, hc.Node)
-		if err != nil {
-			return err
+		if existing != nil && existing.(*structs.HealthCheck).IsSame(hc) {
+			modified = false
+		} else {
+			// Since the check has been modified, it impacts all services of node
+			// Update the status for all the services associated with this node
+			err = s.updateAllServiceIndexesOfNode(tx, idx, hc.Node)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -1302,6 +1340,13 @@ func (s *Store) ensureCheckTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthChec
 				return fmt.Errorf("failed deleting session: %s", err)
 			}
 		}
+	}
+	if modified {
+		// We update the modify index, ONLY if something has changed, thus
+		// With constant output, no change is seen when watching a service
+		// With huge number of nodes where anti-entropy updates continuously
+		// the checks, but not the values within the check
+		hc.ModifyIndex = idx
 	}
 
 	// Persist the check registration in the db.
@@ -1614,7 +1659,7 @@ func (s *Store) checkServiceNodes(ws memdb.WatchSet, serviceName string, connect
 
 // CheckServiceTagNodes is used to query all nodes and checks for a given
 // service, filtering out services that don't contain the given tag.
-func (s *Store) CheckServiceTagNodes(ws memdb.WatchSet, serviceName, tag string) (uint64, structs.CheckServiceNodes, error) {
+func (s *Store) CheckServiceTagNodes(ws memdb.WatchSet, serviceName string, tags []string) (uint64, structs.CheckServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -1632,7 +1677,7 @@ func (s *Store) CheckServiceTagNodes(ws memdb.WatchSet, serviceName, tag string)
 	var results structs.ServiceNodes
 	for service := iter.Next(); service != nil; service = iter.Next() {
 		svc := service.(*structs.ServiceNode)
-		if !serviceTagFilter(svc, tag) {
+		if !serviceTagsFilter(svc, tags) {
 			results = append(results, svc)
 		}
 	}

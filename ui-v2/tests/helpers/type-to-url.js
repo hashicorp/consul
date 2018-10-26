@@ -19,6 +19,12 @@ export default function(type) {
     case 'session':
       requests = ['/v1/session/node/'];
       break;
+    case 'policy':
+      requests = ['/v1/acl/policies', '/v1/acl/policy/'];
+      break;
+    case 'token':
+      requests = ['/v1/acl/tokens', '/v1/acl/token/'];
+      break;
   }
   // TODO: An instance of URL should come in here (instead of 2 args)
   return function(url, method) {

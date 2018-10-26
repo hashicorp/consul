@@ -1,4 +1,5 @@
 %tab-section {
+  /* this keeps in-tab-section toolbars flush to the top, see Node Detail > Services */
   margin-top: 0 !important;
 }
 @media #{$--horizontal-tabs} {
@@ -6,12 +7,9 @@
     display: flex;
     align-items: center;
   }
-  %tab-nav ul li:not(:first-child) {
-    margin-left: 37px;
-  }
   %tab-nav a {
-    padding-left: 5px;
-    padding-right: 5px;
+    padding-left: 16px;
+    padding-right: 16px;
   }
 }
 @media #{$--lt-horizontal-tabs} {
@@ -21,10 +19,9 @@
 }
 %tab-nav a {
   display: block;
-  padding-top: 12px;
-  padding-bottom: 12px;
+  padding-top: 13px;
+  padding-bottom: 13px;
 }
-%tab-nav input[type='radio'],
 %tab-section > input[type='radio'],
 %tab-section > input[type='radio'] + * {
   display: none;

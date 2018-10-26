@@ -6,7 +6,7 @@ description: |-
   This guide describes how to run Consul on containers, with Docker as the primary focus. It also describes best practices when running a Consul cluster in production on Docker.
 ---
 
-## Consul with Containers
+# Consul with Containers
 This guide describes critical aspects of operating a Consul cluster that's run inside containers. It primarily focuses on the Docker container runtime, but the principles largely apply to rkt, oci, and other container runtimes as well.
 
 ## Consul Official Docker Image

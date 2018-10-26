@@ -1,15 +1,24 @@
 import Adapter from './application';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/service';
 import { OK as HTTP_OK } from 'consul-ui/utils/http/status';
+const URL_PREFIX_SINGLE = 'health/service';
+const URL_PREFIX_MULTIPLE = 'internal/ui/services';
 export default Adapter.extend({
   urlForQuery: function(query, modelName) {
-    return this.appendURL('internal/ui/services', [], this.cleanQuery(query));
+    return this.appendURL(URL_PREFIX_MULTIPLE, [], this.cleanQuery(query));
   },
   urlForQueryRecord: function(query, modelName) {
     if (typeof query.id === 'undefined') {
       throw new Error('You must specify an id');
     }
-    return this.appendURL('health/service', [query.id], this.cleanQuery(query));
+    return this.appendURL(URL_PREFIX_SINGLE, [query.id], this.cleanQuery(query));
+  },
+  isQueryRecord: function(url, method) {
+    // services can have slashes in them
+    // so just check for the prefix which is
+    // unique to the url here
+    const parts = url.pathname.split('/');
+    return `${parts[2]}/${parts[3]}` === URL_PREFIX_SINGLE;
   },
   handleResponse: function(status, headers, payload, requestData) {
     let response = payload;

@@ -26,12 +26,13 @@ perform [anti-entropy](/docs/internals/anti-entropy.html).
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required               |
-| ---------------- | ----------------- | -------------------------- |
-| `NO`             | `none`            | `node:write,service:write` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required              |
+| ---------------- | ----------------- | ------------- | ------------------------- |
+| `NO`             | `none`            | `none`        |`node:write,service:write` |
 
 ### Parameters
 
@@ -150,12 +151,13 @@ perform [anti-entropy](/docs/internals/anti-entropy.html).
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required               |
-| ---------------- | ----------------- | -------------------------- |
-| `NO`             | `none`            | `node:write,service:write` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required               |
+| ---------------- | ----------------- | ------------- | -------------------------- |
+| `NO`             | `none`            | `none`        | `node:write,service:write` |
 
 ### Parameters
 
@@ -223,12 +225,13 @@ Consul servers are routable.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required |
-| ---------------- | ----------------- | ------------ |
-| `NO`             | `none`            | `none`       |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`             | `none`            | `none`        | `none`       |
 
 ### Sample Request
 
@@ -253,12 +256,13 @@ This endpoint and returns the nodes registered in a given datacenter.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required |
-| ---------------- | ----------------- | ------------ |
-| `YES`            | `all`             | `node:read`  |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `YES`            | `all`             | `none`        | `node:read`  |
 
 ### Parameters
 
@@ -326,12 +330,13 @@ This endpoint returns the services registered in a given datacenter.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required   |
-| ---------------- | ----------------- | -------------- |
-| `YES`            | `all`             | `service:read` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
+| ---------------- | ----------------- | ------------- | -------------- |
+| `YES`            | `all`             | `none`        | `service:read` |
 
 ### Parameters
 
@@ -377,12 +382,13 @@ This endpoint returns the nodes providing a service in a given datacenter.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required             |
-| ---------------- | ----------------- | ------------------------ |
-| `YES`            | `all`             | `node:read,service:read` |
+| Blocking Queries | Consistency Modes | Agent Caching        | ACL Required             |
+| ---------------- | ----------------- | -------------------- | ------------------------ |
+| `YES`            | `all`             | `background refresh` | `node:read,service:read` |
 
 ### Parameters
 
@@ -393,7 +399,9 @@ The table below shows this endpoint's support for
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter.
 
-- `tag` `(string: "")` - Specifies the tag to filter on.
+- `tag` `(string: "")` - Specifies the tag to filter on. This is specified as part of 
+  the URL as a query parameter. Can be used multiple times for additional filtering,
+  returning only the results that include all of the tag values provided.
 
 - `near` `(string: "")` - Specifies a node name to sort the node list in
   ascending order based on the estimated round trip time from that node. Passing
@@ -440,7 +448,20 @@ $ curl \
     },
     "ServiceTags": [
       "tacos"
-    ]
+    ],
+    "ServiceProxyDestination": "",
+    "ServiceProxy": {
+        "DestinationServiceName": "",
+        "DestinationServiceID": "",
+        "LocalServiceAddress": "",
+        "LocalServicePort": 0,
+        "Config": null,
+        "Upstreams": null
+    },
+    "ServiceConnect": {
+        "Native": false,
+        "Proxy": null
+    },
   }
 ]
 ```
@@ -482,11 +503,16 @@ $ curl \
 - `ServiceKind` is the kind of service, usually "". See the Agent
   registration API for more information.
 
-- `ServiceProxyDestination` is the name of the service that is being proxied,
-  for "connect-proxy" type services.
+- `ServiceProxyDestination` **Deprecated** this field duplicates
+  `ServiceProxy.DestinationServiceName` for backwards compatibility. It will be
+  removed in a future major version release.
+
+- `ServiceProxy` is the proxy config as specified in
+[Connect Proxies](/docs/connect/proxies.html).
 
 - `ServiceConnect` are the [Connect](/docs/connect/index.html) settings. The
-  value of this struct is equivalent to the `Connect` field for service registration.
+  value of this struct is equivalent to the `Connect` field for service
+  registration.
 
 ## List Nodes for Connect-capable Service
 
@@ -511,17 +537,15 @@ This endpoint returns the node's registered services.
 | ------ | ---------------------------- | -------------------------- |
 | `GET`  | `/catalog/node/:node`        | `application/json`         |
 
-The table below shows this endpoint's support for blocking queries and
-consistency modes.
-
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required             |
-| ---------------- | ----------------- | ------------------------ |
-| `YES`            | `all`             | `node:read,service:read` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required             |
+| ---------------- | ----------------- | ------------- | ------------------------ |
+| `YES`            | `all`             | `none`        | `node:read,service:read` |
 
 ### Parameters
 

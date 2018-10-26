@@ -25,12 +25,13 @@ This endpoint returns the checks specific to the node provided on the path.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required             |
-| ---------------- | ----------------- | ------------------------ |
-| `YES`            | `all`             | `node:read,service:read` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required             |
+| ---------------- | ----------------- | ------------- | ------------------------ |
+| `YES`            | `all`             | `none`        | `node:read,service:read` |
 
 ### Parameters
 
@@ -90,12 +91,13 @@ path.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required             |
-| ---------------- | ----------------- | ------------------------ |
-| `YES`            | `all`             | `node:read,service:read` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required             |
+| ---------------- | ----------------- | ------------- | ------------------------ |
+| `YES`            | `all`             | `none`        | `node:read,service:read` |
 
 ### Parameters
 
@@ -153,12 +155,13 @@ incorporating the use of health checks.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required             |
-| ---------------- | ----------------- | ------------------------ |
-| `YES`            | `all`             | `node:read,service:read` |
+| Blocking Queries | Consistency Modes | Agent Caching        | ACL Required             |
+| ---------------- | ----------------- | -------------------- | ------------------------ |
+| `YES`            | `all`             | `background refresh` | `node:read,service:read` |
 
 ### Parameters
 
@@ -175,7 +178,9 @@ The table below shows this endpoint's support for
   part of the URL as a query parameter.
 
 - `tag` `(string: "")` - Specifies the tag to filter the list. This is
-  specifies as part of the URL as a query parameter.
+  specified as part of the URL as a query parameter. Can be used multiple times 
+  for additional filtering, returning only the results that include all of the tag 
+  values provided.
 
 - `node-meta` `(string: "")` - Specifies a desired node metadata key/value pair
   of the form `key:value`. This parameter can be specified multiple times, and
@@ -219,7 +224,11 @@ $ curl \
       "Meta": {
         "redis_version": "4.0"
       },
-      "Port": 8000
+      "Port": 8000,
+      "Weights": {
+        "Passing": 10,
+        "Warning": 1
+      }
     },
     "Checks": [
       {
@@ -274,12 +283,13 @@ This endpoint returns the checks in the state provided on the path.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required             |
-| ---------------- | ----------------- | ------------------------ |
-| `YES`            | `all`             | `node:read,service:read` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required             |
+| ---------------- | ----------------- | ------------- | ------------------------ |
+| `YES`            | `all`             | `none`        | `node:read,service:read` |
 
 ### Parameters
 

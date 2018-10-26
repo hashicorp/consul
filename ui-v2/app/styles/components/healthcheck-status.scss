@@ -12,3 +12,24 @@
 %healthcheck-status.critical {
   @extend %with-critical;
 }
+@media #{$--lt-spacious-healthcheck-status} {
+  .healthcheck-status button.copy-btn {
+    margin-top: -11px;
+    margin-right: -18px;
+    padding: 0;
+    width: 20px;
+    visibility: hidden;
+  }
+  %healthcheck-status {
+    padding-left: 30px;
+    padding-top: 10px;
+    padding-bottom: 15px;
+    padding-right: 13px;
+  }
+  %healthcheck-status::before {
+    width: 15px !important;
+    height: 15px !important;
+    left: 9px;
+    top: 13px !important;
+  }
+}

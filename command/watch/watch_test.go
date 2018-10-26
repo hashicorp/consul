@@ -57,3 +57,23 @@ func TestWatchCommandNoConnect(t *testing.T) {
 		t.Fatalf("bad: %#v", ui.ErrorWriter.String())
 	}
 }
+
+func TestWatchCommandNoAgentService(t *testing.T) {
+	t.Parallel()
+	a := agent.NewTestAgent(t.Name(), ``)
+	defer a.Shutdown()
+
+	ui := cli.NewMockUi()
+	c := New(ui, nil)
+	args := []string{"-http-addr=" + a.HTTPAddr(), "-type=agent_service"}
+
+	code := c.Run(args)
+	if code != 1 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+
+	if !strings.Contains(ui.ErrorWriter.String(),
+		"Type agent_service is not supported in the CLI tool") {
+		t.Fatalf("bad: %#v", ui.ErrorWriter.String())
+	}
+}

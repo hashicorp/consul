@@ -27,12 +27,13 @@ configuration files.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required |
-| ---------------- | ----------------- | ------------ |
-| `NO`             | `none`            | `none`       |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`             | `none`            | `none`        | `none`       |
 
 ### Sample Request
 
@@ -68,12 +69,13 @@ This endpoint makes a new ACL token.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required |
-| ---------------- | ----------------- | ------------ |
-| `NO`             | `none`            | `management` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`             | `none`            | `none`        | `management` |
 
 ### Parameters
 
@@ -126,12 +128,13 @@ generating a new token ID, the `ID` field must be provided.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required |
-| ---------------- | ----------------- | ------------ |
-| `NO`             | `none`            | `management` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`             | `none`            | `none`        | `management` |
 
 ### Parameters
 
@@ -158,6 +161,14 @@ $ curl \
     http://127.0.0.1:8500/v1/acl/update
 ```
 
+### Sample Response
+
+```json
+{
+  "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
+}
+```
+
 ## Delete ACL Token
 
 This endpoint deletes an ACL token with the given ID.
@@ -166,14 +177,17 @@ This endpoint deletes an ACL token with the given ID.
 | ------ | ---------------------------- | -------------------------- |
 | `PUT`  | `/acl/destroy/:uuid`         | `application/json`         |
 
+Even though the return type is application/json, the value is either true or false, indicating whether the delete succeeded.
+
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required |
-| ---------------- | ----------------- | ------------ |
-| `NO`             | `none`            | `management` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`             | `none`            | `none`        | `management` |
 
 ### Parameters
 
@@ -188,6 +202,13 @@ $ curl \
     http://127.0.0.1:8500/v1/acl/destroy/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
 ```
 
+### Sample Response
+
+```json
+true
+```
+
+
 ## Read ACL Token
 
 This endpoint reads an ACL token with the given ID.
@@ -198,12 +219,13 @@ This endpoint reads an ACL token with the given ID.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required |
-| ---------------- | ----------------- | ------------ |
-| `YES`            | `all`             | `none`       |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `YES`            | `all`             | `none`        | `none`       |
 
 Note: No ACL is required because the ACL is specified in the URL path.
 
@@ -246,12 +268,13 @@ complex rule management.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required |
-| ---------------- | ----------------- | ------------ |
-| `NO`             | `none`            | `management` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`             | `none`            | `none`        | `management` |
 
 ### Parameters
 
@@ -284,12 +307,13 @@ This endpoint lists all the active ACL tokens.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required |
-| ---------------- | ----------------- | ------------ |
-| `YES`            | `all`             | `management` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `YES`            | `all`             | `none`        | `management` |
 
 ### Sample Request
 
@@ -328,12 +352,13 @@ section for more details.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required |
-| ---------------- | ----------------- | ------------ |
-| `NO`             | `consistent`      | `none`       |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`             | `consistent`      | `none`        | `none`       |
 
 ### Parameters
 
@@ -369,7 +394,7 @@ $ curl \
 
 - `SourceDatacenter` is the authoritative ACL datacenter that ACLs are being
   replicated from, and will match the
-  [`acl_datacenter`](/docs/agent/options.html#acl_datacenter) configuration.
+  [`primary_datacenter`](/docs/agent/options.html#primary_datacenter) configuration.
 
 - `ReplicatedIndex` is the last index that was successfully replicated. You can
   compare this to the `X-Consul-Index` header returned by the

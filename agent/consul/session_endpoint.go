@@ -34,7 +34,7 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 	}
 
 	// Fetch the ACL token, if any, and apply the policy.
-	rule, err := s.srv.resolveToken(args.Token)
+	rule, err := s.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
@@ -236,7 +236,7 @@ func (s *Session) Renew(args *structs.SessionSpecificRequest,
 	}
 
 	// Fetch the ACL token, if any, and apply the policy.
-	rule, err := s.srv.resolveToken(args.Token)
+	rule, err := s.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}

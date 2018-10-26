@@ -12,6 +12,7 @@
         <h1>
           {{ item.Node }}
         </h1>
+        <label for="toolbar-toggle"></label>
         {{tab-nav
             items=(compact
               (array
@@ -31,13 +32,13 @@
                     {{item.Address}}
                 {{/copy-button}}
             {{/block-slot}}
-            {{#block-slot 'success'}}
-                <p>
+            {{#block-slot 'success' as |transition|}}
+                <p class={{transition}}>
                     Copied IP Address!
                 </p>
             {{/block-slot}}
-            {{#block-slot 'error'}}
-                <p>
+            {{#block-slot 'error' as |transition|}}
+                <p class={{transition}}>
                     Sorry, something went wrong!
                 </p>
             {{/block-slot}}
