@@ -6,6 +6,7 @@ import qsaFactory from 'consul-ui/utils/dom/qsa-factory';
 // TODO: Move to utils/dom
 import getComponentFactory from 'consul-ui/utils/get-component-factory';
 import normalizeEvent from 'consul-ui/utils/dom/normalize-event';
+import createListeners from 'consul-ui/utils/dom/create-listeners';
 
 // ember-eslint doesn't like you using a single $ so use double
 // use $_ for components
@@ -20,6 +21,7 @@ export default Service.extend({
   normalizeEvent: function() {
     return normalizeEvent(...arguments);
   },
+  listeners: createListeners,
   root: function() {
     return get(this, 'doc').documentElement;
   },

@@ -1,28 +1,27 @@
+import Component from '@ember/component';
 import Mixin from '@ember/object/mixin';
+import { inject as service } from '@ember/service';
+import { get } from '@ember/object';
 
 export default Mixin.create({
+  dom: service('dom'),
   init: function() {
     this._super(...arguments);
-    this._listeners = [];
+    this._listeners = get(this, 'dom').listeners();
+    let method = 'willDestroy';
+    if (this instanceof Component) {
+      method = 'willDestroyElement';
+    }
+    const destroy = this[method];
+    this[method] = function() {
+      destroy(...arguments);
+      this.removeListeners();
+    };
   },
   listen: function(target, event, handler) {
-    let addEventListener = 'addEventListener';
-    let removeEventListener = 'removeEventListener';
-    if (typeof target[addEventListener] === 'undefined') {
-      addEventListener = 'on';
-      removeEventListener = 'off';
-    }
-    target[addEventListener](event, handler);
-    this._listeners.push(function() {
-      target[removeEventListener](event, handler);
-    });
-    return this._listeners.length;
+    return this._listeners.add(...arguments);
   },
-  ignoreAll: function() {
-    this._listeners.forEach(function(item) {
-      item();
-    });
-    // temporarily remove all listeners for now
-    this._listeners = [];
+  removeListeners: function() {
+    return this._listeners.remove(...arguments);
   },
 });

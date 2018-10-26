@@ -1,8 +1,8 @@
 import Mixin from '@ember/object/mixin';
-
 import { inject as service } from '@ember/service';
 import { get, set } from '@ember/object';
 import WithListeners from 'consul-ui/mixins/with-listeners';
+
 export default Mixin.create(WithListeners, {
   builder: service('search'),
   init: function() {
@@ -17,9 +17,5 @@ export default Mixin.create(WithListeners, {
         set(this, key, value === '' ? null : value);
       });
     });
-  },
-  willDestroy: function() {
-    this._super(...arguments);
-    this.ignoreAll();
   },
 });

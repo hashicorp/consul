@@ -7,7 +7,7 @@ export default Component.extend(WithListeners, SlotsMixin, {
   tagName: '',
   didReceiveAttrs: function() {
     this._super(...arguments);
-    this.ignoreAll();
+    this.removeListeners();
     const dispatcher = get(this, 'dispatcher');
     if (dispatcher) {
       this.listen(dispatcher, 'change', e => {
@@ -15,9 +15,5 @@ export default Component.extend(WithListeners, SlotsMixin, {
       });
       set(this, 'items', get(dispatcher, 'data'));
     }
-  },
-  willDestroyElement: function() {
-    this._super(...arguments);
-    this.ignoreAll();
   },
 });
