@@ -6,7 +6,7 @@ import WithBlockingActions from 'consul-ui/mixins/with-blocking-actions';
 export default Route.extend(WithBlockingActions, {
   settings: service('settings'),
   feedback: service('feedback'),
-  repo: service('tokens'),
+  repo: service('repository/token'),
   actions: {
     authorize: function(secret) {
       const dc = this.modelFor('dc').dc.Name;

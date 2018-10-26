@@ -3,7 +3,7 @@ import { moduleFor, test } from 'ember-qunit';
 moduleFor('route:dc/acls', 'Unit | Route | dc/acls', {
   // Specify the other units that are required for this test.
   needs: [
-    'service:tokens',
+    'service:repository/token',
     'service:feedback',
     'service:logger',
     'service:settings',

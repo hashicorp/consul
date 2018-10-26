@@ -4,7 +4,7 @@ import { hash } from 'rsvp';
 import { get } from '@ember/object';
 import WithTokenActions from 'consul-ui/mixins/token/with-actions';
 export default Route.extend(WithTokenActions, {
-  repo: service('tokens'),
+  repo: service('repository/token'),
   settings: service('settings'),
   queryParams: {
     s: {

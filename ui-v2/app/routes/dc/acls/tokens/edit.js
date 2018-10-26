@@ -9,13 +9,13 @@ import WithTokenActions from 'consul-ui/mixins/token/with-actions';
 const ERROR_PARSE_RULES = 'Failed to parse ACL rules';
 const ERROR_NAME_EXISTS = 'Invalid Policy: A Policy with Name';
 export default SingleRoute.extend(WithTokenActions, {
-  repo: service('tokens'),
-  policiesRepo: service('policies'),
-  datacenterRepo: service('dc'),
+  repo: service('repository/token'),
+  policyRepo: service('repository/policy'),
+  datacenterRepo: service('repository/dc'),
   settings: service('settings'),
   model: function(params, transition) {
     const dc = this.modelFor('dc').dc.Name;
-    const policiesRepo = get(this, 'policiesRepo');
+    const policyRepo = get(this, 'policyRepo');
     return this._super(...arguments).then(model => {
       return hash({
         ...model,
@@ -24,7 +24,7 @@ export default SingleRoute.extend(WithTokenActions, {
           datacenters: get(this, 'datacenterRepo').findAll(),
           policy: this.getEmptyPolicy(),
           token: get(this, 'settings').findBySlug('token'),
-          items: policiesRepo.findAllByDatacenter(dc).catch(function(e) {
+          items: policyRepo.findAllByDatacenter(dc).catch(function(e) {
             switch (get(e, 'errors.firstObject.status')) {
               case '403':
               case '401':
@@ -43,12 +43,12 @@ export default SingleRoute.extend(WithTokenActions, {
   },
   getEmptyPolicy: function() {
     const dc = this.modelFor('dc').dc.Name;
-    return get(this, 'policiesRepo').create({ Datacenter: dc });
+    return get(this, 'policyRepo').create({ Datacenter: dc });
   },
   actions: {
     // TODO: Some of this could potentially be moved to the repo services
     loadPolicy: function(item, items) {
-      const repo = get(this, 'policiesRepo');
+      const repo = get(this, 'policyRepo');
       const dc = this.modelFor('dc').dc.Name;
       const slug = get(item, repo.getSlugKey());
       repo.findBySlug(slug, dc).then(item => {
@@ -68,7 +68,7 @@ export default SingleRoute.extend(WithTokenActions, {
       });
     },
     createPolicy: function(item, policies, success) {
-      get(this, 'policiesRepo')
+      get(this, 'policyRepo')
         .persist(item)
         .then(item => {
           set(item, 'CreateTime', new Date().getTime());

@@ -13,7 +13,7 @@ moduleFor('mixin:token/with-actions', 'Unit | Mixin | token/with actions', {
     'service:flashMessages',
     'service:logger',
     'service:settings',
-    'service:tokens',
+    'service:repository/token',
   ],
   subject: function() {
     const MixedIn = Route.extend(Mixin);

@@ -6,7 +6,7 @@ import { get } from '@ember/object';
 import WithPolicyActions from 'consul-ui/mixins/policy/with-actions';
 
 export default Route.extend(WithPolicyActions, {
-  repo: service('policies'),
+  repo: service('repository/policy'),
   queryParams: {
     s: {
       as: 'filter',

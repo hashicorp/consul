@@ -1,8 +1,8 @@
 import { moduleFor, test } from 'ember-qunit';
 
-moduleFor('service:repository/acl', 'Unit | Service | acl', {
+moduleFor('service:repository/token', 'Unit | Service | token', {
   // Specify the other units that are required for this test.
-  // needs: ['service:foo']
+  needs: ['service:store'],
 });
 
 // Replace this with your real tests.
