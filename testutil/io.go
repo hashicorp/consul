@@ -39,6 +39,9 @@ func TempDir(t *testing.T, name string) string {
 	name = strings.Replace(name, "/", "_", -1)
 	d, err := ioutil.TempDir(tmpdir, name)
 	if err != nil {
+		if t == nil {
+			panic(err)
+		}
 		t.Fatalf("err: %s", err)
 	}
 	return d
@@ -55,6 +58,9 @@ func TempFile(t *testing.T, name string) *os.File {
 	}
 	f, err := ioutil.TempFile(tmpdir, name)
 	if err != nil {
+		if t == nil {
+			panic(err)
+		}
 		t.Fatalf("err: %s", err)
 	}
 	return f
