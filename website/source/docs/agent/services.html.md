@@ -30,6 +30,7 @@ example shows all possible fields, but note that only a few are required.
 ```javascript
 {
   "service": {
+    "id": "redis",
     "name": "redis",
     "tags": ["primary"],
     "address": "",
