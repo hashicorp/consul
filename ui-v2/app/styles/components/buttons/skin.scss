@@ -30,6 +30,7 @@
 }
 %copy-button:hover:not(:disabled):not(:active),
 %copy-button:focus {
+  /*frame-grey frame-blue*/
   color: $color-action;
   background-color: $gray-050;
 }
@@ -52,25 +53,19 @@
   @extend %frame-blue-900;
 }
 /**/
-%secondary-button {
-  /* %frame-gray-something */
-  color: $gray-800;
-  background-color: $gray-050;
-  border-color: $gray-300;
-  border-style: solid;
-}
 %secondary-button:hover:not(:disabled):not(:active),
 %secondary-button:focus {
-  /* %frame-gray-something */
-  background-color: $white;
-  color: $gray-800;
-  border-color: $gray-700;
+  @extend %frame-gray-300;
+}
+%secondary-button {
+  @extend %frame-gray-400;
 }
 %secondary-button:disabled {
   color: $gray-600;
 }
 %secondary-button:active {
   /* %frame-gray-something */
+  @extend %frame-gray-700;
   background-color: $gray-200;
   color: $gray-800;
   border-color: $gray-700;

@@ -2,6 +2,7 @@
   @extend %toggle-button;
 }
 %action-group input[type='radio']:checked + label:first-of-type {
+  /* frame-gray */
   background-color: $gray-050;
 }
 %action-group label {
@@ -26,8 +27,7 @@
   border-color: $color-action;
 }
 %action-group li a:hover {
-  background-color: $color-action;
-  color: $white;
+  @extend %frame-blue-800;
 }
 %action-group ul,
 %action-group ul::before {

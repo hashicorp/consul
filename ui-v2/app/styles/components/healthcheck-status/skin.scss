@@ -13,7 +13,7 @@
   color: $white;
 }
 %healthcheck-status.passing {
-  /* TODO: this should be a gray frame */
+  /* TODO: this should be a frame-gray */
   // @extend %frame-green-500;
   color: $gray-900;
   border-color: $gray-200;

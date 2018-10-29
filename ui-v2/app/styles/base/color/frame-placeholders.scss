@@ -6,6 +6,78 @@
   /* same as decor-border-000 - but need to think about being able to import color on its own*/
   border-style: solid;
 }
+
+/* possibly filter bar */
+/* modal close button */
+%frame-gray-050 {
+  @extend %frame-border-000;
+  background-color: $gray-050;
+  border-color: $gray-300;
+  color: $gray-400;
+}
+/* modal main content */
+%frame-gray-100 {
+  @extend %frame-border-000;
+  background-color: $white;
+  border-color: $gray-300;
+  color: $gray-600; /*  wasn't set */
+}
+/* hover */
+%frame-gray-200 {
+  @extend %frame-border-000;
+  background-color: $transparent;
+  border-color: $gray-700;
+  color: $gray-800;
+}
+%frame-gray-300 {
+  @extend %frame-border-000;
+  background-color: $white;
+  border-color: $gray-700;
+  color: $gray-800;
+}
+/* button */
+/**/
+%frame-gray-400 {
+  @extend %frame-border-000;
+  background-color: $gray-050;
+  border-color: $gray-300;
+  color: $gray-800;
+}
+%frame-gray-500 {
+  @extend %frame-border-000;
+  background-color: $gray-050;
+  border-color: $gray-300;
+  color: $gray-400;
+}
+
+/* tabs */
+%frame-gray-600 {
+  @extend %frame-border-000;
+  background-color: $gray-100;
+  border-color: $gray-500;
+  color: $gray-500;
+}
+/* active */
+%frame-gray-700 {
+  @extend %frame-border-000;
+  background-color: $gray-200;
+  border-color: $gray-700;
+  color: $gray-800;
+}
+/* modal bars */
+%frame-gray-800 {
+  @extend %frame-border-000;
+  background-color: $gray-050;
+  border-color: $gray-300;
+  color: $gray-900;
+}
+%frame-gray-900 {
+  @extend %frame-border-000;
+  background-color: $gray-100;
+  border-color: $gray-300;
+  color: $gray-900;
+}
+
 %frame-yellow-500 {
   @extend %frame-border-000;
   background-color: $yellow-050;
@@ -17,11 +89,11 @@
   border-color: $green-500;
   color: $green-500;
 }
-%frame-gray-500 {
+%frame-blue-500 {
   @extend %frame-border-000;
-  background-color: $gray-050;
-  border-color: $gray-300;
-  color: $gray-400;
+  background-color: $blue-050;
+  border-color: $blue-500;
+  color: $blue-800;
 }
 %frame-blue-600 {
   @extend %frame-border-000;

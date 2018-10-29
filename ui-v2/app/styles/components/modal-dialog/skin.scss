@@ -12,10 +12,7 @@
 }
 %modal-window > footer,
 %modal-window > header {
-  /*%frame-gray-000*/
-  border: 0 solid;
-  background-color: $gray-050;
-  border-color: $gray-300;
+  @extend %frame-gray-800;
 }
 %modal-window > footer {
   border-top-width: 1px;
@@ -34,7 +31,7 @@
   background-size: 80%;
 
   cursor: pointer;
-  /*%frame-gray-000*/
+  /*%frame-gray-050??*/
   background-color: $gray-050;
   border: $decor-border-100;
   border-color: $gray-300;
