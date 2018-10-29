@@ -167,7 +167,7 @@ func TestCache(t *testing.T) {
 		state := request.Request{W: nil, Req: m}
 
 		mt, _ := response.Typify(m, utc)
-		valid, k := key(m, mt, state.Do())
+		valid, k := key(state.Name(), m, mt, state.Do())
 
 		if valid {
 			crr.set(m, k, mt, c.pttl)
@@ -241,8 +241,7 @@ func BenchmarkCacheResponse(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		req := reqs[j]
 		c.ServeDNS(ctx, &test.ResponseWriter{}, req)
-		j++
-		j = j % 5
+		j = (j + 1) % 5
 	}
 }
 

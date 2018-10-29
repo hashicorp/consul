@@ -2,7 +2,6 @@
 package cache
 
 import (
-	"encoding/binary"
 	"hash/fnv"
 	"net"
 	"time"
@@ -61,10 +60,10 @@ func New() *Cache {
 	}
 }
 
-// Return key under which we store the item, -1 will be returned if we don't store the
-// message.
+// key returns key under which we store the item, -1 will be returned if we don't store the message.
 // Currently we do not cache Truncated, errors zone transfers or dynamic update messages.
-func key(m *dns.Msg, t response.Type, do bool) (bool, uint64) {
+// qname holds the already lowercased qname.
+func key(qname string, m *dns.Msg, t response.Type, do bool) (bool, uint64) {
 	// We don't store truncated responses.
 	if m.Truncated {
 		return false, 0
@@ -74,7 +73,7 @@ func key(m *dns.Msg, t response.Type, do bool) (bool, uint64) {
 		return false, 0
 	}
 
-	return true, hash(m.Question[0].Name, m.Question[0].Qtype, do)
+	return true, hash(qname, m.Question[0].Qtype, do)
 }
 
 var one = []byte("1")
@@ -89,18 +88,9 @@ func hash(qname string, qtype uint16, do bool) uint64 {
 		h.Write(zero)
 	}
 
-	b := make([]byte, 2)
-	binary.BigEndian.PutUint16(b, qtype)
-	h.Write(b)
-
-	for i := range qname {
-		c := qname[i]
-		if c >= 'A' && c <= 'Z' {
-			c += 'a' - 'A'
-		}
-		h.Write([]byte{c})
-	}
-
+	h.Write([]byte{byte(qtype >> 8)})
+	h.Write([]byte{byte(qtype)})
+	h.Write([]byte(qname))
 	return h.Sum64()
 }
 
@@ -167,7 +157,7 @@ func (w *ResponseWriter) WriteMsg(res *dns.Msg) error {
 	}
 
 	// key returns empty string for anything we don't want to cache.
-	hasKey, key := key(res, mt, do)
+	hasKey, key := key(w.state.Name(), res, mt, do)
 
 	msgTTL := dnsutil.MinimalTTL(res, mt)
 	var duration time.Duration
