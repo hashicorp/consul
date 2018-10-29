@@ -70,6 +70,11 @@ import (
 	snapinspect "github.com/hashicorp/consul/command/snapshot/inspect"
 	snaprestore "github.com/hashicorp/consul/command/snapshot/restore"
 	snapsave "github.com/hashicorp/consul/command/snapshot/save"
+	"github.com/hashicorp/consul/command/tls"
+	tlsca "github.com/hashicorp/consul/command/tls/ca"
+	tlscacreate "github.com/hashicorp/consul/command/tls/ca/create"
+	tlscert "github.com/hashicorp/consul/command/tls/cert"
+	tlscertcreate "github.com/hashicorp/consul/command/tls/cert/create"
 	"github.com/hashicorp/consul/command/validate"
 	"github.com/hashicorp/consul/command/version"
 	"github.com/hashicorp/consul/command/watch"
@@ -155,6 +160,11 @@ func init() {
 	Register("snapshot inspect", func(ui cli.Ui) (cli.Command, error) { return snapinspect.New(ui), nil })
 	Register("snapshot restore", func(ui cli.Ui) (cli.Command, error) { return snaprestore.New(ui), nil })
 	Register("snapshot save", func(ui cli.Ui) (cli.Command, error) { return snapsave.New(ui), nil })
+	Register("tls", func(ui cli.Ui) (cli.Command, error) { return tls.New(), nil })
+	Register("tls ca", func(ui cli.Ui) (cli.Command, error) { return tlsca.New(), nil })
+	Register("tls ca create", func(ui cli.Ui) (cli.Command, error) { return tlscacreate.New(ui), nil })
+	Register("tls cert", func(ui cli.Ui) (cli.Command, error) { return tlscert.New(), nil })
+	Register("tls cert create", func(ui cli.Ui) (cli.Command, error) { return tlscertcreate.New(ui), nil })
 	Register("validate", func(ui cli.Ui) (cli.Command, error) { return validate.New(ui), nil })
 	Register("version", func(ui cli.Ui) (cli.Command, error) { return version.New(ui, verHuman), nil })
 	Register("watch", func(ui cli.Ui) (cli.Command, error) { return watch.New(ui, MakeShutdownCh()), nil })

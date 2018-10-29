@@ -80,6 +80,7 @@ func printFlag(w io.Writer, f *flag.Flag) {
 	} else {
 		fmt.Fprintf(w, "  -%s\n", f.Name)
 	}
+	example += fmt.Sprintf(" (%s)", f.Value)
 
 	indented := wrapAtLength(f.Usage, 5)
 	fmt.Fprintf(w, "%s\n\n", indented)
