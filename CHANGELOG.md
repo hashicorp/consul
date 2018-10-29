@@ -31,7 +31,16 @@ from source and destination proxies in any DC.
 IMPROVEMENTS:
 
 * dns: Implement prefix lookups for DNS TTL. [[GH-4605](https://github.com/hashicorp/consul/issues/4605)]
-* ui: Add JSON and YAML linting to the KV code editor [[GH-4814](https://github.com/hashicorp/consul/pull/4814)]
+* ui: Add JSON and YAML linting to the KV code editor. [[GH-4814](https://github.com/hashicorp/consul/pull/4814)]
+* connect: Fix comment DYNAMIC_DNS to LOGICAL_DNS. [[GH-4799](https://github.com/hashicorp/consul/pull/4799)]
+* terraform: fix formatting of consul.tf. [[GH-4580](https://github.com/hashicorp/consul/pull/4580)]
+* website: explain script exit code 1 in health check introduction guide. [[GH-4769](https://github.com/hashicorp/consul/pull/4769)]
+* website: Update deprecated script tag in example. [[GH-4790](https://github.com/hashicorp/consul/pull/4790)]
+* website: update the response json fields for sessions. [[GH-4604](https://github.com/hashicorp/consul/pull/4604)]
+* website: mention node name for "agent/force-leave" HTTP endpoint. [[GH-4542](https://github.com/hashicorp/consul/pull/4542)]
+* website: sync guides list with guides sidebar. [[GH-4831](https://github.com/hashicorp/consul/pull/4831)]
+* website: fix minor typo in documentation. [[GH-4864](https://github.com/hashicorp/consul/pull/4864)]
+* website: broken partial rendering and missing id. [[GH-4862](https://github.com/hashicorp/consul/pull/4862)]
 
 ## 1.3.0 (October 11, 2018)
 
