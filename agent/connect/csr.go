@@ -35,7 +35,7 @@ func CreateCSR(uri CertURI, privateKey crypto.Signer, extensions ...pkix.Extensi
 	return csrBuf.String(), nil
 }
 
-// CreateCSR returns a CA CSR to sign the given service along with the PEM-encoded
+// CreateCACSR returns a CA CSR to sign the given service along with the PEM-encoded
 // private key for this certificate.
 func CreateCACSR(uri CertURI, privateKey crypto.Signer) (string, error) {
 	ext, err := CreateCAExtension()

@@ -2,6 +2,7 @@ package ca
 
 import (
 	"bytes"
+	"crypto"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/x509"
@@ -137,19 +138,27 @@ func (c *ConsulProvider) GenerateRoot() error {
 
 	// Generate a private key if needed
 	newState := *providerState
+	var signer crypto.Signer
 	if c.config.PrivateKey == "" {
-		_, pk, err := connect.GeneratePrivateKey()
+		pk := ""
+		signer, pk, err = connect.GeneratePrivateKey()
 		if err != nil {
 			return err
 		}
 		newState.PrivateKey = pk
 	} else {
 		newState.PrivateKey = c.config.PrivateKey
+		signer, err = connect.ParseSigner(newState.PrivateKey)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Generate the root CA if necessary
 	if c.config.RootCert == "" {
-		ca, err := c.generateCA(newState.PrivateKey, idx+1)
+		sn := &big.Int{}
+		sn.SetUint64(idx + 1)
+		ca, err := c.generateCA(signer, sn)
 		if err != nil {
 			return fmt.Errorf("error generating CA: %v", err)
 		}
@@ -598,56 +607,15 @@ func (c *ConsulProvider) incrementProviderIndex(providerState *structs.CAConsulP
 }
 
 // generateCA makes a new root CA using the current private key
-func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error) {
+func (c *ConsulProvider) generateCA(signer crypto.Signer, sn *big.Int) (string, error) {
 	state := c.Delegate.State()
 	_, config, err := state.CAConfig()
 	if err != nil {
 		return "", err
 	}
 
-	privKey, err := connect.ParseSigner(privateKey)
-	if err != nil {
-		return "", fmt.Errorf("error parsing private key %q: %s", privateKey, err)
-	}
-
-	name := fmt.Sprintf("Consul CA %d", sn)
-
 	// The URI (SPIFFE compatible) for the cert
 	id := connect.SpiffeIDSigningForCluster(config)
-	keyId, err := connect.KeyId(privKey.Public())
-	if err != nil {
-		return "", err
-	}
 
-	// Create the CA cert
-	serialNum := &big.Int{}
-	serialNum.SetUint64(sn)
-	template := x509.Certificate{
-		SerialNumber: serialNum,
-		Subject:      pkix.Name{CommonName: name},
-		URIs:         []*url.URL{id.URI()},
-		BasicConstraintsValid: true,
-		KeyUsage: x509.KeyUsageCertSign |
-			x509.KeyUsageCRLSign |
-			x509.KeyUsageDigitalSignature,
-		IsCA:           true,
-		NotAfter:       time.Now().Add(10 * 365 * 24 * time.Hour),
-		NotBefore:      time.Now(),
-		AuthorityKeyId: keyId,
-		SubjectKeyId:   keyId,
-	}
-
-	bs, err := x509.CreateCertificate(
-		rand.Reader, &template, &template, privKey.Public(), privKey)
-	if err != nil {
-		return "", fmt.Errorf("error generating CA certificate: %s", err)
-	}
-
-	var buf bytes.Buffer
-	err = pem.Encode(&buf, &pem.Block{Type: "CERTIFICATE", Bytes: bs})
-	if err != nil {
-		return "", fmt.Errorf("error encoding private key: %s", err)
-	}
-
-	return buf.String(), nil
+	return connect.GenerateCA(signer, sn, 3650, []*url.URL{id.URI()})
 }
