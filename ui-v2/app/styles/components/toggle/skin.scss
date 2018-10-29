@@ -15,16 +15,16 @@
   @extend %toggle-negative;
 }
 %toggle label span {
-  color: $ui-gray-900;
+  color: $gray-900;
 }
 %toggle label span::after {
-  background-color: $ui-white;
+  background-color: $white;
 }
 %toggle label input:checked + span::before,
 %toggle-negative label input + span::before {
-  background-color: $ui-blue-500;
+  background-color: $blue-500;
 }
 %toggle label span::before,
 %toggle-negative label input:checked + span::before {
-  background-color: $ui-gray-300;
+  background-color: $gray-300;
 }

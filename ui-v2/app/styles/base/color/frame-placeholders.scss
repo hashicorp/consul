@@ -8,78 +8,78 @@
 }
 %frame-yellow-500 {
   @extend %frame-border-000;
-  background-color: $ui-yellow-050;
-  border-color: $ui-color-warning;
+  background-color: $yellow-050;
+  border-color: $color-warning;
 }
 %frame-green-500 {
   @extend %frame-border-000;
-  background-color: $ui-green-050;
-  border-color: $ui-green-500;
-  color: $ui-green-500;
+  background-color: $green-050;
+  border-color: $green-500;
+  color: $green-500;
 }
 %frame-gray-500 {
   @extend %frame-border-000;
-  background-color: $ui-gray-050;
-  border-color: $ui-gray-300;
-  color: $ui-gray-400;
+  background-color: $gray-050;
+  border-color: $gray-300;
+  color: $gray-400;
 }
 %frame-blue-600 {
   @extend %frame-border-000;
-  background-color: $ui-blue-200;
-  border-color: $ui-gray-400;
-  color: $ui-blue-050;
+  background-color: $blue-200;
+  border-color: $gray-400;
+  color: $blue-050;
 }
 %frame-blue-700 {
   @extend %frame-border-000;
-  background-color: $ui-blue-400;
-  border-color: $ui-blue-800;
-  color: $ui-white;
+  background-color: $blue-400;
+  border-color: $blue-800;
+  color: $white;
 }
 %frame-blue-800 {
   @extend %frame-border-000;
-  background-color: $ui-blue-500;
-  border-color: $ui-blue-800;
-  color: $ui-white;
+  background-color: $blue-500;
+  border-color: $blue-800;
+  color: $white;
 }
 %frame-blue-900 {
   @extend %frame-border-000;
-  background-color: $ui-blue-700;
-  border-color: $ui-blue-800;
-  color: $ui-white;
+  background-color: $blue-700;
+  border-color: $blue-800;
+  color: $white;
 }
 %frame-red-300 {
   @extend %frame-border-000;
-  background-color: $ui-white;
-  border-color: $ui-red-500;
-  color: $ui-red-500;
+  background-color: $white;
+  border-color: $red-500;
+  color: $red-500;
 }
 %frame-red-500 {
   @extend %frame-border-000;
-  background-color: $ui-red-050;
-  border-color: $ui-red-500;
-  color: $ui-red-800;
+  background-color: $red-050;
+  border-color: $red-500;
+  color: $red-800;
 }
 %frame-red-600 {
   @extend %frame-border-000;
-  background-color: $ui-red-200;
-  border-color: $ui-gray-400;
-  color: $ui-white;
+  background-color: $red-200;
+  border-color: $gray-400;
+  color: $white;
 }
 %frame-red-700 {
   @extend %frame-border-000;
-  background-color: $ui-red-500;
-  border-color: $ui-red-800;
-  color: $ui-white;
+  background-color: $red-500;
+  border-color: $red-800;
+  color: $white;
 }
 %frame-red-900 {
   @extend %frame-border-000;
-  background-color: $ui-red-700;
-  border-color: $ui-red-800;
-  color: $ui-white;
+  background-color: $red-700;
+  border-color: $red-800;
+  color: $white;
 }
 %frame-magenta-300 {
   @extend %frame-border-000;
-  background-color: $ui-white;
-  border-color: $brand-magenta-600;
-  color: $brand-magenta-600;
+  background-color: $white;
+  border-color: $magenta-600;
+  color: $magenta-600;
 }
