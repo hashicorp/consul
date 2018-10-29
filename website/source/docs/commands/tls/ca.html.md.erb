@@ -1,0 +1,28 @@
+---
+layout: "docs"
+page_title: "Commands: TLS CA Create"
+sidebar_current: "docs-commands-tls-ca"
+---
+
+# Consul TLS CA Create
+
+Command: `consul tls ca create`
+
+This command create a self signed CA to be used for Consul TLS setup.
+
+## Example
+
+Create CA:
+
+```bash
+$ consul tls ca create
+==> Saved consul-ca.pem
+==> Saved consul-ca-key.pem
+```
+
+## Usage
+Usage: `consul tls ca create [filename-prefix] [options]`
+
+#### TLS CA Create Options
+
+- `-days=<int>` - Provide number of days the CA is valid for from now on, defaults to 5 years.
