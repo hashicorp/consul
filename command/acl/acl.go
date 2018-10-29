@@ -37,7 +37,7 @@ Usage: consul acl <subcommand> [options] [args]
 
   List all ACL Tokens:
 
-      $ consul acl tokens list
+      $ consul acl token list
 
   Create a new ACL Policy:
 
