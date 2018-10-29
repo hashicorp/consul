@@ -30,6 +30,7 @@ example shows all possible fields, but note that only a few are required.
 ```javascript
 {
   "service": {
+    "id": "redis",
     "name": "redis",
     "tags": ["primary"],
     "address": "",
@@ -53,7 +54,7 @@ example shows all possible fields, but note that only a few are required.
       "local_service_port": 9090,
       "config": {},
       "upstreams": []
-    }
+    },
     "connect": {
       "native": false,
       "sidecar_service": {}
