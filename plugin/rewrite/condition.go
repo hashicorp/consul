@@ -22,7 +22,7 @@ const (
 	NotMatch   = "not_match"
 )
 
-func newReplacer(r *dns.Msg) replacer.Replacer { return replacer.New(r, nil, "") }
+func newReplacer(r *dns.Msg) replacer.Replacer { return replacer.New(nil, r, nil, "") }
 
 // condition is a rewrite condition.
 type condition func(string, string) bool

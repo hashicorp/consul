@@ -91,6 +91,10 @@ On each endpoint, the timeouts of the communication are set by default and autom
 * dialTimeout by default is 30 sec, and can decrease automatically down to 100ms
 * readTimeout by default is 2 sec, and can decrease automatically down to 200ms
 
+## Metadata
+
+* forward/resolving_proxy : provide the IP address and port of the upstream resolver used to resolve the current DNS query.
+
 ## Metrics
 
 If monitoring is enabled (via the *prometheus* directive) then the following metric are exported:

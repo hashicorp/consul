@@ -1,11 +1,13 @@
 package replacer
 
 import (
+	"context"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
+	"github.com/coredns/coredns/plugin/metadata"
 	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
@@ -31,7 +33,7 @@ type replacer struct {
 // values into the replacer. rr may be nil if it is not
 // available. emptyValue should be the string that is used
 // in place of empty string (can still be empty string).
-func New(r *dns.Msg, rr *dnstest.Recorder, emptyValue string) Replacer {
+func New(ctx context.Context, r *dns.Msg, rr *dnstest.Recorder, emptyValue string) Replacer {
 	req := request.Request{W: rr, Req: r}
 	rep := replacer{
 		replacements: map[string]string{
@@ -45,6 +47,8 @@ func New(r *dns.Msg, rr *dnstest.Recorder, emptyValue string) Replacer {
 			"{size}":   strconv.Itoa(req.Len()),
 			"{remote}": addrToRFC3986(req.IP()),
 			"{port}":   req.Port(),
+			"{local}":  addrToRFC3986(req.LocalIP()),
+			"{forward/resolving_proxy}": getMetadata(ctx, "forward/resolving_proxy"),
 		},
 		emptyValue: emptyValue,
 	}
@@ -58,6 +62,8 @@ func New(r *dns.Msg, rr *dnstest.Recorder, emptyValue string) Replacer {
 		rep.replacements["{duration}"] = strconv.FormatFloat(time.Since(rr.Start).Seconds(), 'f', -1, 64) + "s"
 		if rr.Msg != nil {
 			rep.replacements[headerReplacer+"rflags}"] = flagsToString(rr.Msg.MsgHdr)
+			rep.replacements["{A}"] = answersCount(rr.Msg, dns.TypeA)
+			rep.replacements["{AAAA}"] = answersCount(rr.Msg, dns.TypeAAAA)
 		}
 	}
 
@@ -161,6 +167,30 @@ func addrToRFC3986(addr string) string {
 		return "[" + addr + "]"
 	}
 	return addr
+}
+
+//getMetadata will return value from Metadata or empty string
+func getMetadata(ctx context.Context, label string) string {
+	if ctx != nil {
+		valueFunc := metadata.ValueFunc(ctx, label)
+		if valueFunc != nil {
+			return valueFunc()
+		}
+	}
+	return ""
+}
+
+//answersCount will calculate a number of answers which have the type passed
+func answersCount(m *dns.Msg, rtype uint16) string {
+	count := 0
+	if m != nil {
+		for i := 0; i < len(m.Answer); i++ {
+			if m.Answer[i].Header().Rrtype == rtype {
+				count++
+			}
+		}
+	}
+	return strconv.Itoa(count)
 }
 
 const (

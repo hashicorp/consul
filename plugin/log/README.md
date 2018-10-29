@@ -72,6 +72,10 @@ The following place holders are supported:
 * `{>do}`: is the EDNS0 DO (DNSSEC OK) bit set in the query
 * `{>id}`: query ID
 * `{>opcode}`: query OPCODE
+* `{local}`: server's IP address, for IPv6 addresses these are enclosed in brackets: `[::1]`
+* `{A}`: number of the A type answers in the response
+* `{AAAA}`: number of the AAAA type answers in the response
+* `{forward/resolving_proxy}`: if the query was forwarded to a resolver, the IP address and port of that replied resolver, else empty. The metadata plugin needs to be enabled to use this placeholder
 
 The default Common Log Format is:
 
