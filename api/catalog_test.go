@@ -664,11 +664,22 @@ func TestAPI_CatalogRegistration(t *testing.T) {
 
 	check := &AgentCheck{
 		Node:      "foobar",
-		CheckID:   "service:redis1",
+		CheckID:   "service:redis1-a",
 		Name:      "Redis health check",
 		Notes:     "Script based health check",
 		Status:    HealthPassing,
 		ServiceID: "redis1",
+	}
+	
+	checks := HealthChecks{
+		&HealthCheck{
+			Node:      "foobar",
+			CheckID:   "service:redis1-b",
+			Name:      "Redis health check",
+			Notes:     "Script based health check",
+			Status:    HealthPassing,
+			ServiceID: "redis1",
+		},
 	}
 
 	reg := &CatalogRegistration{
@@ -677,7 +688,9 @@ func TestAPI_CatalogRegistration(t *testing.T) {
 		Address:    "192.168.10.10",
 		NodeMeta:   map[string]string{"somekey": "somevalue"},
 		Service:    service,
-		Check:      check,
+		// Specifying both Check and Checks is accepted by Consul
+		Check:  check,
+		Checks: checks,
 	}
 	// Register a connect proxy for that service too
 	proxy := &AgentService{
@@ -722,8 +735,12 @@ func TestAPI_CatalogRegistration(t *testing.T) {
 			r.Fatal(err)
 		}
 
-		if health[0].CheckID != "service:redis1" {
-			r.Fatal("missing checkid service:redis1")
+		if health[0].CheckID != "service:redis1-a" {
+			r.Fatal("missing checkid service:redis1-a")
+		}
+
+		if health[1].CheckID != "service:redis1-b" {
+			r.Fatal("missing checkid service:redis1-b")
 		}
 
 		if v, ok := node.Node.Meta["somekey"]; !ok || v != "somevalue" {
@@ -775,7 +792,18 @@ func TestAPI_CatalogRegistration(t *testing.T) {
 		Datacenter: "dc1",
 		Node:       "foobar",
 		Address:    "192.168.10.10",
-		CheckID:    "service:redis1",
+		CheckID:    "service:redis1-a",
+	}
+
+	if _, err := catalog.Deregister(dereg, nil); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	dereg = &CatalogDeregistration{
+		Datacenter: "dc1",
+		Node:       "foobar",
+		Address:    "192.168.10.10",
+		CheckID:    "service:redis1-b",
 	}
 
 	if _, err := catalog.Deregister(dereg, nil); err != nil {
@@ -789,7 +817,7 @@ func TestAPI_CatalogRegistration(t *testing.T) {
 		}
 
 		if len(health) != 0 {
-			r.Fatal("CheckID:service:redis1 is not deregistered")
+			r.Fatal("CheckID:service:redis1-a or CheckID:service:redis1-a is not deregistered")
 		}
 	})
 
