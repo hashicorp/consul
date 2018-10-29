@@ -71,7 +71,7 @@
 %with-hashicorp::before {
   @extend %pseudo-icon;
   opacity: 0.45;
-  background-image: $hashicorp-svg;
+  background-image: $hashicorp-logo-svg;
   background-size: cover;
   width: 20px;
   height: 20px;

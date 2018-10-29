@@ -5,7 +5,6 @@
 %frame-border-000 {
   /* same as decor-border-000 - but need to think about being able to import color on its own*/
   border-style: solid;
-  // border-width: 0;
 }
 %frame-yellow-500 {
   @extend %frame-border-000;
