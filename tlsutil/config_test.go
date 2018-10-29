@@ -10,9 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/yamux"
+	"github.com/stretchr/testify/require"
 )
 
 func TestConfig_AppendCA_None(t *testing.T) {
