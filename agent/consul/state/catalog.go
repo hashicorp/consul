@@ -1250,6 +1250,36 @@ func (s *Store) updateAllServiceIndexesOfNode(tx *memdb.Txn, idx uint64, nodeID 
 	return nil
 }
 
+// ensureCheckCASTxn updates a check only if the existing index matches the given index.
+// Returns a bool indicating if a write happened and any error.
+func (s *Store) ensureCheckCASTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthCheck) (bool, error) {
+	// Retrieve the existing entry.
+	existing, err := tx.First("checks", "id", hc.Node, string(hc.CheckID))
+	if err != nil {
+		return false, fmt.Errorf("failed health check lookup: %s", err)
+	}
+
+	// Check if the we should do the set. A ModifyIndex of 0 means that
+	// we are doing a set-if-not-exists.
+	if hc.ModifyIndex == 0 && existing != nil {
+		return false, nil
+	}
+	if hc.ModifyIndex != 0 && existing == nil {
+		return false, nil
+	}
+	e, ok := existing.(*structs.HealthCheck)
+	if ok && hc.ModifyIndex != 0 && hc.ModifyIndex != e.ModifyIndex {
+		return false, nil
+	}
+
+	// Perform the update.
+	if err := s.ensureCheckTxn(tx, idx, hc); err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
 // ensureCheckTransaction is used as the inner method to handle inserting
 // a health check into the state store. It ensures safety against inserting
 // checks with no matching node or service.
@@ -1366,6 +1396,12 @@ func (s *Store) NodeCheck(nodeName string, checkID types.CheckID) (uint64, *stru
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
+	return s.nodeCheckTxn(tx, nodeName, checkID)
+}
+
+// nodeCheckTxn is used as the inner method to handle reading a health check
+// from the state store.
+func (s *Store) nodeCheckTxn(tx *memdb.Txn, nodeName string, checkID types.CheckID) (uint64, *structs.HealthCheck, error) {
 	// Get the table index.
 	idx := maxIndexTxn(tx, "checks")
 
@@ -1553,6 +1589,35 @@ func (s *Store) DeleteCheck(idx uint64, node string, checkID types.CheckID) erro
 
 	tx.Commit()
 	return nil
+}
+
+// deleteCheckCASTxn is used to try doing a check delete operation with a given
+// raft index. If the CAS index specified is not equal to the last bserved index for
+// the given check, then the call is a noop, otherwise a normal check delete is invoked.
+func (s *Store) deleteCheckCASTxn(tx *memdb.Txn, idx, cidx uint64, node string, checkID types.CheckID) (bool, error) {
+	// Try to retrieve the existing health check.
+	hc, err := tx.First("checks", "id", node, string(checkID))
+	if err != nil {
+		return false, fmt.Errorf("check lookup failed: %s", err)
+	}
+	if hc == nil {
+		return false, nil
+	}
+
+	// If the existing index does not match the provided CAS
+	// index arg, then we shouldn't update anything and can safely
+	// return early here.
+	existing, ok := hc.(*structs.HealthCheck)
+	if !ok || existing.ModifyIndex != cidx {
+		return existing == nil, nil
+	}
+
+	// Call the actual deletion if the above passed.
+	if err := s.deleteCheckTxn(tx, idx, node, checkID); err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 // deleteCheckTxn is the inner method used to call a health

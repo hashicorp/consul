@@ -916,7 +916,8 @@ func (c *HealthCheck) IsSame(other *HealthCheck) bool {
 		c.Output != other.Output ||
 		c.ServiceID != other.ServiceID ||
 		c.ServiceName != other.ServiceName ||
-		!reflect.DeepEqual(c.ServiceTags, other.ServiceTags) {
+		!reflect.DeepEqual(c.ServiceTags, other.ServiceTags) ||
+		!reflect.DeepEqual(c.Definition, other.Definition) {
 		return false
 	}
 

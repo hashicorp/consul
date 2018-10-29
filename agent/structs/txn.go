@@ -9,7 +9,7 @@ import (
 )
 
 // TxnKVOp is used to define a single operation on the KVS inside a
-// transaction
+// transaction.
 type TxnKVOp struct {
 	Verb   api.KVOp
 	DirEnt DirEntry
@@ -18,6 +18,17 @@ type TxnKVOp struct {
 // TxnKVResult is used to define the result of a single operation on the KVS
 // inside a transaction.
 type TxnKVResult *DirEntry
+
+// TxnCheckOp is used to define a single operation on a health check inside a
+// transaction.
+type TxnCheckOp struct {
+	Verb  api.CheckOp
+	Check HealthCheck
+}
+
+// TxnCheckResult is used to define the result of a single operation on a health
+// check inside a transaction.
+type TxnCheckResult *HealthCheck
 
 // TxnKVOp is used to define a single operation on an Intention inside a
 // transaction.
@@ -28,6 +39,7 @@ type TxnIntentionOp IntentionRequest
 type TxnOp struct {
 	KV        *TxnKVOp
 	Intention *TxnIntentionOp
+	Check     *TxnCheckOp
 }
 
 // TxnOps is a list of operations within a transaction.
@@ -75,7 +87,8 @@ type TxnErrors []*TxnError
 // TxnResult is used to define the result of a given operation inside a
 // transaction. Only one of the types should be filled out per entry.
 type TxnResult struct {
-	KV TxnKVResult
+	KV    TxnKVResult
+	Check TxnCheckResult
 }
 
 // TxnResults is a list of TxnResult entries.

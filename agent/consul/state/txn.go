@@ -118,8 +118,66 @@ func (s *Store) txnIntention(tx *memdb.Txn, idx uint64, op *structs.TxnIntention
 	case structs.IntentionOpDelete:
 		return s.intentionDeleteTxn(tx, idx, op.Intention.ID)
 	default:
-		return fmt.Errorf("unknown Intention verb %q", op.Op)
+		return fmt.Errorf("unknown Intention op %q", op.Op)
 	}
+}
+
+// txnCheck handles all Check-related operations.
+func (s *Store) txnCheck(tx *memdb.Txn, idx uint64, op *structs.TxnCheckOp) (structs.TxnResults, error) {
+	var entry *structs.HealthCheck
+	var err error
+
+	switch op.Verb {
+	case api.CheckGet:
+		_, entry, err = s.nodeCheckTxn(tx, op.Check.Node, op.Check.CheckID)
+		if entry == nil && err == nil {
+			err = fmt.Errorf("check %q on node %q doesn't exist", op.Check.CheckID, op.Check.Node)
+		}
+
+	case api.CheckSet:
+		entry = &op.Check
+		err = s.ensureCheckTxn(tx, idx, entry)
+
+	case api.CheckCAS:
+		var ok bool
+		entry = &op.Check
+		ok, err = s.ensureCheckCASTxn(tx, idx, entry)
+		if !ok && err == nil {
+			err = fmt.Errorf("failed to set check %q on node %q, index is stale", entry.CheckID, entry.Node)
+		}
+
+	case api.CheckDelete:
+		err = s.deleteCheckTxn(tx, idx, op.Check.Node, op.Check.CheckID)
+
+	case api.CheckDeleteCAS:
+		var ok bool
+		ok, err = s.deleteCheckCASTxn(tx, idx, op.Check.ModifyIndex, op.Check.Node, op.Check.CheckID)
+		if !ok && err == nil {
+			err = fmt.Errorf("failed to delete check %q on node %q, index is stale", op.Check.CheckID, op.Check.Node)
+		}
+
+	default:
+		err = fmt.Errorf("unknown Check verb %q", op.Verb)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// For a GET we keep the value, otherwise we clone and blank out the
+	// value (we have to clone so we don't modify the entry being used by
+	// the state store).
+	if entry != nil {
+		if op.Verb == api.CheckGet {
+			result := structs.TxnResult{Check: entry}
+			return structs.TxnResults{&result}, nil
+		}
+
+		clone := entry.Clone()
+		result := structs.TxnResult{Check: clone}
+		return structs.TxnResults{&result}, nil
+	}
+
+	return nil, nil
 }
 
 // txnDispatch runs the given operations inside the state store transaction.
