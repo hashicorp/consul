@@ -3579,6 +3579,12 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 
 	a.loadLimits(newCfg)
 
+	for _, s := range a.dnsServers {
+		if err := s.ReloadConfig(newCfg); err != nil {
+			return fmt.Errorf("Failed reloading dns config : %v", err)
+		}
+	}
+
 	// create the config for the rpc server/client
 	consulCfg, err := a.consulConfig()
 	if err != nil {
