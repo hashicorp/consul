@@ -9,16 +9,21 @@ export default function(listeners = []) {
     target[addEventListener](event, handler);
     const remove = function() {
       target[removeEventListener](event, handler);
+      return handler;
     };
     listeners.push(remove);
     return remove;
   };
   // TODO: Allow passing of a 'listener remove' in here
   // call it, find in the array and remove
+  // Post-thoughts, pretty sure this is covered now by returning the remove
+  // function above, use-case for wanting to use this method to remove individual
+  // listeners is probably pretty limited, this method itself could be easily implemented
+  // from the outside also, but I suppose its handy to keep here
   const remove = function() {
-    listeners.forEach(item => item());
+    const handlers = listeners.map(item => item());
     listeners.splice(0, listeners.length);
-    return listeners;
+    return handlers;
   };
   return {
     add: add,

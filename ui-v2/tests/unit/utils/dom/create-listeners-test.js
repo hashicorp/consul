@@ -16,12 +16,19 @@ test('add returns an remove function', function(assert) {
   });
   assert.ok(typeof remove === 'function');
 });
-test('remove returns the listeners', function(assert) {
-  const expected = [function() {}];
-  const listeners = createListeners(expected);
+test('remove returns an array of removed handlers (the return of a saved remove)', function(assert) {
+  // just use true here to prove that it's what gets returned
+  const expected = true;
+  const handlers = [
+    function() {
+      return expected;
+    },
+  ];
+  const listeners = createListeners(handlers);
   const actual = listeners.remove();
-  assert.deepEqual(actual, expected);
-  assert.equal(expected.length, 0);
+  assert.deepEqual(actual, [expected]);
+  // handlers should now be empty
+  assert.equal(handlers.length, 0);
 });
 test('remove calls the remove functions', function(assert) {
   const expected = this.stub();
@@ -56,4 +63,17 @@ test('listeners are removed on remove', function(assert) {
   remove();
   assert.ok(stub.calledOnce);
   assert.ok(stub.calledWith(name, handler));
+});
+test('remove returns the original handler', function(assert) {
+  const listeners = createListeners();
+  const target = {
+    addEventListener: function() {},
+    removeEventListener: function() {},
+  };
+  const name = 'test';
+  const expected = this.stub();
+  const remove = listeners.add(target, name, expected);
+  const actual = remove();
+  actual();
+  assert.ok(expected.calledOnce);
 });
