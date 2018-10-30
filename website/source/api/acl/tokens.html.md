@@ -12,15 +12,16 @@ description: |-
 
 The `/acl/token` endpoints [create](#create-a-token), [read](#read-a-token),
 [update](#update-a-token), [list](#list-tokens), [clone](#clone-token)and [delete](#delete-a-token)  ACL policies in Consul.
+
 For more information about ACLs, please see the [ACL Guide](/docs/guides/acl.html).
 
 ## Create a Token
 
-This endpoint makes a new ACL token.
+This endpoint creates a new ACL token.
 
 | Method | Path                         | Produces                   |
 | ------ | ---------------------------- | -------------------------- |
-| `PUT`  | `/acl/token`                | `application/json`         |
+| `PUT`  | `/acl/token`                 | `application/json`         |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -124,7 +125,7 @@ The table below shows this endpoint's support for
 ### Sample Request
 
 ```text
-$ curl http://127.0.0.1:8500/v1/acl/token/6a1253d2-1785-24fd-91c2-f8e78c745511
+$ curl -X GET http://127.0.0.1:8500/v1/acl/token/6a1253d2-1785-24fd-91c2-f8e78c745511
 ```
 
 ### Sample Response
@@ -448,7 +449,7 @@ are linked with the specific policy ID.
 ## Sample Request
 
 ```text
-$ curl http://127.0.0.1:8500/v1/acl/tokens
+$ curl -X GET http://127.0.0.1:8500/v1/acl/tokens
 ```
 
 ### Sample Response

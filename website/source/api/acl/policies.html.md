@@ -16,7 +16,7 @@ For more information about ACLs, please see the [ACL Guide](/docs/guides/acl.htm
 
 ## Create a Policy
 
-This endpoint makes a new ACL policy.
+This endpoint creates a new ACL policy.
 
 | Method | Path                         | Produces                   |
 | ------ | ---------------------------- | -------------------------- |
@@ -111,7 +111,7 @@ The table below shows this endpoint's support for
 ### Sample Request
 
 ```text
-$ curl http://127.0.0.1:8500/v1/acl/policy/e359bd81-baca-903e-7e64-1ccd9fdc78f5
+$ curl -X GET http://127.0.0.1:8500/v1/acl/policy/e359bd81-baca-903e-7e64-1ccd9fdc78f5
 ```
 
 ### Sample Response
@@ -211,7 +211,7 @@ This endpoint deletes an ACL policy.
 | `DELETE` | `/acl/policy/:id`         | `application/json`         |
 
 Even though the return type is application/json, the value is either true or
-false, indicating whether the delete succeeded.
+false indicating whether the delete succeeded.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -231,7 +231,7 @@ The table below shows this endpoint's support for
 ### Sample Request
 
 ```text
-$ curl -XDELETE
+$ curl -X DELETE
     http://127.0.0.1:8500/v1/acl/policy/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
 ```
 
@@ -261,7 +261,7 @@ The table below shows this endpoint's support for
 ## Sample Request
 
 ```text
-$ curl http://127.0.0.1:8500/v1/acl/policies
+$ curl -X GET http://127.0.0.1:8500/v1/acl/policies
 ```
 
 ### Sample Response

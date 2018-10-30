@@ -10,9 +10,9 @@ description: |-
 
 # ACL HTTP API
 
-The `/acl` endpoints create, update, destroy, and query ACL tokens and policies in Consul. For more information about ACLs, please see the [ACL Guide](/docs/guides/acl.html).
+The `/acl` endpoints are used to manage ACL tokens and policies in Consul, [bootstrap the ACL system](#bootstrap-acls), [check ACL replication status](#check-acl-replication), and [translate rules](#translate-rules). There are additional pages for managing [Tokens](/api/acl/tokens.html) and [Policies](/api/acl/policies.html) with the `/acl` endpoints.
 
-Documentation for [Tokens](/api/acl/tokens.html) and [Policies](/api/acl/policies.html) are located on their respective pages.
+For more information about ACLs, please see the [ACL Guide](/docs/guides/acl.html).
 
 ## Bootstrap ACLs
 
@@ -49,7 +49,7 @@ $ curl \
 
 ### Sample Response
 
--> **Deprecated** - The `ID` field in the response is for legacy compatibility and is a copy of the SecretID field. New
+-> **Deprecated** - The `ID` field in the response is for legacy compatibility and is a copy of the `SecretID` field. New
 applications should ignore the `ID` field as it may be removed in a future major Consul version.
 
 ```json
@@ -84,8 +84,8 @@ It can then be used to further configure the ACL system. Please see the
 ## Check ACL Replication
 
 This endpoint returns the status of the ACL replication processes in the
-datacenter. This is intended to be used by operators, or by automation checking
-the health of ACL replication.
+datacenter. This is intended to be used by operators or by automation checking 
+to discover the health of ACL replication.
 
 Please see the [ACL Guide](/docs/guides/acl.html#replication) replication
 section for more details.
@@ -114,6 +114,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
+    --request GET \
     http://127.0.0.1:8500/v1/acl/replication
 ```
 
@@ -139,10 +140,10 @@ $ curl \
   occurs.
 
 - `SourceDatacenter` - The authoritative ACL datacenter that ACLs are being
-  replicated from, and will match the
+  replicated from and will match the
   [`primary_datacenter`](/docs/agent/options.html#primary_datacenter) configuration.
 
-- `ReplicationType` - The kind of replication that is currently in use.
+- `ReplicationType` - The type of replication that is currently in use.
 
    - `legacy` - ACL replication is in legacy mode and is replicating legacy ACL tokens.
 
@@ -152,7 +153,7 @@ $ curl \
    - `tokens` - ACL replication is replicating both policies and tokens.
 
 - `ReplicatedIndex` - The last index that was successfully replicated. Which data
-  this index refers to depends on the type of replication being used. For `legacy`
+  the replicated index refers to depends on the replication type. For `legacy`
   replication this can be compared with the value of the `X-Consul-Index` header
   returned by the [`/v1/acl/list`](/api/acl/legacy.html#acl_list) endpoint to
   determine if the replication process has gotten all available ACLs. When in either
@@ -213,7 +214,7 @@ agent "" {
 ### Sample Request
 
 ```text
-$ curl -XPOST http://127.0.0.1:8500/v1/acl/rules/translate -d @rules.hcl
+$ curl -X POST -d @rules.hcl http://127.0.0.1:8500/v1/acl/rules/translate 
 ```
 
 ### Sample Response
@@ -252,7 +253,7 @@ The table below shows this endpoint's support for
 ### Sample Request
 
 ```text
-$ curl http://127.0.0.1:8500/v1/acl/rules/translate/4f48f7e6-9359-4890-8e67-6144a962b0a5
+$ curl -X GET http://127.0.0.1:8500/v1/acl/rules/translate/4f48f7e6-9359-4890-8e67-6144a962b0a5
 ```
 
 ### Sample Response
