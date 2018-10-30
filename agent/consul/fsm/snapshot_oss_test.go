@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
-	// "github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -29,8 +28,26 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	}
 
 	// Add some state
-	fsm.state.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
-	fsm.state.EnsureNode(2, &structs.Node{Node: "baz", Address: "127.0.0.2", TaggedAddresses: map[string]string{"hello": "1.2.3.4"}, Meta: map[string]string{"testMeta": "testing123"}})
+	node1 := &structs.Node{
+		ID:         "610918a6-464f-fa9b-1a95-03bd6e88ed92",
+		Node:       "foo",
+		Datacenter: "dc1",
+		Address:    "127.0.0.1",
+	}
+	node2 := &structs.Node{
+		ID:         "40e4a748-2192-161a-0510-9bf59fe950b5",
+		Node:       "baz",
+		Datacenter: "dc1",
+		Address:    "127.0.0.2",
+		TaggedAddresses: map[string]string{
+			"hello": "1.2.3.4",
+		},
+		Meta: map[string]string{
+			"testMeta": "testing123",
+		},
+	}
+	assert.NoError(fsm.state.EnsureNode(1, node1))
+	assert.NoError(fsm.state.EnsureNode(2, node2))
 
 	// Add a service instance with Connect config.
 	connectConf := structs.ServiceConnect{
@@ -218,7 +235,9 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	if len(nodes) != 2 {
 		t.Fatalf("bad: %v", nodes)
 	}
-	if nodes[0].Node != "baz" ||
+	if nodes[0].ID != node2.ID ||
+		nodes[0].Node != "baz" ||
+		nodes[0].Datacenter != "dc1" ||
 		nodes[0].Address != "127.0.0.2" ||
 		len(nodes[0].Meta) != 1 ||
 		nodes[0].Meta["testMeta"] != "testing123" ||
@@ -226,7 +245,9 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		nodes[0].TaggedAddresses["hello"] != "1.2.3.4" {
 		t.Fatalf("bad: %v", nodes[0])
 	}
-	if nodes[1].Node != "foo" ||
+	if nodes[1].ID != node1.ID ||
+		nodes[1].Node != "foo" ||
+		nodes[1].Datacenter != "dc1" ||
 		nodes[1].Address != "127.0.0.1" ||
 		len(nodes[1].TaggedAddresses) != 0 {
 		t.Fatalf("bad: %v", nodes[1])
