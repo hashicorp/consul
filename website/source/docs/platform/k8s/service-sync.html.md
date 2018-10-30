@@ -133,9 +133,10 @@ is routable and configured by some other system.
 
 ### Sync Enable/Disable
 
-By default, all valid services (as explained above) are synced. This default
-can be changed as configuration to the sync process. Syncing can also be
-explicitly enabled or disabled using an annotation:
+By default, all valid services (as explained above) are synced. This default can
+be changed as [configuration](/docs/platform/k8s/helm.html#v-synccatalog-default)
+to the sync process. Syncing can also be explicitly enabled or disabled using an
+annotation:
 
 ```yaml
 kind: Service
@@ -143,7 +144,7 @@ apiVersion: v1
 metadata:
   name: my-service
   annotations:
-    "consul.hashicorp.com/service-sync": false
+    "consul.hashicorp.com/service-sync": "false"
 ```
 
 ### Service Name
