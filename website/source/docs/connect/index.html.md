@@ -124,7 +124,9 @@ a long period of inactivity (3 days by default), the cache will empty itself.
 
 ## Multi-Datacenter
 
-The OSS version of Connect only works for service-to-service connections within a
+Using Connect for service-to-service communications across multiple datacenters requires 
+Consul Enterprise. Open Source Consul only works for service-to-service connections within
+a single datacenter.
 single Consul datacenter. Connect may be enabled on multiple Consul datacenters,
 but only services within the same datacenters can establish Connect-based
 connections. In this version, CA configurations and intentions are both local
