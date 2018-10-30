@@ -34,6 +34,7 @@ kubernetes [ZONES...] {
     resyncperiod DURATION
     endpoint URL [URL...]
     tls CERT KEY CACERT
+    kubeconfig KUBECONFIG CONTEXT
     namespaces NAMESPACE...
     labels EXPRESSION
     pods POD-MODE
