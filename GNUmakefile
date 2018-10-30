@@ -8,7 +8,7 @@ GOTOOLS = \
 	golang.org/x/tools/cmd/stringer \
 	github.com/axw/gocov/gocov \
 	gopkg.in/matm/v1/gocov-html \
-	github.com/golang/protobuf/protoc-gen-go \
+	github.com/gogo/protobuf/protoc-gen-gofast \
 	github.com/vektra/mockery/cmd/mockery
 
 GOTAGS ?=
@@ -274,7 +274,7 @@ ui-legacy-docker: ui-legacy-build-image
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh ui-legacy
 
 proto:
-	protoc agent/connect/ca/plugin/*.proto --go_out=plugins=grpc:../../..
+	protoc agent/connect/ca/plugin/*.proto --gofast_out=plugins=grpc:../../..
 
 .PHONY: all ci bin dev dist cov test test-ci test-internal test-install-deps cover format vet ui static-assets tools vendorfmt
 .PHONY: docker-images go-build-image ui-build-image ui-legacy-build-image static-assets-docker consul-docker ui-docker ui-legacy-docker version proto
