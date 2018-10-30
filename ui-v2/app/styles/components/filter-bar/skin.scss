@@ -20,6 +20,7 @@
 }
 %filter-bar,
 %filter-bar > * {
+  /* frame-gray */
   background-color: $gray-050;
 }
 %filter-bar > *,
