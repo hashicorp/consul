@@ -6,7 +6,7 @@ description: |-
   Consul provides an optional Access Control List (ACL) system which can be used to control access to data and APIs. The ACL system is a Capability-based system that relies on tokens which can have fine grained rules applied to them. It is very similar to AWS IAM in many ways.
 ---
 
--> **1.3.0 and earlier:** This guide only applies in Consul versions 1.3.0 and before. If you are using the 1.4.0 RC please use the updated guide [here](/docs/guides/acl.html)
+-> **1.3.0 and earlier:** This guide only applies in Consul versions 1.3.0 and before. If you are using the 1.4.0 or later please use the updated guide [here](/docs/guides/acl.html)
 
 
 # Deprecation Notice
