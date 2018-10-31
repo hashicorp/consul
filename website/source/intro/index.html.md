@@ -86,5 +86,5 @@ forward the request to the remote datacenter and return the result.
 
 * See [how Consul compares to other software](/intro/vs/index.html) to assess how it fits into your
 existing infrastructure.
-* Continue onwards with the [getting started guide](/intro/getting-started/install.html)
+* Continue onwards with the [getting started guide](https://learn.hashicorp.com/consul/getting-started/install.html)
 to get Consul up and running.

@@ -10,7 +10,7 @@ description: |-
 
 Consul Connect can secure all inter-service communication via mutual TLS. It's
 designed to work with [minimal configuration out of the
-box](/intro/getting-started/connect.html), but completing the [security
+box](https://learn.hashicorp.com/consul/getting-started/connect.html), but completing the [security
 checklist](/docs/connect/security.html) and understanding the [Consul security
 model](/docs/internals/security.html) are prerequisites for production
 deployments.
@@ -104,10 +104,10 @@ Vault](https://www.vaultproject.io/docs/secrets/consul/index.html).
 
 Consul's gossip (UDP) and RPC (TCP) communications need to be encrypted
 otherwise attackers may be able to see ACL tokens while in flight
-between the server and client agents (RPC) or between client agent and 
-application (HTTP). Certificate private keys never leave the host they 
-are used on but are delivered to the application or proxy over local 
-HTTP so local agent traffic should be encrypted where potentially 
+between the server and client agents (RPC) or between client agent and
+application (HTTP). Certificate private keys never leave the host they
+are used on but are delivered to the application or proxy over local
+HTTP so local agent traffic should be encrypted where potentially
 untrusted parties might be able to observe localhost agent API traffic.
 
 Follow the [encryption documentation](/docs/agent/encryption.html) to ensure
