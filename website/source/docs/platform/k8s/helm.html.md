@@ -261,6 +261,11 @@ and consider if they're appropriate for your deployment.
   [consul-k8s](/docs/platform/k8s/index.html#quot-consul-k8s-quot-project)
   to run the sync program.
 
+  - <a name="v-synccatalog-default" href="#v-synccatalog-default">`default`</a> (`boolean: true`) -
+  If true, all valid services in K8S are synced by default. If false,
+  the service must be [annotated](/docs/platform/k8s/service-sync.html#sync-enable-disable)
+  properly to sync. In either case an annotation can override the default.
+
   - <a name="v-synccatalog-k8sprefix" href="#v-synccatalog-k8sprefix">`k8sPrefix`</a> (`string: ""`) -
   A prefix to prepend to all services registered in Kubernetes from Consul.
   This defaults to `""` where no prefix is prepended; Consul services are
