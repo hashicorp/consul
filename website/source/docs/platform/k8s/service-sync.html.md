@@ -135,7 +135,7 @@ is routable and configured by some other system.
 
 By default, all valid services (as explained above) are synced. This default can
 be changed using the [configuration](/docs/platform/k8s/helm.html#v-synccatalog-default).
-to the sync process. Syncing can also be explicitly enabled or disabled using an
+Syncing can also be explicitly enabled or disabled using an
 annotation:
 
 ```yaml
