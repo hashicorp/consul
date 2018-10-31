@@ -77,6 +77,12 @@ func (l *Loop) inc() {
 	l.i++
 }
 
+func (l *Loop) reset() {
+	l.Lock()
+	defer l.Unlock()
+	l.i = 0
+}
+
 func (l *Loop) setDisabled() {
 	l.Lock()
 	defer l.Unlock()

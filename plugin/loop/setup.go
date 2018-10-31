@@ -42,6 +42,7 @@ func setup(c *caddy.Controller) error {
 
 			for time.Now().Before(deadline) {
 				if _, err := l.exchange(addr); err != nil {
+					l.reset()
 					time.Sleep(1 * time.Second)
 					continue
 				}
