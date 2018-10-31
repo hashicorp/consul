@@ -6,7 +6,7 @@
 
 // This is repeated from repository/token, I'd rather it was repeated and not imported
 // for the moment at least
-const UNKNOWN_METHOD_ERROR = "rpc error making call: rpc: can't find method";
+const UNKNOWN_METHOD_ERROR = "rpc error making call: rpc: can't find method ACL";
 export default function(P = Promise) {
   return function(obj) {
     const propName = Object.keys(obj)[0];

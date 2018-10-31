@@ -6,7 +6,7 @@ import { Promise } from 'rsvp';
 import statusFactory from 'consul-ui/utils/acls-status';
 const status = statusFactory(Promise);
 const MODEL_NAME = 'token';
-const UNKNOWN_METHOD_ERROR = "rpc error making call: rpc: can't find method";
+const UNKNOWN_METHOD_ERROR = "rpc error making call: rpc: can't find method ACL";
 export default Service.extend({
   getModelName: function() {
     return MODEL_NAME;
