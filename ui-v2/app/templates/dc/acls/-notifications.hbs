@@ -16,6 +16,12 @@
   {{else}}
     There was an error deleting your ACL token.
   {{/if}}
+{{ else if (eq type 'logout')}}
+  {{#if (eq status 'success') }}
+    You are now logged out.
+  {{else}}
+    There was an error logging out.
+  {{/if}}
 {{ else if (eq type 'use')}}
   {{#if (eq status 'success') }}
     Now using new ACL token.

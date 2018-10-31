@@ -45,9 +45,16 @@
                                 <li>
                                     <a data-test-edit href={{href-to 'dc.acls.edit' item.ID}}>Edit</a>
                                 </li>
+{{#if (eq item.ID token.SecretID) }}
+                                <li>
+                                    <a data-test-logout onclick={{queue (action confirm 'logout' item) (action change)}}>Stop using</a>
+                                </li>
+{{else}}
+
                                 <li>
                                     <a data-test-use onclick={{queue (action confirm 'use' item) (action change)}}>Use</a>
                                 </li>
+{{/if}}
                                 <li>
                                     <a data-test-clone onclick={{action 'sendClone' item}}>Clone</a>
                                 </li>
@@ -63,6 +70,8 @@
                         <p>
                             {{#if (eq name 'delete')}}
                                 Are you sure you want to delete this ACL token?
+                            {{else if (eq name 'logout')}}
+                                Are you sure you want to stop using this ACL token? This will log you out.
                             {{ else if (eq name 'use')}}
                                 Are you sure you want to use this ACL token?
                             {{/if}}
@@ -70,6 +79,8 @@
                         <button type="button" class="type-delete" {{action execute}}>
                             {{#if (eq name 'delete')}}
                                 Confirm Delete
+                            {{else if (eq name 'logout')}}
+                                Confirm Logout
                             {{ else if (eq name 'use')}}
                                 Confirm Use
                             {{/if}}

@@ -23,6 +23,19 @@ export default Mixin.create(WithBlockingActions, {
           });
       }, 'use');
     },
+    // TODO: This is also used in tokens, probably an opportunity to dry this out
+    logout: function(item) {
+      return get(this, 'feedback').execute(() => {
+        return get(this, 'settings')
+          .delete('token')
+          .then(() => {
+            // in this case we don't do the same as delete as we want to go to the new
+            // dc.acls.tokens page. If we get there via the dc.acls redirect/rewrite
+            // the we lose the flash message
+            return this.transitionTo('dc.acls.tokens');
+          });
+      }, 'logout');
+    },
     clone: function(item) {
       return get(this, 'feedback').execute(() => {
         return get(this, 'repo')
