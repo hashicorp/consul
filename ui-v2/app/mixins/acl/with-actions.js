@@ -31,7 +31,7 @@ export default Mixin.create(WithBlockingActions, {
           .then(() => {
             // in this case we don't do the same as delete as we want to go to the new
             // dc.acls.tokens page. If we get there via the dc.acls redirect/rewrite
-            // the we lose the flash message
+            // then we lose the flash message
             return this.transitionTo('dc.acls.tokens');
           });
       }, 'logout');
