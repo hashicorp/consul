@@ -1,14 +1,18 @@
 ---
 layout: api
-page_title: ACLs - HTTP API
-sidebar_current: api-acls
+page_title: Legacy ACLs - HTTP API
+sidebar_current: api-acls-legacy
 description: |-
-  The /acl endpoints create, update, destroy, and query ACL tokens in Consul.
+  The /acl endpoints create, update, destroy, and query Legacy ACL tokens in Consul.
 ---
+
+-> **Consul 1.4.0 deprecates the legacy ACL system completely.** It's _strongly_
+recommended you do not build anything using the legacy system and consider using
+the new ACL [Token](/docs/api/acl-token.html) and [Policy](/docs/api/acl-policy.html) APIs instead.
 
 # ACL HTTP API
 
-The `/acl` endpoints create, update, destroy, and query ACL tokens in Consul. For more information about ACLs, please see the [ACL Guide](/docs/guides/acl.html).
+These `/acl` endpoints create, update, destroy, and query ACL tokens in Consul. For more information about ACLs, please see the [ACL Guide](/docs/guides/acl.html).
 
 ## Bootstrap ACLs
 

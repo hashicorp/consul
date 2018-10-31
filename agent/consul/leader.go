@@ -529,6 +529,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 					AccessorID:  structs.ACLTokenAnonymousID,
 					SecretID:    anonymousToken,
 					Description: "Anonymous Token",
+					CreateTime:  time.Now(),
 				}
 				token.SetHash(true)
 
