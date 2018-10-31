@@ -14,6 +14,68 @@ details provided for their upgrades as a result of new features or changed
 behavior. This page is used to document those details separately from the
 standard upgrade flow.
 
+## Consul 1.4.0
+
+### ACL Upgrade
+
+Consul 1.4.0 includes a [new ACL system](/docs/guides/acl.html) that is
+designed to have a smooth upgrade path but requires care to upgrade components
+in the right order.
+
+**Note:** As with most major version upgrades, you cannot downgrade once the
+upgrade to 1.4.0 is complete as it adds new state to the raft store. As always
+it is _strongly_ recommended that you test the upgrade first outside of
+production and ensure you take backup snapshots of all datacenters before
+upgrading.
+
+#### Primary Datacenter
+
+The "ACL datacenter" in 1.3.x and earlier is now referred to as the "Primary
+datacenter". All configuration is backwards compatible and shouldn't need to
+change prior to upgrade although it's strongly recommended to migrate ACL
+configuration to the new syntax soon after upgrade. This includes moving to
+`primary_datacenter` rather than `acl_datacenter` and `acl_*` to the new [ACL
+block](/docs/agent/options.html#acl).
+
+Datacenters can be upgraded in any order, although note that all will continue
+to run in a "legacy ACL" mode until the primary datacenter is upgraded and none
+of the new ACL features or APIs will be available.
+
+Each datacenter should follow the [standard rolling upgrade
+procedure](/docs/upgrading.html#standard-upgrades).
+
+#### Legacy Token Accessor Migration
+
+As soon as all servers in the primary datacenter have been upgraded to 1.4.0,
+the leader will begin the process of creating new accessor IDs for all existing
+ACL tokens.
+
+This process completes in the background and is rate limited to ensure it
+doesn't overload the leader. It completes upgrades in batches of 128 tokens and
+will not upgrade more than one batch per second so on a cluster with 10,000
+tokens, this may take several minutes.
+
+While this is happening both old and new ACLs will work correctly with the
+caveat that new ACL [Token APIs](/api/acl/tokens.html) may not return an
+accessor ID for legacy tokens that are not yet migrated.
+
+#### Migrating Existing ACLs
+
+New ACL policies have slightly different syntax designed to fix some
+shortcomings in old ACL syntax. During and after the upgrade process, any old
+ACL tokens will continue to work and grant exactly the same level of access.
+
+After upgrade, it is still possible to create "legacy" tokens using the existing
+API so existing integrations that create tokens (e.g. Vault) will continue to
+work. The "legacy" tokens generated though will not be able to take advantage of
+new policy features. It's recommended that you complete migration of all tokens
+as soon as possible after upgrade, as well as updating any integrations to work
+with the the new ACL [Token](/api/acl/tokens.html) and
+[Policy](/api/acl/policies.html) APIs.
+
+More complete details on how to upgrade "legacy" tokens is available here (TODO
+link).
+
 ## Consul 1.1.0
 
 #### Removal of Deprecated Features
