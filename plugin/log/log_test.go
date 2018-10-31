@@ -18,13 +18,14 @@ import (
 func init() { clog.Discard() }
 
 func TestLoggedStatus(t *testing.T) {
-	var f bytes.Buffer
 	rule := Rule{
 		NameScope: ".",
 		Format:    DefaultLogFormat,
-		Log:       log.New(&f, "", 0),
 		Class:     map[response.Class]bool{response.All: true},
 	}
+
+	var f bytes.Buffer
+	log.SetOutput(&f)
 
 	logger := Logger{
 		Rules: []Rule{rule},
@@ -49,13 +50,14 @@ func TestLoggedStatus(t *testing.T) {
 }
 
 func TestLoggedClassDenial(t *testing.T) {
-	var f bytes.Buffer
 	rule := Rule{
 		NameScope: ".",
 		Format:    DefaultLogFormat,
-		Log:       log.New(&f, "", 0),
 		Class:     map[response.Class]bool{response.Denial: true},
 	}
+
+	var f bytes.Buffer
+	log.SetOutput(&f)
 
 	logger := Logger{
 		Rules: []Rule{rule},
@@ -77,13 +79,14 @@ func TestLoggedClassDenial(t *testing.T) {
 }
 
 func TestLoggedClassError(t *testing.T) {
-	var f bytes.Buffer
 	rule := Rule{
 		NameScope: ".",
 		Format:    DefaultLogFormat,
-		Log:       log.New(&f, "", 0),
 		Class:     map[response.Class]bool{response.Error: true},
 	}
+
+	var f bytes.Buffer
+	log.SetOutput(&f)
 
 	logger := Logger{
 		Rules: []Rule{rule},

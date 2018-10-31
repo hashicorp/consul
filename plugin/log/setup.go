@@ -1,9 +1,6 @@
 package log
 
 import (
-	"log"
-	"os"
-
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/pkg/response"
@@ -24,15 +21,6 @@ func setup(c *caddy.Controller) error {
 	if err != nil {
 		return plugin.Error("log", err)
 	}
-
-	// Open the log files for writing when the server starts
-	c.OnStartup(func() error {
-		for i := 0; i < len(rules); i++ {
-			rules[i].Log = log.New(os.Stdout, "", 0)
-		}
-
-		return nil
-	})
 
 	dnsserver.GetConfig(c).AddPlugin(func(next plugin.Handler) plugin.Handler {
 		return Logger{Next: next, Rules: rules, ErrorFunc: dnsserver.DefaultErrorFunc}

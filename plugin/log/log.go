@@ -3,12 +3,12 @@ package log
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/metrics/vars"
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
+	clog "github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/coredns/coredns/plugin/pkg/rcode"
 	"github.com/coredns/coredns/plugin/pkg/replacer"
 	"github.com/coredns/coredns/plugin/pkg/response"
@@ -58,7 +58,7 @@ func (l Logger) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 		// and we shouldn't have an empty rule.Class.
 		if rule.Class[response.All] || rule.Class[class] {
 			rep := replacer.New(r, rrw, CommonLogEmptyValue)
-			rule.Log.Println(rep.Replace(rule.Format))
+			clog.Infof(rep.Replace(rule.Format))
 		}
 
 		return rc, err
@@ -75,12 +75,11 @@ type Rule struct {
 	NameScope string
 	Class     map[response.Class]bool
 	Format    string
-	Log       *log.Logger
 }
 
 const (
 	// CommonLogFormat is the common log format.
-	CommonLogFormat = `{remote}:{port} ` + CommonLogEmptyValue + ` [{when}] {>id} "{type} {class} {name} {proto} {size} {>do} {>bufsize}" {rcode} {>rflags} {rsize} {duration}`
+	CommonLogFormat = `{remote}:{port} ` + CommonLogEmptyValue + ` {>id} "{type} {class} {name} {proto} {size} {>do} {>bufsize}" {rcode} {>rflags} {rsize} {duration}`
 	// CommonLogEmptyValue is the common empty log value.
 	CommonLogEmptyValue = "-"
 	// CombinedLogFormat is the combined log format.
