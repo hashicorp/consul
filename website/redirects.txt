@@ -48,3 +48,4 @@
 /intro/getting-started/kv.html           https://learn.hashicorp.com/consul/getting-started/kv.html
 /intro/getting-started/ui.html           https://learn.hashicorp.com/consul/getting-started/ui.html
 /intro/getting-started/next-steps.html   https://learn.hashicorp.com/consul/getting-started/next-steps.html
+/intro/getting-started/consul.d/web.json https://learn.hashicorp.com/consul/getting-started/consul.d/web.json
