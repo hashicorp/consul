@@ -38,12 +38,12 @@ The table below shows this endpoint's support for
    can only contain alphanumeric characters as well as `-` and `_` and must be
    unique.
 
-- `Description` `(string: "")` - Free form human readable description of this policy.
+- `Description` `(string: "")` - Free form human readable description of the policy.
 
-- `Rules` `(string: "")` - Specifies rules for this ACL policy. The format of the
+- `Rules` `(string: "")` - Specifies rules for the ACL policy. The format of the
   `Rules` property is documented in the [ACL Guide](/docs/guides/acl.html).
 
-- `Datacenters` `(array<string>)` - Specifies the datacenters this policy is valid within.
+- `Datacenters` `(array<string>)` - Specifies the datacenters the policy is valid within.
    When no datacenters are provided the policy is valid in all datacenters including
    those which do not yet exist but may in the future.
 
