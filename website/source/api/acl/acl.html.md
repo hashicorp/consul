@@ -6,7 +6,7 @@ description: |-
   The /acl endpoints manage the Consul's ACL system.
 ---
 
--> **1.4.0+:**  The APIs are available in Consul versions 1.4.0 and later. The documentation for the legacy ACL API is [here](/api/acl/legacy.html)
+-> **1.4.0+:**  This API documentation is for Consul versions 1.4.0 and later. The documentation for the legacy ACL API is [here](/api/acl/legacy.html)
 
 # ACL HTTP API
 
