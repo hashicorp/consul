@@ -77,6 +77,9 @@ export default function(assert) {
           return create(number, model, data);
         }
       )
+      .given(["I'm using a legacy token"], function(number, model, data) {
+        window.localStorage['consul:token'] = JSON.stringify({ AccessorID: null, SecretID: 'id' });
+      })
       // TODO: Abstract this away from HTTP
       .given(['the url "$url" responds with a $status status'], function(url, status) {
         return api.server.respondWithStatus(url.split('?')[0], parseInt(status));

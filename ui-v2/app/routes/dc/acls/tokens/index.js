@@ -18,7 +18,7 @@ export default Route.extend(WithTokenActions, {
       .then(token => {
         // If you have a token set with AccessorID set to null (legacy mode)
         // then rewrite to the old acls
-        if (token && token.AccessorID === null) {
+        if (token && get(token, 'AccessorID') === null) {
           // If you return here, you get a TransitionAborted error in the tests only
           // everything works fine either way checking things manually
           this.replaceWith('dc.acls');
