@@ -76,19 +76,19 @@ func (s *Server) canUpgradeToNewACLs(isLeader bool) bool {
 	}
 
 	if !s.InACLDatacenter() {
-		mode, _ := ServersGetACLMode(s.WANMembers(), "", s.config.ACLDatacenter)
-		if mode != structs.ACLModeEnabled {
+		numServers, mode, _ := ServersGetACLMode(s.WANMembers(), "", s.config.ACLDatacenter)
+		if mode != structs.ACLModeEnabled || numServers == 0 {
 			return false
 		}
 	}
 
 	if isLeader {
-		if mode, _ := ServersGetACLMode(s.LANMembers(), "", ""); mode == structs.ACLModeLegacy {
+		if _, mode, _ := ServersGetACLMode(s.LANMembers(), "", ""); mode == structs.ACLModeLegacy {
 			return true
 		}
 	} else {
 		leader := string(s.raft.Leader())
-		if _, leaderMode := ServersGetACLMode(s.LANMembers(), leader, ""); leaderMode == structs.ACLModeEnabled {
+		if _, _, leaderMode := ServersGetACLMode(s.LANMembers(), leader, ""); leaderMode == structs.ACLModeEnabled {
 			return true
 		}
 	}
@@ -97,7 +97,7 @@ func (s *Server) canUpgradeToNewACLs(isLeader bool) bool {
 }
 
 func (s *Server) InACLDatacenter() bool {
-	return s.config.Datacenter == s.config.ACLDatacenter
+	return s.config.ACLDatacenter == "" || s.config.Datacenter == s.config.ACLDatacenter
 }
 
 func (s *Server) UseLegacyACLs() bool {

@@ -378,7 +378,7 @@ func (r *ACLResolver) fireAsyncTokenResult(token string, identity structs.ACLIde
 }
 
 func (r *ACLResolver) resolveIdentityFromTokenAsync(token string, cached *structs.IdentityCacheEntry) {
-	req := structs.ACLTokenReadRequest{
+	req := structs.ACLTokenGetRequest{
 		Datacenter:  r.delegate.ACLDatacenter(false),
 		TokenID:     token,
 		TokenIDType: structs.ACLTokenSecret,
@@ -491,7 +491,7 @@ func (r *ACLResolver) fireAsyncPolicyResult(policyID string, policy *structs.ACL
 }
 
 func (r *ACLResolver) resolvePoliciesAsyncForIdentity(identity structs.ACLIdentity, policyIDs []string, cached map[string]*structs.PolicyCacheEntry) {
-	req := structs.ACLPolicyBatchReadRequest{
+	req := structs.ACLPolicyBatchGetRequest{
 		Datacenter: r.delegate.ACLDatacenter(false),
 		PolicyIDs:  policyIDs,
 		QueryOptions: structs.QueryOptions{
@@ -501,7 +501,7 @@ func (r *ACLResolver) resolvePoliciesAsyncForIdentity(identity structs.ACLIdenti
 	}
 
 	found := make(map[string]struct{})
-	var resp structs.ACLPoliciesResponse
+	var resp structs.ACLPolicyBatchResponse
 	err := r.delegate.RPC("ACL.PolicyResolve", &req, &resp)
 	if err == nil {
 		for _, policy := range resp.Policies {

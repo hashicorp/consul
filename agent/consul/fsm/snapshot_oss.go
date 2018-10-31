@@ -25,8 +25,8 @@ func init() {
 	registerRestorer(structs.ConnectCAProviderStateType, restoreConnectCAProviderState)
 	registerRestorer(structs.ConnectCAConfigType, restoreConnectCAConfig)
 	registerRestorer(structs.IndexRequestType, restoreIndex)
-	registerRestorer(structs.ACLTokenUpsertRequestType, restoreToken)
-	registerRestorer(structs.ACLPolicyUpsertRequestType, restorePolicy)
+	registerRestorer(structs.ACLTokenSetRequestType, restoreToken)
+	registerRestorer(structs.ACLPolicySetRequestType, restorePolicy)
 }
 
 func persistOSS(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) error {
@@ -173,7 +173,7 @@ func (s *snapshot) persistACLs(sink raft.SnapshotSink,
 	}
 
 	for token := tokens.Next(); token != nil; token = tokens.Next() {
-		if _, err := sink.Write([]byte{byte(structs.ACLTokenUpsertRequestType)}); err != nil {
+		if _, err := sink.Write([]byte{byte(structs.ACLTokenSetRequestType)}); err != nil {
 			return err
 		}
 		if err := encoder.Encode(token.(*structs.ACLToken)); err != nil {
@@ -187,7 +187,7 @@ func (s *snapshot) persistACLs(sink raft.SnapshotSink,
 	}
 
 	for policy := policies.Next(); policy != nil; policy = policies.Next() {
-		if _, err := sink.Write([]byte{byte(structs.ACLPolicyUpsertRequestType)}); err != nil {
+		if _, err := sink.Write([]byte{byte(structs.ACLPolicySetRequestType)}); err != nil {
 			return err
 		}
 		if err := encoder.Encode(policy.(*structs.ACLPolicy)); err != nil {

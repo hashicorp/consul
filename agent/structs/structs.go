@@ -48,9 +48,9 @@ const (
 	ConnectCAProviderStateType             = 14
 	ConnectCAConfigType                    = 15 // FSM snapshots only.
 	IndexRequestType                       = 16 // FSM snapshots only.
-	ACLTokenUpsertRequestType              = 17
+	ACLTokenSetRequestType                 = 17
 	ACLTokenDeleteRequestType              = 18
-	ACLPolicyUpsertRequestType             = 19
+	ACLPolicySetRequestType                = 19
 	ACLPolicyDeleteRequestType             = 20
 )
 

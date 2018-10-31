@@ -433,10 +433,10 @@ func (s *Server) initializeACLs(upgrade bool) error {
 			}
 			policy.SetHash(true)
 
-			req := structs.ACLPolicyBatchUpsertRequest{
+			req := structs.ACLPolicyBatchSetRequest{
 				Policies: structs.ACLPolicies{&policy},
 			}
-			_, err := s.raftApply(structs.ACLPolicyUpsertRequestType, &req)
+			_, err := s.raftApply(structs.ACLPolicySetRequestType, &req)
 			if err != nil {
 				return fmt.Errorf("failed to create global-management policy: %v", err)
 			}
@@ -497,10 +497,11 @@ func (s *Server) initializeACLs(upgrade bool) error {
 
 				if !done {
 					// either we didn't attempt to or setting the token with a bootstrap request failed.
-					req := structs.ACLTokenBatchUpsertRequest{
+					req := structs.ACLTokenBatchSetRequest{
 						Tokens: structs.ACLTokens{&token},
+						CAS:    false,
 					}
-					if _, err := s.raftApply(structs.ACLTokenUpsertRequestType, &req); err != nil {
+					if _, err := s.raftApply(structs.ACLTokenSetRequestType, &req); err != nil {
 						return fmt.Errorf("failed to create master token: %v", err)
 					}
 
@@ -531,11 +532,11 @@ func (s *Server) initializeACLs(upgrade bool) error {
 				}
 				token.SetHash(true)
 
-				req := structs.ACLTokenBatchUpsertRequest{
-					Tokens:      structs.ACLTokens{token},
-					AllowCreate: true,
+				req := structs.ACLTokenBatchSetRequest{
+					Tokens: structs.ACLTokens{token},
+					CAS:    false,
 				}
-				_, err := s.raftApply(structs.ACLTokenUpsertRequestType, &req)
+				_, err := s.raftApply(structs.ACLTokenSetRequestType, &req)
 				if err != nil {
 					return fmt.Errorf("failed to create anonymous token: %v", err)
 				}
@@ -623,12 +624,16 @@ func (s *Server) startACLUpgrade() {
 					newToken.Policies = append(newToken.Policies, structs.ACLTokenPolicyLink{ID: structs.ACLPolicyGlobalManagementID})
 				}
 
+				// need to copy these as we are going to do a CAS operation.
+				newToken.CreateIndex = token.CreateIndex
+				newToken.ModifyIndex = token.ModifyIndex
+
 				newTokens = append(newTokens, &newToken)
 			}
 
-			req := &structs.ACLTokenBatchUpsertRequest{Tokens: newTokens, AllowCreate: false}
+			req := &structs.ACLTokenBatchSetRequest{Tokens: newTokens, CAS: true}
 
-			resp, err := s.raftApply(structs.ACLTokenUpsertRequestType, req)
+			resp, err := s.raftApply(structs.ACLTokenSetRequestType, req)
 			if err != nil {
 				s.logger.Printf("[ERR] acl: failed to apply acl token upgrade batch: %v", err)
 			}

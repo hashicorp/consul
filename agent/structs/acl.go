@@ -499,27 +499,27 @@ type ACLReplicationStatus struct {
 	LastError            time.Time
 }
 
-// ACLTokenUpsertRequest is used for token creation and update operations
+// ACLTokenSetRequest is used for token creation and update operations
 // at the RPC layer
-type ACLTokenUpsertRequest struct {
+type ACLTokenSetRequest struct {
 	ACLToken   ACLToken // Token to manipulate - I really dislike this name but "Token" is taken in the WriteRequest
 	Datacenter string   // The datacenter to perform the request within
 	WriteRequest
 }
 
-func (r *ACLTokenUpsertRequest) RequestDatacenter() string {
+func (r *ACLTokenSetRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
-// ACLTokenReadRequest is used for token read operations at the RPC layer
-type ACLTokenReadRequest struct {
+// ACLTokenGetRequest is used for token read operations at the RPC layer
+type ACLTokenGetRequest struct {
 	TokenID     string         // id used for the token lookup
 	TokenIDType ACLTokenIDType // The Type of ID used to lookup the token
 	Datacenter  string         // The datacenter to perform the request within
 	QueryOptions
 }
 
-func (r *ACLTokenReadRequest) RequestDatacenter() string {
+func (r *ACLTokenGetRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
@@ -554,27 +554,27 @@ type ACLTokenListResponse struct {
 	QueryMeta
 }
 
-// ACLTokenBatchReadRequest is used for reading multiple tokens, this is
+// ACLTokenBatchGetRequest is used for reading multiple tokens, this is
 // different from the the token list request in that only tokens with the
 // the requested ids are returned
-type ACLTokenBatchReadRequest struct {
+type ACLTokenBatchGetRequest struct {
 	AccessorIDs []string // List of accessor ids to fetch
 	Datacenter  string   // The datacenter to perform the request within
 	QueryOptions
 }
 
-func (r *ACLTokenBatchReadRequest) RequestDatacenter() string {
+func (r *ACLTokenBatchGetRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
-// ACLTokenBatchUpsertRequest is used only at the Raft layer
+// ACLTokenBatchSetRequest is used only at the Raft layer
 // for batching multiple token creation/update operations
 //
 // This is particularly useful during token replication and during
 // automatic legacy token upgrades.
-type ACLTokenBatchUpsertRequest struct {
-	Tokens      ACLTokens
-	AllowCreate bool
+type ACLTokenBatchSetRequest struct {
+	Tokens ACLTokens
+	CAS    bool
 }
 
 // ACLTokenBatchDeleteRequest is used only at the Raft layer
@@ -603,20 +603,20 @@ type ACLTokenResponse struct {
 	QueryMeta
 }
 
-// ACLTokensResponse returns multiple Tokens associated with the same metadata
-type ACLTokensResponse struct {
+// ACLTokenBatchResponse returns multiple Tokens associated with the same metadata
+type ACLTokenBatchResponse struct {
 	Tokens []*ACLToken
 	QueryMeta
 }
 
-// ACLPolicyUpsertRequest is used at the RPC layer for creation and update requests
-type ACLPolicyUpsertRequest struct {
+// ACLPolicySetRequest is used at the RPC layer for creation and update requests
+type ACLPolicySetRequest struct {
 	Policy     ACLPolicy // The policy to upsert
 	Datacenter string    // The datacenter to perform the request within
 	WriteRequest
 }
 
-func (r *ACLPolicyUpsertRequest) RequestDatacenter() string {
+func (r *ACLPolicySetRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
@@ -631,20 +631,19 @@ func (r *ACLPolicyDeleteRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
-// ACLPolicyReadRequest is used at the RPC layer to perform policy read operations
-type ACLPolicyReadRequest struct {
+// ACLPolicyGetRequest is used at the RPC layer to perform policy read operations
+type ACLPolicyGetRequest struct {
 	PolicyID   string // id used for the policy lookup
 	Datacenter string // The datacenter to perform the request within
 	QueryOptions
 }
 
-func (r *ACLPolicyReadRequest) RequestDatacenter() string {
+func (r *ACLPolicyGetRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
 // ACLPolicyListRequest is used at the RPC layer to request a listing of policies
 type ACLPolicyListRequest struct {
-	DCScope    string
 	Datacenter string // The datacenter to perform the request within
 	QueryOptions
 }
@@ -658,15 +657,15 @@ type ACLPolicyListResponse struct {
 	QueryMeta
 }
 
-// ACLPolicyBatchReadRequest is used at the RPC layer to request a subset of
+// ACLPolicyBatchGetRequest is used at the RPC layer to request a subset of
 // the policies associated with the token used for retrieval
-type ACLPolicyBatchReadRequest struct {
+type ACLPolicyBatchGetRequest struct {
 	PolicyIDs  []string // List of policy ids to fetch
 	Datacenter string   // The datacenter to perform the request within
 	QueryOptions
 }
 
-func (r *ACLPolicyBatchReadRequest) RequestDatacenter() string {
+func (r *ACLPolicyBatchGetRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
@@ -676,16 +675,16 @@ type ACLPolicyResponse struct {
 	QueryMeta
 }
 
-type ACLPoliciesResponse struct {
+type ACLPolicyBatchResponse struct {
 	Policies []*ACLPolicy
 	QueryMeta
 }
 
-// ACLPolicyBatchUpsertRequest is used at the Raft layer for batching
+// ACLPolicyBatchSetRequest is used at the Raft layer for batching
 // multiple policy creations and updates
 //
 // This is particularly useful during replication
-type ACLPolicyBatchUpsertRequest struct {
+type ACLPolicyBatchSetRequest struct {
 	Policies ACLPolicies
 }
 

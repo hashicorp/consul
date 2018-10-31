@@ -71,7 +71,7 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 		conf.Tags["use_tls"] = "1"
 	}
 
-	if s.config.ACLDatacenter != "" {
+	if s.acls.ACLsEnabled() {
 		// we start in legacy mode and allow upgrading later
 		conf.Tags["acls"] = string(structs.ACLModeLegacy)
 	} else {

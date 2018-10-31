@@ -105,11 +105,11 @@ func (s *Server) updateLocalACLPolicies(policies structs.ACLPolicies, ctx contex
 			batchSize += policies[batchEnd].EstimateSize()
 		}
 
-		req := structs.ACLPolicyBatchUpsertRequest{
+		req := structs.ACLPolicyBatchSetRequest{
 			Policies: policies[batchStart:batchEnd],
 		}
 
-		resp, err := s.raftApply(structs.ACLPolicyUpsertRequestType, &req)
+		resp, err := s.raftApply(structs.ACLPolicySetRequestType, &req)
 		if err != nil {
 			return false, fmt.Errorf("Failed to apply policy upserts: %v", err)
 		}
@@ -134,8 +134,8 @@ func (s *Server) updateLocalACLPolicies(policies structs.ACLPolicies, ctx contex
 	return false, nil
 }
 
-func (s *Server) fetchACLPoliciesBatch(policyIDs []string) (*structs.ACLPoliciesResponse, error) {
-	req := structs.ACLPolicyBatchReadRequest{
+func (s *Server) fetchACLPoliciesBatch(policyIDs []string) (*structs.ACLPolicyBatchResponse, error) {
+	req := structs.ACLPolicyBatchGetRequest{
 		Datacenter: s.config.ACLDatacenter,
 		PolicyIDs:  policyIDs,
 		QueryOptions: structs.QueryOptions{
@@ -144,7 +144,7 @@ func (s *Server) fetchACLPoliciesBatch(policyIDs []string) (*structs.ACLPolicies
 		},
 	}
 
-	var response structs.ACLPoliciesResponse
+	var response structs.ACLPolicyBatchResponse
 	if err := s.RPC("ACL.PolicyBatchRead", &req, &response); err != nil {
 		return nil, err
 	}
@@ -261,12 +261,12 @@ func (s *Server) updateLocalACLTokens(tokens structs.ACLTokens, ctx context.Cont
 			batchSize += tokens[batchEnd].EstimateSize()
 		}
 
-		req := structs.ACLTokenBatchUpsertRequest{
-			Tokens:      tokens[batchStart:batchEnd],
-			AllowCreate: true,
+		req := structs.ACLTokenBatchSetRequest{
+			Tokens: tokens[batchStart:batchEnd],
+			CAS:    false,
 		}
 
-		resp, err := s.raftApply(structs.ACLTokenUpsertRequestType, &req)
+		resp, err := s.raftApply(structs.ACLTokenSetRequestType, &req)
 		if err != nil {
 			return false, fmt.Errorf("Failed to apply token upserts: %v", err)
 		}
@@ -292,8 +292,8 @@ func (s *Server) updateLocalACLTokens(tokens structs.ACLTokens, ctx context.Cont
 	return false, nil
 }
 
-func (s *Server) fetchACLTokensBatch(tokenIDs []string) (*structs.ACLTokensResponse, error) {
-	req := structs.ACLTokenBatchReadRequest{
+func (s *Server) fetchACLTokensBatch(tokenIDs []string) (*structs.ACLTokenBatchResponse, error) {
+	req := structs.ACLTokenBatchGetRequest{
 		Datacenter:  s.config.ACLDatacenter,
 		AccessorIDs: tokenIDs,
 		QueryOptions: structs.QueryOptions{
@@ -302,7 +302,7 @@ func (s *Server) fetchACLTokensBatch(tokenIDs []string) (*structs.ACLTokensRespo
 		},
 	}
 
-	var response structs.ACLTokensResponse
+	var response structs.ACLTokenBatchResponse
 	if err := s.RPC("ACL.TokenBatchRead", &req, &response); err != nil {
 		return nil, err
 	}
@@ -354,7 +354,7 @@ func (s *Server) replicateACLPolicies(lastRemoteIndex uint64, ctx context.Contex
 	// replication process is.
 	defer metrics.MeasureSince([]string{"leader", "replication", "acl", "policy", "apply"}, time.Now())
 
-	_, local, err := s.fsm.State().ACLPolicyList(nil, "")
+	_, local, err := s.fsm.State().ACLPolicyList(nil)
 	if err != nil {
 		return 0, false, fmt.Errorf("failed to retrieve local ACL policies: %v", err)
 	}
@@ -374,7 +374,7 @@ func (s *Server) replicateACLPolicies(lastRemoteIndex uint64, ctx context.Contex
 
 	s.logger.Printf("[DEBUG] acl: policy replication - deletions: %d, updates: %d", len(deletions), len(updates))
 
-	var policies *structs.ACLPoliciesResponse
+	var policies *structs.ACLPolicyBatchResponse
 	if len(updates) > 0 {
 		policies, err = s.fetchACLPoliciesBatch(updates)
 		if err != nil {
@@ -456,7 +456,7 @@ func (s *Server) replicateACLTokens(lastRemoteIndex uint64, ctx context.Context)
 	deletions, updates := diffACLTokens(local, remote.Tokens, lastRemoteIndex)
 	s.logger.Printf("[DEBUG] acl: token replication - deletions: %d, updates: %d", len(deletions), len(updates))
 
-	var tokens *structs.ACLTokensResponse
+	var tokens *structs.ACLTokenBatchResponse
 	if len(updates) > 0 {
 		tokens, err = s.fetchACLTokensBatch(updates)
 		if err != nil {

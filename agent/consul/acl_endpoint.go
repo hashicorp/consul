@@ -175,7 +175,7 @@ func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.AC
 	return nil
 }
 
-func (a *ACL) TokenRead(args *structs.ACLTokenReadRequest, reply *structs.ACLTokenResponse) error {
+func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
@@ -227,7 +227,7 @@ func (a *ACL) TokenRead(args *structs.ACLTokenReadRequest, reply *structs.ACLTok
 		})
 }
 
-func (a *ACL) TokenClone(args *structs.ACLTokenUpsertRequest, reply *structs.ACLToken) error {
+func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLToken) error {
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
@@ -265,7 +265,7 @@ func (a *ACL) TokenClone(args *structs.ACLTokenUpsertRequest, reply *structs.ACL
 		return fmt.Errorf("Cannot clone a legacy ACL with this endpoint")
 	}
 
-	cloneReq := structs.ACLTokenUpsertRequest{
+	cloneReq := structs.ACLTokenSetRequest{
 		Datacenter: args.Datacenter,
 		ACLToken: structs.ACLToken{
 			Policies:    token.Policies,
@@ -279,10 +279,10 @@ func (a *ACL) TokenClone(args *structs.ACLTokenUpsertRequest, reply *structs.ACL
 		cloneReq.ACLToken.Description = args.ACLToken.Description
 	}
 
-	return a.tokenUpsertInternal(&cloneReq, reply, false)
+	return a.tokenSetInternal(&cloneReq, reply, false)
 }
 
-func (a *ACL) TokenUpsert(args *structs.ACLTokenUpsertRequest, reply *structs.ACLToken) error {
+func (a *ACL) TokenSet(args *structs.ACLTokenSetRequest, reply *structs.ACLToken) error {
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
@@ -294,7 +294,7 @@ func (a *ACL) TokenUpsert(args *structs.ACLTokenUpsertRequest, reply *structs.AC
 		return fmt.Errorf("Local tokens are disabled")
 	}
 
-	if done, err := a.srv.forward("ACL.TokenUpsert", args, args, reply); done {
+	if done, err := a.srv.forward("ACL.TokenSet", args, args, reply); done {
 		return err
 	}
 
@@ -307,10 +307,10 @@ func (a *ACL) TokenUpsert(args *structs.ACLTokenUpsertRequest, reply *structs.AC
 		return acl.ErrPermissionDenied
 	}
 
-	return a.tokenUpsertInternal(args, reply, false)
+	return a.tokenSetInternal(args, reply, false)
 }
 
-func (a *ACL) tokenUpsertInternal(args *structs.ACLTokenUpsertRequest, reply *structs.ACLToken, upgrade bool) error {
+func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.ACLToken, upgrade bool) error {
 	token := &args.ACLToken
 
 	if !a.srv.LocalTokensEnabled() {
@@ -420,12 +420,12 @@ func (a *ACL) tokenUpsertInternal(args *structs.ACLTokenUpsertRequest, reply *st
 
 	token.SetHash(true)
 
-	req := &structs.ACLTokenBatchUpsertRequest{
-		Tokens:      structs.ACLTokens{token},
-		AllowCreate: true,
+	req := &structs.ACLTokenBatchSetRequest{
+		Tokens: structs.ACLTokens{token},
+		CAS:    false,
 	}
 
-	resp, err := a.srv.raftApply(structs.ACLTokenUpsertRequestType, req)
+	resp, err := a.srv.raftApply(structs.ACLTokenSetRequestType, req)
 	if err != nil {
 		return fmt.Errorf("Failed to apply token write request: %v", err)
 	}
@@ -553,7 +553,7 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 		})
 }
 
-func (a *ACL) TokenBatchRead(args *structs.ACLTokenBatchReadRequest, reply *structs.ACLTokensResponse) error {
+func (a *ACL) TokenBatchRead(args *structs.ACLTokenBatchGetRequest, reply *structs.ACLTokenBatchResponse) error {
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
@@ -575,7 +575,7 @@ func (a *ACL) TokenBatchRead(args *structs.ACLTokenBatchReadRequest, reply *stru
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, tokens, err := state.ACLTokenBatchRead(ws, args.AccessorIDs)
+			index, tokens, err := state.ACLTokenBatchGet(ws, args.AccessorIDs)
 			if err != nil {
 				return err
 			}
@@ -587,7 +587,7 @@ func (a *ACL) TokenBatchRead(args *structs.ACLTokenBatchReadRequest, reply *stru
 		})
 }
 
-func (a *ACL) PolicyRead(args *structs.ACLPolicyReadRequest, reply *structs.ACLPolicyResponse) error {
+func (a *ACL) PolicyRead(args *structs.ACLPolicyGetRequest, reply *structs.ACLPolicyResponse) error {
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
@@ -615,7 +615,7 @@ func (a *ACL) PolicyRead(args *structs.ACLPolicyReadRequest, reply *structs.ACLP
 		})
 }
 
-func (a *ACL) PolicyBatchRead(args *structs.ACLPolicyBatchReadRequest, reply *structs.ACLPoliciesResponse) error {
+func (a *ACL) PolicyBatchRead(args *structs.ACLPolicyBatchGetRequest, reply *structs.ACLPolicyBatchResponse) error {
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
@@ -632,7 +632,7 @@ func (a *ACL) PolicyBatchRead(args *structs.ACLPolicyBatchReadRequest, reply *st
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, policies, err := state.ACLPolicyBatchRead(ws, args.PolicyIDs)
+			index, policies, err := state.ACLPolicyBatchGet(ws, args.PolicyIDs)
 			if err != nil {
 				return err
 			}
@@ -642,7 +642,7 @@ func (a *ACL) PolicyBatchRead(args *structs.ACLPolicyBatchReadRequest, reply *st
 		})
 }
 
-func (a *ACL) PolicyUpsert(args *structs.ACLPolicyUpsertRequest, reply *structs.ACLPolicy) error {
+func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPolicy) error {
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
@@ -651,7 +651,7 @@ func (a *ACL) PolicyUpsert(args *structs.ACLPolicyUpsertRequest, reply *structs.
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
 
-	if done, err := a.srv.forward("ACL.PolicyUpsert", args, args, reply); done {
+	if done, err := a.srv.forward("ACL.PolicySet", args, args, reply); done {
 		return err
 	}
 
@@ -736,11 +736,11 @@ func (a *ACL) PolicyUpsert(args *structs.ACLPolicyUpsertRequest, reply *structs.
 	// calcualte the hash for this policy
 	policy.SetHash(true)
 
-	req := &structs.ACLPolicyBatchUpsertRequest{
+	req := &structs.ACLPolicyBatchSetRequest{
 		Policies: structs.ACLPolicies{policy},
 	}
 
-	resp, err := a.srv.raftApply(structs.ACLPolicyUpsertRequestType, req)
+	resp, err := a.srv.raftApply(structs.ACLPolicySetRequestType, req)
 	if err != nil {
 		return fmt.Errorf("Failed to apply policy upsert request: %v", err)
 	}
@@ -837,7 +837,7 @@ func (a *ACL) PolicyList(args *structs.ACLPolicyListRequest, reply *structs.ACLP
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, policies, err := state.ACLPolicyList(ws, args.DCScope)
+			index, policies, err := state.ACLPolicyList(ws)
 			if err != nil {
 				return err
 			}
@@ -854,7 +854,7 @@ func (a *ACL) PolicyList(args *structs.ACLPolicyListRequest, reply *structs.ACLP
 
 // PolicyResolve is used to retrieve a subset of the policies associated with a given token
 // The policy ids in the args simply act as a filter on the policy set assigned to the token
-func (a *ACL) PolicyResolve(args *structs.ACLPolicyBatchReadRequest, reply *structs.ACLPoliciesResponse) error {
+func (a *ACL) PolicyResolve(args *structs.ACLPolicyBatchGetRequest, reply *structs.ACLPolicyBatchResponse) error {
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}

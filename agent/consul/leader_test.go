@@ -984,33 +984,21 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 
 			if tt.master != "" {
 				_, master, err := s1.fsm.State().ACLTokenGetBySecret(nil, tt.master)
-				if err != nil {
-					t.Fatalf("err: %v", err)
-				}
-				if master == nil {
-					t.Fatalf("master token wasn't created")
-				}
+				require.NoError(t, err)
+				require.NotNil(t, master)
 			}
 
 			_, anon, err := s1.fsm.State().ACLTokenGetBySecret(nil, anonymousToken)
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
-			if anon == nil {
-				t.Fatalf("anonymous token wasn't created")
-			}
+			require.NoError(t, err)
+			require.NotNil(t, anon)
 
 			canBootstrap, _, err := s1.fsm.State().CanBootstrapACLToken()
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
-			if tt.bootstrap {
-				if !canBootstrap {
-					t.Fatalf("bootstrap should be allowed")
-				}
-			} else if canBootstrap {
-				t.Fatalf("bootstrap should not be allowed")
-			}
+			require.NoError(t, err)
+			require.Equal(t, tt.bootstrap, canBootstrap)
+
+			_, policy, err := s1.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID)
+			require.NoError(t, err)
+			require.NotNil(t, policy)
 		})
 	}
 }
@@ -1154,5 +1142,67 @@ func TestLeader_PersistIntermediateCAs(t *testing.T) {
 		if !reflect.DeepEqual(newLeaderRoot, root) {
 			r.Fatalf("got %v, want %v", newLeaderRoot, root)
 		}
+	})
+}
+
+func TestLeader_ACLUpgrade(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	// create a legacy management ACL
+	mgmt := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name: "Management token",
+			Type: structs.ACLTokenTypeManagement,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var mgmt_id string
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.Apply", &mgmt, &mgmt_id))
+
+	// wait for it to be upgraded
+	retry.Run(t, func(t *retry.R) {
+		_, token, err := s1.fsm.State().ACLTokenGetBySecret(nil, mgmt_id)
+		require.NoError(t, err)
+		require.NotNil(t, token)
+		require.NotEqual(t, "", token.AccessorID)
+		require.Equal(t, structs.ACLTokenTypeManagement, token.Type)
+		require.Len(t, token.Policies, 1)
+		require.Equal(t, structs.ACLPolicyGlobalManagementID, token.Policies[0].ID)
+	})
+
+	// create a legacy management ACL
+	client := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name:  "Management token",
+			Type:  structs.ACLTokenTypeClient,
+			Rules: `node "" { policy = "read"}`,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var client_id string
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.Apply", &client, &client_id))
+
+	// wait for it to be upgraded
+	retry.Run(t, func(t *retry.R) {
+		_, token, err := s1.fsm.State().ACLTokenGetBySecret(nil, client_id)
+		require.NoError(t, err)
+		require.NotNil(t, token)
+		require.NotEqual(t, "", token.AccessorID)
+		require.Len(t, token.Policies, 0)
+		require.Equal(t, structs.ACLTokenTypeClient, token.Type)
+		require.Equal(t, client.ACL.Rules, token.Rules)
 	})
 }

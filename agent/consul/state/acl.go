@@ -63,7 +63,8 @@ func tokensTableSchema() *memdb.TableSchema {
 		Name: "acl-tokens",
 		Indexes: map[string]*memdb.IndexSchema{
 			"accessor": &memdb.IndexSchema{
-				Name:         "accessor",
+				Name: "accessor",
+				// DEPRECATED (ACL-Legacy-Compat) - we should not AllowMissing here once legacy compat is removed
 				AllowMissing: true,
 				Unique:       true,
 				Indexer: &memdb.UUIDFieldIndex{
@@ -141,15 +142,6 @@ func policiesTableSchema() *memdb.TableSchema {
 					Lowercase: true,
 				},
 			},
-			"datacenters": &memdb.IndexSchema{
-				Name:         "datacenters",
-				AllowMissing: true,
-				Unique:       false,
-				Indexer: &memdb.StringSliceFieldIndex{
-					Field:     "Datacenters",
-					Lowercase: false,
-				},
-			},
 		},
 	}
 }
@@ -220,7 +212,7 @@ func (s *Store) ACLBootstrap(idx, resetIndex uint64, token *structs.ACLToken, le
 		}
 	}
 
-	if err := s.aclTokenSetTxn(tx, idx, token, true, false, legacy); err != nil {
+	if err := s.aclTokenSetTxn(tx, idx, token, false, false, legacy); err != nil {
 		return fmt.Errorf("failed inserting bootstrap token: %v", err)
 	}
 	if err := indexUpdateMaxTxn(tx, idx, "acl-tokens"); err != nil {
@@ -280,7 +272,7 @@ func (s *Store) ACLTokenSet(idx uint64, token *structs.ACLToken, legacy bool) er
 	defer tx.Abort()
 
 	// Call set on the ACL
-	if err := s.aclTokenSetTxn(tx, idx, token, true, false, legacy); err != nil {
+	if err := s.aclTokenSetTxn(tx, idx, token, false, false, legacy); err != nil {
 		return err
 	}
 
@@ -292,14 +284,14 @@ func (s *Store) ACLTokenSet(idx uint64, token *structs.ACLToken, legacy bool) er
 	return nil
 }
 
-func (s *Store) ACLTokensUpsert(idx uint64, tokens structs.ACLTokens, allowCreate bool) error {
+func (s *Store) ACLTokenBatchSet(idx uint64, tokens structs.ACLTokens, cas bool) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
 	for _, token := range tokens {
 		// this is only used when doing batch insertions for upgrades and replication. Therefore
 		// we take whatever those said.
-		if err := s.aclTokenSetTxn(tx, idx, token, allowCreate, true, false); err != nil {
+		if err := s.aclTokenSetTxn(tx, idx, token, cas, true, false); err != nil {
 			return err
 		}
 	}
@@ -314,7 +306,7 @@ func (s *Store) ACLTokensUpsert(idx uint64, tokens structs.ACLTokens, allowCreat
 
 // aclTokenSetTxn is the inner method used to insert an ACL token with the
 // proper indexes into the state store.
-func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToken, allowCreate, allowMissingPolicyIDs, legacy bool) error {
+func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToken, cas, allowMissingPolicyIDs, legacy bool) error {
 	// Check that the ID is set
 	if token.SecretID == "" {
 		return ErrMissingACLTokenSecret
@@ -331,13 +323,29 @@ func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToke
 		return fmt.Errorf("failed token lookup: %s", err)
 	}
 
-	if existing == nil && !allowCreate {
-		return nil
+	var original *structs.ACLToken
+
+	if existing != nil {
+		original = existing.(*structs.ACLToken)
 	}
 
-	if legacy && existing != nil {
-		original := existing.(*structs.ACLToken)
-		if len(original.Policies) > 0 {
+	if cas {
+		// set-if-unset case
+		if token.ModifyIndex == 0 && original != nil {
+			return nil
+		}
+		// token already deleted
+		if token.ModifyIndex != 0 && original == nil {
+			return nil
+		}
+		// check for other modifications
+		if token.ModifyIndex != 0 && token.ModifyIndex != original.ModifyIndex {
+			return nil
+		}
+	}
+
+	if legacy && original != nil {
+		if len(original.Policies) > 0 || original.Type == "" {
 			return fmt.Errorf("failed inserting acl token: cannot use legacy endpoint to modify a non-legacy token")
 		}
 
@@ -349,8 +357,16 @@ func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToke
 	}
 
 	// Set the indexes
-	if existing != nil {
-		token.CreateIndex = existing.(*structs.ACLToken).CreateIndex
+	if original != nil {
+		if original.AccessorID != "" && token.AccessorID != original.AccessorID {
+			return fmt.Errorf("The ACL Token AccessorID field is immutable")
+		}
+
+		if token.SecretID != original.SecretID {
+			return fmt.Errorf("The ACL Token SecretID field is immutable")
+		}
+
+		token.CreateIndex = original.CreateIndex
 		token.ModifyIndex = idx
 	} else {
 		token.CreateIndex = idx
@@ -389,7 +405,7 @@ func (s *Store) aclTokenGet(ws memdb.WatchSet, value, index string) (uint64, *st
 	return idx, token, nil
 }
 
-func (s *Store) ACLTokenBatchRead(ws memdb.WatchSet, accessors []string) (uint64, structs.ACLTokens, error) {
+func (s *Store) ACLTokenBatchGet(ws memdb.WatchSet, accessors []string) (uint64, structs.ACLTokens, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -511,19 +527,19 @@ func (s *Store) ACLTokenListUpgradeable(max int) (structs.ACLTokens, <-chan stru
 	return tokens, iter.WatchCh(), nil
 }
 
-// ACLTokenDeleteSecret is used to remove an existing ACL from the state store. If
+// ACLTokenDeleteBySecret is used to remove an existing ACL from the state store. If
 // the ACL does not exist this is a no-op and no error is returned.
-func (s *Store) ACLTokenDeleteSecret(idx uint64, secret string) error {
+func (s *Store) ACLTokenDeleteBySecret(idx uint64, secret string) error {
 	return s.aclTokenDelete(idx, secret, "id")
 }
 
-// ACLTokenDeleteAccessor is used to remove an existing ACL from the state store. If
+// ACLTokenDeleteByAccessor is used to remove an existing ACL from the state store. If
 // the ACL does not exist this is a no-op and no error is returned.
-func (s *Store) ACLTokenDeleteAccessor(idx uint64, accessor string) error {
+func (s *Store) ACLTokenDeleteByAccessor(idx uint64, accessor string) error {
 	return s.aclTokenDelete(idx, accessor, "accessor")
 }
 
-func (s *Store) ACLTokensDelete(idx uint64, tokenIDs []string) error {
+func (s *Store) ACLTokenBatchDelete(idx uint64, tokenIDs []string) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
@@ -541,7 +557,9 @@ func (s *Store) aclTokenDelete(idx uint64, value, index string) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
-	s.aclTokenDeleteTxn(tx, idx, value, index)
+	if err := s.aclTokenDeleteTxn(tx, idx, value, index); err != nil {
+		return err
+	}
 
 	tx.Commit()
 	return nil
@@ -558,6 +576,10 @@ func (s *Store) aclTokenDeleteTxn(tx *memdb.Txn, idx uint64, value, index string
 		return nil
 	}
 
+	if token.(*structs.ACLToken).AccessorID == structs.ACLTokenAnonymousID {
+		return fmt.Errorf("Deletion of the builtin anonymous token is not permitted")
+	}
+
 	if err := tx.Delete("acl-tokens", token); err != nil {
 		return fmt.Errorf("failed deleting acl token: %v", err)
 	}
@@ -567,7 +589,7 @@ func (s *Store) aclTokenDeleteTxn(tx *memdb.Txn, idx uint64, value, index string
 	return nil
 }
 
-func (s *Store) ACLPoliciesUpsert(idx uint64, policies structs.ACLPolicies) error {
+func (s *Store) ACLPolicyBatchSet(idx uint64, policies structs.ACLPolicies) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
@@ -664,7 +686,7 @@ func (s *Store) ACLPolicyGetByName(ws memdb.WatchSet, name string) (uint64, *str
 	return s.aclPolicyGet(ws, name, "name")
 }
 
-func (s *Store) ACLPolicyBatchRead(ws memdb.WatchSet, ids []string) (uint64, structs.ACLPolicies, error) {
+func (s *Store) ACLPolicyBatchGet(ws memdb.WatchSet, ids []string) (uint64, structs.ACLPolicies, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -713,19 +735,11 @@ func (s *Store) aclPolicyGet(ws memdb.WatchSet, value, index string) (uint64, *s
 	return idx, policy, nil
 }
 
-func (s *Store) ACLPolicyList(ws memdb.WatchSet, datacenter string) (uint64, structs.ACLPolicies, error) {
+func (s *Store) ACLPolicyList(ws memdb.WatchSet) (uint64, structs.ACLPolicies, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	var iter memdb.ResultIterator
-	var err error
-
-	if datacenter != "" {
-		iter, err = tx.Get("acl-policies", "datacenters", datacenter)
-	} else {
-		iter, err = tx.Get("acl-policies", "id")
-	}
-
+	iter, err := tx.Get("acl-policies", "id")
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed acl policy lookup: %v", err)
 	}
@@ -750,7 +764,7 @@ func (s *Store) ACLPolicyDeleteByName(idx uint64, name string) error {
 	return s.aclPolicyDelete(idx, name, "name")
 }
 
-func (s *Store) ACLPoliciesDelete(idx uint64, policyIDs []string) error {
+func (s *Store) ACLPolicyBatchDelete(idx uint64, policyIDs []string) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
