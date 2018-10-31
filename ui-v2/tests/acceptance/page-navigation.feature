@@ -47,7 +47,7 @@ Feature: Page Navigation
     | kv        | kvs        | /dc-1/kv/necessitatibus-0/edit                           | /v1/session/info/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=dc-1      | /dc-1/kv            |
     # | acl       | acls       | /dc-1/acls/anonymous                                     | /v1/acl/info/anonymous?dc=dc-1                                    | /dc-1/acls         |
     | intention | intentions | /dc-1/intentions/ee52203d-989f-4f7a-ab5a-2bef004164ca    | /v1/internal/ui/services?dc=dc-1                                   | /dc-1/intentions    |
-    | token     | tokens     | /dc-1/acls/tokens/7ca5cd4d-4a7e-459d-b812-bb4078cecbd4   | /v1/acl/policies?dc=dc-1                                           | /dc-1/acls/tokens   |
+    | token     | tokens     | /dc-1/acls/tokens/ee52203d-989f-4f7a-ab5a-2bef004164ca   | /v1/acl/policies?dc=dc-1                                           | /dc-1/acls/tokens   |
     | policy    | policies   | /dc-1/acls/policies/ee52203d-989f-4f7a-ab5a-2bef004164ca | /v1/acl/tokens?policy=ee52203d-989f-4f7a-ab5a-2bef004164ca&dc=dc-1 | /dc-1/acls/policies |
     # | token     | tokens     | /dc-1/acls/tokens/00000000-0000-0000-0000-000000000000   | /v1/acl/token/00000000-0000-0000-0000-000000000000?dc=dc-1    | /dc-1/acls/tokens |
     # | policy    | policies   | /dc-1/acls/policies/ee52203d-989f-4f7a-ab5a-2bef004164ca | /v1/acl/policy/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=dc-1   | /dc-1/acls/policies |

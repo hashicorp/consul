@@ -6,6 +6,7 @@ import { Promise } from 'rsvp';
 import statusFactory from 'consul-ui/utils/acls-status';
 const status = statusFactory(Promise);
 const MODEL_NAME = 'token';
+const UNKNOWN_METHOD_ERROR = "rpc error making call: rpc: can't find method";
 export default Service.extend({
   getModelName: function() {
     return MODEL_NAME;
@@ -20,10 +21,22 @@ export default Service.extend({
     return status(obj);
   },
   self: function(secret, dc) {
-    return get(this, 'store').self(this.getModelName(), {
-      secret: secret,
-      dc: dc,
-    });
+    return get(this, 'store')
+      .self(this.getModelName(), {
+        secret: secret,
+        dc: dc,
+      })
+      .catch(e => {
+        // If we get this 500 RPC error, it means we are a legacy ACL cluster
+        // set AccessorID to null - which for the frontend means legacy mode
+        if (e.errors[0].detail.indexOf(UNKNOWN_METHOD_ERROR) === 0) {
+          return {
+            AccessorID: null,
+            SecretID: secret,
+          };
+        }
+        return Promise.reject(e);
+      });
   },
   clone: function(item) {
     return get(this, 'store').clone(this.getModelName(), get(item, PRIMARY_KEY));

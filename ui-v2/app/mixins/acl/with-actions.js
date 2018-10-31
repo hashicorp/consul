@@ -8,8 +8,16 @@ export default Mixin.create(WithBlockingActions, {
   actions: {
     use: function(item) {
       return get(this, 'feedback').execute(() => {
+        // old style legacy ACLs don't have AccessorIDs
+        // therefore set it to null, this way the frontend knows
+        // to use legacy ACLs
         return get(this, 'settings')
-          .persist({ token: get(item, 'ID') })
+          .persist({
+            token: {
+              AccessorID: null,
+              SecretID: get(item, 'ID'),
+            },
+          })
           .then(() => {
             return this.transitionTo('dc.services');
           });
