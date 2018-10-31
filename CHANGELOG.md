@@ -42,6 +42,10 @@ IMPROVEMENTS:
 * website: fix minor typo in documentation. [[GH-4864](https://github.com/hashicorp/consul/pull/4864)]
 * website: broken partial rendering and missing id. [[GH-4862](https://github.com/hashicorp/consul/pull/4862)]
 
+BUG FIXES:
+
+* snapshot: Fixed a bug where node ID and datacenter weren't being included in or restored from the snapshots. [[GH-4872](https://github.com/hashicorp/consul/issues/4872)]
+
 ## 1.3.0 (October 11, 2018)
 
 FEATURES:
