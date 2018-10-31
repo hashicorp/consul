@@ -12,6 +12,7 @@ export default Route.extend({
     this._super(...arguments);
   },
   repo: service('repository/dc'),
+  settings: service('settings'),
   actions: {
     loading: function(transition, originRoute) {
       let dc = null;
@@ -58,13 +59,17 @@ export default Route.extend({
       // 403 page
       // To note: Consul only gives you back a 403 if a non-existent token has been sent in the header
       // if a token has not been sent at all, it just gives you a 200 with an empty dataset
+      const model = this.modelFor('dc');
       if (error.status === '403') {
-        return this.transitionTo('dc.acls.tokens');
+        return get(this, 'settings')
+          .delete('token')
+          .then(() => {
+            return this.transitionTo('dc.acls.tokens', model.dc.Name);
+          });
       }
       if (error.status === '') {
         error.message = 'Error';
       }
-      const model = this.modelFor('dc');
       hash({
         error: error,
         dc:
