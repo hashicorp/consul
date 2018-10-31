@@ -10,7 +10,7 @@ description: |-
 
 # ACL HTTP API
 
-The `/acl` endpoints are used to manage ACL tokens and policies in Consul, [bootstrap the ACL system](#bootstrap-acls), [check ACL replication status](#check-acl-replication), and [translate rules](#translate-rules). There are additional pages for managing [Tokens](/api/acl/tokens.html) and [Policies](/api/acl/policies.html) with the `/acl` endpoints.
+The `/acl` endpoints are used to manage ACL tokens and policies in Consul, [bootstrap the ACL system](#bootstrap-acls), [check ACL replication status](#check-acl-replication), and [translate rules](#translate-rules). There are additional pages for managing [tokens](/api/acl/tokens.html) and [policies](/api/acl/policies.html) with the `/acl` endpoints.
 
 For more information about ACLs, please see the [ACL Guide](/docs/guides/acl.html).
 
@@ -18,7 +18,7 @@ For more information about ACLs, please see the [ACL Guide](/docs/guides/acl.htm
 
 This endpoint does a special one-time bootstrap of the ACL system, making the first
 management token if the [`acl.tokens.master`](/docs/agent/options.html#acl_tokens_master)
-configuration entry is not specified in the Consul server configuration, and if the
+configuration entry is not specified in the Consul server configuration and if the
 cluster has not been bootstrapped previously. This is available in Consul 0.9.1 and later,
 and requires all Consul servers to be upgraded in order to operate.
 
