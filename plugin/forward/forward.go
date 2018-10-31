@@ -12,7 +12,6 @@ import (
 
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/debug"
-	"github.com/coredns/coredns/plugin/metadata"
 	clog "github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/coredns/coredns/request"
 
@@ -59,15 +58,6 @@ func (f *Forward) Len() int { return len(f.proxies) }
 
 // Name implements plugin.Handler.
 func (f *Forward) Name() string { return "forward" }
-
-//declareMetadata adds to the context a metadata parameter which will return the passed value.
-func (f *Forward) declareMetadata(ctx context.Context, name string, value string) bool {
-	label := f.Name()+"/"+name
-	if metadata.IsLabel(label) {
-		return metadata.SetValueFunc(ctx, label, func() string { return value })
-	}
-	return false
-}
 
 // ServeDNS implements plugin.Handler.
 func (f *Forward) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
@@ -158,12 +148,10 @@ func (f *Forward) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 
 			formerr := state.ErrorMessage(dns.RcodeFormatError)
 			w.WriteMsg(formerr)
-			f.declareMetadata(ctx, "resolving_proxy", proxy.addr)
 			return 0, nil
 		}
 
 		w.WriteMsg(ret)
-		f.declareMetadata(ctx, "resolving_proxy", proxy.addr)
 		return 0, nil
 	}
 

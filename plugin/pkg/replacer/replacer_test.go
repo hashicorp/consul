@@ -17,7 +17,7 @@ func TestNewReplacer(t *testing.T) {
 	r.SetQuestion("example.org.", dns.TypeHINFO)
 	r.MsgHdr.AuthenticatedData = true
 
-	replaceValues := New(nil, r, w, "")
+	replaceValues := New(r, w, "")
 
 	switch v := replaceValues.(type) {
 	case replacer:
@@ -47,7 +47,7 @@ func TestSet(t *testing.T) {
 	r.SetQuestion("example.org.", dns.TypeHINFO)
 	r.MsgHdr.AuthenticatedData = true
 
-	repl := New(nil, r, w, "")
+	repl := New(r, w, "")
 
 	repl.Set("name", "coredns.io.")
 	repl.Set("type", "A")
