@@ -11,7 +11,7 @@ description: |-
 # ACL Token HTTP API
 
 The `/acl/token` endpoints [create](#create-a-token), [read](#read-a-token),
-[update](#update-a-token), [list](#list-tokens), [clone](#clone-token)and [delete](#delete-a-token)  ACL policies in Consul.
+[update](#update-a-token), [list](#list-tokens), [clone](#clone-token) and [delete](#delete-a-token)  ACL policies in Consul.
 
 For more information about ACLs, please see the [ACL Guide](/docs/guides/acl.html).
 
@@ -35,16 +35,16 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `Description` `(string: "")` - Free form human readable description of this token.
+- `Description` `(string: "")` - Free form human readable description of the token.
 
-- `Policies` `(array<PolicyLink>)` - This is the list of policies that should
-   be applied to this token. A PolicyLink is an object with an "ID" and/or "Name" field
-   to specify a policy. With this tokens can be linked to policies either by the
-   policy name or by the policy ID. When policies are linked by name they will
-   internally be resolved to the policy ID. With linking tokens internally by IDs,
+- `Policies` `(array<PolicyLink>)` - The list of policies that should
+   be applied to the token. A PolicyLink is an object with an "ID" and/or "Name" field
+   to specify a policy. With the PolicyLink, tokens can be linked to policies either by the
+   policy name or by the policy ID. When policies are linked by name they will be
+   internally resolved to the policy ID. With linking tokens internally by IDs,
    Consul enables policy renaming without breaking tokens.
 
-- `Local` `(bool: false)` - If true, indicates that this token should not be replicated
+- `Local` `(bool: false)` - If true, indicates that the token should not be replicated
    globally and instead be local to the current datacenter.
 
 ### Sample Payload
@@ -130,7 +130,7 @@ $ curl -X GET http://127.0.0.1:8500/v1/acl/token/6a1253d2-1785-24fd-91c2-f8e78c7
 
 ### Sample Response
 
--> **Note** If the token used for accessing the API has `acl:write` permissions
+-> **Note** If the token used for accessing the API has `acl:write` permissions,
 then the `SecretID` will contain the tokens real value. Only when accessed with
 a token with only `acl:read` permissions will the `SecretID` be redacted. This
 is to prevent privilege escalation whereby having `acl:read` privileges allows
