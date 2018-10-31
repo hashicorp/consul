@@ -75,7 +75,7 @@ func (e *Etcd) Records(state request.Request, exact bool) ([]msg.Service, error)
 	name := state.Name()
 
 	path, star := msg.PathWithWildcard(name, e.PathPrefix)
-	r, err := e.get(path, true)
+	r, err := e.get(path, !exact)
 	if err != nil {
 		return nil, err
 	}

@@ -57,6 +57,7 @@ var servicesCname = []*msg.Service{
 	{Host: "cname5.region2.skydns.test", Key: "cname4.region2.skydns.test."},
 	{Host: "cname6.region2.skydns.test", Key: "cname5.region2.skydns.test."},
 	{Host: "endpoint.region2.skydns.test", Key: "cname6.region2.skydns.test."},
+	{Host: "mainendpoint.region2.skydns.test", Key: "region2.skydns.test."},
 	{Host: "10.240.0.1", Key: "endpoint.region2.skydns.test."},
 }
 
@@ -74,6 +75,12 @@ var dnsTestCasesCname = []test.Case{
 			test.CNAME("cname5.region2.skydns.test.	300	IN	CNAME	cname6.region2.skydns.test."),
 			test.CNAME("cname6.region2.skydns.test.	300	IN	CNAME	endpoint.region2.skydns.test."),
 			test.A("endpoint.region2.skydns.test.	300	IN	A	10.240.0.1"),
+		},
+	},
+	{
+		Qname: "region2.skydns.test.", Qtype: dns.TypeCNAME,
+		Answer: []dns.RR{
+			test.CNAME("region2.skydns.test.	300	IN	CNAME	mainendpoint.region2.skydns.test."),
 		},
 	},
 }
