@@ -227,7 +227,7 @@ agent_prefix "" {
 
 ## Translate a Legacy Token's Rules
 
--> **Deprecated** - This endpoint was introduced and deprecated in Consul 1.4.0. It
+-> **Deprecated** - This endpoint was introduced in Consul 1.4.0 for migration from the previous ACL system.. It
 will be removed in a future major Consul version when support for legacy ACLs is removed.
 
 This endpoint translates the legacy rules embedded within a legacy ACL into the latest
