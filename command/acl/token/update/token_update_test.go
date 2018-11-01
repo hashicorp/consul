@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/y0ssar1an/q"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
@@ -158,7 +157,6 @@ func TestTokenUpdateCommand(t *testing.T) {
 			&api.QueryOptions{Token: legacyTokenSecretID})
 		r.Check(err)
 		require.NotEmpty(r, legacyToken.AccessorID)
-		q.Q(legacyToken)
 	})
 
 	// upgrade legacy token should replace rules and leave token in a "new" state!
@@ -180,7 +178,6 @@ func TestTokenUpdateCommand(t *testing.T) {
 			legacyToken.AccessorID,
 			&api.QueryOptions{Token: "root"},
 		)
-		q.Q(gotToken)
 		assert.NoError(err)
 		assert.NotNil(gotToken)
 		// Description shouldn't change
