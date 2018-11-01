@@ -6,9 +6,6 @@ description: |-
   Consul must first be installed on every node that will be a member of the Consul cluster. To make installation easy, Consul is distributed as a binary package for all supported platforms and architectures. This page will not cover how to compile Consul from source.
 ---
 
-**Note: This guide is temporarily being managed in a different repo. Please contact kait@hashicorp.com if you have any
- questions.
-
 # Install Consul
 
 Consul must first be installed on your machine. Consul is distributed as a

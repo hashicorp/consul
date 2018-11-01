@@ -9,9 +9,6 @@ description: >
   cluster and join the nodes together.
 ---
 
-**Note: This guide is temporarily being managed in a different repo. Please contact kait@hashicorp.com if you have any
- questions.
-
 # Consul Cluster
 
 We've started our first agent and registered and queried a service on that
