@@ -6,6 +6,9 @@ description: |-
   That concludes the getting started guide for Consul. Hopefully you're able to see that while Consul is simple to use, it has a powerful set of features. We've covered the basics for all of these features in this guide.
 ---
 
+**Note: This guide is temporarily being managed in a different repo. Please contact kait@hashicorp.com if you have any
+ questions.
+
 # Next Steps
 
 That concludes the getting started guide for Consul. Hopefully you're able to

@@ -6,6 +6,9 @@ description: |-
   We've now seen how simple it is to run Consul, add nodes and services, and query those nodes and services. In this step, we will continue our tour by adding health checks to both nodes and services. Health checks are a critical component of service discovery that prevent using services that are unhealthy.
 ---
 
+**Note: This guide is temporarily being managed in a different repo. Please contact kait@hashicorp.com if you have any
+ questions.
+
 # Health Checks
 
 We've now seen how simple it is to run Consul, add nodes and services, and

@@ -9,6 +9,9 @@ description: >
   query that service using the REST API and DNS interfaces.
 ---
 
+**Note: This guide is temporarily being managed in a different repo. Please contact kait@hashicorp.com if you have any
+ questions.
+
 # Registering Services
 
 In the previous step, we ran our first agent, saw the cluster members (well,

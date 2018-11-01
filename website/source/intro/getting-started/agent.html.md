@@ -9,6 +9,8 @@ description: >
   as data loss is inevitable in a failure scenario.
 ---
 
+**Note: This guide is temporarily being managed in a different repo. Please contact kait@hashicorp.com if you have any questions. 
+
 # Run the Consul Agent
 
 After Consul is installed, the agent must be run. The agent can run either

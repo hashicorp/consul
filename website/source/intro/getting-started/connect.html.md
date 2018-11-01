@@ -6,6 +6,9 @@ description: |-
   Connect is a feature of Consul that provides service-to-service connection authorization and encryption using mutual TLS. This ensures that all service communication in your datacenter is encrypted and that the rules of what services can communicate is centrally managed with Consul.
 ---
 
+**Note: This guide is temporarily being managed in a different repo. Please contact kait@hashicorp.com if you have any
+ questions.
+
 # Connect
 
 We've now registered our first service with Consul and we've shown how you
