@@ -25,7 +25,7 @@ cache [TTL] [ZONES...]
 
 Each element in the cache is cached according to its TTL (with **TTL** as the max).
 A cache is divided into 256 shards, each holding up to 39 items by default - for a total size
-of 256 * 39 = 9984 items. 
+of 256 * 39 = 9984 items.
 
 If you want more control:
 
@@ -53,7 +53,7 @@ cache [TTL] [ZONES...] {
 
 ## Capacity and Eviction
 
-If **CAPACITY** _is not_ specified, the default cache size is 9984 per cache. The minimum allowed cache size is 1024. 
+If **CAPACITY** _is not_ specified, the default cache size is 9984 per cache. The minimum allowed cache size is 1024.
 If **CAPACITY** _is_ specified, the actual cache size used will be rounded down to the nearest number divisible by 256 (so all shards are equal in size).
 
 Eviction is done per shard. In effect, when a shard reaches capacity, items are evicted from that shard.
