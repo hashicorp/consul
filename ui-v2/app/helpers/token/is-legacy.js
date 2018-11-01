@@ -2,7 +2,8 @@ import { helper } from '@ember/component/helper';
 import { get } from '@ember/object';
 
 const _isLegacy = function(token) {
-  return get(token, 'Legacy') || typeof get(token, 'Rules') !== 'undefined';
+  const rules = get(token, 'Rules');
+  return get(token, 'Legacy') || (rules != null && rules.trim() != '');
 };
 export function isLegacy(params, hash) {
   const token = params[0];
