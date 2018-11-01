@@ -4,7 +4,9 @@ import { typeOf } from '@ember/utils';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/policy';
 import { Promise } from 'rsvp';
 import statusFactory from 'consul-ui/utils/acls-status';
-const status = statusFactory(Promise);
+import isValidServerErrorFactory from 'consul-ui/utils/http/acl/is-valid-server-error';
+const isValidServerError = isValidServerErrorFactory();
+const status = statusFactory(isValidServerError, Promise);
 const MODEL_NAME = 'policy';
 export default Service.extend({
   getModelName: function() {

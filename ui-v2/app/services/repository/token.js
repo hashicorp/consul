@@ -4,9 +4,10 @@ import { typeOf } from '@ember/utils';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/token';
 import { Promise } from 'rsvp';
 import statusFactory from 'consul-ui/utils/acls-status';
-const status = statusFactory(Promise);
+import isValidServerErrorFactory from 'consul-ui/utils/http/acl/is-valid-server-error';
+const isValidServerError = isValidServerErrorFactory();
+const status = statusFactory(isValidServerError, Promise);
 const MODEL_NAME = 'token';
-const UNKNOWN_METHOD_ERROR = "rpc error making call: rpc: can't find method ACL";
 export default Service.extend({
   getModelName: function() {
     return MODEL_NAME;
@@ -29,7 +30,7 @@ export default Service.extend({
       .catch(e => {
         // If we get this 500 RPC error, it means we are a legacy ACL cluster
         // set AccessorID to null - which for the frontend means legacy mode
-        if (e.errors[0].detail.indexOf(UNKNOWN_METHOD_ERROR) === 0) {
+        if (isValidServerError(e)) {
           return {
             AccessorID: null,
             SecretID: secret,

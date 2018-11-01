@@ -4,10 +4,7 @@
 // Right now this is very acl specific, but is likely to be
 // made a bit more less specific
 
-// This is repeated from repository/token, I'd rather it was repeated and not imported
-// for the moment at least
-const UNKNOWN_METHOD_ERROR = "rpc error making call: rpc: can't find method ACL";
-export default function(P = Promise) {
+export default function(isValidServerError, P = Promise) {
   return function(obj) {
     const propName = Object.keys(obj)[0];
     const p = obj[propName];
@@ -28,7 +25,7 @@ export default function(P = Promise) {
         .catch(function(e) {
           switch (e.errors[0].status) {
             case '500':
-              if (e.errors[0].detail.indexOf(UNKNOWN_METHOD_ERROR) === 0) {
+              if (isValidServerError(e)) {
                 enable(true);
                 authorize(false);
               }
