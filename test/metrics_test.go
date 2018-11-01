@@ -1,6 +1,7 @@
 package test
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -14,8 +15,6 @@ import (
 
 	"github.com/miekg/dns"
 )
-
-// fail when done in parallel
 
 // Start test server that has metrics enabled. Then tear it down again.
 func TestMetricsServer(t *testing.T) {
@@ -72,11 +71,11 @@ func TestMetricsRefused(t *testing.T) {
 }
 
 // TODO(miek): disabled for now - fails in weird ways in travis.
-func testMetricsCache(t *testing.T) {
+func TestMetricsCache(t *testing.T) {
 	cacheSizeMetricName := "coredns_cache_size"
 	cacheHitMetricName := "coredns_cache_hits_total"
 
-	corefile := `www.example.net:0 {
+	corefile := `example.net:0 {
 	proxy . 8.8.8.8:53
 	prometheus localhost:0
 	cache
@@ -90,32 +89,45 @@ func testMetricsCache(t *testing.T) {
 
 	udp, _ := CoreDNSServerPorts(srv, 0)
 
+	// send an initial query to set properly the cache size metric
 	m := new(dns.Msg)
+	m.SetQuestion("example.net.", dns.TypeA)
+
+	if _, err = dns.Exchange(m, udp); err != nil {
+		t.Fatalf("Could not send message: %s", err)
+	}
+
+	beginCacheSizeSuccess := mtest.ScrapeMetricAsInt(t, metrics.ListenAddr, cacheSizeMetricName, cache.Success, 0)
+	beginCacheHitSuccess := mtest.ScrapeMetricAsInt(t, metrics.ListenAddr, cacheHitMetricName, cache.Success, 0)
+
+	m = new(dns.Msg)
 	m.SetQuestion("www.example.net.", dns.TypeA)
 
 	if _, err = dns.Exchange(m, udp); err != nil {
 		t.Fatalf("Could not send message: %s", err)
 	}
 
-	data := mtest.Scrape(t, "http://"+metrics.ListenAddr+"/metrics")
 	// Get the value for the cache size metric where the one of the labels values matches "success".
-	got, _ := mtest.MetricValueLabel(cacheSizeMetricName, cache.Success, data)
+	got := mtest.ScrapeMetricAsInt(t, metrics.ListenAddr, cacheSizeMetricName, cache.Success, 0)
 
-	if got != "1" {
-		t.Errorf("Expected value %s for %s, but got %s", "1", cacheSizeMetricName, got)
+	if got-beginCacheSizeSuccess != 1 {
+		t.Errorf("Expected value %d for %s, but got %d", 1, cacheSizeMetricName, got-beginCacheSizeSuccess)
 	}
 
-	// Second request for the same response to test hit counter.
+	// Second request for the same response to test hit counter
+	if _, err = dns.Exchange(m, udp); err != nil {
+		t.Fatalf("Could not send message: %s", err)
+	}
+	// Third request for the same response to test hit counter for the second time
 	if _, err = dns.Exchange(m, udp); err != nil {
 		t.Fatalf("Could not send message: %s", err)
 	}
 
-	data = mtest.Scrape(t, "http://"+metrics.ListenAddr+"/metrics")
 	// Get the value for the cache hit counter where the one of the labels values matches "success".
-	got, _ = mtest.MetricValueLabel(cacheHitMetricName, cache.Success, data)
+	got = mtest.ScrapeMetricAsInt(t, metrics.ListenAddr, cacheHitMetricName, cache.Success, 0)
 
-	if got != "2" {
-		t.Errorf("Expected value %s for %s, but got %s", "2", cacheHitMetricName, got)
+	if got-beginCacheHitSuccess != 2 {
+		t.Errorf("Expected value %d for %s, but got %d", 2, cacheHitMetricName, got-beginCacheHitSuccess)
 	}
 }
 
@@ -180,5 +192,59 @@ func TestMetricsAuto(t *testing.T) {
 
 	if got != "1" {
 		t.Errorf("Expected value %s for %s, but got %s", "1", metricName, got)
+	}
+}
+
+// Show that when 2 blocs share the same metric listener (they have a prometheus plugin on the same listening address),
+// ALL the metrics of the second bloc in order are declared in prometheus, especially the plugins that are used ONLY in the second bloc
+func TestMetricsSeveralBlocs(t *testing.T) {
+	cacheSizeMetricName := "coredns_cache_size"
+	addrMetrics := "localhost:9155"
+
+	corefile := fmt.Sprintf(`
+example.org:0 {
+	prometheus %s
+	forward . 8.8.8.8:53 {
+       force_tcp
+    }
+}
+google.com:0 {
+	prometheus %s
+	forward . 8.8.8.8:53 {
+       force_tcp
+    }
+	cache
+}
+`, addrMetrics, addrMetrics)
+
+	i, udp, _, err := CoreDNSServerAndPorts(corefile)
+	if err != nil {
+		t.Fatalf("Could not get CoreDNS serving instance: %s", err)
+	}
+	defer i.Stop()
+
+	// send an inital query to setup properly the cache size
+	m := new(dns.Msg)
+	m.SetQuestion("google.com.", dns.TypeA)
+	if _, err = dns.Exchange(m, udp); err != nil {
+		t.Fatalf("Could not send message: %s", err)
+	}
+
+	beginCacheSize := mtest.ScrapeMetricAsInt(t, addrMetrics, cacheSizeMetricName, "", 0)
+
+	// send an query, different from initial to ensure we have another add to the cache
+	m = new(dns.Msg)
+	m.SetQuestion("www.google.com.", dns.TypeA)
+
+	if _, err = dns.Exchange(m, udp); err != nil {
+		t.Fatalf("Could not send message: %s", err)
+	}
+
+	endCacheSize := mtest.ScrapeMetricAsInt(t, addrMetrics, cacheSizeMetricName, "", 0)
+	if err != nil {
+		t.Errorf("Unexpected metric data retrieved for %s : %s", cacheSizeMetricName, err)
+	}
+	if endCacheSize-beginCacheSize != 1 {
+		t.Errorf("Expected metric data retrieved for %s, expected %d, got %d", cacheSizeMetricName, 1, endCacheSize-beginCacheSize)
 	}
 }

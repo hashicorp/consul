@@ -27,6 +27,7 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"strconv"
 	"testing"
 
 	"github.com/matttproud/golang_protobuf_extensions/pbutil"
@@ -76,6 +77,47 @@ func Scrape(t *testing.T, url string) []*MetricFamily {
 		result = append(result, newMetricFamily(mf))
 	}
 	return result
+}
+
+// ScrapeMetricAsInt provide a sum of all metrics collected for the name and label provided.
+// if the metric is not a numeric value, it will be counted a 0.
+func ScrapeMetricAsInt(t *testing.T, addr string, name string, label string, nometricvalue int) int {
+
+	valueToInt := func(m metric) int {
+		v := m.Value
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return 0
+		}
+		return r
+	}
+
+	met := Scrape(t, fmt.Sprintf("http://%s/metrics", addr))
+	found := false
+	tot := 0
+	for _, mf := range met {
+		if mf.Name == name {
+			// Sum all metrics available
+			for _, m := range mf.Metrics {
+				if label == "" {
+					tot += valueToInt(m.(metric))
+					found = true
+					continue
+				}
+				for _, v := range m.(metric).Labels {
+					if v == label {
+						tot += valueToInt(m.(metric))
+						found = true
+					}
+				}
+			}
+		}
+	}
+
+	if !found {
+		return nometricvalue
+	}
+	return tot
 }
 
 // MetricValue returns the value associated with name as a string as well as the labels.

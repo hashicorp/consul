@@ -31,6 +31,13 @@ func setup(c *caddy.Controller) error {
 		return plugin.Error("prometheus", err)
 	}
 
+	// register the metrics to its address (ensure only one active metrics per address)
+	obj := uniqAddr.Set(m.Addr, m.OnStartup, m)
+	//propagate the real active Registry to current metrics
+	if om, ok := obj.(*Metrics); ok {
+		m.Reg = om.Reg
+	}
+
 	dnsserver.GetConfig(c).AddPlugin(func(next plugin.Handler) plugin.Handler {
 		m.Next = next
 		return m
@@ -54,10 +61,6 @@ func setup(c *caddy.Controller) error {
 
 func prometheusParse(c *caddy.Controller) (*Metrics, error) {
 	var met = New(defaultAddr)
-
-	defer func() {
-		uniqAddr.Set(met.Addr, met.OnStartup)
-	}()
 
 	i := 0
 	for c.Next() {
