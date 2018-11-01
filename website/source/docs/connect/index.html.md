@@ -73,7 +73,7 @@ in microseconds.
 
 There are several ways to try Connect in different environments.
 
- * The [Connect introduction](/intro/getting-started/connect.html) in the
+ * The [Connect introduction](https://learn.hashicorp.com/consul/getting-started/connect.html) in the
    Getting Started guide provides a simple walk through of getting two services
    to communicate via Connect using only Consul directly on your local machine.
 
@@ -135,4 +135,3 @@ Multi-datacenter support for Connect is under development and will be
 released as a feature of Consul Enterprise in late 2018. This feature will
 facilitate intention replication, datacenter constraints on intentions,
 CA state replication, multi-datacenter certificate rotations, and more.
-

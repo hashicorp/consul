@@ -102,7 +102,7 @@ All of Consul's previously deprecated command line flags and config options have
 | `-retry-join-gce-tag-name` | [`-retry-join`](/docs/agent/options.html#google-compute-engine) |
 | `-retry-join-gce-zone-pattern` | [`-retry-join`](/docs/agent/options.html#google-compute-engine) |
 | `addresses.rpc` | None, the RPC server for CLI commands is no longer supported. |
-| `advertise_addrs` | [`ports`](/docs/agent/options.html#ports) with [`advertise_addr`](https://www.consul/io/docs/agent/options.html#advertise_addr) and/or [`advertise_addr_wan`](/docs/agent/options.html#advertise_addr_wan) |
+| `advertise_addrs` | [`ports`](/docs/agent/options.html#ports) with [`advertise_addr`](https://www.consul.io/docs/agent/options.html#advertise_addr) and/or [`advertise_addr_wan`](/docs/agent/options.html#advertise_addr_wan) |
 | `dogstatsd_addr` | [`telemetry.dogstatsd_addr`](/docs/agent/options.html#telemetry-dogstatsd_addr) |
 | `dogstatsd_tags` | [`telemetry.dogstatsd_tags`](/docs/agent/options.html#telemetry-dogstatsd_tags) |
 | `http_api_response_headers` | [`http_config.response_headers`](/docs/agent/options.html#response_headers) |
