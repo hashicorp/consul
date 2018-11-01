@@ -28,6 +28,7 @@ type cmd struct {
 	description   string
 	mergePolicies bool
 	showMeta      bool
+	upgradeLegacy bool
 }
 
 func (c *cmd) init() {
@@ -44,6 +45,12 @@ func (c *cmd) init() {
 		"policy to use for this token. May be specified multiple times")
 	c.flags.Var((*flags.AppendSliceValue)(&c.policyNames), "policy-name", "Name of a "+
 		"policy to use for this token. May be specified multiple times")
+	c.flags.BoolVar(&c.upgradeLegacy, "upgrade-legacy", false, "Add new polices "+
+		"to a legacy token replacing all existing rules. This will cause the legacy "+
+		"token to behave exactly like a new token but keep the same Secret.\n"+
+		"WARNING: you must ensure that the new policy or policies specified grant "+
+		"equivalent or appropriate access for the existing clients using this token.")
+
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
@@ -78,7 +85,27 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	token.Description = c.description
+	if c.upgradeLegacy {
+		if token.Rules == "" {
+			// This is just for convenience it should actually be harmless to allow it
+			// to go through anyway.
+			c.UI.Error(fmt.Sprintf("Can't use -upgrade-legacy on a non-legacy token"))
+			return 1
+		}
+		// Reset the rules to nothing forcing this to be updated as a non-legacy
+		// token but with same secret.
+		token.Rules = ""
+	}
+
+	if c.description != "" {
+		// Only update description if the user specified a new one. This does make
+		// it impossible to completely clear descriptions from CLI but that seems
+		// better than silently deleting descriptions when using command without
+		// manually giving the new description. If it's a real issue we can always
+		// add another explicit `-remove-description` flag but it feels like an edge
+		// case that's not going to be critical to anyone.
+		token.Description = c.description
+	}
 
 	if c.mergePolicies {
 		for _, policyName := range c.policyNames {
