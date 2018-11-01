@@ -127,10 +127,12 @@ if [ -z "$NO_REDIRECTS" ] || [ ! test -f "./redirects.txt" ]; then
       exit 1
     fi
 
-    if [ "${field:0:1}" != "/" ]; then
-      echo "'$field' does not start with /!"
-      exit 1
-    fi
+    # Lets see if Fastly accepts full links
+    #
+    # if [ "${field:0:1}" != "/" ]; then
+    #   echo "'$field' does not start with /!"
+    #   exit 1
+    # fi
   done
 
   # Build the payload for single-request updates.
