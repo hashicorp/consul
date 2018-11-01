@@ -6,9 +6,6 @@ description: |-
   Consul comes with support for beautiful, functional web UIs out of the box. UIs can be used for viewing all services and nodes, for viewing all health checks and their current status, and for reading and setting key/value data. The UIs automatically supports multi-datacenter.
 ---
 
-**Note: This guide is temporarily being managed in a different repo. Please contact kait@hashicorp.com if you have any
- questions.
-
 # Consul Web UI
 
 Consul comes with support for beautiful, functional web UIs out of the

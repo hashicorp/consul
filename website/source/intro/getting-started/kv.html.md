@@ -6,9 +6,6 @@ description: |-
   In addition to providing service discovery and integrated health checking, Consul provides an easy to use KV store. This can be used to hold dynamic configuration, assist in service coordination, build leader election, and enable anything else a developer can think to build.
 ---
 
-**Note: This guide is temporarily being managed in a different repo. Please contact kait@hashicorp.com if you have any
- questions.
-
 # KV Data
 
 In addition to providing service discovery and integrated health checking,
