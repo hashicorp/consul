@@ -49,7 +49,7 @@
     {{/block-slot}}
     {{#block-slot 'content'}}
         {{#if (token/is-legacy item)}}
-            <p class="notice info"><strong>Update.</strong> We've upgraded our ACL system by allowing you to create reusable policies which you can then apply to tokens. Don't worry, even though this token was written in the old style, it is still valid. However, we do recommend upgrading your old Tokens to the new style. Learn how in our <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guides/acl.html" target="_blank" rel="noopener noreferrer">documentation</a>.</p>
+            <p class="notice info"><strong>Update.</strong> We have upgraded our ACL system by allowing you to create reusable policies which you can then apply to tokens. Don't worry, even though this token was written in the old style, it is still valid. However, we do recommend upgrading your old tokens to the new style. Learn how in our <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guide/acl-migrate-tokens.html" target="_blank" rel="noopener noreferrer">documentation</a>.</p>
         {{/if}}
 {{#if (not create) }}
       <div>
