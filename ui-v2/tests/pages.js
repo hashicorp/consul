@@ -62,6 +62,7 @@ export default {
       clickable,
       attribute,
       collection,
+      text,
       freetextFilter
     )
   ),

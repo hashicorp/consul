@@ -6,11 +6,13 @@ export default function(
   clickable,
   attribute,
   collection,
+  text,
   filter
 ) {
   return submitable(
     creatable({
       visit: visitable('/:dc/acls/tokens'),
+      update: text('[data-test-notification-update]'),
       tokens: collection(
         '[data-test-tabular-row]',
         deletable({
