@@ -126,6 +126,24 @@ func TestACLReplication_diffACLPolicies(t *testing.T) {
 
 func TestACLReplication_diffACLTokens(t *testing.T) {
 	local := structs.ACLTokens{
+		// When a just-upgraded (1.3->1.4+) secondary DC is replicating from an
+		// upgraded primary DC (1.4+), the local state for tokens predating the
+		// upgrade will lack AccessorIDs.
+		//
+		// The primary DC will lazily perform the update to assign AccessorIDs,
+		// and that new update will come across the wire locally as a new
+		// insert.
+		//
+		// We simulate that scenario here with 'token0' having no AccessorID in
+		// the secondary (local) DC and having an AccessorID assigned in the
+		// payload retrieved from the primary (remote) DC.
+		&structs.ACLToken{
+			AccessorID:  "",
+			SecretID:    "5128289f-c22c-4d32-936e-7662443f1a55",
+			Description: "token0 - old and not yet upgraded",
+			Hash:        []byte{1, 2, 3, 4},
+			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 3},
+		},
 		&structs.ACLToken{
 			AccessorID:  "44ef9aec-7654-4401-901b-4d4a8b3c80fc",
 			SecretID:    "44ef9aec-7654-4401-901b-4d4a8b3c80fc",
@@ -158,6 +176,14 @@ func TestACLReplication_diffACLTokens(t *testing.T) {
 
 	remote := structs.ACLTokenListStubs{
 		&structs.ACLTokenListStub{
+			AccessorID: "72fac6a3-a014-41c8-9cb2-8d9a5e935f3d",
+			//SecretID:    "5128289f-c22c-4d32-936e-7662443f1a55", (formerly)
+			Description: "token0 - old and not yet upgraded locally",
+			Hash:        []byte{1, 2, 3, 4},
+			CreateIndex: 1,
+			ModifyIndex: 3,
+		},
+		&structs.ACLTokenListStub{
 			AccessorID:  "44ef9aec-7654-4401-901b-4d4a8b3c80fc",
 			Description: "token1 - already in sync",
 			Hash:        []byte{1, 2, 3, 4},
@@ -185,35 +211,66 @@ func TestACLReplication_diffACLTokens(t *testing.T) {
 			CreateIndex: 1,
 			ModifyIndex: 50,
 		},
+		// When a 1.4+ secondary DC is replicating from a 1.4+ primary DC,
+		// tokens created using the legacy APIs will not initially have
+		// AccessorIDs assigned. That assignment is lazy (but in quick
+		// succession).
+		//
+		// The secondary (local) will see these in the api response as a stub
+		// with "" as the AccessorID.
+		//
+		// We simulate that here to verify that the secondary does the right
+		// thing by skipping them until it sees them with nonempty AccessorIDs.
+		&structs.ACLTokenListStub{
+			AccessorID:  "",
+			Description: "token6 - pending async AccessorID assignment",
+			Hash:        []byte{1, 2, 3, 4},
+			CreateIndex: 51,
+			ModifyIndex: 51,
+		},
 	}
 
 	// Do the full diff. This full exercises the main body of the loop
-	deletions, updates := diffACLTokens(local, remote, 28)
-	require.Len(t, updates, 2)
-	require.ElementsMatch(t, updates, []string{
-		"c6e8fffd-cbd9-4ecd-99fe-ab2f200c7926",
-		"539f1cb6-40aa-464f-ae66-a900d26bc1b2"})
+	t.Run("full-diff", func(t *testing.T) {
+		res := diffACLTokens(local, remote, 28)
+		require.Equal(t, 1, res.LocalSkipped)
+		require.Equal(t, 1, res.RemoteSkipped)
+		require.Len(t, res.LocalUpserts, 3)
+		require.ElementsMatch(t, res.LocalUpserts, []string{
+			"72fac6a3-a014-41c8-9cb2-8d9a5e935f3d",
+			"c6e8fffd-cbd9-4ecd-99fe-ab2f200c7926",
+			"539f1cb6-40aa-464f-ae66-a900d26bc1b2"})
 
-	require.Len(t, deletions, 1)
-	require.Equal(t, "e9d33298-6490-4466-99cb-ba93af64fa76", deletions[0])
+		require.Len(t, res.LocalDeletes, 1)
+		require.Equal(t, "e9d33298-6490-4466-99cb-ba93af64fa76", res.LocalDeletes[0])
+	})
 
-	deletions, updates = diffACLTokens(local, nil, 28)
-	require.Len(t, updates, 0)
-	require.Len(t, deletions, 4)
-	require.ElementsMatch(t, deletions, []string{
-		"44ef9aec-7654-4401-901b-4d4a8b3c80fc",
-		"8ea41efb-8519-4091-bc91-c42da0cda9ae",
-		"539f1cb6-40aa-464f-ae66-a900d26bc1b2",
-		"e9d33298-6490-4466-99cb-ba93af64fa76"})
+	t.Run("only-local", func(t *testing.T) {
+		res := diffACLTokens(local, nil, 28)
+		require.Equal(t, 1, res.LocalSkipped)
+		require.Equal(t, 0, res.RemoteSkipped)
+		require.Len(t, res.LocalUpserts, 0)
+		require.Len(t, res.LocalDeletes, 4)
+		require.ElementsMatch(t, res.LocalDeletes, []string{
+			"44ef9aec-7654-4401-901b-4d4a8b3c80fc",
+			"8ea41efb-8519-4091-bc91-c42da0cda9ae",
+			"539f1cb6-40aa-464f-ae66-a900d26bc1b2",
+			"e9d33298-6490-4466-99cb-ba93af64fa76"})
+	})
 
-	deletions, updates = diffACLTokens(nil, remote, 28)
-	require.Len(t, deletions, 0)
-	require.Len(t, updates, 4)
-	require.ElementsMatch(t, updates, []string{
-		"44ef9aec-7654-4401-901b-4d4a8b3c80fc",
-		"8ea41efb-8519-4091-bc91-c42da0cda9ae",
-		"539f1cb6-40aa-464f-ae66-a900d26bc1b2",
-		"c6e8fffd-cbd9-4ecd-99fe-ab2f200c7926"})
+	t.Run("only-remote", func(t *testing.T) {
+		res := diffACLTokens(nil, remote, 28)
+		require.Equal(t, 0, res.LocalSkipped)
+		require.Equal(t, 1, res.RemoteSkipped)
+		require.Len(t, res.LocalDeletes, 0)
+		require.Len(t, res.LocalUpserts, 5)
+		require.ElementsMatch(t, res.LocalUpserts, []string{
+			"72fac6a3-a014-41c8-9cb2-8d9a5e935f3d",
+			"44ef9aec-7654-4401-901b-4d4a8b3c80fc",
+			"8ea41efb-8519-4091-bc91-c42da0cda9ae",
+			"539f1cb6-40aa-464f-ae66-a900d26bc1b2",
+			"c6e8fffd-cbd9-4ecd-99fe-ab2f200c7926"})
+	})
 }
 
 func TestACLReplication_Tokens(t *testing.T) {

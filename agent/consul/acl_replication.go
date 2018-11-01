@@ -171,32 +171,49 @@ func (s *Server) fetchACLPolicies(lastRemoteIndex uint64) (*structs.ACLPolicyLis
 	return &response, nil
 }
 
-func diffACLTokens(local structs.ACLTokens, remote structs.ACLTokenListStubs, lastRemoteIndex uint64) ([]string, []string) {
+type tokenDiffResults struct {
+	LocalDeletes  []string
+	LocalUpserts  []string
+	LocalSkipped  int
+	RemoteSkipped int
+}
+
+func diffACLTokens(local structs.ACLTokens, remote structs.ACLTokenListStubs, lastRemoteIndex uint64) tokenDiffResults {
+	// Note: items with empty AccessorIDs will bubble up to the top.
 	local.Sort()
 	remote.Sort()
 
-	var deletions []string
-	var updates []string
+	var res tokenDiffResults
 	var localIdx int
 	var remoteIdx int
 	for localIdx, remoteIdx = 0, 0; localIdx < len(local) && remoteIdx < len(remote); {
+		if local[localIdx].AccessorID == "" {
+			res.LocalSkipped++
+			localIdx += 1
+			continue
+		}
+		if remote[remoteIdx].AccessorID == "" {
+			res.RemoteSkipped++
+			remoteIdx += 1
+			continue
+		}
 		if local[localIdx].AccessorID == remote[remoteIdx].AccessorID {
 			// policy is in both the local and remote state - need to check raft indices and Hash
 			if remote[remoteIdx].ModifyIndex > lastRemoteIndex && !bytes.Equal(remote[remoteIdx].Hash, local[localIdx].Hash) {
-				updates = append(updates, remote[remoteIdx].AccessorID)
+				res.LocalUpserts = append(res.LocalUpserts, remote[remoteIdx].AccessorID)
 			}
 			// increment both indices when equal
 			localIdx += 1
 			remoteIdx += 1
 		} else if local[localIdx].AccessorID < remote[remoteIdx].AccessorID {
 			// policy no longer in remoted state - needs deleting
-			deletions = append(deletions, local[localIdx].AccessorID)
+			res.LocalDeletes = append(res.LocalDeletes, local[localIdx].AccessorID)
 
 			// increment just the local index
 			localIdx += 1
 		} else {
 			// local state doesn't have this policy - needs updating
-			updates = append(updates, remote[remoteIdx].AccessorID)
+			res.LocalUpserts = append(res.LocalUpserts, remote[remoteIdx].AccessorID)
 
 			// increment just the remote index
 			remoteIdx += 1
@@ -204,14 +221,22 @@ func diffACLTokens(local structs.ACLTokens, remote structs.ACLTokenListStubs, la
 	}
 
 	for ; localIdx < len(local); localIdx += 1 {
-		deletions = append(deletions, local[localIdx].AccessorID)
+		if local[localIdx].AccessorID != "" {
+			res.LocalDeletes = append(res.LocalDeletes, local[localIdx].AccessorID)
+		} else {
+			res.LocalSkipped++
+		}
 	}
 
 	for ; remoteIdx < len(remote); remoteIdx += 1 {
-		updates = append(updates, remote[remoteIdx].AccessorID)
+		if remote[remoteIdx].AccessorID != "" {
+			res.LocalUpserts = append(res.LocalUpserts, remote[remoteIdx].AccessorID)
+		} else {
+			res.RemoteSkipped++
+		}
 	}
 
-	return deletions, updates
+	return res
 }
 
 func (s *Server) deleteLocalACLTokens(deletions []string, ctx context.Context) (bool, error) {
@@ -453,12 +478,17 @@ func (s *Server) replicateACLTokens(lastRemoteIndex uint64, ctx context.Context)
 
 	// Calculate the changes required to bring the state into sync and then
 	// apply them.
-	deletions, updates := diffACLTokens(local, remote.Tokens, lastRemoteIndex)
-	s.logger.Printf("[DEBUG] acl: token replication - deletions: %d, updates: %d", len(deletions), len(updates))
+	res := diffACLTokens(local, remote.Tokens, lastRemoteIndex)
+	if res.LocalSkipped > 0 || res.RemoteSkipped > 0 {
+		s.logger.Printf("[DEBUG] acl: token replication - deletions: %d, updates: %d, skipped: %d, skippedRemote: %d",
+			len(res.LocalDeletes), len(res.LocalUpserts), res.LocalSkipped, res.RemoteSkipped)
+	} else {
+		s.logger.Printf("[DEBUG] acl: token replication - deletions: %d, updates: %d", len(res.LocalDeletes), len(res.LocalUpserts))
+	}
 
 	var tokens *structs.ACLTokenBatchResponse
-	if len(updates) > 0 {
-		tokens, err = s.fetchACLTokensBatch(updates)
+	if len(res.LocalUpserts) > 0 {
+		tokens, err = s.fetchACLTokensBatch(res.LocalUpserts)
 		if err != nil {
 			return 0, false, fmt.Errorf("failed to retrieve ACL token updates: %v", err)
 		}
@@ -466,10 +496,10 @@ func (s *Server) replicateACLTokens(lastRemoteIndex uint64, ctx context.Context)
 		s.logger.Printf("[DEBUG] acl: token replication - downloaded %d tokens", len(tokens.Tokens))
 	}
 
-	if len(deletions) > 0 {
+	if len(res.LocalDeletes) > 0 {
 		s.logger.Printf("[DEBUG] acl: token replication - performing deletions")
 
-		exit, err := s.deleteLocalACLTokens(deletions, ctx)
+		exit, err := s.deleteLocalACLTokens(res.LocalDeletes, ctx)
 		if exit {
 			return 0, true, nil
 		}
@@ -479,7 +509,7 @@ func (s *Server) replicateACLTokens(lastRemoteIndex uint64, ctx context.Context)
 		s.logger.Printf("[DEBUG] acl: token replication - finished deletions")
 	}
 
-	if len(updates) > 0 {
+	if len(res.LocalUpserts) > 0 {
 		s.logger.Printf("[DEBUG] acl: token replication - performing updates")
 		exit, err := s.updateLocalACLTokens(tokens.Tokens, ctx)
 		if exit {
