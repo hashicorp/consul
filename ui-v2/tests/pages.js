@@ -54,7 +54,17 @@ export default {
     policy(visitable, submitable, deletable, cancelable, clickable, attribute, collection)
   ),
   tokens: create(
-    tokens(visitable, deletable, creatable, clickable, attribute, collection, freetextFilter)
+    tokens(
+      visitable,
+      submitable,
+      deletable,
+      creatable,
+      clickable,
+      attribute,
+      collection,
+      text,
+      freetextFilter
+    )
   ),
   token: create(
     token(visitable, submitable, deletable, cancelable, clickable, attribute, collection)

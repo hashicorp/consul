@@ -6,7 +6,7 @@ Feature: dc / acls / tokens / legacy / update: ACL Token Update
     ---
       AccessorID: key
       SecretID: secret
-      Rules: ''
+      Rules: 'key {}'
       Type: client
       Policies: ~
     ---

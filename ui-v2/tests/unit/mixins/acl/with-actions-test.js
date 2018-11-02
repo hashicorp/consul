@@ -40,11 +40,12 @@ test('use persists the token and calls transitionTo correctly', function(assert)
     })
   );
   const item = { ID: 'id' };
+  const expectedToken = { AccessorID: null, SecretID: item.ID };
   this.register(
     'service:settings',
     Service.extend({
       persist: function(actual) {
-        assert.equal(actual.token, item.ID);
+        assert.deepEqual(actual.token, expectedToken);
         return Promise.resolve(actual);
       },
     })

@@ -18,6 +18,13 @@ export default Component.extend(SlotsMixin, {
       $html.classList.remove(...templatize(['loading']));
     }
     if (cls) {
+      // its possible for 'layout' templates to change after insert
+      // check for these specific layouts and clear them out
+      [...$html.classList].forEach(function(item, i) {
+        if (templatize(['edit', 'show', 'list']).indexOf(item) !== -1) {
+          $html.classList.remove(item);
+        }
+      });
       $html.classList.add(...templatize(cls.split(' ')));
     }
   },

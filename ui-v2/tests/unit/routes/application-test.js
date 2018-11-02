@@ -2,7 +2,7 @@ import { moduleFor, test } from 'ember-qunit';
 
 moduleFor('route:application', 'Unit | Route | application', {
   // Specify the other units that are required for this test.
-  needs: ['service:repository/dc'],
+  needs: ['service:repository/dc', 'service:settings'],
 });
 
 test('it exists', function(assert) {
