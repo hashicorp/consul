@@ -92,9 +92,6 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 					endpoints = args
 				case "upstream":
 					args := c.RemainingArgs()
-					if len(args) == 0 {
-						return nil, false, c.ArgErr()
-					}
 					u, err := upstream.New(args)
 					if err != nil {
 						return nil, false, err
