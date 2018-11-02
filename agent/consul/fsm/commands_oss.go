@@ -158,7 +158,7 @@ func (c *FSM) applyACLOperation(buf []byte, index uint64) interface{} {
 		}
 		return enabled
 	case structs.ACLBootstrapNow:
-		// This a bootstrap request from a non-upgraded node
+		// This is a bootstrap request from a non-upgraded node
 		if err := c.state.ACLBootstrap(index, 0, req.ACL.Convert(), true); err != nil {
 			return err
 		}

@@ -11,7 +11,7 @@ import (
 
 const (
 	// DiskUsagePath is the path to check usage of the disk.
-	// Must be a filessytem path such as "/", not device file path like "/dev/vda1"
+	// Must be a filesystem path such as "/", not device file path like "/dev/vda1"
 	DiskUsagePath = "/"
 )
 

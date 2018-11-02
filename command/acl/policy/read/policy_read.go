@@ -29,7 +29,7 @@ type cmd struct {
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.BoolVar(&c.showMeta, "meta", false, "Indicates that policy metadata such "+
-		"as the content hash and raft indices should be show for each entry")
+		"as the content hash and raft indices should be shown for each entry")
 	c.flags.StringVar(&c.policyID, "id", "", "The ID of the policy to read. "+
 		"It may be specified as a unique ID prefix but will error if the prefix "+
 		"matches multiple policy IDs")

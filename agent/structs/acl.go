@@ -52,7 +52,7 @@ const (
 	// dont accidentally create them when autogenerating uuids.
 
 	// This policy gives unlimited access to everything. Users
-	// may rename if desired but cannot delete or modify the rules
+	// may rename if desired but cannot delete or modify the rules.
 	ACLPolicyGlobalManagementID = "00000000-0000-0000-0000-000000000001"
 	ACLPolicyGlobalManagement   = `
 acl = "write"
@@ -82,6 +82,7 @@ session_prefix "" {
 }`
 
 	// This is the policy ID for anonymous access. This is configurable by the
+	// user.
 	ACLTokenAnonymousID = "00000000-0000-0000-0000-000000000002"
 )
 
@@ -308,7 +309,7 @@ type ACLPolicy struct {
 	// The rule set (using the updated rule syntax)
 	Rules string
 
-	// DEPRECATED (ACL-Legacy-Compat) - This is only needed while we support the legacy ACLS
+	// DEPRECATED (ACL-Legacy-Compat) - This is only needed while we support the legacy ACLs
 	Syntax acl.SyntaxVersion `json:"-"`
 
 	// Datacenters that the policy is valid within.

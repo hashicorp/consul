@@ -33,10 +33,10 @@ Usage: consul acl policy <subcommand> [options] [args]
 
   Create a new ACL Policy:
 
-      $ consul acl policy create “new-policy” \
-                                 -description “This is an example policy” \
-                                 -datacenter “dc1” \
-                                 -datacenter “dc2” \
+      $ consul acl policy create "new-policy" \
+                                 -description "This is an example policy" \
+                                 -datacenter "dc1" \
+                                 -datacenter "dc2" \
                                  -rules @rules.hcl
   List all policies:
 
@@ -44,7 +44,7 @@ Usage: consul acl policy <subcommand> [options] [args]
 
   Update a policy:
 
-      $ consul acl policy update “other-policy” -datacenter “dc1”
+      $ consul acl policy update "other-policy" -datacenter "dc1"
 
   Read a policy:
 
