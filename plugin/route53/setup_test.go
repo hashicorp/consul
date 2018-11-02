@@ -36,10 +36,17 @@ func TestSetupRoute53(t *testing.T) {
 	}
 
 	c = caddy.NewTestController("dns", `route53 example.org:12345678 {
+    upstream 10.0.0.1
+}`)
+	if err := setup(c, f); err != nil {
+		t.Fatalf("Expected no errors, but got: %v", err)
+	}
+
+	c = caddy.NewTestController("dns", `route53 example.org:12345678 {
     upstream
 }`)
-	if err := setup(c, f); err == nil {
-		t.Fatalf("Expected errors, but got: %v", err)
+	if err := setup(c, f); err != nil {
+		t.Fatalf("Expected no errors, but got: %v", err)
 	}
 
 	c = caddy.NewTestController("dns", `route53 example.org:12345678 {

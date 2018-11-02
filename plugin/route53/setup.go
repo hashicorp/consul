@@ -84,11 +84,6 @@ func setup(c *caddy.Controller, f func(*credentials.Credentials) route53iface.Ro
 				})
 			case "upstream":
 				args := c.RemainingArgs()
-				// TODO(dilyevsky): There is a bug that causes coredns to crash
-				// when no upstream endpoint is provided.
-				if len(args) == 0 {
-					return c.Errf("local upstream not supported. please provide upstream endpoint")
-				}
 				var err error
 				up, err = upstream.New(args)
 				if err != nil {
