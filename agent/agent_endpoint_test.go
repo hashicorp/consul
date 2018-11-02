@@ -176,7 +176,7 @@ func TestAgent_Services_Sidecar(t *testing.T) {
 	assert.Equal(srv1.Proxy.DestinationServiceName, actual.ProxyDestination)
 
 	// Sanity check that LocalRegisteredAsSidecar is not in the output (assuming
-	// JSON encoding). Right now this is not the case becuase the services
+	// JSON encoding). Right now this is not the case because the services
 	// endpoint happens to use the api struct which doesn't include that field,
 	// but this test serves as a regression test incase we change the endpoint to
 	// return the internal struct later and accidentally expose some "internal"

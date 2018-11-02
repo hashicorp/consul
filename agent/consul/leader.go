@@ -603,7 +603,7 @@ func (s *Server) startACLUpgrade() {
 
 			var newTokens structs.ACLTokens
 			for _, token := range tokens {
-				// This should be entirely unnessary but is just a small safeguard against changing accessor IDs
+				// This should be entirely unnecessary but is just a small safeguard against changing accessor IDs
 				if token.AccessorID != "" {
 					continue
 				}
