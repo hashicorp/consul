@@ -567,16 +567,60 @@ func (c *cmd) configuredTarget(target string) bool {
 // createArchive walks the files in the temporary directory
 // and creates a tar file that is gzipped with the contents
 func (c *cmd) createArchive() error {
-	f, err := os.Create(c.output + debugArchiveExtension)
+	path := c.output + debugArchiveExtension
+
+	tempName, err := c.createArchiveTemp(path)
 	if err != nil {
-		return fmt.Errorf("failed to create compressed archive: %s", err)
+		return err
+	}
+
+	if err := os.Rename(tempName, path); err != nil {
+		return err
+	}
+	// fsync the dir to make the rename stick
+	if err := syncParentDir(path); err != nil {
+		return err
+	}
+
+	// Remove directory that has been archived
+	if err := os.RemoveAll(c.output); err != nil {
+		return fmt.Errorf("failed to remove archived directory: %s", err)
+	}
+
+	return nil
+}
+
+func syncParentDir(name string) error {
+	f, err := os.Open(filepath.Dir(name))
+	if err != nil {
+		return err
 	}
 	defer f.Close()
 
+	return f.Sync()
+}
+
+func (c *cmd) createArchiveTemp(path string) (tempName string, err error) {
+	dir := filepath.Dir(path)
+	name := filepath.Base(path)
+
+	f, err := ioutil.TempFile(dir, name+".tmp")
+	if err != nil {
+		return "", fmt.Errorf("failed to create compressed temp archive: %s", err)
+	}
+
 	g := gzip.NewWriter(f)
-	defer g.Close()
 	t := tar.NewWriter(f)
-	defer t.Close()
+
+	tempName = f.Name()
+
+	cleanup := func(err error) (string, error) {
+		_ = t.Close()
+		_ = g.Close()
+		_ = f.Close()
+		_ = os.Remove(tempName)
+		return "", err
+	}
 
 	err = filepath.Walk(c.output, func(file string, fi os.FileInfo, err error) error {
 		if err != nil {
@@ -614,16 +658,29 @@ func (c *cmd) createArchive() error {
 	})
 
 	if err != nil {
-		return fmt.Errorf("failed to walk output path for archive: %s", err)
+		return cleanup(fmt.Errorf("failed to walk output path for archive: %s", err))
 	}
 
-	// Remove directory that has been archived
-	err = os.RemoveAll(c.output)
-	if err != nil {
-		return fmt.Errorf("failed to remove archived directory: %s", err)
+	// Explicitly close things in the correct order (tar then gzip) so we
+	// know if they worked.
+	if err := t.Close(); err != nil {
+		return cleanup(err)
+	}
+	if err := g.Close(); err != nil {
+		return cleanup(err)
 	}
 
-	return nil
+	// Guarantee that the contents of the temp file are flushed to disk.
+	if err := f.Sync(); err != nil {
+		return cleanup(err)
+	}
+
+	// Close the temp file and go back to the wrapper function for the rest.
+	if err := f.Close(); err != nil {
+		return cleanup(err)
+	}
+
+	return tempName, nil
 }
 
 // defaultTargets specifies the list of all targets that
