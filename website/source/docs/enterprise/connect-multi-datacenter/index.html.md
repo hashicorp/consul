@@ -21,41 +21,14 @@ name while authorizing across DCs.
 
 # Replication
 
-Intention replication happens automatically but requires the [`PrimaryDatacenter`](/docs/agent/options.html#primary_datacenter)
+Intention replication happens automatically but requires the [`primary_datacenter`](/docs/agent/options.html#primary_datacenter)
 configuration to be set to specify a datacenter that is the authorative DC
-for intentions.
+for intentions. Intentions are replicated to other DCs using blocking watches.
 
-This primary datacenter also acts as the root Certificate Authority for Connect.
-The built-in CA generates the cluster root key and trust domain UUID. Non-authoritative
-datacenters will then replicate the public CA certificate and trust-domain from
-the authority, and generate a CSR for an intermediate key they can use to sign
-certificates locally to ensure no dependency on WAN connectivity for normal
-operation.
-
-Writes and updates made to non-authoritative datacenters will not be replicated back
-to the primary. All intention updates should be made to this primary datacenter.
-Intentions are replicated to other DCs using blocking watches.
-
-## Configuration
-
-Configuration for multi-dc intentions mirrors that of normal configuration,
-but a `PrimaryDatacenter` must be specified.
-
-```
-...
-  "primary_datacenter": "dc1",
-...
-```
-
-Assuming a multi-dc setup with two datacenters (`dc1`, `dc2`) the built-in proxy
-can then specify upstream services via the `dc` flag:
-
-```
-$ consul connect proxy \
-         -service client
-         -upstream nginx:80
-         -datacenter dc2
-```
-
-Alternatively, upstreams can be [prepared queries](/api/query.html) that resolve
-services across datacenters.
+This primary datacenter also acts as the root Certificate Authority for Connect. 
+The primary datacenter then generates a trust-domain UUID and obtains a root 
+certificate from the CA provider. Secondary datacenters will then replicate the 
+root CA public key and trust-domain ID from the primary and generate their own key 
+and CSR for an intermediate CA certificate. This CSR is signed by the primary and 
+used to issue new Connect certificates in the secondary DC without WAN RPCs. No CA 
+keys are replicated between datacenters.
