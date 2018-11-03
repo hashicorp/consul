@@ -159,6 +159,36 @@ func TestRequestScrubExtraRegression(t *testing.T) {
 	}
 }
 
+func TestTruncation(t *testing.T) {
+	for bufsize := 1024; bufsize <= 4096; bufsize += 12 {
+		m := new(dns.Msg)
+		m.SetQuestion("http.service.tcp.srv.k8s.example.org", dns.TypeSRV)
+		m.SetEdns0(uint16(bufsize), true)
+		req := Request{W: &test.ResponseWriter{}, Req: m}
+
+		reply := new(dns.Msg)
+		reply.SetReply(m)
+
+		for i := 0; i < 61; i++ {
+			reply.Answer = append(reply.Answer, test.SRV(fmt.Sprintf("http.service.tcp.srv.k8s.example.org. 5 IN SRV 0 0 80 10-144-230-%d.default.pod.k8s.example.org.", i)))
+		}
+
+		for i := 0; i < 5; i++ {
+			reply.Extra = append(reply.Extra, test.A(fmt.Sprintf("ip-10-10-52-5%d.subdomain.example.org. 5 IN A 10.10.52.5%d", i, i)))
+		}
+
+		for i := 0; i < 5; i++ {
+			reply.Ns = append(reply.Ns, test.NS(fmt.Sprintf("srv.subdomain.example.org. 5 IN NS ip-10-10-33-6%d.subdomain.example.org.", i)))
+		}
+
+		req.Scrub(reply)
+		want, got := req.Size(), reply.Len()
+		if want < got {
+			t.Fatalf("Want scrub to reduce message length below %d bytes, got %d bytes", want, got)
+		}
+	}
+}
+
 func TestRequestScrubAnswerExact(t *testing.T) {
 	m := new(dns.Msg)
 	m.SetQuestion("large.example.com.", dns.TypeSRV)
