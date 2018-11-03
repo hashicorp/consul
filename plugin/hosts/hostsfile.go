@@ -106,13 +106,17 @@ func (h *Hostsfile) readHosts() {
 		return
 	}
 
-	h.Lock()
-	defer h.Unlock()
-	h.parseReader(file)
+	newMap := h.parse(file, h.inline)
+	log.Debugf("Parsed hosts file into %d entries", newMap.Len())
 
+	h.Lock()
+
+	h.hmap = newMap
 	// Update the data cache.
 	h.mtime = stat.ModTime()
 	h.size = stat.Size()
+
+	h.Unlock()
 }
 
 func (h *Hostsfile) initInline(inline []string) {
@@ -123,12 +127,6 @@ func (h *Hostsfile) initInline(inline []string) {
 	hmap := newHostsMap()
 	h.inline = h.parse(strings.NewReader(strings.Join(inline, "\n")), hmap)
 	*h.hmap = *h.inline
-}
-
-func (h *Hostsfile) parseReader(r io.Reader) {
-	h.hmap = h.parse(r, h.inline)
-
-	log.Debugf("Parsed hosts file into %d entries", h.hmap.Len())
 }
 
 // Parse reads the hostsfile and populates the byName and byAddr maps.

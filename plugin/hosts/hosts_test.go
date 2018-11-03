@@ -2,6 +2,7 @@ package hosts
 
 import (
 	"context"
+	"io"
 	"strings"
 	"testing"
 
@@ -10,6 +11,8 @@ import (
 
 	"github.com/miekg/dns"
 )
+
+func (h *Hostsfile) parseReader(r io.Reader) { h.hmap = h.parse(r, h.inline) }
 
 func TestLookupA(t *testing.T) {
 	h := Hosts{Next: test.ErrorHandler(), Hostsfile: &Hostsfile{Origins: []string{"."}}}
