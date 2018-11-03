@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	proxyImpl "github.com/hashicorp/consul/connect/proxy"
-
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/logutils"
 	"github.com/mitchellh/cli"
@@ -58,6 +57,7 @@ type cmd struct {
 	serviceAddr string
 	upstreams   map[string]proxyImpl.UpstreamConfig
 	listen      string
+	advertise   string
 	register    bool
 	registerId  string
 
@@ -99,6 +99,10 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.listen, "listen", "",
 		"Address to listen for inbound connections to the proxied service. "+
 			"Must be specified with -service and -service-addr.")
+
+	c.flags.StringVar(&c.advertise, "advertise", "",
+		"Address to advertise when using -register if different than -listen. "+
+			"Only useful with -listen.")
 
 	c.flags.BoolVar(&c.register, "register", false,
 		"Self-register with the local Consul agent. Only useful with "+
@@ -333,7 +337,12 @@ func (c *cmd) registerMonitor(client *api.Client) (*RegisterMonitor, error) {
 		return nil, fmt.Errorf("-register may only be specified with -service and -listen")
 	}
 
-	host, port, err := c.listenParts()
+	host, port, err := "", 0, error(nil)
+	if c.advertise != "" {
+		host, port, err = c.advertiseParts()
+	} else {
+		host, port, err = c.listenParts()
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -348,10 +357,8 @@ func (c *cmd) registerMonitor(client *api.Client) (*RegisterMonitor, error) {
 	return m, nil
 }
 
-// listenParts returns the host and port parts of the -listen flag. The
-// -listen flag must be non-empty prior to calling this.
-func (c *cmd) listenParts() (string, int, error) {
-	host, portRaw, err := net.SplitHostPort(c.listen)
+func splitHostPort(address string) (string, int, error) {
+	host, portRaw, err := net.SplitHostPort(address)
 	if err != nil {
 		return "", 0, err
 	}
@@ -362,6 +369,19 @@ func (c *cmd) listenParts() (string, int, error) {
 	}
 
 	return host, int(port), nil
+}
+
+// advertiseParts returns the host and port parts for the -advertise flag. The
+// -advertise flag must be non-empty prior to calling this.
+func (c *cmd) advertiseParts() (string, int, error) {
+	return splitHostPort(c.advertise)
+}
+
+
+// listenParts returns the host and port parts of the -listen flag. The
+// -listen flag must be non-empty prior to calling this.
+func (c *cmd) listenParts() (string, int, error) {
+	return splitHostPort(c.listen)
 }
 
 func (c *cmd) Synopsis() string {
