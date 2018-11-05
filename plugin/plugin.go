@@ -68,7 +68,7 @@ func (f HandlerFunc) Name() string { return "handlerfunc" }
 // Error returns err with 'plugin/name: ' prefixed to it.
 func Error(name string, err error) error { return fmt.Errorf("%s/%s: %s", "plugin", name, err) }
 
-// NextOrFailure calls next.ServeDNS when next is not nill, otherwise it will return, a ServerFailure and a nil error.
+// NextOrFailure calls next.ServeDNS when next is not nil, otherwise it will return, a ServerFailure and a nil error.
 func NextOrFailure(name string, next Handler, ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) { // nolint: golint
 	if next != nil {
 		if span := ot.SpanFromContext(ctx); span != nil {
