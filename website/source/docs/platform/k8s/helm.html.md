@@ -122,6 +122,19 @@ and consider if they're appropriate for your deployment.
   used when bootstrapping new clusters, it has no effect during ongoing cluster
   maintenance.
 
+  - <a name="v-server-storage" href="#v-server-storage">`storage`</a> (`string: 10Gi`) -
+  This defines the disk size for configuring the servers' StatefulSet storage. For dynamically
+  provisioned storage classes, this is the desired size. For manually defined persistent
+  volumes, this should be set to the disk size of the attached volume.
+
+  - <a name="v-server-storageclass" href="#v-server-storageclass">`storageClass`</a> (`string: null`) -
+  The StorageClass to use for the servers' StatefulSet storage. It must be able to be dynamically
+  provisioned if you want the storage to be automatically created. For example, to use
+  [Local](https://kubernetes.io/docs/concepts/storage/storage-classes/#local)
+  storage classes, the PersistentVolumeClaims would need to be manually created. A `null` value will
+  use the Kubernetes cluster's default StorageClass. If a default StorageClass does not exist,
+  you will need to create one.
+
   - <a name="v-server-connect" href="#v-server-connect">`connect`</a> (`boolean: true`) -
   This will enable/disable [Connect](/docs/connect/index.html). Setting this
   to true _will not_ automatically secure pod communication, this setting will
