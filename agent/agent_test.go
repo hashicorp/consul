@@ -2467,7 +2467,7 @@ func TestAgent_Service_NoReap(t *testing.T) {
 	}
 }
 
-func TestAgent_addCheck_restoresSnapshot(t *testing.T) {
+func TestAgent_AddService_restoresSnapshot(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
@@ -2499,6 +2499,49 @@ func TestAgent_addCheck_restoresSnapshot(t *testing.T) {
 	// Re-registering the service preserves the state of the check
 	chkTypes := []*structs.CheckType{&structs.CheckType{TTL: 30 * time.Second}}
 	if err := a.AddService(svc, chkTypes, false, "", ConfigSourceLocal); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	check, ok := a.State.Checks()["service:redis"]
+	if !ok {
+		t.Fatalf("missing check")
+	}
+	if check.Status != api.HealthPassing {
+		t.Fatalf("bad: %s", check.Status)
+	}
+}
+
+func TestAgent_AddCheck_restoresSnapshot(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// First register a service
+	svc := &structs.NodeService{
+		ID:      "redis",
+		Service: "redis",
+		Tags:    []string{"foo"},
+		Port:    8000,
+	}
+	if err := a.AddService(svc, nil, false, "", ConfigSourceLocal); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Register a check
+	check1 := &structs.HealthCheck{
+		Node:        a.Config.NodeName,
+		CheckID:     "service:redis",
+		Name:        "redischeck",
+		Status:      api.HealthPassing,
+		ServiceID:   "redis",
+		ServiceName: "redis",
+	}
+	if err := a.AddCheck(check1, nil, false, "", ConfigSourceLocal); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Re-registering the check preserves its state
+	check1.Status = ""
+	if err := a.AddCheck(check1, &structs.CheckType{TTL: 30 * time.Second}, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	check, ok := a.State.Checks()["service:redis"]
