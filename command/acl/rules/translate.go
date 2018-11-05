@@ -135,5 +135,5 @@ Usage: consul acl translate-rules  [options] TRANSLATE
 
   Translate rules for a legacy ACL token using its AccessorID:
 
-      $ consul acl translate-rules 429cd746-03d5-4bbb-a83a-18b164171c89
+      $ consul acl translate-rules -token-accessor 429cd746-03d5-4bbb-a83a-18b164171c89
 `
