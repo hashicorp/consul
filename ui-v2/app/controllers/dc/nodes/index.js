@@ -1,12 +1,26 @@
 import Controller from '@ember/controller';
 import { computed } from '@ember/object';
 import WithHealthFiltering from 'consul-ui/mixins/with-health-filtering';
+import WithSearching from 'consul-ui/mixins/with-searching';
 import { get } from '@ember/object';
-export default Controller.extend(WithHealthFiltering, {
+export default Controller.extend(WithSearching, WithHealthFiltering, {
   init: function() {
+    this.searchParams = {
+      healthyNode: 's',
+      unhealthyNode: 's',
+    };
     this._super(...arguments);
-    this.columns = [25, 25, 25, 25];
   },
+  searchableHealthy: computed('healthy', function() {
+    return get(this, 'searchables.healthyNode')
+      .add(get(this, 'healthy'))
+      .search(get(this, this.searchParams.healthyNode));
+  }),
+  searchableUnhealthy: computed('unhealthy', function() {
+    return get(this, 'searchables.unhealthyNode')
+      .add(get(this, 'unhealthy'))
+      .search(get(this, this.searchParams.unhealthyNode));
+  }),
   unhealthy: computed('filtered', function() {
     return get(this, 'filtered').filter(function(item) {
       return get(item, 'isUnhealthy');
@@ -18,10 +32,6 @@ export default Controller.extend(WithHealthFiltering, {
     });
   }),
   filter: function(item, { s = '', status = '' }) {
-    return (
-      get(item, 'Node')
-        .toLowerCase()
-        .indexOf(s.toLowerCase()) !== -1 && item.hasStatus(status)
-    );
+    return item.hasStatus(status);
   },
 });
