@@ -19,10 +19,10 @@ necessary to manually translate old tokens into new ones to take advantage of
 the new ACL system features. Tooling is provided to help automate this and this
 guide describes the overall process.
 
-~> **Note:** **1.4.0 retains full support for "legacy" ACL tokens**
-so in-place upgrade is safe and existing tokens will continue to work in the
-same way for at least two "major" releases (1.5.x, 1.6.x, etc; note HashiCorp
-does not use the SemVer definitions for our products).
+~> **Note:** **1.4.0 retains full support for "legacy" ACL tokens** so upgrades
+from Consul 1.3.0 are safe. Existing tokens will continue to work in the same
+way for at least two "major" releases (1.5.x, 1.6.x, etc; note HashiCorp does
+not use SemVer for our products).
 
 This document will briefly describe [what changed](#what-changed), and then walk
 through the [high-level migration process options](#migration-process), finally
@@ -44,9 +44,9 @@ that policy.
 
 ### Rule Syntax Changes
 
-The most significant change is that rules with
-selectors _no longer prefix match by default_. In the legacy systems the
-rules:
+The most significant change is that rules with selectors _no longer prefix match
+by default_. In the legacy systems the following rules would grant access to
+nodes, services and keys _prefixed_ with foo.
 
 ```
 node "foo" { policy = "write" }
@@ -54,9 +54,8 @@ service "foo" { policy = "write" }
 key "foo" { policy = "write" }
 ```
 
-would grant access to all services or keys _prefixed_ with foo. In the new
-system the same syntax will only perform _exact_ match on the whole key or
-service name.
+In the new system the same syntax will only perform _exact_ match on the whole
+node name, service name or key.
 
 In general, exact match is what most operators intended most of the time so the
 same policy can be kept, however if you rely on prefix match behavior then using
@@ -64,7 +63,7 @@ the same syntax will break behavior.
 
 Prefix matching can be expressed in the new ACL system explicitly, making the
 following rules in the new system exactly the same as the rules above in the
-old:
+old.
 
 ```
 node_prefix "foo" { policy = "write" }
@@ -103,7 +102,7 @@ The high-level process for migrating a legacy token is as follows:
  1. Create a new policy or policies that grant the required access
  2. Update the existing token to use those policies
 
-### Pre-requisites
+### Prerequisites
 
 This process assumes that the 1.4.0 upgrade is complete including all Legacy
 ACLs having their accessor IDs populated. This might take up to several minutes
@@ -122,37 +121,45 @@ Vault to use the legacy API).
 
 ~> **Note:** if you have systems still creating "legacy" tokens with the old
 APIs, the migration steps below will still work, however you'll have to keep
-re-running them until nothing is creating legacy tokens to unsure all tokens are
+re-running them until nothing is creating legacy tokens to ensure all tokens are
 migrated.
 
 ### Creating Policies
 
-There are several ways to create new policies. The simplest and most automatic
-is to create one new policy for every existing token. This may however result in
-a lot of policies that are logical duplicates and make managing policies harder.
-This approach can be easily accomplished using the [`consul acl policy
-create`](/docs/commands/acl/acl-policy.html#create) command with `-from-token`
-option.
+There are a few different approaches to create new policies from existing
+tokens. Three possible strategies are described here with some specific examples
+of two of them in the next section.
 
-An alternative is to create one policy for each logically distinct token. While
-it's easy enough to do this by hashing the policy contents and only keeping
-distinct hashes, it's hard to extract a meaningful name for the policy that
-expresses it's intent. To make this easier, there is a CLI and API tool that can
-translate a legacy ACL policy into a new ACL policy that is exactly equivalent.
-See [`consul acl translate-rules`](/docs/commands/acl/acl-translate-rules.html).
+The simplest and most automatic is to create one new policy for every existing
+token. This is simple and easy to automate, but may result in a lot of policies
+that are logical duplicates and with non-human readable names which will make
+managing policies harder. This approach can be easily accomplished using the
+[`consul acl policy create`](/docs/commands/acl/acl-policy.html#create) command
+with `-from-token` option. An example of
+this approach is [given below](#simple-policy-mapping).
 
-The final option is to manually inspect all the existing tokens and define named
-policies that describe what the policy is intended to be used for. In this case
-you may also want to modify the policy for example switching to exact-match
-rather than prefix match on resources if that is all that is actually required.
-In this case existing ACL token rules can be inspected using the [`consul acl
-token read -id <accessor_id>`](/docs/commands/acl/acl-token.html#read) command.
+An alternative is to create one policy for each _distinct set of rules_ used by
+legacy tokens. While it's still relatively easy to do this automatically by
+hashing the policy contents and only keeping distinct hashes, it's hard to
+extract a meaningful name for the policy that expresses it's intent. To assist
+with this approach, there is a CLI and API tool that can translate a legacy ACL
+policy into a new ACL policy that is exactly equivalent. See [`consul acl
+translate-rules`](/docs/commands/acl/acl-translate-rules.html).
+
+The final option is to manually inspect all the existing token policies and
+define named policies that describe what the policy is intended to be used for.
+In this case you may also want to modify the policy for example switching to
+exact-match rather than prefix match on resources if that is all that is
+actually required. In this case existing ACL token rules can be inspected using
+the [`consul acl token read -id
+<accessor_id>`](/docs/commands/acl/acl-token.html#read) command. An example of
+this approach is [given below](#combining-policies).
 
 ### Updating Existing Tokens
 
-Once you have one or more policies that adequately express the rules needed for
-a legacy token, you can update the token via the CLI or API to use those
-policies.
+Once you have created one or more policies that adequately express the rules
+needed for a legacy token, you can update the token via the CLI or API to use
+those policies.
 
 After updating, the token is no longer considered "legacy" and will have all the
 properties of a new token, however it keeps it's `SecretID` (the secret part of
@@ -174,6 +181,10 @@ which will ensure that legacy rules are removed as well as the new policies
 added.
 
 ## Migration Examples
+
+Below are two more detailed examples that you can use as a model for your
+upgrade process. There are two strategies outlined; simple policy mapping and
+combining policies.
 
 ### Simple Policy Mapping
 
@@ -305,7 +316,7 @@ policies
 └── 501b787c9444fbd62f346ab257eeb27197be2444.hcl
 ```
 
-### Cleaning Up Policies
+#### Cleaning Up Policies
 
 You can now manually inspect and potentially edit these policies. For example we
 could rename them according to their intended use. In this case we maintain the
@@ -316,6 +327,7 @@ $ cat policies/024ce11f26f59436c518fb31f0999d1400485c17.hcl
 service_prefix "bar" {
   policy = "write"
 }
+$ # Add human-readable suffix to the file name so policies end up clearly named
 $ mv policies/024ce11f26f59436c518fb31f0999d1400485c17.hcl \
   policies/024ce11f26f59436c518fb31f0999d1400485c17-bar-service.hcl
 ```
@@ -330,13 +342,15 @@ service_prefix "foo" {
   policy = "write"
 }
 $ echo 'service "foo" { policy = "write" }' > policies/501b787c9444fbd62f346ab257eeb27197be2444.hcl
+$ # Add human-readable suffix to the file name so policies end up clearly named
 $ mv policies/501b787c9444fbd62f346ab257eeb27197be2444.hcl \
   policies/501b787c9444fbd62f346ab257eeb27197be2444-foo-service.hcl
 ```
 
-We now have a minimal set of policies to create.
+#### Creating Policies
 
-### Creating Policies
+We now have a minimal set of policies to create, with human-readable names. We
+can create each one with something like the following.
 
 ```sh
 $ for p in $(ls policies | grep ".hcl"); do \
@@ -367,10 +381,12 @@ service "foo" { policy = "write" }
 
 ```
 
-### Upgrading Tokens
+#### Upgrading Tokens
 
-Finally we can map our existing tokens back to those policies using the policy
-file names.
+Finally we can map our existing tokens to those policies using the hash in the
+policy file names. The `-upgrade-legacy` flag removes the token's legacy
+embedded rules at the same time as associating them with the new policies
+created from those rules.
 
 ```sh
 $ for id in $LEGACY_IDS; do \
