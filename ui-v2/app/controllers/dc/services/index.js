@@ -2,6 +2,7 @@ import Controller from '@ember/controller';
 import { get, computed } from '@ember/object';
 import { htmlSafe } from '@ember/string';
 import WithHealthFiltering from 'consul-ui/mixins/with-health-filtering';
+import WithSearching from 'consul-ui/mixins/with-searching';
 const max = function(arr, prop) {
   return arr.reduce(function(prev, item) {
     return Math.max(prev, get(item, prop));
@@ -24,18 +25,20 @@ const width = function(num) {
 const widthDeclaration = function(num) {
   return htmlSafe(`width: ${num}px`);
 };
-export default Controller.extend(WithHealthFiltering, {
+export default Controller.extend(WithSearching, WithHealthFiltering, {
+  init: function() {
+    this.searchParams = {
+      service: 's',
+    };
+    this._super(...arguments);
+  },
+  searchable: computed('filtered', function() {
+    return get(this, 'searchables.service')
+      .add(get(this, 'filtered'))
+      .search(get(this, this.searchParams.service));
+  }),
   filter: function(item, { s = '', status = '' }) {
-    const term = s.toLowerCase();
-    return (
-      (get(item, 'Name')
-        .toLowerCase()
-        .indexOf(term) !== -1 ||
-        (get(item, 'Tags') || []).some(function(item) {
-          return item.toLowerCase().indexOf(term) !== -1;
-        })) &&
-      item.hasStatus(status)
-    );
+    return item.hasStatus(status);
   },
   maxWidth: computed('{maxPassing,maxWarning,maxCritical}', function() {
     const PADDING = 32 * 3 + 13;
