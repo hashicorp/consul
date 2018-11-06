@@ -375,3 +375,12 @@ and consider if they're appropriate for your deployment.
       * <a name="v-connectinject-certs-keynamkeyname" href="#v-connectinject-certs-keyname">`keyName`</a> (`string: "tls.key"`) -
       The name of the private key for the certificate file within the
       `secretName` secret.
+
+## Customizing the Helm Chart
+
+Given the wide variety of use cases, it won't be possible to support every
+configuration option in the Helm chart's `values.yaml` file without making
+it difficult to understand and use. For additional
+flexibility in changing values that aren't listed above, consider using
+third-party tools such as [kustomize](https://github.com/kubernetes-sigs/kustomize)
+and [ship](https://github.com/replicatedhq/ship).
