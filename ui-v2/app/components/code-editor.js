@@ -11,7 +11,7 @@ const DEFAULTS = {
 };
 export default Component.extend({
   settings: service('settings'),
-  helper: service('code-mirror'),
+  helper: service('code-mirror/linter'),
   classNames: ['code-editor'],
   syntax: '',
   onchange: function(value) {
