@@ -11,57 +11,59 @@
     {{/block-slot}}
     {{#block-slot 'toolbar'}}
 {{#if (gt items.length 0) }}
-        {{catalog-filter filters=healthFilters search=filters.s status=filters.status onchange=(action 'filter')}}
+        {{catalog-filter searchable=searchable filters=healthFilters search=filters.s status=filters.status onchange=(action 'filter')}}
 {{/if}}
     {{/block-slot}}
     {{#block-slot 'content'}}
-{{#if (gt filtered.length 0) }}
-        {{#tabular-collection
-            route='dc.services.show'
-            key='Name'
-            items=filtered as |item index|
-        }}
-            {{#block-slot 'header'}}
-                <th style={{remainingWidth}}>Service</th>
-                <th style={{totalWidth}}>Health Checks<span><em>The number of health checks for the service on all nodes</em></span></th>
-                <th style={{remainingWidth}}>Tags</th>
-            {{/block-slot}}
-            {{#block-slot 'row'}}
-
-                <td data-test-service="{{item.Name}}" style={{remainingWidth}}>
-                  <a href={{href-to 'dc.services.show' item.Name}}>
-                    <span data-test-external-source="{{service/external-source item}}" style={{{ concat 'background-image: ' (css-var (concat '--' (service/external-source item) '-color-svg') 'none')}}}></span>
-                    {{item.Name}}
-                  </a>
-                </td>
-                <td style={{totalWidth}}>
-{{#if (and (lt item.ChecksPassing 1) (lt item.ChecksWarning 1) (lt item.ChecksCritical 1) )}}
-                    <span title="No Healthchecks" class="zero">0</span>
-{{else}}
-                    <dl>
-                        <dt title="Passing" class="passing{{if (lt item.ChecksPassing 1) ' zero'}}">Healthchecks Passing</dt>
-                        <dd title="Passing" class={{if (lt item.ChecksPassing 1) 'zero'}} style={{passingWidth}}>{{format-number item.ChecksPassing}}</dd>
-                        <dt title="Warning" class="warning{{if (lt item.ChecksWarning 1) ' zero'}}">Healthchecks Warning</dt>
-                        <dd title="Warning" class={{if (lt item.ChecksWarning 1) 'zero'}} style={{warningWidth}}>{{format-number item.ChecksWarning}}</dd>
-                        <dt title="Critical" class="critical{{if (lt item.ChecksCritical 1) ' zero'}}">Healthchecks Critical</dt>
-                        <dd title="Critical" class={{if (lt item.ChecksCritical 1) 'zero'}} style={{criticalWidth}}>{{format-number item.ChecksCritical}}</dd>
-                    </dl>
-{{/if}}
-                </td>
-                <td class="tags" style={{remainingWidth}}>
-                {{#if (gt item.Tags.length 0)}}
-                  {{#each item.Tags as |item|}}
-                    <span>{{item}}</span>
-                  {{/each}}
-                {{/if}}
-                </td>
-            {{/block-slot}}
-        {{/tabular-collection}}
-{{else}}
-        <p>
-            There are no services.
-        </p>
-{{/if}}
+        {{#changeable-set dispatcher=searchable}}
+          {{#block-slot 'set' as |filtered|}}
+            {{#tabular-collection
+                route='dc.services.show'
+                key='Name'
+                items=filtered as |item index|
+            }}
+                {{#block-slot 'header'}}
+                    <th style={{remainingWidth}}>Service</th>
+                    <th style={{totalWidth}}>Health Checks<span><em>The number of health checks for the service on all nodes</em></span></th>
+                    <th style={{remainingWidth}}>Tags</th>
+                {{/block-slot}}
+                {{#block-slot 'row'}}
+                    <td data-test-service="{{item.Name}}" style={{remainingWidth}}>
+                      <a href={{href-to 'dc.services.show' item.Name}}>
+                        <span data-test-external-source="{{service/external-source item}}" style={{{ concat 'background-image: ' (css-var (concat '--' (service/external-source item) '-color-svg') 'none')}}}></span>
+                        {{item.Name}}
+                      </a>
+                    </td>
+                    <td style={{totalWidth}}>
+    {{#if (and (lt item.ChecksPassing 1) (lt item.ChecksWarning 1) (lt item.ChecksCritical 1) )}}
+                        <span title="No Healthchecks" class="zero">0</span>
+    {{else}}
+                        <dl>
+                            <dt title="Passing" class="passing{{if (lt item.ChecksPassing 1) ' zero'}}">Healthchecks Passing</dt>
+                            <dd title="Passing" class={{if (lt item.ChecksPassing 1) 'zero'}} style={{passingWidth}}>{{format-number item.ChecksPassing}}</dd>
+                            <dt title="Warning" class="warning{{if (lt item.ChecksWarning 1) ' zero'}}">Healthchecks Warning</dt>
+                            <dd title="Warning" class={{if (lt item.ChecksWarning 1) 'zero'}} style={{warningWidth}}>{{format-number item.ChecksWarning}}</dd>
+                            <dt title="Critical" class="critical{{if (lt item.ChecksCritical 1) ' zero'}}">Healthchecks Critical</dt>
+                            <dd title="Critical" class={{if (lt item.ChecksCritical 1) 'zero'}} style={{criticalWidth}}>{{format-number item.ChecksCritical}}</dd>
+                        </dl>
+    {{/if}}
+                    </td>
+                    <td class="tags" style={{remainingWidth}}>
+                    {{#if (gt item.Tags.length 0)}}
+                      {{#each item.Tags as |item|}}
+                        <span>{{item}}</span>
+                      {{/each}}
+                    {{/if}}
+                    </td>
+                {{/block-slot}}
+            {{/tabular-collection}}
+          {{/block-slot}}
+          {{#block-slot 'empty'}}
+            <p>
+              There are no services.
+            </p>
+          {{/block-slot}}
+        {{/changeable-set}}
     {{/block-slot}}
 {{/app-view}}
 

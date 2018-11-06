@@ -1,4 +1,4 @@
 {{!<form>}}
-    {{freetext-filter value=search placeholder="Search by name" onchange=(action onchange)}}
+    {{freetext-filter searchable=searchable value=search placeholder="Search by name"}}
     {{radio-group name="status" value=status items=filters onchange=(action onchange)}}
 {{!</form>}}

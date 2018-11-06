@@ -7,7 +7,7 @@
     {{/block-slot}}
     {{#block-slot 'toolbar'}}
 {{#if (gt items.length 0) }}
-        {{catalog-filter filters=healthFilters search=filters.s status=filters.status onchange=(action 'filter')}}
+        {{catalog-filter searchable=(array searchableHealthy searchableUnhealthy) filters=healthFilters search=s status=filters.status onchange=(action 'filter')}}
 {{/if}}
     {{/block-slot}}
     {{#block-slot 'content'}}
@@ -16,33 +16,51 @@
             <h2>Unhealthy Nodes</h2>
             <div>
                 {{! think about 2 differing views here }}
-                <ol>
-    {{#each unhealthy as |item|}}
-                    {{healthchecked-resource
-                        tagName='li'
-                        data-test-node=item.Node
-                        href=(href-to 'dc.nodes.show' item.Node)
-                        name=item.Node
-                        address=item.Address
-                        checks=item.Checks
-                    }}
-    {{/each}}
-                </ol>
+                <ul>
+                  {{#changeable-set dispatcher=searchableUnhealthy}}
+                    {{#block-slot 'set' as |unhealthy|}}
+                      {{#each unhealthy as |item|}}
+                          {{healthchecked-resource
+                              tagName='li'
+                              data-test-node=item.Node
+                              href=(href-to 'dc.nodes.show' item.Node)
+                              name=item.Node
+                              address=item.Address
+                              checks=item.Checks
+                          }}
+                      {{/each}}
+                    {{/block-slot}}
+                    {{#block-slot 'empty'}}
+                      <p>
+                        There are no unhealthy nodes for that search.
+                      </p>
+                    {{/block-slot}}
+                  {{/changeable-set}}
+                </ul>
             </div>
         </div>
 {{/if}}
 {{#if (gt healthy.length 0) }}
         <div class="healthy">
             <h2>Healthy Nodes</h2>
-            {{#list-collection cellHeight=92 items=healthy as |item index|}}
-                {{healthchecked-resource
-                    data-test-node=item.Node
-                    href=(href-to 'dc.nodes.show' item.Node)
-                    name=item.Node
-                    address=item.Address
-                    status=item.Checks.[0].Status
-                }}
-            {{/list-collection}}
+            {{#changeable-set dispatcher=searchableHealthy}}
+              {{#block-slot 'set' as |healthy|}}
+                {{#list-collection cellHeight=92 items=healthy as |item index|}}
+                    {{healthchecked-resource
+                        data-test-node=item.Node
+                        href=(href-to 'dc.nodes.show' item.Node)
+                        name=item.Node
+                        address=item.Address
+                        status=item.Checks.[0].Status
+                    }}
+                {{/list-collection}}
+              {{/block-slot}}
+              {{#block-slot 'empty'}}
+                <p>
+                  There are no healthy nodes for that search.
+                </p>
+              {{/block-slot}}
+            {{/changeable-set}}
         </div>
 {{/if}}
 {{#if (and (eq healthy.length 0) (eq unhealthy.length 0)) }}
