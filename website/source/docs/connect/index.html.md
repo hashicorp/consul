@@ -133,6 +133,6 @@ Authenticated and Authorized connections. In this version, Certificate Authority
 configurations and intentions are both local to their respective datacenters; 
 they are not replicated across datacenters.
 
-Full multi-datacenter support for Connect is avaiable in
+Full multi-datacenter support for Connect is available in
 [Consul Enterprise](/docs/enterprise/connect-multi-datacenter/index.html).
 
