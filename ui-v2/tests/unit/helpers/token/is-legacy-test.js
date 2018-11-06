@@ -19,7 +19,7 @@ test('it returns false if the token has Rules but those rules are empty', functi
   const actual = isLegacy([{ Rules: '' }]);
   assert.notOk(actual);
 });
-test('it returns false if the token has Rules but those rules are empty', function(assert) {
+test('it returns false if the token has Rules but those rules is null', function(assert) {
   const actual = isLegacy([{ Rules: null }]);
   assert.notOk(actual);
 });
@@ -42,5 +42,12 @@ test('it returns true if one token has Rules', function(assert) {
 });
 test('it returns false if tokens have no Rules, or has Rules but those rules are empty', function(assert) {
   const actual = isLegacy([[{}, { Rules: '' }]]);
+  assert.notOk(actual);
+});
+test('it returns false if a token is marked as legacy, has Rules but those rules are empty', function(assert) {
+  // this may seem strange, but empty Rules should override Legacy, this only happens
+  // when a legacy token that has already been loaded has its rules wiped out
+  // WITHOUT then the ui refreshing
+  const actual = isLegacy([{ Legacy: true, Rules: '' }]);
   assert.notOk(actual);
 });
