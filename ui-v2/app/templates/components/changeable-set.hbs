@@ -1,0 +1,6 @@
+{{yield}}
+{{#if (gt items.length 0)}}
+  {{#yield-slot 'set' (block-params items)}}{{yield}}{{/yield-slot}}
+{{else}}
+  {{#yield-slot 'empty'}}{{yield}}{{/yield-slot}}
+{{/if}}
