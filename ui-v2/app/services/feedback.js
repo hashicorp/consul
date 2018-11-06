@@ -25,15 +25,19 @@ export default Service.extend({
       handle()
         //TODO: pass this through to getAction..
         .then(item => {
-          // TODO right now the majority of `item` is a Transition
-          // but you can resolve an object
-          notify.add({
-            ...notificationDefaults(),
-            type: getStatus(TYPE_SUCCESS),
-            // here..
-            action: getAction(),
-            item: item,
-          });
+          // returning exactly `false` for a feedback action means even though
+          // its successful, please skip this notification and don't display it
+          if (item !== false) {
+            // TODO right now the majority of `item` is a Transition
+            // but you can resolve an object
+            notify.add({
+              ...notificationDefaults(),
+              type: getStatus(TYPE_SUCCESS),
+              // here..
+              action: getAction(),
+              item: item,
+            });
+          }
         })
         .catch(e => {
           get(this, 'logger').execute(e);
