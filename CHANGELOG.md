@@ -41,6 +41,7 @@ IMPROVEMENTS:
 * website: sync guides list with guides sidebar. [[GH-4831](https://github.com/hashicorp/consul/pull/4831)]
 * website: fix minor typo in documentation. [[GH-4864](https://github.com/hashicorp/consul/pull/4864)]
 * website: broken partial rendering and missing id. [[GH-4862](https://github.com/hashicorp/consul/pull/4862)]
+* website: remove wrong space character. [[GH-4910](https://github.com/hashicorp/consul/pull/4910)]
 
 BUG FIXES:
 
