@@ -124,13 +124,14 @@ a long period of inactivity (3 days by default), the cache will empty itself.
 
 ## Multi-Datacenter
 
-Using Connect for service-to-service communications across multiple datacenters requires 
-Consul Enterprise. Open Source Consul only works for service-to-service connections within
-a single datacenter.
-single Consul datacenter. Connect may be enabled on multiple Consul datacenters,
-but only services within the same datacenters can establish Connect-based
-connections. In this version, CA configurations and intentions are both local
-to their respective datacenters; they are not replicated across datacenters.
+Using Connect for service-to-service communications across multiple datacenters 
+requires Consul Enterprise. 
+
+With Open Source Consul, Connect may be enabled on multiple Consul datacenters, 
+but only services within the same datacenter can establish Connect-based, 
+Authenticated and Authorized connections. In this version, Certificate Authority
+configurations and intentions are both local to their respective datacenters; 
+they are not replicated across datacenters.
 
 Full multi-datacenter support for Connect is avaiable in
 [Consul Enterprise](/docs/enterprise/connect-multi-datacenter/index.html).
