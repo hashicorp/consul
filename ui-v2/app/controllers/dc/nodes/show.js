@@ -1,18 +1,29 @@
 import Controller from '@ember/controller';
-import { get, set } from '@ember/object';
+import { get, set, computed } from '@ember/object';
 import { getOwner } from '@ember/application';
-import WithFiltering from 'consul-ui/mixins/with-filtering';
+import WithSearching from 'consul-ui/mixins/with-searching';
 import qsaFactory from 'consul-ui/utils/dom/qsa-factory';
 import getComponentFactory from 'consul-ui/utils/get-component-factory';
 
 const $$ = qsaFactory();
-export default Controller.extend(WithFiltering, {
+export default Controller.extend(WithSearching, {
   queryParams: {
     s: {
       as: 'filter',
       replace: true,
     },
   },
+  init: function() {
+    this.searchParams = {
+      nodeservice: 's',
+    };
+    this._super(...arguments);
+  },
+  searchable: computed('items', function() {
+    return get(this, 'searchables.nodeservice')
+      .add(get(this, 'items'))
+      .search(get(this, this.searchParams.nodeservice));
+  }),
   setProperties: function() {
     this._super(...arguments);
     // the default selected tab depends on whether you have any healthchecks or not
@@ -21,24 +32,6 @@ export default Controller.extend(WithFiltering, {
     // as this is a variable used purely for view level things, if the view was different we might not
     // need this variable
     set(this, 'selectedTab', get(this.item, 'Checks.length') > 0 ? 'health-checks' : 'services');
-  },
-  filter: function(item, { s = '' }) {
-    const term = s.toLowerCase();
-    return (
-      get(item, 'Service')
-        .toLowerCase()
-        .indexOf(term) !== -1 ||
-      get(item, 'ID')
-        .toLowerCase()
-        .indexOf(term) !== -1 ||
-      (get(item, 'Tags') || []).some(function(item) {
-        return item.toLowerCase().indexOf(term) !== -1;
-      }) ||
-      get(item, 'Port')
-        .toString()
-        .toLowerCase()
-        .indexOf(term) !== -1
-    );
   },
   actions: {
     change: function(e) {

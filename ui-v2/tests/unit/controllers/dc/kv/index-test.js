@@ -2,7 +2,7 @@ import { moduleFor, test } from 'ember-qunit';
 
 moduleFor('controller:dc/kv/index', 'Unit | Controller | dc/kv/index', {
   // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
+  needs: ['service:search', 'service:dom'],
 });
 
 // Replace this with your real tests.
