@@ -756,6 +756,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		ConnectProxyDefaultDaemonCommand:        proxyDefaultDaemonCommand,
 		ConnectProxyDefaultScriptCommand:        proxyDefaultScriptCommand,
 		ConnectProxyDefaultConfig:               proxyDefaultConfig,
+		ConnectReplicationToken:                 b.stringVal(c.ACL.Tokens.Replication),
 		DataDir:                                 b.stringVal(c.DataDir),
 		Datacenter:                              datacenter,
 		DevMode:                                 b.boolVal(b.Flags.DevMode),

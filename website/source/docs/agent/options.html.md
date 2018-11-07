@@ -592,6 +592,8 @@ default will automatically work with some tooling.
         ACLs are enabled. This token may be provided later using the [agent token API](/api/agent.html#update-acl-tokens)
         on each server. If the `replication` token is set in the config. This token must have at least "read" permissions
         on ACL data but if ACL token replication is enabled then it must have "write" permissions.
+        This also enables Connect replication in Consul Enterprise, for which the token will require
+        both operator "write" and intention "read" permissions for replicating CA and Intention data.
 
 * <a name="acl_datacenter"></a><a href="#acl_datacenter">`acl_datacenter`</a> - **This field is
   deprecated in Consul 1.4.0. See the [`primary_datacenter`](#primary_datacenter) field instead.**
@@ -864,8 +866,6 @@ default will automatically work with some tooling.
         * <a name="connect_proxy_allow_managed_root"></a><a href="#connect_proxy_allow_managed_root">`allow_managed_root`</a> [**Deprecated**](/docs/connect/proxies/managed-deprecated.html) Allows Consul to start managed proxies if Consul is running as root (EUID of the process is zero). We recommend running Consul as a non-root user. By default, this is false to protect inadvertently running external processes as root.
 
     * <a name="connect_proxy_defaults"></a><a href="#connect_proxy_defaults">`proxy_defaults`</a> [**Deprecated**](/docs/connect/proxies/managed-deprecated.html) This object configures the default proxy settings for service definitions with [managed proxies](/docs/connect/proxies/managed-deprecated.html) (now deprecated). It accepts the fields `exec_mode`, `daemon_command`, and `config`. These are used as default values for the respective fields in the service definition.
-
-    * <a name="replication_token"></a><a href="#replication_token">`replication_token`</a> When provided, this will enable Connect replication using this token to retrieve and replicate the Intentions to the non-authoritative local datacenter.
 
 * <a name="datacenter"></a><a href="#datacenter">`datacenter`</a> Equivalent to the
   [`-datacenter` command-line flag](#_datacenter).

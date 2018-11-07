@@ -4143,6 +4143,7 @@ func TestFullConfig(t *testing.T) {
 			"connect_timeout_ms": float64(1000),
 			"pedantic_mode":      true,
 		},
+		ConnectReplicationToken:          "5795983a",
 		DNSAddrs:                         []net.Addr{tcpAddr("93.95.95.81:7001"), udpAddr("93.95.95.81:7001")},
 		DNSARecordLimit:                  29907,
 		DNSAllowStale:                    true,
