@@ -28,6 +28,8 @@ export default function(isValidServerError, P = Promise) {
               if (isValidServerError(e)) {
                 enable(true);
                 authorize(false);
+              } else {
+                return P.reject(e);
               }
               break;
             case '403':
