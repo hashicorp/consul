@@ -590,10 +590,10 @@ default will automatically work with some tooling.
         The ACL token used to authorize secondary datacenters with the primary datacenter for replication
         operations. This token is required for servers outside the [`primary_datacenter`](#primary_datacenter) when
         ACLs are enabled. This token may be provided later using the [agent token API](/api/agent.html#update-acl-tokens)
-        on each server. If the `replication` token is set in the config. This token must have at least "read" permissions
-        on ACL data but if ACL token replication is enabled then it must have "write" permissions.
-        This also enables Connect replication in Consul Enterprise, for which the token will require
-        both operator "write" and intention "read" permissions for replicating CA and Intention data.
+        on each server. This token must have at least "read" permissions on ACL data but if ACL 
+        token replication is enabled then it must have "write" permissions. This also enables 
+        Connect replication in Consul Enterprise, for which the token will require both operator 
+        "write" and intention "read" permissions for replicating CA and Intention data.
 
 * <a name="acl_datacenter"></a><a href="#acl_datacenter">`acl_datacenter`</a> - **This field is
   deprecated in Consul 1.4.0. See the [`primary_datacenter`](#primary_datacenter) field instead.**
