@@ -3,11 +3,13 @@ import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
 import { next } from '@ember/runloop';
+import { Promise } from 'rsvp';
+import WithBlockingActions from 'consul-ui/mixins/with-blocking-actions';
 const $html = document.documentElement;
 const removeLoading = function() {
   return $html.classList.remove('ember-loading');
 };
-export default Route.extend({
+export default Route.extend(WithBlockingActions, {
   init: function() {
     this._super(...arguments);
   },
@@ -61,11 +63,13 @@ export default Route.extend({
       // if a token has not been sent at all, it just gives you a 200 with an empty dataset
       const model = this.modelFor('dc');
       if (error.status === '403') {
-        return get(this, 'settings')
-          .delete('token')
-          .then(() => {
-            return this.transitionTo('dc.acls.tokens', model.dc.Name);
-          });
+        return get(this, 'feedback').execute(() => {
+          return get(this, 'settings')
+            .delete('token')
+            .then(() => {
+              return Promise.reject(this.transitionTo('dc.acls.tokens', model.dc.Name));
+            });
+        }, 'authorize');
       }
       if (error.status === '') {
         error.message = 'Error';

@@ -48,7 +48,5 @@ Feature: dc / acls / tokens / index: ACL Login Errors
     ---
     And I submit
     Then ".app-view" has the "unauthorized" class
-  @ignore
-  Scenario: Trying to login on a legacy cluster with the wrong credentials
     And "[data-notification]" has the "error" class
 
