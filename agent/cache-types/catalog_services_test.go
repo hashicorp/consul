@@ -26,6 +26,7 @@ func TestCatalogServices(t *testing.T) {
 			require.Equal(1*time.Second, req.QueryOptions.MaxQueryTime)
 			require.Equal("web", req.ServiceName)
 			require.Equal("canary", req.ServiceTag)
+			require.Equal(req.ServiceTags, []string{"tag1", "tag2"})
 			require.True(req.AllowStale)
 
 			reply := args.Get(2).(*structs.IndexedServiceNodes)
@@ -41,6 +42,7 @@ func TestCatalogServices(t *testing.T) {
 		Datacenter:  "dc1",
 		ServiceName: "web",
 		ServiceTag:  "canary",
+		ServiceTags: []string{"tag1", "tag2"},
 	})
 	require.NoError(err)
 	require.Equal(cache.FetchResult{

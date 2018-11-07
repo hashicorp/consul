@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"reflect"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -384,10 +385,11 @@ func (r *ServiceSpecificRequest) CacheInfo() cache.RequestInfo {
 	// cached results, we need to be careful we maintain the same order of fields
 	// here. We could alternatively use `hash:set` struct tag on an anonymous
 	// struct to make it more robust if it becomes significant.
+	sort.Strings(r.ServiceTags)
 	v, err := hashstructure.Hash([]interface{}{
 		r.NodeMetaFilters,
 		r.ServiceName,
-		r.ServiceTag,
+		r.ServiceTags,
 		r.ServiceAddress,
 		r.TagFilter,
 		r.Connect,
