@@ -28,6 +28,7 @@ export default Service.extend({
           // returning exactly `false` for a feedback action means even though
           // its successful, please skip this notification and don't display it
           if (item !== false) {
+            notify.clearMessages();
             // TODO right now the majority of `item` is a Transition
             // but you can resolve an object
             notify.add({
@@ -40,6 +41,7 @@ export default Service.extend({
           }
         })
         .catch(e => {
+          notify.clearMessages();
           get(this, 'logger').execute(e);
           if (e.name === 'TransitionAborted') {
             notify.add({
