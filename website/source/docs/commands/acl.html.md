@@ -81,10 +81,10 @@ Usage: consul acl <subcommand> [options] [args]
 
   Create a new ACL Policy:
 
-      $ consul acl policy create “new-policy” \
-                                 -description “This is an example policy” \
-                                 -datacenter “dc1” \
-                                 -datacenter “dc2” \
+      $ consul acl policy create "new-policy" \
+                                 -description "This is an example policy" \
+                                 -datacenter "dc1" \
+                                 -datacenter "dc2" \
                                  -rules @rules.hcl
 
   Set the default agent token:
