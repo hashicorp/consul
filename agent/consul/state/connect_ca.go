@@ -172,7 +172,11 @@ func (s *Store) caSetConfigTxn(idx uint64, tx *memdb.Txn, config *structs.CAConf
 	if prev != nil {
 		existing := prev.(*structs.CAConfiguration)
 		config.CreateIndex = existing.CreateIndex
-		config.ClusterID = existing.ClusterID
+		// Allow the ClusterID to change if it's provided by an internal operation, such
+		// as a primary datacenter being switched to secondary mode.
+		if config.ClusterID == "" {
+			config.ClusterID = existing.ClusterID
+		}
 	} else {
 		config.CreateIndex = idx
 	}

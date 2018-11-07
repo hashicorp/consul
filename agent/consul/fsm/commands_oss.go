@@ -339,11 +339,14 @@ func (c *FSM) applyConnectCAOperation(buf []byte, index uint64) interface{} {
 		if err != nil {
 			return err
 		}
-
-		if err := c.state.CASetConfig(index+1, req.Config); err != nil {
-			return err
+		if !act {
+			return act
 		}
 
+		act, err = c.state.CACheckAndSetConfig(index+1, req.Config.ModifyIndex, req.Config)
+		if err != nil {
+			return err
+		}
 		return act
 	default:
 		c.logger.Printf("[WARN] consul.fsm: Invalid CA operation '%s'", req.Op)
