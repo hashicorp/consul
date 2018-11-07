@@ -215,7 +215,7 @@ Here's the corresponding JSON configuration file:
     "default_policy": "deny",
     "down_policy": "extend-cache",
     "tokens" : {
-      "master" : "b1gs33cr3t",
+      "master" : "b1gs33cr3t"
     }
   }
 }
@@ -561,7 +561,7 @@ web browser session to authenticate the interface.
 
 ```bash
 $ consul acl policy create -name "ui-policy" \
-                           -description "Necessary permissions for UI functionality"
+                           -description "Necessary permissions for UI functionality" \
                            -rules 'key "" { policy = "write" } node "" { policy = "read" } service "" { policy = "read" }'
 
 ID:           9cb99b2b-3c20-81d4-a7c0-9ffdc2fbf08a
