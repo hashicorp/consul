@@ -15,6 +15,17 @@ func (k *Kubernetes) AutoPath(state request.Request) []string {
 		return nil
 	}
 
+	// cluster.local {
+	//    autopath @kubernetes
+	//    kubernetes {
+	//        pods verified #
+	//    }
+	// }
+	// if pods != verified will cause panic and return SERVFAIL, expect worked as normal without autopath function
+	if !k.opts.initPodCache {
+		return nil
+	}
+
 	ip := state.IP()
 
 	pod := k.podWithIP(ip)
