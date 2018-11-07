@@ -37,12 +37,33 @@ configuration to the new syntax soon after upgrade. This includes moving to
 `primary_datacenter` rather than `acl_datacenter` and `acl_*` to the new [ACL
 block](/docs/agent/options.html#acl).
 
-Datacenters can be upgraded in any order, although note that all will continue
-to run in a "legacy ACL" mode until the primary datacenter is upgraded and none
-of the new ACL features or APIs will be available.
+Datacenters can be upgraded in any order although secondaries will remain in
+[Legacy ACL mode](#legacy-acl-mode) until the primary datacenter is fully
+ugraded.
 
 Each datacenter should follow the [standard rolling upgrade
 procedure](/docs/upgrading.html#standard-upgrades).
+
+#### Legacy ACL Mode
+
+When a 1.4.0 server first starts, it runs in "Legacy ACL mode". In this mode,
+bootstrap requests and new ACL APIs will not be functional yet and will return
+an error. The server advertises it's ability to support 1.4.0 ACLs via gossip
+and waits.
+
+In the primary datacenter, the servers all wait in legacy ACL mode until they
+see every server in the primary datacenter advertise 1.4.0 ACL support. Once
+this happens, the leader will complete the transition out of "legacy ACL mode"
+and write this into the state so future restarts don't need to go through the
+same transition.
+
+In a secondary datacenter, the same process happens except that servers
+_additionally_ wait for all servers in the primary datacenter making it safe to
+upgrade datacenters in any order.
+
+It should be noted that even if you are not upgrading, starting a brand new
+1.4.0 cluster will transition through legacy ACL mode so you may be unable to
+bootstrap ACLs until all the expected servers are up and healthy.
 
 #### Legacy Token Accessor Migration
 

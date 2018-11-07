@@ -126,34 +126,55 @@ migrated.
 
 ### Creating Policies
 
-There are a few different approaches to create new policies from existing
-tokens. Three possible strategies are described here with some specific examples
-of two of them in the next section.
+There are a range of different strategies for create new policies from existing
+tokens. Two high-level strategies are described here although others or a
+mixture of these may be most appropriate depending on the ACL tokens you already
+have.
 
-The simplest and most automatic is to create one new policy for every existing
-token. This is simple and easy to automate, but may result in a lot of policies
-that are logical duplicates and with non-human readable names which will make
-managing policies harder. This approach can be easily accomplished using the
-[`consul acl policy create`](/docs/commands/acl/acl-policy.html#create) command
-with `-from-token` option. An example of
-this approach is [given below](#simple-policy-mapping).
+#### Strategy 1: Simple Policy Mapping
 
-An alternative is to create one policy for each _distinct set of rules_ used by
-legacy tokens. While it's still relatively easy to do this automatically by
-hashing the policy contents and only keeping distinct hashes, it's hard to
-extract a meaningful name for the policy that expresses it's intent. To assist
-with this approach, there is a CLI and API tool that can translate a legacy ACL
-policy into a new ACL policy that is exactly equivalent. See [`consul acl
+The simplest and most automatic strategy is to create one new policy for every
+existing token. This is easy to automate, but may result in a lot of policies
+with exactly the same rules and with non-human-readable names which will make
+managing policies harder. This approach can be accomplished using the [`consul
+acl policy create`](/docs/commands/acl/acl-policy.html#create) command with
+`-from-token` option.
+
+| Pros | Cons |
+| ---- | ---- |
+| &#9989; Simple           | &#10060; May leave many duplicated policies |
+| &#9989; Easy to automate | &#10060; Policy names not human-readable |
+
+A detailed example of using this approach is [given
+below](#simple-policy-mapping).
+
+#### Strategy 2: Combining Policies
+
+This strategy takes a more manual approach to create a more manageable set of
+policies. There are a spectrum of options for how to do this which tradeoff
+increasing human involvement for increasing clarity and re-usability of the
+resulting policies.
+
+For example you could use hashes of the policy rules to de-duplicate identical
+token policies automatically, however naming them something meaningful for
+humans would likely still need manual intervention.
+
+Toward the other end of the spectrum it might be beneficial for security to
+translate prefix matches into exact matches. This however requires the operator
+knowing that clients using the token really doesn't rely on the prefix matching
+semantics of the old ACL system.
+
+To assist with this approach, there is a CLI tool and corresponding API that can
+translate a legacy ACL token's rules into a new ACL policy that is exactly
+equivalent. See [`consul acl
 translate-rules`](/docs/commands/acl/acl-translate-rules.html).
 
-The final option is to manually inspect all the existing token policies and
-define named policies that describe what the policy is intended to be used for.
-In this case you may also want to modify the policy for example switching to
-exact-match rather than prefix match on resources if that is all that is
-actually required. In this case existing ACL token rules can be inspected using
-the [`consul acl token read -id
-<accessor_id>`](/docs/commands/acl/acl-token.html#read) command. An example of
-this approach is [given below](#combining-policies).
+| Pros | Cons |
+| ---- | ---- |
+| &#9989; Clearer, more manageable policies | &#10060; Requires more manual effort |
+| &#9989; Policies can be re-used by new ACL tokens | &#10060; May take longer for large or complex existing policy sets |
+
+A detailed example of using this approach is  [given below](#combining-policies).
 
 ### Updating Existing Tokens
 
@@ -182,9 +203,11 @@ added.
 
 ## Migration Examples
 
-Below are two more detailed examples that you can use as a model for your
-upgrade process. There are two strategies outlined; simple policy mapping and
-combining policies.
+Below are two detailed examples of the two high-level strategies for creating
+polices discussed above. It should be noted these are intended to clarify the
+concrete steps you might take. **We don't recommend you perform production
+migrations with ad-hoc terminal commands**. Combining these or something similar
+into a script might be appropriate.
 
 ### Simple Policy Mapping
 
@@ -252,10 +275,9 @@ secrets and enforcement rules.
 ### Combining Policies
 
 This strategy has more manual elements but results in a cleaner and more
-managable set of policies than the more automatic solutions. Note that this is
-**just an example** to illustrate one way of migrating policies it may not be
-appropriate for some users, and likely shouldn't be carried out ad-hoc in a
-terminal as demonstrated in production.
+manageable set of policies than the fully automatic solutions. Note that this is
+**just an example** to illustrate a few ways you may choose to merge or
+manipulate policies.
 
 #### Find All Unique Policies
 
