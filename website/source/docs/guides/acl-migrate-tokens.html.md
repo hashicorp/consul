@@ -260,7 +260,7 @@ prefix matching behavior will still work.
 
 #### Update Tokens
 
-With the policies creates as above, we can automatically upgrade all legacy
+With the policies created as above, we can automatically upgrade all legacy
 tokens.
 
 ```sh
