@@ -935,7 +935,7 @@ function shasum_directory {
       return 1
    fi
 
-   local ui_version=$(sed -n ${SED_EXT} -e 's/.*CONSUL_VERSION%22%3A%22([^%]*)%22%2C%22.*/\1/p' < "$1") || return 1
+   local ui_version="$(urldecode "$(grep '<meta name="consul-ui/config/environment' "$1" | grep -o 'content="[^"]*"' | cut -d'"' -f2)" | jq -r .CONSUL_VERSION)" || return 1
    echo "$ui_version"
    return 0
  }
@@ -966,3 +966,8 @@ function shasum_directory {
    fi
    return 0
  }
+
+function urldecode() {
+	: "${*//+/ }"
+	echo -e "${_//%/\\x}"
+}
