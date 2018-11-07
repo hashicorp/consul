@@ -41,7 +41,7 @@ func TestStatusLeader(t *testing.T) {
 		t.Fatalf("unexpected leader: %v", leader)
 	}
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	if err := msgpackrpc.CallWithCodec(codec, "Status.Leader", arg, &leader); err != nil {
 		t.Fatalf("err: %v", err)

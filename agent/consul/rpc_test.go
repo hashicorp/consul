@@ -41,7 +41,7 @@ func TestRPC_NoLeader_Fail(t *testing.T) {
 	}
 
 	// Now make sure it goes through.
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
 	if err != nil {
 		t.Fatalf("bad: %v", err)
@@ -84,7 +84,7 @@ func TestRPC_NoLeader_Fail_on_stale_read(t *testing.T) {
 		t.Fatalf("expected %v but got err: %v", structs.ErrNoLeader, err)
 	}
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 	if err := msgpackrpc.CallWithCodec(codec, "KVS.ListKeys", &getKeysReq, &keyList); err != nil {
 		t.Fatalf("Did not expect any error but got err: %v", err)
 	}
