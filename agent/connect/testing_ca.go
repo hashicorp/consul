@@ -53,9 +53,9 @@ func TestCA(t testing.T, xc *structs.CARoot) *structs.CARoot {
 
 	// Create the CA cert
 	template := x509.Certificate{
-		SerialNumber: sn,
-		Subject:      pkix.Name{CommonName: result.Name},
-		URIs:         []*url.URL{id.URI()},
+		SerialNumber:          sn,
+		Subject:               pkix.Name{CommonName: result.Name},
+		URIs:                  []*url.URL{id.URI()},
 		BasicConstraintsValid: true,
 		KeyUsage: x509.KeyUsageCertSign |
 			x509.KeyUsageCRLSign |
