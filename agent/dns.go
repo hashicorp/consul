@@ -1468,18 +1468,19 @@ func (d *DNSServer) resolveCNAME(name string, maxRecursionLevel int) []dns.RR {
 	// If the CNAME record points to a Consul address, resolve it internally
 	// Convert query to lowercase because DNS is case insensitive; d.domain is
 	// already converted
-	if maxRecursionLevel < 1 {
-		d.logger.Printf("[ERR] dns: Infinite recursion detected for %s, won't perform any CNAME resolution.", name)
-	} else {
-		if strings.HasSuffix(strings.ToLower(name), "."+d.domain) {
-			req := &dns.Msg{}
-			resp := &dns.Msg{}
 
-			req.SetQuestion(name, dns.TypeANY)
-			d.doDispatch("udp", nil, req, resp, maxRecursionLevel-1)
-
-			return resp.Answer
+	if strings.HasSuffix(strings.ToLower(name), "."+d.domain) {
+		if maxRecursionLevel < 1 {
+			d.logger.Printf("[ERR] dns: Infinite recursion detected for %s, won't perform any CNAME resolution.", name)
+			return nil
 		}
+		req := &dns.Msg{}
+		resp := &dns.Msg{}
+
+		req.SetQuestion(name, dns.TypeANY)
+		d.doDispatch("udp", nil, req, resp, maxRecursionLevel-1)
+
+		return resp.Answer
 	}
 
 	// Do nothing if we don't have a recursor
