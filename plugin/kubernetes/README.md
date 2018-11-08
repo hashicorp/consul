@@ -41,8 +41,10 @@ kubernetes [ZONES...] {
     endpoint_pod_names
     upstream [ADDRESS...]
     ttl TTL
+    noendpoints
     transfer to ADDRESS...
     fallthrough [ZONES...]
+    ignore empty_service
 }
 ```
 
