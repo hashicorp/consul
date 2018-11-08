@@ -933,6 +933,7 @@ func TestCatalog_ListNodes_StaleRead(t *testing.T) {
 	defer s1.Shutdown()
 	codec1 := rpcClient(t, s1)
 	defer codec1.Close()
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
 	defer os.RemoveAll(dir2)
@@ -980,7 +981,7 @@ func TestCatalog_ListNodes_StaleRead(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Fatalf("failed to find foo")
+		t.Fatalf("failed to find foo in %#v", out.Nodes)
 	}
 
 	if out.QueryMeta.LastContact == 0 {
