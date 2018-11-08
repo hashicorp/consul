@@ -66,4 +66,13 @@ export default Service.extend({
     // TODO: support passing a dom element, when we need to do that
     return $_(this.element(selector, context));
   },
+  components: function(selector, context) {
+    return [...this.elements(selector, context)]
+      .map(function(item) {
+        return $_(item);
+      })
+      .filter(function(item) {
+        return item != null;
+      });
+  },
 });
