@@ -23,8 +23,8 @@ type Win32_Processor struct {
 	MaxClockSpeed             uint32
 }
 
-// Win32_PerfFormattedData_Counters_ProcessorInformation stores instance value of the perf counters
-type Win32_PerfFormattedData_Counters_ProcessorInformation struct {
+// win32_PerfFormattedData_Counters_ProcessorInformation stores instance value of the perf counters
+type win32_PerfFormattedData_Counters_ProcessorInformation struct {
 	Name                  string
 	PercentDPCTime        uint64
 	PercentIdleTime       uint64
@@ -51,7 +51,7 @@ func Times(percpu bool) ([]TimesStat, error) {
 
 func TimesWithContext(ctx context.Context, percpu bool) ([]TimesStat, error) {
 	if percpu {
-		return perCPUTimes()
+		return perCPUTimesWithContext(ctx)
 	}
 
 	var ret []TimesStat
@@ -119,17 +119,13 @@ func InfoWithContext(ctx context.Context) ([]InfoStat, error) {
 
 // PerfInfo returns the performance counter's instance value for ProcessorInformation.
 // Name property is the key by which overall, per cpu and per core metric is known.
-func PerfInfo() ([]Win32_PerfFormattedData_Counters_ProcessorInformation, error) {
-	return PerfInfoWithContext(context.Background())
-}
+func perfInfoWithContext(ctx context.Context) ([]win32_PerfFormattedData_Counters_ProcessorInformation, error) {
+	var ret []win32_PerfFormattedData_Counters_ProcessorInformation
 
-func PerfInfoWithContext(ctx context.Context) ([]Win32_PerfFormattedData_Counters_ProcessorInformation, error) {
-	var ret []Win32_PerfFormattedData_Counters_ProcessorInformation
-
-	q := wmi.CreateQuery(&ret, "")
+	q := wmi.CreateQuery(&ret, "WHERE NOT Name LIKE '%_Total'")
 	err := common.WMIQueryWithContext(ctx, q, &ret)
 	if err != nil {
-		return []Win32_PerfFormattedData_Counters_ProcessorInformation{}, err
+		return []win32_PerfFormattedData_Counters_ProcessorInformation{}, err
 	}
 
 	return ret, err
@@ -152,9 +148,9 @@ func ProcInfoWithContext(ctx context.Context) ([]Win32_PerfFormattedData_PerfOS_
 }
 
 // perCPUTimes returns times stat per cpu, per core and overall for all CPUs
-func perCPUTimes() ([]TimesStat, error) {
+func perCPUTimesWithContext(ctx context.Context) ([]TimesStat, error) {
 	var ret []TimesStat
-	stats, err := PerfInfo()
+	stats, err := perfInfoWithContext(ctx)
 	if err != nil {
 		return nil, err
 	}
