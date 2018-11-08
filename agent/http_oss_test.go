@@ -72,7 +72,8 @@ func TestHTTPAPI_MethodNotAllowed_OSS(t *testing.T) {
 	testMethodNotAllowed := func(method string, path string, allowedMethods []string) {
 		t.Run(method+" "+path, func(t *testing.T) {
 			client := fastClient
-			if path == "/v1/agent/leave" {
+			switch path {
+			case "/v1/agent/leave", "/v1/agent/self":
 				// there are actual sleeps in this code that should take longer
 				client = slowClient
 				t.Logf("Using slow http client for leave tests")
