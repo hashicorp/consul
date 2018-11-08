@@ -397,7 +397,7 @@ func TestSessionTTLRenew(t *testing.T) {
 	}
 
 	// Sleep to consume some time before renew
-	time.Sleep(ttl * (structs.SessionTTLMultiplier / 2))
+	time.Sleep(ttl * (structs.SessionTTLMultiplier / 3))
 
 	req, _ = http.NewRequest("PUT", "/v1/session/renew/"+id, nil)
 	resp = httptest.NewRecorder()
