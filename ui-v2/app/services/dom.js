@@ -9,13 +9,13 @@ import qsaFactory from 'consul-ui/utils/dom/qsa-factory';
 // see if its possible to standardize
 import sibling from 'consul-ui/utils/dom/sibling';
 import closest from 'consul-ui/utils/dom/closest';
+import getComponentFactory from 'consul-ui/utils/dom/get-component-factory';
 
-// TODO: Move to utils/dom
-import getComponentFactory from 'consul-ui/utils/get-component-factory';
+// events
 import normalizeEvent from 'consul-ui/utils/dom/normalize-event';
 import createListeners from 'consul-ui/utils/dom/create-listeners';
-
 import clickFirstAnchorFactory from 'consul-ui/utils/dom/click-first-anchor';
+
 // ember-eslint doesn't like you using a single $ so use double
 // use $_ for components
 const $$ = qsaFactory();
@@ -27,13 +27,11 @@ export default Service.extend({
     this._super(...arguments);
     $_ = getComponentFactory(getOwner(this));
   },
-  closest: closest,
-  sibling: sibling,
   // TODO: should this be here? Needs a better name at least
   clickFirstAnchor: clickFirstAnchor,
-  normalizeEvent: function() {
-    return normalizeEvent(...arguments);
-  },
+  closest: closest,
+  sibling: sibling,
+  normalizeEvent: normalizeEvent,
   listeners: createListeners,
   root: function() {
     return get(this, 'doc').documentElement;
@@ -48,6 +46,8 @@ export default Service.extend({
     return context.getElementByTagName(name);
   },
   elements: function(selector, context) {
+    // don't ever be tempted to [...$$()] here
+    // it should return a NodeList
     return $$(selector, context);
   },
   element: function(selector, context) {
