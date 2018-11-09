@@ -27,6 +27,9 @@
 %action-group ul::before {
   border-color: $color-action;
 }
+%action-group-action {
+  background-color: white;
+}
 %action-group-action:hover {
   @extend %frame-blue-800;
 }
