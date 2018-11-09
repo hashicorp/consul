@@ -142,6 +142,20 @@ and consider if they're appropriate for your deployment.
   CA and set of certificates. Additional Connect settings can be configured
   by setting the `server.extraConfig` value.
 
+  - <a name="v-server-resources" href="#v-server-resources">`resources`</a> (`object: {}`) -
+  The resource requests (CPU, memory, etc.) for each of the server agents.
+  This should be an object mapping directly to a Kubernetes
+  [ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.11/#resourcerequirements-v1-core) object. If this isn't specified, then the pods
+  won't request any specific amount of resources. **Setting this is highly
+  recommended.**
+
+  - <a name="v-server-updatepartition" href="#v-server-updatepartition">`updatePartition`</a> (`integer: 0`) -
+  This value is used to carefully control a rolling update of Consul server
+  agents. This value specifies the
+  [partition](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#partitions)
+  for performing a rolling update. Please read the linked Kubernetes
+  documentation for more information.
+
   - <a name="v-server-disruptionbudget" href="#v-server-disruptionbudget">`disruptionBudget`</a> -
   This configures the
   [PodDisruptionBudget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/)
@@ -180,23 +194,12 @@ and consider if they're appropriate for your deployment.
       configuration files from this volume with `-config-dir`. This defaults
       to false.
 
-  - <a name="v-server-resources" href="#v-server-resources">`resources`</a> (`object: {}`) -
-  The resource requests (CPU, memory, etc.) for each of the server agents.
-  This should be an object mapping directly to a Kubernetes
-  [ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.11/#resourcerequirements-v1-core) object. If this isn't specified, then the pods
-  won't request any specific amount of resources. **Setting this is highly
-  recommended.**
-
-  - <a name="v-server-storage" href="#v-server-storage">`storage`</a> (`string: "10Gi"`) -
-  The amount of storage to request for the persistant volume backing the
-  Consul server data.
-
-  - <a name="v-server-updatepartition" href="#v-server-updatepartition">`updatePartition`</a> (`integer: 0`) -
-  This value is used to carefully control a rolling update of Consul server
-  agents. This value specifies the
-  [partition](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#partitions)
-  for performing a rolling update. Please read the linked Kubernetes
-  documentation for more information.
+  - <a name="v-server-affinity" href="#v-server-affinity">`affinity`</a> (`string`) -
+  This value defines the [affinity](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity)
+  for server pods. It defaults to allowing only a single pod on each node,
+  which minimizes risk of the cluster becoming unusable if a node is lost.
+  If you need to run more pods per node (for example, testing on Minikube),
+  set this value to `null`.
 
 * <a name="v-client" href="#v-client">`client`</a> - Values that configure
   running a Consul client agent on Kubernetes nodes.
