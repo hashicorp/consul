@@ -34,7 +34,7 @@ Option `consolidate` allows collecting several error messages matching the regul
 
 Multiple `consolidate` options with different **DURATION** and **REGEXP** are allowed. In case if some error message corresponds to several defined regular expressions the message will be associated with the first appropriate **REGEXP**.
 
-For better performance, it's recomended to use the `^` or `$` metacharacters in regular expression when filtering error messages by prefix or suffix, e.g. `^failed to .*`, or `.* timeout$`.
+For better performance, it's recommended to use the `^` or `$` metacharacters in regular expression when filtering error messages by prefix or suffix, e.g. `^failed to .*`, or `.* timeout$`.
 
 ## Examples
 
