@@ -1,13 +1,13 @@
 @import './custom-query';
-$gray: $ui-gray-200;
-$ui-gray-025: #fafbfc;
+$gray: $gray-200;
+$gray-025: #fafbfc;
 
 $magenta-800-no-hash: 5a1434;
 
-$keyline-light: $ui-gray-100; // h1
-$keyline-mid: $ui-gray-200; // td, footer
-$keyline-dark: $ui-gray-300; // th
-$keyline-darker: $ui-gray-400;
+$keyline-light: $gray-100; // h1
+$keyline-mid: $gray-200; // td, footer
+$keyline-dark: $gray-300; // th
+$keyline-darker: $gray-400;
 
 // decoration
 // undecided
