@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -170,6 +171,7 @@ func TestAPI_AgentServices(t *testing.T) {
 
 	reg := &AgentServiceRegistration{
 		Name: "foo",
+		ID:   "foo",
 		Tags: []string{"bar", "baz"},
 		Port: 8000,
 		Check: &AgentServiceCheck{
@@ -185,7 +187,7 @@ func TestAPI_AgentServices(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	if _, ok := services["foo"]; !ok {
-		t.Fatalf("missing service: %v", services)
+		t.Fatalf("missing service: %#v", services)
 	}
 	checks, err := agent.Checks()
 	if err != nil {
@@ -200,6 +202,23 @@ func TestAPI_AgentServices(t *testing.T) {
 	if chk.Status != HealthCritical {
 		t.Fatalf("Bad: %#v", chk)
 	}
+
+	state, out, err := agent.AgentHealthServiceByID("foo2")
+	require.Nil(t, err)
+	require.Nil(t, out)
+	require.Equal(t, HealthCritical, state)
+
+	state, out, err = agent.AgentHealthServiceByID("foo")
+	require.Nil(t, err)
+	require.NotNil(t, out)
+	require.Equal(t, HealthCritical, state)
+	require.Equal(t, 8000, out.Service.Port)
+
+	state, outs, err := agent.AgentHealthServiceByName("foo")
+	require.Nil(t, err)
+	require.NotNil(t, outs)
+	require.Equal(t, HealthCritical, state)
+	require.Equal(t, 8000, out.Service.Port)
 
 	if err := agent.ServiceDeregister("foo"); err != nil {
 		t.Fatalf("err: %v", err)
@@ -1367,4 +1386,102 @@ func TestAPI_AgentConnectProxyConfig(t *testing.T) {
 	}
 	require.Equal(t, expectConfig, config)
 	require.Equal(t, expectConfig.ContentHash, qm.LastContentHash)
+}
+
+func TestAPI_AgentHealthService(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	requireServiceHealthID := func(t *testing.T, serviceID, expected string, shouldExist bool) {
+		msg := fmt.Sprintf("service id:%s, shouldExist:%v, expectedStatus:%s : bad %%s", serviceID, shouldExist, expected)
+
+		state, out, err := agent.AgentHealthServiceByID(serviceID)
+		require.Nil(t, err, msg, "err")
+		require.Equal(t, expected, state, msg, "state")
+		if !shouldExist {
+			require.Nil(t, out, msg, "shouldExist")
+		} else {
+			require.NotNil(t, out, msg, "output")
+			require.Equal(t, serviceID, out.Service.ID, msg, "output")
+		}
+	}
+	requireServiceHealthName := func(t *testing.T, serviceName, expected string, shouldExist bool) {
+		msg := fmt.Sprintf("service name:%s, shouldExist:%v, expectedStatus:%s : bad %%s", serviceName, shouldExist, expected)
+
+		state, outs, err := agent.AgentHealthServiceByName(serviceName)
+		require.Nil(t, err, msg, "err")
+		require.Equal(t, expected, state, msg, "state")
+		if !shouldExist {
+			require.Equal(t, 0, len(outs), msg, "output")
+		} else {
+			require.True(t, len(outs) > 0, msg, "output")
+			for _, o := range outs {
+				require.Equal(t, serviceName, o.Service.Service, msg, "output")
+			}
+		}
+	}
+
+	requireServiceHealthID(t, "_i_do_not_exist_", HealthCritical, false)
+	requireServiceHealthName(t, "_i_do_not_exist_", HealthCritical, false)
+
+	testServiceID1 := "foo"
+	testServiceID2 := "foofoo"
+	testServiceName := "bar"
+
+	// register service
+	reg := &AgentServiceRegistration{
+		Name: testServiceName,
+		ID:   testServiceID1,
+		Port: 8000,
+		Check: &AgentServiceCheck{
+			TTL: "15s",
+		},
+	}
+	err := agent.ServiceRegister(reg)
+	require.Nil(t, err)
+	requireServiceHealthID(t, testServiceID1, HealthCritical, true)
+	requireServiceHealthName(t, testServiceName, HealthCritical, true)
+
+	err = agent.WarnTTL(fmt.Sprintf("service:%s", testServiceID1), "I am warn")
+	require.Nil(t, err)
+	requireServiceHealthName(t, testServiceName, HealthWarning, true)
+	requireServiceHealthID(t, testServiceID1, HealthWarning, true)
+
+	err = agent.PassTTL(fmt.Sprintf("service:%s", testServiceID1), "I am good :)")
+	require.Nil(t, err)
+	requireServiceHealthName(t, testServiceName, HealthPassing, true)
+	requireServiceHealthID(t, testServiceID1, HealthPassing, true)
+
+	err = agent.FailTTL(fmt.Sprintf("service:%s", testServiceID1), "I am dead.")
+	require.Nil(t, err)
+	requireServiceHealthName(t, testServiceName, HealthCritical, true)
+	requireServiceHealthID(t, testServiceID1, HealthCritical, true)
+
+	// register another service
+	reg = &AgentServiceRegistration{
+		Name: testServiceName,
+		ID:   testServiceID2,
+		Port: 8000,
+		Check: &AgentServiceCheck{
+			TTL: "15s",
+		},
+	}
+	err = agent.ServiceRegister(reg)
+	require.Nil(t, err)
+	requireServiceHealthName(t, testServiceName, HealthCritical, true)
+
+	err = agent.PassTTL(fmt.Sprintf("service:%s", testServiceID1), "I am good :)")
+	require.Nil(t, err)
+	requireServiceHealthName(t, testServiceName, HealthCritical, true)
+
+	err = agent.WarnTTL(fmt.Sprintf("service:%s", testServiceID2), "I am warn")
+	require.Nil(t, err)
+	requireServiceHealthName(t, testServiceName, HealthWarning, true)
+
+	err = agent.PassTTL(fmt.Sprintf("service:%s", testServiceID2), "I am good :)")
+	require.Nil(t, err)
+	requireServiceHealthName(t, testServiceName, HealthPassing, true)
 }

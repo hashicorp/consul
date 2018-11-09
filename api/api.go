@@ -398,6 +398,18 @@ func defaultConfig(transportFn func() *http.Transport) *Config {
 	return config
 }
 
+// CodeWithPayloadError allow returning non HTTP 200
+// Error codes while not returning PlainText payload
+type CodeWithPayloadError struct {
+	Reason      string
+	StatusCode  int
+	ContentType string
+}
+
+func (e CodeWithPayloadError) Error() string {
+	return e.Reason
+}
+
 // TLSConfig is used to generate a TLSClientConfig that's useful for talking to
 // Consul using TLS.
 func SetupTLSConfig(tlsConfig *TLSConfig) (*tls.Config, error) {
@@ -775,7 +787,9 @@ func (c *Client) query(endpoint string, out interface{}, q *QueryOptions) (*Quer
 	r.setQueryOptions(q)
 	rtt, resp, err := requireOK(c.doRequest(r))
 	if err != nil {
-		return nil, err
+		if _, ok := err.(CodeWithPayloadError); !ok {
+			return nil, err
+		}
 	}
 	defer resp.Body.Close()
 
