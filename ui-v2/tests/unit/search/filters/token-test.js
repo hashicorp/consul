@@ -55,7 +55,7 @@ test('items are not found', function(assert) {
     const actual = filter(item, {
       s: 'hit',
     });
-    assert.ok(!actual);
+    assert.notOk(actual);
   });
 });
 test('policies can be empty', function(assert) {
@@ -81,6 +81,6 @@ test('policies can be empty', function(assert) {
     const actual = filter(item, {
       s: 'hit',
     });
-    assert.ok(!actual);
+    assert.notOk(actual);
   });
 });
