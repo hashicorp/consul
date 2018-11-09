@@ -449,5 +449,5 @@ Policies:
    da2a9f9b-4e44-13f8-e308-76ce7a8dcb21 - bar-service
 ```
 
-At this point all tokes are upgraded and can use new ACL features while
+At this point all tokens are upgraded and can use new ACL features while
 retaining the same secret clients are already using.
