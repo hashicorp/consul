@@ -2,6 +2,7 @@ import kv from 'consul-ui/forms/kv';
 import acl from 'consul-ui/forms/acl';
 import token from 'consul-ui/forms/token';
 import policy from 'consul-ui/forms/policy';
+import intention from 'consul-ui/forms/intention';
 export function initialize(application) {
   // Service-less injection using private properties at a per-project level
   const FormBuilder = application.resolveRegistration('service:form');
@@ -10,6 +11,7 @@ export function initialize(application) {
     acl: acl(),
     token: token(),
     policy: policy(),
+    intention: intention(),
   };
   FormBuilder.reopen({
     form: function(name) {
