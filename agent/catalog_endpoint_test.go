@@ -740,6 +740,7 @@ func TestCatalogServiceNodes_DistanceSort(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	// Register nodes.
 	args := &structs.RegisterRequest{
@@ -831,6 +832,7 @@ func TestCatalogServiceNodes_ConnectProxy(t *testing.T) {
 	assert := assert.New(t)
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	// Register
 	args := structs.TestRegisterRequestProxy(t)
@@ -860,6 +862,7 @@ func TestCatalogConnectServiceNodes_good(t *testing.T) {
 	assert := assert.New(t)
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	// Register
 	args := structs.TestRegisterRequestProxy(t)

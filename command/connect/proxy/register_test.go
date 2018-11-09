@@ -46,16 +46,18 @@ func TestRegisterMonitor_heartbeat(t *testing.T) {
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	m, _ := testMonitor(t, client)
 	defer m.Close()
-
-	// Get the check and verify that it is passing
-	checks, err := client.Agent().Checks()
-	require.NoError(err)
-	require.Contains(checks, m.checkID())
-	require.Equal("passing", checks[m.checkID()].Status)
-
-	// Purposely fail the TTL check, verify it becomes healthy again
-	require.NoError(client.Agent().FailTTL(m.checkID(), ""))
 	retry.Run(t, func(r *retry.R) {
+		// Get the check and verify that it is passing
+		checks, err := client.Agent().Checks()
+		require.NoError(err)
+		require.Contains(checks, m.checkID())
+		require.Equal("passing", checks[m.checkID()].Status)
+		// Purposely fail the TTL check, verify it becomes healthy again
+		require.NoError(client.Agent().FailTTL(m.checkID(), ""))
+	})
+
+	retry.Run(t, func(r *retry.R) {
+
 		checks, err := client.Agent().Checks()
 		if err != nil {
 			r.Fatalf("err: %s", err)
