@@ -1210,7 +1210,7 @@ func (l *State) deleteService(id string) error {
 		l.logger.Printf("[INFO] agent: Deregistered service %q", id)
 		return nil
 
-	case acl.IsErrPermissionDenied(err):
+	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
 		// todo(fs): mark the service to be in sync to prevent excessive retrying before next full sync
 		// todo(fs): some backoff strategy might be a better solution
 		l.services[id].InSync = true
@@ -1248,7 +1248,7 @@ func (l *State) deleteCheck(id types.CheckID) error {
 		l.logger.Printf("[INFO] agent: Deregistered check %q", id)
 		return nil
 
-	case acl.IsErrPermissionDenied(err):
+	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
 		// todo(fs): mark the check to be in sync to prevent excessive retrying before next full sync
 		// todo(fs): some backoff strategy might be a better solution
 		l.checks[id].InSync = true
@@ -1316,7 +1316,7 @@ func (l *State) syncService(id string) error {
 		l.logger.Printf("[INFO] agent: Synced service %q", id)
 		return nil
 
-	case acl.IsErrPermissionDenied(err):
+	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
 		// todo(fs): mark the service and the checks to be in sync to prevent excessive retrying before next full sync
 		// todo(fs): some backoff strategy might be a better solution
 		l.services[id].InSync = true
@@ -1365,7 +1365,7 @@ func (l *State) syncCheck(id types.CheckID) error {
 		l.logger.Printf("[INFO] agent: Synced check %q", id)
 		return nil
 
-	case acl.IsErrPermissionDenied(err):
+	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
 		// todo(fs): mark the check to be in sync to prevent excessive retrying before next full sync
 		// todo(fs): some backoff strategy might be a better solution
 		l.checks[id].InSync = true
@@ -1397,7 +1397,7 @@ func (l *State) syncNodeInfo() error {
 		l.logger.Printf("[INFO] agent: Synced node info")
 		return nil
 
-	case acl.IsErrPermissionDenied(err):
+	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
 		// todo(fs): mark the node info to be in sync to prevent excessive retrying before next full sync
 		// todo(fs): some backoff strategy might be a better solution
 		l.nodeInfoInSync = true
