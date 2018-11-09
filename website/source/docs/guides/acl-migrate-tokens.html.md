@@ -126,7 +126,7 @@ migrated.
 
 ### Creating Policies
 
-There are a range of different strategies for create new policies from existing
+There are a range of different strategies for creating new policies from existing
 tokens. Two high-level strategies are described here although others or a
 mixture of these may be most appropriate depending on the ACL tokens you already
 have.
