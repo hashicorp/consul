@@ -377,10 +377,22 @@ RETRY:
 			opts.WaitIndex = 0
 			goto RETRY
 		}
-		return
+		// Stop the session renew
+		goto STOP_SESSION_RENEW
 	}
 	if pair != nil && pair.Session == session {
 		opts.WaitIndex = meta.LastIndex
 		goto WAIT
+	}
+
+STOP_SESSION_RENEW:
+	// Hold the lock as we clear up the session
+	l.l.Lock()
+	defer l.l.Unlock()
+	if l.sessionRenew != nil {
+		defer func() {
+			close(l.sessionRenew)
+			l.sessionRenew = nil
+		}()
 	}
 }
