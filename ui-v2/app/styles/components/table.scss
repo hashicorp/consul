@@ -16,7 +16,7 @@ td span.zero {
   @extend %with-no-healthchecks;
   display: block;
   text-indent: 20px;
-  color: $ui-gray-400;
+  color: $gray-400;
 }
 table:not(.sessions) tr {
   cursor: pointer;
@@ -26,15 +26,15 @@ table:not(.sessions) td:first-child {
 }
 td dt.passing,
 td dt.passing + dd {
-  color: $ui-color-success;
+  color: $color-success;
 }
 td dt.warning,
 td dt.warning + dd {
-  color: $ui-color-alert;
+  color: $color-alert;
 }
 td dt.critical,
 td dt.critical + dd {
-  color: $ui-color-failure;
+  color: $color-failure;
 }
 /* Header Tooltips/Icon*/
 th {

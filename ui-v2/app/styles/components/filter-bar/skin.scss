@@ -20,19 +20,20 @@
 }
 %filter-bar,
 %filter-bar > * {
-  background-color: $ui-gray-050;
+  /* frame-gray */
+  background-color: $gray-050;
 }
 %filter-bar > *,
 %filter-bar label:not(:last-child) {
-  border-color: $ui-gray-300 !important;
+  border-color: $gray-300 !important;
 }
 
 %filter-bar [role='radiogroup'] label {
-  color: $ui-gray-400;
+  color: $gray-400;
 }
 %filter-bar .value-warning span::after {
-  border-color: $ui-gray-050;
+  border-color: $gray-050;
 }
 %filter-bar .value-warning input:checked + span::after {
-  border-color: $ui-white;
+  border-color: $white;
 }

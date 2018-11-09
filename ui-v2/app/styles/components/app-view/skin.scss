@@ -7,15 +7,11 @@
   border-color: $keyline-light;
 }
 %app-content div > dl > dd {
-  color: $ui-gray-400;
+  color: $gray-400;
 }
 [role='tabpanel'] > p:only-child,
-.template-error > div {
-  background-color: $ui-gray-050;
-  color: $ui-gray-400;
-}
+.template-error > div,
 %app-content > p:only-child,
 %app-view > div.disabled > div {
-  background-color: $ui-gray-050;
-  color: $ui-gray-400;
+  @extend %frame-gray-500;
 }

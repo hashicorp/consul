@@ -1,12 +1,12 @@
 @import './anchors/index';
 %main-content a {
-  color: $ui-gray-900;
+  color: $gray-900;
 }
 %main-content a[rel*='help'] {
   @extend %with-info;
 }
 %main-content label a[rel*='help'] {
-  color: $ui-gray-400;
+  color: $gray-400;
 }
 
 [role='tabpanel'] > p:only-child [rel*='help']::after {
