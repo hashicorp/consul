@@ -34,10 +34,9 @@ type IndexedCARoots struct {
 	// only time the additional validation adds value is where the cluster shares
 	// an external root (e.g. organization-wide root) with another distinct Consul
 	// cluster or PKI system. In this case, x509 Name Constraints can be added to
-	// enforce that Consul's CA can cert can only validly sign or trust certs
-	// within the same trust-domain. Name constraints as enforced by TLS handshake
-	// also work seamlessly with rotation between trust domains thanks to
-	// cross-signing.
+	// enforce that Consul's CA can only validly sign or trust certs within the
+	// same trust-domain. Name constraints as enforced by TLS handshake also allow
+	// seamless rotation between trust domains thanks to cross-signing.
 	TrustDomain string
 
 	// Roots is a list of root CA certs to trust.
