@@ -6,30 +6,30 @@
   border-radius: $decor-radius-100;
 }
 %healthcheck-status dd:first-of-type {
-  color: $ui-gray-400;
+  color: $gray-400;
 }
 %healthcheck-status pre {
-  background-color: $ui-black;
-  color: $ui-white;
+  background-color: $black;
+  color: $white;
 }
 %healthcheck-status.passing {
-  /* TODO: this should be a gray frame */
+  /* TODO: this should be a frame-gray */
   // @extend %frame-green-500;
-  color: $ui-gray-900;
-  border-color: $ui-gray-200;
+  color: $gray-900;
+  border-color: $gray-200;
   border-style: solid;
 }
 %healthcheck-status.warning {
   @extend %frame-yellow-500;
-  color: $ui-gray-900;
+  color: $gray-900;
 }
 %healthcheck-status.critical {
   @extend %frame-red-500;
-  color: $ui-gray-900;
+  color: $gray-900;
 }
 %healthcheck-status.passing::before {
-  background-color: $ui-color-success !important;
+  background-color: $color-success !important;
 }
 %healthcheck-status.critical::before {
-  background-color: $ui-color-danger !important;
+  background-color: $color-danger !important;
 }

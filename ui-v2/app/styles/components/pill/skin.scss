@@ -1,4 +1,4 @@
 %pill {
-  background-color: $ui-gray-100;
+  @extend %frame-gray-900;
   border-radius: $radius-small;
 }

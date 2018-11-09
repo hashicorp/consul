@@ -10,46 +10,31 @@
   @extend %notice;
 }
 %notice-success {
-  @extend %with-passing;
-  background-color: $ui-green-050;
-  border-color: $ui-color-success;
-  color: $ui-green-700;
-}
-%notice-success::before {
-  color: $ui-color-success;
+  @extend %frame-green-500, %with-passing;
 }
 %notice-info {
-  /* %frame-blue-000*/
-  border-style: solid; /*TODO: this can go once we are using a frame*/
-  @extend %with-passing; /* needs a better info button*/
-  background-color: $ui-blue-050;
-  border-color: $ui-color-action; /* TODO: change to info */
-  color: $ui-blue-700;
+  @extend %frame-blue-500, %with-passing; /* needs a better info button*/
 }
 %notice-highlight {
-  /* %frame-blue-000*/
-  border-style: solid; /*TODO: this can go once we are using a frame*/
-  @extend %with-star;
-  border-color: $ui-gray-300;
-  background-color: $ui-gray-050;
+  @extend %frame-gray-800, %with-star;
 }
-%notice-info::before {
-  color: $ui-color-action; /* change to info */
+%notice-warning {
+  @extend %frame-yellow-500, %with-warning;
+}
+%notice-error {
+  @extend %frame-red-500, %with-critical;
 }
 %notice-highlight::before {
   /* %with-star, bigger */
   width: 16px;
   height: 16px;
 }
-%notice-warning {
-  @extend %frame-yellow-500, %with-warning;
+%notice-success::before {
+  color: $color-success;
 }
-%notice-error {
-  @extend %with-critical;
-  background-color: $ui-red-050;
-  border-color: $ui-color-failure;
-  color: $ui-red-600;
+%notice-info::before {
+  color: $color-action; /* change to info */
 }
 %notice-error::before {
-  color: $ui-color-failure;
+  color: $color-failure;
 }
