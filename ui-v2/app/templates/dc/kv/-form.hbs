@@ -18,7 +18,7 @@
             <label class="type-text{{if item.error.Value ' has-error'}}">
                 <span>Value</span>
 {{#if json}}
-                {{ code-editor value=(atob item.Value) onkeyup=(action 'change') }}
+                {{code-editor value=(atob item.Value) onkeyup=(action 'change' 'value')}}
 {{else}}
                 <textarea autofocus={{not create}} name="value" oninput={{action 'change'}}>{{atob item.Value}}</textarea>
 {{/if}}
