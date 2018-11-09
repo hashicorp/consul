@@ -25,6 +25,6 @@ test('items are not found', function(assert) {
     const actual = filter(item, {
       s: 'hit',
     });
-    assert.ok(!actual);
+    assert.notOk(actual);
   });
 });
