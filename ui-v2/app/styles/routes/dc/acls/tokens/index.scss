@@ -8,13 +8,13 @@
 }
 %token-yours {
   text-indent: 20px;
-  color: $ui-blue-500;
+  color: $blue-500;
   padding-left: 15px;
 }
 %token-yours::after {
   @extend %with-tick;
   border-radius: 100%;
-  background-color: $ui-blue-500;
+  background-color: $blue-500;
 }
 .me ~ :nth-last-child(2) {
   @extend %token-yours;

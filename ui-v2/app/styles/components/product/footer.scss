@@ -5,11 +5,11 @@
   border-top: $decor-border-100;
 }
 %footer {
-  border-color: $ui-gray-200;
-  background-color: $ui-white;
+  border-color: $gray-200;
+  background-color: $white;
 }
 %footer > * {
-  color: $ui-gray-400;
+  color: $gray-400;
 }
 %footer {
   display: flex;
