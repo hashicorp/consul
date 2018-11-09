@@ -34,6 +34,8 @@ func init() {
 	registerEndpoint("/v1/agent/join/", []string{"PUT"}, (*HTTPServer).AgentJoin)
 	registerEndpoint("/v1/agent/leave", []string{"PUT"}, (*HTTPServer).AgentLeave)
 	registerEndpoint("/v1/agent/force-leave/", []string{"PUT"}, (*HTTPServer).AgentForceLeave)
+	registerEndpoint("/v1/agent/health/service/id/", []string{"GET"}, (*HTTPServer).AgentHealthServiceByID)
+	registerEndpoint("/v1/agent/health/service/name/", []string{"GET"}, (*HTTPServer).AgentHealthServiceByName)
 	registerEndpoint("/v1/agent/check/register", []string{"PUT"}, (*HTTPServer).AgentRegisterCheck)
 	registerEndpoint("/v1/agent/check/deregister/", []string{"PUT"}, (*HTTPServer).AgentDeregisterCheck)
 	registerEndpoint("/v1/agent/check/pass/", []string{"PUT"}, (*HTTPServer).AgentCheckPass)

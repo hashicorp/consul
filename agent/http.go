@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/mitchellh/mapstructure"
 )
@@ -363,21 +364,41 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 			// Invoke the handler
 			obj, err = handler(resp, req)
 		}
-
+		contentType := "application/json"
+		httpCode := http.StatusOK
 		if err != nil {
-			handleErr(err)
-			return
+			if errPayload, ok := err.(api.CodeWithPayloadError); ok {
+				httpCode = errPayload.StatusCode
+				if errPayload.ContentType != "" {
+					contentType = errPayload.ContentType
+				}
+				if errPayload.Reason != "" {
+					resp.Header().Add("X-Consul-Reason", errPayload.Reason)
+				}
+			} else {
+				handleErr(err)
+				return
+			}
 		}
 		if obj == nil {
 			return
 		}
-
-		buf, err := s.marshalJSON(req, obj)
-		if err != nil {
-			handleErr(err)
-			return
+		var buf []byte
+		if contentType == "application/json" {
+			buf, err = s.marshalJSON(req, obj)
+			if err != nil {
+				handleErr(err)
+				return
+			}
+		} else {
+			if strings.HasPrefix(contentType, "text/") {
+				if val, ok := obj.(string); ok {
+					buf = []byte(val)
+				}
+			}
 		}
-		resp.Header().Set("Content-Type", "application/json")
+		resp.Header().Set("Content-Type", contentType)
+		resp.WriteHeader(httpCode)
 		resp.Write(buf)
 	}
 }

@@ -12,6 +12,7 @@ const (
 	errNotReadyForConsistentReads = "Not ready to serve consistent reads"
 	errSegmentsNotSupported       = "Network segments are not supported in this version of Consul"
 	errRPCRateExceeded            = "RPC rate limit exceeded"
+	errServiceNotFound            = "Service not found: "
 )
 
 var (
@@ -29,4 +30,8 @@ func IsErrNoLeader(err error) bool {
 
 func IsErrRPCRateExceeded(err error) bool {
 	return err != nil && strings.Contains(err.Error(), errRPCRateExceeded)
+}
+
+func IsErrServiceNotFound(err error) bool {
+	return err != nil && strings.Contains(err.Error(), errServiceNotFound)
 }
