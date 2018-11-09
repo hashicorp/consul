@@ -31,7 +31,7 @@ test('items are not found', function(assert) {
     const actual = filter(item, {
       s: '*',
     });
-    assert.ok(!actual);
+    assert.notOk(actual);
   });
 });
 test('items are found by *', function(assert) {
