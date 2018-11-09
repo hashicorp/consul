@@ -4,7 +4,6 @@ import Changeset from 'ember-changeset';
 import lookupValidator from 'ember-changeset-validations';
 
 import validations from 'consul-ui/validations/intention';
-
 export default Controller.extend({
   setProperties: function(model) {
     this.changeset = new Changeset(model.item, lookupValidator(validations), validations);
@@ -30,8 +29,8 @@ export default Controller.extend({
     });
   },
   actions: {
-    createNewLabel: function(term) {
-      return `Use a future Consul Service called '${term}'`;
+    createNewLabel: function(template, term) {
+      return template.replace(/{{term}}/g, term);
     },
     isUnique: function(term) {
       return !get(this, 'items').findBy('Name', term);
