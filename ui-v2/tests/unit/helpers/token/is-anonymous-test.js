@@ -9,5 +9,5 @@ test('it returns true if the token is the anonymous token', function(assert) {
 });
 test("it returns false if the token isn't the anonymous token", function(assert) {
   const actual = isAnonymous([{ AccessorID: '00000000-0000-0000-0000-000000000000' }]);
-  assert.ok(!actual);
+  assert.notOk(actual);
 });
