@@ -21,20 +21,20 @@
   border-bottom: $decor-border-100;
 }
 %header-drop-nav li {
-  border-color: $ui-gray-300;
+  border-color: $gray-300;
 }
 %header-drop-nav {
-  border-color: $ui-gray-300;
-  background-color: $ui-white;
+  border-color: $gray-300;
+  background-color: $white;
 }
 %header-drop-nav a {
-  color: $ui-gray-900 !important;
+  color: $gray-900 !important;
 }
 %header-nav > ul > li > a:hover,
 %header-nav > ul > li > a:focus,
 %header-nav > ul > li > a:active,
 %header-nav > ul > li.is-active > a {
-  color: $ui-white;
+  color: $white;
 }
 %header-nav-toggle-button::before,
 %header-nav-toggle-button::after,
@@ -99,7 +99,7 @@
     padding: 15px 35px;
   }
   %header-nav-toggle:checked + label {
-    background-color: rgba($ui-black, 0.4);
+    background-color: rgba($black, 0.4);
     width: 100vw;
     height: 100%;
     left: 0;
@@ -125,7 +125,7 @@
 %header-drop-nav a:focus,
 %header-drop-nav a:active,
 %header-drop-nav a.selected {
-  background-color: $ui-gray-050;
+  background-color: $gray-050;
 }
 %header-nav a {
   display: block;
