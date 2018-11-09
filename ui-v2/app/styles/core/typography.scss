@@ -52,7 +52,7 @@ caption {
 }
 th,
 %breadcrumbs a,
-%action-group a,
+%action-group-action,
 %tab-nav,
 %tooltip-bubble {
   font-weight: $typo-weight-medium;
@@ -80,6 +80,7 @@ h2,
   font-size: $typo-size-500;
 }
 body,
+%action-group-action,
 pre code,
 input,
 textarea,

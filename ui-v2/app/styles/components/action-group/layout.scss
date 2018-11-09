@@ -1,6 +1,14 @@
 %action-group label span {
   display: none;
 }
+%action-group-action {
+  width: 170px;
+  padding: 10px 10px;
+  text-align: left;
+}
+%action-group li > * {
+  @extend %action-group-action;
+}
 %action-group::before {
   margin-left: -1px;
 }
@@ -58,10 +66,6 @@
 %action-group li {
   position: relative;
   z-index: 1;
-}
-%action-group li a {
-  width: 170px;
-  padding: 10px 10px;
 }
 %action-group input[type='radio'],
 %action-group input[type='radio'] ~ ul,
