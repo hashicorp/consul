@@ -168,7 +168,10 @@ and consider if they're appropriate for your deployment.
 
       * <a name="v-server-disruptionbudget-maxunavailable" href="#v-server-disruptionbudget-maxunavailable">`maxUnavailable`</a> (`integer: null`) -
       The maximum number of unavailable pods. By default, this will be automatically
-      computed based on the `server.replicas` value to be `(n/2)-1`.
+      computed based on the `server.replicas` value to be `(n/2)-1`. If you need to set
+      this to `0`, you will need to add a `--set 'server.disruptionBudget.maxUnavailable=0'`
+      flag to the helm chart installation command because of a limitation in the Helm
+      templating language.
 
   - <a name="v-server-extraconfig" href="#v-server-extraconfig">`extraConfig`</a> (`string: "{}"`) -
   A raw string of extra JSON or HCL configuration for Consul servers. This
