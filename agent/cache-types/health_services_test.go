@@ -1,6 +1,7 @@
 package cachetype
 
 import (
+	assert2 "github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 )
 
 func TestHealthServices(t *testing.T) {
+	assert := assert2.New(t)
 	require := require.New(t)
 	rpc := TestRPC(t)
 	defer rpc.AssertExpectations(t)
@@ -25,30 +27,46 @@ func TestHealthServices(t *testing.T) {
 			require.Equal(uint64(24), req.QueryOptions.MinQueryIndex)
 			require.Equal(1*time.Second, req.QueryOptions.MaxQueryTime)
 			require.Equal("web", req.ServiceName)
-			require.Equal("canary", req.ServiceTag)
-			require.Equal(req.ServiceTags, []string{"tag1", "tag2"})
 			require.True(req.AllowStale)
 
 			reply := args.Get(2).(*structs.IndexedCheckServiceNodes)
+			reply.Nodes = []structs.CheckServiceNode{
+				{Service: &structs.NodeService{Tags: []string{req.ServiceTag}}},
+			}
 			reply.QueryMeta.Index = 48
 			resp = reply
 		})
 
 	// Fetch
-	result, err := typ.Fetch(cache.FetchOptions{
+	resultA, err := typ.Fetch(cache.FetchOptions{
 		MinIndex: 24,
 		Timeout:  1 * time.Second,
 	}, &structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
 		ServiceName: "web",
-		ServiceTag:  "canary",
-		ServiceTags: []string{"tag1", "tag2"},
+		ServiceTag:  "canaryA",
 	})
 	require.NoError(err)
 	require.Equal(cache.FetchResult{
 		Value: resp,
 		Index: 48,
-	}, result)
+	}, resultA)
+
+	resultB, err := typ.Fetch(cache.FetchOptions{
+		MinIndex: 24,
+		Timeout:  1 * time.Second,
+	}, &structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "web",
+		ServiceTag:  "canaryB",
+	})
+	require.NoError(err)
+	require.Equal(cache.FetchResult{
+		Value: resp,
+		Index: 48,
+	}, resultB)
+
+	assert.NotEqual(resultA, resultB)
 }
 
 func TestHealthServices_badReqType(t *testing.T) {
