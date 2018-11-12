@@ -75,16 +75,19 @@ The chart works on its own, but we'll override a few values to help things go mo
 
 We've created `helm-consul-values.yaml` for you with overrides. See `values.yaml` in the Helm chart repository for other possible values.
 
-We've given a name to the datacenter running this Consul cluster. We've enabled the Consul web UI. In this case, it specifies that a load balancer is needed. This will only work when deployed to a hosted cloud that implements load balancers, which minikube does not. You could use a NodePort here or leave it as-is and we'll access the Consul UI in another way. We'll enable secure communication between pods with Connect. We also need to enable grpc on the client for this to work properly. Finally, specify that this Consul cluster should only have one server (suitable for local development).
+We've given a name to the datacenter running this Consul cluster. We've enabled the Consul web UI via a `NodePort`. When deploying to a hosted cloud that implements load balancers, we could use `LoadBalancer` instead. We'll enable secure communication between pods with Connect. We also need to enable `grpc` on the client for Connect to work properly. Finally, specify that this Consul cluster should only run one server (suitable for local development).
 
 ```yaml
+# Choose an optional name for the datacenter
 global:
   datacenter: minidc
 
+# Enable the Consul Web UI via a NodePort
 ui:
   service:
-    type: "LoadBalancer"
+    type: "NodePort"
 
+# Enable Connect for secure communication between nodes
 connectInject:
   enabled: true
 
@@ -92,6 +95,7 @@ client:
   enabled: true
   grpc: true
 
+# Use only one Consul server for local development
 server:
   replicas: 1
   bootstrapExpect: 1
