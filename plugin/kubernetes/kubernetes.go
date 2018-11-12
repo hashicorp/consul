@@ -100,7 +100,7 @@ func (k *Kubernetes) Services(state request.Request, exact bool, opt plugin.Opti
 
 		segs := dns.SplitDomainName(t)
 		if len(segs) != 1 {
-			return nil, fmt.Errorf("kubernetes: TXT query can only be for dns-version: %s", state.QName())
+			return nil, nil
 		}
 		if segs[0] != "dns-version" {
 			return nil, nil
