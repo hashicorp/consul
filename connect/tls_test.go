@@ -30,6 +30,14 @@ func Test_verifyServerCertMatchesURI(t *testing.T) {
 			wantErr:  false,
 		},
 		{
+			// Could happen during migration of secondary DC to multi-DC. Trust domain
+			// validity is enforced with x509 name constraints where needed.
+			name:     "different trust-domain allowed",
+			certs:    TestPeerCertificates(t, "web", ca1),
+			expected: connect.TestSpiffeIDServiceWithHost(t, "web", "other.consul"),
+			wantErr:  false,
+		},
+		{
 			name:     "mismatch",
 			certs:    TestPeerCertificates(t, "web", ca1),
 			expected: connect.TestSpiffeIDService(t, "db"),

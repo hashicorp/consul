@@ -66,8 +66,8 @@ func TestHTTPAPI_MethodNotAllowed_OSS(t *testing.T) {
 	all := []string{"GET", "PUT", "POST", "DELETE", "HEAD", "OPTIONS"}
 	const testTimeout = 10 * time.Second
 
-	fastClient := newHttpClient(10 * time.Second)
-	slowClient := newHttpClient(30 * time.Second)
+	fastClient := newHttpClient(15 * time.Second)
+	slowClient := newHttpClient(45 * time.Second)
 
 	testMethodNotAllowed := func(method string, path string, allowedMethods []string) {
 		t.Run(method+" "+path, func(t *testing.T) {

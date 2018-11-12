@@ -2,7 +2,6 @@ package agent
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -62,26 +61,8 @@ func (a *Agent) ConnectAuthorize(token string,
 		return returnErr(acl.ErrPermissionDenied)
 	}
 
-	// Validate the trust domain matches ours. Later we will support explicit
-	// external federation but not built yet.
-	rootArgs := &structs.DCSpecificRequest{Datacenter: a.config.Datacenter}
-	raw, _, err := a.cache.Get(cachetype.ConnectCARootName, rootArgs)
-	if err != nil {
-		return returnErr(err)
-	}
-
-	roots, ok := raw.(*structs.IndexedCARoots)
-	if !ok {
-		return returnErr(fmt.Errorf("internal error: roots response type not correct"))
-	}
-	if roots.TrustDomain == "" {
-		return returnErr(fmt.Errorf("Connect CA not bootstrapped yet"))
-	}
-	if roots.TrustDomain != strings.ToLower(uriService.Host) {
-		reason = fmt.Sprintf("Identity from an external trust domain: %s",
-			uriService.Host)
-		return false, reason, nil, nil
-	}
+	// Note that we DON'T explicitly validate the trust-domain matches ours. See
+	// the PR for this change for details.
 
 	// TODO(banks): Implement revocation list checking here.
 
