@@ -64,7 +64,7 @@ type CARoot struct {
 	SigningKeyID string
 
 	// ExternalTrustDomain is the trust domain this root was generated under. It
-	// is usually empty implying "they current cluster trust-domain". It is set
+	// is usually empty implying "the current cluster trust-domain". It is set
 	// only in the case that a cluster changes trust domain and then all old roots
 	// that are still trusted have the old trust domain set here.
 	//
