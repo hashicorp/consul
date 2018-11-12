@@ -94,9 +94,7 @@ global:
 client:
   enabled: true
   join:
-    - "provider=my-cloud"
-    - "config=val"
-    - "..."
+    - "provider=my-cloud config=val ..."
 ```
 
 The `values.yaml` file to configure the Helm chart sets the proper

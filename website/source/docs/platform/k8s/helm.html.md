@@ -246,8 +246,8 @@ and consider if they're appropriate for your deployment.
       to false.
 
   - <a name="v-client-join" href="#v-client-join">`join`</a> (`array<string>: null`) -
-  A list of values to be used with the `-retry-join` command, specified
-  individually in the format "option=value". If this is `null` (default),
+  A list of valid [`-retry-join` values](/docs/agent/options.html#retry-join).
+  If this is `null` (default),
   then the clients will attempt to automatically join the server cluster
   running within Kubernetes. This means that with `server.enabled` set to true,
   clients will automatically join that cluster. If `server.enabled` is not
