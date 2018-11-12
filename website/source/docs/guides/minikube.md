@@ -12,7 +12,9 @@ description: |-
 
 Let's install Consul on Kubernetes with minikube. This is a relatively quick and easy way to try out Consul on your local machine without the need for any cloud credentials. You'll be able to use most Consul features right away.
 
-First, you'll need to follow the directions for [installing minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/), including VirtualBox or similar, kubectl, and minikube. You'll also need to install `helm` which is available at [helm.sh](https://helm.sh/).
+First, you'll need to follow the directions for [installing minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/), including VirtualBox or similar.
+
+You'll also need to install `kubectl` and `helm`.
 
 Mac users can install `helm` and `kubectl` with Homebrew.
 
@@ -20,6 +22,15 @@ Mac users can install `helm` and `kubectl` with Homebrew.
 $ brew install kubernetes-cli
 $ brew install kubernetes-helm
 ```
+
+Windows users can use Chocolatey with the same package names:
+
+```sh
+choco install kubernetes-cli
+choco install kubernetes-helm
+```
+
+For more on Helm, see [helm.sh](https://helm.sh/).
 
 ## Task 1: Start Minikube and Install Consul with Helm
 
@@ -36,6 +47,8 @@ Once it spins up, you'll see the dashboard in your web browser. You can view pod
 ```
 minikube dashboard
 ```
+
+![Minikube Dashboard](/assets/images/guides/minikube-dashboard.png "Minikube Dashboard")
 
 To perform the steps in this lab exercise, clone the `hashicorp/demo-consul-101` repository from GitHub. Change into the repo, and go to the `k8s` directory inside.
 
@@ -97,6 +110,8 @@ helm install -f helm-consul-values.yaml ./consul-helm
 
 Verify the installation by going back to the Kubernetes dashboard in your web browser. Find the list of services. Several include `consul` in the name and have the `app: consul` label.
 
+![](/assets/images/guides/minikube-dashboard-consul.png "")
+
 There are a few differences between running Kubernetes on a hosted cloud vs locally with minikube. You may find that any load balancer resources don't work as expected on a local cluster. But we can still view the Consul UI and other deployed resources.
 
 Run `minikube service list` to see your services. Find the one with `consul-ui` in the name.
@@ -113,6 +128,8 @@ minikube service original-hedgehog-consul-ui
 
 You can now view the Consul web UI with a list of Consul's services, nodes, and other resources.
 
+![](/assets/images/guides/minikube-consul-ui.png "")
+
 ###
 
 Now let's deploy our application. It's two services: a backend data service that returns a number (`counting` service) and a front-end `dashboard` that pulls from the `counting` service over HTTP and displays the number. The kubernetes part is a single line: `kubectl create -f 04-yaml-connect-envoy`. This is a directory with several YAML files, each defining one or more resources (pods, containers, etc).
@@ -123,15 +140,19 @@ kubectl create -f 04-yaml-connect-envoy
 
 The output shows that they have been created. In reality, they may take a few seconds to spin up. Refresh the Kubernetes dashboard a few times and you'll see that the `counting` and `dashboard` services are running. You can also click a resource to view more data about it.
 
+![](/assets/images/guides/minikube-services.png "")
+
 ###
 
-For the final step in this initial task, use the Kubernetes `port-forward` feature for the dashboard service running on port `9002`. We already know that the pod is named `dashboard` thanks to the metadata specified in the YAML we deployed.
+For the last step in this initial task, use the Kubernetes `port-forward` feature for the dashboard service running on port `9002`. We already know that the pod is named `dashboard` thanks to the metadata specified in the YAML we deployed.
 
 ```
 kubectl port-forward dashboard 9002:9002
 ```
 
 Visit http://localhost:9002 in your web browser. You'll see a running `dashboard` container in the kubernetes cluster that displays a number retrieved from the `counting` service using Consul service discovery and secured over the network by TLS via an Envoy proxy.
+
+![](/assets/images/guides/minikube-app-dashboard.png "")
 
 ###
 
@@ -189,10 +210,20 @@ For a final task, let's take this a step further by restricting service communic
 
 Begin by navigating to the _Intentions_ screen in the Consul web UI. Click the "Create" button and define an initial intention that blocks all communication between any services by default. Choose `*` as the source and `*` as the destination. Choose the _Deny_ radio button and add an optional description. Click "Save."
 
+![](/assets/images/guides/minikube-connect-deny.png "")
+
 Verify this by returning to the application dashboard where you will see that the "Counting Service is Unreachable."
+
+![](/assets/images/guides/minikube-connect-unreachable.png "")
 
 Finally, the easy part. Click the "Create" button again and create an intention that allows the `dashboard` source service to talk to the `counting` destination service. Ensure that the "Allow" radio button is selected. Optionally add a description. Click "Save."
 
+![](/assets/images/guides/minikube-connect-allow.png "")
+
 This action does not require a reboot. It takes effect so quickly that by the time you visit the application dashboard, you'll see that it's successfully communicating with the backend `counting` service again.
 
-And there we have Consul running on a Kubernetes cluster, as demonstrated by two services which communicate with each other via Consul Connect and an Envoy proxy. We encourage you to clone this repository and try it out yourself with `minikube`.
+And there we have Consul running on a Kubernetes cluster, as demonstrated by two services which communicate with each other via Consul Connect and an Envoy proxy.
+
+![](/assets/images/guides/minikube-connect-success.png "")
+
+We encourage you to clone this repository and try it out yourself with `minikube`.
