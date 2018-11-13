@@ -21,7 +21,7 @@ FEATURES:
     * Auto-Transitioning from legacy mode to normal mode as the cluster's servers get upgraded.
     * ACL UI updates to support new functionality.
 
-* **Multi-DC Connect:** (Consul Enterprise) Consul Connect now supports multi-dc connections and
+* **Multi-datacenter Connect:** (Consul Enterprise) Consul Connect now supports multi-datacenter connections and
 replicates intentions. This allows WAN federated DCs to provide connections
 from source and destination proxies in any DC.
 
@@ -46,6 +46,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * snapshot: Fixed a bug where node ID and datacenter weren't being included in or restored from the snapshots. [[GH-4872](https://github.com/hashicorp/consul/issues/4872)]
+* api: Fixed migration issue where changes to allow multiple tags in 1.3.0 would cause broken results during a migration from earlier versions [[GH-4944](https://github.com/hashicorp/consul/pull/4944)]
 
 ## 1.3.0 (October 11, 2018)
 
