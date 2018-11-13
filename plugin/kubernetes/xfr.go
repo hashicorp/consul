@@ -25,6 +25,10 @@ func (k *Kubernetes) MinTTL(state request.Request) uint32 { return 30 }
 // Transfer implements the Transferer interface.
 func (k *Kubernetes) Transfer(ctx context.Context, state request.Request) (int, error) {
 
+	if !k.transferAllowed(state) {
+		return dns.RcodeRefused, nil
+	}
+
 	// Get all services.
 	rrs := make(chan dns.RR)
 	go k.transfer(rrs, state.Zone)
@@ -69,6 +73,26 @@ func (k *Kubernetes) Transfer(ctx context.Context, state request.Request) (int, 
 	// Defer closing to the client
 	state.W.Hijack()
 	return dns.RcodeSuccess, nil
+}
+
+// transferAllowed checks if incoming request for transferring the zone is allowed according to the ACLs.
+// Note: This is copied from zone.transferAllowed, but should eventually be factored into a common transfer pkg.
+func (k *Kubernetes) transferAllowed(state request.Request) bool {
+	for _, t := range k.TransferTo {
+		if t == "*" {
+			return true
+		}
+		// If remote IP matches we accept.
+		remote := state.IP()
+		to, _, err := net.SplitHostPort(t)
+		if err != nil {
+			continue
+		}
+		if to == remote {
+			return true
+		}
+	}
+	return false
 }
 
 func (k *Kubernetes) transfer(c chan dns.RR, zone string) {

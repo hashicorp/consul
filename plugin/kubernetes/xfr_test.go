@@ -15,7 +15,7 @@ import (
 func TestKubernetesXFR(t *testing.T) {
 	k := New([]string{"cluster.local."})
 	k.APIConn = &APIConnServeTest{}
-	k.TransferTo = []string{"127.0.0.1"}
+	k.TransferTo = []string{"10.240.0.1:53"}
 	k.Namespaces = map[string]bool{"testns": true}
 
 	ctx := context.TODO()
@@ -30,7 +30,12 @@ func TestKubernetesXFR(t *testing.T) {
 
 	if len(w.Msgs) == 0 {
 		t.Logf("%+v\n", w)
-		t.Error("Did not get back a zone response")
+		t.Fatal("Did not get back a zone response")
+	}
+
+	if len(w.Msgs[0].Answer) == 0 {
+		t.Logf("%+v\n", w)
+		t.Fatal("Did not get back an answer")
 	}
 
 	// Ensure xfr starts with SOA
@@ -92,6 +97,33 @@ func TestKubernetesXFR(t *testing.T) {
 		for _, rec := range diff {
 			t.Errorf("%+v", rec)
 		}
+	}
+}
+
+func TestKubernetesXFRNotAllowed(t *testing.T) {
+	k := New([]string{"cluster.local."})
+	k.APIConn = &APIConnServeTest{}
+	k.TransferTo = []string{"1.2.3.4:53"}
+	k.Namespaces = map[string]bool{"testns": true}
+
+	ctx := context.TODO()
+	w := dnstest.NewMultiRecorder(&test.ResponseWriter{})
+	dnsmsg := &dns.Msg{}
+	dnsmsg.SetAxfr(k.Zones[0])
+
+	_, err := k.ServeDNS(ctx, w, dnsmsg)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(w.Msgs) == 0 {
+		t.Logf("%+v\n", w)
+		t.Fatal("Did not get back a zone response")
+	}
+
+	if len(w.Msgs[0].Answer) != 0 {
+		t.Logf("%+v\n", w)
+		t.Fatal("Got an answer, should not have")
 	}
 }
 
