@@ -27,11 +27,30 @@ const synopsis = "Manage Consul's ACL Tokens"
 const help = `
 Usage: consul acl token <subcommand> [options] [args]
 
-  This command has subcommands for managing Consul's ACL Policies.
+  This command has subcommands for managing Consul ACL tokens.
   Here are some simple examples, and more detailed examples are available
   in the subcommands or the documentation.
 
-  TODO - more docs
+  Create a new ACL Token:
+
+      $ consul acl token create \
+                                 -description "This is an example token" \
+                                 -policy-id 06acc965
+  List all tokens:
+
+      $ consul acl token list
+
+  Update a token:
+
+      $ consul acl token update -id 986193 -description "WonderToken"
+
+  Read a token with an accessor ID:
+
+    $ consul acl token read -id 986193
+
+  Delete a token
+
+    $ consul acl token delete -id 986193
 
   For more examples, ask for subcommand help or view the documentation.
 `
