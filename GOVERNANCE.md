@@ -6,7 +6,7 @@ The CoreDNS community adheres to the following principles:
 
 - Open: CoreDNS is open source, advertised on [our website](https://coredns.io/community).
 - Welcoming and respectful: See [Code of Conduct](CODE-OF-CONDUCT.md).
-- Transparent and accessible: Work and collaboration are done in public.
+- Transparent and accessible: Changes to the CoreDNS organization, CoreDNS code repositories, and CNCF related activities (e.g. level, involvement, etc) are done in public.
 - Merit: Ideas and contributions are accepted according to their technical merit and alignment with
   project objectives, scope, and design principles.
 
