@@ -74,16 +74,6 @@ Enable route53 with fallthrough:
 }
 ~~~
 
-Enable route53 with AWS credentials file:
-
-~~~ txt
-. {
-    route53 example.org.:Z1Z2Z3Z4DZ5Z6Z7 {
-      credentials_file some-user
-    }
-}
-~~~
-
 Enable route53 with multiple hosted zones with the same domain:
 
 ~~~ txt
