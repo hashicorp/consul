@@ -198,7 +198,7 @@ func (h *Health) serviceNodesConnect(ws memdb.WatchSet, s *state.Store, args *st
 }
 
 func (h *Health) serviceNodesTagFilter(ws memdb.WatchSet, s *state.Store, args *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error) {
-	// DNS service lookups populate the ServiceTag field. In this case,
+	// Agents < v1.3.0 and DNS service lookups populate the ServiceTag field. In this case,
 	// use ServiceTag instead of the ServiceTags field.
 	if args.ServiceTag != "" {
 		return s.CheckServiceTagNodes(ws, args.ServiceName, []string{args.ServiceTag})

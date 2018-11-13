@@ -274,7 +274,15 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 			}
 
 			if args.TagFilter {
-				return s.ServiceTagNodes(ws, args.ServiceName, args.ServiceTags)
+				tags := args.ServiceTags
+
+				// Agents < v1.3.0 and DNS service lookups populate the ServiceTag field. In this case,
+				// use ServiceTag instead of the ServiceTags field.
+				if args.ServiceTag != "" {
+					tags = []string{args.ServiceTag}
+				}
+
+				return s.ServiceTagNodes(ws, args.ServiceName, tags)
 			}
 
 			return s.ServiceNodes(ws, args.ServiceName)
