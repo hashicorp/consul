@@ -1,4 +1,4 @@
-## 1.3.1 (UNRELEASED)
+## 1.3.1 (November 13, 2018)
 
 BUG FIXES:
  * api: Fix issue introduced in 1.3.0 where catalog queries with tag filters
