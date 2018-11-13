@@ -1,8 +1,12 @@
 package replacer
 
 import (
+	"context"
 	"strings"
 	"testing"
+
+	"github.com/coredns/coredns/plugin/metadata"
+	"github.com/coredns/coredns/request"
 
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/plugin/test"
@@ -17,7 +21,7 @@ func TestNewReplacer(t *testing.T) {
 	r.SetQuestion("example.org.", dns.TypeHINFO)
 	r.MsgHdr.AuthenticatedData = true
 
-	replaceValues := New(r, w, "")
+	replaceValues := New(context.TODO(), r, w, "")
 
 	switch v := replaceValues.(type) {
 	case replacer:
@@ -47,7 +51,7 @@ func TestSet(t *testing.T) {
 	r.SetQuestion("example.org.", dns.TypeHINFO)
 	r.MsgHdr.AuthenticatedData = true
 
-	repl := New(r, w, "")
+	repl := New(context.TODO(), r, w, "")
 
 	repl.Set("name", "coredns.io.")
 	repl.Set("type", "A")
@@ -61,5 +65,68 @@ func TestSet(t *testing.T) {
 	}
 	if repl.Replace("The request size is {size}") != "The request size is 20" {
 		t.Error("Expected size replacement failed")
+	}
+}
+
+type testProvider map[string]metadata.Func
+
+func (tp testProvider) Metadata(ctx context.Context, state request.Request) context.Context {
+	for k, v := range tp {
+		metadata.SetValueFunc(ctx, k, v)
+	}
+	return ctx
+}
+
+type testHandler struct{ ctx context.Context }
+
+func (m *testHandler) Name() string { return "test" }
+
+func (m *testHandler) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+	m.ctx = ctx
+	return 0, nil
+}
+
+func TestMetadataReplacement(t *testing.T) {
+
+	mdata := testProvider{
+		"test/key2": func() string { return "two" },
+	}
+
+	tests := []struct {
+		expr   string
+		result string
+	}{
+		{"{name}", "example.org."},
+		{"{/test/key2}", "two"},
+		{"TYPE={type}, NAME={name}, BUFSIZE={>bufsize}, WHAT={/test/key2} .. and more", "TYPE=HINFO, NAME=example.org., BUFSIZE=512, WHAT=two .. and more"},
+		{"{/test/key2}{/test/key4}", "two-"},
+		{"{test/key2", "{test/key2"}, // if last } is missing, the end of format is considered static text
+		{"{/test-key2}", "-"},        // everything that is not a placeholder for log or a metadata label is invalid
+	}
+
+	next := &testHandler{} // fake handler which stores the resulting context
+	m := metadata.Metadata{
+		Zones:     []string{"."},
+		Providers: []metadata.Provider{mdata},
+		Next:      next,
+	}
+
+	ctx := context.TODO()
+	m.ServeDNS(ctx, &test.ResponseWriter{}, new(dns.Msg))
+	nctx := next.ctx
+
+	w := dnstest.NewRecorder(&test.ResponseWriter{})
+
+	r := new(dns.Msg)
+	r.SetQuestion("example.org.", dns.TypeHINFO)
+	r.MsgHdr.AuthenticatedData = true
+
+	repl := New(nctx, r, w, "-")
+
+	for i, ts := range tests {
+		r := repl.Replace(ts.expr)
+		if r != ts.result {
+			t.Errorf("Test %d - expr : %s, expected replacement being %s, and got %s", i, ts.expr, ts.result, r)
+		}
 	}
 }
