@@ -134,7 +134,7 @@ $ helm install -f helm-consul-values.yaml --name hedgehog ./consul-helm
 
 Verify the installation by going back to the Kubernetes dashboard in your web browser. Find the list of services. Several include `consul` in the name and have the `app: consul` label.
 
-![](/assets/images/guides/minikube-dashboard-consul.png "")
+![Minikube Dashboard with Consul](/assets/images/guides/minikube-dashboard-consul.png "Minikube Dashboard with Consul")
 
 There are a few differences between running Kubernetes on a hosted cloud vs locally with minikube. You may find that any load balancer resources don't work as expected on a local cluster. But we can still view the Consul UI and other deployed resources.
 
@@ -152,7 +152,7 @@ $ minikube service hedgehog-consul-ui
 
 You can now view the Consul web UI with a list of Consul's services, nodes, and other resources.
 
-![](/assets/images/guides/minikube-consul-ui.png "")
+![Minikube Consul UI](/assets/images/guides/minikube-consul-ui.png "Minikube Consul UI")
 
 ### Step 2: Deploy Custom Applications
 
@@ -164,7 +164,7 @@ $ kubectl create -f 04-yaml-connect-envoy
 
 The output shows that they have been created. In reality, they may take a few seconds to spin up. Refresh the Kubernetes dashboard a few times and you'll see that the `counting` and `dashboard` services are running. You can also click a resource to view more data about it.
 
-![](/assets/images/guides/minikube-services.png "")
+![Services](/assets/images/guides/minikube-services.png "Services")
 
 ### Step 3: View the Web Application
 
@@ -176,7 +176,7 @@ $ kubectl port-forward dashboard 9002:9002
 
 Visit http://localhost:9002 in your web browser. You'll see a running `dashboard` container in the kubernetes cluster that displays a number retrieved from the `counting` service using Consul service discovery and secured over the network by TLS via an Envoy proxy.
 
-![](/assets/images/guides/minikube-app-dashboard.png "")
+![Application Dashboard](/assets/images/guides/minikube-app-dashboard.png "Application Dashboard")
 
 ### Addendum: Review the Code
 
@@ -238,22 +238,22 @@ For a final task, let's take this a step further by restricting service communic
 
 Begin by navigating to the _Intentions_ screen in the Consul web UI. Click the "Create" button and define an initial intention that blocks all communication between any services by default. Choose `*` as the source and `*` as the destination. Choose the _Deny_ radio button and add an optional description. Click "Save."
 
-![](/assets/images/guides/minikube-connect-deny.png "")
+![Connect Deny](/assets/images/guides/minikube-connect-deny.png "Connect Deny")
 
 Verify this by returning to the application dashboard where you will see that the "Counting Service is Unreachable."
 
-![](/assets/images/guides/minikube-connect-unreachable.png "")
+![Application is Unreachable](/assets/images/guides/minikube-connect-unreachable.png "Application is Unreachable")
 
 ### Step 2: Allow the Application Dashboard to Connect to the Counting Service
 
 Finally, the easy part. Click the "Create" button again and create an intention that allows the `dashboard` source service to talk to the `counting` destination service. Ensure that the "Allow" radio button is selected. Optionally add a description. Click "Save."
 
-![](/assets/images/guides/minikube-connect-allow.png "")
+![Allow](/assets/images/guides/minikube-connect-allow.png "Allow")
 
 This action does not require a reboot. It takes effect so quickly that by the time you visit the application dashboard, you'll see that it's successfully communicating with the backend `counting` service again.
 
 And there we have Consul running on a Kubernetes cluster, as demonstrated by two services which communicate with each other via Consul Connect and an Envoy proxy.
 
-![](/assets/images/guides/minikube-connect-success.png "")
+![Success](/assets/images/guides/minikube-connect-success.png "Success")
 
 We encourage you to clone this repository and try it out yourself with `minikube`.
