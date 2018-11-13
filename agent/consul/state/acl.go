@@ -316,6 +316,17 @@ func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToke
 		return ErrMissingACLTokenAccessor
 	}
 
+	// DEPRECATED (ACL-Legacy-Compat)
+	if token.Rules != "" {
+		// When we update a legacy acl token we may have to correct old HCL to
+		// prevent the propagation of older syntax into the state store and
+		// into in-memory representations.
+		correctedRules := structs.SanitizeLegacyACLTokenRules(token.Rules)
+		if correctedRules != "" {
+			token.Rules = correctedRules
+		}
+	}
+
 	// Check for an existing ACL
 	// DEPRECATED (ACL-Legacy-Compat) - transition to using accessor index instead of secret once v1 compat is removed
 	existing, err := tx.First("acl-tokens", "id", token.SecretID)

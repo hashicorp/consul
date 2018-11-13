@@ -541,6 +541,15 @@ func restoreToken(header *snapshotHeader, restore *state.Restore, decoder *codec
 	if err := decoder.Decode(&req); err != nil {
 		return err
 	}
+
+	// DEPRECATED (ACL-Legacy-Compat)
+	if req.Rules != "" {
+		// When we restore a snapshot we may have to correct old HCL in legacy
+		// tokens to prevent the in-memory representation from using an older
+		// syntax.
+		structs.SanitizeLegacyACLToken(&req)
+	}
+
 	return restore.ACLToken(&req)
 }
 
