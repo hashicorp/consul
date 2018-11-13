@@ -20,7 +20,7 @@ import (
 var D bool
 
 // RFC3339Milli doesn't exist, invent it here.
-func clock() string { return time.Now().Format("2006-01-02T15:04:05.999Z07:00") }
+func clock() string { return time.Now().Format("2006-01-02T15:04:05.000Z07:00") }
 
 // logf calls log.Printf prefixed with level.
 func logf(level, format string, v ...interface{}) {
