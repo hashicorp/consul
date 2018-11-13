@@ -16,6 +16,8 @@ standard upgrade flow.
 
 ## Consul 1.4.0
 
+There are two major features in Consul 1.4.0 that may impact upgrades: a [new ACL system](#acl-upgrade) and [multi-datacenter support for Connect](#connect-multi-datacenter) in the Enterprise version.
+
 ### ACL Upgrade
 
 Consul 1.4.0 includes a [new ACL system](/docs/guides/acl.html) that is
@@ -95,6 +97,22 @@ with the the new ACL [Token](/api/acl/tokens.html) and
 [Policy](/api/acl/policies.html) APIs.
 
 More complete details on how to upgrade "legacy" tokens is available [here](/docs/guides/acl-migrate-tokens.html).
+
+### Connect Multi-datacenter
+
+This only applies to users upgrading from an older version of Consul Enterprise to Consul Enterprise 1.4.0 (all license types).
+
+In addition, this upgrade will only affect clusters where [Connect is enabled](/docs/connect/configuration.html) on your servers before the migration.
+
+Connect multi-datacenter uses the same primary/secondary approach as ACLs and will use the same [primary_datacenter](#primary-datacenter). When a secondary datacenter server restarts with 1.4.0 it will detect it is not the primary and begin an autotmatic bootstrap of multi-datacenter CA federation.
+
+Datacenters can be upgraded in either order; secondary datacenters will not switch into multi-datacenter mode until all servers in both the secondary and primary datacenter are detected to be running at least Consul 1.4.0. Secondary datacenters monitor this periodically (every few minutes) and will automatically upgrade Connect to use a federated Certificate Authority when they do.
+
+In general, migrating a Consul cluster from OSS to Enterprise will update the CA to be federated automatically and without impact on Connect traffic. When upgrading Consul Enterprise 1.3.x to Consul Enterprise 1.4.0 upgrades the CA upgrade is seamless, however depending on the size of the cluster, _new_ connection attempts in the secondary datacenter might fail for a short window (typically seconds) while the update is propagated due to the 1.3.x Beta authorization endpoint validating originating cluster in a way that was not fully forwards compatible with migrating between cluster trust domains. That issue is fixed in 1.4.0 as part of General Availability.
+
+Once migrated (typically a few seconds). Connect will use the primary datacenter's Certificate Authority as the root of trust for all other datacenters. CA migration or root key changes in the primary will now rotate automatically and without loss of connectivity throughout all datacenters and workloads.
+
+For more information see [Connect Multi-datacenter](/docs/enterprise/connect-multi-datacenter/index.html).
 
 ## Consul 1.1.0
 
