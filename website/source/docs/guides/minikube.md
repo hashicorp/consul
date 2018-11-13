@@ -10,6 +10,14 @@ description: |-
 
 <script src="https://fast.wistia.com/embed/medias/qwhi1gvkeq.jsonp" async></script><script src="https://fast.wistia.com/assets/external/E-v1.js" async></script><div class="wistia_responsive_padding" style="padding:56.25% 0 0 0;position:relative;"><div class="wistia_responsive_wrapper" style="height:100%;left:0;position:absolute;top:0;width:100%;"><div class="wistia_embed wistia_async_qwhi1gvkeq videoFoam=true" style="height:100%;position:relative;width:100%"><div class="wistia_swatch" style="height:100%;left:0;opacity:0;overflow:hidden;position:absolute;top:0;transition:opacity 200ms;width:100%;"><img src="https://fast.wistia.com/embed/medias/qwhi1gvkeq/swatch" style="filter:blur(5px);height:100%;object-fit:contain;width:100%;" alt="" onload="this.parentNode.style.opacity=1;" /></div></div></div></div>
 
+In this guide, you'll start a local Kubernetes cluster with minikube. You'll install Consul with only a few commands, then deploy two custom services that use Consul to discover each other over encrypted TLS via Consul Connect. Finally, you'll tighten down Consul Connect so that only the approved applications can communicate with each other.
+
+[Demo code](https://github.com/hashicorp/demo-consul-101) is available.
+
+- [Task 1: Start Minikube and Install Consul with Helm](#task-1-start-minikube-and-install-consul-with-helm)
+- [Task 2: Deploy a Consul Aware Application to the Cluster](#task-2-deploy-a-consul-aware-application-to-the-cluster)
+- [Task 3: Configure Consul Connect](#task-3-use-consul-connect)
+
 ## Prerequisites
 
 Let's install Consul on Kubernetes with minikube. This is a relatively quick and easy way to try out Consul on your local machine without the need for any cloud credentials. You'll be able to use most Consul features right away.
@@ -28,49 +36,55 @@ $ brew install kubernetes-helm
 Windows users can use Chocolatey with the same package names:
 
 ```sh
-choco install kubernetes-cli
-choco install kubernetes-helm
+$ choco install kubernetes-cli
+$ choco install kubernetes-helm
 ```
 
 For more on Helm, see [helm.sh](https://helm.sh/).
 
 ## Task 1: Start Minikube and Install Consul with Helm
 
-Next, start minikube. I like to use the `--memory` option with the equivalent of 4GB to 8GB so there is plenty of memory for all the pods we will run. This may take a while...on my machine it had to download a few hundred MB of dependencies and container images.
+### Step 1: Start Minikube
+
+Start minikube. You can use the `--memory` option with the equivalent of 4GB to 8GB so there is plenty of memory for all the pods we will run. This may take several minutes. It will download a 100-300MB of dependencies and container images.
 
 ```
-minikube start --memory 4096
+$ minikube start --memory 4096
 ```
 
-Next, let's start the local Kubernetes dashboard with `minikube dashboard`. Even if the previous step completed successfully, you may have to wait a minute or two for minikube to be available. If you see this message, try again.
+Next, let's view the local Kubernetes dashboard with `minikube dashboard`. Even if the previous step completed successfully, you may have to wait a minute or two for minikube to be available. If you see this message, try again.
 
 Once it spins up, you'll see the dashboard in your web browser. You can view pods, nodes, and other resources.
 
 ```
-minikube dashboard
+$ minikube dashboard
 ```
 
 ![Minikube Dashboard](/assets/images/guides/minikube-dashboard.png "Minikube Dashboard")
 
-To perform the steps in this lab exercise, clone the `hashicorp/demo-consul-101` repository from GitHub. Change into the repo, and go to the `k8s` directory inside.
+### Step 2: Install the Consul Helm Chart to the Cluster
+
+To perform the steps in this lab exercise, clone the [hashicorp/demo-consul-101](https://github.com/hashicorp/demo-consul-101) repository from GitHub. Change into the repo, and go to the `k8s` directory inside.
 
 
 ```
-git clone https://github.com/hashicorp/demo-consul-101.git
+$ git clone https://github.com/hashicorp/demo-consul-101.git
 
-cd demo-consul-101
+$ cd demo-consul-101/k8s
 ```
 
 Now we're ready to install Consul to the cluster, using the `helm` tool. Initialize Helm with `helm init`. You'll see a note that Tiller (the server-side component) has been installed. You can ignore the policy warning.
 
 ```
-helm init
+$ helm init
+
+$HELM_HOME has been configured at /Users/geoffrey/.helm.
 ```
 
-Now we need to install Consul with Helm. To get the freshest copy of the Helm chart, clone the `hashicorp/consul-helm` repository.
+Now we need to install Consul with Helm. To get the freshest copy of the Helm chart, clone the [hashicorp/consul-helm](https://github.com/hashicorp/consul-helm) repository.
 
 ```
-git clone https://github.com/hashicorp/consul-helm.git
+$ git clone https://github.com/hashicorp/consul-helm.git
 ```
 
 The chart works on its own, but we'll override a few values to help things go more smoothly with minikube and to enable useful features.
@@ -109,10 +123,14 @@ server:
 Now, run `helm install` together with our overrides file and the cloned `consul-helm` chart. It will print a list of all the resources that were created.
 
 ```
-helm install -f helm-consul-values.yaml ./consul-helm
+$ helm install -f helm-consul-values.yaml --name hedgehog ./consul-helm
 ```
 
+~> NOTE: If no `--name` is provided, the chart will create a random name for the installation. To reduce confusion, consider specifying a `--name`.
+
 ## Task 2: Deploy a Consul-aware Application to the Cluster
+
+### Step 1: View the Consul Web UI
 
 Verify the installation by going back to the Kubernetes dashboard in your web browser. Find the list of services. Several include `consul` in the name and have the `app: consul` label.
 
@@ -123,46 +141,46 @@ There are a few differences between running Kubernetes on a hosted cloud vs loca
 Run `minikube service list` to see your services. Find the one with `consul-ui` in the name.
 
 ```
-minikube service list
+$ minikube service list
 ```
 
 Run `minikube service` with the `consul-ui` service name as the argument. It will open the service in your web browser.
 
 ```
-minikube service original-hedgehog-consul-ui
+$ minikube service hedgehog-consul-ui
 ```
 
 You can now view the Consul web UI with a list of Consul's services, nodes, and other resources.
 
 ![](/assets/images/guides/minikube-consul-ui.png "")
 
-###
+### Step 2: Deploy Custom Applications
 
 Now let's deploy our application. It's two services: a backend data service that returns a number (`counting` service) and a front-end `dashboard` that pulls from the `counting` service over HTTP and displays the number. The kubernetes part is a single line: `kubectl create -f 04-yaml-connect-envoy`. This is a directory with several YAML files, each defining one or more resources (pods, containers, etc).
 
 ```
-kubectl create -f 04-yaml-connect-envoy
+$ kubectl create -f 04-yaml-connect-envoy
 ```
 
 The output shows that they have been created. In reality, they may take a few seconds to spin up. Refresh the Kubernetes dashboard a few times and you'll see that the `counting` and `dashboard` services are running. You can also click a resource to view more data about it.
 
 ![](/assets/images/guides/minikube-services.png "")
 
-###
+### Step 3: View the Web Application
 
 For the last step in this initial task, use the Kubernetes `port-forward` feature for the dashboard service running on port `9002`. We already know that the pod is named `dashboard` thanks to the metadata specified in the YAML we deployed.
 
 ```
-kubectl port-forward dashboard 9002:9002
+$ kubectl port-forward dashboard 9002:9002
 ```
 
 Visit http://localhost:9002 in your web browser. You'll see a running `dashboard` container in the kubernetes cluster that displays a number retrieved from the `counting` service using Consul service discovery and secured over the network by TLS via an Envoy proxy.
 
 ![](/assets/images/guides/minikube-app-dashboard.png "")
 
-###
+### Addendum: Review the Code
 
-Let's take a peek at the code. Relevant to this Kubernetes deployment are two YAML files in the `04` directory. The `counting` service defines an annotation on lines 5 and 6 that instruct Consul to spin up a Consul Connect proxy for this service: `connect-inject`. The relevant port number is found in the `containerPort` section on line 12. This Pod registers a Consul service that will be available via a secure proxy.
+Let's take a peek at the code. Relevant to this Kubernetes deployment are two YAML files in the `04` directory. The `counting` service defines an `annotation` in the `metadata` section that instructs Consul to spin up a Consul Connect proxy for this service: `connect-inject`. The relevant port number is found in the `containerPort` section (`9001`). This Pod registers a Consul service that will be available via a secure proxy.
 
 ```yaml
 apiVersion: v1
@@ -181,7 +199,7 @@ spec:
 # ...
 ```
 
-The other side is on the `dashboard` service. This declares the same `connect-inject` annotation but also adds another. The `connect-service-upstreams` on line 9 configures Connect such that this Pod will have access to the `counting` service on localhost port 9001. All the rest of the configuration and communication is taken care of by Consul and the Consul Helm chart.
+The other side is on the `dashboard` service. This declares the same `connect-inject` annotation but also adds another. The `connect-service-upstreams` in the `annotations` section configures Connect such that this Pod will have access to the `counting` service on `localhost` port `9001`. All the rest of the configuration and communication is taken care of by Consul and the Consul Helm chart.
 
 ```yaml
 apiVersion: v1
@@ -206,11 +224,15 @@ spec:
 # ...
 ```
 
-Within our `dashboard` application, we can access the `counting` service by communicating with `localhost:9001` as seen on line 19. Here we are looking at an environment variable that is specific to the Go application running in a container in this Pod. Instead of providing an IP address or even a Consul service URL, we tell the application to talk to `localhost:9001` where our local end of the proxy is ready and listening. Because of the annotation on line 9, we know that an instance of the `counting` service is on the other end.
+Within our `dashboard` application, we can access the `counting` service by communicating with `localhost:9001` as seen on the last line of this snippet. Here we are looking at an environment variable that is specific to the Go application running in a container in this Pod. Instead of providing an IP address or even a Consul service URL, we tell the application to talk to `localhost:9001` where our local end of the proxy is ready and listening. Because of the annotation to `counting:9001` earlier, we know that an instance of the `counting` service is on the other end.
 
 This is what is happening in the cluster and over the network when we view the `dashboard` service in the browser.
 
+-> TIP: The full source code for the Go-based web services and all code needed to build the Docker images are available in the [repo](https://github.com/hashicorp/demo-consul-101).
+
 ## Task 3: Use Consul Connect
+
+### Step 1: Create an Intention that Denies All Service Communication by Default
 
 For a final task, let's take this a step further by restricting service communication with intentions. We don't want any service to be able to communicate with any other service; only the ones we specify.
 
@@ -221,6 +243,8 @@ Begin by navigating to the _Intentions_ screen in the Consul web UI. Click the "
 Verify this by returning to the application dashboard where you will see that the "Counting Service is Unreachable."
 
 ![](/assets/images/guides/minikube-connect-unreachable.png "")
+
+### Step 2: Allow the Application Dashboard to Connect to the Counting Service
 
 Finally, the easy part. Click the "Create" button again and create an intention that allows the `dashboard` source service to talk to the `counting` destination service. Ensure that the "Allow" radio button is selected. Optionally add a description. Click "Save."
 
