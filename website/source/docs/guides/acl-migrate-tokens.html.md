@@ -45,7 +45,7 @@ that policy.
 ### Rule Syntax Changes
 
 The most significant change is that rules with selectors _no longer prefix match
-by default_. In the legacy systems the following rules would grant access to
+by default_. In the legacy system the following rules would grant access to
 nodes, services and keys _prefixed_ with foo.
 
 ```
