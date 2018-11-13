@@ -1,3 +1,10 @@
+## 1.3.1 (UNRELEASED)
+
+BUG FIXES:
+ * api: Fix issue introduced in 1.3.0 where catalog queries with tag filters
+   change behaviour during upgrades from 1.2.x or earlier. (Back-ported from
+   1.4.0 release candidate.) [[GH-4944](https://github.com/hashicorp/consul/issues/4944)].
+
 ## 1.3.0 (October 11, 2018)
 
 FEATURES:
