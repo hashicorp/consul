@@ -104,7 +104,7 @@ The high-level process for migrating a legacy token is as follows:
 
 ### Prerequisites
 
-This process assumes that the 1.4.0 upgrade is complete including all Legacy
+This process assumes that the 1.4.0 upgrade is complete including all legacy
 ACLs having their accessor IDs populated. This might take up to several minutes
 after the servers upgrade in the primary datacenter. You can tell if this is the
 case by using `consul acl token list` and checking that no tokens exist with a
