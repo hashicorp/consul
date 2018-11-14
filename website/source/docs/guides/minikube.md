@@ -192,7 +192,7 @@ metadata:
 spec:
   containers:
   - name: counting
-    image: topfunky/counting-service:0.0.1
+    image: hashicorp/counting-service:0.0.2
     ports:
     - containerPort: 9001
       name: http
@@ -214,7 +214,7 @@ metadata:
 spec:
   containers:
   - name: dashboard
-    image: topfunky/dashboard-service:0.0.3
+    image: hashicorp/dashboard-service:0.0.3
     ports:
     - containerPort: 9002
       name: http
