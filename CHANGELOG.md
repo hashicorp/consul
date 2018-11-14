@@ -2,14 +2,14 @@
 
 FEATURES:
 
-* **New ACL System:** The ACL system has been redesigned while allowing for in-place
-  upgrades that will automatically migrate to the new system while retaining
-  compatibility for now legacy API tokens for clusters where ACLs are enabled. This
-  new system introduces a number of improvements to tokens including accessor IDs
-  and a new policy model. It also includes a new CLI for ACL interactions and a
-  completely redesigned UI experience to manage ACLs and policies. WAN
-  federated clusters will need to add the additional replication token
-  configuration in order to ensure WAN ACL replication in the new system.
+* **New ACL System:** The ACL system has been redesigned while allowing for
+  in-place upgrades that will automatically migrate to the new system while
+  retaining compatibility for existing ACL tokens for clusters where ACLs are
+  enabled. This new system introduces a number of improvements to tokens
+  including accessor IDs and a new policy model. It also includes a new CLI for
+  ACL interactions and a completely redesigned UI experience to manage ACLs and
+  policies. WAN federated clusters will need to add the additional replication
+  token configuration in order to ensure WAN ACL replication in the new system.
   [[GH-4791](https://github.com/hashicorp/consul/pull/4791)]
     * ACL CLI.
     * New ACL HTTP APIs.
