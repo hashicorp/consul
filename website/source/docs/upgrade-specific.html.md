@@ -104,7 +104,7 @@ This only applies to users upgrading from an older version of Consul Enterprise 
 
 In addition, this upgrade will only affect clusters where [Connect is enabled](/docs/connect/configuration.html) on your servers before the migration.
 
-Connect multi-datacenter uses the same primary/secondary approach as ACLs and will use the same [primary_datacenter](#primary-datacenter). When a secondary datacenter server restarts with 1.4.0 it will detect it is not the primary and begin an autotmatic bootstrap of multi-datacenter CA federation.
+Connect multi-datacenter uses the same primary/secondary approach as ACLs and will use the same [primary_datacenter](#primary-datacenter). When a secondary datacenter server restarts with 1.4.0 it will detect it is not the primary and begin an automatic bootstrap of multi-datacenter CA federation.
 
 Datacenters can be upgraded in either order; secondary datacenters will not switch into multi-datacenter mode until all servers in both the secondary and primary datacenter are detected to be running at least Consul 1.4.0. Secondary datacenters monitor this periodically (every few minutes) and will automatically upgrade Connect to use a federated Certificate Authority when they do.
 
