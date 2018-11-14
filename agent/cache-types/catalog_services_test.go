@@ -31,7 +31,7 @@ func TestCatalogServices(t *testing.T) {
 
 			reply := args.Get(2).(*structs.IndexedServiceNodes)
 			reply.ServiceNodes = []*structs.ServiceNode{
-				&structs.ServiceNode{ServiceTags: []string{req.ServiceTag}},
+				&structs.ServiceNode{ServiceTags: req.ServiceTags},
 			}
 			reply.QueryMeta.Index = 48
 			resp = reply
@@ -44,7 +44,7 @@ func TestCatalogServices(t *testing.T) {
 	}, &structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
 		ServiceName: "web",
-		ServiceTag:  "canaryA",
+		ServiceTags: []string{"tag1", "tag2"},
 	})
 	require.NoError(err)
 	require.Equal(cache.FetchResult{
@@ -58,7 +58,7 @@ func TestCatalogServices(t *testing.T) {
 	}, &structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
 		ServiceName: "web",
-		ServiceTag:  "canaryB",
+		ServiceTags:  []string{"tag1"},
 	})
 	require.NoError(err)
 	require.Equal(cache.FetchResult{

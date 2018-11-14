@@ -352,7 +352,7 @@ type ServiceSpecificRequest struct {
 	Datacenter      string
 	NodeMetaFilters map[string]string
 	ServiceName     string
-	ServiceTag      string
+	ServiceTag      string // Deprecated: Use ServiceTags instead.
 	ServiceTags     []string
 	ServiceAddress  string
 	TagFilter       bool // Controls tag filtering

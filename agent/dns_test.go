@@ -2571,11 +2571,24 @@ func TestDNS_ServiceLookup_TagPeriod(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
+	m1 := new(dns.Msg)
+	m1.SetQuestion("v1.master2.db.service.consul.", dns.TypeSRV)
+
+	c1 := new(dns.Client)
+	in, _, err := c1.Exchange(m1, a.DNSAddr())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 0 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
 	m := new(dns.Msg)
 	m.SetQuestion("v1.master.db.service.consul.", dns.TypeSRV)
 
 	c := new(dns.Client)
-	in, _, err := c.Exchange(m, a.DNSAddr())
+	in, _, err = c.Exchange(m, a.DNSAddr())
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

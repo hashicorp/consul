@@ -31,7 +31,7 @@ func TestHealthServices(t *testing.T) {
 
 			reply := args.Get(2).(*structs.IndexedCheckServiceNodes)
 			reply.Nodes = []structs.CheckServiceNode{
-				{Service: &structs.NodeService{Tags: []string{req.ServiceTag}}},
+				{Service: &structs.NodeService{Tags: req.ServiceTags}},
 			}
 			reply.QueryMeta.Index = 48
 			resp = reply
@@ -44,7 +44,7 @@ func TestHealthServices(t *testing.T) {
 	}, &structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
 		ServiceName: "web",
-		ServiceTag:  "canaryA",
+		ServiceTags: []string{"tag1", "tag2"},
 	})
 	require.NoError(err)
 	require.Equal(cache.FetchResult{
@@ -58,7 +58,7 @@ func TestHealthServices(t *testing.T) {
 	}, &structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
 		ServiceName: "web",
-		ServiceTag:  "canaryB",
+		ServiceTags: []string{"tag1"},
 	})
 	require.NoError(err)
 	require.Equal(cache.FetchResult{
