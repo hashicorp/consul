@@ -114,6 +114,12 @@ Once migrated (typically a few seconds). Connect will use the primary datacenter
 
 For more information see [Connect Multi-datacenter](/docs/enterprise/connect-multi-datacenter/index.html).
 
+## Consul 1.3.0
+
+This version added support for multiple tag filters in service discovery queries, however it introduced a subtle bug where API calls to `/catalog/service/:name?tag=<tag>` would ignore the tag filter _only during the upgrade_. It only occurs when clients are still running 1.2.3 or earlier but servers have been upgraded. The `/health/service/:name?tag=<tag>` endpoint and DNS interface were _not_ affected.
+
+For this reason, we recommend you upgrade directly to 1.3.1 which includes only a fix for this issue.
+
 ## Consul 1.1.0
 
 #### Removal of Deprecated Features
