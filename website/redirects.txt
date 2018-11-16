@@ -40,14 +40,7 @@
 /docs/agent/http.html     /api/index.html
 /api/acl.html             /api/acl/acl.html
 
-# These redirect in Fastly do not use this redirects file. They are here for completeness.
-
-# /intro/getting-started/install.html      https://learn.hashicorp.com/consul/getting-started/install.html
-# /intro/getting-started/agent.html        https://learn.hashicorp.com/consul/getting-started/agent.html
-# /intro/getting-started/services.html     https://learn.hashicorp.com/consul/getting-started/services.html
-# /intro/getting-started/connect.html      https://learn.hashicorp.com/consul/getting-started/connect.html
-# /intro/getting-started/join.html         https://learn.hashicorp.com/consul/getting-started/join.html
-# /intro/getting-started/checks.html       https://learn.hashicorp.com/consul/getting-started/checks.html
-# /intro/getting-started/kv.html           https://learn.hashicorp.com/consul/getting-started/kv.html
-# /intro/getting-started/ui.html           https://learn.hashicorp.com/consul/getting-started/ui.html
-# /intro/getting-started/next-steps.html   https://learn.hashicorp.com/consul/getting-started/next-steps.html
+# NOTE: Do not use this redirects file.
+#       A custom VCL (Varnish) configuration in the Fastly web admin has been
+#       used to redirect from `/intro/getting-started/*` to subpaths of
+#       https://learn.hashicorp.com/consul/
