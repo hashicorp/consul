@@ -38,6 +38,7 @@
 
 /api.html                 /api/index.html
 /docs/agent/http.html     /api/index.html
+/api/acl.html             /api/acl/acl.html
 
 /intro/getting-started/install.html      https://learn.hashicorp.com/consul/getting-started/install.html
 /intro/getting-started/agent.html        https://learn.hashicorp.com/consul/getting-started/agent.html
