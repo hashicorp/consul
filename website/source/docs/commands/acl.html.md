@@ -13,7 +13,7 @@ line. It exposes top-level commands for bootstrapping the ACL system,
 managing tokens and policies, translating legacy rules, and setting the
 tokens for use by an agent.
 
-ACLs are also accessible via the [HTTP API](/api/acl.html).
+ACLs are also accessible via the [HTTP API](/api/acl/acl.html).
 
 
 Bootstrap Consul's ACLs:
