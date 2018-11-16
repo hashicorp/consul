@@ -31,7 +31,7 @@ all while providing administrative insight.
 #### ACL Tokens
 
 The ACL system is based on tokens, which are managed by Consul operators via Consul's
-[ACL API](/api/acl.html), or systems like
+[ACL API](/api/acl/acl.html), or systems like
 [HashiCorp's Vault](https://www.vaultproject.io/docs/secrets/consul/index.html).
 
 Every token has an ID, name, type, and rule set. The ID is a randomly generated
@@ -48,7 +48,7 @@ token [RFC6750](https://tools.ietf.org/html/rfc6750). Consul's
 
 If no token is provided, the rules associated with a special, configurable anonymous
 token are automatically applied. The anonymous token is managed using the
-[ACL API](/api/acl.html) like any other ACL token, but using `anonymous` for the ID.
+[ACL API](/api/acl/acl.html) like any other ACL token, but using `anonymous` for the ID.
 
 #### ACL Rules and Scope
 
@@ -200,7 +200,7 @@ The first step for bootstrapping ACLs is to enable ACLs on the Consul servers in
 datacenter. In this example, we are configuring the following:
 
 1. An ACL datacenter of "dc1", which is where these servers are
-2. An ACL master token of "b1gs33cr3t"; see below for an alternative using the [/v1/acl/bootstrap API](/api/acl.html#bootstrap-acls)
+2. An ACL master token of "b1gs33cr3t"; see below for an alternative using the [/v1/acl/bootstrap API](/api/acl/acl.html#bootstrap-acls)
 3. A default policy of "deny" which means we are in whitelist mode
 4. A down policy of "extend-cache" which means that we will ignore token TTLs during an
    outage
@@ -228,7 +228,7 @@ a server acquires cluster leadership. If you would like to install or change the
 [`acl_master_token`](/docs/agent/options.html#acl_master_token) in the configuration
 for all servers. Once this is done, restart the current leader to force a leader election.
 
-In Consul 0.9.1 and later, you can use the [/v1/acl/bootstrap API](/api/acl.html#bootstrap-acls)
+In Consul 0.9.1 and later, you can use the [/v1/acl/bootstrap API](/api/acl/acl.html#bootstrap-acls)
 to make the initial master token, so a token never needs to be placed into a configuration
 file. To use this approach, omit `acl_master_token` from the above config and then call the API:
 
@@ -245,7 +245,7 @@ It's only possible to bootstrap one time, and bootstrapping will be disabled if 
 token was configured and created.
 
 Once the ACL system is bootstrapped, ACL tokens can be managed through the
-[ACL API](/api/acl.html).
+[ACL API](/api/acl/acl.html).
 
 #### Create an Agent Token
 
@@ -517,7 +517,7 @@ The token can then be set on the "settings" page of the UI.
 #### Next Steps
 
 The examples above configure a basic ACL environment with the ability to see all nodes
-by default, and limited access to just the "consul" service. The [ACL API](/api/acl.html)
+by default, and limited access to just the "consul" service. The [ACL API](/api/acl/acl.html)
 can be used to create tokens for applications specific to their intended use, and to create
 more specific ACL agent tokens for each agent's expected role.
 
@@ -584,7 +584,7 @@ This is equivalent to the following JSON input:
 }
 ```
 
-The [ACL API](/api/acl.html) allows either HCL or JSON to be used to define the content
+The [ACL API](/api/acl/acl.html) allows either HCL or JSON to be used to define the content
 of the rules section.
 
 Here's a sample request using the HCL form:
@@ -1070,7 +1070,7 @@ a large set of ACLs.
 If there's a partition or other outage affecting the authoritative datacenter,
 and the [`acl_down_policy`](/docs/agent/options.html#acl_down_policy)
 is set to "extend-cache", tokens will be resolved during the outage using the
-replicated set of ACLs. An [ACL replication status](/api/acl.html#acl_replication_status)
+replicated set of ACLs. An [ACL replication status](/api/acl/acl.html#acl_replication_status)
 endpoint is available to monitor the health of the replication process.
 Also note that in recent versions of Consul (greater than 1.2.0), using
 `acl_down_policy = "async-cache"` refreshes token asynchronously when an ACL is
@@ -1088,7 +1088,7 @@ using a process like this:
 1. Enable ACL replication in all datacenters to allow continuation of service
 during the migration, and to populate the target datacenter. Verify replication
 is healthy and caught up to the current ACL index in the target datacenter
-using the [ACL replication status](/api/acl.html#acl_replication_status)
+using the [ACL replication status](/api/acl/acl.html#acl_replication_status)
 endpoint.
 2. Turn down the old authoritative datacenter servers.
 3. Rolling restart the agents in the target datacenter and change the

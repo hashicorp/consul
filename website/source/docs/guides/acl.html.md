@@ -28,7 +28,7 @@ At the highest level, there are two major components to the ACL system:
  make requests to Consul.
 
  ACL Tokens and Policies are managed by Consul operators via Consul's
-[ACL API](/api/acl.html), ACL CLI or systems like
+[ACL API](/api/acl/acl.html), ACL CLI or systems like
 [HashiCorp's Vault](https://www.vaultproject.io/docs/secrets/consul/index.html).
 
 ### ACL Policies
@@ -98,7 +98,7 @@ rules:
 
 | Resource                   | Scope |
 | ------------------------ | ----- |
-| [`acl`](#acl-rules)              | Operations for managing the ACL system [ACL API](/api/acl.html) |
+| [`acl`](#acl-rules)              | Operations for managing the ACL system [ACL API](/api/acl/acl.html) |
 | [`agent`](#agent-rules)          | Utility operations in the [Agent API](/api/agent.html), other than service and check registration |
 | [`event`](#event-rules)          | Listing and firing events in the [Event API](/api/event.html) |
 | [`key`](#key-value-rules)        | Key/value store operations in the [KV Store API](/api/kv.html) |
@@ -200,7 +200,7 @@ The first step for bootstrapping ACLs is to enable ACLs on the Consul servers in
 datacenter. In this example, we are configuring the following:
 
 1. A primary datacenter of "dc1", which is where these servers are.
-2. An ACL master token of "b1gs33cr3t"; see below for an alternative using the [/v1/acl/bootstrap API](/api/acl.html#bootstrap-acls)
+2. An ACL master token of "b1gs33cr3t"; see below for an alternative using the [/v1/acl/bootstrap API](/api/acl/acl.html#bootstrap-acls)
 3. A default policy of "deny" which means we are in whitelist mode
 4. A down policy of "extend-cache" which means that we will ignore token TTLs during an
    outage
@@ -233,7 +233,7 @@ a server acquires cluster leadership. If you would like to install or change the
 [`acl.tokens.master`](/docs/agent/options.html#acl_tokens_master) in the configuration
 for all servers. Once this is done, restart the current leader to force a leader election.
 
-In Consul 0.9.1 and later, you can use the [/v1/acl/bootstrap API](/api/acl.html#bootstrap-acls)
+In Consul 0.9.1 and later, you can use the [/v1/acl/bootstrap API](/api/acl/acl.html#bootstrap-acls)
 to make the initial master token, so a token never needs to be placed into a configuration
 file. To use this approach, omit `acl.tokens.master` from the above config and then call the API:
 
@@ -252,7 +252,7 @@ It's only possible to bootstrap one time, and bootstrapping will be disabled if 
 token was configured and created.
 
 Once the ACL system is bootstrapped, ACL tokens can be managed through the
-[ACL API](/api/acl.html).
+[ACL API](/api/acl/acl.html).
 
 #### Create an Agent Token
 
@@ -588,7 +588,7 @@ The token can then be set on the "settings" page of the UI.
 #### Next Steps
 
 The examples above configure a basic ACL environment with the ability to see all nodes
-by default, and limited access to just the "consul" service. The [ACL API](/api/acl.html)
+by default, and limited access to just the "consul" service. The [ACL API](/api/acl/acl.html)
 can be used to create tokens for applications specific to their intended use, and to create
 more specific ACL agent tokens for each agent's expected role.
 
@@ -674,7 +674,7 @@ This is equivalent to the following JSON input:
 }
 ```
 
-The [ACL API](/api/acl.html) allows either HCL or JSON to be used to define the content
+The [ACL API](/api/acl/acl.html) allows either HCL or JSON to be used to define the content
 of the rules section of a policy.
 
 Here's a sample request using the HCL form:
@@ -722,7 +722,7 @@ or the `CONSUL_HTTP_TOKEN` environment variable.
 #### ACL Rules
 
 The `acl` resource controls access to ACL operations in the
-[ACL API](/api/acl.html).
+[ACL API](/api/acl/acl.html).
 
 ACL rules look like this:
 
