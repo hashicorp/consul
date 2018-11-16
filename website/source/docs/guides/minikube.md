@@ -52,7 +52,7 @@ Start minikube. You can use the `--memory` option with the equivalent of 4GB to 
 $ minikube start --memory 4096
 ```
 
-Next, let's view the local Kubernetes dashboard with `minikube dashboard`. Even if the previous step completed successfully, you may have to wait a minute or two for minikube to be available. If you see this message, try again.
+Next, let's view the local Kubernetes dashboard with `minikube dashboard`. Even if the previous step completed successfully, you may have to wait a minute or two for minikube to be available. If you see an error, try again after a few minutes.
 
 Once it spins up, you'll see the dashboard in your web browser. You can view pods, nodes, and other resources.
 
@@ -64,7 +64,7 @@ $ minikube dashboard
 
 ### Step 2: Install the Consul Helm Chart to the Cluster
 
-To perform the steps in this lab exercise, clone the [hashicorp/demo-consul-101](https://github.com/hashicorp/demo-consul-101) repository from GitHub. Change into the repo, and go to the `k8s` directory inside.
+To perform the steps in this lab exercise, clone the [hashicorp/demo-consul-101](https://github.com/hashicorp/demo-consul-101) repository from GitHub. Go into the `demo-consul-101/k8s` directory.
 
 
 ```
@@ -256,4 +256,6 @@ And there we have Consul running on a Kubernetes cluster, as demonstrated by two
 
 ![Success](/assets/images/guides/minikube-connect-success.png "Success")
 
-We encourage you to clone this repository and try it out yourself with `minikube`.
+## Reference
+
+For more on Consul's integration with Kubernetes (including multi-cloud, service sync, and other features), see the [Consul with Kubernetes](/docs/platform/k8s/index.html) documentation.
