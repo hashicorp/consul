@@ -25,8 +25,8 @@
             {{freetext-filter onchange=(action 'filter') value=filter.s placeholder="Search"}}
         </form>
 {{/if}}
-        {{#if (find-by 'legacy' true items)}}
-            <p class="notice info"><strong>Update.</strong> We've upgraded our ACL system by allowing you to create reusable Policies, which you can then apply to Tokens. Read more about the change and learn how to upgrade your legacy Tokens in our <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guide/acl.html" target="_blank" rel="noopener noreferrer">documentation</a>.</p>
+        {{#if (token/is-legacy items)}}
+            <p data-test-notification-update class="notice info"><strong>Update.</strong> We have upgraded our ACL System to allow the creation of reusable policies that can be applied to tokens. Read more about the changes and how to upgrade legacy tokens in our <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guide/acl-migrate-tokens.html" target="_blank" rel="noopener noreferrer">documentation</a>.</p>
         {{/if}}
 {{#if (gt filtered.length 0)}}
         {{#tabular-collection

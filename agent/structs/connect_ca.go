@@ -23,11 +23,20 @@ type IndexedCARoots struct {
 	// implement other protocols in future with equivalent semantics. It should be
 	// compared against the "authority" section of a URI (i.e. host:port).
 	//
-	// NOTE(banks): Later we may support explicitly trusting external domains
-	// which may be encoded into the CARoot struct or a separate list but this
-	// domain identifier should be immutable and cluster-wide so deserves to be at
-	// the root of this response rather than duplicated through all CARoots that
-	// are not externally trusted entities.
+	// We need to support migrating a cluster between trust domains to support
+	// Multi-DC migration in Enterprise. In this case the current trust domain is
+	// here but entries in Roots may also have ExternalTrustDomain set to a
+	// non-empty value implying they were previous roots that are still trusted
+	// but under a different trust domain.
+	//
+	// Note that we DON'T validate trust domain during AuthZ since it causes
+	// issues of loss of connectivity during migration between trust domains. The
+	// only time the additional validation adds value is where the cluster shares
+	// an external root (e.g. organization-wide root) with another distinct Consul
+	// cluster or PKI system. In this case, x509 Name Constraints can be added to
+	// enforce that Consul's CA can only validly sign or trust certs within the
+	// same trust-domain. Name constraints as enforced by TLS handshake also allow
+	// seamless rotation between trust domains thanks to cross-signing.
 	TrustDomain string
 
 	// Roots is a list of root CA certs to trust.
@@ -54,7 +63,14 @@ type CARoot struct {
 	// private key used to sign the certificate.
 	SigningKeyID string
 
-	// ExternalTrustDomain is the trust domain this root was generated under.
+	// ExternalTrustDomain is the trust domain this root was generated under. It
+	// is usually empty implying "the current cluster trust-domain". It is set
+	// only in the case that a cluster changes trust domain and then all old roots
+	// that are still trusted have the old trust domain set here.
+	//
+	// We currently DON'T validate these trust domains explicitly anywhere, see
+	// IndexedRoots.TrustDomain doc. We retain this information for debugging and
+	// future flexibility.
 	ExternalTrustDomain string
 
 	// Time validity bounds.

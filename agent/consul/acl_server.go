@@ -9,7 +9,7 @@ import (
 )
 
 var serverACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
-	// The servers ACL caching has a few underlying assumptions:
+	// The server's ACL caching has a few underlying assumptions:
 	//
 	// 1 - All policies can be resolved locally. Hence we do not cache any
 	//     unparsed policies as we have memdb for that.
@@ -17,7 +17,7 @@ var serverACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
 	//     number of distinct policies and combined multi-policy authorizers
 	//     will be much less.
 	// 3 - If you need more than 10k tokens cached then you should probably
-	//     enabled token replication or be using DC local tokens. In both
+	//     enable token replication or be using DC local tokens. In both
 	//     cases resolving the tokens from memdb will avoid the cache
 	//     entirely
 	//

@@ -3,7 +3,8 @@
 // has a valid token
 // Right now this is very acl specific, but is likely to be
 // made a bit more less specific
-export default function(P = Promise) {
+
+export default function(isValidServerError, P = Promise) {
   return function(obj) {
     const propName = Object.keys(obj)[0];
     const p = obj[propName];
@@ -23,6 +24,14 @@ export default function(P = Promise) {
       [propName]: p
         .catch(function(e) {
           switch (e.errors[0].status) {
+            case '500':
+              if (isValidServerError(e)) {
+                enable(true);
+                authorize(false);
+              } else {
+                return P.reject(e);
+              }
+              break;
             case '403':
               enable(true);
               authorize(false);

@@ -38,7 +38,9 @@
 
 /api.html                 /api/index.html
 /docs/agent/http.html     /api/index.html
+/api/acl.html             /api/acl/acl.html
 
-# NOTE: A custom VCL (Varnish) configuration in the Fastly web admin has been
+# NOTE: Do not use this redirects file.
+#       A custom VCL (Varnish) configuration in the Fastly web admin has been
 #       used to redirect from `/intro/getting-started/*` to subpaths of
 #       https://learn.hashicorp.com/consul/

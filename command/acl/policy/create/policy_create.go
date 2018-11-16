@@ -40,7 +40,7 @@ type cmd struct {
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.BoolVar(&c.showMeta, "meta", false, "Indicates that policy metadata such "+
-		"as the content hash and raft indices should be show for each entry")
+		"as the content hash and raft indices should be shown for each entry")
 	c.flags.StringVar(&c.name, "name", "", "The new policies name. This flag is required.")
 	c.flags.StringVar(&c.description, "description", "", "A description of the policy")
 	c.flags.Var((*flags.AppendSliceValue)(&c.datacenters), "valid-datacenter", "Datacenter "+
@@ -142,15 +142,15 @@ Usage: consul acl policy create -name NAME [options]
 
     Create a new policy:
 
-        $ consul acl policy create -name “new-policy” \
-                                   -description “This is an example policy” \
-                                   -datacenter “dc1” \
-                                   -datacenter “dc2” \
+        $ consul acl policy create -name "new-policy" \
+                                   -description "This is an example policy" \
+                                   -datacenter "dc1" \
+                                   -datacenter "dc2" \
                                    -rules @rules.hcl
 
     Creation a policy from a legacy token:
 
-        $ consul acl policy create -name “legacy-policy” \
-                                   -description “Token Converted to Policy” \
-                                   -from-token “c1e34113-e7ab-4451-b1a6-336ddcc58fc6”
+        $ consul acl policy create -name "legacy-policy" \
+                                   -description "Token Converted to Policy" \
+                                   -from-token "c1e34113-e7ab-4451-b1a6-336ddcc58fc6"
 `

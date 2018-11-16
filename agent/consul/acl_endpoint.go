@@ -126,7 +126,7 @@ func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.AC
 	// remove the bootstrap override file now that we have the index from it and it was valid.
 	// whether bootstrapping works or not is irrelevant as we really don't want this file hanging around
 	// in case a snapshot restore is done. In that case we don't want to accidentally allow re-bootstrapping
-	// just becuase the file was unchanged.
+	// just because the file was unchanged.
 	a.removeBootstrapResetFile()
 
 	accessor, err := lib.GenerateUUID(a.srv.checkTokenUUID)
@@ -181,7 +181,7 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 	}
 
 	// clients will not know whether the server has local token store. In the case
-	// where it doesnt' we will transparently forward requests.
+	// where it doesn't we will transparently forward requests.
 	if !a.srv.LocalTokensEnabled() {
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
@@ -233,7 +233,7 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 	}
 
 	// clients will not know whether the server has local token store. In the case
-	// where it doesnt' we will transparently forward requests.
+	// where it doesn't we will transparently forward requests.
 	if !a.srv.LocalTokensEnabled() {
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
@@ -733,7 +733,7 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 		return err
 	}
 
-	// calcualte the hash for this policy
+	// calculate the hash for this policy
 	policy.SetHash(true)
 
 	req := &structs.ACLPolicyBatchSetRequest{

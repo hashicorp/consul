@@ -1,5 +1,4 @@
 @setupApplicationTest
-@ignore
 Feature: dc / acls / list-order
   In order to be able to find ACL tokens easier
   As a user
@@ -7,6 +6,7 @@ Feature: dc / acls / list-order
 
   Scenario: I have 10 randomly sorted tokens
     Given 1 datacenter model with the value "datacenter"
+    And I'm using a legacy token
     And 10 acl model from yaml
     ---
       - Name: zz

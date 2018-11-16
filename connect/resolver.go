@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
-	"sync"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/api"
@@ -75,22 +74,11 @@ type ConsulResolver struct {
 
 	// Datacenter to resolve in, empty indicates agent's local DC.
 	Datacenter string
-
-	// trustDomain stores the cluster's trust domain it's populated once on first
-	// Resolve call and blocks all resolutions.
-	trustDomain   string
-	trustDomainMu sync.Mutex
 }
 
 // Resolve performs service discovery against the local Consul agent and returns
 // the address and expected identity of a suitable service instance.
 func (cr *ConsulResolver) Resolve(ctx context.Context) (string, connect.CertURI, error) {
-	// Fetch trust domain if we've not done that yet
-	err := cr.ensureTrustDomain()
-	if err != nil {
-		return "", nil, err
-	}
-
 	switch cr.Type {
 	case ConsulResolverTypeService:
 		return cr.resolveService(ctx)
@@ -99,27 +87,6 @@ func (cr *ConsulResolver) Resolve(ctx context.Context) (string, connect.CertURI,
 	default:
 		return "", nil, fmt.Errorf("unknown resolver type")
 	}
-}
-
-func (cr *ConsulResolver) ensureTrustDomain() error {
-	cr.trustDomainMu.Lock()
-	defer cr.trustDomainMu.Unlock()
-
-	if cr.trustDomain != "" {
-		return nil
-	}
-
-	roots, _, err := cr.Client.Agent().ConnectCARoots(nil)
-	if err != nil {
-		return fmt.Errorf("failed fetching cluster trust domain: %s", err)
-	}
-
-	if roots.TrustDomain == "" {
-		return fmt.Errorf("cluster trust domain empty, connect not bootstrapped")
-	}
-
-	cr.trustDomain = roots.TrustDomain
-	return nil
 }
 
 func (cr *ConsulResolver) resolveService(ctx context.Context) (string, connect.CertURI, error) {
@@ -182,7 +149,8 @@ func (cr *ConsulResolver) resolveServiceEntry(entry *api.ServiceEntry) (string, 
 
 	// Generate the expected CertURI
 	certURI := &connect.SpiffeIDService{
-		Host:       cr.trustDomain,
+		// No host since we don't validate trust domain here (we rely on x509 to
+		// prove trust).
 		Namespace:  "default",
 		Datacenter: entry.Node.Datacenter,
 		Service:    service,

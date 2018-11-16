@@ -124,14 +124,15 @@ a long period of inactivity (3 days by default), the cache will empty itself.
 
 ## Multi-Datacenter
 
-Connect currently only works for service-to-service connections within a
-single Consul datacenter. Connect may be enabled on multiple Consul datacenters,
-but only services within the same datacenters can establish Connect-based
-connections.
-CA configurations and intentions are both local to their respective datacenters;
+Using Connect for service-to-service communications across multiple datacenters 
+requires Consul Enterprise. 
+
+With Open Source Consul, Connect may be enabled on multiple Consul datacenters, 
+but only services within the same datacenter can establish Connect-based, 
+Authenticated and Authorized connections. In this version, Certificate Authority
+configurations and intentions are both local to their respective datacenters; 
 they are not replicated across datacenters.
 
-Multi-datacenter support for Connect is under development and will be
-released as a feature of Consul Enterprise in late 2018. This feature will
-facilitate intention replication, datacenter constraints on intentions,
-CA state replication, multi-datacenter certificate rotations, and more.
+Full multi-datacenter support for Connect is available in
+[Consul Enterprise](/docs/enterprise/connect-multi-datacenter/index.html).
+

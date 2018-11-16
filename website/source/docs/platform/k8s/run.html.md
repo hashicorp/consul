@@ -94,9 +94,7 @@ global:
 client:
   enabled: true
   join:
-    - "provider=my-cloud"
-    - "config=val"
-    - "..."
+    - "provider=my-cloud config=val ..."
 ```
 
 The `values.yaml` file to configure the Helm chart sets the proper
@@ -283,6 +281,11 @@ for joining during bootstrap and upgrades.
 Additionally, a **PodDisruptionBudget** is configured so the Consul server
 cluster maintains quorum during voluntary operational events. The maximum
 unavailable is `(n/2)-1` where `n` is the number of server agents.
+
+-> **Note:** Kubernetes and Helm do not delete Persistent Volumes or Persistent
+Volume Claims when a
+[StatefulSet is deleted](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#stable-storage),
+so this must done manually when removing servers.
 
 ### Client Agents
 

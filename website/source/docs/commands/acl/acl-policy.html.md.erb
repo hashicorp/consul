@@ -17,7 +17,7 @@ subcommands for the individual operations that can be performed.
 * [`delete`](#delete)
 * [`list`](#list)
 
-ACL policies are also accessible via the [HTTP API](/api/acl.html).
+ACL policies are also accessible via the [HTTP API](/api/acl/acl.html).
 
 Usage: `consul acl policy <subcommand> [options] [args]`
 
@@ -80,7 +80,7 @@ Usage: `consul acl policy create [options] [args]`
    stdin or from a file.
 
 * `-meta` - Indicates that policy metadata such as the content hash and raft
-   indices should be show for each entry.
+   indices should be shown for each entry.
 
 * `-name=<string>` - The new policies name. This flag is required.
 
@@ -162,7 +162,7 @@ Usage: `consul acl policy read [options] [args]`
    prefix but will error if the prefix matches multiple policy IDs.
 
 * `-meta` - Indicates that policy metadata such as the content hash and raft
-  indices should be show for each entry.
+  indices should be shown for each entry.
 
 * `-name=<string>` - The name of the policy to read.
 
@@ -283,7 +283,7 @@ Usage: `consul acl policy update [options] [args]`
    unique ID prefix but will error if the prefix matches multiple policy IDs
 
 * `-meta` - Indicates that policy metadata such as the content hash and raft
-  indices should be show for each entry
+  indices should be shown for each entry
 
 * `-name=<string>` - The policies name.
 

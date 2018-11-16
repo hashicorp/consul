@@ -176,7 +176,7 @@ func TestAgent_Services_Sidecar(t *testing.T) {
 	assert.Equal(srv1.Proxy.DestinationServiceName, actual.ProxyDestination)
 
 	// Sanity check that LocalRegisteredAsSidecar is not in the output (assuming
-	// JSON encoding). Right now this is not the case becuase the services
+	// JSON encoding). Right now this is not the case because the services
 	// endpoint happens to use the api struct which doesn't include that field,
 	// but this test serves as a regression test incase we change the endpoint to
 	// return the internal struct later and accidentally expose some "internal"
@@ -5303,9 +5303,14 @@ func TestAgentConnectAuthorize_deny(t *testing.T) {
 	assert.Contains(obj.Reason, "Matched")
 }
 
-// Test when there is an intention allowing service but for a different trust
-// domain.
-func TestAgentConnectAuthorize_denyTrustDomain(t *testing.T) {
+// Test when there is an intention allowing service with a different trust
+// domain. We allow this because migration between trust domains shouldn't cause
+// an outage even if we have stale info about current trusted domains. It's safe
+// because the CA root is either unique to this cluster and not used to sign
+// anything external, or path validation can be used to ensure that the CA can
+// only issue certs that are valid for the specific cluster trust domain at x509
+// level which is enforced by TLS handshake.
+func TestAgentConnectAuthorize_allowTrustDomain(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
@@ -5345,8 +5350,8 @@ func TestAgentConnectAuthorize_denyTrustDomain(t *testing.T) {
 		assert.Equal(200, resp.Code)
 
 		obj := respRaw.(*connectAuthorizeResp)
-		assert.False(obj.Authorized)
-		assert.Contains(obj.Reason, "Identity from an external trust domain")
+		require.True(obj.Authorized)
+		require.Contains(obj.Reason, "Matched")
 	}
 }
 

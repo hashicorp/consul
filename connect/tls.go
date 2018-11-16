@@ -11,6 +11,7 @@ import (
 	"log"
 	"net"
 	"net/url"
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -185,12 +186,17 @@ func verifyServerCertMatchesURI(certs []*x509.Certificate,
 		return errors.New("peer certificate mismatch")
 	}
 
-	// We may want to do better than string matching later in some special
-	// cases and/or encapsulate the "match" logic inside the CertURI
-	// implementation but for now this is all we need.
-	if gotURI.String() == expectedStr {
+	// Override the hostname since we rely on x509 constraints to limit ability to
+	// spoof the trust domain if needed (i.e. because a root is shared with other
+	// PKI or Consul clusters). This allows for seamless migrations between trust
+	// domains.
+	expectURI := expected.URI()
+	expectURI.Host = gotURI.Host
+	if strings.ToLower(gotURI.String()) == strings.ToLower(expectURI.String()) {
+		// OK!
 		return nil
 	}
+
 	return fmt.Errorf("peer certificate mismatch got %s, want %s",
 		gotURI.String(), expectedStr)
 }
