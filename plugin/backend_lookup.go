@@ -391,7 +391,13 @@ func NS(b ServiceBackend, zone string, state request.Request, opt Options) (reco
 
 // SOA returns a SOA record from the backend.
 func SOA(b ServiceBackend, zone string, state request.Request, opt Options) ([]dns.RR, error) {
-	header := dns.RR_Header{Name: zone, Rrtype: dns.TypeSOA, Ttl: 300, Class: dns.ClassINET}
+	minTTL := b.MinTTL(state)
+	ttl := uint32(300)
+	if minTTL < ttl {
+		ttl = minTTL
+	}
+
+	header := dns.RR_Header{Name: zone, Rrtype: dns.TypeSOA, Ttl: ttl, Class: dns.ClassINET}
 
 	Mbox := hostmaster + "."
 	Ns := "ns.dns."
@@ -407,7 +413,7 @@ func SOA(b ServiceBackend, zone string, state request.Request, opt Options) ([]d
 		Refresh: 7200,
 		Retry:   1800,
 		Expire:  86400,
-		Minttl:  b.MinTTL(state),
+		Minttl:  minTTL,
 	}
 	return []dns.RR{soa}, nil
 }

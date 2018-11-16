@@ -75,7 +75,7 @@ var dnsTestCasesOther = []test.Case{
 		// NODATA as this is not an Mail: true record.
 		Qname: "a.server1.dev.region1.skydns.test.", Qtype: dns.TypeMX,
 		Ns: []dns.RR{
-			test.SOA("skydns.test. 300 SOA ns.dns.skydns.test. hostmaster.skydns.test. 0 0 0 0 0"),
+			test.SOA("skydns.test. 30 SOA ns.dns.skydns.test. hostmaster.skydns.test. 0 0 0 0 0"),
 		},
 	},
 	{
