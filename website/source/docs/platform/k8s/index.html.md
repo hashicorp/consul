@@ -13,6 +13,8 @@ to Kubernetes using the Helm chart, sync services between Consul and
 Kubernetes, automatically secure Pod communication with Connect, and more.
 This section documents the official integrations between Consul and Kubernetes.
 
+-> A step-by-step beginner tutorial and accompanying video can be found at the [Minikube with Consul guide](/docs/guides/minikube.html)
+
 ## Use Cases
 
 **Running a Consul server cluster:** The Consul server cluster can run directly
