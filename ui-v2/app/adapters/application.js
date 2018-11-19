@@ -16,6 +16,7 @@ export const REQUEST_DELETE = 'deleteRecord';
 
 export const DATACENTER_QUERY_PARAM = 'dc';
 
+import { HEADERS_SYMBOL as HTTP_HEADERS_SYMBOL } from 'consul-ui/utils/http/consul';
 export default Adapter.extend({
   namespace: 'v1',
   repo: service('settings'),
