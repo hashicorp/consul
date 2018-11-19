@@ -312,7 +312,7 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 	}
 
 	// Add the check.
-	if err := s.agent.AddCheck(health, chkType, true, token); err != nil {
+	if err := s.agent.AddCheck(health, chkType, true, token, ConfigSourceRemote); err != nil {
 		return nil, err
 	}
 	s.syncChanges()
@@ -526,7 +526,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	}
 
 	// Add the service.
-	if err := s.agent.AddService(ns, chkTypes, true, token); err != nil {
+	if err := s.agent.AddService(ns, chkTypes, true, token, ConfigSourceRemote); err != nil {
 		return nil, err
 	}
 	s.syncChanges()

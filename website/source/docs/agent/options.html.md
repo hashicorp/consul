@@ -160,9 +160,13 @@ will exit with an error at startup.
 
 * <a name="_enable_script_checks"></a><a href="#_enable_script_checks">`-enable-script-checks`</a> This
   controls whether [health checks that execute scripts](/docs/agent/checks.html) are enabled on
-  this agent, and defaults to `false` so operators must opt-in to allowing these. If enabled,
-  it is recommended to [enable ACLs](/docs/guides/acl.html) as well to control which users are
-  allowed to register new checks to execute scripts. This was added in Consul 0.9.0.
+  this agent, and defaults to `false` so operators must opt-in to allowing these. If enabled, it is recommended
+  to [enable ACLs](/docs/guides/acl.html) as well to control which users are allowed to register new checks to 
+  execute scripts. This was added in Consul 0.9.0.
+
+* <a name="_enable_local_script_checks"></a><a href="#_enable_local_script_checks">`-enable-local-script-checks`</a> 
+  Like [`enable_script_checks`](#_enable_script_checks), but only enable them when they are defined in the local
+  config files. Script checks defined in HTTP API registratrions will still not be allowed.
 
 * <a name="_encrypt"></a><a href="#_encrypt">`-encrypt`</a> - Specifies the secret key to
   use for encryption of Consul

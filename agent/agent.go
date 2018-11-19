@@ -52,6 +52,13 @@ const (
 		"service, but no reason was provided. This is a default message."
 )
 
+type configSource int
+
+const (
+	ConfigSourceLocal configSource = iota
+	ConfigSourceRemote
+)
+
 // delegate defines the interface shared by both
 // consul.Client and consul.Server.
 type delegate interface {
@@ -1459,7 +1466,7 @@ func writeFileAtomic(path string, contents []byte) error {
 // AddService is used to add a service entry.
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
-func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string) error {
+func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string, source configSource) error {
 	if service.Service == "" {
 		return fmt.Errorf("Service name missing")
 	}
@@ -1532,7 +1539,7 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 		if chkType.Status != "" {
 			check.Status = chkType.Status
 		}
-		if err := a.AddCheck(check, chkType, persist, token); err != nil {
+		if err := a.AddCheck(check, chkType, persist, token, source); err != nil {
 			return err
 		}
 	}
@@ -1578,7 +1585,7 @@ func (a *Agent) RemoveService(serviceID string, persist bool) error {
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered. The Check may include a CheckType which
 // is used to automatically update the check status
-func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType, persist bool, token string) error {
+func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType, persist bool, token string, source configSource) error {
 	if check.CheckID == "" {
 		return fmt.Errorf("CheckID missing")
 	}
@@ -1588,8 +1595,14 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			return fmt.Errorf("Check type is not valid")
 		}
 
-		if chkType.IsScript() && !a.config.EnableScriptChecks {
-			return fmt.Errorf("Scripts are disabled on this agent; to enable, configure 'enable_script_checks' to true")
+		if chkType.IsScript() {
+			if source == ConfigSourceLocal && !a.config.EnableLocalScriptChecks {
+				return fmt.Errorf("Scripts are disabled on this agent; to enable, configure 'enable_script_checks' or 'enable_local_script_checks' to true")
+			}
+
+			if source == ConfigSourceRemote && !a.config.EnableScriptChecks {
+				return fmt.Errorf("Scripts are disabled on this agent from remote calls; to enable, configure 'enable_script_checks' to true")
+			}
 		}
 	}
 
@@ -2012,7 +2025,7 @@ func (a *Agent) loadServices(conf *Config) error {
 	for _, service := range conf.Services {
 		ns := service.NodeService()
 		chkTypes := service.CheckTypes()
-		if err := a.AddService(ns, chkTypes, false, service.Token); err != nil {
+		if err := a.AddService(ns, chkTypes, false, service.Token, ConfigSourceLocal); err != nil {
 			return fmt.Errorf("Failed to register service '%s': %v", service.ID, err)
 		}
 	}
@@ -2073,7 +2086,7 @@ func (a *Agent) loadServices(conf *Config) error {
 		} else {
 			a.logger.Printf("[DEBUG] agent: restored service definition %q from %q",
 				serviceID, file)
-			if err := a.AddService(p.Service, nil, false, p.Token); err != nil {
+			if err := a.AddService(p.Service, nil, false, p.Token, ConfigSourceLocal); err != nil {
 				return fmt.Errorf("failed adding service %q: %s", serviceID, err)
 			}
 		}
@@ -2101,7 +2114,7 @@ func (a *Agent) loadChecks(conf *Config) error {
 	for _, check := range conf.Checks {
 		health := check.HealthCheck(conf.NodeName)
 		chkType := check.CheckType()
-		if err := a.AddCheck(health, chkType, false, check.Token); err != nil {
+		if err := a.AddCheck(health, chkType, false, check.Token, ConfigSourceLocal); err != nil {
 			return fmt.Errorf("Failed to register check '%s': %v %v", check.Name, err, check)
 		}
 	}
@@ -2155,7 +2168,7 @@ func (a *Agent) loadChecks(conf *Config) error {
 			// services into the active pool
 			p.Check.Status = api.HealthCritical
 
-			if err := a.AddCheck(p.Check, p.ChkType, false, p.Token); err != nil {
+			if err := a.AddCheck(p.Check, p.ChkType, false, p.Token, ConfigSourceLocal); err != nil {
 				// Purge the check if it is unable to be restored.
 				a.logger.Printf("[WARN] agent: Failed to restore check %q: %s",
 					checkID, err)
@@ -2257,7 +2270,7 @@ func (a *Agent) EnableServiceMaintenance(serviceID, reason, token string) error 
 		ServiceName: service.Service,
 		Status:      api.HealthCritical,
 	}
-	a.AddCheck(check, nil, true, token)
+	a.AddCheck(check, nil, true, token, ConfigSourceLocal)
 	a.logger.Printf("[INFO] agent: Service %q entered maintenance mode", serviceID)
 
 	return nil
@@ -2303,7 +2316,7 @@ func (a *Agent) EnableNodeMaintenance(reason, token string) {
 		Notes:   reason,
 		Status:  api.HealthCritical,
 	}
-	a.AddCheck(check, nil, true, token)
+	a.AddCheck(check, nil, true, token, ConfigSourceLocal)
 	a.logger.Printf("[INFO] agent: Node entered maintenance mode")
 }
 

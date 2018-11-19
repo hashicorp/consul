@@ -690,6 +690,11 @@ type Config struct {
 	// checks.
 	EnableScriptChecks bool `mapstructure:"enable_script_checks"`
 
+	// EnableLocalScriptChecks controls whether health checks which execute
+	// scripts are enabled when registered via config files. This includes regular
+	// script checks and Docker checks.
+	EnableLocalScriptChecks bool `mapstructure:"enable_local_script_checks"`
+
 	// CheckUpdateInterval controls the interval on which the output of a health check
 	// is updated if there is no change to the state. For example, a check in a steady
 	// state may run every 5 second generating a unique output (timestamp, etc), forcing
@@ -1221,6 +1226,11 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 
 	if err := msdec.Decode(raw); err != nil {
 		return nil, err
+	}
+
+	// Imply local script checks if we enable all script checks
+	if result.EnableScriptChecks {
+		result.EnableLocalScriptChecks = true
 	}
 
 	// Check for deprecations

@@ -29,6 +29,7 @@ import (
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/logutils"
 	"github.com/mitchellh/cli"
+	"github.com/y0ssar1an/q"
 )
 
 // validDatacenter is used to validate a datacenter
@@ -83,6 +84,8 @@ func (cmd *AgentCommand) readConfig() *agent.Config {
 			" that persists in the data-dir.")
 
 	f.BoolVar(&cmdCfg.EnableScriptChecks, "enable-script-checks", false, "Enables health check scripts.")
+	f.BoolVar(&cmdCfg.EnableLocalScriptChecks, "enable-local-script-checks", false,
+		"Enables health check scripts registered locally in config files (but not via API).")
 	var disableHostNodeID configutil.BoolValue
 	f.Var(&disableHostNodeID, "disable-host-node-id",
 		"Setting this to true will prevent Consul from using information from the"+
@@ -183,6 +186,10 @@ func (cmd *AgentCommand) readConfig() *agent.Config {
 		return nil
 	}
 
+	if cmdCfg.EnableScriptChecks {
+		cmdCfg.EnableLocalScriptChecks = true
+	}
+
 	// check deprecated flags
 	if atlasInfrastructure != "" {
 		cmd.UI.Warn("WARNING: 'atlas' is deprecated")
@@ -245,6 +252,7 @@ func (cmd *AgentCommand) readConfig() *agent.Config {
 
 		cfg = agent.MergeConfig(cfg, fileConfig)
 	}
+	q.Q(cfg)
 
 	cmdCfg.DNSRecursors = append(cmdCfg.DNSRecursors, dnsRecursors...)
 
