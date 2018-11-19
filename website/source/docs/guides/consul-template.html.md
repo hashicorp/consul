@@ -44,7 +44,7 @@ updating service configuration. Additionally, it can run arbitrary commands when
 process completes. For example, it can restart the 
 load balancer service after a configuration change has been made. 
 
-The Consul template tool is also flexible, it can work with many
+The Consul template tool is flexible, it can fit into many
 different environments and workflows. It is the responsibility of the operator
 to install it in a way that meets their use case or use cases. This can mean 
 installing a few instances for the entire cluster or dozens on a single host.
