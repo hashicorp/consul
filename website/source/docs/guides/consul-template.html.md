@@ -10,10 +10,13 @@ description: |-
 
 The Consul template tool provides a programmatic method 
 for rendering configuration files from a variety of locations,
-including Consul KV. The template tool is based on Go 
-templates and shares many of the same attributes. 
+including Consul KV. It is an ideal option for replacing complicated API 
+queries that often require custom formatting.
+The template tool is based on Go templates and shares many 
+of the same attributes. 
 
-Consul template has several useful use cases.
+Consul template is a useful tool with several uses, we will focus on two
+of it's use cases.
 
 1. *Update configuration files*. The Consul template tool can be used
 to update service configuration files. A common use case is managing load 
