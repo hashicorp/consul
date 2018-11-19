@@ -1,11 +1,12 @@
+import { inject as service } from '@ember/service';
 import { computed, get, set } from '@ember/object';
 import Component from 'ember-collection/components/ember-collection';
 import PercentageColumns from 'ember-collection/layouts/percentage-columns';
 import style from 'ember-computed-style';
 import WithResizing from 'consul-ui/mixins/with-resizing';
-import qsaFactory from 'consul-ui/utils/dom/qsa-factory';
-const $$ = qsaFactory();
+
 export default Component.extend(WithResizing, {
+  dom: service('dom'),
   tagName: 'div',
   attributeBindings: ['style'],
   height: 500,
@@ -30,11 +31,13 @@ export default Component.extend(WithResizing, {
     };
   }),
   resize: function(e) {
-    const $self = this.element;
-    const $appContent = [...$$('main > div')][0];
+    // TODO: This top part is very similar to resize in tabular-collection
+    // see if it make sense to DRY out
+    const dom = get(this, 'dom');
+    const $appContent = dom.element('main > div');
     if ($appContent) {
-      const rect = $self.getBoundingClientRect();
-      const $footer = [...$$('footer[role="contentinfo"]')][0];
+      const rect = this.element.getBoundingClientRect();
+      const $footer = dom.element('footer[role="contentinfo"]');
       const space = rect.top + $footer.clientHeight;
       const height = e.detail.height - space;
       this.set('height', Math.max(0, height));

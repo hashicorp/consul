@@ -1,7 +1,7 @@
-import getComponentFactory from 'consul-ui/utils/get-component-factory';
+import getComponentFactory from 'consul-ui/utils/dom/get-component-factory';
 import { module, test } from 'qunit';
 
-module('Unit | Utility | get component factory');
+module('Unit | Utility | dom/get component factory');
 
 test("it uses lookup to locate the instance of the component based on the DOM element's id", function(assert) {
   const expected = 'name';
