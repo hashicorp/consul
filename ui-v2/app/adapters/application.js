@@ -13,6 +13,7 @@ export const REQUEST_DELETE = 'deleteRecord';
 
 export const DATACENTER_QUERY_PARAM = 'dc';
 
+import { HEADERS_SYMBOL as HTTP_HEADERS_SYMBOL } from 'consul-ui/utils/http/consul';
 export default Adapter.extend({
   namespace: 'v1',
   repo: service('settings'),
@@ -21,6 +22,24 @@ export default Adapter.extend({
       ...this.get('repo').findHeaders(),
       ...this._super(...arguments),
     };
+  },
+  handleResponse: function(status, headers, response, requestData) {
+    // The ember-data RESTAdapter drops the headers after this call,
+    // and there is no where else to get to these
+    // save them to response[HTTP_HEADERS_SYMBOL] for the moment
+    // so we can save them as meta in the serializer...
+    if (
+      (typeof response == 'object' && response.constructor == Object) ||
+      Array.isArray(response)
+    ) {
+      // lowercase everything incase we get browser inconsistencies
+      const lower = {};
+      Object.keys(headers).forEach(function(key) {
+        lower[key.toLowerCase()] = headers[key];
+      });
+      response[HTTP_HEADERS_SYMBOL] = lower;
+    }
+    return this._super(status, headers, response, requestData);
   },
   handleBooleanResponse: function(url, response, primary, slug) {
     return {
