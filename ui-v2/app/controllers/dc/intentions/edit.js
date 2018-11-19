@@ -1,7 +1,6 @@
 import Controller from '@ember/controller';
 import { inject as service } from '@ember/service';
 import { get, set } from '@ember/object';
-
 export default Controller.extend({
   dom: service('dom'),
   builder: service('form'),
@@ -32,8 +31,8 @@ export default Controller.extend({
     });
   },
   actions: {
-    createNewLabel: function(term) {
-      return `Use a future Consul Service called '${term}'`;
+    createNewLabel: function(template, term) {
+      return template.replace(/{{term}}/g, term);
     },
     isUnique: function(term) {
       return !get(this, 'items').findBy('Name', term);
