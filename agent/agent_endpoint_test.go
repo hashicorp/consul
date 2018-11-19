@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul-enterprise/testrpc"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
@@ -789,6 +790,60 @@ func TestAgent_RegisterCheck_Scripts(t *testing.T) {
 	}
 }
 
+func TestAgent_RegisterCheckScriptsExecDisable(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	args := &structs.CheckDefinition{
+		Name:       "test",
+		ScriptArgs: []string{"true"},
+		Interval:   time.Second,
+	}
+	req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token=abc123", jsonReader(args))
+	res := httptest.NewRecorder()
+	_, err := a.srv.AgentRegisterCheck(res, req)
+	if err == nil {
+		t.Fatalf("expected error but got nil")
+	}
+	if !strings.Contains(err.Error(), "Scripts are disabled on this agent") {
+		t.Fatalf("expected script disabled error, got: %s", err)
+	}
+	checkID := types.CheckID("test")
+	if _, ok := a.State.Checks()[checkID]; ok {
+		t.Fatalf("check registered with exec disable")
+	}
+}
+
+func TestAgent_RegisterCheckScriptsExecRemoteDisable(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), `
+		enable_local_script_checks = true
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	args := &structs.CheckDefinition{
+		Name:       "test",
+		ScriptArgs: []string{"true"},
+		Interval:   time.Second,
+	}
+	req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token=abc123", jsonReader(args))
+	res := httptest.NewRecorder()
+	_, err := a.srv.AgentRegisterCheck(res, req)
+	if err == nil {
+		t.Fatalf("expected error but got nil")
+	}
+	if !strings.Contains(err.Error(), "Scripts are disabled on this agent") {
+		t.Fatalf("expected script disabled error, got: %s", err)
+	}
+	checkID := types.CheckID("test")
+	if _, ok := a.State.Checks()[checkID]; ok {
+		t.Fatalf("check registered with exec disable")
+	}
+}
+
 func TestAgent_RegisterCheck_Passing(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
@@ -875,7 +930,7 @@ func TestAgent_DeregisterCheck(t *testing.T) {
 	defer a.Shutdown()
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
-	if err := a.AddCheck(chk, nil, false, ""); err != nil {
+	if err := a.AddCheck(chk, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -900,7 +955,7 @@ func TestAgent_DeregisterCheckACLDeny(t *testing.T) {
 	defer a.Shutdown()
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
-	if err := a.AddCheck(chk, nil, false, ""); err != nil {
+	if err := a.AddCheck(chk, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -926,7 +981,7 @@ func TestAgent_PassCheck(t *testing.T) {
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
 	chkType := &structs.CheckType{TTL: 15 * time.Second}
-	if err := a.AddCheck(chk, chkType, false, ""); err != nil {
+	if err := a.AddCheck(chk, chkType, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -953,7 +1008,7 @@ func TestAgent_PassCheck_ACLDeny(t *testing.T) {
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
 	chkType := &structs.CheckType{TTL: 15 * time.Second}
-	if err := a.AddCheck(chk, chkType, false, ""); err != nil {
+	if err := a.AddCheck(chk, chkType, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -979,7 +1034,7 @@ func TestAgent_WarnCheck(t *testing.T) {
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
 	chkType := &structs.CheckType{TTL: 15 * time.Second}
-	if err := a.AddCheck(chk, chkType, false, ""); err != nil {
+	if err := a.AddCheck(chk, chkType, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1006,7 +1061,7 @@ func TestAgent_WarnCheck_ACLDeny(t *testing.T) {
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
 	chkType := &structs.CheckType{TTL: 15 * time.Second}
-	if err := a.AddCheck(chk, chkType, false, ""); err != nil {
+	if err := a.AddCheck(chk, chkType, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1032,7 +1087,7 @@ func TestAgent_FailCheck(t *testing.T) {
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
 	chkType := &structs.CheckType{TTL: 15 * time.Second}
-	if err := a.AddCheck(chk, chkType, false, ""); err != nil {
+	if err := a.AddCheck(chk, chkType, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1059,7 +1114,7 @@ func TestAgent_FailCheck_ACLDeny(t *testing.T) {
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
 	chkType := &structs.CheckType{TTL: 15 * time.Second}
-	if err := a.AddCheck(chk, chkType, false, ""); err != nil {
+	if err := a.AddCheck(chk, chkType, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1085,7 +1140,7 @@ func TestAgent_UpdateCheck(t *testing.T) {
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
 	chkType := &structs.CheckType{TTL: 15 * time.Second}
-	if err := a.AddCheck(chk, chkType, false, ""); err != nil {
+	if err := a.AddCheck(chk, chkType, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1168,7 +1223,7 @@ func TestAgent_UpdateCheck_ACLDeny(t *testing.T) {
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
 	chkType := &structs.CheckType{TTL: 15 * time.Second}
-	if err := a.AddCheck(chk, chkType, false, ""); err != nil {
+	if err := a.AddCheck(chk, chkType, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1338,6 +1393,72 @@ func TestAgent_RegisterService_InvalidAddress(t *testing.T) {
 	}
 }
 
+func TestAgent_RegisterService_ScriptCheck_ExecDisable(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	args := &structs.ServiceDefinition{
+		Name: "test",
+		Meta: map[string]string{"hello": "world"},
+		Tags: []string{"master"},
+		Port: 8000,
+		Check: structs.CheckType{
+			Name:       "test-check",
+			Interval:   time.Second,
+			ScriptArgs: []string{"true"},
+		},
+	}
+	req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=abc123", jsonReader(args))
+
+	_, err := a.srv.AgentRegisterService(nil, req)
+	if err == nil {
+		t.Fatalf("expected error but got nil")
+	}
+	if !strings.Contains(err.Error(), "Scripts are disabled on this agent") {
+		t.Fatalf("expected script disabled error, got: %s", err)
+	}
+	checkID := types.CheckID("test-check")
+	if _, ok := a.State.Checks()[checkID]; ok {
+		t.Fatalf("check registered with exec disable")
+	}
+}
+
+func TestAgent_RegisterService_ScriptCheck_ExecRemoteDisable(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), `
+		enable_local_script_checks = true
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	args := &structs.ServiceDefinition{
+		Name: "test",
+		Meta: map[string]string{"hello": "world"},
+		Tags: []string{"master"},
+		Port: 8000,
+		Check: structs.CheckType{
+			Name:       "test-check",
+			Interval:   time.Second,
+			ScriptArgs: []string{"true"},
+		},
+	}
+	req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=abc123", jsonReader(args))
+
+	_, err := a.srv.AgentRegisterService(nil, req)
+	if err == nil {
+		t.Fatalf("expected error but got nil")
+	}
+	if !strings.Contains(err.Error(), "Scripts are disabled on this agent") {
+		t.Fatalf("expected script disabled error, got: %s", err)
+	}
+	checkID := types.CheckID("test-check")
+	if _, ok := a.State.Checks()[checkID]; ok {
+		t.Fatalf("check registered with exec disable")
+	}
+}
+
 func TestAgent_DeregisterService(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
@@ -1347,7 +1468,7 @@ func TestAgent_DeregisterService(t *testing.T) {
 		ID:      "test",
 		Service: "test",
 	}
-	if err := a.AddService(service, nil, false, ""); err != nil {
+	if err := a.AddService(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1379,7 +1500,7 @@ func TestAgent_DeregisterService_ACLDeny(t *testing.T) {
 		ID:      "test",
 		Service: "test",
 	}
-	if err := a.AddService(service, nil, false, ""); err != nil {
+	if err := a.AddService(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1447,7 +1568,7 @@ func TestAgent_ServiceMaintenance_Enable(t *testing.T) {
 		ID:      "test",
 		Service: "test",
 	}
-	if err := a.AddService(service, nil, false, ""); err != nil {
+	if err := a.AddService(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1489,7 +1610,7 @@ func TestAgent_ServiceMaintenance_Disable(t *testing.T) {
 		ID:      "test",
 		Service: "test",
 	}
-	if err := a.AddService(service, nil, false, ""); err != nil {
+	if err := a.AddService(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1525,7 +1646,7 @@ func TestAgent_ServiceMaintenance_ACLDeny(t *testing.T) {
 		ID:      "test",
 		Service: "test",
 	}
-	if err := a.AddService(service, nil, false, ""); err != nil {
+	if err := a.AddService(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 

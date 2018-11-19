@@ -520,6 +520,9 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	consulRaftHeartbeatTimeout := b.durationVal("consul.raft.heartbeat_timeout", c.Consul.Raft.HeartbeatTimeout) * time.Duration(performanceRaftMultiplier)
 	consulRaftLeaderLeaseTimeout := b.durationVal("consul.raft.leader_lease_timeout", c.Consul.Raft.LeaderLeaseTimeout) * time.Duration(performanceRaftMultiplier)
 
+	enableRemoteScriptChecks := b.boolVal(c.EnableScriptChecks)
+	enableLocalScriptChecks := b.boolValWithDefault(c.EnableLocalScriptChecks, enableRemoteScriptChecks)
+
 	// ----------------------------------------------------------------
 	// build runtime config
 	//
@@ -627,6 +630,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		TelemetryStatsiteAddr:                       b.stringVal(c.Telemetry.StatsiteAddr),
 
 		// Agent
+
 		AdvertiseAddrLAN:            advertiseAddrLAN,
 		AdvertiseAddrWAN:            advertiseAddrWAN,
 		BindAddr:                    bindAddr,
@@ -651,7 +655,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		DiscoveryMaxStale:           b.durationVal("discovery_max_stale", c.DiscoveryMaxStale),
 		EnableAgentTLSForChecks:     b.boolVal(c.EnableAgentTLSForChecks),
 		EnableDebug:                 b.boolVal(c.EnableDebug),
-		EnableScriptChecks:          b.boolVal(c.EnableScriptChecks),
+		EnableRemoteScriptChecks:    enableRemoteScriptChecks,
+		EnableLocalScriptChecks:     enableLocalScriptChecks,
 		EnableSyslog:                b.boolVal(c.EnableSyslog),
 		EnableUI:                    b.boolVal(c.UI),
 		EncryptKey:                  b.stringVal(c.EncryptKey),
@@ -955,25 +960,25 @@ func (b *Builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 	id := types.CheckID(b.stringVal(v.ID))
 
 	return &structs.CheckDefinition{
-		ID:                id,
-		Name:              b.stringVal(v.Name),
-		Notes:             b.stringVal(v.Notes),
-		ServiceID:         b.stringVal(v.ServiceID),
-		Token:             b.stringVal(v.Token),
-		Status:            b.stringVal(v.Status),
-		ScriptArgs:        v.ScriptArgs,
-		HTTP:              b.stringVal(v.HTTP),
-		Header:            v.Header,
-		Method:            b.stringVal(v.Method),
-		TCP:               b.stringVal(v.TCP),
-		Interval:          b.durationVal(fmt.Sprintf("check[%s].interval", id), v.Interval),
-		DockerContainerID: b.stringVal(v.DockerContainerID),
-		Shell:             b.stringVal(v.Shell),
-		GRPC:              b.stringVal(v.GRPC),
-		GRPCUseTLS:        b.boolVal(v.GRPCUseTLS),
-		TLSSkipVerify:     b.boolVal(v.TLSSkipVerify),
-		Timeout:           b.durationVal(fmt.Sprintf("check[%s].timeout", id), v.Timeout),
-		TTL:               b.durationVal(fmt.Sprintf("check[%s].ttl", id), v.TTL),
+		ID:                             id,
+		Name:                           b.stringVal(v.Name),
+		Notes:                          b.stringVal(v.Notes),
+		ServiceID:                      b.stringVal(v.ServiceID),
+		Token:                          b.stringVal(v.Token),
+		Status:                         b.stringVal(v.Status),
+		ScriptArgs:                     v.ScriptArgs,
+		HTTP:                           b.stringVal(v.HTTP),
+		Header:                         v.Header,
+		Method:                         b.stringVal(v.Method),
+		TCP:                            b.stringVal(v.TCP),
+		Interval:                       b.durationVal(fmt.Sprintf("check[%s].interval", id), v.Interval),
+		DockerContainerID:              b.stringVal(v.DockerContainerID),
+		Shell:                          b.stringVal(v.Shell),
+		GRPC:                           b.stringVal(v.GRPC),
+		GRPCUseTLS:                     b.boolVal(v.GRPCUseTLS),
+		TLSSkipVerify:                  b.boolVal(v.TLSSkipVerify),
+		Timeout:                        b.durationVal(fmt.Sprintf("check[%s].timeout", id), v.Timeout),
+		TTL:                            b.durationVal(fmt.Sprintf("check[%s].ttl", id), v.TTL),
 		DeregisterCriticalServiceAfter: b.durationVal(fmt.Sprintf("check[%s].deregister_critical_service_after", id), v.DeregisterCriticalServiceAfter),
 	}
 }
@@ -1008,6 +1013,14 @@ func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		EnableTagOverride: b.boolVal(v.EnableTagOverride),
 		Checks:            checks,
 	}
+}
+
+func (b *Builder) boolValWithDefault(v *bool, defaultVal bool) bool {
+	if v == nil {
+		return defaultVal
+	}
+
+	return *v
 }
 
 func (b *Builder) boolVal(v *bool) bool {
