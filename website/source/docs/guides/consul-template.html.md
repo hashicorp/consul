@@ -13,7 +13,7 @@ for populating values into the local file system from a variety of locations,
 including Consul KV. The template tool is based on Go 
 templates and shares many of the same attributes. 
 
-Consul template has several useful and unique use cases.
+Consul template has several useful use cases.
 
 1. *Update configuration files*. The Consul template tool can be used
 to update service configuration files. A common use case is managing load 
