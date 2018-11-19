@@ -1,13 +1,15 @@
 import Controller from '@ember/controller';
+import { inject as service } from '@ember/service';
 import { get, set } from '@ember/object';
-import Changeset from 'ember-changeset';
-import lookupValidator from 'ember-changeset-validations';
-
-import validations from 'consul-ui/validations/intention';
 
 export default Controller.extend({
+  dom: service('dom'),
+  builder: service('form'),
+  init: function() {
+    this._super(...arguments);
+    this.form = get(this, 'builder').form('intention');
+  },
   setProperties: function(model) {
-    this.changeset = new Changeset(model.item, lookupValidator(validations), validations);
     const sourceName = get(model.item, 'SourceName');
     const destinationName = get(model.item, 'DestinationName');
     let source = model.items.findBy('Name', sourceName);
@@ -23,7 +25,7 @@ export default Controller.extend({
     this._super({
       ...model,
       ...{
-        item: this.changeset,
+        item: this.form.setData(model.item).getData(),
         SourceName: source,
         DestinationName: destination,
       },
@@ -36,37 +38,44 @@ export default Controller.extend({
     isUnique: function(term) {
       return !get(this, 'items').findBy('Name', term);
     },
-    change: function(e, value, _target) {
-      // normalize back to standard event
-      const target = e.target || { ..._target, ...{ name: e, value: value } };
-      let name, selected;
-      name = selected = target.value;
-      // TODO:
-      // linter needs this here?
+    change: function(e, value, item) {
+      const event = get(this, 'dom').normalizeEvent(e, value);
+      const form = get(this, 'form');
+      const target = event.target;
+
+      let name;
+      let selected;
       let match;
       switch (target.name) {
-        case 'Description':
-        case 'Action':
-          set(this.changeset, target.name, target.value);
-          break;
         case 'SourceName':
         case 'DestinationName':
+          name = selected = target.value;
+          // Names can be selected Service EmberObjects or typed in strings
+          // if its not a string, use the `Name` from the Service EmberObject
           if (typeof name !== 'string') {
             name = get(target.value, 'Name');
           }
-          // linter doesn't like const here
+          // see if the name is already in the list
           match = get(this, 'items').filterBy('Name', name);
           if (match.length === 0) {
+            // if its not make a new 'fake' Service that doesn't exist yet
+            // and add it to the possible services to make an intention between
             selected = { Name: name };
-            // linter doesn't mind const here?
             const items = [selected].concat(this.items.toArray());
             set(this, 'items', items);
           }
-          set(this.changeset, target.name, name);
+          // mutate the value with the string name
+          // which will be handled by the form
+          target.value = name;
+          // these are 'non-form' variables so not on `item`
+          // these variables also exist in the template so we know
+          // the current selection
+          // basically the difference between
+          // `item.DestinationName` and just `DestinationName`
           set(this, target.name, selected);
           break;
       }
-      this.changeset.validate();
+      form.handleEvent(event);
     },
   },
 });
