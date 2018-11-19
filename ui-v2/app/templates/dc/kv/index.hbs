@@ -59,7 +59,7 @@
                                         <a data-test-edit href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}>{{if item.isFolder 'View' 'Edit'}}</a>
                                     </li>
                                     <li>
-                                        <a data-test-delete onclick={{action confirm 'delete' item}}>Delete</a>
+                                        <button type="button" class="type-delete" data-test-delete {{action confirm 'delete' item}}>Delete</button>
                                     </li>
                                 </ul>
                             {{/action-group}}
