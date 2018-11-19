@@ -127,7 +127,7 @@ $ cat hashicorp_address.txt
 ```
 
 If you update the key `hashicorp/street_address`, you can see the changes to the file 
-immediately. Go ahead and try `consul kv put hashicorp/street_address "201 Stevenson ST"`.
+immediately. Go ahead and try `consul kv put hashicorp/street_address "22b Baker ST"`.
 
 You can see that this simple process can have powerful implications. For example, it is
 possible to use this same process for updating your [HAProxy load balancer 
