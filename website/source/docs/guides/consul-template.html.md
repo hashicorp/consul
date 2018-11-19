@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "Consul Template"
 sidebar_current: "docs-guides-consul-template"
 description: |-
-  Consul template provides a programmatic method for populating values into the file system.
+  Consul template provides a programmatic method for rendering configuration files from Consul data.
 ---
 
 # Consul Template
