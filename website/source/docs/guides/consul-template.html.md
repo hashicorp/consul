@@ -38,7 +38,7 @@ Consul template is a simple, yet powerful tool. When initiated, it
 reads one or more template files and queries Consul for all 
 data needed to render them. Typically, you run `consul-template` as a 
 daemon which will fetch the initial values and then continue to watch 
-for updates and re-render the template whenever there are relevant changes in 
+for updates, re-rendering the template whenever there are relevant changes in 
 the cluster. You can alternatively use the `-once` flag to fetch and render 
 the template once which is useful for testing and
 setup scripts that are triggered by some other automation for example a 
