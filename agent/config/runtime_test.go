@@ -349,7 +349,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
-				rt.EnableScriptChecks = true
+				rt.EnableLocalScriptChecks = true
+				rt.EnableRemoteScriptChecks = true
 				rt.DataDir = dataDir
 			},
 		},
@@ -2689,6 +2690,7 @@ func TestFullConfig(t *testing.T) {
 			"enable_agent_tls_for_checks": true,
 			"enable_debug": true,
 			"enable_script_checks": true,
+			"enable_local_script_checks": true,
 			"enable_syslog": true,
 			"encrypt": "A4wELWqH",
 			"encrypt_verify_incoming": true,
@@ -3188,6 +3190,7 @@ func TestFullConfig(t *testing.T) {
 			enable_agent_tls_for_checks = true
 			enable_debug = true
 			enable_script_checks = true
+			enable_local_script_checks = true
 			enable_syslog = true
 			encrypt = "A4wELWqH"
 			encrypt_verify_incoming = true
@@ -3779,7 +3782,8 @@ func TestFullConfig(t *testing.T) {
 		EnableACLReplication:             true,
 		EnableAgentTLSForChecks:          true,
 		EnableDebug:                      true,
-		EnableScriptChecks:               true,
+		EnableRemoteScriptChecks:         true,
+		EnableLocalScriptChecks:          true,
 		EnableSyslog:                     true,
 		EnableUI:                         true,
 		EncryptKey:                       "A4wELWqH",
@@ -4517,7 +4521,8 @@ func TestSanitize(t *testing.T) {
 		"EnableACLReplication": false,
 		"EnableAgentTLSForChecks": false,
 		"EnableDebug": false,
-		"EnableScriptChecks": false,
+		"EnableLocalScriptChecks": false,
+		"EnableRemoteScriptChecks": false,
 		"EnableSyslog": false,
 		"EnableUI": false,
 		"EncryptKey": "hidden",
