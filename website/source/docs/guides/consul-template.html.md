@@ -30,7 +30,8 @@ In this guide we will briefly discuss how `consul-template` works,
 how to install it, and two use cases. 
 
 Before completing this guide, we assume some familiarity with 
-Consul KV and Go templates.
+[Consul KV](https://learn.hashicorp.com/consul/getting-started/kv.html)
+ and [Go templates](https://golang.org/pkg/text/template/).
 
 ## Introduction to Consul Template 
 
@@ -43,7 +44,7 @@ the cluster. You can alternatively use the `-once` flag to fetch and render
 the template once which is useful for testing and
 setup scripts that are triggered by some other automation for example a 
 provisioning tool. Finally, the template can also run arbitrary commands after the update 
-process completes. For example, it can restart the 
+process completes. For example, it can send the HUP signal to the 
 load balancer service after a configuration change has been made. 
 
 The Consul template tool is flexible, it can fit into many
