@@ -2,6 +2,7 @@ import intention from 'consul-ui/search/filters/intention';
 import token from 'consul-ui/search/filters/token';
 import policy from 'consul-ui/search/filters/policy';
 import kv from 'consul-ui/search/filters/kv';
+import acl from 'consul-ui/search/filters/acl';
 import node from 'consul-ui/search/filters/node';
 // service instance
 import nodeService from 'consul-ui/search/filters/node/service';
@@ -16,6 +17,7 @@ export function initialize(application) {
   const searchables = {
     intention: intention(filterable),
     token: token(filterable),
+    acl: acl(filterable),
     policy: policy(filterable),
     kv: kv(filterable),
     healthyNode: node(filterable),
