@@ -3,11 +3,11 @@ import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
 import { next } from '@ember/runloop';
-const $html = document.documentElement;
-const removeLoading = function() {
-  return $html.classList.remove('ember-loading');
+const removeLoading = function($from) {
+  return $from.classList.remove('ember-loading');
 };
 export default Route.extend({
+  dom: service('dom'),
   init: function() {
     this._super(...arguments);
   },
@@ -15,20 +15,21 @@ export default Route.extend({
   settings: service('settings'),
   actions: {
     loading: function(transition, originRoute) {
+      const $root = get(this, 'dom').root();
       let dc = null;
       if (originRoute.routeName !== 'dc') {
         const model = this.modelFor('dc') || { dcs: null, dc: { Name: null } };
         dc = get(this, 'repo').getActive(model.dc.Name, model.dcs);
       }
       hash({
-        loading: !$html.classList.contains('ember-loading'),
+        loading: !$root.classList.contains('ember-loading'),
         dc: dc,
       }).then(model => {
         next(() => {
           const controller = this.controllerFor('application');
           controller.setProperties(model);
           transition.promise.finally(function() {
-            removeLoading();
+            removeLoading($root);
             controller.setProperties({
               loading: false,
               dc: model.dc,
@@ -70,6 +71,7 @@ export default Route.extend({
       if (error.status === '') {
         error.message = 'Error';
       }
+      const $root = get(this, 'dom').root();
       hash({
         error: error,
         dc:
@@ -81,13 +83,13 @@ export default Route.extend({
         dcs: model && model.dcs ? model.dcs : [],
       })
         .then(model => {
-          removeLoading();
+          removeLoading($root);
           next(() => {
             this.controllerFor('error').setProperties(model);
           });
         })
         .catch(e => {
-          removeLoading();
+          removeLoading($root);
           next(() => {
             this.controllerFor('error').setProperties({ error: error });
           });

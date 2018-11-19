@@ -21,22 +21,23 @@
   @extend %button;
   border-width: 1px;
   border-radius: $radius-small;
-  box-shadow: 0 3px 1px 0 rgba($ui-black, 0.12);
+  box-shadow: 0 3px 1px 0 rgba($black, 0.12);
 }
 /* color */
 %copy-button {
-  color: $ui-color-action;
-  background-color: $ui-color-transparent;
+  color: $color-action;
+  background-color: $color-transparent;
 }
 %copy-button:hover:not(:disabled):not(:active),
 %copy-button:focus {
-  color: $ui-color-action;
-  background-color: $ui-gray-050;
+  /*frame-grey frame-blue*/
+  color: $color-action;
+  background-color: $gray-050;
 }
 %copy-button:disabled {
 }
 %copy-button:active {
-  background-color: $ui-gray-200;
+  background-color: $gray-200;
 }
 %primary-button {
   @extend %frame-blue-800;
@@ -52,28 +53,22 @@
   @extend %frame-blue-900;
 }
 /**/
-%secondary-button {
-  /* %frame-gray-something */
-  color: $ui-gray-800;
-  background-color: $ui-gray-050;
-  border-color: $ui-gray-300;
-  border-style: solid;
-}
 %secondary-button:hover:not(:disabled):not(:active),
 %secondary-button:focus {
-  /* %frame-gray-something */
-  background-color: $ui-white;
-  color: $ui-gray-800;
-  border-color: $ui-gray-700;
+  @extend %frame-gray-300;
+}
+%secondary-button {
+  @extend %frame-gray-400;
 }
 %secondary-button:disabled {
-  color: $ui-gray-600;
+  color: $gray-600;
 }
 %secondary-button:active {
   /* %frame-gray-something */
-  background-color: $ui-gray-200;
-  color: $ui-gray-800;
-  border-color: $ui-gray-700;
+  @extend %frame-gray-700;
+  background-color: $gray-200;
+  color: $gray-800;
+  border-color: $gray-700;
 }
 /**/
 %dangerous-button {
