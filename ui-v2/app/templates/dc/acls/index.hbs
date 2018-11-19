@@ -43,28 +43,28 @@
                         {{#block-slot 'action' as |confirm|}}
                             {{#action-group index=index onchange=(action change) checked=(if (eq checked index) 'checked')}}
                                 <ul>
-                                    <li>
-                                        <a data-test-edit href={{href-to 'dc.acls.edit' item.ID}}>Edit</a>
-                                    </li>
-    {{#if (eq item.ID token.SecretID) }}
-                                    <li>
-                                        <a data-test-logout onclick={{queue (action confirm 'logout' item) (action change)}}>Stop using</a>
-                                    </li>
-    {{else}}
+                                  <li>
+                                    <a data-test-edit href={{href-to 'dc.acls.edit' item.ID}}>Edit</a>
+                                  </li>
+{{#if (eq item.ID token.SecretID) }}
+                                  <li>
+                                      <button type="button" data-test-logout {{action confirm 'logout' item}}>Stop using</button>
+                                  </li>
+{{else}}
 
-                                    <li>
-                                        <a data-test-use onclick={{queue (action confirm 'use' item) (action change)}}>Use</a>
-                                    </li>
-    {{/if}}
-                                    <li>
-                                        <a data-test-clone onclick={{action 'sendClone' item}}>Clone</a>
-                                    </li>
-    {{# if (not-eq item.ID 'anonymous') }}
-                                    <li>
-                                        <a data-test-delete onclick={{action confirm 'delete' item}}>Delete</a>
-                                    </li>
-    {{/if}}
-                                </ul>
+                                  <li>
+                                      <button type="button" data-test-use {{action confirm 'use' item}}>Use</button>
+                                  </li>
+{{/if}}
+                                  <li>
+                                      <button type="button" data-test-clone {{action 'sendClone' item}}>Clone</button>
+                                  </li>
+{{# if (not-eq item.ID 'anonymous') }}
+                                  <li>
+                                      <button type="button" class="type-delete" data-test-delete {{action confirm 'delete' item}}>Delete</button>
+                                  </li>
+{{/if}}
+                              </ul>
                             {{/action-group}}
                         {{/block-slot}}
                         {{#block-slot 'dialog' as |execute cancel message name|}}
