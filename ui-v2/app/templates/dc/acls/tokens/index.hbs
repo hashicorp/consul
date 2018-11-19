@@ -26,7 +26,7 @@
     </form>
 {{/if}}
 {{#if (token/is-legacy items)}}
-            <p data-test-notification-update class="notice info"><strong>Update.</strong> We have upgraded our ACL System to allow the creation of reusable policies that can be applied to tokens. Read more about the changes and how to upgrade legacy tokens in our <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guides/acl-migrate-tokens.html" target="_blank" rel="noopener noreferrer">documentation</a>.</p>
+    <p data-test-notification-update class="notice info"><strong>Update.</strong> We have upgraded our ACL System to allow the creation of reusable policies that can be applied to tokens. Read more about the changes and how to upgrade legacy tokens in our <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guide/acl-migrate-tokens.html" target="_blank" rel="noopener noreferrer">documentation</a>.</p>
 {{/if}}
     {{#changeable-set dispatcher=searchable}}
       {{#block-slot 'set' as |filtered|}}
@@ -68,32 +68,33 @@
               {{#block-slot 'action' as |confirm|}}
                 {{#action-group index=index onchange=(action change) checked=(if (eq checked index) 'checked')}}
                   <ul>
-                    {{#if false}}
-                      <li>
-                        {{#copy-button-feedback title="Copy AccessorID to the clipboard" copy=item.AccessorID name="AccessorID"}}Copy AccessorID{{/copy-button-feedback}}
-                      </li>
-                    {{/if}}
-                      <li>
-                          <a data-test-edit href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>Edit</a>
-                      </li>
+{{#if false}}
+                    <li>
+                      {{#copy-button-feedback title="Copy AccessorID to the clipboard" copy=item.AccessorID name="AccessorID"}}Copy AccessorID{{/copy-button-feedback}}
+                    </li>
+{{/if}}
+                    <li>
+                        <a data-test-edit href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>Edit</a>
+                    </li>
 {{#if (not (token/is-legacy item))}}
-                      <li>
-                          <a data-test-clone onclick={{action 'sendClone' item}}>Duplicate</a>
-                      </li>
+                    <li>
+                        <button type="button" data-test-clone {{action 'sendClone' item}}>Duplicate</button>
+                    </li>
 {{/if}}
 {{#if (eq item.AccessorID token.AccessorID) }}
-                      <li>
-                          <a data-test-logout onclick={{queue (action confirm 'logout' item) (action change)}}>Stop using</a>
-                      </li>
+                    <li>
+                        <button type="button" data-test-logout {{action confirm 'logout' item}}>Stop using</button>
+                    </li>
 {{else}}
-                      <li>
-                          <a data-test-use onclick={{queue (action confirm 'use' item) (action change)}}>Use</a>
-                      </li>
+
+                    <li>
+                        <button type="button" data-test-use {{action confirm 'use' item}}>Use</button>
+                    </li>
 {{/if}}
-{{#unless (or (token/is-anonymous item) (eq item.AccessorID token.AccessorID)) }}
-                      <li>
-                          <a data-test-delete onclick={{action confirm 'delete' item}}>Delete</a>
-                      </li>
+{{#unless (token/is-anonymous item) }}
+                    <li>
+                        <button type="button" class="type-delete" data-test-delete {{action confirm 'delete' item}}>Delete</button>
+                    </li>
 {{/unless}}
                   </ul>
                 {{/action-group}}
@@ -102,6 +103,9 @@
                   <p>
                       {{#if (eq name 'delete')}}
                         {{message}}
+{{#if (eq item.AccessorID token.AccessorID)}}
+                        Warning: This is the token you are currently using!
+{{/if}}
                       {{else if (eq name 'logout')}}
                           Are you sure you want to stop using this ACL token? This will log you out.
                       {{else if (eq name 'use')}}

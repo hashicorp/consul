@@ -61,7 +61,7 @@
                                         <a data-test-edit href={{href-to 'dc.acls.policies.edit' item.ID}}>Edit</a>
                                     </li>
                                     <li>
-                                        <a data-test-delete onclick={{action confirm 'delete' item}}>Delete</a>
+                                        <button type="button" class="type-delete" data-test-delete {{action confirm 'delete' item}}>Delete</button>
                                     </li>
     {{/if}}
                                 </ul>
