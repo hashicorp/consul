@@ -27,6 +27,7 @@ export default Controller.extend(WithFiltering, {
       };
     });
   }),
+  // TODO: This should be using a searchable
   filter: function(item, { s = '', type = '' }) {
     const sLower = s.toLowerCase();
     return (
