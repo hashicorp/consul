@@ -1,12 +1,9 @@
 import Controller from '@ember/controller';
+import { inject as service } from '@ember/service';
 import { get, set, computed } from '@ember/object';
-import { getOwner } from '@ember/application';
 import WithSearching from 'consul-ui/mixins/with-searching';
-import qsaFactory from 'consul-ui/utils/dom/qsa-factory';
-import getComponentFactory from 'consul-ui/utils/get-component-factory';
-
-const $$ = qsaFactory();
 export default Controller.extend(WithSearching, {
+  dom: service('dom'),
   queryParams: {
     s: {
       as: 'filter',
@@ -36,15 +33,15 @@ export default Controller.extend(WithSearching, {
   actions: {
     change: function(e) {
       set(this, 'selectedTab', e.target.value);
-      const getComponent = getComponentFactory(getOwner(this));
       // Ensure tabular-collections sizing is recalculated
       // now it is visible in the DOM
-      [...$$('.tab-section input[type="radio"]:checked + div table')].forEach(function(item) {
-        const component = getComponent(item);
-        if (component && typeof component.didAppear === 'function') {
-          getComponent(item).didAppear();
-        }
-      });
+      get(this, 'dom')
+        .components('.tab-section input[type="radio"]:checked + div table')
+        .forEach(function(item) {
+          if (typeof item.didAppear === 'function') {
+            item.didAppear();
+          }
+        });
     },
     sortChecksByImportance: function(a, b) {
       const statusA = get(a, 'Status');
