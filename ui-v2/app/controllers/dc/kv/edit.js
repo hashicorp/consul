@@ -2,41 +2,56 @@ import Controller from '@ember/controller';
 import { get, set } from '@ember/object';
 import { inject as service } from '@ember/service';
 
-import Changeset from 'ember-changeset';
-import validations from 'consul-ui/validations/kv';
-import lookupValidator from 'ember-changeset-validations';
 export default Controller.extend({
-  json: true,
+  dom: service('dom'),
+  builder: service('form'),
   encoder: service('btoa'),
+  json: true,
+  init: function() {
+    this._super(...arguments);
+    this.form = get(this, 'builder').form('kv');
+  },
   setProperties: function(model) {
-    // TODO: Potentially save whether json has been clicked to the model,
-    // setting set(this, 'json', true) here will force the form to always default to code=on
-    // even if the user has selected code=off on another KV
-    // ideally we would save the value per KV, but I'd like to not do that on the model
-    // a set(this, 'json', valueFromSomeStorageJustForThisKV) would be added here
-    this.changeset = new Changeset(model.item, lookupValidator(validations), validations);
-    this._super({
-      ...model,
-      ...{
-        item: this.changeset,
-      },
-    });
+    // essentially this replaces the data with changesets
+    this._super(
+      Object.keys(model).reduce((prev, key, i) => {
+        switch (key) {
+          case 'item':
+            prev[key] = this.form.setData(prev[key]).getData();
+            break;
+        }
+        return prev;
+      }, model)
+    );
   },
   actions: {
-    change: function(e) {
-      const target = e.target || { name: 'value', value: e };
-      var parent;
-      switch (target.name) {
-        case 'additional':
-          parent = get(this, 'parent.Key');
-          set(this.changeset, 'Key', `${parent !== '/' ? parent : ''}${target.value}`);
-          break;
-        case 'json':
-          set(this, 'json', !get(this, 'json'));
-          break;
-        case 'value':
-          set(this, 'item.Value', get(this, 'encoder').execute(target.value));
-          break;
+    change: function(e, value, item) {
+      const event = get(this, 'dom').normalizeEvent(e, value);
+      const form = get(this, 'form');
+      try {
+        form.handleEvent(event);
+      } catch (err) {
+        const target = event.target;
+        let parent;
+        switch (target.name) {
+          case 'value':
+            set(this.item, 'Value', get(this, 'encoder').execute(target.value));
+            break;
+          case 'additional':
+            parent = get(this, 'parent.Key');
+            set(this.item, 'Key', `${parent !== '/' ? parent : ''}${target.value}`);
+            break;
+          case 'json':
+            // TODO: Potentially save whether json has been clicked to the model,
+            // setting set(this, 'json', true) here will force the form to always default to code=on
+            // even if the user has selected code=off on another KV
+            // ideally we would save the value per KV, but I'd like to not do that on the model
+            // a set(this, 'json', valueFromSomeStorageJustForThisKV) would be added here
+            set(this, 'json', !get(this, 'json'));
+            break;
+          default:
+            throw err;
+        }
       }
     },
   },

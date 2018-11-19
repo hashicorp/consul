@@ -1,14 +1,14 @@
 import Component from '@ember/component';
+import { inject as service } from '@ember/service';
+import { get } from '@ember/object';
 import SlotsMixin from 'ember-block-slots';
-import closest from 'consul-ui/utils/dom/closest';
-import clickFirstAnchorFactory from 'consul-ui/utils/dom/click-first-anchor';
-const clickFirstAnchor = clickFirstAnchorFactory(closest);
 
 export default Component.extend(SlotsMixin, {
+  dom: service('dom'),
   onchange: function() {},
   actions: {
     click: function(e) {
-      clickFirstAnchor(e);
+      get(this, 'dom').clickFirstAnchor(e);
     },
     change: function(item, e) {
       this.onchange(e, item);
