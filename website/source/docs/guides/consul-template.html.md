@@ -40,7 +40,7 @@ data needed to render them. Typically, you run `consul-template` as a
 daemon which can fetch the values more than once, it will continue to watch 
 for updates and re-render the template whenever there are relevant changes in 
 the cluster. You can alternatively use the `-once` flag to fetch and render 
-the tempalte once which is useful for testing and sometimes useful in 
+the template once which is useful for testing and
 setup scripts that are triggered by some other automation for example a 
 provisioning tool. Finally, the template can also run arbitrary commands after the update 
 process completes. For example, it can restart the 
