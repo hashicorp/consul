@@ -5,12 +5,8 @@ import Grid from 'ember-collection/layouts/grid';
 import SlotsMixin from 'block-slots';
 import WithResizing from 'consul-ui/mixins/with-resizing';
 import style from 'ember-computed-style';
-import qsaFactory from 'consul-ui/utils/dom/qsa-factory';
-import sibling from 'consul-ui/utils/dom/sibling';
-import closest from 'consul-ui/utils/dom/closest';
-import clickFirstAnchorFactory from 'consul-ui/utils/dom/click-first-anchor';
-const clickFirstAnchor = clickFirstAnchorFactory(closest);
 
+import { inject as service } from '@ember/service';
 import { computed, get, set } from '@ember/object';
 /**
  * Heavily extended `ember-collection` component
@@ -24,8 +20,6 @@ import { computed, get, set } from '@ember/object';
  * in the future
  */
 
-// ember doesn't like you using `$` hence `$$`
-const $$ = qsaFactory();
 // need to copy Cell in wholesale as there is no way to import it
 // there is no change made to `Cell` here, its only here as its
 // private in `ember-collection`
@@ -85,9 +79,10 @@ const change = function(e) {
       // 'actions_close' would mean that all menus have been closed
       // therefore we don't need to calculate
       if (e.currentTarget.getAttribute('id') !== 'actions_close') {
-        const $tr = closest('tr', e.currentTarget);
-        const $group = sibling(e.currentTarget, 'ul');
-        const $footer = [...$$('footer[role="contentinfo"]')][0];
+        const dom = get(this, 'dom');
+        const $tr = dom.closest('tr', e.currentTarget);
+        const $group = dom.sibling(e.currentTarget, 'ul');
+        const $footer = dom.element('footer[role="contentinfo"]');
         const groupRect = $group.getBoundingClientRect();
         const footerRect = $footer.getBoundingClientRect();
         const groupBottom = groupRect.top + $group.clientHeight;
@@ -122,6 +117,7 @@ export default Component.extend(SlotsMixin, WithResizing, {
   style: style('getStyle'),
   checked: null,
   hasCaption: false,
+  dom: service('dom'),
   init: function() {
     this._super(...arguments);
     this.change = change.bind(this);
@@ -136,11 +132,12 @@ export default Component.extend(SlotsMixin, WithResizing, {
   }),
   resize: function(e) {
     const $tbody = this.element;
-    const $appContent = [...$$('main > div')][0];
+    const dom = get(this, 'dom');
+    const $appContent = dom.element('main > div');
     if ($appContent) {
       const border = 1;
       const rect = $tbody.getBoundingClientRect();
-      const $footer = [...$$('footer[role="contentinfo"]')][0];
+      const $footer = dom.element('footer[role="contentinfo"]');
       const space = rect.top + $footer.clientHeight + border;
       const height = e.detail.height - space;
       this.set('height', Math.max(0, height));
@@ -273,7 +270,7 @@ export default Component.extend(SlotsMixin, WithResizing, {
   },
   actions: {
     click: function(e) {
-      return clickFirstAnchor(e);
+      return get(this, 'dom').clickFirstAnchor(e);
     },
   },
 });

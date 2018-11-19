@@ -1,6 +1,5 @@
 import Controller from '@ember/controller';
-import { get } from '@ember/object';
-import { computed } from '@ember/object';
+import { get, computed } from '@ember/object';
 import sumOfUnhealthy from 'consul-ui/utils/sumOfUnhealthy';
 import hasStatus from 'consul-ui/utils/hasStatus';
 import WithHealthFiltering from 'consul-ui/mixins/with-health-filtering';
