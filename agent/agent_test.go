@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/types"
@@ -367,7 +368,7 @@ func TestAgent_AddService(t *testing.T) {
 		t.Run(tt.desc, func(t *testing.T) {
 			// check the service registration
 			t.Run(tt.srv.ID, func(t *testing.T) {
-				err := a.AddService(tt.srv, tt.chkTypes, false, "")
+				err := a.AddService(tt.srv, tt.chkTypes, false, "", ConfigSourceLocal)
 				if err != nil {
 					t.Fatalf("err: %v", err)
 				}
@@ -403,6 +404,62 @@ func TestAgent_AddService(t *testing.T) {
 	}
 }
 
+func TestAgent_AddServiceNoExec(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), `
+		node_name = "node1"
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	srv := &structs.NodeService{
+		ID:      "svcid1",
+		Service: "svcname1",
+		Tags:    []string{"tag1"},
+		Port:    8100,
+	}
+	chk := &structs.CheckType{
+		ScriptArgs: []string{"exit", "0"},
+		Interval:   15 * time.Second,
+	}
+
+	err := a.AddService(srv, []*structs.CheckType{chk}, false, "", ConfigSourceLocal)
+	if err == nil || !strings.Contains(err.Error(), "Scripts are disabled on this agent") {
+		t.Fatalf("err: %v", err)
+	}
+
+	err = a.AddService(srv, []*structs.CheckType{chk}, false, "", ConfigSourceRemote)
+	if err == nil || !strings.Contains(err.Error(), "Scripts are disabled on this agent") {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestAgent_AddServiceNoRemoteExec(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), `
+		node_name = "node1"
+		enable_local_script_checks = true
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	srv := &structs.NodeService{
+		ID:      "svcid1",
+		Service: "svcname1",
+		Tags:    []string{"tag1"},
+		Port:    8100,
+	}
+	chk := &structs.CheckType{
+		ScriptArgs: []string{"exit", "0"},
+		Interval:   15 * time.Second,
+	}
+
+	err := a.AddService(srv, []*structs.CheckType{chk}, false, "", ConfigSourceRemote)
+	if err == nil || !strings.Contains(err.Error(), "Scripts are disabled on this agent") {
+		t.Fatalf("err: %v", err)
+	}
+}
+
 func TestAgent_RemoveService(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
@@ -427,7 +484,7 @@ func TestAgent_RemoveService(t *testing.T) {
 		}
 		chkTypes := []*structs.CheckType{&structs.CheckType{TTL: time.Minute}}
 
-		if err := a.AddService(srv, chkTypes, false, ""); err != nil {
+		if err := a.AddService(srv, chkTypes, false, "", ConfigSourceLocal); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -439,7 +496,7 @@ func TestAgent_RemoveService(t *testing.T) {
 			TTL:       time.Minute,
 		}
 		hc := check.HealthCheck("node1")
-		if err := a.AddCheck(hc, check.CheckType(), false, ""); err != nil {
+		if err := a.AddCheck(hc, check.CheckType(), false, "", ConfigSourceLocal); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 
@@ -465,7 +522,7 @@ func TestAgent_RemoveService(t *testing.T) {
 			&structs.CheckType{TTL: time.Minute},
 			&structs.CheckType{TTL: 30 * time.Second},
 		}
-		if err := a.AddService(srv, chkTypes, false, ""); err != nil {
+		if err := a.AddService(srv, chkTypes, false, "", ConfigSourceLocal); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -511,7 +568,7 @@ func TestAgent_RemoveServiceRemovesAllChecks(t *testing.T) {
 	hchk2 := &structs.HealthCheck{Node: "node1", CheckID: "chk2", Name: "chk2", Status: "critical", ServiceID: "redis", ServiceName: "redis"}
 
 	// register service with chk1
-	if err := a.AddService(svc, []*structs.CheckType{chk1}, false, ""); err != nil {
+	if err := a.AddService(svc, []*structs.CheckType{chk1}, false, "", ConfigSourceLocal); err != nil {
 		t.Fatal("Failed to register service", err)
 	}
 
@@ -521,7 +578,7 @@ func TestAgent_RemoveServiceRemovesAllChecks(t *testing.T) {
 	}
 
 	// update the service with chk2
-	if err := a.AddService(svc, []*structs.CheckType{chk2}, false, ""); err != nil {
+	if err := a.AddService(svc, []*structs.CheckType{chk2}, false, "", ConfigSourceLocal); err != nil {
 		t.Fatal("Failed to update service", err)
 	}
 
@@ -576,7 +633,7 @@ func verifyIndexChurn(t *testing.T, tags []string) {
 		Port:    8000,
 		Tags:    tags,
 	}
-	if err := a.AddService(svc, nil, true, ""); err != nil {
+	if err := a.AddService(svc, nil, true, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -589,7 +646,7 @@ func verifyIndexChurn(t *testing.T, tags []string) {
 	chkt := &structs.CheckType{
 		TTL: time.Hour,
 	}
-	if err := a.AddCheck(chk, chkt, true, ""); err != nil {
+	if err := a.AddCheck(chk, chkt, true, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -601,7 +658,7 @@ func verifyIndexChurn(t *testing.T, tags []string) {
 	chkt = &structs.CheckType{
 		TTL: time.Hour,
 	}
-	if err := a.AddCheck(chk, chkt, true, ""); err != nil {
+	if err := a.AddCheck(chk, chkt, true, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -654,7 +711,7 @@ func TestAgent_AddCheck(t *testing.T) {
 		Script:   "exit 0",
 		Interval: 15 * time.Second,
 	}
-	err := a.AddCheck(health, chk, false, "")
+	err := a.AddCheck(health, chk, false, "", ConfigSourceLocal)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -693,7 +750,7 @@ func TestAgent_AddCheck_StartPassing(t *testing.T) {
 		Script:   "exit 0",
 		Interval: 15 * time.Second,
 	}
-	err := a.AddCheck(health, chk, false, "")
+	err := a.AddCheck(health, chk, false, "", ConfigSourceLocal)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -732,7 +789,7 @@ func TestAgent_AddCheck_MinInterval(t *testing.T) {
 		Script:   "exit 0",
 		Interval: time.Microsecond,
 	}
-	err := a.AddCheck(health, chk, false, "")
+	err := a.AddCheck(health, chk, false, "", ConfigSourceLocal)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -767,7 +824,7 @@ func TestAgent_AddCheck_MissingService(t *testing.T) {
 		Script:   "exit 0",
 		Interval: time.Microsecond,
 	}
-	err := a.AddCheck(health, chk, false, "")
+	err := a.AddCheck(health, chk, false, "", ConfigSourceLocal)
 	if err == nil || err.Error() != `ServiceID "baz" does not exist` {
 		t.Fatalf("expected service id error, got: %v", err)
 	}
@@ -797,7 +854,7 @@ func TestAgent_AddCheck_RestoreState(t *testing.T) {
 	chk := &structs.CheckType{
 		TTL: time.Minute,
 	}
-	err = a.AddCheck(health, chk, false, "")
+	err = a.AddCheck(health, chk, false, "", ConfigSourceLocal)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -832,8 +889,48 @@ func TestAgent_AddCheck_ExecDisable(t *testing.T) {
 		Script:   "exit 0",
 		Interval: 15 * time.Second,
 	}
-	err := a.AddCheck(health, chk, false, "")
+	err := a.AddCheck(health, chk, false, "", ConfigSourceLocal)
 	if err == nil || !strings.Contains(err.Error(), "Scripts are disabled on this agent") {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Ensure we don't have a check mapping
+	if memChk := a.State.Checks()["mem"]; memChk != nil {
+		t.Fatalf("should be missing mem check")
+	}
+
+	err = a.AddCheck(health, chk, false, "", ConfigSourceRemote)
+	if err == nil || !strings.Contains(err.Error(), "Scripts are disabled on this agent") {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Ensure we don't have a check mapping
+	if memChk := a.State.Checks()["mem"]; memChk != nil {
+		t.Fatalf("should be missing mem check")
+	}
+}
+
+func TestAgent_AddCheck_ExecRemoteDisable(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t.Name(), `
+		enable_local_script_checks = true
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	health := &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "mem",
+		Name:    "memory util",
+		Status:  api.HealthCritical,
+	}
+	chk := &structs.CheckType{
+		ScriptArgs: []string{"exit", "0"},
+		Interval:   15 * time.Second,
+	}
+	err := a.AddCheck(health, chk, false, "", ConfigSourceRemote)
+	if err == nil || !strings.Contains(err.Error(), "Scripts are disabled on this agent from remote calls") {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -858,7 +955,7 @@ func TestAgent_AddCheck_GRPC(t *testing.T) {
 		GRPC:     "localhost:12345/package.Service",
 		Interval: 15 * time.Second,
 	}
-	err := a.AddCheck(health, chk, false, "")
+	err := a.AddCheck(health, chk, false, "", ConfigSourceLocal)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -907,7 +1004,7 @@ func TestAgent_RemoveCheck(t *testing.T) {
 		Script:   "exit 0",
 		Interval: 15 * time.Second,
 	}
-	err := a.AddCheck(health, chk, false, "")
+	err := a.AddCheck(health, chk, false, "", ConfigSourceLocal)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -952,7 +1049,7 @@ func TestAgent_HTTPCheck_TLSSkipVerify(t *testing.T) {
 		TLSSkipVerify: true,
 	}
 
-	err := a.AddCheck(health, chk, false, "")
+	err := a.AddCheck(health, chk, false, "", ConfigSourceLocal)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1001,7 +1098,7 @@ func TestAgent_HTTPCheck_EnableAgentTLSForChecks(t *testing.T) {
 			Interval: 20 * time.Millisecond,
 		}
 
-		err := a.AddCheck(health, chk, false, "")
+		err := a.AddCheck(health, chk, false, "", ConfigSourceLocal)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -1050,7 +1147,7 @@ func TestAgent_updateTTLCheck(t *testing.T) {
 	}
 
 	// Add check and update it.
-	err := a.AddCheck(health, chk, false, "")
+	err := a.AddCheck(health, chk, false, "", ConfigSourceLocal)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1091,7 +1188,7 @@ func TestAgent_PersistService(t *testing.T) {
 	file := filepath.Join(a.Config.DataDir, servicesDir, stringHash(svc.ID))
 
 	// Check is not persisted unless requested
-	if err := a.AddService(svc, nil, false, ""); err != nil {
+	if err := a.AddService(svc, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if _, err := os.Stat(file); err == nil {
@@ -1099,7 +1196,7 @@ func TestAgent_PersistService(t *testing.T) {
 	}
 
 	// Persists to file if requested
-	if err := a.AddService(svc, nil, true, "mytoken"); err != nil {
+	if err := a.AddService(svc, nil, true, "mytoken", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if _, err := os.Stat(file); err != nil {
@@ -1122,7 +1219,7 @@ func TestAgent_PersistService(t *testing.T) {
 
 	// Updates service definition on disk
 	svc.Port = 8001
-	if err := a.AddService(svc, nil, true, "mytoken"); err != nil {
+	if err := a.AddService(svc, nil, true, "mytoken", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	expected, err = json.Marshal(persistedService{
@@ -1216,7 +1313,7 @@ func TestAgent_PurgeService(t *testing.T) {
 	}
 
 	file := filepath.Join(a.Config.DataDir, servicesDir, stringHash(svc.ID))
-	if err := a.AddService(svc, nil, true, ""); err != nil {
+	if err := a.AddService(svc, nil, true, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1229,7 +1326,7 @@ func TestAgent_PurgeService(t *testing.T) {
 	}
 
 	// Re-add the service
-	if err := a.AddService(svc, nil, true, ""); err != nil {
+	if err := a.AddService(svc, nil, true, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1263,7 +1360,7 @@ func TestAgent_PurgeServiceOnDuplicate(t *testing.T) {
 	}
 
 	// First persist the service
-	if err := a.AddService(svc1, nil, true, ""); err != nil {
+	if err := a.AddService(svc1, nil, true, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	a.Shutdown()
@@ -1322,7 +1419,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 	file := filepath.Join(a.Config.DataDir, checksDir, checkIDHash(check.CheckID))
 
 	// Not persisted if not requested
-	if err := a.AddCheck(check, chkType, false, ""); err != nil {
+	if err := a.AddCheck(check, chkType, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if _, err := os.Stat(file); err == nil {
@@ -1330,7 +1427,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 	}
 
 	// Should persist if requested
-	if err := a.AddCheck(check, chkType, true, "mytoken"); err != nil {
+	if err := a.AddCheck(check, chkType, true, "mytoken", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if _, err := os.Stat(file); err != nil {
@@ -1354,7 +1451,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 
 	// Updates the check definition on disk
 	check.Name = "mem1"
-	if err := a.AddCheck(check, chkType, true, "mytoken"); err != nil {
+	if err := a.AddCheck(check, chkType, true, "mytoken", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	expected, err = json.Marshal(persistedCheck{
@@ -1412,7 +1509,7 @@ func TestAgent_PurgeCheck(t *testing.T) {
 	}
 
 	file := filepath.Join(a.Config.DataDir, checksDir, checkIDHash(check.CheckID))
-	if err := a.AddCheck(check, nil, true, ""); err != nil {
+	if err := a.AddCheck(check, nil, true, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1456,7 +1553,7 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	}
 
 	// First persist the check
-	if err := a.AddCheck(check1, nil, true, ""); err != nil {
+	if err := a.AddCheck(check1, nil, true, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	a.Shutdown()
@@ -1532,7 +1629,7 @@ func TestAgent_unloadChecks(t *testing.T) {
 		Tags:    []string{"foo"},
 		Port:    8000,
 	}
-	if err := a.AddService(svc, nil, false, ""); err != nil {
+	if err := a.AddService(svc, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1545,7 +1642,7 @@ func TestAgent_unloadChecks(t *testing.T) {
 		ServiceID:   "redis",
 		ServiceName: "redis",
 	}
-	if err := a.AddCheck(check1, nil, false, ""); err != nil {
+	if err := a.AddCheck(check1, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	found := false
@@ -1606,7 +1703,7 @@ func TestAgent_unloadServices(t *testing.T) {
 	}
 
 	// Register the service
-	if err := a.AddService(svc, nil, false, ""); err != nil {
+	if err := a.AddService(svc, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	found := false
@@ -1642,7 +1739,7 @@ func TestAgent_Service_MaintenanceMode(t *testing.T) {
 	}
 
 	// Register the service
-	if err := a.AddService(svc, nil, false, ""); err != nil {
+	if err := a.AddService(svc, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1709,14 +1806,14 @@ func TestAgent_Service_Reap(t *testing.T) {
 	}
 	chkTypes := []*structs.CheckType{
 		&structs.CheckType{
-			Status: api.HealthPassing,
-			TTL:    25 * time.Millisecond,
+			Status:                         api.HealthPassing,
+			TTL:                            25 * time.Millisecond,
 			DeregisterCriticalServiceAfter: 200 * time.Millisecond,
 		},
 	}
 
 	// Register the service.
-	if err := a.AddService(svc, chkTypes, false, ""); err != nil {
+	if err := a.AddService(svc, chkTypes, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1789,7 +1886,7 @@ func TestAgent_Service_NoReap(t *testing.T) {
 	}
 
 	// Register the service.
-	if err := a.AddService(svc, chkTypes, false, ""); err != nil {
+	if err := a.AddService(svc, chkTypes, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1832,7 +1929,7 @@ func TestAgent_addCheck_restoresSnapshot(t *testing.T) {
 		Tags:    []string{"foo"},
 		Port:    8000,
 	}
-	if err := a.AddService(svc, nil, false, ""); err != nil {
+	if err := a.AddService(svc, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1845,13 +1942,13 @@ func TestAgent_addCheck_restoresSnapshot(t *testing.T) {
 		ServiceID:   "redis",
 		ServiceName: "redis",
 	}
-	if err := a.AddCheck(check1, nil, false, ""); err != nil {
+	if err := a.AddCheck(check1, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// Re-registering the service preserves the state of the check
 	chkTypes := []*structs.CheckType{&structs.CheckType{TTL: 30 * time.Second}}
-	if err := a.AddService(svc, chkTypes, false, ""); err != nil {
+	if err := a.AddService(svc, chkTypes, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	check, ok := a.State.Checks()["service:redis"]
@@ -1920,7 +2017,7 @@ func TestAgent_checkStateSnapshot(t *testing.T) {
 		Tags:    []string{"foo"},
 		Port:    8000,
 	}
-	if err := a.AddService(svc, nil, false, ""); err != nil {
+	if err := a.AddService(svc, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1933,7 +2030,7 @@ func TestAgent_checkStateSnapshot(t *testing.T) {
 		ServiceID:   "redis",
 		ServiceName: "redis",
 	}
-	if err := a.AddCheck(check1, nil, true, ""); err != nil {
+	if err := a.AddCheck(check1, nil, true, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
