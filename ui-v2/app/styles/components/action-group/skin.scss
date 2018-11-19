@@ -5,7 +5,8 @@
   /* frame-gray */
   background-color: $gray-050;
 }
-%action-group label {
+%action-group label,
+%action-group-action {
   cursor: pointer;
 }
 %action-group label::after,
@@ -26,7 +27,10 @@
 %action-group ul::before {
   border-color: $color-action;
 }
-%action-group li a:hover {
+%action-group-action {
+  background-color: $white;
+}
+%action-group-action:hover {
   @extend %frame-blue-800;
 }
 %action-group ul,

@@ -3,12 +3,13 @@ button[type='submit'],
 a.type-create {
   @extend %primary-button;
 }
+// the :not(li)'s here avoid styling action-group buttons
 button[type='reset'],
-button[type='button']:not(.copy-btn):not(.type-delete),
+:not(li) > button[type='button']:not(.copy-btn):not(.type-delete),
 html.template-error div > a {
   @extend %secondary-button;
 }
-button.type-delete {
+:not(li) > button.type-delete {
   @extend %dangerous-button;
 }
 button.copy-btn {
