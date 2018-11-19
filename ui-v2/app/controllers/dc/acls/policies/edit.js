@@ -25,8 +25,8 @@ export default Controller.extend({
   },
   actions: {
     change: function(e, value, item) {
-      const form = get(this, 'form');
       const event = get(this, 'dom').normalizeEvent(e, value);
+      const form = get(this, 'form');
       try {
         form.handleEvent(event);
       } catch (err) {
