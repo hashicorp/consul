@@ -1,3 +1,8 @@
+## 1.1.1 (UNRELEASED)
+
+SECURITY:
+* agent: backported [`enable_local_script_checks`](https://www.consul.io/docs/agent/options.html#_enable_local_script_checks) feature from 1.3.0.
+
 ## 1.1.0 (May 11, 2018)
 
 FEATURES:
