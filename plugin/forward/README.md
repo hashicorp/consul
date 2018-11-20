@@ -79,7 +79,9 @@ forward FROM TO... {
     The server certificate is verified using the specified CA file
 
 * `tls_servername` **NAME** allows you to set a server name in the TLS configuration; for instance 9.9.9.9
-  needs this to be set to `dns.quad9.net`.
+  needs this to be set to `dns.quad9.net`. Multiple upstreams are still allowed in this scenario,
+  but they have to use the same `tls_servername`. E.g. mixing 9.9.9.9 (QuadDNS) with 1.1.1.1
+  (Cloudflare) will not work.
 * `policy` specifies the policy to use for selecting upstream servers. The default is `random`.
 * `health_check`, use a different **DURATION** for health checking, the default duration is 0.5s.
 
@@ -154,6 +156,18 @@ service with health checks.
 . {
     forward . tls://9.9.9.9 {
        tls_servername dns.quad9.net
+       health_check 5s
+    }
+    cache 30
+}
+~~~
+
+Or with multiple upstreams from the same provider
+
+~~~ corefile
+. {
+    forward . tls://1.1.1.1 tls://1.0.0.1 {
+       tls_servername loudflare-dns.com
        health_check 5s
     }
     cache 30
