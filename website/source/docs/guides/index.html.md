@@ -28,6 +28,8 @@ The following guides are available:
 
 * [Consul with Containers](/docs/guides/consul-containers.html) - This guide describes critical aspects of operating a Consul cluster that's run inside containers.
 
+* [Consul Template](/docs/guides/consul-template.html) - This guide covers the Consul template tool, which provides a programmatic method for populating values into the file system.
+
 * [Creating Certificates](/docs/guides/creating-certificates.html) - This guide describes how to setup CA and certificates to secure a Consul cluster with TLS.
 
 * [Deployment Guide](/docs/guides/deployment-guide.html) - This deployment guide covers the steps required to install and configure a single HashiCorp Consul cluster as defined in the Consul Reference Architecture.
@@ -41,6 +43,8 @@ The following guides are available:
 * Federation ([Basic](/docs/guides/datacenters.html) and [Advanced](/docs/guides/areas.html)) - Configuring Consul to support multiple datacenters.
 
 * [Geo Failover](/docs/guides/geo-failover.html) - This guide covers using [prepared queries](/api/query.html) to implement geo failover for services.
+
+* [Minikube with Consul](/docs/guides/minikube.html) - In this guide, you'll start a local Kubernetes cluster with minikube, install Consul,and then deploy two custom services.
 
 * [Leader Election](/docs/guides/leader-election.html) - The goal of this guide is to cover how to build client-side leader election using Consul.
 
