@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/testrpc"
+
 	"github.com/hashicorp/consul/logger"
 )
 
@@ -62,6 +64,7 @@ func TestHTTPAPI_MethodNotAllowed_OSS(t *testing.T) {
 	a := NewTestAgent(t.Name(), `acl_datacenter = "dc1"`)
 	a.Agent.LogWriter = logger.NewLogWriter(512)
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	all := []string{"GET", "PUT", "POST", "DELETE", "HEAD", "OPTIONS"}
 	const testTimeout = 10 * time.Second
@@ -123,6 +126,7 @@ func TestHTTPAPI_OptionMethod_OSS(t *testing.T) {
 	a := NewTestAgent(t.Name(), `acl_datacenter = "dc1"`)
 	a.Agent.LogWriter = logger.NewLogWriter(512)
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	testOptionMethod := func(path string, methods []string) {
 		t.Run("OPTIONS "+path, func(t *testing.T) {

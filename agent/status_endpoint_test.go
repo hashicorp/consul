@@ -3,12 +3,15 @@ package agent
 import (
 	"net/http"
 	"testing"
+
+	"github.com/hashicorp/consul/testrpc"
 )
 
 func TestStatusLeader(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	req, _ := http.NewRequest("GET", "/v1/status/leader", nil)
 	obj, err := a.srv.StatusLeader(nil, req)
