@@ -142,9 +142,9 @@ and consider if they're appropriate for your deployment.
   CA and set of certificates. Additional Connect settings can be configured
   by setting the `server.extraConfig` value.
 
-  - <a name="v-server-resources" href="#v-server-resources">`resources`</a> (`object: {}`) -
+  - <a name="v-server-resources" href="#v-server-resources">`resources`</a> (`string: null`) -
   The resource requests (CPU, memory, etc.) for each of the server agents.
-  This should be an object mapping directly to a Kubernetes
+  This should be a multi-line string mapping directly to a Kubernetes
   [ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.11/#resourcerequirements-v1-core) object. If this isn't specified, then the pods
   won't request any specific amount of resources. **Setting this is highly
   recommended.**
@@ -216,10 +216,24 @@ and consider if they're appropriate for your deployment.
   The name of the Docker image (including any tag) for the containers running
   Consul client agents.
 
+  - <a name="v-client-join" href="#v-client-join">`join`</a> (`array<string>: null`) -
+  A list of valid [`-retry-join` values](/docs/agent/options.html#retry-join).
+  If this is `null` (default),
+  then the clients will attempt to automatically join the server cluster
+  running within Kubernetes. This means that with `server.enabled` set to true,
+  clients will automatically join that cluster. If `server.enabled` is not
+  true, then a value must be specified so the clients can join a valid cluster.
+
   - <a name="v-client-grpc" href="#v-client-grpc">`grpc`</a> (`boolean: false`) -
   If true, agents will enable their GRPC listener on port 8502 and expose
   it to the host. This will use slightly more resources, but is required for
   [Connect](/docs/platform/k8s/connect.html).
+
+  - <a name="v-client-resources" href="#v-client-resources">`resources`</a> (`string: null`) -
+  The resource requests (CPU, memory, etc.) for each of the client agents.
+  This should be a multi-line string mapping directly to a Kubernetes
+  [ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.11/#resourcerequirements-v1-core) object. If this isn't specified, then the pods
+  won't request any specific amount of resources.
 
   - <a name="v-client-extraconfig" href="#v-client-extraconfig">`extraConfig`</a> (`string: "{}"`) -
   A raw string of extra JSON or HCL configuration for Consul clients. This
@@ -244,20 +258,6 @@ and consider if they're appropriate for your deployment.
       If true, then the agent will be configured to automatically load HCL/JSON
       configuration files from this volume with `-config-dir`. This defaults
       to false.
-
-  - <a name="v-client-join" href="#v-client-join">`join`</a> (`array<string>: null`) -
-  A list of valid [`-retry-join` values](/docs/agent/options.html#retry-join).
-  If this is `null` (default),
-  then the clients will attempt to automatically join the server cluster
-  running within Kubernetes. This means that with `server.enabled` set to true,
-  clients will automatically join that cluster. If `server.enabled` is not
-  true, then a value must be specified so the clients can join a valid cluster.
-
-  - <a name="v-client-resources" href="#v-client-resources">`resources`</a> (`object: {}`) -
-  The resource requests (CPU, memory, etc.) for each of the client agents.
-  This should be an object mapping directly to a Kubernetes
-  [ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.11/#resourcerequirements-v1-core) object. If this isn't specified, then the pods
-  won't request any specific amount of resources.
 
 * <a name="v-dns" href="#v-dns">`dns`</a> - Values that configure the Consul DNS service.
 
