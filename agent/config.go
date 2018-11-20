@@ -2066,6 +2066,9 @@ func MergeConfig(a, b *Config) *Config {
 	if b.EnableScriptChecks {
 		result.EnableScriptChecks = true
 	}
+	if b.EnableLocalScriptChecks {
+		result.EnableLocalScriptChecks = true
+	}
 	if b.CheckUpdateIntervalRaw != "" || b.CheckUpdateInterval != 0 {
 		result.CheckUpdateInterval = b.CheckUpdateInterval
 	}

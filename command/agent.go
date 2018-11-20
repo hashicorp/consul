@@ -29,7 +29,6 @@ import (
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/logutils"
 	"github.com/mitchellh/cli"
-	"github.com/y0ssar1an/q"
 )
 
 // validDatacenter is used to validate a datacenter
@@ -252,7 +251,6 @@ func (cmd *AgentCommand) readConfig() *agent.Config {
 
 		cfg = agent.MergeConfig(cfg, fileConfig)
 	}
-	q.Q(cfg)
 
 	cmdCfg.DNSRecursors = append(cmdCfg.DNSRecursors, dnsRecursors...)
 

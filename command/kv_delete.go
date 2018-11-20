@@ -88,6 +88,7 @@ func (c *KVDeleteCommand) Run(args []string) int {
 	// Specifying a ModifyIndex for a non-CAS operation is not possible.
 	if *modifyIndex != 0 && !*cas {
 		c.UI.Error("Cannot specify -modify-index without -cas!")
+		return 1
 	}
 
 	// It is not valid to use a CAS and recurse in the same call
