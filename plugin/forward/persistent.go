@@ -31,7 +31,7 @@ type Transport struct {
 
 func newTransport(addr string) *Transport {
 	t := &Transport{
-		avgDialTime: int64(defaultDialTimeout / 2),
+		avgDialTime: int64(maxDialTimeout / 2),
 		conns:       make(map[string][]*persistConn),
 		expire:      defaultExpire,
 		addr:        addr,
@@ -159,8 +159,10 @@ func (t *Transport) SetExpire(expire time.Duration) { t.expire = expire }
 func (t *Transport) SetTLSConfig(cfg *tls.Config) { t.tlsConfig = cfg }
 
 const (
-	defaultExpire      = 10 * time.Second
-	minDialTimeout     = 100 * time.Millisecond
-	maxDialTimeout     = 30 * time.Second
-	defaultDialTimeout = 30 * time.Second
+	defaultExpire  = 10 * time.Second
+	minDialTimeout = 1 * time.Second
+	maxDialTimeout = 30 * time.Second
+
+	// Some resolves might take quite a while, usually (cached) responses are fast. Set to 2s to give us some time to retry a different upstream.
+	readTimeout = 2 * time.Second
 )

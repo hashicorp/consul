@@ -140,9 +140,9 @@ func TestCleanupAll(t *testing.T) {
 
 	tr := newTransport(s.Addr)
 
-	c1, _ := dns.DialTimeout("udp", tr.addr, defaultDialTimeout)
-	c2, _ := dns.DialTimeout("udp", tr.addr, defaultDialTimeout)
-	c3, _ := dns.DialTimeout("udp", tr.addr, defaultDialTimeout)
+	c1, _ := dns.DialTimeout("udp", tr.addr, maxDialTimeout)
+	c2, _ := dns.DialTimeout("udp", tr.addr, maxDialTimeout)
+	c3, _ := dns.DialTimeout("udp", tr.addr, maxDialTimeout)
 
 	tr.conns["udp"] = []*persistConn{
 		{c1, time.Now()},

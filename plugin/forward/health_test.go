@@ -144,9 +144,10 @@ func TestHealthMaxFails(t *testing.T) {
 
 	f.ServeDNS(context.TODO(), &test.ResponseWriter{}, req)
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(readTimeout + 1*time.Second)
+	fails := atomic.LoadUint32(&p.fails)
 	if !p.Down(f.maxfails) {
-		t.Errorf("Expected Proxy fails to be greater than %d, got %d", f.maxfails, p.fails)
+		t.Errorf("Expected Proxy fails to be greater than %d, got %d", f.maxfails, fails)
 	}
 }
 
