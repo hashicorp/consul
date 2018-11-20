@@ -17,7 +17,7 @@ GOARCH=$(shell go env GOARCH)
 # Get the git commit
 GIT_COMMIT=$(shell git rev-parse --short HEAD)
 GIT_DIRTY=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true)
-GIT_DESCRIBE=$(shell git describe --tags --always)
+GIT_DESCRIBE=v0.9.4
 GIT_IMPORT=github.com/hashicorp/consul/version
 GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY) -X $(GIT_IMPORT).GitDescribe=$(GIT_DESCRIBE)
 
@@ -98,7 +98,7 @@ ui:
 # also run as part of the release build script when it verifies that there are no
 # changes to the UI assets that aren't checked in.
 static-assets:
-	@go-bindata-assetfs -pkg agent -prefix pkg ./pkg/web_ui/...
+	@go-bindata-assetfs -pkg agent -o bindata_assetfs.go -o bindata_assetfs.go -o bindata_assetfs.go -prefix pkg ./pkg/web_ui/...
 	@mv bindata_assetfs.go agent/
 	$(MAKE) format
 
