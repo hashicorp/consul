@@ -23,7 +23,7 @@ GOPATH=$(shell go env GOPATH)
 # Get the git commit
 GIT_COMMIT=$(shell git rev-parse --short HEAD)
 GIT_DIRTY=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true)
-GIT_DESCRIBE=$(shell git describe --tags --always)
+GIT_DESCRIBE=v1.0.8
 GIT_IMPORT=github.com/hashicorp/consul/version
 GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY) -X $(GIT_IMPORT).GitDescribe=$(GIT_DESCRIBE)
 
