@@ -14,6 +14,10 @@ func (r *RoundRobinResponseWriter) WriteMsg(res *dns.Msg) error {
 		return r.ResponseWriter.WriteMsg(res)
 	}
 
+	if res.Question[0].Qtype == dns.TypeAXFR || res.Question[0].Qtype == dns.TypeIXFR {
+		return r.ResponseWriter.WriteMsg(res)
+	}
+
 	res.Answer = roundRobin(res.Answer)
 	res.Ns = roundRobin(res.Ns)
 	res.Extra = roundRobin(res.Extra)
