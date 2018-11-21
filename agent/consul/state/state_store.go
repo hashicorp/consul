@@ -50,18 +50,6 @@ var (
 	ErrMissingIntentionID = errors.New("Missing Intention ID")
 )
 
-const (
-	// watchLimit is used as a soft limit to cap how many watches we allow
-	// for a given blocking query. If this is exceeded, then we will use a
-	// higher-level watch that's less fine-grained. This isn't as bad as it
-	// seems since we have made the main culprits (nodes and services) more
-	// efficient by diffing before we update via register requests.
-	//
-	// Given the current size of aFew == 32 in memdb's watch_few.go, this
-	// will allow for up to ~64 goroutines per blocking query.
-	watchLimit = 2048
-)
-
 // Store is where we store all of Consul's state, including
 // records of node registrations, services, checks, key/value
 // pairs and more. The DB is entirely in-memory and is constructed
@@ -79,6 +67,16 @@ type Store struct {
 
 	// lockDelay holds expiration times for locks associated with keys.
 	lockDelay *Delay
+
+	// watchLimit is used as a soft limit to cap how many watches we allow
+	// for a given blocking query. If this is exceeded, then we will use a
+	// higher-level watch that's less fine-grained. This isn't as bad as it
+	// seems since we have made the main culprits (nodes and services) more
+	// efficient by diffing before we update via register requests.
+	//
+	// Given the current size of aFew == 32 in memdb's watch_few.go,
+	// this will allow for up to ~ watchLimit/32 goroutines per blocking query.
+	watchLimit int
 }
 
 // Snapshot is used to provide a point-in-time snapshot. It
@@ -113,7 +111,7 @@ type sessionCheck struct {
 }
 
 // NewStateStore creates a new in-memory state storage layer.
-func NewStateStore(gc *TombstoneGC) (*Store, error) {
+func NewStateStore(gc *TombstoneGC, watchLimit int) (*Store, error) {
 	// Create the in-memory DB.
 	schema := stateStoreSchema()
 	db, err := memdb.NewMemDB(schema)
@@ -128,6 +126,7 @@ func NewStateStore(gc *TombstoneGC) (*Store, error) {
 		abandonCh:    make(chan struct{}),
 		kvsGraveyard: NewGraveyard(gc),
 		lockDelay:    NewDelay(),
+		watchLimit:   watchLimit,
 	}
 	return s, nil
 }

@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testutil"
@@ -3347,7 +3348,8 @@ func TestFullConfig(t *testing.T) {
 					"key": "sl3Dffu7",
 					"args": ["dltjDJ2a", "flEa7C2d"]
 				}
-			]
+			],
+			"watch_soft_limit": ` + fmt.Sprint(consul.DefaultSoftWatchLimit) + `
 		}`,
 		"hcl": `
 			acl_agent_master_token = "furuQD0b"
@@ -3893,7 +3895,8 @@ func TestFullConfig(t *testing.T) {
 				datacenter = "fYrl3F5d"
 				key = "sl3Dffu7"
 				args = ["dltjDJ2a", "flEa7C2d"]
-			}]
+			}],
+			watch_soft_limit = ` + fmt.Sprint(consul.DefaultSoftWatchLimit) + `
 		`}
 
 	tail := map[string][]Source{
@@ -4538,6 +4541,7 @@ func TestFullConfig(t *testing.T) {
 				"args":       []interface{}{"dltjDJ2a", "flEa7C2d"},
 			},
 		},
+		WatchSoftLimit: consul.DefaultSoftWatchLimit,
 	}
 
 	warns := []string{
@@ -5122,7 +5126,8 @@ func TestSanitize(t *testing.T) {
 		"VerifyServerHostname": false,
 		"Version": "",
 		"VersionPrerelease": "",
-		"Watches": []
+		"Watches": [],
+		"WatchSoftLimit": 0
 	}`
 	b, err := json.MarshalIndent(rt.Sanitized(), "", "    ")
 	if err != nil {

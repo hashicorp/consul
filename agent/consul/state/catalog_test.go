@@ -1015,7 +1015,7 @@ func TestStateStore_GetNodes(t *testing.T) {
 }
 
 func BenchmarkGetNodes(b *testing.B) {
-	s, err := NewStateStore(nil)
+	s, err := NewStateStore(nil, testWatchLimit)
 	if err != nil {
 		b.Fatalf("err: %s", err)
 	}
@@ -1664,7 +1664,7 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 
 	// Overwhelm the service tracking.
 	idx = 6
-	for i := 0; i < 2*watchLimit; i++ {
+	for i := 0; i < 2*testWatchLimit; i++ {
 		node := fmt.Sprintf("many%d", i)
 		testRegisterNodeWithMeta(t, s, idx, node, map[string]string{"common": "1"})
 		idx++
@@ -1803,7 +1803,7 @@ func TestStateStore_ServiceNodes(t *testing.T) {
 
 	// Overwhelm the node tracking.
 	idx = 19
-	for i := 0; i < 2*watchLimit; i++ {
+	for i := 0; i < 2*testWatchLimit; i++ {
 		node := fmt.Sprintf("many%d", i)
 		if err := s.EnsureNode(idx, &structs.Node{Node: node, Address: "127.0.0.1"}); err != nil {
 			t.Fatalf("err: %v", err)
@@ -2467,7 +2467,7 @@ func TestStateStore_ServiceChecksByNodeMeta(t *testing.T) {
 	}
 
 	// Overwhelm the node tracking.
-	for i := 0; i < 2*watchLimit; i++ {
+	for i := 0; i < 2*testWatchLimit; i++ {
 		node := fmt.Sprintf("many%d", idx)
 		testRegisterNodeWithMeta(t, s, idx, node, map[string]string{"common": "1"})
 		idx++
@@ -2650,7 +2650,7 @@ func TestStateStore_ChecksInStateByNodeMeta(t *testing.T) {
 	}
 
 	// Overwhelm the node tracking.
-	for i := 0; i < 2*watchLimit; i++ {
+	for i := 0; i < 2*testWatchLimit; i++ {
 		node := fmt.Sprintf("many%d", idx)
 		testRegisterNodeWithMeta(t, s, idx, node, map[string]string{"common": "1"})
 		idx++
@@ -2971,7 +2971,7 @@ func TestStateStore_CheckServiceNodes(t *testing.T) {
 
 	// Overwhelm node and check tracking.
 	idx = 13
-	for i := 0; i < 2*watchLimit; i++ {
+	for i := 0; i < 2*testWatchLimit; i++ {
 		node := fmt.Sprintf("many%d", i)
 		testRegisterNode(t, s, idx, node)
 		idx++
@@ -3051,7 +3051,7 @@ func TestStateStore_CheckConnectServiceNodes(t *testing.T) {
 }
 
 func BenchmarkCheckServiceNodes(b *testing.B) {
-	s, err := NewStateStore(nil)
+	s, err := NewStateStore(nil, testWatchLimit)
 	if err != nil {
 		b.Fatalf("err: %s", err)
 	}

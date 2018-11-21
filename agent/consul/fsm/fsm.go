@@ -13,6 +13,10 @@ import (
 	"github.com/hashicorp/raft"
 )
 
+const (
+	testWatchLimit = 1024
+)
+
 // msgpackHandle is a shared handle for encoding/decoding msgpack payloads
 var msgpackHandle = &codec.MsgpackHandle{
 	RawToString: true,
@@ -59,22 +63,24 @@ type FSM struct {
 	stateLock sync.RWMutex
 	state     *state.Store
 
-	gc *state.TombstoneGC
+	gc         *state.TombstoneGC
+	watchLimit int
 }
 
 // New is used to construct a new FSM with a blank state.
-func New(gc *state.TombstoneGC, logOutput io.Writer) (*FSM, error) {
-	stateNew, err := state.NewStateStore(gc)
+func New(gc *state.TombstoneGC, watchLimit int, logOutput io.Writer) (*FSM, error) {
+	stateNew, err := state.NewStateStore(gc, watchLimit)
 	if err != nil {
 		return nil, err
 	}
 
 	fsm := &FSM{
-		logOutput: logOutput,
-		logger:    log.New(logOutput, "", log.LstdFlags),
-		apply:     make(map[structs.MessageType]command),
-		state:     stateNew,
-		gc:        gc,
+		logOutput:  logOutput,
+		logger:     log.New(logOutput, "", log.LstdFlags),
+		apply:      make(map[structs.MessageType]command),
+		state:      stateNew,
+		gc:         gc,
+		watchLimit: watchLimit,
 	}
 
 	// Build out the apply dispatch table based on the registered commands.
@@ -136,7 +142,7 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 	defer old.Close()
 
 	// Create a new state store.
-	stateNew, err := state.NewStateStore(c.gc)
+	stateNew, err := state.NewStateStore(c.gc, c.watchLimit)
 	if err != nil {
 		return err
 	}

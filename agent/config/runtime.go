@@ -1413,6 +1413,13 @@ type RuntimeConfig struct {
 	// ]
 	//
 	Watches []map[string]interface{}
+
+	// WatchSoftLimit is used as a soft limit to cap how many watches we allow
+	// for a given blocking query. If this is exceeded, then we will use a
+	// higher-level watch that's less fine-grained.
+	//
+	// hcl: watch_soft_limit = int
+	WatchSoftLimit int
 }
 
 // IncomingHTTPSConfig returns the TLS configuration for HTTPS

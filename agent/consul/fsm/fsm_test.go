@@ -39,7 +39,7 @@ func makeLog(buf []byte) *raft.Log {
 
 func TestFSM_IgnoreUnknown(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	fsm, err := New(nil, testWatchLimit, os.Stderr)
 	assert.Nil(t, err)
 
 	// Create a new reap request

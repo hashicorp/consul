@@ -1113,6 +1113,8 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 		return nil, fmt.Errorf("Failed to configure keyring: %v", err)
 	}
 
+	base.WatchSoftLimit = a.config.WatchSoftLimit
+
 	return base, nil
 }
 

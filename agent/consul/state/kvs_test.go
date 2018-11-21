@@ -21,7 +21,7 @@ func TestStateStore_GC(t *testing.T) {
 
 	// Enable it and attach it to the state store.
 	gc.SetEnabled(true)
-	s, err := NewStateStore(gc)
+	s, err := NewStateStore(gc, testWatchLimit)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
