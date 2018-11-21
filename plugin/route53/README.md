@@ -49,8 +49,9 @@ Enable route53 with implicit AWS credentials and an upstream:
 
 ~~~ txt
 . {
-    route53 example.org.:Z1Z2Z3Z4DZ5Z6Z7
-    upstream 10.0.0.1
+	route53 example.org.:Z1Z2Z3Z4DZ5Z6Z7 {
+	  upstream 10.0.0.1
+	}
 }
 ~~~
 
