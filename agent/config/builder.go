@@ -843,7 +843,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		VerifyOutgoing:                          b.boolVal(c.VerifyOutgoing),
 		VerifyServerHostname:                    b.boolVal(c.VerifyServerHostname),
 		Watches:                                 c.Watches,
-		WatchSoftLimit:                          b.intValWithDefault(c.WatchSoftLimit, consul.DefaultSoftWatchLimit),
+		WatchSoftLimit:                          b.intValWithDefault(c.Performance.WatchSoftLimit, consul.DefaultSoftWatchLimit),
 	}
 
 	if rt.BootstrapExpect == 1 {

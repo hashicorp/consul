@@ -3,6 +3,8 @@ package state
 import (
 	"errors"
 	"fmt"
+	"log"
+	"os"
 
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-memdb"
@@ -77,6 +79,10 @@ type Store struct {
 	// Given the current size of aFew == 32 in memdb's watch_few.go,
 	// this will allow for up to ~ watchLimit/32 goroutines per blocking query.
 	watchLimit int
+
+	watchLimitWarnCounter uint
+
+	logger *log.Logger
 }
 
 // Snapshot is used to provide a point-in-time snapshot. It
@@ -111,12 +117,16 @@ type sessionCheck struct {
 }
 
 // NewStateStore creates a new in-memory state storage layer.
-func NewStateStore(gc *TombstoneGC, watchLimit int) (*Store, error) {
+func NewStateStore(gc *TombstoneGC, watchLimit int, logger *log.Logger) (*Store, error) {
 	// Create the in-memory DB.
 	schema := stateStoreSchema()
 	db, err := memdb.NewMemDB(schema)
 	if err != nil {
 		return nil, fmt.Errorf("Failed setting up state store: %s", err)
+	}
+
+	if logger == nil {
+		logger = log.New(os.Stderr, "", log.LstdFlags)
 	}
 
 	// Create and return the state store.
@@ -127,6 +137,7 @@ func NewStateStore(gc *TombstoneGC, watchLimit int) (*Store, error) {
 		kvsGraveyard: NewGraveyard(gc),
 		lockDelay:    NewDelay(),
 		watchLimit:   watchLimit,
+		logger:       logger,
 	}
 	return s, nil
 }

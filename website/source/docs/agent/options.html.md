@@ -590,9 +590,9 @@ default will automatically work with some tooling.
         The ACL token used to authorize secondary datacenters with the primary datacenter for replication
         operations. This token is required for servers outside the [`primary_datacenter`](#primary_datacenter) when
         ACLs are enabled. This token may be provided later using the [agent token API](/api/agent.html#update-acl-tokens)
-        on each server. This token must have at least "read" permissions on ACL data but if ACL 
-        token replication is enabled then it must have "write" permissions. This also enables 
-        Connect replication in Consul Enterprise, for which the token will require both operator 
+        on each server. This token must have at least "read" permissions on ACL data but if ACL
+        token replication is enabled then it must have "write" permissions. This also enables
+        Connect replication in Consul Enterprise, for which the token will require both operator
         "write" and intention "read" permissions for replicating CA and Intention data.
 
 * <a name="acl_datacenter"></a><a href="#acl_datacenter">`acl_datacenter`</a> - **This field is
@@ -1239,6 +1239,13 @@ default will automatically work with some tooling.
         that a client or server will retry internal RPC requests during leader elections. Under normal
         circumstances, this can prevent clients from experiencing "no leader" errors. This was added in
         Consul 1.0. Must be a duration value such as 10s. Defaults to 7s.
+
+    *   <a name="watch_soft_limit"></a><a href="#watch_soft_limit">`watch_soft_limit`</a> - Maximum
+        number of memdb nodes that can be watched by each blocking queries. Reaching this limit will switch
+        from watching each individual entity matching the query to watching all changes for an entity type
+        (ie: watching all service changes). This limits the number of goroutines spawned by each blocking query,
+        however it may be detrimental on clusters where changes are very frequent. A warning is printed for queries
+        reaching this limit. Defaults to 2048.
 
 * <a name="ports"></a><a href="#ports">`ports`</a> This is a nested object that allows setting
   the bind ports for the following keys:

@@ -30,7 +30,7 @@ func testUUID() string {
 }
 
 func testStateStore(t *testing.T) *Store {
-	s, err := NewStateStore(nil, testWatchLimit)
+	s, err := NewStateStore(nil, testWatchLimit, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

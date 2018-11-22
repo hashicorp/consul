@@ -69,14 +69,16 @@ type FSM struct {
 
 // New is used to construct a new FSM with a blank state.
 func New(gc *state.TombstoneGC, watchLimit int, logOutput io.Writer) (*FSM, error) {
-	stateNew, err := state.NewStateStore(gc, watchLimit)
+	logger := log.New(logOutput, "", log.LstdFlags)
+
+	stateNew, err := state.NewStateStore(gc, watchLimit, logger)
 	if err != nil {
 		return nil, err
 	}
 
 	fsm := &FSM{
 		logOutput:  logOutput,
-		logger:     log.New(logOutput, "", log.LstdFlags),
+		logger:     logger,
 		apply:      make(map[structs.MessageType]command),
 		state:      stateNew,
 		gc:         gc,
@@ -142,7 +144,7 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 	defer old.Close()
 
 	// Create a new state store.
-	stateNew, err := state.NewStateStore(c.gc, c.watchLimit)
+	stateNew, err := state.NewStateStore(c.gc, c.watchLimit, c.logger)
 	if err != nil {
 		return err
 	}

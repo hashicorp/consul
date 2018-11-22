@@ -267,7 +267,6 @@ type Config struct {
 	VerifyOutgoing                   *bool                    `json:"verify_outgoing,omitempty" hcl:"verify_outgoing" mapstructure:"verify_outgoing"`
 	VerifyServerHostname             *bool                    `json:"verify_server_hostname,omitempty" hcl:"verify_server_hostname" mapstructure:"verify_server_hostname"`
 	Watches                          []map[string]interface{} `json:"watches,omitempty" hcl:"watches" mapstructure:"watches"`
-	WatchSoftLimit                   *int                     `json:"watch_soft_limit,omitempty" hcl:"watch_soft_limit" mapstructure:"watch_soft_limit"`
 
 	// This isn't used by Consul but we've documented a feature where users
 	// can deploy their snapshot agent configs alongside their Consul configs
@@ -567,6 +566,7 @@ type Performance struct {
 	LeaveDrainTime *string `json:"leave_drain_time,omitempty" hcl:"leave_drain_time" mapstructure:"leave_drain_time"`
 	RaftMultiplier *int    `json:"raft_multiplier,omitempty" hcl:"raft_multiplier" mapstructure:"raft_multiplier"` // todo(fs): validate as uint
 	RPCHoldTimeout *string `json:"rpc_hold_timeout" hcl:"rpc_hold_timeout" mapstructure:"rpc_hold_timeout"`
+	WatchSoftLimit *int    `json:"watch_soft_limit,omitempty" hcl:"watch_soft_limit" mapstructure:"watch_soft_limit"`
 }
 
 type Telemetry struct {

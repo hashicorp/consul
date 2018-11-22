@@ -46,7 +46,7 @@ func (c *consulCAMockDelegate) ApplyCARequest(req *structs.CARequest) error {
 }
 
 func newMockDelegate(t *testing.T, conf *structs.CAConfiguration) *consulCAMockDelegate {
-	s, err := state.NewStateStore(nil, 1024)
+	s, err := state.NewStateStore(nil, 1024, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
