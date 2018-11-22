@@ -572,7 +572,7 @@ func TestHealth_ServiceNodes(t *testing.T) {
 	req := structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
 		ServiceName: "db",
-		ServiceTag:  "master",
+		ServiceTags: []string{"master"},
 		TagFilter:   false,
 	}
 	if err := msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2); err != nil {
@@ -600,6 +600,45 @@ func TestHealth_ServiceNodes(t *testing.T) {
 	}
 	if nodes[1].Checks[0].Status != api.HealthPassing {
 		t.Fatalf("Bad: %v", nodes[1])
+	}
+
+	// Same should still work for <1.3 RPCs with singular tags
+	// DEPRECATED (singular-service-tag) - remove this when backwards RPC compat
+	// with 1.2.x is not required.
+	{
+		var out2 structs.IndexedCheckServiceNodes
+		req := structs.ServiceSpecificRequest{
+			Datacenter:  "dc1",
+			ServiceName: "db",
+			ServiceTag:  "master",
+			TagFilter:   false,
+		}
+		if err := msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		nodes := out2.Nodes
+		if len(nodes) != 2 {
+			t.Fatalf("Bad: %v", nodes)
+		}
+		if nodes[0].Node.Node != "bar" {
+			t.Fatalf("Bad: %v", nodes[0])
+		}
+		if nodes[1].Node.Node != "foo" {
+			t.Fatalf("Bad: %v", nodes[1])
+		}
+		if !lib.StrContains(nodes[0].Service.Tags, "slave") {
+			t.Fatalf("Bad: %v", nodes[0])
+		}
+		if !lib.StrContains(nodes[1].Service.Tags, "master") {
+			t.Fatalf("Bad: %v", nodes[1])
+		}
+		if nodes[0].Checks[0].Status != api.HealthWarning {
+			t.Fatalf("Bad: %v", nodes[0])
+		}
+		if nodes[1].Checks[0].Status != api.HealthPassing {
+			t.Fatalf("Bad: %v", nodes[1])
+		}
 	}
 }
 

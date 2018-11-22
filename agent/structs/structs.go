@@ -352,11 +352,13 @@ type ServiceSpecificRequest struct {
 	Datacenter      string
 	NodeMetaFilters map[string]string
 	ServiceName     string
-	ServiceTag      string // Deprecated: Use ServiceTags instead.
-	ServiceTags     []string
-	ServiceAddress  string
-	TagFilter       bool // Controls tag filtering
-	Source          QuerySource
+	// DEPRECATED (singular-service-tag) - remove this when backwards RPC compat
+	// with 1.2.x is not required.
+	ServiceTag     string
+	ServiceTags    []string
+	ServiceAddress string
+	TagFilter      bool // Controls tag filtering
+	Source         QuerySource
 
 	// Connect if true will only search for Connect-compatible services.
 	Connect bool

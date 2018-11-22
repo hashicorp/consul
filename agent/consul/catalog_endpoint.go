@@ -275,8 +275,9 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 
 			if args.TagFilter {
 				tags := args.ServiceTags
-
-				// Agents < v1.3.0 and DNS service lookups populate the ServiceTag field. In this case,
+				// DEPRECATED (singular-service-tag) - remove this when backwards RPC compat
+				// with 1.2.x is not required.
+				// Agents < v1.3.0 populate the ServiceTag field. In this case,
 				// use ServiceTag instead of the ServiceTags field.
 				if args.ServiceTag != "" {
 					tags = []string{args.ServiceTag}
@@ -339,6 +340,8 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 
 		metrics.IncrCounterWithLabels([]string{"catalog", key, "query"}, 1,
 			[]metrics.Label{{Name: "service", Value: args.ServiceName}})
+		// DEPRECATED (singular-service-tag) - remove this when backwards RPC compat
+		// with 1.2.x is not required.
 		if args.ServiceTag != "" {
 			metrics.IncrCounterWithLabels([]string{"catalog", key, "query-tag"}, 1,
 				[]metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "tag", Value: args.ServiceTag}})
