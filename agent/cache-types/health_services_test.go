@@ -1,7 +1,6 @@
 package cachetype
 
 import (
-	assert2 "github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 
@@ -12,7 +11,6 @@ import (
 )
 
 func TestHealthServices(t *testing.T) {
-	assert := assert2.New(t)
 	require := require.New(t)
 	rpc := TestRPC(t)
 	defer rpc.AssertExpectations(t)
@@ -51,22 +49,6 @@ func TestHealthServices(t *testing.T) {
 		Value: resp,
 		Index: 48,
 	}, resultA)
-
-	resultB, err := typ.Fetch(cache.FetchOptions{
-		MinIndex: 24,
-		Timeout:  1 * time.Second,
-	}, &structs.ServiceSpecificRequest{
-		Datacenter:  "dc1",
-		ServiceName: "web",
-		ServiceTags: []string{"tag1"},
-	})
-	require.NoError(err)
-	require.Equal(cache.FetchResult{
-		Value: resp,
-		Index: 48,
-	}, resultB)
-
-	assert.NotEqual(resultA, resultB)
 }
 
 func TestHealthServices_badReqType(t *testing.T) {
