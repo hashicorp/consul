@@ -59,12 +59,13 @@ type FSM struct {
 	stateLock sync.RWMutex
 	state     *state.Store
 
-	gc *state.TombstoneGC
+	gc                 *state.TombstoneGC
+	nodeRenamingPolicy string
 }
 
 // New is used to construct a new FSM with a blank state.
-func New(gc *state.TombstoneGC, logOutput io.Writer) (*FSM, error) {
-	stateNew, err := state.NewStateStore(gc)
+func New(gc *state.TombstoneGC, logOutput io.Writer, nodeRenamingPolicy string) (*FSM, error) {
+	stateNew, err := state.NewStateStore(gc, nodeRenamingPolicy)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +137,7 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 	defer old.Close()
 
 	// Create a new state store.
-	stateNew, err := state.NewStateStore(c.gc)
+	stateNew, err := state.NewStateStore(c.gc, c.nodeRenamingPolicy)
 	if err != nil {
 		return err
 	}

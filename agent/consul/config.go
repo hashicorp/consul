@@ -336,6 +336,9 @@ type Config struct {
 	// warning and discard the remaining updates.
 	CoordinateUpdateMaxBatches int
 
+	// NodeRenamingPolicy allow to handle node renaming behavior
+	NodeRenamingPolicy string
+
 	// RPCHoldTimeout is how long an RPC can be "held" before it is errored.
 	// This is used to paper over a loss of leadership by instead holding RPCs,
 	// so that the caller experiences a slow response rather than an error.

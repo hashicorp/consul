@@ -26,7 +26,11 @@ func testUUID() string {
 }
 
 func testStateStore(t *testing.T) *Store {
-	s, err := NewStateStore(nil)
+	return testStateStoreWithNodeRenamePolicy(t, NodeRenamingDefault)
+}
+
+func testStateStoreWithNodeRenamePolicy(t *testing.T, nodeRenamingPolicy string) *Store {
+	s, err := NewStateStore(nil, nodeRenamingPolicy)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

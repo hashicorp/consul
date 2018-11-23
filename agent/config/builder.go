@@ -790,6 +790,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		NodeID:                                  types.NodeID(b.stringVal(c.NodeID)),
 		NodeMeta:                                c.NodeMeta,
 		NodeName:                                b.nodeName(c.NodeName),
+		NodeRenamingPolicy:                      b.stringValWithDefault(c.NodeRenamingPolicy, "legacy"),
 		NonVotingServer:                         b.boolVal(c.NonVotingServer),
 		PidFile:                                 b.stringVal(c.PidFile),
 		PrimaryDatacenter:                       primaryDatacenter,

@@ -354,36 +354,103 @@ func (s *Store) EnsureNode(idx uint64, node *structs.Node) error {
 	return nil
 }
 
-// ensureNoNodeWithSimilarNameTxn checks that no other node has conflict in its name
-// If allowClashWithoutID then, getting a conflict on another node without ID will be allowed
-func (s *Store) ensureNoNodeWithSimilarNameTxn(tx *memdb.Txn, node *structs.Node, allowClashWithoutID bool) error {
-	// Retrieve all of the nodes
+func (s *Store) findSimilarNode(tx *memdb.Txn, node *structs.Node, allowClashWithoutID bool) (*structs.Node, error) {
 	enodes, err := tx.Get("nodes", "id")
 	if err != nil {
-		return fmt.Errorf("Cannot lookup all nodes: %s", err)
+		return nil, fmt.Errorf("Cannot lookup all nodes: %s", err)
 	}
 	for nodeIt := enodes.Next(); nodeIt != nil; nodeIt = enodes.Next() {
 		enode := nodeIt.(*structs.Node)
 		if strings.EqualFold(node.Node, enode.Node) && node.ID != enode.ID {
 			if !(enode.ID == "" && allowClashWithoutID) {
-				return fmt.Errorf("Node name %s is reserved by node %s with name %s", node.Node, enode.ID, enode.Node)
+				return enode, nil
 			}
 		}
+	}
+	return nil, nil
+}
+
+// ensureNoNodeWithSimilarNameTxn checks that no other node has conflict in its name
+// If allowClashWithoutID then, getting a conflict on another node without ID will be allowed
+func (s *Store) ensureNoNodeWithSimilarNameTxn(tx *memdb.Txn, node *structs.Node, allowClashWithoutID bool) error {
+	enode, err := s.findSimilarNode(tx, node, allowClashWithoutID)
+	if err != nil {
+		return err
+	}
+	if enode != nil {
+		return fmt.Errorf("Node name %s is reserved by node %s with name %s", node.Node, enode.ID, enode.Node)
 	}
 	return nil
 }
 
-// ensureNodeTxn is the inner function called to actually create a node
-// registration or modify an existing one in the state store. It allows
-// passing in a memdb transaction so it may be part of a larger txn.
-func (s *Store) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) error {
+func (s *Store) findExistingNodeRenameDeadNodes(tx *memdb.Txn, idx uint64, node *structs.Node) (*structs.Node, error) {
+	if node.ID == "" {
+		return nil, fmt.Errorf("Empty Node IDs is not supported for : %s", node.Node)
+	}
+	existing, err := getNodeIDTxn(tx, node.ID)
+	if err != nil {
+		return nil, fmt.Errorf("node lookup failed: %s", err)
+	}
+	if existing != nil {
+		if existing.Node == node.Node {
+			return existing, nil
+		}
+	}
+	// We are either adding a new node OR renaming a node
+	// Lets first get all nodes and check whether name do match, we do not allow clash on nodes without ID
+	dupNode, err := s.findSimilarNode(tx, node, false)
+	if err != nil {
+		return nil, err
+	}
+	if dupNode != nil {
+		// There is a dup node, lets check if the node is healthy
+		dupNodeCheck, err := tx.First("checks", "id", dupNode.Node, string("serfHealth"))
+		if err != nil {
+			return nil, fmt.Errorf("Cannot get status of node %s due to: %s", dupNode.Node, err)
+		}
+		if dupNodeCheck == nil {
+			return nil, fmt.Errorf("Cannot validate whether node %s is healthy, cannot rename node", dupNode.Node)
+		}
+		existingDupNodeSerf := dupNodeCheck.(*structs.HealthCheck)
+		if existingDupNodeSerf.Status != "critical" {
+			// This is ok, we allow to take the identity of that node
+			return dupNode, fmt.Errorf("Cannot rename since node %s serfHealth is '%s'", dupNode.Node, existingDupNodeSerf.Status)
+		}
+		existing = dupNode
+	}
+	return existing, nil
+}
+
+func (s *Store) findExistingNodeStrict(tx *memdb.Txn, idx uint64, node *structs.Node) (*structs.Node, error) {
+	if node.ID == "" {
+		return nil, fmt.Errorf("Empty Node IDs is not supported for : %s", node.Node)
+	}
+	existing, err := getNodeIDTxn(tx, node.ID)
+	if err != nil {
+		return nil, fmt.Errorf("node lookup failed: %s", err)
+	}
+	if existing != nil {
+		// If name is not renamed, we do not need a full checks on all nodes
+		if node.Node == existing.Node {
+			return existing, nil
+		}
+	}
+	// We ensure no-one has a similar name at all (case insensitive comparison on all nodes)
+	dupNameError := s.ensureNoNodeWithSimilarNameTxn(tx, node, false)
+	if dupNameError != nil {
+		return existing, fmt.Errorf("Error while renaming Node ID: %q: %s", node.ID, dupNameError)
+	}
+	return existing, nil
+}
+
+func (s *Store) findExistingNodeLegacy(tx *memdb.Txn, idx uint64, node *structs.Node) (*structs.Node, error) {
 	// See if there's an existing node with this UUID, and make sure the
 	// name is the same.
 	var n *structs.Node
 	if node.ID != "" {
 		existing, err := getNodeIDTxn(tx, node.ID)
 		if err != nil {
-			return fmt.Errorf("node lookup failed: %s", err)
+			return nil, fmt.Errorf("node lookup failed: %s", err)
 		}
 		if existing != nil {
 			n = existing
@@ -391,22 +458,20 @@ func (s *Store) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) err
 				// Lets first get all nodes and check whether name do match, we do not allow clash on nodes without ID
 				dupNameError := s.ensureNoNodeWithSimilarNameTxn(tx, node, false)
 				if dupNameError != nil {
-					return fmt.Errorf("Error while renaming Node ID: %q: %s", node.ID, dupNameError)
-				}
-				// We are actually renaming a node, remove its reference first
-				err := s.deleteNodeTxn(tx, idx, n.Node)
-				if err != nil {
-					return fmt.Errorf("Error while renaming Node ID: %q from %s to %s",
-						node.ID, n.Node, node.Node)
+					return existing, fmt.Errorf("Error while renaming Node ID: %q: %s", node.ID, dupNameError)
 				}
 			}
 		} else {
 			// We allow to "steal" another node name that would have no ID
 			// It basically means that we allow upgrading a node without ID and add the ID
-			dupNameError := s.ensureNoNodeWithSimilarNameTxn(tx, node, true)
-			if dupNameError != nil {
-				return fmt.Errorf("Error while renaming Node ID: %q: %s", node.ID, dupNameError)
+			similarNode, err := s.findSimilarNode(tx, node, true)
+			if err != nil {
+				return nil, fmt.Errorf("Error while renaming Node ID: %q: %s", node.ID, err)
 			}
+			if similarNode != nil && similarNode.ID != "" {
+				return nil, fmt.Errorf("Cannot rename node[%s](%s) to [%s](%s) because existing node has an ID", similarNode.ID, similarNode.Node, node.ID, node.Node)
+			}
+			n = similarNode
 		}
 	}
 	// TODO: else Node.ID == "" should be forbidden in future Consul releases
@@ -416,7 +481,7 @@ func (s *Store) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) err
 	if n == nil {
 		existing, err := tx.First("nodes", "id", node.Node)
 		if err != nil {
-			return fmt.Errorf("node name lookup failed: %s", err)
+			return nil, fmt.Errorf("node name lookup failed: %s", err)
 		}
 
 		if existing != nil {
@@ -425,6 +490,32 @@ func (s *Store) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) err
 		// WARNING, for compatibility reasons with tests, we do not check
 		// for case insensitive matches, which may lead to DB corruption
 		// See https://github.com/hashicorp/consul/pull/3983 for context
+	}
+	return n, nil
+}
+
+// findExistingNode Find a Node with a similar name, returned value might be the node itself or another node
+func (s *Store) findExistingNode(tx *memdb.Txn, idx uint64, node *structs.Node) (*structs.Node, error) {
+	if s.nodeRenameSetting == NodeRenamingLegacy || s.nodeRenameSetting == "" {
+		return s.findExistingNodeLegacy(tx, idx, node)
+	} else if s.nodeRenameSetting == NodeRenamingRenameDeadNodes {
+		return s.findExistingNodeRenameDeadNodes(tx, idx, node)
+	} else if s.nodeRenameSetting == NodeRenamingStrict {
+		return s.findExistingNodeStrict(tx, idx, node)
+	} else {
+		return nil, fmt.Errorf("Unknown Rename Policy %s", s.nodeRenameSetting)
+	}
+}
+
+// ensureNodeTxn is the inner function called to actually create a node
+// registration or modify an existing one in the state store. It allows
+// passing in a memdb transaction so it may be part of a larger txn.
+func (s *Store) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) error {
+	// See if there's an existing node with this UUID, and make sure the
+	// name is the same.
+	n, err := s.findExistingNode(tx, idx, node)
+	if err != nil {
+		return err
 	}
 
 	// Get the indexes.
@@ -436,6 +527,12 @@ func (s *Store) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) err
 			return nil
 		}
 		node.ModifyIndex = idx
+		if n.Node != node.Node {
+			// We are renaming with the same ID
+			if err := s.deleteNodeTxn(tx, idx, n.Node); err != nil {
+				return err
+			}
+		}
 	} else {
 		node.CreateIndex = idx
 		node.ModifyIndex = idx

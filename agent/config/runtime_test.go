@@ -501,6 +501,17 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
+			desc: "-node-renaming-policy",
+			args: []string{
+				`-node-renaming-policy=dead`,
+				`-data-dir=` + dataDir,
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.NodeRenamingPolicy = "dead"
+				rt.DataDir = dataDir
+			},
+		},
+		{
 			desc: "-non-voting-server",
 			args: []string{
 				`-non-voting-server`,
@@ -4196,6 +4207,7 @@ func TestFullConfig(t *testing.T) {
 		NodeID:                           types.NodeID("AsUIlw99"),
 		NodeMeta:                         map[string]string{"5mgGQMBk": "mJLtVMSG", "A7ynFMJB": "0Nx6RGab"},
 		NodeName:                         "otlLxGaI",
+		NodeRenamingPolicy:               "legacy",
 		NonVotingServer:                  true,
 		PidFile:                          "43xN80Km",
 		PrimaryDatacenter:                "ejtmd43d",
@@ -4994,6 +5006,7 @@ func TestSanitize(t *testing.T) {
 		"NodeID": "",
 		"NodeMeta": {},
 		"NodeName": "",
+		"NodeRenamingPolicy": "",
 		"NonVotingServer": false,
 		"PidFile": "",
 		"PrimaryDatacenter": "",

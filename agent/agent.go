@@ -992,6 +992,9 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	if a.config.NonVotingServer {
 		base.NonVoter = a.config.NonVotingServer
 	}
+	if a.config.NodeRenamingPolicy != "" {
+		base.NodeRenamingPolicy = a.config.NodeRenamingPolicy
+	}
 
 	// These are fully specified in the agent defaults, so we can simply
 	// copy them over.
