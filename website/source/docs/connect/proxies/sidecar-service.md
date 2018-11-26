@@ -63,10 +63,10 @@ definitions:
     }
   ],
   "proxy": {
-    "destination_service_name": "db",
-    "destination_service_id": "db",
+    "destination_service_name": "web",
+    "destination_service_id": "web",
     "local_service_address": "127.0.0.1",
-    "local_service_port": 9090,
+    "local_service_port": 8080,
   }
 }
 ```
