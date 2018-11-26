@@ -1,16 +1,19 @@
 import Mixin from '@ember/object/mixin';
-
+import { inject as service } from '@ember/service';
 import { next } from '@ember/runloop';
 import { get } from '@ember/object';
-const isOutside = function(element, e) {
+
+// TODO: Potentially move this to dom service
+const isOutside = function(element, e, doc = document) {
   if (element) {
-    const isRemoved = !e.target || !document.contains(e.target);
+    const isRemoved = !e.target || !doc.contains(e.target);
     const isInside = element === e.target || element.contains(e.target);
     return !isRemoved && !isInside;
   } else {
     return false;
   }
 };
+
 const handler = function(e) {
   const el = get(this, 'element');
   if (isOutside(el, e)) {
@@ -18,6 +21,7 @@ const handler = function(e) {
   }
 };
 export default Mixin.create({
+  dom: service('dom'),
   init: function() {
     this._super(...arguments);
     this.handler = handler.bind(this);
@@ -26,12 +30,14 @@ export default Mixin.create({
   onblur: function() {},
   didInsertElement: function() {
     this._super(...arguments);
+    const doc = get(this, 'dom').document();
     next(this, () => {
-      document.addEventListener('click', this.handler);
+      doc.addEventListener('click', this.handler);
     });
   },
   willDestroyElement: function() {
     this._super(...arguments);
-    document.removeEventListener('click', this.handler);
+    const doc = get(this, 'dom').document();
+    doc.removeEventListener('click', this.handler);
   },
 });
