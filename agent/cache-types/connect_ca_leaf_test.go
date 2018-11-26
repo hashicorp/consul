@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -162,17 +163,28 @@ func TestConnectCALeaf_changingRoots(t *testing.T) {
 		QueryMeta: structs.QueryMeta{Index: 1},
 	}
 
+	// We need this later but needs to be defined so we sign second CSR with it
+	// otherwise we break the cert root checking.
+	caRoot2 := connect.TestCA(t, nil)
+
 	// Instrument ConnectCA.Sign to return signed cert
 	var resp *structs.IssuedCert
 	var idx uint64
+
 	rpc.On("RPC", "ConnectCA.Sign", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
+			ca := caRoot
+			cIdx := atomic.AddUint64(&idx, 1)
+			if cIdx > 1 {
+				// Second time round use the new CA
+				ca = caRoot2
+			}
 			reply := args.Get(2).(*structs.IssuedCert)
-			leaf, _ := connect.TestLeaf(t, "web", caRoot)
+			leaf, _ := connect.TestLeaf(t, "web", ca)
 			reply.CertPEM = leaf
 			reply.ValidAfter = time.Now().Add(-1 * time.Hour)
 			reply.ValidBefore = time.Now().Add(11 * time.Hour)
-			reply.CreateIndex = atomic.AddUint64(&idx, 1)
+			reply.CreateIndex = cIdx
 			reply.ModifyIndex = reply.CreateIndex
 			resp = reply
 		})
@@ -205,7 +217,6 @@ func TestConnectCALeaf_changingRoots(t *testing.T) {
 
 	// Let's send in new roots, which should trigger the sign req. We need to take
 	// care to set the new root as active
-	caRoot2 := connect.TestCA(t, nil)
 	caRoot2.Active = true
 	caRoot.Active = false
 	rootsCh <- structs.IndexedCARoots{
@@ -225,6 +236,9 @@ func TestConnectCALeaf_changingRoots(t *testing.T) {
 		require.Equal(resp, v.Value)
 		// 3 since the second CA "update" used up 2
 		require.Equal(uint64(3), v.Index)
+		// Set the LastResult for subsequent fetches
+		opts.LastResult = &v
+		opts.MinIndex = 3
 	}
 
 	// Third fetch should block
@@ -305,7 +319,14 @@ func TestConnectCALeaf_changingRootsJitterBetweenCalls(t *testing.T) {
 	}
 
 	// Let's send in new roots, which should eventually trigger the sign req. We
-	// need to take care to set the new root as active
+	// need to take care to set the new root as active. Note that this is
+	// implicitly testing that root updates that happen in between leaf blocking
+	// queries are still noticed too. At this point no leaf blocking query is
+	// running so the root watch should be stopped. By pushing this update, the
+	// next blocking query will _immediately_ see the new root which means it
+	// needs to correctly notice that it is not the same one that generated the
+	// current cert and start the rotation. This is good, just not obvious that
+	// the behavior is actually well tested here when it is.
 	caRoot2 := connect.TestCA(t, nil)
 	caRoot2.Active = true
 	caRoot.Active = false
@@ -377,6 +398,291 @@ func TestConnectCALeaf_changingRootsJitterBetweenCalls(t *testing.T) {
 		require.Falsef(
 			time.Now().After(shouldExpireAfter.Add(100*time.Millisecond)),
 			"waited extra 100ms and delayed CA rotate renew didn't happen")
+	}
+}
+
+// Tests that if the root changes in between blocking calls we still pick it up.
+func TestConnectCALeaf_changingRootsBetweenBlockingCalls(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	rpc := TestRPC(t)
+	defer rpc.AssertExpectations(t)
+
+	typ, rootsCh := testCALeafType(t, rpc)
+	defer close(rootsCh)
+
+	caRoot := connect.TestCA(t, nil)
+	caRoot.Active = true
+	rootsCh <- structs.IndexedCARoots{
+		ActiveRootID: caRoot.ID,
+		TrustDomain:  "fake-trust-domain.consul",
+		Roots: []*structs.CARoot{
+			caRoot,
+		},
+		QueryMeta: structs.QueryMeta{Index: 1},
+	}
+
+	// Instrument ConnectCA.Sign to return signed cert
+	var resp *structs.IssuedCert
+	var idx uint64
+	rpc.On("RPC", "ConnectCA.Sign", mock.Anything, mock.Anything).Return(nil).
+		Run(func(args mock.Arguments) {
+			reply := args.Get(2).(*structs.IssuedCert)
+			leaf, _ := connect.TestLeaf(t, "web", caRoot)
+			reply.CertPEM = leaf
+			reply.ValidAfter = time.Now().Add(-1 * time.Hour)
+			reply.ValidBefore = time.Now().Add(11 * time.Hour)
+			reply.CreateIndex = atomic.AddUint64(&idx, 1)
+			reply.ModifyIndex = reply.CreateIndex
+			resp = reply
+		})
+
+	// We'll reuse the fetch options and request. Short timeout important since we
+	// wait the full timeout before chaning roots.
+	opts := cache.FetchOptions{MinIndex: 0, Timeout: 35 * time.Millisecond}
+	req := &ConnectCALeafRequest{Datacenter: "dc1", Service: "web"}
+
+	// First fetch should return immediately
+	fetchCh := TestFetchCh(t, typ, opts, req)
+	select {
+	case <-time.After(100 * time.Millisecond):
+		t.Fatal("shouldn't block waiting for fetch")
+	case result := <-fetchCh:
+		v := mustFetchResult(t, result)
+		require.Equal(resp, v.Value)
+		require.Equal(uint64(1), v.Index)
+		// Set the LastResult for subsequent fetches
+		opts.LastResult = &v
+	}
+
+	// Next fetch should block for the full timeout
+	start := time.Now()
+	fetchCh = TestFetchCh(t, typ, opts, req)
+	select {
+	case <-time.After(100 * time.Millisecond):
+		t.Fatal("shouldn't block for too long waiting for fetch")
+	case result := <-fetchCh:
+		v := mustFetchResult(t, result)
+		require.Equal(resp, v.Value)
+		// Still the initial cached result
+		require.Equal(uint64(1), v.Index)
+		// Sanity check that it waited
+		require.True(time.Since(start) > opts.Timeout)
+		// Set the LastResult for subsequent fetches
+		opts.LastResult = &v
+	}
+
+	// No active requests, simulate root change now
+	caRoot2 := connect.TestCA(t, nil)
+	caRoot2.Active = true
+	caRoot.Active = false
+	rootsCh <- structs.IndexedCARoots{
+		ActiveRootID: caRoot2.ID,
+		TrustDomain:  "fake-trust-domain.consul",
+		Roots: []*structs.CARoot{
+			caRoot2,
+			caRoot,
+		},
+		QueryMeta: structs.QueryMeta{Index: atomic.AddUint64(&idx, 1)},
+	}
+	earliestRootDelivery := time.Now()
+
+	// We should get the new cert immediately on next fetch (since test override
+	// root change jitter to be 1 nanosecond so no delay expected).
+	fetchCh = TestFetchCh(t, typ, opts, req)
+	select {
+	case <-time.After(100 * time.Millisecond):
+		t.Fatal("shouldn't block too long waiting for fetch")
+	case result := <-fetchCh:
+		v := mustFetchResult(t, result)
+		require.Equal(resp, v.Value)
+		// Index should be 3 since root change consumed 2
+		require.Equal(uint64(3), v.Index)
+		// Sanity check that we didn't wait too long
+		require.True(time.Since(earliestRootDelivery) < opts.Timeout)
+		// Set the LastResult for subsequent fetches
+		opts.LastResult = &v
+	}
+
+}
+
+func TestConnectCALeaf_CSRRateLimiting(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	rpc := TestRPC(t)
+	defer rpc.AssertExpectations(t)
+
+	typ, rootsCh := testCALeafType(t, rpc)
+	defer close(rootsCh)
+
+	// Each jitter window will be only 100 ms long to make testing quick but
+	// highly likely not to fail based on scheduling issues.
+	typ.TestOverrideCAChangeInitialDelay = 100 * time.Millisecond
+
+	// Setup root that will be returned by the mocked Root cache fetch
+	caRoot := connect.TestCA(t, nil)
+	caRoot.Active = true
+	rootsCh <- structs.IndexedCARoots{
+		ActiveRootID: caRoot.ID,
+		TrustDomain:  "fake-trust-domain.consul",
+		Roots: []*structs.CARoot{
+			caRoot,
+		},
+		QueryMeta: structs.QueryMeta{Index: 1},
+	}
+
+	// Instrument ConnectCA.Sign
+	var resp *structs.IssuedCert
+	var idx, rateLimitedRPCs uint64
+
+	genCert := func(args mock.Arguments) {
+		reply := args.Get(2).(*structs.IssuedCert)
+		leaf, _ := connect.TestLeaf(t, "web", caRoot)
+		reply.CertPEM = leaf
+		reply.ValidAfter = time.Now().Add(-1 * time.Hour)
+		reply.ValidBefore = time.Now().Add(11 * time.Hour)
+		reply.CreateIndex = atomic.AddUint64(&idx, 1)
+		reply.ModifyIndex = reply.CreateIndex
+		resp = reply
+	}
+
+	incRateLimit := func(args mock.Arguments) {
+		atomic.AddUint64(&rateLimitedRPCs, 1)
+	}
+
+	// First call return rate limit error. This is important as it checks
+	// behavior when cache is empty and we have to return a nil Value but need to
+	// save state to do the right thing for retry.
+	rpc.On("RPC", "ConnectCA.Sign", mock.Anything, mock.Anything).
+		Return(consul.ErrRateLimited).Once().Run(incRateLimit)
+	// Then succeed on second call
+	rpc.On("RPC", "ConnectCA.Sign", mock.Anything, mock.Anything).
+		Return(nil).Run(genCert).Once()
+	// Then be rate limited again on several further calls
+	rpc.On("RPC", "ConnectCA.Sign", mock.Anything, mock.Anything).
+		Return(consul.ErrRateLimited).Twice().Run(incRateLimit)
+	// Then fine after that
+	rpc.On("RPC", "ConnectCA.Sign", mock.Anything, mock.Anything).
+		Return(nil).Run(genCert)
+
+	opts := cache.FetchOptions{MinIndex: 0, Timeout: 10 * time.Minute}
+	req := &ConnectCALeafRequest{Datacenter: "dc1", Service: "web"}
+
+	// First fetch should return rate limit error directly - client is expected to
+	// backoff itself.
+	fetchCh := TestFetchCh(t, typ, opts, req)
+	select {
+	case <-time.After(200 * time.Millisecond):
+		t.Fatal("shouldn't block longer than one jitter window for success")
+	case result := <-fetchCh:
+		switch v := result.(type) {
+		case error:
+			require.Error(v)
+			require.Equal(consul.ErrRateLimited.Error(), v.Error())
+		case cache.FetchResult:
+			t.Fatalf("Expected error")
+		}
+	}
+
+	// Second call should return correct cert immediately.
+	fetchCh = TestFetchCh(t, typ, opts, req)
+	select {
+	case <-time.After(100 * time.Millisecond):
+		t.Fatal("shouldn't block waiting for fetch")
+	case result := <-fetchCh:
+		v := mustFetchResult(t, result)
+		require.Equal(resp, v.Value)
+		require.Equal(uint64(1), v.Index)
+		// Set the LastResult for subsequent fetches
+		opts.LastResult = &v
+		// Set MinIndex
+		opts.MinIndex = 1
+	}
+
+	// Send in new roots, which should trigger the next sign req. We need to take
+	// care to set the new root as active
+	caRoot2 := connect.TestCA(t, nil)
+	caRoot2.Active = true
+	caRoot.Active = false
+	rootsCh <- structs.IndexedCARoots{
+		ActiveRootID: caRoot2.ID,
+		TrustDomain:  "fake-trust-domain.consul",
+		Roots: []*structs.CARoot{
+			caRoot2,
+			caRoot,
+		},
+		QueryMeta: structs.QueryMeta{Index: atomic.AddUint64(&idx, 1)},
+	}
+	earliestRootDelivery := time.Now()
+
+	// Sanity check state
+	require.Equal(uint64(1), atomic.LoadUint64(&rateLimitedRPCs))
+
+	// After root rotation jitter has been waited out, a new CSR will
+	// be attempted but will fail and return the previous cached result with no
+	// error since we will try again soon.
+	fetchCh = TestFetchCh(t, typ, opts, req)
+	select {
+	case <-time.After(200 * time.Millisecond):
+		t.Fatal("shouldn't block too long waiting for fetch")
+	case result := <-fetchCh:
+		// We should block for _at least_ one jitter period since we set that to
+		// 100ms and in test override mode we always pick the max jitter not a
+		// random amount.
+		require.True(time.Since(earliestRootDelivery) > 100*time.Millisecond)
+		require.Equal(uint64(2), atomic.LoadUint64(&rateLimitedRPCs))
+
+		v := mustFetchResult(t, result)
+		require.Equal(resp, v.Value)
+		// 1 since this should still be the original cached result as we failed to
+		// get a new cert.
+		require.Equal(uint64(1), v.Index)
+		// Set the LastResult for subsequent fetches
+		opts.LastResult = &v
+	}
+
+	// Root rotation state is now only captured in the opts.LastResult.State so a
+	// subsequent call should also wait for 100ms and then attempt to generate a
+	// new cert since we failed last time.
+	fetchCh = TestFetchCh(t, typ, opts, req)
+	select {
+	case <-time.After(200 * time.Millisecond):
+		t.Fatal("shouldn't block too long waiting for fetch")
+	case result := <-fetchCh:
+		// We should block for _at least_ two jitter periods now.
+		require.True(time.Since(earliestRootDelivery) > 200*time.Millisecond)
+		require.Equal(uint64(3), atomic.LoadUint64(&rateLimitedRPCs))
+
+		v := mustFetchResult(t, result)
+		require.Equal(resp, v.Value)
+		// 1 since this should still be the original cached result as we failed to
+		// get a new cert.
+		require.Equal(uint64(1), v.Index)
+		// Set the LastResult for subsequent fetches
+		opts.LastResult = &v
+	}
+
+	// Now we've had two rate limit failures and seen root rotation state work
+	// across both the blocking request that observed the rotation and the
+	// subsequent one. The next request should wait out the rest of the backoff
+	// and then actually fetch a new cert at last!
+	fetchCh = TestFetchCh(t, typ, opts, req)
+	select {
+	case <-time.After(200 * time.Millisecond):
+		t.Fatal("shouldn't block too long waiting for fetch")
+	case result := <-fetchCh:
+		// We should block for _at least_ three jitter periods now.
+		require.True(time.Since(earliestRootDelivery) > 300*time.Millisecond)
+		require.Equal(uint64(3), atomic.LoadUint64(&rateLimitedRPCs))
+
+		v := mustFetchResult(t, result)
+		require.Equal(resp, v.Value)
+		// 3 since the rootCA change used 2
+		require.Equal(uint64(3), v.Index)
+		// Set the LastResult for subsequent fetches
+		opts.LastResult = &v
 	}
 }
 

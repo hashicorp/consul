@@ -18,12 +18,14 @@ func TestCAConfiguration_GetCommonConfig(t *testing.T) {
 			name: "basic defaults",
 			cfg: &CAConfiguration{
 				Config: map[string]interface{}{
-					"RotationPeriod": "2160h",
-					"LeafCertTTL":    "72h",
+					"RotationPeriod":  "2160h",
+					"LeafCertTTL":     "72h",
+					"CSRMaxPerSecond": "50",
 				},
 			},
 			want: &CommonCAProviderConfig{
-				LeafCertTTL: 72 * time.Hour,
+				LeafCertTTL:     72 * time.Hour,
+				CSRMaxPerSecond: 50,
 			},
 		},
 		{
@@ -41,7 +43,8 @@ func TestCAConfiguration_GetCommonConfig(t *testing.T) {
 				},
 			},
 			want: &CommonCAProviderConfig{
-				LeafCertTTL: 72 * time.Hour,
+				LeafCertTTL:     72 * time.Hour,
+				CSRMaxPerSecond: 50, // The default value
 			},
 		},
 	}

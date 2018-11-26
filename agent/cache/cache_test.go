@@ -383,7 +383,7 @@ func TestCacheGet_emptyFetchResult(t *testing.T) {
 
 	// Configure the type
 	typ.Static(FetchResult{Value: 42, State: 31, Index: 1}, nil).Times(1)
-	// Return different State, it should be ignored
+	// Return different State, it should NOT be ignored
 	typ.Static(FetchResult{Value: nil, State: 32}, nil).Run(func(args mock.Arguments) {
 		// We should get back the original state
 		opts := args.Get(0).(FetchOptions)
@@ -414,8 +414,8 @@ func TestCacheGet_emptyFetchResult(t *testing.T) {
 		t.Fatal("timed out")
 	}
 
-	// Next request should get the first returned state too since last Fetch
-	// returned nil result.
+	// Next request should get the SECOND returned state even though the fetch
+	// returns nil and so the previous result is used.
 	req = TestRequest(t, RequestInfo{
 		Key: "hello", MinIndex: 1, Timeout: 100 * time.Millisecond})
 	result, meta, err = c.Get("t", req)
@@ -424,7 +424,7 @@ func TestCacheGet_emptyFetchResult(t *testing.T) {
 	require.False(meta.Hit)
 	select {
 	case state := <-stateCh:
-		require.Equal(31, state)
+		require.Equal(32, state)
 	case <-time.After(20 * time.Millisecond):
 		t.Fatal("timed out")
 	}
