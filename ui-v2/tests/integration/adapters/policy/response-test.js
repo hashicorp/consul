@@ -1,6 +1,7 @@
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import { get } from 'consul-ui/tests/helpers/api';
+import { HEADERS_SYMBOL as META } from 'consul-ui/utils/http/consul';
 module('Integration | Adapter | policy | response', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
@@ -29,6 +30,7 @@ module('Integration | Adapter | policy | response', function(hooks) {
     return get(request.url).then(function(payload) {
       const expected = Object.assign({}, payload, {
         Datacenter: dc,
+        [META]: {},
         uid: `["${dc}","${id}"]`,
       });
       const actual = adapter.handleResponse(200, {}, payload, request);
