@@ -71,6 +71,9 @@ export default Adapter.extend({
       delete _query.id;
     }
     const query = { ..._query };
+    if (typeof query.separator !== 'undefined') {
+      delete query.separator;
+    }
     delete _query[DATACENTER_QUERY_PARAM];
     return query;
   },
