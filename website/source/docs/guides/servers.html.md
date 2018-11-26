@@ -1,12 +1,12 @@
 ---
 layout: "docs"
-page_title: "Adding/Removing Servers"
+page_title: "Adding & Removing Servers"
 sidebar_current: "docs-guides-servers"
 description: |-
   Consul is designed to require minimal operator involvement, however any changes to the set of Consul servers must be handled carefully. To better understand why, reading about the consensus protocol will be useful. In short, the Consul servers perform leader election and replication. For changes to be processed, a minimum quorum of servers (N/2)+1 must be available. That means if there are 3 server nodes, at least 2 must be available.
 ---
 
-# Adding/Removing Servers
+# Adding & Removing Servers
 
 Consul is designed to require minimal operator involvement, however any changes
 to the set of Consul servers must be handled carefully. To better understand
@@ -18,13 +18,16 @@ That means if there are 3 server nodes, at least 2 must be available.
 In general, if you are ever adding and removing nodes simultaneously, it is better
 to first add the new nodes and then remove the old nodes.
 
-## Adding New Servers
+In this guide, we will cover the different methods for adding and removing servers.
 
-Adding new servers is generally straightforward. Simply start the new
+## Manually Add a New Server
+
+Manually adding new servers is generally straightforward. Simply start the new
 agent with the `-server` flag. At this point, the server will not be a member of
 any cluster, and should emit something like:
 
-```text
+```sh
+consul agent -server
 [WARN] raft: EnableSingleNode disabled, and no known peers. Aborting election.
 ```
 
@@ -32,14 +35,50 @@ This means that it does not know about any peers and is not configured to elect 
 This is expected, and we can now add this node to the existing cluster using `join`.
 From the new server, we can join any member of the existing cluster:
 
-```text
-$ consul join <Node Address>
+```sh
+$ consul join <Existing Node Address>
 Successfully joined cluster by contacting 1 nodes.
 ```
 
 It is important to note that any node, including a non-server may be specified for
-join. The gossip protocol is used to properly discover all the nodes in the cluster.
-Once the node has joined, the existing cluster leader should log something like:
+join. Generally, this method is good for testing purposes but not recommended for production
+deployments. For production clusters, you will likely want to use the agent configuration
+option to add additional servers.
+
+## Add a Server with Agent Configuration
+
+When adding addtional servers in production, you will likely want to use the
+[agent configuiration](https://www.consul.io/docs/agent/options.html)
+option, either with the Consul CLI or in the agent configuration file. With either
+option, you can use the `retry_join` setting.
+
+With the Consul CLI:
+
+```sh
+$ consul agent -retry-join=["52.10.110.11", "52.10.110.12", "52.10.100.13"]
+```
+
+In the agent configuration file:
+
+```sh
+{
+  "bootstrap": false,
+  "bootstrap_expect": 3,
+  "server": true,
+  "retry_join": ["52.10.110.11", "52.10.110.12", "52.10.100.13"]
+}
+```
+
+The `retry_join` will also ensure that if any server loses connection
+with the cluster for any reason, including the node restarting, it can
+rejoin when it comes back. Both servers and clients can use this method.
+
+### Server Coordination
+
+To ensure Consul servers are joining the cluster properly, you should monitor
+the server coordiantion. The gossip protocol is used to properly discover all
+the nodes in the cluster. Once the node has joined, the existing cluster
+leader should log something like:
 
 ```text
 [INFO] raft: Added peer 127.0.0.2:8300, starting replication
@@ -60,7 +99,7 @@ raft:
 	last_log_term = 21
 	last_snapshot_index = 40966
 	last_snapshot_term = 20
-	num_peers = 2
+	num_peers = 4
 	state = Leader
 	term = 21
 ...
@@ -75,7 +114,7 @@ It is best to add servers one at a time, allowing them to catch up. This avoids
 the possibility of data loss in case the existing servers fail while bringing
 the new servers up-to-date.
 
-## Removing Servers
+## Manually Remove a Server
 
 Removing servers must be done carefully to avoid causing an availability outage.
 For a cluster of N servers, at least (N/2)+1 must be available for the cluster
@@ -91,6 +130,10 @@ that cannot tolerate the failure of any node.
 Once you have verified the existing servers are healthy, and that the cluster
 can handle a node leaving, the actual process is simple. You simply issue a
 `leave` command to the server.
+
+```sh
+consul leave
+```
 
 The server leaving should contain logs like:
 
@@ -120,7 +163,7 @@ To remove all agents that accidentally joined the wrong set of servers, clear ou
 
 !> **WARNING** Removing data on server nodes will destroy all state in the cluster
 
-## Forced Removal
+## Manual Forced Removal
 
 In some cases, it may not be possible to gracefully remove a server. For example,
 if the server simply fails, then there is no ability to issue a leave. Instead,
@@ -130,5 +173,17 @@ If the server can be recovered, it is best to bring it back online and then grac
 leave the cluster. However, if this is not a possibility, then the `force-leave` command
 can be used to force removal of a server.
 
+```sh
+consul force-leave <node>
+```
+
 This is done by invoking that command with the name of the failed node. At this point,
 the cluster leader will mark the node as having left the cluster and it will stop attempting to replicate.
+
+## Summary
+
+In this guide we learned the straighforword process of adding and removing servers including;
+manually adding servers, adding servers through the agent confituration, gracefully removing
+servers, and forced removal of servers. Finally, we should restate that manually adding servers
+ is good for testing purposes, however, for production it is recommended to add servers with
+the agent configuration.
