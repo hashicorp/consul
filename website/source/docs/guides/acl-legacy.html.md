@@ -1088,7 +1088,7 @@ using a process like this:
 1. Enable ACL replication in all datacenters to allow continuation of service
 during the migration, and to populate the target datacenter. Verify replication
 is healthy and caught up to the current ACL index in the target datacenter
-using the [ACL replication status]
+using the [ACL replication status](api/acl/legacy.html#acl_replication_status)
 endpoint.
 2. Turn down the old authoritative datacenter servers.
 3. Rolling restart the agents in the target datacenter and change the
