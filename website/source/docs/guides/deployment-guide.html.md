@@ -6,7 +6,6 @@ description: |-
   This deployment guide covers the steps required to install and
   configure a single HashiCorp Consul cluster as defined in the
   Consul Reference Architecture
-product_version: 1.2
 ---
 
 # Consul Deployment Guide
@@ -40,7 +39,7 @@ Precompiled Consul binaries are available for download at [https://releases.hash
 You should perform checksum verification of the zip packages using the SHA256SUMS and SHA256SUMS.sig files available for the specific release version. HashiCorp provides [a guide on checksum verification](https://www.hashicorp.com/security.html) for precompiled binaries.
 
 ```text
-CONSUL_VERSION="1.2.0"
+CONSUL_VERSION="x.x.x"
 curl --silent --remote-name https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_amd64.zip
 curl --silent --remote-name https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_SHA256SUMS
 curl --silent --remote-name https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_SHA256SUMS.sig
