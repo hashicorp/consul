@@ -136,6 +136,7 @@ export default Adapter.extend({
         }
         return null;
     }
+    return data;
   },
   methodForRequest: function(params) {
     switch (params.requestType) {
