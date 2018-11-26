@@ -166,7 +166,7 @@ specified with the `X-Consul-Token` header or the `token` query parameter.
 
 | Method | Path                         | Produces                   |
 | ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/acl/token/:AccessorID`     | `application/json`         |
+| `GET`  | `/acl/token/self`            | `application/json`         |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
