@@ -1,3 +1,5 @@
+## 1.4.1 (UNRELEASED)
+
 ## 1.4.0 (November 14, 2018)
 
 FEATURES:
@@ -90,6 +92,12 @@ BUG FIXES:
 * connect: Fix to ensure leaf certificates for a service are not shared between clients on the same agent using different ACL tokens [[GH-4736](https://github.com/hashicorp/consul/pull/4736)]
 * ui: Ensure service names that contain slashes are displayable [[GH-4756]](https://github.com/hashicorp/consul/pull/4756)
 * watch: Fix issue with HTTPs only agents not executing watches properly. [[GH-4727](https://github.com/hashicorp/consul/pull/4727)]
+
+## 1.2.4 (November 27, 2018)
+
+SECURITY:
+
+ * agent: backported enable_local_script_checks feature from 1.3.0. [Announcement](https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations) [[GH-4711](https://github.com/hashicorp/consul/issues/4711)]
 
 ## 1.2.3 (September 13, 2018)
 
@@ -207,6 +215,13 @@ BUG FIXES:
 * agent: Fixed bug that would cause unnecessary and frequent logging yamux keepalives [[GH-3040](https://github.com/hashicorp/consul/issues/3040)]
 * dns: Re-enable full DNS compression [[GH-4071](https://github.com/hashicorp/consul/issues/4071)]
 
+
+## 1.1.1 (November 27, 2018)
+
+SECURITY:
+
+ * agent: backported enable_local_script_checks feature from 1.3.0. [Announcement](https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations) [[GH-4711](https://github.com/hashicorp/consul/issues/4711)]
+
 ## 1.1.0 (May 11, 2018)
 
 FEATURES:
@@ -239,6 +254,12 @@ BUG FIXES:
 * api: Add support for the new Service Meta field in API client [[GH-4045](https://github.com/hashicorp/consul/issues/4045)]
 * agent: Updated serf library for two bug fixes - allow enough time for leave intents to propagate [[GH-510](https://github.com/hashicorp/serf/pull/510)] and preventing a deadlock [[GH-507](https://github.com/hashicorp/serf/pull/510)]
 * agent: When node-level checks (e.g. maintenance mode) were deleted, some watchers currently in between blocking calls may have missed the change in index. See [[GH-3970](https://github.com/hashicorp/consul/pull/3970)]
+
+## 1.0.8 (November 27, 2018)
+
+SECURITY:
+
+ * agent: backported enable_local_script_checks feature from 1.3.0. [Announcement](https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations) [[GH-4711](https://github.com/hashicorp/consul/issues/4711)]
 
 ## 1.0.7 (April 13, 2018)
 
@@ -552,6 +573,12 @@ BUG FIXES:
 * cli: If the `consul operator raft list-peers` command encounters an error it will now exit with a non-zero exit code. [[GH-3513](https://github.com/hashicorp/consul/issues/3513)]
 * cli: CLI commands will now show help for all of their arguments. [[GH-3536](https://github.com/hashicorp/consul/issues/3536)]
 * server: Fixed an issue where the leader server could get into a state where it was no longer performing the periodic leader loop duties and unable to serve consistent reads after a barrier timeout error. [[GH-3545](https://github.com/hashicorp/consul/issues/3545)]
+
+## 0.9.4 (November 27, 2018)
+
+SECURITY:
+
+ * agent: backported enable_local_script_checks feature from 1.3.0. [Announcement](https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations) [[GH-4711](https://github.com/hashicorp/consul/issues/4711)]
 
 ## 0.9.3 (September 8, 2017)
 
