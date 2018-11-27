@@ -21,7 +21,6 @@ package my_program
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testutil"
 )
 
@@ -56,16 +55,16 @@ func TestFoo_bar(t *testing.T) {
 	})
 
 	// Create a service
-	srv1.AddService(t, "redis", structs.HealthPassing, []string{"master"})
+	srv1.AddService(t, "redis", testutil.HealthPassing, []string{"master"})
 
 	// Create a service that will be accessed in target source code
-	srv1.AddAccessibleService("redis", structs.HealthPassing, "127.0.0.1", 6379, []string{"master"})
+	srv1.AddAccessibleService("redis", testutil.HealthPassing, "127.0.0.1", 6379, []string{"master"})
 
 	// Create a service check
-	srv1.AddCheck(t, "service:redis", "redis", structs.HealthPassing)
+	srv1.AddCheck(t, "service:redis", "redis", testutil.HealthPassing)
 
 	// Create a node check
-	srv1.AddCheck(t, "mem", "", structs.HealthCritical)
+	srv1.AddCheck(t, "mem", "", testutil.HealthCritical)
 
 	// The HTTPAddr field contains the address of the Consul
 	// API on the new test server instance.
