@@ -34,7 +34,7 @@ func TestFoo_bar(t *testing.T) {
 
 	// Create a secondary server, passing in configuration
 	// to avoid bootstrapping as we are forming a cluster.
-	srv2, err := testutil.NewTestServerConfig(t, func(c *testutil.TestServerConfig) {
+	srv2, err := testutil.NewTestServerConfigT(t, func(c *testutil.TestServerConfig) {
 		c.Bootstrap = false
 	})
 	if err != nil {
