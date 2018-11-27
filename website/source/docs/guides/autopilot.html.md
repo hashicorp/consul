@@ -22,8 +22,8 @@ on Raft Protocol versions.
 In this guide we will learn more about Autopilot's features.
 
 * Dead server cleanup
-* Server Stableization
-* Redundcy zone tags
+* Server Stabilization
+* Redundancy zone tags
 * Upgrade migration
 
 Finally, we will review how to ensure Autopilot is healthy.
@@ -35,7 +35,7 @@ are starting with Autopilot enabled by default.
 
 The configuration of Autopilot is loaded by the leader from the agent's
 [Autopilot settings](/docs/agent/options.html#autopilot) when initially
-bootstrapping the cluster. Since Autopilot and it's feartures are already
+bootstrapping the cluster. Since Autopilot and it's features are already
 enabled, we only need to update the configuration to disable them. The
 following are the defaults.
 
@@ -52,10 +52,10 @@ following are the defaults.
 ```
 
 All Consul servers should have Autopilot and its features either enabled
-or disabled to ensure consistency accross servers encase of a failure. Additionally,
+or disabled to ensure consistency accross servers in case of a failure. Additionally,
 Autopilot must be enabled to use any of the features, but the features themselves
 can be configured independently. Meaning you can enable or disable any of the features
-seperately, at any time.
+separately, at any time.
 
 After bootstrapping, the configuration can be viewed or modified either via the
 [`operator autopilot`](/docs/commands/operator/autopilot.html) subcommand or the
@@ -130,7 +130,7 @@ DisableUpgradeMigration = false
 UpgradeVersionTag = ""
 ```
 
-Now we have disabled dead server cleanup and set the server stabalization time to 5 seconds.
+Now we have disabled dead server cleanup and set the server stabilization time to 5 seconds.
 When a new server is added to our cluster, it will only need to be healthy and stable for
 5 seconds.
 
@@ -160,7 +160,7 @@ DisableUpgradeMigration = false
 UpgradeVersionTag = ""
 ```
 
-For our Autopilot features, we now have disabled dead server cleanup, server stabalization time to 5 seconds, and
+For our Autopilot features, we now have disabled dead server cleanup, server stabilization time to 5 seconds, and
 the redundancy zone tag is uswest1.
 
 Consul will then use these values to partition the servers by redundancy zone, and will
@@ -294,6 +294,6 @@ stabalization, redunancy zone tags, upgrade migration, and upgrade version tag.
 
 To learn more about the Autopilot settings we did not configure,
 [last_contact_threshold](https://www.consul.io/docs/agent/options.html#last_contact_threshold)
-and [max_trailing_logs](https://www.consul.io/docs/agent/options.html#max_trailing_logs)
-either read the agent confituration documenation or use the help flag with the
+and [max_trailing_logs](https://www.consul.io/docs/agent/options.html#max_trailing_logs),
+either read the agent configuration documenation or use the help flag with the
 opertor autopilot `consul operator autopilot set-config -h`.
