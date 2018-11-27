@@ -26,10 +26,6 @@ such as Kubernetes or Nomad. Additionally, intention enforcement can be done
 regardless of the underlying network, so Connect works with physical networks,
 cloud networks, software-defined networks, cross-cloud, and more.
 
--> **Beta:** Connect was introduced in Consul 1.2 and should be considered
-beta quality. We're working hard to quickly address any reported bugs and
-we hope to be remove the beta tag before the end of 2018.
-
 ## How it Works
 
 The core of Connect is based on [mutual TLS](https://en.wikipedia.org/wiki/Mutual_authentication).
