@@ -5595,3 +5595,269 @@ func TestAgent_HostBadACL(t *testing.T) {
 	assert.Equal(http.StatusOK, resp.Code)
 	assert.Nil(respRaw)
 }
+
+func TestAgent_BootstrapGossipKeys(t *testing.T) {
+	t.Parallel()
+
+	enabledHCL := `
+	encrypt_key_from_api = true
+	disable_keyring_file = true
+	` + TestACLConfig()
+
+	key1 := "qyyWbCkPVL95LgMRTqSRSw=="
+	key2 := "JC+Lpo0OqZeXZ32TQls0IQ=="
+
+	type tcCall struct {
+		key        string
+		token      string
+		rawBody    string
+		wantStatus int
+		wantBody   string
+		wantErr    string
+	}
+
+	tests := []struct {
+		name    string
+		hcl     string
+		calls   []tcCall
+		wantKey string
+	}{
+		{
+			name: "happy case",
+			hcl:  enabledHCL,
+			calls: []tcCall{
+				{
+					key:        key1,
+					token:      "root",
+					wantStatus: http.StatusOK,
+					wantBody:   "",
+					wantErr:    "",
+				},
+				// Second attempt with same key should get same OK response (idempotence)
+				{
+					key:        key1,
+					token:      "root",
+					wantStatus: http.StatusOK,
+					wantBody:   "",
+					wantErr:    "",
+				},
+				// A further call with a different key should be rejected
+				{
+					key:        key2,
+					token:      "root",
+					wantStatus: http.StatusForbidden,
+					wantBody:   "Gossip encryption already boostrapped",
+					wantErr:    "",
+				},
+			},
+			wantKey: key1,
+		},
+		{
+			name: "invalid key length",
+			hcl:  enabledHCL,
+			calls: []tcCall{
+				{
+					key:   "tooshort",
+					token: "root",
+					// Want a 403 but the actual handler just returns a BadRequestErr
+					wantErr: "SecretKey invalid",
+				},
+			},
+		},
+		{
+			name: "invalid key format",
+			hcl:  enabledHCL,
+			calls: []tcCall{
+				{
+					key:   "not base 64",
+					token: "root",
+					// Want a 403 but the actual handler just returns a BadRequestErr
+					wantErr: "SecretKey should be base64",
+				},
+			},
+		},
+		{
+			name: "invalid body encoding",
+			hcl:  enabledHCL,
+			calls: []tcCall{
+				{
+					rawBody: "not json",
+					token:   "root",
+					// Want a 403 but the actual handler just returns a BadRequestErr
+					wantErr: "Request decode failed",
+				},
+			},
+		},
+		{
+			name: "fake token",
+			hcl:  enabledHCL,
+			calls: []tcCall{
+				{
+					key:   key1,
+					token: "junk",
+					// Want a 403 but the actual handler just returns a acl.ErrPermissionDenied
+					wantErr: "ACL not found",
+				},
+			},
+		},
+		{
+			// This catches a bug I only found while documenting the PR. There is a
+			// similar but subtly differnt issue where client agents have no WAN
+			// keyring but they _do_ have WAN config unlike a server with WAN disabled
+			// which is a bit unexpected. This test doesn't actually cover the client
+			// case explicitly because that would need a whole lot more setup, but in
+			// the current implementation the fix for this case also makes it tolerant
+			// of clients where there is no WAN keyring.
+			name: "don't fail on server with WAN disabled",
+			hcl: enabledHCL + `
+				ports {
+					serf_wan = -1
+				}
+			`,
+			calls: []tcCall{
+				{
+					key:        key1,
+					token:      "root",
+					wantStatus: http.StatusOK,
+					wantBody:   "",
+					wantErr:    "",
+				},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			a := NewTestAgent(t.Name(), tc.hcl)
+			defer a.Shutdown()
+
+			testrpc.WaitForTestAgentWithToken(t, a.RPC, "dc1", "root")
+
+			require := require.New(t)
+
+			for _, call := range tc.calls {
+				body := io.Reader(bytes.NewBufferString(call.rawBody))
+				if call.rawBody == "" {
+					body = jsonReader(api.AgentBootstrapGossipKey{
+						SecretKey: call.key,
+					})
+				}
+				req, _ := http.NewRequest("PUT", "/v1/agent/bootstrap-gossip-key", body)
+				req.Header.Add("X-Consul-Token", call.token)
+				rr := httptest.NewRecorder()
+				_, err := a.srv.AgentBootstrapGossipKey(rr, req)
+
+				// Some errors are handled and written back in the handler and some just
+				// returned for the higher level http helper to encode which makes this a
+				// bit gross and implementation dependent which cases return vs write to
+				// rr directly.
+				if call.wantErr == "" {
+					require.NoError(err)
+				} else {
+					require.Error(err)
+					require.Contains(err.Error(), call.wantErr)
+				}
+
+				if call.wantStatus != 0 {
+					require.Equal(call.wantStatus, rr.Code)
+				}
+
+				if call.wantBody != "" {
+					require.Contains(rr.Body.String(), call.wantBody)
+				}
+			}
+
+			if tc.wantKey != "" {
+				// Check the right key is actually set in the agent's keyrings. We can't
+				// access that state as it's all in the `consul` package in private
+				// members so we go for the end-to-end approach of starting another
+				// agent that is WAN and LAN joined and assert that it can join and see
+				// the other agent on both pools indicating Gossip connectivity.
+				a2 := NewTestAgent(t.Name()+"-2", `
+					encrypt = "`+tc.wantKey+`"
+				`)
+				defer a2.Shutdown()
+
+				n, err := a2.JoinLAN([]string{a.Config.SerfBindAddrLAN.String()})
+				require.NoError(err)
+				require.Equal(1, n)
+				n, err = a2.JoinWAN([]string{a.Config.SerfBindAddrWAN.String()})
+				require.NoError(err)
+				require.Equal(1, n)
+			}
+		})
+	}
+}
+
+func TestAgent_BootstrapGossipKeys_RetryJoin(t *testing.T) {
+	key := "GSr9X0zQlzkFYLVsjrWwtw=="
+
+	// Start an agent with gossip encrypted
+	a := NewTestAgent(t.Name(), `encrypt = "`+key+`"`)
+	defer a.Shutdown()
+
+	// Start another agent with retry-join for the first one (it should fail to
+	// join since it has no gossip key)
+	a2 := &TestAgent{
+		Name: t.Name() + "-2",
+		HCL: `
+		encrypt_key_from_api = true
+		disable_keyring_file = true
+		retry_join = ["` + a.Config.SerfBindAddrLAN.String() + `"]
+		retry_interval = "1h"
+		retry_join_wan = ["` + a.Config.SerfBindAddrWAN.String() + `"]
+		retry_interval_wan = "1h"
+		# Make this a server (to test WAN pool) but not leader since it can't join
+		# another server with bootstrap set.
+		bootstrap = false
+	`}
+	// We can't use WaitForTestAgent on a2 since it's not connected to the leader
+	// so it can't register itself. We need to somehow wait until after it's made
+	// it through it's first connection attempt though otherwise this won't test
+	// that delivering they key causes it to retry immediately. We could rely on
+	// it all being in this package and hack our own func into the retryJoiner to
+	// be notified when it fires but that's even more gross than relying on log
+	// output which is what we'd do manually. So...
+	var a2Logs bytes.Buffer
+	a2.LogOutput = &a2Logs
+	a2.Start()
+	defer a2.Shutdown()
+
+	// Wait for both to start properly
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	retry.Run(t, func(r *retry.R) {
+		require.Contains(r, a2Logs.String(), "agent: Join LAN failed")
+		require.Contains(r, a2Logs.String(), "agent: Join WAN failed")
+	})
+
+	req := require.New(t)
+
+	// Sanity check there is only one member
+	req.Len(a.LANMembers(), 1)
+	req.Len(a.WANMembers(), 1)
+
+	// Now deliver the key
+	body := jsonReader(api.AgentBootstrapGossipKey{
+		SecretKey: key,
+	})
+	r, _ := http.NewRequest("PUT", "/v1/agent/bootstrap-gossip-key", body)
+	rr := httptest.NewRecorder()
+	_, err := a2.srv.AgentBootstrapGossipKey(rr, r)
+	req.NoError(err)
+
+	// It should be joined pretty much immediately (not wait the 1h interval we
+	// set for next attempt)
+	retry.Run(t, func(r *retry.R) {
+		require.Lenf(r, a.WANMembers(), 2, "Failed to join WAN")
+		require.Lenf(r, a.LANMembers(), 2, "Failed to join LAN")
+	})
+
+	// The test up to here actually passes even if we fail to trigger the WAN
+	// joiner because servers will automatically add other servers in LAN pool to
+	// WAN pool. This log sanity checks that we actually did trigger both the
+	// joiners.
+	retry.Run(t, func(r *retry.R) {
+		require.Contains(r, a2Logs.String(), "Join LAN completed")
+		require.Contains(r, a2Logs.String(), "Join WAN completed")
+	})
+}

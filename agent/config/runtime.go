@@ -683,6 +683,13 @@ type RuntimeConfig struct {
 	// flag: -encrypt string
 	EncryptKey string
 
+	// EncryptKeyFromAPI indicates that the gossip encryption key will be supplied
+	// by a call to /agent/bootstrap-gossip-key following startup. This is only
+	// valid if DisableKeyringFile is also true.
+	//
+	// hcl: encrypt_key_from_api = string flag: -encrypt-key-from-api string
+	EncryptKeyFromAPI bool
+
 	// EncryptVerifyIncoming enforces incoming gossip encryption and can be
 	// used to upshift to encrypted gossip on a running cluster.
 	//

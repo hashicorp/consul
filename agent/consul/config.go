@@ -1,6 +1,8 @@
 package consul
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -135,6 +137,16 @@ type Config struct {
 
 	// SerfWANConfig is the configuration for the cross-dc serf
 	SerfWANConfig *serf.Config
+
+	// SerfResetKey is used to replace the gossip keyring as if the agent was
+	// starting up again with a different -encrypt param. It is needed when
+	// -encrypt-key-from-api is used to delay delivering the encryption key. Since
+	// we can't delay starting Serf without major changes to the dependencies
+	// throughout Consul, if this is true, we will initialize Serf with a randomly
+	// chosen key and then allow a subsequent call to ReloadConfig on a Client or
+	// Server to deliver the real key via this param, which we then directly
+	// insert into the LAN and WAN keyrings.
+	SerfResetKey []byte
 
 	// SerfFloodInterval controls how often we attempt to flood local Serf
 	// Consul servers into the global areas (WAN and user-defined areas in
@@ -380,6 +392,60 @@ type Config struct {
 
 	// ConnectReplicationToken is used to control Intention replication.
 	ConnectReplicationToken string
+}
+
+// ResetSerfKey forcefully replaces all keys in the LAN and WAN keyrings with
+// the new key provided. It is only intended to be used for bootstrapping via
+// the /agent/bootstrap-gossip-key endpoint. It is here to save duplicating this
+// logic in both Client and Server implementations, and is called directly from
+// ReloadConfig in both cases.
+func (c *Config) ResetSerfKey(key []byte) error {
+	if c.SerfLANConfig.MemberlistConfig.Keyring == nil {
+		// Can't actually happen currently as we set an empty keyring even for
+		// disabled case but be defensive.
+		return errors.New("LAN gossip encryption not configured")
+	}
+	serfWANEnabled := false
+	// SerfWANConfig is actully non-nil on clients but has no keyring setup,
+	// however it can be explicitly nil on servers that have disabled WAN port.
+	if c.SerfWANConfig != nil && c.SerfWANConfig.MemberlistConfig != nil && c.SerfWANConfig.MemberlistConfig.Keyring != nil {
+		serfWANEnabled = true
+	}
+	err := c.SerfLANConfig.MemberlistConfig.Keyring.AddKey(key)
+	if err != nil {
+		return err
+	}
+	if serfWANEnabled {
+		err = c.SerfWANConfig.MemberlistConfig.Keyring.AddKey(key)
+		if err != nil {
+			return err
+		}
+	}
+	err = c.SerfLANConfig.MemberlistConfig.Keyring.UseKey(key)
+	if err != nil {
+		return err
+	}
+	if serfWANEnabled {
+		err = c.SerfWANConfig.MemberlistConfig.Keyring.UseKey(key)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Remove all old (temporary) keys
+	for _, k := range c.SerfLANConfig.MemberlistConfig.Keyring.GetKeys() {
+		if !bytes.Equal(k, key) {
+			c.SerfLANConfig.MemberlistConfig.Keyring.RemoveKey(k)
+		}
+	}
+	if serfWANEnabled {
+		for _, k := range c.SerfWANConfig.MemberlistConfig.Keyring.GetKeys() {
+			if !bytes.Equal(k, key) {
+				c.SerfWANConfig.MemberlistConfig.Keyring.RemoveKey(k)
+			}
+		}
+	}
+	return nil
 }
 
 // CheckProtocolVersion validates the protocol version.

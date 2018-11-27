@@ -776,6 +776,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		EnableSyslog:                            b.boolVal(c.EnableSyslog),
 		EnableUI:                                b.boolVal(c.UI),
 		EncryptKey:                              b.stringVal(c.EncryptKey),
+		EncryptKeyFromAPI:                       b.boolVal(c.EncryptKeyFromAPI),
 		EncryptVerifyIncoming:                   b.boolVal(c.EncryptVerifyIncoming),
 		EncryptVerifyOutgoing:                   b.boolVal(c.EncryptVerifyOutgoing),
 		GRPCPort:                                grpcPort,
@@ -941,6 +942,21 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	}
 	if err := structs.ValidateMetadata(rt.NodeMeta, false); err != nil {
 		return fmt.Errorf("node_meta invalid: %v", err)
+	}
+	// Handle deferred gossip encryption key delivery
+	if rt.EncryptKeyFromAPI {
+		if rt.EncryptKey != "" {
+			b.warn("encrypt key will be ignored when using encrypt_key_from_api")
+		}
+		// Hard error if keyring file is being used since the operator is likely
+		// unaware that the key is still being written to disk just because they
+		// avoided it in their config file. There is no real reason to deliver
+		// encryption key via API if you are OK with it being on disk.
+		if !rt.DisableKeyringFile {
+			return fmt.Errorf("encrypt_key_from_api set but disable_keyring_file is not used.\n" +
+				"This is an error to prevent inadvertently allowing Consul to write\n" +
+				"keys to disk when trying to avoid keys in config files.")
+		}
 	}
 	if rt.EncryptKey != "" {
 		if _, err := decodeBytes(rt.EncryptKey); err != nil {

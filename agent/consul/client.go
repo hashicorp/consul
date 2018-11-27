@@ -423,5 +423,10 @@ func (c *Client) GetLANCoordinate() (lib.CoordinateSet, error) {
 // relevant configuration information
 func (c *Client) ReloadConfig(config *Config) error {
 	c.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
+	if len(config.SerfResetKey) > 0 {
+		if err := c.config.ResetSerfKey(config.SerfResetKey); err != nil {
+			return err
+		}
+	}
 	return nil
 }

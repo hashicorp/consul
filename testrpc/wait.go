@@ -42,11 +42,20 @@ func WaitUntilNoLeader(t *testing.T, rpc rpcFn, dc string) {
 
 // WaitForTestAgent ensures we have a node with serfHealth check registered
 func WaitForTestAgent(t *testing.T, rpc rpcFn, dc string) {
+	WaitForTestAgentWithToken(t, rpc, dc, "")
+}
+
+// WaitForTestAgentWithToken is like WaitForTestAgent but works when ACLs are
+// enabled.
+func WaitForTestAgentWithToken(t *testing.T, rpc rpcFn, dc, token string) {
 	var nodes structs.IndexedNodes
 	var checks structs.IndexedHealthChecks
 
 	retry.Run(t, func(r *retry.R) {
-		dcReq := &structs.DCSpecificRequest{Datacenter: dc}
+		dcReq := &structs.DCSpecificRequest{
+			Datacenter:   dc,
+			QueryOptions: structs.QueryOptions{Token: token},
+		}
 		if err := rpc("Catalog.ListNodes", dcReq, &nodes); err != nil {
 			r.Fatalf("Catalog.ListNodes failed: %v", err)
 		}
@@ -55,7 +64,11 @@ func WaitForTestAgent(t *testing.T, rpc rpcFn, dc string) {
 		}
 
 		// This assumes that there is a single agent per dc, typically a TestAgent
-		nodeReq := &structs.NodeSpecificRequest{Datacenter: dc, Node: nodes.Nodes[0].Node}
+		nodeReq := &structs.NodeSpecificRequest{
+			Datacenter:   dc,
+			Node:         nodes.Nodes[0].Node,
+			QueryOptions: structs.QueryOptions{Token: token},
+		}
 		if err := rpc("Health.NodeChecks", nodeReq, &checks); err != nil {
 			r.Fatalf("Health.NodeChecks failed: %v", err)
 		}

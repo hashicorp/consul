@@ -227,6 +227,16 @@ will exit with an error at startup.
   initialized with an encryption key, then the provided key is ignored and
   a warning will be displayed.
 
+* <a name="_encrypt_key_from_api"></a><a
+  href="#_encrypt_key_from_api_">`-encrypt-key-from-api`</a> - Boolean flag that
+  specifies that Gossip should be encrypted, but that the key will be delivered
+  later [via the API](/api/agent.html#bootstrap-gossip-encryption-key). It is an
+  error to set this without also setting `-disable-keyring-file` since it's sole
+  purpose is to avoid the gossip key being present on disk. If both are true the
+  agent will startup with gossip encrypted by a randomly chosen key which
+  ensures it will not be able to join an existing pool nor be joined by other
+  agents in the same state.
+
 * <a name="_grpc_port"></a><a href="#_grpc_port">`-grpc-port`</a> - the gRPC API
   port to listen on. Default -1 (gRPC disabled). See [ports](#ports)
   documentation for more detail.
@@ -1056,6 +1066,9 @@ default will automatically work with some tooling.
 
 * <a name="encrypt"></a><a href="#encrypt">`encrypt`</a> Equivalent to the
   [`-encrypt` command-line flag](#_encrypt).
+
+* <a name="encrypt_key_from_api"></a><a href="#encrypt_key_from_api">`encrypt_key_from_api`</a> Equivalent to the
+  [`-encrypt-key-from-api` command-line flag](#_encrypt_key_from_api).
 
 * <a name="encrypt_verify_incoming"></a><a href="#encrypt_verify_incoming">`encrypt_verify_incoming`</a> -
   This is an optional parameter that can be used to disable enforcing encryption for incoming gossip in order

@@ -1,10 +1,14 @@
 package agent
 
 import (
+	"bytes"
 	"context"
+	"crypto/rand"
 	"crypto/sha512"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -74,6 +78,14 @@ type configSource int
 const (
 	ConfigSourceLocal configSource = iota
 	ConfigSourceRemote
+)
+
+var (
+	// ErrGossipBootstrapped is returned when attempting to reset the
+	// gossip key on a node that was not configured to bootstrap gossip later via
+	// API, or on one that was but has already been bootstrapped. It's a named
+	// error because we want to detect it and respond with a 403 rather than 500.
+	ErrGossipBootstrapped = errors.New("Gossip encryption already boostrapped")
 )
 
 // delegate defines the interface shared by both
@@ -205,6 +217,13 @@ type Agent struct {
 	// attempts.
 	retryJoinCh chan error
 
+	// retryJoin*Trigger can be sent a struct{}{} to immediately trigger the retry
+	// join loop to make a new attempt for example if a gossip key has been
+	// delivered via API. These should never be closed while retry joiner is
+	// running.
+	retryJoinLANTrigger chan struct{}
+	retryJoinWANTrigger chan struct{}
+
 	// endpoints maps unique RPC endpoint names to common ones
 	// to allow overriding of RPC handlers since the golang
 	// net/rpc server does not allow this.
@@ -249,6 +268,15 @@ type Agent struct {
 	// grpcServer is the server instance used currently to serve xDS API for
 	// Envoy.
 	grpcServer *grpc.Server
+
+	// gossipKeyBootstrapSet stores the gossip key set via API bootstrap when
+	// -encrypt-key-from-api is used. We do this to ensure we only allow bootstrap
+	// to succeed once per agent process lifetime and not become a way of
+	// forcefully changing the key. We store the whole key here so we can return
+	// success if bootstrap is attempted again with the same key to make it
+	// idempotent. gossipKeyBootstrapMu protects access to gossipKeyBootstrapSet.
+	gossipKeyBootstrapMu  sync.Mutex
+	gossipKeyBootstrapSet []byte
 }
 
 func New(c *config.RuntimeConfig) (*Agent, error) {
@@ -274,9 +302,12 @@ func New(c *config.RuntimeConfig) (*Agent, error) {
 		joinLANNotifier: &systemd.Notifier{},
 		reloadCh:        make(chan chan error),
 		retryJoinCh:     make(chan error),
-		shutdownCh:      make(chan struct{}),
-		endpoints:       make(map[string]string),
-		tokens:          new(token.Store),
+		// 1-buffer is important, see retryJoin*Trigger usage for more info
+		retryJoinLANTrigger: make(chan struct{}, 1),
+		retryJoinWANTrigger: make(chan struct{}, 1),
+		shutdownCh:          make(chan struct{}),
+		endpoints:           make(map[string]string),
+		tokens:              new(token.Store),
 	}
 
 	if err := a.initializeACLs(); err != nil {
@@ -1276,15 +1307,34 @@ func (a *Agent) setupNodeID(config *config.RuntimeConfig) error {
 
 // setupBaseKeyrings configures the LAN and WAN keyrings.
 func (a *Agent) setupBaseKeyrings(config *consul.Config) error {
+	encryptKey := a.config.EncryptKey
+
+	// Handle deferred API key delivery
+	if a.config.EncryptKeyFromAPI {
+		// Gossip key will be delivered later via API. We can't delay starting Serf
+		// until after HTTP is up without major reworking of internals, and we don't
+		// want to startup gossip un-encrypted and spray plaintext packets around
+		// the network until the api is called, so we generate a totally random
+		// encryption key that will cause the agent to be unable to join the cluster
+		// until the API is called to bootstrap the gossip key.
+		encryptKeyBuf := make([]byte, 16)
+		_, err := rand.Read(encryptKeyBuf)
+		if err != nil {
+			return fmt.Errorf("Failed trying to generate a temporary gossip key: %s", err)
+		}
+		// Encode base64 as we are expecting. Don't want to write back to a.config
+		// as that is unexpected and may be being read by other goroutines.
+		encryptKey = base64.StdEncoding.EncodeToString(encryptKeyBuf)
+	}
 	// If the keyring file is disabled then just poke the provided key
 	// into the in-memory keyring.
 	federationEnabled := config.SerfWANConfig != nil
 	if a.config.DisableKeyringFile {
-		if a.config.EncryptKey == "" {
+		if encryptKey == "" {
 			return nil
 		}
 
-		keys := []string{a.config.EncryptKey}
+		keys := []string{encryptKey}
 		if err := loadKeyring(config.SerfLANConfig, keys); err != nil {
 			return err
 		}
@@ -1300,17 +1350,17 @@ func (a *Agent) setupBaseKeyrings(config *consul.Config) error {
 	fileLAN := filepath.Join(a.config.DataDir, SerfLANKeyring)
 	fileWAN := filepath.Join(a.config.DataDir, SerfWANKeyring)
 
-	if a.config.EncryptKey == "" {
+	if encryptKey == "" {
 		goto LOAD
 	}
 	if _, err := os.Stat(fileLAN); err != nil {
-		if err := initKeyring(fileLAN, a.config.EncryptKey); err != nil {
+		if err := initKeyring(fileLAN, encryptKey); err != nil {
 			return err
 		}
 	}
 	if a.config.ServerMode && federationEnabled {
 		if _, err := os.Stat(fileWAN); err != nil {
-			if err := initKeyring(fileWAN, a.config.EncryptKey); err != nil {
+			if err := initKeyring(fileWAN, encryptKey); err != nil {
 				return err
 			}
 		}
@@ -3470,4 +3520,60 @@ func defaultProxyCommand(agentCfg *config.RuntimeConfig) ([]string, error) {
 		cmd = append(cmd, "-log-level", agentCfg.LogLevel)
 	}
 	return cmd, nil
+}
+
+// SetGossipKey directly modifies the current active gossip key in all gossip
+// pools. It's intended usage is only for bootstraping gossip keys after startup
+// and should not be used generally for key rotation. After calling, the agent's
+// keyrings will be in the same state as if they just started up using the same
+// key as the -encrypt argument. If keyring file is enabled, it is an error to
+// call this endpoint.
+func (a *Agent) SetGossipKey(key []byte) error {
+	// Sanity check we are in waiting for gossip key bootstrap
+	if !a.config.EncryptKeyFromAPI {
+		return ErrGossipBootstrapped
+	}
+
+	if len(key) == 0 {
+		// Sanity check it's not empty actual key format we let the serf layer worry
+		// about.
+		return errors.New("Empty key")
+	}
+
+	// ... and that we didn't already bootstrap with a different key.
+	a.gossipKeyBootstrapMu.Lock()
+	defer a.gossipKeyBootstrapMu.Unlock()
+
+	if bytes.Equal(a.gossipKeyBootstrapSet, key) {
+		// Identical key delivered twice. Call it a success to allow API to be
+		// idempotent.
+		return nil
+	}
+
+	if len(a.gossipKeyBootstrapSet) > 0 {
+		// Already set
+		return ErrGossipBootstrapped
+	}
+
+	// Do the reset, first get existing Consul config so we don't inadvertently
+	// change anything else.
+	cfg, err := a.consulConfig()
+	if err != nil {
+		return err
+	}
+
+	// Note that most of the Config is not reloadable including the
+	// Serf/memberlist config since they are already being used by those libs, we
+	// set a special key that is acted on by ReloadConfig to do what we need in
+	// this case.
+	cfg.SerfResetKey = key
+	err = a.delegate.ReloadConfig(cfg)
+	if err != nil {
+		return err
+	}
+
+	// Last thing once we are sure we reset OK, store the key, we still hold the
+	// lock.
+	a.gossipKeyBootstrapSet = key
+	return nil
 }

@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log"
@@ -9,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/memberlist"
 
 	"github.com/mitchellh/mapstructure"
 
@@ -1486,4 +1489,91 @@ func (s *HTTPServer) AgentHost(resp http.ResponseWriter, req *http.Request) (int
 	}
 
 	return debug.CollectHostInfo(), nil
+}
+
+// AgentBootstrapGossipKey
+//
+// PUT /v1/agent/bootstrap-gossip-key
+//
+// Allows delivering the gossip encryption key via API to avoid it being present
+// on disk if -encrypt-key-from-api and -disable-keyring-file are used.
+func (s *HTTPServer) AgentBootstrapGossipKey(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Fetch the ACL token, if any, and enforce agent policy. We require
+	// AgentWrite since we are effectively allowing the agent to join the cluster
+	// by delivering it's key.
+	//
+	// TODO(banks): is this necessary? Seems safer to be more restrictive rather
+	// than less for now. It seems the worst an attacker could do if unprotected
+	// would be to force the agent to join some other gossip pool they have setup
+	// but that could be a bad thing if there are multiple Consul clusters in the
+	// DC for example.
+	var token string
+	s.parseToken(req, &token)
+	rule, err := s.agent.resolveToken(token)
+	if err != nil {
+		return nil, err
+	}
+	if rule != nil && !rule.AgentWrite(s.agent.config.NodeName) {
+		return nil, acl.ErrPermissionDenied
+	}
+
+	var args api.AgentBootstrapGossipKey
+	if err := decodeBody(req, &args, nil); err != nil {
+		return nil, &BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
+	}
+
+	// Decode key - should be base64
+	key, err := base64.StdEncoding.DecodeString(args.SecretKey)
+	if err != nil {
+		return nil, &BadRequestError{Reason: fmt.Sprintf("SecretKey should be base64 encoded bytes: %v", err)}
+	}
+	// Note that the keyring update will error below if we don't do this, but this
+	// way we get to return 400 rather than 500.
+	if err := memberlist.ValidateKey(key); err != nil {
+		return nil, &BadRequestError{Reason: fmt.Sprintf("SecretKey invalid: %v", err)}
+	}
+
+	// All good, set the key directly
+	err = s.agent.SetGossipKey(key)
+	if err == ErrGossipBootstrapped {
+		resp.WriteHeader(http.StatusForbidden)
+		fmt.Fprint(resp, err.Error())
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// Finally, retrigger the retry-joiners so they will make next attempt
+	// immediately if it's already failed and waiting.
+	if s.agent.retryJoinLANTrigger != nil {
+		// Attempt to deliver but skip if the chan is full. We rely on it being
+		// 1-buffered to perform "edge" triggering in case there are multiple calls
+		// in quick succession. Without the default, calls here eventually hang
+		// because retry loop exits once it's done it's job and so nothing is
+		// reading from this chan any more.
+		select {
+		case s.agent.retryJoinLANTrigger <- struct{}{}:
+		default:
+		}
+	}
+	// Triggering WAN joiner is _almost_ redundant because once LAN joins, at
+	// least one of the servers will see the new member is a server and add it to
+	// the WAN pool anyway. The only case where it might make a difference is if
+	// you have only configured one server in a DC with -retry-join-wan (which is
+	// normally fine to bootstrap a DC) and then they all come up and need keys
+	// delivered, then without this, they would join LAN and form a WAN pool just
+	// with the other servers from this DC and wouldn't actually join with the
+	// remote DCs until the retryJoiner fires. It might only be 30s but this is
+	// better. The other small advantage is that it's explicit in logs what is
+	// happening this way.
+	if s.agent.retryJoinWANTrigger != nil {
+		select {
+		case s.agent.retryJoinWANTrigger <- struct{}{}:
+		default:
+		}
+	}
+
+	s.agent.logger.Printf("[INFO] agent: Bootstrapped agent gossip key")
+	return nil, nil
 }

@@ -1368,3 +1368,33 @@ func TestAPI_AgentConnectProxyConfig(t *testing.T) {
 	require.Equal(t, expectConfig, config)
 	require.Equal(t, expectConfig.ContentHash, qm.LastContentHash)
 }
+
+func TestAPI_AgentBootstrapGossipKey(t *testing.T) {
+	t.Parallel()
+	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+		conf.Args = []string{"-encrypt-key-from-api", "-disable-keyring-file"}
+	})
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	k1 := "d05VB6wzYnBP/cWk9T1gUg=="
+	k2 := "GSr9X0zQlzkFYLVsjrWwtw=="
+
+	require := require.New(t)
+
+	// Initial bootstrap should work
+	require.NoError(agent.BootstrapGossipKey(k1, nil))
+
+	// Would be nice to sanity check server is now actually using key but only way
+	// to do that is to start another client with that key and see if it can
+	// connect. We already to that on the internal tests for this endpoint so
+	// won't bother orchestrating that here, just trust that if we got a 200 then
+	// it's worked!
+
+	// Setting same key on bootstrapped agent should get no error
+	require.NoError(agent.BootstrapGossipKey(k1, nil))
+
+	// But different one should fail
+	require.Error(agent.BootstrapGossipKey(k2, nil))
+}

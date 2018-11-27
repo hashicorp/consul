@@ -21,6 +21,7 @@ func init() {
 	registerEndpoint("/v1/acl/token/self", []string{"GET"}, (*HTTPServer).ACLTokenSelf)
 	registerEndpoint("/v1/acl/token/", []string{"GET", "PUT", "DELETE"}, (*HTTPServer).ACLTokenCRUD)
 	registerEndpoint("/v1/agent/token/", []string{"PUT"}, (*HTTPServer).AgentToken)
+	registerEndpoint("/v1/agent/bootstrap-gossip-key", []string{"PUT"}, (*HTTPServer).AgentBootstrapGossipKey)
 	registerEndpoint("/v1/agent/self", []string{"GET"}, (*HTTPServer).AgentSelf)
 	registerEndpoint("/v1/agent/host", []string{"GET"}, (*HTTPServer).AgentHost)
 	registerEndpoint("/v1/agent/maintenance", []string{"PUT"}, (*HTTPServer).AgentNodeMaintenance)

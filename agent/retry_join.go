@@ -13,12 +13,13 @@ import (
 
 func (a *Agent) retryJoinLAN() {
 	r := &retryJoiner{
-		cluster:     "LAN",
-		addrs:       a.config.RetryJoinLAN,
-		maxAttempts: a.config.RetryJoinMaxAttemptsLAN,
-		interval:    a.config.RetryJoinIntervalLAN,
-		join:        a.JoinLAN,
-		logger:      a.logger,
+		cluster:      "LAN",
+		addrs:        a.config.RetryJoinLAN,
+		maxAttempts:  a.config.RetryJoinMaxAttemptsLAN,
+		interval:     a.config.RetryJoinIntervalLAN,
+		retryTrigger: a.retryJoinLANTrigger,
+		join:         a.JoinLAN,
+		logger:       a.logger,
 	}
 	if err := r.retryJoin(); err != nil {
 		a.retryJoinCh <- err
@@ -27,12 +28,13 @@ func (a *Agent) retryJoinLAN() {
 
 func (a *Agent) retryJoinWAN() {
 	r := &retryJoiner{
-		cluster:     "WAN",
-		addrs:       a.config.RetryJoinWAN,
-		maxAttempts: a.config.RetryJoinMaxAttemptsWAN,
-		interval:    a.config.RetryJoinIntervalWAN,
-		join:        a.JoinWAN,
-		logger:      a.logger,
+		cluster:      "WAN",
+		addrs:        a.config.RetryJoinWAN,
+		maxAttempts:  a.config.RetryJoinMaxAttemptsWAN,
+		interval:     a.config.RetryJoinIntervalWAN,
+		retryTrigger: a.retryJoinWANTrigger,
+		join:         a.JoinWAN,
+		logger:       a.logger,
 	}
 	if err := r.retryJoin(); err != nil {
 		a.retryJoinCh <- err
@@ -54,6 +56,11 @@ type retryJoiner struct {
 
 	// interval is the time between two join attempts.
 	interval time.Duration
+
+	// retryTrigger is an optional chan that if non-nil can have a struct sent on
+	// it to cause a sleeping retry joiner to immediately retry again. We use it
+	// for example when delivering gossip keys after startup.
+	retryTrigger chan struct{}
 
 	// join adds the discovered or configured servers to the given
 	// serf cluster.
@@ -125,6 +132,11 @@ func (r *retryJoiner) retryJoin() error {
 		}
 
 		r.logger.Printf("[WARN] agent: Join %s failed: %v, retrying in %v", r.cluster, err, r.interval)
-		time.Sleep(r.interval)
+
+		select {
+		case <-time.After(r.interval):
+		case <-r.retryTrigger:
+			r.logger.Printf("[INFO] agent: Retry join re-triggered")
+		}
 	}
 }

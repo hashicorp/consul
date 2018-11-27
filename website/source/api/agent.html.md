@@ -561,3 +561,77 @@ $ curl \
     --data @payload.json \
     http://127.0.0.1:8500/v1/agent/token/acl_token
 ```
+
+## Bootstrap Gossip Encryption Key
+
+This endpoint can be used only if [`encrypt_key_from_api`](/docs/agent/options.html#_disable_keyring_file) and
+[`disable_keyring_file`](/docs/agent/options.html#_disable_keyring_file) are
+used to ensure gossip encryption keys are never stored on disk.
+
+It is an error to call it unless the above configuration values are enabled and
+it can only be used once per agent process lifetime. Once a key has been
+delivered, it is an error to call it again with a different key. Gossip key
+rotation must be orchestrated via the [Keyring API](/api/operator/keyring.html).
+
+If a valid but incorrect key is delivered, the agent must be restarted before
+the correct one can be delivered - it is assumed the trusted external process
+that calls this knows the correct key. Note that this is the same as using the
+`-encrypt` flag or config in a file to bootstrap gossip. This API is only meant
+to provide an alternative to having the key in a config file for deployments
+where an existing trusted process is present that can deliver the key more
+securely.
+
+The key delivered must be the current primary key for both WAN and LAN gossip
+pools.
+
+It is idempotent to allow a calling process to retry on timeout or transient
+error and will return success if the previous call succeeded provided the same
+key is set.
+
+If using `retry-join` or `retry-join-wan` the retry will be re-triggered
+immediately after the key is set to enable joining without waiting for the retry
+interval.
+
+Returning a success _does not_ indicate successfully joining the Gossip pool
+however only successful delivery of the key. This is due to the asynchronous
+nature of gossip join. It is possible to determine whether join worked by
+calling the [/agent/self endpoint](/api/agent.html#read-configuration) and
+inspecting the number of members in `Stats.serf_lan.members`.
+
+| Method | Path                                  | Produces                   |
+| ------ | ------------------------------------- | -------------------------- |
+| `PUT`  | `/agent/token/acl_token`              | `application/json`         |
+
+
+The table below shows this endpoint's support for
+[blocking queries](/api/index.html#blocking-queries),
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
+[required ACLs](/api/index.html#acls).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
+| ---------------- | ----------------- | ------------- | ------------- |
+| `NO`             | `none`            | `none`        | `agent:write` |
+
+### Parameters
+
+- `SecretKey` `(string: "")` - Specifies the gossip encryption key. This must be
+  16 or 32 bytes encoded in base64. You can generate random keys using [`consul
+  keygen`](/docs/commands/keygen.html).
+
+### Sample Payload
+
+```json
+{
+  "SecretKey": "XOJTY/KZ3V3dD7wwEdxCKg=="
+}
+```
+
+### Sample Request
+
+```text
+$ curl \
+    --request PUT \
+    --data @payload.json \
+    http://127.0.0.1:8500/v1/agent/bootstrap-gossip-key
+```

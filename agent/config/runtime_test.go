@@ -357,6 +357,18 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
+			desc: "-enable-local-script-checks",
+			args: []string{
+				`-enable-local-script-checks`,
+				`-data-dir=` + dataDir,
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.EnableLocalScriptChecks = true
+				rt.EnableRemoteScriptChecks = false
+				rt.DataDir = dataDir
+			},
+		},
+		{
 			desc: "-encrypt",
 			args: []string{
 				`-encrypt=i0P+gFTkLPg0h53eNYjydg==`,
@@ -364,6 +376,19 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.EncryptKey = "i0P+gFTkLPg0h53eNYjydg=="
+				rt.DataDir = dataDir
+			},
+		},
+		{
+			desc: "-encrypt-key-from-api",
+			args: []string{
+				`-encrypt-key-from-api`,
+				`-disable-keyring-file`,
+				`-data-dir=` + dataDir,
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.EncryptKeyFromAPI = true
+				rt.DisableKeyringFile = true
 				rt.DataDir = dataDir
 			},
 		},
@@ -2062,6 +2087,41 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			warns: []string{`WARNING: WAN keyring exists but -encrypt given, using keyring`},
 		},
 		{
+			desc: "encrypt-key-from-api without disable-keyring-file",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{ "encrypt_key_from_api": true }`},
+			hcl:  []string{` encrypt_key_from_api = true `},
+			err:  "encrypt_key_from_api set but disable_keyring_file is not used",
+		},
+		{
+			desc: "encrypt-key-from-api overrides encrypt",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+				"encrypt": "EcVEDqGKHdth8tN18CzGEw==",
+				"encrypt_key_from_api": true,
+				"disable_keyring_file": true
+			}`},
+			hcl: []string{`
+				encrypt = "EcVEDqGKHdth8tN18CzGEw=="
+				encrypt_key_from_api = true
+				disable_keyring_file = true
+			`},
+			patch: func(rt *RuntimeConfig) {
+				// Should leave the key alone because otherwise config kitchen sink test
+				// breaks because key is unset when this is true. It's not ideal to have
+				// complex interaction between config keys anyway.
+				rt.EncryptKey = "EcVEDqGKHdth8tN18CzGEw=="
+				rt.EncryptKeyFromAPI = true
+				rt.DisableKeyringFile = true
+				rt.DataDir = dataDir
+			},
+			warns: []string{`encrypt key will be ignored when using encrypt_key_from_api`},
+		},
+		{
 			desc: "multiple check files",
 			args: []string{
 				`-data-dir=` + dataDir,
@@ -2713,7 +2773,7 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 				b.GetPrivateIPv4 = privatev4
 				b.GetPublicIPv6 = publicv6
 
-				// read the source fragements
+				// read the source fragments
 				for i, data := range srcs {
 					b.Sources = append(b.Sources, Source{
 						Name:   fmt.Sprintf("src-%d.%s", i, format),
@@ -2994,6 +3054,7 @@ func TestFullConfig(t *testing.T) {
 			"enable_local_script_checks": true,
 			"enable_syslog": true,
 			"encrypt": "A4wELWqH",
+			"encrypt_key_from_api": true,
 			"encrypt_verify_incoming": true,
 			"encrypt_verify_outgoing": true,
 			"http_config": {
@@ -3542,6 +3603,7 @@ func TestFullConfig(t *testing.T) {
 			enable_local_script_checks = true
 			enable_syslog = true
 			encrypt = "A4wELWqH"
+			encrypt_key_from_api = true
 			encrypt_verify_incoming = true
 			encrypt_verify_outgoing = true
 			http_config {
@@ -4179,6 +4241,7 @@ func TestFullConfig(t *testing.T) {
 		EnableSyslog:                     true,
 		EnableUI:                         true,
 		EncryptKey:                       "A4wELWqH",
+		EncryptKeyFromAPI:                true,
 		EncryptVerifyIncoming:            true,
 		EncryptVerifyOutgoing:            true,
 		GRPCPort:                         4881,
@@ -4542,6 +4605,7 @@ func TestFullConfig(t *testing.T) {
 
 	warns := []string{
 		`The 'acl_datacenter' field is deprecated. Use the 'primary_datacenter' field instead.`,
+		`encrypt key will be ignored when using encrypt_key_from_api`,
 		`bootstrap_expect > 0: expecting 53 servers`,
 	}
 
@@ -4971,6 +5035,7 @@ func TestSanitize(t *testing.T) {
 		"EnableSyslog": false,
 		"EnableUI": false,
 		"EncryptKey": "hidden",
+		"EncryptKeyFromAPI": false,
 		"EncryptVerifyIncoming": false,
 		"EncryptVerifyOutgoing": false,
 		"GRPCAddrs": [],

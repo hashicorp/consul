@@ -1120,6 +1120,11 @@ func (s *Server) GetLANCoordinate() (lib.CoordinateSet, error) {
 // ReloadConfig is used to have the Server do an online reload of
 // relevant configuration information
 func (s *Server) ReloadConfig(config *Config) error {
+	if len(config.SerfResetKey) > 0 {
+		if err := s.config.ResetSerfKey(config.SerfResetKey); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
