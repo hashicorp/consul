@@ -1296,6 +1296,7 @@ func TestAgent_HTTPCheck_EnableAgentTLSForChecks(t *testing.T) {
 		}
 		a.Start()
 		defer a.Shutdown()
+		testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 		health := &structs.HealthCheck{
 			Node:    "foo",
