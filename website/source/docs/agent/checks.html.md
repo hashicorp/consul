@@ -36,6 +36,12 @@ There are several different kinds of checks:
   * [`enable_script_checks`](/docs/agent/options.html#_enable_script_checks): enable
     script checks regardless of how they are defined.
 
+  ~> **Security Warning:** Enabling script checks in some configurations may
+  introduce a remote execution vulnerability which is known to be targeted by
+  malware. We strongly recommend `enable_local_script_checks` instead. See [this
+  blog post](https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations)
+  for more details.
+
 * HTTP + Interval - These checks make an HTTP `GET` request every Interval (e.g.
   every 30 seconds) to the specified URL. The status of the service depends on
   the HTTP response code: any `2xx` code is considered passing, a `429 Too Many

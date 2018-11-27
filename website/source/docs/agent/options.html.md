@@ -198,15 +198,21 @@ will exit with an error at startup.
   in the "consul." domain. This flag can be used to change that domain. All queries in this domain
   are assumed to be handled by Consul and will not be recursively resolved.
 
-* <a name="_enable_script_checks"></a><a href="#_enable_script_checks">`-enable-script-checks`</a> This
-  controls whether [health checks that execute scripts](/docs/agent/checks.html) are enabled on
-  this agent, and defaults to `false` so operators must opt-in to allowing these. If enabled, it is recommended
-  to [enable ACLs](/docs/guides/acl.html) as well to control which users are allowed to register new checks to
-  execute scripts. This was added in Consul 0.9.0.
+* <a name="_enable_script_checks"></a><a
+  href="#_enable_script_checks">`-enable-script-checks`</a> This controls
+  whether [health checks that execute scripts](/docs/agent/checks.html) are
+  enabled on this agent, and defaults to `false` so operators must opt-in to
+  allowing these. This was added in Consul 0.9.0.
+  
+    ~> **Security Warning:** Enabling script checks in some configurations may
+  introduce a remote execution vulnerability which is known to be targeted by
+  malware. We strongly recommend `-enable-local-script-checks` instead. See [this
+  blog post](https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations)
+  for more details.
 
 * <a name="_enable_local_script_checks"></a><a href="#_enable_local_script_checks">`-enable-local-script-checks`</a>
   Like [`enable_script_checks`](#_enable_script_checks), but only enable them when they are defined in the local
-  config files. Script checks defined in HTTP API registratrions will still not be allowed.
+  configuration files. Script checks defined in HTTP API registrations will still not be allowed.
 
 * <a name="_encrypt"></a><a href="#_encrypt">`-encrypt`</a> - Specifies the secret key to
   use for encryption of Consul
@@ -1035,6 +1041,15 @@ default will automatically work with some tooling.
 
 * <a name="enable_script_checks"></a><a href="#enable_script_checks">`enable_script_checks`</a> Equivalent to the
   [`-enable-script-checks` command-line flag](#_enable_script_checks).
+
+    ~> **Security Warning:** Enabling script checks in some configurations may
+  introduce a remote execution vulnerability which is known to be targeted by
+  malware. We strongly recommend `enable_local_script_checks` instead. See [this
+  blog post](https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations)
+  for more details.
+
+* <a name="enable_local_script_checks"></a><a href="#enable_local_script_checks">`enable_local_script_checks`</a> Equivalent to the
+  [`-enable-local-script-checks` command-line flag](#_enable_local_script_checks).
 
 * <a name="enable_syslog"></a><a href="#enable_syslog">`enable_syslog`</a> Equivalent to
   the [`-syslog` command-line flag](#_syslog).
