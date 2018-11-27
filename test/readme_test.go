@@ -1,3 +1,6 @@
+// This test should be identical to the example in
+// ../testutil/README.md.  If you make changes here, please make the
+// same changes there as well.
 package my_program
 
 import (
