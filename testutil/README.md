@@ -58,7 +58,7 @@ func TestFoo_bar(t *testing.T) {
 	srv1.AddService(t, "redis", testutil.HealthPassing, []string{"master"})
 
 	// Create a service that will be accessed in target source code
-	srv1.AddAccessibleService("redis", testutil.HealthPassing, "127.0.0.1", 6379, []string{"master"})
+	srv1.AddAddressableService(t, "redis", testutil.HealthPassing, "127.0.0.1", 6379, []string{"master"})
 
 	// Create a service check
 	srv1.AddCheck(t, "service:redis", "redis", testutil.HealthPassing)
