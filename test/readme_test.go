@@ -1,21 +1,3 @@
-Consul Testing Utilities
-========================
-
-This package provides some generic helpers to facilitate testing in Consul.
-
-TestServer
-==========
-
-TestServer is a harness for managing Consul agents and initializing them with
-test data. Using it, you can form test clusters, create services, add health
-checks, manipulate the K/V store, etc. This test harness is completely decoupled
-from Consul's core and API client, meaning it can be easily imported and used in
-external unit tests for various applications. It works by invoking the Consul
-CLI, which means it is a requirement to have Consul installed in the `$PATH`.
-
-Following is an example usage (_cf_. [readme_test.go](./test/readme_test.go)):
-
-```go
 package my_program
 
 import (
@@ -75,4 +57,3 @@ func TestFoo_bar(t *testing.T) {
 	wrap := srv1.Wrap(t)
 	wrap.SetKV("foo", []byte("bar"))
 }
-```
