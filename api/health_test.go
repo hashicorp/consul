@@ -372,6 +372,7 @@ func TestAPI_HealthService_NodeMetaFilter(t *testing.T) {
 		conf.NodeMeta = meta
 	})
 	defer s.Stop()
+	s.WaitForSerfCheck(t)
 
 	health := c.Health()
 	retry.Run(t, func(r *retry.R) {
