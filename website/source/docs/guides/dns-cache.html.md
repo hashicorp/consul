@@ -33,14 +33,14 @@ are:
 * [`dns_config.allow_stale`](/docs/agent/options.html#allow_stale) must be
 set to true to enable stale reads.
 * [`dns_config.max_stale`](/docs/agent/options.html#max_stale) limits how stale results
-are allowed to be when quiering DNS.
+are allowed to be when querying DNS.
 
 With these two settings you can allow or prevent stale reads. Below we will discuss
 the advanatages and disadvatages of both.
 
 ### Allow Stale Reads
 
-Since Consul 0.7.1, `allow_stale` is enabled by default and using and a `max_stale`
+Since Consul 0.7.1, `allow_stale` is enabled by default and uses a `max_stale`
 value that defaults to a near-indefinite threshold (10 years).
 This allows DNS queries to continue to be served in the event
 of a long outage with no leader. A new telemetry counter has also been added at
@@ -54,7 +54,7 @@ by more than 5 seconds.
 }
 ```
 
-Note, the above example is the default settings and you do not need to set them.
+~> NOTE: The above example is the default setting. You do not need to set it explicitly.
 
 Doing a stale read allows any Consul server to
 service a query, but non-leader nodes may return data that is
@@ -171,8 +171,8 @@ and ultimately to 0 if no TTL is configured for the service in the Consul agent.
 
 ## Summary
 
-In this guide we covered the several of the parameters for tuning DNS queries. We reviewed
+In this guide we covered several of the parameters for tuning DNS queries. We reviewed
 how to enable or disable stale reads and how to configure the amount of time when stale
-reads are allowed. We also looked at the minimum TTL configution options
+reads are allowed. We also looked at the minimum TTL configuration options
 for negative responses from services. Finally, we reviewed how to setup TTLs
 for service lookups.
