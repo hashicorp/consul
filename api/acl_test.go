@@ -20,6 +20,7 @@ func TestAPI_ACLCreateDestroy(t *testing.T) {
 	t.Parallel()
 	c, s := makeACLClient(t)
 	defer s.Stop()
+	s.WaitForSerfCheck(t)
 
 	acl := c.ACL()
 

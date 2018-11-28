@@ -11,6 +11,7 @@ func TestAPI_OperatorAutopilotGetSetConfiguration(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
+	s.WaitForSerfCheck(t)
 
 	operator := c.Operator()
 	config, err := operator.AutopilotGetConfiguration(nil)
