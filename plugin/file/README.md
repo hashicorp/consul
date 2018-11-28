@@ -7,8 +7,8 @@
 ## Description
 
 The file plugin is used for an "old-style" DNS server. It serves from a preloaded file that exists
-on disk. If the zone file contains signatures (i.e. is signed, i.e. DNSSEC) correct DNSSEC answers
-are returned. Only NSEC is supported! If you use this setup *you* are responsible for resigning the
+on disk. If the zone file contains signatures (i.e., is signed using DNSSEC), correct DNSSEC answers
+are returned. Only NSEC is supported! If you use this setup *you* are responsible for re-signing the
 zonefile.
 
 ## Syntax
@@ -17,12 +17,12 @@ zonefile.
 file DBFILE [ZONES...]
 ~~~
 
-* **DBFILE** the database file to read and parse. If the path is relative the path from the *root*
+* **DBFILE** the database file to read and parse. If the path is relative, the path from the *root*
   directive will be prepended to it.
 * **ZONES** zones it should be authoritative for. If empty, the zones from the configuration block
     are used.
 
-If you want to round robin A and AAAA responses look at the *loadbalance* plugin.
+If you want to round-robin A and AAAA responses look at the *loadbalance* plugin.
 
 ~~~
 file DBFILE [ZONES... ] {
@@ -34,17 +34,17 @@ file DBFILE [ZONES... ] {
 ~~~
 
 * `transfer` enables zone transfers. It may be specified multiples times. `To` or `from` signals
-  the direction. **ADDRESS** must be denoted in CIDR notation (127.0.0.1/32 etc.) or just as plain
+  the direction. **ADDRESS** must be denoted in CIDR notation (e.g., 127.0.0.1/32) or just as plain
   addresses. The special wildcard `*` means: the entire internet (only valid for 'transfer to').
   When an address is specified a notify message will be send whenever the zone is reloaded.
-* `reload` interval to perform reload of zone if SOA version changes. Default is one minute.
-  Value of `0` means to not scan for changes and reload. eg. `30s` checks zonefile every 30 seconds
-  and reloads zone when serial changes.
+* `reload` interval to perform a reload of the zone if the SOA version changes. Default is one minute.
+  Value of `0` means to not scan for changes and reload. For example, `30s` checks the zonefile every 30 seconds
+  and reloads the zone when serial changes.
 * `no_reload` deprecated. Sets reload to 0.
 * `upstream` defines upstream resolvers to be used resolve external names found (think CNAMEs)
-  pointing to external names. This is only really useful when CoreDNS is configured as a proxy, for
+  pointing to external names. This is only really useful when CoreDNS is configured as a proxy; for
   normal authoritative serving you don't need *or* want to use this. **ADDRESS** can be an IP
-  address, and IP:port or a string pointing to a file that is structured as /etc/resolv.conf.
+  address, an IP:port or a string pointing to a file that is structured as /etc/resolv.conf.
   If no **ADDRESS** is given, CoreDNS will resolve CNAMEs against itself.
 
 ## Examples
