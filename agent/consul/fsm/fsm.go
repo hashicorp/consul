@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/raft"
 )
@@ -60,22 +61,23 @@ type FSM struct {
 	state     *state.Store
 
 	gc                 *state.TombstoneGC
-	nodeRenamingPolicy string
+	nodeRenamingPolicy types.NodeRenamingPolicy
 }
 
 // New is used to construct a new FSM with a blank state.
-func New(gc *state.TombstoneGC, logOutput io.Writer, nodeRenamingPolicy string) (*FSM, error) {
+func New(gc *state.TombstoneGC, logOutput io.Writer, nodeRenamingPolicy types.NodeRenamingPolicy) (*FSM, error) {
 	stateNew, err := state.NewStateStore(gc, nodeRenamingPolicy)
 	if err != nil {
 		return nil, err
 	}
 
 	fsm := &FSM{
-		logOutput: logOutput,
-		logger:    log.New(logOutput, "", log.LstdFlags),
-		apply:     make(map[structs.MessageType]command),
-		state:     stateNew,
-		gc:        gc,
+		logOutput:          logOutput,
+		logger:             log.New(logOutput, "", log.LstdFlags),
+		apply:              make(map[structs.MessageType]command),
+		state:              stateNew,
+		gc:                 gc,
+		nodeRenamingPolicy: nodeRenamingPolicy,
 	}
 
 	// Build out the apply dispatch table based on the registered commands.

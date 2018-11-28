@@ -398,15 +398,8 @@ func (c *Config) CheckProtocolVersion() error {
 
 // CheckNodeRenamingPolicy checks that node_renaming_policy has a correct value.
 func (c *Config) CheckNodeRenamingPolicy() error {
-	switch c.NodeRenamingPolicy {
-	case "": // Will use default
-	case types.NodeRenamingLegacy:
-	case types.NodeRenamingRenameDeadNodes:
-	case types.NodeRenamingStrict:
-	default:
-		return fmt.Errorf("Unsupported node_renaming_policy '%s', can be (%s|%s|%s)", c.NodeRenamingPolicy, types.NodeRenamingLegacy, types.NodeRenamingRenameDeadNodes, types.NodeRenamingStrict)
-	}
-	return nil
+	_, err := types.ConvertToNodeRenamingLegacy(c.NodeRenamingPolicy)
+	return err
 }
 
 // CheckACL validates the ACL configuration.

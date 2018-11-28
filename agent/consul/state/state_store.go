@@ -81,7 +81,7 @@ type Store struct {
 	lockDelay *Delay
 
 	// Max number of watches, per store, defaults to 2048
-	nodeRenameSetting string
+	nodeRenameSetting types.NodeRenamingPolicy
 }
 
 // Snapshot is used to provide a point-in-time snapshot. It
@@ -116,7 +116,7 @@ type sessionCheck struct {
 }
 
 // NewStateStore creates a new in-memory state storage layer.
-func NewStateStore(gc *TombstoneGC, nodeRenameSetting string) (*Store, error) {
+func NewStateStore(gc *TombstoneGC, nodeRenamingPolicy types.NodeRenamingPolicy) (*Store, error) {
 	// Create the in-memory DB.
 	schema := stateStoreSchema()
 	db, err := memdb.NewMemDB(schema)
@@ -124,12 +124,6 @@ func NewStateStore(gc *TombstoneGC, nodeRenameSetting string) (*Store, error) {
 		return nil, fmt.Errorf("Failed setting up state store: %s", err)
 	}
 
-	if nodeRenameSetting == "" {
-		nodeRenameSetting = types.NodeRenamingDefault
-	}
-	if nodeRenameSetting != types.NodeRenamingLegacy && nodeRenameSetting != types.NodeRenamingRenameDeadNodes && nodeRenameSetting != types.NodeRenamingStrict {
-		return nil, fmt.Errorf("Invalid node_rename_policy, can be (%s|%s|%s), but was '%s'", nodeRenameSetting)
-	}
 	// Create and return the state store.
 	s := &Store{
 		schema:            schema,
@@ -137,7 +131,7 @@ func NewStateStore(gc *TombstoneGC, nodeRenameSetting string) (*Store, error) {
 		abandonCh:         make(chan struct{}),
 		kvsGraveyard:      NewGraveyard(gc),
 		lockDelay:         NewDelay(),
-		nodeRenameSetting: nodeRenameSetting,
+		nodeRenameSetting: nodeRenamingPolicy,
 	}
 	return s, nil
 }

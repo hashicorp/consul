@@ -218,7 +218,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	}
 
 	// Try to restore on a new FSM
-	fsm2, err := New(nil, os.Stderr, "")
+	fsm2, err := New(nil, os.Stderr, types.NodeRenamingDefault)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

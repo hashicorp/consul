@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-memdb"
 )
 
@@ -21,7 +22,7 @@ func TestStateStore_GC(t *testing.T) {
 
 	// Enable it and attach it to the state store.
 	gc.SetEnabled(true)
-	s, err := NewStateStore(gc, NodeRenamingDefault)
+	s, err := NewStateStore(gc, types.NodeRenamingDefault)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

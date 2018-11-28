@@ -412,7 +412,7 @@ func (s *Store) findExistingNodeRenameDeadNodes(tx *memdb.Txn, idx uint64, node 
 			return nil, fmt.Errorf("Cannot validate whether node %s is healthy, cannot rename node", dupNode.Node)
 		}
 		existingDupNodeSerf := dupNodeCheck.(*structs.HealthCheck)
-		if existingDupNodeSerf.Status != "critical" {
+		if existingDupNodeSerf.Status != api.HealthCritical {
 			// This is ok, we allow to take the identity of that node
 			return dupNode, fmt.Errorf("Cannot rename since node %s serfHealth is '%s'", dupNode.Node, existingDupNodeSerf.Status)
 		}
@@ -496,14 +496,14 @@ func (s *Store) findExistingNodeLegacy(tx *memdb.Txn, idx uint64, node *structs.
 
 // findExistingNode Find a Node with a similar name, returned value might be the node itself or another node
 func (s *Store) findExistingNode(tx *memdb.Txn, idx uint64, node *structs.Node) (*structs.Node, error) {
-	if s.nodeRenameSetting == types.NodeRenamingLegacy || s.nodeRenameSetting == "" {
+	if s.nodeRenameSetting == types.NodeRenamingLegacy {
 		return s.findExistingNodeLegacy(tx, idx, node)
 	} else if s.nodeRenameSetting == types.NodeRenamingRenameDeadNodes {
 		return s.findExistingNodeRenameDeadNodes(tx, idx, node)
 	} else if s.nodeRenameSetting == types.NodeRenamingStrict {
 		return s.findExistingNodeStrict(tx, idx, node)
 	} else {
-		return nil, fmt.Errorf("Unknown Rename Policy %s", s.nodeRenameSetting)
+		return nil, fmt.Errorf("Unknown Rename Policy '%s'", s.nodeRenameSetting)
 	}
 }
 

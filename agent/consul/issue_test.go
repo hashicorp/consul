@@ -8,6 +8,7 @@ import (
 	consulfsm "github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/raft"
 )
 
@@ -23,7 +24,7 @@ func makeLog(buf []byte) *raft.Log {
 // Testing for GH-300 and GH-279
 func TestHealthCheckRace(t *testing.T) {
 	t.Parallel()
-	fsm, err := consulfsm.New(nil, os.Stderr, "")
+	fsm, err := consulfsm.New(nil, os.Stderr, types.NodeRenamingDefault)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

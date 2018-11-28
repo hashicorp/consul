@@ -248,6 +248,8 @@ type Server struct {
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
 
+	nodeRenamingPolicy types.NodeRenamingPolicy
+
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseServer
 }
@@ -274,7 +276,8 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		return nil, err
 	}
 
-	if err := config.CheckNodeRenamingPolicy(); err != nil {
+	nodeRenamingPolicy, err := types.ConvertToNodeRenamingLegacy(config.NodeRenamingPolicy)
+	if err != nil {
 		return nil, err
 	}
 
@@ -333,23 +336,24 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 
 	// Create server.
 	s := &Server{
-		config:           config,
-		tokens:           tokens,
-		connPool:         connPool,
-		eventChLAN:       make(chan serf.Event, serfEventChSize),
-		eventChWAN:       make(chan serf.Event, serfEventChSize),
-		logger:           logger,
-		leaveCh:          make(chan struct{}),
-		reconcileCh:      make(chan serf.Member, reconcileChSize),
-		router:           router.NewRouter(logger, config.Datacenter),
-		rpcServer:        rpc.NewServer(),
-		rpcTLS:           incomingTLS,
-		reassertLeaderCh: make(chan chan error),
-		segmentLAN:       make(map[string]*serf.Serf, len(config.Segments)),
-		sessionTimers:    NewSessionTimers(),
-		tombstoneGC:      gc,
-		serverLookup:     NewServerLookup(),
-		shutdownCh:       shutdownCh,
+		config:             config,
+		tokens:             tokens,
+		connPool:           connPool,
+		eventChLAN:         make(chan serf.Event, serfEventChSize),
+		eventChWAN:         make(chan serf.Event, serfEventChSize),
+		logger:             logger,
+		leaveCh:            make(chan struct{}),
+		reconcileCh:        make(chan serf.Member, reconcileChSize),
+		router:             router.NewRouter(logger, config.Datacenter),
+		rpcServer:          rpc.NewServer(),
+		rpcTLS:             incomingTLS,
+		reassertLeaderCh:   make(chan chan error),
+		segmentLAN:         make(map[string]*serf.Serf, len(config.Segments)),
+		sessionTimers:      NewSessionTimers(),
+		tombstoneGC:        gc,
+		serverLookup:       NewServerLookup(),
+		shutdownCh:         shutdownCh,
+		nodeRenamingPolicy: nodeRenamingPolicy,
 	}
 
 	// Initialize enterprise specific server functionality
@@ -500,7 +504,7 @@ func (s *Server) setupRaft() error {
 
 	// Create the FSM.
 	var err error
-	s.fsm, err = fsm.New(s.tombstoneGC, s.config.LogOutput, s.config.NodeRenamingPolicy)
+	s.fsm, err = fsm.New(s.tombstoneGC, s.config.LogOutput, s.nodeRenamingPolicy)
 	if err != nil {
 		return err
 	}
@@ -607,7 +611,7 @@ func (s *Server) setupRaft() error {
 				return fmt.Errorf("recovery failed to parse peers.json: %v", err)
 			}
 
-			tmpFsm, err := fsm.New(s.tombstoneGC, s.config.LogOutput, s.config.NodeRenamingPolicy)
+			tmpFsm, err := fsm.New(s.tombstoneGC, s.config.LogOutput, s.nodeRenamingPolicy)
 			if err != nil {
 				return fmt.Errorf("recovery failed to make temp FSM: %v", err)
 			}

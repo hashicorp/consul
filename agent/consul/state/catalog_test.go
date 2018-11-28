@@ -692,7 +692,7 @@ func TestNodeRenamingNodes(t *testing.T) {
 
 func TestStateStore_EnsureNodeRenamingWorks(t *testing.T) {
 
-	testFullRegistration := func(policy string, allowStealWithoutID, allowStealDeadNode bool) {
+	testFullRegistration := func(policy types.NodeRenamingPolicy, allowStealWithoutID, allowStealDeadNode bool) {
 		s := testStateStoreWithNodeRenamePolicy(t, policy)
 
 		registerNode := func(idx uint64, nodeName, nodeID, status, ip string) error {
@@ -751,8 +751,6 @@ func TestStateStore_EnsureNodeRenamingWorks(t *testing.T) {
 		}
 	}
 	testFullRegistration(types.NodeRenamingLegacy, true, false)
-	// "legacy" == "" (default value)
-	testFullRegistration("", true, false)
 	testFullRegistration(types.NodeRenamingDefault, true, false)
 	testFullRegistration(types.NodeRenamingRenameDeadNodes, false, true)
 	testFullRegistration(types.NodeRenamingStrict, false, false)
@@ -1083,7 +1081,7 @@ func TestStateStore_GetNodes(t *testing.T) {
 }
 
 func BenchmarkGetNodes(b *testing.B) {
-	s, err := NewStateStore(nil, NodeRenamingDefault)
+	s, err := NewStateStore(nil, types.NodeRenamingDefault)
 	if err != nil {
 		b.Fatalf("err: %s", err)
 	}
@@ -3119,7 +3117,7 @@ func TestStateStore_CheckConnectServiceNodes(t *testing.T) {
 }
 
 func BenchmarkCheckServiceNodes(b *testing.B) {
-	s, err := NewStateStore(nil, NodeRenamingDefault)
+	s, err := NewStateStore(nil, types.NodeRenamingDefault)
 	if err != nil {
 		b.Fatalf("err: %s", err)
 	}
