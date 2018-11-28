@@ -8,66 +8,66 @@ description: |-
 
 # Consul Template
 
-The Consul template tool provides a programmatic method 
+The Consul template tool provides a programmatic method
 for rendering configuration files from a variety of locations,
-including Consul KV. It is an ideal option for replacing complicated API 
+including Consul KV. It is an ideal option for replacing complicated API
 queries that often require custom formatting.
-The template tool is based on Go templates and shares many 
-of the same attributes. 
+The template tool is based on Go templates and shares many
+of the same attributes.
 
 Consul template is a useful tool with several uses, we will focus on two
 of it's use cases.
 
 1. *Update configuration files*. The Consul template tool can be used
-to update service configuration files. A common use case is managing load 
-balancer configuration files that need to be updated regularly in a dynamic 
-infrastructure on machines many not be able to directly connect to the Consul cluster. 
+to update service configuration files. A common use case is managing load
+balancer configuration files that need to be updated regularly in a dynamic
+infrastructure on machines many not be able to directly connect to the Consul cluster.
 
-1. *Discover data about the Consul cluster and service*. It is possible to collect 
-information about the services in your Consul cluster. For example, you could 
-collect a list of all services running on the cluster or you could discover all 
-service addresses for the Redis service. Note, this use case has limited 
-scope for production. 
+1. *Discover data about the Consul cluster and service*. It is possible to collect
+information about the services in your Consul cluster. For example, you could
+collect a list of all services running on the cluster or you could discover all
+service addresses for the Redis service. Note, this use case has limited
+scope for production.
 
-In this guide we will briefly discuss how `consul-template` works, 
-how to install it, and two use cases. 
+In this guide we will briefly discuss how `consul-template` works,
+how to install it, and two use cases.
 
-Before completing this guide, we assume some familiarity with 
-[Consul KV](https://learn.hashicorp.com/consul/getting-started/kv.html)
+Before completing this guide, we assume some familiarity with
+[Consul KV](https://learn.hashicorp.com/consul/getting-started/kv)
  and [Go templates](https://golang.org/pkg/text/template/).
 
-## Introduction to Consul Template 
+## Introduction to Consul Template
 
-Consul template is a simple, yet powerful tool. When initiated, it 
-reads one or more template files and queries Consul for all 
-data needed to render them. Typically, you run `consul-template` as a 
-daemon which will fetch the initial values and then continue to watch 
-for updates, re-rendering the template whenever there are relevant changes in 
-the cluster. You can alternatively use the `-once` flag to fetch and render 
+Consul template is a simple, yet powerful tool. When initiated, it
+reads one or more template files and queries Consul for all
+data needed to render them. Typically, you run `consul-template` as a
+daemon which will fetch the initial values and then continue to watch
+for updates, re-rendering the template whenever there are relevant changes in
+the cluster. You can alternatively use the `-once` flag to fetch and render
 the template once which is useful for testing and
-setup scripts that are triggered by some other automation for example a 
-provisioning tool. Finally, the template can also run arbitrary commands after the update 
-process completes. For example, it can send the HUP signal to the 
-load balancer service after a configuration change has been made. 
+setup scripts that are triggered by some other automation for example a
+provisioning tool. Finally, the template can also run arbitrary commands after the update
+process completes. For example, it can send the HUP signal to the
+load balancer service after a configuration change has been made.
 
 The Consul template tool is flexible, it can fit into many
-different environments and workflows. Depending on the use-case, you 
-may have a single `consul-template` instance on a handful of hosts 
-or may need to run several instances on every host. Each `consul-template` 
+different environments and workflows. Depending on the use-case, you
+may have a single `consul-template` instance on a handful of hosts
+or may need to run several instances on every host. Each `consul-template`
 process can manage multiple unrelated files though and will de-duplicate
- the fetches as needed if those files share data dependencies so it can 
+ the fetches as needed if those files share data dependencies so it can
 reduce the load on Consul servers to share where possible.
 
 ## Install Consul Template
 
 For this guide, we are using a local Consul agent in development
-mode which can be started with `consul agent -dev`. To quickly set 
-up a local Consul agent, refer to the getting started [guide](https://learn.hashicorp.com/consul/getting-started/install). The 
+mode which can be started with `consul agent -dev`. To quickly set
+up a local Consul agent, refer to the getting started [guide](https://learn.hashicorp.com/consul/getting-started/install). The
 Consul agent must be running to complete all of the following
-steps. 
+steps.
 
 The Consul template tool is not included with the Consul binary and will
-need to be installed separately. It can be installed from a precompiled 
+need to be installed separately. It can be installed from a precompiled
 binary or compiled from source. We will be installing the precompiled binary.
 
 First, download the binary from the [Consul Template releases page](https://releases.hashicorp.com/consul-template/).
