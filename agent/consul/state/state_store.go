@@ -60,12 +60,6 @@ const (
 	// Given the current size of aFew == 32 in memdb's watch_few.go, this
 	// will allow for up to ~64 goroutines per blocking query.
 	watchLimit = 2048
-
-	// LegacyMode for Node Renaming - allow empty IDs
-	NodeRenamingLegacy          = "legacy"
-	NodeRenamingRenameDeadNodes = "dead"
-	NodeRenamingStrict          = "strict"
-	NodeRenamingDefault         = NodeRenamingLegacy
 )
 
 // Store is where we store all of Consul's state, including
@@ -131,7 +125,10 @@ func NewStateStore(gc *TombstoneGC, nodeRenameSetting string) (*Store, error) {
 	}
 
 	if nodeRenameSetting == "" {
-		nodeRenameSetting = NodeRenamingDefault
+		nodeRenameSetting = types.NodeRenamingDefault
+	}
+	if nodeRenameSetting != types.NodeRenamingLegacy && nodeRenameSetting != types.NodeRenamingRenameDeadNodes && nodeRenameSetting != types.NodeRenamingStrict {
+		return nil, fmt.Errorf("Invalid node_rename_policy, can be (%s|%s|%s), but was '%s'", nodeRenameSetting)
 	}
 	// Create and return the state store.
 	s := &Store{

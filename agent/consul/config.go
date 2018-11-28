@@ -396,6 +396,19 @@ func (c *Config) CheckProtocolVersion() error {
 	return nil
 }
 
+// CheckNodeRenamingPolicy checks that node_renaming_policy has a correct value.
+func (c *Config) CheckNodeRenamingPolicy() error {
+	switch c.NodeRenamingPolicy {
+	case "": // Will use default
+	case types.NodeRenamingLegacy:
+	case types.NodeRenamingRenameDeadNodes:
+	case types.NodeRenamingStrict:
+	default:
+		return fmt.Errorf("Unsupported node_renaming_policy '%s', can be (%s|%s|%s)", c.NodeRenamingPolicy, types.NodeRenamingLegacy, types.NodeRenamingRenameDeadNodes, types.NodeRenamingStrict)
+	}
+	return nil
+}
+
 // CheckACL validates the ACL configuration.
 func (c *Config) CheckACL() error {
 	switch c.ACLDefaultPolicy {

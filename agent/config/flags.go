@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"time"
+
+	"github.com/hashicorp/consul/types"
 )
 
 // Flags defines the command line flags.
@@ -84,7 +86,7 @@ func AddFlags(fs *flag.FlagSet, f *Flags) {
 	add(&f.Config.NodeName, "node", "Name of this node. Must be unique in the cluster.")
 	add(&f.Config.NodeID, "node-id", "A unique ID for this node across space and time. Defaults to a randomly-generated ID that persists in the data-dir.")
 	add(&f.Config.NodeMeta, "node-meta", "An arbitrary metadata key/value pair for this node, of the format `key:value`. Can be specified multiple times.")
-	add(&f.Config.NodeRenamingPolicy, "node-renaming-policy", "Choose between behaviours when renaming nodes, can be any of legacy|dead|strict")
+	add(&f.Config.NodeRenamingPolicy, "node-renaming-policy", fmt.Sprintf("Choose between behaviors when addin/renaming nodes, can be any of (%s|%s|%s", types.NodeRenamingLegacy, types.NodeRenamingRenameDeadNodes, types.NodeRenamingStrict))
 	add(&f.Config.NonVotingServer, "non-voting-server", "(Enterprise-only) This flag is used to make the server not participate in the Raft quorum, and have it only receive the data replication stream. This can be used to add read scalability to a cluster in cases where a high volume of reads to servers are needed.")
 	add(&f.Config.PidFile, "pid-file", "Path to file to store agent PID.")
 	add(&f.Config.RPCProtocol, "protocol", "Sets the protocol version. Defaults to latest.")

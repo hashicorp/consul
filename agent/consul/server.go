@@ -274,6 +274,10 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		return nil, err
 	}
 
+	if err := config.CheckNodeRenamingPolicy(); err != nil {
+		return nil, err
+	}
+
 	// Ensure we have a log output and create a logger.
 	if config.LogOutput == nil {
 		config.LogOutput = os.Stderr

@@ -107,6 +107,10 @@ func NewClientLogger(config *Config, logger *log.Logger) (*Client, error) {
 		return nil, err
 	}
 
+	if err := config.CheckNodeRenamingPolicy(); err != nil {
+		return nil, err
+	}
+
 	// Ensure we have a log output
 	if config.LogOutput == nil {
 		config.LogOutput = os.Stderr

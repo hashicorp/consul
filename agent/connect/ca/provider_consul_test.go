@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -46,7 +47,7 @@ func (c *consulCAMockDelegate) ApplyCARequest(req *structs.CARequest) error {
 }
 
 func newMockDelegate(t *testing.T, conf *structs.CAConfiguration) *consulCAMockDelegate {
-	s, err := state.NewStateStore(nil, state.NodeRenamingDefault)
+	s, err := state.NewStateStore(nil, types.NodeRenamingDefault)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

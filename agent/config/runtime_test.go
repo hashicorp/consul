@@ -503,11 +503,11 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		{
 			desc: "-node-renaming-policy",
 			args: []string{
-				`-node-renaming-policy=dead`,
+				`-node-renaming-policy=` + types.NodeRenamingRenameDeadNodes,
 				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
-				rt.NodeRenamingPolicy = "dead"
+				rt.NodeRenamingPolicy = types.NodeRenamingRenameDeadNodes
 				rt.DataDir = dataDir
 			},
 		},
@@ -4207,7 +4207,7 @@ func TestFullConfig(t *testing.T) {
 		NodeID:                           types.NodeID("AsUIlw99"),
 		NodeMeta:                         map[string]string{"5mgGQMBk": "mJLtVMSG", "A7ynFMJB": "0Nx6RGab"},
 		NodeName:                         "otlLxGaI",
-		NodeRenamingPolicy:               "legacy",
+		NodeRenamingPolicy:               types.NodeRenamingDefault,
 		NonVotingServer:                  true,
 		PidFile:                          "43xN80Km",
 		PrimaryDatacenter:                "ejtmd43d",

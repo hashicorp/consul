@@ -750,11 +750,12 @@ func TestStateStore_EnsureNodeRenamingWorks(t *testing.T) {
 			t.Fatalf("nodeSeftDown:=%v, policy=%s: %s", allowStealDeadNode, policy, err)
 		}
 	}
-	testFullRegistration("legacy", true, false)
+	testFullRegistration(types.NodeRenamingLegacy, true, false)
 	// "legacy" == "" (default value)
 	testFullRegistration("", true, false)
-	testFullRegistration("dead", false, true)
-	testFullRegistration("strict", false, false)
+	testFullRegistration(types.NodeRenamingDefault, true, false)
+	testFullRegistration(types.NodeRenamingRenameDeadNodes, false, true)
+	testFullRegistration(types.NodeRenamingStrict, false, false)
 }
 
 func TestStateStore_EnsureNode(t *testing.T) {

@@ -420,6 +420,15 @@ will exit with an error at startup.
 * <a name="_server_port"></a><a href="#_server_port">`-server-port`</a> - the server RPC port to listen on.
   This overrides the default server RPC port 8300. This is available in Consul 1.2.2 and later.
 
+* <a name="_node_renaming_policy"></a><a href="#_node_renaming_policy">`-node-renaming-policy`</a> Allow
+  to choose a policy for conflicts when nodes names do collide (when new nodes are coming to the cluster or
+  are renamed):
+    * `legacy` existing behavior pre 1.5.x
+    * `dead` allow to take the name of an agent if this agent is currently not up, recommended for Cloud
+      workloads where several node with the same name might be starting a short period of time sequentially
+    * `strict` allow to take the name of a server only if the server we want to replace is not in the
+      catalog anymore.
+
 * <a name="_non_voting_server"></a><a href="#_non_voting_server">`-non-voting-server`</a> - (Enterprise-only)
   This flag is used to make the server not participate in the Raft quorum, and have it only receive the data
   replication stream. This can be used to add read scalability to a cluster in cases where a high volume of
@@ -1353,6 +1362,9 @@ default will automatically work with some tooling.
 
 * <a name="server"></a><a href="#server">`server`</a> Equivalent to the
   [`-server` command-line flag](#_server).
+
+* <a name="node_renaming_policy></a><an href="#node_renaming_policy">`node_renaming_policy</a> - Equivalent
+  to the [`-node-renaming-policy` command-line flag](#(_node_renaming_policy)).
 
 * <a name="non_voting_server"></a><a href="#non_voting_server">`non_voting_server`</a> - Equivalent to the
   [`-non-voting-server` command-line flag](#_non_voting_server).

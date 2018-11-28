@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -22,7 +23,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	fsm, err := New(nil, os.Stderr, "")
+	fsm, err := New(nil, os.Stderr, types.NodeRenamingDefault)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -418,7 +419,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 func TestFSM_BadRestore_OSS(t *testing.T) {
 	t.Parallel()
 	// Create an FSM with some state.
-	fsm, err := New(nil, os.Stderr, "")
+	fsm, err := New(nil, os.Stderr, types.NodeRenamingDefault)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
