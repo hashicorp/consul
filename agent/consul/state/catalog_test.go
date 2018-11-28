@@ -693,62 +693,76 @@ func TestNodeRenamingNodes(t *testing.T) {
 func TestStateStore_EnsureNodeRenamingWorks(t *testing.T) {
 
 	testFullRegistration := func(policy types.NodeRenamingPolicy, allowStealWithoutID, allowStealDeadNode bool) {
-		s := testStateStoreWithNodeRenamePolicy(t, policy)
+		t.Run(string(policy), func(t *testing.T) {
+			t.Helper()
+			s := testStateStoreWithNodeRenamePolicy(t, policy)
 
-		registerNode := func(idx uint64, nodeName, nodeID, status, ip string) error {
+			registerNode := func(idx uint64, nodeName, nodeID string, checkID types.CheckID, status, ip string) error {
 
-			// Create a node registration request
-			in := &structs.Node{
-				ID:      types.NodeID(nodeID),
-				Node:    nodeName,
-				Address: ip,
+				// Create a node registration request
+				in := &structs.Node{
+					ID:      types.NodeID(nodeID),
+					Node:    nodeName,
+					Address: ip,
+				}
+
+				// Ensure the node is registered in the db
+				if err := s.EnsureNode(idx, in); err != nil {
+					return err
+				}
+
+				healthIn := &structs.HealthCheck{
+					CheckID:   checkID,
+					Name:      structs.SerfCheckName,
+					Node:      nodeName,
+					Status:    status,
+					ServiceID: "",
+				}
+				return s.EnsureCheck(idx, healthIn)
 			}
-
-			// Ensure the node is registered in the db
-			if err := s.EnsureNode(idx, in); err != nil {
-				return err
+			if err := registerNode(1, "mysupernode", "3fc7621b-614a-4cdf-b9bd-0c5df7811385", structs.SerfCheckID, "passing", "192.168.0.1"); err != nil {
+				t.Fatalf("err: %s", err)
 			}
-
-			healthIn := &structs.HealthCheck{
-				CheckID:   "serfHealth",
-				Name:      "serfHealth",
-				Node:      nodeName,
-				Status:    status,
-				ServiceID: "",
+			if err := registerNode(2, "nodeHealthy1", "54974264-fd85-4afe-8ff4-e83701b6c664", structs.SerfCheckID, "passing", "192.168.0.1"); err != nil {
+				t.Fatalf("err: %s", err)
 			}
-			return s.EnsureCheck(idx, healthIn)
-		}
-		if err := registerNode(1, "mysupernode", "3fc7621b-614a-4cdf-b9bd-0c5df7811385", "passing", "192.168.0.1"); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		if err := registerNode(2, "nodeHealthy1", "54974264-fd85-4afe-8ff4-e83701b6c664", "passing", "192.168.0.1"); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		if err := registerNode(3, "nodeSerfDown", "54974264-fd85-4afe-8ff4-e83701b6c665", "critical", "192.168.0.2"); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		// Try stealing node with similar name and an ID, should all fail
-		if err := registerNode(4, "MySuperNode", "29676151-51fb-4e51-817f-904a092012ac", "passing", "192.168.0.66"); err == nil {
-			t.Fatalf("Stealing a node with similar name should always fail, policy=%s", policy)
-		}
-		// Should always work
-		if err := registerNode(4, "nodeHealthyRenamed", "54974264-fd85-4afe-8ff4-e83701b6c664", "passing", "192.168.0.1"); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		// Revert the change, should always work as well
-		if err := registerNode(5, "nodeHealthy1", "54974264-fd85-4afe-8ff4-e83701b6c664", "passing", "192.168.0.1"); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		// Steal without ID
-		err := registerNode(6, "nodeHealthy1", "", "passing", "192.168.0.1")
-		if (err != nil) == allowStealWithoutID {
-			t.Fatalf("allowStealWithoutID:=%v, policy=%s: %s", allowStealWithoutID, policy, err)
-		}
-		// Rename dead node
-		err = registerNode(7, "nodeSerfDown", "b56fdb78-da30-4e82-8068-a87879d328bd", "passing", "192.168.0.7")
-		if (err != nil) == allowStealDeadNode {
-			t.Fatalf("nodeSeftDown:=%v, policy=%s: %s", allowStealDeadNode, policy, err)
-		}
+			if err := registerNode(3, "nodeSerfDown", "54974264-fd85-4afe-8ff4-e83701b6c665", structs.SerfCheckID, "critical", "192.168.0.2"); err != nil {
+				t.Fatalf("err: %s", err)
+			}
+			// Try stealing node with similar name and an ID, should all fail
+			if err := registerNode(4, "MySuperNode", "29676151-51fb-4e51-817f-904a092012ac", structs.SerfCheckID, "passing", "192.168.0.66"); err == nil {
+				t.Fatalf("Stealing a node with similar name should always fail, policy=%s", policy)
+			}
+			// Should always work
+			if err := registerNode(4, "nodeHealthyRenamed", "54974264-fd85-4afe-8ff4-e83701b6c664", structs.SerfCheckID, "passing", "192.168.0.1"); err != nil {
+				t.Fatalf("err: %s", err)
+			}
+			// Revert the change, should always work as well
+			if err := registerNode(5, "nodeHealthy1", "54974264-fd85-4afe-8ff4-e83701b6c664", structs.SerfCheckID, "passing", "192.168.0.1"); err != nil {
+				t.Fatalf("err: %s", err)
+			}
+			// Steal without ID
+			err := registerNode(6, "nodeHealthy1", "", structs.SerfCheckID, "passing", "192.168.0.1")
+			if (err != nil) == allowStealWithoutID {
+				t.Fatalf("allowStealWithoutID:=%v, policy=%s: %s", allowStealWithoutID, policy, err)
+			}
+			// Rename dead node
+			err = registerNode(7, "nodeSerfDown", "b56fdb78-da30-4e82-8068-a87879d328bd", structs.SerfCheckID, "passing", "192.168.0.7")
+			if (err != nil) == allowStealDeadNode {
+				t.Fatalf("nodeSeftDown:=%v, policy=%s: %s", allowStealDeadNode, policy, err)
+			}
+			if err := registerNode(8, "nodeWithoutSerfCaseInsensitive", "a6a3f56f-8f12-4dad-8bff-c1d74a244651", types.CheckID("nothingImportant"), "critical", "192.168.0.9"); err != nil {
+				t.Fatalf("err: %s", err)
+			}
+			if err := registerNode(9, "nODeWithoutSerfCASEinsensitive", "0000f56f-8f12-4dad-0000-c1d74a244651", structs.SerfCheckID, "passing", "192.168.0.10"); err == nil {
+				t.Fatalf("Registration should fail since node has no serf Health")
+			}
+			// New Node without ID
+			err = registerNode(10, "nodeWithoutAnyId", "", structs.SerfCheckID, "passing", "192.168.0.11")
+			if (err != nil) == allowStealWithoutID {
+				t.Fatalf("allowStealWithoutID:=%v, policy=%s: %s", allowStealWithoutID, policy, err)
+			}
+		})
 	}
 	testFullRegistration(types.NodeRenamingLegacy, true, false)
 	testFullRegistration(types.NodeRenamingDefault, true, false)

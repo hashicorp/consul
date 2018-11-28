@@ -404,17 +404,17 @@ func (s *Store) findExistingNodeRenameDeadNodes(tx *memdb.Txn, idx uint64, node 
 	}
 	if dupNode != nil {
 		// There is a dup node, lets check if the node is healthy
-		dupNodeCheck, err := tx.First("checks", "id", dupNode.Node, string("serfHealth"))
+		dupNodeCheck, err := tx.First("checks", "id", dupNode.Node, string(structs.SerfCheckID))
 		if err != nil {
 			return nil, fmt.Errorf("Cannot get status of node %s due to: %s", dupNode.Node, err)
 		}
 		if dupNodeCheck == nil {
-			return nil, fmt.Errorf("Cannot validate whether node %s is healthy, cannot rename node", dupNode.Node)
+			return nil, fmt.Errorf("Cannot RenameNode since check %s not found for node %s", string(structs.SerfCheckID), dupNode.Node)
 		}
 		existingDupNodeSerf := dupNodeCheck.(*structs.HealthCheck)
 		if existingDupNodeSerf.Status != api.HealthCritical {
 			// This is ok, we allow to take the identity of that node
-			return dupNode, fmt.Errorf("Cannot rename since node %s serfHealth is '%s'", dupNode.Node, existingDupNodeSerf.Status)
+			return dupNode, fmt.Errorf("Cannot rename since node %s because check %s is '%s'", dupNode.Node, string(structs.SerfCheckID), existingDupNodeSerf.Status)
 		}
 		existing = dupNode
 	}
