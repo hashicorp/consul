@@ -30,6 +30,8 @@ The following guides are available:
 
 * [Consul Template](/docs/guides/consul-template.html) - This guide covers the Consul template tool, which provides a programmatic method for populating values into the file system.
 
+* [Consul-AWS](/docs/guides/consul-aws.html) - This guide covers the Consul-AWS tool, which syncs Consul's and AWS Cloud Map's service catalog.
+
 * [Creating Certificates](/docs/guides/creating-certificates.html) - This guide describes how to setup CA and certificates to secure a Consul cluster with TLS.
 
 * [Deployment Guide](/docs/guides/deployment-guide.html) - This deployment guide covers the steps required to install and configure a single HashiCorp Consul cluster as defined in the Consul Reference Architecture.
