@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "Consul-AWS"
 sidebar_current: "docs-guides-consul-aws"
 description: |-
-  Consul-AWS provides a tool, which syncs Consul's and AWS CloudmMap's service catalog
+  Consul-AWS provides a tool, which syncs Consul's and AWS CloudMap's service catalog
 ---
 
 # consul-aws
@@ -13,9 +13,9 @@ This guide will describe how to configure and how to start the sync.
 
 ## Authentication
 
-`consul-aws` need access to Consul and AWS for uni- and bidirectional sync.
+`consul-aws` needs access to Consul and AWS for uni- and bidirectional sync.
 
-For Consul, the process accepts both the standard CLI flags, `-token` and the environment variables `CONSUL_HTTP_TOKEN`. This should be set to an Consul ACL token if ACLs are enabled.
+For Consul, the process accepts both the standard CLI flags, `-token` and the environment variables `CONSUL_HTTP_TOKEN`. This should be set to a Consul ACL token if ACLs are enabled.
 
 For AWS, `consul-aws` uses the default credential provider chain to find AWS credentials. The default provider chain looks for credentials in the following order:
 1. Environment variables.
@@ -40,7 +40,7 @@ The version subcommand doesn’t do anything besides showing the version, so let
 * `-aws-pull-interval`: The interval between fetching from AWS CloudMap. Accepts a sequence of decimal numbers, each with optional fraction and a unit suffix, such as "300ms", "10s", "1.5m" (defaults to 30s).
 * `-aws-dns-ttl`: DNS TTL for services created in AWS CloudMap in seconds (defaults to 60).
 
-Independent of how you want to user `consul-aws` it needs to be able to connect to Consul and AWS. Apart from making sure you setup up authenticated access, `-aws-namespace-id` is mandatory.
+Independent of how you want to use `consul-aws` it needs to be able to connect to Consul and AWS. Apart from making sure you setup up authenticated access, `-aws-namespace-id` is mandatory.
 
 ## Syncing Consul services to AWS CloudMap
 
