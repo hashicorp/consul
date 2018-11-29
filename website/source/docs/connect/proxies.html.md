@@ -145,7 +145,7 @@ until at least 1.5.0 but it's highly recommended to switch to using
 
 ### Upstream Configuration Reference
 
-The following example shows all possible upstream configuration parameters.
+The following examples show all possible upstream configuration parameters.
 
 Note that in versions 1.2.0 to 1.3.0, managed proxy upstreams were specified
 inside the opaque `connect.proxy.config` map. The format is almost unchanged
@@ -161,6 +161,11 @@ that fails over to another datacenter.
 Note that `snake_case` is used here as it works in both [config file and API
 registrations](/docs/agent/services.html#service-definition-parameter-case).
 
+Upstreams support multiple destination types. Both examples are shown below
+followed by documentation for each attribute.
+
+#### Service Destination
+
 ```json
 {
   "destination_type": "service",
@@ -172,8 +177,21 @@ registrations](/docs/agent/services.html#service-definition-parameter-case).
 },
 ```
 
+#### Prepared Query Destination
+
+```json
+{
+  "destination_type": "prepared_query",
+  "destination_name": "database",
+  "local_bind_address": "127.0.0.1",
+  "local_bind_port": 1234,
+  "config": {}
+},
+```
+
 * `destination_name` `string: <required>` - Specifies the name of the service or
-  prepared query to route connect to.
+  prepared query to route connect to. The prepared query should be the name
+  or the ID of the prepared query.
 * `local_bind_port` `int: <required>` - Specifies the port to bind a local
   listener to for the application to make outbound connections to this upstream.
 * `local_bind_address` `string: <optional>` - Specifies the address to bind a
