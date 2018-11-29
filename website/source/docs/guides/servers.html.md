@@ -22,8 +22,8 @@ In this guide, we will cover the different methods for adding and removing serve
 
 ## Manually Add a New Server
 
-Manually adding new servers is generally straightforward. Simply start the new
-agent with the `-server` flag. At this point, the server will not be a member of
+Manually adding new servers is generally straightforward, start the new
+agent with the `-server` flag. At this point the server will not be a member of
 any cluster, and should emit something like:
 
 ```sh
@@ -76,7 +76,7 @@ rejoin when it comes back. Both servers and clients can use this method.
 ### Server Coordination
 
 To ensure Consul servers are joining the cluster properly, you should monitor
-the server coordiantion. The gossip protocol is used to properly discover all
+the server coordination. The gossip protocol is used to properly discover all
 the nodes in the cluster. Once the node has joined, the existing cluster
 leader should log something like:
 
@@ -182,8 +182,8 @@ the cluster leader will mark the node as having left the cluster and it will sto
 
 ## Summary
 
-In this guide we learned the straighforword process of adding and removing servers including;
-manually adding servers, adding servers through the agent confituration, gracefully removing
-servers, and forced removal of servers. Finally, we should restate that manually adding servers
+In this guide we learned the straightforword process of adding and removing servers including;
+manually adding servers, adding servers through the agent configuration, gracefully removing
+servers, and forcing removal of servers. Finally, we should restate that manually adding servers
  is good for testing purposes, however, for production it is recommended to add servers with
 the agent configuration.
