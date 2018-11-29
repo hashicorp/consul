@@ -10,7 +10,7 @@ description: |-
 
 Consul Connect can secure all inter-service communication via mutual TLS. It's
 designed to work with [minimal configuration out of the
-box](https://learn.hashicorp.com/consul/getting-started/connect.html), but completing the [security
+box](https://learn.hashicorp.com/consul/getting-started/connect), but completing the [security
 checklist](/docs/connect/security.html) and understanding the [Consul security
 model](/docs/internals/security.html) are prerequisites for production
 deployments.

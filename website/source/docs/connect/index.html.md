@@ -69,7 +69,7 @@ in microseconds.
 
 There are several ways to try Connect in different environments.
 
- * The [Connect introduction](https://learn.hashicorp.com/consul/getting-started/connect.html) in the
+ * The [Connect introduction](https://learn.hashicorp.com/consul/getting-started/connect) in the
    Getting Started guide provides a simple walk through of getting two services
    to communicate via Connect using only Consul directly on your local machine.
 

@@ -33,7 +33,7 @@ In this guide we will briefly discuss how `consul-template` works,
 how to install it, and two use cases.
 
 Before completing this guide, we assume some familiarity with
-[Consul KV](https://learn.hashicorp.com/consul/getting-started/kv.html)
+[Consul KV](https://learn.hashicorp.com/consul/getting-started/kv)
  and [Go templates](https://golang.org/pkg/text/template/).
 
 ## Introduction to Consul Template
