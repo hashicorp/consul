@@ -42,9 +42,7 @@ consul agent -bootstrap-expect=1
 ```
 
 If the server cannot be recovered, you need to bring up a new
-server using the [deployment guide](). If you have backed up your
-data you can use the restore section of the [backup guide]() to restore
-the server state.
+server using the [deployment guide](https://www.consul.io/docs/guides/deployment-guide.html). 
 
 In the case of an unrecoverable server failure in a single server cluster and
 no backup procedure, data loss is inevitable since data was not replicated
