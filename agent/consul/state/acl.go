@@ -469,7 +469,6 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy strin
 	// all tokens so our checks just ensure that global == local
 
 	if policy != "" {
-		fmt.Println("Listing by policy")
 		iter, err = tx.Get("acl-tokens", "policies", policy)
 		if err == nil && global != local {
 			iter = memdb.NewFilterIterator(iter, func(raw interface{}) bool {
@@ -484,7 +483,6 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy strin
 					return true
 				}
 
-				fmt.Printf("Filtering")
 				return false
 			})
 		}
