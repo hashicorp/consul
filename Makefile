@@ -33,8 +33,6 @@ godeps:
 	(cd $(GOPATH)/src/github.com/mholt/caddy              && git checkout -q v0.11.1)
 	(cd $(GOPATH)/src/github.com/miekg/dns                && git checkout -q v1.1.0)
 	(cd $(GOPATH)/src/github.com/prometheus/client_golang && git checkout -q v0.8.0)
-	@ # for travis only, if this fails we don't care, but don't see benchmarks
-	 go get -u golang.org/x/tools/cmd/benchcmp || true
 
 .PHONY: travis
 travis:
@@ -60,21 +58,6 @@ ifeq ($(TEST_TYPE),coverage)
 			rm cover.out; \
 		fi; \
 	done
-endif
-ifeq ($(TEST_TYPE),benchmark)
-	> new
-	( cd plugin; go test -run=NONE -bench=. -benchmem=true -tags 'etcd' ./... ) >> new
-	( cd request; go test -run=NONE -bench=. -benchmem=true -tags 'etcd' ./... ) >> new
-	( cd core; go test -run=NONE -bench=. -benchmem=true -tags 'etcd' ./... ) >> new
-	( cd coremain; go test -run=NONE -bench=. -benchmem=true -tags 'etcd' ./... ) >> new
-	git checkout master
-	> old
-	( cd plugin; go test -run=NONE -bench=. -benchmem=true -tags 'etcd' ./... ) >> old
-	( cd request; go test -run=NONE -bench=. -benchmem=true -tags 'etcd' ./... ) >> old
-	( cd core; go test -run=NONE -bench=. -benchmem=true -tags 'etcd' ./... ) >> old
-	( cd coremain; go test -run=NONE -bench=. -benchmem=true -tags 'etcd' ./... ) >> old
-	if command -v benchcmp; then benchcmp old new > .benchmark.log ; cat .benchmark.log ; fi
-	git checkout -
 endif
 
 core/zplugin.go core/dnsserver/zdirectives.go: plugin.cfg
