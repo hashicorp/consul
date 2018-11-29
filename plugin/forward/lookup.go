@@ -35,7 +35,6 @@ func (f *Forward) Forward(state request.Request) (*dns.Msg, error) {
 
 		ret, err := proxy.Connect(context.Background(), state, f.opts)
 
-		ret, err = truncated(state, ret, err)
 		upstreamErr = err
 
 		if err != nil {

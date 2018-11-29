@@ -116,7 +116,7 @@ func (f *Forward) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 				continue
 			}
 			// Retry with TCP if truncated and prefer_udp configured.
-			if err == dns.ErrTruncated && !opts.forceTCP && f.opts.preferUDP {
+			if ret != nil && ret.Truncated && !opts.forceTCP && f.opts.preferUDP {
 				opts.forceTCP = true
 				continue
 			}
@@ -127,7 +127,6 @@ func (f *Forward) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 			child.Finish()
 		}
 
-		ret, err = truncated(state, ret, err)
 		upstreamErr = err
 
 		if err != nil {
