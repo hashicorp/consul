@@ -6,7 +6,7 @@ description: |-
   Consul-AWS provides a tool, which syncs Consul's and AWS Cloud Map's service catalog
 ---
 
-# consul-aws
+# Consul-AWS
 
 [Consul-AWS](https://github.com/hashicorp/consul-aws/) syncs the services in an AWS Cloud Map namespace to a Consul datacenter. Consul services will be created in AWS Cloud Map and the other way around. This enables native service discovery across Consul and AWS Cloud Map.
 This guide will describe how to configure and how to start the sync.
