@@ -85,7 +85,7 @@ var (
 	// gossip key on a node that was not configured to bootstrap gossip later via
 	// API, or on one that was but has already been bootstrapped. It's a named
 	// error because we want to detect it and respond with a 403 rather than 500.
-	ErrGossipBootstrapped = errors.New("Gossip encryption already boostrapped")
+	ErrGossipBootstrapped = errors.New("Gossip encryption already bootstrapped")
 )
 
 // delegate defines the interface shared by both
@@ -3523,7 +3523,7 @@ func defaultProxyCommand(agentCfg *config.RuntimeConfig) ([]string, error) {
 }
 
 // SetGossipKey directly modifies the current active gossip key in all gossip
-// pools. It's intended usage is only for bootstraping gossip keys after startup
+// pools. It's intended usage is only for bootstrapping gossip keys after startup
 // and should not be used generally for key rotation. After calling, the agent's
 // keyrings will be in the same state as if they just started up using the same
 // key as the -encrypt argument. If keyring file is enabled, it is an error to
