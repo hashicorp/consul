@@ -13,8 +13,7 @@ from Consul's core and API client, meaning it can be easily imported and used in
 external unit tests for various applications. It works by invoking the Consul
 CLI, which means it is a requirement to have Consul installed in the `$PATH`.
 
-Following is an example usage (maintained as
-[../test/readme_test.go](../test/readme_test.go)):
+Following is an example usage (maintained as [readme_test.go](./readme_test.go)):
 
 ```go
 package my_program
