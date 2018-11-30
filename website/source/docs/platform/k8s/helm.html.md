@@ -142,6 +142,20 @@ and consider if they're appropriate for your deployment.
   CA and set of certificates. Additional Connect settings can be configured
   by setting the `server.extraConfig` value.
 
+  - <a name="v-server-resources" href="#v-server-resources">`resources`</a> (`string: null`) -
+  The resource requests (CPU, memory, etc.) for each of the server agents.
+  This should be a multi-line string mapping directly to a Kubernetes
+  [ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.11/#resourcerequirements-v1-core) object. If this isn't specified, then the pods
+  won't request any specific amount of resources. **Setting this is highly
+  recommended.**
+
+  - <a name="v-server-updatepartition" href="#v-server-updatepartition">`updatePartition`</a> (`integer: 0`) -
+  This value is used to carefully control a rolling update of Consul server
+  agents. This value specifies the
+  [partition](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#partitions)
+  for performing a rolling update. Please read the linked Kubernetes
+  documentation for more information.
+
   - <a name="v-server-disruptionbudget" href="#v-server-disruptionbudget">`disruptionBudget`</a> -
   This configures the
   [PodDisruptionBudget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/)
@@ -154,7 +168,10 @@ and consider if they're appropriate for your deployment.
 
       * <a name="v-server-disruptionbudget-maxunavailable" href="#v-server-disruptionbudget-maxunavailable">`maxUnavailable`</a> (`integer: null`) -
       The maximum number of unavailable pods. By default, this will be automatically
-      computed based on the `server.replicas` value to be `(n/2)-1`.
+      computed based on the `server.replicas` value to be `(n/2)-1`. If you need to set
+      this to `0`, you will need to add a `--set 'server.disruptionBudget.maxUnavailable=0'`
+      flag to the helm chart installation command because of a limitation in the Helm
+      templating language.
 
   - <a name="v-server-extraconfig" href="#v-server-extraconfig">`extraConfig`</a> (`string: "{}"`) -
   A raw string of extra JSON or HCL configuration for Consul servers. This
@@ -180,23 +197,12 @@ and consider if they're appropriate for your deployment.
       configuration files from this volume with `-config-dir`. This defaults
       to false.
 
-  - <a name="v-server-resources" href="#v-server-resources">`resources`</a> (`object: {}`) -
-  The resource requests (CPU, memory, etc.) for each of the server agents.
-  This should be an object mapping directly to a Kubernetes
-  [ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.11/#resourcerequirements-v1-core) object. If this isn't specified, then the pods
-  won't request any specific amount of resources. **Setting this is highly
-  recommended.**
-
-  - <a name="v-server-storage" href="#v-server-storage">`storage`</a> (`string: "10Gi"`) -
-  The amount of storage to request for the persistant volume backing the
-  Consul server data.
-
-  - <a name="v-server-updatepartition" href="#v-server-updatepartition">`updatePartition`</a> (`integer: 0`) -
-  This value is used to carefully control a rolling update of Consul server
-  agents. This value specifies the
-  [partition](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#partitions)
-  for performing a rolling update. Please read the linked Kubernetes
-  documentation for more information.
+  - <a name="v-server-affinity" href="#v-server-affinity">`affinity`</a> (`string`) -
+  This value defines the [affinity](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity)
+  for server pods. It defaults to allowing only a single pod on each node,
+  which minimizes risk of the cluster becoming unusable if a node is lost.
+  If you need to run more pods per node (for example, testing on Minikube),
+  set this value to `null`.
 
 * <a name="v-client" href="#v-client">`client`</a> - Values that configure
   running a Consul client agent on Kubernetes nodes.
@@ -210,10 +216,24 @@ and consider if they're appropriate for your deployment.
   The name of the Docker image (including any tag) for the containers running
   Consul client agents.
 
+  - <a name="v-client-join" href="#v-client-join">`join`</a> (`array<string>: null`) -
+  A list of valid [`-retry-join` values](/docs/agent/options.html#retry-join).
+  If this is `null` (default),
+  then the clients will attempt to automatically join the server cluster
+  running within Kubernetes. This means that with `server.enabled` set to true,
+  clients will automatically join that cluster. If `server.enabled` is not
+  true, then a value must be specified so the clients can join a valid cluster.
+
   - <a name="v-client-grpc" href="#v-client-grpc">`grpc`</a> (`boolean: false`) -
   If true, agents will enable their GRPC listener on port 8502 and expose
   it to the host. This will use slightly more resources, but is required for
   [Connect](/docs/platform/k8s/connect.html).
+
+  - <a name="v-client-resources" href="#v-client-resources">`resources`</a> (`string: null`) -
+  The resource requests (CPU, memory, etc.) for each of the client agents.
+  This should be a multi-line string mapping directly to a Kubernetes
+  [ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.11/#resourcerequirements-v1-core) object. If this isn't specified, then the pods
+  won't request any specific amount of resources.
 
   - <a name="v-client-extraconfig" href="#v-client-extraconfig">`extraConfig`</a> (`string: "{}"`) -
   A raw string of extra JSON or HCL configuration for Consul clients. This
@@ -238,20 +258,6 @@ and consider if they're appropriate for your deployment.
       If true, then the agent will be configured to automatically load HCL/JSON
       configuration files from this volume with `-config-dir`. This defaults
       to false.
-
-  - <a name="v-client-join" href="#v-client-join">`join`</a> (`array<string>: null`) -
-  A list of values to be used with the `-retry-join` command, specified
-  individually in the format "option=value". If this is `null` (default),
-  then the clients will attempt to automatically join the server cluster
-  running within Kubernetes. This means that with `server.enabled` set to true,
-  clients will automatically join that cluster. If `server.enabled` is not
-  true, then a value must be specified so the clients can join a valid cluster.
-
-  - <a name="v-client-resources" href="#v-client-resources">`resources`</a> (`object: {}`) -
-  The resource requests (CPU, memory, etc.) for each of the client agents.
-  This should be an object mapping directly to a Kubernetes
-  [ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.11/#resourcerequirements-v1-core) object. If this isn't specified, then the pods
-  won't request any specific amount of resources.
 
 * <a name="v-dns" href="#v-dns">`dns`</a> - Values that configure the Consul DNS service.
 
@@ -375,3 +381,12 @@ and consider if they're appropriate for your deployment.
       * <a name="v-connectinject-certs-keynamkeyname" href="#v-connectinject-certs-keyname">`keyName`</a> (`string: "tls.key"`) -
       The name of the private key for the certificate file within the
       `secretName` secret.
+
+## Customizing the Helm Chart
+
+Given the wide variety of use cases, it won't be possible to support every
+configuration option in the Helm chart's `values.yaml` file without making
+it difficult to understand and use. For additional
+flexibility in changing values that aren't listed above, consider using
+third-party tools such as [kustomize](https://github.com/kubernetes-sigs/kustomize)
+and [ship](https://github.com/replicatedhq/ship).

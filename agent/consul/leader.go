@@ -629,6 +629,8 @@ func (s *Server) startACLUpgrade() {
 				newToken.CreateIndex = token.CreateIndex
 				newToken.ModifyIndex = token.ModifyIndex
 
+				newToken.SetHash(true)
+
 				newTokens = append(newTokens, &newToken)
 			}
 

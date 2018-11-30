@@ -13,7 +13,7 @@ export default Route.extend(WithBlockingActions, {
         return get(this, 'repo')
           .self(secret, dc)
           .then(item => {
-            get(this, 'settings')
+            return get(this, 'settings')
               .persist({
                 token: {
                   AccessorID: get(item, 'AccessorID'),
@@ -25,7 +25,11 @@ export default Route.extend(WithBlockingActions, {
                 // take the user to the legacy acls
                 // otherwise just refresh the page
                 if (get(item, 'token.AccessorID') === null) {
-                  return this.transitionTo('dc.acls');
+                  // returning false for a feedback action means even though
+                  // its successful, please skip this notification and don't display it
+                  return this.transitionTo('dc.acls').then(function() {
+                    return false;
+                  });
                 } else {
                   this.refresh();
                 }

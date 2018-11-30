@@ -1480,8 +1480,7 @@ func (s *HTTPServer) AgentHost(resp http.ResponseWriter, req *http.Request) (int
 	if err != nil {
 		return nil, err
 	}
-	// TODO(pearkes): Is agent:read appropriate here? There could be relatively
-	// sensitive information made available in this API
+
 	if rule != nil && !rule.OperatorRead() {
 		return nil, acl.ErrPermissionDenied
 	}

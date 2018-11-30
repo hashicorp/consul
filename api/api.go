@@ -310,7 +310,7 @@ type TLSConfig struct {
 // DefaultConfig returns a default configuration for the client. By default this
 // will pool and reuse idle connections to Consul. If you have a long-lived
 // client object, this is the desired behavior and should make the most efficient
-// use of the connections to Consul. If you don't reuse a client object , which
+// use of the connections to Consul. If you don't reuse a client object, which
 // is not recommended, then you may notice idle connections building up over
 // time. To avoid this, use the DefaultNonPooledConfig() instead.
 func DefaultConfig() *Config {

@@ -1634,6 +1634,79 @@ func TestCatalog_ListServiceNodes(t *testing.T) {
 	}
 }
 
+// TestCatalog_ListServiceNodes_ServiceTags_V1_2_3Compat asserts the compatibility between <=v1.2.3 agents and >=v1.3.0 servers
+// see https://github.com/hashicorp/consul/issues/4922
+func TestCatalog_ListServiceNodes_ServiceTags_V1_2_3Compat(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
+	err := s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
+	require.NoError(t, err)
+
+	// register two service instances with different tags
+	err = s1.fsm.State().EnsureService(2, "foo", &structs.NodeService{ID: "db1", Service: "db", Tags: []string{"primary"}, Address: "127.0.0.1", Port: 5000})
+	require.NoError(t, err)
+	err = s1.fsm.State().EnsureService(2, "foo", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"secondary"}, Address: "127.0.0.1", Port: 5001})
+	require.NoError(t, err)
+
+	// make a request with the <=1.2.3 ServiceTag tag field (vs ServiceTags)
+	args := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "db",
+		ServiceTag:  "primary",
+		TagFilter:   true,
+	}
+	var out structs.IndexedServiceNodes
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &args, &out)
+	require.NoError(t, err)
+
+	// nodes should be filtered, even when using the old ServiceTag field
+	require.Equal(t, 1, len(out.ServiceNodes))
+	require.Equal(t, "db1", out.ServiceNodes[0].ServiceID)
+
+	// test with the other tag
+	args = structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "db",
+		ServiceTag:  "secondary",
+		TagFilter:   true,
+	}
+	out = structs.IndexedServiceNodes{}
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &args, &out)
+	require.NoError(t, err)
+	require.Equal(t, 1, len(out.ServiceNodes))
+	require.Equal(t, "db2", out.ServiceNodes[0].ServiceID)
+
+	// no tag, both instances
+	args = structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "db",
+	}
+	out = structs.IndexedServiceNodes{}
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &args, &out)
+	require.NoError(t, err)
+	require.Equal(t, 2, len(out.ServiceNodes))
+
+	// when both ServiceTag and ServiceTags fields are populated, use ServiceTag
+	args = structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "db",
+		ServiceTag:  "primary",
+		ServiceTags: []string{"secondary"},
+		TagFilter:   true,
+	}
+	out = structs.IndexedServiceNodes{}
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &args, &out)
+	require.NoError(t, err)
+	require.Equal(t, "db1", out.ServiceNodes[0].ServiceID)
+}
+
 func TestCatalog_ListServiceNodes_NodeMetaFilter(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServer(t)

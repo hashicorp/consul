@@ -78,10 +78,12 @@ func (s *ConnectCA) ConfigurationSet(
 
 	// Exit early if it's a no-op change
 	state := s.srv.fsm.State()
-	_, config, err := state.CAConfig()
+	confIdx, config, err := state.CAConfig()
 	if err != nil {
 		return err
 	}
+
+	// Don't allow users to change the ClusterID.
 	args.Config.ClusterID = config.ClusterID
 	if args.Config.Provider == config.Provider && reflect.DeepEqual(args.Config.Config, config.Config) {
 		return nil
@@ -195,6 +197,7 @@ func (s *ConnectCA) ConfigurationSet(
 
 	args.Op = structs.CAOpSetRootsAndConfig
 	args.Index = idx
+	args.Config.ModifyIndex = confIdx
 	args.Roots = newRoots
 	resp, err := s.srv.raftApply(structs.ConnectCARequestType, args)
 	if err != nil {
@@ -202,6 +205,9 @@ func (s *ConnectCA) ConfigurationSet(
 	}
 	if respErr, ok := resp.(error); ok {
 		return respErr
+	}
+	if respOk, ok := resp.(bool); ok && !respOk {
+		return fmt.Errorf("could not atomically update roots and config")
 	}
 
 	// If the config has been committed, update the local provider instance
@@ -373,6 +379,20 @@ func (s *ConnectCA) Sign(
 	// Append any intermediates needed by this root.
 	for _, p := range caRoot.IntermediateCerts {
 		pem = strings.TrimSpace(pem) + "\n" + p
+	}
+
+	// Append our local CA's intermediate if there is one.
+	inter, err := provider.ActiveIntermediate()
+	if err != nil {
+		return err
+	}
+	root, err := provider.ActiveRoot()
+	if err != nil {
+		return err
+	}
+
+	if inter != root {
+		pem = strings.TrimSpace(pem) + "\n" + inter
 	}
 
 	// TODO(banks): when we implement IssuedCerts table we can use the insert to

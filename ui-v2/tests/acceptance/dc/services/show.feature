@@ -16,6 +16,22 @@ Feature: dc / services / show: Show Service
       service: service-0
     ---
     Then I see externalSource like "consul"
+  Scenario: Given a service with an 'unsupported' external source, there is no logo
+    Given 1 datacenter model with the value "dc1"
+    And 1 node models
+    And 1 service model from yaml
+    ---
+    - Service:
+        Tags: ['Tag1', 'Tag2']
+        Meta:
+          external-source: 'not-supported'
+    ---
+    When I visit the service page for yaml
+    ---
+      dc: dc1
+      service: service-0
+    ---
+    Then I don't see externalSource
   Scenario: Given various services with various tags, all tags are displayed
     Given 1 datacenter model with the value "dc1"
     And 3 node models

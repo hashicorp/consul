@@ -103,6 +103,15 @@ func aclApplyInternal(srv *Server, args *structs.ACLRequest, reply *string) erro
 			return acl.PermissionDeniedError{Cause: "Cannot modify root ACL"}
 		}
 
+		// Ensure that we allow more permissive rule formats for legacy tokens,
+		// but that we correct them on the way into the system.
+		//
+		// DEPRECATED (ACL-Legacy-Compat)
+		correctedRules := structs.SanitizeLegacyACLTokenRules(args.ACL.Rules)
+		if correctedRules != "" {
+			args.ACL.Rules = correctedRules
+		}
+
 		// Validate the rules compile
 		_, err := acl.NewPolicyFromSource("", 0, args.ACL.Rules, acl.SyntaxLegacy, srv.sentinel)
 		if err != nil {
