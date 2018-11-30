@@ -138,56 +138,72 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 		}
 	}
 
-	err := h.srv.blockingQuery(
+	err := h.srv.sharedBlockingQuery(
+		args,
+		reply,
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		func(ws memdb.WatchSet, state *state.Store) error {
+		func(ws memdb.WatchSet, state *state.Store) (uint64, func(uint64, interface{}) error, error) {
 			index, nodes, err := f(ws, state, args)
 			if err != nil {
-				return err
+				return 0, nil, err
 			}
 
-			reply.Index, reply.Nodes = index, nodes
-			if len(args.NodeMetaFilters) > 0 {
-				reply.Nodes = nodeMetaFilter(args.NodeMetaFilters, reply.Nodes)
-			}
-			if err := h.srv.filterACL(args.Token, reply); err != nil {
-				return err
-			}
-			return h.srv.sortNodesByDistanceFrom(args.Source, reply.Nodes)
+			return index, func(index uint64, rawReply interface{}) error {
+				reply := rawReply.(*structs.IndexedCheckServiceNodes)
+				// copy the slice to ensure requests filtering / sorting dont affect each others
+				replyNodes := make(structs.CheckServiceNodes, len(nodes))
+				copy(replyNodes, nodes)
+				reply.Index, reply.Nodes = index, replyNodes
+				return nil
+			}, nil
 		})
+	if err != nil {
+		return err
+	}
+
+	h.srv.setQueryMeta(&reply.QueryMeta)
+
+	if len(args.NodeMetaFilters) > 0 {
+		reply.Nodes = nodeMetaFilter(args.NodeMetaFilters, reply.Nodes)
+	}
+	if err := h.srv.filterACL(args.Token, reply); err != nil {
+		return err
+	}
+	err = h.srv.sortNodesByDistanceFrom(args.Source, reply.Nodes)
+	if err != nil {
+		return err
+	}
 
 	// Provide some metrics
-	if err == nil {
-		// For metrics, we separate Connect-based lookups from non-Connect
-		key := "service"
-		if args.Connect {
-			key = "connect"
-		}
-
-		metrics.IncrCounterWithLabels([]string{"health", key, "query"}, 1,
-			[]metrics.Label{{Name: "service", Value: args.ServiceName}})
-		if args.ServiceTag != "" {
-			metrics.IncrCounterWithLabels([]string{"health", key, "query-tag"}, 1,
-				[]metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "tag", Value: args.ServiceTag}})
-		}
-		if len(args.ServiceTags) > 0 {
-			// Sort tags so that the metric is the same even if the request
-			// tags are in a different order
-			sort.Strings(args.ServiceTags)
-
-			labels := []metrics.Label{{Name: "service", Value: args.ServiceName}}
-			for _, tag := range args.ServiceTags {
-				labels = append(labels, metrics.Label{Name: "tag", Value: tag})
-			}
-			metrics.IncrCounterWithLabels([]string{"health", key, "query-tags"}, 1, labels)
-		}
-		if len(reply.Nodes) == 0 {
-			metrics.IncrCounterWithLabels([]string{"health", key, "not-found"}, 1,
-				[]metrics.Label{{Name: "service", Value: args.ServiceName}})
-		}
+	// For metrics, we separate Connect-based lookups from non-Connect
+	key := "service"
+	if args.Connect {
+		key = "connect"
 	}
-	return err
+
+	metrics.IncrCounterWithLabels([]string{"health", key, "query"}, 1,
+		[]metrics.Label{{Name: "service", Value: args.ServiceName}})
+	if args.ServiceTag != "" {
+		metrics.IncrCounterWithLabels([]string{"health", key, "query-tag"}, 1,
+			[]metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "tag", Value: args.ServiceTag}})
+	}
+	if len(args.ServiceTags) > 0 {
+		// Sort tags so that the metric is the same even if the request
+		// tags are in a different order
+		sort.Strings(args.ServiceTags)
+
+		labels := []metrics.Label{{Name: "service", Value: args.ServiceName}}
+		for _, tag := range args.ServiceTags {
+			labels = append(labels, metrics.Label{Name: "tag", Value: tag})
+		}
+		metrics.IncrCounterWithLabels([]string{"health", key, "query-tags"}, 1, labels)
+	}
+	if len(reply.Nodes) == 0 {
+		metrics.IncrCounterWithLabels([]string{"health", key, "not-found"}, 1,
+			[]metrics.Label{{Name: "service", Value: args.ServiceName}})
+	}
+	return nil
 }
 
 // The serviceNodes* functions below are the various lookup methods that

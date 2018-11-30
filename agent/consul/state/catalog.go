@@ -1678,7 +1678,7 @@ func (s *Store) CheckServiceTagNodes(ws memdb.WatchSet, serviceName string, tags
 	for service := iter.Next(); service != nil; service = iter.Next() {
 		svc := service.(*structs.ServiceNode)
 		if !serviceTagsFilter(svc, tags) {
-			results = append(results, svc)
+			results = append(results, service.(*structs.ServiceNode))
 		}
 	}
 	return s.parseCheckServiceNodes(tx, ws, idx, serviceName, results, err)

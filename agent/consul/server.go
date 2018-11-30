@@ -88,6 +88,30 @@ var (
 	ErrWANFederationDisabled = fmt.Errorf("WAN Federation is disabled")
 )
 
+type blockingQueryState struct {
+	Index    uint64
+	Cancel   chan time.Time
+	Watchers int32
+	Done     chan struct{}
+	Apply    atomic.Value
+	Err      atomic.Value
+}
+
+func newBlockingQueryState(index uint64, apply func(uint64, interface{}) error, err error) *blockingQueryState {
+	queryState := &blockingQueryState{
+		Done:   make(chan struct{}),
+		Cancel: make(chan time.Time),
+		Index:  index,
+	}
+	if apply != nil {
+		queryState.Apply.Store(apply)
+	}
+	if err != nil {
+		queryState.Err.Store(err)
+	}
+	return queryState
+}
+
 // Server is Consul server which manages the service discovery,
 // health checking, DC forwarding, Raft, and multiple Serf pools.
 type Server struct {
@@ -248,6 +272,9 @@ type Server struct {
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
 
+	blockingQueriesLock sync.RWMutex
+	blockingQueries     map[string]*blockingQueryState
+
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseServer
 }
@@ -345,6 +372,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		sessionTimers:    NewSessionTimers(),
 		tombstoneGC:      gc,
 		serverLookup:     NewServerLookup(),
+		blockingQueries:  make(map[string]*blockingQueryState),
 		shutdownCh:       shutdownCh,
 	}
 

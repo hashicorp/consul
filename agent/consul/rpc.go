@@ -6,9 +6,11 @@ import (
 	"io"
 	"net"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
@@ -441,6 +443,157 @@ RUN_QUERY:
 		}
 	}
 	return err
+}
+
+type sharedQueryFn func(memdb.WatchSet, *state.Store) (uint64, func(uint64, interface{}) error, error)
+
+func (s *Server) sharedBlockingQuery(req cache.Request, res interface{}, queryOpts *structs.QueryOptions, queryMeta *structs.QueryMeta, fn sharedQueryFn) error {
+	var timeout *time.Timer
+
+	if queryOpts.RequireConsistent {
+		if err := s.consistentRead(); err != nil {
+			return err
+		}
+	}
+
+	// Restrict the max query time, and ensure there is always one.
+	if queryOpts.MaxQueryTime > maxQueryTime {
+		queryOpts.MaxQueryTime = maxQueryTime
+	} else if queryOpts.MaxQueryTime <= 0 {
+		queryOpts.MaxQueryTime = defaultQueryTime
+	}
+
+	// Apply a small amount of jitter to the request.
+	queryOpts.MaxQueryTime += lib.RandomStagger(queryOpts.MaxQueryTime / jitterFraction)
+
+	// Setup a query timeout.
+	timeout = time.NewTimer(queryOpts.MaxQueryTime)
+	defer timeout.Stop()
+
+	cacheInfo := req.CacheInfo()
+
+	// Check if a blocking query is already runnning for this request
+	s.blockingQueriesLock.RLock()
+	queryState, alreadyInserted := s.blockingQueries[cacheInfo.Key]
+	s.blockingQueriesLock.RUnlock()
+
+	// If not, run one
+	if !alreadyInserted {
+		ws := memdb.NewWatchSet()
+		// run the func a first time to get the index
+		firstRunIndex, apply, err := fn(ws, s.fsm.State())
+
+		s.blockingQueriesLock.Lock()
+		queryState, alreadyInserted = s.blockingQueries[cacheInfo.Key]
+		if alreadyInserted {
+			// Another query raced with us and already ran a blocking query
+			s.blockingQueriesLock.Unlock()
+		} else {
+			// Add query to map
+			queryState = newBlockingQueryState(firstRunIndex, apply, err)
+			s.blockingQueries[cacheInfo.Key] = queryState
+			s.blockingQueriesLock.Unlock()
+
+			// Run the shared blocking query
+			go s.runSharedBlockingQuery(firstRunIndex, cacheInfo.Key, ws, queryMeta, queryState, fn)
+		}
+	}
+
+	stateIndex := atomic.LoadUint64(&queryState.Index)
+
+	if stateIndex <= queryOpts.MinQueryIndex {
+		// Increment the shared query watcher
+		atomic.AddInt32(&queryState.Watchers, 1)
+
+		// block on either timeout or shared query
+		select {
+		case <-timeout.C:
+			if n := atomic.AddInt32(&queryState.Watchers, -1); n == 0 {
+				s.logger.Println("[TRACE] consul: cancelling shared blocking query because there is no more watchers")
+
+				// we were the last request to wait on the shared blocking wuery and we reached MaxQueryTime, cancel the blocking query
+				close(queryState.Cancel)
+			}
+		case <-queryState.Done:
+		}
+	}
+
+	if err := queryState.Err.Load(); err != nil {
+		return err.(error)
+	}
+
+	return queryState.Apply.Load().(func(uint64, interface{}) error)(atomic.LoadUint64(&queryState.Index), res)
+}
+
+func (s *Server) runSharedBlockingQuery(index uint64, cacheKey string, ws memdb.WatchSet, queryMeta *structs.QueryMeta, queryState *blockingQueryState, fn sharedQueryFn) {
+	s.logger.Println("[TRACE] consul: running shared blocking query")
+
+	// Wait initial query watchset
+	expired := ws.Watch(queryState.Cancel)
+
+RUN_QUERY:
+
+	// If the read must be consistent we verify that we are still the leader.
+
+	// Run the query.
+	metrics.IncrCounter([]string{"rpc", "query"}, 1)
+
+	// Operate on a consistent set of state. This makes sure that the
+	// abandon channel goes with the state that the caller is using to
+	// build watches.
+	state := s.fsm.State()
+
+	// We can skip all watch tracking if this isn't a blocking query.
+	if index > 0 {
+		ws = memdb.NewWatchSet()
+
+		// This channel will be closed if a snapshot is restored and the
+		// whole state store is abandoned.
+		ws.Add(state.AbandonCh())
+	}
+
+	// Block up to the timeout if we didn't see anything fresh.
+	idx, apply, err := fn(ws, state)
+	// Note we check queryOpts.MinQueryIndex is greater than zero to determine if
+	// blocking was requested by client, NOT meta.Index since the state function
+	// might return zero if something is not initialised and care wasn't taken to
+	// handle that special case (in practice this happened a lot so fixing it
+	// systematically here beats trying to remember to add zero checks in every
+	// state method). We also need to ensure that unless there is an error, we
+	// return an index > 0 otherwise the client will never block and burn CPU and
+	// requests.
+	if err == nil && idx < 1 {
+		idx = 1
+	}
+	if !expired && err == nil && index > 0 && idx <= index {
+		if expired := ws.Watch(queryState.Cancel); !expired {
+			// If a restore may have woken us up then bail out from
+			// the query immediately. This is slightly race-ey since
+			// this might have been interrupted for other reasons,
+			// but it's OK to kick it back to the caller in either
+			// case.
+			select {
+			case <-state.AbandonCh():
+			default:
+				goto RUN_QUERY
+			}
+		}
+	}
+
+	// store results
+	s.blockingQueriesLock.Lock()
+	if err != nil {
+		queryState.Err.Store(err)
+	}
+	if apply != nil {
+		queryState.Apply.Store(apply)
+	}
+	atomic.StoreUint64(&queryState.Index, idx)
+	delete(s.blockingQueries, cacheKey)
+	s.blockingQueriesLock.Unlock()
+
+	// notify changed
+	close(queryState.Done)
 }
 
 // setQueryMeta is used to populate the QueryMeta data for an RPC call
