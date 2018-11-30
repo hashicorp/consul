@@ -1066,6 +1066,7 @@ func (s *Server) Stats() map[string]map[string]string {
 			"leader_addr":       string(s.raft.Leader()),
 			"bootstrap":         fmt.Sprintf("%v", s.config.Bootstrap),
 			"known_datacenters": toString(uint64(numKnownDCs)),
+			"connect_enabled":   strconv.FormatBool(s.config.ConnectEnabled),
 		},
 		"raft":     s.raft.Stats(),
 		"serf_lan": s.serfLAN.Stats(),
