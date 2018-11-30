@@ -247,8 +247,8 @@ func ParseStanza(c *caddy.Controller) (*Kubernetes, error) {
 			if err != nil {
 				return nil, err
 			}
-			if t < 5 || t > 3600 {
-				return nil, c.Errf("ttl must be in range [5, 3600]: %d", t)
+			if t < 0 || t > 3600 {
+				return nil, c.Errf("ttl must be in range [0, 3600]: %d", t)
 			}
 			k8s.ttl = uint32(t)
 		case "transfer":
