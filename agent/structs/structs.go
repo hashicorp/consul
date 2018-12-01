@@ -977,7 +977,7 @@ OUTER:
 			}
 			if check.Status == api.HealthCritical ||
 				(onlyPassing && check.Status != api.HealthPassing) {
-				nodes[i], nodes[n-1] = nodes[n-1], CheckServiceNode{}
+				nodes[i], nodes[n-1] = nodes[n-1], nodes[i]
 				n--
 				i--
 				// Skip this _node_ now we've swapped it off the end of the list.

@@ -269,7 +269,7 @@ OUTER:
 		node := nodes[i]
 		for _, check := range node.Checks {
 			if check.Status != api.HealthPassing {
-				nodes[i], nodes[n-1] = nodes[n-1], structs.CheckServiceNode{}
+				nodes[i], nodes[n-1] = nodes[n-1], nodes[i]
 				n--
 				i--
 				continue OUTER
