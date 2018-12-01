@@ -55,8 +55,9 @@ The table below shows this endpoint's support for
 - `TTL` `(string: "")` - Specifies the number of seconds (between 10s and
   86400s). If provided, the session is invalidated if it is not renewed before
   the TTL expires. The lowest practical TTL should be used to keep the number of
-  managed sessions low. When locks are forcibly expired, such as during a leader
-  election, sessions may not be reaped for up to double this TTL, so long TTL
+  managed sessions low. When locks are forcibly expired, such as when following
+  the [leader election pattern](/docs/guides/leader-election.html) in an application,
+  sessions may not be reaped for up to double this TTL, so long TTL
   values (> 1 hour) should be avoided.
 
 ### Sample Payload
