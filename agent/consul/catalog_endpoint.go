@@ -20,6 +20,13 @@ type Catalog struct {
 	srv *Server
 }
 
+// checkPreApply does the verification of a check before it is applied to Raft.
+func checkPreApply(check *structs.HealthCheck) {
+	if check.CheckID == "" && check.Name != "" {
+		check.CheckID = types.CheckID(check.Name)
+	}
+}
+
 // Register is used register that a node is providing a given service.
 func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error {
 	if done, err := c.srv.forward("Catalog.Register", args, args, reply); done {
@@ -96,12 +103,10 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 		args.Check = nil
 	}
 	for _, check := range args.Checks {
-		if check.CheckID == "" && check.Name != "" {
-			check.CheckID = types.CheckID(check.Name)
-		}
 		if check.Node == "" {
 			check.Node = args.Node
 		}
+		checkPreApply(check)
 	}
 
 	// Check the complete register request against the given ACL policy.

@@ -21,7 +21,8 @@ func (t *Txn) preCheck(authorizer acl.Authorizer, ops structs.TxnOps) structs.Tx
 
 	// Perform the pre-apply checks for any KV operations.
 	for i, op := range ops {
-		if op.KV != nil {
+		switch {
+		case op.KV != nil:
 			ok, err := kvsPreApply(t.srv, authorizer, op.KV.Verb, &op.KV.DirEnt)
 			if err != nil {
 				errors = append(errors, &structs.TxnError{
@@ -35,6 +36,8 @@ func (t *Txn) preCheck(authorizer acl.Authorizer, ops structs.TxnOps) structs.Tx
 					What:    err.Error(),
 				})
 			}
+		case op.Check != nil:
+			checkPreApply(&op.Check.Check)
 		}
 	}
 

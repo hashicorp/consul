@@ -1592,7 +1592,7 @@ func (s *Store) DeleteCheck(idx uint64, node string, checkID types.CheckID) erro
 }
 
 // deleteCheckCASTxn is used to try doing a check delete operation with a given
-// raft index. If the CAS index specified is not equal to the last bserved index for
+// raft index. If the CAS index specified is not equal to the last observed index for
 // the given check, then the call is a noop, otherwise a normal check delete is invoked.
 func (s *Store) deleteCheckCASTxn(tx *memdb.Txn, idx, cidx uint64, node string, checkID types.CheckID) (bool, error) {
 	// Try to retrieve the existing health check.
