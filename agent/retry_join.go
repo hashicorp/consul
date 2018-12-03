@@ -136,7 +136,7 @@ func (r *retryJoiner) retryJoin() error {
 		select {
 		case <-time.After(r.interval):
 		case <-r.retryTrigger:
-			r.logger.Printf("[INFO] agent: Retry join re-triggered")
+			r.logger.Print("[INFO] agent: Retry join re-triggered")
 		}
 	}
 }

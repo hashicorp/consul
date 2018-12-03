@@ -138,7 +138,7 @@ type Config struct {
 	// SerfWANConfig is the configuration for the cross-dc serf
 	SerfWANConfig *serf.Config
 
-	// SerfResetKey is used to replace the gossip keyring as if the agent was
+	// SerfResetKey is used to replace the gossip keyring as if the agent were
 	// starting up again with a different -encrypt param. It is needed when
 	// -encrypt-key-from-api is used to delay delivering the encryption key. Since
 	// we can't delay starting Serf without major changes to the dependencies
@@ -406,7 +406,7 @@ func (c *Config) ResetSerfKey(key []byte) error {
 		return errors.New("LAN gossip encryption not configured")
 	}
 	serfWANEnabled := false
-	// SerfWANConfig is actully non-nil on clients but has no keyring setup,
+	// SerfWANConfig is actually non-nil on clients but has no keyring setup,
 	// however it can be explicitly nil on servers that have disabled WAN port.
 	if c.SerfWANConfig != nil && c.SerfWANConfig.MemberlistConfig != nil && c.SerfWANConfig.MemberlistConfig.Keyring != nil {
 		serfWANEnabled = true
