@@ -34,6 +34,7 @@ type TxnNodeResult *Node
 // a transaction.
 type TxnServiceOp struct {
 	Verb    api.ServiceOp
+	Node    string
 	Service NodeService
 }
 

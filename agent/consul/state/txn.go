@@ -175,6 +175,59 @@ func (s *Store) txnNode(tx *memdb.Txn, idx uint64, op *structs.TxnNodeOp) (struc
 	return nil, nil
 }
 
+// txnService handles all Service-related operations.
+func (s *Store) txnService(tx *memdb.Txn, idx uint64, op *structs.TxnServiceOp) (structs.TxnResults, error) {
+	var entry *structs.NodeService
+	var err error
+
+	switch op.Verb {
+	case api.ServiceGet:
+		entry, err = s.nodeServiceTxn(tx, op.Node, op.Service.ID)
+
+	case api.ServiceSet:
+		err = s.ensureServiceTxn(tx, idx, op.Node, &op.Service)
+
+	case api.ServiceCAS:
+		var ok bool
+		ok, err = s.ensureServiceCASTxn(tx, idx, op.Node, &op.Service)
+		if !ok && err == nil {
+			err = fmt.Errorf("failed to set service %q on node %q, index is stale", op.Service.ID, op.Node)
+		}
+
+	case api.ServiceDelete:
+		err = s.deleteServiceTxn(tx, idx, op.Node, op.Service.ID)
+
+	case api.ServiceDeleteCAS:
+		var ok bool
+		ok, err = s.deleteServiceCASTxn(tx, idx, op.Service.ModifyIndex, op.Node, op.Service.ID)
+		if !ok && err == nil {
+			err = fmt.Errorf("failed to delete service %q on node %q, index is stale", op.Service.ID, op.Node)
+		}
+
+	default:
+		err = fmt.Errorf("unknown Service verb %q", op.Verb)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// For a GET we keep the value, otherwise we clone and blank out the
+	// value (we have to clone so we don't modify the entry being used by
+	// the state store).
+	if entry != nil {
+		if op.Verb == api.ServiceGet {
+			result := structs.TxnResult{Service: entry}
+			return structs.TxnResults{&result}, nil
+		}
+
+		clone := *entry
+		result := structs.TxnResult{Service: &clone}
+		return structs.TxnResults{&result}, nil
+	}
+
+	return nil, nil
+}
+
 // txnCheck handles all Check-related operations.
 func (s *Store) txnCheck(tx *memdb.Txn, idx uint64, op *structs.TxnCheckOp) (structs.TxnResults, error) {
 	var entry *structs.HealthCheck
@@ -247,6 +300,12 @@ func (s *Store) txnDispatch(tx *memdb.Txn, idx uint64, ops structs.TxnOps) (stru
 			ret, err = s.txnKVS(tx, idx, op.KV)
 		case op.Intention != nil:
 			err = s.txnIntention(tx, idx, op.Intention)
+		case op.Node != nil:
+			ret, err = s.txnNode(tx, idx, op.Node)
+		case op.Service != nil:
+			ret, err = s.txnService(tx, idx, op.Service)
+		case op.Check != nil:
+			ret, err = s.txnCheck(tx, idx, op.Check)
 		default:
 			err = fmt.Errorf("no operation specified")
 		}

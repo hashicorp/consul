@@ -735,6 +735,36 @@ func (s *Store) EnsureService(idx uint64, node string, svc *structs.NodeService)
 	return nil
 }
 
+// ensureServiceCASTxn updates a service only if the existing index matches the given index.
+// Returns a bool indicating if a write happened and any error.
+func (s *Store) ensureServiceCASTxn(tx *memdb.Txn, idx uint64, node string, svc *structs.NodeService) (bool, error) {
+	// Retrieve the existing entry.
+	existing, err := tx.First("nodes", "id", node)
+	if err != nil {
+		return false, fmt.Errorf("node lookup failed: %s", err)
+	}
+
+	// Check if the we should do the set. A ModifyIndex of 0 means that
+	// we are doing a set-if-not-exists.
+	if svc.ModifyIndex == 0 && existing != nil {
+		return false, nil
+	}
+	if svc.ModifyIndex != 0 && existing == nil {
+		return false, nil
+	}
+	e, ok := existing.(*structs.Node)
+	if ok && svc.ModifyIndex != 0 && svc.ModifyIndex != e.ModifyIndex {
+		return false, nil
+	}
+
+	// Perform the update.
+	if err := s.ensureServiceTxn(tx, idx, node, svc); err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
 // ensureServiceTxn is used to upsert a service registration within an
 // existing memdb transaction.
 func (s *Store) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *structs.NodeService) error {
@@ -1111,15 +1141,26 @@ func (s *Store) NodeService(nodeName string, serviceID string) (uint64, *structs
 	idx := maxIndexTxn(tx, "services")
 
 	// Query the service
-	service, err := tx.First("services", "id", nodeName, serviceID)
+	service, err := s.nodeServiceTxn(tx, nodeName, serviceID)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed querying service for node %q: %s", nodeName, err)
 	}
 
-	if service != nil {
-		return idx, service.(*structs.ServiceNode).ToNodeService(), nil
+	return idx, service, nil
+}
+
+func (s *Store) nodeServiceTxn(tx *memdb.Txn, nodeName, serviceID string) (*structs.NodeService, error) {
+	// Query the service
+	service, err := tx.First("services", "id", nodeName, serviceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed querying service for node %q: %s", nodeName, err)
 	}
-	return idx, nil, nil
+
+	if service != nil {
+		return service.(*structs.ServiceNode).ToNodeService(), nil
+	}
+
+	return nil, nil
 }
 
 // NodeServices is used to query service registrations by node name or UUID.
@@ -1212,6 +1253,35 @@ func (s *Store) DeleteService(idx uint64, nodeName, serviceID string) error {
 
 func serviceIndexName(name string) string {
 	return fmt.Sprintf("service.%s", name)
+}
+
+// deleteServiceCASTxn is used to try doing a service delete operation with a given
+// raft index. If the CAS index specified is not equal to the last observed index for
+// the given service, then the call is a noop, otherwise a normal delete is invoked.
+func (s *Store) deleteServiceCASTxn(tx *memdb.Txn, idx, cidx uint64, nodeName, serviceID string) (bool, error) {
+	// Look up the service.
+	service, err := tx.First("services", "id", nodeName, serviceID)
+	if err != nil {
+		return false, fmt.Errorf("check lookup failed: %s", err)
+	}
+	if service == nil {
+		return false, nil
+	}
+
+	// If the existing index does not match the provided CAS
+	// index arg, then we shouldn't update anything and can safely
+	// return early here.
+	existing, ok := service.(*structs.ServiceNode)
+	if !ok || existing.ModifyIndex != cidx {
+		return existing == nil, nil
+	}
+
+	// Call the actual deletion if the above passed.
+	if err := s.deleteServiceTxn(tx, idx, nodeName, serviceID); err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 // deleteServiceTxn is the inner method called to remove a service
