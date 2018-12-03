@@ -13,7 +13,7 @@ export default RepositoryService.extend({
     return PRIMARY_KEY;
   },
   // this one gives you the full object so key,values and meta
-  findBySlug: function(key, dc) {
+  findBySlug: function(key, dc, configuration = {}) {
     if (isFolder(key)) {
       const id = JSON.stringify([dc, key]);
       let item = get(this, 'store').peekRecord(this.getModelName(), id);
@@ -24,23 +24,31 @@ export default RepositoryService.extend({
       }
       return Promise.resolve(item);
     }
-    return get(this, 'store').queryRecord(this.getModelName(), {
+    const query = {
       id: key,
       dc: dc,
-    });
+    };
+    if (typeof configuration.cursor !== 'undefined') {
+      query.index = configuration.cursor;
+    }
+    return get(this, 'store').queryRecord(this.getModelName(), query);
   },
   // this one only gives you keys
   // https://www.consul.io/api/kv.html
-  findAllBySlug: function(key, dc) {
+  findAllBySlug: function(key, dc, configuration = {}) {
     if (key === '/') {
       key = '';
     }
+    const query = {
+      id: key,
+      dc: dc,
+      separator: '/',
+    };
+    if (typeof configuration.cursor !== 'undefined') {
+      query.index = configuration.cursor;
+    }
     return this.get('store')
-      .query(this.getModelName(), {
-        id: key,
-        dc: dc,
-        separator: '/',
-      })
+      .query(this.getModelName(), query)
       .then(function(items) {
         return items.filter(function(item) {
           return key !== get(item, 'Key');
