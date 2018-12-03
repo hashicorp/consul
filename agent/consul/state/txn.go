@@ -122,6 +122,59 @@ func (s *Store) txnIntention(tx *memdb.Txn, idx uint64, op *structs.TxnIntention
 	}
 }
 
+// txnNode handles all Node-related operations.
+func (s *Store) txnNode(tx *memdb.Txn, idx uint64, op *structs.TxnNodeOp) (structs.TxnResults, error) {
+	var entry *structs.Node
+	var err error
+
+	switch op.Verb {
+	case api.NodeGet:
+		entry, err = getNodeIDTxn(tx, op.Node.ID)
+
+	case api.NodeSet:
+		err = s.ensureNodeTxn(tx, idx, &op.Node)
+
+	case api.NodeCAS:
+		var ok bool
+		ok, err = s.ensureNodeCASTxn(tx, idx, &op.Node)
+		if !ok && err == nil {
+			err = fmt.Errorf("failed to set node %q, index is stale", op.Node.Node)
+		}
+
+	case api.NodeDelete:
+		err = s.deleteNodeTxn(tx, idx, op.Node.Node)
+
+	case api.NodeDeleteCAS:
+		var ok bool
+		ok, err = s.deleteNodeCASTxn(tx, idx, op.Node.ModifyIndex, op.Node.Node)
+		if !ok && err == nil {
+			err = fmt.Errorf("failed to delete node %q, index is stale", op.Node.Node)
+		}
+
+	default:
+		err = fmt.Errorf("unknown Node verb %q", op.Verb)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// For a GET we keep the value, otherwise we clone and blank out the
+	// value (we have to clone so we don't modify the entry being used by
+	// the state store).
+	if entry != nil {
+		if op.Verb == api.NodeGet {
+			result := structs.TxnResult{Node: entry}
+			return structs.TxnResults{&result}, nil
+		}
+
+		clone := *entry
+		result := structs.TxnResult{Node: &clone}
+		return structs.TxnResults{&result}, nil
+	}
+
+	return nil, nil
+}
+
 // txnCheck handles all Check-related operations.
 func (s *Store) txnCheck(tx *memdb.Txn, idx uint64, op *structs.TxnCheckOp) (structs.TxnResults, error) {
 	var entry *structs.HealthCheck

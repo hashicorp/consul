@@ -373,6 +373,36 @@ func (s *Store) ensureNoNodeWithSimilarNameTxn(tx *memdb.Txn, node *structs.Node
 	return nil
 }
 
+// ensureNodeCASTxn updates a node only if the existing index matches the given index.
+// Returns a bool indicating if a write happened and any error.
+func (s *Store) ensureNodeCASTxn(tx *memdb.Txn, idx uint64, node *structs.Node) (bool, error) {
+	// Retrieve the existing entry.
+	existing, err := tx.First("nodes", "id", node.Node)
+	if err != nil {
+		return false, fmt.Errorf("node lookup failed: %s", err)
+	}
+
+	// Check if the we should do the set. A ModifyIndex of 0 means that
+	// we are doing a set-if-not-exists.
+	if node.ModifyIndex == 0 && existing != nil {
+		return false, nil
+	}
+	if node.ModifyIndex != 0 && existing == nil {
+		return false, nil
+	}
+	e, ok := existing.(*structs.Node)
+	if ok && node.ModifyIndex != 0 && node.ModifyIndex != e.ModifyIndex {
+		return false, nil
+	}
+
+	// Perform the update.
+	if err := s.ensureNodeTxn(tx, idx, node); err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
 // ensureNodeTxn is the inner function called to actually create a node
 // registration or modify an existing one in the state store. It allows
 // passing in a memdb transaction so it may be part of a larger txn.
@@ -567,6 +597,35 @@ func (s *Store) DeleteNode(idx uint64, nodeName string) error {
 
 	tx.Commit()
 	return nil
+}
+
+// deleteNodeCASTxn is used to try doing a node delete operation with a given
+// raft index. If the CAS index specified is not equal to the last observed index for
+// the given check, then the call is a noop, otherwise a normal check delete is invoked.
+func (s *Store) deleteNodeCASTxn(tx *memdb.Txn, idx, cidx uint64, nodeName string) (bool, error) {
+	// Look up the node.
+	node, err := tx.First("nodes", "id", nodeName)
+	if err != nil {
+		return false, fmt.Errorf("check lookup failed: %s", err)
+	}
+	if node == nil {
+		return false, nil
+	}
+
+	// If the existing index does not match the provided CAS
+	// index arg, then we shouldn't update anything and can safely
+	// return early here.
+	existing, ok := node.(*structs.Node)
+	if !ok || existing.ModifyIndex != cidx {
+		return existing == nil, nil
+	}
+
+	// Call the actual deletion if the above passed.
+	if err := s.deleteNodeTxn(tx, idx, nodeName); err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 // deleteNodeTxn is the inner method used for removing a node from

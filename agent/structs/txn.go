@@ -19,6 +19,28 @@ type TxnKVOp struct {
 // inside a transaction.
 type TxnKVResult *DirEntry
 
+// TxnNodeOp is used to define a single operation on a node in the catalog inside
+// a transaction.
+type TxnNodeOp struct {
+	Verb api.NodeOp
+	Node Node
+}
+
+// TxnNodeResult is used to define the result of a single operation on a node
+// in the catalog inside a transaction.
+type TxnNodeResult *Node
+
+// TxnServiceOp is used to define a single operation on a service in the catalog inside
+// a transaction.
+type TxnServiceOp struct {
+	Verb    api.ServiceOp
+	Service NodeService
+}
+
+// TxnServiceResult is used to define the result of a single operation on a service
+// in the catalog inside a transaction.
+type TxnServiceResult *NodeService
+
 // TxnCheckOp is used to define a single operation on a health check inside a
 // transaction.
 type TxnCheckOp struct {
@@ -39,6 +61,8 @@ type TxnIntentionOp IntentionRequest
 type TxnOp struct {
 	KV        *TxnKVOp
 	Intention *TxnIntentionOp
+	Node      *TxnNodeOp
+	Service   *TxnServiceOp
 	Check     *TxnCheckOp
 }
 
@@ -87,8 +111,10 @@ type TxnErrors []*TxnError
 // TxnResult is used to define the result of a given operation inside a
 // transaction. Only one of the types should be filled out per entry.
 type TxnResult struct {
-	KV    TxnKVResult
-	Check TxnCheckResult
+	KV      TxnKVResult
+	Node    TxnNodeResult
+	Service TxnServiceResult
+	Check   TxnCheckResult
 }
 
 // TxnResults is a list of TxnResult entries.

@@ -89,6 +89,28 @@ type KVTxnResponse struct {
 	Errors  TxnErrors
 }
 
+// NodeOp constants give possible operations available in a transaction.
+type NodeOp string
+
+const (
+	NodeGet       NodeOp = "get"
+	NodeSet       NodeOp = "set"
+	NodeCAS       NodeOp = "cas"
+	NodeDelete    NodeOp = "delete"
+	NodeDeleteCAS NodeOp = "delete-cas"
+)
+
+// ServiceOp constants give possible operations available in a transaction.
+type ServiceOp string
+
+const (
+	ServiceGet       ServiceOp = "get"
+	ServiceSet       ServiceOp = "set"
+	ServiceCAS       ServiceOp = "cas"
+	ServiceDelete    ServiceOp = "delete"
+	ServiceDeleteCAS ServiceOp = "delete-cas"
+)
+
 // CheckOp constants give possible operations available in a transaction.
 type CheckOp string
 
