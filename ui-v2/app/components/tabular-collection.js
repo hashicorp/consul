@@ -1,4 +1,4 @@
-import Component from 'ember-collection/components/ember-collection';
+import CollectionComponent from 'ember-collection/components/ember-collection';
 import needsRevalidate from 'ember-collection/utils/needs-revalidate';
 import identity from 'ember-collection/utils/identity';
 import Grid from 'ember-collection/layouts/grid';
@@ -108,7 +108,7 @@ const change = function(e) {
     }
   }
 };
-export default Component.extend(SlotsMixin, WithResizing, {
+export default CollectionComponent.extend(SlotsMixin, WithResizing, {
   tagName: 'table',
   classNames: ['dom-recycling'],
   attributeBindings: ['style'],
