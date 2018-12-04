@@ -361,7 +361,7 @@ with a configuration file that enables ACLs:
     "default_policy" : "deny",
     "down_policy" : "extend-cache",
     "tokens" : {
-      "agent" : "fcd68580-c566-2bd2-891f-336eadc02357"
+      "agent" : "da666809-98ca-0e94-a99c-893c4bf5f9eb"
     }
   }
 }
@@ -371,7 +371,7 @@ Similar to the previous example, in Consul 0.9.1 and later you can also introduc
 agent token using an API, so it doesn't need to be set in the configuration file:
 
 ```bash
-$ consul acl set-agent-token agent "fcd68580-c566-2bd2-891f-336eadc02357"
+$ consul acl set-agent-token agent "da666809-98ca-0e94-a99c-893c4bf5f9eb"
 
 ACL token "agent" set successfully
 ```
@@ -406,7 +406,7 @@ If we supply the token we created above we will be able to see a listing of node
 it has write privileges to an empty `node` prefix, meaning it has access to all nodes:
 
 ```bash
-$ CONSUL_HTTP_TOKEN=fcd68580-c566-2bd2-891f-336eadc02357 consul members
+$ CONSUL_HTTP_TOKEN=da666809-98ca-0e94-a99c-893c4bf5f9eb consul members
 Node    Address         Status  Type    Build     Protocol  DC
 node-1  127.0.0.1:8301  alive   server  0.9.0dev  2         dc1
 node-2  127.0.0.2:8301  alive   client  0.9.0dev  2         dc1
