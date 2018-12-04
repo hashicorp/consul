@@ -14,7 +14,7 @@ const defaultChangeset = function(data, validators) {
   return changeset;
 };
 /**
- * Form builder/Form factory (WIP)
+ * Form builder/Form factory
  * Deals with handling (generally change) events and updating data in response to the change
  * in a typical data down event up manner
  * validations are included currently using ember-changeset-validations
