@@ -1,8 +1,8 @@
-import Component from 'consul-ui/components/dom-buffer-flush';
+import DomBufferFlushComponent from 'consul-ui/components/dom-buffer-flush';
 import { inject as service } from '@ember/service';
 import { get } from '@ember/object';
 
-export default Component.extend({
+export default DomBufferFlushComponent.extend({
   dom: service('dom'),
   actions: {
     change: function(e) {
