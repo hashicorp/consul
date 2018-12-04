@@ -85,11 +85,11 @@ module('Unit | Adapter | kv', function(hooks) {
       });
     });
     // not included in the above forEach as it's a slightly different concept
-    it('returns string KV object when calling queryRecord (or anything else) record', function() {
+    it('returns string KV object when calling queryRecord (or anything else) record', function(message) {
       const actual = adapter.dataForRequest({
         requestType: 'queryRecord',
       });
-      assert.equal(actual, null);
+      assert.deepEqual(actual, deep);
     });
   });
   test('methodForRequest returns the correct method', function(assert) {
