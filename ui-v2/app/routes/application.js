@@ -3,10 +3,14 @@ import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
 import { next } from '@ember/runloop';
+import { Promise } from 'rsvp';
+
+import WithBlockingActions from 'consul-ui/mixins/with-blocking-actions';
+
 const removeLoading = function($from) {
   return $from.classList.remove('ember-loading');
 };
-export default Route.extend({
+export default Route.extend(WithBlockingActions, {
   dom: service('dom'),
   init: function() {
     this._super(...arguments);
