@@ -62,7 +62,7 @@ server. Again, once this server is online and has rejoined, the cluster will ret
 to a fully healthy state.
 
 ```sh
-consul agent -bootsrap-expect=3 -bind=192.172.2.4 -auto-rejoin=192.172.2.3
+consul agent -bootstrap-expect=3 -bind=192.172.2.4 -auto-rejoin=192.172.2.3
 ```
 
 Both of these strategies involve a potentially lengthy time to reboot or rebuild
