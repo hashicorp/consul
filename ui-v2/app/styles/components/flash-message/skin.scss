@@ -5,11 +5,17 @@
 %flash-message p.success strong {
   @extend %with-passing;
 }
+%flash-message p.warning strong {
+  @extend %with-warning;
+}
 %flash-message p.error strong {
   @extend %with-critical;
 }
 %flash-message p.success {
   @extend %frame-green-500;
+}
+%flash-message p.warning {
+  @extend %frame-yellow-500;
 }
 %flash-message p.error {
   @extend %frame-red-500;
