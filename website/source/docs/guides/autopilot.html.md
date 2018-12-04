@@ -109,7 +109,7 @@ UpgradeVersionTag = ""
 
 We have disabled dead server cleanup, but sill have all the other Autopilot defaults.
 
-## Server Stabalization
+## Server Stabilization
 
 When a new server is added to the cluster, there is a waiting period where it
 must be healthy and stable for a certain amount of time before being promoted
@@ -117,7 +117,7 @@ to a full, voting member. This can be configured via the `ServerStabilizationTim
 setting.
 
 ```sh
-consul operator autopilot set-config -server-stabalization-time=5s
+consul operator autopilot set-config -server-stabilization-time=5s
 Configuration updated!
 
 $ consul operator autopilot get-config
@@ -290,10 +290,10 @@ $ curl localhost:8500/v1/operator/autopilot/health
 ## Summary
 
 In this guide we configured most of the Autopilot features; dead server cleanup, server
-stabalization, redunancy zone tags, upgrade migration, and upgrade version tag.
+stabilization, redundancy zone tags, upgrade migration, and upgrade version tag.
 
 To learn more about the Autopilot settings we did not configure,
 [last_contact_threshold](https://www.consul.io/docs/agent/options.html#last_contact_threshold)
 and [max_trailing_logs](https://www.consul.io/docs/agent/options.html#max_trailing_logs),
-either read the agent configuration documenation or use the help flag with the
-opertor autopilot `consul operator autopilot set-config -h`.
+either read the agent configuration documentation or use the help flag with the
+operator autopilot `consul operator autopilot set-config -h`.
