@@ -240,6 +240,23 @@ func (r *Request) Scrub(reply *dns.Msg) *dns.Msg {
 	reply.Compress = false
 	rl := reply.Len()
 	if size >= rl {
+		if r.Proto() != "udp" {
+			return reply
+		}
+
+		// Last ditch attempt to avoid fragmentation, if the size is bigger than the v4/v6 UDP fragmentation
+		// limit and sent via UDP compress it (in the hope we go under that limit). Limits taken from NSD:
+		//
+		//    .., 1480 (EDNS/IPv4), 1220 (EDNS/IPv6), or the advertized EDNS buffer size if that is
+		//    smaller than the EDNS default.
+		// See: https://open.nlnetlabs.nl/pipermail/nsd-users/2011-November/001278.html
+		if rl > 1480 && r.Family() == 1 {
+			reply.Compress = true
+		}
+		if rl > 1220 && r.Family() == 2 {
+			reply.Compress = true
+		}
+
 		return reply
 	}
 
