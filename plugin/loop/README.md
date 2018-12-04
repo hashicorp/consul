@@ -67,19 +67,22 @@ to another DNS server that is forwarding requests back to CoreDNS. If `proxy` or
 When a CoreDNS Pod deployed in Kubernetes detects a loop, the CoreDNS Pod will start to "CrashLoopBackOff".
 This is because Kubernetes will try to restart the Pod every time CoreDNS detects the loop and exits.
 
-A common cause of forwarding loops in Kubernetes clusters is an interaction with
-`systemd-resolved` on the host node.  `systemd-resolved` will, in certain configurations,
-put `127.0.0.53` as an upstream into `/etc/resolv.conf`. Kubernetes (`kubelet`) by default
-will pass this `/etc/resolv/conf` file to all Pods using the `default` dnsPolicy (this
-includes CoreDNS Pods). CoreDNS then uses this `/etc/resolv.conf` as a list of upstreams
-to proxy/forward requests to.  Since it contains a local address, CoreDNS ends up forwarding
-requests to itself.
+A common cause of forwarding loops in Kubernetes clusters is an interaction with a local DNS cache
+on the host node (e.g. `systemd-resolved`).  For example, in certain configurations `systemd-resolved` will
+put the loopback address `127.0.0.53` as a nameserver into `/etc/resolv.conf`. Kubernetes (via `kubelet`) by default
+will pass this `/etc/resolv/conf` file to all Pods using the `default` dnsPolicy rendering them
+unable to make DNS lookups (this includes CoreDNS Pods). CoreDNS uses this `/etc/resolv.conf` 
+as a list of upstreams to proxy/forward requests to.  Since it contains a loopback address, CoreDNS ends up forwarding
+requests to itself. 
 
 There are many ways to work around this issue, some are listed here:
 
-* Add the following to `kubelet`: `--resolv-conf /run/systemd/resolve/resolv.conf`.  This flag
-tells `kubelet` to pass an alternate `resolv.conf` to Pods. For `systemd-resolved`,
-`/run/systemd/resolve/resolv.conf` is typically the location of the "original" `/etc/resolv.conf`.
-* Disable `systemd-resolved` on host nodes, and restore `/etc/resolv.conf` to the original.
+* Add the following to `kubelet`: `--resolv-conf <path-to-your-real-resolv-conf-file>`.  Your "real" 
+  `resolv.conf` is the one that contains the actual IPs of your upstream servers, and no local/loopback address.
+  This flag tells `kubelet` to pass an alternate `resolv.conf` to Pods. For systems using `systemd-resolved`,
+`/run/systemd/resolve/resolv.conf` is typically the location of the "real" `resolv.conf`,
+although this can be different depending on your distribution.
+* Disable the local DNS cache on host nodes, and restore `/etc/resolv.conf` to the original.
 * A quick and dirty fix is to edit your Corefile, replacing `proxy . /etc/resolv.conf` with
-the ip address of your upstream DNS, for example `proxy . 8.8.8.8`.
+the ip address of your upstream DNS, for example `proxy . 8.8.8.8`.  But this only fixes the issue for CoreDNS,
+kubelet will continue to forward the invalid `resolv.conf` to all `default` dnsPolicy Pods, leaving them unable to resolve DNS.
