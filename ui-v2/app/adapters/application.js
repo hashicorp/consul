@@ -1,4 +1,5 @@
 import Adapter from 'ember-data/adapters/rest';
+import { AbortError } from 'ember-data/adapters/errors';
 import { inject as service } from '@ember/service';
 
 import URL from 'url';
@@ -17,6 +18,22 @@ import { HEADERS_SYMBOL as HTTP_HEADERS_SYMBOL } from 'consul-ui/utils/http/cons
 export default Adapter.extend({
   namespace: 'v1',
   repo: service('settings'),
+  queryRecord: function() {
+    return this._super(...arguments).catch(function(e) {
+      if (e instanceof AbortError) {
+        e.errors[0].status = '0';
+      }
+      throw e;
+    });
+  },
+  query: function() {
+    return this._super(...arguments).catch(function(e) {
+      if (e instanceof AbortError) {
+        e.errors[0].status = '0';
+      }
+      throw e;
+    });
+  },
   headersForRequest: function(params) {
     return {
       ...this.get('repo').findHeaders(),
