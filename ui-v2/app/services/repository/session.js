@@ -8,11 +8,15 @@ export default RepositoryService.extend({
   getModelName: function() {
     return modelName;
   },
-  findByNode: function(node, dc) {
-    return get(this, 'store').query(this.getModelName(), {
+  findByNode: function(node, dc, configuration = {}) {
+    const query = {
       id: node,
       dc: dc,
-    });
+    };
+    if (typeof configuration.cursor !== 'undefined') {
+      query.index = configuration.cursor;
+    }
+    return get(this, 'store').query(this.getModelName(), query);
   },
   // TODO: Why Key? Probably should be findBySlug like the others
   findByKey: function(slug, dc) {
