@@ -47,8 +47,8 @@ option to add additional servers.
 
 ## Add a Server with Agent Configuration
 
-When adding addtional servers in production, you will likely want to use the
-[agent configuiration](https://www.consul.io/docs/agent/options.html)
+When adding additional servers in production, you will likely want to use the
+[agent configuration](https://www.consul.io/docs/agent/options.html)
 option, either with the Consul CLI or in the agent configuration file. With either
 option, you can use the `retry_join` setting.
 
@@ -182,7 +182,7 @@ the cluster leader will mark the node as having left the cluster and it will sto
 
 ## Summary
 
-In this guide we learned the straightforword process of adding and removing servers including;
+In this guide we learned the straightforward process of adding and removing servers including;
 manually adding servers, adding servers through the agent configuration, gracefully removing
 servers, and forcing removal of servers. Finally, we should restate that manually adding servers
  is good for testing purposes, however, for production it is recommended to add servers with
