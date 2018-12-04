@@ -50,7 +50,7 @@
 - [] TLS: RPC encryption for both incoming and outgoing communication.
 - [] Gossip Encryption. Both incoming and outgoing communication. 
 
-#####[ACLs](https://www.consul.io/docs/guides/acl.html) have been enabled and configured. 
+##### [ACLs](https://www.consul.io/docs/guides/acl.html) have been enabled and configured. 
 - [] Tokens have been created for all agents and services. 
 
 ##### [Certificate Authority](link to learn) setup. 
