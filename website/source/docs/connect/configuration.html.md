@@ -135,7 +135,7 @@ All fields are optional with a sane default.
   specified in the opaque config map here will continue to work for
   compatibility but it's strongly recommended that you move to using the higher
   level [upstream
-  configuration](http://localhost:4567/docs/connect/proxies.html#upstream-configuration).
+  configuration](/docs/connect/proxies.html#upstream-configuration).
 
 #### Proxy Upstream Config Key Reference
 
