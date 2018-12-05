@@ -23,9 +23,16 @@ let $_;
 const clickFirstAnchor = clickFirstAnchorFactory(closest);
 export default Service.extend({
   doc: document,
+  win: window,
   init: function() {
     this._super(...arguments);
     $_ = getComponentFactory(getOwner(this));
+  },
+  document: function() {
+    return get(this, 'doc');
+  },
+  viewport: function() {
+    return get(this, 'win');
   },
   // TODO: should this be here? Needs a better name at least
   clickFirstAnchor: clickFirstAnchor,
