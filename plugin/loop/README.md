@@ -71,13 +71,13 @@ A common cause of forwarding loops in Kubernetes clusters is an interaction with
 on the host node (e.g. `systemd-resolved`).  For example, in certain configurations `systemd-resolved` will
 put the loopback address `127.0.0.53` as a nameserver into `/etc/resolv.conf`. Kubernetes (via `kubelet`) by default
 will pass this `/etc/resolv/conf` file to all Pods using the `default` dnsPolicy rendering them
-unable to make DNS lookups (this includes CoreDNS Pods). CoreDNS uses this `/etc/resolv.conf` 
+unable to make DNS lookups (this includes CoreDNS Pods). CoreDNS uses this `/etc/resolv.conf`
 as a list of upstreams to proxy/forward requests to.  Since it contains a loopback address, CoreDNS ends up forwarding
-requests to itself. 
+requests to itself.
 
 There are many ways to work around this issue, some are listed here:
 
-* Add the following to `kubelet`: `--resolv-conf <path-to-your-real-resolv-conf-file>`.  Your "real" 
+* Add the following to `kubelet`: `--resolv-conf <path-to-your-real-resolv-conf-file>`.  Your "real"
   `resolv.conf` is the one that contains the actual IPs of your upstream servers, and no local/loopback address.
   This flag tells `kubelet` to pass an alternate `resolv.conf` to Pods. For systems using `systemd-resolved`,
 `/run/systemd/resolve/resolv.conf` is typically the location of the "real" `resolv.conf`,
