@@ -208,13 +208,6 @@
 
         &.playing {
           color: $consul-black;
-
-          .progress-bar {
-            span {
-              transition: width linear;
-              width: 100%;
-            }
-          }
         }
 
         & > span {
@@ -234,6 +227,7 @@
             height: 2px;
             left: 0;
             position: absolute;
+            transition: width linear 0.2s;
             width: 0;
           }
         }
