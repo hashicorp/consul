@@ -56,7 +56,7 @@ $ consul agent -data-dir=/tmp/consul -config-dir=/etc/consul.d/
 
 "Encrypted: true" will be included in the output, if encryption is properly configured.
 
-Note, all nodes within a the cluster must share the same encryption key in order to send and receive cluster information, including clients and servers. Additionally, if you're using multiple WAN joined datacenters, be sure to use _the same encryption key_ in all datacenters.
+Note: all nodes within a cluster must share the same encryption key in order to send and receive cluster information, including clients and servers. Additionally, if you're using multiple WAN joined datacenters, be sure to use _the same encryption key_ in all datacenters.
 
 ### Enable Gossip Encryption: Existing Cluster
 
