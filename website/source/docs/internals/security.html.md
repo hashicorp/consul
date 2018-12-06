@@ -47,10 +47,21 @@ items outside of Consul's threat model as noted in sections below.
 
 * **Encryption enabled.** TCP and UDP encryption must be enabled and configured
   to prevent plaintext communication between Consul agents. At a minimum,
-  verify_outgoing should be enabled to verify server authenticity with each
-  server having a unique TLS certificate. verify_incoming provides additional
-  agent verification, but shouldn't directly affect the threat model since
-  requests must also contain a valid ACL token.
+  `verify_outgoing` should be enabled to verify server authenticity with each
+  server having a unique TLS certificate. `verify_server_hostname` is also
+  required to prevent a compromised agent restarting as a server and being given
+  access to all secrets.
+
+    `verify_incoming` provides additional agent verification via mutual
+  authentication, but isn't _strictly_ necessary to enforce the threat model
+  since requests must also contain a valid ACL token. The subtlety is that
+  currently `verify_incoming = false` will allow servers to still accept
+  un-encrypted connections from clients (to allow for gradual TLS rollout). That
+  alone doesn't violate the threat model, but any misconfigured client that
+  chooses not to use TLS will violate the model. We recommend setting this to
+  true. If it is left as false care must be taken to ensure all consul clients
+  use `verify_outgoing = true` as noted above, but also all external API/UI
+  access must be via HTTPS with HTTP listeners disabled.
 
 ### Known Insecure Configurations
 
@@ -73,6 +84,13 @@ non-default options that potentially present additional security risks.
   leaving it disabled. If enabled, extreme care must be taken to ensure correct
   ACLs restrict access, for example any management token grants access to
   execute arbitrary code on the cluster.
+
+* **Verify Server Hostname Used Alone.** From version 0.5.1 to 1.4.0 we documented that
+  `verify_server_hostname` being `true` _implied_ `verify_outgoing` however due
+  to a bug this was not the case so setting _only_ `verify_server_hostname`
+  results in plaintext communciation between client and server. See
+  [CVE-2018-19653](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2018-19653)
+  for more details. This is fixed in 1.4.1.
 
 ## Threat Model
 
