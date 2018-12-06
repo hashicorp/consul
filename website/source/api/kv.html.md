@@ -62,9 +62,10 @@ The table below shows this endpoint's support for
   metadata). Specifying this implies `recurse`. This is specified as part of the
   URL as a query parameter.
 
-- `separator` `(string: '/')` - Specifies the character to use as a separator
-  for recursive lookups. This is specified as part of the URL as a query
-  parameter.
+- `separator` `(string: '/')` - Specifies the string to use as a separator
+  for recursive key lookups. This option is only used when paired with the `keys` 
+  parameter to limit the dept of keys returned,  only up to the given separator. 
+  This is specified as part of the URL as a query parameter.
 
 ### Sample Request
 
