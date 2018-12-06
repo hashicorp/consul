@@ -8,7 +8,7 @@ description: |-
 
 # Agent Communication Encryption
 
-There are two separate systems that need to be configured separately to encrypt communication within the cluster: gossip encryption and TLS. TLS is used to secure the RPC calls between agents. Gossip encryption is secured with a symmetric key, since gossip between nodes is done over UDP. In this guide we will configure both.
+There are two different systems that need to be configured separately to encrypt communication within the cluster: gossip encryption and TLS. TLS is used to secure the RPC calls between agents. Gossip encryption is secured with a symmetric key, since gossip between nodes is done over UDP. In this guide we will configure both.
 
 To complete the RPC encryption section, you must have [configured agent certificates](https://www.consul.io/docs/guides/creating-certificates.html).
 
@@ -39,9 +39,7 @@ agent configuration file and then pass the file at startup with the [`-config-di
 ```
 
 ```sh
-$ consul agent -data-dir=/tmp/consul -config-dir=/etc/consul.d/
-==> WARNING: LAN keyring exists but -encrypt given, using keyring
-==> WARNING: WAN keyring exists but -encrypt given, using keyring
+$ consul agent -config-dir=/etc/consul.d/
 ==> Starting Consul agent...
 ==> Starting Consul agent RPC...
 ==> Consul agent running!
@@ -54,7 +52,7 @@ $ consul agent -data-dir=/tmp/consul -config-dir=/etc/consul.d/
 ...
 ```
 
-"Encrypted: true" will be included in the output, if encryption is properly configured.
+"Encrypt: true" will be included in the output, if encryption is properly configured.
 
 Note: all nodes within a cluster must share the same encryption key in order to send and receive cluster information, including clients and servers. Additionally, if you're using multiple WAN joined datacenters, be sure to use _the same encryption key_ in all datacenters.
 
@@ -145,7 +143,10 @@ After TLS has been configured on all the agents, you can start the agents and RP
   "encrypt": "JY34uTPZyfUE+6tinMYEVw==",
   "verify_incoming": true,
   "verify_outgoing": true,
-  "verify_server_hostname": true
+  "verify_server_hostname": true,
+  "ca_file":,
+  "cert_file":,
+  "key_file":
 }
 ```
 
@@ -155,7 +156,7 @@ The `verify_outgoing` parameter enables agents to verify the authenticity of Con
 
 Enabling TLS on an existing cluster is supported, however this process assumes a starting point with no TLS settings configured, and involves an intermediate step in order to get to full TLS encryption.
 
-**Step 1**: Generate the necessary keys and certificate, then set the `ca_file`,`ca_path`, `cert_file`, and `key_file` settings in the configuration for each agent. Make sure the `verify_outgoing` and `verify_incoming` options are set to `false`. HTTPS for the API can be enabled at this point by setting the [`https`](/docs/agent/options.html#http_port) port.
+**Step 1**: Generate the necessary keys and certificate, then set the `ca_file` or `ca_path`, `cert_file`, and `key_file` settings in the configuration for each agent. Make sure the `verify_outgoing` and `verify_incoming` options are set to `false`. HTTPS for the API can be enabled at this point by setting the [`https`](/docs/agent/options.html#http_port) port.
 
 ```javascript
 {
@@ -176,10 +177,6 @@ Next, perform a rolling restart of each agent in the cluster. After this step, T
 
 
 **Step 2**: (Optional, Enterprise-only) If applicable, set the `Use TLS` setting in any network areas to `true`. This can be done either through the [`consul operator area update`](/docs/commands/operator/area.html)command or the [Operator API](/api/operator/area.html).
-
-```sh
-consul operator area update <>
-```
 
 **Step 3**: Change the `verify_incoming`, `verify_outgoing`, and `verify_server_hostname` to `true` the perform another rolling restart of each agent in the cluster.
 

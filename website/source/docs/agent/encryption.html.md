@@ -31,7 +31,7 @@ cg8StVXbQJ0gPvMd9o7yrg==
 ```
 
 With that key, you can enable encryption on the agent. If encryption is enabled,
-the output of [`consul agent`](/docs/commands/agent.html) will include "Encrypted: true":
+the output of [`consul agent`](/docs/commands/agent.html) will include "Encrypt: true":
 
 ```text
 $ cat encrypt.json
