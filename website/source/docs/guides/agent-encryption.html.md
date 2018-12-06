@@ -8,7 +8,7 @@ description: |-
 
 # Agent Communication Encryption
 
-There are two separate systems that need to be configured separately to encrypt communication within the cluster, gossip encryption and TLS. TLS is used to secure the RPC calls between agents. Gossip encryption is secured with a symmetric key, since gossip between nodes is done over UDP. In this guide we will configure both.
+There are two separate systems that need to be configured separately to encrypt communication within the cluster: gossip encryption and TLS. TLS is used to secure the RPC calls between agents. Gossip encryption is secured with a symmetric key, since gossip between nodes is done over UDP. In this guide we will configure both.
 
 To complete the RPC encryption section, you must have [configured agent certificates](https://www.consul.io/docs/guides/creating-certificates.html).
 
