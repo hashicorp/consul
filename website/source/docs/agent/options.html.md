@@ -203,7 +203,7 @@ will exit with an error at startup.
   whether [health checks that execute scripts](/docs/agent/checks.html) are
   enabled on this agent, and defaults to `false` so operators must opt-in to
   allowing these. This was added in Consul 0.9.0.
-  
+
     ~> **Security Warning:** Enabling script checks in some configurations may
   introduce a remote execution vulnerability which is known to be targeted by
   malware. We strongly recommend `-enable-local-script-checks` instead. See [this
@@ -596,9 +596,9 @@ default will automatically work with some tooling.
         The ACL token used to authorize secondary datacenters with the primary datacenter for replication
         operations. This token is required for servers outside the [`primary_datacenter`](#primary_datacenter) when
         ACLs are enabled. This token may be provided later using the [agent token API](/api/agent.html#update-acl-tokens)
-        on each server. This token must have at least "read" permissions on ACL data but if ACL 
-        token replication is enabled then it must have "write" permissions. This also enables 
-        Connect replication in Consul Enterprise, for which the token will require both operator 
+        on each server. This token must have at least "read" permissions on ACL data but if ACL
+        token replication is enabled then it must have "write" permissions. This also enables
+        Connect replication in Consul Enterprise, for which the token will require both operator
         "write" and intention "read" permissions for replicating CA and Intention data.
 
 * <a name="acl_datacenter"></a><a href="#acl_datacenter">`acl_datacenter`</a> - **This field is
@@ -1595,19 +1595,35 @@ default will automatically work with some tooling.
   default, HTTPS is disabled.
 
 * <a name="verify_outgoing"></a><a href="#verify_outgoing">`verify_outgoing`</a> - If set to
-  true, Consul requires that all outgoing connections
+  true, Consul requires that all outgoing connections from this agent
   make use of TLS and that the server provides a certificate that is signed by
   a Certificate Authority from the [`ca_file`](#ca_file) or [`ca_path`](#ca_path). By default,
   this is false, and Consul will not make use of TLS for outgoing connections. This applies to clients
   and servers as both will make outgoing connections.
 
-* <a name="verify_server_hostname"></a><a href="#verify_server_hostname">`verify_server_hostname`</a> - If set to
-  true, Consul verifies for all outgoing connections that the TLS certificate presented by the servers
-  matches "server.&lt;datacenter&gt;.&lt;domain&gt;" hostname. This implies `verify_outgoing`.
-  By default, this is false, and Consul does not verify the hostname of the certificate, only
-  that it is signed by a trusted CA. This setting is important to prevent a compromised
-  client from being restarted as a server, and thus being able to perform a MITM attack
-  or to be added as a Raft peer. This is new in 0.5.1.
+    ~> **Security Note:** Note that servers that specify `verify_outgoing =
+    true` will always talk to other servers over TLS, but they still _accept_
+    non-TLS connections to allow for a transition of all clients to TLS.
+    Currently the only way to enforce that no client can communicate with a
+    server unencrypted is to also enable `verify_incoming` which requires client
+    certificates too.
+
+* <a name="verify_server_hostname"></a><a
+  href="#verify_server_hostname">`verify_server_hostname`</a> - If set to true,
+  Consul verifies for all outgoing TLS connections that the TLS certificate
+  presented by the servers matches "server.&lt;datacenter&gt;.&lt;domain&gt;"
+  hostname. By default, this is false, and Consul does not verify the hostname
+  of the certificate, only that it is signed by a trusted CA. This setting is
+  _critical_ to prevent a compromised client from being restarted as a server
+  and having all cluster state _including all ACL tokens and Connect CA root keys_
+  replicated to it. This is new in 0.5.1.
+
+    ~> **Security Note:** From versions 0.5.1 to 1.4.0, due to a bug, setting
+  this flag alone _does not_ imply `verify_outgoing` and leaves client to server
+  and server to server RPCs unencrypted despite the documentation stating otherwise. See
+  [CVE-2018-19653](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2018-19653)
+  for more details. For those versions you **must also set `verify_outgoing =
+  true`** to ensure encrypted RPC connections.
 
 * <a name="watches"></a><a href="#watches">`watches`</a> - Watches is a list of watch
   specifications which allow an external process to be automatically invoked when a

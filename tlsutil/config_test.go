@@ -153,6 +153,7 @@ func TestConfig_OutgoingTLS_ServerName(t *testing.T) {
 
 func TestConfig_OutgoingTLS_VerifyHostname(t *testing.T) {
 	conf := &Config{
+		VerifyOutgoing:       true,
 		VerifyServerHostname: true,
 		CAFile:               "../test/ca/root.cer",
 	}
@@ -263,6 +264,7 @@ func TestConfig_outgoingWrapper_OK(t *testing.T) {
 		CertFile:             "../test/hostname/Alice.crt",
 		KeyFile:              "../test/hostname/Alice.key",
 		VerifyServerHostname: true,
+		VerifyOutgoing:       true,
 		Domain:               "consul",
 	}
 
@@ -297,6 +299,7 @@ func TestConfig_outgoingWrapper_BadDC(t *testing.T) {
 		CertFile:             "../test/hostname/Alice.crt",
 		KeyFile:              "../test/hostname/Alice.key",
 		VerifyServerHostname: true,
+		VerifyOutgoing:       true,
 		Domain:               "consul",
 	}
 
@@ -329,6 +332,7 @@ func TestConfig_outgoingWrapper_BadCert(t *testing.T) {
 		CertFile:             "../test/key/ourdomain.cer",
 		KeyFile:              "../test/key/ourdomain.key",
 		VerifyServerHostname: true,
+		VerifyOutgoing:       true,
 		Domain:               "consul",
 	}
 
