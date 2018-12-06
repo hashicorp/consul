@@ -32,6 +32,34 @@ func TestRewriteIllegalName(t *testing.T) {
 	}
 }
 
+func TestRewriteNamePrefix(t *testing.T) {
+	r, err := newNameRule("stop", "prefix", "test", "not-a-test")
+	if err != nil {
+		t.Fatalf("Expected no error, got %s", err)
+	}
+
+	rw := Rewrite{
+		Next:     plugin.HandlerFunc(msgPrinter),
+		Rules:    []Rule{r},
+		noRevert: true,
+	}
+
+	ctx := context.TODO()
+	m := new(dns.Msg)
+	m.SetQuestion("test.example.org.", dns.TypeA)
+
+	rec := dnstest.NewRecorder(&test.ResponseWriter{})
+	_, err = rw.ServeDNS(ctx, rec, m)
+	if err != nil {
+		t.Fatalf("Expected no error, got %s", err)
+	}
+	expected := "not-a-test.example.org."
+	actual := rec.Msg.Question[0].Name
+	if actual != expected {
+		t.Fatalf("Expected rewrite to %v, got %v", expected, actual)
+	}
+}
+
 func TestNewNameRule(t *testing.T) {
 	tests := []struct {
 		next         string

@@ -71,7 +71,7 @@ func (rule *exactNameRule) Rewrite(ctx context.Context, state request.Request) R
 // Rewrite rewrites the current request when the name begins with the matching string.
 func (rule *prefixNameRule) Rewrite(ctx context.Context, state request.Request) Result {
 	if strings.HasPrefix(state.Name(), rule.Prefix) {
-		state.Req.Question[0].Name = rule.Replacement + strings.TrimLeft(state.Name(), rule.Prefix)
+		state.Req.Question[0].Name = rule.Replacement + strings.TrimPrefix(state.Name(), rule.Prefix)
 		return RewriteDone
 	}
 	return RewriteIgnored
