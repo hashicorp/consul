@@ -51,7 +51,6 @@ func (f File) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 			m := new(dns.Msg)
 			m.SetReply(r)
 			m.Authoritative, m.RecursionAvailable = true, true
-			state.SizeAndDo(m)
 			w.WriteMsg(m)
 
 			log.Infof("Notify from %s for %s: checking transfer", state.IP(), zone)

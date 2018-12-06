@@ -425,7 +425,6 @@ func BackendError(b ServiceBackend, zone string, rcode int, state request.Reques
 	m.Authoritative, m.RecursionAvailable = true, true
 	m.Ns, _ = SOA(b, zone, state, opt)
 
-	state.SizeAndDo(m)
 	state.W.WriteMsg(m)
 	// Return success as the rcode to signal we have written to the client.
 	return dns.RcodeSuccess, err

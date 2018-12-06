@@ -43,7 +43,6 @@ func (l Logger) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 			} else {
 				answer := new(dns.Msg)
 				answer.SetRcode(r, rc)
-				state.SizeAndDo(answer)
 
 				vars.Report(ctx, state, vars.Dropped, rcode.ToString(rc), answer.Len(), time.Now())
 

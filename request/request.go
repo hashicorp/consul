@@ -194,7 +194,7 @@ func (r *Request) Size() int {
 // SizeAndDo adds an OPT record that the reflects the intent from request.
 // The returned bool indicated if an record was found and normalised.
 func (r *Request) SizeAndDo(m *dns.Msg) bool {
-	o := r.Req.IsEdns0() // TODO(miek): speed this up
+	o := r.Req.IsEdns0()
 	if o == nil {
 		return false
 	}
@@ -208,6 +208,10 @@ func (r *Request) SizeAndDo(m *dns.Msg) bool {
 		mo.SetUDPSize(o.UDPSize())
 		mo.Hdr.Ttl &= 0xff00 // clear flags
 
+		if len(o.Option) > 0 {
+			o.Option = supportedOptions(o.Option)
+		}
+
 		if odo {
 			mo.SetDo()
 		}
@@ -218,6 +222,10 @@ func (r *Request) SizeAndDo(m *dns.Msg) bool {
 	o.Hdr.Rrtype = dns.TypeOPT
 	o.SetVersion(0)
 	o.Hdr.Ttl &= 0xff00 // clear flags
+
+	if len(o.Option) > 0 {
+		o.Option = supportedOptions(o.Option)
+	}
 
 	if odo {
 		o.SetDo()
@@ -305,7 +313,6 @@ func (r *Request) Scrub(reply *dns.Msg) *dns.Msg {
 	}
 
 	if rl <= size {
-		r.SizeAndDo(reply)
 		return reply
 	}
 
@@ -341,7 +348,6 @@ func (r *Request) Scrub(reply *dns.Msg) *dns.Msg {
 		// this extra m-1 step does make it fit in the client's buffer however.
 	}
 
-	r.SizeAndDo(reply)
 	reply.Truncated = true
 	return reply
 }

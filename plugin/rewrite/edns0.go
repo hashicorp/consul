@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/coredns/coredns/plugin/metadata"
+	"github.com/coredns/coredns/plugin/pkg/edns"
 	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
@@ -159,6 +160,10 @@ func newEdns0LocalRule(mode, action, code, data string) (*edns0LocalRule, error)
 			return nil, err
 		}
 	}
+
+	// Add this code to the ones the server supports.
+	edns.SetSupportedOption(uint16(c))
+
 	return &edns0LocalRule{mode: mode, action: action, code: uint16(c), data: decoded}, nil
 }
 
@@ -172,6 +177,10 @@ func newEdns0VariableRule(mode, action, code, variable string) (*edns0VariableRu
 	if !isValidVariable(variable) {
 		return nil, fmt.Errorf("unsupported variable name %q", variable)
 	}
+
+	// Add this code to the ones the server supports.
+	edns.SetSupportedOption(uint16(c))
+
 	return &edns0VariableRule{mode: mode, action: action, code: uint16(c), variable: variable}, nil
 }
 

@@ -33,7 +33,6 @@ func (d Dnssec) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 			if qname == z {
 				resp := d.getDNSKEY(state, z, do, server)
 				resp.Authoritative = true
-				state.SizeAndDo(resp)
 				w.WriteMsg(resp)
 				return dns.RcodeSuccess, nil
 			}

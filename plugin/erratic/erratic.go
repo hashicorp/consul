@@ -97,7 +97,6 @@ func (e *Erratic) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 		time.Sleep(e.duration)
 	}
 
-	state.SizeAndDo(m)
 	w.WriteMsg(m)
 
 	return 0, nil

@@ -26,7 +26,7 @@ var dnssecTestCases = []test.Case{
 			test.DNSKEY("miek.nl.	3600	IN	DNSKEY	257 3 13 0J8u0XJ9GNGFEBXuAmLu04taHG4"),
 			test.RRSIG("miek.nl.	3600	IN	RRSIG	DNSKEY 13 2 3600 20160503150844 20160425120844 18512 miek.nl. Iw/kNOyM"),
 		},
-		Extra: []dns.RR{test.OPT(4096, true)},
+		/* Extra: []dns.RR{test.OPT(4096, true)}, this has moved to the server and can't be test here */
 	},
 }
 

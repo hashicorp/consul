@@ -3,9 +3,36 @@ package edns
 
 import (
 	"errors"
+	"sync"
 
 	"github.com/miekg/dns"
 )
+
+var sup = &supported{m: make(map[uint16]struct{})}
+
+type supported struct {
+	m map[uint16]struct{}
+	sync.RWMutex
+}
+
+// SetSupportedOption adds a new supported option the set of EDNS0 options that we support. Plugins typically call
+// this in their setup code to signal support for a new option.
+// By default we support:
+// dns.EDNS0NSID, dns.EDNS0EXPIRE, dns.EDNS0COOKIE, dns.EDNS0TCPKEEPALIVE, dns.EDNS0PADDING. These
+// values are not in this map and checked directly in the server.
+func SetSupportedOption(option uint16) {
+	sup.Lock()
+	sup.m[option] = struct{}{}
+	sup.Unlock()
+}
+
+// SupportedOption returns true if the option code is supported as an extra EDNS0 option.
+func SupportedOption(option uint16) bool {
+	sup.RLock()
+	_, ok := sup.m[option]
+	sup.RUnlock()
+	return ok
+}
 
 // Version checks the EDNS version in the request. If error
 // is nil everything is OK and we can invoke the plugin. If non-nil, the

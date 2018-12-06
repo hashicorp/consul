@@ -49,7 +49,6 @@ func (wh Whoami) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 
 	a.Extra = []dns.RR{rr, srv}
 
-	state.SizeAndDo(a)
 	w.WriteMsg(a)
 
 	return 0, nil

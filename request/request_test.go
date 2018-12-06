@@ -123,10 +123,6 @@ func TestRequestScrubExtraEdns0(t *testing.T) {
 	if reply.Truncated {
 		t.Errorf("Want scrub to not set truncated bit")
 	}
-	opt := reply.Extra[len(reply.Extra)-1]
-	if opt.Header().Rrtype != dns.TypeOPT {
-		t.Errorf("Last RR must be OPT record")
-	}
 }
 
 func TestRequestScrubExtraRegression(t *testing.T) {
@@ -152,10 +148,6 @@ func TestRequestScrubExtraRegression(t *testing.T) {
 	}
 	if reply.Truncated {
 		t.Errorf("Want scrub to not set truncated bit")
-	}
-	opt := reply.Extra[len(reply.Extra)-1]
-	if opt.Header().Rrtype != dns.TypeOPT {
-		t.Errorf("Last RR must be OPT record")
 	}
 }
 
