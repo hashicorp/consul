@@ -32,31 +32,46 @@ func TestRewriteIllegalName(t *testing.T) {
 	}
 }
 
-func TestRewriteNamePrefix(t *testing.T) {
-	r, err := newNameRule("stop", "prefix", "test", "not-a-test")
-	if err != nil {
-		t.Fatalf("Expected no error, got %s", err)
-	}
+func TestRewriteNamePrefixSuffix(t *testing.T) {
 
-	rw := Rewrite{
-		Next:     plugin.HandlerFunc(msgPrinter),
-		Rules:    []Rule{r},
-		noRevert: true,
-	}
+	ctx, close := context.WithCancel(context.TODO())
+	defer close()
 
-	ctx := context.TODO()
-	m := new(dns.Msg)
-	m.SetQuestion("test.example.org.", dns.TypeA)
-
-	rec := dnstest.NewRecorder(&test.ResponseWriter{})
-	_, err = rw.ServeDNS(ctx, rec, m)
-	if err != nil {
-		t.Fatalf("Expected no error, got %s", err)
+	tests := []struct {
+		next     string
+		args     []string
+		question string
+		expected string
+	}{
+		{"stop", []string{"prefix", "foo", "bar"}, "foo.example.com.", "bar.example.com."},
+		{"stop", []string{"prefix", "foo.", "bar."}, "foo.example.com.", "bar.example.com."},
+		{"stop", []string{"suffix", "com", "org"}, "foo.example.com.", "foo.example.org."},
+		{"stop", []string{"suffix", ".com", ".org"}, "foo.example.com.", "foo.example.org."},
 	}
-	expected := "not-a-test.example.org."
-	actual := rec.Msg.Question[0].Name
-	if actual != expected {
-		t.Fatalf("Expected rewrite to %v, got %v", expected, actual)
+	for _, tc := range tests {
+		r, err := newNameRule(tc.next, tc.args...)
+		if err != nil {
+			t.Fatalf("Expected no error, got %s", err)
+		}
+
+		rw := Rewrite{
+			Next:     plugin.HandlerFunc(msgPrinter),
+			Rules:    []Rule{r},
+			noRevert: true,
+		}
+
+		m := new(dns.Msg)
+		m.SetQuestion(tc.question, dns.TypeA)
+
+		rec := dnstest.NewRecorder(&test.ResponseWriter{})
+		_, err = rw.ServeDNS(ctx, rec, m)
+		if err != nil {
+			t.Fatalf("Expected no error, got %s", err)
+		}
+		actual := rec.Msg.Question[0].Name
+		if actual != tc.expected {
+			t.Fatalf("Expected rewrite to %v, got %v", tc.expected, actual)
+		}
 	}
 }
 
