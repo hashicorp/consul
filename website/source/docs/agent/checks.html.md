@@ -57,9 +57,8 @@ There are several different kinds of checks:
   timeout value by specifying the `timeout` field in the check definition. The
   output of the check is limited to roughly 4KB. Responses larger than this will
   be truncated. HTTP checks also support TLS. By default, a valid TLS certificate
-  trusted by the _system_ certificate authority roots is expected. Certificate verification 
-  can be turned off by setting the
-  `tls_skip_verify` field to `true` in the check definition.
+  trusted by the system certificate authority roots is expected. Certificate verification 
+  can be turned off by setting the `tls_skip_verify` field to `true` in the check definition.
 
 * TCP + Interval - These checks make an TCP connection attempt every Interval
   (e.g. every 30 seconds) to the specified IP/hostname and port. If no hostname
