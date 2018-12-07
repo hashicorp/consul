@@ -70,7 +70,7 @@ This is because Kubernetes will try to restart the Pod every time CoreDNS detect
 A common cause of forwarding loops in Kubernetes clusters is an interaction with a local DNS cache
 on the host node (e.g. `systemd-resolved`).  For example, in certain configurations `systemd-resolved` will
 put the loopback address `127.0.0.53` as a nameserver into `/etc/resolv.conf`. Kubernetes (via `kubelet`) by default
-will pass this `/etc/resolv/conf` file to all Pods using the `default` dnsPolicy rendering them
+will pass this `/etc/resolv.conf` file to all Pods using the `default` dnsPolicy rendering them
 unable to make DNS lookups (this includes CoreDNS Pods). CoreDNS uses this `/etc/resolv.conf`
 as a list of upstreams to proxy/forward requests to.  Since it contains a loopback address, CoreDNS ends up forwarding
 requests to itself.
