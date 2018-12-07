@@ -50,14 +50,15 @@ There are several different kinds of checks:
   to check a simple HTTP operation. By default, HTTP checks are `GET` requests
   unless the `method` field specifies a different method. Additional header
   fields can be set through the `header` field which is a map of lists of
-  strings, e.g. `{"x-foo": ["bar", "baz"]}`. By default, HTTP checks are set to
+  strings, e.g. `{"x-foo": ["bar", "baz"]}`. By default, HTTP checks will be configured to timeout after
   10 seconds. If the check interval is less than 10 seconds, the timeout will
   instead be set to the check interval. This means that the check should return
   before the next check begins. It is possible to configure a custom HTTP check
   timeout value by specifying the `timeout` field in the check definition. The
   output of the check is limited to roughly 4KB. Responses larger than this will
   be truncated. HTTP checks also support TLS. By default, a valid TLS certificate
-  is expected. Certificate verification can be turned off by setting the
+  trusted by the _system_ certificate authority roots is expected. Certificate verification 
+  can be turned off by setting the
   `tls_skip_verify` field to `true` in the check definition.
 
 * TCP + Interval - These checks make an TCP connection attempt every Interval
