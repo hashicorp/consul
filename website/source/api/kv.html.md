@@ -64,7 +64,7 @@ The table below shows this endpoint's support for
 
 - `separator` `(string: '/')` - Specifies the string to use as a separator
   for recursive key lookups. This option is only used when paired with the `keys` 
-  parameter to limit the dept of keys returned,  only up to the given separator. 
+  parameter to limit the prefix of keys returned,  only up to the given separator. 
   This is specified as part of the URL as a query parameter.
 
 ### Sample Request
