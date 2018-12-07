@@ -93,6 +93,12 @@ func (s *Snapshot) CAConfig() (*structs.CAConfiguration, error) {
 
 // CAConfig is used when restoring from a snapshot.
 func (s *Restore) CAConfig(config *structs.CAConfiguration) error {
+	// Don't restore a blank CA config
+	// https://github.com/hashicorp/consul/issues/4954
+	if config.Provider == "" {
+		return nil
+	}
+
 	if err := s.tx.Insert(caConfigTableName, config); err != nil {
 		return fmt.Errorf("failed restoring CA config: %s", err)
 	}
