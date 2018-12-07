@@ -38,15 +38,21 @@ type Service struct {
 
 // NewSRV returns a new SRV record based on the Service.
 func (s *Service) NewSRV(name string, weight uint16) *dns.SRV {
-	host := targetStrip(dns.Fqdn(s.Host), s.TargetStrip)
+	host := dns.Fqdn(s.Host)
+	if s.TargetStrip > 0 {
+		host = targetStrip(host, s.TargetStrip)
+	}
 
 	return &dns.SRV{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeSRV, Class: dns.ClassINET, Ttl: s.TTL},
-		Priority: uint16(s.Priority), Weight: weight, Port: uint16(s.Port), Target: dns.Fqdn(host)}
+		Priority: uint16(s.Priority), Weight: weight, Port: uint16(s.Port), Target: host}
 }
 
 // NewMX returns a new MX record based on the Service.
 func (s *Service) NewMX(name string) *dns.MX {
-	host := targetStrip(dns.Fqdn(s.Host), s.TargetStrip)
+	host := dns.Fqdn(s.Host)
+	if s.TargetStrip > 0 {
+		host = targetStrip(host, s.TargetStrip)
+	}
 
 	return &dns.MX{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeMX, Class: dns.ClassINET, Ttl: s.TTL},
 		Preference: uint16(s.Priority), Mx: host}
@@ -79,7 +85,10 @@ func (s *Service) NewPTR(name string, target string) *dns.PTR {
 
 // NewNS returns a new NS record based on the Service.
 func (s *Service) NewNS(name string) *dns.NS {
-	host := targetStrip(dns.Fqdn(s.Host), s.TargetStrip)
+	host := dns.Fqdn(s.Host)
+	if s.TargetStrip > 0 {
+		host = targetStrip(host, s.TargetStrip)
+	}
 	return &dns.NS{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeNS, Class: dns.ClassINET, Ttl: s.TTL}, Ns: host}
 }
 
@@ -155,10 +164,6 @@ func split255(s string) []string {
 
 // targetStrip strips "targetstrip" labels from the left side of the fully qualified name.
 func targetStrip(name string, targetStrip int) string {
-	if targetStrip == 0 {
-		return name
-	}
-
 	offset, end := 0, false
 	for i := 0; i < targetStrip; i++ {
 		offset, end = dns.NextLabel(name, offset)

@@ -123,3 +123,11 @@ func TestGroup(t *testing.T) {
 		t.Fatalf("Failure to group seventh set: %v", sx)
 	}
 }
+
+func BenchmarkNewSRV(b *testing.B) {
+	s := &Service{Host: "www,example.org", Port: 8080}
+	for n := 0; n < b.N; n++ {
+		srv := s.NewSRV("www.example.org.", 16)
+		srv = srv
+	}
+}
