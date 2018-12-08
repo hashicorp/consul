@@ -187,7 +187,7 @@ func ParseStanza(c *caddy.Controller) (*Kubernetes, error) {
 			args := c.RemainingArgs()
 			if len(args) > 0 {
 				for _, a := range args {
-					k8s.Namespaces[a] = true
+					k8s.Namespaces[a] = struct{}{}
 				}
 				continue
 			}

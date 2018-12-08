@@ -348,7 +348,7 @@ func TestServeDNS(t *testing.T) {
 	k := New([]string{"cluster.local."})
 	k.APIConn = &APIConnServeTest{}
 	k.Next = test.NextHandler(dns.RcodeSuccess, nil)
-	k.Namespaces = map[string]bool{"testns": true}
+	k.Namespaces = map[string]struct{}{"testns": struct{}{}}
 	ctx := context.TODO()
 
 	for i, tc := range dnsTestCases {
@@ -395,7 +395,7 @@ func TestNotSyncedServeDNS(t *testing.T) {
 		notSynced: true,
 	}
 	k.Next = test.NextHandler(dns.RcodeSuccess, nil)
-	k.Namespaces = map[string]bool{"testns": true}
+	k.Namespaces = map[string]struct{}{"testns": struct{}{}}
 	ctx := context.TODO()
 
 	for i, tc := range notSyncedTestCases {

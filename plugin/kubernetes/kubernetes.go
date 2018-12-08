@@ -40,7 +40,7 @@ type Kubernetes struct {
 	APIClientKey     string
 	ClientConfig     clientcmd.ClientConfig
 	APIConn          dnsController
-	Namespaces       map[string]bool
+	Namespaces       map[string]struct{}
 	podMode          string
 	endpointNameMode bool
 	Fall             fall.F
@@ -58,7 +58,7 @@ type Kubernetes struct {
 func New(zones []string) *Kubernetes {
 	k := new(Kubernetes)
 	k.Zones = zones
-	k.Namespaces = make(map[string]bool)
+	k.Namespaces = make(map[string]struct{})
 	k.interfaceAddrsFunc = func() net.IP { return net.ParseIP("127.0.0.1") }
 	k.podMode = podModeDisabled
 	k.ttl = defaultTTL
