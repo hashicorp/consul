@@ -16,7 +16,7 @@ import (
 type Chaos struct {
 	Next    plugin.Handler
 	Version string
-	Authors map[string]bool
+	Authors map[string]struct{}
 }
 
 // ServeDNS implements the plugin.Handler interface.

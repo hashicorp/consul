@@ -28,12 +28,12 @@ func setup(c *caddy.Controller) error {
 	return nil
 }
 
-func chaosParse(c *caddy.Controller) (string, map[string]bool, error) {
+func chaosParse(c *caddy.Controller) (string, map[string]struct{}, error) {
 	// Set here so we pick up AppName and AppVersion that get set in coremain's init().
 	chaosVersion = caddy.AppName + "-" + caddy.AppVersion
 
 	version := ""
-	authors := make(map[string]bool)
+	authors := make(map[string]struct{})
 
 	for c.Next() {
 		args := c.RemainingArgs()
@@ -45,7 +45,7 @@ func chaosParse(c *caddy.Controller) (string, map[string]bool, error) {
 		}
 		version = args[0]
 		for _, a := range args[1:] {
-			authors[a] = true
+			authors[a] = struct{}{}
 		}
 		return version, authors, nil
 	}
