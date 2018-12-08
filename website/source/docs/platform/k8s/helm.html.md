@@ -298,6 +298,10 @@ and consider if they're appropriate for your deployment.
   If true, will sync Consul services to Kubernetes. This can be disabled to
   have a one-way sync.
 
+  - <a name="v-synccatalog-clusterip-sync" href="#v-synccatalog-clusterip-sync">`syncClusterIPServices`</a> (`boolean: true`) -
+  If true, will sync Kubernetes ClusterIP services to Consul. This can be disabled to
+  have the sync ignore ClusterIP-type services.
+
 * <a name="v-ui" href="#v-ui">`ui`</a> - Values that configure the Consul UI.
 
   - <a name="v-ui-enabled" href="#v-ui-enabled">`enabled`</a> (`boolean: global.enabled`) -
