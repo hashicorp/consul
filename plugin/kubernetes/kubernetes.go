@@ -105,13 +105,13 @@ func (k *Kubernetes) Services(state request.Request, exact bool, opt plugin.Opti
 		if segs[0] != "dns-version" {
 			return nil, nil
 		}
-		svc := msg.Service{Text: DNSSchemaVersion, TTL: 28800, Key: msg.Path(state.QName(), "coredns")}
+		svc := msg.Service{Text: DNSSchemaVersion, TTL: 28800, Key: msg.Path(state.QName(), coredns)}
 		return []msg.Service{svc}, nil
 
 	case dns.TypeNS:
 		// We can only get here if the qname equals the zone, see ServeDNS in handler.go.
 		ns := k.nsAddr()
-		svc := msg.Service{Host: ns.A.String(), Key: msg.Path(state.QName(), "coredns")}
+		svc := msg.Service{Host: ns.A.String(), Key: msg.Path(state.QName(), coredns)}
 		return []msg.Service{svc}, nil
 	}
 
@@ -119,7 +119,7 @@ func (k *Kubernetes) Services(state request.Request, exact bool, opt plugin.Opti
 		// If this is an A request for "ns.dns", respond with a "fake" record for coredns.
 		// SOA records always use this hardcoded name
 		ns := k.nsAddr()
-		svc := msg.Service{Host: ns.A.String(), Key: msg.Path(state.QName(), "coredns")}
+		svc := msg.Service{Host: ns.A.String(), Key: msg.Path(state.QName(), coredns)}
 		return []msg.Service{svc}, nil
 	}
 
@@ -349,7 +349,7 @@ func (k *Kubernetes) findPods(r recordRequest, zone string) (pods []msg.Service,
 
 	namespace := r.namespace
 	podname := r.service
-	zonePath := msg.Path(zone, "coredns")
+	zonePath := msg.Path(zone, coredns)
 	ip := ""
 
 	// handle empty pod name
@@ -414,7 +414,7 @@ func (k *Kubernetes) findPods(r recordRequest, zone string) (pods []msg.Service,
 
 // findServices returns the services matching r from the cache.
 func (k *Kubernetes) findServices(r recordRequest, zone string) (services []msg.Service, err error) {
-	zonePath := msg.Path(zone, "coredns")
+	zonePath := msg.Path(zone, coredns)
 
 	err = errNoItems
 	if wildcard(r.service) && !wildcard(r.namespace) {
@@ -555,3 +555,5 @@ func match(a, b string) bool {
 func wildcard(s string) bool {
 	return s == "*" || s == "any"
 }
+
+const coredns = "c" // used as a fake key prefix in msg.Service
