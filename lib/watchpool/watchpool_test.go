@@ -133,8 +133,8 @@ func TestWatchPoolWatch_MultipleAreDeduped(t *testing.T) {
 	// Wait for it to be running. Reaching into private state is unpleasant but
 	// it beats relying on timing.
 	retry.Run(t, func(r *retry.R) {
-		wp.Lock()
-		defer wp.Unlock()
+		wp.l.Lock()
+		defer wp.l.Unlock()
 		require.Len(r, wp.watchSets, 1)
 	})
 
@@ -149,9 +149,9 @@ func TestWatchPoolWatch_MultipleAreDeduped(t *testing.T) {
 	req := require.New(t)
 
 	// Sanity check only one ws in state
-	wp.Lock()
+	wp.l.Lock()
 	req.Len(wp.watchSets, 1)
-	wp.Unlock()
+	wp.l.Unlock()
 
 	// Cancel the leader
 	leaderCancel()
@@ -173,9 +173,9 @@ func TestWatchPoolWatch_MultipleAreDeduped(t *testing.T) {
 	}
 
 	// And pool should still have state
-	wp.Lock()
+	wp.l.Lock()
 	req.Len(wp.watchSets, 1)
-	wp.Unlock()
+	wp.l.Unlock()
 
 	// Now close a chan being watched
 	close(chans[0])
@@ -192,9 +192,9 @@ func TestWatchPoolWatch_MultipleAreDeduped(t *testing.T) {
 	}
 
 	// And pool should have had it's state cleaned up
-	wp.Lock()
+	wp.l.Lock()
 	req.Len(wp.watchSets, 0)
-	wp.Unlock()
+	wp.l.Unlock()
 }
 
 func TestWatchPoolWatch_MultipleAllTimeout(t *testing.T) {
@@ -223,9 +223,9 @@ func TestWatchPoolWatch_MultipleAllTimeout(t *testing.T) {
 	require.True(t, time.Since(start) > 20*time.Millisecond)
 
 	// Sanity check pool was left in a clean state
-	wp.Lock()
+	wp.l.Lock()
 	require.Len(t, wp.watchSets, 0)
-	wp.Unlock()
+	wp.l.Unlock()
 }
 
 func TestWatchPoolWatch_KeyHash(t *testing.T) {
@@ -267,11 +267,8 @@ func TestWatchPoolWatch_KeyHash(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			wp := &WatchPool{}
-			hA, err := wp.wsKey(tc.a)
-			require.NoError(t, err)
-			hB, err := wp.wsKey(tc.b)
-			require.NoError(t, err)
-
+			hA := wp.wsKey(tc.a)
+			hB := wp.wsKey(tc.b)
 			if tc.wantSame {
 				require.Equal(t, hA, hB)
 			} else {

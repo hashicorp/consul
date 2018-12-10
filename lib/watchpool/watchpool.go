@@ -13,14 +13,14 @@ import (
 // tree nodes), with only a single WatchSet.Watch, which may spawn many
 // goroutines for large sets.
 //
-// memdb.WatchSet can watch up to aFew (= 32 currently) chans with no additional
-// goroutine overhead, but beyond that it spawns ceiling(N/32) goroutines. For a
-// watch set containing 2048 radix nodes (e.g. ~682 service instances with
-// checks and nodes) that means each blocking query is running 64 goroutines on
-// top of the one actually serving the request. With hundreds or thousands of
-// clients watching the same things, this quickly adds up and places a lot of
-// load on the server. See https://github.com/hashicorp/consul/issues/4984 for
-// more info.
+// memdb.WatchSet can watch up to `aFew` (= 32 currently) chans with no
+// additional goroutine overhead, but beyond that it spawns ceiling(N/32)
+// goroutines. For a watch set containing 2048 radix nodes (e.g. ~682 service
+// instances with checks and nodes) that means each blocking query is running 64
+// goroutines on top of the one actually serving the request. With hundreds or
+// thousands of clients watching the same things, this quickly adds up and
+// places a lot of load on the server. See
+// https://github.com/hashicorp/consul/issues/4984 for more info.
 //
 // By allowing different blocking queries that are watching the same radix nodes
 // to share a WatchSet.Watch, we can limit that number so in the example above,
@@ -37,7 +37,7 @@ import (
 // To use it, just build your memdb.WatchSet like normal, but instead of calling
 // Watch or WatchCtx directly, call `pool.Watch(ctx, ws)`.
 type WatchPool struct {
-	sync.Mutex
+	l         sync.Mutex
 	watchSets map[uint64]*wsEntry
 }
 
@@ -59,32 +59,27 @@ type wsEntry struct {
 // watched) and run only one ws.WatchCtx call regardless of the number of
 // concurrent callers.
 func (p *WatchPool) Watch(ctx context.Context, ws memdb.WatchSet) error {
-	key, err := p.wsKey(ws)
-	if err != nil {
-		// This shouldn't ever really happen but if we return immediately then it
-		// turns whatever bug causes it into a blocking query hot loop. Instead,
-		// revert to normal un-pooled blocking execution.
-		return ws.WatchCtx(ctx)
-	}
+	key := p.wsKey(ws)
+
+	// Whatever happens, we need to come back and decrement the ref count and
+	// possibly clean up at the end.
+	defer p.watcherDone(key)
+
+	p.l.Lock()
 
 	// Lazy initialize the map
 	if p.watchSets == nil {
 		p.watchSets = make(map[uint64]*wsEntry)
 	}
 
-	// Whatever happens, we need to come back and decrement the ref count and
-	// possibly clean up at the end.
-	defer p.watcherDone(key)
-
 	// See if the key already exists in the share map
-	p.Lock()
 	entry, ok := p.watchSets[key]
 	if !ok {
 		// Create a new entry
 		entry = &wsEntry{
 			ws:   ws,
 			done: make(chan struct{}),
-			// Buffer in leaderChan is important to not block leader if it timesout
+			// Buffer in leaderChan is important to not block leader if it times out
 			// with no followers. We rely on it to not deadlock the initial call too.
 			leaderDone: make(chan struct{}, 1),
 			refs:       1,
@@ -105,7 +100,7 @@ func (p *WatchPool) Watch(ctx context.Context, ws memdb.WatchSet) error {
 		entry.refs++
 	}
 	// Unlock now before processing any more
-	p.Unlock()
+	p.l.Unlock()
 
 	// We are a follower
 	select {
@@ -136,8 +131,8 @@ func (p *WatchPool) Watch(ctx context.Context, ws memdb.WatchSet) error {
 }
 
 func (p *WatchPool) watcherDone(key uint64) {
-	p.Lock()
-	defer p.Unlock()
+	p.l.Lock()
+	defer p.l.Unlock()
 
 	entry, ok := p.watchSets[key]
 	if !ok || entry.refs < 1 {
@@ -152,7 +147,7 @@ func (p *WatchPool) watcherDone(key uint64) {
 	}
 }
 
-func (p *WatchPool) wsKey(ws memdb.WatchSet) (uint64, error) {
+func (p *WatchPool) wsKey(ws memdb.WatchSet) uint64 {
 	// Hash the map. hashstructure doesn't know how to hash a chan although
 	// reflect can do it without technically using anything unsafe via uintptr.
 	// Since memory addresses are unique already and we need them unordered since
@@ -165,5 +160,5 @@ func (p *WatchPool) wsKey(ws memdb.WatchSet) (uint64, error) {
 		// XOR the chan's address with our current hash
 		hash ^= uint64(val.Pointer())
 	}
-	return hash, nil
+	return hash
 }
