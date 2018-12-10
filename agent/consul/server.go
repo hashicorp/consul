@@ -18,6 +18,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/consul/lib/watchpool"
+
 	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/consul/fsm"
@@ -157,6 +159,11 @@ type Server struct {
 	// fsm is the state machine used with Raft to provide
 	// strong consistency.
 	fsm *fsm.FSM
+
+	// watchPool is an optimised way of watching memdb.WatchSets where multiple
+	// blocking RPCs with the same WatchSet can share the goroutines needed to
+	// watch.
+	watchPool *watchpool.WatchPool
 
 	// Logger uses the provided LogOutput
 	logger *log.Logger
@@ -334,6 +341,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		connPool:         connPool,
 		eventChLAN:       make(chan serf.Event, serfEventChSize),
 		eventChWAN:       make(chan serf.Event, serfEventChSize),
+		watchPool:        &watchpool.WatchPool{},
 		logger:           logger,
 		leaveCh:          make(chan struct{}),
 		reconcileCh:      make(chan serf.Member, reconcileChSize),

@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -363,8 +364,9 @@ type queryFn func(memdb.WatchSet, *state.Store) error
 // blockingQuery is used to process a potentially blocking query operation.
 func (s *Server) blockingQuery(queryOpts *structs.QueryOptions, queryMeta *structs.QueryMeta,
 	fn queryFn) error {
-	var timeout *time.Timer
+	var cancel func()
 
+	ctx := context.Background()
 	// Fast path right to the non-blocking query.
 	if queryOpts.MinQueryIndex == 0 {
 		goto RUN_QUERY
@@ -381,8 +383,8 @@ func (s *Server) blockingQuery(queryOpts *structs.QueryOptions, queryMeta *struc
 	queryOpts.MaxQueryTime += lib.RandomStagger(queryOpts.MaxQueryTime / jitterFraction)
 
 	// Setup a query timeout.
-	timeout = time.NewTimer(queryOpts.MaxQueryTime)
-	defer timeout.Stop()
+	ctx, cancel = context.WithTimeout(context.Background(), queryOpts.MaxQueryTime)
+	defer cancel()
 
 RUN_QUERY:
 	// Update the query metadata.
@@ -417,7 +419,7 @@ RUN_QUERY:
 	err := fn(ws, state)
 	// Note we check queryOpts.MinQueryIndex is greater than zero to determine if
 	// blocking was requested by client, NOT meta.Index since the state function
-	// might return zero if something is not initialised and care wasn't taken to
+	// might return zero if something is not initialized and care wasn't taken to
 	// handle that special case (in practice this happened a lot so fixing it
 	// systematically here beats trying to remember to add zero checks in every
 	// state method). We also need to ensure that unless there is an error, we
@@ -427,7 +429,10 @@ RUN_QUERY:
 		queryMeta.Index = 1
 	}
 	if err == nil && queryOpts.MinQueryIndex > 0 && queryMeta.Index <= queryOpts.MinQueryIndex {
-		if expired := ws.Watch(timeout.C); !expired {
+		// We use the shared WatchPool to optimize how many goroutines are needed
+		// when many clients are blocking on the same query.
+		err := s.watchPool.Watch(ctx, ws)
+		if err != context.Canceled && err != context.DeadlineExceeded {
 			// If a restore may have woken us up then bail out from
 			// the query immediately. This is slightly race-ey since
 			// this might have been interrupted for other reasons,
