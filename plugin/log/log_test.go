@@ -21,7 +21,7 @@ func TestLoggedStatus(t *testing.T) {
 	rule := Rule{
 		NameScope: ".",
 		Format:    DefaultLogFormat,
-		Class:     map[response.Class]bool{response.All: true},
+		Class:     map[response.Class]struct{}{response.All: struct{}{}},
 	}
 
 	var f bytes.Buffer
@@ -53,7 +53,7 @@ func TestLoggedClassDenial(t *testing.T) {
 	rule := Rule{
 		NameScope: ".",
 		Format:    DefaultLogFormat,
-		Class:     map[response.Class]bool{response.Denial: true},
+		Class:     map[response.Class]struct{}{response.Denial: struct{}{}},
 	}
 
 	var f bytes.Buffer
@@ -82,7 +82,7 @@ func TestLoggedClassError(t *testing.T) {
 	rule := Rule{
 		NameScope: ".",
 		Format:    DefaultLogFormat,
-		Class:     map[response.Class]bool{response.Error: true},
+		Class:     map[response.Class]struct{}{response.Error: struct{}{}},
 	}
 
 	var f bytes.Buffer

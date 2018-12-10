@@ -70,7 +70,7 @@ func NewServer(addr string, group []*Config) (*Server, error) {
 		if site.registry != nil {
 			// this config is already computed with the chain of plugin
 			// set classChaos in accordance with previously registered plugins
-			for name := range enableChaos {
+			for name := range EnableChaos {
 				if _, ok := site.registry[name]; ok {
 					s.classChaos = true
 					break
@@ -97,7 +97,7 @@ func NewServer(addr string, group []*Config) (*Server, error) {
 				}
 			}
 			// Unblock CH class queries when any of these plugins are loaded.
-			if _, ok := enableChaos[stack.Name()]; ok {
+			if _, ok := EnableChaos[stack.Name()]; ok {
 				s.classChaos = true
 			}
 		}
@@ -381,12 +381,11 @@ type (
 	loopKey struct{} // loopKey is the context key for counting self loops
 )
 
-// enableChaos is a map with plugin names for which we should open CH class queries as
-// we block these by default.
-var enableChaos = map[string]bool{
-	"chaos":   true,
-	"forward": true,
-	"proxy":   true,
+// EnableChaos is a map with plugin names for which we should open CH class queries as we block these by default.
+var EnableChaos = map[string]struct{}{
+	"chaos":   struct{}{},
+	"forward": struct{}{},
+	"proxy":   struct{}{},
 }
 
 // Quiet mode will not show any informative output on initialization.

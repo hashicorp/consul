@@ -129,9 +129,9 @@ func TestKubernetesXFRNotAllowed(t *testing.T) {
 
 // difference shows what we're missing when comparing two RR slices
 func difference(testRRs []dns.RR, gotRRs []dns.RR) []dns.RR {
-	expectedRRs := map[string]bool{}
+	expectedRRs := map[string]struct{}{}
 	for _, rr := range testRRs {
-		expectedRRs[rr.String()] = true
+		expectedRRs[rr.String()] = struct{}{}
 	}
 
 	foundRRs := []dns.RR{}

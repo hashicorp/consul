@@ -40,13 +40,13 @@ func logParse(c *caddy.Controller) ([]Rule, error) {
 			rules = append(rules, Rule{
 				NameScope: ".",
 				Format:    DefaultLogFormat,
-				Class:     make(map[response.Class]bool),
+				Class:     make(map[response.Class]struct{}),
 			})
 		} else if len(args) == 1 {
 			rules = append(rules, Rule{
 				NameScope: dns.Fqdn(args[0]),
 				Format:    DefaultLogFormat,
-				Class:     make(map[response.Class]bool),
+				Class:     make(map[response.Class]struct{}),
 			})
 		} else {
 			// Name scope, and maybe a format specified
@@ -64,7 +64,7 @@ func logParse(c *caddy.Controller) ([]Rule, error) {
 			rules = append(rules, Rule{
 				NameScope: dns.Fqdn(args[0]),
 				Format:    format,
-				Class:     make(map[response.Class]bool),
+				Class:     make(map[response.Class]struct{}),
 			})
 		}
 
@@ -82,14 +82,14 @@ func logParse(c *caddy.Controller) ([]Rule, error) {
 					if err != nil {
 						return nil, err
 					}
-					rules[len(rules)-1].Class[cls] = true
+					rules[len(rules)-1].Class[cls] = struct{}{}
 				}
 			default:
 				return nil, c.ArgErr()
 			}
 		}
 		if len(rules[len(rules)-1].Class) == 0 {
-			rules[len(rules)-1].Class[response.All] = true
+			rules[len(rules)-1].Class[response.All] = struct{}{}
 		}
 	}
 

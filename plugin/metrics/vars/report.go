@@ -50,25 +50,25 @@ func WithServer(ctx context.Context) string {
 	return srv.(string)
 }
 
-var monitorType = map[uint16]bool{
-	dns.TypeAAAA:   true,
-	dns.TypeA:      true,
-	dns.TypeCNAME:  true,
-	dns.TypeDNSKEY: true,
-	dns.TypeDS:     true,
-	dns.TypeMX:     true,
-	dns.TypeNSEC3:  true,
-	dns.TypeNSEC:   true,
-	dns.TypeNS:     true,
-	dns.TypePTR:    true,
-	dns.TypeRRSIG:  true,
-	dns.TypeSOA:    true,
-	dns.TypeSRV:    true,
-	dns.TypeTXT:    true,
+var monitorType = map[uint16]struct{}{
+	dns.TypeAAAA:   struct{}{},
+	dns.TypeA:      struct{}{},
+	dns.TypeCNAME:  struct{}{},
+	dns.TypeDNSKEY: struct{}{},
+	dns.TypeDS:     struct{}{},
+	dns.TypeMX:     struct{}{},
+	dns.TypeNSEC3:  struct{}{},
+	dns.TypeNSEC:   struct{}{},
+	dns.TypeNS:     struct{}{},
+	dns.TypePTR:    struct{}{},
+	dns.TypeRRSIG:  struct{}{},
+	dns.TypeSOA:    struct{}{},
+	dns.TypeSRV:    struct{}{},
+	dns.TypeTXT:    struct{}{},
 	// Meta Qtypes
-	dns.TypeIXFR: true,
-	dns.TypeAXFR: true,
-	dns.TypeANY:  true,
+	dns.TypeIXFR: struct{}{},
+	dns.TypeAXFR: struct{}{},
+	dns.TypeANY:  struct{}{},
 }
 
 const other = "other"
