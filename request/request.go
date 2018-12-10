@@ -192,14 +192,12 @@ func (r *Request) Size() int {
 }
 
 // SizeAndDo adds an OPT record that the reflects the intent from request.
-// The returned bool indicated if an record was found and normalised.
+// The returned bool indicates if an record was found and normalised.
 func (r *Request) SizeAndDo(m *dns.Msg) bool {
 	o := r.Req.IsEdns0()
 	if o == nil {
 		return false
 	}
-
-	odo := o.Do()
 
 	if mo := m.IsEdns0(); mo != nil {
 		mo.Hdr.Name = "."
@@ -208,16 +206,15 @@ func (r *Request) SizeAndDo(m *dns.Msg) bool {
 		mo.SetUDPSize(o.UDPSize())
 		mo.Hdr.Ttl &= 0xff00 // clear flags
 
-		if len(o.Option) > 0 {
-			o.Option = supportedOptions(o.Option)
-		}
+		// Assume if the message m has options set, they are OK and represent what an upstream can do.
 
-		if odo {
+		if o.Do() {
 			mo.SetDo()
 		}
 		return true
 	}
 
+	// Reuse the request's OPT record and tack it to m.
 	o.Hdr.Name = "."
 	o.Hdr.Rrtype = dns.TypeOPT
 	o.SetVersion(0)
@@ -227,9 +224,6 @@ func (r *Request) SizeAndDo(m *dns.Msg) bool {
 		o.Option = supportedOptions(o.Option)
 	}
 
-	if odo {
-		o.SetDo()
-	}
 	m.Extra = append(m.Extra, o)
 	return true
 }
