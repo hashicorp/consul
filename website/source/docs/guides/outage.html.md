@@ -15,9 +15,19 @@ Depending on your
 may take only a single server failure for cluster unavailability. Recovery
 requires an operator to intervene, but the process is straightforward.
 
-~> This guide is for recovery from a Consul outage due to a majority
-of server nodes in a datacenter being lost. If you are just looking to
-add or remove a server, [see this guide](/docs/guides/servers.html).
+This guide is for recovery from a Consul outage due to a majority
+of server nodes in a datacenter being lost. There are several types
+of outages, depending on the number of server nodes and number of failed
+server nodes. We will outline how to recover from:
+
+* Failure of a Single Server Cluster. This is when you have a single Consul
+server and it fails.
+* Failure of a Server in a Multi-Server Cluster. This is when one server fails,
+the Consul cluster has 3 or more servers.
+* Failure of Multiple Servers in a Multi-Server Cluster. This when more than one
+Consul server fails in a cluster of 3 or more servers. This scenario is potentially
+the most serious, because it can result in data loss.
+
 
 ## Failure of a Single Server Cluster
 
@@ -25,13 +35,18 @@ If you had only a single server and it has failed, simply restart it. A
 single server configuration requires the
 [`-bootstrap`](/docs/agent/options.html#_bootstrap) or
 [`-bootstrap-expect=1`](/docs/agent/options.html#_bootstrap_expect)
-flag. If the server cannot be recovered, you need to bring up a new
-server. See the [bootstrapping guide](/docs/guides/bootstrapping.html)
-for more detail.
+flag.
 
-In the case of an unrecoverable server failure in a single server cluster, data
-loss is inevitable since data was not replicated to any other servers. This is
-why a single server deploy is **never** recommended.
+```sh
+consul agent -bootstrap-expect=1
+```
+
+If the server cannot be recovered, you need to bring up a new
+server using the [deployment guide](https://www.consul.io/docs/guides/deployment-guide.html). 
+
+In the case of an unrecoverable server failure in a single server cluster and
+no backup procedure, data loss is inevitable since data was not replicated
+to any other servers. This is why a single server deploy is **never** recommended.
 
 Any services registered with agents will be re-populated when the new server
 comes online as agents perform [anti-entropy](/docs/internals/anti-entropy.html).
@@ -46,11 +61,19 @@ Keep in mind that the rebuilt server needs to have the same IP address as the fa
 server. Again, once this server is online and has rejoined, the cluster will return
 to a fully healthy state.
 
+```sh
+consul agent -bootstrap-expect=3 -bind=192.172.2.4 -auto-rejoin=192.172.2.3
+```
+
 Both of these strategies involve a potentially lengthy time to reboot or rebuild
 a failed server. If this is impractical or if building a new server with the same
 IP isn't an option, you need to remove the failed server. Usually, you can issue
 a [`consul force-leave`](/docs/commands/force-leave.html) command to remove the failed
 server if it's still a member of the cluster.
+
+```sh
+consul force-leave <node.name.consul>
+```
 
 If [`consul force-leave`](/docs/commands/force-leave.html) isn't able to remove the
 server, you have two methods available to remove it, depending on your version of Consul:
@@ -67,10 +90,10 @@ command to inspect the Raft configuration:
 
 ```
 $ consul operator raft list-peers
-Node     ID              Address         State     Voter
-alice    10.0.1.8:8300   10.0.1.8:8300   follower  true
-bob      10.0.1.6:8300   10.0.1.6:8300   leader    true
-carol    10.0.1.7:8300   10.0.1.7:8300   follower  true
+Node     ID              Address         State     Voter RaftProtocol
+alice    10.0.1.8:8300   10.0.1.8:8300   follower  true  3
+bob      10.0.1.6:8300   10.0.1.6:8300   leader    true  3
+carol    10.0.1.7:8300   10.0.1.7:8300   follower  true  3
 ```
 
 ## Failure of Multiple Servers in a Multi-Server Cluster
@@ -82,13 +105,17 @@ servers were lost, so information about what's committed could be incomplete.
 The recovery process implicitly commits all outstanding Raft log entries, so
 it's also possible to commit data that was uncommitted before the failure.
 
-See the [section below](#peers.json) for details of the recovery procedure. You
+See the section below on manual recovery using peers.json for details of the recovery procedure. You
 simply include just the remaining servers in the `raft/peers.json` recovery file.
 The cluster should be able to elect a leader once the remaining servers are all
 restarted with an identical `raft/peers.json` configuration.
 
 Any new servers you introduce later can be fresh with totally clean data directories
 and joined using Consul's `join` command.
+
+```sh
+consul agent -join=192.172.2.3
+```
 
 In extreme cases, it should be possible to recover with just a single remaining
 server by starting that single server with itself as the only peer in the
@@ -103,7 +130,7 @@ all Raft log entries, so should only be used to recover from an outage, but it
 should allow recovery from any situation where there's some cluster data available.
 
 <a name="peers.json"></a>
-## Manual Recovery Using peers.json
+### Manual Recovery Using peers.json
 
 To begin, stop all remaining servers. You can attempt a graceful leave,
 but it will not work in most cases. Do not worry if the leave exits with an
@@ -217,7 +244,14 @@ command to inspect the Raft configuration:
 ```
 $ consul operator raft list-peers
 Node     ID              Address         State     Voter  RaftProtocol
-alice    10.0.1.8:8300   10.0.1.8:8300   follower  true   2
-bob      10.0.1.6:8300   10.0.1.6:8300   leader    true   2
-carol    10.0.1.7:8300   10.0.1.7:8300   follower  true   2
+alice    10.0.1.8:8300   10.0.1.8:8300   follower  true   3
+bob      10.0.1.6:8300   10.0.1.6:8300   leader    true   3
+carol    10.0.1.7:8300   10.0.1.7:8300   follower  true   3
 ```
+
+## Summary
+
+In this guided we reviewed how to recover from a Consul server outage. Depending on the
+quorum size and number of failed servers, the recovery process will vary. In the event of
+complete failure it is beneficial to have a
+[backup process](https://www.consul.io/docs/guides/deployment-guide.html#backups).
