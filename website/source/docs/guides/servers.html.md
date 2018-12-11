@@ -47,10 +47,7 @@ option to add additional servers.
 
 ## Add a Server with Agent Configuration
 
-When adding additional servers in production, you will likely want to use the
-[agent configuration](https://www.consul.io/docs/agent/options.html)
-option, either with the Consul CLI or in the agent configuration file. With either
-option, you can use the `retry_join` setting.
+In production environments, you should use the [agent configuration](https://www.consul.io/docs/agent/options.html) option, `retry_join`. `retry_join` can be used as a command line flag or in the agent configuration file. 
 
 With the Consul CLI:
 
@@ -69,9 +66,12 @@ In the agent configuration file:
 }
 ```
 
-The `retry_join` will also ensure that if any server loses connection
+[`retry_join`](https://www.consul.io/docs/agent/options.html#retry-join)
+will ensure that if any server loses connection
 with the cluster for any reason, including the node restarting, it can
-rejoin when it comes back. Both servers and clients can use this method.
+rejoin when it comes back. In additon to working with static IPs, it 
+can also be  useful for other discovery mechanisms, such as auto joining 
+based on cloud metadata and discovery. Both servers and clients can use this method.
 
 ### Server Coordination
 
@@ -119,7 +119,7 @@ the new servers up-to-date.
 Removing servers must be done carefully to avoid causing an availability outage.
 For a cluster of N servers, at least (N/2)+1 must be available for the cluster
 to function. See this [deployment table](/docs/internals/consensus.html#toc_4).
-If you have 3 servers, and 1 of them is currently failed, removing any servers
+If you have 3 servers and 1 of them is currently failing, removing any other servers
 will cause the cluster to become unavailable.
 
 To avoid this, it may be necessary to first add new servers to the cluster,
