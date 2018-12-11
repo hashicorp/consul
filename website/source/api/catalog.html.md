@@ -36,7 +36,7 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `ID` `(string: "")` - An optional UUID to assign to the node. This must be a 36-character UUID.
+- `ID` `(string: "")` - An optional UUID to assign to the node. This must be a 36-character UUID-formatted string.
 
 - `Node` `(string: <required>)` - Specifies the node ID to register.
 
