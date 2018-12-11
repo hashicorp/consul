@@ -1,3 +1,4 @@
+import Controller from '@ember/controller';
 import Component from '@ember/component';
 import Mixin from '@ember/object/mixin';
 import { inject as service } from '@ember/service';
@@ -8,15 +9,23 @@ export default Mixin.create({
   init: function() {
     this._super(...arguments);
     this._listeners = get(this, 'dom').listeners();
-    let method = 'willDestroy';
+    let teardown = ['willDestroy'];
     if (this instanceof Component) {
-      method = 'willDestroyElement';
+      teardown = ['willDestroyElement'];
+    } else if (this instanceof Controller) {
+      if (typeof this.reset === 'function') {
+        teardown.push('reset');
+      }
     }
-    const destroy = this[method];
-    this[method] = function() {
-      destroy(...arguments);
-      this.removeListeners();
-    };
+    teardown.forEach(method => {
+      const destroy = this[method];
+      this[method] = function() {
+        if (typeof destroy === 'function') {
+          destroy.apply(this, arguments);
+        }
+        this.removeListeners();
+      };
+    });
   },
   listen: function(target, event, handler) {
     return this._listeners.add(...arguments);
