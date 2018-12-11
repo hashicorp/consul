@@ -43,7 +43,7 @@ The table below shows this endpoint's support for
 - `Name` `(string: "")` - Specifies a human-readable name for the session.
 
 - `Checks` `(array<string>: nil)` - specifies a list of associated health
-  checks IDs (commonly `CheckID` in API responses). It is highly recommended that,
+  check IDs (commonly `CheckID` in API responses). It is highly recommended that,
   if you override this list, you include the default `serfHealth`.
 
 - `Behavior` `(string: "release")` - Controls the behavior to take when a
