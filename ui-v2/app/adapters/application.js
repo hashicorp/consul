@@ -1,10 +1,12 @@
 import Adapter from 'ember-data/adapters/rest';
 import { AbortError } from 'ember-data/adapters/errors';
 import { inject as service } from '@ember/service';
+import { get } from '@ember/object';
 
 import URL from 'url';
 import createURL from 'consul-ui/utils/createURL';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
+import { HEADERS_SYMBOL as HTTP_HEADERS_SYMBOL } from 'consul-ui/utils/http/consul';
 
 export const REQUEST_CREATE = 'createRecord';
 export const REQUEST_READ = 'queryRecord';
@@ -14,10 +16,31 @@ export const REQUEST_DELETE = 'deleteRecord';
 
 export const DATACENTER_QUERY_PARAM = 'dc';
 
-import { HEADERS_SYMBOL as HTTP_HEADERS_SYMBOL } from 'consul-ui/utils/http/consul';
 export default Adapter.extend({
   namespace: 'v1',
   repo: service('settings'),
+  client: service('client/http'),
+  manageConnection: function(options) {
+    const client = get(this, 'client');
+    const complete = options.complete;
+    const beforeSend = options.beforeSend;
+    options.beforeSend = function(xhr) {
+      if (typeof beforeSend === 'function') {
+        beforeSend(...arguments);
+      }
+      options.id = client.request(options, xhr);
+    };
+    options.complete = function(xhr, textStatus) {
+      client.complete(options.id);
+      if (typeof complete === 'function') {
+        complete(...arguments);
+      }
+    };
+    return options;
+  },
+  _ajaxRequest: function(options) {
+    return this._super(this.manageConnection(options));
+  },
   queryRecord: function() {
     return this._super(...arguments).catch(function(e) {
       if (e instanceof AbortError) {
