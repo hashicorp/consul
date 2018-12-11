@@ -1,24 +1,63 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-ERRORS" "7" "October 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-ERRORS" "7" "December 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIerrors\fR \- enable error logging\.
 .
 .SH "DESCRIPTION"
-Any errors encountered during the query processing will be printed to standard output\.
+Any errors encountered during the query processing will be printed to standard output\. The errors of particular type can be consolidated and printed once per some period of time\.
 .
 .P
 This plugin can only be used once per Server Block\.
 .
 .SH "SYNTAX"
+The basic syntax is:
+.
+.IP "" 4
 .
 .nf
 
 errors
 .
 .fi
+.
+.IP "" 0
+.
+.P
+Extra knobs are available with an expanded syntax:
+.
+.IP "" 4
+.
+.nf
+
+errors {
+    consolidate DURATION REGEXP
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Option \fBconsolidate\fR allows collecting several error messages matching the regular expression \fBREGEXP\fR during \fBDURATION\fR\. After the \fBDURATION\fR since receiving the first such message, the consolidated message will be printed to standard output, e\.g\.
+.
+.IP "" 4
+.
+.nf
+
+2 errors like \'^read udp \.* i/o timeout$\' occurred in last 30s
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Multiple \fBconsolidate\fR options with different \fBDURATION\fR and \fBREGEXP\fR are allowed\. In case if some error message corresponds to several defined regular expressions the message will be associated with the first appropriate \fBREGEXP\fR\.
+.
+.P
+For better performance, it\'s recommended to use the \fB^\fR or \fB$\fR metacharacters in regular expression when filtering error messages by prefix or suffix, e\.g\. \fB^failed to \.*\fR, or \fB\.* timeout$\fR\.
 .
 .SH "EXAMPLES"
 Use the \fIwhoami\fR to respond to queries and Log errors to standard output\.
@@ -30,6 +69,25 @@ Use the \fIwhoami\fR to respond to queries and Log errors to standard output\.
 \&\. {
     whoami
     errors
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Use the \fIforward\fR to resolve queries via 8\.8\.8\.8 and print consolidated error messages for errors with suffix " i/o timeout" or with prefix "Failed to "\.
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+    forward \. 8\.8\.8\.8
+    errors {
+        consolidate 5m "\.* i/o timeout$"
+        consolidate 30s "^Failed to \.+"
+    }
 }
 .
 .fi

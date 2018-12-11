@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-REWRITE" "7" "October 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-REWRITE" "7" "December 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIrewrite\fR \- performs internal message rewriting\.
@@ -268,6 +268,19 @@ An alternate syntax for the rewrite of DNS request and response is as follows:
 .nf
 
 rewrite [continue|stop] name regex STRING STRING answer name STRING STRING
+.
+.fi
+.
+.IP "" 0
+.
+.P
+When using \fBexact\fR name rewrite rules, answer gets re\-written automatically, and there is no need defining \fBanswer name\fR instruction\. The below rule rewrites the name in a request from \fBRED\fR to \fBBLUE\fR, and subsequently rewrites the name in a corresponding response from \fBBLUE\fR to \fBRED\fR\. The client in the request would see only \fBRED\fR and no \fBBLUE\fR\.
+.
+.IP "" 4
+.
+.nf
+
+rewrite [continue|stop] name exact RED BLUE
 .
 .fi
 .

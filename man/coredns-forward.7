@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-FORWARD" "7" "October 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-FORWARD" "7" "December 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIforward\fR \- facilitates proxying DNS messages to upstream resolvers\.
@@ -105,7 +105,7 @@ forward FROM TO\.\.\. {
 
 .
 .IP "\(bu" 4
-\fBtls_servername\fR \fBNAME\fR allows you to set a server name in the TLS configuration; for instance 9\.9\.9\.9 needs this to be set to \fBdns\.quad9\.net\fR\.
+\fBtls_servername\fR \fBNAME\fR allows you to set a server name in the TLS configuration; for instance 9\.9\.9\.9 needs this to be set to \fBdns\.quad9\.net\fR\. Multiple upstreams are still allowed in this scenario, but they have to use the same \fBtls_servername\fR\. E\.g\. mixing 9\.9\.9\.9 (QuadDNS) with 1\.1\.1\.1 (Cloudflare) will not work\.
 .
 .IP "\(bu" 4
 \fBpolicy\fR specifies the policy to use for selecting upstream servers\. The default is \fBrandom\fR\.
@@ -229,6 +229,25 @@ Proxy all requests to 9\.9\.9\.9 using the DNS\-over\-TLS protocol, and cache ev
 \&\. {
     forward \. tls://9\.9\.9\.9 {
        tls_servername dns\.quad9\.net
+       health_check 5s
+    }
+    cache 30
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Or with multiple upstreams from the same provider
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+    forward \. tls://1\.1\.1\.1 tls://1\.0\.0\.1 {
+       tls_servername loudflare\-dns\.com
        health_check 5s
     }
     cache 30

@@ -1,16 +1,16 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-LOG" "7" "October 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-LOG" "7" "December 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIlog\fR \- enables query logging to standard output\.
 .
 .SH "DESCRIPTION"
-By just using \fIlog\fR you dump all queries (and parts for the reply) on standard output\. Options exist to tweak the output a little\.
+By just using \fIlog\fR you dump all queries (and parts for the reply) on standard output\. Options exist to tweak the output a little\. The date/time prefix on log lines is RFC3339 formatted with milliseconds\.
 .
 .P
-Note that for busy servers this will incur a performance hit\.
+Note that for busy servers logging will incur a performance hit\.
 .
 .SH "SYNTAX"
 .
@@ -105,10 +105,10 @@ The following place holders are supported:
 \fB{proto}\fR: protocol used (tcp or udp)
 .
 .IP "\(bu" 4
-\fB{when}\fR: time of the query
+\fB{remote}\fR: client\'s IP address, for IPv6 addresses these are enclosed in brackets: \fB[::1]\fR
 .
 .IP "\(bu" 4
-\fB{remote}\fR: client\'s IP address, for IPv6 addresses these are enclosed in brackets: \fB[::1]\fR
+\fB{local}\fR: server\'s IP address, for IPv6 addresses these are enclosed in brackets: \fB[::1]\fR
 .
 .IP "\(bu" 4
 \fB{size}\fR: request size in bytes
@@ -123,10 +123,10 @@ The following place holders are supported:
 \fB{rcode}\fR: response RCODE
 .
 .IP "\(bu" 4
-\fB{rsize}\fR: response size
+\fB{rsize}\fR: raw (uncompressed), response size (a client may receive a smaller response)
 .
 .IP "\(bu" 4
-\fB{>rflags}\fR: response flags, each set flag will be displayed, e\.g\. "aa, tc"\. This includes the qr bit as well\.
+\fB{>rflags}\fR: response flags, each set flag will be displayed, e\.g\. "aa, tc"\. This includes the qr bit as well
 .
 .IP "\(bu" 4
 \fB{>bufsize}\fR: the EDNS0 buffer size advertised in the query
@@ -140,6 +140,9 @@ The following place holders are supported:
 .IP "\(bu" 4
 \fB{>opcode}\fR: query OPCODE
 .
+.IP "\(bu" 4
+\fB{/[LABEL]}\fR: any metadata label is accepted as a place holder if it is enclosed between \fB{/\fR and \fB}\fR\. the place holder will be replaced by the corresponding metadata value or the default value \fB\-\fR if label is not defined\.
+.
 .IP "" 0
 .
 .P
@@ -149,7 +152,20 @@ The default Common Log Format is:
 .
 .nf
 
-`{remote}:{port} \- [{when}] {>id} "{type} {class} {name} {proto} {size} {>do} {>bufsize}" {rcode} {>rflags} {rsize} {duration}`
+`{remote}:{port} \- {>id} "{type} {class} {name} {proto} {size} {>do} {>bufsize}" {rcode} {>rflags} {rsize} {duration}`
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Each of these logs will be outputted with \fBlog\.Infof\fR, so a typical example looks like this:
+.
+.IP "" 4
+.
+.nf
+
+2018\-10\-30T19:10:07\.547Z [INFO] [::1]:50759 \- 29008 "A IN example\.org\. udp 41 false 4096" NOERROR qr,rd,ra,ad 68 0\.037990251s
 .
 .fi
 .

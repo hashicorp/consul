@@ -1,16 +1,16 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-KUBERNETES" "7" "October 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-KUBERNETES" "7" "December 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIkubernetes\fR \- enables the reading zone data from a Kubernetes cluster\.
 .
 .SH "DESCRIPTION"
-It implements the Kubernetes DNS\-Based Service Discovery Specification \fIhttps://github\.com/kubernetes/dns/blob/master/docs/specification\.md\fR\.
+This plugin implements the Kubernetes DNS\-Based Service Discovery Specification \fIhttps://github\.com/kubernetes/dns/blob/master/docs/specification\.md\fR\.
 .
 .P
-CoreDNS running the kubernetes plugin can be used as a replacement of kube\-dns in a kubernetes cluster\. See the deployment \fIhttps://github\.com/coredns/deployment\fR repository for details on how to deploy CoreDNS in Kubernetes \fIhttps://github\.com/coredns/deployment/tree/master/kubernetes\fR\.
+CoreDNS running the kubernetes plugin can be used as a replacement for kube\-dns in a kubernetes cluster\. See the deployment \fIhttps://github\.com/coredns/deployment\fR repository for details on how to deploy CoreDNS in Kubernetes \fIhttps://github\.com/coredns/deployment/tree/master/kubernetes\fR\.
 .
 .P
 stubDomains and upstreamNameservers \fIhttp://blog\.kubernetes\.io/2017/04/configuring\-private\-dns\-zones\-upstream\-nameservers\-kubernetes\.html\fR are implemented via the \fIproxy\fR plugin and kubernetes \fIupstream\fR\. See example below\.
@@ -27,7 +27,7 @@ kubernetes [ZONES\.\.\.]
 .fi
 .
 .P
-With only the directive specified, the \fIkubernetes\fR plugin will default to the zone specified in the server\'s block\. It will handle all queries in that zone and connect to Kubernetes in\-cluster\. It will not provide PTR records for services, or A records for pods\. If \fBZONES\fR is used it specifies all the zones the plugin should be authoritative for\.
+With only the directive specified, the \fIkubernetes\fR plugin will default to the zone specified in the server\'s block\. It will handle all queries in that zone and connect to Kubernetes in\-cluster\. It will not provide PTR records for services or A records for pods\. If \fBZONES\fR is used it specifies all the zones the plugin should be authoritative for\.
 .
 .IP "" 4
 .
@@ -37,14 +37,17 @@ kubernetes [ZONES\.\.\.] {
     resyncperiod DURATION
     endpoint URL [URL\.\.\.]
     tls CERT KEY CACERT
+    kubeconfig KUBECONFIG CONTEXT
     namespaces NAMESPACE\.\.\.
     labels EXPRESSION
     pods POD\-MODE
     endpoint_pod_names
     upstream [ADDRESS\.\.\.]
     ttl TTL
+    noendpoints
     transfer to ADDRESS\.\.\.
     fallthrough [ZONES\.\.\.]
+    ignore empty_service
 }
 .
 .fi
@@ -61,10 +64,10 @@ kubernetes [ZONES\.\.\.] {
 \fBtls\fR \fBCERT\fR \fBKEY\fR \fBCACERT\fR are the TLS cert, key and the CA cert file names for remote k8s connection\. This option is ignored if connecting in\-cluster (i\.e\. endpoint is not specified)\.
 .
 .IP "\(bu" 4
-\fBkubeconfig\fR \fBKUBECONFIG\fR \fBCONTEXT\fR authenticates the connection to a remote k8s cluster using a kubeconfig file\. It supports TLS, username and password, or token\-based authentication\. This option is ignored if connecting in\-cluster (i\.e\. endpoint is not specified)\.
+\fBkubeconfig\fR \fBKUBECONFIG\fR \fBCONTEXT\fR authenticates the connection to a remote k8s cluster using a kubeconfig file\. It supports TLS, username and password, or token\-based authentication\. This option is ignored if connecting in\-cluster (i\.e\., the endpoint is not specified)\.
 .
 .IP "\(bu" 4
-\fBnamespaces\fR \fBNAMESPACE [NAMESPACE\.\.\.]\fR, only exposes the k8s namespaces listed\. If this option is omitted all namespaces are exposed
+\fBnamespaces\fR \fBNAMESPACE [NAMESPACE\.\.\.]\fR only exposes the k8s namespaces listed\. If this option is omitted all namespaces are exposed
 .
 .IP "\(bu" 4
 \fBlabels\fR \fBEXPRESSION\fR only exposes the records for Kubernetes objects that match this label selector\. The label selector syntax is described in the Kubernetes User Guide \- Labels \fIhttp://kubernetes\.io/docs/user\-guide/labels/\fR\. An example that only exposes objects labeled as "application=nginx" in the "staging" or "qa" environments, would use: \fBlabels environment in (staging, qa),application=nginx\fR\.
@@ -85,25 +88,25 @@ kubernetes [ZONES\.\.\.] {
 
 .
 .IP "\(bu" 4
-\fBendpoint_pod_names\fR uses the pod name of the pod targeted by the endpoint as the endpoint name in A records, e\.g\. \fBendpoint\-name\.my\-service\.namespace\.svc\.cluster\.local\. in A 1\.2\.3\.4\fR By default, the endpoint\-name name selection is as follows: Use the hostname of the endpoint, or if hostname is not set, use the dashed form of the endpoint IP address (e\.g\. \fB1\-2\-3\-4\.my\-service\.namespace\.svc\.cluster\.local\.\fR) If this directive is included, then name selection for endpoints changes as follows: Use the hostname of the endpoint, or if hostname is not set, use the pod name of the pod targeted by the endpoint\. If there is no pod targeted by the endpoint, use the dashed IP address form\.
+\fBendpoint_pod_names\fR uses the pod name of the pod targeted by the endpoint as the endpoint name in A records, e\.g\., \fBendpoint\-name\.my\-service\.namespace\.svc\.cluster\.local\. in A 1\.2\.3\.4\fR By default, the endpoint\-name name selection is as follows: Use the hostname of the endpoint, or if hostname is not set, use the dashed form of the endpoint IP address (e\.g\., \fB1\-2\-3\-4\.my\-service\.namespace\.svc\.cluster\.local\.\fR) If this directive is included, then name selection for endpoints changes as follows: Use the hostname of the endpoint, or if hostname is not set, use the pod name of the pod targeted by the endpoint\. If there is no pod targeted by the endpoint, use the dashed IP address form\.
 .
 .IP "\(bu" 4
-\fBupstream\fR [\fBADDRESS\fR\.\.\.] defines the upstream resolvers used for resolving services that point to external hosts (aka External Services aka CNAMEs)\. If no \fBADDRESS\fR is given, CoreDNS will resolve External Services against itself\. \fBADDRESS\fR can be an IP, an IP:port, or a path to a file structured like resolv\.conf\.
+\fBupstream\fR [\fBADDRESS\fR\.\.\.] defines the upstream resolvers used for resolving services that point to external hosts (aka External Services, aka CNAMEs)\. If no \fBADDRESS\fR is given, CoreDNS will resolve External Services against itself\. \fBADDRESS\fR can be an IP, an IP:port, or a path to a file structured like resolv\.conf\.
 .
 .IP "\(bu" 4
-\fBttl\fR allows you to set a custom TTL for responses\. The default (and allowed minimum) is to use 5 seconds, the maximum is capped at 3600 seconds\.
+\fBttl\fR allows you to set a custom TTL for responses\. The default (and minimum allowed) is 0 seconds, while the maximum is capped at 3600 seconds\. Setting TTL to 0 will prevent records from being cached\.
 .
 .IP "\(bu" 4
 \fBnoendpoints\fR will turn off the serving of endpoint records by disabling the watch on endpoints\. All endpoint queries and headless service queries will result in an NXDOMAIN\.
 .
 .IP "\(bu" 4
-\fBtransfer\fR enables zone transfers\. It may be specified multiples times\. \fBTo\fR signals the direction (only \fBto\fR is allow)\. \fBADDRESS\fR must be denoted in CIDR notation (127\.0\.0\.1/32 etc\.) or just as plain addresses\. The special wildcard \fB*\fR means: the entire internet\. Sending DNS notifies is not supported\. Deprecated \fIhttps://github\.com/kubernetes/dns/blob/master/docs/specification\.md#26\-\-\-deprecated\-records\fR pod records in the sub domain \fBpod\.cluster\.local\fR are not transferred\.
+\fBtransfer\fR enables zone transfers\. It may be specified multiples times\. \fBTo\fR signals the direction (only \fBto\fR is allow)\. \fBADDRESS\fR must be denoted in CIDR notation (127\.0\.0\.1/32 etc\.) or just as plain addresses\. The special wildcard \fB*\fR means: the entire internet\. Sending DNS notifies is not supported\. Deprecated \fIhttps://github\.com/kubernetes/dns/blob/master/docs/specification\.md#26\-\-\-deprecated\-records\fR pod records in the subdomain \fBpod\.cluster\.local\fR are not transferred\.
 .
 .IP "\(bu" 4
 \fBfallthrough\fR \fB[ZONES\.\.\.]\fR If a query for a record in the zones for which the plugin is authoritative results in NXDOMAIN, normally that is what the response will be\. However, if you specify this option, the query will instead be passed on down the plugin chain, which can include another plugin to handle the query\. If \fB[ZONES\.\.\.]\fR is omitted, then fallthrough happens for all zones for which the plugin is authoritative\. If specific zones are listed (for example \fBin\-addr\.arpa\fR and \fBip6\.arpa\fR), then only queries for those zones will be subject to fallthrough\.
 .
 .IP "\(bu" 4
-\fBignore empty_service\fR return NXDOMAIN for services without any ready endpoint addresses (e\.g\. ready pods)\. This allows the querying pod to continue searching for the service in the search path\. The search path could, for example, include another kubernetes cluster\.
+\fBignore empty_service\fR return NXDOMAIN for services without any ready endpoint addresses (e\.g\., ready pods)\. This allows the querying pod to continue searching for the service in the search path\. The search path could, for example, include another Kubernetes cluster\.
 .
 .IP "" 0
 .
@@ -163,7 +166,7 @@ kubernetes cluster\.local {
 .IP "" 0
 .
 .SH "STUBDOMAINS AND UPSTREAMNAMESERVERS"
-Here we use the \fIproxy\fR plugin to implement a stubDomain that forwards \fBexample\.local\fR to the nameserver \fB10\.100\.0\.10:53\fR\. The \fIupstream\fR option in kubernetes means that ExternalName services (CNAMEs) will be resolved using the respective proxy\. Also configured is an upstreamNameserver \fB8\.8\.8\.8:53\fR that will be used for resolving names that do not fall in \fBcluster\.local\fR or \fBexample\.local\fR\.
+Here we use the \fIproxy\fR plugin to implement a stubDomain that forwards \fBexample\.local\fR to the nameserver \fB10\.100\.0\.10:53\fR\. The \fIupstream\fR option in the \fIkubernetes\fR plugin means that ExternalName services (CNAMEs) will be resolved using the respective proxy\. Also configured is an upstreamNameserver \fB8\.8\.8\.8:53\fR that will be used for resolving names that do not fall in \fBcluster\.local\fR or \fBexample\.local\fR\.
 .
 .IP "" 4
 .
@@ -198,7 +201,7 @@ The configuration above represents the following Kube\-DNS stubDomains and upstr
 .IP "" 0
 .
 .SH "AUTOPATH"
-The \fIkubernetes\fR plugin can be used in conjunction with the \fIautopath\fR plugin\. Using this feature enables server\-side domain search path completion in kubernetes clusters\. Note: \fBpods\fR must be set to \fBverified\fR for this to function properly\.
+The \fIkubernetes\fR plugin can be used in conjunction with the \fIautopath\fR plugin\. Using this feature enables server\-side domain search path completion in Kubernetes clusters\. Note: \fBpods\fR must be set to \fBverified\fR for this to function properly\.
 .
 .IP "" 4
 .
@@ -216,7 +219,7 @@ cluster\.local {
 .IP "" 0
 .
 .SH "FEDERATION"
-The \fIkubernetes\fR plugin can be used in conjunction with the \fIfederation\fR plugin\. Using this feature enables serving federated domains from the kubernetes clusters\.
+The \fIkubernetes\fR plugin can be used in conjunction with the \fIfederation\fR plugin\. Using this feature enables serving federated domains from the Kubernetes clusters\.
 .
 .IP "" 4
 .
@@ -238,21 +241,21 @@ cluster\.local {
 Some query labels accept a wildcard value to match any value\. If a label is a valid wildcard (*, or the word "any"), then that label will match all values\. The labels that accept wildcards are:
 .
 .IP "\(bu" 4
-\fIendpoint\fR in an \fBA\fR record request: \fIendpoint\fR\.service\.namespace\.svc\.zone, e\.g\. \fB*\.nginx\.ns\.svc\.cluster\.local\fR
+\fIendpoint\fR in an \fBA\fR record request: \fIendpoint\fR\.service\.namespace\.svc\.zone, e\.g\., \fB*\.nginx\.ns\.svc\.cluster\.local\fR
 .
 .IP "\(bu" 4
-\fIservice\fR in an \fBA\fR record request: \fIservice\fR\.namespace\.svc\.zone, e\.g\. \fB*\.ns\.svc\.cluster\.local\fR
+\fIservice\fR in an \fBA\fR record request: \fIservice\fR\.namespace\.svc\.zone, e\.g\., \fB*\.ns\.svc\.cluster\.local\fR
 .
 .IP "\(bu" 4
-\fInamespace\fR in an \fBA\fR record request: service\.\fInamespace\fR\.svc\.zone, e\.g\. \fBnginx\.*\.svc\.cluster\.local\fR
+\fInamespace\fR in an \fBA\fR record request: service\.\fInamespace\fR\.svc\.zone, e\.g\., \fBnginx\.*\.svc\.cluster\.local\fR
 .
 .IP "\(bu" 4
-\fIport and/or protocol\fR in an \fBSRV\fR request: \fBport_\.\fRprotocol_\.service\.namespace\.svc\.zone\., e\.g\. \fB_http\.*\.service\.ns\.svc\.cluster\.local\fR
+\fIport and/or protocol\fR in an \fBSRV\fR request: \fBport_\.\fRprotocol_\.service\.namespace\.svc\.zone\., e\.g\., \fB_http\.*\.service\.ns\.svc\.cluster\.local\fR
 .
 .IP "\(bu" 4
-multiple wild cards are allowed in a single query, e\.g\. \fBA\fR Request \fB*\.*\.svc\.zone\.\fR or \fBSRV\fR request \fB*\.*\.*\.*\.svc\.zone\.\fR
+multiple wild cards are allowed in a single query, e\.g\., \fBA\fR Request \fB*\.*\.svc\.zone\.\fR or \fBSRV\fR request \fB*\.*\.*\.*\.svc\.zone\.\fR
 .
 .IP "" 0
 .
 .P
-For example, Wildcards can be used to resolve all Endpoints for a Service as \fBA\fR records\. e\.g\.: \fB*\.service\.ns\.svc\.myzone\.local\fR will return the Endpoint IPs in the Service \fBservice\fR in namespace \fBdefault\fR: \fB*\.service\.default\.svc\.cluster\.local\. 5 IN A 192\.168\.10\.10 *\.service\.default\.svc\.cluster\.local\. 5 IN A 192\.168\.25\.15\fR This response can be randomized using the \fBloadbalance\fR plugin
+For example, wildcards can be used to resolve all Endpoints for a Service as \fBA\fR records\. e\.g\.: \fB*\.service\.ns\.svc\.myzone\.local\fR will return the Endpoint IPs in the Service \fBservice\fR in namespace \fBdefault\fR: \fB*\.service\.default\.svc\.cluster\.local\. 5 IN A 192\.168\.10\.10 *\.service\.default\.svc\.cluster\.local\. 5 IN A 192\.168\.25\.15\fR This response can be randomized using the \fBloadbalance\fR plugin
