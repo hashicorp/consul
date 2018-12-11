@@ -55,6 +55,7 @@ func Version(req *dns.Msg) (*dns.Msg, error) {
 	o.Hdr.Name = "."
 	o.Hdr.Rrtype = dns.TypeOPT
 	o.SetVersion(0)
+	m.Rcode = dns.RcodeBadVers
 	o.SetExtendedRcode(dns.RcodeBadVers)
 	m.Extra = []dns.RR{o}
 
