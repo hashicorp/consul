@@ -295,10 +295,10 @@ to get the UI up and running again.
 
 Depending on your setup you might need to change to which interface you are
 binding because thats `127.0.0.1` by default for the UI. Either via the
-[`addresses.https`](https://www.consul.io/docs/agent/options.html#https) or
-[client_addr](https://www.consul.io/docs/agent/options.html#client_addr) option
-which also impacts the DNS server. The Consul UI is unproteced which means you
-need to put some auth in front of it if you want to make it publicly available!
+[`addresses.https`](/docs/agent/options.html#https) or
+[client_addr](/docs/agent/options.html#client_addr) option which also impacts
+the DNS server. The Consul UI is unproteced which means you need to put some
+auth in front of it if you want to make it publicly available!
 
 Binding to `0.0.0.0` should work:
 
@@ -312,7 +312,9 @@ Binding to `0.0.0.0` should work:
 ```
 
 ~> Since your Consul agent is now available to the network,
-`enable_script_checks` and `remote exec` must be disabled!
+[`enable_script_checks`](/docs/agent/options.html#_enable_script_checks) and
+[`disable_remote_exec`](https://www.consul.io/docs/agent/options.html#disable_remote_exec)
+must be disabled!
 
 ### Step 2: verify_incoming_rpc
 
