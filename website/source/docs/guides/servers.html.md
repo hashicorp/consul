@@ -157,9 +157,11 @@ The leader should also emit various logs including:
 At this point the node has been gracefully removed from the cluster, and
 will shut down.
 
-If the leader is affected by an outage, then [manual recovery](/docs/guides/outage.html#manual-recovery-using-peers-json) needs to be done.
-
 To remove all agents that accidentally joined the wrong set of servers, clear out the contents of the data directory (`-data-dir`) on both client and server nodes.
+
+These graceful methods to remove servres assumse you have a healthly cluster. 
+If the cluster has no leader due to loss of quorum or data corruption, you should 
+plan for [outage recovery](/docs/guides/outage.html#manual-recovery-using-peers-json).
 
 !> **WARNING** Removing data on server nodes will destroy all state in the cluster
 
