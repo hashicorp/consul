@@ -55,7 +55,7 @@ func (t *Txn) preCheck(authorizer acl.Authorizer, ops structs.TxnOps) structs.Tx
 			}
 		case op.Service != nil:
 			service := &op.Service.Service
-			if err := servicePreApply(service, authorizer); err != nil {
+			if err := servicePreApply(service, nil); err != nil {
 				errors = append(errors, &structs.TxnError{
 					OpIndex: i,
 					What:    err.Error(),

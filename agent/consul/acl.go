@@ -1354,6 +1354,11 @@ func vetDeregisterWithACL(rule acl.Authorizer, subj *structs.DeregisterRequest,
 
 // vetNodeTxnOp applies the given ACL policy to a node transaction operation.
 func vetNodeTxnOp(op *structs.TxnNodeOp, rule acl.Authorizer) error {
+	// Fast path if ACLs are not enabled.
+	if rule == nil {
+		return nil
+	}
+
 	node := op.Node
 
 	// Filtering for GETs is done on the output side.
@@ -1378,7 +1383,7 @@ func vetNodeTxnOp(op *structs.TxnNodeOp, rule acl.Authorizer) error {
 		}
 	}
 
-	if !rule.NodeWrite(node.Node, scope) {
+	if rule != nil && !rule.NodeWrite(node.Node, scope) {
 		return acl.ErrPermissionDenied
 	}
 
@@ -1387,6 +1392,11 @@ func vetNodeTxnOp(op *structs.TxnNodeOp, rule acl.Authorizer) error {
 
 // vetServiceTxnOp applies the given ACL policy to a service transaction operation.
 func vetServiceTxnOp(op *structs.TxnServiceOp, rule acl.Authorizer) error {
+	// Fast path if ACLs are not enabled.
+	if rule == nil {
+		return nil
+	}
+
 	service := op.Service
 
 	// Filtering for GETs is done on the output side.
@@ -1416,6 +1426,11 @@ func vetServiceTxnOp(op *structs.TxnServiceOp, rule acl.Authorizer) error {
 
 // vetCheckTxnOp applies the given ACL policy to a check transaction operation.
 func vetCheckTxnOp(op *structs.TxnCheckOp, rule acl.Authorizer) error {
+	// Fast path if ACLs are not enabled.
+	if rule == nil {
+		return nil
+	}
+
 	// Filtering for GETs is done on the output side.
 	if op.Verb == api.CheckGet {
 		return nil

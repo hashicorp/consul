@@ -132,16 +132,19 @@ func (s *Store) txnNode(tx *memdb.Txn, idx uint64, op *structs.TxnNodeOp) (struc
 		entry, err = getNodeIDTxn(tx, op.Node.ID)
 
 	case api.NodeSet:
-		entry = &op.Node
 		err = s.ensureNodeTxn(tx, idx, &op.Node)
+		if err == nil {
+			entry, err = getNodeIDTxn(tx, op.Node.ID)
+		}
 
 	case api.NodeCAS:
 		var ok bool
-		entry = &op.Node
 		ok, err = s.ensureNodeCASTxn(tx, idx, &op.Node)
 		if !ok && err == nil {
 			err = fmt.Errorf("failed to set node %q, index is stale", op.Node.Node)
+			break
 		}
+		entry, err = getNodeIDTxn(tx, op.Node.ID)
 
 	case api.NodeDelete:
 		err = s.deleteNodeTxn(tx, idx, op.Node.Node)
@@ -187,8 +190,8 @@ func (s *Store) txnService(tx *memdb.Txn, idx uint64, op *structs.TxnServiceOp) 
 		entry, err = s.nodeServiceTxn(tx, op.Node, op.Service.ID)
 
 	case api.ServiceSet:
-		entry = &op.Service
 		err = s.ensureServiceTxn(tx, idx, op.Node, &op.Service)
+		entry, err = s.nodeServiceTxn(tx, op.Node, op.Service.ID)
 
 	case api.ServiceCAS:
 		var ok bool
@@ -246,8 +249,10 @@ func (s *Store) txnCheck(tx *memdb.Txn, idx uint64, op *structs.TxnCheckOp) (str
 		}
 
 	case api.CheckSet:
-		entry = &op.Check
-		err = s.ensureCheckTxn(tx, idx, entry)
+		err = s.ensureCheckTxn(tx, idx, &op.Check)
+		if err == nil {
+			_, entry, err = s.nodeCheckTxn(tx, op.Check.Node, op.Check.CheckID)
+		}
 
 	case api.CheckCAS:
 		var ok bool
@@ -255,7 +260,9 @@ func (s *Store) txnCheck(tx *memdb.Txn, idx uint64, op *structs.TxnCheckOp) (str
 		ok, err = s.ensureCheckCASTxn(tx, idx, entry)
 		if !ok && err == nil {
 			err = fmt.Errorf("failed to set check %q on node %q, index is stale", entry.CheckID, entry.Node)
+			break
 		}
+		_, entry, err = s.nodeCheckTxn(tx, op.Check.Node, op.Check.CheckID)
 
 	case api.CheckDelete:
 		err = s.deleteCheckTxn(tx, idx, op.Check.Node, op.Check.CheckID)
