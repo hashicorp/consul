@@ -278,7 +278,6 @@ func (s *HTTPServer) Txn(resp http.ResponseWriter, req *http.Request) (interface
 
 	// Fast-path a transaction with only writes to the read-only endpoint,
 	// which bypasses Raft, and allows for staleness.
-	s.agent.logger.Printf("ops: %d", len(ops))
 	conflict := false
 	var ret interface{}
 	if writes == 0 {
@@ -308,7 +307,6 @@ func (s *HTTPServer) Txn(resp http.ResponseWriter, req *http.Request) (interface
 			return nil, err
 		}
 		ret, conflict = reply, len(reply.Errors) > 0
-		s.agent.logger.Printf("results: %d, errors: %d", len(reply.Results), len(reply.Errors))
 	}
 
 	// If there was a conflict return the response object but set a special

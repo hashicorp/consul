@@ -127,13 +127,17 @@ func (s *Store) txnNode(tx *memdb.Txn, idx uint64, op *structs.TxnNodeOp) (struc
 	var entry *structs.Node
 	var err error
 
+	getNode := func() (*structs.Node, error) {
+		if op.Node.ID != "" {
+			return getNodeIDTxn(tx, op.Node.ID)
+		} else {
+			return getNodeTxn(tx, op.Node.Node)
+		}
+	}
+
 	switch op.Verb {
 	case api.NodeGet:
-		if op.Node.ID != "" {
-			entry, err = getNodeIDTxn(tx, op.Node.ID)
-		} else {
-			entry, err = getNodeTxn(tx, op.Node.Node)
-		}
+		entry, err = getNode()
 		if entry == nil && err == nil {
 			err = fmt.Errorf("node %q doesn't exist", op.Node.Node)
 		}
@@ -141,7 +145,7 @@ func (s *Store) txnNode(tx *memdb.Txn, idx uint64, op *structs.TxnNodeOp) (struc
 	case api.NodeSet:
 		err = s.ensureNodeTxn(tx, idx, &op.Node)
 		if err == nil {
-			entry, err = getNodeIDTxn(tx, op.Node.ID)
+			entry, err = getNode()
 		}
 
 	case api.NodeCAS:
@@ -151,7 +155,7 @@ func (s *Store) txnNode(tx *memdb.Txn, idx uint64, op *structs.TxnNodeOp) (struc
 			err = fmt.Errorf("failed to set node %q, index is stale", op.Node.Node)
 			break
 		}
-		entry, err = getNodeIDTxn(tx, op.Node.ID)
+		entry, err = getNode()
 
 	case api.NodeDelete:
 		err = s.deleteNodeTxn(tx, idx, op.Node.Node)

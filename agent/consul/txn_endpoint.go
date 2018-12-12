@@ -119,21 +119,6 @@ func (t *Txn) Apply(args *structs.TxnRequest, reply *structs.TxnResponse) error 
 		return nil
 	}
 
-	str := ""
-	for _, op := range args.Ops {
-		switch {
-		case op.KV != nil:
-			str += fmt.Sprintf("%#v\n", op.KV)
-		case op.Node != nil:
-			str += fmt.Sprintf("%#v\n", op.Node)
-		case op.Service != nil:
-			str += fmt.Sprintf("%#v\n", op.Service)
-		case op.Check != nil:
-			str += fmt.Sprintf("%#v\n", op.Check)
-		}
-	}
-	//return fmt.Errorf("%s", str)
-
 	// Apply the update.
 	resp, err := t.srv.raftApply(structs.TxnRequestType, args)
 	if err != nil {
