@@ -36,8 +36,50 @@ func (t *Txn) preCheck(authorizer acl.Authorizer, ops structs.TxnOps) structs.Tx
 					What:    err.Error(),
 				})
 			}
+		case op.Node != nil:
+			node := op.Node.Node
+			if err := nodePreApply(node.Node, string(node.ID)); err != nil {
+				errors = append(errors, &structs.TxnError{
+					OpIndex: i,
+					What:    err.Error(),
+				})
+				break
+			}
+
+			// Check that the token has permissions for the given operation.
+			if err := vetNodeTxnOp(op.Node, authorizer); err != nil {
+				errors = append(errors, &structs.TxnError{
+					OpIndex: i,
+					What:    err.Error(),
+				})
+			}
+		case op.Service != nil:
+			service := &op.Service.Service
+			if err := servicePreApply(service, authorizer); err != nil {
+				errors = append(errors, &structs.TxnError{
+					OpIndex: i,
+					What:    err.Error(),
+				})
+				break
+			}
+
+			// Check that the token has permissions for the given operation.
+			if err := vetServiceTxnOp(op.Service, authorizer); err != nil {
+				errors = append(errors, &structs.TxnError{
+					OpIndex: i,
+					What:    err.Error(),
+				})
+			}
 		case op.Check != nil:
 			checkPreApply(&op.Check.Check)
+
+			// Check that the token has permissions for the given operation.
+			if err := vetCheckTxnOp(op.Check, authorizer); err != nil {
+				errors = append(errors, &structs.TxnError{
+					OpIndex: i,
+					What:    err.Error(),
+				})
+			}
 		}
 	}
 

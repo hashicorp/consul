@@ -61,8 +61,18 @@ func (t *txnResultsFilter) Len() int {
 
 func (t *txnResultsFilter) Filter(i int) bool {
 	result := t.results[i]
-	if result.KV != nil {
+	switch {
+	case result.KV != nil:
 		return !t.authorizer.KeyRead(result.KV.Key)
+	case result.Node != nil:
+		return !t.authorizer.NodeRead(result.Node.Node)
+	case result.Service != nil:
+		return !t.authorizer.ServiceRead(result.Service.Service)
+	case result.Check != nil:
+		if result.Check.ServiceName != "" {
+			return !t.authorizer.ServiceRead(result.Check.ServiceName)
+		}
+		return !t.authorizer.NodeRead(result.Check.Node)
 	}
 	return false
 }
