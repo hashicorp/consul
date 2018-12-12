@@ -219,6 +219,8 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 			uifs = &redirectFS{fs: uifs}
 		}
 
+		robotHandler := http.RedirectHandler("/ui/robots.txt", 307)
+		mux.Handle("/robots.txt", robotHandler)
 		mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(uifs)))
 	}
 
@@ -414,15 +416,14 @@ func (s *HTTPServer) Index(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Give them something helpful if there's no UI so they at least know
-	// what this server is.
-	if !s.IsUIEnabled() {
+	if s.IsUIEnabled() {
+		// Redirect to the UI endpoint
+		http.Redirect(resp, req, "/ui/", http.StatusMovedPermanently) // 301
+	} else {
+		// Give them something helpful if there's no UI so they at least know
+		// what this server is.
 		fmt.Fprint(resp, "Consul Agent")
-		return
 	}
-
-	// Redirect to the UI endpoint
-	http.Redirect(resp, req, "/ui/", http.StatusMovedPermanently) // 301
 }
 
 // decodeBody is used to decode a JSON request body
