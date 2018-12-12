@@ -25,8 +25,8 @@ type Type interface {
 	// the last known value. This is the default behavior of blocking RPC calls in
 	// Consul so this allows cache types to be implemented with no extra logic.
 	// Second, FetchResult can return an unset value and index. In this case, the
-	// cache will reuse the last value automatically. If a nil Value is returned,
-	// the State field will also be ignored currently.
+	// cache will reuse the last value automatically. If an unset Value is
+	// returned, the State field will also be ignored currently.
 	Fetch(FetchOptions, Request) (FetchResult, error)
 
 	// SupportsBlocking should return true if the type supports blocking queries.
