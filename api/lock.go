@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -69,16 +70,33 @@ type Lock struct {
 
 // LockOptions is used to parameterize the Lock behavior.
 type LockOptions struct {
-	Key              string        // Must be set and have write permissions
-	Value            []byte        // Optional, value to associate with the lock
-	Session          string        // Optional, created if not specified
-	SessionOpts      *SessionEntry // Optional, options to use when creating a session
-	SessionName      string        // Optional, defaults to DefaultLockSessionName (ignored if SessionOpts is given)
-	SessionTTL       string        // Optional, defaults to DefaultLockSessionTTL (ignored if SessionOpts is given)
-	MonitorRetries   int           // Optional, defaults to 0 which means no retries
-	MonitorRetryTime time.Duration // Optional, defaults to DefaultMonitorRetryTime
-	LockWaitTime     time.Duration // Optional, defaults to DefaultLockWaitTime
-	LockTryOnce      bool          // Optional, defaults to false which means try forever
+	Key              string          // Must be set and have write permissions
+	Value            []byte          // Optional, value to associate with the lock
+	Session          string          // Optional, created if not specified
+	SessionOpts      *SessionEntry   // Optional, options to use when creating a session
+	SessionName      string          // Optional, defaults to DefaultLockSessionName (ignored if SessionOpts is given)
+	SessionTTL       string          // Optional, defaults to DefaultLockSessionTTL (ignored if SessionOpts is given)
+	MonitorRetries   int             // Optional, defaults to 0 which means no retries
+	MonitorRetryTime time.Duration   // Optional, defaults to DefaultMonitorRetryTime
+	LockWaitTime     time.Duration   // Optional, defaults to DefaultLockWaitTime
+	LockTryOnce      bool            // Optional, defaults to false which means try forever
+	ctx              context.Context // Will be propagated to any query or write operations
+}
+
+func (o *LockOptions) Context() context.Context {
+	if o != nil && o.ctx != nil {
+		return o.ctx
+	}
+	return context.Background()
+}
+
+func (o *LockOptions) WithContext(ctx context.Context) *LockOptions {
+	o2 := new(LockOptions)
+	if o != nil {
+		*o2 = *o
+	}
+	o2.ctx = ctx
+	return o2
 }
 
 // LockKey returns a handle to a lock struct which can be used
@@ -143,7 +161,8 @@ func (l *Lock) Lock(stopCh <-chan struct{}) (<-chan struct{}, error) {
 	// Check if we need to create a session first
 	l.lockSession = l.opts.Session
 	if l.lockSession == "" {
-		s, err := l.createSession()
+		o := &WriteOptions{ctx: l.opts.ctx}
+		s, err := l.createSession(o)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create session: %v", err)
 		}
@@ -151,7 +170,7 @@ func (l *Lock) Lock(stopCh <-chan struct{}) (<-chan struct{}, error) {
 		l.sessionRenew = make(chan struct{})
 		l.lockSession = s
 		session := l.c.Session()
-		go session.RenewPeriodic(l.opts.SessionTTL, s, nil, l.sessionRenew)
+		go session.RenewPeriodic(l.opts.SessionTTL, s, o, l.sessionRenew)
 
 		// If we fail to acquire the lock, cleanup the session
 		defer func() {
@@ -166,6 +185,7 @@ func (l *Lock) Lock(stopCh <-chan struct{}) (<-chan struct{}, error) {
 	kv := l.c.KV()
 	qOpts := &QueryOptions{
 		WaitTime: l.opts.LockWaitTime,
+		ctx:      l.opts.ctx,
 	}
 
 	start := time.Now()
@@ -209,7 +229,7 @@ WAIT:
 
 	// Try to acquire the lock
 	pair = l.lockEntry(l.lockSession)
-	locked, _, err = kv.Acquire(pair, nil)
+	locked, _, err = kv.Acquire(pair, &WriteOptions{ctx: l.opts.ctx})
 	if err != nil {
 		return nil, fmt.Errorf("failed to acquire lock: %v", err)
 	}
@@ -277,7 +297,7 @@ func (l *Lock) Unlock() error {
 
 	// Release the lock explicitly
 	kv := l.c.KV()
-	_, _, err := kv.Release(lockEnt, nil)
+	_, _, err := kv.Release(lockEnt, &WriteOptions{ctx: l.opts.ctx})
 	if err != nil {
 		return fmt.Errorf("failed to release lock: %v", err)
 	}
@@ -298,7 +318,7 @@ func (l *Lock) Destroy() error {
 
 	// Look for an existing lock
 	kv := l.c.KV()
-	pair, _, err := kv.Get(l.opts.Key, nil)
+	pair, _, err := kv.Get(l.opts.Key, &QueryOptions{ctx: l.opts.ctx})
 	if err != nil {
 		return fmt.Errorf("failed to read lock: %v", err)
 	}
@@ -319,7 +339,7 @@ func (l *Lock) Destroy() error {
 	}
 
 	// Attempt the delete
-	didRemove, _, err := kv.DeleteCAS(pair, nil)
+	didRemove, _, err := kv.DeleteCAS(pair, &WriteOptions{ctx: l.opts.ctx})
 	if err != nil {
 		return fmt.Errorf("failed to remove lock: %v", err)
 	}
@@ -330,7 +350,7 @@ func (l *Lock) Destroy() error {
 }
 
 // createSession is used to create a new managed session
-func (l *Lock) createSession() (string, error) {
+func (l *Lock) createSession(o *WriteOptions) (string, error) {
 	session := l.c.Session()
 	se := l.opts.SessionOpts
 	if se == nil {
@@ -339,7 +359,7 @@ func (l *Lock) createSession() (string, error) {
 			TTL:  l.opts.SessionTTL,
 		}
 	}
-	id, _, err := session.Create(se, nil)
+	id, _, err := session.Create(se, o)
 	if err != nil {
 		return "", err
 	}
@@ -361,7 +381,7 @@ func (l *Lock) lockEntry(session string) *KVPair {
 func (l *Lock) monitorLock(session string, stopCh chan struct{}) {
 	defer close(stopCh)
 	kv := l.c.KV()
-	opts := &QueryOptions{RequireConsistent: true}
+	opts := &QueryOptions{RequireConsistent: true, ctx: l.opts.ctx}
 WAIT:
 	retries := l.opts.MonitorRetries
 RETRY:
