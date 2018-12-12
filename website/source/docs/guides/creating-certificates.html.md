@@ -305,7 +305,9 @@ Binding to `0.0.0.0` should work:
 ```json
 {
   "ui": true,
-  "client_addr": "0.0.0.0"
+  "client_addr": "0.0.0.0",
+  "enable_script_checks": false,
+  "disable_remote_exec": true
 }
 ```
 
