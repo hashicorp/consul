@@ -328,6 +328,12 @@ In the above configuration, if the web-app health check begins failing, it will
 only affect the availability of the web-app service. All other services
 provided by the node will remain unchanged.
 
+## Agent Certificates for TLS Checks
+
+The [enable_agent_tls_for_checks](/docs/agent/options.html#enable_agent_tls_for_checks)
+agent configuration option can be utilized to have HTTP or gRPC health checks
+to use the agent's credentials when configured for TLS.
+
 ## Multiple Check Definitions
 
 Multiple check definitions can be defined using the `checks` (plural)
