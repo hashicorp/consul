@@ -6,7 +6,7 @@ description: |-
   Learn how to create certificates for Consul.
 ---
 
-# Creating and Configuring Certificates
+# Creating and Configuring TLS Certificates
 
 Setting you cluster up with TLS is an important step towards a secure
 deployment. Correct TLS configuration is a prerequisite of our [Security
