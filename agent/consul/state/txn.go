@@ -132,10 +132,12 @@ func (s *Store) txnNode(tx *memdb.Txn, idx uint64, op *structs.TxnNodeOp) (struc
 		entry, err = getNodeIDTxn(tx, op.Node.ID)
 
 	case api.NodeSet:
+		entry = &op.Node
 		err = s.ensureNodeTxn(tx, idx, &op.Node)
 
 	case api.NodeCAS:
 		var ok bool
+		entry = &op.Node
 		ok, err = s.ensureNodeCASTxn(tx, idx, &op.Node)
 		if !ok && err == nil {
 			err = fmt.Errorf("failed to set node %q, index is stale", op.Node.Node)
@@ -185,6 +187,7 @@ func (s *Store) txnService(tx *memdb.Txn, idx uint64, op *structs.TxnServiceOp) 
 		entry, err = s.nodeServiceTxn(tx, op.Node, op.Service.ID)
 
 	case api.ServiceSet:
+		entry = &op.Service
 		err = s.ensureServiceTxn(tx, idx, op.Node, &op.Service)
 
 	case api.ServiceCAS:
@@ -192,7 +195,9 @@ func (s *Store) txnService(tx *memdb.Txn, idx uint64, op *structs.TxnServiceOp) 
 		ok, err = s.ensureServiceCASTxn(tx, idx, op.Node, &op.Service)
 		if !ok && err == nil {
 			err = fmt.Errorf("failed to set service %q on node %q, index is stale", op.Service.ID, op.Node)
+			break
 		}
+		entry, err = s.nodeServiceTxn(tx, op.Node, op.Service.ID)
 
 	case api.ServiceDelete:
 		err = s.deleteServiceTxn(tx, idx, op.Node, op.Service.ID)

@@ -738,10 +738,10 @@ func (s *Store) EnsureService(idx uint64, node string, svc *structs.NodeService)
 // ensureServiceCASTxn updates a service only if the existing index matches the given index.
 // Returns a bool indicating if a write happened and any error.
 func (s *Store) ensureServiceCASTxn(tx *memdb.Txn, idx uint64, node string, svc *structs.NodeService) (bool, error) {
-	// Retrieve the existing entry.
-	existing, err := tx.First("nodes", "id", node)
+	// Retrieve the existing service.
+	existing, err := tx.First("services", "id", node, svc.ID)
 	if err != nil {
-		return false, fmt.Errorf("node lookup failed: %s", err)
+		return false, fmt.Errorf("failed service lookup: %s", err)
 	}
 
 	// Check if the we should do the set. A ModifyIndex of 0 means that
