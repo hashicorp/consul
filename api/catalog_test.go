@@ -670,7 +670,7 @@ func TestAPI_CatalogRegistration(t *testing.T) {
 		Status:    HealthPassing,
 		ServiceID: "redis1",
 	}
-	
+
 	checks := HealthChecks{
 		&HealthCheck{
 			Node:      "foobar",
@@ -848,6 +848,7 @@ func TestAPI_CatalogEnableTagOverride(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
+	s.WaitForSerfCheck(t)
 
 	catalog := c.Catalog()
 

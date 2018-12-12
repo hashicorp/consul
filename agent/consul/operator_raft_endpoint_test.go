@@ -24,7 +24,7 @@ func TestOperator_RaftGetConfiguration(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	arg := structs.DCSpecificRequest{
 		Datacenter: "dc1",
@@ -71,7 +71,7 @@ func TestOperator_RaftGetConfiguration_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Make a request with no token to make sure it gets denied.
 	arg := structs.DCSpecificRequest{
@@ -208,7 +208,7 @@ func TestOperator_RaftRemovePeerByAddress_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Make a request with no token to make sure it gets denied.
 	arg := structs.RaftRemovePeerRequest{
