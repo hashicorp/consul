@@ -38,8 +38,8 @@ type cmd struct {
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
-	c.flags.StringVar(&c.ca, "ca", "consul-agent-ca.pem", "Provide path to the ca. Defaults to consul-agent-ca.pem.")
-	c.flags.StringVar(&c.key, "key", "consul-agent-ca-key.pem", "Provide path to the key. Defaults to consul-agent-ca-key.pem.")
+	c.flags.StringVar(&c.ca, "ca", "agent-#DOMAIN#-ca.pem", "Provide path to the ca. Defaults to agent-$DOMAIN-ca.pem.")
+	c.flags.StringVar(&c.key, "key", "agent-#DOMAIN#-ca-key.pem", "Provide path to the key. Defaults to agent-$DOMAIN-ca-key.pem.")
 	c.flags.BoolVar(&c.server, "server", false, "Generate server certificate.")
 	c.flags.BoolVar(&c.client, "client", false, "Generate client certificate.")
 	c.flags.BoolVar(&c.cli, "cli", false, "Generate cli certificate.")
@@ -48,7 +48,6 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.domain, "domain", "consul", "Provide the domain. Matters only for -server certificates.")
 	c.flags.Var(&c.dnsnames, "additional-dnsname", "Provide an additional dnsname for Subject Alternative Names. "+
 		"127.0.0.1 and localhost are always included. This flag may be provided multiple times.")
-	c.flags.StringVar(&c.prefix, "prefix", "consul", "Prefix for the generated cert and key. Defaults to consul.")
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -91,17 +90,18 @@ func (c *cmd) Run(args []string) int {
 		DNSNames = append(DNSNames, []string{fmt.Sprintf("server.%s.%s", c.dc, c.domain), "localhost"}...)
 		IPAddresses = []net.IP{net.ParseIP("127.0.0.1")}
 		extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth}
-		prefix = fmt.Sprintf("%s-server-%s", c.prefix, c.dc)
-		name = "Consul Server Certificate"
+		prefix = fmt.Sprintf("server-%s-%s", c.dc, c.domain)
+		name = fmt.Sprintf("server.%s.%s", c.dc, c.domain)
 	} else if c.client {
-		DNSNames = append(DNSNames, "localhost")
+		DNSNames = append(DNSNames, []string{fmt.Sprintf("client.%s.%s", c.dc, c.domain), "localhost"}...)
 		IPAddresses = []net.IP{net.ParseIP("127.0.0.1")}
 		extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth}
-		prefix = fmt.Sprintf("%s-client", c.prefix)
-		name = "Consul Client Certificate"
+		prefix = fmt.Sprintf("client-%s-%s", c.dc, c.domain)
+		name = fmt.Sprintf("client.%s.%s", c.dc, c.domain)
 	} else if c.cli {
-		prefix = fmt.Sprintf("%s-cli", prefix)
-		name = "Consul CLI Certificate"
+		DNSNames = []string{fmt.Sprintf("cli.%s.%s", c.dc, c.domain), "localhost"}
+		prefix = fmt.Sprintf("cli-%s-%s", c.dc, c.domain)
+		name = fmt.Sprintf("cli.%s.%s", c.dc, c.domain)
 	} else {
 		c.UI.Error("Neither client, cli nor server - should not happen")
 		return 1
@@ -123,12 +123,14 @@ func (c *cmd) Run(args []string) int {
 		}
 	}
 
-	cert, err := ioutil.ReadFile(c.ca)
+	caFile := strings.Replace(c.ca, "#DOMAIN#", c.domain, 1)
+	keyFile := strings.Replace(c.key, "#DOMAIN#", c.domain, 1)
+	cert, err := ioutil.ReadFile(caFile)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error reading CA: %s", err))
 		return 1
 	}
-	key, err := ioutil.ReadFile(c.key)
+	key, err := ioutil.ReadFile(keyFile)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error reading CA key: %s", err))
 		return 1
@@ -141,7 +143,7 @@ func (c *cmd) Run(args []string) int {
     and all ACL tokens. Do not distribute them to production hosts
     that are not server nodes. Store them as securely as CA keys.`)
 	}
-	c.UI.Info("==> Using " + c.ca + " and " + c.key)
+	c.UI.Info("==> Using " + caFile + " and " + keyFile)
 
 	signer, err := tls.ParseSigner(string(key))
 	if err != nil {
@@ -154,11 +156,15 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error(err.Error())
 		return 1
 	}
-	name += fmt.Sprintf(" %d", sn)
 
 	pub, priv, err := tls.GenerateCert(signer, string(cert), sn, name, c.days, DNSNames, IPAddresses, extKeyUsage)
 	if err != nil {
 		c.UI.Error(err.Error())
+		return 1
+	}
+
+	if err = tls.Verify(string(cert), pub, name); err != nil {
+		c.UI.Error("==> " + err.Error())
 		return 1
 	}
 
@@ -200,23 +206,11 @@ Usage: consul tls cert create [options]
       server and access all state in the cluster including root keys
       and all ACL tokens. Do not distribute them to production hosts
       that are not server nodes. Store them as securely as CA keys.
-  ==> Using consul-ca.pem and consul-ca-key.pem
-  ==> Saved consul-server-dc1-0.pem
-  ==> Saved consul-server-dc1-0-key.pem
+  ==> Using agent-consul-ca.pem and agent-consul-ca-key.pem
+  ==> Saved server-dc1-consul-0.pem
+  ==> Saved server-dc1-consul-0-key.pem
   $ consul tls cert -client
-  ==> Using consul-ca.pem and consul-ca-key.pem
-  ==> Saved consul-client-0.pem
-  ==> Saved consul-client-0-key.pem
-  $ consul tls cert -cli -prefix my
-  ==> Using consul-ca.pem and consul-ca-key.pem
-  ==> Saved my-cli-0.pem
-  ==> Saved my-cli-0-key.pem
-  $ consul tls cert -server -ca my-ca.pem -key my-ca-key.pem -prefix my
-  ==> WARNING: Server Certificates grants authority to become a
-      server and access all state in the cluster including root keys
-      and all ACL tokens. Do not distribute them to production hosts
-      that are not server nodes. Store them as securely as CA keys.
-  ==> Using my-ca.pem and my-ca-key.pem
-  ==> Saved my-server-0.pem
-  ==> Saved my-server-0-key.pem
+  ==> Using agent-consul-ca.pem and agent-consul-ca-key.pem
+  ==> Saved client-dc1-consul-0.pem
+	==> Saved client-dc1-consul-0-key.pem
 `

@@ -1,6 +1,6 @@
 ---
 layout: "docs"
-page_title: "Creating and Configuring Certificates"
+page_title: "Creating and Configuring TLS Certificates"
 sidebar_current: "docs-guides-creating-certificates"
 description: |-
   Learn how to create certificates for Consul.
@@ -9,7 +9,7 @@ description: |-
 # Creating and Configuring Certificates
 
 Setting you cluster up with TLS is an important step towards a secure
-deployment. TLS is absolutely necassary and part of our [Security
+deployment. Correct TLS configuration is a prerequisite of our [Security
 Model](/docs/internals/security.html). Correctly configuring TLS can be a
 complex process however, especially given the wide range of deployment
 methodologies. This guide will provide you with a production ready TLS
@@ -45,7 +45,7 @@ in Chapter [3](#configuring-the-consul-cli-for-https) and
 
 ### Prerequisites
 
-This guide assumes you have Consul 1.4 (or newer) in your PATH.
+This guide assumes you have Consul 1.4.1 (or newer) in your PATH.
 
 ### Introduction
 
@@ -55,9 +55,6 @@ be signed by the same Certificate Authority (CA). This should be a _private_ CA
 and not a public one like [Let's Encrypt][letsencrypt] as any certificate
 signed by this CA will be allowed to communicate with the cluster.
 
-~> Consul certificates may be signed by intermediate CAs as long as the root CA
-   is the same. Append all intermediate CAs to the `cert_file`.
-
 ### Step 1: Create a Certificate Authority
 
 There are a variety of tools for managing your own CA, [like the PKI secret
@@ -66,16 +63,18 @@ use Consul's builtin TLS helpers:
 
 ```shell
 $ consul tls ca create
-==> Saved consul-ca.pem
-==> Saved consul-ca-key.pem
+==> Saved agent-consul-ca.pem
+==> Saved agent-consul-ca-key.pem
 ```
 
-The CA certificate (`consul-ca.pem`) contains the public key necessary to
+The CA certificate (`agent-consul-ca.pem`) contains the public key necessary to
 validate Consul certificates and therefore must be distributed to every node
-that requires access.
+that runs a consul agent.
 
-~> The CA key (`consul-ca-key.pem`) will be used to sign certificates for Consul
-nodes and must be kept private.
+~> The CA key (`agent-consul-ca-key.pem`) will be used to sign certificates for Consul
+nodes and must be kept private. Possession of this key allows anyone to run Consul as
+a trusted server and access all Consul data including ACL tokens.
+
 
 ### Step 2: Create individual Server Certificates
 
@@ -88,9 +87,9 @@ $ consul tls cert create -server
     server and access all state in the cluster including root keys
     and all ACL tokens. Do not distribute them to production hosts
     that are not server nodes. Store them as securely as CA keys.
-==> Using consul-ca.pem and consul-ca-key.pem
-==> Saved consul-server-dc1-0.pem
-==> Saved consul-server-dc1-0-key.pem
+==> Using agent-consul-ca.pem and agent-consul-ca-key.pem
+==> Saved server-dc1-consul-0.pem
+==> Saved server-dc1-consul-0-key.pem
 ```
 
 Please repeat this process until there is an *individual* certificate for each
@@ -102,11 +101,13 @@ certificate - one that contains `server.dc1.consul` in the `Subject Alternative
 Name`. If you enable
 [`verify_server_hostname`](/docs/agent/options.html#verify_server_hostname),
 only agents that provide such certificate are allowed to boot as a server.
-An attacker could otherwise compromise a Consul agent and restart the agent as a
-server in order to get access to all the data in your cluster! This is why
-server certificates are special, and only servers should have them provisioned.
+Without `verify_server_hostname = true` an attacker could compromise a Consul
+client agent and restart the agent as a server in order to get access to all the
+data in your cluster! This is why server certificates are special, and only
+servers should have them provisioned.
 
-~> Server certificates, like the CA key, must be kept private!
+~> Server keys, like the CA key, must be kept private - they effectively allow
+access to all Consul data.
 
 ### Step 3: Create Client Certificates
 
@@ -114,9 +115,9 @@ Create a client certificate:
 
 ```shell
 $ consul tls cert create -client
-==> Using consul-ca.pem and consul-ca-key.pem
-==> Saved consul-client-0.pem
-==> Saved consul-client-0-key.pem
+==> Using agent-consul-ca.pem and agent-consul-ca-key.pem
+==> Saved client-dc1-consul-0.pem
+==> Saved client-dc1-consul-0-key.pem
 ```
 
 Client certificates are also signed by your CA, but they do not have that
@@ -128,7 +129,7 @@ is enabled, they cannot start as a server.
 ### Prerequisites
 
 For this section you need access to your existing or new Consul cluster and have
-the certificates from previous chapter available.
+the certificates from the previous chapters available.
 
 ### Notes on example configurations
 
@@ -141,11 +142,9 @@ all into one file if you prefer that.
 ### Introduction
 
 By now you have created the certificates you need to enable TLS in your cluster.
-The next steps will demonstrate how to configure TLS. However take this with a
-grain of salt because turning on TLS might not be that straight forward
-depending on your setup. For example in a cluster that is being used in
-production you want to turn on TLS step by step to ensure there is no downtime
-like described [here][guide].
+The next steps show how to configure TLS for a brand new cluster. If you already
+have a cluster in production without TLS please see the [encryption
+guide][guide] for the steps needed to introduce TLS without downtime.
 
 ### Step 1: Setup Consul servers with certificates
 
@@ -155,9 +154,9 @@ certificates.
 
 The following files need to be copied to your Consul server:
 
-* `consul-ca.pem`: CA public certificate.
-* `consul-server-dc1-0.pem`: Consul server node public certificate for the `dc1` datacenter.
-* `consul-server-dc1-0-key.pem`: Consul server node private key for the `dc1` datacenter.
+* `agent-consul-ca.pem`: CA public certificate.
+* `server-dc1-consul-0.pem`: Consul server node public certificate for the `dc1` datacenter.
+* `server-dc1-consul-0-key.pem`: Consul server node private key for the `dc1` datacenter.
 
 Here is an example agent TLS configuration for Consul servers which mentions the
 copied files:
@@ -167,11 +166,21 @@ copied files:
   "verify_incoming": true,
   "verify_outgoing": true,
   "verify_server_hostname": true,
-  "ca_file": "consul-ca.pem",
-  "cert_file": "consul-server-dc1-0.pem",
-  "key_file": "consul-server-dc1-0-key.pem"
+  "ca_file": "agent-consul-ca.pem",
+  "cert_file": "server-dc1-consul-0.pem",
+  "key_file": "server-dc1-consul-0-key.pem",
+  "ports": {
+    "http": -1,
+    "https": 8501
+  }
 }
 ```
+
+This configuration disables the HTTP port to make sure there is only encryted
+communication. Existing clients that are not yet prepared to talk HTTPS won't be
+able to connect afterwards. This also affects builtin tooling like `consul
+members` and the UI. The next chapters will demonstrate how to setup secure
+access.
 
 After a Consul agent restart, your servers should be only talking TLS.
 
@@ -179,9 +188,9 @@ After a Consul agent restart, your servers should be only talking TLS.
 
 Now copy the following files to your Consul clients:
 
-* `consul-ca.pem`: CA public certificate.
-* `consul-client-0.pem`: Consul client node public certificate.
-* `consul-client-0-key.pem`: Consul client node private key.
+* `agent-consul-ca.pem`: CA public certificate.
+* `client-dc1-consul-0.pem`: Consul client node public certificate.
+* `client-dc1-consul-0-key.pem`: Consul client node private key.
 
 Here is an example agent TLS configuration for Consul agents which mentions the
 copied files:
@@ -191,35 +200,35 @@ copied files:
   "verify_incoming": true,
   "verify_outgoing": true,
   "verify_server_hostname": true,
-  "ca_file": "consul-ca.pem",
-  "cert_file": "consul-client-0.pem",
-  "key_file": "consul-client-0-key.pem"
+  "ca_file": "agent-consul-ca.pem",
+  "cert_file": "client-dc1-consul-0.pem",
+  "key_file": "client-dc1-consul-0-key.pem",
+  "ports": {
+    "http": -1,
+    "https": 8501
+  }
 }
 ```
+
+This configuration disables the HTTP port to make sure there is only encryted
+communication. Existing clients that are not yet prepared to talk HTTPS won't be
+able to connect afterwards. This also affects builtin tooling like `consul
+members` and the UI. The next chapters will demonstrate how to setup secure
+access.
 
 After a Consul agent restart, your agents should be only talking TLS.
 
 ## Configuring the Consul CLI for HTTPS
 
-It is possible to disable the HTTP API and only allow HTTPS by setting:
-
-```json
-{
-    "ports": {
-        "http": -1,
-        "https": 8501
-    }
-}
-```
-
-If your cluster is configured like that, you will need to create additional
-certificates in order to be able to continue to access the API and the UI:
+If your cluster is configured to only communicate via HTTPS, you will need to
+create additional certificates in order to be able to continue to access the API
+and the UI:
 
 ```shell
 $ consul tls cert create -cli
-==> Using consul-ca.pem and consul-ca-key.pem
-==> Saved consul-cli-0.pem
-==> Saved consul-cli-0-key.pem
+==> Using agent-consul-ca.pem and agent-consul-ca-key.pem
+==> Saved cli-dc1-consul-0.pem
+==> Saved cli-dc1-consul-0-key.pem
 ```
 
 If you are trying to get members of you cluster, the CLI will return an error:
@@ -238,8 +247,8 @@ Error retrieving members:
 But it will work again if you provide the certificates you provided:
 
 ```shell
-$ consul members -ca-file=consul-ca.pem -client-cert=consul-cli-0.pem \
-  -client-key=consul-cli-0-key.pem -http-addr="https://localhost:8501"
+$ consul members -ca-file=agent-consul-ca.pem -client-cert=cli-dc1-consul-0.pem \
+  -client-key=cli-dc1-consul-0-key.pem -http-addr="https://localhost:8501"
   Node     Address         Status  Type    Build     Protocol  DC   Segment
   ...
 ```
@@ -250,9 +259,9 @@ environment variables in your shell:
 
 ```shell
 $ export CONSUL_HTTP_ADDR=https://localhost:8501
-$ export CONSUL_CACERT=consul-ca.pem
-$ export CONSUL_CLIENT_CERT=consul-cli-0.pem
-$ export CONSUL_CLIENT_KEY=consul-cli-0-key.pem
+$ export CONSUL_CACERT=agent-consul-ca.pem
+$ export CONSUL_CLIENT_CERT=cli-dc1-consul-0.pem
+$ export CONSUL_CLIENT_KEY=cli-dc1-consul-0-key.pem
 ```
 
 * `CONSUL_HTTP_ADDR` is the URL of the Consul agent and sets the default for
@@ -278,9 +287,9 @@ HTTPS requests from other hosts.
 ## Configuring the Consul UI for HTTPS
 
 If your servers and clients are configured now like above, you won't be able to
-access the builtin UI anymore. We recommend that you pick a Consul agent you
-want to run the UI on and follow the instructions to get the UI up and running
-again.
+access the builtin UI anymore. We recommend that you pick one (or two for
+availability) Consul agent you want to run the UI on and follow the instructions
+to get the UI up and running again.
 
 ### Step 1: Which interface to bind to?
 
@@ -299,6 +308,9 @@ Binding to `0.0.0.0` should work:
   "client_addr": "0.0.0.0"
 }
 ```
+
+~> Since your Consul agent is now available to the network,
+`enable_script_checks` and `remote exec` must be disabled!
 
 ### Step 2: verify_incoming_rpc
 
@@ -331,7 +343,8 @@ not for HTTPS:
 ```
 
 ~> This is the only time we are changing the value of the existing option
-`verify_incoming` to false. Make sure to change it in the correct place!
+`verify_incoming` to false. Make sure to only change it on the agent running the
+UI!
 
 With the new configuration, it should work:
 
@@ -344,26 +357,24 @@ HTTP/2 200
 ### Step 3: Subject Alternative Name
 
 This step will take care of setting up the domain you want to use to access the
-Consul UI. Unless thats `localhost` or `127.0.0.1` you will have to go through
-that because it won't work otherwise:
+Consul UI. Unless you only need to access the UI over localhost or 127.0.0.1 you
+will need to go complete this step.
 
 ```shell
-$ curl https://myconsului.com:8501/ui/ \
-  --resolve 'myconsului.com:8501:127.0.0.1' \
-  --cacert consul-ca.pem
-curl: (51) SSL: no alternative certificate subject name matches target host name 'myconsului.com'
+$ curl https://consul.example.com:8501/ui/ \
+  --resolve 'consul.example.com:8501:127.0.0.1' \
+  --cacert agent-consul-ca.pem
+curl: (51) SSL: no alternative certificate subject name matches target host name 'consul.example.com'
 ...
 ```
 
 The above command simulates a request a browser is making when you are trying to
-use the domain `myconsului.com` to access your UI. This time we do validate the
-certificates because the browser is doing the same and we also pass the Consul
-CA. The problem this time is that your domain is not in `Subject Alternative
-Name` of the Certificate. We can fix that by creating a certificate that has our
-domain:
+use the domain `consul.example.com` to access your UI. The problem this time is
+that your domain is not in `Subject Alternative Name` of the Certificate. We can
+fix that by creating a certificate that has our domain:
 
 ```shell
-$ consul tls cert create -server -additional-dnsname myconsului.com
+$ consul tls cert create -server -additional-dnsname consul.example.com
 ...
 ```
 
@@ -371,9 +382,9 @@ And if you put your new cert into the configuration of the agent you picked to
 serve the UI and restart Consul, it works now:
 
 ```shell
-$ curl https://myconsului.com:8501/ui/ \
-  --resolve 'myconsului.com:8501:127.0.0.1' \
-  --cacert consul-ca.pem -I
+$ curl https://consul.example.com:8501/ui/ \
+  --resolve 'consul.example.com:8501:127.0.0.1' \
+  --cacert agent-consul-ca.pem -I
 HTTP/2 200
 ...
 ```
@@ -381,31 +392,34 @@ HTTP/2 200
 ### Step 4: Trust the Consul CA
 
 So far we have provided curl with our CA so that it can verify the connection,
-but if we stop doing that it will complain and so will our browser if you are
-going to your UI on https://myconsului.com:
+but if we stop doing that it will complain and so will our browser if you visit
+your UI on https://consul.example.com:
 
 ```shell
-$ curl https://myconsului.com:8501/ui/ \
-  --resolve 'myconsului.com:8501:127.0.0.1'
+$ curl https://consul.example.com:8501/ui/ \
+  --resolve 'consul.example.com:8501:127.0.0.1'
 curl: (60) SSL certificate problem: unable to get local issuer certificate
 ...
 ```
 
-You can fix that by trusting your Consul CA (`consul-ca.pem`) on your machine,
+You can fix that by trusting your Consul CA (`agent-consul-ca.pem`) on your machine,
 please use Google to find out how to do that on your OS.
 
 ```shell
-$ curl https://myconsului.com:8501/ui/ \
-  --resolve 'myconsului.com:8501:127.0.0.1' -I
+$ curl https://consul.example.com:8501/ui/ \
+  --resolve 'consul.example.com:8501:127.0.0.1' -I
 HTTP/2 200
 ...
 ```
 
 ## Summary
 
-When you completed this guide, your Consul cluster has TLS enabled and is
-protected against all sorts of attacks plus you made sure only your servers are
-able to start as a server! A good next step would be to read about [ACLs][acl]!
+When you have completed this guide, your Consul cluster will have TLS enabled
+and will encrypt all RPC and HTTP traffic (assuming you disabled the HTTP port).
+The other pre-requisites for a secure Consul deployment are:
+
+* [Enable gossip encryption](/docs/agent/encryption.html#gossip-encryption)
+* [Configure ACLs][acl] with default deny
 
 [letsencrypt]: https://letsencrypt.org/
 [vault]: https://www.vaultproject.io/

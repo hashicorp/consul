@@ -17,17 +17,25 @@ func New(ui cli.Ui) *cmd {
 }
 
 type cmd struct {
-	UI     cli.Ui
-	flags  *flag.FlagSet
-	help   string
-	days   int
-	prefix string
+	UI                    cli.Ui
+	flags                 *flag.FlagSet
+	help                  string
+	days                  int
+	domain                string
+	constraint            bool
+	additionalConstraints flags.AppendSliceValue
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.IntVar(&c.days, "days", 1825, "Provide number of days the CA is valid for from now on. Defaults to 5 years.")
-	c.flags.StringVar(&c.prefix, "prefix", "consul", "Prefix for the generated cert and key. Defaults to consul.")
+	c.flags.BoolVar(&c.constraint, "name-constraint", false, "Add name constraints for the CA. Results in rejecting "+
+		"certificates for other DNS than specified. If turned on localhost and -domain will be added to the allowed "+
+		"DNS. If the UI is going to be served over HTTPS its DNS has to be added with -additional-constraint. It is not "+
+		"possible to add that after the fact! Defaults to false.")
+	c.flags.StringVar(&c.domain, "domain", "consul", "Domain of consul cluster. Only used in combination with -name-constraint. Defaults to consul.")
+	c.flags.Var(&c.additionalConstraints, "additional-name-constraint", "Add name constraints for the CA. Results in rejecting certificates "+
+		"for other DNS than specified. Can be used multiple times. Only used in combination with -name-constraint.")
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -40,8 +48,8 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	certFileName := fmt.Sprintf("%s-agent-ca.pem", c.prefix)
-	pkFileName := fmt.Sprintf("%s-agent-ca-key.pem", c.prefix)
+	certFileName := fmt.Sprintf("agent-%s-ca.pem", c.domain)
+	pkFileName := fmt.Sprintf("agent-%s-ca-key.pem", c.domain)
 
 	if !(tls.FileDoesNotExist(certFileName)) {
 		c.UI.Error(certFileName + " already exists.")
@@ -61,7 +69,11 @@ func (c *cmd) Run(args []string) int {
 	if err != nil {
 		c.UI.Error(err.Error())
 	}
-	ca, err := tls.GenerateCA(s, sn, c.days, nil)
+	constraints := []string{}
+	if c.constraint {
+		constraints = append(c.additionalConstraints, []string{c.domain, "localhost"}...)
+	}
+	ca, err := tls.GenerateCA(s, sn, c.days, constraints)
 	if err != nil {
 		c.UI.Error(err.Error())
 	}
@@ -96,12 +108,6 @@ Usage: consul tls ca create [options]
   Create a new consul CA:
 
   $ consul tls ca create
-  ==> saved consul-ca.pem
-  ==> saved consul-ca-key.pem
-
-  Or save it with your own prefix:
-
-  $ consul tls ca create -prefix my
-  ==> saved my-ca.pem
-  ==> saved my-ca-key.pem
+  ==> saved agent-consul-ca.pem
+  ==> saved agent-consul-ca-key.pem
 `

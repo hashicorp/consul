@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"math/big"
 	"net"
-	"net/url"
 	"strings"
 	"time"
 )
@@ -49,14 +48,14 @@ func GeneratePrivateKey() (crypto.Signer, string, error) {
 	return pk, buf.String(), nil
 }
 
-// GenerateCA generates a new CA
-func GenerateCA(signer crypto.Signer, sn *big.Int, days int, uris []*url.URL) (string, error) {
+// GenerateCA generates a new CA for agent TLS (not to be confused with Connect TLS)
+func GenerateCA(signer crypto.Signer, sn *big.Int, days int, constraints []string) (string, error) {
 	id, err := keyID(signer.Public())
 	if err != nil {
 		return "", err
 	}
 
-	name := fmt.Sprintf("Consul CA %d", sn)
+	name := fmt.Sprintf("Consul Agent CA %d", sn)
 
 	// Create the CA cert
 	template := x509.Certificate{
@@ -70,7 +69,6 @@ func GenerateCA(signer crypto.Signer, sn *big.Int, days int, uris []*url.URL) (s
 			Organization:  []string{"HashiCorp Inc."},
 			CommonName:    name,
 		},
-		URIs:                  uris,
 		BasicConstraintsValid: true,
 		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign | x509.KeyUsageDigitalSignature,
 		IsCA:                  true,
@@ -80,6 +78,10 @@ func GenerateCA(signer crypto.Signer, sn *big.Int, days int, uris []*url.URL) (s
 		SubjectKeyId:          id,
 	}
 
+	if len(constraints) > 0 {
+		template.PermittedDNSDomainsCritical = true
+		template.PermittedDNSDomains = constraints
+	}
 	bs, err := x509.CreateCertificate(
 		rand.Reader, &template, &template, signer.Public(), signer)
 	if err != nil {
@@ -95,7 +97,7 @@ func GenerateCA(signer crypto.Signer, sn *big.Int, days int, uris []*url.URL) (s
 	return buf.String(), nil
 }
 
-// GenerateCert generates a new certificate
+// GenerateCert generates a new certificate for agent TLS (not to be confused with Connect TLS)
 func GenerateCert(signer crypto.Signer, ca string, sn *big.Int, name string, days int, DNSNames []string, IPAddresses []net.IP, extKeyUsage []x509.ExtKeyUsage) (string, string, error) {
 	parent, err := parseCert(ca)
 	if err != nil {
@@ -190,4 +192,25 @@ func ParseSigner(pemValue string) (crypto.Signer, error) {
 	default:
 		return nil, fmt.Errorf("unknown PEM block type for signing key: %s", block.Type)
 	}
+}
+
+func Verify(caString, certString, dns string) error {
+	roots := x509.NewCertPool()
+	ok := roots.AppendCertsFromPEM([]byte(caString))
+	if !ok {
+		return fmt.Errorf("failed to parse root certificate")
+	}
+
+	cert, err := parseCert(certString)
+	if err != nil {
+		return fmt.Errorf("failed to parse certificate")
+	}
+
+	opts := x509.VerifyOptions{
+		DNSName: fmt.Sprintf(dns),
+		Roots:   roots,
+	}
+
+	_, err = cert.Verify(opts)
+	return err
 }
