@@ -87,7 +87,7 @@ func TestGenerateCA(t *testing.T) {
 
 	cert, err := parseCert(ca)
 	require.Nil(t, err)
-	require.Equal(t, fmt.Sprintf("Consul CA %d", sn), cert.Subject.CommonName)
+	require.Equal(t, fmt.Sprintf("Consul Agent CA %d", sn), cert.Subject.CommonName)
 	require.Equal(t, true, cert.IsCA)
 	require.Equal(t, true, cert.BasicConstraintsValid)
 
@@ -130,7 +130,7 @@ func TestGenerateCert(t *testing.T) {
 	caID, err := keyID(signer.Public())
 	require.Nil(t, err)
 	require.Equal(t, caID, cert.AuthorityKeyId)
-	require.Contains(t, cert.Issuer.CommonName, "Consul CA")
+	require.Contains(t, cert.Issuer.CommonName, "Consul Agent CA")
 	require.Equal(t, false, cert.IsCA)
 
 	// format so that we don't take anything smaller than second into account.
