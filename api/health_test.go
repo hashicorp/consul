@@ -213,9 +213,9 @@ func TestAPI_HealthChecks(t *testing.T) {
 		if meta.LastIndex == 0 {
 			r.Fatalf("bad: %v", meta)
 		}
-		if got, want := out, checks; !verify.Values(t, "checks", got, want) {
-			r.Fatal("health.Checks failed")
-		}
+		checks[0].CreateIndex = out[0].CreateIndex
+		checks[0].ModifyIndex = out[0].ModifyIndex
+		verify.Values(r, "checks", out, checks)
 	})
 }
 

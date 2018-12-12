@@ -7,6 +7,7 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 )
 
 // Txn endpoint is used to perform multi-object atomic transactions.
@@ -37,6 +38,11 @@ func (t *Txn) preCheck(authorizer acl.Authorizer, ops structs.TxnOps) structs.Tx
 				})
 			}
 		case op.Node != nil:
+			// Skip the pre-apply checks if this is a GET.
+			if op.Node.Verb == api.NodeGet {
+				break
+			}
+
 			node := op.Node.Node
 			if err := nodePreApply(node.Node, string(node.ID)); err != nil {
 				errors = append(errors, &structs.TxnError{
@@ -54,6 +60,11 @@ func (t *Txn) preCheck(authorizer acl.Authorizer, ops structs.TxnOps) structs.Tx
 				})
 			}
 		case op.Service != nil:
+			// Skip the pre-apply checks if this is a GET.
+			if op.Service.Verb == api.ServiceGet {
+				break
+			}
+
 			service := &op.Service.Service
 			if err := servicePreApply(service, nil); err != nil {
 				errors = append(errors, &structs.TxnError{
@@ -71,6 +82,11 @@ func (t *Txn) preCheck(authorizer acl.Authorizer, ops structs.TxnOps) structs.Tx
 				})
 			}
 		case op.Check != nil:
+			// Skip the pre-apply checks if this is a GET.
+			if op.Check.Verb == api.CheckGet {
+				break
+			}
+
 			checkPreApply(&op.Check.Check)
 
 			// Check that the token has permissions for the given operation.
@@ -102,6 +118,21 @@ func (t *Txn) Apply(args *structs.TxnRequest, reply *structs.TxnResponse) error 
 	if len(reply.Errors) > 0 {
 		return nil
 	}
+
+	str := ""
+	for _, op := range args.Ops {
+		switch {
+		case op.KV != nil:
+			str += fmt.Sprintf("%#v\n", op.KV)
+		case op.Node != nil:
+			str += fmt.Sprintf("%#v\n", op.Node)
+		case op.Service != nil:
+			str += fmt.Sprintf("%#v\n", op.Service)
+		case op.Check != nil:
+			str += fmt.Sprintf("%#v\n", op.Check)
+		}
+	}
+	//return fmt.Errorf("%s", str)
 
 	// Apply the update.
 	resp, err := t.srv.raftApply(structs.TxnRequestType, args)

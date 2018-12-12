@@ -491,14 +491,22 @@ func (s *Store) GetNode(id string) (uint64, *structs.Node, error) {
 	idx := maxIndexTxn(tx, "nodes")
 
 	// Retrieve the node from the state store
-	node, err := tx.First("nodes", "id", id)
+	node, err := getNodeTxn(tx, id)
 	if err != nil {
 		return 0, nil, fmt.Errorf("node lookup failed: %s", err)
 	}
-	if node != nil {
-		return idx, node.(*structs.Node), nil
+	return idx, node, nil
+}
+
+func getNodeTxn(tx *memdb.Txn, nodeName string) (*structs.Node, error) {
+	node, err := tx.First("nodes", "id", nodeName)
+	if err != nil {
+		return nil, fmt.Errorf("node lookup failed: %s", err)
 	}
-	return idx, nil, nil
+	if node != nil {
+		return node.(*structs.Node), nil
+	}
+	return nil, nil
 }
 
 func getNodeIDTxn(tx *memdb.Txn, id types.NodeID) (*structs.Node, error) {

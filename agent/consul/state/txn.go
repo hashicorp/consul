@@ -129,7 +129,14 @@ func (s *Store) txnNode(tx *memdb.Txn, idx uint64, op *structs.TxnNodeOp) (struc
 
 	switch op.Verb {
 	case api.NodeGet:
-		entry, err = getNodeIDTxn(tx, op.Node.ID)
+		if op.Node.ID != "" {
+			entry, err = getNodeIDTxn(tx, op.Node.ID)
+		} else {
+			entry, err = getNodeTxn(tx, op.Node.Node)
+		}
+		if entry == nil && err == nil {
+			err = fmt.Errorf("node %q doesn't exist", op.Node.Node)
+		}
 
 	case api.NodeSet:
 		err = s.ensureNodeTxn(tx, idx, &op.Node)
@@ -188,6 +195,9 @@ func (s *Store) txnService(tx *memdb.Txn, idx uint64, op *structs.TxnServiceOp) 
 	switch op.Verb {
 	case api.ServiceGet:
 		entry, err = s.nodeServiceTxn(tx, op.Node, op.Service.ID)
+		if entry == nil && err == nil {
+			err = fmt.Errorf("service %q on node %q doesn't exist", op.Service.ID, op.Node)
+		}
 
 	case api.ServiceSet:
 		err = s.ensureServiceTxn(tx, idx, op.Node, &op.Service)

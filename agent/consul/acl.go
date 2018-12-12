@@ -1361,11 +1361,6 @@ func vetNodeTxnOp(op *structs.TxnNodeOp, rule acl.Authorizer) error {
 
 	node := op.Node
 
-	// Filtering for GETs is done on the output side.
-	if op.Verb == api.NodeGet {
-		return nil
-	}
-
 	n := &api.Node{
 		Node:            node.Node,
 		ID:              string(node.ID),
@@ -1399,11 +1394,6 @@ func vetServiceTxnOp(op *structs.TxnServiceOp, rule acl.Authorizer) error {
 
 	service := op.Service
 
-	// Filtering for GETs is done on the output side.
-	if op.Verb == api.ServiceGet {
-		return nil
-	}
-
 	n := &api.Node{Node: op.Node}
 	svc := &api.AgentService{
 		ID:                service.ID,
@@ -1428,11 +1418,6 @@ func vetServiceTxnOp(op *structs.TxnServiceOp, rule acl.Authorizer) error {
 func vetCheckTxnOp(op *structs.TxnCheckOp, rule acl.Authorizer) error {
 	// Fast path if ACLs are not enabled.
 	if rule == nil {
-		return nil
-	}
-
-	// Filtering for GETs is done on the output side.
-	if op.Verb == api.CheckGet {
 		return nil
 	}
 

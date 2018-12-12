@@ -279,27 +279,32 @@ func TestStateStore_Txn_Service(t *testing.T) {
 				Service: "svc1",
 				Address: "1.1.1.1",
 				Port:    1111,
+				Weights: &structs.Weights{Passing: 1, Warning: 1},
 				RaftIndex: structs.RaftIndex{
 					CreateIndex: 2,
 					ModifyIndex: 2,
 				},
+			},
+		},
+		&structs.TxnResult{
+			Service: &structs.NodeService{
+				ID:      "svc5",
 				Weights: &structs.Weights{Passing: 1, Warning: 1},
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 6,
+					ModifyIndex: 6,
+				},
 			},
 		},
 		&structs.TxnResult{
 			Service: &structs.NodeService{
-				ID: "svc5",
-			},
-		},
-		&structs.TxnResult{
-			Service: &structs.NodeService{
-				ID:   "svc2",
-				Tags: []string{"modified"},
+				ID:      "svc2",
+				Tags:    []string{"modified"},
+				Weights: &structs.Weights{Passing: 1, Warning: 1},
 				RaftIndex: structs.RaftIndex{
 					CreateIndex: 3,
 					ModifyIndex: 6,
 				},
-				Weights: &structs.Weights{Passing: 1, Warning: 1},
 			},
 		},
 	}

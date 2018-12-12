@@ -2,6 +2,7 @@ package structs
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"reflect"
@@ -893,14 +894,61 @@ type HealthCheck struct {
 }
 
 type HealthCheckDefinition struct {
-	HTTP                           string               `json:",omitempty"`
-	TLSSkipVerify                  bool                 `json:",omitempty"`
-	Header                         map[string][]string  `json:",omitempty"`
-	Method                         string               `json:",omitempty"`
-	TCP                            string               `json:",omitempty"`
-	Interval                       api.ReadableDuration `json:",omitempty"`
-	Timeout                        api.ReadableDuration `json:",omitempty"`
-	DeregisterCriticalServiceAfter api.ReadableDuration `json:",omitempty"`
+	HTTP                           string              `json:",omitempty"`
+	TLSSkipVerify                  bool                `json:",omitempty"`
+	Header                         map[string][]string `json:",omitempty"`
+	Method                         string              `json:",omitempty"`
+	TCP                            string              `json:",omitempty"`
+	Interval                       time.Duration       `json:",omitempty"`
+	Timeout                        time.Duration       `json:",omitempty"`
+	DeregisterCriticalServiceAfter time.Duration       `json:",omitempty"`
+}
+
+func (d *HealthCheckDefinition) MarshalJSON() ([]byte, error) {
+	type Alias HealthCheckDefinition
+	return json.Marshal(&struct {
+		Interval                       string
+		Timeout                        string
+		DeregisterCriticalServiceAfter string
+		*Alias
+	}{
+		Interval:                       d.Interval.String(),
+		Timeout:                        d.Timeout.String(),
+		DeregisterCriticalServiceAfter: d.DeregisterCriticalServiceAfter.String(),
+		Alias:                          (*Alias)(d),
+	})
+}
+
+func (d *HealthCheckDefinition) UnmarshalJSON(data []byte) error {
+	type Alias HealthCheckDefinition
+	aux := &struct {
+		Interval                       string
+		Timeout                        string
+		DeregisterCriticalServiceAfter string
+		*Alias
+	}{
+		Alias: (*Alias)(d),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	var err error
+	if aux.Interval != "" {
+		if d.Interval, err = time.ParseDuration(aux.Interval); err != nil {
+			return err
+		}
+	}
+	if aux.Timeout != "" {
+		if d.Timeout, err = time.ParseDuration(aux.Timeout); err != nil {
+			return err
+		}
+	}
+	if aux.DeregisterCriticalServiceAfter != "" {
+		if d.DeregisterCriticalServiceAfter, err = time.ParseDuration(aux.DeregisterCriticalServiceAfter); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // IsSame checks if one HealthCheck is the same as another, without looking

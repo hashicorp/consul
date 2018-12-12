@@ -20,8 +20,10 @@ func (c *Client) Txn() *Txn {
 // TxnOp is the internal format we send to Consul. Currently only K/V and
 // check operations are supported.
 type TxnOp struct {
-	KV    *KVTxnOp
-	Check *CheckTxnOp
+	KV      *KVTxnOp
+	Node    *NodeTxnOp
+	Service *ServiceTxnOp
+	Check   *CheckTxnOp
 }
 
 // TxnOps is a list of transaction operations.
@@ -29,8 +31,10 @@ type TxnOps []*TxnOp
 
 // TxnResult is the internal format we receive from Consul.
 type TxnResult struct {
-	KV    *KVPair
-	Check *HealthCheck
+	KV      *KVPair
+	Node    *Node
+	Service *CatalogService
+	Check   *HealthCheck
 }
 
 // TxnResults is a list of TxnResult objects.
@@ -100,6 +104,12 @@ const (
 	NodeDeleteCAS NodeOp = "delete-cas"
 )
 
+// NodeTxnOp defines a single operation inside a transaction.
+type NodeTxnOp struct {
+	Verb NodeOp
+	Node Node
+}
+
 // ServiceOp constants give possible operations available in a transaction.
 type ServiceOp string
 
@@ -110,6 +120,13 @@ const (
 	ServiceDelete    ServiceOp = "delete"
 	ServiceDeleteCAS ServiceOp = "delete-cas"
 )
+
+// ServiceTxnOp defines a single operation inside a transaction.
+type ServiceTxnOp struct {
+	Verb    ServiceOp
+	Node    string
+	Service CatalogService
+}
 
 // CheckOp constants give possible operations available in a transaction.
 type CheckOp string
@@ -185,17 +202,7 @@ func (c *Client) txn(txn TxnOps, q *QueryOptions) (bool, *TxnResponse, *QueryMet
 	r := c.newRequest("PUT", "/v1/txn")
 	r.setQueryOptions(q)
 
-	// Convert into the internal txn format.
-	ops := make(TxnOps, 0, len(txn))
-	for _, kvOp := range txn {
-		switch {
-		case kvOp.KV != nil:
-			ops = append(ops, &TxnOp{KV: kvOp.KV})
-		case kvOp.Check != nil:
-			ops = append(ops, &TxnOp{Check: kvOp.Check})
-		}
-	}
-	r.obj = ops
+	r.obj = txn
 	rtt, resp, err := c.doRequest(r)
 	if err != nil {
 		return false, nil, nil, err

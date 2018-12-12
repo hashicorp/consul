@@ -446,7 +446,18 @@ func decodeBody(req *http.Request, out interface{}, cb func(interface{}) error) 
 			return err
 		}
 	}
-	return mapstructure.Decode(raw, out)
+
+	decodeConf := &mapstructure.DecoderConfig{
+		DecodeHook: mapstructure.StringToTimeDurationHookFunc(),
+		Result:     &out,
+	}
+
+	decoder, err := mapstructure.NewDecoder(decodeConf)
+	if err != nil {
+		return err
+	}
+
+	return decoder.Decode(raw)
 }
 
 // setTranslateAddr is used to set the address translation header. This is only

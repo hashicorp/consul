@@ -456,7 +456,7 @@ func TestAPI_ClientAcquireRelease(t *testing.T) {
 	}
 }
 
-func TestAPI_ClientTxn(t *testing.T) {
+func TestAPI_KVClientTxn(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()

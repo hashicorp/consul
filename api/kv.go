@@ -265,7 +265,7 @@ func (k *KV) deleteInternal(key string, params map[string]string, q *WriteOption
 // The Txn function has been deprecated from the KV object; please see the Txn
 // object for more information about Transactions.
 func (k *KV) Txn(txn KVTxnOps, q *QueryOptions) (bool, *KVTxnResponse, *QueryMeta, error) {
-	ops := make(TxnOps, len(txn))
+	var ops TxnOps
 	for _, op := range txn {
 		ops = append(ops, &TxnOp{KV: op})
 	}
