@@ -311,10 +311,11 @@ Binding to `0.0.0.0` should work:
 }
 ```
 
-~> Since your Consul agent is now available to the network,
-[`enable_script_checks`](/docs/agent/options.html#_enable_script_checks) and
+~> Since your Consul agent is now available to the network, please make sure
+that [`enable_script_checks`](/docs/agent/options.html#_enable_script_checks) is
+set to `false` and
 [`disable_remote_exec`](https://www.consul.io/docs/agent/options.html#disable_remote_exec)
-must be disabled!
+is set to `true`.
 
 ### Step 2: verify_incoming_rpc
 
