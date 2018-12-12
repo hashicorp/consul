@@ -71,9 +71,9 @@ Operationally, the backup process does not need to be executed on every server. 
 
 ## Restore from Backup 
 
-Running the `restore` process should be straightforward. However, there are a couple of actions you can take to ensure the process goes smoothly. First, make sure the cluster you are restoring is stable and has a leader. You can see this using `consul operator raft list-peers` and checking server logs and telemetry for signs of leader elections or network issues. You will only need to run the process once, on the leader. The Raft consensus protocol ensures that all servers restore the same state.
+Running the `restore` process should be straightforward. However, there are a couple of actions you can take to ensure the process goes smoothly. First, make sure the cluster you are restoring is stable and has a leader. You can see this using `consul operator raft list-peers` and checking server logs and telemetry for signs of leader elections or network issues. 
 
-The basic restore command. 
+You will only need to run the process once, on the leader. The Raft consensus protocol ensures that all servers restore the same state.
 
 ```sh
 $ consul snapshot restore backup.snap
