@@ -1724,6 +1724,11 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 		}
 	}
 
+	// Set default weights if not specified
+	if service.Weights == nil {
+		service.Weights = &structs.Weights{Passing: 1, Warning: 1}
+	}
+
 	// Warn if the service name is incompatible with DNS
 	if InvalidDnsRe.MatchString(service.Service) {
 		a.logger.Printf("[WARN] agent: Service name %q will not be discoverable "+
