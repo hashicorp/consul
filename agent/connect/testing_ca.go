@@ -274,7 +274,7 @@ func testPrivateKey(t testing.T) (crypto.Signer, string) {
 }
 
 // testSerialNumber generates a serial number suitable for a certificate. For
-// testing, this just sets it to a random number, but one that can fix in a
+// testing, this just sets it to a random number, but one that can fit in a
 // uint64 since we use that in our datastructures and assume cert serials will
 // fit in that for now.
 func testSerialNumber() (*big.Int, error) {
