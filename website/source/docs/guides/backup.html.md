@@ -28,7 +28,7 @@ This spreads the load across nodes at the possible expense of losing full consis
 
 The `snapshot save` command for backing up the cluster state has many configuration options. In a production environment, you will want to configure ACL tokens and client certificates for security. The configuration options also allow you to specify the datacenter and server to collect the backup data from. Below are several examples. 
  
-First, we will run the basic snapshot command with the all the defaults, including `consistent` mode.
+First, we will run the basic snapshot command on one of our servers with the all the defaults, including `consistent` mode.
 
 ```sh
 $ consul snapshot save backup.snap
