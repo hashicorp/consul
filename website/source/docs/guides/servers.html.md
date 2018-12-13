@@ -157,6 +157,15 @@ The leader should also emit various logs including:
 At this point the node has been gracefully removed from the cluster, and
 will shut down.
 
+One particular scenario should be noted, because it can lead to unexpected consequences.
+The scenerio is when using `consul leave` while [`bootstrap_except`]() is configured
+When issuing the `leave` command on a health, running cluster, it will also decrease the quorum
+size, irregardless of the `bootstrap_expect` value. Meaning it will override the 
+configuration because `bootstrap_expect` is only enforced during the bootstrap procedure
+to ensure a leader is elected and does not limit the number of servers that 
+can be removed before quorum is lost. This is another reason you should add the replacement
+servers before removing old servers.   
+
 To remove all agents that accidentally joined the wrong set of servers, clear out the contents of the data directory (`-data-dir`) on both client and server nodes.
 
 These graceful methods to remove servres assumse you have a healthly cluster. 
