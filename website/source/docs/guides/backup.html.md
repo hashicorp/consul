@@ -56,15 +56,15 @@ $ consul snapshot save -stale backup.snap
 Saved and verified snapshot to index 2276
 ```
 
-Once ACLs and agent certificates are configured, they can be passed in with the following flags.
+Once ACLs and agent certificates are configured, they can be passed in as environtmennt variables or flags.
 
 ```sh
-$ export CONSUL_HTTP_TOKEN="fc91b2b8-3631-4af4-8844-55b5c5e33235"
+$ export CONSUL_HTTP_TOKEN=<your ACL token>
 $ consul snapshot save -stale -ca-file=</path/to/file> backup.snap
 Saved and verified snapshot to index 2287
 ```
 
-Alternatively, you can use environment variables to say the ACL token and CA cert. 
+In the above example, we set the token as an ENV and the ca-file with a command line flag. 
 
 For production use, the  `snapshot save` command or [API](https://www.consul.io/api/snapshot.html) should be scripted and run frequently. In addition to frequently backing up the cluster state, there are several use cases when you would also want to manually execute `snapshot save`. First, you should always backup the cluster before upgrading. If the upgrade does not go according to plan it is often not possible to downgrade due to changes in the state store format. Restoring from a backup is the only option so taking one before the upgrade will ensure you have the latest data. Second, if the cluster loses quorum it may be beneficial to save the state before the servers become divergent. Finally, you can manually snapshot a cluster and use that to bootstrap a new cluster with the same state. 
 
