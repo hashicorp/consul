@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/consul/lib"
-	"github.com/y0ssar1an/q"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
@@ -43,9 +43,18 @@ type ConnectCALeaf struct {
 	// You must hold inflightMu to read (e.g. call) or write the value.
 	rootWatchCancel func()
 
-	// testSetCAChangeInitialJitter allows overriding the caChangeInitialJitter in
-	// tests.
-	testSetCAChangeInitialJitter time.Duration
+	// testSetCAChangeInitialDelay allows overriding the random jitter after a
+	// root change to make testing possible.
+	testSetCAChangeInitialDelay time.Duration
+	// testRootWatchStart/StopCount are testing helpers that allow tests to
+	// observe the reference counting behavior that governs the shared root watch.
+	// It's not exactly pretty to expose internals like this, but seems cleaner
+	// than constructing elaborate and brittle test cases that we can infer
+	// correct behavior from, and simpler than trying to probe runtime goroutine
+	// traces to infer correct behavior that way. They must be accessed
+	// atomically.
+	testRootWatchStartCount uint32
+	testRootWatchStopCount  uint32
 
 	RPC        RPC          // RPC client for remote requests
 	Cache      *cache.Cache // Cache that has CA root certs via ConnectCARoot
@@ -100,6 +109,8 @@ func (c *ConnectCALeaf) ensureRootWatcher() {
 }
 
 func (c *ConnectCALeaf) rootWatcher(ctx context.Context) {
+	atomic.AddUint32(&c.testRootWatchStartCount, 1)
+	defer atomic.AddUint32(&c.testRootWatchStopCount, 1)
 	ch := make(chan cache.UpdateEvent, 1)
 	err := c.Cache.Notify(ctx, ConnectCARootName, &structs.DCSpecificRequest{
 		Datacenter: c.Datacenter,
@@ -136,8 +147,6 @@ func (c *ConnectCALeaf) rootWatcher(ctx context.Context) {
 				// Shouldn't happen. Error handling as above.
 				continue
 			}
-
-			q.Q(roots)
 
 			// Check that the active root is actually different from the last CA
 			// config there are many reasons the config might have changed without
@@ -280,7 +289,6 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 	if !state.forceExpireAfter.IsZero() && state.forceExpireAfter.Before(expiresAt) {
 		expiresAt = state.forceExpireAfter
 	}
-	q.Q(expiresAt.String(), now.String())
 
 	if expiresAt == now || expiresAt.Before(now) {
 		// Already expired, just make a new one right away
@@ -293,16 +301,21 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 	result.Index = existing.ModifyIndex
 	result.State = state
 
+	// Setup the timeout chan outside the loop so we don't keep bumping the timout
+	// later if we go around.
+	timeoutCh := time.After(opts.Timeout)
+
+	// Setup initial expiry chan. We may change this if root update occurs in the
+	// loop below.
+	expiresCh := time.After(expiresAt.Sub(now))
+
 	// Current cert is valid so just wait until it expires or we time out.
 	for {
 		select {
-		case <-time.After(opts.Timeout):
+		case <-timeoutCh:
 			// We timed out the request with same cert.
 			return result, nil
-			// Note that we don't use now in the case below because this might be hit
-			// on a loop several minutes into the blocking request so recalculating
-			// the delay based on when the request started would be wrong!
-		case <-time.After(expiresAt.Sub(time.Now())):
+		case <-expiresCh:
 			// Cert expired or was force-expired by a root change.
 			return c.generateNewLeaf(reqReal, state)
 		case <-rootUpdateCh:
@@ -330,11 +343,10 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 			// rate limiting for the rest. For now spread the initial requests over 30
 			// seconds. Which means small clusters should still rotate in around 30
 			// seconds but large ones will not be so badly hammered initially.
-			jitter := caChangeInitialJitter
-			if c.testSetCAChangeInitialJitter > 0 {
-				jitter = c.testSetCAChangeInitialJitter
+			delay := lib.RandomStagger(caChangeInitialJitter)
+			if c.testSetCAChangeInitialDelay > 0 {
+				delay = c.testSetCAChangeInitialDelay
 			}
-			delay := lib.RandomStagger(jitter)
 			// Force the cert to be expired after the jitter - the delay above might
 			// be longer than we have left on out timeout so we might return to the
 			// caller before we expire. We set forceExpireAfter in the cache state so
@@ -347,6 +359,7 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 			// next time based on the state.
 			if state.forceExpireAfter.Before(expiresAt) {
 				expiresAt = state.forceExpireAfter
+				expiresCh = time.After(delay)
 			}
 			continue
 		}
