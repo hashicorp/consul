@@ -178,7 +178,7 @@ Next, perform a rolling restart of each agent in the cluster. After this step, T
 
 **Step 2**: (Optional, Enterprise-only) If applicable, set the `Use TLS` setting in any network areas to `true`. This can be done either through the [`consul operator area update`](/docs/commands/operator/area.html) command or the [Operator API](/api/operator/area.html).
 
-**Step 3**: Change the `verify_incoming`, `verify_outgoing`, and `verify_server_hostname` to `true` the perform another rolling restart of each agent in the cluster.
+**Step 3**: Change the `verify_incoming`, `verify_outgoing`, and `verify_server_hostname` to `true` then perform another rolling restart of each agent in the cluster.
 
 ```javascript
 {
