@@ -59,7 +59,8 @@ Saved and verified snapshot to index 2276
 Once ACLs and agent certificates are configured, they can be passed in with the following flags.
 
 ```sh
-$ consul snapshot save -stale -token=<ead6787-23thbd-666789> -ca-file=</path/to/file> backup.snap
+$ export CONSUL_HTTP_TOKEN="fc91b2b8-3631-4af4-8844-55b5c5e33235"
+$ consul snapshot save -stale -ca-file=</path/to/file> backup.snap
 Saved and verified snapshot to index 2287
 ```
 
