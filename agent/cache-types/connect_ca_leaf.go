@@ -74,6 +74,9 @@ type fetchState struct {
 	forceExpireAfter time.Time
 }
 
+// fetchStart is called on each fetch that is about to block and wait for
+// changes to the leaf. It subscribes a chan to receive updates from the shared
+// root watcher and triggers root watcher if it's not already running.
 func (c *ConnectCALeaf) fetchStart(rootUpdateCh chan struct{}) {
 	c.rootWatchMu.Lock()
 	defer c.rootWatchMu.Unlock()
@@ -84,43 +87,62 @@ func (c *ConnectCALeaf) fetchStart(rootUpdateCh chan struct{}) {
 	// Make sure a root watcher is running. We don't only do this on first request
 	// to be more tolerant of errors that could cause the root watcher to fail and
 	// exit.
-	c.ensureRootWatcher()
-	c.rootWatchSubscribers[rootUpdateCh] = struct{}{}
-}
-
-func (c *ConnectCALeaf) fetchDone(rootUpdateCh chan struct{}) {
-	c.rootWatchMu.Lock()
-	defer c.rootWatchMu.Unlock()
-	delete(c.rootWatchSubscribers, rootUpdateCh)
-	if len(c.rootWatchSubscribers) == 0 && c.rootWatchCancel != nil {
-		// This is was the last request. Stop the root watcher
-		c.rootWatchCancel()
-	}
-}
-
-// ensureRootWatcher must be called while holding c.inflightMu it starts a
-// background root watcher if there isn't already one running.
-func (c *ConnectCALeaf) ensureRootWatcher() {
 	if c.rootWatchCancel == nil {
 		ctx, cancel := context.WithCancel(context.Background())
 		c.rootWatchCancel = cancel
 		go c.rootWatcher(ctx)
 	}
+	c.rootWatchSubscribers[rootUpdateCh] = struct{}{}
 }
 
+// fetchDone is called when a blocking call exits to unsubscribe from root
+// updates and possibly stop the shared root watcher if it's no longer needed.
+// Note that typically root CA is still being watched by clients directly and
+// probably by the ProxyConfigManager so it will stay hot in cache for a while,
+// we are just not monitoring it for updates any more.
+func (c *ConnectCALeaf) fetchDone(rootUpdateCh chan struct{}) {
+	c.rootWatchMu.Lock()
+	defer c.rootWatchMu.Unlock()
+	delete(c.rootWatchSubscribers, rootUpdateCh)
+	if len(c.rootWatchSubscribers) == 0 && c.rootWatchCancel != nil {
+		// This was the last request. Stop the root watcher.
+		c.rootWatchCancel()
+	}
+}
+
+// rootWatcher is the shared rootWatcher that runs in a background goroutine
+// while needed by one or more inflight Fetch calls.
 func (c *ConnectCALeaf) rootWatcher(ctx context.Context) {
 	atomic.AddUint32(&c.testRootWatchStartCount, 1)
 	defer atomic.AddUint32(&c.testRootWatchStopCount, 1)
+
 	ch := make(chan cache.UpdateEvent, 1)
 	err := c.Cache.Notify(ctx, ConnectCARootName, &structs.DCSpecificRequest{
 		Datacenter: c.Datacenter,
 	}, "roots", ch)
 
+	notifyChange := func() {
+		c.rootWatchMu.Lock()
+		defer c.rootWatchMu.Unlock()
+
+		for ch := range c.rootWatchSubscribers {
+			select {
+			case ch <- struct{}{}:
+			default:
+				// Don't block - chans are 1-buffered so act as an edge trigger and
+				// reload CA state directly from cache so they never "miss" updates.
+			}
+		}
+	}
+
 	if err != nil {
-		// TODO(banks): Hmm we should probably plumb a logger through here at least.
-		// No good place to put this otherwise. At least next Fetch will retry. We
-		// could plumb it back through to all current Fetches and fail them with the
-		// error I guess?
+		// Trigger all inflight watchers. We don't pass the error, but they will
+		// reload from cache and observe the same error and return it to the caller,
+		// or if it's transient, will continue and the next Fetch will get us back
+		// into the right state. Seems better than busy loop-retrying here given
+		// that almost any error we would see here would also be returned from the
+		// cache get this will trigger.
+		notifyChange()
 		return
 	}
 
@@ -134,17 +156,15 @@ func (c *ConnectCALeaf) rootWatcher(ctx context.Context) {
 			// Root response changed in some way. Note this might be the initial
 			// fetch.
 			if e.Err != nil {
-				// TODO(banks): should we pass this on to clients? Feels like if it's a
-				// temporary issue and we recover we will have shown an error to leaf
-				// watchers for nothing. On the other hand all clients watching leafs
-				// will also be watching roots too so probably already saw the same
-				// error from their own roots watch.
+				// See above rationale about the error propagation
+				notifyChange()
 				continue
 			}
 
 			roots, ok := e.Result.(*structs.IndexedCARoots)
 			if !ok {
-				// Shouldn't happen. Error handling as above.
+				// See above rationale about the error propagation
+				notifyChange()
 				continue
 			}
 
@@ -161,16 +181,7 @@ func (c *ConnectCALeaf) rootWatcher(ctx context.Context) {
 
 			// Distribute the update to all inflight requests - they will decide
 			// whether or not they need to act on it.
-			c.rootWatchMu.Lock()
-			for ch := range c.rootWatchSubscribers {
-				select {
-				case ch <- struct{}{}:
-				default:
-					// Don't block - chans are 1-buffered so act as an edge trigger and
-					// reload CA state directly from cache so they never "miss" updates.
-				}
-			}
-			c.rootWatchMu.Unlock()
+			notifyChange()
 			oldRoots = roots
 		}
 	}
@@ -178,7 +189,8 @@ func (c *ConnectCALeaf) rootWatcher(ctx context.Context) {
 
 // calculateSoftExpiry encapsulates our logic for when to renew a cert based on
 // it's age. It returns a pair of times min, max which makes it easier to test
-// the logic without non-determinisic jitter to account for. The caller should choose a time randomly in between these.
+// the logic without non-determinisic jitter to account for. The caller should
+// choose a time randomly in between these.
 //
 // We want to balance a few factors here:
 //   - renew too early and it increases the aggregate CSR rate in the cluster
@@ -260,32 +272,18 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 		state = &fetchState{}
 	}
 
-	// Handle brand new request first as it's simplest. Note that either both or
-	// neither of these should be nil but we check both just to be defensive and
-	// confident we won't have a nil pointer for the remainder of this function.
-	if existing == nil || state == nil {
+	// Handle brand new request first as it's simplest.
+	if existing == nil {
 		return c.generateNewLeaf(reqReal, state)
 	}
-
-	// Make a chan we can be notified of changes to CA roots on. It must be
-	// buffered so we don't miss broadcasts from rootsWatch. It is an edge trigger
-	// so a single element is sufficient regardless of whether we consume the
-	// updates fast enough since as soon as we see an element in it, we will
-	// reload latest CA from cache.
-	rootUpdateCh := make(chan struct{}, 1)
-
-	// We are now inflight. Add our state to the map and defer removing it. This
-	// may trigger background root watcher too.
-	c.fetchStart(rootUpdateCh)
-	defer c.fetchDone(rootUpdateCh)
 
 	// We have a certificate in cache already. Check it's still valid.
 	now := time.Now()
 	minExpire, maxExpire := calculateSoftExpiry(now, existing)
 	expiresAt := minExpire.Add(lib.RandomStagger(maxExpire.Sub(minExpire)))
 
-	// Check if we have be force-expired by the root watcher because there is a
-	// new CA root.
+	// Check if we have been force-expired by a root update that jittered beyond
+	// the timeout of the query it was running.
 	if !state.forceExpireAfter.IsZero() && state.forceExpireAfter.Before(expiresAt) {
 		expiresAt = state.forceExpireAfter
 	}
@@ -295,6 +293,19 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 		return c.generateNewLeaf(reqReal, state)
 	}
 
+	// We are about to block and wait for a change or timeout.
+
+	// Make a chan we can be notified of changes to CA roots on. It must be
+	// buffered so we don't miss broadcasts from rootsWatch. It is an edge trigger
+	// so a single buffer element is sufficient regardless of whether we consume
+	// the updates fast enough since as soon as we see an element in it, we will
+	// reload latest CA from cache.
+	rootUpdateCh := make(chan struct{}, 1)
+
+	// Subscribe our chan to get root update notification.
+	c.fetchStart(rootUpdateCh)
+	defer c.fetchDone(rootUpdateCh)
+
 	// Setup result to mirror the current value for if we timeout. This allows us
 	// to update the state even if we don't generate a new cert.
 	result.Value = existing
@@ -302,7 +313,7 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 	result.State = state
 
 	// Setup the timeout chan outside the loop so we don't keep bumping the timout
-	// later if we go around.
+	// later if we loop around.
 	timeoutCh := time.After(opts.Timeout)
 
 	// Setup initial expiry chan. We may change this if root update occurs in the
@@ -315,11 +326,13 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 		case <-timeoutCh:
 			// We timed out the request with same cert.
 			return result, nil
+
 		case <-expiresCh:
 			// Cert expired or was force-expired by a root change.
 			return c.generateNewLeaf(reqReal, state)
+
 		case <-rootUpdateCh:
-			// A roots cache change occurred, reload them from cache.
+			// A root cache change occurred, reload roots from cache.
 			roots, err := c.rootsFromCache()
 			if err != nil {
 				return result, err
@@ -335,28 +348,20 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 				continue
 			}
 			// CA root changed. We add some jitter here to avoid a thundering herd.
-			// The servers will be rate limited but we can still smooth this out over
-			// a small time to limit number of requests that get made at once that
-			// will likely hit the rate limit. We can't be too smart though since we
-			// don't know how many outstanding certs there are in the whole cluster so
-			// we just have to pick something better than no jitter at all and rely on
-			// rate limiting for the rest. For now spread the initial requests over 30
-			// seconds. Which means small clusters should still rotate in around 30
-			// seconds but large ones will not be so badly hammered initially.
+			// See docs on caChangeInitialJitter const.
 			delay := lib.RandomStagger(caChangeInitialJitter)
 			if c.testSetCAChangeInitialDelay > 0 {
 				delay = c.testSetCAChangeInitialDelay
 			}
 			// Force the cert to be expired after the jitter - the delay above might
-			// be longer than we have left on out timeout so we might return to the
-			// caller before we expire. We set forceExpireAfter in the cache state so
-			// the next request will notice we still need to renew and do it at the
-			// right time.
+			// be longer than we have left on our timeout. We set forceExpireAfter in
+			// the cache state so the next request will notice we still need to renew
+			// and do it at the right time. This is cleared once a new cert is
+			// returned by generateNewLeaf.
 			state.forceExpireAfter = time.Now().Add(delay)
-			// If that time is within the current timeout though, we want to renew the
-			// cert right now. This ensures that when we loop back around, we'll wait
-			// at most delay until generating a new cert, or will timeout and do it
-			// next time based on the state.
+			// If the delay time is within the current timeout, we want to renew the
+			// as soon as it's up. We change the expire time and chan so that when we
+			// loop back around, we'll wait at most delay until generating a new cert.
 			if state.forceExpireAfter.Before(expiresAt) {
 				expiresAt = state.forceExpireAfter
 				expiresCh = time.After(delay)
@@ -399,8 +404,8 @@ func (c *ConnectCALeaf) rootsFromCache() (*structs.IndexedCARoots, error) {
 func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest, state *fetchState) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
-	// Need to lookup RootCAs response to discover trust domain. First just lookup
-	// with no blocking info - this should be a cache hit most of the time.
+	// Need to lookup RootCAs response to discover trust domain. This should be a
+	// cache hit.
 	roots, err := c.rootsFromCache()
 	if err != nil {
 		return result, err
