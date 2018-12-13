@@ -8,7 +8,7 @@ description: |-
 
 # Cluster Backups
 
-Creating server backups is an important step in production deployments. Backups provide a mechanism for the server to recover from an outage (network loss, operator error, or a corrupted data directory). All agents write to the `-data-dir` before commit. This directory persists the local agent’s state and - in the case of servers -  it also holds the Raft information.
+Creating server backups is an important step in production deployments. Backups provide a mechanism for the server to recover from an outage (network loss, operator error, or a corrupted data directory). All servers write to the `-data-dir` before commit on write requests. The same directory is used on client agents to persist local state too, but this is not critical and can be rebuilt when recreating an agent. Local client state is not backed up in this guide and doesn't need to be in general, only the server's Raft store state.
 
 Consul provides the [snapshot](https://consul.io/docs/commands/snapshot.html) command which can be run using the CLI or the API. The `snapshot` command saves a point-in-time snapshot of the state of the Consul servers which includes:
 
