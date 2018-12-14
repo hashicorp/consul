@@ -83,7 +83,7 @@ JY34uTPZyfUE+6tinMYEVw==
 
 A rolling update can be made by restarting the Consul agents (clients and servers) in turn. `consul reload` or `kill -HUP <process_id>` is _not_ sufficient to change the gossip configuration.
 
-**Step 3**: Update the `encrypt_verify_outgoing` setting to `true` and perform another rolling update of the cluster. The agents will now be sending encrypted gossip but will still allow incoming unencrypted traffic.
+**Step 3**: Update the `encrypt_verify_outgoing` setting to `true` and perform another rolling update of the cluster by restarting Consul on each agent. The agents will now be sending encrypted gossip but will still allow incoming unencrypted traffic.
 
 ```javascript
 {
@@ -95,9 +95,7 @@ A rolling update can be made by restarting the Consul agents (clients and server
   "encrypt_verify_incoming": false,
   "encrypt_verify_outgoing": true
 }
-```
-
-Again, use `consul reload` or `kill -HUP <process_id>` to reload the process. 
+```. 
 
 **Step 4**: The previous step, enabling verify outgoing, must be completed on all agents before continuing. Update the `encrypt_verify_incoming` setting to `true` and perform a final rolling update of the cluster. 
 
