@@ -464,6 +464,15 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool, attempt uint) (<-
 		// Copy the existing entry to start.
 		newEntry := entry
 		newEntry.Fetching = false
+
+		// Importantly, always reset the Error. Having both Error and a Value that
+		// are non-nil is allowed in the cache entry but it indicates that the Error
+		// is _newer_ than the last good value. So if the err is nil then we need to
+		// reset to replace any _older_ errors and avoid them bubbling up. If the
+		// error is non-nil then we need to set it anyway and used to do it in the
+		// code below. See https://github.com/hashicorp/consul/issues/4480.
+		newEntry.Error = err
+
 		if result.Value != nil {
 			// A new value was given, so we create a brand new entry.
 			newEntry.Value = result.Value
@@ -483,11 +492,6 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool, attempt uint) (<-
 
 			// This is a valid entry with a result
 			newEntry.Valid = true
-			// Importantly, unset the Error - having both an Error and a Value
-			// indicates that the Error is _newer_ than the last good value which
-			// requires us to reset it here. See
-			// https://github.com/hashicorp/consul/issues/4480
-			newEntry.Error = nil
 		}
 
 		// Error handling
@@ -526,12 +530,6 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool, attempt uint) (<-
 
 			// Increment attempt counter
 			attempt++
-
-			// Always set the error. We don't override the value here because if Valid
-			// is true, then we can reuse the Value in the case a specific index isn't
-			// requested. However, for blocking queries, we want Error to be set so
-			// that we can return early with the error.
-			newEntry.Error = err
 
 			// If we are refreshing and just failed, updated the lost contact time as
 			// our cache will be stale until we get successfully reconnected. We only
