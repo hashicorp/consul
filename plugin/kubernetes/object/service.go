@@ -16,6 +16,9 @@ type Service struct {
 	ExternalName string
 	Ports        []api.ServicePort
 
+	// ExternalIPs we may want to export.
+	ExternalIPs []string
+
 	*Empty
 }
 
@@ -37,6 +40,8 @@ func ToService(obj interface{}) interface{} {
 		ClusterIP:    svc.Spec.ClusterIP,
 		Type:         svc.Spec.Type,
 		ExternalName: svc.Spec.ExternalName,
+
+		ExternalIPs: make([]string, len(svc.Status.LoadBalancer.Ingress)+len(svc.Spec.ExternalIPs)),
 	}
 
 	if len(svc.Spec.Ports) == 0 {
@@ -45,6 +50,11 @@ func ToService(obj interface{}) interface{} {
 	} else {
 		s.Ports = make([]api.ServicePort, len(svc.Spec.Ports))
 		copy(s.Ports, svc.Spec.Ports)
+	}
+
+	li := copy(s.ExternalIPs, svc.Spec.ExternalIPs)
+	for i, lb := range svc.Status.LoadBalancer.Ingress {
+		s.ExternalIPs[li+i] = lb.IP
 	}
 
 	*svc = api.Service{}
@@ -65,8 +75,10 @@ func (s *Service) DeepCopyObject() runtime.Object {
 		Type:         s.Type,
 		ExternalName: s.ExternalName,
 		Ports:        make([]api.ServicePort, len(s.Ports)),
+		ExternalIPs:  make([]string, len(s.ExternalIPs)),
 	}
 	copy(s1.Ports, s.Ports)
+	copy(s1.ExternalIPs, s.ExternalIPs)
 	return s1
 }
 
