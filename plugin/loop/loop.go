@@ -19,6 +19,7 @@ type Loop struct {
 
 	zone  string
 	qname string
+	addr  string
 
 	sync.RWMutex
 	i   int
@@ -49,7 +50,7 @@ func (l *Loop) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 	}
 
 	if l.seen() > 2 {
-		log.Fatalf("Forwarding loop detected in \"%s\" zone. Exiting. See https://coredns.io/plugins/loop#troubleshooting. Probe query: \"HINFO %s\".", l.zone, l.qname)
+		log.Fatalf(`Loop (%s -> %s) detected for zone %q, see https://coredns.io/plugins/loop#troubleshooting. Query: "HINFO %s"`, state.RemoteAddr(), l.address(), l.zone, l.qname)
 	}
 
 	return plugin.NextOrFailure(l.Name(), l.Next, ctx, w, r)
@@ -93,4 +94,16 @@ func (l *Loop) disabled() bool {
 	l.RLock()
 	defer l.RUnlock()
 	return l.off
+}
+
+func (l *Loop) setAddress(addr string) {
+	l.Lock()
+	defer l.Unlock()
+	l.addr = addr
+}
+
+func (l *Loop) address() string {
+	l.RLock()
+	defer l.RUnlock()
+	return l.addr
 }

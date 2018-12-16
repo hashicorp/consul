@@ -7,10 +7,10 @@
 ## Description
 
 The *loop* plugin will send a random probe query to ourselves and will then keep track of how many times
-we see it. If we see it more than twice, we assume CoreDNS is looping and we halt the process.
+we see it. If we see it more than twice, we assume CoreDNS has seen a forwarding loop and we halt the process.
 
 The plugin will try to send the query for up to 30 seconds. This is done to give CoreDNS enough time
-to start up. Once a query has been successfully sent *loop* disables itself to prevent a query of
+to start up. Once a query has been successfully sent, *loop* disables itself to prevent a query of
 death.
 
 The query sent is `<random number>.<random number>.zone` with type set to HINFO.
@@ -36,22 +36,24 @@ forwards to it self.
 After CoreDNS has started it stops the process while logging:
 
 ~~~ txt
-plugin/loop: Forwarding loop detected in "." zone. Exiting. See https://coredns.io/plugins/loop#troubleshooting. Probe query: "HINFO 5577006791947779410.8674665223082153551.".
+plugin/loop: Loop (127.0.0.1:55953 -> :1053) detected for zone ".", see https://coredns.io/plugins/loop#troubleshooting. Query: "HINFO 4547991504243258144.3688648895315093531."
 ~~~
 
 ## Limitations
 
-This plugin only attempts to find simple static forwarding loops at start up time.  To detect a loop, all of the following must be true
+This plugin only attempts to find simple static forwarding loops at start up time. To detect a loop,
+the following must be true:
 
-* the loop must be present at start up time.
-* the loop must occur for at least the `HINFO` query type.
+*  the loop must be present at start up time.
+
+*  the loop must occur for the `HINFO` query type.
 
 ## Troubleshooting
 
-When CoreDNS logs contain the message `Forwarding loop detected ...`, this means that
-the `loop` detection plugin has detected an infinite forwarding loop in one of the upstream
-DNS servers.  This is a fatal error because operating with an infinite loop will consume
-memory and CPU until eventual out of memory death by the host.
+When CoreDNS logs contain the message `Loop ... detected ...`, this means that the `loop` detection
+plugin has detected an infinite forwarding loop in one of the upstream DNS servers. This is a fatal
+error because operating with an infinite loop will consume memory and CPU until eventual out of
+memory death by the host.
 
 A forwarding loop is usually caused by:
 
@@ -64,6 +66,7 @@ to another DNS server that is forwarding requests back to CoreDNS. If `proxy` or
  using a file (e.g. `/etc/resolv.conf`), make sure that file does not contain local addresses.
 
 ### Troubleshooting Loops In Kubernetes Clusters
+
 When a CoreDNS Pod deployed in Kubernetes detects a loop, the CoreDNS Pod will start to "CrashLoopBackOff".
 This is because Kubernetes will try to restart the Pod every time CoreDNS detects the loop and exits.
 
