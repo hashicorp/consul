@@ -8,18 +8,31 @@ ignored = [
     "github.com/prometheus/client_golang/prometheus/promhttp",
 ]
 
-# client-go v8.0.0 uses apimachinery 103fd098999dc9c0c88536f5c9ad2e5da39373ae
-# and api 072894a440bdee3a891dea811fe42902311cd2a3 (see Godep.json). go dep
-# is unable to match Godep.json automatically so have to specify here.
+[prune]
+  go-tests = true
+  non-go = true
+  unused-packages = true
+
+# client-go v10.0.0 uses apimachinery 2b1284ed4c93a43499e781493253e2ac5959c4fd
+# and api 89a74a8d264df0e993299876a8cde88379b940ee,
+# and introduced klog 8139d8cb77af419532b33dfa7dd09fbc5f1d344f
+# and yaml fd68e9863619f6ec2fdd8625fe1f02e7c877e480 (see Godep.json).
+# go dep is unable to match Godep.json automatically so have to specify here.
 [[constraint]]
     name = "k8s.io/client-go"
-    version = "v8.0.0"
+    version = "v10.0.0"
 [[override]]
     name = "k8s.io/apimachinery"
-    revision = "103fd098999dc9c0c88536f5c9ad2e5da39373ae"
+    revision = "2b1284ed4c93a43499e781493253e2ac5959c4fd"
 [[override]]
     name = "k8s.io/api"
-    revision = "072894a440bdee3a891dea811fe42902311cd2a3"
+    revision = "89a74a8d264df0e993299876a8cde88379b940ee"
+[[override]]
+    name = "k8s.io/klog"
+    revision = "8139d8cb77af419532b33dfa7dd09fbc5f1d344f"
+[[override]]
+    name = "sigs.k8s.io/yaml"
+    revision = "fd68e9863619f6ec2fdd8625fe1f02e7c877e480"
 
 [[override]]
     name = "github.com/apache/thrift"
