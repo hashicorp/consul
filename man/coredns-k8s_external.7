@@ -1,0 +1,94 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "COREDNS\-K8S_EXTERNAL" "7" "December 2018" "CoreDNS" "CoreDNS plugins"
+.
+.SH "NAME"
+\fIk8s_external\fR \- resolve load balancer and external IPs from outside kubernetes clusters\.
+.
+.SH "DESCRIPTION"
+This plugin allows an additional zone to resolve the external IP address(es) of a Kubernetes service\. This plugin is only useful if the \fIkubernetes\fR plugin is also loaded\.
+.
+.P
+The plugin uses an external zone to resolve in\-cluster IP addresses\. It only handles queries for A, AAAA and SRV records, all others result in NODATA responses\. To make it a proper DNS zone it handles SOA and NS queries for the apex of the zone\.
+.
+.P
+By default the apex of the zone will look like (assuming the zone used is \fBexample\.org\fR):
+.
+.IP "" 4
+.
+.nf
+
+example\.org\.    5 IN    SOA ns1\.dns\.example\.org\. hostmaster\.example\.org\. (
+                12345      ; serial
+                14400      ; refresh (4 hours)
+                3600       ; retry (1 hour)
+                604800     ; expire (1 week)
+                5          ; minimum (4 hours)
+                )
+example\.org     5 IN    NS ns1\.dns\.example\.org\.
+
+ns1\.dns\.example\.org\.  5 IN  A    \.\.\.\.
+ns1\.dns\.example\.org\.  5 IN  AAAA \.\.\.\.
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Note we use the \fBdns\fR subdomain to place the records the DNS needs (see the \fBapex\fR directive)\. Also note the SOA\'s serial number is static\. The IP addresses of the nameserver records are those of the CoreDNS service\.
+.
+.P
+The \fIk8s_external\fR plugin handles the subdomain \fBdns\fR and the apex of the zone by itself, all other queries are resolved to addresses in the cluster\.
+.
+.SH "SYNTAX"
+.
+.nf
+
+k8s_external [ZONE\.\.\.]
+.
+.fi
+.
+.IP "\(bu" 4
+\fBZONES\fR zones \fIk8s_external\fR should be authoritative for\.
+.
+.IP "" 0
+.
+.P
+If you want to change the apex domain or use a different TTL for the return records you can use this extended syntax\.
+.
+.IP "" 4
+.
+.nf
+
+k8s_external [ZONE\.\.\.] {
+    apex APEX
+    ttl TTL
+}
+.
+.fi
+.
+.IP "" 0
+.
+.IP "\(bu" 4
+\fBAPEX\fR is the name (DNS label) to use the apex records, defaults to \fBdns\fR\.
+.
+.IP "\(bu" 4
+\fBttl\fR allows you to set a custom \fBTTL\fR for responses\. The default is 5 (seconds)\.
+.
+.IP "" 0
+Enable names under \fBexample\.org\fR to be resolved to in cluster DNS addresses\.
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+   kubernetes cluster\.local
+   k8s_external example\.org
+}
+.
+.fi
+.
+.IP "" 0
+For some background see resolve external IP address \fIhttps://github\.com/kubernetes/dns/issues/242\fR\. And A records for services with Load Balancer IP \fIhttps://github\.com/coredns/coredns/issues/1851\fR\.PTR queries for the reverse zone is not supported\.
