@@ -20,7 +20,7 @@ type zoneAddr struct {
 	Address   string     // used for bound zoneAddr - validation of overlapping
 }
 
-// String return the string representation of z.
+// String returns the string representation of z.
 func (z zoneAddr) String() string {
 	s := z.Transport + "://" + z.Zone + ":" + z.Port
 	if z.Address != "" {
@@ -29,13 +29,10 @@ func (z zoneAddr) String() string {
 	return s
 }
 
-// normalizeZone parses an zone string into a structured format with separate
+// normalizeZone parses a zone string into a structured format with separate
 // host, and port portions, as well as the original input string.
 func normalizeZone(str string) (zoneAddr, error) {
-	var err error
-
-	var trans string
-	trans, str = parse.Transport(str)
+	trans, str := parse.Transport(str)
 
 	host, port, ipnet, err := plugin.SplitHostPort(str)
 	if err != nil {
