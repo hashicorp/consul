@@ -123,7 +123,7 @@ Certificate Authority. Clients may optionally authenticate with a client certifi
 [this tutorial on creating a CA and signing certificates](/docs/guides/creating-certificates.html)
 using [cfssl](https://cfssl.org/).
 
-TLS can be used to verify the authenticity of the servers with [`verify_outgoing`](/docs/agent/options.html#verify_outgoing) and verify the authenticity of clients with [`verify_server_hostname`](/docs/agent/options.html#verify_server_hostname).
+TLS can be used to verify the authenticity of the servers with [`verify_outgoing`](/docs/agent/options.html#verify_outgoing) and [`verify_server_hostname`](/docs/agent/options.html#verify_server_hostname). It can also optionally verify client certificates when using [`verify_incoming`](/docs/agent/options.html#verify_incoming) 
 
 Review the [docs for specifics](https://www.consul.io/docs/agent/encryption.html).
 
