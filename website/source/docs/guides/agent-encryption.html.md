@@ -156,7 +156,7 @@ The `verify_outgoing` parameter enables agents to verify the authenticity of Con
 
 Enabling TLS on an existing cluster is supported. This process assumes a starting point of a running cluster with no TLS settings configured, and involves an intermediate step in order to get to full TLS encryption.
 
-**Step 1**: Generate the necessary keys and certificate, then set the `ca_file` or `ca_path`, `cert_file`, and `key_file` settings in the configuration for each agent. Make sure the `verify_outgoing` and `verify_incoming` options are set to `false`. HTTPS for the API can be enabled at this point by setting the [`https`](/docs/agent/options.html#http_port) port.
+**Step 1**: [Generate the necessary keys and certificates](/docs/guides/creating-certificates.html), then set the `ca_file` or `ca_path`, `cert_file`, and `key_file` settings in the configuration for each agent. Make sure the `verify_outgoing` and `verify_incoming` options are set to `false`. HTTPS for the API can be enabled at this point by setting the [`https`](/docs/agent/options.html#http_port) port.
 
 ```javascript
 {
