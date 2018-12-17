@@ -157,6 +157,8 @@ The leader should also emit various logs including:
 At this point the node has been gracefully removed from the cluster, and
 will shut down.
 
+~> Running `consul leave` on a server explicitly will reduce the quorum size. Even if the cluster used `bootstrap_expect` to set a quorum size initially, issuing `consul leave` on a server will reconfigure the cluster to have fewer servers. This means you could end up with just one server that is still able to commit writes because quorum is only 1, but those writes might be lost if that server fails before more are added.
+
 To remove all agents that accidentally joined the wrong set of servers, clear out the contents of the data directory (`-data-dir`) on both client and server nodes.
 
 These graceful methods to remove servres assumse you have a healthly cluster. 
