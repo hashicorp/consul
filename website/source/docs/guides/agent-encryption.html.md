@@ -150,7 +150,7 @@ After TLS has been configured on all the agents, you can start the agents and RP
 }
 ```
 
-The `verify_outgoing` parameter enables agents to verify the authenticity of Consul for outgoing connections. The `verify_server_hostname` parameter requires outgoing connections to perform hostname verification. Finally, the `verify_incoming` parameter enables the servers to verify the authenticity of all incoming connections. 
+The `verify_outgoing` parameter enables agents to verify the authenticity of Consul servers for outgoing connections. The `verify_server_hostname` parameter requires outgoing connections to perform hostname verification and is critically important to prevent compromised client agents from becoming servers and revealing all state to the attacker. Finally, the `verify_incoming` parameter enables the servers to verify the authenticity of all incoming connections. 
 
 ### Enable TLS: Existing Cluster
 
