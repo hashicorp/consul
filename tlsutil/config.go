@@ -121,6 +121,10 @@ func (c *Config) KeyPair() (*tls.Certificate, error) {
 	return &cert, err
 }
 
+func (c *Config) skipBuiltinVerify() bool {
+	return c.VerifyServerHostname == false && c.ServerName == ""
+}
+
 // OutgoingTLSConfig generates a TLS configuration for outgoing
 // requests. It will return a nil config if this configuration should
 // not use TLS for outgoing connections.
@@ -131,16 +135,8 @@ func (c *Config) OutgoingTLSConfig() (*tls.Config, error) {
 	// Create the tlsConfig
 	tlsConfig := &tls.Config{
 		RootCAs:            x509.NewCertPool(),
-		InsecureSkipVerify: true,
-	}
-	if c.ServerName != "" {
-		tlsConfig.ServerName = c.ServerName
-		tlsConfig.InsecureSkipVerify = false
-	}
-	if c.VerifyServerHostname {
-		// ServerName is filled in dynamically based on the target DC
-		tlsConfig.ServerName = "VerifyServerHostname"
-		tlsConfig.InsecureSkipVerify = false
+		InsecureSkipVerify: c.skipBuiltinVerify(),
+		ServerName:         c.ServerName,
 	}
 	if len(c.CipherSuites) != 0 {
 		tlsConfig.CipherSuites = c.CipherSuites
@@ -198,20 +194,15 @@ func (c *Config) OutgoingTLSWrapper() (DCWrapper, error) {
 		return nil, nil
 	}
 
-	// Strip the trailing '.' from the domain if any
-	domain := strings.TrimSuffix(c.Domain, ".")
-
-	wrapper := func(dc string, c net.Conn) (net.Conn, error) {
-		return WrapTLSClient(c, tlsConfig)
-	}
-
 	// Generate the wrapper based on hostname verification
-	if c.VerifyServerHostname {
-		wrapper = func(dc string, conn net.Conn) (net.Conn, error) {
-			conf := tlsConfig.Clone()
-			conf.ServerName = "server." + dc + "." + domain
-			return WrapTLSClient(conn, conf)
+	wrapper := func(dc string, conn net.Conn) (net.Conn, error) {
+		if c.VerifyServerHostname {
+			// Strip the trailing '.' from the domain if any
+			domain := strings.TrimSuffix(c.Domain, ".")
+			tlsConfig = tlsConfig.Clone()
+			tlsConfig.ServerName = "server." + dc + "." + domain
 		}
+		return c.wrapTLSClient(conn, tlsConfig)
 	}
 
 	return wrapper, nil
@@ -238,7 +229,7 @@ func SpecificDC(dc string, tlsWrap DCWrapper) Wrapper {
 // node names, we don't verify the certificate DNS names. Since go 1.3
 // no longer supports this mode of operation, we have to do it
 // manually.
-func WrapTLSClient(conn net.Conn, tlsConfig *tls.Config) (net.Conn, error) {
+func (c *Config) wrapTLSClient(conn net.Conn, tlsConfig *tls.Config) (net.Conn, error) {
 	var err error
 	var tlsConn *tls.Conn
 
@@ -247,6 +238,11 @@ func WrapTLSClient(conn net.Conn, tlsConfig *tls.Config) (net.Conn, error) {
 	// If crypto/tls is doing verification, there's no need to do
 	// our own.
 	if tlsConfig.InsecureSkipVerify == false {
+		return tlsConn, nil
+	}
+
+	// If verification is not turned on, don't do it.
+	if !c.VerifyOutgoing {
 		return tlsConn, nil
 	}
 
