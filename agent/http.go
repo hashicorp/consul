@@ -219,6 +219,7 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 			uifs = &redirectFS{fs: uifs}
 		}
 
+		mux.Handle("/robots.txt", http.FileServer(uifs))
 		mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(uifs)))
 	}
 
