@@ -5,7 +5,7 @@
 # e.g.
 #
 # 	make -f Makefile.fuzz proxy
-# 
+#
 # Each plugin that wants to join the fuzzing fray only needs to add a fuzz.go that calls
 # the plugins's ServeDNS and used the plugin/pkg/fuzz for the Do function.
 #
@@ -13,7 +13,7 @@
 #$ go get github.com/dvyukov/go-fuzz/go-fuzz
 #$ go get github.com/dvyukov/go-fuzz/go-fuzz-build
 
-REPO:="github.com/coredns/coredns/plugin"
+REPO:="github.com/coredns/coredns"
 
 FUZZ:=$(dir $(wildcard plugin/*/fuzz.go)) # plugin/cache/
 PLUGINS:=$(foreach f,$(FUZZ),$(subst plugin, ,$(f:/=))) # > /cache
@@ -25,8 +25,14 @@ echo:
 
 .PHONY: $(PLUGINS)
 $(PLUGINS): echo
-	go-fuzz-build -tags fuzz $(REPO)/$(@)
+	go-fuzz-build -tags fuzz $(REPO)/plugin/$(@)
 	go-fuzz -bin=./$(@)-fuzz.zip -workdir=fuzz/$(@)
+
+.PHONY: corefile
+corefile:
+	go-fuzz-build -tags fuzz $(REPO)/test
+	go-fuzz -bin=./test-fuzz.zip -workdir=fuzz/$(@)
+
 
 .PHONY: clean
 clean:
