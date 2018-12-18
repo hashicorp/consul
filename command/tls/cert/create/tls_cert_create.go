@@ -212,5 +212,5 @@ Usage: consul tls cert create [options]
   $ consul tls cert -client
   ==> Using consul-agent-ca.pem and consul-agent-ca-key.pem
   ==> Saved consul-client-dc1-0.pem
-	==> Saved consul-client-dc1-0-key.pem
+  ==> Saved consul-client-dc1-0-key.pem
 `
