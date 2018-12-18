@@ -38,8 +38,8 @@ type cmd struct {
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
-	c.flags.StringVar(&c.ca, "ca", "agent-#DOMAIN#-ca.pem", "Provide path to the ca. Defaults to agent-$DOMAIN-ca.pem.")
-	c.flags.StringVar(&c.key, "key", "agent-#DOMAIN#-ca-key.pem", "Provide path to the key. Defaults to agent-$DOMAIN-ca-key.pem.")
+	c.flags.StringVar(&c.ca, "ca", "#DOMAINa#-agent-ca.pem", "Provide path to the ca. Defaults to #DOMAIN#-agent-ca.pem.")
+	c.flags.StringVar(&c.key, "key", "#DOMAIN#-agent-ca-key.pem", "Provide path to the key. Defaults to #DOMAIN#-agent-ca-key.pem.")
 	c.flags.BoolVar(&c.server, "server", false, "Generate server certificate.")
 	c.flags.BoolVar(&c.client, "client", false, "Generate client certificate.")
 	c.flags.BoolVar(&c.cli, "cli", false, "Generate cli certificate.")
@@ -87,21 +87,21 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.server {
-		DNSNames = append(DNSNames, []string{fmt.Sprintf("server.%s.%s", c.dc, c.domain), "localhost"}...)
+		name = fmt.Sprintf("server.%s.%s", c.dc, c.domain)
+		DNSNames = append(DNSNames, []string{name, "localhost"}...)
 		IPAddresses = []net.IP{net.ParseIP("127.0.0.1")}
 		extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth}
-		prefix = fmt.Sprintf("server-%s-%s", c.dc, c.domain)
-		name = fmt.Sprintf("server.%s.%s", c.dc, c.domain)
+		prefix = fmt.Sprintf("%s-server-%s", c.dc, c.domain)
 	} else if c.client {
-		DNSNames = append(DNSNames, []string{fmt.Sprintf("client.%s.%s", c.dc, c.domain), "localhost"}...)
+		name = fmt.Sprintf("client.%s.%s", c.dc, c.domain)
+		DNSNames = append(DNSNames, []string{name, "localhost"}...)
 		IPAddresses = []net.IP{net.ParseIP("127.0.0.1")}
 		extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth}
-		prefix = fmt.Sprintf("client-%s-%s", c.dc, c.domain)
-		name = fmt.Sprintf("client.%s.%s", c.dc, c.domain)
+		prefix = fmt.Sprintf("%s-client-%s", c.dc, c.domain)
 	} else if c.cli {
-		DNSNames = []string{fmt.Sprintf("cli.%s.%s", c.dc, c.domain), "localhost"}
-		prefix = fmt.Sprintf("cli-%s-%s", c.dc, c.domain)
 		name = fmt.Sprintf("cli.%s.%s", c.dc, c.domain)
+		DNSNames = []string{name, "localhost"}
+		prefix = fmt.Sprintf("%s-cli-%s", c.dc, c.domain)
 	} else {
 		c.UI.Error("Neither client, cli nor server - should not happen")
 		return 1
@@ -206,11 +206,11 @@ Usage: consul tls cert create [options]
       server and access all state in the cluster including root keys
       and all ACL tokens. Do not distribute them to production hosts
       that are not server nodes. Store them as securely as CA keys.
-  ==> Using agent-consul-ca.pem and agent-consul-ca-key.pem
-  ==> Saved server-dc1-consul-0.pem
-  ==> Saved server-dc1-consul-0-key.pem
+  ==> Using consul-agent-ca.pem and consul-agent-ca-key.pem
+  ==> Saved consul-server-dc1-0.pem
+  ==> Saved consul-server-dc1-0-key.pem
   $ consul tls cert -client
-  ==> Using agent-consul-ca.pem and agent-consul-ca-key.pem
-  ==> Saved client-dc1-consul-0.pem
-	==> Saved client-dc1-consul-0-key.pem
+  ==> Using consul-agent-ca.pem and consul-agent-ca-key.pem
+  ==> Saved consul-client-dc1-0.pem
+	==> Saved consul-client-dc1-0-key.pem
 `

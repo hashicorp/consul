@@ -48,8 +48,8 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	certFileName := fmt.Sprintf("agent-%s-ca.pem", c.domain)
-	pkFileName := fmt.Sprintf("agent-%s-ca-key.pem", c.domain)
+	certFileName := fmt.Sprintf("%s-agent-ca.pem", c.domain)
+	pkFileName := fmt.Sprintf("%s-agent-ca-key.pem", c.domain)
 
 	if !(tls.FileDoesNotExist(certFileName)) {
 		c.UI.Error(certFileName + " already exists.")
@@ -108,6 +108,6 @@ Usage: consul tls ca create [options]
   Create a new consul CA:
 
   $ consul tls ca create
-  ==> saved agent-consul-ca.pem
-  ==> saved agent-consul-ca-key.pem
+  ==> saved consul-agent-ca.pem
+  ==> saved consul-agent-ca-key.pem
 `

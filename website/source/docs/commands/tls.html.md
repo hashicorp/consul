@@ -16,17 +16,17 @@ Create a CA:
 
 ```text
 $ consul tls ca create
-==> Saved agent-consul-ca.pem
-==> Saved agent-consul-ca-key.pem
+==> Saved consul-agent-ca.pem
+==> Saved consul-agent-ca-key.pem
 ```
 
 Create a client certificate:
 
 ```text
 $ consul tls cert create -client
-==> Using agent-consul-ca.pem and agent-consul-ca-key.pem
-==> Saved client-dc1-consul-0.pem
-==> Saved client-dc1-consul-0-key.pem
+==> Using consul-agent-ca.pem and consul-agent-ca-key.pem
+==> Saved consul-client-dc1-0.pem
+==> Saved consul-client-dc1-0-key.pem
 ```
 
 For more examples, ask for subcommand help or view the subcommand documentation
