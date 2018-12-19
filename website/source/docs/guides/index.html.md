@@ -18,6 +18,8 @@ The following guides are available:
 
 * [Adding/Removing Servers](/docs/guides/servers.html) - This guide covers how to safely add and remove Consul servers from the cluster. This should be done carefully to avoid availability outages.
 
+* [Agent Communication Encryption](/docs/guides/agent-encryption.html) - This guide covers how to encrypt both gossip and RPC communication.
+ 
 * [Autopilot](/docs/guides/autopilot.html) - This guide covers Autopilot, which provides automatic operator-friendly management of Consul servers.
 
 * [Bootstrapping](/docs/guides/bootstrapping.html) - This guide covers bootstrapping a new datacenter. This covers safely adding the initial Consul servers.
