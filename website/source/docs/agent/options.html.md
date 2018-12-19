@@ -1032,7 +1032,7 @@ default will automatically work with some tooling.
 
 * <a name="enable_agent_tls_for_checks"></a><a href="#enable_agent_tls_for_checks">`enable_agent_tls_for_checks`</a>
   When set, uses a subset of the agent's TLS configuration (`key_file`, `cert_file`, `ca_file`, `ca_path`, and
-  `server_name`) to set up the HTTP client for HTTP health checks. This allows services requiring 2-way TLS to
+  `server_name`) to set up the client for HTTP or gRPC health checks. This allows services requiring 2-way TLS to
   be checked using the agent's credentials. This was added in Consul 1.0.1 and defaults to false.
 
 * <a name="enable_debug"></a><a href="#enable_debug">`enable_debug`</a> When set, enables some
