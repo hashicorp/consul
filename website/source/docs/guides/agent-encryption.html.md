@@ -143,11 +143,13 @@ After TLS has been configured on all the agents, you can start the agents and RP
   "verify_incoming": true,
   "verify_outgoing": true,
   "verify_server_hostname": true,
-  "ca_file": "consul-ca.pem",
-  "cert_file": "consul.pem",
-  "key_file": "consul-key.pem
+  "ca_file": "consul-agent-ca.pem",
+  "cert_file": "consul-server-dc1-0.pem",
+  "key_file": "agent-consul-ca.pem"
 }
 ```
+
+Note, for clients, the default `cert_file` is `consul-client-dc1-0.pem`.
 
 The `verify_outgoing` parameter enables agents to verify the authenticity of Consul servers for outgoing connections. The `verify_server_hostname` parameter requires outgoing connections to perform hostname verification and is critically important to prevent compromised client agents from becoming servers and revealing all state to the attacker. Finally, the `verify_incoming` parameter enables the servers to verify the authenticity of all incoming connections. 
 
