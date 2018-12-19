@@ -24,6 +24,8 @@ The following guides are available:
 
 * [Bootstrapping](/docs/guides/bootstrapping.html) - This guide covers bootstrapping a new datacenter. This covers safely adding the initial Consul servers.
 
+* [Cluster Backups](/docs/guides/backup.html) - Consul provide the snapshot tool for backing up and restoring data. In this guide you will learn how to use both.
+
 * [Connect in Production](/docs/guides/connect-production.html) - This guide describes critical aspects of operating Consul Connect in Production.
 
 * [Connect with Envoy](/docs/guides/connect-envoy.html) - This guide will describe how to setup a development-mode Consul server and two Envoy proxies on a single machine using Docker.
