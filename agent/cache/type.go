@@ -53,6 +53,15 @@ type FetchOptions struct {
 	// been other Fetch attempts that resulted in an error in the mean time. These
 	// are not explicitly represented currently. We could add that if needed this
 	// was just simpler for now.
+	//
+	// The FetchResult read-only! It is constructed per Fetch call so modifying
+	// the struct directly (e.g. changing it's Index of Value field) will have no
+	// effect, however the Value and State fields may be pointers to the actual
+	// values stored in the cache entry. It is thread-unsafe to modify the Value
+	// or State via pointers since readers may be concurrently inspecting those
+	// values under the entry lock (although we guarantee only one Fetch call per
+	// entry) and modifying them even if the index doesn't change or the Fetch
+	// eventually errors will likely break logical invariants in the cache too!
 	LastResult *FetchResult
 }
 

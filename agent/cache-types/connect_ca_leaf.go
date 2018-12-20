@@ -62,7 +62,12 @@ type ConnectCALeaf struct {
 }
 
 // fetchState is some additional metadata we store with each cert in the cache
-// to track things like expiry and coordinate paces root rotations.
+// to track things like expiry and coordinate paces root rotations. It's
+// important this doesn't contain any pointer types since we rely on the struct
+// being copied to avoid modifying the actual state in the cache entry during
+// Fetch. Pointers themselves are OK, but if we point to another struct that we
+// call a method or modify in some way that would directly mutate the cache and
+// cause problems. We'd need to deep-clone in that case in Fetch below.
 type fetchState struct {
 	// authorityKeyID is the key ID of the CA root that signed the current cert.
 	// This is just to save parsing the whole cert everytime we have to check if
@@ -256,25 +261,29 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 
 	// Do we already have a cert in the cache?
 	var existing *structs.IssuedCert
-	var state *fetchState
+	// Really important this is not a pointer type since otherwise we would set it
+	// to point to the actual fetchState in the cache entry below and then would
+	// be directly modifying that in the cache entry even when we might later
+	// return an error and not update index etc. By being a value, we force a copy
+	var state fetchState
 	if opts.LastResult != nil {
 		existing, ok = opts.LastResult.Value.(*structs.IssuedCert)
 		if !ok {
 			return result, fmt.Errorf(
 				"Internal cache failure: last value wrong type: %T", req)
 		}
-		state, ok = opts.LastResult.State.(*fetchState)
+		state, ok = opts.LastResult.State.(fetchState)
 		if !ok {
 			return result, fmt.Errorf(
 				"Internal cache failure: last state wrong type: %T", req)
 		}
 	} else {
-		state = &fetchState{}
+		state = fetchState{}
 	}
 
 	// Handle brand new request first as it's simplest.
 	if existing == nil {
-		return c.generateNewLeaf(reqReal, state)
+		return c.generateNewLeaf(reqReal, &state)
 	}
 
 	// We have a certificate in cache already. Check it's still valid.
@@ -290,7 +299,7 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 
 	if expiresAt == now || expiresAt.Before(now) {
 		// Already expired, just make a new one right away
-		return c.generateNewLeaf(reqReal, state)
+		return c.generateNewLeaf(reqReal, &state)
 	}
 
 	// We are about to block and wait for a change or timeout.
@@ -329,7 +338,7 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 
 		case <-expiresCh:
 			// Cert expired or was force-expired by a root change.
-			return c.generateNewLeaf(reqReal, state)
+			return c.generateNewLeaf(reqReal, &state)
 
 		case <-rootUpdateCh:
 			// A root cache change occurred, reload roots from cache.
@@ -457,7 +466,9 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest, state *fetchS
 	state.authorityKeyID = connect.HexString(cert.AuthorityKeyId)
 
 	result.Value = &reply
-	result.State = state
+	// Store value not pointer so we don't accidentally mutate the cache entry
+	// state in Fetch.
+	result.State = *state
 	result.Index = reply.ModifyIndex
 	return result, nil
 }
