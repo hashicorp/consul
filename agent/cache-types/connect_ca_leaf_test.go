@@ -151,10 +151,6 @@ func TestConnectCALeaf_changingRoots(t *testing.T) {
 	typ, rootsCh := testCALeafType(t, rpc)
 	defer close(rootsCh)
 
-	// Override the root-change delay so we don't have to wait up to 20 seconds
-	// to see root changes work.
-	typ.testSetCAChangeInitialDelay = 1 * time.Microsecond
-
 	caRoot := connect.TestCA(t, nil)
 	caRoot.Active = true
 	rootsCh <- structs.IndexedCARoots{
@@ -257,7 +253,7 @@ func TestConnectCALeaf_changingRootsJitterBetweenCalls(t *testing.T) {
 	// a crazy high value otherwise we'll have to wait that long in the test to
 	// see if it actually happens on subsequent calls. We instead reduce the
 	// timeout in FetchOptions to be much shorter than this.
-	typ.testSetCAChangeInitialDelay = 100 * time.Millisecond
+	typ.TestOverrideCAChangeInitialDelay = 100 * time.Millisecond
 
 	caRoot := connect.TestCA(t, nil)
 	caRoot.Active = true
@@ -353,7 +349,7 @@ func TestConnectCALeaf_changingRootsJitterBetweenCalls(t *testing.T) {
 				require.Equal(resp, v.Value)
 				require.Equal(uint64(3), v.Index)
 				// Should not have been delivered before the delay
-				require.True(time.Since(earliestRootDelivery) > typ.testSetCAChangeInitialDelay)
+				require.True(time.Since(earliestRootDelivery) > typ.TestOverrideCAChangeInitialDelay)
 				// All good. We are done!
 				rootsDelivered = true
 			} else {
@@ -367,7 +363,7 @@ func TestConnectCALeaf_changingRootsJitterBetweenCalls(t *testing.T) {
 				// Sanity check that the forceExpireAfter state was set correctly
 				shouldExpireAfter = v.State.(*fetchState).forceExpireAfter
 				require.True(shouldExpireAfter.After(time.Now()))
-				require.True(shouldExpireAfter.Before(time.Now().Add(typ.testSetCAChangeInitialDelay)))
+				require.True(shouldExpireAfter.Before(time.Now().Add(typ.TestOverrideCAChangeInitialDelay)))
 			}
 			// Set the LastResult for subsequent fetches
 			opts.LastResult = &v
@@ -395,10 +391,6 @@ func TestConnectCALeaf_watchRootsDedupingMultipleCallers(t *testing.T) {
 
 	typ, rootsCh := testCALeafType(t, rpc)
 	defer close(rootsCh)
-
-	// No root change delay so we can see effects immediately. (Zero is unset so
-	// use very small time)
-	typ.testSetCAChangeInitialDelay = 1 * time.Nanosecond
 
 	caRoot := connect.TestCA(t, nil)
 	caRoot.Active = true
@@ -690,6 +682,11 @@ func testCALeafType(t *testing.T, rpc RPC) (*ConnectCALeaf, chan structs.Indexed
 		RPC:        rpc,
 		Cache:      c,
 		Datacenter: "dc1",
+		// Override the root-change spread so we don't have to wait up to 20 seconds
+		// to see root changes work. Can be changed back for specific tests that
+		// need to test this, Note it's not 0 since that used default but is
+		// effectively the same.
+		TestOverrideCAChangeInitialDelay: 1 * time.Microsecond,
 	}, rootsCh
 }
 
