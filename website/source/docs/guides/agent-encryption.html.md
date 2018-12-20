@@ -95,7 +95,7 @@ A rolling update can be made by restarting the Consul agents (clients and server
   "encrypt_verify_incoming": false,
   "encrypt_verify_outgoing": true
 }
-```. 
+``` 
 
 **Step 4**: The previous step, enabling verify outgoing, must be completed on all agents before continuing. Update the `encrypt_verify_incoming` setting to `true` and perform a final rolling update of the cluster. 
 
