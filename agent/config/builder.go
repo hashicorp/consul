@@ -568,6 +568,12 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 			"token":                 "Token",
 			"root_pki_path":         "RootPKIPath",
 			"intermediate_pki_path": "IntermediatePKIPath",
+			"ca_file":               "CAFile",
+			"ca_path":               "CAPath",
+			"cert_file":             "CertFile",
+			"key_file":              "KeyFile",
+			"tls_server_name":       "TLSServerName",
+			"tls_skip_verify":       "TLSSkipVerify",
 
 			// Common CA config
 			"leaf_cert_ttl": "LeafCertTTL",

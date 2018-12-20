@@ -38,6 +38,17 @@ func (v *VaultProvider) Configure(clusterId string, isRoot bool, rawConfig map[s
 	clientConf := &vaultapi.Config{
 		Address: config.Address,
 	}
+	err = clientConf.ConfigureTLS(&vaultapi.TLSConfig{
+		CACert:        config.CAFile,
+		CAPath:        config.CAPath,
+		ClientCert:    config.CertFile,
+		ClientKey:     config.KeyFile,
+		Insecure:      config.SkipValidate,
+		TLSServerName: config.TLSServerName,
+	})
+	if err != nil {
+		return err
+	}
 	client, err := vaultapi.NewClient(clientConf)
 	if err != nil {
 		return err

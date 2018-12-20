@@ -286,6 +286,13 @@ type VaultCAProviderConfig struct {
 	Token               string
 	RootPKIPath         string
 	IntermediatePKIPath string
+
+	CAFile        string
+	CAPath        string
+	CertFile      string
+	KeyFile       string
+	TLSServerName string
+	TLSSkipVerify bool
 }
 
 // ParseDurationFunc is a mapstructure hook for decoding a string or
