@@ -18,15 +18,15 @@ import (
 // Recommended name for registration.
 const ConnectCALeafName = "connect-ca-leaf"
 
-// caChangeInitialJitter is the jitter we apply after noticing the CA changed
-// before requesting a new cert. Since we don't know how many services are in
-// the cluster we can't be too smart about setting this so it's a tradeoff
-// between not making root rotations take unnecessarily long on small clusters
-// and not hammering the servers to hard on large ones. Note that server's will
-// soon have CSR rate limiting that will limit the impact on big clusters, but a
-// small spread in the initial requests still seems like a good idea and limits
-// how many clients will hit the rate limit.
-const caChangeInitialJitter = 20 * time.Second
+// caChangeInitialSpreadDefault is the jitter we apply after noticing the CA
+// changed before requesting a new cert. Since we don't know how many services
+// are in the cluster we can't be too smart about setting this so it's a
+// tradeoff between not making root rotations take unnecessarily long on small
+// clusters and not hammering the servers to hard on large ones. Note that
+// server's will soon have CSR rate limiting that will limit the impact on big
+// clusters, but a small spread in the initial requests still seems like a good
+// idea and limits how many clients will hit the rate limit.
+const caChangeInitialSpreadDefault = 20 * time.Second
 
 // ConnectCALeaf supports fetching and generating Connect leaf
 // certificates.
@@ -43,9 +43,6 @@ type ConnectCALeaf struct {
 	// You must hold inflightMu to read (e.g. call) or write the value.
 	rootWatchCancel func()
 
-	// testSetCAChangeInitialDelay allows overriding the random jitter after a
-	// root change to make testing possible.
-	testSetCAChangeInitialDelay time.Duration
 	// testRootWatchStart/StopCount are testing helpers that allow tests to
 	// observe the reference counting behavior that governs the shared root watch.
 	// It's not exactly pretty to expose internals like this, but seems cleaner
@@ -59,6 +56,16 @@ type ConnectCALeaf struct {
 	RPC        RPC          // RPC client for remote requests
 	Cache      *cache.Cache // Cache that has CA root certs via ConnectCARoot
 	Datacenter string       // This agent's datacenter
+
+	// TestOverrideCAChangeInitialDelay allows overriding the random jitter after a
+	// root change with a fixed delay. So far ths is only done in tests. If it's
+	// zero the caChangeInitialSpreadDefault maximum jitter will be used but if
+	// set, it overrides and provides a fixed delay. To essentially disable the
+	// delay in tests they can set it to 1 nanosecond. We may separately allow
+	// configuring the jitter limit by users later but this is different and for
+	// tests only since we need to set a deterministic time delay in order to test
+	// the behaviour here fully and determinstically.
+	TestOverrideCAChangeInitialDelay time.Duration
 }
 
 // fetchState is some additional metadata we store with each cert in the cache
@@ -358,9 +365,9 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 			}
 			// CA root changed. We add some jitter here to avoid a thundering herd.
 			// See docs on caChangeInitialJitter const.
-			delay := lib.RandomStagger(caChangeInitialJitter)
-			if c.testSetCAChangeInitialDelay > 0 {
-				delay = c.testSetCAChangeInitialDelay
+			delay := lib.RandomStagger(caChangeInitialSpreadDefault)
+			if c.TestOverrideCAChangeInitialDelay > 0 {
+				delay = c.TestOverrideCAChangeInitialDelay
 			}
 			// Force the cert to be expired after the jitter - the delay above might
 			// be longer than we have left on our timeout. We set forceExpireAfter in
