@@ -48,7 +48,7 @@ type Listener struct {
 	logger *log.Logger
 
 	// Gauge to track current open connections
-	activeConns  int64
+	activeConns  int32
 	connWG       sync.WaitGroup
 	metricPrefix string
 	metricLabels []metrics.Label
@@ -228,12 +228,12 @@ func (l *Listener) handleConn(src net.Conn) {
 // trackConn increments the count of active conns and returns a func() that can
 // be deferred on to decrement the counter again on connection close.
 func (l *Listener) trackConn() func() {
-	c := atomic.AddInt64(&l.activeConns, 1)
+	c := atomic.AddInt32(&l.activeConns, 1)
 	metrics.SetGaugeWithLabels([]string{l.metricPrefix, "conns"}, float32(c),
 		l.metricLabels)
 
 	return func() {
-		c := atomic.AddInt64(&l.activeConns, -1)
+		c := atomic.AddInt32(&l.activeConns, -1)
 		metrics.SetGaugeWithLabels([]string{l.metricPrefix, "conns"}, float32(c),
 			l.metricLabels)
 	}
