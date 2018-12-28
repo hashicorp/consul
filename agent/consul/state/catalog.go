@@ -337,7 +337,22 @@ func (s *Store) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, req *structs.Re
 		}
 	}
 
-	return nil
+	return s.populateCheckServiceNodesForNode(tx, idx, req.Node)
+}
+
+func (s *Store) populateCheckServiceNodesForNode(tx *memdb.Txn, idx uint64, node string) error {
+	// Iterate all services on the node and fix up their denormalised results
+	services, err := tx.Get("services", "node", node)
+	if err != nil {
+		return fmt.Errorf("failed service lookup: %s", err)
+	}
+	sns := make(structs.ServiceNodes, 0, 128)
+	for service := services.Next(); service != nil; service = services.Next() {
+		svc := service.(*structs.ServiceNode)
+		sns = append(sns, svc)
+	}
+
+	return s.populateCheckServiceNodes(tx, idx, sns)
 }
 
 // EnsureNode is used to upsert node registration or modification.
@@ -347,6 +362,10 @@ func (s *Store) EnsureNode(idx uint64, node *structs.Node) error {
 
 	// Call the node upsert
 	if err := s.ensureNodeTxn(tx, idx, node); err != nil {
+		return err
+	}
+
+	if err := s.populateCheckServiceNodesForNode(tx, idx, node.Node); err != nil {
 		return err
 	}
 
@@ -669,6 +688,10 @@ func (s *Store) EnsureService(idx uint64, node string, svc *structs.NodeService)
 
 	// Call the service registration upsert
 	if err := s.ensureServiceTxn(tx, idx, node, svc); err != nil {
+		return err
+	}
+
+	if err := s.populateCheckServiceNodesForNode(tx, idx, node); err != nil {
 		return err
 	}
 
@@ -1155,6 +1178,10 @@ func serviceIndexName(name string) string {
 	return fmt.Sprintf("service.%s", name)
 }
 
+func checkServiceIndexName(name string) string {
+	return fmt.Sprintf("check_service.%s", name)
+}
+
 // deleteServiceTxn is the inner method called to remove a service
 // registration within an existing transaction.
 func (s *Store) deleteServiceTxn(tx *memdb.Txn, idx uint64, nodeName, serviceID string) error {
@@ -1228,6 +1255,10 @@ func (s *Store) EnsureCheck(idx uint64, hc *structs.HealthCheck) error {
 
 	// Call the check registration
 	if err := s.ensureCheckTxn(tx, idx, hc); err != nil {
+		return err
+	}
+
+	if err := s.populateCheckServiceNodesForNode(tx, idx, hc.Node); err != nil {
 		return err
 	}
 
@@ -1701,34 +1732,91 @@ func (s *Store) parseCheckServiceNodes(
 		return idx, nil, nil
 	}
 
-	// We don't want to track an unlimited number of nodes, so we pull a
-	// top-level watch to use as a fallback.
-	allNodes, err := tx.Get("nodes", "id")
-	if err != nil {
-		return 0, nil, fmt.Errorf("failed nodes lookup: %s", err)
-	}
-	allNodesCh := allNodes.WatchCh()
+	// // We don't want to track an unlimited number of nodes, so we pull a
+	// // top-level watch to use as a fallback.
+	// allNodes, err := tx.Get("nodes", "id")
+	// if err != nil {
+	// 	return 0, nil, fmt.Errorf("failed nodes lookup: %s", err)
+	// }
+	// allNodesCh := allNodes.WatchCh()
 
-	// We need a similar fallback for checks. Since services need the
-	// status of node + service-specific checks, we pull in a top-level
-	// watch over all checks.
-	allChecks, err := tx.Get("checks", "id")
+	// // We need a similar fallback for checks. Since services need the
+	// // status of node + service-specific checks, we pull in a top-level
+	// // watch over all checks.
+	// allChecks, err := tx.Get("checks", "id")
+	// if err != nil {
+	// 	return 0, nil, fmt.Errorf("failed checks lookup: %s", err)
+	// }
+	// allChecksCh := allChecks.WatchCh()
+
+	// Watch the check service index
+	ch, _, err := tx.FirstWatch("index", "id", checkServiceIndexName(serviceName))
 	if err != nil {
-		return 0, nil, fmt.Errorf("failed checks lookup: %s", err)
+		return 0, nil, err
 	}
-	allChecksCh := allChecks.WatchCh()
+	ws.Add(ch)
 
 	results := make(structs.CheckServiceNodes, 0, len(services))
 	for _, sn := range services {
 		// Retrieve the node.
-		watchCh, n, err := tx.FirstWatch("nodes", "id", sn.Node)
+		// watchCh, n, err := tx.FirstWatch("nodes", "id", sn.Node)
+		// if err != nil {
+		// 	return 0, nil, fmt.Errorf("failed node lookup: %s", err)
+		// }
+		// ws.AddWithLimit(watchLimit, watchCh, allNodesCh)
+
+		// if n == nil {
+		// 	return 0, nil, ErrMissingNode
+		// }
+		// node := n.(*structs.Node)
+
+		// // First add the node-level checks. These always apply to any
+		// // service on the node.
+		// var checks structs.HealthChecks
+		// iter, err := tx.Get("checks", "node_service_check", sn.Node, false)
+		// if err != nil {
+		// 	return 0, nil, err
+		// }
+		// ws.AddWithLimit(watchLimit, iter.WatchCh(), allChecksCh)
+		// for check := iter.Next(); check != nil; check = iter.Next() {
+		// 	checks = append(checks, check.(*structs.HealthCheck))
+		// }
+
+		// // Now add the service-specific checks.
+		// iter, err = tx.Get("checks", "node_service", sn.Node, sn.ServiceID)
+		// if err != nil {
+		// 	return 0, nil, err
+		// }
+		// ws.AddWithLimit(watchLimit, iter.WatchCh(), allChecksCh)
+		// for check := iter.Next(); check != nil; check = iter.Next() {
+		// 	checks = append(checks, check.(*structs.HealthCheck))
+		// }
+
+		// Append to the results.
+		results = append(results, sn.InternalCheckServiceNode)
+	}
+
+	return idx, results, nil
+}
+
+func (s *Store) populateCheckServiceNodes(
+	tx *memdb.Txn, idx uint64, services structs.ServiceNodes) error {
+
+	// Special-case the zero return value to nil, since this ends up in
+	// external APIs.
+	if len(services) == 0 {
+		return nil
+	}
+
+	for i, sn := range services {
+		// Retrieve the node.
+		n, err := tx.First("nodes", "id", sn.Node)
 		if err != nil {
-			return 0, nil, fmt.Errorf("failed node lookup: %s", err)
+			return fmt.Errorf("failed node lookup: %s", err)
 		}
-		ws.AddWithLimit(watchLimit, watchCh, allNodesCh)
 
 		if n == nil {
-			return 0, nil, ErrMissingNode
+			return ErrMissingNode
 		}
 		node := n.(*structs.Node)
 
@@ -1737,9 +1825,8 @@ func (s *Store) parseCheckServiceNodes(
 		var checks structs.HealthChecks
 		iter, err := tx.Get("checks", "node_service_check", sn.Node, false)
 		if err != nil {
-			return 0, nil, err
+			return err
 		}
-		ws.AddWithLimit(watchLimit, iter.WatchCh(), allChecksCh)
 		for check := iter.Next(); check != nil; check = iter.Next() {
 			checks = append(checks, check.(*structs.HealthCheck))
 		}
@@ -1747,22 +1834,23 @@ func (s *Store) parseCheckServiceNodes(
 		// Now add the service-specific checks.
 		iter, err = tx.Get("checks", "node_service", sn.Node, sn.ServiceID)
 		if err != nil {
-			return 0, nil, err
+			return err
 		}
-		ws.AddWithLimit(watchLimit, iter.WatchCh(), allChecksCh)
 		for check := iter.Next(); check != nil; check = iter.Next() {
 			checks = append(checks, check.(*structs.HealthCheck))
 		}
 
-		// Append to the results.
-		results = append(results, structs.CheckServiceNode{
-			Node:    node,
-			Service: sn.ToNodeService(),
-			Checks:  checks,
-		})
+		// Populate the ServiceNode
+		services[i].InternalCheckServiceNode.Node = node
+		services[i].InternalCheckServiceNode.Service = sn.ToNodeService()
+		services[i].InternalCheckServiceNode.Checks = checks
+
+		if err := tx.Insert("index", &IndexEntry{checkServiceIndexName(sn.ServiceName), idx}); err != nil {
+			return fmt.Errorf("failed updating index: %s", err)
+		}
 	}
 
-	return idx, results, nil
+	return nil
 }
 
 // NodeInfo is used to generate a dump of a single node. The dump includes
