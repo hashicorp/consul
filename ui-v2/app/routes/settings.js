@@ -3,8 +3,8 @@ import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
 
-import WithFeedback from 'consul-ui/mixins/with-feedback';
-export default Route.extend(WithFeedback, {
+import WithBlockingActions from 'consul-ui/mixins/with-blocking-actions';
+export default Route.extend(WithBlockingActions, {
   dcRepo: service('dc'),
   repo: service('settings'),
   model: function(params) {
@@ -24,24 +24,8 @@ export default Route.extend(WithFeedback, {
     this._super(...arguments);
     controller.setProperties(model);
   },
-  actions: {
-    update: function(item) {
-      get(this, 'feedback').execute(
-        () => {
-          return get(this, 'repo').persist(item);
-        },
-        `Your settings were saved.`,
-        `There was an error saving your settings.`
-      );
-    },
-    delete: function(key) {
-      get(this, 'feedback').execute(
-        () => {
-          return get(this, 'repo').remove(key);
-        },
-        `You settings have been reset.`,
-        `There was an error resetting your settings.`
-      );
-    },
-  },
+  // overwrite afterUpdate and afterDelete hooks
+  // to avoid the default 'return to listing page'
+  afterUpdate: function() {},
+  afterDelete: function() {},
 });

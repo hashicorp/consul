@@ -2893,16 +2893,18 @@ func TestPreparedQuery_Wrapper(t *testing.T) {
 	wrapper.GetLogger().Printf("[DEBUG] Test")
 
 	ret, err := wrapper.GetOtherDatacentersByDistance()
+	wrapper.GetLogger().Println("Returned value: ", ret)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if len(ret) != 1 || ret[0] != "dc2" {
 		t.Fatalf("bad: %v", ret)
 	}
-
-	if err := wrapper.ForwardDC("Status.Ping", "dc2", &struct{}{}, &struct{}{}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	// Since we have no idea when the joinWAN operation completes
+	// we keep on querying until the the join operation completes.
+	retry.Run(t, func(r *retry.R) {
+		r.Check(s1.forwardDC("Status.Ping", "dc2", &struct{}{}, &struct{}{}))
+	})
 }
 
 type mockQueryServer struct {

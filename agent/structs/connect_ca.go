@@ -2,6 +2,7 @@ package structs
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
@@ -34,7 +35,7 @@ type IndexedCARoots struct {
 
 	// QueryMeta contains the meta sent via a header. We ignore for JSON
 	// so this whole structure can be returned.
-	QueryMeta `json:"-"`
+	QueryMeta `json:"-" codec:"query_meta"`
 }
 
 // CARoot represents a root CA certificate that is trusted.
@@ -79,7 +80,7 @@ type CARoot struct {
 	// RotatedOutAt is the time at which this CA was removed from the state.
 	// This will only be set on roots that have been rotated out from being the
 	// active root.
-	RotatedOutAt time.Time `json:"-"`
+	RotatedOutAt time.Time `json:"-" codec:"rotated_out_at"`
 
 	RaftIndex
 }
@@ -182,7 +183,7 @@ const (
 // CAConfiguration is the configuration for the current CA plugin.
 type CAConfiguration struct {
 	// ClusterID is a unique identifier for the cluster
-	ClusterID string `json:"-"`
+	ClusterID string `json:"-" codec:"cluster_id"`
 
 	// Provider is the CA provider implementation to use.
 	Provider string
@@ -202,8 +203,9 @@ func (c *CAConfiguration) GetCommonConfig() (*CommonCAProviderConfig, error) {
 
 	var config CommonCAProviderConfig
 	decodeConf := &mapstructure.DecoderConfig{
-		DecodeHook: mapstructure.StringToTimeDurationHookFunc(),
-		Result:     &config,
+		DecodeHook:       ParseDurationFunc(),
+		Result:           &config,
+		WeaklyTypedInput: true,
 	}
 
 	decoder, err := mapstructure.NewDecoder(decodeConf)
@@ -250,9 +252,10 @@ type ConsulCAProviderConfig struct {
 
 // CAConsulProviderState is used to track the built-in Consul CA provider's state.
 type CAConsulProviderState struct {
-	ID         string
-	PrivateKey string
-	RootCert   string
+	ID               string
+	PrivateKey       string
+	RootCert         string
+	IntermediateCert string
 
 	RaftIndex
 }
@@ -264,4 +267,46 @@ type VaultCAProviderConfig struct {
 	Token               string
 	RootPKIPath         string
 	IntermediatePKIPath string
+}
+
+// ParseDurationFunc is a mapstructure hook for decoding a string or
+// []uint8 into a time.Duration value.
+func ParseDurationFunc() mapstructure.DecodeHookFunc {
+	return func(
+		f reflect.Type,
+		t reflect.Type,
+		data interface{}) (interface{}, error) {
+		var v time.Duration
+		if t != reflect.TypeOf(v) {
+			return data, nil
+		}
+
+		switch {
+		case f.Kind() == reflect.String:
+			if dur, err := time.ParseDuration(data.(string)); err != nil {
+				return nil, err
+			} else {
+				v = dur
+			}
+			return v, nil
+		case f == reflect.SliceOf(reflect.TypeOf(uint8(0))):
+			s := Uint8ToString(data.([]uint8))
+			if dur, err := time.ParseDuration(s); err != nil {
+				return nil, err
+			} else {
+				v = dur
+			}
+			return v, nil
+		default:
+			return data, nil
+		}
+	}
+}
+
+func Uint8ToString(bs []uint8) string {
+	b := make([]byte, len(bs))
+	for i, v := range bs {
+		b[i] = byte(v)
+	}
+	return string(b)
 }

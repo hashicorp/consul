@@ -45,7 +45,7 @@ func setLog(l *log.Logger) {
 func discoverErr(format string, a ...interface{}) error {
 	var s string
 	if len(a) > 1 {
-		s = fmt.Sprintf(format, a)
+		s = fmt.Sprintf(format, a...)
 	} else {
 		s = format
 	}

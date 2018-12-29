@@ -134,7 +134,7 @@ and vice versa. A catalog entry can have either, neither, or both.
 $ curl \
     --request PUT \
     --data @payload.json \
-    https://consul.rocks/v1/catalog/register
+    http://127.0.0.1:8500/v1/catalog/register
 ```
 
 ## Deregister Entity
@@ -204,7 +204,7 @@ The behavior of the endpoint depends on what keys are provided.
 $ curl \
     --request PUT \
     --data @payload.json \
-    https://consul.rocks/v1/catalog/deregister
+    http://127.0.0.1:8500/v1/catalog/deregister
 ```
 
 ## List Datacenters
@@ -234,7 +234,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/catalog/datacenters
+    http://127.0.0.1:8500/v1/catalog/datacenters
 ```
 
 ### Sample Response
@@ -280,7 +280,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/catalog/nodes
+    http://127.0.0.1:8500/v1/catalog/nodes
 ```
 
 ### Sample Response
@@ -348,7 +348,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/catalog/services
+    http://127.0.0.1:8500/v1/catalog/services
 ```
 
 ### Sample Response
@@ -409,7 +409,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/catalog/service/my-service
+    http://127.0.0.1:8500/v1/catalog/service/my-service
 ```
 
 ### Sample Response
@@ -536,7 +536,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/catalog/node/my-node
+    http://127.0.0.1:8500/v1/catalog/node/my-node
 ```
 
 ### Sample Response

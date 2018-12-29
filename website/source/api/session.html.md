@@ -77,7 +77,7 @@ The table below shows this endpoint's support for
 $ curl \
     --request PUT \
     --data @payload.json \
-    https://consul.rocks/v1/session/create
+    http://127.0.0.1:8500/v1/session/create
 ```
 
 ### Sample Response
@@ -127,7 +127,7 @@ The table below shows this endpoint's support for
 ```text
 $ curl \
     --request PUT
-    https://consul.rocks/v1/session/destroy/adf4238a-882b-9ddc-4a9d-5b6758e4159e
+    http://127.0.0.1:8500/v1/session/destroy/adf4238a-882b-9ddc-4a9d-5b6758e4159e
 ```
 
 ### Sample Response
@@ -166,7 +166,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/session/info/adf4238a-882b-9ddc-4a9d-5b6758e4159e
+    http://127.0.0.1:8500/v1/session/info/adf4238a-882b-9ddc-4a9d-5b6758e4159e
 ```
 
 ### Sample Response
@@ -217,7 +217,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/session/node/node-abcd1234
+    http://127.0.0.1:8500/v1/session/node/node-abcd1234
 ```
 
 ### Sample Response
@@ -263,7 +263,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/session/list
+    http://127.0.0.1:8500/v1/session/list
 ```
 
 ### Sample Response
@@ -314,7 +314,7 @@ The table below shows this endpoint's support for
 ```text
 $ curl \
     --request PUT \
-    https://consul.rocks/v1/session/renew/adf4238a-882b-9ddc-4a9d-5b6758e4159e
+    http://127.0.0.1:8500/v1/session/renew/adf4238a-882b-9ddc-4a9d-5b6758e4159e
 ```
 
 ### Sample Response

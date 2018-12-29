@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/miekg/dns"
 )
@@ -134,6 +135,40 @@ func (d *DNSServer) ListenAndServe(network, addr string, notif func()) error {
 	return d.Server.ListenAndServe()
 }
 
+// setEDNS is used to set the responses EDNS size headers and
+// possibly the ECS headers as well if they were present in the
+// original request
+func setEDNS(request *dns.Msg, response *dns.Msg, ecsGlobal bool) {
+	// Enable EDNS if enabled
+	if edns := request.IsEdns0(); edns != nil {
+		// cannot just use the SetEdns0 function as we need to embed
+		// the ECS option as well
+		ednsResp := new(dns.OPT)
+		ednsResp.Hdr.Name = "."
+		ednsResp.Hdr.Rrtype = dns.TypeOPT
+		ednsResp.SetUDPSize(edns.UDPSize())
+
+		// Setup the ECS option if present
+		if subnet := ednsSubnetForRequest(request); subnet != nil {
+			subOp := new(dns.EDNS0_SUBNET)
+			subOp.Code = dns.EDNS0SUBNET
+			subOp.Family = subnet.Family
+			subOp.Address = subnet.Address
+			subOp.SourceNetmask = subnet.SourceNetmask
+			if c := response.Rcode; ecsGlobal || c == dns.RcodeNameError || c == dns.RcodeServerFailure || c == dns.RcodeRefused || c == dns.RcodeNotImplemented {
+				// reply is globally valid and should be cached accordingly
+				subOp.SourceScope = 0
+			} else {
+				// reply is only valid for the subnet it was queried with
+				subOp.SourceScope = subnet.SourceNetmask
+			}
+			ednsResp.Option = append(ednsResp.Option, subOp)
+		}
+
+		response.Extra = append(response.Extra, ednsResp)
+	}
+}
+
 // recursorAddr is used to add a port to the recursor if omitted.
 func recursorAddr(recursor string) (string, error) {
 	// Add the port if none
@@ -244,10 +279,8 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 		return
 	}
 
-	// Enable EDNS if enabled
-	if edns := req.IsEdns0(); edns != nil {
-		m.SetEdns0(edns.UDPSize(), false)
-	}
+	// ptr record responses are globally valid
+	setEDNS(req, m, true)
 
 	// Write out the complete response
 	if err := resp.WriteMsg(m); err != nil {
@@ -279,6 +312,8 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	m.Authoritative = true
 	m.RecursionAvailable = (len(d.recursors) > 0)
 
+	ecsGlobal := true
+
 	switch req.Question[0].Qtype {
 	case dns.TypeSOA:
 		ns, glue := d.nameservers(req.IsEdns0() != nil)
@@ -297,13 +332,10 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 		m.SetRcode(req, dns.RcodeNotImplemented)
 
 	default:
-		d.dispatch(network, resp.RemoteAddr(), req, m)
+		ecsGlobal = d.dispatch(network, resp.RemoteAddr(), req, m)
 	}
 
-	// Handle EDNS
-	if edns := req.IsEdns0(); edns != nil {
-		m.SetEdns0(edns.UDPSize(), false)
-	}
+	setEDNS(req, m, ecsGlobal)
 
 	// Write out the complete response
 	if err := resp.WriteMsg(m); err != nil {
@@ -392,7 +424,8 @@ func (d *DNSServer) nameservers(edns bool) (ns []dns.RR, extra []dns.RR) {
 }
 
 // dispatch is used to parse a request and invoke the correct handler
-func (d *DNSServer) dispatch(network string, remoteAddr net.Addr, req, resp *dns.Msg) {
+func (d *DNSServer) dispatch(network string, remoteAddr net.Addr, req, resp *dns.Msg) (ecsGlobal bool) {
+	ecsGlobal = true
 	// By default the query is in the default datacenter
 	datacenter := d.agent.config.Datacenter
 
@@ -477,6 +510,7 @@ PARSE:
 
 		// Allow a "." in the query name, just join all the parts.
 		query := strings.Join(labels[:n-1], ".")
+		ecsGlobal = false
 		d.preparedQueryLookup(network, datacenter, query, remoteAddr, req, resp)
 
 	case "addr":
@@ -546,6 +580,7 @@ INVALID:
 	d.logger.Printf("[WARN] dns: QName invalid: %s", qName)
 	d.addSOA(resp)
 	resp.SetRcode(req, dns.RcodeNameError)
+	return
 }
 
 // nodeLookup is used to handle a node query
@@ -1205,6 +1240,51 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 	}
 }
 
+func findWeight(node structs.CheckServiceNode) int {
+	// By default, when only_passing is false, warning and passing nodes are returned
+	// Those values will be used if using a client with support while server has no
+	// support for weights
+	weightPassing := 1
+	weightWarning := 1
+	if node.Service.Weights != nil {
+		weightPassing = node.Service.Weights.Passing
+		weightWarning = node.Service.Weights.Warning
+	}
+	serviceChecks := make(api.HealthChecks, 0)
+	for _, c := range node.Checks {
+		if c.ServiceName == node.Service.Service || c.ServiceName == "" {
+			healthCheck := &api.HealthCheck{
+				Node:        c.Node,
+				CheckID:     string(c.CheckID),
+				Name:        c.Name,
+				Status:      c.Status,
+				Notes:       c.Notes,
+				Output:      c.Output,
+				ServiceID:   c.ServiceID,
+				ServiceName: c.ServiceName,
+				ServiceTags: c.ServiceTags,
+			}
+			serviceChecks = append(serviceChecks, healthCheck)
+		}
+	}
+	status := serviceChecks.AggregatedStatus()
+	switch status {
+	case api.HealthWarning:
+		return weightWarning
+	case api.HealthPassing:
+		return weightPassing
+	case api.HealthMaint:
+		// Not used in theory
+		return 0
+	case api.HealthCritical:
+		// Should not happen since already filtered
+		return 0
+	default:
+		// When non-standard status, return 1
+		return 1
+	}
+}
+
 // serviceARecords is used to add the SRV records for a service lookup
 func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes, req, resp *dns.Msg, ttl time.Duration) {
 	handled := make(map[string]struct{})
@@ -1219,6 +1299,7 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes
 		}
 		handled[tuple] = struct{}{}
 
+		weight := findWeight(node)
 		// Add the SRV record
 		srvRec := &dns.SRV{
 			Hdr: dns.RR_Header{
@@ -1228,7 +1309,7 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes
 				Ttl:    uint32(ttl / time.Second),
 			},
 			Priority: 1,
-			Weight:   1,
+			Weight:   uint16(weight),
 			Port:     uint16(node.Service.Port),
 			Target:   fmt.Sprintf("%s.node.%s.%s", node.Node.Node, dc, d.domain),
 		}
@@ -1333,7 +1414,7 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 	m.RecursionAvailable = true
 	m.SetRcode(req, dns.RcodeServerFailure)
 	if edns := req.IsEdns0(); edns != nil {
-		m.SetEdns0(edns.UDPSize(), false)
+		setEDNS(req, m, true)
 	}
 	resp.WriteMsg(m)
 }

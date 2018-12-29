@@ -100,7 +100,7 @@ atomic transaction. Up to 64 operations may be present in a single transaction.
 $ curl \
     --request PUT \
     --data @payload.json \
-    https://consul.rocks/v1/txn
+    http://127.0.0.1:8500/v1/txn
 ```
 
 ### Sample Response
@@ -151,15 +151,15 @@ that operation ("X" means a field is required and "O" means it is optional):
 
 | Verb               | Operation                                    | Key  | Value | Flags | Index | Session |
 | ------------------ | -------------------------------------------- | :--: | :---: | :---: | :---: | :-----: |
-| `set`              | Sets the `Key` to the given `Value`          | `x`  | `x`   | `o`   |       |         |  
-| `cas`              | Sets, but with CAS semantics                 | `x`  | `x`   | `o`   | `x`   |         |  
-| `lock`             | Lock with the given `Session`                | `x`  | `x`   | `o`   |       | `x`     |  
-| `unlock`           | Unlock with the given `Session`              | `x`  | `x`   | `o`   |       | `x`     |  
-| `get`              | Get the key, fails if it does not exist      | `x`  |       |       |       |         |  
-| `get-tree`         | Gets all keys with the prefix                | `x`  |       |       |       |         |  
-| `check-index`      | Fail if modify index != index                | `x`  |       |       | `x`   |         |  
-| `check-session`    | Fail if not locked by session                | `x`  |       |       |       | `x`     |  
-| `check-not-exists` | Fail if key exists                           | `x`  |       |       |       |         |  
-| `delete`           | Delete the key                               | `x`  |       |       |       |         |  
-| `delete-tree`      | Delete all keys with a prefix                | `x`  |       |       |       |         |  
-| `delete-cas`       | Delete, but with CAS semantics               | `x`  |       |       | `x`   |         |  
+| `set`              | Sets the `Key` to the given `Value`          | `x`  | `x`   | `o`   |       |         |
+| `cas`              | Sets, but with CAS semantics                 | `x`  | `x`   | `o`   | `x`   |         |
+| `lock`             | Lock with the given `Session`                | `x`  | `x`   | `o`   |       | `x`     |
+| `unlock`           | Unlock with the given `Session`              | `x`  | `x`   | `o`   |       | `x`     |
+| `get`              | Get the key, fails if it does not exist      | `x`  |       |       |       |         |
+| `get-tree`         | Gets all keys with the prefix                | `x`  |       |       |       |         |
+| `check-index`      | Fail if modify index != index                | `x`  |       |       | `x`   |         |
+| `check-session`    | Fail if not locked by session                | `x`  |       |       |       | `x`     |
+| `check-not-exists` | Fail if key exists                           | `x`  |       |       |       |         |
+| `delete`           | Delete the key                               | `x`  |       |       |       |         |
+| `delete-tree`      | Delete all keys with a prefix                | `x`  |       |       |       |         |
+| `delete-cas`       | Delete, but with CAS semantics               | `x`  |       |       | `x`   |         |

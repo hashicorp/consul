@@ -736,6 +736,40 @@ func TestACLResolution(t *testing.T) {
 	reqBothTokens, _ := http.NewRequest("GET", "/v1/catalog/nodes?token=baz", nil)
 	reqBothTokens.Header.Add("X-Consul-Token", "zap")
 
+	// Request with Authorization Bearer token
+	reqAuthBearerToken, _ := http.NewRequest("GET", "/v1/catalog/nodes", nil)
+	reqAuthBearerToken.Header.Add("Authorization", "Bearer bearer-token")
+
+	// Request with invalid Authorization scheme
+	reqAuthBearerInvalidScheme, _ := http.NewRequest("GET", "/v1/catalog/nodes", nil)
+	reqAuthBearerInvalidScheme.Header.Add("Authorization", "Beer")
+
+	// Request with empty Authorization Bearer token
+	reqAuthBearerTokenEmpty, _ := http.NewRequest("GET", "/v1/catalog/nodes", nil)
+	reqAuthBearerTokenEmpty.Header.Add("Authorization", "Bearer")
+
+	// Request with empty Authorization Bearer token
+	reqAuthBearerTokenInvalid, _ := http.NewRequest("GET", "/v1/catalog/nodes", nil)
+	reqAuthBearerTokenInvalid.Header.Add("Authorization", "Bearertoken")
+
+	// Request with more than one space between Bearer and token
+	reqAuthBearerTokenMultiSpaces, _ := http.NewRequest("GET", "/v1/catalog/nodes", nil)
+	reqAuthBearerTokenMultiSpaces.Header.Add("Authorization", "Bearer     bearer-token")
+
+	// Request with Authorization Bearer token containing spaces
+	reqAuthBearerTokenSpaces, _ := http.NewRequest("GET", "/v1/catalog/nodes", nil)
+	reqAuthBearerTokenSpaces.Header.Add("Authorization", "Bearer bearer-token "+
+		" the rest is discarded   ")
+
+	// Request with Authorization Bearer and querystring token
+	reqAuthBearerAndQsToken, _ := http.NewRequest("GET", "/v1/catalog/nodes?token=qstoken", nil)
+	reqAuthBearerAndQsToken.Header.Add("Authorization", "Bearer bearer-token")
+
+	// Request with Authorization Bearer and X-Consul-Token header token
+	reqAuthBearerAndXToken, _ := http.NewRequest("GET", "/v1/catalog/nodes", nil)
+	reqAuthBearerAndXToken.Header.Add("X-Consul-Token", "xtoken")
+	reqAuthBearerAndXToken.Header.Add("Authorization", "Bearer bearer-token")
+
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
@@ -768,6 +802,58 @@ func TestACLResolution(t *testing.T) {
 	// Querystring token has precedence over header and agent tokens
 	a.srv.parseToken(reqBothTokens, &token)
 	if token != "baz" {
+		t.Fatalf("bad: %s", token)
+	}
+
+	//
+	// Authorization Bearer token tests
+	//
+
+	// Check if Authorization bearer token header is parsed correctly
+	a.srv.parseToken(reqAuthBearerToken, &token)
+	if token != "bearer-token" {
+		t.Fatalf("bad: %s", token)
+	}
+
+	// Check Authorization Bearer scheme invalid
+	a.srv.parseToken(reqAuthBearerInvalidScheme, &token)
+	if token != "agent" {
+		t.Fatalf("bad: %s", token)
+	}
+
+	// Check if Authorization Bearer token is empty
+	a.srv.parseToken(reqAuthBearerTokenEmpty, &token)
+	if token != "agent" {
+		t.Fatalf("bad: %s", token)
+	}
+
+	// Check if the Authorization Bearer token is invalid
+	a.srv.parseToken(reqAuthBearerTokenInvalid, &token)
+	if token != "agent" {
+		t.Fatalf("bad: %s", token)
+	}
+
+	// Check multi spaces between Authorization Bearer and token value
+	a.srv.parseToken(reqAuthBearerTokenMultiSpaces, &token)
+	if token != "bearer-token" {
+		t.Fatalf("bad: %s", token)
+	}
+
+	// Check if Authorization Bearer token with spaces is parsed correctly
+	a.srv.parseToken(reqAuthBearerTokenSpaces, &token)
+	if token != "bearer-token" {
+		t.Fatalf("bad: %s", token)
+	}
+
+	// Check if explicit token has precedence over Authorization bearer token
+	a.srv.parseToken(reqAuthBearerAndQsToken, &token)
+	if token != "qstoken" {
+		t.Fatalf("bad: %s", token)
+	}
+
+	// Check if X-Consul-Token has precedence over Authorization bearer token
+	a.srv.parseToken(reqAuthBearerAndXToken, &token)
+	if token != "xtoken" {
 		t.Fatalf("bad: %s", token)
 	}
 }

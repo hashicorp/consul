@@ -12,7 +12,7 @@ Consul makes available a range of metrics in various formats in order to measure
 
 There are number of monitoring tools and options, but for the purposes of this guide we are going to use the [telegraf_plugin][] in conjunction with the Statsd protocol supported by Consul.
 
-You can read the full breakdown of metrics with Consul in the [telemtry documentation](/docs/agent/telemetry.html)
+You can read the full breakdown of metrics with Consul in the [telemetry documentation](/docs/agent/telemetry.html)
 
 ## Configuring Telegraf
 

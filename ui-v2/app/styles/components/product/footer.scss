@@ -1,0 +1,24 @@
+%footer > a:first-child {
+  @extend %with-hashicorp;
+}
+%footer {
+  border-top: $decor-border-100;
+}
+%footer {
+  border-color: $keyline-mid;
+  background-color: $ui-white;
+}
+%footer > * {
+  color: $ui-gray-400;
+}
+%footer {
+  display: flex;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+  padding: 25px;
+}
+%footer > * {
+  display: block;
+  padding: 11px;
+}

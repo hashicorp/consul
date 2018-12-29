@@ -1,15 +1,25 @@
-import EmberObject from '@ember/object';
-import AclWithActionsMixin from 'consul-ui/mixins/acl/with-actions';
-import { moduleFor, test } from 'ember-qunit';
+import { moduleFor } from 'ember-qunit';
+import test from 'ember-sinon-qunit/test-support/test';
+import { getOwner } from '@ember/application';
+import Route from 'consul-ui/routes/dc/acls/index';
+import Service from '@ember/service';
+
+import Mixin from 'consul-ui/mixins/acl/with-actions';
 
 moduleFor('mixin:acl/with-actions', 'Unit | Mixin | acl/with actions', {
   // Specify the other units that are required for this test.
-  needs: ['mixin:with-feedback'],
+  needs: [
+    'mixin:with-blocking-actions',
+    'service:feedback',
+    'service:flashMessages',
+    'service:logger',
+    'service:settings',
+    'service:acls',
+  ],
   subject: function() {
-    const AclWithActionsObject = EmberObject.extend(AclWithActionsMixin);
-    this.register('test-container:acl/with-actions-object', AclWithActionsObject);
-    // TODO: May need to actually get this from the container
-    return AclWithActionsObject;
+    const MixedIn = Route.extend(Mixin);
+    this.register('test-container:acl/with-actions-object', MixedIn);
+    return getOwner(this).lookup('test-container:acl/with-actions-object');
   },
 });
 
@@ -17,4 +27,65 @@ moduleFor('mixin:acl/with-actions', 'Unit | Mixin | acl/with actions', {
 test('it works', function(assert) {
   const subject = this.subject();
   assert.ok(subject);
+});
+test('use persists the token and calls transitionTo correctly', function(assert) {
+  assert.expect(4);
+  this.register(
+    'service:feedback',
+    Service.extend({
+      execute: function(cb, name) {
+        assert.equal(name, 'use');
+        return cb();
+      },
+    })
+  );
+  const item = { ID: 'id' };
+  this.register(
+    'service:settings',
+    Service.extend({
+      persist: function(actual) {
+        assert.equal(actual.token, item.ID);
+        return Promise.resolve(actual);
+      },
+    })
+  );
+  const subject = this.subject();
+  const expected = 'dc.services';
+  const transitionTo = this.stub(subject, 'transitionTo').returnsArg(0);
+  return subject.actions.use
+    .bind(subject)(item)
+    .then(function(actual) {
+      assert.ok(transitionTo.calledOnce);
+      assert.equal(actual, expected);
+    });
+});
+test('clone clones the token and calls afterDelete correctly', function(assert) {
+  assert.expect(4);
+  this.register(
+    'service:feedback',
+    Service.extend({
+      execute: function(cb, name) {
+        assert.equal(name, 'clone');
+        return cb();
+      },
+    })
+  );
+  const expected = { ID: 'id' };
+  this.register(
+    'service:acls',
+    Service.extend({
+      clone: function(actual) {
+        assert.deepEqual(actual, expected);
+        return Promise.resolve(actual);
+      },
+    })
+  );
+  const subject = this.subject();
+  const afterDelete = this.stub(subject, 'afterDelete').returnsArg(0);
+  return subject.actions.clone
+    .bind(subject)(expected)
+    .then(function(actual) {
+      assert.ok(afterDelete.calledOnce);
+      assert.equal(actual, expected);
+    });
 });

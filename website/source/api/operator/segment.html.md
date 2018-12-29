@@ -49,7 +49,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/operator/segment
+    http://127.0.0.1:8500/v1/operator/segment
 ```
 
 ### Sample Response

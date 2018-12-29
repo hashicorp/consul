@@ -27,6 +27,7 @@ export const get = function(_url, options = { headers: { cookie: {} } }) {
         }, {}),
       },
       {
+        set: function() {},
         send: function(content) {
           resolve(JSON.parse(content));
         },

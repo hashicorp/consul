@@ -3,6 +3,7 @@ import needsRevalidate from 'ember-collection/utils/needs-revalidate';
 import identity from 'ember-collection/utils/identity';
 import Grid from 'ember-collection/layouts/grid';
 import SlotsMixin from 'ember-block-slots';
+import WithResizing from 'consul-ui/mixins/with-resizing';
 import style from 'ember-computed-style';
 import qsaFactory from 'consul-ui/utils/qsa-factory';
 
@@ -21,14 +22,6 @@ import { computed, get, set } from '@ember/object';
 
 // ember doesn't like you using `$` hence `$$`
 const $$ = qsaFactory();
-// basic pseudo CustomEvent interface
-// TODO: use actual custom events once I've reminded
-// myself re: support/polyfills
-const createSizeEvent = function(detail) {
-  return {
-    detail: { width: window.innerWidth, height: window.innerHeight },
-  };
-};
 // need to copy Cell in wholesale as there is no way to import it
 // there is no change made to `Cell` here, its only here as its
 // private in `ember-collection`
@@ -136,7 +129,7 @@ const change = function(e) {
     }
   }
 };
-export default Component.extend(SlotsMixin, {
+export default Component.extend(SlotsMixin, WithResizing, {
   tagName: 'table',
   attributeBindings: ['style'],
   width: 1150,
@@ -149,32 +142,12 @@ export default Component.extend(SlotsMixin, {
     this.confirming = [];
     // TODO: The row height should auto calculate properly from the CSS
     this['cell-layout'] = new ZIndexedGrid(get(this, 'width'), 50);
-    this.handler = () => {
-      this.resize(createSizeEvent());
-    };
   },
   getStyle: computed('height', function() {
     return {
       height: get(this, 'height'),
     };
   }),
-  willRender: function() {
-    this._super(...arguments);
-    this.set('hasActions', this._isRegistered('actions'));
-  },
-  didInsertElement: function() {
-    this._super(...arguments);
-    // TODO: Consider moving all DOM lookups here
-    // this seems to be the earliest place I can get them
-    window.addEventListener('resize', this.handler);
-    this.didAppear();
-  },
-  willDestroyElement: function() {
-    window.removeEventListener('resize', this.handler);
-  },
-  didAppear: function() {
-    this.handler();
-  },
   resize: function(e) {
     const $tbody = [...$$('tbody', this.element)][0];
     const $appContent = [...$$('main > div')][0];
@@ -182,13 +155,17 @@ export default Component.extend(SlotsMixin, {
       const rect = $tbody.getBoundingClientRect();
       const $footer = [...$$('footer[role="contentinfo"]')][0];
       const space = rect.top + $footer.clientHeight;
-      const height = new Number(e.detail.height - space);
+      const height = e.detail.height - space;
       this.set('height', Math.max(0, height));
       // TODO: The row height should auto calculate properly from the CSS
       this['cell-layout'] = new ZIndexedGrid($appContent.clientWidth, 50);
       this.updateItems();
       this.updateScrollPosition();
     }
+  },
+  willRender: function() {
+    this._super(...arguments);
+    this.set('hasActions', this._isRegistered('actions'));
   },
   // `ember-collection` bug workaround
   // https://github.com/emberjs/ember-collection/issues/138

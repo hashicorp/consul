@@ -45,7 +45,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/health/node/my-node
+    http://127.0.0.1:8500/v1/health/node/my-node
 ```
 
 ### Sample Response
@@ -74,7 +74,7 @@ $ curl \
     "Output": "",
     "ServiceID": "redis",
     "ServiceName": "redis",
-    "ServiceTags": ["primary"] 
+    "ServiceTags": ["primary"]
   }
 ]
 ```
@@ -120,7 +120,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/health/checks/my-service
+    http://127.0.0.1:8500/v1/health/checks/my-service
 ```
 
 ### Sample Response
@@ -190,7 +190,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/health/service/my-service
+    http://127.0.0.1:8500/v1/health/service/my-service
 ```
 
 ### Sample Response
@@ -305,7 +305,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/health/state/passing
+    http://127.0.0.1:8500/v1/health/state/passing
 ```
 
 ### Sample Response

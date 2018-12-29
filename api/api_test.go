@@ -24,6 +24,12 @@ func makeClient(t *testing.T) (*Client, *testutil.TestServer) {
 	return makeClientWithConfig(t, nil, nil)
 }
 
+func makeClientWithoutConnect(t *testing.T) (*Client, *testutil.TestServer) {
+	return makeClientWithConfig(t, nil, func(serverConfig *testutil.TestServerConfig) {
+		serverConfig.Connect = nil
+	})
+}
+
 func makeACLClient(t *testing.T) (*Client, *testutil.TestServer) {
 	return makeClientWithConfig(t, func(clientConfig *Config) {
 		clientConfig.Token = "root"

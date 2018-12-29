@@ -8,7 +8,7 @@ export default function(type) {
       requests = ['/v1/internal/ui/services', '/v1/health/service/'];
       break;
     case 'node':
-      requests = ['/v1/internal/ui/nodes'];
+      requests = ['/v1/internal/ui/nodes', '/v1/internal/ui/node/'];
       break;
     case 'kv':
       requests = ['/v1/kv/'];

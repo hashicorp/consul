@@ -186,13 +186,16 @@ test-ci: other-consul dev-build vet test-install-deps
 	    echo "    ============"; \
 	    echo "      Retrying 1/2"; \
 	    echo "    ============"; \
-	    if ! GOTEST_FLAGS="-timeout 8m -p 1 -parallel 1" make test-internal; then \
+	    if ! GOTEST_FLAGS="-timeout 9m -p 1 -parallel 1" make test-internal; then \
 	       echo "    ============"; \
 	       echo "      Retrying 2/2"; \
 	       echo "    ============"; \
 	       GOTEST_FLAGS="-timeout 9m -p 1 -parallel 1" make test-internal; \
 	    fi \
 	fi
+
+test-flake: other-consul vet test-install-deps
+	@$(SHELL) $(CURDIR)/build-support/scripts/test-flake.sh --pkg "$(FLAKE_PKG)" --test "$(FLAKE_TEST)" --cpus "$(FLAKE_CPUS)" --n "$(FLAKE_N)"
 
 other-consul:
 	@echo "--> Checking for other consul instances"

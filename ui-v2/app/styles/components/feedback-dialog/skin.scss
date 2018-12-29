@@ -1,0 +1,5 @@
+%feedback-dialog-inline p,
+%feedback-dialog-inline p::after {
+  color: $ui-white;
+  background-color: $ui-gray-800;
+}

@@ -73,6 +73,15 @@ const (
 	// raftRemoveGracePeriod is how long we wait to allow a RemovePeer
 	// to replicate to gracefully leave the cluster.
 	raftRemoveGracePeriod = 5 * time.Second
+
+	// serfEventChSize is the size of the buffered channel to get Serf
+	// events. If this is exhausted we will block Serf and Memberlist.
+	serfEventChSize = 2048
+
+	// reconcileChSize is the size of the buffered channel reconcile updates
+	// from Serf with the Catalog. If this is exhausted we will drop updates,
+	// and wait for a periodic reconcile.
+	reconcileChSize = 256
 )
 
 var (
@@ -301,11 +310,11 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		config:           config,
 		tokens:           tokens,
 		connPool:         connPool,
-		eventChLAN:       make(chan serf.Event, 256),
-		eventChWAN:       make(chan serf.Event, 256),
+		eventChLAN:       make(chan serf.Event, serfEventChSize),
+		eventChWAN:       make(chan serf.Event, serfEventChSize),
 		logger:           logger,
 		leaveCh:          make(chan struct{}),
-		reconcileCh:      make(chan serf.Member, 32),
+		reconcileCh:      make(chan serf.Member, reconcileChSize),
 		router:           router.NewRouter(logger, config.Datacenter),
 		rpcServer:        rpc.NewServer(),
 		rpcTLS:           incomingTLS,

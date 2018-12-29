@@ -1,0 +1,31 @@
+%healthcheck-status {
+  border: $decor-border-100;
+}
+%healthcheck-status,
+%healthcheck-status pre {
+  border-radius: $radius-small;
+}
+%healthcheck-status dd:first-of-type {
+  color: $ui-gray-400;
+}
+%healthcheck-status pre {
+  background-color: $ui-black;
+  color: $ui-white;
+}
+%healthcheck-status.passing {
+  border-color: $ui-gray-200;
+}
+%healthcheck-status.passing::before {
+  background-color: $ui-color-success !important;
+}
+%healthcheck-status.critical {
+  border-color: $ui-color-danger;
+  background-color: rgba($ui-color-danger, 0.1);
+}
+%healthcheck-status.critical::before {
+  background-color: $ui-color-danger !important;
+}
+%healthcheck-status.warning {
+  border-color: $ui-color-alert;
+  background-color: rgba($ui-color-alert, 0.1);
+}

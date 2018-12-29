@@ -661,7 +661,7 @@ func (l *State) AddProxy(proxy *structs.ConnectManagedProxy, token,
 	svc := &structs.NodeService{
 		Kind:             structs.ServiceKindConnectProxy,
 		ID:               target.ID + "-proxy",
-		Service:          target.ID + "-proxy",
+		Service:          target.Service + "-proxy",
 		ProxyDestination: target.Service,
 		Address:          cfg.BindAddress,
 		Port:             cfg.BindPort,

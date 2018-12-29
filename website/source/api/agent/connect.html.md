@@ -72,7 +72,7 @@ The table below shows this endpoint's support for
 $ curl \
    --request POST \
    --data @payload.json \
-    https://consul.rocks/v1/agent/connect/authorize
+    http://127.0.0.1:8500/v1/agent/connect/authorize
 ```
 
 ### Sample Response
@@ -113,7 +113,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-   https://consul.rocks/v1/connect/ca/roots
+   http://127.0.0.1:8500/v1/connect/ca/roots
 ```
 
 ### Sample Response
@@ -179,7 +179,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-   https://consul.rocks/v1/connect/ca/leaf/web
+   http://127.0.0.1:8500/v1/connect/ca/leaf/web
 ```
 
 ### Sample Response
@@ -250,7 +250,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-   https://consul.rocks/v1/connect/proxy/web-proxy
+   http://127.0.0.1:8500/v1/connect/proxy/web-proxy
 ```
 
 ### Sample Response

@@ -720,6 +720,24 @@ type RuntimeConfig struct {
 	// hcl: log_level = string
 	LogLevel string
 
+	// LogFile is the path to the file where the logs get written to. Defaults to empty string.
+	//
+	// hcl: log_file = string
+	// flags: -log-file string
+	LogFile string
+
+	// LogRotateDuration is the time configured to rotate logs based on time
+	//
+	// hcl: log_rotate_duration = string
+	// flags: -log-rotate-duration string
+	LogRotateDuration time.Duration
+
+	// LogRotateBytes is the time configured to rotate logs based on bytes written
+	//
+	// hcl: log_rotate_bytes = int
+	// flags: -log-rotate-bytes int
+	LogRotateBytes int
+
 	// Node ID is a unique ID for this node across space and time. Defaults
 	// to a randomly-generated ID that persists in the data-dir.
 	//

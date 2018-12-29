@@ -35,7 +35,7 @@ The table below shows this endpoint's support for
 ### Sample Request
 
 ```text
-$ curl https://consul.rocks/v1/status/leader
+$ curl http://127.0.0.1:8500/v1/status/leader
 ```
 
 ### Sample Response
@@ -66,7 +66,7 @@ The table below shows this endpoint's support for
 ### Sample Request
 
 ```text
-$ curl https://consul.rocks/v1/status/peers
+$ curl http://127.0.0.1:8500/v1/status/peers
 ```
 
 ### Sample Response

@@ -1,4 +1,7 @@
 {{#app-view class="intention list"}}
+    {{#block-slot 'notification' as |status type|}}
+      {{partial 'dc/intentions/notifications'}}
+    {{/block-slot}}
     {{#block-slot 'header'}}
         <h1>
             Intentions

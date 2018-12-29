@@ -128,16 +128,16 @@ func newClient(args map[string]string, l *log.Logger) (*gophercloud.ServiceClien
 	}
 	projectID := argsOrEnv(args, "project_id", "OS_PROJECT_ID")
 	insecure := argsOrEnv(args, "insecure", "OS_INSECURE")
+	domain_id := argsOrEnv(args, "domain_id", "OS_DOMAIN_ID")
+	domain_name := argsOrEnv(args, "domain_name", "OS_DOMAIN_NAME")
 
 	if url == "" {
 		return nil, fmt.Errorf("discover-os: Auth url must be provided")
 	}
 
 	ao := gophercloud.AuthOptions{
-		// "domain_id": OS_DOMAIN_ID
-		DomainID: "",
-		// "domain_name": OS_DOMAIN_NAME
-		DomainName:       "",
+		DomainID:         domain_id,
+		DomainName:       domain_name,
 		IdentityEndpoint: url,
 		Username:         username,
 		Password:         password,

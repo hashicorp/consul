@@ -100,7 +100,8 @@ func testServerConfig(t *testing.T) (string, *Config) {
 		Config: map[string]interface{}{
 			"PrivateKey":     "",
 			"RootCert":       "",
-			"RotationPeriod": 90 * 24 * time.Hour,
+			"RotationPeriod": "2160h",
+			"LeafCertTTL":    "72h",
 		},
 	}
 

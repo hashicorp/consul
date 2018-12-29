@@ -41,7 +41,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/agent/services
+    http://127.0.0.1:8500/v1/agent/services
 ```
 
 ### Sample Response
@@ -199,7 +199,7 @@ For the `Connect` field, the parameters are:
 $ curl \
     --request PUT \
     --data @payload.json \
-    https://consul.rocks/v1/agent/service/register
+    http://127.0.0.1:8500/v1/agent/service/register
 ```
 
 ## Deregister Service
@@ -233,7 +233,7 @@ The table below shows this endpoint's support for
 ```text
 $ curl \
     --request PUT \
-    https://consul.rocks/v1/agent/service/deregister/my-service-id
+    http://127.0.0.1:8500/v1/agent/service/deregister/my-service-id
 ```
 
 ## Enable Maintenance Mode
@@ -276,5 +276,5 @@ The table below shows this endpoint's support for
 ```text
 $ curl \
     --request PUT \
-    https://consul.rocks/v1/agent/service/maintenance/my-service-id?enable=true&reason=For+the+docs
+    http://127.0.0.1:8500/v1/agent/service/maintenance/my-service-id?enable=true&reason=For+the+docs
 ```

@@ -1,0 +1,13 @@
+%expanded-single-select label {
+  cursor: pointer;
+}
+%expanded-single-select input[type='radio']:checked + *,
+%expanded-single-select input[type='radio']:hover + *,
+%expanded-single-select input[type='radio']:focus + * {
+  box-shadow: 0 4px 8px 0 rgba($ui-black, 0.05);
+}
+%expanded-single-select input[type='radio']:checked + *,
+%expanded-single-select input[type='radio']:hover + *,
+%expanded-single-select input[type='radio']:focus + * {
+  background-color: $ui-white;
+}

@@ -449,6 +449,7 @@ func TestDaemonRestart_pidFile(t *testing.T) {
 	require.NotEmpty(pidRaw)
 
 	// Delete the file
+	require.NoError(os.Remove(pidPath))
 	require.NoError(os.Remove(path))
 
 	// File should re-appear because the process is restart

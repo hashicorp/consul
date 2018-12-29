@@ -127,9 +127,9 @@ func (a *TestAgent) Start() *TestAgent {
 
 	for i := 10; i >= 0; i-- {
 		a.Config = TestConfig(
+			randomPortsSource(a.UseTLS),
 			config.Source{Name: a.Name, Format: "hcl", Data: a.HCL},
 			config.Source{Name: a.Name + ".data_dir", Format: "hcl", Data: hclDataDir},
-			randomPortsSource(a.UseTLS),
 		)
 
 		// write the keyring

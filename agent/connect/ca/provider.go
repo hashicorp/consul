@@ -8,7 +8,16 @@ import (
 // an external CA that provides leaf certificate signing for
 // given SpiffeIDServices.
 type Provider interface {
-	// Active root returns the currently active root CA for this
+	// Configure initializes the provider based on the given cluster ID, root status
+	// and configuration values.
+	Configure(clusterId string, isRoot bool, rawConfig map[string]interface{}) error
+
+	// GenerateRoot causes the creation of a new root certificate for this provider.
+	// This can also be a no-op if a root certificate already exists for the given
+	// config. If isRoot is false, calling this method is an error.
+	GenerateRoot() error
+
+	// ActiveRoot returns the currently active root CA for this
 	// provider. This should be a parent of the certificate returned by
 	// ActiveIntermediate()
 	ActiveRoot() (string, error)

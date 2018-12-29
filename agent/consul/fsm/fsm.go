@@ -9,12 +9,15 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/raft"
+
+	"github.com/ugorji/go/codec"
 )
 
 // msgpackHandle is a shared handle for encoding/decoding msgpack payloads
-var msgpackHandle = &codec.MsgpackHandle{}
+var msgpackHandle = &codec.MsgpackHandle{
+	RawToString: true,
+}
 
 // command is a command method on the FSM.
 type command func(buf []byte, index uint64) interface{}

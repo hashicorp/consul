@@ -45,6 +45,9 @@ module.exports = function(defaults) {
         "ie 11"
       ]
     },
+    'ember-cli-string-helpers': {
+      only: ['lowercase']
+    }
   });
   // Use `app.import` to add additional libraries to the generated
   // output files.

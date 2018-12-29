@@ -15,7 +15,7 @@ import (
 
 func TestAPI_LockLockUnlock(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := makeClientWithoutConnect(t)
 	defer s.Stop()
 
 	lock, err := c.LockKey("test/lock")
@@ -73,7 +73,7 @@ func TestAPI_LockLockUnlock(t *testing.T) {
 
 func TestAPI_LockForceInvalidate(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := makeClientWithoutConnect(t)
 	defer s.Stop()
 
 	retry.Run(t, func(r *retry.R) {
@@ -110,7 +110,7 @@ func TestAPI_LockForceInvalidate(t *testing.T) {
 
 func TestAPI_LockDeleteKey(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := makeClientWithoutConnect(t)
 	defer s.Stop()
 
 	// This uncovered some issues around special-case handling of low index
@@ -152,7 +152,7 @@ func TestAPI_LockDeleteKey(t *testing.T) {
 
 func TestAPI_LockContend(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := makeClientWithoutConnect(t)
 	defer s.Stop()
 
 	wg := &sync.WaitGroup{}
@@ -205,7 +205,7 @@ func TestAPI_LockContend(t *testing.T) {
 
 func TestAPI_LockDestroy(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := makeClientWithoutConnect(t)
 	defer s.Stop()
 
 	lock, err := c.LockKey("test/lock")
@@ -274,7 +274,7 @@ func TestAPI_LockDestroy(t *testing.T) {
 
 func TestAPI_LockConflict(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := makeClientWithoutConnect(t)
 	defer s.Stop()
 
 	sema, err := c.SemaphorePrefix("test/lock/", 2)
@@ -312,7 +312,7 @@ func TestAPI_LockConflict(t *testing.T) {
 
 func TestAPI_LockReclaimLock(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := makeClientWithoutConnect(t)
 	defer s.Stop()
 
 	session, _, err := c.Session().Create(&SessionEntry{}, nil)
@@ -380,7 +380,7 @@ func TestAPI_LockReclaimLock(t *testing.T) {
 
 func TestAPI_LockMonitorRetry(t *testing.T) {
 	t.Parallel()
-	raw, s := makeClient(t)
+	raw, s := makeClientWithoutConnect(t)
 	defer s.Stop()
 
 	// Set up a server that always responds with 500 errors.
@@ -495,7 +495,7 @@ func TestAPI_LockMonitorRetry(t *testing.T) {
 
 func TestAPI_LockOneShot(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := makeClientWithoutConnect(t)
 	defer s.Stop()
 
 	// Set up a lock as a one-shot.

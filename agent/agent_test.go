@@ -15,6 +15,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/testrpc"
+
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
@@ -192,6 +194,19 @@ func TestAgent_ReconnectConfigSettings(t *testing.T) {
 			t.Fatalf("bad: %s", wan.String())
 		}
 	}()
+}
+
+func TestAgent_ReconnectConfigWanDisabled(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t.Name(), `
+		ports { serf_wan = -1 }
+		reconnect_timeout_wan = "36h"
+	`)
+	defer a.Shutdown()
+
+	// This is also testing that we dont panic like before #4515
+	require.Nil(t, a.consulConfig().SerfWANConfig)
 }
 
 func TestAgent_setupNodeID(t *testing.T) {
@@ -626,11 +641,19 @@ func verifyIndexChurn(t *testing.T, tags []string) {
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
+	weights := &structs.Weights{
+		Passing: 1,
+		Warning: 1,
+	}
+	// Ensure we have a leader before we start adding the services
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
 	svc := &structs.NodeService{
 		ID:      "redis",
 		Service: "redis",
 		Port:    8000,
 		Tags:    tags,
+		Weights: weights,
 	}
 	if err := a.AddService(svc, nil, true, ""); err != nil {
 		t.Fatalf("err: %v", err)
@@ -670,8 +693,17 @@ func verifyIndexChurn(t *testing.T, tags []string) {
 		ServiceName: "redis",
 	}
 	var before structs.IndexedCheckServiceNodes
+
+	// This sleep is so that the serfHealth check is added to the agent
+	// A value of 375ms is sufficient enough time to ensure the serfHealth
+	// check is added to an agent. 500ms so that we don't see flakiness ever.
+	time.Sleep(500 * time.Millisecond)
+
 	if err := a.RPC("Health.ServiceNodes", args, &before); err != nil {
 		t.Fatalf("err: %v", err)
+	}
+	for _, name := range before.Nodes[0].Checks {
+		a.logger.Println("[DEBUG] Checks Registered: ", name.Name)
 	}
 	if got, want := len(before.Nodes), 1; got != want {
 		t.Fatalf("got %d want %d", got, want)
@@ -681,11 +713,14 @@ func verifyIndexChurn(t *testing.T, tags []string) {
 	}
 
 	for i := 0; i < 10; i++ {
+		a.logger.Println("[INFO] # ", i+1, "Sync in progress ")
 		if err := a.sync.State.SyncFull(); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
-
+	// If this test fails here this means that the Consul-X-Index
+	// has changed for the RPC, which means that idempotent ops
+	// are not working as intended.
 	var after structs.IndexedCheckServiceNodes
 	if err := a.RPC("Health.ServiceNodes", args, &after); err != nil {
 		t.Fatalf("err: %v", err)
@@ -2149,6 +2184,7 @@ func TestAgent_Service_Reap(t *testing.T) {
 		check_deregister_interval_min = "0s"
 	`)
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	svc := &structs.NodeService{
 		ID:      "redis",
@@ -3017,4 +3053,33 @@ func TestAgent_ReLoadProxiesFromConfig(t *testing.T) {
 	require.NoError(a.loadProxies(a.config))
 	proxies = a.State.Proxies()
 	require.Len(proxies, 0)
+}
+
+func TestAgent_SetupProxyManager(t *testing.T) {
+	t.Parallel()
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	defer os.RemoveAll(dataDir)
+	hcl := `
+		ports { http = -1 }
+		data_dir = "` + dataDir + `"
+	`
+	c := TestConfig(
+		// randomPortsSource(false),
+		config.Source{Name: t.Name(), Format: "hcl", Data: hcl},
+	)
+	a, err := New(c)
+	require.NoError(t, err)
+	require.Error(t, a.setupProxyManager(), "setupProxyManager should fail with invalid HTTP API config")
+
+	hcl = `
+		ports { http = 8001 }
+		data_dir = "` + dataDir + `"
+	`
+	c = TestConfig(
+		// randomPortsSource(false),
+		config.Source{Name: t.Name(), Format: "hcl", Data: hcl},
+	)
+	a, err = New(c)
+	require.NoError(t, err)
+	require.NoError(t, a.setupProxyManager())
 }

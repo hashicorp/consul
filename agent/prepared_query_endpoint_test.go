@@ -9,6 +9,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/hashicorp/consul/testrpc"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/types"
 	"github.com/stretchr/testify/require"
@@ -928,6 +930,7 @@ func TestPreparedQuery_Integration(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Register a node and a service.
 	{

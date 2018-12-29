@@ -83,7 +83,7 @@ The table below shows this endpoint's support for
 $ curl \
     --request POST \
     --data @payload.json \
-    https://consul.rocks/v1/operator/area
+    http://127.0.0.1:8500/v1/operator/area
 ```
 
 ### Sample Response
@@ -121,7 +121,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/operator/area
+    http://127.0.0.1:8500/v1/operator/area
 ```
 
 ### Sample Response
@@ -176,7 +176,7 @@ The table below shows this endpoint's support for
 $ curl \
     --request PUT \
     --data @payload.json \
-    https://consul.rocks/v1/operator/area/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
+    http://127.0.0.1:8500/v1/operator/area/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
 ```
 
 ## List Specific Network Area
@@ -209,7 +209,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/operator/area/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
+    http://127.0.0.1:8500/v1/operator/area/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
 ```
 
 ### Sample Response
@@ -255,7 +255,7 @@ The table below shows this endpoint's support for
 ```text
 $ curl \
     --request DELETE \
-    https://consul.rocks/v1/operator/area/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
+    http://127.0.0.1:8500/v1/operator/area/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
 ```
 
 ## Join Network Area
@@ -299,7 +299,7 @@ This can be provided as `IP`, `IP:port`, `hostname`, or `hostname:port`.
 $ curl \
     --request PUT \
     --data @payload.json \
-    https://consul.rocks/v1/operator/area/8f246b77-f3e1-ff88-5b48-8ec93abf3e05/join
+    http://127.0.0.1:8500/v1/operator/area/8f246b77-f3e1-ff88-5b48-8ec93abf3e05/join
 ```
 
 ### Sample Response
@@ -361,7 +361,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/operator/area/8f246b77-f3e1-ff88-5b48-8ec93abf3e05/members
+    http://127.0.0.1:8500/v1/operator/area/8f246b77-f3e1-ff88-5b48-8ec93abf3e05/members
 ```
 
 ### Sample Response

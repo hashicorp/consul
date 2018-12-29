@@ -45,7 +45,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/operator/keyring
+    http://127.0.0.1:8500/v1/operator/keyring
 ```
 
 ### Sample Response
@@ -130,7 +130,7 @@ The table below shows this endpoint's support for
 $ curl \
     --request POST \
     --data @payload.json \
-    https://consul.rocks/v1/operator/keyring
+    http://127.0.0.1:8500/v1/operator/keyring
 ```
 
 ## Change Primary Gossip Encryption Key
@@ -175,7 +175,7 @@ The table below shows this endpoint's support for
 $ curl \
     --request PUT \
     --data @payload.json \
-    https://consul.rocks/v1/operator/keyring
+    http://127.0.0.1:8500/v1/operator/keyring
 ```
 
 ## Delete Gossip Encryption Key
@@ -219,5 +219,5 @@ The table below shows this endpoint's support for
 $ curl \
     --request DELETE \
     --data @payload.json \
-    https://consul.rocks/v1/operator/keyring
+    http://127.0.0.1:8500/v1/operator/keyring
 ```

@@ -42,7 +42,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/coordinate/datacenters
+    http://127.0.0.1:8500/v1/coordinate/datacenters
 ```
 
 ### Sample Response
@@ -104,7 +104,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/coordinate/nodes
+    http://127.0.0.1:8500/v1/coordinate/nodes
 ```
 
 ### Sample Response
@@ -160,7 +160,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/coordinate/node/agent-one
+    http://127.0.0.1:8500/v1/coordinate/node/agent-one
 ```
 
 ### Sample Response
@@ -229,5 +229,5 @@ The table below shows this endpoint's support for
 $ curl \
     --request PUT \
     --data @payload.json \
-    https://consul.rocks/v1/coordinate/update
+    http://127.0.0.1:8500/v1/coordinate/update
 ```

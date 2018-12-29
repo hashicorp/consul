@@ -49,7 +49,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/operator/raft/configuration
+    http://127.0.0.1:8500/v1/operator/raft/configuration
 ```
 
 ### Sample Response
@@ -142,5 +142,5 @@ The table below shows this endpoint's support for
 ```text
 $ curl \
     --request DELETE \
-    https://consul.rocks/v1/operator/raft/peer?address=1.2.3.4:5678
+    http://127.0.0.1:8500/v1/operator/raft/peer?address=1.2.3.4:5678
 ```

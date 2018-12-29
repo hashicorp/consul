@@ -9,6 +9,7 @@ export default Service.extend({
       dc: dc,
     });
   },
+  // TODO: Why Key? Probably should be findBySlug like the others
   findByKey: function(slug, dc) {
     return get(this, 'store').queryRecord('session', {
       id: slug,

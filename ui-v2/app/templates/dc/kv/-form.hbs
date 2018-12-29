@@ -10,7 +10,7 @@
 {{#if (or (eq (left-trim item.Key parent.Key) '') (not-eq (last item.Key) '/')) }}
         <div>
             <label class="type-toggle">
-                <input type="checkbox" name="json" checked={{if json 'checked' }} oninput={{action 'change'}} />
+                <input type="checkbox" name="json" checked={{if json 'checked' }} onchange={{action 'change'}} />
                 <span>Code</span>
             </label>
             <label class="type-text{{if item.error.Value ' has-error'}}">

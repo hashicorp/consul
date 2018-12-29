@@ -1,10 +1,13 @@
 export default function(clickable) {
-  return function(obj) {
+  return function(obj, scope = '') {
+    if (scope !== '') {
+      scope = scope + ' ';
+    }
     return {
       ...obj,
       ...{
-        delete: clickable('[data-test-delete]'),
-        confirmDelete: clickable('button.type-delete'),
+        delete: clickable(scope + '[data-test-delete]'),
+        confirmDelete: clickable(scope + 'button.type-delete'),
       },
     };
   };

@@ -16,4 +16,7 @@ Feature: settings / update: Update Settings
     ---
       token: ''
     ---
+    And the url should be /settings
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "success" class
 

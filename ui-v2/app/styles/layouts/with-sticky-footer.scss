@@ -1,0 +1,8 @@
+%with-sticky-footer {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+}
+%with-sticky-footer-content {
+  flex: 1;
+}

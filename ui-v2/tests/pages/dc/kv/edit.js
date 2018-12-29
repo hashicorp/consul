@@ -3,6 +3,7 @@ export default function(visitable, submitable, deletable, cancelable) {
     cancelable(
       deletable({
         visit: visitable(['/:dc/kv/:kv/edit', '/:dc/kv/create'], str => str),
+        session: deletable({}, '[data-test-session]'),
       })
     )
   );

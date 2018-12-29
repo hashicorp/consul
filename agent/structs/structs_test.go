@@ -188,6 +188,12 @@ func TestStructs_ServiceNode_PartialClone(t *testing.T) {
 	if !reflect.DeepEqual(sn, clone) {
 		t.Fatalf("bad: %v VS %v", clone, sn)
 	}
+	oldPassingWeight := clone.ServiceWeights.Passing
+	sn.ServiceWeights.Passing = 1000
+	if reflect.DeepEqual(sn, clone) {
+		t.Fatalf("clone wasn't independent of the original for Meta")
+	}
+	sn.ServiceWeights.Passing = oldPassingWeight
 	sn.ServiceMeta["new_meta"] = "new_value"
 	if reflect.DeepEqual(sn, clone) {
 		t.Fatalf("clone wasn't independent of the original for Meta")
@@ -206,8 +212,9 @@ func TestStructs_ServiceNode_Conversions(t *testing.T) {
 	sn.Datacenter = ""
 	sn.TaggedAddresses = nil
 	sn.NodeMeta = nil
+	sn.ServiceWeights = Weights{Passing: 1, Warning: 1}
 	if !reflect.DeepEqual(sn, sn2) {
-		t.Fatalf("bad: %v", sn2)
+		t.Fatalf("bad: %#v, but expected %#v", sn2, sn)
 	}
 }
 

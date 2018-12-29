@@ -13,10 +13,11 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/mitchellh/hashstructure"
+
+	"github.com/ugorji/go/codec"
 )
 
 type MessageType uint8
@@ -46,6 +47,7 @@ const (
 	IntentionRequestType                   = 12
 	ConnectCARequestType                   = 13
 	ConnectCAProviderStateType             = 14
+	ConnectCAConfigType                    = 15 // FSM snapshots only.
 )
 
 const (
@@ -378,6 +380,23 @@ func ValidateMetadata(meta map[string]string, allowConsulPrefix bool) error {
 	return nil
 }
 
+// ValidateWeights checks the definition of DNS weight is valid
+func ValidateWeights(weights *Weights) error {
+	if weights == nil {
+		return nil
+	}
+	if weights.Passing < 1 {
+		return fmt.Errorf("Passing must be greater than 0")
+	}
+	if weights.Warning < 0 {
+		return fmt.Errorf("Warning must be greater or equal than 0")
+	}
+	if weights.Passing > 65535 || weights.Warning > 65535 {
+		return fmt.Errorf("DNS Weight must be between 0 and 65535")
+	}
+	return nil
+}
+
 // validateMetaPair checks that the given key/value pair is in a valid format
 func validateMetaPair(key, value string, allowConsulPrefix bool) error {
 	if key == "" {
@@ -429,6 +448,7 @@ type ServiceNode struct {
 	ServiceName              string
 	ServiceTags              []string
 	ServiceAddress           string
+	ServiceWeights           Weights
 	ServiceMeta              map[string]string
 	ServicePort              int
 	ServiceEnableTagOverride bool
@@ -460,6 +480,7 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 		ServiceAddress:           s.ServiceAddress,
 		ServicePort:              s.ServicePort,
 		ServiceMeta:              nsmeta,
+		ServiceWeights:           s.ServiceWeights,
 		ServiceEnableTagOverride: s.ServiceEnableTagOverride,
 		ServiceProxyDestination:  s.ServiceProxyDestination,
 		ServiceConnect:           s.ServiceConnect,
@@ -480,6 +501,7 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 		Address:           s.ServiceAddress,
 		Port:              s.ServicePort,
 		Meta:              s.ServiceMeta,
+		Weights:           &s.ServiceWeights,
 		EnableTagOverride: s.ServiceEnableTagOverride,
 		ProxyDestination:  s.ServiceProxyDestination,
 		Connect:           s.ServiceConnect,
@@ -488,6 +510,12 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 			ModifyIndex: s.ModifyIndex,
 		},
 	}
+}
+
+// Weights represent the weight used by DNS for a given status
+type Weights struct {
+	Passing int
+	Warning int
 }
 
 type ServiceNodes []*ServiceNode
@@ -521,6 +549,7 @@ type NodeService struct {
 	Address           string
 	Meta              map[string]string
 	Port              int
+	Weights           *Weights
 	EnableTagOverride bool
 
 	// ProxyDestination is the name of the service that this service is
@@ -589,6 +618,7 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 		!reflect.DeepEqual(s.Tags, other.Tags) ||
 		s.Address != other.Address ||
 		s.Port != other.Port ||
+		!reflect.DeepEqual(s.Weights, other.Weights) ||
 		!reflect.DeepEqual(s.Meta, other.Meta) ||
 		s.EnableTagOverride != other.EnableTagOverride ||
 		s.Kind != other.Kind ||
@@ -602,6 +632,15 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 
 // ToServiceNode converts the given node service to a service node.
 func (s *NodeService) ToServiceNode(node string) *ServiceNode {
+	theWeights := Weights{
+		Passing: 1,
+		Warning: 1,
+	}
+	if s.Weights != nil {
+		if err := ValidateWeights(s.Weights); err == nil {
+			theWeights = *s.Weights
+		}
+	}
 	return &ServiceNode{
 		// Skip ID, see ServiceNode definition.
 		Node: node,
@@ -614,6 +653,7 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 		ServiceAddress:           s.Address,
 		ServicePort:              s.Port,
 		ServiceMeta:              s.Meta,
+		ServiceWeights:           theWeights,
 		ServiceEnableTagOverride: s.EnableTagOverride,
 		ServiceProxyDestination:  s.ProxyDestination,
 		ServiceConnect:           s.Connect,

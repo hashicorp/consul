@@ -23,6 +23,7 @@ type ServiceDefinition struct {
 	Port              int
 	Check             CheckType
 	Checks            CheckTypes
+	Weights           *Weights
 	Token             string
 	EnableTagOverride bool
 	ProxyDestination  string
@@ -38,6 +39,7 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 		Address:           s.Address,
 		Meta:              s.Meta,
 		Port:              s.Port,
+		Weights:           s.Weights,
 		EnableTagOverride: s.EnableTagOverride,
 		ProxyDestination:  s.ProxyDestination,
 	}

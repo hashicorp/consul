@@ -1,4 +1,7 @@
 {{#app-view class="acl list" loading=isLoading}}
+    {{#block-slot 'notification' as |status type|}}
+      {{partial 'dc/acls/notifications'}}
+    {{/block-slot}}
     {{#block-slot 'header'}}
         <h1>
             ACL Tokens

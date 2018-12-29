@@ -290,6 +290,8 @@ func TestLeader_ReapServer(t *testing.T) {
 	joinLAN(t, s1, s3)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s2.RPC, "dc1")
+	testrpc.WaitForLeader(t, s3.RPC, "dc1")
 	state := s1.fsm.State()
 
 	// s3 should be registered
@@ -888,6 +890,7 @@ func TestLeader_ChangeServerID(t *testing.T) {
 	joinLAN(t, s2, s1)
 	joinLAN(t, s3, s1)
 	for _, s := range servers {
+		testrpc.WaitForTestAgent(t, s.RPC, "dc1")
 		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
 	}
 
@@ -1017,7 +1020,7 @@ func TestLeader_CARootPruning(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Get the current root
 	rootReq := &structs.DCSpecificRequest{
@@ -1035,10 +1038,10 @@ func TestLeader_CARootPruning(t *testing.T) {
 	newConfig := &structs.CAConfiguration{
 		Provider: "consul",
 		Config: map[string]interface{}{
-			"LeafCertTTL":    500 * time.Millisecond,
+			"LeafCertTTL":    "500ms",
 			"PrivateKey":     newKey,
 			"RootCert":       "",
-			"RotationPeriod": 90 * 24 * time.Hour,
+			"RotationPeriod": "2160h",
 			"SkipValidate":   true,
 		},
 	}

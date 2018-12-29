@@ -191,6 +191,9 @@ type Config struct {
 	LeaveOnTerm                      *bool                    `json:"leave_on_terminate,omitempty" hcl:"leave_on_terminate" mapstructure:"leave_on_terminate"`
 	Limits                           Limits                   `json:"limits,omitempty" hcl:"limits" mapstructure:"limits"`
 	LogLevel                         *string                  `json:"log_level,omitempty" hcl:"log_level" mapstructure:"log_level"`
+	LogFile                          *string                  `json:"log_file,omitempty" hcl:"log_file" mapstructure:"log_file"`
+	LogRotateDuration                *string                  `json:"log_rotate_duration,omitempty" hcl:"log_rotate_duration" mapstructure:"log_rotate_duration"`
+	LogRotateBytes                   *int                     `json:"log_rotate_bytes,omitempty" hcl:"log_rotate_bytes" mapstructure:"log_rotate_bytes"`
 	NodeID                           *string                  `json:"node_id,omitempty" hcl:"node_id" mapstructure:"node_id"`
 	NodeMeta                         map[string]string        `json:"node_meta,omitempty" hcl:"node_meta" mapstructure:"node_meta"`
 	NodeName                         *string                  `json:"node_name,omitempty" hcl:"node_name" mapstructure:"node_name"`
@@ -319,6 +322,12 @@ type Autopilot struct {
 	UpgradeVersionTag       *string `json:"upgrade_version_tag,omitempty" hcl:"upgrade_version_tag" mapstructure:"upgrade_version_tag"`
 }
 
+// ServiceWeights defines the registration of weights used in DNS for a Service
+type ServiceWeights struct {
+	Passing *int `json:"passing,omitempty" hcl:"passing" mapstructure:"passing"`
+	Warning *int `json:"warning,omitempty" hcl:"warning" mapstructure:"warning"`
+}
+
 type ServiceDefinition struct {
 	Kind              *string           `json:"kind,omitempty" hcl:"kind" mapstructure:"kind"`
 	ID                *string           `json:"id,omitempty" hcl:"id" mapstructure:"id"`
@@ -330,6 +339,7 @@ type ServiceDefinition struct {
 	Check             *CheckDefinition  `json:"check,omitempty" hcl:"check" mapstructure:"check"`
 	Checks            []CheckDefinition `json:"checks,omitempty" hcl:"checks" mapstructure:"checks"`
 	Token             *string           `json:"token,omitempty" hcl:"token" mapstructure:"token"`
+	Weights           *ServiceWeights   `json:"weights,omitempty" hcl:"weights" mapstructure:"weights"`
 	EnableTagOverride *bool             `json:"enable_tag_override,omitempty" hcl:"enable_tag_override" mapstructure:"enable_tag_override"`
 	ProxyDestination  *string           `json:"proxy_destination,omitempty" hcl:"proxy_destination" mapstructure:"proxy_destination"`
 	Connect           *ServiceConnect   `json:"connect,omitempty" hcl:"connect" mapstructure:"connect"`
