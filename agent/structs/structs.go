@@ -546,6 +546,12 @@ type ServiceNode struct {
 	ServiceProxy            ConnectProxyConfig
 	ServiceConnect          ServiceConnect
 
+	// Internal only cache to avoid memDB lookups for "joins". These pointers
+	// are only valid in very specific circumstances and should be used with care
+	// as they point directly ot other values stored in memdb that should never be
+	// mutated outside of the FSM.
+	InternalCheckServiceNode CheckServiceNode
+
 	RaftIndex
 }
 
