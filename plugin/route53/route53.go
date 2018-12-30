@@ -110,7 +110,7 @@ func (h *Route53) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 
 	m := new(dns.Msg)
 	m.SetReply(r)
-	m.Authoritative, m.RecursionAvailable = true, true
+	m.Authoritative = true
 	var result file.Result
 	for _, hostedZone := range z {
 		h.zMu.RLock()

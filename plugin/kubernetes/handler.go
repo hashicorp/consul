@@ -16,7 +16,7 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 
 	m := new(dns.Msg)
 	m.SetReply(r)
-	m.Authoritative, m.RecursionAvailable = true, true
+	m.Authoritative = true
 
 	zone := plugin.Zones(k.Zones).Matches(state.Name())
 	if zone == "" {

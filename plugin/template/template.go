@@ -75,7 +75,7 @@ func (h Handler) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 
 		msg := new(dns.Msg)
 		msg.SetReply(r)
-		msg.Authoritative, msg.RecursionAvailable = true, true
+		msg.Authoritative = true
 		msg.Rcode = template.rcode
 
 		for _, answer := range template.answer {

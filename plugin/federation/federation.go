@@ -104,7 +104,7 @@ func (f *Federation) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.
 
 	m := new(dns.Msg)
 	m.SetReply(r)
-	m.Authoritative, m.RecursionAvailable = true, true
+	m.Authoritative = true
 
 	m.Answer = []dns.RR{service.NewCNAME(state.QName(), service.Host)}
 

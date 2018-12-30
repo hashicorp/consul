@@ -82,7 +82,7 @@ func (e *Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 
 	m := new(dns.Msg)
 	m.SetReply(r)
-	m.Authoritative, m.RecursionAvailable = true, true
+	m.Authoritative = true
 	m.Answer = append(m.Answer, records...)
 	m.Extra = append(m.Extra, extra...)
 

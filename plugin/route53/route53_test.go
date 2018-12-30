@@ -101,7 +101,7 @@ func TestRoute53(t *testing.T) {
 			}
 			m.Answer = []dns.RR{rr}
 
-			m.Authoritative, m.RecursionAvailable = true, true
+			m.Authoritative = true
 			rcode = dns.RcodeSuccess
 		}
 
