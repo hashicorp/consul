@@ -23,7 +23,7 @@ The optional **SCHEME** defaults to `dns://`, but can also be `tls://` (DNS over
 The optional **PORT** controls on which port the server will bind, this default to 53. If you use
 a port number here, you *can't* override it with `-dns.port` (coredns(1)).
 
-Specifying a **ZONE** *and* **PORT** combination multiple time for *different* servers will lead to
+Specifying a **ZONE** *and* **PORT** combination multiple times for *different* servers will lead to
 an error on startup.
 
 When a query comes in, it is matched again all zones for all servers, the server with the longest
@@ -39,13 +39,31 @@ Comments may be started anywhere on a line.
 Environment variables are supported and either the Unix or Windows form may be used: `{$ENV_VAR_1}`
 or `{%ENV_VAR_2%}`.
 
-You can use the `import` "plugin" to include parts of other files, see <https://coredns.io/explugins/import>.
-
 If CoreDNS can’t find a Corefile to load it loads the following builtin one:
 
-~~~ Corefile
+~~~ corefile
 . {
     whoami
+}
+~~~
+
+## Import
+
+You can use the `import` "plugin" to include parts of other files, see <https://coredns.io/explugins/import>.
+This is enabled by default.
+
+## Snippets
+
+If you want to reuse a snippet you can define one with and then use it with *import*.
+
+~~~ corefile {
+(mysnippet) {
+    log
+    whoami
+}
+
+. {
+    import mysnippet
 }
 ~~~
 
