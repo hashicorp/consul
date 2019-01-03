@@ -43,7 +43,7 @@ func (v *VaultProvider) Configure(clusterId string, isRoot bool, rawConfig map[s
 		CAPath:        config.CAPath,
 		ClientCert:    config.CertFile,
 		ClientKey:     config.KeyFile,
-		Insecure:      config.SkipValidate,
+		Insecure:      config.TLSSkipVerify,
 		TLSServerName: config.TLSServerName,
 	})
 	if err != nil {
