@@ -59,7 +59,7 @@ jobs:
       - checkout
       - restore_cache:
           key: consul-frontend-v2-{{ checksum "ui-v2/yarn.lock" }}
-      - run: cd ui-v2 && npx yarn build --output-path=dist
+      - run: cd ui-v2 && yarn build-ci --output-path=dist
 
       # saves the build to a workspace to be passed to a downstream job
       - persist_to_workspace:
