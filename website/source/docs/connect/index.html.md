@@ -54,8 +54,8 @@ Otherwise, the connection is rejected.
 
 To generate and distribute certificates, Consul has a built-in CA that
 requires no other dependencies, and
-also ships with built-in support for [Vault](#). The PKI system is pluggable
-and can be [extended](#) to support any system.
+also ships with built-in support for [Vault](/docs/connect/ca/vault.html). The PKI system is designed to be pluggable
+and can be extended to support any system by adding additional CA providers.
 
 All APIs required for Connect typically respond in microseconds and impose
 minimal overhead to existing services. This is because the Connect-related
