@@ -32,33 +32,34 @@ jobs:
           name: website deploy
           command: ./scripts/deploy.sh
 
+  # build frontend yarn cache
   frontend-cache:
     docker:
-      - image: circleci/node:8-browsers
+      - image: circleci/node:8
     steps:
       - checkout
       
       # cache yarn deps
       - restore_cache:
-          key: consul-frontend-v12-{{ checksum "ui-v2/yarn.lock" }}
+          key: consul-ui-v1-{{ checksum "ui-v2/yarn.lock" }}
       
       - run:
           name: install yarn packages
           command: cd ui-v2 && yarn install
       
       - save_cache:
-          key: consul-frontend-v2-{{ checksum "ui-v2/yarn.lock" }}
+          key: consul-ui-v1-{{ checksum "ui-v2/yarn.lock" }}
           paths:
             - ui-v2/node_modules
   
   # build ember so frontend tests run faster
   ember-build:
     docker:
-      - image: circleci/node:8-browsers
+      - image: circleci/node:8
     steps:
       - checkout
       - restore_cache:
-          key: consul-frontend-v2-{{ checksum "ui-v2/yarn.lock" }}
+          key: consul-ui-v1-{{ checksum "ui-v2/yarn.lock" }}
       - run: cd ui-v2 && yarn build-ci --output-path=dist
 
       # saves the build to a workspace to be passed to a downstream job
@@ -66,7 +67,8 @@ jobs:
           root: ui-v2
           paths:
             - dist
-  # job to run ember frontend tests
+
+  # run ember frontend tests
   ember-test:
     docker:
       - image: circleci/node:8-browsers
@@ -77,7 +79,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: consul-frontend-v2-{{ checksum "ui-v2/yarn.lock" }}
+          key: consul-ui-v1-{{ checksum "ui-v2/yarn.lock" }}
       - attach_workspace:
           at: ui-v2
       - run:
