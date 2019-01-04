@@ -9,6 +9,7 @@ PRESUBMIT:=core coremain plugin test request
 MAKEPWD:=$(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 CGO_ENABLED:=0
 
+.PHONY: all
 all: coredns
 
 .PHONY: coredns
@@ -16,7 +17,7 @@ coredns: $(CHECKS)
 	CGO_ENABLED=$(CGO_ENABLED) $(SYSTEM) go build $(BUILDOPTS) -ldflags="-s -w -X github.com/coredns/coredns/coremain.GitCommit=$(GITCOMMIT)" -o $(BINARY)
 
 .PHONY: check
-check: presubmit core/zplugin.go core/dnsserver/zdirectives.go godeps
+check: presubmit core/plugin/zplugin.go core/dnsserver/zdirectives.go godeps
 
 .PHONY: godeps
 godeps:
@@ -60,7 +61,7 @@ ifeq ($(TEST_TYPE),coverage)
 	done
 endif
 
-core/zplugin.go core/dnsserver/zdirectives.go: plugin.cfg
+core/plugin/zplugin.go core/dnsserver/zdirectives.go: plugin.cfg
 	go generate coredns.go
 
 .PHONY: gen
