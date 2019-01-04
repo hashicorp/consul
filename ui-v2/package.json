@@ -17,6 +17,7 @@
     "start": "ember serve --port=${EMBER_SERVE_PORT:-4200} --live-reload-port=${EMBER_LIVE_RELOAD_PORT:-7020}",
     "start:api": "api-double --dir ./node_modules/@hashicorp/consul-api-double",
     "test": "ember test --test-port=${EMBER_TEST_PORT:-7357}",
+    "test-parallel": "EMBER_EXAM_PARALLEL=true ember exam --split=4 --parallel",
     "test:view": "ember test --server --test-port=${EMBER_TEST_PORT:-7357}",
     "test:coverage": "COVERAGE=true ember test --test-port=${EMBER_TEST_PORT:-7357}",
     "test:view:coverage": "COVERAGE=true ember test --server --test-port=${EMBER_TEST_PORT:-7357}"
