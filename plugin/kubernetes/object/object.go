@@ -1,3 +1,18 @@
+// Package object holds functions that convert the objects from the k8s API in
+// to a more memory efficient structures.
+//
+// Adding new fields to any of the structures defined in pod.go, endpoint.go
+// and service.go should not be done lightly as this increases the memory use
+// and will leads to OOMs in the k8s scale test.
+//
+// We can do some optimizations here as well. We store IP addresses as strings,
+// this might be moved to uint32 (for v4) for instance, but then we need to
+// convert those again.
+//
+// Also the msg.Service use in this plugin may be deprecated at some point, as
+// we don't use most of those features anyway and would free us from the *etcd*
+// dependency, where msg.Service is defined. And should save some mem/cpu as we
+// convert to and from msg.Services.
 package object
 
 import (
