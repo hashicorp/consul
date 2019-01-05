@@ -109,13 +109,13 @@ endif
 all: bin
 
 bin: tools
-	@$(SHELL) $(CURDIR)/build-support/scripts/build-local.sh
+	@$(SHELL) $(CURDIR)/build-support/scripts/build-local
 
 # dev creates binaries for testing locally - these are put into ./bin and $GOPATH
 dev: changelogfmt vendorfmt dev-build
 
 dev-build:
-	@$(SHELL) $(CURDIR)/build-support/scripts/build-local.sh -o $(GOOS) -a $(GOARCH)
+	@$(SHELL) $(CURDIR)/build-support/scripts/build-local -o $(GOOS) -a $(GOARCH)
 
 dev-docker: go-build-image
 	@docker build -t '$(CONSUL_DEV_IMAGE)' --build-arg 'GIT_COMMIT=$(GIT_COMMIT)' --build-arg 'GIT_DIRTY=$(GIT_DIRTY)' --build-arg 'GIT_DESCRIBE=$(GIT_DESCRIBE)' --build-arg 'CONSUL_BUILD_IMAGE=$(GO_BUILD_TAG)' -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile '$(CURDIR)'
@@ -131,20 +131,20 @@ changelogfmt:
 
 # linux builds a linux package independent of the source platform
 linux:
-	@$(SHELL) $(CURDIR)/build-support/scripts/build-local.sh -o linux -a amd64
+	@$(SHELL) $(CURDIR)/build-support/scripts/build-local -o linux -a amd64
 
 # dist builds binaries for all platforms and packages them for distribution
 dist:
-	@$(SHELL) $(CURDIR)/build-support/scripts/release.sh -t '$(DIST_TAG)' -b '$(DIST_BUILD)' -S '$(DIST_SIGN)' $(DIST_VERSION_ARG) $(DIST_DATE_ARG) $(DIST_REL_ARG)
+	@$(SHELL) $(CURDIR)/build-support/scripts/release -t '$(DIST_TAG)' -b '$(DIST_BUILD)' -S '$(DIST_SIGN)' $(DIST_VERSION_ARG) $(DIST_DATE_ARG) $(DIST_REL_ARG)
 
 verify:
-	@$(SHELL) $(CURDIR)/build-support/scripts/verify.sh
+	@$(SHELL) $(CURDIR)/build-support/scripts/verify
 
 publish:
-	@$(SHELL) $(CURDIR)/build-support/scripts/publish.sh $(PUB_GIT_ARG) $(PUB_WEBSITE_ARG)
+	@$(SHELL) $(CURDIR)/build-support/scripts/publish $(PUB_GIT_ARG) $(PUB_WEBSITE_ARG)
 
 dev-tree:
-	@$(SHELL) $(CURDIR)/build-support/scripts/dev.sh $(DEV_PUSH_ARG)
+	@$(SHELL) $(CURDIR)/build-support/scripts/dev $(DEV_PUSH_ARG)
 
 cov:
 	gocov test $(GOFILES) | gocov-html > /tmp/coverage.html
@@ -195,7 +195,7 @@ test-ci: other-consul dev-build vet test-install-deps
 	fi
 
 test-flake: other-consul vet test-install-deps
-	@$(SHELL) $(CURDIR)/build-support/scripts/test-flake.sh --pkg "$(FLAKE_PKG)" --test "$(FLAKE_TEST)" --cpus "$(FLAKE_CPUS)" --n "$(FLAKE_N)"
+	@$(SHELL) $(CURDIR)/build-support/scripts/test-flake --pkg "$(FLAKE_PKG)" --test "$(FLAKE_TEST)" --cpus "$(FLAKE_CPUS)" --n "$(FLAKE_N)"
 
 other-consul:
 	@echo "--> Checking for other consul instances"
@@ -236,13 +236,13 @@ tools:
 
 version:
 	@echo -n "Version:                    "
-	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh
+	@$(SHELL) $(CURDIR)/build-support/scripts/version
 	@echo -n "Version + release:          "
-	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh -r
+	@$(SHELL) $(CURDIR)/build-support/scripts/version -r
 	@echo -n "Version + git:              "
-	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh  -g
+	@$(SHELL) $(CURDIR)/build-support/scripts/version  -g
 	@echo -n "Version + release + git:    "
-	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh -r -g
+	@$(SHELL) $(CURDIR)/build-support/scripts/version -r -g
 
 
 docker-images: go-build-image ui-build-image ui-legacy-build-image
@@ -260,16 +260,16 @@ ui-legacy-build-image:
 	@docker build $(NOCACHE) $(QUIET) -t $(UI_LEGACY_BUILD_TAG) - < build-support/docker/Build-UI-Legacy.dockerfile
 
 static-assets-docker: go-build-image
-	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh static-assets
+	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker static-assets
 
 consul-docker: go-build-image
-	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh consul
+	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker consul
 
 ui-docker: ui-build-image
-	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh ui
+	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker ui
 
 ui-legacy-docker: ui-legacy-build-image
-	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh ui-legacy
+	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker ui-legacy
 
 
 .PHONY: all ci bin dev dist cov test test-ci test-internal test-install-deps cover format vet ui static-assets tools vendorfmt

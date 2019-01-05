@@ -12,7 +12,7 @@ popd > /dev/null
 
 source "${SCRIPT_DIR}/functions.sh"
 
-function usage {
+usage() {
 cat <<-EOF
 Usage: ${SCRIPT_NAME}  [<options ...>]
 
@@ -60,13 +60,13 @@ Options:
 EOF
 }
 
-function err_usage {
+err_usage() {
    err "$1"
    err ""
    err "$(usage)"
 }
 
-function ensure_arg {
+ensure_arg() {
    if test -z "$2"
    then
       err_usage "ERROR: option $1 requires an argument"
@@ -76,18 +76,17 @@ function ensure_arg {
    return 0
 }
 
-function main {
-   declare    sdir="${SOURCE_DIR}"
-   declare -i do_tag=1
-   declare -i do_build=1
-   declare -i do_sign=1
-   declare    gpg_key="${HASHICORP_GPG_KEY}"
-   declare    version=""
-   declare    release_ver=""
-   declare    release_date=$(date +"%B %d, %Y")
+main() {
+   local _sdir="${SOURCE_DIR}"
+   local _do_tag=1
+   local _do_build=1
+   local _do_sign=1
+   local _gpg_key="${HASHICORP_GPG_KEY}"
+   local _version=""
+   local _release_ver=""
+   local _release_date=$(date +"%B %d, %Y")
    
-   while test $# -gt 0
-   do
+   while (( $# )); do
       case "$1" in
          -h | --help )
             usage
@@ -96,48 +95,47 @@ function main {
          -s | --source )
             ensure_arg "-s/--source" "$2" || return 1
            
-            if ! test -d "$2"
-            then
+            if ! [[ -d "$2" ]]; then
                err_usage "ERROR: '$2' is not a directory and not suitable for the value of -s/--source"
                return 1
             fi
             
-            sdir="$2"
+            _sdir="$2"
             shift 2
             ;;
          -t | --tag )
             ensure_arg "-t/--tag" "$2" || return 1
-            do_tag="$2"
+            _do_tag="$2"
             shift 2
             ;;
          -b | --build )
             ensure_arg "-b/--build" "$2" || return 1
-            do_build="$2"
+            _do_build="$2"
             shift 2
             ;;
          -S | --sign )
             ensure_arg "-s/--sign" "$2" || return 1
-            do_sign="$2"
+            _do_sign="$2"
             shift 2
             ;;
          -g | --gpg-key )
             ensure_arg "-g/--gpg-key" "$2" || return 1
-            gpg_key="$2"
+            _gpg_key="$2"
             shift 2
             ;;
          -v | --version )
             ensure_arg "-v/--version" "$2" || return 1
-            version="$2"
+            _version="$2"
             shift 2
             ;;
          -d | --date)
             ensure_arg "-d/--date" "$2" || return 1
-            release_date="$2"
+            _release_date="$2"
             shift 2
             ;;
          -r | --release)
             ensure_arg "-r/--release" "$2" || return 1
-            release_ver="$2"
+            _release_ver="$2"
             shift 2
             ;;
          *)
@@ -147,10 +145,9 @@ function main {
       esac
    done
    
-   build_release "${sdir}" "${do_tag}" "${do_build}" "${do_sign}" "${version}" "${release_date}" "${release_ver}" "${gpg_key}"
+   build_release "${_sdir}" "${_do_tag}" "${_do_build}" "${_do_sign}" "${_version}" "${_release_date}" "${_release_ver}" "${_gpg_key}"
    return $?
 }
 
 main "$@"
 exit $?
-   

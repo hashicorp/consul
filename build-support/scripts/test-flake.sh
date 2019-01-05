@@ -15,7 +15,7 @@ GOOS="linux"
 GOARCH="amd64"
 TEST_BINARY="flake.test"
 
-function usage {
+usage() {
 cat <<-EOF
 Usage: test-flake [<options ...>]
 
@@ -48,7 +48,7 @@ Examples:
 EOF
 }
 
-function build_repro_env {
+build_repro_env() {
     # Arguments:
     #   $1 - pkg, Target package
     #   $2 - test, Target tests
@@ -94,65 +94,53 @@ function build_repro_env {
     $IMAGE
 }
 
-function err_usage {
+err_usage() {
    err "$1"
    err ""
    err "$(usage)"
 }
 
-function main {
-   declare pkg=""
-   declare test=""
-   declare cpus=""
-   declare n=""
+main() {
+   local _pkg=""
+   local _test=""
+   local _cpus=""
+   local _n=""
    
    
-   while test $# -gt 0
-   do
+   while (( $# )); do
       case "$1" in
          -h | --help )
             usage
             return 0
             ;;
-
          --pkg )
-            if test -z "$2"
-            then
+            if [[ -z "$2" ]]; then
                err_usage "ERROR: option pkg requires an argument"
                return 1
             fi
-            
-            pkg="$2"
+            _pkg="$2"
             shift 2
             ;;
-
          --test )
-            test="$2"
+            _test="$2"
             shift 2
             ;;
-
          --cpus )
-            if test -n "$2"
-            then
-               cpus="$2"
+            if [[ -n "$2" ]]; then
+               _cpus="$2"
             else
-               cpus="0.15"
+               _cpus="0.15"
             fi
-            
             shift 2
             ;;
-
           --n )
-            if test -n "$2"
-            then
-               n="$2"
+            if [[ -n "$2" ]]; then
+               _n="$2"
             else
-               n="30"
+               _n="30"
             fi
-
             shift 2
             ;;
-
          * )
             err_usage "ERROR: Unknown argument: '$1'"
             return 1
@@ -160,7 +148,7 @@ function main {
       esac
    done
    
-   build_repro_env "${pkg}" "${test}" "${cpus}" "${n}" || return 1
+   build_repro_env "${_pkg}" "${_test}" "${_cpus}" "${_n}" || return 1
    
    return 0
 }

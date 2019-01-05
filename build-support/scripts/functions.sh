@@ -11,7 +11,6 @@ popd > /dev/null
 
 func_sources=$(find ${FUNC_DIR} -mindepth 1 -maxdepth 1 -name "*.sh" -type f | sort -n)
 
-for src in $func_sources
-do
+for src in $func_sources; do
    source $src
 done

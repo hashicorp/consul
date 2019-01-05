@@ -12,7 +12,7 @@ popd > /dev/null
 
 source "${SCRIPT_DIR}/functions.sh"
 
-function usage {
+usage() {
 cat <<-EOF
 Usage: ${SCRIPT_NAME} (consul|ui|ui-legacy|static-assets) [<options ...>]
 
@@ -32,57 +32,53 @@ Options:
 EOF
 }
 
-function err_usage {
+err_usage() {
    err "$1"
    err ""
    err "$(usage)"
 }
 
-function main {
-   declare    image=
-   declare    sdir="${SOURCE_DIR}"
-   declare -i refresh=0
-   declare    command=""
+main() {
+   local _image=
+   local _sdir="${SOURCE_DIR}"
+   local _refresh=0
+   local _command=""
    
-   while test $# -gt 0
-   do
+   while (( $# )); do
       case "$1" in
          -h | --help )
             usage
             return 0
             ;;
          -i | --image )
-            if test -z "$2"
-            then
+            if [[ -z "$2" ]]; then
                err_usage "ERROR: option -i/--image requires an argument"
                return 1
             fi
             
-            image="$2"
+            _image="$2"
             shift 2
             ;;
          -s | --source )
-            if test -z "$2"
-            then
+            if [[ -z "$2" ]]; then
                err_usage "ERROR: option -s/--source requires an argument"
                return 1
             fi
             
-            if ! test -d "$2"
-            then
+            if ! [[ -d "$2" ]]; then
                err_usage "ERROR: '$2' is not a directory and not suitable for the value of -s/--source"
                return 1
             fi
             
-            sdir="$2"
+            _sdir="$2"
             shift 2
             ;;
          -r | --refresh )
-            refresh=1
+            _refresh=1
             shift
             ;;
          consul | ui | ui-legacy | static-assets )
-            command="$1"
+            _command="$1"
             shift
             ;;
          * )
@@ -92,56 +88,51 @@ function main {
       esac
    done
    
-   if test -z "${command}"
-   then
+   if [[ -z "${_command}" ]]; then
       err_usage "ERROR: No command specified"
       return 1
    fi
    
-   case "${command}" in 
+   case "${_command}" in 
       consul )
-         if is_set "${refresh}"
-         then
+        if [[ $(is_set "${_refresh}") == 0 ]]; then
             status_stage "==> Refreshing Consul build container image"
-            export GO_BUILD_TAG="${image:-${GO_BUILD_CONTAINER_DEFAULT}}"
-            refresh_docker_images "${sdir}" go-build-image || return 1
+            export GO_BUILD_TAG="${_image:-${GO_BUILD_CONTAINER_DEFAULT}}"
+            refresh_docker_images "${_sdir}" go-build-image || return 1
          fi
          status_stage "==> Building Consul"
-         build_consul "${sdir}" "" "${image}" || return 1
+         build_consul "${_sdir}" "" "${_image}" || return 1
          ;;
       static-assets )
-         if is_set "${refresh}"
-         then
+        if [[ $(is_set "${_refresh}") == 0 ]]; then
             status_stage "==> Refreshing Consul build container image"
-            export GO_BUILD_TAG="${image:-${GO_BUILD_CONTAINER_DEFAULT}}"
-            refresh_docker_images "${sdir}" go-build-image || return 1
+            export GO_BUILD_TAG="${_image:-${GO_BUILD_CONTAINER_DEFAULT}}"
+            refresh_docker_images "${_sdir}" go-build-image || return 1
          fi
          status_stage "==> Building Static Assets"
-         build_assetfs "${sdir}" "${image}" || return 1
+         build_assetfs "${_sdir}" "${_image}" || return 1
          ;;
       ui )
-         if is_set "${refresh}"
-         then
+        if [[ $(is_set "${_refresh}") == 0 ]]; then
             status_stage "==> Refreshing UI build container image"
-            export UI_BUILD_TAG="${image:-${UI_BUILD_CONTAINER_DEFAULT}}"
-            refresh_docker_images "${sdir}" ui-build-image || return 1
+            export UI_BUILD_TAG="${_image:-${UI_BUILD_CONTAINER_DEFAULT}}"
+            refresh_docker_images "${_sdir}" ui-build-image || return 1
          fi
          status_stage "==> Building UI"
-         build_ui "${sdir}" "${image}" || return 1
-         status "==> UI Built with Version: $(ui_version ${sdir}/pkg/web_ui/v2/index.html), Logo: $(ui_logo_type ${sdir}/pkg/web_ui/v2/index.html)"
+         build_ui "${_sdir}" "${_image}" || return 1
+         status "==> UI Built with Version: $(ui_version ${_sdir}/pkg/web_ui/v2/index.html), Logo: $(ui_logo_type ${_sdir}/pkg/web_ui/v2/index.html)"
          ;;
       ui-legacy )
-         if is_set "${refresh}"
-         then
+        if [[ $(is_set "${_refresh}") == 0 ]]; then
             status_stage "==> Refreshing Legacy UI build container image"
-            export UI_LEGACY_BUILD_TAG="${image:-${UI_LEGACY_BUILD_CONTAINER_DEFAULT}}"
-            refresh_docker_images "${sdir}" ui-legacy-build-image || return 1
+            export UI_LEGACY_BUILD_TAG="${_image:-${UI_LEGACY_BUILD_CONTAINER_DEFAULT}}"
+            refresh_docker_images "${_sdir}" ui-legacy-build-image || return 1
          fi
          status_stage "==> Building UI"
-         build_ui_legacy "${sdir}" "${image}" || return 1
+         build_ui_legacy "${_sdir}" "${_image}" || return 1
          ;;
       * )
-         err_usage "ERROR: Unknown command: '${command}'"
+         err_usage "ERROR: Unknown command: '${_command}'"
          return 1
          ;;
    esac

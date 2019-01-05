@@ -227,35 +227,32 @@ function build_consul_post {
    #   pkg.bin.new is where the just built binaries are located
    #   bin is where to place the local systems versions
 
-   if ! test -d "$1"
-   then
+   if ! [[ -d "$1" ]]; then
       err "ERROR: '$1' is not a directory. build_consul_post must be called with the path to the top level source as the first argument'"
       return 1
    fi
 
-   local sdir="$1"
+   local _sdir="$1"
 
-   local extra_dir_name="$2"
-   local extra_dir=""
+   local _extra_dir_name="$2"
+   local _extra_dir=""
 
-   if test -n "${extra_dir_name}"
-   then
-      extra_dir="${extra_dir_name}/"
+   if [[ -n "${_extra_dir_name}" ]]; then
+      _extra_dir="${_extra_dir_name}/"
    fi
 
-   pushd "${sdir}" > /dev/null
+   pushd "${_sdir}" > /dev/null
 
    # recreate the pkg dir
-   rm -r pkg/bin/${extra_dir}* 2> /dev/null
-   mkdir -p pkg/bin/${extra_dir} 2> /dev/null
+   rm -r pkg/bin/${_extra_dir}* 2> /dev/null
+   mkdir -p pkg/bin/${_extra_dir} 2> /dev/null
 
    # move all files in pkg.new into pkg
-   cp -r pkg.bin.new/${extra_dir}* pkg/bin/${extra_dir}
+   cp -r pkg.bin.new/${_extra_dir}* pkg/bin/${_extra_dir}
    rm -r pkg.bin.new
 
-   DEV_PLATFORM="./pkg/bin/${extra_dir}$(go env GOOS)_$(go env GOARCH)"
-   for F in $(find ${DEV_PLATFORM} -mindepth 1 -maxdepth 1 -type f 2>/dev/null)
-   do
+   DEV_PLATFORM="./pkg/bin/${_extra_dir}$(go env GOOS)_$(go env GOARCH)"
+   for F in $(find ${DEV_PLATFORM} -mindepth 1 -maxdepth 1 -type f 2>/dev/null); do
       # recreate the bin dir
       rm -r bin/* 2> /dev/null
       mkdir -p bin 2> /dev/null
@@ -285,62 +282,67 @@ function build_consul {
    #   If the XC_OS or the XC_ARCH environment vars are present then only those platforms/architectures
    #   will be built. Otherwise all supported platform/architectures are built
 
-   if ! test -d "$1"
-   then
+   if ! [[ -d "$1" ]]; then
       err "ERROR: '$1' is not a directory. build_consul must be called with the path to the top level source as the first argument'"
       return 1
    fi
 
-   local sdir="$1"
-   local extra_dir_name="$2"
-   local extra_dir=""
-   local image_name=${GO_BUILD_CONTAINER_DEFAULT}
-   if test -n "$3"
-   then
-      image_name="$3"
+   local _sdir="$1"
+   local _extra_dir_name="$2"
+   local _extra_dir=""
+   local _image_name=${GO_BUILD_CONTAINER_DEFAULT}
+
+   if [[ -n "$3" ]]; then
+      _image_name="$3"
    fi
 
-   pushd ${sdir} > /dev/null
-   status "Creating the Go Build Container with image: ${image_name}"
-   if is_set "${CONSUL_DEV}"
-   then
-      if test -z "${XC_OS}"
-      then
+   pushd ${_sdir} > /dev/null
+   status "Creating the Go Build Container with image: ${_image_name}"
+   if is_set "${CONSUL_DEV}"; then
+      if [[ -z "${XC_OS}" ]]; then
          XC_OS=$(go env GOOS)
       fi
 
-      if test -z "${XC_ARCH}"
-      then
+      if [[ -z "${XC_ARCH}" ]]; then
          XC_ARCH=$(go env GOARCH)
       fi
    fi
    XC_OS=${XC_OS:-"solaris darwin freebsd linux windows"}
    XC_ARCH=${XC_ARCH:-"386 amd64 arm arm64"}
 
-   if test -n "${extra_dir_name}"
-   then
-      extra_dir="${extra_dir_name}/"
+   if [[ -n "${_extra_dir_name}" ]]; then
+      _extra_dir="${_extra_dir_name}/"
    fi
 
-   local container_id=$(docker create -it -e CGO_ENABLED=0 ${image_name} gox -os="${XC_OS}" -arch="${XC_ARCH}" -osarch="!darwin/arm !freebsd/arm !darwin/arm64" -ldflags "${GOLDFLAGS}" -output "pkg/bin/${extra_dir}{{.OS}}_{{.Arch}}/consul" -tags="${GOTAGS}")
+   local _container_id=$(
+   docker create \
+     -it \
+     -e CGO_ENABLED=0 \
+     ${_image_name} \
+     gox -os="${XC_OS}" \
+     -arch="${XC_ARCH}" \
+     -osarch="!darwin/arm !freebsd/arm !darwin/arm64" \
+     -ldflags "${GOLDFLAGS}" \
+     -output "pkg/bin/${_extra_dir}{{.OS}}_{{.Arch}}/consul" \
+     -tags="${GOTAGS}"
+   )
    ret=$?
 
-   if test $ret -eq 0
-   then
-      status "Copying the source from '${sdir}' to /go/src/github.com/hashicorp/consul"
+   if [[ $ret -eq 0 ]]; then
+      status "Copying the source from '${_sdir}' to /go/src/github.com/hashicorp/consul"
       (
-         tar -c $(ls | grep -v "^(ui\|ui-v2\|website\|bin\|pkg\|.git)") | docker cp - ${container_id}:/go/src/github.com/hashicorp/consul &&
-         status "Running build in container" &&
-         docker start -i ${container_id} &&
-         status "Copying back artifacts" &&
-         docker cp ${container_id}:/go/src/github.com/hashicorp/consul/pkg/bin pkg.bin.new
+         tar -c $(ls | grep -v "^(ui\|ui-v2\|website\|bin\|pkg\|.git)") \
+           | docker cp - ${_container_id}:/go/src/github.com/hashicorp/consul \
+           && status "Running build in container" \
+           && docker start -i ${_container_id} \
+           && status "Copying back artifacts" \
+           && docker cp ${_container_id}:/go/src/github.com/hashicorp/consul/pkg/bin pkg.bin.new
       )
       ret=$?
-      docker rm ${container_id} > /dev/null
+      docker rm ${_container_id} > /dev/null
 
-      if test $ret -eq 0
-      then
-         build_consul_post "${sdir}" "${extra_dir_name}"
+      if [[ $ret -eq 0 ]]; then
+         build_consul_post "${_sdir}" "${_extra_dir_name}"
          ret=$?
       else
          rm -r pkg.bin.new 2> /dev/null
@@ -369,89 +371,81 @@ function build_consul_local {
    #   The NOGOX environment variable will be used if present. This will prevent using gox and instead
    #   build with go install
 
-   if ! test -d "$1"
-   then
+   if ! [[ -d "$1" ]]; then
       err "ERROR: '$1' is not a directory. build_consul must be called with the path to the top level source as the first argument'"
       return 1
    fi
 
-   local sdir="$1"
-   local build_os="$2"
-   local build_arch="$3"
-   local extra_dir_name="$4"
-   local extra_dir=""
+   local _sdir="$1"
+   local _build_os="$2"
+   local _build_arch="$3"
+   local _extra_dir_name="$4"
+   local _extra_dir=""
 
-   if test -n "${extra_dir_name}"
-   then
-      extra_dir="${extra_dir_name}/"
+   if [[ -n "${_extra_dir_name}" ]]; then
+      _extra_dir="${_extra_dir_name}/"
    fi
 
-   pushd ${sdir} > /dev/null
-   if is_set "${CONSUL_DEV}"
-   then
-      if test -z "${XC_OS}"
-      then
+   pushd ${_sdir} > /dev/null
+   if [[ $(is_set "${CONSUL_DEV}") == 0 ]]; then
+      if [[ -z "${XC_OS}" ]]; then
          XC_OS=$(go env GOOS)
       fi
 
-      if test -z "${XC_ARCH}"
-      then
+      if [[ -z "${XC_ARCH}" ]]; then
          XC_ARCH=$(go env GOARCH)
       fi
    fi
    XC_OS=${XC_OS:-"solaris darwin freebsd linux windows"}
    XC_ARCH=${XC_ARCH:-"386 amd64 arm arm64"}
 
-   if test -z "${build_os}"
-   then
-      build_os="${XC_OS}"
+   if [[ -z "${_build_os}" ]]; then
+      _build_os="${XC_OS}"
    fi
 
-   if test -z "${build_arch}"
-   then
-      build_arch="${XC_ARCH}"
+   if [[ -z "${_build_arch}" ]]; then
+      _build_arch="${XC_ARCH}"
    fi
 
-   local use_gox=1
-   is_set "${NOGOX}" && use_gox=0
-   which gox > /dev/null || use_gox=0
+   local _use_gox=1
+   is_set "${NOGOX}" && _use_gox=0
+   which gox > /dev/null || _use_gox=0
 
-   status_stage "==> Building Consul - OSes: ${build_os}, Architectures: ${build_arch}"
+   status_stage "==> Building Consul - OSes: ${_build_os}, Architectures: ${_build_arch}"
    mkdir pkg.bin.new 2> /dev/null
-   if is_set "${use_gox}"
-   then
+   if [[ $(is_set "${_use_gox}") == 0 ]]; then
       status "Using gox for concurrent compilation"
 
       CGO_ENABLED=0 gox \
-         -os="${build_os}" \
-         -arch="${build_arch}" \
+         -os="${_build_os}" \
+         -arch="${_build_arch}" \
          -osarch="!darwin/arm !darwin/arm64 !freebsd/arm"  \
          -ldflags="${GOLDFLAGS}" \
-         -output "pkg.bin.new/${extra_dir}{{.OS}}_{{.Arch}}/consul" \
+         -output "pkg.bin.new/${_extra_dir}{{.OS}}_{{.Arch}}/consul" \
          -tags="${GOTAGS}" \
          .
 
-      if test $? -ne 0
-      then
+      if [[ $? != 0 ]]; then
          err "ERROR: Failed to build Consul"
          rm -r pkg.bin.new
          return 1
       fi
    else
       status "Building sequentially with go install"
-      for os in ${build_os}
+      for os in ${_build_os}
       do
-         for arch in ${build_arch}
+         for arch in ${_build_arch}
          do
-            outdir="pkg.bin.new/${extra_dir}${os}_${arch}"
+            outdir="pkg.bin.new/${_extra_dir}${os}_${arch}"
             osarch="${os}/${arch}"
-            if test "${osarch}" == "darwin/arm" -o "${osarch}" == "darwin/arm64" -o "${osarch}" == "freebsd/arm64" -o "${osarch}" == "windows/arm" -o "${osarch}" == "windows/arm64" -o "${osarch}" == "freebsd/arm"
-            then
-               continue
+
+            if [[ "${osarch}" == "darwin/arm" ]] || [[ ${osarch}} == "darwin/arm64" ]] \
+              || [[ ${osarch} == "freebsd/arm" ]] || [[ ${osarch}} == "freebsd/arm64" ]] \
+              || [[ ${osarch} == "windows/arm" ]] || [[ ${osarch}} == "windows/arm64" ]]; then
+              continue
             fi
 
-            if test "${os}" == "solaris" -a "${arch}" != "amd64"
-            then
+            if [[ "${os}" == "solaris" ]] && [[ "${arch}" != "amd64" ]]; then
                continue
             fi
 
@@ -460,17 +454,20 @@ function build_consul_local {
 
             mkdir -p "${outdir}"
             GOBIN_EXTRA=""
-            if test "${os}" != "$(go env GOHOSTOS)" -o "${arch}" != "$(go env GOHOSTARCH)"
-            then
+            if [[ "${os}" != "$(go env GOHOSTOS)" ]] || [[ "${arch}" != "$(go env GOHOSTARCH)" ]]; then
                GOBIN_EXTRA="${os}_${arch}/"
             fi
             binname="consul"
-            if [ $os == "windows" ];then
+            if [[ "${os}" == "windows" ]]; then
                 binname="consul.exe"
             fi
-            CGO_ENABLED=0 GOOS=${os} GOARCH=${arch} go install -ldflags "${GOLDFLAGS}" -tags "${GOTAGS}" && cp "${MAIN_GOPATH}/bin/${GOBIN_EXTRA}${binname}" "${outdir}/${binname}"
-            if test $? -ne 0
-            then
+
+            CGO_ENABLED=0 GOOS=${os} GOARCH=${arch} go install \
+              -ldflags "${GOLDFLAGS}" \
+              -tags "${GOTAGS}" \
+              && cp "${MAIN_GOPATH}/bin/${GOBIN_EXTRA}${binname}" "${outdir}/${binname}"
+
+            if [[ $? -ne 0 ]]; then
                err "ERROR: Failed to build Consul for ${osarch}"
                rm -r pkg.bin.new
                return 1
@@ -479,9 +476,8 @@ function build_consul_local {
       done
    fi
 
-   build_consul_post "${sdir}" "${extra_dir_name}"
-   if test $? -ne 0
-   then
+   build_consul_post "${_sdir}" "${_extra_dir_name}"
+   if [[ $? != 0 ]]; then
       err "ERROR: Failed postprocessing Consul binaries"
       return 1
    fi
