@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREFILE" "5" "August 2018" "CoreDNS" "CoreDNS"
+.TH "COREFILE" "5" "January 2019" "CoreDNS" "CoreDNS"
 .
 .SH "NAME"
 \fBcorefile\fR
@@ -34,7 +34,7 @@ The optional \fBSCHEME\fR defaults to \fBdns://\fR, but can also be \fBtls://\fR
 The optional \fBPORT\fR controls on which port the server will bind, this default to 53\. If you use a port number here, you \fIcan\'t\fR override it with \fB\-dns\.port\fR (coredns(1))\.
 .
 .P
-Specifying a \fBZONE\fR \fIand\fR \fBPORT\fR combination multiple time for \fIdifferent\fR servers will lead to an error on startup\.
+Specifying a \fBZONE\fR \fIand\fR \fBPORT\fR combination multiple times for \fIdifferent\fR servers will lead to an error on startup\.
 .
 .P
 When a query comes in, it is matched again all zones for all servers, the server with the longest match on the query name will receive the query\.
@@ -49,7 +49,7 @@ Comments are allowed and begin with an unquoted hash \fB#\fR and continue to the
 Environment variables are supported and either the Unix or Windows form may be used: \fB{$ENV_VAR_1}\fR or \fB{%ENV_VAR_2%}\fR\.
 .
 .P
-You can use the \fBimport\fR "plugin" to include parts of other files, see \fIhttps://coredns\.io/explugins/import\fR\.
+You can use the \fBimport\fR "plugin" to include parts of other files\.
 .
 .P
 If CoreDNS can’t find a Corefile to load it loads the following builtin one:
@@ -60,6 +60,29 @@ If CoreDNS can’t find a Corefile to load it loads the following builtin one:
 
 \&\. {
     whoami
+}
+.
+.fi
+.
+.IP "" 0
+.
+.SH "IMPORT"
+You can use the \fBimport\fR "plugin" to include parts of other files, see \fIhttps://coredns\.io/plugins/import\fR\.
+.
+.SH "SNIPPETS"
+If you want to reuse a snippet you can define one with and then use it with \fIimport\fR\.
+.
+.IP "" 4
+.
+.nf
+
+(mysnippet) {
+    log
+    whoami
+}
+
+\. {
+    import mysnippet
 }
 .
 .fi
@@ -166,4 +189,4 @@ CoreDNS Authors\.
 Apache License 2\.0
 .
 .SH "SEE ALSO"
-The manual page for CoreDNS: coredns(1) and more documentation on \fIhttps://coredns\.io\fR\.
+The manual page for CoreDNS: coredns(1) and more documentation on \fIhttps://coredns\.io\fR\. Also see the \fIimport\fR \fIhttps://coredns\.io/plugins/import\fR\'s documentation\.

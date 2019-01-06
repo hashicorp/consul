@@ -1,16 +1,16 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-LOOP" "7" "December 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-LOOP" "7" "January 2019" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIloop\fR \- detect simple forwarding loops and halt the server\.
 .
 .SH "DESCRIPTION"
-The \fIloop\fR plugin will send a random probe query to ourselves and will then keep track of how many times we see it\. If we see it more than twice, we assume CoreDNS is looping and we halt the process\.
+The \fIloop\fR plugin will send a random probe query to ourselves and will then keep track of how many times we see it\. If we see it more than twice, we assume CoreDNS has seen a forwarding loop and we halt the process\.
 .
 .P
-The plugin will try to send the query for up to 30 seconds\. This is done to give CoreDNS enough time to start up\. Once a query has been successfully sent \fIloop\fR disables itself to prevent a query of death\.
+The plugin will try to send the query for up to 30 seconds\. This is done to give CoreDNS enough time to start up\. Once a query has been successfully sent, \fIloop\fR disables itself to prevent a query of death\.
 .
 .P
 The query sent is \fB<random number>\.<random number>\.zone\fR with type set to HINFO\.
@@ -46,25 +46,25 @@ After CoreDNS has started it stops the process while logging:
 .
 .nf
 
-plugin/loop: Forwarding loop detected in "\." zone\. Exiting\. See https://coredns\.io/plugins/loop#troubleshooting\. Probe query: "HINFO 5577006791947779410\.8674665223082153551\."\.
+plugin/loop: Loop (127\.0\.0\.1:55953 \-> :1053) detected for zone "\.", see https://coredns\.io/plugins/loop#troubleshooting\. Query: "HINFO 4547991504243258144\.3688648895315093531\."
 .
 .fi
 .
 .IP "" 0
 .
 .SH "LIMITATIONS"
-This plugin only attempts to find simple static forwarding loops at start up time\. To detect a loop, all of the following must be true
+This plugin only attempts to find simple static forwarding loops at start up time\. To detect a loop, the following must be true:
 .
 .IP "\(bu" 4
 the loop must be present at start up time\.
 .
 .IP "\(bu" 4
-the loop must occur for at least the \fBHINFO\fR query type\.
+the loop must occur for the \fBHINFO\fR query type\.
 .
 .IP "" 0
 .
 .SH "TROUBLESHOOTING"
-When CoreDNS logs contain the message \fBForwarding loop detected \.\.\.\fR, this means that the \fBloop\fR detection plugin has detected an infinite forwarding loop in one of the upstream DNS servers\. This is a fatal error because operating with an infinite loop will consume memory and CPU until eventual out of memory death by the host\.
+When CoreDNS logs contain the message \fBLoop \.\.\. detected \.\.\.\fR, this means that the \fBloop\fR detection plugin has detected an infinite forwarding loop in one of the upstream DNS servers\. This is a fatal error because operating with an infinite loop will consume memory and CPU until eventual out of memory death by the host\.
 .
 .P
 A forwarding loop is usually caused by:
