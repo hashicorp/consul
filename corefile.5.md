@@ -39,6 +39,8 @@ Comments may be started anywhere on a line.
 Environment variables are supported and either the Unix or Windows form may be used: `{$ENV_VAR_1}`
 or `{%ENV_VAR_2%}`.
 
+You can use the `import` "plugin" to include parts of other files.
+
 If CoreDNS can’t find a Corefile to load it loads the following builtin one:
 
 ~~~ corefile
@@ -49,8 +51,7 @@ If CoreDNS can’t find a Corefile to load it loads the following builtin one:
 
 ## Import
 
-You can use the `import` "plugin" to include parts of other files, see <https://coredns.io/explugins/import>.
-This is enabled by default.
+You can use the `import` "plugin" to include parts of other files, see <https://coredns.io/plugins/import>.
 
 ## Snippets
 
@@ -133,3 +134,4 @@ Apache License 2.0
 ## See Also
 
 The manual page for CoreDNS: coredns(1) and more documentation on <https://coredns.io>.
+Also see the [*import*](https://coredns.io/plugins/import)'s documentation.
