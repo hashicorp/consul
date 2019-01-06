@@ -63,6 +63,25 @@ func TestArchive(t *testing.T) {
 	}
 }
 
+func TestArchive_GoodData(t *testing.T) {
+	paths := []string{
+		"../test/snapshot/spaces-meta.tar",
+	}
+	for i, p := range paths {
+		f, err := os.Open(p)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		defer f.Close()
+
+		var metadata raft.SnapshotMeta
+		err = read(f, &metadata, ioutil.Discard)
+		if err != nil {
+			t.Fatalf("case %d: should've read the snapshot, but didn't: %v", i, err)
+		}
+	}
+}
+
 func TestArchive_BadData(t *testing.T) {
 	cases := []struct {
 		Name  string

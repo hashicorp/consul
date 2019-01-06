@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"hash"
 	"io"
+	"io/ioutil"
 	"time"
 
 	"github.com/hashicorp/raft"
@@ -193,8 +194,11 @@ func read(in io.Reader, metadata *raft.SnapshotMeta, snap io.Writer) error {
 
 		switch hdr.Name {
 		case "meta.json":
-			dec := json.NewDecoder(io.TeeReader(archive, metaHash))
-			if err := dec.Decode(&metadata); err != nil {
+			buf, err := ioutil.ReadAll(io.TeeReader(archive, metaHash))
+			if err != nil {
+				return fmt.Errorf("failed to read snapshot metadata: %v", err)
+			}
+			if err := json.Unmarshal(buf, &metadata); err != nil {
 				return fmt.Errorf("failed to decode snapshot metadata: %v", err)
 			}
 
