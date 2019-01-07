@@ -196,6 +196,15 @@ func ParseStanza(c *caddy.Controller) (*Kubernetes, error) {
 			args := c.RemainingArgs()
 			if len(args) > 0 {
 				k8s.APIServerList = args
+				if len(args) > 1 {
+					// If multiple endoints specified, then only http allowed
+					for i := range args {
+						parts := strings.SplitN(args[i], "://", 2)
+						if len(parts) == 2 && parts[0] != "http" {
+							return nil, fmt.Errorf("multiple endpoints can only accept http, found: %v", args[i])
+						}
+					}
+				}
 				continue
 			}
 			return nil, c.ArgErr()

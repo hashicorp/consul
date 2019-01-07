@@ -439,6 +439,20 @@ kubernetes cluster.local`,
 			fall.Zero,
 			nil,
 		},
+		{
+			`kubernetes coredns.local {
+    endpoint http://localhost:9090 https://localhost:9091
+}`,
+			true,
+			"multiple endpoints can only accept http",
+			-1,
+			-1,
+			defaultResyncPeriod,
+			"",
+			podModeDisabled,
+			fall.Zero,
+			nil,
+		},
 	}
 
 	for i, test := range tests {
