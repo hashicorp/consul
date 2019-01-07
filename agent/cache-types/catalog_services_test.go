@@ -25,28 +25,30 @@ func TestCatalogServices(t *testing.T) {
 			require.Equal(uint64(24), req.QueryOptions.MinQueryIndex)
 			require.Equal(1*time.Second, req.QueryOptions.MaxQueryTime)
 			require.Equal("web", req.ServiceName)
-			require.Equal("canary", req.ServiceTag)
 			require.True(req.AllowStale)
 
 			reply := args.Get(2).(*structs.IndexedServiceNodes)
+			reply.ServiceNodes = []*structs.ServiceNode{
+				&structs.ServiceNode{ServiceTags: req.ServiceTags},
+			}
 			reply.QueryMeta.Index = 48
 			resp = reply
 		})
 
 	// Fetch
-	result, err := typ.Fetch(cache.FetchOptions{
+	resultA, err := typ.Fetch(cache.FetchOptions{
 		MinIndex: 24,
 		Timeout:  1 * time.Second,
 	}, &structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
 		ServiceName: "web",
-		ServiceTag:  "canary",
+		ServiceTags: []string{"tag1", "tag2"},
 	})
 	require.NoError(err)
 	require.Equal(cache.FetchResult{
 		Value: resp,
 		Index: 48,
-	}, result)
+	}, resultA)
 }
 
 func TestCatalogServices_badReqType(t *testing.T) {

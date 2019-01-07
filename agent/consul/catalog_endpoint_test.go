@@ -1655,6 +1655,8 @@ func TestCatalog_ListServiceNodes_ServiceTags_V1_2_3Compat(t *testing.T) {
 	err = s1.fsm.State().EnsureService(2, "foo", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"secondary"}, Address: "127.0.0.1", Port: 5001})
 	require.NoError(t, err)
 
+	// DEPRECATED (singular-service-tag) - remove this when backwards RPC compat
+	// with 1.2.x is not required.
 	// make a request with the <=1.2.3 ServiceTag tag field (vs ServiceTags)
 	args := structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
@@ -1670,6 +1672,8 @@ func TestCatalog_ListServiceNodes_ServiceTags_V1_2_3Compat(t *testing.T) {
 	require.Equal(t, 1, len(out.ServiceNodes))
 	require.Equal(t, "db1", out.ServiceNodes[0].ServiceID)
 
+	// DEPRECATED (singular-service-tag) - remove this when backwards RPC compat
+	// with 1.2.x is not required.
 	// test with the other tag
 	args = structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
@@ -1693,6 +1697,8 @@ func TestCatalog_ListServiceNodes_ServiceTags_V1_2_3Compat(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 2, len(out.ServiceNodes))
 
+	// DEPRECATED (singular-service-tag) - remove this when backwards RPC compat
+	// with 1.2.x is not required.
 	// when both ServiceTag and ServiceTags fields are populated, use ServiceTag
 	args = structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",

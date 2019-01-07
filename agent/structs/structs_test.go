@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
 	"github.com/stretchr/testify/assert"
@@ -897,5 +898,141 @@ func TestStructs_validateMetaPair(t *testing.T) {
 		} else if pair.Error != "" && !strings.Contains(err.Error(), pair.Error) {
 			t.Fatalf("should have failed: %v, %v", pair, err)
 		}
+	}
+}
+
+func TestSpecificServiceRequest_CacheInfo(t *testing.T) {
+	tests := []struct {
+		name     string
+		req      ServiceSpecificRequest
+		mutate   func(req *ServiceSpecificRequest)
+		want     *cache.RequestInfo
+		wantSame bool
+	}{
+		{
+			name: "basic params",
+			req: ServiceSpecificRequest{
+				QueryOptions: QueryOptions{Token: "foo"},
+				Datacenter:   "dc1",
+			},
+			want: &cache.RequestInfo{
+				Token:      "foo",
+				Datacenter: "dc1",
+			},
+			wantSame: true,
+		},
+		{
+			name: "name should be considered",
+			req: ServiceSpecificRequest{
+				ServiceName: "web",
+			},
+			mutate: func(req *ServiceSpecificRequest) {
+				req.ServiceName = "db"
+			},
+			wantSame: false,
+		},
+		{
+			name: "node meta should be considered",
+			req: ServiceSpecificRequest{
+				NodeMetaFilters: map[string]string{
+					"foo": "bar",
+				},
+			},
+			mutate: func(req *ServiceSpecificRequest) {
+				req.NodeMetaFilters = map[string]string{
+					"foo": "qux",
+				}
+			},
+			wantSame: false,
+		},
+		{
+			name: "address should be considered",
+			req: ServiceSpecificRequest{
+				ServiceAddress: "1.2.3.4",
+			},
+			mutate: func(req *ServiceSpecificRequest) {
+				req.ServiceAddress = "4.3.2.1"
+			},
+			wantSame: false,
+		},
+		{
+			name: "tag filter should be considered",
+			req: ServiceSpecificRequest{
+				TagFilter: true,
+			},
+			mutate: func(req *ServiceSpecificRequest) {
+				req.TagFilter = false
+			},
+			wantSame: false,
+		},
+		{
+			name: "connect should be considered",
+			req: ServiceSpecificRequest{
+				Connect: true,
+			},
+			mutate: func(req *ServiceSpecificRequest) {
+				req.Connect = false
+			},
+			wantSame: false,
+		},
+		{
+			name: "tags should be different",
+			req: ServiceSpecificRequest{
+				ServiceName: "web",
+				ServiceTags: []string{"foo"},
+			},
+			mutate: func(req *ServiceSpecificRequest) {
+				req.ServiceTags = []string{"foo", "bar"}
+			},
+			wantSame: false,
+		},
+		{
+			name: "tags should not depend on order",
+			req: ServiceSpecificRequest{
+				ServiceName: "web",
+				ServiceTags: []string{"bar", "foo"},
+			},
+			mutate: func(req *ServiceSpecificRequest) {
+				req.ServiceTags = []string{"foo", "bar"}
+			},
+			wantSame: true,
+		},
+		// DEPRECATED (singular-service-tag) - remove this when upgrade RPC compat
+		// with 1.2.x is not required.
+		{
+			name: "legacy requests with singular tag should be different",
+			req: ServiceSpecificRequest{
+				ServiceName: "web",
+				ServiceTag:  "foo",
+			},
+			mutate: func(req *ServiceSpecificRequest) {
+				req.ServiceTag = "bar"
+			},
+			wantSame: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			info := tc.req.CacheInfo()
+			if tc.mutate != nil {
+				tc.mutate(&tc.req)
+			}
+			afterInfo := tc.req.CacheInfo()
+
+			// Check key matches or not
+			if tc.wantSame {
+				require.Equal(t, info, afterInfo)
+			} else {
+				require.NotEqual(t, info, afterInfo)
+			}
+
+			if tc.want != nil {
+				// Reset key since we don't care about the actual hash value as long as
+				// it does/doesn't change appropriately (asserted with wantSame above).
+				info.Key = ""
+				require.Equal(t, *tc.want, info)
+			}
+		})
 	}
 }

@@ -1009,7 +1009,7 @@ func (d *DNSServer) lookupServiceNodes(datacenter, service, tag string, connect 
 		Connect:     connect,
 		Datacenter:  datacenter,
 		ServiceName: service,
-		ServiceTag:  tag,
+		ServiceTags:  []string{tag},
 		TagFilter:   tag != "",
 		QueryOptions: structs.QueryOptions{
 			Token:      d.agent.tokens.UserToken(),
