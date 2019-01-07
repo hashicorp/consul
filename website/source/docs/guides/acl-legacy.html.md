@@ -737,8 +737,10 @@ Sentinel code policy looks like this:
 key "foo" {
   policy = "write"
   sentinel {
-      code = " import \"strings\"
-               main = rule { strings.has_suffix(value, \"bar\") } "
+      code = <<EOF
+import "strings"
+main = rule { strings.has_suffix(value, "bar") }
+EOF
       enforcementlevel = "hard-mandatory"
   }
 }

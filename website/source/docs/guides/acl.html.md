@@ -847,8 +847,8 @@ key "foo" {
   policy = "write"
   sentinel {
       code = <<EOF
-        import "strings\
-        main = rule { strings.has_suffix(value, "bar") }
+import "strings"
+main = rule { strings.has_suffix(value, "bar") }
 EOF
       enforcementlevel = "hard-mandatory"
   }
