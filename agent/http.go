@@ -42,6 +42,18 @@ func (e BadRequestError) Error() string {
 	return fmt.Sprintf("Bad request: %s", e.Reason)
 }
 
+// CodeWithPayloadError allow returning non HTTP 200
+// Error codes while not returning PlainText payload
+type CodeWithPayloadError struct {
+	Reason      string
+	StatusCode  int
+	ContentType string
+}
+
+func (e CodeWithPayloadError) Error() string {
+	return e.Reason
+}
+
 // HTTPServer provides an HTTP api for an agent.
 type HTTPServer struct {
 	*http.Server
@@ -364,21 +376,41 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 			// Invoke the handler
 			obj, err = handler(resp, req)
 		}
-
+		contentType := "application/json"
+		httpCode := http.StatusOK
 		if err != nil {
-			handleErr(err)
-			return
+			if errPayload, ok := err.(CodeWithPayloadError); ok {
+				httpCode = errPayload.StatusCode
+				if errPayload.ContentType != "" {
+					contentType = errPayload.ContentType
+				}
+				if errPayload.Reason != "" {
+					resp.Header().Add("X-Consul-Reason", errPayload.Reason)
+				}
+			} else {
+				handleErr(err)
+				return
+			}
 		}
 		if obj == nil {
 			return
 		}
-
-		buf, err := s.marshalJSON(req, obj)
-		if err != nil {
-			handleErr(err)
-			return
+		var buf []byte
+		if contentType == "application/json" {
+			buf, err = s.marshalJSON(req, obj)
+			if err != nil {
+				handleErr(err)
+				return
+			}
+		} else {
+			if strings.HasPrefix(contentType, "text/") {
+				if val, ok := obj.(string); ok {
+					buf = []byte(val)
+				}
+			}
 		}
-		resp.Header().Set("Content-Type", "application/json")
+		resp.Header().Set("Content-Type", contentType)
+		resp.WriteHeader(httpCode)
 		resp.Write(buf)
 	}
 }

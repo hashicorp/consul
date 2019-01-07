@@ -3,6 +3,8 @@ package api
 import (
 	"bufio"
 	"fmt"
+	"net/http"
+	"net/url"
 )
 
 // ServiceKind is the kind of service being registered.
@@ -87,6 +89,13 @@ type AgentService struct {
 	ProxyDestination string                          `json:",omitempty"`
 	Proxy            *AgentServiceConnectProxyConfig `json:",omitempty"`
 	Connect          *AgentServiceConnect            `json:",omitempty"`
+}
+
+// AgentServiceChecksInfo returns information about a Service and its checks
+type AgentServiceChecksInfo struct {
+	AggregatedStatus string
+	Service          *AgentService
+	Checks           HealthChecks
 }
 
 // AgentServiceConnect represents the Connect configuration of a service.
@@ -405,6 +414,73 @@ func (a *Agent) Services() (map[string]*AgentService, error) {
 	}
 
 	return out, nil
+}
+
+// AgentHealthServiceByID returns for a given serviceID: the aggregated health status, the service definition or an error if any
+// - If the service is not found, will return status (critical, nil, nil)
+// - If the service is found, will return (critical|passing|warning), AgentServiceChecksInfo, nil)
+// - In all other cases, will return an error
+func (a *Agent) AgentHealthServiceByID(serviceID string) (string, *AgentServiceChecksInfo, error) {
+	path := fmt.Sprintf("/v1/agent/health/service/id/%v", url.PathEscape(serviceID))
+	r := a.c.newRequest("GET", path)
+	r.params.Add("format", "json")
+	r.header.Set("Accept", "application/json")
+	_, resp, err := a.c.doRequest(r)
+	if err != nil {
+		return "", nil, err
+	}
+	defer resp.Body.Close()
+	// Service not Found
+	if resp.StatusCode == http.StatusNotFound {
+		return HealthCritical, nil, nil
+	}
+	var out *AgentServiceChecksInfo
+	if err := decodeBody(resp, &out); err != nil {
+		return HealthCritical, out, err
+	}
+	switch resp.StatusCode {
+	case http.StatusOK:
+		return HealthPassing, out, nil
+	case http.StatusTooManyRequests:
+		return HealthWarning, out, nil
+	case http.StatusServiceUnavailable:
+		return HealthCritical, out, nil
+	}
+	return HealthCritical, out, fmt.Errorf("Unexpected Error Code %v for %s", resp.StatusCode, path)
+}
+
+// AgentHealthServiceByName returns for a given service name: the aggregated health status for all services
+// having the specified name.
+// - If no service is not found, will return status (critical, [], nil)
+// - If the service is found, will return (critical|passing|warning), []api.AgentServiceChecksInfo, nil)
+// - In all other cases, will return an error
+func (a *Agent) AgentHealthServiceByName(service string) (string, []AgentServiceChecksInfo, error) {
+	path := fmt.Sprintf("/v1/agent/health/service/name/%v", url.PathEscape(service))
+	r := a.c.newRequest("GET", path)
+	r.params.Add("format", "json")
+	r.header.Set("Accept", "application/json")
+	_, resp, err := a.c.doRequest(r)
+	if err != nil {
+		return "", nil, err
+	}
+	defer resp.Body.Close()
+	// Service not Found
+	if resp.StatusCode == http.StatusNotFound {
+		return HealthCritical, nil, nil
+	}
+	var out []AgentServiceChecksInfo
+	if err := decodeBody(resp, &out); err != nil {
+		return HealthCritical, out, err
+	}
+	switch resp.StatusCode {
+	case http.StatusOK:
+		return HealthPassing, out, nil
+	case http.StatusTooManyRequests:
+		return HealthWarning, out, nil
+	case http.StatusServiceUnavailable:
+		return HealthCritical, out, nil
+	}
+	return HealthCritical, out, fmt.Errorf("Unexpected Error Code %v for %s", resp.StatusCode, path)
 }
 
 // Service returns a locally registered service instance and allows for
