@@ -1499,6 +1499,7 @@ func TestAgent_persistedService_compat(t *testing.T) {
 		Service: "redis",
 		Tags:    []string{"foo"},
 		Port:    8000,
+		Weights: &structs.Weights{Passing: 1, Warning: 1},
 	}
 
 	// Encode the NodeService directly. This is what previous versions
@@ -1528,9 +1529,7 @@ func TestAgent_persistedService_compat(t *testing.T) {
 	if !ok {
 		t.Fatalf("missing service")
 	}
-	if !reflect.DeepEqual(result, svc) {
-		t.Fatalf("bad: %#v", result)
-	}
+	require.Equal(t, svc, result)
 }
 
 func TestAgent_PurgeService(t *testing.T) {
