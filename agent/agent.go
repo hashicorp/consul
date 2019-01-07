@@ -1908,11 +1908,6 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 	a.PauseSync()
 	defer a.ResumeSync()
 
-	// Take a snapshot of the current state of checks (if any), and
-	// restore them before resuming anti-entropy.
-	snap := a.snapshotCheckState()
-	defer a.restoreCheckState(snap)
-
 	// Add the service
 	a.State.AddService(service, token)
 
@@ -2051,6 +2046,14 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 
 	a.checkLock.Lock()
 	defer a.checkLock.Unlock()
+
+	// snapshot the current state of the health check to avoid potential flapping
+	existing := a.State.Check(check.CheckID)
+	defer func() {
+		if existing != nil {
+			a.State.UpdateCheck(check.CheckID, existing.Status, existing.Output)
+		}
+	}()
 
 	// Check if already registered
 	if chkType != nil {
