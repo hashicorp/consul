@@ -1,0 +1,84 @@
+/* This proto file contains the service and structures for implementing
+ * a Consul CA provider plugin. For clearer documentation on what each
+ * RPC method should do, please refer to the Go interface documentation
+ * for `agent/connect/ca.Provider`.
+ *
+ * After implementing this service, the plugin must also output the proper
+ * format to stdout for the plugin handshake. Please refer to the Consul
+ * documentation for more information.
+ */
+
+syntax = "proto3";
+
+option go_package = "github.com/hashicorp/consul/agent/connect/ca/plugin";
+
+package plugin;
+
+service CA {
+    rpc Configure(ConfigureRequest) returns (Empty);
+    rpc GenerateRoot(Empty) returns (Empty);
+    rpc ActiveRoot(Empty) returns (ActiveRootResponse);
+    rpc GenerateIntermediateCSR(Empty) returns (GenerateIntermediateCSRResponse);
+    rpc SetIntermediate(SetIntermediateRequest) returns (Empty);
+    rpc ActiveIntermediate(Empty) returns (ActiveIntermediateResponse);
+    rpc GenerateIntermediate(Empty) returns (GenerateIntermediateResponse);
+    rpc Sign(SignRequest) returns (SignResponse);
+    rpc SignIntermediate(SignIntermediateRequest) returns (SignIntermediateResponse);
+    rpc CrossSignCA(CrossSignCARequest) returns (CrossSignCAResponse);
+    rpc Cleanup(Empty) returns (Empty);
+}
+
+message ConfigureRequest {
+    string cluster_id = 1;
+    bool is_root = 2;
+    bytes config = 3; // JSON-encoded structure
+}
+
+message SetIntermediateRequest {
+    string intermediate_pem = 1;
+    string root_pem = 2;
+}
+
+message SignRequest {
+    bytes csr = 1;
+}
+
+message SignIntermediateRequest {
+    bytes csr = 1;
+}
+
+message CrossSignCARequest {
+    bytes crt = 1;
+}
+
+message ActiveRootResponse {
+    string crt_pem = 1;
+}
+
+message GenerateIntermediateCSRResponse {
+    string csr_pem = 1;
+}
+
+message ActiveIntermediateResponse {
+    string crt_pem = 1;
+}
+
+message GenerateIntermediateResponse {
+    string crt_pem = 1;
+}
+
+message SignResponse {
+    string crt_pem = 1;
+}
+
+message SignIntermediateResponse {
+    string crt_pem = 1;
+}
+
+message CrossSignCAResponse {
+    string crt_pem = 1;
+}
+
+// Protobufs doesn't allow no req/resp so in the cases where there are
+// no arguments we use the Empty message.
+message Empty {}

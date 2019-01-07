@@ -4,6 +4,8 @@ import (
 	"crypto/x509"
 )
 
+//go:generate mockery -name Provider -inpkg
+
 // Provider is the interface for Consul to interact with
 // an external CA that provides leaf certificate signing for
 // given SpiffeIDServices.
