@@ -933,6 +933,7 @@ func TestCatalog_ListNodes_StaleRead(t *testing.T) {
 	defer s1.Shutdown()
 	codec1 := rpcClient(t, s1)
 	defer codec1.Close()
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
 	defer os.RemoveAll(dir2)
@@ -980,7 +981,7 @@ func TestCatalog_ListNodes_StaleRead(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Fatalf("failed to find foo")
+		t.Fatalf("failed to find foo in %#v", out.Nodes)
 	}
 
 	if out.QueryMeta.LastContact == 0 {
@@ -2160,6 +2161,7 @@ func TestCatalog_NodeServices(t *testing.T) {
 	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
 	defer codec.Close()
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	args := structs.NodeSpecificRequest{
 		Datacenter: "dc1",
@@ -2213,7 +2215,7 @@ func TestCatalog_NodeServices_ConnectProxy(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Register the service
 	args := structs.TestRegisterRequestProxy(t)
@@ -2244,7 +2246,7 @@ func TestCatalog_NodeServices_ConnectNative(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Register the service
 	args := structs.TestRegisterRequest(t)
@@ -2392,6 +2394,7 @@ func TestCatalog_ListServices_FilterACL(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
 	defer codec.Close()
+	testrpc.WaitForTestAgent(t, srv.RPC, "dc1")
 
 	opt := structs.DCSpecificRequest{
 		Datacenter:   "dc1",
@@ -2473,7 +2476,7 @@ func TestCatalog_NodeServices_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Prior to version 8, the node policy should be ignored.
 	args := structs.NodeSpecificRequest{
@@ -2542,6 +2545,7 @@ func TestCatalog_NodeServices_FilterACL(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
 	defer codec.Close()
+	testrpc.WaitForTestAgent(t, srv.RPC, "dc1")
 
 	opt := structs.NodeSpecificRequest{
 		Datacenter:   "dc1",

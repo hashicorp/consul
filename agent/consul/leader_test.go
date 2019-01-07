@@ -980,7 +980,7 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 			dir1, s1 := testServerWithConfig(t, conf)
 			defer os.RemoveAll(dir1)
 			defer s1.Shutdown()
-			testrpc.WaitForLeader(t, s1.RPC, "dc1")
+			testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 			if tt.master != "" {
 				_, master, err := s1.fsm.State().ACLTokenGetBySecret(nil, tt.master)
@@ -1153,7 +1153,7 @@ func TestLeader_ACLUpgrade(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
