@@ -734,7 +734,7 @@ func TestAgent_HealthServiceByID(t *testing.T) {
 			req, _ := http.NewRequest("GET", url+"?format=text", nil)
 			resp := httptest.NewRecorder()
 			data, err := a.srv.AgentHealthServiceByID(resp, req)
-			codeWithPayload, ok := err.(api.CodeWithPayloadError)
+			codeWithPayload, ok := err.(CodeWithPayloadError)
 			if !ok {
 				t.Fatalf("Err: %v", err)
 			}
@@ -756,7 +756,7 @@ func TestAgent_HealthServiceByID(t *testing.T) {
 			req, _ := http.NewRequest("GET", url, nil)
 			resp := httptest.NewRecorder()
 			dataRaw, err := a.srv.AgentHealthServiceByID(resp, req)
-			codeWithPayload, ok := err.(api.CodeWithPayloadError)
+			codeWithPayload, ok := err.(CodeWithPayloadError)
 			if !ok {
 				t.Fatalf("Err: %v", err)
 			}
@@ -981,7 +981,7 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 			req, _ := http.NewRequest("GET", url+"?format=text", nil)
 			resp := httptest.NewRecorder()
 			data, err := a.srv.AgentHealthServiceByName(resp, req)
-			codeWithPayload, ok := err.(api.CodeWithPayloadError)
+			codeWithPayload, ok := err.(CodeWithPayloadError)
 			if !ok {
 				t.Fatalf("Err: %v", err)
 			}
@@ -1000,7 +1000,7 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 			req, _ := http.NewRequest("GET", url, nil)
 			resp := httptest.NewRecorder()
 			dataRaw, err := a.srv.AgentHealthServiceByName(resp, req)
-			codeWithPayload, ok := err.(api.CodeWithPayloadError)
+			codeWithPayload, ok := err.(CodeWithPayloadError)
 			if !ok {
 				t.Fatalf("Err: %v", err)
 			}

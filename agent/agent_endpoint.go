@@ -765,7 +765,7 @@ func (s *HTTPServer) AgentHealthServiceByID(resp http.ResponseWriter, req *http.
 		if service.ID == serviceID {
 			code, status, healthChecks := agentHealthService(serviceID, s)
 			if returnTextPlain(req) {
-				return status, api.CodeWithPayloadError{StatusCode: code, Reason: status, ContentType: "text/plain"}
+				return status, CodeWithPayloadError{StatusCode: code, Reason: status, ContentType: "text/plain"}
 			}
 			serviceInfo := buildAgentService(service, proxies)
 			result := &api.AgentServiceChecksInfo{
@@ -773,18 +773,18 @@ func (s *HTTPServer) AgentHealthServiceByID(resp http.ResponseWriter, req *http.
 				Checks:           healthChecks,
 				Service:          &serviceInfo,
 			}
-			return result, api.CodeWithPayloadError{StatusCode: code, Reason: status, ContentType: "application/json"}
+			return result, CodeWithPayloadError{StatusCode: code, Reason: status, ContentType: "application/json"}
 		}
 	}
 	notFoundReason := fmt.Sprintf("ServiceId %s not found", serviceID)
 	if returnTextPlain(req) {
-		return notFoundReason, api.CodeWithPayloadError{StatusCode: http.StatusNotFound, Reason: fmt.Sprintf("ServiceId %s not found", serviceID), ContentType: "application/json"}
+		return notFoundReason, CodeWithPayloadError{StatusCode: http.StatusNotFound, Reason: fmt.Sprintf("ServiceId %s not found", serviceID), ContentType: "application/json"}
 	}
 	return &api.AgentServiceChecksInfo{
 		AggregatedStatus: api.HealthCritical,
 		Checks:           nil,
 		Service:          nil,
-	}, api.CodeWithPayloadError{StatusCode: http.StatusNotFound, Reason: notFoundReason, ContentType: "application/json"}
+	}, CodeWithPayloadError{StatusCode: http.StatusNotFound, Reason: notFoundReason, ContentType: "application/json"}
 }
 
 // AgentHealthServiceByName return the worse status of all the services with given name on an agent
@@ -823,9 +823,9 @@ func (s *HTTPServer) AgentHealthServiceByName(resp http.ResponseWriter, req *htt
 		}
 	}
 	if returnTextPlain(req) {
-		return status, api.CodeWithPayloadError{StatusCode: code, Reason: status, ContentType: "text/plain"}
+		return status, CodeWithPayloadError{StatusCode: code, Reason: status, ContentType: "text/plain"}
 	}
-	return result, api.CodeWithPayloadError{StatusCode: code, Reason: status, ContentType: "application/json"}
+	return result, CodeWithPayloadError{StatusCode: code, Reason: status, ContentType: "application/json"}
 }
 
 func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {

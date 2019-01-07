@@ -19,7 +19,6 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/mitchellh/mapstructure"
 )
@@ -41,6 +40,18 @@ type BadRequestError struct {
 
 func (e BadRequestError) Error() string {
 	return fmt.Sprintf("Bad request: %s", e.Reason)
+}
+
+// CodeWithPayloadError allow returning non HTTP 200
+// Error codes while not returning PlainText payload
+type CodeWithPayloadError struct {
+	Reason      string
+	StatusCode  int
+	ContentType string
+}
+
+func (e CodeWithPayloadError) Error() string {
+	return e.Reason
 }
 
 // HTTPServer provides an HTTP api for an agent.
@@ -367,7 +378,7 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 		contentType := "application/json"
 		httpCode := http.StatusOK
 		if err != nil {
-			if errPayload, ok := err.(api.CodeWithPayloadError); ok {
+			if errPayload, ok := err.(CodeWithPayloadError); ok {
 				httpCode = errPayload.StatusCode
 				if errPayload.ContentType != "" {
 					contentType = errPayload.ContentType
