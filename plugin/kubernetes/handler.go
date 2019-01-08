@@ -18,11 +18,12 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 	m.SetReply(r)
 	m.Authoritative = true
 
-	zone := plugin.Zones(k.Zones).Matches(state.Name())
+	qname := state.QName()
+	zone := plugin.Zones(k.Zones).Matches(qname)
 	if zone == "" {
 		return plugin.NextOrFailure(k.Name(), k.Next, ctx, w, r)
 	}
-
+	zone = qname[len(qname)-len(zone):] // maintain case of original query
 	state.Zone = zone
 
 	var (
