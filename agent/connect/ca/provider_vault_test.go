@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/structs"
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/hashicorp/vault/builtin/logical/pki"
 	vaulthttp "github.com/hashicorp/vault/http"
@@ -49,6 +50,25 @@ func testVaultClusterWithConfig(t *testing.T, isRoot bool, rawConf map[string]in
 	}
 
 	return provider, core, ln
+}
+
+func TestVaultCAProvider_VaultTLSConfig(t *testing.T) {
+	config := &structs.VaultCAProviderConfig{
+		CAFile:        "/capath/ca.pem",
+		CAPath:        "/capath/",
+		CertFile:      "/certpath/cert.pem",
+		KeyFile:       "/certpath/key.pem",
+		TLSServerName: "server.name",
+		TLSSkipVerify: true,
+	}
+	tlsConfig := vaultTLSConfig(config)
+	require := require.New(t)
+	require.Equal(config.CAFile, tlsConfig.CACert)
+	require.Equal(config.CAPath, tlsConfig.CAPath)
+	require.Equal(config.CertFile, tlsConfig.ClientCert)
+	require.Equal(config.KeyFile, tlsConfig.ClientKey)
+	require.Equal(config.TLSServerName, tlsConfig.TLSServerName)
+	require.Equal(config.TLSSkipVerify, tlsConfig.Insecure)
 }
 
 func TestVaultCAProvider_Bootstrap(t *testing.T) {

@@ -2637,6 +2637,62 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.VerifyOutgoing = true
 			},
 		},
+		{
+			desc: "test connect vault provider configuration",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+				"connect": {
+					"enabled": true,
+					"ca_provider": "vault",
+					"ca_config": {
+						"ca_file": "/capath/ca.pem",
+						"ca_path": "/capath/",
+						"cert_file": "/certpath/cert.pem",
+						"key_file": "/certpath/key.pem",
+						"tls_server_name": "server.name",
+						"tls_skip_verify": true,
+						"token": "abc",
+						"root_pki_path": "consul-vault",
+						"intermediate_pki_path": "connect-intermediate"
+					}
+				}
+			}`},
+			hcl: []string{`
+			  connect {
+					enabled = true
+					ca_provider = "vault"
+					ca_config {
+						ca_file = "/capath/ca.pem"
+						ca_path = "/capath/"
+						cert_file = "/certpath/cert.pem"
+						key_file = "/certpath/key.pem"
+						tls_server_name = "server.name"
+						tls_skip_verify = true
+						token = "abc"
+						root_pki_path = "consul-vault"
+						intermediate_pki_path = "connect-intermediate"
+					}
+				}
+			`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.ConnectEnabled = true
+				rt.ConnectCAProvider = "vault"
+				rt.ConnectCAConfig = map[string]interface{}{
+					"CAFile":              "/capath/ca.pem",
+					"CAPath":              "/capath/",
+					"CertFile":            "/certpath/cert.pem",
+					"KeyFile":             "/certpath/key.pem",
+					"TLSServerName":       "server.name",
+					"TLSSkipVerify":       true,
+					"Token":               "abc",
+					"RootPKIPath":         "consul-vault",
+					"IntermediatePKIPath": "connect-intermediate",
+				}
+			},
+		},
 	}
 
 	testConfig(t, tests, dataDir)
