@@ -1188,7 +1188,7 @@ func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		Weights:           serviceWeights,
 		Checks:            checks,
 		// DEPRECATED (ProxyDestination) - don't populate deprecated field, just use
-		// it as a default below on read. Remove that when remofing ProxyDestination
+		// it as a default below on read. Remove that when removing ProxyDestination
 		Proxy:   b.serviceProxyVal(v.Proxy, v.ProxyDestination),
 		Connect: b.serviceConnectVal(v.Connect),
 	}
