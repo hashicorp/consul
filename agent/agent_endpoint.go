@@ -1335,6 +1335,7 @@ func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.
 		return nil, nil
 	}
 	args.MinQueryIndex = qOpts.MinQueryIndex
+	args.MaxQueryTime = qOpts.MaxQueryTime
 
 	// Verify the proxy token. This will check both the local proxy token
 	// as well as the ACL if the token isn't local. The checks done in

@@ -263,6 +263,7 @@ type ConnectCALeafRequest struct {
 	Datacenter    string
 	Service       string // Service name, not ID
 	MinQueryIndex uint64
+	MaxQueryTime  time.Duration
 }
 
 func (r *ConnectCALeafRequest) CacheInfo() cache.RequestInfo {
@@ -271,5 +272,6 @@ func (r *ConnectCALeafRequest) CacheInfo() cache.RequestInfo {
 		Key:        r.Service,
 		Datacenter: r.Datacenter,
 		MinIndex:   r.MinQueryIndex,
+		Timeout:    r.MaxQueryTime,
 	}
 }
