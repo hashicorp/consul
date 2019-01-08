@@ -2479,6 +2479,7 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 		},
 		Port:                       8001,
 		EnableTagOverride:          true,
+		Weights:                    &structs.Weights{Passing: 1, Warning: 1},
 		LocallyRegisteredAsSidecar: true,
 		Proxy: structs.ConnectProxyConfig{
 			DestinationServiceName: "test",
@@ -2837,6 +2838,10 @@ func testDefaultSidecar(svc string, port int, fns ...func(*structs.NodeService))
 		Kind:    structs.ServiceKindConnectProxy,
 		Service: svc + "-sidecar-proxy",
 		Port:    2222,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
 		// Note that LocallyRegisteredAsSidecar should be true on the internal
 		// NodeService, but that we never want to see it in the HTTP response as
 		// it's internal only state. This is being compared directly to local state
@@ -3149,6 +3154,10 @@ func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 				ID:      "web-sidecar-proxy",
 				Service: "fake-sidecar",
 				Port:    9999,
+				Weights: &structs.Weights{
+					Passing: 1,
+					Warning: 1,
+				},
 			},
 			// After we deregister the web service above, the fake sidecar with
 			// clashing ID SHOULD NOT have been removed since it wasn't part of the
@@ -3184,6 +3193,10 @@ func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 				Service:                    "web-sidecar-proxy",
 				LocallyRegisteredAsSidecar: true,
 				Port:                       6666,
+				Weights: &structs.Weights{
+					Passing: 1,
+					Warning: 1,
+				},
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "web",
 					DestinationServiceID:   "web",

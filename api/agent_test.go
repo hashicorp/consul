@@ -712,17 +712,21 @@ func TestAPI_AgentService(t *testing.T) {
 		ID:          "foo",
 		Service:     "foo",
 		Tags:        []string{"bar", "baz"},
-		ContentHash: "5d286f5494330b04",
+		ContentHash: "ad8c7a278470d1e8",
 		Port:        8000,
+		Weights: AgentWeights{
+			Passing: 1,
+			Warning: 1,
+		},
 	}
 	require.Equal(expect, got)
 	require.Equal(expect.ContentHash, qm.LastContentHash)
 
-	// Sanity check blocking behaviour - this is more thoroughly tested in the
+	// Sanity check blocking behavior - this is more thoroughly tested in the
 	// agent endpoint tests but this ensures that the API package is at least
 	// passing the hash param properly.
 	opts := QueryOptions{
-		WaitHash: "5d286f5494330b04",
+		WaitHash: qm.LastContentHash,
 		WaitTime: 100 * time.Millisecond, // Just long enough to be reliably measurable
 	}
 	start := time.Now()

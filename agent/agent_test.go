@@ -333,6 +333,7 @@ func TestAgent_AddService(t *testing.T) {
 	tests := []struct {
 		desc       string
 		srv        *structs.NodeService
+		wantSrv    func(ns *structs.NodeService)
 		chkTypes   []*structs.CheckType
 		healthChks map[string]*structs.HealthCheck
 	}{
@@ -342,7 +343,15 @@ func TestAgent_AddService(t *testing.T) {
 				ID:      "svcid1",
 				Service: "svcname1",
 				Tags:    []string{"tag1"},
+				Weights: nil, // nil weights...
 				Port:    8100,
+			},
+			// ... should be populated to avoid "IsSame" returning true during AE.
+			func(ns *structs.NodeService) {
+				ns.Weights = &structs.Weights{
+					Passing: 1,
+					Warning: 1,
+				}
 			},
 			[]*structs.CheckType{
 				&structs.CheckType{
@@ -370,9 +379,14 @@ func TestAgent_AddService(t *testing.T) {
 			&structs.NodeService{
 				ID:      "svcid2",
 				Service: "svcname2",
-				Tags:    []string{"tag2"},
-				Port:    8200,
+				Weights: &structs.Weights{
+					Passing: 2,
+					Warning: 1,
+				},
+				Tags: []string{"tag2"},
+				Port: 8200,
 			},
+			nil, // No change expected
 			[]*structs.CheckType{
 				&structs.CheckType{
 					CheckID: "check1",
@@ -443,15 +457,22 @@ func TestAgent_AddService(t *testing.T) {
 					t.Fatalf("err: %v", err)
 				}
 
-				got, want := a.State.Services()[tt.srv.ID], tt.srv
-				verify.Values(t, "", got, want)
+				got := a.State.Services()[tt.srv.ID]
+				// Make a copy since the tt.srv points to the one in memory in the local
+				// state still so changing it is a tautology!
+				want := *tt.srv
+				if tt.wantSrv != nil {
+					tt.wantSrv(&want)
+				}
+				require.Equal(t, &want, got)
+				require.True(t, got.IsSame(&want))
 			})
 
 			// check the health checks
 			for k, v := range tt.healthChks {
 				t.Run(k, func(t *testing.T) {
-					got, want := a.State.Checks()[types.CheckID(k)], v
-					verify.Values(t, k, got, want)
+					got := a.State.Checks()[types.CheckID(k)]
+					require.Equal(t, v, got)
 				})
 			}
 
@@ -1478,6 +1499,7 @@ func TestAgent_persistedService_compat(t *testing.T) {
 		Service: "redis",
 		Tags:    []string{"foo"},
 		Port:    8000,
+		Weights: &structs.Weights{Passing: 1, Warning: 1},
 	}
 
 	// Encode the NodeService directly. This is what previous versions
@@ -1507,9 +1529,7 @@ func TestAgent_persistedService_compat(t *testing.T) {
 	if !ok {
 		t.Fatalf("missing service")
 	}
-	if !reflect.DeepEqual(result, svc) {
-		t.Fatalf("bad: %#v", result)
-	}
+	require.Equal(t, svc, result)
 }
 
 func TestAgent_PurgeService(t *testing.T) {
