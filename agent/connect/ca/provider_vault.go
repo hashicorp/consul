@@ -28,6 +28,17 @@ type VaultProvider struct {
 	clusterId string
 }
 
+func vaultTLSConfig(config *structs.VaultCAProviderConfig) *vaultapi.TLSConfig {
+	return &vaultapi.TLSConfig{
+		CACert:        config.CAFile,
+		CAPath:        config.CAPath,
+		ClientCert:    config.CertFile,
+		ClientKey:     config.KeyFile,
+		Insecure:      config.TLSSkipVerify,
+		TLSServerName: config.TLSServerName,
+	}
+}
+
 // Configure sets up the provider using the given configuration.
 func (v *VaultProvider) Configure(clusterId string, isRoot bool, rawConfig map[string]interface{}) error {
 	config, err := ParseVaultCAConfig(rawConfig)
@@ -37,6 +48,10 @@ func (v *VaultProvider) Configure(clusterId string, isRoot bool, rawConfig map[s
 
 	clientConf := &vaultapi.Config{
 		Address: config.Address,
+	}
+	err = clientConf.ConfigureTLS(vaultTLSConfig(config))
+	if err != nil {
+		return err
 	}
 	client, err := vaultapi.NewClient(clientConf)
 	if err != nil {
