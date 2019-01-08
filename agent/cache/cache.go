@@ -306,18 +306,28 @@ RETRY_GET:
 		c.entriesExpiryHeap.Fix(entry.Expiry)
 		c.entriesLock.Unlock()
 
-		// We purposely do not return an error here since the cache
-		// only works with fetching values that either have a value
-		// or have an error, but not both. The Error may be non-nil
-		// in the entry because of this to note future fetch errors.
+		// We purposely do not return an error here since the cache only works with
+		// fetching values that either have a value or have an error, but not both.
+		// The Error may be non-nil in the entry in the case that an error has
+		// occurred _since_ the last good value, but we still want to return the
+		// good value to clients that are not requesting a specific version. The
+		// effect of this is that blocking clients will all see an error immediately
+		// without waiting a whole timeout to see it, but clients that just look up
+		// cache with an older index than the last valid result will still see the
+		// result and not the error here. I.e. the error is not "cached" without a
+		// new fetch attempt occuring, but the last good value can still be fetched
+		// from cache.
 		return entry.Value, meta, nil
 	}
 
-	// If this isn't our first time through and our last value has an error,
-	// then we return the error. This has the behavior that we don't sit in
-	// a retry loop getting the same error for the entire duration of the
-	// timeout. Instead, we make one effort to fetch a new value, and if
-	// there was an error, we return.
+	// If this isn't our first time through and our last value has an error, then
+	// we return the error. This has the behavior that we don't sit in a retry
+	// loop getting the same error for the entire duration of the timeout.
+	// Instead, we make one effort to fetch a new value, and if there was an
+	// error, we return. Note that the invariant is that if both entry.Value AND
+	// entry.Error are non-nil, the error _must_ be more recent than the Value. In
+	// other words valid fetches should reset the error. See
+	// https://github.com/hashicorp/consul/issues/4480.
 	if !first && entry.Error != nil {
 		return entry.Value, ResultMeta{Index: entry.Index}, entry.Error
 	}
@@ -454,6 +464,15 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool, attempt uint) (<-
 		// Copy the existing entry to start.
 		newEntry := entry
 		newEntry.Fetching = false
+
+		// Importantly, always reset the Error. Having both Error and a Value that
+		// are non-nil is allowed in the cache entry but it indicates that the Error
+		// is _newer_ than the last good value. So if the err is nil then we need to
+		// reset to replace any _older_ errors and avoid them bubbling up. If the
+		// error is non-nil then we need to set it anyway and used to do it in the
+		// code below. See https://github.com/hashicorp/consul/issues/4480.
+		newEntry.Error = err
+
 		if result.Value != nil {
 			// A new value was given, so we create a brand new entry.
 			newEntry.Value = result.Value
@@ -511,13 +530,6 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool, attempt uint) (<-
 
 			// Increment attempt counter
 			attempt++
-
-			// Always set the error. We don't override the value here because
-			// if Valid is true, then we can reuse the Value in the case a
-			// specific index isn't requested. However, for blocking queries,
-			// we want Error to be set so that we can return early with the
-			// error.
-			newEntry.Error = err
 
 			// If we are refreshing and just failed, updated the lost contact time as
 			// our cache will be stale until we get successfully reconnected. We only
