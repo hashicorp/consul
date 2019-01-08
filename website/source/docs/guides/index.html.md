@@ -18,13 +18,19 @@ The following guides are available:
 
 * [Adding/Removing Servers](/docs/guides/servers.html) - This guide covers how to safely add and remove Consul servers from the cluster. This should be done carefully to avoid availability outages.
 
+* [Agent Communication Encryption](/docs/guides/agent-encryption.html) - This guide covers how to encrypt both gossip and RPC communication.
+ 
 * [Autopilot](/docs/guides/autopilot.html) - This guide covers Autopilot, which provides automatic operator-friendly management of Consul servers.
 
 * [Bootstrapping](/docs/guides/bootstrapping.html) - This guide covers bootstrapping a new datacenter. This covers safely adding the initial Consul servers.
 
+* [Cluster Backups](/docs/guides/backup.html) - Consul provide the snapshot tool for backing up and restoring data. In this guide you will learn how to use both.
+
 * [Connect in Production](/docs/guides/connect-production.html) - This guide describes critical aspects of operating Consul Connect in Production.
 
 * [Connect with Envoy](/docs/guides/connect-envoy.html) - This guide will describe how to setup a development-mode Consul server and two Envoy proxies on a single machine using Docker.
+
+* [Consul Cluster Monitoring & Metrics](/docs/guides/cluster-monitoring-metrics.html) - After setting up your first datacenter, it is an ideal time to make sure your cluster is healthy and establish a baseline. This guide will cover several types of metrics in two sections: Consul health and server health.
 
 * [Consul with Containers](/docs/guides/consul-containers.html) - This guide describes critical aspects of operating a Consul cluster that's run inside containers.
 

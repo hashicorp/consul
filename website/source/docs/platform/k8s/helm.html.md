@@ -149,6 +149,15 @@ and consider if they're appropriate for your deployment.
   won't request any specific amount of resources. **Setting this is highly
   recommended.**
 
+  ```yaml
+  # Resources are defined as a formatted multi-line string:
+  resources: |
+    requests:
+      memory: "10Gi"
+    limits:
+     memory: "10Gi"
+  ```
+
   - <a name="v-server-updatepartition" href="#v-server-updatepartition">`updatePartition`</a> (`integer: 0`) -
   This value is used to carefully control a rolling update of Consul server
   agents. This value specifies the
@@ -204,6 +213,19 @@ and consider if they're appropriate for your deployment.
   If you need to run more pods per node (for example, testing on Minikube),
   set this value to `null`.
 
+  ```yaml
+  # Recommended default server affinity:
+  affinity: |
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app: {{ template "consul.name" . }}
+              release: "{{ .Release.Name }}"
+              component: server
+          topologyKey: kubernetes.io/hostname
+  ```
+
 * <a name="v-client" href="#v-client">`client`</a> - Values that configure
   running a Consul client agent on Kubernetes nodes.
 
@@ -234,6 +256,15 @@ and consider if they're appropriate for your deployment.
   This should be a multi-line string mapping directly to a Kubernetes
   [ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.11/#resourcerequirements-v1-core) object. If this isn't specified, then the pods
   won't request any specific amount of resources.
+
+  ```yaml
+  # Resources are defined as a formatted multi-line string:
+  resources: |
+    requests:
+      memory: "10Gi"
+    limits:
+     memory: "10Gi"
+  ```
 
   - <a name="v-client-extraconfig" href="#v-client-extraconfig">`extraConfig`</a> (`string: "{}"`) -
   A raw string of extra JSON or HCL configuration for Consul clients. This
@@ -297,6 +328,10 @@ and consider if they're appropriate for your deployment.
   - <a name="v-synccatalog-tok8s" href="#v-synccatalog-tok8s">`toK8S`</a> (`boolean: true`) -
   If true, will sync Consul services to Kubernetes. This can be disabled to
   have a one-way sync.
+
+  - <a name="v-synccatalog-clusterip-sync" href="#v-synccatalog-clusterip-sync">`syncClusterIPServices`</a> (`boolean: true`) -
+  If true, will sync Kubernetes ClusterIP services to Consul. This can be disabled to
+  have the sync ignore ClusterIP-type services.
 
 * <a name="v-ui" href="#v-ui">`ui`</a> - Values that configure the Consul UI.
 

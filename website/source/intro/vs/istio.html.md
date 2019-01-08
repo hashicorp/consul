@@ -56,7 +56,7 @@ also Connect-native.
 Consul enforces authorization and identity to layer 4 only -- either the TLS
 connection can be established or it can't. We believe
 service identity should be tied to layer 4, whereas layer 7 should be used
-for routing, telemetry, etc. We encourge users to use the pluggable data
+for routing, telemetry, etc. We encourage users to use the pluggable data
 plane layer to use a proxy that supports the layer 7 features necessary
 for the cluster. Consul will be adding more layer 7 features in the future.
 

@@ -131,6 +131,14 @@ If an external IP list is present, a service instance in Consul will be created
 for each external IP. It is assumed that if an external IP is present that it
 is routable and configured by some other system.
 
+#### ClusterIP
+
+ClusterIP services are synced by default as of `consul-k8s` version 0.3.0. In 
+many Kubernetes clusters, ClusterIPs may not be accessible outside of the cluster,
+so you may end up with services registered in Consul that are not routeable. To
+skip syncing ClusterIP services, set [`syncClusterIPServices`](/docs/platform/k8s/helm.html#v-synccatalog-clusterip-sync)
+to `false` in the Helm chart values file.
+
 ### Sync Enable/Disable
 
 By default, all valid services (as explained above) are synced. This default can

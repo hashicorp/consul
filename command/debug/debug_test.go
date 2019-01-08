@@ -2,6 +2,7 @@ package debug
 
 import (
 	"archive/tar"
+	"compress/gzip"
 	"fmt"
 	"io"
 	"os"
@@ -94,7 +95,11 @@ func TestDebugCommand_Archive(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open archive: %s", err)
 	}
-	tr := tar.NewReader(file)
+	gz, err := gzip.NewReader(file)
+	if err != nil {
+		t.Fatalf("failed to read gzip archive: %s", err)
+	}
+	tr := tar.NewReader(gz)
 
 	for {
 		h, err := tr.Next()

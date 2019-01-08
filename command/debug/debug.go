@@ -610,7 +610,7 @@ func (c *cmd) createArchiveTemp(path string) (tempName string, err error) {
 	}
 
 	g := gzip.NewWriter(f)
-	t := tar.NewWriter(f)
+	t := tar.NewWriter(g)
 
 	tempName = f.Name()
 

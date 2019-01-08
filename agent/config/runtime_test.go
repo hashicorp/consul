@@ -2619,6 +2619,24 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				}
 			},
 		},
+		{
+			// This tests checks that VerifyServerHostname implies VerifyOutgoing
+			desc: "verify_server_hostname implies verify_outgoing",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+			  "verify_server_hostname": true
+			}`},
+			hcl: []string{`
+			  verify_server_hostname = true
+			`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.VerifyServerHostname = true
+				rt.VerifyOutgoing = true
+			},
+		},
 	}
 
 	testConfig(t, tests, dataDir)

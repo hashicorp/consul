@@ -613,6 +613,18 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	enableRemoteScriptChecks := b.boolVal(c.EnableScriptChecks)
 	enableLocalScriptChecks := b.boolValWithDefault(c.EnableLocalScriptChecks, enableRemoteScriptChecks)
 
+	// VerifyServerHostname implies VerifyOutgoing
+	verifyServerName := b.boolVal(c.VerifyServerHostname)
+	verifyOutgoing := b.boolVal(c.VerifyOutgoing)
+	if verifyServerName {
+		// Setting only verify_server_hostname is documented to imply
+		// verify_outgoing. If it doesn't then we risk sending communication over TCP
+		// when we documented it as forcing TLS for RPCs. Enforce this here rather
+		// than in several different places through the code that need to reason
+		// about it. (See CVE-2018-19653)
+		verifyOutgoing = true
+	}
+
 	// ----------------------------------------------------------------
 	// build runtime config
 	//
@@ -840,8 +852,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		VerifyIncoming:                          b.boolVal(c.VerifyIncoming),
 		VerifyIncomingHTTPS:                     b.boolVal(c.VerifyIncomingHTTPS),
 		VerifyIncomingRPC:                       b.boolVal(c.VerifyIncomingRPC),
-		VerifyOutgoing:                          b.boolVal(c.VerifyOutgoing),
-		VerifyServerHostname:                    b.boolVal(c.VerifyServerHostname),
+		VerifyOutgoing:                          verifyOutgoing,
+		VerifyServerHostname:                    verifyServerName,
 		Watches:                                 c.Watches,
 	}
 
