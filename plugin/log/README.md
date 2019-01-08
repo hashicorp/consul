@@ -23,10 +23,10 @@ log
 Or if you want/need slightly more control:
 
 ~~~ txt
-log [NAME] [FORMAT]
+log [NAMES...] [FORMAT]
 ~~~
 
-* `NAME` is the name to match in order to be logged
+* `NAMES` is the name list to match in order to be logged
 * `FORMAT` is the log format to use (default is Common Log Format), `{common}` is used as a shortcut
   for the Common Log Format. You can also use `{combined}` for a format that adds the query opcode
   `{>opcode}` to the Common Log Format.
@@ -34,7 +34,7 @@ log [NAME] [FORMAT]
 You can further specify the classes of responses that get logged:
 
 ~~~ txt
-log [NAME] [FORMAT] {
+log [NAMES...] [FORMAT] {
     class CLASSES...
 }
 ~~~

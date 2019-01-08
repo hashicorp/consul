@@ -55,6 +55,35 @@ func TestLogParse(t *testing.T) {
 			Format:    "{when}",
 			Class:     map[response.Class]struct{}{response.All: struct{}{}},
 		}}},
+		{`log example.org example.net`, false, []Rule{{
+			NameScope: "example.org.",
+			Format:    DefaultLogFormat,
+			Class:     map[response.Class]struct{}{response.All: struct{}{}},
+		}, {
+			NameScope: "example.net.",
+			Format:    DefaultLogFormat,
+			Class:     map[response.Class]struct{}{response.All: struct{}{}},
+		}}},
+		{`log example.org example.net {host}`, false, []Rule{{
+			NameScope: "example.org.",
+			Format:    "{host}",
+			Class:     map[response.Class]struct{}{response.All: struct{}{}},
+		}, {
+			NameScope: "example.net.",
+			Format:    "{host}",
+			Class:     map[response.Class]struct{}{response.All: struct{}{}},
+		}}},
+		{`log example.org example.net {when} {
+			class denial
+		}`, false, []Rule{{
+			NameScope: "example.org.",
+			Format:    "{when}",
+			Class:     map[response.Class]struct{}{response.Denial: struct{}{}},
+		}, {
+			NameScope: "example.net.",
+			Format:    "{when}",
+			Class:     map[response.Class]struct{}{response.Denial: struct{}{}},
+		}}},
 
 		{`log example.org {
 				class all
