@@ -1404,8 +1404,11 @@ func vetServiceTxnOp(op *structs.TxnServiceOp, rule acl.Authorizer) error {
 		Port:              service.Port,
 		EnableTagOverride: service.EnableTagOverride,
 	}
-	scope := func() map[string]interface{} {
-		return sentinel.ScopeCatalogUpsert(n, svc)
+	var scope func() map[string]interface{}
+	if op.Verb != api.ServiceDelete && op.Verb != api.ServiceDeleteCAS {
+		scope = func() map[string]interface{} {
+			return sentinel.ScopeCatalogUpsert(n, svc)
+		}
 	}
 	if !rule.ServiceWrite(service.Service, scope) {
 		return acl.ErrPermissionDenied
@@ -1427,18 +1430,23 @@ func vetCheckTxnOp(op *structs.TxnCheckOp, rule acl.Authorizer) error {
 		Service: op.Check.ServiceID,
 		Tags:    op.Check.ServiceTags,
 	}
+	var scope func() map[string]interface{}
 	if op.Check.ServiceID == "" {
 		// Node-level check.
-		scope := func() map[string]interface{} {
-			return sentinel.ScopeCatalogUpsert(n, svc)
+		if op.Verb == api.CheckDelete || op.Verb == api.CheckDeleteCAS {
+			scope = func() map[string]interface{} {
+				return sentinel.ScopeCatalogUpsert(n, svc)
+			}
 		}
 		if !rule.NodeWrite(op.Check.Node, scope) {
 			return acl.ErrPermissionDenied
 		}
 	} else {
 		// Service-level check.
-		scope := func() map[string]interface{} {
-			return sentinel.ScopeCatalogUpsert(n, svc)
+		if op.Verb == api.CheckDelete || op.Verb == api.CheckDeleteCAS {
+			scope = func() map[string]interface{} {
+				return sentinel.ScopeCatalogUpsert(n, svc)
+			}
 		}
 		if !rule.ServiceWrite(op.Check.ServiceName, scope) {
 			return acl.ErrPermissionDenied

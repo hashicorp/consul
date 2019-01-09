@@ -377,9 +377,9 @@ func (s *Store) ensureNoNodeWithSimilarNameTxn(tx *memdb.Txn, node *structs.Node
 // Returns a bool indicating if a write happened and any error.
 func (s *Store) ensureNodeCASTxn(tx *memdb.Txn, idx uint64, node *structs.Node) (bool, error) {
 	// Retrieve the existing entry.
-	existing, err := tx.First("nodes", "id", node.Node)
+	existing, err := getNodeTxn(tx, node.Node)
 	if err != nil {
-		return false, fmt.Errorf("node lookup failed: %s", err)
+		return false, err
 	}
 
 	// Check if the we should do the set. A ModifyIndex of 0 means that
@@ -390,8 +390,7 @@ func (s *Store) ensureNodeCASTxn(tx *memdb.Txn, idx uint64, node *structs.Node) 
 	if node.ModifyIndex != 0 && existing == nil {
 		return false, nil
 	}
-	e, ok := existing.(*structs.Node)
-	if ok && node.ModifyIndex != 0 && node.ModifyIndex != e.ModifyIndex {
+	if existing != nil && node.ModifyIndex != 0 && node.ModifyIndex != existing.ModifyIndex {
 		return false, nil
 	}
 
@@ -612,9 +611,9 @@ func (s *Store) DeleteNode(idx uint64, nodeName string) error {
 // the given check, then the call is a noop, otherwise a normal check delete is invoked.
 func (s *Store) deleteNodeCASTxn(tx *memdb.Txn, idx, cidx uint64, nodeName string) (bool, error) {
 	// Look up the node.
-	node, err := tx.First("nodes", "id", nodeName)
+	node, err := getNodeTxn(tx, nodeName)
 	if err != nil {
-		return false, fmt.Errorf("check lookup failed: %s", err)
+		return false, err
 	}
 	if node == nil {
 		return false, nil
@@ -623,9 +622,8 @@ func (s *Store) deleteNodeCASTxn(tx *memdb.Txn, idx, cidx uint64, nodeName strin
 	// If the existing index does not match the provided CAS
 	// index arg, then we shouldn't update anything and can safely
 	// return early here.
-	existing, ok := node.(*structs.Node)
-	if !ok || existing.ModifyIndex != cidx {
-		return existing == nil, nil
+	if node.ModifyIndex != cidx {
+		return false, nil
 	}
 
 	// Call the actual deletion if the above passed.
@@ -1149,7 +1147,7 @@ func (s *Store) NodeService(nodeName string, serviceID string) (uint64, *structs
 	idx := maxIndexTxn(tx, "services")
 
 	// Query the service
-	service, err := s.nodeServiceTxn(tx, nodeName, serviceID)
+	service, err := s.getNodeServiceTxn(tx, nodeName, serviceID)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed querying service for node %q: %s", nodeName, err)
 	}
@@ -1157,7 +1155,7 @@ func (s *Store) NodeService(nodeName string, serviceID string) (uint64, *structs
 	return idx, service, nil
 }
 
-func (s *Store) nodeServiceTxn(tx *memdb.Txn, nodeName, serviceID string) (*structs.NodeService, error) {
+func (s *Store) getNodeServiceTxn(tx *memdb.Txn, nodeName, serviceID string) (*structs.NodeService, error) {
 	// Query the service
 	service, err := tx.First("services", "id", nodeName, serviceID)
 	if err != nil {
@@ -1268,9 +1266,9 @@ func serviceIndexName(name string) string {
 // the given service, then the call is a noop, otherwise a normal delete is invoked.
 func (s *Store) deleteServiceCASTxn(tx *memdb.Txn, idx, cidx uint64, nodeName, serviceID string) (bool, error) {
 	// Look up the service.
-	service, err := tx.First("services", "id", nodeName, serviceID)
+	service, err := s.getNodeServiceTxn(tx, nodeName, serviceID)
 	if err != nil {
-		return false, fmt.Errorf("check lookup failed: %s", err)
+		return false, fmt.Errorf("service lookup failed: %s", err)
 	}
 	if service == nil {
 		return false, nil
@@ -1279,9 +1277,8 @@ func (s *Store) deleteServiceCASTxn(tx *memdb.Txn, idx, cidx uint64, nodeName, s
 	// If the existing index does not match the provided CAS
 	// index arg, then we shouldn't update anything and can safely
 	// return early here.
-	existing, ok := service.(*structs.ServiceNode)
-	if !ok || existing.ModifyIndex != cidx {
-		return existing == nil, nil
+	if service.ModifyIndex != cidx {
+		return false, nil
 	}
 
 	// Call the actual deletion if the above passed.
@@ -1391,7 +1388,7 @@ func (s *Store) updateAllServiceIndexesOfNode(tx *memdb.Txn, idx uint64, nodeID 
 // Returns a bool indicating if a write happened and any error.
 func (s *Store) ensureCheckCASTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthCheck) (bool, error) {
 	// Retrieve the existing entry.
-	existing, err := tx.First("checks", "id", hc.Node, string(hc.CheckID))
+	_, existing, err := s.getNodeCheckTxn(tx, hc.Node, hc.CheckID)
 	if err != nil {
 		return false, fmt.Errorf("failed health check lookup: %s", err)
 	}
@@ -1404,8 +1401,7 @@ func (s *Store) ensureCheckCASTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthC
 	if hc.ModifyIndex != 0 && existing == nil {
 		return false, nil
 	}
-	e, ok := existing.(*structs.HealthCheck)
-	if ok && hc.ModifyIndex != 0 && hc.ModifyIndex != e.ModifyIndex {
+	if existing != nil && hc.ModifyIndex != 0 && hc.ModifyIndex != existing.ModifyIndex {
 		return false, nil
 	}
 
@@ -1533,12 +1529,12 @@ func (s *Store) NodeCheck(nodeName string, checkID types.CheckID) (uint64, *stru
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	return s.nodeCheckTxn(tx, nodeName, checkID)
+	return s.getNodeCheckTxn(tx, nodeName, checkID)
 }
 
 // nodeCheckTxn is used as the inner method to handle reading a health check
 // from the state store.
-func (s *Store) nodeCheckTxn(tx *memdb.Txn, nodeName string, checkID types.CheckID) (uint64, *structs.HealthCheck, error) {
+func (s *Store) getNodeCheckTxn(tx *memdb.Txn, nodeName string, checkID types.CheckID) (uint64, *structs.HealthCheck, error) {
 	// Get the table index.
 	idx := maxIndexTxn(tx, "checks")
 
@@ -1733,7 +1729,7 @@ func (s *Store) DeleteCheck(idx uint64, node string, checkID types.CheckID) erro
 // the given check, then the call is a noop, otherwise a normal check delete is invoked.
 func (s *Store) deleteCheckCASTxn(tx *memdb.Txn, idx, cidx uint64, node string, checkID types.CheckID) (bool, error) {
 	// Try to retrieve the existing health check.
-	hc, err := tx.First("checks", "id", node, string(checkID))
+	_, hc, err := s.getNodeCheckTxn(tx, node, checkID)
 	if err != nil {
 		return false, fmt.Errorf("check lookup failed: %s", err)
 	}
@@ -1744,9 +1740,8 @@ func (s *Store) deleteCheckCASTxn(tx *memdb.Txn, idx, cidx uint64, node string, 
 	// If the existing index does not match the provided CAS
 	// index arg, then we shouldn't update anything and can safely
 	// return early here.
-	existing, ok := hc.(*structs.HealthCheck)
-	if !ok || existing.ModifyIndex != cidx {
-		return existing == nil, nil
+	if hc.ModifyIndex != cidx {
+		return false, nil
 	}
 
 	// Call the actual deletion if the above passed.
