@@ -35,7 +35,7 @@ The first step for bootstrapping the ACL system is to enable ACLs on the Consul 
     "enabled" : true,
     "default_policy" : "deny",
     "down_policy" : "extend-cache"
-    }
+  }
 }
 ```
 
