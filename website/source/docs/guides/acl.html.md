@@ -32,9 +32,9 @@ The first step for bootstrapping the ACL system is to enable ACLs on the Consul 
 ```json
 {
   "acl" : {
-    "enabled": true,
-    "default_policy": "deny",
-    "down_policy": "extend-cache",
+    "enabled" : true,
+    "default_policy" : "deny",
+    "down_policy" : "extend-cache"
     }
 }
 ```
@@ -122,7 +122,7 @@ service_prefix "" {
 ```
 
 This policy will allow all nodes to be registered and accessed and any service to be read. 
-Note this simple policy is not not recommended in production.
+Note, this simple policy is not recommended in production.
 It is best practice to create separate node policies and tokens for each node in the cluster
 with an exact-match node rule.
 
