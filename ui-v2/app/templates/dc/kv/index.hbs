@@ -8,7 +8,7 @@
             <li><a href={{href-to 'dc.kv'}}>Key / Values</a></li>
 {{/if}}
 {{#each (slice 0 -2 (split parent.Key '/')) as |breadcrumb index|}}
-            <li><a href={{href-to 'dc.kv.folder' (join '/' (append (slice 0 (add index 1) (split parent.Key '/')) ''))}}>{{breadcrumb}}</a></li>
+            <li><a href={{href-to 'dc.kv.folder' (append (slice 0 (add index 1) (split parent.Key '/')) '')}}>{{breadcrumb}}</a></li>
 {{/each}}
         </ol>
     {{/block-slot}}
@@ -31,7 +31,7 @@
     {{/block-slot}}
     {{#block-slot 'actions'}}
 {{#if (not-eq parent.Key '/') }}
-        <a data-test-create href="{{href-to 'dc.kv.create' parent.Key}}" class="type-create">Create</a>
+        <a data-test-create href="{{href-to 'dc.kv.create' (split parent.Key '/')}}" class="type-create">Create</a>
 {{else}}
         <a data-test-create href="{{href-to 'dc.kv.root-create'}}" class="type-create">Create</a>
 {{/if}}
@@ -46,7 +46,7 @@
             {{/block-slot}}
             {{#block-slot 'row'}}
                 <td data-test-kv="{{item.Key}}" class={{if item.isFolder 'folder' 'file' }}>
-                    <a href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}>{{right-trim (left-trim item.Key parent.Key) '/'}}</a>
+                    <a href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') (split item.Key '/') }}>{{right-trim (left-trim item.Key parent.Key) '/'}}</a>
                 </td>
             {{/block-slot}}
             {{#block-slot 'actions' as |index change checked|}}
@@ -55,7 +55,7 @@
                         {{#action-group index=index onchange=(action change) checked=(if (eq checked index) 'checked')}}
                             <ul>
                                 <li>
-                                    <a data-test-edit href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}>{{if item.isFolder 'View' 'Edit'}}</a>
+                                    <a data-test-edit href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') (split item.Key '/')}}>{{if item.isFolder 'View' 'Edit'}}</a>
                                 </li>
                                 <li>
                                     <a data-test-delete onclick={{action confirm 'delete' item}}>Delete</a>

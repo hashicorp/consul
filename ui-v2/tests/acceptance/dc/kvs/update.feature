@@ -5,14 +5,14 @@ Feature: dc / kvs / update: KV Update
   Scenario: Update to [Name] change value to [Value]
     And 1 kv model from yaml
     ---
-      Key: [Name]
+      Key: "[Name]"
     ---
     When I visit the kv page for yaml
     ---
       dc: datacenter
-      kv: [Name]
+      kv: "[Name]"
     ---
-    Then the url should be /datacenter/kv/[Name]/edit
+    Then the url should be /datacenter/kv/[EncodedName]/edit
     # Turn the Code Editor off so we can fill the value easier
     And I click "[name=json]"
     Then I fill in with yaml
@@ -20,16 +20,18 @@ Feature: dc / kvs / update: KV Update
       value: [Value]
     ---
     And I submit
-    Then a PUT request is made to "/v1/kv/[Name]?dc=datacenter" with the body "[Value]"
+    Then a PUT request is made to "/v1/kv/[EncodedName]?dc=datacenter" with the body "[Value]"
     And "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "success" class
   Where:
-      --------------------------------------------
-      | Name                      | Value        |
-      | key                       | value        |
-      | key-name                  | a value      |
-      | folder/key-name           | a value      |
-      --------------------------------------------
+      ---------------------------------------------------------
+      | Name            | EncodedName          | Value        |
+      | key             | key                  | value        |
+      | #key            | %23key               | value        |
+      | key-name        | key-name             | a value      |
+      | key name        | key%20name           | a value      |
+      | folder/key-name | folder/key-name      | a value      |
+      ---------------------------------------------------------
   Scenario: Update to a key change value to '   '
     And 1 kv model from yaml
     ---

@@ -111,6 +111,7 @@ export default Adapter.extend({
   // url encoded
 
   appendURL: function(path, parts = [], query = {}) {
-    return createURL([this.buildURL(), path], parts, query);
+    // path can be a string or an array of parts that will be slash joined
+    return createURL([this.buildURL()].concat(path), parts, query);
   },
 });
