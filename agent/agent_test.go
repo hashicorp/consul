@@ -1859,7 +1859,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	if !bytes.Equal(expected, content) {
-		t.Fatalf("bad: %s", string(content))
+		t.Fatalf("bad: %s != %s", string(content), expected)
 	}
 
 	// Updates the check definition on disk
