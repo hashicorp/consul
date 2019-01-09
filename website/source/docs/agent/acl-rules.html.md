@@ -142,7 +142,7 @@ On success, the Policy is returned:
 ```
 
 The created policy can now be specified either by name or by ID when 
-[creating a token](/docs/guides/acl.html). This will grant the rules
+[creating a token](/docs/guides/acl.html#step-4-create-an-agent-token). This will grant the rules
 provided to the [bearer of that token](https://www.consul.io/api/index.html#authentication).
 
 Below is a breakdown of each rule type. 
