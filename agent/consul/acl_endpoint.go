@@ -482,9 +482,15 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 		return err
 	}
 
-	if !a.srv.InACLDatacenter() && !token.Local {
-		args.Datacenter = a.srv.config.ACLDatacenter
-		return a.srv.forwardDC("ACL.TokenDelete", a.srv.config.ACLDatacenter, args, reply)
+	if token != nil {
+		if args.Token == token.SecretID {
+			return fmt.Errorf("Deletion of the request's authorization token is not permitted")
+		}
+
+		if !a.srv.InACLDatacenter() && !token.Local {
+			args.Datacenter = a.srv.config.ACLDatacenter
+			return a.srv.forwardDC("ACL.TokenDelete", a.srv.config.ACLDatacenter, args, reply)
+		}
 	}
 
 	req := &structs.ACLTokenBatchDeleteRequest{

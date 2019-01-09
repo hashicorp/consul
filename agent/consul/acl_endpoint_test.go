@@ -897,6 +897,32 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 		assert.NoError(err)
 	}
 
+	// can't delete itself
+	{
+		readReq := structs.ACLTokenGetRequest{
+			Datacenter:   "dc1",
+			TokenID:      "root",
+			TokenIDType:  structs.ACLTokenSecret,
+			QueryOptions: structs.QueryOptions{Token: "root"},
+		}
+
+		var out structs.ACLTokenResponse
+
+		err := msgpackrpc.CallWithCodec(codec, "ACL.TokenRead", &readReq, &out)
+
+		assert.NoError(err)
+
+		req := structs.ACLTokenDeleteRequest{
+			Datacenter:   "dc1",
+			TokenID:      out.Token.AccessorID,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		var resp string
+		err = acl.TokenDelete(&req, &resp)
+		assert.EqualError(err, "Deletion of the request's authorization token is not permitted")
+	}
+
 	// errors when token doesn't exist
 	{
 		fakeID, err := uuid.GenerateUUID()
