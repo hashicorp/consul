@@ -37,7 +37,7 @@ An ACL policy is a named set of rules and is composed of the following elements:
 
 * **ID** - The policies auto-generated public identifier.
 * **Name** - A unique meaningful name for the policy.
-* **Rules** - Set of rules granting or denying permissions. See the [Rule Specification](#rule-specification) section for more details.
+* **Rules** - Set of rules granting or denying permissions. See the [Rule Specification](/docs/agent/acl-rules.html#rule-specification) documentation for more details.
 * **Datacenters** - A list of datacenters the policy is valid within.
 
 #### Builtin Policies
