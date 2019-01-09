@@ -44,15 +44,17 @@ out-of-tree plugins.
 
 ## Compilation from Source
 
-Check out the project and do dependency resolution with:
+Check out the project:
 
 ~~~
-% go get github.com/coredns/coredns
+% git clone https://github.com/coredns/coredns
 ~~~
 
-Some of the dependencies require Go version 1.9 or later.
+We vendor most (not all!) packages. This is mostly because vendoring isn't a perfect solution (in
+Go). We don't vendor `mholt/caddy` and `miekg/dns` for instance. Using `make` will pull down these
+dependencies and check out the correct version as well.
 
-We vendor most (not all!) packages. Building from scratch is easiest, by just using `make`:
+Next just run `make`:
 
 ~~~
 % make
