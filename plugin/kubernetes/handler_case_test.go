@@ -16,7 +16,7 @@ var dnsPreserveCaseCases = []test.Case{
 		Qname: "not-a-service.testns.svc.ClUsTeR.lOcAl.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
-			test.SOA("ClUsTeR.lOcAl.	30	IN	SOA	ns.dns.ClUsTeR.lOcAl. hostmaster.ClUsTeR.lOcAl. 1499347823 7200 1800 86400 60"),
+			test.SOA("ClUsTeR.lOcAl.	5	IN	SOA	ns.dns.ClUsTeR.lOcAl. hostmaster.ClUsTeR.lOcAl. 1499347823 7200 1800 86400 60"),
 		},
 	},
 	// A Service

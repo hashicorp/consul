@@ -29,35 +29,35 @@ var podModeInsecureCases = []test.Case{
 		Qname: "blah.podns.pod.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
-			test.SOA("cluster.local.	30	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1515173576 7200 1800 86400 30"),
+			test.SOA("cluster.local.	5	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1515173576 7200 1800 86400 30"),
 		},
 	},
 	{
 		Qname: "blah.podns.pod.cluster.local.", Qtype: dns.TypeAAAA,
 		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
-			test.SOA("cluster.local.	30	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1515173576 7200 1800 86400 30"),
+			test.SOA("cluster.local.	5	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1515173576 7200 1800 86400 30"),
 		},
 	},
 	{
 		Qname: "blah.podns.pod.cluster.local.", Qtype: dns.TypeHINFO,
 		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
-			test.SOA("cluster.local.	30	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1515173576 7200 1800 86400 30"),
+			test.SOA("cluster.local.	5	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1515173576 7200 1800 86400 30"),
 		},
 	},
 	{
 		Qname: "blah.pod-nons.pod.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
-			test.SOA("cluster.local.	30	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1515173576 7200 1800 86400 30"),
+			test.SOA("cluster.local.	5	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1515173576 7200 1800 86400 30"),
 		},
 	},
 	{
 		Qname: "podns.pod.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeSuccess,
 		Ns: []dns.RR{
-			test.SOA("cluster.local.	30	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1515173576 7200 1800 86400 30"),
+			test.SOA("cluster.local.	5	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1515173576 7200 1800 86400 30"),
 		},
 	},
 }

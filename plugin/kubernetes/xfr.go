@@ -20,7 +20,7 @@ const transferLength = 2000
 func (k *Kubernetes) Serial(state request.Request) uint32 { return uint32(k.APIConn.Modified()) }
 
 // MinTTL implements the Transferer interface.
-func (k *Kubernetes) MinTTL(state request.Request) uint32 { return 30 }
+func (k *Kubernetes) MinTTL(state request.Request) uint32 { return k.ttl }
 
 // Transfer implements the Transferer interface.
 func (k *Kubernetes) Transfer(ctx context.Context, state request.Request) (int, error) {

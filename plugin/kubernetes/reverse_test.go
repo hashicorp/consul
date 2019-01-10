@@ -151,35 +151,35 @@ func TestReverse(t *testing.T) {
 			Qname: "101.0.0.10.in-addr.arpa.", Qtype: dns.TypePTR,
 			Rcode: dns.RcodeNameError,
 			Ns: []dns.RR{
-				test.SOA("0.10.in-addr.arpa.	30	IN	SOA	ns.dns.0.10.in-addr.arpa. hostmaster.0.10.in-addr.arpa. 1502782828 7200 1800 86400 60"),
+				test.SOA("0.10.in-addr.arpa.	5	IN	SOA	ns.dns.0.10.in-addr.arpa. hostmaster.0.10.in-addr.arpa. 1502782828 7200 1800 86400 60"),
 			},
 		},
 		{
 			Qname: "example.org.cluster.local.", Qtype: dns.TypePTR,
 			Rcode: dns.RcodeNameError,
 			Ns: []dns.RR{
-				test.SOA("cluster.local.       30     IN      SOA     ns.dns.cluster.local. hostmaster.cluster.local. 1502989566 7200 1800 86400 60"),
+				test.SOA("cluster.local.       5     IN      SOA     ns.dns.cluster.local. hostmaster.cluster.local. 1502989566 7200 1800 86400 60"),
 			},
 		},
 		{
 			Qname: "svc1.testns.svc.cluster.local.", Qtype: dns.TypePTR,
 			Rcode: dns.RcodeSuccess,
 			Ns: []dns.RR{
-				test.SOA("cluster.local.       30     IN      SOA     ns.dns.cluster.local. hostmaster.cluster.local. 1502989566 7200 1800 86400 60"),
+				test.SOA("cluster.local.       5     IN      SOA     ns.dns.cluster.local. hostmaster.cluster.local. 1502989566 7200 1800 86400 60"),
 			},
 		},
 		{
 			Qname: "svc1.testns.svc.0.10.in-addr.arpa.", Qtype: dns.TypeA,
 			Rcode: dns.RcodeNameError,
 			Ns: []dns.RR{
-				test.SOA("0.10.in-addr.arpa.       30     IN      SOA     ns.dns.0.10.in-addr.arpa. hostmaster.0.10.in-addr.arpa. 1502989566 7200 1800 86400 60"),
+				test.SOA("0.10.in-addr.arpa.       5     IN      SOA     ns.dns.0.10.in-addr.arpa. hostmaster.0.10.in-addr.arpa. 1502989566 7200 1800 86400 60"),
 			},
 		},
 		{
 			Qname: "100.0.0.10.cluster.local.", Qtype: dns.TypePTR,
 			Rcode: dns.RcodeNameError,
 			Ns: []dns.RR{
-				test.SOA("cluster.local.       30     IN      SOA     ns.dns.cluster.local. hostmaster.cluster.local. 1502989566 7200 1800 86400 60"),
+				test.SOA("cluster.local.       5     IN      SOA     ns.dns.cluster.local. hostmaster.cluster.local. 1502989566 7200 1800 86400 60"),
 			},
 		},
 	}
