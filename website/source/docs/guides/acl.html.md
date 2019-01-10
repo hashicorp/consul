@@ -83,15 +83,15 @@ On the server where the `bootstrap` command was issued we should see the followi
 2018/12/11 15:30:23 [DEBUG] http: Request PUT /v1/acl/bootstrap (2.347965ms) from=127.0.0.1:40566
 ```
 
-Since ACLs have been enabled, we will need it use it to complete any additional operations.
-For example, even checking the memeber list will require a token.  
+Since ACLs have been enabled, we will need to use it to complete any additional operations.
+For example, even checking the member list will require a token.  
 
 ```sh
 $ consul members -token "4411f091-a4c9-48e6-0884-1fcb092da1c8"
-Node  Address            Status  Type    Build  Protocol  DC  Segment
-fox    172.20.20.10:8301  alive  server  1.4.0  2         kc  <all>
-bear    172.20.20.11:8301  alive  server  1.4.0  2         kc  <all>
-wolf    172.20.20.12:8301  alive   server  1.4.0  2         kc  <all>
+Node  Address            Status  Type    Build  Protocol  DC   Segment
+fox   172.20.20.10:8301  alive   server  1.4.0  2         kc  <all>
+bear  172.20.20.11:8301  alive   server  1.4.0  2         kc  <all>
+wolf  172.20.20.12:8301  alive   server  1.4.0  2         kc  <all>
 ```
 
 Note using the token on the command line with the `-token` flag is not 
@@ -109,7 +109,7 @@ Note, the bootstrap token can only be created once, bootstrapping will be disabl
 
 ## Step 3: Create an Agent Token Policy
 
-Before we can create a token, we will need to create its associated policy. A policy is a set of rules that can used to specify granular permissions. To learn more about rules, read the ACL rule specification [documentation](/docs/agent/acl-rules.html).
+Before we can create a token, we will need to create its associated policy. A policy is a set of rules that can be used to specify granular permissions. To learn more about rules, read the ACL rule specification [documentation](/docs/agent/acl-rules.html).
 
 ```bash
 # agent-policy.hcl contains the following:
@@ -262,10 +262,10 @@ it has write privileges to an empty `node` prefix, meaning it has access to all 
 
 ```bash
 $ CONSUL_HTTP_TOKEN=4411f091-a4c9-48e6-0884-1fcb092da1c8 consul members
-Node    Address         Status  Type    Build     Protocol  DC
-fox    172.20.20.10:8301  alive  server  1.4.0  2         kc  <all>
-bear    172.20.20.11:8301  alive  server  1.4.0  2         kc  <all>
-wolf    172.20.20.12:8301  alive   server  1.4.0  2         kc  <all>
+Node  Address            Status  Type    Build  Protocol  DC   Segment
+fox   172.20.20.10:8301  alive   server  1.4.0  2         kc  <all>
+bear  172.20.20.11:8301  alive   server  1.4.0  2         kc  <all>
+wolf  172.20.20.12:8301  alive   server  1.4.0  2         kc  <all>
 ```
 
 It is common in many environments to allow listing of all nodes, even without a
@@ -305,10 +305,10 @@ The anonymous token is implicitly used if no token is supplied, so now we can ru
 
 ```bash
 $ consul members
-Node    Address         Status  Type    Build     Protocol  DC
-fox    172.20.20.10:8301  alive  server  1.4.0  2         kc  <all>
-bear    172.20.20.11:8301  alive  server  1.4.0  2         kc  <all>
-wolf    172.20.20.12:8301  alive   server  1.4.0  2         kc  <all>
+Node  Address            Status  Type    Build  Protocol  DC   Segment
+fox   172.20.20.10:8301  alive   server  1.4.0  2         kc  <all>
+bear  172.20.20.11:8301  alive   server  1.4.0  2         kc  <all>
+wolf  172.20.20.12:8301  alive   server  1.4.0  2         kc  <all>
 ```
 
 The anonymous token is also used for DNS lookups since there is no way to pass a
