@@ -410,7 +410,7 @@ func (s *ConnectCA) Sign(
 		WriteRequest: structs.WriteRequest{Token: args.Token},
 	}
 
-	resp, err := s.srv.raftApply(structs.ConnectCALeafRequestType, &req)
+	resp, err := s.srv.raftApply(structs.ConnectCALeafRequestType|structs.IgnoreUnknownTypeFlag, &req)
 	if err != nil {
 		return err
 	}
