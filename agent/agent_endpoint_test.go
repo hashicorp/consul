@@ -4715,6 +4715,25 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 		require.Equal("HIT", resp.Header().Get("X-Cache"))
 	}
 
+	// Test Blocking - see https://github.com/hashicorp/consul/issues/4462
+	{
+		// Fetch it again
+		resp := httptest.NewRecorder()
+		blockingReq, _ := http.NewRequest("GET", fmt.Sprintf("/v1/agent/connect/ca/leaf/test?wait=125ms&index=%d", issued.ModifyIndex), nil)
+		doneCh := make(chan struct{})
+		go func() {
+			a.srv.AgentConnectCALeafCert(resp, blockingReq)
+			close(doneCh)
+		}()
+
+		select {
+		case <-time.After(500 * time.Millisecond):
+			require.FailNow("Shouldn't block for this long - not respecting wait parameter in the query")
+
+		case <-doneCh:
+		}
+	}
+
 	// Test that caching is updated in the background
 	{
 		// Set a new CA
