@@ -21,8 +21,8 @@ BUG FIXES:
 * connect: Fixed an issue where certificates could leak and remain in client memory forever [[GH-5091](https://github.com/hashicorp/consul/pull/5091)] 
 * agent: Fixed a bug where `disable_host_node_id = false` was not working properly [[GH-4914](https://github.com/hashicorp/consul/issues/4914)]
 * connect: (Consul Enterprise) When requesting to sign intermediates the primary dc is now used
-* connect: added tls config for vault connect ca provider [[GH-5125]]
-* agent: snapshot verification now works regardless of spacing in `meta.json` [[GH-5193]]
+* connect: added tls config for vault connect ca provider [[GH-5125](https://github.com/hashicorp/consul/issues/5125)]
+* agent: snapshot verification now works regardless of spacing in `meta.json` [[GH-5193](https://github.com/hashicorp/consul/issues/5193)]
 
 IMPROVEMENTS:
 
