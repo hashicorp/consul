@@ -873,10 +873,31 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.Datacenter = "dc2"
+		// token replication is required to test deleting non-local tokens in secondary dc
+		c.ACLTokenReplication = true
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+	codec2 := rpcClient(t, s2)
+	defer codec2.Close()
+
+	s2.tokens.UpdateACLReplicationToken("root")
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s2.RPC, "dc2")
+
+	// Try to join
+	joinWAN(t, s2, s1)
+
 	existingToken, err := upsertTestToken(codec, "root", "dc1")
 	assert.NoError(err)
 
 	acl := ACL{srv: s1}
+	acl2 := ACL{srv: s2}
 
 	// deletes a token
 	{
@@ -897,6 +918,32 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 		assert.NoError(err)
 	}
 
+	// can't delete itself
+	{
+		readReq := structs.ACLTokenGetRequest{
+			Datacenter:   "dc1",
+			TokenID:      "root",
+			TokenIDType:  structs.ACLTokenSecret,
+			QueryOptions: structs.QueryOptions{Token: "root"},
+		}
+
+		var out structs.ACLTokenResponse
+
+		err := msgpackrpc.CallWithCodec(codec, "ACL.TokenRead", &readReq, &out)
+
+		assert.NoError(err)
+
+		req := structs.ACLTokenDeleteRequest{
+			Datacenter:   "dc1",
+			TokenID:      out.Token.AccessorID,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		var resp string
+		err = acl.TokenDelete(&req, &resp)
+		assert.EqualError(err, "Deletion of the request's authorization token is not permitted")
+	}
+
 	// errors when token doesn't exist
 	{
 		fakeID, err := uuid.GenerateUUID()
@@ -915,6 +962,30 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 
 		// token should be nil
 		tokenResp, err := retrieveTestToken(codec, "root", "dc1", existingToken.AccessorID)
+		assert.Nil(tokenResp.Token)
+		assert.NoError(err)
+	}
+
+	// don't segfault when attempting to delete non existant token in secondary dc
+	{
+		fakeID, err := uuid.GenerateUUID()
+		assert.NoError(err)
+
+		req := structs.ACLTokenDeleteRequest{
+			Datacenter:   "dc2",
+			TokenID:      fakeID,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		var resp string
+
+		waitForNewACLs(t, s2)
+
+		err = acl2.TokenDelete(&req, &resp)
+		assert.NoError(err)
+
+		// token should be nil
+		tokenResp, err := retrieveTestToken(codec2, "root", "dc1", existingToken.AccessorID)
 		assert.Nil(tokenResp.Token)
 		assert.NoError(err)
 	}
