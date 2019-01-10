@@ -64,7 +64,7 @@ test("the 5xx backoff continues to throw when it's not a 5xx", function(assert) 
     { errors: [{ status: '5050' }] },
   ].forEach(function(item) {
     assert.throws(function() {
-      backoff();
+      backoff(item);
     });
   });
 });
