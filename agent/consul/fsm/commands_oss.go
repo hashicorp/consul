@@ -28,6 +28,7 @@ func init() {
 	registerCommand(structs.ACLBootstrapRequestType, (*FSM).applyACLTokenBootstrap)
 	registerCommand(structs.ACLPolicySetRequestType, (*FSM).applyACLPolicySetOperation)
 	registerCommand(structs.ACLPolicyDeleteRequestType, (*FSM).applyACLPolicyDeleteOperation)
+	registerCommand(structs.ConnectCALeafRequestType, (*FSM).applyConnectCALeafOperation)
 }
 
 func (c *FSM) applyRegister(buf []byte, index uint64) interface{} {
@@ -350,6 +351,26 @@ func (c *FSM) applyConnectCAOperation(buf []byte, index uint64) interface{} {
 		return act
 	default:
 		c.logger.Printf("[WARN] consul.fsm: Invalid CA operation '%s'", req.Op)
+		return fmt.Errorf("Invalid CA operation '%s'", req.Op)
+	}
+}
+
+func (c *FSM) applyConnectCALeafOperation(buf []byte, index uint64) interface{} {
+	var req structs.CALeafRequest
+	if err := structs.Decode(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode request: %v", err))
+	}
+
+	defer metrics.MeasureSinceWithLabels([]string{"fsm", "ca", "leaf"}, time.Now(),
+		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
+	switch req.Op {
+	case structs.CALeafOpIncrementIndex:
+		if err := c.state.CALeafSetIndex(index); err != nil {
+			return err
+		}
+		return index
+	default:
+		c.logger.Printf("[WARN consul.fsm: Invalid CA Leaf operation '%s'", req.Op)
 		return fmt.Errorf("Invalid CA operation '%s'", req.Op)
 	}
 }

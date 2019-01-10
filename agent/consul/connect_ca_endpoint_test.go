@@ -316,6 +316,18 @@ func TestConnectCASign(t *testing.T) {
 	var reply structs.IssuedCert
 	require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", args, &reply))
 
+	// Generate a second CSR and request signing
+	spiffeId2 := connect.TestSpiffeIDService(t, "web2")
+	csr, _ = connect.TestCSR(t, spiffeId2)
+	args = &structs.CASignRequest{
+		Datacenter: "dc1",
+		CSR:        csr,
+	}
+
+	var reply2 structs.IssuedCert
+	require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", args, &reply2))
+	require.True(reply2.ModifyIndex > reply.ModifyIndex)
+
 	// Get the current CA
 	state := s1.fsm.State()
 	_, ca, err := state.CARootActive(nil)
