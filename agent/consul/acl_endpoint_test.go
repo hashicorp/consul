@@ -979,7 +979,7 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 
 		var resp string
 
-		waitForNewACls(t, s2)
+		waitForNewACLs(t, s2)
 
 		err = acl2.TokenDelete(&req, &resp)
 		assert.NoError(err)
