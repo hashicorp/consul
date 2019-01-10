@@ -1179,6 +1179,14 @@ default will automatically work with some tooling.
               }
             }
           ```
+    * <a name="allow_write_http_from"></a><a href="#allow_write_http_from">`allow_write_http_from`</a>
+      This object is a list of networks in CIDR notation (eg "127.0.0.0/8") that are allowed
+      to call the agent write endpoints. It defaults to an empty list, which means all networks
+      are allowed.
+      This is used to make the agent read-only, except for select ip ranges.
+      * To block write calls from anywhere, use `[ "255.255.255.255/32" ]`.
+      * To only allow write calls from localhost, use `[ "127.0.0.0/8" ]`
+      * To only allow specific IPs, use `[ "10.0.0.1/32", "10.0.0.2/32" ]`
 
 * <a name="leave_on_terminate"></a><a href="#leave_on_terminate">`leave_on_terminate`</a> If
   enabled, when the agent receives a TERM signal, it will send a `Leave` message to the rest

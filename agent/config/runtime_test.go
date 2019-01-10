@@ -2875,6 +2875,11 @@ func TestFullConfig(t *testing.T) {
 	dataDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(dataDir)
 
+	cidr := func(s string) *net.IPNet {
+		_, n, _ := net.ParseCIDR(s)
+		return n
+	}
+
 	flagSrc := []string{`-dev`}
 	src := map[string]string{
 		"json": `{
@@ -3072,6 +3077,7 @@ func TestFullConfig(t *testing.T) {
 			"encrypt_verify_outgoing": true,
 			"http_config": {
 				"block_endpoints": [ "RBvAFcGD", "fWOWFznh" ],
+				"allow_write_http_from": [ "127.0.0.1/8", "22.33.44.55/32", "0.0.0.0/0" ],
 				"response_headers": {
 					"M6TKa9NP": "xjuxjOzQ",
 					"JRCrHZed": "rl0mTx81"
@@ -3620,6 +3626,7 @@ func TestFullConfig(t *testing.T) {
 			encrypt_verify_outgoing = true
 			http_config {
 				block_endpoints = [ "RBvAFcGD", "fWOWFznh" ]
+				allow_write_http_from = [ "127.0.0.1/8", "22.33.44.55/32", "0.0.0.0/0" ]
 				response_headers = {
 					"M6TKa9NP" = "xjuxjOzQ"
 					"JRCrHZed" = "rl0mTx81"
@@ -4259,6 +4266,7 @@ func TestFullConfig(t *testing.T) {
 		GRPCAddrs:                        []net.Addr{tcpAddr("32.31.61.91:4881")},
 		HTTPAddrs:                        []net.Addr{tcpAddr("83.39.91.39:7999")},
 		HTTPBlockEndpoints:               []string{"RBvAFcGD", "fWOWFznh"},
+		AllowWriteHTTPFrom:               []*net.IPNet{cidr("127.0.0.0/8"), cidr("22.33.44.55/32"), cidr("0.0.0.0/0")},
 		HTTPPort:                         7999,
 		HTTPResponseHeaders:              map[string]string{"M6TKa9NP": "xjuxjOzQ", "JRCrHZed": "rl0mTx81"},
 		HTTPSAddrs:                       []net.Addr{tcpAddr("95.17.17.19:15127")},
@@ -5197,7 +5205,8 @@ func TestSanitize(t *testing.T) {
 		"VerifyServerHostname": false,
 		"Version": "",
 		"VersionPrerelease": "",
-		"Watches": []
+		"Watches": [],
+		"AllowWriteHTTPFrom": []
 	}`
 	b, err := json.MarshalIndent(rt.Sanitized(), "", "    ")
 	if err != nil {

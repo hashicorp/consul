@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/testrpc"
 
 	"github.com/hashicorp/consul/logger"
@@ -155,6 +157,55 @@ func TestHTTPAPI_OptionMethod_OSS(t *testing.T) {
 	for path, methods := range allowedMethods {
 		if includePathInTest(path) {
 			testOptionMethod(path, methods)
+		}
+	}
+}
+
+func TestHTTPAPI_AllowedNets_OSS(t *testing.T) {
+	a := NewTestAgent(t.Name(), `
+		acl_datacenter = "dc1"
+		http_config {
+			allow_write_http_from = ["127.0.0.1/8"]
+		}
+	`)
+	a.Agent.LogWriter = logger.NewLogWriter(512)
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	testOptionMethod := func(path string, method string) {
+		t.Run(method+" "+path, func(t *testing.T) {
+			uri := fmt.Sprintf("http://%s%s", a.HTTPAddr(), path)
+			req, _ := http.NewRequest(method, uri, nil)
+			req.RemoteAddr = "192.168.1.2:5555"
+			resp := httptest.NewRecorder()
+			a.srv.Handler.ServeHTTP(resp, req)
+
+			require.Equal(t, http.StatusForbidden, resp.Code, "%s %s", method, path)
+		})
+	}
+
+	for path, methods := range extraTestEndpoints {
+		if !includePathInTest(path) {
+			continue
+		}
+		for _, method := range methods {
+			if method == http.MethodGet {
+				continue
+			}
+
+			testOptionMethod(path, method)
+		}
+	}
+	for path, methods := range allowedMethods {
+		if !includePathInTest(path) {
+			continue
+		}
+		for _, method := range methods {
+			if method == http.MethodGet {
+				continue
+			}
+
+			testOptionMethod(path, method)
 		}
 	}
 }

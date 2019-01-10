@@ -721,6 +721,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		HTTPSAddrs:          httpsAddrs,
 		HTTPBlockEndpoints:  c.HTTPConfig.BlockEndpoints,
 		HTTPResponseHeaders: c.HTTPConfig.ResponseHeaders,
+		AllowWriteHTTPFrom:  b.cidrsVal("allow_write_http_from", c.HTTPConfig.AllowWriteHTTPFrom),
 
 		// Telemetry
 		Telemetry: lib.TelemetryConfig{
@@ -1353,6 +1354,22 @@ func (b *Builder) float64Val(v *float64) float64 {
 	}
 
 	return *v
+}
+
+func (b *Builder) cidrsVal(name string, v []string) (nets []*net.IPNet) {
+	if v == nil {
+		return
+	}
+
+	for _, p := range v {
+		_, net, err := net.ParseCIDR(strings.TrimSpace(p))
+		if err != nil {
+			b.err = multierror.Append(b.err, fmt.Errorf("%s: invalid cidr: %s", name, p))
+		}
+		nets = append(nets, net)
+	}
+
+	return
 }
 
 func (b *Builder) tlsCipherSuites(name string, v *string) []uint16 {
