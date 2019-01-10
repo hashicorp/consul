@@ -41,6 +41,7 @@ func TestCA(t testing.T, xc *structs.CARoot) *structs.CARoot {
 	// Create the private key we'll use for this CA cert.
 	signer, keyPEM := testPrivateKey(t)
 	result.SigningKey = keyPEM
+	result.SigningKeyID = HexString(testKeyID(t, signer.Public()))
 
 	// The serial number for the cert
 	sn, err := testSerialNumber()
@@ -83,6 +84,9 @@ func TestCA(t testing.T, xc *structs.CARoot) *structs.CARoot {
 	if err != nil {
 		t.Fatalf("error generating CA ID fingerprint: %s", err)
 	}
+	result.SerialNumber = uint64(sn.Int64())
+	result.NotBefore = template.NotBefore.UTC()
+	result.NotAfter = template.NotAfter.UTC()
 
 	// If there is a prior CA to cross-sign with, then we need to create that
 	// and set it as the signing cert.
@@ -269,12 +273,12 @@ func testPrivateKey(t testing.T) (crypto.Signer, string) {
 	return pk, buf.String()
 }
 
-// testSerialNumber generates a serial number suitable for a certificate.
-// For testing, this just sets it to a random number.
-//
-// This function is taken directly from the Vault implementation.
+// testSerialNumber generates a serial number suitable for a certificate. For
+// testing, this just sets it to a random number, but one that can fit in a
+// uint64 since we use that in our datastructures and assume cert serials will
+// fit in that for now.
 func testSerialNumber() (*big.Int, error) {
-	return rand.Int(rand.Reader, (&big.Int{}).Exp(big.NewInt(2), big.NewInt(159), nil))
+	return rand.Int(rand.Reader, (&big.Int{}).Exp(big.NewInt(2), big.NewInt(63), nil))
 }
 
 // testUUID generates a UUID for testing.

@@ -379,9 +379,17 @@ func TestCacheGet_emptyFetchResult(t *testing.T) {
 	c := TestCache(t)
 	c.RegisterType("t", typ, nil)
 
+	stateCh := make(chan int, 1)
+
 	// Configure the type
-	typ.Static(FetchResult{Value: 42, Index: 1}, nil).Times(1)
-	typ.Static(FetchResult{Value: nil}, nil)
+	typ.Static(FetchResult{Value: 42, State: 31, Index: 1}, nil).Times(1)
+	// Return different State, it should be ignored
+	typ.Static(FetchResult{Value: nil, State: 32}, nil).Run(func(args mock.Arguments) {
+		// We should get back the original state
+		opts := args.Get(0).(FetchOptions)
+		require.NotNil(opts.LastResult)
+		stateCh <- opts.LastResult.State.(int)
+	})
 
 	// Get, should fetch
 	req := TestRequest(t, RequestInfo{Key: "hello"})
@@ -397,6 +405,29 @@ func TestCacheGet_emptyFetchResult(t *testing.T) {
 	require.NoError(err)
 	require.Equal(42, result)
 	require.False(meta.Hit)
+
+	// State delivered to second call should be the result from first call.
+	select {
+	case state := <-stateCh:
+		require.Equal(31, state)
+	case <-time.After(20 * time.Millisecond):
+		t.Fatal("timed out")
+	}
+
+	// Next request should get the first returned state too since last Fetch
+	// returned nil result.
+	req = TestRequest(t, RequestInfo{
+		Key: "hello", MinIndex: 1, Timeout: 100 * time.Millisecond})
+	result, meta, err = c.Get("t", req)
+	require.NoError(err)
+	require.Equal(42, result)
+	require.False(meta.Hit)
+	select {
+	case state := <-stateCh:
+		require.Equal(31, state)
+	case <-time.After(20 * time.Millisecond):
+		t.Fatal("timed out")
+	}
 
 	// Sleep a tiny bit just to let maybe some background calls happen
 	// then verify that we still only got the one call

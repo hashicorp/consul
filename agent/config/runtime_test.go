@@ -4981,6 +4981,7 @@ func TestSanitize(t *testing.T) {
 		"ConnectProxyDefaultScriptCommand": [],
 		"ConnectSidecarMaxPort": 0,
 		"ConnectSidecarMinPort": 0,
+		"ConnectTestCALeafRootChangeSpread": "0s",
 		"ConnectReplicationToken": "hidden",
 		"ConnectTestDisableManagedProxies": false,
 		"ConsulCoordinateUpdateBatchSize": 0,

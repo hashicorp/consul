@@ -454,6 +454,13 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool, attempt uint) (<-
 			fOpts.MinIndex = entry.Index
 			fOpts.Timeout = tEntry.Opts.RefreshTimeout
 		}
+		if entry.Valid {
+			fOpts.LastResult = &FetchResult{
+				Value: entry.Value,
+				State: entry.State,
+				Index: entry.Index,
+			}
+		}
 
 		// Start building the new entry by blocking on the fetch.
 		result, err := tEntry.Type.Fetch(fOpts, r)
@@ -476,6 +483,7 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool, attempt uint) (<-
 		if result.Value != nil {
 			// A new value was given, so we create a brand new entry.
 			newEntry.Value = result.Value
+			newEntry.State = result.State
 			newEntry.Index = result.Index
 			newEntry.FetchedAt = time.Now()
 			if newEntry.Index < 1 {
