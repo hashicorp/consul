@@ -1,14 +1,14 @@
 ---
 layout: "docs"
-page_title: "Cluster Backups"
+page_title: "Datacenter Backups"
 sidebar_current: "docs-guides-backups"
 description: |-
   Consul provide the snapshot tool for backing up and restoring data. In this guide you will learn how to use both.
 ---
 
-# Cluster Backups
+# Datacenter Backups
 
-Creating server backups is an important step in production deployments. Backups provide a mechanism for the server to recover from an outage (network loss, operator error, or a corrupted data directory). All servers write to the `-data-dir` before commit on write requests. The same directory is used on client agents to persist local state too, but this is not critical and can be rebuilt when recreating an agent. Local client state is not backed up in this guide and doesn't need to be in general, only the server's Raft store state.
+Creating datacenter backups is an important step in production deployments. Backups provide a mechanism for the Consul server to recover from an outage (network loss, operator error, or a corrupted data directory). All servers write to the `-data-dir` before commit on write requests. The same directory is used on client agents to persist local state too, but this is not critical and can be rebuilt when recreating an agent. Local client state is not backed up in this guide and doesn't need to be in general, only the server's Raft store state.
 
 Consul provides the [snapshot](https://consul.io/docs/commands/snapshot.html) command which can be run using the CLI or the API. The `snapshot` command saves a point-in-time snapshot of the state of the Consul servers which includes, but is not limited to:
 
