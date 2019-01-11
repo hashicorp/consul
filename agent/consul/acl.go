@@ -1592,6 +1592,13 @@ func vetDeregisterWithACL(rule acl.Authorizer, subj *structs.DeregisterRequest,
 	// We don't apply sentinel in this path, since at this time sentinel
 	// only applies to create and update operations.
 
+	// Allow service deregistration if the token has write permission for the node.
+	// This accounts for cases where the agent no longer has a token with write permission
+	// on the service to deregister it.
+	if rule.NodeWrite(subj.Node, nil) {
+		return nil
+	}
+
 	// This order must match the code in applyRegister() in fsm.go since it
 	// also evaluates things in this order, and will ignore fields based on
 	// this precedence. This lets us also ignore them from an ACL perspective.
