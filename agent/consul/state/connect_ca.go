@@ -11,6 +11,7 @@ const (
 	caBuiltinProviderTableName = "connect-ca-builtin"
 	caConfigTableName          = "connect-ca-config"
 	caRootTableName            = "connect-ca-roots"
+	caLeafIndexName            = "connect-ca-leaf-certs"
 )
 
 // caBuiltinProviderTableSchema returns a new table schema used for storing
@@ -442,4 +443,11 @@ func (s *Store) CADeleteProviderState(id string) error {
 	tx.Commit()
 
 	return nil
+}
+
+func (s *Store) CALeafSetIndex(index uint64) error {
+	tx := s.db.Txn(true)
+	defer tx.Abort()
+
+	return indexUpdateMaxTxn(tx, index, caLeafIndexName)
 }

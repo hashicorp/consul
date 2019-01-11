@@ -296,6 +296,33 @@ type VaultCAProviderConfig struct {
 	TLSSkipVerify bool
 }
 
+// CALeafOp is the operation for a request related to leaf certificates.
+type CALeafOp string
+
+const (
+	CALeafOpIncrementIndex CALeafOp = "increment-index"
+)
+
+// CALeafRequest is used to modify connect CA leaf data. This is used by the
+// FSM (agent/consul/fsm) to apply changes.
+type CALeafRequest struct {
+	// Op is the type of operation being requested. This determines what
+	// other fields are required.
+	Op CALeafOp
+
+	// Datacenter is the target for this request.
+	Datacenter string
+
+	// WriteRequest is a common struct containing ACL tokens and other
+	// write-related common elements for requests.
+	WriteRequest
+}
+
+// RequestDatacenter returns the datacenter for a given request.
+func (q *CALeafRequest) RequestDatacenter() string {
+	return q.Datacenter
+}
+
 // ParseDurationFunc is a mapstructure hook for decoding a string or
 // []uint8 into a time.Duration value.
 func ParseDurationFunc() mapstructure.DecodeHookFunc {

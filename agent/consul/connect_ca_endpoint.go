@@ -396,16 +396,28 @@ func (s *ConnectCA) Sign(
 	}
 
 	// TODO(banks): when we implement IssuedCerts table we can use the insert to
-	// that as the raft index to return in response. Right now we can rely on only
-	// the built-in provider being supported and the implementation detail that we
-	// have to write a SerialIndex update to the provider config table for every
-	// cert issued so in all cases this index will be higher than any previous
-	// sign response. This has to be reloaded after the provider.Sign call to
-	// observe the index update.
-	state = s.srv.fsm.State()
-	modIdx, _, err := state.CAConfig()
+	// that as the raft index to return in response.
+	//
+	// UPDATE(mkeeler): The original implementation relied on updating the CAConfig
+	// and using its index as the ModifyIndex for certs. This was buggy. The long
+	// term goal is still to insert some metadata into raft about the certificates
+	// and use that raft index for the ModifyIndex. This is a partial step in that
+	// direction except that we only are setting an index and not storing the
+	// metadata.
+	req := structs.CALeafRequest{
+		Op:           structs.CALeafOpIncrementIndex,
+		Datacenter:   s.srv.config.Datacenter,
+		WriteRequest: structs.WriteRequest{Token: args.Token},
+	}
+
+	resp, err := s.srv.raftApply(structs.ConnectCALeafRequestType|structs.IgnoreUnknownTypeFlag, &req)
 	if err != nil {
 		return err
+	}
+
+	modIdx, ok := resp.(uint64)
+	if !ok {
+		return fmt.Errorf("Invalid response from updating the leaf cert index")
 	}
 
 	cert, err := connect.ParseCert(pem)
