@@ -23,6 +23,7 @@ BUG FIXES:
 * connect: (Consul Enterprise) When requesting to sign intermediates the primary dc is now used
 * connect: added tls config for vault connect ca provider [[GH-5125](https://github.com/hashicorp/consul/issues/5125)]
 * agent: snapshot verification now works regardless of spacing in `meta.json` [[GH-5193](https://github.com/hashicorp/consul/issues/5193)]
+* connect: Fixed a bug with the create and modify indices of leaf certificates not being incremented properly. [[GH-4463](https://github.com/hashicorp/consul/issues/4463)]
 
 IMPROVEMENTS:
 
