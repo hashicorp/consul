@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"text/template"
 	"time"
@@ -115,7 +116,13 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	envoy := NewTestEnvoy(t, "web-sidecar-proxy", "")
 	defer envoy.Close()
 
-	s := Server{logger, mgr, mgr, aclResolve}
+	s := Server{
+		Logger:       logger,
+		CfgMgr:       mgr,
+		Authz:        mgr,
+		ResolveToken: aclResolve,
+	}
+	s.Initialize()
 
 	go func() {
 		err := s.StreamAggregatedResources(envoy.stream)
@@ -589,7 +596,13 @@ func TestServer_StreamAggregatedResources_ACLEnforcement(t *testing.T) {
 			envoy := NewTestEnvoy(t, "web-sidecar-proxy", tt.token)
 			defer envoy.Close()
 
-			s := Server{logger, mgr, mgr, aclResolve}
+			s := Server{
+				Logger:       logger,
+				CfgMgr:       mgr,
+				Authz:        mgr,
+				ResolveToken: aclResolve,
+			}
+			s.Initialize()
 
 			errCh := make(chan error, 1)
 			go func() {
@@ -629,6 +642,196 @@ func TestServer_StreamAggregatedResources_ACLEnforcement(t *testing.T) {
 				t.Fatalf("timed out waiting for handler to finish")
 			}
 		})
+	}
+}
+
+func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedDuringDiscoveryRequest(t *testing.T) {
+	aclRules := `service "web" { policy = "write" }`
+	token := "service-write-on-web"
+
+	policy, err := acl.NewPolicyFromSource("", 0, aclRules, acl.SyntaxLegacy, nil)
+	require.NoError(t, err)
+
+	var validToken atomic.Value
+	validToken.Store(token)
+
+	logger := log.New(os.Stderr, "", log.LstdFlags)
+	mgr := newTestManager(t)
+	aclResolve := func(id string) (acl.Authorizer, error) {
+		if token := validToken.Load(); token == nil || id != token.(string) {
+			return nil, acl.ErrNotFound
+		}
+
+		return acl.NewPolicyAuthorizer(acl.RootAuthorizer("deny"), []*acl.Policy{policy}, nil)
+	}
+	envoy := NewTestEnvoy(t, "web-sidecar-proxy", token)
+	defer envoy.Close()
+
+	s := Server{
+		Logger:             logger,
+		CfgMgr:             mgr,
+		Authz:              mgr,
+		ResolveToken:       aclResolve,
+		AuthCheckFrequency: 1 * time.Hour, // make sure this doesn't kick in
+	}
+	s.Initialize()
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- s.StreamAggregatedResources(envoy.stream)
+	}()
+
+	getError := func() (gotErr error, ok bool) {
+		select {
+		case err := <-errCh:
+			return err, true
+		default:
+			return nil, false
+		}
+	}
+
+	// Register the proxy to create state needed to Watch() on
+	mgr.RegisterProxy(t, "web-sidecar-proxy")
+
+	// Send initial cluster discover (OK)
+	envoy.SendReq(t, ClusterType, 0, 0)
+	{
+		err, ok := getError()
+		require.NoError(t, err)
+		require.False(t, ok)
+	}
+
+	// Check no response sent yet
+	assertChanBlocked(t, envoy.stream.sendCh)
+	{
+		err, ok := getError()
+		require.NoError(t, err)
+		require.False(t, ok)
+	}
+
+	// Deliver a new snapshot
+	snap := proxycfg.TestConfigSnapshot(t)
+	mgr.DeliverConfig(t, "web-sidecar-proxy", snap)
+
+	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(t, snap, token, 1, 1))
+
+	// Now nuke the ACL token.
+	validToken.Store("")
+
+	// It also (in parallel) issues the next cluster request (which acts as an ACK
+	// of the version we sent)
+	envoy.SendReq(t, ClusterType, 1, 1)
+
+	select {
+	case err := <-errCh:
+		require.Error(t, err)
+		gerr, ok := status.FromError(err)
+		require.Truef(t, ok, "not a grpc status error: type='%T' value=%v", err, err)
+		require.Equal(t, codes.Unauthenticated, gerr.Code())
+		require.Equal(t, "unauthenticated: ACL not found", gerr.Message())
+
+		mgr.AssertWatchCancelled(t, "web-sidecar-proxy")
+	case <-time.After(50 * time.Millisecond):
+		t.Fatalf("timed out waiting for handler to finish")
+	}
+}
+
+func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedInBackground(t *testing.T) {
+	aclRules := `service "web" { policy = "write" }`
+	token := "service-write-on-web"
+
+	policy, err := acl.NewPolicyFromSource("", 0, aclRules, acl.SyntaxLegacy, nil)
+	require.NoError(t, err)
+
+	var validToken atomic.Value
+	validToken.Store(token)
+
+	logger := log.New(os.Stderr, "", log.LstdFlags)
+	mgr := newTestManager(t)
+	aclResolve := func(id string) (acl.Authorizer, error) {
+		if token := validToken.Load(); token == nil || id != token.(string) {
+			return nil, acl.ErrNotFound
+		}
+
+		return acl.NewPolicyAuthorizer(acl.RootAuthorizer("deny"), []*acl.Policy{policy}, nil)
+	}
+	envoy := NewTestEnvoy(t, "web-sidecar-proxy", token)
+	defer envoy.Close()
+
+	s := Server{
+		Logger:             logger,
+		CfgMgr:             mgr,
+		Authz:              mgr,
+		ResolveToken:       aclResolve,
+		AuthCheckFrequency: 100 * time.Millisecond, // Make this short.
+	}
+	s.Initialize()
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- s.StreamAggregatedResources(envoy.stream)
+	}()
+
+	getError := func() (gotErr error, ok bool) {
+		select {
+		case err := <-errCh:
+			return err, true
+		default:
+			return nil, false
+		}
+	}
+
+	// Register the proxy to create state needed to Watch() on
+	mgr.RegisterProxy(t, "web-sidecar-proxy")
+
+	// Send initial cluster discover (OK)
+	envoy.SendReq(t, ClusterType, 0, 0)
+	{
+		err, ok := getError()
+		require.NoError(t, err)
+		require.False(t, ok)
+	}
+
+	// Check no response sent yet
+	assertChanBlocked(t, envoy.stream.sendCh)
+	{
+		err, ok := getError()
+		require.NoError(t, err)
+		require.False(t, ok)
+	}
+
+	// Deliver a new snapshot
+	snap := proxycfg.TestConfigSnapshot(t)
+	mgr.DeliverConfig(t, "web-sidecar-proxy", snap)
+
+	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(t, snap, token, 1, 1))
+
+	// It also (in parallel) issues the next cluster request (which acts as an ACK
+	// of the version we sent)
+	envoy.SendReq(t, ClusterType, 1, 1)
+
+	// Check no response sent yet
+	assertChanBlocked(t, envoy.stream.sendCh)
+	{
+		err, ok := getError()
+		require.NoError(t, err)
+		require.False(t, ok)
+	}
+
+	// Now nuke the ACL token while there's no activity.
+	validToken.Store("")
+
+	select {
+	case err := <-errCh:
+		require.Error(t, err)
+		gerr, ok := status.FromError(err)
+		require.Truef(t, ok, "not a grpc status error: type='%T' value=%v", err, err)
+		require.Equal(t, codes.Unauthenticated, gerr.Code())
+		require.Equal(t, "unauthenticated: ACL not found", gerr.Message())
+
+		mgr.AssertWatchCancelled(t, "web-sidecar-proxy")
+	case <-time.After(200 * time.Millisecond):
+		t.Fatalf("timed out waiting for handler to finish")
 	}
 }
 
@@ -729,7 +932,13 @@ func TestServer_Check(t *testing.T) {
 			envoy := NewTestEnvoy(t, "web-sidecar-proxy", token)
 			defer envoy.Close()
 
-			s := Server{logger, mgr, mgr, aclResolve}
+			s := Server{
+				Logger:       logger,
+				CfgMgr:       mgr,
+				Authz:        mgr,
+				ResolveToken: aclResolve,
+			}
+			s.Initialize()
 
 			// Create a context with the correct token
 			ctx := metadata.NewIncomingContext(context.Background(),
