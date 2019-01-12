@@ -33,14 +33,3 @@ ignored = [
 [[override]]
     name = "sigs.k8s.io/yaml"
     revision = "fd68e9863619f6ec2fdd8625fe1f02e7c877e480"
-
-[[override]]
-    name = "github.com/apache/thrift"
-    revision = "e59b73d3c2bf1c328ccb78e683c0462fa1a473c7"
-[[override]]
-    name = "github.com/ugorji/go"
-    revision = "f3cacc17c85ecb7f1b6a9e373ee85d1480919868"
-
-[[constraint]]
-  name = "github.com/coreos/etcd"
-  version = "3.3.5"

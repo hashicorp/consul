@@ -562,9 +562,6 @@ func (p *TCompactProtocol) ReadString() (value string, err error) {
 	if length < 0 {
 		return "", invalidDataLength
 	}
-	if uint64(length) > p.trans.RemainingBytes() {
-		return "", invalidDataLength
-	}
 
 	if length == 0 {
 		return "", nil
@@ -589,9 +586,6 @@ func (p *TCompactProtocol) ReadBinary() (value []byte, err error) {
 		return []byte{}, nil
 	}
 	if length < 0 {
-		return nil, invalidDataLength
-	}
-	if uint64(length) > p.trans.RemainingBytes() {
 		return nil, invalidDataLength
 	}
 

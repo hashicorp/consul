@@ -30,11 +30,12 @@
   version = "v1.17.0"
 
 [[projects]]
-  digest = "1:eee9386329f4fcdf8d6c0def0c9771b634bdd5ba460d888aa98c17d59b37a76c"
+  digest = "1:b39cf81d5f440b9c0757a25058432d33af867e5201109bf53621356d9dab4b73"
   name = "github.com/apache/thrift"
   packages = ["lib/go/thrift"]
   pruneopts = "NUT"
-  revision = "e59b73d3c2bf1c328ccb78e683c0462fa1a473c7"
+  revision = "384647d290e2e4a55a14b1b7ef1b7e66293a2c33"
+  version = "v0.12.0"
 
 [[projects]]
   digest = "1:7943d65eade11f12eda6d0c0e681197e26cad6bdc0105a0a28c3c5c761c00589"
@@ -75,7 +76,7 @@
   version = "v1.14.17"
 
 [[projects]]
-  digest = "1:c2f7fb4667999c4a5c90ef00a6762cf186e6ec8a822e6780a354e1cc94682eab"
+  digest = "1:22db66c6af48fe0e93e971d796cad565ee9e0039646bd59bc8e29b7a7bd2d24e"
   name = "github.com/coreos/etcd"
   packages = [
     "auth/authpb",
@@ -86,8 +87,8 @@
     "pkg/types",
   ]
   pruneopts = "NUT"
-  revision = "33245c6b5b49130ca99280408fadfab01aac0e48"
-  version = "v3.3.8"
+  revision = "2cf9e51d2a78003b164c2998886158e60ded1cbb"
+  version = "v3.3.11"
 
 [[projects]]
   digest = "1:a2c1d0e43bd3baaa071d1b9ed72c27d78169b2b269f71c105ac4ba34b1be4a39"
@@ -425,11 +426,11 @@
   version = "v1.0.1"
 
 [[projects]]
-  digest = "1:5751632e81f26941863b0aaf0f33d55cb89898a49ba8d5574eb4d97e9291810d"
+  digest = "1:a49fa08481484b6a37ee5a641a90d1efb6818972a5de88617e3fe31d240dabfd"
   name = "github.com/ugorji/go"
   packages = ["codec"]
   pruneopts = "NUT"
-  revision = "f3cacc17c85ecb7f1b6a9e373ee85d1480919868"
+  revision = "9c7f9b7a2bc3a520f7c7b30b34b7f85f47fe27b6"
 
 [[projects]]
   branch = "master"

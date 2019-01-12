@@ -448,9 +448,6 @@ func (p *TBinaryProtocol) ReadBinary() ([]byte, error) {
 	if size < 0 {
 		return nil, invalidDataLength
 	}
-	if uint64(size) > p.trans.RemainingBytes() {
-		return nil, invalidDataLength
-	}
 
 	isize := int(size)
 	buf := make([]byte, isize)
@@ -480,9 +477,6 @@ const readLimit = 32768
 func (p *TBinaryProtocol) readStringBody(size int32) (value string, err error) {
 	if size < 0 {
 		return "", nil
-	}
-	if uint64(size) > p.trans.RemainingBytes() {
-		return "", invalidDataLength
 	}
 
 	var (
