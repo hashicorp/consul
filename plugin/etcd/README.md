@@ -28,28 +28,22 @@ If you want to `round robin` A and AAAA responses look at the `loadbalance` plug
 
 ~~~
 etcd [ZONES...] {
-    stubzones
     fallthrough [ZONES...]
     path PATH
     endpoint ENDPOINT...
-    upstream [ADDRESS...]
+    upstream
     tls CERT KEY CACERT
 }
 ~~~
 
-* `stubzones` enables the stub zones feature. The stubzone is *only* done in the etcd tree located
-    under the *first* zone specified.
 * `fallthrough` If zone matches but no record can be generated, pass request to the next plugin.
   If **[ZONES...]** is omitted, then fallthrough happens for all zones for which the plugin
   is authoritative. If specific zones are listed (for example `in-addr.arpa` and `ip6.arpa`), then only
   queries for those zones will be subject to fallthrough.
 * **PATH** the path inside etcd. Defaults to "/skydns".
 * **ENDPOINT** the etcd endpoints. Defaults to "http://localhost:2379".
-* `upstream` upstream resolvers to be used resolve external names found in etcd (think CNAMEs)
-  pointing to external names. If you want CoreDNS to act as a proxy for clients, you'll need to add
-  the proxy plugin. If no **ADDRESS** is given, CoreDNS will resolve CNAMEs against itself.
-  **ADDRESS** can be an IP address, and IP:port or a string pointing to a file that is structured
-  as /etc/resolv.conf.
+* `upstream` resolve names found in etcd (think CNAMEs) If you want CoreDNS to act as a proxy for clients,
+  you'll need to add the forward plugin. CoreDNS will resolve CNAMEs against itself.
 * `tls` followed by:
 
     * no arguments, if the server certificate is signed by a system-installed CA and no client cert is needed
@@ -79,10 +73,9 @@ This is the default SkyDNS setup, with everything specified in full:
 ~~~ corefile
 . {
     etcd skydns.local {
-        stubzones
         path /skydns
         endpoint http://localhost:2379
-        upstream 8.8.8.8:53 8.8.4.4:53
+        upstream
     }
     prometheus
     cache 160 skydns.local
@@ -98,7 +91,7 @@ when resolving external pointing CNAMEs.
 . {
     etcd skydns.local {
         path /skydns
-        upstream /etc/resolv.conf
+        upstream
     }
     cache 160 skydns.local
     proxy . /etc/resolv.conf
@@ -125,7 +118,6 @@ need to add the zone `0.0.10.in-addr.arpa` to the list of zones. Showing a snipp
 
 ~~~
 etcd skydns.local 10.0.0.0/24 {
-    stubzones
 ...
 ~~~
 

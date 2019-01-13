@@ -3,9 +3,7 @@ package test
 import (
 	"testing"
 
-	"github.com/coredns/coredns/plugin/proxy"
 	"github.com/coredns/coredns/plugin/test"
-	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
 )
@@ -40,21 +38,20 @@ func TestLookupCache(t *testing.T) {
 	}
 	defer i.Stop()
 
-	p := proxy.NewLookup([]string{udp})
-	state := request.Request{W: &test.ResponseWriter{}, Req: new(dns.Msg)}
-
 	t.Run("Long TTL", func(t *testing.T) {
-		testCase(t, state, p, "example.org.", 2, 10)
+		testCase(t, "example.org.", udp, 2, 10)
 	})
 
 	t.Run("Short TTL", func(t *testing.T) {
-		testCase(t, state, p, "short.example.org.", 1, 5)
+		testCase(t, "short.example.org.", udp, 1, 5)
 	})
 
 }
 
-func testCase(t *testing.T, state request.Request, p proxy.Proxy, name string, expectAnsLen int, expectTTL uint32) {
-	resp, err := p.Lookup(state, name, dns.TypeA)
+func testCase(t *testing.T, name, addr string, expectAnsLen int, expectTTL uint32) {
+	m := new(dns.Msg)
+	m.SetQuestion(name, dns.TypeA)
+	resp, err := dns.Exchange(m, addr)
 	if err != nil {
 		t.Fatal("Expected to receive reply, but didn't")
 	}

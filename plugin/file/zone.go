@@ -32,7 +32,7 @@ type Zone struct {
 	LastReloaded   time.Time
 	reloadMu       sync.RWMutex
 	reloadShutdown chan bool
-	Upstream       upstream.Upstream // Upstream for looking up names during the resolution process
+	Upstream       *upstream.Upstream // Upstream for looking up external names during the resolution process
 }
 
 // Apex contains the apex records of a zone: SOA, NS and their potential signatures.

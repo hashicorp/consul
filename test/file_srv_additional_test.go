@@ -3,10 +3,6 @@ package test
 import (
 	"testing"
 
-	"github.com/coredns/coredns/plugin/proxy"
-	"github.com/coredns/coredns/plugin/test"
-	"github.com/coredns/coredns/request"
-
 	"github.com/miekg/dns"
 )
 
@@ -30,10 +26,9 @@ func TestZoneSRVAdditional(t *testing.T) {
 	}
 	defer i.Stop()
 
-	p := proxy.NewLookup([]string{udp})
-	state := request.Request{W: &test.ResponseWriter{}, Req: new(dns.Msg)}
-
-	resp, err := p.Lookup(state, "service.example.org.", dns.TypeSRV)
+	m := new(dns.Msg)
+	m.SetQuestion("service.example.org.", dns.TypeSRV)
+	resp, err := dns.Exchange(m, udp)
 	if err != nil {
 		t.Fatalf("Expected to receive reply, but didn't: %s", err)
 	}

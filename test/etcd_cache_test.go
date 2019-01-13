@@ -7,9 +7,6 @@ import (
 	"testing"
 
 	"github.com/coredns/coredns/plugin/etcd/msg"
-	"github.com/coredns/coredns/plugin/proxy"
-	"github.com/coredns/coredns/plugin/test"
-	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
 )
@@ -38,16 +35,15 @@ func TestEtcdCache(t *testing.T) {
 		defer delete(ctx, t, etc, serv.Key)
 	}
 
-	p := proxy.NewLookup([]string{udp})
-	state := request.Request{W: &test.ResponseWriter{}, Req: new(dns.Msg)}
-
-	resp, err := p.Lookup(state, "b.example.skydns.test.", dns.TypeA)
+	m := new(dns.Msg)
+	m.SetQuestion("b.example.skydns.test.", dns.TypeA)
+	resp, err := dns.Exchange(m, udp)
 	if err != nil {
 		t.Errorf("Expected to receive reply, but didn't: %s", err)
 	}
 	checkResponse(t, resp)
 
-	resp, err = p.Lookup(state, "b.example.skydns.test.", dns.TypeA)
+	resp, err = dns.Exchange(m, udp)
 	if err != nil {
 		t.Errorf("Expected to receive reply, but didn't: %s", err)
 	}

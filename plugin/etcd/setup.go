@@ -9,7 +9,6 @@ import (
 	clog "github.com/coredns/coredns/plugin/pkg/log"
 	mwtls "github.com/coredns/coredns/plugin/pkg/tls"
 	"github.com/coredns/coredns/plugin/pkg/upstream"
-	"github.com/coredns/coredns/plugin/proxy"
 
 	etcdcv3 "github.com/coreos/etcd/clientv3"
 	"github.com/mholt/caddy"
@@ -25,16 +24,9 @@ func init() {
 }
 
 func setup(c *caddy.Controller) error {
-	e, stubzones, err := etcdParse(c)
+	e, err := etcdParse(c)
 	if err != nil {
 		return plugin.Error("etcd", err)
-	}
-
-	if stubzones {
-		c.OnStartup(func() error {
-			e.UpdateStubZones()
-			return nil
-		})
 	}
 
 	dnsserver.GetConfig(c).AddPlugin(func(next plugin.Handler) plugin.Handler {
@@ -45,20 +37,17 @@ func setup(c *caddy.Controller) error {
 	return nil
 }
 
-func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
-	stub := make(map[string]proxy.Proxy)
+func etcdParse(c *caddy.Controller) (*Etcd, error) {
 	etc := Etcd{
 		// Don't default to a proxy for lookups.
 		//		Proxy:      proxy.NewLookup([]string{"8.8.8.8:53", "8.8.4.4:53"}),
 		PathPrefix: "skydns",
 		Ctx:        context.Background(),
-		Stubmap:    &stub,
 	}
 	var (
 		tlsConfig *tls.Config
 		err       error
 		endpoints = []string{defaultEndpoint}
-		stubzones = false
 	)
 	for c.Next() {
 		etc.Zones = c.RemainingArgs()
@@ -74,38 +63,35 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 			for {
 				switch c.Val() {
 				case "stubzones":
-					stubzones = true
+					// ignored, remove later.
 				case "fallthrough":
 					etc.Fall.SetZonesFromArgs(c.RemainingArgs())
 				case "debug":
 					/* it is a noop now */
 				case "path":
 					if !c.NextArg() {
-						return &Etcd{}, false, c.ArgErr()
+						return &Etcd{}, c.ArgErr()
 					}
 					etc.PathPrefix = c.Val()
 				case "endpoint":
 					args := c.RemainingArgs()
 					if len(args) == 0 {
-						return &Etcd{}, false, c.ArgErr()
+						return &Etcd{}, c.ArgErr()
 					}
 					endpoints = args
 				case "upstream":
-					args := c.RemainingArgs()
-					u, err := upstream.New(args)
-					if err != nil {
-						return nil, false, err
-					}
-					etc.Upstream = u
+					// check args != 0 and error in the future
+					c.RemainingArgs() // clear buffer
+					etc.Upstream = upstream.New()
 				case "tls": // cert key cacertfile
 					args := c.RemainingArgs()
 					tlsConfig, err = mwtls.NewTLSConfigFromArgs(args...)
 					if err != nil {
-						return &Etcd{}, false, err
+						return &Etcd{}, err
 					}
 				default:
 					if c.Val() != "}" {
-						return &Etcd{}, false, c.Errf("unknown property '%s'", c.Val())
+						return &Etcd{}, c.Errf("unknown property '%s'", c.Val())
 					}
 				}
 
@@ -117,14 +103,14 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 		}
 		client, err := newEtcdClient(endpoints, tlsConfig)
 		if err != nil {
-			return &Etcd{}, false, err
+			return &Etcd{}, err
 		}
 		etc.Client = client
 		etc.endpoints = endpoints
 
-		return &etc, stubzones, nil
+		return &etc, nil
 	}
-	return &Etcd{}, false, nil
+	return &Etcd{}, nil
 }
 
 func newEtcdClient(endpoints []string, cc *tls.Config) (*etcdcv3.Client, error) {

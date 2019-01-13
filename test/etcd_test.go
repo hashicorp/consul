@@ -10,9 +10,6 @@ import (
 
 	"github.com/coredns/coredns/plugin/etcd"
 	"github.com/coredns/coredns/plugin/etcd/msg"
-	"github.com/coredns/coredns/plugin/proxy"
-	"github.com/coredns/coredns/plugin/test"
-	"github.com/coredns/coredns/request"
 
 	etcdcv3 "github.com/coreos/etcd/clientv3"
 	"github.com/miekg/dns"
@@ -38,7 +35,7 @@ func TestEtcdStubAndProxyLookup(t *testing.T) {
         stubzones
         path /skydns
         endpoint http://localhost:2379
-        upstream 8.8.8.8:53 8.8.4.4:53
+        upstream
 	fallthrough
     }
     proxy . 8.8.8.8:53
@@ -58,9 +55,9 @@ func TestEtcdStubAndProxyLookup(t *testing.T) {
 		defer delete(ctx, t, etc, serv.Key)
 	}
 
-	p := proxy.NewLookup([]string{udp}) // use udp port from the server
-	state := request.Request{W: &test.ResponseWriter{}, Req: new(dns.Msg)}
-	resp, err := p.Lookup(state, "example.com.", dns.TypeA)
+	m := new(dns.Msg)
+	m.SetQuestion("example.com.", dns.TypeA)
+	resp, err := dns.Exchange(m, udp)
 	if err != nil {
 		t.Fatalf("Expected to receive reply, but didn't: %v", err)
 	}

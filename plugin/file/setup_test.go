@@ -57,8 +57,8 @@ func TestFileParse(t *testing.T) {
 			`file ` + zoneFileName1 + ` example.net. {
 				upstream a
 			}`,
-			true,
-			Zones{Names: []string{}},
+			false, // OK for now as we disregard any options for the `upstream`.
+			Zones{Names: []string{"example.net."}},
 		},
 		{
 			`file ` + zoneFileName1 + ` example.net. {

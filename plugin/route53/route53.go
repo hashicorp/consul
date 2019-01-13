@@ -170,7 +170,7 @@ func (h *Route53) updateZones(ctx context.Context) error {
 
 			for i, hostedZone := range z {
 				newZ := file.NewZone(zName, "")
-				newZ.Upstream = *h.upstream
+				newZ.Upstream = h.upstream
 				in := &route53.ListResourceRecordSetsInput{
 					HostedZoneId: aws.String(hostedZone.id),
 				}

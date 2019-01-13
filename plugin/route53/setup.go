@@ -48,7 +48,7 @@ func setup(c *caddy.Controller, f func(*credentials.Credentials) route53iface.Ro
 	var providers []credentials.Provider
 	var fall fall.F
 
-	up, _ := upstream.New(nil)
+	up := upstream.New()
 	for c.Next() {
 		args := c.RemainingArgs()
 
@@ -83,12 +83,7 @@ func setup(c *caddy.Controller, f func(*credentials.Credentials) route53iface.Ro
 					},
 				})
 			case "upstream":
-				args := c.RemainingArgs()
-				var err error
-				up, err = upstream.New(args)
-				if err != nil {
-					return c.Errf("invalid upstream: %v", err)
-				}
+				c.RemainingArgs() // eats args
 			case "credentials":
 				if c.NextArg() {
 					sharedProvider.Profile = c.Val()
@@ -109,7 +104,7 @@ func setup(c *caddy.Controller, f func(*credentials.Credentials) route53iface.Ro
 
 	client := f(credentials.NewChainCredentials(providers))
 	ctx := context.Background()
-	h, err := New(ctx, client, keys, &up)
+	h, err := New(ctx, client, keys, up)
 	if err != nil {
 		return c.Errf("failed to create Route53 plugin: %v", err)
 	}

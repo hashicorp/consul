@@ -18,7 +18,7 @@ auto [ZONES...] {
     directory DIR [REGEXP ORIGIN_TEMPLATE [TIMEOUT]]
     reload DURATION
     no_reload
-    upstream [ADDRESS...]
+    upstream
 }
 ~~~
 
@@ -37,9 +37,7 @@ are used.
   and reloads zone when serial changes.
 * `no_reload` deprecated. Sets reload to 0.
 * `upstream` defines upstream resolvers to be used resolve external names found (think CNAMEs)
-  pointing to external names. **ADDRESS** can be an IP address, an IP:port or a string pointing to
-  a file that is structured as /etc/resolv.conf. If no **ADDRESS** is given, CoreDNS will resolve CNAMEs
-  against itself.
+  pointing to external names. CoreDNS will resolve CNAMEs against itself.
 
 All directives from the *file* plugin are supported. Note that *auto* will load all zones found,
 even though the directive might only receive queries for a specific zone. I.e:

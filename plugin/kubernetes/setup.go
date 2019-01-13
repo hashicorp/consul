@@ -241,12 +241,8 @@ func ParseStanza(c *caddy.Controller) (*Kubernetes, error) {
 		case "fallthrough":
 			k8s.Fall.SetZonesFromArgs(c.RemainingArgs())
 		case "upstream":
-			args := c.RemainingArgs()
-			u, err := upstream.New(args)
-			if err != nil {
-				return nil, err
-			}
-			k8s.Upstream = u
+			c.RemainingArgs() // eat remaining args
+			k8s.Upstream = upstream.New()
 		case "ttl":
 			args := c.RemainingArgs()
 			if len(args) == 0 {

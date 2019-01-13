@@ -155,15 +155,8 @@ func autoParse(c *caddy.Controller) (Auto, error) {
 				a.loader.ReloadInterval = 0
 
 			case "upstream":
-				args := c.RemainingArgs()
-				if len(args) == 0 {
-					return a, c.ArgErr()
-				}
-				var err error
-				a.loader.upstream, err = upstream.New(args)
-				if err != nil {
-					return a, err
-				}
+				c.RemainingArgs() // eat remaining args
+				a.loader.upstream = upstream.New()
 
 			default:
 				t, _, e := parse.Transfer(c, false)

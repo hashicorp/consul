@@ -3,10 +3,6 @@ package test
 import (
 	"testing"
 
-	"github.com/coredns/coredns/plugin/proxy"
-	"github.com/coredns/coredns/plugin/test"
-	"github.com/coredns/coredns/request"
-
 	"github.com/miekg/dns"
 )
 
@@ -24,10 +20,9 @@ func TestHostsInlineLookup(t *testing.T) {
 	}
 	defer i.Stop()
 
-	p := proxy.NewLookup([]string{udp})
-	state := request.Request{W: &test.ResponseWriter{}, Req: new(dns.Msg)}
-
-	resp, err := p.Lookup(state, "example.org.", dns.TypeA)
+	m := new(dns.Msg)
+	m.SetQuestion("example.org.", dns.TypeA)
+	resp, err := dns.Exchange(m, udp)
 	if err != nil {
 		t.Fatal("Expected to receive reply, but didn't")
 	}

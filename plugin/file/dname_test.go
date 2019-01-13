@@ -1,5 +1,8 @@
 package file
 
+/*
+TODO(miek): move to test/ for full server testing
+
 import (
 	"context"
 	"strings"
@@ -294,3 +297,4 @@ ns.example.org.		1800	IN A	127.0.0.1
 					RXpMdvaE6ZDwalWldLjC3h8QDywDoFdndoRY
 					eHOsmTvvtWWqtO6Fa5A8gmHT5HA= )
 `
+*/

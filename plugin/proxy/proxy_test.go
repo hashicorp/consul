@@ -9,12 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/coredns/coredns/plugin/pkg/dnstest"
-	"github.com/coredns/coredns/plugin/test"
-	"github.com/coredns/coredns/request"
-
 	"github.com/mholt/caddy/caddyfile"
-	"github.com/miekg/dns"
 )
 
 func TestStop(t *testing.T) {
@@ -73,27 +68,5 @@ func TestStop(t *testing.T) {
 				t.Errorf("Test %d, expected no more healthchecks after shutdown. got: %d healthchecks after shutdown", i, counterAfterWaiting-counterAfterShutdown)
 			}
 		})
-	}
-}
-
-func TestProxyRefused(t *testing.T) {
-	s := dnstest.NewServer(func(w dns.ResponseWriter, r *dns.Msg) {
-		ret := new(dns.Msg)
-		ret.SetReply(r)
-		ret.Rcode = dns.RcodeRefused
-		w.WriteMsg(ret)
-	})
-	defer s.Close()
-
-	p := NewLookup([]string{s.Addr})
-
-	state := request.Request{W: &test.ResponseWriter{}, Req: new(dns.Msg)}
-	state.Req.SetQuestion("example.org.", dns.TypeA)
-	resp, err := p.Forward(state)
-	if err != nil {
-		t.Fatal("Expected to receive reply, but didn't")
-	}
-	if resp.Rcode != dns.RcodeRefused {
-		t.Errorf("Expected rcode to be %d, got %d", dns.RcodeRefused, resp.Rcode)
 	}
 }

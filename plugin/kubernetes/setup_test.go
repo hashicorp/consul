@@ -7,7 +7,6 @@ import (
 
 	"github.com/coredns/coredns/plugin/pkg/fall"
 
-	"github.com/coredns/coredns/plugin/proxy"
 	"github.com/mholt/caddy"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -23,7 +22,6 @@ func TestKubernetesParse(t *testing.T) {
 		expectedLabelSelector string        // expected label selector value
 		expectedPodMode       string
 		expectedFallthrough   fall.F
-		expectedUpstreams     []string
 	}{
 		// positive
 		{
@@ -36,7 +34,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			podModeDisabled,
 			fall.Zero,
-			nil,
 		},
 		{
 			`kubernetes coredns.local test.local`,
@@ -48,7 +45,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			podModeDisabled,
 			fall.Zero,
-			nil,
 		},
 		{
 			`kubernetes coredns.local {
@@ -61,7 +57,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			podModeDisabled,
 			fall.Zero,
-			nil,
 		},
 		{
 			`kubernetes coredns.local {
@@ -75,7 +70,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			podModeDisabled,
 			fall.Zero,
-			nil,
 		},
 		{
 			`kubernetes coredns.local {
@@ -89,7 +83,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			podModeDisabled,
 			fall.Zero,
-			nil,
 		},
 		{
 			`kubernetes coredns.local {
@@ -103,7 +96,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			podModeDisabled,
 			fall.Zero,
-			nil,
 		},
 		{
 			`kubernetes coredns.local {
@@ -117,7 +109,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			podModeDisabled,
 			fall.Zero,
-			nil,
 		},
 		{
 			`kubernetes coredns.local {
@@ -131,7 +122,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			podModeDisabled,
 			fall.Zero,
-			nil,
 		},
 		{
 			`kubernetes coredns.local {
@@ -145,7 +135,6 @@ func TestKubernetesParse(t *testing.T) {
 			"environment=prod",
 			podModeDisabled,
 			fall.Zero,
-			nil,
 		},
 		{
 			`kubernetes coredns.local {
@@ -159,7 +148,6 @@ func TestKubernetesParse(t *testing.T) {
 			"application=nginx,environment in (production,qa,staging)",
 			podModeDisabled,
 			fall.Zero,
-			nil,
 		},
 		{
 			`kubernetes coredns.local test.local {
@@ -177,7 +165,6 @@ func TestKubernetesParse(t *testing.T) {
 			"application=nginx,environment in (production,qa,staging)",
 			podModeDisabled,
 			fall.Root,
-			nil,
 		},
 		// negative
 		{
@@ -192,7 +179,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			podModeDisabled,
 			fall.Zero,
-			nil,
 		},
 		{
 			`kubernetes coredns.local {
@@ -206,7 +192,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			podModeDisabled,
 			fall.Zero,
-			nil,
 		},
 		{
 			`kubernetes coredns.local {
@@ -220,7 +205,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			podModeDisabled,
 			fall.Zero,
-			nil,
 		},
 		{
 			`kubernetes coredns.local {
@@ -234,7 +218,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			podModeDisabled,
 			fall.Zero,
-			nil,
 		},
 		{
 			`kubernetes coredns.local {
@@ -248,7 +231,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			podModeDisabled,
 			fall.Zero,
-			nil,
 		},
 		{
 			`kubernetes coredns.local {
@@ -262,7 +244,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			podModeDisabled,
 			fall.Zero,
-			nil,
 		},
 		{
 			`kubernetes coredns.local {
@@ -276,7 +257,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			podModeDisabled,
 			fall.Zero,
-			nil,
 		},
 		// pods disabled
 		{
@@ -291,7 +271,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			podModeDisabled,
 			fall.Zero,
-			nil,
 		},
 		// pods insecure
 		{
@@ -306,7 +285,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			podModeInsecure,
 			fall.Zero,
-			nil,
 		},
 		// pods verified
 		{
@@ -321,7 +299,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			podModeVerified,
 			fall.Zero,
-			nil,
 		},
 		// pods invalid
 		{
@@ -336,7 +313,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			podModeVerified,
 			fall.Zero,
-			nil,
 		},
 		// fallthrough with zones
 		{
@@ -351,12 +327,11 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			podModeDisabled,
 			fall.F{Zones: []string{"ip6.arpa.", "inaddr.arpa.", "foo.com."}},
-			nil,
 		},
 		// Valid upstream
 		{
 			`kubernetes coredns.local {
-	upstream 13.14.15.16:53
+	upstream
 }`,
 			false,
 			"",
@@ -366,22 +341,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			podModeDisabled,
 			fall.Zero,
-			[]string{"13.14.15.16:53"},
-		},
-		// Invalid upstream
-		{
-			`kubernetes coredns.local {
-	upstream 13.14.15.16orange
-}`,
-			true,
-			"not an IP address or file: \"13.14.15.16orange\"",
-			-1,
-			0,
-			defaultResyncPeriod,
-			"",
-			podModeDisabled,
-			fall.Zero,
-			nil,
 		},
 		// More than one Kubernetes not allowed
 		{
@@ -395,7 +354,6 @@ kubernetes cluster.local`,
 			"",
 			podModeDisabled,
 			fall.Zero,
-			nil,
 		},
 		{
 			`kubernetes coredns.local {
@@ -409,7 +367,6 @@ kubernetes cluster.local`,
 			"",
 			podModeDisabled,
 			fall.Zero,
-			nil,
 		},
 		{
 			`kubernetes coredns.local {
@@ -423,7 +380,6 @@ kubernetes cluster.local`,
 			"",
 			podModeDisabled,
 			fall.Zero,
-			nil,
 		},
 		{
 			`kubernetes coredns.local {
@@ -437,7 +393,6 @@ kubernetes cluster.local`,
 			"",
 			podModeDisabled,
 			fall.Zero,
-			nil,
 		},
 		{
 			`kubernetes coredns.local {
@@ -518,31 +473,6 @@ kubernetes cluster.local`,
 		// fallthrough
 		if !k8sController.Fall.Equal(test.expectedFallthrough) {
 			t.Errorf("Test %d: Expected kubernetes controller to be initialized with fallthrough '%v'. Instead found fallthrough '%v' for input '%s'", i, test.expectedFallthrough, k8sController.Fall, test.input)
-		}
-		// upstream
-		var foundUpstreams *[]proxy.Upstream
-		if k8sController.Upstream.Forward != nil {
-			foundUpstreams = k8sController.Upstream.Forward.Upstreams
-		}
-		if test.expectedUpstreams == nil {
-			if foundUpstreams != nil {
-				t.Errorf("Test %d: Expected kubernetes controller to not be initialized with upstreams for input '%s'", i, test.input)
-			}
-		} else {
-			if foundUpstreams == nil {
-				t.Errorf("Test %d: Expected kubernetes controller to be initialized with upstreams for input '%s'", i, test.input)
-			} else {
-				if len(*foundUpstreams) != len(test.expectedUpstreams) {
-					t.Errorf("Test %d: Expected kubernetes controller to be initialized with %d upstreams. Instead found %d upstreams for input '%s'", i, len(test.expectedUpstreams), len(*foundUpstreams), test.input)
-				}
-				for j, want := range test.expectedUpstreams {
-					got := (*foundUpstreams)[j].Select().Name
-					if got != want {
-						t.Errorf("Test %d: Expected kubernetes controller to be initialized with upstream '%s'. Instead found upstream '%s' for input '%s'", i, want, got, test.input)
-					}
-				}
-
-			}
 		}
 	}
 }

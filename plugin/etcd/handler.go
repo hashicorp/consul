@@ -14,20 +14,6 @@ func (e *Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 	opt := plugin.Options{}
 	state := request.Request{W: w, Req: r, Context: ctx}
 
-	name := state.Name()
-
-	// We need to check stubzones first, because we may get a request for a zone we
-	// are not auth. for *but* do have a stubzone forward for. If we do the stubzone
-	// handler will handle the request.
-	if e.Stubmap != nil && len(*e.Stubmap) > 0 {
-		for zone := range *e.Stubmap {
-			if plugin.Name(zone).Matches(name) {
-				stub := Stub{Etcd: e, Zone: zone}
-				return stub.ServeDNS(ctx, w, r)
-			}
-		}
-	}
-
 	zone := plugin.Zones(e.Zones).Matches(state.Name())
 	if zone == "" {
 		return plugin.NextOrFailure(e.Name(), e.Next, ctx, w, r)

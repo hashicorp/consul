@@ -29,7 +29,7 @@ file DBFILE [ZONES... ] {
     transfer to ADDRESS...
     reload DURATION
     no_reload
-    upstream [ADDRESS...]
+    upstream
 }
 ~~~
 
@@ -41,11 +41,9 @@ file DBFILE [ZONES... ] {
   Value of `0` means to not scan for changes and reload. For example, `30s` checks the zonefile every 30 seconds
   and reloads the zone when serial changes.
 * `no_reload` deprecated. Sets reload to 0.
-* `upstream` defines upstream resolvers to be used resolve external names found (think CNAMEs)
-  pointing to external names. This is only really useful when CoreDNS is configured as a proxy; for
-  normal authoritative serving you don't need *or* want to use this. **ADDRESS** can be an IP
-  address, an IP:port or a string pointing to a file that is structured as /etc/resolv.conf.
-  If no **ADDRESS** is given, CoreDNS will resolve CNAMEs against itself.
+* `upstream` resolve external names found (think CNAMEs) pointing to external names. This is only
+  really useful when CoreDNS is configured as a proxy; for normal authoritative serving you don't
+  need *or* want to use this. CoreDNS will resolve CNAMEs against itself.
 
 ## Examples
 

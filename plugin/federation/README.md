@@ -17,16 +17,14 @@ Enabling *federation* without also having *kubernetes* is a noop.
 ~~~
 federation [ZONES...] {
     NAME DOMAIN
-    upstream [ADDRESS...]
+    upstream
 }
 ~~~
 
 * Each **NAME** and **DOMAIN** defines federation membership. One entry for each. A duplicate
   **NAME** will silently overwrite any previous value.
-* `upstream` [**ADDRESS**...] defines the upstream resolvers used for resolving the `CNAME` target
-  produced by this plugin.  If no **ADDRESS** is given, CoreDNS
-  will resolve External Services against itself. **ADDRESS** can be an IP, an IP:port, or a path
-  to a file structured like resolv.conf.
+* `upstream` [**ADDRESS**...] resolve the `CNAME` target produced by this plugin.  CoreDNS
+  will resolve External Services against itself.
 
 ## Examples
 

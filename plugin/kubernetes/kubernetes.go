@@ -32,7 +32,7 @@ import (
 type Kubernetes struct {
 	Next             plugin.Handler
 	Zones            []string
-	Upstream         upstream.Upstream
+	Upstream         *upstream.Upstream
 	APIServerList    []string
 	APIProxy         *apiProxy
 	APICertAuth      string

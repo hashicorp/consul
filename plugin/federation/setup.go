@@ -64,12 +64,8 @@ func federationParse(c *caddy.Controller) (*Federation, error) {
 			x := c.Val()
 			switch x {
 			case "upstream":
-				args := c.RemainingArgs()
-				u, err := upstream.New(args)
-				if err != nil {
-					return nil, err
-				}
-				fed.Upstream = &u
+				c.RemainingArgs()
+				fed.Upstream = upstream.New()
 			default:
 				args := c.RemainingArgs()
 				if x := len(args); x != 1 {

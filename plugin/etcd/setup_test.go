@@ -56,7 +56,7 @@ func TestSetupEtcd(t *testing.T) {
 
 	for i, test := range tests {
 		c := caddy.NewTestController("dns", test.input)
-		etcd, _ /*stubzones*/, err := etcdParse(c)
+		etcd, err := etcdParse(c)
 
 		if test.shouldErr && err == nil {
 			t.Errorf("Test %d: Expected error but found %s for input %s", i, err, test.input)

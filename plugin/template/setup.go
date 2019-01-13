@@ -144,12 +144,8 @@ func templateParse(c *caddy.Controller) (handler Handler, err error) {
 				t.fall.SetZonesFromArgs(c.RemainingArgs())
 
 			case "upstream":
-				args := c.RemainingArgs()
-				u, err := upstream.New(args)
-				if err != nil {
-					return handler, err
-				}
-				t.upstream = &u
+				c.RemainingArgs() // eat remaining args
+				t.upstream = upstream.New()
 			default:
 				return handler, c.ArgErr()
 			}

@@ -3,9 +3,7 @@ package test
 import (
 	"testing"
 
-	"github.com/coredns/coredns/plugin/proxy"
 	mtest "github.com/coredns/coredns/plugin/test"
-	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
 )
@@ -47,11 +45,10 @@ func TestLookupDS(t *testing.T) {
 	}
 	defer i.Stop()
 
-	p := proxy.NewLookup([]string{udp})
-	state := request.Request{W: &mtest.ResponseWriter{}, Req: new(dns.Msg)}
-
 	for _, tc := range dsTestCases {
-		resp, err := p.Lookup(state, tc.Qname, tc.Qtype)
+		m := new(dns.Msg)
+		m.SetQuestion(tc.Qname, tc.Qtype)
+		resp, err := dns.Exchange(m, udp)
 		if err != nil || resp == nil {
 			t.Fatalf("Expected to receive reply, but didn't for %s %d", tc.Qname, tc.Qtype)
 		}

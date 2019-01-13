@@ -3,9 +3,7 @@ package test
 import (
 	"testing"
 
-	"github.com/coredns/coredns/plugin/proxy"
 	"github.com/coredns/coredns/plugin/test"
-	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
 )
@@ -29,11 +27,10 @@ func TestLookupWildcard(t *testing.T) {
 	}
 	defer i.Stop()
 
-	p := proxy.NewLookup([]string{udp})
-	state := request.Request{W: &test.ResponseWriter{}, Req: new(dns.Msg)}
-
 	for _, lookup := range []string{"a.w.example.org.", "a.a.w.example.org."} {
-		resp, err := p.Lookup(state, lookup, dns.TypeTXT)
+		m := new(dns.Msg)
+		m.SetQuestion(lookup, dns.TypeTXT)
+		resp, err := dns.Exchange(m, udp)
 		if err != nil || resp == nil {
 			t.Fatalf("Expected to receive reply, but didn't for %s", lookup)
 		}
@@ -64,7 +61,9 @@ func TestLookupWildcard(t *testing.T) {
 	}
 
 	for _, lookup := range []string{"w.example.org.", "a.w.example.org.", "a.a.w.example.org."} {
-		resp, err := p.Lookup(state, lookup, dns.TypeSRV)
+		m := new(dns.Msg)
+		m.SetQuestion(lookup, dns.TypeSRV)
+		resp, err := dns.Exchange(m, udp)
 		if err != nil || resp == nil {
 			t.Fatal("Expected to receive reply, but didn't", lookup)
 		}
