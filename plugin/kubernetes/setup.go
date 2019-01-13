@@ -195,15 +195,11 @@ func ParseStanza(c *caddy.Controller) (*Kubernetes, error) {
 		case "endpoint":
 			args := c.RemainingArgs()
 			if len(args) > 0 {
+				// Multiple endoints are deprecated but still could be specified,
+				// only the first one be used, though
 				k8s.APIServerList = args
 				if len(args) > 1 {
-					// If multiple endoints specified, then only http allowed
-					for i := range args {
-						parts := strings.SplitN(args[i], "://", 2)
-						if len(parts) == 2 && parts[0] != "http" {
-							return nil, fmt.Errorf("multiple endpoints can only accept http, found: %v", args[i])
-						}
-					}
+					log.Warningf("Multiple endpoints have been deprecated, only the first specified endpoint '%s' is used", args[0])
 				}
 				continue
 			}

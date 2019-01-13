@@ -6,15 +6,12 @@ import (
 	"fmt"
 	"net"
 	"strings"
-	"sync/atomic"
-	"time"
 
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/etcd/msg"
 	"github.com/coredns/coredns/plugin/kubernetes/object"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
 	"github.com/coredns/coredns/plugin/pkg/fall"
-	"github.com/coredns/coredns/plugin/pkg/healthcheck"
 	"github.com/coredns/coredns/plugin/pkg/upstream"
 	"github.com/coredns/coredns/request"
 
@@ -174,50 +171,8 @@ func (k *Kubernetes) getClientConfig() (*rest.Config, error) {
 	}
 
 	// Connect to API from out of cluster
-	endpoint := k.APIServerList[0]
-	if len(k.APIServerList) > 1 {
-		// Use a random port for api proxy, will get the value later through listener.Addr()
-		listener, err := net.Listen("tcp", "127.0.0.1:0")
-		if err != nil {
-			return nil, fmt.Errorf("failed to create kubernetes api proxy: %v", err)
-		}
-		k.APIProxy = &apiProxy{
-			listener: listener,
-			handler: proxyHandler{
-				HealthCheck: healthcheck.HealthCheck{
-					FailTimeout: 3 * time.Second,
-					MaxFails:    1,
-					Path:        "/",
-					Interval:    5 * time.Second,
-				},
-			},
-		}
-		k.APIProxy.handler.Hosts = make([]*healthcheck.UpstreamHost, len(k.APIServerList))
-		for i, entry := range k.APIServerList {
-
-			uh := &healthcheck.UpstreamHost{
-				Name: strings.TrimPrefix(entry, "http://"),
-
-				CheckDown: func(upstream *proxyHandler) healthcheck.UpstreamHostDownFunc {
-					return func(uh *healthcheck.UpstreamHost) bool {
-
-						fails := atomic.LoadInt32(&uh.Fails)
-						if fails >= upstream.MaxFails && upstream.MaxFails != 0 {
-							return true
-						}
-						return false
-					}
-				}(&k.APIProxy.handler),
-			}
-
-			k.APIProxy.handler.Hosts[i] = uh
-		}
-		k.APIProxy.Handler = &k.APIProxy.handler
-
-		// Find the random port used for api proxy
-		endpoint = fmt.Sprintf("http://%s", listener.Addr())
-	}
-	clusterinfo.Server = endpoint
+	// Only the first one is used. We will deprecated multiple endpoints later.
+	clusterinfo.Server = k.APIServerList[0]
 
 	if len(k.APICertAuth) > 0 {
 		clusterinfo.CertificateAuthority = k.APICertAuth
