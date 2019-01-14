@@ -24,8 +24,6 @@ The following guides are available:
 
 * [Bootstrapping](/docs/guides/bootstrapping.html) - This guide covers bootstrapping a new datacenter. This covers safely adding the initial Consul servers.
 
-* [Cluster Backups](https://learn.hashicorp.com/consul/advanced/day-1-operations/backup) - Consul provide the snapshot tool for backing up and restoring data. In this guide you will learn how to use both.
-
 * [Connect in Production](/docs/guides/connect-production.html) - This guide describes critical aspects of operating Consul Connect in Production.
 
 * [Connect with Envoy](/docs/guides/connect-envoy.html) - This guide will describe how to setup a development-mode Consul server and two Envoy proxies on a single machine using Docker.
@@ -41,6 +39,8 @@ The following guides are available:
 * [Creating Certificates](https://learn.hashicorp.com/consul/advanced/day-1-operations/certificates) - This guide describes how to setup CA and certificates to secure a Consul cluster with TLS.
 
 * [Deployment Guide](https://learn.hashicorp.com/consul/advanced/day-1-operations/deployment-guide) - This deployment guide covers the steps required to install and configure a single HashiCorp Consul cluster as defined in the Consul Reference Architecture.
+
+* [Datacenter Backups](https://learn.hashicorp.com/consul/advanced/day-1-operations/backup) - Consul provide the snapshot tool for backing up and restoring data. In this guide you will learn how to use both.
 
 * [DNS Caching](https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/dns-caching) - Enabling TTLs for DNS query caching
 
