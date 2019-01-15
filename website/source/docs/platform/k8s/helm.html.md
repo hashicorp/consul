@@ -22,6 +22,14 @@ properly installed and configured with your Kubernetes cluster.
 may still change significantly over time. Please always run Helm with
 `--dry-run` before any install or upgrade to verify changes.
 
+~> **Security Warning:** By default, the chart will install an insecure configuration
+of Consul. This provides a less complicated out-of-box experience for new users,
+but is not appropriate for a production setup. It is highly recommended to use
+a properly secured Kubernetes cluster or make sure that you understand and enable
+the [recommended security features](/docs/internals/security.html.md). Currently,
+some of these features are not supported in the Helm chart and require additional
+manual configuration.
+
 ## Using the Helm Chart
 
 To use the Helm chart, you must download or clone the
