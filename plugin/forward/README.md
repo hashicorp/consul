@@ -167,7 +167,7 @@ Or with multiple upstreams from the same provider
 ~~~ corefile
 . {
     forward . tls://1.1.1.1 tls://1.0.0.1 {
-       tls_servername loudflare-dns.com
+       tls_servername cloudflare-dns.com
        health_check 5s
     }
     cache 30
