@@ -195,6 +195,12 @@ repository](https://github.com/coredns/deployment).
 
 ## Security
 
+### Security Audit
+
+A third party security audit was performed by Cure53, you can see the full report [here](https://coredns.io/assets/DNS-01-report.pdf).
+
+### Reporting security vulnerabilities
+
 If you find a security vulnerability or any security related issues, please DO NOT file a public
 issue, instead send your report privately to `security@coredns.io`. Security reports are greatly
 appreciated and we will publicly thank you for it.
