@@ -3,7 +3,14 @@ package cache
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"time"
+
+	"github.com/hashicorp/consul/lib"
+)
+
+const (
+	NotifyDefaultPollingInterval = 30 * time.Second
 )
 
 // UpdateEvent is a struct summarising an update to a cache entry
@@ -57,66 +64,136 @@ func (c *Cache) Notify(ctx context.Context, t string, r Request,
 	if !ok {
 		return fmt.Errorf("unknown type in cache: %s", t)
 	}
-	if !tEntry.Type.SupportsBlocking() {
-		return fmt.Errorf("watch requires the type to support blocking")
+	if tEntry.Type.SupportsBlocking() {
+		go c.notifyBlockingQuery(ctx, t, r, correlationID, ch)
+	} else {
+		info := r.CacheInfo()
+		if info.MaxAge == 0 {
+			return fmt.Errorf("Cannot use Notify for polling cache types without specifying the MaxAge")
+		}
+		// fallback to polling on the default interval
+		go c.notifyPollingQuery(info.MaxAge, ctx, t, r, correlationID, ch)
 	}
 
+	return nil
+}
+
+func (c *Cache) notifyBlockingQuery(ctx context.Context, t string, r Request, correlationID string, ch chan<- UpdateEvent) {
 	// Always start at 0 index to deliver the inital (possibly currently cached
 	// value).
 	index := uint64(0)
+	failures := uint(0)
 
-	go func() {
-		var failures uint
+	for {
+		// Check context hasn't been cancelled
+		if ctx.Err() != nil {
+			return
+		}
 
-		for {
-			// Check context hasn't been cancelled
-			if ctx.Err() != nil {
+		// Blocking request
+		res, meta, err := c.getWithIndex(t, r, index)
+
+		// Check context hasn't been cancelled
+		if ctx.Err() != nil {
+			return
+		}
+
+		// Check the index of the value returned in the cache entry to be sure it
+		// changed
+		if index < meta.Index {
+			u := UpdateEvent{correlationID, res, meta, err}
+			select {
+			case ch <- u:
+			case <-ctx.Done():
 				return
 			}
 
-			// Blocking request
-			res, meta, err := c.getWithIndex(t, r, index)
+			// Update index for next request
+			index = meta.Index
+		}
 
-			// Check context hasn't been cancelled
-			if ctx.Err() != nil {
+		// Handle errors with backoff. Badly behaved blocking calls that returned
+		// a zero index are considered as failures since we need to not get stuck
+		// in a busy loop.
+		if err == nil && meta.Index > 0 {
+			failures = 0
+		} else {
+			failures++
+		}
+		if wait := backOffWait(failures); wait > 0 {
+			select {
+			case <-time.After(wait):
+			case <-ctx.Done():
 				return
-			}
-
-			// Check the index of the value returned in the cache entry to be sure it
-			// changed
-			if index < meta.Index {
-				u := UpdateEvent{correlationID, res, meta, err}
-				select {
-				case ch <- u:
-				case <-ctx.Done():
-					return
-				}
-
-				// Update index for next request
-				index = meta.Index
-			}
-
-			// Handle errors with backoff. Badly behaved blocking calls that returned
-			// a zero index are considered as failures since we need to not get stuck
-			// in a busy loop.
-			if err == nil && meta.Index > 0 {
-				failures = 0
-			} else {
-				failures++
-			}
-			if wait := backOffWait(failures); wait > 0 {
-				select {
-				case <-time.After(wait):
-				case <-ctx.Done():
-					return
-				}
-			}
-			// Sanity check we always request blocking on second pass
-			if index < 1 {
-				index = 1
 			}
 		}
-	}()
+		// Sanity check we always request blocking on second pass
+		if index < 1 {
+			index = 1
+		}
+	}
+}
 
-	return nil
+func (c *Cache) notifyPollingQuery(maxAge time.Duration, ctx context.Context, t string, r Request, correlationID string, ch chan<- UpdateEvent) {
+	index := uint64(0)
+	failures := uint(0)
+
+	var lastValue interface{} = nil
+
+	for {
+		// Check context hasn't been cancelled
+		if ctx.Err() != nil {
+			return
+		}
+
+		// Make the request
+		res, meta, err := c.getWithIndex(t, r, index)
+
+		// Check context hasn't been cancelled
+		if ctx.Err() != nil {
+			return
+		}
+
+		// Check for a change in the value and
+		if index < meta.Index || !reflect.DeepEqual(lastValue, res) {
+			u := UpdateEvent{correlationID, res, meta, err}
+			select {
+			case ch <- u:
+			case <-ctx.Done():
+				return
+			}
+
+			// Update index and lastResult
+			lastValue = res
+			index = meta.Index
+		}
+
+		// Handle errors with backoff.
+		if err == nil {
+			failures = 0
+		} else {
+			failures += 1
+		}
+
+		errWait := backOffWait(failures)
+		if errWait > 0 {
+			select {
+			case <-time.After(errWait):
+			case <-ctx.Done():
+				return
+			}
+		} else {
+			pollWait := 0 * time.Second
+			if meta.Age <= maxAge {
+				pollWait = maxAge - meta.Age
+			}
+
+			pollWait += lib.RandomStagger(maxAge / 16)
+			select {
+			case <-time.After(pollWait):
+			case <-ctx.Done():
+				return
+			}
+		}
+	}
 }
