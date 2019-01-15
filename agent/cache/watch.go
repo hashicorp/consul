@@ -71,7 +71,6 @@ func (c *Cache) Notify(ctx context.Context, t string, r Request,
 		if info.MaxAge == 0 {
 			return fmt.Errorf("Cannot use Notify for polling cache types without specifying the MaxAge")
 		}
-		// fallback to polling on the default interval
 		go c.notifyPollingQuery(info.MaxAge, ctx, t, r, correlationID, ch)
 	}
 
