@@ -302,7 +302,6 @@ func (s *state) handleUpdate(u cache.UpdateEvent, snap *ConfigSnapshot) error {
 			if !ok {
 				return fmt.Errorf("invalid type for service response: %T", u.Result)
 			}
-			fmt.Printf("\n\nUpdating upstreams for %s\n\n", u.CorrelationID)
 			snap.UpstreamEndpoints[u.CorrelationID] = resp.Nodes
 
 		case strings.HasPrefix(u.CorrelationID, preparedQueryIDPrefix):
