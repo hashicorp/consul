@@ -74,7 +74,7 @@ func (c *Cache) Notify(ctx context.Context, t string, r Request,
 }
 
 func (c *Cache) notifyBlockingQuery(ctx context.Context, t string, r Request, correlationID string, ch chan<- UpdateEvent) {
-	// Always start at 0 index to deliver the inital (possibly currently cached
+	// Always start at 0 index to deliver the initial (possibly currently cached
 	// value).
 	index := uint64(0)
 	failures := uint(0)
