@@ -49,6 +49,7 @@ func DefaultSource() Source {
 		bind_addr = "0.0.0.0"
 		bootstrap = false
 		bootstrap_expect = 0
+		check_output_max_size = 4096
 		check_update_interval = "5m"
 		client_addr = "127.0.0.1"
 		datacenter = "` + consul.DefaultDC + `"

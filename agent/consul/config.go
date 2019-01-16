@@ -365,6 +365,9 @@ type Config struct {
 	// warning and discard the remaining updates.
 	CoordinateUpdateMaxBatches int
 
+	// CheckOutputMaxSize control the max size of output of checks
+	CheckOutputMaxSize int
+
 	// RPCHoldTimeout is how long an RPC can be "held" before it is errored.
 	// This is used to paper over a loss of leadership by instead holding RPCs,
 	// so that the caller experiences a slow response rather than an error.
@@ -498,6 +501,8 @@ func DefaultConfig() *Config {
 		CoordinateUpdatePeriod:     5 * time.Second,
 		CoordinateUpdateBatchSize:  128,
 		CoordinateUpdateMaxBatches: 5,
+
+		CheckOutputMaxSize: 4096,
 
 		RPCRate:     rate.Inf,
 		RPCMaxBurst: 1000,

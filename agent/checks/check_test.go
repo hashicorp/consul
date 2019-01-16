@@ -44,11 +44,12 @@ func TestCheckMonitor_Script(t *testing.T) {
 		t.Run(tt.status, func(t *testing.T) {
 			notif := mock.NewNotify()
 			check := &CheckMonitor{
-				Notify:   notif,
-				CheckID:  types.CheckID("foo"),
-				Script:   tt.script,
-				Interval: 25 * time.Millisecond,
-				Logger:   log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
+				Notify:        notif,
+				CheckID:       types.CheckID("foo"),
+				Script:        tt.script,
+				Interval:      25 * time.Millisecond,
+				Logger:        log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
+				OutputMaxSize: 4096,
 			}
 			check.Start()
 			defer check.Stop()
@@ -79,11 +80,12 @@ func TestCheckMonitor_Args(t *testing.T) {
 		t.Run(tt.status, func(t *testing.T) {
 			notif := mock.NewNotify()
 			check := &CheckMonitor{
-				Notify:     notif,
-				CheckID:    types.CheckID("foo"),
-				ScriptArgs: tt.args,
-				Interval:   25 * time.Millisecond,
-				Logger:     log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
+				Notify:        notif,
+				CheckID:       types.CheckID("foo"),
+				ScriptArgs:    tt.args,
+				Interval:      25 * time.Millisecond,
+				Logger:        log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
+				OutputMaxSize: 4096,
 			}
 			check.Start()
 			defer check.Stop()
@@ -103,12 +105,13 @@ func TestCheckMonitor_Timeout(t *testing.T) {
 	// t.Parallel() // timing test. no parallel
 	notif := mock.NewNotify()
 	check := &CheckMonitor{
-		Notify:     notif,
-		CheckID:    types.CheckID("foo"),
-		ScriptArgs: []string{"sh", "-c", "sleep 1 && exit 0"},
-		Interval:   50 * time.Millisecond,
-		Timeout:    25 * time.Millisecond,
-		Logger:     log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
+		Notify:        notif,
+		CheckID:       types.CheckID("foo"),
+		ScriptArgs:    []string{"sh", "-c", "sleep 1 && exit 0"},
+		Interval:      50 * time.Millisecond,
+		Timeout:       25 * time.Millisecond,
+		Logger:        log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
+		OutputMaxSize: 4096,
 	}
 	check.Start()
 	defer check.Stop()
@@ -128,11 +131,12 @@ func TestCheckMonitor_RandomStagger(t *testing.T) {
 	// t.Parallel() // timing test. no parallel
 	notif := mock.NewNotify()
 	check := &CheckMonitor{
-		Notify:     notif,
-		CheckID:    types.CheckID("foo"),
-		ScriptArgs: []string{"sh", "-c", "exit 0"},
-		Interval:   25 * time.Millisecond,
-		Logger:     log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
+		Notify:        notif,
+		CheckID:       types.CheckID("foo"),
+		ScriptArgs:    []string{"sh", "-c", "exit 0"},
+		Interval:      25 * time.Millisecond,
+		Logger:        log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
+		OutputMaxSize: 4096,
 	}
 	check.Start()
 	defer check.Stop()
@@ -153,11 +157,12 @@ func TestCheckMonitor_LimitOutput(t *testing.T) {
 	t.Parallel()
 	notif := mock.NewNotify()
 	check := &CheckMonitor{
-		Notify:     notif,
-		CheckID:    types.CheckID("foo"),
-		ScriptArgs: []string{"od", "-N", "81920", "/dev/urandom"},
-		Interval:   25 * time.Millisecond,
-		Logger:     log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
+		Notify:        notif,
+		CheckID:       types.CheckID("foo"),
+		ScriptArgs:    []string{"od", "-N", "81920", "/dev/urandom"},
+		Interval:      25 * time.Millisecond,
+		Logger:        log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
+		OutputMaxSize: 4096,
 	}
 	check.Start()
 	defer check.Stop()
@@ -295,13 +300,14 @@ func TestCheckHTTP(t *testing.T) {
 
 			notif := mock.NewNotify()
 			check := &CheckHTTP{
-				Notify:   notif,
-				CheckID:  types.CheckID("foo"),
-				HTTP:     server.URL,
-				Method:   tt.method,
-				Header:   tt.header,
-				Interval: 10 * time.Millisecond,
-				Logger:   log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
+				Notify:        notif,
+				CheckID:       types.CheckID("foo"),
+				HTTP:          server.URL,
+				Method:        tt.method,
+				OutputMaxSize: 4096,
+				Header:        tt.header,
+				Interval:      10 * time.Millisecond,
+				Logger:        log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
 			}
 			check.Start()
 			defer check.Stop()

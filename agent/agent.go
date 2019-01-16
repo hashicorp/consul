@@ -915,6 +915,7 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	base.CoordinateUpdateBatchSize = a.config.ConsulCoordinateUpdateBatchSize
 	base.CoordinateUpdateMaxBatches = a.config.ConsulCoordinateUpdateMaxBatches
 	base.CoordinateUpdatePeriod = a.config.ConsulCoordinateUpdatePeriod
+	base.CheckOutputMaxSize = a.config.CheckOutputMaxSize
 
 	base.RaftConfig.HeartbeatTimeout = a.config.ConsulRaftHeartbeatTimeout
 	base.RaftConfig.LeaderLeaseTimeout = a.config.ConsulRaftLeaderLeaseTimeout
@@ -970,6 +971,9 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	}
 	if a.config.Bootstrap {
 		base.Bootstrap = true
+	}
+	if a.config.CheckOutputMaxSize > 0 {
+		base.CheckOutputMaxSize = a.config.CheckOutputMaxSize
 	}
 	if a.config.RejoinAfterLeave {
 		base.RejoinAfterLeave = true
@@ -2239,6 +2243,13 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 
 	// Check if already registered
 	if chkType != nil {
+		maxOutputSize := a.config.CheckOutputMaxSize
+		if maxOutputSize == 0 {
+			maxOutputSize = 4096
+		}
+		if chkType.OutputMaxSize > 0 && maxOutputSize > chkType.OutputMaxSize {
+			maxOutputSize = chkType.OutputMaxSize
+		}
 		switch {
 
 		case chkType.IsTTL():
@@ -2285,6 +2296,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				Interval:        chkType.Interval,
 				Timeout:         chkType.Timeout,
 				Logger:          a.logger,
+				OutputMaxSize:   maxOutputSize,
 				TLSClientConfig: tlsClientConfig,
 			}
 			http.Start()
@@ -2352,7 +2364,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 
 			if a.dockerClient == nil {
-				dc, err := checks.NewDockerClient(os.Getenv("DOCKER_HOST"), checks.BufSize)
+				dc, err := checks.NewDockerClient(os.Getenv("DOCKER_HOST"), int64(maxOutputSize))
 				if err != nil {
 					a.logger.Printf("[ERR] agent: error creating docker client: %s", err)
 					return err
@@ -2387,14 +2399,14 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 					check.CheckID, checks.MinInterval)
 				chkType.Interval = checks.MinInterval
 			}
-
 			monitor := &checks.CheckMonitor{
-				Notify:     a.State,
-				CheckID:    check.CheckID,
-				ScriptArgs: chkType.ScriptArgs,
-				Interval:   chkType.Interval,
-				Timeout:    chkType.Timeout,
-				Logger:     a.logger,
+				Notify:        a.State,
+				CheckID:       check.CheckID,
+				ScriptArgs:    chkType.ScriptArgs,
+				Interval:      chkType.Interval,
+				Timeout:       chkType.Timeout,
+				Logger:        a.logger,
+				OutputMaxSize: maxOutputSize,
 			}
 			monitor.Start()
 			a.checkMonitors[check.CheckID] = monitor

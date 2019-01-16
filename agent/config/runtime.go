@@ -459,6 +459,11 @@ type RuntimeConfig struct {
 	// hcl: check_update_interval = "duration"
 	CheckUpdateInterval time.Duration
 
+	// Maximum size for the output of a healtcheck
+	// hcl check_output_max_size int
+	// flag: -check_output_max_size int
+	CheckOutputMaxSize int
+
 	// Checks contains the provided check definitions.
 	//
 	// hcl: checks = [

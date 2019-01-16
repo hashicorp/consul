@@ -56,13 +56,14 @@ type CheckNotifier interface {
 // determine the health of a given check. It is compatible with
 // nagios plugins and expects the output in the same format.
 type CheckMonitor struct {
-	Notify     CheckNotifier
-	CheckID    types.CheckID
-	Script     string
-	ScriptArgs []string
-	Interval   time.Duration
-	Timeout    time.Duration
-	Logger     *log.Logger
+	Notify        CheckNotifier
+	CheckID       types.CheckID
+	Script        string
+	ScriptArgs    []string
+	Interval      time.Duration
+	Timeout       time.Duration
+	Logger        *log.Logger
+	OutputMaxSize int
 
 	stop     bool
 	stopCh   chan struct{}
@@ -122,7 +123,7 @@ func (c *CheckMonitor) check() {
 	}
 
 	// Collect the output
-	output, _ := circbuf.NewBuffer(BufSize)
+	output, _ := circbuf.NewBuffer(int64(c.OutputMaxSize))
 	cmd.Stdout = output
 	cmd.Stderr = output
 	exec.SetSysProcAttr(cmd)
@@ -303,6 +304,7 @@ type CheckHTTP struct {
 	Timeout         time.Duration
 	Logger          *log.Logger
 	TLSClientConfig *tls.Config
+	OutputMaxSize   int
 
 	httpClient *http.Client
 	stop       bool
@@ -338,6 +340,9 @@ func (c *CheckHTTP) Start() {
 			c.httpClient.Timeout = c.Timeout
 		} else if c.Interval < 10*time.Second {
 			c.httpClient.Timeout = c.Interval
+		}
+		if c.OutputMaxSize < 1 {
+			c.OutputMaxSize = 4096
 		}
 	}
 
@@ -413,7 +418,7 @@ func (c *CheckHTTP) check() {
 	defer resp.Body.Close()
 
 	// Read the response into a circular buffer to limit the size
-	output, _ := circbuf.NewBuffer(BufSize)
+	output, _ := circbuf.NewBuffer(int64(c.OutputMaxSize))
 	if _, err := io.Copy(output, resp.Body); err != nil {
 		c.Logger.Printf("[WARN] agent: Check %q error while reading body: %s", c.CheckID, err)
 	}
