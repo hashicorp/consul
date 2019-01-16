@@ -300,7 +300,7 @@ func TestCacheWatch_ErrorBackoff(t *testing.T) {
 	// was running as fast as it could go we'd expect this to be huge. We have to
 	// be a little careful here because the watch chan ch doesn't have a large
 	// buffer so we could be artificially slowing down the loop without the
-	// backoff actualy taking affect. We can validate that by ensuring this test
+	// backoff actually taking effect. We can validate that by ensuring this test
 	// fails without the backoff code reliably.
 	timeoutC := time.After(500 * time.Millisecond)
 OUT:
@@ -363,7 +363,7 @@ func TestCacheWatch_ErrorBackoffNonBlocking(t *testing.T) {
 	// was running as fast as it could go we'd expect this to be huge. We have to
 	// be a little careful here because the watch chan ch doesn't have a large
 	// buffer so we could be artificially slowing down the loop without the
-	// backoff actualy taking affect. We can validate that by ensuring this test
+	// backoff actually taking effect. We can validate that by ensuring this test
 	// fails without the backoff code reliably.
 	//
 	// 100 + 500 milliseconds. 100 because the first retry will not happen until
