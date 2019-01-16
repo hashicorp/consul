@@ -39,7 +39,7 @@ it is highly recommended that you
 of Consul. This provides a less complicated out-of-box experience for new users,
 but is not appropriate for a production setup. It is highly recommended to use
 a properly secured Kubernetes cluster or make sure that you understand and enable
-the [recommended security features](/docs/internals/security.html.md). Currently,
+the [recommended security features](/docs/internals/security.html). Currently,
 some of these features are not supported in the Helm chart and require additional
 manual configuration.
 
