@@ -157,14 +157,14 @@ and consider if they're appropriate for your deployment.
   won't request any specific amount of resources. **Setting this is highly
   recommended.**
 
-  ```yaml
-  # Resources are defined as a formatted multi-line string:
-  resources: |
-    requests:
-      memory: "10Gi"
-    limits:
-     memory: "10Gi"
-  ```
+          ```yaml
+          # Resources are defined as a formatted multi-line string:
+          resources: |
+            requests:
+              memory: "10Gi"
+            limits:
+             memory: "10Gi"
+          ```
 
   - <a name="v-server-updatepartition" href="#v-server-updatepartition">`updatePartition`</a> (`integer: 0`) -
   This value is used to carefully control a rolling update of Consul server
@@ -221,18 +221,18 @@ and consider if they're appropriate for your deployment.
   If you need to run more pods per node (for example, testing on Minikube),
   set this value to `null`.
 
-  ```yaml
-  # Recommended default server affinity:
-  affinity: |
-    podAntiAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        - labelSelector:
-            matchLabels:
-              app: {{ template "consul.name" . }}
-              release: "{{ .Release.Name }}"
-              component: server
-          topologyKey: kubernetes.io/hostname
-  ```
+          ```yaml
+          # Recommended default server affinity:
+          affinity: |
+            podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                - labelSelector:
+                    matchLabels:
+                      app: {{ template "consul.name" . }}
+                      release: "{{ .Release.Name }}"
+                      component: server
+                  topologyKey: kubernetes.io/hostname
+          ```
 
 * <a name="v-client" href="#v-client">`client`</a> - Values that configure
   running a Consul client agent on Kubernetes nodes.
@@ -265,14 +265,14 @@ and consider if they're appropriate for your deployment.
   [ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.11/#resourcerequirements-v1-core) object. If this isn't specified, then the pods
   won't request any specific amount of resources.
 
-  ```yaml
-  # Resources are defined as a formatted multi-line string:
-  resources: |
-    requests:
-      memory: "10Gi"
-    limits:
-     memory: "10Gi"
-  ```
+          ```yaml
+          # Resources are defined as a formatted multi-line string:
+          resources: |
+            requests:
+              memory: "10Gi"
+            limits:
+             memory: "10Gi"
+          ```
 
   - <a name="v-client-extraconfig" href="#v-client-extraconfig">`extraConfig`</a> (`string: "{}"`) -
   A raw string of extra JSON or HCL configuration for Consul clients. This
