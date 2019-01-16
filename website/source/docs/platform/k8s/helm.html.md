@@ -324,11 +324,6 @@ and consider if they're appropriate for your deployment.
   the service must be [annotated](/docs/platform/k8s/service-sync.html#sync-enable-disable)
   properly to sync. In either case an annotation can override the default.
 
-  - <a name="v-synccatalog-k8sprefix" href="#v-synccatalog-k8sprefix">`k8sPrefix`</a> (`string: ""`) -
-  A prefix to prepend to all services registered in Kubernetes from Consul.
-  This defaults to `""` where no prefix is prepended; Consul services are
-  synced with the same name to Kubernetes.
-
   - <a name="v-synccatalog-toconsul" href="#v-synccatalog-toconsul">`toConsul`</a> (`boolean: true`) -
   If true, will sync Kubernetes services to Consul. This can be disabled to
   have a one-way sync.
@@ -337,9 +332,27 @@ and consider if they're appropriate for your deployment.
   If true, will sync Consul services to Kubernetes. This can be disabled to
   have a one-way sync.
 
+  - <a name="v-synccatalog-k8sprefix" href="#v-synccatalog-k8sprefix">`k8sPrefix`</a> (`string: ""`) -
+  A prefix to prepend to all services registered in Kubernetes from Consul.
+  This defaults to `""` where no prefix is prepended; Consul services are
+  synced with the same name to Kubernetes. (Consul -> Kubernetes sync only)
+
+  - <a name="v-synccatalog-k8stag" href="#v-synccatalog-k8stag">`k8sTag`</a> (`string: null`) -
+  An optional tag that is applied to all of the Kubernetes services
+  that are synced into Consul. If nothing is set, this defaults to "k8s".
+  (Kubernetes -> Consul sync only)
+
   - <a name="v-synccatalog-clusterip-sync" href="#v-synccatalog-clusterip-sync">`syncClusterIPServices`</a> (`boolean: true`) -
   If true, will sync Kubernetes ClusterIP services to Consul. This can be disabled to
   have the sync ignore ClusterIP-type services.
+
+  - <a name="v-synccatalog-nodeport-sync" href="#v-synccatalog-nodeport-sync">`nodePortSyncType`</a> (`string: ExternalFirst`) -
+  Configures the type of syncing that happens for NodePort services.
+  The only valid options are: `ExternalOnly`, `InternalOnly`, and `ExternalFirst`.
+  `ExternalOnly` will only use a node's ExternalIP address for the sync, otherwise the
+  service will not be synced. `InternalOnly` uses the node's InternalIP address.
+  `ExternalFirst` will preferentially use the node's ExternalIP address, but
+  if it doesn't exist, it will use the node's InternalIP address instead.
 
 * <a name="v-ui" href="#v-ui">`ui`</a> - Values that configure the Consul UI.
 
