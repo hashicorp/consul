@@ -570,7 +570,7 @@ default will automatically work with some tooling.
           you would like to install or change the `acl_master_token`, set the new value for `master`
           in the configuration for all servers. Once this is done, restart the current leader to force a
           leader election. If the `master` token is not supplied, then the servers do not create a master
-          token. When you provide a value, it should be a UUID. To maintaing backwards compatibility
+          token. When you provide a value, it should be a UUID. To maintain backwards compatibility
           and an upgrade path this restriction is not currently enforced but will be in a future major
           Consul release.
 
