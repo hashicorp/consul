@@ -32,7 +32,7 @@ connections.
 -> **Note:** The pod specifications in this section are valid and use
 publicly available images. If you've installed the Connect injector, feel free
 to run the pod specifications in this section to try Connect with Kubernetes.
-Please note the documentation below this sectionn on how to properly install
+Please note the documentation below this section on how to properly install
 and configure the Connect injector.
 
 ### Accepting Inbound Connections
