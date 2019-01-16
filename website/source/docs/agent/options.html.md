@@ -551,7 +551,9 @@ default will automatically work with some tooling.
      ACLs are a blacklist: any operation not specifically prohibited is allowed. In "deny" mode, ACLs are
      a whitelist: any operation not specifically allowed is blocked. *Note*: this will not take effect until
      you've enabled ACLs.
-
+     
+     * <a name="acl_enable_key_list"></a><a href="#acl_enable_key_list">`enable_key_list`</a> - Either "true" or "false", defaults to "false". When enabled, it allows access to recursively list Consul KV enteries and keys. It also enables more fine grained policies. This option is only available in Consul 1.0 and newer. 
+ 
      * <a name=`acl_enable_token_replication"></a><a href="#acl_enable_token_replication">`enable_token_replication`</a> - By
      default secondary Consul datacenters will perform replication of only ACL policies. Setting this configuration will
      also enable ACL token replication.
