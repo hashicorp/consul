@@ -9,10 +9,6 @@ import (
 	"github.com/hashicorp/consul/lib"
 )
 
-const (
-	NotifyDefaultPollingInterval = 30 * time.Second
-)
-
 // UpdateEvent is a struct summarising an update to a cache entry
 type UpdateEvent struct {
 	// CorrelationID is used by the Notify API to allow correlation of updates
@@ -71,7 +67,7 @@ func (c *Cache) Notify(ctx context.Context, t string, r Request,
 		if info.MaxAge == 0 {
 			return fmt.Errorf("Cannot use Notify for polling cache types without specifying the MaxAge")
 		}
-		go c.notifyPollingQuery(info.MaxAge, ctx, t, r, correlationID, ch)
+		go c.notifyPollingQuery(ctx, t, r, correlationID, ch, info.MaxAge)
 	}
 
 	return nil
@@ -133,7 +129,7 @@ func (c *Cache) notifyBlockingQuery(ctx context.Context, t string, r Request, co
 	}
 }
 
-func (c *Cache) notifyPollingQuery(maxAge time.Duration, ctx context.Context, t string, r Request, correlationID string, ch chan<- UpdateEvent) {
+func (c *Cache) notifyPollingQuery(ctx context.Context, t string, r Request, correlationID string, ch chan<- UpdateEvent, maxAge time.Duration) {
 	index := uint64(0)
 	failures := uint(0)
 
@@ -153,7 +149,7 @@ func (c *Cache) notifyPollingQuery(maxAge time.Duration, ctx context.Context, t 
 			return
 		}
 
-		// Check for a change in the value and
+		// Check for a change in the value or an index change
 		if index < meta.Index || !reflect.DeepEqual(lastValue, res) {
 			u := UpdateEvent{correlationID, res, meta, err}
 			select {
@@ -162,32 +158,69 @@ func (c *Cache) notifyPollingQuery(maxAge time.Duration, ctx context.Context, t 
 				return
 			}
 
-			// Update index and lastResult
+			// Update index and lastValue
 			lastValue = res
 			index = meta.Index
 		}
 
-		// Handle errors with backoff.
+		// Reset or increment failure counter
 		if err == nil {
 			failures = 0
 		} else {
-			failures += 1
+			failures++
 		}
 
-		errWait := backOffWait(failures)
-		if errWait > 0 {
+		// Determining how long to wait before the next poll is complicated.
+		// First off the happy path and the error path waits are handled distinctly
+		//
+		// Once fetching the data through the cache returns an error (and until a
+		// non-error value is returned) the wait time between each round of the loop
+		// gets controlled by the backOffWait function. Because we would have waited
+		// at least until the age of the cached data was too old the error path should
+		// immediately retry the fetch and backoff on the time as needed for persistent
+		// failures which potentially will wait much longer than the MaxAge of the request
+		//
+		// When on the happy path we just need to fetch from the cache often enough to ensure
+		// that the data is not older than the MaxAge. Therefore after fetching the data from
+		// the cache we can sleep until the age of that data would exceed the MaxAge. Sometimes
+		// this will be for the MaxAge duration (like when only a single notify was executed so
+		// only 1 go routine is keeping the cache updated). Other times this will be some smaller
+		// duration than MaxAge (when multiple notify calls were executed and this go routine just
+		// got data back from the cache that was a cache hit after the other go routine fetched it
+		// without a hit). We cannot just set MustRevalidate on the request and always sleep for MaxAge
+		// as this would eliminate the single-flighting of these requests in the cache and
+		// the efficiencies gained by it.
+		if failures > 0 {
+
+			errWait := backOffWait(failures)
 			select {
 			case <-time.After(errWait):
 			case <-ctx.Done():
 				return
 			}
 		} else {
+			// Default to immediately re-poll. This only will happen if the data
+			// we just got out of the cache is already too stale
 			pollWait := 0 * time.Second
+
+			// Calculate when the cached data's Age will get too stale and
+			// need to be re-queried. When the data's Age already exceeds the
+			// maxAge the pollWait value is left at 0 to immediately re-poll
 			if meta.Age <= maxAge {
 				pollWait = maxAge - meta.Age
 			}
 
+			// Add a small amount of random jitter to the polling time. One
+			// purpose of the jitter is to ensure that the next time
+			// we fetch from the cache the data will be stale (unless another
+			// notify go routine has updated it while this one is sleeping).
+			// Without this it would be possible to wake up, fetch the data
+			// again where the age of the data is strictly equal to the MaxAge
+			// and then immediately have to re-fetch again. That wouldn't
+			// be terrible but it would expend a bunch more cpu cycles when
+			// we can definitely avoid it.
 			pollWait += lib.RandomStagger(maxAge / 16)
+
 			select {
 			case <-time.After(pollWait):
 			case <-ctx.Done():

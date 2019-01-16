@@ -22,7 +22,7 @@ const (
 	intentionsWatchID                = "intentions"
 	serviceIDPrefix                  = string(structs.UpstreamDestTypeService) + ":"
 	preparedQueryIDPrefix            = string(structs.UpstreamDestTypePreparedQuery) + ":"
-	DefaultPreparedQueryPollInterval = 30 * time.Second
+	defaultPreparedQueryPollInterval = 30 * time.Second
 )
 
 // state holds all the state needed to maintain the config for a registered
@@ -167,7 +167,7 @@ func (s *state) initWatches() error {
 		case structs.UpstreamDestTypePreparedQuery:
 			err = s.cache.Notify(s.ctx, cachetype.PreparedQueryName, &structs.PreparedQueryExecuteRequest{
 				Datacenter:    dc,
-				QueryOptions:  structs.QueryOptions{Token: s.token, MaxAge: DefaultPreparedQueryPollInterval},
+				QueryOptions:  structs.QueryOptions{Token: s.token, MaxAge: defaultPreparedQueryPollInterval},
 				QueryIDOrName: u.DestinationName,
 				Connect:       true,
 			}, u.Identifier(), s.ch)

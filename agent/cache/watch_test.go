@@ -80,7 +80,7 @@ func TestCacheNotify(t *testing.T) {
 		Err:  nil,
 	})
 
-	// Registere a second observer using same chan and request. Note that this is
+	// Register a second observer using same chan and request. Note that this is
 	// testing a few things implicitly:
 	//  - that multiple watchers on the same cache entity are de-duped in their
 	//    requests to the "backend"
