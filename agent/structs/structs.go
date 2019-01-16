@@ -906,7 +906,7 @@ type HealthCheckDefinition struct {
 
 func (d *HealthCheckDefinition) MarshalJSON() ([]byte, error) {
 	type Alias HealthCheckDefinition
-	return json.Marshal(&struct {
+	exported := &struct {
 		Interval                       string
 		Timeout                        string
 		DeregisterCriticalServiceAfter string
@@ -916,7 +916,18 @@ func (d *HealthCheckDefinition) MarshalJSON() ([]byte, error) {
 		Timeout:                        d.Timeout.String(),
 		DeregisterCriticalServiceAfter: d.DeregisterCriticalServiceAfter.String(),
 		Alias:                          (*Alias)(d),
-	})
+	}
+	if d.Interval == 0 {
+		exported.Interval = ""
+	}
+	if d.Timeout == 0 {
+		exported.Timeout = ""
+	}
+	if d.DeregisterCriticalServiceAfter == 0 {
+		exported.DeregisterCriticalServiceAfter = ""
+	}
+
+	return json.Marshal(exported)
 }
 
 func (d *HealthCheckDefinition) UnmarshalJSON(data []byte) error {

@@ -84,7 +84,7 @@ func TestAPI_ClientTxn(t *testing.T) {
 			Service: &ServiceTxnOp{
 				Verb:    ServiceGet,
 				Node:    "foo",
-				Service: CatalogService{ServiceID: "foo1"},
+				Service: AgentService{ID: "foo1"},
 			},
 		},
 		&TxnOp{

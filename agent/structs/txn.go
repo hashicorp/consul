@@ -112,10 +112,10 @@ type TxnErrors []*TxnError
 // TxnResult is used to define the result of a given operation inside a
 // transaction. Only one of the types should be filled out per entry.
 type TxnResult struct {
-	KV      TxnKVResult
-	Node    TxnNodeResult
-	Service TxnServiceResult
-	Check   TxnCheckResult
+	KV      TxnKVResult      `json:",omitempty"`
+	Node    TxnNodeResult    `json:",omitempty"`
+	Service TxnServiceResult `json:",omitempty"`
+	Check   TxnCheckResult   `json:",omitempty"`
 }
 
 // TxnResults is a list of TxnResult entries.

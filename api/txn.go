@@ -125,7 +125,7 @@ const (
 type ServiceTxnOp struct {
 	Verb    ServiceOp
 	Node    string
-	Service CatalogService
+	Service AgentService
 }
 
 // CheckOp constants give possible operations available in a transaction.
