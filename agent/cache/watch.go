@@ -110,12 +110,15 @@ func (c *Cache) notifyBlockingQuery(ctx context.Context, t string, r Request, co
 		// Handle errors with backoff. Badly behaved blocking calls that returned
 		// a zero index are considered as failures since we need to not get stuck
 		// in a busy loop.
+		wait := 0 * time.Second
 		if err == nil && meta.Index > 0 {
 			failures = 0
 		} else {
 			failures++
+			wait = backOffWait(failures)
 		}
-		if wait := backOffWait(failures); wait > 0 {
+
+		if wait > 0 {
 			select {
 			case <-time.After(wait):
 			case <-ctx.Done():

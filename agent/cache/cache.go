@@ -34,6 +34,11 @@ const (
 	CacheRefreshMaxWait    = 1 * time.Minute // maximum backoff wait time
 )
 
+// cacheRefreshMinWait is the minimum backoff wait time while receiving error responses.
+// This is a var instead of a const so that some of the test code can reduce this to
+// 0 so that we can have tests that run quickly
+var cacheRefreshMinWait time.Duration = 500 * time.Millisecond
+
 // Cache is a agent-local cache of Consul data. Create a Cache using the
 // New function. A zero-value Cache is not ready for usage and will result
 // in a panic.
@@ -619,7 +624,7 @@ func backOffWait(failures uint) time.Duration {
 		}
 		return waitTime + lib.RandomStagger(waitTime)
 	}
-	return 0
+	return cacheRefreshMinWait
 }
 
 // refresh triggers a fetch for a specific Request according to the
