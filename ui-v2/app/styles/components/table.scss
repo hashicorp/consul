@@ -36,3 +36,36 @@ td dt.critical,
 td dt.critical + dd {
   color: $ui-color-failure;
 }
+/* Header Tooltips/Icon*/
+th {
+  overflow: visible;
+}
+th span {
+  @extend %tooltip;
+  @extend %with-info;
+  margin-left: 12px;
+  top: 3px;
+  width: 23px;
+  height: 15px;
+}
+th span:after {
+  left: -8px;
+}
+th span em::after {
+  @extend %tooltip-tail;
+  @extend %blink-in-fade-out;
+  top: auto !important;
+  bottom: -13px;
+}
+th span em {
+  @extend %tooltip-bubble;
+  @extend %blink-in-fade-out;
+  width: 250px;
+  font-style: normal;
+  white-space: normal !important;
+}
+
+th span:hover em::after,
+th span:hover em {
+  @extend %blink-in-fade-out-active;
+}
