@@ -14,11 +14,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func init() {
-	// zero out the min error backoff wait so tests dont take forever (and fail)
-	cacheRefreshMinWait = 0 * time.Second
-}
-
 // Test a basic Get with no indexes (and therefore no blocking queries).
 func TestCacheGet_noIndex(t *testing.T) {
 	t.Parallel()
