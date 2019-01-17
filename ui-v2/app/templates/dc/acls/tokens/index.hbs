@@ -26,7 +26,7 @@
         </form>
 {{/if}}
         {{#if (token/is-legacy items)}}
-            <p data-test-notification-update class="notice info"><strong>Update.</strong> We have upgraded our ACL System to allow the creation of reusable policies that can be applied to tokens. Read more about the changes and how to upgrade legacy tokens in our <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guide/acl-migrate-tokens.html" target="_blank" rel="noopener noreferrer">documentation</a>.</p>
+            <p data-test-notification-update class="notice info"><strong>Update.</strong> We have upgraded our ACL System to allow the creation of reusable policies that can be applied to tokens. Read more about the changes and how to upgrade legacy tokens in our <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guides/acl-migrate-tokens.html" target="_blank" rel="noopener noreferrer">documentation</a>.</p>
         {{/if}}
 {{#if (gt filtered.length 0)}}
         {{#tabular-collection
