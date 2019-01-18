@@ -123,7 +123,8 @@ func (c *Client) LockOpts(opts *LockOptions) (*Lock, error) {
 
 // Lock attempts to acquire the lock and blocks while doing so.
 // Providing a non-nil stopCh can be used to abort the lock attempt.
-// Returns a channel that is closed if our lock is lost or an error.
+// If the lock is aborted, it returns a channel that is nil. If the lock is lost
+// or an error occurred, it returns a channel that is closed.
 // This channel could be closed at any time due to session invalidation,
 // communication errors, operator intervention, etc. It is NOT safe to
 // assume that the lock is held until Unlock() unless the Session is specifically
