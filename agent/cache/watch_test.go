@@ -80,7 +80,7 @@ func TestCacheNotify(t *testing.T) {
 		Err:  nil,
 	})
 
-	// Registere a second observer using same chan and request. Note that this is
+	// Register a second observer using same chan and request. Note that this is
 	// testing a few things implicitly:
 	//  - that multiple watchers on the same cache entity are de-duped in their
 	//    requests to the "backend"
@@ -144,6 +144,120 @@ func TestCacheNotify(t *testing.T) {
 	// important things to get working.
 }
 
+func TestCacheNotifyPolling(t *testing.T) {
+	t.Parallel()
+
+	typ := TestTypeNonBlocking(t)
+	defer typ.AssertExpectations(t)
+	c := TestCache(t)
+	c.RegisterType("t", typ, &RegisterOptions{
+		Refresh: false,
+	})
+
+	// Configure the type
+	typ.Static(FetchResult{Value: 1, Index: 1}, nil).Once().Run(func(args mock.Arguments) {
+		// Assert the right request type - all real Fetch implementations do this so
+		// it keeps us honest that Watch doesn't require type mangling which will
+		// break in real life (hint: it did on the first attempt)
+		_, ok := args.Get(1).(*MockRequest)
+		require.True(t, ok)
+	})
+	typ.Static(FetchResult{Value: 12, Index: 1}, nil).Once()
+	typ.Static(FetchResult{Value: 42, Index: 1}, nil).Once()
+
+	require := require.New(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	ch := make(chan UpdateEvent)
+
+	err := c.Notify(ctx, "t", TestRequest(t, RequestInfo{Key: "hello", MaxAge: 100 * time.Millisecond}), "test", ch)
+	require.NoError(err)
+
+	// Should receive the first result pretty soon
+	TestCacheNotifyChResult(t, ch, UpdateEvent{
+		CorrelationID: "test",
+		Result:        1,
+		Meta:          ResultMeta{Hit: false, Index: 1},
+		Err:           nil,
+	})
+
+	// There should be no more updates delivered yet
+	require.Len(ch, 0)
+
+	// make sure the updates do not come too quickly
+	select {
+	case <-time.After(50 * time.Millisecond):
+	case <-ch:
+		require.Fail("Received update too early")
+	}
+
+	// make sure we get the update not too far out.
+	select {
+	case <-time.After(100 * time.Millisecond):
+		require.Fail("Didn't receive the notification")
+	case result := <-ch:
+		require.Equal(result.Result, 12)
+		require.Equal(result.CorrelationID, "test")
+		require.Equal(result.Meta.Hit, false)
+		require.Equal(result.Meta.Index, uint64(1))
+		// pretty conservative check it should be even newer because without a second
+		// notifier each value returned will have been executed just then and not served
+		// from the cache.
+		require.True(result.Meta.Age < 50*time.Millisecond)
+		require.NoError(result.Err)
+	}
+
+	require.Len(ch, 0)
+
+	// Register a second observer using same chan and request. Note that this is
+	// testing a few things implicitly:
+	//  - that multiple watchers on the same cache entity are de-duped in their
+	//    requests to the "backend"
+	//  - that multiple watchers can distinguish their results using correlationID
+	err = c.Notify(ctx, "t", TestRequest(t, RequestInfo{Key: "hello", MaxAge: 100 * time.Millisecond}), "test2", ch)
+	require.NoError(err)
+
+	// Should get test2 notify immediately, and it should be a cache hit
+	TestCacheNotifyChResult(t, ch, UpdateEvent{
+		CorrelationID: "test2",
+		Result:        12,
+		Meta:          ResultMeta{Hit: true, Index: 1},
+		Err:           nil,
+	})
+
+	require.Len(ch, 0)
+
+	// wait for the next batch of responses
+	events := make([]UpdateEvent, 0)
+	// 110 is needed to allow for the jitter
+	timeout := time.After(110 * time.Millisecond)
+
+	for i := 0; i < 2; i++ {
+		select {
+		case <-timeout:
+			require.Fail("UpdateEvent not received in time")
+		case eve := <-ch:
+			events = append(events, eve)
+		}
+	}
+
+	require.Equal(events[0].Result, 42)
+	require.Equal(events[0].Meta.Hit, false)
+	require.Equal(events[0].Meta.Index, uint64(1))
+	require.True(events[0].Meta.Age < 50*time.Millisecond)
+	require.NoError(events[0].Err)
+	require.Equal(events[1].Result, 42)
+	// Sometimes this would be a hit and others not. It all depends on when the various getWithIndex calls got fired.
+	// If both are done concurrently then it will not be a cache hit but the request gets single flighted and both
+	// get notified at the same time.
+	// require.Equal(events[1].Meta.Hit, true)
+	require.Equal(events[1].Meta.Index, uint64(1))
+	require.True(events[1].Meta.Age < 100*time.Millisecond)
+	require.NoError(events[1].Err)
+}
+
 // Test that a refresh performs a backoff.
 func TestCacheWatch_ErrorBackoff(t *testing.T) {
 	t.Parallel()
@@ -186,9 +300,75 @@ func TestCacheWatch_ErrorBackoff(t *testing.T) {
 	// was running as fast as it could go we'd expect this to be huge. We have to
 	// be a little careful here because the watch chan ch doesn't have a large
 	// buffer so we could be artificially slowing down the loop without the
-	// backoff actualy taking affect. We can validate that by ensuring this test
+	// backoff actually taking effect. We can validate that by ensuring this test
 	// fails without the backoff code reliably.
 	timeoutC := time.After(500 * time.Millisecond)
+OUT:
+	for {
+		select {
+		case <-timeoutC:
+			break OUT
+		case u := <-ch:
+			numErrors++
+			require.Error(u.Err)
+		}
+	}
+	// Must be fewer than 10 failures in that time
+	require.True(numErrors < 10, fmt.Sprintf("numErrors: %d", numErrors))
+
+	// Check the number of RPCs as a sanity check too
+	actual := atomic.LoadUint32(&retries)
+	require.True(actual < 10, fmt.Sprintf("actual: %d", actual))
+}
+
+// Test that a refresh performs a backoff.
+func TestCacheWatch_ErrorBackoffNonBlocking(t *testing.T) {
+	t.Parallel()
+
+	typ := TestTypeNonBlocking(t)
+	defer typ.AssertExpectations(t)
+	c := TestCache(t)
+	c.RegisterType("t", typ, &RegisterOptions{
+		Refresh: false,
+	})
+
+	// Configure the type
+	var retries uint32
+	fetchErr := fmt.Errorf("test fetch error")
+	typ.Static(FetchResult{Value: 1, Index: 4}, nil).Once()
+	typ.Static(FetchResult{Value: nil, Index: 5}, fetchErr).Run(func(args mock.Arguments) {
+		atomic.AddUint32(&retries, 1)
+	})
+
+	require := require.New(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	ch := make(chan UpdateEvent)
+
+	err := c.Notify(ctx, "t", TestRequest(t, RequestInfo{Key: "hello", MaxAge: 100 * time.Millisecond}), "test", ch)
+	require.NoError(err)
+
+	// Should receive the first result pretty soon
+	TestCacheNotifyChResult(t, ch, UpdateEvent{
+		CorrelationID: "test",
+		Result:        1,
+		Meta:          ResultMeta{Hit: false, Index: 4},
+		Err:           nil,
+	})
+
+	numErrors := 0
+	// Loop for a little while and count how many errors we see reported. If this
+	// was running as fast as it could go we'd expect this to be huge. We have to
+	// be a little careful here because the watch chan ch doesn't have a large
+	// buffer so we could be artificially slowing down the loop without the
+	// backoff actually taking effect. We can validate that by ensuring this test
+	// fails without the backoff code reliably.
+	//
+	// 100 + 500 milliseconds. 100 because the first retry will not happen until
+	// the 100 + jitter milliseconds have elapsed.
+	timeoutC := time.After(600 * time.Millisecond)
 OUT:
 	for {
 		select {

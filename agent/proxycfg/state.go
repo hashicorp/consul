@@ -16,12 +16,13 @@ import (
 )
 
 const (
-	coalesceTimeout       = 200 * time.Millisecond
-	rootsWatchID          = "roots"
-	leafWatchID           = "leaf"
-	intentionsWatchID     = "intentions"
-	serviceIDPrefix       = string(structs.UpstreamDestTypeService) + ":"
-	preparedQueryIDPrefix = string(structs.UpstreamDestTypePreparedQuery) + ":"
+	coalesceTimeout                  = 200 * time.Millisecond
+	rootsWatchID                     = "roots"
+	leafWatchID                      = "leaf"
+	intentionsWatchID                = "intentions"
+	serviceIDPrefix                  = string(structs.UpstreamDestTypeService) + ":"
+	preparedQueryIDPrefix            = string(structs.UpstreamDestTypePreparedQuery) + ":"
+	defaultPreparedQueryPollInterval = 30 * time.Second
 )
 
 // state holds all the state needed to maintain the config for a registered
@@ -164,15 +165,12 @@ func (s *state) initWatches() error {
 
 		switch u.DestinationType {
 		case structs.UpstreamDestTypePreparedQuery:
-			// TODO(banks): prepared queries don't support blocking. We need to come
-			// up with an alternative to Notify that will poll at a sensible rate.
-
-			// err = c.Notify(ctx, cachetype.PreparedQueryName, &structs.PreparedQueryExecuteRequest{
-			//  Datacenter:    dc,
-			//  QueryOptions:  structs.QueryOptions{Token: token},
-			//  QueryIDOrName: u.DestinationName,
-			//  Connect: true,
-			// }, u.Identifier(), ch)
+			err = s.cache.Notify(s.ctx, cachetype.PreparedQueryName, &structs.PreparedQueryExecuteRequest{
+				Datacenter:    dc,
+				QueryOptions:  structs.QueryOptions{Token: s.token, MaxAge: defaultPreparedQueryPollInterval},
+				QueryIDOrName: u.DestinationName,
+				Connect:       true,
+			}, u.Identifier(), s.ch)
 		case structs.UpstreamDestTypeService:
 			fallthrough
 		case "": // Treat unset as the default Service type

@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/lib"
 )
 
 //go:generate mockery -all -inpkg
@@ -616,7 +617,7 @@ func backOffWait(failures uint) time.Duration {
 		if waitTime > CacheRefreshMaxWait {
 			waitTime = CacheRefreshMaxWait
 		}
-		return waitTime
+		return waitTime + lib.RandomStagger(waitTime)
 	}
 	return 0
 }
