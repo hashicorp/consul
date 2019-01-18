@@ -3004,8 +3004,10 @@ func TestFullConfig(t *testing.T) {
 			"connect": {
 				"ca_provider": "consul",
 				"ca_config": {
-					"RotationPeriod": "90h",
-					"LeafCertTTL": "1h"
+					"rotation_period": "90h",
+					"leaf_cert_ttl": "1h",
+					"csr_max_per_second": 100,
+					"csr_max_concurrent": 2
 				},
 				"enabled": true,
 				"proxy_defaults": {
@@ -3552,6 +3554,10 @@ func TestFullConfig(t *testing.T) {
 				ca_config {
 					rotation_period = "90h"
 					leaf_cert_ttl = "1h"
+					# hack float since json parses numbers as float and we have to
+					# assert against the same thing
+					csr_max_per_second = 100.0
+					csr_max_concurrent = 2.0
 				}
 				enabled = true
 				proxy_defaults {
@@ -4204,8 +4210,10 @@ func TestFullConfig(t *testing.T) {
 		ConnectSidecarMaxPort:   9999,
 		ConnectCAProvider:       "consul",
 		ConnectCAConfig: map[string]interface{}{
-			"RotationPeriod": "90h",
-			"LeafCertTTL":    "1h",
+			"RotationPeriod":   "90h",
+			"LeafCertTTL":      "1h",
+			"CSRMaxPerSecond":  float64(100),
+			"CSRMaxConcurrent": float64(2),
 		},
 		ConnectProxyAllowManagedRoot:            false,
 		ConnectProxyAllowManagedAPIRegistration: false,

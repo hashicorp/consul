@@ -21,13 +21,13 @@ const ConnectCALeafName = "connect-ca-leaf"
 
 // caChangeJitterWindow is the time over which we spread each round of retries
 // when attempting to get a new certificate following a root rotation. It's
-// selected to be a trade-off between not making rotation unneccesarily slow on
+// selected to be a trade-off between not making rotation unnecessarily slow on
 // a tiny cluster while not hammering the servers on a huge cluster
 // unnecessarily hard. Servers rate limit to protect themselves from the
 // expensive crypto work, but in practice have 10k+ RPCs all in the same second
 // will cause a major disruption even on large servers due to downloading the
 // payloads, parsing msgpack etc. Instead we pick a window that for now is fixed
-// but later might be either user configurable (not nice since it because
+// but later might be either user configurable (not nice since it would become
 // another hard-to-tune value) or set dynamically by the server based on it's
 // knowledge of how many certs need to be rotated. Currently the server doesn't
 // know that so we pick something that is reasonable. We err on the side of

@@ -878,11 +878,11 @@ default will automatically work with some tooling.
           service instances before the time it takes to rotate is impacted. For
           larger deployments we recommend increasing this based on the expected
           number of server instances and server resources, or use
-          `csr_max_concurrency` instead if servers have more than one core.
+          `csr_max_concurrent` instead if servers have more than one core.
           Setting this to zero disables rate limiting. Added in 1.4.1.
 
-        * <a name="ca_csr_max_concurrency"></a><a
-          href="#ca_csr_max_concurrency">`csr_max_concurrency`</a> Sets a limit
+        * <a name="ca_csr_max_concurrent"></a><a
+          href="#ca_csr_max_concurrent">`csr_max_concurrent`</a> Sets a limit
           on how many Certificate Signing Requests will be processed
           concurrently. Defaults to 0 (disabled). This is useful when you have
           more than one or two cores available to the server. For example on an

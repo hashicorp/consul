@@ -180,17 +180,17 @@ cluster. Typically these operations are fast on modern hardware, however when
 the CA is changed or it's key rotated, the leader will face an influx of
 requests for new certificates for every service instance running.
 
-While the client agents smear these over 30 seconds to avoid an immediate
-thundering herd, they don't have enough information to tune that smearing based
-on the number of certificates in use in the cluster so picking longer smearing
-results in artificially slow rotations for small clusters.
+While the client agents distribute these randomly over 30 seconds to avoid an
+immediate thundering herd, they don't have enough information to tune that
+period based on the number of certificates in use in the cluster so picking
+longer smearing results in artificially slow rotations for small clusters.
 
 Smearing requests over 30s is sufficient to bring RPC load to a reasonable level
 in all but the very largest clusters, but the extra CPU load from cryptographic
 operations could impact the server's normal work. To limit that, Consul since
 1.4.1 exposes two ways to limit the impact Certificate signing has on the leader
 [`csr_max_per_second`](/docs/agent/options.html#ca_csr_max_per_second) and
-[`csr_max_concurrency`](/docs/agent/options.html#csr_max_concurrency).
+[`csr_max_concurrent`](/docs/agent/options.html#ca_csr_max_concurrent).
 
 By default we set a limit of 50 per second which is reasonable on modest
 hardware but may be too low and impact rotation times if more than 1500 service
@@ -204,12 +204,12 @@ process?
 
 For larger production deployments, we generally recommend multiple CPU cores for
 servers to handle the normal workload. With four or more cores available, it's
-simpler to limit signing CPU impact with `csr_max_concurrency` rather than tune
+simpler to limit signing CPU impact with `csr_max_concurrent` rather than tune
 the rate limit. This effectively sets how many CPU cores can be monopolized by
 certificate signing work (although it doesn't pin that work to specific cores).
 In this case `csr_max_per_second` should be disabled (set to `0`).
 
-For example if you have an 8 core server, setting `csr_max_concurrency` to `1`
+For example if you have an 8 core server, setting `csr_max_concurrent` to `1`
 would allow you to process CSRs as fast as a single core can (which is likely
 sufficient for the very large clusters), without consuming all available
 CPU cores and impacting normal server work or stability.
