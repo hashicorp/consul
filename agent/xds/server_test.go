@@ -82,7 +82,7 @@ func (m *testManager) Watch(proxyID string) (<-chan *proxycfg.ConfigSnapshot, pr
 // AssertWatchCancelled checks that the most recent call to a Watch cancel func
 // was from the specified proxyID and that one is made in a short time. This
 // probably won't work if you are running multiple Watches in parallel on
-// multiple proxyIDS due to timing/ordering issues but I dont think we need to
+// multiple proxyIDS due to timing/ordering issues but I don't think we need to
 // do that.
 func (m *testManager) AssertWatchCancelled(t *testing.T, proxyID string) {
 	t.Helper()
@@ -162,11 +162,11 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	// And should get a response immediately.
 	assertResponseSent(t, envoy.stream.sendCh, expectListenerJSON(t, snap, "", 1, 3))
 
-	// Now send Route request along with next listner one
+	// Now send Route request along with next listener one
 	envoy.SendReq(t, RouteType, 0, 0)
 	envoy.SendReq(t, ListenerType, 1, 3)
 
-	// We don't serve routes yet so this shoould block with no response
+	// We don't serve routes yet so this should block with no response
 	assertChanBlocked(t, envoy.stream.sendCh)
 
 	// WOOP! Envoy now has full connect config. Lets verify that if we update it,
@@ -179,7 +179,7 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	mgr.DeliverConfig(t, "web-sidecar-proxy", snap)
 
 	// All 3 response that have something to return should return with new version
-	// note that the ordering is not determinisic in general. Trying to make this
+	// note that the ordering is not deterministic in general. Trying to make this
 	// test order-agnostic though is a massive pain since we are comparing
 	// non-identical JSON strings (so can simply sort by anything) and because we
 	// don't know the order the nonces will be assigned. For now we rely and
@@ -189,21 +189,21 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	assertResponseSent(t, envoy.stream.sendCh, expectEndpointsJSON(t, snap, "", 2, 5))
 	assertResponseSent(t, envoy.stream.sendCh, expectListenerJSON(t, snap, "", 2, 6))
 
-	// Let's pretent that Envoy doesn't like that new listener config. It will ACK
+	// Let's pretend that Envoy doesn't like that new listener config. It will ACK
 	// all the others (same version) but NACK the listener. This is the most
 	// subtle part of xDS and the server implementation so I'll elaborate. A full
 	// description of the protocol can be found at
 	// https://github.com/envoyproxy/data-plane-api/blob/master/XDS_PROTOCOL.md.
-	// Envoy delays making a followup reqeest for a type until after it has
+	// Envoy delays making a followup request for a type until after it has
 	// processed and applied the last response. The next request then will include
-	// the nonce in the last response which acknowledges _recieving_ and handling
+	// the nonce in the last response which acknowledges _receiving_ and handling
 	// that response. It also includes the currently applied version. If all is
 	// good and it successfully applies the config, then the version in the next
 	// response will be the same version just sent. This is considered to be an
 	// ACK of that version for that type. If envoy fails to apply the config for
 	// some reason, it will still acknowledge that it received it (still return
 	// the responses nonce), but will show the previous version it's still using.
-	// This is considered a NACK. It's impotant that the server pay attention to
+	// This is considered a NACK. It's important that the server pay attention to
 	// the _nonce_ and not the version when deciding what to send otherwise a bad
 	// version that can't be applied in Envoy will cause a busy loop.
 	//
@@ -489,7 +489,7 @@ func assertChanBlocked(t *testing.T, ch chan *envoy.DiscoveryResponse) {
 	t.Helper()
 	select {
 	case r := <-ch:
-		t.Fatalf("chan should block but recieved: %v", r)
+		t.Fatalf("chan should block but received: %v", r)
 	case <-time.After(10 * time.Millisecond):
 		return
 	}
@@ -501,12 +501,12 @@ func assertResponseSent(t *testing.T, ch chan *envoy.DiscoveryResponse, wantJSON
 	case r := <-ch:
 		assertResponse(t, r, wantJSON)
 	case <-time.After(50 * time.Millisecond):
-		t.Fatalf("no response recieved after 50ms")
+		t.Fatalf("no response received after 50ms")
 	}
 }
 
 // assertResponse is a helper to test a envoy.DiscoveryResponse matches the
-// JSON representaion we expect. We use JSON because the responses use protobuf
+// JSON representation we expect. We use JSON because the responses use protobuf
 // Any type which includes binary protobuf encoding and would make creating
 // expected structs require the same code that is under test!
 func assertResponse(t *testing.T, r *envoy.DiscoveryResponse, wantJSON string) {
@@ -519,7 +519,7 @@ func assertResponse(t *testing.T, r *envoy.DiscoveryResponse, wantJSON string) {
 	require.JSONEqf(t, wantJSON, gotJSON, "got:\n%s", gotJSON)
 }
 
-func TestServer_StreamAggregatedResources_ACLEnforcment(t *testing.T) {
+func TestServer_StreamAggregatedResources_ACLEnforcement(t *testing.T) {
 
 	tests := []struct {
 		name        string
@@ -529,7 +529,7 @@ func TestServer_StreamAggregatedResources_ACLEnforcment(t *testing.T) {
 		wantDenied  bool
 	}{
 		// Note that although we've stubbed actual ACL checks in the testManager
-		// ConnectAuthorize mock, by asserting against specifc reason strings here
+		// ConnectAuthorize mock, by asserting against specific reason strings here
 		// even in the happy case which can't match the default one returned by the
 		// mock we are implicitly validating that the implementation used the
 		// correct token from the context.
@@ -685,7 +685,7 @@ func TestServer_Check(t *testing.T) {
 			destPrincipal: "not-a-spiffe-id",
 			// Should never make it to authz call.
 			wantDenied: true,
-			wantReason: "Destination Principal is not a valid Connect identitiy",
+			wantReason: "Destination Principal is not a valid Connect identity",
 		},
 		{
 			name:          "dest not a service URI",
@@ -693,7 +693,7 @@ func TestServer_Check(t *testing.T) {
 			destPrincipal: "spiffe://trust-domain.consul",
 			// Should never make it to authz call.
 			wantDenied: true,
-			wantReason: "Destination Principal is not a valid Service identitiy",
+			wantReason: "Destination Principal is not a valid Service identity",
 		},
 		{
 			name:        "ACL not got permission for authz call",

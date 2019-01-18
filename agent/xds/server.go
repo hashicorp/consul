@@ -364,12 +364,12 @@ func (s *Server) Check(ctx context.Context, r *envoyauthz.CheckRequest) (*envoya
 	if err != nil {
 		// Treat this as an auth error since Envoy has sent something it considers
 		// valid, it's just not an identity we trust.
-		return deniedResponse("Destination Principal is not a valid Connect identitiy")
+		return deniedResponse("Destination Principal is not a valid Connect identity")
 	}
 
 	destID, ok := dest.(*connect.SpiffeIDService)
 	if !ok {
-		return deniedResponse("Destination Principal is not a valid Service identitiy")
+		return deniedResponse("Destination Principal is not a valid Service identity")
 	}
 
 	// For now we don't validate the trust domain of the _destination_ at all -
