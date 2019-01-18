@@ -520,7 +520,7 @@ func (r *ACLResolver) resolvePoliciesAsyncForIdentity(identity structs.ACLIdenti
 	if acl.IsErrNotFound(err) {
 		for _, policyID := range policyIDs {
 			// Make sure to remove from the cache if it was deleted
-			r.fireAsyncTokenResult(policyID, nil, acl.ErrNotFound)
+			r.fireAsyncPolicyResult(policyID, nil, acl.ErrNotFound)
 		}
 		return
 	}
@@ -659,7 +659,7 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 		return r.filterPoliciesByScope(policies), nil
 	}
 
-	for i := 0; i < len(newAsyncFetchIds); i++ {
+	for i := 0; i < len(fetchIDs); i++ {
 		res := <-waitChan
 
 		if res.err != nil {
