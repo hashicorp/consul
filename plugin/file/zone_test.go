@@ -21,10 +21,10 @@ func TestNameFromRight(t *testing.T) {
 	for i, tc := range tests {
 		got, shot := z.nameFromRight(tc.in, tc.labels)
 		if got != tc.expected {
-			t.Errorf("Test %d: expected %s, got %s\n", i, tc.expected, got)
+			t.Errorf("Test %d: expected %s, got %s", i, tc.expected, got)
 		}
 		if shot != tc.shot {
-			t.Errorf("Test %d: expected shot to be %t, got %t\n", i, tc.shot, shot)
+			t.Errorf("Test %d: expected shot to be %t, got %t", i, tc.shot, shot)
 		}
 	}
 }

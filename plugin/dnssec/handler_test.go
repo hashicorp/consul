@@ -112,11 +112,13 @@ func TestLookupZone(t *testing.T) {
 		rec := dnstest.NewRecorder(&test.ResponseWriter{})
 		_, err := dh.ServeDNS(context.TODO(), rec, m)
 		if err != nil {
-			t.Errorf("Expected no error, got %v\n", err)
+			t.Errorf("Expected no error, got %v", err)
 			return
 		}
 
-		test.SortAndCheck(t, rec.Msg, tc)
+		if err := test.SortAndCheck(rec.Msg, tc); err != nil {
+			t.Error(err)
+		}
 	}
 }
 
@@ -133,7 +135,7 @@ func TestLookupDNSKEY(t *testing.T) {
 		rec := dnstest.NewRecorder(&test.ResponseWriter{})
 		_, err := dh.ServeDNS(context.TODO(), rec, m)
 		if err != nil {
-			t.Errorf("Expected no error, got %v\n", err)
+			t.Errorf("Expected no error, got %v", err)
 			return
 		}
 
@@ -142,7 +144,9 @@ func TestLookupDNSKEY(t *testing.T) {
 			t.Errorf("Authoritative Answer should be true, got false")
 		}
 
-		test.SortAndCheck(t, resp, tc)
+		if err := test.SortAndCheck(resp, tc); err != nil {
+			t.Error(err)
+		}
 
 		// If there is an NSEC present in authority section check if the bitmap does not have the qtype set.
 		for _, rr := range resp.Ns {

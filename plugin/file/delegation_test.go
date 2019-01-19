@@ -173,12 +173,14 @@ func testDelegation(t *testing.T, z, origin string, testcases []test.Case) {
 		rec := dnstest.NewRecorder(&test.ResponseWriter{})
 		_, err := fm.ServeDNS(ctx, rec, m)
 		if err != nil {
-			t.Errorf("Expected no error, got %q\n", err)
+			t.Errorf("Expected no error, got %q", err)
 			return
 		}
 
 		resp := rec.Msg
-		test.SortAndCheck(t, resp, tc)
+		if err := test.SortAndCheck(resp, tc); err != nil {
+			t.Error(err)
+		}
 	}
 }
 

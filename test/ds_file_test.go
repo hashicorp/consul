@@ -53,6 +53,8 @@ func TestLookupDS(t *testing.T) {
 			t.Fatalf("Expected to receive reply, but didn't for %s %d", tc.Qname, tc.Qtype)
 		}
 
-		mtest.SortAndCheck(t, resp, tc)
+		if err := mtest.SortAndCheck(resp, tc); err != nil {
+			t.Error(err)
+		}
 	}
 }

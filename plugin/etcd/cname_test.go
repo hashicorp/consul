@@ -28,23 +28,23 @@ func TestCnameLookup(t *testing.T) {
 		rec := dnstest.NewRecorder(&test.ResponseWriter{})
 		_, err := etc.ServeDNS(ctxt, rec, m)
 		if err != nil {
-			t.Errorf("Expected no error, got %v\n", err)
+			t.Errorf("Expected no error, got %v", err)
 			return
 		}
 
 		resp := rec.Msg
-		if !test.Header(t, tc, resp) {
-			t.Logf("%v\n", resp)
+		if err := test.Header(tc, resp); err != nil {
+			t.Error(err)
 			continue
 		}
-		if !test.Section(t, tc, test.Answer, resp.Answer) {
-			t.Logf("%v\n", resp)
+		if err := test.Section(tc, test.Answer, resp.Answer); err != nil {
+			t.Error(err)
 		}
-		if !test.Section(t, tc, test.Ns, resp.Ns) {
-			t.Logf("%v\n", resp)
+		if err := test.Section(tc, test.Ns, resp.Ns); err != nil {
+			t.Error(err)
 		}
-		if !test.Section(t, tc, test.Extra, resp.Extra) {
-			t.Logf("%v\n", resp)
+		if err := test.Section(tc, test.Extra, resp.Extra); err != nil {
+			t.Error(err)
 		}
 	}
 }

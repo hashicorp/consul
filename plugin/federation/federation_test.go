@@ -71,12 +71,14 @@ func TestFederationKubernetes(t *testing.T) {
 		rec := dnstest.NewRecorder(&test.ResponseWriter{})
 		_, err := fed.ServeDNS(ctx, rec, m)
 		if err != nil {
-			t.Errorf("Test %d, expected no error, got %v\n", i, err)
+			t.Errorf("Test %d, expected no error, got %v", i, err)
 			return
 		}
 
 		resp := rec.Msg
-		test.SortAndCheck(t, resp, tc)
+		if err := test.SortAndCheck(resp, tc); err != nil {
+			t.Error(err)
+		}
 	}
 }
 

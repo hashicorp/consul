@@ -371,9 +371,13 @@ func TestServeDNS(t *testing.T) {
 		}
 
 		// Before sorting, make sure that CNAMES do not appear after their target records
-		test.CNAMEOrder(t, resp)
+		if err := test.CNAMEOrder(resp); err != nil {
+			t.Error(err)
+		}
 
-		test.SortAndCheck(t, resp, tc)
+		if err := test.SortAndCheck(resp, tc); err != nil {
+			t.Error(err)
+		}
 	}
 }
 
@@ -417,10 +421,13 @@ func TestNotSyncedServeDNS(t *testing.T) {
 			t.Fatalf("Test %d, got nil message and no error for %q", i, r.Question[0].Name)
 		}
 
-		// Before sorting, make sure that CNAMES do not appear after their target records
-		test.CNAMEOrder(t, resp)
+		if err := test.CNAMEOrder(resp); err != nil {
+			t.Error(err)
+		}
 
-		test.SortAndCheck(t, resp, tc)
+		if err := test.SortAndCheck(resp, tc); err != nil {
+			t.Error(err)
+		}
 	}
 }
 

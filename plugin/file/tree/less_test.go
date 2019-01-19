@@ -65,7 +65,7 @@ Tests:
 		sort.Sort(set(test.in))
 		for i := 0; i < len(test.in); i++ {
 			if test.in[i] != test.out[i] {
-				t.Errorf("Test %d: expected %s, got %s\n", j, test.out[i], test.in[i])
+				t.Errorf("Test %d: expected %s, got %s", j, test.out[i], test.in[i])
 				n := ""
 				for k, in := range test.in {
 					if k+1 == len(test.in) {

@@ -28,7 +28,6 @@ import (
 	"mime"
 	"net/http"
 	"strconv"
-	"testing"
 
 	"github.com/matttproud/golang_protobuf_extensions/pbutil"
 	"github.com/prometheus/common/expfmt"
@@ -67,7 +66,7 @@ type (
 )
 
 // Scrape returns the all the vars a []*metricFamily.
-func Scrape(t *testing.T, url string) []*MetricFamily {
+func Scrape(url string) []*MetricFamily {
 	mfChan := make(chan *dto.MetricFamily, 1024)
 
 	go fetchMetricFamilies(url, mfChan)
@@ -81,7 +80,7 @@ func Scrape(t *testing.T, url string) []*MetricFamily {
 
 // ScrapeMetricAsInt provide a sum of all metrics collected for the name and label provided.
 // if the metric is not a numeric value, it will be counted a 0.
-func ScrapeMetricAsInt(t *testing.T, addr string, name string, label string, nometricvalue int) int {
+func ScrapeMetricAsInt(addr string, name string, label string, nometricvalue int) int {
 
 	valueToInt := func(m metric) int {
 		v := m.Value
@@ -92,7 +91,7 @@ func ScrapeMetricAsInt(t *testing.T, addr string, name string, label string, nom
 		return r
 	}
 
-	met := Scrape(t, fmt.Sprintf("http://%s/metrics", addr))
+	met := Scrape(fmt.Sprintf("http://%s/metrics", addr))
 	found := false
 	tot := 0
 	for _, mf := range met {

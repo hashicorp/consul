@@ -26,10 +26,8 @@ func TestConfig(t *testing.T) {
 			if err == nil {
 				t.Errorf("%s: %s", c.file, err)
 			}
-		} else if err != nil || conf.target != c.path ||
-			conf.full != c.full || conf.socket != c.socket {
-
-			t.Errorf("Expected: %+v\nhave: %+v\nerror: %s\n", c, conf, err)
+		} else if err != nil || conf.target != c.path || conf.full != c.full || conf.socket != c.socket {
+			t.Errorf("Expected: %+v\nhave: %+v\nerror: %s", c, conf, err)
 		}
 	}
 }

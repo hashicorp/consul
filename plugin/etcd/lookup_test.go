@@ -319,7 +319,9 @@ func TestLookup(t *testing.T) {
 		etc.ServeDNS(ctxt, rec, m)
 
 		resp := rec.Msg
-		test.SortAndCheck(t, resp, tc)
+		if err := test.SortAndCheck(resp, tc); err != nil {
+			t.Error(err)
+		}
 	}
 }
 

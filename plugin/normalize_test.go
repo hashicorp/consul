@@ -26,7 +26,7 @@ func TestZoneNormalize(t *testing.T) {
 
 	for _, actual := range zones {
 		if actual != expected {
-			t.Errorf("Expected %v, got %v\n", expected, actual)
+			t.Errorf("Expected %v, got %v", expected, actual)
 		}
 	}
 }
@@ -63,7 +63,7 @@ func TestNameNormalize(t *testing.T) {
 		expected := names[i+1]
 		actual := Name(ts).Normalize()
 		if expected != actual {
-			t.Errorf("Expected %v, got %v\n", expected, actual)
+			t.Errorf("Expected %v, got %v", expected, actual)
 		}
 	}
 }
@@ -78,7 +78,7 @@ func TestHostNormalize(t *testing.T) {
 		expected := hosts[i+1]
 		actual := Host(ts).Normalize()
 		if expected != actual {
-			t.Errorf("Expected %v, got %v\n", expected, actual)
+			t.Errorf("Expected %v, got %v", expected, actual)
 		}
 	}
 }

@@ -72,7 +72,7 @@ func TestServeDNSApex(t *testing.T) {
 
 		_, err := k.ServeDNS(ctx, w, r)
 		if err != tc.Error {
-			t.Errorf("Test %d, expected no error, got %v\n", i, err)
+			t.Errorf("Test %d, expected no error, got %v", i, err)
 			return
 		}
 		if tc.Error != nil {
@@ -84,6 +84,8 @@ func TestServeDNSApex(t *testing.T) {
 			t.Fatalf("Test %d, got nil message and no error ford", i)
 		}
 
-		test.SortAndCheck(t, resp, tc)
+		if err := test.SortAndCheck(resp, tc); err != nil {
+			t.Error(err)
+		}
 	}
 }

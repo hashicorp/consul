@@ -61,16 +61,16 @@ func TestExternal(t *testing.T) {
 		svc, rcode := k.External(state)
 
 		if x := tc.Rcode; x != rcode {
-			t.Errorf("Test %d, expected rcode %d, got %d\n", i, x, rcode)
+			t.Errorf("Test %d, expected rcode %d, got %d", i, x, rcode)
 		}
 
 		if len(svc) != len(tc.Msg) {
-			t.Errorf("Test %d, expected %d for messages, got %d\n", i, len(tc.Msg), len(svc))
+			t.Errorf("Test %d, expected %d for messages, got %d", i, len(tc.Msg), len(svc))
 		}
 
 		for j, s := range svc {
 			if x := tc.Msg[j].Key; x != s.Key {
-				t.Errorf("Test %d, expected key %s, got %s\n", i, x, s.Key)
+				t.Errorf("Test %d, expected key %s, got %s", i, x, s.Key)
 			}
 			return
 		}
