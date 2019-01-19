@@ -108,7 +108,7 @@ func (k *Kubernetes) Services(state request.Request, exact bool, opt plugin.Opti
 	case dns.TypeNS:
 		// We can only get here if the qname equals the zone, see ServeDNS in handler.go.
 		ns := k.nsAddr()
-		svc := msg.Service{Host: ns.A.String(), Key: msg.Path(state.QName(), coredns)}
+		svc := msg.Service{Host: ns.A.String(), Key: msg.Path(state.QName(), coredns), TTL: k.ttl}
 		return []msg.Service{svc}, nil
 	}
 
@@ -116,7 +116,7 @@ func (k *Kubernetes) Services(state request.Request, exact bool, opt plugin.Opti
 		// If this is an A request for "ns.dns", respond with a "fake" record for coredns.
 		// SOA records always use this hardcoded name
 		ns := k.nsAddr()
-		svc := msg.Service{Host: ns.A.String(), Key: msg.Path(state.QName(), coredns)}
+		svc := msg.Service{Host: ns.A.String(), Key: msg.Path(state.QName(), coredns), TTL: k.ttl}
 		return []msg.Service{svc}, nil
 	}
 
