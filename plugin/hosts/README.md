@@ -11,6 +11,9 @@ file that exists on disk. It checks the file for changes and updates the zones a
 plugin only supports A, AAAA, and PTR records. The hosts plugin can be used with readily
 available hosts files that block access to advertising servers.
 
+The plugin reloads the content of the hosts file every 5 seconds. Upon reload, CoreDNS will use the new definitions.
+Should the file be deleted, any inlined content will continue to be served. When the file is restored, it will then again be used.
+
 This plugin can only be used once per Server Block.
 
 ## The hosts file
