@@ -1,5 +1,7 @@
 import Route from '@ember/routing/route';
-
+import { routes } from 'consul-ui/router';
+import wildcard from 'consul-ui/utils/routing/wildcard';
+const isWildcard = wildcard(routes);
 /**
  * This initializer adds urldecoding to the `params` passed into
  * ember `model` hooks, plus of course anywhere else where `paramsFor`
@@ -9,14 +11,18 @@ import Route from '@ember/routing/route';
 Route.reopen({
   paramsFor: function() {
     const params = this._super(...arguments);
-    return Object.keys(params).reduce(function(prev, item) {
-      if (typeof params[item] !== 'undefined') {
-        prev[item] = decodeURIComponent(params[item]);
-      } else {
-        prev[item] = params[item];
-      }
-      return prev;
-    }, {});
+    if (isWildcard(this.routeName)) {
+      return Object.keys(params).reduce(function(prev, item) {
+        if (typeof params[item] !== 'undefined') {
+          prev[item] = decodeURIComponent(params[item]);
+        } else {
+          prev[item] = params[item];
+        }
+        return prev;
+      }, {});
+    } else {
+      return params;
+    }
   },
 });
 export function initialize() {}
