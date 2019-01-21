@@ -247,7 +247,6 @@ with a configuration file that enables ACLs. We can use the same ACL agent token
 {
   "acl" : {
     "enabled" : true,
-    "default_policy" : "deny",
     "down_policy" : "extend-cache",
     "tokens" : {
       "agent" : "da666809-98ca-0e94-a99c-893c4bf5f9eb"
