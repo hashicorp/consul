@@ -1,0 +1,9 @@
+#!/bin/bash
+
+echo "** presubmit/$(basename $0)"
+
+# Check to make sure "testing" is not imported
+if [[ $(go list -f '{{ join .Deps " "}}') == *" testing "* ]]; then
+    echo "** presubmit/$(basename $0): please remove any 'import \"testing\"'"
+    exit 1
+fi
