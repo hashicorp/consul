@@ -328,6 +328,9 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if providerState.PrivateKey == "" {
+		return "", ErrNotInitialized
+	}
 
 	// Create the keyId for the cert from the signing private key.
 	signer, err := connect.ParseSigner(providerState.PrivateKey)
@@ -623,9 +626,9 @@ func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error
 	serialNum := &big.Int{}
 	serialNum.SetUint64(sn)
 	template := x509.Certificate{
-		SerialNumber:          serialNum,
-		Subject:               pkix.Name{CommonName: name},
-		URIs:                  []*url.URL{id.URI()},
+		SerialNumber: serialNum,
+		Subject:      pkix.Name{CommonName: name},
+		URIs:         []*url.URL{id.URI()},
 		BasicConstraintsValid: true,
 		KeyUsage: x509.KeyUsageCertSign |
 			x509.KeyUsageCRLSign |
