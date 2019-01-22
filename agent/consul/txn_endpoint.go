@@ -7,6 +7,7 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 )
 
 // Txn endpoint is used to perform multi-object atomic transactions.
@@ -21,7 +22,8 @@ func (t *Txn) preCheck(authorizer acl.Authorizer, ops structs.TxnOps) structs.Tx
 
 	// Perform the pre-apply checks for any KV operations.
 	for i, op := range ops {
-		if op.KV != nil {
+		switch {
+		case op.KV != nil:
 			ok, err := kvsPreApply(t.srv, authorizer, op.KV.Verb, &op.KV.DirEnt)
 			if err != nil {
 				errors = append(errors, &structs.TxnError{
@@ -30,6 +32,65 @@ func (t *Txn) preCheck(authorizer acl.Authorizer, ops structs.TxnOps) structs.Tx
 				})
 			} else if !ok {
 				err = fmt.Errorf("failed to lock key %q due to lock delay", op.KV.DirEnt.Key)
+				errors = append(errors, &structs.TxnError{
+					OpIndex: i,
+					What:    err.Error(),
+				})
+			}
+		case op.Node != nil:
+			// Skip the pre-apply checks if this is a GET.
+			if op.Node.Verb == api.NodeGet {
+				break
+			}
+
+			node := op.Node.Node
+			if err := nodePreApply(node.Node, string(node.ID)); err != nil {
+				errors = append(errors, &structs.TxnError{
+					OpIndex: i,
+					What:    err.Error(),
+				})
+				break
+			}
+
+			// Check that the token has permissions for the given operation.
+			if err := vetNodeTxnOp(op.Node, authorizer); err != nil {
+				errors = append(errors, &structs.TxnError{
+					OpIndex: i,
+					What:    err.Error(),
+				})
+			}
+		case op.Service != nil:
+			// Skip the pre-apply checks if this is a GET.
+			if op.Service.Verb == api.ServiceGet {
+				break
+			}
+
+			service := &op.Service.Service
+			if err := servicePreApply(service, nil); err != nil {
+				errors = append(errors, &structs.TxnError{
+					OpIndex: i,
+					What:    err.Error(),
+				})
+				break
+			}
+
+			// Check that the token has permissions for the given operation.
+			if err := vetServiceTxnOp(op.Service, authorizer); err != nil {
+				errors = append(errors, &structs.TxnError{
+					OpIndex: i,
+					What:    err.Error(),
+				})
+			}
+		case op.Check != nil:
+			// Skip the pre-apply checks if this is a GET.
+			if op.Check.Verb == api.CheckGet {
+				break
+			}
+
+			checkPreApply(&op.Check.Check)
+
+			// Check that the token has permissions for the given operation.
+			if err := vetCheckTxnOp(op.Check, authorizer); err != nil {
 				errors = append(errors, &structs.TxnError{
 					OpIndex: i,
 					What:    err.Error(),

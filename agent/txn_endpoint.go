@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/types"
 )
 
 const (
@@ -48,9 +49,9 @@ func decodeValue(rawKV interface{}) error {
 	return nil
 }
 
-// fixupKVOp looks for non-nil KV operations and passes them on for
+// fixupTxnOp looks for non-nil Txn operations and passes them on for
 // value conversion.
-func fixupKVOp(rawOp interface{}) error {
+func fixupTxnOp(rawOp interface{}) error {
 	rawMap, ok := rawOp.(map[string]interface{})
 	if !ok {
 		return fmt.Errorf("unexpected raw op type: %T", rawOp)
@@ -67,15 +68,15 @@ func fixupKVOp(rawOp interface{}) error {
 	return nil
 }
 
-// fixupKVOps takes the raw decoded JSON and base64 decodes values in KV ops,
+// fixupTxnOps takes the raw decoded JSON and base64 decodes values in Txn ops,
 // replacing them with byte arrays.
-func fixupKVOps(raw interface{}) error {
+func fixupTxnOps(raw interface{}) error {
 	rawSlice, ok := raw.([]interface{})
 	if !ok {
 		return fmt.Errorf("unexpected raw type: %t", raw)
 	}
 	for _, rawOp := range rawSlice {
-		if err := fixupKVOp(rawOp); err != nil {
+		if err := fixupTxnOp(rawOp); err != nil {
 			return err
 		}
 	}
@@ -100,7 +101,7 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 	// decode it, we will return a 400 since we don't have enough context to
 	// associate the error with a given operation.
 	var ops api.TxnOps
-	if err := decodeBody(req, &ops, fixupKVOps); err != nil {
+	if err := decodeBody(req, &ops, fixupTxnOps); err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Failed to parse body: %v", err)
 		return nil, 0, false
@@ -123,7 +124,8 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 	var writes int
 	var netKVSize int
 	for _, in := range ops {
-		if in.KV != nil {
+		switch {
+		case in.KV != nil:
 			size := len(in.KV.Value)
 			if size > maxKVSize {
 				resp.WriteHeader(http.StatusRequestEntityTooLarge)
@@ -147,6 +149,102 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 						Session: in.KV.Session,
 						RaftIndex: structs.RaftIndex{
 							ModifyIndex: in.KV.Index,
+						},
+					},
+				},
+			}
+			opsRPC = append(opsRPC, out)
+
+		case in.Node != nil:
+			if in.Node.Verb != api.NodeGet {
+				writes++
+			}
+
+			// Setup the default DC if not provided
+			if in.Node.Node.Datacenter == "" {
+				in.Node.Node.Datacenter = s.agent.config.Datacenter
+			}
+
+			node := in.Node.Node
+			out := &structs.TxnOp{
+				Node: &structs.TxnNodeOp{
+					Verb: in.Node.Verb,
+					Node: structs.Node{
+						ID:              types.NodeID(node.ID),
+						Node:            node.Node,
+						Address:         node.Address,
+						Datacenter:      node.Datacenter,
+						TaggedAddresses: node.TaggedAddresses,
+						Meta:            node.Meta,
+						RaftIndex: structs.RaftIndex{
+							ModifyIndex: node.ModifyIndex,
+						},
+					},
+				},
+			}
+			opsRPC = append(opsRPC, out)
+
+		case in.Service != nil:
+			if in.Service.Verb != api.ServiceGet {
+				writes++
+			}
+
+			svc := in.Service.Service
+			out := &structs.TxnOp{
+				Service: &structs.TxnServiceOp{
+					Verb: in.Service.Verb,
+					Node: in.Service.Node,
+					Service: structs.NodeService{
+						ID:      svc.ID,
+						Service: svc.Service,
+						Tags:    svc.Tags,
+						Address: svc.Address,
+						Meta:    svc.Meta,
+						Port:    svc.Port,
+						Weights: &structs.Weights{
+							Passing: svc.Weights.Passing,
+							Warning: svc.Weights.Warning,
+						},
+						EnableTagOverride: svc.EnableTagOverride,
+						RaftIndex: structs.RaftIndex{
+							ModifyIndex: svc.ModifyIndex,
+						},
+					},
+				},
+			}
+			opsRPC = append(opsRPC, out)
+
+		case in.Check != nil:
+			if in.Check.Verb != api.CheckGet {
+				writes++
+			}
+
+			check := in.Check.Check
+			out := &structs.TxnOp{
+				Check: &structs.TxnCheckOp{
+					Verb: in.Check.Verb,
+					Check: structs.HealthCheck{
+						Node:        check.Node,
+						CheckID:     types.CheckID(check.CheckID),
+						Name:        check.Name,
+						Status:      check.Status,
+						Notes:       check.Notes,
+						Output:      check.Output,
+						ServiceID:   check.ServiceID,
+						ServiceName: check.ServiceName,
+						ServiceTags: check.ServiceTags,
+						Definition: structs.HealthCheckDefinition{
+							HTTP:                           check.Definition.HTTP,
+							TLSSkipVerify:                  check.Definition.TLSSkipVerify,
+							Header:                         check.Definition.Header,
+							Method:                         check.Definition.Method,
+							TCP:                            check.Definition.TCP,
+							Interval:                       check.Definition.Interval,
+							Timeout:                        check.Definition.Timeout,
+							DeregisterCriticalServiceAfter: check.Definition.DeregisterCriticalServiceAfter,
+						},
+						RaftIndex: structs.RaftIndex{
+							ModifyIndex: check.ModifyIndex,
 						},
 					},
 				},

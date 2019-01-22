@@ -1435,3 +1435,107 @@ func vetDeregisterWithACL(rule acl.Authorizer, subj *structs.DeregisterRequest,
 
 	return nil
 }
+
+// vetNodeTxnOp applies the given ACL policy to a node transaction operation.
+func vetNodeTxnOp(op *structs.TxnNodeOp, rule acl.Authorizer) error {
+	// Fast path if ACLs are not enabled.
+	if rule == nil {
+		return nil
+	}
+
+	node := op.Node
+
+	n := &api.Node{
+		Node:            node.Node,
+		ID:              string(node.ID),
+		Address:         node.Address,
+		Datacenter:      node.Datacenter,
+		TaggedAddresses: node.TaggedAddresses,
+		Meta:            node.Meta,
+	}
+
+	// Sentinel doesn't apply to deletes, only creates/updates, so we don't need the scopeFn.
+	var scope func() map[string]interface{}
+	if op.Verb != api.NodeDelete && op.Verb != api.NodeDeleteCAS {
+		scope = func() map[string]interface{} {
+			return sentinel.ScopeCatalogUpsert(n, nil)
+		}
+	}
+
+	if rule != nil && !rule.NodeWrite(node.Node, scope) {
+		return acl.ErrPermissionDenied
+	}
+
+	return nil
+}
+
+// vetServiceTxnOp applies the given ACL policy to a service transaction operation.
+func vetServiceTxnOp(op *structs.TxnServiceOp, rule acl.Authorizer) error {
+	// Fast path if ACLs are not enabled.
+	if rule == nil {
+		return nil
+	}
+
+	service := op.Service
+
+	n := &api.Node{Node: op.Node}
+	svc := &api.AgentService{
+		ID:                service.ID,
+		Service:           service.Service,
+		Tags:              service.Tags,
+		Meta:              service.Meta,
+		Address:           service.Address,
+		Port:              service.Port,
+		EnableTagOverride: service.EnableTagOverride,
+	}
+	var scope func() map[string]interface{}
+	if op.Verb != api.ServiceDelete && op.Verb != api.ServiceDeleteCAS {
+		scope = func() map[string]interface{} {
+			return sentinel.ScopeCatalogUpsert(n, svc)
+		}
+	}
+	if !rule.ServiceWrite(service.Service, scope) {
+		return acl.ErrPermissionDenied
+	}
+
+	return nil
+}
+
+// vetCheckTxnOp applies the given ACL policy to a check transaction operation.
+func vetCheckTxnOp(op *structs.TxnCheckOp, rule acl.Authorizer) error {
+	// Fast path if ACLs are not enabled.
+	if rule == nil {
+		return nil
+	}
+
+	n := &api.Node{Node: op.Check.Node}
+	svc := &api.AgentService{
+		ID:      op.Check.ServiceID,
+		Service: op.Check.ServiceID,
+		Tags:    op.Check.ServiceTags,
+	}
+	var scope func() map[string]interface{}
+	if op.Check.ServiceID == "" {
+		// Node-level check.
+		if op.Verb == api.CheckDelete || op.Verb == api.CheckDeleteCAS {
+			scope = func() map[string]interface{} {
+				return sentinel.ScopeCatalogUpsert(n, svc)
+			}
+		}
+		if !rule.NodeWrite(op.Check.Node, scope) {
+			return acl.ErrPermissionDenied
+		}
+	} else {
+		// Service-level check.
+		if op.Verb == api.CheckDelete || op.Verb == api.CheckDeleteCAS {
+			scope = func() map[string]interface{} {
+				return sentinel.ScopeCatalogUpsert(n, svc)
+			}
+		}
+		if !rule.ServiceWrite(op.Check.ServiceName, scope) {
+			return acl.ErrPermissionDenied
+		}
+	}
+
+	return nil
+}

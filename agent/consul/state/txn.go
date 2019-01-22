@@ -118,8 +118,198 @@ func (s *Store) txnIntention(tx *memdb.Txn, idx uint64, op *structs.TxnIntention
 	case structs.IntentionOpDelete:
 		return s.intentionDeleteTxn(tx, idx, op.Intention.ID)
 	default:
-		return fmt.Errorf("unknown Intention verb %q", op.Op)
+		return fmt.Errorf("unknown Intention op %q", op.Op)
 	}
+}
+
+// txnNode handles all Node-related operations.
+func (s *Store) txnNode(tx *memdb.Txn, idx uint64, op *structs.TxnNodeOp) (structs.TxnResults, error) {
+	var entry *structs.Node
+	var err error
+
+	getNode := func() (*structs.Node, error) {
+		if op.Node.ID != "" {
+			return getNodeIDTxn(tx, op.Node.ID)
+		} else {
+			return getNodeTxn(tx, op.Node.Node)
+		}
+	}
+
+	switch op.Verb {
+	case api.NodeGet:
+		entry, err = getNode()
+		if entry == nil && err == nil {
+			err = fmt.Errorf("node %q doesn't exist", op.Node.Node)
+		}
+
+	case api.NodeSet:
+		err = s.ensureNodeTxn(tx, idx, &op.Node)
+		if err == nil {
+			entry, err = getNode()
+		}
+
+	case api.NodeCAS:
+		var ok bool
+		ok, err = s.ensureNodeCASTxn(tx, idx, &op.Node)
+		if !ok && err == nil {
+			err = fmt.Errorf("failed to set node %q, index is stale", op.Node.Node)
+			break
+		}
+		entry, err = getNode()
+
+	case api.NodeDelete:
+		err = s.deleteNodeTxn(tx, idx, op.Node.Node)
+
+	case api.NodeDeleteCAS:
+		var ok bool
+		ok, err = s.deleteNodeCASTxn(tx, idx, op.Node.ModifyIndex, op.Node.Node)
+		if !ok && err == nil {
+			err = fmt.Errorf("failed to delete node %q, index is stale", op.Node.Node)
+		}
+
+	default:
+		err = fmt.Errorf("unknown Node verb %q", op.Verb)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// For a GET we keep the value, otherwise we clone and blank out the
+	// value (we have to clone so we don't modify the entry being used by
+	// the state store).
+	if entry != nil {
+		if op.Verb == api.NodeGet {
+			result := structs.TxnResult{Node: entry}
+			return structs.TxnResults{&result}, nil
+		}
+
+		clone := *entry
+		result := structs.TxnResult{Node: &clone}
+		return structs.TxnResults{&result}, nil
+	}
+
+	return nil, nil
+}
+
+// txnService handles all Service-related operations.
+func (s *Store) txnService(tx *memdb.Txn, idx uint64, op *structs.TxnServiceOp) (structs.TxnResults, error) {
+	var entry *structs.NodeService
+	var err error
+
+	switch op.Verb {
+	case api.ServiceGet:
+		entry, err = s.getNodeServiceTxn(tx, op.Node, op.Service.ID)
+		if entry == nil && err == nil {
+			err = fmt.Errorf("service %q on node %q doesn't exist", op.Service.ID, op.Node)
+		}
+
+	case api.ServiceSet:
+		err = s.ensureServiceTxn(tx, idx, op.Node, &op.Service)
+		entry, err = s.getNodeServiceTxn(tx, op.Node, op.Service.ID)
+
+	case api.ServiceCAS:
+		var ok bool
+		ok, err = s.ensureServiceCASTxn(tx, idx, op.Node, &op.Service)
+		if !ok && err == nil {
+			err = fmt.Errorf("failed to set service %q on node %q, index is stale", op.Service.ID, op.Node)
+			break
+		}
+		entry, err = s.getNodeServiceTxn(tx, op.Node, op.Service.ID)
+
+	case api.ServiceDelete:
+		err = s.deleteServiceTxn(tx, idx, op.Node, op.Service.ID)
+
+	case api.ServiceDeleteCAS:
+		var ok bool
+		ok, err = s.deleteServiceCASTxn(tx, idx, op.Service.ModifyIndex, op.Node, op.Service.ID)
+		if !ok && err == nil {
+			err = fmt.Errorf("failed to delete service %q on node %q, index is stale", op.Service.ID, op.Node)
+		}
+
+	default:
+		err = fmt.Errorf("unknown Service verb %q", op.Verb)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// For a GET we keep the value, otherwise we clone and blank out the
+	// value (we have to clone so we don't modify the entry being used by
+	// the state store).
+	if entry != nil {
+		if op.Verb == api.ServiceGet {
+			result := structs.TxnResult{Service: entry}
+			return structs.TxnResults{&result}, nil
+		}
+
+		clone := *entry
+		result := structs.TxnResult{Service: &clone}
+		return structs.TxnResults{&result}, nil
+	}
+
+	return nil, nil
+}
+
+// txnCheck handles all Check-related operations.
+func (s *Store) txnCheck(tx *memdb.Txn, idx uint64, op *structs.TxnCheckOp) (structs.TxnResults, error) {
+	var entry *structs.HealthCheck
+	var err error
+
+	switch op.Verb {
+	case api.CheckGet:
+		_, entry, err = s.getNodeCheckTxn(tx, op.Check.Node, op.Check.CheckID)
+		if entry == nil && err == nil {
+			err = fmt.Errorf("check %q on node %q doesn't exist", op.Check.CheckID, op.Check.Node)
+		}
+
+	case api.CheckSet:
+		err = s.ensureCheckTxn(tx, idx, &op.Check)
+		if err == nil {
+			_, entry, err = s.getNodeCheckTxn(tx, op.Check.Node, op.Check.CheckID)
+		}
+
+	case api.CheckCAS:
+		var ok bool
+		entry = &op.Check
+		ok, err = s.ensureCheckCASTxn(tx, idx, entry)
+		if !ok && err == nil {
+			err = fmt.Errorf("failed to set check %q on node %q, index is stale", entry.CheckID, entry.Node)
+			break
+		}
+		_, entry, err = s.getNodeCheckTxn(tx, op.Check.Node, op.Check.CheckID)
+
+	case api.CheckDelete:
+		err = s.deleteCheckTxn(tx, idx, op.Check.Node, op.Check.CheckID)
+
+	case api.CheckDeleteCAS:
+		var ok bool
+		ok, err = s.deleteCheckCASTxn(tx, idx, op.Check.ModifyIndex, op.Check.Node, op.Check.CheckID)
+		if !ok && err == nil {
+			err = fmt.Errorf("failed to delete check %q on node %q, index is stale", op.Check.CheckID, op.Check.Node)
+		}
+
+	default:
+		err = fmt.Errorf("unknown Check verb %q", op.Verb)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// For a GET we keep the value, otherwise we clone and blank out the
+	// value (we have to clone so we don't modify the entry being used by
+	// the state store).
+	if entry != nil {
+		if op.Verb == api.CheckGet {
+			result := structs.TxnResult{Check: entry}
+			return structs.TxnResults{&result}, nil
+		}
+
+		clone := entry.Clone()
+		result := structs.TxnResult{Check: clone}
+		return structs.TxnResults{&result}, nil
+	}
+
+	return nil, nil
 }
 
 // txnDispatch runs the given operations inside the state store transaction.
@@ -136,6 +326,12 @@ func (s *Store) txnDispatch(tx *memdb.Txn, idx uint64, ops structs.TxnOps) (stru
 			ret, err = s.txnKVS(tx, idx, op.KV)
 		case op.Intention != nil:
 			err = s.txnIntention(tx, idx, op.Intention)
+		case op.Node != nil:
+			ret, err = s.txnNode(tx, idx, op.Node)
+		case op.Service != nil:
+			ret, err = s.txnService(tx, idx, op.Service)
+		case op.Check != nil:
+			ret, err = s.txnCheck(tx, idx, op.Check)
 		default:
 			err = fmt.Errorf("no operation specified")
 		}

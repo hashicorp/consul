@@ -9,7 +9,7 @@ import (
 )
 
 // TxnKVOp is used to define a single operation on the KVS inside a
-// transaction
+// transaction.
 type TxnKVOp struct {
 	Verb   api.KVOp
 	DirEnt DirEntry
@@ -18,6 +18,40 @@ type TxnKVOp struct {
 // TxnKVResult is used to define the result of a single operation on the KVS
 // inside a transaction.
 type TxnKVResult *DirEntry
+
+// TxnNodeOp is used to define a single operation on a node in the catalog inside
+// a transaction.
+type TxnNodeOp struct {
+	Verb api.NodeOp
+	Node Node
+}
+
+// TxnNodeResult is used to define the result of a single operation on a node
+// in the catalog inside a transaction.
+type TxnNodeResult *Node
+
+// TxnServiceOp is used to define a single operation on a service in the catalog inside
+// a transaction.
+type TxnServiceOp struct {
+	Verb    api.ServiceOp
+	Node    string
+	Service NodeService
+}
+
+// TxnServiceResult is used to define the result of a single operation on a service
+// in the catalog inside a transaction.
+type TxnServiceResult *NodeService
+
+// TxnCheckOp is used to define a single operation on a health check inside a
+// transaction.
+type TxnCheckOp struct {
+	Verb  api.CheckOp
+	Check HealthCheck
+}
+
+// TxnCheckResult is used to define the result of a single operation on a health
+// check inside a transaction.
+type TxnCheckResult *HealthCheck
 
 // TxnKVOp is used to define a single operation on an Intention inside a
 // transaction.
@@ -28,6 +62,9 @@ type TxnIntentionOp IntentionRequest
 type TxnOp struct {
 	KV        *TxnKVOp
 	Intention *TxnIntentionOp
+	Node      *TxnNodeOp
+	Service   *TxnServiceOp
+	Check     *TxnCheckOp
 }
 
 // TxnOps is a list of operations within a transaction.
@@ -75,7 +112,10 @@ type TxnErrors []*TxnError
 // TxnResult is used to define the result of a given operation inside a
 // transaction. Only one of the types should be filled out per entry.
 type TxnResult struct {
-	KV TxnKVResult
+	KV      TxnKVResult      `json:",omitempty"`
+	Node    TxnNodeResult    `json:",omitempty"`
+	Service TxnServiceResult `json:",omitempty"`
+	Check   TxnCheckResult   `json:",omitempty"`
 }
 
 // TxnResults is a list of TxnResult entries.

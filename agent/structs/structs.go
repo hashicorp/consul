@@ -2,6 +2,7 @@ package structs
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"reflect"
@@ -906,14 +907,72 @@ type HealthCheck struct {
 }
 
 type HealthCheckDefinition struct {
-	HTTP                           string               `json:",omitempty"`
-	TLSSkipVerify                  bool                 `json:",omitempty"`
-	Header                         map[string][]string  `json:",omitempty"`
-	Method                         string               `json:",omitempty"`
-	TCP                            string               `json:",omitempty"`
-	Interval                       api.ReadableDuration `json:",omitempty"`
-	Timeout                        api.ReadableDuration `json:",omitempty"`
-	DeregisterCriticalServiceAfter api.ReadableDuration `json:",omitempty"`
+	HTTP                           string              `json:",omitempty"`
+	TLSSkipVerify                  bool                `json:",omitempty"`
+	Header                         map[string][]string `json:",omitempty"`
+	Method                         string              `json:",omitempty"`
+	TCP                            string              `json:",omitempty"`
+	Interval                       time.Duration       `json:",omitempty"`
+	Timeout                        time.Duration       `json:",omitempty"`
+	DeregisterCriticalServiceAfter time.Duration       `json:",omitempty"`
+}
+
+func (d *HealthCheckDefinition) MarshalJSON() ([]byte, error) {
+	type Alias HealthCheckDefinition
+	exported := &struct {
+		Interval                       string
+		Timeout                        string
+		DeregisterCriticalServiceAfter string
+		*Alias
+	}{
+		Interval:                       d.Interval.String(),
+		Timeout:                        d.Timeout.String(),
+		DeregisterCriticalServiceAfter: d.DeregisterCriticalServiceAfter.String(),
+		Alias:                          (*Alias)(d),
+	}
+	if d.Interval == 0 {
+		exported.Interval = ""
+	}
+	if d.Timeout == 0 {
+		exported.Timeout = ""
+	}
+	if d.DeregisterCriticalServiceAfter == 0 {
+		exported.DeregisterCriticalServiceAfter = ""
+	}
+
+	return json.Marshal(exported)
+}
+
+func (d *HealthCheckDefinition) UnmarshalJSON(data []byte) error {
+	type Alias HealthCheckDefinition
+	aux := &struct {
+		Interval                       string
+		Timeout                        string
+		DeregisterCriticalServiceAfter string
+		*Alias
+	}{
+		Alias: (*Alias)(d),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	var err error
+	if aux.Interval != "" {
+		if d.Interval, err = time.ParseDuration(aux.Interval); err != nil {
+			return err
+		}
+	}
+	if aux.Timeout != "" {
+		if d.Timeout, err = time.ParseDuration(aux.Timeout); err != nil {
+			return err
+		}
+	}
+	if aux.DeregisterCriticalServiceAfter != "" {
+		if d.DeregisterCriticalServiceAfter, err = time.ParseDuration(aux.DeregisterCriticalServiceAfter); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // IsSame checks if one HealthCheck is the same as another, without looking
@@ -929,7 +988,8 @@ func (c *HealthCheck) IsSame(other *HealthCheck) bool {
 		c.Output != other.Output ||
 		c.ServiceID != other.ServiceID ||
 		c.ServiceName != other.ServiceName ||
-		!reflect.DeepEqual(c.ServiceTags, other.ServiceTags) {
+		!reflect.DeepEqual(c.ServiceTags, other.ServiceTags) ||
+		!reflect.DeepEqual(c.Definition, other.Definition) {
 		return false
 	}
 

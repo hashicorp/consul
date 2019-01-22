@@ -1,8 +1,10 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 )
 
 const (
@@ -36,6 +38,9 @@ type HealthCheck struct {
 	ServiceTags []string
 
 	Definition HealthCheckDefinition
+
+	CreateIndex uint64
+	ModifyIndex uint64
 }
 
 // HealthCheckDefinition is used to store the details about
@@ -46,9 +51,56 @@ type HealthCheckDefinition struct {
 	Method                         string
 	TLSSkipVerify                  bool
 	TCP                            string
-	Interval                       ReadableDuration
-	Timeout                        ReadableDuration
-	DeregisterCriticalServiceAfter ReadableDuration
+	Interval                       time.Duration
+	Timeout                        time.Duration
+	DeregisterCriticalServiceAfter time.Duration
+}
+
+func (d *HealthCheckDefinition) MarshalJSON() ([]byte, error) {
+	type Alias HealthCheckDefinition
+	return json.Marshal(&struct {
+		Interval                       string
+		Timeout                        string
+		DeregisterCriticalServiceAfter string
+		*Alias
+	}{
+		Interval:                       d.Interval.String(),
+		Timeout:                        d.Timeout.String(),
+		DeregisterCriticalServiceAfter: d.DeregisterCriticalServiceAfter.String(),
+		Alias:                          (*Alias)(d),
+	})
+}
+
+func (d *HealthCheckDefinition) UnmarshalJSON(data []byte) error {
+	type Alias HealthCheckDefinition
+	aux := &struct {
+		Interval                       string
+		Timeout                        string
+		DeregisterCriticalServiceAfter string
+		*Alias
+	}{
+		Alias: (*Alias)(d),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	var err error
+	if aux.Interval != "" {
+		if d.Interval, err = time.ParseDuration(aux.Interval); err != nil {
+			return err
+		}
+	}
+	if aux.Timeout != "" {
+		if d.Timeout, err = time.ParseDuration(aux.Timeout); err != nil {
+			return err
+		}
+	}
+	if aux.DeregisterCriticalServiceAfter != "" {
+		if d.DeregisterCriticalServiceAfter, err = time.ParseDuration(aux.DeregisterCriticalServiceAfter); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // HealthChecks is a collection of HealthCheck structs.
