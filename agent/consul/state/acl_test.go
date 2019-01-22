@@ -1326,6 +1326,63 @@ func TestStateStore_ACLPolicy_Delete(t *testing.T) {
 		require.NoError(t, s.ACLPolicyDeleteByName(3, "not-found"))
 		require.NoError(t, s.ACLPolicyDeleteByID(3, "376d0cae-dd50-4213-9668-2c7797a7fb2d"))
 	})
+
+	t.Run("Unlink-Tokens", func(t *testing.T) {
+		t.Parallel()
+		s := testACLStateStore(t)
+
+		policies := structs.ACLPolicies{
+			&structs.ACLPolicy{
+				ID:    "f1093997-b6c7-496d-bfb8-6b1b1895641b",
+				Name:  "34ec8eb3-095d-417a-a937-b439af7a8e8b",
+				Rules: `acl = "read"`,
+			},
+			&structs.ACLPolicy{
+				ID:    "a0bfe8d4-b2f3-4b48-b387-f28afb820eab",
+				Name:  "be444e46-fb95-4ccc-80d5-c873f34e6fa6",
+				Rules: `acl = "write"`,
+			},
+		}
+
+		require.NoError(t, s.ACLPolicyBatchSet(2, policies))
+
+		token := structs.ACLToken{
+			AccessorID:  "61c13465-a513-4f18-b101-0d4c3ec37dc5",
+			SecretID:    "c8326ddf-3e50-4823-b91a-0a8aacf0e854",
+			Description: "Test Token 1",
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID:   "f1093997-b6c7-496d-bfb8-6b1b1895641b",
+					Name: "34ec8eb3-095d-417a-a937-b439af7a8e8b",
+				},
+				structs.ACLTokenPolicyLink{
+					ID:   "a0bfe8d4-b2f3-4b48-b387-f28afb820eab",
+					Name: "be444e46-fb95-4ccc-80d5-c873f34e6fa6",
+				},
+			},
+		}
+		token.SetHash(true)
+		require.NoError(t, s.ACLTokenSet(1, &token, false))
+
+		require.NoError(t, s.ACLPolicyDeleteByID(10, "f1093997-b6c7-496d-bfb8-6b1b1895641b"))
+
+		_, unlinked, err := s.ACLTokenGetByAccessor(nil, "61c13465-a513-4f18-b101-0d4c3ec37dc5")
+		require.NoError(t, err)
+		require.NotNil(t, unlinked)
+		require.ElementsMatch(t, unlinked.Policies, []structs.ACLTokenPolicyLink{
+			structs.ACLTokenPolicyLink{
+				ID:   "a0bfe8d4-b2f3-4b48-b387-f28afb820eab",
+				Name: "be444e46-fb95-4ccc-80d5-c873f34e6fa6",
+			},
+		})
+
+		require.NoError(t, s.ACLPolicyDeleteByID(10, "a0bfe8d4-b2f3-4b48-b387-f28afb820eab"))
+
+		_, unlinked, err = s.ACLTokenGetByAccessor(nil, "61c13465-a513-4f18-b101-0d4c3ec37dc5")
+		require.NoError(t, err)
+		require.NotNil(t, unlinked)
+		require.Len(t, unlinked.Policies, 0)
+	})
 }
 
 func TestStateStore_ACLTokens_Snapshot_Restore(t *testing.T) {

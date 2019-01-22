@@ -378,6 +378,7 @@ func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToke
 		}
 
 		token.CreateIndex = original.CreateIndex
+		token.CreateTime = original.CreateTime
 		token.ModifyIndex = idx
 	} else {
 		token.CreateIndex = idx
@@ -534,6 +535,46 @@ func (s *Store) ACLTokenListUpgradeable(max int) (structs.ACLTokens, <-chan stru
 	}
 
 	return tokens, iter.WatchCh(), nil
+}
+
+func (s *Store) aclTokenUnlinkPolicyTxn(tx *memdb.Txn, idx uint64, policyID string) (bool, error) {
+	iter, err := tx.Get("acl-tokens", "policies", policyID)
+	if err != nil {
+		return false, err
+	}
+
+	updates := false
+
+	for raw := iter.Next(); raw != nil; raw = iter.Next() {
+		original := raw.(*structs.ACLToken)
+		token := &structs.ACLToken{
+			AccessorID:  original.AccessorID,
+			SecretID:    original.SecretID,
+			Description: original.Description,
+			Type:        original.Type,
+			Rules:       original.Rules,
+			Local:       original.Local,
+		}
+
+		for _, link := range original.Policies {
+			if link.ID == policyID {
+				continue
+			}
+
+			token.Policies = append(token.Policies, structs.ACLTokenPolicyLink{ID: link.ID})
+		}
+
+		token.SetHash(true)
+
+		err = s.aclTokenSetTxn(tx, idx, token, false, false, false)
+		if err != nil {
+			return updates, err
+		}
+
+		updates = true
+	}
+
+	return updates, nil
 }
 
 // ACLTokenDeleteBySecret is used to remove an existing ACL from the state store. If
@@ -777,13 +818,26 @@ func (s *Store) ACLPolicyBatchDelete(idx uint64, policyIDs []string) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
+	tokensUpdated := false
+
 	for _, policyID := range policyIDs {
-		s.aclPolicyDeleteTxn(tx, idx, policyID, "id")
+		if updates, err := s.aclPolicyDeleteTxn(tx, idx, policyID, "id"); err != nil {
+			return err
+		} else if updates {
+			tokensUpdated = true
+		}
 	}
 
 	if err := indexUpdateMaxTxn(tx, idx, "acl-policies"); err != nil {
 		return fmt.Errorf("failed updating index: %v", err)
 	}
+
+	if tokensUpdated {
+		if err := indexUpdateMaxTxn(tx, idx, "acl-tokens"); err != nil {
+			return fmt.Errorf("failed updating index: %v", err)
+		}
+	}
+
 	tx.Commit()
 	return nil
 }
@@ -792,8 +846,12 @@ func (s *Store) aclPolicyDelete(idx uint64, value, index string) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
-	if err := s.aclPolicyDeleteTxn(tx, idx, value, index); err != nil {
+	if updates, err := s.aclPolicyDeleteTxn(tx, idx, value, index); err != nil {
 		return err
+	} else if updates {
+		if err := indexUpdateMaxTxn(tx, idx, "acl-tokens"); err != nil {
+			return fmt.Errorf("failed updating index: %v", err)
+		}
 	}
 	if err := indexUpdateMaxTxn(tx, idx, "acl-policies"); err != nil {
 		return fmt.Errorf("failed updating index: %v", err)
@@ -803,25 +861,30 @@ func (s *Store) aclPolicyDelete(idx uint64, value, index string) error {
 	return nil
 }
 
-func (s *Store) aclPolicyDeleteTxn(tx *memdb.Txn, idx uint64, value, index string) error {
+func (s *Store) aclPolicyDeleteTxn(tx *memdb.Txn, idx uint64, value, index string) (bool, error) {
 	// Look up the existing token
 	rawPolicy, err := tx.First("acl-policies", index, value)
 	if err != nil {
-		return fmt.Errorf("failed acl policy lookup: %v", err)
+		return false, fmt.Errorf("failed acl policy lookup: %v", err)
 	}
 
 	if rawPolicy == nil {
-		return nil
+		return false, nil
 	}
 
 	policy := rawPolicy.(*structs.ACLPolicy)
 
 	if policy.ID == structs.ACLPolicyGlobalManagementID {
-		return fmt.Errorf("Deletion of the builtin global-management policy is not permitted")
+		return false, fmt.Errorf("Deletion of the builtin global-management policy is not permitted")
 	}
 
 	if err := tx.Delete("acl-policies", policy); err != nil {
-		return fmt.Errorf("failed deleting acl policy: %v", err)
+		return false, fmt.Errorf("failed deleting acl policy: %v", err)
 	}
-	return nil
+
+	tokensUpdated, err := s.aclTokenUnlinkPolicyTxn(tx, idx, policy.ID)
+	if err != nil {
+		return false, fmt.Errorf("failed unlinking acl policy %q from tokens: %v", policy.ID, err)
+	}
+	return tokensUpdated, nil
 }
