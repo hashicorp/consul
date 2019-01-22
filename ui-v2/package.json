@@ -45,7 +45,6 @@
     "broccoli-asset-rev": "^2.4.5",
     "dart-sass": "^1.14.1",
     "ember-ajax": "^3.0.0",
-    "ember-block-slots": "^1.1.11",
     "ember-browserify": "^1.2.2",
     "ember-changeset-validations": "^1.2.11",
     "ember-cli": "~2.18.2",
@@ -104,7 +103,8 @@
   },
   "ember-addon": {
     "paths": [
-      "lib/startup"
+      "lib/startup",
+      "lib/block-slots"
     ]
   }
 }

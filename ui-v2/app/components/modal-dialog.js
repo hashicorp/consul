@@ -1,7 +1,7 @@
 import { get, set } from '@ember/object';
 import { inject as service } from '@ember/service';
 import Component from 'consul-ui/components/dom-buffer';
-import SlotsMixin from 'ember-block-slots';
+import SlotsMixin from 'block-slots';
 import WithResizing from 'consul-ui/mixins/with-resizing';
 
 import templatize from 'consul-ui/utils/templatize';
