@@ -1,10 +1,10 @@
-import routingWildcard from 'consul-ui/utils/routing/wildcard';
+import wildcard from 'consul-ui/utils/routing/wildcard';
 import { module, test } from 'qunit';
 
 module('Unit | Utility | routing/wildcard');
 
 test('it finds a * in a path', function(assert) {
-  const isWildcard = routingWildcard({
+  const isWildcard = wildcard({
     route: {
       _options: {
         path: 'i-m-a-wildcard*',
@@ -14,7 +14,7 @@ test('it finds a * in a path', function(assert) {
   assert.ok(isWildcard('route'));
 });
 test("it returns false without throwing if it doesn't find route", function(assert) {
-  const isWildcard = routingWildcard({
+  const isWildcard = wildcard({
     route: {
       _options: {
         path: 'i-m-a-wildcard*',

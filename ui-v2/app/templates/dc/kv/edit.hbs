@@ -7,7 +7,7 @@
             <li><a data-test-back href={{href-to 'dc.kv.index'}}>Key / Values</a></li>
 {{#if (not-eq parent.Key '/') }}
 {{#each (slice 0 -1 (split parent.Key '/')) as |breadcrumb index|}}
-            <li><a href={{href-to 'dc.kv.folder' (append (slice 0 (add index 1) (split parent.Key '/')) '')}}>{{breadcrumb}}</a></li>
+            <li><a href={{href-to 'dc.kv.folder' (join '/' (append (slice 0 (add index 1) (split parent.Key '/')) ''))}}>{{breadcrumb}}</a></li>
 {{/each}}
 {{/if}}
         </ol>
