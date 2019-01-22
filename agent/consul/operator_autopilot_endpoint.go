@@ -15,7 +15,7 @@ func (op *Operator) AutopilotGetConfiguration(args *structs.DCSpecificRequest, r
 	}
 
 	// This action requires operator read access.
-	rule, err := op.srv.resolveToken(args.Token)
+	rule, err := op.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
@@ -44,7 +44,7 @@ func (op *Operator) AutopilotSetConfiguration(args *structs.AutopilotSetConfigRe
 	}
 
 	// This action requires operator write access.
-	rule, err := op.srv.resolveToken(args.Token)
+	rule, err := op.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ func (op *Operator) ServerHealth(args *structs.DCSpecificRequest, reply *autopil
 	}
 
 	// This action requires operator read access.
-	rule, err := op.srv.resolveToken(args.Token)
+	rule, err := op.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}

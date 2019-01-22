@@ -53,6 +53,26 @@
       <li<%= sidebar_current("docs-commands") %>>
         <a href="/docs/commands/index.html">Commands (CLI)</a>
         <ul class="nav">
+          <li<%= sidebar_current("docs-commands-acl") %>>
+            <a href="/docs/commands/acl.html">acl</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-commands-acl-bootstrap") %>>
+                <a href="/docs/commands/acl/acl-bootstrap.html">bootstrap</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-acl-policy") %>>
+                <a href="/docs/commands/acl/acl-policy.html">policy</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-acl-set-agent-token") %>>
+                <a href="/docs/commands/acl/acl-set-agent-token.html">set-agent-token</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-acl-token") %>>
+                <a href="/docs/commands/acl/acl-token.html">token</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-acl-translate-rules") %>>
+                <a href="/docs/commands/acl/acl-translate-rules.html">translate-rules</a>
+              </li>
+            </ul>
+          </li>
           <li<%= sidebar_current("docs-commands-agent") %>>
             <a href="/docs/commands/agent.html">agent</a>
           </li>
@@ -79,7 +99,13 @@
               <li<%= sidebar_current("docs-commands-connect-proxy") %>>
                 <a href="/docs/commands/connect/proxy.html">proxy</a>
               </li>
+              <li<%= sidebar_current("docs-commands-connect-envoy") %>>
+                <a href="/docs/commands/connect/envoy.html">envoy</a>
+              </li>
             </ul>
+          </li>
+          <li<%= sidebar_current("docs-commands-debug") %>>
+            <a href="/docs/commands/debug.html">debug</a>
           </li>
           <li<%= sidebar_current("docs-commands-event") %>>
             <a href="/docs/commands/event.html">event</a>
@@ -185,6 +211,18 @@
             <a href="/docs/commands/rtt.html">rtt</a>
           </li>
 
+          <li<%= sidebar_current("docs-commands-services") %>>
+            <a href="/docs/commands/services.html">services</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-commands-services-register") %>>
+                <a href="/docs/commands/services/register.html">register</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-services-deregister") %>>
+                <a href="/docs/commands/services/deregister.html">deregister</a>
+              </li>
+            </ul>
+          </li>
+
           <li<%= sidebar_current("docs-commands-snapshot") %>>
             <a href="/docs/commands/snapshot.html">snapshot</a>
             <ul class="nav">
@@ -199,6 +237,18 @@
               </li>
               <li<%= sidebar_current("docs-commands-snapshot-save") %>>
                 <a href="/docs/commands/snapshot/save.html">save</a>
+              </li>
+            </ul>
+          </li>
+
+          <li<%= sidebar_current("docs-commands-tls") %>>
+            <a href="/docs/commands/tls.html">tls</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-commands-tls-ca") %>>
+                <a href="/docs/commands/tls/ca.html">ca</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-tls-cert") %>>
+                <a href="/docs/commands/tls/cert.html">cert</a>
               </li>
             </ul>
           </li>
@@ -220,6 +270,12 @@
         <ul class="nav">
           <li<%= sidebar_current("docs-agent-running") %>>
             <a href="/docs/agent/basics.html">Running and Stopping</a>
+          </li>
+          <li<%= sidebar_current("docs-agent-acl-system") %>>
+            <a href="/docs/agent/acl-system.html">ACL System</a>
+          </li>
+          <li<%= sidebar_current("docs-agent-acl-rules") %>>
+            <a href="/docs/agent/acl-rules.html">ACL Rules</a>
           </li>
           <li<%= sidebar_current("docs-agent-dns") %>>
             <a href="/docs/agent/dns.html">DNS Interface</a>
@@ -249,7 +305,7 @@
       </li>
 
       <li<%= sidebar_current("docs-connect") %>>
-        <a href="/docs/connect/index.html">Connect (Beta)</a>
+        <a href="/docs/connect/index.html">Connect</a>
         <ul class="nav">
           <li<%= sidebar_current("docs-connect-config") %>>
             <a href="/docs/connect/configuration.html">Configuration</a>
@@ -257,6 +313,13 @@
           <li<%= sidebar_current("docs-connect-proxies") %>>
             <a href="/docs/connect/proxies.html">Proxies</a>
             <ul class="nav">
+              <li<%= sidebar_current("docs-connect-proxies-sidecar-service") %>>
+                <a href="/docs/connect/proxies/sidecar-service.html">Sidecar Service Registration</a>
+              </li>
+              <li<%= sidebar_current("docs-connect-proxies-envoy") %>>
+                <a href="/docs/connect/proxies/envoy.html">Envoy</a>
+              </li>
+              </li>
               <li<%= sidebar_current("docs-connect-proxies-integrate") %>>
                 <a href="/docs/connect/proxies/integrate.html">Proxy Integration</a>
               </li>
@@ -290,8 +353,35 @@
           <li<%= sidebar_current("docs-connect-platform-nomad") %>>
             <a href="/docs/connect/platform/nomad.html">Nomad</a>
           </li>
+          <li<%= sidebar_current("docs-connect-platform-k8s") %>>
+            <a href="/docs/platform/k8s/connect.html">Kubernetes</a>
+          </li>
           <li<%= sidebar_current("docs-connect-security") %>>
             <a href="/docs/connect/security.html">Security</a>
+          </li>
+        </ul>
+      </li>
+
+      <li<%= sidebar_current("docs-platform-k8s") %>>
+        <a href="/docs/platform/k8s/index.html">Kubernetes</a>
+        <ul class="nav">
+          <li<%= sidebar_current("docs-platform-k8s-run") %>>
+            <a href="/docs/platform/k8s/run.html">Running Consul</a>
+          </li>
+          <li<%= sidebar_current("docs-platform-k8s-helm") %>>
+            <a href="/docs/platform/k8s/helm.html">Helm Chart</a>
+          </li>
+          <li<%= sidebar_current("docs-platform-k8s-ooc-nodes") %>>
+            <a href="/docs/platform/k8s/out-of-cluster-nodes.html">Out-of-Cluster Nodes</a>
+          </li>
+          <li<%= sidebar_current("docs-platform-k8s-dns") %>>
+            <a href="/docs/platform/k8s/dns.html">Consul DNS</a>
+          </li>
+          <li<%= sidebar_current("docs-platform-k8s-service-sync") %>>
+            <a href="/docs/platform/k8s/service-sync.html">Service Sync</a>
+          </li>
+          <li<%= sidebar_current("docs-platform-k8s-connect") %>>
+            <a href="/docs/platform/k8s/connect.html">Connect Sidecar</a>
           </li>
         </ul>
       </li>
@@ -302,29 +392,57 @@
         <a href="/docs/guides/index.html">Guides</a>
         <ul class="nav">
           <li<%= sidebar_current("docs-guides-acl") %>>
-            <a href="/docs/guides/acl.html">ACLs</a>
+            <a href="https://learn.hashicorp.com/consul/advanced/day-1-operations/acl-guide">ACLs</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-guides-acl-legacy") %>>
+                <a href="/docs/guides/acl-legacy.html">Legacy</a>
+              </li>
+              <li<%= sidebar_current("docs-guides-acl-migrate-tokens") %>>
+                <a href="/docs/guides/acl-migrate-tokens.html">Token Migration</a>
+              </li>
+            </ul>
           </li>
           <li<%= sidebar_current("docs-guides-servers") %>>
-            <a href="/docs/guides/servers.html">Adding/Removing Servers</a>
+            <a href="https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/servers">Adding & Removing Servers</a>
+          </li>
+          <li<%= sidebar_current("docs-guides-agent-encryption") %>>
+            <a href="https://learn.hashicorp.com/consul/advanced/day-1-operations/agent-encryption">Agent Communication Encryption</a>
           </li>
           <li<%= sidebar_current("docs-guides-autopilot") %>>
-            <a href="/docs/guides/autopilot.html">Autopilot</a>
+            <a href="https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/autopilot">Autopilot</a>
           </li>
           <li<%= sidebar_current("docs-guides-bootstrapping") %>>
             <a href="/docs/guides/bootstrapping.html">Bootstrapping</a>
           </li>
+          <li<%= sidebar_current("docs-guides-backups") %>>
+            <a href="https://learn.hashicorp.com/consul/advanced/day-1-operations/backup">Datacenter Backups</a>
+          </li>
           <li<%= sidebar_current("docs-guides-connect-production") %>>
             <a href="/docs/guides/connect-production.html">Connect in Production</a>
+          </li>
+          <li<%= sidebar_current("docs-guides-connect-envoy") %>>
+            <a href="/docs/guides/connect-envoy.html">Connect with Envoy</a>
+          </li>
+          <li<%= sidebar_current("docs-guides-consul-cluster-monitoring-metrics") %>>
+            <a href="https://learn.hashicorp.com/consul/advanced/day-1-operations/monitoring">Consul Cluster Monitoring & Metrics</a>
           </li>
           <li<%= sidebar_current("docs-guides-consul-containers") %>>
             <a href="/docs/guides/consul-containers.html">Consul with Containers</a>
           </li>
+          <li<%= sidebar_current("docs-guides-consul-template") %>>
+            <a href="/docs/guides/consul-template.html">Consul Template</a>
+          </li>
+          <li<%= sidebar_current("docs-guides-consul-aws") %>>
+            <a href="/docs/guides/consul-aws.html">Consul-AWS</a>
+          </li>
           <li<%= sidebar_current("docs-guides-creating-certificates") %>>
-            <a href="/docs/guides/creating-certificates.html">Creating
-Certificates</a>
+            <a href="https://learn.hashicorp.com/consul/advanced/day-1-operations/certificates">Creating TLS Certificates</a>
+          </li>
+          <li<%= sidebar_current("docs-guides-deployment-guide") %>>
+            <a href="https://learn.hashicorp.com/consul/advanced/day-1-operations/deployment-guide">Deployment Guide</a>
           </li>
           <li<%= sidebar_current("docs-guides-dns-cache") %>>
-            <a href="/docs/guides/dns-cache.html">DNS Caching</a>
+            <a href="https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/dns-cache">DNS Caching</a>
           </li>
           <li<%= sidebar_current("docs-guides-forwarding") %>>
             <a href="/docs/guides/forwarding.html">DNS Forwarding</a>
@@ -344,20 +462,26 @@ Certificates</a>
           <li<%= sidebar_current("docs-guides-leader") %>>
             <a href="/docs/guides/leader-election.html">Leader Election</a>
           </li>
+          <li<%= sidebar_current("docs-guides-minikube") %>>
+            <a href="/docs/guides/minikube.html">Minikube with Consul</a>
+          </li>
           <li<%= sidebar_current("docs-guides-monitoring-telegraf") %>>
             <a href="/docs/guides/monitoring-telegraf.html">Monitoring Consul with Telegraf</a>
           </li>
           <li<%= sidebar_current("docs-guides-segments") %>>
             <a href="/docs/guides/segments.html">Network Segments</a>
           </li>
-          <li<%= sidebar_current("docs-guides-sentinel") %>>
-            <a href="/docs/guides/sentinel.html">Sentinel</a>
-          </li>
           <li<%= sidebar_current("docs-guides-outage") %>>
-            <a href="/docs/guides/outage.html">Outage Recovery</a>
+            <a href="https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/outage">Outage Recovery</a>
+          </li>
+          <li<%= sidebar_current("docs-guides-reference-architecture") %>>
+            <a href="https://learn.hashicorp.com/consul/advanced/day-1-operations/reference-architecture">Reference Architecture</a>
           </li>
           <li<%= sidebar_current("docs-guides-semaphore") %>>
             <a href="/docs/guides/semaphore.html">Semaphore</a>
+          </li>
+          <li<%= sidebar_current("docs-guides-sentinel") %>>
+            <a href="/docs/guides/sentinel.html">Sentinel</a>
           </li>
           <li<%= sidebar_current("docs-guides-performance") %>>
             <a href="/docs/guides/performance.html">Server Performance</a>
@@ -391,6 +515,9 @@ Certificates</a>
           </li>
           <li<%= sidebar_current("docs-enterprise-federation") %>>
             <a href="/docs/enterprise/federation/index.html">Advanced Federation</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-connect-multi-datacenter") %>>
+            <a href="/docs/enterprise/connect-multi-datacenter/index.html">Connect Multi-Datacenter</a>
           </li>
           <li<%= sidebar_current("docs-enterprise-network-segments") %>>
             <a href="/docs/enterprise/network-segments/index.html">Network Segments</a>

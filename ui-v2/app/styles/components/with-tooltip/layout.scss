@@ -1,0 +1,34 @@
+%tooltip {
+  position: relative;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+%tooltip-bubble,
+%tooltip-tail {
+  position: absolute;
+  z-index: 1;
+}
+%tooltip-bubble {
+  padding: 10px;
+  bottom: calc(100% + 5px);
+  text-align: center;
+  white-space: nowrap;
+  content: attr(data-tooltip);
+  // incase you are using text-indent to hide the
+  // text of the element %with-tooltip
+  text-indent: 0;
+}
+%tooltip-tail {
+  content: '';
+  left: 50%;
+  margin-left: -10px;
+  top: -10px;
+  transform: scale(1, 0.5);
+  width: 0;
+  height: 0;
+  background-color: transparent !important;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-top: 18px solid $ui-gray-800;
+}

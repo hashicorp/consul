@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"reflect"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -35,17 +36,24 @@ const (
 	DeregisterRequestType                  = 1
 	KVSRequestType                         = 2
 	SessionRequestType                     = 3
-	ACLRequestType                         = 4
+	ACLRequestType                         = 4 // DEPRECATED (ACL-Legacy-Compat)
 	TombstoneRequestType                   = 5
 	CoordinateBatchUpdateType              = 6
 	PreparedQueryRequestType               = 7
 	TxnRequestType                         = 8
 	AutopilotRequestType                   = 9
 	AreaRequestType                        = 10
-	ACLBootstrapRequestType                = 11 // FSM snapshots only.
+	ACLBootstrapRequestType                = 11
 	IntentionRequestType                   = 12
 	ConnectCARequestType                   = 13
 	ConnectCAProviderStateType             = 14
+	ConnectCAConfigType                    = 15 // FSM snapshots only.
+	IndexRequestType                       = 16 // FSM snapshots only.
+	ACLTokenSetRequestType                 = 17
+	ACLTokenDeleteRequestType              = 18
+	ACLPolicySetRequestType                = 19
+	ACLPolicyDeleteRequestType             = 20
+	ConnectCALeafRequestType               = 21
 )
 
 const (
@@ -94,7 +102,7 @@ type RPCInfo interface {
 	RequestDatacenter() string
 	IsRead() bool
 	AllowStaleRead() bool
-	ACLToken() string
+	TokenSecret() string
 }
 
 // QueryOptions is used to specify various flags for read queries
@@ -118,10 +126,42 @@ type QueryOptions struct {
 	// servicing the request. Prevents a stale read.
 	RequireConsistent bool
 
+	// If set, the local agent may respond with an arbitrarily stale locally
+	// cached response. The semantics differ from AllowStale since the agent may
+	// be entirely partitioned from the servers and still considered "healthy" by
+	// operators. Stale responses from Servers are also arbitrarily stale, but can
+	// provide additional bounds on the last contact time from the leader. It's
+	// expected that servers that are partitioned are noticed and replaced in a
+	// timely way by operators while the same may not be true for client agents.
+	UseCache bool
+
 	// If set and AllowStale is true, will try first a stale
 	// read, and then will perform a consistent read if stale
-	// read is older than value
+	// read is older than value.
 	MaxStaleDuration time.Duration
+
+	// MaxAge limits how old a cached value will be returned if UseCache is true.
+	// If there is a cached response that is older than the MaxAge, it is treated
+	// as a cache miss and a new fetch invoked. If the fetch fails, the error is
+	// returned. Clients that wish to allow for stale results on error can set
+	// StaleIfError to a longer duration to change this behaviour. It is ignored
+	// if the endpoint supports background refresh caching. See
+	// https://www.consul.io/api/index.html#agent-caching for more details.
+	MaxAge time.Duration
+
+	// MustRevalidate forces the agent to fetch a fresh version of a cached
+	// resource or at least validate that the cached version is still fresh. It is
+	// implied by either max-age=0 or must-revalidate Cache-Control headers. It
+	// only makes sense when UseCache is true. We store it since MaxAge = 0 is the
+	// default unset value.
+	MustRevalidate bool
+
+	// StaleIfError specifies how stale the client will accept a cached response
+	// if the servers are unavailable to fetch a fresh one. Only makes sense when
+	// UseCache is true and MaxAge is set to a lower, non-zero value. It is
+	// ignored if the endpoint supports background refresh caching. See
+	// https://www.consul.io/api/index.html#agent-caching for more details.
+	StaleIfError time.Duration
 }
 
 // IsRead is always true for QueryOption.
@@ -144,7 +184,7 @@ func (q QueryOptions) AllowStaleRead() bool {
 	return q.AllowStale
 }
 
-func (q QueryOptions) ACLToken() string {
+func (q QueryOptions) TokenSecret() string {
 	return q.Token
 }
 
@@ -163,7 +203,7 @@ func (w WriteRequest) AllowStaleRead() bool {
 	return false
 }
 
-func (w WriteRequest) ACLToken() string {
+func (w WriteRequest) TokenSecret() string {
 	return w.Token
 }
 
@@ -282,10 +322,12 @@ func (r *DCSpecificRequest) RequestDatacenter() string {
 
 func (r *DCSpecificRequest) CacheInfo() cache.RequestInfo {
 	info := cache.RequestInfo{
-		Token:      r.Token,
-		Datacenter: r.Datacenter,
-		MinIndex:   r.MinQueryIndex,
-		Timeout:    r.MaxQueryTime,
+		Token:          r.Token,
+		Datacenter:     r.Datacenter,
+		MinIndex:       r.MinQueryIndex,
+		Timeout:        r.MaxQueryTime,
+		MaxAge:         r.MaxAge,
+		MustRevalidate: r.MustRevalidate,
 	}
 
 	// To calculate the cache key we only hash the node filters. The
@@ -311,10 +353,13 @@ type ServiceSpecificRequest struct {
 	Datacenter      string
 	NodeMetaFilters map[string]string
 	ServiceName     string
-	ServiceTag      string
-	ServiceAddress  string
-	TagFilter       bool // Controls tag filtering
-	Source          QuerySource
+	// DEPRECATED (singular-service-tag) - remove this when backwards RPC compat
+	// with 1.2.x is not required.
+	ServiceTag     string
+	ServiceTags    []string
+	ServiceAddress string
+	TagFilter      bool // Controls tag filtering
+	Source         QuerySource
 
 	// Connect if true will only search for Connect-compatible services.
 	Connect bool
@@ -324,6 +369,54 @@ type ServiceSpecificRequest struct {
 
 func (r *ServiceSpecificRequest) RequestDatacenter() string {
 	return r.Datacenter
+}
+
+func (r *ServiceSpecificRequest) CacheInfo() cache.RequestInfo {
+	info := cache.RequestInfo{
+		Token:          r.Token,
+		Datacenter:     r.Datacenter,
+		MinIndex:       r.MinQueryIndex,
+		Timeout:        r.MaxQueryTime,
+		MaxAge:         r.MaxAge,
+		MustRevalidate: r.MustRevalidate,
+	}
+
+	// To calculate the cache key we hash over all the fields that affect the
+	// output other than Datacenter and Token which are dealt with in the cache
+	// framework already. Note the order here is important for the outcome - if we
+	// ever care about cache-invalidation on updates e.g. because we persist
+	// cached results, we need to be careful we maintain the same order of fields
+	// here. We could alternatively use `hash:set` struct tag on an anonymous
+	// struct to make it more robust if it becomes significant.
+	sort.Strings(r.ServiceTags)
+	v, err := hashstructure.Hash([]interface{}{
+		r.NodeMetaFilters,
+		r.ServiceName,
+		// DEPRECATED (singular-service-tag) - remove this when upgrade RPC compat
+		// with 1.2.x is not required. We still need this in because <1.3 agents
+		// might still send RPCs with singular tag set. In fact the only place we
+		// use this method is in agent cache so if the agent is new enough to have
+		// this code this should never be set, but it's safer to include it until we
+		// completely remove this field just in case it's erroneously used anywhere
+		// (e.g. until this change DNS still used it).
+		r.ServiceTag,
+		r.ServiceTags,
+		r.ServiceAddress,
+		r.TagFilter,
+		r.Connect,
+	}, nil)
+	if err == nil {
+		// If there is an error, we don't set the key. A blank key forces
+		// no cache for this request so the request is forwarded directly
+		// to the server.
+		info.Key = strconv.FormatUint(v, 10)
+	}
+
+	return info
+}
+
+func (r *ServiceSpecificRequest) CacheMinIndex() uint64 {
+	return r.QueryOptions.MinQueryIndex
 }
 
 // NodeSpecificRequest is used to request the information about a single node
@@ -363,6 +456,17 @@ type Node struct {
 }
 type Nodes []*Node
 
+// IsSame return whether nodes are similar without taking into account
+// RaftIndex fields.
+func (n *Node) IsSame(other *Node) bool {
+	return n.ID == other.ID &&
+		n.Node == other.Node &&
+		n.Address == other.Address &&
+		n.Datacenter == other.Datacenter &&
+		reflect.DeepEqual(n.TaggedAddresses, other.TaggedAddresses) &&
+		reflect.DeepEqual(n.Meta, other.Meta)
+}
+
 // ValidateMeta validates a set of key/value pairs from the agent config
 func ValidateMetadata(meta map[string]string, allowConsulPrefix bool) error {
 	if len(meta) > metaMaxKeyPairs {
@@ -375,6 +479,23 @@ func ValidateMetadata(meta map[string]string, allowConsulPrefix bool) error {
 		}
 	}
 
+	return nil
+}
+
+// ValidateWeights checks the definition of DNS weight is valid
+func ValidateWeights(weights *Weights) error {
+	if weights == nil {
+		return nil
+	}
+	if weights.Passing < 1 {
+		return fmt.Errorf("Passing must be greater than 0")
+	}
+	if weights.Warning < 0 {
+		return fmt.Errorf("Warning must be greater or equal than 0")
+	}
+	if weights.Passing > 65535 || weights.Warning > 65535 {
+		return fmt.Errorf("DNS Weight must be between 0 and 65535")
+	}
 	return nil
 }
 
@@ -429,11 +550,14 @@ type ServiceNode struct {
 	ServiceName              string
 	ServiceTags              []string
 	ServiceAddress           string
+	ServiceWeights           Weights
 	ServiceMeta              map[string]string
 	ServicePort              int
 	ServiceEnableTagOverride bool
-	ServiceProxyDestination  string
-	ServiceConnect           ServiceConnect
+	// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
+	ServiceProxyDestination string
+	ServiceProxy            ConnectProxyConfig
+	ServiceConnect          ServiceConnect
 
 	RaftIndex
 }
@@ -460,9 +584,12 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 		ServiceAddress:           s.ServiceAddress,
 		ServicePort:              s.ServicePort,
 		ServiceMeta:              nsmeta,
+		ServiceWeights:           s.ServiceWeights,
 		ServiceEnableTagOverride: s.ServiceEnableTagOverride,
-		ServiceProxyDestination:  s.ServiceProxyDestination,
-		ServiceConnect:           s.ServiceConnect,
+		// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
+		ServiceProxyDestination: s.ServiceProxyDestination,
+		ServiceProxy:            s.ServiceProxy,
+		ServiceConnect:          s.ServiceConnect,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,
@@ -480,14 +607,21 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 		Address:           s.ServiceAddress,
 		Port:              s.ServicePort,
 		Meta:              s.ServiceMeta,
+		Weights:           &s.ServiceWeights,
 		EnableTagOverride: s.ServiceEnableTagOverride,
-		ProxyDestination:  s.ServiceProxyDestination,
+		Proxy:             s.ServiceProxy,
 		Connect:           s.ServiceConnect,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,
 		},
 	}
+}
+
+// Weights represent the weight used by DNS for a given status
+type Weights struct {
+	Passing int
+	Warning int
 }
 
 type ServiceNodes []*ServiceNode
@@ -521,18 +655,57 @@ type NodeService struct {
 	Address           string
 	Meta              map[string]string
 	Port              int
+	Weights           *Weights
 	EnableTagOverride bool
 
-	// ProxyDestination is the name of the service that this service is
-	// a Connect proxy for. This is only valid if Kind is "connect-proxy".
-	// The destination may be a service that isn't present in the catalog.
-	// This is expected and allowed to allow for proxies to come up
-	// earlier than their target services.
+	// ProxyDestination is DEPRECATED in favor of Proxy.DestinationServiceName.
+	// It's retained since this struct is used to parse input for
+	// /catalog/register but nothing else internal should use it - once
+	// request/config definitions are passes all internal uses of NodeService
+	// should have this empty and use the Proxy.DestinationServiceNames field
+	// below.
+	//
+	// It used to store the name of the service that this service is a Connect
+	// proxy for. This is only valid if Kind is "connect-proxy". The destination
+	// may be a service that isn't present in the catalog. This is expected and
+	// allowed to allow for proxies to come up earlier than their target services.
+	// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
 	ProxyDestination string
+
+	// Proxy is the configuration set for Kind = connect-proxy. It is mandatory in
+	// that case and an error to be set for any other kind. This config is part of
+	// a proxy service definition and is distinct from but shares some fields with
+	// the Connect.Proxy which configures a managed proxy as part of the actual
+	// service's definition. This duplication is ugly but seemed better than the
+	// alternative which was to re-use the same struct fields for both cases even
+	// though the semantics are different and the non-shred fields make no sense
+	// in the other case. ProxyConfig may be a more natural name here, but it's
+	// confusing for the UX because one of the fields in ConnectProxyConfig is
+	// also called just "Config"
+	Proxy ConnectProxyConfig
 
 	// Connect are the Connect settings for a service. This is purposely NOT
 	// a pointer so that we never have to nil-check this.
 	Connect ServiceConnect
+
+	// LocallyRegisteredAsSidecar is private as it is only used by a local agent
+	// state to track if the service was registered from a nested sidecar_service
+	// block. We need to track that so we can know whether we need to deregister
+	// it automatically too if it's removed from the service definition or if the
+	// parent service is deregistered. Relying only on ID would cause us to
+	// deregister regular services if they happen to be registered using the same
+	// ID scheme as our sidecars do by default. We could use meta but that gets
+	// unpleasant because we can't use the consul- prefix from an agent (reserved
+	// for use internally but in practice that means within the state store or in
+	// responses only), and it leaks the detail publicly which people might rely
+	// on which is a bit unpleasant for something that is meant to be config-file
+	// syntax sugar. Note this is not translated to ServiceNode and friends and
+	// may not be set on a NodeService that isn't the one the agent registered and
+	// keeps in it's local state. We never want this rendered in JSON as it's
+	// internal only. Right now our agent endpoints return api structs which don't
+	// include it but this is a safety net incase we change that or there is
+	// somewhere this is used in API output.
+	LocallyRegisteredAsSidecar bool `json:"-"`
 
 	RaftIndex
 }
@@ -541,12 +714,21 @@ type NodeService struct {
 // definitions from the agent to the state store.
 type ServiceConnect struct {
 	// Native is true when this service can natively understand Connect.
-	Native bool
+	Native bool `json:",omitempty"`
 
 	// Proxy configures a connect proxy instance for the service. This is
 	// only used for agent service definitions and is invalid for non-agent
 	// (catalog API) definitions.
-	Proxy *ServiceDefinitionConnectProxy
+	Proxy *ServiceDefinitionConnectProxy `json:",omitempty"`
+
+	// SidecarService is a nested Service Definition to register at the same time.
+	// It's purely a convenience mechanism to allow specifying a sidecar service
+	// along with the application service definition. It's nested nature allows
+	// all of the fields to be defaulted which can reduce the amount of
+	// boilerplate needed to register a sidecar service separately, but the end
+	// result is identical to just making a second service registration via any
+	// other means.
+	SidecarService *ServiceDefinition `json:",omitempty"`
 }
 
 // Validate validates the node service configuration.
@@ -560,9 +742,17 @@ func (s *NodeService) Validate() error {
 
 	// ConnectProxy validation
 	if s.Kind == ServiceKindConnectProxy {
-		if strings.TrimSpace(s.ProxyDestination) == "" {
+		// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
+		// Fixup legacy requests that specify the ProxyDestination still
+		if s.ProxyDestination != "" && s.Proxy.DestinationServiceName == "" {
+			s.Proxy.DestinationServiceName = s.ProxyDestination
+			s.ProxyDestination = ""
+		}
+
+		if strings.TrimSpace(s.Proxy.DestinationServiceName) == "" {
 			result = multierror.Append(result, fmt.Errorf(
-				"ProxyDestination must be non-empty for Connect proxy services"))
+				"Proxy.DestinationServiceName must be non-empty for Connect proxy "+
+					"services"))
 		}
 
 		if s.Port == 0 {
@@ -572,7 +762,26 @@ func (s *NodeService) Validate() error {
 
 		if s.Connect.Native {
 			result = multierror.Append(result, fmt.Errorf(
-				"A Proxy cannot also be ConnectNative, only typical services"))
+				"A Proxy cannot also be Connect Native, only typical services"))
+		}
+	}
+
+	// Nested sidecar validation
+	if s.Connect.SidecarService != nil {
+		if s.Connect.SidecarService.ID != "" {
+			result = multierror.Append(result, fmt.Errorf(
+				"A SidecarService cannot specify an ID as this is managed by the "+
+					"agent"))
+		}
+		if s.Connect.SidecarService.Connect != nil {
+			if s.Connect.SidecarService.Connect.SidecarService != nil {
+				result = multierror.Append(result, fmt.Errorf(
+					"A SidecarService cannot have a nested SidecarService"))
+			}
+			if s.Connect.SidecarService.Connect.Proxy != nil {
+				result = multierror.Append(result, fmt.Errorf(
+					"A SidecarService cannot have a managed proxy"))
+			}
 		}
 	}
 
@@ -589,11 +798,45 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 		!reflect.DeepEqual(s.Tags, other.Tags) ||
 		s.Address != other.Address ||
 		s.Port != other.Port ||
+		!reflect.DeepEqual(s.Weights, other.Weights) ||
 		!reflect.DeepEqual(s.Meta, other.Meta) ||
 		s.EnableTagOverride != other.EnableTagOverride ||
 		s.Kind != other.Kind ||
-		s.ProxyDestination != other.ProxyDestination ||
+		!reflect.DeepEqual(s.Proxy, other.Proxy) ||
 		s.Connect != other.Connect {
+		return false
+	}
+
+	return true
+}
+
+// IsSameService checks if one Service of a ServiceNode is the same as another,
+// without looking at the Raft information or Node information (that's why we
+// didn't call it IsEqual).
+// This is useful for seeing if an update would be idempotent for all the functional
+// parts of the structure.
+// In a similar fashion as ToNodeService(), fields related to Node are ignored
+// see ServiceNode for more information.
+func (s *ServiceNode) IsSameService(other *ServiceNode) bool {
+	// Skip the following fields, see ServiceNode definition
+	// Address                  string
+	// Datacenter               string
+	// TaggedAddresses          map[string]string
+	// NodeMeta                 map[string]string
+	if s.ID != other.ID ||
+		s.Node != other.Node ||
+		s.ServiceKind != other.ServiceKind ||
+		s.ServiceID != other.ServiceID ||
+		s.ServiceName != other.ServiceName ||
+		!reflect.DeepEqual(s.ServiceTags, other.ServiceTags) ||
+		s.ServiceAddress != other.ServiceAddress ||
+		s.ServicePort != other.ServicePort ||
+		!reflect.DeepEqual(s.ServiceMeta, other.ServiceMeta) ||
+		!reflect.DeepEqual(s.ServiceWeights, other.ServiceWeights) ||
+		s.ServiceEnableTagOverride != other.ServiceEnableTagOverride ||
+		s.ServiceProxyDestination != other.ServiceProxyDestination ||
+		!reflect.DeepEqual(s.ServiceProxy, other.ServiceProxy) ||
+		!reflect.DeepEqual(s.ServiceConnect, other.ServiceConnect) {
 		return false
 	}
 
@@ -602,6 +845,20 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 
 // ToServiceNode converts the given node service to a service node.
 func (s *NodeService) ToServiceNode(node string) *ServiceNode {
+	theWeights := Weights{
+		Passing: 1,
+		Warning: 1,
+	}
+	if s.Weights != nil {
+		if err := ValidateWeights(s.Weights); err == nil {
+			theWeights = *s.Weights
+		}
+	}
+	// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
+	legacyProxyDest := s.Proxy.DestinationServiceName
+	if legacyProxyDest == "" {
+		legacyProxyDest = s.ProxyDestination
+	}
 	return &ServiceNode{
 		// Skip ID, see ServiceNode definition.
 		Node: node,
@@ -614,8 +871,10 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 		ServiceAddress:           s.Address,
 		ServicePort:              s.Port,
 		ServiceMeta:              s.Meta,
+		ServiceWeights:           theWeights,
 		ServiceEnableTagOverride: s.EnableTagOverride,
-		ServiceProxyDestination:  s.ProxyDestination,
+		ServiceProxy:             s.Proxy,
+		ServiceProxyDestination:  legacyProxyDest,
 		ServiceConnect:           s.Connect,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,

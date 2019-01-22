@@ -1,0 +1,23 @@
+%secret-button {
+  cursor: pointer;
+}
+%secret-button input {
+  display: none;
+}
+%secret-button input + em {
+  visibility: hidden;
+  font-style: normal;
+}
+%secret-button input:checked + em {
+  @extend %user-select-text;
+  visibility: visible;
+  cursor: auto;
+}
+%secret-button input + em::before {
+  display: inline;
+  visibility: visible;
+  content: '■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■';
+}
+%secret-button input:checked + em::before {
+  display: none;
+}

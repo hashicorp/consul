@@ -21,12 +21,17 @@ export const get = function(_url, options = { headers: { cookie: {} } }) {
         path: url.pathname,
         url: url.href,
         cookies: options.headers.cookie || {},
+        headers: {},
         query: [...url.searchParams.keys()].reduce(function(prev, key) {
           prev[key] = url.searchParams.get(key);
           return prev;
         }, {}),
       },
       {
+        set: function() {},
+        status: function() {
+          return this;
+        },
         send: function(content) {
           resolve(JSON.parse(content));
         },

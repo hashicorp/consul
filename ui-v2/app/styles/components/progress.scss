@@ -1,0 +1,4 @@
+@import './progress/index';
+.progress.indeterminate {
+  @extend %progress-indeterminate;
+}

@@ -13,6 +13,11 @@ type Observation struct {
 	Data interface{}
 }
 
+// LeaderObservation is used for the data when leadership changes.
+type LeaderObservation struct {
+	leader ServerAddress
+}
+
 // nextObserverId is used to provide a unique ID for each observer to aid in
 // deregistration.
 var nextObserverID uint64

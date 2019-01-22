@@ -1,0 +1,134 @@
+{{#app-view class=(concat 'token ' (if (and isEnabled (not isAuthorized)) 'edit' 'list')) loading=isLoading authorized=isAuthorized enabled=isEnabled}}
+    {{#block-slot 'notification' as |status type subject|}}
+      {{partial 'dc/acls/tokens/notifications'}}
+    {{/block-slot}}
+    {{#block-slot 'header'}}
+      <h1>
+        Access Controls
+      </h1>
+      {{#if isAuthorized }}
+        {{partial 'dc/acls/nav'}}
+      {{/if}}
+    {{/block-slot}}
+    {{#block-slot 'disabled'}}
+      {{partial 'dc/acls/disabled'}}
+    {{/block-slot}}
+    {{#block-slot 'authorization'}}
+      {{partial 'dc/acls/authorization'}}
+    {{/block-slot}}
+    {{#block-slot 'actions'}}
+        <a data-test-create href="{{href-to 'dc.acls.tokens.create'}}" class="type-create">Create</a>
+    {{/block-slot}}
+    {{#block-slot 'content'}}
+{{#if (gt items.length 0) }}
+        <form class="filter-bar">
+            {{freetext-filter onchange=(action 'filter') value=filter.s placeholder="Search"}}
+        </form>
+{{/if}}
+        {{#if (token/is-legacy items)}}
+            <p data-test-notification-update class="notice info"><strong>Update.</strong> We have upgraded our ACL System to allow the creation of reusable policies that can be applied to tokens. Read more about the changes and how to upgrade legacy tokens in our <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guides/acl-migrate-tokens.html" target="_blank" rel="noopener noreferrer">documentation</a>.</p>
+        {{/if}}
+{{#if (gt filtered.length 0)}}
+        {{#tabular-collection
+            items=(sort-by 'CreateTime:desc' filtered) as |item index|
+        }}
+            {{#block-slot 'header'}}
+                <th>Accessor ID</th>
+                <th>Scope</th>
+                <th>Description</th>
+                <th>Policies</th>
+                <th>&nbsp;</th>
+            {{/block-slot}}
+            {{#block-slot 'row'}}
+                <td data-test-token="{{item.AccessorID}}" class={{if (eq item.AccessorID token.AccessorID) 'me' }}>
+                    <a href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>{{truncate item.AccessorID 8 false}}</a>
+                </td>
+                <td>
+                  {{if item.Local 'local' 'global' }}
+                </td>
+                <td>
+                  {{default item.Description item.Name}}
+                </td>
+                <td colspan={{if (not-eq item.AccessorID token.AccessorID) '2' }}>
+  {{#if (token/is-legacy item) }}
+                    Legacy tokens have embedded policies.
+  {{ else }}
+                    {{#each item.Policies as |item|}}
+                      <strong class={{if (policy/is-management item) 'policy-management' }}>{{item.Name}}</strong>
+                    {{/each}}
+  {{/if}}
+                </td>
+  {{#if (eq item.AccessorID token.AccessorID)}}
+                <td>Your token</td>
+  {{/if}}
+            {{/block-slot}}
+            {{#block-slot 'actions' as |index change checked|}}
+                {{#confirmation-dialog confirming=false index=index message="Are you sure you want to delete this Token?"}}
+                    {{#block-slot 'action' as |confirm|}}
+                        {{#action-group index=index onchange=(action change) checked=(if (eq checked index) 'checked')}}
+                            <ul>
+                              {{#if false}}
+                                <li>
+                                  {{#copy-button-feedback title="Copy AccessorID to the clipboard" copy=item.AccessorID name="AccessorID"}}Copy AccessorID{{/copy-button-feedback}}
+                                </li>
+                              {{/if}}
+                                <li>
+                                    <a data-test-edit href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>Edit</a>
+                                </li>
+{{#if (not (token/is-legacy item))}}
+                                <li>
+                                    <a data-test-clone onclick={{action 'sendClone' item}}>Duplicate</a>
+                                </li>
+{{/if}}
+{{#if (eq item.AccessorID token.AccessorID) }}
+                                <li>
+                                    <a data-test-logout onclick={{queue (action confirm 'logout' item) (action change)}}>Stop using</a>
+                                </li>
+{{else}}
+
+                                <li>
+                                    <a data-test-use onclick={{queue (action confirm 'use' item) (action change)}}>Use</a>
+                                </li>
+{{/if}}
+{{#unless (token/is-anonymous item) }}
+                                <li>
+                                    <a data-test-delete onclick={{action confirm 'delete' item}}>Delete</a>
+                                </li>
+{{/unless}}
+                            </ul>
+                        {{/action-group}}
+                    {{/block-slot}}
+                    {{#block-slot 'dialog' as |execute cancel message name|}}
+                        <p>
+                            {{#if (eq name 'delete')}}
+                              {{message}}
+  {{#if (eq item.AccessorID token.AccessorID)}}
+                              Warning: This is the token you are currently using!
+  {{/if}}
+                            {{else if (eq name 'logout')}}
+                                Are you sure you want to stop using this ACL token? This will log you out.
+                            {{else if (eq name 'use')}}
+                                Are you sure you want to use this ACL token?
+                            {{/if}}
+                        </p>
+                        <button type="button" class="type-delete" {{action execute}}>
+                            {{#if (eq name 'delete')}}
+                                Confirm Delete
+                            {{else if (eq name 'logout')}}
+                                Confirm Logout
+                            {{ else if (eq name 'use')}}
+                                Confirm Use
+                            {{/if}}
+                        </button>
+                        <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
+                    {{/block-slot}}
+                {{/confirmation-dialog}}
+            {{/block-slot}}
+        {{/tabular-collection}}
+{{else}}
+        <p>
+            There are no Tokens.
+        </p>
+{{/if}}
+    {{/block-slot}}
+{{/app-view}}

@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/serf/coordinate"
 )
 
@@ -19,6 +20,7 @@ func TestCoordinate_Disabled_Response(t *testing.T) {
 		disable_coordinates = true
 `)
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	tests := []func(resp http.ResponseWriter, req *http.Request) (interface{}, error){
 		a.srv.CoordinateDatacenters,
@@ -51,6 +53,7 @@ func TestCoordinate_Datacenters(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	req, _ := http.NewRequest("GET", "/v1/coordinate/datacenters", nil)
 	resp := httptest.NewRecorder()
@@ -72,6 +75,7 @@ func TestCoordinate_Nodes(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Make sure an empty list is non-nil.
 	req, _ := http.NewRequest("GET", "/v1/coordinate/nodes?dc=dc1", nil)
@@ -182,6 +186,7 @@ func TestCoordinate_Node(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Make sure we get a 404 with no coordinates.
 	req, _ := http.NewRequest("GET", "/v1/coordinate/node/foo?dc=dc1", nil)
@@ -285,6 +290,7 @@ func TestCoordinate_Update(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Register the node.
 	reg := structs.RegisterRequest{
@@ -331,6 +337,7 @@ func TestCoordinate_Update_ACLDeny(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), TestACLConfig())
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	coord := coordinate.NewCoordinate(coordinate.DefaultConfig())
 	coord.Height = -5.0

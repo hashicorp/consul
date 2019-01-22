@@ -6,14 +6,7 @@ import (
 	"github.com/shirou/gopsutil/internal/common"
 )
 
-var (
-	invoke         common.Invoker
-	cachedBootTime = uint64(0)
-)
-
-func init() {
-	invoke = common.Invoke{}
-}
+var invoke common.Invoker = common.Invoke{}
 
 // A HostInfoStat describes the host status.
 // This is not in the psutil but it useful.
@@ -39,6 +32,11 @@ type UserStat struct {
 	Started  int    `json:"started"`
 }
 
+type TemperatureStat struct {
+	SensorKey   string  `json:"sensorKey"`
+	Temperature float64 `json:"sensorTemperature"`
+}
+
 func (h InfoStat) String() string {
 	s, _ := json.Marshal(h)
 	return string(s)
@@ -46,5 +44,10 @@ func (h InfoStat) String() string {
 
 func (u UserStat) String() string {
 	s, _ := json.Marshal(u)
+	return string(s)
+}
+
+func (t TemperatureStat) String() string {
+	s, _ := json.Marshal(t)
 	return string(s)
 }

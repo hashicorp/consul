@@ -2,7 +2,7 @@ import { moduleFor, skip } from 'ember-qunit';
 
 moduleFor('route:dc/kv/create', 'Unit | Route | dc/kv/create', {
   // Specify the other units that are required for this test.
-  needs: ['service:kv', 'service:feedback', 'service:logger'],
+  needs: ['service:repository/kv', 'service:feedback', 'service:logger'],
 });
 
 skip('it exists', function(assert) {

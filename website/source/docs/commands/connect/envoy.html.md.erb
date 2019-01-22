@@ -1,0 +1,178 @@
+---
+layout: "docs"
+page_title: "Commands: Connect Proxy"
+sidebar_current: "docs-commands-connect-envoy"
+description: >
+  The connect proxy subcommand is used to run the built-in mTLS proxy for Connect.
+---
+
+# Consul Connect Envoy
+
+Command: `consul connect envoy`
+
+The connect Envoy command is used to generate a bootstrap configuration for
+[Envoy proxy](https://envoyproxy.io) for use with [Consul
+Connect](/docs/connect/).
+
+The default behaviour is to generate the necessary bootstrap configuration for
+Envoy based on the environment variables and options provided and by taking to
+the local Consul agent. It `exec`s an external Envoy binary with that
+configuration leaving the Envoy process running in the foreground. An error is
+returned on operating systems other than linux or macOS since Envoy does not
+build for other platforms currently.
+
+If the `-bootstrap` option is specified, the bootstrap config is generated in
+the same way and then printed to stdout. This allows it to be redirected to a
+file and used with `envoy -c bootstrap.json`. This works on all operating
+systems allowing configuration to be generated on a host that Envoy doesn't
+build on but then used in a virtualized environment that can run Envoy.
+
+## Usage
+
+Usage: `consul connect envoy [options] [-- pass-through options]`
+
+#### API Options
+
+The standard API options are used to connect to the local agent to discover the
+proxy configuration needed.
+
+ - `-grpc-addr=<addr>` - Address of the Consul agent with `grpc` port. This can
+   be an IP address or DNS address, but it must include the port. This can also
+   be specified via the CONSUL_GRPC_ADDR environment variable. In Consul 1.3 and
+   later, the default value is http://127.0.0.1:8502, and https can optionally
+   be used instead. The scheme can also be set to HTTPS by setting the
+   environment variable CONSUL_HTTP_SSL=true. This may be a unix domain socket
+   using `unix:///path/to/socket` if the [agent is configured to
+   listen](/docs/agent/options.html#addresses) that way.
+
+-> **Note:** gRPC uses the same TLS
+   settings as the HTTPS API. If HTTPS is enabled then gRPC will require HTTPS
+   as well.
+
+   <%= partial "docs/commands/http_api_options_client" %>
+
+#### Envoy Options
+
+* `-sidecar-for` - The _ID_ (not name if they differ) of the service instance
+  this proxy will represent. The target service doesn't need to exist on the
+  local agent yet but a [sidecar proxy
+  registration](/docs/connect/proxies.html#sidecar-proxy-fields) with
+  `proxy.destination_service_id` equal to the passed value must be present. If
+  multiple proxy registrations targeting the same local service instance are
+  present the command will error and `-proxy-id` should be used instead.
+
+* `-proxy-id` - The [proxy
+  service](/docs/connect/proxies.html#proxy-service-definitions) ID on the
+  local agent. This must already be present on the local agent.
+
+-> **Note:** If ACLs are enabled, a token granting `service:write` for the
+  _target_ service (configured in `proxy.destination_service_name`) must be
+  passed using the `-token` option or `CONSUL_HTTP_TOKEN` environment variable.
+  This token authorizes the proxy to obtain TLS certificates representing the
+  target service.
+
+ * `-envoy-binary` - The full path to a specific Envoy binary to exec. By
+   default the current `$PATH` is searched for `envoy`.
+
+ * `-admin-bind` - The `host:port` to bind Envoy's admin HTTP API. Default is
+   `localhost:19000`. Envoy requires that this be enabled. The host part must be
+   resolvable DNS name or IP address.
+
+ * `-bootstrap` - If present, the command will simply output the generated
+   bootstrap config to stdout in JSON protobuf form. This can be directed to a
+   file and used to start Envoy with `envoy -c bootstrap.json`.
+
+~> **Security Note:** If ACLs are enabled the bootstrap JSON will contain the
+ACL token from `-token` or the environment and so should be handled as a secret.
+This token grants the identity of any service it has `service:write` permission
+for and so can be used to access any upstream service that that service is
+allowed to access by [Connect intentions](/docs/connect/intentions.html).
+
+ * `-- [pass-through options]` - Any options given after a double dash are passed
+   directly through to the `envoy` invocation. See [Envoy's
+   documentation](https://www.envoyproxy.io/docs) for more details. The command
+   always specifies `--config-file` and `--v2-config-only` and by default passes
+   `--disable-hot-restart` see [hot restart](#hot-restart).
+
+## Examples
+
+Assume a local service instance is registratered on the local agent with a
+sidecar proxy (using the [sidecar service
+registration](/docs/connect/proxies/sidecar-service.html) helper) as below.
+
+```hcl
+service {
+  name = "web"
+  port = 8080
+  connect { sidecar_service {} }
+}
+```
+
+The sidecar Envoy process can be started with.
+
+```text
+$ consul connect envoy -sidecar-for web
+```
+
+This example assumes that the correct [environment variables](#api-options) are
+used to set the local agent connection information and ACL token, or that the
+agent is using all-default configuration.
+
+To pass additional arguments directly to Envoy, for example output logging
+level, you can use:
+
+```text
+$ consul connect envoy -sidecar-for web -- -l debug
+```
+
+To run multiple different proxy instances on the same host, you will
+need to use `-admin-bind` on all but one to ensure they don't attempt to bind to
+the same port as in the following example.
+
+```text
+$ consul connect envoy -sidecar-for db -admin-bind localhost:19001
+```
+
+## Exec Security Details
+
+The command needs to pass the bootstrap config through to Envoy. Envoy currently
+only supports passing this as a file path or passing a whole string on the
+command line with `--config-yaml`. Since the bootstrap needs to contain the ACL
+token to authorize the proxy, this secret needs careful handling.
+
+Passing a secret via command option is unacceptable as on many unix systems
+these are readable to any user on the host for example via `/proc` or via a
+setuid process like `ps`.
+
+Creating a temporary file is more secure in that it can only be read by the
+current user but risks leaving secret material on disk for an unbounded length
+of time and in a location that is opaque to the operator.
+
+To work around these issues, the command currently creates a temporary file and
+immediately unlinks it so it can't be read by any other process that doesn't
+already have the file descriptor. It then writes the bootstrap JSON, and unsets
+the CLOEXEC bit on the file handle so that it remains available to the Envoy
+process after exec. Finally it `exec`s Envoy with `--config-file /dev/fd/X`
+where `X` is the the file descriptor number of the temp file.
+
+This ensures that Envoy can read the file without any other normal user process
+being able to (assuming they don't have privileged access to /proc). Once the
+Envoy process stops, there is no longer any reference to the file to clean up.
+
+## Envoy Hot Restart
+
+Envoy supports hot restart which requires simple external coordination. By
+default, this command will add `--disable-hot-restart` when it runs Envoy.
+
+The reason for this default behavior is to make it easy to test and run local
+demonstrations with multiple Envoy instances outside of cgroups or network
+namespaces.
+
+To use hot restart, Envoy needs to be started with either the `--restart-epoch`
+option. If this command detects that option in the pass-through flags it will
+_not_ add `--disable-hot-restart` allowing hot restart to work normally.
+
+The only difference to note over running Envoy directly is that
+`--restart-epoch` must be explicitly set to `0` for the initial launch of the
+Envoy instance to avoid disabling hot restart entirely. The official
+`hot-restarter.py` always sets this option so should work as recommended.

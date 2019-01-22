@@ -2,6 +2,7 @@ package consul
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -40,7 +41,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 	}
 
 	// Fetch the ACL token, if any.
-	rule, err := c.srv.resolveToken(args.Token)
+	rule, err := c.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
@@ -83,7 +84,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 
 		// Proxies must have write permission on their destination
 		if args.Service.Kind == structs.ServiceKindConnectProxy {
-			if rule != nil && !rule.ServiceWrite(args.Service.ProxyDestination, nil) {
+			if rule != nil && !rule.ServiceWrite(args.Service.Proxy.DestinationServiceName, nil) {
 				return acl.ErrPermissionDenied
 			}
 		}
@@ -138,7 +139,7 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 	}
 
 	// Fetch the ACL token, if any.
-	rule, err := c.srv.resolveToken(args.Token)
+	rule, err := c.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
@@ -273,7 +274,16 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 			}
 
 			if args.TagFilter {
-				return s.ServiceTagNodes(ws, args.ServiceName, args.ServiceTag)
+				tags := args.ServiceTags
+				// DEPRECATED (singular-service-tag) - remove this when backwards RPC compat
+				// with 1.2.x is not required.
+				// Agents < v1.3.0 populate the ServiceTag field. In this case,
+				// use ServiceTag instead of the ServiceTags field.
+				if args.ServiceTag != "" {
+					tags = []string{args.ServiceTag}
+				}
+
+				return s.ServiceTagNodes(ws, args.ServiceName, tags)
 			}
 
 			return s.ServiceNodes(ws, args.ServiceName)
@@ -284,7 +294,7 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 	// we're trying to find proxies for, so check that.
 	if args.Connect {
 		// Fetch the ACL token, if any.
-		rule, err := c.srv.resolveToken(args.Token)
+		rule, err := c.srv.ResolveToken(args.Token)
 		if err != nil {
 			return err
 		}
@@ -330,9 +340,23 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 
 		metrics.IncrCounterWithLabels([]string{"catalog", key, "query"}, 1,
 			[]metrics.Label{{Name: "service", Value: args.ServiceName}})
+		// DEPRECATED (singular-service-tag) - remove this when backwards RPC compat
+		// with 1.2.x is not required.
 		if args.ServiceTag != "" {
 			metrics.IncrCounterWithLabels([]string{"catalog", key, "query-tag"}, 1,
 				[]metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "tag", Value: args.ServiceTag}})
+		}
+		if len(args.ServiceTags) > 0 {
+			// Sort tags so that the metric is the same even if the request
+			// tags are in a different order
+			sort.Strings(args.ServiceTags)
+
+			// Build metric labels
+			labels := []metrics.Label{{Name: "service", Value: args.ServiceName}}
+			for _, tag := range args.ServiceTags {
+				labels = append(labels, metrics.Label{Name: "tag", Value: tag})
+			}
+			metrics.IncrCounterWithLabels([]string{"catalog", key, "query-tags"}, 1, labels)
 		}
 		if len(reply.ServiceNodes) == 0 {
 			metrics.IncrCounterWithLabels([]string{"catalog", key, "not-found"}, 1,

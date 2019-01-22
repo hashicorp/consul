@@ -39,7 +39,7 @@ func TestConnectCARoots(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Insert some CAs
 	state := s1.fsm.State()
@@ -82,7 +82,7 @@ func TestConnectCAConfig_GetSet(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Get the starting config
 	{
@@ -148,7 +148,7 @@ func TestConnectCAConfig_TriggerRotation(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Store the current root
 	rootReq := &structs.DCSpecificRequest{
@@ -316,6 +316,18 @@ func TestConnectCASign(t *testing.T) {
 	var reply structs.IssuedCert
 	require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", args, &reply))
 
+	// Generate a second CSR and request signing
+	spiffeId2 := connect.TestSpiffeIDService(t, "web2")
+	csr, _ = connect.TestCSR(t, spiffeId2)
+	args = &structs.CASignRequest{
+		Datacenter: "dc1",
+		CSR:        csr,
+	}
+
+	var reply2 structs.IssuedCert
+	require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", args, &reply2))
+	require.True(reply2.ModifyIndex > reply.ModifyIndex)
+
 	// Get the current CA
 	state := s1.fsm.State()
 	_, ca, err := state.CARootActive(nil)
@@ -341,6 +353,7 @@ func TestConnectCASignValidation(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 	})
@@ -359,7 +372,7 @@ func TestConnectCASignValidation(t *testing.T) {
 			Op:         structs.ACLSet,
 			ACL: structs.ACL{
 				Name: "User token",
-				Type: structs.ACLTypeClient,
+				Type: structs.ACLTokenTypeClient,
 				Rules: `
 				service "web" {
 					policy = "write"

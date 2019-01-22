@@ -1,0 +1,31 @@
+%tab-section {
+  /* this keeps in-tab-section toolbars flush to the top, see Node Detail > Services */
+  margin-top: 0 !important;
+}
+@media #{$--horizontal-tabs} {
+  %tab-nav ul {
+    display: flex;
+    align-items: center;
+  }
+  %tab-nav a {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+@media #{$--lt-horizontal-tabs} {
+  %tab-nav li {
+    width: 100%;
+  }
+}
+%tab-nav a {
+  display: block;
+  padding-top: 13px;
+  padding-bottom: 13px;
+}
+%tab-section > input[type='radio'],
+%tab-section > input[type='radio'] + * {
+  display: none;
+}
+%tab-section > input[type='radio']:checked + * {
+  display: block;
+}

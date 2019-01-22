@@ -47,8 +47,8 @@ func NewTCPTransportWithLogger(
 	})
 }
 
-// NewTCPTransportWithLogger returns a NetworkTransport that is built on top of
-// a TCP streaming transport layer, using a default logger and the address provider
+// NewTCPTransportWithConfig returns a NetworkTransport that is built on top of
+// a TCP streaming transport layer, using the given config struct.
 func NewTCPTransportWithConfig(
 	bindAddr string,
 	advertise net.Addr,

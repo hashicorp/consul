@@ -61,10 +61,9 @@ func (o *ObjectList) Filter(keys ...string) *ObjectList {
 		}
 
 		match := true
-		for i, k := range item.Keys[:len(keys)] {
-			keyi := keys[i]
-			key := k.Token.Value().(string)
-			if key != keyi && !strings.EqualFold(key, keyi) {
+		for i, key := range item.Keys[:len(keys)] {
+			key := key.Token.Value().(string)
+			if key != keys[i] && !strings.EqualFold(key, keys[i]) {
 				match = false
 				break
 			}
@@ -157,7 +156,8 @@ func (o *ObjectKey) Pos() token.Pos {
 type LiteralType struct {
 	Token token.Token
 
-	// associated line comment, only when used in a list
+	// comment types, only used when in a list
+	LeadComment *CommentGroup
 	LineComment *CommentGroup
 }
 
@@ -215,4 +215,5 @@ func (c *CommentGroup) Pos() token.Pos {
 // GoStringer
 //-------------------------------------------------------------------
 
-func (o *ObjectKey) GoString() string { return fmt.Sprintf("*%#v", *o) }
+func (o *ObjectKey) GoString() string  { return fmt.Sprintf("*%#v", *o) }
+func (o *ObjectList) GoString() string { return fmt.Sprintf("*%#v", *o) }

@@ -224,6 +224,19 @@ func (x *Intention) String() string {
 		x.ID, x.Precedence)
 }
 
+// EstimateSize returns an estimate (in bytes) of the size of this structure when encoded.
+func (x *Intention) EstimateSize() int {
+	// 60 = 36 (uuid) + 16 (RaftIndex) + 4 (Precedence) + 4 (DefaultPort)
+	size := 60 + len(x.Description) + len(x.SourceNS) + len(x.SourceName) + len(x.DestinationNS) +
+		len(x.DestinationName) + len(x.SourceType) + len(x.Action) + len(x.DefaultAddr)
+
+	for k, v := range x.Meta {
+		size += len(k) + len(v)
+	}
+
+	return size
+}
+
 // IntentionAction is the action that the intention represents. This
 // can be "allow" or "deny" to whitelist or blacklist intentions.
 type IntentionAction string

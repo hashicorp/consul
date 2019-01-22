@@ -435,3 +435,31 @@ func (m *mockRPC) RPC(method string, args interface{}, reply interface{}) error 
 
 	return nil
 }
+
+// Test that local checks immediately reflect the subject states when added and
+// don't require an update to the subject before being accurate.
+func TestCheckAlias_localInitialStatus(t *testing.T) {
+	t.Parallel()
+
+	notify := newMockAliasNotify()
+	chkID := types.CheckID("foo")
+	rpc := &mockRPC{}
+	chk := &CheckAlias{
+		ServiceID: "web",
+		CheckID:   chkID,
+		Notify:    notify,
+		RPC:       rpc,
+	}
+
+	chk.Start()
+	defer chk.Stop()
+
+	// Don't touch the aliased service or it's checks (there are none but this is
+	// valid and should be consisded "passing").
+
+	retry.Run(t, func(r *retry.R) {
+		if got, want := notify.State(chkID), api.HealthPassing; got != want {
+			r.Fatalf("got state %q want %q", got, want)
+		}
+	})
+}

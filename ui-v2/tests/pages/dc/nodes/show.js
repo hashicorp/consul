@@ -9,6 +9,7 @@ export default function(visitable, deletable, clickable, attribute, collection, 
       id: attribute('data-test-service-id', '[data-test-service-id]'),
       name: attribute('data-test-service-name', '[data-test-service-name]'),
       port: attribute('data-test-service-port', '.port'),
+      externalSource: attribute('data-test-external-source', 'a span'),
     }),
     sessions: collection(
       '#lock-sessions [data-test-tabular-row]',

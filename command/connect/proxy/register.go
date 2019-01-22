@@ -196,12 +196,14 @@ func (r *RegisterMonitor) register() {
 
 	// If we're here, then we're registering the service.
 	err = r.Client.Agent().ServiceRegister(&api.AgentServiceRegistration{
-		Kind:             api.ServiceKindConnectProxy,
-		ProxyDestination: r.Service,
-		ID:               serviceID,
-		Name:             serviceName,
-		Address:          r.LocalAddress,
-		Port:             r.LocalPort,
+		Kind:    api.ServiceKindConnectProxy,
+		ID:      serviceID,
+		Name:    serviceName,
+		Address: r.LocalAddress,
+		Port:    r.LocalPort,
+		Proxy: &api.AgentServiceConnectProxyConfig{
+			DestinationServiceName: r.Service,
+		},
 		Check: &api.AgentServiceCheck{
 			CheckID: r.checkID(),
 			Name:    "proxy heartbeat",

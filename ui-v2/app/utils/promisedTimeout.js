@@ -1,6 +1,6 @@
 export default function(P = Promise, timeout = setTimeout) {
   // var interval;
-  return function(milliseconds, cb) {
+  return function(milliseconds, cb = function() {}) {
     // clearInterval(interval);
     // const cb = typeof _cb !== 'function' ? (i) => { clearInterval(interval);interval = i; } : _cb;
     return new P((resolve, reject) => {

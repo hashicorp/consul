@@ -1,0 +1,20 @@
+%tabular-details-toggle-button {
+  @extend %with-chevron-down;
+}
+%tabular-details td:only-child {
+  cursor: default;
+}
+%tabular-detail {
+  border: 1px solid $ui-gray-300;
+  border-radius: $decor-radius-100;
+  box-shadow: 0 8px 10px 0 rgba($ui-black, 0.1);
+  margin-bottom: 20px;
+}
+%tabular-detail::before,
+%tabular-detail > div,
+%tabular-detail > label {
+  background-color: $ui-white;
+}
+%tabular-detail > label::before {
+  transform: rotate(180deg);
+}

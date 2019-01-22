@@ -10,8 +10,19 @@
 
       <hr>
 
-      <li<%= sidebar_current("api-acls") %>>
-        <a href="/api/acl.html">ACLs</a>
+      <li<%= sidebar_current("api-acl") %>>
+        <a href="/api/acl/acl.html">ACLs</a>
+        <ul class="nav">
+          <li<%= sidebar_current("api-acl-tokens") %>>
+            <a href="/api/acl/tokens.html">Tokens</a>
+          </li>
+          <li<%= sidebar_current("api-acl-tokens-legacy") %>>
+            <a href="/api/acl/legacy.html">Legacy Tokens</a>
+          </li>
+          <li<%= sidebar_current("api-acl-policies") %>>
+            <a href="/api/acl/policies.html">Policies</a>
+          </li>
+        </ul>
       </li>
       <li<%= sidebar_current("api-agent") %>>
         <a href="/api/agent.html">Agent</a>

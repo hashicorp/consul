@@ -59,10 +59,12 @@ func TestConsulResolver_Resolve(t *testing.T) {
 	require.Nil(t, err)
 
 	regProxy := &api.AgentServiceRegistration{
-		Kind:             "connect-proxy",
-		Name:             "web-proxy",
-		Port:             9090,
-		ProxyDestination: "web",
+		Kind: "connect-proxy",
+		Name: "web-proxy",
+		Port: 9090,
+		Proxy: &api.AgentServiceConnectProxyConfig{
+			DestinationServiceName: "web",
+		},
 	}
 	err = client.Agent().ServiceRegister(regProxy)
 	require.Nil(t, err)
@@ -122,7 +124,9 @@ func TestConsulResolver_Resolve(t *testing.T) {
 				Name:      "web",
 				Type:      ConsulResolverTypeService,
 			},
-			wantCertURI: connect.TestSpiffeIDService(t, "web"),
+			// Want empty host since we don't enforce trust domain outside of TLS and
+			// don't need to load the current one this way.
+			wantCertURI: connect.TestSpiffeIDServiceWithHost(t, "web", ""),
 			wantErr:     false,
 			addrs:       proxyAddrs,
 		},
@@ -133,7 +137,9 @@ func TestConsulResolver_Resolve(t *testing.T) {
 				Name:      "db",
 				Type:      ConsulResolverTypeService,
 			},
-			wantCertURI: connect.TestSpiffeIDService(t, "db"),
+			// Want empty host since we don't enforce trust domain outside of TLS and
+			// don't need to load the current one this way.
+			wantCertURI: connect.TestSpiffeIDServiceWithHost(t, "db", ""),
 			wantErr:     false,
 		},
 		{
@@ -170,7 +176,9 @@ func TestConsulResolver_Resolve(t *testing.T) {
 				Name: queryId,
 				Type: ConsulResolverTypePreparedQuery,
 			},
-			wantCertURI: connect.TestSpiffeIDService(t, "web"),
+			// Want empty host since we don't enforce trust domain outside of TLS and
+			// don't need to load the current one this way.
+			wantCertURI: connect.TestSpiffeIDServiceWithHost(t, "web", ""),
 			wantErr:     false,
 			addrs:       proxyAddrs,
 		},
@@ -180,7 +188,9 @@ func TestConsulResolver_Resolve(t *testing.T) {
 				Name: "test-query",
 				Type: ConsulResolverTypePreparedQuery,
 			},
-			wantCertURI: connect.TestSpiffeIDService(t, "web"),
+			// Want empty host since we don't enforce trust domain outside of TLS and
+			// don't need to load the current one this way.
+			wantCertURI: connect.TestSpiffeIDServiceWithHost(t, "web", ""),
 			wantErr:     false,
 			addrs:       proxyAddrs,
 		},

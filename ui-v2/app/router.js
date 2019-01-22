@@ -35,6 +35,14 @@ Router.map(function() {
     this.route('acls', { path: '/acls' }, function() {
       this.route('edit', { path: '/:id' });
       this.route('create', { path: '/create' });
+      this.route('policies', { path: '/policies' }, function() {
+        this.route('edit', { path: '/:id' });
+        this.route('create', { path: '/create' });
+      });
+      this.route('tokens', { path: '/tokens' }, function() {
+        this.route('edit', { path: '/:id' });
+        this.route('create', { path: '/create' });
+      });
     });
   });
 
@@ -43,7 +51,7 @@ Router.map(function() {
   this.route('index', { path: '/' });
 
   // The settings page is global.
-  this.route('settings', { path: '/settings' });
+  // this.route('settings', { path: '/settings' });
   this.route('notfound', { path: '/*path' });
 });
 

@@ -1,0 +1,62 @@
+%form-row {
+  margin-bottom: 1.4em;
+}
+%form-element {
+  @extend %form-row;
+}
+%form-element,
+%form-element > em,
+%form-element > span,
+%form-element textarea {
+  display: block;
+}
+%form-element a {
+  display: inline;
+}
+%form-element > em > code {
+  display: inline-block;
+}
+%form-element [type='text'],
+%form-element [type='password'] {
+  display: inline-flex;
+  justify-content: flex-start;
+}
+%form-element textarea {
+  resize: vertical;
+}
+%form-element > span {
+  margin-bottom: 0.5em;
+}
+%form-element > span + em {
+  margin-top: -0.5em;
+  margin-bottom: 0.5em;
+}
+%form-element textarea {
+  max-width: 100%;
+  min-width: 100%;
+  min-height: 70px;
+  padding: 0.625em 15px;
+}
+%form-element [type='text'],
+%form-element [type='password'] {
+  max-width: 100%;
+  width: 100%;
+  height: 2.25em;
+}
+%form-element > em {
+  margin-top: 2px;
+}
+%form-element > em > code {
+  padding: 0 4px;
+}
+%form-element [type='text'],
+%form-element [type='password'],
+%form-element textarea {
+  padding: 17px 13px;
+}
+%form-element textarea {
+  padding: 6px 13px;
+}
+%form-element > span {
+  margin-bottom: 0.4em !important;
+}

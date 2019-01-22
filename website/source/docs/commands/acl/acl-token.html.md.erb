@@ -1,0 +1,357 @@
+---
+layout: "docs"
+page_title: "Commands: ACL Token Management"
+sidebar_current: "docs-commands-acl-token"
+---
+
+# Consul ACL Tokens
+
+Command: `consul acl token`
+
+The `acl token` command is used to manage Consul's ACL tokens. There are
+subcommands for the individual operations that can be performed.
+
+* [`create`](#create)
+* [`clone`](#clone)
+* [`read`](#read)
+* [`update`](#update)
+* [`delete`](#delete)
+* [`list`](#list)
+
+ACL tokens are also accessible via the [HTTP API](/api/acl/acl.html).
+
+Usage: `consul acl token <subcommand> [options] [args]`
+
+-> **Note:** All of the examples show for the subcommands will require a valid Consul token with the appropriate permissions.
+Either set the `CONSUL_HTTP_TOKEN` environment variable to the tokens secret ID or pass the secret ID as the value of the `-token`
+parameter.
+
+## Identitying Tokens
+
+In several of the subcommands a token will have to be identified to be read, modified or deleted. Those subcommands support
+specifying the token by its ID using the `-id` parameter. The ID may be specified as a unique UUID prefix instead of the entire
+UUID. As long as it is unique it will be resolve to the full UUID and used. Additionally builtin token names will be accepted as
+the value of the `-id`.
+
+Builtin Policies:
+
+| Token UUID                           | Token Name        |
+| ------------------------------------ | ----------------- |
+| 00000000-0000-0000-0000-000000000002 | anonymous         |
+
+## Common Subcommand Options
+
+All of the `consul acl token` subcommands support the following options:
+
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
+
+## `create`
+
+Command: `consul acl token create`
+
+This command creates new tokens. When creating a new token, policies may be linked using
+either the `-policy-id` or the `-policy-name options. When specifying policies by IDs you
+may use a unique prefix of the UUID as a shortcut for specifying the entire UUID.
+
+### Usage
+
+#### Options
+
+* [Common Subcommand Options](#common-subcommand-options)
+
+* `-description=<string>` - A description of the token.
+
+* `-local` - Create this as a datacenter local token.
+
+* `-policy-id=<value>` - ID of a policy to use for this token. May be specified multiple times.
+
+* `-policy-name=<value>` - Name of a policy to use for this token. May be specified multiple times.
+
+* `-meta` - Indicates that token metadata such as the content hash and raft indices should be shown
+   for each entry.
+
+### Examples
+
+Create a new token:
+
+```sh
+$ consul acl token create -description "Read Nodes and Services" -policy-id 06acc965
+AccessorID:   986193b5-e2b5-eb26-6264-b524ea60cc6d
+SecretID:     ec15675e-2999-d789-832e-8c4794daa8d7
+Description:  Read Nodes and Services
+Local:        false
+Create Time:  2018-10-22 15:33:39.01789 -0400 EDT
+Policies:
+   06acc965-df4b-5a99-58cb-3250930c6324 - node-services-read
+```
+
+Create a new local token:
+
+```sh
+$ consul acl token create -description "Read Nodes and Services" -policy-id 06acc965 -local
+AccessorID:   4fdf0ec8-d251-3865-079c-7247c974fc50
+SecretID:     02143514-abf2-6c23-0aa1-ec2107e68f6b
+Description:  Read Nodes and Services
+Local:        true
+Create Time:  2018-10-22 15:34:19.330265 -0400 EDT
+Policies:
+   06acc965-df4b-5a99-58cb-3250930c6324 - node-services-read
+```
+
+Create a new policy and link with policies by name:
+
+```sh
+$ consul acl token create -description "Super User" -policy-name global-management
+AccessorID:   59f86a9b-d3b6-166c-32a0-be4ab3f94caa
+SecretID:     ada7f751-f654-8872-7f93-498e799158b6
+Description:  Super User
+Local:        false
+Create Time:  2018-10-22 15:35:28.787003 -0400 EDT
+Policies:
+   00000000-0000-0000-0000-000000000001 - global-management
+```
+
+## `clone`
+
+Command: `consul acl token clone`
+
+This command clones an existing token.
+
+### Usage
+
+Usage: `consul acl token clone [options]
+
+#### Options
+
+* [Common Subcommand Options](#common-subcommand-options)
+
+* `-description=<string>` - A description of the new cloned token.
+
+* `-id=<string>` -  The Accessor ID of the token to clone. It may be specified
+   as a unique ID prefix but will error if the prefix matches multiple token
+   Accessor IDs. The special value of 'anonymous' may be provided instead of
+   the anonymous tokens accessor ID
+
+### Examples
+
+Clone a token:
+
+```sh
+$ consul acl token clone -id 59f8 -description "Clone of Super User"
+Token cloned successfully.
+AccessorID:   dcfa52ed-9288-b3ff-056d-255ef69d2d88
+SecretID:     0005d17e-5bb2-7e8b-7bfa-15f2eee9ad14
+Description:  Clone of Super User
+Local:        false
+Create Time:  2018-10-22 16:26:02.909096 -0400 EDT
+Policies:
+   00000000-0000-0000-0000-000000000001 - global-management
+```
+
+## `read`
+
+Command: `consul acl token read`
+
+This command reads and displays a token details.
+
+### Usage
+
+Usage: `consul acl token read [options] [args]`
+
+#### Options
+
+* [Common Subcommand Options](#common-subcommand-options)
+
+* `-id=<string>` - The ID of the policy to read. It may be specified as a unique ID
+   prefix but will error if the prefix matches multiple policy IDs.
+
+* `-meta` - Indicates that policy metadata such as the content hash and raft
+  indices should be shown for each entry.
+
+* `-name=<string>` - The name of the policy to read.
+
+* `-self` - Indicates that the current HTTP token should be read by secret ID
+   instead of expecting a -id option.
+
+
+### Examples
+
+Get token details:
+
+```sh
+$ consul acl token read -id 986
+AccessorID:   986193b5-e2b5-eb26-6264-b524ea60cc6d
+SecretID:     ec15675e-2999-d789-832e-8c4794daa8d7
+Description:  Read Nodes and Services
+Local:        false
+Create Time:  2018-10-22 15:33:39.01789 -0400 EDT
+Policies:
+   06acc965-df4b-5a99-58cb-3250930c6324 - node-services-read
+```
+
+Get token details using the token secret ID:
+
+```sh
+$consul acl token read -self
+AccessorID:   4d123dff-f460-73c3-02c4-8dd64d136e01
+SecretID:     86cddfb9-2760-d947-358d-a2811156bf31
+Description:  Bootstrap Token (Global Management)
+Local:        false
+Create Time:  2018-10-22 11:27:04.479026 -0400 EDT
+Policies:
+   00000000-0000-0000-0000-000000000001 - global-management
+```
+
+Get token details (Builtin Tokens)
+
+```sh
+$ consul acl token read -id anonymous
+AccessorID:   00000000-0000-0000-0000-000000000002
+SecretID:     anonymous
+Description:  Anonymous Token
+Local:        false
+Create Time:  0001-01-01 00:00:00 +0000 UTC
+Policies:
+```
+
+## `update`
+
+Command: `consul acl token update`
+
+This command will update a token. Some parts of the token like whether the
+token is local to the datacenter cannot be changed.
+
+### Usage
+
+Usage: `consul acl token update [options]`
+
+#### Options
+
+* [Common Subcommand Options](#common-subcommand-options)
+
+* `-description=<string>` - A description of the token
+
+* `-id=<string>` - The Accessor ID of the token to read. It may be specified as a
+   unique ID prefix but will error if the prefix matches multiple token Accessor IDs
+
+* `-merge-policies` - Merge the new policies with the existing policies
+
+* `-meta` - Indicates that token metadata such as the content hash and Raft indices should be
+   shown for each entry.
+
+* `-policy-id=<value>` - ID of a policy to use for this token. May be specified multiple times.
+
+* `-policy-name=<value>` - Name of a policy to use for this token. May be specified multiple times.
+
+### Examples
+
+Update the anonymous token:
+
+```sh
+$ consul acl token update -id anonymous -policy-id 06acc
+Token updated successfully.
+AccessorID:   00000000-0000-0000-0000-000000000002
+SecretID:     anonymous
+Description:  Anonymous Token
+Local:        false
+Create Time:  0001-01-01 00:00:00 +0000 UTC
+Policies:
+   06acc965-df4b-5a99-58cb-3250930c6324 - node-services-read
+```
+
+Update a token description and take the policies from the existing token:
+
+```sh
+$ consul acl token update -id 986193 -description "WonderToken" -merge-policies
+Token updated successfully.
+AccessorID:   986193b5-e2b5-eb26-6264-b524ea60cc6d
+SecretID:     ec15675e-2999-d789-832e-8c4794daa8d7
+Description:  WonderToken
+Local:        false
+Create Time:  2018-10-22 15:33:39.01789 -0400 EDT
+Policies:
+   06acc965-df4b-5a99-58cb-3250930c6324 - node-services-read
+```
+
+## `delete`
+
+Command: `consul acl token delete`
+
+This command deletes a token.
+
+### Usage
+
+Usage: `consul acl token delete [options]`
+
+#### Options
+
+* [Common Subcommand Options](#common-subcommand-options)
+
+* `-id=<string>` - The ID of the token to delete. It may be specified as a
+   unique ID prefix but will error if the prefix matches multiple token IDs.
+
+### Examples
+
+Delete a token:
+
+```sh
+$ consul acl token delete -id 35b8
+Token "35b8ecb0-707c-ee18-2002-81b238b54b38" deleted successfully
+```
+
+## `list`
+
+Command: `consul acl token list`
+
+This command lists all tokens. By default it will not show metadata.
+
+### Usage
+
+Usage: `consul acl token list`
+
+#### Options
+
+* [Common Subcommand Options](#common-subcommand-options)
+
+* `-meta` - Indicates that token metadata such as the content hash and
+   Raft indices should be shown for each entry.
+
+### Examples
+
+Default listing.
+
+```sh
+$ consul acl token list
+AccessorID:   4d123dff-f460-73c3-02c4-8dd64d136e01
+Description:  Bootstrap Token (Global Management)
+Local:        false
+Create Time:  2018-10-22 11:27:04.479026 -0400 EDT
+Legacy:       false
+Policies:
+   00000000-0000-0000-0000-000000000001 - global-management
+
+AccessorID:   59f86a9b-d3b6-166c-32a0-be4ab3f94caa
+Description:  Super User
+Local:        false
+Create Time:  2018-10-22 15:35:28.787003 -0400 EDT
+Legacy:       false
+Policies:
+   00000000-0000-0000-0000-000000000001 - global-management
+
+AccessorID:   00000000-0000-0000-0000-000000000002
+Description:  Anonymous Token
+Local:        false
+Create Time:  0001-01-01 00:00:00 +0000 UTC
+Legacy:       false
+Policies:
+   06acc965-df4b-5a99-58cb-3250930c6324 - node-services-read
+
+AccessorID:   986193b5-e2b5-eb26-6264-b524ea60cc6d
+Description:  WonderToken
+Local:        false
+Create Time:  2018-10-22 15:33:39.01789 -0400 EDT
+Legacy:       false
+Policies:
+   06acc965-df4b-5a99-58cb-3250930c6324 - node-services-read
+```

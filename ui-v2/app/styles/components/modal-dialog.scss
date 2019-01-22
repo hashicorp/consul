@@ -1,0 +1,13 @@
+@import './modal-dialog/index';
+[role='dialog'] {
+  @extend %modal-dialog;
+}
+input[name='modal'] {
+  @extend %modal-control;
+}
+html.template-with-modal {
+  @extend %with-modal;
+}
+%modal-dialog table {
+  min-height: 149px;
+}

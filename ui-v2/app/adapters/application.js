@@ -48,7 +48,9 @@ export default Adapter.extend({
     });
   },
   cleanQuery: function(_query) {
-    delete _query.id;
+    if (typeof _query.id !== 'undefined') {
+      delete _query.id;
+    }
     const query = { ..._query };
     delete _query[DATACENTER_QUERY_PARAM];
     return query;

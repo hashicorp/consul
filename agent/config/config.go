@@ -84,8 +84,19 @@ func Parse(data string, format string) (c Config, err error) {
 		"services",
 		"services.checks",
 		"watches",
-		"service.connect.proxy.config.upstreams",
-		"services.connect.proxy.config.upstreams",
+		"service.connect.proxy.config.upstreams", // Deprecated
+		"services.connect.proxy.config.upstreams", // Deprecated
+		"service.connect.proxy.upstreams",
+		"services.connect.proxy.upstreams",
+		"service.proxy.upstreams",
+		"services.proxy.upstreams",
+
+		// Need all the service(s) exceptions also for nested sidecar service except
+		// managed proxy which is explicitly not supported there.
+		"service.connect.sidecar_service.checks",
+		"services.connect.sidecar_service.checks",
+		"service.connect.sidecar_service.proxy.upstreams",
+		"services.connect.sidecar_service.proxy.upstreams",
 	})
 
 	// There is a difference of representation of some fields depending on
@@ -136,17 +147,29 @@ func Parse(data string, format string) (c Config, err error) {
 // configuration it should be treated as an external API which cannot be
 // changed and refactored at will since this will break existing setups.
 type Config struct {
-	ACLAgentMasterToken              *string                  `json:"acl_agent_master_token,omitempty" hcl:"acl_agent_master_token" mapstructure:"acl_agent_master_token"`
-	ACLAgentToken                    *string                  `json:"acl_agent_token,omitempty" hcl:"acl_agent_token" mapstructure:"acl_agent_token"`
-	ACLDatacenter                    *string                  `json:"acl_datacenter,omitempty" hcl:"acl_datacenter" mapstructure:"acl_datacenter"`
-	ACLDefaultPolicy                 *string                  `json:"acl_default_policy,omitempty" hcl:"acl_default_policy" mapstructure:"acl_default_policy"`
-	ACLDownPolicy                    *string                  `json:"acl_down_policy,omitempty" hcl:"acl_down_policy" mapstructure:"acl_down_policy"`
-	ACLEnableKeyListPolicy           *bool                    `json:"acl_enable_key_list_policy,omitempty" hcl:"acl_enable_key_list_policy" mapstructure:"acl_enable_key_list_policy"`
-	ACLEnforceVersion8               *bool                    `json:"acl_enforce_version_8,omitempty" hcl:"acl_enforce_version_8" mapstructure:"acl_enforce_version_8"`
-	ACLMasterToken                   *string                  `json:"acl_master_token,omitempty" hcl:"acl_master_token" mapstructure:"acl_master_token"`
-	ACLReplicationToken              *string                  `json:"acl_replication_token,omitempty" hcl:"acl_replication_token" mapstructure:"acl_replication_token"`
-	ACLTTL                           *string                  `json:"acl_ttl,omitempty" hcl:"acl_ttl" mapstructure:"acl_ttl"`
+	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
+	ACLAgentMasterToken *string `json:"acl_agent_master_token,omitempty" hcl:"acl_agent_master_token" mapstructure:"acl_agent_master_token"`
+	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
+	ACLAgentToken *string `json:"acl_agent_token,omitempty" hcl:"acl_agent_token" mapstructure:"acl_agent_token"`
+	// DEPRECATED (ACL-Legacy-Compat) - moved to "primary_datacenter"
+	ACLDatacenter *string `json:"acl_datacenter,omitempty" hcl:"acl_datacenter" mapstructure:"acl_datacenter"`
+	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
+	ACLDefaultPolicy *string `json:"acl_default_policy,omitempty" hcl:"acl_default_policy" mapstructure:"acl_default_policy"`
+	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
+	ACLDownPolicy *string `json:"acl_down_policy,omitempty" hcl:"acl_down_policy" mapstructure:"acl_down_policy"`
+	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
+	ACLEnableKeyListPolicy *bool `json:"acl_enable_key_list_policy,omitempty" hcl:"acl_enable_key_list_policy" mapstructure:"acl_enable_key_list_policy"`
+	// DEPRECATED (ACL-Legacy-Compat) -  pre-version8 enforcement is deprecated.
+	ACLEnforceVersion8 *bool `json:"acl_enforce_version_8,omitempty" hcl:"acl_enforce_version_8" mapstructure:"acl_enforce_version_8"`
+	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
+	ACLMasterToken *string `json:"acl_master_token,omitempty" hcl:"acl_master_token" mapstructure:"acl_master_token"`
+	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
+	ACLReplicationToken *string `json:"acl_replication_token,omitempty" hcl:"acl_replication_token" mapstructure:"acl_replication_token"`
+	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
+	ACLTTL *string `json:"acl_ttl,omitempty" hcl:"acl_ttl" mapstructure:"acl_ttl"`
+	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
 	ACLToken                         *string                  `json:"acl_token,omitempty" hcl:"acl_token" mapstructure:"acl_token"`
+	ACL                              ACL                      `json:"acl,omitempty" hcl:"acl" mapstructure:"acl"`
 	Addresses                        Addresses                `json:"addresses,omitempty" hcl:"addresses" mapstructure:"addresses"`
 	AdvertiseAddrLAN                 *string                  `json:"advertise_addr,omitempty" hcl:"advertise_addr" mapstructure:"advertise_addr"`
 	AdvertiseAddrWAN                 *string                  `json:"advertise_addr_wan,omitempty" hcl:"advertise_addr_wan" mapstructure:"advertise_addr_wan"`
@@ -180,6 +203,7 @@ type Config struct {
 	EnableAgentTLSForChecks          *bool                    `json:"enable_agent_tls_for_checks,omitempty" hcl:"enable_agent_tls_for_checks" mapstructure:"enable_agent_tls_for_checks"`
 	EnableDebug                      *bool                    `json:"enable_debug,omitempty" hcl:"enable_debug" mapstructure:"enable_debug"`
 	EnableScriptChecks               *bool                    `json:"enable_script_checks,omitempty" hcl:"enable_script_checks" mapstructure:"enable_script_checks"`
+	EnableLocalScriptChecks          *bool                    `json:"enable_local_script_checks,omitempty" hcl:"enable_local_script_checks" mapstructure:"enable_local_script_checks"`
 	EnableSyslog                     *bool                    `json:"enable_syslog,omitempty" hcl:"enable_syslog" mapstructure:"enable_syslog"`
 	EncryptKey                       *string                  `json:"encrypt,omitempty" hcl:"encrypt" mapstructure:"encrypt"`
 	EncryptVerifyIncoming            *bool                    `json:"encrypt_verify_incoming,omitempty" hcl:"encrypt_verify_incoming" mapstructure:"encrypt_verify_incoming"`
@@ -191,6 +215,9 @@ type Config struct {
 	LeaveOnTerm                      *bool                    `json:"leave_on_terminate,omitempty" hcl:"leave_on_terminate" mapstructure:"leave_on_terminate"`
 	Limits                           Limits                   `json:"limits,omitempty" hcl:"limits" mapstructure:"limits"`
 	LogLevel                         *string                  `json:"log_level,omitempty" hcl:"log_level" mapstructure:"log_level"`
+	LogFile                          *string                  `json:"log_file,omitempty" hcl:"log_file" mapstructure:"log_file"`
+	LogRotateDuration                *string                  `json:"log_rotate_duration,omitempty" hcl:"log_rotate_duration" mapstructure:"log_rotate_duration"`
+	LogRotateBytes                   *int                     `json:"log_rotate_bytes,omitempty" hcl:"log_rotate_bytes" mapstructure:"log_rotate_bytes"`
 	NodeID                           *string                  `json:"node_id,omitempty" hcl:"node_id" mapstructure:"node_id"`
 	NodeMeta                         map[string]string        `json:"node_meta,omitempty" hcl:"node_meta" mapstructure:"node_meta"`
 	NodeName                         *string                  `json:"node_name,omitempty" hcl:"node_name" mapstructure:"node_name"`
@@ -198,6 +225,7 @@ type Config struct {
 	Performance                      Performance              `json:"performance,omitempty" hcl:"performance" mapstructure:"performance"`
 	PidFile                          *string                  `json:"pid_file,omitempty" hcl:"pid_file" mapstructure:"pid_file"`
 	Ports                            Ports                    `json:"ports,omitempty" hcl:"ports" mapstructure:"ports"`
+	PrimaryDatacenter                *string                  `json:"primary_datacenter,omitempty" hcl:"primary_datacenter" mapstructure:"primary_datacenter"`
 	RPCProtocol                      *int                     `json:"protocol,omitempty" hcl:"protocol" mapstructure:"protocol"`
 	RaftProtocol                     *int                     `json:"raft_protocol,omitempty" hcl:"raft_protocol" mapstructure:"raft_protocol"`
 	RaftSnapshotThreshold            *int                     `json:"raft_snapshot_threshold,omitempty" hcl:"raft_snapshot_threshold" mapstructure:"raft_snapshot_threshold"`
@@ -247,6 +275,7 @@ type Config struct {
 	SnapshotAgent map[string]interface{} `json:"snapshot_agent,omitempty" hcl:"snapshot_agent" mapstructure:"snapshot_agent"`
 
 	// non-user configurable values
+	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
 	ACLDisabledTTL             *string  `json:"acl_disabled_ttl,omitempty" hcl:"acl_disabled_ttl" mapstructure:"acl_disabled_ttl"`
 	AEInterval                 *string  `json:"ae_interval,omitempty" hcl:"ae_interval" mapstructure:"ae_interval"`
 	CheckDeregisterIntervalMin *string  `json:"check_deregister_interval_min,omitempty" hcl:"check_deregister_interval_min" mapstructure:"check_deregister_interval_min"`
@@ -301,6 +330,7 @@ type Addresses struct {
 	DNS   *string `json:"dns,omitempty" hcl:"dns" mapstructure:"dns"`
 	HTTP  *string `json:"http,omitempty" hcl:"http" mapstructure:"http"`
 	HTTPS *string `json:"https,omitempty" hcl:"https" mapstructure:"https"`
+	GRPC  *string `json:"grpc,omitempty" hcl:"grpc" mapstructure:"grpc"`
 }
 
 type AdvertiseAddrsConfig struct {
@@ -319,6 +349,12 @@ type Autopilot struct {
 	UpgradeVersionTag       *string `json:"upgrade_version_tag,omitempty" hcl:"upgrade_version_tag" mapstructure:"upgrade_version_tag"`
 }
 
+// ServiceWeights defines the registration of weights used in DNS for a Service
+type ServiceWeights struct {
+	Passing *int `json:"passing,omitempty" hcl:"passing" mapstructure:"passing"`
+	Warning *int `json:"warning,omitempty" hcl:"warning" mapstructure:"warning"`
+}
+
 type ServiceDefinition struct {
 	Kind              *string           `json:"kind,omitempty" hcl:"kind" mapstructure:"kind"`
 	ID                *string           `json:"id,omitempty" hcl:"id" mapstructure:"id"`
@@ -330,9 +366,12 @@ type ServiceDefinition struct {
 	Check             *CheckDefinition  `json:"check,omitempty" hcl:"check" mapstructure:"check"`
 	Checks            []CheckDefinition `json:"checks,omitempty" hcl:"checks" mapstructure:"checks"`
 	Token             *string           `json:"token,omitempty" hcl:"token" mapstructure:"token"`
+	Weights           *ServiceWeights   `json:"weights,omitempty" hcl:"weights" mapstructure:"weights"`
 	EnableTagOverride *bool             `json:"enable_tag_override,omitempty" hcl:"enable_tag_override" mapstructure:"enable_tag_override"`
-	ProxyDestination  *string           `json:"proxy_destination,omitempty" hcl:"proxy_destination" mapstructure:"proxy_destination"`
-	Connect           *ServiceConnect   `json:"connect,omitempty" hcl:"connect" mapstructure:"connect"`
+	// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
+	ProxyDestination *string         `json:"proxy_destination,omitempty" hcl:"proxy_destination" mapstructure:"proxy_destination"`
+	Proxy            *ServiceProxy   `json:"proxy,omitempty" hcl:"proxy" mapstructure:"proxy"`
+	Connect          *ServiceConnect `json:"connect,omitempty" hcl:"connect" mapstructure:"connect"`
 }
 
 type CheckDefinition struct {
@@ -367,12 +406,93 @@ type ServiceConnect struct {
 
 	// Proxy configures a connect proxy instance for the service
 	Proxy *ServiceConnectProxy `json:"proxy,omitempty" hcl:"proxy" mapstructure:"proxy"`
+
+	// SidecarService is a nested Service Definition to register at the same time.
+	// It's purely a convenience mechanism to allow specifying a sidecar service
+	// along with the application service definition. It's nested nature allows
+	// all of the fields to be defaulted which can reduce the amount of
+	// boilerplate needed to register a sidecar service separately, but the end
+	// result is identical to just making a second service registration via any
+	// other means.
+	SidecarService *ServiceDefinition `json:"sidecar_service,omitempty" hcl:"sidecar_service" mapstructure:"sidecar_service"`
 }
 
 type ServiceConnectProxy struct {
-	Command  []string               `json:"command,omitempty" hcl:"command" mapstructure:"command"`
-	ExecMode *string                `json:"exec_mode,omitempty" hcl:"exec_mode" mapstructure:"exec_mode"`
-	Config   map[string]interface{} `json:"config,omitempty" hcl:"config" mapstructure:"config"`
+	Command   []string               `json:"command,omitempty" hcl:"command" mapstructure:"command"`
+	ExecMode  *string                `json:"exec_mode,omitempty" hcl:"exec_mode" mapstructure:"exec_mode"`
+	Config    map[string]interface{} `json:"config,omitempty" hcl:"config" mapstructure:"config"`
+	Upstreams []Upstream             `json:"upstreams,omitempty" hcl:"upstreams" mapstructure:"upstreams"`
+}
+
+// ServiceProxy is the additional config needed for a Kind = connect-proxy
+// registration.
+type ServiceProxy struct {
+	// DestinationServiceName is required and is the name of the service to accept
+	// traffic for.
+	DestinationServiceName *string `json:"destination_service_name,omitempty" hcl:"destination_service_name" mapstructure:"destination_service_name"`
+
+	// DestinationServiceID is optional and should only be specified for
+	// "side-car" style proxies where the proxy is in front of just a single
+	// instance of the service. It should be set to the service ID of the instance
+	// being represented which must be registered to the same agent. It's valid to
+	// provide a service ID that does not yet exist to avoid timing issues when
+	// bootstrapping a service with a proxy.
+	DestinationServiceID *string `json:"destination_service_id,omitempty" hcl:"destination_service_id" mapstructure:"destination_service_id"`
+
+	// LocalServiceAddress is the address of the local service instance. It is
+	// optional and should only be specified for "side-car" style proxies. It will
+	// default to 127.0.0.1 if the proxy is a "side-car" (DestinationServiceID is
+	// set) but otherwise will be ignored.
+	LocalServiceAddress *string `json:"local_service_address,omitempty" hcl:"local_service_address" mapstructure:"local_service_address"`
+
+	// LocalServicePort is the port of the local service instance. It is optional
+	// and should only be specified for "side-car" style proxies. It will default
+	// to the registered port for the instance if the proxy is a "side-car"
+	// (DestinationServiceID is set) but otherwise will be ignored.
+	LocalServicePort *int `json:"local_service_port,omitempty" hcl:"local_service_port" mapstructure:"local_service_port"`
+
+	// Config is the arbitrary configuration data provided with the proxy
+	// registration.
+	Config map[string]interface{} `json:"config,omitempty" hcl:"config" mapstructure:"config"`
+
+	// Upstreams describes any upstream dependencies the proxy instance should
+	// setup.
+	Upstreams []Upstream `json:"upstreams,omitempty" hcl:"upstreams" mapstructure:"upstreams"`
+}
+
+// Upstream represents a single upstream dependency for a service or proxy. It
+// describes the mechanism used to discover instances to communicate with (the
+// Target) as well as any potential client configuration that may be useful such
+// as load balancer options, timeouts etc.
+type Upstream struct {
+	// Destination fields are the required ones for determining what this upstream
+	// points to. Depending on DestinationType some other fields below might
+	// further restrict the set of instances allowable.
+	//
+	// DestinationType would be better as an int constant but even with custom
+	// JSON marshallers it causes havoc with all the mapstructure mangling we do
+	// on service definitions in various places.
+	DestinationType      *string `json:"destination_type,omitempty" hcl:"destination_type" mapstructure:"destination_type"`
+	DestinationNamespace *string `json:"destination_namespace,omitempty" hcl:"destination_namespace" mapstructure:"destination_namespace"`
+	DestinationName      *string `json:"destination_name,omitempty" hcl:"destination_name" mapstructure:"destination_name"`
+
+	// Datacenter that the service discovery request should be run against. Note
+	// for prepared queries, the actual results might be from a different
+	// datacenter.
+	Datacenter *string `json:"datacenter,omitempty" hcl:"datacenter" mapstructure:"datacenter"`
+
+	// LocalBindAddress is the ip address a side-car proxy should listen on for
+	// traffic destined for this upstream service. Default if empty is 127.0.0.1.
+	LocalBindAddress *string `json:"local_bind_address,omitempty" hcl:"local_bind_address" mapstructure:"local_bind_address"`
+
+	// LocalBindPort is the ip address a side-car proxy should listen on for traffic
+	// destined for this upstream service. Required.
+	LocalBindPort *int `json:"local_bind_port,omitempty" hcl:"local_bind_port" mapstructure:"local_bind_port"`
+
+	// Config is an opaque config that is specific to the proxy process being run.
+	// It can be used to pass abritrary configuration for this specific upstream
+	// to the proxy.
+	Config map[string]interface{} `json:"config,omitempty" hcl:"config" mapstructure:"config"`
 }
 
 // Connect is the agent-global connect configuration.
@@ -414,6 +534,14 @@ type ConnectProxyDefaults struct {
 	Config map[string]interface{} `json:"config,omitempty" hcl:"config" mapstructure:"config"`
 }
 
+// SOA is the configuration of SOA for DNS
+type SOA struct {
+	Refresh *uint32 `json:"refresh,omitempty" hcl:"refresh" mapstructure:"refresh"`
+	Retry   *uint32 `json:"retry,omitempty" hcl:"retry" mapstructure:"retry"`
+	Expire  *uint32 `json:"expire,omitempty" hcl:"expire" mapstructure:"expire"`
+	Minttl  *uint32 `json:"min_ttl,omitempty" hcl:"min_ttl" mapstructure:"min_ttl"`
+}
+
 type DNS struct {
 	AllowStale         *bool             `json:"allow_stale,omitempty" hcl:"allow_stale" mapstructure:"allow_stale"`
 	ARecordLimit       *int              `json:"a_record_limit,omitempty" hcl:"a_record_limit" mapstructure:"a_record_limit"`
@@ -426,11 +554,13 @@ type DNS struct {
 	ServiceTTL         map[string]string `json:"service_ttl,omitempty" hcl:"service_ttl" mapstructure:"service_ttl"`
 	UDPAnswerLimit     *int              `json:"udp_answer_limit,omitempty" hcl:"udp_answer_limit" mapstructure:"udp_answer_limit"`
 	NodeMetaTXT        *bool             `json:"enable_additional_node_meta_txt,omitempty" hcl:"enable_additional_node_meta_txt" mapstructure:"enable_additional_node_meta_txt"`
+	SOA                *SOA              `json:"soa,omitempty" hcl:"soa" mapstructure:"soa"`
 }
 
 type HTTPConfig struct {
-	BlockEndpoints  []string          `json:"block_endpoints,omitempty" hcl:"block_endpoints" mapstructure:"block_endpoints"`
-	ResponseHeaders map[string]string `json:"response_headers,omitempty" hcl:"response_headers" mapstructure:"response_headers"`
+	BlockEndpoints     []string          `json:"block_endpoints,omitempty" hcl:"block_endpoints" mapstructure:"block_endpoints"`
+	AllowWriteHTTPFrom []string          `json:"allow_write_http_from,omitempty" hcl:"allow_write_http_from" mapstructure:"allow_write_http_from"`
+	ResponseHeaders    map[string]string `json:"response_headers,omitempty" hcl:"response_headers" mapstructure:"response_headers"`
 }
 
 type Performance struct {
@@ -465,14 +595,17 @@ type Telemetry struct {
 }
 
 type Ports struct {
-	DNS          *int `json:"dns,omitempty" hcl:"dns" mapstructure:"dns"`
-	HTTP         *int `json:"http,omitempty" hcl:"http" mapstructure:"http"`
-	HTTPS        *int `json:"https,omitempty" hcl:"https" mapstructure:"https"`
-	SerfLAN      *int `json:"serf_lan,omitempty" hcl:"serf_lan" mapstructure:"serf_lan"`
-	SerfWAN      *int `json:"serf_wan,omitempty" hcl:"serf_wan" mapstructure:"serf_wan"`
-	Server       *int `json:"server,omitempty" hcl:"server" mapstructure:"server"`
-	ProxyMinPort *int `json:"proxy_min_port,omitempty" hcl:"proxy_min_port" mapstructure:"proxy_min_port"`
-	ProxyMaxPort *int `json:"proxy_max_port,omitempty" hcl:"proxy_max_port" mapstructure:"proxy_max_port"`
+	DNS            *int `json:"dns,omitempty" hcl:"dns" mapstructure:"dns"`
+	HTTP           *int `json:"http,omitempty" hcl:"http" mapstructure:"http"`
+	HTTPS          *int `json:"https,omitempty" hcl:"https" mapstructure:"https"`
+	SerfLAN        *int `json:"serf_lan,omitempty" hcl:"serf_lan" mapstructure:"serf_lan"`
+	SerfWAN        *int `json:"serf_wan,omitempty" hcl:"serf_wan" mapstructure:"serf_wan"`
+	Server         *int `json:"server,omitempty" hcl:"server" mapstructure:"server"`
+	GRPC           *int `json:"grpc,omitempty" hcl:"grpc" mapstructure:"grpc"`
+	ProxyMinPort   *int `json:"proxy_min_port,omitempty" hcl:"proxy_min_port" mapstructure:"proxy_min_port"`
+	ProxyMaxPort   *int `json:"proxy_max_port,omitempty" hcl:"proxy_max_port" mapstructure:"proxy_max_port"`
+	SidecarMinPort *int `json:"sidecar_min_port,omitempty" hcl:"sidecar_min_port" mapstructure:"sidecar_min_port"`
+	SidecarMaxPort *int `json:"sidecar_max_port,omitempty" hcl:"sidecar_max_port" mapstructure:"sidecar_max_port"`
 }
 
 type UnixSocket struct {
@@ -492,4 +625,24 @@ type Segment struct {
 	Name        *string `json:"name,omitempty" hcl:"name" mapstructure:"name"`
 	Port        *int    `json:"port,omitempty" hcl:"port" mapstructure:"port"`
 	RPCListener *bool   `json:"rpc_listener,omitempty" hcl:"rpc_listener" mapstructure:"rpc_listener"`
+}
+
+type ACL struct {
+	Enabled             *bool   `json:"enabled,omitempty" hcl:"enabled" mapstructure:"enabled"`
+	TokenReplication    *bool   `json:"enable_token_replication,omitempty" hcl:"enable_token_replication" mapstructure:"enable_token_replication"`
+	PolicyTTL           *string `json:"policy_ttl,omitempty" hcl:"policy_ttl" mapstructure:"policy_ttl"`
+	TokenTTL            *string `json:"token_ttl,omitempty" hcl:"token_ttl" mapstructure:"token_ttl"`
+	DownPolicy          *string `json:"down_policy,omitempty" hcl:"down_policy" mapstructure:"down_policy"`
+	DefaultPolicy       *string `json:"default_policy,omitempty" hcl:"default_policy" mapstructure:"default_policy"`
+	EnableKeyListPolicy *bool   `json:"enable_key_list_policy,omitempty" hcl:"enable_key_list_policy" mapstructure:"enable_key_list_policy"`
+	Tokens              Tokens  `json:"tokens,omitempty" hcl:"tokens" mapstructure:"tokens"`
+	DisabledTTL         *string `json:"disabled_ttl,omitempty" hcl:"disabled_ttl" mapstructure:"disabled_ttl"`
+}
+
+type Tokens struct {
+	Master      *string `json:"master,omitempty" hcl:"master" mapstructure:"master"`
+	Replication *string `json:"replication,omitempty" hcl:"replication" mapstructure:"replication"`
+	AgentMaster *string `json:"agent_master,omitempty" hcl:"agent_master" mapstructure:"agent_master"`
+	Default     *string `json:"default,omitempty" hcl:"default" mapstructure:"default"`
+	Agent       *string `json:"agent,omitempty" hcl:"agent" mapstructure:"agent"`
 }

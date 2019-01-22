@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
 )
@@ -281,4 +282,43 @@ func ServersMeetMinimumVersion(members []serf.Member, minVersion *version.Versio
 	}
 
 	return true
+}
+
+func ServersGetACLMode(members []serf.Member, leader string, datacenter string) (numServers int, mode structs.ACLMode, leaderMode structs.ACLMode) {
+	numServers = 0
+	mode = structs.ACLModeEnabled
+	leaderMode = structs.ACLModeUnknown
+	for _, member := range members {
+		if valid, parts := metadata.IsConsulServer(member); valid {
+
+			if datacenter != "" && parts.Datacenter != datacenter {
+				continue
+			}
+
+			numServers += 1
+
+			if memberAddr := (&net.TCPAddr{IP: member.Addr, Port: parts.Port}).String(); memberAddr == leader {
+				leaderMode = parts.ACLs
+			}
+
+			switch parts.ACLs {
+			case structs.ACLModeDisabled:
+				// anything disabled means we cant enable ACLs
+				mode = structs.ACLModeDisabled
+			case structs.ACLModeEnabled:
+				// do nothing
+			case structs.ACLModeLegacy:
+				// This covers legacy mode and older server versions that don't advertise ACL support
+				if mode != structs.ACLModeDisabled && mode != structs.ACLModeUnknown {
+					mode = structs.ACLModeLegacy
+				}
+			default:
+				if mode != structs.ACLModeDisabled {
+					mode = structs.ACLModeUnknown
+				}
+			}
+		}
+	}
+
+	return
 }

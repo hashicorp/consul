@@ -74,7 +74,7 @@ func (s *Intention) Apply(
 	*reply = args.Intention.ID
 
 	// Get the ACL token for the request for the checks below.
-	rule, err := s.srv.resolveToken(args.Token)
+	rule, err := s.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
@@ -225,7 +225,7 @@ func (s *Intention) Match(
 	}
 
 	// Get the ACL token for the request for the checks below.
-	rule, err := s.srv.resolveToken(args.Token)
+	rule, err := s.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
@@ -291,7 +291,7 @@ func (s *Intention) Check(
 	}
 
 	// Get the ACL token for the request for the checks below.
-	rule, err := s.srv.resolveToken(args.Token)
+	rule, err := s.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
@@ -344,7 +344,7 @@ func (s *Intention) Check(
 	// NOTE(mitchellh): This is the same behavior as the agent authorize
 	// endpoint. If this behavior is incorrect, we should also change it there
 	// which is much more important.
-	rule, err = s.srv.resolveToken("")
+	rule, err = s.srv.ResolveToken("")
 	if err != nil {
 		return err
 	}

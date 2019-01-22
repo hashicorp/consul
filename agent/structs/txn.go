@@ -1,9 +1,11 @@
 package structs
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/hashicorp/consul/api"
+	multierror "github.com/hashicorp/go-multierror"
 )
 
 // TxnKVOp is used to define a single operation on the KVS inside a
@@ -17,10 +19,15 @@ type TxnKVOp struct {
 // inside a transaction.
 type TxnKVResult *DirEntry
 
+// TxnKVOp is used to define a single operation on an Intention inside a
+// transaction.
+type TxnIntentionOp IntentionRequest
+
 // TxnOp is used to define a single operation inside a transaction. Only one
 // of the types should be filled out per entry.
 type TxnOp struct {
-	KV *TxnKVOp
+	KV        *TxnKVOp
+	Intention *TxnIntentionOp
 }
 
 // TxnOps is a list of operations within a transaction.
@@ -78,6 +85,15 @@ type TxnResults []*TxnResult
 type TxnResponse struct {
 	Results TxnResults
 	Errors  TxnErrors
+}
+
+// Error returns an aggregate of all errors in this TxnResponse.
+func (r TxnResponse) Error() error {
+	var errs error
+	for _, err := range r.Errors {
+		errs = multierror.Append(errs, errors.New(err.Error()))
+	}
+	return errs
 }
 
 // TxnReadResponse is the structure returned by a TxnReadRequest.

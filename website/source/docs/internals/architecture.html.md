@@ -123,6 +123,15 @@ situations where a limited subset of data can be replicated, such as with Consul
 [ACL replication](/docs/guides/acl.html#outages-and-acl-replication) capability, or
 external tools like [consul-replicate](https://github.com/hashicorp/consul-replicate).
 
+In some places, client agents may cache data from the servers to make it
+available locally for performance and reliability. Examples include Connect
+certificates and intentions which allow the client agent to make local decisions
+about inbound connection requests without a round trip to the servers. Some API
+endpoints also support optional result caching. This helps reliability because
+the local agent can continue to respond to some queries like service-discovery
+or Connect authorization from cache even if the connection to the servers is
+disrupted or the servers are temporarily unavailable.
+
 ## Getting in depth
 
 At this point we've covered the high level architecture of Consul, but there are many

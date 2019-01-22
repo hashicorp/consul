@@ -36,12 +36,13 @@ connection attempt.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required             |
-| ---------------- | ----------------- | ------------------------ |
-| `NO`             | `none`            | `service:write` |
+| Blocking Queries | Consistency Modes | Agent Caching        | ACL Required    |
+| ---------------- | ----------------- | -------------------- | --------------- |
+| `NO`             | `none`            | `background refresh` | `service:write` |
 
 ### Parameters
 
@@ -72,7 +73,7 @@ The table below shows this endpoint's support for
 $ curl \
    --request POST \
    --data @payload.json \
-    https://consul.rocks/v1/agent/connect/authorize
+    http://127.0.0.1:8500/v1/agent/connect/authorize
 ```
 
 ### Sample Response
@@ -102,18 +103,19 @@ unavailable. This endpoint should be used by proxies and native integrations.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required               |
-| ---------------- | ----------------- | -------------------------- |
-| `YES`             | `all`            | `none` |
+| Blocking Queries | Consistency Modes | Agent Caching        | ACL Required |
+| ---------------- | ----------------- | -------------------- | ------------ |
+| `YES`            | `all`             | `background refresh` | `none`       |
 
 ### Sample Request
 
 ```text
 $ curl \
-   https://consul.rocks/v1/connect/ca/roots
+   http://127.0.0.1:8500/v1/connect/ca/roots
 ```
 
 ### Sample Response
@@ -162,12 +164,13 @@ clients to efficiently wait for certificate rotations.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required               |
-| ---------------- | ----------------- | -------------------------- |
-| `YES`             | `all`            | `service:write` |
+| Blocking Queries | Consistency Modes | Agent Caching        | ACL Required    |
+| ---------------- | ----------------- | -------------------- | --------------- |
+| `YES`            | `all`             | `background refresh` | `service:write` |
 
 ### Parameters
 
@@ -179,7 +182,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-   https://consul.rocks/v1/connect/ca/leaf/web
+   http://127.0.0.1:8500/v1/connect/ca/leaf/web
 ```
 
 ### Sample Response
@@ -215,12 +218,14 @@ $ curl \
 - `ValidBefore` `(string)` - The time before which the certificate is valid.
   Used with `ValidAfter` this can determine the validity period of the certificate.
 
-## Managed Proxy Configuration
+## Managed Proxy Configuration ([Deprecated](/docs/connect/proxies/managed-deprecated.html))
 
-This endpoint returns the configuration for a
-[managed proxy](/docs/connect/proxies.html).
-Ths endpoint is only useful for _managed proxies_ and not relevant
-for unmanaged proxies.
+This endpoint returns the configuration for a [managed
+proxy](/docs/connect/proxies.html). Ths endpoint is only useful for _managed
+proxies_ and not relevant for unmanaged proxies. This endpoint will be removed
+in a future major release as part of [managed proxy
+deprecation].(/docs/connect/proxies/managed-deprecated.html). The equivalent API
+for use will all future proxies is the more generic `
 
 Managed proxy configuration is set in the service definition. When Consul
 starts the managed proxy, it provides the service ID and ACL token. The proxy
@@ -229,16 +234,20 @@ a blocking query to detect any configuration changes.
 
 | Method | Path                         | Produces                   |
 | ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/agent/connect/proxy/:id`    | `application/json`         |
+| `GET`  | `/agent/connect/proxy/:id`    | `application/json`        |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required               |
-| ---------------- | ----------------- | -------------------------- |
-| `YES`             | `all`            | `service:write, proxy token` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required                 |
+| ---------------- | ----------------- | ------------- | ---------------------------- |
+| `YES`<sup>1</sup>| `all`             | `none`        | `service:write, proxy token` |
+
+<sup>1</sup> Supports [hash-based
+blocking](/api/index.html#hash-based-blocking-queries) only.
 
 ### Parameters
 
@@ -250,7 +259,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-   https://consul.rocks/v1/connect/proxy/web-proxy
+   http://127.0.0.1:8500/v1/connect/proxy/web-proxy
 ```
 
 ### Sample Response
@@ -271,7 +280,22 @@ $ curl \
     "bind_address": "127.0.0.1",
     "bind_port": 20199,
     "local_service_address": "127.0.0.1:8181"
-  }
+  },
+  "Upstreams": [
+    {
+        "DestinationType": "service",
+        "DestinationName": "db",
+        "LocalBindPort": 1234,
+        "Config": {
+            "connect_timeout_ms": 1000
+        }
+    },
+    {
+        "DestinationType": "prepared_query",
+        "DestinationName": "geo-cache",
+        "LocalBindPort": 1235
+    }
+  ]
 }
 ```
 
@@ -291,3 +315,7 @@ $ curl \
 - `Config` `(map<string|any>)` - The configuration for the managed proxy. This
   is a map of primitive values (including arrays and maps) that is set by the
   user.
+
+- `Upstreams` `(array<Upstream>)` - The configured upstreams for the proxy. See 
+[Upstream Configuration Reference](/docs/connect/proxies.html#upstream-configuration-reference)
+for more details on the format.

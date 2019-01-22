@@ -1,0 +1,20 @@
+<fieldset>
+{{#if create }}
+  <div class="type-toggle type-negative">
+    <span>Restrict this token to a local datacenter?</span>
+    <em>Local tokens get set in the Raft store of the local DC and do not ever get transmitted to the primary DC or replicated to any other DC.</em>
+    <label>
+      <input type="checkbox" name="Local" checked={{if (not Local) 'checked' }} onchange={{action 'change'}} />
+      <span>No</span>
+    </label>
+  </div>
+{{/if}}
+  <label class="type-text validate-optional">
+    <span>Description (Optional)</span>
+    <textarea name="Description" oninput={{action 'change'}}>{{item.Description}}</textarea>
+  </label>
+</fieldset>
+<fieldset>
+  <h2>Policies</h2>
+  {{partial 'dc/acls/tokens/policies'}}
+</fieldset>

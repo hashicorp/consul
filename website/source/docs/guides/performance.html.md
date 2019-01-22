@@ -59,13 +59,34 @@ The high performance configuration is simple and looks like this:
 }
 ```
 
+This value must take into account the network latency between the servers and the read/write load on the servers.
+
+The value of `raft_multiplier` is a scaling factor and directly affects the following parameters:
+
+|Param|Value||
+|-----|----:|-:|
+|HeartbeatTimeout|1000ms|default|
+|ElectionTimeout|1000ms|default|
+|LeaderLeaseTimeout|500ms|default|
+
+So a scaling factor of `5` (i.e. `raft_multiplier: 5`) updates the following values:
+
+|Param|Value|Calculation|
+|-----|----:|-:|
+|HeartbeatTimeout|5000ms|5 x 1000ms|
+|ElectionTimeout|5000ms|5 x 1000ms|
+|LeaderLeaseTimeout|2500ms|5 x 500ms|
+
+~> **NOTE** Wide networks with more latency will perform better with larger values of `raft_multiplier`.
+
+The trade off is between leader stability and time to recover from an actual leader failure. A short multiplier minimizes failure detection and election time but may be triggered frequently in high latency situations. This can cause constant leadership churn and associated unavailability. A high multiplier reduces the chances that spurious failures will cause leadership churn but it does this at the expense of taking longer to detect real failures and thus takes longer to restore cluster availability.
+
+Leadership instability can also be caused by under-provisioned CPU resources and is more likely in environments where CPU cycles are shared with other workloads. In order for a server to remain the leader, it must send frequent heartbeat messages to all other servers every few hundred milliseconds. If some number of these are missing or late due to the leader not having sufficient CPU to send them on time, the other servers will detect it as failed and hold a new election.
+
 It's best to benchmark with a realistic workload when choosing a production server for Consul.
 Here are some general recommendations:
 
 * Consul will make use of multiple cores, and at least 2 cores are recommended.
-
-* For write-heavy workloads, disk speed on the servers is key for performance. Use SSDs or
-another fast disk technology for the best write throughput.
 
 * <a name="last-contact"></a>Spurious leader elections can be caused by networking issues between
 the servers or insufficient CPU resources. Users in cloud environments often bump their servers
@@ -110,3 +131,31 @@ set size. You can determine the working set size by noting the value of
 > NOTE: Consul is not designed to serve as a general purpose database, and you
 > should keep this in mind when choosing what data are populated to the
 > key/value store.
+
+## Read/Write Tuning
+
+Consul is write limited by disk I/O and read limited by CPU. Memory requirements will be dependent on the total size of KV pairs stored and should be sized according to that data (as should the hard drive storage). The limit on a key’s value size is `512KB`.
+
+-> Consul is write limited by disk I/O and read limited by CPU.
+
+For **write-heavy** workloads, the total RAM available for overhead must approximately be equal to
+
+    RAM NEEDED = number of keys * average key size * 2-3x
+
+Since writes must be synced to disk (persistent storage) on a quorum of servers before they are committed, deploying a disk with high write throughput (or an SSD) will enhance performance on the write side. ([Documentation](/docs/agent/options.html#\_data\_dir))
+
+For a **read-heavy** workload, configure all Consul server agents with the `allow_stale` DNS option, or query the API with the `stale` [consistency mode](/api/index.html#consistency-modes). By default, all queries made to the server are RPC forwarded to and serviced by the leader. By enabling stale reads, any server will respond to any query, thereby reducing overhead on the leader. Typically, the stale response is `100ms` or less from consistent mode but it drastically improves performance and reduces latency under high load.
+
+If the leader server is out of memory or the disk is full, the server eventually stops responding, loses its election and cannot move past its last commit time. However, by configuring `max_stale` and setting it to a large value, Consul will continue to respond to queries during such outage scenarios. ([max_stale documentation](/docs/agent/options.html#max_stale)).
+
+It should be noted that `stale` is not appropriate for coordination where strong consistency is important (i.e. locking or application leader election). For critical cases, the optional `consistent` API query mode is required for true linearizability; the trade off is that this turns a read into a full quorum write so requires more resources and takes longer.
+
+**Read-heavy** clusters may take advantage of the [enhanced reading](/docs/enterprise/read-scale/index.html) feature (Enterprise) for better scalability. This feature allows additional servers to be introduced as non-voters. Being a non-voter, the server will still participate in data replication, but it will not block the leader from committing log entries.
+
+Consul’s agents use network sockets for communicating with the other nodes (gossip) and with the server agent. In addition, file descriptors are also opened for watch handlers, health checks, and log files. For a **write heavy** cluster, the `ulimit` size must be increased from the default  value (`1024`) to prevent the leader from running out of file descriptors.
+
+To prevent any CPU spikes from a misconfigured client, RPC requests to the server should be [rate limited](/docs/agent/options.html#limits)
+
+~> **NOTE** Rate limiting is configured on the client agent only.
+
+In addition, two [performance indicators](/docs/agent/telemetry.html) &mdash; `consul.runtime.alloc_bytes` and `consul.runtime.heap_objects` &mdash; can help diagnose if the current sizing is not adequately meeting the load.

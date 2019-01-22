@@ -35,11 +35,62 @@ to learn about them without having to go spelunking through the source code.
 
 ## Secure Configuration
 
-The Consul threat model is only applicable if Consul is running in a secure configuration. Consul does not operate in a secure-by-default configuration. If any of the settings below are not enabled, then parts of this threat model are going to be invalid. Additional security precautions must also be taken for items outside of Consul's threat model as noted in sections below.
+The Consul threat model is only applicable if Consul is running in a secure
+configuration. Consul does not operate in a secure-by-default configuration. If
+any of the settings below are not enabled, then parts of this threat model are
+going to be invalid. Additional security precautions must also be taken for
+items outside of Consul's threat model as noted in sections below.
 
-* **ACLs enabled with default deny.** Consul must be configured to use ACLs with a whitelist (default deny) approach. This forces all requests to have explicit anonymous access or provide an ACL token.
+* **ACLs enabled with default deny.** Consul must be configured to use ACLs with
+  a whitelist (default deny) approach. This forces all requests to have explicit
+  anonymous access or provide an ACL token.
 
-* **Encryption enabled.** TCP and UDP encryption must be enabled and configured to prevent plaintext communication between Consul agents. At a minimum, verify_outgoing should be enabled to verify server authenticity with each server having a unique TLS certificate. verify_incoming provides additional agent verification, but shouldn't directly affect the threat model since requests must also contain a valid ACL token.
+* **Encryption enabled.** TCP and UDP encryption must be enabled and configured
+  to prevent plaintext communication between Consul agents. At a minimum,
+  `verify_outgoing` should be enabled to verify server authenticity with each
+  server having a unique TLS certificate. `verify_server_hostname` is also
+  required to prevent a compromised agent restarting as a server and being given
+  access to all secrets.
+
+    `verify_incoming` provides additional agent verification via mutual
+  authentication, but isn't _strictly_ necessary to enforce the threat model
+  since requests must also contain a valid ACL token. The subtlety is that
+  currently `verify_incoming = false` will allow servers to still accept
+  un-encrypted connections from clients (to allow for gradual TLS rollout). That
+  alone doesn't violate the threat model, but any misconfigured client that
+  chooses not to use TLS will violate the model. We recommend setting this to
+  true. If it is left as false care must be taken to ensure all consul clients
+  use `verify_outgoing = true` as noted above, but also all external API/UI
+  access must be via HTTPS with HTTP listeners disabled.
+
+### Known Insecure Configurations
+
+In addition to configuring the non-default settings above, Consul has several
+non-default options that potentially present additional security risks.
+
+* **Script checks enabled with network-exposed API.** If a Consul agent (client
+  or server) exposes its HTTP API to the network beyond localhost,
+  [`enable_script_checks`](/docs/agent/options.html#_enable_script_checks) must
+  be `false` otherwise, even with ACLs configured, script checks present a
+  remote code execution threat.
+  [`enable_local_script_checks`](/docs/agent/options.html#_enable_local_script_checks)
+  provides a secure alterative if the HTTP API must be exposed and is available
+  from 1.3.0 on. This feature was also back-ported to patch releases 0.9.4,
+  1.1.1, and 1.2.4 [as described here](https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations).
+
+* **Remote exec enabled.** Consul includes a [`consul exec`
+  feature](/docs/commands/exec.html) allowing execution of arbitrary commands
+  across the cluster. This is disabled by default since 0.8.0. We recommend
+  leaving it disabled. If enabled, extreme care must be taken to ensure correct
+  ACLs restrict access, for example any management token grants access to
+  execute arbitrary code on the cluster.
+
+* **Verify Server Hostname Used Alone.** From version 0.5.1 to 1.4.0 we documented that
+  `verify_server_hostname` being `true` _implied_ `verify_outgoing` however due
+  to a bug this was not the case so setting _only_ `verify_server_hostname`
+  results in plaintext communciation between client and server. See
+  [CVE-2018-19653](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2018-19653)
+  for more details. This is fixed in 1.4.1.
 
 ## Threat Model
 

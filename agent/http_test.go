@@ -20,8 +20,10 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil"
-	"github.com/hashicorp/go-cleanhttp"
+	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/http2"
 )
@@ -567,6 +569,146 @@ func TestParseSource(t *testing.T) {
 	}
 }
 
+func TestParseCacheControl(t *testing.T) {
+
+	tests := []struct {
+		name      string
+		headerVal string
+		want      structs.QueryOptions
+		wantErr   bool
+	}{
+		{
+			name:      "empty header",
+			headerVal: "",
+			want:      structs.QueryOptions{},
+			wantErr:   false,
+		},
+		{
+			name:      "simple max-age",
+			headerVal: "max-age=30",
+			want: structs.QueryOptions{
+				MaxAge: 30 * time.Second,
+			},
+			wantErr: false,
+		},
+		{
+			name:      "zero max-age",
+			headerVal: "max-age=0",
+			want: structs.QueryOptions{
+				MustRevalidate: true,
+			},
+			wantErr: false,
+		},
+		{
+			name:      "must-revalidate",
+			headerVal: "must-revalidate",
+			want: structs.QueryOptions{
+				MustRevalidate: true,
+			},
+			wantErr: false,
+		},
+		{
+			name:      "mixes age, must-revalidate",
+			headerVal: "max-age=123, must-revalidate",
+			want: structs.QueryOptions{
+				MaxAge:         123 * time.Second,
+				MustRevalidate: true,
+			},
+			wantErr: false,
+		},
+		{
+			name:      "quoted max-age",
+			headerVal: "max-age=\"30\"",
+			want:      structs.QueryOptions{},
+			wantErr:   true,
+		},
+		{
+			name:      "mixed case max-age",
+			headerVal: "Max-Age=30",
+			want: structs.QueryOptions{
+				MaxAge: 30 * time.Second,
+			},
+			wantErr: false,
+		},
+		{
+			name:      "simple stale-if-error",
+			headerVal: "stale-if-error=300",
+			want: structs.QueryOptions{
+				StaleIfError: 300 * time.Second,
+			},
+			wantErr: false,
+		},
+		{
+			name:      "combined with space",
+			headerVal: "max-age=30, stale-if-error=300",
+			want: structs.QueryOptions{
+				MaxAge:       30 * time.Second,
+				StaleIfError: 300 * time.Second,
+			},
+			wantErr: false,
+		},
+		{
+			name:      "combined no space",
+			headerVal: "stale-IF-error=300,max-age=30",
+			want: structs.QueryOptions{
+				MaxAge:       30 * time.Second,
+				StaleIfError: 300 * time.Second,
+			},
+			wantErr: false,
+		},
+		{
+			name:      "unsupported directive",
+			headerVal: "no-cache",
+			want:      structs.QueryOptions{},
+			wantErr:   false,
+		},
+		{
+			name:      "mixed unsupported directive",
+			headerVal: "no-cache, max-age=120",
+			want: structs.QueryOptions{
+				MaxAge: 120 * time.Second,
+			},
+			wantErr: false,
+		},
+		{
+			name:      "garbage value",
+			headerVal: "max-age=\"I'm not, an int\"",
+			want:      structs.QueryOptions{},
+			wantErr:   true,
+		},
+		{
+			name:      "garbage value with quotes",
+			headerVal: "max-age=\"I'm \\\"not an int\"",
+			want:      structs.QueryOptions{},
+			wantErr:   true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require := require.New(t)
+
+			r, _ := http.NewRequest("GET", "/foo/bar", nil)
+			if tt.headerVal != "" {
+				r.Header.Set("Cache-Control", tt.headerVal)
+			}
+
+			rr := httptest.NewRecorder()
+			var got structs.QueryOptions
+
+			failed := parseCacheControl(rr, r, &got)
+			if tt.wantErr {
+				require.True(failed)
+				require.Equal(http.StatusBadRequest, rr.Code)
+			} else {
+				require.False(failed)
+			}
+
+			require.Equal(tt.want, got)
+		})
+	}
+}
+
 func TestParseWait(t *testing.T) {
 	t.Parallel()
 	resp := httptest.NewRecorder()
@@ -582,6 +724,104 @@ func TestParseWait(t *testing.T) {
 	}
 	if b.MaxQueryTime != 60*time.Second {
 		t.Fatalf("Bad: %v", b)
+	}
+}
+func TestPProfHandlers_EnableDebug(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+	a := NewTestAgent(t.Name(), "enable_debug = true")
+	defer a.Shutdown()
+
+	resp := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/debug/pprof/profile", nil)
+
+	a.srv.Handler.ServeHTTP(resp, req)
+
+	require.Equal(http.StatusOK, resp.Code)
+}
+func TestPProfHandlers_DisableDebugNoACLs(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+	a := NewTestAgent(t.Name(), "enable_debug = false")
+	defer a.Shutdown()
+
+	resp := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/debug/pprof/profile", nil)
+
+	a.srv.Handler.ServeHTTP(resp, req)
+
+	require.Equal(http.StatusUnauthorized, resp.Code)
+}
+
+func TestPProfHandlers_ACLs(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+	dc1 := "dc1"
+
+	a := NewTestAgent(t.Name(), `
+	acl_datacenter = "`+dc1+`"
+	acl_default_policy = "deny"
+	acl_master_token = "master"
+	acl_agent_token = "agent"
+	acl_agent_master_token = "towel"
+	acl_enforce_version_8 = true
+	enable_debug = false
+`)
+
+	cases := []struct {
+		code        int
+		token       string
+		endpoint    string
+		nilResponse bool
+	}{
+		{
+			code:        http.StatusOK,
+			token:       "master",
+			endpoint:    "/debug/pprof/heap",
+			nilResponse: false,
+		},
+		{
+			code:        http.StatusForbidden,
+			token:       "agent",
+			endpoint:    "/debug/pprof/heap",
+			nilResponse: true,
+		},
+		{
+			code:        http.StatusForbidden,
+			token:       "agent",
+			endpoint:    "/debug/pprof/",
+			nilResponse: true,
+		},
+		{
+			code:        http.StatusForbidden,
+			token:       "",
+			endpoint:    "/debug/pprof/",
+			nilResponse: true,
+		},
+		{
+			code:        http.StatusOK,
+			token:       "master",
+			endpoint:    "/debug/pprof/heap",
+			nilResponse: false,
+		},
+		{
+			code:        http.StatusForbidden,
+			token:       "towel",
+			endpoint:    "/debug/pprof/heap",
+			nilResponse: true,
+		},
+	}
+
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	for i, c := range cases {
+		t.Run(fmt.Sprintf("case %d (%#v)", i, c), func(t *testing.T) {
+			req, _ := http.NewRequest("GET", fmt.Sprintf("%s?token=%s", c.endpoint, c.token), nil)
+			resp := httptest.NewRecorder()
+			a.srv.Handler.ServeHTTP(resp, req)
+			assert.Equal(c.code, resp.Code)
+		})
 	}
 }
 
@@ -961,6 +1201,93 @@ func TestParseToken_ProxyTokenResolve(t *testing.T) {
 			_, err := check.handler(a.srv, resp, req)
 			require.NoError(t, err)
 		})
+	}
+}
+
+func TestAllowedNets(t *testing.T) {
+	type testVal struct {
+		nets     []string
+		ip       string
+		expected bool
+	}
+
+	for _, v := range []testVal{
+		{
+			ip:       "156.124.222.351",
+			expected: true,
+		},
+		{
+			ip:       "[::2]",
+			expected: true,
+		},
+		{
+			nets:     []string{"0.0.0.0/0"},
+			ip:       "115.124.32.64",
+			expected: true,
+		},
+		{
+			nets:     []string{"::0/0"},
+			ip:       "[::3]",
+			expected: true,
+		},
+		{
+			nets:     []string{"127.0.0.1/8"},
+			ip:       "127.0.0.1",
+			expected: true,
+		},
+		{
+			nets:     []string{"127.0.0.1/8"},
+			ip:       "128.0.0.1",
+			expected: false,
+		},
+		{
+			nets:     []string{"::1/8"},
+			ip:       "[::1]",
+			expected: true,
+		},
+		{
+			nets:     []string{"255.255.255.255/32"},
+			ip:       "127.0.0.1",
+			expected: false,
+		},
+		{
+			nets:     []string{"255.255.255.255/32", "127.0.0.1/8"},
+			ip:       "127.0.0.1",
+			expected: true,
+		},
+	} {
+		var nets []*net.IPNet
+		for _, n := range v.nets {
+			_, in, err := net.ParseCIDR(n)
+			if err != nil {
+				t.Fatal(err)
+			}
+			nets = append(nets, in)
+		}
+
+		a := &TestAgent{
+			Name: t.Name(),
+		}
+		a.Start()
+		defer a.Shutdown()
+		testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+		a.config.AllowWriteHTTPFrom = nets
+
+		err := a.srv.checkWriteAccess(&http.Request{
+			Method:     http.MethodPost,
+			RemoteAddr: fmt.Sprintf("%s:16544", v.ip),
+		})
+		actual := err == nil
+
+		if actual != v.expected {
+			t.Fatalf("bad checkWriteAccess for values %+v, got %v", v, err)
+		}
+
+		_, isForbiddenErr := err.(ForbiddenError)
+		if err != nil && !isForbiddenErr {
+			t.Fatalf("expected ForbiddenError but got: %s", err)
+		}
 	}
 }
 

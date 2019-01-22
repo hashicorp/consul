@@ -33,9 +33,15 @@ function.
  * vSphere [Config options](https://github.com/hashicorp/go-discover/blob/master/provider/vsphere/vsphere_discover.go#L148-L155)
  * Packet [Config options](https://github.com/hashicorp/go-discover/blob/master/provider/packet/packet_discover.go#L25-L35)
 
+The following providers are implemented in the go-discover/provider subdirectory
+but aren't automatically registered. If you want to support these providers,
+register them manually:
+
+ * Kubernetes [Config options](https://github.com/hashicorp/go-discover/blob/master/provider/k8s/k8s_discover.go#L32-L51)
+
 HashiCorp maintains acceptance tests that regularly allocate and run tests with
 real resources to verify the behavior of several of these providers. Those
-currently are: Amazon AWS, Microsoft Azure, Google Cloud, DigitalOcean, Triton, Scaleway and AliBaba Cloud.
+currently are: Amazon AWS, Microsoft Azure, Google Cloud, DigitalOcean, Triton, Scaleway, AliBaba Cloud, vSphere, and Packet.net.
 
 ### Config Example
 
@@ -70,8 +76,11 @@ provider=triton account=testaccount url=https://us-sw-1.api.joyentcloud.com key_
 # vSphere
 provider=vsphere category_name=consul-role tag_name=consul-server host=... user=... password=... insecure_ssl=[true|false]
 
-# Packet 
+# Packet
 provider=packet auth_token=token project=uuid url=... address_type=...
+
+# Kubernetes
+provider=k8s label_selector="app = consul-server"
 ```
 
 ## Command Line Tool Usage
@@ -116,6 +125,25 @@ l := log.New(os.Stderr, "", log.LstdFlags)
 
 cfg := "provider=aws region=eu-west-1 ..."
 addrs, err := d.Addrs(cfg, l)
+```
+
+You can also add support for providers that aren't registered by default:
+
+```go
+// Imports at top of file
+import "github.com/hashicorp/go-discover/provider/k8s"
+
+// support discovery for all supported providers
+d := discover.Discover{}
+
+// support discovery for AWS and GCE only
+d := discover.Discover{
+	Providers : map[string]discover.Provider{
+		"k8s": &k8s.Provider{},
+	}
+}
+
+// ...
 ```
 
 For complete API documentation, see

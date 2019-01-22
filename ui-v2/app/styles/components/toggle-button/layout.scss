@@ -1,0 +1,11 @@
+%toggle-button {
+  width: 30px;
+  height: 30px;
+  /* center */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+%toggle-button span {
+  display: none;
+}

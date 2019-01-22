@@ -2,6 +2,7 @@ package raft
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -75,6 +76,11 @@ type NetworkTransport struct {
 	shutdownLock sync.Mutex
 
 	stream StreamLayer
+
+	// streamCtx is used to cancel existing connection handlers.
+	streamCtx     context.Context
+	streamCancel  context.CancelFunc
+	streamCtxLock sync.RWMutex
 
 	timeout      time.Duration
 	TimeoutScale int
@@ -154,7 +160,11 @@ func NewNetworkTransportWithConfig(
 		TimeoutScale:          DefaultTimeoutScale,
 		serverAddressProvider: config.ServerAddressProvider,
 	}
+
+	// Create the connection context and then start our listener.
+	trans.setupStreamContext()
 	go trans.listen()
+
 	return trans
 }
 
@@ -190,6 +200,21 @@ func NewNetworkTransportWithLogger(
 	return NewNetworkTransportWithConfig(config)
 }
 
+// setupStreamContext is used to create a new stream context. This should be
+// called with the stream lock held.
+func (n *NetworkTransport) setupStreamContext() {
+	ctx, cancel := context.WithCancel(context.Background())
+	n.streamCtx = ctx
+	n.streamCancel = cancel
+}
+
+// getStreamContext is used retrieve the current stream context.
+func (n *NetworkTransport) getStreamContext() context.Context {
+	n.streamCtxLock.RLock()
+	defer n.streamCtxLock.RUnlock()
+	return n.streamCtx
+}
+
 // SetHeartbeatHandler is used to setup a heartbeat handler
 // as a fast-pass. This is to avoid head-of-line blocking from
 // disk IO.
@@ -197,6 +222,31 @@ func (n *NetworkTransport) SetHeartbeatHandler(cb func(rpc RPC)) {
 	n.heartbeatFnLock.Lock()
 	defer n.heartbeatFnLock.Unlock()
 	n.heartbeatFn = cb
+}
+
+// CloseStreams closes the current streams.
+func (n *NetworkTransport) CloseStreams() {
+	n.connPoolLock.Lock()
+	defer n.connPoolLock.Unlock()
+
+	// Close all the connections in the connection pool and then remove their
+	// entry.
+	for k, e := range n.connPool {
+		for _, conn := range e {
+			conn.Release()
+		}
+
+		delete(n.connPool, k)
+	}
+
+	// Cancel the existing connections and create a new context. Both these
+	// operations must always be done with the lock held otherwise we can create
+	// connection handlers that are holding a context that will never be
+	// cancelable.
+	n.streamCtxLock.Lock()
+	n.streamCancel()
+	n.setupStreamContext()
+	n.streamCtxLock.Unlock()
 }
 
 // Close is used to stop the network transport.
@@ -259,7 +309,7 @@ func (n *NetworkTransport) getProviderAddressOrFallback(id ServerID, target Serv
 	if n.serverAddressProvider != nil {
 		serverAddressOverride, err := n.serverAddressProvider.ServerAddr(id)
 		if err != nil {
-			n.logger.Printf("[WARN] Unable to get address for server id %v, using fallback address %v: %v", id, target, err)
+			n.logger.Printf("[WARN] raft: Unable to get address for server id %v, using fallback address %v: %v", id, target, err)
 		} else {
 			return serverAddressOverride
 		}
@@ -424,12 +474,14 @@ func (n *NetworkTransport) listen() {
 		n.logger.Printf("[DEBUG] raft-net: %v accepted connection from: %v", n.LocalAddr(), conn.RemoteAddr())
 
 		// Handle the connection in dedicated routine
-		go n.handleConn(conn)
+		go n.handleConn(n.getStreamContext(), conn)
 	}
 }
 
-// handleConn is used to handle an inbound connection for its lifespan.
-func (n *NetworkTransport) handleConn(conn net.Conn) {
+// handleConn is used to handle an inbound connection for its lifespan. The
+// handler will exit when the passed context is cancelled or the connection is
+// closed.
+func (n *NetworkTransport) handleConn(connCtx context.Context, conn net.Conn) {
 	defer conn.Close()
 	r := bufio.NewReader(conn)
 	w := bufio.NewWriter(conn)
@@ -437,6 +489,13 @@ func (n *NetworkTransport) handleConn(conn net.Conn) {
 	enc := codec.NewEncoder(w, &codec.MsgpackHandle{})
 
 	for {
+		select {
+		case <-connCtx.Done():
+			n.logger.Println("[DEBUG] raft-net: stream layer is closed")
+			return
+		default:
+		}
+
 		if err := n.handleCommand(r, dec, enc); err != nil {
 			if err != io.EOF {
 				n.logger.Printf("[ERR] raft-net: Failed to decode incoming command: %v", err)

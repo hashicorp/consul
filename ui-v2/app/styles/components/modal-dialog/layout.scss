@@ -1,0 +1,70 @@
+%modal-dialog > div > div {
+  @extend %modal-window;
+}
+%with-modal {
+  overflow: hidden;
+}
+%modal-dialog {
+  z-index: 10000;
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+%modal-control,
+%modal-control + * {
+  display: none;
+}
+%modal-control:checked + * {
+  display: block;
+}
+%modal-dialog > label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+%modal-dialog > div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+%modal-window.overflowing {
+  overflow: auto;
+  height: 100%;
+}
+%modal-window {
+  max-width: 855px;
+  position: relative;
+  z-index: 1;
+}
+%modal-window > * {
+  padding-left: 15px;
+  padding-right: 15px;
+}
+%modal-window > div {
+  padding: 20px 23px;
+}
+%modal-window > footer,
+%modal-window > header {
+  padding-top: 12px;
+  padding-bottom: 10px;
+}
+%modal-window table {
+  height: 150px !important;
+}
+%modal-window tbody {
+  max-height: 100px;
+}
+%modal-window > header {
+  position: relative;
+}
+%modal-window > header [for='modal_close'] {
+  float: right;
+  text-indent: -9000px;
+  width: 23px;
+  height: 23px;
+}

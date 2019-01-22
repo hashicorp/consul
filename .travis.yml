@@ -1,11 +1,14 @@
 language: go
 
 go:
-  - "1.x"
+  # Please keep this in-sync with the go version we build against in
+  # build-support/docker/Build-Go.dockerfile.
+  - "1.11.1"
 
 branches:
   only:
     - master
+    - f-envoy
 
 matrix:
   include:

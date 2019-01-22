@@ -7,7 +7,6 @@ import WithHealthFiltering from 'consul-ui/mixins/with-health-filtering';
 export default Controller.extend(WithHealthFiltering, {
   init: function() {
     this._super(...arguments);
-    this.columns = [25, 25, 25, 25];
   },
   unhealthy: computed('filtered', function() {
     return get(this, 'filtered').filter(function(item) {

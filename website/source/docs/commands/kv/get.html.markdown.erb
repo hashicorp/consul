@@ -38,9 +38,9 @@ Usage: `consul kv get [options] [KEY_OR_PREFIX]`
 * `-recurse` - Recursively look at all keys prefixed with the given path. The
   default value is false.
 
-* `-separator=<string>` - String to use as a separator between keys. The default
-  value is "/", but this option is only taken into account when paired with the
-  -keys flag.
+* `-separator=<string>` - String to use as a separator for recursive lookups. The 
+  default value is "/", and only used when paired with the `-keys` flag. This will 
+  limit the prefix of keys returned, only up to the given separator.
 
 ## Examples
 

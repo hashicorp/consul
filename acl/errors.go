@@ -13,6 +13,7 @@ const (
 	errRootDenied       = "Cannot resolve root ACL"
 	errDisabled         = "ACL support disabled"
 	errPermissionDenied = "Permission denied"
+	errInvalidParent    = "Invalid Parent"
 )
 
 var (
@@ -29,6 +30,10 @@ var (
 	// ErrPermissionDenied is returned when an ACL based rejection
 	// happens.
 	ErrPermissionDenied = PermissionDeniedError{}
+
+	// ErrInvalidParent is returned when a remotely resolve ACL
+	// token claims to have a non-root parent
+	ErrInvalidParent = errors.New(errInvalidParent)
 )
 
 // IsErrNotFound checks if the given error message is comparable to

@@ -1,0 +1,70 @@
+---
+layout: "docs"
+page_title: "Commands: ACL Translate Rules"
+sidebar_current: "docs-commands-acl-translate-rules"
+---
+
+-> **Deprecated:** This command exists only as a convenience to make legacy ACL migration easier.
+It will be removed in a future major release when support for the legacy ACL system is removed.
+
+# Consul ACL Translate Rules
+
+Command: `consul acl translate-rules`
+
+This command translates the legacy ACL rule syntax into the new syntax.
+
+### Usage
+
+Usage: `consul acl translate rules [options] TRANSLATE`
+
+
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
+
+#### Command Options
+
+* `TRANSLATE` - The rules to translate. If `-` is used, then
+   the rules will be read from stdin. If `@` is prefixed to
+   the value then the value is considered to be a file and
+   the rules will be read from that file.
+
+* `-token-secret` - Specifies that what the `TRANSLATE` argument
+   holds is not a rule set but rather the token secret ID of a
+   legacy ACL token that holds the rule set.
+
+* `-token-accessor` - Specifies that what the `TRANSLATE` argument
+   holds is not a rule set but rather the token accessor ID of a
+   legacy ACL token that holds the rule set.
+
+### Examples
+Translate rules within a file:
+
+```sh
+$ consul acl translate-rules @rules.hcl
+```
+
+Translate rules from stdin:
+
+```sh
+$ consul acl translate-rules -
+```
+
+Translate rules from a string argument:
+
+```sh
+$ consul acl translate-rules 'key "" { policy = "write"}'
+```
+
+Translate rules for a legacy ACL token using its SecretID passed from stdin:
+
+```sh
+$ consul acl translate-rules --token-secret -
+```
+
+Translate rules for a legacy ACL token using its AccessorID:
+
+```sh
+$ consul acl translate-rules 429cd746-03d5-4bbb-a83a-18b164171c89
+```

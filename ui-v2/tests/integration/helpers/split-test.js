@@ -1,4 +1,4 @@
-import { moduleForComponent, skip } from 'ember-qunit';
+import { moduleForComponent, test } from 'ember-qunit';
 import hbs from 'htmlbars-inline-precompile';
 
 moduleForComponent('split', 'helper:split', {
@@ -6,8 +6,8 @@ moduleForComponent('split', 'helper:split', {
 });
 
 // Replace this with your real tests.
-skip('it renders', function(assert) {
-  this.set('inputValue', '1234');
+test('it renders', function(assert) {
+  this.set('inputValue', 'a,string,split,by,a,comma');
 
   this.render(hbs`{{split inputValue}}`);
 
@@ -15,6 +15,6 @@ skip('it renders', function(assert) {
     this.$()
       .text()
       .trim(),
-    '1234'
+    'a,string,split,by,a,comma'
   );
 });

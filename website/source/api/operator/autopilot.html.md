@@ -26,12 +26,13 @@ This endpoint retrieves its latest Autopilot configuration.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required    |
-| ---------------- | ----------------- | --------------- |
-| `NO`             | `none`            | `operator:read` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
+| ---------------- | ----------------- | ------------- | --------------- |
+| `NO`             | `none`            | `none`        | `operator:read` |
 
 ### Parameters
 
@@ -47,7 +48,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/operator/autopilot/configuration
+    http://127.0.0.1:8500/operator/autopilot/configuration
 ```
 
 ### Sample Response
@@ -79,12 +80,13 @@ This endpoint updates the Autopilot configuration of the cluster.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required     |
-| ---------------- | ----------------- | ---------------- |
-| `NO`             | `none`            | `operator:write` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
+| ---------------- | ----------------- | ------------- | ---------------- |
+| `NO`             | `none`            | `none`        | `operator:write` |
 
 ### Parameters
 
@@ -151,12 +153,13 @@ This endpoint queries the health of the autopilot status.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required    |
-| ---------------- | ----------------- | --------------- |
-| `NO`             | `none`            | `operator:read` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
+| ---------------- | ----------------- | ------------- | --------------- |
+| `NO`             | `none`            | `none`        | `operator:read` |
 
 ### Parameters
 
@@ -168,7 +171,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/operator/autopilot/health
+    http://127.0.0.1:8500/v1/operator/autopilot/health
 ```
 
 ### Sample response
@@ -241,6 +244,6 @@ $ curl \
   - `Voter` is whether the server is a voting member of the Raft cluster.
 
   - `StableSince` is the time this server has been in its current `Healthy` state.
-  
+
   The HTTP status code will indicate the health of the cluster. If `Healthy` is true, then a
   status of 200 will be returned. If `Healthy` is false, then a status of 429 will be returned.

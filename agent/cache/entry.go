@@ -12,6 +12,13 @@ import (
 type cacheEntry struct {
 	// Fields pertaining to the actual value
 	Value interface{}
+	// State can be used to store info needed by the cache type but that should
+	// not be part of the result the client gets. For example the Connect Leaf
+	// type needs to store additional data about when it last attempted a renewal
+	// that is not part of the actual IssuedCert struct it returns. It's opaque to
+	// the Cache but allows types to store additional data that is coupled to the
+	// cache entry's lifetime and will be aged out by TTL etc.
+	State interface{}
 	Error error
 	Index uint64
 
@@ -24,6 +31,16 @@ type cacheEntry struct {
 	// entry. This is a pointer as its shared as a value in the
 	// expiryHeap as well.
 	Expiry *cacheEntryExpiry
+
+	// FetchedAt stores the time the cache entry was retrieved for determining
+	// it's age later.
+	FetchedAt time.Time
+
+	// RefreshLostContact stores the time background refresh failed. It gets reset
+	// to zero after a background fetch has returned successfully, or after a
+	// background request has be blocking for at least 5 seconds, which ever
+	// happens first.
+	RefreshLostContact time.Time
 }
 
 // cacheEntryExpiry contains the expiration information for a cache

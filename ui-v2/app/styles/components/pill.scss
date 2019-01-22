@@ -1,0 +1,4 @@
+@import './pill/index';
+td strong {
+  @extend %pill;
+}

@@ -15,12 +15,13 @@ import (
 	"time"
 
 	"github.com/NYTimes/gziphandler"
-	"github.com/armon/go-metrics"
+	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-cleanhttp"
+	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	"github.com/mitchellh/mapstructure"
+	"github.com/pkg/errors"
 )
 
 // MethodNotAllowedError should be returned by a handler when the HTTP method is not allowed.
@@ -40,6 +41,25 @@ type BadRequestError struct {
 
 func (e BadRequestError) Error() string {
 	return fmt.Sprintf("Bad request: %s", e.Reason)
+}
+
+// CodeWithPayloadError allow returning non HTTP 200
+// Error codes while not returning PlainText payload
+type CodeWithPayloadError struct {
+	Reason      string
+	StatusCode  int
+	ContentType string
+}
+
+func (e CodeWithPayloadError) Error() string {
+	return e.Reason
+}
+
+type ForbiddenError struct {
+}
+
+func (e ForbiddenError) Error() string {
+	return "Access is restricted"
 }
 
 // HTTPServer provides an HTTP api for an agent.
@@ -142,6 +162,41 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 		mux.Handle(pattern, gzipHandler)
 	}
 
+	// handlePProf takes the given pattern and pprof handler
+	// and wraps it to add authorization and metrics
+	handlePProf := func(pattern string, handler http.HandlerFunc) {
+		wrapper := func(resp http.ResponseWriter, req *http.Request) {
+			var token string
+			s.parseToken(req, &token)
+
+			rule, err := s.agent.resolveToken(token)
+			if err != nil {
+				resp.WriteHeader(http.StatusForbidden)
+				return
+			}
+
+			// If enableDebug is not set, and ACLs are disabled, write
+			// an unauthorized response
+			if !enableDebug {
+				if s.checkACLDisabled(resp, req) {
+					return
+				}
+			}
+
+			// If the token provided does not have the necessary permissions,
+			// write a forbidden response
+			if rule != nil && !rule.OperatorRead() {
+				resp.WriteHeader(http.StatusForbidden)
+				return
+			}
+
+			// Call the pprof handler
+			handler(resp, req)
+		}
+
+		handleFuncMetrics(pattern, http.HandlerFunc(wrapper))
+	}
+
 	mux.HandleFunc("/", s.Index)
 	for pattern, fn := range endpoints {
 		thisFn := fn
@@ -151,12 +206,13 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 		}
 		handleFuncMetrics(pattern, s.wrap(bound, methods))
 	}
-	if enableDebug {
-		handleFuncMetrics("/debug/pprof/", pprof.Index)
-		handleFuncMetrics("/debug/pprof/cmdline", pprof.Cmdline)
-		handleFuncMetrics("/debug/pprof/profile", pprof.Profile)
-		handleFuncMetrics("/debug/pprof/symbol", pprof.Symbol)
-	}
+
+	// Register wrapped pprof handlers
+	handlePProf("/debug/pprof/", pprof.Index)
+	handlePProf("/debug/pprof/cmdline", pprof.Cmdline)
+	handlePProf("/debug/pprof/profile", pprof.Profile)
+	handlePProf("/debug/pprof/symbol", pprof.Symbol)
+	handlePProf("/debug/pprof/trace", pprof.Trace)
 
 	if s.IsUIEnabled() {
 		legacy_ui, err := strconv.ParseBool(os.Getenv("CONSUL_UI_LEGACY"))
@@ -183,6 +239,7 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 			uifs = &redirectFS{fs: uifs}
 		}
 
+		mux.Handle("/robots.txt", http.FileServer(uifs))
 		mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(uifs)))
 	}
 
@@ -224,7 +281,7 @@ func (s *HTTPServer) nodeName() string {
 // And then the loop that looks for parameters called "token" does the last
 // step to get to the final redacted form.
 var (
-	aclEndpointRE = regexp.MustCompile("^(/v1/acl/[^/]+/)([^?]+)([?]?.*)$")
+	aclEndpointRE = regexp.MustCompile("^(/v1/acl/(create|update|destroy|info|clone|list)/)([^?]+)([?]?.*)$")
 )
 
 // wrap is used to wrap functions to make them more convenient
@@ -250,7 +307,7 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 				logURL = strings.Replace(logURL, token, "<hidden>", -1)
 			}
 		}
-		logURL = aclEndpointRE.ReplaceAllString(logURL, "$1<hidden>$3")
+		logURL = aclEndpointRE.ReplaceAllString(logURL, "$1<hidden>$4")
 
 		if s.blacklist.Block(req.URL.Path) {
 			errMsg := "Endpoint is blocked by agent configuration"
@@ -258,6 +315,14 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 			resp.WriteHeader(http.StatusForbidden)
 			fmt.Fprint(resp, errMsg)
 			return
+		}
+
+		isForbidden := func(err error) bool {
+			if acl.IsErrPermissionDenied(err) || acl.IsErrNotFound(err) {
+				return true
+			}
+			_, ok := err.(ForbiddenError)
+			return ok
 		}
 
 		isMethodNotAllowed := func(err error) bool {
@@ -277,7 +342,7 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 		handleErr := func(err error) {
 			s.agent.logger.Printf("[ERR] http: Request %s %v, error: %v from=%s", req.Method, logURL, err, req.RemoteAddr)
 			switch {
-			case acl.IsErrPermissionDenied(err) || acl.IsErrNotFound(err):
+			case isForbidden(err):
 				resp.WriteHeader(http.StatusForbidden)
 				fmt.Fprint(resp, err.Error())
 			case structs.IsErrRPCRateExceeded(err):
@@ -324,24 +389,48 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 		if !methodFound {
 			err = MethodNotAllowedError{req.Method, append([]string{"OPTIONS"}, methods...)}
 		} else {
-			// Invoke the handler
-			obj, err = handler(resp, req)
-		}
+			err = s.checkWriteAccess(req)
 
+			if err == nil {
+				// Invoke the handler
+				obj, err = handler(resp, req)
+			}
+		}
+		contentType := "application/json"
+		httpCode := http.StatusOK
 		if err != nil {
-			handleErr(err)
-			return
+			if errPayload, ok := err.(CodeWithPayloadError); ok {
+				httpCode = errPayload.StatusCode
+				if errPayload.ContentType != "" {
+					contentType = errPayload.ContentType
+				}
+				if errPayload.Reason != "" {
+					resp.Header().Add("X-Consul-Reason", errPayload.Reason)
+				}
+			} else {
+				handleErr(err)
+				return
+			}
 		}
 		if obj == nil {
 			return
 		}
-
-		buf, err := s.marshalJSON(req, obj)
-		if err != nil {
-			handleErr(err)
-			return
+		var buf []byte
+		if contentType == "application/json" {
+			buf, err = s.marshalJSON(req, obj)
+			if err != nil {
+				handleErr(err)
+				return
+			}
+		} else {
+			if strings.HasPrefix(contentType, "text/") {
+				if val, ok := obj.(string); ok {
+					buf = []byte(val)
+				}
+			}
 		}
-		resp.Header().Set("Content-Type", "application/json")
+		resp.Header().Set("Content-Type", contentType)
+		resp.WriteHeader(httpCode)
 		resp.Write(buf)
 	}
 }
@@ -468,11 +557,17 @@ func setMeta(resp http.ResponseWriter, m *structs.QueryMeta) {
 
 // setCacheMeta sets http response headers to indicate cache status.
 func setCacheMeta(resp http.ResponseWriter, m *cache.ResultMeta) {
+	if m == nil {
+		return
+	}
 	str := "MISS"
-	if m != nil && m.Hit {
+	if m.Hit {
 		str = "HIT"
 	}
 	resp.Header().Set("X-Cache", str)
+	if m.Hit {
+		resp.Header().Set("Age", fmt.Sprintf("%.0f", m.Age.Seconds()))
+	}
 }
 
 // setHeaders is used to set canonical response header fields
@@ -507,6 +602,64 @@ func parseWait(resp http.ResponseWriter, req *http.Request, b *structs.QueryOpti
 	return false
 }
 
+// parseCacheControl parses the CacheControl HTTP header value. So far we only
+// support maxage directive.
+func parseCacheControl(resp http.ResponseWriter, req *http.Request, b *structs.QueryOptions) bool {
+	raw := strings.ToLower(req.Header.Get("Cache-Control"))
+
+	if raw == "" {
+		return false
+	}
+
+	// Didn't want to import a full parser for this. While quoted strings are
+	// allowed in some directives, max-age does not allow them per
+	// https://tools.ietf.org/html/rfc7234#section-5.2.2.8 so we assume all
+	// well-behaved clients use the exact token form of max-age=<delta-seconds>
+	// where delta-seconds is a non-negative decimal integer.
+	directives := strings.Split(raw, ",")
+
+	parseDurationOrFail := func(raw string) (time.Duration, bool) {
+		i, err := strconv.Atoi(raw)
+		if err != nil {
+			resp.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(resp, "Invalid Cache-Control header.")
+			return 0, true
+		}
+		return time.Duration(i) * time.Second, false
+	}
+
+	for _, d := range directives {
+		d = strings.ToLower(strings.TrimSpace(d))
+
+		if d == "must-revalidate" {
+			b.MustRevalidate = true
+		}
+
+		if strings.HasPrefix(d, "max-age=") {
+			d, failed := parseDurationOrFail(d[8:])
+			if failed {
+				return true
+			}
+			b.MaxAge = d
+			if d == 0 {
+				// max-age=0 specifically means that we need to consider the cache stale
+				// immediately however MaxAge = 0 is indistinguishable from the default
+				// where MaxAge is unset.
+				b.MustRevalidate = true
+			}
+		}
+		if strings.HasPrefix(d, "stale-if-error=") {
+			d, failed := parseDurationOrFail(d[15:])
+			if failed {
+				return true
+			}
+			b.StaleIfError = d
+		}
+	}
+
+	return false
+}
+
 // parseConsistency is used to parse the ?stale and ?consistent query params.
 // Returns true on error
 func (s *HTTPServer) parseConsistency(resp http.ResponseWriter, req *http.Request, b *structs.QueryOptions) bool {
@@ -521,6 +674,10 @@ func (s *HTTPServer) parseConsistency(resp http.ResponseWriter, req *http.Reques
 		defaults = false
 	}
 	if _, ok := query["leader"]; ok {
+		defaults = false
+	}
+	if _, ok := query["cached"]; ok {
+		b.UseCache = true
 		defaults = false
 	}
 	if maxStale := query.Get("max_stale"); maxStale != "" {
@@ -549,6 +706,11 @@ func (s *HTTPServer) parseConsistency(resp http.ResponseWriter, req *http.Reques
 	if b.AllowStale && b.RequireConsistent {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Cannot specify ?stale with ?consistent, conflicting semantics.")
+		return true
+	}
+	if b.UseCache && b.RequireConsistent {
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(resp, "Cannot specify ?cached with ?consistent, conflicting semantics.")
 		return true
 	}
 	return false
@@ -682,6 +844,9 @@ func (s *HTTPServer) parseInternal(resp http.ResponseWriter, req *http.Request, 
 	if s.parseConsistency(resp, req, b) {
 		return true
 	}
+	if parseCacheControl(resp, req, b) {
+		return true
+	}
 	return parseWait(resp, req, b)
 }
 
@@ -694,4 +859,30 @@ func (s *HTTPServer) parse(resp http.ResponseWriter, req *http.Request, dc *stri
 // parseWithoutResolvingProxyToken is a convenience method similar to parse except that it disables resolving proxy tokens
 func (s *HTTPServer) parseWithoutResolvingProxyToken(resp http.ResponseWriter, req *http.Request, dc *string, b *structs.QueryOptions) bool {
 	return s.parseInternal(resp, req, dc, b, false)
+}
+
+func (s *HTTPServer) checkWriteAccess(req *http.Request) error {
+	if req.Method == http.MethodGet || req.Method == http.MethodHead || req.Method == http.MethodOptions {
+		return nil
+	}
+
+	allowed := s.agent.config.AllowWriteHTTPFrom
+	if len(allowed) == 0 {
+		return nil
+	}
+
+	ipStr, _, err := net.SplitHostPort(req.RemoteAddr)
+	if err != nil {
+		return errors.Wrap(err, "unable to parse remote addr")
+	}
+
+	ip := net.ParseIP(ipStr)
+
+	for _, n := range allowed {
+		if n.Contains(ip) {
+			return nil
+		}
+	}
+
+	return ForbiddenError{}
 }

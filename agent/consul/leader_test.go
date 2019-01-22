@@ -20,6 +20,7 @@ func TestLeader_RegisterMember(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 		c.ACLEnforceVersion8 = true
@@ -89,6 +90,7 @@ func TestLeader_FailedMember(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 		c.ACLEnforceVersion8 = true
@@ -150,6 +152,7 @@ func TestLeader_LeftMember(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 		c.ACLEnforceVersion8 = true
@@ -196,6 +199,7 @@ func TestLeader_ReapMember(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 		c.ACLEnforceVersion8 = true
@@ -257,6 +261,7 @@ func TestLeader_ReapServer(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "allow"
 		c.ACLEnforceVersion8 = true
@@ -267,6 +272,7 @@ func TestLeader_ReapServer(t *testing.T) {
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "allow"
 		c.ACLEnforceVersion8 = true
@@ -277,6 +283,7 @@ func TestLeader_ReapServer(t *testing.T) {
 
 	dir3, s3 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "allow"
 		c.ACLEnforceVersion8 = true
@@ -290,6 +297,8 @@ func TestLeader_ReapServer(t *testing.T) {
 	joinLAN(t, s1, s3)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s2.RPC, "dc1")
+	testrpc.WaitForLeader(t, s3.RPC, "dc1")
 	state := s1.fsm.State()
 
 	// s3 should be registered
@@ -330,6 +339,7 @@ func TestLeader_Reconcile_ReapMember(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 		c.ACLEnforceVersion8 = true
@@ -379,6 +389,7 @@ func TestLeader_Reconcile(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 		c.ACLEnforceVersion8 = true
@@ -708,6 +719,7 @@ func TestLeader_ReapTombstones(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 		c.TombstoneTTL = 50 * time.Millisecond
@@ -888,6 +900,7 @@ func TestLeader_ChangeServerID(t *testing.T) {
 	joinLAN(t, s2, s1)
 	joinLAN(t, s3, s1)
 	for _, s := range servers {
+		testrpc.WaitForTestAgent(t, s.RPC, "dc1")
 		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
 	}
 
@@ -919,6 +932,8 @@ func TestLeader_ChangeServerID(t *testing.T) {
 	defer os.RemoveAll(dir4)
 	defer s4.Shutdown()
 	joinLAN(t, s4, s1)
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s4.RPC, "dc1")
 	servers[2] = s4
 
 	// While integrating #3327 it uncovered that this test was flaky. The
@@ -945,13 +960,12 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 		name      string
 		build     string
 		master    string
-		init      bool
 		bootstrap bool
 	}{
-		{"old version, no master", "0.8.0", "", false, false},
-		{"old version, master", "0.8.0", "root", false, false},
-		{"new version, no master", "0.9.1", "", true, true},
-		{"new version, master", "0.9.1", "root", true, false},
+		{"old version, no master", "0.8.0", "", true},
+		{"old version, master", "0.8.0", "root", false},
+		{"new version, no master", "0.9.1", "", true},
+		{"new version, master", "0.9.1", "root", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -960,47 +974,31 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 				c.Bootstrap = true
 				c.Datacenter = "dc1"
 				c.ACLDatacenter = "dc1"
+				c.ACLsEnabled = true
 				c.ACLMasterToken = tt.master
 			}
 			dir1, s1 := testServerWithConfig(t, conf)
 			defer os.RemoveAll(dir1)
 			defer s1.Shutdown()
-			testrpc.WaitForLeader(t, s1.RPC, "dc1")
+			testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 			if tt.master != "" {
-				_, master, err := s1.fsm.State().ACLGet(nil, tt.master)
-				if err != nil {
-					t.Fatalf("err: %v", err)
-				}
-				if master == nil {
-					t.Fatalf("master token wasn't created")
-				}
+				_, master, err := s1.fsm.State().ACLTokenGetBySecret(nil, tt.master)
+				require.NoError(t, err)
+				require.NotNil(t, master)
 			}
 
-			_, anon, err := s1.fsm.State().ACLGet(nil, anonymousToken)
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
-			if anon == nil {
-				t.Fatalf("anonymous token wasn't created")
-			}
+			_, anon, err := s1.fsm.State().ACLTokenGetBySecret(nil, anonymousToken)
+			require.NoError(t, err)
+			require.NotNil(t, anon)
 
-			bs, err := s1.fsm.State().ACLGetBootstrap()
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
-			if !tt.init {
-				if bs != nil {
-					t.Fatalf("bootstrap should not be initialized")
-				}
-			} else {
-				if bs == nil {
-					t.Fatalf("bootstrap should be initialized")
-				}
-				if got, want := bs.AllowBootstrap, tt.bootstrap; got != want {
-					t.Fatalf("got %v want %v", got, want)
-				}
-			}
+			canBootstrap, _, err := s1.fsm.State().CanBootstrapACLToken()
+			require.NoError(t, err)
+			require.Equal(t, tt.bootstrap, canBootstrap)
+
+			_, policy, err := s1.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID)
+			require.NoError(t, err)
+			require.NotNil(t, policy)
 		})
 	}
 }
@@ -1017,7 +1015,7 @@ func TestLeader_CARootPruning(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Get the current root
 	rootReq := &structs.DCSpecificRequest{
@@ -1035,10 +1033,10 @@ func TestLeader_CARootPruning(t *testing.T) {
 	newConfig := &structs.CAConfiguration{
 		Provider: "consul",
 		Config: map[string]interface{}{
-			"LeafCertTTL":    500 * time.Millisecond,
+			"LeafCertTTL":    "500ms",
 			"PrivateKey":     newKey,
 			"RootCert":       "",
-			"RotationPeriod": 90 * 24 * time.Hour,
+			"RotationPeriod": "2160h",
 			"SkipValidate":   true,
 		},
 	}
@@ -1144,5 +1142,67 @@ func TestLeader_PersistIntermediateCAs(t *testing.T) {
 		if !reflect.DeepEqual(newLeaderRoot, root) {
 			r.Fatalf("got %v, want %v", newLeaderRoot, root)
 		}
+	})
+}
+
+func TestLeader_ACLUpgrade(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	// create a legacy management ACL
+	mgmt := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name: "Management token",
+			Type: structs.ACLTokenTypeManagement,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var mgmt_id string
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.Apply", &mgmt, &mgmt_id))
+
+	// wait for it to be upgraded
+	retry.Run(t, func(t *retry.R) {
+		_, token, err := s1.fsm.State().ACLTokenGetBySecret(nil, mgmt_id)
+		require.NoError(t, err)
+		require.NotNil(t, token)
+		require.NotEqual(t, "", token.AccessorID)
+		require.Equal(t, structs.ACLTokenTypeManagement, token.Type)
+		require.Len(t, token.Policies, 1)
+		require.Equal(t, structs.ACLPolicyGlobalManagementID, token.Policies[0].ID)
+	})
+
+	// create a legacy management ACL
+	client := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name:  "Management token",
+			Type:  structs.ACLTokenTypeClient,
+			Rules: `node "" { policy = "read"}`,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var client_id string
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.Apply", &client, &client_id))
+
+	// wait for it to be upgraded
+	retry.Run(t, func(t *retry.R) {
+		_, token, err := s1.fsm.State().ACLTokenGetBySecret(nil, client_id)
+		require.NoError(t, err)
+		require.NotNil(t, token)
+		require.NotEqual(t, "", token.AccessorID)
+		require.Len(t, token.Policies, 0)
+		require.Equal(t, structs.ACLTokenTypeClient, token.Type)
+		require.Equal(t, client.ACL.Rules, token.Rules)
 	})
 }

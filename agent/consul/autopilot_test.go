@@ -33,8 +33,9 @@ func TestAutopilot_CleanupDeadServer(t *testing.T) {
 }
 
 func testCleanupDeadServer(t *testing.T, raftVersion int) {
+	dc := "dc1"
 	conf := func(c *Config) {
-		c.Datacenter = "dc1"
+		c.Datacenter = dc
 		c.Bootstrap = false
 		c.BootstrapExpect = 3
 		c.RaftConfig.ProtocolVersion = raft.ProtocolVersion(raftVersion)
@@ -58,6 +59,7 @@ func testCleanupDeadServer(t *testing.T, raftVersion int) {
 	joinLAN(t, s3, s1)
 
 	for _, s := range servers {
+		testrpc.WaitForLeader(t, s.RPC, dc)
 		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
 	}
 
@@ -88,6 +90,30 @@ func testCleanupDeadServer(t *testing.T, raftVersion int) {
 	for _, s := range servers {
 		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
 	}
+}
+
+func TestAutopilot_CleanupDeadNonvoter(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Have s2 join and then shut it down immediately before it gets a chance to
+	// be promoted to a voter.
+	joinLAN(t, s2, s1)
+	retry.Run(t, func(r *retry.R) {
+		r.Check(wantRaft([]*Server{s1, s2}))
+	})
+	s2.Shutdown()
+
+	retry.Run(t, func(r *retry.R) {
+		r.Check(wantRaft([]*Server{s1}))
+	})
 }
 
 func TestAutopilot_CleanupDeadServerPeriodic(t *testing.T) {

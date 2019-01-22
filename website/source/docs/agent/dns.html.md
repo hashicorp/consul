@@ -95,6 +95,21 @@ node's metadata key starts with `rfc1035-`.
 A service lookup is used to query for service providers. Service queries support
 two lookup methods: standard and strict [RFC 2782](https://tools.ietf.org/html/rfc2782).
 
+By default, SRV weights are all set at 1, but changing weights is supported using the
+`Weights` attribute of the [service definition](/docs/agent/services.html).
+
+Note that DNS is limited in size per request, even when performing DNS TCP
+queries.
+
+For services having many instances (more than 500), it might not be possible to 
+retrieve the complete list of instances for the service.
+
+When DNS SRV response are sent, order is randomized, but weights are not
+taken into account. In the case of truncation different clients using weighted SRV 
+responses will have partial and inconsistent views of instances weights so the 
+request distribution could be skewed from the intended weights. In that case, 
+it is recommended to use the HTTP API to retrieve the list of nodes.
+
 ### Standard Lookup
 
 The format of a standard service lookup is:

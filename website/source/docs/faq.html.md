@@ -18,28 +18,6 @@ and can be disabled.
 See [`disable_anonymous_signature`](/docs/agent/options.html#disable_anonymous_signature)
 and [`disable_update_check`](/docs/agent/options.html#disable_update_check).
 
-## Q: How does Atlas integration work?
-
-Hosted Consul Enterprise in Atlas was officially deprecated on March 7th,
-2017.
-
-There are strong alternatives available and they are listed below.
-
-For users on supported cloud platform the
-[-retry-join](/docs/agent/options.html#_retry_join) option allows bootstrapping
-by automatically discovering instances with a given tag key/value at startup. 
-
-For users on other cloud platforms [-join and retry-join
-functionality](/docs/agent/options.html#_join) can be used to join clusters by
-ip address or hostname.
-
-Other features of Consul Enterprise, such as the UI and Alerts also have
-suitable open source alternatives.
-
-For replacing the UI, we recommend the [free UI packaged as part of Consul open source](https://www.consul.io/docs/agent/options.html#_ui). A live demo can be access at [https://demo.consul.io/ui/](https://demo.consul.io/ui/).
-
-For replacing alerts, we recommend the [open source Consul alerts daemon](https://github.com/acalephstorage/consul-alerts). This is not maintained or supported by HashiCorp, however there is active development from the community.
-
 ## Q: Does Consul rely on UDP Broadcast or Multicast?
 
 Consul uses the [Serf](https://www.serf.io) gossip protocol which relies on

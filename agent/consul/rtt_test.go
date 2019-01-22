@@ -138,7 +138,7 @@ func TestRTT_sortNodesByDistanceFrom(t *testing.T) {
 
 	codec := rpcClient(t, server)
 	defer codec.Close()
-	testrpc.WaitForLeader(t, server.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, server.RPC, "dc1")
 
 	seedCoordinates(t, codec, server)
 	nodes := structs.Nodes{
@@ -191,7 +191,7 @@ func TestRTT_sortNodesByDistanceFrom_Nodes(t *testing.T) {
 
 	codec := rpcClient(t, server)
 	defer codec.Close()
-	testrpc.WaitForLeader(t, server.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, server.RPC, "dc1")
 
 	seedCoordinates(t, codec, server)
 	nodes := structs.Nodes{
@@ -238,10 +238,10 @@ func TestRTT_sortNodesByDistanceFrom_ServiceNodes(t *testing.T) {
 	dir, server := testServer(t)
 	defer os.RemoveAll(dir)
 	defer server.Shutdown()
+	testrpc.WaitForTestAgent(t, server.RPC, "dc1")
 
 	codec := rpcClient(t, server)
 	defer codec.Close()
-	testrpc.WaitForLeader(t, server.RPC, "dc1")
 
 	seedCoordinates(t, codec, server)
 	nodes := structs.ServiceNodes{
@@ -341,7 +341,7 @@ func TestRTT_sortNodesByDistanceFrom_CheckServiceNodes(t *testing.T) {
 
 	codec := rpcClient(t, server)
 	defer codec.Close()
-	testrpc.WaitForLeader(t, server.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, server.RPC, "dc1")
 
 	seedCoordinates(t, codec, server)
 	nodes := structs.CheckServiceNodes{

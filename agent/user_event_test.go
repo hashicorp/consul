@@ -195,7 +195,7 @@ func TestUserEventToken(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name:  "User token",
-			Type:  structs.ACLTypeClient,
+			Type:  structs.ACLTokenTypeClient,
 			Rules: testEventPolicy,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},

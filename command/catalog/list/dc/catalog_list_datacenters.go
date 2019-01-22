@@ -49,6 +49,7 @@ func (c *cmd) Run(args []string) int {
 	dcs, err := client.Catalog().Datacenters()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error listing datacenters: %s", err))
+		return 1
 	}
 
 	for _, dc := range dcs {

@@ -6,15 +6,15 @@ import (
 )
 
 type dirEntFilter struct {
-	acl acl.ACL
-	ent structs.DirEntries
+	authorizer acl.Authorizer
+	ent        structs.DirEntries
 }
 
 func (d *dirEntFilter) Len() int {
 	return len(d.ent)
 }
 func (d *dirEntFilter) Filter(i int) bool {
-	return !d.acl.KeyRead(d.ent[i].Key)
+	return !d.authorizer.KeyRead(d.ent[i].Key)
 }
 func (d *dirEntFilter) Move(dst, src, span int) {
 	copy(d.ent[dst:dst+span], d.ent[src:src+span])
@@ -22,21 +22,21 @@ func (d *dirEntFilter) Move(dst, src, span int) {
 
 // FilterDirEnt is used to filter a list of directory entries
 // by applying an ACL policy
-func FilterDirEnt(acl acl.ACL, ent structs.DirEntries) structs.DirEntries {
-	df := dirEntFilter{acl: acl, ent: ent}
+func FilterDirEnt(authorizer acl.Authorizer, ent structs.DirEntries) structs.DirEntries {
+	df := dirEntFilter{authorizer: authorizer, ent: ent}
 	return ent[:FilterEntries(&df)]
 }
 
 type keyFilter struct {
-	acl  acl.ACL
-	keys []string
+	authorizer acl.Authorizer
+	keys       []string
 }
 
 func (k *keyFilter) Len() int {
 	return len(k.keys)
 }
 func (k *keyFilter) Filter(i int) bool {
-	return !k.acl.KeyRead(k.keys[i])
+	return !k.authorizer.KeyRead(k.keys[i])
 }
 
 func (k *keyFilter) Move(dst, src, span int) {
@@ -45,14 +45,14 @@ func (k *keyFilter) Move(dst, src, span int) {
 
 // FilterKeys is used to filter a list of keys by
 // applying an ACL policy
-func FilterKeys(acl acl.ACL, keys []string) []string {
-	kf := keyFilter{acl: acl, keys: keys}
+func FilterKeys(authorizer acl.Authorizer, keys []string) []string {
+	kf := keyFilter{authorizer: authorizer, keys: keys}
 	return keys[:FilterEntries(&kf)]
 }
 
 type txnResultsFilter struct {
-	acl     acl.ACL
-	results structs.TxnResults
+	authorizer acl.Authorizer
+	results    structs.TxnResults
 }
 
 func (t *txnResultsFilter) Len() int {
@@ -62,7 +62,7 @@ func (t *txnResultsFilter) Len() int {
 func (t *txnResultsFilter) Filter(i int) bool {
 	result := t.results[i]
 	if result.KV != nil {
-		return !t.acl.KeyRead(result.KV.Key)
+		return !t.authorizer.KeyRead(result.KV.Key)
 	}
 	return false
 }
@@ -73,8 +73,8 @@ func (t *txnResultsFilter) Move(dst, src, span int) {
 
 // FilterTxnResults is used to filter a list of transaction results by
 // applying an ACL policy.
-func FilterTxnResults(acl acl.ACL, results structs.TxnResults) structs.TxnResults {
-	rf := txnResultsFilter{acl: acl, results: results}
+func FilterTxnResults(authorizer acl.Authorizer, results structs.TxnResults) structs.TxnResults {
+	rf := txnResultsFilter{authorizer: authorizer, results: results}
 	return results[:FilterEntries(&rf)]
 }
 

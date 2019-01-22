@@ -11,18 +11,45 @@ import (
 	"time"
 )
 
+func createTestSemaphore(t *testing.T, c *Client, prefix string, limit int) (*Semaphore, *Session) {
+	t.Helper()
+	session := c.Session()
+
+	se := &SessionEntry{
+		Name:     DefaultSemaphoreSessionName,
+		TTL:      DefaultSemaphoreSessionTTL,
+		Behavior: SessionBehaviorDelete,
+	}
+	id, _, err := session.CreateNoChecks(se, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	opts := &SemaphoreOptions{
+		Prefix:      prefix,
+		Limit:       limit,
+		Session:     id,
+		SessionName: se.Name,
+		SessionTTL:  se.TTL,
+	}
+	sema, err := c.SemaphoreOpts(opts)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	return sema, session
+}
+
 func TestAPI_SemaphoreAcquireRelease(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
 
-	sema, err := c.SemaphorePrefix("test/semaphore", 2)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	sema, session := createTestSemaphore(t, c, "test/semaphore", 2)
+	defer session.Destroy(sema.opts.Session, nil)
 
 	// Initial release should fail
-	err = sema.Release()
+	err := sema.Release()
 	if err != ErrSemaphoreNotHeld {
 		t.Fatalf("err: %v", err)
 	}
@@ -74,10 +101,8 @@ func TestAPI_SemaphoreForceInvalidate(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
-	sema, err := c.SemaphorePrefix("test/semaphore", 2)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	sema, session := createTestSemaphore(t, c, "test/semaphore", 2)
+	defer session.Destroy(sema.opts.Session, nil)
 
 	// Should work
 	lockCh, err := sema.Acquire(nil)
@@ -109,10 +134,8 @@ func TestAPI_SemaphoreDeleteKey(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
-	sema, err := c.SemaphorePrefix("test/semaphore", 2)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	sema, session := createTestSemaphore(t, c, "test/semaphore", 2)
+	defer session.Destroy(sema.opts.Session, nil)
 
 	// Should work
 	lockCh, err := sema.Acquire(nil)
@@ -149,10 +172,8 @@ func TestAPI_SemaphoreContend(t *testing.T) {
 		wg.Add(1)
 		go func(idx int) {
 			defer wg.Done()
-			sema, err := c.SemaphorePrefix("test/semaphore", 2)
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
+			sema, session := createTestSemaphore(t, c, "test/semaphore", 2)
+			defer session.Destroy(sema.opts.Session, nil)
 
 			// Should work eventually, will contend
 			lockCh, err := sema.Acquire(nil)
@@ -198,23 +219,19 @@ func TestAPI_SemaphoreBadLimit(t *testing.T) {
 
 	sema, err := c.SemaphorePrefix("test/semaphore", 0)
 	if err == nil {
-		t.Fatalf("should error")
+		t.Fatalf("should error, limit must be positive")
 	}
 
-	sema, err = c.SemaphorePrefix("test/semaphore", 1)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	sema, session := createTestSemaphore(t, c, "test/semaphore", 1)
+	defer session.Destroy(sema.opts.Session, nil)
 
 	_, err = sema.Acquire(nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	sema2, err := c.SemaphorePrefix("test/semaphore", 2)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	sema2, session := createTestSemaphore(t, c, "test/semaphore", 2)
+	defer session.Destroy(sema.opts.Session, nil)
 
 	_, err = sema2.Acquire(nil)
 	if err.Error() != "semaphore limit conflict (lock: 1, local: 2)" {
@@ -227,17 +244,13 @@ func TestAPI_SemaphoreDestroy(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
-	sema, err := c.SemaphorePrefix("test/semaphore", 2)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	sema, session := createTestSemaphore(t, c, "test/semaphore", 2)
+	defer session.Destroy(sema.opts.Session, nil)
 
-	sema2, err := c.SemaphorePrefix("test/semaphore", 2)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	sema2, session := createTestSemaphore(t, c, "test/semaphore", 2)
+	defer session.Destroy(sema.opts.Session, nil)
 
-	_, err = sema.Acquire(nil)
+	_, err := sema.Acquire(nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -283,10 +296,8 @@ func TestAPI_SemaphoreConflict(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
-	lock, err := c.LockKey("test/sema/.lock")
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	lock, session := createTestLock(t, c, "test/sema/.lock")
+	defer session.Destroy(lock.opts.Session, nil)
 
 	// Should work
 	leaderCh, err := lock.Lock(nil)
@@ -298,10 +309,8 @@ func TestAPI_SemaphoreConflict(t *testing.T) {
 	}
 	defer lock.Unlock()
 
-	sema, err := c.SemaphorePrefix("test/sema/", 2)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	sema, session := createTestSemaphore(t, c, "test/sema/", 2)
+	defer session.Destroy(sema.opts.Session, nil)
 
 	// Should conflict with lock
 	_, err = sema.Acquire(nil)
@@ -320,6 +329,8 @@ func TestAPI_SemaphoreMonitorRetry(t *testing.T) {
 	t.Parallel()
 	raw, s := makeClient(t)
 	defer s.Stop()
+
+	s.WaitForSerfCheck(t)
 
 	// Set up a server that always responds with 500 errors.
 	failer := func(w http.ResponseWriter, req *http.Request) {
@@ -437,6 +448,8 @@ func TestAPI_SemaphoreOneShot(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
+
+	s.WaitForSerfCheck(t)
 
 	// Set up a semaphore as a one-shot.
 	opts := &SemaphoreOptions{

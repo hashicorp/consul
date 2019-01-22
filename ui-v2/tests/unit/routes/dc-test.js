@@ -3,7 +3,7 @@ import test from 'ember-sinon-qunit/test-support/test';
 
 moduleFor('route:dc', 'Unit | Route | dc', {
   // Specify the other units that are required for this test.
-  needs: ['service:dc', 'service:settings'],
+  needs: ['service:repository/dc', 'service:settings'],
 });
 
 test('it exists', function(assert) {

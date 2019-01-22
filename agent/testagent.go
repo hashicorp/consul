@@ -127,9 +127,9 @@ func (a *TestAgent) Start() *TestAgent {
 
 	for i := 10; i >= 0; i-- {
 		a.Config = TestConfig(
+			randomPortsSource(a.UseTLS),
 			config.Source{Name: a.Name, Format: "hcl", Data: a.HCL},
 			config.Source{Name: a.Name + ".data_dir", Format: "hcl", Data: hclDataDir},
-			randomPortsSource(a.UseTLS),
 		)
 
 		// write the keyring
@@ -379,6 +379,10 @@ func TestConfig(sources ...config.Source) *config.RuntimeConfig {
 	// Disable connect proxy execution since it causes all kinds of problems with
 	// self-executing tests etc.
 	cfg.ConnectTestDisableManagedProxies = true
+	// Effectively disables the delay after root rotation before requesting CSRs
+	// to make test deterministic. 0 results in default jitter being applied but a
+	// tiny delay is effectively thre same.
+	cfg.ConnectTestCALeafRootChangeSpread = 1 * time.Nanosecond
 
 	return &cfg
 }

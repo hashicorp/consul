@@ -1,0 +1,122 @@
+---
+layout: "docs"
+page_title: "Commands: Debug"
+sidebar_current: "docs-commands-debug"
+---
+
+# Consul Debug
+
+Command: `consul debug`
+
+The `consul debug` command monitors a Consul agent for the specified period of
+time, recording information about the agent, cluster, and environment to an archive
+written to the current directory.
+
+Providing support for complex issues encountered by Consul operators often
+requires a large amount of debugging information to be retrieved. This command
+aims to shortcut that coordination and provide a simple workflow for accessing
+data about Consul agent, cluster, and environment to enable faster
+isolation and debugging of issues.
+
+This command requires an `operator:read` ACL token in order to retrieve the
+data from the target agent, if ACLs are enabled.
+
+If the command is interrupted, as it could be given a long duration but
+require less time than expected, it will attempt to archive the current
+captured data.
+
+## Security and Privacy
+
+By default, ACL tokens, private keys, and other sensitive material related
+to Consul is sanitized and not available in this archive. However, other
+information about the environment the target agent is running in is available
+in plain text within the archive.
+
+It is recommended to validate the contents of the archive and redact any
+material classified as sensitive to the target environment, or use the `-capture`
+flag to not retrieve it initially.
+
+Additionally, we recommend securely transmitting this archive via encryption
+or otherwise.
+
+## Usage
+
+`Usage: consul debug [options]`
+
+By default, the debug command will capture an archive at the current path for
+all targets for 2 minutes.
+
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+
+#### Command Options
+
+* `-duration` - Optional, the total time to capture data for from the target agent. Must
+  be greater than the interval and longer than 10 seconds. Defaults to 2 minutes.
+
+* `-interval` - Optional, the interval at which to capture dynamic data, such as logs
+  and metrics. Must be longer than 5 seconds. Defaults to 30 seconds.
+
+* `-capture` - Optional, can be specified multiple times for each [capture target](#capture-targets)
+  and will only record that information in the archive.
+
+* `-output` - Optional, the full path of where to write the directory of data and
+  resulting archive. Defaults to the current directory.
+
+* `-archive` - Optional, if the tool show archive the directory of data into a
+  compressed tar file. Defaults to true.
+
+## Capture Targets
+
+The `-capture` flag can be specified multiple times to capture specific
+information when `debug` is running. By default, it captures all information.
+
+| Target | Description                  |
+| ------ | ---------------------------- |
+| `agent` | Version and configuration information about the agent. |
+| `host` | Information about resources on the host running the target agent such as CPU, memory, and disk. |
+| `cluster` | A list of all the WAN and LAN members in the cluster. |
+| `metrics` | Metrics from the in-memory metrics endpoint in the target, captured at the interval. |
+| `logs` | `DEBUG` level logs for the target agent, captured for the interval. |
+| `pprof` | Golang heap, CPU, goroutine, and trace profiling. This information is not retrieved unless [`enable_debug`](/docs/agent/options.html#enable_debug) is set to `true` on the target agent. |
+
+## Examples
+
+This command can be run from any host with the Consul binary, but requires
+network access to the target agent in order to retrieve data. Once retrieved,
+the data is written to the the specified path (defaulting to the current
+directory) on the host where the command runs.
+
+By default the command will capture all available data from the default
+agent address on loopback for 2 minutes at 30 second intervals.
+
+```text
+$ consul debug
+...
+```
+
+In this example, the archive is collected from a different agent on the
+network using the standard Consul CLI flag to change the API address.
+
+```text
+$ consul debug -http-addr=10.0.1.10:8500
+...
+```
+
+The capture flag can be specified to only record a subset of data
+about the agent and environment.
+
+```text
+$ consul debug -capture agent -capture host -capture logs
+...
+```
+
+The duration of the command and interval of capturing dynamic
+information (such as metrics) can be specified with the `-interval`
+and `-duration` flags.
+
+```text
+$ consul debug -interval=15s -duration=1m
+...
+```

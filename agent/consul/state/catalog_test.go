@@ -15,6 +15,7 @@ import (
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func makeRandomNodeID(t *testing.T) types.NodeID {
@@ -25,7 +26,103 @@ func makeRandomNodeID(t *testing.T) types.NodeID {
 	return types.NodeID(id)
 }
 
+func TestStateStore_GetNodeID(t *testing.T) {
+	s := testStateStore(t)
+	_, out, err := s.GetNodeID(types.NodeID("wrongId"))
+	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed, wrong UUID") {
+		t.Fatalf("want an error, nil value, err:=%q ; out:=%q", err.Error(), out)
+	}
+	_, out, err = s.GetNodeID(types.NodeID("0123456789abcdefghijklmnopqrstuvwxyz"))
+	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed, wrong UUID") {
+		t.Fatalf("want an error, nil value, err:=%q ; out:=%q", err, out)
+	}
+
+	_, out, err = s.GetNodeID(types.NodeID("00a916bc-a357-4a19-b886-59419fcee50Z"))
+	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed, wrong UUID") {
+		t.Fatalf("want an error, nil value, err:=%q ; out:=%q", err, out)
+	}
+
+	_, out, err = s.GetNodeID(types.NodeID("00a916bc-a357-4a19-b886-59419fcee506"))
+	if err != nil || out != nil {
+		t.Fatalf("do not want any error nor returned value, err:=%q ; out:=%q", err, out)
+	}
+
+	nodeID := types.NodeID("00a916bc-a357-4a19-b886-59419fceeaaa")
+	req := &structs.RegisterRequest{
+		ID:      nodeID,
+		Node:    "node1",
+		Address: "1.2.3.4",
+	}
+	if err := s.EnsureRegistration(1, req); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	_, out, err = s.GetNodeID(nodeID)
+	if err != nil {
+		t.Fatalf("got err %s want nil", err)
+	}
+	if out == nil || out.ID != nodeID {
+		t.Fatalf("out should not be nil and contain nodeId, but was:=%#v", out)
+	}
+	// Case insensitive lookup should work as well
+	_, out, err = s.GetNodeID(types.NodeID("00a916bC-a357-4a19-b886-59419fceeAAA"))
+	if err != nil {
+		t.Fatalf("got err %s want nil", err)
+	}
+	if out == nil || out.ID != nodeID {
+		t.Fatalf("out should not be nil and contain nodeId, but was:=%#v", out)
+	}
+}
+
+func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
+	t.Parallel()
+	s := testStateStore(t)
+	nodeID := makeRandomNodeID(t)
+	req := &structs.RegisterRequest{
+		ID:              nodeID,
+		Node:            "node1",
+		Address:         "1.2.3.4",
+		TaggedAddresses: map[string]string{"hello": "world"},
+		NodeMeta:        map[string]string{"somekey": "somevalue"},
+	}
+	if err := s.EnsureRegistration(1, req); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	req = &structs.RegisterRequest{
+		ID:      types.NodeID(""),
+		Node:    "node2",
+		Address: "10.0.0.1",
+	}
+	if err := s.EnsureRegistration(2, req); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	tx := s.db.Txn(true)
+	defer tx.Abort()
+	node := &structs.Node{
+		ID:      makeRandomNodeID(t),
+		Node:    "NOdE1", // Name is similar but case is different
+		Address: "2.3.4.5",
+	}
+	// Lets conflict with node1 (has an ID)
+	if err := s.ensureNoNodeWithSimilarNameTxn(tx, node, false); err == nil {
+		t.Fatalf("Should return an error since another name with similar name exists")
+	}
+	if err := s.ensureNoNodeWithSimilarNameTxn(tx, node, true); err == nil {
+		t.Fatalf("Should return an error since another name with similar name exists")
+	}
+	// Lets conflict with node without ID
+	node.Node = "NoDe2"
+	if err := s.ensureNoNodeWithSimilarNameTxn(tx, node, false); err == nil {
+		t.Fatalf("Should return an error since another name with similar name exists")
+	}
+	if err := s.ensureNoNodeWithSimilarNameTxn(tx, node, true); err != nil {
+		t.Fatalf("Should not clash with another similar node name without ID, err:=%q", err)
+	}
+
+}
+
 func TestStateStore_EnsureRegistration(t *testing.T) {
+	t.Parallel()
 	s := testStateStore(t)
 
 	// Start with just a node.
@@ -64,6 +161,9 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("got err %s want nil", err)
 		}
+		if out2 == nil {
+			t.Fatalf("out2 should not be nil")
+		}
 		if got, want := out, out2; !verify.Values(t, "GetNodeID", got, want) {
 			t.FailNow()
 		}
@@ -90,6 +190,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 		Address: "1.1.1.1",
 		Port:    8080,
 		Tags:    []string{"master"},
+		Weights: &structs.Weights{Passing: 1, Warning: 1},
 	}
 	if err := s.EnsureRegistration(2, req); err != nil {
 		t.Fatalf("err: %s", err)
@@ -104,6 +205,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 				Address:   "1.1.1.1",
 				Port:      8080,
 				Tags:      []string{"master"},
+				Weights:   &structs.Weights{Passing: 1, Warning: 1},
 				RaftIndex: structs.RaftIndex{CreateIndex: 2, ModifyIndex: 2},
 			},
 		}
@@ -193,7 +295,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 				CheckID:   "check1",
 				Name:      "check",
 				Status:    "critical",
-				RaftIndex: structs.RaftIndex{CreateIndex: 3, ModifyIndex: 4},
+				RaftIndex: structs.RaftIndex{CreateIndex: 3, ModifyIndex: 3},
 			},
 			&structs.HealthCheck{
 				Node:        "node1",
@@ -294,6 +396,7 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 		Service: "redis",
 		Address: "1.1.1.1",
 		Port:    8080,
+		Weights: &structs.Weights{Passing: 1, Warning: 1},
 	}
 	restore = s.Restore()
 	if err := restore.Registration(2, req); err != nil {
@@ -389,8 +492,8 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 		}
 		c1 := out[0]
 		if c1.Node != nodeName || c1.CheckID != "check1" || c1.Name != "check" ||
-			c1.CreateIndex != 3 || c1.ModifyIndex != 4 {
-			t.Fatalf("bad check returned: %#v", c1)
+			c1.CreateIndex != 3 || c1.ModifyIndex != 3 {
+			t.Fatalf("bad check returned, should not be modified: %#v", c1)
 		}
 
 		c2 := out[1]
@@ -399,6 +502,192 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 			t.Fatalf("bad check returned: %#v", c2)
 		}
 	}()
+}
+
+func deprecatedEnsureNodeWithoutIDCanRegister(t *testing.T, s *Store, nodeName string, txIdx uint64) {
+	// All the following is deprecated, and should be removed in future Consul versions
+	in := &structs.Node{
+		Node:    nodeName,
+		Address: "1.1.1.9",
+		Meta: map[string]string{
+			"version": string(txIdx),
+		},
+	}
+	if err := s.EnsureNode(txIdx, in); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	idx, out, err := s.GetNode(nodeName)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != txIdx {
+		t.Fatalf("index should be %v, was: %v", txIdx, idx)
+	}
+	if out.Node != nodeName {
+		t.Fatalf("unexpected result out = %v, nodeName supposed to be %s", out, nodeName)
+	}
+}
+
+func TestStateStore_EnsureNodeDeprecated(t *testing.T) {
+	s := testStateStore(t)
+
+	firstNodeName := "node-without-id"
+	deprecatedEnsureNodeWithoutIDCanRegister(t, s, firstNodeName, 1)
+
+	newNodeID := types.NodeID("00a916bc-a357-4a19-b886-59419fcee50c")
+	// With this request, we basically add a node ID to existing node
+	// and change its address
+	in := &structs.Node{
+		ID:      newNodeID,
+		Node:    firstNodeName,
+		Address: "1.1.7.8",
+	}
+	if err := s.EnsureNode(4, in); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	// Retrieve the node again
+	idx, out, err := s.GetNode(firstNodeName)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Node has updated information
+	if idx != 4 || out.Node != firstNodeName || out.ID != newNodeID || out.Address != "1.1.7.8" {
+		t.Fatalf("[DEPRECATED] bad node returned: %#v", out)
+	}
+	if out.CreateIndex != 1 || out.ModifyIndex != 4 {
+		t.Fatalf("[DEPRECATED] bad CreateIndex/ModifyIndex returned: %#v", out)
+	}
+
+	// Now, lets update IP Address without providing any ID
+	// Only name of node will be used to match
+	in = &structs.Node{
+		Node:    firstNodeName,
+		Address: "1.1.7.10",
+	}
+	if err := s.EnsureNode(7, in); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	// Retrieve the node again
+	idx, out, err = s.GetNode(firstNodeName)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Node has updated information, its ID has been removed (deprecated, but working)
+	if idx != 7 || out.Node != firstNodeName || out.ID != "" || out.Address != "1.1.7.10" {
+		t.Fatalf("[DEPRECATED] bad node returned: %#v", out)
+	}
+	if out.CreateIndex != 1 || out.ModifyIndex != 7 {
+		t.Fatalf("[DEPRECATED] bad CreateIndex/ModifyIndex returned: %#v", out)
+	}
+}
+
+func TestNodeRenamingNodes(t *testing.T) {
+	s := testStateStore(t)
+
+	nodeID1 := types.NodeID("b789bf0a-d96b-4f70-a4a6-ac5dfaece53d")
+	nodeID2 := types.NodeID("27bee224-a4d7-45d0-9b8e-65b3c94a61ba")
+
+	// Node1 with ID
+	in1 := &structs.Node{
+		ID:      nodeID1,
+		Node:    "node1",
+		Address: "1.1.1.1",
+	}
+
+	if err := s.EnsureNode(1, in1); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Node2 with ID
+	in2 := &structs.Node{
+		ID:      nodeID2,
+		Node:    "node2",
+		Address: "1.1.1.2",
+	}
+
+	if err := s.EnsureNode(2, in2); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Node3 without ID
+	in3 := &structs.Node{
+		Node:    "node3",
+		Address: "1.1.1.3",
+	}
+
+	if err := s.EnsureNode(3, in3); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, node, err := s.GetNodeID(nodeID1); err != nil || node == nil || node.ID != nodeID1 {
+		t.Fatalf("err: %s, node:= %q", err, node)
+	}
+
+	if _, node, err := s.GetNodeID(nodeID2); err != nil && node == nil || node.ID != nodeID2 {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Renaming node2 into node1 should fail
+	in2Modify := &structs.Node{
+		ID:      nodeID2,
+		Node:    "node1",
+		Address: "1.1.1.2",
+	}
+	if err := s.EnsureNode(4, in2Modify); err == nil {
+		t.Fatalf("Renaming node2 into node1 should fail")
+	}
+
+	// Conflict with case insensitive matching as well
+	in2Modify = &structs.Node{
+		ID:      nodeID2,
+		Node:    "NoDe1",
+		Address: "1.1.1.2",
+	}
+	if err := s.EnsureNode(5, in2Modify); err == nil {
+		t.Fatalf("Renaming node2 into node1 should fail")
+	}
+
+	// Conflict with case insensitive on node without ID
+	in2Modify = &structs.Node{
+		ID:      nodeID2,
+		Node:    "NoDe3",
+		Address: "1.1.1.2",
+	}
+	if err := s.EnsureNode(6, in2Modify); err == nil {
+		t.Fatalf("Renaming node2 into node1 should fail")
+	}
+
+	// No conflict, should work
+	in2Modify = &structs.Node{
+		ID:      nodeID2,
+		Node:    "node2bis",
+		Address: "1.1.1.2",
+	}
+	if err := s.EnsureNode(6, in2Modify); err != nil {
+		t.Fatalf("Renaming node2 into node1 should fail")
+	}
+
+	// Retrieve the node again
+	idx, out, err := s.GetNode("node2bis")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Retrieve the node again
+	idx2, out2, err := s.GetNodeID(nodeID2)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if idx != idx2 {
+		t.Fatalf("node should be the same")
+	}
+
+	if out.ID != out2.ID || out.Node != out2.Node {
+		t.Fatalf("all should match")
+	}
 }
 
 func TestStateStore_EnsureNode(t *testing.T) {
@@ -411,6 +700,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 
 	// Create a node registration request
 	in := &structs.Node{
+		ID:      types.NodeID("cda916bc-a357-4a19-b886-59419fcee50c"),
 		Node:    "node1",
 		Address: "1.1.1.1",
 	}
@@ -440,8 +730,12 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	}
 
 	// Update the node registration
-	in.Address = "1.1.1.2"
-	if err := s.EnsureNode(2, in); err != nil {
+	in2 := &structs.Node{
+		ID:      in.ID,
+		Node:    in.Node,
+		Address: "1.1.1.2",
+	}
+	if err := s.EnsureNode(2, in2); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -459,36 +753,206 @@ func TestStateStore_EnsureNode(t *testing.T) {
 		t.Fatalf("bad index: %d", idx)
 	}
 
-	// Node upsert preserves the create index
-	if err := s.EnsureNode(3, in); err != nil {
+	// Re-inserting data should not modify ModifiedIndex
+	if err := s.EnsureNode(3, in2); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	idx, out, err = s.GetNode("node1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if out.CreateIndex != 1 || out.ModifyIndex != 3 || out.Address != "1.1.1.2" {
+	if out.CreateIndex != 1 || out.ModifyIndex != 2 || out.Address != "1.1.1.2" {
+		t.Fatalf("node was modified: %#v", out)
+	}
+
+	// Node upsert preserves the create index
+	in3 := &structs.Node{
+		ID:      in.ID,
+		Node:    in.Node,
+		Address: "1.1.1.3",
+	}
+	if err := s.EnsureNode(3, in3); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	idx, out, err = s.GetNode("node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if out.CreateIndex != 1 || out.ModifyIndex != 3 || out.Address != "1.1.1.3" {
 		t.Fatalf("node was modified: %#v", out)
 	}
 	if idx != 3 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
-	// Add an ID to the node
-	in.ID = types.NodeID("cda916bc-a357-4a19-b886-59419fcee50c")
+	// Update index to 4, no change
 	if err := s.EnsureNode(4, in); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Now try to add another node with the same ID
 	in = &structs.Node{
-		Node:    "nope",
+		Node:    "node1-renamed",
 		ID:      types.NodeID("cda916bc-a357-4a19-b886-59419fcee50c"),
-		Address: "1.2.3.4",
+		Address: "1.1.1.2",
 	}
-	err = s.EnsureNode(5, in)
-	if err == nil || !strings.Contains(err.Error(), "aliases existing node") {
-		t.Fatalf("err: %v", err)
+	if err := s.EnsureNode(6, in); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Retrieve the node
+	idx, out, err = s.GetNode("node1")
+	if out != nil {
+		t.Fatalf("Node should not exist anymore: %q", out)
+	}
+
+	idx, out, err = s.GetNode("node1-renamed")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if out == nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Node and indexes were updated
+	if out.CreateIndex != 1 || out.ModifyIndex != 6 || out.Address != "1.1.1.2" || out.Node != "node1-renamed" {
+		t.Fatalf("bad: %#v", out)
+	}
+	if idx != 6 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	newNodeID := types.NodeID("d0347693-65cc-4d9f-a6e0-5025b2e6513f")
+
+	// Adding another node with same name should fail
+	in = &structs.Node{
+		Node:    "node1-renamed",
+		ID:      newNodeID,
+		Address: "1.1.1.7",
+	}
+	if err := s.EnsureNode(8, in); err == nil {
+		t.Fatalf("There should be an error since node1-renamed already exists")
+	}
+
+	// Adding another node with same name but different case should fail
+	in = &structs.Node{
+		Node:    "Node1-RENAMED",
+		ID:      newNodeID,
+		Address: "1.1.1.7",
+	}
+	if err := s.EnsureNode(8, in); err == nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Lets add another valid node now
+	in = &structs.Node{
+		Node:    "Node1bis",
+		ID:      newNodeID,
+		Address: "1.1.1.7",
+	}
+	if err := s.EnsureNode(9, in); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Retrieve the node
+	idx, out, err = s.GetNode("Node1bis")
+	if out == nil {
+		t.Fatalf("Node should exist, but was null")
+	}
+
+	// Renaming should fail
+	in = &structs.Node{
+		Node:    "Node1bis",
+		ID:      newNodeID,
+		Address: "1.1.1.7",
+	}
+	if err := s.EnsureNode(9, in); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	idx, out, err = s.GetNode("Node1bis")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Node and indexes were updated
+	if out.ID != newNodeID || out.CreateIndex != 9 || out.ModifyIndex != 9 || out.Address != "1.1.1.7" || out.Node != "Node1bis" {
+		t.Fatalf("bad: %#v", out)
+	}
+	if idx != 9 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Renaming to same value as first node should fail as well
+	// Adding another node with same name but different case should fail
+	in = &structs.Node{
+		Node:    "node1-renamed",
+		ID:      newNodeID,
+		Address: "1.1.1.7",
+	}
+	if err := s.EnsureNode(10, in); err == nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// It should fail also with different case
+	in = &structs.Node{
+		Node:    "Node1-Renamed",
+		ID:      newNodeID,
+		Address: "1.1.1.7",
+	}
+	if err := s.EnsureNode(10, in); err == nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// But should work if names are different
+	in = &structs.Node{
+		Node:    "Node1-Renamed2",
+		ID:      newNodeID,
+		Address: "1.1.1.7",
+	}
+	if err := s.EnsureNode(11, in); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	idx, out, err = s.GetNode("Node1-Renamed2")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Node and indexes were updated
+	if out.ID != newNodeID || out.CreateIndex != 9 || out.ModifyIndex != 11 || out.Address != "1.1.1.7" || out.Node != "Node1-Renamed2" {
+		t.Fatalf("bad: %#v", out)
+	}
+	if idx != 11 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// All the remaining tests are deprecated, please remove them on next Consul major release
+	// See https://github.com/hashicorp/consul/pull/3983 for context
+
+	// Deprecated behavior is following
+	deprecatedEnsureNodeWithoutIDCanRegister(t, s, "new-node-without-id", 12)
+
+	// Deprecated, but should work as well
+	deprecatedEnsureNodeWithoutIDCanRegister(t, s, "new-node-without-id", 13)
+
+	// All of this is deprecated as well, should be removed
+	in = &structs.Node{
+		Node:    "Node1-Renamed2",
+		Address: "1.1.1.66",
+	}
+	if err := s.EnsureNode(14, in); err != nil {
+		t.Fatalf("[DEPRECATED] it should work, err:= %q", err)
+	}
+	idx, out, err = s.GetNode("Node1-Renamed2")
+	if err != nil {
+		t.Fatalf("[DEPRECATED] err: %s", err)
+	}
+	if out.CreateIndex != 9 {
+		t.Fatalf("[DEPRECATED] We expected to modify node previously added, but add index = %d for node %q", out.CreateIndex, out)
+	}
+	if out.Address != "1.1.1.66" || out.ModifyIndex != 14 {
+		t.Fatalf("[DEPRECATED] Node with newNodeID should have been updated, but was: %d with content := %q", out.CreateIndex, out)
 	}
 }
 
@@ -863,6 +1327,7 @@ func TestStateStore_EnsureService(t *testing.T) {
 		Tags:    []string{"prod"},
 		Address: "1.1.1.1",
 		Port:    1111,
+		Weights: &structs.Weights{Passing: 1, Warning: 0},
 	}
 
 	// Creating a service without a node returns an error.
@@ -988,12 +1453,16 @@ func TestStateStore_EnsureService_connectProxy(t *testing.T) {
 
 	// Create the service registration.
 	ns1 := &structs.NodeService{
-		Kind:             structs.ServiceKindConnectProxy,
-		ID:               "connect-proxy",
-		Service:          "connect-proxy",
-		Address:          "1.1.1.1",
-		Port:             1111,
-		ProxyDestination: "foo",
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "connect-proxy",
+		Service: "connect-proxy",
+		Address: "1.1.1.1",
+		Port:    1111,
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
+		Proxy: structs.ConnectProxyConfig{DestinationServiceName: "foo"},
 	}
 
 	// Service successfully registers into the state store.
@@ -1365,7 +1834,7 @@ func TestStateStore_ServiceTagNodes(t *testing.T) {
 
 	// Listing with no results returns an empty list.
 	ws := memdb.NewWatchSet()
-	idx, nodes, err := s.ServiceTagNodes(ws, "db", "master")
+	idx, nodes, err := s.ServiceTagNodes(ws, "db", []string{"master"})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1398,7 +1867,7 @@ func TestStateStore_ServiceTagNodes(t *testing.T) {
 
 	// Read everything back.
 	ws = memdb.NewWatchSet()
-	idx, nodes, err = s.ServiceTagNodes(ws, "db", "master")
+	idx, nodes, err = s.ServiceTagNodes(ws, "db", []string{"master"})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1459,62 +1928,38 @@ func TestStateStore_ServiceTagNodes_MultipleTags(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	idx, nodes, err := s.ServiceTagNodes(nil, "db", "master")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if idx != 19 {
-		t.Fatalf("bad: %v", idx)
-	}
-	if len(nodes) != 1 {
-		t.Fatalf("bad: %v", nodes)
-	}
-	if nodes[0].Node != "foo" {
-		t.Fatalf("bad: %v", nodes)
-	}
-	if nodes[0].Address != "127.0.0.1" {
-		t.Fatalf("bad: %v", nodes)
-	}
-	if !lib.StrContains(nodes[0].ServiceTags, "master") {
-		t.Fatalf("bad: %v", nodes)
-	}
-	if nodes[0].ServicePort != 8000 {
-		t.Fatalf("bad: %v", nodes)
-	}
+	idx, nodes, err := s.ServiceTagNodes(nil, "db", []string{"master"})
+	require.NoError(t, err)
+	require.Equal(t, int(idx), 19)
+	require.Len(t, nodes, 1)
+	require.Equal(t, nodes[0].Node, "foo")
+	require.Equal(t, nodes[0].Address, "127.0.0.1")
+	require.Contains(t, nodes[0].ServiceTags, "master")
+	require.Equal(t, nodes[0].ServicePort, 8000)
 
-	idx, nodes, err = s.ServiceTagNodes(nil, "db", "v2")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if idx != 19 {
-		t.Fatalf("bad: %v", idx)
-	}
-	if len(nodes) != 3 {
-		t.Fatalf("bad: %v", nodes)
-	}
+	idx, nodes, err = s.ServiceTagNodes(nil, "db", []string{"v2"})
+	require.NoError(t, err)
+	require.Equal(t, int(idx), 19)
+	require.Len(t, nodes, 3)
 
-	idx, nodes, err = s.ServiceTagNodes(nil, "db", "dev")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if idx != 19 {
-		t.Fatalf("bad: %v", idx)
-	}
-	if len(nodes) != 1 {
-		t.Fatalf("bad: %v", nodes)
-	}
-	if nodes[0].Node != "foo" {
-		t.Fatalf("bad: %v", nodes)
-	}
-	if nodes[0].Address != "127.0.0.1" {
-		t.Fatalf("bad: %v", nodes)
-	}
-	if !lib.StrContains(nodes[0].ServiceTags, "dev") {
-		t.Fatalf("bad: %v", nodes)
-	}
-	if nodes[0].ServicePort != 8001 {
-		t.Fatalf("bad: %v", nodes)
-	}
+	// Test filtering on multiple tags
+	idx, nodes, err = s.ServiceTagNodes(nil, "db", []string{"v2", "slave"})
+	require.NoError(t, err)
+	require.Equal(t, int(idx), 19)
+	require.Len(t, nodes, 2)
+	require.Contains(t, nodes[0].ServiceTags, "v2")
+	require.Contains(t, nodes[0].ServiceTags, "slave")
+	require.Contains(t, nodes[1].ServiceTags, "v2")
+	require.Contains(t, nodes[1].ServiceTags, "slave")
+
+	idx, nodes, err = s.ServiceTagNodes(nil, "db", []string{"dev"})
+	require.NoError(t, err)
+	require.Equal(t, int(idx), 19)
+	require.Len(t, nodes, 1)
+	require.Equal(t, nodes[0].Node, "foo")
+	require.Equal(t, nodes[0].Address, "127.0.0.1")
+	require.Contains(t, nodes[0].ServiceTags, "dev")
+	require.Equal(t, nodes[0].ServicePort, 8001)
 }
 
 func TestStateStore_DeleteService(t *testing.T) {
@@ -1588,8 +2033,8 @@ func TestStateStore_ConnectServiceNodes(t *testing.T) {
 	assert.Nil(s.EnsureNode(11, &structs.Node{Node: "bar", Address: "127.0.0.2"}))
 	assert.Nil(s.EnsureService(12, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: nil, Address: "", Port: 5000}))
 	assert.Nil(s.EnsureService(13, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
-	assert.Nil(s.EnsureService(14, "foo", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", ProxyDestination: "db", Port: 8000}))
-	assert.Nil(s.EnsureService(15, "bar", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", ProxyDestination: "db", Port: 8000}))
+	assert.Nil(s.EnsureService(14, "foo", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
+	assert.Nil(s.EnsureService(15, "bar", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
 	assert.Nil(s.EnsureService(16, "bar", &structs.NodeService{ID: "native-db", Service: "db", Connect: structs.ServiceConnect{Native: true}}))
 	assert.Nil(s.EnsureService(17, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"slave"}, Address: "", Port: 8001}))
 	assert.True(watchFired(ws))
@@ -1629,6 +2074,7 @@ func TestStateStore_Service_Snapshot(t *testing.T) {
 			Tags:    []string{"prod"},
 			Address: "1.1.1.1",
 			Port:    1111,
+			Weights: &structs.Weights{Passing: 1, Warning: 0},
 		},
 		&structs.NodeService{
 			ID:      "service2",
@@ -1636,6 +2082,7 @@ func TestStateStore_Service_Snapshot(t *testing.T) {
 			Tags:    []string{"dev"},
 			Address: "1.1.1.2",
 			Port:    1112,
+			Weights: &structs.Weights{Passing: 1, Warning: 1},
 		},
 	}
 	for i, svc := range ns {
@@ -1731,32 +2178,60 @@ func TestStateStore_EnsureCheck(t *testing.T) {
 		t.Fatalf("bad: %#v", checks[0])
 	}
 
-	// Modify the health check
-	check.Output = "bbb"
+	testCheckOutput := func(expectedNodeIndex, expectedIndexForCheck uint64, outputTxt string) {
+		// Check that we successfully updated
+		idx, checks, err = s.NodeChecks(nil, "node1")
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if idx != expectedNodeIndex {
+			t.Fatalf("bad index: %d", idx)
+		}
+
+		if len(checks) != 1 {
+			t.Fatalf("wrong number of checks: %d", len(checks))
+		}
+		if checks[0].Output != outputTxt {
+			t.Fatalf("wrong check output: %#v", checks[0])
+		}
+		if checks[0].CreateIndex != 3 || checks[0].ModifyIndex != expectedIndexForCheck {
+			t.Fatalf("bad index: %#v, expectedIndexForCheck:=%v ", checks[0], expectedIndexForCheck)
+		}
+	}
+	// Do not really modify the health check content the health check
+	check = &structs.HealthCheck{
+		Node:        "node1",
+		CheckID:     "check1",
+		Name:        "redis check",
+		Status:      api.HealthPassing,
+		Notes:       "test check",
+		Output:      "aaa",
+		ServiceID:   "service1",
+		ServiceName: "redis",
+	}
 	if err := s.EnsureCheck(4, check); err != nil {
 		t.Fatalf("err: %s", err)
 	}
+	testCheckOutput(4, 3, check.Output)
 
-	// Check that we successfully updated
-	idx, checks, err = s.NodeChecks(nil, "node1")
-	if err != nil {
+	// Do modify the heathcheck
+	check = &structs.HealthCheck{
+		Node:        "node1",
+		CheckID:     "check1",
+		Name:        "redis check",
+		Status:      api.HealthPassing,
+		Notes:       "test check",
+		Output:      "bbbmodified",
+		ServiceID:   "service1",
+		ServiceName: "redis",
+	}
+	if err := s.EnsureCheck(5, check); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx != 4 {
-		t.Fatalf("bad index: %d", idx)
-	}
-	if len(checks) != 1 {
-		t.Fatalf("wrong number of checks: %d", len(checks))
-	}
-	if checks[0].Output != "bbb" {
-		t.Fatalf("wrong check output: %#v", checks[0])
-	}
-	if checks[0].CreateIndex != 3 || checks[0].ModifyIndex != 4 {
-		t.Fatalf("bad index: %#v", checks[0])
-	}
+	testCheckOutput(5, 5, "bbbmodified")
 
 	// Index tables were updated
-	if idx := s.maxIndex("checks"); idx != 4 {
+	if idx := s.maxIndex("checks"); idx != 5 {
 		t.Fatalf("bad index: %d", idx)
 	}
 }
@@ -2373,16 +2848,68 @@ func TestIndexIndependence(t *testing.T) {
 	ensureServiceVersion(t, s, ws, "service_shared", 17, 0)
 
 	testRegisterService(t, s, 18, "node1", "service_new")
-	// Since service does not exists anymore, its index should be last insert
-	// The behaviour is the same as all non-existing services, meaning
-	// we properly did collect garbage
-	ensureServiceVersion(t, s, ws, "service_shared", 18, 0)
+
+	// Since service does not exists anymore, its index should be that of
+	// the last deleted service
+	ensureServiceVersion(t, s, ws, "service_shared", 17, 0)
+
 	// No index should exist anymore, it must have been garbage collected
 	ensureIndexForService(t, s, ws, "service_shared", 0)
 	if !watchFired(ws) {
 		t.Fatalf("bad")
 	}
+}
 
+func TestMissingServiceIndex(t *testing.T) {
+	s := testStateStore(t)
+
+	// Querying with no matches gives an empty response
+	ws := memdb.NewWatchSet()
+	idx, res, err := s.CheckServiceNodes(ws, "service1")
+	require.Nil(t, err)
+	require.Nil(t, res)
+
+	// index should be 0 for a non existing service at startup
+	require.Equal(t, uint64(0), idx)
+
+	testRegisterNode(t, s, 0, "node1")
+
+	// node operations should not affect missing service index
+	ensureServiceVersion(t, s, ws, "service1", 0, 0)
+
+	testRegisterService(t, s, 10, "node1", "service1")
+	ensureServiceVersion(t, s, ws, "service1", 10, 1)
+
+	s.DeleteService(11, "node1", "service1")
+	// service1 is now missing, its index is now that of the last index a service was
+	// deleted at
+	ensureServiceVersion(t, s, ws, "service1", 11, 0)
+
+	testRegisterService(t, s, 12, "node1", "service2")
+	ensureServiceVersion(t, s, ws, "service2", 12, 1)
+
+	// missing service index does not change even though another service have been
+	// registered
+	ensureServiceVersion(t, s, ws, "service1", 11, 0)
+	ensureServiceVersion(t, s, ws, "i_do_not_exist", 11, 0)
+
+	// registering a service on another node does not affect missing service
+	// index
+	testRegisterNode(t, s, 13, "node2")
+	testRegisterService(t, s, 14, "node2", "service3")
+	ensureServiceVersion(t, s, ws, "service3", 14, 1)
+	ensureServiceVersion(t, s, ws, "service1", 11, 0)
+
+	// unregistering a service bumps missing service index
+	s.DeleteService(15, "node2", "service3")
+	ensureServiceVersion(t, s, ws, "service3", 15, 0)
+	ensureServiceVersion(t, s, ws, "service2", 12, 1)
+	ensureServiceVersion(t, s, ws, "service1", 15, 0)
+	ensureServiceVersion(t, s, ws, "i_do_not_exist", 15, 0)
+
+	// registering again a missing service correctly updates its index
+	testRegisterService(t, s, 16, "node1", "service1")
+	ensureServiceVersion(t, s, ws, "service1", 16, 1)
 }
 
 func TestStateStore_CheckServiceNodes(t *testing.T) {
@@ -2444,7 +2971,7 @@ func TestStateStore_CheckServiceNodes(t *testing.T) {
 	}
 
 	// Node updates alter the returned index and fire the watch.
-	testRegisterNode(t, s, 8, "node1")
+	testRegisterNodeWithChange(t, s, 8, "node1")
 	if !watchFired(ws) {
 		t.Fatalf("bad")
 	}
@@ -2459,7 +2986,8 @@ func TestStateStore_CheckServiceNodes(t *testing.T) {
 	}
 
 	// Service updates alter the returned index and fire the watch.
-	testRegisterService(t, s, 9, "node1", "service1")
+
+	testRegisterServiceWithChange(t, s, 9, "node1", "service1", true)
 	if !watchFired(ws) {
 		t.Fatalf("bad")
 	}
@@ -2548,8 +3076,8 @@ func TestStateStore_CheckConnectServiceNodes(t *testing.T) {
 	assert.Nil(s.EnsureNode(11, &structs.Node{Node: "bar", Address: "127.0.0.2"}))
 	assert.Nil(s.EnsureService(12, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: nil, Address: "", Port: 5000}))
 	assert.Nil(s.EnsureService(13, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
-	assert.Nil(s.EnsureService(14, "foo", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", ProxyDestination: "db", Port: 8000}))
-	assert.Nil(s.EnsureService(15, "bar", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", ProxyDestination: "db", Port: 8000}))
+	assert.Nil(s.EnsureService(14, "foo", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
+	assert.Nil(s.EnsureService(15, "bar", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
 	assert.Nil(s.EnsureService(16, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"slave"}, Address: "", Port: 8001}))
 	assert.True(watchFired(ws))
 
@@ -2570,7 +3098,7 @@ func TestStateStore_CheckConnectServiceNodes(t *testing.T) {
 
 	for _, n := range nodes {
 		assert.Equal(structs.ServiceKindConnectProxy, n.Service.Kind)
-		assert.Equal("db", n.Service.ProxyDestination)
+		assert.Equal("db", n.Service.Proxy.DestinationServiceName)
 	}
 }
 
@@ -2642,7 +3170,7 @@ func TestStateStore_CheckServiceTagNodes(t *testing.T) {
 	}
 
 	ws := memdb.NewWatchSet()
-	idx, nodes, err := s.CheckServiceTagNodes(ws, "db", "master")
+	idx, nodes, err := s.CheckServiceTagNodes(ws, "db", []string{"master"})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -2815,7 +3343,9 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 					ID:      "service1",
 					Service: "service1",
 					Address: "1.1.1.1",
+					Meta:    make(map[string]string),
 					Port:    1111,
+					Weights: &structs.Weights{Passing: 1, Warning: 1},
 					RaftIndex: structs.RaftIndex{
 						CreateIndex: 2,
 						ModifyIndex: 2,
@@ -2825,7 +3355,9 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 					ID:      "service2",
 					Service: "service2",
 					Address: "1.1.1.1",
+					Meta:    make(map[string]string),
 					Port:    1111,
+					Weights: &structs.Weights{Passing: 1, Warning: 1},
 					RaftIndex: structs.RaftIndex{
 						CreateIndex: 3,
 						ModifyIndex: 3,
@@ -2865,6 +3397,8 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 					Service: "service1",
 					Address: "1.1.1.1",
 					Port:    1111,
+					Meta:    make(map[string]string),
+					Weights: &structs.Weights{Passing: 1, Warning: 1},
 					RaftIndex: structs.RaftIndex{
 						CreateIndex: 4,
 						ModifyIndex: 4,
@@ -2875,6 +3409,8 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 					Service: "service2",
 					Address: "1.1.1.1",
 					Port:    1111,
+					Meta:    make(map[string]string),
+					Weights: &structs.Weights{Passing: 1, Warning: 1},
 					RaftIndex: structs.RaftIndex{
 						CreateIndex: 5,
 						ModifyIndex: 5,
@@ -2894,7 +3430,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 		t.Fatalf("bad index: %d", idx)
 	}
 	if len(dump) != 1 || !reflect.DeepEqual(dump[0], expect[0]) {
-		t.Fatalf("bad: %#v", dump)
+		t.Fatalf("bad: len=%#v dump=%#v expect=%#v", len(dump), dump[0], expect[0])
 	}
 
 	// Generate a dump of all the nodes
