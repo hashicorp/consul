@@ -551,7 +551,9 @@ default will automatically work with some tooling.
      ACLs are a blacklist: any operation not specifically prohibited is allowed. In "deny" mode, ACLs are
      a whitelist: any operation not specifically allowed is blocked. *Note*: this will not take effect until
      you've enabled ACLs.
-
+     
+     * <a name="acl_enable_key_list"></a><a href="#acl_enable_key_list">`enable_key_list`</a> - Either "enabled" or "disabled", defaults to "disabled". When enabled, the `list` permission will be required on the prefix being recursively read from the KV store. Regardless of being enabled, the full set of KV entries under the prefix will be filtered to remove any entries that the request's ACL token does not grant at least read persmissions. This option is only available in Consul 1.0 and newer. 
+ 
      * <a name=`acl_enable_token_replication"></a><a href="#acl_enable_token_replication">`enable_token_replication`</a> - By
      default secondary Consul datacenters will perform replication of only ACL policies. Setting this configuration will
      also enable ACL token replication.
@@ -568,7 +570,7 @@ default will automatically work with some tooling.
           you would like to install or change the `acl_master_token`, set the new value for `master`
           in the configuration for all servers. Once this is done, restart the current leader to force a
           leader election. If the `master` token is not supplied, then the servers do not create a master
-          token. When you provide a value, it should be a UUID. To maintaing backwards compatibility
+          token. When you provide a value, it should be a UUID. To maintain backwards compatibility
           and an upgrade path this restriction is not currently enforced but will be in a future major
           Consul release.
 
