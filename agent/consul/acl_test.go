@@ -6,7 +6,9 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -91,6 +93,29 @@ func testIdentityForToken(token string) (bool, structs.ACLIdentity, error) {
 			Policies: []structs.ACLTokenPolicyLink{
 				structs.ACLTokenPolicyLink{
 					ID: "acl-wr",
+				},
+			},
+		}, nil
+	case "racey-unmodified":
+		return true, &structs.ACLToken{
+			AccessorID: "5f57c1f6-6a89-4186-9445-531b316e01df",
+			SecretID:   "a1a54629-5050-4d17-8a4e-560d2423f835",
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID: "node-wr",
+				},
+				structs.ACLTokenPolicyLink{
+					ID: "acl-wr",
+				},
+			},
+		}, nil
+	case "racey-modified":
+		return true, &structs.ACLToken{
+			AccessorID: "5f57c1f6-6a89-4186-9445-531b316e01df",
+			SecretID:   "a1a54629-5050-4d17-8a4e-560d2423f835",
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID: "node-wr",
 				},
 			},
 		}, nil
@@ -654,6 +679,100 @@ func TestACLResolver_DatacenterScoping(t *testing.T) {
 		require.False(t, authz.ACLRead())
 		require.False(t, authz.NodeWrite("foo", nil))
 		require.True(t, authz.KeyWrite("foo", nil))
+	})
+}
+
+func TestACLResolver_Client(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Racey-Token-Mod-Policy-Resolve", func(t *testing.T) {
+		t.Parallel()
+		var tokenReads int32
+		var policyResolves int32
+		modified := false
+		deleted := false
+		delegate := &ACLResolverTestDelegate{
+			enabled:       true,
+			datacenter:    "dc1",
+			legacy:        false,
+			localTokens:   false,
+			localPolicies: false,
+			tokenReadFn: func(args *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
+				atomic.AddInt32(&tokenReads, 1)
+				if deleted {
+					return acl.ErrNotFound
+				} else if modified {
+					_, token, _ := testIdentityForToken("racey-modified")
+					reply.Token = token.(*structs.ACLToken)
+				} else {
+					_, token, _ := testIdentityForToken("racey-unmodified")
+					reply.Token = token.(*structs.ACLToken)
+				}
+				return nil
+			},
+			policyResolveFn: func(args *structs.ACLPolicyBatchGetRequest, reply *structs.ACLPolicyBatchResponse) error {
+				atomic.AddInt32(&policyResolves, 1)
+				if deleted {
+					return acl.ErrNotFound
+				} else if !modified {
+					modified = true
+					return acl.ErrPermissionDenied
+				} else {
+					deleted = true
+					for _, policyID := range args.PolicyIDs {
+						_, policy, _ := testPolicyForID(policyID)
+						if policy != nil {
+							reply.Policies = append(reply.Policies, policy)
+						}
+					}
+
+					modified = true
+					return nil
+				}
+			},
+		}
+
+		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
+			config.Config.ACLTokenTTL = 600 * time.Second
+			config.Config.ACLPolicyTTL = 30 * time.Millisecond
+			config.Config.ACLDownPolicy = "extend-cache"
+		})
+
+		// resolves the token
+		// gets a permission denied resolving the policies - token updated
+		// invalidates the token
+		// refetches the token
+		// fetches the policies from the modified token
+		// creates the authorizers
+		//
+		// Must use the token secret here in order for the cached identity
+		// to be removed properly. Many other tests just resolve some other
+		// random name and it wont matter but this one cannot.
+		authz, err := r.ResolveToken("a1a54629-5050-4d17-8a4e-560d2423f835")
+		require.NoError(t, err)
+		require.NotNil(t, authz)
+		require.True(t, authz.NodeWrite("foo", nil))
+		require.False(t, authz.ACLRead())
+		require.True(t, modified)
+		require.True(t, deleted)
+		require.Equal(t, int32(2), tokenReads)
+		require.Equal(t, int32(2), policyResolves)
+
+		// sleep long enough for the policy cache to expire cache to expire
+		time.Sleep(50 * time.Millisecond)
+
+		// this round the identity will be resolved from the cache
+		// then the policy will be resolved but resolution will return ACL not found
+		// resolution will stop with the not found error (even though we still have the
+		// policies within the cache)
+		authz, err = r.ResolveToken("a1a54629-5050-4d17-8a4e-560d2423f835")
+		require.EqualError(t, err, acl.ErrNotFound.Error())
+		require.Nil(t, authz)
+
+		require.True(t, modified)
+		require.True(t, deleted)
+		require.Equal(t, tokenReads, int32(2))
+		require.Equal(t, policyResolves, int32(3))
 	})
 }
 
