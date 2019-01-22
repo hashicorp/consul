@@ -870,21 +870,32 @@ func (a *ACL) PolicyResolve(args *structs.ACLPolicyBatchGetRequest, reply *struc
 	}
 
 	// get full list of policies for this token
-	policies, err := a.srv.acls.resolveTokenToPolicies(args.Token)
+	identity, policies, err := a.srv.acls.resolveTokenToIdentityAndPolicies(args.Token)
 	if err != nil {
 		return err
 	}
 
 	idMap := make(map[string]*structs.ACLPolicy)
+	for _, policyID := range identity.PolicyIDs() {
+		idMap[policyID] = nil
+	}
 	for _, policy := range policies {
 		idMap[policy.ID] = policy
 	}
 
 	for _, policyID := range args.PolicyIDs {
 		if policy, ok := idMap[policyID]; ok {
-			reply.Policies = append(reply.Policies, policy)
+			// only add non-deleted policies
+			if policy != nil {
+				reply.Policies = append(reply.Policies, policy)
+			}
+		} else {
+			// send a permission denied to indicate that the request included
+			// policy ids not associated with this token
+			return acl.ErrPermissionDenied
 		}
 	}
+
 	a.srv.setQueryMeta(&reply.QueryMeta)
 
 	return nil
