@@ -758,7 +758,7 @@ func TestACLResolver_Client(t *testing.T) {
 		require.Equal(t, int32(2), tokenReads)
 		require.Equal(t, int32(2), policyResolves)
 
-		// sleep long enough for the policy cache to expire cache to expire
+		// sleep long enough for the policy cache to expire
 		time.Sleep(50 * time.Millisecond)
 
 		// this round the identity will be resolved from the cache
