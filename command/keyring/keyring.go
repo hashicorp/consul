@@ -154,6 +154,11 @@ func (c *cmd) handleList(responses []*consulapi.KeyringResponse) {
 
 		c.UI.Output("")
 		c.UI.Output(pool + ":")
+
+		for from, msg := range response.Messages {
+			c.UI.Output(fmt.Sprintf("  ===> %s: %s", from, msg))
+		}
+
 		for key, num := range response.Keys {
 			c.UI.Output(fmt.Sprintf("  %s [%d/%d]", key, num, response.NumNodes))
 		}
