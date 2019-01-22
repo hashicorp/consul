@@ -18,6 +18,7 @@ import (
 	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	"github.com/mitchellh/mapstructure"
@@ -335,6 +336,11 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 			return ok
 		}
 
+		isTooManyRequests := func(err error) bool {
+			// Sadness net/rpc can't do nice typed errors so this is all we got
+			return err.Error() == consul.ErrRateLimited.Error()
+		}
+
 		addAllowHeader := func(methods []string) {
 			resp.Header().Add("Allow", strings.Join(methods, ","))
 		}
@@ -357,6 +363,9 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 				fmt.Fprint(resp, err.Error())
 			case isBadRequest(err):
 				resp.WriteHeader(http.StatusBadRequest)
+				fmt.Fprint(resp, err.Error())
+			case isTooManyRequests(err):
+				resp.WriteHeader(http.StatusTooManyRequests)
 				fmt.Fprint(resp, err.Error())
 			default:
 				resp.WriteHeader(http.StatusInternalServerError)

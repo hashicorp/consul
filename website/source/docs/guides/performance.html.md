@@ -79,9 +79,21 @@ So a scaling factor of `5` (i.e. `raft_multiplier: 5`) updates the following val
 
 ~> **NOTE** Wide networks with more latency will perform better with larger values of `raft_multiplier`.
 
-The trade off is between leader stability and time to recover from an actual leader failure. A short multiplier minimizes failure detection and election time but may be triggered frequently in high latency situations. This can cause constant leadership churn and associated unavailability. A high multiplier reduces the chances that spurious failures will cause leadership churn but it does this at the expense of taking longer to detect real failures and thus takes longer to restore cluster availability.
+The trade off is between leader stability and time to recover from an actual
+leader failure. A short multiplier minimizes failure detection and election time
+but may be triggered frequently in high latency situations. This can cause
+constant leadership churn and associated unavailability. A high multiplier
+reduces the chances that spurious failures will cause leadership churn but it
+does this at the expense of taking longer to detect real failures and thus takes
+longer to restore cluster availability.
 
-Leadership instability can also be caused by under-provisioned CPU resources and is more likely in environments where CPU cycles are shared with other workloads. In order for a server to remain the leader, it must send frequent heartbeat messages to all other servers every few hundred milliseconds. If some number of these are missing or late due to the leader not having sufficient CPU to send them on time, the other servers will detect it as failed and hold a new election.
+Leadership instability can also be caused by under-provisioned CPU resources and
+is more likely in environments where CPU cycles are shared with other workloads.
+In order for a server to remain the leader, it must send frequent heartbeat
+messages to all other servers every few hundred milliseconds. If some number of
+these are missing or late due to the leader not having sufficient CPU to send
+them on time, the other servers will detect it as failed and hold a new
+election.
 
 It's best to benchmark with a realistic workload when choosing a production server for Consul.
 Here are some general recommendations:
@@ -159,3 +171,45 @@ To prevent any CPU spikes from a misconfigured client, RPC requests to the serve
 ~> **NOTE** Rate limiting is configured on the client agent only.
 
 In addition, two [performance indicators](/docs/agent/telemetry.html) &mdash; `consul.runtime.alloc_bytes` and `consul.runtime.heap_objects` &mdash; can help diagnose if the current sizing is not adequately meeting the load.
+
+## Connect Certificate Signing CPU Limits
+
+If you enable [Connect](/docs/connect/index.html), the leader server will need
+to perform public key signing operations for every service instance in the
+cluster. Typically these operations are fast on modern hardware, however when
+the CA is changed or it's key rotated, the leader will face an influx of
+requests for new certificates for every service instance running.
+
+While the client agents distribute these randomly over 30 seconds to avoid an
+immediate thundering herd, they don't have enough information to tune that
+period based on the number of certificates in use in the cluster so picking
+longer smearing results in artificially slow rotations for small clusters.
+
+Smearing requests over 30s is sufficient to bring RPC load to a reasonable level
+in all but the very largest clusters, but the extra CPU load from cryptographic
+operations could impact the server's normal work. To limit that, Consul since
+1.4.1 exposes two ways to limit the impact Certificate signing has on the leader
+[`csr_max_per_second`](/docs/agent/options.html#ca_csr_max_per_second) and
+[`csr_max_concurrent`](/docs/agent/options.html#ca_csr_max_concurrent).
+
+By default we set a limit of 50 per second which is reasonable on modest
+hardware but may be too low and impact rotation times if more than 1500 service
+instances are using Connect in the cluster. `csr_max_per_second` is likely best
+if you have fewer than four cores available since a whole core being used by
+signing is likely to impact the server stability if it's all or a large portion
+of the cores available. The downside is that you need to capacity plan: how many
+service instances will need Connect certificates? What CSR rate can your server
+tolerate without impacting stability? How fast do you want CA rotations to
+process?
+
+For larger production deployments, we generally recommend multiple CPU cores for
+servers to handle the normal workload. With four or more cores available, it's
+simpler to limit signing CPU impact with `csr_max_concurrent` rather than tune
+the rate limit. This effectively sets how many CPU cores can be monopolized by
+certificate signing work (although it doesn't pin that work to specific cores).
+In this case `csr_max_per_second` should be disabled (set to `0`).
+
+For example if you have an 8 core server, setting `csr_max_concurrent` to `1`
+would allow you to process CSRs as fast as a single core can (which is likely
+sufficient for the very large clusters), without consuming all available
+CPU cores and impacting normal server work or stability.

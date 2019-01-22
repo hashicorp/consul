@@ -26,7 +26,8 @@ type Type interface {
 	// Consul so this allows cache types to be implemented with no extra logic.
 	// Second, FetchResult can return an unset value and index. In this case, the
 	// cache will reuse the last value automatically. If an unset Value is
-	// returned, the State field will also be ignored currently.
+	// returned, the State field will still be updated which allows maintaining
+	// metadata even when there is no result.
 	Fetch(FetchOptions, Request) (FetchResult, error)
 
 	// SupportsBlocking should return true if the type supports blocking queries.

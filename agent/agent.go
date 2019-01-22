@@ -1084,15 +1084,12 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 
 		if a.config.ConnectCAProvider != "" {
 			base.CAConfig.Provider = a.config.ConnectCAProvider
+		}
 
-			// Merge with the default config if it's the consul provider.
-			if a.config.ConnectCAProvider == "consul" {
-				for k, v := range a.config.ConnectCAConfig {
-					base.CAConfig.Config[k] = v
-				}
-			} else {
-				base.CAConfig.Config = a.config.ConnectCAConfig
-			}
+		// Merge connect CA Config regardless of provider (since there are some
+		// common config options valid to all like leaf TTL).
+		for k, v := range a.config.ConnectCAConfig {
+			base.CAConfig.Config[k] = v
 		}
 	}
 

@@ -576,7 +576,9 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 			"tls_skip_verify":       "TLSSkipVerify",
 
 			// Common CA config
-			"leaf_cert_ttl": "LeafCertTTL",
+			"leaf_cert_ttl":      "LeafCertTTL",
+			"csr_max_per_second": "CSRMaxPerSecond",
+			"csr_max_concurrent": "CSRMaxConcurrent",
 		})
 	}
 

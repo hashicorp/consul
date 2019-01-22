@@ -501,6 +501,15 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool, attempt uint) (<-
 
 			// This is a valid entry with a result
 			newEntry.Valid = true
+		} else if result.State != nil && err == nil {
+			// Also set state if it's non-nil but Value is nil. This is important in the
+			// case we are returning nil due to a timeout or a transient error like rate
+			// limiting that we want to mask from the user - there is no result yet but
+			// we want to manage retrying internally before we return an error to user.
+			// The retrying state is in State so we need to still update that in the
+			// entry even if we don't have an actual result yet (e.g. hit a rate limit
+			// on first request for a leaf certificate).
+			newEntry.State = result.State
 		}
 
 		// Error handling

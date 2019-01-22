@@ -174,7 +174,6 @@ func (s *Store) caSetConfigTxn(idx uint64, tx *memdb.Txn, config *structs.CAConf
 	if err != nil {
 		return fmt.Errorf("failed CA config lookup: %s", err)
 	}
-
 	// Set the indexes, prevent the cluster ID from changing.
 	if prev != nil {
 		existing := prev.(*structs.CAConfiguration)
