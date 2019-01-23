@@ -113,7 +113,10 @@ type ACLIdentity interface {
 	SecretToken() string
 	PolicyIDs() []string
 	EmbeddedPolicy() *ACLPolicy
+	IsExpired(asOf time.Time) bool
 }
+
+var _ ACLIdentity = (*ACLToken)(nil)
 
 type ACLTokenPolicyLink struct {
 	ID   string
@@ -149,6 +152,19 @@ type ACLToken struct {
 	// Whether this token is DC local. This means that it will not be synced
 	// to the ACL datacenter and replicated to others.
 	Local bool
+
+	// ExpirationTime represents the point after which a token should be
+	// considered revoked and is eligible for destruction. The zero value
+	// represents NO expiration.
+	ExpirationTime time.Time `json:",omitempty"`
+
+	// ExpirationTTL is a convenience field for helping set ExpirationTime to a
+	// value of CreateTime+ExpirationTTL. This can only be set during
+	// TokenCreate and is cleared and used to initialize the ExpirationTime
+	// field before being persisted to the state store or raft log.
+	//
+	// This is a string version of a time.Duration like "2m".
+	ExpirationTTL string `json:",omitempty"`
 
 	// The time when this token was created
 	CreateTime time.Time `json:",omitempty"`
@@ -189,6 +205,20 @@ func (t *ACLToken) PolicyIDs() []string {
 		ids = append(ids, link.ID)
 	}
 	return ids
+}
+
+func (t *ACLToken) IsExpired(asOf time.Time) bool {
+	if asOf.IsZero() || t.ExpirationTime.IsZero() {
+		return false
+	}
+	return t.ExpirationTime.Before(asOf)
+}
+
+func (t *ACLToken) UsesNonLegacyFields() bool {
+	return len(t.Policies) > 0 ||
+		t.Type == "" ||
+		!t.ExpirationTime.IsZero() ||
+		t.ExpirationTTL != ""
 }
 
 func (t *ACLToken) EmbeddedPolicy() *ACLPolicy {
@@ -244,6 +274,8 @@ func (t *ACLToken) SetHash(force bool) []byte {
 			hash.Write([]byte(link.ID))
 		}
 
+		// TODO(rb): put the expiration time here?
+
 		// Finalize the hash
 		hashVal := hash.Sum(nil)
 
@@ -254,8 +286,8 @@ func (t *ACLToken) SetHash(force bool) []byte {
 }
 
 func (t *ACLToken) EstimateSize() int {
-	// 33 = 16 (RaftIndex) + 8 (Hash) + 8 (CreateTime) + 1 (Local)
-	size := 33 + len(t.AccessorID) + len(t.SecretID) + len(t.Description) + len(t.Type) + len(t.Rules)
+	// 41 = 16 (RaftIndex) + 8 (Hash) + 8 (ExpirationTime) + 8 (CreateTime) + 1 (Local)
+	size := 41 + len(t.AccessorID) + len(t.SecretID) + len(t.Description) + len(t.Type) + len(t.Rules)
 	for _, link := range t.Policies {
 		size += len(link.ID) + len(link.Name)
 	}
@@ -266,30 +298,32 @@ func (t *ACLToken) EstimateSize() int {
 type ACLTokens []*ACLToken
 
 type ACLTokenListStub struct {
-	AccessorID  string
-	Description string
-	Policies    []ACLTokenPolicyLink
-	Local       bool
-	CreateTime  time.Time `json:",omitempty"`
-	Hash        []byte
-	CreateIndex uint64
-	ModifyIndex uint64
-	Legacy      bool `json:",omitempty"`
+	AccessorID     string
+	Description    string
+	Policies       []ACLTokenPolicyLink
+	Local          bool
+	ExpirationTime time.Time `json:",omitempty"`
+	CreateTime     time.Time `json:",omitempty"`
+	Hash           []byte
+	CreateIndex    uint64
+	ModifyIndex    uint64
+	Legacy         bool `json:",omitempty"`
 }
 
 type ACLTokenListStubs []*ACLTokenListStub
 
 func (token *ACLToken) Stub() *ACLTokenListStub {
 	return &ACLTokenListStub{
-		AccessorID:  token.AccessorID,
-		Description: token.Description,
-		Policies:    token.Policies,
-		Local:       token.Local,
-		CreateTime:  token.CreateTime,
-		Hash:        token.Hash,
-		CreateIndex: token.CreateIndex,
-		ModifyIndex: token.ModifyIndex,
-		Legacy:      token.Rules != "",
+		AccessorID:     token.AccessorID,
+		Description:    token.Description,
+		Policies:       token.Policies,
+		Local:          token.Local,
+		ExpirationTime: token.ExpirationTime,
+		CreateTime:     token.CreateTime,
+		Hash:           token.Hash,
+		CreateIndex:    token.CreateIndex,
+		ModifyIndex:    token.ModifyIndex,
+		Legacy:         token.Rules != "",
 	}
 }
 
@@ -414,7 +448,7 @@ func (p *ACLPolicy) EstimateSize() int {
 	return size
 }
 
-// ACLPolicyListHash returns a consistent hash for a set of policies.
+// HashKey returns a consistent hash for a set of policies.
 func (policies ACLPolicies) HashKey() string {
 	cacheKeyHash, err := blake2b.New256(nil)
 	if err != nil {

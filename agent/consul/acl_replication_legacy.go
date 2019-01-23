@@ -6,7 +6,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/armon/go-metrics"
+	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -143,8 +143,13 @@ func (s *Server) fetchLocalLegacyACLs() (structs.ACLs, error) {
 		return nil, err
 	}
 
+	now := time.Now()
+
 	var acls structs.ACLs
 	for _, token := range local {
+		if token.IsExpired(now) {
+			continue
+		}
 		if acl, err := token.Convert(); err == nil && acl != nil {
 			acls = append(acls, acl)
 		}

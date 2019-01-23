@@ -1,10 +1,12 @@
 package state
 
 import (
+	"encoding/binary"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-memdb"
+	memdb "github.com/hashicorp/go-memdb"
 )
 
 type TokenPoliciesIndex struct {
@@ -58,6 +60,54 @@ func (s *TokenPoliciesIndex) PrefixFromArgs(args ...interface{}) ([]byte, error)
 	return val, nil
 }
 
+type TokenExpirationIndex struct {
+	LocalFilter bool
+}
+
+func (s *TokenExpirationIndex) encodeTime(t time.Time) []byte {
+	val := t.Unix()
+	buf := make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, uint64(val))
+	return buf
+}
+
+func (s *TokenExpirationIndex) FromObject(obj interface{}) (bool, []byte, error) {
+	token, ok := obj.(*structs.ACLToken)
+	if !ok {
+		return false, nil, fmt.Errorf("object is not an ACLToken")
+	}
+	if s.LocalFilter != token.Local {
+		return false, nil, nil
+	}
+	if token.ExpirationTime.IsZero() {
+		return false, nil, nil
+	}
+	if token.ExpirationTime.Unix() < 0 {
+		return false, nil, fmt.Errorf("token expiration time cannot be before the unix epoch: %s", token.ExpirationTime)
+	}
+
+	buf := s.encodeTime(token.ExpirationTime)
+
+	return true, buf, nil
+}
+
+func (s *TokenExpirationIndex) FromArgs(args ...interface{}) ([]byte, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("must provide only a single argument")
+	}
+	arg, ok := args[0].(time.Time)
+	if !ok {
+		return nil, fmt.Errorf("argument must be a time.Time: %#v", args[0])
+	}
+	if arg.Unix() < 0 {
+		return nil, fmt.Errorf("argument must be a time.Time after the unix epoch: %s", args[0])
+	}
+
+	buf := s.encodeTime(arg)
+
+	return buf, nil
+}
+
 func tokensTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: "acl-tokens",
@@ -99,6 +149,18 @@ func tokensTableSchema() *memdb.TableSchema {
 						return false, nil
 					},
 				},
+			},
+			"expires-global": {
+				Name:         "expires-global",
+				AllowMissing: true,
+				Unique:       false,
+				Indexer:      &TokenExpirationIndex{LocalFilter: false},
+			},
+			"expires-local": {
+				Name:         "expires-local",
+				AllowMissing: true,
+				Unique:       false,
+				Indexer:      &TokenExpirationIndex{LocalFilter: true},
 			},
 
 			//DEPRECATED (ACL-Legacy-Compat) - This index is only needed while we support upgrading v1 to v2 acls
@@ -340,6 +402,8 @@ func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToke
 		original = existing.(*structs.ACLToken)
 	}
 
+	// TODO(rb): put some expiration time validation here
+
 	if cas {
 		// set-if-unset case
 		if token.ModifyIndex == 0 && original != nil {
@@ -356,7 +420,7 @@ func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToke
 	}
 
 	if legacy && original != nil {
-		if len(original.Policies) > 0 || original.Type == "" {
+		if original.UsesNonLegacyFields() {
 			return fmt.Errorf("failed inserting acl token: cannot use legacy endpoint to modify a non-legacy token")
 		}
 
@@ -534,6 +598,63 @@ func (s *Store) ACLTokenListUpgradeable(max int) (structs.ACLTokens, <-chan stru
 	}
 
 	return tokens, iter.WatchCh(), nil
+}
+
+func (s *Store) ACLTokenMinExpirationTime(local bool) (time.Time, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	item, err := tx.First("acl-tokens", s.expiresIndexName(local))
+	if err != nil {
+		return time.Time{}, fmt.Errorf("failed acl token listing: %v", err)
+	}
+
+	if item == nil {
+		return time.Time{}, nil
+	}
+
+	token := item.(*structs.ACLToken)
+
+	return token.ExpirationTime, nil
+}
+
+// ACLTokenListExpires lists tokens that are expires as of the provided time.
+// The returned set will be no larger than the max value provided.
+func (s *Store) ACLTokenListExpired(local bool, asOf time.Time, max int) (structs.ACLTokens, <-chan struct{}, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	iter, err := tx.Get("acl-tokens", s.expiresIndexName(local))
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed acl token listing: %v", err)
+	}
+
+	var (
+		tokens structs.ACLTokens
+		i      int
+	)
+	for raw := iter.Next(); raw != nil; raw = iter.Next() {
+		token := raw.(*structs.ACLToken)
+
+		if !token.ExpirationTime.Before(asOf) {
+			return tokens, nil, nil
+		}
+
+		tokens = append(tokens, token)
+		i += 1
+		if i >= max {
+			return tokens, nil, nil
+		}
+	}
+
+	return tokens, iter.WatchCh(), nil
+}
+
+func (s *Store) expiresIndexName(local bool) string {
+	if local {
+		return "expires-local"
+	}
+	return "expires-global"
 }
 
 // ACLTokenDeleteBySecret is used to remove an existing ACL from the state store. If

@@ -19,11 +19,11 @@ import (
 func parseCloneOutput(t *testing.T, output string) *api.ACLToken {
 	// This will only work for non-legacy tokens
 	re := regexp.MustCompile("Token cloned successfully.\n" +
-		"AccessorID:   ([a-zA-Z0-9\\-]{36})\n" +
-		"SecretID:     ([a-zA-Z0-9\\-]{36})\n" +
-		"Description:  ([^\n]*)\n" +
-		"Local:        (true|false)\n" +
-		"Create Time:  ([^\n]+)\n" +
+		"AccessorID:       ([a-zA-Z0-9\\-]{36})\n" +
+		"SecretID:         ([a-zA-Z0-9\\-]{36})\n" +
+		"Description:      ([^\n]*)\n" +
+		"Local:            (true|false)\n" +
+		"Create Time:      ([^\n]+)\n" +
 		"Policies:\n" +
 		"(   [a-zA-Z0-9\\-]{36} - [^\n]+\n)*")
 

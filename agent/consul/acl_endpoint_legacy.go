@@ -93,8 +93,9 @@ func aclApplyInternal(srv *Server, args *structs.ACLRequest, reply *string) erro
 			return fmt.Errorf("Invalid ACL Type")
 		}
 
+		// No need to check expiration times as those did not exist in legacy tokens.
 		_, existing, _ := srv.fsm.State().ACLTokenGetBySecret(nil, args.ACL.ID)
-		if existing != nil && len(existing.Policies) > 0 {
+		if existing != nil && existing.UsesNonLegacyFields() {
 			return fmt.Errorf("Cannot use legacy endpoint to modify a non-legacy token")
 		}
 
@@ -210,8 +211,13 @@ func (a *ACL) Get(args *structs.ACLSpecificRequest,
 				return err
 			}
 
-			// converting an ACLToken to an ACL will return nil and an error
+			// Converting an ACLToken to an ACL will return nil and an error
 			// (which we ignore) when it is unconvertible.
+			//
+			// This also means we won't have to check expiration times since
+			// any legacy tokens never had expiration times and no non-legacy
+			// tokens can be converted.
+
 			var acl *structs.ACL
 			if token != nil {
 				acl, _ = token.Convert()
@@ -254,8 +260,13 @@ func (a *ACL) List(args *structs.DCSpecificRequest,
 				return err
 			}
 
+			now := time.Now()
+
 			var acls structs.ACLs
 			for _, token := range tokens {
+				if token.IsExpired(now) {
+					continue
+				}
 				if acl, err := token.Convert(); err == nil && acl != nil {
 					acls = append(acls, acl)
 				}

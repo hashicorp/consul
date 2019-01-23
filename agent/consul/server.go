@@ -109,6 +109,12 @@ type Server struct {
 	aclReplicationLock    sync.RWMutex
 	aclReplicationEnabled bool
 
+	// aclTokenReapCancel is used to shut down the ACL Token expiration reap
+	// goroutine when we lose leadership.
+	aclTokenReapCancel  context.CancelFunc
+	aclTokenReapLock    sync.RWMutex
+	aclTokenReapEnabled bool
+
 	// DEPRECATED (ACL-Legacy-Compat) - only needed while we support both
 	// useNewACLs is used to determine whether we can use new ACLs or not
 	useNewACLs int32
@@ -235,6 +241,10 @@ type Server struct {
 	// tombstoneGC is used to track the pending GC invocations
 	// for the KV tombstones
 	tombstoneGC *state.TombstoneGC
+
+	// endpointMap retains a reference to all registered rpc endpoint handlers
+	// for use in tests where the RPC interface is insufficient. DO NOT USE outside of tests.
+	endpointMap map[string]interface{}
 
 	// aclReplicationStatus (and its associated lock) provide information
 	// about the health of the ACL replication goroutine.
@@ -671,8 +681,15 @@ func registerEndpoint(fn factory) {
 
 // setupRPC is used to setup the RPC listener
 func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
+	s.endpointMap = make(map[string]interface{})
+
 	for _, fn := range endpoints {
-		s.rpcServer.Register(fn(s))
+		endpoint := fn(s)
+		s.rpcServer.Register(endpoint)
+
+		// This is the same logic that net/rpc uses to get the name:
+		endpointName := reflect.Indirect(reflect.ValueOf(endpoint)).Type().Name()
+		s.endpointMap[endpointName] = endpoint
 	}
 
 	ln, err := net.ListenTCP("tcp", s.config.RPCAddr)
@@ -1052,6 +1069,14 @@ func (s *Server) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 func (s *Server) RegisterEndpoint(name string, handler interface{}) error {
 	s.logger.Printf("[WARN] consul: endpoint injected; this should only be used for testing")
 	return s.rpcServer.RegisterName(name, handler)
+}
+
+// GetEndpoint returns a registered endpoint for testing.
+func (s *Server) GetEndpoint(name string) interface{} {
+	if s.endpointMap == nil {
+		return nil
+	}
+	return s.endpointMap[name]
 }
 
 // Stats is used to return statistics for debugging and insight

@@ -3,6 +3,7 @@ package tokencreate
 import (
 	"flag"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/acl"
@@ -22,11 +23,12 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
-	policyIDs   []string
-	policyNames []string
-	description string
-	local       bool
-	showMeta    bool
+	policyIDs     []string
+	policyNames   []string
+	expirationTTL time.Duration
+	description   string
+	local         bool
+	showMeta      bool
 }
 
 func (c *cmd) init() {
@@ -39,6 +41,8 @@ func (c *cmd) init() {
 		"policy to use for this token. May be specified multiple times")
 	c.flags.Var((*flags.AppendSliceValue)(&c.policyNames), "policy-name", "Name of a "+
 		"policy to use for this token. May be specified multiple times")
+	c.flags.DurationVar(&c.expirationTTL, "expires-ttl", 0, "Duration of time this "+
+		"token should be valid for")
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
@@ -64,6 +68,9 @@ func (c *cmd) Run(args []string) int {
 	newToken := &api.ACLToken{
 		Description: c.description,
 		Local:       c.local,
+	}
+	if c.expirationTTL > 0 {
+		newToken.ExpirationTTL = c.expirationTTL.String()
 	}
 
 	for _, policyName := range c.policyNames {
@@ -109,7 +116,7 @@ Usage: consul acl token create [options]
 
   Create a new token:
 
-          $ consul acl token create -description "Replication token"
-                                            -policy-id b52fc3de-5
-                                            -policy-name "acl-replication"
+          $ consul acl token create -description "Replication token" \
+                                    -policy-id b52fc3de-5 \
+                                    -policy-name "acl-replication"
 `

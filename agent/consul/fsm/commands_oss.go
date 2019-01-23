@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/armon/go-metrics"
+	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 )
@@ -164,6 +164,7 @@ func (c *FSM) applyACLOperation(buf []byte, index uint64) interface{} {
 			return err
 		}
 
+		// No need to check expiration times as those did not exist in legacy tokens.
 		if _, token, err := c.state.ACLTokenGetBySecret(nil, req.ACL.ID); err != nil {
 			return err
 		} else {

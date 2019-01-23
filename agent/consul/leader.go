@@ -10,7 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/armon/go-metrics"
+	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	ca "github.com/hashicorp/consul/agent/connect/ca"
@@ -22,7 +22,7 @@ import (
 	"github.com/hashicorp/consul/types"
 	memdb "github.com/hashicorp/go-memdb"
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/go-version"
+	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
@@ -40,6 +40,9 @@ var (
 	// minAutopilotVersion is the minimum Consul version in which Autopilot features
 	// are supported.
 	minAutopilotVersion = version.Must(version.NewVersion("0.8.0"))
+
+	// TODO(rb): make this configurable?
+	aclTokenReapInterval = 2 * time.Minute
 )
 
 // monitorLeadership is used to monitor if we acquire or lose our role
@@ -241,6 +244,8 @@ func (s *Server) establishLeadership() error {
 		return err
 	}
 
+	s.startACLTokenReaping()
+
 	// Hint the tombstone expiration timer. When we freshly establish leadership
 	// we become the authoritative timer, and so we need to start the clock
 	// on any pending GC events.
@@ -295,6 +300,8 @@ func (s *Server) revokeLeadership() error {
 
 	s.setCAProvider(nil, nil)
 
+	s.stopACLTokenReaping()
+
 	s.stopACLUpgrade()
 
 	s.resetConsistentReadReady()
@@ -316,6 +323,7 @@ func (s *Server) initializeLegacyACL() error {
 	if err != nil {
 		return fmt.Errorf("failed to get anonymous token: %v", err)
 	}
+	// Ignoring expiration times to avoid an insertion collision.
 	if token == nil {
 		req := structs.ACLRequest{
 			Datacenter: authDC,
@@ -339,6 +347,7 @@ func (s *Server) initializeLegacyACL() error {
 		if err != nil {
 			return fmt.Errorf("failed to get master token: %v", err)
 		}
+		// Ignoring expiration times to avoid an insertion collision.
 		if token == nil {
 			req := structs.ACLRequest{
 				Datacenter: authDC,
@@ -454,6 +463,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 			if err != nil {
 				return fmt.Errorf("failed to get master token: %v", err)
 			}
+			// Ignoring expiration times to avoid an insertion collision.
 			if token == nil {
 				accessor, err := lib.GenerateUUID(s.checkTokenUUID)
 				if err != nil {
@@ -515,6 +525,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 		if err != nil {
 			return fmt.Errorf("failed to get anonymous token: %v", err)
 		}
+		// Ignoring expiration times to avoid an insertion collision.
 		if token == nil {
 			// DEPRECATED (ACL-Legacy-Compat) - Don't need to query for previous "anonymous" token
 			// check for legacy token that needs an upgrade
@@ -522,6 +533,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 			if err != nil {
 				return fmt.Errorf("failed to get anonymous token: %v", err)
 			}
+			// Ignoring expiration times to avoid an insertion collision.
 
 			// the token upgrade routine will take care of upgrading the token if a legacy version exists
 			if legacyToken == nil {
@@ -589,6 +601,7 @@ func (s *Server) startACLUpgrade() {
 			if err != nil {
 				s.logger.Printf("[WARN] acl: encountered an error while searching for tokens without accessor ids: %v", err)
 			}
+			// No need to check expiration time here, as that only exists for v2 tokens.
 
 			if len(tokens) == 0 {
 				ws := memdb.NewWatchSet()
@@ -769,10 +782,10 @@ func (s *Server) startACLReplication() {
 
 	if s.config.ACLTokenReplication {
 		replicationType = structs.ACLReplicateTokens
-
 		go func() {
 			var failedAttempts uint
 			limiter := rate.NewLimiter(rate.Limit(s.config.ACLReplicationRate), s.config.ACLReplicationBurst)
+
 			var lastRemoteIndex uint64
 			for {
 				if err := limiter.Wait(ctx); err != nil {
@@ -831,6 +844,56 @@ func (s *Server) stopACLReplication() {
 	s.aclReplicationCancel = nil
 	s.updateACLReplicationStatusStopped()
 	s.aclReplicationEnabled = false
+}
+
+func (s *Server) startACLTokenReaping() {
+	s.aclTokenReapLock.Lock()
+	defer s.aclTokenReapLock.Unlock()
+
+	if s.aclTokenReapEnabled {
+		return
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	s.aclTokenReapCancel = cancel
+
+	go func() {
+		ticker := time.NewTicker(aclTokenReapInterval)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				if s.LocalTokensEnabled() {
+					if _, err := s.reapExpiredACLTokens(true, false, time.Now); err != nil {
+						s.logger.Printf("[ERR] acl: error reaping expired local ACL tokens: %v", err)
+					}
+				}
+				if s.InACLDatacenter() {
+					if _, err := s.reapExpiredACLTokens(false, true, time.Now); err != nil {
+						s.logger.Printf("[ERR] acl: error reaping expired global ACL tokens: %v", err)
+					}
+				}
+			}
+		}
+	}()
+
+	s.aclTokenReapEnabled = true
+}
+
+func (s *Server) stopACLTokenReaping() {
+	s.aclTokenReapLock.Lock()
+	defer s.aclTokenReapLock.Unlock()
+
+	if !s.aclTokenReapEnabled {
+		return
+	}
+
+	s.aclTokenReapCancel()
+	s.aclTokenReapCancel = nil
+	s.aclTokenReapEnabled = false
 }
 
 // getOrCreateAutopilotConfig is used to get the autopilot config, initializing it if necessary

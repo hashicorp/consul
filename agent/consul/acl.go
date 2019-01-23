@@ -745,6 +745,8 @@ func (r *ACLResolver) resolveTokenToIdentityAndPolicies(token string) (structs.A
 			return nil, nil, err
 		} else if identity == nil {
 			return nil, nil, acl.ErrNotFound
+		} else if identity.IsExpired(time.Now()) {
+			return nil, nil, acl.ErrNotFound
 		}
 
 		lastIdentity = identity
