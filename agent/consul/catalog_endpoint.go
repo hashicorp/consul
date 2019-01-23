@@ -1,18 +1,20 @@
 package consul
 
 import (
+	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
-	"github.com/armon/go-metrics"
+	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/go-uuid"
+	memdb "github.com/hashicorp/go-memdb"
+	uuid "github.com/hashicorp/go-uuid"
 )
 
 // Catalog endpoint is used to manipulate the service catalog
@@ -69,15 +71,33 @@ func servicePreApply(service *structs.NodeService, rule acl.Authorizer) error {
 		}
 	}
 
-	// Proxies must have write permission on their destination
 	if service.Kind == structs.ServiceKindConnectProxy {
+		// When the restricted suffix is used the remainder of the service name
+		// when the suffix is removed should be an exact match for the proxy
+		// destination.
+		if strings.HasSuffix(service.Service, "-sidecar-proxy") &&
+			service.Service != service.Proxy.DestinationServiceName+"-sidecar-proxy" {
+			return errors.New(errSidecarDoesNotMatchDestination)
+		}
+
+		// Proxies must have write permission on their destination
 		if rule != nil && !rule.ServiceWrite(service.Proxy.DestinationServiceName, nil) {
 			return acl.ErrPermissionDenied
+		}
+	} else {
+		// Only connect proxies are allowed to use a service name suffix of '-sidecar-proxy'.
+		if strings.HasSuffix(service.Service, "-sidecar-proxy") {
+			return errors.New(errSidecarProxySuffixIsReserved)
 		}
 	}
 
 	return nil
 }
+
+const (
+	errSidecarDoesNotMatchDestination = "sidecar proxy name does not match destination"
+	errSidecarProxySuffixIsReserved   = "sidecar proxy service suffix is reserved for use by connect proxies only"
+)
 
 // checkPreApply does the verification of a check before it is applied to Raft.
 func checkPreApply(check *structs.HealthCheck) {

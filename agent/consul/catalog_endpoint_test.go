@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -48,6 +48,36 @@ func TestCatalog_Register(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+}
+
+func TestCatalog_Register_IncorrectlyUsingReservedName(t *testing.T) {
+	require := require.New(t)
+
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	arg := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "definitelynota-sidecar-proxy",
+			Tags:    []string{"master"},
+			Port:    8000,
+		},
+		Check: &structs.HealthCheck{
+			CheckID:   types.CheckID("definitelynota-check"),
+			ServiceID: "definitelynota-sidecar-proxy",
+		},
+	}
+	var out struct{}
+
+	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
+	require.NotNil(err)
+	require.Contains(err.Error(), errSidecarProxySuffixIsReserved)
 }
 
 func TestCatalog_RegisterService_InvalidAddress(t *testing.T) {
@@ -361,6 +391,59 @@ func TestCatalog_Register_ConnectProxy(t *testing.T) {
 	v := resp.ServiceNodes[0]
 	assert.Equal(structs.ServiceKindConnectProxy, v.ServiceKind)
 	assert.Equal(args.Service.Proxy.DestinationServiceName, v.ServiceProxy.DestinationServiceName)
+}
+
+func TestCatalog_Register_ConnectProxy_CorrectlyUsingReservedName(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	args := structs.TestRegisterRequestProxy(t)
+	args.Service.Service = "web-sidecar-proxy"
+	args.Service.Proxy.DestinationServiceName = "web"
+
+	// Register
+	var out struct{}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+	// List
+	req := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: args.Service.Service,
+	}
+	var resp structs.IndexedServiceNodes
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	assert.Len(resp.ServiceNodes, 1)
+	v := resp.ServiceNodes[0]
+	assert.Equal(structs.ServiceKindConnectProxy, v.ServiceKind)
+	assert.Equal(args.Service.Proxy.DestinationServiceName, v.ServiceProxy.DestinationServiceName)
+}
+
+func TestCatalog_Register_ConnectProxy_IncorrectlyUsingReservedName(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	args := structs.TestRegisterRequestProxy(t)
+	args.Service.Kind = structs.ServiceKindConnectProxy
+	args.Service.Service = "web-sidecar-proxy"
+	args.Service.Proxy.DestinationServiceName = "definitelynotweb"
+
+	// Register
+	var out struct{}
+	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out)
+	require.NotNil(err)
+	require.Contains(err.Error(), errSidecarDoesNotMatchDestination)
 }
 
 // DEPRECATED (ProxyDestination) - remove this whole test case when removing
