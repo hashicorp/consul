@@ -83,7 +83,7 @@ and consider if they're appropriate for your deployment.
 
   - <a name="v-global-domain" href="#v-global-domain">`domain`</a> (`string: "consul"`) -
   The domain Consul uses for DNS queries. This is used to configure agents both
-  for DNS listening but also to know what domain to join to join the cluster.
+  for DNS listening but also to know what domain to join the cluster.
   This should be consistent throughout the chart, but can be overridden
   per-component as well.
 
