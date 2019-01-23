@@ -25,6 +25,7 @@ BUG FIXES:
 
 * acl: Fixed a concurrent policy resolution issue that would fail to resolve policies for a token [[GH-5219](https://github.com/hashicorp/consul/issues/5219)]
 * acl: Fixed a few racey edge cases regarding policy resolution where the RPC request could error out due to the token used for the request being deleted or modified after the token was read but before policy resolution. [[GH-5246](https://github.com/hashicorp/consul/pull/5246)]
+* acl: Fixed a bug that would cause legacy ACL tokens of type management to not get full privileges when they also had rules set on them. [[GH-5261](https://github.com/hashicorp/consul/pull/5261)]
 * agent: Prevent health check status flapping during check re-registration. [[GH-4904](https://github.com/hashicorp/consul/pull/4904)]
 * agent: Consul 1.2.3 added DNS weights but this caused an issue with agent Anti-Entropy that didn't set the same default and so performed a re-sync every 2 minutes despite no changes. [[GH-5096](https://github.com/hashicorp/consul/pull/5096)]
 * agent: Fix an anti-entropy state syncing issue where an invalid token being used for registration of 1 service could cause a failure to register a different service with a valid token. [[GH-3676](https://github.com/hashicorp/consul/issues/3676)]
