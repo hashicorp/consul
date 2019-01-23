@@ -313,6 +313,16 @@ type Config struct {
 	// Minimum Session TTL
 	SessionTTLMin time.Duration
 
+	// maxTokenExpirationDuration is the maximum difference allowed between
+	// ACLToken CreateTime and ExpirationTime values if ExpirationTime is set
+	// on a token.
+	ACLTokenMaxExpirationTTL time.Duration
+
+	// ACLTokenMinExpirationTTL is the minimum difference allowed between
+	// ACLToken CreateTime and ExpirationTime values if ExpirationTime is set
+	// on a token.
+	ACLTokenMinExpirationTTL time.Duration
+
 	// ServerUp callback can be used to trigger a notification that
 	// a Consul server is now up and known about.
 	ServerUp func()
@@ -452,6 +462,8 @@ func DefaultConfig() *Config {
 		TombstoneTTL:             15 * time.Minute,
 		TombstoneTTLGranularity:  30 * time.Second,
 		SessionTTLMin:            10 * time.Second,
+		ACLTokenMinExpirationTTL: 1 * time.Minute,
+		ACLTokenMaxExpirationTTL: 24 * time.Hour,
 
 		// These are tuned to provide a total throughput of 128 updates
 		// per second. If you update these, you should update the client-

@@ -2,6 +2,7 @@ package consul
 
 import (
 	"sync/atomic"
+	"time"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -29,6 +30,11 @@ var serverACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
 
 func (s *Server) checkTokenUUID(id string) (bool, error) {
 	state := s.fsm.State()
+
+	// We won't check expiration times here. If we generate a UUID that matches
+	// a token that hasn't been reaped yet, then we won't be able to insert the
+	// new token due to a collision.
+
 	if _, token, err := state.ACLTokenGetByAccessor(nil, id); err != nil {
 		return false, err
 	} else if token != nil {
@@ -145,7 +151,7 @@ func (s *Server) ResolveIdentityFromToken(token string) (bool, structs.ACLIdenti
 	index, aclToken, err := s.fsm.State().ACLTokenGetBySecret(nil, token)
 	if err != nil {
 		return true, nil, err
-	} else if aclToken != nil {
+	} else if aclToken != nil && !aclToken.IsExpired(time.Now()) {
 		return true, aclToken, nil
 	}
 
