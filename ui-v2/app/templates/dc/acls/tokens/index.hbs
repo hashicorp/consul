@@ -90,7 +90,7 @@
                                     <a data-test-use onclick={{queue (action confirm 'use' item) (action change)}}>Use</a>
                                 </li>
 {{/if}}
-{{#unless (token/is-anonymous item) }}
+{{#unless (or (token/is-anonymous item) (eq item.AccessorID token.AccessorID)) }}
                                 <li>
                                     <a data-test-delete onclick={{action confirm 'delete' item}}>Delete</a>
                                 </li>
@@ -102,9 +102,6 @@
                         <p>
                             {{#if (eq name 'delete')}}
                               {{message}}
-  {{#if (eq item.AccessorID token.AccessorID)}}
-                              Warning: This is the token you are currently using!
-  {{/if}}
                             {{else if (eq name 'logout')}}
                                 Are you sure you want to stop using this ACL token? This will log you out.
                             {{else if (eq name 'use')}}
