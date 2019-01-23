@@ -13,13 +13,6 @@ export default Adapter.extend({
     }
     return this.appendURL(URL_PREFIX_SINGLE, [query.id], this.cleanQuery(query));
   },
-  isQueryRecord: function(url, method) {
-    // services can have slashes in them
-    // so just check for the prefix which is
-    // unique to the url here
-    const parts = url.pathname.split('/');
-    return `${parts[2]}/${parts[3]}` === URL_PREFIX_SINGLE;
-  },
   handleResponse: function(status, headers, payload, requestData) {
     let response = payload;
     const method = requestData.method;

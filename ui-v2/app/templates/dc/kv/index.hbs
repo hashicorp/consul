@@ -46,7 +46,7 @@
             {{/block-slot}}
             {{#block-slot 'row'}}
                 <td data-test-kv="{{item.Key}}" class={{if item.isFolder 'folder' 'file' }}>
-                    <a href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}>{{right-trim (left-trim item.Key parent.Key) '/'}}</a>
+                    <a href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key }}>{{right-trim (left-trim item.Key parent.Key) '/'}}</a>
                 </td>
             {{/block-slot}}
             {{#block-slot 'actions' as |index change checked|}}

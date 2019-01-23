@@ -1,58 +1,98 @@
 import EmberRouter from '@ember/routing/router';
 import config from './config/environment';
+import walk from 'consul-ui/utils/routing/walk';
 
 const Router = EmberRouter.extend({
   location: config.locationType,
   rootURL: config.rootURL,
 });
-Router.map(function() {
+export const routes = {
   // Our parent datacenter resource sets the namespace
   // for the entire application
-  this.route('dc', { path: '/:dc' }, function() {
+  dc: {
+    _options: { path: ':dc' },
     // Services represent a consul service
-    this.route('services', { path: '/services' }, function() {
+    services: {
+      _options: { path: '/services' },
       // Show an individual service
-      this.route('show', { path: '/*name' });
-    });
+      show: {
+        _options: { path: '/:name' },
+      },
+    },
     // Nodes represent a consul node
-    this.route('nodes', { path: '/nodes' }, function() {
+    nodes: {
+      _options: { path: '/nodes' },
       // Show an individual node
-      this.route('show', { path: '/:name' });
-    });
+      show: {
+        _options: { path: '/:name' },
+      },
+    },
     // Intentions represent a consul intention
-    this.route('intentions', { path: '/intentions' }, function() {
-      this.route('edit', { path: '/:id' });
-      this.route('create', { path: '/create' });
-    });
+    intentions: {
+      _options: { path: '/intentions' },
+      edit: {
+        _options: { path: '/:id' },
+      },
+      create: {
+        _options: { path: '/create' },
+      },
+    },
     // Key/Value
-    this.route('kv', { path: '/kv' }, function() {
-      this.route('folder', { path: '/*key' });
-      this.route('edit', { path: '/*key/edit' });
-      this.route('create', { path: '/*key/create' });
-      this.route('root-create', { path: '/create' });
-    });
+    kv: {
+      _options: { path: '/kv' },
+      folder: {
+        _options: { path: '/*key' },
+      },
+      edit: {
+        _options: { path: '/*key/edit' },
+      },
+      create: {
+        _options: { path: '/*key/create' },
+      },
+      'root-create': {
+        _options: { path: '/create' },
+      },
+    },
     // ACLs
-    this.route('acls', { path: '/acls' }, function() {
-      this.route('edit', { path: '/:id' });
-      this.route('create', { path: '/create' });
-      this.route('policies', { path: '/policies' }, function() {
-        this.route('edit', { path: '/:id' });
-        this.route('create', { path: '/create' });
-      });
-      this.route('tokens', { path: '/tokens' }, function() {
-        this.route('edit', { path: '/:id' });
-        this.route('create', { path: '/create' });
-      });
-    });
-  });
-
+    acls: {
+      _options: { path: '/acls' },
+      edit: {
+        _options: { path: '/:id' },
+      },
+      create: {
+        _options: { path: '/create' },
+      },
+      policies: {
+        _options: { path: '/policies' },
+        edit: {
+          _options: { path: '/:id' },
+        },
+        create: {
+          _options: { path: '/create' },
+        },
+      },
+      tokens: {
+        _options: { path: '/tokens' },
+        edit: {
+          _options: { path: '/:id' },
+        },
+        create: {
+          _options: { path: '/create' },
+        },
+      },
+    },
+  },
   // Shows a datacenter picker. If you only have one
   // it just redirects you through.
-  this.route('index', { path: '/' });
-
+  index: {
+    _options: { path: '/' },
+  },
   // The settings page is global.
-  // this.route('settings', { path: '/settings' });
-  this.route('notfound', { path: '/*path' });
-});
-
-export default Router;
+  // settings: {
+  //   _options: { path: '/setting' },
+  // },
+  notfound: {
+    _options: { path: '/*path' },
+  },
+};
+export default Router.map(walk(routes));
