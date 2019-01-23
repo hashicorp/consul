@@ -39,7 +39,6 @@
   },
   "devDependencies": {
     "@babel/core": "^7.2.2",
-    "@babel/node": "^7.2.2",
     "@hashicorp/consul-api-double": "^2.0.1",
     "@hashicorp/ember-cli-api-double": "^1.3.0",
     "babel-plugin-transform-object-rest-spread": "^6.26.0",

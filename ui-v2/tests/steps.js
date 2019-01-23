@@ -1,45 +1,38 @@
-/* eslint no-console: "off" */
-import Inflector from 'ember-inflector';
-import yadda from './helpers/yadda';
-import utils from '@ember/test-helpers';
-import getDictionary from '@hashicorp/ember-cli-api-double/dictionary';
-import pages from 'consul-ui/tests/pages';
-import api from 'consul-ui/tests/helpers/api';
-import steps from './_steps';
+import models from './steps/doubles/model';
+import http from './steps/doubles/http';
+import visit from './steps/interactions/visit';
+import click from './steps/interactions/click';
+import form from './steps/interactions/form';
+import debug from './steps/debug/index';
+import assertHttp from './steps/assertions/http';
+import assertModel from './steps/assertions/model';
+import assertPage from './steps/assertions/page';
+import assertDom from './steps/assertions/dom';
+
 // const dont = `( don't| shouldn't| can't)?`;
-const pluralize = function(str) {
-  return Inflector.inflector.pluralize(str);
-};
-export default function(assert) {
-  const library = yadda.localisation.English.library(
-    getDictionary(function(model, cb) {
-      switch (model) {
-        case 'datacenter':
-        case 'datacenters':
-        case 'dcs':
-          model = 'dc';
-          break;
-        case 'services':
-          model = 'service';
-          break;
-        case 'nodes':
-          model = 'node';
-          break;
-        case 'kvs':
-          model = 'kv';
-          break;
-        case 'acls':
-          model = 'acl';
-          break;
-        case 'sessions':
-          model = 'session';
-          break;
-        case 'intentions':
-          model = 'intention';
-          break;
-      }
-      cb(null, model);
-    }, yadda)
-  );
-  return steps(assert, library, api, pages, utils, pluralize);
+
+export default function(assert, library, pages, utils) {
+  var currentPage;
+  const getCurrentPage = function() {
+    return currentPage;
+  };
+  const setCurrentPage = function(page) {
+    currentPage = page;
+    return page;
+  };
+
+  models(library, utils.create);
+  http(library, utils.respondWith, utils.set);
+  visit(library, pages, setCurrentPage);
+  click(library, utils.click, getCurrentPage);
+  form(library, utils.fillIn, utils.triggerKeyEvent, getCurrentPage);
+  debug(library, assert, utils.currentURL);
+  assertHttp(library, assert, utils.lastNthRequest);
+  assertModel(library, assert, getCurrentPage, utils.pluralize);
+  assertPage(library, assert, getCurrentPage);
+  assertDom(library, assert, utils.find, utils.currentURL);
+
+  return library.given(["I'm using a legacy token"], function(number, model, data) {
+    window.localStorage['consul:token'] = JSON.stringify({ AccessorID: null, SecretID: 'id' });
+  });
 }

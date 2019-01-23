@@ -68,7 +68,7 @@ module.exports = {
       'steps:list': {
         name: 'steps:list',
         run: function(config, args) {
-          const filename = `${process.cwd()}/tests/_steps.js`;
+          const filename = `${process.cwd()}/tests/steps.js`;
           const exports = exec(filename);
           exports.default(function() {}, library, {}, {}, {}, function() {});
         },

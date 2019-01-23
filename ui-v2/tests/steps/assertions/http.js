@@ -1,11 +1,17 @@
-export default function(scenario, assert, api) {
-  const lastRequest = function(method) {
-    return api.server.history
-      .slice(0)
-      .reverse()
-      .find(function(item) {
-        return item.method === method;
-      });
+export default function(scenario, assert, lastNthRequest) {
+  // lastNthRequest should return a
+  // {
+  //   method: '',
+  //   requestBody: '',
+  //   requestHeaders: ''
+  // }
+  const assertRequest = function(request, method, url) {
+    assert.equal(
+      request.method,
+      method,
+      `Expected the request method to be ${method}, was ${request.method}`
+    );
+    assert.equal(request.url, url, `Expected the request url to be ${url}, was ${request.url}`);
   };
   scenario
     .then('a $method request is made to "$url" with the body from yaml\n$yaml', function(
@@ -13,13 +19,8 @@ export default function(scenario, assert, api) {
       url,
       data
     ) {
-      const request = api.server.history[api.server.history.length - 2];
-      assert.equal(
-        request.method,
-        method,
-        `Expected the request method to be ${method}, was ${request.method}`
-      );
-      assert.equal(request.url, url, `Expected the request url to be ${url}, was ${request.url}`);
+      const request = lastNthRequest(1);
+      assertRequest(request, method, url);
       const body = JSON.parse(request.requestBody);
       Object.keys(data).forEach(function(key, i, arr) {
         assert.deepEqual(
@@ -32,13 +33,8 @@ export default function(scenario, assert, api) {
     // TODO: This one can replace the above one, it covers more use cases
     // also DRY it out a bit
     .then('a $method request is made to "$url" from yaml\n$yaml', function(method, url, yaml) {
-      const request = api.server.history[api.server.history.length - 2];
-      assert.equal(
-        request.method,
-        method,
-        `Expected the request method to be ${method}, was ${request.method}`
-      );
-      assert.equal(request.url, url, `Expected the request url to be ${url}, was ${request.url}`);
+      const request = lastNthRequest(1);
+      assertRequest(request, method, url);
       let data = yaml.body || {};
       const body = JSON.parse(request.requestBody);
       Object.keys(data).forEach(function(key, i, arr) {
@@ -59,60 +55,41 @@ export default function(scenario, assert, api) {
       });
     })
     .then('a $method request is made to "$url" with the body "$body"', function(method, url, data) {
-      const request = api.server.history[api.server.history.length - 2];
+      const request = lastNthRequest(1);
+      assertRequest(request, method, url);
       assert.equal(
-        request.method,
-        method,
-        `Expected the request method to be ${method}, was ${request.method}`
+        request.requestBody,
+        data,
+        `Expected the request body to be ${data}, was ${request.requestBody}`
       );
-      assert.equal(request.url, url, `Expected the request url to be ${url}, was ${request.url}`);
-      const body = request.requestBody;
-      assert.equal(body, data, `Expected the request body to be ${data}, was ${body}`);
     })
     .then('a $method request is made to "$url" with no body', function(method, url) {
-      const request = api.server.history[api.server.history.length - 2];
+      const request = lastNthRequest(1);
+      assertRequest(request, method, url);
       assert.equal(
-        request.method,
-        method,
-        `Expected the request method to be ${method}, was ${request.method}`
+        request.requestBody,
+        null,
+        `Expected the request body to be null, was ${request.requestBody}`
       );
-      assert.equal(request.url, url, `Expected the request url to be ${url}, was ${request.url}`);
-      const body = request.requestBody;
-      assert.equal(body, null, `Expected the request body to be null, was ${body}`);
     })
 
     .then('a $method request is made to "$url"', function(method, url) {
-      const request = api.server.history[api.server.history.length - 2];
-      assert.equal(
-        request.method,
-        method,
-        `Expected the request method to be ${method}, was ${request.method}`
-      );
-      assert.equal(request.url, url, `Expected the request url to be ${url}, was ${request.url}`);
+      const request = lastNthRequest(1);
+      assertRequest(request, method, url);
     })
     .then('the last $method request was made to "$url"', function(method, url) {
-      const request = lastRequest(method);
-      assert.equal(
-        request.method,
-        method,
-        `Expected the request method to be ${method}, was ${request.method}`
-      );
-      assert.equal(request.url, url, `Expected the request url to be ${url}, was ${request.url}`);
+      const request = lastNthRequest(0, method);
+      assertRequest(request, method, url);
     })
     .then('the last $method request was made to "$url" with the body from yaml\n$yaml', function(
       method,
       url,
       data
     ) {
-      const request = lastRequest(method);
-      assert.ok(request, `Expected a ${method} request`);
-      assert.equal(
-        request.method,
-        method,
-        `Expected the request method to be ${method}, was ${request.method}`
-      );
-      assert.equal(request.url, url, `Expected the request url to be ${url}, was ${request.url}`);
+      const request = lastNthRequest(0, method);
       const body = JSON.parse(request.requestBody);
+      assert.ok(request, `Expected a ${method} request`);
+      assertRequest(request, method, url);
       Object.keys(data).forEach(function(key, i, arr) {
         assert.deepEqual(
           body[key],
@@ -122,9 +99,7 @@ export default function(scenario, assert, api) {
       });
     })
     .then('the last $method requests were like yaml\n$yaml', function(method, data) {
-      const requests = api.server.history.reverse().filter(function(item) {
-        return item.method === method;
-      });
+      const requests = lastNthRequest(null, method);
       data.reverse().forEach(function(item, i, arr) {
         assert.equal(
           requests[i].url,
