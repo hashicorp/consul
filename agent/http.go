@@ -543,6 +543,10 @@ func setIndex(resp http.ResponseWriter, index uint64) {
 	resp.Header().Set("X-Consul-Index", strconv.FormatUint(index, 10))
 }
 
+func setLtime(resp http.ResponseWriter, ltime uint64) {
+	resp.Header().Set("X-Consul-LTime", strconv.FormatUint(ltime, 10))
+}
+
 // setKnownLeader is used to set the known leader header
 func setKnownLeader(resp http.ResponseWriter, known bool) {
 	s := "true"

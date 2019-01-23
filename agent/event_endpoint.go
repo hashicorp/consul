@@ -157,16 +157,20 @@ RUN_QUERY:
 
 	// Determine the index
 	var index uint64
+	var ltime uint64
 	if len(events) == 0 {
 		// Return a non-zero index to prevent a hot query loop. This
 		// can be caused by a watch for example when there is no matching
 		// events.
 		index = 1
+		ltime = 0
 	} else {
 		last := events[len(events)-1]
 		index = uuidToUint64(last.ID)
+		ltime = last.LTime
 	}
 	setIndex(resp, index)
+	setLtime(resp, ltime)
 
 	// Check for exact match on the query value. Because
 	// the index value is not monotonic, we just ensure it is

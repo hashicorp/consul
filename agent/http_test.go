@@ -220,6 +220,20 @@ func TestSetIndex(t *testing.T) {
 	}
 }
 
+func TestSetLtime(t *testing.T) {
+	t.Parallel()
+	resp := httptest.NewRecorder()
+	setLtime(resp, 1000)
+	header := resp.Header().Get("X-Consul-Ltime")
+	if header != "1000" {
+		t.Fatalf("Bad: %v", header)
+	}
+	setLtime(resp, 2000)
+	if v := resp.Header()["X-Consul-Ltime"]; len(v) != 1 {
+		t.Fatalf("bad: %#v", v)
+	}
+}
+
 func TestSetKnownLeader(t *testing.T) {
 	t.Parallel()
 	resp := httptest.NewRecorder()

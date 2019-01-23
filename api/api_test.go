@@ -482,6 +482,7 @@ func TestAPI_ParseQueryMeta(t *testing.T) {
 		Header: make(map[string][]string),
 	}
 	resp.Header.Set("X-Consul-Index", "12345")
+	resp.Header.Set("X-Consul-Ltime", "123")
 	resp.Header.Set("X-Consul-LastContact", "80")
 	resp.Header.Set("X-Consul-KnownLeader", "true")
 	resp.Header.Set("X-Consul-Translate-Addresses", "true")
@@ -492,6 +493,9 @@ func TestAPI_ParseQueryMeta(t *testing.T) {
 	}
 
 	if qm.LastIndex != 12345 {
+		t.Fatalf("Bad: %v", qm)
+	}
+	if qm.LastLtime != 123 {
 		t.Fatalf("Bad: %v", qm)
 	}
 	if qm.LastContact != 80*time.Millisecond {

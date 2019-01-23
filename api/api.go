@@ -206,6 +206,10 @@ type QueryMeta struct {
 	// a blocking query
 	LastIndex uint64
 
+	// LastLtime. This can be used as a WaitIndexAndLtime to perform
+	// a blocking query
+	LastLtime uint64
+
 	// LastContentHash. This can be used as a WaitHash to perform a blocking query
 	// for endpoints that support hash-based blocking. Endpoints that do not
 	// support it will return an empty hash.
@@ -825,6 +829,15 @@ func parseQueryMeta(resp *http.Response, q *QueryMeta) error {
 		}
 		q.LastIndex = index
 	}
+
+	if ltimeStr := header.Get("X-Consul-LTime"); ltimeStr != "" {
+		ltime, err := strconv.ParseUint(ltimeStr, 10, 64)
+		if err != nil {
+			return fmt.Errorf("Failed to parse X-Consul-Ltime: %v", err)
+		}
+		q.LastLtime = ltime
+	}
+
 	q.LastContentHash = header.Get("X-Consul-ContentHash")
 
 	// Parse the X-Consul-LastContact
