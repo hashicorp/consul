@@ -88,8 +88,8 @@ kubernetes [ZONES...] {
   that point to external hosts (aka External Services, aka CNAMEs).  If no **ADDRESS** is given, CoreDNS
   will resolve External Services against itself. **ADDRESS** can be an IP, an IP:port, or a path
   to a file structured like resolv.conf.
-* `ttl` allows you to set a custom TTL for responses. The default (and minimum allowed) is
-  0 seconds, while the maximum is capped at 3600 seconds. Setting TTL to 0 will prevent records from being cached.
+* `ttl` allows you to set a custom TTL for responses. The default is 5 seconds.  The minimum TTL allowed is
+  0 seconds, and the maximum is capped at 3600 seconds. Setting TTL to 0 will prevent records from being cached.
 * `noendpoints` will turn off the serving of endpoint records by disabling the watch on endpoints.
   All endpoint queries and headless service queries will result in an NXDOMAIN.
 * `transfer` enables zone transfers. It may be specified multiples times. `To` signals the direction
