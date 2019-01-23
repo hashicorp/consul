@@ -277,6 +277,38 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 		require.Equal(t, ErrMissingACLTokenAccessor, err)
 	})
 
+	t.Run("Missing Service Identity Fields", func(t *testing.T) {
+		t.Parallel()
+		s := testACLTokensStateStore(t)
+		token := &structs.ACLToken{
+			AccessorID: "daf37c07-d04d-4fd5-9678-a8206a57d61a",
+			SecretID:   "39171632-6f34-4411-827f-9416403687f4",
+			ServiceIdentities: []*structs.ACLServiceIdentity{
+				&structs.ACLServiceIdentity{},
+			},
+		}
+
+		err := s.ACLTokenSet(2, token, false)
+		require.Error(t, err)
+	})
+
+	t.Run("Missing Service Identity Name", func(t *testing.T) {
+		t.Parallel()
+		s := testACLTokensStateStore(t)
+		token := &structs.ACLToken{
+			AccessorID: "daf37c07-d04d-4fd5-9678-a8206a57d61a",
+			SecretID:   "39171632-6f34-4411-827f-9416403687f4",
+			ServiceIdentities: []*structs.ACLServiceIdentity{
+				&structs.ACLServiceIdentity{
+					Datacenters: []string{"dc1"},
+				},
+			},
+		}
+
+		err := s.ACLTokenSet(2, token, false)
+		require.Error(t, err)
+	})
+
 	t.Run("Missing Policy ID", func(t *testing.T) {
 		t.Parallel()
 		s := testACLTokensStateStore(t)
@@ -322,6 +354,11 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 					ID: "a0625e95-9b3e-42de-a8d6-ceef5b6f3286",
 				},
 			},
+			ServiceIdentities: []*structs.ACLServiceIdentity{
+				&structs.ACLServiceIdentity{
+					ServiceName: "web",
+				},
+			},
 		}
 
 		require.NoError(t, s.ACLTokenSet(2, token.Clone(), false))
@@ -334,6 +371,8 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 		require.Equal(t, uint64(2), rtoken.ModifyIndex)
 		require.Len(t, rtoken.Policies, 1)
 		require.Equal(t, "node-read", rtoken.Policies[0].Name)
+		require.Len(t, rtoken.ServiceIdentities, 1)
+		require.Equal(t, "web", rtoken.ServiceIdentities[0].ServiceName)
 	})
 
 	t.Run("Update", func(t *testing.T) {
@@ -347,6 +386,11 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 					ID: "a0625e95-9b3e-42de-a8d6-ceef5b6f3286",
 				},
 			},
+			ServiceIdentities: []*structs.ACLServiceIdentity{
+				&structs.ACLServiceIdentity{
+					ServiceName: "web",
+				},
+			},
 		}
 
 		require.NoError(t, s.ACLTokenSet(2, token.Clone(), false))
@@ -357,6 +401,11 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 			Policies: []structs.ACLTokenPolicyLink{
 				structs.ACLTokenPolicyLink{
 					ID: structs.ACLPolicyGlobalManagementID,
+				},
+			},
+			ServiceIdentities: []*structs.ACLServiceIdentity{
+				&structs.ACLServiceIdentity{
+					ServiceName: "db",
 				},
 			},
 		}
@@ -372,6 +421,8 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 		require.Len(t, rtoken.Policies, 1)
 		require.Equal(t, structs.ACLPolicyGlobalManagementID, rtoken.Policies[0].ID)
 		require.Equal(t, "global-management", rtoken.Policies[0].Name)
+		require.Len(t, rtoken.ServiceIdentities, 1)
+		require.Equal(t, "db", rtoken.ServiceIdentities[0].ServiceName)
 	})
 }
 

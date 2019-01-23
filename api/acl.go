@@ -22,17 +22,18 @@ type ACLTokenPolicyLink struct {
 
 // ACLToken represents an ACL Token
 type ACLToken struct {
-	CreateIndex    uint64
-	ModifyIndex    uint64
-	AccessorID     string
-	SecretID       string
-	Description    string
-	Policies       []*ACLTokenPolicyLink
-	Local          bool
-	ExpirationTTL  time.Duration `json:",omitempty"`
-	ExpirationTime time.Time     `json:",omitempty"`
-	CreateTime     time.Time     `json:",omitempty"`
-	Hash           []byte        `json:",omitempty"`
+	CreateIndex       uint64
+	ModifyIndex       uint64
+	AccessorID        string
+	SecretID          string
+	Description       string
+	Policies          []*ACLTokenPolicyLink `json:",omitempty"`
+	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
+	Local             bool
+	ExpirationTTL     time.Duration `json:",omitempty"`
+	ExpirationTime    time.Time     `json:",omitempty"`
+	CreateTime        time.Time     `json:",omitempty"`
+	Hash              []byte        `json:",omitempty"`
 
 	// DEPRECATED (ACL-Legacy-Compat)
 	// Rules will only be present for legacy tokens returned via the new APIs
@@ -40,16 +41,17 @@ type ACLToken struct {
 }
 
 type ACLTokenListEntry struct {
-	CreateIndex    uint64
-	ModifyIndex    uint64
-	AccessorID     string
-	Description    string
-	Policies       []*ACLTokenPolicyLink
-	Local          bool
-	ExpirationTime time.Time `json:",omitempty"`
-	CreateTime     time.Time
-	Hash           []byte
-	Legacy         bool
+	CreateIndex       uint64
+	ModifyIndex       uint64
+	AccessorID        string
+	Description       string
+	Policies          []*ACLTokenPolicyLink `json:",omitempty"`
+	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
+	Local             bool
+	ExpirationTime    time.Time `json:",omitempty"`
+	CreateTime        time.Time
+	Hash              []byte
+	Legacy            bool
 }
 
 // ACLEntry is used to represent a legacy ACL token
@@ -73,6 +75,14 @@ type ACLReplicationStatus struct {
 	ReplicatedTokenIndex uint64
 	LastSuccess          time.Time
 	LastError            time.Time
+}
+
+// ACLServiceIdentity represents a high-level grant of all necessary privileges
+// to assume the identity of the named Service in the Catalog and within
+// Connect.
+type ACLServiceIdentity struct {
+	ServiceName string
+	Datacenters []string `json:",omitempty"`
 }
 
 // ACLPolicy represents an ACL Policy.

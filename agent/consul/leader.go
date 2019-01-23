@@ -645,7 +645,9 @@ func (s *Server) startACLUpgrade() {
 				}
 
 				// Assign the global-management policy to legacy management tokens
-				if len(newToken.Policies) == 0 && newToken.Type == structs.ACLTokenTypeManagement {
+				if len(newToken.Policies) == 0 &&
+					len(newToken.ServiceIdentities) == 0 &&
+					newToken.Type == structs.ACLTokenTypeManagement {
 					newToken.Policies = append(newToken.Policies, structs.ACLTokenPolicyLink{ID: structs.ACLPolicyGlobalManagementID})
 				}
 

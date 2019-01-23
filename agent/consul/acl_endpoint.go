@@ -8,13 +8,13 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/armon/go-metrics"
+	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/go-uuid"
+	memdb "github.com/hashicorp/go-memdb"
+	uuid "github.com/hashicorp/go-uuid"
 )
 
 const (
@@ -24,7 +24,11 @@ const (
 )
 
 // Regex for matching
-var validPolicyName = regexp.MustCompile(`^[A-Za-z0-9\-_]{1,128}$`)
+var (
+	validPolicyName              = regexp.MustCompile(`^[A-Za-z0-9\-_]{1,128}$`)
+	validServiceIdentityName     = regexp.MustCompile(`^[a-z0-9]([a-z0-9\-_]*[a-z0-9])?$`)
+	serviceIdentityNameMaxLength = 256
+)
 
 // ACL endpoint is used to manipulate ACLs
 type ACL struct {
@@ -275,10 +279,11 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 	cloneReq := structs.ACLTokenSetRequest{
 		Datacenter: args.Datacenter,
 		ACLToken: structs.ACLToken{
-			Policies:       token.Policies,
-			Local:          token.Local,
-			Description:    token.Description,
-			ExpirationTime: token.ExpirationTime,
+			Policies:          token.Policies,
+			ServiceIdentities: token.ServiceIdentities,
+			Local:             token.Local,
+			Description:       token.Description,
+			ExpirationTime:    token.ExpirationTime,
 		},
 		WriteRequest: args.WriteRequest,
 	}
@@ -450,6 +455,18 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 	}
 	token.Policies = policies
 
+	for _, svcid := range token.ServiceIdentities {
+		if svcid.ServiceName == "" {
+			return fmt.Errorf("Service identity is missing the service name field on this token")
+		}
+		if token.Local && len(svcid.Datacenters) > 0 {
+			return fmt.Errorf("Service identity %q cannot specify a list of datacenters on a local token", svcid.ServiceName)
+		}
+		if !isValidServiceIdentityName(svcid.ServiceName) {
+			return fmt.Errorf("Service identity %q has an invalid name. Only alphanumeric characters, '-' and '_' are allowed", svcid.ServiceName)
+		}
+	}
+
 	if token.Rules != "" {
 		return fmt.Errorf("Rules cannot be specified for this token")
 	}
@@ -485,6 +502,17 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 	}
 
 	return nil
+}
+
+// isValidServiceIdentityName returns true if the provided name can be used as
+// an ACLServiceIdentity ServiceName. This is more restrictive than standard
+// catalog registration, which basically takes the view that "everything is
+// valid".
+func isValidServiceIdentityName(name string) bool {
+	if len(name) < 1 || len(name) > serviceIdentityNameMaxLength {
+		return false
+	}
+	return validServiceIdentityName.MatchString(name)
 }
 
 func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) error {
