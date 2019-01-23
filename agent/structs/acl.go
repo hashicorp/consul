@@ -190,18 +190,18 @@ func (t *ACLToken) EmbeddedPolicy() *ACLPolicy {
 	// Additionally for management tokens we must embed the policy rules
 	// as well
 	policy := &ACLPolicy{}
-	if t.Rules != "" || t.Type == ACLTokenTypeClient {
-		hasher := fnv.New128a()
-		policy.ID = fmt.Sprintf("%x", hasher.Sum([]byte(t.Rules)))
-		policy.Name = fmt.Sprintf("legacy-policy-%s", policy.ID)
-		policy.Rules = t.Rules
-		policy.Syntax = acl.SyntaxLegacy
-	} else if t.Type == ACLTokenTypeManagement {
+	if t.Type == ACLTokenTypeManagement {
 		hasher := fnv.New128a()
 		policy.ID = fmt.Sprintf("%x", hasher.Sum([]byte(ACLPolicyGlobalManagement)))
 		policy.Name = "legacy-management"
 		policy.Rules = ACLPolicyGlobalManagement
 		policy.Syntax = acl.SyntaxCurrent
+	} else if t.Rules != "" || t.Type == ACLTokenTypeClient {
+		hasher := fnv.New128a()
+		policy.ID = fmt.Sprintf("%x", hasher.Sum([]byte(t.Rules)))
+		policy.Name = fmt.Sprintf("legacy-policy-%s", policy.ID)
+		policy.Rules = t.Rules
+		policy.Syntax = acl.SyntaxLegacy
 	} else {
 		return nil
 	}
