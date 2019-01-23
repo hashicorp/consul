@@ -1704,6 +1704,71 @@ func TestACL(t *testing.T) {
 				{name: "WriteAllowed", check: checkAllowACLWrite},
 			},
 		},
+		{
+			name:          "ServiceWriteSelf_ServiceReadAll",
+			defaultPolicy: DenyAll(),
+			policyStack: []*Policy{
+				&Policy{
+					Services: []*ServicePolicy{
+						// service "web" { policy = "write" }
+						&ServicePolicy{
+							Name:   "web",
+							Policy: PolicyWrite,
+						},
+					},
+					ServicePrefixes: []*ServicePolicy{
+						// service_prefix "" { policy = "read" }
+						&ServicePolicy{
+							Name:   "",
+							Policy: PolicyRead,
+						},
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ServiceReadAllowed", prefix: "anything", check: checkAllowServiceRead},
+				{name: "ServiceWriteDenied", prefix: "anything", check: checkDenyServiceWrite},
+				{name: "ServiceReadAllowed", prefix: "web", check: checkAllowServiceRead},
+				{name: "ServiceWriteAllowed", prefix: "web", check: checkAllowServiceWrite},
+				{name: "ServiceReadAllowed", prefix: "web-sidecar-proxy", check: checkAllowServiceRead},
+				{name: "ServiceWriteAllowed", prefix: "web-sidecar-proxy", check: checkAllowServiceWrite},
+			},
+		},
+		{
+			name:          "ServiceWriteSelf_ServiceReadAll_ExplicitProxyWriteDenyIgnored",
+			defaultPolicy: DenyAll(),
+			policyStack: []*Policy{
+				&Policy{
+					Services: []*ServicePolicy{
+						// service "web" { policy = "write" }
+						&ServicePolicy{
+							Name:   "web",
+							Policy: PolicyWrite,
+						},
+						// service "web-sidecar-proxy" { policy = "deny" }
+						&ServicePolicy{
+							Name:   "web-sidecar-proxy",
+							Policy: PolicyDeny,
+						},
+					},
+					ServicePrefixes: []*ServicePolicy{
+						// service_prefix "" { policy = "read" }
+						&ServicePolicy{
+							Name:   "",
+							Policy: PolicyRead,
+						},
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ServiceReadAllowed", prefix: "anything", check: checkAllowServiceRead},
+				{name: "ServiceWriteDenied", prefix: "anything", check: checkDenyServiceWrite},
+				{name: "ServiceReadAllowed", prefix: "web", check: checkAllowServiceRead},
+				{name: "ServiceWriteAllowed", prefix: "web", check: checkAllowServiceWrite},
+				{name: "ServiceReadAllowed", prefix: "web-sidecar-proxy", check: checkAllowServiceRead},
+				{name: "ServiceWriteAllowed", prefix: "web-sidecar-proxy", check: checkAllowServiceWrite},
+			},
+		},
 	}
 
 	for _, tcase := range tests {

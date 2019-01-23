@@ -1,7 +1,9 @@
 package acl
 
 import (
-	"github.com/armon/go-radix"
+	"strings"
+
+	radix "github.com/armon/go-radix"
 	"github.com/hashicorp/consul/sentinel"
 )
 
@@ -889,7 +891,24 @@ func (p *PolicyAuthorizer) PreparedQueryWrite(prefix string) bool {
 
 // ServiceRead checks if reading (discovery) of a service is allowed
 func (p *PolicyAuthorizer) ServiceRead(name string) bool {
-	// Check for an exact rule or catch-all
+	if strings.HasSuffix(name, "-sidecar-proxy") {
+		// This is ok to trust because the Catalog registrations enforce that
+		// only Kind=connect-proxy services can have a name that ends with the
+		// suffix of "-sidecar-proxy". Furthermore the sidecar proxy's name is
+		// required to be "<PROXY-DESTINATION-NAME>-sidecar-proxy" specifically
+		// so we can have this check be so simple here.
+		sidecarProxyDestination := strings.TrimSuffix(name, "-sidecar-proxy")
+
+		// Check for an exact rule or catch-all on the destination of a connect proxy
+		if rule, ok := getPolicy(sidecarProxyDestination, p.serviceRules); ok {
+			pr := rule.(RulePolicy)
+			if allow, recurse := enforce(pr.aclPolicy, PolicyRead); !recurse {
+				return allow
+			}
+		}
+	}
+
+	// Check for an exact rule or catch-all on the actual service name
 	if rule, ok := getPolicy(name, p.serviceRules); ok {
 		pr := rule.(RulePolicy)
 		if allow, recurse := enforce(pr.aclPolicy, PolicyRead); !recurse {
@@ -903,7 +922,24 @@ func (p *PolicyAuthorizer) ServiceRead(name string) bool {
 
 // ServiceWrite checks if writing (registering) a service is allowed
 func (p *PolicyAuthorizer) ServiceWrite(name string, scope sentinel.ScopeFn) bool {
-	// Check for an exact rule or catch-all
+	if strings.HasSuffix(name, "-sidecar-proxy") {
+		// This is ok to trust because the Catalog registrations enforce that
+		// only Kind=connect-proxy services can have a name that ends with the
+		// suffix of "-sidecar-proxy". Furthermore the sidecar proxy's name is
+		// required to be "<PROXY-DESTINATION-NAME>-sidecar-proxy" specifically
+		// so we can have this check be so simple here.
+		sidecarProxyDestination := strings.TrimSuffix(name, "-sidecar-proxy")
+
+		// Check for an exact rule or catch-all on the destination of a connect proxy
+		if rule, ok := getPolicy(sidecarProxyDestination, p.serviceRules); ok {
+			pr := rule.(RulePolicy)
+			if allow, recurse := enforce(pr.aclPolicy, PolicyWrite); !recurse {
+				return allow
+			}
+		}
+	}
+
+	// Check for an exact rule or catch-all on the actual service name
 	if rule, ok := getPolicy(name, p.serviceRules); ok {
 		pr := rule.(RulePolicy)
 		if allow, recurse := enforce(pr.aclPolicy, PolicyWrite); !recurse {
