@@ -2918,6 +2918,7 @@ func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 		json                        string
 		enableACL                   bool
 		tokenRules                  string
+		sidecarTokenRules           string
 		wantNS                      *structs.NodeService
 		wantErr                     string
 		wantSidecarIDLeftAfterDereg bool
@@ -2987,7 +2988,7 @@ func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 			wantErr:    "Permission denied",
 		},
 		{
-			name: "ACL OK for service but not for sidecar",
+			name: "ACL OK for service and sidecar despite deny",
 			json: `
 			{
 				"name": "web",
@@ -3005,9 +3006,12 @@ func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 			}
 			service "web" {
 				policy = "write"
+				include_proxies = true
 			}`,
-			wantNS:  nil,
-			wantErr: "Permission denied",
+			wantNS: testDefaultSidecar("web", 1111, func(ns *structs.NodeService) {
+				ns.Service = "web-sidecar-proxy"
+			}),
+			wantErr: "",
 		},
 		{
 			name: "ACL OK for service and sidecar but not sidecar's overridden destination",
@@ -3060,19 +3064,17 @@ func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 			wantErr: "Permission denied",
 		},
 		{
-			name: "ACL OK for service but and overridden for sidecar",
+			name: "ACL OK for service and overridden for sidecar",
 			// This test ensures that if the sidecar embeds it's own token with
 			// different privs from the main request token it will be honoured for the
-			// sidecar registration. We use the test root token since that should have
-			// permission.
+			// sidecar registration.
 			json: `
 			{
 				"name": "web",
 				"port": 1111,
 				"connect": {
 					"SidecarService": {
-						"name": "foo",
-						"token": "root"
+						"name": "foo"
 					}
 				}
 			}
@@ -3085,8 +3087,40 @@ func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 			service "web" {
 				policy = "write"
 			}`,
+			sidecarTokenRules: `
+			service "web" {
+				policy = "write"
+				include_proxies = true
+			}
+			service "foo" {
+				policy = "write"
+			}`,
 			wantNS: testDefaultSidecar("web", 1111, func(ns *structs.NodeService) {
 				ns.Service = "foo"
+			}),
+			wantErr: "",
+		},
+		{
+			name: "ACL OK for service and for sidecar using default suffix match",
+			// Because the sidecar uses the default naming convention, this
+			// should magically work.
+			json: `
+			{
+				"name": "web",
+				"port": 1111,
+				"connect": {
+					"SidecarService": { }
+				}
+			}
+			`,
+			enableACL: true,
+			tokenRules: `
+			service "web" {
+				policy = "write"
+				include_proxies = true
+			}`,
+			wantNS: testDefaultSidecar("web", 1111, func(ns *structs.NodeService) {
+				ns.Service = "web-sidecar-proxy"
 			}),
 			wantErr: "",
 		},
@@ -3305,8 +3339,26 @@ func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 			if tt.enableACL && tt.tokenRules != "" {
 				token = testCreateToken(t, a, tt.tokenRules)
 			}
+			var sidecarToken string
+			if tt.enableACL && tt.sidecarTokenRules != "" {
+				sidecarToken = testCreateToken(t, a, tt.sidecarTokenRules)
+			}
 
-			br := bytes.NewBufferString(tt.json)
+			regJson := tt.json
+			if sidecarToken != "" {
+				var sd structs.ServiceDefinition
+				require.NoError(json.Unmarshal([]byte(regJson), &sd))
+				require.NotNil(sd.Connect)
+				require.NotNil(sd.Connect.SidecarService)
+				require.Empty(sd.Connect.SidecarService.Token)
+
+				sd.Connect.SidecarService.Token = sidecarToken
+
+				out, err := json.Marshal(&sd)
+				require.NoError(err)
+				regJson = string(out)
+			}
+			br := bytes.NewBufferString(regJson)
 
 			req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token="+token, br)
 			resp := httptest.NewRecorder()

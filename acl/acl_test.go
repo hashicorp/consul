@@ -1704,6 +1704,94 @@ func TestACL(t *testing.T) {
 				{name: "WriteAllowed", check: checkAllowACLWrite},
 			},
 		},
+		{
+			name:          "ServiceWriteSelf_ServiceReadAll",
+			defaultPolicy: DenyAll(),
+			policyStack: []*Policy{
+				&Policy{
+					Services: []*ServicePolicy{
+						&ServicePolicy{
+							Name:           "web",
+							Policy:         PolicyWrite,
+							IncludeProxies: false,
+						},
+						&ServicePolicy{
+							Name:           "db",
+							Policy:         PolicyWrite,
+							IncludeProxies: true,
+						},
+					},
+					ServicePrefixes: []*ServicePolicy{
+						&ServicePolicy{
+							Name:   "",
+							Policy: PolicyRead,
+						},
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ServiceReadAllowed", prefix: "anything", check: checkAllowServiceRead},
+				{name: "ServiceWriteDenied", prefix: "anything", check: checkDenyServiceWrite},
+				// web: no special proxy privileges
+				{name: "ServiceReadAllowed", prefix: "web", check: checkAllowServiceRead},
+				{name: "ServiceReadAllowed", prefix: "web-sidecar-proxy", check: checkAllowServiceRead},
+				{name: "ServiceWriteAllowed", prefix: "web", check: checkAllowServiceWrite},
+				{name: "ServiceWriteDenied", prefix: "web-sidecar-proxy", check: checkDenyServiceWrite},
+				// db: special proxy privileges
+				{name: "ServiceReadAllowed", prefix: "db", check: checkAllowServiceRead},
+				{name: "ServiceReadAllowed", prefix: "db-sidecar-proxy", check: checkAllowServiceRead},
+				{name: "ServiceWriteAllowed", prefix: "db", check: checkAllowServiceWrite},
+				{name: "ServiceWriteAllowed", prefix: "db-sidecar-proxy", check: checkAllowServiceWrite},
+			},
+		},
+		{
+			name:          "ServiceWriteSelf_ServiceReadAll_ExplicitProxyWriteDeny_ConditionallyIgnored",
+			defaultPolicy: DenyAll(),
+			policyStack: []*Policy{
+				&Policy{
+					Services: []*ServicePolicy{
+						&ServicePolicy{
+							Name:           "web",
+							Policy:         PolicyWrite,
+							IncludeProxies: false,
+						},
+						&ServicePolicy{
+							Name:           "db",
+							Policy:         PolicyWrite,
+							IncludeProxies: true,
+						},
+						&ServicePolicy{
+							Name:   "web-sidecar-proxy",
+							Policy: PolicyDeny,
+						},
+						&ServicePolicy{
+							Name:   "db-sidecar-proxy",
+							Policy: PolicyDeny,
+						},
+					},
+					ServicePrefixes: []*ServicePolicy{
+						&ServicePolicy{
+							Name:   "",
+							Policy: PolicyRead,
+						},
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ServiceReadAllowed", prefix: "anything", check: checkAllowServiceRead},
+				{name: "ServiceWriteDenied", prefix: "anything", check: checkDenyServiceWrite},
+				// web: no special proxy privileges
+				{name: "ServiceReadAllowed", prefix: "web", check: checkAllowServiceRead},
+				{name: "ServiceReadDenied", prefix: "web-sidecar-proxy", check: checkDenyServiceRead},
+				{name: "ServiceWriteAllowed", prefix: "web", check: checkAllowServiceWrite},
+				{name: "ServiceWriteDenied", prefix: "web-sidecar-proxy", check: checkDenyServiceWrite},
+				// db: special proxy privileges
+				{name: "ServiceReadAllowed", prefix: "db", check: checkAllowServiceRead},
+				{name: "ServiceReadAllowed", prefix: "db-sidecar-proxy", check: checkAllowServiceRead},
+				{name: "ServiceWriteAllowed", prefix: "db", check: checkAllowServiceWrite},
+				{name: "ServiceWriteAllowed", prefix: "db-sidecar-proxy", check: checkAllowServiceWrite},
+			},
+		},
 	}
 
 	for _, tcase := range tests {

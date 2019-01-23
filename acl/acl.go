@@ -1,7 +1,9 @@
 package acl
 
 import (
-	"github.com/armon/go-radix"
+	"strings"
+
+	radix "github.com/armon/go-radix"
 	"github.com/hashicorp/consul/sentinel"
 )
 
@@ -280,6 +282,14 @@ type RulePolicy struct {
 	// aclPolicy is used for simple acl rules(allow/deny/manage)
 	aclPolicy string
 
+	// TODO(rb): We could make this into a capabilities array, but doing that
+	// without also splitting the deny/read/write policy disposition into more
+	// granular permissions seems a bit weird from a user experience
+	// perspective.
+	//
+	// includeProxies is only valid for service resources
+	includeProxies bool
+
 	// sentinelPolicy has the code part of a policy
 	sentinelPolicy Sentinel
 }
@@ -474,6 +484,7 @@ func NewPolicyAuthorizer(parent Authorizer, policies []*Policy, sentinel sentine
 	for _, sp := range policy.Services {
 		policyRule := RulePolicy{
 			aclPolicy:      sp.Policy,
+			includeProxies: sp.IncludeProxies,
 			sentinelPolicy: sp.Sentinel,
 		}
 		insertPolicyIntoRadix(sp.Name, p.serviceRules, policyRule, nil)
@@ -490,6 +501,7 @@ func NewPolicyAuthorizer(parent Authorizer, policies []*Policy, sentinel sentine
 
 		policyRule = RulePolicy{
 			aclPolicy:      intention,
+			includeProxies: sp.IncludeProxies,
 			sentinelPolicy: sp.Sentinel,
 		}
 		insertPolicyIntoRadix(sp.Name, p.intentionRules, policyRule, nil)
@@ -499,6 +511,7 @@ func NewPolicyAuthorizer(parent Authorizer, policies []*Policy, sentinel sentine
 	for _, sp := range policy.ServicePrefixes {
 		policyRule := RulePolicy{
 			aclPolicy:      sp.Policy,
+			includeProxies: sp.IncludeProxies,
 			sentinelPolicy: sp.Sentinel,
 		}
 		insertPolicyIntoRadix(sp.Name, p.serviceRules, nil, policyRule)
@@ -515,6 +528,7 @@ func NewPolicyAuthorizer(parent Authorizer, policies []*Policy, sentinel sentine
 
 		policyRule = RulePolicy{
 			aclPolicy:      intention,
+			includeProxies: sp.IncludeProxies,
 			sentinelPolicy: sp.Sentinel,
 		}
 		insertPolicyIntoRadix(sp.Name, p.intentionRules, nil, policyRule)
@@ -889,7 +903,26 @@ func (p *PolicyAuthorizer) PreparedQueryWrite(prefix string) bool {
 
 // ServiceRead checks if reading (discovery) of a service is allowed
 func (p *PolicyAuthorizer) ServiceRead(name string) bool {
-	// Check for an exact rule or catch-all
+	// Check for an exact rule on the destination of the proxy.
+	if sidecarProxyDestination := extractSidecarProxyDestination(name); sidecarProxyDestination != "" {
+		// This is ok to trust because the Catalog registrations enforce that
+		// only Kind=connect-proxy services can have a name that ends with the
+		// suffix of "-sidecar-proxy". Furthermore the sidecar proxy's name is
+		// required to be "<PROXY-DESTINATION-NAME>-sidecar-proxy" specifically
+		// so we can have this check be so simple here.
+		if rule, ok := getPolicy(sidecarProxyDestination, p.serviceRules); ok {
+			pr := rule.(RulePolicy)
+			if pr.includeProxies {
+				if allow, recurse := enforce(pr.aclPolicy, PolicyRead); !recurse {
+					if allow {
+						return true
+					}
+				}
+			}
+		}
+	}
+
+	// Check for an exact rule or catch-all on the actual service name
 	if rule, ok := getPolicy(name, p.serviceRules); ok {
 		pr := rule.(RulePolicy)
 		if allow, recurse := enforce(pr.aclPolicy, PolicyRead); !recurse {
@@ -903,7 +936,26 @@ func (p *PolicyAuthorizer) ServiceRead(name string) bool {
 
 // ServiceWrite checks if writing (registering) a service is allowed
 func (p *PolicyAuthorizer) ServiceWrite(name string, scope sentinel.ScopeFn) bool {
-	// Check for an exact rule or catch-all
+	// Check for an exact rule on the destination of the proxy.
+	if sidecarProxyDestination := extractSidecarProxyDestination(name); sidecarProxyDestination != "" {
+		// This is ok to trust because the Catalog registrations enforce that
+		// only Kind=connect-proxy services can have a name that ends with the
+		// suffix of "-sidecar-proxy". Furthermore the sidecar proxy's name is
+		// required to be "<PROXY-DESTINATION-NAME>-sidecar-proxy" specifically
+		// so we can have this check be so simple here.
+		if rule, ok := getPolicy(sidecarProxyDestination, p.serviceRules); ok {
+			pr := rule.(RulePolicy)
+			if pr.includeProxies {
+				if allow, recurse := enforce(pr.aclPolicy, PolicyWrite); !recurse {
+					if allow {
+						return true
+					}
+				}
+			}
+		}
+	}
+
+	// Check for an exact rule or catch-all on the actual service name
 	if rule, ok := getPolicy(name, p.serviceRules); ok {
 		pr := rule.(RulePolicy)
 		if allow, recurse := enforce(pr.aclPolicy, PolicyWrite); !recurse {
@@ -958,4 +1010,12 @@ func (p *PolicyAuthorizer) executeCodePolicy(policy *Sentinel, scope sentinel.Sc
 	}
 
 	return p.sentinel.Execute(policy.Code, enforcement, scope())
+}
+
+func extractSidecarProxyDestination(name string) string {
+	prefix := strings.TrimSuffix(name, "-sidecar-proxy")
+	if prefix == name { // doesn't have suffix
+		return ""
+	}
+	return prefix
 }

@@ -91,9 +91,10 @@ func (n *NodePolicy) GoString() string {
 
 // ServicePolicy represents a policy for a service
 type ServicePolicy struct {
-	Name     string `hcl:",key"`
-	Policy   string
-	Sentinel Sentinel
+	Name           string `hcl:",key"`
+	Policy         string
+	IncludeProxies bool `hcl:"include_proxies"`
+	Sentinel       Sentinel
 
 	// Intentions is the policy for intentions where this service is the
 	// destination. This may be empty, in which case the Policy determines
