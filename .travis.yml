@@ -3,7 +3,7 @@ language: go
 go:
   # Please keep this in-sync with the go version we build against in
   # build-support/docker/Build-Go.dockerfile.
-  - "1.11.1"
+  - "1.11.4"
 
 branches:
   only:
