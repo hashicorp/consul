@@ -633,6 +633,7 @@ type ACL struct {
 	Enabled                *bool   `json:"enabled,omitempty" hcl:"enabled" mapstructure:"enabled"`
 	TokenReplication       *bool   `json:"enable_token_replication,omitempty" hcl:"enable_token_replication" mapstructure:"enable_token_replication"`
 	PolicyTTL              *string `json:"policy_ttl,omitempty" hcl:"policy_ttl" mapstructure:"policy_ttl"`
+	RoleTTL                *string `json:"role_ttl,omitempty" hcl:"role_ttl" mapstructure:"role_ttl"`
 	TokenTTL               *string `json:"token_ttl,omitempty" hcl:"token_ttl" mapstructure:"token_ttl"`
 	DownPolicy             *string `json:"down_policy,omitempty" hcl:"down_policy" mapstructure:"down_policy"`
 	DefaultPolicy          *string `json:"default_policy,omitempty" hcl:"default_policy" mapstructure:"default_policy"`

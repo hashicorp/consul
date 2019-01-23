@@ -6,6 +6,7 @@ import (
 	"net"
 	"testing"
 
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
@@ -159,6 +160,21 @@ func waitForNewACLs(t *testing.T, server *Server) {
 	})
 
 	require.False(t, server.UseLegacyACLs(), "Server cannot use new ACLs")
+}
+
+func waitForNewACLReplication(t *testing.T, server *Server, expectedReplicationType structs.ACLReplicationType) {
+	var (
+		replTyp structs.ACLReplicationType
+		running bool
+	)
+	retry.Run(t, func(r *retry.R) {
+		replTyp, running = server.getACLReplicationStatusRunningType()
+		require.Equal(r, expectedReplicationType, replTyp, "Server not running new replicator yet")
+		require.True(r, running, "Server not running new replicator yet")
+	})
+
+	require.Equal(t, expectedReplicationType, replTyp, "Server not running new replicator yet")
+	require.True(t, running, "Server not running new replicator yet")
 }
 
 func seeEachOther(a, b []serf.Member, addra, addrb string) bool {

@@ -686,6 +686,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		ACLReplicationToken:       b.stringValWithDefault(c.ACL.Tokens.Replication, b.stringVal(c.ACLReplicationToken)),
 		ACLTokenTTL:               b.durationValWithDefault("acl.token_ttl", c.ACL.TokenTTL, b.durationVal("acl_ttl", c.ACLTTL)),
 		ACLPolicyTTL:              b.durationVal("acl.policy_ttl", c.ACL.PolicyTTL),
+		ACLRoleTTL:                b.durationVal("acl.role_ttl", c.ACL.RoleTTL),
 		ACLToken:                  b.stringValWithDefault(c.ACL.Tokens.Default, b.stringVal(c.ACLToken)),
 		ACLTokenReplication:       b.boolValWithDefault(c.ACL.TokenReplication, b.boolValWithDefault(c.EnableACLReplication, enableTokenReplication)),
 		ACLEnableTokenPersistence: b.boolValWithDefault(c.ACL.EnableTokenPersistence, false),

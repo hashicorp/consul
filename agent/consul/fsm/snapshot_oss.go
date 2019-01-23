@@ -27,6 +27,7 @@ func init() {
 	registerRestorer(structs.IndexRequestType, restoreIndex)
 	registerRestorer(structs.ACLTokenSetRequestType, restoreToken)
 	registerRestorer(structs.ACLPolicySetRequestType, restorePolicy)
+	registerRestorer(structs.ACLRoleSetRequestType, restoreRole)
 }
 
 func persistOSS(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) error {
@@ -195,6 +196,20 @@ func (s *snapshot) persistACLs(sink raft.SnapshotSink,
 			return err
 		}
 		if err := encoder.Encode(policy.(*structs.ACLPolicy)); err != nil {
+			return err
+		}
+	}
+
+	roles, err := s.state.ACLRoles()
+	if err != nil {
+		return err
+	}
+
+	for role := roles.Next(); role != nil; role = roles.Next() {
+		if _, err := sink.Write([]byte{byte(structs.ACLRoleSetRequestType)}); err != nil {
+			return err
+		}
+		if err := encoder.Encode(role.(*structs.ACLRole)); err != nil {
 			return err
 		}
 	}
@@ -566,4 +581,12 @@ func restorePolicy(header *snapshotHeader, restore *state.Restore, decoder *code
 		return err
 	}
 	return restore.ACLPolicy(&req)
+}
+
+func restoreRole(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	var req structs.ACLRole
+	if err := decoder.Decode(&req); err != nil {
+		return err
+	}
+	return restore.ACLRole(&req)
 }

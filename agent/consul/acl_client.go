@@ -25,6 +25,8 @@ var clientACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
 	ParsedPolicies: 128,
 	// Authorizers - number of compiled multi-policy effective policies that can be cached
 	Authorizers: 256,
+	// Roles - number of ACL roles that can be cached
+	Roles: 128,
 }
 
 func (c *Client) UseLegacyACLs() bool {
@@ -93,6 +95,11 @@ func (c *Client) ResolveIdentityFromToken(token string) (bool, structs.ACLIdenti
 
 func (c *Client) ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy, error) {
 	// clients do no local policy resolution at the moment
+	return false, nil, nil
+}
+
+func (c *Client) ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error) {
+	// clients do no local role resolution at the moment
 	return false, nil, nil
 }
 

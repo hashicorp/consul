@@ -254,6 +254,7 @@ func (s *HTTPServer) ACLPolicyRead(resp http.ResponseWriter, req *http.Request, 
 	}
 
 	if out.Policy == nil {
+		// TODO(rb): should this return a normal 404?
 		return nil, acl.ErrNotFound
 	}
 
@@ -374,6 +375,7 @@ func (s *HTTPServer) ACLTokenList(resp http.ResponseWriter, req *http.Request) (
 	}
 
 	args.Policy = req.URL.Query().Get("policy")
+	args.Role = req.URL.Query().Get("role")
 
 	var out structs.ACLTokenListResponse
 	defer setMeta(resp, &out.QueryMeta)
@@ -547,4 +549,155 @@ func (s *HTTPServer) ACLTokenClone(resp http.ResponseWriter, req *http.Request, 
 	}
 
 	return &out, nil
+}
+
+func (s *HTTPServer) ACLRoleList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if s.checkACLDisabled(resp, req) {
+		return nil, nil
+	}
+
+	var args structs.ACLRoleListRequest
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	if args.Datacenter == "" {
+		args.Datacenter = s.agent.config.Datacenter
+	}
+
+	args.Policy = req.URL.Query().Get("policy")
+
+	var out structs.ACLRoleListResponse
+	defer setMeta(resp, &out.QueryMeta)
+	if err := s.agent.RPC("ACL.RoleList", &args, &out); err != nil {
+		return nil, err
+	}
+
+	// make sure we return an array and not nil
+	if out.Roles == nil {
+		out.Roles = make(structs.ACLRoles, 0)
+	}
+
+	return out.Roles, nil
+}
+
+func (s *HTTPServer) ACLRoleCRUD(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if s.checkACLDisabled(resp, req) {
+		return nil, nil
+	}
+
+	var fn func(resp http.ResponseWriter, req *http.Request, roleID string) (interface{}, error)
+
+	switch req.Method {
+	case "GET":
+		fn = s.ACLRoleReadByID
+
+	case "PUT":
+		fn = s.ACLRoleWrite
+
+	case "DELETE":
+		fn = s.ACLRoleDelete
+
+	default:
+		return nil, MethodNotAllowedError{req.Method, []string{"GET", "PUT", "DELETE"}}
+	}
+
+	roleID := strings.TrimPrefix(req.URL.Path, "/v1/acl/role/")
+	if roleID == "" && req.Method != "PUT" {
+		return nil, BadRequestError{Reason: "Missing role ID"}
+	}
+
+	return fn(resp, req, roleID)
+}
+
+func (s *HTTPServer) ACLRoleReadByName(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if s.checkACLDisabled(resp, req) {
+		return nil, nil
+	}
+
+	roleName := strings.TrimPrefix(req.URL.Path, "/v1/acl/role/name/")
+	if roleName == "" {
+		return nil, BadRequestError{Reason: "Missing role Name"}
+	}
+
+	return s.ACLRoleRead(resp, req, "", roleName)
+}
+
+func (s *HTTPServer) ACLRoleReadByID(resp http.ResponseWriter, req *http.Request, roleID string) (interface{}, error) {
+	return s.ACLRoleRead(resp, req, roleID, "")
+}
+
+func (s *HTTPServer) ACLRoleRead(resp http.ResponseWriter, req *http.Request, roleID, roleName string) (interface{}, error) {
+	args := structs.ACLRoleGetRequest{
+		Datacenter: s.agent.config.Datacenter,
+		RoleID:     roleID,
+		RoleName:   roleName,
+	}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	if args.Datacenter == "" {
+		args.Datacenter = s.agent.config.Datacenter
+	}
+
+	var out structs.ACLRoleResponse
+	defer setMeta(resp, &out.QueryMeta)
+	if err := s.agent.RPC("ACL.RoleRead", &args, &out); err != nil {
+		return nil, err
+	}
+
+	if out.Role == nil {
+		resp.WriteHeader(http.StatusNotFound)
+		return nil, nil
+	}
+
+	return out.Role, nil
+}
+
+func (s *HTTPServer) ACLRoleCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if s.checkACLDisabled(resp, req) {
+		return nil, nil
+	}
+
+	return s.ACLRoleWrite(resp, req, "")
+}
+
+func (s *HTTPServer) ACLRoleWrite(resp http.ResponseWriter, req *http.Request, roleID string) (interface{}, error) {
+	args := structs.ACLRoleSetRequest{
+		Datacenter: s.agent.config.Datacenter,
+	}
+	s.parseToken(req, &args.Token)
+
+	if err := decodeBody(req, &args.Role, fixTimeAndHashFields); err != nil {
+		return nil, BadRequestError{Reason: fmt.Sprintf("Role decoding failed: %v", err)}
+	}
+
+	if args.Role.ID != "" && args.Role.ID != roleID {
+		return nil, BadRequestError{Reason: "Role ID in URL and payload do not match"}
+	} else if args.Role.ID == "" {
+		args.Role.ID = roleID
+	}
+
+	var out structs.ACLRole
+	if err := s.agent.RPC("ACL.RoleSet", args, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+func (s *HTTPServer) ACLRoleDelete(resp http.ResponseWriter, req *http.Request, roleID string) (interface{}, error) {
+	args := structs.ACLRoleDeleteRequest{
+		Datacenter: s.agent.config.Datacenter,
+		RoleID:     roleID,
+	}
+	s.parseToken(req, &args.Token)
+
+	var ignored string
+	if err := s.agent.RPC("ACL.RoleDelete", args, &ignored); err != nil {
+		return nil, err
+	}
+
+	return true, nil
 }

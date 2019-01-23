@@ -919,6 +919,51 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.Len(t, token.Policies, 0)
 	})
 
+	t.Run("Create it using Roles linked by id and name", func(t *testing.T) {
+		role1, err := upsertTestRole(codec, "root", "dc1")
+		require.NoError(t, err)
+		role2, err := upsertTestRole(codec, "root", "dc1")
+		require.NoError(t, err)
+
+		req := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				Description: "foobar",
+				Roles: []structs.ACLTokenRoleLink{
+					structs.ACLTokenRoleLink{
+						ID: role1.ID,
+					},
+					structs.ACLTokenRoleLink{
+						Name: role2.Name,
+					},
+				},
+				Local: false,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		resp := structs.ACLToken{}
+
+		err = acl.TokenSet(&req, &resp)
+		require.NoError(t, err)
+
+		// Delete both roles to ensure that we skip resolving ID->Name
+		// in the returned data.
+		require.NoError(t, deleteTestRole(codec, "root", "dc1", role1.ID))
+		require.NoError(t, deleteTestRole(codec, "root", "dc1", role2.ID))
+
+		// Get the token directly to validate that it exists
+		tokenResp, err := retrieveTestToken(codec, "root", "dc1", resp.AccessorID)
+		require.NoError(t, err)
+		token := tokenResp.Token
+
+		require.NotNil(t, token.AccessorID)
+		require.Equal(t, token.Description, "foobar")
+		require.Equal(t, token.AccessorID, resp.AccessorID)
+
+		require.Len(t, token.Roles, 0)
+	})
+
 	t.Run("Create it with invalid service identity (empty)", func(t *testing.T) {
 		req := structs.ACLTokenSetRequest{
 			Datacenter: "dc1",
@@ -1783,8 +1828,7 @@ func TestACLEndpoint_PolicySet(t *testing.T) {
 	acl := ACL{srv: s1}
 	var policyID string
 
-	// Create it
-	{
+	t.Run("Create it", func(t *testing.T) {
 		req := structs.ACLPolicySetRequest{
 			Datacenter: "dc1",
 			Policy: structs.ACLPolicy{
@@ -1811,10 +1855,9 @@ func TestACLEndpoint_PolicySet(t *testing.T) {
 		require.Equal(t, policy.Rules, "service \"\" { policy = \"read\" }")
 
 		policyID = policy.ID
-	}
+	})
 
-	// Update it
-	{
+	t.Run("Update it", func(t *testing.T) {
 		req := structs.ACLPolicySetRequest{
 			Datacenter: "dc1",
 			Policy: structs.ACLPolicy{
@@ -1840,7 +1883,7 @@ func TestACLEndpoint_PolicySet(t *testing.T) {
 		require.Equal(t, policy.Description, "bat")
 		require.Equal(t, policy.Name, "bar")
 		require.Equal(t, policy.Rules, "service \"\" { policy = \"write\" }")
-	}
+	})
 }
 
 func TestACLEndpoint_PolicySet_globalManagement(t *testing.T) {
@@ -2080,6 +2123,446 @@ func TestACLEndpoint_PolicyResolve(t *testing.T) {
 	require.EqualValues(t, retrievedPolicies, policies)
 }
 
+func TestACLEndpoint_RoleRead(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	role, err := upsertTestRole(codec, "root", "dc1")
+	require.NoError(t, err)
+
+	acl := ACL{srv: s1}
+
+	req := structs.ACLRoleGetRequest{
+		Datacenter:   "dc1",
+		RoleID:       role.ID,
+		QueryOptions: structs.QueryOptions{Token: "root"},
+	}
+
+	resp := structs.ACLRoleResponse{}
+
+	err = acl.RoleRead(&req, &resp)
+	require.NoError(t, err)
+	require.Equal(t, role, resp.Role)
+}
+
+func TestACLEndpoint_RoleBatchRead(t *testing.T) {
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	r1, err := upsertTestRole(codec, "root", "dc1")
+	require.NoError(t, err)
+
+	r2, err := upsertTestRole(codec, "root", "dc1")
+	require.NoError(t, err)
+
+	acl := ACL{srv: s1}
+	roles := []string{r1.ID, r2.ID}
+
+	req := structs.ACLRoleBatchGetRequest{
+		Datacenter:   "dc1",
+		RoleIDs:      roles,
+		QueryOptions: structs.QueryOptions{Token: "root"},
+	}
+
+	resp := structs.ACLRoleBatchResponse{}
+
+	err = acl.RoleBatchRead(&req, &resp)
+	require.NoError(t, err)
+
+	var retrievedRoles []string
+
+	for _, v := range resp.Roles {
+		retrievedRoles = append(retrievedRoles, v.ID)
+	}
+	require.EqualValues(t, retrievedRoles, roles)
+}
+
+func TestACLEndpoint_RoleSet(t *testing.T) {
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	acl := ACL{srv: s1}
+	var roleID string
+
+	testPolicy1, err := upsertTestPolicy(codec, "root", "dc1")
+	require.NoError(t, err)
+	testPolicy2, err := upsertTestPolicy(codec, "root", "dc1")
+	require.NoError(t, err)
+
+	t.Run("Create it", func(t *testing.T) {
+		req := structs.ACLRoleSetRequest{
+			Datacenter: "dc1",
+			Role: structs.ACLRole{
+				Description: "foobar",
+				Name:        "baz",
+				Policies: []structs.ACLRolePolicyLink{
+					structs.ACLRolePolicyLink{
+						ID: testPolicy1.ID,
+					},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		resp := structs.ACLRole{}
+
+		err := acl.RoleSet(&req, &resp)
+		require.NoError(t, err)
+		require.NotNil(t, resp.ID)
+
+		// Get the role directly to validate that it exists
+		roleResp, err := retrieveTestRole(codec, "root", "dc1", resp.ID)
+		require.NoError(t, err)
+		role := roleResp.Role
+
+		require.NotNil(t, role.ID)
+		require.Equal(t, role.Description, "foobar")
+		require.Equal(t, role.Name, "baz")
+		require.Len(t, role.Policies, 1)
+		require.Equal(t, testPolicy1.ID, role.Policies[0].ID)
+
+		roleID = role.ID
+	})
+
+	t.Run("Update it", func(t *testing.T) {
+		req := structs.ACLRoleSetRequest{
+			Datacenter: "dc1",
+			Role: structs.ACLRole{
+				ID:          roleID,
+				Description: "bat",
+				Name:        "bar",
+				Policies: []structs.ACLRolePolicyLink{
+					structs.ACLRolePolicyLink{
+						ID: testPolicy2.ID,
+					},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		resp := structs.ACLRole{}
+
+		err := acl.RoleSet(&req, &resp)
+		require.NoError(t, err)
+		require.NotNil(t, resp.ID)
+
+		// Get the role directly to validate that it exists
+		roleResp, err := retrieveTestRole(codec, "root", "dc1", resp.ID)
+		require.NoError(t, err)
+		role := roleResp.Role
+
+		require.NotNil(t, role.ID)
+		require.Equal(t, role.Description, "bat")
+		require.Equal(t, role.Name, "bar")
+		require.Len(t, role.Policies, 1)
+		require.Equal(t, testPolicy2.ID, role.Policies[0].ID)
+	})
+
+	t.Run("Create it using Policies linked by id and name", func(t *testing.T) {
+		policy1, err := upsertTestPolicy(codec, "root", "dc1")
+		require.NoError(t, err)
+		policy2, err := upsertTestPolicy(codec, "root", "dc1")
+		require.NoError(t, err)
+
+		req := structs.ACLRoleSetRequest{
+			Datacenter: "dc1",
+			Role: structs.ACLRole{
+				Description: "foobar",
+				Name:        "baz",
+				Policies: []structs.ACLRolePolicyLink{
+					structs.ACLRolePolicyLink{
+						ID: policy1.ID,
+					},
+					structs.ACLRolePolicyLink{
+						Name: policy2.Name,
+					},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		resp := structs.ACLRole{}
+
+		err = acl.RoleSet(&req, &resp)
+		require.NoError(t, err)
+		require.NotNil(t, resp.ID)
+
+		// Delete both policies to ensure that we skip resolving ID->Name
+		// in the returned data.
+		require.NoError(t, deleteTestPolicy(codec, "root", "dc1", policy1.ID))
+		require.NoError(t, deleteTestPolicy(codec, "root", "dc1", policy2.ID))
+
+		// Get the role directly to validate that it exists
+		roleResp, err := retrieveTestRole(codec, "root", "dc1", resp.ID)
+		require.NoError(t, err)
+		role := roleResp.Role
+
+		require.NotNil(t, role.ID)
+		require.Equal(t, role.Description, "foobar")
+		require.Equal(t, role.Name, "baz")
+
+		require.Len(t, role.Policies, 0)
+	})
+
+	roleNameGen := func(t *testing.T) string {
+		t.Helper()
+		name, err := uuid.GenerateUUID()
+		require.NoError(t, err)
+		return name
+	}
+
+	t.Run("Create it with invalid service identity (empty)", func(t *testing.T) {
+		req := structs.ACLRoleSetRequest{
+			Datacenter: "dc1",
+			Role: structs.ACLRole{
+				Description: "foobar",
+				Name:        roleNameGen(t),
+				ServiceIdentities: []*structs.ACLServiceIdentity{
+					&structs.ACLServiceIdentity{ServiceName: ""},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		resp := structs.ACLRole{}
+
+		err := acl.RoleSet(&req, &resp)
+		requireErrorContains(t, err, "Service identity is missing the service name field")
+	})
+
+	t.Run("Create it with invalid service identity (too large)", func(t *testing.T) {
+		long := strings.Repeat("x", serviceIdentityNameMaxLength+1)
+		req := structs.ACLRoleSetRequest{
+			Datacenter: "dc1",
+			Role: structs.ACLRole{
+				Description: "foobar",
+				Name:        roleNameGen(t),
+				ServiceIdentities: []*structs.ACLServiceIdentity{
+					&structs.ACLServiceIdentity{ServiceName: long},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		resp := structs.ACLRole{}
+
+		err := acl.RoleSet(&req, &resp)
+		require.NotNil(t, err)
+	})
+
+	for _, test := range []struct {
+		name string
+		ok   bool
+	}{
+		{"-abc", false},
+		{"abc-", false},
+		{"a-bc", true},
+		{"_abc", false},
+		{"abc_", false},
+		{"a_bc", true},
+		{":abc", false},
+		{"abc:", false},
+		{"a:bc", false},
+		{"Abc", false},
+		{"aBc", false},
+		{"abC", false},
+		{"0abc", true},
+		{"abc0", true},
+		{"a0bc", true},
+	} {
+		var testName string
+		if test.ok {
+			testName = "Create it with valid service identity (by regex): " + test.name
+		} else {
+			testName = "Create it with invalid service identity (by regex): " + test.name
+		}
+		t.Run(testName, func(t *testing.T) {
+			req := structs.ACLRoleSetRequest{
+				Datacenter: "dc1",
+				Role: structs.ACLRole{
+					Description: "foobar",
+					Name:        roleNameGen(t),
+					ServiceIdentities: []*structs.ACLServiceIdentity{
+						&structs.ACLServiceIdentity{ServiceName: test.name},
+					},
+				},
+				WriteRequest: structs.WriteRequest{Token: "root"},
+			}
+
+			resp := structs.ACLRole{}
+
+			err := acl.RoleSet(&req, &resp)
+			if test.ok {
+				require.NoError(t, err)
+
+				// Get the token directly to validate that it exists
+				roleResp, err := retrieveTestRole(codec, "root", "dc1", resp.ID)
+				require.NoError(t, err)
+				role := roleResp.Role
+				require.ElementsMatch(t, req.Role.ServiceIdentities, role.ServiceIdentities)
+			} else {
+				require.NotNil(t, err)
+			}
+		})
+	}
+}
+
+func TestACLEndpoint_RoleSet_invalid(t *testing.T) {
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	acl := ACL{srv: s1}
+
+	testPolicy1, err := upsertTestPolicy(codec, "root", "dc1")
+	require.NoError(t, err)
+
+	names := []string{
+		"",
+		"-bad",
+		"bad-",
+		"bad?bad",
+		strings.Repeat("x", 257),
+	}
+
+	for _, name := range names {
+		t.Run(name, func(t *testing.T) {
+			req := structs.ACLRoleSetRequest{
+				Datacenter: "dc1",
+				Role: structs.ACLRole{
+					Name:        name,
+					Description: "foobar",
+					Policies: []structs.ACLRolePolicyLink{
+						structs.ACLRolePolicyLink{
+							ID: testPolicy1.ID,
+						},
+					},
+				},
+				WriteRequest: structs.WriteRequest{Token: "root"},
+			}
+			resp := structs.ACLRole{}
+
+			err := acl.RoleSet(&req, &resp)
+			require.Error(t, err)
+		})
+	}
+}
+
+func TestACLEndpoint_RoleDelete(t *testing.T) {
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	existingRole, err := upsertTestRole(codec, "root", "dc1")
+	require.NoError(t, err)
+
+	acl := ACL{srv: s1}
+
+	req := structs.ACLRoleDeleteRequest{
+		Datacenter:   "dc1",
+		RoleID:       existingRole.ID,
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+
+	var resp string
+
+	err = acl.RoleDelete(&req, &resp)
+	require.NoError(t, err)
+
+	// Make sure the role is gone
+	roleResp, err := retrieveTestRole(codec, "root", "dc1", existingRole.ID)
+	require.Nil(t, roleResp.Role)
+}
+
+func TestACLEndpoint_RoleList(t *testing.T) {
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	r1, err := upsertTestRole(codec, "root", "dc1")
+	require.NoError(t, err)
+
+	r2, err := upsertTestRole(codec, "root", "dc1")
+	require.NoError(t, err)
+
+	acl := ACL{srv: s1}
+
+	req := structs.ACLRoleListRequest{
+		Datacenter:   "dc1",
+		QueryOptions: structs.QueryOptions{Token: "root"},
+	}
+
+	resp := structs.ACLRoleListResponse{}
+
+	err = acl.RoleList(&req, &resp)
+	require.NoError(t, err)
+
+	roles := []string{r1.ID, r2.ID}
+	var retrievedRoles []string
+
+	for _, v := range resp.Roles {
+		retrievedRoles = append(retrievedRoles, v.ID)
+	}
+	require.ElementsMatch(t, retrievedRoles, roles)
+}
+
 // upsertTestToken creates a token for testing purposes
 func upsertTestToken(codec rpc.ClientCodec, masterToken string, datacenter string,
 	tokenModificationFn func(token *structs.ACLToken)) (*structs.ACLToken, error) {
@@ -2209,6 +2692,77 @@ func retrieveTestPolicy(codec rpc.ClientCodec, masterToken string, datacenter st
 	var out structs.ACLPolicyResponse
 
 	err := msgpackrpc.CallWithCodec(codec, "ACL.PolicyRead", &arg, &out)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+func deleteTestRole(codec rpc.ClientCodec, masterToken string, datacenter string, roleID string) error {
+	arg := structs.ACLRoleDeleteRequest{
+		Datacenter:   datacenter,
+		RoleID:       roleID,
+		WriteRequest: structs.WriteRequest{Token: masterToken},
+	}
+
+	var ignored string
+	err := msgpackrpc.CallWithCodec(codec, "ACL.RoleDelete", &arg, &ignored)
+	return err
+}
+
+// upsertTestRole creates a role for testing purposes
+func upsertTestRole(codec rpc.ClientCodec, masterToken string, datacenter string) (*structs.ACLRole, error) {
+	// Make sure test roles can't collide
+	roleUnq, err := uuid.GenerateUUID()
+	if err != nil {
+		return nil, err
+	}
+	policyID, err := uuid.GenerateUUID()
+	if err != nil {
+		return nil, err
+	}
+
+	arg := structs.ACLRoleSetRequest{
+		Datacenter: datacenter,
+		Role: structs.ACLRole{
+			Name: fmt.Sprintf("test-role-%s", roleUnq),
+			Policies: []structs.ACLRolePolicyLink{
+				structs.ACLRolePolicyLink{
+					ID: policyID,
+				},
+			},
+		},
+		WriteRequest: structs.WriteRequest{Token: masterToken},
+	}
+
+	var out structs.ACLRole
+
+	err = msgpackrpc.CallWithCodec(codec, "ACL.RoleSet", &arg, &out)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if out.ID == "" {
+		return nil, fmt.Errorf("ID is nil: %v", out)
+	}
+
+	return &out, nil
+}
+
+// retrieveTestRole returns a role for testing purposes
+func retrieveTestRole(codec rpc.ClientCodec, masterToken string, datacenter string, id string) (*structs.ACLRoleResponse, error) {
+	arg := structs.ACLRoleGetRequest{
+		Datacenter:   datacenter,
+		RoleID:       id,
+		QueryOptions: structs.QueryOptions{Token: masterToken},
+	}
+
+	var out structs.ACLRoleResponse
+
+	err := msgpackrpc.CallWithCodec(codec, "ACL.RoleRead", &arg, &out)
 
 	if err != nil {
 		return nil, err

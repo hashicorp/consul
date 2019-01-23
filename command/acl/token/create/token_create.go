@@ -25,6 +25,8 @@ type cmd struct {
 
 	policyIDs     []string
 	policyNames   []string
+	roleIDs       []string
+	roleNames     []string
 	serviceIdents []string
 	expirationTTL time.Duration
 	description   string
@@ -42,6 +44,10 @@ func (c *cmd) init() {
 		"policy to use for this token. May be specified multiple times")
 	c.flags.Var((*flags.AppendSliceValue)(&c.policyNames), "policy-name", "Name of a "+
 		"policy to use for this token. May be specified multiple times")
+	c.flags.Var((*flags.AppendSliceValue)(&c.roleIDs), "role-id", "ID of a "+
+		"role to use for this token. May be specified multiple times")
+	c.flags.Var((*flags.AppendSliceValue)(&c.roleNames), "role-name", "Name of a "+
+		"role to use for this token. May be specified multiple times")
 	c.flags.Var((*flags.AppendSliceValue)(&c.serviceIdents), "service-identity", "Name of a "+
 		"service identity to use for this token. May be specified multiple times. Format is "+
 		"the SERVICENAME or SERVICENAME:DATACENTER1,DATACENTER2,...")
@@ -59,8 +65,9 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if len(c.policyNames) == 0 && len(c.policyIDs) == 0 &&
+		len(c.roleNames) == 0 && len(c.roleIDs) == 0 &&
 		len(c.serviceIdents) == 0 {
-		c.UI.Error(fmt.Sprintf("Cannot create a token without specifying -policy-name, -policy-id, or -service-identity at least once"))
+		c.UI.Error(fmt.Sprintf("Cannot create a token without specifying -policy-name, -policy-id, -role-name, -role-id, or -service-identity at least once"))
 		return 1
 	}
 
@@ -100,6 +107,21 @@ func (c *cmd) Run(args []string) int {
 		newToken.Policies = append(newToken.Policies, &api.ACLTokenPolicyLink{ID: policyID})
 	}
 
+	for _, roleName := range c.roleNames {
+		// We could resolve names to IDs here but there isn't any reason why its would be better
+		// than allowing the agent to do it.
+		newToken.Roles = append(newToken.Roles, &api.ACLTokenRoleLink{Name: roleName})
+	}
+
+	for _, roleID := range c.roleIDs {
+		roleID, err := acl.GetRoleIDFromPartial(client, roleID)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error resolving role ID %s: %v", roleID, err))
+			return 1
+		}
+		newToken.Roles = append(newToken.Roles, &api.ACLTokenRoleLink{ID: roleID})
+	}
+
 	token, _, err := client.ACL().TokenCreate(newToken, nil)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Failed to create new token: %v", err))
@@ -130,8 +152,9 @@ Usage: consul acl token create [options]
 
           $ consul acl token create -description "Replication token" \
                                     -policy-id b52fc3de-5 \
-                                    -policy-name "acl-replication"
                                     -policy-name "acl-replication" \
+                                    -role-id c630d4ef-6 \
+                                    -role-name "db-updater" \
                                     -service-identity "web" \
                                     -service-identity "db:east,west"
 `

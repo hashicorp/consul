@@ -55,6 +55,8 @@ const (
 	ACLPolicySetRequestType                = 19
 	ACLPolicyDeleteRequestType             = 20
 	ConnectCALeafRequestType               = 21
+	ACLRoleSetRequestType                  = 22
+	ACLRoleDeleteRequestType               = 23
 )
 
 const (

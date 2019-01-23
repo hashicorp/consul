@@ -3,6 +3,7 @@ package consul
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -15,123 +16,108 @@ const (
 	aclReplicationMaxRetryBackoff = 64
 )
 
-func diffACLPolicies(local structs.ACLPolicies, remote structs.ACLPolicyListStubs, lastRemoteIndex uint64) ([]string, []string) {
-	local.Sort()
-	remote.Sort()
+// aclTypeReplicator allows the machinery of acl replication to be shared between
+// types with minimal code duplication (barring generics magically popping into
+// existence).
+//
+// Concrete implementations of this interface should internally contain a
+// pointer to the server so that data lookups can occur, and they should
+// maintain the smallest quantity of type-specific state they can.
+//
+// Implementations of this interface are short-lived and recreated on every
+// iteration.
+type aclTypeReplicator interface {
+	// Type is variant of replication in use. Used for updating the replication
+	// status tracker.
+	Type() structs.ACLReplicationType
 
-	var deletions []string
-	var updates []string
-	var localIdx int
-	var remoteIdx int
-	for localIdx, remoteIdx = 0, 0; localIdx < len(local) && remoteIdx < len(remote); {
-		if local[localIdx].ID == remote[remoteIdx].ID {
-			// policy is in both the local and remote state - need to check raft indices and the Hash
-			if remote[remoteIdx].ModifyIndex > lastRemoteIndex && !bytes.Equal(remote[remoteIdx].Hash, local[localIdx].Hash) {
-				updates = append(updates, remote[remoteIdx].ID)
-			}
-			// increment both indices when equal
-			localIdx += 1
-			remoteIdx += 1
-		} else if local[localIdx].ID < remote[remoteIdx].ID {
-			// policy no longer in remoted state - needs deleting
-			deletions = append(deletions, local[localIdx].ID)
+	// SingularNoun is the singular form of the item being replicated.
+	SingularNoun() string
 
-			// increment just the local index
-			localIdx += 1
-		} else {
-			// local state doesn't have this policy - needs updating
-			updates = append(updates, remote[remoteIdx].ID)
+	// PluralNoun is the plural form of the item being replicated.
+	PluralNoun() string
 
-			// increment just the remote index
-			remoteIdx += 1
-		}
-	}
+	// FetchRemote retrieves items newer than the provided index from the
+	// remote datacenter (for diffing purposes).
+	FetchRemote(srv *Server, lastRemoteIndex uint64) (int, uint64, error)
 
-	for ; localIdx < len(local); localIdx += 1 {
-		deletions = append(deletions, local[localIdx].ID)
-	}
+	// FetchLocal retrieves items from the current datacenter (for diffing
+	// purposes).
+	FetchLocal(srv *Server) (int, uint64, error)
 
-	for ; remoteIdx < len(remote); remoteIdx += 1 {
-		updates = append(updates, remote[remoteIdx].ID)
-	}
+	// SortState sorts the internal working state output of FetchRemote and
+	// FetchLocal so that a sane diff can be performed.
+	SortState() (lenLocal, lenRemote int)
 
-	return deletions, updates
+	// LocalMeta allows for type-agnostic metadata from the sorted local state
+	// can be retrieved for the purposes of diffing.
+	LocalMeta(i int) (id string, modIndex uint64, hash []byte)
+
+	// RemoteMeta allows for type-agnostic metadata from the sorted remote
+	// state can be retrieved for the purposes of diffing.
+	RemoteMeta(i int) (id string, modIndex uint64, hash []byte)
+
+	// FetchUpdated retrieves the specific items from the remote (during the
+	// correction phase).
+	FetchUpdated(srv *Server, updates []string) (int, error)
+
+	// LenPendingUpdates should be the size of the data retrieved in
+	// FetchUpdated.
+	LenPendingUpdates() int
+
+	// PendingUpdateIsRedacted returns true if the update contains redacted
+	// data. Really only valid for tokens.
+	PendingUpdateIsRedacted(i int) bool
+
+	// PendingUpdateEstimatedSize is the item's EstimatedSize in the state
+	// populated by FetchUpdated.
+	PendingUpdateEstimatedSize(i int) int
+
+	// UpdateLocalBatch applies a portion of the state populated by
+	// FetchUpdated to the current datacenter.
+	UpdateLocalBatch(ctx context.Context, srv *Server, start, end int) error
+
+	// DeleteLocalBatch removes items from the current datacenter.
+	DeleteLocalBatch(srv *Server, batch []string) error
 }
 
-func (s *Server) deleteLocalACLPolicies(deletions []string, ctx context.Context) (bool, error) {
-	ticker := time.NewTicker(time.Second / time.Duration(s.config.ACLReplicationApplyLimit))
-	defer ticker.Stop()
+var errContainsRedactedData = errors.New("replication results contain redacted data")
 
-	for i := 0; i < len(deletions); i += aclBatchDeleteSize {
-		req := structs.ACLPolicyBatchDeleteRequest{}
-
-		if i+aclBatchDeleteSize > len(deletions) {
-			req.PolicyIDs = deletions[i:]
-		} else {
-			req.PolicyIDs = deletions[i : i+aclBatchDeleteSize]
-		}
-
-		resp, err := s.raftApply(structs.ACLPolicyDeleteRequestType, &req)
-		if err != nil {
-			return false, fmt.Errorf("Failed to apply policy deletions: %v", err)
-		}
-		if respErr, ok := resp.(error); ok && err != nil {
-			return false, fmt.Errorf("Failed to apply policy deletions: %v", respErr)
-		}
-
-		if i+aclBatchDeleteSize < len(deletions) {
-			select {
-			case <-ctx.Done():
-				return true, nil
-			case <-ticker.C:
-				// do nothing - ready for the next batch
-			}
-		}
+func (s *Server) fetchACLRolesBatch(roleIDs []string) (*structs.ACLRoleBatchResponse, error) {
+	req := structs.ACLRoleBatchGetRequest{
+		Datacenter: s.config.ACLDatacenter,
+		RoleIDs:    roleIDs,
+		QueryOptions: structs.QueryOptions{
+			AllowStale: true,
+			Token:      s.tokens.ReplicationToken(),
+		},
 	}
 
-	return false, nil
+	var response structs.ACLRoleBatchResponse
+	if err := s.RPC("ACL.RoleBatchRead", &req, &response); err != nil {
+		return nil, err
+	}
+
+	return &response, nil
 }
 
-func (s *Server) updateLocalACLPolicies(policies structs.ACLPolicies, ctx context.Context) (bool, error) {
-	ticker := time.NewTicker(time.Second / time.Duration(s.config.ACLReplicationApplyLimit))
-	defer ticker.Stop()
+func (s *Server) fetchACLRoles(lastRemoteIndex uint64) (*structs.ACLRoleListResponse, error) {
+	defer metrics.MeasureSince([]string{"leader", "replication", "acl", "role", "fetch"}, time.Now())
 
-	// outer loop handles submitting a batch
-	for batchStart := 0; batchStart < len(policies); {
-		// inner loop finds the last element to include in this batch.
-		batchSize := 0
-		batchEnd := batchStart
-		for ; batchEnd < len(policies) && batchSize < aclBatchUpsertSize; batchEnd += 1 {
-			batchSize += policies[batchEnd].EstimateSize()
-		}
-
-		req := structs.ACLPolicyBatchSetRequest{
-			Policies: policies[batchStart:batchEnd],
-		}
-
-		resp, err := s.raftApply(structs.ACLPolicySetRequestType, &req)
-		if err != nil {
-			return false, fmt.Errorf("Failed to apply policy upserts: %v", err)
-		}
-		if respErr, ok := resp.(error); ok && respErr != nil {
-			return false, fmt.Errorf("Failed to apply policy upsert: %v", respErr)
-		}
-		s.logger.Printf("[DEBUG] acl: policy replication - upserted 1 batch with %d policies of size %d", batchEnd-batchStart, batchSize)
-
-		// policies[batchEnd] wasn't include as the slicing doesn't include the element at the stop index
-		batchStart = batchEnd
-
-		// prevent waiting if we are done
-		if batchEnd < len(policies) {
-			select {
-			case <-ctx.Done():
-				return true, nil
-			case <-ticker.C:
-				// nothing to do - just rate limiting
-			}
-		}
+	req := structs.ACLRoleListRequest{
+		Datacenter: s.config.ACLDatacenter,
+		QueryOptions: structs.QueryOptions{
+			AllowStale:    true,
+			MinQueryIndex: lastRemoteIndex,
+			Token:         s.tokens.ReplicationToken(),
+		},
 	}
-	return false, nil
+
+	var response structs.ACLRoleListResponse
+	if err := s.RPC("ACL.RoleList", &req, &response); err != nil {
+		return nil, err
+	}
+	return &response, nil
 }
 
 func (s *Server) fetchACLPoliciesBatch(policyIDs []string) (*structs.ACLPolicyBatchResponse, error) {
@@ -171,66 +157,72 @@ func (s *Server) fetchACLPolicies(lastRemoteIndex uint64) (*structs.ACLPolicyLis
 	return &response, nil
 }
 
-type tokenDiffResults struct {
+type itemDiffResults struct {
 	LocalDeletes  []string
 	LocalUpserts  []string
 	LocalSkipped  int
 	RemoteSkipped int
 }
 
-func diffACLTokens(local structs.ACLTokens, remote structs.ACLTokenListStubs, lastRemoteIndex uint64) tokenDiffResults {
-	// Note: items with empty AccessorIDs will bubble up to the top.
-	local.Sort()
-	remote.Sort()
+func diffACLType(tr aclTypeReplicator, lastRemoteIndex uint64) itemDiffResults {
+	// Note: items with empty IDs will bubble up to the top (like legacy, unmigrated Tokens)
 
-	var res tokenDiffResults
+	lenLocal, lenRemote := tr.SortState()
+
+	var res itemDiffResults
 	var localIdx int
 	var remoteIdx int
-	for localIdx, remoteIdx = 0, 0; localIdx < len(local) && remoteIdx < len(remote); {
-		if local[localIdx].AccessorID == "" {
+	for localIdx, remoteIdx = 0, 0; localIdx < lenLocal && remoteIdx < lenRemote; {
+		localID, _, localHash := tr.LocalMeta(localIdx)
+		remoteID, remoteMod, remoteHash := tr.RemoteMeta(remoteIdx)
+
+		if localID == "" {
 			res.LocalSkipped++
 			localIdx += 1
 			continue
 		}
-		if remote[remoteIdx].AccessorID == "" {
+		if remoteID == "" {
 			res.RemoteSkipped++
 			remoteIdx += 1
 			continue
 		}
-		if local[localIdx].AccessorID == remote[remoteIdx].AccessorID {
-			// policy is in both the local and remote state - need to check raft indices and Hash
-			if remote[remoteIdx].ModifyIndex > lastRemoteIndex && !bytes.Equal(remote[remoteIdx].Hash, local[localIdx].Hash) {
-				res.LocalUpserts = append(res.LocalUpserts, remote[remoteIdx].AccessorID)
+
+		if localID == remoteID {
+			// item is in both the local and remote state - need to check raft indices and the Hash
+			if remoteMod > lastRemoteIndex && !bytes.Equal(remoteHash, localHash) {
+				res.LocalUpserts = append(res.LocalUpserts, remoteID)
 			}
 			// increment both indices when equal
 			localIdx += 1
 			remoteIdx += 1
-		} else if local[localIdx].AccessorID < remote[remoteIdx].AccessorID {
-			// policy no longer in remoted state - needs deleting
-			res.LocalDeletes = append(res.LocalDeletes, local[localIdx].AccessorID)
+		} else if localID < remoteID {
+			// item no longer in remote state - needs deleting
+			res.LocalDeletes = append(res.LocalDeletes, localID)
 
 			// increment just the local index
 			localIdx += 1
 		} else {
-			// local state doesn't have this policy - needs updating
-			res.LocalUpserts = append(res.LocalUpserts, remote[remoteIdx].AccessorID)
+			// local state doesn't have this item - needs updating
+			res.LocalUpserts = append(res.LocalUpserts, remoteID)
 
 			// increment just the remote index
 			remoteIdx += 1
 		}
 	}
 
-	for ; localIdx < len(local); localIdx += 1 {
-		if local[localIdx].AccessorID != "" {
-			res.LocalDeletes = append(res.LocalDeletes, local[localIdx].AccessorID)
+	for ; localIdx < lenLocal; localIdx += 1 {
+		localID, _, _ := tr.LocalMeta(localIdx)
+		if localID != "" {
+			res.LocalDeletes = append(res.LocalDeletes, localID)
 		} else {
 			res.LocalSkipped++
 		}
 	}
 
-	for ; remoteIdx < len(remote); remoteIdx += 1 {
-		if remote[remoteIdx].AccessorID != "" {
-			res.LocalUpserts = append(res.LocalUpserts, remote[remoteIdx].AccessorID)
+	for ; remoteIdx < lenRemote; remoteIdx += 1 {
+		remoteID, _, _ := tr.RemoteMeta(remoteIdx)
+		if remoteID != "" {
+			res.LocalUpserts = append(res.LocalUpserts, remoteID)
 		} else {
 			res.RemoteSkipped++
 		}
@@ -239,25 +231,21 @@ func diffACLTokens(local structs.ACLTokens, remote structs.ACLTokenListStubs, la
 	return res
 }
 
-func (s *Server) deleteLocalACLTokens(deletions []string, ctx context.Context) (bool, error) {
+func (s *Server) deleteLocalACLType(ctx context.Context, tr aclTypeReplicator, deletions []string) (bool, error) {
 	ticker := time.NewTicker(time.Second / time.Duration(s.config.ACLReplicationApplyLimit))
 	defer ticker.Stop()
 
 	for i := 0; i < len(deletions); i += aclBatchDeleteSize {
-		req := structs.ACLTokenBatchDeleteRequest{}
+		var batch []string
 
 		if i+aclBatchDeleteSize > len(deletions) {
-			req.TokenIDs = deletions[i:]
+			batch = deletions[i:]
 		} else {
-			req.TokenIDs = deletions[i : i+aclBatchDeleteSize]
+			batch = deletions[i : i+aclBatchDeleteSize]
 		}
 
-		resp, err := s.raftApply(structs.ACLTokenDeleteRequestType, &req)
-		if err != nil {
-			return false, fmt.Errorf("Failed to apply token deletions: %v", err)
-		}
-		if respErr, ok := resp.(error); ok && err != nil {
-			return false, fmt.Errorf("Failed to apply token deletions: %v", respErr)
+		if err := tr.DeleteLocalBatch(s, batch); err != nil {
+			return false, fmt.Errorf("Failed to apply %s deletions: %v", tr.SingularNoun(), err)
 		}
 
 		if i+aclBatchDeleteSize < len(deletions) {
@@ -273,47 +261,50 @@ func (s *Server) deleteLocalACLTokens(deletions []string, ctx context.Context) (
 	return false, nil
 }
 
-func (s *Server) updateLocalACLTokens(tokens structs.ACLTokens, ctx context.Context) (bool, error) {
+func (s *Server) updateLocalACLType(ctx context.Context, tr aclTypeReplicator) (bool, error) {
 	ticker := time.NewTicker(time.Second / time.Duration(s.config.ACLReplicationApplyLimit))
 	defer ticker.Stop()
 
+	lenPending := tr.LenPendingUpdates()
+
 	// outer loop handles submitting a batch
-	for batchStart := 0; batchStart < len(tokens); {
+	for batchStart := 0; batchStart < lenPending; {
 		// inner loop finds the last element to include in this batch.
 		batchSize := 0
 		batchEnd := batchStart
-		for ; batchEnd < len(tokens) && batchSize < aclBatchUpsertSize; batchEnd += 1 {
-			if tokens[batchEnd].SecretID == redactedToken {
-				return false, fmt.Errorf("Detected redacted token secrets: stopping token update round - verify that the replication token in use has acl:write permissions.")
+		for ; batchEnd < lenPending && batchSize < aclBatchUpsertSize; batchEnd += 1 {
+			if tr.PendingUpdateIsRedacted(batchEnd) {
+				return false, fmt.Errorf(
+					"Detected redacted %s secrets: stopping %s update round - verify that the replication token in use has acl:write permissions.",
+					tr.SingularNoun(),
+					tr.SingularNoun(),
+				)
 			}
-			batchSize += tokens[batchEnd].EstimateSize()
+			batchSize += tr.PendingUpdateEstimatedSize(batchEnd)
 		}
 
-		req := structs.ACLTokenBatchSetRequest{
-			Tokens: tokens[batchStart:batchEnd],
-			CAS:    false,
-		}
-
-		resp, err := s.raftApply(structs.ACLTokenSetRequestType, &req)
+		err := tr.UpdateLocalBatch(ctx, s, batchStart, batchEnd)
 		if err != nil {
-			return false, fmt.Errorf("Failed to apply token upserts: %v", err)
+			return false, fmt.Errorf("Failed to apply %s upserts: %v", tr.SingularNoun(), err)
 		}
-		if respErr, ok := resp.(error); ok && respErr != nil {
-			return false, fmt.Errorf("Failed to apply token upserts: %v", respErr)
-		}
+		s.logger.Printf(
+			"[DEBUG] acl: %s replication - upserted 1 batch with %d %s of size %d",
+			tr.SingularNoun(),
+			batchEnd-batchStart,
+			tr.PluralNoun(),
+			batchSize,
+		)
 
-		s.logger.Printf("[DEBUG] acl: token replication - upserted 1 batch with %d tokens of size %d", batchEnd-batchStart, batchSize)
-
-		// tokens[batchEnd] wasn't include as the slicing doesn't include the element at the stop index
+		// items[batchEnd] wasn't include as the slicing doesn't include the element at the stop index
 		batchStart = batchEnd
 
 		// prevent waiting if we are done
-		if batchEnd < len(tokens) {
+		if batchEnd < lenPending {
 			select {
 			case <-ctx.Done():
 				return true, nil
 			case <-ticker.C:
-				// nothing to do - just rate limiting here
+				// nothing to do - just rate limiting
 			}
 		}
 	}
@@ -359,95 +350,28 @@ func (s *Server) fetchACLTokens(lastRemoteIndex uint64) (*structs.ACLTokenListRe
 	return &response, nil
 }
 
-func (s *Server) replicateACLPolicies(lastRemoteIndex uint64, ctx context.Context) (uint64, bool, error) {
-	remote, err := s.fetchACLPolicies(lastRemoteIndex)
-	if err != nil {
-		return 0, false, fmt.Errorf("failed to retrieve remote ACL policies: %v", err)
-	}
-
-	s.logger.Printf("[DEBUG] acl: finished fetching policies tokens: %d", len(remote.Policies))
-
-	// Need to check if we should be stopping. This will be common as the fetching process is a blocking
-	// RPC which could have been hanging around for a long time and during that time leadership could
-	// have been lost.
-	select {
-	case <-ctx.Done():
-		return 0, true, nil
-	default:
-		// do nothing
-	}
-
-	// Measure everything after the remote query, which can block for long
-	// periods of time. This metric is a good measure of how expensive the
-	// replication process is.
-	defer metrics.MeasureSince([]string{"leader", "replication", "acl", "policy", "apply"}, time.Now())
-
-	_, local, err := s.fsm.State().ACLPolicyList(nil)
-	if err != nil {
-		return 0, false, fmt.Errorf("failed to retrieve local ACL policies: %v", err)
-	}
-
-	// If the remote index ever goes backwards, it's a good indication that
-	// the remote side was rebuilt and we should do a full sync since we
-	// can't make any assumptions about what's going on.
-	if remote.QueryMeta.Index < lastRemoteIndex {
-		s.logger.Printf("[WARN] consul: ACL policy replication remote index moved backwards (%d to %d), forcing a full ACL policy sync", lastRemoteIndex, remote.QueryMeta.Index)
-		lastRemoteIndex = 0
-	}
-
-	s.logger.Printf("[DEBUG] acl: policy replication - local: %d, remote: %d", len(local), len(remote.Policies))
-	// Calculate the changes required to bring the state into sync and then
-	// apply them.
-	deletions, updates := diffACLPolicies(local, remote.Policies, lastRemoteIndex)
-
-	s.logger.Printf("[DEBUG] acl: policy replication - deletions: %d, updates: %d", len(deletions), len(updates))
-
-	var policies *structs.ACLPolicyBatchResponse
-	if len(updates) > 0 {
-		policies, err = s.fetchACLPoliciesBatch(updates)
-		if err != nil {
-			return 0, false, fmt.Errorf("failed to retrieve ACL policy updates: %v", err)
-		}
-		s.logger.Printf("[DEBUG] acl: policy replication - downloaded %d policies", len(policies.Policies))
-	}
-
-	if len(deletions) > 0 {
-		s.logger.Printf("[DEBUG] acl: policy replication - performing deletions")
-
-		exit, err := s.deleteLocalACLPolicies(deletions, ctx)
-		if exit {
-			return 0, true, nil
-		}
-		if err != nil {
-			return 0, false, fmt.Errorf("failed to delete local ACL policies: %v", err)
-		}
-		s.logger.Printf("[DEBUG] acl: policy replication - finished deletions")
-	}
-
-	if len(updates) > 0 {
-		s.logger.Printf("[DEBUG] acl: policy replication - performing updates")
-		exit, err := s.updateLocalACLPolicies(policies.Policies, ctx)
-		if exit {
-			return 0, true, nil
-		}
-		if err != nil {
-			return 0, false, fmt.Errorf("failed to update local ACL policies: %v", err)
-		}
-		s.logger.Printf("[DEBUG] acl: policy replication - finished updates")
-	}
-
-	// Return the index we got back from the remote side, since we've synced
-	// up with the remote state as of that index.
-	return remote.QueryMeta.Index, false, nil
+func (s *Server) replicateACLTokens(ctx context.Context, lastRemoteIndex uint64) (uint64, bool, error) {
+	tr := &aclTokenReplicator{}
+	return s.replicateACLType(ctx, tr, lastRemoteIndex)
 }
 
-func (s *Server) replicateACLTokens(lastRemoteIndex uint64, ctx context.Context) (uint64, bool, error) {
-	remote, err := s.fetchACLTokens(lastRemoteIndex)
+func (s *Server) replicateACLPolicies(ctx context.Context, lastRemoteIndex uint64) (uint64, bool, error) {
+	tr := &aclPolicyReplicator{}
+	return s.replicateACLType(ctx, tr, lastRemoteIndex)
+}
+
+func (s *Server) replicateACLRoles(ctx context.Context, lastRemoteIndex uint64) (uint64, bool, error) {
+	tr := &aclRoleReplicator{}
+	return s.replicateACLType(ctx, tr, lastRemoteIndex)
+}
+
+func (s *Server) replicateACLType(ctx context.Context, tr aclTypeReplicator, lastRemoteIndex uint64) (uint64, bool, error) {
+	lenRemote, remoteIndex, err := tr.FetchRemote(s, lastRemoteIndex)
 	if err != nil {
-		return 0, false, fmt.Errorf("failed to retrieve remote ACL tokens: %v", err)
+		return 0, false, fmt.Errorf("failed to retrieve remote ACL %s: %v", tr.PluralNoun(), err)
 	}
 
-	s.logger.Printf("[DEBUG] acl: finished fetching remote tokens: %d", len(remote.Tokens))
+	s.logger.Printf("[DEBUG] acl: finished fetching %s: %d", tr.PluralNoun(), lenRemote)
 
 	// Need to check if we should be stopping. This will be common as the fetching process is a blocking
 	// RPC which could have been hanging around for a long time and during that time leadership could
@@ -462,74 +386,99 @@ func (s *Server) replicateACLTokens(lastRemoteIndex uint64, ctx context.Context)
 	// Measure everything after the remote query, which can block for long
 	// periods of time. This metric is a good measure of how expensive the
 	// replication process is.
-	defer metrics.MeasureSince([]string{"leader", "replication", "acl", "token", "apply"}, time.Now())
+	defer metrics.MeasureSince([]string{"leader", "replication", "acl", tr.SingularNoun(), "apply"}, time.Now())
 
-	_, local, err := s.fsm.State().ACLTokenList(nil, false, true, "")
+	lenLocal, _, err := tr.FetchLocal(s)
 	if err != nil {
-		return 0, false, fmt.Errorf("failed to retrieve local ACL tokens: %v", err)
+		return 0, false, fmt.Errorf("failed to retrieve local ACL %s: %v", tr.PluralNoun(), err)
 	}
-	// Do not filter by expiration times. Wait until the tokens are explicitly deleted.
 
 	// If the remote index ever goes backwards, it's a good indication that
 	// the remote side was rebuilt and we should do a full sync since we
 	// can't make any assumptions about what's going on.
-	if remote.QueryMeta.Index < lastRemoteIndex {
-		s.logger.Printf("[WARN] consul: ACL token replication remote index moved backwards (%d to %d), forcing a full ACL token sync", lastRemoteIndex, remote.QueryMeta.Index)
+	if remoteIndex < lastRemoteIndex {
+		s.logger.Printf(
+			"[WARN] consul: ACL %s replication remote index moved backwards (%d to %d), forcing a full ACL %s sync",
+			tr.SingularNoun(),
+			lastRemoteIndex,
+			remoteIndex,
+			tr.SingularNoun(),
+		)
 		lastRemoteIndex = 0
 	}
 
-	s.logger.Printf("[DEBUG] acl: token replication - local: %d, remote: %d", len(local), len(remote.Tokens))
-
-	// Calculate the changes required to bring the state into sync and then
-	// apply them.
-	res := diffACLTokens(local, remote.Tokens, lastRemoteIndex)
+	s.logger.Printf(
+		"[DEBUG] acl: %s replication - local: %d, remote: %d",
+		tr.SingularNoun(),
+		lenLocal,
+		lenRemote,
+	)
+	// Calculate the changes required to bring the state into sync and then apply them.
+	res := diffACLType(tr, lastRemoteIndex)
 	if res.LocalSkipped > 0 || res.RemoteSkipped > 0 {
-		s.logger.Printf("[DEBUG] acl: token replication - deletions: %d, updates: %d, skipped: %d, skippedRemote: %d",
-			len(res.LocalDeletes), len(res.LocalUpserts), res.LocalSkipped, res.RemoteSkipped)
+		s.logger.Printf(
+			"[DEBUG] acl: %s replication - deletions: %d, updates: %d, skipped: %d, skippedRemote: %d",
+			tr.SingularNoun(),
+			len(res.LocalDeletes),
+			len(res.LocalUpserts),
+			res.LocalSkipped,
+			res.RemoteSkipped,
+		)
 	} else {
-		s.logger.Printf("[DEBUG] acl: token replication - deletions: %d, updates: %d", len(res.LocalDeletes), len(res.LocalUpserts))
+		s.logger.Printf(
+			"[DEBUG] acl: %s replication - deletions: %d, updates: %d",
+			tr.SingularNoun(),
+			len(res.LocalDeletes),
+			len(res.LocalUpserts),
+		)
 	}
 
-	var tokens *structs.ACLTokenBatchResponse
 	if len(res.LocalUpserts) > 0 {
-		tokens, err = s.fetchACLTokensBatch(res.LocalUpserts)
-		if err != nil {
-			return 0, false, fmt.Errorf("failed to retrieve ACL token updates: %v", err)
-		} else if tokens.Redacted {
-			return 0, false, fmt.Errorf("failed to retrieve unredacted tokens - replication token in use does not grant acl:write")
+		lenUpdated, err := tr.FetchUpdated(s, res.LocalUpserts)
+		if err == errContainsRedactedData {
+			return 0, false, fmt.Errorf("failed to retrieve unredacted %s - replication token in use does not grant acl:write", tr.PluralNoun())
+		} else if err != nil {
+			return 0, false, fmt.Errorf("failed to retrieve ACL %s updates: %v", tr.SingularNoun(), err)
 		}
-
-		s.logger.Printf("[DEBUG] acl: token replication - downloaded %d tokens", len(tokens.Tokens))
+		s.logger.Printf(
+			"[DEBUG] acl: %s replication - downloaded %d %s",
+			tr.SingularNoun(),
+			lenUpdated,
+			tr.PluralNoun(),
+		)
 	}
 
 	if len(res.LocalDeletes) > 0 {
-		s.logger.Printf("[DEBUG] acl: token replication - performing deletions")
+		s.logger.Printf(
+			"[DEBUG] acl: %s replication - performing deletions",
+			tr.SingularNoun(),
+		)
 
-		exit, err := s.deleteLocalACLTokens(res.LocalDeletes, ctx)
+		exit, err := s.deleteLocalACLType(ctx, tr, res.LocalDeletes)
 		if exit {
 			return 0, true, nil
 		}
 		if err != nil {
-			return 0, false, fmt.Errorf("failed to delete local ACL tokens: %v", err)
+			return 0, false, fmt.Errorf("failed to delete local ACL %s: %v", tr.PluralNoun(), err)
 		}
-		s.logger.Printf("[DEBUG] acl: token replication - finished deletions")
+		s.logger.Printf("[DEBUG] acl: %s replication - finished deletions", tr.SingularNoun())
 	}
 
 	if len(res.LocalUpserts) > 0 {
-		s.logger.Printf("[DEBUG] acl: token replication - performing updates")
-		exit, err := s.updateLocalACLTokens(tokens.Tokens, ctx)
+		s.logger.Printf("[DEBUG] acl: %s replication - performing updates", tr.SingularNoun())
+		exit, err := s.updateLocalACLType(ctx, tr)
 		if exit {
 			return 0, true, nil
 		}
 		if err != nil {
-			return 0, false, fmt.Errorf("failed to update local ACL tokens: %v", err)
+			return 0, false, fmt.Errorf("failed to update local ACL %s: %v", tr.PluralNoun(), err)
 		}
-		s.logger.Printf("[DEBUG] acl: token replication - finished updates")
+		s.logger.Printf("[DEBUG] acl: %s replication - finished updates", tr.SingularNoun())
 	}
 
 	// Return the index we got back from the remote side, since we've synced
 	// up with the remote state as of that index.
-	return remote.QueryMeta.Index, false, nil
+	return remoteIndex, false, nil
 }
 
 // IsACLReplicationEnabled returns true if ACL replication is enabled.
@@ -547,20 +496,23 @@ func (s *Server) updateACLReplicationStatusError() {
 	s.aclReplicationStatus.LastError = time.Now().Round(time.Second).UTC()
 }
 
-func (s *Server) updateACLReplicationStatusIndex(index uint64) {
+func (s *Server) updateACLReplicationStatusIndex(replicationType structs.ACLReplicationType, index uint64) {
 	s.aclReplicationStatusLock.Lock()
 	defer s.aclReplicationStatusLock.Unlock()
 
 	s.aclReplicationStatus.LastSuccess = time.Now().Round(time.Second).UTC()
-	s.aclReplicationStatus.ReplicatedIndex = index
-}
-
-func (s *Server) updateACLReplicationStatusTokenIndex(index uint64) {
-	s.aclReplicationStatusLock.Lock()
-	defer s.aclReplicationStatusLock.Unlock()
-
-	s.aclReplicationStatus.LastSuccess = time.Now().Round(time.Second).UTC()
-	s.aclReplicationStatus.ReplicatedTokenIndex = index
+	switch replicationType {
+	case structs.ACLReplicateLegacy:
+		s.aclReplicationStatus.ReplicatedIndex = index
+	case structs.ACLReplicateTokens:
+		s.aclReplicationStatus.ReplicatedTokenIndex = index
+	case structs.ACLReplicatePolicies:
+		s.aclReplicationStatus.ReplicatedIndex = index
+	case structs.ACLReplicateRoles:
+		s.aclReplicationStatus.ReplicatedRoleIndex = index
+	default:
+		panic("unknown replication type: " + replicationType.SingularNoun())
+	}
 }
 
 func (s *Server) initReplicationStatus() {
@@ -583,6 +535,21 @@ func (s *Server) updateACLReplicationStatusRunning(replicationType structs.ACLRe
 	s.aclReplicationStatusLock.Lock()
 	defer s.aclReplicationStatusLock.Unlock()
 
+	// The running state represents which type of overall replication has been
+	// configured. Though there are various types of internal plumbing for acl
+	// replication, to the end user there are only 3 distinctly configurable
+	// variants: legacy, policy, token. Roles replicate with policies so we
+	// round that up here.
+	if replicationType == structs.ACLReplicateRoles {
+		replicationType = structs.ACLReplicatePolicies
+	}
+
 	s.aclReplicationStatus.Running = true
 	s.aclReplicationStatus.ReplicationType = replicationType
+}
+
+func (s *Server) getACLReplicationStatusRunningType() (structs.ACLReplicationType, bool) {
+	s.aclReplicationStatusLock.RLock()
+	defer s.aclReplicationStatusLock.RUnlock()
+	return s.aclReplicationStatus.ReplicationType, s.aclReplicationStatus.Running
 }
