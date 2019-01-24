@@ -27,12 +27,6 @@ matrix:
 
     - os: osx
       env: GOTEST_PKGS="./api"
-    - os: osx
-      env: GOTEST_PKGS="./agent"
-    - os: osx
-      env: GOTEST_PKGS="./agent/consul"
-    - os: osx
-      env: GOTEST_PKGS_EXCLUDE="./api|./agent|./agent/consul"
 
 script:
   - make test-ci
