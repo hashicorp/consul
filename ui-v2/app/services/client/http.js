@@ -28,14 +28,13 @@ export default Service.extend({
     this._super(...arguments);
     let protocol = 'http/1.1';
     try {
-      protocol = performance.getEntriesByType('resource').reduce(function(prev, item) {
-        // for the moment assume script is likely to be
-        // the same as xmlhttprequest origins
-        if (item.initiatorType === 'script') {
-          prev = item.nextHopProtocol;
-        }
-        return prev;
-      }, 'http/1.1');
+      protocol = performance.getEntriesByType('resource').find(item => {
+        // isCurrent is added in initializers/client and is used
+        // to ensure we use the consul-ui.js src to sniff what the protocol
+        // is. Based on the assumption that whereever this script is it's
+        // likely to be the same as the xmlhttprequests
+        return item.initiatorType === 'script' && this.isCurrent(item.name);
+      }).nextHopProtocol;
     } catch (e) {
       // pass through
     }
