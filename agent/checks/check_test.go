@@ -328,6 +328,43 @@ func TestCheckHTTP(t *testing.T) {
 	}
 }
 
+func TestCheckMaxOutputSize(t *testing.T) {
+	t.Parallel()
+	timeout := 5 * time.Millisecond
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, req *http.Request) {
+		body := bytes.Repeat([]byte{'x'}, 2*BufSize)
+		writer.WriteHeader(200)
+		writer.Write(body)
+	}))
+	defer server.Close()
+
+	notif := mock.NewNotify()
+	maxOutputSize := 32
+	check := &CheckHTTP{
+		Notify:        notif,
+		CheckID:       types.CheckID("bar"),
+		HTTP:          server.URL + "/v1/agent/self",
+		Timeout:       timeout,
+		Interval:      2 * time.Millisecond,
+		Logger:        log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
+		OutputMaxSize: maxOutputSize,
+	}
+
+	check.Start()
+	defer check.Stop()
+	retry.Run(t, func(r *retry.R) {
+		if got, want := notif.Updates("bar"), 2; got < want {
+			r.Fatalf("got %d updates want at least %d", got, want)
+		}
+		if got, want := notif.State("bar"), api.HealthPassing; got != want {
+			r.Fatalf("got state %q want %q", got, want)
+		}
+		if got, want := notif.Output("bar"), "HTTP GET "+server.URL+"/v1/agent/self: 200 OK Output: "+strings.Repeat("x", maxOutputSize); got != want {
+			r.Fatalf("got state %q want %q", got, want)
+		}
+	})
+}
+
 func TestCheckHTTPTimeout(t *testing.T) {
 	t.Parallel()
 	timeout := 5 * time.Millisecond
