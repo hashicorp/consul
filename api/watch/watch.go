@@ -95,6 +95,30 @@ func (idx WaitIndexVal) Next(previous BlockingParamVal) BlockingParamVal {
 	return idx
 }
 
+type WaitIndexAndLtimeVal struct {
+	Index uint64
+	Ltime uint64
+}
+
+func (wil WaitIndexAndLtimeVal) Equal(other BlockingParamVal) bool {
+	if otherWil, ok := other.(WaitIndexAndLtimeVal); ok {
+		return wil == otherWil
+	}
+	return false
+}
+
+func (wil WaitIndexAndLtimeVal) Next(previous BlockingParamVal) BlockingParamVal {
+	if previous == nil {
+		return wil
+	}
+	prevWil, ok := previous.(WaitIndexAndLtimeVal)
+	if ok && prevWil.Index > wil.Index && prevWil.Ltime > wil.Ltime {
+		// This value is smaller than the previous index, reset.
+		return WaitIndexAndLtimeVal{0, 0}
+	}
+	return wil
+}
+
 // WaitHashVal is a type representing a Consul content hash that implements
 // BlockingParamVal.
 type WaitHashVal string
