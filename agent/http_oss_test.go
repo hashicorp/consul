@@ -62,28 +62,30 @@ func newHttpClient(timeout time.Duration) *http.Client {
 }
 
 func TestHTTPAPI_MethodNotAllowed_OSS(t *testing.T) {
-
-	a := NewTestAgent(t.Name(), `acl_datacenter = "dc1"`)
+	// To avoid actually triggering RPCs that are allowed, lock everything down
+	// with default-deny ACLs. This drops the test runtime from 11s to 0.6s.
+	a := NewTestAgent(t.Name(), `
+	primary_datacenter = "dc1"
+	acl {
+		enabled        = true
+		default_policy = "deny"
+		tokens {
+			master  = "sekrit"
+			agent   = "sekrit"
+		}
+	}
+	`)
 	a.Agent.LogWriter = logger.NewLogWriter(512)
 	defer a.Shutdown()
-	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	// Use the master token here so the wait actually works.
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1", testrpc.WithToken("sekrit"))
 
 	all := []string{"GET", "PUT", "POST", "DELETE", "HEAD", "OPTIONS"}
-	const testTimeout = 10 * time.Second
 
-	fastClient := newHttpClient(15 * time.Second)
-	slowClient := newHttpClient(45 * time.Second)
+	client := newHttpClient(15 * time.Second)
 
-	testMethodNotAllowed := func(method string, path string, allowedMethods []string) {
+	testMethodNotAllowed := func(t *testing.T, method string, path string, allowedMethods []string) {
 		t.Run(method+" "+path, func(t *testing.T) {
-			client := fastClient
-			switch path {
-			case "/v1/agent/leave", "/v1/agent/self":
-				// there are actual sleeps in this code that should take longer
-				client = slowClient
-				t.Logf("Using slow http client for leave tests")
-			}
-
 			uri := fmt.Sprintf("http://%s%s", a.HTTPAddr(), path)
 			req, _ := http.NewRequest(method, uri, nil)
 			resp, err := client.Do(req)
@@ -111,14 +113,14 @@ func TestHTTPAPI_MethodNotAllowed_OSS(t *testing.T) {
 
 	for path, methods := range extraTestEndpoints {
 		for _, method := range all {
-			testMethodNotAllowed(method, path, methods)
+			testMethodNotAllowed(t, method, path, methods)
 		}
 	}
 
 	for path, methods := range allowedMethods {
 		if includePathInTest(path) {
 			for _, method := range all {
-				testMethodNotAllowed(method, path, methods)
+				testMethodNotAllowed(t, method, path, methods)
 			}
 		}
 	}
