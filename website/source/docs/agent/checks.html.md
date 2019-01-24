@@ -31,7 +31,7 @@ There are several different kinds of checks:
   In Consul 0.9.0 and later, script checks are not enabled by default. To use them you
   can either use :
   * [`enable_local_script_checks`](/docs/agent/options.html#_enable_local_script_checks):
-    enable script checks defile in local config files. Script checks defined via the HTTP
+    enable script checks defined in local config files. Script checks defined via the HTTP
     API will not be allowed.
   * [`enable_script_checks`](/docs/agent/options.html#_enable_script_checks): enable
     script checks regardless of how they are defined.
