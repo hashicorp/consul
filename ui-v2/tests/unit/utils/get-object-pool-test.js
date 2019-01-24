@@ -18,7 +18,7 @@ test('acquire adds objects', function(assert) {
   const pool = getObjectPool(function() {}, 10, actual);
   pool.acquire(expected, expected.id);
   assert.deepEqual(actual[0], expected);
-  pool.acquire(expected2, expected2);
+  pool.acquire(expected2, expected2.id);
   assert.deepEqual(actual[1], expected2);
 });
 test('acquire adds objects and returns the id', function(assert) {
