@@ -5,6 +5,10 @@ go:
   # build-support/docker/Build-Go.dockerfile.
   - "1.11.4"
 
+os:
+  - linux
+  - osx
+
 branches:
   only:
     - master
