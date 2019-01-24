@@ -29,6 +29,7 @@ matrix:
       env: GOTEST_PKGS="./api"
 
 script:
-  - make test-ci
+  - go run hack/main.go
+  # - make test-ci
 
 sudo: false
