@@ -16,10 +16,23 @@ branches:
 
 matrix:
   include:
-    - env: GOTEST_PKGS="./api"
-    - env: GOTEST_PKGS="./agent"
-    - env: GOTEST_PKGS="./agent/consul"
-    - env: GOTEST_PKGS_EXCLUDE="./api|./agent|./agent/consul"
+    - os: linux
+      env: GOTEST_PKGS="./api"
+    - os: linux
+      env: GOTEST_PKGS="./agent"
+    - os: linux
+      env: GOTEST_PKGS="./agent/consul"
+    - os: linux
+      env: GOTEST_PKGS_EXCLUDE="./api|./agent|./agent/consul"
+
+    - os: osx
+      env: GOTEST_PKGS="./api"
+    - os: osx
+      env: GOTEST_PKGS="./agent"
+    - os: osx
+      env: GOTEST_PKGS="./agent/consul"
+    - os: osx
+      env: GOTEST_PKGS_EXCLUDE="./api|./agent|./agent/consul"
 
 script:
   - make test-ci
