@@ -196,7 +196,7 @@ Those endpoints might be usefull for the following use-cases:
 
 ##### Note
 If you know the ID of service you want to target, it is recommended to use
-[`/v1/agent/health/service/id/:service_id`](/api/service.html#get-local-service-health-by-id)
+[`/v1/agent/health/service/id/:service_id`](/api/agent/service.html#get-local-service-health-by-id)
 so you have the result for the service only. When requesting
 `/v1/agent/health/service/name/:service_name`, the caller will receive the
 worst state of all services having the given name.
@@ -359,7 +359,7 @@ See:
 | `GET`  | `/v1/agent/health/service/id/:service_id?format=text` | `text/plain`       |
 
 Parameters and response format are the same as
-[`/v1/agent/health/service/name/:service_name`](/api/service.html#get-local-service-health).
+[`/v1/agent/health/service/name/:service_name`](/api/agent/service.html#get-local-service-health).
 
 ## Register Service
 
