@@ -2,14 +2,7 @@ import { moduleFor, test } from 'ember-qunit';
 import repo from 'consul-ui/tests/helpers/repo';
 const NAME = 'intention';
 moduleFor(`service:repository/${NAME}`, `Integration | Service | ${NAME}`, {
-  // Specify the other units that are required for this test.
-  needs: [
-    'service:settings',
-    'service:store',
-    `adapter:${NAME}`,
-    `serializer:${NAME}`,
-    `model:${NAME}`,
-  ],
+  integration: true,
 });
 
 const dc = 'dc-1';
