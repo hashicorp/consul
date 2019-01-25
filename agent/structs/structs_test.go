@@ -640,7 +640,7 @@ func TestStructs_HealthCheck_IsSame(t *testing.T) {
 	checkStringField(&other.ServiceName)
 }
 
-func TestStructs_HealthCheck_Unmarshalling(t *testing.T) {
+func TestStructs_HealthCheck_Marshalling(t *testing.T) {
 	d := &HealthCheckDefinition{}
 	buf, err := d.MarshalJSON()
 	require.NoError(t, err)
