@@ -8,7 +8,7 @@ The main method that gets called is `ServeDNS`. It has three parameters:
 * `dns.ResponseWriter` that is, basically, the client's connection;
 * `*dns.Msg` the request from the client.
 
-`ServeDNS` returns two values, a response code and an error. If the error is not nil CoreDNS,
+`ServeDNS` returns two values, a response code and an error. If the error is not nil, CoreDNS
 will return a SERVFAIL to the client. The response code tells CoreDNS if a *reply has been
 written by the plugin chain or not*. In the latter case CoreDNS will take care of that.
 
