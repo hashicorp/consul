@@ -9,6 +9,7 @@ import (
 	"net/http/pprof"
 	"net/url"
 	"os"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -20,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
@@ -510,8 +512,11 @@ func decodeBody(req *http.Request, out interface{}, cb func(interface{}) error) 
 	}
 
 	decodeConf := &mapstructure.DecoderConfig{
-		DecodeHook: mapstructure.StringToTimeDurationHookFunc(),
-		Result:     &out,
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			mapstructure.StringToTimeDurationHookFunc(),
+			stringToReadableDurationFunc(),
+		),
+		Result: &out,
 	}
 
 	decoder, err := mapstructure.NewDecoder(decodeConf)
@@ -520,6 +525,32 @@ func decodeBody(req *http.Request, out interface{}, cb func(interface{}) error) 
 	}
 
 	return decoder.Decode(raw)
+}
+
+// stringToReadableDurationFunc is a mapstructure hook for decoding a string
+// into an api.ReadableDuration for backwards compatibility.
+func stringToReadableDurationFunc() mapstructure.DecodeHookFunc {
+	return func(
+		f reflect.Type,
+		t reflect.Type,
+		data interface{}) (interface{}, error) {
+		var v api.ReadableDuration
+		if t != reflect.TypeOf(v) {
+			return data, nil
+		}
+
+		switch {
+		case f.Kind() == reflect.String:
+			if dur, err := time.ParseDuration(data.(string)); err != nil {
+				return nil, err
+			} else {
+				v = api.ReadableDuration(dur)
+			}
+			return v, nil
+		default:
+			return data, nil
+		}
+	}
 }
 
 // setTranslateAddr is used to set the address translation header. This is only

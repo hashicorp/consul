@@ -46,19 +46,24 @@ type HealthCheck struct {
 // HealthCheckDefinition is used to store the details about
 // a health check's execution.
 type HealthCheckDefinition struct {
-	HTTP                           string
-	Header                         map[string][]string
-	Method                         string
-	TLSSkipVerify                  bool
-	TCP                            string
-	Interval                       time.Duration
-	Timeout                        time.Duration
-	DeregisterCriticalServiceAfter time.Duration
+	HTTP                                   string
+	Header                                 map[string][]string
+	Method                                 string
+	TLSSkipVerify                          bool
+	TCP                                    string
+	IntervalDuration                       time.Duration `json:"-"`
+	TimeoutDuration                        time.Duration `json:"-"`
+	DeregisterCriticalServiceAfterDuration time.Duration `json:"-"`
+
+	// DEPRECATED in Consul 1.4.1. Use the above time.Duration fields instead.
+	Interval                       ReadableDuration
+	Timeout                        ReadableDuration
+	DeregisterCriticalServiceAfter ReadableDuration
 }
 
 func (d *HealthCheckDefinition) MarshalJSON() ([]byte, error) {
 	type Alias HealthCheckDefinition
-	return json.Marshal(&struct {
+	out := &struct {
 		Interval                       string
 		Timeout                        string
 		DeregisterCriticalServiceAfter string
@@ -68,7 +73,19 @@ func (d *HealthCheckDefinition) MarshalJSON() ([]byte, error) {
 		Timeout:                        d.Timeout.String(),
 		DeregisterCriticalServiceAfter: d.DeregisterCriticalServiceAfter.String(),
 		Alias:                          (*Alias)(d),
-	})
+	}
+
+	if d.IntervalDuration != 0 {
+		out.Interval = d.IntervalDuration.String()
+	}
+	if d.TimeoutDuration != 0 {
+		out.Timeout = d.TimeoutDuration.String()
+	}
+	if d.DeregisterCriticalServiceAfterDuration != 0 {
+		out.DeregisterCriticalServiceAfter = d.DeregisterCriticalServiceAfterDuration.String()
+	}
+
+	return json.Marshal(out)
 }
 
 func (d *HealthCheckDefinition) UnmarshalJSON(data []byte) error {
@@ -84,21 +101,26 @@ func (d *HealthCheckDefinition) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
+
+	// Parse the values into both the time.Duration and old ReadableDuration fields.
 	var err error
 	if aux.Interval != "" {
-		if d.Interval, err = time.ParseDuration(aux.Interval); err != nil {
+		if d.IntervalDuration, err = time.ParseDuration(aux.Interval); err != nil {
 			return err
 		}
+		d.Interval = ReadableDuration(d.IntervalDuration)
 	}
 	if aux.Timeout != "" {
-		if d.Timeout, err = time.ParseDuration(aux.Timeout); err != nil {
+		if d.TimeoutDuration, err = time.ParseDuration(aux.Timeout); err != nil {
 			return err
 		}
+		d.Timeout = ReadableDuration(d.TimeoutDuration)
 	}
 	if aux.DeregisterCriticalServiceAfter != "" {
-		if d.DeregisterCriticalServiceAfter, err = time.ParseDuration(aux.DeregisterCriticalServiceAfter); err != nil {
+		if d.DeregisterCriticalServiceAfterDuration, err = time.ParseDuration(aux.DeregisterCriticalServiceAfter); err != nil {
 			return err
 		}
+		d.DeregisterCriticalServiceAfter = ReadableDuration(d.DeregisterCriticalServiceAfterDuration)
 	}
 	return nil
 }
