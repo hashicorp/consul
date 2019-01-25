@@ -50,7 +50,7 @@ export default Service.extend({
   },
   elementsByTagName: function(name, context) {
     context = typeof context === 'undefined' ? get(this, 'doc') : context;
-    return context.getElementByTagName(name);
+    return context.getElementsByTagName(name);
   },
   elements: function(selector, context) {
     // don't ever be tempted to [...$$()] here
