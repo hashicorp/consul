@@ -40,13 +40,32 @@ func WaitUntilNoLeader(t *testing.T, rpc rpcFn, dc string) {
 	})
 }
 
+type waitOption struct {
+	Token string
+}
+
+func WithToken(token string) waitOption {
+	return waitOption{Token: token}
+}
+
 // WaitForTestAgent ensures we have a node with serfHealth check registered
-func WaitForTestAgent(t *testing.T, rpc rpcFn, dc string) {
+func WaitForTestAgent(t *testing.T, rpc rpcFn, dc string, options ...waitOption) {
 	var nodes structs.IndexedNodes
 	var checks structs.IndexedHealthChecks
 
+	// first extra arg is an optional acl token
+	var token string
+	for _, opt := range options {
+		if opt.Token != "" {
+			token = opt.Token
+		}
+	}
+
 	retry.Run(t, func(r *retry.R) {
-		dcReq := &structs.DCSpecificRequest{Datacenter: dc}
+		dcReq := &structs.DCSpecificRequest{
+			Datacenter:   dc,
+			QueryOptions: structs.QueryOptions{Token: token},
+		}
 		if err := rpc("Catalog.ListNodes", dcReq, &nodes); err != nil {
 			r.Fatalf("Catalog.ListNodes failed: %v", err)
 		}
@@ -55,7 +74,11 @@ func WaitForTestAgent(t *testing.T, rpc rpcFn, dc string) {
 		}
 
 		// This assumes that there is a single agent per dc, typically a TestAgent
-		nodeReq := &structs.NodeSpecificRequest{Datacenter: dc, Node: nodes.Nodes[0].Node}
+		nodeReq := &structs.NodeSpecificRequest{
+			Datacenter:   dc,
+			Node:         nodes.Nodes[0].Node,
+			QueryOptions: structs.QueryOptions{Token: token},
+		}
 		if err := rpc("Health.NodeChecks", nodeReq, &checks); err != nil {
 			r.Fatalf("Health.NodeChecks failed: %v", err)
 		}
