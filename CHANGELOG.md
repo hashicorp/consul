@@ -2,6 +2,8 @@
 
 ## 1.4.1 (January 23, 2019)
 
+**Note:** Consul 1.4.1 can break compatibility with older versions of the Consul Go API client. At this time, we recommend that you not upgrade to 1.4.1 if you use the Go API client or other applications that utilize it such as Nomad. Read more: [[GH-5270](https://github.com/hashicorp/consul/issues/5270)]
+
 FEATURES:
 
 * api: The transaction API now supports catalog operations for interacting with nodes, services and checks. See the [transacton API page](https://www.consul.io/api/txn.html#tables-of-operations) for more information. [[GH-4869](https://github.com/hashicorp/consul/pull/4869)]
