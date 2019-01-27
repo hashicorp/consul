@@ -152,8 +152,8 @@ If you query the zone name itself, you will receive the created `A` record:
 
 If you would like to use DNS RR for the zone name, you can set the following:
 ~~~
-% etcdctl put /skydns/local/skydns/x1 '{"host":"1.1.1.1","ttl":"60"}'
-% etcdctl put /skydns/local/skydns/x2 '{"host":"1.1.1.2","ttl":"60"}'
+% etcdctl put /skydns/local/skydns/x1 '{"host":"1.1.1.1","ttl":60}'
+% etcdctl put /skydns/local/skydns/x2 '{"host":"1.1.1.2","ttl":60}'
 ~~~
 
 If you query the zone name now, you will get the following response:
@@ -168,8 +168,8 @@ If you query the zone name now, you will get the following response:
 
 If you would like to use `AAAA` records for the zone name too, you can set the following:
 ~~~
-% etcdctl put /skydns/local/skydns/x3 '{"host":"2003::8:1","ttl":"60"}'
-% etcdctl put /skydns/local/skydns/x4 '{"host":"2003::8:2","ttl":"60"}'
+% etcdctl put /skydns/local/skydns/x3 '{"host":"2003::8:1","ttl":60}'
+% etcdctl put /skydns/local/skydns/x4 '{"host":"2003::8:2","ttl":60}'
 ~~~
 
 If you query the zone name for `AAAA` now, you will get the following response:
