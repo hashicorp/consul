@@ -280,10 +280,7 @@ func SortAndCheck(resp *dns.Msg, tc Case) error {
 		return err
 
 	}
-	if err := Section(tc, Extra, resp.Extra); err != nil {
-		return err
-	}
-	return nil
+	return Section(tc, Extra, resp.Extra)
 }
 
 // ErrorHandler returns a Handler that returns ServerFailure error when called.
