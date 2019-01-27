@@ -21,7 +21,7 @@ CoreDNS can listen for DNS request coming in over UDP/TCP (go'old DNS), TLS ([RF
 
 Currently CoreDNS is able to:
 
-* Serve zone data from a file; both DNSSEC (NSEC only) and DNS are supported (*file*).
+* Serve zone data from a file; both DNSSEC (NSEC only) and DNS are supported (*file* and *auto*).
 * Retrieve zone data from primaries, i.e., act as a secondary server (AXFR only) (*secondary*).
 * Sign zone data on-the-fly (*dnssec*).
 * Load balancing of responses (*loadbalance*).
@@ -30,7 +30,7 @@ Currently CoreDNS is able to:
 * Caching (*cache*).
 * Use etcd as a backend (replace [SkyDNS](https://github.com/skynetservices/skydns)) (*etcd*).
 * Use k8s (kubernetes) as a backend (*kubernetes*).
-* Serve as a proxy to forward queries to some other (recursive) nameserver (*proxy*, and *forward*).
+* Serve as a proxy to forward queries to some other (recursive) nameserver (*forward*).
 * Provide metrics (by using Prometheus) (*metrics*).
 * Provide query (*log*) and error (*errors*) logging.
 * Support the CH class: `version.bind` and friends (*chaos*).
@@ -52,7 +52,7 @@ Check out the project:
 
 We vendor most (not all!) packages. This is mostly because vendoring isn't a perfect solution (in
 Go). We don't vendor `mholt/caddy` and `miekg/dns` for instance. Using `make` will pull down these
-dependencies and check out the correct version as well.
+dependencies and checks out the correct version as well.
 
 Next just run `make`:
 
@@ -192,6 +192,20 @@ More resources can be found:
 
 Examples for deployment via systemd and other use cases can be found in the [deployment
 repository](https://github.com/coredns/deployment).
+
+## Deprecation Policy
+
+When there is a backwards incompatible change in CoreDNS the following process is followed:
+
+*  Release x.y.z: Announce that in the next release we will make backward incompatible changes.
+*  Release x.y+1.0: Increase the minor version and set the patch version to 0. Make the changes,
+   but allow the old configuration to be parsed. I.e. CoreDNS will start from an unchanged
+   Corefile.
+*  Release x.y+1.1: Increase the patch version to 1. Remove the lenient parsing, so CoreDNS will
+   not start if those features are still used.
+
+E.g. 1.3.1 announce a change. 1.4.0 a new release with the change but backward compatible config.
+And finally 1.4.1 that removes the config workarounds.
 
 ## Security
 
