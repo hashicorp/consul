@@ -139,13 +139,12 @@ Nodes:
 		if err := json.Unmarshal(n.Value, serv); err != nil {
 			return nil, fmt.Errorf("%s: %s", n.Key, err.Error())
 		}
-		b := msg.Service{Host: serv.Host, Port: serv.Port, Priority: serv.Priority, Weight: serv.Weight, Text: serv.Text, Key: string(n.Key)}
-		if _, ok := bx[b]; ok {
+		serv.Key = string(n.Key)
+		if _, ok := bx[*serv]; ok {
 			continue
 		}
-		bx[b] = struct{}{}
+		bx[*serv] = struct{}{}
 
-		serv.Key = string(n.Key)
 		serv.TTL = e.TTL(n, serv)
 		if serv.Priority == 0 {
 			serv.Priority = priority
