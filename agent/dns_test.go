@@ -6330,3 +6330,22 @@ func TestDNSInvalidRegex(t *testing.T) {
 
 	}
 }
+
+func TestDNS_formatNodeRecord(t *testing.T) {
+	s := &DNSServer{}
+
+	node := &structs.Node{
+		Meta: map[string]string{
+			"key":  "value",
+			"key2": "value2",
+		},
+	}
+
+	records, meta := s.formatNodeRecord(node, "198.18.0.1", "test.node.consul", dns.TypeA, 5*time.Minute, false, 3, false)
+	require.Len(t, records, 1)
+	require.Len(t, meta, 0)
+
+	records, meta = s.formatNodeRecord(node, "198.18.0.1", "test.node.consul", dns.TypeA, 5*time.Minute, false, 3, true)
+	require.Len(t, records, 1)
+	require.Len(t, meta, 2)
+}
