@@ -2003,9 +2003,6 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 		Name:    "memory check",
 		Status:  api.HealthCritical,
 		Notes:   "my cool notes",
-		Definition: structs.HealthCheckDefinition{
-			Interval: 30 * time.Second,
-		},
 	}
 	if got, want := result, expected; !verify.Values(t, "", got, want) {
 		t.FailNow()
