@@ -27,7 +27,7 @@ chart, you can have a full Consul deployment up and running in seconds.
 
 While the Helm chart exposes dozens of useful configurations and automatically
 sets up complex resources, it **does not automatically operate Consul.**
-You are still reponsible for learning how to monitor, backup,
+You are still responsible for learning how to monitor, backup,
 upgrade, etc. the Consul cluster.
 
 The Helm chart has no required configuration and will install a Consul
@@ -320,5 +320,5 @@ node equivalence in Consul. Service registration should be handled via the
 catalog syncing feature with Services rather than pods.
 
 -> **Note:** Due to a limitation of anti-affinity rules with DaemonSets,
-a client-mode agent runs alongide server-mode agents in Kubernetes. This
+a client-mode agent runs alongside server-mode agents in Kubernetes. This
 duplication wastes some resources, but otherwise functions perfectly fine.
