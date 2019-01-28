@@ -60,6 +60,7 @@ proxy FROM TO... {
 ## Policies
 
 There are four load-balancing policies available:
+
 * `random` (default) - Randomly select a backend
 * `least_conn` - Select the backend with the fewest active connections
 * `round_robin` - Select the backend in round-robin fashion
