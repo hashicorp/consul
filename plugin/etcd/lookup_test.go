@@ -27,6 +27,8 @@ var services = []*msg.Service{
 	{Host: "10.0.0.1", Port: 8080, Key: "a.server1.prod.region1.skydns.test."},
 	{Host: "10.0.0.2", Port: 8080, Key: "b.server1.prod.region1.skydns.test."},
 	{Host: "::1", Port: 8080, Key: "b.server6.prod.region1.skydns.test."},
+	// TXT record in server1.
+	{Host: "", Port: 8080, Text: "sometext", Key: "txt.server1.prod.region1.skydns.test."},
 	// Unresolvable internal name.
 	{Host: "unresolvable.skydns.test", Key: "cname.prod.region1.skydns.test."},
 	// Priority.
@@ -126,6 +128,13 @@ var dnsTestCases = []test.Case{
 	{
 		Qname: "cname.prod.region1.skydns.test.", Qtype: dns.TypeA,
 		Ns: []dns.RR{test.SOA("skydns.test. 30 SOA ns.dns.skydns.test. hostmaster.skydns.test. 0 0 0 0 0")},
+	},
+	// TXT Test
+	{
+		Qname: "server1.prod.region1.skydns.test.", Qtype: dns.TypeTXT,
+		Answer: []dns.RR{
+			test.TXT("server1.prod.region1.skydns.test. 303 IN TXT sometext"),
+		},
 	},
 	// Wildcard Test
 	{

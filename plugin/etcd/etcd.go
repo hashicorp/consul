@@ -78,7 +78,7 @@ func (e *Etcd) Records(state request.Request, exact bool) ([]msg.Service, error)
 		return nil, err
 	}
 	segments := strings.Split(msg.Path(name, e.PathPrefix), "/")
-	return e.loopNodes(r.Kvs, segments, star)
+	return e.loopNodes(r.Kvs, segments, star, state.QType())
 }
 
 func (e *Etcd) get(path string, recursive bool) (*etcdcv3.GetResponse, error) {
@@ -115,7 +115,7 @@ func (e *Etcd) get(path string, recursive bool) (*etcdcv3.GetResponse, error) {
 	return r, nil
 }
 
-func (e *Etcd) loopNodes(kv []*mvccpb.KeyValue, nameParts []string, star bool) (sx []msg.Service, err error) {
+func (e *Etcd) loopNodes(kv []*mvccpb.KeyValue, nameParts []string, star bool, qType uint16) (sx []msg.Service, err error) {
 	bx := make(map[msg.Service]struct{})
 Nodes:
 	for _, n := range kv {
@@ -149,7 +149,10 @@ Nodes:
 		if serv.Priority == 0 {
 			serv.Priority = priority
 		}
-		sx = append(sx, *serv)
+
+		if shouldInclude(serv, qType) {
+			sx = append(sx, *serv)
+		}
 	}
 	return sx, nil
 }
@@ -172,4 +175,14 @@ func (e *Etcd) TTL(kv *mvccpb.KeyValue, serv *msg.Service) uint32 {
 		return etcdTTL
 	}
 	return serv.TTL
+}
+
+// shouldInclude returns true if the service should be included in a list of records, given the qType. For all the
+// currently supported lookup types, the only one to allow for an empty Host field in the service are TXT records.
+// Similarly, the TXT record in turn requires the Text field to be set.
+func shouldInclude(serv *msg.Service, qType uint16) bool {
+	if qType == dns.TypeTXT {
+		return serv.Text != ""
+	}
+	return serv.Host != ""
 }

@@ -331,9 +331,6 @@ func TXT(b ServiceBackend, zone string, state request.Request, opt Options) (rec
 	}
 
 	for _, serv := range services {
-		if serv.Text == "" {
-			continue
-		}
 		records = append(records, serv.NewTXT(state.QName()))
 	}
 	return records, nil
