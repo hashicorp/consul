@@ -77,12 +77,18 @@ func (d *HealthCheckDefinition) MarshalJSON() ([]byte, error) {
 
 	if d.IntervalDuration != 0 {
 		out.Interval = d.IntervalDuration.String()
+	} else if d.Interval != 0 {
+		out.Interval = d.Interval.String()
 	}
 	if d.TimeoutDuration != 0 {
 		out.Timeout = d.TimeoutDuration.String()
+	} else if d.Timeout != 0 {
+		out.Timeout = d.Timeout.String()
 	}
 	if d.DeregisterCriticalServiceAfterDuration != 0 {
 		out.DeregisterCriticalServiceAfter = d.DeregisterCriticalServiceAfterDuration.String()
+	} else if d.DeregisterCriticalServiceAfter != 0 {
+		out.DeregisterCriticalServiceAfter = d.DeregisterCriticalServiceAfter.String()
 	}
 
 	return json.Marshal(out)
