@@ -26,6 +26,8 @@ For multi-key updates, please consider using [transaction](/api/txn.html).
 This endpoint returns the specified key. If no key exists at the given path, a
 404 is returned instead of a 200 response.
 
+A recursive request is served from a single, consistent snapshot.
+
 For multi-key reads, please consider using [transaction](/api/txn.html).
 
 | Method | Path                         | Produces                   |
