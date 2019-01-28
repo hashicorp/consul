@@ -1,5 +1,10 @@
 ## UNRELEASED
 
+BUG FIXES:
+
+* api: Fixed backwards compatibility in the Consul Go API client. [[GH-5270](https://github.com/hashicorp/consul/issues/5270)]
+* dns: Fixed a bug that would cause node meta TXT records to always be generated even if they were not used in the responses. [[GH-5271](https://github.com/hashicorp/consul/issues/5271)
+
 ## 1.4.1 (January 23, 2019)
 
 **Note:** Consul 1.4.1 can break compatibility with older versions of the Consul Go API client. At this time, we recommend that you not upgrade to 1.4.1 if you use the Go API client or other applications that utilize it such as Nomad. Read more: [[GH-5270](https://github.com/hashicorp/consul/issues/5270)]
