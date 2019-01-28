@@ -920,9 +920,9 @@ type HealthCheckDefinition struct {
 func (d *HealthCheckDefinition) MarshalJSON() ([]byte, error) {
 	type Alias HealthCheckDefinition
 	exported := &struct {
-		Interval                       string
-		Timeout                        string
-		DeregisterCriticalServiceAfter string
+		Interval                       string `json:",omitempty"`
+		Timeout                        string `json:",omitempty"`
+		DeregisterCriticalServiceAfter string `json:",omitempty"`
 		*Alias
 	}{
 		Interval:                       d.Interval.String(),

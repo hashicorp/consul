@@ -50,7 +50,7 @@ example shows all possible fields, but note that only a few are required.
     "proxy": {
       "destination_service_name": "redis",
       "destination_service_id": "redis1",
-      "local_service_name": "127.0.0.1",
+      "local_service_address": "127.0.0.1",
       "local_service_port": 9090,
       "config": {},
       "upstreams": []

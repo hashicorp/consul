@@ -10,7 +10,7 @@ RUN apt-get update -y && \
             ruby-dev \
             zip \
             zlib1g-dev && \
-    gem install bundler
+    gem install bundler -v '1.17.3'
 
 WORKDIR /consul-src/ui
 CMD make dist

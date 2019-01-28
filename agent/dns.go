@@ -457,7 +457,7 @@ func (d *DNSServer) nameservers(edns bool, maxRecursionLevel int) (ns []dns.RR, 
 		}
 		ns = append(ns, nsrr)
 
-		glue, meta := d.formatNodeRecord(nil, addr, fqdn, dns.TypeANY, d.config.NodeTTL, edns, maxRecursionLevel)
+		glue, meta := d.formatNodeRecord(nil, addr, fqdn, dns.TypeANY, d.config.NodeTTL, edns, maxRecursionLevel, d.config.NodeMetaTXT)
 		extra = append(extra, glue...)
 		if meta != nil && d.config.NodeMetaTXT {
 			extra = append(extra, meta...)
@@ -681,17 +681,26 @@ RPC:
 		return
 	}
 
+	generateMeta := false
+	metaInAnswer := false
+	if qType == dns.TypeANY || qType == dns.TypeTXT {
+		generateMeta = true
+		metaInAnswer = true
+	} else if d.config.NodeMetaTXT {
+		generateMeta = true
+	}
+
 	// Add the node record
 	n := out.NodeServices.Node
 	edns := req.IsEdns0() != nil
 	addr := d.agent.TranslateAddress(datacenter, n.Address, n.TaggedAddresses)
-	records, meta := d.formatNodeRecord(out.NodeServices.Node, addr, req.Question[0].Name, qType, d.config.NodeTTL, edns, maxRecursionLevel)
+	records, meta := d.formatNodeRecord(out.NodeServices.Node, addr, req.Question[0].Name, qType, d.config.NodeTTL, edns, maxRecursionLevel, generateMeta)
 	if records != nil {
 		resp.Answer = append(resp.Answer, records...)
 	}
-	if meta != nil && (qType == dns.TypeANY || qType == dns.TypeTXT) {
+	if meta != nil && metaInAnswer && generateMeta {
 		resp.Answer = append(resp.Answer, meta...)
-	} else if meta != nil && d.config.NodeMetaTXT {
+	} else if meta != nil && generateMeta {
 		resp.Extra = append(resp.Extra, meta...)
 	}
 }
@@ -722,7 +731,7 @@ func encodeKVasRFC1464(key, value string) (txt string) {
 // The return value is two slices. The first slice is the main answer slice (containing the A, AAAA, CNAME) RRs for the node
 // and the second slice contains any TXT RRs created from the node metadata. It is up to the caller to determine where the
 // generated RRs should go and if they should be used at all.
-func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qType uint16, ttl time.Duration, edns bool, maxRecursionLevel int) (records, meta []dns.RR) {
+func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qType uint16, ttl time.Duration, edns bool, maxRecursionLevel int, generateMeta bool) (records, meta []dns.RR) {
 	// Parse the IP
 	ip := net.ParseIP(addr)
 	var ipv4 net.IP
@@ -783,7 +792,7 @@ func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qTy
 		}
 	}
 
-	if node != nil {
+	if node != nil && generateMeta {
 		for key, value := range node.Meta {
 			txt := value
 			if !strings.HasPrefix(strings.ToLower(key), "rfc1035-") {
@@ -1016,7 +1025,7 @@ func (d *DNSServer) lookupServiceNodes(datacenter, service, tag string, connect 
 		Connect:     connect,
 		Datacenter:  datacenter,
 		ServiceName: service,
-		ServiceTags:  []string{tag},
+		ServiceTags: []string{tag},
 		TagFilter:   tag != "",
 		QueryOptions: structs.QueryOptions{
 			Token:      d.agent.tokens.UserToken(),
@@ -1246,9 +1255,18 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 		}
 		handled[addr] = struct{}{}
 
+		generateMeta := false
+		metaInAnswer := false
+		if qType == dns.TypeANY || qType == dns.TypeTXT {
+			generateMeta = true
+			metaInAnswer = true
+		} else if d.config.NodeMetaTXT {
+			generateMeta = true
+		}
+
 		// Add the node record
 		had_answer := false
-		records, meta := d.formatNodeRecord(node.Node, addr, qName, qType, ttl, edns, maxRecursionLevel)
+		records, meta := d.formatNodeRecord(node.Node, addr, qName, qType, ttl, edns, maxRecursionLevel, generateMeta)
 		if records != nil {
 			switch records[0].(type) {
 			case *dns.CNAME:
@@ -1263,10 +1281,10 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 			}
 		}
 
-		if meta != nil && (qType == dns.TypeANY || qType == dns.TypeTXT) {
+		if meta != nil && generateMeta && metaInAnswer {
 			resp.Answer = append(resp.Answer, meta...)
 			had_answer = true
-		} else if meta != nil && d.config.NodeMetaTXT {
+		} else if meta != nil && generateMeta {
 			resp.Extra = append(resp.Extra, meta...)
 		}
 
@@ -1367,7 +1385,7 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes
 		}
 
 		// Add the extra record
-		records, meta := d.formatNodeRecord(node.Node, addr, srvRec.Target, dns.TypeANY, ttl, edns, maxRecursionLevel)
+		records, meta := d.formatNodeRecord(node.Node, addr, srvRec.Target, dns.TypeANY, ttl, edns, maxRecursionLevel, d.config.NodeMetaTXT)
 		if len(records) > 0 {
 			// Use the node address if it doesn't differ from the service address
 			if addr == node.Node.Address {
