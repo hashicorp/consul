@@ -3085,6 +3085,7 @@ func TestFullConfig(t *testing.T) {
 					"JRCrHZed": "rl0mTx81"
 				}
 			},
+			"insecure_grpc": true,
 			"key_file": "IEkkwgIA",
 			"leave_on_terminate": true,
 			"limits": {
@@ -3638,6 +3639,7 @@ func TestFullConfig(t *testing.T) {
 					"JRCrHZed" = "rl0mTx81"
 				}
 			}
+			insecure_grpc = true
 			key_file = "IEkkwgIA"
 			leave_on_terminate = true
 			limits {
@@ -4274,6 +4276,7 @@ func TestFullConfig(t *testing.T) {
 		GRPCAddrs:                        []net.Addr{tcpAddr("32.31.61.91:4881")},
 		HTTPAddrs:                        []net.Addr{tcpAddr("83.39.91.39:7999")},
 		HTTPBlockEndpoints:               []string{"RBvAFcGD", "fWOWFznh"},
+		InsecureGRPC:                     true,
 		AllowWriteHTTPFrom:               []*net.IPNet{cidr("127.0.0.0/8"), cidr("22.33.44.55/32"), cidr("0.0.0.0/0")},
 		HTTPPort:                         7999,
 		HTTPResponseHeaders:              map[string]string{"M6TKa9NP": "xjuxjOzQ", "JRCrHZed": "rl0mTx81"},
@@ -5075,6 +5078,7 @@ func TestSanitize(t *testing.T) {
 		"HTTPResponseHeaders": {},
 		"HTTPSAddrs": [],
 		"HTTPSPort": 0,
+		"InsecureGRPC": false,
 		"KeyFile": "hidden",
 		"LeaveDrainTime": "0s",
 		"LeaveOnTerm": false,

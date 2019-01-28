@@ -523,7 +523,11 @@ func (a *Agent) listenAndServeGRPC() error {
 		ResolveToken: a.resolveToken,
 	}
 	var err error
-	a.grpcServer, err = a.xdsServer.GRPCServer(a.config.CertFile, a.config.KeyFile)
+	if a.config.InsecureGRPC {
+		a.grpcServer, err = a.xdsServer.GRPCServer("", "")
+	} else {
+		a.grpcServer, err = a.xdsServer.GRPCServer(a.config.CertFile, a.config.KeyFile)
+	}
 	if err != nil {
 		return err
 	}
