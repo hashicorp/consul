@@ -673,6 +673,34 @@ function set_changelog_version {
    return $?
 }
 
+function set_website_version {
+   # Arguments:
+   #   $1 - Path to top level Consul source
+   #   $2 - Version to put into the website
+   #
+   # Returns:
+   #   0 - success
+   #   * - error
+
+   local config_rb="${1}/website/config.rb"
+   local version="$2"
+
+   if ! test -f "${config_rb}"
+   then
+      err "ERROR: File not found: '${config_rb}'"
+      return 1
+   fi
+
+   if test -z "${version}"
+   then
+      err "ERROR: Must specify a version to put into ${config_rb}"
+      return 1
+   fi
+
+   sed_i ${SED_EXT} -e "s/(h.version[[:space:]]*=[[:space:]]*)\"[^\"]*\"/\1\"${version}\"/g" "${config_rb}"
+   return $?
+}
+
 function unset_changelog_version {
    # Arguments:
    #   $1 - Path to top level Consul source
@@ -773,6 +801,17 @@ function set_release_mode {
    then
       unset_changelog_version "${sdir}"
       return 1
+   fi
+
+   # Only update the website when allowed and there is no pre-release version
+   if ! is_set "${CONSUL_NO_WEBSITE_UPDATE}" && test -z "$4"
+   then
+      status_stage "==> Updating website/config.rb"
+      if ! set_website_version "${sdir}" "${vers}"
+      then
+         unset_changelog_version "${sdir}"
+         return 1
+      fi
    fi
 
    return 0
