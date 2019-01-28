@@ -640,6 +640,15 @@ func TestStructs_HealthCheck_IsSame(t *testing.T) {
 	checkStringField(&other.ServiceName)
 }
 
+func TestStructs_HealthCheck_Marshalling(t *testing.T) {
+	d := &HealthCheckDefinition{}
+	buf, err := d.MarshalJSON()
+	require.NoError(t, err)
+	require.NotContains(t, string(buf), `"Interval":""`)
+	require.NotContains(t, string(buf), `"Timeout":""`)
+	require.NotContains(t, string(buf), `"DeregisterCriticalServiceAfter":""`)
+}
+
 func TestStructs_HealthCheck_Clone(t *testing.T) {
 	hc := &HealthCheck{
 		Node:        "node1",

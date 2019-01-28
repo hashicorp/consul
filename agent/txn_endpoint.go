@@ -239,9 +239,9 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 							Header:                         check.Definition.Header,
 							Method:                         check.Definition.Method,
 							TCP:                            check.Definition.TCP,
-							Interval:                       check.Definition.Interval,
-							Timeout:                        check.Definition.Timeout,
-							DeregisterCriticalServiceAfter: check.Definition.DeregisterCriticalServiceAfter,
+							Interval:                       check.Definition.IntervalDuration,
+							Timeout:                        check.Definition.TimeoutDuration,
+							DeregisterCriticalServiceAfter: check.Definition.DeregisterCriticalServiceAfterDuration,
 						},
 						RaftIndex: structs.RaftIndex{
 							ModifyIndex: check.ModifyIndex,
