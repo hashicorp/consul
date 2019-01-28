@@ -3,13 +3,15 @@ package test
 import (
 	"testing"
 
+	"github.com/coredns/coredns/plugin/test"
+
 	"github.com/miekg/dns"
 )
 
 func TestZoneSRVAdditional(t *testing.T) {
 	t.Parallel()
 
-	name, rm, err := TempFile(".", exampleOrg)
+	name, rm, err := test.TempFile(".", exampleOrg)
 	if err != nil {
 		t.Fatalf("Failed to create zone: %s", err)
 	}

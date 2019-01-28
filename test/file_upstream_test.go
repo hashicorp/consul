@@ -3,11 +3,13 @@ package test
 import (
 	"testing"
 
+	"github.com/coredns/coredns/plugin/test"
+
 	"github.com/miekg/dns"
 )
 
 func TestFileUpstream(t *testing.T) {
-	name, rm, err := TempFile(".", `$ORIGIN example.org.
+	name, rm, err := test.TempFile(".", `$ORIGIN example.org.
 @	3600 IN	SOA sns.dns.icann.org. noc.dns.icann.org. (
 		2017042745 ; serial
 		7200       ; refresh (2 hours)
@@ -61,7 +63,7 @@ www 3600 IN CNAME   www.example.net.
 // TestFileUpstreamAdditional runs two CoreDNS servers that serve example.org and foo.example.org.
 // example.org contains a cname to foo.example.org; this should be resolved via upstream.Self.
 func TestFileUpstreamAdditional(t *testing.T) {
-	name, rm, err := TempFile(".", `$ORIGIN example.org.
+	name, rm, err := test.TempFile(".", `$ORIGIN example.org.
 @	3600 IN	SOA sns.dns.icann.org. noc.dns.icann.org. 2017042745 7200 3600 1209600 3600
 
 	3600 IN NS b.iana-servers.net.
@@ -73,7 +75,7 @@ www 3600 IN CNAME   www.foo
 	}
 	defer rm()
 
-	name2, rm2, err2 := TempFile(".", `$ORIGIN foo.example.org.
+	name2, rm2, err2 := test.TempFile(".", `$ORIGIN foo.example.org.
 @	3600 IN	SOA sns.dns.icann.org. noc.dns.icann.org. 2017042745 7200 3600 1209600 3600
 
 	3600 IN NS b.iana-servers.net.

@@ -28,7 +28,7 @@ var dsTestCases = []mtest.Case{
 
 func TestLookupDS(t *testing.T) {
 	t.Parallel()
-	name, rm, err := TempFile(".", miekNL)
+	name, rm, err := mtest.TempFile(".", miekNL)
 	if err != nil {
 		t.Fatalf("Failed to create zone: %s", err)
 	}

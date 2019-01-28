@@ -3,13 +3,15 @@ package test
 import (
 	"testing"
 
+	"github.com/coredns/coredns/plugin/test"
+
 	"github.com/miekg/dns"
 )
 
 func TestZoneEDNS0Lookup(t *testing.T) {
 	t.Parallel()
 
-	name, rm, err := TempFile(".", `$ORIGIN example.org.
+	name, rm, err := test.TempFile(".", `$ORIGIN example.org.
 @	3600 IN	SOA sns.dns.icann.org. noc.dns.icann.org. (
 		2017042745 ; serial
 		7200       ; refresh (2 hours)
@@ -56,7 +58,7 @@ www     IN AAAA ::1
 func TestZoneNoNS(t *testing.T) {
 	t.Parallel()
 
-	name, rm, err := TempFile(".", `$ORIGIN example.org.
+	name, rm, err := test.TempFile(".", `$ORIGIN example.org.
 @	3600 IN	SOA sns.dns.icann.org. noc.dns.icann.org. (
 		2017042745 ; serial
 		7200       ; refresh (2 hours)

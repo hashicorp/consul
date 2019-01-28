@@ -3,13 +3,15 @@ package test
 import (
 	"testing"
 
+	"github.com/coredns/coredns/plugin/test"
+
 	"github.com/miekg/dns"
 )
 
 func TestZoneExternalCNAMELookupWithoutProxy(t *testing.T) {
 	t.Parallel()
 
-	name, rm, err := TempFile(".", exampleOrg)
+	name, rm, err := test.TempFile(".", exampleOrg)
 	if err != nil {
 		t.Fatalf("Failed to create zone: %s", err)
 	}
@@ -41,7 +43,7 @@ func TestZoneExternalCNAMELookupWithoutProxy(t *testing.T) {
 func TestZoneExternalCNAMELookupWithProxy(t *testing.T) {
 	t.Parallel()
 
-	name, rm, err := TempFile(".", exampleOrg)
+	name, rm, err := test.TempFile(".", exampleOrg)
 	if err != nil {
 		t.Fatalf("Failed to create zone: %s", err)
 	}
