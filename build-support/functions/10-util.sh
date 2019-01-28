@@ -803,7 +803,7 @@ function set_release_mode {
       return 1
    fi
 
-   # Only update the webiste when allowed and there is no pre-release version
+   # Only update the website when allowed and there is no pre-release version
    if ! is_set "${CONSUL_NO_WEBSITE_UPDATE}" && test -z "$4"
    then
       status_stage "==> Updating website/config.rb"
