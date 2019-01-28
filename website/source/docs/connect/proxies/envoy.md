@@ -196,8 +196,8 @@ service {
   name = "web-http-aware-proxy"
   port = 8080
   proxy {
-    destination_service_name web
-    destination_service_id web
+    destination_service_name = "web"
+    destination_service_id = "web"
     config {
       envoy_public_listener_json = <<EOL
         {
