@@ -33,12 +33,26 @@ func TestAPI_ClientTxn(t *testing.T) {
 			ID:      "foo1",
 			Service: "foo",
 		},
-		Check: &AgentCheck{
-			CheckID: "bar",
-			Status:  "critical",
-			Definition: HealthCheckDefinition{
-				TCP:      "1.1.1.1",
-				Interval: 5 * time.Second,
+		Checks: HealthChecks{
+			{
+				CheckID: "bar",
+				Status:  "critical",
+				Definition: HealthCheckDefinition{
+					TCP:                                    "1.1.1.1",
+					IntervalDuration:                       5 * time.Second,
+					TimeoutDuration:                        10 * time.Second,
+					DeregisterCriticalServiceAfterDuration: 20 * time.Second,
+				},
+			},
+			{
+				CheckID: "baz",
+				Status:  "passing",
+				Definition: HealthCheckDefinition{
+					TCP:                            "2.2.2.2",
+					Interval:                       ReadableDuration(40 * time.Second),
+					Timeout:                        ReadableDuration(80 * time.Second),
+					DeregisterCriticalServiceAfter: ReadableDuration(160 * time.Second),
+				},
 			},
 		},
 	}
@@ -93,6 +107,12 @@ func TestAPI_ClientTxn(t *testing.T) {
 				Check: HealthCheck{Node: "foo", CheckID: "bar"},
 			},
 		},
+		&TxnOp{
+			Check: &CheckTxnOp{
+				Verb:  CheckGet,
+				Check: HealthCheck{Node: "foo", CheckID: "baz"},
+			},
+		},
 	}
 	ok, ret, _, err := txn.Txn(ops, nil)
 	if err != nil {
@@ -119,7 +139,7 @@ func TestAPI_ClientTxn(t *testing.T) {
 		t.Fatalf("transaction failure")
 	}
 
-	if ret == nil || len(ret.Errors) != 0 || len(ret.Results) != 5 {
+	if ret == nil || len(ret.Errors) != 0 || len(ret.Results) != 6 {
 		t.Fatalf("bad: %v", ret)
 	}
 	expected := TxnResults{
@@ -165,8 +185,31 @@ func TestAPI_ClientTxn(t *testing.T) {
 				CheckID: "bar",
 				Status:  "critical",
 				Definition: HealthCheckDefinition{
-					TCP:      "1.1.1.1",
-					Interval: 5 * time.Second,
+					TCP:                                    "1.1.1.1",
+					Interval:                               ReadableDuration(5 * time.Second),
+					IntervalDuration:                       5 * time.Second,
+					Timeout:                                ReadableDuration(10 * time.Second),
+					TimeoutDuration:                        10 * time.Second,
+					DeregisterCriticalServiceAfter:         ReadableDuration(20 * time.Second),
+					DeregisterCriticalServiceAfterDuration: 20 * time.Second,
+				},
+				CreateIndex: ret.Results[4].Check.CreateIndex,
+				ModifyIndex: ret.Results[4].Check.CreateIndex,
+			},
+		},
+		&TxnResult{
+			Check: &HealthCheck{
+				Node:    "foo",
+				CheckID: "baz",
+				Status:  "passing",
+				Definition: HealthCheckDefinition{
+					TCP:                                    "2.2.2.2",
+					Interval:                               ReadableDuration(40 * time.Second),
+					IntervalDuration:                       40 * time.Second,
+					Timeout:                                ReadableDuration(80 * time.Second),
+					TimeoutDuration:                        80 * time.Second,
+					DeregisterCriticalServiceAfter:         ReadableDuration(160 * time.Second),
+					DeregisterCriticalServiceAfterDuration: 160 * time.Second,
 				},
 				CreateIndex: ret.Results[4].Check.CreateIndex,
 				ModifyIndex: ret.Results[4].Check.CreateIndex,
