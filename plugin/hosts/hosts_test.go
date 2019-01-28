@@ -45,6 +45,12 @@ var hostsTestCases = []test.Case{
 		},
 	},
 	{
+		Qname: "example.com.", Qtype: dns.TypeA,
+		Answer: []dns.RR{
+			test.A("example.com. 3600	IN	A 10.0.0.2"),
+		},
+	},
+	{
 		Qname: "localhost.", Qtype: dns.TypeAAAA,
 		Answer: []dns.RR{
 			test.AAAA("localhost. 3600	IN	AAAA ::1"),
@@ -54,6 +60,12 @@ var hostsTestCases = []test.Case{
 		Qname: "1.0.0.10.in-addr.arpa.", Qtype: dns.TypePTR,
 		Answer: []dns.RR{
 			test.PTR("1.0.0.10.in-addr.arpa. 3600 PTR example.org."),
+		},
+	},
+	{
+		Qname: "2.0.0.10.in-addr.arpa.", Qtype: dns.TypePTR,
+		Answer: []dns.RR{
+			test.PTR("2.0.0.10.in-addr.arpa. 3600 PTR example.com."),
 		},
 	},
 	{
@@ -76,4 +88,6 @@ var hostsTestCases = []test.Case{
 const hostsExample = `
 127.0.0.1 localhost localhost.domain
 ::1 localhost localhost.domain
-10.0.0.1 example.org`
+10.0.0.1 example.org
+::FFFF:10.0.0.2 example.com
+`
