@@ -38,9 +38,9 @@ The following guides are available:
 
 * [Creating Certificates](https://learn.hashicorp.com/consul/advanced/day-1-operations/certificates) - This guide describes how to setup CA and certificates to secure a Consul cluster with TLS.
 
-* [Deployment Guide](https://learn.hashicorp.com/consul/advanced/day-1-operations/deployment-guide) - This deployment guide covers the steps required to install and configure a single HashiCorp Consul cluster as defined in the Consul Reference Architecture.
-
 * [Datacenter Backups](https://learn.hashicorp.com/consul/advanced/day-1-operations/backup) - Consul provide the snapshot tool for backing up and restoring data. In this guide you will learn how to use both.
+
+* [Deployment Guide](https://learn.hashicorp.com/consul/advanced/day-1-operations/deployment-guide) - This deployment guide covers the steps required to install and configure a single HashiCorp Consul cluster as defined in the Consul Reference Architecture.
 
 * [DNS Caching](https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/dns-caching) - Enabling TTLs for DNS query caching
 
