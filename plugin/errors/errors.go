@@ -50,7 +50,7 @@ func errorLogger(code int, qName, qType, err string) {
 }
 
 func consLogger(cnt uint32, pattern string, p time.Duration) {
-	log.Errorf("%d errors like '%s' occured in last %s", cnt, pattern, p)
+	log.Errorf("%d errors like '%s' occurred in last %s", cnt, pattern, p)
 }
 
 func (h *errorHandler) logPattern(i int) {

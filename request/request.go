@@ -299,8 +299,8 @@ func (r *Request) Scrub(reply *dns.Msg) *dns.Msg {
 	// pretty rare. Normally, the loop will exit when l > re, meaning that
 	// in the previous iteration either:
 	// rl < size: no need to do anything.
-	// rl > size: the final size is too large, and if m > 0, the preceeding
-	// iteration the size was too small. Select that preceeding size.
+	// rl > size: the final size is too large, and if m > 0, the preceding
+	// iteration the size was too small. Select that preceding size.
 	if rl > size && m > 0 {
 		reply.Extra = origExtra[:m-1]
 		rl = reply.Len()
@@ -334,8 +334,8 @@ func (r *Request) Scrub(reply *dns.Msg) *dns.Msg {
 	// pretty rare. Normally, the loop will exit when l > ra, meaning that
 	// in the previous iteration either:
 	// rl < size: no need to do anything.
-	// rl > size: the final size is too large, and if m > 0, the preceeding
-	// iteration the size was too small. Select that preceeding size.
+	// rl > size: the final size is too large, and if m > 0, the preceding
+	// iteration the size was too small. Select that preceding size.
 	if rl > size && m > 0 {
 		reply.Answer = origAnswer[:m-1]
 		// No need to recalc length, as we don't use it. We set truncated anyway. Doing

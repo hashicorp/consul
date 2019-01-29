@@ -42,7 +42,7 @@ func TestCompressScrub(t *testing.T) {
 	}
 	buf = buf[:n]
 	// If there is compression in the returned packet we should look for compression pointers, if found
-	// the pointers should return to the domain name in the query (the first domain name that's avaiable for
+	// the pointers should return to the domain name in the query (the first domain name that's available for
 	// compression. This means we're looking for a combo where the pointers is detected and the offset is 12
 	// the position of the first name after the header. The erratic plugin adds 30 RRs that should all be compressed.
 	found := 0

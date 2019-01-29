@@ -78,7 +78,7 @@ func TestConsLogger(t *testing.T) {
 
 	consLogger(5, "^Error.*!$", 3*time.Second)
 
-	exp := "[ERROR] plugin/errors: 5 errors like '^Error.*!$' occured in last 3s"
+	exp := "[ERROR] plugin/errors: 5 errors like '^Error.*!$' occurred in last 3s"
 	act := buf.String()
 	if !strings.Contains(act, exp) {
 		t.Errorf("Unexpected log message, expected to contain %q, actual %q", exp, act)

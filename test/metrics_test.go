@@ -161,7 +161,7 @@ google.com:0 {
 	}
 	defer i.Stop()
 
-	// send an inital query to setup properly the cache size
+	// send an initial query to setup properly the cache size
 	m := new(dns.Msg)
 	m.SetQuestion("google.com.", dns.TypeA)
 	if _, err = dns.Exchange(m, udp); err != nil {
