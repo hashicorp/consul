@@ -96,10 +96,16 @@ func (dns *dnsControl) sendUpdates(oldObj, newObj interface{}) {
 	switch ob := obj.(type) {
 	case *object.Service:
 		dns.updateModifed()
+		if len(dns.watched) == 0 {
+			return
+		}
 		dns.sendServiceUpdates(ob)
 	case *object.Endpoints:
 		if newObj == nil || oldObj == nil {
 			dns.updateModifed()
+			if len(dns.watched) == 0 {
+				return
+			}
 			dns.sendEndpointsUpdates(ob)
 			return
 		}
@@ -109,9 +115,15 @@ func (dns *dnsControl) sendUpdates(oldObj, newObj interface{}) {
 			return
 		}
 		dns.updateModifed()
+		if len(dns.watched) == 0 {
+			return
+		}
 		dns.sendEndpointsUpdates(endpointsSubsetDiffs(p, ob))
 	case *object.Pod:
 		dns.updateModifed()
+		if len(dns.watched) == 0 {
+			return
+		}
 		dns.sendPodUpdates(ob)
 	default:
 		log.Warningf("Updates for %T not supported.", ob)
