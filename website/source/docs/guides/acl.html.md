@@ -43,7 +43,7 @@ The servers will need to be restarted to load the new configuration. Please take
 to restart the servers one at a time and ensure each server has joined and is operating
 correctly before restarting another.
 
-If ACLs are enabled correctly, we will now see the following warnings and info in the leader’s logs.
+If ACLs are enabled correctly, we will now see the following warnings and info in the leader's logs.
 
 ```sh
 2018/12/12 01:36:40 [INFO] acl: Created the anonymous token
@@ -193,7 +193,7 @@ is a misconfiguration.
 
 #### Ensure the ACL System is Configured Properly
 
-Before configuring the clients, we should check that the servers are healthy. To do this, let’s view the catalog.
+Before configuring the clients, we should check that the servers are healthy. To do this, let's view the catalog.
 
 ```sh
 curl http://127.0.0.1:8500/v1/catalog/nodes -H 'x-consul-token: 4411f091-a4c9-48e6-0884-1fcb092da1c8' 
@@ -236,7 +236,7 @@ with a configuration file that enables ACLs. We can use the same ACL agent token
 }
 ```
 
-To ensure the agent’s are configured correctly, we can again use the `/catalog` endpoint. 
+To ensure the agent's are configured correctly, we can again use the `/catalog` endpoint. 
 
 ## Additional ACL Configuration
 
@@ -333,7 +333,7 @@ consul.                 0       IN      SOA     ns.consul. postmaster.consul. 14
 ```
 
 Now we get an `NXDOMAIN` error because the anonymous token doesn't have access to the
-"consul" service. Let's update the anonymous token's policy to allow for service reads of the “consul” service.
+"consul" service. Let's update the anonymous token's policy to allow for service reads of the "consul" service.
 
 ```bash
 $ consul acl policy create -name 'service-consul-read' -rules 'service "consul" { policy = "read" }'
