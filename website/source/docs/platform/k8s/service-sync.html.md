@@ -67,16 +67,16 @@ sync to understand how the syncing works.
 The sync process must authenticate to both Kubernetes and Consul to read
 and write services.
 
-For Consul, the process accepts both the standard CLI flag `-token` and
-the environment variable `CONSUL_HTTP_TOKEN`. This should be set to an
-Consul [ACL token](/docs/guides/acl.html) if ACLs are enabled. This
-can also be configured using the Helm chart to read from a Kubernetes
-secret.
-
 For Kubernetes, a valid kubeconfig file must be provided with cluster
 and auth information. The sync process will look into the default locations
 for both in-cluster and out-of-cluster authentication. If `kubectl` works,
 then the sync program should work.
+
+For Consul, if ACLs are configured on the cluster, a Consul [ACL token](/docs/guides/acl.html)
+will need to be provided. The process accepts this token by using the
+`CONSUL_HTTP_TOKEN` environment variable. This token should be set as a
+[Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/#creating-your-own-secrets)
+and referenced in the Helm chart.
 
 ## Kubernetes to Consul
 
