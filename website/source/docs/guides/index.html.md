@@ -14,7 +14,7 @@ guidance to do them safely.
 
 The following guides are available:
 
-* [ACLs](https://learn.hashicorp.com/consul/advanced/day-1-operations/acl-guide) - This guide covers Consul's Access Control List (ACL) capability, which can be used to control access to Consul resources.
+* [ACLs](/docs/guides/acl-index.html) - This set of guides covers Consul's Access Control List (ACL) capability, which can be used to control access to Consul resources.
 
 * [Adding/Removing Servers](https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/servers) - This guide covers how to safely add and remove Consul servers from the cluster. This should be done carefully to avoid availability outages.
 
