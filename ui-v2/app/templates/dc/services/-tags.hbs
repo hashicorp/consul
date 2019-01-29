@@ -1,0 +1,11 @@
+{{#if (gt item.Tags.length 0)}}
+        <dl>
+            <dt>Tags</dt>
+            <dd data-test-tags>
+              {{#each item.Tags as |item|}}
+                <span>{{item}}</span>
+              {{/each}}
+            </dd>
+        </dl>
+{{/if}}
+

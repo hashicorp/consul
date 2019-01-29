@@ -19,7 +19,7 @@
               <td data-test-service-name="{{item.Service}}">
                 <a href={{href-to 'dc.services.show' item.Service}}>
                   <span data-test-external-source="{{service/external-source item}}" style={{{ concat 'background-image: ' (css-var (concat '--' (service/external-source item) '-color-svg') 'none')}}}></span>
-                  {{item.Service}}{{#if (not-eq item.ID item.Service) }}<em data-test-service-id="{{item.ID}}">({{item.ID}})</em>{{/if}}
+                  {{item.Service}}{{#if (not-eq item.ID item.Service) }}&nbsp;<em data-test-service-id="{{item.ID}}">({{item.ID}})</em>{{/if}}
                 </a>
               </td>
               <td data-test-service-port="{{item.Port}}" class="port">

@@ -1,0 +1,47 @@
+{{#if (gt items.length 0) }}
+  <input type="checkbox" id="toolbar-toggle" />
+  <form class="filter-bar">
+    {{freetext-filter searchable=searchable value=s placeholder="Search"}}
+  </form>
+{{/if}}
+  {{#changeable-set dispatcher=searchable}}
+    {{#block-slot 'set' as |filtered|}}
+      {{#tabular-collection
+          data-test-services
+          items=filtered as |item index|
+      }}
+          {{#block-slot 'header'}}
+            <th>Service</th>
+            <th>Node</th>
+            <th>Address</th>
+            <th>Node Checks</th>
+            <th>Service Checks</th>
+          {{/block-slot}}
+          {{#block-slot 'row'}}
+            <td data-test-service-name="{{item.Service.Service}}">
+              <a href={{href-to 'dc.services.instance' item.Service.Service item.Service.ID}}>
+                <span data-test-external-source="{{service/external-source item}}" style={{{ concat 'background-image: ' (css-var (concat '--' (service/external-source item) '-color-svg') 'none')}}}></span>
+                {{ or item.Service.ID item.Service.Service }}
+              </a>
+            </td>
+            <td data-test-service-node>
+                {{item.Node.Node}}
+            </td>
+            <td data-test-service-address>
+                {{item.Service.Address}}:{{item.Service.Port}}
+            </td>
+            <td>
+                1
+            </td>
+            <td>
+                1
+            </td>
+          {{/block-slot}}
+      {{/tabular-collection}}
+    {{/block-slot}}
+    {{#block-slot 'empty'}}
+      <p>
+        There are no services.
+      </p>
+    {{/block-slot}}
+  {{/changeable-set}}
