@@ -91,7 +91,7 @@
                         <button type="button" data-test-use {{action confirm 'use' item}}>Use</button>
                     </li>
 {{/if}}
-{{#unless (token/is-anonymous item) }}
+{{#unless (or (token/is-anonymous item) (eq item.AccessorID token.AccessorID)) }}
                     <li>
                         <button type="button" class="type-delete" data-test-delete {{action confirm 'delete' item}}>Delete</button>
                     </li>
