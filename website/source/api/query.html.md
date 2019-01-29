@@ -267,7 +267,7 @@ The table below shows this endpoint's support for
     "Near": "node1",
     "OnlyPassing": false,
     "Tags": ["primary", "!experimental"],
-    "NodeMeta": {"instance_type": "m3.large"}
+    "NodeMeta": {"instance_type": "m3.large"},
     "ServiceMeta": {"environment": "production"}
   },
   "DNS": {
@@ -341,7 +341,7 @@ $ curl \
       },
       "OnlyPassing": false,
       "Tags": ["primary", "!experimental"],
-      "NodeMeta": {"instance_type": "m3.large"}
+      "NodeMeta": {"instance_type": "m3.large"},
       "ServiceMeta": {"environment": "production"}
     },
     "DNS": {
