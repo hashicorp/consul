@@ -562,17 +562,12 @@ default will automatically work with some tooling.
      all of the configured ACL tokens for the agents usage.
 
         * <a name="acl_tokens_master"></a><a href="#acl_tokens_master">`master`</a> - Only used
-          for servers in the [`primary_datacenter`](#primary_datacenter). This token will be created with management-level
-          permissions if it does not exist. It allows operators to bootstrap the ACL system
-          with a token Secret ID that is well-known.
+          for servers in the [`primary_datacenter`](#primary_datacenter). Initially, this token will be created with management-level
+          permissions. This process allows operators to bootstrap the ACL system with a token Secret ID that is well-known.
           <br/><br/>
-          The `master` token is only installed when a server acquires cluster leadership. If
-          you would like to install or change the `acl_master_token`, set the new value for `master`
-          in the configuration for all servers. Once this is done, restart the current leader to force a
-          leader election. If the `master` token is not supplied, then the servers do not create a master
-          token. When you provide a value, it should be a UUID. To maintain backwards compatibility
-          and an upgrade path this restriction is not currently enforced but will be in a future major
-          Consul release.
+          The token can be created with the [HTTP API](/api/acl/acl.html), [Consul CLI](/docs/commands/acl.html), or by providing a unique UUID as the value. When the operator provides a unique UUID, Consul will automatically assign it the "global-management" policy. Additionally, when providing a value, it should be a UUID to maintain backwards compatibility and an upgrade path this restriction is not currently enforced but will be in a future major
+          Consul release. The `master` token is only installed when a server acquires cluster leadership. If you would like to change the `acl_master_token`, add the new value for `master`
+          in the configuration for all servers. Once this is done, restart the current leader to force a leader election. 
 
         * <a name="acl_tokens_default"></a><a href="#acl_tokens_default">`default`</a> - When provided,
         the agent will use this token when making requests to the Consul servers. Clients can
