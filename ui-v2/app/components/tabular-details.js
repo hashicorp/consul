@@ -1,5 +1,5 @@
 import Component from '@ember/component';
-import SlotsMixin from 'ember-block-slots';
+import SlotsMixin from 'block-slots';
 import closest from 'consul-ui/utils/dom/closest';
 import clickFirstAnchorFactory from 'consul-ui/utils/dom/click-first-anchor';
 const clickFirstAnchor = clickFirstAnchorFactory(closest);

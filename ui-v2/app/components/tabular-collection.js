@@ -2,7 +2,7 @@ import Component from 'ember-collection/components/ember-collection';
 import needsRevalidate from 'ember-collection/utils/needs-revalidate';
 import identity from 'ember-collection/utils/identity';
 import Grid from 'ember-collection/layouts/grid';
-import SlotsMixin from 'ember-block-slots';
+import SlotsMixin from 'block-slots';
 import WithResizing from 'consul-ui/mixins/with-resizing';
 import style from 'ember-computed-style';
 import qsaFactory from 'consul-ui/utils/dom/qsa-factory';
