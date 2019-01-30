@@ -211,7 +211,6 @@ type Config struct {
 	GossipLAN                        GossipLANConfig          `json:"gossip_lan,omitempty" hcl:"gossip_lan" mapstructure:"gossip_lan"`
 	GossipWAN                        GossipWANConfig          `json:"gossip_wan,omitempty" hcl:"gossip_wan" mapstructure:"gossip_wan"`
 	HTTPConfig                       HTTPConfig               `json:"http_config,omitempty" hcl:"http_config" mapstructure:"http_config"`
-	InsecureGRPC                     *bool                    `json:"insecure_grpc,omitempty" hcl:"insecure_grpc" mapstructure:"insecure_grpc"`
 	KeyFile                          *string                  `json:"key_file,omitempty" hcl:"key_file" mapstructure:"key_file"`
 	LeaveOnTerm                      *bool                    `json:"leave_on_terminate,omitempty" hcl:"leave_on_terminate" mapstructure:"leave_on_terminate"`
 	Limits                           Limits                   `json:"limits,omitempty" hcl:"limits" mapstructure:"limits"`

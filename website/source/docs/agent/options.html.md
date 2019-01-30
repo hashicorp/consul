@@ -1193,13 +1193,6 @@ default will automatically work with some tooling.
     cluster before declaring it dead, giving that suspect node more time to refute if it is indeed still alive. The
     default is 4.
 
-* <a name="insecure_grpc"></a><a href="#insecure_grpc">`insecure_grpc`</a> If
-  set to `true` this setting will ensure the gRPC server does not use the
-  [`key_file`](#key_file) and [`cert_file`](#cert_file) settings to encrypt
-  communications with TLS. This should only be used if the gRPC server is bound
-  to a local address such as "127.0.0.1" where traffic interception is
-  unlikely.
-
 * <a name="key_file"></a><a href="#key_file">`key_file`</a> This provides a the file path to a
   PEM-encoded private key. The key is used with the certificate to verify the agent's authenticity.
   This must be provided along with [`cert_file`](#cert_file).

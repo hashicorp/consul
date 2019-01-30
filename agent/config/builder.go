@@ -801,7 +801,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		EncryptVerifyOutgoing:                   b.boolVal(c.EncryptVerifyOutgoing),
 		GRPCPort:                                grpcPort,
 		GRPCAddrs:                               grpcAddrs,
-		InsecureGRPC:                            b.boolVal(c.InsecureGRPC),
 		KeyFile:                                 b.stringVal(c.KeyFile),
 		LeaveDrainTime:                          b.durationVal("performance.leave_drain_time", c.Performance.LeaveDrainTime),
 		LeaveOnTerm:                             leaveOnTerm,

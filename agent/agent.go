@@ -523,10 +523,12 @@ func (a *Agent) listenAndServeGRPC() error {
 		ResolveToken: a.resolveToken,
 	}
 	var err error
-	if a.config.InsecureGRPC {
-		a.grpcServer, err = a.xdsServer.GRPCServer("", "")
-	} else {
+	if a.config.HTTPSPort > 0 {
+		// gRPC uses the same TLS settings as the HTTPS API. If HTTPS is
+		// enabled then gRPC will require HTTPS as well.
 		a.grpcServer, err = a.xdsServer.GRPCServer(a.config.CertFile, a.config.KeyFile)
+	} else {
+		a.grpcServer, err = a.xdsServer.GRPCServer("", "")
 	}
 	if err != nil {
 		return err

@@ -775,12 +775,6 @@ type RuntimeConfig struct {
 	// hcl: ports { https = int }
 	HTTPSPort int
 
-	// InsecureGRPC is used to disable TLS for localhost gRPC even if TLS
-	// certs are present for other reasons.
-	//
-	// hcl: insecure_grpc = (true|false)
-	InsecureGRPC bool
-
 	// KeyFile is used to provide a TLS key that is used for serving TLS
 	// connections. Must be provided to serve TLS connections.
 	//
