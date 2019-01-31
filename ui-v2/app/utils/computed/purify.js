@@ -1,4 +1,4 @@
-import { get } from '@ember/object';
+import { get, computed } from '@ember/object';
 
 /**
  * Converts a conventional non-pure Ember `computed` function into a pure one
@@ -8,20 +8,18 @@ import { get } from '@ember/object';
  * @param {function} filter - Optional string filter function to pre-process the names of computed properties
  * @returns {function} - A pure `computed` function
  */
-
-export default function(computed, filter) {
+const _success = function(value) {
+  return value;
+};
+const purify = function(computed, filter = args => args) {
   return function() {
     let args = [...arguments];
-    let success = function(value) {
-      return value;
-    };
+    let success = _success;
     // pop the user function off the end
     if (typeof args[args.length - 1] === 'function') {
       success = args.pop();
     }
-    if (typeof filter === 'function') {
-      args = filter(args);
-    }
+    args = filter(args);
     // this is the 'conventional' `computed`
     const cb = function(name) {
       return success.apply(
@@ -39,4 +37,6 @@ export default function(computed, filter) {
     // concat/push the user function back on
     return computed(...args.concat([cb]));
   };
-}
+};
+export const subscribe = purify(computed);
+export default purify;
