@@ -3066,7 +3066,9 @@ func TestFullConfig(t *testing.T) {
 				"service_ttl": {
 					"*": "32030s"
 				},
-				"udp_answer_limit": 29909
+				"udp_answer_limit": 29909,
+				"use_cache": true,
+				"cache_max_age": "5m"
 			},
 			"enable_acl_replication": true,
 			"enable_agent_tls_for_checks": true,
@@ -3620,6 +3622,8 @@ func TestFullConfig(t *testing.T) {
 					"*" = "32030s"
 				}
 				udp_answer_limit = 29909
+				use_cache = true
+				cache_max_age = "5m"
 			}
 			enable_acl_replication = true
 			enable_agent_tls_for_checks = true
@@ -4249,6 +4253,8 @@ func TestFullConfig(t *testing.T) {
 		DNSServiceTTL:                    map[string]time.Duration{"*": 32030 * time.Second},
 		DNSUDPAnswerLimit:                29909,
 		DNSNodeMetaTXT:                   true,
+		DNSUseCache:                      true,
+		DNSCacheMaxAge:                   5 * time.Minute,
 		DataDir:                          dataDir,
 		Datacenter:                       "rzo029wg",
 		DevMode:                          true,
@@ -5043,6 +5049,8 @@ func TestSanitize(t *testing.T) {
 			"Minttl": 0
 		},
 		"DNSUDPAnswerLimit": 0,
+		"DNSUseCache": false,
+		"DNSCacheMaxAge": "0s",
 		"DataDir": "",
 		"Datacenter": "",
 		"DevMode": false,

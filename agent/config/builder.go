@@ -715,6 +715,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		DNSSOA:                soa,
 		DNSUDPAnswerLimit:     b.intVal(c.DNS.UDPAnswerLimit),
 		DNSNodeMetaTXT:        b.boolValWithDefault(c.DNS.NodeMetaTXT, true),
+		DNSUseCache:           b.boolVal(c.DNS.UseCache),
+		DNSCacheMaxAge:        b.durationVal("dns_config.cache_max_age", c.DNS.CacheMaxAge),
 
 		// HTTP
 		HTTPPort:            httpPort,

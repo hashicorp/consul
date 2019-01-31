@@ -11,9 +11,10 @@ import (
 
 	"regexp"
 
-	"github.com/armon/go-metrics"
-	"github.com/armon/go-radix"
+	metrics "github.com/armon/go-metrics"
+	radix "github.com/armon/go-radix"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
+	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
@@ -53,6 +54,8 @@ type dnsConfig struct {
 	Datacenter      string
 	EnableTruncate  bool
 	MaxStale        time.Duration
+	UseCache        bool
+	CacheMaxAge     time.Duration
 	NodeName        string
 	NodeTTL         time.Duration
 	OnlyPassing     bool
@@ -140,6 +143,8 @@ func GetDNSConfig(conf *config.RuntimeConfig) *dnsConfig {
 		ServiceTTL:      conf.DNSServiceTTL,
 		UDPAnswerLimit:  conf.DNSUDPAnswerLimit,
 		NodeMetaTXT:     conf.DNSNodeMetaTXT,
+		UseCache:        conf.DNSUseCache,
+		CacheMaxAge:     conf.DNSCacheMaxAge,
 		dnsSOAConfig: dnsSOAConfig{
 			Expire:  conf.DNSSOA.Expire,
 			Minttl:  conf.DNSSOA.Minttl,
@@ -647,7 +652,7 @@ func (d *DNSServer) nodeLookup(network, datacenter, node string, req, resp *dns.
 	}
 
 	// Make an RPC request
-	args := structs.NodeSpecificRequest{
+	args := &structs.NodeSpecificRequest{
 		Datacenter: datacenter,
 		Node:       node,
 		QueryOptions: structs.QueryOptions{
@@ -655,23 +660,11 @@ func (d *DNSServer) nodeLookup(network, datacenter, node string, req, resp *dns.
 			AllowStale: d.config.AllowStale,
 		},
 	}
-	var out structs.IndexedNodeServices
-RPC:
-	if err := d.agent.RPC("Catalog.NodeServices", &args, &out); err != nil {
+	out, err := d.lookupNode(args)
+	if err != nil {
 		d.logger.Printf("[ERR] dns: rpc error: %v", err)
 		resp.SetRcode(req, dns.RcodeServerFailure)
 		return
-	}
-
-	// Verify that request is not too stale, redo the request
-	if args.AllowStale {
-		if out.LastContact > d.config.MaxStale {
-			args.AllowStale = false
-			d.logger.Printf("[WARN] dns: Query results too stale, re-requesting")
-			goto RPC
-		} else if out.LastContact > staleCounterThreshold {
-			metrics.IncrCounter([]string{"dns", "stale_queries"}, 1)
-		}
 	}
 
 	// If we have no address, return not found!
@@ -703,6 +696,43 @@ RPC:
 	} else if meta != nil && generateMeta {
 		resp.Extra = append(resp.Extra, meta...)
 	}
+}
+
+func (d *DNSServer) lookupNode(args *structs.NodeSpecificRequest) (*structs.IndexedNodeServices, error) {
+	var out structs.IndexedNodeServices
+
+	useCache := d.config.UseCache
+RPC:
+	if useCache {
+		raw, _, err := d.agent.cache.Get(cachetype.NodeServicesName, args)
+		if err != nil {
+			return nil, err
+		}
+		reply, ok := raw.(*structs.IndexedNodeServices)
+		if !ok {
+			// This should never happen, but we want to protect against panics
+			return nil, fmt.Errorf("internal error: response type not correct")
+		}
+		out = *reply
+	} else {
+		if err := d.agent.RPC("Catalog.NodeServices", &args, &out); err != nil {
+			return nil, err
+		}
+	}
+
+	// Verify that request is not too stale, redo the request
+	if args.AllowStale {
+		if out.LastContact > d.config.MaxStale {
+			args.AllowStale = false
+			useCache = false
+			d.logger.Printf("[WARN] dns: Query results too stale, re-requesting")
+			goto RPC
+		} else if out.LastContact > staleCounterThreshold {
+			metrics.IncrCounter([]string{"dns", "stale_queries"}, 1)
+		}
+	}
+
+	return &out, nil
 }
 
 // encodeKVasRFC1464 encodes a key-value pair according to RFC1464
@@ -1030,12 +1060,29 @@ func (d *DNSServer) lookupServiceNodes(datacenter, service, tag string, connect 
 		QueryOptions: structs.QueryOptions{
 			Token:      d.agent.tokens.UserToken(),
 			AllowStale: d.config.AllowStale,
+			MaxAge:     d.config.CacheMaxAge,
 		},
 	}
 
 	var out structs.IndexedCheckServiceNodes
-	if err := d.agent.RPC("Health.ServiceNodes", &args, &out); err != nil {
-		return structs.IndexedCheckServiceNodes{}, err
+
+	if d.config.UseCache {
+		raw, m, err := d.agent.cache.Get(cachetype.HealthServicesName, &args)
+		if err != nil {
+			return out, err
+		}
+		reply, ok := raw.(*structs.IndexedCheckServiceNodes)
+		if !ok {
+			// This should never happen, but we want to protect against panics
+			return out, fmt.Errorf("internal error: response type not correct")
+		}
+		d.logger.Printf("[TRACE] dns: cache hit: %v for service %s", m.Hit, service)
+
+		out = *reply
+	} else {
+		if err := d.agent.RPC("Health.ServiceNodes", &args, &out); err != nil {
+			return out, err
+		}
 	}
 
 	if args.AllowStale && out.LastContact > staleCounterThreshold {
@@ -1122,6 +1169,7 @@ func (d *DNSServer) preparedQueryLookup(network, datacenter, query string, remot
 		QueryOptions: structs.QueryOptions{
 			Token:      d.agent.tokens.UserToken(),
 			AllowStale: d.config.AllowStale,
+			MaxAge:     d.config.CacheMaxAge,
 		},
 
 		// Always pass the local agent through. In the DNS interface, there
@@ -1150,6 +1198,20 @@ func (d *DNSServer) preparedQueryLookup(network, datacenter, query string, remot
 		}
 	}
 
+	out, err := d.lookupPreparedQuery(args)
+
+	// If they give a bogus query name, treat that as a name error,
+	// not a full on server error. We have to use a string compare
+	// here since the RPC layer loses the type information.
+	if err != nil && err.Error() == consul.ErrQueryNotFound.Error() {
+		d.addSOA(resp)
+		resp.SetRcode(req, dns.RcodeNameError)
+		return
+	} else if err != nil {
+		resp.SetRcode(req, dns.RcodeServerFailure)
+		return
+	}
+
 	// TODO (slackpad) - What's a safe limit we can set here? It seems like
 	// with dup filtering done at this level we need to get everything to
 	// match the previous behavior. We can optimize by pushing more filtering
@@ -1157,34 +1219,6 @@ func (d *DNSServer) preparedQueryLookup(network, datacenter, query string, remot
 	// response. We could also choose a large arbitrary number that will
 	// likely work in practice, like 10*maxUDPAnswerLimit which should help
 	// reduce bandwidth if there are thousands of nodes available.
-
-	var out structs.PreparedQueryExecuteResponse
-RPC:
-	if err := d.agent.RPC("PreparedQuery.Execute", &args, &out); err != nil {
-		// If they give a bogus query name, treat that as a name error,
-		// not a full on server error. We have to use a string compare
-		// here since the RPC layer loses the type information.
-		if err.Error() == consul.ErrQueryNotFound.Error() {
-			d.addSOA(resp)
-			resp.SetRcode(req, dns.RcodeNameError)
-			return
-		}
-
-		d.logger.Printf("[ERR] dns: rpc error: %v", err)
-		resp.SetRcode(req, dns.RcodeServerFailure)
-		return
-	}
-
-	// Verify that request is not too stale, redo the request.
-	if args.AllowStale {
-		if out.LastContact > d.config.MaxStale {
-			args.AllowStale = false
-			d.logger.Printf("[WARN] dns: Query results too stale, re-requesting")
-			goto RPC
-		} else if out.LastContact > staleCounterThreshold {
-			metrics.IncrCounter([]string{"dns", "stale_queries"}, 1)
-		}
-	}
 
 	// Determine the TTL. The parse should never fail since we vet it when
 	// the query is created, but we check anyway. If the query didn't
@@ -1223,6 +1257,44 @@ RPC:
 		d.addSOA(resp)
 		return
 	}
+}
+
+func (d *DNSServer) lookupPreparedQuery(args structs.PreparedQueryExecuteRequest) (*structs.PreparedQueryExecuteResponse, error) {
+	var out structs.PreparedQueryExecuteResponse
+
+RPC:
+	if d.config.UseCache {
+		raw, m, err := d.agent.cache.Get(cachetype.PreparedQueryName, &args)
+		if err != nil {
+			return nil, err
+		}
+		reply, ok := raw.(*structs.PreparedQueryExecuteResponse)
+		if !ok {
+			// This should never happen, but we want to protect against panics
+			return nil, err
+		}
+
+		d.logger.Printf("[TRACE] dns: cache hit: %v for prepared query %s", m.Hit, args.QueryIDOrName)
+
+		out = *reply
+	} else {
+		if err := d.agent.RPC("PreparedQuery.Execute", &args, &out); err != nil {
+			return nil, err
+		}
+	}
+
+	// Verify that request is not too stale, redo the request.
+	if args.AllowStale {
+		if out.LastContact > d.config.MaxStale {
+			args.AllowStale = false
+			d.logger.Printf("[WARN] dns: Query results too stale, re-requesting")
+			goto RPC
+		} else if out.LastContact > staleCounterThreshold {
+			metrics.IncrCounter([]string{"dns", "stale_queries"}, 1)
+		}
+	}
+
+	return &out, nil
 }
 
 // serviceNodeRecords is used to add the node records for a service lookup
