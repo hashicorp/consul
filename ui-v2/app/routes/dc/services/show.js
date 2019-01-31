@@ -5,7 +5,6 @@ import { get } from '@ember/object';
 
 export default Route.extend({
   repo: service('repository/service'),
-  intentionRepo: service('repository/intention'),
   queryParams: {
     s: {
       as: 'filter',
@@ -16,7 +15,6 @@ export default Route.extend({
     const repo = get(this, 'repo');
     return hash({
       item: repo.findBySlug(params.name, this.modelFor('dc').dc.Name),
-      // intentions: intentionRepo.findByService(params.name, this.modelFor('dc').dc.Name),
     }).then(function(model) {
       return {
         ...model,

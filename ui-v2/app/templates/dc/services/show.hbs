@@ -20,7 +20,6 @@
             items=(compact
               (array
                 'Instances'
-                'Intentions'
                 'Tags'
               )
             )
@@ -32,7 +31,6 @@
             (compact
                 (array
                     (hash id=(slugify 'Instances') partial='dc/services/instances')
-                    (hash id=(slugify 'Intentions') partial='dc/services/intentions')
                     (hash id=(slugify 'Tags') partial='dc/services/tags')
                 )
             ) as |panel|
