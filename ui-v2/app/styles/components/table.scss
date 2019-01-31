@@ -3,38 +3,11 @@
 td.folder {
   @extend %with-folder;
 }
-td dt.passing {
-  @extend %with-passing;
-}
-td dt.warning {
-  @extend %with-warning;
-}
-td dt.critical {
-  @extend %with-critical;
-}
-td span.zero {
-  @extend %with-no-healthchecks;
-  display: block;
-  text-indent: 20px;
-  color: $gray-400;
-}
 table:not(.sessions) tr {
   cursor: pointer;
 }
 table:not(.sessions) td:first-child {
   padding: 0;
-}
-td dt.passing,
-td dt.passing + dd {
-  color: $color-success;
-}
-td dt.warning,
-td dt.warning + dd {
-  color: $color-alert;
-}
-td dt.critical,
-td dt.critical + dd {
-  color: $color-failure;
 }
 /* Header Tooltips/Icon*/
 th {
