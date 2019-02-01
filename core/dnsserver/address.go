@@ -72,7 +72,7 @@ func SplitProtocolHostPort(address string) (protocol string, ip string, port str
 
 type zoneOverlap struct {
 	registeredAddr map[zoneAddr]zoneAddr // each zoneAddr is registered once by its key
-	unboundOverlap map[zoneAddr]zoneAddr // the "no bind" equiv ZoneAdddr is registered by its original key
+	unboundOverlap map[zoneAddr]zoneAddr // the "no bind" equiv ZoneAddr is registered by its original key
 }
 
 func newOverlapZone() *zoneOverlap {

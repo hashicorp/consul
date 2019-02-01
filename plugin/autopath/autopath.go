@@ -20,7 +20,7 @@ through the search path.
 
 It is assume the search path ordering is identical between server and client.
 
-Midldeware implementing autopath, must have a function called `AutoPath` of type
+Middleware implementing autopath, must have a function called `AutoPath` of type
 autopath.Func. Note the searchpath must be ending with the empty string.
 
 I.e:

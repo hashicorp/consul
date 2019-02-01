@@ -106,7 +106,7 @@ entire domain and all sub domains.
 In this example the *file* plugin is handling all names below (and including) `example.org`. If
 a query comes in that is not a subdomain (or equal to) `example.org` the next plugin is called.
 
-Now, the world isn't perfect, and there are good reasons to "fallthrough" to the next middlware,
+Now, the world isn't perfect, and there are good reasons to "fallthrough" to the next middleware,
 meaning a plugin is only responsible for a *subset* of names within the zone. The first of these
 to appear was the *reverse* plugin that synthesis PTR and A/AAAA responses (useful with IPv6).
 
