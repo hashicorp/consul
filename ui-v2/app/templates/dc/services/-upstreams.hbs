@@ -1,0 +1,21 @@
+{{#tabular-collection
+    data-test-upstreams
+    items=item.Proxy.Upstreams as |item index|
+}}
+    {{#block-slot 'header'}}
+      <th>Destination Name</th>
+      <th>Destination Type</th>
+      <th>Local Bind Port</th>
+    {{/block-slot}}
+    {{#block-slot 'row'}}
+      <td data-test-detination-name>
+        <a>{{item.DestinationName}}</a>
+      </td>
+      <td data-test-destination-type>
+          {{item.DestinationType}}
+      </td>
+      <td data-test-local-bind-port>
+          {{item.LocalBindPort}}
+      </td>
+    {{/block-slot}}
+{{/tabular-collection}}

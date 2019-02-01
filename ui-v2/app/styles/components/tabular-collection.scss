@@ -46,6 +46,9 @@ html.template-node.template-show #services td:first-child a span {
 html.template-service.template-list main table tr {
   @extend %services-row;
 }
+html.template-instance.template-show #upstreams table tr {
+  @extend %upstreams-row;
+}
 html.template-intention.template-list main table tr {
   @extend %intentions-row;
 }
@@ -155,7 +158,7 @@ html.template-node.template-show main table.sessions tr {
   @extend %table-actions;
 }
 %node-services-row > * {
-  width: 33%;
+  width: calc(100% / 3);
 }
 %policies-row > * {
   width: calc(33% - 20px);
@@ -171,4 +174,7 @@ html.template-node.template-show main table.sessions tr {
 // }
 %services-row > * {
   width: auto;
+}
+%upstreams-row > * {
+  width: calc(100% / 3);
 }
