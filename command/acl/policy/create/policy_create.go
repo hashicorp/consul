@@ -25,6 +25,7 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
+	policyID    string
 	name        string
 	description string
 	datacenters []string
@@ -41,6 +42,8 @@ func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.BoolVar(&c.showMeta, "meta", false, "Indicates that policy metadata such "+
 		"as the content hash and raft indices should be shown for each entry")
+	c.flags.StringVar(&c.policyID, "id", "", "The new policies ID. This must be a UUID "+
+		"and if not supplied will be auto-generated.")
 	c.flags.StringVar(&c.name, "name", "", "The new policy's name. This flag is required.")
 	c.flags.StringVar(&c.description, "description", "", "A description of the policy")
 	c.flags.Var((*flags.AppendSliceValue)(&c.datacenters), "valid-datacenter", "Datacenter "+
@@ -107,6 +110,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	newPolicy := &api.ACLPolicy{
+		ID:          c.policyID,
 		Name:        c.name,
 		Description: c.description,
 		Datacenters: c.datacenters,

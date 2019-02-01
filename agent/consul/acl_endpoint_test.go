@@ -808,6 +808,267 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 	})
 }
 
+func TestACLEndpoint_TokenSet_CustomID(t *testing.T) {
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	acl := ACL{srv: s1}
+
+	// No Create Arg
+	{
+		req := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				AccessorID:  "5d62a983-bcab-4e0c-9bcd-5dabebe3e273",
+				SecretID:    "10a8ad77-2bdf-4939-a9d7-1b7de79d6beb",
+				Description: "foobar",
+				Policies:    nil,
+				Local:       false,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		resp := structs.ACLToken{}
+
+		err := acl.TokenSet(&req, &resp)
+		require.Error(t, err)
+	}
+	// Use the Create Arg
+	{
+		req := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				AccessorID:  "5d62a983-bcab-4e0c-9bcd-5dabebe3e273",
+				SecretID:    "10a8ad77-2bdf-4939-a9d7-1b7de79d6beb",
+				Description: "foobar",
+				Policies:    nil,
+				Local:       false,
+			},
+			Create:       true,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		resp := structs.ACLToken{}
+
+		err := acl.TokenSet(&req, &resp)
+		require.NoError(t, err)
+
+		// Get the token directly to validate that it exists
+		tokenResp, err := retrieveTestToken(codec, "root", "dc1", resp.AccessorID)
+		require.NoError(t, err)
+		token := tokenResp.Token
+
+		require.Equal(t, req.ACLToken.AccessorID, token.AccessorID)
+		require.Equal(t, req.ACLToken.SecretID, token.SecretID)
+		require.Equal(t, token.Description, "foobar")
+	}
+	// Reserved AccessorID
+	{
+		req := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				AccessorID:  "00000000-0000-0000-0000-000000000073",
+				Description: "foobar",
+				Policies:    nil,
+				Local:       false,
+			},
+			Create:       true,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		resp := structs.ACLToken{}
+
+		err := acl.TokenSet(&req, &resp)
+		require.Error(t, err)
+	}
+	// Reserved SecretID
+	{
+		req := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				SecretID:    "00000000-0000-0000-0000-000000000073",
+				Description: "foobar",
+				Policies:    nil,
+				Local:       false,
+			},
+			Create:       true,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		resp := structs.ACLToken{}
+
+		err := acl.TokenSet(&req, &resp)
+		require.Error(t, err)
+	}
+	// Accessor is dup
+	{
+		req := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				AccessorID:  "5d62a983-bcab-4e0c-9bcd-5dabebe3e273",
+				Description: "foobar",
+				Policies:    nil,
+				Local:       false,
+			},
+			Create:       true,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		resp := structs.ACLToken{}
+
+		err := acl.TokenSet(&req, &resp)
+		require.Error(t, err)
+	}
+	// Accessor is dup of secret
+	{
+		req := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				AccessorID:  "10a8ad77-2bdf-4939-a9d7-1b7de79d6beb",
+				Description: "foobar",
+				Policies:    nil,
+				Local:       false,
+			},
+			Create:       true,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		resp := structs.ACLToken{}
+
+		err := acl.TokenSet(&req, &resp)
+		require.Error(t, err)
+	}
+	// Secret is dup of Accessor
+	{
+		req := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				SecretID:    "5d62a983-bcab-4e0c-9bcd-5dabebe3e273",
+				Description: "foobar",
+				Policies:    nil,
+				Local:       false,
+			},
+			Create:       true,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		resp := structs.ACLToken{}
+
+		err := acl.TokenSet(&req, &resp)
+		require.Error(t, err)
+	}
+	// Secret is dup
+	{
+		req := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				SecretID:    "10a8ad77-2bdf-4939-a9d7-1b7de79d6beb",
+				Description: "foobar",
+				Policies:    nil,
+				Local:       false,
+			},
+			Create:       true,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		resp := structs.ACLToken{}
+
+		err := acl.TokenSet(&req, &resp)
+		require.Error(t, err)
+	}
+
+	// Update Accessor attempt
+	{
+		req := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				AccessorID:  "75a0d6a9-6882-4f7a-a053-906db1d55a73",
+				SecretID:    "10a8ad77-2bdf-4939-a9d7-1b7de79d6beb",
+				Description: "foobar",
+				Policies:    nil,
+				Local:       false,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		resp := structs.ACLToken{}
+
+		err := acl.TokenSet(&req, &resp)
+		require.Error(t, err)
+	}
+	// Update Accessor attempt - with Create
+	{
+		req := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				AccessorID:  "75a0d6a9-6882-4f7a-a053-906db1d55a73",
+				SecretID:    "10a8ad77-2bdf-4939-a9d7-1b7de79d6beb",
+				Description: "foobar",
+				Policies:    nil,
+				Local:       false,
+			},
+			Create:       true,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		resp := structs.ACLToken{}
+
+		err := acl.TokenSet(&req, &resp)
+		require.Error(t, err)
+	}
+	// Update Secret attempt
+	{
+		req := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				AccessorID:  "5d62a983-bcab-4e0c-9bcd-5dabebe3e273",
+				SecretID:    "f551f807-b3a7-4483-9ade-97230c974bf3",
+				Description: "foobar",
+				Policies:    nil,
+				Local:       false,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		resp := structs.ACLToken{}
+
+		err := acl.TokenSet(&req, &resp)
+		require.Error(t, err)
+	}
+
+	// Update Secret attempt - with Create
+	{
+		req := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				AccessorID:  "5d62a983-bcab-4e0c-9bcd-5dabebe3e273",
+				SecretID:    "f551f807-b3a7-4483-9ade-97230c974bf3",
+				Description: "foobar",
+				Policies:    nil,
+				Local:       false,
+			},
+			Create:       true,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		resp := structs.ACLToken{}
+
+		err := acl.TokenSet(&req, &resp)
+		require.Error(t, err)
+	}
+}
+
 func TestACLEndpoint_TokenSet_anon(t *testing.T) {
 	t.Parallel()
 
@@ -1254,6 +1515,110 @@ func TestACLEndpoint_PolicySet(t *testing.T) {
 		require.Equal(t, policy.Description, "bat")
 		require.Equal(t, policy.Name, "bar")
 		require.Equal(t, policy.Rules, "service \"\" { policy = \"write\" }")
+	}
+}
+
+func TestACLEndpoint_PolicySet_CustomID(t *testing.T) {
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	acl := ACL{srv: s1}
+
+	// Create it - no Create arg
+	{
+		req := structs.ACLPolicySetRequest{
+			Datacenter: "dc1",
+			Policy: structs.ACLPolicy{
+				ID:          "7ee166a5-b4b7-453c-bdc0-bca8ce50823e",
+				Description: "foobar",
+				Name:        "baz",
+				Rules:       "service \"\" { policy = \"read\" }",
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		resp := structs.ACLPolicy{}
+
+		err := acl.PolicySet(&req, &resp)
+		require.Error(t, err)
+	}
+
+	// Create it
+	{
+		req := structs.ACLPolicySetRequest{
+			Datacenter: "dc1",
+			Policy: structs.ACLPolicy{
+				ID:          "7ee166a5-b4b7-453c-bdc0-bca8ce50823e",
+				Description: "foobar",
+				Name:        "baz",
+				Rules:       "service \"\" { policy = \"read\" }",
+			},
+			Create:       true,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		resp := structs.ACLPolicy{}
+
+		err := acl.PolicySet(&req, &resp)
+		require.NoError(t, err)
+		require.NotNil(t, resp.ID)
+
+		// Get the policy directly to validate that it exists
+		policyResp, err := retrieveTestPolicy(codec, "root", "dc1", resp.ID)
+		require.NoError(t, err)
+		policy := policyResp.Policy
+
+		require.Equal(t, req.Policy.ID, policy.ID)
+		require.Equal(t, policy.Description, "foobar")
+		require.Equal(t, policy.Name, "baz")
+		require.Equal(t, policy.Rules, "service \"\" { policy = \"read\" }")
+	}
+
+	// Create it - Duplicate Name
+	{
+		req := structs.ACLPolicySetRequest{
+			Datacenter: "dc1",
+			Policy: structs.ACLPolicy{
+				ID:          "fc925e4d-a02c-43c2-837b-5c039690d4c1",
+				Description: "foobar",
+				Name:        "baz",
+				Rules:       "service \"\" { policy = \"read\" }",
+			},
+			Create:       true,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		resp := structs.ACLPolicy{}
+
+		err := acl.PolicySet(&req, &resp)
+		require.Error(t, err)
+	}
+
+	// Rename with Create arg
+	{
+		req := structs.ACLPolicySetRequest{
+			Datacenter: "dc1",
+			Policy: structs.ACLPolicy{
+				ID:          "7ee166a5-b4b7-453c-bdc0-bca8ce50823e",
+				Description: "foobar",
+				Name:        "different",
+				Rules:       "service \"\" { policy = \"read\" }",
+			},
+			Create:       true,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		resp := structs.ACLPolicy{}
+
+		err := acl.PolicySet(&req, &resp)
+		require.Error(t, err)
 	}
 }
 

@@ -37,7 +37,7 @@ func (c *cmd) init() {
 		"as the content hash and raft indices should be shown for each entry")
 	c.flags.BoolVar(&c.mergePolicies, "merge-policies", false, "Merge the new policies "+
 		"with the existing policies")
-	c.flags.StringVar(&c.tokenID, "id", "", "The Accessor ID of the token to read. "+
+	c.flags.StringVar(&c.tokenID, "id", "", "The Accessor ID of the token to update. "+
 		"It may be specified as a unique ID prefix but will error if the prefix "+
 		"matches multiple token Accessor IDs")
 	c.flags.StringVar(&c.description, "description", "", "A description of the token")

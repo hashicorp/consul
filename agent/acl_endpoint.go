@@ -265,7 +265,7 @@ func (s *HTTPServer) ACLPolicyCreate(resp http.ResponseWriter, req *http.Request
 		return nil, nil
 	}
 
-	return s.ACLPolicyWrite(resp, req, "")
+	return s.aclPolicyWriteInternal(resp, req, "", true)
 }
 
 // fixCreateTimeAndHash is used to help in decoding the CreateTime and Hash
@@ -296,8 +296,13 @@ func fixCreateTimeAndHash(raw interface{}) error {
 }
 
 func (s *HTTPServer) ACLPolicyWrite(resp http.ResponseWriter, req *http.Request, policyID string) (interface{}, error) {
+	return s.aclPolicyWriteInternal(resp, req, policyID, false)
+}
+
+func (s *HTTPServer) aclPolicyWriteInternal(resp http.ResponseWriter, req *http.Request, policyID string, create bool) (interface{}, error) {
 	args := structs.ACLPolicySetRequest{
 		Datacenter: s.agent.config.Datacenter,
+		Create:     create,
 	}
 	s.parseToken(req, &args.Token)
 
@@ -307,10 +312,12 @@ func (s *HTTPServer) ACLPolicyWrite(resp http.ResponseWriter, req *http.Request,
 
 	args.Policy.Syntax = acl.SyntaxCurrent
 
-	if args.Policy.ID != "" && args.Policy.ID != policyID {
-		return nil, BadRequestError{Reason: "Policy ID in URL and payload do not match"}
-	} else if args.Policy.ID == "" {
-		args.Policy.ID = policyID
+	if !create {
+		if args.Policy.ID != "" && args.Policy.ID != policyID {
+			return nil, BadRequestError{Reason: "Policy ID in URL and payload do not match"}
+		} else if args.Policy.ID == "" {
+			args.Policy.ID = policyID
+		}
 	}
 
 	var out structs.ACLPolicy
@@ -435,7 +442,7 @@ func (s *HTTPServer) ACLTokenCreate(resp http.ResponseWriter, req *http.Request)
 		return nil, nil
 	}
 
-	return s.ACLTokenSet(resp, req, "")
+	return s.aclTokenSetInternal(resp, req, "", true)
 }
 
 func (s *HTTPServer) ACLTokenGet(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
@@ -467,8 +474,13 @@ func (s *HTTPServer) ACLTokenGet(resp http.ResponseWriter, req *http.Request, to
 }
 
 func (s *HTTPServer) ACLTokenSet(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
+	return s.aclTokenSetInternal(resp, req, tokenID, false)
+}
+
+func (s *HTTPServer) aclTokenSetInternal(resp http.ResponseWriter, req *http.Request, tokenID string, create bool) (interface{}, error) {
 	args := structs.ACLTokenSetRequest{
 		Datacenter: s.agent.config.Datacenter,
+		Create:     create,
 	}
 	s.parseToken(req, &args.Token)
 
@@ -476,10 +488,12 @@ func (s *HTTPServer) ACLTokenSet(resp http.ResponseWriter, req *http.Request, to
 		return nil, BadRequestError{Reason: fmt.Sprintf("Token decoding failed: %v", err)}
 	}
 
-	if args.ACLToken.AccessorID != "" && args.ACLToken.AccessorID != tokenID {
-		return nil, BadRequestError{Reason: "Token Accessor ID in URL and payload do not match"}
-	} else if args.ACLToken.AccessorID == "" {
-		args.ACLToken.AccessorID = tokenID
+	if !create {
+		if args.ACLToken.AccessorID != "" && args.ACLToken.AccessorID != tokenID {
+			return nil, BadRequestError{Reason: "Token Accessor ID in URL and payload do not match"}
+		} else if args.ACLToken.AccessorID == "" {
+			args.ACLToken.AccessorID = tokenID
+		}
 	}
 
 	var out structs.ACLToken
@@ -511,6 +525,7 @@ func (s *HTTPServer) ACLTokenClone(resp http.ResponseWriter, req *http.Request, 
 
 	args := structs.ACLTokenSetRequest{
 		Datacenter: s.agent.config.Datacenter,
+		Create:     true,
 	}
 
 	if err := decodeBody(req, &args.ACLToken, fixCreateTimeAndHash); err != nil && err.Error() != "EOF" {

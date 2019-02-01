@@ -84,10 +84,12 @@ session_prefix "" {
 	// This is the policy ID for anonymous access. This is configurable by the
 	// user.
 	ACLTokenAnonymousID = "00000000-0000-0000-0000-000000000002"
+
+	ACLReservedPrefix = "00000000-0000-0000-0000-0000000000"
 )
 
 func ACLIDReserved(id string) bool {
-	return strings.HasPrefix(id, "00000000-0000-0000-0000-0000000000")
+	return strings.HasPrefix(id, ACLReservedPrefix)
 }
 
 const (
@@ -525,6 +527,7 @@ type ACLReplicationStatus struct {
 // at the RPC layer
 type ACLTokenSetRequest struct {
 	ACLToken   ACLToken // Token to manipulate - I really dislike this name but "Token" is taken in the WriteRequest
+	Create     bool     // Used to explicitly mark this request as a creation
 	Datacenter string   // The datacenter to perform the request within
 	WriteRequest
 }
@@ -636,6 +639,7 @@ type ACLTokenBatchResponse struct {
 // ACLPolicySetRequest is used at the RPC layer for creation and update requests
 type ACLPolicySetRequest struct {
 	Policy     ACLPolicy // The policy to upsert
+	Create     bool      // Used to explicitly mark this request as a creation
 	Datacenter string    // The datacenter to perform the request within
 	WriteRequest
 }
