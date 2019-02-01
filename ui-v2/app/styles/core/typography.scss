@@ -51,7 +51,7 @@ caption {
   font-weight: $typo-weight-semibold !important;
 }
 th,
-%breadcrumbs a,
+%breadcrumbs li > *,
 %action-group-action,
 %tab-nav,
 %tooltip-bubble {
