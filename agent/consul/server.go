@@ -461,8 +461,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		s.Shutdown()
 		return nil, err
 	}
-	
-	
+
 	// Initialize Autopilot. This must happen before starting leadership monitoring
 	// as establishing leadership could attempt to use autopilot and cause a panic.
 	s.initAutopilot(config)
@@ -514,6 +513,7 @@ func (s *Server) setupRaft() error {
 		MaxPool:               3,
 		Timeout:               10 * time.Second,
 		ServerAddressProvider: serverAddressProvider,
+		Logger:                s.logger,
 	}
 
 	trans := raft.NewNetworkTransportWithConfig(transConfig)
