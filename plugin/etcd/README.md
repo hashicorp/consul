@@ -31,7 +31,8 @@ etcd [ZONES...] {
     fallthrough [ZONES...]
     path PATH
     endpoint ENDPOINT...
-    upstream
+    credentials USERNAME PASSWORD
+    upstream [ADDRESS...]
     tls CERT KEY CACERT
 }
 ~~~
@@ -42,8 +43,12 @@ etcd [ZONES...] {
   queries for those zones will be subject to fallthrough.
 * **PATH** the path inside etcd. Defaults to "/skydns".
 * **ENDPOINT** the etcd endpoints. Defaults to "http://localhost:2379".
-* `upstream` resolve names found in etcd (think CNAMEs) If you want CoreDNS to act as a proxy for clients,
-  you'll need to add the forward plugin. CoreDNS will resolve CNAMEs against itself.
+* `credentials` is used to set the **USERNAME** and **PASSWORD** for accessing the etcd cluster.
+* `upstream` upstream resolvers to be used resolve external names found in etcd (think CNAMEs)
+  pointing to external names. If you want CoreDNS to act as a proxy for clients, you'll need to add
+  the proxy plugin. If no **ADDRESS** is given, CoreDNS will resolve CNAMEs against itself.
+  **ADDRESS** can be an IP address, and IP:port or a string pointing to a file that is structured
+  as /etc/resolv.conf.
 * `tls` followed by:
 
     * no arguments, if the server certificate is signed by a system-installed CA and no client cert is needed

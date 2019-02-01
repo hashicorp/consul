@@ -23,6 +23,16 @@ func etcdPlugin() *etcd.Etcd {
 	return &etcd.Etcd{Client: cli, PathPrefix: "/skydns"}
 }
 
+func etcdPluginWithCredentials(username, password string) *etcd.Etcd {
+	etcdCfg := etcdcv3.Config{
+		Endpoints: []string{"http://localhost:2379"},
+		Username:  username,
+		Password:  password,
+	}
+	cli, _ := etcdcv3.New(etcdCfg)
+	return &etcd.Etcd{Client: cli, PathPrefix: "/skydns"}
+}
+
 // This test starts two coredns servers (and needs etcd). Configure a stubzones in both (that will loop) and
 // will then test if we detect this loop.
 func TestEtcdStubLoop(t *testing.T) {

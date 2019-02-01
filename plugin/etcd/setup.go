@@ -48,6 +48,8 @@ func etcdParse(c *caddy.Controller) (*Etcd, error) {
 		tlsConfig *tls.Config
 		err       error
 		endpoints = []string{defaultEndpoint}
+		username  string
+		password  string
 	)
 	for c.Next() {
 		etc.Zones = c.RemainingArgs()
@@ -89,6 +91,15 @@ func etcdParse(c *caddy.Controller) (*Etcd, error) {
 					if err != nil {
 						return &Etcd{}, err
 					}
+				case "credentials":
+					args := c.RemainingArgs()
+					if len(args) == 0 {
+						return &Etcd{}, c.ArgErr()
+					}
+					if len(args) != 2 {
+						return &Etcd{}, c.Errf("credentials requires 2 arguments, username and password")
+					}
+					username, password = args[0], args[1]
 				default:
 					if c.Val() != "}" {
 						return &Etcd{}, c.Errf("unknown property '%s'", c.Val())
@@ -101,7 +112,7 @@ func etcdParse(c *caddy.Controller) (*Etcd, error) {
 			}
 
 		}
-		client, err := newEtcdClient(endpoints, tlsConfig)
+		client, err := newEtcdClient(endpoints, tlsConfig, username, password)
 		if err != nil {
 			return &Etcd{}, err
 		}
@@ -113,10 +124,14 @@ func etcdParse(c *caddy.Controller) (*Etcd, error) {
 	return &Etcd{}, nil
 }
 
-func newEtcdClient(endpoints []string, cc *tls.Config) (*etcdcv3.Client, error) {
+func newEtcdClient(endpoints []string, cc *tls.Config, username, password string) (*etcdcv3.Client, error) {
 	etcdCfg := etcdcv3.Config{
 		Endpoints: endpoints,
 		TLS:       cc,
+	}
+	if username != "" && password != "" {
+		etcdCfg.Username = username
+		etcdCfg.Password = password
 	}
 	cli, err := etcdcv3.New(etcdCfg)
 	if err != nil {
