@@ -3,7 +3,7 @@
         <ol>
             <li><a data-test-back href={{href-to 'dc.services'}}>All Services</a></li>
             <li><a data-test-back href={{href-to 'dc.services.show'}}>Service ({{item.Service}})</a></li>
-            <li>Instance</li>
+            <li><strong>Instance</strong></li>
         </ol>
     {{/block-slot}}
     {{#block-slot 'header'}}
@@ -19,20 +19,30 @@
       </h1>
       <dl>
         <dt>Service Name</dt>
-        <dd>{{item.Service}}</dd>
+        <dd><a href="{{href-to 'dc.services.show' item.Service}}">{{item.Service}}</a></dd>
+      </dl>
+      <dl>
         <dt>Node Name</dt>
-        <dd>{{item.Node.Node}}</dd>
-{{#if true}}
+        <dd><a href="{{href-to 'dc.nodes.show' item.Node.Node}}">{{item.Node.Node}}</a></dd>
+      </dl>
+{{#if false}}
+      <dl>
         <dt>Sidecar Proxy</dt>
         <dd></dd>
+      </dl>
 {{/if}}
 {{#if (eq item.Kind 'connect-proxy')}}
+      <dl>
         <dt>Dest. Service Instance</dt>
-        <dd></dd>
+        <dd><a href="{{href-to 'dc.services.instance' item.Proxy.DestinationServiceName item.Proxy.DestinationServiceID}}">{{item.Proxy.DestinationServiceID}}</a></dd>
+      </dl>
+      <dl>
         <dt>Local Service Address</dt>
         <dd>{{item.Proxy.LocalServiceAddress}}:{{item.Proxy.LocalServicePort}}</dd>
-{{/if}}
       </dl>
+{{/if}}
+    {{/block-slot}}
+    {{#block-slot 'content'}}
         <label for="toolbar-toggle"></label>
         {{tab-nav
             items=(compact
@@ -45,8 +55,6 @@
             )
             selected=selectedTab
         }}
-    {{/block-slot}}
-    {{#block-slot 'content'}}
         {{#each
             (compact
                 (array

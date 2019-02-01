@@ -15,16 +15,16 @@
   {{/with}}
 {{/with}}
       </h1>
-        <label for="toolbar-toggle"></label>
-        {{tab-nav
-            items=(compact
-              (array
-                'Instances'
-                'Tags'
-              )
+      <label for="toolbar-toggle"></label>
+      {{tab-nav
+          items=(compact
+            (array
+              'Instances'
+              'Tags'
             )
-            selected=selectedTab
-        }}
+          )
+          selected=selectedTab
+      }}
     {{/block-slot}}
     {{#block-slot 'content'}}
         {{#each
