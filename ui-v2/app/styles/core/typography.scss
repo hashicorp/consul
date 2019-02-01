@@ -39,7 +39,7 @@ h2,
 %healthcheck-output dt,
 %copy-button,
 %app-content div > dl > dt,
-td a {
+td:first-child a {
   font-weight: $typo-weight-semibold;
 }
 %form-element > span,

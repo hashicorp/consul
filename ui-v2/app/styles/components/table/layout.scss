@@ -31,7 +31,7 @@ table th {
   padding-bottom: 0.6em;
 }
 table td,
-table td a {
+table td:first-child a {
   padding: 0.9em 0;
 }
 table th,
@@ -58,6 +58,8 @@ td:not(.actions) a {
 }
 /* ideally these would be in route css files, but left here as they */
 /* accomplish the same thing (hide non-essential columns for tables) */
+/* TODO: Move these to component/table.scss for the moment */
+/* Also mixed with things in component/tabular-collection.scss move those also */
 @media #{$--lt-medium-table} {
   /* Policy > Datacenters */
   html.template-policy.template-list tr > :nth-child(2) {
