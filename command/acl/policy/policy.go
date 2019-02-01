@@ -33,7 +33,7 @@ Usage: consul acl policy <subcommand> [options] [args]
 
   Create a new ACL Policy:
 
-      $ consul acl policy create "new-policy" \
+      $ consul acl policy create -name "new-policy" \
                                  -description "This is an example policy" \
                                  -datacenter "dc1" \
                                  -datacenter "dc2" \
@@ -44,15 +44,15 @@ Usage: consul acl policy <subcommand> [options] [args]
 
   Update a policy:
 
-      $ consul acl policy update "other-policy" -datacenter "dc1"
+      $ consul acl policy update -name "other-policy" -datacenter "dc1"
 
   Read a policy:
 
-    $ consul acl policy read 0479e93e-091c-4475-9b06-79a004765c24
+    $ consul acl policy read -id 0479e93e-091c-4475-9b06-79a004765c24
 
   Delete a policy
 
-    $ consul acl policy delete "my-policy"
+    $ consul acl policy delete -name "my-policy"
 
   For more examples, ask for subcommand help or view the documentation.
 `
