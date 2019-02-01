@@ -32,7 +32,7 @@ godeps:
 	go get -u github.com/prometheus/client_golang/prometheus/promhttp
 	go get -u github.com/prometheus/client_golang/prometheus
 	(cd $(GOPATH)/src/github.com/mholt/caddy              && git checkout -q v0.11.1)
-	(cd $(GOPATH)/src/github.com/miekg/dns                && git checkout -q v1.1.3)
+	(cd $(GOPATH)/src/github.com/miekg/dns                && git checkout -q v1.1.4)
 	(cd $(GOPATH)/src/github.com/prometheus/client_golang && git checkout -q v0.9.1)
 
 .PHONY: travis
