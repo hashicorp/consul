@@ -956,12 +956,21 @@ func TestServer_ConfigOverridesClusters(t *testing.T) {
 			name: "custom upstream with type",
 			setup: func(snap *proxycfg.ConfigSnapshot) string {
 				snap.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
-					customListenerJSON(t, customListenerJSONOptions{
-						Name:        "custom-cluster",
+					customClusterJSON(t, customClusterJSONOptions{
+						Name:        "service:db",
 						IncludeType: true,
 					})
+				resources := expectClustersJSONResources(t, snap, "my-token", 1, 1)
 
-				return expectClustersJSON(t, snap, "my-token", 1, 1)
+				// Replace an upstream listener with the custom one WITH type since
+				// that's how it comes out the other end.
+				resources["service:db"] =
+					customClusterJSON(t, customClusterJSONOptions{
+						Name:        "service:db",
+						IncludeType: true,
+						TLSContext:  expectedUpstreamTLSContextJSON(t, snap),
+					})
+				return expectClustersJSONFromResources(t, snap, "my-token", 1, 1, resources)
 			},
 		},
 	}
@@ -1052,11 +1061,18 @@ func customListenerJSON(t *testing.T, opts customListenerJSONOptions) string {
 }
 
 type customClusterJSONOptions struct {
-	Name string
+	Name        string
+	IncludeType bool
+	TLSContext  string
 }
 
 var customClusterJSONTpl = `{
+	{{ if .IncludeType -}}
 	"@type": "type.googleapis.com/envoy.api.v2.Cluster",
+	{{- end }}
+	{{ if .TLSContext -}}
+	"tlsContext": {{ .TLSContext }},
+	{{- end }}
 	"name": "{{ .Name }}",
 	"type": "EDS",
 	"edsClusterConfig": {
@@ -1066,7 +1082,7 @@ var customClusterJSONTpl = `{
 			}
 		}
 	},
-	"connectTimeout": "5s",
+	"connectTimeout": "5s"
 }`
 
 var customClusterJSONTemplate = template.Must(template.New("").Parse(customClusterJSONTpl))
