@@ -764,7 +764,7 @@ func TestServer_Check(t *testing.T) {
 	}
 }
 
-func TestServer_ConfigOverrides(t *testing.T) {
+func TestServer_ConfigOverridesListeners(t *testing.T) {
 
 	tests := []struct {
 		name  string
@@ -909,6 +909,53 @@ func TestServer_ConfigOverrides(t *testing.T) {
 	}
 }
 
+func TestServer_ConfigOverridesClusters(t *testing.T) {
+
+	tests := []struct {
+		name  string
+		setup func(snap *proxycfg.ConfigSnapshot) string
+	}{
+		{
+			name: "sanity check no custom",
+			setup: func(snap *proxycfg.ConfigSnapshot) string {
+				// Default snap and expectation
+				return expectClustersJSON(t, snap, "my-token", 1, 1)
+			},
+		},
+		{
+			name: "custom upstream with type",
+			setup: func(snap *proxycfg.ConfigSnapshot) string {
+				snap.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
+					customListenerJSON(t, customListenerJSONOptions{
+						Name:        "custom-cluster",
+						IncludeType: true,
+					})
+
+				return expectClustersJSON(t, snap, "my-token", 1, 1)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require := require.New(t)
+
+			// Sanity check default with no overrides first
+			snap := proxycfg.TestConfigSnapshot(t)
+			expect := tt.setup(snap)
+
+			clusters, err := clustersFromSnapshot(snap, "my-token")
+			require.NoError(err)
+			r, err := createResponse(ClusterType, "00000001", "00000001", clusters)
+			require.NoError(err)
+
+			fmt.Println(r)
+
+			assertResponse(t, r, expect)
+		})
+	}
+}
+
 type customListenerJSONOptions struct {
 	Name          string
 	IncludeType   bool
@@ -970,6 +1017,34 @@ func customListenerJSON(t *testing.T, opts customListenerJSONOptions) string {
 	t.Helper()
 	var buf bytes.Buffer
 	err := customListenerJSONTemplate.Execute(&buf, opts)
+	require.NoError(t, err)
+	return buf.String()
+}
+
+type customClusterJSONOptions struct {
+	Name string
+}
+
+var customClusterJSONTpl = `{
+	"@type": "type.googleapis.com/envoy.api.v2.Cluster",
+	"name": "{{ .Name }}",
+	"type": "EDS",
+	"edsClusterConfig": {
+		"edsConfig": {
+			"ads": {
+
+			}
+		}
+	},
+	"connectTimeout": "5s",
+}`
+
+var customClusterJSONTemplate = template.Must(template.New("").Parse(customClusterJSONTpl))
+
+func customClusterJSON(t *testing.T, opts customClusterJSONOptions) string {
+	t.Helper()
+	var buf bytes.Buffer
+	err := customClusterJSONTemplate.Execute(&buf, opts)
 	require.NoError(t, err)
 	return buf.String()
 }
