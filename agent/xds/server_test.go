@@ -955,7 +955,7 @@ func TestServer_ConfigOverridesClusters(t *testing.T) {
 		{
 			name: "custom public with no type",
 			setup: func(snap *proxycfg.ConfigSnapshot) string {
-				snap.Proxy.Config["envoy_app_cluster_json"] =
+				snap.Proxy.Config["envoy_local_cluster_json"] =
 					customAppClusterJSON(t, customClusterJSONOptions{
 						Name:        "mylocal",
 						IncludeType: false,
@@ -975,7 +975,7 @@ func TestServer_ConfigOverridesClusters(t *testing.T) {
 		{
 			name: "custom public with type",
 			setup: func(snap *proxycfg.ConfigSnapshot) string {
-				snap.Proxy.Config["envoy_app_cluster_json"] =
+				snap.Proxy.Config["envoy_local_cluster_json"] =
 					customAppClusterJSON(t, customClusterJSONOptions{
 						Name:        "mylocal",
 						IncludeType: true,
