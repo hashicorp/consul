@@ -354,6 +354,88 @@ func expectListenerJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token strin
 		expectListenerJSONResources(t, snap, token, v, n))
 }
 
+func expectClustersJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot, token string, v, n uint64) map[string]string {
+	return map[string]string{
+		"local_app": `
+			{
+				"@type": "type.googleapis.com/envoy.api.v2.Cluster",
+				"name": "local_app",
+				"connectTimeout": "5s",
+				"hosts": [
+					{
+						"socketAddress": {
+							"address": "127.0.0.1",
+							"portValue": 8080
+						}
+					}
+				]
+			}`,
+		"service:db": `
+			{
+				"@type": "type.googleapis.com/envoy.api.v2.Cluster",
+				"name": "service:db",
+				"type": "EDS",
+				"edsClusterConfig": {
+					"edsConfig": {
+						"ads": {
+
+						}
+					}
+				},
+				"connectTimeout": "5s",
+				"tlsContext": ` + expectedUpstreamTLSContextJSON(t, snap) + `
+			}`,
+		"prepared_query:geo-cache": `
+			{
+				"@type": "type.googleapis.com/envoy.api.v2.Cluster",
+				"name": "prepared_query:geo-cache",
+				"type": "EDS",
+				"edsClusterConfig": {
+					"edsConfig": {
+						"ads": {
+
+						}
+					}
+				},
+				"connectTimeout": "5s",
+				"tlsContext": ` + expectedUpstreamTLSContextJSON(t, snap) + `
+			}`,
+	}
+}
+
+func expectClustersJSONFromResources(t *testing.T, snap *proxycfg.ConfigSnapshot, token string, v, n uint64, resourcesJSON map[string]string) string {
+	resJSON := ""
+
+	// Sort resources into specific order because that matters in JSONEq
+	// comparison later.
+	keyOrder := []string{"local_app"}
+	for _, u := range snap.Proxy.Upstreams {
+		keyOrder = append(keyOrder, u.Identifier())
+	}
+	for _, k := range keyOrder {
+		j, ok := resourcesJSON[k]
+		if !ok {
+			continue
+		}
+		if resJSON != "" {
+			resJSON += ",\n"
+		}
+		resJSON += j
+	}
+
+	return `{
+		"versionInfo": "` + hexString(v) + `",
+		"resources": [` + resJSON + `],
+		"typeUrl": "type.googleapis.com/envoy.api.v2.Cluster",
+		"nonce": "` + hexString(n) + `"
+		}`
+}
+
+func expectClustersJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token string, v, n uint64) string {
+	return expectClustersJSONFromResources(t, snap, token, v, n,
+		expectClustersJSONResources(t, snap, token, v, n))
+}
+
 func expectEndpointsJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token string, v, n uint64) string {
 	return `{
 		"versionInfo": "` + hexString(v) + `",
@@ -392,58 +474,6 @@ func expectEndpointsJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token stri
 		"typeUrl": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
 		"nonce": "` + hexString(n) + `"
 	}`
-}
-
-func expectClustersJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token string, v, n uint64) string {
-	return `{
-		"versionInfo": "` + hexString(v) + `",
-		"resources": [
-			{
-				"@type": "type.googleapis.com/envoy.api.v2.Cluster",
-				"name": "local_app",
-				"connectTimeout": "5s",
-				"hosts": [
-					{
-						"socketAddress": {
-							"address": "127.0.0.1",
-							"portValue": 8080
-						}
-					}
-				]
-			},
-			{
-				"@type": "type.googleapis.com/envoy.api.v2.Cluster",
-				"name": "service:db",
-				"type": "EDS",
-				"edsClusterConfig": {
-					"edsConfig": {
-						"ads": {
-
-						}
-					}
-				},
-				"connectTimeout": "5s",
-				"tlsContext": ` + expectedUpstreamTLSContextJSON(t, snap) + `
-			},
-			{
-				"@type": "type.googleapis.com/envoy.api.v2.Cluster",
-				"name": "prepared_query:geo-cache",
-				"type": "EDS",
-				"edsClusterConfig": {
-					"edsConfig": {
-						"ads": {
-
-						}
-					}
-				},
-				"connectTimeout": "5s",
-				"tlsContext": ` + expectedUpstreamTLSContextJSON(t, snap) + `
-			}
-		],
-		"typeUrl": "type.googleapis.com/envoy.api.v2.Cluster",
-		"nonce": "` + hexString(n) + `"
-	}
-	`
 }
 
 func expectedUpstreamTLSContextJSON(t *testing.T, snap *proxycfg.ConfigSnapshot) string {
