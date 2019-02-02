@@ -26,10 +26,13 @@ func clustersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]pro
 	// Include the "app" cluster for the public listener
 	clusters := make([]proto.Message, len(cfgSnap.Proxy.Upstreams)+1)
 
-	clusters[0] = makeAppCluster(cfgSnap)
+	var err error
+	clusters[0], err = makeAppCluster(cfgSnap)
+	if err != nil {
+		return nil, err
+	}
 
 	for idx, upstream := range cfgSnap.Proxy.Upstreams {
-		var err error
 		clusters[idx+1], err = makeUpstreamCluster(upstream, cfgSnap)
 		if err != nil {
 			return nil, err
@@ -39,37 +42,50 @@ func clustersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]pro
 	return clusters, nil
 }
 
-func makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot) *envoy.Cluster {
-	addr := cfgSnap.Proxy.LocalServiceAddress
-	if addr == "" {
-		addr = "127.0.0.1"
+func makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Cluster, error) {
+	var c *envoy.Cluster
+	var err error
+
+	if clusterJSONRaw, ok := cfgSnap.Proxy.Config["envoy_app_cluster_json"]; ok {
+		if clusterJSON, ok := clusterJSONRaw.(string); ok {
+			c, err = makeClusterFromUserConfig(clusterJSON)
+			if err != nil {
+				return c, err
+			}
+		}
 	}
-	return &envoy.Cluster{
-		Name: LocalAppClusterName,
-		// TODO(banks): make this configurable from the proxy config
-		ConnectTimeout: 5 * time.Second,
-		Type:           envoy.Cluster_STATIC,
-		// API v2 docs say hosts is deprecated and should use LoadAssignment as
-		// below.. but it doesn't work for tcp_proxy target for some reason.
-		Hosts: []*envoycore.Address{makeAddressPtr(addr, cfgSnap.Proxy.LocalServicePort)},
-		// LoadAssignment: &envoy.ClusterLoadAssignment{
-		//  ClusterName: LocalAppClusterName,
-		//  Endpoints: []endpoint.LocalityLbEndpoints{
-		//    {
-		//      LbEndpoints: []endpoint.LbEndpoint{
-		//        makeEndpoint(LocalAppClusterName,
-		//          addr,
-		//          cfgSnap.Proxy.LocalServicePort),
-		//      },
-		//    },
-		//  },
-		// },
+
+	if c == nil {
+		addr := cfgSnap.Proxy.LocalServiceAddress
+		if addr == "" {
+			addr = "127.0.0.1"
+		}
+		c = &envoy.Cluster{
+			Name:           LocalAppClusterName,
+			ConnectTimeout: 5 * time.Second,
+			Type:           envoy.Cluster_STATIC,
+			// API v2 docs say hosts is deprecated and should use LoadAssignment as
+			// below.. but it doesn't work for tcp_proxy target for some reason.
+			Hosts: []*envoycore.Address{makeAddressPtr(addr, cfgSnap.Proxy.LocalServicePort)},
+			// LoadAssignment: &envoy.ClusterLoadAssignment{
+			//  ClusterName: LocalAppClusterName,
+			//  Endpoints: []endpoint.LocalityLbEndpoints{
+			//    {
+			//      LbEndpoints: []endpoint.LbEndpoint{
+			//        makeEndpoint(LocalAppClusterName,
+			//          addr,
+			//          cfgSnap.Proxy.LocalServicePort),
+			//      },
+			//    },
+			//  },
+			// },
+		}
 	}
+
+	return c, err
 }
 
 func makeUpstreamCluster(upstream structs.Upstream, cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Cluster, error) {
-
-	// get the custom config
 	var c *envoy.Cluster
 	var err error
 
@@ -84,8 +100,7 @@ func makeUpstreamCluster(upstream structs.Upstream, cfgSnap *proxycfg.ConfigSnap
 
 	if c == nil {
 		c = &envoy.Cluster{
-			Name: upstream.Identifier(),
-			// TODO(banks): make this configurable from the upstream config
+			Name:           upstream.Identifier(),
 			ConnectTimeout: 5 * time.Second,
 			Type:           envoy.Cluster_EDS,
 			EdsClusterConfig: &envoy.Cluster_EdsClusterConfig{
