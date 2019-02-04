@@ -1,3 +1,4 @@
+{{#if (gt items.Proxy.Upstreams.length 0) }}
 {{#tabular-collection
     data-test-upstreams
     items=item.Proxy.Upstreams as |item index|
@@ -19,3 +20,8 @@
       </td>
     {{/block-slot}}
 {{/tabular-collection}}
+{{else}}
+  <p>
+    There are no upstreams.
+  </p>
+{{/if}}
