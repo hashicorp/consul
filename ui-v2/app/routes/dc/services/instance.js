@@ -5,30 +5,21 @@ import { get } from '@ember/object';
 
 export default Route.extend({
   repo: service('repository/service'),
+  proxyRepo: service('repository/proxy'),
   model: function(params) {
     const repo = get(this, 'repo');
-    // TODO: findInstanceBySlug
+    const proxyRepo = get(this, 'proxyRepo');
+    const dc = this.modelFor('dc').dc.Name;
     return hash({
-      item: repo.findBySlug(params.name, this.modelFor('dc').dc.Name),
+      item: repo.findInstanceBySlug(params.id, params.name, dc),
     }).then(function(model) {
-      const i = model.item.Nodes.findIndex(function(item) {
-        return item.Service.ID === params.id;
-      });
-      // console.log(model.item);
-      const service = model.item.Nodes[i].Service;
-      service.Node = model.item.Nodes[i].Node;
-      service.ServiceChecks = model.item.Nodes[i].Checks.filter(function(item) {
-        return item.ServiceID != '';
-      });
-      service.NodeChecks = model.item.Nodes[i].Checks.filter(function(item) {
-        return item.ServiceID == '';
-      });
-      return {
+      return hash({
+        proxy:
+          get(service, 'Kind') !== 'connect-proxy'
+            ? proxyRepo.findInstanceBySlug(params.id, params.name, dc)
+            : null,
         ...model,
-        ...{
-          item: service,
-        },
-      };
+      });
     });
   },
   setupController: function(controller, model) {

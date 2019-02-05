@@ -9,7 +9,7 @@
     {{#block-slot 'header'}}
       <h1>
         {{ item.ID }}
-{{#with (service/external-source item.Service) as |externalSource| }}
+{{#with (service/external-source item) as |externalSource| }}
   {{#with (css-var (concat '--' externalSource '-color-svg') 'none') as |bg| }}
     {{#if (not-eq bg 'none') }}
         <span data-test-external-source="{{externalSource}}" style={{{ concat 'background-image:' bg }}} data-tooltip="Registered via {{externalSource}}">Registered via {{externalSource}}</span>
@@ -25,10 +25,10 @@
         <dt>Node Name</dt>
         <dd><a href="{{href-to 'dc.nodes.show' item.Node.Node}}">{{item.Node.Node}}</a></dd>
       </dl>
-{{#if false}}
+{{#if proxy}}
       <dl>
         <dt>Sidecar Proxy</dt>
-        <dd></dd>
+        <dd><a href="{{href-to 'dc.services.instance' proxy.ServiceName proxy.ServiceID}}">{{proxy.ServiceID}}</a></dd>
       </dl>
 {{/if}}
 {{#if (eq item.Kind 'connect-proxy')}}
