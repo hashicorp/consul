@@ -20,6 +20,8 @@ import (
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-uuid"
+
+	"github.com/stretchr/testify/require"
 )
 
 func configureTLS(config *Config) {
@@ -265,6 +267,46 @@ func TestServer_JoinWAN(t *testing.T) {
 			r.Fatalf("got %d datacenters want %d", got, want)
 		}
 	})
+}
+
+func TestServer_WANReap(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = true
+		c.SerfFloodInterval = 100 * time.Millisecond
+		c.SerfWANConfig.ReconnectTimeout = 250 * time.Millisecond
+		c.SerfWANConfig.ReapInterval = 500 * time.Millisecond
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerDC(t, "dc2")
+	defer os.RemoveAll(dir2)
+
+	// Try to join
+	joinWAN(t, s2, s1)
+	retry.Run(t, func(r *retry.R) {
+		require.Len(r, s1.WANMembers(), 2)
+		require.Len(r, s2.WANMembers(), 2)
+	})
+
+	// Check the router has both
+	retry.Run(t, func(r *retry.R) {
+		require.Len(r, s1.router.GetDatacenters(), 2)
+		require.Len(r, s2.router.GetDatacenters(), 2)
+	})
+
+	// shutdown the second dc
+	s2.Shutdown()
+
+	retry.Run(t, func(r *retry.R) {
+		require.Len(r, s1.WANMembers(), 1)
+		datacenters := s1.router.GetDatacenters()
+		require.Len(r, datacenters, 1)
+		require.Equal(r, "dc1", datacenters[0])
+	})
+
 }
 
 func TestServer_JoinWAN_Flood(t *testing.T) {
