@@ -140,7 +140,7 @@ func (s *Server) fetchACLPoliciesBatch(policyIDs []string) (*structs.ACLPolicyBa
 		PolicyIDs:  policyIDs,
 		QueryOptions: structs.QueryOptions{
 			AllowStale: true,
-			Token:      s.tokens.ACLReplicationToken(),
+			Token:      s.tokens.ReplicationToken(),
 		},
 	}
 
@@ -160,7 +160,7 @@ func (s *Server) fetchACLPolicies(lastRemoteIndex uint64) (*structs.ACLPolicyLis
 		QueryOptions: structs.QueryOptions{
 			AllowStale:    true,
 			MinQueryIndex: lastRemoteIndex,
-			Token:         s.tokens.ACLReplicationToken(),
+			Token:         s.tokens.ReplicationToken(),
 		},
 	}
 
@@ -323,7 +323,7 @@ func (s *Server) fetchACLTokensBatch(tokenIDs []string) (*structs.ACLTokenBatchR
 		AccessorIDs: tokenIDs,
 		QueryOptions: structs.QueryOptions{
 			AllowStale: true,
-			Token:      s.tokens.ACLReplicationToken(),
+			Token:      s.tokens.ReplicationToken(),
 		},
 	}
 
@@ -343,7 +343,7 @@ func (s *Server) fetchACLTokens(lastRemoteIndex uint64) (*structs.ACLTokenListRe
 		QueryOptions: structs.QueryOptions{
 			AllowStale:    true,
 			MinQueryIndex: lastRemoteIndex,
-			Token:         s.tokens.ACLReplicationToken(),
+			Token:         s.tokens.ReplicationToken(),
 		},
 		IncludeLocal:  false,
 		IncludeGlobal: true,

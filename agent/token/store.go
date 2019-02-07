@@ -27,13 +27,9 @@ type Store struct {
 	// available.
 	agentMasterToken string
 
-	// aclReplicationToken is a special token that's used by servers to
-	// replicate ACLs from the ACL datacenter.
-	aclReplicationToken string
-
-	// connectReplicationToken is a special token that's used by servers to
-	// replicate intentions from the primary datacenter.
-	connectReplicationToken string
+	// replicationToken is a special token that's used by servers to
+	// replicate data from the primary datacenter.
+	replicationToken string
 }
 
 // UpdateUserToken replaces the current user token in the store.
@@ -57,17 +53,10 @@ func (t *Store) UpdateAgentMasterToken(token string) {
 	t.l.Unlock()
 }
 
-// UpdateACLReplicationToken replaces the current ACL replication token in the store.
-func (t *Store) UpdateACLReplicationToken(token string) {
+// UpdateReplicationToken replaces the current replication token in the store.
+func (t *Store) UpdateReplicationToken(token string) {
 	t.l.Lock()
-	t.aclReplicationToken = token
-	t.l.Unlock()
-}
-
-// UpdateConnectReplicationToken replaces the current Connect replication token in the store.
-func (t *Store) UpdateConnectReplicationToken(token string) {
-	t.l.Lock()
-	t.connectReplicationToken = token
+	t.replicationToken = token
 	t.l.Unlock()
 }
 
@@ -90,20 +79,12 @@ func (t *Store) AgentToken() string {
 	return t.userToken
 }
 
-// ACLReplicationToken returns the ACL replication token.
-func (t *Store) ACLReplicationToken() string {
+// ReplicationToken returns the replication token.
+func (t *Store) ReplicationToken() string {
 	t.l.RLock()
 	defer t.l.RUnlock()
 
-	return t.aclReplicationToken
-}
-
-// ConnectReplicationToken returns the Connect replication token.
-func (t *Store) ConnectReplicationToken() string {
-	t.l.RLock()
-	defer t.l.RUnlock()
-
-	return t.connectReplicationToken
+	return t.replicationToken
 }
 
 // IsAgentMasterToken checks to see if a given token is the agent master token.

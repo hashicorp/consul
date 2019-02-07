@@ -598,7 +598,7 @@ func TestACLEndpoint_ReplicationStatus(t *testing.T) {
 		c.ACLReplicationRate = 100
 		c.ACLReplicationBurst = 100
 	})
-	s1.tokens.UpdateACLReplicationToken("secret")
+	s1.tokens.UpdateReplicationToken("secret")
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
@@ -876,7 +876,7 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 	codec2 := rpcClient(t, s2)
 	defer codec2.Close()
 
-	s2.tokens.UpdateACLReplicationToken("root")
+	s2.tokens.UpdateReplicationToken("root")
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")

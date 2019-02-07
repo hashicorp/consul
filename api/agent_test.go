@@ -1257,7 +1257,7 @@ func TestAPI_AgentUpdateToken(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if _, err := agent.UpdateACLReplicationToken("root", nil); err != nil {
+	if _, err := agent.UpdateReplicationToken("root", nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 }

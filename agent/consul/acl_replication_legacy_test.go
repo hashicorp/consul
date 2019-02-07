@@ -233,7 +233,7 @@ func TestACLReplication_updateLocalACLs_RateLimit(t *testing.T) {
 		c.ACLsEnabled = true
 		c.ACLReplicationApplyLimit = 1
 	})
-	s1.tokens.UpdateACLReplicationToken("secret")
+	s1.tokens.UpdateReplicationToken("secret")
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	testrpc.WaitForLeader(t, s1.RPC, "dc2")
@@ -356,7 +356,7 @@ func TestACLReplication_LegacyTokens(t *testing.T) {
 		c.ACLReplicationBurst = 100
 		c.ACLReplicationApplyLimit = 1000000
 	})
-	s2.tokens.UpdateACLReplicationToken("root")
+	s2.tokens.UpdateReplicationToken("root")
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()

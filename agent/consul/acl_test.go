@@ -1544,7 +1544,7 @@ func TestACL_Replication(t *testing.T) {
 			c.ACLReplicationBurst = 100
 			c.ACLReplicationApplyLimit = 1000000
 		})
-		s2.tokens.UpdateACLReplicationToken("root")
+		s2.tokens.UpdateReplicationToken("root")
 		defer os.RemoveAll(dir2)
 		defer s2.Shutdown()
 
@@ -1557,7 +1557,7 @@ func TestACL_Replication(t *testing.T) {
 			c.ACLReplicationBurst = 100
 			c.ACLReplicationApplyLimit = 1000000
 		})
-		s3.tokens.UpdateACLReplicationToken("root")
+		s3.tokens.UpdateReplicationToken("root")
 		defer os.RemoveAll(dir3)
 		defer s3.Shutdown()
 

@@ -290,7 +290,7 @@ func New(c *config.RuntimeConfig) (*Agent, error) {
 	a.tokens.UpdateUserToken(a.config.ACLToken)
 	a.tokens.UpdateAgentToken(a.config.ACLAgentToken)
 	a.tokens.UpdateAgentMasterToken(a.config.ACLAgentMasterToken)
-	a.tokens.UpdateACLReplicationToken(a.config.ACLReplicationToken)
+	a.tokens.UpdateReplicationToken(a.config.ACLReplicationToken)
 
 	return a, nil
 }
@@ -1070,7 +1070,6 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	// Copy the Connect CA bootstrap config
 	if a.config.ConnectEnabled {
 		base.ConnectEnabled = true
-		base.ConnectReplicationToken = a.config.ConnectReplicationToken
 
 		// Allow config to specify cluster_id provided it's a valid UUID. This is
 		// meant only for tests where a deterministic ID makes fixtures much simpler

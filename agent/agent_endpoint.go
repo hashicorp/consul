@@ -1265,20 +1265,17 @@ func (s *HTTPServer) AgentToken(resp http.ResponseWriter, req *http.Request) (in
 	// Figure out the target token.
 	target := strings.TrimPrefix(req.URL.Path, "/v1/agent/token/")
 	switch target {
-	case "acl_token":
+	case "acl_token", "default":
 		s.agent.tokens.UpdateUserToken(args.Token)
 
-	case "acl_agent_token":
+	case "acl_agent_token", "agent":
 		s.agent.tokens.UpdateAgentToken(args.Token)
 
-	case "acl_agent_master_token":
+	case "acl_agent_master_token", "agent_master":
 		s.agent.tokens.UpdateAgentMasterToken(args.Token)
 
-	case "acl_replication_token":
-		s.agent.tokens.UpdateACLReplicationToken(args.Token)
-
-	case "connect_replication_token":
-		s.agent.tokens.UpdateConnectReplicationToken(args.Token)
+	case "acl_replication_token", "replication":
+		s.agent.tokens.UpdateReplicationToken(args.Token)
 
 	default:
 		resp.WriteHeader(http.StatusNotFound)

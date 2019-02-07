@@ -46,14 +46,14 @@ func TestStore_RegularTokens(t *testing.T) {
 			s := new(Store)
 			s.UpdateUserToken(tt.set.user)
 			s.UpdateAgentToken(tt.set.agent)
-			s.UpdateACLReplicationToken(tt.set.repl)
+			s.UpdateReplicationToken(tt.set.repl)
 			if got, want := s.UserToken(), tt.want.user; got != want {
 				t.Fatalf("got token %q want %q", got, want)
 			}
 			if got, want := s.AgentToken(), tt.want.agent; got != want {
 				t.Fatalf("got token %q want %q", got, want)
 			}
-			if got, want := s.ACLReplicationToken(), tt.want.repl; got != want {
+			if got, want := s.ReplicationToken(), tt.want.repl; got != want {
 				t.Fatalf("got token %q want %q", got, want)
 			}
 		})

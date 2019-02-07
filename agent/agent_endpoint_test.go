@@ -4093,7 +4093,7 @@ func TestAgent_Token(t *testing.T) {
 		a.tokens.UpdateUserToken(got.user)
 		a.tokens.UpdateAgentToken(got.agent)
 		a.tokens.UpdateAgentMasterToken(got.master)
-		a.tokens.UpdateACLReplicationToken(got.repl)
+		a.tokens.UpdateReplicationToken(got.repl)
 	}
 
 	body := func(token string) io.Reader {

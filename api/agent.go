@@ -926,26 +926,58 @@ func (a *Agent) Monitor(loglevel string, stopCh <-chan struct{}, q *QueryOptions
 
 // UpdateACLToken updates the agent's "acl_token". See updateToken for more
 // details.
+//
+// DEPRECATED (ACL-Legacy-Compat) - Prefer UpdateDefaultACLToken for v1.4.3 and above
 func (a *Agent) UpdateACLToken(token string, q *WriteOptions) (*WriteMeta, error) {
 	return a.updateToken("acl_token", token, q)
 }
 
 // UpdateACLAgentToken updates the agent's "acl_agent_token". See updateToken
 // for more details.
+//
+// DEPRECATED (ACL-Legacy-Compat) - Prefer UpdateAgentACLToken for v1.4.3 and above
 func (a *Agent) UpdateACLAgentToken(token string, q *WriteOptions) (*WriteMeta, error) {
 	return a.updateToken("acl_agent_token", token, q)
 }
 
 // UpdateACLAgentMasterToken updates the agent's "acl_agent_master_token". See
 // updateToken for more details.
+//
+// DEPRECATED (ACL-Legacy-Compat) - Prefer UpdateAgentMasterACLToken for v1.4.3 and above
 func (a *Agent) UpdateACLAgentMasterToken(token string, q *WriteOptions) (*WriteMeta, error) {
 	return a.updateToken("acl_agent_master_token", token, q)
 }
 
 // UpdateACLReplicationToken updates the agent's "acl_replication_token". See
 // updateToken for more details.
+//
+// DEPRECATED (ACL-Legacy-Compat) - Prefer UpdateReplicationACLToken for v1.4.3 and above
 func (a *Agent) UpdateACLReplicationToken(token string, q *WriteOptions) (*WriteMeta, error) {
 	return a.updateToken("acl_replication_token", token, q)
+}
+
+// UpdateDefaultACLToken updates the agent's "default" token. See updateToken
+// for more details
+func (a *Agent) UpdateDefaultACLToken(token string, q *WriteOptions) (*WriteMeta, error) {
+	return a.updateToken("default", token, q)
+}
+
+// UpdateAgentACLToken updates the agent's "agent" token. See updateToken
+// for more details
+func (a *Agent) UpdateAgentACLToken(token string, q *WriteOptions) (*WriteMeta, error) {
+	return a.updateToken("agent", token, q)
+}
+
+// UpdateAgentMasterACLToken updates the agent's "agent_master" token. See updateToken
+// for more details
+func (a *Agent) UpdateAgentMasterACLToken(token string, q *WriteOptions) (*WriteMeta, error) {
+	return a.updateToken("agent_master", token, q)
+}
+
+// UpdateReplicationACLToken updates the agent's "replication" token. See updateToken
+// for more details
+func (a *Agent) UpdateReplicationACLToken(token string, q *WriteOptions) (*WriteMeta, error) {
+	return a.updateToken("replication", token, q)
 }
 
 // updateToken can be used to update an agent's ACL token after the agent has
