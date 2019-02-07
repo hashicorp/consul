@@ -72,9 +72,12 @@ and authentication information. The sync process will look into the default loca
 for both in-cluster and out-of-cluster authentication. If `kubectl` works,
 then the sync program should work.
 
-For Consul, if ACLs are configured on the cluster, a Consul [ACL token](https://learn.hashicorp.com/consul/advanced/day-1-operations/acl-guide)
-will need to be provided. Review the [ACL rules](/docs/agent/acl-rules.html) when creating a token with only the necessary privileges. The process accepts this token by using the
-[`CONSUL_HTTP_TOKEN`](docs/commands/index.html#consul_http_token) environment variable. This token should be set as a
+For Consul, if ACLs are configured on the cluster, a Consul
+[ACL token](https://learn.hashicorp.com/consul/advanced/day-1-operations/acl-guide)
+will need to be provided. Review the [ACL rules](/docs/agent/acl-rules.html)
+when creating this token so that it only allows the necessary privileges. The catalog
+sync process accepts this token by using the [`CONSUL_HTTP_TOKEN`](docs/commands/index.html#consul_http_token)
+environment variable. This token should be set as a
 [Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/#creating-your-own-secrets)
 and referenced in the Helm chart.
 
