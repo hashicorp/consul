@@ -21,7 +21,6 @@ test('it renders', function(assert) {
   // Template block usage:
   this.render(hbs`
     {{#tag-list}}
-      template block text
     {{/tag-list}}
   `);
 
@@ -29,6 +28,6 @@ test('it renders', function(assert) {
     this.$()
       .text()
       .trim(),
-    'template block text'
+    ''
   );
 });

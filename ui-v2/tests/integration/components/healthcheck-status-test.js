@@ -10,25 +10,11 @@ test('it renders', function(assert) {
   // Handle any actions with this.on('myAction', function(val) { ... });
 
   this.render(hbs`{{healthcheck-status}}`);
-
-  assert.equal(
-    this.$()
-      .text()
-      .trim(),
-    ''
-  );
+  assert.equal(this.$('dt').length, 1);
 
   // Template block usage:
   this.render(hbs`
-    {{#healthcheck-status}}
-      template block text
-    {{/healthcheck-status}}
+    {{#healthcheck-status}}{{/healthcheck-status}}
   `);
-
-  assert.equal(
-    this.$()
-      .text()
-      .trim(),
-    'template block text'
-  );
+  assert.equal(this.$('dt').length, 1);
 });

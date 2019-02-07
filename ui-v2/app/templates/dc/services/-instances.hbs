@@ -7,7 +7,7 @@
   {{#changeable-set dispatcher=searchable}}
     {{#block-slot 'set' as |filtered|}}
       {{#tabular-collection
-          data-test-services
+          data-test-instances
           items=filtered as |item index|
       }}
           {{#block-slot 'header'}}
@@ -18,16 +18,16 @@
             <th>Service Checks</th>
           {{/block-slot}}
           {{#block-slot 'row'}}
-            <td data-test-service-name="{{item.Service.Service}}">
+            <td data-test-id="{{item.Service.ID}}">
               <a href={{href-to 'dc.services.instance' item.Service.Service (or item.Service.ID item.Service.Service )}}>
                 <span data-test-external-source="{{service/external-source item.Service}}" style={{{ concat 'background-image: ' (css-var (concat '--' (service/external-source item.Service) '-color-svg') 'none')}}}></span>
                 {{ or item.Service.ID item.Service.Service }}
               </a>
             </td>
-            <td data-test-service-node>
+            <td data-test-node>
               <a href={{href-to 'dc.nodes.show' item.Node.Node}}>{{item.Node.Node}}</a>
             </td>
-            <td data-test-service-address>
+            <td data-test-address>
                 {{item.Service.Address}}:{{item.Service.Port}}
             </td>
             <td>

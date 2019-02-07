@@ -11,24 +11,13 @@ test('it renders', function(assert) {
 
   this.render(hbs`{{healthcheck-list}}`);
 
-  assert.equal(
-    this.$()
-      .text()
-      .trim(),
-    ''
-  );
+  assert.equal(this.$('ul').length, 1);
 
   // Template block usage:
   this.render(hbs`
     {{#healthcheck-list}}
-      template block text
     {{/healthcheck-list}}
   `);
 
-  assert.equal(
-    this.$()
-      .text()
-      .trim(),
-    'template block text'
-  );
+  assert.equal(this.$('ul').length, 1);
 });
