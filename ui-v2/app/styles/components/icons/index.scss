@@ -93,16 +93,11 @@
 }
 %with-chevron::before {
   @extend %pseudo-icon;
-  mask-image: $chevron-left-svg;
-  mask-size: 15px 18px;
-  // TODO: These should go in the new %psuedo-icon
-  mask-repeat: no-repeat;
-  mask-position: center;
-  //
+  content: '❮';
   width: 6px;
-  height: 9px;
+  background-color: transparent;
   left: 0;
-  margin-top: -4px;
+  font-size: 0.7rem;
 }
 %with-folder::before {
   @extend %pseudo-icon;
