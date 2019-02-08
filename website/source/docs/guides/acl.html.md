@@ -403,7 +403,7 @@ First create the new policy.
 ```bash
 $ consul acl policy create -name "ui-policy" \
                            -description "Necessary permissions for UI functionality" \
-                           -rules 'key "" { policy = "write" } node "" { policy = "read" } service "" { policy = "read" }'
+                           -rules 'key_prefix "" { policy = "write" } node_prefix "" { policy = "read" } service_prefix "" { policy = "read" }'
 
 ID:           9cb99b2b-3c20-81d4-a7c0-9ffdc2fbf08a
 Name:         ui-policy
