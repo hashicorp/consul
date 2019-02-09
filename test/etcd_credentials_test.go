@@ -37,9 +37,21 @@ func TestEtcdCredentials(t *testing.T) {
 	if _, err := etc.Client.RoleAdd(ctx, "root"); err != nil {
 		t.Errorf("Failed to create root role: %s", err)
 	}
+	defer func() {
+		if _, err := etc.Client.RoleDelete(ctx, "root"); err != nil {
+			t.Errorf("Failed to delete root role: %s", err)
+		}
+	}()
+
 	if _, err := etc.Client.UserAdd(ctx, username, password); err != nil {
 		t.Errorf("Failed to create user: %s", err)
 	}
+	defer func() {
+		if _, err := etc.Client.UserDelete(ctx, username); err != nil {
+			t.Errorf("Failed to delete user: %s", err)
+		}
+	}()
+
 	if _, err := etc.Client.UserGrantRole(ctx, username, "root"); err != nil {
 		t.Errorf("Failed to assign role to root user: %v", err)
 	}
