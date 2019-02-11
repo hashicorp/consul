@@ -516,8 +516,10 @@ $ curl \
 
 This endpoint updates the ACL tokens currently in use by the agent. It can be
 used to introduce ACL tokens to the agent for the first time, or to update
-tokens that were initially loaded from the agent's configuration. Tokens are
-not persisted, so will need to be updated again if the agent is restarted.
+tokens that were initially loaded from the agent's configuration. Tokens will be persisted
+only if the [`acl.enable_token_persistence`](/docs/agent/options.html#acl_enable_token_persistence)
+configuration is `true`. When not being persisted, they will need to be reset if the agent
+is restarted.
 
 | Method | Path                        | Produces                   |
 | ------ | --------------------------- | -------------------------- |

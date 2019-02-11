@@ -3389,7 +3389,7 @@ func TestAgent_SetupProxyManager(t *testing.T) {
 
 func TestAgent_loadTokens(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		acl = {
 			enabled = true
 			tokens = {
