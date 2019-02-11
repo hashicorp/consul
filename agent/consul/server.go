@@ -461,6 +461,11 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		s.Shutdown()
 		return nil, err
 	}
+	
+	
+	// Initialize Autopilot. This must happen before starting leadership monitoring
+	// as establishing leadership could attempt to use autopilot and cause a panic.
+	s.initAutopilot(config)
 
 	// Start monitoring leadership. This must happen after Serf is set up
 	// since it can fire events when leadership is obtained.
@@ -476,9 +481,6 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 
 	// Start the metrics handlers.
 	go s.sessionStats()
-
-	// Initialize Autopilot
-	s.initAutopilot(config)
 
 	return s, nil
 }
