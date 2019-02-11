@@ -100,7 +100,7 @@ func TestGroup(t *testing.T) {
 		},
 	)
 	if len(sx) != 3 {
-		t.Fatalf("Failure to group fith set: %v", sx)
+		t.Fatalf("Failure to group fifth set: %v", sx)
 	}
 
 	// One group.

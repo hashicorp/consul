@@ -76,7 +76,7 @@ func TestNewTLSConfigFromArgs(t *testing.T) {
 		t.Error("RootCAs should not be nil when three args passed")
 	}
 	if len(c.Certificates) != 1 {
-		t.Error("Certificateis should have a single entry when three args passed")
+		t.Error("Certificates should have a single entry when three args passed")
 	}
 }
 
