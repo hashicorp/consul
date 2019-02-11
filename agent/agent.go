@@ -63,6 +63,9 @@ const (
 	checksDir     = "checks"
 	checkStateDir = "checks/state"
 
+	// Name of the file tokens will be persisted within
+	tokensPath = "acl-tokens.json"
+
 	// Default reasons for node/service maintenance mode
 	defaultNodeMaintReason = "Maintenance mode is enabled for this node, " +
 		"but no reason was provided. This is a default message."
@@ -252,6 +255,11 @@ type Agent struct {
 	grpcServer *grpc.Server
 
 	tlsConfigurator *tlsutil.Configurator
+
+	// persistedTokensLock is used to synchronize access to the persisted token
+	// store within the data directory. This will prevent loading while writing as
+	// well as multiple concurrent writes.
+	persistedTokensLock sync.RWMutex
 }
 
 func New(c *config.RuntimeConfig) (*Agent, error) {
@@ -285,12 +293,6 @@ func New(c *config.RuntimeConfig) (*Agent, error) {
 	if err := a.initializeACLs(); err != nil {
 		return nil, err
 	}
-
-	// Set up the initial state of the token store based on the config.
-	a.tokens.UpdateUserToken(a.config.ACLToken)
-	a.tokens.UpdateAgentToken(a.config.ACLAgentToken)
-	a.tokens.UpdateAgentMasterToken(a.config.ACLAgentMasterToken)
-	a.tokens.UpdateReplicationToken(a.config.ACLReplicationToken)
 
 	return a, nil
 }
@@ -364,6 +366,10 @@ func (a *Agent) Start() error {
 			"via DNS due to it being too long. Valid lengths are between "+
 			"1 and 63 bytes.", a.config.NodeName)
 	}
+
+	// load the tokens - this requires the logger to be setup
+	// which is why we can't do this in New
+	a.loadTokens(a.config)
 
 	// create the local state
 	a.State = local.NewState(LocalConfig(c), a.logger, a.tokens)
@@ -588,6 +594,7 @@ func (a *Agent) listenAndServeDNS() error {
 		select {
 		case addr := <-notif:
 			a.logger.Printf("[INFO] agent: Started DNS server %s (%s)", addr.String(), addr.Network())
+
 		case err := <-errCh:
 			merr = multierror.Append(merr, err)
 		case <-timeout:
@@ -3206,6 +3213,83 @@ func (a *Agent) loadProxies(conf *config.RuntimeConfig) error {
 	return persistenceErr
 }
 
+func (a *Agent) getPersistedTokens() (map[string]string, error) {
+	if !a.config.ACLEnableTokenPersistence {
+		return nil, nil
+	}
+
+	a.persistedTokensLock.RLock()
+	defer a.persistedTokensLock.RUnlock()
+
+	tokensFullPath := filepath.Join(a.config.DataDir, tokensPath)
+	tokensFile, err := os.Open(tokensFullPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed opening tokens file %q: %s", tokensFullPath, err)
+	}
+
+	buf, err := ioutil.ReadAll(tokensFile)
+	tokensFile.Close()
+	if err != nil {
+		return nil, fmt.Errorf("failed reading tokens file %q: %s", tokensFullPath, err)
+	}
+
+	persistedTokens := make(map[string]string)
+	if err := json.Unmarshal(buf, &persistedTokens); err != nil {
+		return nil, fmt.Errorf("failed to decode tokens file %q: %s", tokensFullPath, err)
+	}
+
+	return persistedTokens, nil
+}
+
+func (a *Agent) loadTokens(conf *config.RuntimeConfig) error {
+	persistedTokens, persistenceErr := a.getPersistedTokens()
+
+	if tok, ok := persistedTokens["default"]; ok && tok != "" {
+		a.tokens.UpdateUserToken(tok, token.TokenSourceAPI)
+
+		if conf.ACLToken != "" {
+			a.logger.Printf("[WARN] \"default\" token present in both the configuration and persisted token store, using the persisted token")
+		}
+	} else {
+		a.tokens.UpdateUserToken(conf.ACLToken, token.TokenSourceConfig)
+	}
+
+	if tok, ok := persistedTokens["agent"]; ok && tok != "" {
+		a.tokens.UpdateAgentToken(tok, token.TokenSourceAPI)
+
+		if conf.ACLAgentToken != "" {
+			a.logger.Printf("[WARN] \"agent\" token present in both the configuration and persisted token store, using the persisted token")
+		}
+	} else {
+		a.tokens.UpdateAgentToken(conf.ACLAgentToken, token.TokenSourceConfig)
+	}
+
+	if tok, ok := persistedTokens["agent_master"]; ok && tok != "" {
+		a.tokens.UpdateAgentMasterToken(tok, token.TokenSourceAPI)
+
+		if conf.ACLAgentMasterToken != "" {
+			a.logger.Printf("[WARN] \"agent_master\" token present in both the configuration and persisted token store, using the persisted token")
+		}
+	} else {
+		a.tokens.UpdateAgentMasterToken(conf.ACLAgentMasterToken, token.TokenSourceConfig)
+	}
+
+	if tok, ok := persistedTokens["replication"]; ok && tok != "" {
+		a.tokens.UpdateReplicationToken(tok, token.TokenSourceAPI)
+
+		if conf.ACLReplicationToken != "" {
+			a.logger.Printf("[WARN] \"replication\" token present in both the configuration and persisted token store, using the persisted token")
+		}
+	} else {
+		a.tokens.UpdateReplicationToken(conf.ACLReplicationToken, token.TokenSourceConfig)
+	}
+
+	return persistenceErr
+}
+
 // unloadProxies will deregister all proxies known to the local agent.
 func (a *Agent) unloadProxies() error {
 	a.proxyLock.Lock()
@@ -3369,6 +3453,11 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 		return fmt.Errorf("Failed unloading checks: %s", err)
 	}
 	a.unloadMetadata()
+
+	// Reload tokens - should be done before all the other loading
+	// to ensure the correct tokens are available for attaching to
+	// the checks and service registrations.
+	a.loadTokens(newCfg)
 
 	// Reload service/check definitions and metadata.
 	if err := a.loadServices(newCfg); err != nil {

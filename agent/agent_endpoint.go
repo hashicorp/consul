@@ -1,11 +1,13 @@
 package agent
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"net"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -22,9 +24,11 @@ import (
 	"github.com/hashicorp/consul/agent/debug"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
+	token_store "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/file"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/logutils"
@@ -1262,25 +1266,66 @@ func (s *HTTPServer) AgentToken(resp http.ResponseWriter, req *http.Request) (in
 		return nil, nil
 	}
 
+	if s.agent.config.ACLEnableTokenPersistence {
+		// we hold the lock around updating the internal token store
+		// as well as persisting the tokens because we don't want to write
+		// into the store to have something else wipe it out before we can
+		// persist everything (like an agent config reload). The token store
+		// lock is only held for those operations so other go routines that
+		// just need to read some token out of the store will not be impacted
+		// any more than they would be without token persistence.
+		s.agent.persistedTokensLock.Lock()
+		defer s.agent.persistedTokensLock.Unlock()
+	}
+
 	// Figure out the target token.
 	target := strings.TrimPrefix(req.URL.Path, "/v1/agent/token/")
 	switch target {
 	case "acl_token", "default":
-		s.agent.tokens.UpdateUserToken(args.Token)
+		s.agent.tokens.UpdateUserToken(args.Token, token_store.TokenSourceAPI)
 
 	case "acl_agent_token", "agent":
-		s.agent.tokens.UpdateAgentToken(args.Token)
+		s.agent.tokens.UpdateAgentToken(args.Token, token_store.TokenSourceAPI)
 
 	case "acl_agent_master_token", "agent_master":
-		s.agent.tokens.UpdateAgentMasterToken(args.Token)
+		s.agent.tokens.UpdateAgentMasterToken(args.Token, token_store.TokenSourceAPI)
 
 	case "acl_replication_token", "replication":
-		s.agent.tokens.UpdateReplicationToken(args.Token)
+		s.agent.tokens.UpdateReplicationToken(args.Token, token_store.TokenSourceAPI)
 
 	default:
 		resp.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(resp, "Token %q is unknown", target)
 		return nil, nil
+	}
+
+	if s.agent.config.ACLEnableTokenPersistence {
+		tokens := make(map[string]string)
+
+		if tok, source := s.agent.tokens.UserTokenAndSource(); tok != "" && source == token_store.TokenSourceAPI {
+			tokens["default"] = tok
+		}
+
+		if tok, source := s.agent.tokens.AgentTokenAndSource(); tok != "" && source == token_store.TokenSourceAPI {
+			tokens["agent"] = tok
+		}
+
+		if tok, source := s.agent.tokens.AgentMasterTokenAndSource(); tok != "" && source == token_store.TokenSourceAPI {
+			tokens["agent_master"] = tok
+		}
+
+		if tok, source := s.agent.tokens.ReplicationTokenAndSource(); tok != "" && source == token_store.TokenSourceAPI {
+			tokens["replication"] = tok
+		}
+
+		data, err := json.Marshal(tokens)
+		if err != nil {
+			s.agent.logger.Printf("[WARN] agent: failed to persist tokens - %v", err)
+		}
+
+		if err := file.WriteAtomicWithPerms(filepath.Join(s.agent.config.DataDir, tokensPath), data, 0600); err != nil {
+			s.agent.logger.Printf("[WARN] agent: failed to persist tokens - %v", err)
+		}
 	}
 
 	s.agent.logger.Printf("[INFO] agent: Updated agent's ACL token %q", target)

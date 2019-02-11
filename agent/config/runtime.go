@@ -161,6 +161,10 @@ type RuntimeConfig struct {
 	// hcl: acl.tokens.default = string
 	ACLToken string
 
+	// ACLEnableTokenPersistence determines whether or not tokens set via the agent HTTP API
+	// should be persisted to disk and reloaded when an agent restarts.
+	ACLEnableTokenPersistence bool
+
 	// AutopilotCleanupDeadServers enables the automatic cleanup of dead servers when new ones
 	// are added to the peer list. Defaults to true.
 	//
