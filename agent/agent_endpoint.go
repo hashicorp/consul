@@ -1321,10 +1321,12 @@ func (s *HTTPServer) AgentToken(resp http.ResponseWriter, req *http.Request) (in
 		data, err := json.Marshal(tokens)
 		if err != nil {
 			s.agent.logger.Printf("[WARN] agent: failed to persist tokens - %v", err)
+			return nil, fmt.Errorf("Failed to marshal tokens for persistence: %v", err)
 		}
 
 		if err := file.WriteAtomicWithPerms(filepath.Join(s.agent.config.DataDir, tokensPath), data, 0600); err != nil {
 			s.agent.logger.Printf("[WARN] agent: failed to persist tokens - %v", err)
+			return nil, fmt.Errorf("Failed to persist tokens - %v", err)
 		}
 	}
 

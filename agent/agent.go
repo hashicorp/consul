@@ -3222,17 +3222,13 @@ func (a *Agent) getPersistedTokens() (map[string]string, error) {
 	defer a.persistedTokensLock.RUnlock()
 
 	tokensFullPath := filepath.Join(a.config.DataDir, tokensPath)
-	tokensFile, err := os.Open(tokensFullPath)
+
+	buf, err := ioutil.ReadFile(tokensFullPath)
 	if err != nil {
 		if os.IsNotExist(err) {
+			// non-existence is not an error we care about
 			return nil, nil
 		}
-		return nil, fmt.Errorf("failed opening tokens file %q: %s", tokensFullPath, err)
-	}
-
-	buf, err := ioutil.ReadAll(tokensFile)
-	tokensFile.Close()
-	if err != nil {
 		return nil, fmt.Errorf("failed reading tokens file %q: %s", tokensFullPath, err)
 	}
 
@@ -3246,6 +3242,10 @@ func (a *Agent) getPersistedTokens() (map[string]string, error) {
 
 func (a *Agent) loadTokens(conf *config.RuntimeConfig) error {
 	persistedTokens, persistenceErr := a.getPersistedTokens()
+
+	if persistenceErr != nil {
+		a.logger.Printf("[WARN] unable to load persisted tokens: %v", persistenceErr)
+	}
 
 	if tok, ok := persistedTokens["default"]; ok && tok != "" {
 		a.tokens.UpdateUserToken(tok, token.TokenSourceAPI)
