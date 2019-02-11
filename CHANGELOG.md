@@ -3,6 +3,7 @@
 BUG FIXES:
 
 * agent: Fixed a bug that could cause invalid memberlist protocol versions to propagate throughout the cluster. [[GH-3217](https://github.com/hashicorp/consul/issues/3217)]
+* server: Fixed a race condition during server initialization and leadership monitoring. [[GH-5322](https://github.com/hashicorp/consul/pull/5322)]
 
 FEATURES:
 * prepared queries: Enable ServiceMeta filtering for prepared queries. [[GH-5291](https://github.com/hashicorp/consul/pull/5291)]
