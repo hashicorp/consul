@@ -10,7 +10,7 @@ description: |-
 
 Consul KV is a core feature of Consul and is installed with the Consul agent. Once installed with the agent, it will have sane defaults. Consul KV allows users to store indexed objects, though its main uses are storing configuration parameters and metadata. Please note that it is a simple KV store and is not intended to be a full featured datastore (such as DynamoDB) but has some similarities to one. 
 
-The Consul KV datastore is located on the servers, but can be accessed by any agent (client or server). The natively integrated [RPC functionality](/docs/internals/architecture.html) allows clients for forward requests to servers, including key/value reads and writes. Part of Consul’s core design allows data to be replicated automatically across all the servers. Having a quorum of servers will decrease the risk of data loss. 
+The Consul KV datastore is located on the servers, but can be accessed by any agent (client or server). The natively integrated [RPC functionality](/docs/internals/architecture.html) allows clients to forward requests to servers, including key/value reads and writes. Part of Consul’s core design allows data to be replicated automatically across all the servers. Having a quorum of servers will decrease the risk of data loss if an outage occurs.
 
 ## Accessing the KV store
 
