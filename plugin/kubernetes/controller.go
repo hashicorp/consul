@@ -8,13 +8,11 @@ import (
 	"time"
 
 	"github.com/coredns/coredns/plugin/kubernetes/object"
-	dnswatch "github.com/coredns/coredns/plugin/pkg/watch"
 
 	api "k8s.io/api/core/v1"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 )
@@ -45,11 +43,6 @@ type dnsController interface {
 
 	// Modified returns the timestamp of the most recent changes
 	Modified() int64
-
-	// Watch-related items
-	SetWatchChan(dnswatch.Chan)
-	Watch(string) error
-	StopWatching(string)
 }
 
 type dnsControl struct {
@@ -79,9 +72,6 @@ type dnsControl struct {
 	shutdown bool
 	stopCh   chan struct{}
 
-	// watch-related items channel
-	watchChan        dnswatch.Chan
-	watched          map[string]struct{}
 	zones            []string
 	endpointNameMode bool
 }
@@ -105,7 +95,6 @@ func newdnsController(kubeClient kubernetes.Interface, opts dnsControlOpts) *dns
 		client:           kubeClient,
 		selector:         opts.selector,
 		stopCh:           make(chan struct{}),
-		watched:          make(map[string]struct{}),
 		zones:            opts.zones,
 		endpointNameMode: opts.endpointNameMode,
 	}
@@ -117,7 +106,7 @@ func newdnsController(kubeClient kubernetes.Interface, opts dnsControlOpts) *dns
 		},
 		&api.Service{},
 		opts.resyncPeriod,
-		cache.ResourceEventHandlerFuncs{AddFunc: dns.Add, UpdateFunc: dns.Update, DeleteFunc: dns.Delete},
+		cache.ResourceEventHandlerFuncs{},
 		cache.Indexers{svcNameNamespaceIndex: svcNameNamespaceIndexFunc, svcIPIndex: svcIPIndexFunc},
 		object.ToService,
 	)
@@ -130,7 +119,7 @@ func newdnsController(kubeClient kubernetes.Interface, opts dnsControlOpts) *dns
 			},
 			&api.Pod{},
 			opts.resyncPeriod,
-			cache.ResourceEventHandlerFuncs{AddFunc: dns.Add, UpdateFunc: dns.Update, DeleteFunc: dns.Delete},
+			cache.ResourceEventHandlerFuncs{},
 			cache.Indexers{podIPIndex: podIPIndexFunc},
 			object.ToPod,
 		)
@@ -144,7 +133,7 @@ func newdnsController(kubeClient kubernetes.Interface, opts dnsControlOpts) *dns
 			},
 			&api.Endpoints{},
 			opts.resyncPeriod,
-			cache.ResourceEventHandlerFuncs{AddFunc: dns.Add, UpdateFunc: dns.Update, DeleteFunc: dns.Delete},
+			cache.ResourceEventHandlerFuncs{},
 			cache.Indexers{epNameNamespaceIndex: epNameNamespaceIndexFunc, epIPIndex: epIPIndexFunc},
 			object.ToEndpoints)
 	}
@@ -223,26 +212,6 @@ func podListFunc(c kubernetes.Interface, ns string, s labels.Selector) func(meta
 	}
 }
 
-func serviceWatchFunc(c kubernetes.Interface, ns string, s labels.Selector) func(options meta.ListOptions) (watch.Interface, error) {
-	return func(options meta.ListOptions) (watch.Interface, error) {
-		if s != nil {
-			options.LabelSelector = s.String()
-		}
-		w, err := c.CoreV1().Services(ns).Watch(options)
-		return w, err
-	}
-}
-
-func podWatchFunc(c kubernetes.Interface, ns string, s labels.Selector) func(options meta.ListOptions) (watch.Interface, error) {
-	return func(options meta.ListOptions) (watch.Interface, error) {
-		if s != nil {
-			options.LabelSelector = s.String()
-		}
-		w, err := c.CoreV1().Pods(ns).Watch(options)
-		return w, err
-	}
-}
-
 func endpointsListFunc(c kubernetes.Interface, ns string, s labels.Selector) func(meta.ListOptions) (runtime.Object, error) {
 	return func(opts meta.ListOptions) (runtime.Object, error) {
 		if s != nil {
@@ -250,16 +219,6 @@ func endpointsListFunc(c kubernetes.Interface, ns string, s labels.Selector) fun
 		}
 		listV1, err := c.CoreV1().Endpoints(ns).List(opts)
 		return listV1, err
-	}
-}
-
-func endpointsWatchFunc(c kubernetes.Interface, ns string, s labels.Selector) func(options meta.ListOptions) (watch.Interface, error) {
-	return func(options meta.ListOptions) (watch.Interface, error) {
-		if s != nil {
-			options.LabelSelector = s.String()
-		}
-		w, err := c.CoreV1().Endpoints(ns).Watch(options)
-		return w, err
 	}
 }
 
@@ -271,27 +230,6 @@ func namespaceListFunc(c kubernetes.Interface, s labels.Selector) func(meta.List
 		listV1, err := c.CoreV1().Namespaces().List(opts)
 		return listV1, err
 	}
-}
-
-func namespaceWatchFunc(c kubernetes.Interface, s labels.Selector) func(options meta.ListOptions) (watch.Interface, error) {
-	return func(options meta.ListOptions) (watch.Interface, error) {
-		if s != nil {
-			options.LabelSelector = s.String()
-		}
-		w, err := c.CoreV1().Namespaces().Watch(options)
-		return w, err
-	}
-}
-
-func (dns *dnsControl) SetWatchChan(c dnswatch.Chan) { dns.watchChan = c }
-func (dns *dnsControl) StopWatching(qname string)    { delete(dns.watched, qname) }
-
-func (dns *dnsControl) Watch(qname string) error {
-	if dns.watchChan == nil {
-		return fmt.Errorf("cannot start watch because the channel has not been set")
-	}
-	dns.watched[qname] = struct{}{}
-	return nil
 }
 
 // Stop stops the  controller.

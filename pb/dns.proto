@@ -9,41 +9,4 @@ message DnsPacket {
 
 service DnsService {
 	rpc Query (DnsPacket) returns (DnsPacket);
-	rpc Watch (stream WatchRequest) returns (stream WatchResponse);
-}
-
-message WatchRequest {
-  // request_union is a request to either create a new watcher or cancel an existing watcher.
-  oneof request_union {
-    WatchCreateRequest create_request = 1;
-    WatchCancelRequest cancel_request = 2;
-  }
-}
-
-message WatchCreateRequest {
-  DnsPacket query = 1;
-}
-
-message WatchCancelRequest {
-  // watch_id is the watcher id to cancel
-  int64 watch_id = 1;
-}
-
-message WatchResponse {
-	// watch_id is the ID of the watcher that corresponds to the response.
-	int64 watch_id = 1;
-
-	// created is set to true if the response is for a create watch request.
-	// The client should record the watch_id and expect to receive DNS replies
-	// from the same stream.
-	// All replies sent to the created watcher will attach with the same watch_id.
-	bool created = 2;
-
-	// canceled is set to true if the response is for a cancel watch request.
-	// No further events will be sent to the canceled watcher.
-	bool canceled = 3;
-
-	string qname = 4;
-
-	string err = 5;
 }

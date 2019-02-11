@@ -7,7 +7,6 @@ import (
 	"github.com/coredns/coredns/plugin/kubernetes"
 	"github.com/coredns/coredns/plugin/kubernetes/object"
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
-	"github.com/coredns/coredns/plugin/pkg/watch"
 	"github.com/coredns/coredns/plugin/test"
 	"github.com/coredns/coredns/request"
 
@@ -158,9 +157,6 @@ func (external) Stop() error                                  { return nil }
 func (external) EpIndexReverse(string) []*object.Endpoints    { return nil }
 func (external) SvcIndexReverse(string) []*object.Service     { return nil }
 func (external) Modified() int64                              { return 0 }
-func (external) SetWatchChan(watch.Chan)                      {}
-func (external) Watch(string) error                           { return nil }
-func (external) StopWatching(string)                          {}
 func (external) EpIndex(s string) []*object.Endpoints         { return nil }
 func (external) EndpointsList() []*object.Endpoints           { return nil }
 func (external) GetNodeByName(name string) (*api.Node, error) { return nil, nil }

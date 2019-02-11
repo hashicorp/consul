@@ -112,11 +112,6 @@ kubernetes [ZONES...] {
 This plugin implements dynamic health checking. Currently this is limited to reporting healthy when
 the API has synced.
 
-## Watch
-
-This plugin implements watch. A client that connects to CoreDNS using `coredns/client` can be notified
-of changes to A, AAAA, and SRV records for Kubernetes services and endpoints.
-
 ## Examples
 
 Handle all queries in the `cluster.local` zone. Connect to Kubernetes in-cluster. Also handle all

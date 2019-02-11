@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/coredns/coredns/plugin/kubernetes/object"
-	"github.com/coredns/coredns/plugin/pkg/watch"
 
 	api "k8s.io/api/core/v1"
 )
@@ -20,9 +19,6 @@ func (APIConnTest) SvcIndexReverse(string) []*object.Service { return nil }
 func (APIConnTest) EpIndex(string) []*object.Endpoints       { return nil }
 func (APIConnTest) EndpointsList() []*object.Endpoints       { return nil }
 func (APIConnTest) Modified() int64                          { return 0 }
-func (APIConnTest) SetWatchChan(watch.Chan)                  {}
-func (APIConnTest) Watch(string) error                       { return nil }
-func (APIConnTest) StopWatching(string)                      {}
 
 func (APIConnTest) ServiceList() []*object.Service {
 	svcs := []*object.Service{
