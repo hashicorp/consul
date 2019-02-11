@@ -20,7 +20,7 @@ The datastore itself is located on the Consul servers in the [data directory](/d
 
 ## Using Consul KV
 
-Objects are opaque to Consul, meaning there are no restrictions on the type of object. The main restriction on an object is size, the maximum is 512 KB. Due to the maximum object size and main use cases, you do not need extra storage, the general [sizing recommendations](/docs/commands/snapshot/restore.html) are usually sufficient. 
+Objects are opaque to Consul, meaning there are no restrictions on the type of object stored in a key/value entry. The main restriction on an object is size - the maximum is 512 KB. Due to the maximum object size and main use cases, you should not need extra storage; the general [sizing recommendations](/docs/commands/snapshot/restore.html) are usually sufficient. 
 
 Keys, like objects are not restricted by type and can include any character. However, we recommend using URL-safe chars - `[a-zA-Z0-9-_]`  with the exception of  `/`, which can be used to help organize data. Note, `/` will be treated like any other character and is not fixed to the file system. Meaning, including `/` in a key does not fix it to a directory structure. This model is similar to Amazon S3 buckets. However, `/`  is still useful for organizing data and when recursively searching within the data store. We also recommend that you avoid the use of  `*`, `?`, `'`, and `%` because they can cause issues when using the API and in shell scripts. 
 
