@@ -811,10 +811,6 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 
 	a.srv.acls.cache.RemovePolicy(policy.ID)
 
-	if resp == nil {
-		return nil
-	}
-
 	if respErr, ok := resp.(error); ok {
 		return respErr
 	}
