@@ -47,12 +47,12 @@ prometheus [ADDRESS]
 
 For each zone that you want to see metrics for.
 
-It optionally takes an address to which the metrics are exported; the default
-is `localhost:9153`. The metrics path is fixed to `/metrics`.
+It optionally takes a bind address to which the metrics are exported; the default
+listens on `localhost:9153`. The metrics path is fixed to `/metrics`.
 
 ## Examples
 
-Use an alternative address:
+Use an alternative listening address:
 
 ~~~ corefile
 . {
