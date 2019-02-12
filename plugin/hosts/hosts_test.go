@@ -12,10 +12,19 @@ import (
 	"github.com/miekg/dns"
 )
 
-func (h *Hostsfile) parseReader(r io.Reader) { h.hmap = h.parse(r, h.inline) }
+func (h *Hostsfile) parseReader(r io.Reader) {
+	h.hmap = h.parse(r)
+}
 
 func TestLookupA(t *testing.T) {
-	h := Hosts{Next: test.ErrorHandler(), Hostsfile: &Hostsfile{Origins: []string{"."}}}
+	h := Hosts{
+		Next: test.ErrorHandler(),
+		Hostsfile: &Hostsfile{
+			Origins: []string{"."},
+			hmap:    newHostsMap(),
+			options: newOptions(),
+		},
+	}
 	h.parseReader(strings.NewReader(hostsExample))
 
 	ctx := context.TODO()
@@ -90,4 +99,6 @@ const hostsExample = `
 ::1 localhost localhost.domain
 10.0.0.1 example.org
 ::FFFF:10.0.0.2 example.com
+reload 5s
+timeout 3600
 `

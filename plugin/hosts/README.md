@@ -41,6 +41,9 @@ PTR records for reverse lookups are generated automatically by CoreDNS (based on
 ~~~
 hosts [FILE [ZONES...]] {
     [INLINE]
+    ttl SECONDS
+    no_reverse
+    reload DURATION
     fallthrough [ZONES...]
 }
 ~~~
@@ -53,6 +56,9 @@ hosts [FILE [ZONES...]] {
 * **INLINE** the hosts file contents inlined in Corefile. If there are any lines before fallthrough
    then all of them will be treated as the additional content for hosts file. The specified hosts
    file path will still be read but entries will be overrided.
+* `ttl` change the DNS TTL of the records generated (forward and reverse). The default is 3600 seonds (1 hour).
+* `reload` change the period between each hostsfile reload. A time of zero seconds disable the feature. Examples of valid durations: "300ms", "1.5h" or "2h45m" are valid duration with units "ns" (nanosecond), "us" (or "µs" for microsecond), "ms" (millisecond), "s" (second), "m" (minute), "h" (hour).
+* `no_reverse` disable the automatic generation of the the `in-addr.arpa` or `ip6.arpa` entries for the hosts
 * `fallthrough` If zone matches and no record can be generated, pass request to the next plugin.
   If **[ZONES...]** is omitted, then fallthrough happens for all zones for which the plugin
   is authoritative. If specific zones are listed (for example `in-addr.arpa` and `ip6.arpa`), then only

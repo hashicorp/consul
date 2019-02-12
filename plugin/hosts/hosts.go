@@ -43,13 +43,13 @@ func (h Hosts) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 			// If this doesn't match we need to fall through regardless of h.Fallthrough
 			return plugin.NextOrFailure(h.Name(), h.Next, ctx, w, r)
 		}
-		answers = h.ptr(qname, names)
+		answers = h.ptr(qname, h.options.ttl, names)
 	case dns.TypeA:
 		ips := h.LookupStaticHostV4(qname)
-		answers = a(qname, ips)
+		answers = a(qname, h.options.ttl, ips)
 	case dns.TypeAAAA:
 		ips := h.LookupStaticHostV6(qname)
-		answers = aaaa(qname, ips)
+		answers = aaaa(qname, h.options.ttl, ips)
 	}
 
 	if len(answers) == 0 {
@@ -96,12 +96,12 @@ func (h Hosts) otherRecordsExist(qtype uint16, qname string) bool {
 func (h Hosts) Name() string { return "hosts" }
 
 // a takes a slice of net.IPs and returns a slice of A RRs.
-func a(zone string, ips []net.IP) []dns.RR {
+func a(zone string, ttl uint32, ips []net.IP) []dns.RR {
 	answers := []dns.RR{}
 	for _, ip := range ips {
 		r := new(dns.A)
 		r.Hdr = dns.RR_Header{Name: zone, Rrtype: dns.TypeA,
-			Class: dns.ClassINET, Ttl: 3600}
+			Class: dns.ClassINET, Ttl: ttl}
 		r.A = ip
 		answers = append(answers, r)
 	}
@@ -109,12 +109,12 @@ func a(zone string, ips []net.IP) []dns.RR {
 }
 
 // aaaa takes a slice of net.IPs and returns a slice of AAAA RRs.
-func aaaa(zone string, ips []net.IP) []dns.RR {
+func aaaa(zone string, ttl uint32, ips []net.IP) []dns.RR {
 	answers := []dns.RR{}
 	for _, ip := range ips {
 		r := new(dns.AAAA)
 		r.Hdr = dns.RR_Header{Name: zone, Rrtype: dns.TypeAAAA,
-			Class: dns.ClassINET, Ttl: 3600}
+			Class: dns.ClassINET, Ttl: ttl}
 		r.AAAA = ip
 		answers = append(answers, r)
 	}
@@ -122,12 +122,12 @@ func aaaa(zone string, ips []net.IP) []dns.RR {
 }
 
 // ptr takes a slice of host names and filters out the ones that aren't in Origins, if specified, and returns a slice of PTR RRs.
-func (h *Hosts) ptr(zone string, names []string) []dns.RR {
+func (h *Hosts) ptr(zone string, ttl uint32, names []string) []dns.RR {
 	answers := []dns.RR{}
 	for _, n := range names {
 		r := new(dns.PTR)
 		r.Hdr = dns.RR_Header{Name: zone, Rrtype: dns.TypePTR,
-			Class: dns.ClassINET, Ttl: 3600}
+			Class: dns.ClassINET, Ttl: ttl}
 		r.Ptr = dns.Fqdn(n)
 		answers = append(answers, r)
 	}
