@@ -1,15 +1,11 @@
 package state
 
 import (
-	// "reflect"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	// "github.com/hashicorp/go-memdb"
-	// "github.com/pascaldekloe/goe/verify"
-
 	"github.com/stretchr/testify/require"
 )
 
@@ -98,6 +94,23 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 		Type: structs.ACLTokenTypeManagement,
 	}
 
+	stripIrrelevantFields := func(token *structs.ACLToken) *structs.ACLToken {
+		tokenCopy := token.Clone()
+		// When comparing the tokens disregard the policy link names.  This
+		// data is not cleanly updated in a variety of scenarios and should not
+		// be relied upon.
+		for i, _ := range tokenCopy.Policies {
+			tokenCopy.Policies[i].Name = ""
+		}
+		// The raft indexes won't match either because the requester will not
+		// have access to that.
+		tokenCopy.RaftIndex = structs.RaftIndex{}
+		return tokenCopy
+	}
+	compareTokens := func(expected, actual *structs.ACLToken) {
+		require.Equal(t, stripIrrelevantFields(expected), stripIrrelevantFields(actual))
+	}
+
 	s := testStateStore(t)
 	setupGlobalManagement(t, s)
 
@@ -107,7 +120,7 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 	require.Equal(t, uint64(0), index)
 
 	// Perform a regular bootstrap.
-	require.NoError(t, s.ACLBootstrap(3, 0, token1, false))
+	require.NoError(t, s.ACLBootstrap(3, 0, token1.Clone(), false))
 
 	// Make sure we can't bootstrap again
 	canBootstrap, index, err = s.CanBootstrapACLToken()
@@ -116,7 +129,7 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 	require.Equal(t, uint64(3), index)
 
 	// Make sure another attempt fails.
-	err = s.ACLBootstrap(4, 0, token2, false)
+	err = s.ACLBootstrap(4, 0, token2.Clone(), false)
 	require.Error(t, err)
 	require.Equal(t, structs.ACLBootstrapNotAllowedErr, err)
 
@@ -130,15 +143,15 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 	_, tokens, err := s.ACLTokenList(nil, true, true, "")
 	require.NoError(t, err)
 	require.Len(t, tokens, 1)
-	require.Equal(t, token1, tokens[0])
+	compareTokens(token1, tokens[0])
 
 	// bootstrap reset
-	err = s.ACLBootstrap(32, index-1, token2, false)
+	err = s.ACLBootstrap(32, index-1, token2.Clone(), false)
 	require.Error(t, err)
 	require.Equal(t, structs.ACLBootstrapInvalidResetIndexErr, err)
 
 	// bootstrap reset
-	err = s.ACLBootstrap(32, index, token2, false)
+	err = s.ACLBootstrap(32, index, token2.Clone(), false)
 	require.NoError(t, err)
 
 	_, tokens, err = s.ACLTokenList(nil, true, true, "")
