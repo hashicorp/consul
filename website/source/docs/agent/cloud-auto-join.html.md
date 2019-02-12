@@ -18,7 +18,7 @@ In Consul 0.9.1-0.9.3 the values need to be URL encoded but for most
 practical purposes you need to replace spaces with `+` signs.
 
 As of Consul 1.0 the values are taken literally and must not be URL
-encoded. If the values contain spaces, backslashes or double quotes then
+encoded. If the values contain spaces, equals, backslashes or double quotes then
 they need to be double quoted and the usual escaping rules apply.
 
 ```sh
