@@ -9,6 +9,7 @@ import (
 
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	clog "github.com/coredns/coredns/plugin/pkg/log"
+	"github.com/coredns/coredns/plugin/pkg/replacer"
 	"github.com/coredns/coredns/plugin/pkg/response"
 	"github.com/coredns/coredns/plugin/test"
 
@@ -30,6 +31,7 @@ func TestLoggedStatus(t *testing.T) {
 	logger := Logger{
 		Rules: []Rule{rule},
 		Next:  test.ErrorHandler(),
+		repl:  replacer.New(),
 	}
 
 	ctx := context.TODO()
@@ -62,6 +64,7 @@ func TestLoggedClassDenial(t *testing.T) {
 	logger := Logger{
 		Rules: []Rule{rule},
 		Next:  test.ErrorHandler(),
+		repl:  replacer.New(),
 	}
 
 	ctx := context.TODO()
@@ -91,6 +94,7 @@ func TestLoggedClassError(t *testing.T) {
 	logger := Logger{
 		Rules: []Rule{rule},
 		Next:  test.ErrorHandler(),
+		repl:  replacer.New(),
 	}
 
 	ctx := context.TODO()
@@ -206,6 +210,7 @@ func TestLogged(t *testing.T) {
 		logger := Logger{
 			Rules: tc.Rules,
 			Next:  test.ErrorHandler(),
+			repl:  replacer.New(),
 		}
 
 		ctx := context.TODO()
@@ -246,6 +251,7 @@ func BenchmarkLogged(b *testing.B) {
 	logger := Logger{
 		Rules: []Rule{rule},
 		Next:  test.ErrorHandler(),
+		repl:  replacer.New(),
 	}
 
 	ctx := context.TODO()

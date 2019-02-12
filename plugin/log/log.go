@@ -22,6 +22,8 @@ type Logger struct {
 	Next      plugin.Handler
 	Rules     []Rule
 	ErrorFunc func(context.Context, dns.ResponseWriter, *dns.Msg, int) // failover error handler
+
+	repl replacer.Replacer
 }
 
 // ServeDNS implements the plugin.Handler interface.
@@ -58,8 +60,8 @@ func (l Logger) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 		_, ok := rule.Class[response.All]
 		_, ok1 := rule.Class[class]
 		if ok || ok1 {
-			rep := replacer.New(ctx, r, rrw, CommonLogEmptyValue)
-			clog.Infof(rep.Replace(rule.Format))
+			logstr := l.repl.Replace(ctx, state, rrw, rule.Format)
+			clog.Infof(logstr)
 		}
 
 		return rc, err
@@ -80,9 +82,7 @@ type Rule struct {
 
 const (
 	// CommonLogFormat is the common log format.
-	CommonLogFormat = `{remote}:{port} ` + CommonLogEmptyValue + ` {>id} "{type} {class} {name} {proto} {size} {>do} {>bufsize}" {rcode} {>rflags} {rsize} {duration}`
-	// CommonLogEmptyValue is the common empty log value.
-	CommonLogEmptyValue = "-"
+	CommonLogFormat = `{remote}:{port} ` + replacer.EmptyValue + ` {>id} "{type} {class} {name} {proto} {size} {>do} {>bufsize}" {rcode} {>rflags} {rsize} {duration}`
 	// CombinedLogFormat is the combined log format.
 	CombinedLogFormat = CommonLogFormat + ` "{>opcode}"`
 	// DefaultLogFormat is the default log format.

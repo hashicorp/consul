@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/coredns/coredns/plugin/pkg/replacer"
+	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
 )
@@ -23,7 +24,7 @@ const (
 	NotMatch   = "not_match"
 )
 
-func newReplacer(r *dns.Msg) replacer.Replacer { return replacer.New(context.TODO(), r, nil, "") }
+var repl = replacer.New()
 
 // condition is a rewrite condition.
 type condition func(string, string) bool
@@ -87,9 +88,10 @@ func (i If) True(r *dns.Msg) bool {
 	if c, ok := conditions[i.Operator]; ok {
 		a, b := i.A, i.B
 		if r != nil {
-			replacer := newReplacer(r)
-			a = replacer.Replace(i.A)
-			b = replacer.Replace(i.B)
+			ctx := context.TODO()
+			state := request.Request{Req: r, W: nil} // hmm W nil?
+			a = repl.Replace(ctx, state, nil, i.A)
+			b = repl.Replace(ctx, state, nil, i.B)
 		}
 		return c(a, b)
 	}
