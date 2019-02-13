@@ -100,7 +100,7 @@ $ consul agent -retry-join "provider=azure tag_name=... tag_value=... tenant_id=
 - `provider` (required) - the name of the provider ("azure" in this case).
 - `tenant_id` (required) - the tenant to join machines in.
 - `client_id` (required) - the client to authenticate with.
-- `secret_access_key` (required) - the secret client key.
+- `secret_access_key` (required) - the secret client key. **NOTE** This value often may have an equals sign in it's value, especially if generated from the Azure Portal, so is important to wrap in single quotes eg. `secret_acccess_key='fpOfcHQJAQBczjAxiVpeyLmX1M0M0KPBST+GU2GvEN4='`
 
 Use these configuration parameters when using tags:
 - `tag_name` - the name of the tag to auto-join on.
