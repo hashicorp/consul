@@ -18,7 +18,7 @@ In Consul 0.9.1-0.9.3 the values need to be URL encoded but for most
 practical purposes you need to replace spaces with `+` signs.
 
 As of Consul 1.0 the values are taken literally and must not be URL
-encoded. If the values contain spaces, backslashes or double quotes then
+encoded. If the values contain spaces, equals, backslashes or double quotes then
 they need to be double quoted and the usual escaping rules apply.
 
 ```sh
@@ -100,18 +100,21 @@ $ consul agent -retry-join "provider=azure tag_name=... tag_value=... tenant_id=
 - `provider` (required) - the name of the provider ("azure" in this case).
 - `tenant_id` (required) - the tenant to join machines in.
 - `client_id` (required) - the client to authenticate with.
-- `secret_access_key` (required) - the secret client key.
+- `secret_access_key` (required) - the secret client key. **NOTE** This value often may have an equals sign in it's value, especially if generated from the Azure Portal, so is important to wrap in single quotes eg. `secret_acccess_key='fpOfcHQJAQBczjAxiVpeyLmX1M0M0KPBST+GU2GvEN4='`
 
 Use these configuration parameters when using tags:
+
 - `tag_name` - the name of the tag to auto-join on.
 - `tag_value` - the value of the tag to auto-join on.
 
 Use these configuration parameters when using Virtual Machine Scale Sets (Consul 1.0.3 and later):
+
 - `resource_group` - the name of the resource group to filter on.
 - `vm_scale_set` - the name of the virtual machine scale set to filter on.
 
-When using tags the only permission needed is the `ListAll` method for `NetworkInterfaces`. When using
-Virtual Machine Scale Sets the only role action needed is `Microsoft.Compute/virtualMachineScaleSets/*/read`.
+When using tags the only permission needed is `Microsoft.Network/networkInterfaces`.
+
+When using Virtual Machine Scale Sets the only role action needed is `Microsoft.Compute/virtualMachineScaleSets/*/read`.
 
 ### Google Compute Engine
 
