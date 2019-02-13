@@ -225,7 +225,7 @@ $ consul acl bootstrap
 Failed ACL bootstrapping: Unexpected response code: 403 (Permission denied: ACL bootstrap no longer allowed (reset index: 13))
 ```
 
-Then update the index with the following command.
+Then write the reset index into the bootstrap reset file: (here the reset index is 13)
 
 ```
 $ echo 13 >> <data-directory>/acl-bootstrap-reset
