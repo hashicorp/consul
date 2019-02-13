@@ -21,7 +21,7 @@ func TestKeyringCommand(t *testing.T) {
 	key2 := "kZyFABeAmc64UMTrm9XuKA=="
 
 	// Begin with a single key
-	a1 := agent.NewTestAgent(t.Name(), `
+	a1 := agent.NewTestAgent(t, t.Name(), `
 		encrypt = "`+key1+`"
 	`)
 	defer a1.Shutdown()

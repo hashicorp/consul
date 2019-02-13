@@ -17,8 +17,8 @@ func TestJoinCommand_noTabs(t *testing.T) {
 
 func TestJoinCommandJoin_lan(t *testing.T) {
 	t.Parallel()
-	a1 := agent.NewTestAgent(t.Name(), ``)
-	a2 := agent.NewTestAgent(t.Name(), ``)
+	a1 := agent.NewTestAgent(t, t.Name(), ``)
+	a2 := agent.NewTestAgent(t, t.Name(), ``)
 	defer a1.Shutdown()
 	defer a2.Shutdown()
 
@@ -41,8 +41,8 @@ func TestJoinCommandJoin_lan(t *testing.T) {
 
 func TestJoinCommand_wan(t *testing.T) {
 	t.Parallel()
-	a1 := agent.NewTestAgent(t.Name(), ``)
-	a2 := agent.NewTestAgent(t.Name(), ``)
+	a1 := agent.NewTestAgent(t, t.Name(), ``)
+	a2 := agent.NewTestAgent(t, t.Name(), ``)
 	defer a1.Shutdown()
 	defer a2.Shutdown()
 

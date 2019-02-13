@@ -9,7 +9,7 @@ import (
 
 func TestStatusLeader(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -26,7 +26,7 @@ func TestStatusLeader(t *testing.T) {
 
 func TestStatusPeers(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/v1/status/peers", nil)

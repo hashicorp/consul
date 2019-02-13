@@ -142,7 +142,7 @@ func TestEncodeKVasRFC1464(t *testing.T) {
 
 func TestDNS_Over_TCP(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -175,7 +175,7 @@ func TestDNS_Over_TCP(t *testing.T) {
 
 func TestDNS_NodeLookup(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -270,7 +270,7 @@ func TestDNS_NodeLookup(t *testing.T) {
 
 func TestDNS_CaseInsensitiveNodeLookup(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -302,7 +302,7 @@ func TestDNS_CaseInsensitiveNodeLookup(t *testing.T) {
 
 func TestDNS_NodeLookup_PeriodName(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -342,7 +342,7 @@ func TestDNS_NodeLookup_PeriodName(t *testing.T) {
 
 func TestDNS_NodeLookup_AAAA(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -399,7 +399,7 @@ func TestDNSCycleRecursorCheck(t *testing.T) {
 	})
 	defer server2.Shutdown()
 	//Mock the agent startup with the necessary configs
-	agent := NewTestAgent(t.Name(),
+	agent := NewTestAgent(t, t.Name(),
 		`recursors = ["`+server1.Addr+`", "`+server2.Addr+`"]
 		`)
 	defer agent.Shutdown()
@@ -433,7 +433,7 @@ func TestDNSCycleRecursorCheckAllFail(t *testing.T) {
 	})
 	defer server3.Shutdown()
 	//Mock the agent startup with the necessary configs
-	agent := NewTestAgent(t.Name(),
+	agent := NewTestAgent(t, t.Name(),
 		`recursors = ["`+server1.Addr+`", "`+server2.Addr+`","`+server3.Addr+`"]
 		`)
 	defer agent.Shutdown()
@@ -457,7 +457,7 @@ func TestDNS_NodeLookup_CNAME(t *testing.T) {
 	})
 	defer recursor.Shutdown()
 
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		recursors = ["`+recursor.Addr+`"]
 	`)
 	defer a.Shutdown()
@@ -506,7 +506,7 @@ func TestDNS_NodeLookup_CNAME(t *testing.T) {
 }
 
 func TestDNS_NodeLookup_TXT(t *testing.T) {
-	a := NewTestAgent(t.Name(), ``)
+	a := NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -552,7 +552,7 @@ func TestDNS_NodeLookup_TXT(t *testing.T) {
 }
 
 func TestDNS_NodeLookup_TXT_DontSuppress(t *testing.T) {
-	a := NewTestAgent(t.Name(), `dns_config = { enable_additional_node_meta_txt = false }`)
+	a := NewTestAgent(t, t.Name(), `dns_config = { enable_additional_node_meta_txt = false }`)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -598,7 +598,7 @@ func TestDNS_NodeLookup_TXT_DontSuppress(t *testing.T) {
 }
 
 func TestDNS_NodeLookup_ANY(t *testing.T) {
-	a := NewTestAgent(t.Name(), ``)
+	a := NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -639,7 +639,7 @@ func TestDNS_NodeLookup_ANY(t *testing.T) {
 }
 
 func TestDNS_NodeLookup_ANY_DontSuppressTXT(t *testing.T) {
-	a := NewTestAgent(t.Name(), `dns_config = { enable_additional_node_meta_txt = false }`)
+	a := NewTestAgent(t, t.Name(), `dns_config = { enable_additional_node_meta_txt = false }`)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -680,7 +680,7 @@ func TestDNS_NodeLookup_ANY_DontSuppressTXT(t *testing.T) {
 }
 
 func TestDNS_NodeLookup_A_SuppressTXT(t *testing.T) {
-	a := NewTestAgent(t.Name(), `dns_config = { enable_additional_node_meta_txt = false }`)
+	a := NewTestAgent(t, t.Name(), `dns_config = { enable_additional_node_meta_txt = false }`)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -717,7 +717,7 @@ func TestDNS_NodeLookup_A_SuppressTXT(t *testing.T) {
 
 func TestDNS_EDNS0(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -757,7 +757,7 @@ func TestDNS_EDNS0(t *testing.T) {
 
 func TestDNS_EDNS0_ECS(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -849,7 +849,7 @@ func TestDNS_EDNS0_ECS(t *testing.T) {
 
 func TestDNS_ReverseLookup(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -889,7 +889,7 @@ func TestDNS_ReverseLookup(t *testing.T) {
 
 func TestDNS_ReverseLookup_CustomDomain(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		domain = "custom"
 	`)
 	defer a.Shutdown()
@@ -931,7 +931,7 @@ func TestDNS_ReverseLookup_CustomDomain(t *testing.T) {
 
 func TestDNS_ReverseLookup_IPV6(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -971,7 +971,7 @@ func TestDNS_ReverseLookup_IPV6(t *testing.T) {
 
 func TestDNS_ServiceReverseLookup(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -1019,7 +1019,7 @@ func TestDNS_ServiceReverseLookup(t *testing.T) {
 
 func TestDNS_ServiceReverseLookup_IPV6(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -1067,7 +1067,7 @@ func TestDNS_ServiceReverseLookup_IPV6(t *testing.T) {
 
 func TestDNS_ServiceReverseLookup_CustomDomain(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		domain = "custom"
 	`)
 	defer a.Shutdown()
@@ -1118,7 +1118,7 @@ func TestDNS_ServiceReverseLookup_CustomDomain(t *testing.T) {
 func TestDNS_SOA_Settings(t *testing.T) {
 	t.Parallel()
 	testSoaWithConfig := func(config string, ttl, expire, refresh, retry uint) {
-		a := NewTestAgent(t.Name(), config)
+		a := NewTestAgent(t, t.Name(), config)
 		defer a.Shutdown()
 		testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -1150,7 +1150,7 @@ func TestDNS_SOA_Settings(t *testing.T) {
 
 func TestDNS_ServiceReverseLookupNodeAddress(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -1198,7 +1198,7 @@ func TestDNS_ServiceReverseLookupNodeAddress(t *testing.T) {
 
 func TestDNS_ServiceLookupNoMultiCNAME(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -1253,7 +1253,7 @@ func TestDNS_ServiceLookupNoMultiCNAME(t *testing.T) {
 
 func TestDNS_ServiceLookupPreferNoCNAME(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -1311,7 +1311,7 @@ func TestDNS_ServiceLookupPreferNoCNAME(t *testing.T) {
 
 func TestDNS_ServiceLookupMultiAddrNoCNAME(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -1385,7 +1385,7 @@ func TestDNS_ServiceLookupMultiAddrNoCNAME(t *testing.T) {
 
 func TestDNS_ServiceLookup(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -1506,7 +1506,7 @@ func TestDNS_ServiceLookup(t *testing.T) {
 
 func TestDNS_ServiceLookupWithInternalServiceAddress(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		node_name = "my.test-node"
 	`)
 	defer a.Shutdown()
@@ -1569,7 +1569,7 @@ func TestDNS_ConnectServiceLookup(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -1613,7 +1613,7 @@ func TestDNS_ConnectServiceLookup(t *testing.T) {
 
 func TestDNS_ExternalServiceLookup(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -1686,7 +1686,7 @@ func TestDNS_ExternalServiceLookup(t *testing.T) {
 func TestDNS_InifiniteRecursion(t *testing.T) {
 	// This test should not create an infinite recursion
 	t.Parallel()
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		domain = "CONSUL."
 		node_name = "test node"
 	`)
@@ -1740,7 +1740,7 @@ func TestDNS_InifiniteRecursion(t *testing.T) {
 
 func TestDNS_ExternalServiceToConsulCNAMELookup(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		domain = "CONSUL."
 		node_name = "test node"
 	`)
@@ -1853,7 +1853,7 @@ func TestDNS_ExternalServiceToConsulCNAMELookup(t *testing.T) {
 
 func TestDNS_NSRecords(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		domain = "CONSUL."
 		node_name = "server1"
 	`)
@@ -1888,7 +1888,7 @@ func TestDNS_NSRecords(t *testing.T) {
 
 func TestDNS_NSRecords_IPV6(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
  		domain = "CONSUL."
  		node_name = "server1"
  		advertise_addr = "::1"
@@ -1925,7 +1925,7 @@ func TestDNS_NSRecords_IPV6(t *testing.T) {
 
 func TestDNS_ExternalServiceToConsulCNAMENestedLookup(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		node_name = "test-node"
 	`)
 	defer a.Shutdown()
@@ -2067,7 +2067,7 @@ func TestDNS_ExternalServiceToConsulCNAMENestedLookup(t *testing.T) {
 
 func TestDNS_ServiceLookup_ServiceAddress_A(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -2160,7 +2160,7 @@ func TestDNS_ServiceLookup_ServiceAddress_A(t *testing.T) {
 
 func TestDNS_ServiceLookup_ServiceAddress_CNAME(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -2253,7 +2253,7 @@ func TestDNS_ServiceLookup_ServiceAddress_CNAME(t *testing.T) {
 
 func TestDNS_ServiceLookup_ServiceAddressIPV6(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -2346,14 +2346,14 @@ func TestDNS_ServiceLookup_ServiceAddressIPV6(t *testing.T) {
 
 func TestDNS_ServiceLookup_WanAddress(t *testing.T) {
 	t.Parallel()
-	a1 := NewTestAgent(t.Name(), `
+	a1 := NewTestAgent(t, t.Name(), `
 		datacenter = "dc1"
 		translate_wan_addrs = true
 		acl_datacenter = ""
 	`)
 	defer a1.Shutdown()
 
-	a2 := NewTestAgent(t.Name(), `
+	a2 := NewTestAgent(t, t.Name(), `
 		datacenter = "dc2"
 		translate_wan_addrs = true
 		acl_datacenter = ""
@@ -2534,7 +2534,7 @@ func TestDNS_ServiceLookup_WanAddress(t *testing.T) {
 
 func TestDNS_CaseInsensitiveServiceLookup(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -2605,7 +2605,7 @@ func TestDNS_CaseInsensitiveServiceLookup(t *testing.T) {
 
 func TestDNS_ServiceLookup_TagPeriod(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -2688,7 +2688,7 @@ func TestDNS_PreparedQueryNearIPEDNS(t *testing.T) {
 	}
 
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -2815,7 +2815,7 @@ func TestDNS_PreparedQueryNearIP(t *testing.T) {
 	}
 
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -2920,7 +2920,7 @@ func TestDNS_PreparedQueryNearIP(t *testing.T) {
 
 func TestDNS_ServiceLookup_PreparedQueryNamePeriod(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -2999,7 +2999,7 @@ func TestDNS_ServiceLookup_PreparedQueryNamePeriod(t *testing.T) {
 
 func TestDNS_ServiceLookup_Dedup(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -3102,7 +3102,7 @@ func TestDNS_ServiceLookup_Dedup(t *testing.T) {
 
 func TestDNS_ServiceLookup_Dedup_SRV(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -3238,7 +3238,7 @@ func TestDNS_Recurse(t *testing.T) {
 	})
 	defer recursor.Shutdown()
 
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		recursors = ["`+recursor.Addr+`"]
 	`)
 	defer a.Shutdown()
@@ -3270,7 +3270,7 @@ func TestDNS_Recurse_Truncation(t *testing.T) {
 	})
 	defer recursor.Shutdown()
 
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		recursors = ["`+recursor.Addr+`"]
 	`)
 	defer a.Shutdown()
@@ -3311,7 +3311,7 @@ func TestDNS_RecursorTimeout(t *testing.T) {
 	}
 	defer resolver.Close()
 
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		recursors = ["`+resolver.LocalAddr().String()+`"] // host must cause a connection|read|write timeout
 		dns_config {
 			recursor_timeout = "`+serverClientTimeout.String()+`"
@@ -3350,7 +3350,7 @@ func TestDNS_RecursorTimeout(t *testing.T) {
 
 func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -3506,7 +3506,7 @@ func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
 
 func TestDNS_ServiceLookup_OnlyFailing(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -3619,7 +3619,7 @@ func TestDNS_ServiceLookup_OnlyFailing(t *testing.T) {
 
 func TestDNS_ServiceLookup_OnlyPassing(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		dns_config {
 			only_passing = true
 		}
@@ -3744,7 +3744,7 @@ func TestDNS_ServiceLookup_OnlyPassing(t *testing.T) {
 
 func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -3875,7 +3875,7 @@ func TestBinarySearch(t *testing.T) {
 
 func TestDNS_TCP_and_UDP_Truncate(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		dns_config {
 			enable_truncate = true
 		}
@@ -3973,7 +3973,7 @@ func TestDNS_TCP_and_UDP_Truncate(t *testing.T) {
 
 func TestDNS_ServiceLookup_Truncate(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		dns_config {
 			enable_truncate = true
 		}
@@ -4042,7 +4042,7 @@ func TestDNS_ServiceLookup_Truncate(t *testing.T) {
 
 func TestDNS_ServiceLookup_LargeResponses(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		dns_config {
 			enable_truncate = true
 		}
@@ -4144,7 +4144,7 @@ func TestDNS_ServiceLookup_LargeResponses(t *testing.T) {
 
 func testDNSServiceLookupResponseLimits(t *testing.T, answerLimit int, qType uint16,
 	expectedService, expectedQuery, expectedQueryID int) (bool, error) {
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		node_name = "test-node"
 		dns_config {
 			udp_answer_limit = `+fmt.Sprintf("%d", answerLimit)+`
@@ -4233,7 +4233,7 @@ func testDNSServiceLookupResponseLimits(t *testing.T, answerLimit int, qType uin
 
 func checkDNSService(t *testing.T, generateNumNodes int, aRecordLimit int, qType uint16,
 	expectedResultsCount int, udpSize uint16, udpAnswerLimit int) error {
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		node_name = "test-node"
 		dns_config {
 			a_record_limit = `+fmt.Sprintf("%d", aRecordLimit)+`
@@ -4465,7 +4465,7 @@ func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 	})
 	defer recursor.Shutdown()
 
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		recursors = ["`+recursor.Addr+`"]
 	`)
 	defer a.Shutdown()
@@ -4562,7 +4562,7 @@ func TestDNS_NodeLookup_TTL(t *testing.T) {
 	})
 	defer recursor.Shutdown()
 
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		recursors = ["`+recursor.Addr+`"]
 		dns_config {
 			node_ttl = "10s"
@@ -4680,7 +4680,7 @@ func TestDNS_NodeLookup_TTL(t *testing.T) {
 
 func TestDNS_ServiceLookup_TTL(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		dns_config {
 			service_ttl = {
 				"d*" = "42s"
@@ -4758,7 +4758,7 @@ func TestDNS_ServiceLookup_TTL(t *testing.T) {
 
 func TestDNS_PreparedQuery_TTL(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		dns_config {
 			service_ttl = {
 				"d*" = "42s"
@@ -4878,14 +4878,14 @@ func TestDNS_PreparedQuery_TTL(t *testing.T) {
 
 func TestDNS_PreparedQuery_Failover(t *testing.T) {
 	t.Parallel()
-	a1 := NewTestAgent(t.Name(), `
+	a1 := NewTestAgent(t, t.Name(), `
 		datacenter = "dc1"
 		translate_wan_addrs = true
 		acl_datacenter = ""
 	`)
 	defer a1.Shutdown()
 
-	a2 := NewTestAgent(t.Name(), `
+	a2 := NewTestAgent(t, t.Name(), `
 		datacenter = "dc2"
 		translate_wan_addrs = true
 		acl_datacenter = ""
@@ -4990,7 +4990,7 @@ func TestDNS_PreparedQuery_Failover(t *testing.T) {
 
 func TestDNS_ServiceLookup_SRV_RFC(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -5065,7 +5065,7 @@ func TestDNS_ServiceLookup_SRV_RFC(t *testing.T) {
 
 func TestDNS_ServiceLookup_SRV_RFC_TCP_Default(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -5149,7 +5149,7 @@ func TestDNS_ServiceLookup_FilterACL(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run("ACLToken == "+tt.token, func(t *testing.T) {
-			a := NewTestAgent(t.Name(), `
+			a := NewTestAgent(t, t.Name(), `
 				acl_token = "`+tt.token+`"
 				acl_master_token = "root"
 				acl_datacenter = "dc1"
@@ -5192,7 +5192,7 @@ func TestDNS_ServiceLookup_FilterACL(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_MetaTXT(t *testing.T) {
-	a := NewTestAgent(t.Name(), `dns_config = { enable_additional_node_meta_txt = true }`)
+	a := NewTestAgent(t, t.Name(), `dns_config = { enable_additional_node_meta_txt = true }`)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -5238,7 +5238,7 @@ func TestDNS_ServiceLookup_MetaTXT(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_SuppressTXT(t *testing.T) {
-	a := NewTestAgent(t.Name(), `dns_config = { enable_additional_node_meta_txt = false }`)
+	a := NewTestAgent(t, t.Name(), `dns_config = { enable_additional_node_meta_txt = false }`)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -5282,7 +5282,7 @@ func TestDNS_ServiceLookup_SuppressTXT(t *testing.T) {
 
 func TestDNS_AddressLookup(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -5319,7 +5319,7 @@ func TestDNS_AddressLookup(t *testing.T) {
 
 func TestDNS_AddressLookupIPV6(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -5357,7 +5357,7 @@ func TestDNS_AddressLookupIPV6(t *testing.T) {
 
 func TestDNS_NonExistingLookup(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -5386,7 +5386,7 @@ func TestDNS_NonExistingLookup(t *testing.T) {
 
 func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -5525,7 +5525,7 @@ func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
 
 func TestDNS_PreparedQuery_AllowStale(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		dns_config {
 			allow_stale = true
 			max_stale = "1s"
@@ -5575,7 +5575,7 @@ func TestDNS_PreparedQuery_AllowStale(t *testing.T) {
 
 func TestDNS_InvalidQueries(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -5617,7 +5617,7 @@ func TestDNS_InvalidQueries(t *testing.T) {
 
 func TestDNS_PreparedQuery_AgentSource(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -6123,7 +6123,7 @@ func TestDNS_Compression_trimUDPResponse(t *testing.T) {
 
 func TestDNS_Compression_Query(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -6210,7 +6210,7 @@ func TestDNS_Compression_Query(t *testing.T) {
 
 func TestDNS_Compression_ReverseLookup(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -6267,7 +6267,7 @@ func TestDNS_Compression_Recurse(t *testing.T) {
 	})
 	defer recursor.Shutdown()
 
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		recursors = ["`+recursor.Addr+`"]
 	`)
 	defer a.Shutdown()

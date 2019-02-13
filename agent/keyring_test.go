@@ -33,7 +33,7 @@ func TestAgent_LoadKeyrings(t *testing.T) {
 
 	// Should be no configured keyring file by default
 	t.Run("no keys", func(t *testing.T) {
-		a1 := NewTestAgent(t.Name(), "")
+		a1 := NewTestAgent(t, t.Name(), "")
 		defer a1.Shutdown()
 
 		c1 := a1.consulConfig()
@@ -54,7 +54,7 @@ func TestAgent_LoadKeyrings(t *testing.T) {
 	// Server should auto-load LAN and WAN keyring files
 	t.Run("server with keys", func(t *testing.T) {
 		a2 := &TestAgent{Name: t.Name(), Key: key}
-		a2.Start()
+		a2.Start(t)
 		defer a2.Shutdown()
 
 		c2 := a2.consulConfig()
@@ -84,7 +84,7 @@ func TestAgent_LoadKeyrings(t *testing.T) {
 			server = false
 			bootstrap = false
 		`, Key: key}
-		a3.Start()
+		a3.Start(t)
 		defer a3.Shutdown()
 
 		c3 := a3.consulConfig()
@@ -112,7 +112,7 @@ func TestAgent_InmemKeyrings(t *testing.T) {
 
 	// Should be no configured keyring file by default
 	t.Run("no keys", func(t *testing.T) {
-		a1 := NewTestAgent(t.Name(), "")
+		a1 := NewTestAgent(t, t.Name(), "")
 		defer a1.Shutdown()
 
 		c1 := a1.consulConfig()
@@ -136,7 +136,7 @@ func TestAgent_InmemKeyrings(t *testing.T) {
 			encrypt = "` + key + `"
 			disable_keyring_file = true
 		`}
-		a2.Start()
+		a2.Start(t)
 		defer a2.Shutdown()
 
 		c2 := a2.consulConfig()
@@ -168,7 +168,7 @@ func TestAgent_InmemKeyrings(t *testing.T) {
 			bootstrap = false
 			disable_keyring_file = true
 		`}
-		a3.Start()
+		a3.Start(t)
 		defer a3.Shutdown()
 
 		c3 := a3.consulConfig()
@@ -207,7 +207,7 @@ func TestAgent_InmemKeyrings(t *testing.T) {
 			disable_keyring_file = true
 			data_dir = "` + dir + `"
 		`}
-		a4.Start()
+		a4.Start(t)
 		defer a4.Shutdown()
 
 		c4 := a4.consulConfig()
@@ -281,7 +281,7 @@ func TestAgentKeyring_ACL(t *testing.T) {
 		acl_master_token = "root"
 		acl_default_policy = "deny"
 	`, Key: key1}
-	a.Start()
+	a.Start(t)
 	defer a.Shutdown()
 
 	// List keys without access fails

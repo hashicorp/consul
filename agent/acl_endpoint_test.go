@@ -19,7 +19,7 @@ import (
 
 func TestACL_Disabled_Response(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	type testCase struct {
@@ -64,7 +64,7 @@ func jsonBody(v interface{}) io.Reader {
 
 func TestACL_Bootstrap(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), TestACLConfig()+`
+	a := NewTestAgent(t, t.Name(), TestACLConfig()+`
       acl_master_token = ""
    `)
 	defer a.Shutdown()
@@ -112,7 +112,7 @@ func TestACL_Bootstrap(t *testing.T) {
 
 func TestACL_HTTP(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), TestACLConfig())
+	a := NewTestAgent(t, t.Name(), TestACLConfig())
 	defer a.Shutdown()
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
