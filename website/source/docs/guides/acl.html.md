@@ -222,7 +222,7 @@ If you encounter issues that are unresolvable, or misplace the bootstrap token, 
 
 ```
 $ consul acl bootstrap
-Error bootstrapping: Unexpected response code: 500 (ACL bootstrap already done (reset index: 13))
+Failed ACL bootstrapping: Unexpected response code: 403 (Permission denied: ACL bootstrap no longer allowed (reset index: 13))
 ```
 
 Then update the index with the following command.
