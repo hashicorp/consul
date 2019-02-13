@@ -110,8 +110,9 @@ Use these configuration parameters when using Virtual Machine Scale Sets (Consul
 - `resource_group` - the name of the resource group to filter on.
 - `vm_scale_set` - the name of the virtual machine scale set to filter on.
 
-When using tags the only permission needed is the `ListAll` method for `NetworkInterfaces`. When using
-Virtual Machine Scale Sets the only role action needed is `Microsoft.Compute/virtualMachineScaleSets/*/read`.
+When using tags the only permission needed is `Microsoft.Network/networkInterfaces`.
+
+When using Virtual Machine Scale Sets the only role action needed is `Microsoft.Compute/virtualMachineScaleSets/*/read`.
 
 ### Google Compute Engine
 
