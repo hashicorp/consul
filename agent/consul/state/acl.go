@@ -13,7 +13,7 @@ type TokenPoliciesIndex struct {
 func (s *TokenPoliciesIndex) FromObject(obj interface{}) (bool, [][]byte, error) {
 	token, ok := obj.(*structs.ACLToken)
 	if !ok {
-		return false, nil, fmt.Errorf("object is not an ACLTokenPolicyLink")
+		return false, nil, fmt.Errorf("object is not an ACLToken")
 	}
 
 	links := token.Policies

@@ -41,7 +41,7 @@ func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.BoolVar(&c.showMeta, "meta", false, "Indicates that policy metadata such "+
 		"as the content hash and raft indices should be shown for each entry")
-	c.flags.StringVar(&c.name, "name", "", "The new policies name. This flag is required.")
+	c.flags.StringVar(&c.name, "name", "", "The new policy's name. This flag is required.")
 	c.flags.StringVar(&c.description, "description", "", "A description of the policy")
 	c.flags.Var((*flags.AppendSliceValue)(&c.datacenters), "valid-datacenter", "Datacenter "+
 		"that the policy should be valid within. This flag may be specified multiple times")
