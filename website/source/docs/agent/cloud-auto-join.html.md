@@ -103,10 +103,12 @@ $ consul agent -retry-join "provider=azure tag_name=... tag_value=... tenant_id=
 - `secret_access_key` (required) - the secret client key. **NOTE** This value often may have an equals sign in it's value, especially if generated from the Azure Portal, so is important to wrap in single quotes eg. `secret_acccess_key='fpOfcHQJAQBczjAxiVpeyLmX1M0M0KPBST+GU2GvEN4='`
 
 Use these configuration parameters when using tags:
+
 - `tag_name` - the name of the tag to auto-join on.
 - `tag_value` - the value of the tag to auto-join on.
 
 Use these configuration parameters when using Virtual Machine Scale Sets (Consul 1.0.3 and later):
+
 - `resource_group` - the name of the resource group to filter on.
 - `vm_scale_set` - the name of the virtual machine scale set to filter on.
 
