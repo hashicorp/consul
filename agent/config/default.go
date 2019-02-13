@@ -64,7 +64,7 @@ func DefaultSource() Source {
 		retry_interval_wan = "30s"
 		server = false
 		syslog_facility = "LOCAL0"
-		tls_min_version = "tls10"
+		tls_min_version = "tls12"
 
 		// TODO (slackpad) - Until #3744 is done, we need to keep these
 		// in sync with agent/consul/config.go.
