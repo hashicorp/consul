@@ -228,7 +228,7 @@ Error bootstrapping: Unexpected response code: 500 (ACL bootstrap already done (
 Then update the index with the following command.
 
 ```
-$ echo 13 >> /<data-directory>/server/acl-bootstrap-reset
+$ echo 13 >> <data-directory>/acl-bootstrap-reset
 ```
 
 After reseting the ACL system you can start again at Step 2. 
