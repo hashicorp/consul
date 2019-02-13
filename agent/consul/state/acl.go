@@ -13,7 +13,7 @@ type TokenPoliciesIndex struct {
 func (s *TokenPoliciesIndex) FromObject(obj interface{}) (bool, [][]byte, error) {
 	token, ok := obj.(*structs.ACLToken)
 	if !ok {
-		return false, nil, fmt.Errorf("object is not an ACLTokenPolicyLink")
+		return false, nil, fmt.Errorf("object is not an ACLToken")
 	}
 
 	links := token.Policies
@@ -641,14 +641,13 @@ func (s *Store) aclPolicySetTxn(tx *memdb.Txn, idx uint64, policy *structs.ACLPo
 		return ErrMissingACLPolicyName
 	}
 
-	var policyMatch *structs.ACLPolicy
 	existing, err := tx.First("acl-policies", "id", policy.ID)
 	if err != nil {
 		return fmt.Errorf("failed acl policy lookup: %v", err)
 	}
 
 	if existing != nil {
-		policyMatch = existing.(*structs.ACLPolicy)
+		policyMatch := existing.(*structs.ACLPolicy)
 
 		if policy.ID == structs.ACLPolicyGlobalManagementID {
 			// Only the name and description are modifiable

@@ -21,20 +21,20 @@ var (
 	// is attempted with an empty session ID.
 	ErrMissingSessionID = errors.New("Missing session ID")
 
-	// ErrMissingACLTokenSecret is returned when an token set is called on
-	// an token with an empty SecretID.
+	// ErrMissingACLTokenSecret is returned when a token set is called on a
+	// token with an empty SecretID.
 	ErrMissingACLTokenSecret = errors.New("Missing ACL Token SecretID")
 
-	// ErrMissingACLTokenAccessor is returned when an token set is called on
-	// an token with an empty AccessorID.
+	// ErrMissingACLTokenAccessor is returned when a token set is called on a
+	// token with an empty AccessorID.
 	ErrMissingACLTokenAccessor = errors.New("Missing ACL Token AccessorID")
 
-	// ErrMissingACLPolicyID is returned when an policy set is called on
-	// an policy with an empty ID.
+	// ErrMissingACLPolicyID is returned when a policy set is called on a
+	// policy with an empty ID.
 	ErrMissingACLPolicyID = errors.New("Missing ACL Policy ID")
 
-	// ErrMissingACLPolicyName is returned when an policy set is called on
-	// an policy with an empty Name.
+	// ErrMissingACLPolicyName is returned when a policy set is called on a
+	// policy with an empty Name.
 	ErrMissingACLPolicyName = errors.New("Missing ACL Policy Name")
 
 	// ErrMissingQueryID is returned when a Query set is called on
