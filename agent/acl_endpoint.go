@@ -328,8 +328,8 @@ func (s *HTTPServer) ACLPolicyDelete(resp http.ResponseWriter, req *http.Request
 	}
 	s.parseToken(req, &args.Token)
 
-	var out string
-	if err := s.agent.RPC("ACL.PolicyDelete", args, &out); err != nil {
+	var ignored string
+	if err := s.agent.RPC("ACL.PolicyDelete", args, &ignored); err != nil {
 		return nil, err
 	}
 
@@ -497,8 +497,8 @@ func (s *HTTPServer) ACLTokenDelete(resp http.ResponseWriter, req *http.Request,
 	}
 	s.parseToken(req, &args.Token)
 
-	var out string
-	if err := s.agent.RPC("ACL.TokenDelete", args, &out); err != nil {
+	var ignored string
+	if err := s.agent.RPC("ACL.TokenDelete", args, &ignored); err != nil {
 		return nil, err
 	}
 	return true, nil
