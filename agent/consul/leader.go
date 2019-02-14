@@ -79,7 +79,7 @@ func (s *Server) monitorLeadership() {
 					defer leaderLoop.Done()
 					err := s.leaderLoop(ch)
 					if err != nil {
-						s.stepDown()
+						s.leadershipTransfer()
 					}
 				}(weAreLeaderCh)
 				s.logger.Printf("[INFO] consul: cluster leadership acquired")
@@ -129,23 +129,23 @@ func (s *Server) monitorLeadership() {
 	}
 }
 
-func (s *Server) stepDown() {
+func (s *Server) leadershipTransfer() {
 	confFuture := s.raft.GetConfiguration()
 	if err := confFuture.Error(); err != nil {
 		s.logger.Printf("[WARN] consul: failed to obtain raft configuration: %v", err)
 		return
 	}
-	address := raft.ServerAddress(s.config.RPCAddr.String())
 	for _, server := range confFuture.Configuration().Servers {
-		if address == server.Address {
-			demoteFuture := s.raft.DemoteVoter(server.ID, 0, 0)
-			if err := demoteFuture.Error(); err != nil {
-				s.logger.Printf("[WARN] consul: failed to demote its own vote in an attempt to step down: %v", err)
-				return
-			}
+		future := s.raft.LeadershipTransferToServer(server.ID, server.Address)
+		if err := future.Error(); err != nil {
+			s.logger.Printf("[DEBUG] consul: failed to transfer leadership to %s: %v", server.ID, err)
+		} else {
+			s.logger.Printf("[DEBUG] consul: successfully to transfered leadership to: %s", server.ID)
 			break
 		}
+
 	}
+	s.logger.Printf("[DEBUG] consul: failed to transfer leadership")
 }
 
 // leaderLoop runs as long as we are the leader to run various
