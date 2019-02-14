@@ -19,8 +19,8 @@ func TestForceLeaveCommand_noTabs(t *testing.T) {
 
 func TestForceLeaveCommand(t *testing.T) {
 	t.Parallel()
-	a1 := agent.NewTestAgent(t.Name(), ``)
-	a2 := agent.NewTestAgent(t.Name(), ``)
+	a1 := agent.NewTestAgent(t, t.Name(), ``)
+	a2 := agent.NewTestAgent(t, t.Name(), ``)
 	defer a1.Shutdown()
 	defer a2.Shutdown()
 

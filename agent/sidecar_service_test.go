@@ -321,7 +321,7 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 			}
 
 			require := require.New(t)
-			a := NewTestAgent("jones", hcl)
+			a := NewTestAgent(t, "jones", hcl)
 
 			if tt.preRegister != nil {
 				err := a.AddService(tt.preRegister.NodeService(), nil, false, "", ConfigSourceLocal)
