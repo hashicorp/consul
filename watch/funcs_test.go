@@ -31,7 +31,7 @@ func makeInvokeCh() chan error {
 
 func TestKeyWatch(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -86,7 +86,7 @@ func TestKeyWatch(t *testing.T) {
 
 func TestKeyWatch_With_PrefixDelete(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -141,7 +141,7 @@ func TestKeyWatch_With_PrefixDelete(t *testing.T) {
 
 func TestKeyPrefixWatch(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -195,7 +195,7 @@ func TestKeyPrefixWatch(t *testing.T) {
 
 func TestServicesWatch(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -250,7 +250,7 @@ func TestServicesWatch(t *testing.T) {
 
 func TestNodesWatch(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -302,7 +302,7 @@ func TestNodesWatch(t *testing.T) {
 
 func TestServiceWatch(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -455,7 +455,7 @@ func TestServiceMultipleTagsWatch(t *testing.T) {
 
 func TestChecksWatch_State(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -517,7 +517,7 @@ func TestChecksWatch_State(t *testing.T) {
 
 func TestChecksWatch_Service(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -584,7 +584,7 @@ func TestChecksWatch_Service(t *testing.T) {
 
 func TestEventWatch(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -637,7 +637,7 @@ func TestEventWatch(t *testing.T) {
 func TestConnectRootsWatch(t *testing.T) {
 	t.Parallel()
 	// NewTestAgent will bootstrap a new CA
-	a := agent.NewTestAgent(t.Name(), "")
+	a := agent.NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -691,7 +691,7 @@ func TestConnectRootsWatch(t *testing.T) {
 func TestConnectLeafWatch(t *testing.T) {
 	t.Parallel()
 	// NewTestAgent will bootstrap a new CA
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -762,7 +762,7 @@ func TestConnectLeafWatch(t *testing.T) {
 
 func TestConnectProxyConfigWatch(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), `
+	a := agent.NewTestAgent(t, t.Name(), `
 	connect {
 		enabled = true
 		proxy {
@@ -834,7 +834,7 @@ func TestConnectProxyConfigWatch(t *testing.T) {
 
 func TestAgentServiceWatch(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 

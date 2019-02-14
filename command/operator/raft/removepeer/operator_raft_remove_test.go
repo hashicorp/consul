@@ -17,7 +17,7 @@ func TestOperatorRaftRemovePeerCommand_noTabs(t *testing.T) {
 
 func TestOperatorRaftRemovePeerCommand(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 
 	t.Run("Test the remove-peer subcommand directly", func(t *testing.T) {

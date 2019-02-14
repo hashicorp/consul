@@ -77,7 +77,7 @@ func TestKVPutCommand_Validation(t *testing.T) {
 
 func TestKVPutCommand(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -106,7 +106,7 @@ func TestKVPutCommand(t *testing.T) {
 
 func TestKVPutCommand_EmptyDataQuoted(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -135,7 +135,7 @@ func TestKVPutCommand_EmptyDataQuoted(t *testing.T) {
 
 func TestKVPutCommand_Base64(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -172,7 +172,7 @@ func TestKVPutCommand_Base64(t *testing.T) {
 
 func TestKVPutCommand_File(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -227,7 +227,7 @@ func TestKVPutCommand_FileNoExist(t *testing.T) {
 
 func TestKVPutCommand_Stdin(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -264,7 +264,7 @@ func TestKVPutCommand_Stdin(t *testing.T) {
 
 func TestKVPutCommand_NegativeVal(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -293,7 +293,7 @@ func TestKVPutCommand_NegativeVal(t *testing.T) {
 
 func TestKVPutCommand_Flags(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -323,7 +323,7 @@ func TestKVPutCommand_Flags(t *testing.T) {
 
 func TestKVPutCommand_CAS(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 

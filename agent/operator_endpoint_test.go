@@ -18,7 +18,7 @@ import (
 
 func TestOperator_RaftConfiguration(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	body := bytes.NewBuffer(nil)
@@ -45,7 +45,7 @@ func TestOperator_RaftConfiguration(t *testing.T) {
 func TestOperator_RaftPeer(t *testing.T) {
 	t.Parallel()
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), "")
+		a := NewTestAgent(t, t.Name(), "")
 		defer a.Shutdown()
 
 		body := bytes.NewBuffer(nil)
@@ -61,7 +61,7 @@ func TestOperator_RaftPeer(t *testing.T) {
 	})
 
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), "")
+		a := NewTestAgent(t, t.Name(), "")
 		defer a.Shutdown()
 
 		body := bytes.NewBuffer(nil)
@@ -81,7 +81,7 @@ func TestOperator_KeyringInstall(t *testing.T) {
 	t.Parallel()
 	oldKey := "H3/9gBxcKKRf45CaI2DlRg=="
 	newKey := "z90lFx3sZZLtTOkutXcwYg=="
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		encrypt = "`+oldKey+`"
 	`)
 	defer a.Shutdown()
@@ -116,7 +116,7 @@ func TestOperator_KeyringInstall(t *testing.T) {
 func TestOperator_KeyringList(t *testing.T) {
 	t.Parallel()
 	key := "H3/9gBxcKKRf45CaI2DlRg=="
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		encrypt = "`+key+`"
 	`)
 	defer a.Shutdown()
@@ -165,7 +165,7 @@ func TestOperator_KeyringRemove(t *testing.T) {
 	t.Parallel()
 	key := "H3/9gBxcKKRf45CaI2DlRg=="
 	tempKey := "z90lFx3sZZLtTOkutXcwYg=="
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		encrypt = "`+key+`"
 	`)
 	defer a.Shutdown()
@@ -223,7 +223,7 @@ func TestOperator_KeyringUse(t *testing.T) {
 	t.Parallel()
 	oldKey := "H3/9gBxcKKRf45CaI2DlRg=="
 	newKey := "z90lFx3sZZLtTOkutXcwYg=="
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		encrypt = "`+oldKey+`"
 	`)
 	defer a.Shutdown()
@@ -266,7 +266,7 @@ func TestOperator_KeyringUse(t *testing.T) {
 func TestOperator_Keyring_InvalidRelayFactor(t *testing.T) {
 	t.Parallel()
 	key := "H3/9gBxcKKRf45CaI2DlRg=="
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		encrypt = "`+key+`"
 	`)
 	defer a.Shutdown()
@@ -291,7 +291,7 @@ func TestOperator_Keyring_InvalidRelayFactor(t *testing.T) {
 
 func TestOperator_AutopilotGetConfiguration(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -316,7 +316,7 @@ func TestOperator_AutopilotGetConfiguration(t *testing.T) {
 
 func TestOperator_AutopilotSetConfiguration(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	body := bytes.NewBuffer([]byte(`{"CleanupDeadServers": false}`))
@@ -344,7 +344,7 @@ func TestOperator_AutopilotSetConfiguration(t *testing.T) {
 
 func TestOperator_AutopilotCASConfiguration(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	body := bytes.NewBuffer([]byte(`{"CleanupDeadServers": false}`))
@@ -411,7 +411,7 @@ func TestOperator_AutopilotCASConfiguration(t *testing.T) {
 
 func TestOperator_ServerHealth(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		raft_protocol = 3
 	`)
 	defer a.Shutdown()
@@ -443,7 +443,7 @@ func TestOperator_ServerHealth(t *testing.T) {
 
 func TestOperator_ServerHealth_Unhealthy(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		raft_protocol = 3
 		autopilot {
 			last_contact_threshold = "-1s"

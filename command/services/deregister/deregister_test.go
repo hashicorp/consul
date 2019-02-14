@@ -64,7 +64,7 @@ func TestCommand_File_id(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -101,7 +101,7 @@ func TestCommand_File_nameOnly(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -138,7 +138,7 @@ func TestCommand_Flag(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 

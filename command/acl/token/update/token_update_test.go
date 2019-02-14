@@ -34,7 +34,7 @@ func TestTokenUpdateCommand(t *testing.T) {
 	testDir := testutil.TempDir(t, "acl")
 	defer os.RemoveAll(testDir)
 
-	a := agent.NewTestAgent(t.Name(), `
+	a := agent.NewTestAgent(t, t.Name(), `
 	primary_datacenter = "dc1"
 	acl {
 		enabled = true

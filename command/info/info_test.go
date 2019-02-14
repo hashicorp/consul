@@ -17,7 +17,7 @@ func TestInfoCommand_noTabs(t *testing.T) {
 
 func TestInfoCommand(t *testing.T) {
 	t.Parallel()
-	a1 := agent.NewTestAgent(t.Name(), ``)
+	a1 := agent.NewTestAgent(t, t.Name(), ``)
 	defer a1.Shutdown()
 
 	ui := cli.NewMockUi()

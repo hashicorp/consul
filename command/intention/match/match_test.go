@@ -68,7 +68,7 @@ func TestCommand_matchDst(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -111,7 +111,7 @@ func TestCommand_matchSource(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 

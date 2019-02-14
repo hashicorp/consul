@@ -134,7 +134,7 @@ func TestRemoteExecGetSpec_ACLDeny(t *testing.T) {
 }
 
 func testRemoteExecGetSpec(t *testing.T, hcl string, token string, shouldSucceed bool, dc string) {
-	a := NewTestAgent(t.Name(), hcl)
+	a := NewTestAgent(t, t.Name(), hcl)
 	defer a.Shutdown()
 	if dc != "" {
 		testrpc.WaitForLeader(t, a.RPC, dc)
@@ -206,7 +206,7 @@ func TestRemoteExecWrites_ACLDeny(t *testing.T) {
 }
 
 func testRemoteExecWrites(t *testing.T, hcl string, token string, shouldSucceed bool, dc string) {
-	a := NewTestAgent(t.Name(), hcl)
+	a := NewTestAgent(t, t.Name(), hcl)
 	defer a.Shutdown()
 	if dc != "" {
 		testrpc.WaitForLeader(t, a.RPC, dc)
@@ -268,7 +268,7 @@ func testRemoteExecWrites(t *testing.T, hcl string, token string, shouldSucceed 
 }
 
 func testHandleRemoteExec(t *testing.T, command string, expectedSubstring string, expectedReturnCode string) {
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	retry.Run(t, func(r *retry.R) {

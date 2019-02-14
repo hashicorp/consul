@@ -15,7 +15,7 @@ func TestRegisterMonitor_good(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
 
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -39,7 +39,7 @@ func TestRegisterMonitor_heartbeat(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
 
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 

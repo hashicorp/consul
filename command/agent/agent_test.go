@@ -83,7 +83,7 @@ func TestConfigFail(t *testing.T) {
 
 func TestRetryJoin(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), "")
+	a := agent.NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
