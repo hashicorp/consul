@@ -78,6 +78,8 @@ The table below shows this endpoint's support for
 - `SkipNodeUpdate` `(bool: false)` - Specifies whether to skip updating the
   node part of the registration. Useful in the case where only a health check
   or service entry on a node needs to be updated.
+  This parameter can be used when a register request is intended for updating a service and/or checks, but doesn't want to overwrite any node information if the node is already registered.
+If the node doesn't exist, it will still be created, but if the node exists, any node portion of the update will not apply.
 
 It is important to note that `Check` does not have to be provided with `Service`
 and vice versa. A catalog entry can have either, neither, or both.
