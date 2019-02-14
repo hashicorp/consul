@@ -61,12 +61,14 @@ main label a[rel*='help'],
 td:first-child em,
 %pill,
 %form-element > strong,
-%healthchecked-resource strong {
+%healthchecked-resource strong,
+%app-view h1 em {
   font-weight: $typo-weight-normal;
 }
 %form-element > em,
 td:first-child em,
-%healthchecked-resource header em {
+%healthchecked-resource header em,
+%app-view h1 em {
   font-style: normal;
 }
 %footer > * {
@@ -76,7 +78,8 @@ h1 {
   font-size: $typo-header-100;
 }
 h2,
-%header-drop-nav .is-active {
+%header-drop-nav .is-active,
+%app-view h1 em {
   font-size: $typo-size-500;
 }
 body,
