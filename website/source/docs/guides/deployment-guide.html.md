@@ -5,7 +5,8 @@ sidebar_current: "docs-guides-deployment-guide"
 description: |-
   This deployment guide covers the steps required to install and
   configure a single HashiCorp Consul cluster as defined in the
-  Consul Reference Architecture
+  Consul Reference Architecture.
+ea_version: 1.3
 ---
 
 # Consul Deployment Guide

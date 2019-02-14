@@ -234,6 +234,10 @@ The table below shows this endpoint's support for
     key/value pairs that will be used for filtering the query results to nodes
     with the given metadata values present.
 
+  - `ServiceMeta` `(map<string|string>: nil)` - Specifies a list of user-defined
+    key/value pairs that will be used for filtering the query results to services
+    with the given metadata values present.
+
   - `Connect` `(bool: false)` - If true, only [Connect-capable](/docs/connect/index.html) services
     for the specified service name will be returned. This includes both
 	natively integrated services and proxies. For proxies, the proxy name
@@ -263,7 +267,8 @@ The table below shows this endpoint's support for
     "Near": "node1",
     "OnlyPassing": false,
     "Tags": ["primary", "!experimental"],
-    "NodeMeta": {"instance_type": "m3.large"}
+    "NodeMeta": {"instance_type": "m3.large"},
+    "ServiceMeta": {"environment": "production"}
   },
   "DNS": {
     "TTL": "10s"
@@ -336,7 +341,8 @@ $ curl \
       },
       "OnlyPassing": false,
       "Tags": ["primary", "!experimental"],
-      "NodeMeta": {"instance_type": "m3.large"}
+      "NodeMeta": {"instance_type": "m3.large"},
+      "ServiceMeta": {"environment": "production"}
     },
     "DNS": {
       "TTL": "10s"

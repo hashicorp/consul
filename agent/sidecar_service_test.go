@@ -77,6 +77,8 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 				ID:   "web1",
 				Name: "web",
 				Port: 1111,
+				Tags: []string{"baz"},
+				Meta: map[string]string{"foo": "baz"},
 				Connect: &structs.ServiceConnect{
 					SidecarService: &structs.ServiceDefinition{
 						Name:    "motorbike1",
@@ -166,6 +168,45 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 			},
 			token:   "foo",
 			wantErr: "auto-assignment disabled in config",
+		},
+		{
+			name: "inherit tags and meta",
+			sd: &structs.ServiceDefinition{
+				ID:   "web1",
+				Name: "web",
+				Port: 1111,
+				Tags: []string{"foo"},
+				Meta: map[string]string{"foo": "bar"},
+				Connect: &structs.ServiceConnect{
+					SidecarService: &structs.ServiceDefinition{},
+				},
+			},
+			wantNS: &structs.NodeService{
+				Kind:                       structs.ServiceKindConnectProxy,
+				ID:                         "web1-sidecar-proxy",
+				Service:                    "web-sidecar-proxy",
+				Port:                       2222,
+				Tags:                       []string{"foo"},
+				Meta:                       map[string]string{"foo": "bar"},
+				LocallyRegisteredAsSidecar: true,
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "web",
+					DestinationServiceID:   "web1",
+					LocalServiceAddress:    "127.0.0.1",
+					LocalServicePort:       1111,
+				},
+			},
+			wantChecks: []*structs.CheckType{
+				&structs.CheckType{
+					Name:     "Connect Sidecar Listening",
+					TCP:      "127.0.0.1:2222",
+					Interval: 10 * time.Second,
+				},
+				&structs.CheckType{
+					Name:         "Connect Sidecar Aliasing web1",
+					AliasService: "web1",
+				},
+			},
 		},
 		{
 			name: "invalid check type",

@@ -164,6 +164,17 @@ type ACLToken struct {
 	RaftIndex
 }
 
+func (t *ACLToken) Clone() *ACLToken {
+	t2 := *t
+	t2.Policies = nil
+
+	if len(t.Policies) > 0 {
+		t2.Policies = make([]ACLTokenPolicyLink, len(t.Policies))
+		copy(t2.Policies, t.Policies)
+	}
+	return &t2
+}
+
 func (t *ACLToken) ID() string {
 	return t.AccessorID
 }
@@ -328,6 +339,16 @@ type ACLPolicy struct {
 
 	// Embedded Raft Metadata
 	RaftIndex `hash:"ignore"`
+}
+
+func (p *ACLPolicy) Clone() *ACLPolicy {
+	p2 := *p
+	p2.Datacenters = nil
+	if len(p.Datacenters) > 0 {
+		p2.Datacenters = make([]string, len(p.Datacenters))
+		copy(p2.Datacenters, p.Datacenters)
+	}
+	return &p2
 }
 
 type ACLPolicyListStub struct {

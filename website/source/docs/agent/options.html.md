@@ -551,9 +551,9 @@ default will automatically work with some tooling.
      ACLs are a blacklist: any operation not specifically prohibited is allowed. In "deny" mode, ACLs are
      a whitelist: any operation not specifically allowed is blocked. *Note*: this will not take effect until
      you've enabled ACLs.
-     
-     * <a name="acl_enable_key_list"></a><a href="#acl_enable_key_list">`enable_key_list`</a> - Either "enabled" or "disabled", defaults to "disabled". When enabled, the `list` permission will be required on the prefix being recursively read from the KV store. Regardless of being enabled, the full set of KV entries under the prefix will be filtered to remove any entries that the request's ACL token does not grant at least read persmissions. This option is only available in Consul 1.0 and newer. 
- 
+
+     * <a name="acl_enable_key_list"></a><a href="#acl_enable_key_list">`enable_key_list`</a> - Either "enabled" or "disabled", defaults to "disabled". When enabled, the `list` permission will be required on the prefix being recursively read from the KV store. Regardless of being enabled, the full set of KV entries under the prefix will be filtered to remove any entries that the request's ACL token does not grant at least read persmissions. This option is only available in Consul 1.0 and newer.
+
      * <a name=`acl_enable_token_replication"></a><a href="#acl_enable_token_replication">`enable_token_replication`</a> - By
      default secondary Consul datacenters will perform replication of only ACL policies. Setting this configuration will
      also enable ACL token replication.
@@ -1053,10 +1053,10 @@ default will automatically work with some tooling.
     * <a name="soa"></a><a href="#soa">`soa`</a> Allow to tune the setting set up in SOA.
       Non specified values fallback to their default values, all values are integers and
       expressed as seconds.
-
+      <br/><br/>
       The following settings are available:
 
-      * <a name="soa_expire"></a><a href="#soa_expire">expire</a> -
+      * <a name="soa_expire"></a><a href="#soa_expire">`expire`</a> -
         Configure SOA Expire duration in seconds, default value is 86400, ie: 24 hours.
 
       * <a name="soa_min_ttl"></a><a href="#soa_min_ttl">`min_ttl`</a> -
@@ -1065,10 +1065,10 @@ default will automatically work with some tooling.
         negative cache TTL in most implementations. Default value is 0, ie: no minimum
         delay or negative TTL.
 
-      * <a name="soa_refresh"></a><a href="#soa_refresh">refresh</a> -
+      * <a name="soa_refresh"></a><a href="#soa_refresh">`refresh`</a> -
         Configure SOA Refresh duration in seconds, default value is `3600`, ie: 1 hour.
 
-      * <a name="soa_retry"></a><a href="#soa_retry">retry</a> -
+      * <a name="soa_retry"></a><a href="#soa_retry">`retry`</a> -
         Configures the Retry duration expressed in seconds, default value is
         600, ie: 10 minutes.
 

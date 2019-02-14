@@ -1512,11 +1512,16 @@ func TestPreparedQuery_Execute(t *testing.T) {
 						Service: "foo",
 						Port:    8000,
 						Tags:    []string{dc, fmt.Sprintf("tag%d", i+1)},
+						Meta: map[string]string{
+							"svc-group": fmt.Sprintf("%d", i%2),
+							"foo":       "true",
+						},
 					},
 					WriteRequest: structs.WriteRequest{Token: "root"},
 				}
 				if i == 0 {
 					req.NodeMeta["unique"] = "true"
+					req.Service.Meta["unique"] = "true"
 				}
 
 				var codec rpc.ClientCodec
@@ -1617,7 +1622,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	}
 
 	// Run various service queries with node metadata filters.
-	if false {
+	{
 		cases := []struct {
 			filters  map[string]string
 			numNodes int
@@ -1678,6 +1683,67 @@ func TestPreparedQuery_Execute(t *testing.T) {
 				if !structs.SatisfiesMetaFilters(node.Node.Meta, tc.filters) {
 					t.Fatalf("bad: %v", node.Node.Meta)
 				}
+			}
+		}
+	}
+
+	// Run various service queries with service metadata filters
+	{
+		cases := []struct {
+			filters  map[string]string
+			numNodes int
+		}{
+			{
+				filters:  map[string]string{},
+				numNodes: 10,
+			},
+			{
+				filters:  map[string]string{"foo": "true"},
+				numNodes: 10,
+			},
+			{
+				filters:  map[string]string{"svc-group": "0"},
+				numNodes: 5,
+			},
+			{
+				filters:  map[string]string{"svc-group": "1"},
+				numNodes: 5,
+			},
+			{
+				filters:  map[string]string{"svc-group": "0", "unique": "true"},
+				numNodes: 1,
+			},
+		}
+
+		for _, tc := range cases {
+			svcMetaQuery := structs.PreparedQueryRequest{
+				Datacenter: "dc1",
+				Op:         structs.PreparedQueryCreate,
+				Query: &structs.PreparedQuery{
+					Service: structs.ServiceQuery{
+						Service:     "foo",
+						ServiceMeta: tc.filters,
+					},
+					DNS: structs.QueryDNSOptions{
+						TTL: "10s",
+					},
+				},
+				WriteRequest: structs.WriteRequest{Token: "root"},
+			}
+
+			require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &svcMetaQuery, &svcMetaQuery.Query.ID))
+
+			req := structs.PreparedQueryExecuteRequest{
+				Datacenter:    "dc1",
+				QueryIDOrName: svcMetaQuery.Query.ID,
+				QueryOptions:  structs.QueryOptions{Token: execToken},
+			}
+
+			var reply structs.PreparedQueryExecuteResponse
+			require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
+			require.Len(t, reply.Nodes, tc.numNodes)
+			for _, node := range reply.Nodes {
+				require.True(t, structs.SatisfiesMetaFilters(node.Service.Meta, tc.filters))
 			}
 		}
 	}

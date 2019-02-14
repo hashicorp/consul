@@ -974,7 +974,7 @@ function shasum_directory {
       return 1
    fi
 
-   local ui_version=$(sed -n ${SED_EXT} -e 's/.*CONSUL_VERSION%22%3A%22([^%]*)%22%2C%22.*/\1/p' < "$1") || return 1
+   local ui_version="$(grep '<!-- CONSUL_VERSION: .* -->$' "$1" | sed 's/^<!-- CONSUL_VERSION: \(.*\) -->$/\1/')" || return 1
    echo "$ui_version"
    return 0
  }

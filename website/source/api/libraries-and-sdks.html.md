@@ -79,4 +79,7 @@ the community.
   <li>
     <a href="https://github.com/oatpp/oatpp-consul">oatpp-consul</a> - C++ Consul integration for <a href="https://oatpp.io/">oatpp</a> applications
   </li>
+  <li>
+    <a href="https://github.com/marlonmleite/consul-env-webpack-plugin">consul-env-webpack-plugin</a> - Webpack plugin for converting KV store JSON output to environments variables.
+  </li>
 </ul>

@@ -2169,6 +2169,84 @@ func TestAgent_loadServices_sidecarSeparateToken(t *testing.T) {
 	}
 }
 
+func TestAgent_loadServices_sidecarInheritMeta(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t.Name(), `
+		service = {
+			id = "rabbitmq"
+			name = "rabbitmq"
+			port = 5672
+			tags = ["a", "b"],
+			meta = {
+				environment = "prod"
+			}
+			connect = {
+				sidecar_service {
+
+				}
+			}
+		}
+	`)
+	defer a.Shutdown()
+
+	services := a.State.Services()
+
+	svc, ok := services["rabbitmq"]
+	require.True(t, ok, "missing service")
+	require.Len(t, svc.Tags, 2)
+	require.Len(t, svc.Meta, 1)
+
+	sidecar, ok := services["rabbitmq-sidecar-proxy"]
+	require.True(t, ok, "missing sidecar service")
+	require.ElementsMatch(t, svc.Tags, sidecar.Tags)
+	require.Len(t, sidecar.Meta, 1)
+	meta, ok := sidecar.Meta["environment"]
+	require.True(t, ok, "missing sidecar service meta")
+	require.Equal(t, "prod", meta)
+}
+
+func TestAgent_loadServices_sidecarOverrideMeta(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t.Name(), `
+		service = {
+			id = "rabbitmq"
+			name = "rabbitmq"
+			port = 5672
+			tags = ["a", "b"],
+			meta = {
+				environment = "prod"
+			}
+			connect = {
+				sidecar_service {
+					tags = ["foo"],
+					meta = {
+						environment = "qa"
+					}
+				}
+			}
+		}
+	`)
+	defer a.Shutdown()
+
+	services := a.State.Services()
+
+	svc, ok := services["rabbitmq"]
+	require.True(t, ok, "missing service")
+	require.Len(t, svc.Tags, 2)
+	require.Len(t, svc.Meta, 1)
+
+	sidecar, ok := services["rabbitmq-sidecar-proxy"]
+	require.True(t, ok, "missing sidecar service")
+	require.Len(t, sidecar.Tags, 1)
+	require.Equal(t, "foo", sidecar.Tags[0])
+	require.Len(t, sidecar.Meta, 1)
+	meta, ok := sidecar.Meta["environment"]
+	require.True(t, ok, "missing sidecar service meta")
+	require.Equal(t, "qa", meta)
+}
+
 func TestAgent_unloadServices(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")

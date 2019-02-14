@@ -4,7 +4,7 @@ import { inject as service } from '@ember/service';
 import qsaFactory from 'consul-ui/utils/dom/qsa-factory';
 const $$ = qsaFactory();
 
-import SlotsMixin from 'ember-block-slots';
+import SlotsMixin from 'block-slots';
 const STATE_READY = 'ready';
 const STATE_SUCCESS = 'success';
 const STATE_ERROR = 'error';

@@ -49,6 +49,21 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 		}
 	}
 
+	// Copy the service metadata from the original service if no other meta was provided
+	if len(sidecar.Meta) == 0 && len(ns.Meta) > 0 {
+		if sidecar.Meta == nil {
+			sidecar.Meta = make(map[string]string)
+		}
+		for k, v := range ns.Meta {
+			sidecar.Meta[k] = v
+		}
+	}
+
+	// Copy the tags from the original service if no other tags were specified
+	if len(sidecar.Tags) == 0 && len(ns.Tags) > 0 {
+		sidecar.Tags = append(sidecar.Tags, ns.Tags...)
+	}
+
 	// Flag this as a sidecar - this is not persisted in catalog but only needed
 	// in local agent state to disambiguate lineage when deregistering the parent
 	// service later.
