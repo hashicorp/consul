@@ -359,7 +359,7 @@ func TestServiceWatch(t *testing.T) {
 
 func TestServiceMultipleTagsWatch(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
