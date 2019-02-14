@@ -93,7 +93,7 @@ type TestAgent struct {
 }
 
 // NewTestAgent returns a started agent with the given name and
-// configuration. It panics if the agent could not be started. The
+// configuration. It fails the test if the Agent could not be started. The
 // caller should call Shutdown() to stop the agent and remove temporary
 // directories.
 func NewTestAgent(t *testing.T, name string, hcl string) *TestAgent {
@@ -102,7 +102,7 @@ func NewTestAgent(t *testing.T, name string, hcl string) *TestAgent {
 	return a
 }
 
-// Start starts a test agent. It panics if the agent could not be started.
+// Start starts a test agent. It fails the test if the agent could not be started.
 func (a *TestAgent) Start(t *testing.T) *TestAgent {
 	require := require.New(t)
 	require.Nil(a.Agent, "TestAgent already started")
