@@ -134,7 +134,10 @@ func serviceWatch(params map[string]interface{}) (WatcherFunc, error) {
 		return nil, err
 	}
 
-	var service, tag string
+	var (
+		service, tag string
+		tags         []string
+	)
 	if err := assignValue(params, "service", &service); err != nil {
 		return nil, err
 	}
@@ -146,6 +149,18 @@ func serviceWatch(params map[string]interface{}) (WatcherFunc, error) {
 		return nil, err
 	}
 
+	if err := assignValueStringSlice(params, "tags", &tags); err != nil {
+		return nil, err
+	}
+
+	if tag != "" {
+		if tags == nil {
+			tags = []string{tag}
+		} else {
+			tags = append(tags, tag)
+		}
+	}
+
 	passingOnly := false
 	if err := assignValueBool(params, "passingonly", &passingOnly); err != nil {
 		return nil, err
@@ -155,7 +170,7 @@ func serviceWatch(params map[string]interface{}) (WatcherFunc, error) {
 		health := p.client.Health()
 		opts := makeQueryOptionsWithContext(p, stale)
 		defer p.cancelFunc()
-		nodes, meta, err := health.Service(service, tag, passingOnly, &opts)
+		nodes, meta, err := health.ServiceMultipleTags(service, tags, passingOnly, &opts)
 		if err != nil {
 			return nil, nil, err
 		}
