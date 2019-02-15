@@ -74,11 +74,17 @@ test('cache creates the default EventSource and keeps it open when there is a cu
   const cache = getCache(obj);
   const promisedEventSource = cache(cb, {
     key: 'key',
+    settings: {
+      enabled: true,
+    },
   });
   assert.ok(source.calledOnce, 'promisifying source called once');
   assert.ok(promisedEventSource instanceof Promise, 'source returns a Promise');
   const retrievedEventSource = cache(cb, {
     key: 'key',
+    settings: {
+      enabled: true,
+    },
   });
   assert.deepEqual(promisedEventSource, retrievedEventSource);
   assert.ok(source.calledTwice, 'promisifying source called once');
@@ -100,6 +106,9 @@ test('cache creates the default EventSource and keeps it open when there is a cu
   const cache = getCache(obj);
   const promisedEventSource = cache(cb, {
     key: 0,
+    settings: {
+      enabled: true,
+    },
   });
   assert.ok(source.calledOnce, 'promisifying source called once');
   assert.ok(cb.calledOnce, 'callable event source callable called once');
