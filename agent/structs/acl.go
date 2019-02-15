@@ -116,8 +116,6 @@ type ACLIdentity interface {
 	IsExpired(asOf time.Time) bool
 }
 
-var _ ACLIdentity = (*ACLToken)(nil)
-
 type ACLTokenPolicyLink struct {
 	ID   string
 	Name string `hash:"ignore"`
