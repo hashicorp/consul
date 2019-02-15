@@ -29,10 +29,10 @@ type ACLToken struct {
 	Description    string
 	Policies       []*ACLTokenPolicyLink
 	Local          bool
-	ExpirationTTL  string    `json:",omitempty"`
-	ExpirationTime time.Time `json:",omitempty"`
-	CreateTime     time.Time `json:",omitempty"`
-	Hash           []byte    `json:",omitempty"`
+	ExpirationTTL  time.Duration `json:",omitempty"`
+	ExpirationTime time.Time     `json:",omitempty"`
+	CreateTime     time.Time     `json:",omitempty"`
+	Hash           []byte        `json:",omitempty"`
 
 	// DEPRECATED (ACL-Legacy-Compat)
 	// Rules will only be present for legacy tokens returned via the new APIs

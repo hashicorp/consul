@@ -27,8 +27,9 @@ func TestACLTokenReap_Primary_Global(t *testing.T) {
 	defer codec.Close()
 
 	clock := newStoppedClock(time.Now())
-	acl := s1.GetEndpoint("ACL").(*ACL)
-	acl.clock = clock
+	s1.clock = clock
+
+	acl := ACL{s1}
 
 	masterTokenAccessorID, err := retrieveTestTokenAccessorForSecret(codec, "root", "dc1", "root")
 	require.NoError(t, err)

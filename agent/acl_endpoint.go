@@ -268,36 +268,32 @@ func (s *HTTPServer) ACLPolicyCreate(resp http.ResponseWriter, req *http.Request
 	return s.ACLPolicyWrite(resp, req, "")
 }
 
-// fixCreateTimeAndHash is a customization of fixTimeAndHashFields for Policies.
-func fixCreateTimeAndHash(raw interface{}) error {
-	return fixTimeAndHashFields(raw, false)
-}
-
-// fixExpirationTimeCreateTimeAndHash is a customization of fixTimeAndHashFields for Tokens.
-func fixExpirationTimeCreateTimeAndHash(raw interface{}) error {
-	return fixTimeAndHashFields(raw, true)
-}
-
-// fixTimeAndHashFields is used to help in decoding the ExpirationTime,
-// CreateTime, and Hash attributes from the ACL Token/Policy create/update
-// requests. It is needed to help mapstructure decode things properly when
-// decodeBody is used. The ExpirationTime field is only fixed if
-// fixExpirationTime=true.
-func fixTimeAndHashFields(raw interface{}, fixExpirationTime bool) error {
+// fixTimeAndHashFields is used to help in decoding the ExpirationTTL, ExpirationTime, CreateTime, and Hash
+// attributes from the ACL Token/Policy create/update requests. It is needed
+// to help mapstructure decode things properly when decodeBody is used.
+func fixTimeAndHashFields(raw interface{}) error {
 	rawMap, ok := raw.(map[string]interface{})
 	if !ok {
 		return nil
 	}
 
-	if fixExpirationTime {
-		if val, ok := rawMap["ExpirationTime"]; ok {
-			if sval, ok := val.(string); ok {
-				t, err := time.Parse(time.RFC3339, sval)
-				if err != nil {
-					return err
-				}
-				rawMap["ExpirationTime"] = t
+	if val, ok := rawMap["ExpirationTTL"]; ok {
+		if sval, ok := val.(string); ok {
+			d, err := time.ParseDuration(sval)
+			if err != nil {
+				return err
 			}
+			rawMap["ExpirationTTL"] = d
+		}
+	}
+
+	if val, ok := rawMap["ExpirationTime"]; ok {
+		if sval, ok := val.(string); ok {
+			t, err := time.Parse(time.RFC3339, sval)
+			if err != nil {
+				return err
+			}
+			rawMap["ExpirationTime"] = t
 		}
 	}
 
@@ -325,7 +321,7 @@ func (s *HTTPServer) ACLPolicyWrite(resp http.ResponseWriter, req *http.Request,
 	}
 	s.parseToken(req, &args.Token)
 
-	if err := decodeBody(req, &args.Policy, fixCreateTimeAndHash); err != nil {
+	if err := decodeBody(req, &args.Policy, fixTimeAndHashFields); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Policy decoding failed: %v", err)}
 	}
 
@@ -496,7 +492,7 @@ func (s *HTTPServer) ACLTokenSet(resp http.ResponseWriter, req *http.Request, to
 	}
 	s.parseToken(req, &args.Token)
 
-	if err := decodeBody(req, &args.ACLToken, fixExpirationTimeCreateTimeAndHash); err != nil {
+	if err := decodeBody(req, &args.ACLToken, fixTimeAndHashFields); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Token decoding failed: %v", err)}
 	}
 
@@ -537,7 +533,7 @@ func (s *HTTPServer) ACLTokenClone(resp http.ResponseWriter, req *http.Request, 
 		Datacenter: s.agent.config.Datacenter,
 	}
 
-	if err := decodeBody(req, &args.ACLToken, fixExpirationTimeCreateTimeAndHash); err != nil && err.Error() != "EOF" {
+	if err := decodeBody(req, &args.ACLToken, fixTimeAndHashFields); err != nil && err.Error() != "EOF" {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Token decoding failed: %v", err)}
 	}
 	s.parseToken(req, &args.Token)

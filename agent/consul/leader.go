@@ -244,8 +244,6 @@ func (s *Server) establishLeadership() error {
 		return err
 	}
 
-	s.startACLTokenReaping()
-
 	// Hint the tombstone expiration timer. When we freshly establish leadership
 	// we become the authoritative timer, and so we need to start the clock
 	// on any pending GC events.
@@ -556,6 +554,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 				s.logger.Printf("[INFO] consul: Created ACL anonymous token from configuration")
 			}
 		}
+		// launch the upgrade go routine to generate accessors for everything
 		s.startACLUpgrade()
 	} else {
 		if s.UseLegacyACLs() && !upgrade {
@@ -572,7 +571,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 		s.startACLReplication()
 	}
 
-	// launch the upgrade go routine to generate accessors for everything
+	s.startACLTokenReaping()
 
 	return nil
 }

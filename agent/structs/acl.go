@@ -162,7 +162,7 @@ type ACLToken struct {
 	// field before being persisted to the state store or raft log.
 	//
 	// This is a string version of a time.Duration like "2m".
-	ExpirationTTL string `json:",omitempty"`
+	ExpirationTTL time.Duration `json:",omitempty"`
 
 	// The time when this token was created
 	CreateTime time.Time `json:",omitempty"`
@@ -216,7 +216,7 @@ func (t *ACLToken) UsesNonLegacyFields() bool {
 	return len(t.Policies) > 0 ||
 		t.Type == "" ||
 		!t.ExpirationTime.IsZero() ||
-		t.ExpirationTTL != ""
+		t.ExpirationTTL != 0
 }
 
 func (t *ACLToken) EmbeddedPolicy() *ACLPolicy {
@@ -257,6 +257,14 @@ func (t *ACLToken) SetHash(force bool) []byte {
 			panic(err)
 		}
 
+		// Any non-immutable "content" fields should be involved with the
+		// overall hash. The IDs are immutable which is why they aren't here.
+		// The raft indices are metadata similar to the hash which is why they
+		// aren't incorporated. CreateTime is similarly immutable
+		//
+		// The Hash is really only used for replication to determine if a token
+		// has changed and should be updated locally.
+
 		// Write all the user set fields
 		hash.Write([]byte(t.Description))
 		hash.Write([]byte(t.Type))
@@ -271,8 +279,6 @@ func (t *ACLToken) SetHash(force bool) []byte {
 		for _, link := range t.Policies {
 			hash.Write([]byte(link.ID))
 		}
-
-		// TODO(rb): put the expiration time here?
 
 		// Finalize the hash
 		hashVal := hash.Sum(nil)
@@ -415,6 +421,14 @@ func (p *ACLPolicy) SetHash(force bool) []byte {
 		if err != nil {
 			panic(err)
 		}
+
+		// Any non-immutable "content" fields should be involved with the
+		// overall hash. The ID is immutable which is why it isn't here.  The
+		// raft indices are metadata similar to the hash which is why they
+		// aren't incorporated. CreateTime is similarly immutable
+		//
+		// The Hash is really only used for replication to determine if a token
+		// has changed and should be updated locally.
 
 		// Write all the user set fields
 		hash.Write([]byte(p.Name))

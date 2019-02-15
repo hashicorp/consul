@@ -1,7 +1,7 @@
 package consul
 
 func init() {
-	registerEndpoint(func(s *Server) interface{} { return &ACL{srv: s} })
+	registerEndpoint(func(s *Server) interface{} { return &ACL{s} })
 	registerEndpoint(func(s *Server) interface{} { return &Catalog{s} })
 	registerEndpoint(func(s *Server) interface{} { return NewCoordinate(s) })
 	registerEndpoint(func(s *Server) interface{} { return &ConnectCA{srv: s} })

@@ -242,9 +242,13 @@ type Server struct {
 	// for the KV tombstones
 	tombstoneGC *state.TombstoneGC
 
-	// endpointMap retains a reference to all registered rpc endpoint handlers
-	// for use in tests where the RPC interface is insufficient. DO NOT USE outside of tests.
-	endpointMap map[string]interface{}
+	// clock is a way to control access to the current time. This is mainly
+	// here for use select tests. Not all time accesses go through this yet, so
+	// use it from tests with care.
+	//
+	// This clock should only really be used for correctness-related operations
+	// and not for diagnostic metrics timing.
+	clock clock
 
 	// aclReplicationStatus (and its associated lock) provide information
 	// about the health of the ACL replication goroutine.
@@ -667,6 +671,14 @@ func (s *Server) setupRaft() error {
 	return nil
 }
 
+// currentTime is a proxy for time.Now() that allows for tests to control the clock.
+func (s *Server) currentTime() time.Time {
+	if s.clock != nil {
+		return s.clock.Now()
+	}
+	return time.Now()
+}
+
 // endpointFactory is a function that returns an RPC endpoint bound to the given
 // server.
 type factory func(s *Server) interface{}
@@ -681,15 +693,8 @@ func registerEndpoint(fn factory) {
 
 // setupRPC is used to setup the RPC listener
 func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
-	s.endpointMap = make(map[string]interface{})
-
 	for _, fn := range endpoints {
-		endpoint := fn(s)
-		s.rpcServer.Register(endpoint)
-
-		// This is the same logic that net/rpc uses to get the name:
-		endpointName := reflect.Indirect(reflect.ValueOf(endpoint)).Type().Name()
-		s.endpointMap[endpointName] = endpoint
+		s.rpcServer.Register(fn(s))
 	}
 
 	ln, err := net.ListenTCP("tcp", s.config.RPCAddr)
@@ -1069,14 +1074,6 @@ func (s *Server) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 func (s *Server) RegisterEndpoint(name string, handler interface{}) error {
 	s.logger.Printf("[WARN] consul: endpoint injected; this should only be used for testing")
 	return s.rpcServer.RegisterName(name, handler)
-}
-
-// GetEndpoint returns a registered endpoint for testing.
-func (s *Server) GetEndpoint(name string) interface{} {
-	if s.endpointMap == nil {
-		return nil
-	}
-	return s.endpointMap[name]
 }
 
 // Stats is used to return statistics for debugging and insight

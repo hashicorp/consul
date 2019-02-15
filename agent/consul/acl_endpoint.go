@@ -39,21 +39,6 @@ const (
 // ACL endpoint is used to manipulate ACLs
 type ACL struct {
 	srv *Server
-
-	// clock is a way to control access to the current time. This is mainly
-	// here for use in tests. Not all time accesses go through this, so use it
-	// from tests with care.
-	//
-	// This clock should only really be used for correctness-related operations
-	// and not for diagnostic metrics timing.
-	clock clock
-}
-
-func (a *ACL) currentTime() time.Time {
-	if a.clock != nil {
-		return a.clock.Now()
-	}
-	return time.Now()
 }
 
 // fileBootstrapResetIndex retrieves the reset index specified by the adminstrator from
@@ -173,7 +158,7 @@ func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.AC
 					ID: structs.ACLPolicyGlobalManagementID,
 				},
 			},
-			CreateTime: a.currentTime(),
+			CreateTime: a.srv.currentTime(),
 			Local:      false,
 			// DEPRECATED (ACL-Legacy-Compat) - This is used so that the bootstrap token is still visible via the v1 acl APIs
 			Type: structs.ACLTokenTypeManagement,
@@ -243,7 +228,7 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 				index, token, err = state.ACLTokenGetBySecret(ws, args.TokenID)
 			}
 
-			if token != nil && token.IsExpired(a.currentTime()) {
+			if token != nil && token.IsExpired(a.srv.currentTime()) {
 				token = nil
 			}
 
@@ -282,7 +267,7 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 	_, token, err := a.srv.fsm.State().ACLTokenGetByAccessor(nil, args.ACLToken.AccessorID)
 	if err != nil {
 		return err
-	} else if token == nil || token.IsExpired(a.currentTime()) {
+	} else if token == nil || token.IsExpired(a.srv.currentTime()) {
 		return acl.ErrNotFound
 	} else if !a.srv.InACLDatacenter() && !token.Local {
 		// global token writes must be forwarded to the primary DC
@@ -368,23 +353,19 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 			return err
 		}
 
-		token.CreateTime = a.currentTime()
+		token.CreateTime = a.srv.currentTime()
 
 		// Ensure an ExpirationTTL is valid if provided.
-		if token.ExpirationTTL != "" {
+		if token.ExpirationTTL != 0 {
+			if token.ExpirationTTL < 0 {
+				return fmt.Errorf("Token Expiration TTL '%s' should be > 0", token.ExpirationTTL)
+			}
 			if !token.ExpirationTime.IsZero() {
 				return fmt.Errorf("Token Expiration TTL and Expiration Time cannot both be set")
 			}
-			ttl, err := time.ParseDuration(token.ExpirationTTL)
-			if err != nil {
-				return fmt.Errorf("Token Expiration TTL '%s' invalid: %v", token.ExpirationTTL, err)
-			}
-			if ttl <= 0 {
-				return fmt.Errorf("Token Expiration TTL '%s' should be > 0", token.ExpirationTTL)
-			}
 
-			token.ExpirationTime = token.CreateTime.Add(ttl)
-			token.ExpirationTTL = ""
+			token.ExpirationTime = token.CreateTime.Add(token.ExpirationTTL)
+			token.ExpirationTTL = 0
 		}
 
 		if !token.ExpirationTime.IsZero() {
@@ -424,7 +405,7 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 		if err != nil {
 			return fmt.Errorf("Failed to lookup the acl token %q: %v", token.AccessorID, err)
 		}
-		if existing == nil || existing.IsExpired(a.currentTime()) {
+		if existing == nil || existing.IsExpired(a.srv.currentTime()) {
 			return fmt.Errorf("Cannot find token %q", token.AccessorID)
 		}
 		if token.SecretID == "" {
@@ -438,12 +419,12 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 			return fmt.Errorf("cannot toggle local mode of %s", token.AccessorID)
 		}
 
-		if token.ExpirationTTL != "" || !token.ExpirationTime.Equal(existing.ExpirationTime) {
+		if token.ExpirationTTL != 0 || !token.ExpirationTime.Equal(existing.ExpirationTime) {
 			return fmt.Errorf("Cannot change expiration time of %s", token.AccessorID)
 		}
 
 		if upgrade {
-			token.CreateTime = a.currentTime()
+			token.CreateTime = a.srv.currentTime()
 		} else {
 			token.CreateTime = existing.CreateTime
 		}
@@ -619,7 +600,7 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 				return err
 			}
 
-			now := a.currentTime()
+			now := a.srv.currentTime()
 
 			stubs := make([]*structs.ACLTokenListStub, 0, len(tokens))
 			for _, token := range tokens {

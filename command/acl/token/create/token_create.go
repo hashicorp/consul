@@ -70,7 +70,7 @@ func (c *cmd) Run(args []string) int {
 		Local:       c.local,
 	}
 	if c.expirationTTL > 0 {
-		newToken.ExpirationTTL = c.expirationTTL.String()
+		newToken.ExpirationTTL = c.expirationTTL
 	}
 
 	for _, policyName := range c.policyNames {
