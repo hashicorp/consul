@@ -9,21 +9,19 @@ export default Service.extend({
     this._super(...arguments);
     const content = get(this, 'content');
     for (let prop in content) {
-      (prop => {
-        if (typeof content[prop] === 'function') {
-          if (this.shouldProxy(content, prop)) {
-            this[prop] = function() {
-              return this.execute(content, prop).then(method => {
-                return method.apply(this, arguments);
-              });
-            };
-          } else if (typeof this[prop] !== 'function') {
-            this[prop] = function() {
-              return content[prop](...arguments);
-            };
-          }
+      if (typeof content[prop] === 'function') {
+        if (this.shouldProxy(content, prop)) {
+          this[prop] = function() {
+            return this.execute(content, prop).then(method => {
+              return method.apply(this, arguments);
+            });
+          };
+        } else if (typeof this[prop] !== 'function') {
+          this[prop] = function() {
+            return content[prop](...arguments);
+          };
         }
-      })(prop);
+      }
     }
   },
 });
