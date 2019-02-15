@@ -44,7 +44,7 @@ const createProxy = function(repo, find, settings, cache, serialize = JSON.strin
         };
         // if we have a cursor (which means its at least the second call)
         // and we have a throttle setting, wait for so many ms
-        if (configuration.cursor !== 'undefined' && settings.throttle) {
+        if (typeof configuration.cursor !== 'undefined' && settings.throttle) {
           return throttle(settings.throttle).then(cb);
         }
         return cb();
