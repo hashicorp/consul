@@ -1,5 +1,5 @@
 * [Infoblox](https://www.infoblox.com) uses CoreDNS in its Active Trust Cloud SaaS service, as well as for Kubernetes cluster DNS.
-* [Sky Betting & Gaming](http://engineering.skybettingandgaming.com) uses CoreDNS for Kubernetes cluster DNS.
+* [Sky Betting & Gaming](https://engineering.skybettingandgaming.com) uses CoreDNS for Kubernetes cluster DNS.
 * [Kismia](https://kismia.com) uses CoreDNS for Kubernetes cluster DNS.
 * [Admiral](https://getadmiral.com) uses CoreDNS to handle geographic DNS requests for our public-facing microservices.
 * [Qunar](https://qunar.com) uses CoreDNS for service discovery of its GPU machine learning cloud with TensorFlow and Kubernetes.
@@ -10,7 +10,7 @@
 * [Serpro/estaleiro](estaleiro.serpro.gov.br) uses CoreDNS as Kubernetes' DNS Server, in production with tuned Kubernetes plugin options
 * [Lumo](https://thinklumo.com) uses CoreDNS as Kubernetes' DNS Server, in production and lab with default configuration
 * [Booming Games](https://booming-games.com) uses CoreDNS in multiple Kubernetes clusters, with Federation plugin. expect going to production soon.
-* [Sodimac](http://www.sodimac.cl) uses CoreDNS with Kubernetes in production with default configuration.
+* [Sodimac](https://www.sodimac.cl) uses CoreDNS with Kubernetes in production with default configuration.
 * [Bose](https://www.bose.com/) uses CoreDNS with Kubernetes in production on very large cluster (over 250 nodes)
 * [farmotive](https://farmotive.io) uses CoreDNS in Kubernetes using default configuration, in its Lab. Expect to be in production soon.
 * [Zalando SE](https://www.zalando.de) uses CoreDNS as Kubernetes' DNS Server, in production.
@@ -24,6 +24,6 @@
 * [Yandex Money](https://money.yandex.ru) uses CoreDNS in Lab and Production, using default configuration for Kubernetes.
 * [AdGuard](https://adguard.com/) uses CoreDNS in [AdGuard Home](https://github.com/AdguardTeam/AdGuardHome) and, therefore, in production public AdGuard DNS servers.
 * [Skyscanner](https://www.skyscanner.net) uses CoreDNS within Kubernetes in production with the configuration tuned to use the Autopath plugin.
-* [Zinza Technology](http://zinza.com.vn) uses CoreDNS within Kubernetes in production, with standard configuration.
-* [Hualala](http://www.hualala.com/home)  uses CoreDNS in Kubernetes using default configuration, in its Lab. Expected to be in production soon.
+* [Zinza Technology](https://zinza.com.vn) uses CoreDNS within Kubernetes in production, with standard configuration.
+* [Hualala](https://www.hualala.com/home)  uses CoreDNS in Kubernetes using default configuration, in its Lab. Expected to be in production soon.
 * [Hellofresh](https://www.hellofresh.com/) uses CoreDNS in multiple Kubernetes clusters, with Forward plugin.

@@ -15,7 +15,7 @@ can understand and reproduce the problematic behavior.
 The burden is on you to convince us that it is actually a bug in CoreDNS. This is easiest to do when
 you write clear, concise instructions so we can reproduce the behavior (even if it seems obvious).
 The more detailed and specific you are, the faster we will be able to help you. Check out [How to
-Report Bugs Effectively](http://www.chiark.greenend.org.uk/~sgtatham/bugs.html).
+Report Bugs Effectively](https://www.chiark.greenend.org.uk/~sgtatham/bugs.html).
 
 Please be kind. :smile: Remember that CoreDNS comes at no cost to you, and you're getting free help.
 

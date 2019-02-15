@@ -13,7 +13,7 @@ CoreDNS running the kubernetes plugin can be used as a replacement for kube-dns 
 cluster.  See the [deployment](https://github.com/coredns/deployment) repository for details on [how
 to deploy CoreDNS in Kubernetes](https://github.com/coredns/deployment/tree/master/kubernetes).
 
-[stubDomains and upstreamNameservers](http://blog.kubernetes.io/2017/04/configuring-private-dns-zones-upstream-nameservers-kubernetes.html)
+[stubDomains and upstreamNameservers](https://blog.kubernetes.io/2017/04/configuring-private-dns-zones-upstream-nameservers-kubernetes.html)
 are implemented via the *proxy* plugin and kubernetes *upstream*. See example below.
 
 This plugin can only be used once per Server Block.
@@ -58,7 +58,7 @@ kubernetes [ZONES...] {
    If this option is omitted all namespaces are exposed
 * `labels` **EXPRESSION** only exposes the records for Kubernetes objects that match this label selector.
    The label selector syntax is described in the
-   [Kubernetes User Guide - Labels](http://kubernetes.io/docs/user-guide/labels/). An example that
+   [Kubernetes User Guide - Labels](https://kubernetes.io/docs/user-guide/labels/). An example that
    only exposes objects labeled as "application=nginx" in the "staging" or "qa" environments, would
    use: `labels environment in (staging, qa),application=nginx`.
 * `pods` **POD-MODE** sets the mode for handling IP-based pod A records, e.g.
