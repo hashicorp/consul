@@ -29,7 +29,7 @@ export default Mixin.create(WithFiltering, {
       as: 'filter',
     },
   },
-  healthFilters: computed('items', function() {
+  healthFilters: computed('items.[]', function() {
     const items = get(this, 'items');
     const objs = ['', 'passing', 'warning', 'critical'].map(function(item) {
       const count = countStatus(items, item);
