@@ -13,7 +13,7 @@ import (
 
 func TestApex(t *testing.T) {
 	k := kubernetes.New([]string{"cluster.local."})
-	k.Namespaces = map[string]struct{}{"testns": struct{}{}}
+	k.Namespaces = map[string]struct{}{"testns": {}}
 	k.APIConn = &external{}
 
 	e := New()
