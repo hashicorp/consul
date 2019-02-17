@@ -142,6 +142,11 @@ func (s *Server) Listen() (net.Listener, error) {
 	return l, nil
 }
 
+// WrapListener Listen implements caddy.GracefulServer interface.
+func (s *Server) WrapListener(ln net.Listener) net.Listener {
+	return ln
+}
+
 // ListenPacket implements caddy.UDPServer interface.
 func (s *Server) ListenPacket() (net.PacketConn, error) {
 	p, err := listenPacket("udp", s.Addr[len(transport.DNS+"://"):])
