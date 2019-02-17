@@ -29,10 +29,12 @@ are used.
   used to extract the origin. **ORIGIN_TEMPLATE** will be used as a template for the origin. Strings
   like `{<number>}` are replaced with the respective matches in the file name, e.g. `{1}` is the
   first match, `{2}` is the second. The default is: `db\.(.*)  {1}` i.e. from a file with the
-  name `db.example.com`, the extracted origin will be `example.com`. **TIMEOUT** specifies how often
-  CoreDNS should scan the directory; the default is every 60 seconds. This value is in seconds.
-  The minimum value is 1 second.
-* `reload` interval to perform reload of zone if SOA version changes. Default is one minute.
+  name `db.example.com`, the extracted origin will be `example.com`.
+  **TIMEOUT** is deprecated and will be removed in a subsequent version. 
+  `reload` will be used, if not defined
+  (it specifies how often CoreDNS should scan the directory to watch for file removal and addition;
+  the default is every 60 seconds. This value is in seconds. The minimum value is 1 second.)
+* `reload` interval to perform reloads of zones if SOA version changes and zonefiles. Default is one minute.
   Value of `0` means to not scan for changes and reload. eg. `30s` checks zonefile every 30 seconds
   and reloads zone when serial changes.
 * `no_reload` deprecated. Sets reload to 0.
