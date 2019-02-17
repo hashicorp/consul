@@ -95,37 +95,6 @@ func TestSigningCname(t *testing.T) {
 	}
 }
 
-// Disabled for now, see #1211.
-func testZoneSigningDelegation(t *testing.T) {
-	d, rm1, rm2 := newDnssec(t, []string{"miek.nl."})
-	defer rm1()
-	defer rm2()
-
-	m := testDelegationMsg()
-	state := request.Request{Req: m, Zone: "miek.nl."}
-	m = d.Sign(state, time.Now().UTC(), server)
-	if !section(m.Ns, 1) {
-		t.Errorf("Authority section should have 1 RRSIG")
-		t.Logf("%v\n", m)
-	}
-
-	ds := 0
-	for i := range m.Ns {
-		if _, ok := m.Ns[i].(*dns.DS); ok {
-			ds++
-		}
-	}
-	if ds != 1 {
-		t.Errorf("Authority section should have 1 DS")
-		t.Logf("%v\n", m)
-
-	}
-	if !section(m.Extra, 0) {
-		t.Errorf("Answer section should have 0 RRSIGs")
-		t.Logf("%v\n", m)
-	}
-}
-
 func TestSigningDname(t *testing.T) {
 	d, rm1, rm2 := newDnssec(t, []string{"miek.nl."})
 	defer rm1()
