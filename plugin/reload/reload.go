@@ -2,6 +2,7 @@ package reload
 
 import (
 	"crypto/md5"
+	"sync"
 	"time"
 
 	"github.com/mholt/caddy"
@@ -15,9 +16,34 @@ const (
 )
 
 type reload struct {
-	interval time.Duration
-	usage    int
-	quit     chan bool
+	dur  time.Duration
+	u    int
+	mtx  sync.RWMutex
+	quit chan bool
+}
+
+func (r *reload) setUsage(u int) {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+	r.u = u
+}
+
+func (r *reload) usage() int {
+	r.mtx.RLock()
+	defer r.mtx.RUnlock()
+	return r.u
+}
+
+func (r *reload) setInterval(i time.Duration) {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+	r.dur = i
+}
+
+func (r *reload) interval() time.Duration {
+	r.mtx.RLock()
+	defer r.mtx.RUnlock()
+	return r.dur
 }
 
 func hook(event caddy.EventName, info interface{}) error {
@@ -28,7 +54,7 @@ func hook(event caddy.EventName, info interface{}) error {
 	// if reload is removed from the Corefile, then the hook
 	// is still registered but setup is never called again
 	// so we need a flag to tell us not to reload
-	if r.usage == unused {
+	if r.usage() == unused {
 		return nil
 	}
 
@@ -38,7 +64,7 @@ func hook(event caddy.EventName, info interface{}) error {
 	log.Infof("Running configuration MD5 = %x\n", md5sum)
 
 	go func() {
-		tick := time.NewTicker(r.interval)
+		tick := time.NewTicker(r.interval())
 
 		for {
 			select {
@@ -53,15 +79,15 @@ func hook(event caddy.EventName, info interface{}) error {
 					md5sum = s
 					// now lets consider that plugin will not be reload, unless appear in next config file
 					// change status iof usage will be reset in setup if the plugin appears in config file
-					r.usage = maybeUsed
+					r.setUsage(maybeUsed)
 					_, err := instance.Restart(corefile)
 					if err != nil {
 						log.Errorf("Corefile changed but reload failed: %s", err)
 						continue
 					}
 					// we are done, if the plugin was not set used, then it is not.
-					if r.usage == maybeUsed {
-						r.usage = unused
+					if r.usage() == maybeUsed {
+						r.setUsage(unused)
 					}
 					return
 				}
