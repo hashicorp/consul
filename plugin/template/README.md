@@ -148,19 +148,19 @@ The regex-based version can do more complex matching/templating while zone-based
 . {
     proxy . 8.8.8.8
 
-    # ip-a-b-c-d.example.com A a.b.c.d
+    # ip-a-b-c-d.example A a.b.c.d
 
     template IN A example {
-      match (^|[.])ip-10-(?P<b>[0-9]*)-(?P<c>[0-9]*)-(?P<d>[0-9]*)[.]example[.]$
-      answer "{{ .Name }} 60 IN A 10.{{ .Group.b }}.{{ .Group.c }}.{{ .Group.d }}"
+      match (^|[.])ip-(?P<a>[0-9]*)-(?P<b>[0-9]*)-(?P<c>[0-9]*)-(?P<d>[0-9]*)[.]example[.]$
+      answer "{{ .Name }} 60 IN A {{ .Group.a }}.{{ .Group.b }}.{{ .Group.c }}.{{ .Group.d }}"
       fallthrough
     }
 
     # d.c.b.a.in-addr.arpa PTR ip-a-b-c-d.example
 
-    template IN PTR 10.in-addr.arpa. {
-      match ^(?P<d>[0-9]*)[.](?P<c>[0-9]*)[.](?P<b>[0-9]*)[.]10[.]in-addr[.]arpa[.]$
-      answer "{{ .Name }} 60 IN PTR ip-10-{{ .Group.b }}-{{ .Group.c }}-{{ .Group.d }}.example.com."
+    template IN PTR in-addr.arpa {
+      match ^(?P<d>[0-9]*)[.](?P<c>[0-9]*)[.](?P<b>[0-9]*)[.](?P<a>[0-9]*)[.]in-addr[.]arpa[.]$
+      answer "{{ .Name }} 60 IN PTR ip-{{ .Group.a }}-{{ .Group.b }}-{{ .Group.c }}-{{ .Group.d }}.example."
     }
 }
 ~~~
