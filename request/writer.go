@@ -11,7 +11,7 @@ type ScrubWriter struct {
 // NewScrubWriter returns a new and initialized ScrubWriter.
 func NewScrubWriter(req *dns.Msg, w dns.ResponseWriter) *ScrubWriter { return &ScrubWriter{w, req} }
 
-// WriteMsg overrides the default implementation of the underlaying dns.ResponseWriter and calls
+// WriteMsg overrides the default implementation of the underlying dns.ResponseWriter and calls
 // scrub on the message m and will then write it to the client.
 func (s *ScrubWriter) WriteMsg(m *dns.Msg) error {
 	state := Request{Req: s.req, W: s.ResponseWriter}

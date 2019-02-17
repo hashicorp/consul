@@ -118,7 +118,7 @@ type ResponseWriter struct {
 
 // newPrefetchResponseWriter returns a Cache ResponseWriter to be used in
 // prefetch requests. It ensures RemoteAddr() can be called even after the
-// original connetion has already been closed.
+// original connection has already been closed.
 func newPrefetchResponseWriter(server string, state request.Request, c *Cache) *ResponseWriter {
 	// Resolve the address now, the connection might be already closed when the
 	// actual prefetch request is made.

@@ -438,7 +438,7 @@ func newAddress(s msg.Service, name string, ip net.IP, what uint16) dns.RR {
 	return &dns.AAAA{Hdr: hdr, AAAA: ip}
 }
 
-// checkForApex checks the spcecial apex.dns directory for records that will be returned as A or AAAA.
+// checkForApex checks the special apex.dns directory for records that will be returned as A or AAAA.
 func checkForApex(b ServiceBackend, zone string, state request.Request, opt Options) ([]msg.Service, error) {
 	if state.Name() != zone {
 		return b.Services(state, false, opt)

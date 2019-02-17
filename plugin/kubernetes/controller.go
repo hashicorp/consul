@@ -47,7 +47,7 @@ type dnsController interface {
 
 type dnsControl struct {
 	// Modified tracks timestamp of the most recent changes
-	// It needs to be first because it is guarnteed to be 8-byte
+	// It needs to be first because it is guaranteed to be 8-byte
 	// aligned ( we use sync.LoadAtomic with this )
 	modified int64
 
