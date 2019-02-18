@@ -143,7 +143,7 @@ func (f *Forward) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 
 		// Check if the reply is correct; if not return FormErr.
 		if !state.Match(ret) {
-			debug.Hexdumpf(ret, "Wrong reply for id: %d, %s/%d", state.QName(), state.QType())
+			debug.Hexdumpf(ret, "Wrong reply for id: %d, %s %d", ret.Id, state.QName(), state.QType())
 
 			formerr := state.ErrorMessage(dns.RcodeFormatError)
 			w.WriteMsg(formerr)
