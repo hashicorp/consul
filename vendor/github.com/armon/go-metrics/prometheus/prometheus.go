@@ -26,6 +26,7 @@ type PrometheusOpts struct {
 	// Expiration is the duration a metric is valid for, after which it will be
 	// untracked. If the value is zero, a metric is never expired.
 	Expiration time.Duration
+    Registerer prometheus.Registerer
 }
 
 type PrometheusSink struct {
@@ -52,7 +53,12 @@ func NewPrometheusSinkFrom(opts PrometheusOpts) (*PrometheusSink, error) {
 		expiration: opts.Expiration,
 	}
 
-	return sink, prometheus.Register(sink)
+	reg := opts.Registerer
+	if reg == nil {
+		reg = prometheus.DefaultRegisterer
+	}
+
+	return sink, reg.Register(sink)
 }
 
 // Describe is needed to meet the Collector interface.
