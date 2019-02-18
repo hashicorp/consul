@@ -206,7 +206,7 @@ func (c *cmd) run(args []string) int {
 	// Setup gRPC logger to use the same output/filtering
 	grpclog.SetLoggerV2(logger.NewGRPCLogger(logConfig, c.logger))
 
-	memSink, err := lib.InitTelemetry(config.Telemetry)
+	memSink, err := lib.InitTelemetry(config.Telemetry, &config.Datacenter)
 	if err != nil {
 		c.UI.Error(err.Error())
 		return 1

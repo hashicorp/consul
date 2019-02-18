@@ -8,6 +8,7 @@ import (
 	"github.com/armon/go-metrics/circonus"
 	"github.com/armon/go-metrics/datadog"
 	"github.com/armon/go-metrics/prometheus"
+	prom "github.com/prometheus/client_golang/prometheus"
 )
 
 // TelemetryConfig is embedded in config.RuntimeConfig and holds the
@@ -238,7 +239,7 @@ func (c *TelemetryConfig) MergeDefaults(defaults *TelemetryConfig) {
 	}
 }
 
-func statsiteSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, error) {
+func statsiteSink(cfg TelemetryConfig, hostname string, dc *string) (metrics.MetricSink, error) {
 	addr := cfg.StatsiteAddr
 	if addr == "" {
 		return nil, nil
@@ -246,7 +247,7 @@ func statsiteSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, err
 	return metrics.NewStatsiteSink(addr)
 }
 
-func statsdSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, error) {
+func statsdSink(cfg TelemetryConfig, hostname string, dc *string) (metrics.MetricSink, error) {
 	addr := cfg.StatsdAddr
 	if addr == "" {
 		return nil, nil
@@ -254,7 +255,7 @@ func statsdSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, error
 	return metrics.NewStatsdSink(addr)
 }
 
-func dogstatdSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, error) {
+func dogstatdSink(cfg TelemetryConfig, hostname string, dc *string) (metrics.MetricSink, error) {
 	addr := cfg.DogstatsdAddr
 	if addr == "" {
 		return nil, nil
@@ -267,12 +268,19 @@ func dogstatdSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, err
 	return sink, nil
 }
 
-func prometheusSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, error) {
+func prometheusSink(cfg TelemetryConfig, hostname string, dc *string) (metrics.MetricSink, error) {
+
+	reg := prom.DefaultRegisterer
+	labels := make(prom.Labels)
+	if dc != nil {
+		labels["dc"] = *dc
+	}
 	if cfg.PrometheusRetentionTime.Nanoseconds() < 1 {
 		return nil, nil
 	}
 	prometheusOpts := prometheus.PrometheusOpts{
 		Expiration: cfg.PrometheusRetentionTime,
+		Registerer: prom.WrapRegistererWith(labels, reg),
 	}
 	sink, err := prometheus.NewPrometheusSinkFrom(prometheusOpts)
 	if err != nil {
@@ -281,7 +289,7 @@ func prometheusSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, e
 	return sink, nil
 }
 
-func circonusSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, error) {
+func circonusSink(cfg TelemetryConfig, hostname string, dc *string) (metrics.MetricSink, error) {
 	token := cfg.CirconusAPIToken
 	url := cfg.CirconusSubmissionURL
 	if token == "" && url == "" {
@@ -325,7 +333,7 @@ func circonusSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, err
 
 // InitTelemetry configures go-metrics based on map of telemetry config
 // values as returned by Runtimecfg.Config().
-func InitTelemetry(cfg TelemetryConfig) (*metrics.InmemSink, error) {
+func InitTelemetry(cfg TelemetryConfig, dc *string) (*metrics.InmemSink, error) {
 	// Setup telemetry
 	// Aggregate on 10 second intervals for 1 minute. Expose the
 	// metrics over stderr when there is a SIGUSR1 received.
@@ -338,8 +346,8 @@ func InitTelemetry(cfg TelemetryConfig) (*metrics.InmemSink, error) {
 	metricsConf.BlockedPrefixes = cfg.BlockedPrefixes
 
 	var sinks metrics.FanoutSink
-	addSink := func(name string, fn func(TelemetryConfig, string) (metrics.MetricSink, error)) error {
-		s, err := fn(cfg, metricsConf.HostName)
+	addSink := func(name string, fn func(TelemetryConfig, string, *string) (metrics.MetricSink, error)) error {
+		s, err := fn(cfg, metricsConf.HostName, dc)
 		if err != nil {
 			return err
 		}
