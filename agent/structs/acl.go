@@ -427,7 +427,7 @@ func (p *ACLPolicy) SetHash(force bool) []byte {
 		// raft indices are metadata similar to the hash which is why they
 		// aren't incorporated. CreateTime is similarly immutable
 		//
-		// The Hash is really only used for replication to determine if a token
+		// The Hash is really only used for replication to determine if a policy
 		// has changed and should be updated locally.
 
 		// Write all the user set fields
