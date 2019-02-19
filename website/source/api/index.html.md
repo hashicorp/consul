@@ -104,7 +104,7 @@ that a robust client must observe in order to not behave badly in edge cases.
    each blocking response is handled to be sure they actually block on the next 
    request.
  * **Rate limit**. The blocking query mechanism is reasonably efficient when updates 
- are relatively rate (order of tens of seconds to minutes between updates). In cases 
+ are relatively rare (order of tens of seconds to minutes between updates). In cases 
  where a result gets updated very fast however - possibly during an outage or incident 
  with a badly behaved client - blocking query loops degrade into busy loops that 
  consume execessive client CPU and causing high server load. While it's possible to just add a sleep 
