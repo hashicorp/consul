@@ -218,6 +218,21 @@ curl http://127.0.0.1:8500/v1/catalog/nodes -H 'x-consul-token: 4411f091-a4c9-48
 
 All the values should be as expected. Particularly, if `TaggedAddresses` is `null` it is likely we have not configured ACLs correctly. A good place to start debugging is reviewing the Consul logs on all the servers.
 
+If you encounter issues that are unresolvable, or misplace the bootstrap token, you can reset the ACL system by updating the index. First re-run the bootstrap command to get the index number.
+
+```
+$ consul acl bootstrap
+Failed ACL bootstrapping: Unexpected response code: 403 (Permission denied: ACL bootstrap no longer allowed (reset index: 13))
+```
+
+Then write the reset index into the bootstrap reset file: (here the reset index is 13)
+
+```
+$ echo 13 >> <data-directory>/acl-bootstrap-reset
+```
+
+After reseting the ACL system you can start again at Step 2. 
+
 ## Step 6: Enable ACLs on the Consul Clients
 
 Since ACL enforcement also occurs on the Consul clients, we need to also restart them
