@@ -402,8 +402,6 @@ func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToke
 		original = existing.(*structs.ACLToken)
 	}
 
-	// TODO(rb): put some expiration time validation here
-
 	if cas {
 		// set-if-unset case
 		if token.ModifyIndex == 0 && original != nil {
