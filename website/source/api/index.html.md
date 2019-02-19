@@ -79,8 +79,8 @@ duration.
 
 ### Implementation Details
 
-While the mechanim is relatively simple to work with, there are a few subtelties
-that a robust client must observe in order to not behave badly in edge cases.
+While the mechanism is relatively simple to work with, there are a few subtleties
+that a robust client must observe in order to work correctly, even in edge cases.
  * **Reset the index if it goes backwards**. While indexes in general are 
    monotonically increasing, there are several real-world scenarios in 
    which they can go backwards for a given query. Implementations must check 
@@ -89,9 +89,9 @@ that a robust client must observe in order to not behave badly in edge cases.
    Failure to do so may cause the client to miss future updates for an unbounded 
    time, or to use an invalid index value that causes no blocking and increases 
    load on the servers. Cases where this can occur include:
-   * If a raft snapshot is restored on the servers with older version of the data
-   * KV list operations where an item with the highest index is removed
-   * A consul upgrade changes the way watches work to optimise them with more 
+   * If a raft snapshot is restored on the servers with older version of the data.
+   * KV list operations where an item with the highest index is removed.
+   * A Consul upgrade changes the way watches work to optimise them with more 
    granular indexes.
  * **Sanity check index is greater than zero**. After the initial request (or a
    reset as above) the `X-Consul-Index` returned _should_ always be greater than zero. It
@@ -107,7 +107,7 @@ that a robust client must observe in order to not behave badly in edge cases.
  are relatively rare (order of tens of seconds to minutes between updates). In cases 
  where a result gets updated very fast however - possibly during an outage or incident 
  with a badly behaved client - blocking query loops degrade into busy loops that 
- consume execessive client CPU and causing high server load. While it's possible to just add a sleep 
+ consume excessive client CPU and cause high server load. While it's possible to just add a sleep 
  to every iteration of the loop, this is **not** recommended since it causes update 
  delivery to be delayed in the happy case, and it can exacerbate the problem since 
  it increases the chance that the index has changed on the next request. Clients 
@@ -116,7 +116,7 @@ that a robust client must observe in order to not behave badly in edge cases.
  reasonable rate (say every 15 seconds). Ideally this is done with an algorithm that 
  allows a couple of quick successive deliveries before it starts to limit rate - a 
  [token bucket](https://en.wikipedia.org/wiki/Token_bucket) with burst of 2 is a simple
- way to acheive this.
+ way to achieve this.
 
 ### Hash-based Blocking Queries
 
