@@ -15,6 +15,7 @@ IMPROVEMENTS:
 
 * agent: Check ACLs more often for xDS stream endpoints. [[GH-5237](https://github.com/hashicorp/consul/issues/5237)]
 * connect: Sidecar services now inherit tags and service metadata of the parent service by default. [[GH-5291](https://github.com/hashicorp/consul/pull/5291)]
+* connect: Envoy proxies can now have cluster-specific config overrides via new "escape hatches": [[GH-5308](https://github.com/hashicorp/consul/pull/5308)]
 
 ## 1.4.2 (January 28, 2019)
 
