@@ -10,8 +10,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestACLTokenReap_Primary_Global(t *testing.T) {
+func TestACLTokenReap_Primary(t *testing.T) {
 	t.Parallel()
+
+	t.Run("global", func(t *testing.T) {
+		t.Parallel()
+		testACLTokenReap_Primary(t, false, true)
+	})
+	t.Run("local", func(t *testing.T) {
+		t.Parallel()
+		testACLTokenReap_Primary(t, true, false)
+	})
+}
+
+func testACLTokenReap_Primary(t *testing.T, local, global bool) {
+	t.Helper()
+	require.NotEqual(t, local, global)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -34,73 +48,84 @@ func TestACLTokenReap_Primary_Global(t *testing.T) {
 	masterTokenAccessorID, err := retrieveTestTokenAccessorForSecret(codec, "root", "dc1", "root")
 	require.NoError(t, err)
 
-	listTokens := func() ([]string, error) {
+	listTokens := func() (localTokens, globalTokens []string, err error) {
 		req := structs.ACLTokenListRequest{
 			Datacenter:   "dc1",
 			QueryOptions: structs.QueryOptions{Token: "root"},
 		}
 
 		var res structs.ACLTokenListResponse
-		err := acl.TokenList(&req, &res)
+		err = acl.TokenList(&req, &res)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
-		var out []string
 		for _, tok := range res.Tokens {
-			out = append(out, tok.AccessorID)
+			if tok.Local {
+				localTokens = append(localTokens, tok.AccessorID)
+			} else {
+				globalTokens = append(globalTokens, tok.AccessorID)
+			}
 		}
 
-		return out, nil
+		return localTokens, globalTokens, nil
 	}
 
 	requireTokenMatch := func(t *testing.T, expect []string) {
 		t.Helper()
-		tokens, err := listTokens()
+
+		var expectLocal, expectGlobal []string
+		// The master token and the anonymous token are always going to be
+		// present and global.
+		expectGlobal = append(expectGlobal, masterTokenAccessorID)
+		expectGlobal = append(expectGlobal, structs.ACLTokenAnonymousID)
+
+		if local {
+			expectLocal = append(expectLocal, expect...)
+		} else {
+			expectGlobal = append(expectGlobal, expect...)
+		}
+
+		localTokens, globalTokens, err := listTokens()
 		require.NoError(t, err)
-		require.ElementsMatch(t, expect, tokens)
+		require.ElementsMatch(t, expectLocal, localTokens)
+		require.ElementsMatch(t, expectGlobal, globalTokens)
 	}
 
 	// initial sanity check
-	requireTokenMatch(t, []string{
-		masterTokenAccessorID,
-		structs.ACLTokenAnonymousID,
-	})
+	requireTokenMatch(t, []string{})
 
 	t.Run("no tokens", func(t *testing.T) {
-		n, err := s1.reapExpiredACLTokens(false, true, clock.Now)
+		n, err := s1.reapExpiredACLTokens(local, global)
 		require.NoError(t, err)
 		require.Equal(t, 0, n)
 
-		requireTokenMatch(t, []string{
-			masterTokenAccessorID,
-			structs.ACLTokenAnonymousID,
-		})
+		requireTokenMatch(t, []string{})
 	})
 
 	clock.Reset()
 
 	// 2 normal
-	token1, err := upsertTestToken(codec, "root", "dc1", nil)
+	token1, err := upsertTestToken(codec, "root", "dc1", func(token *structs.ACLToken) {
+		token.Local = local
+	})
 	require.NoError(t, err)
-	token2, err := upsertTestToken(codec, "root", "dc1", nil)
+	token2, err := upsertTestToken(codec, "root", "dc1", func(token *structs.ACLToken) {
+		token.Local = local
+	})
 	require.NoError(t, err)
 
 	requireTokenMatch(t, []string{
-		masterTokenAccessorID,
-		structs.ACLTokenAnonymousID,
 		token1.AccessorID,
 		token2.AccessorID,
 	})
 
 	t.Run("only normal tokens", func(t *testing.T) {
-		n, err := s1.reapExpiredACLTokens(false, true, clock.Now)
+		n, err := s1.reapExpiredACLTokens(local, global)
 		require.NoError(t, err)
 		require.Equal(t, 0, n)
 
 		requireTokenMatch(t, []string{
-			masterTokenAccessorID,
-			structs.ACLTokenAnonymousID,
 			token1.AccessorID,
 			token2.AccessorID,
 		})
@@ -111,22 +136,26 @@ func TestACLTokenReap_Primary_Global(t *testing.T) {
 	// 2 expiring
 	token3, err := upsertTestToken(codec, "root", "dc1", func(token *structs.ACLToken) {
 		token.ExpirationTime = clock.Now().Add(1 * time.Minute)
+		token.Local = local
 	})
 	require.NoError(t, err)
 	token4, err := upsertTestToken(codec, "root", "dc1", func(token *structs.ACLToken) {
 		token.ExpirationTime = clock.Now().Add(2 * time.Minute)
+		token.Local = local
 	})
 	require.NoError(t, err)
 
 	// 2 more normal
-	token5, err := upsertTestToken(codec, "root", "dc1", nil)
+	token5, err := upsertTestToken(codec, "root", "dc1", func(token *structs.ACLToken) {
+		token.Local = local
+	})
 	require.NoError(t, err)
-	token6, err := upsertTestToken(codec, "root", "dc1", nil)
+	token6, err := upsertTestToken(codec, "root", "dc1", func(token *structs.ACLToken) {
+		token.Local = local
+	})
 	require.NoError(t, err)
 
 	requireTokenMatch(t, []string{
-		masterTokenAccessorID,
-		structs.ACLTokenAnonymousID,
 		token1.AccessorID,
 		token2.AccessorID,
 		token3.AccessorID,
@@ -136,13 +165,11 @@ func TestACLTokenReap_Primary_Global(t *testing.T) {
 	})
 
 	t.Run("mixed but nothing expired yet", func(t *testing.T) {
-		n, err := s1.reapExpiredACLTokens(false, true, clock.Now)
+		n, err := s1.reapExpiredACLTokens(local, global)
 		require.NoError(t, err)
 		require.Equal(t, 0, n)
 
 		requireTokenMatch(t, []string{
-			masterTokenAccessorID,
-			structs.ACLTokenAnonymousID,
 			token1.AccessorID,
 			token2.AccessorID,
 			token3.AccessorID,
@@ -155,7 +182,7 @@ func TestACLTokenReap_Primary_Global(t *testing.T) {
 	t.Run("one should be reaped", func(t *testing.T) {
 		prevTime := clock.Add(1*time.Minute + 1*time.Second)
 
-		n, err := s1.reapExpiredACLTokens(false, true, clock.Now)
+		n, err := s1.reapExpiredACLTokens(local, global)
 		require.NoError(t, err)
 		require.Equal(t, 1, n)
 
@@ -163,8 +190,6 @@ func TestACLTokenReap_Primary_Global(t *testing.T) {
 		clock.Set(prevTime)
 
 		requireTokenMatch(t, []string{
-			masterTokenAccessorID,
-			structs.ACLTokenAnonymousID,
 			token1.AccessorID,
 			token2.AccessorID,
 			// token3.AccessorID,
@@ -177,7 +202,7 @@ func TestACLTokenReap_Primary_Global(t *testing.T) {
 	t.Run("one should be reaped", func(t *testing.T) {
 		prevTime := clock.Add(25 * time.Hour)
 
-		n, err := s1.reapExpiredACLTokens(false, true, clock.Now)
+		n, err := s1.reapExpiredACLTokens(local, global)
 		require.NoError(t, err)
 		require.Equal(t, 1, n)
 
@@ -185,8 +210,6 @@ func TestACLTokenReap_Primary_Global(t *testing.T) {
 		clock.Set(prevTime)
 
 		requireTokenMatch(t, []string{
-			masterTokenAccessorID,
-			structs.ACLTokenAnonymousID,
 			token1.AccessorID,
 			token2.AccessorID,
 			// token3.AccessorID,

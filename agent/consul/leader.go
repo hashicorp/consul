@@ -40,9 +40,6 @@ var (
 	// minAutopilotVersion is the minimum Consul version in which Autopilot features
 	// are supported.
 	minAutopilotVersion = version.Must(version.NewVersion("0.8.0"))
-
-	// TODO(rb): make this configurable?
-	aclTokenReapInterval = 2 * time.Minute
 )
 
 // monitorLeadership is used to monitor if we acquire or lose our role
@@ -843,56 +840,6 @@ func (s *Server) stopACLReplication() {
 	s.aclReplicationCancel = nil
 	s.updateACLReplicationStatusStopped()
 	s.aclReplicationEnabled = false
-}
-
-func (s *Server) startACLTokenReaping() {
-	s.aclTokenReapLock.Lock()
-	defer s.aclTokenReapLock.Unlock()
-
-	if s.aclTokenReapEnabled {
-		return
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	s.aclTokenReapCancel = cancel
-
-	go func() {
-		ticker := time.NewTicker(aclTokenReapInterval)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				if s.LocalTokensEnabled() {
-					if _, err := s.reapExpiredACLTokens(true, false, time.Now); err != nil {
-						s.logger.Printf("[ERR] acl: error reaping expired local ACL tokens: %v", err)
-					}
-				}
-				if s.InACLDatacenter() {
-					if _, err := s.reapExpiredACLTokens(false, true, time.Now); err != nil {
-						s.logger.Printf("[ERR] acl: error reaping expired global ACL tokens: %v", err)
-					}
-				}
-			}
-		}
-	}()
-
-	s.aclTokenReapEnabled = true
-}
-
-func (s *Server) stopACLTokenReaping() {
-	s.aclTokenReapLock.Lock()
-	defer s.aclTokenReapLock.Unlock()
-
-	if !s.aclTokenReapEnabled {
-		return
-	}
-
-	s.aclTokenReapCancel()
-	s.aclTokenReapCancel = nil
-	s.aclTokenReapEnabled = false
 }
 
 // getOrCreateAutopilotConfig is used to get the autopilot config, initializing it if necessary

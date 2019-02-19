@@ -1,15 +1,68 @@
 package consul
 
 import (
+	"context"
 	"fmt"
-	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"golang.org/x/time/rate"
 )
 
-const maxExpiredTokensPerLoop = 100
+func (s *Server) startACLTokenReaping() {
+	s.aclTokenReapLock.Lock()
+	defer s.aclTokenReapLock.Unlock()
 
-func (s *Server) reapExpiredACLTokens(local, global bool, nowFunc func() time.Time) (int, error) {
+	if s.aclTokenReapEnabled {
+		return
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	s.aclTokenReapCancel = cancel
+
+	go func() {
+		limiter := rate.NewLimiter(aclTokenReapingRateLimit, aclTokenReapingBurst)
+
+		for {
+			if err := limiter.Wait(ctx); err != nil {
+				return
+			}
+
+			if s.LocalTokensEnabled() {
+				if _, err := s.reapExpiredLocalACLTokens(); err != nil {
+					s.logger.Printf("[ERR] acl: error reaping expired local ACL tokens: %v", err)
+				}
+			}
+			if s.InACLDatacenter() {
+				if _, err := s.reapExpiredGlobalACLTokens(); err != nil {
+					s.logger.Printf("[ERR] acl: error reaping expired global ACL tokens: %v", err)
+				}
+			}
+		}
+	}()
+
+	s.aclTokenReapEnabled = true
+}
+
+func (s *Server) stopACLTokenReaping() {
+	s.aclTokenReapLock.Lock()
+	defer s.aclTokenReapLock.Unlock()
+
+	if !s.aclTokenReapEnabled {
+		return
+	}
+
+	s.aclTokenReapCancel()
+	s.aclTokenReapCancel = nil
+	s.aclTokenReapEnabled = false
+}
+
+func (s *Server) reapExpiredGlobalACLTokens() (int, error) {
+	return s.reapExpiredACLTokens(false, true)
+}
+func (s *Server) reapExpiredLocalACLTokens() (int, error) {
+	return s.reapExpiredACLTokens(true, false)
+}
+func (s *Server) reapExpiredACLTokens(local, global bool) (int, error) {
 	if !s.ACLsEnabled() {
 		return 0, nil
 	}
@@ -22,14 +75,9 @@ func (s *Server) reapExpiredACLTokens(local, global bool, nowFunc func() time.Ti
 
 	locality := localityName(local)
 
-	s.logger.Printf("[INFO] acltokenreaper: scanning for expired %s tokens", locality)
-	defer s.logger.Printf("[INFO] acltokenreaper: scanning for expired %s tokens [DONE]", locality)
+	now := s.currentTime()
 
-	now := nowFunc()
-
-	state := s.fsm.State()
-
-	minExpiredTime, err := state.ACLTokenMinExpirationTime(local)
+	minExpiredTime, err := s.fsm.State().ACLTokenMinExpirationTime(local)
 	if err != nil {
 		return 0, err
 	}
@@ -38,7 +86,7 @@ func (s *Server) reapExpiredACLTokens(local, global bool, nowFunc func() time.Ti
 		return 0, nil // nothing to do
 	}
 
-	tokens, _, err := state.ACLTokenListExpired(local, now, maxExpiredTokensPerLoop)
+	tokens, _, err := s.fsm.State().ACLTokenListExpired(local, now, aclBatchDeleteSize)
 	if err != nil {
 		return 0, err
 	}
@@ -59,7 +107,7 @@ func (s *Server) reapExpiredACLTokens(local, global bool, nowFunc func() time.Ti
 		secretIDs = append(secretIDs, token.SecretID)
 	}
 
-	s.logger.Printf("[INFO] acltokenreaper: deleting %d expired %s tokens", len(req.TokenIDs), locality)
+	s.logger.Printf("[INFO] acl: deleting %d expired %s tokens", len(req.TokenIDs), locality)
 	resp, err := s.raftApply(structs.ACLTokenDeleteRequestType, &req)
 	if err != nil {
 		return 0, fmt.Errorf("Failed to apply token expiration deletions: %v", err)

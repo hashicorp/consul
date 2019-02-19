@@ -30,8 +30,15 @@ const (
 	// with all tokens in it.
 	aclUpgradeBatchSize = 128
 
-	// aclUpgradeRateLimit is the number of batch upgrade requests per second.
+	// aclUpgradeRateLimit is the number of batch upgrade requests per second allowed.
 	aclUpgradeRateLimit rate.Limit = 1.0
+
+	// aclTokenReapingRateLimit is the number of batch token reaping requests per second allowed.
+	aclTokenReapingRateLimit rate.Limit = 1.0
+
+	// aclTokenReapingBurst is the number of batch token reaping requests per second
+	// that can burst after a period of idleness.
+	aclTokenReapingBurst = 5
 
 	// aclBatchDeleteSize is the number of deletions to send in a single batch operation. 4096 should produce a batch that is <150KB
 	// in size but should be sufficiently large to handle 1 replication round in a single batch
