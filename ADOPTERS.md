@@ -6,7 +6,7 @@
 * [seansean2](https://web.mit.edu) uses CoreDNS in production at MIT for DNS.
 * [Tradeshift](https://tradeshift.com/) uses CoreDNS to look up company identifiers across multiple shards/regions/zones
 * [SoundCloud](https://soundcloud.com/) uses CoreDNS as internal cache+proxy in Kubernetes clusters to handle hundreds of thousands DNS service discovery requests per second.
-* [Z Lab](https://zlab.co.jp) uses CoreDNS in production combination with Consul and Kuberenetes Clusters.
+* [Z Lab](https://zlab.co.jp) uses CoreDNS in production combination with Consul and Kubernetes Clusters.
 * [Serpro/estaleiro](estaleiro.serpro.gov.br) uses CoreDNS as Kubernetes' DNS Server, in production with tuned Kubernetes plugin options
 * [Lumo](https://thinklumo.com) uses CoreDNS as Kubernetes' DNS Server, in production and lab with default configuration
 * [Booming Games](https://booming-games.com) uses CoreDNS in multiple Kubernetes clusters, with Federation plugin. expect going to production soon.
