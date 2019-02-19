@@ -91,7 +91,7 @@ that a robust client must observe in order to work correctly, even in edge cases
    load on the servers. Cases where this can occur include:
    * If a raft snapshot is restored on the servers with older version of the data.
    * KV list operations where an item with the highest index is removed.
-   * A Consul upgrade changes the way watches work to optimise them with more 
+   * A Consul upgrade changes the way watches work to optimize them with more 
    granular indexes.
  * **Sanity check index is greater than zero**. After the initial request (or a
    reset as above) the `X-Consul-Index` returned _should_ always be greater than zero. It
