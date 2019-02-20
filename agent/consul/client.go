@@ -113,7 +113,7 @@ func NewClientLogger(config *Config, logger *log.Logger) (*Client, error) {
 	}
 
 	// Create the tls Wrapper
-	tlsWrap, err := config.tlsConfig().OutgoingTLSWrapper()
+	tlsWrap, err := config.ToTLSUtilConfig().OutgoingTLSWrapper()
 	if err != nil {
 		return nil, err
 	}

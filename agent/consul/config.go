@@ -519,23 +519,3 @@ func DefaultConfig() *Config {
 
 	return conf
 }
-
-// tlsConfig maps this config into a tlsutil config.
-func (c *Config) tlsConfig() *tlsutil.Config {
-	tlsConf := &tlsutil.Config{
-		VerifyIncoming:           c.VerifyIncoming,
-		VerifyOutgoing:           c.VerifyOutgoing,
-		VerifyServerHostname:     c.VerifyServerHostname,
-		UseTLS:                   c.UseTLS,
-		CAFile:                   c.CAFile,
-		CAPath:                   c.CAPath,
-		CertFile:                 c.CertFile,
-		KeyFile:                  c.KeyFile,
-		NodeName:                 c.NodeName,
-		ServerName:               c.ServerName,
-		Domain:                   c.Domain,
-		TLSMinVersion:            c.TLSMinVersion,
-		PreferServerCipherSuites: c.TLSPreferServerCipherSuites,
-	}
-	return tlsConf
-}
