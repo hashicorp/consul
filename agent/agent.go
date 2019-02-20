@@ -386,6 +386,8 @@ func (a *Agent) Start() error {
 	// waiting to discover a consul server
 	consulCfg.ServerUp = a.sync.SyncFull.Trigger
 
+	a.tlsConfigurator = tlsutil.NewConfigurator(c.ToTLSUtilConfig())
+
 	// Setup either the client or the server.
 	if c.ServerMode {
 		server, err := consul.NewServerLogger(consulCfg, a.logger, a.tokens, a.tlsConfigurator)
@@ -481,8 +483,6 @@ func (a *Agent) Start() error {
 	if err := a.listenAndServeDNS(); err != nil {
 		return err
 	}
-
-	a.tlsConfigurator = tlsutil.NewConfigurator(a.config.ToTLSUtilConfig())
 
 	// Create listeners and unstarted servers; see comment on listenHTTP why
 	// we are doing this.
@@ -1051,7 +1051,9 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	base.Build = fmt.Sprintf("%s%s:%s", a.config.Version, a.config.VersionPrerelease, revision)
 
 	// Copy the TLS configuration
-	base.VerifyIncoming = a.config.VerifyIncoming || a.config.VerifyIncomingRPC
+	base.VerifyIncoming = a.config.VerifyIncoming
+	base.VerifyIncomingRPC = a.config.VerifyIncomingRPC
+
 	if a.config.CAPath != "" || a.config.CAFile != "" {
 		base.UseTLS = true
 	}

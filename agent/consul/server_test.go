@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-uuid"
 )
@@ -176,7 +177,7 @@ func newServer(c *Config) (*Server, error) {
 		w = os.Stderr
 	}
 	logger := log.New(w, c.NodeName+" - ", log.LstdFlags|log.Lmicroseconds)
-	srv, err := NewServerLogger(c, logger, new(token.Store))
+	srv, err := NewServerLogger(c, logger, new(token.Store), tlsutil.NewConfigurator(c.ToTLSUtilConfig()))
 	if err != nil {
 		return nil, err
 	}

@@ -335,6 +335,9 @@ func NewConfigurator(config *Config) *Configurator {
 }
 
 func (c *Configurator) commonConfig() (*tls.Config, error) {
+	if c.base == nil {
+		return nil, fmt.Errorf("No config")
+	}
 	tlsConfig := &tls.Config{
 		ServerName: c.base.ServerName,
 		ClientCAs:  x509.NewCertPool(),
