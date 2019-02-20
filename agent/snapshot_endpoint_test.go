@@ -9,14 +9,16 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/testrpc"
 )
 
 func TestSnapshot(t *testing.T) {
 	t.Parallel()
 	var snap io.Reader
-	t.Run("", func(t *testing.T) {
+	t.Run("create snapshot", func(t *testing.T) {
 		a := NewTestAgent(t, t.Name(), "")
 		defer a.Shutdown()
+		testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 		body := bytes.NewBuffer(nil)
 		req, _ := http.NewRequest("GET", "/v1/snapshot?token=root", body)
@@ -40,9 +42,10 @@ func TestSnapshot(t *testing.T) {
 		}
 	})
 
-	t.Run("", func(t *testing.T) {
+	t.Run("restore snapshot", func(t *testing.T) {
 		a := NewTestAgent(t, t.Name(), "")
 		defer a.Shutdown()
+		testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 		req, _ := http.NewRequest("PUT", "/v1/snapshot?token=root", snap)
 		resp := httptest.NewRecorder()
