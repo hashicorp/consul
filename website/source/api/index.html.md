@@ -79,8 +79,8 @@ duration.
 
 ### Implementation Details
 
-While the mechanism is relatively simple to work with, there are a few subtleties
-that a robust client must observe in order to work correctly, even in edge cases.
+While the mechanism is relatively simple to work with, there are a few edge 
+cases that must be handled correctly.
  * **Reset the index if it goes backwards**. While indexes in general are 
    monotonically increasing, there are several real-world scenarios in 
    which they can go backwards for a given query. Implementations must check 
