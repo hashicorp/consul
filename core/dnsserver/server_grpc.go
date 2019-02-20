@@ -154,7 +154,7 @@ type gRPCresponse struct {
 }
 
 // Write is the hack that makes this work. It does not actually write the message
-// but returns the bytes we need to to write in r. We can then pick this up in Query
+// but returns the bytes we need to write in r. We can then pick this up in Query
 // and write a proper protobuf back to the client.
 func (r *gRPCresponse) Write(b []byte) (int, error) {
 	r.Msg = new(dns.Msg)

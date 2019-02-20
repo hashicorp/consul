@@ -87,7 +87,7 @@ func (a Auto) Walk() error {
 	return nil
 }
 
-// matches matches re to filename, if is is a match, the subexpression will be used to expand
+// matches re to filename, if it is a match, the subexpression will be used to expand
 // template to an origin. When match is true that origin is returned. Origin is fully qualified.
 func matches(re *regexp.Regexp, filename, template string) (match bool, origin string) {
 	base := filepath.Base(filename)

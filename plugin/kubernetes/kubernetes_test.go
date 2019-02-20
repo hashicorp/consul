@@ -287,7 +287,7 @@ func TestServices(t *testing.T) {
 			continue
 		}
 		if len(svcs) != 1 {
-			t.Errorf("Test %d, expected expected 1 answer, got %v", i, len(svcs))
+			t.Errorf("Test %d, expected 1 answer, got %v", i, len(svcs))
 			continue
 		}
 

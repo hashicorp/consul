@@ -130,7 +130,7 @@ func Header(tc Case, resp *dns.Msg) error {
 	return nil
 }
 
-// Section tests if the the section in tc matches rr.
+// Section tests if the section in tc matches rr.
 func Section(tc Case, sec sect, rr []dns.RR) error {
 	section := []dns.RR{}
 	switch sec {

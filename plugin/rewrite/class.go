@@ -29,7 +29,7 @@ func newClassRule(nextAction string, args ...string) (Rule, error) {
 	return &classRule{from, to, nextAction}, nil
 }
 
-// Rewrite rewrites the the current request.
+// Rewrite rewrites the current request.
 func (rule *classRule) Rewrite(ctx context.Context, state request.Request) Result {
 	if rule.fromClass > 0 && rule.toClass > 0 {
 		if state.Req.Question[0].Qclass == rule.fromClass {

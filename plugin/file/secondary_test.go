@@ -146,7 +146,7 @@ func TestIsNotify(t *testing.T) {
 	// need to set opcode
 	state.Req.Opcode = dns.OpcodeNotify
 
-	z.TransferFrom = []string{"10.240.0.1:53"} // IP from from testing/responseWriter
+	z.TransferFrom = []string{"10.240.0.1:53"} // IP from testing/responseWriter
 	if !z.isNotify(state) {
 		t.Fatal("Should have been valid notify")
 	}

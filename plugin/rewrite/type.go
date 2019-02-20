@@ -30,7 +30,7 @@ func newTypeRule(nextAction string, args ...string) (Rule, error) {
 	return &typeRule{from, to, nextAction}, nil
 }
 
-// Rewrite rewrites the the current request.
+// Rewrite rewrites the current request.
 func (rule *typeRule) Rewrite(ctx context.Context, state request.Request) Result {
 	if rule.fromType > 0 && rule.toType > 0 {
 		if state.QType() == rule.fromType {
