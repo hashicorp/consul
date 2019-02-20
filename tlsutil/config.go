@@ -33,7 +33,9 @@ type Config struct {
 	// VerifyIncoming is used to verify the authenticity of incoming connections.
 	// This means that TCP requests are forbidden, only allowing for TLS. TLS connections
 	// must match a provided certificate authority. This can be used to force client auth.
-	VerifyIncoming bool
+	VerifyIncoming      bool
+	VerifyIncomingRPC   bool
+	VerifyIncomingHTTPS bool
 
 	// VerifyOutgoing is used to verify the authenticity of outgoing connections.
 	// This means that TLS requests are used, and TCP requests are not made. TLS connections
@@ -87,6 +89,8 @@ type Config struct {
 	// PreferServerCipherSuites specifies whether to prefer the server's ciphersuite
 	// over the client ciphersuites.
 	PreferServerCipherSuites bool
+
+	EnableAgentTLSForChecks bool
 }
 
 // AppendCA opens and parses the CA file and adds the certificates to
@@ -385,4 +389,75 @@ func ParseCiphers(cipherStr string) ([]uint16, error) {
 	}
 
 	return suites, nil
+}
+
+type Configurator struct {
+	base *Config
+}
+
+func NewConfigurator(config *Config) *Configurator {
+	return &Configurator{base: config}
+}
+
+func (c *Configurator) IncomingHTTPSConfig() (*tls.Config, error) {
+	tlsConfig := &tls.Config{
+		ServerName: c.base.ServerName,
+		ClientCAs:  x509.NewCertPool(),
+		ClientAuth: tls.NoClientCert,
+	}
+	if tlsConfig.ServerName == "" {
+		tlsConfig.ServerName = c.base.NodeName
+	}
+
+	// Set the cipher suites
+	if len(c.base.CipherSuites) != 0 {
+		tlsConfig.CipherSuites = c.base.CipherSuites
+	}
+	if c.base.PreferServerCipherSuites {
+		tlsConfig.PreferServerCipherSuites = true
+	}
+
+	// Parse the CA certs if any
+	if c.base.CAFile != "" {
+		pool, err := rootcerts.LoadCAFile(c.base.CAFile)
+		if err != nil {
+			return nil, err
+		}
+		tlsConfig.ClientCAs = pool
+	} else if c.base.CAPath != "" {
+		pool, err := rootcerts.LoadCAPath(c.base.CAPath)
+		if err != nil {
+			return nil, err
+		}
+		tlsConfig.ClientCAs = pool
+	}
+
+	// Add cert/key
+	cert, err := c.base.KeyPair()
+	if err != nil {
+		return nil, err
+	} else if cert != nil {
+		tlsConfig.Certificates = []tls.Certificate{*cert}
+	}
+
+	// Check if we require verification
+	if c.base.VerifyIncoming || c.base.VerifyIncomingHTTPS {
+		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
+		if c.base.CAFile == "" && c.base.CAPath == "" {
+			return nil, fmt.Errorf("VerifyIncoming set, and no CA certificate provided!")
+		}
+		if cert == nil {
+			return nil, fmt.Errorf("VerifyIncoming set, and no Cert/Key pair provided!")
+		}
+	}
+
+	// Check if a minimum TLS version was set
+	if c.base.TLSMinVersion != "" {
+		tlsvers, ok := TLSLookup[c.base.TLSMinVersion]
+		if !ok {
+			return nil, fmt.Errorf("TLSMinVersion: value %s not supported, please specify one of [tls10,tls11,tls12]", c.base.TLSMinVersion)
+		}
+		tlsConfig.MinVersion = tlsvers
+	}
+	return tlsConfig, nil
 }

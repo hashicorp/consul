@@ -40,6 +40,7 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/file"
 	"github.com/hashicorp/consul/logger"
+	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/watch"
 	"github.com/hashicorp/go-multierror"
@@ -249,6 +250,8 @@ type Agent struct {
 	// grpcServer is the server instance used currently to serve xDS API for
 	// Envoy.
 	grpcServer *grpc.Server
+
+	tlsConfigurator *tlsutil.Configurator
 }
 
 func New(c *config.RuntimeConfig) (*Agent, error) {
@@ -479,6 +482,8 @@ func (a *Agent) Start() error {
 		return err
 	}
 
+	a.tlsConfigurator = tlsutil.NewConfigurator(a.config.ToTLSUtilConfig())
+
 	// Create listeners and unstarted servers; see comment on listenHTTP why
 	// we are doing this.
 	servers, err := a.listenHTTP()
@@ -649,7 +654,7 @@ func (a *Agent) listenHTTP() ([]*HTTPServer, error) {
 			var tlscfg *tls.Config
 			_, isTCP := l.(*tcpKeepAliveListener)
 			if isTCP && proto == "https" {
-				tlscfg, err = a.config.IncomingHTTPSConfig()
+				tlscfg, err = a.tlsConfigurator.IncomingHTTPSConfig()
 				if err != nil {
 					return err
 				}

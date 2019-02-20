@@ -40,7 +40,7 @@ func TestConfig_CACertificate_Valid(t *testing.T) {
 	}
 }
 
-func TestConfig_CAPath_Valid(t *testing.T) {
+func TestConfig_IncomingTLSCAPath_Valid(t *testing.T) {
 	conf := &Config{
 		CAPath: "../test/ca_path",
 	}
@@ -590,5 +590,80 @@ func TestConfig_ParseCiphers(t *testing.T) {
 	testBad := "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,cipherX"
 	if _, err := ParseCiphers(testBad); err == nil {
 		t.Fatal("should fail on unsupported cipherX")
+	}
+}
+
+func TestHansConfigurator_IncomingTLSConfig_CA_PATH(t *testing.T) {
+	conf := &Config{CAPath: "../test/ca_path"}
+
+	c := NewConfigurator(conf)
+	tlsConf, err := c.IncomingHTTPSConfig()
+	require.NoError(t, err)
+	require.Equal(t, len(tlsConf.ClientCAs.Subjects()), 2)
+}
+
+func TestHansConfigurator_IncomingTLS(t *testing.T) {
+	conf := &Config{
+		VerifyIncoming: true,
+		CAFile:         "../test/ca/root.cer",
+		CertFile:       "../test/key/ourdomain.cer",
+		KeyFile:        "../test/key/ourdomain.key",
+	}
+	c := NewConfigurator(conf)
+	tlsConf, err := c.IncomingHTTPSConfig()
+	require.NoError(t, err)
+	require.NotNil(t, tlsConf)
+	require.Equal(t, len(tlsConf.ClientCAs.Subjects()), 1)
+	require.Equal(t, tlsConf.ClientAuth, tls.RequireAndVerifyClientCert)
+	require.Equal(t, len(tlsConf.Certificates), 1)
+}
+
+func TestHansConfigurator_IncomingTLS_MissingCA(t *testing.T) {
+	conf := &Config{
+		VerifyIncoming: true,
+		CertFile:       "../test/key/ourdomain.cer",
+		KeyFile:        "../test/key/ourdomain.key",
+	}
+	c := NewConfigurator(conf)
+	_, err := c.IncomingHTTPSConfig()
+	require.Error(t, err)
+}
+
+func TestHansConfigurator_IncomingTLS_MissingKey(t *testing.T) {
+	conf := &Config{
+		VerifyIncoming: true,
+		CAFile:         "../test/ca/root.cer",
+	}
+	c := NewConfigurator(conf)
+	_, err := c.IncomingHTTPSConfig()
+	require.Error(t, err)
+}
+
+func TestHansConfigurator_IncomingTLS_NoVerify(t *testing.T) {
+	conf := &Config{}
+	c := NewConfigurator(conf)
+	tlsConf, err := c.IncomingHTTPSConfig()
+	require.NoError(t, err)
+	require.NotNil(t, tlsConf)
+	require.Equal(t, len(tlsConf.ClientCAs.Subjects()), 0)
+	require.Equal(t, tlsConf.ClientAuth, tls.NoClientCert)
+	require.Equal(t, len(tlsConf.Certificates), 0)
+}
+
+func TestHansConfigurator_IncomingTLS_TLSMinVersion(t *testing.T) {
+	tlsVersions := []string{"tls10", "tls11", "tls12"}
+	for _, version := range tlsVersions {
+		conf := &Config{
+			VerifyIncoming: true,
+			CAFile:         "../test/ca/root.cer",
+			CertFile:       "../test/key/ourdomain.cer",
+			KeyFile:        "../test/key/ourdomain.key",
+			TLSMinVersion:  version,
+		}
+		c := NewConfigurator(conf)
+		tlsConf, err := c.IncomingHTTPSConfig()
+		require.NoError(t, err)
+		require.NotNil(t, tlsConf)
+		require.Equal(t, tlsConf.MinVersion, TLSLookup[version])
 	}
 }

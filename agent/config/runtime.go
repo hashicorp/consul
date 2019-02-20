@@ -1587,6 +1587,25 @@ func (c *RuntimeConfig) Sanitized() map[string]interface{} {
 	return sanitize("rt", reflect.ValueOf(c)).Interface().(map[string]interface{})
 }
 
+func (c *RuntimeConfig) ToTLSUtilConfig() *tlsutil.Config {
+	return &tlsutil.Config{
+		VerifyIncoming:           c.VerifyIncoming,
+		VerifyIncomingRPC:        c.VerifyIncomingRPC,
+		VerifyIncomingHTTPS:      c.VerifyIncomingHTTPS,
+		VerifyOutgoing:           c.VerifyOutgoing,
+		CAFile:                   c.CAFile,
+		CAPath:                   c.CAPath,
+		CertFile:                 c.CertFile,
+		KeyFile:                  c.KeyFile,
+		NodeName:                 c.NodeName,
+		ServerName:               c.ServerName,
+		TLSMinVersion:            c.TLSMinVersion,
+		CipherSuites:             c.TLSCipherSuites,
+		PreferServerCipherSuites: c.TLSPreferServerCipherSuites,
+		EnableAgentTLSForChecks:  c.EnableAgentTLSForChecks,
+	}
+}
+
 // isSecret determines whether a field name represents a field which
 // may contain a secret.
 func isSecret(name string) bool {
