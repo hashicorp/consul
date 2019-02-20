@@ -40,20 +40,6 @@ func TestConfig_CACertificate_Valid(t *testing.T) {
 	}
 }
 
-func TestConfig_IncomingTLSCAPath_Valid(t *testing.T) {
-	conf := &Config{
-		CAPath: "../test/ca_path",
-	}
-
-	tlsConf, err := conf.IncomingTLSConfig()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if len(tlsConf.ClientCAs.Subjects()) != 2 {
-		t.Fatalf("expected certs")
-	}
-}
-
 func TestConfig_KeyPair_None(t *testing.T) {
 	conf := &Config{}
 	cert, err := conf.KeyPair()
@@ -239,7 +225,8 @@ func TestConfig_OutgoingTLS_TLSMinVersion(t *testing.T) {
 func startTLSServer(config *Config) (net.Conn, chan error) {
 	errc := make(chan error, 1)
 
-	tlsConfigServer, err := config.IncomingTLSConfig()
+	c := NewConfigurator(config)
+	tlsConfigServer, err := c.IncomingRPCConfig()
 	if err != nil {
 		errc <- err
 		return nil, errc
@@ -439,97 +426,6 @@ func TestConfig_wrapTLS_BadCert(t *testing.T) {
 	}
 }
 
-func TestConfig_IncomingTLS(t *testing.T) {
-	conf := &Config{
-		VerifyIncoming: true,
-		CAFile:         "../test/ca/root.cer",
-		CertFile:       "../test/key/ourdomain.cer",
-		KeyFile:        "../test/key/ourdomain.key",
-	}
-	tlsC, err := conf.IncomingTLSConfig()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if tlsC == nil {
-		t.Fatalf("expected config")
-	}
-	if len(tlsC.ClientCAs.Subjects()) != 1 {
-		t.Fatalf("expect client cert")
-	}
-	if tlsC.ClientAuth != tls.RequireAndVerifyClientCert {
-		t.Fatalf("should not skip verification")
-	}
-	if len(tlsC.Certificates) != 1 {
-		t.Fatalf("expected client cert")
-	}
-}
-
-func TestConfig_IncomingTLS_MissingCA(t *testing.T) {
-	conf := &Config{
-		VerifyIncoming: true,
-		CertFile:       "../test/key/ourdomain.cer",
-		KeyFile:        "../test/key/ourdomain.key",
-	}
-	_, err := conf.IncomingTLSConfig()
-	if err == nil {
-		t.Fatalf("expected err")
-	}
-}
-
-func TestConfig_IncomingTLS_MissingKey(t *testing.T) {
-	conf := &Config{
-		VerifyIncoming: true,
-		CAFile:         "../test/ca/root.cer",
-	}
-	_, err := conf.IncomingTLSConfig()
-	if err == nil {
-		t.Fatalf("expected err")
-	}
-}
-
-func TestConfig_IncomingTLS_NoVerify(t *testing.T) {
-	conf := &Config{}
-	tlsC, err := conf.IncomingTLSConfig()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if tlsC == nil {
-		t.Fatalf("expected config")
-	}
-	if len(tlsC.ClientCAs.Subjects()) != 0 {
-		t.Fatalf("do not expect client cert")
-	}
-	if tlsC.ClientAuth != tls.NoClientCert {
-		t.Fatalf("should skip verification")
-	}
-	if len(tlsC.Certificates) != 0 {
-		t.Fatalf("unexpected client cert")
-	}
-}
-
-func TestConfig_IncomingTLS_TLSMinVersion(t *testing.T) {
-	tlsVersions := []string{"tls10", "tls11", "tls12"}
-	for _, version := range tlsVersions {
-		conf := &Config{
-			VerifyIncoming: true,
-			CAFile:         "../test/ca/root.cer",
-			CertFile:       "../test/key/ourdomain.cer",
-			KeyFile:        "../test/key/ourdomain.key",
-			TLSMinVersion:  version,
-		}
-		tls, err := conf.IncomingTLSConfig()
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if tls == nil {
-			t.Fatalf("expected config")
-		}
-		if tls.MinVersion != TLSLookup[version] {
-			t.Fatalf("expected tls min version: %v, %v", tls.MinVersion, TLSLookup[version])
-		}
-	}
-}
-
 func TestConfig_ParseCiphers(t *testing.T) {
 	testOk := strings.Join([]string{
 		"TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305",
@@ -593,7 +489,7 @@ func TestConfig_ParseCiphers(t *testing.T) {
 	}
 }
 
-func TestHansConfigurator_IncomingTLSConfig_CA_PATH(t *testing.T) {
+func TestHansConfigurator_IncomingHTTPSConfig_CA_PATH(t *testing.T) {
 	conf := &Config{CAPath: "../test/ca_path"}
 
 	c := NewConfigurator(conf)
@@ -602,7 +498,7 @@ func TestHansConfigurator_IncomingTLSConfig_CA_PATH(t *testing.T) {
 	require.Equal(t, len(tlsConf.ClientCAs.Subjects()), 2)
 }
 
-func TestHansConfigurator_IncomingTLS(t *testing.T) {
+func TestHansConfigurator_IncomingHTTPS(t *testing.T) {
 	conf := &Config{
 		VerifyIncoming: true,
 		CAFile:         "../test/ca/root.cer",
@@ -618,7 +514,7 @@ func TestHansConfigurator_IncomingTLS(t *testing.T) {
 	require.Equal(t, len(tlsConf.Certificates), 1)
 }
 
-func TestHansConfigurator_IncomingTLS_MissingCA(t *testing.T) {
+func TestHansConfigurator_IncomingHTTPS_MissingCA(t *testing.T) {
 	conf := &Config{
 		VerifyIncoming: true,
 		CertFile:       "../test/key/ourdomain.cer",
@@ -629,7 +525,7 @@ func TestHansConfigurator_IncomingTLS_MissingCA(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestHansConfigurator_IncomingTLS_MissingKey(t *testing.T) {
+func TestHansConfigurator_IncomingHTTPS_MissingKey(t *testing.T) {
 	conf := &Config{
 		VerifyIncoming: true,
 		CAFile:         "../test/ca/root.cer",
@@ -639,7 +535,7 @@ func TestHansConfigurator_IncomingTLS_MissingKey(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestHansConfigurator_IncomingTLS_NoVerify(t *testing.T) {
+func TestHansConfigurator_IncomingHTTPS_NoVerify(t *testing.T) {
 	conf := &Config{}
 	c := NewConfigurator(conf)
 	tlsConf, err := c.IncomingHTTPSConfig()
@@ -650,7 +546,7 @@ func TestHansConfigurator_IncomingTLS_NoVerify(t *testing.T) {
 	require.Equal(t, len(tlsConf.Certificates), 0)
 }
 
-func TestHansConfigurator_IncomingTLS_TLSMinVersion(t *testing.T) {
+func TestHansConfigurator_IncomingHTTPS_TLSMinVersion(t *testing.T) {
 	tlsVersions := []string{"tls10", "tls11", "tls12"}
 	for _, version := range tlsVersions {
 		conf := &Config{
@@ -665,5 +561,20 @@ func TestHansConfigurator_IncomingTLS_TLSMinVersion(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, tlsConf)
 		require.Equal(t, tlsConf.MinVersion, TLSLookup[version])
+	}
+}
+
+func TestHansConfigurator_IncomingHTTPSCAPath_Valid(t *testing.T) {
+	conf := &Config{
+		CAPath: "../test/ca_path",
+	}
+
+	c := NewConfigurator(conf)
+	tlsConf, err := c.IncomingHTTPSConfig()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(tlsConf.ClientCAs.Subjects()) != 2 {
+		t.Fatalf("expected certs")
 	}
 }

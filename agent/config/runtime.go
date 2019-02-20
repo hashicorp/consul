@@ -1,7 +1,6 @@
 package config
 
 import (
-	"crypto/tls"
 	"fmt"
 	"net"
 	"reflect"
@@ -1428,25 +1427,6 @@ type RuntimeConfig struct {
 	// ]
 	//
 	Watches []map[string]interface{}
-}
-
-// IncomingHTTPSConfig returns the TLS configuration for HTTPS
-// connections to consul.
-func (c *RuntimeConfig) IncomingHTTPSConfig() (*tls.Config, error) {
-	tc := &tlsutil.Config{
-		VerifyIncoming:           c.VerifyIncoming || c.VerifyIncomingHTTPS,
-		VerifyOutgoing:           c.VerifyOutgoing,
-		CAFile:                   c.CAFile,
-		CAPath:                   c.CAPath,
-		CertFile:                 c.CertFile,
-		KeyFile:                  c.KeyFile,
-		NodeName:                 c.NodeName,
-		ServerName:               c.ServerName,
-		TLSMinVersion:            c.TLSMinVersion,
-		CipherSuites:             c.TLSCipherSuites,
-		PreferServerCipherSuites: c.TLSPreferServerCipherSuites,
-	}
-	return tc.IncomingTLSConfig()
 }
 
 func (c *RuntimeConfig) apiAddresses(maxPerType int) (unixAddrs, httpAddrs, httpsAddrs []string) {

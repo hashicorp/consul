@@ -388,7 +388,7 @@ func (a *Agent) Start() error {
 
 	// Setup either the client or the server.
 	if c.ServerMode {
-		server, err := consul.NewServerLogger(consulCfg, a.logger, a.tokens)
+		server, err := consul.NewServerLogger(consulCfg, a.logger, a.tokens, a.tlsConfigurator)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}

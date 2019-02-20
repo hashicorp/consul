@@ -281,71 +281,6 @@ func (c *Config) wrapTLSClient(conn net.Conn, tlsConfig *tls.Config) (net.Conn, 
 	return tlsConn, err
 }
 
-// IncomingTLSConfig generates a TLS configuration for incoming requests
-func (c *Config) IncomingTLSConfig() (*tls.Config, error) {
-	// Create the tlsConfig
-	tlsConfig := &tls.Config{
-		ServerName: c.ServerName,
-		ClientCAs:  x509.NewCertPool(),
-		ClientAuth: tls.NoClientCert,
-	}
-	if tlsConfig.ServerName == "" {
-		tlsConfig.ServerName = c.NodeName
-	}
-
-	// Set the cipher suites
-	if len(c.CipherSuites) != 0 {
-		tlsConfig.CipherSuites = c.CipherSuites
-	}
-	if c.PreferServerCipherSuites {
-		tlsConfig.PreferServerCipherSuites = true
-	}
-
-	// Parse the CA certs if any
-	if c.CAFile != "" {
-		pool, err := rootcerts.LoadCAFile(c.CAFile)
-		if err != nil {
-			return nil, err
-		}
-		tlsConfig.ClientCAs = pool
-	} else if c.CAPath != "" {
-		pool, err := rootcerts.LoadCAPath(c.CAPath)
-		if err != nil {
-			return nil, err
-		}
-		tlsConfig.ClientCAs = pool
-	}
-
-	// Add cert/key
-	cert, err := c.KeyPair()
-	if err != nil {
-		return nil, err
-	} else if cert != nil {
-		tlsConfig.Certificates = []tls.Certificate{*cert}
-	}
-
-	// Check if we require verification
-	if c.VerifyIncoming {
-		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
-		if c.CAFile == "" && c.CAPath == "" {
-			return nil, fmt.Errorf("VerifyIncoming set, and no CA certificate provided!")
-		}
-		if cert == nil {
-			return nil, fmt.Errorf("VerifyIncoming set, and no Cert/Key pair provided!")
-		}
-	}
-
-	// Check if a minimum TLS version was set
-	if c.TLSMinVersion != "" {
-		tlsvers, ok := TLSLookup[c.TLSMinVersion]
-		if !ok {
-			return nil, fmt.Errorf("TLSMinVersion: value %s not supported, please specify one of [tls10,tls11,tls12]", c.TLSMinVersion)
-		}
-		tlsConfig.MinVersion = tlsvers
-	}
-	return tlsConfig, nil
-}
-
 // ParseCiphers parse ciphersuites from the comma-separated string into recognized slice
 func ParseCiphers(cipherStr string) ([]uint16, error) {
 	suites := []uint16{}
@@ -399,7 +334,7 @@ func NewConfigurator(config *Config) *Configurator {
 	return &Configurator{base: config}
 }
 
-func (c *Configurator) IncomingHTTPSConfig() (*tls.Config, error) {
+func (c *Configurator) commonConfig() (*tls.Config, error) {
 	tlsConfig := &tls.Config{
 		ServerName: c.base.ServerName,
 		ClientCAs:  x509.NewCertPool(),
@@ -439,18 +374,6 @@ func (c *Configurator) IncomingHTTPSConfig() (*tls.Config, error) {
 	} else if cert != nil {
 		tlsConfig.Certificates = []tls.Certificate{*cert}
 	}
-
-	// Check if we require verification
-	if c.base.VerifyIncoming || c.base.VerifyIncomingHTTPS {
-		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
-		if c.base.CAFile == "" && c.base.CAPath == "" {
-			return nil, fmt.Errorf("VerifyIncoming set, and no CA certificate provided!")
-		}
-		if cert == nil {
-			return nil, fmt.Errorf("VerifyIncoming set, and no Cert/Key pair provided!")
-		}
-	}
-
 	// Check if a minimum TLS version was set
 	if c.base.TLSMinVersion != "" {
 		tlsvers, ok := TLSLookup[c.base.TLSMinVersion]
@@ -459,5 +382,50 @@ func (c *Configurator) IncomingHTTPSConfig() (*tls.Config, error) {
 		}
 		tlsConfig.MinVersion = tlsvers
 	}
+	return tlsConfig, nil
+}
+
+func (c *Configurator) addVerifyIncoming(tlsConfig *tls.Config) error {
+	tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
+	if c.base.CAFile == "" && c.base.CAPath == "" {
+		return fmt.Errorf("VerifyIncoming set, and no CA certificate provided!")
+	}
+	if len(tlsConfig.Certificates) == 0 {
+		return fmt.Errorf("VerifyIncoming set, and no Cert/Key pair provided!")
+	}
+	return nil
+}
+
+func (c *Configurator) IncomingRPCConfig() (*tls.Config, error) {
+	tlsConfig, err := c.commonConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if we require verification
+	if c.base.VerifyIncoming || c.base.VerifyIncomingRPC {
+		err := c.addVerifyIncoming(tlsConfig)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return tlsConfig, nil
+}
+
+func (c *Configurator) IncomingHTTPSConfig() (*tls.Config, error) {
+	tlsConfig, err := c.commonConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if we require verification
+	if c.base.VerifyIncoming || c.base.VerifyIncomingHTTPS {
+		err := c.addVerifyIncoming(tlsConfig)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return tlsConfig, nil
 }
