@@ -60,7 +60,6 @@ func (e *AuthorizerCacheEntry) Age() time.Duration {
 	return time.Since(e.CacheTime)
 }
 
-// RoleCacheEntry is the payload for by by-id and by-name caches.
 type RoleCacheEntry struct {
 	Role      *ACLRole
 	CacheTime time.Time
@@ -173,7 +172,7 @@ func (c *ACLCaches) GetAuthorizer(id string) *AuthorizerCacheEntry {
 	return nil
 }
 
-// GetRoleByID fetches a role from the cache by id and returns it
+// GetRole fetches a role from the cache by id and returns it
 func (c *ACLCaches) GetRole(roleID string) *RoleCacheEntry {
 	if c == nil || c.roles == nil {
 		return nil
@@ -228,9 +227,11 @@ func (c *ACLCaches) PutAuthorizerWithTTL(id string, authorizer acl.Authorizer, t
 }
 
 func (c *ACLCaches) PutRole(roleID string, role *ACLRole) {
-	if c != nil && c.roles != nil {
-		c.roles.Add(roleID, &RoleCacheEntry{Role: role, CacheTime: time.Now()})
+	if c == nil || c.roles == nil {
+		return
 	}
+
+	c.roles.Add(roleID, &RoleCacheEntry{Role: role, CacheTime: time.Now()})
 }
 
 func (c *ACLCaches) RemoveIdentity(id string) {
@@ -246,7 +247,7 @@ func (c *ACLCaches) RemovePolicy(policyID string) {
 }
 
 func (c *ACLCaches) RemoveRole(roleID string) {
-	if c != nil && c.roles != nil && roleID != "" {
+	if c != nil && c.roles != nil {
 		c.roles.Remove(roleID)
 	}
 }

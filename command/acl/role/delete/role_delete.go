@@ -21,7 +21,8 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
-	roleID string
+	roleID   string
+	roleName string
 }
 
 func (c *cmd) init() {
@@ -29,6 +30,7 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.roleID, "id", "", "The ID of the role to delete. "+
 		"It may be specified as a unique ID prefix but will error if the prefix "+
 		"matches multiple role IDs")
+	c.flags.StringVar(&c.roleName, "name", "", "The name of the role to delete.")
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
@@ -40,8 +42,8 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	if c.roleID == "" {
-		c.UI.Error(fmt.Sprintf("Must specify the -id parameter"))
+	if c.roleID == "" && c.roleName == "" {
+		c.UI.Error(fmt.Sprintf("Must specify the -id or -name parameters"))
 		return 1
 	}
 
@@ -51,7 +53,12 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	roleID, err := acl.GetRoleIDFromPartial(client, c.roleID)
+	var roleID string
+	if c.roleID != "" {
+		roleID, err = acl.GetRoleIDFromPartial(client, c.roleID)
+	} else {
+		roleID, err = acl.GetRoleIDByName(client, c.roleName)
+	}
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error determining role ID: %v", err))
 		return 1

@@ -447,25 +447,8 @@ func (r *ACLResolver) fetchAndCachePoliciesForIdentity(identity structs.ACLIdent
 		return out, nil
 	}
 
-	if acl.IsErrNotFound(err) {
-		// make sure to indicate that this identity is no longer valid within
-		// the cache
-		r.cache.PutIdentity(identity.SecretToken(), nil)
-
-		// Do not touch the policy cache. Getting a top level ACL not found error
-		// only indicates that the secret token used in the request
-		// no longer exists
-		return nil, &policyOrRoleTokenError{acl.ErrNotFound, identity.SecretToken()}
-	}
-
-	if acl.IsErrPermissionDenied(err) {
-		// invalidate our ID cache so that identity resolution will take place
-		// again in the future
-		r.cache.RemoveIdentity(identity.SecretToken())
-
-		// Do not remove from the policy cache for permission denied
-		// what this does indicate is that our view of the token is out of date
-		return nil, &policyOrRoleTokenError{acl.ErrPermissionDenied, identity.SecretToken()}
+	if handledErr := r.maybeHandleIdentityErrorDuringFetch(identity, err); handledErr != nil {
+		return nil, handledErr
 	}
 
 	// other RPC error - use cache if available
@@ -519,25 +502,8 @@ func (r *ACLResolver) fetchAndCacheRolesForIdentity(identity structs.ACLIdentity
 		return out, nil
 	}
 
-	if acl.IsErrNotFound(err) {
-		// make sure to indicate that this identity is no longer valid within
-		// the cache
-		r.cache.PutIdentity(identity.SecretToken(), nil)
-
-		// Do not touch the cache. Getting a top level ACL not found error
-		// only indicates that the secret token used in the request
-		// no longer exists
-		return nil, &policyOrRoleTokenError{acl.ErrNotFound, identity.SecretToken()}
-	}
-
-	if acl.IsErrPermissionDenied(err) {
-		// invalidate our ID cache so that identity resolution will take place
-		// again in the future
-		r.cache.RemoveIdentity(identity.SecretToken())
-
-		// Do not remove from the cache for permission denied
-		// what this does indicate is that our view of the token is out of date
-		return nil, &policyOrRoleTokenError{acl.ErrPermissionDenied, identity.SecretToken()}
+	if handledErr := r.maybeHandleIdentityErrorDuringFetch(identity, err); handledErr != nil {
+		return nil, handledErr
 	}
 
 	// other RPC error - use cache if available
@@ -557,10 +523,37 @@ func (r *ACLResolver) fetchAndCacheRolesForIdentity(identity structs.ACLIdentity
 			insufficientCache = true
 		}
 	}
+
 	if insufficientCache {
 		return nil, ACLRemoteError{Err: err}
 	}
+
 	return out, nil
+}
+
+func (r *ACLResolver) maybeHandleIdentityErrorDuringFetch(identity structs.ACLIdentity, err error) error {
+	if acl.IsErrNotFound(err) {
+		// make sure to indicate that this identity is no longer valid within
+		// the cache
+		r.cache.PutIdentity(identity.SecretToken(), nil)
+
+		// Do not touch the cache. Getting a top level ACL not found error
+		// only indicates that the secret token used in the request
+		// no longer exists
+		return &policyOrRoleTokenError{acl.ErrNotFound, identity.SecretToken()}
+	}
+
+	if acl.IsErrPermissionDenied(err) {
+		// invalidate our ID cache so that identity resolution will take place
+		// again in the future
+		r.cache.RemoveIdentity(identity.SecretToken())
+
+		// Do not remove from the cache for permission denied
+		// what this does indicate is that our view of the token is out of date
+		return &policyOrRoleTokenError{acl.ErrPermissionDenied, identity.SecretToken()}
+	}
+
+	return nil
 }
 
 func (r *ACLResolver) filterPoliciesByScope(policies structs.ACLPolicies) structs.ACLPolicies {

@@ -255,7 +255,7 @@ func (a *ACL) List(args *structs.DCSpecificRequest,
 	return a.srv.blockingQuery(&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, tokens, err := state.ACLTokenList(ws, false, true, "", "")
+			index, tokens, err := state.ACLTokenList(ws, false, true, "", "", "")
 			if err != nil {
 				return err
 			}

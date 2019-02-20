@@ -351,9 +351,9 @@ func TestACLReplication_Tokens(t *testing.T) {
 
 	checkSame := func(t *retry.R) {
 		// only account for global tokens - local tokens shouldn't be replicated
-		index, remote, err := s1.fsm.State().ACLTokenList(nil, false, true, "", "")
+		index, remote, err := s1.fsm.State().ACLTokenList(nil, false, true, "", "", "")
 		require.NoError(t, err)
-		_, local, err := s2.fsm.State().ACLTokenList(nil, false, true, "", "")
+		_, local, err := s2.fsm.State().ACLTokenList(nil, false, true, "", "", "")
 		require.NoError(t, err)
 
 		require.Len(t, local, len(remote))
@@ -444,7 +444,7 @@ func TestACLReplication_Tokens(t *testing.T) {
 	})
 
 	// verify dc2 local tokens didn't get blown away
-	_, local, err := s2.fsm.State().ACLTokenList(nil, true, false, "", "")
+	_, local, err := s2.fsm.State().ACLTokenList(nil, true, false, "", "", "")
 	require.NoError(t, err)
 	require.Len(t, local, 50)
 
@@ -779,10 +779,10 @@ func TestACLReplication_AllTypes(t *testing.T) {
 
 	checkSameTokens := func(t *retry.R) {
 		// only account for global tokens - local tokens shouldn't be replicated
-		index, remote, err := s1.fsm.State().ACLTokenList(nil, false, true, "", "")
+		index, remote, err := s1.fsm.State().ACLTokenList(nil, false, true, "", "", "")
 		require.NoError(t, err)
 		// Query for all of them, so that we can prove that no globals snuck in.
-		_, local, err := s2.fsm.State().ACLTokenList(nil, true, true, "", "")
+		_, local, err := s2.fsm.State().ACLTokenList(nil, true, true, "", "", "")
 		require.NoError(t, err)
 
 		require.Len(t, remote, len(local))

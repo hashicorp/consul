@@ -396,11 +396,11 @@ func TestACLReplication_LegacyTokens(t *testing.T) {
 	}
 
 	checkSame := func() error {
-		index, remote, err := s1.fsm.State().ACLTokenList(nil, true, true, "", "")
+		index, remote, err := s1.fsm.State().ACLTokenList(nil, true, true, "", "", "")
 		if err != nil {
 			return err
 		}
-		_, local, err := s2.fsm.State().ACLTokenList(nil, true, true, "", "")
+		_, local, err := s2.fsm.State().ACLTokenList(nil, true, true, "", "", "")
 		if err != nil {
 			return err
 		}

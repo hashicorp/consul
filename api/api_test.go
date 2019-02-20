@@ -875,9 +875,10 @@ func TestAPI_GenerateEnv(t *testing.T) {
 	t.Parallel()
 
 	c := &Config{
-		Address: "127.0.0.1:8500",
-		Token:   "test",
-		Scheme:  "http",
+		Address:   "127.0.0.1:8500",
+		Token:     "test",
+		TokenFile: "test.file",
+		Scheme:    "http",
 		TLSConfig: TLSConfig{
 			CAFile:             "",
 			CAPath:             "",
@@ -891,6 +892,7 @@ func TestAPI_GenerateEnv(t *testing.T) {
 	expected := []string{
 		"CONSUL_HTTP_ADDR=127.0.0.1:8500",
 		"CONSUL_HTTP_TOKEN=test",
+		"CONSUL_HTTP_TOKEN_FILE=test.file",
 		"CONSUL_HTTP_SSL=false",
 		"CONSUL_CACERT=",
 		"CONSUL_CAPATH=",
@@ -908,9 +910,10 @@ func TestAPI_GenerateEnvHTTPS(t *testing.T) {
 	t.Parallel()
 
 	c := &Config{
-		Address: "127.0.0.1:8500",
-		Token:   "test",
-		Scheme:  "https",
+		Address:   "127.0.0.1:8500",
+		Token:     "test",
+		TokenFile: "test.file",
+		Scheme:    "https",
 		TLSConfig: TLSConfig{
 			CAFile:             "/var/consul/ca.crt",
 			CAPath:             "/var/consul/ca.dir",
@@ -928,6 +931,7 @@ func TestAPI_GenerateEnvHTTPS(t *testing.T) {
 	expected := []string{
 		"CONSUL_HTTP_ADDR=127.0.0.1:8500",
 		"CONSUL_HTTP_TOKEN=test",
+		"CONSUL_HTTP_TOKEN_FILE=test.file",
 		"CONSUL_HTTP_SSL=true",
 		"CONSUL_CACERT=/var/consul/ca.crt",
 		"CONSUL_CAPATH=/var/consul/ca.dir",

@@ -113,6 +113,7 @@ func TestStructs_ACLCaches(t *testing.T) {
 		require.NotNil(t, cache)
 
 		cache.PutRole("foo", &ACLRole{})
+
 		entry := cache.GetRole("foo")
 		require.NotNil(t, entry)
 		require.NotNil(t, entry.Role)

@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetPrivateIP(t *testing.T) {
@@ -401,5 +402,135 @@ func TestServersMeetMinimumVersion(t *testing.T) {
 		if result != tc.expected {
 			t.Fatalf("bad: %v, %v, %v", result, tc.ver.String(), tc)
 		}
+	}
+}
+
+func TestInterpolateHIL(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		in   string
+		vars map[string]string
+		exp  string
+		ok   bool
+	}{
+		// valid HIL
+		{
+			"empty",
+			"",
+			map[string]string{},
+			"",
+			true,
+		},
+		{
+			"no vars",
+			"nothing",
+			map[string]string{},
+			"nothing",
+			true,
+		},
+		{
+			"just var",
+			"${item}",
+			map[string]string{"item": "value"},
+			"value",
+			true,
+		},
+		{
+			"var in middle",
+			"before ${item}after",
+			map[string]string{"item": "value"},
+			"before valueafter",
+			true,
+		},
+		{
+			"two vars",
+			"before ${item}after ${more}",
+			map[string]string{"item": "value", "more": "xyz"},
+			"before valueafter xyz",
+			true,
+		},
+		{
+			"missing map val",
+			"${item}",
+			map[string]string{"item": ""},
+			"",
+			true,
+		},
+		// "weird" HIL, but not technically invalid
+		{
+			"just end",
+			"}",
+			map[string]string{},
+			"}",
+			true,
+		},
+		{
+			"var without start",
+			" item }",
+			map[string]string{"item": "value"},
+			" item }",
+			true,
+		},
+		{
+			"two vars missing second start",
+			"before ${ item }after  more }",
+			map[string]string{"item": "value", "more": "xyz"},
+			"before valueafter  more }",
+			true,
+		},
+		// invalid HIL
+		{
+			"just start",
+			"${",
+			map[string]string{},
+			"",
+			false,
+		},
+		{
+			"backwards",
+			"}${",
+			map[string]string{},
+			"",
+			false,
+		},
+		{
+			"no varname",
+			"${}",
+			map[string]string{},
+			"",
+			false,
+		},
+		{
+			"missing map key",
+			"${item}",
+			map[string]string{},
+			"",
+			false,
+		},
+		{
+			"var without end",
+			"${ item ",
+			map[string]string{"item": "value"},
+			"",
+			false,
+		},
+		{
+			"two vars missing first end",
+			"before ${ item after ${ more }",
+			map[string]string{"item": "value", "more": "xyz"},
+			"",
+			false,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			out, err := InterpolateHIL(test.in, test.vars)
+			if test.ok {
+				require.NoError(t, err)
+				require.Equal(t, test.exp, out)
+			} else {
+				require.NotNil(t, err)
+				require.Equal(t, out, "")
+			}
+		})
 	}
 }
