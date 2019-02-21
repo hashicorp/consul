@@ -82,7 +82,8 @@ duration.
 While the mechanism is relatively simple to work with, there are a few edge 
 cases that must be handled correctly.
  * **Reset the index if it goes backwards**. While indexes in general are 
-   monotonically increasing, there are several real-world scenarios in 
+   monotonically increasing(i.e. they should only ever increase as time passes), 
+   there are several real-world scenarios in 
    which they can go backwards for a given query. Implementations must check 
    to see if a returned index is lower than the previous value, 
    and if it is, should reset index to `0` - effectively restarting their blocking loop. 
