@@ -14,7 +14,7 @@ import (
 // Upstream is used to resolve CNAME or other external targets via CoreDNS itself.
 type Upstream struct{}
 
-// New creates a new Upstream to resolve names using the the coredns process.
+// New creates a new Upstream to resolve names using the coredns process.
 func New() *Upstream { return &Upstream{} }
 
 // Lookup routes lookups to our selves or forward to a remote.
