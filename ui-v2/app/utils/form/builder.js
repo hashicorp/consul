@@ -77,9 +77,13 @@ export default function(changeset = defaultChangeset, getFormNameProperty = pars
         }
         const data = this.getData();
         // ember-data/changeset dance
+        // TODO: This works for ember-data RecordSets and Changesets but not for plain js Objects
+        // see settings
         const json = typeof data.toJSON === 'function' ? data.toJSON() : get(data, 'data').toJSON();
         // if the form doesn't include a property then throw so it can be
         // caught outside, therefore the user can deal with things that aren't in the data
+        // TODO: possibly need to add support for deeper properties using `get` here
+        // for example `client.blocking` instead of just `blocking`
         if (!Object.keys(json).includes(prop)) {
           const error = new Error(`${prop} property doesn't exist`);
           error.target = target;

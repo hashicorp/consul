@@ -1,9 +1,10 @@
 import Controller from '@ember/controller';
 import { computed } from '@ember/object';
+import WithEventSource from 'consul-ui/mixins/with-event-source';
 import WithHealthFiltering from 'consul-ui/mixins/with-health-filtering';
 import WithSearching from 'consul-ui/mixins/with-searching';
 import { get } from '@ember/object';
-export default Controller.extend(WithSearching, WithHealthFiltering, {
+export default Controller.extend(WithEventSource, WithSearching, WithHealthFiltering, {
   init: function() {
     this.searchParams = {
       healthyNode: 's',
