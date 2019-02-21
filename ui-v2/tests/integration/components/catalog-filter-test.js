@@ -11,22 +11,12 @@ test('it renders', function(assert) {
 
   this.render(hbs`{{catalog-filter}}`);
 
-  assert.equal(
-    this.$()
-      .text()
-      .trim(),
-    'Search'
-  );
+  assert.equal(this.$().find('form').length, 1);
 
   // Template block usage:
   this.render(hbs`
     {{#catalog-filter}}{{/catalog-filter}}
   `);
 
-  assert.equal(
-    this.$()
-      .text()
-      .trim(),
-    'Search'
-  );
+  assert.equal(this.$().find('form').length, 1);
 });

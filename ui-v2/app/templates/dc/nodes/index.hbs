@@ -1,13 +1,13 @@
 {{#app-view class="node list"}}
     {{#block-slot 'header'}}
         <h1>
-            Nodes
+            Nodes <em>{{format-number items.length}} total</em>
         </h1>
         <label for="toolbar-toggle"></label>
     {{/block-slot}}
     {{#block-slot 'toolbar'}}
 {{#if (gt items.length 0) }}
-        {{catalog-filter searchable=(array searchableHealthy searchableUnhealthy) filters=healthFilters search=s status=filters.status onchange=(action 'filter')}}
+        {{catalog-filter searchable=(array searchableHealthy searchableUnhealthy) search=s status=filters.status onchange=(action 'filter')}}
 {{/if}}
     {{/block-slot}}
     {{#block-slot 'content'}}

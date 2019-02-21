@@ -5,13 +5,13 @@
     {{/block-slot}}
     {{#block-slot 'header'}}
         <h1>
-            Services
+            Services <em>{{format-number items.length}} total</em>
         </h1>
         <label for="toolbar-toggle"></label>
     {{/block-slot}}
     {{#block-slot 'toolbar'}}
 {{#if (gt items.length 0) }}
-        {{catalog-filter searchable=searchable filters=healthFilters search=filters.s status=filters.status onchange=(action 'filter')}}
+        {{catalog-filter searchable=searchable search=filters.s status=filters.status onchange=(action 'filter')}}
 {{/if}}
     {{/block-slot}}
     {{#block-slot 'content'}}
