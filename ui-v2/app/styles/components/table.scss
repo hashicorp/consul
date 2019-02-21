@@ -1,40 +1,29 @@
 @import './icons/index';
 @import './table/index';
+
+html.template-service.template-list td:first-child a span,
+html.template-node.template-show #services td:first-child a span,
+html.template-service.template-show #instances td:first-child a span {
+  @extend %with-external-source-icon;
+  float: left;
+  margin-right: 10px;
+  margin-top: 2px;
+}
+/* This nudges the th in for the external source icons */
+html.template-node.template-show #services th:first-child,
+html.template-service.template-show #instances th:first-child,
+html.template-service.template-list main th:first-child {
+  text-indent: 28px;
+}
+
 td.folder {
   @extend %with-folder;
-}
-td dt.passing {
-  @extend %with-passing;
-}
-td dt.warning {
-  @extend %with-warning;
-}
-td dt.critical {
-  @extend %with-critical;
-}
-td span.zero {
-  @extend %with-no-healthchecks;
-  display: block;
-  text-indent: 20px;
-  color: $gray-400;
 }
 table:not(.sessions) tr {
   cursor: pointer;
 }
 table:not(.sessions) td:first-child {
   padding: 0;
-}
-td dt.passing,
-td dt.passing + dd {
-  color: $color-success;
-}
-td dt.warning,
-td dt.warning + dd {
-  color: $color-alert;
-}
-td dt.critical,
-td dt.critical + dd {
-  color: $color-failure;
 }
 /* Header Tooltips/Icon*/
 th {

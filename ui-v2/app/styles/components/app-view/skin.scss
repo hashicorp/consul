@@ -1,10 +1,28 @@
-%app-view h2,
-%app-view header > div:last-of-type {
-  border-bottom: $decor-border-100;
-}
-%app-view header > div:last-of-type,
 %app-view h2 {
-  border-color: $keyline-light;
+  border-bottom: $decor-border-200;
+}
+@media #{$--horizontal-selects} {
+  %app-view header h1 {
+    border-bottom: $decor-border-200;
+  }
+}
+@media #{$--lt-horizontal-selects} {
+  %app-view header > div > div:last-child {
+    border-bottom: $decor-border-200;
+  }
+}
+%app-view header > div > div:last-child,
+%app-view header h1,
+%app-view h2 {
+  border-color: $gray-200;
+}
+// We know that any sibling navs might have a top border
+// by default. As its squashed up to a h1, in this
+// case hide its border to avoid double border
+@media #{$--horizontal-selects} {
+  %app-view header h1 ~ nav {
+    border-top: 0 !important;
+  }
 }
 %app-content div > dl > dd {
   color: $gray-400;

@@ -93,12 +93,11 @@
 }
 %with-chevron::before {
   @extend %pseudo-icon;
-  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="6" height="9" xmlns="http://www.w3.org/2000/svg"><path fill="%230068FF" d="M5.771 9H3.527L.334 4.834 3.527.674h2.244l-3.193 4.16z" opacity=".33"/></svg>');
+  content: '❮';
   width: 6px;
-  height: 9px;
+  background-color: transparent;
   left: 0;
-  margin-top: -4px;
-  background-color: $color-transparent;
+  font-size: 0.7rem;
 }
 %with-folder::before {
   @extend %pseudo-icon;

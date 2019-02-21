@@ -1,25 +1,3 @@
-{{#feedback-dialog type='inline'}}
-    {{#block-slot 'action' as |success error|}}
-        {{#copy-button success=(action success) error=(action error) clipboardText=output title='copy output to clipboard'}}
-            Copy Output
-        {{/copy-button}}
-    {{/block-slot}}
-    {{#block-slot 'success' as |transition|}}
-      <p class={{transition}}>
-        Copied IP Address!
-      </p>
-    {{/block-slot}}
-    {{#block-slot 'error' as |transition|}}
-      <p class={{transition}}>
-        Sorry, something went wrong!
-      </p>
-    {{/block-slot}}
-{{/feedback-dialog}}
-<dl>
-    <dt>{{name}}</dt>
-    <dd>{{notes}}</dd>
-    <dt>Output</dt>
-    <dd>
-        <pre><code>{{output}}</code></pre>
-    </dd>
-</dl>
+{{!-- we use concat here to avoid ember adding returns between words, which causes a layout issue--}}
+<dt title="{{capitalize name}}" class="{{name}}{{if (lt count 1) ' zero'}}">{{ concat 'Healthchecks ' (capitalize name) }}</dt>
+<dd title="{{capitalize name}}" class={{if (lt count 1) 'zero'}} style={{width}}>{{format-number count}}</dd>

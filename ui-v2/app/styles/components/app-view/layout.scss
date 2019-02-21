@@ -10,6 +10,15 @@
   display: flex;
   align-items: flex-start;
 }
+%app-view header dl {
+  float: left;
+  margin-top: 25px;
+  margin-right: 50px;
+  margin-bottom: 20px;
+}
+%app-view header dt {
+  font-weight: bold;
+}
 /* units */
 %app-view {
   margin-top: 50px;
