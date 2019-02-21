@@ -88,9 +88,9 @@ export const routes = {
     _options: { path: '/' },
   },
   // The settings page is global.
-  // settings: {
-  //   _options: { path: '/setting' },
-  // },
+  settings: {
+    _options: { path: '/setting' },
+  },
   notfound: {
     _options: { path: '/*path' },
   },

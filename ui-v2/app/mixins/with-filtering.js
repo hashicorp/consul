@@ -15,7 +15,7 @@ const toKeyValue = function(el) {
 };
 export default Mixin.create({
   filters: {},
-  filtered: computed('items', 'filters', function() {
+  filtered: computed('items.[]', 'filters', function() {
     const filters = get(this, 'filters');
     return get(this, 'items').filter(item => {
       return this.filter(item, filters);
