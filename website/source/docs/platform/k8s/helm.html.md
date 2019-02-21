@@ -359,4 +359,4 @@ connectInject:
 
 ## Customizing the Helm Chart
 
-Consul within Kubernetes is highly configurable, the Helm chart contains dozens of the most commonly used configuration options. If you need to extend the Helm chart with additional options, we recommend using a third-party tool, such as [kustomize](https://github.com/kubernetes-sigs/kustomize) or [ship](https://github.com/replicatedhq/ship).
+Consul within Kubernetes is highly configurable and the Helm chart contains dozens of the most commonly used configuration options. If you need to extend the Helm chart with additional options, we recommend using a third-party tool, such as [kustomize](https://github.com/kubernetes-sigs/kustomize) or [ship](https://github.com/replicatedhq/ship).
