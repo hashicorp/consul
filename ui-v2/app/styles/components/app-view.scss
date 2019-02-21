@@ -18,6 +18,9 @@ main {
 %app-view h1 span {
   @extend %with-external-source-icon;
 }
+%app-view h1 em {
+  color: $gray-600;
+}
 %app-view header .actions a,
 %app-view header .actions button {
   @extend %button-compact;
