@@ -129,89 +129,34 @@ func (c *Config) skipBuiltinVerify() bool {
 	return c.VerifyServerHostname == false && c.ServerName == ""
 }
 
-// OutgoingTLSConfig generates a TLS configuration for outgoing
-// requests. It will return a nil config if this configuration should
-// not use TLS for outgoing connections.
-func (c *Config) OutgoingTLSConfig() (*tls.Config, error) {
-	if !c.UseTLS && !c.VerifyOutgoing {
-		return nil, nil
-	}
+// // OutgoingTLSWrapper returns a a DCWrapper based on the OutgoingTLS
+// // configuration. If hostname verification is on, the wrapper
+// // will properly generate the dynamic server name for verification.
+// func (c *Config) OutgoingTLSWrapper() (DCWrapper, error) {
+// 	// Get the TLS config
+// 	tlsConfig, err := c.OutgoingTLSConfig()
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	// Create the tlsConfig
-	tlsConfig := &tls.Config{
-		RootCAs:            x509.NewCertPool(),
-		InsecureSkipVerify: c.skipBuiltinVerify(),
-		ServerName:         c.ServerName,
-	}
-	if len(c.CipherSuites) != 0 {
-		tlsConfig.CipherSuites = c.CipherSuites
-	}
-	if c.PreferServerCipherSuites {
-		tlsConfig.PreferServerCipherSuites = true
-	}
+// 	// Check if TLS is not enabled
+// 	if tlsConfig == nil {
+// 		return nil, nil
+// 	}
 
-	// Ensure we have a CA if VerifyOutgoing is set
-	if c.VerifyOutgoing && c.CAFile == "" && c.CAPath == "" {
-		return nil, fmt.Errorf("VerifyOutgoing set, and no CA certificate provided!")
-	}
+// 	// Generate the wrapper based on hostname verification
+// 	wrapper := func(dc string, conn net.Conn) (net.Conn, error) {
+// 		if c.VerifyServerHostname {
+// 			// Strip the trailing '.' from the domain if any
+// 			domain := strings.TrimSuffix(c.Domain, ".")
+// 			tlsConfig = tlsConfig.Clone()
+// 			tlsConfig.ServerName = "server." + dc + "." + domain
+// 		}
+// 		return c.wrapTLSClient(conn, tlsConfig)
+// 	}
 
-	// Parse the CA certs if any
-	rootConfig := &rootcerts.Config{
-		CAFile: c.CAFile,
-		CAPath: c.CAPath,
-	}
-	if err := rootcerts.ConfigureTLS(tlsConfig, rootConfig); err != nil {
-		return nil, err
-	}
-
-	// Add cert/key
-	cert, err := c.KeyPair()
-	if err != nil {
-		return nil, err
-	} else if cert != nil {
-		tlsConfig.Certificates = []tls.Certificate{*cert}
-	}
-
-	// Check if a minimum TLS version was set
-	if c.TLSMinVersion != "" {
-		tlsvers, ok := TLSLookup[c.TLSMinVersion]
-		if !ok {
-			return nil, fmt.Errorf("TLSMinVersion: value %s not supported, please specify one of [tls10,tls11,tls12]", c.TLSMinVersion)
-		}
-		tlsConfig.MinVersion = tlsvers
-	}
-
-	return tlsConfig, nil
-}
-
-// OutgoingTLSWrapper returns a a DCWrapper based on the OutgoingTLS
-// configuration. If hostname verification is on, the wrapper
-// will properly generate the dynamic server name for verification.
-func (c *Config) OutgoingTLSWrapper() (DCWrapper, error) {
-	// Get the TLS config
-	tlsConfig, err := c.OutgoingTLSConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	// Check if TLS is not enabled
-	if tlsConfig == nil {
-		return nil, nil
-	}
-
-	// Generate the wrapper based on hostname verification
-	wrapper := func(dc string, conn net.Conn) (net.Conn, error) {
-		if c.VerifyServerHostname {
-			// Strip the trailing '.' from the domain if any
-			domain := strings.TrimSuffix(c.Domain, ".")
-			tlsConfig = tlsConfig.Clone()
-			tlsConfig.ServerName = "server." + dc + "." + domain
-		}
-		return c.wrapTLSClient(conn, tlsConfig)
-	}
-
-	return wrapper, nil
-}
+// 	return wrapper, nil
+// }
 
 // SpecificDC is used to invoke a static datacenter
 // and turns a DCWrapper into a Wrapper type.

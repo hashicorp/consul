@@ -214,7 +214,7 @@ func startTLSServer(config *Config) (net.Conn, chan error) {
 	return clientConn, errc
 }
 
-func TestConfig_outgoingWrapper_OK(t *testing.T) {
+func TestHansConfigurator_outgoingWrapper_OK(t *testing.T) {
 	config := &Config{
 		CAFile:               "../test/hostname/CertAuth.crt",
 		CertFile:             "../test/hostname/Alice.crt",
@@ -229,27 +229,22 @@ func TestConfig_outgoingWrapper_OK(t *testing.T) {
 		t.Fatalf("startTLSServer err: %v", <-errc)
 	}
 
-	wrap, err := config.OutgoingTLSWrapper()
-	if err != nil {
-		t.Fatalf("OutgoingTLSWrapper err: %v", err)
-	}
+	c := NewConfigurator(config)
+	wrap, err := c.OutgoingRPCWrapper()
+	require.NoError(t, err)
 
 	tlsClient, err := wrap("dc1", client)
-	if err != nil {
-		t.Fatalf("wrapTLS err: %v", err)
-	}
+	require.NoError(t, err)
+
 	defer tlsClient.Close()
-	if err := tlsClient.(*tls.Conn).Handshake(); err != nil {
-		t.Fatalf("write err: %v", err)
-	}
+	err = tlsClient.(*tls.Conn).Handshake()
+	require.NoError(t, err)
 
 	err = <-errc
-	if err != nil {
-		t.Fatalf("server: %v", err)
-	}
+	require.NoError(t, err)
 }
 
-func TestConfig_outgoingWrapper_BadDC(t *testing.T) {
+func TestHansConfigurator_outgoingWrapper_BadDC(t *testing.T) {
 	config := &Config{
 		CAFile:               "../test/hostname/CertAuth.crt",
 		CertFile:             "../test/hostname/Alice.crt",
@@ -264,25 +259,22 @@ func TestConfig_outgoingWrapper_BadDC(t *testing.T) {
 		t.Fatalf("startTLSServer err: %v", <-errc)
 	}
 
-	wrap, err := config.OutgoingTLSWrapper()
-	if err != nil {
-		t.Fatalf("OutgoingTLSWrapper err: %v", err)
-	}
+	c := NewConfigurator(config)
+	wrap, err := c.OutgoingRPCWrapper()
+	require.NoError(t, err)
 
 	tlsClient, err := wrap("dc2", client)
-	if err != nil {
-		t.Fatalf("wrapTLS err: %v", err)
-	}
+	require.NoError(t, err)
+
 	err = tlsClient.(*tls.Conn).Handshake()
-	if _, ok := err.(x509.HostnameError); !ok {
-		t.Fatalf("should get hostname err: %v", err)
-	}
+	_, ok := err.(x509.HostnameError)
+	require.True(t, ok)
 	tlsClient.Close()
 
 	<-errc
 }
 
-func TestConfig_outgoingWrapper_BadCert(t *testing.T) {
+func TestHansConfigurator_outgoingWrapper_BadCert(t *testing.T) {
 	config := &Config{
 		CAFile:               "../test/ca/root.cer",
 		CertFile:             "../test/key/ourdomain.cer",
@@ -297,15 +289,13 @@ func TestConfig_outgoingWrapper_BadCert(t *testing.T) {
 		t.Fatalf("startTLSServer err: %v", <-errc)
 	}
 
-	wrap, err := config.OutgoingTLSWrapper()
-	if err != nil {
-		t.Fatalf("OutgoingTLSWrapper err: %v", err)
-	}
+	c := NewConfigurator(config)
+	wrap, err := c.OutgoingRPCWrapper()
+	require.NoError(t, err)
 
 	tlsClient, err := wrap("dc1", client)
-	if err != nil {
-		t.Fatalf("wrapTLS err: %v", err)
-	}
+	require.NoError(t, err)
+
 	err = tlsClient.(*tls.Conn).Handshake()
 	if _, ok := err.(x509.HostnameError); !ok {
 		t.Fatalf("should get hostname err: %v", err)
@@ -315,7 +305,7 @@ func TestConfig_outgoingWrapper_BadCert(t *testing.T) {
 	<-errc
 }
 
-func TestConfig_wrapTLS_OK(t *testing.T) {
+func TestHansConfigurator_wrapTLS_OK(t *testing.T) {
 	config := &Config{
 		CAFile:         "../test/ca/root.cer",
 		CertFile:       "../test/key/ourdomain.cer",
@@ -328,24 +318,19 @@ func TestConfig_wrapTLS_OK(t *testing.T) {
 		t.Fatalf("startTLSServer err: %v", <-errc)
 	}
 
-	clientConfig, err := config.OutgoingTLSConfig()
-	if err != nil {
-		t.Fatalf("OutgoingTLSConfig err: %v", err)
-	}
+	c := NewConfigurator(config)
+	clientConfig, err := c.OutgoingRPCConfig()
+	require.NoError(t, err)
 
 	tlsClient, err := config.wrapTLSClient(client, clientConfig)
-	if err != nil {
-		t.Fatalf("wrapTLS err: %v", err)
-	} else {
-		tlsClient.Close()
-	}
+	require.NoError(t, err)
+
+	tlsClient.Close()
 	err = <-errc
-	if err != nil {
-		t.Fatalf("server: %v", err)
-	}
+	require.NoError(t, err)
 }
 
-func TestConfig_wrapTLS_BadCert(t *testing.T) {
+func TestHansConfigurator_wrapTLS_BadCert(t *testing.T) {
 	serverConfig := &Config{
 		CertFile: "../test/key/ssl-cert-snakeoil.pem",
 		KeyFile:  "../test/key/ssl-cert-snakeoil.key",
@@ -361,23 +346,16 @@ func TestConfig_wrapTLS_BadCert(t *testing.T) {
 		VerifyOutgoing: true,
 	}
 
-	clientTLSConfig, err := clientConfig.OutgoingTLSConfig()
-	if err != nil {
-		t.Fatalf("OutgoingTLSConfig err: %v", err)
-	}
+	c := NewConfigurator(clientConfig)
+	clientTLSConfig, err := c.OutgoingRPCConfig()
+	require.NoError(t, err)
 
 	tlsClient, err := clientConfig.wrapTLSClient(client, clientTLSConfig)
-	if err == nil {
-		t.Fatalf("wrapTLS no err")
-	}
-	if tlsClient != nil {
-		t.Fatalf("returned a client")
-	}
+	require.Error(t, err)
+	require.Nil(t, tlsClient)
 
 	err = <-errc
-	if err != nil {
-		t.Fatalf("server: %v", err)
-	}
+	require.NoError(t, err)
 }
 
 func TestConfig_ParseCiphers(t *testing.T) {
