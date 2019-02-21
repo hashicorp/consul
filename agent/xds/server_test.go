@@ -361,6 +361,88 @@ func expectListenerJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token strin
 		expectListenerJSONResources(t, snap, token, v, n))
 }
 
+func expectClustersJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot, token string, v, n uint64) map[string]string {
+	return map[string]string{
+		"local_app": `
+			{
+				"@type": "type.googleapis.com/envoy.api.v2.Cluster",
+				"name": "local_app",
+				"connectTimeout": "5s",
+				"hosts": [
+					{
+						"socketAddress": {
+							"address": "127.0.0.1",
+							"portValue": 8080
+						}
+					}
+				]
+			}`,
+		"service:db": `
+			{
+				"@type": "type.googleapis.com/envoy.api.v2.Cluster",
+				"name": "service:db",
+				"type": "EDS",
+				"edsClusterConfig": {
+					"edsConfig": {
+						"ads": {
+
+						}
+					}
+				},
+				"connectTimeout": "5s",
+				"tlsContext": ` + expectedUpstreamTLSContextJSON(t, snap) + `
+			}`,
+		"prepared_query:geo-cache": `
+			{
+				"@type": "type.googleapis.com/envoy.api.v2.Cluster",
+				"name": "prepared_query:geo-cache",
+				"type": "EDS",
+				"edsClusterConfig": {
+					"edsConfig": {
+						"ads": {
+
+						}
+					}
+				},
+				"connectTimeout": "5s",
+				"tlsContext": ` + expectedUpstreamTLSContextJSON(t, snap) + `
+			}`,
+	}
+}
+
+func expectClustersJSONFromResources(t *testing.T, snap *proxycfg.ConfigSnapshot, token string, v, n uint64, resourcesJSON map[string]string) string {
+	resJSON := ""
+
+	// Sort resources into specific order because that matters in JSONEq
+	// comparison later.
+	keyOrder := []string{"local_app"}
+	for _, u := range snap.Proxy.Upstreams {
+		keyOrder = append(keyOrder, u.Identifier())
+	}
+	for _, k := range keyOrder {
+		j, ok := resourcesJSON[k]
+		if !ok {
+			continue
+		}
+		if resJSON != "" {
+			resJSON += ",\n"
+		}
+		resJSON += j
+	}
+
+	return `{
+		"versionInfo": "` + hexString(v) + `",
+		"resources": [` + resJSON + `],
+		"typeUrl": "type.googleapis.com/envoy.api.v2.Cluster",
+		"nonce": "` + hexString(n) + `"
+		}`
+}
+
+func expectClustersJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token string, v, n uint64) string {
+	return expectClustersJSONFromResources(t, snap, token, v, n,
+		expectClustersJSONResources(t, snap, token, v, n))
+}
+
 func expectEndpointsJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token string, v, n uint64) string {
 	return `{
 		"versionInfo": "` + hexString(v) + `",
@@ -399,58 +481,6 @@ func expectEndpointsJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token stri
 		"typeUrl": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
 		"nonce": "` + hexString(n) + `"
 	}`
-}
-
-func expectClustersJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token string, v, n uint64) string {
-	return `{
-		"versionInfo": "` + hexString(v) + `",
-		"resources": [
-			{
-				"@type": "type.googleapis.com/envoy.api.v2.Cluster",
-				"name": "local_app",
-				"connectTimeout": "5s",
-				"hosts": [
-					{
-						"socketAddress": {
-							"address": "127.0.0.1",
-							"portValue": 8080
-						}
-					}
-				]
-			},
-			{
-				"@type": "type.googleapis.com/envoy.api.v2.Cluster",
-				"name": "service:db",
-				"type": "EDS",
-				"edsClusterConfig": {
-					"edsConfig": {
-						"ads": {
-
-						}
-					}
-				},
-				"connectTimeout": "5s",
-				"tlsContext": ` + expectedUpstreamTLSContextJSON(t, snap) + `
-			},
-			{
-				"@type": "type.googleapis.com/envoy.api.v2.Cluster",
-				"name": "prepared_query:geo-cache",
-				"type": "EDS",
-				"edsClusterConfig": {
-					"edsConfig": {
-						"ads": {
-
-						}
-					}
-				},
-				"connectTimeout": "5s",
-				"tlsContext": ` + expectedUpstreamTLSContextJSON(t, snap) + `
-			}
-		],
-		"typeUrl": "type.googleapis.com/envoy.api.v2.Cluster",
-		"nonce": "` + hexString(n) + `"
-	}
-	`
 }
 
 func expectedUpstreamTLSContextJSON(t *testing.T, snap *proxycfg.ConfigSnapshot) string {
@@ -973,7 +1003,7 @@ func TestServer_Check(t *testing.T) {
 	}
 }
 
-func TestServer_ConfigOverrides(t *testing.T) {
+func TestServer_ConfigOverridesListeners(t *testing.T) {
 
 	tests := []struct {
 		name  string
@@ -1118,6 +1148,123 @@ func TestServer_ConfigOverrides(t *testing.T) {
 	}
 }
 
+func TestServer_ConfigOverridesClusters(t *testing.T) {
+
+	tests := []struct {
+		name  string
+		setup func(snap *proxycfg.ConfigSnapshot) string
+	}{
+		{
+			name: "sanity check no custom",
+			setup: func(snap *proxycfg.ConfigSnapshot) string {
+				// Default snap and expectation
+				return expectClustersJSON(t, snap, "my-token", 1, 1)
+			},
+		},
+		{
+			name: "custom public with no type",
+			setup: func(snap *proxycfg.ConfigSnapshot) string {
+				snap.Proxy.Config["envoy_local_cluster_json"] =
+					customAppClusterJSON(t, customClusterJSONOptions{
+						Name:        "mylocal",
+						IncludeType: false,
+					})
+				resources := expectClustersJSONResources(t, snap, "my-token", 1, 1)
+
+				// Replace an upstream listener with the custom one WITH type since
+				// that's how it comes out the other end.
+				resources["local_app"] =
+					customAppClusterJSON(t, customClusterJSONOptions{
+						Name:        "mylocal",
+						IncludeType: true,
+					})
+				return expectClustersJSONFromResources(t, snap, "my-token", 1, 1, resources)
+			},
+		},
+		{
+			name: "custom public with type",
+			setup: func(snap *proxycfg.ConfigSnapshot) string {
+				snap.Proxy.Config["envoy_local_cluster_json"] =
+					customAppClusterJSON(t, customClusterJSONOptions{
+						Name:        "mylocal",
+						IncludeType: true,
+					})
+				resources := expectClustersJSONResources(t, snap, "my-token", 1, 1)
+
+				// Replace an upstream listener with the custom one WITH type since
+				// that's how it comes out the other end.
+				resources["local_app"] =
+					customAppClusterJSON(t, customClusterJSONOptions{
+						Name:        "mylocal",
+						IncludeType: true,
+					})
+				return expectClustersJSONFromResources(t, snap, "my-token", 1, 1, resources)
+			},
+		},
+		{
+			name: "custom upstream with no type",
+			setup: func(snap *proxycfg.ConfigSnapshot) string {
+				snap.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
+					customEDSClusterJSON(t, customClusterJSONOptions{
+						Name:        "myservice",
+						IncludeType: false,
+					})
+				resources := expectClustersJSONResources(t, snap, "my-token", 1, 1)
+
+				// Replace an upstream listener with the custom one WITH type since
+				// that's how it comes out the other end.
+				resources["service:db"] =
+					customEDSClusterJSON(t, customClusterJSONOptions{
+						Name:        "myservice",
+						IncludeType: true,
+						TLSContext:  expectedUpstreamTLSContextJSON(t, snap),
+					})
+				return expectClustersJSONFromResources(t, snap, "my-token", 1, 1, resources)
+			},
+		},
+		{
+			name: "custom upstream with type",
+			setup: func(snap *proxycfg.ConfigSnapshot) string {
+				snap.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
+					customEDSClusterJSON(t, customClusterJSONOptions{
+						Name:        "myservice",
+						IncludeType: true,
+					})
+				resources := expectClustersJSONResources(t, snap, "my-token", 1, 1)
+
+				// Replace an upstream listener with the custom one WITH type since
+				// that's how it comes out the other end.
+				resources["service:db"] =
+					customEDSClusterJSON(t, customClusterJSONOptions{
+						Name:        "myservice",
+						IncludeType: true,
+						TLSContext:  expectedUpstreamTLSContextJSON(t, snap),
+					})
+				return expectClustersJSONFromResources(t, snap, "my-token", 1, 1, resources)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require := require.New(t)
+
+			// Sanity check default with no overrides first
+			snap := proxycfg.TestConfigSnapshot(t)
+			expect := tt.setup(snap)
+
+			clusters, err := clustersFromSnapshot(snap, "my-token")
+			require.NoError(err)
+			r, err := createResponse(ClusterType, "00000001", "00000001", clusters)
+			require.NoError(err)
+
+			fmt.Println(r)
+
+			assertResponse(t, r, expect)
+		})
+	}
+}
+
 type customListenerJSONOptions struct {
 	Name          string
 	IncludeType   bool
@@ -1179,6 +1326,70 @@ func customListenerJSON(t *testing.T, opts customListenerJSONOptions) string {
 	t.Helper()
 	var buf bytes.Buffer
 	err := customListenerJSONTemplate.Execute(&buf, opts)
+	require.NoError(t, err)
+	return buf.String()
+}
+
+type customClusterJSONOptions struct {
+	Name        string
+	IncludeType bool
+	TLSContext  string
+}
+
+var customEDSClusterJSONTpl = `{
+	{{ if .IncludeType -}}
+	"@type": "type.googleapis.com/envoy.api.v2.Cluster",
+	{{- end }}
+	{{ if .TLSContext -}}
+	"tlsContext": {{ .TLSContext }},
+	{{- end }}
+	"name": "{{ .Name }}",
+	"type": "EDS",
+	"edsClusterConfig": {
+		"edsConfig": {
+			"ads": {
+
+			}
+		}
+	},
+	"connectTimeout": "5s"
+}`
+
+var customEDSClusterJSONTemplate = template.Must(template.New("").Parse(customEDSClusterJSONTpl))
+
+func customEDSClusterJSON(t *testing.T, opts customClusterJSONOptions) string {
+	t.Helper()
+	var buf bytes.Buffer
+	err := customEDSClusterJSONTemplate.Execute(&buf, opts)
+	require.NoError(t, err)
+	return buf.String()
+}
+
+var customAppClusterJSONTpl = `{
+	{{ if .IncludeType -}}
+	"@type": "type.googleapis.com/envoy.api.v2.Cluster",
+	{{- end }}
+	{{ if .TLSContext -}}
+	"tlsContext": {{ .TLSContext }},
+	{{- end }}
+	"name": "{{ .Name }}",
+	"connectTimeout": "5s",
+	"hosts": [
+		{
+			"socketAddress": {
+				"address": "127.0.0.1",
+				"portValue": 8080
+			}
+		}
+	]
+}`
+
+var customAppClusterJSONTemplate = template.Must(template.New("").Parse(customAppClusterJSONTpl))
+
+func customAppClusterJSON(t *testing.T, opts customClusterJSONOptions) string {
+	t.Helper()
+	var buf bytes.Buffer
+	err := customAppClusterJSONTemplate.Execute(&buf, opts)
 	require.NoError(t, err)
 	return buf.String()
 }

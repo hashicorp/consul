@@ -33,6 +33,7 @@ func (s *HTTPServer) IntentionList(resp http.ResponseWriter, req *http.Request) 
 	}
 
 	var reply structs.IndexedIntentions
+	defer setMeta(resp, &reply.QueryMeta)
 	if err := s.agent.RPC("Intention.List", &args, &reply); err != nil {
 		return nil, err
 	}
