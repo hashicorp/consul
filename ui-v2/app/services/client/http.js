@@ -63,6 +63,9 @@ export default Service.extend({
       });
     }
   },
+  abort: function(id = null) {
+    get(this, 'connections').purge();
+  },
   whenAvailable: function(e) {
     const doc = get(this, 'dom').document();
     // if we are using a connection limited protocol and the user has hidden the tab (hidden browser/tab switch)

@@ -1,6 +1,7 @@
 import Controller from '@ember/controller';
 import { get, computed } from '@ember/object';
 import { htmlSafe } from '@ember/string';
+import WithEventSource from 'consul-ui/mixins/with-event-source';
 import WithHealthFiltering from 'consul-ui/mixins/with-health-filtering';
 import WithSearching from 'consul-ui/mixins/with-searching';
 const max = function(arr, prop) {
@@ -25,7 +26,7 @@ const width = function(num) {
 const widthDeclaration = function(num) {
   return htmlSafe(`width: ${num}px`);
 };
-export default Controller.extend(WithSearching, WithHealthFiltering, {
+export default Controller.extend(WithEventSource, WithSearching, WithHealthFiltering, {
   init: function() {
     this.searchParams = {
       service: 's',
@@ -52,14 +53,14 @@ export default Controller.extend(WithSearching, WithHealthFiltering, {
   remainingWidth: computed('maxWidth', function() {
     return htmlSafe(`width: calc(50% - ${Math.round(get(this, 'maxWidth') / 2)}px)`);
   }),
-  maxPassing: computed('items', function() {
-    return max(get(this, 'items'), 'ChecksPassing');
+  maxPassing: computed('filtered', function() {
+    return max(get(this, 'filtered'), 'ChecksPassing');
   }),
-  maxWarning: computed('items', function() {
-    return max(get(this, 'items'), 'ChecksWarning');
+  maxWarning: computed('filtered', function() {
+    return max(get(this, 'filtered'), 'ChecksWarning');
   }),
-  maxCritical: computed('items', function() {
-    return max(get(this, 'items'), 'ChecksCritical');
+  maxCritical: computed('filtered', function() {
+    return max(get(this, 'filtered'), 'ChecksCritical');
   }),
   passingWidth: computed('maxPassing', function() {
     return widthDeclaration(width(get(this, 'maxPassing')));

@@ -65,7 +65,10 @@ export default function(assert) {
       }, yadda)
     )
       // doubles
-      .given(['$number $model model[s]?', '$number $model models'], function(number, model) {
+      .given(['an external edit results in $number $model model[s]?'], function(number, model) {
+        return create(number, model);
+      })
+      .given(['$number $model model[s]?'], function(number, model) {
         return create(number, model);
       })
       .given(['$number $model model[s]? with the value "$value"'], function(number, model, value) {
@@ -77,7 +80,15 @@ export default function(assert) {
           return create(number, model, data);
         }
       )
-      .given(["I'm using a legacy token"], function(number, model, data) {
+      .given(['settings from yaml\n$yaml'], function(data) {
+        return Object.keys(data).forEach(function(key) {
+          window.localStorage[key] = JSON.stringify(data[key]);
+        });
+      })
+      .given('a network latency of $number', function(number) {
+        api.server.setCookie('CONSUL_LATENCY', number);
+      })
+      .given(["I'm using a legacy token"], function() {
         window.localStorage['consul:token'] = JSON.stringify({ AccessorID: null, SecretID: 'id' });
       })
       // TODO: Abstract this away from HTTP
@@ -188,6 +199,26 @@ export default function(assert) {
         });
       })
       // assertions
+      .then('pause until I see $number $model model[s]?', function(num, model) {
+        return new Promise(function(resolve) {
+          let count = 0;
+          const interval = setInterval(function() {
+            if (++count >= 50) {
+              clearInterval(interval);
+              assert.ok(false);
+              resolve();
+            }
+            const len = currentPage[`${pluralize(model)}`].filter(function(item) {
+              return item.isVisible;
+            }).length;
+            if (len === num) {
+              clearInterval(interval);
+              assert.equal(len, num, `Expected ${num} ${model}s, saw ${len}`);
+              resolve();
+            }
+          }, 100);
+        });
+      })
       .then('a $method request is made to "$url" with the body from yaml\n$yaml', function(
         method,
         url,
@@ -358,6 +389,9 @@ export default function(assert) {
       .then('I have settings like yaml\n$yaml', function(data) {
         // TODO: Inject this
         const settings = window.localStorage;
+        // TODO: this and the setup should probably use consul:
+        // as we are talking about 'settings' here not localStorage
+        // so the prefix should be hidden
         Object.keys(data).forEach(function(prop) {
           const actual = settings.getItem(prop);
           const expected = data[prop];
