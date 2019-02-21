@@ -136,6 +136,7 @@ func (c *Config) OutgoingTLSConfig() (*tls.Config, error) {
 	if !c.UseTLS && !c.VerifyOutgoing {
 		return nil, nil
 	}
+
 	// Create the tlsConfig
 	tlsConfig := &tls.Config{
 		RootCAs:            x509.NewCertPool(),
@@ -289,14 +290,13 @@ func NewConfigurator(config *Config) *Configurator {
 	return &Configurator{base: config}
 }
 
-func (c *Configurator) commonConfig() (*tls.Config, error) {
+func (c *Configurator) commonTLSConfig() (*tls.Config, error) {
 	if c.base == nil {
 		return nil, fmt.Errorf("No config")
 	}
+
 	tlsConfig := &tls.Config{
 		ServerName: c.base.ServerName,
-		ClientCAs:  x509.NewCertPool(),
-		ClientAuth: tls.NoClientCert,
 	}
 	if tlsConfig.ServerName == "" {
 		tlsConfig.ServerName = c.base.NodeName
@@ -309,6 +309,60 @@ func (c *Configurator) commonConfig() (*tls.Config, error) {
 	if c.base.PreferServerCipherSuites {
 		tlsConfig.PreferServerCipherSuites = true
 	}
+
+	// Add cert/key
+	cert, err := c.base.KeyPair()
+	if err != nil {
+		return nil, err
+	} else if cert != nil {
+		tlsConfig.Certificates = []tls.Certificate{*cert}
+	}
+
+	// Check if a minimum TLS version was set
+	if c.base.TLSMinVersion != "" {
+		tlsvers, ok := TLSLookup[c.base.TLSMinVersion]
+		if !ok {
+			return nil, fmt.Errorf("TLSMinVersion: value %s not supported, please specify one of [tls10,tls11,tls12]", c.base.TLSMinVersion)
+		}
+		tlsConfig.MinVersion = tlsvers
+	}
+	return tlsConfig, nil
+}
+
+func (c *Configurator) outgoingTLSConfig() (*tls.Config, error) {
+	tlsConfig, err := c.commonTLSConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	tlsConfig.RootCAs = x509.NewCertPool()
+	tlsConfig.InsecureSkipVerify = c.base.skipBuiltinVerify()
+
+	// Ensure we have a CA if VerifyOutgoing is set
+	if c.base.VerifyOutgoing && c.base.CAFile == "" && c.base.CAPath == "" {
+		return nil, fmt.Errorf("VerifyOutgoing set, and no CA certificate provided!")
+	}
+
+	// Parse the CA certs if any
+	rootConfig := &rootcerts.Config{
+		CAFile: c.base.CAFile,
+		CAPath: c.base.CAPath,
+	}
+	if err := rootcerts.ConfigureTLS(tlsConfig, rootConfig); err != nil {
+		return nil, err
+	}
+
+	return tlsConfig, nil
+}
+
+func (c *Configurator) incomingTLSConfig(verify bool) (*tls.Config, error) {
+	tlsConfig, err := c.commonTLSConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	tlsConfig.ClientCAs = x509.NewCertPool()
+	tlsConfig.ClientAuth = tls.NoClientCert
 
 	// Parse the CA certs if any
 	if c.base.CAFile != "" {
@@ -325,67 +379,59 @@ func (c *Configurator) commonConfig() (*tls.Config, error) {
 		tlsConfig.ClientCAs = pool
 	}
 
-	// Add cert/key
-	cert, err := c.base.KeyPair()
-	if err != nil {
-		return nil, err
-	} else if cert != nil {
-		tlsConfig.Certificates = []tls.Certificate{*cert}
-	}
-	// Check if a minimum TLS version was set
-	if c.base.TLSMinVersion != "" {
-		tlsvers, ok := TLSLookup[c.base.TLSMinVersion]
-		if !ok {
-			return nil, fmt.Errorf("TLSMinVersion: value %s not supported, please specify one of [tls10,tls11,tls12]", c.base.TLSMinVersion)
+	if verify {
+		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
+
+		if c.base.CAFile == "" && c.base.CAPath == "" {
+			return nil, fmt.Errorf("VerifyIncoming set, and no CA certificate provided!")
 		}
-		tlsConfig.MinVersion = tlsvers
+		if len(tlsConfig.Certificates) == 0 {
+			return nil, fmt.Errorf("VerifyIncoming set, and no Cert/Key pair provided!")
+		}
 	}
 	return tlsConfig, nil
-}
-
-func (c *Configurator) addVerifyIncoming(tlsConfig *tls.Config) error {
-	tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
-	if c.base.CAFile == "" && c.base.CAPath == "" {
-		return fmt.Errorf("VerifyIncoming set, and no CA certificate provided!")
-	}
-	if len(tlsConfig.Certificates) == 0 {
-		return fmt.Errorf("VerifyIncoming set, and no Cert/Key pair provided!")
-	}
-	return nil
 }
 
 func (c *Configurator) IncomingRPCConfig() (*tls.Config, error) {
-	tlsConfig, err := c.commonConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	// Check if we require verification
-	if c.base.VerifyIncoming || c.base.VerifyIncomingRPC {
-		err := c.addVerifyIncoming(tlsConfig)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return tlsConfig, nil
+	return c.incomingTLSConfig(c.base.VerifyIncoming || c.base.VerifyIncomingRPC)
 }
 
 func (c *Configurator) IncomingHTTPSConfig() (*tls.Config, error) {
-	tlsConfig, err := c.commonConfig()
+	return c.incomingTLSConfig(c.base.VerifyIncoming || c.base.VerifyIncomingHTTPS)
+}
+
+func (c *Configurator) OutgoingRPCConfig() (*tls.Config, error) {
+	useTLS := c.base.CAFile != "" || c.base.CAPath != "" || c.base.VerifyOutgoing
+	if !useTLS {
+		return nil, nil
+	}
+	return c.outgoingTLSConfig()
+}
+
+func (c *Configurator) OutgoingRPCWrapper() (DCWrapper, error) {
+	// Get the TLS config
+	tlsConfig, err := c.OutgoingRPCConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	// Check if we require verification
-	if c.base.VerifyIncoming || c.base.VerifyIncomingHTTPS {
-		err := c.addVerifyIncoming(tlsConfig)
-		if err != nil {
-			return nil, err
-		}
+	// Check if TLS is not enabled
+	if tlsConfig == nil {
+		return nil, nil
 	}
 
-	return tlsConfig, nil
+	// Generate the wrapper based on hostname verification
+	wrapper := func(dc string, conn net.Conn) (net.Conn, error) {
+		if c.base.VerifyServerHostname {
+			// Strip the trailing '.' from the domain if any
+			domain := strings.TrimSuffix(c.base.Domain, ".")
+			tlsConfig = tlsConfig.Clone()
+			tlsConfig.ServerName = "server." + dc + "." + domain
+		}
+		return c.base.wrapTLSClient(conn, tlsConfig)
+	}
+
+	return wrapper, nil
 }
 
 // ParseCiphers parse ciphersuites from the comma-separated string into recognized slice

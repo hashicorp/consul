@@ -297,8 +297,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	}
 
 	// Create the TLS wrapper for outgoing connections.
-	tlsConf := config.ToTLSUtilConfig()
-	tlsWrap, err := tlsConf.OutgoingTLSWrapper()
+	tlsWrap, err := tlsConfigurator.OutgoingRPCWrapper()
 	if err != nil {
 		return nil, err
 	}

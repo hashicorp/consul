@@ -65,53 +65,38 @@ func TestConfig_KeyPair_Valid(t *testing.T) {
 	}
 }
 
-func TestConfig_OutgoingTLS_MissingCA(t *testing.T) {
+func TestHansConfigurator_OutgoingTLS_MissingCA(t *testing.T) {
 	conf := &Config{
 		VerifyOutgoing: true,
 	}
-	tls, err := conf.OutgoingTLSConfig()
-	if err == nil {
-		t.Fatalf("expected err")
-	}
-	if tls != nil {
-		t.Fatalf("bad: %v", tls)
-	}
+	c := NewConfigurator(conf)
+	tlsConf, err := c.OutgoingRPCConfig()
+	require.Error(t, err)
+	require.Nil(t, tlsConf)
 }
 
-func TestConfig_OutgoingTLS_OnlyCA(t *testing.T) {
+func TestHansConfigurator_OutgoingTLS_OnlyCA(t *testing.T) {
 	conf := &Config{
 		CAFile: "../test/ca/root.cer",
 	}
-	tls, err := conf.OutgoingTLSConfig()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if tls != nil {
-		t.Fatalf("expected no config")
-	}
+	c := NewConfigurator(conf)
+	tlsConf, err := c.OutgoingRPCConfig()
+	require.NoError(t, err)
+	require.NotNil(t, tlsConf)
 }
 
-func TestConfig_OutgoingTLS_VerifyOutgoing(t *testing.T) {
+func TestHansConfigurator_OutgoingTLS_VerifyOutgoing(t *testing.T) {
 	conf := &Config{
 		VerifyOutgoing: true,
 		CAFile:         "../test/ca/root.cer",
 	}
-	tls, err := conf.OutgoingTLSConfig()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if tls == nil {
-		t.Fatalf("expected config")
-	}
-	if len(tls.RootCAs.Subjects()) != 1 {
-		t.Fatalf("expect root cert")
-	}
-	if tls.ServerName != "" {
-		t.Fatalf("expect no server name verification")
-	}
-	if !tls.InsecureSkipVerify {
-		t.Fatalf("should skip built-in verification")
-	}
+	c := NewConfigurator(conf)
+	tlsConf, err := c.OutgoingRPCConfig()
+	require.NoError(t, err)
+	require.NotNil(t, tlsConf)
+	require.Equal(t, len(tlsConf.RootCAs.Subjects()), 1)
+	require.Empty(t, tlsConf.ServerName)
+	require.True(t, tlsConf.InsecureSkipVerify)
 }
 
 func TestConfig_SkipBuiltinVerify(t *testing.T) {
@@ -131,77 +116,51 @@ func TestConfig_SkipBuiltinVerify(t *testing.T) {
 	}
 }
 
-func TestConfig_OutgoingTLS_ServerName(t *testing.T) {
+func TestHansConfigurator_OutgoingTLS_ServerName(t *testing.T) {
 	conf := &Config{
 		VerifyOutgoing: true,
 		CAFile:         "../test/ca/root.cer",
 		ServerName:     "consul.example.com",
 	}
-	tls, err := conf.OutgoingTLSConfig()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if tls == nil {
-		t.Fatalf("expected config")
-	}
-	if len(tls.RootCAs.Subjects()) != 1 {
-		t.Fatalf("expect root cert")
-	}
-	if tls.ServerName != "consul.example.com" {
-		t.Fatalf("expect server name")
-	}
-	if tls.InsecureSkipVerify {
-		t.Fatalf("should not skip built-in verification")
-	}
+	c := NewConfigurator(conf)
+	tlsConf, err := c.OutgoingRPCConfig()
+	require.NoError(t, err)
+	require.NotNil(t, tlsConf)
+	require.Equal(t, len(tlsConf.RootCAs.Subjects()), 1)
+	require.Equal(t, tlsConf.ServerName, "consul.example.com")
+	require.False(t, tlsConf.InsecureSkipVerify)
 }
 
-func TestConfig_OutgoingTLS_VerifyHostname(t *testing.T) {
+func TestHansConfigurator_OutgoingTLS_VerifyHostname(t *testing.T) {
 	conf := &Config{
 		VerifyOutgoing:       true,
 		VerifyServerHostname: true,
 		CAFile:               "../test/ca/root.cer",
 	}
-	tls, err := conf.OutgoingTLSConfig()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if tls == nil {
-		t.Fatalf("expected config")
-	}
-	if len(tls.RootCAs.Subjects()) != 1 {
-		t.Fatalf("expect root cert")
-	}
-	if tls.InsecureSkipVerify {
-		t.Fatalf("should not skip built-in verification")
-	}
+	c := NewConfigurator(conf)
+	tlsConf, err := c.OutgoingRPCConfig()
+	require.NoError(t, err)
+	require.NotNil(t, tlsConf)
+	require.Equal(t, len(tlsConf.RootCAs.Subjects()), 1)
+	require.False(t, tlsConf.InsecureSkipVerify)
 }
 
-func TestConfig_OutgoingTLS_WithKeyPair(t *testing.T) {
+func TestHansConfigurator_OutgoingTLS_WithKeyPair(t *testing.T) {
 	conf := &Config{
 		VerifyOutgoing: true,
 		CAFile:         "../test/ca/root.cer",
 		CertFile:       "../test/key/ourdomain.cer",
 		KeyFile:        "../test/key/ourdomain.key",
 	}
-	tls, err := conf.OutgoingTLSConfig()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if tls == nil {
-		t.Fatalf("expected config")
-	}
-	if len(tls.RootCAs.Subjects()) != 1 {
-		t.Fatalf("expect root cert")
-	}
-	if !tls.InsecureSkipVerify {
-		t.Fatalf("should skip verification")
-	}
-	if len(tls.Certificates) != 1 {
-		t.Fatalf("expected client cert")
-	}
+	c := NewConfigurator(conf)
+	tlsConf, err := c.OutgoingRPCConfig()
+	require.NoError(t, err)
+	require.NotNil(t, tlsConf)
+	require.True(t, tlsConf.InsecureSkipVerify)
+	require.Equal(t, len(tlsConf.Certificates), 1)
 }
 
-func TestConfig_OutgoingTLS_TLSMinVersion(t *testing.T) {
+func TestHansConfigurator_OutgoingTLS_TLSMinVersion(t *testing.T) {
 	tlsVersions := []string{"tls10", "tls11", "tls12"}
 	for _, version := range tlsVersions {
 		conf := &Config{
@@ -209,16 +168,11 @@ func TestConfig_OutgoingTLS_TLSMinVersion(t *testing.T) {
 			CAFile:         "../test/ca/root.cer",
 			TLSMinVersion:  version,
 		}
-		tls, err := conf.OutgoingTLSConfig()
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if tls == nil {
-			t.Fatalf("expected config")
-		}
-		if tls.MinVersion != TLSLookup[version] {
-			t.Fatalf("expected tls min version: %v, %v", tls.MinVersion, TLSLookup[version])
-		}
+		c := NewConfigurator(conf)
+		tlsConf, err := c.OutgoingRPCConfig()
+		require.NoError(t, err)
+		require.NotNil(t, tlsConf)
+		require.Equal(t, tlsConf.MinVersion, TLSLookup[version])
 	}
 }
 
