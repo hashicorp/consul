@@ -1,0 +1,72 @@
+{{#app-view class="instance show"}}
+    {{#block-slot 'breadcrumbs'}}
+        <ol>
+            <li><a data-test-back href={{href-to 'dc.services'}}>All Services</a></li>
+            <li><a data-test-back href={{href-to 'dc.services.show'}}>Service ({{item.Service}})</a></li>
+            <li><strong>Instance</strong></li>
+        </ol>
+    {{/block-slot}}
+    {{#block-slot 'header'}}
+      <h1>
+        {{ item.ID }}
+{{#with (service/external-source item) as |externalSource| }}
+  {{#with (css-var (concat '--' externalSource '-color-svg') 'none') as |bg| }}
+    {{#if (not-eq bg 'none') }}
+        <span data-test-external-source="{{externalSource}}" style={{{ concat 'background-image:' bg }}} data-tooltip="Registered via {{externalSource}}">Registered via {{externalSource}}</span>
+    {{/if}}
+  {{/with}}
+{{/with}}
+      </h1>
+      <dl>
+        <dt>Service Name</dt>
+        <dd><a href="{{href-to 'dc.services.show' item.Service}}">{{item.Service}}</a></dd>
+      </dl>
+      <dl>
+        <dt>Node Name</dt>
+        <dd><a href="{{href-to 'dc.nodes.show' item.Node.Node}}">{{item.Node.Node}}</a></dd>
+      </dl>
+{{#if proxy}}
+      <dl>
+        <dt>Sidecar Proxy</dt>
+        <dd><a href="{{href-to 'dc.services.instance' proxy.ServiceName proxy.ServiceID}}">{{proxy.ServiceID}}</a></dd>
+      </dl>
+{{/if}}
+{{#if (eq item.Kind 'connect-proxy')}}
+      <dl>
+        <dt>Dest. Service Instance</dt>
+        <dd><a href="{{href-to 'dc.services.instance' item.Proxy.DestinationServiceName item.Proxy.DestinationServiceID}}">{{item.Proxy.DestinationServiceID}}</a></dd>
+      </dl>
+      <dl>
+        <dt>Local Service Address</dt>
+        <dd>{{item.Proxy.LocalServiceAddress}}:{{item.Proxy.LocalServicePort}}</dd>
+      </dl>
+{{/if}}
+    {{/block-slot}}
+    {{#block-slot 'content'}}
+        {{tab-nav
+            items=(compact
+              (array
+                                    'Service Checks'
+                                    'Node Checks'
+(if (eq item.Kind 'connect-proxy')  'Upstreams' '')
+                                    'Tags'
+              )
+            )
+            selected=selectedTab
+        }}
+        {{#each
+            (compact
+                (array
+                                    (hash id=(slugify 'Service Checks') partial='dc/services/servicechecks')
+                                    (hash id=(slugify 'Node Checks') partial='dc/services/nodechecks')
+(if (eq item.Kind 'connect-proxy')  (hash id=(slugify 'Upstreams') partial='dc/services/upstreams') '')
+                                    (hash id=(slugify 'Tags') partial='dc/services/tags')
+                )
+            ) as |panel|
+        }}
+            {{#tab-section id=panel.id selected=(eq (if selectedTab selectedTab '') panel.id) onchange=(action "change")}}
+                {{partial panel.partial}}
+            {{/tab-section}}
+        {{/each}}
+    {{/block-slot}}
+{{/app-view}}

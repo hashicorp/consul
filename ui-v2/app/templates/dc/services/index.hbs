@@ -35,18 +35,10 @@
                       </a>
                     </td>
                     <td style={{totalWidth}}>
-    {{#if (and (lt item.ChecksPassing 1) (lt item.ChecksWarning 1) (lt item.ChecksCritical 1) )}}
-                        <span title="No Healthchecks" class="zero">0</span>
-    {{else}}
-                        <dl>
-                            <dt title="Passing" class="passing{{if (lt item.ChecksPassing 1) ' zero'}}">Healthchecks Passing</dt>
-                            <dd title="Passing" class={{if (lt item.ChecksPassing 1) 'zero'}} style={{passingWidth}}>{{format-number item.ChecksPassing}}</dd>
-                            <dt title="Warning" class="warning{{if (lt item.ChecksWarning 1) ' zero'}}">Healthchecks Warning</dt>
-                            <dd title="Warning" class={{if (lt item.ChecksWarning 1) 'zero'}} style={{warningWidth}}>{{format-number item.ChecksWarning}}</dd>
-                            <dt title="Critical" class="critical{{if (lt item.ChecksCritical 1) ' zero'}}">Healthchecks Critical</dt>
-                            <dd title="Critical" class={{if (lt item.ChecksCritical 1) 'zero'}} style={{criticalWidth}}>{{format-number item.ChecksCritical}}</dd>
-                        </dl>
-    {{/if}}
+                      {{healthcheck-info
+                        passing=item.ChecksPassing warning=item.ChecksWarning critical=item.ChecksCritical
+                        passingWidth=passingWidth warningWidth=warningWidth criticalWidth=criticalWidth
+                      }}
                     </td>
                     <td class="tags" style={{remainingWidth}}>
                     {{#if (gt item.Tags.length 0)}}
