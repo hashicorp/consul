@@ -10,7 +10,7 @@ import (
 // >0 when a is larger than b.
 // The function orders names in DNSSEC canonical order: RFC 4034s section-6.1
 //
-// See http://bert-hubert.blogspot.co.uk/2015/10/how-to-do-fast-canonical-ordering-of.html
+// See https://bert-hubert.blogspot.co.uk/2015/10/how-to-do-fast-canonical-ordering-of.html
 // for a blog article on this implementation, although here we still go label by label.
 //
 // The values of a and b are *not* lowercased before the comparison!
