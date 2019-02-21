@@ -1,6 +1,6 @@
 import Component from '@ember/component';
 import { get, set } from '@ember/object';
-import SlotsMixin from 'ember-block-slots';
+import SlotsMixin from 'block-slots';
 import WithListeners from 'consul-ui/mixins/with-listeners';
 
 export default Component.extend(WithListeners, SlotsMixin, {
