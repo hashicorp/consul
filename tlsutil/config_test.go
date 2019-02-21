@@ -65,7 +65,7 @@ func TestConfig_KeyPair_Valid(t *testing.T) {
 	}
 }
 
-func TestHansConfigurator_OutgoingTLS_MissingCA(t *testing.T) {
+func TestConfigurator_OutgoingTLS_MissingCA(t *testing.T) {
 	conf := &Config{
 		VerifyOutgoing: true,
 	}
@@ -75,7 +75,7 @@ func TestHansConfigurator_OutgoingTLS_MissingCA(t *testing.T) {
 	require.Nil(t, tlsConf)
 }
 
-func TestHansConfigurator_OutgoingTLS_OnlyCA(t *testing.T) {
+func TestConfigurator_OutgoingTLS_OnlyCA(t *testing.T) {
 	conf := &Config{
 		CAFile: "../test/ca/root.cer",
 	}
@@ -85,7 +85,7 @@ func TestHansConfigurator_OutgoingTLS_OnlyCA(t *testing.T) {
 	require.NotNil(t, tlsConf)
 }
 
-func TestHansConfigurator_OutgoingTLS_VerifyOutgoing(t *testing.T) {
+func TestConfigurator_OutgoingTLS_VerifyOutgoing(t *testing.T) {
 	conf := &Config{
 		VerifyOutgoing: true,
 		CAFile:         "../test/ca/root.cer",
@@ -116,7 +116,7 @@ func TestConfig_SkipBuiltinVerify(t *testing.T) {
 	}
 }
 
-func TestHansConfigurator_OutgoingTLS_ServerName(t *testing.T) {
+func TestConfigurator_OutgoingTLS_ServerName(t *testing.T) {
 	conf := &Config{
 		VerifyOutgoing: true,
 		CAFile:         "../test/ca/root.cer",
@@ -131,7 +131,7 @@ func TestHansConfigurator_OutgoingTLS_ServerName(t *testing.T) {
 	require.False(t, tlsConf.InsecureSkipVerify)
 }
 
-func TestHansConfigurator_OutgoingTLS_VerifyHostname(t *testing.T) {
+func TestConfigurator_OutgoingTLS_VerifyHostname(t *testing.T) {
 	conf := &Config{
 		VerifyOutgoing:       true,
 		VerifyServerHostname: true,
@@ -145,7 +145,7 @@ func TestHansConfigurator_OutgoingTLS_VerifyHostname(t *testing.T) {
 	require.False(t, tlsConf.InsecureSkipVerify)
 }
 
-func TestHansConfigurator_OutgoingTLS_WithKeyPair(t *testing.T) {
+func TestConfigurator_OutgoingTLS_WithKeyPair(t *testing.T) {
 	conf := &Config{
 		VerifyOutgoing: true,
 		CAFile:         "../test/ca/root.cer",
@@ -160,7 +160,7 @@ func TestHansConfigurator_OutgoingTLS_WithKeyPair(t *testing.T) {
 	require.Equal(t, len(tlsConf.Certificates), 1)
 }
 
-func TestHansConfigurator_OutgoingTLS_TLSMinVersion(t *testing.T) {
+func TestConfigurator_OutgoingTLS_TLSMinVersion(t *testing.T) {
 	tlsVersions := []string{"tls10", "tls11", "tls12"}
 	for _, version := range tlsVersions {
 		conf := &Config{
@@ -214,7 +214,7 @@ func startTLSServer(config *Config) (net.Conn, chan error) {
 	return clientConn, errc
 }
 
-func TestHansConfigurator_outgoingWrapper_OK(t *testing.T) {
+func TestConfigurator_outgoingWrapper_OK(t *testing.T) {
 	config := &Config{
 		CAFile:               "../test/hostname/CertAuth.crt",
 		CertFile:             "../test/hostname/Alice.crt",
@@ -244,7 +244,7 @@ func TestHansConfigurator_outgoingWrapper_OK(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestHansConfigurator_outgoingWrapper_BadDC(t *testing.T) {
+func TestConfigurator_outgoingWrapper_BadDC(t *testing.T) {
 	config := &Config{
 		CAFile:               "../test/hostname/CertAuth.crt",
 		CertFile:             "../test/hostname/Alice.crt",
@@ -274,7 +274,7 @@ func TestHansConfigurator_outgoingWrapper_BadDC(t *testing.T) {
 	<-errc
 }
 
-func TestHansConfigurator_outgoingWrapper_BadCert(t *testing.T) {
+func TestConfigurator_outgoingWrapper_BadCert(t *testing.T) {
 	config := &Config{
 		CAFile:               "../test/ca/root.cer",
 		CertFile:             "../test/key/ourdomain.cer",
@@ -305,7 +305,7 @@ func TestHansConfigurator_outgoingWrapper_BadCert(t *testing.T) {
 	<-errc
 }
 
-func TestHansConfigurator_wrapTLS_OK(t *testing.T) {
+func TestConfigurator_wrapTLS_OK(t *testing.T) {
 	config := &Config{
 		CAFile:         "../test/ca/root.cer",
 		CertFile:       "../test/key/ourdomain.cer",
@@ -330,7 +330,7 @@ func TestHansConfigurator_wrapTLS_OK(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestHansConfigurator_wrapTLS_BadCert(t *testing.T) {
+func TestConfigurator_wrapTLS_BadCert(t *testing.T) {
 	serverConfig := &Config{
 		CertFile: "../test/key/ssl-cert-snakeoil.pem",
 		KeyFile:  "../test/key/ssl-cert-snakeoil.key",
@@ -421,7 +421,7 @@ func TestConfig_ParseCiphers(t *testing.T) {
 	}
 }
 
-func TestHansConfigurator_IncomingHTTPSConfig_CA_PATH(t *testing.T) {
+func TestConfigurator_IncomingHTTPSConfig_CA_PATH(t *testing.T) {
 	conf := &Config{CAPath: "../test/ca_path"}
 
 	c := NewConfigurator(conf)
@@ -430,7 +430,7 @@ func TestHansConfigurator_IncomingHTTPSConfig_CA_PATH(t *testing.T) {
 	require.Equal(t, len(tlsConf.ClientCAs.Subjects()), 2)
 }
 
-func TestHansConfigurator_IncomingHTTPS(t *testing.T) {
+func TestConfigurator_IncomingHTTPS(t *testing.T) {
 	conf := &Config{
 		VerifyIncoming: true,
 		CAFile:         "../test/ca/root.cer",
@@ -446,7 +446,7 @@ func TestHansConfigurator_IncomingHTTPS(t *testing.T) {
 	require.Equal(t, len(tlsConf.Certificates), 1)
 }
 
-func TestHansConfigurator_IncomingHTTPS_MissingCA(t *testing.T) {
+func TestConfigurator_IncomingHTTPS_MissingCA(t *testing.T) {
 	conf := &Config{
 		VerifyIncoming: true,
 		CertFile:       "../test/key/ourdomain.cer",
@@ -457,7 +457,7 @@ func TestHansConfigurator_IncomingHTTPS_MissingCA(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestHansConfigurator_IncomingHTTPS_MissingKey(t *testing.T) {
+func TestConfigurator_IncomingHTTPS_MissingKey(t *testing.T) {
 	conf := &Config{
 		VerifyIncoming: true,
 		CAFile:         "../test/ca/root.cer",
@@ -467,7 +467,7 @@ func TestHansConfigurator_IncomingHTTPS_MissingKey(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestHansConfigurator_IncomingHTTPS_NoVerify(t *testing.T) {
+func TestConfigurator_IncomingHTTPS_NoVerify(t *testing.T) {
 	conf := &Config{}
 	c := NewConfigurator(conf)
 	tlsConf, err := c.IncomingHTTPSConfig()
@@ -478,7 +478,7 @@ func TestHansConfigurator_IncomingHTTPS_NoVerify(t *testing.T) {
 	require.Equal(t, len(tlsConf.Certificates), 0)
 }
 
-func TestHansConfigurator_IncomingHTTPS_TLSMinVersion(t *testing.T) {
+func TestConfigurator_IncomingHTTPS_TLSMinVersion(t *testing.T) {
 	tlsVersions := []string{"tls10", "tls11", "tls12"}
 	for _, version := range tlsVersions {
 		conf := &Config{
@@ -496,7 +496,7 @@ func TestHansConfigurator_IncomingHTTPS_TLSMinVersion(t *testing.T) {
 	}
 }
 
-func TestHansConfigurator_IncomingHTTPSCAPath_Valid(t *testing.T) {
+func TestConfigurator_IncomingHTTPSCAPath_Valid(t *testing.T) {
 	conf := &Config{
 		CAPath: "../test/ca_path",
 	}

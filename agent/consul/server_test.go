@@ -807,7 +807,7 @@ func TestServer_TLSForceOutgoingToNoTLS(t *testing.T) {
 	}
 }
 
-func TestHansServer_TLSToFullVerify(t *testing.T) {
+func TestServer_TLSToFullVerify(t *testing.T) {
 	t.Parallel()
 	// Set up a server with TLS and VerifyIncoming set
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {

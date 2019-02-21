@@ -5418,7 +5418,7 @@ func TestRuntime_ClientAddressAnyV6(t *testing.T) {
 	require.Equal(t, "[::1]:5688", https)
 }
 
-func TestHansRuntime_ToTLSUtilConfig(t *testing.T) {
+func TestRuntime_ToTLSUtilConfig(t *testing.T) {
 	c := &RuntimeConfig{
 		VerifyIncoming:              true,
 		VerifyIncomingRPC:           true,
