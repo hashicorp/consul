@@ -45,7 +45,7 @@ func TestLockCommand(t *testing.T) {
 	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
 	c := New(ui)
