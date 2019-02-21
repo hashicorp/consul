@@ -22,8 +22,7 @@ export function initialize(application) {
     kv: kv(filterable),
     healthyNode: node(filterable),
     unhealthyNode: node(filterable),
-    healthyServiceNode: serviceNode(filterable),
-    unhealthyServiceNode: serviceNode(filterable),
+    serviceInstance: serviceNode(filterable),
     nodeservice: nodeService(filterable),
     service: service(filterable),
   };

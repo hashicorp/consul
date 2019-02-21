@@ -36,10 +36,10 @@ h1,
 h2,
 %header-nav,
 %healthchecked-resource header span,
-%healthcheck-status dt,
+%healthcheck-output dt,
 %copy-button,
 %app-content div > dl > dt,
-td a {
+td:first-child a {
   font-weight: $typo-weight-semibold;
 }
 %form-element > span,
@@ -51,7 +51,7 @@ caption {
   font-weight: $typo-weight-semibold !important;
 }
 th,
-%breadcrumbs a,
+%breadcrumbs li > *,
 %action-group-action,
 %tab-nav,
 %tooltip-bubble {

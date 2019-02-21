@@ -15,76 +15,29 @@
   {{/with}}
 {{/with}}
       </h1>
-    {{/block-slot}}
-    {{#block-slot 'toolbar'}}
-{{#if (gt items.length 0) }}
-        {{catalog-filter searchable=(array searchableHealthy searchableUnhealthy) filters=healthFilters search=s status=filters.status onchange=(action 'filter')}}
-{{/if}}
+      <label for="toolbar-toggle"></label>
+      {{tab-nav
+          items=(compact
+            (array
+              'Instances'
+              'Tags'
+            )
+          )
+          selected=selectedTab
+      }}
     {{/block-slot}}
     {{#block-slot 'content'}}
-{{#if (gt item.Tags.length 0)}}
-        <dl>
-            <dt>Tags</dt>
-            <dd data-test-tags>
-              {{#each item.Tags as |item|}}
-                <span>{{item}}</span>
-              {{/each}}
-            </dd>
-        </dl>
-{{/if}}
-{{#if (gt unhealthy.length 0) }}
-        <div data-test-unhealthy class="unhealthy">
-            <h2>Unhealthy Nodes</h2>
-            <div>
-                <ul>
-                  {{#changeable-set dispatcher=searchableUnhealthy}}
-                    {{#block-slot 'set' as |unhealthy|}}
-    {{#each unhealthy as |item|}}
-                        {{healthchecked-resource
-                            tagName='li'
-                            data-test-node=item.Node.Node
-                            href=(href-to 'dc.nodes.show' item.Node.Node)
-                            name=item.Node.Node
-                            service=item.Service.ID
-                            address=(concat (default item.Service.Address item.Node.Address) ':' item.Service.Port)
-                            checks=item.Checks
-                        }}
-    {{/each}}
-                    {{/block-slot}}
-                    {{#block-slot 'empty'}}
-                      <p>
-                        There are no unhealthy nodes for that search.
-                      </p>
-                    {{/block-slot}}
-                  {{/changeable-set}}
-                </ul>
-            </div>
-        </div>
-{{/if}}
-{{#if (gt healthy.length 0) }}
-        <div data-test-healthy class="healthy">
-            <h2>Healthy Nodes</h2>
-            {{#changeable-set dispatcher=searchableHealthy}}
-              {{#block-slot 'set' as |healthy|}}
-                {{#list-collection cellHeight=113 items=healthy as |item index|}}
-                    {{healthchecked-resource
-                        href=(href-to 'dc.nodes.show' item.Node.Node)
-                        data-test-node=item.Node.Node
-                        name=item.Node.Node
-                        service=item.Service.ID
-                        address=(concat (default item.Service.Address item.Node.Address) ':' item.Service.Port)
-                        checks=item.Checks
-                        status=item.Checks.[0].Status
-                    }}
-                {{/list-collection}}
-              {{/block-slot}}
-              {{#block-slot 'empty'}}
-                <p>
-                  There are no healthy nodes for that search.
-                </p>
-              {{/block-slot}}
-            {{/changeable-set}}
-        </div>
-{{/if}}
+        {{#each
+            (compact
+                (array
+                    (hash id=(slugify 'Instances') partial='dc/services/instances')
+                    (hash id=(slugify 'Tags') partial='dc/services/tags')
+                )
+            ) as |panel|
+        }}
+            {{#tab-section id=panel.id selected=(eq (if selectedTab selectedTab '') panel.id) onchange=(action "change")}}
+                {{partial panel.partial}}
+            {{/tab-section}}
+        {{/each}}
     {{/block-slot}}
 {{/app-view}}
