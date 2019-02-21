@@ -1,20 +1,5 @@
 {{#hashicorp-consul id="wrapper" dcs=dcs dc=dc}}
     {{#app-view class="settings show"}}
-        {{#block-slot 'notification' as |status type|}}
-          {{#if (eq type 'update')}}
-            {{#if (eq status 'success') }}
-              Your settings were saved.
-            {{else}}
-              There was an error saving your settings.
-            {{/if}}
-          {{ else if (eq type 'delete')}}
-            {{#if (eq status 'success') }}
-              You settings have been reset.
-            {{else}}
-              There was an error resetting your settings.
-            {{/if}}
-          {{/if}}
-        {{/block-slot}}
         {{#block-slot 'header'}}
             <h1>
                 Settings
@@ -26,13 +11,13 @@
             </p>
             <form>
                 <fieldset>
-                    <label class="type-text">
-                        <span>ACL Token</span>
-                        {{ input type='password' value=item.token name="token" }}
-                        <em>The token is sent with requests as the <code>X-Consul-Token</code> HTTP header parameter. This is used to control the ACL for the web UI.</em>
-                    </label>
+                    <div class="type-toggle">
+                      <label>
+                          <input type="checkbox" name="client[blocking]" checked={{if item.client.blocking 'checked' }} onchange={{action 'change'}} />
+                          <span>Enable Catalog realtime updates (blocking queries)</span>
+                      </label>
+                    </div>
                 </fieldset>
-                <button type="submit" {{action 'update' item}}>Save</button>
             </form>
         {{/block-slot}}
     {{/app-view}}

@@ -8,6 +8,7 @@ import { cache as createCache, BlockingEventSource } from 'consul-ui/utils/dom/e
 const createProxy = function(repo, find, settings, cache, serialize = JSON.stringify) {
   // proxied find*..(id, dc)
   const throttle = get(this, 'wait').execute;
+  const client = get(this, 'client');
   return function() {
     const key = `${repo.getModelName()}.${find}.${serialize([...arguments])}`;
     const _args = arguments;
@@ -17,7 +18,7 @@ const createProxy = function(repo, find, settings, cache, serialize = JSON.strin
         // take a copy of the original arguments
         // this means we don't have any configuration object on it
         let args = [..._args];
-        if (settings.blocking) {
+        if (configuration.settings.enabled) {
           // ...and only add our current cursor/configuration if we are blocking
           args = args.concat([configuration]);
         }
@@ -26,7 +27,7 @@ const createProxy = function(repo, find, settings, cache, serialize = JSON.strin
           // original find... with configuration now added
           return repo[find](...args)
             .then(res => {
-              if (!settings.blocking) {
+              if (!configuration.settings.enabled) {
                 // blocking isn't enabled, immediately close
                 this.close();
               }
@@ -38,20 +39,27 @@ const createProxy = function(repo, find, settings, cache, serialize = JSON.strin
               const status = get(e, 'errors.firstObject.status');
               if (status === '0') {
                 // Any '0' errors (abort) should possibly try again, depending upon the circumstances
+                // whenAvailable returns a Promise that resolves when the client is available
+                // again
+                return client.whenAvailable(e);
               }
               throw e;
             });
         };
         // if we have a cursor (which means its at least the second call)
         // and we have a throttle setting, wait for so many ms
-        if (typeof configuration.cursor !== 'undefined' && settings.throttle) {
-          return throttle(settings.throttle).then(cb);
+        if (typeof configuration.cursor !== 'undefined' && configuration.settings.throttle) {
+          return throttle(configuration.settings.throttle).then(cb);
         }
         return cb();
       },
       {
         key: key,
         type: BlockingEventSource,
+        settings: {
+          enabled: settings.blocking,
+          throttle: settings.throttle,
+        },
       }
     );
   };
@@ -61,6 +69,7 @@ export default LazyProxyService.extend({
   store: service('store'),
   settings: service('settings'),
   wait: service('timeout'),
+  client: service('client/http'),
   init: function() {
     this._super(...arguments);
     if (cache === null) {

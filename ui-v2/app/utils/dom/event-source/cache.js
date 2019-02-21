@@ -2,7 +2,11 @@ export default function(source, DefaultEventSource, P = Promise) {
   return function(sources) {
     return function(cb, configuration) {
       const key = configuration.key;
-      if (typeof sources[key] !== 'undefined') {
+      if (typeof sources[key] !== 'undefined' && configuration.settings.enabled) {
+        if (typeof sources[key].configuration === 'undefined') {
+          sources[key].configuration = {};
+        }
+        sources[key].configuration.settings = configuration.settings;
         return source(sources[key]);
       } else {
         const EventSource = configuration.type || DefaultEventSource;
