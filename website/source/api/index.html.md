@@ -81,6 +81,7 @@ duration.
 
 While the mechanism is relatively simple to work with, there are a few edge 
 cases that must be handled correctly.
+
  * **Reset the index if it goes backwards**. While indexes in general are 
    monotonically increasing(i.e. they should only ever increase as time passes), 
    there are several real-world scenarios in 
@@ -94,6 +95,7 @@ cases that must be handled correctly.
    * KV list operations where an item with the highest index is removed.
    * A Consul upgrade changes the way watches work to optimize them with more 
    granular indexes.
+
  * **Sanity check index is greater than zero**. After the initial request (or a
    reset as above) the `X-Consul-Index` returned _should_ always be greater than zero. It
    is a bug in Consul if it is not, however this has happened a few times and can
@@ -104,20 +106,21 @@ cases that must be handled correctly.
    yet, so clients _should_ sanity check that their index is at least 1 after 
    each blocking response is handled to be sure they actually block on the next 
    request.
+
  * **Rate limit**. The blocking query mechanism is reasonably efficient when updates 
- are relatively rare (order of tens of seconds to minutes between updates). In cases 
- where a result gets updated very fast however - possibly during an outage or incident 
- with a badly behaved client - blocking query loops degrade into busy loops that 
- consume excessive client CPU and cause high server load. While it's possible to just add a sleep 
- to every iteration of the loop, this is **not** recommended since it causes update 
- delivery to be delayed in the happy case, and it can exacerbate the problem since 
- it increases the chance that the index has changed on the next request. Clients 
- _should_ instead rate limit the loop so that in the happy case they proceed without 
- waiting, but when values start to churn quickly they degrade into polling at a 
- reasonable rate (say every 15 seconds). Ideally this is done with an algorithm that 
- allows a couple of quick successive deliveries before it starts to limit rate - a 
- [token bucket](https://en.wikipedia.org/wiki/Token_bucket) with burst of 2 is a simple
- way to achieve this.
+   are relatively rare (order of tens of seconds to minutes between updates). In cases 
+   where a result gets updated very fast however - possibly during an outage or incident 
+   with a badly behaved client - blocking query loops degrade into busy loops that 
+   consume excessive client CPU and cause high server load. While it's possible to just add a sleep 
+   to every iteration of the loop, this is **not** recommended since it causes update 
+   delivery to be delayed in the happy case, and it can exacerbate the problem since 
+   it increases the chance that the index has changed on the next request. Clients 
+   _should_ instead rate limit the loop so that in the happy case they proceed without 
+   waiting, but when values start to churn quickly they degrade into polling at a 
+   reasonable rate (say every 15 seconds). Ideally this is done with an algorithm that 
+   allows a couple of quick successive deliveries before it starts to limit rate - a 
+   [token bucket](https://en.wikipedia.org/wiki/Token_bucket) with burst of 2 is a simple
+   way to achieve this.
 
 ### Hash-based Blocking Queries
 
