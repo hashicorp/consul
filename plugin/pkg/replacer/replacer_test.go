@@ -62,7 +62,7 @@ func TestLabels(t *testing.T) {
 		"{rcode}":                   "NOERROR",
 		"{rsize}":                   "29",
 		"{duration}":                "0",
-		headerReplacer + "rrflags}": "rd,ad,cd",
+		headerReplacer + "rflags}":  "rd,ad,cd",
 	}
 	if len(expect) != len(labels) {
 		t.Fatalf("Expect %d labels, got %d", len(expect), len(labels))

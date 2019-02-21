@@ -38,7 +38,7 @@ var labels = []string{
 	"{rcode}",
 	"{rsize}",
 	"{duration}",
-	headerReplacer + "rrflags}",
+	headerReplacer + "rflags}",
 }
 
 // value returns the current value of label.
@@ -89,7 +89,7 @@ func value(state request.Request, rr *dnstest.Recorder, label string) string {
 			return EmptyValue
 		}
 		return strconv.FormatFloat(time.Since(rr.Start).Seconds(), 'f', -1, 64) + "s"
-	case headerReplacer + "rrflags}":
+	case headerReplacer + "rflags}":
 		if rr != nil && rr.Msg != nil {
 			return flagsToString(rr.Msg.MsgHdr)
 		}
