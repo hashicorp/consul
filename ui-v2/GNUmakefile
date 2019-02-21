@@ -25,6 +25,9 @@ lint: deps
 format: deps
 	yarn run format:js
 
+steps:
+	yarn run steps:list
+
 node_modules: yarn.lock package.json
 	yarn install
 
