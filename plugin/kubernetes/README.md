@@ -93,7 +93,7 @@ kubernetes [ZONES...] {
 * `noendpoints` will turn off the serving of endpoint records by disabling the watch on endpoints.
   All endpoint queries and headless service queries will result in an NXDOMAIN.
 * `transfer` enables zone transfers. It may be specified multiples times. `To` signals the direction
-  (only `to` is allow). **ADDRESS** must be denoted in CIDR notation (127.0.0.1/32 etc.) or just as
+  (only `to` is allowed). **ADDRESS** must be denoted in CIDR notation (127.0.0.1/32 etc.) or just as
   plain addresses. The special wildcard `*` means: the entire internet.
   Sending DNS notifies is not supported.
   [Deprecated](https://github.com/kubernetes/dns/blob/master/docs/specification.md#26---deprecated-records) pod records in the subdomain `pod.cluster.local` are not transferred.
@@ -103,7 +103,7 @@ kubernetes [ZONES...] {
   the query. If **[ZONES...]** is omitted, then fallthrough happens for all zones for which the plugin
   is authoritative. If specific zones are listed (for example `in-addr.arpa` and `ip6.arpa`), then only
   queries for those zones will be subject to fallthrough.
-* `ignore empty_service` return NXDOMAIN for services without any ready endpoint addresses (e.g., ready pods).
+* `ignore empty_service` returns NXDOMAIN for services without any ready endpoint addresses (e.g., ready pods).
   This allows the querying pod to continue searching for the service in the search path.
   The search path could, for example, include another Kubernetes cluster.
 
