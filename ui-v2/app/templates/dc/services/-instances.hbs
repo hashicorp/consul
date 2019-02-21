@@ -1,0 +1,55 @@
+{{#if (gt items.length 0) }}
+  <input type="checkbox" id="toolbar-toggle" />
+  <form class="filter-bar">
+    {{freetext-filter searchable=searchable value=s placeholder="Search"}}
+  </form>
+{{/if}}
+  {{#changeable-set dispatcher=searchable}}
+    {{#block-slot 'set' as |filtered|}}
+      {{#tabular-collection
+          data-test-instances
+          items=filtered as |item index|
+      }}
+          {{#block-slot 'header'}}
+            <th>ID</th>
+            <th>Node</th>
+            <th>Address</th>
+            <th>Node Checks</th>
+            <th>Service Checks</th>
+          {{/block-slot}}
+          {{#block-slot 'row'}}
+            <td data-test-id="{{item.Service.ID}}">
+              <a href={{href-to 'dc.services.instance' item.Service.Service (or item.Service.ID item.Service.Service )}}>
+                <span data-test-external-source="{{service/external-source item.Service}}" style={{{ concat 'background-image: ' (css-var (concat '--' (service/external-source item.Service) '-color-svg') 'none')}}}></span>
+                {{ or item.Service.ID item.Service.Service }}
+              </a>
+            </td>
+            <td data-test-node>
+              <a href={{href-to 'dc.nodes.show' item.Node.Node}}>{{item.Node.Node}}</a>
+            </td>
+            <td data-test-address>
+                {{item.Service.Address}}:{{item.Service.Port}}
+            </td>
+            <td>
+              {{#with (reject-by 'ServiceID' '' item.Checks) as |checks|}}
+                {{healthcheck-info
+                  passing=(filter-by 'Status' 'passing' checks) warning=(filter-by 'Status' 'warning' checks) critical=(filter-by 'Status' 'critical' checks)
+                }}
+              {{/with}}
+            </td>
+            <td>
+              {{#with (filter-by 'ServiceID' '' item.Checks) as |checks|}}
+                {{healthcheck-info
+                  passing=(filter-by 'Status' 'passing' checks) warning=(filter-by 'Status' 'warning' checks) critical=(filter-by 'Status' 'critical' checks)
+                }}
+              {{/with}}
+            </td>
+          {{/block-slot}}
+      {{/tabular-collection}}
+    {{/block-slot}}
+    {{#block-slot 'empty'}}
+      <p>
+        There are no services.
+      </p>
+    {{/block-slot}}
+  {{/changeable-set}}

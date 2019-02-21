@@ -1,38 +1,39 @@
 import Controller from '@ember/controller';
-import { get, computed } from '@ember/object';
-import sumOfUnhealthy from 'consul-ui/utils/sumOfUnhealthy';
-import hasStatus from 'consul-ui/utils/hasStatus';
-import WithHealthFiltering from 'consul-ui/mixins/with-health-filtering';
+import { get, set, computed } from '@ember/object';
+import { inject as service } from '@ember/service';
 import WithSearching from 'consul-ui/mixins/with-searching';
-export default Controller.extend(WithSearching, WithHealthFiltering, {
+export default Controller.extend(WithSearching, {
+  dom: service('dom'),
   init: function() {
     this.searchParams = {
-      healthyServiceNode: 's',
-      unhealthyServiceNode: 's',
+      serviceInstance: 's',
     };
     this._super(...arguments);
   },
-  searchableHealthy: computed('healthy', function() {
-    return get(this, 'searchables.healthyServiceNode')
-      .add(get(this, 'healthy'))
-      .search(get(this, this.searchParams.healthyServiceNode));
+  setProperties: function() {
+    this._super(...arguments);
+    // This method is called immediately after `Route::setupController`, and done here rather than there
+    // as this is a variable used purely for view level things, if the view was different we might not
+    // need this variable
+    set(this, 'selectedTab', 'instances');
+  },
+  searchable: computed('items', function() {
+    return get(this, 'searchables.serviceInstance')
+      .add(get(this, 'items'))
+      .search(get(this, this.searchParams.serviceInstance));
   }),
-  searchableUnhealthy: computed('unhealthy', function() {
-    return get(this, 'searchables.unhealthyServiceNode')
-      .add(get(this, 'unhealthy'))
-      .search(get(this, this.searchParams.unhealthyServiceNode));
-  }),
-  unhealthy: computed('filtered', function() {
-    return get(this, 'filtered').filter(function(item) {
-      return sumOfUnhealthy(item.Checks) > 0;
-    });
-  }),
-  healthy: computed('filtered', function() {
-    return get(this, 'filtered').filter(function(item) {
-      return sumOfUnhealthy(item.Checks) === 0;
-    });
-  }),
-  filter: function(item, { s = '', status = '' }) {
-    return hasStatus(get(item, 'Checks'), status);
+  actions: {
+    change: function(e) {
+      set(this, 'selectedTab', e.target.value);
+      // Ensure tabular-collections sizing is recalculated
+      // now it is visible in the DOM
+      get(this, 'dom')
+        .components('.tab-section input[type="radio"]:checked + div table')
+        .forEach(function(item) {
+          if (typeof item.didAppear === 'function') {
+            item.didAppear();
+          }
+        });
+    },
   },
 });

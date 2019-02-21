@@ -1,3 +1,12 @@
+%tab-nav {
+  /* %frame-gray-something */
+  border-bottom: $decor-border-100;
+  border-top: $decor-border-200;
+}
+%tab-nav {
+  /* %frame-gray-something */
+  border-color: $gray-200;
+}
 %tab-nav label {
   cursor: pointer;
 }

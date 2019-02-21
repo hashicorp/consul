@@ -35,16 +35,15 @@ table.dom-recycling {
 /* using: */
 /* calc(<100% divided by number of non-fixed width cells> - <sum of widths of fixed cells divided by number of non-fixed width cells>) */
 
-html.template-service.template-list td:first-child a span,
-html.template-node.template-show #services td:first-child a span {
-  @extend %with-external-source-icon;
-  float: left;
-  margin-right: 10px;
-  margin-top: 2px;
-}
 /*TODO: trs only live in tables, get rid of table */
 html.template-service.template-list main table tr {
   @extend %services-row;
+}
+html.template-service.template-show #instances table tr {
+  @extend %instances-row;
+}
+html.template-instance.template-show #upstreams table tr {
+  @extend %upstreams-row;
 }
 html.template-intention.template-list main table tr {
   @extend %intentions-row;
@@ -146,6 +145,12 @@ html.template-node.template-show main table.sessions tr {
   html.template-token.template-list main table tr td.me ~ td:nth-of-type(5) {
     display: none;
   }
+  html.template-service.template-show #instances tr > :nth-child(3) {
+    display: none;
+  }
+  %instances-row > * {
+    width: calc(100% / 4);
+  }
 }
 
 %kvs-row > *:first-child {
@@ -155,7 +160,7 @@ html.template-node.template-show main table.sessions tr {
   @extend %table-actions;
 }
 %node-services-row > * {
-  width: 33%;
+  width: calc(100% / 3);
 }
 %policies-row > * {
   width: calc(33% - 20px);
@@ -171,4 +176,10 @@ html.template-node.template-show main table.sessions tr {
 // }
 %services-row > * {
   width: auto;
+}
+%instances-row > * {
+  width: calc(100% / 5);
+}
+%upstreams-row > * {
+  width: calc(100% / 3);
 }

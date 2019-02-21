@@ -19,6 +19,7 @@ export default Route.extend({
       return {
         ...model,
         ...{
+          // Nodes happen to be the ServiceInstances here
           items: model.item.Nodes,
         },
       };

@@ -70,7 +70,9 @@ export default Service.extend({
   // with traditional/standard web components you wouldn't actually need this
   // method as you could just get to their methods from the dom element
   component: function(selector, context) {
-    // TODO: support passing a dom element, when we need to do that
+    if (typeof selector !== 'string') {
+      return $_(selector);
+    }
     return $_(this.element(selector, context));
   },
   components: function(selector, context) {
