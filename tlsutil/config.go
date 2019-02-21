@@ -129,35 +129,6 @@ func (c *Config) skipBuiltinVerify() bool {
 	return c.VerifyServerHostname == false && c.ServerName == ""
 }
 
-// // OutgoingTLSWrapper returns a a DCWrapper based on the OutgoingTLS
-// // configuration. If hostname verification is on, the wrapper
-// // will properly generate the dynamic server name for verification.
-// func (c *Config) OutgoingTLSWrapper() (DCWrapper, error) {
-// 	// Get the TLS config
-// 	tlsConfig, err := c.OutgoingTLSConfig()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	// Check if TLS is not enabled
-// 	if tlsConfig == nil {
-// 		return nil, nil
-// 	}
-
-// 	// Generate the wrapper based on hostname verification
-// 	wrapper := func(dc string, conn net.Conn) (net.Conn, error) {
-// 		if c.VerifyServerHostname {
-// 			// Strip the trailing '.' from the domain if any
-// 			domain := strings.TrimSuffix(c.Domain, ".")
-// 			tlsConfig = tlsConfig.Clone()
-// 			tlsConfig.ServerName = "server." + dc + "." + domain
-// 		}
-// 		return c.wrapTLSClient(conn, tlsConfig)
-// 	}
-
-// 	return wrapper, nil
-// }
-
 // SpecificDC is used to invoke a static datacenter
 // and turns a DCWrapper into a Wrapper type.
 func SpecificDC(dc string, tlsWrap DCWrapper) Wrapper {
