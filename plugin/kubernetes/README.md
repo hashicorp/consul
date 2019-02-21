@@ -208,7 +208,7 @@ or the word "any"), then that label will match all values.  The labels that acce
  * _namespace_ in an `A` record request: service._namespace_.svc.zone, e.g., `nginx.*.svc.cluster.local`
  * _port and/or protocol_ in an `SRV` request: __port_.__protocol_.service.namespace.svc.zone.,
    e.g., `_http.*.service.ns.svc.cluster.local`
- * multiple wild cards are allowed in a single query, e.g., `A` Request `*.*.svc.zone.` or `SRV` request `*.*.*.*.svc.zone.`
+ * multiple wildcards are allowed in a single query, e.g., `A` Request `*.*.svc.zone.` or `SRV` request `*.*.*.*.svc.zone.`
 
  For example, wildcards can be used to resolve all Endpoints for a Service as `A` records. e.g.: `*.service.ns.svc.myzone.local` will return the Endpoint IPs in the Service `service` in namespace `default`:
  ```

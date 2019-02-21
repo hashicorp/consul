@@ -16,7 +16,7 @@ CoreDNS is a fast and flexible DNS server. The keyword here is *flexible*: with 
 are able to do what you want with your DNS data by utilizing plugins. If some functionality is not
 provided out of the box you can add it by [writing a plugin](https://coredns.io/explugins).
 
-CoreDNS can listen for DNS request coming in over UDP/TCP (go'old DNS), TLS ([RFC
+CoreDNS can listen for DNS requests coming in over UDP/TCP (go'old DNS), TLS ([RFC
 7858](https://tools.ietf.org/html/rfc7858)) and [gRPC](https://grpc.io) (not a standard).
 
 Currently CoreDNS is able to:
@@ -86,7 +86,7 @@ When starting CoreDNS without any configuration, it loads the
 CoreDNS-001
 ~~~
 
-Any query send to port 53 should return some information; your sending address, port and protocol
+Any query sent to port 53 should return some information; your sending address, port and protocol
 used.
 
 If you have a Corefile without a port number specified it will, by default, use port 53, but you
@@ -94,7 +94,7 @@ can override the port with the `-dns.port` flag:
 
 `./coredns -dns.port 1053`, runs the server on port 1053.
 
-Start a simple proxy, you'll need to be root to start listening on port 53.
+Start a simple proxy. You'll need to be root to start listening on port 53.
 
 `Corefile` contains:
 

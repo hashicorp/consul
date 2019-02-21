@@ -37,7 +37,7 @@ route53 [ZONE:HOSTED_ZONE_ID...] {
 *   `upstream`is used for resolving services that point to external hosts (eg. used to resolve
     CNAMEs). CoreDNS will resolve against itself.
 
-*   `credentials` used for reading the credential file and setting the profile name for a given
+*   `credentials` is used for reading the credential file and setting the profile name for a given
     zone.
 
 *   **PROFILE** AWS account profile name. Defaults to `default`.
