@@ -29,6 +29,7 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/serf"
 	"github.com/mitchellh/copystructure"
 	"github.com/stretchr/testify/assert"
@@ -2860,18 +2861,42 @@ func testDefaultSidecar(svc string, port int, fns ...func(*structs.NodeService))
 	return ns
 }
 
+// testCreateToken creates a Policy for the provided rules and a Token linked to that Policy.
 func testCreateToken(t *testing.T, a *TestAgent, rules string) string {
+	policyName, err := uuid.GenerateUUID() // we just need a unique name for the test and UUIDs are definitely unique
+	require.NoError(t, err)
+
+	policyID := testCreatePolicy(t, a, policyName, rules)
+
 	args := map[string]interface{}{
-		"Name":  "User Token",
-		"Type":  "client",
-		"Rules": rules,
+		"Name": "User Token",
+		"Policies": []map[string]interface{}{
+			map[string]interface{}{
+				"ID": policyID,
+			},
+		},
+		"Local": false,
 	}
-	req, _ := http.NewRequest("PUT", "/v1/acl/create?token=root", jsonReader(args))
+	req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonReader(args))
 	resp := httptest.NewRecorder()
-	obj, err := a.srv.ACLCreate(resp, req)
+	obj, err := a.srv.ACLTokenCreate(resp, req)
 	require.NoError(t, err)
 	require.NotNil(t, obj)
-	aclResp := obj.(aclCreateResponse)
+	aclResp := obj.(*structs.ACLToken)
+	return aclResp.SecretID
+}
+
+func testCreatePolicy(t *testing.T, a *TestAgent, name, rules string) string {
+	args := map[string]interface{}{
+		"Name":  name,
+		"Rules": rules,
+	}
+	req, _ := http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonReader(args))
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.ACLPolicyCreate(resp, req)
+	require.NoError(t, err)
+	require.NotNil(t, obj)
+	aclResp := obj.(*structs.ACLPolicy)
 	return aclResp.ID
 }
 
@@ -2936,6 +2961,9 @@ func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 			`,
 			enableACL: true,
 			tokenRules: `
+			service "web-sidecar-proxy" {
+				policy = "write"
+			}
 			service "web" {
 				policy = "write"
 			}`,
@@ -2982,7 +3010,7 @@ func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 			wantErr: "Permission denied",
 		},
 		{
-			name: "ACL OK for service and sidecar but not sidecar's overriden destination",
+			name: "ACL OK for service and sidecar but not sidecar's overridden destination",
 			json: `
 			{
 				"name": "web",
@@ -2998,6 +3026,9 @@ func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 			`,
 			enableACL: true,
 			tokenRules: `
+			service "web-sidecar-proxy" {
+				policy = "write"
+			}
 			service "web" {
 				policy = "write"
 			}`,
@@ -3019,6 +3050,9 @@ func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 			`,
 			enableACL: true,
 			tokenRules: `
+			service "web-sidecar-proxy" {
+				policy = "write"
+			}
 			service "web" {
 				policy = "write"
 			}`,
@@ -3028,7 +3062,7 @@ func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 		{
 			name: "ACL OK for service but and overridden for sidecar",
 			// This test ensures that if the sidecar embeds it's own token with
-			// differnt privs from the main request token it will be honoured for the
+			// different privs from the main request token it will be honoured for the
 			// sidecar registration. We use the test root token since that should have
 			// permission.
 			json: `
@@ -3045,6 +3079,9 @@ func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 			`,
 			enableACL: true,
 			tokenRules: `
+			service "web-sidecar-proxy" {
+				policy = "write"
+			}
 			service "web" {
 				policy = "write"
 			}`,
@@ -3113,7 +3150,7 @@ func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 			wantErr: "Status for checks must 'passing', 'warning', 'critical'",
 		},
 		{
-			name: "invalid checkS status in sidecar",
+			name: "invalid checks status in sidecar",
 			// Note no interval in the TCP check should fail validation
 			json: `
 			{
