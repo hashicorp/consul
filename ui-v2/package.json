@@ -20,7 +20,8 @@
     "test-parallel": "EMBER_EXAM_PARALLEL=true ember exam --split=4 --parallel",
     "test:view": "ember test --server --test-port=${EMBER_TEST_PORT:-7357}",
     "test:coverage": "COVERAGE=true ember test --test-port=${EMBER_TEST_PORT:-7357}",
-    "test:view:coverage": "COVERAGE=true ember test --server --test-port=${EMBER_TEST_PORT:-7357}"
+    "test:view:coverage": "COVERAGE=true ember test --server --test-port=${EMBER_TEST_PORT:-7357}",
+    "steps:list": "node ./lib/commands/bin/list.js"
   },
   "husky": {
     "hooks": {
