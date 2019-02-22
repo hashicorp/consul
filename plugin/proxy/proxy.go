@@ -45,7 +45,7 @@ type Upstream interface {
 	From() string
 	// Selects an upstream host to be routed to.
 	Select() *healthcheck.UpstreamHost
-	// Checks if subpdomain is not an ignored.
+	// Checks if subdomain is not an ignored.
 	IsAllowedDomain(string) bool
 	// Exchanger returns the exchanger to be used for this upstream.
 	Exchanger() Exchanger
@@ -141,7 +141,7 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 				time.Sleep(timeout)
 				// we may go negative here, should be rectified by the HC.
 				atomic.AddInt32(&host.Fails, -1)
-				if fails%failureCheck == 0 { // Kick off healthcheck on eveyry third failure.
+				if fails%failureCheck == 0 { // Kick off healthcheck on every third failure.
 					host.HealthCheckURL()
 				}
 			}(host, timeout)
