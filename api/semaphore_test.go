@@ -295,7 +295,6 @@ func TestAPI_SemaphoreConflict(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
-	s.WaitForSerfCheck(t)
 
 	lock, session := createTestLock(t, c, "test/sema/.lock")
 	defer session.Destroy(lock.opts.Session, nil)
