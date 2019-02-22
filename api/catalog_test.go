@@ -33,6 +33,7 @@ func TestAPI_CatalogNodes(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
+	s.WaitForSerfCheck(t)
 	catalog := c.Catalog()
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
 		nodes, meta, err := catalog.Nodes(nil)
