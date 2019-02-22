@@ -206,7 +206,7 @@ func NewConfigurator(config *Config) *Configurator {
 	return &Configurator{base: config}
 }
 
-func (c *Configurator) commonTLSConfig() (*tls.Config, error) {
+func (c *Configurator) commonTLSConfig(verifyIncoming bool) (*tls.Config, error) {
 	if c.base == nil {
 		return nil, fmt.Errorf("No config")
 	}
@@ -242,14 +242,6 @@ func (c *Configurator) commonTLSConfig() (*tls.Config, error) {
 		}
 		tlsConfig.MinVersion = tlsvers
 	}
-	return tlsConfig, nil
-}
-
-func (c *Configurator) outgoingTLSConfig() (*tls.Config, error) {
-	tlsConfig, err := c.commonTLSConfig()
-	if err != nil {
-		return nil, err
-	}
 
 	tlsConfig.RootCAs = x509.NewCertPool()
 	tlsConfig.InsecureSkipVerify = c.base.skipBuiltinVerify()
@@ -265,15 +257,6 @@ func (c *Configurator) outgoingTLSConfig() (*tls.Config, error) {
 		CAPath: c.base.CAPath,
 	}
 	if err := rootcerts.ConfigureTLS(tlsConfig, rootConfig); err != nil {
-		return nil, err
-	}
-
-	return tlsConfig, nil
-}
-
-func (c *Configurator) incomingTLSConfig(verify bool) (*tls.Config, error) {
-	tlsConfig, err := c.commonTLSConfig()
-	if err != nil {
 		return nil, err
 	}
 
@@ -295,7 +278,7 @@ func (c *Configurator) incomingTLSConfig(verify bool) (*tls.Config, error) {
 		tlsConfig.ClientCAs = pool
 	}
 
-	if verify {
+	if c.base.VerifyIncoming || verifyIncoming {
 		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
 
 		if c.base.CAFile == "" && c.base.CAPath == "" {
@@ -305,15 +288,16 @@ func (c *Configurator) incomingTLSConfig(verify bool) (*tls.Config, error) {
 			return nil, fmt.Errorf("VerifyIncoming set, and no Cert/Key pair provided!")
 		}
 	}
+
 	return tlsConfig, nil
 }
 
 func (c *Configurator) IncomingRPCConfig() (*tls.Config, error) {
-	return c.incomingTLSConfig(c.base.VerifyIncoming || c.base.VerifyIncomingRPC)
+	return c.commonTLSConfig(c.base.VerifyIncomingRPC)
 }
 
 func (c *Configurator) IncomingHTTPSConfig() (*tls.Config, error) {
-	return c.incomingTLSConfig(c.base.VerifyIncoming || c.base.VerifyIncomingHTTPS)
+	return c.commonTLSConfig(c.base.VerifyIncomingHTTPS)
 }
 
 func (c *Configurator) OutgoingRPCConfig() (*tls.Config, error) {
@@ -321,7 +305,7 @@ func (c *Configurator) OutgoingRPCConfig() (*tls.Config, error) {
 	if !useTLS {
 		return nil, nil
 	}
-	return c.outgoingTLSConfig()
+	return c.commonTLSConfig(false)
 }
 
 func (c *Configurator) OutgoingRPCWrapper() (DCWrapper, error) {
