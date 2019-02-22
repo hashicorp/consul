@@ -230,6 +230,8 @@ func TestAPI_HealthChecks_NodeMetaFilter(t *testing.T) {
 	agent := c.Agent()
 	health := c.Health()
 
+	s.WaitForSerfCheck(t)
+
 	// Make a service with a check
 	reg := &AgentServiceRegistration{
 		Name: "foo",
@@ -392,6 +394,8 @@ func TestAPI_HealthConnect(t *testing.T) {
 
 	agent := c.Agent()
 	health := c.Health()
+
+	s.WaitForSerfCheck(t)
 
 	// Make a service with a proxy
 	reg := &AgentServiceRegistration{
