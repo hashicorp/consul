@@ -21,6 +21,8 @@ func TestAPI_ConnectCARoots_empty(t *testing.T) {
 	})
 	defer s.Stop()
 
+	s.WaitForSerfCheck(t)
+
 	connect := c.Connect()
 	_, _, err := connect.CARoots(nil)
 
@@ -60,6 +62,7 @@ func TestAPI_ConnectCAConfig_get_set(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
+	s.WaitForSerfCheck(t)
 	expected := &ConsulCAProviderConfig{
 		RotationPeriod: 90 * 24 * time.Hour,
 	}
