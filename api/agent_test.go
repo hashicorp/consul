@@ -293,6 +293,7 @@ func TestAPI_AgentServices_ManagedConnectProxyDeprecatedUpstreams(t *testing.T) 
 	defer s.Stop()
 
 	agent := c.Agent()
+	s.WaitForSerfCheck(t)
 
 	reg := &AgentServiceRegistration{
 		Name: "foo",
