@@ -2108,7 +2108,8 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				chkType.Interval = checks.MinInterval
 			}
 
-			tlsClientConfig, err := a.setupTLSClientConfig(chkType.TLSSkipVerify)
+			a.tlsConfigurator.AddCheck(string(check.CheckID), chkType.TLSSkipVerify)
+			tlsClientConfig, err := a.tlsConfigurator.OutgoingTLSConfigForCheck(string(check.CheckID))
 			if err != nil {
 				return fmt.Errorf("Failed to set up TLS: %v", err)
 			}
@@ -2163,7 +2164,8 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			var tlsClientConfig *tls.Config
 			if chkType.GRPCUseTLS {
 				var err error
-				tlsClientConfig, err = a.setupTLSClientConfig(chkType.TLSSkipVerify)
+				a.tlsConfigurator.AddCheck(string(check.CheckID), chkType.TLSSkipVerify)
+				tlsClientConfig, err = a.tlsConfigurator.OutgoingTLSConfigForCheck(string(check.CheckID))
 				if err != nil {
 					return fmt.Errorf("Failed to set up TLS: %v", err)
 				}
@@ -2299,23 +2301,6 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 	}
 
 	return nil
-}
-
-func (a *Agent) setupTLSClientConfig(skipVerify bool) (tlsClientConfig *tls.Config, err error) {
-	// We re-use the API client's TLS structure since it
-	// closely aligns with Consul's internal configuration.
-	tlsConfig := &api.TLSConfig{
-		InsecureSkipVerify: skipVerify,
-	}
-	if a.config.EnableAgentTLSForChecks {
-		tlsConfig.Address = a.config.ServerName
-		tlsConfig.KeyFile = a.config.KeyFile
-		tlsConfig.CertFile = a.config.CertFile
-		tlsConfig.CAFile = a.config.CAFile
-		tlsConfig.CAPath = a.config.CAPath
-	}
-	tlsClientConfig, err = api.SetupTLSConfig(tlsConfig)
-	return
 }
 
 // RemoveCheck is used to remove a health check.

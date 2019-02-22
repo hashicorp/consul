@@ -199,11 +199,12 @@ func (c *Config) wrapTLSClient(conn net.Conn, tlsConfig *tls.Config) (net.Conn, 
 }
 
 type Configurator struct {
-	base *Config
+	base   *Config
+	checks map[string]bool
 }
 
 func NewConfigurator(config *Config) *Configurator {
-	return &Configurator{base: config}
+	return &Configurator{base: config, checks: map[string]bool{}}
 }
 
 func (c *Configurator) commonTLSConfig(verifyIncoming bool) (*tls.Config, error) {
@@ -212,8 +213,13 @@ func (c *Configurator) commonTLSConfig(verifyIncoming bool) (*tls.Config, error)
 	}
 
 	tlsConfig := &tls.Config{
-		ServerName: c.base.ServerName,
+		ClientAuth:         tls.NoClientCert,
+		ClientCAs:          x509.NewCertPool(),
+		InsecureSkipVerify: c.base.skipBuiltinVerify(),
+		RootCAs:            x509.NewCertPool(),
+		ServerName:         c.base.ServerName,
 	}
+
 	if tlsConfig.ServerName == "" {
 		tlsConfig.ServerName = c.base.NodeName
 	}
@@ -243,9 +249,6 @@ func (c *Configurator) commonTLSConfig(verifyIncoming bool) (*tls.Config, error)
 		tlsConfig.MinVersion = tlsvers
 	}
 
-	tlsConfig.RootCAs = x509.NewCertPool()
-	tlsConfig.InsecureSkipVerify = c.base.skipBuiltinVerify()
-
 	// Ensure we have a CA if VerifyOutgoing is set
 	if c.base.VerifyOutgoing && c.base.CAFile == "" && c.base.CAPath == "" {
 		return nil, fmt.Errorf("VerifyOutgoing set, and no CA certificate provided!")
@@ -259,9 +262,6 @@ func (c *Configurator) commonTLSConfig(verifyIncoming bool) (*tls.Config, error)
 	if err := rootcerts.ConfigureTLS(tlsConfig, rootConfig); err != nil {
 		return nil, err
 	}
-
-	tlsConfig.ClientCAs = x509.NewCertPool()
-	tlsConfig.ClientAuth = tls.NoClientCert
 
 	// Parse the CA certs if any
 	if c.base.CAFile != "" {
@@ -300,6 +300,21 @@ func (c *Configurator) IncomingHTTPSConfig() (*tls.Config, error) {
 	return c.commonTLSConfig(c.base.VerifyIncomingHTTPS)
 }
 
+func (c *Configurator) OutgoingTLSConfigForCheck(id string) (*tls.Config, error) {
+	if !c.base.EnableAgentTLSForChecks {
+		return &tls.Config{
+			InsecureSkipVerify: c.checks[id],
+		}, nil
+	}
+
+	tlsConfig, err := c.commonTLSConfig(false)
+	if err != nil {
+		return nil, err
+	}
+	tlsConfig.InsecureSkipVerify = c.checks[id]
+	return tlsConfig, nil
+}
+
 func (c *Configurator) OutgoingRPCConfig() (*tls.Config, error) {
 	useTLS := c.base.CAFile != "" || c.base.CAPath != "" || c.base.VerifyOutgoing
 	if !useTLS {
@@ -332,6 +347,14 @@ func (c *Configurator) OutgoingRPCWrapper() (DCWrapper, error) {
 	}
 
 	return wrapper, nil
+}
+
+func (c *Configurator) AddCheck(id string, skipVerify bool) {
+	c.checks[id] = skipVerify
+}
+
+func (c *Configurator) RemoveCheck(id string) {
+	delete(c.checks, id)
 }
 
 // ParseCiphers parse ciphersuites from the comma-separated string into recognized slice
