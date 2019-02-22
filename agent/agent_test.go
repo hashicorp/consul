@@ -132,6 +132,7 @@ func TestAgent_RPCPing(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	var out struct{}
 	if err := a.RPC("Status.Ping", struct{}{}, &out); err != nil {
