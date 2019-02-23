@@ -13,106 +13,64 @@ func TestSetupRoute53(t *testing.T) {
 		return fakeRoute53{}
 	}
 
-	c := caddy.NewTestController("dns", `route53`)
-	if err := setup(c, f); err != nil {
-		t.Fatalf("Expected no errors, but got: %v", err)
-	}
-
-	c = caddy.NewTestController("dns", `route53 :`)
-	if err := setup(c, f); err == nil {
-		t.Fatalf("Expected errors, but got: %v", err)
-	}
-
-	c = caddy.NewTestController("dns", `route53 example.org:12345678`)
-	if err := setup(c, f); err != nil {
-		t.Fatalf("Expected no errors, but got: %v", err)
-	}
-
-	c = caddy.NewTestController("dns", `route53 example.org:12345678 {
+	tests := []struct {
+		body          string
+		expectedError bool
+	}{
+		{`route53`, false},
+		{`route53 :`, true},
+		{`route53 example.org:12345678`, false},
+		{`route53 example.org:12345678 {
     aws_access_key
-}`)
-	if err := setup(c, f); err == nil {
-		t.Fatalf("Expected errors, but got: %v", err)
-	}
-
-	c = caddy.NewTestController("dns", `route53 example.org:12345678 {
+}`, true},
+		{`route53 example.org:12345678 {
     upstream 10.0.0.1
-}`)
-	if err := setup(c, f); err != nil {
-		t.Fatalf("Expected no errors, but got: %v", err)
-	}
+}`, false},
 
-	c = caddy.NewTestController("dns", `route53 example.org:12345678 {
+		{`route53 example.org:12345678 {
     upstream
-}`)
-	if err := setup(c, f); err != nil {
-		t.Fatalf("Expected no errors, but got: %v", err)
-	}
-
-	c = caddy.NewTestController("dns", `route53 example.org:12345678 {
+}`, false},
+		{`route53 example.org:12345678 {
     wat
-}`)
-	if err := setup(c, f); err == nil {
-		t.Fatalf("Expected errors, but got: %v", err)
-	}
-
-	c = caddy.NewTestController("dns", `route53 example.org:12345678 {
+}`, true},
+		{`route53 example.org:12345678 {
     aws_access_key ACCESS_KEY_ID SEKRIT_ACCESS_KEY
     upstream 1.2.3.4
-}`)
-	if err := setup(c, f); err != nil {
-		t.Fatalf("Unexpected errors: %v", err)
-	}
+}`, false},
 
-	c = caddy.NewTestController("dns", `route53 example.org:12345678 {
+		{`route53 example.org:12345678 {
     fallthrough
-}`)
-	if err := setup(c, f); err != nil {
-		t.Fatalf("Unexpected errors: %v", err)
-	}
-
-	c = caddy.NewTestController("dns", `route53 example.org:12345678 {
+}`, false},
+		{`route53 example.org:12345678 {
 		credentials
  		upstream 1.2.3.4
-	}`)
-	if err := setup(c, f); err == nil {
-		t.Fatalf("Expected errors, but got: %v", err)
-	}
+	}`, true},
 
-	c = caddy.NewTestController("dns", `route53 example.org:12345678 {
+		{`route53 example.org:12345678 {
 		credentials default
  		upstream 1.2.3.4
-	}`)
-	if err := setup(c, f); err != nil {
-		t.Fatalf("Unexpected errors: %v", err)
-	}
-
-	c = caddy.NewTestController("dns", `route53 example.org:12345678 {
+	}`, false},
+		{`route53 example.org:12345678 {
 		credentials default credentials
  		upstream 1.2.3.4
-	}`)
-	if err := setup(c, f); err != nil {
-		t.Fatalf("Unexpected errors: %v", err)
-	}
-
-	c = caddy.NewTestController("dns", `route53 example.org:12345678 {
+	}`, false},
+		{`route53 example.org:12345678 {
 		credentials default credentials extra-arg
  		upstream 1.2.3.4
-	}`)
-	if err := setup(c, f); err == nil {
-		t.Fatalf("Expected errors, but got: %v", err)
+	}`, true},
+		{`route53 example.org:12345678 example.org:12345678 {
+ 		upstream 1.2.3.4
+	}`, true},
+
+		{`route53 example.org {
+ 		upstream 1.2.3.4
+	}`, true},
 	}
 
-	c = caddy.NewTestController("dns", `route53 example.org:12345678 example.org:12345678 {
- 		upstream 1.2.3.4
-	}`)
-	if err := setup(c, f); err == nil {
-		t.Fatalf("Expected errors, but got: %v", err)
-	}
-	c = caddy.NewTestController("dns", `route53 example.org {
- 		upstream 1.2.3.4
-	}`)
-	if err := setup(c, f); err == nil {
-		t.Fatalf("Expected errors, but got: %v", err)
+	for _, test := range tests {
+		c := caddy.NewTestController("dns", test.body)
+		if err := setup(c, f); (err == nil) == test.expectedError {
+			t.Errorf("Unexpected errors: %v", err)
+		}
 	}
 }
