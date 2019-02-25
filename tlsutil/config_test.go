@@ -14,32 +14,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestConfig_AppendCA_None(t *testing.T) {
-	conf := &Config{}
-	pool := x509.NewCertPool()
-	err := conf.AppendCA(pool)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if len(pool.Subjects()) != 0 {
-		t.Fatalf("bad: %v", pool.Subjects())
-	}
-}
-
-func TestConfig_CACertificate_Valid(t *testing.T) {
-	conf := &Config{
-		CAFile: "../test/ca/root.cer",
-	}
-	pool := x509.NewCertPool()
-	err := conf.AppendCA(pool)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if len(pool.Subjects()) == 0 {
-		t.Fatalf("expected cert")
-	}
-}
-
 func TestConfig_KeyPair_None(t *testing.T) {
 	conf := &Config{}
 	cert, err := conf.KeyPair()
@@ -473,7 +447,7 @@ func TestConfigurator_IncomingHTTPS_NoVerify(t *testing.T) {
 	tlsConf, err := c.IncomingHTTPSConfig()
 	require.NoError(t, err)
 	require.NotNil(t, tlsConf)
-	require.Empty(t, tlsConf.ClientCAs.Subjects())
+	require.Nil(t, tlsConf.ClientCAs)
 	require.Equal(t, tlsConf.ClientAuth, tls.NoClientCert)
 	require.Empty(t, tlsConf.Certificates)
 }
@@ -581,8 +555,14 @@ func TestConfigurator_CommonTLSConfigValidateVerifyOutgoingCA(t *testing.T) {
 }
 
 func TestConfigurator_CommonTLSConfigLoadCA(t *testing.T) {
-	c := NewConfigurator(&Config{CAFile: "/something/bogus"})
-	_, err := c.commonTLSConfig(false)
+	c := NewConfigurator(&Config{})
+	tlsConf, err := c.commonTLSConfig(false)
+	require.NoError(t, err)
+	require.Nil(t, tlsConf.RootCAs)
+	require.Nil(t, tlsConf.ClientCAs)
+
+	c.Update(&Config{CAFile: "/something/bogus"})
+	_, err = c.commonTLSConfig(false)
 	require.Error(t, err)
 
 	c.Update(&Config{CAPath: "/something/bogus/"})
@@ -590,7 +570,7 @@ func TestConfigurator_CommonTLSConfigLoadCA(t *testing.T) {
 	require.Error(t, err)
 
 	c.Update(&Config{CAFile: "../test/ca/root.cer"})
-	tlsConf, err := c.commonTLSConfig(false)
+	tlsConf, err = c.commonTLSConfig(false)
 	require.NoError(t, err)
 	require.Len(t, tlsConf.RootCAs.Subjects(), 1)
 	require.Len(t, tlsConf.ClientCAs.Subjects(), 1)

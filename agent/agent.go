@@ -2313,6 +2313,7 @@ func (a *Agent) RemoveCheck(checkID types.CheckID, persist bool) error {
 
 	// Add to the local state for anti-entropy
 	a.State.RemoveCheck(checkID)
+	a.tlsConfigurator.RemoveCheck(string(checkID))
 
 	a.checkLock.Lock()
 	defer a.checkLock.Unlock()

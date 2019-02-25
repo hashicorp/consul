@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"strings"
 	"sync"
@@ -34,8 +33,16 @@ type Config struct {
 	// VerifyIncoming is used to verify the authenticity of incoming connections.
 	// This means that TCP requests are forbidden, only allowing for TLS. TLS connections
 	// must match a provided certificate authority. This can be used to force client auth.
-	VerifyIncoming      bool
-	VerifyIncomingRPC   bool
+	VerifyIncoming bool
+
+	// VerifyIncomingRPC is used to verify the authenticity of incoming RPC connections.
+	// This means that TCP requests are forbidden, only allowing for TLS. TLS connections
+	// must match a provided certificate authority. This can be used to force client auth.
+	VerifyIncomingRPC bool
+
+	// VerifyIncomingHTTPS is used to verify the authenticity of incoming HTTPS connections.
+	// This means that TCP requests are forbidden, only allowing for TLS. TLS connections
+	// must match a provided certificate authority. This can be used to force client auth.
 	VerifyIncomingHTTPS bool
 
 	// VerifyOutgoing is used to verify the authenticity of outgoing connections.
@@ -91,27 +98,12 @@ type Config struct {
 	// over the client ciphersuites.
 	PreferServerCipherSuites bool
 
+	// EnableAgentTLSForChecks is used to apply the agent's TLS settings in
+	// order to configure the HTTP client used for health checks. Enabling
+	// this allows HTTP checks to present a client certificate and verify
+	// the server using the same TLS configuration as the agent (CA, cert,
+	// and key).
 	EnableAgentTLSForChecks bool
-}
-
-// AppendCA opens and parses the CA file and adds the certificates to
-// the provided CertPool.
-func (c *Config) AppendCA(pool *x509.CertPool) error {
-	if c.CAFile == "" {
-		return nil
-	}
-
-	// Read the file
-	data, err := ioutil.ReadFile(c.CAFile)
-	if err != nil {
-		return fmt.Errorf("Failed to read CA file: %v", err)
-	}
-
-	if !pool.AppendCertsFromPEM(data) {
-		return fmt.Errorf("Failed to parse any CA certificates")
-	}
-
-	return nil
 }
 
 // KeyPair is used to open and parse a certificate and key file
@@ -199,33 +191,41 @@ func (c *Config) wrapTLSClient(conn net.Conn, tlsConfig *tls.Config) (net.Conn, 
 	return tlsConn, err
 }
 
+// Configurator holds a Config and is responsible for generating all the
+// *tls.Config necessary for Consul. Except the one in the api package.
 type Configurator struct {
 	sync.Mutex
 	base   *Config
 	checks map[string]bool
 }
 
-// Todo (Hans): should config be a value instead a pointer to avoid side effects?
+// NewConfigurator creates a new Configurator and sets the provided
+// configuration.
+// Todo (Hans): should config be a value instead a pointer to avoid side
+// effects?
 func NewConfigurator(config *Config) *Configurator {
 	return &Configurator{base: config, checks: map[string]bool{}}
 }
 
+// Update updates the internal configuration which is used to generate
+// *tls.Config.
 func (c *Configurator) Update(config *Config) {
 	c.Lock()
 	defer c.Unlock()
 	c.base = config
 }
 
-func (c *Configurator) commonTLSConfig(verifyIncoming bool) (*tls.Config, error) {
+// commonTLSConfig generates a *tls.Config from the base configuration the
+// Configurator has. It accepts an additional flag in case a config is needed
+// for incoming TLS connections.
+func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) (*tls.Config, error) {
 	if c.base == nil {
-		return nil, fmt.Errorf("No config")
+		return nil, fmt.Errorf("No base config")
 	}
 
 	tlsConfig := &tls.Config{
 		ClientAuth:         tls.NoClientCert,
-		ClientCAs:          x509.NewCertPool(),
 		InsecureSkipVerify: c.base.skipBuiltinVerify(),
-		RootCAs:            x509.NewCertPool(),
 		ServerName:         c.base.ServerName,
 	}
 
@@ -280,7 +280,8 @@ func (c *Configurator) commonTLSConfig(verifyIncoming bool) (*tls.Config, error)
 		tlsConfig.RootCAs = pool
 	}
 
-	if c.base.VerifyIncoming || verifyIncoming {
+	// Set ClientAuth if necessary
+	if c.base.VerifyIncoming || additionalVerifyIncomingFlag {
 		if c.base.CAFile == "" && c.base.CAPath == "" {
 			return nil, fmt.Errorf("VerifyIncoming set, and no CA certificate provided!")
 		}
@@ -294,14 +295,20 @@ func (c *Configurator) commonTLSConfig(verifyIncoming bool) (*tls.Config, error)
 	return tlsConfig, nil
 }
 
+// IncomingRPCConfig generates a *tls.Config for incoming RPC connections.
 func (c *Configurator) IncomingRPCConfig() (*tls.Config, error) {
 	return c.commonTLSConfig(c.base.VerifyIncomingRPC)
 }
 
+// IncomingHTTPSConfig generates a *tls.Config for incoming HTTPS connections.
 func (c *Configurator) IncomingHTTPSConfig() (*tls.Config, error) {
 	return c.commonTLSConfig(c.base.VerifyIncomingHTTPS)
 }
 
+// IncomingTLSConfig generates a *tls.Config for outgoing TLS connections for
+// checks. This function is seperated because there is an extra flag to
+// consider for checks. EnableAgentTLSForChecks and InsecureSkipVerify has to
+// be checked for checks.
 func (c *Configurator) OutgoingTLSConfigForCheck(id string) (*tls.Config, error) {
 	if !c.base.EnableAgentTLSForChecks {
 		return &tls.Config{
@@ -317,6 +324,9 @@ func (c *Configurator) OutgoingTLSConfigForCheck(id string) (*tls.Config, error)
 	return tlsConfig, nil
 }
 
+// OutgoingRPCConfig generates a *tls.Config for outgoing RPC connections. If
+// there is a CA or VerifyOutgoing is set, a *tls.Config will be provided,
+// otherwise we assume that no TLS should be used.
 func (c *Configurator) OutgoingRPCConfig() (*tls.Config, error) {
 	useTLS := c.base.CAFile != "" || c.base.CAPath != "" || c.base.VerifyOutgoing
 	if !useTLS {
@@ -325,6 +335,8 @@ func (c *Configurator) OutgoingRPCConfig() (*tls.Config, error) {
 	return c.commonTLSConfig(false)
 }
 
+// OutgoingRPCWrapper wraps the result of OutgoingRPCConfig in a DCWrapper. It
+// decides if verify server hostname should be used.
 func (c *Configurator) OutgoingRPCWrapper() (DCWrapper, error) {
 	// Get the TLS config
 	tlsConfig, err := c.OutgoingRPCConfig()
@@ -351,15 +363,23 @@ func (c *Configurator) OutgoingRPCWrapper() (DCWrapper, error) {
 	return wrapper, nil
 }
 
+// AddCheck adds a check to the internal check map together with the skipVerify
+// value, which is used when generating a *tls.Config for this check.
 func (c *Configurator) AddCheck(id string, skipVerify bool) {
+	c.Lock()
+	defer c.Unlock()
 	c.checks[id] = skipVerify
 }
 
+// RemoveCheck removes a check from the internal check map.
 func (c *Configurator) RemoveCheck(id string) {
+	c.Lock()
+	defer c.Unlock()
 	delete(c.checks, id)
 }
 
-// ParseCiphers parse ciphersuites from the comma-separated string into recognized slice
+// ParseCiphers parse ciphersuites from the comma-separated string into
+// recognized slice
 func ParseCiphers(cipherStr string) ([]uint16, error) {
 	suites := []uint16{}
 
