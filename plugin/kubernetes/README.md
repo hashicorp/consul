@@ -13,7 +13,7 @@ CoreDNS running the kubernetes plugin can be used as a replacement for kube-dns 
 cluster.  See the [deployment](https://github.com/coredns/deployment) repository for details on [how
 to deploy CoreDNS in Kubernetes](https://github.com/coredns/deployment/tree/master/kubernetes).
 
-[stubDomains and upstreamNameservers](https://blog.kubernetes.io/2017/04/configuring-private-dns-zones-upstream-nameservers-kubernetes.html)
+[stubDomains and upstreamNameservers](https://kubernetes.io/blog/2017/04/configuring-private-dns-zones-upstream-nameservers-kubernetes/)
 are implemented via the *proxy* plugin and kubernetes *upstream*. See example below.
 
 This plugin can only be used once per Server Block.
