@@ -614,6 +614,9 @@ func (a *Agent) Start(ctx context.Context) error {
 		a.logger.Warn("DEPRECATED Backwards compatibility with pre-1.9 metrics enabled. These metrics will be removed in a future version of Consul. Set `telemetry { disable_compat_1.9 = true }` to disable them.")
 	}
 
+	// consul version metric with label
+	metrics.SetGaugeWithLabels([]string{"version"}, 1, []metrics.Label{{Name: "version", Value: a.config.Version}})
+
 	return nil
 }
 
