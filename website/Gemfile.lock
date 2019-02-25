@@ -79,7 +79,7 @@ GEM
       thor (>= 0.15.2, < 2.0)
       tilt (~> 1.4.1, < 2.0)
     middleman-hashicorp (0.3.35)
-      bootstrap-sass (~> 3.3)
+      bootstrap-sass (~> 3.4.1)
       builder (~> 3.2)
       middleman (~> 3.4)
       middleman-livereload (~> 3.4)
