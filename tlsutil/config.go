@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/go-rootcerts"
@@ -199,12 +200,20 @@ func (c *Config) wrapTLSClient(conn net.Conn, tlsConfig *tls.Config) (net.Conn, 
 }
 
 type Configurator struct {
+	sync.Mutex
 	base   *Config
 	checks map[string]bool
 }
 
+// Todo (Hans): should config be a value instead a pointer to avoid side effects?
 func NewConfigurator(config *Config) *Configurator {
 	return &Configurator{base: config, checks: map[string]bool{}}
+}
+
+func (c *Configurator) Update(config *Config) {
+	c.Lock()
+	defer c.Unlock()
+	c.base = config
 }
 
 func (c *Configurator) commonTLSConfig(verifyIncoming bool) (*tls.Config, error) {
@@ -255,38 +264,31 @@ func (c *Configurator) commonTLSConfig(verifyIncoming bool) (*tls.Config, error)
 	}
 
 	// Parse the CA certs if any
-	rootConfig := &rootcerts.Config{
-		CAFile: c.base.CAFile,
-		CAPath: c.base.CAPath,
-	}
-	if err := rootcerts.ConfigureTLS(tlsConfig, rootConfig); err != nil {
-		return nil, err
-	}
-
-	// Parse the CA certs if any
 	if c.base.CAFile != "" {
 		pool, err := rootcerts.LoadCAFile(c.base.CAFile)
 		if err != nil {
 			return nil, err
 		}
 		tlsConfig.ClientCAs = pool
+		tlsConfig.RootCAs = pool
 	} else if c.base.CAPath != "" {
 		pool, err := rootcerts.LoadCAPath(c.base.CAPath)
 		if err != nil {
 			return nil, err
 		}
 		tlsConfig.ClientCAs = pool
+		tlsConfig.RootCAs = pool
 	}
 
 	if c.base.VerifyIncoming || verifyIncoming {
-		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
-
 		if c.base.CAFile == "" && c.base.CAPath == "" {
 			return nil, fmt.Errorf("VerifyIncoming set, and no CA certificate provided!")
 		}
 		if len(tlsConfig.Certificates) == 0 {
 			return nil, fmt.Errorf("VerifyIncoming set, and no Cert/Key pair provided!")
 		}
+
+		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
 	}
 
 	return tlsConfig, nil
