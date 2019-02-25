@@ -251,6 +251,8 @@ type Agent struct {
 	// Envoy.
 	grpcServer *grpc.Server
 
+	// tlsConfigurator is the central instance to provide a *tls.Config
+	// based on the current consul configuration.
 	tlsConfigurator *tlsutil.Configurator
 }
 
