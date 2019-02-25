@@ -616,3 +616,96 @@ func TestConfigurator_CommonTLSConfigVerifyIncoming(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, tls.RequireAndVerifyClientCert, tlsConf.ClientAuth)
 }
+
+func TestConfigurator_IncomingRPCConfig(t *testing.T) {
+	c := NewConfigurator(&Config{})
+	tlsConf, err := c.IncomingRPCConfig()
+	require.NoError(t, err)
+	require.Equal(t, tls.NoClientCert, tlsConf.ClientAuth)
+
+	c.Update(&Config{VerifyIncoming: true, CAFile: "../test/ca/root.cer", CertFile: "../test/key/ourdomain.cer", KeyFile: "../test/key/ourdomain.key"})
+	tlsConf, err = c.IncomingRPCConfig()
+	require.NoError(t, err)
+	require.Equal(t, tls.RequireAndVerifyClientCert, tlsConf.ClientAuth)
+
+	c.Update(&Config{VerifyIncomingRPC: true, CAFile: "../test/ca/root.cer", CertFile: "../test/key/ourdomain.cer", KeyFile: "../test/key/ourdomain.key"})
+	tlsConf, err = c.IncomingRPCConfig()
+	require.NoError(t, err)
+	require.Equal(t, tls.RequireAndVerifyClientCert, tlsConf.ClientAuth)
+
+	c.Update(&Config{VerifyIncomingHTTPS: true, CAFile: "../test/ca/root.cer", CertFile: "../test/key/ourdomain.cer", KeyFile: "../test/key/ourdomain.key"})
+	tlsConf, err = c.IncomingRPCConfig()
+	require.NoError(t, err)
+	require.Equal(t, tls.NoClientCert, tlsConf.ClientAuth)
+}
+
+func TestConfigurator_IncomingHTTPSConfig(t *testing.T) {
+	c := NewConfigurator(&Config{})
+	tlsConf, err := c.IncomingHTTPSConfig()
+	require.NoError(t, err)
+	require.Equal(t, tls.NoClientCert, tlsConf.ClientAuth)
+
+	c.Update(&Config{VerifyIncoming: true, CAFile: "../test/ca/root.cer", CertFile: "../test/key/ourdomain.cer", KeyFile: "../test/key/ourdomain.key"})
+	tlsConf, err = c.IncomingHTTPSConfig()
+	require.NoError(t, err)
+	require.Equal(t, tls.RequireAndVerifyClientCert, tlsConf.ClientAuth)
+
+	c.Update(&Config{VerifyIncomingHTTPS: true, CAFile: "../test/ca/root.cer", CertFile: "../test/key/ourdomain.cer", KeyFile: "../test/key/ourdomain.key"})
+	tlsConf, err = c.IncomingHTTPSConfig()
+	require.NoError(t, err)
+	require.Equal(t, tls.RequireAndVerifyClientCert, tlsConf.ClientAuth)
+
+	c.Update(&Config{VerifyIncomingRPC: true, CAFile: "../test/ca/root.cer", CertFile: "../test/key/ourdomain.cer", KeyFile: "../test/key/ourdomain.key"})
+	tlsConf, err = c.IncomingHTTPSConfig()
+	require.NoError(t, err)
+	require.Equal(t, tls.NoClientCert, tlsConf.ClientAuth)
+}
+
+func TestConfigurator_OutgoingRPCConfig(t *testing.T) {
+	c := NewConfigurator(&Config{})
+	tlsConf, err := c.OutgoingRPCConfig()
+	require.NoError(t, err)
+	require.Nil(t, tlsConf)
+
+	c.Update(&Config{VerifyOutgoing: true})
+	tlsConf, err = c.OutgoingRPCConfig()
+	require.Error(t, err)
+
+	c.Update(&Config{VerifyOutgoing: true, CAFile: "../test/ca/root.cer"})
+	tlsConf, err = c.OutgoingRPCConfig()
+	require.NoError(t, err)
+
+	c.Update(&Config{VerifyOutgoing: true, CAPath: "../test/ca_path"})
+	tlsConf, err = c.OutgoingRPCConfig()
+	require.NoError(t, err)
+}
+
+func TestConfigurator_OutgoingTLSConfigForChecks(t *testing.T) {
+	c := NewConfigurator(&Config{})
+	tlsConf, err := c.OutgoingTLSConfigForCheck("")
+	require.NoError(t, err)
+	require.False(t, tlsConf.InsecureSkipVerify)
+
+	c.Update(&Config{EnableAgentTLSForChecks: true})
+	tlsConf, err = c.OutgoingTLSConfigForCheck("")
+	require.NoError(t, err)
+	require.False(t, tlsConf.InsecureSkipVerify)
+
+	c.AddCheck("c1", true)
+	c.Update(&Config{EnableAgentTLSForChecks: true})
+	tlsConf, err = c.OutgoingTLSConfigForCheck("c1")
+	require.NoError(t, err)
+	require.True(t, tlsConf.InsecureSkipVerify)
+
+	c.AddCheck("c1", false)
+	c.Update(&Config{EnableAgentTLSForChecks: true})
+	tlsConf, err = c.OutgoingTLSConfigForCheck("c1")
+	require.NoError(t, err)
+	require.False(t, tlsConf.InsecureSkipVerify)
+
+	c.AddCheck("c1", false)
+	c.Update(&Config{EnableAgentTLSForChecks: true})
+	tlsConf, err = c.OutgoingTLSConfigForCheck("c1")
+	require.NoError(t, err)
+	require.False(t, tlsConf.InsecureSkipVerify)
+}

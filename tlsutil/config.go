@@ -312,7 +312,7 @@ func (c *Configurator) IncomingHTTPSConfig() (*tls.Config, error) {
 func (c *Configurator) OutgoingTLSConfigForCheck(id string) (*tls.Config, error) {
 	if !c.base.EnableAgentTLSForChecks {
 		return &tls.Config{
-			InsecureSkipVerify: c.checks[id],
+			InsecureSkipVerify: c.getSkipVerifyForCheck(id),
 		}, nil
 	}
 
@@ -320,7 +320,7 @@ func (c *Configurator) OutgoingTLSConfigForCheck(id string) (*tls.Config, error)
 	if err != nil {
 		return nil, err
 	}
-	tlsConfig.InsecureSkipVerify = c.checks[id]
+	tlsConfig.InsecureSkipVerify = c.getSkipVerifyForCheck(id)
 	return tlsConfig, nil
 }
 
@@ -376,6 +376,12 @@ func (c *Configurator) RemoveCheck(id string) {
 	c.Lock()
 	defer c.Unlock()
 	delete(c.checks, id)
+}
+
+func (c *Configurator) getSkipVerifyForCheck(id string) bool {
+	c.Lock()
+	defer c.Unlock()
+	return c.checks[id]
 }
 
 // ParseCiphers parse ciphersuites from the comma-separated string into
