@@ -346,7 +346,7 @@ func (t *xDSType) SendIfNew(cfgSnap *proxycfg.ConfigSnapshot, version uint64, no
 	if err != nil {
 		return err
 	}
-	if resources == nil || len(resources) == 0 {
+	if resources == nil {
 		// Nothing to send yet
 		return nil
 	}
