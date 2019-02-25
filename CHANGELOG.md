@@ -10,6 +10,7 @@ BUG FIXES:
 
 FEATURES:
 * prepared queries: Enable ServiceMeta filtering for prepared queries. [[GH-5291](https://github.com/hashicorp/consul/pull/5291)]
+* dns: Enabled caching of RPC responses within the DNS server. [[GH-5300](https://github.com/hashicorp/consul/pull/5300)]
 
 IMPROVEMENTS:
 
