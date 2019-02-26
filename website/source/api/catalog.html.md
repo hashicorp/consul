@@ -76,10 +76,12 @@ The table below shows this endpoint's support for
     sending an array of `Check` objects.
 
 - `SkipNodeUpdate` `(bool: false)` - Specifies whether to skip updating the
-  node part of the registration. Useful in the case where only a health check
-  or service entry on a node needs to be updated.
-  This parameter can be used when a register request is intended for updating a service and/or checks, but doesn't want to overwrite any node information if the node is already registered.
-If the node doesn't exist, it will still be created, but if the node exists, any node portion of the update will not apply.
+  node's information in the registration. This is useful in the case where 
+  only a health check or service entry on a node needs to be updated or when 
+  a register request is intended to  update a service entry or health check.
+  In both use cases, node information will not be overwritten, if the node is 
+  already registered. Note, if the paramater is enabled for a node that doesn't 
+  exist, it will still be created.
 
 It is important to note that `Check` does not have to be provided with `Service`
 and vice versa. A catalog entry can have either, neither, or both.
