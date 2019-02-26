@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/consul/lib/freeport"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/tlsutil"
 
 	"github.com/stretchr/testify/require"
 )
@@ -148,6 +149,7 @@ func (a *TestAgent) Start(t *testing.T) *TestAgent {
 		agent.LogWriter = a.LogWriter
 		agent.logger = log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
 		agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
+		agent.tlsConfigurator = tlsutil.NewConfigurator(a.Config.ToTLSUtilConfig())
 
 		// we need the err var in the next exit condition
 		if err := agent.Start(); err == nil {

@@ -1,7 +1,6 @@
 package config
 
 import (
-	"crypto/tls"
 	"fmt"
 	"net"
 	"reflect"
@@ -1440,25 +1439,6 @@ type RuntimeConfig struct {
 	Watches []map[string]interface{}
 }
 
-// IncomingHTTPSConfig returns the TLS configuration for HTTPS
-// connections to consul.
-func (c *RuntimeConfig) IncomingHTTPSConfig() (*tls.Config, error) {
-	tc := &tlsutil.Config{
-		VerifyIncoming:           c.VerifyIncoming || c.VerifyIncomingHTTPS,
-		VerifyOutgoing:           c.VerifyOutgoing,
-		CAFile:                   c.CAFile,
-		CAPath:                   c.CAPath,
-		CertFile:                 c.CertFile,
-		KeyFile:                  c.KeyFile,
-		NodeName:                 c.NodeName,
-		ServerName:               c.ServerName,
-		TLSMinVersion:            c.TLSMinVersion,
-		CipherSuites:             c.TLSCipherSuites,
-		PreferServerCipherSuites: c.TLSPreferServerCipherSuites,
-	}
-	return tc.IncomingTLSConfig()
-}
-
 func (c *RuntimeConfig) apiAddresses(maxPerType int) (unixAddrs, httpAddrs, httpsAddrs []string) {
 	if len(c.HTTPSAddrs) > 0 {
 		for i, addr := range c.HTTPSAddrs {
@@ -1595,6 +1575,25 @@ func (c *RuntimeConfig) APIConfig(includeClientCerts bool) (*api.Config, error) 
 // time.Duration values are formatted to improve readability.
 func (c *RuntimeConfig) Sanitized() map[string]interface{} {
 	return sanitize("rt", reflect.ValueOf(c)).Interface().(map[string]interface{})
+}
+
+func (c *RuntimeConfig) ToTLSUtilConfig() *tlsutil.Config {
+	return &tlsutil.Config{
+		VerifyIncoming:           c.VerifyIncoming,
+		VerifyIncomingRPC:        c.VerifyIncomingRPC,
+		VerifyIncomingHTTPS:      c.VerifyIncomingHTTPS,
+		VerifyOutgoing:           c.VerifyOutgoing,
+		CAFile:                   c.CAFile,
+		CAPath:                   c.CAPath,
+		CertFile:                 c.CertFile,
+		KeyFile:                  c.KeyFile,
+		NodeName:                 c.NodeName,
+		ServerName:               c.ServerName,
+		TLSMinVersion:            c.TLSMinVersion,
+		CipherSuites:             c.TLSCipherSuites,
+		PreferServerCipherSuites: c.TLSPreferServerCipherSuites,
+		EnableAgentTLSForChecks:  c.EnableAgentTLSForChecks,
+	}
 }
 
 // isSecret determines whether a field name represents a field which

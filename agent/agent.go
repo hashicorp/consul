@@ -40,6 +40,7 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/file"
 	"github.com/hashicorp/consul/logger"
+	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/watch"
 	multierror "github.com/hashicorp/go-multierror"
@@ -249,6 +250,8 @@ type Agent struct {
 	// grpcServer is the server instance used currently to serve xDS API for
 	// Envoy.
 	grpcServer *grpc.Server
+
+	tlsConfigurator *tlsutil.Configurator
 }
 
 func New(c *config.RuntimeConfig) (*Agent, error) {
@@ -383,15 +386,17 @@ func (a *Agent) Start() error {
 	// waiting to discover a consul server
 	consulCfg.ServerUp = a.sync.SyncFull.Trigger
 
+	a.tlsConfigurator = tlsutil.NewConfigurator(c.ToTLSUtilConfig())
+
 	// Setup either the client or the server.
 	if c.ServerMode {
-		server, err := consul.NewServerLogger(consulCfg, a.logger, a.tokens)
+		server, err := consul.NewServerLogger(consulCfg, a.logger, a.tokens, a.tlsConfigurator)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
 		a.delegate = server
 	} else {
-		client, err := consul.NewClientLogger(consulCfg, a.logger)
+		client, err := consul.NewClientLogger(consulCfg, a.logger, a.tlsConfigurator)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul client: %v", err)
 		}
@@ -649,7 +654,7 @@ func (a *Agent) listenHTTP() ([]*HTTPServer, error) {
 			var tlscfg *tls.Config
 			_, isTCP := l.(*tcpKeepAliveListener)
 			if isTCP && proto == "https" {
-				tlscfg, err = a.config.IncomingHTTPSConfig()
+				tlscfg, err = a.tlsConfigurator.IncomingHTTPSConfig()
 				if err != nil {
 					return err
 				}

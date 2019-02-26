@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
 )
@@ -88,10 +89,10 @@ type Client struct {
 // NewClient is used to construct a new Consul client from the
 // configuration, potentially returning an error
 func NewClient(config *Config) (*Client, error) {
-	return NewClientLogger(config, nil)
+	return NewClientLogger(config, nil, tlsutil.NewConfigurator(config.ToTLSUtilConfig()))
 }
 
-func NewClientLogger(config *Config, logger *log.Logger) (*Client, error) {
+func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsutil.Configurator) (*Client, error) {
 	// Check the protocol version
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -113,7 +114,7 @@ func NewClientLogger(config *Config, logger *log.Logger) (*Client, error) {
 	}
 
 	// Create the tls Wrapper
-	tlsWrap, err := config.tlsConfig().OutgoingTLSWrapper()
+	tlsWrap, err := tlsConfigurator.OutgoingRPCWrapper()
 	if err != nil {
 		return nil, err
 	}

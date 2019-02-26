@@ -5426,6 +5426,40 @@ func TestRuntime_ClientAddressAnyV6(t *testing.T) {
 	require.Equal(t, "[::1]:5688", https)
 }
 
+func TestRuntime_ToTLSUtilConfig(t *testing.T) {
+	c := &RuntimeConfig{
+		VerifyIncoming:              true,
+		VerifyIncomingRPC:           true,
+		VerifyIncomingHTTPS:         true,
+		VerifyOutgoing:              true,
+		CAFile:                      "a",
+		CAPath:                      "b",
+		CertFile:                    "c",
+		KeyFile:                     "d",
+		NodeName:                    "e",
+		ServerName:                  "f",
+		TLSMinVersion:               "tls12",
+		TLSCipherSuites:             []uint16{tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305},
+		TLSPreferServerCipherSuites: true,
+		EnableAgentTLSForChecks:     true,
+	}
+	r := c.ToTLSUtilConfig()
+	require.Equal(t, c.VerifyIncoming, r.VerifyIncoming)
+	require.Equal(t, c.VerifyIncomingRPC, r.VerifyIncomingRPC)
+	require.Equal(t, c.VerifyIncomingHTTPS, r.VerifyIncomingHTTPS)
+	require.Equal(t, c.VerifyOutgoing, r.VerifyOutgoing)
+	require.Equal(t, c.CAFile, r.CAFile)
+	require.Equal(t, c.CAPath, r.CAPath)
+	require.Equal(t, c.CertFile, r.CertFile)
+	require.Equal(t, c.KeyFile, r.KeyFile)
+	require.Equal(t, c.NodeName, r.NodeName)
+	require.Equal(t, c.ServerName, r.ServerName)
+	require.Equal(t, c.TLSMinVersion, r.TLSMinVersion)
+	require.Equal(t, c.TLSCipherSuites, r.CipherSuites)
+	require.Equal(t, c.TLSPreferServerCipherSuites, r.PreferServerCipherSuites)
+	require.Equal(t, c.EnableAgentTLSForChecks, r.EnableAgentTLSForChecks)
+}
+
 func splitIPPort(hostport string) (net.IP, int) {
 	h, p, err := net.SplitHostPort(hostport)
 	if err != nil {

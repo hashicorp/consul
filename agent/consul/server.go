@@ -253,12 +253,12 @@ type Server struct {
 }
 
 func NewServer(config *Config) (*Server, error) {
-	return NewServerLogger(config, nil, new(token.Store))
+	return NewServerLogger(config, nil, new(token.Store), tlsutil.NewConfigurator(config.ToTLSUtilConfig()))
 }
 
 // NewServer is used to construct a new Consul server from the
 // configuration, potentially returning an error
-func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*Server, error) {
+func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tlsConfigurator *tlsutil.Configurator) (*Server, error) {
 	// Check the protocol version.
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -297,14 +297,13 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 	}
 
 	// Create the TLS wrapper for outgoing connections.
-	tlsConf := config.tlsConfig()
-	tlsWrap, err := tlsConf.OutgoingTLSWrapper()
+	tlsWrap, err := tlsConfigurator.OutgoingRPCWrapper()
 	if err != nil {
 		return nil, err
 	}
 
 	// Get the incoming TLS config.
-	incomingTLS, err := tlsConf.IncomingTLSConfig()
+	incomingTLS, err := tlsConfigurator.IncomingRPCConfig()
 	if err != nil {
 		return nil, err
 	}
