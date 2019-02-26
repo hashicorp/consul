@@ -1052,7 +1052,6 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 
 	// Copy the TLS configuration
 	base.VerifyIncoming = a.config.VerifyIncoming || a.config.VerifyIncomingRPC
-
 	if a.config.CAPath != "" || a.config.CAFile != "" {
 		base.UseTLS = true
 	}
