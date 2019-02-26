@@ -160,8 +160,6 @@ type Config struct {
 	// must match a provided certificate authority. This can be used to force client auth.
 	VerifyIncoming bool
 
-	VerifyIncomingRPC bool
-
 	// VerifyOutgoing is used to force verification of the authenticity of outgoing connections.
 	// This means that TLS requests are used, and TCP requests are not made. TLS connections
 	// must match a provided certificate authority.
@@ -387,7 +385,6 @@ type Config struct {
 func (c *Config) ToTLSUtilConfig() *tlsutil.Config {
 	return &tlsutil.Config{
 		VerifyIncoming:           c.VerifyIncoming,
-		VerifyIncomingRPC:        c.VerifyIncomingRPC,
 		VerifyOutgoing:           c.VerifyOutgoing,
 		CAFile:                   c.CAFile,
 		CAPath:                   c.CAPath,

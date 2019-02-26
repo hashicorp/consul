@@ -1051,8 +1051,7 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	base.Build = fmt.Sprintf("%s%s:%s", a.config.Version, a.config.VersionPrerelease, revision)
 
 	// Copy the TLS configuration
-	base.VerifyIncoming = a.config.VerifyIncoming
-	base.VerifyIncomingRPC = a.config.VerifyIncomingRPC
+	base.VerifyIncoming = a.config.VerifyIncoming || a.config.VerifyIncomingRPC
 
 	if a.config.CAPath != "" || a.config.CAFile != "" {
 		base.UseTLS = true
