@@ -509,7 +509,10 @@ func (a *Agent) Start() error {
 	go a.retryJoinWAN()
 
 	// consul version metric with label
-	metrics.SetGaugeWithLabels([]string{"version"}, 1, []metrics.Label{{Name: "version", Value: a.config.Version}})
+	metrics.SetGaugeWithLabels([]string{"version"}, 1, []metrics.Label{
+		{Name: "version", Value: a.config.Version},
+		{Name: "pre-release", Value: a.config.VersionPrerelease},
+	})
 
 	return nil
 }
