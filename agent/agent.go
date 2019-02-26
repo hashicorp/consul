@@ -3213,9 +3213,17 @@ func (a *Agent) loadProxies(conf *config.RuntimeConfig) error {
 	return persistenceErr
 }
 
-func (a *Agent) getPersistedTokens() (map[string]string, error) {
+type persistedTokens struct {
+	Replication string `json:"replication,omitempty"`
+	AgentMaster string `json:"agent_master,omitempty"`
+	Default     string `json:"default,omitempty"`
+	Agent       string `json:"agent,omitempty"`
+}
+
+func (a *Agent) getPersistedTokens() (*persistedTokens, error) {
+	persistedTokens := &persistedTokens{}
 	if !a.config.ACLEnableTokenPersistence {
-		return nil, nil
+		return persistedTokens, nil
 	}
 
 	a.persistedTokensLock.RLock()
@@ -3227,14 +3235,13 @@ func (a *Agent) getPersistedTokens() (map[string]string, error) {
 	if err != nil {
 		if os.IsNotExist(err) {
 			// non-existence is not an error we care about
-			return nil, nil
+			return persistedTokens, nil
 		}
-		return nil, fmt.Errorf("failed reading tokens file %q: %s", tokensFullPath, err)
+		return persistedTokens, fmt.Errorf("failed reading tokens file %q: %s", tokensFullPath, err)
 	}
 
-	persistedTokens := make(map[string]string)
-	if err := json.Unmarshal(buf, &persistedTokens); err != nil {
-		return nil, fmt.Errorf("failed to decode tokens file %q: %s", tokensFullPath, err)
+	if err := json.Unmarshal(buf, persistedTokens); err != nil {
+		return persistedTokens, fmt.Errorf("failed to decode tokens file %q: %s", tokensFullPath, err)
 	}
 
 	return persistedTokens, nil
@@ -3247,8 +3254,8 @@ func (a *Agent) loadTokens(conf *config.RuntimeConfig) error {
 		a.logger.Printf("[WARN] unable to load persisted tokens: %v", persistenceErr)
 	}
 
-	if tok, ok := persistedTokens["default"]; ok && tok != "" {
-		a.tokens.UpdateUserToken(tok, token.TokenSourceAPI)
+	if persistedTokens.Default != "" {
+		a.tokens.UpdateUserToken(persistedTokens.Default, token.TokenSourceAPI)
 
 		if conf.ACLToken != "" {
 			a.logger.Printf("[WARN] \"default\" token present in both the configuration and persisted token store, using the persisted token")
@@ -3257,8 +3264,8 @@ func (a *Agent) loadTokens(conf *config.RuntimeConfig) error {
 		a.tokens.UpdateUserToken(conf.ACLToken, token.TokenSourceConfig)
 	}
 
-	if tok, ok := persistedTokens["agent"]; ok && tok != "" {
-		a.tokens.UpdateAgentToken(tok, token.TokenSourceAPI)
+	if persistedTokens.Agent != "" {
+		a.tokens.UpdateAgentToken(persistedTokens.Agent, token.TokenSourceAPI)
 
 		if conf.ACLAgentToken != "" {
 			a.logger.Printf("[WARN] \"agent\" token present in both the configuration and persisted token store, using the persisted token")
@@ -3267,8 +3274,8 @@ func (a *Agent) loadTokens(conf *config.RuntimeConfig) error {
 		a.tokens.UpdateAgentToken(conf.ACLAgentToken, token.TokenSourceConfig)
 	}
 
-	if tok, ok := persistedTokens["agent_master"]; ok && tok != "" {
-		a.tokens.UpdateAgentMasterToken(tok, token.TokenSourceAPI)
+	if persistedTokens.AgentMaster != "" {
+		a.tokens.UpdateAgentMasterToken(persistedTokens.AgentMaster, token.TokenSourceAPI)
 
 		if conf.ACLAgentMasterToken != "" {
 			a.logger.Printf("[WARN] \"agent_master\" token present in both the configuration and persisted token store, using the persisted token")
@@ -3277,8 +3284,8 @@ func (a *Agent) loadTokens(conf *config.RuntimeConfig) error {
 		a.tokens.UpdateAgentMasterToken(conf.ACLAgentMasterToken, token.TokenSourceConfig)
 	}
 
-	if tok, ok := persistedTokens["replication"]; ok && tok != "" {
-		a.tokens.UpdateReplicationToken(tok, token.TokenSourceAPI)
+	if persistedTokens.Replication != "" {
+		a.tokens.UpdateReplicationToken(persistedTokens.Replication, token.TokenSourceAPI)
 
 		if conf.ACLReplicationToken != "" {
 			a.logger.Printf("[WARN] \"replication\" token present in both the configuration and persisted token store, using the persisted token")
