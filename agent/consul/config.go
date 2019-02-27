@@ -379,8 +379,8 @@ type Config struct {
 	CAConfig *structs.CAConfiguration
 }
 
-func (c *Config) ToTLSUtilConfig() *tlsutil.Config {
-	return &tlsutil.Config{
+func (c *Config) ToTLSUtilConfig() tlsutil.Config {
+	return tlsutil.Config{
 		VerifyIncoming:           c.VerifyIncoming,
 		VerifyOutgoing:           c.VerifyOutgoing,
 		CAFile:                   c.CAFile,

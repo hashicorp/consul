@@ -205,26 +205,22 @@ type Configurator struct {
 // configuration.
 // Todo (Hans): should config be a value instead a pointer to avoid side
 // effects?
-func NewConfigurator(config *Config) *Configurator {
-	return &Configurator{base: config, checks: map[string]bool{}}
+func NewConfigurator(config Config) *Configurator {
+	return &Configurator{base: &config, checks: map[string]bool{}}
 }
 
 // Update updates the internal configuration which is used to generate
 // *tls.Config.
-func (c *Configurator) Update(config *Config) {
+func (c *Configurator) Update(config Config) {
 	c.Lock()
 	defer c.Unlock()
-	c.base = config
+	c.base = &config
 }
 
 // commonTLSConfig generates a *tls.Config from the base configuration the
 // Configurator has. It accepts an additional flag in case a config is needed
 // for incoming TLS connections.
 func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) (*tls.Config, error) {
-	if c.base == nil {
-		return nil, fmt.Errorf("No base config")
-	}
-
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: !c.base.VerifyServerHostname,
 	}

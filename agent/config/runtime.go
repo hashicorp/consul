@@ -1580,8 +1580,8 @@ func (c *RuntimeConfig) Sanitized() map[string]interface{} {
 	return sanitize("rt", reflect.ValueOf(c)).Interface().(map[string]interface{})
 }
 
-func (c *RuntimeConfig) ToTLSUtilConfig() *tlsutil.Config {
-	return &tlsutil.Config{
+func (c *RuntimeConfig) ToTLSUtilConfig() tlsutil.Config {
+	return tlsutil.Config{
 		VerifyIncoming:           c.VerifyIncoming,
 		VerifyIncomingRPC:        c.VerifyIncomingRPC,
 		VerifyIncomingHTTPS:      c.VerifyIncomingHTTPS,
