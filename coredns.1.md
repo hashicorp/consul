@@ -16,12 +16,12 @@ bundled in CoreDNS are listed on <https://coredns.io/explugins>.
 When started with no options CoreDNS will looks for a file names `Corefile` in the current
 directory, if found it will parse its contents and start up accordingly. If no `Corefile` is found
 it will start with the *whoami* plugin (coredns-whoami(7)) and start listening on port 53 (unless
-overriden with `-dns.port`).
+overridden with `-dns.port`).
 
 Available options:
 
 **-conf** **FILE**
-: specificy Corefile to load.
+: specify Corefile to load.
 
 **-cpu** **CAP**
 : specify maximum CPU capacity in percent.
