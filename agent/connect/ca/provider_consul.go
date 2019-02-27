@@ -323,8 +323,7 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	defer c.Unlock()
 
 	// Get the provider state
-	state := c.Delegate.State()
-	idx, providerState, err := state.CAProviderState(c.id)
+	idx, providerState, err := c.getState()
 	if err != nil {
 		return "", err
 	}
@@ -509,8 +508,7 @@ func (c *ConsulProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 	defer c.Unlock()
 
 	// Get the provider state
-	state := c.Delegate.State()
-	idx, providerState, err := state.CAProviderState(c.id)
+	idx, providerState, err := c.getState()
 	if err != nil {
 		return "", err
 	}
