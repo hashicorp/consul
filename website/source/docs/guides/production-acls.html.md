@@ -10,13 +10,13 @@ The [Bootstrapping the ACL System guide](/advanced/day-1-operations/acl-guide)
 walks you through how to set up ACLs on a single datacenter. Because it
 introduces the basic concepts and syntax we recommend completing it before
 starting this guide. This guide builds on the first guide with recommendations
-for production workloads. 
+for production workloads on a single datacenter. 
 
 After [bootstrapping the ACL
 system](/advanced/day-1-operations/production-acls#bootstrap-the-acl-system),
 you will learn how to create tokens with minimum privileges for:
 
-* [Servers and Clients](/advanced/day-1-operations/production-acls#appy-individual-tokens-to-agents)
+* [Servers and Clients](/advanced/day-1-operations/production-acls#apply-individual-tokens-to-agents)
 * [Services](/advanced/day-1-operations/production-acls#apply-individual-tokens-to-services)
 * [DNS](/advanced/day-1-operations/production-acls#token-for-dns) 
 * [Consul KV](/advanced/day-1-operations/production-acls#consul-kv-tokens) 
@@ -81,8 +81,8 @@ UUID that you will use to identify the token when using the Consul CLI or HTTP
 API. 
 
 While you are setting up the ACL system, set the `CONSUL_HTTP_TOKEN`
-environment variable to the bootstrap token on one server, for example
-on server "consul-server-one". This gives you the necessary 
+environment variable to the bootstrap token on one server, for this guide
+the example is on server "consul-server-one". This gives you the necessary 
 privileges to continue
 creating policies and tokens. Set the environment variable temporarily with
 `export`, so that it will not persist once you’ve closed the session. 
@@ -91,9 +91,9 @@ creating policies and tokens. Set the environment variable temporarily with
 $ export CONSUL_HTTP_TOKEN=<your_token_here> 
 ```
 
-All of the following commands in this guide can 
+Now, all of the following commands in this guide can 
 be completed on the same server, in this
-example server "consul-server-one".  
+case server "consul-server-one". 
 
 ## Apply Individual Tokens to Agents
 
@@ -203,7 +203,9 @@ create tokens for the services.
 
 The token creation and application process for services is similar to agents. 
 Create a policy.  Use that policy to create a token.  Add the token to the
-service configuration file. 
+service. Service tokens are necessary for
+ agent anti-entropy, registering and de-registering the service, and
+ registering and de-registering the service's checks.
 
 Review the [service
 rules](https://www.consul.io/docs/agent/acl-rules.html#service-rules) before
@@ -233,7 +235,7 @@ directory](https://www.consul.io/docs/agent/options.html#_config_dir) on one of
 the clients.  
 
 First, create the policy that will grant write privileges to only the
-"dashboard" service. This means the "dashboard" service can register the
+"dashboard" service. This means the "dashboard" service can register
 itself, update it's health checks, and write any of the fields in the [service
 definition](https://www.consul.io/docs/agent/services.html).
 
@@ -280,10 +282,12 @@ Finally, add the token to the service definition.
  } 
 ```
 
-If the service is running, you will need to restart it. Unlike agent tokens,
-service tokens must be set in the configuration file; you cannot set them with
-the HTTP API. However, if you register a service with the API, you can pass the
-token in the [header](https://www.consul.io/api/index.html#authentication) with `X-Consul-Token` and it will be used by the service.
+If the service is running, you will need to restart it. Unlike with agent 
+tokens, there is no HTTP API endpoint to apply the token directly to the
+service. If the service is registered with a configuration file, you must
+also set the token in the configuration file. However, if you register a
+ service with the HTTP API, you can pass the token in the [header](https://www.consul.io/api/index.html#authentication) with
+  `X-Consul-Token` and it will be used by the service.
 
 If you are using a sidecar proxy, it can inherit the token from the service
 definition. Alternatively, you can create a separate token. 
@@ -345,6 +349,10 @@ configuration parameter.
   },
 } 
 ``` 
+
+Note, if you have multiple agents serving DNS requests you can use the same
+ policy to create individual tokens for all of them if they are using the same rules.
+
 
 ## Consul KV Tokens
 
@@ -470,9 +478,6 @@ key_prefix "" {
 node_prefix "" { 
   policy = "read" 
   }
-intention_prefix "" { 
-  policy = "read" 
-  } 
 ```
 
 ## Summary
