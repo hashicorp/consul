@@ -109,7 +109,7 @@ and restart the Consul service.
 
 ### Create the Agent Policy
 
-We recommend creating agent policies that have unrestricted privileges for node
+We recommend creating agent policies that have write privileges for node
 related actions including registering itself in the catalog, updating node
 level health checks, and having write access on its configuration file. The
 example below has unrestricted privileges for node related actions for
