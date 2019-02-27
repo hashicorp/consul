@@ -702,31 +702,18 @@ func TestConfigurator_OutgoingTLSConfigForChecks(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, tlsConf.InsecureSkipVerify)
 
-	type variant struct {
-		config *Config
-		result string
-	}
-	variants := []variant{
-		{
-			config: &Config{EnableAgentTLSForChecks: true,
-				NodeName: "node", ServerName: "server"},
-			result: "server",
-		},
-		{
-			config: &Config{EnableAgentTLSForChecks: true,
-				ServerName: "server"},
-			result: "server",
-		},
-		{
-			config: &Config{EnableAgentTLSForChecks: true,
-				NodeName: "node"},
-			result: "node",
-		},
-	}
-	for _, v := range variants {
-		c.Update(v.config)
-		tlsConf, err := c.OutgoingTLSConfigForCheck("")
-		require.NoError(t, err)
-		require.Equal(t, v.result, tlsConf.ServerName)
-	}
+	c.Update(&Config{EnableAgentTLSForChecks: true, NodeName: "node", ServerName: "server"})
+	tlsConf, err = c.OutgoingTLSConfigForCheck("")
+	require.NoError(t, err)
+	require.Equal(t, "server", tlsConf.ServerName)
+
+	c.Update(&Config{EnableAgentTLSForChecks: true, ServerName: "server"})
+	tlsConf, err = c.OutgoingTLSConfigForCheck("")
+	require.NoError(t, err)
+	require.Equal(t, "server", tlsConf.ServerName)
+
+	c.Update(&Config{EnableAgentTLSForChecks: true, NodeName: "node"})
+	tlsConf, err = c.OutgoingTLSConfigForCheck("")
+	require.NoError(t, err)
+	require.Equal(t, "node", tlsConf.ServerName)
 }
