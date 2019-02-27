@@ -22,7 +22,11 @@ export default RepositoryService.extend({
   findInstanceBySlug: function(id, slug, dc, configuration) {
     return this.findAllBySlug(slug, dc, configuration).then(function(items) {
       if (get(items, 'length') > 0) {
-        const instance = items.findBy('ServiceProxyDestination', id);
+        let instance = items.findBy('ServiceProxyDestination', id);
+        if (instance) {
+          return instance;
+        }
+        instance = items.findBy('ServiceProxyDestination', slug);
         if (instance) {
           return instance;
         }

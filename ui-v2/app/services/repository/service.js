@@ -35,7 +35,15 @@ export default RepositoryService.extend({
         });
         return service;
       }
-      // TODO: probably need to throw a 404 here?
+      // TODO: Add an store.error("404", "message") or similar
+      const e = new Error();
+      e.errors = [
+        {
+          status: '404',
+          title: 'Unable to find instance',
+        },
+      ];
+      throw e;
     });
   },
 });
