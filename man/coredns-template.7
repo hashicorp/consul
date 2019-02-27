@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-TEMPLATE" "7" "January 2019" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-TEMPLATE" "7" "February 2019" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fItemplate\fR \- allows for dynamic responses based on the incoming query\.
@@ -14,14 +14,13 @@ The \fItemplate\fR plugin allows you to dynamically respond to queries by just w
 .nf
 
 template CLASS TYPE [ZONE\.\.\.] {
-    [match REGEX\.\.\.]
-    [answer RR]
-    [additional RR]
-    [authority RR]
-    [\.\.\.]
-    [rcode CODE]
-    [upstream [ADDRESS\.\.\.]]
-    [fallthrough [ZONE\.\.\.]]
+    match REGEX\.\.\.
+    answer RR
+    additional RR
+    authority RR
+    rcode CODE
+    upstream
+    fallthrough [ZONE\.\.\.]
 }
 .
 .fi
@@ -45,7 +44,7 @@ template CLASS TYPE [ZONE\.\.\.] {
 \fBrcode\fR \fBCODE\fR A response code (\fBNXDOMAIN, SERVFAIL, \.\.\.\fR)\. The default is \fBSUCCESS\fR\.
 .
 .IP "\(bu" 4
-\fBupstream\fR [\fBADDRESS\fR\.\.\.] defines the upstream resolvers used for resolving CNAME\. If no \fBADDRESS\fR is given, CoreDNS will resolve CNAMEs against itself\. \fBADDRESS\fR can be an IP, an IP:port, or a path to a file structured like resolv\.conf\.
+\fBupstream\fR defines the upstream resolvers used for resolving CNAMEs\. CoreDNS will resolve CNAMEs against itself\.
 .
 .IP "\(bu" 4
 \fBfallthrough\fR Continue with the next plugin if the zone matched but no regex matched\. If specific zones are listed (for example \fBin\-addr\.arpa\fR and \fBip6\.arpa\fR), then only queries for those zones will be subject to fallthrough\.
@@ -226,19 +225,19 @@ The regex\-based version can do more complex matching/templating while zone\-bas
 \&\. {
     proxy \. 8\.8\.8\.8
 
-    # ip\-a\-b\-c\-d\.example\.com A a\.b\.c\.d
+    # ip\-a\-b\-c\-d\.example A a\.b\.c\.d
 
     template IN A example {
-      match (^|[\.])ip\-10\-(?P<b>[0\-9]*)\-(?P<c>[0\-9]*)\-(?P<d>[0\-9]*)[\.]example[\.]$
-      answer "{{ \.Name }} 60 IN A 10\.{{ \.Group\.b }}\.{{ \.Group\.c }}\.{{ \.Group\.d }}"
+      match (^|[\.])ip\-(?P<a>[0\-9]*)\-(?P<b>[0\-9]*)\-(?P<c>[0\-9]*)\-(?P<d>[0\-9]*)[\.]example[\.]$
+      answer "{{ \.Name }} 60 IN A {{ \.Group\.a }}\.{{ \.Group\.b }}\.{{ \.Group\.c }}\.{{ \.Group\.d }}"
       fallthrough
     }
 
     # d\.c\.b\.a\.in\-addr\.arpa PTR ip\-a\-b\-c\-d\.example
 
-    template IN PTR 10\.in\-addr\.arpa\. {
-      match ^(?P<d>[0\-9]*)[\.](?P<c>[0\-9]*)[\.](?P<b>[0\-9]*)[\.]10[\.]in\-addr[\.]arpa[\.]$
-      answer "{{ \.Name }} 60 IN PTR ip\-10\-{{ \.Group\.b }}\-{{ \.Group\.c }}\-{{ \.Group\.d }}\.example\.com\."
+    template IN PTR in\-addr\.arpa {
+      match ^(?P<d>[0\-9]*)[\.](?P<c>[0\-9]*)[\.](?P<b>[0\-9]*)[\.](?P<a>[0\-9]*)[\.]in\-addr[\.]arpa[\.]$
+      answer "{{ \.Name }} 60 IN PTR ip\-{{ \.Group\.a }}\-{{ \.Group\.b }}\-{{ \.Group\.c }}\-{{ \.Group\.d }}\.example\."
     }
 }
 .

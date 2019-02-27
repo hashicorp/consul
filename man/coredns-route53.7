@@ -1,13 +1,13 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-ROUTE53" "7" "January 2019" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-ROUTE53" "7" "February 2019" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIroute53\fR \- enables serving zone data from AWS route53\.
 .
 .SH "DESCRIPTION"
-The route53 plugin is useful for serving zones from resource record sets in AWS route53\. This plugin supports all Amazon Route 53 records (https://docs\.aws\.amazon\.com/Route53/latest/DeveloperGuide/ResourceRecordTypes\.html)\. The route53 plugin can be used when coredns is deployed on AWS or elsewhere\.
+The route53 plugin is useful for serving zones from resource record sets in AWS route53\. This plugin supports all Amazon Route 53 records (\fIhttps://docs\.aws\.amazon\.com/Route53/latest/DeveloperGuide/ResourceRecordTypes\.html\fR)\. The route53 plugin can be used when coredns is deployed on AWS or elsewhere\.
 .
 .SH "SYNTAX"
 .
@@ -15,7 +15,7 @@ The route53 plugin is useful for serving zones from resource record sets in AWS 
 
 route53 [ZONE:HOSTED_ZONE_ID\.\.\.] {
     [aws_access_key AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY]
-    upstream [ADDRESS\.\.\.]
+    upstream
     credentials PROFILE [FILENAME]
     fallthrough [ZONES\.\.\.]
 }
@@ -26,16 +26,16 @@ route53 [ZONE:HOSTED_ZONE_ID\.\.\.] {
 \fBZONE\fR the name of the domain to be accessed\. When there are multiple zones with overlapping domains (private vs\. public hosted zone), CoreDNS does the lookup in the given order here\. Therefore, for a non\-existing resource record, SOA response will be from the rightmost zone\.
 .
 .IP "\(bu" 4
-\fBHOSTED_ZONE_ID\fR the ID of the hosted zone that contains the resource record sets to be accessed\.
+\fBHOSTED\fIZONE\fRID\fR the ID of the hosted zone that contains the resource record sets to be accessed\.
 .
 .IP "\(bu" 4
-\fBAWS_ACCESS_KEY_ID\fR and \fBAWS_SECRET_ACCESS_KEY\fR the AWS access key ID and secret access key to be used when query AWS (optional)\. If they are not provided, then coredns tries to access AWS credentials the same way as AWS CLI, e\.g\., environmental variables, AWS credentials file, instance profile credentials, etc\.
+\fBAWS\fIACCESS\fRKEY_ID\fR and \fBAWS\fISECRET\fRACCESS_KEY\fR the AWS access key ID and secret access key to be used when query AWS (optional)\. If they are not provided, then coredns tries to access AWS credentials the same way as AWS CLI, e\.g\., environmental variables, AWS credentials file, instance profile credentials, etc\.
 .
 .IP "\(bu" 4
-\fBupstream\fR [\fBADDRESS\fR\.\.\.] specifies upstream resolver(s) used for resolving services that point to external hosts (eg\. used to resolve CNAMEs)\. If no \fBADDRESS\fR is given, CoreDNS will resolve against itself\. \fBADDRESS\fR can be an IP, an IP:port or a path to a file structured like resolv\.conf\.
+\fBupstream\fRis used for resolving services that point to external hosts (eg\. used to resolve CNAMEs)\. CoreDNS will resolve against itself\.
 .
 .IP "\(bu" 4
-\fBcredentials\fR used for reading the credential file and setting the profile name for a given zone\.
+\fBcredentials\fR is used for reading the credential file and setting the profile name for a given zone\.
 .
 .IP "\(bu" 4
 \fBPROFILE\fR AWS account profile name\. Defaults to \fBdefault\fR\.

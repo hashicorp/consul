@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-CACHE" "7" "December 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-CACHE" "7" "February 2019" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIcache\fR \- enables a frontend cache\.
@@ -21,7 +21,7 @@ cache [TTL] [ZONES\.\.\.]
 .fi
 .
 .IP "\(bu" 4
-\fBTTL\fR max TTL in seconds\. If not specified, the maximum TTL will be used, which is 3600 for noerror responses and 1800 for denial of existence ones\. Setting a TTL of 300: \fBcache 300\fR would cache records up to 300 seconds\.
+\fBTTL\fR max TTL in seconds\. If not specified, the maximum TTL will be used, which is 3600 for NOERROR responses and 1800 for denial of existence ones\. Setting a TTL of 300: \fBcache 300\fR would cache records up to 300 seconds\.
 .
 .IP "\(bu" 4
 \fBZONES\fR zones it should cache for\. If empty, the zones from the configuration block are used\.

@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-REWRITE" "7" "December 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-REWRITE" "7" "February 2019" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIrewrite\fR \- performs internal message rewriting\.
@@ -258,7 +258,7 @@ rewrite [continue|stop] {
 .IP "" 0
 .
 .P
-Note that the above syntax is strict\. For response rewrites only \fBname\fR rules are allowed to match the question section, and only by match type \fBregex\fR\. The answer rewrite must be after the name, as ordered in the syntax example\. There must only be two lines (a \fBname\fR follwed by an \fBanswer\fR) in the brackets, additional rules are not supported\.
+Note that the above syntax is strict\. For response rewrites only \fBname\fR rules are allowed to match the question section, and only by match type \fBregex\fR\. The answer rewrite must be after the name, as ordered in the syntax example\. There must only be two lines (a \fBname\fR followed by an \fBanswer\fR) in the brackets, additional rules are not supported\.
 .
 .P
 An alternate syntax for the rewrite of DNS request and response is as follows:

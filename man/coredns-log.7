@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-LOG" "7" "January 2019" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-LOG" "7" "February 2019" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIlog\fR \- enables query logging to standard output\.
@@ -32,14 +32,14 @@ Or if you want/need slightly more control:
 .
 .nf
 
-log [NAME] [FORMAT]
+log [NAMES\.\.\.] [FORMAT]
 .
 .fi
 .
 .IP "" 0
 .
 .IP "\(bu" 4
-\fBNAME\fR is the name to match in order to be logged
+\fBNAMES\fR is the name list to match in order to be logged
 .
 .IP "\(bu" 4
 \fBFORMAT\fR is the log format to use (default is Common Log Format), \fB{common}\fR is used as a shortcut for the Common Log Format\. You can also use \fB{combined}\fR for a format that adds the query opcode \fB{>opcode}\fR to the Common Log Format\.
@@ -53,7 +53,7 @@ You can further specify the classes of responses that get logged:
 .
 .nf
 
-log [NAME] [FORMAT] {
+log [NAMES\.\.\.] [FORMAT] {
     class CLASSES\.\.\.
 }
 .

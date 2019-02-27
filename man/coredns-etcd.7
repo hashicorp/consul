@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-ETCD" "7" "January 2019" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-ETCD" "7" "February 2019" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIetcd\fR \- enables reading zone data from an etcd version 3 instance\.
@@ -36,10 +36,10 @@ If you want to \fBround robin\fR A and AAAA responses look at the \fBloadbalance
 .nf
 
 etcd [ZONES\.\.\.] {
-    stubzones
     fallthrough [ZONES\.\.\.]
     path PATH
     endpoint ENDPOINT\.\.\.
+    credentials USERNAME PASSWORD
     upstream [ADDRESS\.\.\.]
     tls CERT KEY CACERT
 }
@@ -49,9 +49,6 @@ etcd [ZONES\.\.\.] {
 .IP "" 0
 .
 .IP "\(bu" 4
-\fBstubzones\fR enables the stub zones feature\. The stubzone is \fIonly\fR done in the etcd tree located under the \fIfirst\fR zone specified\.
-.
-.IP "\(bu" 4
 \fBfallthrough\fR If zone matches but no record can be generated, pass request to the next plugin\. If \fB[ZONES\.\.\.]\fR is omitted, then fallthrough happens for all zones for which the plugin is authoritative\. If specific zones are listed (for example \fBin\-addr\.arpa\fR and \fBip6\.arpa\fR), then only queries for those zones will be subject to fallthrough\.
 .
 .IP "\(bu" 4
@@ -59,6 +56,9 @@ etcd [ZONES\.\.\.] {
 .
 .IP "\(bu" 4
 \fBENDPOINT\fR the etcd endpoints\. Defaults to "http://localhost:2379"\.
+.
+.IP "\(bu" 4
+\fBcredentials\fR is used to set the \fBUSERNAME\fR and \fBPASSWORD\fR for accessing the etcd cluster\.
 .
 .IP "\(bu" 4
 \fBupstream\fR upstream resolvers to be used resolve external names found in etcd (think CNAMEs) pointing to external names\. If you want CoreDNS to act as a proxy for clients, you\'ll need to add the proxy plugin\. If no \fBADDRESS\fR is given, CoreDNS will resolve CNAMEs against itself\. \fBADDRESS\fR can be an IP address, and IP:port or a string pointing to a file that is structured as /etc/resolv\.conf\.
@@ -87,7 +87,7 @@ three arguments \- path to cert PEM file, path to client private key PEM file, p
 CoreDNS etcd plugin leverages directory structure to look for related entries\. For example an entry \fB/skydns/test/skydns/mx\fR would have entries like \fB/skydns/test/skydns/mx/a\fR, \fB/skydns/test/skydns/mx/b\fR and so on\. Similarly a directory \fB/skydns/test/skydns/mx1\fR will have all \fBmx1\fR entries\.
 .
 .P
-With etcd3, support for hierarchial keys are dropped \fIhttps://coreos\.com/etcd/docs/latest/learning/api\.html\fR\. This means there are no directories but only flat keys with prefixes in etcd3\. To accommodate lookups, etcdv3 plugin now does a lookup on prefix \fB/skydns/test/skydns/mx/\fR to search for entries like \fB/skydns/test/skydns/mx/a\fR etc, and if there is nothing found on \fB/skydns/test/skydns/mx/\fR, it looks for \fB/skydns/test/skydns/mx\fR to find entries like \fB/skydns/test/skydns/mx1\fR\.
+With etcd3, support for hierarchical keys are dropped \fIhttps://coreos\.com/etcd/docs/latest/learning/api\.html\fR\. This means there are no directories but only flat keys with prefixes in etcd3\. To accommodate lookups, etcdv3 plugin now does a lookup on prefix \fB/skydns/test/skydns/mx/\fR to search for entries like \fB/skydns/test/skydns/mx/a\fR etc, and if there is nothing found on \fB/skydns/test/skydns/mx/\fR, it looks for \fB/skydns/test/skydns/mx\fR to find entries like \fB/skydns/test/skydns/mx1\fR\.
 .
 .P
 This causes two lookups from CoreDNS to etcdv3 in certain cases\.
@@ -107,10 +107,9 @@ This is the default SkyDNS setup, with everything specified in full:
 
 \&\. {
     etcd skydns\.local {
-        stubzones
         path /skydns
         endpoint http://localhost:2379
-        upstream 8\.8\.8\.8:53 8\.8\.4\.4:53
+        upstream
     }
     prometheus
     cache 160 skydns\.local
@@ -132,7 +131,7 @@ Or a setup where we use \fB/etc/resolv\.conf\fR as the basis for the proxy and t
 \&\. {
     etcd skydns\.local {
         path /skydns
-        upstream /etc/resolv\.conf
+        upstream
     }
     cache 160 skydns\.local
     proxy \. /etc/resolv\.conf
@@ -161,7 +160,7 @@ etcd skydns\.local {
 Before getting started with these examples, please setup \fBetcdctl\fR (with \fBetcdv3\fR API) as explained here \fIhttps://coreos\.com/etcd/docs/latest/dev\-guide/interacting_v3\.html\fR\. This will help you to put sample keys in your etcd server\.
 .
 .P
-If you prefer, you can use \fBcurl\fR to populate the \fBetcd\fR server, but with \fBcurl\fR the endpoint URL depends on the version of \fBetcd\fR\. For instance, \fBetcd v3\.2\fR or before uses only [CLIENT\-URL]/v3alpha/\fIwhile \fBetcd v3\.5\fR or later uses [CLIENT\-URL]/v3/\fR \. Also, Key and Value must be base64 encoded in the JSON payload\. With, \fBetcdctl\fR these details are automatically taken care off\. You can check this document \fIhttps://github\.com/coreos/etcd/blob/master/Documentation/dev\-guide/api_grpc_gateway\.md#notes\fR for details\.
+If you prefer, you can use \fBcurl\fR to populate the \fBetcd\fR server, but with \fBcurl\fR the endpoint URL depends on the version of \fBetcd\fR\. For instance, \fBetcd v3\.2\fR or before uses only [CLIENT\-URL]/v3alpha/\fIwhile \fBetcd v3\.5\fR or later uses [CLIENT\-URL]/v3/\fR \. Also, Key and Value must be base64 encoded in the JSON payload\. With \fBetcdctl\fR these details are automatically taken care off\. You can check this document \fIhttps://github\.com/coreos/etcd/blob/master/Documentation/dev\-guide/api_grpc_gateway\.md#notes\fR for details\.
 .
 .SS "REVERSE ZONES"
 Reverse zones are supported\. You need to make CoreDNS aware of the fact that you are also authoritative for the reverse\. For instance if you want to add the reverse for 10\.0\.0\.0/24, you\'ll need to add the zone \fB0\.0\.10\.in\-addr\.arpa\fR to the list of zones\. Showing a snippet of a Corefile:
@@ -171,7 +170,6 @@ Reverse zones are supported\. You need to make CoreDNS aware of the fact that yo
 .nf
 
 etcd skydns\.local 10\.0\.0\.0/24 {
-    stubzones
 \.\.\.
 .
 .fi
@@ -206,7 +204,7 @@ reverse\.skydns\.local\.
 .IP "" 0
 .
 .SS "ZONE NAME AS A RECORD"
-The zone name itself can be used A record\. This behavior can be achieved by writing special entries to the ETCD path of your zone\. If your zone is named \fBskydns\.local\fR for example, you can create an \fBA\fR record for this zone as follows:
+The zone name itself can be used as A record\. This behavior can be achieved by writing special entries to the ETCD path of your zone\. If your zone is named \fBskydns\.local\fR for example, you can create an \fBA\fR record for this zone as follows:
 .
 .IP "" 4
 .
@@ -233,7 +231,7 @@ If you query the zone name itself, you will receive the created \fBA\fR record:
 .IP "" 0
 .
 .P
-If you would like to use DNS RR for the zone name, you can set the following: ~~~ % etcdctl put /skydns/local/skydns/x1 \'{"host":"1\.1\.1\.1","ttl":"60"}\' % etcdctl put /skydns/local/skydns/x2 \'{"host":"1\.1\.1\.2","ttl":"60"}\' ~~~
+If you would like to use DNS RR for the zone name, you can set the following: ~~~ % etcdctl put /skydns/local/skydns/x1 \'{"host":"1\.1\.1\.1","ttl":60}\' % etcdctl put /skydns/local/skydns/x2 \'{"host":"1\.1\.1\.2","ttl":60}\' ~~~
 .
 .P
 If you query the zone name now, you will get the following response:
@@ -251,7 +249,7 @@ If you query the zone name now, you will get the following response:
 .IP "" 0
 .
 .SS "ZONE NAME AS AAAA RECORD"
-If you would like to use \fBAAAA\fR records for the zone name too, you can set the following: ~~~ % etcdctl put /skydns/local/skydns/x3 \'{"host":"2003::8:1","ttl":"60"}\' % etcdctl put /skydns/local/skydns/x4 \'{"host":"2003::8:2","ttl":"60"}\' ~~~
+If you would like to use \fBAAAA\fR records for the zone name too, you can set the following: ~~~ % etcdctl put /skydns/local/skydns/x3 \'{"host":"2003::8:1","ttl":60}\' % etcdctl put /skydns/local/skydns/x4 \'{"host":"2003::8:2","ttl":60}\' ~~~
 .
 .P
 If you query the zone name for \fBAAAA\fR now, you will get the following response: ~~~ sh % dig +short skydns\.local AAAA @localhost 2003::8:1 2003::8:2 ~~~

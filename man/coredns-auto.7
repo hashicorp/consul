@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-AUTO" "7" "January 2019" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-AUTO" "7" "February 2019" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIauto\fR \- enables serving zone data from an RFC 1035\-style master file, which is automatically picked up from disk\.
@@ -17,7 +17,7 @@ auto [ZONES\.\.\.] {
     directory DIR [REGEXP ORIGIN_TEMPLATE [TIMEOUT]]
     reload DURATION
     no_reload
-    upstream [ADDRESS\.\.\.]
+    upstream
 }
 .
 .fi
@@ -26,16 +26,16 @@ auto [ZONES\.\.\.] {
 \fBZONES\fR zones it should be authoritative for\. If empty, the zones from the configuration block are used\.
 .
 .IP "\(bu" 4
-\fBdirectory\fR loads zones from the specified \fBDIR\fR\. If a file name matches \fBREGEXP\fR it will be used to extract the origin\. \fBORIGIN_TEMPLATE\fR will be used as a template for the origin\. Strings like \fB{<number>}\fR are replaced with the respective matches in the file name, e\.g\. \fB{1}\fR is the first match, \fB{2}\fR is the second\. The default is: \fBdb\e\.(\.*) {1}\fR i\.e\. from a file with the name \fBdb\.example\.com\fR, the extracted origin will be \fBexample\.com\fR\. \fBTIMEOUT\fR specifies how often CoreDNS should scan the directory; the default is every 60 seconds\. This value is in seconds\. The minimum value is 1 second\.
+\fBdirectory\fR loads zones from the specified \fBDIR\fR\. If a file name matches \fBREGEXP\fR it will be used to extract the origin\. \fBORIGIN_TEMPLATE\fR will be used as a template for the origin\. Strings like \fB{<number>}\fR are replaced with the respective matches in the file name, e\.g\. \fB{1}\fR is the first match, \fB{2}\fR is the second\. The default is: \fBdb\e\.(\.*) {1}\fR i\.e\. from a file with the name \fBdb\.example\.com\fR, the extracted origin will be \fBexample\.com\fR\. \fBTIMEOUT\fR is deprecated and will be removed in a subsequent version\. \fBreload\fR will be used, if not defined (it specifies how often CoreDNS should scan the directory to watch for file removal and addition; the default is every 60 seconds\. This value is in seconds\. The minimum value is 1 second\.)
 .
 .IP "\(bu" 4
-\fBreload\fR interval to perform reload of zone if SOA version changes\. Default is one minute\. Value of \fB0\fR means to not scan for changes and reload\. eg\. \fB30s\fR checks zonefile every 30 seconds and reloads zone when serial changes\.
+\fBreload\fR interval to perform reloads of zones if SOA version changes and zonefiles\. Default is one minute\. Value of \fB0\fR means to not scan for changes and reload\. eg\. \fB30s\fR checks zonefile every 30 seconds and reloads zone when serial changes\.
 .
 .IP "\(bu" 4
 \fBno_reload\fR deprecated\. Sets reload to 0\.
 .
 .IP "\(bu" 4
-\fBupstream\fR defines upstream resolvers to be used resolve external names found (think CNAMEs) pointing to external names\. \fBADDRESS\fR can be an IP address, an IP:port or a string pointing to a file that is structured as /etc/resolv\.conf\. If no \fBADDRESS\fR is given, CoreDNS will resolve CNAMEs against itself\.
+\fBupstream\fR defines upstream resolvers to be used resolve external names found (think CNAMEs) pointing to external names\. CoreDNS will resolve CNAMEs against itself\.
 .
 .IP "" 0
 .
