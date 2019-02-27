@@ -147,7 +147,7 @@ func newTtlRule(nextAction string, args ...string) (Rule, error) {
 		case RegexMatch:
 			regexPattern, err := regexp.Compile(args[1])
 			if err != nil {
-				return nil, fmt.Errorf("Invalid regex pattern in a ttl rule: %s", args[1])
+				return nil, fmt.Errorf("invalid regex pattern in a ttl rule: %s", args[1])
 			}
 			return &regexTtlRule{
 				nextAction,

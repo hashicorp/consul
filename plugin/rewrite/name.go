@@ -300,10 +300,10 @@ func getSubExprUsage(s string) int {
 func isValidRegexPattern(rewriteFrom, rewriteTo string) (*regexp.Regexp, error) {
 	rewriteFromPattern, err := regexp.Compile(rewriteFrom)
 	if err != nil {
-		return nil, fmt.Errorf("Invalid regex matching pattern: %s", rewriteFrom)
+		return nil, fmt.Errorf("invalid regex matching pattern: %s", rewriteFrom)
 	}
 	if getSubExprUsage(rewriteTo) > rewriteFromPattern.NumSubexp() {
-		return nil, fmt.Errorf("The rewrite regex pattern (%s) uses more subexpressions than its corresponding matching regex pattern (%s)", rewriteTo, rewriteFrom)
+		return nil, fmt.Errorf("the rewrite regex pattern (%s) uses more subexpressions than its corresponding matching regex pattern (%s)", rewriteTo, rewriteFrom)
 	}
 	return rewriteFromPattern, nil
 }

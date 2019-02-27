@@ -42,7 +42,7 @@ func buildPool(size int) ([]*healthcheck.UpstreamHost, func(), error) {
 		for _, e := range errs {
 			valErr += fmt.Sprintf("%v\n", e)
 		}
-		return nil, nil, fmt.Errorf("Error at allocation of the pool : %v", valErr)
+		return nil, nil, fmt.Errorf("error at allocation of the pool : %v", valErr)
 	}
 	return ups, stopIt, nil
 }

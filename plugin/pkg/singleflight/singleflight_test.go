@@ -40,7 +40,7 @@ func TestDo(t *testing.T) {
 
 func TestDoErr(t *testing.T) {
 	var g Group
-	someErr := errors.New("Some error")
+	someErr := errors.New("some error")
 	v, err := g.Do(1, func() (interface{}, error) {
 		return nil, someErr
 	})

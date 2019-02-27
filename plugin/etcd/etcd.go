@@ -26,7 +26,7 @@ const (
 	etcdTimeout = 5 * time.Second
 )
 
-var errKeyNotFound = errors.New("Key not found")
+var errKeyNotFound = errors.New("key not found")
 
 // Etcd is a plugin talks to an etcd cluster.
 type Etcd struct {

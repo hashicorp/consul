@@ -115,17 +115,17 @@ func OPT(bufsize int, do bool) *dns.OPT {
 // Header test if the header in resp matches the header as defined in tc.
 func Header(tc Case, resp *dns.Msg) error {
 	if resp.Rcode != tc.Rcode {
-		return fmt.Errorf("Rcode is %q, expected %q", dns.RcodeToString[resp.Rcode], dns.RcodeToString[tc.Rcode])
+		return fmt.Errorf("rcode is %q, expected %q", dns.RcodeToString[resp.Rcode], dns.RcodeToString[tc.Rcode])
 	}
 
 	if len(resp.Answer) != len(tc.Answer) {
-		return fmt.Errorf("Answer for %q contained %d results, %d expected", tc.Qname, len(resp.Answer), len(tc.Answer))
+		return fmt.Errorf("answer for %q contained %d results, %d expected", tc.Qname, len(resp.Answer), len(tc.Answer))
 	}
 	if len(resp.Ns) != len(tc.Ns) {
-		return fmt.Errorf("Authority for %q contained %d results, %d expected", tc.Qname, len(resp.Ns), len(tc.Ns))
+		return fmt.Errorf("authority for %q contained %d results, %d expected", tc.Qname, len(resp.Ns), len(tc.Ns))
 	}
 	if len(resp.Extra) != len(tc.Extra) {
-		return fmt.Errorf("Additional for %q contained %d results, %d expected", tc.Qname, len(resp.Extra), len(tc.Extra))
+		return fmt.Errorf("additional for %q contained %d results, %d expected", tc.Qname, len(resp.Extra), len(tc.Extra))
 	}
 	return nil
 }
