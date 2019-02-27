@@ -1300,22 +1300,22 @@ func (s *HTTPServer) AgentToken(resp http.ResponseWriter, req *http.Request) (in
 	}
 
 	if s.agent.config.ACLEnableTokenPersistence {
-		tokens := make(map[string]string)
+		tokens := persistedTokens{}
 
 		if tok, source := s.agent.tokens.UserTokenAndSource(); tok != "" && source == token_store.TokenSourceAPI {
-			tokens["default"] = tok
+			tokens.Default = tok
 		}
 
 		if tok, source := s.agent.tokens.AgentTokenAndSource(); tok != "" && source == token_store.TokenSourceAPI {
-			tokens["agent"] = tok
+			tokens.Agent = tok
 		}
 
 		if tok, source := s.agent.tokens.AgentMasterTokenAndSource(); tok != "" && source == token_store.TokenSourceAPI {
-			tokens["agent_master"] = tok
+			tokens.AgentMaster = tok
 		}
 
 		if tok, source := s.agent.tokens.ReplicationTokenAndSource(); tok != "" && source == token_store.TokenSourceAPI {
-			tokens["replication"] = tok
+			tokens.Replication = tok
 		}
 
 		data, err := json.Marshal(tokens)
