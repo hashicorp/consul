@@ -9,3 +9,4 @@ go-test-tmpfile*
 coverage.txt
 .idea/
 .DS_Store
+*~
