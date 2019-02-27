@@ -10,3 +10,6 @@ coverage.txt
 .idea/
 .DS_Store
 *~
+.classpath
+.project
+.settings/**
