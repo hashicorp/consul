@@ -30,52 +30,58 @@ var TLSLookup = map[string]uint16{
 
 // Config used to create tls.Config
 type Config struct {
-	// VerifyIncoming is used to verify the authenticity of incoming connections.
-	// This means that TCP requests are forbidden, only allowing for TLS. TLS connections
-	// must match a provided certificate authority. This can be used to force client auth.
+	// VerifyIncoming is used to verify the authenticity of incoming
+	// connections.  This means that TCP requests are forbidden, only
+	// allowing for TLS. TLS connections must match a provided certificate
+	// authority. This can be used to force client auth.
 	VerifyIncoming bool
 
-	// VerifyIncomingRPC is used to verify the authenticity of incoming RPC connections.
-	// This means that TCP requests are forbidden, only allowing for TLS. TLS connections
-	// must match a provided certificate authority. This can be used to force client auth.
+	// VerifyIncomingRPC is used to verify the authenticity of incoming RPC
+	// connections.  This means that TCP requests are forbidden, only
+	// allowing for TLS. TLS connections must match a provided certificate
+	// authority. This can be used to force client auth.
 	VerifyIncomingRPC bool
 
-	// VerifyIncomingHTTPS is used to verify the authenticity of incoming HTTPS connections.
-	// This means that TCP requests are forbidden, only allowing for TLS. TLS connections
-	// must match a provided certificate authority. This can be used to force client auth.
+	// VerifyIncomingHTTPS is used to verify the authenticity of incoming
+	// HTTPS connections.  This means that TCP requests are forbidden, only
+	// allowing for TLS. TLS connections must match a provided certificate
+	// authority. This can be used to force client auth.
 	VerifyIncomingHTTPS bool
 
-	// VerifyOutgoing is used to verify the authenticity of outgoing connections.
-	// This means that TLS requests are used, and TCP requests are not made. TLS connections
-	// must match a provided certificate authority. This is used to verify authenticity of
-	// server nodes.
+	// VerifyOutgoing is used to verify the authenticity of outgoing
+	// connections.  This means that TLS requests are used, and TCP
+	// requests are not made. TLS connections must match a provided
+	// certificate authority. This is used to verify authenticity of server
+	// nodes.
 	VerifyOutgoing bool
 
-	// VerifyServerHostname is used to enable hostname verification of servers. This
-	// ensures that the certificate presented is valid for server.<datacenter>.<domain>.
-	// This prevents a compromised client from being restarted as a server, and then
-	// intercepting request traffic as well as being added as a raft peer. This should be
-	// enabled by default with VerifyOutgoing, but for legacy reasons we cannot break
-	// existing clients.
+	// VerifyServerHostname is used to enable hostname verification of
+	// servers. This ensures that the certificate presented is valid for
+	// server.<datacenter>.<domain>.  This prevents a compromised client
+	// from being restarted as a server, and then intercepting request
+	// traffic as well as being added as a raft peer. This should be
+	// enabled by default with VerifyOutgoing, but for legacy reasons we
+	// cannot break existing clients.
 	VerifyServerHostname bool
 
 	// UseTLS is used to enable outgoing TLS connections to Consul servers.
 	UseTLS bool
 
-	// CAFile is a path to a certificate authority file. This is used with VerifyIncoming
-	// or VerifyOutgoing to verify the TLS connection.
+	// CAFile is a path to a certificate authority file. This is used with
+	// VerifyIncoming or VerifyOutgoing to verify the TLS connection.
 	CAFile string
 
-	// CAPath is a path to a directory containing certificate authority files. This is used
-	// with VerifyIncoming or VerifyOutgoing to verify the TLS connection.
+	// CAPath is a path to a directory containing certificate authority
+	// files. This is used with VerifyIncoming or VerifyOutgoing to verify
+	// the TLS connection.
 	CAPath string
 
-	// CertFile is used to provide a TLS certificate that is used for serving TLS connections.
-	// Must be provided to serve TLS connections.
+	// CertFile is used to provide a TLS certificate that is used for
+	// serving TLS connections.  Must be provided to serve TLS connections.
 	CertFile string
 
-	// KeyFile is used to provide a TLS key that is used for serving TLS connections.
-	// Must be provided to serve TLS connections.
+	// KeyFile is used to provide a TLS key that is used for serving TLS
+	// connections.  Must be provided to serve TLS connections.
 	KeyFile string
 
 	// Node name is the name we use to advertise. Defaults to hostname.
@@ -94,8 +100,8 @@ type Config struct {
 	// CipherSuites is the list of TLS cipher suites to use.
 	CipherSuites []uint16
 
-	// PreferServerCipherSuites specifies whether to prefer the server's ciphersuite
-	// over the client ciphersuites.
+	// PreferServerCipherSuites specifies whether to prefer the server's
+	// ciphersuite over the client ciphersuites.
 	PreferServerCipherSuites bool
 
 	// EnableAgentTLSForChecks is used to apply the agent's TLS settings in
@@ -116,10 +122,6 @@ func (c *Config) KeyPair() (*tls.Certificate, error) {
 		return nil, fmt.Errorf("Failed to load cert/key pair: %v", err)
 	}
 	return &cert, err
-}
-
-func (c *Config) skipBuiltinVerify() bool {
-	return c.VerifyServerHostname == false && c.ServerName == ""
 }
 
 // SpecificDC is used to invoke a static datacenter
@@ -224,13 +226,7 @@ func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) (*tls.
 	}
 
 	tlsConfig := &tls.Config{
-		ClientAuth:         tls.NoClientCert,
-		InsecureSkipVerify: c.base.skipBuiltinVerify(),
-		ServerName:         c.base.ServerName,
-	}
-
-	if tlsConfig.ServerName == "" {
-		tlsConfig.ServerName = c.base.NodeName
+		InsecureSkipVerify: !c.base.VerifyServerHostname,
 	}
 
 	// Set the cipher suites
@@ -321,6 +317,11 @@ func (c *Configurator) OutgoingTLSConfigForCheck(id string) (*tls.Config, error)
 		return nil, err
 	}
 	tlsConfig.InsecureSkipVerify = c.getSkipVerifyForCheck(id)
+	tlsConfig.ServerName = c.base.ServerName
+	if tlsConfig.ServerName == "" {
+		tlsConfig.ServerName = c.base.NodeName
+	}
+
 	return tlsConfig, nil
 }
 
