@@ -372,7 +372,7 @@ policy levels; `deny`, `write`, `read`, and `list`.  Let's review several
 examples of `read` and `write`.
 
 Depending on the use case, the token will be applied differently. For services
-you will add the token to the service definition. For operators use, the
+you will add the token to the HTTP client. For operators use, the
 operator will use the token when issuing commands, either with the CLI or API.
 
 ### Recursive Reads
@@ -419,25 +419,6 @@ In the above example, we are setting a read privileges for a single key,
 
 This type of token allows an application to simply read from a key to get the
 value. This is useful for configuration parameter updates.
-
-If you want to grant a service read access to a key in the data store, the key
-rule should be added to the service's policy. For example, if the dashboard app
-also needs read privileges to the "dashboard-app" key, than we would update the
-existing policy with the new rule.
-
-```
-# dashboard-policy.hcl
-service "dashboard" { 
-  policy = "write" 
-  } 
-key "dashboard-app" { 
-  policy = "read"
-  } 
-```
-
-You do not need to create a new token or update the service definition again,
-since saving the policy will automatically update the token with the new
-privileges.
 
 ## Consul UI Token
 
