@@ -25,7 +25,7 @@ fallback to a backward compatible mode of operation otherwise.
 For most upgrades, the process is simple. Assuming the current version of
 Consul is A, and version B is released.
 
-1. Check the [version's upgrade notes](/docs/upgrade-specific.html) to ensure
+1. Check the [version's upgrade notes](/website/source/docs/upgrade-specific.html.md) to ensure
    there are no compatibility issues that will affect your workload. If there
    are plan accordingly before continuing.
 
@@ -68,7 +68,7 @@ version B comes out.
    You can verify this is the case by running `consul members` to
    make sure all members are speaking the same, latest protocol version.
 
-The key to making this work is the [protocol compatibility](/docs/compatibility.html)
+The key to making this work is the [protocol compatibility](/website/source/docs/compatibility.html.md)
 of Consul. The protocol version system is discussed below.
 
 ## Protocol Versions
