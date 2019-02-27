@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/consul/agent/debug"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
+	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logger"
@@ -4078,22 +4079,34 @@ func TestAgent_Token(t *testing.T) {
 	// in TestACL_Disabled_Response since there's already good infra set
 	// up over there to test this, and it calls the common function.
 	a := NewTestAgent(t, t.Name(), TestACLConfig()+`
-		acl_token = ""
-		acl_agent_token = ""
-		acl_agent_master_token = ""
+		acl {
+			tokens {
+				default = ""
+				agent = ""
+				agent_master = ""
+				replication = ""
+			}
+		}
 	`)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	type tokens struct {
-		user, agent, master, repl string
+		user         string
+		userSource   tokenStore.TokenSource
+		agent        string
+		agentSource  tokenStore.TokenSource
+		master       string
+		masterSource tokenStore.TokenSource
+		repl         string
+		replSource   tokenStore.TokenSource
 	}
 
-	resetTokens := func(got tokens) {
-		a.tokens.UpdateUserToken(got.user)
-		a.tokens.UpdateAgentToken(got.agent)
-		a.tokens.UpdateAgentMasterToken(got.master)
-		a.tokens.UpdateACLReplicationToken(got.repl)
+	resetTokens := func(init tokens) {
+		a.tokens.UpdateUserToken(init.user, init.userSource)
+		a.tokens.UpdateAgentToken(init.agent, init.agentSource)
+		a.tokens.UpdateAgentMasterToken(init.master, init.masterSource)
+		a.tokens.UpdateReplicationToken(init.repl, init.replSource)
 	}
 
 	body := func(token string) io.Reader {
@@ -4109,7 +4122,9 @@ func TestAgent_Token(t *testing.T) {
 		method, url string
 		body        io.Reader
 		code        int
-		got, want   tokens
+		init        tokens
+		raw         tokens
+		effective   tokens
 	}{
 		{
 			name:   "bad token name",
@@ -4126,95 +4141,181 @@ func TestAgent_Token(t *testing.T) {
 			code:   http.StatusBadRequest,
 		},
 		{
-			name:   "set user",
-			method: "PUT",
-			url:    "acl_token?token=root",
-			body:   body("U"),
-			code:   http.StatusOK,
-			want:   tokens{user: "U", agent: "U"},
+			name:      "set user legacy",
+			method:    "PUT",
+			url:       "acl_token?token=root",
+			body:      body("U"),
+			code:      http.StatusOK,
+			raw:       tokens{user: "U", userSource: tokenStore.TokenSourceAPI},
+			effective: tokens{user: "U", agent: "U"},
 		},
 		{
-			name:   "set agent",
-			method: "PUT",
-			url:    "acl_agent_token?token=root",
-			body:   body("A"),
-			code:   http.StatusOK,
-			got:    tokens{user: "U", agent: "U"},
-			want:   tokens{user: "U", agent: "A"},
+			name:      "set default",
+			method:    "PUT",
+			url:       "default?token=root",
+			body:      body("U"),
+			code:      http.StatusOK,
+			raw:       tokens{user: "U", userSource: tokenStore.TokenSourceAPI},
+			effective: tokens{user: "U", agent: "U"},
 		},
 		{
-			name:   "set master",
-			method: "PUT",
-			url:    "acl_agent_master_token?token=root",
-			body:   body("M"),
-			code:   http.StatusOK,
-			want:   tokens{master: "M"},
+			name:      "set agent legacy",
+			method:    "PUT",
+			url:       "acl_agent_token?token=root",
+			body:      body("A"),
+			code:      http.StatusOK,
+			init:      tokens{user: "U", agent: "U"},
+			raw:       tokens{user: "U", agent: "A", agentSource: tokenStore.TokenSourceAPI},
+			effective: tokens{user: "U", agent: "A"},
 		},
 		{
-			name:   "set repl",
-			method: "PUT",
-			url:    "acl_replication_token?token=root",
-			body:   body("R"),
-			code:   http.StatusOK,
-			want:   tokens{repl: "R"},
+			name:      "set agent",
+			method:    "PUT",
+			url:       "agent?token=root",
+			body:      body("A"),
+			code:      http.StatusOK,
+			init:      tokens{user: "U", agent: "U"},
+			raw:       tokens{user: "U", agent: "A", agentSource: tokenStore.TokenSourceAPI},
+			effective: tokens{user: "U", agent: "A"},
 		},
 		{
-			name:   "clear user",
+			name:      "set master legacy",
+			method:    "PUT",
+			url:       "acl_agent_master_token?token=root",
+			body:      body("M"),
+			code:      http.StatusOK,
+			raw:       tokens{master: "M", masterSource: tokenStore.TokenSourceAPI},
+			effective: tokens{master: "M"},
+		},
+		{
+			name:      "set master ",
+			method:    "PUT",
+			url:       "agent_master?token=root",
+			body:      body("M"),
+			code:      http.StatusOK,
+			raw:       tokens{master: "M", masterSource: tokenStore.TokenSourceAPI},
+			effective: tokens{master: "M"},
+		},
+		{
+			name:      "set repl legacy",
+			method:    "PUT",
+			url:       "acl_replication_token?token=root",
+			body:      body("R"),
+			code:      http.StatusOK,
+			raw:       tokens{repl: "R", replSource: tokenStore.TokenSourceAPI},
+			effective: tokens{repl: "R"},
+		},
+		{
+			name:      "set repl",
+			method:    "PUT",
+			url:       "replication?token=root",
+			body:      body("R"),
+			code:      http.StatusOK,
+			raw:       tokens{repl: "R", replSource: tokenStore.TokenSourceAPI},
+			effective: tokens{repl: "R"},
+		},
+		{
+			name:   "clear user legacy",
 			method: "PUT",
 			url:    "acl_token?token=root",
 			body:   body(""),
 			code:   http.StatusOK,
-			got:    tokens{user: "U"},
+			init:   tokens{user: "U"},
+			raw:    tokens{userSource: tokenStore.TokenSourceAPI},
+		},
+		{
+			name:   "clear default",
+			method: "PUT",
+			url:    "default?token=root",
+			body:   body(""),
+			code:   http.StatusOK,
+			init:   tokens{user: "U"},
+			raw:    tokens{userSource: tokenStore.TokenSourceAPI},
+		},
+		{
+			name:   "clear agent legacy",
+			method: "PUT",
+			url:    "acl_agent_token?token=root",
+			body:   body(""),
+			code:   http.StatusOK,
+			init:   tokens{agent: "A"},
+			raw:    tokens{agentSource: tokenStore.TokenSourceAPI},
 		},
 		{
 			name:   "clear agent",
 			method: "PUT",
-			url:    "acl_agent_token?token=root",
+			url:    "agent?token=root",
 			body:   body(""),
 			code:   http.StatusOK,
-			got:    tokens{agent: "A"},
+			init:   tokens{agent: "A"},
+			raw:    tokens{agentSource: tokenStore.TokenSourceAPI},
 		},
 		{
-			name:   "clear master",
+			name:   "clear master legacy",
 			method: "PUT",
 			url:    "acl_agent_master_token?token=root",
 			body:   body(""),
 			code:   http.StatusOK,
-			got:    tokens{master: "M"},
+			init:   tokens{master: "M"},
+			raw:    tokens{masterSource: tokenStore.TokenSourceAPI},
 		},
 		{
-			name:   "clear repl",
+			name:   "clear master",
+			method: "PUT",
+			url:    "agent_master?token=root",
+			body:   body(""),
+			code:   http.StatusOK,
+			init:   tokens{master: "M"},
+			raw:    tokens{masterSource: tokenStore.TokenSourceAPI},
+		},
+		{
+			name:   "clear repl legacy",
 			method: "PUT",
 			url:    "acl_replication_token?token=root",
 			body:   body(""),
 			code:   http.StatusOK,
-			got:    tokens{repl: "R"},
+			init:   tokens{repl: "R"},
+			raw:    tokens{replSource: tokenStore.TokenSourceAPI},
+		},
+		{
+			name:   "clear repl",
+			method: "PUT",
+			url:    "replication?token=root",
+			body:   body(""),
+			code:   http.StatusOK,
+			init:   tokens{repl: "R"},
+			raw:    tokens{replSource: tokenStore.TokenSourceAPI},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resetTokens(tt.got)
+			resetTokens(tt.init)
 			url := fmt.Sprintf("/v1/agent/token/%s", tt.url)
 			resp := httptest.NewRecorder()
 			req, _ := http.NewRequest(tt.method, url, tt.body)
-			if _, err := a.srv.AgentToken(resp, req); err != nil {
-				t.Fatalf("err: %v", err)
-			}
-			if got, want := resp.Code, tt.code; got != want {
-				t.Fatalf("got %d want %d", got, want)
-			}
-			if got, want := a.tokens.UserToken(), tt.want.user; got != want {
-				t.Fatalf("got %q want %q", got, want)
-			}
-			if got, want := a.tokens.AgentToken(), tt.want.agent; got != want {
-				t.Fatalf("got %q want %q", got, want)
-			}
-			if tt.want.master != "" && !a.tokens.IsAgentMasterToken(tt.want.master) {
-				t.Fatalf("%q should be the master token", tt.want.master)
-			}
-			if got, want := a.tokens.ACLReplicationToken(), tt.want.repl; got != want {
-				t.Fatalf("got %q want %q", got, want)
-			}
+			_, err := a.srv.AgentToken(resp, req)
+			require.NoError(t, err)
+			require.Equal(t, tt.code, resp.Code)
+			require.Equal(t, tt.effective.user, a.tokens.UserToken())
+			require.Equal(t, tt.effective.agent, a.tokens.AgentToken())
+			require.Equal(t, tt.effective.master, a.tokens.AgentMasterToken())
+			require.Equal(t, tt.effective.repl, a.tokens.ReplicationToken())
+
+			tok, src := a.tokens.UserTokenAndSource()
+			require.Equal(t, tt.raw.user, tok)
+			require.Equal(t, tt.raw.userSource, src)
+
+			tok, src = a.tokens.AgentTokenAndSource()
+			require.Equal(t, tt.raw.agent, tok)
+			require.Equal(t, tt.raw.agentSource, src)
+
+			tok, src = a.tokens.AgentMasterTokenAndSource()
+			require.Equal(t, tt.raw.master, tok)
+			require.Equal(t, tt.raw.masterSource, src)
+
+			tok, src = a.tokens.ReplicationTokenAndSource()
+			require.Equal(t, tt.raw.repl, tok)
+			require.Equal(t, tt.raw.replSource, src)
 		})
 	}
 
@@ -4223,12 +4324,9 @@ func TestAgent_Token(t *testing.T) {
 	t.Run("permission denied", func(t *testing.T) {
 		resetTokens(tokens{})
 		req, _ := http.NewRequest("PUT", "/v1/agent/token/acl_token", body("X"))
-		if _, err := a.srv.AgentToken(nil, req); !acl.IsErrPermissionDenied(err) {
-			t.Fatalf("err: %v", err)
-		}
-		if got, want := a.tokens.UserToken(), ""; got != want {
-			t.Fatalf("got %q want %q", got, want)
-		}
+		_, err := a.srv.AgentToken(nil, req)
+		require.True(t, acl.IsErrPermissionDenied(err))
+		require.Equal(t, "", a.tokens.UserToken())
 	})
 }
 

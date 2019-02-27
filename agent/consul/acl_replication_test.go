@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/stretchr/testify/require"
@@ -295,7 +296,7 @@ func TestACLReplication_Tokens(t *testing.T) {
 		c.ACLReplicationBurst = 100
 		c.ACLReplicationApplyLimit = 1000000
 	})
-	s2.tokens.UpdateACLReplicationToken("root")
+	s2.tokens.UpdateReplicationToken("root", tokenStore.TokenSourceConfig)
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
@@ -467,7 +468,7 @@ func TestACLReplication_Policies(t *testing.T) {
 		c.ACLReplicationBurst = 100
 		c.ACLReplicationApplyLimit = 1000000
 	})
-	s2.tokens.UpdateACLReplicationToken("root")
+	s2.tokens.UpdateReplicationToken("root", tokenStore.TokenSourceConfig)
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()

@@ -2899,6 +2899,7 @@ func TestFullConfig(t *testing.T) {
 				"down_policy" : "03eb2aee",
 				"default_policy" : "72c2e7a0",
 				"enable_key_list_policy": false,
+				"enable_token_persistence": true,
 				"policy_ttl": "1123s",
 				"token_ttl": "3321s",
 				"enable_token_replication" : true,
@@ -3440,7 +3441,7 @@ func TestFullConfig(t *testing.T) {
 			acl_default_policy = "ArK3WIfE"
 			acl_down_policy = "vZXMfMP0"
 			acl_enforce_version_8 = true
-		        acl_enable_key_list_policy = true
+			acl_enable_key_list_policy = true
 			acl_master_token = "C1Q1oIwh"
 			acl_replication_token = "LMmgy5dO"
 			acl_token = "O1El0wan"
@@ -3450,6 +3451,7 @@ func TestFullConfig(t *testing.T) {
 				down_policy = "03eb2aee"
 				default_policy = "72c2e7a0"
 				enable_key_list_policy = false
+				enable_token_persistence = true
 				policy_ttl = "1123s"
 				token_ttl = "3321s"
 				enable_token_replication = true
@@ -4120,6 +4122,7 @@ func TestFullConfig(t *testing.T) {
 		ACLDownPolicy:                    "03eb2aee",
 		ACLEnforceVersion8:               true,
 		ACLEnableKeyListPolicy:           false,
+		ACLEnableTokenPersistence:        true,
 		ACLMasterToken:                   "8a19ac27",
 		ACLReplicationToken:              "5795983a",
 		ACLTokenTTL:                      3321 * time.Second,
@@ -4236,7 +4239,6 @@ func TestFullConfig(t *testing.T) {
 			"connect_timeout_ms": float64(1000),
 			"pedantic_mode":      true,
 		},
-		ConnectReplicationToken:          "5795983a",
 		DNSAddrs:                         []net.Addr{tcpAddr("93.95.95.81:7001"), udpAddr("93.95.95.81:7001")},
 		DNSARecordLimit:                  29907,
 		DNSAllowStale:                    true,
@@ -4938,6 +4940,7 @@ func TestSanitize(t *testing.T) {
 		"ACLDisabledTTL": "0s",
 		"ACLDownPolicy": "",
 		"ACLEnableKeyListPolicy": false,
+		"ACLEnableTokenPersistence": false,
 		"ACLEnforceVersion8": false,
 		"ACLMasterToken": "hidden",
 		"ACLPolicyTTL": "0s",
@@ -5004,7 +5007,6 @@ func TestSanitize(t *testing.T) {
 		"ConnectSidecarMaxPort": 0,
 		"ConnectSidecarMinPort": 0,
 		"ConnectTestCALeafRootChangeSpread": "0s",
-		"ConnectReplicationToken": "hidden",
 		"ConnectTestDisableManagedProxies": false,
 		"ConsulCoordinateUpdateBatchSize": 0,
 		"ConsulCoordinateUpdateMaxBatches": 0,

@@ -554,9 +554,12 @@ default will automatically work with some tooling.
 
      * <a name="acl_enable_key_list"></a><a href="#acl_enable_key_list">`enable_key_list`</a> - Either "enabled" or "disabled", defaults to "disabled". When enabled, the `list` permission will be required on the prefix being recursively read from the KV store. Regardless of being enabled, the full set of KV entries under the prefix will be filtered to remove any entries that the request's ACL token does not grant at least read persmissions. This option is only available in Consul 1.0 and newer.
 
-     * <a name=`acl_enable_token_replication"></a><a href="#acl_enable_token_replication">`enable_token_replication`</a> - By
+     * <a name="acl_enable_token_replication"></a><a href="#acl_enable_token_replication">`enable_token_replication`</a> - By
      default secondary Consul datacenters will perform replication of only ACL policies. Setting this configuration will
      also enable ACL token replication.
+
+     * <a name="acl_enable_token_persistence"></a><a href="#acl_enable_token_persistence">`enable_token_persistence`</a> - Either
+    `true` or `false`. When `true` tokens set using the API will be persisted to disk and reloaded when an agent restarts.
 
      * <a name="acl_tokens"></a><a href="#acl_tokens">`tokens`</a> - This object holds
      all of the configured ACL tokens for the agents usage.

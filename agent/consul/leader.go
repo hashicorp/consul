@@ -684,7 +684,7 @@ func (s *Server) startLegacyACLReplication() {
 				return
 			}
 
-			if s.tokens.ACLReplicationToken() == "" {
+			if s.tokens.ReplicationToken() == "" {
 				continue
 			}
 
@@ -733,7 +733,7 @@ func (s *Server) startACLReplication() {
 				return
 			}
 
-			if s.tokens.ACLReplicationToken() == "" {
+			if s.tokens.ReplicationToken() == "" {
 				continue
 			}
 
@@ -779,7 +779,7 @@ func (s *Server) startACLReplication() {
 					return
 				}
 
-				if s.tokens.ACLReplicationToken() == "" {
+				if s.tokens.ReplicationToken() == "" {
 					continue
 				}
 

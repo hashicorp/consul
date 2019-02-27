@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
+	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil"
@@ -1014,14 +1015,14 @@ func TestACLResolution(t *testing.T) {
 	defer a.Shutdown()
 
 	// Check when no token is set
-	a.tokens.UpdateUserToken("")
+	a.tokens.UpdateUserToken("", tokenStore.TokenSourceConfig)
 	a.srv.parseToken(req, &token)
 	if token != "" {
 		t.Fatalf("bad: %s", token)
 	}
 
 	// Check when ACLToken set
-	a.tokens.UpdateUserToken("agent")
+	a.tokens.UpdateUserToken("agent", tokenStore.TokenSourceAPI)
 	a.srv.parseToken(req, &token)
 	if token != "agent" {
 		t.Fatalf("bad: %s", token)

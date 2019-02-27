@@ -127,10 +127,12 @@ type RuntimeConfig struct {
 	// hcl: acl.tokens.master = string
 	ACLMasterToken string
 
-	// ACLReplicationToken is used to fetch ACLs from the ACLDatacenter in
-	// order to replicate them locally. Setting this to a non-empty value
-	// also enables replication. Replication is only available in datacenters
-	// other than the ACLDatacenter.
+	// ACLReplicationToken is used to replicate data locally from the
+	// PrimaryDatacenter. Replication is only available on servers in
+	// datacenters other than the PrimaryDatacenter
+	//
+	// DEPRECATED (ACL-Legacy-Compat): Setting this to a non-empty value
+	// also enables legacy ACL replication if ACLs are enabled and in legacy mode.
 	//
 	// hcl: acl.tokens.replication = string
 	ACLReplicationToken string
@@ -158,6 +160,10 @@ type RuntimeConfig struct {
 	//
 	// hcl: acl.tokens.default = string
 	ACLToken string
+
+	// ACLEnableTokenPersistence determines whether or not tokens set via the agent HTTP API
+	// should be persisted to disk and reloaded when an agent restarts.
+	ACLEnableTokenPersistence bool
 
 	// AutopilotCleanupDeadServers enables the automatic cleanup of dead servers when new ones
 	// are added to the peer list. Defaults to true.
@@ -544,9 +550,6 @@ type RuntimeConfig struct {
 
 	// ConnectCAConfig is the config to use for the CA provider.
 	ConnectCAConfig map[string]interface{}
-
-	// ConnectReplicationToken is the ACL token used for replicating intentions.
-	ConnectReplicationToken string
 
 	// ConnectTestDisableManagedProxies is not exposed to public config but is
 	// used by TestAgent to prevent self-executing the test binary in the
