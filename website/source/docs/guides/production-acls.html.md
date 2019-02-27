@@ -376,7 +376,7 @@ key_prefix "redis/" {
 ```
 
 In the above example, we are allowing any key with the prefix `redis/` to be
-read. If you issued the command `consul kv get - recurse redis/ -token=<your
+read. If you issued the command `consul kv get -recurse redis/ -token=<your
 token> ` you would get a list of key/values for `redis/`. 
 
 This type of policy is good for allowing operators to recursively read
