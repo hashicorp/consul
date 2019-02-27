@@ -19,7 +19,7 @@ you will learn how to create tokens with minimum privileges for:
 * [Servers and Clients](/advanced/day-1-operations/production-acls#appy-individual-tokens-to-agents)
 * [Services](/advanced/day-1-operations/production-acls#apply-individual-tokens-to-services)
 * [DNS](/advanced/day-1-operations/production-acls#token-for-dns) 
-*  [Consul KV](/advanced/day-1-operations/production-acls#consul-kv-tokens) 
+* [Consul KV](/advanced/day-1-operations/production-acls#consul-kv-tokens) 
 * [Consul UI](/advanced/day-1-operations/production-acls#consul-ui-tokens) 
 
 ~> **Important:** For best results, use this guide during the [initial
