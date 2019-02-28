@@ -24,7 +24,7 @@ you will learn how to create tokens with minimum privileges for:
 
 ~> **Important:** For best results, use this guide during the [initial
 deployment](/advanced/day-1-operations/deployment-guide) of a Consul (version
-1.4.0 or newer) datacenter. Specifically, you should have already installed all
+1.4.3 or newer) datacenter. Specifically, you should have already installed all
 agents and configured initial service definitions, but you should not yet rely
 on Consul for any service discovery or service configuration operations.  
 
@@ -46,13 +46,19 @@ on them when you apply the token.
 { 
   acl = { 
   	enabled = true, 
-  	default_policy = "deny" 
+  	default_policy = "deny",
+    enable_token_persistence = true
   	} 
 } 
 ```
 
+~> Note: Token persistence was introduced in Consul 1.4.3. In older versions
+of Consul, you cannot persist tokens when using the HTTP API. 
+
 In this example, you configured the default policy of "deny", which means you
-are in whitelist mode. 
+are in whitelist mode. You also enabled token persistence when using the HTTP
+API. With persistence enabled, tokens will be persisted to disk and 
+reloaded when an agent restarts
 
 ~> Note: If you are bootstrapping ACLs on an existing datacenter, enable the
 ACLs on the agents first with `default_policy=allow`. Default policy allow will
@@ -66,7 +72,7 @@ initiate a rolling restart.
 To create the initial bootstrap token, use the `acl bootstrap` command on one
 of the servers. 
 
-``` 
+```sh
 $ consul acl bootstrap 
 ```
 
@@ -87,7 +93,7 @@ privileges to continue
 creating policies and tokens. Set the environment variable temporarily with
 `export`, so that it will not persist once you’ve closed the session. 
 
-``` 
+```sh 
 $ export CONSUL_HTTP_TOKEN=<your_token_here> 
 ```
 
@@ -103,9 +109,8 @@ Adding tokens to agents is a three step process.
 policy](/advanced/day-1-operations/production-acls/create-the-agent-policy).
 2. [Create the token with the newly created
 policy](/advanced/day-1-operations/production-acls/create-the-agent-token).
-3. [Add the token to the agent configuration
-file](/advanced/day-1-operations/production-acls/add-the-token-to-the-agent)
-and restart the Consul service. 
+3. [Add the token to the agent](/advanced/day-1-operations/production-acls/add-the-token-to-the-agent).
+ 
 
 ### Create the Agent Policy
 
@@ -129,7 +134,7 @@ specified the policy, you can initialize it using the Consul
 CLI. To create a programmatic process, you could also use
 the HTTP API.
 
-``` 
+```sh 
 $ consul acl policy create -name consul-server-one -rules @consul-server-one-policy.hcl 
 ```
 
@@ -144,7 +149,7 @@ After creating the per-agent policies, create individual tokens for all the
 agents. You will need to include the policy in the `consul acl token create`
 command.
 
-``` 
+```sh 
 $ consul acl token create -description "consul-server-one agent token" -policy-name consul-server-one 
 ``` 
 
@@ -155,49 +160,35 @@ Repeat this process for each agent. It is the responsibility of the operator to
 save tokens in a secure location; we recommend
 [Vault](https://www.vaultproject.io/).  
 
-### Add the token to the Agent.
+### Add the Token to the Agent.
 
-Finally, apply the tokens to the agents by adding the token to the agent
-configuration file and restarting the Consul service. Start with the servers
-and ensure they are working correctly before applying the client tokens. Below
-is an example server configuration file with an agent token.
+Finally, apply the tokens to the agents using the HTTP API. 
+Start with the servers
+and ensure they are working correctly before applying the client tokens. Please
+review the Bootstrapping the ACL System [guide](/advanced/day-1-operations/acl-guide) for example of setting the token in the agent configuration 
+file.
 
-````
-# consul-server-one.hcl
-{ 
-"acl": { 
-  "enabled": true, 
-  "default_policy": "deny", 
-  "tokens": { 
-  	"agent": "e67a4a33-6579-b766-ac97-a0408fde3957" } 
-  }
-} 
-```` 
+```sh
+$ curl -H "X-Consul-Token: <your token here>" -D @consul-server-one-token.json http://localhost:8500/v1/agent/token/acl_agent_token 
+``` 
 
-At this point, every agent that has a token and has been restarted can once
+The data file must contain a valid token. 
+
+```
+# consul-server-one-token.json
+{
+  "Token": "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
+}
+```
+
+At this point, every agent that has a token can once
 again read and write information to Consul, but only for node-related actions.
 Actions for individual services are not yet allowed.
 
 ~> Note: If you are bootstrapping ACLs on and existing datacenter, remember to
 update the default policy to `default_policy = deny` and initiate another
 rolling restart. After applying the token. 
-
-#### Advantages of the ACL HTTP API
-
-Alternatively, you can apply the agent token with the [HTTP
-API](https://www.consul.io/api/acl/tokens.html#create-a-token). The HTTP API
-has three advantages.
-
-1. The token can be applied immediately to the agent, no service restart required.
-2. The configuration file does not need to be manually updated.  The token will
-not be persisted to disk, it will not be stored in plain text. 
-3. The final advantage can also be a disadvantage. Since the token is not
-persisted to disk, any time the agent is restarted the token will need to
-re-applied. This may not be an issue for scheduled maintenance, but could
-complicate an unplanned server outage.  
-
-Now that the agents have tokens, we can
-create tokens for the services.  
+  
 
 ## Apply Individual Tokens to the Services
 
@@ -214,7 +205,7 @@ getting started.
 Below is an example service definition that needs a token after bootstrapping
 the ACL system.
 
-``` 
+```json 
 { 
   "service": { 
     "name": "dashboard", 
@@ -239,7 +230,7 @@ First, create the policy that will grant write privileges to only the
 itself, update it's health checks, and write any of the fields in the [service
 definition](https://www.consul.io/docs/agent/services.html).
 
-```
+```sh
 # dashboard-policy.hcl
 service "dashboard" { 
 	policy = "write" 
@@ -248,13 +239,13 @@ service "dashboard" {
 
 Use the policy definition to initiate the policy.
 
-``` 
+```sh 
 $ consul acl policy create -name "dashboard-service" -rules @dashboard-policy.hcl 
 ```
 
 Next, create a token with the policy.
 
-``` 
+```sh 
 $ consul acl token create -description "Token for Dashboard Service" -policy-name dashboard-service 
 ```
 
@@ -324,30 +315,31 @@ query_prefix "" {
 
 First, create the policy.
 
-``` 
+```sh 
 $ consul acl policy create -name "dns-requests" -rules @dns-request-policy.hcl 
 ```
 
 Next, create the token.
 
-``` 
+```sh 
 $ consul acl token create -description "Token for DNS Requests" -policy-name dns-requests 
 ```
 
 Finally, apply the token to the Consul agent serving DNS request in default token ACL
 configuration parameter.
 
+```sh
+$ curl -H "X-Consul-Token: <your token here>" -D @dns-token.json http://localhost:8500/v1/agent/token/acl_token 
+```
+
+The data file must contain a valid token. 
+
 ``` 
+# dns-token.json
 { 
-  "acl": { 
-  	"enabled": true, 
-  	"default_policy": "deny", 
-  	"tokens": { 
-  		"agent": "e67a4a33-6579-b766-ac97-a0408fde3957", 
-  		"default":"5467d69a-5f19-469b-0543-12a487eecc66", 
-  	}, 
-  },
-} 
+  "Token":"5467d69a-5f19-469b-0543-12a487eecc66" 
+}
+
 ``` 
 
 Note, if you have multiple agents serving DNS requests you can use the same
