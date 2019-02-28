@@ -133,20 +133,16 @@ func (s *Server) lanEventHandler() {
 		select {
 		case e := <-s.eventChLAN:
 			switch e.EventType() {
-			case serf.EventMemberJoin:
+			case serf.EventMemberJoin, serf.EventMemberUpdate:
 				s.lanNodeJoin(e.(serf.MemberEvent))
 				s.localMemberEvent(e.(serf.MemberEvent))
 
-			case serf.EventMemberLeave, serf.EventMemberFailed:
+			case serf.EventMemberLeave, serf.EventMemberFailed, serf.EventMemberReap:
 				s.lanNodeFailed(e.(serf.MemberEvent))
 				s.localMemberEvent(e.(serf.MemberEvent))
 
-			case serf.EventMemberReap:
-				s.localMemberEvent(e.(serf.MemberEvent))
 			case serf.EventUser:
 				s.localEvent(e.(serf.UserEvent))
-			case serf.EventMemberUpdate:
-				s.localMemberEvent(e.(serf.MemberEvent))
 			case serf.EventQuery: // Ignore
 			default:
 				s.logger.Printf("[WARN] consul: Unhandled LAN Serf Event: %#v", e)
