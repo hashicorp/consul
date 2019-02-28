@@ -3603,9 +3603,6 @@ func TestAgent_ReloadConfigIncomingRPCConfig(t *testing.T) {
 	c := TestConfig(config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
 	err = a.ReloadConfig(c)
 	require.NoError(t, err)
-	tlsConf, err = a.tlsConfigurator.IncomingRPCConfig()
-	require.NoError(t, err)
-	require.NotNil(t, tlsConf.GetConfigForClient)
 	tlsConf, err = tlsConf.GetConfigForClient(nil)
 	require.True(t, tlsConf.InsecureSkipVerify)
 }
