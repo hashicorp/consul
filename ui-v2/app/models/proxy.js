@@ -9,5 +9,4 @@ export default Model.extend({
   ServiceName: attr('string'),
   ServiceID: attr('string'),
   ServiceProxy: attr(),
-  ServiceProxyDestination: attr('string'),
 });
