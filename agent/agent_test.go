@@ -17,9 +17,12 @@ import (
 
 	"github.com/hashicorp/consul/testrpc"
 
+	"github.com/hashicorp/consul/agent/ae"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testutil"
@@ -3542,4 +3545,27 @@ func TestAgent_loadTokens(t *testing.T) {
 		require.Equal("charlie", a.tokens.AgentMasterToken())
 		require.Equal("foxtrot", a.tokens.ReplicationToken())
 	})
+}
+
+func TestHansAgent_ReloadConfigTLS(t *testing.T) {
+	t.Parallel()
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	defer os.RemoveAll(dataDir)
+	hcl := `
+		data_dir = "` + dataDir + `"
+		verify_outgoing = true
+		ca_file = "../test/ca/root.cer"
+		cert_file = "../test/key/ourdomain.cer"
+		key_file = "../test/key/ourdomain.key"
+	`
+	c := TestConfig(config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
+	a, err := New(c)
+	a.State = local.NewState(LocalConfig(c), a.logger, a.tokens)
+	a.sync = ae.NewStateSyncer(a.State, c.AEInterval, a.shutdownCh, a.logger)
+	a.delegate = &consul.Client{}
+	a.State.TriggerSyncChanges = a.sync.SyncChanges.Trigger
+	require.NoError(t, err)
+
+	err = a.ReloadConfig(c)
+	require.NoError(t, err)
 }
