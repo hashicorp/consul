@@ -289,12 +289,26 @@ func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) (*tls.
 
 // IncomingRPCConfig generates a *tls.Config for incoming RPC connections.
 func (c *Configurator) IncomingRPCConfig() (*tls.Config, error) {
-	return c.commonTLSConfig(c.base.VerifyIncomingRPC)
+	config, err := c.commonTLSConfig(c.base.VerifyIncomingRPC)
+	if err != nil {
+		return nil, err
+	}
+	config.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
+		return c.IncomingRPCConfig()
+	}
+	return config, nil
 }
 
 // IncomingHTTPSConfig generates a *tls.Config for incoming HTTPS connections.
 func (c *Configurator) IncomingHTTPSConfig() (*tls.Config, error) {
-	return c.commonTLSConfig(c.base.VerifyIncomingHTTPS)
+	config, err := c.commonTLSConfig(c.base.VerifyIncomingHTTPS)
+	if err != nil {
+		return nil, err
+	}
+	config.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
+		return c.IncomingHTTPSConfig()
+	}
+	return config, nil
 }
 
 // IncomingTLSConfig generates a *tls.Config for outgoing TLS connections for

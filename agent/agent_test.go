@@ -17,12 +17,9 @@ import (
 
 	"github.com/hashicorp/consul/testrpc"
 
-	"github.com/hashicorp/consul/agent/ae"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/consul"
-	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testutil"
@@ -3369,11 +3366,7 @@ func TestAgent_SetupProxyManager(t *testing.T) {
 		ports { http = -1 }
 		data_dir = "` + dataDir + `"
 	`
-	c := TestConfig(
-		// randomPortsSource(false),
-		config.Source{Name: t.Name(), Format: "hcl", Data: hcl},
-	)
-	a, err := New(c)
+	a, err := NewUnstartedAgent(t, t.Name(), hcl)
 	require.NoError(t, err)
 	require.Error(t, a.setupProxyManager(), "setupProxyManager should fail with invalid HTTP API config")
 
@@ -3381,11 +3374,7 @@ func TestAgent_SetupProxyManager(t *testing.T) {
 		ports { http = 8001 }
 		data_dir = "` + dataDir + `"
 	`
-	c = TestConfig(
-		// randomPortsSource(false),
-		config.Source{Name: t.Name(), Format: "hcl", Data: hcl},
-	)
-	a, err = New(c)
+	a, err = NewUnstartedAgent(t, t.Name(), hcl)
 	require.NoError(t, err)
 	require.NoError(t, a.setupProxyManager())
 }
@@ -3547,7 +3536,7 @@ func TestAgent_loadTokens(t *testing.T) {
 	})
 }
 
-func TestHansAgent_ReloadConfigTLS(t *testing.T) {
+func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 	t.Parallel()
 	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
 	defer os.RemoveAll(dataDir)
@@ -3557,15 +3546,66 @@ func TestHansAgent_ReloadConfigTLS(t *testing.T) {
 		ca_file = "../test/ca/root.cer"
 		cert_file = "../test/key/ourdomain.cer"
 		key_file = "../test/key/ourdomain.key"
+		verify_server_hostname = false
+	`
+	a, err := NewUnstartedAgent(t, t.Name(), hcl)
+	require.NoError(t, err)
+	tlsConf, err := a.tlsConfigurator.OutgoingRPCConfig()
+	require.NoError(t, err)
+	require.True(t, tlsConf.InsecureSkipVerify)
+
+	hcl = `
+		data_dir = "` + dataDir + `"
+		verify_outgoing = true
+		ca_file = "../test/ca/root.cer"
+		cert_file = "../test/key/ourdomain.cer"
+		key_file = "../test/key/ourdomain.key"
+		verify_server_hostname = true
 	`
 	c := TestConfig(config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
-	a, err := New(c)
-	a.State = local.NewState(LocalConfig(c), a.logger, a.tokens)
-	a.sync = ae.NewStateSyncer(a.State, c.AEInterval, a.shutdownCh, a.logger)
-	a.delegate = &consul.Client{}
-	a.State.TriggerSyncChanges = a.sync.SyncChanges.Trigger
-	require.NoError(t, err)
-
 	err = a.ReloadConfig(c)
 	require.NoError(t, err)
+	tlsConf, err = a.tlsConfigurator.OutgoingRPCConfig()
+	require.NoError(t, err)
+	require.True(t, tlsConf.InsecureSkipVerify)
+}
+
+func TestAgent_ReloadConfigIncomingRPCConfig(t *testing.T) {
+	t.Parallel()
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	defer os.RemoveAll(dataDir)
+	hcl := `
+		data_dir = "` + dataDir + `"
+		verify_outgoing = true
+		ca_file = "../test/ca/root.cer"
+		cert_file = "../test/key/ourdomain.cer"
+		key_file = "../test/key/ourdomain.key"
+		verify_server_hostname = false
+	`
+	a, err := NewUnstartedAgent(t, t.Name(), hcl)
+	require.NoError(t, err)
+	tlsConf, err := a.tlsConfigurator.IncomingRPCConfig()
+	require.NoError(t, err)
+	require.NotNil(t, tlsConf.GetConfigForClient)
+	tlsConf, err = tlsConf.GetConfigForClient(nil)
+	require.NoError(t, err)
+	require.NotNil(t, tlsConf)
+	require.True(t, tlsConf.InsecureSkipVerify)
+
+	hcl = `
+		data_dir = "` + dataDir + `"
+		verify_outgoing = true
+		ca_file = "../test/ca/root.cer"
+		cert_file = "../test/key/ourdomain.cer"
+		key_file = "../test/key/ourdomain.key"
+		verify_server_hostname = true
+	`
+	c := TestConfig(config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
+	err = a.ReloadConfig(c)
+	require.NoError(t, err)
+	tlsConf, err = a.tlsConfigurator.IncomingRPCConfig()
+	require.NoError(t, err)
+	require.NotNil(t, tlsConf.GetConfigForClient)
+	tlsConf, err = tlsConf.GetConfigForClient(nil)
+	require.True(t, tlsConf.InsecureSkipVerify)
 }

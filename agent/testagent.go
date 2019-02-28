@@ -18,9 +18,11 @@ import (
 	metrics "github.com/armon/go-metrics"
 	uuid "github.com/hashicorp/go-uuid"
 
+	"github.com/hashicorp/consul/agent/ae"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib/freeport"
@@ -101,6 +103,20 @@ func NewTestAgent(t *testing.T, name string, hcl string) *TestAgent {
 	a := &TestAgent{Name: name, HCL: hcl}
 	a.Start(t)
 	return a
+}
+
+func NewUnstartedAgent(t *testing.T, name string, hcl string) (*Agent, error) {
+	c := TestConfig(config.Source{Name: name, Format: "hcl", Data: hcl})
+	a, err := New(c)
+	if err != nil {
+		return nil, err
+	}
+	a.State = local.NewState(LocalConfig(c), a.logger, a.tokens)
+	a.sync = ae.NewStateSyncer(a.State, c.AEInterval, a.shutdownCh, a.logger)
+	a.delegate = &consul.Client{}
+	a.State.TriggerSyncChanges = a.sync.SyncChanges.Trigger
+	a.tlsConfigurator = tlsutil.NewConfigurator(c.ToTLSUtilConfig())
+	return a, nil
 }
 
 // Start starts a test agent. It fails the test if the agent could not be started.
