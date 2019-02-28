@@ -300,7 +300,8 @@ func TestHTTPAPI_BlockEndpoints(t *testing.T) {
 
 	// Try a blocked endpoint, which should get a 403.
 	{
-		req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
+		req, err := http.NewRequest("GET", "/v1/agent/self", nil)
+		require.NoError(t, err)
 		resp := httptest.NewRecorder()
 		a.srv.wrap(handler, []string{"GET"})(resp, req)
 		if got, want := resp.Code, http.StatusForbidden; got != want {
@@ -310,7 +311,8 @@ func TestHTTPAPI_BlockEndpoints(t *testing.T) {
 
 	// Make sure some other endpoint still works.
 	{
-		req, _ := http.NewRequest("GET", "/v1/agent/checks", nil)
+		req, err := http.NewRequest("GET", "/v1/agent/checks", nil)
+		require.NoError(t, err)
 		resp := httptest.NewRecorder()
 		a.srv.wrap(handler, []string{"GET"})(resp, req)
 		if got, want := resp.Code, http.StatusOK; got != want {
@@ -323,7 +325,8 @@ func TestHTTPAPI_Ban_Nonprintable_Characters(t *testing.T) {
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
-	req, _ := http.NewRequest("GET", "/v1/kv/bad\x00ness", nil)
+	req, err := http.NewRequest("GET", "/v1/kv/bad\x00ness", nil)
+	require.NoError(t, err)
 	resp := httptest.NewRecorder()
 	a.srv.Handler.ServeHTTP(resp, req)
 	if got, want := resp.Code, http.StatusBadRequest; got != want {
@@ -335,7 +338,8 @@ func TestHTTPAPI_Allow_Nonprintable_Characters_With_Flag(t *testing.T) {
 	a := NewTestAgent(t, t.Name(), "disable_http_unprintable_char_filter = true")
 	defer a.Shutdown()
 
-	req, _ := http.NewRequest("GET", "/v1/kv/bad\x00ness", nil)
+	req, err := http.NewRequest("GET", "/v1/kv/bad\x00ness", nil)
+	require.NoError(t, err)
 	resp := httptest.NewRecorder()
 	a.srv.Handler.ServeHTTP(resp, req)
 	// Key doesn't actually exist so we should get 404
@@ -356,7 +360,8 @@ func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 			return nil, nil
 		}
 
-		req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
+		req, err := http.NewRequest("GET", "/v1/agent/self", nil)
+		require.NoError(t, err)
 		a.srv.wrap(handler, []string{"GET"})(resp, req)
 
 		translate := resp.Header().Get("X-Consul-Translate-Addresses")
@@ -377,7 +382,8 @@ func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 			return nil, nil
 		}
 
-		req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
+		req, err := http.NewRequest("GET", "/v1/agent/self", nil)
+		require.NoError(t, err)
 		a.srv.wrap(handler, []string{"GET"})(resp, req)
 
 		translate := resp.Header().Get("X-Consul-Translate-Addresses")
@@ -404,7 +410,8 @@ func TestHTTPAPIResponseHeaders(t *testing.T) {
 		return nil, nil
 	}
 
-	req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
+	req, err := http.NewRequest("GET", "/v1/agent/self", nil)
+	require.NoError(t, err)
 	a.srv.wrap(handler, []string{"GET"})(resp, req)
 
 	origin := resp.Header().Get("Access-Control-Allow-Origin")
@@ -429,7 +436,8 @@ func TestContentTypeIsJSON(t *testing.T) {
 		return &structs.DirEntry{Key: "key"}, nil
 	}
 
-	req, _ := http.NewRequest("GET", "/v1/kv/key", nil)
+	req, err := http.NewRequest("GET", "/v1/kv/key", nil)
+	require.NoError(t, err)
 	a.srv.wrap(handler, []string{"GET"})(resp, req)
 
 	contentType := resp.Header().Get("Content-Type")
@@ -483,7 +491,8 @@ func TestHTTP_wrap_obfuscateLog(t *testing.T) {
 		url, want := pair[0], pair[1]
 		t.Run(url, func(t *testing.T) {
 			resp := httptest.NewRecorder()
-			req, _ := http.NewRequest("GET", url, nil)
+			req, err := http.NewRequest("GET", url, nil)
+			require.NoError(t, err)
 			a.srv.wrap(handler, []string{"GET"})(resp, req)
 
 			if got := buf.String(); !strings.Contains(got, want) {
@@ -515,7 +524,8 @@ func testPrettyPrint(pretty string, t *testing.T) {
 	}
 
 	urlStr := "/v1/kv/key?" + pretty
-	req, _ := http.NewRequest("GET", urlStr, nil)
+	req, err := http.NewRequest("GET", urlStr, nil)
+	require.NoError(t, err)
 	a.srv.wrap(handler, []string{"GET"})(resp, req)
 
 	expected, _ := json.MarshalIndent(r, "", "    ")
@@ -537,7 +547,8 @@ func TestParseSource(t *testing.T) {
 
 	// Default is agent's DC and no node (since the user didn't care, then
 	// just give them the cheapest possible query).
-	req, _ := http.NewRequest("GET", "/v1/catalog/nodes", nil)
+	req, err := http.NewRequest("GET", "/v1/catalog/nodes", nil)
+	require.NoError(t, err)
 	source := structs.QuerySource{}
 	a.srv.parseSource(req, &source)
 	if source.Datacenter != "dc1" || source.Node != "" {
@@ -715,7 +726,8 @@ func TestParseWait(t *testing.T) {
 	resp := httptest.NewRecorder()
 	var b structs.QueryOptions
 
-	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?wait=60s&index=1000", nil)
+	req, err := http.NewRequest("GET", "/v1/catalog/nodes?wait=60s&index=1000", nil)
+	require.NoError(t, err)
 	if d := parseWait(resp, req, &b); d {
 		t.Fatalf("unexpected done")
 	}
@@ -734,7 +746,8 @@ func TestPProfHandlers_EnableDebug(t *testing.T) {
 	defer a.Shutdown()
 
 	resp := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/debug/pprof/profile", nil)
+	req, err := http.NewRequest("GET", "/debug/pprof/profile", nil)
+	require.NoError(err)
 
 	a.srv.Handler.ServeHTTP(resp, req)
 
@@ -747,7 +760,8 @@ func TestPProfHandlers_DisableDebugNoACLs(t *testing.T) {
 	defer a.Shutdown()
 
 	resp := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/debug/pprof/profile", nil)
+	req, err := http.NewRequest("GET", "/debug/pprof/profile", nil)
+	require.NoError(err)
 
 	a.srv.Handler.ServeHTTP(resp, req)
 
@@ -818,7 +832,8 @@ func TestPProfHandlers_ACLs(t *testing.T) {
 
 	for i, c := range cases {
 		t.Run(fmt.Sprintf("case %d (%#v)", i, c), func(t *testing.T) {
-			req, _ := http.NewRequest("GET", fmt.Sprintf("%s?token=%s", c.endpoint, c.token), nil)
+			req, err := http.NewRequest("GET", fmt.Sprintf("%s?token=%s", c.endpoint, c.token), nil)
+			require.NoError(t, err)
 			resp := httptest.NewRecorder()
 			a.srv.Handler.ServeHTTP(resp, req)
 			assert.Equal(c.code, resp.Code)
@@ -831,7 +846,8 @@ func TestParseWait_InvalidTime(t *testing.T) {
 	resp := httptest.NewRecorder()
 	var b structs.QueryOptions
 
-	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?wait=60foo&index=1000", nil)
+	req, err := http.NewRequest("GET", "/v1/catalog/nodes?wait=60foo&index=1000", nil)
+	require.NoError(t, err)
 	if d := parseWait(resp, req, &b); !d {
 		t.Fatalf("expected done")
 	}
@@ -846,7 +862,8 @@ func TestParseWait_InvalidIndex(t *testing.T) {
 	resp := httptest.NewRecorder()
 	var b structs.QueryOptions
 
-	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?wait=60s&index=foo", nil)
+	req, err := http.NewRequest("GET", "/v1/catalog/nodes?wait=60s&index=foo", nil)
+	require.NoError(t, err)
 	if d := parseWait(resp, req, &b); !d {
 		t.Fatalf("expected done")
 	}
@@ -861,7 +878,8 @@ func TestParseConsistency(t *testing.T) {
 	resp := httptest.NewRecorder()
 	var b structs.QueryOptions
 
-	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?stale", nil)
+	req, err := http.NewRequest("GET", "/v1/catalog/nodes?stale", nil)
+	require.NoError(t, err)
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	if d := a.srv.parseConsistency(resp, req, &b); d {
@@ -895,7 +913,8 @@ func TestParseConsistency(t *testing.T) {
 // if maxStale > 0 => stale + check duration
 func ensureConsistency(t *testing.T, a *TestAgent, path string, maxStale time.Duration, requireConsistent bool) {
 	t.Helper()
-	req, _ := http.NewRequest("GET", path, nil)
+	req, err := http.NewRequest("GET", path, nil)
+	require.NoError(t, err)
 	var b structs.QueryOptions
 	resp := httptest.NewRecorder()
 	if d := a.srv.parseConsistency(resp, req, &b); d {
@@ -949,7 +968,8 @@ func TestParseConsistency_Invalid(t *testing.T) {
 	resp := httptest.NewRecorder()
 	var b structs.QueryOptions
 
-	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?stale&consistent", nil)
+	req, err := http.NewRequest("GET", "/v1/catalog/nodes?stale&consistent", nil)
+	require.NoError(t, err)
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	if d := a.srv.parseConsistency(resp, req, &b); !d {
@@ -966,7 +986,8 @@ func TestACLResolution(t *testing.T) {
 	t.Parallel()
 	var token string
 	// Request without token
-	req, _ := http.NewRequest("GET", "/v1/catalog/nodes", nil)
+	req, err := http.NewRequest("GET", "/v1/catalog/nodes", nil)
+	require.NoError(t, err)
 	// Request with explicit token
 	reqToken, _ := http.NewRequest("GET", "/v1/catalog/nodes?token=foo", nil)
 	// Request with header token only
@@ -1106,7 +1127,8 @@ func TestEnableWebUI(t *testing.T) {
 	`)
 	defer a.Shutdown()
 
-	req, _ := http.NewRequest("GET", "/ui/", nil)
+	req, err := http.NewRequest("GET", "/ui/", nil)
+	require.NoError(t, err)
 	resp := httptest.NewRecorder()
 	a.srv.Handler.ServeHTTP(resp, req)
 	if resp.Code != 200 {
@@ -1182,9 +1204,10 @@ func TestParseToken_ProxyTokenResolve(t *testing.T) {
 			},
 		}
 
-		req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(reg))
+		req, err := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(reg))
+		require.NoError(t, err)
 		resp := httptest.NewRecorder()
-		_, err := a.srv.AgentRegisterService(resp, req)
+		_, err = a.srv.AgentRegisterService(resp, req)
 		require.NoError(t, err)
 		require.Equal(t, 200, resp.Code, "body: %s", resp.Body.String())
 	}
@@ -1197,9 +1220,10 @@ func TestParseToken_ProxyTokenResolve(t *testing.T) {
 
 	for _, check := range tests {
 		t.Run(fmt.Sprintf("GET(%s)", check.endpoint), func(t *testing.T) {
-			req, _ := http.NewRequest("GET", fmt.Sprintf("%s?token=%s", check.endpoint, token), nil)
+			req, err := http.NewRequest("GET", fmt.Sprintf("%s?token=%s", check.endpoint, token), nil)
+			require.NoError(t, err)
 			resp := httptest.NewRecorder()
-			_, err := check.handler(a.srv, resp, req)
+			_, err = check.handler(a.srv, resp, req)
 			require.NoError(t, err)
 		})
 	}
