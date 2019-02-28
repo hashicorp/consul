@@ -196,9 +196,8 @@ func (c *Config) wrapTLSClient(conn net.Conn, tlsConfig *tls.Config) (net.Conn, 
 // Configurator holds a Config and is responsible for generating all the
 // *tls.Config necessary for Consul. Except the one in the api package.
 type Configurator struct {
-	sync.Mutex
-	base   *Config
-	checks map[string]bool
+	sync.RWMutex
+	base *Config
 }
 
 // NewConfigurator creates a new Configurator and sets the provided
@@ -206,7 +205,7 @@ type Configurator struct {
 // Todo (Hans): should config be a value instead a pointer to avoid side
 // effects?
 func NewConfigurator(config Config) *Configurator {
-	return &Configurator{base: &config, checks: map[string]bool{}}
+	return &Configurator{base: &config}
 }
 
 // Update updates the internal configuration which is used to generate
@@ -289,6 +288,8 @@ func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) (*tls.
 
 // IncomingRPCConfig generates a *tls.Config for incoming RPC connections.
 func (c *Configurator) IncomingRPCConfig() (*tls.Config, error) {
+	c.RLock()
+	defer c.RUnlock()
 	config, err := c.commonTLSConfig(c.base.VerifyIncomingRPC)
 	if err != nil {
 		return nil, err
@@ -301,6 +302,8 @@ func (c *Configurator) IncomingRPCConfig() (*tls.Config, error) {
 
 // IncomingHTTPSConfig generates a *tls.Config for incoming HTTPS connections.
 func (c *Configurator) IncomingHTTPSConfig() (*tls.Config, error) {
+	c.RLock()
+	defer c.RUnlock()
 	config, err := c.commonTLSConfig(c.base.VerifyIncomingHTTPS)
 	if err != nil {
 		return nil, err
@@ -315,10 +318,12 @@ func (c *Configurator) IncomingHTTPSConfig() (*tls.Config, error) {
 // checks. This function is seperated because there is an extra flag to
 // consider for checks. EnableAgentTLSForChecks and InsecureSkipVerify has to
 // be checked for checks.
-func (c *Configurator) OutgoingTLSConfigForCheck(id string) (*tls.Config, error) {
+func (c *Configurator) OutgoingTLSConfigForCheck(skipVerify bool) (*tls.Config, error) {
+	c.RLock()
+	defer c.RUnlock()
 	if !c.base.EnableAgentTLSForChecks {
 		return &tls.Config{
-			InsecureSkipVerify: c.getSkipVerifyForCheck(id),
+			InsecureSkipVerify: skipVerify,
 		}, nil
 	}
 
@@ -326,7 +331,7 @@ func (c *Configurator) OutgoingTLSConfigForCheck(id string) (*tls.Config, error)
 	if err != nil {
 		return nil, err
 	}
-	tlsConfig.InsecureSkipVerify = c.getSkipVerifyForCheck(id)
+	tlsConfig.InsecureSkipVerify = skipVerify
 	tlsConfig.ServerName = c.base.ServerName
 	if tlsConfig.ServerName == "" {
 		tlsConfig.ServerName = c.base.NodeName
@@ -339,6 +344,8 @@ func (c *Configurator) OutgoingTLSConfigForCheck(id string) (*tls.Config, error)
 // there is a CA or VerifyOutgoing is set, a *tls.Config will be provided,
 // otherwise we assume that no TLS should be used.
 func (c *Configurator) OutgoingRPCConfig() (*tls.Config, error) {
+	c.RLock()
+	defer c.RUnlock()
 	useTLS := c.base.CAFile != "" || c.base.CAPath != "" || c.base.VerifyOutgoing
 	if !useTLS {
 		return nil, nil
@@ -362,6 +369,8 @@ func (c *Configurator) OutgoingRPCWrapper() (DCWrapper, error) {
 
 	// Generate the wrapper based on hostname verification
 	wrapper := func(dc string, conn net.Conn) (net.Conn, error) {
+		c.RLock()
+		defer c.RUnlock()
 		if c.base.VerifyServerHostname {
 			// Strip the trailing '.' from the domain if any
 			domain := strings.TrimSuffix(c.base.Domain, ".")
@@ -372,27 +381,6 @@ func (c *Configurator) OutgoingRPCWrapper() (DCWrapper, error) {
 	}
 
 	return wrapper, nil
-}
-
-// AddCheck adds a check to the internal check map together with the skipVerify
-// value, which is used when generating a *tls.Config for this check.
-func (c *Configurator) AddCheck(id string, skipVerify bool) {
-	c.Lock()
-	defer c.Unlock()
-	c.checks[id] = skipVerify
-}
-
-// RemoveCheck removes a check from the internal check map.
-func (c *Configurator) RemoveCheck(id string) {
-	c.Lock()
-	defer c.Unlock()
-	delete(c.checks, id)
-}
-
-func (c *Configurator) getSkipVerifyForCheck(id string) bool {
-	c.Lock()
-	defer c.Unlock()
-	return c.checks[id]
 }
 
 // ParseCiphers parse ciphersuites from the comma-separated string into

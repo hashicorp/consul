@@ -3536,7 +3536,7 @@ func TestAgent_loadTokens(t *testing.T) {
 	})
 }
 
-func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
+func TestHansAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 	t.Parallel()
 	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
 	defer os.RemoveAll(dataDir)
@@ -3570,7 +3570,7 @@ func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 	require.True(t, tlsConf.InsecureSkipVerify)
 }
 
-func TestAgent_ReloadConfigIncomingRPCConfig(t *testing.T) {
+func TestHansAgent_ReloadConfigIncomingRPCConfig(t *testing.T) {
 	t.Parallel()
 	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
 	defer os.RemoveAll(dataDir)
