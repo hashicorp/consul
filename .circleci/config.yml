@@ -4,7 +4,7 @@ version: 2.1
 executors:
   go:
     docker:
-      - image: circleci/golang:1.11.4
+      - image: circleci/golang:1.12
     environment:
       - TEST_RESULTS: /tmp/test-results  # path to where test results are saved
 
