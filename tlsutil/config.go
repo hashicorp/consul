@@ -214,6 +214,7 @@ func (c *Configurator) Update(config Config) {
 	c.Lock()
 	defer c.Unlock()
 	c.base = &config
+
 }
 
 // commonTLSConfig generates a *tls.Config from the base configuration the

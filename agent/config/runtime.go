@@ -1586,6 +1586,7 @@ func (c *RuntimeConfig) ToTLSUtilConfig() tlsutil.Config {
 		VerifyIncomingRPC:        c.VerifyIncomingRPC,
 		VerifyIncomingHTTPS:      c.VerifyIncomingHTTPS,
 		VerifyOutgoing:           c.VerifyOutgoing,
+		VerifyServerHostname:     c.VerifyServerHostname,
 		CAFile:                   c.CAFile,
 		CAPath:                   c.CAPath,
 		CertFile:                 c.CertFile,
