@@ -182,7 +182,7 @@ on all of the servers, one last time.
 }
 ```
 
-~> Note: In Consul version 1.4.2 and older any ACL configuration updates
+~> Note: In Consul version 1.4.2 and older any ACL updates
 in the agent configuration file will require a full restart of the 
 Consul service. 
 
