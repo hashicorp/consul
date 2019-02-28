@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "Securing Consul with ACLs"
 sidebar_current: "docs-guides-acl-production"
 description: |-
-  This guide walks though securing your production Consul cluster with ACLs.
+  This guide walks though securing your production Consul datacenter with ACLs.
 ---
 
 The [Bootstrapping the ACL System guide](/advanced/day-1-operations/acl-guide)
