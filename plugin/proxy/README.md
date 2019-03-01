@@ -69,7 +69,7 @@ There are four load-balancing policies available:
 
 
 All polices implement randomly spraying packets to backend hosts when *no healthy* hosts are
-available. This is to preeempt the case where the healthchecking (as a mechanism) fails.
+available. This is to preempt the case where the healthchecking (as a mechanism) fails.
 
 ## Upstream Protocols
 
