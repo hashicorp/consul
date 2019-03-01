@@ -312,7 +312,7 @@ func (s *Server) initializeLegacyACL() error {
 
 	// Create anonymous token if missing.
 	state := s.fsm.State()
-	_, token, err := state.ACLTokenGetBySecret(nil, anonymousToken)
+	_, token, err := state.ACLTokenGetBySecret(nil, anonymousToken, true)
 	if err != nil {
 		return fmt.Errorf("failed to get anonymous token: %v", err)
 	}
@@ -335,7 +335,7 @@ func (s *Server) initializeLegacyACL() error {
 
 	// Check for configured master token.
 	if master := s.config.ACLMasterToken; len(master) > 0 {
-		_, token, err = state.ACLTokenGetBySecret(nil, master)
+		_, token, err = state.ACLTokenGetBySecret(nil, master, true)
 		if err != nil {
 			return fmt.Errorf("failed to get master token: %v", err)
 		}
@@ -450,7 +450,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 				s.logger.Printf("[WARN] consul: Configuring a non-UUID master token is deprecated")
 			}
 
-			_, token, err := state.ACLTokenGetBySecret(nil, master)
+			_, token, err := state.ACLTokenGetBySecret(nil, master, true)
 			if err != nil {
 				return fmt.Errorf("failed to get master token: %v", err)
 			}
@@ -511,14 +511,14 @@ func (s *Server) initializeACLs(upgrade bool) error {
 		}
 
 		state := s.fsm.State()
-		_, token, err := state.ACLTokenGetBySecret(nil, structs.ACLTokenAnonymousID)
+		_, token, err := state.ACLTokenGetBySecret(nil, structs.ACLTokenAnonymousID, true)
 		if err != nil {
 			return fmt.Errorf("failed to get anonymous token: %v", err)
 		}
 		if token == nil {
 			// DEPRECATED (ACL-Legacy-Compat) - Don't need to query for previous "anonymous" token
 			// check for legacy token that needs an upgrade
-			_, legacyToken, err := state.ACLTokenGetBySecret(nil, anonymousToken)
+			_, legacyToken, err := state.ACLTokenGetBySecret(nil, anonymousToken, true)
 			if err != nil {
 				return fmt.Errorf("failed to get anonymous token: %v", err)
 			}

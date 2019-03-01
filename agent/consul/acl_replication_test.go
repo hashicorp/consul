@@ -329,9 +329,9 @@ func TestACLReplication_Tokens(t *testing.T) {
 
 	checkSame := func(t *retry.R) error {
 		// only account for global tokens - local tokens shouldn't be replicated
-		index, remote, err := s1.fsm.State().ACLTokenList(nil, false, true, "")
+		index, remote, err := s1.fsm.State().ACLTokenList(nil, false, true, "", true)
 		require.NoError(t, err)
-		_, local, err := s2.fsm.State().ACLTokenList(nil, false, true, "")
+		_, local, err := s2.fsm.State().ACLTokenList(nil, false, true, "", true)
 		require.NoError(t, err)
 
 		require.Len(t, local, len(remote))
@@ -425,7 +425,7 @@ func TestACLReplication_Tokens(t *testing.T) {
 	})
 
 	// verify dc2 local tokens didn't get blown away
-	_, local, err := s2.fsm.State().ACLTokenList(nil, true, false, "")
+	_, local, err := s2.fsm.State().ACLTokenList(nil, true, false, "", true)
 	require.NoError(t, err)
 	require.Len(t, local, 50)
 

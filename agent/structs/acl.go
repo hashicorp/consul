@@ -535,9 +535,10 @@ func (r *ACLTokenSetRequest) RequestDatacenter() string {
 
 // ACLTokenGetRequest is used for token read operations at the RPC layer
 type ACLTokenGetRequest struct {
-	TokenID     string         // id used for the token lookup
-	TokenIDType ACLTokenIDType // The Type of ID used to lookup the token
-	Datacenter  string         // The datacenter to perform the request within
+	TokenID         string         // id used for the token lookup
+	TokenIDType     ACLTokenIDType // The Type of ID used to lookup the token
+	AllowStaleLinks bool           // whether stale policy links should be allowed
+	Datacenter      string         // The datacenter to perform the request within
 	QueryOptions
 }
 
@@ -558,10 +559,11 @@ func (r *ACLTokenDeleteRequest) RequestDatacenter() string {
 
 // ACLTokenListRequest is used for token listing operations at the RPC layer
 type ACLTokenListRequest struct {
-	IncludeLocal  bool   // Whether local tokens should be included
-	IncludeGlobal bool   // Whether global tokens should be included
-	Policy        string // Policy filter
-	Datacenter    string // The datacenter to perform the request within
+	IncludeLocal    bool   // Whether local tokens should be included
+	IncludeGlobal   bool   // Whether global tokens should be included
+	Policy          string // Policy filter
+	Datacenter      string // The datacenter to perform the request within
+	AllowStaleLinks bool   // whether stale policy links should be allowed
 	QueryOptions
 }
 
@@ -580,8 +582,9 @@ type ACLTokenListResponse struct {
 // different from the the token list request in that only tokens with the
 // the requested ids are returned
 type ACLTokenBatchGetRequest struct {
-	AccessorIDs []string // List of accessor ids to fetch
-	Datacenter  string   // The datacenter to perform the request within
+	AccessorIDs     []string // List of accessor ids to fetch
+	Datacenter      string   // The datacenter to perform the request within
+	AllowStaleLinks bool     // Whether to allow stale policy links
 	QueryOptions
 }
 

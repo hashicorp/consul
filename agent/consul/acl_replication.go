@@ -319,8 +319,9 @@ func (s *Server) updateLocalACLTokens(tokens structs.ACLTokens, ctx context.Cont
 
 func (s *Server) fetchACLTokensBatch(tokenIDs []string) (*structs.ACLTokenBatchResponse, error) {
 	req := structs.ACLTokenBatchGetRequest{
-		Datacenter:  s.config.ACLDatacenter,
-		AccessorIDs: tokenIDs,
+		Datacenter:      s.config.ACLDatacenter,
+		AccessorIDs:     tokenIDs,
+		AllowStaleLinks: true,
 		QueryOptions: structs.QueryOptions{
 			AllowStale: true,
 			Token:      s.tokens.ReplicationToken(),
@@ -345,8 +346,9 @@ func (s *Server) fetchACLTokens(lastRemoteIndex uint64) (*structs.ACLTokenListRe
 			MinQueryIndex: lastRemoteIndex,
 			Token:         s.tokens.ReplicationToken(),
 		},
-		IncludeLocal:  false,
-		IncludeGlobal: true,
+		IncludeLocal:    false,
+		IncludeGlobal:   true,
+		AllowStaleLinks: true,
 	}
 
 	var response structs.ACLTokenListResponse
@@ -461,7 +463,7 @@ func (s *Server) replicateACLTokens(lastRemoteIndex uint64, ctx context.Context)
 	// replication process is.
 	defer metrics.MeasureSince([]string{"leader", "replication", "acl", "token", "apply"}, time.Now())
 
-	_, local, err := s.fsm.State().ACLTokenList(nil, false, true, "")
+	_, local, err := s.fsm.State().ACLTokenList(nil, false, true, "", true)
 	if err != nil {
 		return 0, false, fmt.Errorf("failed to retrieve local ACL tokens: %v", err)
 	}

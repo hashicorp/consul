@@ -392,9 +392,10 @@ func (r *ACLResolver) fireAsyncTokenResult(token string, identity structs.ACLIde
 
 func (r *ACLResolver) resolveIdentityFromTokenAsync(token string, cached *structs.IdentityCacheEntry) {
 	req := structs.ACLTokenGetRequest{
-		Datacenter:  r.delegate.ACLDatacenter(false),
-		TokenID:     token,
-		TokenIDType: structs.ACLTokenSecret,
+		Datacenter:      r.delegate.ACLDatacenter(false),
+		TokenID:         token,
+		TokenIDType:     structs.ACLTokenSecret,
+		AllowStaleLinks: true,
 		QueryOptions: structs.QueryOptions{
 			Token:      token,
 			AllowStale: true,

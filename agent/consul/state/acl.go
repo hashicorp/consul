@@ -266,6 +266,55 @@ func (s *Store) resolveTokenPolicyLinks(tx *memdb.Txn, token *structs.ACLToken, 
 	return nil
 }
 
+// fixupTokenPolicyLinks is to be used when retrieving tokens from memdb. The policy links could have gotten
+// stale when a linked policy was deleted or renamed. This will correct them and generate a newly allocated
+// token only when fixes are needed. If the policy links are still accurate then we just return the original
+// token.
+func (s *Store) fixupTokenPolicyLinks(tx *memdb.Txn, original *structs.ACLToken) (*structs.ACLToken, error) {
+	owned := false
+	token := original
+
+	cloneToken := func(t *structs.ACLToken, copyNumLinks int) *structs.ACLToken {
+		clone := *t
+		clone.Policies = make([]structs.ACLTokenPolicyLink, copyNumLinks)
+		copy(clone.Policies, t.Policies[:copyNumLinks])
+		return &clone
+	}
+
+	for linkIndex, link := range original.Policies {
+		if link.ID == "" {
+			return nil, fmt.Errorf("Detected corrupted token within the state store - missing policy link ID")
+		}
+
+		policy, err := s.getPolicyWithTxn(tx, nil, link.ID, "id")
+
+		if err != nil {
+			return nil, err
+		}
+
+		if policy == nil {
+			if !owned {
+				// clone the token as we cannot touch the original
+				token = cloneToken(original, linkIndex)
+				owned = true
+			}
+			// if already owned then we just don't append it.
+		} else if policy.Name != link.Name {
+			if !owned {
+				token = cloneToken(original, linkIndex)
+				owned = true
+			}
+
+			// append the corrected policy
+			token.Policies = append(token.Policies, structs.ACLTokenPolicyLink{ID: link.ID, Name: policy.Name})
+		} else if owned {
+			token.Policies = append(token.Policies, link)
+		}
+	}
+
+	return token, nil
+}
+
 // ACLTokenSet is used to insert an ACL rule into the state store.
 func (s *Store) ACLTokenSet(idx uint64, token *structs.ACLToken, legacy bool) error {
 	tx := s.db.Txn(true)
@@ -393,21 +442,21 @@ func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToke
 }
 
 // ACLTokenGetBySecret is used to look up an existing ACL token by its SecretID.
-func (s *Store) ACLTokenGetBySecret(ws memdb.WatchSet, secret string) (uint64, *structs.ACLToken, error) {
-	return s.aclTokenGet(ws, secret, "id")
+func (s *Store) ACLTokenGetBySecret(ws memdb.WatchSet, secret string, allowStaleLinks bool) (uint64, *structs.ACLToken, error) {
+	return s.aclTokenGet(ws, secret, "id", allowStaleLinks)
 }
 
 // ACLTokenGetByAccessor is used to look up an existing ACL token by its AccessorID.
-func (s *Store) ACLTokenGetByAccessor(ws memdb.WatchSet, accessor string) (uint64, *structs.ACLToken, error) {
-	return s.aclTokenGet(ws, accessor, "accessor")
+func (s *Store) ACLTokenGetByAccessor(ws memdb.WatchSet, accessor string, allowStaleLinks bool) (uint64, *structs.ACLToken, error) {
+	return s.aclTokenGet(ws, accessor, "accessor", allowStaleLinks)
 }
 
 // aclTokenGet looks up a token using one of the indexes provided
-func (s *Store) aclTokenGet(ws memdb.WatchSet, value, index string) (uint64, *structs.ACLToken, error) {
+func (s *Store) aclTokenGet(ws memdb.WatchSet, value, index string, allowStaleLinks bool) (uint64, *structs.ACLToken, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	token, err := s.aclTokenGetTxn(tx, ws, value, index)
+	token, err := s.aclTokenGetTxn(tx, ws, value, index, allowStaleLinks)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed acl token lookup: %v", err)
 	}
@@ -416,13 +465,13 @@ func (s *Store) aclTokenGet(ws memdb.WatchSet, value, index string) (uint64, *st
 	return idx, token, nil
 }
 
-func (s *Store) ACLTokenBatchGet(ws memdb.WatchSet, accessors []string) (uint64, structs.ACLTokens, error) {
+func (s *Store) ACLTokenBatchGet(ws memdb.WatchSet, accessors []string, allowStaleLinks bool) (uint64, structs.ACLTokens, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	tokens := make(structs.ACLTokens, 0)
 	for _, accessor := range accessors {
-		token, err := s.aclTokenGetTxn(tx, ws, accessor, "accessor")
+		token, err := s.aclTokenGetTxn(tx, ws, accessor, "accessor", allowStaleLinks)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed acl token lookup: %v", err)
 		}
@@ -438,7 +487,7 @@ func (s *Store) ACLTokenBatchGet(ws memdb.WatchSet, accessors []string) (uint64,
 	return idx, tokens, nil
 }
 
-func (s *Store) aclTokenGetTxn(tx *memdb.Txn, ws memdb.WatchSet, value, index string) (*structs.ACLToken, error) {
+func (s *Store) aclTokenGetTxn(tx *memdb.Txn, ws memdb.WatchSet, value, index string, allowStaleLinks bool) (*structs.ACLToken, error) {
 	watchCh, rawToken, err := tx.FirstWatch("acl-tokens", index, value)
 	if err != nil {
 		return nil, fmt.Errorf("failed acl token lookup: %v", err)
@@ -447,8 +496,13 @@ func (s *Store) aclTokenGetTxn(tx *memdb.Txn, ws memdb.WatchSet, value, index st
 
 	if rawToken != nil {
 		token := rawToken.(*structs.ACLToken)
-		if err := s.resolveTokenPolicyLinks(tx, token, true); err != nil {
-			return nil, err
+
+		if !allowStaleLinks {
+			var err error
+			token, err = s.fixupTokenPolicyLinks(tx, token)
+			if err != nil {
+				return nil, err
+			}
 		}
 		return token, nil
 	}
@@ -457,7 +511,7 @@ func (s *Store) aclTokenGetTxn(tx *memdb.Txn, ws memdb.WatchSet, value, index st
 }
 
 // ACLTokenList is used to list out all of the ACLs in the state store.
-func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy string) (uint64, structs.ACLTokens, error) {
+func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy string, allowStaleLinks bool) (uint64, structs.ACLTokens, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -502,8 +556,14 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy strin
 	var result structs.ACLTokens
 	for raw := iter.Next(); raw != nil; raw = iter.Next() {
 		token := raw.(*structs.ACLToken)
-		if err := s.resolveTokenPolicyLinks(tx, token, true); err != nil {
-			return 0, nil, err
+
+		if !allowStaleLinks {
+			var err error
+			token, err = s.fixupTokenPolicyLinks(tx, token)
+
+			if err != nil {
+				return 0, nil, err
+			}
 		}
 		result = append(result, token)
 	}

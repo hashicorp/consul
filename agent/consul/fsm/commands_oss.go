@@ -164,7 +164,7 @@ func (c *FSM) applyACLOperation(buf []byte, index uint64) interface{} {
 			return err
 		}
 
-		if _, token, err := c.state.ACLTokenGetBySecret(nil, req.ACL.ID); err != nil {
+		if _, token, err := c.state.ACLTokenGetBySecret(nil, req.ACL.ID, true); err != nil {
 			return err
 		} else {
 			acl, err := token.Convert()

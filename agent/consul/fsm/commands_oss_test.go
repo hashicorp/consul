@@ -810,7 +810,7 @@ func TestFSM_ACL_CRUD(t *testing.T) {
 
 	// Get the ACL.
 	id := resp.(string)
-	_, acl, err := fsm.state.ACLTokenGetBySecret(nil, id)
+	_, acl, err := fsm.state.ACLTokenGetBySecret(nil, id, true)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -846,7 +846,7 @@ func TestFSM_ACL_CRUD(t *testing.T) {
 		t.Fatalf("resp: %v", resp)
 	}
 
-	_, acl, err = fsm.state.ACLTokenGetBySecret(nil, id)
+	_, acl, err = fsm.state.ACLTokenGetBySecret(nil, id, true)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

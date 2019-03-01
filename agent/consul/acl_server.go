@@ -29,13 +29,13 @@ var serverACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
 
 func (s *Server) checkTokenUUID(id string) (bool, error) {
 	state := s.fsm.State()
-	if _, token, err := state.ACLTokenGetByAccessor(nil, id); err != nil {
+	if _, token, err := state.ACLTokenGetByAccessor(nil, id, true); err != nil {
 		return false, err
 	} else if token != nil {
 		return false, nil
 	}
 
-	if _, token, err := state.ACLTokenGetBySecret(nil, id); err != nil {
+	if _, token, err := state.ACLTokenGetBySecret(nil, id, true); err != nil {
 		return false, err
 	} else if token != nil {
 		return false, nil
@@ -142,7 +142,7 @@ func (s *Server) ResolveIdentityFromToken(token string) (bool, structs.ACLIdenti
 		return false, nil, nil
 	}
 
-	index, aclToken, err := s.fsm.State().ACLTokenGetBySecret(nil, token)
+	index, aclToken, err := s.fsm.State().ACLTokenGetBySecret(nil, token, true)
 	if err != nil {
 		return true, nil, err
 	} else if aclToken != nil {

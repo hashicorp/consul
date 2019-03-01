@@ -140,7 +140,7 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 	require.Equal(t, uint64(3), index)
 
 	// Make sure the ACLs are in an expected state.
-	_, tokens, err := s.ACLTokenList(nil, true, true, "")
+	_, tokens, err := s.ACLTokenList(nil, true, true, "", false)
 	require.NoError(t, err)
 	require.Len(t, tokens, 1)
 	compareTokens(token1, tokens[0])
@@ -154,7 +154,7 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 	err = s.ACLBootstrap(32, index, token2.Clone(), false)
 	require.NoError(t, err)
 
-	_, tokens, err = s.ACLTokenList(nil, true, true, "")
+	_, tokens, err = s.ACLTokenList(nil, true, true, "", false)
 	require.NoError(t, err)
 	require.Len(t, tokens, 2)
 }
@@ -208,7 +208,7 @@ func TestStateStore_ACLToken_SetGet_Legacy(t *testing.T) {
 
 		require.NoError(t, s.ACLTokenSet(2, token, true))
 
-		idx, rtoken, err := s.ACLTokenGetBySecret(nil, token.SecretID)
+		idx, rtoken, err := s.ACLTokenGetBySecret(nil, token.SecretID, false)
 		require.NoError(t, err)
 		require.Equal(t, uint64(2), idx)
 		require.NotNil(t, rtoken)
@@ -241,7 +241,7 @@ func TestStateStore_ACLToken_SetGet_Legacy(t *testing.T) {
 
 		require.NoError(t, s.ACLTokenSet(3, update, true))
 
-		idx, rtoken, err := s.ACLTokenGetBySecret(nil, original.SecretID)
+		idx, rtoken, err := s.ACLTokenGetBySecret(nil, original.SecretID, false)
 		require.NoError(t, err)
 		require.Equal(t, uint64(3), idx)
 		require.NotNil(t, rtoken)
@@ -331,7 +331,7 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 
 		require.NoError(t, s.ACLTokenSet(2, token, false))
 
-		idx, rtoken, err := s.ACLTokenGetByAccessor(nil, "daf37c07-d04d-4fd5-9678-a8206a57d61a")
+		idx, rtoken, err := s.ACLTokenGetByAccessor(nil, "daf37c07-d04d-4fd5-9678-a8206a57d61a", false)
 		require.NoError(t, err)
 		require.Equal(t, uint64(2), idx)
 		// pointer equality
@@ -369,7 +369,7 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 
 		require.NoError(t, s.ACLTokenSet(3, updated, false))
 
-		idx, rtoken, err := s.ACLTokenGetByAccessor(nil, "daf37c07-d04d-4fd5-9678-a8206a57d61a")
+		idx, rtoken, err := s.ACLTokenGetByAccessor(nil, "daf37c07-d04d-4fd5-9678-a8206a57d61a", false)
 		require.NoError(t, err)
 		require.Equal(t, uint64(3), idx)
 		// pointer equality
@@ -402,7 +402,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 
 		require.NoError(t, s.ACLTokenBatchSet(2, tokens, true))
 
-		_, token, err := s.ACLTokenGetByAccessor(nil, tokens[0].AccessorID)
+		_, token, err := s.ACLTokenGetByAccessor(nil, tokens[0].AccessorID, false)
 		require.NoError(t, err)
 		require.Nil(t, token)
 	})
@@ -434,7 +434,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 
 		require.NoError(t, s.ACLTokenBatchSet(6, updated, true))
 
-		_, token, err := s.ACLTokenGetByAccessor(nil, tokens[0].AccessorID)
+		_, token, err := s.ACLTokenGetByAccessor(nil, tokens[0].AccessorID, false)
 		require.NoError(t, err)
 		require.NotNil(t, token)
 		require.Equal(t, "", token.Description)
@@ -463,7 +463,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 
 		require.NoError(t, s.ACLTokenBatchSet(6, updated, true))
 
-		_, token, err := s.ACLTokenGetByAccessor(nil, tokens[0].AccessorID)
+		_, token, err := s.ACLTokenGetByAccessor(nil, tokens[0].AccessorID, false)
 		require.NoError(t, err)
 		require.NotNil(t, token)
 		require.Equal(t, "", token.Description)
@@ -488,7 +488,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 
 		idx, rtokens, err := s.ACLTokenBatchGet(nil, []string{
 			"a4f68bd6-3af5-4f56-b764-3c6f20247879",
-			"a2719052-40b3-4a4b-baeb-f3df1831a217"})
+			"a2719052-40b3-4a4b-baeb-f3df1831a217"}, false)
 
 		require.NoError(t, err)
 		require.Equal(t, uint64(2), idx)
@@ -544,7 +544,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 
 		idx, rtokens, err := s.ACLTokenBatchGet(nil, []string{
 			"a4f68bd6-3af5-4f56-b764-3c6f20247879",
-			"a2719052-40b3-4a4b-baeb-f3df1831a217"})
+			"a2719052-40b3-4a4b-baeb-f3df1831a217"}, false)
 
 		require.NoError(t, err)
 		require.Equal(t, uint64(3), idx)
@@ -790,7 +790,7 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			_, tokens, err := s.ACLTokenList(nil, tc.local, tc.global, tc.policy)
+			_, tokens, err := s.ACLTokenList(nil, tc.local, tc.global, tc.policy, false)
 			require.NoError(t, err)
 			require.Len(t, tokens, len(tc.accessors))
 			tokens.Sort()
@@ -799,6 +799,216 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestStateStore_ACLToken_FixupPolicyLinks(t *testing.T) {
+	// This test wants to ensure a couple of things.
+	//
+	// 1. Doing a token list/get should never modify the data
+	//    tracked by memdb
+	// 2. Token list/get operations should return an accurate set
+	//    of policy links
+	t.Parallel()
+	s := testACLTokensStateStore(t)
+
+	// the policy specific token
+	token := &structs.ACLToken{
+		AccessorID: "47eea4da-bda1-48a6-901c-3e36d2d9262f",
+		SecretID:   "548bdb8e-c0d6-477b-bcc4-67fb836e9e61",
+		Policies: []structs.ACLTokenPolicyLink{
+			structs.ACLTokenPolicyLink{
+				ID: "a0625e95-9b3e-42de-a8d6-ceef5b6f3286",
+			},
+		},
+	}
+
+	require.NoError(t, s.ACLTokenSet(2, token, false))
+
+	_, retrieved, err := s.ACLTokenGetByAccessor(nil, token.AccessorID, false)
+	require.NoError(t, err)
+	// pointer equality check these should be identical
+	require.True(t, token == retrieved)
+	require.Len(t, retrieved.Policies, 1)
+	require.Equal(t, "node-read", retrieved.Policies[0].Name)
+
+	// rename the policy
+	renamed := &structs.ACLPolicy{
+		ID:          "a0625e95-9b3e-42de-a8d6-ceef5b6f3286",
+		Name:        "node-read-renamed",
+		Description: "Allows reading all node information",
+		Rules:       `node_prefix "" { policy = "read" }`,
+		Syntax:      acl.SyntaxCurrent,
+	}
+	renamed.SetHash(true)
+	require.NoError(t, s.ACLPolicySet(3, renamed))
+
+	// retrieve the token again
+	_, retrieved, err = s.ACLTokenGetByAccessor(nil, token.AccessorID, false)
+	require.NoError(t, err)
+	// pointer equality check these should be different if we cloned things appropriately
+	require.True(t, token != retrieved)
+	require.Len(t, retrieved.Policies, 1)
+	require.Equal(t, "node-read-renamed", retrieved.Policies[0].Name)
+
+	// retrieve the token with allowing stale links
+	_, retrieved, err = s.ACLTokenGetByAccessor(nil, token.AccessorID, true)
+	require.NoError(t, err)
+	// pointer equality check these should be identical as we are allowing stale links
+	require.True(t, token == retrieved)
+	require.Len(t, retrieved.Policies, 1)
+	require.Equal(t, "node-read", retrieved.Policies[0].Name)
+
+	// list tokens without stale links
+	_, tokens, err := s.ACLTokenList(nil, true, true, "", false)
+	require.NoError(t, err)
+
+	found := false
+	for _, tok := range tokens {
+		if tok.AccessorID == token.AccessorID {
+			// these pointers shouldn't be equal because the link should have been fixed
+			require.True(t, tok != token)
+			require.Len(t, tok.Policies, 1)
+			require.Equal(t, "node-read-renamed", tok.Policies[0].Name)
+			found = true
+			break
+		}
+	}
+	require.True(t, found)
+
+	// list tokens with stale links
+	_, tokens, err = s.ACLTokenList(nil, true, true, "", true)
+	require.NoError(t, err)
+
+	found = false
+	for _, tok := range tokens {
+		if tok.AccessorID == token.AccessorID {
+			// these pointers shouldn't be equal because the link should have been fixed
+			require.True(t, tok == token)
+			require.Len(t, tok.Policies, 1)
+			require.Equal(t, "node-read", tok.Policies[0].Name)
+			found = true
+			break
+		}
+	}
+	require.True(t, found)
+
+	// batch get without stale links
+	_, tokens, err = s.ACLTokenBatchGet(nil, []string{token.AccessorID}, false)
+	require.NoError(t, err)
+
+	found = false
+	for _, tok := range tokens {
+		if tok.AccessorID == token.AccessorID {
+			// these pointers shouldn't be equal because the link should have been fixed
+			require.True(t, tok != token)
+			require.Len(t, tok.Policies, 1)
+			require.Equal(t, "node-read-renamed", tok.Policies[0].Name)
+			found = true
+			break
+		}
+	}
+	require.True(t, found)
+
+	// batch get tokens with stale links
+	_, tokens, err = s.ACLTokenBatchGet(nil, []string{token.AccessorID}, true)
+	require.NoError(t, err)
+
+	found = false
+	for _, tok := range tokens {
+		if tok.AccessorID == token.AccessorID {
+			// these pointers shouldn't be equal because the link should have been fixed
+			require.True(t, tok == token)
+			require.Len(t, tok.Policies, 1)
+			require.Equal(t, "node-read", tok.Policies[0].Name)
+			found = true
+			break
+		}
+	}
+	require.True(t, found)
+
+	// delete the policy
+	require.NoError(t, s.ACLPolicyDeleteByID(4, "a0625e95-9b3e-42de-a8d6-ceef5b6f3286"))
+
+	// retrieve the token again
+	_, retrieved, err = s.ACLTokenGetByAccessor(nil, token.AccessorID, false)
+	require.NoError(t, err)
+	// pointer equality check these should be different if we cloned things appropriately
+	require.True(t, token != retrieved)
+	require.Len(t, retrieved.Policies, 0)
+
+	// retrieve the token again - allowing stale links
+	_, retrieved, err = s.ACLTokenGetByAccessor(nil, token.AccessorID, true)
+	require.NoError(t, err)
+	// pointer equality check these should be identical as we are allowing stale links
+	require.True(t, token == retrieved)
+	require.Len(t, retrieved.Policies, 1)
+	require.Equal(t, "node-read", retrieved.Policies[0].Name)
+
+	// list tokens without stale links
+	_, tokens, err = s.ACLTokenList(nil, true, true, "", false)
+	require.NoError(t, err)
+
+	found = false
+	for _, tok := range tokens {
+		if tok.AccessorID == token.AccessorID {
+			// these pointers shouldn't be equal because the link should have been fixed
+			require.True(t, tok != token)
+			require.Len(t, tok.Policies, 0)
+			found = true
+			break
+		}
+	}
+	require.True(t, found)
+
+	// list tokens with stale links
+	_, tokens, err = s.ACLTokenList(nil, true, true, "", true)
+	require.NoError(t, err)
+
+	found = false
+	for _, tok := range tokens {
+		if tok.AccessorID == token.AccessorID {
+			// these pointers shouldn't be equal because the link should have been fixed
+			require.True(t, tok == token)
+			require.Len(t, tok.Policies, 1)
+			require.Equal(t, "node-read", tok.Policies[0].Name)
+			found = true
+			break
+		}
+	}
+	require.True(t, found)
+
+	// batch get without stale links
+	_, tokens, err = s.ACLTokenBatchGet(nil, []string{token.AccessorID}, false)
+	require.NoError(t, err)
+
+	found = false
+	for _, tok := range tokens {
+		if tok.AccessorID == token.AccessorID {
+			// these pointers shouldn't be equal because the link should have been fixed
+			require.True(t, tok != token)
+			require.Len(t, tok.Policies, 0)
+			found = true
+			break
+		}
+	}
+	require.True(t, found)
+
+	// batch get tokens with stale links
+	_, tokens, err = s.ACLTokenBatchGet(nil, []string{token.AccessorID}, true)
+	require.NoError(t, err)
+
+	found = false
+	for _, tok := range tokens {
+		if tok.AccessorID == token.AccessorID {
+			// these pointers shouldn't be equal because the link should have been fixed
+			require.True(t, tok == token)
+			require.Len(t, tok.Policies, 1)
+			require.Equal(t, "node-read", tok.Policies[0].Name)
+			found = true
+			break
+		}
+	}
+	require.True(t, found)
 }
 
 func TestStateStore_ACLToken_Delete(t *testing.T) {
@@ -821,13 +1031,13 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 
 		require.NoError(t, s.ACLTokenSet(2, token, false))
 
-		_, rtoken, err := s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b")
+		_, rtoken, err := s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b", false)
 		require.NoError(t, err)
 		require.NotNil(t, rtoken)
 
 		require.NoError(t, s.ACLTokenDeleteByAccessor(3, "f1093997-b6c7-496d-bfb8-6b1b1895641b"))
 
-		_, rtoken, err = s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b")
+		_, rtoken, err = s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b", false)
 		require.NoError(t, err)
 		require.Nil(t, rtoken)
 	})
@@ -849,13 +1059,13 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 
 		require.NoError(t, s.ACLTokenSet(2, token, false))
 
-		_, rtoken, err := s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b")
+		_, rtoken, err := s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b", false)
 		require.NoError(t, err)
 		require.NotNil(t, rtoken)
 
 		require.NoError(t, s.ACLTokenDeleteBySecret(3, "34ec8eb3-095d-417a-a937-b439af7a8e8b"))
 
-		_, rtoken, err = s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b")
+		_, rtoken, err = s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b", false)
 		require.NoError(t, err)
 		require.Nil(t, rtoken)
 	})
@@ -889,10 +1099,10 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 
 		require.NoError(t, s.ACLTokenBatchSet(2, tokens, false))
 
-		_, rtoken, err := s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b")
+		_, rtoken, err := s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b", false)
 		require.NoError(t, err)
 		require.NotNil(t, rtoken)
-		_, rtoken, err = s.ACLTokenGetByAccessor(nil, "a0bfe8d4-b2f3-4b48-b387-f28afb820eab")
+		_, rtoken, err = s.ACLTokenGetByAccessor(nil, "a0bfe8d4-b2f3-4b48-b387-f28afb820eab", false)
 		require.NoError(t, err)
 		require.NotNil(t, rtoken)
 
@@ -900,10 +1110,10 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 			"f1093997-b6c7-496d-bfb8-6b1b1895641b",
 			"a0bfe8d4-b2f3-4b48-b387-f28afb820eab"}))
 
-		_, rtoken, err = s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b")
+		_, rtoken, err = s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b", false)
 		require.NoError(t, err)
 		require.Nil(t, rtoken)
-		_, rtoken, err = s.ACLTokenGetByAccessor(nil, "a0bfe8d4-b2f3-4b48-b387-f28afb820eab")
+		_, rtoken, err = s.ACLTokenGetByAccessor(nil, "a0bfe8d4-b2f3-4b48-b387-f28afb820eab", false)
 		require.NoError(t, err)
 		require.Nil(t, rtoken)
 	})
@@ -1412,7 +1622,8 @@ func TestStateStore_ACLTokens_Snapshot_Restore(t *testing.T) {
 		restore.Commit()
 
 		// Read the restored ACLs back out and verify that they match.
-		idx, res, err := s.ACLTokenList(nil, true, true, "")
+		// Allow stale links because we linked it to policies that don't exist
+		idx, res, err := s.ACLTokenList(nil, true, true, "", true)
 		require.NoError(t, err)
 		require.Equal(t, uint64(2), idx)
 		require.ElementsMatch(t, tokens, res)

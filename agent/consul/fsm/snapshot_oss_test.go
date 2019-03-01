@@ -301,7 +301,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	}
 
 	// Verify ACL Token is restored
-	_, a, err := fsm2.state.ACLTokenGetByAccessor(nil, token.AccessorID)
+	_, a, err := fsm2.state.ACLTokenGetByAccessor(nil, token.AccessorID, true)
 	require.NoError(t, err)
 	require.Equal(t, token.AccessorID, a.AccessorID)
 	require.Equal(t, token.ModifyIndex, a.ModifyIndex)

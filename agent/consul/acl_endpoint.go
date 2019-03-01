@@ -167,7 +167,7 @@ func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.AC
 		return err
 	}
 
-	if _, token, err := state.ACLTokenGetByAccessor(nil, accessor); err == nil {
+	if _, token, err := state.ACLTokenGetByAccessor(nil, accessor, false); err == nil {
 		*reply = *token
 	}
 
@@ -210,12 +210,12 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 			var err error
 
 			if args.TokenIDType == structs.ACLTokenAccessor {
-				index, token, err = state.ACLTokenGetByAccessor(ws, args.TokenID)
+				index, token, err = state.ACLTokenGetByAccessor(ws, args.TokenID, args.AllowStaleLinks)
 				if token != nil {
 					a.srv.filterACLWithAuthorizer(rule, &token)
 				}
 			} else {
-				index, token, err = state.ACLTokenGetBySecret(ws, args.TokenID)
+				index, token, err = state.ACLTokenGetBySecret(ws, args.TokenID, args.AllowStaleLinks)
 			}
 
 			if err != nil {
@@ -250,7 +250,7 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 		return acl.ErrPermissionDenied
 	}
 
-	_, token, err := a.srv.fsm.State().ACLTokenGetByAccessor(nil, args.ACLToken.AccessorID)
+	_, token, err := a.srv.fsm.State().ACLTokenGetByAccessor(nil, args.ACLToken.AccessorID, true)
 	if err != nil {
 		return err
 	} else if token == nil {
@@ -358,7 +358,7 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 		}
 
 		// Verify the token exists
-		_, existing, err := state.ACLTokenGetByAccessor(nil, token.AccessorID)
+		_, existing, err := state.ACLTokenGetByAccessor(nil, token.AccessorID, true)
 		if err != nil {
 			return fmt.Errorf("Failed to lookup the acl token %q: %v", token.AccessorID, err)
 		}
@@ -437,7 +437,7 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 		return respErr
 	}
 
-	if _, updatedToken, err := a.srv.fsm.State().ACLTokenGetByAccessor(nil, token.AccessorID); err == nil && token != nil {
+	if _, updatedToken, err := a.srv.fsm.State().ACLTokenGetByAccessor(nil, token.AccessorID, true); err == nil && token != nil {
 		*reply = *updatedToken
 	} else {
 		return fmt.Errorf("Failed to retrieve the token after insertion")
@@ -477,7 +477,7 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 	}
 
 	// grab the token here so we can invalidate our cache later on
-	_, token, err := a.srv.fsm.State().ACLTokenGetByAccessor(nil, args.TokenID)
+	_, token, err := a.srv.fsm.State().ACLTokenGetByAccessor(nil, args.TokenID, true)
 	if err != nil {
 		return err
 	}
@@ -545,7 +545,7 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, tokens, err := state.ACLTokenList(ws, args.IncludeLocal, args.IncludeGlobal, args.Policy)
+			index, tokens, err := state.ACLTokenList(ws, args.IncludeLocal, args.IncludeGlobal, args.Policy, args.AllowStaleLinks)
 			if err != nil {
 				return err
 			}
@@ -581,7 +581,7 @@ func (a *ACL) TokenBatchRead(args *structs.ACLTokenBatchGetRequest, reply *struc
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, tokens, err := state.ACLTokenBatchGet(ws, args.AccessorIDs)
+			index, tokens, err := state.ACLTokenBatchGet(ws, args.AccessorIDs, args.AllowStaleLinks)
 			if err != nil {
 				return err
 			}

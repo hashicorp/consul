@@ -93,7 +93,7 @@ func aclApplyInternal(srv *Server, args *structs.ACLRequest, reply *string) erro
 			return fmt.Errorf("Invalid ACL Type")
 		}
 
-		_, existing, _ := srv.fsm.State().ACLTokenGetBySecret(nil, args.ACL.ID)
+		_, existing, _ := srv.fsm.State().ACLTokenGetBySecret(nil, args.ACL.ID, true)
 		if existing != nil && len(existing.Policies) > 0 {
 			return fmt.Errorf("Cannot use legacy endpoint to modify a non-legacy token")
 		}
@@ -205,7 +205,7 @@ func (a *ACL) Get(args *structs.ACLSpecificRequest,
 	return a.srv.blockingQuery(&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, token, err := state.ACLTokenGetBySecret(ws, args.ACL)
+			index, token, err := state.ACLTokenGetBySecret(ws, args.ACL, true)
 			if err != nil {
 				return err
 			}
@@ -249,7 +249,7 @@ func (a *ACL) List(args *structs.DCSpecificRequest,
 	return a.srv.blockingQuery(&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, tokens, err := state.ACLTokenList(ws, false, true, "")
+			index, tokens, err := state.ACLTokenList(ws, false, true, "", true)
 			if err != nil {
 				return err
 			}

@@ -142,7 +142,7 @@ func TestACLEndpoint_Apply(t *testing.T) {
 
 	// Verify
 	state := s1.fsm.State()
-	_, s, err := state.ACLTokenGetBySecret(nil, out)
+	_, s, err := state.ACLTokenGetBySecret(nil, out, true)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -164,7 +164,7 @@ func TestACLEndpoint_Apply(t *testing.T) {
 	}
 
 	// Verify
-	_, s, err = state.ACLTokenGetBySecret(nil, id)
+	_, s, err = state.ACLTokenGetBySecret(nil, id, true)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -287,7 +287,7 @@ func TestACLEndpoint_Apply_CustomID(t *testing.T) {
 
 	// Verify
 	state := s1.fsm.State()
-	_, s, err := state.ACLTokenGetBySecret(nil, out)
+	_, s, err := state.ACLTokenGetBySecret(nil, out, true)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
