@@ -93,7 +93,7 @@ func TestGenerateCA(t *testing.T) {
 
 	// format so that we don't take anything smaller than second into account.
 	require.Equal(t, cert.NotBefore.Format(time.ANSIC), time.Now().UTC().Format(time.ANSIC))
-	require.Equal(t, cert.NotAfter.Format(time.ANSIC), time.Now().AddDate(1, 0, 0).UTC().Format(time.ANSIC))
+	require.Equal(t, cert.NotAfter.Format(time.ANSIC), time.Now().AddDate(0, 0, 365).UTC().Format(time.ANSIC))
 
 	require.Equal(t, x509.KeyUsageCertSign|x509.KeyUsageCRLSign|x509.KeyUsageDigitalSignature, cert.KeyUsage)
 }
@@ -135,7 +135,7 @@ func TestGenerateCert(t *testing.T) {
 
 	// format so that we don't take anything smaller than second into account.
 	require.Equal(t, cert.NotBefore.Format(time.ANSIC), time.Now().UTC().Format(time.ANSIC))
-	require.Equal(t, cert.NotAfter.Format(time.ANSIC), time.Now().AddDate(1, 0, 0).UTC().Format(time.ANSIC))
+	require.Equal(t, cert.NotAfter.Format(time.ANSIC), time.Now().AddDate(0, 0, 365).UTC().Format(time.ANSIC))
 
 	require.Equal(t, x509.KeyUsageDigitalSignature|x509.KeyUsageKeyEncipherment, cert.KeyUsage)
 	require.Equal(t, extKeyUsage, cert.ExtKeyUsage)

@@ -28,6 +28,7 @@ type cmd struct {
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	// TODO: perhaps add a -years arg to better capture user intent given that leap years are a thing
 	c.flags.IntVar(&c.days, "days", 1825, "Provide number of days the CA is valid for from now on. Defaults to 5 years.")
 	c.flags.BoolVar(&c.constraint, "name-constraint", false, "Add name constraints for the CA. Results in rejecting "+
 		"certificates for other DNS than specified. If turned on localhost and -domain will be added to the allowed "+
