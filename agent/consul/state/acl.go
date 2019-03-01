@@ -777,7 +777,9 @@ func (s *Store) ACLPolicyBatchDelete(idx uint64, policyIDs []string) error {
 	defer tx.Abort()
 
 	for _, policyID := range policyIDs {
-		s.aclPolicyDeleteTxn(tx, idx, policyID, "id")
+		if err := s.aclPolicyDeleteTxn(tx, idx, policyID, "id"); err != nil {
+			return err
+		}
 	}
 
 	if err := indexUpdateMaxTxn(tx, idx, "acl-policies"); err != nil {
