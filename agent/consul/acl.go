@@ -392,10 +392,12 @@ func (r *ACLResolver) fireAsyncTokenResult(token string, identity structs.ACLIde
 
 func (r *ACLResolver) resolveIdentityFromTokenAsync(token string, cached *structs.IdentityCacheEntry) {
 	req := structs.ACLTokenGetRequest{
-		Datacenter:      r.delegate.ACLDatacenter(false),
-		TokenID:         token,
-		TokenIDType:     structs.ACLTokenSecret,
-		AllowStaleLinks: true,
+		Datacenter:  r.delegate.ACLDatacenter(false),
+		TokenID:     token,
+		TokenIDType: structs.ACLTokenSecret,
+		// we don't really care about the linked policy names here but
+		// we do want to filter out deleted policies
+		AllowStaleLinks: false,
 		QueryOptions: structs.QueryOptions{
 			Token:      token,
 			AllowStale: true,
