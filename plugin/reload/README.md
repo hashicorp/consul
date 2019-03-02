@@ -88,3 +88,10 @@ After the aborted attempt to reload we are left with the old processes running, 
 closed in step 1; so the health endpoint is broken. The same can hopen in the prometheus metrics plugin.
 
 In general be careful with assigning new port and expecting reload to work fully.
+
+Also any `import` statement is not discovered by this plugin. This means if any of these imported files
+changes the *reload* plugin is ignorant of that fact.
+
+## Also See
+
+See coredns-import(7) and corefile(5).
