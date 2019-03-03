@@ -38,7 +38,6 @@ before_install:
 
 before_script:
   - docker run -d --net=host --name=etcd quay.io/coreos/etcd:v$ETCD_VERSION
-  - make godeps
 
 script:
   - make TEST_TYPE=$TEST_TYPE travis
