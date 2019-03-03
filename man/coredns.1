@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS" "1" "June 2018" "CoreDNS" "CoreDNS"
+.TH "COREDNS" "1" "March 2019" "CoreDNS" "CoreDNS"
 .
 .SH "NAME"
 \fBcoredns\fR
@@ -16,14 +16,14 @@
 CoreDNS is a DNS server that chains plugins\. Each plugin handles a DNS feature, like rewriting queries, kubernetes service discovery or just exporting metrics\. There are many other plugins, each described on \fIhttps://coredns\.io/plugins\fR and there respective manual pages\. Plugins not bundled in CoreDNS are listed on \fIhttps://coredns\.io/explugins\fR\.
 .
 .P
-When started with no options CoreDNS will looks for a file names \fBCorefile\fR in the current directory, if found it will parse its contents and start up accordingly\. If no \fBCorefile\fR is found it will start with the \fIwhoami\fR plugin (coredns\-whoami(7)) and start listening on port 53 (unless overriden with \fB\-dns\.port\fR)\.
+When started with no options CoreDNS will looks for a file names \fBCorefile\fR in the current directory, if found it will parse its contents and start up accordingly\. If no \fBCorefile\fR is found it will start with the \fIwhoami\fR plugin (coredns\-whoami(7)) and start listening on port 53 (unless overridden with \fB\-dns\.port\fR)\.
 .
 .P
 Available options:
 .
 .TP
 \fB\-conf\fR \fBFILE\fR
-specificy Corefile to load\.
+specify Corefile to load\.
 .
 .TP
 \fB\-cpu\fR \fBCAP\fR
@@ -56,4 +56,4 @@ CoreDNS Authors\.
 Apache License 2\.0
 .
 .SH "SEE ALSO"
-Corefile(5) coredns\-debug(7) coredns\-dnssec(7) coredns\-health(7) coredns\-log(7) coredns\-file(7) coredns\-nsid(7) coredns\-auto(7) coredns\-erratic(7) coredns\-chaos(7) coredns\-dnstap(7) coredns\-pprof(7) coredns\-tls(7) coredns\-loadbalance(7) coredns\-cache(7) coredns\-root(7) coredns\-whoami(7) coredns\-bind(7) coredns\-hosts(7) coredns\-template(7) coredns\-proxy(7) coredns\-autopath(7) coredns\-kubernetes(7) coredns\-forward(7) coredns\-secondary(7) coredns\-route53(7) coredns\-errors(7) coredns\-metrics(7) coredns\-reload(7) coredns\-rewrite(7) coredns\-federation(7) coredns\-etcd(7) coredns\-trace(7)\.
+Corefile(5) coredns\-k8s_external(7) coredns\-erratic(7) coredns\-hosts(7) coredns\-dnssec(7) coredns\-health(7) coredns\-file(7) coredns\-root(7) coredns\-autopath(7) coredns\-auto(7) coredns\-dnstap(7) coredns\-pprof(7) coredns\-tls(7) coredns\-loadbalance(7) coredns\-cache(7) coredns\-whoami(7) coredns\-bind(7) coredns\-loop(7) coredns\-import(7) coredns\-chaos(7) coredns\-template(7) coredns\-proxy(7) coredns\-log(7) coredns\-kubernetes(7) coredns\-forward(7) coredns\-debug(7) coredns\-nsid(7) coredns\-secondary(7) coredns\-route53(7) coredns\-errors(7) coredns\-metrics(7) coredns\-reload(7) coredns\-rewrite(7) coredns\-metadata(7) coredns\-federation(7) coredns\-etcd(7) coredns\-trace(7)\.
