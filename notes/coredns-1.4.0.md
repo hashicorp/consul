@@ -21,7 +21,7 @@ Deprecation notice for the *next* release:
  *  The [*proxy*](/plugins/proxy) will be moved to an external repository and as such be deprecated
     from the default set of plugin; use the [*forward*](/plugins/forward) as a replacement.
 
-The [previous](/019/01/13/coredns-1.3.1-release/) announced deprecations have been enacted.
+The [previous](/2019/01/13/coredns-1.3.1-release/) announced deprecations have been enacted.
 
 The (unused) gRPC watch functionally was removed from the server.
 
