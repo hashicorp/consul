@@ -4,9 +4,10 @@
 # used to tag the git repo and to build the assets that are uploaded to github
 # (after some sanity checks).
 #
-# The release should be accompanied by release notes published on coredns.io.
-# For example: https://coredns.io/2016/09/18/coredns-001-release/ Also send an
-# email to coredns-discuss@ to announce the new version.
+# The release should be accompanied by release notes in the notes/ subdirectory.
+# These are published on coredns.io.
+#
+# For example: https://coredns.io/2016/09/18/coredns-001-release/ .
 #
 # Getting the authors for this release is done with the following command line
 # git log --pretty=format:'%an' v$(VERSION)..master | sort -u
