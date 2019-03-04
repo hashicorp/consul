@@ -8,6 +8,7 @@ BUG FIXES:
 * agent: Fixed default log file permissions. [[GH-5346](https://github.com/hashicorp/consul/issues/5346)]
 * api: Fixed bug where `/connect/intentions` endpoint didn't return `X-Consul-Index` [[GH-5355](https://github.com/hashicorp/consul/pull/5355)]
 * agent: Ensure that reaped servers are removed from RPC routing [[GH-5317](https://github.com/hashicorp/consul/pull/5317)]
+* acl: Fix potential race condition when listing or retrieving ACL tokens [[GH-5412](https://github.com/hashicorp/consul/pull/5412)]
 
 FEATURES:
 * prepared queries: Enable ServiceMeta filtering for prepared queries. [[GH-5291](https://github.com/hashicorp/consul/pull/5291)]
