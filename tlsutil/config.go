@@ -202,8 +202,6 @@ type Configurator struct {
 
 // NewConfigurator creates a new Configurator and sets the provided
 // configuration.
-// Todo (Hans): should config be a value instead a pointer to avoid side
-// effects?
 func NewConfigurator(config Config) *Configurator {
 	return &Configurator{base: &config}
 }
