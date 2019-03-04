@@ -46,21 +46,16 @@ out-of-tree plugins.
 
 To compile CoreDNS, we assume you have a working Go setup. See various tutorials if you don’t have that already configured.
 
-First, make sure your `$GOPATH` is correctly set. See [here](https://github.com/golang/go/wiki/SettingGOPATH) for details. Then, check out the project under your `$GOPATH` and run `make` to compile the binary:
-
+First, make sure your golang version is 1.12 or higher as `go mod` support is needed.
+See [here](https://github.com/golang/go/wiki/Modules) for `go mod` details.
+Then, check out the project and run `make` to compile the binary:
 ~~~
-$ mkdir -p $GOPATH/src/github.com/coredns
-$ cd $GOPATH/src/github.com/coredns/
 $ git clone https://github.com/coredns/coredns
 $ cd coredns
 $ make
 ~~~
 
 This should yield a `coredns` binary.
-
-We vendor most ([not all!](https://github.com/coredns/coredns/issues/1523)) packages. This is mostly because vendoring isn't a perfect solution (in
-Go). We don't vendor `mholt/caddy` and `miekg/dns` for instance. Using `make` will pull down these
-dependencies and checks out the correct version as well.
 
 ## Compilation with Docker
 
