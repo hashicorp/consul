@@ -3615,17 +3615,35 @@ func TestHansAgent_ReloadConfigIncomingRPCConfig(t *testing.T) {
 	require.False(t, tlsConf.InsecureSkipVerify)
 	require.Len(t, tlsConf.ClientCAs.Subjects(), 2)
 	require.Len(t, tlsConf.RootCAs.Subjects(), 2)
+}
+
+func TestHansAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
+	t.Parallel()
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	defer os.RemoveAll(dataDir)
+	hcl := `
+		data_dir = "` + dataDir + `"
+		verify_outgoing = true
+		ca_file = "../test/ca/root.cer"
+		cert_file = "../test/key/ourdomain.cer"
+		key_file = "../test/key/ourdomain.key"
+		verify_server_hostname = false
+	`
+	a, err := NewUnstartedAgent(t, t.Name(), hcl)
+	require.NoError(t, err)
+	tlsConf, err := a.tlsConfigurator.IncomingRPCConfig()
+	require.NoError(t, err)
 
 	hcl = `
 		data_dir = "` + dataDir + `"
 		verify_incoming = true
 	`
-	c = TestConfig(config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
+	c := TestConfig(config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
 	err = a.ReloadConfig(c)
 	require.Error(t, err)
 	tlsConf, err = tlsConf.GetConfigForClient(nil)
 	require.NoError(t, err)
 	require.Equal(t, tls.NoClientCert, tlsConf.ClientAuth)
-	require.Len(t, tlsConf.ClientCAs.Subjects(), 2)
-	require.Len(t, tlsConf.RootCAs.Subjects(), 2)
+	require.Len(t, tlsConf.ClientCAs.Subjects(), 1)
+	require.Len(t, tlsConf.RootCAs.Subjects(), 1)
 }
