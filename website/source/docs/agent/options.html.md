@@ -1585,8 +1585,8 @@ default will automatically work with some tooling.
 
 * <a name="tls_min_version"></a><a href="#tls_min_version">`tls_min_version`</a> Added in Consul
   0.7.4, this specifies the minimum supported version of TLS. Accepted values are "tls10", "tls11"
-  or "tls12". This defaults to "tls10". WARNING: TLS 1.1 and lower are generally considered less
-  secure; avoid using these if possible. This will be changed to default to "tls12" in Consul 0.8.0.
+  or "tls12". This defaults to "tls12". WARNING: TLS 1.1 and lower are generally considered less
+  secure; avoid using these if possible.
 
 * <a name="tls_cipher_suites"></a><a href="#tls_cipher_suites">`tls_cipher_suites`</a> Added in Consul
   0.8.2, this specifies the list of supported ciphersuites as a comma-separated-list. The list of all
