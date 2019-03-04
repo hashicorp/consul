@@ -711,3 +711,12 @@ func TestConfigurator_OutgoingTLSConfigForChecks(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "node", tlsConf.ServerName)
 }
+
+func TestConfigurator_Check(t *testing.T) {
+	c := NewConfigurator(Config{})
+	require.NoError(t, c.Check(Config{}))
+	require.Error(t, c.Check(Config{VerifyOutgoing: true}))
+	require.Error(t, c.Check(Config{VerifyIncoming: true, CAFile: "../test/ca/root.cer"}))
+	require.False(t, c.base.VerifyIncoming)
+	require.False(t, c.base.VerifyOutgoing)
+}

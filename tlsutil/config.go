@@ -215,6 +215,18 @@ func (c *Configurator) Update(config Config) {
 
 }
 
+// Check is verifying the provided configuration and returns an error if the
+// config has problems.
+func (c *Configurator) Check(config Config) error {
+	c.Lock()
+	defer c.Unlock()
+	orig := c.base
+	c.base = &config
+	defer func() { c.base = orig }()
+	_, err := c.commonTLSConfig(c.base.VerifyIncomingRPC || c.base.VerifyIncomingHTTPS)
+	return err
+}
+
 // commonTLSConfig generates a *tls.Config from the base configuration the
 // Configurator has. It accepts an additional flag in case a config is needed
 // for incoming TLS connections.
