@@ -15,9 +15,9 @@ export default Route.extend({
     }).then(function(model) {
       return hash({
         proxy:
-          get(service, 'Kind') !== 'connect-proxy'
-            ? proxyRepo.findInstanceBySlug(params.id, params.name, dc)
-            : null,
+          get(model.item, 'Kind') === 'connect-proxy'
+            ? null
+            : proxyRepo.findInstanceBySlug(params.id, params.name, dc),
         ...model,
       });
     });
