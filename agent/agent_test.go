@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -3610,7 +3611,21 @@ func TestHansAgent_ReloadConfigIncomingRPCConfig(t *testing.T) {
 	err = a.ReloadConfig(c)
 	require.NoError(t, err)
 	tlsConf, err = tlsConf.GetConfigForClient(nil)
+	require.NoError(t, err)
 	require.False(t, tlsConf.InsecureSkipVerify)
+	require.Len(t, tlsConf.ClientCAs.Subjects(), 2)
+	require.Len(t, tlsConf.RootCAs.Subjects(), 2)
+
+	hcl = `
+		data_dir = "` + dataDir + `"
+		verify_incoming = true
+	`
+	c = TestConfig(config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
+	err = a.ReloadConfig(c)
+	require.Error(t, err)
+	tlsConf, err = tlsConf.GetConfigForClient(nil)
+	require.NoError(t, err)
+	require.Equal(t, tls.NoClientCert, tlsConf.ClientAuth)
 	require.Len(t, tlsConf.ClientCAs.Subjects(), 2)
 	require.Len(t, tlsConf.RootCAs.Subjects(), 2)
 }
