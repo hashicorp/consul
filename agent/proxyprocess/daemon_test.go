@@ -30,8 +30,11 @@ func TestDaemonStartStop(t *testing.T) {
 	uuid, err := uuid.GenerateUUID()
 	require.NoError(err)
 
+	cmd, destroy := helperProcess("start-stop", path)
+	defer destroy()
+
 	d := &Daemon{
-		Command:    helperProcess("start-stop", path),
+		Command:    cmd,
 		ProxyID:    "tubes",
 		ProxyToken: uuid,
 		Logger:     testLogger,
@@ -78,8 +81,11 @@ func TestDaemonRestart(t *testing.T) {
 	defer closer()
 	path := filepath.Join(td, "file")
 
+	cmd, destroy := helperProcess("restart", path)
+	defer destroy()
+
 	d := &Daemon{
-		Command: helperProcess("restart", path),
+		Command: cmd,
 		Logger:  testLogger,
 	}
 	require.NoError(d.Start())
@@ -117,7 +123,8 @@ func TestDaemonLaunchesNewProcessGroup(t *testing.T) {
 	// Start the parent process wrapping a start-stop test. The parent is acting
 	// as our "agent". We need an extra indirection to be able to kill the "agent"
 	// and still be running the test process.
-	parentCmd := helperProcess("parent", pidPath, "start-stop", path)
+	parentCmd, destroy := helperProcess("parent", pidPath, "start-stop", path)
+	defer destroy()
 
 	// We MUST run this as a separate process group otherwise the Kill below will
 	// kill this test process (and possibly your shell/editor that launched it!)
@@ -186,7 +193,9 @@ func TestDaemonLaunchesNewProcessGroup(t *testing.T) {
 
 	// Start a new parent that will "adopt" the existing child even though it will
 	// not be an actual child process.
-	fosterCmd := helperProcess("parent", pidPath, "start-stop", path)
+	fosterCmd, destroy := helperProcess("parent", pidPath, "start-stop", path)
+	defer destroy()
+
 	// Don't care about it being same process group this time as we will just kill
 	// it normally.
 	require.NoError(fosterCmd.Start())
@@ -246,6 +255,21 @@ func TestDaemonLaunchesNewProcessGroup(t *testing.T) {
 	// even harder!
 
 	// Let defer clean up the child process(es)
+
+	// Get the NEW child PID
+	bs, err = ioutil.ReadFile(pidPath)
+	require.NoError(err)
+	pid, err = strconv.Atoi(string(bs))
+	require.NoError(err)
+	proc2, err := os.FindProcess(pid)
+	require.NoError(err)
+
+	// Always cleanup child process after
+	defer func() {
+		if proc2 != nil {
+			proc2.Kill()
+		}
+	}()
 }
 
 func TestDaemonStop_kill(t *testing.T) {
@@ -257,8 +281,11 @@ func TestDaemonStop_kill(t *testing.T) {
 
 	path := filepath.Join(td, "file")
 
+	cmd, destroy := helperProcess("stop-kill", path)
+	defer destroy()
+
 	d := &Daemon{
-		Command:      helperProcess("stop-kill", path),
+		Command:      cmd,
 		ProxyToken:   "hello",
 		Logger:       testLogger,
 		gracefulWait: 200 * time.Millisecond,
@@ -316,14 +343,19 @@ func TestDaemonStop_killAdopted(t *testing.T) {
 	// ensure we are exercising that code path.
 
 	// Start the "child" process
-	childCmd := helperProcess("stop-kill", path)
+	childCmd, destroy := helperProcess("stop-kill", path)
+	defer destroy()
+
 	require.NoError(childCmd.Start())
 	go func() { childCmd.Wait() }() // Prevent it becoming a zombie when killed
 	defer func() { childCmd.Process.Kill() }()
 
 	// Create the Daemon
+	cmd, destroy := helperProcess("stop-kill", path)
+	defer destroy()
+
 	d := &Daemon{
-		Command:      helperProcess("stop-kill", path),
+		Command:      cmd,
 		ProxyToken:   "hello",
 		Logger:       testLogger,
 		gracefulWait: 200 * time.Millisecond,
@@ -380,8 +412,11 @@ func TestDaemonStart_pidFile(t *testing.T) {
 	uuid, err := uuid.GenerateUUID()
 	require.NoError(err)
 
+	cmd, destroy := helperProcess("start-once", path)
+	defer destroy()
+
 	d := &Daemon{
-		Command:    helperProcess("start-once", path),
+		Command:    cmd,
 		ProxyToken: uuid,
 		Logger:     testLogger,
 		PidPath:    pidPath,
@@ -422,8 +457,11 @@ func TestDaemonRestart_pidFile(t *testing.T) {
 	path := filepath.Join(td, "file")
 	pidPath := filepath.Join(td, "pid")
 
+	cmd, destroy := helperProcess("restart", path)
+	defer destroy()
+
 	d := &Daemon{
-		Command: helperProcess("restart", path),
+		Command: cmd,
 		Logger:  testLogger,
 		PidPath: pidPath,
 	}
@@ -618,8 +656,11 @@ func TestDaemonUnmarshalSnapshot(t *testing.T) {
 	uuid, err := uuid.GenerateUUID()
 	require.NoError(err)
 
+	cmd, destroy := helperProcess("start-stop", path)
+	defer destroy()
+
 	d := &Daemon{
-		Command:    helperProcess("start-stop", path),
+		Command:    cmd,
 		ProxyToken: uuid,
 		Logger:     testLogger,
 	}
@@ -676,8 +717,11 @@ func TestDaemonUnmarshalSnapshot_notRunning(t *testing.T) {
 	uuid, err := uuid.GenerateUUID()
 	require.NoError(err)
 
+	cmd, destroy := helperProcess("start-stop", path)
+	defer destroy()
+
 	d := &Daemon{
-		Command:    helperProcess("start-stop", path),
+		Command:    cmd,
 		ProxyToken: uuid,
 		Logger:     testLogger,
 	}
