@@ -178,7 +178,7 @@ Annotations can be used to configure the injection behavior.
 
     * Services
    
-        The name of the service is the name of the service registered with Consul. Datacenters can optionally be specified within this annotation. 
+        The name of the service is the name of the service registered with Consul. You can optionally specify datacenters with this annotation. 
         ```annotations:
         "consul.hashicorp.com/connect-service-upstreams":"[service-name]:[port]:[optional datacenter]"
         ```
