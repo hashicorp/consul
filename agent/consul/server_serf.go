@@ -137,12 +137,10 @@ func (s *Server) lanEventHandler() {
 				s.lanNodeJoin(e.(serf.MemberEvent))
 				s.localMemberEvent(e.(serf.MemberEvent))
 
-			case serf.EventMemberLeave, serf.EventMemberFailed:
+			case serf.EventMemberLeave, serf.EventMemberFailed, serf.EventMemberReap:
 				s.lanNodeFailed(e.(serf.MemberEvent))
 				s.localMemberEvent(e.(serf.MemberEvent))
 
-			case serf.EventMemberReap:
-				s.localMemberEvent(e.(serf.MemberEvent))
 			case serf.EventUser:
 				s.localEvent(e.(serf.UserEvent))
 			case serf.EventMemberUpdate:
