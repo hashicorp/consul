@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -561,5 +562,150 @@ func TestACLReplication_Policies(t *testing.T) {
 	// Wait for the replica to converge.
 	retry.Run(t, func(r *retry.R) {
 		checkSame(r)
+	})
+}
+
+func TestACLReplication_TokensRedacted(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	// Create the ACL Write Policy
+	policyArg := structs.ACLPolicySetRequest{
+		Datacenter: "dc1",
+		Policy: structs.ACLPolicy{
+			Name:        "token-replication-redacted",
+			Description: "token-replication-redacted",
+			Rules:       `acl = "write"`,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var policy structs.ACLPolicy
+	require.NoError(t, s1.RPC("ACL.PolicySet", &policyArg, &policy))
+
+	// Create the dc2 replication token
+	tokenArg := structs.ACLTokenSetRequest{
+		Datacenter: "dc1",
+		ACLToken: structs.ACLToken{
+			Description: "dc2-replication",
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID: policy.ID,
+				},
+			},
+			Local: false,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+
+	var token structs.ACLToken
+	require.NoError(t, s1.RPC("ACL.TokenSet", &tokenArg, &token))
+
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLTokenReplication = true
+		c.ACLReplicationRate = 100
+		c.ACLReplicationBurst = 100
+		c.ACLReplicationApplyLimit = 1000000
+	})
+	s2.tokens.UpdateReplicationToken(token.SecretID, tokenStore.TokenSourceConfig)
+	testrpc.WaitForLeader(t, s2.RPC, "dc2")
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	// Try to join.
+	joinWAN(t, s2, s1)
+	testrpc.WaitForLeader(t, s2.RPC, "dc2")
+	testrpc.WaitForLeader(t, s2.RPC, "dc1")
+	waitForNewACLs(t, s2)
+
+	// ensures replication is working ok
+	retry.Run(t, func(r *retry.R) {
+		var tokenResp structs.ACLTokenResponse
+		req := structs.ACLTokenGetRequest{
+			Datacenter:   "dc2",
+			TokenID:      "root",
+			TokenIDType:  structs.ACLTokenSecret,
+			QueryOptions: structs.QueryOptions{Token: "root"},
+		}
+		err := s2.RPC("ACL.TokenRead", &req, &tokenResp)
+		require.NoError(r, err)
+		require.Equal(r, "root", tokenResp.Token.SecretID)
+
+		var status structs.ACLReplicationStatus
+		statusReq := structs.DCSpecificRequest{
+			Datacenter: "dc2",
+		}
+		require.NoError(r, s2.RPC("ACL.ReplicationStatus", &statusReq, &status))
+		// ensures that tokens are not being synced
+		require.True(r, status.ReplicatedTokenIndex > 0, "ReplicatedTokenIndex not greater than 0")
+
+	})
+
+	// modify the replication policy to change to only granting read privileges
+	policyArg = structs.ACLPolicySetRequest{
+		Datacenter: "dc1",
+		Policy: structs.ACLPolicy{
+			ID:          policy.ID,
+			Name:        "token-replication-redacted",
+			Description: "token-replication-redacted",
+			Rules:       `acl = "read"`,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	require.NoError(t, s1.RPC("ACL.PolicySet", &policyArg, &policy))
+
+	// Create the another token so that replication will attempt to read it.
+	tokenArg = structs.ACLTokenSetRequest{
+		Datacenter: "dc1",
+		ACLToken: structs.ACLToken{
+			Description: "management",
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID: structs.ACLPolicyGlobalManagementID,
+				},
+			},
+			Local: false,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var token2 structs.ACLToken
+
+	// record the time right before we are touching the token
+	minErrorTime := time.Now()
+	require.NoError(t, s1.RPC("ACL.TokenSet", &tokenArg, &token2))
+
+	retry.Run(t, func(r *retry.R) {
+		var tokenResp structs.ACLTokenResponse
+		req := structs.ACLTokenGetRequest{
+			Datacenter:   "dc2",
+			TokenID:      redactedToken,
+			TokenIDType:  structs.ACLTokenSecret,
+			QueryOptions: structs.QueryOptions{Token: redactedToken},
+		}
+		err := s2.RPC("ACL.TokenRead", &req, &tokenResp)
+		// its not an error for the secret to not be found.
+		require.NoError(r, err)
+		require.Nil(r, tokenResp.Token)
+
+		var status structs.ACLReplicationStatus
+		statusReq := structs.DCSpecificRequest{
+			Datacenter: "dc2",
+		}
+		require.NoError(r, s2.RPC("ACL.ReplicationStatus", &statusReq, &status))
+		// ensures that tokens are not being synced
+		require.True(r, status.ReplicatedTokenIndex < token2.CreateIndex, "ReplicatedTokenIndex is not less than the token2s create index")
+		// ensures that token replication is erroring
+		require.True(r, status.LastError.After(minErrorTime), "Replication LastError not after the minErrorTime")
 	})
 }

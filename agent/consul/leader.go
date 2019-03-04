@@ -410,6 +410,21 @@ func (s *Server) initializeACLs(upgrade bool) error {
 	// leader.
 	s.acls.cache.Purge()
 
+	// Remove any token affected by CVE-2019-8336
+	if !s.InACLDatacenter() {
+		_, token, err := s.fsm.State().ACLTokenGetBySecret(nil, redactedToken)
+		if err == nil && token != nil {
+			req := structs.ACLTokenBatchDeleteRequest{
+				TokenIDs: []string{token.AccessorID},
+			}
+
+			_, err := s.raftApply(structs.ACLTokenDeleteRequestType, &req)
+			if err != nil {
+				return fmt.Errorf("failed to remove token with a redacted secret: %v", err)
+			}
+		}
+	}
+
 	if s.InACLDatacenter() {
 		if s.UseLegacyACLs() && !upgrade {
 			s.logger.Printf("[INFO] acl: initializing legacy acls")

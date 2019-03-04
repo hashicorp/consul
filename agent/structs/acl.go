@@ -621,13 +621,15 @@ type ACLTokenBootstrapRequest struct {
 
 // ACLTokenResponse returns a single Token + metadata
 type ACLTokenResponse struct {
-	Token *ACLToken
+	Token    *ACLToken
+	Redacted bool // whether the token's secret was redacted
 	QueryMeta
 }
 
 // ACLTokenBatchResponse returns multiple Tokens associated with the same metadata
 type ACLTokenBatchResponse struct {
-	Tokens []*ACLToken
+	Tokens   []*ACLToken
+	Redacted bool // whether the token secrets were redacted.
 	QueryMeta
 }
 

@@ -239,13 +239,12 @@ func TestServer_JoinLAN(t *testing.T) {
 }
 
 func TestServer_LANReap(t *testing.T) {
-	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
 		c.Bootstrap = true
 		c.SerfFloodInterval = 100 * time.Millisecond
 		c.SerfLANConfig.ReconnectTimeout = 250 * time.Millisecond
-		c.SerfLANConfig.ReapInterval = 500 * time.Millisecond
+		c.SerfLANConfig.ReapInterval = 300 * time.Millisecond
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -255,7 +254,7 @@ func TestServer_LANReap(t *testing.T) {
 		c.Bootstrap = false
 		c.SerfFloodInterval = 100 * time.Millisecond
 		c.SerfLANConfig.ReconnectTimeout = 250 * time.Millisecond
-		c.SerfLANConfig.ReapInterval = 500 * time.Millisecond
+		c.SerfLANConfig.ReapInterval = 300 * time.Millisecond
 	})
 	defer os.RemoveAll(dir2)
 
@@ -264,7 +263,7 @@ func TestServer_LANReap(t *testing.T) {
 		c.Bootstrap = false
 		c.SerfFloodInterval = 100 * time.Millisecond
 		c.SerfLANConfig.ReconnectTimeout = 250 * time.Millisecond
-		c.SerfLANConfig.ReapInterval = 500 * time.Millisecond
+		c.SerfLANConfig.ReapInterval = 300 * time.Millisecond
 	})
 	defer os.RemoveAll(dir3)
 	defer s3.Shutdown()
@@ -273,6 +272,8 @@ func TestServer_LANReap(t *testing.T) {
 	joinLAN(t, s2, s1)
 	joinLAN(t, s3, s1)
 
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s2.RPC, "dc1")
 	testrpc.WaitForLeader(t, s3.RPC, "dc1")
 
 	retry.Run(t, func(r *retry.R) {

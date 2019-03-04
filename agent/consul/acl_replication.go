@@ -113,7 +113,7 @@ func (s *Server) updateLocalACLPolicies(policies structs.ACLPolicies, ctx contex
 		if err != nil {
 			return false, fmt.Errorf("Failed to apply policy upserts: %v", err)
 		}
-		if respErr, ok := resp.(error); ok && err != nil {
+		if respErr, ok := resp.(error); ok && respErr != nil {
 			return false, fmt.Errorf("Failed to apply policy upsert: %v", respErr)
 		}
 		s.logger.Printf("[DEBUG] acl: policy replication - upserted 1 batch with %d policies of size %d", batchEnd-batchStart, batchSize)
@@ -283,6 +283,9 @@ func (s *Server) updateLocalACLTokens(tokens structs.ACLTokens, ctx context.Cont
 		batchSize := 0
 		batchEnd := batchStart
 		for ; batchEnd < len(tokens) && batchSize < aclBatchUpsertSize; batchEnd += 1 {
+			if tokens[batchEnd].SecretID == redactedToken {
+				return false, fmt.Errorf("Detected redacted token secrets: stopping token update round - verify that the replication token in use has acl:write permissions.")
+			}
 			batchSize += tokens[batchEnd].EstimateSize()
 		}
 
@@ -295,7 +298,7 @@ func (s *Server) updateLocalACLTokens(tokens structs.ACLTokens, ctx context.Cont
 		if err != nil {
 			return false, fmt.Errorf("Failed to apply token upserts: %v", err)
 		}
-		if respErr, ok := resp.(error); ok && err != nil {
+		if respErr, ok := resp.(error); ok && respErr != nil {
 			return false, fmt.Errorf("Failed to apply token upserts: %v", respErr)
 		}
 
@@ -491,6 +494,8 @@ func (s *Server) replicateACLTokens(lastRemoteIndex uint64, ctx context.Context)
 		tokens, err = s.fetchACLTokensBatch(res.LocalUpserts)
 		if err != nil {
 			return 0, false, fmt.Errorf("failed to retrieve ACL token updates: %v", err)
+		} else if tokens.Redacted {
+			return 0, false, fmt.Errorf("failed to retrieve unredacted tokens - replication token in use does not grant acl:write")
 		}
 
 		s.logger.Printf("[DEBUG] acl: token replication - downloaded %d tokens", len(tokens.Tokens))
