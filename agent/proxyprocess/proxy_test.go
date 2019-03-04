@@ -43,14 +43,19 @@ const helperProcessSentinel = "WANT_HELPER_PROCESS"
 // helperProcess returns an *exec.Cmd that can be used to execute the
 // TestHelperProcess function below. This can be used to test multi-process
 // interactions.
-func helperProcess(s ...string) *exec.Cmd {
+func helperProcess(s ...string) (*exec.Cmd, func()) {
 	cs := []string{"-test.run=TestHelperProcess", "--", helperProcessSentinel}
 	cs = append(cs, s...)
 
 	cmd := exec.Command(os.Args[0], cs...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	return cmd
+	destroy := func() {
+		if p := cmd.Process; p != nil {
+			p.Kill()
+		}
+	}
+	return cmd, destroy
 }
 
 // This is not a real test. This is just a helper process kicked off by tests
@@ -77,6 +82,8 @@ func TestHelperProcess(t *testing.T) {
 	// While running, this creates a file in the given directory (args[0])
 	// and deletes it only when it is stopped.
 	case "start-stop":
+		limitProcessLifetime(2 * time.Minute)
+
 		ch := make(chan os.Signal, 1)
 		signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
 		defer signal.Stop(ch)
@@ -98,6 +105,8 @@ func TestHelperProcess(t *testing.T) {
 	// exists. When that file is removed, this process exits. This can be
 	// used to test restarting.
 	case "restart":
+		limitProcessLifetime(2 * time.Minute)
+
 		ch := make(chan os.Signal, 1)
 		signal.Notify(ch, os.Interrupt)
 		defer signal.Stop(ch)
@@ -127,6 +136,8 @@ func TestHelperProcess(t *testing.T) {
 			}
 		}
 	case "stop-kill":
+		limitProcessLifetime(2 * time.Minute)
+
 		// Setup listeners so it is ignored
 		ch := make(chan os.Signal, 1)
 		signal.Notify(ch, os.Interrupt)
@@ -142,6 +153,8 @@ func TestHelperProcess(t *testing.T) {
 		}
 		// Check if the external process can access the enivironmental variables
 	case "environ":
+		limitProcessLifetime(2 * time.Minute)
+
 		stop := make(chan os.Signal, 1)
 		signal.Notify(stop, os.Interrupt)
 		defer signal.Stop(stop)
@@ -172,6 +185,8 @@ func TestHelperProcess(t *testing.T) {
 		<-stop
 
 	case "output":
+		limitProcessLifetime(2 * time.Minute)
+
 		fmt.Fprintf(os.Stdout, "hello stdout\n")
 		fmt.Fprintf(os.Stderr, "hello stderr\n")
 
@@ -199,12 +214,17 @@ func TestHelperProcess(t *testing.T) {
 	// If the PID file already exists, it will "adopt" the child rather than
 	// launch a new one.
 	case "parent":
+		limitProcessLifetime(2 * time.Minute)
+
 		// We will write the PID for the child to the file in the first argument
 		// then pass rest of args through to command.
 		pidFile := args[0]
 
+		cmd, destroyChild := helperProcess(args[1:]...)
+		defer destroyChild()
+
 		d := &Daemon{
-			Command: helperProcess(args[1:]...),
+			Command: cmd,
 			Logger:  testLogger,
 			PidPath: pidFile,
 		}
@@ -250,4 +270,13 @@ func TestHelperProcess(t *testing.T) {
 		fmt.Fprintf(os.Stderr, "Unknown command: %q\n", cmd)
 		os.Exit(2)
 	}
+}
+
+// limitProcessLifetime installs a background goroutine that self-exits after
+// the specified duration elapses to prevent leaking processes from tests that
+// may spawn them.
+func limitProcessLifetime(dur time.Duration) {
+	go time.AfterFunc(dur, func() {
+		os.Exit(99)
+	})
 }
