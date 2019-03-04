@@ -801,6 +801,132 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 	}
 }
 
+func TestStateStore_ACLToken_FixupPolicyLinks(t *testing.T) {
+	// This test wants to ensure a couple of things.
+	//
+	// 1. Doing a token list/get should never modify the data
+	//    tracked by memdb
+	// 2. Token list/get operations should return an accurate set
+	//    of policy links
+	t.Parallel()
+	s := testACLTokensStateStore(t)
+
+	// the policy specific token
+	token := &structs.ACLToken{
+		AccessorID: "47eea4da-bda1-48a6-901c-3e36d2d9262f",
+		SecretID:   "548bdb8e-c0d6-477b-bcc4-67fb836e9e61",
+		Policies: []structs.ACLTokenPolicyLink{
+			structs.ACLTokenPolicyLink{
+				ID: "a0625e95-9b3e-42de-a8d6-ceef5b6f3286",
+			},
+		},
+	}
+
+	require.NoError(t, s.ACLTokenSet(2, token, false))
+
+	_, retrieved, err := s.ACLTokenGetByAccessor(nil, token.AccessorID)
+	require.NoError(t, err)
+	// pointer equality check these should be identical
+	require.True(t, token == retrieved)
+	require.Len(t, retrieved.Policies, 1)
+	require.Equal(t, "node-read", retrieved.Policies[0].Name)
+
+	// rename the policy
+	renamed := &structs.ACLPolicy{
+		ID:          "a0625e95-9b3e-42de-a8d6-ceef5b6f3286",
+		Name:        "node-read-renamed",
+		Description: "Allows reading all node information",
+		Rules:       `node_prefix "" { policy = "read" }`,
+		Syntax:      acl.SyntaxCurrent,
+	}
+	renamed.SetHash(true)
+	require.NoError(t, s.ACLPolicySet(3, renamed))
+
+	// retrieve the token again
+	_, retrieved, err = s.ACLTokenGetByAccessor(nil, token.AccessorID)
+	require.NoError(t, err)
+	// pointer equality check these should be different if we cloned things appropriately
+	require.True(t, token != retrieved)
+	require.Len(t, retrieved.Policies, 1)
+	require.Equal(t, "node-read-renamed", retrieved.Policies[0].Name)
+
+	// list tokens without stale links
+	_, tokens, err := s.ACLTokenList(nil, true, true, "")
+	require.NoError(t, err)
+
+	found := false
+	for _, tok := range tokens {
+		if tok.AccessorID == token.AccessorID {
+			// these pointers shouldn't be equal because the link should have been fixed
+			require.True(t, tok != token)
+			require.Len(t, tok.Policies, 1)
+			require.Equal(t, "node-read-renamed", tok.Policies[0].Name)
+			found = true
+			break
+		}
+	}
+	require.True(t, found)
+
+	// batch get without stale links
+	_, tokens, err = s.ACLTokenBatchGet(nil, []string{token.AccessorID})
+	require.NoError(t, err)
+
+	found = false
+	for _, tok := range tokens {
+		if tok.AccessorID == token.AccessorID {
+			// these pointers shouldn't be equal because the link should have been fixed
+			require.True(t, tok != token)
+			require.Len(t, tok.Policies, 1)
+			require.Equal(t, "node-read-renamed", tok.Policies[0].Name)
+			found = true
+			break
+		}
+	}
+	require.True(t, found)
+
+	// delete the policy
+	require.NoError(t, s.ACLPolicyDeleteByID(4, "a0625e95-9b3e-42de-a8d6-ceef5b6f3286"))
+
+	// retrieve the token again
+	_, retrieved, err = s.ACLTokenGetByAccessor(nil, token.AccessorID)
+	require.NoError(t, err)
+	// pointer equality check these should be different if we cloned things appropriately
+	require.True(t, token != retrieved)
+	require.Len(t, retrieved.Policies, 0)
+
+	// list tokens without stale links
+	_, tokens, err = s.ACLTokenList(nil, true, true, "")
+	require.NoError(t, err)
+
+	found = false
+	for _, tok := range tokens {
+		if tok.AccessorID == token.AccessorID {
+			// these pointers shouldn't be equal because the link should have been fixed
+			require.True(t, tok != token)
+			require.Len(t, tok.Policies, 0)
+			found = true
+			break
+		}
+	}
+	require.True(t, found)
+
+	// batch get without stale links
+	_, tokens, err = s.ACLTokenBatchGet(nil, []string{token.AccessorID})
+	require.NoError(t, err)
+
+	found = false
+	for _, tok := range tokens {
+		if tok.AccessorID == token.AccessorID {
+			// these pointers shouldn't be equal because the link should have been fixed
+			require.True(t, tok != token)
+			require.Len(t, tok.Policies, 0)
+			found = true
+			break
+		}
+	}
+	require.True(t, found)
+}
+
 func TestStateStore_ACLToken_Delete(t *testing.T) {
 	t.Parallel()
 
@@ -1344,6 +1470,29 @@ func TestStateStore_ACLPolicy_Delete(t *testing.T) {
 func TestStateStore_ACLTokens_Snapshot_Restore(t *testing.T) {
 	s := testStateStore(t)
 
+	policies := structs.ACLPolicies{
+		&structs.ACLPolicy{
+			ID:          "ca1fc52c-3676-4050-82ed-ca223e38b2c9",
+			Name:        "policy1",
+			Description: "policy1",
+			Rules:       `node_prefix "" { policy = "read" }`,
+			Syntax:      acl.SyntaxCurrent,
+		},
+		&structs.ACLPolicy{
+			ID:          "7b70fa0f-58cd-412d-93c3-a0f17bb19a3e",
+			Name:        "policy2",
+			Description: "policy2",
+			Rules:       `acl = "read"`,
+			Syntax:      acl.SyntaxCurrent,
+		},
+	}
+
+	for _, policy := range policies {
+		policy.SetHash(true)
+	}
+
+	require.NoError(t, s.ACLPolicyBatchSet(2, policies))
+
 	tokens := structs.ACLTokens{
 		&structs.ACLToken{
 			AccessorID:  "68016c3d-835b-450c-a6f9-75db9ba740be",
@@ -1410,6 +1559,9 @@ func TestStateStore_ACLTokens_Snapshot_Restore(t *testing.T) {
 			require.NoError(t, restore.ACLToken(token))
 		}
 		restore.Commit()
+
+		// need to ensure we have the policies or else the links will be removed
+		require.NoError(t, s.ACLPolicyBatchSet(2, policies))
 
 		// Read the restored ACLs back out and verify that they match.
 		idx, res, err := s.ACLTokenList(nil, true, true, "")
