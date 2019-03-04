@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.4.3 (March 5, 2019)
 
 SECURITY:
 
