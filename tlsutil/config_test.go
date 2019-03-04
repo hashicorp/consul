@@ -593,12 +593,12 @@ func TestConfigurator_CommonTLSConfigVerifyIncoming(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, tls.RequireAndVerifyClientCert, tlsConf.ClientAuth)
 
-	c.Update(&Config{VerifyServerHostname: false, CAFile: "../test/ca/root.cer", CertFile: "../test/key/ourdomain.cer", KeyFile: "../test/key/ourdomain.key"})
+	c.Update(Config{VerifyServerHostname: false, CAFile: "../test/ca/root.cer", CertFile: "../test/key/ourdomain.cer", KeyFile: "../test/key/ourdomain.key"})
 	tlsConf, err = c.commonTLSConfig(false)
 	require.NoError(t, err)
 	require.True(t, tlsConf.InsecureSkipVerify)
 
-	c.Update(&Config{VerifyServerHostname: true, CAFile: "../test/ca/root.cer", CertFile: "../test/key/ourdomain.cer", KeyFile: "../test/key/ourdomain.key"})
+	c.Update(Config{VerifyServerHostname: true, CAFile: "../test/ca/root.cer", CertFile: "../test/key/ourdomain.cer", KeyFile: "../test/key/ourdomain.key"})
 	tlsConf, err = c.commonTLSConfig(false)
 	require.NoError(t, err)
 	require.False(t, tlsConf.InsecureSkipVerify)
@@ -609,21 +609,25 @@ func TestConfigurator_IncomingRPCConfig(t *testing.T) {
 	tlsConf, err := c.IncomingRPCConfig()
 	require.NoError(t, err)
 	require.Equal(t, tls.NoClientCert, tlsConf.ClientAuth)
+	require.NotNil(t, tlsConf.GetConfigForClient)
 
 	c.Update(Config{VerifyIncoming: true, CAFile: "../test/ca/root.cer", CertFile: "../test/key/ourdomain.cer", KeyFile: "../test/key/ourdomain.key"})
 	tlsConf, err = c.IncomingRPCConfig()
 	require.NoError(t, err)
 	require.Equal(t, tls.RequireAndVerifyClientCert, tlsConf.ClientAuth)
+	require.NotNil(t, tlsConf.GetConfigForClient)
 
 	c.Update(Config{VerifyIncomingRPC: true, CAFile: "../test/ca/root.cer", CertFile: "../test/key/ourdomain.cer", KeyFile: "../test/key/ourdomain.key"})
 	tlsConf, err = c.IncomingRPCConfig()
 	require.NoError(t, err)
 	require.Equal(t, tls.RequireAndVerifyClientCert, tlsConf.ClientAuth)
+	require.NotNil(t, tlsConf.GetConfigForClient)
 
 	c.Update(Config{VerifyIncomingHTTPS: true, CAFile: "../test/ca/root.cer", CertFile: "../test/key/ourdomain.cer", KeyFile: "../test/key/ourdomain.key"})
 	tlsConf, err = c.IncomingRPCConfig()
 	require.NoError(t, err)
 	require.Equal(t, tls.NoClientCert, tlsConf.ClientAuth)
+	require.NotNil(t, tlsConf.GetConfigForClient)
 }
 
 func TestConfigurator_IncomingHTTPSConfig(t *testing.T) {
@@ -631,21 +635,25 @@ func TestConfigurator_IncomingHTTPSConfig(t *testing.T) {
 	tlsConf, err := c.IncomingHTTPSConfig()
 	require.NoError(t, err)
 	require.Equal(t, tls.NoClientCert, tlsConf.ClientAuth)
+	require.NotNil(t, tlsConf.GetConfigForClient)
 
 	c.Update(Config{VerifyIncoming: true, CAFile: "../test/ca/root.cer", CertFile: "../test/key/ourdomain.cer", KeyFile: "../test/key/ourdomain.key"})
 	tlsConf, err = c.IncomingHTTPSConfig()
 	require.NoError(t, err)
 	require.Equal(t, tls.RequireAndVerifyClientCert, tlsConf.ClientAuth)
+	require.NotNil(t, tlsConf.GetConfigForClient)
 
 	c.Update(Config{VerifyIncomingHTTPS: true, CAFile: "../test/ca/root.cer", CertFile: "../test/key/ourdomain.cer", KeyFile: "../test/key/ourdomain.key"})
 	tlsConf, err = c.IncomingHTTPSConfig()
 	require.NoError(t, err)
 	require.Equal(t, tls.RequireAndVerifyClientCert, tlsConf.ClientAuth)
+	require.NotNil(t, tlsConf.GetConfigForClient)
 
 	c.Update(Config{VerifyIncomingRPC: true, CAFile: "../test/ca/root.cer", CertFile: "../test/key/ourdomain.cer", KeyFile: "../test/key/ourdomain.key"})
 	tlsConf, err = c.IncomingHTTPSConfig()
 	require.NoError(t, err)
 	require.Equal(t, tls.NoClientCert, tlsConf.ClientAuth)
+	require.NotNil(t, tlsConf.GetConfigForClient)
 }
 
 func TestConfigurator_OutgoingRPCConfig(t *testing.T) {
@@ -668,46 +676,38 @@ func TestConfigurator_OutgoingRPCConfig(t *testing.T) {
 }
 
 func TestConfigurator_OutgoingTLSConfigForChecks(t *testing.T) {
-	c := NewConfigurator(Config{})
-	tlsConf, err := c.OutgoingTLSConfigForCheck("")
+	c := NewConfigurator(Config{EnableAgentTLSForChecks: false})
+	tlsConf, err := c.OutgoingTLSConfigForCheck(false)
 	require.NoError(t, err)
 	require.False(t, tlsConf.InsecureSkipVerify)
 
-	c.Update(Config{EnableAgentTLSForChecks: true})
-	tlsConf, err = c.OutgoingTLSConfigForCheck("")
-	require.NoError(t, err)
-	require.False(t, tlsConf.InsecureSkipVerify)
-
-	c.AddCheck("c1", true)
-	c.Update(Config{EnableAgentTLSForChecks: true})
-	tlsConf, err = c.OutgoingTLSConfigForCheck("c1")
+	c.Update(Config{EnableAgentTLSForChecks: false})
+	tlsConf, err = c.OutgoingTLSConfigForCheck(true)
 	require.NoError(t, err)
 	require.True(t, tlsConf.InsecureSkipVerify)
 
-	c.AddCheck("c1", false)
 	c.Update(Config{EnableAgentTLSForChecks: true})
-	tlsConf, err = c.OutgoingTLSConfigForCheck("c1")
+	tlsConf, err = c.OutgoingTLSConfigForCheck(false)
 	require.NoError(t, err)
 	require.False(t, tlsConf.InsecureSkipVerify)
 
-	c.AddCheck("c1", false)
 	c.Update(Config{EnableAgentTLSForChecks: true})
-	tlsConf, err = c.OutgoingTLSConfigForCheck("c1")
+	tlsConf, err = c.OutgoingTLSConfigForCheck(true)
 	require.NoError(t, err)
-	require.False(t, tlsConf.InsecureSkipVerify)
+	require.True(t, tlsConf.InsecureSkipVerify)
 
-	c.Update(&Config{EnableAgentTLSForChecks: true, NodeName: "node", ServerName: "server"})
-	tlsConf, err = c.OutgoingTLSConfigForCheck("")
-	require.NoError(t, err)
-	require.Equal(t, "server", tlsConf.ServerName)
-
-	c.Update(&Config{EnableAgentTLSForChecks: true, ServerName: "server"})
-	tlsConf, err = c.OutgoingTLSConfigForCheck("")
+	c.Update(Config{EnableAgentTLSForChecks: true, NodeName: "node", ServerName: "server"})
+	tlsConf, err = c.OutgoingTLSConfigForCheck(false)
 	require.NoError(t, err)
 	require.Equal(t, "server", tlsConf.ServerName)
 
-	c.Update(&Config{EnableAgentTLSForChecks: true, NodeName: "node"})
-	tlsConf, err = c.OutgoingTLSConfigForCheck("")
+	c.Update(Config{EnableAgentTLSForChecks: true, ServerName: "server"})
+	tlsConf, err = c.OutgoingTLSConfigForCheck(false)
+	require.NoError(t, err)
+	require.Equal(t, "server", tlsConf.ServerName)
+
+	c.Update(Config{EnableAgentTLSForChecks: true, NodeName: "node"})
+	tlsConf, err = c.OutgoingTLSConfigForCheck(false)
 	require.NoError(t, err)
 	require.Equal(t, "node", tlsConf.ServerName)
 }
