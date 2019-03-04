@@ -1100,7 +1100,10 @@ func (d *DNSServer) lookupServiceNodes(datacenter, service, tag string, connect 
 	}
 
 	// Filter out any service nodes due to health checks
-	out.Nodes = out.Nodes.Filter(d.config.OnlyPassing)
+	// We copy the slice to avoid modifying the result if it comes from the cache
+	nodes := make(structs.CheckServiceNodes, len(out.Nodes))
+	copy(nodes, out.Nodes)
+	out.Nodes = nodes.Filter(d.config.OnlyPassing)
 	return out, nil
 }
 
