@@ -39,8 +39,6 @@ func setup(c *caddy.Controller) error {
 
 func etcdParse(c *caddy.Controller) (*Etcd, error) {
 	etc := Etcd{
-		// Don't default to a proxy for lookups.
-		//		Proxy:      proxy.NewLookup([]string{"8.8.8.8:53", "8.8.4.4:53"}),
 		PathPrefix: "skydns",
 		Ctx:        context.Background(),
 	}

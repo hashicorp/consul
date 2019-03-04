@@ -54,7 +54,7 @@ func TestZoneExternalCNAMELookupWithProxy(t *testing.T) {
        file ` + name + ` example.org {
 	       upstream
 	}
-	proxy . 8.8.8.8 8.8.4.4
+	forward . 8.8.8.8 8.8.4.4
 }
 `
 	i, udp, _, err := CoreDNSServerAndPorts(corefile)

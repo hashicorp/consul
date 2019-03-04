@@ -92,7 +92,7 @@ The `.invalid` domain is a reserved TLD (see [RFC 2606 Reserved Top Level DNS Na
 
 ~~~ corefile
 . {
-    proxy . 8.8.8.8
+    forward . 8.8.8.8
 
     template ANY ANY invalid {
       rcode NXDOMAIN
@@ -116,7 +116,7 @@ path (`dc1.example.com`) added.
 
 ~~~ corefile
 . {
-    proxy . 8.8.8.8
+    forward . 8.8.8.8
 
     template IN ANY example.com.dc1.example.com {
       rcode NXDOMAIN
@@ -129,7 +129,7 @@ A more verbose regex based equivalent would be
 
 ~~~ corefile
 . {
-    proxy . 8.8.8.8
+    forward . 8.8.8.8
 
     template IN ANY example.com {
       match "example\.com\.(dc1\.example\.com\.)$"
@@ -146,7 +146,7 @@ The regex-based version can do more complex matching/templating while zone-based
 
 ~~~ corefile
 . {
-    proxy . 8.8.8.8
+    forward . 8.8.8.8
 
     # ip-a-b-c-d.example A a.b.c.d
 
@@ -178,7 +178,7 @@ Fallthrough is needed for mixed domains where only some responses are templated.
 
 ~~~ corefile
 . {
-    proxy . 8.8.8.8
+    forward . 8.8.8.8
 
     template IN A example {
       match "^ip-(?P<a>10)-(?P<b>[0-9]*)-(?P<c>[0-9]*)-(?P<d>[0-9]*)[.]dc[.]example[.]$"
@@ -195,7 +195,7 @@ Named capture groups can be used to template one response for multiple patterns.
 
 ~~~ corefile
 . {
-    proxy . 8.8.8.8
+    forward . 8.8.8.8
 
     template IN A example {
       match ^ip-10-(?P<b>[0-9]*)-(?P<c>[0-9]*)-(?P<d>[0-9]*)[.]example[.]$
@@ -215,7 +215,7 @@ Named capture groups can be used to template one response for multiple patterns.
 
 ~~~ corefile
 . {
-    proxy . 8.8.8.8
+    forward . 8.8.8.8
 
     template IN A example {
       match ^ip-10-(?P<b>[0-9]*)-(?P<c>[0-9]*)-(?P<d>[0-9]*)[.]example[.]$

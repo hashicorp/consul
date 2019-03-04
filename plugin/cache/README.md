@@ -88,13 +88,14 @@ Proxy to Google Public DNS and only cache responses for example.org (or below).
 
 ~~~ corefile
 . {
-    proxy . 8.8.8.8:53
+    forward . 8.8.8.8:53
     cache example.org
 }
 ~~~
 
 Enable caching for all zones, keep a positive cache size of 5000 and a negative cache size of 2500:
- ~~~ corefile
+
+~~~ corefile
  . {
      cache {
          success 5000

@@ -48,7 +48,7 @@ func TestEtcdStubAndProxyLookup(t *testing.T) {
         upstream
 	fallthrough
     }
-    proxy . 8.8.8.8:53
+    forward . 8.8.8.8:53
 }`
 
 	ex, udp, _, err := CoreDNSServerAndPorts(corefile)

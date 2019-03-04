@@ -23,7 +23,7 @@ func TestMetricsServer(t *testing.T) {
 }
 
 example.com:0 {
-	proxy . 8.8.4.4:53
+	forward . 8.8.4.4:53
 	prometheus localhost:0
 }
 `
@@ -38,7 +38,7 @@ func TestMetricsRefused(t *testing.T) {
 	metricName := "coredns_dns_response_rcode_count_total"
 
 	corefile := `example.org:0 {
-	proxy . 8.8.8.8:53
+	forward . 8.8.8.8:53
 	prometheus localhost:0
 }
 `

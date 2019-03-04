@@ -4,7 +4,7 @@
 # you can start the fuzzing with: make -f Makefile.fuzz <plugin>
 # e.g.
 #
-# 	make -f Makefile.fuzz proxy
+# 	make -f Makefile.fuzz forward
 #
 # Each plugin that wants to join the fuzzing fray only needs to add a fuzz.go that calls
 # the plugins's ServeDNS and used the plugin/pkg/fuzz for the Do function.

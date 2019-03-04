@@ -10,6 +10,8 @@ github.com/aws/aws-sdk-go v1.14.17 h1:T6YqsDgkg5WA00ZOpPU701dNhlpcS/HN1cW0VpvG0M
 github.com/aws/aws-sdk-go v1.14.17/go.mod h1:ZRmQr0FajVIyZ4ZzBYKG5P3ZqPz9IHG41ZoMu1ADI3k=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973 h1:xJ4a3vCFaGF/jqvzLMYoU8P317H5OQ+Via4RmuPwCS0=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
+github.com/coredns/proxy v0.0.0-20190303110311-afc937d015b9 h1:Y1pVzULwQG8rsh4jFpxaVZfaR8qTfM5VtweoBvZ56Vs=
+github.com/coredns/proxy v0.0.0-20190303110311-afc937d015b9/go.mod h1:BXx1AhWPTL4TJqe70SRiT1MT41j8yWJGU6kEInPiDAA=
 github.com/coreos/etcd v3.3.11+incompatible h1:0gCnqKsq7XxMi69JsnbmMc1o+RJH3XH64sV9aiTTYko=
 github.com/coreos/etcd v3.3.11+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=

@@ -112,7 +112,7 @@ to appear was the *reverse* plugin that synthesis PTR and A/AAAA responses (usef
 
 The nature of the *reverse* plugin is such that it only deals with A,AAAA and PTR and then only
 for a subset of the names. Ideally you would want to layer *reverse* **in front off** another
-plugin such as *file* or *auto* (or even *proxy*). This means *reverse* handles some special
+plugin such as *file* or *auto* (or even *forward*). This means *reverse* handles some special
 reverse cases and **all other** request are handled by the backing plugin. This is exactly what
 "fallthrough" does. To keep things explicit we've opted that plugins implement such behavior
 should implement a `fallthrough` keyword.

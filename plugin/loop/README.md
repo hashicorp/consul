@@ -60,10 +60,10 @@ A forwarding loop is usually caused by:
 * Most commonly, CoreDNS forwarding requests directly to itself. e.g. via a loopback address such as `127.0.0.1`, `::1` or `127.0.0.53`
 * Less commonly, CoreDNS forwarding to an upstream server that in turn, forwards requests back to CoreDNS.
 
-To troubleshoot this problem, look in your Corefile for any `proxy` or `forward` to the zone
+To troubleshoot this problem, look in your Corefile for any `forward`s to the zone
 in which the loop was detected.  Make sure that they are not forwarding to a local address or
-to another DNS server that is forwarding requests back to CoreDNS. If `proxy` or `forward` are
- using a file (e.g. `/etc/resolv.conf`), make sure that file does not contain local addresses.
+to another DNS server that is forwarding requests back to CoreDNS. If `forward` is
+using a file (e.g. `/etc/resolv.conf`), make sure that file does not contain local addresses.
 
 ### Troubleshooting Loops In Kubernetes Clusters
 
@@ -75,7 +75,7 @@ on the host node (e.g. `systemd-resolved`).  For example, in certain configurati
 put the loopback address `127.0.0.53` as a nameserver into `/etc/resolv.conf`. Kubernetes (via `kubelet`) by default
 will pass this `/etc/resolv.conf` file to all Pods using the `default` dnsPolicy rendering them
 unable to make DNS lookups (this includes CoreDNS Pods). CoreDNS uses this `/etc/resolv.conf`
-as a list of upstreams to proxy/forward requests to.  Since it contains a loopback address, CoreDNS ends up forwarding
+as a list of upstreams to forward requests to.  Since it contains a loopback address, CoreDNS ends up forwarding
 requests to itself.
 
 There are many ways to work around this issue, some are listed here:
@@ -86,6 +86,6 @@ There are many ways to work around this issue, some are listed here:
 `/run/systemd/resolve/resolv.conf` is typically the location of the "real" `resolv.conf`,
 although this can be different depending on your distribution.
 * Disable the local DNS cache on host nodes, and restore `/etc/resolv.conf` to the original.
-* A quick and dirty fix is to edit your Corefile, replacing `proxy . /etc/resolv.conf` with
-the ip address of your upstream DNS, for example `proxy . 8.8.8.8`.  But this only fixes the issue for CoreDNS,
+* A quick and dirty fix is to edit your Corefile, replacing `forward . /etc/resolv.conf` with
+the ip address of your upstream DNS, for example `forward . 8.8.8.8`.  But this only fixes the issue for CoreDNS,
 kubelet will continue to forward the invalid `resolv.conf` to all `default` dnsPolicy Pods, leaving them unable to resolve DNS.

@@ -8,6 +8,7 @@ require (
 	github.com/Shopify/sarama v1.17.0
 	github.com/apache/thrift v0.12.0
 	github.com/aws/aws-sdk-go v1.14.17
+	github.com/coredns/proxy v0.0.0-20190303110311-afc937d015b9
 	github.com/coreos/etcd v3.3.11+incompatible
 	github.com/davecgh/go-spew v1.1.0
 	github.com/dnstap/golang-dnstap v0.0.0-20170829151710-2cf77a2b5e11

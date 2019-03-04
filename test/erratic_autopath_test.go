@@ -47,7 +47,7 @@ func TestLookupAutoPathErratic(t *testing.T) {
 		corefile := `.:0 {
 		erratic
 		autopath @erratic
-		proxy . ` + proxyPath + `
+		forward . ` + proxyPath + `
 		debug
 		}
 `
@@ -92,7 +92,7 @@ func TestAutoPathErraticNotLoaded(t *testing.T) {
 	setupProxyTargetCoreDNS(t, func(proxyPath string) {
 		corefile := `.:0 {
 	autopath @erratic
-	proxy . ` + proxyPath + `
+	forward . ` + proxyPath + `
 	debug
     }
 `

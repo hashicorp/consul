@@ -46,7 +46,7 @@ func TestProxyThreeWay(t *testing.T) {
 
 	// Proxying CoreDNS.
 	corefileProxy := `example.org:0 {
-		proxy . ` + addr1 + " " + addr2 + ` {
+		forward . ` + addr1 + " " + addr2 + ` {
 			max_fails 1
 		}
 	}`

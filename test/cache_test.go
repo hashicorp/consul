@@ -26,9 +26,9 @@ func TestLookupCache(t *testing.T) {
 	}
 	defer i.Stop()
 
-	// Start caching proxy CoreDNS that we want to test.
+	// Start caching forward CoreDNS that we want to test.
 	corefile = `example.org:0 {
-	proxy . ` + udp + `
+	forward . ` + udp + `
 	cache 10
 }
 `

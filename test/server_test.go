@@ -21,7 +21,7 @@ func TestProxyToChaosServer(t *testing.T) {
 	defer chaos.Stop()
 
 	corefileProxy := `.:0 {
-		proxy . ` + udpChaos + `
+		forward . ` + udpChaos + `
 }
 `
 	proxy, udp, _, err := CoreDNSServerAndPorts(corefileProxy)
