@@ -1331,7 +1331,7 @@ func (s *Serf) handleQueryResponse(resp *messageQueryResponse) {
 
 // handleNodeConflict is invoked when a join detects a conflict over a name.
 // This means two different nodes (IP/Port) are claiming the same name. Memberlist
-// will reject the "new" node mapping, but we can still be notified
+// will reject the "new" node mapping, but we can still be notified.
 func (s *Serf) handleNodeConflict(existing, other *memberlist.Node) {
 	// Log a basic warning if the node is not us...
 	if existing.Name != s.config.NodeName {

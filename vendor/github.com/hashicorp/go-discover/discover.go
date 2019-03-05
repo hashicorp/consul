@@ -15,9 +15,11 @@ import (
 	"github.com/hashicorp/go-discover/provider/digitalocean"
 	"github.com/hashicorp/go-discover/provider/gce"
 	"github.com/hashicorp/go-discover/provider/os"
+	"github.com/hashicorp/go-discover/provider/packet"
 	"github.com/hashicorp/go-discover/provider/scaleway"
 	"github.com/hashicorp/go-discover/provider/softlayer"
 	"github.com/hashicorp/go-discover/provider/triton"
+	"github.com/hashicorp/go-discover/provider/vsphere"
 )
 
 // Provider has lookup functions for meta data in a
@@ -49,6 +51,8 @@ var Providers = map[string]Provider{
 	"scaleway":     &scaleway.Provider{},
 	"softlayer":    &softlayer.Provider{},
 	"triton":       &triton.Provider{},
+	"vsphere":      &vsphere.Provider{},
+	"packet":       &packet.Provider{},
 }
 
 // Discover looks up metadata in different cloud environments.

@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
 )
@@ -38,6 +39,8 @@ type Server struct {
 	RaftVersion  int
 	Addr         net.Addr
 	Status       serf.MemberStatus
+	NonVoter     bool
+	ACLs         structs.ACLMode
 
 	// If true, use TLS when connecting to this server
 	UseTLS bool
@@ -91,6 +94,13 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		return false, nil
 	}
 
+	var acls structs.ACLMode
+	if aclMode, ok := m.Tags["acls"]; ok {
+		acls = structs.ACLMode(aclMode)
+	} else {
+		acls = structs.ACLModeUnknown
+	}
+
 	segmentAddrs := make(map[string]string)
 	segmentPorts := make(map[string]int)
 	for name, value := range m.Tags {
@@ -139,6 +149,9 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		}
 	}
 
+	// Check if the server is a non voter
+	_, nonVoter := m.Tags["nonvoter"]
+
 	addr := &net.TCPAddr{IP: m.Addr, Port: port}
 
 	parts := &Server{
@@ -158,6 +171,8 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		RaftVersion:  raftVsn,
 		Status:       m.Status,
 		UseTLS:       useTLS,
+		NonVoter:     nonVoter,
+		ACLs:         acls,
 	}
 	return true, parts
 }

@@ -46,8 +46,9 @@ The first definition adds a host-level check named "ping". This check runs
 on a 30 second interval, invoking `ping -c1 google.com`. On a `script`-based
 health check, the check runs as the same user that started the Consul process.
 If the command exits with an exit code >= 2, then the check will be flagged as
-failing and the service will be considered unhealthy. This is the contract
-for any `script`-based health check.
+failing and the service will be considered unhealthy. An exit code of 1 will
+be considered as warning state. This is the contract for any
+[`script`-based health check](/docs/agent/checks.html#check-scripts).
 
 The second command modifies the service named `web`, adding a check that sends a
 request every 10 seconds via curl to verify that the web server is accessible.

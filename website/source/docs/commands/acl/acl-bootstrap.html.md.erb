@@ -1,0 +1,37 @@
+---
+layout: "docs"
+page_title: "Commands: ACL Bootstrap"
+sidebar_current: "docs-commands-acl-bootstrap"
+---
+
+# Consul ACL Bootstrap
+
+Command: `consul acl bootstrap`
+
+The `acl bootstrap` command will request Consul to generate a new token with unlimited privileges to use
+for management purposes and output its details. This can only be done once and afterwards bootstrapping
+will be disabled. If all tokens are lost and you need to bootstrap again you can follow the bootstrap
+[reset procedure](https://learn.hashicorp.com/consul/advanced/day-1-operations/acl-guide#ensure-the-acl-system-is-configured-properly).
+
+The ACL system can also be bootstrapped via the [HTTP API](/api/acl/acl.html#bootstrap-acls).
+
+## Usage
+
+Usage: `consul acl bootstrap [options]`
+
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
+
+The output looks like this:
+
+```text
+AccessorID:   4d123dff-f460-73c3-02c4-8dd64d136e01
+SecretID:     86cddfb9-2760-d947-358d-a2811156bf31
+Description:  Bootstrap Token (Global Management)
+Local:        false
+Create Time:  2018-10-22 11:27:04.479026 -0400 EDT
+Policies:
+   00000000-0000-0000-0000-000000000001 - global-management
+```

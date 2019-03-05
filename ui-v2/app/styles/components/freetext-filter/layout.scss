@@ -1,0 +1,17 @@
+%freetext-filter span {
+  visibility: hidden;
+}
+%freetext-filter label {
+  display: block;
+  height: 33px;
+}
+%freetext-filter input {
+  width: calc(100% - 2.7em);
+  height: 100%;
+  padding: 8px 10px;
+}
+%freetext-filter span {
+  width: 2.7em;
+  height: 100%;
+  float: right;
+}

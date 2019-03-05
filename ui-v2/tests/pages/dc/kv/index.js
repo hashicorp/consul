@@ -1,6 +1,6 @@
 export default function(visitable, deletable, creatable, clickable, attribute, collection) {
   return creatable({
-    visit: visitable('/:dc/kv'),
+    visit: visitable(['/:dc/kv/:kv', '/:dc/kv'], str => str),
     kvs: collection(
       '[data-test-tabular-row]',
       deletable({

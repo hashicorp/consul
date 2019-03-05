@@ -1,0 +1,10 @@
+%anchor:hover,
+%anchor:focus {
+  text-decoration: underline;
+}
+%anchor,
+%anchor:hover,
+%anchor:focus,
+%anchor:active {
+  color: $ui-color-action;
+}

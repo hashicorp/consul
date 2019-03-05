@@ -53,6 +53,9 @@ is used if configuring in an agent configuration file.
     bootstrap with the ".consul" TLD. The cluster identifier can be found
     using the [CA List Roots endpoint](/api/connect/ca.html#list-ca-root-certificates).
 
+There are also [common CA configuration options](/docs/agent/options.html#common-ca-config-options)
+that are supported by all CA providers.
+
 ## Specifying a Custom Private Key and Root Certificate
 
 By default, a root certificate and private key will be automatically
@@ -69,6 +72,7 @@ $ curl localhost:8500/v1/connect/ca/configuration
 {
     "Provider": "consul",
     "Config": {
+        "LeafCertTTL": "72h",
         "RotationPeriod": "2160h"
     },
     "CreateIndex": 5,
@@ -99,6 +103,7 @@ $ jq -n --arg key "$(cat root.key)"  --arg cert "$(cat root.crt)" '
 {
     "Provider": "consul",
     "Config": {
+        "LeafCertTTL": "72h",
         "PrivateKey": $key,
         "RootCert": $cert,
         "RotationPeriod": "2160h"
@@ -113,6 +118,7 @@ $ cat ca_config.json
 {
   "Provider": "consul",
   "Config": {
+    "LeafCertTTL": "72h",
     "PrivateKey": "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEArqiy1c3pbT3cSkjdEM1APALUareU...",
     "RootCert": "-----BEGIN CERTIFICATE-----\nMIIDijCCAnKgAwIBAgIJAOFZ66em1qC7MA0GCSqGSIb3...",
     "RotationPeriod": "2160h"

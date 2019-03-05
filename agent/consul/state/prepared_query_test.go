@@ -11,8 +11,8 @@ import (
 
 func TestStateStore_PreparedQuery_isUUID(t *testing.T) {
 	cases := map[string]bool{
-		"":     false,
-		"nope": false,
+		"":                                      false,
+		"nope":                                  false,
 		"f004177f-2c28-83b7-4229-eacc25fe55d1":  true,
 		"F004177F-2C28-83B7-4229-EACC25FE55D1":  true,
 		"x004177f-2c28-83b7-4229-eacc25fe55d1":  false, // Bad hex

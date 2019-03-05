@@ -18,8 +18,8 @@ export default Model.extend({
   // preferably removeNull would be done in this layer also as if a property is `null`
   // default Values don't kick in, which also explains `Tags` elsewhere
   Value: attr('string'), //, {defaultValue: function() {return '';}}
-  CreateIndex: attr('string'),
-  ModifyIndex: attr('string'),
+  CreateIndex: attr('number'),
+  ModifyIndex: attr('number'),
   Session: attr('string'),
   Datacenter: attr('string'),
 

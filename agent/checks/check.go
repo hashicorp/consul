@@ -38,6 +38,13 @@ const (
 	UserAgent = "Consul Health Check"
 )
 
+// RPC is an interface that an RPC client must implement. This is a helper
+// interface that is implemented by the agent delegate for checks that need
+// to make RPC calls.
+type RPC interface {
+	RPC(method string, args interface{}, reply interface{}) error
+}
+
 // CheckNotifier interface is used by the CheckMonitor
 // to notify when a check has a status update. The update
 // should take care to be idempotent.

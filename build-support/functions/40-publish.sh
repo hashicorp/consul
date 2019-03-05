@@ -266,8 +266,15 @@ function confirm_consul_info {
          err "ERROR: Failed to determine the ui version from the index.html file"
          return 1
       fi
-      
       status "UI Version: ${ui_vers}"
+      local ui_logo_type=$(ui_logo_type "${tfile}")
+      if test $? -ne 0
+      then
+         err "ERROR: Failed to determine the ui logo/binary type from the index.html file"
+         return 1
+      fi
+      status "UI Logo: ${ui_logo_type}"
+      
       echo ""
       local answer=""
       
@@ -275,16 +282,16 @@ function confirm_consul_info {
       do
          case "${answer}" in
             [yY]* )
-               status "Consul UI Version Accepted"
+               status "Consul UI/Logo Version Accepted"
                break
                ;;
             [nN]* )
-               err "Consul UI Version Rejected"
+               err "Consul UI/Logo Version Rejected"
                return 1
                break
                ;;
             * )
-               read -p "Is this Consul UI Version correct? [y/n]: " answer
+               read -p "Is this Consul UI/Logo Version correct? [y/n]: " answer
                ;;
          esac
       done

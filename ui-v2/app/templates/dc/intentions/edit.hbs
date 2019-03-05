@@ -1,4 +1,7 @@
 {{#app-view class="acl edit" loading=isLoading}}
+    {{#block-slot 'notification' as |status type|}}
+      {{partial 'dc/intentions/notifications'}}
+    {{/block-slot}}
     {{#block-slot 'breadcrumbs'}}
         <ol>
             <li><a data-test-back href={{href-to 'dc.intentions'}}>All Intentions</a></li>
@@ -21,13 +24,13 @@
                     Copy UUID
                 {{/copy-button}}
             {{/block-slot}}
-            {{#block-slot 'success'}}
-                <p>
+            {{#block-slot 'success' as |transition|}}
+                <p class={{transition}}>
                     Copied UUID!
                 </p>
             {{/block-slot}}
-            {{#block-slot 'error'}}
-                <p>
+            {{#block-slot 'error' as |transition|}}
+                <p class={{transition}}>
                     Sorry, something went wrong!
                 </p>
             {{/block-slot}}

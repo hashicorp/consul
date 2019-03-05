@@ -1,0 +1,77 @@
+<label data-test-new-policy class="type-dialog" for="new-policy-toggle">
+  <span>Create new policy</span>
+  {{#modal-dialog data-test-policy-form onclose=(action 'sendClearPolicy') onopen=(action 'refreshCodeEditor' '#policy_rules') name="new-policy-toggle"}}
+    {{#block-slot 'header'}}
+      <h2>New Policy</h2>
+    {{/block-slot}}
+    {{#block-slot 'body'}}
+      {{#with policy as |item|}}
+        {{partial 'dc/acls/policies/fieldsets'}}
+      {{/with}}
+    {{/block-slot}}
+    {{#block-slot 'actions' as |close|}}
+      <button type="submit" {{action 'sendCreatePolicy' policy item.Policies close}} disabled={{if (or policy.isSaving policy.isPristine policy.isInvalid) 'disabled'}}>
+        {{#if policy.isSaving }}
+          <div class="progress indeterminate"></div>
+        {{/if}}
+        <span>Create and apply</span>
+      </button>
+      <button type="reset" disabled={{if policy.isSaving 'disabled'}} {{action close}}>Cancel</button>
+    {{/block-slot}}
+  {{/modal-dialog}}
+</label>
+<label class="type-text" data-test-policy-element>
+  <span>Apply an existing policy</span>
+      {{#power-select
+        options=(difference items item.Policies item.Policies.length)
+        searchField='Name'
+        selected=DestinationName
+        searchPlaceholder='Type policy name'
+        onchange=(action 'change' 'Policy') as |policy|
+      }}
+        {{policy.Name}}
+      {{/power-select}}
+</label>
+{{#if (gt item.Policies.length 0)}}
+    {{#with item as |token| }}
+      {{#tabular-details
+          data-test-policies
+          onchange=(action 'change')
+          name="Details"
+          items=(sort-by 'CreateTime:desc' 'Name:asc' item.Policies) as |item index|
+      }}
+        {{#block-slot 'header'}}
+          <th>Name</th>
+          <th>Datacenters</th>
+        {{/block-slot}}
+        {{#block-slot 'row'}}
+          <td>
+            <a href={{href-to 'dc.acls.policies.edit' item.ID}}>{{item.Name}}</a>
+          </td>
+          <td>
+            {{if (not item.isSaving) (join ', ' (policy/datacenters item)) 'Saving...'}}
+          </td>
+        {{/block-slot}}
+        {{#block-slot 'details'}}
+            <label class="type-text">
+              <span>Rules <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
+              {{code-editor readonly=true value=item.Rules}}
+            </label>
+            <div>
+              {{#confirmation-dialog message='Are you sure you want to remove this policy from this token?'}}
+                {{#block-slot 'action' as |confirm|}}
+                  <button data-test-delete type="button" class="type-delete" {{action confirm 'remove' item token.Policies}}>Remove</button>
+                {{/block-slot}}
+                {{#block-slot 'dialog' as |execute cancel message|}}
+                  <p>
+                    {{message}}
+                  </p>
+                  <button type="button" class="type-delete" {{action execute}}>Confirm remove</button>
+                  <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
+                {{/block-slot}}
+              {{/confirmation-dialog}}
+            </div>
+        {{/block-slot}}
+      {{/tabular-details}}
+    {{/with}}
+{{/if}}

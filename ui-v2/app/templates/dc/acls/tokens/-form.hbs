@@ -1,0 +1,27 @@
+<form>
+{{#if (not (token/is-legacy item))}}
+  {{partial 'dc/acls/tokens/fieldsets'}}
+{{else}}
+  {{partial 'dc/acls/tokens/fieldsets-legacy'}}
+{{/if}}
+    {{!TODO: Make this into a slotted component}}
+    <div>
+{{#if create }}
+  {{! new tokens can be saved without you filling anything in, old tokens remain using isPristine }}
+        <button type="submit" {{ action "create" item}} disabled={{if (or (and (token/is-legacy item) item.isPristine) item.isInvalid) 'disabled'}}>Save</button>
+{{ else }}
+        <button type="submit" {{ action "update" item}} disabled={{if item.isInvalid 'disabled'}}>Save</button>
+{{/if}}
+        <button type="reset" {{ action "cancel" item}}>Cancel</button>
+{{# if (and (not create) (not (token/is-anonymous item)) (not-eq item.AccessorID token.AccessorID) ) }}
+        {{#confirmation-dialog message='Are you sure you want to delete this Token?'}}
+            {{#block-slot 'action' as |confirm|}}
+                <button type="button" data-test-delete class="type-delete" {{action confirm 'delete' item}}>Delete</button>
+            {{/block-slot}}
+            {{#block-slot 'dialog' as |execute cancel message|}}
+              {{delete-confirmation message=message execute=execute cancel=cancel}}
+            {{/block-slot}}
+        {{/confirmation-dialog}}
+{{/if}}
+    </div>
+</form>

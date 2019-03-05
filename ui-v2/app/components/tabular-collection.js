@@ -3,8 +3,13 @@ import needsRevalidate from 'ember-collection/utils/needs-revalidate';
 import identity from 'ember-collection/utils/identity';
 import Grid from 'ember-collection/layouts/grid';
 import SlotsMixin from 'ember-block-slots';
+import WithResizing from 'consul-ui/mixins/with-resizing';
 import style from 'ember-computed-style';
-import qsaFactory from 'consul-ui/utils/qsa-factory';
+import qsaFactory from 'consul-ui/utils/dom/qsa-factory';
+import sibling from 'consul-ui/utils/dom/sibling';
+import closest from 'consul-ui/utils/dom/closest';
+import clickFirstAnchorFactory from 'consul-ui/utils/dom/click-first-anchor';
+const clickFirstAnchor = clickFirstAnchorFactory(closest);
 
 import { computed, get, set } from '@ember/object';
 /**
@@ -21,14 +26,6 @@ import { computed, get, set } from '@ember/object';
 
 // ember doesn't like you using `$` hence `$$`
 const $$ = qsaFactory();
-// basic pseudo CustomEvent interface
-// TODO: use actual custom events once I've reminded
-// myself re: support/polyfills
-const createSizeEvent = function(detail) {
-  return {
-    detail: { width: window.innerWidth, height: window.innerHeight },
-  };
-};
 // need to copy Cell in wholesale as there is no way to import it
 // there is no change made to `Cell` here, its only here as its
 // private in `ember-collection`
@@ -60,26 +57,6 @@ class ZIndexedGrid extends Grid {
     return style;
   }
 }
-// basic DOM closest utility to cope with no support
-// TODO: instead of degrading gracefully
-// add a while polyfill for closest
-const closest = function(sel, el) {
-  try {
-    return el.closest(sel);
-  } catch (e) {
-    return;
-  }
-};
-const sibling = function(el, name) {
-  let sibling = el;
-  while ((sibling = sibling.nextSibling)) {
-    if (sibling.nodeType === 1) {
-      if (sibling.nodeName.toLowerCase() === name) {
-        return sibling;
-      }
-    }
-  }
-};
 /**
  * The tabular-collection can contain 'actions' the UI for which
  * uses dropdown 'action groups', so a group of different actions.
@@ -136,59 +113,47 @@ const change = function(e) {
     }
   }
 };
-export default Component.extend(SlotsMixin, {
+export default Component.extend(SlotsMixin, WithResizing, {
   tagName: 'table',
+  classNames: ['dom-recycling'],
   attributeBindings: ['style'],
   width: 1150,
   height: 500,
   style: style('getStyle'),
   checked: null,
+  hasCaption: false,
   init: function() {
     this._super(...arguments);
     this.change = change.bind(this);
     this.confirming = [];
     // TODO: The row height should auto calculate properly from the CSS
     this['cell-layout'] = new ZIndexedGrid(get(this, 'width'), 50);
-    this.handler = () => {
-      this.resize(createSizeEvent());
-    };
   },
   getStyle: computed('height', function() {
     return {
       height: get(this, 'height'),
     };
   }),
-  willRender: function() {
-    this._super(...arguments);
-    this.set('hasActions', this._isRegistered('actions'));
-  },
-  didInsertElement: function() {
-    this._super(...arguments);
-    // TODO: Consider moving all DOM lookups here
-    // this seems to be the earliest place I can get them
-    window.addEventListener('resize', this.handler);
-    this.didAppear();
-  },
-  willDestroyElement: function() {
-    window.removeEventListener('resize', this.handler);
-  },
-  didAppear: function() {
-    this.handler();
-  },
   resize: function(e) {
-    const $tbody = [...$$('tbody', this.element)][0];
+    const $tbody = this.element;
     const $appContent = [...$$('main > div')][0];
     if ($appContent) {
+      const border = 1;
       const rect = $tbody.getBoundingClientRect();
       const $footer = [...$$('footer[role="contentinfo"]')][0];
-      const space = rect.top + $footer.clientHeight;
-      const height = new Number(e.detail.height - space);
+      const space = rect.top + $footer.clientHeight + border;
+      const height = e.detail.height - space;
       this.set('height', Math.max(0, height));
       // TODO: The row height should auto calculate properly from the CSS
       this['cell-layout'] = new ZIndexedGrid($appContent.clientWidth, 50);
       this.updateItems();
       this.updateScrollPosition();
     }
+  },
+  willRender: function() {
+    this._super(...arguments);
+    set(this, 'hasCaption', this._isRegistered('caption'));
+    set(this, 'hasActions', this._isRegistered('actions'));
   },
   // `ember-collection` bug workaround
   // https://github.com/emberjs/ember-collection/issues/138
@@ -308,26 +273,7 @@ export default Component.extend(SlotsMixin, {
   },
   actions: {
     click: function(e) {
-      // click on row functionality
-      // so if you click the actual row but not a link
-      // find the first link and fire that instead
-      const name = e.target.nodeName.toLowerCase();
-      switch (name) {
-        case 'input':
-        case 'label':
-        case 'a':
-        case 'button':
-          return;
-      }
-      const $a = closest('tr', e.target).querySelector('a');
-      if ($a) {
-        const click = new MouseEvent('click', {
-          bubbles: true,
-          cancelable: true,
-          view: window,
-        });
-        $a.dispatchEvent(click);
-      }
+      return clickFirstAnchor(e);
     },
   },
 });

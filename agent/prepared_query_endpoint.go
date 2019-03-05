@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -119,21 +120,42 @@ func (s *HTTPServer) preparedQueryExecute(id string, resp http.ResponseWriter, r
 
 	var reply structs.PreparedQueryExecuteResponse
 	defer setMeta(resp, &reply.QueryMeta)
-RETRY_ONCE:
-	if err := s.agent.RPC("PreparedQuery.Execute", &args, &reply); err != nil {
-		// We have to check the string since the RPC sheds
-		// the specific error type.
-		if err.Error() == consul.ErrQueryNotFound.Error() {
-			resp.WriteHeader(http.StatusNotFound)
-			fmt.Fprint(resp, err.Error())
-			return nil, nil
+
+	if args.QueryOptions.UseCache {
+		raw, m, err := s.agent.cache.Get(cachetype.PreparedQueryName, &args)
+		if err != nil {
+			// Don't return error if StaleIfError is set and we are within it and had
+			// a cached value.
+			if raw != nil && m.Hit && args.QueryOptions.StaleIfError > m.Age {
+				// Fall through to the happy path below
+			} else {
+				return nil, err
+			}
 		}
-		return nil, err
-	}
-	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < reply.LastContact {
-		args.AllowStale = false
-		args.MaxStaleDuration = 0
-		goto RETRY_ONCE
+		defer setCacheMeta(resp, &m)
+		r, ok := raw.(*structs.PreparedQueryExecuteResponse)
+		if !ok {
+			// This should never happen, but we want to protect against panics
+			return nil, fmt.Errorf("internal error: response type not correct")
+		}
+		reply = *r
+	} else {
+	RETRY_ONCE:
+		if err := s.agent.RPC("PreparedQuery.Execute", &args, &reply); err != nil {
+			// We have to check the string since the RPC sheds
+			// the specific error type.
+			if err.Error() == consul.ErrQueryNotFound.Error() {
+				resp.WriteHeader(http.StatusNotFound)
+				fmt.Fprint(resp, err.Error())
+				return nil, nil
+			}
+			return nil, err
+		}
+		if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < reply.LastContact {
+			args.AllowStale = false
+			args.MaxStaleDuration = 0
+			goto RETRY_ONCE
+		}
 	}
 	reply.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 

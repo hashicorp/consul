@@ -1,0 +1,91 @@
+/* decor */
+%button {
+  @extend %user-select-none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+%button:disabled {
+  cursor: default;
+  box-shadow: none;
+}
+%copy-button {
+  @extend %button, %with-clipboard;
+  min-height: 17px;
+}
+%copy-button:not(:empty) {
+  padding-left: 38px !important;
+}
+%primary-button,
+%secondary-button,
+%dangerous-button {
+  @extend %button;
+  border-width: 1px;
+  border-radius: $radius-small;
+  box-shadow: 0 3px 1px 0 rgba($ui-black, 0.12);
+}
+/* color */
+%copy-button {
+  color: $ui-color-action;
+  background-color: $ui-color-transparent;
+}
+%copy-button:hover:not(:disabled):not(:active),
+%copy-button:focus {
+  color: $ui-color-action;
+  background-color: $ui-gray-050;
+}
+%copy-button:disabled {
+}
+%copy-button:active {
+  background-color: $ui-gray-200;
+}
+%primary-button {
+  @extend %frame-blue-800;
+}
+%primary-button:hover:not(:disabled):not(:active),
+%primary-button:focus {
+  @extend %frame-blue-700;
+}
+%primary-button:disabled {
+  @extend %frame-blue-600;
+}
+%primary-button:hover:active {
+  @extend %frame-blue-900;
+}
+/**/
+%secondary-button {
+  /* %frame-gray-something */
+  color: $ui-gray-800;
+  background-color: $ui-gray-050;
+  border-color: $ui-gray-300;
+  border-style: solid;
+}
+%secondary-button:hover:not(:disabled):not(:active),
+%secondary-button:focus {
+  /* %frame-gray-something */
+  background-color: $ui-white;
+  color: $ui-gray-800;
+  border-color: $ui-gray-700;
+}
+%secondary-button:disabled {
+  color: $ui-gray-600;
+}
+%secondary-button:active {
+  /* %frame-gray-something */
+  background-color: $ui-gray-200;
+  color: $ui-gray-800;
+  border-color: $ui-gray-700;
+}
+/**/
+%dangerous-button {
+  @extend %frame-red-300;
+}
+%dangerous-button:hover:not(:disabled):not(:active),
+%dangerous-button:focus {
+  @extend %frame-red-700;
+}
+%dangerous-button:disabled {
+  @extend %frame-red-600;
+}
+%dangerous-button:hover:active {
+  @extend %frame-red-900;
+}

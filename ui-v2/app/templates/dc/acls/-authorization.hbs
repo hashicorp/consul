@@ -1,0 +1,13 @@
+<p>
+  The Access Control List (ACL) system, which controls permissions for this UI, is enabled for this cluster. Your token ID will be saved locally and persist through visits.
+</p>
+<form>
+    <fieldset>
+        <label class="type-text">
+            <span>SecretID or Token</span>
+            {{input type='password' value=secret name="secret" placeholder="SecretID or Token"}}
+        </label>
+    </fieldset>
+    {{! authorize is in the routes/dc/acls.js route }}
+    <button type="submit" {{action 'authorize' secret}}>Save</button>
+</form>

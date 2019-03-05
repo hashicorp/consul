@@ -1,4 +1,5 @@
 {{#if (gt items.length 0) }}
+    <input type="checkbox" id="toolbar-toggle" />
     <form class="filter-bar">
         {{freetext-filter onchange=(action 'filter') value=filter.s placeholder="Search by name/port"}}
     </form>
@@ -15,7 +16,10 @@
         {{/block-slot}}
         {{#block-slot 'row'}}
             <td data-test-service-name="{{item.Service}}">
-                <a href={{href-to 'dc.services.show' item.Service }}>{{item.Service}}</a>
+              <a href={{href-to 'dc.services.show' item.Service}}>
+                <span data-test-external-source="{{service/external-source item}}" style={{{ concat 'background-image: ' (css-var (concat '--' (service/external-source item) '-color-svg') 'none')}}}></span>
+                {{item.Service}}{{#if (not-eq item.ID item.Service) }}<em data-test-service-id="{{item.ID}}">({{item.ID}})</em>{{/if}}
+              </a>
             </td>
             <td data-test-service-port="{{item.Port}}" class="port">
                 {{item.Port}}

@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"sync"
@@ -76,6 +77,67 @@ func TestCacheGet_initError(t *testing.T) {
 
 	// Sleep a tiny bit just to let maybe some background calls happen
 	// then verify that we still only got the one call
+	time.Sleep(20 * time.Millisecond)
+	typ.AssertExpectations(t)
+}
+
+// Test a cached error is replaced by a successful result. See
+// https://github.com/hashicorp/consul/issues/4480
+func TestCacheGet_cachedErrorsDontStick(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	typ := TestType(t)
+	defer typ.AssertExpectations(t)
+	c := TestCache(t)
+	c.RegisterType("t", typ, nil)
+
+	// Configure the type
+	fetcherr := fmt.Errorf("initial error")
+	// First fetch errors, subsequent fetches are successful and then block
+	typ.Static(FetchResult{}, fetcherr).Times(1)
+	typ.Static(FetchResult{Value: 42, Index: 123}, nil).Times(1)
+	// We trigger this to return same value to simulate a timeout.
+	triggerCh := make(chan time.Time)
+	typ.Static(FetchResult{Value: 42, Index: 123}, nil).WaitUntil(triggerCh)
+
+	// Get, should fetch and get error
+	req := TestRequest(t, RequestInfo{Key: "hello"})
+	result, meta, err := c.Get("t", req)
+	require.Error(err)
+	require.Nil(result)
+	require.False(meta.Hit)
+
+	// Get, should fetch again since our last fetch was an error, but get success
+	result, meta, err = c.Get("t", req)
+	require.NoError(err)
+	require.Equal(42, result)
+	require.False(meta.Hit)
+
+	// Now get should block until timeout and then get the same response NOT the
+	// cached error.
+	getCh1 := TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{
+		Key:      "hello",
+		MinIndex: 123,
+		// We _don't_ set a timeout here since that doesn't trigger the bug - the
+		// bug occurs when the Fetch call times out and returns the same value when
+		// an error is set. If it returns a new value the blocking loop works too.
+	}))
+	time.AfterFunc(50*time.Millisecond, func() {
+		// "Timeout" the Fetch after a short time.
+		close(triggerCh)
+	})
+	select {
+	case result := <-getCh1:
+		t.Fatalf("result or error returned before an update happened. "+
+			"If this is nil look above for the error log: %v", result)
+	case <-time.After(100 * time.Millisecond):
+		// It _should_ keep blocking for a new value here
+	}
+
+	// Sleep a tiny bit just to let maybe some background calls happen
+	// then verify the calls.
 	time.Sleep(20 * time.Millisecond)
 	typ.AssertExpectations(t)
 }
@@ -317,9 +379,17 @@ func TestCacheGet_emptyFetchResult(t *testing.T) {
 	c := TestCache(t)
 	c.RegisterType("t", typ, nil)
 
+	stateCh := make(chan int, 1)
+
 	// Configure the type
-	typ.Static(FetchResult{Value: 42, Index: 1}, nil).Times(1)
-	typ.Static(FetchResult{Value: nil}, nil)
+	typ.Static(FetchResult{Value: 42, State: 31, Index: 1}, nil).Times(1)
+	// Return different State, it should NOT be ignored
+	typ.Static(FetchResult{Value: nil, State: 32}, nil).Run(func(args mock.Arguments) {
+		// We should get back the original state
+		opts := args.Get(0).(FetchOptions)
+		require.NotNil(opts.LastResult)
+		stateCh <- opts.LastResult.State.(int)
+	})
 
 	// Get, should fetch
 	req := TestRequest(t, RequestInfo{Key: "hello"})
@@ -335,6 +405,29 @@ func TestCacheGet_emptyFetchResult(t *testing.T) {
 	require.NoError(err)
 	require.Equal(42, result)
 	require.False(meta.Hit)
+
+	// State delivered to second call should be the result from first call.
+	select {
+	case state := <-stateCh:
+		require.Equal(31, state)
+	case <-time.After(20 * time.Millisecond):
+		t.Fatal("timed out")
+	}
+
+	// Next request should get the SECOND returned state even though the fetch
+	// returns nil and so the previous result is used.
+	req = TestRequest(t, RequestInfo{
+		Key: "hello", MinIndex: 1, Timeout: 100 * time.Millisecond})
+	result, meta, err = c.Get("t", req)
+	require.NoError(err)
+	require.Equal(42, result)
+	require.False(meta.Hit)
+	select {
+	case state := <-stateCh:
+		require.Equal(32, state)
+	case <-time.After(20 * time.Millisecond):
+		t.Fatal("timed out")
+	}
 
 	// Sleep a tiny bit just to let maybe some background calls happen
 	// then verify that we still only got the one call
@@ -631,12 +724,19 @@ func TestCacheGet_expire(t *testing.T) {
 	require.Equal(42, result)
 	require.False(meta.Hit)
 
+	// Wait for a non-trivial amount of time to sanity check the age increases at
+	// least this amount. Note that this is not a fudge for some timing-dependent
+	// background work it's just ensuring a non-trivial time elapses between the
+	// request above and below serilaly in this thread so short time is OK.
+	time.Sleep(5 * time.Millisecond)
+
 	// Get, should not fetch, verified via the mock assertions above
 	req = TestRequest(t, RequestInfo{Key: "hello"})
 	result, meta, err = c.Get("t", req)
 	require.NoError(err)
 	require.Equal(42, result)
 	require.True(meta.Hit)
+	require.True(meta.Age > 5*time.Millisecond)
 
 	// Sleep for the expiry
 	time.Sleep(500 * time.Millisecond)
@@ -708,6 +808,54 @@ func TestCacheGet_expireResetGet(t *testing.T) {
 	typ.AssertExpectations(t)
 }
 
+// Test a Get with a request that returns the same cache key across
+// two different "types" returns two separate results.
+func TestCacheGet_duplicateKeyDifferentType(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	typ := TestType(t)
+	defer typ.AssertExpectations(t)
+	typ2 := TestType(t)
+	defer typ2.AssertExpectations(t)
+
+	c := TestCache(t)
+	c.RegisterType("t", typ, nil)
+	c.RegisterType("t2", typ2, nil)
+
+	// Configure the types
+	typ.Static(FetchResult{Value: 100}, nil)
+	typ2.Static(FetchResult{Value: 200}, nil)
+
+	// Get, should fetch
+	req := TestRequest(t, RequestInfo{Key: "foo"})
+	result, meta, err := c.Get("t", req)
+	require.NoError(err)
+	require.Equal(100, result)
+	require.False(meta.Hit)
+
+	// Get from t2 with same key, should fetch
+	req = TestRequest(t, RequestInfo{Key: "foo"})
+	result, meta, err = c.Get("t2", req)
+	require.NoError(err)
+	require.Equal(200, result)
+	require.False(meta.Hit)
+
+	// Get from t again with same key, should cache
+	req = TestRequest(t, RequestInfo{Key: "foo"})
+	result, meta, err = c.Get("t", req)
+	require.NoError(err)
+	require.Equal(100, result)
+	require.True(meta.Hit)
+
+	// Sleep a tiny bit just to let maybe some background calls happen
+	// then verify that we still only got the one call
+	time.Sleep(20 * time.Millisecond)
+	typ.AssertExpectations(t)
+	typ2.AssertExpectations(t)
+}
+
 // Test that Get partitions the caches based on DC so two equivalent requests
 // to different datacenters are automatically cached even if their keys are
 // the same.
@@ -757,4 +905,285 @@ func (t *testPartitionType) Fetch(opts FetchOptions, r Request) (FetchResult, er
 	return FetchResult{
 		Value: fmt.Sprintf("%s%s", info.Datacenter, info.Token),
 	}, nil
+}
+
+func (t *testPartitionType) SupportsBlocking() bool {
+	return true
+}
+
+// Test that background refreshing reports correct Age in failure and happy
+// states.
+func TestCacheGet_refreshAge(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	typ := TestType(t)
+	defer typ.AssertExpectations(t)
+	c := TestCache(t)
+	c.RegisterType("t", typ, &RegisterOptions{
+		Refresh:        true,
+		RefreshTimer:   0,
+		RefreshTimeout: 5 * time.Minute,
+	})
+
+	// Configure the type
+	var index, shouldFail uint64
+
+	typ.On("Fetch", mock.Anything, mock.Anything).
+		Return(func(o FetchOptions, r Request) FetchResult {
+			idx := atomic.LoadUint64(&index)
+			if atomic.LoadUint64(&shouldFail) == 1 {
+				t.Logf("Failing Fetch at index %d", idx)
+				return FetchResult{Value: nil, Index: idx}
+			}
+			if o.MinIndex == idx {
+				t.Logf("Sleeping Fetch at index %d", idx)
+				// Simulate waiting for a new value
+				time.Sleep(5 * time.Millisecond)
+			}
+			t.Logf("Returning Fetch at index %d", idx)
+			return FetchResult{Value: int(idx * 2), Index: idx}
+		}, func(o FetchOptions, r Request) error {
+			if atomic.LoadUint64(&shouldFail) == 1 {
+				return errors.New("test error")
+			}
+			return nil
+		})
+
+	// Set initial index/value
+	atomic.StoreUint64(&index, 4)
+
+	// Fetch
+	resultCh := TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{Key: "hello"}))
+	TestCacheGetChResult(t, resultCh, 8)
+
+	{
+		// Wait a few milliseconds after initial fetch to check age is not reporting
+		// actual age.
+		time.Sleep(2 * time.Millisecond)
+
+		// Fetch again, non-blocking
+		result, meta, err := c.Get("t", TestRequest(t, RequestInfo{Key: "hello"}))
+		require.NoError(err)
+		require.Equal(8, result)
+		require.True(meta.Hit)
+		// Age should be zero since background refresh was "active"
+		require.Equal(time.Duration(0), meta.Age)
+	}
+
+	// Now fail the next background sync
+	atomic.StoreUint64(&shouldFail, 1)
+
+	// Wait until the current request times out and starts failing. The request
+	// should take a maximum of 5ms to return but give it some headroom to allow
+	// it to finish 5ms sleep, unblock and next background request to be attemoted
+	// and fail and state updated in noisy CI... We might want to retry if this is
+	// still flaky but see if a longer wait is sufficient for now.
+	time.Sleep(50 * time.Millisecond)
+
+	var lastAge time.Duration
+	{
+		result, meta, err := c.Get("t", TestRequest(t, RequestInfo{Key: "hello"}))
+		require.NoError(err)
+		require.Equal(8, result)
+		require.True(meta.Hit)
+		// Age should be non-zero since background refresh was "active"
+		require.True(meta.Age > 0)
+		lastAge = meta.Age
+	}
+	// Wait a bit longer - age should increase by at least this much
+	time.Sleep(5 * time.Millisecond)
+	{
+		result, meta, err := c.Get("t", TestRequest(t, RequestInfo{Key: "hello"}))
+		require.NoError(err)
+		require.Equal(8, result)
+		require.True(meta.Hit)
+		require.True(meta.Age > (lastAge + (1 * time.Millisecond)))
+	}
+
+	// Now unfail the background refresh
+	atomic.StoreUint64(&shouldFail, 0)
+
+	// And update the data so we can see when the background task is working again
+	// (won't be immediate due to backoff on the errors).
+	atomic.AddUint64(&index, 1)
+
+	t0 := time.Now()
+
+	timeout := true
+	// Allow up to 5 seconds since the error backoff is likely to have kicked in
+	// and causes this to take different amounts of time depending on how quickly
+	// the test thread got down here relative to the failures.
+	for attempts := 0; attempts < 50; attempts++ {
+		time.Sleep(100 * time.Millisecond)
+		result, meta, err := c.Get("t", TestRequest(t, RequestInfo{Key: "hello"}))
+		// Should never error even if background is failing as we have cached value
+		require.NoError(err)
+		require.True(meta.Hit)
+		// Got the new value!
+		if result == 10 {
+			// Age should be zero since background refresh is "active" again
+			t.Logf("Succeeded after %d attempts", attempts)
+			require.Equal(time.Duration(0), meta.Age)
+			timeout = false
+			break
+		}
+	}
+	require.False(timeout, "failed to observe update after %s", time.Since(t0))
+}
+
+func TestCacheGet_nonRefreshAge(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	typ := TestType(t)
+	defer typ.AssertExpectations(t)
+	c := TestCache(t)
+	c.RegisterType("t", typ, &RegisterOptions{
+		Refresh:    false,
+		LastGetTTL: 100 * time.Millisecond,
+	})
+
+	// Configure the type
+	var index uint64
+
+	typ.On("Fetch", mock.Anything, mock.Anything).
+		Return(func(o FetchOptions, r Request) FetchResult {
+			idx := atomic.LoadUint64(&index)
+			return FetchResult{Value: int(idx * 2), Index: idx}
+		}, nil)
+
+	// Set initial index/value
+	atomic.StoreUint64(&index, 4)
+
+	// Fetch
+	resultCh := TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{Key: "hello"}))
+	TestCacheGetChResult(t, resultCh, 8)
+
+	var lastAge time.Duration
+	{
+		// Wait a few milliseconds after initial fetch to check age IS reporting
+		// actual age.
+		time.Sleep(5 * time.Millisecond)
+
+		// Fetch again, non-blocking
+		result, meta, err := c.Get("t", TestRequest(t, RequestInfo{Key: "hello"}))
+		require.NoError(err)
+		require.Equal(8, result)
+		require.True(meta.Hit)
+		require.True(meta.Age > (5 * time.Millisecond))
+		lastAge = meta.Age
+	}
+
+	// Wait for expiry
+	time.Sleep(200 * time.Millisecond)
+
+	{
+		result, meta, err := c.Get("t", TestRequest(t, RequestInfo{Key: "hello"}))
+		require.NoError(err)
+		require.Equal(8, result)
+		require.False(meta.Hit)
+		// Age should smaller again
+		require.True(meta.Age < lastAge)
+	}
+
+	{
+		// Wait for a non-trivial amount of time to sanity check the age increases at
+		// least this amount. Note that this is not a fudge for some timing-dependent
+		// background work it's just ensuring a non-trivial time elapses between the
+		// request above and below serilaly in this thread so short time is OK.
+		time.Sleep(5 * time.Millisecond)
+
+		// Fetch again, non-blocking
+		result, meta, err := c.Get("t", TestRequest(t, RequestInfo{Key: "hello"}))
+		require.NoError(err)
+		require.Equal(8, result)
+		require.True(meta.Hit)
+		require.True(meta.Age > (5 * time.Millisecond))
+		lastAge = meta.Age
+	}
+
+	// Now verify that setting MaxAge results in cache invalidation
+	{
+		result, meta, err := c.Get("t", TestRequest(t, RequestInfo{
+			Key:    "hello",
+			MaxAge: 1 * time.Millisecond,
+		}))
+		require.NoError(err)
+		require.Equal(8, result)
+		require.False(meta.Hit)
+		// Age should smaller again
+		require.True(meta.Age < lastAge)
+	}
+}
+
+func TestCacheGet_nonBlockingType(t *testing.T) {
+	t.Parallel()
+
+	typ := TestTypeNonBlocking(t)
+	defer typ.AssertExpectations(t)
+	c := TestCache(t)
+	c.RegisterType("t", typ, nil)
+
+	// Configure the type
+	typ.Static(FetchResult{Value: 42, Index: 1}, nil).Once()
+	typ.Static(FetchResult{Value: 43, Index: 2}, nil).Twice().
+		Run(func(args mock.Arguments) {
+			opts := args.Get(0).(FetchOptions)
+			// MinIndex should never be set for a non-blocking type.
+			require.Equal(t, uint64(0), opts.MinIndex)
+		})
+
+	require := require.New(t)
+
+	// Get, should fetch
+	req := TestRequest(t, RequestInfo{Key: "hello"})
+	result, meta, err := c.Get("t", req)
+	require.NoError(err)
+	require.Equal(42, result)
+	require.False(meta.Hit)
+
+	// Get, should not fetch since we have a cached value
+	req = TestRequest(t, RequestInfo{Key: "hello"})
+	result, meta, err = c.Get("t", req)
+	require.NoError(err)
+	require.Equal(42, result)
+	require.True(meta.Hit)
+
+	// Get, should not attempt to fetch with blocking even if requested. The
+	// assertions below about the value being the same combined with the fact the
+	// mock will only return that value on first call suffice to show that
+	// blocking request is not being attempted.
+	req = TestRequest(t, RequestInfo{
+		Key:      "hello",
+		MinIndex: 1,
+		Timeout:  10 * time.Minute,
+	})
+	result, meta, err = c.Get("t", req)
+	require.NoError(err)
+	require.Equal(42, result)
+	require.True(meta.Hit)
+
+	time.Sleep(10 * time.Millisecond)
+
+	// Get with a max age should fetch again
+	req = TestRequest(t, RequestInfo{Key: "hello", MaxAge: 5 * time.Millisecond})
+	result, meta, err = c.Get("t", req)
+	require.NoError(err)
+	require.Equal(43, result)
+	require.False(meta.Hit)
+
+	// Get with a must revalidate should fetch again even without a delay.
+	req = TestRequest(t, RequestInfo{Key: "hello", MustRevalidate: true})
+	result, meta, err = c.Get("t", req)
+	require.NoError(err)
+	require.Equal(43, result)
+	require.False(meta.Hit)
+
+	// Sleep a tiny bit just to let maybe some background calls happen
+	// then verify that we still only got the one call
+	time.Sleep(20 * time.Millisecond)
+	typ.AssertExpectations(t)
 }

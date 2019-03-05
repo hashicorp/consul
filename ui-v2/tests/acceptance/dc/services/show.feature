@@ -1,5 +1,37 @@
 @setupApplicationTest
 Feature: dc / services / show: Show Service
+  Scenario: Given a service with an external source, the logo is displayed
+    Given 1 datacenter model with the value "dc1"
+    And 1 node models
+    And 1 service model from yaml
+    ---
+    - Service:
+        Tags: ['Tag1', 'Tag2']
+        Meta:
+          external-source: consul
+    ---
+    When I visit the service page for yaml
+    ---
+      dc: dc1
+      service: service-0
+    ---
+    Then I see externalSource like "consul"
+  Scenario: Given a service with an 'unsupported' external source, there is no logo
+    Given 1 datacenter model with the value "dc1"
+    And 1 node models
+    And 1 service model from yaml
+    ---
+    - Service:
+        Tags: ['Tag1', 'Tag2']
+        Meta:
+          external-source: 'not-supported'
+    ---
+    When I visit the service page for yaml
+    ---
+      dc: dc1
+      service: service-0
+    ---
+    Then I don't see externalSource
   Scenario: Given various services with various tags, all tags are displayed
     Given 1 datacenter model with the value "dc1"
     And 3 node models
@@ -28,17 +60,23 @@ Feature: dc / services / show: Show Service
     - Checks:
         - Status: passing
       Service:
+        ID: passing-service-8080
         Port: 8080
-      Node:
         Address: 1.1.1.1
+      Node:
+        Address: 1.2.2.2
     - Service:
+        ID: service-8000
         Port: 8000
-      Node:
         Address: 2.2.2.2
-    - Service:
-        Port: 8888
       Node:
+        Address: 2.3.3.3
+    - Service:
+        ID: service-8888
+        Port: 8888
         Address: 3.3.3.3
+      Node:
+        Address: 3.4.4.4
     ---
     When I visit the service page for yaml
     ---
@@ -53,4 +91,13 @@ Feature: dc / services / show: Show Service
     ---
       - "2.2.2.2:8000"
       - "3.3.3.3:8888"
+    ---
+    Then I see id on the healthy like yaml
+    ---
+      - "passing-service-8080"
+    ---
+    Then I see id on the unhealthy like yaml
+    ---
+      - "service-8000"
+      - "service-8888"
     ---

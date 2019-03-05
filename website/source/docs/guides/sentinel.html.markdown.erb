@@ -27,9 +27,11 @@ Here's an example:
 
 ```text
   sentinel {
-      code = "import \"strings\"
-              main = rule { strings.has_suffix(value,\"foo\") }"
-      enforcementlevel = "soft-mandatory"
+      code = <<EOF
+import "strings"
+main = rule { strings.has_suffix(value,"foo") }
+enforcementlevel = "soft-mandatory"
+EOF
   }
 ```
 
@@ -64,8 +66,10 @@ The following are some examples of ACL policies with Sentinel rules.
 key "foo" {
     policy = "write"
     sentinel {
-        code = "import \"strings\"
-                main = rule { strings.has_suffix(value, \"bar\") }"
+        code = <<EOF
+import "strings"
+main = rule { strings.has_suffix(value, "bar") }
+EOF
     }
 }
 ```
@@ -76,8 +80,10 @@ key "foo" {
 key "foo" {
     policy = "write"
     sentinel {
-        code = "import \"time\"
-                main = rule { time.hour > 8 and time.hour < 17 }"
+        code = <<EOF
+import "time"
+main = rule { time.hour > 8 and time.hour < 17 }
+EOF
     }
 }
 ```

@@ -51,9 +51,6 @@ To trigger leader election, we must join these machines together and create a cl
 
 Choose the method which best suits your environment and specific use case.
 
-~> **Notice:** The hosted version of Consul Enterprise was deprecated on
-  March 7th, 2017 and the Atlas `auto-join` feature is no longer available. 
-
 ### Manually Creating a Cluster
 
 To manually create a cluster, access one of the machines and run the following:

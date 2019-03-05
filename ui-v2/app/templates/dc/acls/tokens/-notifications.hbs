@@ -1,0 +1,44 @@
+{{#if (eq type 'create')}}
+  {{#if (eq status 'success') }}
+    The token has been added.
+  {{else}}
+    There was an error adding the token.
+  {{/if}}
+{{else if (eq type 'update') }}
+  {{#if (eq status 'success') }}
+    The token has been saved.
+  {{else}}
+    There was an error saving the token.
+  {{/if}}
+{{ else if (eq type 'delete')}}
+  {{#if (eq status 'success') }}
+    The token was deleted.
+  {{else}}
+    There was an error deleting the token.
+  {{/if}}
+{{ else if (eq type 'logout')}}
+  {{#if (eq status 'success') }}
+    You are now logged out.
+  {{else}}
+    There was an error logging out.
+  {{/if}}
+{{ else if (eq type 'clone')}}
+  {{#if (eq status 'success') }}
+    The token has been cloned as {{truncate subject.AccessorID 8 false}}
+  {{else}}
+    There was an error cloning the token.
+  {{/if}}
+{{ else if (eq type 'authorize')}}
+  {{#if (eq status 'success') }}
+    You are now logged in.
+  {{else}}
+    There was an error, please check your SecretID/Token
+  {{/if}}
+{{ else if (eq type 'use')}}
+  {{#if (eq status 'success') }}
+    You are now using the new ACL token
+  {{else}}
+    There was an error using that ACL token.
+  {{/if}}
+{{/if}}
+

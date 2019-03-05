@@ -2,7 +2,6 @@ package ca
 
 import (
 	"fmt"
-	"reflect"
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -10,10 +9,12 @@ import (
 )
 
 func ParseConsulCAConfig(raw map[string]interface{}) (*structs.ConsulCAProviderConfig, error) {
-	var config structs.ConsulCAProviderConfig
+	config := structs.ConsulCAProviderConfig{
+		CommonCAProviderConfig: defaultCommonConfig(),
+	}
+
 	decodeConf := &mapstructure.DecoderConfig{
-		DecodeHook:       ParseDurationFunc(),
-		ErrorUnused:      true,
+		DecodeHook:       structs.ParseDurationFunc(),
 		Result:           &config,
 		WeaklyTypedInput: true,
 	}
@@ -31,47 +32,15 @@ func ParseConsulCAConfig(raw map[string]interface{}) (*structs.ConsulCAProviderC
 		return nil, fmt.Errorf("must provide a private key when providing a root cert")
 	}
 
+	if err := config.CommonCAProviderConfig.Validate(); err != nil {
+		return nil, err
+	}
+
 	return &config, nil
 }
 
-// ParseDurationFunc is a mapstructure hook for decoding a string or
-// []uint8 into a time.Duration value.
-func ParseDurationFunc() mapstructure.DecodeHookFunc {
-	return func(
-		f reflect.Type,
-		t reflect.Type,
-		data interface{}) (interface{}, error) {
-		var v time.Duration
-		if t != reflect.TypeOf(v) {
-			return data, nil
-		}
-
-		switch {
-		case f.Kind() == reflect.String:
-			if dur, err := time.ParseDuration(data.(string)); err != nil {
-				return nil, err
-			} else {
-				v = dur
-			}
-			return v, nil
-		case f == reflect.SliceOf(reflect.TypeOf(uint8(0))):
-			s := Uint8ToString(data.([]uint8))
-			if dur, err := time.ParseDuration(s); err != nil {
-				return nil, err
-			} else {
-				v = dur
-			}
-			return v, nil
-		default:
-			return data, nil
-		}
+func defaultCommonConfig() structs.CommonCAProviderConfig {
+	return structs.CommonCAProviderConfig{
+		LeafCertTTL: 3 * 24 * time.Hour,
 	}
-}
-
-func Uint8ToString(bs []uint8) string {
-	b := make([]byte, len(bs))
-	for i, v := range bs {
-		b[i] = byte(v)
-	}
-	return string(b)
 }

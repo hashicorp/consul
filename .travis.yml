@@ -1,11 +1,14 @@
 language: go
 
 go:
-  - "1.x"
+  # Please keep this in-sync with the go version we build against in
+  # build-support/docker/Build-Go.dockerfile.
+  - "1.11.4"
 
 branches:
   only:
     - master
+    - f-envoy
 
 matrix:
   include:
@@ -15,6 +18,6 @@ matrix:
     - env: GOTEST_PKGS_EXCLUDE="./api|./agent|./agent/consul"
 
 script:
-  - GOTEST_FLAGS="-p 3 -parallel 1" make test
+  - make test-ci
 
-sudo: true
+sudo: false

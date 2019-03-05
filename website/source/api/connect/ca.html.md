@@ -23,18 +23,19 @@ the cluster.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required     |
-| ---------------- | ----------------- | ---------------- |
-| `YES`            | `all`             | `operator:read`  |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
+| ---------------- | ----------------- | ------------- | ---------------- |
+| `YES`            | `all`             | `none`        | `operator:read`  |
 
 ### Sample Request
 
 ```text
 $ curl \
-    https://consul.rocks/v1/connect/ca/roots
+    http://127.0.0.1:8500/v1/connect/ca/roots
 ```
 
 ### Sample Response
@@ -71,18 +72,19 @@ This endpoint returns the current CA configuration.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required    |
-| ---------------- | ----------------- | --------------- |
-| `YES`            | `all`             | `operator:read` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
+| ---------------- | ----------------- | ------------- | --------------- |
+| `YES`            | `all`             | `none`        | `operator:read` |
 
 ### Sample Request
 
 ```text
 $ curl \
-    https://consul.rocks/v1/connect/ca/configuration
+    http://127.0.0.1:8500/v1/connect/ca/configuration
 ```
 
 ### Sample Response
@@ -91,8 +93,7 @@ $ curl \
 {
     "Provider": "consul",
     "Config": {
-        "PrivateKey": null,
-        "RootCert": null,
+        "LeafCertTTL": "72h",
         "RotationPeriod": "2160h"
     },
     "CreateIndex": 5,
@@ -112,12 +113,13 @@ new root certificate being used, the [Root Rotation]
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required    |
-| ---------------- | ----------------- | --------------- |
-| `NO`             | `none`            | `operator:write`|
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
+| ---------------- | ----------------- | ------------- | --------------- |
+| `NO`             | `none`            | `none`        | `operator:write`|
 
 ### Parameters
 
@@ -133,8 +135,10 @@ providers, see [Provider Config](/docs/connect/ca.html).
 {
     "Provider": "consul",
     "Config": {
+        "LeafCertTTL": "72h",
         "PrivateKey": "-----BEGIN RSA PRIVATE KEY-----...",
         "RootCert": "-----BEGIN CERTIFICATE-----...",
+        "RotationPeriod": "2160h"
     }
 }
 ```
@@ -145,5 +149,5 @@ providers, see [Provider Config](/docs/connect/ca.html).
 $ curl \
     --request PUT \
     --data @payload.json \
-    https://consul.rocks/v1/connect/ca/configuration
+    http://127.0.0.1:8500/v1/connect/ca/configuration
 ```

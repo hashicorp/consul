@@ -1,6 +1,7 @@
 package cpu
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"runtime"
@@ -12,6 +13,9 @@ import (
 	"github.com/shirou/gopsutil/internal/common"
 )
 
+// TimesStat contains the amounts of time the CPU has spent performing different
+// kinds of work. Time units are in USER_HZ or Jiffies (typically hundredths of
+// a second). It is based on linux /proc/stat file.
 type TimesStat struct {
 	CPU       string  `json:"cpu"`
 	User      float64 `json:"user"`
@@ -40,6 +44,7 @@ type InfoStat struct {
 	Mhz        float64  `json:"mhz"`
 	CacheSize  int32    `json:"cacheSize"`
 	Flags      []string `json:"flags"`
+	Microcode  string   `json:"microcode"`
 }
 
 type lastPercent struct {
@@ -49,10 +54,9 @@ type lastPercent struct {
 }
 
 var lastCPUPercent lastPercent
-var invoke common.Invoker
+var invoke common.Invoker = common.Invoke{}
 
 func init() {
-	invoke = common.Invoke{}
 	lastCPUPercent.Lock()
 	lastCPUPercent.lastCPUTimes, _ = Times(false)
 	lastCPUPercent.lastPerCPUTimes, _ = Times(true)
@@ -60,6 +64,10 @@ func init() {
 }
 
 func Counts(logical bool) (int, error) {
+	return CountsWithContext(context.Background(), logical)
+}
+
+func CountsWithContext(ctx context.Context, logical bool) (int, error) {
 	return runtime.NumCPU(), nil
 }
 
@@ -129,9 +137,14 @@ func calculateAllBusy(t1, t2 []TimesStat) ([]float64, error) {
 	return ret, nil
 }
 
-//Percent calculates the percentage of cpu used either per CPU or combined.
-//If an interval of 0 is given it will compare the current cpu times against the last call.
+// Percent calculates the percentage of cpu used either per CPU or combined.
+// If an interval of 0 is given it will compare the current cpu times against the last call.
+// Returns one value per cpu, or a single value if percpu is set to false.
 func Percent(interval time.Duration, percpu bool) ([]float64, error) {
+	return PercentWithContext(context.Background(), interval, percpu)
+}
+
+func PercentWithContext(ctx context.Context, interval time.Duration, percpu bool) ([]float64, error) {
 	if interval <= 0 {
 		return percentUsedFromLastCall(percpu)
 	}
@@ -170,7 +183,7 @@ func percentUsedFromLastCall(percpu bool) ([]float64, error) {
 	}
 
 	if lastTimes == nil {
-		return nil, fmt.Errorf("Error getting times for cpu percent. LastTimes was nil")
+		return nil, fmt.Errorf("error getting times for cpu percent. lastTimes was nil")
 	}
 	return calculateAllBusy(lastTimes, cpuTimes)
 }

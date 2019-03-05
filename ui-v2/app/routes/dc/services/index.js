@@ -4,7 +4,7 @@ import { hash } from 'rsvp';
 import { get } from '@ember/object';
 
 export default Route.extend({
-  repo: service('services'),
+  repo: service('repository/service'),
   queryParams: {
     s: {
       as: 'filter',

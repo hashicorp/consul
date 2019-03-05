@@ -26,17 +26,17 @@ perform [anti-entropy](/docs/internals/anti-entropy.html).
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required               |
-| ---------------- | ----------------- | -------------------------- |
-| `NO`             | `none`            | `node:write,service:write` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required              |
+| ---------------- | ----------------- | ------------- | ------------------------- |
+| `NO`             | `none`            | `none`        |`node:write,service:write` |
 
 ### Parameters
 
-- `ID` `(string: "")` - An optional UUID to assign to the service. If not
-  provided, one is generated. This must be a 36-character UUID.
+- `ID` `(string: "")` - An optional UUID to assign to the node. This must be a 36-character UUID-formatted string.
 
 - `Node` `(string: <required>)` - Specifies the node ID to register.
 
@@ -76,8 +76,12 @@ The table below shows this endpoint's support for
     sending an array of `Check` objects.
 
 - `SkipNodeUpdate` `(bool: false)` - Specifies whether to skip updating the
-  node part of the registration. Useful in the case where only a health check
-  or service entry on a node needs to be updated.
+  node's information in the registration. This is useful in the case where 
+  only a health check or service entry on a node needs to be updated or when 
+  a register request is intended to  update a service entry or health check.
+  In both use cases, node information will not be overwritten, if the node is 
+  already registered. Note, if the paramater is enabled for a node that doesn't 
+  exist, it will still be created.
 
 It is important to note that `Check` does not have to be provided with `Service`
 and vice versa. A catalog entry can have either, neither, or both.
@@ -134,7 +138,7 @@ and vice versa. A catalog entry can have either, neither, or both.
 $ curl \
     --request PUT \
     --data @payload.json \
-    https://consul.rocks/v1/catalog/register
+    http://127.0.0.1:8500/v1/catalog/register
 ```
 
 ## Deregister Entity
@@ -150,12 +154,13 @@ perform [anti-entropy](/docs/internals/anti-entropy.html).
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required               |
-| ---------------- | ----------------- | -------------------------- |
-| `NO`             | `none`            | `node:write,service:write` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required               |
+| ---------------- | ----------------- | ------------- | -------------------------- |
+| `NO`             | `none`            | `none`        | `node:write,service:write` |
 
 ### Parameters
 
@@ -204,7 +209,7 @@ The behavior of the endpoint depends on what keys are provided.
 $ curl \
     --request PUT \
     --data @payload.json \
-    https://consul.rocks/v1/catalog/deregister
+    http://127.0.0.1:8500/v1/catalog/deregister
 ```
 
 ## List Datacenters
@@ -223,18 +228,19 @@ Consul servers are routable.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required |
-| ---------------- | ----------------- | ------------ |
-| `NO`             | `none`            | `none`       |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`             | `none`            | `none`        | `none`       |
 
 ### Sample Request
 
 ```text
 $ curl \
-    https://consul.rocks/v1/catalog/datacenters
+    http://127.0.0.1:8500/v1/catalog/datacenters
 ```
 
 ### Sample Response
@@ -253,12 +259,13 @@ This endpoint and returns the nodes registered in a given datacenter.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required |
-| ---------------- | ----------------- | ------------ |
-| `YES`            | `all`             | `node:read`  |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `YES`            | `all`             | `none`        | `node:read`  |
 
 ### Parameters
 
@@ -280,7 +287,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/catalog/nodes
+    http://127.0.0.1:8500/v1/catalog/nodes
 ```
 
 ### Sample Response
@@ -326,12 +333,13 @@ This endpoint returns the services registered in a given datacenter.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required   |
-| ---------------- | ----------------- | -------------- |
-| `YES`            | `all`             | `service:read` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
+| ---------------- | ----------------- | ------------- | -------------- |
+| `YES`            | `all`             | `none`        | `service:read` |
 
 ### Parameters
 
@@ -348,7 +356,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/catalog/services
+    http://127.0.0.1:8500/v1/catalog/services
 ```
 
 ### Sample Response
@@ -377,12 +385,13 @@ This endpoint returns the nodes providing a service in a given datacenter.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required             |
-| ---------------- | ----------------- | ------------------------ |
-| `YES`            | `all`             | `node:read,service:read` |
+| Blocking Queries | Consistency Modes | Agent Caching        | ACL Required             |
+| ---------------- | ----------------- | -------------------- | ------------------------ |
+| `YES`            | `all`             | `background refresh` | `node:read,service:read` |
 
 ### Parameters
 
@@ -393,7 +402,9 @@ The table below shows this endpoint's support for
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter.
 
-- `tag` `(string: "")` - Specifies the tag to filter on.
+- `tag` `(string: "")` - Specifies the tag to filter on. This is specified as part of 
+  the URL as a query parameter. Can be used multiple times for additional filtering,
+  returning only the results that include all of the tag values provided.
 
 - `near` `(string: "")` - Specifies a node name to sort the node list in
   ascending order based on the estimated round trip time from that node. Passing
@@ -409,7 +420,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/catalog/service/my-service
+    http://127.0.0.1:8500/v1/catalog/service/my-service
 ```
 
 ### Sample Response
@@ -440,7 +451,20 @@ $ curl \
     },
     "ServiceTags": [
       "tacos"
-    ]
+    ],
+    "ServiceProxyDestination": "",
+    "ServiceProxy": {
+        "DestinationServiceName": "",
+        "DestinationServiceID": "",
+        "LocalServiceAddress": "",
+        "LocalServicePort": 0,
+        "Config": null,
+        "Upstreams": null
+    },
+    "ServiceConnect": {
+        "Native": false,
+        "Proxy": null
+    },
   }
 ]
 ```
@@ -482,11 +506,16 @@ $ curl \
 - `ServiceKind` is the kind of service, usually "". See the Agent
   registration API for more information.
 
-- `ServiceProxyDestination` is the name of the service that is being proxied,
-  for "connect-proxy" type services.
+- `ServiceProxyDestination` **Deprecated** this field duplicates
+  `ServiceProxy.DestinationServiceName` for backwards compatibility. It will be
+  removed in a future major version release.
+
+- `ServiceProxy` is the proxy config as specified in
+[Connect Proxies](/docs/connect/proxies.html).
 
 - `ServiceConnect` are the [Connect](/docs/connect/index.html) settings. The
-  value of this struct is equivalent to the `Connect` field for service registration.
+  value of this struct is equivalent to the `Connect` field for service
+  registration.
 
 ## List Nodes for Connect-capable Service
 
@@ -500,67 +529,8 @@ so this endpoint may be used to filter only the Connect-capable endpoints.
 | ------ | ---------------------------- | -------------------------- |
 | `GET`  | `/catalog/connect/:service`  | `application/json`         |
 
-The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
-[required ACLs](/api/index.html#acls).
-
-| Blocking Queries | Consistency Modes | ACL Required             |
-| ---------------- | ----------------- | ------------------------ |
-| `YES`            | `all`             | `node:read,service:read` |
-
-### Parameters
-
-- `service` `(string: <required>)` - Specifies the name of the service for which
-  to list nodes. This is specified as part of the URL.
-
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
-  the datacenter of the agent being queried. This is specified as part of the
-  URL as a query parameter.
-
-### Sample Request
-
-```text
-$ curl \
-    https://consul.rocks/v1/catalog/connect/my-service
-```
-
-### Sample Response
-
-```json
-[
-  {
-    "ID": "40e4a748-2192-161a-0510-9bf59fe950b5",
-    "Node": "foobar",
-    "Address": "192.168.10.10",
-    "Datacenter": "dc1",
-    "TaggedAddresses": {
-      "lan": "192.168.10.10",
-      "wan": "10.0.10.10"
-    },
-    "NodeMeta": {
-      "somekey": "somevalue"
-    },
-    "CreateIndex": 51,
-    "ModifyIndex": 51,
-    "ServiceAddress": "172.17.0.3",
-    "ServiceEnableTagOverride": false,
-    "ServiceID": "32a2a47f7992:nodea:5000",
-    "ServiceName": "foobar",
-	"ServiceKind": "connect-proxy",
-	"ServiceProxyDestination": "my-service",
-    "ServicePort": 5000,
-    "ServiceMeta": {
-        "foobar_meta_value": "baz"
-    },
-    "ServiceTags": [
-      "tacos"
-    ]
-  }
-]
-```
-
-The fields are the same as listing nodes for a service.
+Parameters and response format are the same as
+[`/catalog/service/:service`](/api/catalog.html#list-nodes-for-service).
 
 ## List Services for Node
 
@@ -570,17 +540,15 @@ This endpoint returns the node's registered services.
 | ------ | ---------------------------- | -------------------------- |
 | `GET`  | `/catalog/node/:node`        | `application/json`         |
 
-The table below shows this endpoint's support for blocking queries and
-consistency modes.
-
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required             |
-| ---------------- | ----------------- | ------------------------ |
-| `YES`            | `all`             | `node:read,service:read` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required             |
+| ---------------- | ----------------- | ------------- | ------------------------ |
+| `YES`            | `all`             | `none`        | `node:read,service:read` |
 
 ### Parameters
 
@@ -595,7 +563,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/catalog/node/my-node
+    http://127.0.0.1:8500/v1/catalog/node/my-node
 ```
 
 ### Sample Response

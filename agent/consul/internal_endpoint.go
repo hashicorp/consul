@@ -70,7 +70,7 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 	}
 
 	// Check ACLs
-	rule, err := m.srv.resolveToken(args.Token)
+	rule, err := m.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
@@ -105,7 +105,7 @@ func (m *Internal) KeyringOperation(
 	reply *structs.KeyringResponses) error {
 
 	// Check ACLs
-	rule, err := m.srv.resolveToken(args.Token)
+	rule, err := m.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}

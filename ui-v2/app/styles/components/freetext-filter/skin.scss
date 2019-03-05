@@ -1,0 +1,21 @@
+%freetext-filter {
+  cursor: pointer;
+}
+%freetext-filter input {
+  -webkit-appearance: none;
+  border: none;
+  border-right: $decor-border-100;
+}
+%freetext-filter {
+  background-color: $ui-white;
+}
+%freetext-filter span {
+  color: $ui-gray-300;
+}
+%freetext-filter input {
+  border-color: $ui-gray-300;
+}
+%freetext-filter input,
+%freetext-filter input::placeholder {
+  color: $ui-gray-400;
+}

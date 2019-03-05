@@ -125,6 +125,7 @@ SETUP_NOTIFY:
 	if b.MinQueryIndex > 0 {
 		notifyCh = make(chan struct{}, 1)
 		s.agent.eventNotify.Wait(notifyCh)
+		defer s.agent.eventNotify.Clear(notifyCh)
 	}
 
 RUN_QUERY:

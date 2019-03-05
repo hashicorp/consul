@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/yamux"
+	"github.com/stretchr/testify/require"
 )
 
 func TestConfig_AppendCA_None(t *testing.T) {
@@ -127,6 +128,23 @@ func TestConfig_OutgoingTLS_VerifyOutgoing(t *testing.T) {
 	}
 }
 
+func TestConfig_SkipBuiltinVerify(t *testing.T) {
+	type variant struct {
+		config Config
+		result bool
+	}
+	table := []variant{
+		variant{Config{ServerName: "", VerifyServerHostname: true}, false},
+		variant{Config{ServerName: "", VerifyServerHostname: false}, true},
+		variant{Config{ServerName: "consul", VerifyServerHostname: true}, false},
+		variant{Config{ServerName: "consul", VerifyServerHostname: false}, false},
+	}
+
+	for _, v := range table {
+		require.Equal(t, v.result, v.config.skipBuiltinVerify())
+	}
+}
+
 func TestConfig_OutgoingTLS_ServerName(t *testing.T) {
 	conf := &Config{
 		VerifyOutgoing: true,
@@ -153,6 +171,7 @@ func TestConfig_OutgoingTLS_ServerName(t *testing.T) {
 
 func TestConfig_OutgoingTLS_VerifyHostname(t *testing.T) {
 	conf := &Config{
+		VerifyOutgoing:       true,
 		VerifyServerHostname: true,
 		CAFile:               "../test/ca/root.cer",
 	}
@@ -165,9 +184,6 @@ func TestConfig_OutgoingTLS_VerifyHostname(t *testing.T) {
 	}
 	if len(tls.RootCAs.Subjects()) != 1 {
 		t.Fatalf("expect root cert")
-	}
-	if tls.ServerName != "VerifyServerHostname" {
-		t.Fatalf("expect server name")
 	}
 	if tls.InsecureSkipVerify {
 		t.Fatalf("should not skip built-in verification")
@@ -263,6 +279,7 @@ func TestConfig_outgoingWrapper_OK(t *testing.T) {
 		CertFile:             "../test/hostname/Alice.crt",
 		KeyFile:              "../test/hostname/Alice.key",
 		VerifyServerHostname: true,
+		VerifyOutgoing:       true,
 		Domain:               "consul",
 	}
 
@@ -297,6 +314,7 @@ func TestConfig_outgoingWrapper_BadDC(t *testing.T) {
 		CertFile:             "../test/hostname/Alice.crt",
 		KeyFile:              "../test/hostname/Alice.key",
 		VerifyServerHostname: true,
+		VerifyOutgoing:       true,
 		Domain:               "consul",
 	}
 
@@ -329,6 +347,7 @@ func TestConfig_outgoingWrapper_BadCert(t *testing.T) {
 		CertFile:             "../test/key/ourdomain.cer",
 		KeyFile:              "../test/key/ourdomain.key",
 		VerifyServerHostname: true,
+		VerifyOutgoing:       true,
 		Domain:               "consul",
 	}
 
@@ -373,7 +392,7 @@ func TestConfig_wrapTLS_OK(t *testing.T) {
 		t.Fatalf("OutgoingTLSConfig err: %v", err)
 	}
 
-	tlsClient, err := WrapTLSClient(client, clientConfig)
+	tlsClient, err := config.wrapTLSClient(client, clientConfig)
 	if err != nil {
 		t.Fatalf("wrapTLS err: %v", err)
 	} else {
@@ -406,7 +425,7 @@ func TestConfig_wrapTLS_BadCert(t *testing.T) {
 		t.Fatalf("OutgoingTLSConfig err: %v", err)
 	}
 
-	tlsClient, err := WrapTLSClient(client, clientTLSConfig)
+	tlsClient, err := clientConfig.wrapTLSClient(client, clientTLSConfig)
 	if err == nil {
 		t.Fatalf("wrapTLS no err")
 	}

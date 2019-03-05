@@ -1,4 +1,4 @@
-import { moduleForComponent, skip } from 'ember-qunit';
+import { moduleForComponent, test, skip } from 'ember-qunit';
 import hbs from 'htmlbars-inline-precompile';
 
 moduleForComponent('slugify', 'helper:slugify', {
@@ -6,8 +6,8 @@ moduleForComponent('slugify', 'helper:slugify', {
 });
 
 // Replace this with your real tests.
-skip('it renders', function(assert) {
-  this.set('inputValue', '1234');
+test('it renders', function(assert) {
+  this.set('inputValue', 'Hi There');
 
   this.render(hbs`{{slugify inputValue}}`);
 
@@ -15,6 +15,7 @@ skip('it renders', function(assert) {
     this.$()
       .text()
       .trim(),
-    '1234'
+    'hi-there'
   );
 });
+skip("it copes with more values such as ' etc");

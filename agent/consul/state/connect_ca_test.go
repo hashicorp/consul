@@ -146,6 +146,43 @@ func TestStore_CAConfig_Snapshot_Restore(t *testing.T) {
 	verify.Values(t, "", before, res)
 }
 
+// Make sure we handle the case of a leftover blank CA config that
+// got stuck in a snapshot, as in https://github.com/hashicorp/consul/issues/4954
+func TestStore_CAConfig_Snapshot_Restore_BlankConfig(t *testing.T) {
+	s := testStateStore(t)
+	before := &structs.CAConfiguration{}
+	if err := s.CASetConfig(99, before); err != nil {
+		t.Fatal(err)
+	}
+
+	snap := s.Snapshot()
+	defer snap.Close()
+
+	snapped, err := snap.CAConfig()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	verify.Values(t, "", before, snapped)
+
+	s2 := testStateStore(t)
+	restore := s2.Restore()
+	if err := restore.CAConfig(snapped); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	restore.Commit()
+
+	idx, result, err := s2.CAConfig()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 0 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if result != nil {
+		t.Fatalf("should be nil: %v", result)
+	}
+}
+
 func TestStore_CARootSetList(t *testing.T) {
 	assert := assert.New(t)
 	s := testStateStore(t)

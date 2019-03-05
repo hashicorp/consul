@@ -32,6 +32,8 @@ type CheckDefinition struct {
 	GRPC                           string
 	GRPCUseTLS                     bool
 	TLSSkipVerify                  bool
+	AliasNode                      string
+	AliasService                   string
 	Timeout                        time.Duration
 	TTL                            time.Duration
 	DeregisterCriticalServiceAfter time.Duration
@@ -62,19 +64,21 @@ func (c *CheckDefinition) CheckType() *CheckType {
 		Status:  c.Status,
 		Notes:   c.Notes,
 
-		ScriptArgs:        c.ScriptArgs,
-		HTTP:              c.HTTP,
-		GRPC:              c.GRPC,
-		GRPCUseTLS:        c.GRPCUseTLS,
-		Header:            c.Header,
-		Method:            c.Method,
-		TCP:               c.TCP,
-		Interval:          c.Interval,
-		DockerContainerID: c.DockerContainerID,
-		Shell:             c.Shell,
-		TLSSkipVerify:     c.TLSSkipVerify,
-		Timeout:           c.Timeout,
-		TTL:               c.TTL,
+		ScriptArgs:                     c.ScriptArgs,
+		AliasNode:                      c.AliasNode,
+		AliasService:                   c.AliasService,
+		HTTP:                           c.HTTP,
+		GRPC:                           c.GRPC,
+		GRPCUseTLS:                     c.GRPCUseTLS,
+		Header:                         c.Header,
+		Method:                         c.Method,
+		TCP:                            c.TCP,
+		Interval:                       c.Interval,
+		DockerContainerID:              c.DockerContainerID,
+		Shell:                          c.Shell,
+		TLSSkipVerify:                  c.TLSSkipVerify,
+		Timeout:                        c.Timeout,
+		TTL:                            c.TTL,
 		DeregisterCriticalServiceAfter: c.DeregisterCriticalServiceAfter,
 	}
 }

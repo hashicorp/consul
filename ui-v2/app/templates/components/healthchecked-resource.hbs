@@ -1,11 +1,12 @@
-    <header>
-        <strong>{{address}}</strong>
+    <header class={{if service 'with-service' }}>
+      <strong>{{address}}</strong>
         <a href={{href}}>
             <span>{{name}}</span>
+            <em>{{service}}</em>
         </a>
     </header>
-    <ul>
-{{#if status }}
+    {{! its important to keep this <ul> with no whitespace so we can use :empty in css }}
+    <ul>{{#if status }}
         <li class={{status}}>
             <a href={{href}}>
                 <strong>{{status}}</strong>
@@ -24,9 +25,8 @@
         <li class="passing">
             <a href={{href}}>
                 <strong>{{healthy.length}}</strong>
-                <span>other passing {{pluralize-word healthy.length 'check' omitCount=true}}</span>
+                <span>other passing {{pluralize healthy.length 'check' without-count=true}}</span>
             </a>
         </li>
     {{/if}}
-{{/if}}
-    </ul>
+{{/if}}</ul>

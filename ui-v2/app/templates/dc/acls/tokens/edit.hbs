@@ -1,0 +1,76 @@
+{{#app-view class=(concat 'token ' (if (or isAuthorized isEnabled) 'edit' 'list')) loading=isLoading authorized=isAuthorized enabled=isEnabled}}
+    {{#block-slot 'notification' as |status type|}}
+      {{partial 'dc/acls/tokens/notifications'}}
+    {{/block-slot}}
+    {{#block-slot 'disabled'}}
+      {{partial 'dc/acls/disabled'}}
+    {{/block-slot}}
+    {{#block-slot 'authorization'}}
+      {{partial 'dc/acls/authorization'}}
+    {{/block-slot}}
+    {{#block-slot 'breadcrumbs'}}
+        <ol>
+            <li><a data-test-back href={{href-to 'dc.acls.tokens'}}>All Tokens</a></li>
+        </ol>
+    {{/block-slot}}
+    {{#block-slot 'header'}}
+        <h1>
+{{#if isAuthorized }}
+  {{#if create }}
+            New Token
+  {{else}}
+            Edit Token
+  {{/if}}
+{{else}}
+            Access Controls
+{{/if}}
+        </h1>
+    {{/block-slot}}
+    {{#block-slot 'actions'}}
+{{#if (not create)}}
+  {{#if (not-eq item.AccessorID token.AccessorID)}}
+      {{#confirmation-dialog message='Are you sure you want to use this ACL token?'}}
+        {{#block-slot 'action' as |confirm|}}
+            <button data-test-use type="button" {{ action confirm 'use' item }}>Use</button>
+        {{/block-slot}}
+        {{#block-slot 'dialog' as |execute cancel message|}}
+          <p>
+              {{message}}
+          </p>
+          <button type="button" class="type-delete" {{action execute}}>Confirm Use</button>
+          <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
+        {{/block-slot}}
+      {{/confirmation-dialog}}
+  {{/if}}
+  {{#if (not (token/is-legacy item))}}
+      <button type="button" {{ action "clone" item }}>Duplicate</button>
+  {{/if}}
+{{/if}}
+    {{/block-slot}}
+    {{#block-slot 'content'}}
+        {{#if (token/is-legacy item)}}
+            <p class="notice info"><strong>Update.</strong> We have upgraded our ACL system by allowing you to create reusable policies which you can then apply to tokens. Don't worry, even though this token was written in the old style, it is still valid. However, we do recommend upgrading your old tokens to the new style. Learn how in our <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guides/acl-migrate-tokens.html" target="_blank" rel="noopener noreferrer">documentation</a>.</p>
+        {{/if}}
+{{#if (not create) }}
+      <div>
+          <dl>
+            <dt>AccessorID</dt>
+            <dd>
+              {{copy-button-feedback title="Copy AccessorID to the clipboard" copy=item.AccessorID name="AccessorID"}} {{item.AccessorID}}
+            </dd>
+            <dt>Token</dt>
+            <dd>
+              {{copy-button-feedback title="Copy SecretID to the clipboard" copy=item.SecretID name="Token"}} {{#secret-button}}{{item.SecretID}}{{/secret-button}}
+            </dd>
+{{#if (and (not (token/is-legacy item)) (not create))}}
+            <dt>Scope</dt>
+            <dd>
+              {{if item.Local 'local' 'global' }}
+            </dd>
+{{/if}}
+          </dl>
+      </div>
+{{/if}}
+        {{ partial 'dc/acls/tokens/form'}}
+    {{/block-slot}}
+{{/app-view}}

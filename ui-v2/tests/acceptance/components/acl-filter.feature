@@ -6,6 +6,7 @@ Feature: components / acl filter: Acl Filter
   Scenario: Filtering [Model]
     Given 1 datacenter model with the value "dc-1"
     And 2 [Model] models
+    And I'm using a legacy token
     When I visit the [Page] page for yaml
     ---
       dc: dc-1

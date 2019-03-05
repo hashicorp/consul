@@ -1,0 +1,28 @@
+    <fieldset>
+        <label class="type-text{{if item.error.Name ' has-error'}}">
+            <span>Name</span>
+            {{input value=item.Description name='name' autofocus='autofocus'}}
+        </label>
+{{#if false}}
+        <div role="radiogroup" class={{if item.error.Type ' has-error'}}>
+            {{#each (array 'management' 'client') as |type|}}
+                <label>
+                    <span>{{capitalize type}}</span>
+                    <input type="radio" name="Type" value="{{type}}" checked={{if (eq item.Type type) 'checked'}} onchange={{ action 'change' }}/>
+                </label>
+            {{/each}}
+        </div>
+{{/if}}
+        <label class="type-text">
+            <span>Rules <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
+            {{code-editor class=(if item.error.Rules 'error') name='Rules' syntax='hcl' value=item.Rules onkeyup=(action 'change' 'Rules')}}
+        </label>
+{{#if create }}
+        <label class="type-text">
+            <span>ID</span>
+            {{ input value=item.ID }}
+            <em>We'll generate a UUID if this field is left empty.</em>
+        </label>
+{{/if}}
+    </fieldset>
+

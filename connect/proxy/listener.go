@@ -12,6 +12,7 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/connect"
 )
 
@@ -27,7 +28,7 @@ type Listener struct {
 	// Service is the connect service instance to use.
 	Service *connect.Service
 
-	// listenFunc, dialFunc and bindAddr are set by type-specific constructors
+	// listenFunc, dialFunc, and bindAddr are set by type-specific constructors.
 	listenFunc func() (net.Listener, error)
 	dialFunc   func() (net.Conn, error)
 	bindAddr   string
@@ -47,7 +48,7 @@ type Listener struct {
 	logger *log.Logger
 
 	// Gauge to track current open connections
-	activeConns  int64
+	activeConns  int32
 	connWG       sync.WaitGroup
 	metricPrefix string
 	metricLabels []metrics.Label
@@ -86,7 +87,14 @@ func NewPublicListener(svc *connect.Service, cfg PublicListenerConfig,
 
 // NewUpstreamListener returns a Listener setup to listen locally for TCP
 // connections that are proxied to a discovered Connect service instance.
-func NewUpstreamListener(svc *connect.Service, cfg UpstreamConfig,
+func NewUpstreamListener(svc *connect.Service, client *api.Client,
+	cfg UpstreamConfig, logger *log.Logger) *Listener {
+	return newUpstreamListenerWithResolver(svc, cfg,
+		UpstreamResolverFuncFromClient(client), logger)
+}
+
+func newUpstreamListenerWithResolver(svc *connect.Service, cfg UpstreamConfig,
+	resolverFunc func(UpstreamConfig) (connect.Resolver, error),
 	logger *log.Logger) *Listener {
 	bindAddr := fmt.Sprintf("%s:%d", cfg.LocalBindAddress, cfg.LocalBindPort)
 	return &Listener{
@@ -95,13 +103,14 @@ func NewUpstreamListener(svc *connect.Service, cfg UpstreamConfig,
 			return net.Listen("tcp", bindAddr)
 		},
 		dialFunc: func() (net.Conn, error) {
-			if cfg.resolver == nil {
-				return nil, errors.New("no resolver provided")
+			rf, err := resolverFunc(cfg)
+			if err != nil {
+				return nil, err
 			}
 			ctx, cancel := context.WithTimeout(context.Background(),
-				time.Duration(cfg.ConnectTimeoutMs)*time.Millisecond)
+				cfg.ConnectTimeout())
 			defer cancel()
-			return svc.Dial(ctx, cfg.resolver)
+			return svc.Dial(ctx, rf)
 		},
 		bindAddr:      bindAddr,
 		stopChan:      make(chan struct{}),
@@ -111,7 +120,7 @@ func NewUpstreamListener(svc *connect.Service, cfg UpstreamConfig,
 		metricLabels: []metrics.Label{
 			{Name: "src", Value: svc.Name()},
 			// TODO(banks): namespace support
-			{Name: "dst_type", Value: cfg.DestinationType},
+			{Name: "dst_type", Value: string(cfg.DestinationType)},
 			{Name: "dst", Value: cfg.DestinationName},
 		},
 	}
@@ -219,12 +228,12 @@ func (l *Listener) handleConn(src net.Conn) {
 // trackConn increments the count of active conns and returns a func() that can
 // be deferred on to decrement the counter again on connection close.
 func (l *Listener) trackConn() func() {
-	c := atomic.AddInt64(&l.activeConns, 1)
+	c := atomic.AddInt32(&l.activeConns, 1)
 	metrics.SetGaugeWithLabels([]string{l.metricPrefix, "conns"}, float32(c),
 		l.metricLabels)
 
 	return func() {
-		c := atomic.AddInt64(&l.activeConns, -1)
+		c := atomic.AddInt32(&l.activeConns, -1)
 		metrics.SetGaugeWithLabels([]string{l.metricPrefix, "conns"}, float32(c),
 			l.metricLabels)
 	}

@@ -14,6 +14,11 @@ const (
 	id = "id"
 )
 
+var (
+	// ErrNotFound is returned when the requested item is not found
+	ErrNotFound = fmt.Errorf("not found")
+)
+
 // tableIndex is a tuple of (Table, Index) used for lookups
 type tableIndex struct {
 	Table string
@@ -291,7 +296,7 @@ func (txn *Txn) Delete(table string, obj interface{}) error {
 	idTxn := txn.writableIndex(table, id)
 	existing, ok := idTxn.Get(idVal)
 	if !ok {
-		return fmt.Errorf("not found")
+		return ErrNotFound
 	}
 
 	// Remove the object from all the indexes

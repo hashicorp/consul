@@ -1,6 +1,7 @@
 # A sample Gemfile
 source "https://rubygems.org"
 
+gem "ffi", "~> 1.9.24"
 gem "uglifier"
 gem "sass"
 gem "therubyracer"

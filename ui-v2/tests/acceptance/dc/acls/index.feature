@@ -1,14 +1,12 @@
 @setupApplicationTest
-Feature: dc / acls / index: ACL List
-
-  Scenario:
-    Given 1 datacenter model with the value "dc-1"
-    And 3 acl models
+Feature: acl forwarding
+  In order to arrive at a useful page when only specifying 'acls' in the url
+  As a user
+  I should be redirected to the tokens page
+  Scenario: Arriving at the acl index page with no other url info
+    Given 1 datacenter model with the value "datacenter"
     When I visit the acls page for yaml
     ---
-      dc: dc-1
+    dc: datacenter
     ---
-    Then the url should be /dc-1/acls
-    And I click actions on the acls
-    Then I don't see delete on the acls
-    Then I see 3 acl models
+    Then the url should be /datacenter/acls/tokens

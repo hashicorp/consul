@@ -23,6 +23,10 @@ func init() {
 	registerRestorer(structs.IntentionRequestType, restoreIntention)
 	registerRestorer(structs.ConnectCARequestType, restoreConnectCA)
 	registerRestorer(structs.ConnectCAProviderStateType, restoreConnectCAProviderState)
+	registerRestorer(structs.ConnectCAConfigType, restoreConnectCAConfig)
+	registerRestorer(structs.IndexRequestType, restoreIndex)
+	registerRestorer(structs.ACLTokenSetRequestType, restoreToken)
+	registerRestorer(structs.ACLPolicySetRequestType, restorePolicy)
 }
 
 func persistOSS(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) error {
@@ -56,6 +60,12 @@ func persistOSS(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) err
 	if err := s.persistConnectCAProviderState(sink, encoder); err != nil {
 		return err
 	}
+	if err := s.persistConnectCAConfig(sink, encoder); err != nil {
+		return err
+	}
+	if err := s.persistIndex(sink, encoder); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -72,9 +82,12 @@ func (s *snapshot) persistNodes(sink raft.SnapshotSink,
 	for node := nodes.Next(); node != nil; node = nodes.Next() {
 		n := node.(*structs.Node)
 		req := structs.RegisterRequest{
+			ID:              n.ID,
 			Node:            n.Node,
+			Datacenter:      n.Datacenter,
 			Address:         n.Address,
 			TaggedAddresses: n.TaggedAddresses,
+			NodeMeta:        n.Meta,
 		}
 
 		// Register the node itself
@@ -156,29 +169,30 @@ func (s *snapshot) persistSessions(sink raft.SnapshotSink,
 
 func (s *snapshot) persistACLs(sink raft.SnapshotSink,
 	encoder *codec.Encoder) error {
-	acls, err := s.state.ACLs()
+	tokens, err := s.state.ACLTokens()
 	if err != nil {
 		return err
 	}
 
-	for acl := acls.Next(); acl != nil; acl = acls.Next() {
-		if _, err := sink.Write([]byte{byte(structs.ACLRequestType)}); err != nil {
+	for token := tokens.Next(); token != nil; token = tokens.Next() {
+		if _, err := sink.Write([]byte{byte(structs.ACLTokenSetRequestType)}); err != nil {
 			return err
 		}
-		if err := encoder.Encode(acl.(*structs.ACL)); err != nil {
+		if err := encoder.Encode(token.(*structs.ACLToken)); err != nil {
 			return err
 		}
 	}
 
-	bs, err := s.state.ACLBootstrap()
+	policies, err := s.state.ACLPolicies()
 	if err != nil {
 		return err
 	}
-	if bs != nil {
-		if _, err := sink.Write([]byte{byte(structs.ACLBootstrapRequestType)}); err != nil {
+
+	for policy := policies.Next(); policy != nil; policy = policies.Next() {
+		if _, err := sink.Write([]byte{byte(structs.ACLPolicySetRequestType)}); err != nil {
 			return err
 		}
-		if err := encoder.Encode(bs); err != nil {
+		if err := encoder.Encode(policy.(*structs.ACLPolicy)); err != nil {
 			return err
 		}
 	}
@@ -253,18 +267,19 @@ func (s *snapshot) persistPreparedQueries(sink raft.SnapshotSink,
 
 func (s *snapshot) persistAutopilot(sink raft.SnapshotSink,
 	encoder *codec.Encoder) error {
-	autopilot, err := s.state.Autopilot()
+	config, err := s.state.Autopilot()
 	if err != nil {
 		return err
 	}
-	if autopilot == nil {
+	// Make sure we don't write a nil config out to a snapshot.
+	if config == nil {
 		return nil
 	}
 
 	if _, err := sink.Write([]byte{byte(structs.AutopilotRequestType)}); err != nil {
 		return err
 	}
-	if err := encoder.Encode(autopilot); err != nil {
+	if err := encoder.Encode(config); err != nil {
 		return err
 	}
 	return nil
@@ -284,6 +299,27 @@ func (s *snapshot) persistConnectCA(sink raft.SnapshotSink,
 		if err := encoder.Encode(r); err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (s *snapshot) persistConnectCAConfig(sink raft.SnapshotSink,
+	encoder *codec.Encoder) error {
+	config, err := s.state.CAConfig()
+	if err != nil {
+		return err
+	}
+	// Make sure we don't write a nil config out to a snapshot.
+	if config == nil {
+		return nil
+	}
+
+	if _, err := sink.Write([]byte{byte(structs.ConnectCAConfigType)}); err != nil {
+		return err
+	}
+	if err := encoder.Encode(config); err != nil {
+		return err
 	}
 	return nil
 }
@@ -318,6 +354,26 @@ func (s *snapshot) persistIntentions(sink raft.SnapshotSink,
 			return err
 		}
 		if err := encoder.Encode(ixn); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *snapshot) persistIndex(sink raft.SnapshotSink, encoder *codec.Encoder) error {
+	// Get all the indexes
+	iter, err := s.state.Indexes()
+	if err != nil {
+		return err
+	}
+
+	for raw := iter.Next(); raw != nil; raw = iter.Next() {
+		// Prepare the request struct
+		idx := raw.(*state.IndexEntry)
+
+		// Write out a node registration
+		sink.Write([]byte{byte(structs.IndexRequestType)})
+		if err := encoder.Encode(idx); err != nil {
 			return err
 		}
 	}
@@ -381,21 +437,23 @@ func restoreACL(header *snapshotHeader, restore *state.Restore, decoder *codec.D
 	if err := decoder.Decode(&req); err != nil {
 		return err
 	}
-	if err := restore.ACL(&req); err != nil {
+
+	if err := restore.ACLToken(req.Convert()); err != nil {
 		return err
 	}
 	return nil
 }
 
+// DEPRECATED (ACL-Legacy-Compat) - remove once v1 acl compat is removed
 func restoreACLBootstrap(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
 	var req structs.ACLBootstrap
 	if err := decoder.Decode(&req); err != nil {
 		return err
 	}
-	if err := restore.ACLBootstrap(&req); err != nil {
-		return err
-	}
-	return nil
+
+	// With V2 ACLs whether bootstrapping has been performed is stored in the index table like nomad
+	// so this "restores" into that index table.
+	return restore.IndexRestore(&state.IndexEntry{Key: "acl-token-bootstrap", Value: req.ModifyIndex})
 }
 
 func restoreCoordinates(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
@@ -462,4 +520,48 @@ func restoreConnectCAProviderState(header *snapshotHeader, restore *state.Restor
 		return err
 	}
 	return nil
+}
+
+func restoreConnectCAConfig(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	var req structs.CAConfiguration
+	if err := decoder.Decode(&req); err != nil {
+		return err
+	}
+	if err := restore.CAConfig(&req); err != nil {
+		return err
+	}
+	return nil
+}
+
+func restoreIndex(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	var req state.IndexEntry
+	if err := decoder.Decode(&req); err != nil {
+		return err
+	}
+	return restore.IndexRestore(&req)
+}
+
+func restoreToken(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	var req structs.ACLToken
+	if err := decoder.Decode(&req); err != nil {
+		return err
+	}
+
+	// DEPRECATED (ACL-Legacy-Compat)
+	if req.Rules != "" {
+		// When we restore a snapshot we may have to correct old HCL in legacy
+		// tokens to prevent the in-memory representation from using an older
+		// syntax.
+		structs.SanitizeLegacyACLToken(&req)
+	}
+
+	return restore.ACLToken(&req)
+}
+
+func restorePolicy(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	var req structs.ACLPolicy
+	if err := decoder.Decode(&req); err != nil {
+		return err
+	}
+	return restore.ACLPolicy(&req)
 }

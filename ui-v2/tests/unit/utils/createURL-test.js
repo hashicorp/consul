@@ -39,3 +39,14 @@ test('it adds a query string key without an `=` if the query value is `null`', f
     assert.equal(actual, item.expected);
   });
 });
+test("it returns a string with no query string if you don't pass a query string object", function(assert) {
+  [
+    {
+      args: [['/v1/url'], ['raw', 'values', 'to', 'encode']],
+      expected: '/v1/url/raw/values/to/encode',
+    },
+  ].forEach(function(item) {
+    const actual = createURL(...item.args);
+    assert.equal(actual, item.expected);
+  });
+});

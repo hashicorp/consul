@@ -7,7 +7,9 @@ GOTOOLS = \
 	golang.org/x/tools/cmd/cover \
 	golang.org/x/tools/cmd/stringer \
 	github.com/axw/gocov/gocov \
-	gopkg.in/matm/v1/gocov-html
+	gopkg.in/matm/v1/gocov-html \
+	github.com/gogo/protobuf/protoc-gen-gofast \
+	github.com/vektra/mockery/cmd/mockery
 
 GOTAGS ?=
 GOFILES ?= $(shell go list ./... | grep -v /vendor/)
@@ -117,8 +119,8 @@ dev: changelogfmt vendorfmt dev-build
 dev-build:
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-local.sh -o $(GOOS) -a $(GOARCH)
 
-dev-docker:
-	@docker build -t '$(CONSUL_DEV_IMAGE)' --build-arg 'GIT_COMMIT=$(GIT_COMMIT)' --build-arg 'GIT_DIRTY=$(GIT_DIRTY)' --build-arg 'GIT_DESCRIBE=$(GIT_DESCRIBE)' -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile $(CURDIR)
+dev-docker: go-build-image
+	@docker build -t '$(CONSUL_DEV_IMAGE)' --build-arg 'GIT_COMMIT=$(GIT_COMMIT)' --build-arg 'GIT_DIRTY=$(GIT_DIRTY)' --build-arg 'GIT_DESCRIBE=$(GIT_DESCRIBE)' --build-arg 'CONSUL_BUILD_IMAGE=$(GO_BUILD_TAG)' -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile '$(CURDIR)'
 
 vendorfmt:
 	@echo "--> Formatting vendor/vendor.json"
@@ -138,7 +140,7 @@ dist:
 	@$(SHELL) $(CURDIR)/build-support/scripts/release.sh -t '$(DIST_TAG)' -b '$(DIST_BUILD)' -S '$(DIST_SIGN)' $(DIST_VERSION_ARG) $(DIST_DATE_ARG) $(DIST_REL_ARG)
 
 verify:
-	@$(SHELL) $(CURDIR)/build-support/scripts/verify.sh	
+	@$(SHELL) $(CURDIR)/build-support/scripts/verify.sh
 
 publish:
 	@$(SHELL) $(CURDIR)/build-support/scripts/publish.sh $(PUB_GIT_ARG) $(PUB_WEBSITE_ARG)
@@ -150,21 +152,20 @@ cov:
 	gocov test $(GOFILES) | gocov-html > /tmp/coverage.html
 	open /tmp/coverage.html
 
-test: other-consul dev-build vet
+test: other-consul dev-build vet test-install-deps test-internal
+
+test-install-deps:
+	go test -tags '$(GOTAGS)' -i $(GOTEST_PKGS)
+
+test-internal:
 	@echo "--> Running go test"
 	@rm -f test.log exit-code
-	go test -tags '$(GOTAGS)' -i $(GOTEST_PKGS)
 	@# Dump verbose output to test.log so we can surface test names on failure but
 	@# hide it from travis as it exceeds their log limits and causes job to be
 	@# terminated (over 4MB and over 10k lines in the UI). We need to output
 	@# _something_ to stop them terminating us due to inactivity...
-	{ go test $(GOTEST_FLAGS) -tags '$(GOTAGS)' -timeout 7m $(GOTEST_PKGS) 2>&1 ; echo $$? > exit-code ; } | tee test.log | egrep '^(ok|FAIL)\s*github.com/hashicorp/consul'
-	@echo "Exit code: $$(cat exit-code)" >> test.log
-	@if [ "0" != "$$(cat exit-code)" ]; then \
-	  echo Retrying to avoid flacky tests >> test.log;\
-	  echo Retrying tests once...;\
-	  go test -p 5 -parallel 1 -tags '$(GOTAGS)' -timeout 5m $(GOTEST_PKGS) 2>&1; echo $$? > exit-code;\
-	fi
+	{ go test -v $(GOTEST_FLAGS) -tags '$(GOTAGS)' $(GOTEST_PKGS) 2>&1 ; echo $$? > exit-code ; } | tee test.log | egrep '^(ok|FAIL|panic:|--- FAIL|--- PASS)'
+	@echo "Exit code: $$(cat exit-code)"
 	@# This prints all the race report between ====== lines
 	@awk '/^WARNING: DATA RACE/ {do_print=1; print "=================="} do_print==1 {print} /^={10,}/ {do_print=0}' test.log || true
 	@grep -A10 'panic: ' test.log || true
@@ -180,6 +181,23 @@ test: other-consul dev-build vet
 
 test-race:
 	$(MAKE) GOTEST_FLAGS=-race
+
+# Run tests with config for CI so `make test` can still be local-dev friendly.
+test-ci: other-consul dev-build vet test-install-deps
+	@ if ! GOTEST_FLAGS="-short -timeout 8m -p 3 -parallel 4" make test-internal; then \
+	    echo "    ============"; \
+	    echo "      Retrying 1/2"; \
+	    echo "    ============"; \
+	    if ! GOTEST_FLAGS="-timeout 9m -p 1 -parallel 1" make test-internal; then \
+	       echo "    ============"; \
+	       echo "      Retrying 2/2"; \
+	       echo "    ============"; \
+	       GOTEST_FLAGS="-timeout 9m -p 1 -parallel 1" make test-internal; \
+	    fi \
+	fi
+
+test-flake: other-consul vet test-install-deps
+	@$(SHELL) $(CURDIR)/build-support/scripts/test-flake.sh --pkg "$(FLAKE_PKG)" --test "$(FLAKE_TEST)" --cpus "$(FLAKE_CPUS)" --n "$(FLAKE_N)"
 
 other-consul:
 	@echo "--> Checking for other consul instances"
@@ -227,34 +245,36 @@ version:
 	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh  -g
 	@echo -n "Version + release + git:    "
 	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh -r -g
-		
+
 
 docker-images: go-build-image ui-build-image ui-legacy-build-image
 
 go-build-image:
 	@echo "Building Golang build container"
 	@docker build $(NOCACHE) $(QUIET) --build-arg 'GOTOOLS=$(GOTOOLS)' -t $(GO_BUILD_TAG) - < build-support/docker/Build-Go.dockerfile
-	
+
 ui-build-image:
 	@echo "Building UI build container"
 	@docker build $(NOCACHE) $(QUIET) -t $(UI_BUILD_TAG) - < build-support/docker/Build-UI.dockerfile
-	
+
 ui-legacy-build-image:
 	@echo "Building Legacy UI build container"
 	@docker build $(NOCACHE) $(QUIET) -t $(UI_LEGACY_BUILD_TAG) - < build-support/docker/Build-UI-Legacy.dockerfile
 
 static-assets-docker: go-build-image
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh static-assets
-	
+
 consul-docker: go-build-image
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh consul
-	
+
 ui-docker: ui-build-image
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh ui
-	
+
 ui-legacy-docker: ui-legacy-build-image
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh ui-legacy
-	
-	
-.PHONY: all ci bin dev dist cov test cover format vet ui static-assets tools vendorfmt 
-.PHONY: docker-images go-build-image ui-build-image ui-legacy-build-image static-assets-docker consul-docker ui-docker ui-legacy-docker version
+
+proto:
+	protoc agent/connect/ca/plugin/*.proto --gofast_out=plugins=grpc:../../..
+
+.PHONY: all ci bin dev dist cov test test-ci test-internal test-install-deps cover format vet ui static-assets tools vendorfmt
+.PHONY: docker-images go-build-image ui-build-image ui-legacy-build-image static-assets-docker consul-docker ui-docker ui-legacy-docker version proto

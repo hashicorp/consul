@@ -2,10 +2,16 @@ package agent
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/testrpc"
 
 	"github.com/hashicorp/consul/logger"
 )
@@ -43,16 +49,42 @@ func includePathInTest(path string) bool {
 	return !ignored
 }
 
-func TestHTTPAPI_MethodNotAllowed_OSS(t *testing.T) {
+func newHttpClient(timeout time.Duration) *http.Client {
+	return &http.Client{
+		Timeout: timeout,
+		Transport: &http.Transport{
+			Dial: (&net.Dialer{
+				Timeout: timeout,
+			}).Dial,
+			TLSHandshakeTimeout: timeout,
+		},
+	}
+}
 
-	a := NewTestAgent(t.Name(), `acl_datacenter = "dc1"`)
+func TestHTTPAPI_MethodNotAllowed_OSS(t *testing.T) {
+	// To avoid actually triggering RPCs that are allowed, lock everything down
+	// with default-deny ACLs. This drops the test runtime from 11s to 0.6s.
+	a := NewTestAgent(t.Name(), `
+	primary_datacenter = "dc1"
+	acl {
+		enabled        = true
+		default_policy = "deny"
+		tokens {
+			master  = "sekrit"
+			agent   = "sekrit"
+		}
+	}
+	`)
 	a.Agent.LogWriter = logger.NewLogWriter(512)
 	defer a.Shutdown()
+	// Use the master token here so the wait actually works.
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1", testrpc.WithToken("sekrit"))
 
 	all := []string{"GET", "PUT", "POST", "DELETE", "HEAD", "OPTIONS"}
-	client := http.Client{}
 
-	testMethodNotAllowed := func(method string, path string, allowedMethods []string) {
+	client := newHttpClient(15 * time.Second)
+
+	testMethodNotAllowed := func(t *testing.T, method string, path string, allowedMethods []string) {
 		t.Run(method+" "+path, func(t *testing.T) {
 			uri := fmt.Sprintf("http://%s%s", a.HTTPAddr(), path)
 			req, _ := http.NewRequest(method, uri, nil)
@@ -81,14 +113,14 @@ func TestHTTPAPI_MethodNotAllowed_OSS(t *testing.T) {
 
 	for path, methods := range extraTestEndpoints {
 		for _, method := range all {
-			testMethodNotAllowed(method, path, methods)
+			testMethodNotAllowed(t, method, path, methods)
 		}
 	}
 
 	for path, methods := range allowedMethods {
 		if includePathInTest(path) {
 			for _, method := range all {
-				testMethodNotAllowed(method, path, methods)
+				testMethodNotAllowed(t, method, path, methods)
 			}
 		}
 	}
@@ -98,6 +130,7 @@ func TestHTTPAPI_OptionMethod_OSS(t *testing.T) {
 	a := NewTestAgent(t.Name(), `acl_datacenter = "dc1"`)
 	a.Agent.LogWriter = logger.NewLogWriter(512)
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	testOptionMethod := func(path string, methods []string) {
 		t.Run("OPTIONS "+path, func(t *testing.T) {
@@ -126,6 +159,55 @@ func TestHTTPAPI_OptionMethod_OSS(t *testing.T) {
 	for path, methods := range allowedMethods {
 		if includePathInTest(path) {
 			testOptionMethod(path, methods)
+		}
+	}
+}
+
+func TestHTTPAPI_AllowedNets_OSS(t *testing.T) {
+	a := NewTestAgent(t.Name(), `
+		acl_datacenter = "dc1"
+		http_config {
+			allow_write_http_from = ["127.0.0.1/8"]
+		}
+	`)
+	a.Agent.LogWriter = logger.NewLogWriter(512)
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	testOptionMethod := func(path string, method string) {
+		t.Run(method+" "+path, func(t *testing.T) {
+			uri := fmt.Sprintf("http://%s%s", a.HTTPAddr(), path)
+			req, _ := http.NewRequest(method, uri, nil)
+			req.RemoteAddr = "192.168.1.2:5555"
+			resp := httptest.NewRecorder()
+			a.srv.Handler.ServeHTTP(resp, req)
+
+			require.Equal(t, http.StatusForbidden, resp.Code, "%s %s", method, path)
+		})
+	}
+
+	for path, methods := range extraTestEndpoints {
+		if !includePathInTest(path) {
+			continue
+		}
+		for _, method := range methods {
+			if method == http.MethodGet {
+				continue
+			}
+
+			testOptionMethod(path, method)
+		}
+	}
+	for path, methods := range allowedMethods {
+		if !includePathInTest(path) {
+			continue
+		}
+		for _, method := range methods {
+			if method == http.MethodGet {
+				continue
+			}
+
+			testOptionMethod(path, method)
 		}
 	}
 }

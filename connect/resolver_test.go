@@ -59,10 +59,12 @@ func TestConsulResolver_Resolve(t *testing.T) {
 	require.Nil(t, err)
 
 	regProxy := &api.AgentServiceRegistration{
-		Kind:             "connect-proxy",
-		Name:             "web-proxy",
-		Port:             9090,
-		ProxyDestination: "web",
+		Kind: "connect-proxy",
+		Name: "web-proxy",
+		Port: 9090,
+		Proxy: &api.AgentServiceConnectProxyConfig{
+			DestinationServiceName: "web",
+		},
 	}
 	err = client.Agent().ServiceRegister(regProxy)
 	require.Nil(t, err)
@@ -122,7 +124,9 @@ func TestConsulResolver_Resolve(t *testing.T) {
 				Name:      "web",
 				Type:      ConsulResolverTypeService,
 			},
-			wantCertURI: connect.TestSpiffeIDService(t, "web"),
+			// Want empty host since we don't enforce trust domain outside of TLS and
+			// don't need to load the current one this way.
+			wantCertURI: connect.TestSpiffeIDServiceWithHost(t, "web", ""),
 			wantErr:     false,
 			addrs:       proxyAddrs,
 		},
@@ -133,7 +137,9 @@ func TestConsulResolver_Resolve(t *testing.T) {
 				Name:      "db",
 				Type:      ConsulResolverTypeService,
 			},
-			wantCertURI: connect.TestSpiffeIDService(t, "db"),
+			// Want empty host since we don't enforce trust domain outside of TLS and
+			// don't need to load the current one this way.
+			wantCertURI: connect.TestSpiffeIDServiceWithHost(t, "db", ""),
 			wantErr:     false,
 		},
 		{
@@ -170,7 +176,9 @@ func TestConsulResolver_Resolve(t *testing.T) {
 				Name: queryId,
 				Type: ConsulResolverTypePreparedQuery,
 			},
-			wantCertURI: connect.TestSpiffeIDService(t, "web"),
+			// Want empty host since we don't enforce trust domain outside of TLS and
+			// don't need to load the current one this way.
+			wantCertURI: connect.TestSpiffeIDServiceWithHost(t, "web", ""),
 			wantErr:     false,
 			addrs:       proxyAddrs,
 		},
@@ -180,7 +188,9 @@ func TestConsulResolver_Resolve(t *testing.T) {
 				Name: "test-query",
 				Type: ConsulResolverTypePreparedQuery,
 			},
-			wantCertURI: connect.TestSpiffeIDService(t, "web"),
+			// Want empty host since we don't enforce trust domain outside of TLS and
+			// don't need to load the current one this way.
+			wantCertURI: connect.TestSpiffeIDServiceWithHost(t, "web", ""),
 			wantErr:     false,
 			addrs:       proxyAddrs,
 		},
@@ -212,6 +222,113 @@ func TestConsulResolver_Resolve(t *testing.T) {
 			require.Equal(tt.wantCertURI, gotCertURI)
 			if len(tt.addrs) > 0 {
 				require.Contains(tt.addrs, gotAddr)
+			}
+		})
+	}
+}
+
+func TestConsulResolverFromAddrFunc(t *testing.T) {
+	// Don't need an actual instance since we don't do the service discovery but
+	// we do want to assert the client is pass through correctly.
+	client, err := api.NewClient(api.DefaultConfig())
+	require.NoError(t, err)
+
+	tests := []struct {
+		name    string
+		addr    string
+		want    Resolver
+		wantErr string
+	}{
+		{
+			name: "service",
+			addr: "foo.service.consul",
+			want: &ConsulResolver{
+				Client:    client,
+				Namespace: "default",
+				Name:      "foo",
+				Type:      ConsulResolverTypeService,
+			},
+		},
+		{
+			name: "query",
+			addr: "foo.query.consul",
+			want: &ConsulResolver{
+				Client:    client,
+				Namespace: "default",
+				Name:      "foo",
+				Type:      ConsulResolverTypePreparedQuery,
+			},
+		},
+		{
+			name: "service with dc",
+			addr: "foo.service.dc2.consul",
+			want: &ConsulResolver{
+				Client:     client,
+				Datacenter: "dc2",
+				Namespace:  "default",
+				Name:       "foo",
+				Type:       ConsulResolverTypeService,
+			},
+		},
+		{
+			name: "query with dc",
+			addr: "foo.query.dc2.consul",
+			want: &ConsulResolver{
+				Client:     client,
+				Datacenter: "dc2",
+				Namespace:  "default",
+				Name:       "foo",
+				Type:       ConsulResolverTypePreparedQuery,
+			},
+		},
+		{
+			name:    "invalid host:port",
+			addr:    "%%%",
+			wantErr: "invalid Consul DNS domain",
+		},
+		{
+			name:    "custom domain",
+			addr:    "foo.service.my-consul.com",
+			wantErr: "invalid Consul DNS domain",
+		},
+		{
+			name:    "unsupported query type",
+			addr:    "foo.connect.consul",
+			wantErr: "unsupported Consul DNS domain",
+		},
+		{
+			name:    "unsupported query type and datacenter",
+			addr:    "foo.connect.dc1.consul",
+			wantErr: "unsupported Consul DNS domain",
+		},
+		{
+			name:    "unsupported query type and datacenter",
+			addr:    "foo.connect.dc1.consul",
+			wantErr: "unsupported Consul DNS domain",
+		},
+		{
+			name:    "unsupported tag filter",
+			addr:    "tag1.foo.service.consul",
+			wantErr: "unsupported Consul DNS domain",
+		},
+		{
+			name:    "unsupported tag filter with DC",
+			addr:    "tag1.foo.service.dc1.consul",
+			wantErr: "unsupported Consul DNS domain",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require := require.New(t)
+
+			fn := ConsulResolverFromAddrFunc(client)
+			got, gotErr := fn(tt.addr)
+			if tt.wantErr != "" {
+				require.Error(gotErr)
+				require.Contains(gotErr.Error(), tt.wantErr)
+			} else {
+				require.NoError(gotErr)
+				require.Equal(tt.want, got)
 			}
 		})
 	}

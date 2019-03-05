@@ -10,15 +10,22 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
+// metaExternalSource is the key name for the service instance meta that
+// defines the external syncing source. This is used by the UI APIs below
+// to extract this.
+const metaExternalSource = "external-source"
+
 // ServiceSummary is used to summarize a service
 type ServiceSummary struct {
-	Kind           structs.ServiceKind `json:",omitempty"`
-	Name           string
-	Tags           []string
-	Nodes          []string
-	ChecksPassing  int
-	ChecksWarning  int
-	ChecksCritical int
+	Kind              structs.ServiceKind `json:",omitempty"`
+	Name              string
+	Tags              []string
+	Nodes             []string
+	ChecksPassing     int
+	ChecksWarning     int
+	ChecksCritical    int
+	ExternalSources   []string
+	externalSourceSet map[string]struct{} // internal to track uniqueness
 }
 
 // UINodes is used to list the nodes in a given datacenter. We return a
@@ -152,6 +159,22 @@ func summarizeServices(dump structs.NodeDump) []*ServiceSummary {
 			sum.Tags = service.Tags
 			sum.Nodes = append(sum.Nodes, node.Node)
 			sum.Kind = service.Kind
+
+			// If there is an external source, add it to the list of external
+			// sources. We only want to add unique sources so there is extra
+			// accounting here with an unexported field to maintain the set
+			// of sources.
+			if len(service.Meta) > 0 && service.Meta[metaExternalSource] != "" {
+				source := service.Meta[metaExternalSource]
+				if sum.externalSourceSet == nil {
+					sum.externalSourceSet = make(map[string]struct{})
+				}
+				if _, ok := sum.externalSourceSet[source]; !ok {
+					sum.externalSourceSet[source] = struct{}{}
+					sum.ExternalSources = append(sum.ExternalSources, source)
+				}
+			}
+
 			nodeServices[idx] = sum
 		}
 		for _, check := range node.Checks {

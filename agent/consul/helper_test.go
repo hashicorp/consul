@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
+	"github.com/stretchr/testify/require"
 )
 
 func waitForLeader(servers ...*Server) error {
@@ -150,6 +151,14 @@ func joinWAN(t *testing.T, member, leader *Server) {
 	if !seeEachOther(leader.WANMembers(), member.WANMembers(), leaderAddr, memberAddr) {
 		t.Fatalf("leader and member cannot see each other on WAN")
 	}
+}
+
+func waitForNewACLs(t *testing.T, server *Server) {
+	retry.Run(t, func(r *retry.R) {
+		require.False(r, server.UseLegacyACLs(), "Server cannot use new ACLs")
+	})
+
+	require.False(t, server.UseLegacyACLs(), "Server cannot use new ACLs")
 }
 
 func seeEachOther(a, b []serf.Member, addra, addrb string) bool {

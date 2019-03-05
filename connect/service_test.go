@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/stretchr/testify/require"
 )
@@ -128,6 +129,7 @@ func TestService_ServerTLSConfig(t *testing.T) {
 
 	a := agent.NewTestAgent("007", "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	client := a.Client()
 	agent := client.Agent()
 
@@ -251,4 +253,29 @@ func TestService_HTTPClient(t *testing.T) {
 			r.Fatalf("got %s, want %s", got, want)
 		}
 	})
+}
+
+func TestService_HasDefaultHTTPResolverFromAddr(t *testing.T) {
+
+	client, err := api.NewClient(api.DefaultConfig())
+	require.NoError(t, err)
+
+	s, err := NewService("foo", client)
+	require.NoError(t, err)
+
+	// Sanity check this is actually set in constructor since we always override
+	// it in tests. Full tests of the resolver func are in resolver_test.go
+	require.NotNil(t, s.httpResolverFromAddr)
+
+	fn := s.httpResolverFromAddr
+
+	expected := &ConsulResolver{
+		Client:    client,
+		Namespace: "default",
+		Name:      "foo",
+		Type:      ConsulResolverTypeService,
+	}
+	got, err := fn("foo.service.consul")
+	require.NoError(t, err)
+	require.Equal(t, expected, got)
 }

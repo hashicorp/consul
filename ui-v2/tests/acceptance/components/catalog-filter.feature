@@ -2,7 +2,7 @@
 Feature: components / catalog-filter
   Scenario: Filtering [Model]
     Given 1 datacenter model with the value "dc-1"
-    And 3 service models from yaml
+    And 4 service models from yaml
     ---
       - ChecksPassing: 1
         ChecksWarning: 0
@@ -13,8 +13,11 @@ Feature: components / catalog-filter
       - ChecksPassing: 0
         ChecksWarning: 0
         ChecksCritical: 1
+      - ChecksPassing: 1
+        ChecksWarning: 0
+        ChecksCritical: 0
     ---
-    And 3 node models from yaml
+    And 4 node models from yaml
     ---
       - Checks:
           - Status: passing
@@ -22,7 +25,8 @@ Feature: components / catalog-filter
           - Status: warning
       - Checks:
           - Status: critical
-
+      - Checks:
+          - Status: passing
     ---
     When I visit the [Page] page for yaml
     ---
@@ -30,12 +34,12 @@ Feature: components / catalog-filter
     ---
     Then the url should be [Url]
 
-    Then I see 3 [Model] models
+    Then I see 4 [Model] models
     And I see allIsSelected on the filter
 
     When I click passing on the filter
     And I see passingIsSelected on the filter
-    And I see 1 [Model] model
+    And I see 2 [Model] models
 
     When I click warning on the filter
     And I see warningIsSelected on the filter
@@ -61,17 +65,29 @@ Feature: components / catalog-filter
     -------------------------------------------------
   Scenario: Filtering [Model] in [Page]
     Given 1 datacenter model with the value "dc1"
-    And 2 node models from yaml
+    And 1 node model from yaml
     ---
-    - ID: node-0
+    ID: node-0
+    Services:
+    - ID: 'service-0-with-id'
+      Port: 65535
+      Service: 'service-0'
+      Tags: ['monitor', 'two', 'three']
+    - ID: 'service-1'
+      Port: 0
+      Service: 'service-1'
+      Tags: ['hard drive', 'monitor', 'three']
+    - ID: 'service-2'
+      Port: 1
+      Service: 'service-2'
+      Tags: ['one', 'two', 'three']
     ---
-    When I visit the node page for yaml
+    When I visit the [Page] page for yaml
     ---
       dc: dc1
       node: node-0
     ---
     # And I see 3 healthcheck model with the name "Disk Util"
-    # And then pause for 5000
     When I click services on the tabs
     And I see servicesIsSelected on the tabs
 
@@ -81,8 +97,88 @@ Feature: components / catalog-filter
     ---
     And I see 1 [Model] model
     And I see 1 [Model] model with the port "65535"
+    Then I fill in with yaml
+    ---
+    s: service-0-with-id
+    ---
+    And I see 1 [Model] model
+    And I see 1 [Model] model with the id "service-0-with-id"
+    Then I fill in with yaml
+    ---
+    s: hard drive
+    ---
+    And I see 1 [Model] model with the name "[Model]-1"
+    Then I fill in with yaml
+    ---
+    s: monitor
+    ---
+    And I see 2 [Model] models
+    Then I fill in with yaml
+    ---
+    s: wallpix
+    ---
+    And I see 0 [Model] models
   Where:
     -------------------------------------------------
     | Model   | Page     | Url                       |
     | service | node     | /dc-1/nodes/node-0        |
     -------------------------------------------------
+  Scenario: Filtering [Model] in [Page]
+    Given 1 datacenter model with the value "dc1"
+    And 2 [Model] models from yaml
+    ---
+    - ID: node-0
+    ---
+    When I visit the [Page] page for yaml
+    ---
+      dc: dc1
+      service: service-0
+    ---
+    Then I fill in with yaml
+    ---
+    s: service-0-with-id
+    ---
+    And I see 1 [Model] model
+    Then I see id on the unhealthy like yaml
+    ---
+      - service-0-with-id
+    ---
+  Where:
+    -------------------------------------------------
+    | Model   | Page     | Url                       |
+    | nodes   | service  | /dc-1/services/service-0  |
+    -------------------------------------------------
+  Scenario:
+    Given 1 datacenter model with the value "dc-1"
+    And 3 service models from yaml
+    ---
+      - Tags: ['one', 'two', 'three']
+      - Tags: ['two', 'three']
+      - Tags: ['three']
+    ---
+    When I visit the services page for yaml
+    ---
+      dc: dc-1
+    ---
+    Then the url should be /dc-1/services
+    Then I see 3 service models
+    Then I fill in with yaml
+    ---
+    s: one
+    ---
+    And I see 1 service model with the name "service-0"
+    Then I fill in with yaml
+    ---
+    s: two
+    ---
+    And I see 2 service models
+    Then I fill in with yaml
+    ---
+    s: three
+    ---
+    And I see 3 service models
+    Then I fill in with yaml
+    ---
+    s: wothre
+    ---
+    And I see 0 service models

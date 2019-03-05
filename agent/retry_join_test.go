@@ -13,7 +13,7 @@ func TestGoDiscoverRegistration(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := d.Names()
-	want := []string{"aliyun", "aws", "azure", "digitalocean", "gce", "os", "scaleway", "softlayer", "triton"}
+	want := []string{"aliyun", "aws", "azure", "digitalocean", "gce", "os", "packet", "scaleway", "softlayer", "triton", "vsphere"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("got go-discover providers %v want %v", got, want)
 	}

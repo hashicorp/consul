@@ -28,8 +28,19 @@ There are several different kinds of checks:
   Consul will wait for any child processes spawned by the script to finish. For any
   other system, Consul will attempt to force-kill the script and any child processes
   it has spawned once the timeout has passed.
-  In Consul 0.9.0 and later, the agent must be configured with [`enable_script_checks`]
-  (/docs/agent/options.html#_enable_script_checks) set to `true` in order to enable script checks.
+  In Consul 0.9.0 and later, script checks are not enabled by default. To use them you
+  can either use :
+  * [`enable_local_script_checks`](/docs/agent/options.html#_enable_local_script_checks):
+    enable script checks defined in local config files. Script checks defined via the HTTP
+    API will not be allowed.
+  * [`enable_script_checks`](/docs/agent/options.html#_enable_script_checks): enable
+    script checks regardless of how they are defined.
+
+  ~> **Security Warning:** Enabling script checks in some configurations may
+  introduce a remote execution vulnerability which is known to be targeted by
+  malware. We strongly recommend `enable_local_script_checks` instead. See [this
+  blog post](https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations)
+  for more details.
 
 * HTTP + Interval - These checks make an HTTP `GET` request every Interval (e.g.
   every 30 seconds) to the specified URL. The status of the service depends on
@@ -63,20 +74,23 @@ There are several different kinds of checks:
   TCP check timeout value by specifying the `timeout` field in the check
   definition.
 
-* <a name="TTL"></a>Time to Live (TTL) - These checks retain their last known state for a given TTL.
-  The state of the check must be updated periodically over the HTTP interface. If an
-  external system fails to update the status within a given TTL, the check is
-  set to the failed state. This mechanism, conceptually similar to a dead man's switch,
-  relies on the application to directly report its health. For example, a healthy app
-  can periodically `PUT` a status update to the HTTP endpoint; if the app fails, the TTL will
-  expire and the health check enters a critical state. The endpoints used to
-  update health information for a given check are the
-  [pass endpoint](https://www.consul.io/api/agent.html#agent_check_pass)
-  and the [fail endpoint](https://www.consul.io/api/agent.html#agent_check_fail).
-  TTL checks also persist
-  their last known status to disk. This allows the Consul agent to restore the
-  last known status of the check across restarts. Persisted check status is
-  valid through the end of the TTL from the time of the last check.
+* <a name="TTL"></a>Time to Live (TTL) - These checks retain their last known
+  state for a given TTL.  The state of the check must be updated periodically
+  over the HTTP interface. If an external system fails to update the status
+  within a given TTL, the check is set to the failed state. This mechanism,
+  conceptually similar to a dead man's switch, relies on the application to
+  directly report its health. For example, a healthy app can periodically `PUT` a
+  status update to the HTTP endpoint; if the app fails, the TTL will expire and
+  the health check enters a critical state. The endpoints used to update health
+  information for a given check are:
+  [pass](/api/agent/check.html#ttl-check-pass),
+  [warn](/api/agent/check.html#ttl-check-warn),
+  [fail](/api/agent/check.html#ttl-check-fail), and
+  [update](/api/agent/check.html#ttl-check-update).  TTL
+  checks also persist their last known status to disk. This allows the Consul
+  agent to restore the last known status of the check across restarts.  Persisted
+  check status is valid through the end of the TTL from the time of the last
+  check.
 
 * Docker + Interval - These checks depend on invoking an external application which
   is packaged within a Docker Container. The application is triggered within the running
@@ -100,6 +114,17 @@ There are several different kinds of checks:
   setting `grpc_use_tls` in the check definition. If TLS is enabled, then by default, a valid
   TLS certificate is expected. Certificate verification can be turned off by setting the
   `tls_skip_verify` field to `true` in the check definition.
+
+* <a name="alias"></a>Alias - These checks alias the health state of another registered
+  node or service. The state of the check will be updated asynchronously,
+  but is nearly instant. For aliased services on the same agent, the local
+  state is monitored and no additional network resources are consumed. For
+  other services and nodes, the check maintains a blocking query over the
+  agent's connection with a current server and allows stale requests. If there
+  are any errors in watching the aliased node or service, the check state will be
+  critical. For the blocking query, the check will use the ACL token set
+  on the service or check definition or otherwise will fall back to the default ACL
+  token set with the agent (`acl_token`).
 
 ## Check Definition
 
@@ -165,7 +190,7 @@ A Docker check:
 
 ```javascript
 {
-"check": {
+  "check": {
     "id": "mem-util",
     "name": "Memory utilization",
     "docker_container_id": "f972c95ebf0e",
@@ -180,12 +205,23 @@ A gRPC check:
 
 ```javascript
 {
-"check": {
+  "check": {
     "id": "mem-util",
     "name": "Service health status",
     "grpc": "127.0.0.1:12345",
     "grpc_use_tls": true,
     "interval": "10s"
+  }
+}
+```
+
+An alias check for a local service:
+
+```javascript
+{
+  "check": {
+    "id": "web-alias",
+    "alias_service": "web"
   }
 }
 ```
@@ -198,13 +234,14 @@ generated. Otherwise, `id` will be set to `name`. If names might conflict,
 unique IDs should be provided.
 
 The `notes` field is opaque to Consul but can be used to provide a human-readable
-description of the current state of the check. With a script check, the field is
-set to any output generated by the script. Similarly, an external process updating
-a TTL check via the HTTP interface can set the `notes` value.
+description of the current state of the check. Similarly, an external process
+updating a TTL check via the HTTP interface can set the `notes` value.
 
 Checks may also contain a `token` field to provide an ACL token. This token is
 used for any interaction with the catalog for the check, including
 [anti-entropy syncs](/docs/internals/anti-entropy.html) and deregistration.
+For Alias checks, this token is used if a remote blocking query is necessary
+to watch the state of the aliased node or service.
 
 Script, TCP, HTTP, Docker, and gRPC checks must include an `interval` field. This
 field is parsed by Go's `time` package, and has the following
@@ -240,8 +277,7 @@ this convention:
  * Any other code - Check is failing
 
 This is the only convention that Consul depends on. Any output of the script
-will be captured and stored in the `notes` field so that it can be viewed
-by human operators.
+will be captured and stored in the `output` field.
 
 In Consul 0.9.0 and later, the agent must be configured with
 [`enable_script_checks`](/docs/agent/options.html#_enable_script_checks) set to `true`
@@ -292,6 +328,12 @@ In the above configuration, if the web-app health check begins failing, it will
 only affect the availability of the web-app service. All other services
 provided by the node will remain unchanged.
 
+## Agent Certificates for TLS Checks
+
+The [enable_agent_tls_for_checks](/docs/agent/options.html#enable_agent_tls_for_checks)
+agent configuration option can be utilized to have HTTP or gRPC health checks
+to use the agent's credentials when configured for TLS.
+
 ## Multiple Check Definitions
 
 Multiple check definitions can be defined using the `checks` (plural)
@@ -315,7 +357,7 @@ key in your configuration file.
     {
       "id": "chk3",
       "name": "cpu",
-      "script": "/bin/check_cpu",
+      "args": ["/bin/check_cpu"],
       "interval": "10s"
     },
     ...

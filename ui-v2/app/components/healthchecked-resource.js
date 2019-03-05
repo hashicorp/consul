@@ -15,6 +15,9 @@ export default Component.extend({
   }),
   gridRowEnd: computed('UnhealthyChecks', function() {
     let spans = 3;
+    if (get(this, 'service')) {
+      spans++;
+    }
     if (get(this, 'healthy.length') > 0) {
       spans++;
     }

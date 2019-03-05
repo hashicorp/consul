@@ -18,7 +18,7 @@ This step assumes you have at least one Consul agent already running.
 ## Simple Usage
 
 To demonstrate how simple it is to get started, we will manipulate a few keys in
-the K/V store. There are two ways to interact with the Consul KV store: via the
+the KV store. There are two ways to interact with the Consul KV store: via the
 HTTP API and via the Consul KV CLI. The examples below show using the Consul KV
 CLI because it is the easiest to get started. For more advanced integrations,
 you may want to use the [Consul KV HTTP API][kv-api]

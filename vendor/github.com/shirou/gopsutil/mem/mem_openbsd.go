@@ -4,14 +4,20 @@ package mem
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/shirou/gopsutil/internal/common"
 	"os/exec"
+
+	"github.com/shirou/gopsutil/internal/common"
 )
 
 func GetPageSize() (uint64, error) {
+	return GetPageSizeWithContext(context.Background())
+}
+
+func GetPageSizeWithContext(ctx context.Context) (uint64, error) {
 	mib := []int32{CTLVm, VmUvmexp}
 	buf, length, err := common.CallSyscall(mib)
 	if err != nil {
@@ -30,6 +36,10 @@ func GetPageSize() (uint64, error) {
 }
 
 func VirtualMemory() (*VirtualMemoryStat, error) {
+	return VirtualMemoryWithContext(context.Background())
+}
+
+func VirtualMemoryWithContext(ctx context.Context) (*VirtualMemoryStat, error) {
 	mib := []int32{CTLVm, VmUvmexp}
 	buf, length, err := common.CallSyscall(mib)
 	if err != nil {
@@ -80,12 +90,16 @@ func VirtualMemory() (*VirtualMemoryStat, error) {
 
 // Return swapctl summary info
 func SwapMemory() (*SwapMemoryStat, error) {
+	return SwapMemoryWithContext(context.Background())
+}
+
+func SwapMemoryWithContext(ctx context.Context) (*SwapMemoryStat, error) {
 	swapctl, err := exec.LookPath("swapctl")
 	if err != nil {
 		return nil, err
 	}
 
-	out, err := invoke.Command(swapctl, "-sk")
+	out, err := invoke.CommandWithContext(ctx, swapctl, "-sk")
 	if err != nil {
 		return &SwapMemoryStat{}, nil
 	}

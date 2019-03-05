@@ -4,18 +4,20 @@ package host
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"runtime"
-	"strconv"
 	"strings"
+	"sync/atomic"
+	"syscall"
 	"time"
 	"unsafe"
 
 	"github.com/shirou/gopsutil/internal/common"
 	"github.com/shirou/gopsutil/process"
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -25,6 +27,10 @@ const (
 )
 
 func Info() (*InfoStat, error) {
+	return InfoWithContext(context.Background())
+}
+
+func InfoWithContext(ctx context.Context) (*InfoStat, error) {
 	ret := &InfoStat{
 		OS:             runtime.GOOS,
 		PlatformFamily: "freebsd",
@@ -60,32 +66,35 @@ func Info() (*InfoStat, error) {
 		ret.Procs = uint64(len(procs))
 	}
 
-	values, err := common.DoSysctrl("kern.hostuuid")
-	if err == nil && len(values) == 1 && values[0] != "" {
-		ret.HostID = strings.ToLower(values[0])
+	hostid, err := unix.Sysctl("kern.hostuuid")
+	if err == nil && hostid != "" {
+		ret.HostID = strings.ToLower(hostid)
 	}
 
 	return ret, nil
 }
 
+// cachedBootTime must be accessed via atomic.Load/StoreUint64
+var cachedBootTime uint64
+
 func BootTime() (uint64, error) {
-	if cachedBootTime != 0 {
-		return cachedBootTime, nil
+	return BootTimeWithContext(context.Background())
+}
+
+func BootTimeWithContext(ctx context.Context) (uint64, error) {
+	t := atomic.LoadUint64(&cachedBootTime)
+	if t != 0 {
+		return t, nil
 	}
-	values, err := common.DoSysctrl("kern.boottime")
+	buf, err := unix.SysctlRaw("kern.boottime")
 	if err != nil {
 		return 0, err
 	}
-	// ex: { sec = 1392261637, usec = 627534 } Thu Feb 13 12:20:37 2014
-	v := strings.Replace(values[2], ",", "", 1)
 
-	boottime, err := strconv.ParseUint(v, 10, 64)
-	if err != nil {
-		return 0, err
-	}
-	cachedBootTime = boottime
+	tv := *(*syscall.Timeval)(unsafe.Pointer((&buf[0])))
+	atomic.StoreUint64(&cachedBootTime, uint64(tv.Sec))
 
-	return boottime, nil
+	return t, nil
 }
 
 func uptime(boot uint64) uint64 {
@@ -93,6 +102,10 @@ func uptime(boot uint64) uint64 {
 }
 
 func Uptime() (uint64, error) {
+	return UptimeWithContext(context.Background())
+}
+
+func UptimeWithContext(ctx context.Context) (uint64, error) {
 	boot, err := BootTime()
 	if err != nil {
 		return 0, err
@@ -101,6 +114,10 @@ func Uptime() (uint64, error) {
 }
 
 func Users() ([]UserStat, error) {
+	return UsersWithContext(context.Background())
+}
+
+func UsersWithContext(ctx context.Context) ([]UserStat, error) {
 	utmpfile := "/var/run/utx.active"
 	if !common.PathExists(utmpfile) {
 		utmpfile = "/var/run/utmp" // before 9.0
@@ -112,6 +129,7 @@ func Users() ([]UserStat, error) {
 	if err != nil {
 		return ret, err
 	}
+	defer file.Close()
 
 	buf, err := ioutil.ReadAll(file)
 	if err != nil {
@@ -145,32 +163,29 @@ func Users() ([]UserStat, error) {
 }
 
 func PlatformInformation() (string, string, string, error) {
-	platform := ""
-	family := ""
-	version := ""
-	uname, err := exec.LookPath("uname")
+	return PlatformInformationWithContext(context.Background())
+}
+
+func PlatformInformationWithContext(ctx context.Context) (string, string, string, error) {
+	platform, err := unix.Sysctl("kern.ostype")
 	if err != nil {
 		return "", "", "", err
 	}
 
-	out, err := invoke.Command(uname, "-s")
-	if err == nil {
-		platform = strings.ToLower(strings.TrimSpace(string(out)))
+	version, err := unix.Sysctl("kern.osrelease")
+	if err != nil {
+		return "", "", "", err
 	}
 
-	out, err = invoke.Command(uname, "-r")
-	if err == nil {
-		version = strings.ToLower(strings.TrimSpace(string(out)))
-	}
-
-	return platform, family, version, nil
+	return strings.ToLower(platform), "", strings.ToLower(version), nil
 }
 
 func Virtualization() (string, string, error) {
-	system := ""
-	role := ""
+	return VirtualizationWithContext(context.Background())
+}
 
-	return system, role, nil
+func VirtualizationWithContext(ctx context.Context) (string, string, error) {
+	return "", "", common.ErrNotImplementedError
 }
 
 // before 9.0
@@ -180,6 +195,8 @@ func getUsersFromUtmp(utmpfile string) ([]UserStat, error) {
 	if err != nil {
 		return ret, err
 	}
+	defer file.Close()
+
 	buf, err := ioutil.ReadAll(file)
 	if err != nil {
 		return ret, err
@@ -208,4 +225,21 @@ func getUsersFromUtmp(utmpfile string) ([]UserStat, error) {
 	}
 
 	return ret, nil
+}
+
+func SensorsTemperatures() ([]TemperatureStat, error) {
+	return SensorsTemperaturesWithContext(context.Background())
+}
+
+func SensorsTemperaturesWithContext(ctx context.Context) ([]TemperatureStat, error) {
+	return []TemperatureStat{}, common.ErrNotImplementedError
+}
+
+func KernelVersion() (string, error) {
+	return KernelVersionWithContext(context.Background())
+}
+
+func KernelVersionWithContext(ctx context.Context) (string, error) {
+	_, _, version, err := PlatformInformation()
+	return version, err
 }

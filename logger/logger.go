@@ -3,6 +3,7 @@ package logger
 import (
 	"fmt"
 	"io"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -21,7 +22,26 @@ type Config struct {
 
 	// SyslogFacility is the destination for syslog forwarding.
 	SyslogFacility string
+
+	//LogFilePath is the path to write the logs to the user specified file.
+	LogFilePath string
+
+	//LogRotateDuration is the user specified time to rotate logs
+	LogRotateDuration time.Duration
+
+	//LogRotateBytes is the user specified byte limit to rotate logs
+	LogRotateBytes int
 }
+
+const (
+	// defaultRotateDuration is the default time taken by the agent to rotate logs
+	defaultRotateDuration = 24 * time.Hour
+)
+
+var (
+	logRotateDuration time.Duration
+	logRotateBytes    int
+)
 
 // Setup is used to perform setup of several logging objects:
 //
@@ -76,14 +96,37 @@ func Setup(config *Config, ui cli.Ui) (*logutils.LevelFilter, *GatedWriter, *Log
 			time.Sleep(delay)
 		}
 	}
-
 	// Create a log writer, and wrap a logOutput around it
 	logWriter := NewLogWriter(512)
+	writers := []io.Writer{logFilter, logWriter}
+
 	var logOutput io.Writer
 	if syslog != nil {
-		logOutput = io.MultiWriter(logFilter, logWriter, syslog)
-	} else {
-		logOutput = io.MultiWriter(logFilter, logWriter)
+		writers = append(writers, syslog)
 	}
+
+	// Create a file logger if the user has specified the path to the log file
+	if config.LogFilePath != "" {
+		dir, fileName := filepath.Split(config.LogFilePath)
+		// If a path is provided but has no fileName a default is provided.
+		if fileName == "" {
+			fileName = "consul.log"
+		}
+		// Try to enter the user specified log rotation duration first
+		if config.LogRotateDuration != 0 {
+			logRotateDuration = config.LogRotateDuration
+		} else {
+			// Default to 24 hrs if no rotation period is specified
+			logRotateDuration = defaultRotateDuration
+		}
+		// User specified byte limit for log rotation if one is provided
+		if config.LogRotateBytes != 0 {
+			logRotateBytes = config.LogRotateBytes
+		}
+		logFile := &LogFile{fileName: fileName, logPath: dir, duration: logRotateDuration, MaxBytes: logRotateBytes}
+		writers = append(writers, logFile)
+	}
+
+	logOutput = io.MultiWriter(writers...)
 	return logFilter, logGate, logWriter, logOutput, true
 }

@@ -1,0 +1,27 @@
+{{yield}}
+{{#if (gt items.length 0)}}
+  {{#tabular-collection
+      data-test-tokens
+      items=(sort-by 'AccessorID:asc' items) as |item index|
+  }}
+  {{#if caption}}
+    {{#block-slot 'caption'}}{{caption}}{{/block-slot}}
+  {{/if}}
+      {{#block-slot 'header'}}
+          <th>AccessorID</th>
+          <th>Scope</th>
+          <th>Description</th>
+      {{/block-slot}}
+      {{#block-slot 'row'}}
+          <td data-test-token="{{item.AccessorID}}">
+            <a href={{href-to 'dc.acls.tokens.edit' item.AccessorID}} target={{or target ''}}>{{truncate item.AccessorID 8 false}}</a>
+          </td>
+          <td>
+            {{if item.Local 'local' 'global'}}
+          </td>
+          <td>
+            {{item.Description}}
+          </td>
+      {{/block-slot}}
+  {{/tabular-collection}}
+{{/if}}

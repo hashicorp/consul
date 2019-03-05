@@ -68,6 +68,29 @@ is used if configuring in an agent configuration file.
     path doesn't exist, Consul will attempt to mount and configure this
     automatically.
 
+  * `CAFile` / `ca_file` (`string: ""`) - Specifies an optional path to the CA
+    certificate used for Vault communication. If unspecified, this will fallback
+    to the default system CA bundle, which varies by OS and version.
+
+  * `CAPath` / `ca_path` (`string: ""`) - Specifies an optional path to a folder
+    containing CA certificates to be used for Vault communication. If
+    unspecified, this will fallback to the default system CA bundle, which
+    varies by OS and version.
+
+  * `CertFile` / `cert_file` (`string: ""`) - Specifies the path to the
+    certificate used for Vault communication. If this is set then you need to
+    also set tls_key_file.
+
+  * `KeyFile` / `key_file` (`string: ""`) - Specifies the path to the private
+    key used for Vault communication. If this is set then you need to also set
+    cert_file.
+
+  * `TLSServerName` / `tls_server_name` (`string: ""`) - Specifies an optional
+    string used to set the SNI host when connecting to Vault via TLS.
+
+  * `TLSSkipVerify` / `tls_skip_verify` (`bool: false`) - Specifies if SSL peer
+    validation should be enforced.
+
 ## Root and Intermediate PKI Paths
 
 The Vault CA provider uses two separately configured

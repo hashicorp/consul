@@ -1,0 +1,36 @@
+%toggle label {
+  position: relative;
+}
+%toggle input {
+  display: none;
+}
+%toggle label span {
+  display: inline-block;
+  padding-left: 34px;
+}
+%toggle label span::before,
+%toggle label span::after {
+  position: absolute;
+  display: block;
+  content: '';
+  top: 50%;
+}
+%toggle label span::before {
+  left: 0px;
+  width: 24px;
+  height: 12px;
+  margin-top: -5px;
+}
+%toggle label span::after {
+  margin-top: -3px;
+  width: 8px;
+  height: 8px;
+}
+%toggle label input:checked + span::after,
+%toggle-negative label input + span::after {
+  left: 14px;
+}
+%toggle label span::after,
+%toggle-negative label input:checked + span::after {
+  left: 2px;
+}

@@ -1,0 +1,13 @@
+{{tab-nav
+    items=(array
+      (hash
+        label='Tokens'
+        href=(href-to 'dc.acls.tokens')
+      )
+      (hash
+        label='Policies'
+        href=(href-to 'dc.acls.policies')
+      )
+    )
+    selected=(if (is-href 'dc.acls.policies') 'policies' 'tokens')
+}}

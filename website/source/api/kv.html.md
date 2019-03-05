@@ -34,12 +34,13 @@ For multi-key reads, please consider using [transaction](/api/txn.html).
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required |
-| ---------------- | ----------------- | ------------ |
-| `YES`            | `all`             | `key:read`   |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `YES`            | `all`             | `none`        | `key:read`   |
 
 ### Parameters
 
@@ -61,15 +62,16 @@ The table below shows this endpoint's support for
   metadata). Specifying this implies `recurse`. This is specified as part of the
   URL as a query parameter.
 
-- `separator` `(string: '/')` - Specifies the character to use as a separator
-  for recursive lookups. This is specified as part of the URL as a query
-  parameter.
+- `separator` `(string: '/')` - Specifies the string to use as a separator
+  for recursive key lookups. This option is only used when paired with the `keys` 
+  parameter to limit the prefix of keys returned,  only up to the given separator. 
+  This is specified as part of the URL as a query parameter.
 
 ### Sample Request
 
 ```text
 $ curl \
-    https://consul.rocks/v1/kv/my-key
+    http://127.0.0.1:8500/v1/kv/my-key
 ```
 
 ### Sample Response
@@ -154,12 +156,13 @@ Even though the return type is `application/json`, the value is either `true` or
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required |
-| ---------------- | ----------------- | ------------ |
-| `NO`             | `none`            | `key:write`  |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`             | `none`            | `none`        | `key:write`  |
 
 ### Parameters
 
@@ -208,14 +211,14 @@ The payload is arbitrary, and is loaded directly into Consul as supplied.
 $ curl \
     --request PUT \
     --data @contents \
-    https://consul.rocks/v1/kv/my-key
+    http://127.0.0.1:8500/v1/kv/my-key
 
 # or
 
 $ curl \
     --request PUT \
     --data-binary @contents \
-    https://consul.rocks/v1/kv/my-key
+    http://127.0.0.1:8500/v1/kv/my-key
 ```
 
 ### Sample Response
@@ -234,12 +237,13 @@ This endpoint deletes a single key or all keys sharing a prefix.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required |
-| ---------------- | ----------------- | ------------ |
-| `NO`             | `none`            | `key:write`  |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`             | `none`            | `none`        | `key:write`  |
 
 ### Parameters
 
@@ -258,7 +262,7 @@ The table below shows this endpoint's support for
 ```text
 $ curl \
     --request DELETE \
-    https://consul.rocks/v1/kv/my-key
+    http://127.0.0.1:8500/v1/kv/my-key
 ```
 
 ### Sample Response

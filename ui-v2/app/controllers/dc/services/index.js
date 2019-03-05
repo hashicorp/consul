@@ -26,23 +26,28 @@ const widthDeclaration = function(num) {
 };
 export default Controller.extend(WithHealthFiltering, {
   filter: function(item, { s = '', status = '' }) {
+    const term = s.toLowerCase();
     return (
-      get(item, 'Name')
+      (get(item, 'Name')
         .toLowerCase()
-        .indexOf(s.toLowerCase()) !== -1 && item.hasStatus(status)
+        .indexOf(term) !== -1 ||
+        (get(item, 'Tags') || []).some(function(item) {
+          return item.toLowerCase().indexOf(term) !== -1;
+        })) &&
+      item.hasStatus(status)
     );
   },
-  totalWidth: computed('{maxPassing,maxWarning,maxCritical}', function() {
+  maxWidth: computed('{maxPassing,maxWarning,maxCritical}', function() {
     const PADDING = 32 * 3 + 13;
     return ['maxPassing', 'maxWarning', 'maxCritical'].reduce((prev, item) => {
       return prev + width(get(this, item));
     }, PADDING);
   }),
-  thWidth: computed('totalWidth', function() {
-    return widthDeclaration(get(this, 'totalWidth'));
+  totalWidth: computed('maxWidth', function() {
+    return widthDeclaration(get(this, 'maxWidth'));
   }),
-  remainingWidth: computed('totalWidth', function() {
-    return htmlSafe(`width: calc(50% - ${Math.round(get(this, 'totalWidth') / 2)}px)`);
+  remainingWidth: computed('maxWidth', function() {
+    return htmlSafe(`width: calc(50% - ${Math.round(get(this, 'maxWidth') / 2)}px)`);
   }),
   maxPassing: computed('items', function() {
     return max(get(this, 'items'), 'ChecksPassing');

@@ -1,13 +1,15 @@
 package structs
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/hashicorp/consul/api"
+	multierror "github.com/hashicorp/go-multierror"
 )
 
 // TxnKVOp is used to define a single operation on the KVS inside a
-// transaction
+// transaction.
 type TxnKVOp struct {
 	Verb   api.KVOp
 	DirEnt DirEntry
@@ -17,10 +19,52 @@ type TxnKVOp struct {
 // inside a transaction.
 type TxnKVResult *DirEntry
 
+// TxnNodeOp is used to define a single operation on a node in the catalog inside
+// a transaction.
+type TxnNodeOp struct {
+	Verb api.NodeOp
+	Node Node
+}
+
+// TxnNodeResult is used to define the result of a single operation on a node
+// in the catalog inside a transaction.
+type TxnNodeResult *Node
+
+// TxnServiceOp is used to define a single operation on a service in the catalog inside
+// a transaction.
+type TxnServiceOp struct {
+	Verb    api.ServiceOp
+	Node    string
+	Service NodeService
+}
+
+// TxnServiceResult is used to define the result of a single operation on a service
+// in the catalog inside a transaction.
+type TxnServiceResult *NodeService
+
+// TxnCheckOp is used to define a single operation on a health check inside a
+// transaction.
+type TxnCheckOp struct {
+	Verb  api.CheckOp
+	Check HealthCheck
+}
+
+// TxnCheckResult is used to define the result of a single operation on a health
+// check inside a transaction.
+type TxnCheckResult *HealthCheck
+
+// TxnKVOp is used to define a single operation on an Intention inside a
+// transaction.
+type TxnIntentionOp IntentionRequest
+
 // TxnOp is used to define a single operation inside a transaction. Only one
 // of the types should be filled out per entry.
 type TxnOp struct {
-	KV *TxnKVOp
+	KV        *TxnKVOp
+	Intention *TxnIntentionOp
+	Node      *TxnNodeOp
+	Service   *TxnServiceOp
+	Check     *TxnCheckOp
 }
 
 // TxnOps is a list of operations within a transaction.
@@ -68,7 +112,10 @@ type TxnErrors []*TxnError
 // TxnResult is used to define the result of a given operation inside a
 // transaction. Only one of the types should be filled out per entry.
 type TxnResult struct {
-	KV TxnKVResult
+	KV      TxnKVResult      `json:",omitempty"`
+	Node    TxnNodeResult    `json:",omitempty"`
+	Service TxnServiceResult `json:",omitempty"`
+	Check   TxnCheckResult   `json:",omitempty"`
 }
 
 // TxnResults is a list of TxnResult entries.
@@ -78,6 +125,15 @@ type TxnResults []*TxnResult
 type TxnResponse struct {
 	Results TxnResults
 	Errors  TxnErrors
+}
+
+// Error returns an aggregate of all errors in this TxnResponse.
+func (r TxnResponse) Error() error {
+	var errs error
+	for _, err := range r.Errors {
+		errs = multierror.Append(errs, errors.New(err.Error()))
+	}
+	return errs
 }
 
 // TxnReadResponse is the structure returned by a TxnReadRequest.

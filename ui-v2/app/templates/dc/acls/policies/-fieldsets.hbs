@@ -1,0 +1,49 @@
+    <fieldset>
+        <label class="type-text{{if item.error.Name ' has-error'}}">
+            <span>Name</span>
+            {{input value=item.Name name='policy[Name]' autofocus='autofocus'}}
+            <em>
+              Maximum 128 characters. May only include letters (uppercase and/or lowercase) and/or numbers. Must be unique.
+            </em>
+            {{#if item.error.Name}}
+              <strong>{{item.error.Name.validation}}</strong>
+            {{/if}}
+        </label>
+        <label class="type-text">
+            <span>Rules <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
+            {{code-editor id="policy_rules" syntax='hcl' class=(if item.error.Rules 'error') name='policy[Rules]' value=item.Rules onkeyup=(action 'change' 'policy[Rules]')}}
+            {{#if item.error.Rules}}
+              <strong>{{item.error.Rules.validation}}</strong>
+            {{/if}}
+        </label>
+        <div class="type-toggle">
+          <span>Valid datacenters</span>
+          <label>
+            <input type="checkbox" name="policy[isScoped]" checked={{if (not isScoped) 'checked' }} onchange={{action 'change'}} />
+            <span>All</span>
+          </label>
+        </div>
+{{#if isScoped }}
+        <div class="checkbox-group" role="group">
+          {{#each datacenters as |dc| }}
+            <label class="type-checkbox">
+              <input type="checkbox" name="policy[Datacenters]" value={{dc.Name}} checked={{if (contains dc.Name item.Datacenters) 'checked' }} onchange={{action 'change'}} />
+              <span>{{dc.Name}}</span>
+            </label>
+          {{/each}}
+          {{#each item.Datacenters as |dc| }}
+  {{#if (not (find-by 'Name' dc datacenters))}}
+            <label class="type-checkbox">
+              <input type="checkbox" name="policy[Datacenters]" value={{dc}} checked="checked" onchange={{action 'change'}} />
+              <span>{{dc}}</span>
+            </label>
+  {{/if}}
+          {{/each}}
+        </div>
+{{/if}}
+      <label class="type-text">
+        <span>Description (Optional)</span>
+        <textarea name="policy[Description]" value={{item.Description}} oninput={{action 'change'}}></textarea>
+      </label>
+    </fieldset>
+

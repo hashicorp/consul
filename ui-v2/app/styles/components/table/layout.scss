@@ -1,0 +1,124 @@
+table {
+  width: 100%;
+}
+%table-actions {
+  width: 60px;
+}
+th.actions input {
+  display: none;
+}
+th.actions {
+  text-align: right;
+}
+td.actions .with-confirmation.confirming {
+  position: absolute;
+  bottom: 4px;
+  right: 1px;
+}
+td.actions .with-confirmation.confirming p {
+  margin-bottom: 1em;
+}
+table caption {
+  text-align: left;
+  margin-bottom: 0.8em;
+}
+td > button,
+td > .with-confirmation > button {
+  position: relative;
+  top: -6px;
+}
+table th {
+  padding-bottom: 0.6em;
+}
+table td,
+table td a {
+  padding: 0.9em 0;
+}
+table th,
+table td:not(.actions),
+table td a {
+  padding-right: 0.9em;
+}
+table td a {
+  display: block;
+}
+th,
+td:not(.actions),
+td:not(.actions) a {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+// TODO: this isn't specific to table
+// these are the node health 3 column display
+tr > * dl {
+  float: left;
+}
+td dl {
+  height: 100%;
+}
+td dl {
+  display: flex;
+}
+td dl > * {
+  display: block;
+}
+td dt.zero {
+  display: none;
+}
+td dd.zero {
+  visibility: hidden;
+}
+td dt {
+  text-indent: -9000px;
+}
+td dt.warning {
+  overflow: visible;
+}
+td dt.warning::before {
+  top: 7px;
+}
+td dt.warning::after {
+  left: -2px;
+  top: -1px;
+}
+td dd {
+  box-sizing: content-box;
+  margin-left: 22px;
+  padding-right: 10px;
+}
+/* hide actions on narrow screens, you can always click in do everything from there */
+@media #{$--lt-wide-table} {
+  tr > .actions {
+    display: none;
+  }
+}
+/* ideally these would be in route css files, but left here as they */
+/* accomplish the same thing (hide non-essential columns for tables) */
+@media #{$--lt-medium-table} {
+  /* Policy > Datacenters */
+  html.template-policy.template-list tr > :nth-child(2) {
+    display: none;
+  }
+}
+@media #{$--lt-wide-table} {
+  html.template-intention.template-list tr > :nth-last-child(2) {
+    display: none;
+  }
+  html.template-service.template-list tr > :last-child {
+    display: none;
+  }
+  html.template-node.template-show #services tr > :last-child {
+    display: none;
+  }
+  html.template-node.template-show #lock-sessions tr > :not(:first-child):not(:last-child) {
+    display: none;
+  }
+  html.template-node.template-show #lock-sessions td:last-child {
+    padding: 0;
+  }
+  html.template-node.template-show #lock-sessions td:last-child button {
+    float: right;
+  }
+}

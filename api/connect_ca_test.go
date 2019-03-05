@@ -22,11 +22,10 @@ func TestAPI_ConnectCARoots_empty(t *testing.T) {
 	defer s.Stop()
 
 	connect := c.Connect()
-	list, meta, err := connect.CARoots(nil)
-	require.NoError(err)
-	require.Equal(uint64(1), meta.LastIndex)
-	require.Len(list.Roots, 0)
-	require.Empty(list.TrustDomain)
+	_, _, err := connect.CARoots(nil)
+
+	require.Error(err)
+	require.Contains(err.Error(), "Connect must be enabled")
 }
 
 func TestAPI_ConnectCARoots_list(t *testing.T) {
@@ -64,6 +63,7 @@ func TestAPI_ConnectCAConfig_get_set(t *testing.T) {
 	expected := &ConsulCAProviderConfig{
 		RotationPeriod: 90 * 24 * time.Hour,
 	}
+	expected.LeafCertTTL = 72 * time.Hour
 
 	// This fails occasionally if server doesn't have time to bootstrap CA so
 	// retry

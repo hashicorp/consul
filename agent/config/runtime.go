@@ -16,19 +16,19 @@ import (
 	"golang.org/x/time/rate"
 )
 
+type RuntimeSOAConfig struct {
+	Refresh uint32 // 3600 by default
+	Retry   uint32 // 600
+	Expire  uint32 // 86400
+	Minttl  uint32 // 0,
+}
+
 // RuntimeConfig specifies the configuration the consul agent actually
 // uses. Is is derived from one or more Config structures which can come
 // from files, flags and/or environment variables.
 type RuntimeConfig struct {
 	// non-user configurable values
 	AEInterval time.Duration
-
-	// ACLDisabledTTL is used by clients to determine how long they will
-	// wait to check again with the servers if they discover ACLs are not
-	// enabled. (not user configurable)
-	//
-	// hcl: acl_disabled_ttl = "duration"
-	ACLDisabledTTL time.Duration
 
 	CheckDeregisterIntervalMin time.Duration
 	CheckReapInterval          time.Duration
@@ -47,28 +47,32 @@ type RuntimeConfig struct {
 	ConsulRaftElectionTimeout        time.Duration
 	ConsulRaftHeartbeatTimeout       time.Duration
 	ConsulRaftLeaderLeaseTimeout     time.Duration
-	ConsulSerfLANGossipInterval      time.Duration
-	ConsulSerfLANProbeInterval       time.Duration
-	ConsulSerfLANProbeTimeout        time.Duration
-	ConsulSerfLANSuspicionMult       int
-	ConsulSerfWANGossipInterval      time.Duration
-	ConsulSerfWANProbeInterval       time.Duration
-	ConsulSerfWANProbeTimeout        time.Duration
-	ConsulSerfWANSuspicionMult       int
 	ConsulServerHealthInterval       time.Duration
+
+	// ACLDisabledTTL is used by agents to determine how long they will
+	// wait to check again with the servers if they discover ACLs are not
+	// enabled. (not user configurable)
+	//
+	// hcl: acl.disabled_ttl = "duration"
+	ACLDisabledTTL time.Duration
+
+	// ACLsEnabled is used to determine whether ACLs should be enabled
+	//
+	// hcl: acl.enabled = boolean
+	ACLsEnabled bool
 
 	// ACLAgentMasterToken is a special token that has full read and write
 	// privileges for this agent, and can be used to call agent endpoints
 	// when no servers are available.
 	//
-	// hcl: acl_agent_master_token = string
+	// hcl: acl.tokens.agent_master = string
 	ACLAgentMasterToken string
 
 	// ACLAgentToken is the default token used to make requests for the agent
 	// itself, such as for registering itself with the catalog. If not
 	// configured, the 'acl_token' will be used.
 	//
-	// hcl: acl_agent_token = string
+	// hcl: acl.tokens.agent = string
 	ACLAgentToken string
 
 	// ACLDatacenter is the central datacenter that holds authoritative
@@ -83,7 +87,7 @@ type RuntimeConfig struct {
 	// ACLs are used to black-list, or "deny" which means ACLs are
 	// white-lists.
 	//
-	// hcl: acl_default_policy = ("allow"|"deny")
+	// hcl: acl.default_policy = ("allow"|"deny")
 	ACLDefaultPolicy string
 
 	// ACLDownPolicy is used to control the ACL interaction when we cannot
@@ -98,9 +102,10 @@ type RuntimeConfig struct {
 	//   * async-cache - Same behaviour as extend-cache, but perform ACL
 	//                   Lookups asynchronously when cache TTL is expired.
 	//
-	// hcl: acl_down_policy = ("allow"|"deny"|"extend-cache"|"async-cache")
+	// hcl: acl.down_policy = ("allow"|"deny"|"extend-cache"|"async-cache")
 	ACLDownPolicy string
 
+	// DEPRECATED (ACL-Legacy-Compat)
 	// ACLEnforceVersion8 is used to gate a set of ACL policy features that
 	// are opt-in prior to Consul 0.8 and opt-out in Consul 0.8 and later.
 	//
@@ -113,14 +118,14 @@ type RuntimeConfig struct {
 	// See https://www.consul.io/docs/guides/acl.html#list-policy-for-keys for
 	// more details.
 	//
-	// hcl: acl_enable_key_list_policy = (true|false)
+	// hcl: acl.enable_key_list_policy = (true|false)
 	ACLEnableKeyListPolicy bool
 
 	// ACLMasterToken is used to bootstrap the ACL system. It should be specified
 	// on the servers in the ACLDatacenter. When the leader comes online, it ensures
 	// that the Master token is available. This provides the initial token.
 	//
-	// hcl: acl_master_token = string
+	// hcl: acl.tokens.master = string
 	ACLMasterToken string
 
 	// ACLReplicationToken is used to fetch ACLs from the ACLDatacenter in
@@ -128,19 +133,31 @@ type RuntimeConfig struct {
 	// also enables replication. Replication is only available in datacenters
 	// other than the ACLDatacenter.
 	//
-	// hcl: acl_replication_token = string
+	// hcl: acl.tokens.replication = string
 	ACLReplicationToken string
 
-	// ACLTTL is used to control the time-to-live of cached ACLs . This has
+	// ACLtokenReplication is used to indicate that both tokens and policies
+	// should be replicated instead of just policies
+	//
+	// hcl: acl.token_replication = boolean
+	ACLTokenReplication bool
+
+	// ACLTokenTTL is used to control the time-to-live of cached ACL tokens. This has
 	// a major impact on performance. By default, it is set to 30 seconds.
 	//
-	// hcl: acl_ttl = "duration"
-	ACLTTL time.Duration
+	// hcl: acl.policy_ttl = "duration"
+	ACLTokenTTL time.Duration
+
+	// ACLPolicyTTL is used to control the time-to-live of cached ACL policies. This has
+	// a major impact on performance. By default, it is set to 30 seconds.
+	//
+	// hcl: acl.token_ttl = "duration"
+	ACLPolicyTTL time.Duration
 
 	// ACLToken is the default token used to make requests if a per-request
 	// token is not provided. If not configured the 'anonymous' token is used.
 	//
-	// hcl: acl_token = string
+	// hcl: acl.tokens.default = string
 	ACLToken string
 
 	// AutopilotCleanupDeadServers enables the automatic cleanup of dead servers when new ones
@@ -302,6 +319,14 @@ type RuntimeConfig struct {
 	//
 	// hcl: http_config { block_endpoints = []string }
 	HTTPBlockEndpoints []string
+
+	// AllowWriteHTTPFrom restricts the agent write endpoints to the given
+	// networks. Any request to a protected endpoint that is not mactched
+	// by one of these networks will get a 403 response.
+	// An empty slice means no restriction.
+	//
+	// hcl: http_config { allow_write_http_from = []string }
+	AllowWriteHTTPFrom []*net.IPNet
 
 	// HTTPResponseHeaders are used to add HTTP header response fields to the HTTP API responses.
 	//
@@ -470,6 +495,16 @@ type RuntimeConfig struct {
 	// port is specified.
 	ConnectProxyBindMaxPort int
 
+	// ConnectSidecarMinPort is the inclusive start of the range of ports
+	// allocated to the agent for asigning to sidecar services where no port is
+	// specified.
+	ConnectSidecarMinPort int
+
+	// ConnectSidecarMaxPort is the inclusive end of the range of ports
+	// allocated to the agent for asigning to sidecar services where no port is
+	// specified
+	ConnectSidecarMaxPort int
+
 	// ConnectProxyAllowManagedRoot is true if Consul can execute managed
 	// proxies when running as root (EUID == 0).
 	ConnectProxyAllowManagedRoot bool
@@ -501,7 +536,10 @@ type RuntimeConfig struct {
 	// ConnectCAConfig is the config to use for the CA provider.
 	ConnectCAConfig map[string]interface{}
 
-	// ConnectTestDisableManagedProxies is not exposed to public config but us
+	// ConnectReplicationToken is the ACL token used for replicating intentions.
+	ConnectReplicationToken string
+
+	// ConnectTestDisableManagedProxies is not exposed to public config but is
 	// used by TestAgent to prevent self-executing the test binary in the
 	// background if a managed proxy is created for a test. The only place we
 	// actually want to test processes really being spun up and managed is in
@@ -510,6 +548,13 @@ type RuntimeConfig struct {
 	// all the agent state for them, just doesn't actually start external
 	// processes up.
 	ConnectTestDisableManagedProxies bool
+
+	// ConnectTestCALeafRootChangeSpread is used to control how long the CA leaf
+	// cache with spread CSRs over when a root change occurs. For now we don't
+	// expose this in public config intentionally but could later with a rename.
+	// We only set this from during tests to effectively make CA rotation tests
+	// deterministic again.
+	ConnectTestCALeafRootChangeSpread time.Duration
 
 	// DNSAddrs contains the list of TCP and UDP addresses the DNS server will
 	// bind to. If the DNS endpoint is disabled (ports.dns <= 0) the list is
@@ -532,6 +577,10 @@ type RuntimeConfig struct {
 	// hcl: ports { dns = int }
 	// flags: -dns-port int
 	DNSPort int
+
+	// DNSSOA is the settings applied for DNS SOA
+	// hcl: soa {}
+	DNSSOA RuntimeSOAConfig
 
 	// DataDir is the path to the directory where the local state is stored.
 	//
@@ -564,6 +613,16 @@ type RuntimeConfig struct {
 	// flag: -disable-host-node-id
 	DisableHostNodeID bool
 
+	// DisableHTTPUnprintableCharFilter will bypass the filter preventing HTTP
+	// URLs from containing unprintable chars. This filter was added in 1.0.3 as a
+	// response to a vulnerability report. Disabling this is never recommended in
+	// general however some users who have keys written in older versions of
+	// Consul may use this to temporarily disable the filter such that they can
+	// delete those keys again! We do not recommend leaving it disabled long term.
+	//
+	// hcl: disable_http_unprintable_char_filter
+	DisableHTTPUnprintableCharFilter bool
+
 	// DisableKeyringFile disables writing the keyring to a file.
 	//
 	// hcl: disable_keyring_file = (true|false)
@@ -591,15 +650,6 @@ type RuntimeConfig struct {
 	// hcl: discard_check_output = (true|false)
 	DiscardCheckOutput bool
 
-	// EnableACLReplication is used to turn on ACL replication when using
-	// /v1/agent/token/acl_replication_token to introduce the token, instead
-	// of setting acl_replication_token in the config. Setting the token via
-	// config will also set this to true for backward compatibility.
-	//
-	// hcl: enable_acl_replication = (true|false)
-	// todo(fs): rename to ACLEnableReplication
-	EnableACLReplication bool
-
 	// EnableAgentTLSForChecks is used to apply the agent's TLS settings in
 	// order to configure the HTTP client used for health checks. Enabling
 	// this allows HTTP checks to present a client certificate and verify
@@ -612,13 +662,21 @@ type RuntimeConfig struct {
 	// hcl: enable_debug = (true|false)
 	EnableDebug bool
 
-	// EnableScriptChecks controls whether health checks which execute
-	// scripts are enabled. This includes regular script checks and Docker
+	// EnableLocalScriptChecks controls whether health checks declared from the local
+	// config file which execute scripts are enabled. This includes regular script
+	// checks and Docker checks.
+	//
+	// hcl: (enable_script_checks|enable_local_script_checks) = (true|false)
+	// flag: -enable-script-checks, -enable-local-script-checks
+	EnableLocalScriptChecks bool
+
+	// EnableRemoeScriptChecks controls whether health checks declared from the http API
+	// which execute scripts are enabled. This includes regular script checks and Docker
 	// checks.
 	//
 	// hcl: enable_script_checks = (true|false)
 	// flag: -enable-script-checks
-	EnableScriptChecks bool
+	EnableRemoteScriptChecks bool
 
 	// EnableSyslog is used to also tee all the logs over to syslog. Only supported
 	// on linux and OSX. Other platforms will generate an error.
@@ -651,6 +709,28 @@ type RuntimeConfig struct {
 	//
 	// hcl: encrypt_verify_outgoing = (true|false)
 	EncryptVerifyOutgoing bool
+
+	// GRPCPort is the port the gRPC server listens on. Currently this only
+	// exposes the xDS and ext_authz APIs for Envoy and it is disabled by default.
+	//
+	// hcl: ports { grpc = int }
+	// flags: -grpc-port int
+	GRPCPort int
+
+	// GRPCAddrs contains the list of TCP addresses and UNIX sockets the gRPC
+	// server will bind to. If the gRPC endpoint is disabled (ports.grpc <= 0)
+	// the list is empty.
+	//
+	// The addresses are taken from 'addresses.grpc' which should contain a
+	// space separated list of ip addresses, UNIX socket paths and/or
+	// go-sockaddr templates. UNIX socket paths must be written as
+	// 'unix://<full path>', e.g. 'unix:///var/run/consul-grpc.sock'.
+	//
+	// If 'addresses.grpc' was not provided the 'client_addr' addresses are
+	// used.
+	//
+	// hcl: client_addr = string addresses { grpc = string } ports { grpc = int }
+	GRPCAddrs []net.Addr
 
 	// HTTPAddrs contains the list of TCP addresses and UNIX sockets the HTTP
 	// server will bind to. If the HTTP endpoint is disabled (ports.http <= 0)
@@ -718,6 +798,24 @@ type RuntimeConfig struct {
 	// hcl: log_level = string
 	LogLevel string
 
+	// LogFile is the path to the file where the logs get written to. Defaults to empty string.
+	//
+	// hcl: log_file = string
+	// flags: -log-file string
+	LogFile string
+
+	// LogRotateDuration is the time configured to rotate logs based on time
+	//
+	// hcl: log_rotate_duration = string
+	// flags: -log-rotate-duration string
+	LogRotateDuration time.Duration
+
+	// LogRotateBytes is the time configured to rotate logs based on bytes written
+	//
+	// hcl: log_rotate_bytes = int
+	// flags: -log-rotate-bytes int
+	LogRotateBytes int
+
 	// Node ID is a unique ID for this node across space and time. Defaults
 	// to a randomly-generated ID that persists in the data-dir.
 	//
@@ -747,6 +845,13 @@ type RuntimeConfig struct {
 	//
 	// hcl: pid_file = string
 	PidFile string
+
+	// PrimaryDatacenter is the central datacenter that holds authoritative
+	// ACL records, replicates intentions and holds the root CA for Connect.
+	// This must be the same for the entire cluster. Off by default.
+	//
+	// hcl: primary_datacenter = string
+	PrimaryDatacenter string
 
 	// RPCAdvertiseAddr is the TCP address Consul advertises for its RPC endpoint.
 	// By default this is the bind address on the default RPC Server port. If the
@@ -953,6 +1058,160 @@ type RuntimeConfig struct {
 	//
 	// hcl: ports { serf_wan = int }
 	SerfPortWAN int
+
+	// GossipLANGossipInterval is the interval between sending messages that need
+	// to be gossiped that haven't been able to piggyback on probing messages.
+	// If this is set to zero, non-piggyback gossip is disabled. By lowering
+	// this value (more frequent) gossip messages are propagated across
+	// the cluster more quickly at the expense of increased bandwidth. This
+	// configuration only applies to LAN gossip communications
+	//
+	// The default is: 200ms
+	//
+	// hcl: gossip_lan { gossip_interval = duration}
+	GossipLANGossipInterval time.Duration
+
+	// GossipLANGossipNodes is the number of random nodes to send gossip messages to
+	// per GossipInterval. Increasing this number causes the gossip messages to
+	// propagate across the cluster more quickly at the expense of increased
+	// bandwidth. This configuration only applies to LAN gossip communications
+	//
+	// The default is: 3
+	//
+	// hcl: gossip_lan { gossip_nodes = int }
+	GossipLANGossipNodes int
+
+	// GossipLANProbeInterval is the interval between random node probes. Setting
+	// this lower (more frequent) will cause the memberlist cluster to detect
+	// failed nodes more quickly at the expense of increased bandwidth usage.
+	// This configuration only applies to LAN gossip communications
+	//
+	// The default is: 1s
+	//
+	// hcl: gossip_lan { probe_interval = duration }
+	GossipLANProbeInterval time.Duration
+
+	// GossipLANProbeTimeout is the timeout to wait for an ack from a probed node
+	// before assuming it is unhealthy. This should be set to 99-percentile
+	// of RTT (round-trip time) on your network. This configuration
+	// only applies to the LAN gossip communications
+	//
+	// The default is: 500ms
+	//
+	// hcl: gossip_lan { probe_timeout = duration }
+	GossipLANProbeTimeout time.Duration
+
+	// GossipLANSuspicionMult is the multiplier for determining the time an
+	// inaccessible node is considered suspect before declaring it dead. This
+	// configuration only applies to LAN gossip communications
+	//
+	// The actual timeout is calculated using the formula:
+	//
+	//   SuspicionTimeout = SuspicionMult * log(N+1) * ProbeInterval
+	//
+	// This allows the timeout to scale properly with expected propagation
+	// delay with a larger cluster size. The higher the multiplier, the longer
+	// an inaccessible node is considered part of the cluster before declaring
+	// it dead, giving that suspect node more time to refute if it is indeed
+	// still alive.
+	//
+	// The default is: 4
+	//
+	// hcl: gossip_lan { suspicion_mult = int }
+	GossipLANSuspicionMult int
+
+	// GossipLANRetransmitMult is the multiplier for the number of retransmissions
+	// that are attempted for messages broadcasted over gossip. This
+	// configuration only applies to LAN gossip communications. The actual
+	// count of retransmissions is calculated using the formula:
+	//
+	//   Retransmits = RetransmitMult * log(N+1)
+	//
+	// This allows the retransmits to scale properly with cluster size. The
+	// higher the multiplier, the more likely a failed broadcast is to converge
+	// at the expense of increased bandwidth.
+	//
+	// The default is: 4
+	//
+	// hcl: gossip_lan { retransmit_mult = int }
+	GossipLANRetransmitMult int
+
+	// GossipWANGossipInterval  is the interval between sending messages that need
+	// to be gossiped that haven't been able to piggyback on probing messages.
+	// If this is set to zero, non-piggyback gossip is disabled. By lowering
+	// this value (more frequent) gossip messages are propagated across
+	// the cluster more quickly at the expense of increased bandwidth. This
+	// configuration only applies to WAN gossip communications
+	//
+	// The default is: 200ms
+	//
+	// hcl: gossip_wan { gossip_interval = duration}
+	GossipWANGossipInterval time.Duration
+
+	// GossipWANGossipNodes is the number of random nodes to send gossip messages to
+	// per GossipInterval. Increasing this number causes the gossip messages to
+	// propagate across the cluster more quickly at the expense of increased
+	// bandwidth. This configuration only applies to WAN gossip communications
+	//
+	// The default is: 3
+	//
+	// hcl: gossip_wan { gossip_nodes = int }
+	GossipWANGossipNodes int
+
+	// GossipWANProbeInterval is the interval between random node probes. Setting
+	// this lower (more frequent) will cause the memberlist cluster to detect
+	// failed nodes more quickly at the expense of increased bandwidth usage.
+	// This configuration only applies to WAN gossip communications
+	//
+	// The default is: 1s
+	//
+	// hcl: gossip_wan { probe_interval = duration }
+	GossipWANProbeInterval time.Duration
+
+	// GossipWANProbeTimeout is the timeout to wait for an ack from a probed node
+	// before assuming it is unhealthy. This should be set to 99-percentile
+	// of RTT (round-trip time) on your network. This configuration
+	// only applies to the WAN gossip communications
+	//
+	// The default is: 500ms
+	//
+	// hcl: gossip_wan { probe_timeout = duration }
+	GossipWANProbeTimeout time.Duration
+
+	// GossipWANSuspicionMult is the multiplier for determining the time an
+	// inaccessible node is considered suspect before declaring it dead. This
+	// configuration only applies to WAN gossip communications
+	//
+	// The actual timeout is calculated using the formula:
+	//
+	//   SuspicionTimeout = SuspicionMult * log(N+1) * ProbeInterval
+	//
+	// This allows the timeout to scale properly with expected propagation
+	// delay with a larger cluster size. The higher the multiplier, the longer
+	// an inaccessible node is considered part of the cluster before declaring
+	// it dead, giving that suspect node more time to refute if it is indeed
+	// still alive.
+	//
+	// The default is: 4
+	//
+	// hcl: gossip_wan { suspicion_mult = int }
+	GossipWANSuspicionMult int
+
+	// GossipWANRetransmitMult is the multiplier for the number of retransmissions
+	// that are attempted for messages broadcasted over gossip. This
+	// configuration only applies to WAN gossip communications. The actual
+	// count of retransmissions is calculated using the formula:
+	//
+	//   Retransmits = RetransmitMult * log(N+1)
+	//
+	// This allows the retransmits to scale properly with cluster size. The
+	// higher the multiplier, the more likely a failed broadcast is to converge
+	// at the expense of increased bandwidth.
+	//
+	// The default is: 4
+	//
+	// hcl: gossip_wan { retransmit_mult = int }
+	GossipWANRetransmitMult int
 
 	// ServerMode controls if this agent acts like a Consul server,
 	// or merely as a client. Servers have more state, take part
@@ -1193,7 +1452,7 @@ func (c *RuntimeConfig) IncomingHTTPSConfig() (*tls.Config, error) {
 func (c *RuntimeConfig) apiAddresses(maxPerType int) (unixAddrs, httpAddrs, httpsAddrs []string) {
 	if len(c.HTTPSAddrs) > 0 {
 		for i, addr := range c.HTTPSAddrs {
-			if i < maxPerType {
+			if maxPerType < 1 || i < maxPerType {
 				httpsAddrs = append(httpsAddrs, addr.String())
 			} else {
 				break
@@ -1206,16 +1465,82 @@ func (c *RuntimeConfig) apiAddresses(maxPerType int) (unixAddrs, httpAddrs, http
 		for _, addr := range c.HTTPAddrs {
 			switch addr.(type) {
 			case *net.UnixAddr:
-				if unix_count < maxPerType {
+				if maxPerType < 1 || unix_count < maxPerType {
 					unixAddrs = append(unixAddrs, addr.String())
 					unix_count += 1
 				}
 			default:
-				if http_count < maxPerType {
+				if maxPerType < 1 || http_count < maxPerType {
 					httpAddrs = append(httpAddrs, addr.String())
 					http_count += 1
 				}
 			}
+		}
+	}
+
+	return
+}
+
+func (c *RuntimeConfig) ClientAddress() (unixAddr, httpAddr, httpsAddr string) {
+	unixAddrs, httpAddrs, httpsAddrs := c.apiAddresses(0)
+
+	if len(unixAddrs) > 0 {
+		unixAddr = "unix://" + unixAddrs[0]
+	}
+
+	http_any := ""
+	if len(httpAddrs) > 0 {
+		for _, addr := range httpAddrs {
+			host, port, err := net.SplitHostPort(addr)
+			if err != nil {
+				continue
+			}
+
+			if host == "0.0.0.0" || host == "::" {
+				if http_any == "" {
+					if host == "0.0.0.0" {
+						http_any = net.JoinHostPort("127.0.0.1", port)
+					} else {
+						http_any = net.JoinHostPort("::1", port)
+					}
+				}
+				continue
+			}
+
+			httpAddr = addr
+			break
+		}
+
+		if httpAddr == "" && http_any != "" {
+			httpAddr = http_any
+		}
+	}
+
+	https_any := ""
+	if len(httpsAddrs) > 0 {
+		for _, addr := range httpsAddrs {
+			host, port, err := net.SplitHostPort(addr)
+			if err != nil {
+				continue
+			}
+
+			if host == "0.0.0.0" || host == "::" {
+				if https_any == "" {
+					if host == "0.0.0.0" {
+						https_any = net.JoinHostPort("127.0.0.1", port)
+					} else {
+						https_any = net.JoinHostPort("::1", port)
+					}
+				}
+				continue
+			}
+
+			httpsAddr = addr
+			break
+		}
+
+		if httpsAddr == "" && https_any != "" {
+			httpsAddr = https_any
 		}
 	}
 
@@ -1228,10 +1553,10 @@ func (c *RuntimeConfig) APIConfig(includeClientCerts bool) (*api.Config, error) 
 		TLSConfig:  api.TLSConfig{InsecureSkipVerify: !c.VerifyOutgoing},
 	}
 
-	unixAddrs, httpAddrs, httpsAddrs := c.apiAddresses(1)
+	unixAddr, httpAddr, httpsAddr := c.ClientAddress()
 
-	if len(httpsAddrs) > 0 {
-		cfg.Address = httpsAddrs[0]
+	if httpsAddr != "" {
+		cfg.Address = httpsAddr
 		cfg.Scheme = "https"
 		cfg.TLSConfig.CAFile = c.CAFile
 		cfg.TLSConfig.CAPath = c.CAPath
@@ -1239,11 +1564,11 @@ func (c *RuntimeConfig) APIConfig(includeClientCerts bool) (*api.Config, error) 
 			cfg.TLSConfig.CertFile = c.CertFile
 			cfg.TLSConfig.KeyFile = c.KeyFile
 		}
-	} else if len(httpAddrs) > 0 {
-		cfg.Address = httpAddrs[0]
+	} else if httpAddr != "" {
+		cfg.Address = httpAddr
 		cfg.Scheme = "http"
-	} else if len(unixAddrs) > 0 {
-		cfg.Address = "unix://" + unixAddrs[0]
+	} else if unixAddr != "" {
+		cfg.Address = unixAddr
 		// this should be ignored - however we are still talking http over a unix socket
 		// so it makes sense to set it like this
 		cfg.Scheme = "http"

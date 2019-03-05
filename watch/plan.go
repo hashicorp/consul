@@ -1,6 +1,7 @@
 package watch
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -146,6 +147,17 @@ func (p *Plan) shouldStop() bool {
 	default:
 		return false
 	}
+}
+
+func (p *Plan) setCancelFunc(cancel context.CancelFunc) {
+	p.stopLock.Lock()
+	defer p.stopLock.Unlock()
+	if p.shouldStop() {
+		// The watch is stopped and execute the new cancel func to stop watchFactory
+		cancel()
+		return
+	}
+	p.cancelFunc = cancel
 }
 
 func (p *Plan) IsStopped() bool {

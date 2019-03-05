@@ -1,7 +1,11 @@
 package structs
 
 import (
+	"fmt"
+	"reflect"
 	"time"
+
+	"github.com/mitchellh/mapstructure"
 )
 
 // IndexedCARoots is the list of currently trusted CA Roots.
@@ -19,11 +23,20 @@ type IndexedCARoots struct {
 	// implement other protocols in future with equivalent semantics. It should be
 	// compared against the "authority" section of a URI (i.e. host:port).
 	//
-	// NOTE(banks): Later we may support explicitly trusting external domains
-	// which may be encoded into the CARoot struct or a separate list but this
-	// domain identifier should be immutable and cluster-wide so deserves to be at
-	// the root of this response rather than duplicated through all CARoots that
-	// are not externally trusted entities.
+	// We need to support migrating a cluster between trust domains to support
+	// Multi-DC migration in Enterprise. In this case the current trust domain is
+	// here but entries in Roots may also have ExternalTrustDomain set to a
+	// non-empty value implying they were previous roots that are still trusted
+	// but under a different trust domain.
+	//
+	// Note that we DON'T validate trust domain during AuthZ since it causes
+	// issues of loss of connectivity during migration between trust domains. The
+	// only time the additional validation adds value is where the cluster shares
+	// an external root (e.g. organization-wide root) with another distinct Consul
+	// cluster or PKI system. In this case, x509 Name Constraints can be added to
+	// enforce that Consul's CA can only validly sign or trust certs within the
+	// same trust-domain. Name constraints as enforced by TLS handshake also allow
+	// seamless rotation between trust domains thanks to cross-signing.
 	TrustDomain string
 
 	// Roots is a list of root CA certs to trust.
@@ -46,9 +59,20 @@ type CARoot struct {
 	// SerialNumber is the x509 serial number of the certificate.
 	SerialNumber uint64
 
-	// SigningKeyID is the ID of the public key that corresponds to the
-	// private key used to sign the certificate.
+	// SigningKeyID is the ID of the public key that corresponds to the private
+	// key used to sign the certificate. Is is the HexString format of the raw
+	// AuthorityKeyID bytes.
 	SigningKeyID string
+
+	// ExternalTrustDomain is the trust domain this root was generated under. It
+	// is usually empty implying "the current cluster trust-domain". It is set
+	// only in the case that a cluster changes trust domain and then all old roots
+	// that are still trusted have the old trust domain set here.
+	//
+	// We currently DON'T validate these trust domains explicitly anywhere, see
+	// IndexedRoots.TrustDomain doc. We retain this information for debugging and
+	// future flexibility.
+	ExternalTrustDomain string
 
 	// Time validity bounds.
 	NotBefore time.Time
@@ -192,7 +216,83 @@ type CAConfiguration struct {
 	RaftIndex
 }
 
+func (c *CAConfiguration) GetCommonConfig() (*CommonCAProviderConfig, error) {
+	if c == nil {
+		return nil, fmt.Errorf("config map was nil")
+	}
+
+	var config CommonCAProviderConfig
+
+	// Set Defaults
+	config.CSRMaxPerSecond = 50 // See doc comment for rationale here.
+
+	decodeConf := &mapstructure.DecoderConfig{
+		DecodeHook:       ParseDurationFunc(),
+		Result:           &config,
+		WeaklyTypedInput: true,
+	}
+
+	decoder, err := mapstructure.NewDecoder(decodeConf)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := decoder.Decode(c.Config); err != nil {
+		return nil, fmt.Errorf("error decoding config: %s", err)
+	}
+
+	return &config, nil
+}
+
+type CommonCAProviderConfig struct {
+	LeafCertTTL time.Duration
+
+	SkipValidate bool
+
+	// CSRMaxPerSecond is a rate limit on processing Connect Certificate Signing
+	// Requests on the servers. It applies to all CA providers so can be used to
+	// limit rate to an external CA too. 0 disables the rate limit. Defaults to 50
+	// which is low enough to prevent overload of a reasonably sized production
+	// server while allowing a cluster with 1000 service instances to complete a
+	// rotation in 20 seconds. For reference a quad-core 2017 MacBook pro can
+	// process 100 signing RPCs a second while using less than half of one core.
+	// For large clusters with powerful servers it's advisable to increase this
+	// rate or to disable this limit and instead rely on CSRMaxConcurrent to only
+	// consume a subset of the server's cores.
+	CSRMaxPerSecond float32
+
+	// CSRMaxConcurrent is a limit on how many concurrent CSR signing requests
+	// will be processed in parallel. New incoming signing requests will try for
+	// `consul.csrSemaphoreWait` (currently 500ms) for a slot before being
+	// rejected with a "rate limited" backpressure response. This effectively sets
+	// how many CPU cores can be occupied by Connect CA signing activity and
+	// should be a (small) subset of your server's available cores to allow other
+	// tasks to complete when a barrage of CSRs come in (e.g. after a CA root
+	// rotation). Setting to 0 disables the limit, attempting to sign certs
+	// immediately in the RPC goroutine. This is 0 by default and CSRMaxPerSecond
+	// is used. This is ignored if CSRMaxPerSecond is non-zero.
+	CSRMaxConcurrent int
+}
+
+func (c CommonCAProviderConfig) Validate() error {
+	if c.SkipValidate {
+		return nil
+	}
+
+	if c.LeafCertTTL < time.Hour {
+		return fmt.Errorf("leaf cert TTL must be greater than 1h")
+	}
+
+	if c.LeafCertTTL > 365*24*time.Hour {
+		return fmt.Errorf("leaf cert TTL must be less than 1 year")
+	}
+
+	return nil
+}
+
 type ConsulCAProviderConfig struct {
+	CommonCAProviderConfig `mapstructure:",squash"`
+
 	PrivateKey     string
 	RootCert       string
 	RotationPeriod time.Duration
@@ -200,16 +300,95 @@ type ConsulCAProviderConfig struct {
 
 // CAConsulProviderState is used to track the built-in Consul CA provider's state.
 type CAConsulProviderState struct {
-	ID         string
-	PrivateKey string
-	RootCert   string
+	ID               string
+	PrivateKey       string
+	RootCert         string
+	IntermediateCert string
 
 	RaftIndex
 }
 
 type VaultCAProviderConfig struct {
+	CommonCAProviderConfig `mapstructure:",squash"`
+
 	Address             string
 	Token               string
 	RootPKIPath         string
 	IntermediatePKIPath string
+
+	CAFile        string
+	CAPath        string
+	CertFile      string
+	KeyFile       string
+	TLSServerName string
+	TLSSkipVerify bool
+}
+
+// CALeafOp is the operation for a request related to leaf certificates.
+type CALeafOp string
+
+const (
+	CALeafOpIncrementIndex CALeafOp = "increment-index"
+)
+
+// CALeafRequest is used to modify connect CA leaf data. This is used by the
+// FSM (agent/consul/fsm) to apply changes.
+type CALeafRequest struct {
+	// Op is the type of operation being requested. This determines what
+	// other fields are required.
+	Op CALeafOp
+
+	// Datacenter is the target for this request.
+	Datacenter string
+
+	// WriteRequest is a common struct containing ACL tokens and other
+	// write-related common elements for requests.
+	WriteRequest
+}
+
+// RequestDatacenter returns the datacenter for a given request.
+func (q *CALeafRequest) RequestDatacenter() string {
+	return q.Datacenter
+}
+
+// ParseDurationFunc is a mapstructure hook for decoding a string or
+// []uint8 into a time.Duration value.
+func ParseDurationFunc() mapstructure.DecodeHookFunc {
+	return func(
+		f reflect.Type,
+		t reflect.Type,
+		data interface{}) (interface{}, error) {
+		var v time.Duration
+		if t != reflect.TypeOf(v) {
+			return data, nil
+		}
+
+		switch {
+		case f.Kind() == reflect.String:
+			if dur, err := time.ParseDuration(data.(string)); err != nil {
+				return nil, err
+			} else {
+				v = dur
+			}
+			return v, nil
+		case f == reflect.SliceOf(reflect.TypeOf(uint8(0))):
+			s := Uint8ToString(data.([]uint8))
+			if dur, err := time.ParseDuration(s); err != nil {
+				return nil, err
+			} else {
+				v = dur
+			}
+			return v, nil
+		default:
+			return data, nil
+		}
+	}
+}
+
+func Uint8ToString(bs []uint8) string {
+	b := make([]byte, len(bs))
+	for i, v := range bs {
+		b[i] = byte(v)
+	}
+	return string(b)
 }

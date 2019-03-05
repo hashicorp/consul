@@ -3,6 +3,7 @@
         <h1>
             Nodes
         </h1>
+        <label for="toolbar-toggle"></label>
     {{/block-slot}}
     {{#block-slot 'toolbar'}}
 {{#if (gt items.length 0) }}
@@ -33,10 +34,7 @@
 {{#if (gt healthy.length 0) }}
         <div class="healthy">
             <h2>Healthy Nodes</h2>
-            {{#list-collection
-                items=healthy
-                cell-layout=(percentage-columns-layout healthy.length columns 100) as |item index|
-            }}
+            {{#list-collection cellHeight=92 items=healthy as |item index|}}
                 {{healthchecked-resource
                     data-test-node=item.Node
                     href=(href-to 'dc.nodes.show' item.Node)

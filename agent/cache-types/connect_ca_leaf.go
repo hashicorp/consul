@@ -1,30 +1,291 @@
 package cachetype
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/consul/lib"
+
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
 // Recommended name for registration.
 const ConnectCALeafName = "connect-ca-leaf"
 
+// caChangeJitterWindow is the time over which we spread each round of retries
+// when attempting to get a new certificate following a root rotation. It's
+// selected to be a trade-off between not making rotation unnecessarily slow on
+// a tiny cluster while not hammering the servers on a huge cluster
+// unnecessarily hard. Servers rate limit to protect themselves from the
+// expensive crypto work, but in practice have 10k+ RPCs all in the same second
+// will cause a major disruption even on large servers due to downloading the
+// payloads, parsing msgpack etc. Instead we pick a window that for now is fixed
+// but later might be either user configurable (not nice since it would become
+// another hard-to-tune value) or set dynamically by the server based on it's
+// knowledge of how many certs need to be rotated. Currently the server doesn't
+// know that so we pick something that is reasonable. We err on the side of
+// being slower that we need in trivial cases but gentler for large deployments.
+// 30s means that even with a cluster of 10k service instances, the server only
+// has to cope with ~333 RPCs a second which shouldn't be too bad if it's rate
+// limiting the actual expensive crypto work.
+//
+// The actual backoff strategy when we are rate limited is to have each cert
+// only retry once with each window of this size, at a point in the window
+// selected at random. This performs much better than exponential backoff in
+// terms of getting things rotated quickly with more predictable load and so
+// fewer rate limited requests. See the full simulation this is based on at
+// https://github.com/banks/sim-rate-limit-backoff/blob/master/README.md for
+// more detail.
+const caChangeJitterWindow = 30 * time.Second
+
 // ConnectCALeaf supports fetching and generating Connect leaf
 // certificates.
 type ConnectCALeaf struct {
 	caIndex uint64 // Current index for CA roots
 
-	issuedCertsLock sync.RWMutex
-	issuedCerts     map[string]*structs.IssuedCert
+	// rootWatchMu protects access to the rootWatchSubscribers map and
+	// rootWatchCancel
+	rootWatchMu sync.Mutex
+	// rootWatchSubscribers is a set of chans, one for each currently in-flight
+	// Fetch. These chans have root updates delivered from the root watcher.
+	rootWatchSubscribers map[chan struct{}]struct{}
+	// rootWatchCancel is a func to call to stop the background root watch if any.
+	// You must hold inflightMu to read (e.g. call) or write the value.
+	rootWatchCancel func()
 
-	RPC   RPC          // RPC client for remote requests
-	Cache *cache.Cache // Cache that has CA root certs via ConnectCARoot
+	// testRootWatchStart/StopCount are testing helpers that allow tests to
+	// observe the reference counting behavior that governs the shared root watch.
+	// It's not exactly pretty to expose internals like this, but seems cleaner
+	// than constructing elaborate and brittle test cases that we can infer
+	// correct behavior from, and simpler than trying to probe runtime goroutine
+	// traces to infer correct behavior that way. They must be accessed
+	// atomically.
+	testRootWatchStartCount uint32
+	testRootWatchStopCount  uint32
+
+	RPC        RPC          // RPC client for remote requests
+	Cache      *cache.Cache // Cache that has CA root certs via ConnectCARoot
+	Datacenter string       // This agent's datacenter
+
+	// TestOverrideCAChangeInitialDelay allows overriding the random jitter after a
+	// root change with a fixed delay. So far ths is only done in tests. If it's
+	// zero the caChangeInitialSpreadDefault maximum jitter will be used but if
+	// set, it overrides and provides a fixed delay. To essentially disable the
+	// delay in tests they can set it to 1 nanosecond. We may separately allow
+	// configuring the jitter limit by users later but this is different and for
+	// tests only since we need to set a deterministic time delay in order to test
+	// the behaviour here fully and determinstically.
+	TestOverrideCAChangeInitialDelay time.Duration
+}
+
+// fetchState is some additional metadata we store with each cert in the cache
+// to track things like expiry and coordinate paces root rotations. It's
+// important this doesn't contain any pointer types since we rely on the struct
+// being copied to avoid modifying the actual state in the cache entry during
+// Fetch. Pointers themselves are OK, but if we point to another struct that we
+// call a method or modify in some way that would directly mutate the cache and
+// cause problems. We'd need to deep-clone in that case in Fetch below.
+// time.Time technically contains a pointer to the Location but we ignore that
+// since all times we get from our wall clock should point to the same Location
+// anyway.
+type fetchState struct {
+	// authorityKeyID is the key ID of the CA root that signed the current cert.
+	// This is just to save parsing the whole cert everytime we have to check if
+	// the root changed.
+	authorityKeyID string
+
+	// forceExpireAfter is used to coordinate renewing certs after a CA rotation
+	// in a staggered way so that we don't overwhelm the servers.
+	forceExpireAfter time.Time
+
+	// activeRootRotationStart is set when the root has changed and we need to get
+	// a new cert but haven't got one yet. forceExpireAfter will be set to the
+	// next scheduled time we should try our CSR, but this is needed to calculate
+	// the retry windows if we are rate limited when we try. See comment on
+	// caChangeJitterWindow above for more.
+	activeRootRotationStart time.Time
+
+	// consecutiveRateLimitErrs stores how many rate limit errors we've hit. We
+	// use this to choose a new window for the next retry. See comment on
+	// caChangeJitterWindow above for more.
+	consecutiveRateLimitErrs int
+}
+
+// fetchStart is called on each fetch that is about to block and wait for
+// changes to the leaf. It subscribes a chan to receive updates from the shared
+// root watcher and triggers root watcher if it's not already running.
+func (c *ConnectCALeaf) fetchStart(rootUpdateCh chan struct{}) {
+	c.rootWatchMu.Lock()
+	defer c.rootWatchMu.Unlock()
+	// Lazy allocation
+	if c.rootWatchSubscribers == nil {
+		c.rootWatchSubscribers = make(map[chan struct{}]struct{})
+	}
+	// Make sure a root watcher is running. We don't only do this on first request
+	// to be more tolerant of errors that could cause the root watcher to fail and
+	// exit.
+	if c.rootWatchCancel == nil {
+		ctx, cancel := context.WithCancel(context.Background())
+		c.rootWatchCancel = cancel
+		go c.rootWatcher(ctx)
+	}
+	c.rootWatchSubscribers[rootUpdateCh] = struct{}{}
+}
+
+// fetchDone is called when a blocking call exits to unsubscribe from root
+// updates and possibly stop the shared root watcher if it's no longer needed.
+// Note that typically root CA is still being watched by clients directly and
+// probably by the ProxyConfigManager so it will stay hot in cache for a while,
+// we are just not monitoring it for updates any more.
+func (c *ConnectCALeaf) fetchDone(rootUpdateCh chan struct{}) {
+	c.rootWatchMu.Lock()
+	defer c.rootWatchMu.Unlock()
+	delete(c.rootWatchSubscribers, rootUpdateCh)
+	if len(c.rootWatchSubscribers) == 0 && c.rootWatchCancel != nil {
+		// This was the last request. Stop the root watcher.
+		c.rootWatchCancel()
+	}
+}
+
+// rootWatcher is the shared rootWatcher that runs in a background goroutine
+// while needed by one or more inflight Fetch calls.
+func (c *ConnectCALeaf) rootWatcher(ctx context.Context) {
+	atomic.AddUint32(&c.testRootWatchStartCount, 1)
+	defer atomic.AddUint32(&c.testRootWatchStopCount, 1)
+
+	ch := make(chan cache.UpdateEvent, 1)
+	err := c.Cache.Notify(ctx, ConnectCARootName, &structs.DCSpecificRequest{
+		Datacenter: c.Datacenter,
+	}, "roots", ch)
+
+	notifyChange := func() {
+		c.rootWatchMu.Lock()
+		defer c.rootWatchMu.Unlock()
+
+		for ch := range c.rootWatchSubscribers {
+			select {
+			case ch <- struct{}{}:
+			default:
+				// Don't block - chans are 1-buffered so act as an edge trigger and
+				// reload CA state directly from cache so they never "miss" updates.
+			}
+		}
+	}
+
+	if err != nil {
+		// Trigger all inflight watchers. We don't pass the error, but they will
+		// reload from cache and observe the same error and return it to the caller,
+		// or if it's transient, will continue and the next Fetch will get us back
+		// into the right state. Seems better than busy loop-retrying here given
+		// that almost any error we would see here would also be returned from the
+		// cache get this will trigger.
+		notifyChange()
+		return
+	}
+
+	var oldRoots *structs.IndexedCARoots
+	// Wait for updates to roots or all requests to stop
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case e := <-ch:
+			// Root response changed in some way. Note this might be the initial
+			// fetch.
+			if e.Err != nil {
+				// See above rationale about the error propagation
+				notifyChange()
+				continue
+			}
+
+			roots, ok := e.Result.(*structs.IndexedCARoots)
+			if !ok {
+				// See above rationale about the error propagation
+				notifyChange()
+				continue
+			}
+
+			// Check that the active root is actually different from the last CA
+			// config there are many reasons the config might have changed without
+			// actually updating the CA root that is signing certs in the cluster.
+			// The Fetch calls will also validate this since the first call here we
+			// don't know if it changed or not, but there is no point waking up all
+			// Fetch calls to check this if we know none of them will need to act on
+			// this update.
+			if oldRoots != nil && oldRoots.ActiveRootID == roots.ActiveRootID {
+				continue
+			}
+
+			// Distribute the update to all inflight requests - they will decide
+			// whether or not they need to act on it.
+			notifyChange()
+			oldRoots = roots
+		}
+	}
+}
+
+// calculateSoftExpiry encapsulates our logic for when to renew a cert based on
+// it's age. It returns a pair of times min, max which makes it easier to test
+// the logic without non-determinisic jitter to account for. The caller should
+// choose a time randomly in between these.
+//
+// We want to balance a few factors here:
+//   - renew too early and it increases the aggregate CSR rate in the cluster
+//   - renew too late and it risks disruption to the service if a transient
+//     error prevents the renewal
+//   - we want a broad amount of jitter so if there is an outage, we don't end
+//     up with all services in sync and causing a thundering herd every
+//     renewal period. Broader is better for smoothing requests but pushes
+//     both earlier and later tradeoffs above.
+//
+// Somewhat arbitrarily the current strategy looks like this:
+//
+//          0                              60%             90%
+//   Issued [------------------------------|===============|!!!!!] Expires
+// 72h TTL: 0                             ~43h            ~65h
+//  1h TTL: 0                              36m             54m
+//
+// Where |===| is the soft renewal period where we jitter for the first attempt
+// and |!!!| is the danger zone where we just try immediately.
+//
+// In the happy path (no outages) the average renewal occurs half way through
+// the soft renewal region or at 75% of the cert lifetime which is ~54 hours for
+// a 72 hour cert, or 45 mins for a 1 hour cert.
+//
+// If we are already in the softRenewal period, we randomly pick a time between
+// now and the start of the danger zone.
+//
+// We pass in now to make testing easier.
+func calculateSoftExpiry(now time.Time, cert *structs.IssuedCert) (min time.Time, max time.Time) {
+
+	certLifetime := cert.ValidBefore.Sub(cert.ValidAfter)
+	if certLifetime < 10*time.Minute {
+		// Shouldn't happen as we limit to 1 hour shortest elsewhere but just be
+		// defensive against strange times or bugs.
+		return now, now
+	}
+
+	// Find the 60% mark in diagram above
+	softRenewTime := cert.ValidAfter.Add(time.Duration(float64(certLifetime) * 0.6))
+	hardRenewTime := cert.ValidAfter.Add(time.Duration(float64(certLifetime) * 0.9))
+
+	if now.After(hardRenewTime) {
+		// In the hard renew period, or already expired. Renew now!
+		return now, now
+	}
+
+	if now.After(softRenewTime) {
+		// Already in the soft renew period, make now the lower bound for jitter
+		softRenewTime = now
+	}
+	return softRenewTime, hardRenewTime
 }
 
 func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
@@ -37,86 +298,215 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 			"Internal cache failure: request wrong type: %T", req)
 	}
 
-	// This channel watches our overall timeout. The other goroutines
-	// launched in this function should end all around the same time so
-	// they clean themselves up.
+	// Do we already have a cert in the cache?
+	var existing *structs.IssuedCert
+	// Really important this is not a pointer type since otherwise we would set it
+	// to point to the actual fetchState in the cache entry below and then would
+	// be directly modifying that in the cache entry even when we might later
+	// return an error and not update index etc. By being a value, we force a copy
+	var state fetchState
+	if opts.LastResult != nil {
+		existing, ok = opts.LastResult.Value.(*structs.IssuedCert)
+		if !ok {
+			return result, fmt.Errorf(
+				"Internal cache failure: last value wrong type: %T", opts.LastResult.Value)
+		}
+		if opts.LastResult.State != nil {
+			state, ok = opts.LastResult.State.(fetchState)
+			if !ok {
+				return result, fmt.Errorf(
+					"Internal cache failure: last state wrong type: %T", opts.LastResult.State)
+			}
+		}
+	}
+
+	// Handle brand new request first as it's simplest.
+	if existing == nil {
+		return c.generateNewLeaf(reqReal, result)
+	}
+
+	// Setup result to mirror the current value for if we timeout or hit a rate
+	// limit. This allows us to update the state (e.g. for backoff or retry
+	// coordination on root change) even if we don't get a new cert.
+	result.Value = existing
+	result.Index = existing.ModifyIndex
+	result.State = state
+
+	// Since state is not a pointer, we can't just set it once in result and then
+	// continue to update it later since we will be updating only our copy.
+	// Instead we have a helper function that is used to make sure the state is
+	// updated in the result when we return.
+	lastResultWithNewState := func() cache.FetchResult {
+		return cache.FetchResult{
+			Value: existing,
+			Index: existing.ModifyIndex,
+			State: state,
+		}
+	}
+
+	// Beyond this point we need to only return lastResultWithNewState() not just
+	// result since otherwise we might "loose" state updates we expect not to.
+
+	// We have a certificate in cache already. Check it's still valid.
+	now := time.Now()
+	minExpire, maxExpire := calculateSoftExpiry(now, existing)
+	expiresAt := minExpire.Add(lib.RandomStagger(maxExpire.Sub(minExpire)))
+
+	// Check if we have been force-expired by a root update that jittered beyond
+	// the timeout of the query it was running.
+	if !state.forceExpireAfter.IsZero() && state.forceExpireAfter.Before(expiresAt) {
+		expiresAt = state.forceExpireAfter
+	}
+
+	if expiresAt == now || expiresAt.Before(now) {
+		// Already expired, just make a new one right away
+		return c.generateNewLeaf(reqReal, lastResultWithNewState())
+	}
+
+	// We are about to block and wait for a change or timeout.
+
+	// Make a chan we can be notified of changes to CA roots on. It must be
+	// buffered so we don't miss broadcasts from rootsWatch. It is an edge trigger
+	// so a single buffer element is sufficient regardless of whether we consume
+	// the updates fast enough since as soon as we see an element in it, we will
+	// reload latest CA from cache.
+	rootUpdateCh := make(chan struct{}, 1)
+
+	// The roots may have changed in between blocking calls. We need to verify
+	// that the existing cert was signed by the current root. If it was we still
+	// want to do the whole jitter thing. We could code that again here but it's
+	// identical to the select case below so we just trigger our own update chan
+	// and let the logic below handle checking if the CA actually changed in the
+	// common case where it didn't it is a no-op anyway.
+	rootUpdateCh <- struct{}{}
+
+	// Subscribe our chan to get root update notification.
+	c.fetchStart(rootUpdateCh)
+	defer c.fetchDone(rootUpdateCh)
+
+	// Setup the timeout chan outside the loop so we don't keep bumping the timout
+	// later if we loop around.
 	timeoutCh := time.After(opts.Timeout)
 
-	// Kick off the goroutine that waits for new CA roots. The channel buffer
-	// is so that the goroutine doesn't block forever if we return for other
-	// reasons.
-	newRootCACh := make(chan error, 1)
-	go c.waitNewRootCA(reqReal.Datacenter, newRootCACh, opts.Timeout)
+	// Setup initial expiry chan. We may change this if root update occurs in the
+	// loop below.
+	expiresCh := time.After(expiresAt.Sub(now))
 
-	// Get our prior cert (if we had one) and use that to determine our
-	// expiration time. If no cert exists, we expire immediately since we
-	// need to generate.
-	c.issuedCertsLock.RLock()
-	lastCert := c.issuedCerts[reqReal.Service]
-	c.issuedCertsLock.RUnlock()
+	// Current cert is valid so just wait until it expires or we time out.
+	for {
+		select {
+		case <-timeoutCh:
+			// We timed out the request with same cert.
+			return lastResultWithNewState(), nil
 
-	var leafExpiryCh <-chan time.Time
-	if lastCert != nil {
-		// Determine how long we wait until triggering. If we've already
-		// expired, we trigger immediately.
-		if expiryDur := lastCert.ValidBefore.Sub(time.Now()); expiryDur > 0 {
-			leafExpiryCh = time.After(expiryDur - 1*time.Hour)
-			// TODO(mitchellh): 1 hour buffer is hardcoded above
+		case <-expiresCh:
+			// Cert expired or was force-expired by a root change.
+			return c.generateNewLeaf(reqReal, lastResultWithNewState())
+
+		case <-rootUpdateCh:
+			// A root cache change occurred, reload roots from cache.
+			roots, err := c.rootsFromCache()
+			if err != nil {
+				return lastResultWithNewState(), err
+			}
+
+			// Handle _possibly_ changed roots. We still need to verify the new active
+			// root is not the same as the one our current cert was signed by since we
+			// can be notified spuriously if we are the first request since the
+			// rootsWatcher didn't know about the CA we were signed by. We also rely
+			// on this on every request to do the initial check that the current roots
+			// are the same ones the current cert was signed by.
+			if activeRootHasKey(roots, state.authorityKeyID) {
+				// Current active CA is the same one that signed our current cert so
+				// keep waiting for a change.
+				continue
+			}
+			state.activeRootRotationStart = time.Now()
+
+			// CA root changed. We add some jitter here to avoid a thundering herd.
+			// See docs on caChangeJitterWindow const.
+			delay := lib.RandomStagger(caChangeJitterWindow)
+			if c.TestOverrideCAChangeInitialDelay > 0 {
+				delay = c.TestOverrideCAChangeInitialDelay
+			}
+			// Force the cert to be expired after the jitter - the delay above might
+			// be longer than we have left on our timeout. We set forceExpireAfter in
+			// the cache state so the next request will notice we still need to renew
+			// and do it at the right time. This is cleared once a new cert is
+			// returned by generateNewLeaf.
+			state.forceExpireAfter = state.activeRootRotationStart.Add(delay)
+			// If the delay time is within the current timeout, we want to renew the
+			// as soon as it's up. We change the expire time and chan so that when we
+			// loop back around, we'll wait at most delay until generating a new cert.
+			if state.forceExpireAfter.Before(expiresAt) {
+				expiresAt = state.forceExpireAfter
+				expiresCh = time.After(delay)
+			}
+			continue
 		}
 	}
+}
 
-	if leafExpiryCh == nil {
-		// If the channel is still nil then it means we need to generate
-		// a cert no matter what: we either don't have an existing one or
-		// it is expired.
-		leafExpiryCh = time.After(0)
-	}
-
-	// Block on the events that wake us up.
-	select {
-	case <-timeoutCh:
-		// On a timeout, we just return the empty result and no error.
-		// It isn't an error to timeout, its just the limit of time the
-		// caching system wants us to block for. By returning an empty result
-		// the caching system will ignore.
-		return result, nil
-
-	case err := <-newRootCACh:
-		// A new root CA triggers us to refresh the leaf certificate.
-		// If there was an error while getting the root CA then we return.
-		// Otherwise, we leave the select statement and move to generation.
-		if err != nil {
-			return result, err
+func activeRootHasKey(roots *structs.IndexedCARoots, currentSigningKeyID string) bool {
+	for _, ca := range roots.Roots {
+		if ca.Active {
+			if ca.SigningKeyID == currentSigningKeyID {
+				return true
+			}
+			// Found the active CA but it has changed
+			return false
 		}
-
-	case <-leafExpiryCh:
-		// The existing leaf certificate is expiring soon, so we generate a
-		// new cert with a healthy overlapping validity period (determined
-		// by the above channel).
 	}
+	// Shouldn't be possible since at least one root should be active.
+	return false
+}
 
-	// Need to lookup RootCAs response to discover trust domain. First just lookup
-	// with no blocking info - this should be a cache hit most of the time.
+func (c *ConnectCALeaf) rootsFromCache() (*structs.IndexedCARoots, error) {
 	rawRoots, _, err := c.Cache.Get(ConnectCARootName, &structs.DCSpecificRequest{
-		Datacenter: reqReal.Datacenter,
+		Datacenter: c.Datacenter,
 	})
 	if err != nil {
-		return result, err
+		return nil, err
 	}
 	roots, ok := rawRoots.(*structs.IndexedCARoots)
 	if !ok {
-		return result, errors.New("invalid RootCA response type")
+		return nil, errors.New("invalid RootCA response type")
+	}
+	return roots, nil
+}
+
+// generateNewLeaf does the actual work of creating a new private key,
+// generating a CSR and getting it signed by the servers. result argument
+// represents the last result currently in cache if any along with it's state.
+func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
+	result cache.FetchResult) (cache.FetchResult, error) {
+
+	var state fetchState
+	if result.State != nil {
+		var ok bool
+		state, ok = result.State.(fetchState)
+		if !ok {
+			return result, fmt.Errorf(
+				"Internal cache failure: result state wrong type: %T", result.State)
+		}
+	}
+
+	// Need to lookup RootCAs response to discover trust domain. This should be a
+	// cache hit.
+	roots, err := c.rootsFromCache()
+	if err != nil {
+		return result, err
 	}
 	if roots.TrustDomain == "" {
-		return result, errors.New("cluster has no CA bootstrapped")
+		return result, errors.New("cluster has no CA bootstrapped yet")
 	}
 
 	// Build the service ID
 	serviceID := &connect.SpiffeIDService{
 		Host:       roots.TrustDomain,
-		Datacenter: reqReal.Datacenter,
+		Datacenter: req.Datacenter,
 		Namespace:  "default",
-		Service:    reqReal.Service,
+		Service:    req.Service,
 	}
 
 	// Create a new private key
@@ -134,89 +524,78 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 	// Request signing
 	var reply structs.IssuedCert
 	args := structs.CASignRequest{
-		WriteRequest: structs.WriteRequest{Token: reqReal.Token},
-		Datacenter:   reqReal.Datacenter,
+		WriteRequest: structs.WriteRequest{Token: req.Token},
+		Datacenter:   req.Datacenter,
 		CSR:          csr,
 	}
 	if err := c.RPC.RPC("ConnectCA.Sign", &args, &reply); err != nil {
+		if err.Error() == consul.ErrRateLimited.Error() {
+			if result.Value == nil {
+				// This was a first fetch - we have no good value in cache. In this case
+				// we just return the error to the caller rather than rely on surprising
+				// semi-blocking until the rate limit is appeased or we timeout
+				// behavior. It's likely the caller isn't expecting this to block since
+				// it's an initial fetch. This also massively simplifies this edge case.
+				return result, err
+			}
+
+			if state.activeRootRotationStart.IsZero() {
+				// We hit a rate limit error by chance - for example a cert expired
+				// before the root rotation was observed (not triggered by rotation) but
+				// while server is working through high load from a recent rotation.
+				// Just pretend there is a rotation and the retry logic here will start
+				// jittering and retrying in the same way from now.
+				state.activeRootRotationStart = time.Now()
+			}
+
+			// Increment the errors in the state
+			state.consecutiveRateLimitErrs++
+
+			delay := lib.RandomStagger(caChangeJitterWindow)
+			if c.TestOverrideCAChangeInitialDelay > 0 {
+				delay = c.TestOverrideCAChangeInitialDelay
+			}
+
+			// Find the start of the next window we can retry in. See comment on
+			// caChangeJitterWindow for details of why we use this strategy.
+			windowStart := state.activeRootRotationStart.Add(
+				time.Duration(state.consecutiveRateLimitErrs) * delay)
+
+			// Pick a random time in that window
+			state.forceExpireAfter = windowStart.Add(delay)
+
+			// Return a result with the existing cert but the new state - the cache
+			// will see this as no change. Note that we always have an existing result
+			// here due to the nil value check above.
+			result.State = state
+			return result, nil
+		}
 		return result, err
 	}
 	reply.PrivateKeyPEM = pkPEM
 
-	// Lock the issued certs map so we can insert it. We only insert if
-	// we didn't happen to get a newer one. This should never happen since
-	// the Cache should ensure only one Fetch per service, but we sanity
-	// check just in case.
-	c.issuedCertsLock.Lock()
-	defer c.issuedCertsLock.Unlock()
-	lastCert = c.issuedCerts[reqReal.Service]
-	if lastCert == nil || lastCert.ModifyIndex < reply.ModifyIndex {
-		if c.issuedCerts == nil {
-			c.issuedCerts = make(map[string]*structs.IssuedCert)
-		}
+	// Reset rotation state
+	state.forceExpireAfter = time.Time{}
+	state.consecutiveRateLimitErrs = 0
+	state.activeRootRotationStart = time.Time{}
 
-		c.issuedCerts[reqReal.Service] = &reply
-		lastCert = &reply
+	cert, err := connect.ParseCert(reply.CertPEM)
+	if err != nil {
+		return result, err
 	}
+	// Set the CA key ID so we can easily tell when a active root has changed.
+	state.authorityKeyID = connect.HexString(cert.AuthorityKeyId)
 
-	result.Value = lastCert
-	result.Index = lastCert.ModifyIndex
+	result.Value = &reply
+	// Store value not pointer so we don't accidentally mutate the cache entry
+	// state in Fetch.
+	result.State = state
+	result.Index = reply.ModifyIndex
 	return result, nil
 }
 
-// waitNewRootCA blocks until a new root CA is available or the timeout is
-// reached (on timeout ErrTimeout is returned on the channel).
-func (c *ConnectCALeaf) waitNewRootCA(datacenter string, ch chan<- error,
-	timeout time.Duration) {
-	// We always want to block on at least an initial value. If this isn't
-	minIndex := atomic.LoadUint64(&c.caIndex)
-	if minIndex == 0 {
-		minIndex = 1
-	}
-
-	// Fetch some new roots. This will block until our MinQueryIndex is
-	// matched or the timeout is reached.
-	rawRoots, _, err := c.Cache.Get(ConnectCARootName, &structs.DCSpecificRequest{
-		Datacenter: datacenter,
-		QueryOptions: structs.QueryOptions{
-			MinQueryIndex: minIndex,
-			MaxQueryTime:  timeout,
-		},
-	})
-	if err != nil {
-		ch <- err
-		return
-	}
-
-	roots, ok := rawRoots.(*structs.IndexedCARoots)
-	if !ok {
-		// This should never happen but we don't want to even risk a panic
-		ch <- fmt.Errorf(
-			"internal error: CA root cache returned bad type: %T", rawRoots)
-		return
-	}
-
-	// We do a loop here because there can be multiple waitNewRootCA calls
-	// happening simultaneously. Each Fetch kicks off one call. These are
-	// multiplexed through Cache.Get which should ensure we only ever
-	// actually make a single RPC call. However, there is a race to set
-	// the caIndex field so do a basic CAS loop here.
-	for {
-		// We only set our index if its newer than what is previously set.
-		old := atomic.LoadUint64(&c.caIndex)
-		if old == roots.Index || old > roots.Index {
-			break
-		}
-
-		// Set the new index atomically. If the caIndex value changed
-		// in the meantime, retry.
-		if atomic.CompareAndSwapUint64(&c.caIndex, old, roots.Index) {
-			break
-		}
-	}
-
-	// Trigger the channel since we updated.
-	ch <- nil
+func (c *ConnectCALeaf) SupportsBlocking() bool {
+	return true
 }
 
 // ConnectCALeafRequest is the cache.Request implementation for the
@@ -228,6 +607,7 @@ type ConnectCALeafRequest struct {
 	Datacenter    string
 	Service       string // Service name, not ID
 	MinQueryIndex uint64
+	MaxQueryTime  time.Duration
 }
 
 func (r *ConnectCALeafRequest) CacheInfo() cache.RequestInfo {
@@ -236,5 +616,6 @@ func (r *ConnectCALeafRequest) CacheInfo() cache.RequestInfo {
 		Key:        r.Service,
 		Datacenter: r.Datacenter,
 		MinIndex:   r.MinQueryIndex,
+		Timeout:    r.MaxQueryTime,
 	}
 }

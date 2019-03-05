@@ -31,7 +31,7 @@
                         <a href={{href-to 'dc.kv' dc.Name}}>Key/Value</a>
                     </li>
                     <li data-test-main-nav-acls class={{if (or (is-href 'dc.acls' dc.Name) (is-href 'dc.aclsdisabled') (is-href 'dc.unauthorized')) 'is-active'}}>
-                        <a href={{href-to 'dc.acls' dc.Name}}>ACL</a>
+                        <a href={{href-to 'dc.acls.tokens' dc.Name}}>ACL</a>
                     </li>
                     <li data-test-main-nav-intentions class={{if (is-href 'dc.intentions' dc.Name) 'is-active'}}>
                         <a href={{href-to 'dc.intentions' dc.Name}}>Intentions</a>
@@ -44,9 +44,11 @@
                     <li data-test-main-nav-docs>
                         <a href="{{ env 'CONSUL_DOCUMENTATION_URL'}}/index.html" rel="help noopener noreferrer" target="_blank">Documentation</a>
                     </li>
+{{#if false }}
                     <li data-test-main-nav-settings class={{if (is-href 'settings') 'is-active'}}>
                         <a href={{href-to 'settings'}}>Settings</a>
                     </li>
+{{/if}}
                 </ul>
             </nav>
         </div>
@@ -60,3 +62,4 @@
         <a data-test-footer-docs href="{{env 'CONSUL_DOCUMENTATION_URL'}}/index.html" rel="help noopener noreferrer" target="_blank">Documentation</a>
         {{{concat '<!-- ' (env 'CONSUL_GIT_SHA') '-->'}}}
     </footer>
+    {{modal-layer}}

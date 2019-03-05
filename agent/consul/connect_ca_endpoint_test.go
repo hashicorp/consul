@@ -5,6 +5,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
 )
@@ -38,7 +40,7 @@ func TestConnectCARoots(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Insert some CAs
 	state := s1.fsm.State()
@@ -81,7 +83,7 @@ func TestConnectCAConfig_GetSet(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Get the starting config
 	{
@@ -114,8 +116,9 @@ func TestConnectCAConfig_GetSet(t *testing.T) {
 			Config:     newConfig,
 		}
 		var reply interface{}
-
-		assert.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply))
+		retry.Run(t, func(r *retry.R) {
+			r.Check(msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply))
+		})
 	}
 
 	// Verify the new config was set
@@ -146,7 +149,7 @@ func TestConnectCAConfig_TriggerRotation(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Store the current root
 	rootReq := &structs.DCSpecificRequest{
@@ -314,6 +317,18 @@ func TestConnectCASign(t *testing.T) {
 	var reply structs.IssuedCert
 	require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", args, &reply))
 
+	// Generate a second CSR and request signing
+	spiffeId2 := connect.TestSpiffeIDService(t, "web2")
+	csr, _ = connect.TestCSR(t, spiffeId2)
+	args = &structs.CASignRequest{
+		Datacenter: "dc1",
+		CSR:        csr,
+	}
+
+	var reply2 structs.IssuedCert
+	require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", args, &reply2))
+	require.True(reply2.ModifyIndex > reply.ModifyIndex)
+
 	// Get the current CA
 	state := s1.fsm.State()
 	_, ca, err := state.CARootActive(nil)
@@ -334,11 +349,207 @@ func TestConnectCASign(t *testing.T) {
 	assert.Equal(spiffeId.URI().String(), reply.ServiceURI)
 }
 
+// Bench how long Signing RPC takes. This was used to ballpark reasonable
+// default rate limit to protect servers from thundering herds of signing
+// requests on root rotation.
+func BenchmarkConnectCASign(b *testing.B) {
+	t := &testing.T{}
+
+	require := require.New(b)
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Generate a CSR and request signing
+	spiffeID := connect.TestSpiffeIDService(b, "web")
+	csr, _ := connect.TestCSR(b, spiffeID)
+	args := &structs.CASignRequest{
+		Datacenter: "dc1",
+		CSR:        csr,
+	}
+	var reply structs.IssuedCert
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", args, &reply))
+	}
+}
+
+func TestConnectCASign_rateLimit(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = true
+		c.CAConfig.Config = map[string]interface{}{
+			// It actually doesn't work as expected with some higher values because
+			// the token bucket is initialized with max(10%, 1) burst which for small
+			// values is 1 and then the test completes so fast it doesn't actually
+			// replenish any tokens so you only get the burst allowed through. This is
+			// OK, running the test slower is likely to be more brittle anyway since
+			// it will become more timing dependent whether the actual rate the
+			// requests are made matches the expectation from the sleeps etc.
+			"CSRMaxPerSecond": 1,
+		}
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Generate a CSR and request signing a few times in a loop.
+	spiffeID := connect.TestSpiffeIDService(t, "web")
+	csr, _ := connect.TestCSR(t, spiffeID)
+	args := &structs.CASignRequest{
+		Datacenter: "dc1",
+		CSR:        csr,
+	}
+	var reply structs.IssuedCert
+
+	errs := make([]error, 10)
+	for i := 0; i < len(errs); i++ {
+		errs[i] = msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", args, &reply)
+	}
+
+	limitedCount := 0
+	successCount := 0
+	for _, err := range errs {
+		if err == nil {
+			successCount++
+		} else if err.Error() == ErrRateLimited.Error() {
+			limitedCount++
+		} else {
+			require.NoError(err)
+		}
+	}
+	// I've only ever seen this as 1/9 however if the test runs slowly on an
+	// over-subscribed CPU (e.g. in CI) it's possible that later requests could
+	// have had their token replenished and succeed so we allow a little slack -
+	// the test here isn't really the exact token bucket response more a sanity
+	// check that some limiting is being applied. Note that we can't just measure
+	// the time it took to send them all and infer how many should have succeeded
+	// without some complex modelling of the token bucket algorithm.
+	require.Truef(successCount >= 1, "at least 1 CSRs should have succeeded, got %d", successCount)
+	require.Truef(limitedCount >= 7, "at least 7 CSRs should have been rate limited, got %d", limitedCount)
+}
+
+func TestConnectCASign_concurrencyLimit(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = true
+		c.CAConfig.Config = map[string]interface{}{
+			// Must disable the rate limit since it takes precedence
+			"CSRMaxPerSecond":  0,
+			"CSRMaxConcurrent": 1,
+		}
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Generate a CSR and request signing a few times in a loop.
+	spiffeID := connect.TestSpiffeIDService(t, "web")
+	csr, _ := connect.TestCSR(t, spiffeID)
+	args := &structs.CASignRequest{
+		Datacenter: "dc1",
+		CSR:        csr,
+	}
+
+	var wg sync.WaitGroup
+
+	errs := make(chan error, 10)
+	times := make(chan time.Duration, cap(errs))
+	start := time.Now()
+	for i := 0; i < cap(errs); i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			codec := rpcClient(t, s1)
+			defer codec.Close()
+			var reply structs.IssuedCert
+			errs <- msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", args, &reply)
+			times <- time.Since(start)
+		}()
+	}
+
+	wg.Wait()
+	close(errs)
+
+	limitedCount := 0
+	successCount := 0
+	var minTime, maxTime time.Duration
+	for err := range errs {
+		elapsed := <-times
+		if elapsed < minTime || minTime == 0 {
+			minTime = elapsed
+		}
+		if elapsed > maxTime {
+			maxTime = elapsed
+		}
+		if err == nil {
+			successCount++
+		} else if err.Error() == ErrRateLimited.Error() {
+			limitedCount++
+		} else {
+			require.NoError(err)
+		}
+	}
+
+	// These are very hand wavy - on my mac times look like this:
+	//     2.776009ms
+	//     3.705813ms
+	//     4.527212ms
+	//     5.267755ms
+	//     6.119809ms
+	//     6.958083ms
+	//     7.869179ms
+	//     8.675058ms
+	//     9.512281ms
+	//     10.238183ms
+	//
+	// But it's indistinguishable from noise - even if you disable the concurrency
+	// limiter you get pretty much the same pattern/spread.
+	//
+	// On the other hand it's only timing that stops us from not hitting the 500ms
+	// timeout. On highly CPU constrained CI box this could be brittle if we
+	// assert that we never get rate limited.
+	//
+	// So this test is not super strong - but it's a sanity check at least that
+	// things don't break when configured this way, and through manual
+	// inspection/debug logging etc. we can verify it's actually doing the
+	// concurrency limit thing. If you add a 100ms sleep into the sign endpoint
+	// after the rate limit code for example it makes it much more obvious:
+	//
+	//   With 100ms sleep an no concurrency limit:
+	//     min=109ms, max=118ms
+	//   With concurrency limit of 1:
+	//     min=106ms, max=538ms (with ~half hitting the 500ms timeout)
+	//
+	// Without instrumenting the endpoint to make the RPC take an artificially
+	// long time it's hard to know what else we can do to actively detect that the
+	// requests were serialized.
+	t.Logf("min=%s, max=%s", minTime, maxTime)
+	//t.Fail() // Uncomment to see the time spread logged
+	require.Truef(successCount >= 1, "at least 1 CSRs should have succeeded, got %d", successCount)
+}
+
 func TestConnectCASignValidation(t *testing.T) {
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 	})
@@ -357,7 +568,7 @@ func TestConnectCASignValidation(t *testing.T) {
 			Op:         structs.ACLSet,
 			ACL: structs.ACL{
 				Name: "User token",
-				Type: structs.ACLTypeClient,
+				Type: structs.ACLTokenTypeClient,
 				Rules: `
 				service "web" {
 					policy = "write"
