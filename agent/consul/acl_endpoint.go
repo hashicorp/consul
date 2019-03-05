@@ -213,6 +213,9 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 				index, token, err = state.ACLTokenGetByAccessor(ws, args.TokenID)
 				if token != nil {
 					a.srv.filterACLWithAuthorizer(rule, &token)
+					if !rule.ACLWrite() {
+						reply.Redacted = true
+					}
 				}
 			} else {
 				index, token, err = state.ACLTokenGetBySecret(ws, args.TokenID)
@@ -589,6 +592,7 @@ func (a *ACL) TokenBatchRead(args *structs.ACLTokenBatchGetRequest, reply *struc
 			a.srv.filterACLWithAuthorizer(rule, &tokens)
 
 			reply.Index, reply.Tokens = index, tokens
+			reply.Redacted = !rule.ACLWrite()
 			return nil
 		})
 }
@@ -810,10 +814,6 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 	}
 
 	a.srv.acls.cache.RemovePolicy(policy.ID)
-
-	if resp == nil {
-		return nil
-	}
 
 	if respErr, ok := resp.(error); ok {
 		return respErr

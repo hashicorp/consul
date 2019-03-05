@@ -61,7 +61,7 @@ func TestSnapshotInspectCommand_Validation(t *testing.T) {
 
 func TestSnapshotInspectCommand(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 

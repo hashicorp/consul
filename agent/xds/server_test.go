@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"text/template"
 	"time"
@@ -82,7 +83,7 @@ func (m *testManager) Watch(proxyID string) (<-chan *proxycfg.ConfigSnapshot, pr
 // AssertWatchCancelled checks that the most recent call to a Watch cancel func
 // was from the specified proxyID and that one is made in a short time. This
 // probably won't work if you are running multiple Watches in parallel on
-// multiple proxyIDS due to timing/ordering issues but I dont think we need to
+// multiple proxyIDS due to timing/ordering issues but I don't think we need to
 // do that.
 func (m *testManager) AssertWatchCancelled(t *testing.T, proxyID string) {
 	t.Helper()
@@ -115,7 +116,13 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	envoy := NewTestEnvoy(t, "web-sidecar-proxy", "")
 	defer envoy.Close()
 
-	s := Server{logger, mgr, mgr, aclResolve}
+	s := Server{
+		Logger:       logger,
+		CfgMgr:       mgr,
+		Authz:        mgr,
+		ResolveToken: aclResolve,
+	}
+	s.Initialize()
 
 	go func() {
 		err := s.StreamAggregatedResources(envoy.stream)
@@ -162,11 +169,11 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	// And should get a response immediately.
 	assertResponseSent(t, envoy.stream.sendCh, expectListenerJSON(t, snap, "", 1, 3))
 
-	// Now send Route request along with next listner one
+	// Now send Route request along with next listener one
 	envoy.SendReq(t, RouteType, 0, 0)
 	envoy.SendReq(t, ListenerType, 1, 3)
 
-	// We don't serve routes yet so this shoould block with no response
+	// We don't serve routes yet so this should block with no response
 	assertChanBlocked(t, envoy.stream.sendCh)
 
 	// WOOP! Envoy now has full connect config. Lets verify that if we update it,
@@ -179,7 +186,7 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	mgr.DeliverConfig(t, "web-sidecar-proxy", snap)
 
 	// All 3 response that have something to return should return with new version
-	// note that the ordering is not determinisic in general. Trying to make this
+	// note that the ordering is not deterministic in general. Trying to make this
 	// test order-agnostic though is a massive pain since we are comparing
 	// non-identical JSON strings (so can simply sort by anything) and because we
 	// don't know the order the nonces will be assigned. For now we rely and
@@ -189,21 +196,21 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	assertResponseSent(t, envoy.stream.sendCh, expectEndpointsJSON(t, snap, "", 2, 5))
 	assertResponseSent(t, envoy.stream.sendCh, expectListenerJSON(t, snap, "", 2, 6))
 
-	// Let's pretent that Envoy doesn't like that new listener config. It will ACK
+	// Let's pretend that Envoy doesn't like that new listener config. It will ACK
 	// all the others (same version) but NACK the listener. This is the most
 	// subtle part of xDS and the server implementation so I'll elaborate. A full
 	// description of the protocol can be found at
 	// https://github.com/envoyproxy/data-plane-api/blob/master/XDS_PROTOCOL.md.
-	// Envoy delays making a followup reqeest for a type until after it has
+	// Envoy delays making a followup request for a type until after it has
 	// processed and applied the last response. The next request then will include
-	// the nonce in the last response which acknowledges _recieving_ and handling
+	// the nonce in the last response which acknowledges _receiving_ and handling
 	// that response. It also includes the currently applied version. If all is
 	// good and it successfully applies the config, then the version in the next
 	// response will be the same version just sent. This is considered to be an
 	// ACK of that version for that type. If envoy fails to apply the config for
 	// some reason, it will still acknowledge that it received it (still return
 	// the responses nonce), but will show the previous version it's still using.
-	// This is considered a NACK. It's impotant that the server pay attention to
+	// This is considered a NACK. It's important that the server pay attention to
 	// the _nonce_ and not the version when deciding what to send otherwise a bad
 	// version that can't be applied in Envoy will cause a busy loop.
 	//
@@ -354,6 +361,88 @@ func expectListenerJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token strin
 		expectListenerJSONResources(t, snap, token, v, n))
 }
 
+func expectClustersJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot, token string, v, n uint64) map[string]string {
+	return map[string]string{
+		"local_app": `
+			{
+				"@type": "type.googleapis.com/envoy.api.v2.Cluster",
+				"name": "local_app",
+				"connectTimeout": "5s",
+				"hosts": [
+					{
+						"socketAddress": {
+							"address": "127.0.0.1",
+							"portValue": 8080
+						}
+					}
+				]
+			}`,
+		"service:db": `
+			{
+				"@type": "type.googleapis.com/envoy.api.v2.Cluster",
+				"name": "service:db",
+				"type": "EDS",
+				"edsClusterConfig": {
+					"edsConfig": {
+						"ads": {
+
+						}
+					}
+				},
+				"connectTimeout": "5s",
+				"tlsContext": ` + expectedUpstreamTLSContextJSON(t, snap) + `
+			}`,
+		"prepared_query:geo-cache": `
+			{
+				"@type": "type.googleapis.com/envoy.api.v2.Cluster",
+				"name": "prepared_query:geo-cache",
+				"type": "EDS",
+				"edsClusterConfig": {
+					"edsConfig": {
+						"ads": {
+
+						}
+					}
+				},
+				"connectTimeout": "5s",
+				"tlsContext": ` + expectedUpstreamTLSContextJSON(t, snap) + `
+			}`,
+	}
+}
+
+func expectClustersJSONFromResources(t *testing.T, snap *proxycfg.ConfigSnapshot, token string, v, n uint64, resourcesJSON map[string]string) string {
+	resJSON := ""
+
+	// Sort resources into specific order because that matters in JSONEq
+	// comparison later.
+	keyOrder := []string{"local_app"}
+	for _, u := range snap.Proxy.Upstreams {
+		keyOrder = append(keyOrder, u.Identifier())
+	}
+	for _, k := range keyOrder {
+		j, ok := resourcesJSON[k]
+		if !ok {
+			continue
+		}
+		if resJSON != "" {
+			resJSON += ",\n"
+		}
+		resJSON += j
+	}
+
+	return `{
+		"versionInfo": "` + hexString(v) + `",
+		"resources": [` + resJSON + `],
+		"typeUrl": "type.googleapis.com/envoy.api.v2.Cluster",
+		"nonce": "` + hexString(n) + `"
+		}`
+}
+
+func expectClustersJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token string, v, n uint64) string {
+	return expectClustersJSONFromResources(t, snap, token, v, n,
+		expectClustersJSONResources(t, snap, token, v, n))
+}
+
 func expectEndpointsJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token string, v, n uint64) string {
 	return `{
 		"versionInfo": "` + hexString(v) + `",
@@ -392,58 +481,6 @@ func expectEndpointsJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token stri
 		"typeUrl": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
 		"nonce": "` + hexString(n) + `"
 	}`
-}
-
-func expectClustersJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token string, v, n uint64) string {
-	return `{
-		"versionInfo": "` + hexString(v) + `",
-		"resources": [
-			{
-				"@type": "type.googleapis.com/envoy.api.v2.Cluster",
-				"name": "local_app",
-				"connectTimeout": "5s",
-				"hosts": [
-					{
-						"socketAddress": {
-							"address": "127.0.0.1",
-							"portValue": 8080
-						}
-					}
-				]
-			},
-			{
-				"@type": "type.googleapis.com/envoy.api.v2.Cluster",
-				"name": "service:db",
-				"type": "EDS",
-				"edsClusterConfig": {
-					"edsConfig": {
-						"ads": {
-
-						}
-					}
-				},
-				"connectTimeout": "5s",
-				"tlsContext": ` + expectedUpstreamTLSContextJSON(t, snap) + `
-			},
-			{
-				"@type": "type.googleapis.com/envoy.api.v2.Cluster",
-				"name": "prepared_query:geo-cache",
-				"type": "EDS",
-				"edsClusterConfig": {
-					"edsConfig": {
-						"ads": {
-
-						}
-					}
-				},
-				"connectTimeout": "5s",
-				"tlsContext": ` + expectedUpstreamTLSContextJSON(t, snap) + `
-			}
-		],
-		"typeUrl": "type.googleapis.com/envoy.api.v2.Cluster",
-		"nonce": "` + hexString(n) + `"
-	}
-	`
 }
 
 func expectedUpstreamTLSContextJSON(t *testing.T, snap *proxycfg.ConfigSnapshot) string {
@@ -489,7 +526,7 @@ func assertChanBlocked(t *testing.T, ch chan *envoy.DiscoveryResponse) {
 	t.Helper()
 	select {
 	case r := <-ch:
-		t.Fatalf("chan should block but recieved: %v", r)
+		t.Fatalf("chan should block but received: %v", r)
 	case <-time.After(10 * time.Millisecond):
 		return
 	}
@@ -501,12 +538,12 @@ func assertResponseSent(t *testing.T, ch chan *envoy.DiscoveryResponse, wantJSON
 	case r := <-ch:
 		assertResponse(t, r, wantJSON)
 	case <-time.After(50 * time.Millisecond):
-		t.Fatalf("no response recieved after 50ms")
+		t.Fatalf("no response received after 50ms")
 	}
 }
 
 // assertResponse is a helper to test a envoy.DiscoveryResponse matches the
-// JSON representaion we expect. We use JSON because the responses use protobuf
+// JSON representation we expect. We use JSON because the responses use protobuf
 // Any type which includes binary protobuf encoding and would make creating
 // expected structs require the same code that is under test!
 func assertResponse(t *testing.T, r *envoy.DiscoveryResponse, wantJSON string) {
@@ -519,7 +556,7 @@ func assertResponse(t *testing.T, r *envoy.DiscoveryResponse, wantJSON string) {
 	require.JSONEqf(t, wantJSON, gotJSON, "got:\n%s", gotJSON)
 }
 
-func TestServer_StreamAggregatedResources_ACLEnforcment(t *testing.T) {
+func TestServer_StreamAggregatedResources_ACLEnforcement(t *testing.T) {
 
 	tests := []struct {
 		name        string
@@ -529,7 +566,7 @@ func TestServer_StreamAggregatedResources_ACLEnforcment(t *testing.T) {
 		wantDenied  bool
 	}{
 		// Note that although we've stubbed actual ACL checks in the testManager
-		// ConnectAuthorize mock, by asserting against specifc reason strings here
+		// ConnectAuthorize mock, by asserting against specific reason strings here
 		// even in the happy case which can't match the default one returned by the
 		// mock we are implicitly validating that the implementation used the
 		// correct token from the context.
@@ -589,7 +626,13 @@ func TestServer_StreamAggregatedResources_ACLEnforcment(t *testing.T) {
 			envoy := NewTestEnvoy(t, "web-sidecar-proxy", tt.token)
 			defer envoy.Close()
 
-			s := Server{logger, mgr, mgr, aclResolve}
+			s := Server{
+				Logger:       logger,
+				CfgMgr:       mgr,
+				Authz:        mgr,
+				ResolveToken: aclResolve,
+			}
+			s.Initialize()
 
 			errCh := make(chan error, 1)
 			go func() {
@@ -629,6 +672,196 @@ func TestServer_StreamAggregatedResources_ACLEnforcment(t *testing.T) {
 				t.Fatalf("timed out waiting for handler to finish")
 			}
 		})
+	}
+}
+
+func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedDuringDiscoveryRequest(t *testing.T) {
+	aclRules := `service "web" { policy = "write" }`
+	token := "service-write-on-web"
+
+	policy, err := acl.NewPolicyFromSource("", 0, aclRules, acl.SyntaxLegacy, nil)
+	require.NoError(t, err)
+
+	var validToken atomic.Value
+	validToken.Store(token)
+
+	logger := log.New(os.Stderr, "", log.LstdFlags)
+	mgr := newTestManager(t)
+	aclResolve := func(id string) (acl.Authorizer, error) {
+		if token := validToken.Load(); token == nil || id != token.(string) {
+			return nil, acl.ErrNotFound
+		}
+
+		return acl.NewPolicyAuthorizer(acl.RootAuthorizer("deny"), []*acl.Policy{policy}, nil)
+	}
+	envoy := NewTestEnvoy(t, "web-sidecar-proxy", token)
+	defer envoy.Close()
+
+	s := Server{
+		Logger:             logger,
+		CfgMgr:             mgr,
+		Authz:              mgr,
+		ResolveToken:       aclResolve,
+		AuthCheckFrequency: 1 * time.Hour, // make sure this doesn't kick in
+	}
+	s.Initialize()
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- s.StreamAggregatedResources(envoy.stream)
+	}()
+
+	getError := func() (gotErr error, ok bool) {
+		select {
+		case err := <-errCh:
+			return err, true
+		default:
+			return nil, false
+		}
+	}
+
+	// Register the proxy to create state needed to Watch() on
+	mgr.RegisterProxy(t, "web-sidecar-proxy")
+
+	// Send initial cluster discover (OK)
+	envoy.SendReq(t, ClusterType, 0, 0)
+	{
+		err, ok := getError()
+		require.NoError(t, err)
+		require.False(t, ok)
+	}
+
+	// Check no response sent yet
+	assertChanBlocked(t, envoy.stream.sendCh)
+	{
+		err, ok := getError()
+		require.NoError(t, err)
+		require.False(t, ok)
+	}
+
+	// Deliver a new snapshot
+	snap := proxycfg.TestConfigSnapshot(t)
+	mgr.DeliverConfig(t, "web-sidecar-proxy", snap)
+
+	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(t, snap, token, 1, 1))
+
+	// Now nuke the ACL token.
+	validToken.Store("")
+
+	// It also (in parallel) issues the next cluster request (which acts as an ACK
+	// of the version we sent)
+	envoy.SendReq(t, ClusterType, 1, 1)
+
+	select {
+	case err := <-errCh:
+		require.Error(t, err)
+		gerr, ok := status.FromError(err)
+		require.Truef(t, ok, "not a grpc status error: type='%T' value=%v", err, err)
+		require.Equal(t, codes.Unauthenticated, gerr.Code())
+		require.Equal(t, "unauthenticated: ACL not found", gerr.Message())
+
+		mgr.AssertWatchCancelled(t, "web-sidecar-proxy")
+	case <-time.After(50 * time.Millisecond):
+		t.Fatalf("timed out waiting for handler to finish")
+	}
+}
+
+func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedInBackground(t *testing.T) {
+	aclRules := `service "web" { policy = "write" }`
+	token := "service-write-on-web"
+
+	policy, err := acl.NewPolicyFromSource("", 0, aclRules, acl.SyntaxLegacy, nil)
+	require.NoError(t, err)
+
+	var validToken atomic.Value
+	validToken.Store(token)
+
+	logger := log.New(os.Stderr, "", log.LstdFlags)
+	mgr := newTestManager(t)
+	aclResolve := func(id string) (acl.Authorizer, error) {
+		if token := validToken.Load(); token == nil || id != token.(string) {
+			return nil, acl.ErrNotFound
+		}
+
+		return acl.NewPolicyAuthorizer(acl.RootAuthorizer("deny"), []*acl.Policy{policy}, nil)
+	}
+	envoy := NewTestEnvoy(t, "web-sidecar-proxy", token)
+	defer envoy.Close()
+
+	s := Server{
+		Logger:             logger,
+		CfgMgr:             mgr,
+		Authz:              mgr,
+		ResolveToken:       aclResolve,
+		AuthCheckFrequency: 100 * time.Millisecond, // Make this short.
+	}
+	s.Initialize()
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- s.StreamAggregatedResources(envoy.stream)
+	}()
+
+	getError := func() (gotErr error, ok bool) {
+		select {
+		case err := <-errCh:
+			return err, true
+		default:
+			return nil, false
+		}
+	}
+
+	// Register the proxy to create state needed to Watch() on
+	mgr.RegisterProxy(t, "web-sidecar-proxy")
+
+	// Send initial cluster discover (OK)
+	envoy.SendReq(t, ClusterType, 0, 0)
+	{
+		err, ok := getError()
+		require.NoError(t, err)
+		require.False(t, ok)
+	}
+
+	// Check no response sent yet
+	assertChanBlocked(t, envoy.stream.sendCh)
+	{
+		err, ok := getError()
+		require.NoError(t, err)
+		require.False(t, ok)
+	}
+
+	// Deliver a new snapshot
+	snap := proxycfg.TestConfigSnapshot(t)
+	mgr.DeliverConfig(t, "web-sidecar-proxy", snap)
+
+	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(t, snap, token, 1, 1))
+
+	// It also (in parallel) issues the next cluster request (which acts as an ACK
+	// of the version we sent)
+	envoy.SendReq(t, ClusterType, 1, 1)
+
+	// Check no response sent yet
+	assertChanBlocked(t, envoy.stream.sendCh)
+	{
+		err, ok := getError()
+		require.NoError(t, err)
+		require.False(t, ok)
+	}
+
+	// Now nuke the ACL token while there's no activity.
+	validToken.Store("")
+
+	select {
+	case err := <-errCh:
+		require.Error(t, err)
+		gerr, ok := status.FromError(err)
+		require.Truef(t, ok, "not a grpc status error: type='%T' value=%v", err, err)
+		require.Equal(t, codes.Unauthenticated, gerr.Code())
+		require.Equal(t, "unauthenticated: ACL not found", gerr.Message())
+
+		mgr.AssertWatchCancelled(t, "web-sidecar-proxy")
+	case <-time.After(200 * time.Millisecond):
+		t.Fatalf("timed out waiting for handler to finish")
 	}
 }
 
@@ -685,7 +918,7 @@ func TestServer_Check(t *testing.T) {
 			destPrincipal: "not-a-spiffe-id",
 			// Should never make it to authz call.
 			wantDenied: true,
-			wantReason: "Destination Principal is not a valid Connect identitiy",
+			wantReason: "Destination Principal is not a valid Connect identity",
 		},
 		{
 			name:          "dest not a service URI",
@@ -693,7 +926,7 @@ func TestServer_Check(t *testing.T) {
 			destPrincipal: "spiffe://trust-domain.consul",
 			// Should never make it to authz call.
 			wantDenied: true,
-			wantReason: "Destination Principal is not a valid Service identitiy",
+			wantReason: "Destination Principal is not a valid Service identity",
 		},
 		{
 			name:        "ACL not got permission for authz call",
@@ -729,7 +962,13 @@ func TestServer_Check(t *testing.T) {
 			envoy := NewTestEnvoy(t, "web-sidecar-proxy", token)
 			defer envoy.Close()
 
-			s := Server{logger, mgr, mgr, aclResolve}
+			s := Server{
+				Logger:       logger,
+				CfgMgr:       mgr,
+				Authz:        mgr,
+				ResolveToken: aclResolve,
+			}
+			s.Initialize()
 
 			// Create a context with the correct token
 			ctx := metadata.NewIncomingContext(context.Background(),
@@ -764,7 +1003,7 @@ func TestServer_Check(t *testing.T) {
 	}
 }
 
-func TestServer_ConfigOverrides(t *testing.T) {
+func TestServer_ConfigOverridesListeners(t *testing.T) {
 
 	tests := []struct {
 		name  string
@@ -909,6 +1148,123 @@ func TestServer_ConfigOverrides(t *testing.T) {
 	}
 }
 
+func TestServer_ConfigOverridesClusters(t *testing.T) {
+
+	tests := []struct {
+		name  string
+		setup func(snap *proxycfg.ConfigSnapshot) string
+	}{
+		{
+			name: "sanity check no custom",
+			setup: func(snap *proxycfg.ConfigSnapshot) string {
+				// Default snap and expectation
+				return expectClustersJSON(t, snap, "my-token", 1, 1)
+			},
+		},
+		{
+			name: "custom public with no type",
+			setup: func(snap *proxycfg.ConfigSnapshot) string {
+				snap.Proxy.Config["envoy_local_cluster_json"] =
+					customAppClusterJSON(t, customClusterJSONOptions{
+						Name:        "mylocal",
+						IncludeType: false,
+					})
+				resources := expectClustersJSONResources(t, snap, "my-token", 1, 1)
+
+				// Replace an upstream listener with the custom one WITH type since
+				// that's how it comes out the other end.
+				resources["local_app"] =
+					customAppClusterJSON(t, customClusterJSONOptions{
+						Name:        "mylocal",
+						IncludeType: true,
+					})
+				return expectClustersJSONFromResources(t, snap, "my-token", 1, 1, resources)
+			},
+		},
+		{
+			name: "custom public with type",
+			setup: func(snap *proxycfg.ConfigSnapshot) string {
+				snap.Proxy.Config["envoy_local_cluster_json"] =
+					customAppClusterJSON(t, customClusterJSONOptions{
+						Name:        "mylocal",
+						IncludeType: true,
+					})
+				resources := expectClustersJSONResources(t, snap, "my-token", 1, 1)
+
+				// Replace an upstream listener with the custom one WITH type since
+				// that's how it comes out the other end.
+				resources["local_app"] =
+					customAppClusterJSON(t, customClusterJSONOptions{
+						Name:        "mylocal",
+						IncludeType: true,
+					})
+				return expectClustersJSONFromResources(t, snap, "my-token", 1, 1, resources)
+			},
+		},
+		{
+			name: "custom upstream with no type",
+			setup: func(snap *proxycfg.ConfigSnapshot) string {
+				snap.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
+					customEDSClusterJSON(t, customClusterJSONOptions{
+						Name:        "myservice",
+						IncludeType: false,
+					})
+				resources := expectClustersJSONResources(t, snap, "my-token", 1, 1)
+
+				// Replace an upstream listener with the custom one WITH type since
+				// that's how it comes out the other end.
+				resources["service:db"] =
+					customEDSClusterJSON(t, customClusterJSONOptions{
+						Name:        "myservice",
+						IncludeType: true,
+						TLSContext:  expectedUpstreamTLSContextJSON(t, snap),
+					})
+				return expectClustersJSONFromResources(t, snap, "my-token", 1, 1, resources)
+			},
+		},
+		{
+			name: "custom upstream with type",
+			setup: func(snap *proxycfg.ConfigSnapshot) string {
+				snap.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
+					customEDSClusterJSON(t, customClusterJSONOptions{
+						Name:        "myservice",
+						IncludeType: true,
+					})
+				resources := expectClustersJSONResources(t, snap, "my-token", 1, 1)
+
+				// Replace an upstream listener with the custom one WITH type since
+				// that's how it comes out the other end.
+				resources["service:db"] =
+					customEDSClusterJSON(t, customClusterJSONOptions{
+						Name:        "myservice",
+						IncludeType: true,
+						TLSContext:  expectedUpstreamTLSContextJSON(t, snap),
+					})
+				return expectClustersJSONFromResources(t, snap, "my-token", 1, 1, resources)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require := require.New(t)
+
+			// Sanity check default with no overrides first
+			snap := proxycfg.TestConfigSnapshot(t)
+			expect := tt.setup(snap)
+
+			clusters, err := clustersFromSnapshot(snap, "my-token")
+			require.NoError(err)
+			r, err := createResponse(ClusterType, "00000001", "00000001", clusters)
+			require.NoError(err)
+
+			fmt.Println(r)
+
+			assertResponse(t, r, expect)
+		})
+	}
+}
+
 type customListenerJSONOptions struct {
 	Name          string
 	IncludeType   bool
@@ -970,6 +1326,70 @@ func customListenerJSON(t *testing.T, opts customListenerJSONOptions) string {
 	t.Helper()
 	var buf bytes.Buffer
 	err := customListenerJSONTemplate.Execute(&buf, opts)
+	require.NoError(t, err)
+	return buf.String()
+}
+
+type customClusterJSONOptions struct {
+	Name        string
+	IncludeType bool
+	TLSContext  string
+}
+
+var customEDSClusterJSONTpl = `{
+	{{ if .IncludeType -}}
+	"@type": "type.googleapis.com/envoy.api.v2.Cluster",
+	{{- end }}
+	{{ if .TLSContext -}}
+	"tlsContext": {{ .TLSContext }},
+	{{- end }}
+	"name": "{{ .Name }}",
+	"type": "EDS",
+	"edsClusterConfig": {
+		"edsConfig": {
+			"ads": {
+
+			}
+		}
+	},
+	"connectTimeout": "5s"
+}`
+
+var customEDSClusterJSONTemplate = template.Must(template.New("").Parse(customEDSClusterJSONTpl))
+
+func customEDSClusterJSON(t *testing.T, opts customClusterJSONOptions) string {
+	t.Helper()
+	var buf bytes.Buffer
+	err := customEDSClusterJSONTemplate.Execute(&buf, opts)
+	require.NoError(t, err)
+	return buf.String()
+}
+
+var customAppClusterJSONTpl = `{
+	{{ if .IncludeType -}}
+	"@type": "type.googleapis.com/envoy.api.v2.Cluster",
+	{{- end }}
+	{{ if .TLSContext -}}
+	"tlsContext": {{ .TLSContext }},
+	{{- end }}
+	"name": "{{ .Name }}",
+	"connectTimeout": "5s",
+	"hosts": [
+		{
+			"socketAddress": {
+				"address": "127.0.0.1",
+				"portValue": 8080
+			}
+		}
+	]
+}`
+
+var customAppClusterJSONTemplate = template.Must(template.New("").Parse(customAppClusterJSONTpl))
+
+func customAppClusterJSON(t *testing.T, opts customClusterJSONOptions) string {
+	t.Helper()
+	var buf bytes.Buffer
+	err := customAppClusterJSONTemplate.Execute(&buf, opts)
 	require.NoError(t, err)
 	return buf.String()
 }

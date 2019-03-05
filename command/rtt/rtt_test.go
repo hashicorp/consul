@@ -46,7 +46,7 @@ func TestRTTCommand_BadArgs(t *testing.T) {
 
 func TestRTTCommand_LAN(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), `
+	a := agent.NewTestAgent(t, t.Name(), `
 		consul = {
 			coordinate = {
 				update_period = "10ms"
@@ -155,7 +155,7 @@ func TestRTTCommand_LAN(t *testing.T) {
 
 func TestRTTCommand_WAN(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 

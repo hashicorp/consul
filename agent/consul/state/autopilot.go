@@ -77,7 +77,9 @@ func (s *Store) AutopilotSetConfig(idx uint64, config *autopilot.Config) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
-	s.autopilotSetConfigTxn(idx, tx, config)
+	if err := s.autopilotSetConfigTxn(idx, tx, config); err != nil {
+		return err
+	}
 
 	tx.Commit()
 	return nil
@@ -104,7 +106,9 @@ func (s *Store) AutopilotCASConfig(idx, cidx uint64, config *autopilot.Config) (
 		return false, nil
 	}
 
-	s.autopilotSetConfigTxn(idx, tx, config)
+	if err := s.autopilotSetConfigTxn(idx, tx, config); err != nil {
+		return false, err
+	}
 
 	tx.Commit()
 	return true, nil

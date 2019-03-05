@@ -323,8 +323,7 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	defer c.Unlock()
 
 	// Get the provider state
-	state := c.Delegate.State()
-	idx, providerState, err := state.CAProviderState(c.id)
+	idx, providerState, err := c.getState()
 	if err != nil {
 		return "", err
 	}
@@ -477,7 +476,7 @@ func (c *ConsulProvider) SignIntermediate(csr *x509.CertificateRequest) (string,
 			x509.KeyUsageDigitalSignature,
 		IsCA:           true,
 		MaxPathLenZero: true,
-		NotAfter:       effectiveNow.Add(365 * 24 * time.Hour),
+		NotAfter:       effectiveNow.AddDate(1, 0, 0),
 		NotBefore:      effectiveNow,
 		SubjectKeyId:   subjectKeyId,
 	}
@@ -509,8 +508,7 @@ func (c *ConsulProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 	defer c.Unlock()
 
 	// Get the provider state
-	state := c.Delegate.State()
-	idx, providerState, err := state.CAProviderState(c.id)
+	idx, providerState, err := c.getState()
 	if err != nil {
 		return "", err
 	}
@@ -547,7 +545,7 @@ func (c *ConsulProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 	// leaf certs are still in use. They expire within 3 days currently so 7 is
 	// safe. TODO(banks): make this be based on leaf expiry time when that is
 	// configurable.
-	template.NotAfter = effectiveNow.Add(7 * 24 * time.Hour)
+	template.NotAfter = effectiveNow.AddDate(0, 0, 7)
 
 	bs, err := x509.CreateCertificate(
 		rand.Reader, &template, rootCA, cert.PublicKey, privKey)
@@ -634,7 +632,7 @@ func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error
 			x509.KeyUsageCRLSign |
 			x509.KeyUsageDigitalSignature,
 		IsCA:           true,
-		NotAfter:       time.Now().Add(10 * 365 * 24 * time.Hour),
+		NotAfter:       time.Now().AddDate(10, 0, 0),
 		NotBefore:      time.Now(),
 		AuthorityKeyId: keyId,
 		SubjectKeyId:   keyId,

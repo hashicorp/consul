@@ -5,7 +5,7 @@ sidebar_current: "docs-guides-reference-architecture"
 description: |-
   This document provides recommended practices and a reference
   architecture for HashiCorp Consul production deployments.
-product_version: 1.2
+ea_version: 1.3
 ---
 
 # Consul Reference Architecture

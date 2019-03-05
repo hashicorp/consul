@@ -29,6 +29,21 @@ func TestLogFile_timeRotation(t *testing.T) {
 	}
 }
 
+func TestLogFile_openNew(t *testing.T) {
+	t.Parallel()
+	tempDir := testutil.TempDir(t, "LogWriterOpen")
+	defer os.Remove(tempDir)
+	logFile := LogFile{fileName: testFileName, logPath: tempDir, duration: testDuration}
+
+	if err := logFile.openNew(); err != nil {
+		t.Errorf("Expected open file %s, got an error (%s)", testFileName, err)
+	}
+
+	if _, err := ioutil.ReadFile(logFile.FileInfo.Name()); err != nil {
+		t.Errorf("Expected readable file %s, got an error (%s)", logFile.FileInfo.Name(), err)
+	}
+}
+
 func TestLogFile_byteRotation(t *testing.T) {
 	t.Parallel()
 	tempDir := testutil.TempDir(t, "LogWriterBytes")

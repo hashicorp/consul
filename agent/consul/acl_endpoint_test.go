@@ -13,12 +13,12 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil/retry"
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/stretchr/testify/assert"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/require"
 )
 
@@ -599,7 +599,7 @@ func TestACLEndpoint_ReplicationStatus(t *testing.T) {
 		c.ACLReplicationRate = 100
 		c.ACLReplicationBurst = 100
 	})
-	s1.tokens.UpdateACLReplicationToken("secret")
+	s1.tokens.UpdateReplicationToken("secret", tokenStore.TokenSourceConfig)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
@@ -625,7 +625,6 @@ func TestACLEndpoint_ReplicationStatus(t *testing.T) {
 
 func TestACLEndpoint_TokenRead(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -646,8 +645,7 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 
 	acl := ACL{srv: s1}
 
-	// exists and matches what we created
-	{
+	t.Run("exists and matches what we created", func(t *testing.T) {
 		req := structs.ACLTokenGetRequest{
 			Datacenter:   "dc1",
 			TokenID:      token.AccessorID,
@@ -658,17 +656,16 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 		resp := structs.ACLTokenResponse{}
 
 		err := acl.TokenRead(&req, &resp)
-		assert.NoError(err)
+		require.NoError(t, err)
 
 		if !reflect.DeepEqual(resp.Token, token) {
 			t.Fatalf("tokens are not equal: %v != %v", resp.Token, token)
 		}
-	}
+	})
 
-	// nil when token does not exist
-	{
+	t.Run("nil when token does not exist", func(t *testing.T) {
 		fakeID, err := uuid.GenerateUUID()
-		assert.NoError(err)
+		require.NoError(t, err)
 
 		req := structs.ACLTokenGetRequest{
 			Datacenter:   "dc1",
@@ -680,12 +677,11 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 		resp := structs.ACLTokenResponse{}
 
 		err = acl.TokenRead(&req, &resp)
-		assert.Nil(resp.Token)
-		assert.NoError(err)
-	}
+		require.Nil(t, resp.Token)
+		require.NoError(t, err)
+	})
 
-	// validates ID format
-	{
+	t.Run("validates ID format", func(t *testing.T) {
 		req := structs.ACLTokenGetRequest{
 			Datacenter:   "dc1",
 			TokenID:      "definitely-really-certainly-not-a-uuid",
@@ -696,14 +692,13 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 		resp := structs.ACLTokenResponse{}
 
 		err := acl.TokenRead(&req, &resp)
-		assert.Nil(resp.Token)
-		assert.EqualError(err, "failed acl token lookup: failed acl token lookup: index error: UUID must be 36 characters")
-	}
+		require.Nil(t, resp.Token)
+		require.EqualError(t, err, "failed acl token lookup: failed acl token lookup: index error: UUID must be 36 characters")
+	})
 }
 
 func TestACLEndpoint_TokenClone(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -718,7 +713,7 @@ func TestACLEndpoint_TokenClone(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	t1, err := upsertTestToken(codec, "root", "dc1")
-	assert.NoError(err)
+	require.NoError(t, err)
 
 	acl := ACL{srv: s1}
 
@@ -731,19 +726,18 @@ func TestACLEndpoint_TokenClone(t *testing.T) {
 	t2 := structs.ACLToken{}
 
 	err = acl.TokenClone(&req, &t2)
-	assert.NoError(err)
+	require.NoError(t, err)
 
-	assert.Equal(t1.Description, t2.Description)
-	assert.Equal(t1.Policies, t2.Policies)
-	assert.Equal(t1.Rules, t2.Rules)
-	assert.Equal(t1.Local, t2.Local)
-	assert.NotEqual(t1.AccessorID, t2.AccessorID)
-	assert.NotEqual(t1.SecretID, t2.SecretID)
+	require.Equal(t, t1.Description, t2.Description)
+	require.Equal(t, t1.Policies, t2.Policies)
+	require.Equal(t, t1.Rules, t2.Rules)
+	require.Equal(t, t1.Local, t2.Local)
+	require.NotEqual(t, t1.AccessorID, t2.AccessorID)
+	require.NotEqual(t, t1.SecretID, t2.SecretID)
 }
 
 func TestACLEndpoint_TokenSet(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -760,8 +754,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 	acl := ACL{srv: s1}
 	var tokenID string
 
-	// Create it
-	{
+	t.Run("Create it", func(t *testing.T) {
 		req := structs.ACLTokenSetRequest{
 			Datacenter: "dc1",
 			ACLToken: structs.ACLToken{
@@ -775,21 +768,21 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		resp := structs.ACLToken{}
 
 		err := acl.TokenSet(&req, &resp)
-		assert.NoError(err)
+		require.NoError(t, err)
 
 		// Get the token directly to validate that it exists
 		tokenResp, err := retrieveTestToken(codec, "root", "dc1", resp.AccessorID)
-		assert.NoError(err)
+		require.NoError(t, err)
 		token := tokenResp.Token
 
-		assert.NotNil(token.AccessorID)
-		assert.Equal(token.Description, "foobar")
-		assert.Equal(token.AccessorID, resp.AccessorID)
+		require.NotNil(t, token.AccessorID)
+		require.Equal(t, token.Description, "foobar")
+		require.Equal(t, token.AccessorID, resp.AccessorID)
 
 		tokenID = token.AccessorID
-	}
-	// Update it
-	{
+	})
+
+	t.Run("Update it", func(t *testing.T) {
 		req := structs.ACLTokenSetRequest{
 			Datacenter: "dc1",
 			ACLToken: structs.ACLToken{
@@ -802,21 +795,21 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		resp := structs.ACLToken{}
 
 		err := acl.TokenSet(&req, &resp)
-		assert.NoError(err)
+		require.NoError(t, err)
 
 		// Get the token directly to validate that it exists
 		tokenResp, err := retrieveTestToken(codec, "root", "dc1", resp.AccessorID)
-		assert.NoError(err)
+		require.NoError(t, err)
 		token := tokenResp.Token
 
-		assert.NotNil(token.AccessorID)
-		assert.Equal(token.Description, "new-description")
-		assert.Equal(token.AccessorID, resp.AccessorID)
-	}
+		require.NotNil(t, token.AccessorID)
+		require.Equal(t, token.Description, "new-description")
+		require.Equal(t, token.AccessorID, resp.AccessorID)
+	})
 }
+
 func TestACLEndpoint_TokenSet_anon(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -830,7 +823,7 @@ func TestACLEndpoint_TokenSet_anon(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	policy, err := upsertTestPolicy(codec, "root", "dc1")
-	assert.NoError(err)
+	require.NoError(t, err)
 
 	acl := ACL{srv: s1}
 
@@ -849,17 +842,16 @@ func TestACLEndpoint_TokenSet_anon(t *testing.T) {
 	}
 	token := structs.ACLToken{}
 	err = acl.TokenSet(&tokenUpsertReq, &token)
-	assert.NoError(err)
-	assert.NotEmpty(token.SecretID)
+	require.NoError(t, err)
+	require.NotEmpty(t, token.SecretID)
 
 	tokenResp, err := retrieveTestToken(codec, "root", "dc1", structs.ACLTokenAnonymousID)
-	assert.Equal(len(tokenResp.Token.Policies), 1)
-	assert.Equal(tokenResp.Token.Policies[0].ID, policy.ID)
+	require.Equal(t, len(tokenResp.Token.Policies), 1)
+	require.Equal(t, tokenResp.Token.Policies[0].ID, policy.ID)
 }
 
 func TestACLEndpoint_TokenDelete(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -885,7 +877,7 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 	codec2 := rpcClient(t, s2)
 	defer codec2.Close()
 
-	s2.tokens.UpdateACLReplicationToken("root")
+	s2.tokens.UpdateReplicationToken("root", tokenStore.TokenSourceConfig)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
@@ -894,13 +886,12 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 	joinWAN(t, s2, s1)
 
 	existingToken, err := upsertTestToken(codec, "root", "dc1")
-	assert.NoError(err)
+	require.NoError(t, err)
 
 	acl := ACL{srv: s1}
 	acl2 := ACL{srv: s2}
 
-	// deletes a token
-	{
+	t.Run("deletes a token", func(t *testing.T) {
 		req := structs.ACLTokenDeleteRequest{
 			Datacenter:   "dc1",
 			TokenID:      existingToken.AccessorID,
@@ -910,16 +901,15 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 		var resp string
 
 		err = acl.TokenDelete(&req, &resp)
-		assert.NoError(err)
+		require.NoError(t, err)
 
 		// Make sure the token is gone
 		tokenResp, err := retrieveTestToken(codec, "root", "dc1", existingToken.AccessorID)
-		assert.Nil(tokenResp.Token)
-		assert.NoError(err)
-	}
+		require.Nil(t, tokenResp.Token)
+		require.NoError(t, err)
+	})
 
-	// can't delete itself
-	{
+	t.Run("can't delete itself", func(t *testing.T) {
 		readReq := structs.ACLTokenGetRequest{
 			Datacenter:   "dc1",
 			TokenID:      "root",
@@ -931,7 +921,7 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 
 		err := msgpackrpc.CallWithCodec(codec, "ACL.TokenRead", &readReq, &out)
 
-		assert.NoError(err)
+		require.NoError(t, err)
 
 		req := structs.ACLTokenDeleteRequest{
 			Datacenter:   "dc1",
@@ -941,13 +931,12 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 
 		var resp string
 		err = acl.TokenDelete(&req, &resp)
-		assert.EqualError(err, "Deletion of the request's authorization token is not permitted")
-	}
+		require.EqualError(t, err, "Deletion of the request's authorization token is not permitted")
+	})
 
-	// errors when token doesn't exist
-	{
+	t.Run("errors when token doesn't exist", func(t *testing.T) {
 		fakeID, err := uuid.GenerateUUID()
-		assert.NoError(err)
+		require.NoError(t, err)
 
 		req := structs.ACLTokenDeleteRequest{
 			Datacenter:   "dc1",
@@ -958,18 +947,17 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 		var resp string
 
 		err = acl.TokenDelete(&req, &resp)
-		assert.NoError(err)
+		require.NoError(t, err)
 
 		// token should be nil
 		tokenResp, err := retrieveTestToken(codec, "root", "dc1", existingToken.AccessorID)
-		assert.Nil(tokenResp.Token)
-		assert.NoError(err)
-	}
+		require.Nil(t, tokenResp.Token)
+		require.NoError(t, err)
+	})
 
-	// don't segfault when attempting to delete non existant token in secondary dc
-	{
+	t.Run("don't segfault when attempting to delete non existant token in secondary dc", func(t *testing.T) {
 		fakeID, err := uuid.GenerateUUID()
-		assert.NoError(err)
+		require.NoError(t, err)
 
 		req := structs.ACLTokenDeleteRequest{
 			Datacenter:   "dc2",
@@ -982,17 +970,17 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 		waitForNewACLs(t, s2)
 
 		err = acl2.TokenDelete(&req, &resp)
-		assert.NoError(err)
+		require.NoError(t, err)
 
 		// token should be nil
 		tokenResp, err := retrieveTestToken(codec2, "root", "dc1", existingToken.AccessorID)
-		assert.Nil(tokenResp.Token)
-		assert.NoError(err)
-	}
+		require.Nil(t, tokenResp.Token)
+		require.NoError(t, err)
+	})
 }
+
 func TestACLEndpoint_TokenDelete_anon(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -1017,16 +1005,15 @@ func TestACLEndpoint_TokenDelete_anon(t *testing.T) {
 	var resp string
 
 	err := acl.TokenDelete(&req, &resp)
-	assert.EqualError(err, "Delete operation not permitted on the anonymous token")
+	require.EqualError(t, err, "Delete operation not permitted on the anonymous token")
 
 	// Make sure the token is still there
 	tokenResp, err := retrieveTestToken(codec, "root", "dc1", structs.ACLTokenAnonymousID)
-	assert.NotNil(tokenResp.Token)
+	require.NotNil(t, tokenResp.Token)
 }
 
 func TestACLEndpoint_TokenList(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -1041,10 +1028,10 @@ func TestACLEndpoint_TokenList(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	t1, err := upsertTestToken(codec, "root", "dc1")
-	assert.NoError(err)
+	require.NoError(t, err)
 
 	t2, err := upsertTestToken(codec, "root", "dc1")
-	assert.NoError(err)
+	require.NoError(t, err)
 
 	acl := ACL{srv: s1}
 
@@ -1056,7 +1043,7 @@ func TestACLEndpoint_TokenList(t *testing.T) {
 	resp := structs.ACLTokenListResponse{}
 
 	err = acl.TokenList(&req, &resp)
-	assert.NoError(err)
+	require.NoError(t, err)
 
 	tokens := []string{t1.AccessorID, t2.AccessorID}
 	var retrievedTokens []string
@@ -1064,12 +1051,11 @@ func TestACLEndpoint_TokenList(t *testing.T) {
 	for _, v := range resp.Tokens {
 		retrievedTokens = append(retrievedTokens, v.AccessorID)
 	}
-	assert.Subset(retrievedTokens, tokens)
+	require.Subset(t, retrievedTokens, tokens)
 }
 
 func TestACLEndpoint_TokenBatchRead(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -1084,10 +1070,10 @@ func TestACLEndpoint_TokenBatchRead(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	t1, err := upsertTestToken(codec, "root", "dc1")
-	assert.NoError(err)
+	require.NoError(t, err)
 
 	t2, err := upsertTestToken(codec, "root", "dc1")
-	assert.NoError(err)
+	require.NoError(t, err)
 
 	acl := ACL{srv: s1}
 	tokens := []string{t1.AccessorID, t2.AccessorID}
@@ -1101,14 +1087,14 @@ func TestACLEndpoint_TokenBatchRead(t *testing.T) {
 	resp := structs.ACLTokenBatchResponse{}
 
 	err = acl.TokenBatchRead(&req, &resp)
-	assert.NoError(err)
+	require.NoError(t, err)
 
 	var retrievedTokens []string
 
 	for _, v := range resp.Tokens {
 		retrievedTokens = append(retrievedTokens, v.AccessorID)
 	}
-	assert.EqualValues(retrievedTokens, tokens)
+	require.EqualValues(t, retrievedTokens, tokens)
 }
 
 func TestACLEndpoint_PolicyRead(t *testing.T) {
@@ -1152,7 +1138,6 @@ func TestACLEndpoint_PolicyRead(t *testing.T) {
 
 func TestACLEndpoint_PolicyBatchRead(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -1166,37 +1151,36 @@ func TestACLEndpoint_PolicyBatchRead(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	t1, err := upsertTestToken(codec, "root", "dc1")
-	assert.NoError(err)
+	p1, err := upsertTestPolicy(codec, "root", "dc1")
+	require.NoError(t, err)
 
-	t2, err := upsertTestToken(codec, "root", "dc1")
-	assert.NoError(err)
+	p2, err := upsertTestPolicy(codec, "root", "dc1")
+	require.NoError(t, err)
 
 	acl := ACL{srv: s1}
-	tokens := []string{t1.AccessorID, t2.AccessorID}
+	policies := []string{p1.ID, p2.ID}
 
-	req := structs.ACLTokenBatchGetRequest{
+	req := structs.ACLPolicyBatchGetRequest{
 		Datacenter:   "dc1",
-		AccessorIDs:  tokens,
+		PolicyIDs:    policies,
 		QueryOptions: structs.QueryOptions{Token: "root"},
 	}
 
-	resp := structs.ACLTokenBatchResponse{}
+	resp := structs.ACLPolicyBatchResponse{}
 
-	err = acl.TokenBatchRead(&req, &resp)
-	assert.NoError(err)
+	err = acl.PolicyBatchRead(&req, &resp)
+	require.NoError(t, err)
 
-	var retrievedTokens []string
+	var retrievedPolicies []string
 
-	for _, v := range resp.Tokens {
-		retrievedTokens = append(retrievedTokens, v.AccessorID)
+	for _, v := range resp.Policies {
+		retrievedPolicies = append(retrievedPolicies, v.ID)
 	}
-	assert.EqualValues(retrievedTokens, tokens)
+	require.EqualValues(t, retrievedPolicies, policies)
 }
 
 func TestACLEndpoint_PolicySet(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -1227,18 +1211,18 @@ func TestACLEndpoint_PolicySet(t *testing.T) {
 		resp := structs.ACLPolicy{}
 
 		err := acl.PolicySet(&req, &resp)
-		assert.NoError(err)
-		assert.NotNil(resp.ID)
+		require.NoError(t, err)
+		require.NotNil(t, resp.ID)
 
 		// Get the policy directly to validate that it exists
 		policyResp, err := retrieveTestPolicy(codec, "root", "dc1", resp.ID)
-		assert.NoError(err)
+		require.NoError(t, err)
 		policy := policyResp.Policy
 
-		assert.NotNil(policy.ID)
-		assert.Equal(policy.Description, "foobar")
-		assert.Equal(policy.Name, "baz")
-		assert.Equal(policy.Rules, "service \"\" { policy = \"read\" }")
+		require.NotNil(t, policy.ID)
+		require.Equal(t, policy.Description, "foobar")
+		require.Equal(t, policy.Name, "baz")
+		require.Equal(t, policy.Rules, "service \"\" { policy = \"read\" }")
 
 		policyID = policy.ID
 	}
@@ -1258,24 +1242,23 @@ func TestACLEndpoint_PolicySet(t *testing.T) {
 		resp := structs.ACLPolicy{}
 
 		err := acl.PolicySet(&req, &resp)
-		assert.NoError(err)
-		assert.NotNil(resp.ID)
+		require.NoError(t, err)
+		require.NotNil(t, resp.ID)
 
 		// Get the policy directly to validate that it exists
 		policyResp, err := retrieveTestPolicy(codec, "root", "dc1", resp.ID)
-		assert.NoError(err)
+		require.NoError(t, err)
 		policy := policyResp.Policy
 
-		assert.NotNil(policy.ID)
-		assert.Equal(policy.Description, "bat")
-		assert.Equal(policy.Name, "bar")
-		assert.Equal(policy.Rules, "service \"\" { policy = \"write\" }")
+		require.NotNil(t, policy.ID)
+		require.Equal(t, policy.Description, "bat")
+		require.Equal(t, policy.Name, "bar")
+		require.Equal(t, policy.Rules, "service \"\" { policy = \"write\" }")
 	}
 }
 
 func TestACLEndpoint_PolicySet_globalManagement(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -1306,7 +1289,7 @@ func TestACLEndpoint_PolicySet_globalManagement(t *testing.T) {
 		resp := structs.ACLPolicy{}
 
 		err := acl.PolicySet(&req, &resp)
-		assert.EqualError(err, "Changing the Rules for the builtin global-management policy is not permitted")
+		require.EqualError(t, err, "Changing the Rules for the builtin global-management policy is not permitted")
 	}
 
 	// Can rename it
@@ -1323,22 +1306,21 @@ func TestACLEndpoint_PolicySet_globalManagement(t *testing.T) {
 		resp := structs.ACLPolicy{}
 
 		err := acl.PolicySet(&req, &resp)
-		assert.NoError(err)
+		require.NoError(t, err)
 
 		// Get the policy again
 		policyResp, err := retrieveTestPolicy(codec, "root", "dc1", structs.ACLPolicyGlobalManagementID)
-		assert.NoError(err)
+		require.NoError(t, err)
 		policy := policyResp.Policy
 
-		assert.Equal(policy.ID, structs.ACLPolicyGlobalManagementID)
-		assert.Equal(policy.Name, "foobar")
+		require.Equal(t, policy.ID, structs.ACLPolicyGlobalManagementID)
+		require.Equal(t, policy.Name, "foobar")
 
 	}
 }
 
 func TestACLEndpoint_PolicyDelete(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -1368,16 +1350,15 @@ func TestACLEndpoint_PolicyDelete(t *testing.T) {
 	var resp string
 
 	err = acl.PolicyDelete(&req, &resp)
-	assert.NoError(err)
+	require.NoError(t, err)
 
 	// Make sure the policy is gone
 	tokenResp, err := retrieveTestPolicy(codec, "root", "dc1", existingPolicy.ID)
-	assert.Nil(tokenResp.Policy)
+	require.Nil(t, tokenResp.Policy)
 }
 
 func TestACLEndpoint_PolicyDelete_globalManagement(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -1402,12 +1383,11 @@ func TestACLEndpoint_PolicyDelete_globalManagement(t *testing.T) {
 
 	err := acl.PolicyDelete(&req, &resp)
 
-	assert.EqualError(err, "Delete operation not permitted on the builtin global-management policy")
+	require.EqualError(t, err, "Delete operation not permitted on the builtin global-management policy")
 }
 
 func TestACLEndpoint_PolicyList(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -1422,10 +1402,10 @@ func TestACLEndpoint_PolicyList(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	p1, err := upsertTestPolicy(codec, "root", "dc1")
-	assert.NoError(err)
+	require.NoError(t, err)
 
 	p2, err := upsertTestPolicy(codec, "root", "dc1")
-	assert.NoError(err)
+	require.NoError(t, err)
 
 	acl := ACL{srv: s1}
 
@@ -1437,7 +1417,7 @@ func TestACLEndpoint_PolicyList(t *testing.T) {
 	resp := structs.ACLPolicyListResponse{}
 
 	err = acl.PolicyList(&req, &resp)
-	assert.NoError(err)
+	require.NoError(t, err)
 
 	policies := []string{p1.ID, p2.ID}
 	var retrievedPolicies []string
@@ -1445,12 +1425,11 @@ func TestACLEndpoint_PolicyList(t *testing.T) {
 	for _, v := range resp.Policies {
 		retrievedPolicies = append(retrievedPolicies, v.ID)
 	}
-	assert.Subset(retrievedPolicies, policies)
+	require.Subset(t, retrievedPolicies, policies)
 }
 
 func TestACLEndpoint_PolicyResolve(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -1465,10 +1444,10 @@ func TestACLEndpoint_PolicyResolve(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	p1, err := upsertTestPolicy(codec, "root", "dc1")
-	assert.NoError(err)
+	require.NoError(t, err)
 
 	p2, err := upsertTestPolicy(codec, "root", "dc1")
-	assert.NoError(err)
+	require.NoError(t, err)
 
 	acl := ACL{srv: s1}
 
@@ -1491,8 +1470,8 @@ func TestACLEndpoint_PolicyResolve(t *testing.T) {
 	}
 	token := structs.ACLToken{}
 	err = acl.TokenSet(&tokenUpsertReq, &token)
-	assert.NoError(err)
-	assert.NotEmpty(token.SecretID)
+	require.NoError(t, err)
+	require.NotEmpty(t, token.SecretID)
 
 	resp := structs.ACLPolicyBatchResponse{}
 	req := structs.ACLPolicyBatchGetRequest{
@@ -1501,14 +1480,14 @@ func TestACLEndpoint_PolicyResolve(t *testing.T) {
 		QueryOptions: structs.QueryOptions{Token: token.SecretID},
 	}
 	err = acl.PolicyResolve(&req, &resp)
-	assert.NoError(err)
+	require.NoError(t, err)
 
 	var retrievedPolicies []string
 
 	for _, v := range resp.Policies {
 		retrievedPolicies = append(retrievedPolicies, v.ID)
 	}
-	assert.EqualValues(retrievedPolicies, policies)
+	require.EqualValues(t, retrievedPolicies, policies)
 }
 
 // upsertTestToken creates a token for testing purposes

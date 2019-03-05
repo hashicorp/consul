@@ -122,6 +122,8 @@ proxy.
    be overridden as it is used to [manage the lifecycle](#lifecycle) of the
    registration.
  - `name` - Defaults to being `<parent-service-name>-sidecar-proxy`.
+ - `tags` - Defaults to the tags of the parent service.
+ - `meta` - Defaults to the service metadata of the parent service.
  - `port` - Defaults to being auto-assigned from a [configurable
    range](/docs/agent/options.html#sidecar_min_port) that is
    by default `[21000, 21255]`.

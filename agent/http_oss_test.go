@@ -64,7 +64,7 @@ func newHttpClient(timeout time.Duration) *http.Client {
 func TestHTTPAPI_MethodNotAllowed_OSS(t *testing.T) {
 	// To avoid actually triggering RPCs that are allowed, lock everything down
 	// with default-deny ACLs. This drops the test runtime from 11s to 0.6s.
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 	primary_datacenter = "dc1"
 	acl {
 		enabled        = true
@@ -127,7 +127,7 @@ func TestHTTPAPI_MethodNotAllowed_OSS(t *testing.T) {
 }
 
 func TestHTTPAPI_OptionMethod_OSS(t *testing.T) {
-	a := NewTestAgent(t.Name(), `acl_datacenter = "dc1"`)
+	a := NewTestAgent(t, t.Name(), `acl_datacenter = "dc1"`)
 	a.Agent.LogWriter = logger.NewLogWriter(512)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -164,7 +164,7 @@ func TestHTTPAPI_OptionMethod_OSS(t *testing.T) {
 }
 
 func TestHTTPAPI_AllowedNets_OSS(t *testing.T) {
-	a := NewTestAgent(t.Name(), `
+	a := NewTestAgent(t, t.Name(), `
 		acl_datacenter = "dc1"
 		http_config {
 			allow_write_http_from = ["127.0.0.1/8"]

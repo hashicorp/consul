@@ -11,7 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/armon/go-metrics"
+	metrics "github.com/armon/go-metrics"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -19,7 +19,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-uuid"
+	uuid "github.com/hashicorp/go-uuid"
 )
 
 // Config is the configuration for the State.
@@ -265,6 +265,12 @@ func (l *State) serviceToken(id string) string {
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
 func (l *State) AddService(service *structs.NodeService, token string) error {
+	l.Lock()
+	defer l.Unlock()
+	return l.addServiceLocked(service, token)
+}
+
+func (l *State) addServiceLocked(service *structs.NodeService, token string) error {
 	if service == nil {
 		return fmt.Errorf("no service")
 	}
@@ -274,10 +280,28 @@ func (l *State) AddService(service *structs.NodeService, token string) error {
 		service.ID = service.Service
 	}
 
-	l.SetServiceState(&ServiceState{
+	l.setServiceStateLocked(&ServiceState{
 		Service: service,
 		Token:   token,
 	})
+	return nil
+}
+
+// AddServiceWithChecks adds a service and its check tp the local state atomically
+func (l *State) AddServiceWithChecks(service *structs.NodeService, checks []*structs.HealthCheck, token string) error {
+	l.Lock()
+	defer l.Unlock()
+
+	if err := l.addServiceLocked(service, token); err != nil {
+		return err
+	}
+
+	for _, check := range checks {
+		if err := l.addCheckLocked(check, token); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -286,6 +310,28 @@ func (l *State) AddService(service *structs.NodeService, token string) error {
 func (l *State) RemoveService(id string) error {
 	l.Lock()
 	defer l.Unlock()
+	return l.removeServiceLocked(id)
+}
+
+// RemoveServiceWithChecks removes a service and its check from the local state atomically
+func (l *State) RemoveServiceWithChecks(serviceID string, checkIDs []types.CheckID) error {
+	l.Lock()
+	defer l.Unlock()
+
+	if err := l.removeServiceLocked(serviceID); err != nil {
+		return err
+	}
+
+	for _, id := range checkIDs {
+		if err := l.removeCheckLocked(id); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (l *State) removeServiceLocked(id string) error {
 
 	s := l.services[id]
 	if s == nil || s.Deleted {
@@ -358,6 +404,10 @@ func (l *State) SetServiceState(s *ServiceState) {
 	l.Lock()
 	defer l.Unlock()
 
+	l.setServiceStateLocked(s)
+}
+
+func (l *State) setServiceStateLocked(s *ServiceState) {
 	s.WatchCh = make(chan struct{})
 
 	old, hasOld := l.services[s.Service.ID]
@@ -414,6 +464,13 @@ func (l *State) checkToken(id types.CheckID) string {
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
 func (l *State) AddCheck(check *structs.HealthCheck, token string) error {
+	l.Lock()
+	defer l.Unlock()
+
+	return l.addCheckLocked(check, token)
+}
+
+func (l *State) addCheckLocked(check *structs.HealthCheck, token string) error {
 	if check == nil {
 		return fmt.Errorf("no check")
 	}
@@ -427,14 +484,14 @@ func (l *State) AddCheck(check *structs.HealthCheck, token string) error {
 
 	// if there is a serviceID associated with the check, make sure it exists before adding it
 	// NOTE - This logic may be moved to be handled within the Agent's Addcheck method after a refactor
-	if check.ServiceID != "" && l.Service(check.ServiceID) == nil {
+	if _, ok := l.services[check.ServiceID]; check.ServiceID != "" && !ok {
 		return fmt.Errorf("Check %q refers to non-existent service %q", check.CheckID, check.ServiceID)
 	}
 
 	// hard-set the node name
 	check.Node = l.config.NodeName
 
-	l.SetCheckState(&CheckState{
+	l.setCheckStateLocked(&CheckState{
 		Check: check,
 		Token: token,
 	})
@@ -482,7 +539,10 @@ func (l *State) RemoveAliasCheck(checkID types.CheckID, srcServiceID string) {
 func (l *State) RemoveCheck(id types.CheckID) error {
 	l.Lock()
 	defer l.Unlock()
+	return l.removeCheckLocked(id)
+}
 
+func (l *State) removeCheckLocked(id types.CheckID) error {
 	c := l.checks[id]
 	if c == nil || c.Deleted {
 		return fmt.Errorf("Check %q does not exist", id)
@@ -620,6 +680,10 @@ func (l *State) SetCheckState(c *CheckState) {
 	l.Lock()
 	defer l.Unlock()
 
+	l.setCheckStateLocked(c)
+}
+
+func (l *State) setCheckStateLocked(c *CheckState) {
 	l.checks[c.Check.CheckID] = c
 	l.TriggerSyncChanges()
 }

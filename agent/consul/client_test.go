@@ -99,6 +99,46 @@ func TestClient_JoinLAN(t *testing.T) {
 	})
 }
 
+func TestClient_LANReap(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+
+	dir2, c1 := testClientWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.SerfFloodInterval = 100 * time.Millisecond
+		c.SerfLANConfig.ReconnectTimeout = 250 * time.Millisecond
+		c.SerfLANConfig.ReapInterval = 500 * time.Millisecond
+	})
+	defer os.RemoveAll(dir2)
+	defer c1.Shutdown()
+
+	// Try to join
+	joinLAN(t, c1, s1)
+	testrpc.WaitForLeader(t, c1.RPC, "dc1")
+
+	retry.Run(t, func(r *retry.R) {
+		require.Len(r, s1.LANMembers(), 2)
+		require.Len(r, c1.LANMembers(), 2)
+	})
+
+	// Check the router has both
+	retry.Run(t, func(r *retry.R) {
+		server := c1.routers.FindServer()
+		require.NotNil(t, server)
+		require.Equal(t, s1.config.NodeName, server.Name)
+	})
+
+	// shutdown the second dc
+	s1.Shutdown()
+
+	retry.Run(t, func(r *retry.R) {
+		require.Len(r, c1.LANMembers(), 1)
+		server := c1.routers.FindServer()
+		require.Nil(t, server)
+	})
+}
+
 func TestClient_JoinLAN_Invalid(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServer(t)

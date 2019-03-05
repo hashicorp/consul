@@ -42,7 +42,7 @@ func TestStaticResolver_Resolve(t *testing.T) {
 
 func TestConsulResolver_Resolve(t *testing.T) {
 	// Setup a local test agent to query
-	agent := agent.NewTestAgent("test-consul", "")
+	agent := agent.NewTestAgent(t, "test-consul", "")
 	defer agent.Shutdown()
 
 	cfg := api.DefaultConfig()

@@ -113,7 +113,7 @@ func TestCommandConfigWatcher(t *testing.T) {
 			require := require.New(t)
 
 			// Register a few services with 0, 1 and 2 sidecars
-			a := agent.NewTestAgent(t.Name(), `
+			a := agent.NewTestAgent(t, t.Name(), `
 			services {
 				name = "no-sidecar"
 				port = 1111

@@ -253,12 +253,12 @@ type Server struct {
 }
 
 func NewServer(config *Config) (*Server, error) {
-	return NewServerLogger(config, nil, new(token.Store))
+	return NewServerLogger(config, nil, new(token.Store), tlsutil.NewConfigurator(config.ToTLSUtilConfig()))
 }
 
 // NewServer is used to construct a new Consul server from the
 // configuration, potentially returning an error
-func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*Server, error) {
+func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tlsConfigurator *tlsutil.Configurator) (*Server, error) {
 	// Check the protocol version.
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -297,14 +297,13 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 	}
 
 	// Create the TLS wrapper for outgoing connections.
-	tlsConf := config.tlsConfig()
-	tlsWrap, err := tlsConf.OutgoingTLSWrapper()
+	tlsWrap, err := tlsConfigurator.OutgoingRPCWrapper()
 	if err != nil {
 		return nil, err
 	}
 
 	// Get the incoming TLS config.
-	incomingTLS, err := tlsConf.IncomingTLSConfig()
+	incomingTLS, err := tlsConfigurator.IncomingRPCConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -468,6 +467,10 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		return nil, err
 	}
 
+	// Initialize Autopilot. This must happen before starting leadership monitoring
+	// as establishing leadership could attempt to use autopilot and cause a panic.
+	s.initAutopilot(config)
+
 	// Start monitoring leadership. This must happen after Serf is set up
 	// since it can fire events when leadership is obtained.
 	go s.monitorLeadership()
@@ -482,9 +485,6 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 
 	// Start the metrics handlers.
 	go s.sessionStats()
-
-	// Initialize Autopilot
-	s.initAutopilot(config)
 
 	return s, nil
 }
@@ -518,6 +518,7 @@ func (s *Server) setupRaft() error {
 		MaxPool:               3,
 		Timeout:               10 * time.Second,
 		ServerAddressProvider: serverAddressProvider,
+		Logger:                s.logger,
 	}
 
 	trans := raft.NewNetworkTransportWithConfig(transConfig)

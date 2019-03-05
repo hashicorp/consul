@@ -2899,6 +2899,7 @@ func TestFullConfig(t *testing.T) {
 				"down_policy" : "03eb2aee",
 				"default_policy" : "72c2e7a0",
 				"enable_key_list_policy": false,
+				"enable_token_persistence": true,
 				"policy_ttl": "1123s",
 				"token_ttl": "3321s",
 				"enable_token_replication" : true,
@@ -3066,7 +3067,9 @@ func TestFullConfig(t *testing.T) {
 				"service_ttl": {
 					"*": "32030s"
 				},
-				"udp_answer_limit": 29909
+				"udp_answer_limit": 29909,
+				"use_cache": true,
+				"cache_max_age": "5m"
 			},
 			"enable_acl_replication": true,
 			"enable_agent_tls_for_checks": true,
@@ -3438,7 +3441,7 @@ func TestFullConfig(t *testing.T) {
 			acl_default_policy = "ArK3WIfE"
 			acl_down_policy = "vZXMfMP0"
 			acl_enforce_version_8 = true
-		        acl_enable_key_list_policy = true
+			acl_enable_key_list_policy = true
 			acl_master_token = "C1Q1oIwh"
 			acl_replication_token = "LMmgy5dO"
 			acl_token = "O1El0wan"
@@ -3448,6 +3451,7 @@ func TestFullConfig(t *testing.T) {
 				down_policy = "03eb2aee"
 				default_policy = "72c2e7a0"
 				enable_key_list_policy = false
+				enable_token_persistence = true
 				policy_ttl = "1123s"
 				token_ttl = "3321s"
 				enable_token_replication = true
@@ -3620,6 +3624,8 @@ func TestFullConfig(t *testing.T) {
 					"*" = "32030s"
 				}
 				udp_answer_limit = 29909
+				use_cache = true
+				cache_max_age = "5m"
 			}
 			enable_acl_replication = true
 			enable_agent_tls_for_checks = true
@@ -4116,6 +4122,7 @@ func TestFullConfig(t *testing.T) {
 		ACLDownPolicy:                    "03eb2aee",
 		ACLEnforceVersion8:               true,
 		ACLEnableKeyListPolicy:           false,
+		ACLEnableTokenPersistence:        true,
 		ACLMasterToken:                   "8a19ac27",
 		ACLReplicationToken:              "5795983a",
 		ACLTokenTTL:                      3321 * time.Second,
@@ -4232,7 +4239,6 @@ func TestFullConfig(t *testing.T) {
 			"connect_timeout_ms": float64(1000),
 			"pedantic_mode":      true,
 		},
-		ConnectReplicationToken:          "5795983a",
 		DNSAddrs:                         []net.Addr{tcpAddr("93.95.95.81:7001"), udpAddr("93.95.95.81:7001")},
 		DNSARecordLimit:                  29907,
 		DNSAllowStale:                    true,
@@ -4249,6 +4255,8 @@ func TestFullConfig(t *testing.T) {
 		DNSServiceTTL:                    map[string]time.Duration{"*": 32030 * time.Second},
 		DNSUDPAnswerLimit:                29909,
 		DNSNodeMetaTXT:                   true,
+		DNSUseCache:                      true,
+		DNSCacheMaxAge:                   5 * time.Minute,
 		DataDir:                          dataDir,
 		Datacenter:                       "rzo029wg",
 		DevMode:                          true,
@@ -4932,6 +4940,7 @@ func TestSanitize(t *testing.T) {
 		"ACLDisabledTTL": "0s",
 		"ACLDownPolicy": "",
 		"ACLEnableKeyListPolicy": false,
+		"ACLEnableTokenPersistence": false,
 		"ACLEnforceVersion8": false,
 		"ACLMasterToken": "hidden",
 		"ACLPolicyTTL": "0s",
@@ -4998,7 +5007,6 @@ func TestSanitize(t *testing.T) {
 		"ConnectSidecarMaxPort": 0,
 		"ConnectSidecarMinPort": 0,
 		"ConnectTestCALeafRootChangeSpread": "0s",
-		"ConnectReplicationToken": "hidden",
 		"ConnectTestDisableManagedProxies": false,
 		"ConsulCoordinateUpdateBatchSize": 0,
 		"ConsulCoordinateUpdateMaxBatches": 0,
@@ -5043,6 +5051,8 @@ func TestSanitize(t *testing.T) {
 			"Minttl": 0
 		},
 		"DNSUDPAnswerLimit": 0,
+		"DNSUseCache": false,
+		"DNSCacheMaxAge": "0s",
 		"DataDir": "",
 		"Datacenter": "",
 		"DevMode": false,
@@ -5416,6 +5426,40 @@ func TestRuntime_ClientAddressAnyV6(t *testing.T) {
 	require.Equal(t, "unix:///var/run/foo", unix)
 	require.Equal(t, "[::1]:5678", http)
 	require.Equal(t, "[::1]:5688", https)
+}
+
+func TestRuntime_ToTLSUtilConfig(t *testing.T) {
+	c := &RuntimeConfig{
+		VerifyIncoming:              true,
+		VerifyIncomingRPC:           true,
+		VerifyIncomingHTTPS:         true,
+		VerifyOutgoing:              true,
+		CAFile:                      "a",
+		CAPath:                      "b",
+		CertFile:                    "c",
+		KeyFile:                     "d",
+		NodeName:                    "e",
+		ServerName:                  "f",
+		TLSMinVersion:               "tls12",
+		TLSCipherSuites:             []uint16{tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305},
+		TLSPreferServerCipherSuites: true,
+		EnableAgentTLSForChecks:     true,
+	}
+	r := c.ToTLSUtilConfig()
+	require.Equal(t, c.VerifyIncoming, r.VerifyIncoming)
+	require.Equal(t, c.VerifyIncomingRPC, r.VerifyIncomingRPC)
+	require.Equal(t, c.VerifyIncomingHTTPS, r.VerifyIncomingHTTPS)
+	require.Equal(t, c.VerifyOutgoing, r.VerifyOutgoing)
+	require.Equal(t, c.CAFile, r.CAFile)
+	require.Equal(t, c.CAPath, r.CAPath)
+	require.Equal(t, c.CertFile, r.CertFile)
+	require.Equal(t, c.KeyFile, r.KeyFile)
+	require.Equal(t, c.NodeName, r.NodeName)
+	require.Equal(t, c.ServerName, r.ServerName)
+	require.Equal(t, c.TLSMinVersion, r.TLSMinVersion)
+	require.Equal(t, c.TLSCipherSuites, r.CipherSuites)
+	require.Equal(t, c.TLSPreferServerCipherSuites, r.PreferServerCipherSuites)
+	require.Equal(t, c.EnableAgentTLSForChecks, r.EnableAgentTLSForChecks)
 }
 
 func splitIPPort(hostport string) (net.IP, int) {

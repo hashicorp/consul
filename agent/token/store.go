@@ -4,6 +4,13 @@ import (
 	"sync"
 )
 
+type TokenSource bool
+
+const (
+	TokenSourceConfig TokenSource = false
+	TokenSourceAPI    TokenSource = true
+)
+
 // Store is used to hold the special ACL tokens used by Consul agents. It is
 // designed to update the tokens on the fly, so the token store itself should be
 // plumbed around and used to get tokens at runtime, don't save the resulting
@@ -17,57 +24,62 @@ type Store struct {
 	// also be used for agent operations if the agent token isn't set.
 	userToken string
 
+	// userTokenSource indicates where this token originated from
+	userTokenSource TokenSource
+
 	// agentToken is used for internal agent operations like self-registering
 	// with the catalog and anti-entropy, but should never be used for
 	// user-initiated operations.
 	agentToken string
+
+	// agentTokenSource indicates where this token originated from
+	agentTokenSource TokenSource
 
 	// agentMasterToken is a special token that's only used locally for
 	// access to the /v1/agent utility operations if the servers aren't
 	// available.
 	agentMasterToken string
 
-	// aclReplicationToken is a special token that's used by servers to
-	// replicate ACLs from the ACL datacenter.
-	aclReplicationToken string
+	// agentMasterTokenSource indicates where this token originated from
+	agentMasterTokenSource TokenSource
 
-	// connectReplicationToken is a special token that's used by servers to
-	// replicate intentions from the primary datacenter.
-	connectReplicationToken string
+	// replicationToken is a special token that's used by servers to
+	// replicate data from the primary datacenter.
+	replicationToken string
+
+	// replicationTokenSource indicates where this token originated from
+	replicationTokenSource TokenSource
 }
 
 // UpdateUserToken replaces the current user token in the store.
-func (t *Store) UpdateUserToken(token string) {
+func (t *Store) UpdateUserToken(token string, source TokenSource) {
 	t.l.Lock()
 	t.userToken = token
+	t.userTokenSource = source
 	t.l.Unlock()
 }
 
 // UpdateAgentToken replaces the current agent token in the store.
-func (t *Store) UpdateAgentToken(token string) {
+func (t *Store) UpdateAgentToken(token string, source TokenSource) {
 	t.l.Lock()
 	t.agentToken = token
+	t.agentTokenSource = source
 	t.l.Unlock()
 }
 
 // UpdateAgentMasterToken replaces the current agent master token in the store.
-func (t *Store) UpdateAgentMasterToken(token string) {
+func (t *Store) UpdateAgentMasterToken(token string, source TokenSource) {
 	t.l.Lock()
 	t.agentMasterToken = token
+	t.agentMasterTokenSource = source
 	t.l.Unlock()
 }
 
-// UpdateACLReplicationToken replaces the current ACL replication token in the store.
-func (t *Store) UpdateACLReplicationToken(token string) {
+// UpdateReplicationToken replaces the current replication token in the store.
+func (t *Store) UpdateReplicationToken(token string, source TokenSource) {
 	t.l.Lock()
-	t.aclReplicationToken = token
-	t.l.Unlock()
-}
-
-// UpdateConnectReplicationToken replaces the current Connect replication token in the store.
-func (t *Store) UpdateConnectReplicationToken(token string) {
-	t.l.Lock()
-	t.connectReplicationToken = token
+	t.replicationToken = token
+	t.replicationTokenSource = source
 	t.l.Unlock()
 }
 
@@ -90,20 +102,50 @@ func (t *Store) AgentToken() string {
 	return t.userToken
 }
 
-// ACLReplicationToken returns the ACL replication token.
-func (t *Store) ACLReplicationToken() string {
+func (t *Store) AgentMasterToken() string {
 	t.l.RLock()
 	defer t.l.RUnlock()
 
-	return t.aclReplicationToken
+	return t.agentMasterToken
 }
 
-// ConnectReplicationToken returns the Connect replication token.
-func (t *Store) ConnectReplicationToken() string {
+// ReplicationToken returns the replication token.
+func (t *Store) ReplicationToken() string {
 	t.l.RLock()
 	defer t.l.RUnlock()
 
-	return t.connectReplicationToken
+	return t.replicationToken
+}
+
+// UserToken returns the best token to use for user operations.
+func (t *Store) UserTokenAndSource() (string, TokenSource) {
+	t.l.RLock()
+	defer t.l.RUnlock()
+
+	return t.userToken, t.userTokenSource
+}
+
+// AgentToken returns the best token to use for internal agent operations.
+func (t *Store) AgentTokenAndSource() (string, TokenSource) {
+	t.l.RLock()
+	defer t.l.RUnlock()
+
+	return t.agentToken, t.agentTokenSource
+}
+
+func (t *Store) AgentMasterTokenAndSource() (string, TokenSource) {
+	t.l.RLock()
+	defer t.l.RUnlock()
+
+	return t.agentMasterToken, t.agentMasterTokenSource
+}
+
+// ReplicationToken returns the replication token.
+func (t *Store) ReplicationTokenAndSource() (string, TokenSource) {
+	t.l.RLock()
+	defer t.l.RUnlock()
+
+	return t.replicationToken, t.replicationTokenSource
 }
 
 // IsAgentMasterToken checks to see if a given token is the agent master token.

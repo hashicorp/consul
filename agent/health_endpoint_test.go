@@ -21,7 +21,7 @@ import (
 func TestHealthChecksInState(t *testing.T) {
 	t.Parallel()
 	t.Run("warning", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), "")
+		a := NewTestAgent(t, t.Name(), "")
 		defer a.Shutdown()
 
 		req, _ := http.NewRequest("GET", "/v1/health/state/warning?dc=dc1", nil)
@@ -44,7 +44,7 @@ func TestHealthChecksInState(t *testing.T) {
 	})
 
 	t.Run("passing", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), "")
+		a := NewTestAgent(t, t.Name(), "")
 		defer a.Shutdown()
 
 		req, _ := http.NewRequest("GET", "/v1/health/state/passing?dc=dc1", nil)
@@ -69,7 +69,7 @@ func TestHealthChecksInState(t *testing.T) {
 
 func TestHealthChecksInState_NodeMetaFilter(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	args := &structs.RegisterRequest{
@@ -109,7 +109,7 @@ func TestHealthChecksInState_NodeMetaFilter(t *testing.T) {
 
 func TestHealthChecksInState_DistanceSort(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	args := &structs.RegisterRequest{
@@ -183,7 +183,7 @@ func TestHealthChecksInState_DistanceSort(t *testing.T) {
 
 func TestHealthNodeChecks(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -218,7 +218,7 @@ func TestHealthNodeChecks(t *testing.T) {
 
 func TestHealthServiceChecks(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -270,7 +270,7 @@ func TestHealthServiceChecks(t *testing.T) {
 
 func TestHealthServiceChecks_NodeMetaFilter(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -323,7 +323,7 @@ func TestHealthServiceChecks_NodeMetaFilter(t *testing.T) {
 
 func TestHealthServiceChecks_DistanceSort(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -403,7 +403,7 @@ func TestHealthServiceChecks_DistanceSort(t *testing.T) {
 
 func TestHealthServiceNodes(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -529,7 +529,7 @@ func TestHealthServiceNodes(t *testing.T) {
 
 func TestHealthServiceNodes_NodeMetaFilter(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -582,7 +582,7 @@ func TestHealthServiceNodes_NodeMetaFilter(t *testing.T) {
 
 func TestHealthServiceNodes_DistanceSort(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	dc := "dc1"
 	// Create a service check
@@ -661,7 +661,7 @@ func TestHealthServiceNodes_DistanceSort(t *testing.T) {
 
 func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	dc := "dc1"
@@ -757,7 +757,7 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 
 func TestHealthServiceNodes_WanTranslation(t *testing.T) {
 	t.Parallel()
-	a1 := NewTestAgent(t.Name(), `
+	a1 := NewTestAgent(t, t.Name(), `
 		datacenter = "dc1"
 		translate_wan_addrs = true
 		acl_datacenter = ""
@@ -765,7 +765,7 @@ func TestHealthServiceNodes_WanTranslation(t *testing.T) {
 	defer a1.Shutdown()
 	testrpc.WaitForLeader(t, a1.RPC, "dc1")
 
-	a2 := NewTestAgent(t.Name(), `
+	a2 := NewTestAgent(t, t.Name(), `
 		datacenter = "dc2"
 		translate_wan_addrs = true
 		acl_datacenter = ""
@@ -846,7 +846,7 @@ func TestHealthConnectServiceNodes(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	// Register
@@ -871,7 +871,7 @@ func TestHealthConnectServiceNodes(t *testing.T) {
 func TestHealthConnectServiceNodes_PassingFilter(t *testing.T) {
 	t.Parallel()
 
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	// Register

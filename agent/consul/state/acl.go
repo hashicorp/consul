@@ -13,7 +13,7 @@ type TokenPoliciesIndex struct {
 func (s *TokenPoliciesIndex) FromObject(obj interface{}) (bool, [][]byte, error) {
 	token, ok := obj.(*structs.ACLToken)
 	if !ok {
-		return false, nil, fmt.Errorf("object is not an ACLTokenPolicyLink")
+		return false, nil, fmt.Errorf("object is not an ACLToken")
 	}
 
 	links := token.Policies
@@ -266,6 +266,55 @@ func (s *Store) resolveTokenPolicyLinks(tx *memdb.Txn, token *structs.ACLToken, 
 	return nil
 }
 
+// fixupTokenPolicyLinks is to be used when retrieving tokens from memdb. The policy links could have gotten
+// stale when a linked policy was deleted or renamed. This will correct them and generate a newly allocated
+// token only when fixes are needed. If the policy links are still accurate then we just return the original
+// token.
+func (s *Store) fixupTokenPolicyLinks(tx *memdb.Txn, original *structs.ACLToken) (*structs.ACLToken, error) {
+	owned := false
+	token := original
+
+	cloneToken := func(t *structs.ACLToken, copyNumLinks int) *structs.ACLToken {
+		clone := *t
+		clone.Policies = make([]structs.ACLTokenPolicyLink, copyNumLinks)
+		copy(clone.Policies, t.Policies[:copyNumLinks])
+		return &clone
+	}
+
+	for linkIndex, link := range original.Policies {
+		if link.ID == "" {
+			return nil, fmt.Errorf("Detected corrupted token within the state store - missing policy link ID")
+		}
+
+		policy, err := s.getPolicyWithTxn(tx, nil, link.ID, "id")
+
+		if err != nil {
+			return nil, err
+		}
+
+		if policy == nil {
+			if !owned {
+				// clone the token as we cannot touch the original
+				token = cloneToken(original, linkIndex)
+				owned = true
+			}
+			// if already owned then we just don't append it.
+		} else if policy.Name != link.Name {
+			if !owned {
+				token = cloneToken(original, linkIndex)
+				owned = true
+			}
+
+			// append the corrected policy
+			token.Policies = append(token.Policies, structs.ACLTokenPolicyLink{ID: link.ID, Name: policy.Name})
+		} else if owned {
+			token.Policies = append(token.Policies, link)
+		}
+	}
+
+	return token, nil
+}
+
 // ACLTokenSet is used to insert an ACL rule into the state store.
 func (s *Store) ACLTokenSet(idx uint64, token *structs.ACLToken, legacy bool) error {
 	tx := s.db.Txn(true)
@@ -446,8 +495,8 @@ func (s *Store) aclTokenGetTxn(tx *memdb.Txn, ws memdb.WatchSet, value, index st
 	ws.Add(watchCh)
 
 	if rawToken != nil {
-		token := rawToken.(*structs.ACLToken)
-		if err := s.resolveTokenPolicyLinks(tx, token, true); err != nil {
+		token, err := s.fixupTokenPolicyLinks(tx, rawToken.(*structs.ACLToken))
+		if err != nil {
 			return nil, err
 		}
 		return token, nil
@@ -501,8 +550,9 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy strin
 
 	var result structs.ACLTokens
 	for raw := iter.Next(); raw != nil; raw = iter.Next() {
-		token := raw.(*structs.ACLToken)
-		if err := s.resolveTokenPolicyLinks(tx, token, true); err != nil {
+		token, err := s.fixupTokenPolicyLinks(tx, raw.(*structs.ACLToken))
+
+		if err != nil {
 			return 0, nil, err
 		}
 		result = append(result, token)
@@ -641,14 +691,13 @@ func (s *Store) aclPolicySetTxn(tx *memdb.Txn, idx uint64, policy *structs.ACLPo
 		return ErrMissingACLPolicyName
 	}
 
-	var policyMatch *structs.ACLPolicy
 	existing, err := tx.First("acl-policies", "id", policy.ID)
 	if err != nil {
 		return fmt.Errorf("failed acl policy lookup: %v", err)
 	}
 
 	if existing != nil {
-		policyMatch = existing.(*structs.ACLPolicy)
+		policyMatch := existing.(*structs.ACLPolicy)
 
 		if policy.ID == structs.ACLPolicyGlobalManagementID {
 			// Only the name and description are modifiable
@@ -778,7 +827,9 @@ func (s *Store) ACLPolicyBatchDelete(idx uint64, policyIDs []string) error {
 	defer tx.Abort()
 
 	for _, policyID := range policyIDs {
-		s.aclPolicyDeleteTxn(tx, idx, policyID, "id")
+		if err := s.aclPolicyDeleteTxn(tx, idx, policyID, "id"); err != nil {
+			return err
+		}
 	}
 
 	if err := indexUpdateMaxTxn(tx, idx, "acl-policies"); err != nil {

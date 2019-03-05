@@ -1,5 +1,106 @@
-version: 2
+version: 2.1
+
+# reusable 'executor' object for jobs
+executors:
+  go:
+    docker:
+      - image: circleci/golang:1.11.4
+    environment:
+      - TEST_RESULTS: /tmp/test-results  # path to where test results are saved
+
+# reusable 'commands' to be added as a step in jobs
+commands:
+  integration-test:
+    description: Run integration tests
+    parameters:
+      version:
+        description: what branch/version/tag to checkout
+        type: string
+        default: master
+      checkout-url:
+        description: HTTPS checkout URL (SSH checkout if using SSH key)
+        type: string
+      checkout-path:
+        description: path to checkout code
+        type: string
+      test-command:
+        description: command to run tests
+        type: string
+    steps:
+        - run: git clone << parameters.checkout-url >> --branch << parameters.version >> << parameters.checkout-path >>
+        
+        # get consul binary
+        - attach_workspace:
+            at: /go/bin
+        # make dev build of nomad
+        - run:
+            command: make dev
+            working_directory: << parameters.checkout-path >>
+
+        - run:
+            name: install junit and setup test path
+            command: |
+              go get github.com/jstemmer/go-junit-report
+              mkdir -p /tmp/test-results
+        
+        # run integration tests
+        - run: 
+            command: << parameters.test-command >> | tee ${TEST_RESULTS}/results.out
+            working_directory: << parameters.checkout-path >>
+
+
+        # generate XML results
+        - run:
+            command: go-junit-report < ${TEST_RESULTS}/results.out > ${TEST_RESULTS}/results.xml
+            when: always
+        
+        # store test results for CircleCI
+        - store_test_results:
+            path: /tmp/test-results
+
+
 jobs:
+  dev-build:
+    executor: go
+    working_directory: /go/src/github.com/hashicorp/consul
+    steps:
+      - checkout
+      - run: make dev
+
+      # save dev build to CircleCI
+      - store_artifacts:
+          path: /go/bin/consul
+
+      # save dev build to pass to downstream jobs
+      - persist_to_workspace:
+          root: /go/bin
+          paths:
+            - consul
+
+  # Nomad 0.8 builds on go0.10
+  # Run integration tests on nomad/v0.8.7
+  nomad-integration-0_8:
+      docker:
+        - image: circleci/golang:1.10
+      environment:
+        - TEST_RESULTS: /tmp/test-results
+      steps:
+        - integration-test:
+            version: v0.8.7
+            checkout-url: https://github.com/hashicorp/nomad.git
+            checkout-path: /go/src/github.com/hashicorp/nomad
+            test-command: go test -v ./command/agent/consul -run TestConsul
+
+  # run integration tests on nomad/master
+  nomad-integration-master:
+      executor: go
+      steps:
+        - integration-test:
+            version: master
+            checkout-url: https://github.com/hashicorp/nomad.git
+            checkout-path: /go/src/github.com/hashicorp/nomad
+            test-command: go test -v ./command/agent/consul -run TestConsul
+
   build-website:
     # setting the working_directory along with the checkout path allows us to not have
     # to cd into the website/ directory for commands
@@ -90,6 +191,15 @@ jobs:
 
 workflows:
   version: 2
+  test-apis:
+    jobs:
+      - dev-build
+      - nomad-integration-master:
+          requires:
+            - dev-build 
+      - nomad-integration-0_8:
+          requires:
+            - dev-build
   website:
     jobs:
       - build-website:

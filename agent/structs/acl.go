@@ -164,6 +164,17 @@ type ACLToken struct {
 	RaftIndex
 }
 
+func (t *ACLToken) Clone() *ACLToken {
+	t2 := *t
+	t2.Policies = nil
+
+	if len(t.Policies) > 0 {
+		t2.Policies = make([]ACLTokenPolicyLink, len(t.Policies))
+		copy(t2.Policies, t.Policies)
+	}
+	return &t2
+}
+
 func (t *ACLToken) ID() string {
 	return t.AccessorID
 }
@@ -328,6 +339,16 @@ type ACLPolicy struct {
 
 	// Embedded Raft Metadata
 	RaftIndex `hash:"ignore"`
+}
+
+func (p *ACLPolicy) Clone() *ACLPolicy {
+	p2 := *p
+	p2.Datacenters = nil
+	if len(p.Datacenters) > 0 {
+		p2.Datacenters = make([]string, len(p.Datacenters))
+		copy(p2.Datacenters, p.Datacenters)
+	}
+	return &p2
 }
 
 type ACLPolicyListStub struct {
@@ -600,13 +621,15 @@ type ACLTokenBootstrapRequest struct {
 
 // ACLTokenResponse returns a single Token + metadata
 type ACLTokenResponse struct {
-	Token *ACLToken
+	Token    *ACLToken
+	Redacted bool // whether the token's secret was redacted
 	QueryMeta
 }
 
 // ACLTokenBatchResponse returns multiple Tokens associated with the same metadata
 type ACLTokenBatchResponse struct {
-	Tokens []*ACLToken
+	Tokens   []*ACLToken
+	Redacted bool // whether the token secrets were redacted.
 	QueryMeta
 }
 

@@ -22,7 +22,7 @@ func TestExecCommand_noTabs(t *testing.T) {
 
 func TestExecCommand(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), `
+	a := agent.NewTestAgent(t, t.Name(), `
 		disable_remote_exec = false
 	`)
 	defer a.Shutdown()
@@ -45,7 +45,7 @@ func TestExecCommand(t *testing.T) {
 
 func TestExecCommand_NoShell(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), `
+	a := agent.NewTestAgent(t, t.Name(), `
 		disable_remote_exec = false
 	`)
 	defer a.Shutdown()
@@ -68,14 +68,14 @@ func TestExecCommand_NoShell(t *testing.T) {
 
 func TestExecCommand_CrossDC(t *testing.T) {
 	t.Parallel()
-	a1 := agent.NewTestAgent(t.Name(), `
+	a1 := agent.NewTestAgent(t, t.Name(), `
 		disable_remote_exec = false
 	`)
 	defer a1.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a1.RPC, "dc1")
 
-	a2 := agent.NewTestAgent(t.Name(), `
+	a2 := agent.NewTestAgent(t, t.Name(), `
 		datacenter = "dc2"
 		disable_remote_exec = false
 	`)
@@ -148,7 +148,7 @@ func TestExecCommand_Validate(t *testing.T) {
 
 func TestExecCommand_Sessions(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), `
+	a := agent.NewTestAgent(t, t.Name(), `
 		disable_remote_exec = false
 	`)
 	defer a.Shutdown()
@@ -188,7 +188,7 @@ func TestExecCommand_Sessions(t *testing.T) {
 
 func TestExecCommand_Sessions_Foreign(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), `
+	a := agent.NewTestAgent(t, t.Name(), `
 		disable_remote_exec = false
 	`)
 	defer a.Shutdown()
@@ -238,7 +238,7 @@ func TestExecCommand_Sessions_Foreign(t *testing.T) {
 
 func TestExecCommand_UploadDestroy(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), `
+	a := agent.NewTestAgent(t, t.Name(), `
 		disable_remote_exec = false
 	`)
 	defer a.Shutdown()
@@ -295,7 +295,7 @@ func TestExecCommand_UploadDestroy(t *testing.T) {
 
 func TestExecCommand_StreamResults(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), `
+	a := agent.NewTestAgent(t, t.Name(), `
 		disable_remote_exec = false
 	`)
 	defer a.Shutdown()

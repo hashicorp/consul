@@ -127,7 +127,7 @@ func TestService_Dial(t *testing.T) {
 func TestService_ServerTLSConfig(t *testing.T) {
 	require := require.New(t)
 
-	a := agent.NewTestAgent("007", "")
+	a := agent.NewTestAgent(t, "007", "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	client := a.Client()

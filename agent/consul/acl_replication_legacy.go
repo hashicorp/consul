@@ -162,7 +162,7 @@ func (s *Server) fetchRemoteLegacyACLs(lastRemoteIndex uint64) (*structs.Indexed
 	args := structs.DCSpecificRequest{
 		Datacenter: s.config.ACLDatacenter,
 		QueryOptions: structs.QueryOptions{
-			Token:         s.tokens.ACLReplicationToken(),
+			Token:         s.tokens.ReplicationToken(),
 			MinQueryIndex: lastRemoteIndex,
 			AllowStale:    true,
 		},

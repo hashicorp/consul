@@ -18,7 +18,7 @@ func TestOperatorRaftListPeersCommand_noTabs(t *testing.T) {
 
 func TestOperatorRaftListPeersCommand(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 
 	expected := fmt.Sprintf("%s  %s  127.0.0.1:%d  leader  true   3",

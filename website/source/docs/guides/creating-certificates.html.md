@@ -88,8 +88,8 @@ $ consul tls cert create -server
     and all ACL tokens. Do not distribute them to production hosts
     that are not server nodes. Store them as securely as CA keys.
 ==> Using consul-agent-ca.pem and consul-agent-ca-key.pem
-==> Saved consul-server-dc1-0.pem
-==> Saved consul-server-dc1-0-key.pem
+==> Saved dc1-server-consul-0.pem
+==> Saved dc1-server-consul-0-key.pem
 ```
 
 Please repeat this process until there is an *individual* certificate for each
@@ -116,8 +116,8 @@ Create a client certificate:
 ```shell
 $ consul tls cert create -client
 ==> Using consul-agent-ca.pem and consul-agent-ca-key.pem
-==> Saved consul-client-dc1-0.pem
-==> Saved consul-client-dc1-0-key.pem
+==> Saved dc1-client-consul-0.pem
+==> Saved dc1-client-consul-0-key.pem
 ```
 
 Client certificates are also signed by your CA, but they do not have that
@@ -155,8 +155,8 @@ certificates.
 The following files need to be copied to your Consul server:
 
 * `consul-agent-ca.pem`: CA public certificate.
-* `consul-server-dc1-0.pem`: Consul server node public certificate for the `dc1` datacenter.
-* `consul-server-dc1-0-key.pem`: Consul server node private key for the `dc1` datacenter.
+* `dc1-server-consul-0.pem`: Consul server node public certificate for the `dc1` datacenter.
+* `dc1-server-consul-0-key.pem`: Consul server node private key for the `dc1` datacenter.
 
 Here is an example agent TLS configuration for Consul servers which mentions the
 copied files:
@@ -167,8 +167,8 @@ copied files:
   "verify_outgoing": true,
   "verify_server_hostname": true,
   "ca_file": "consul-agent-ca.pem",
-  "cert_file": "consul-server-dc1-0.pem",
-  "key_file": "consul-server-dc1-0-key.pem",
+  "cert_file": "dc1-server-consul-0.pem",
+  "key_file": "dc1-server-consul-0-key.pem",
   "ports": {
     "http": -1,
     "https": 8501
@@ -189,8 +189,8 @@ After a Consul agent restart, your servers should be only talking TLS.
 Now copy the following files to your Consul clients:
 
 * `consul-agent-ca.pem`: CA public certificate.
-* `consul-client-dc1-0.pem`: Consul client node public certificate.
-* `consul-client-dc1-0-key.pem`: Consul client node private key.
+* `dc1-client-consul-0.pem`: Consul client node public certificate.
+* `dc1-client-consul-0-key.pem`: Consul client node private key.
 
 Here is an example agent TLS configuration for Consul agents which mentions the
 copied files:
@@ -201,8 +201,8 @@ copied files:
   "verify_outgoing": true,
   "verify_server_hostname": true,
   "ca_file": "consul-agent-ca.pem",
-  "cert_file": "consul-client-dc1-0.pem",
-  "key_file": "consul-client-dc1-0-key.pem",
+  "cert_file": "dc1-client-consul-0.pem",
+  "key_file": "dc1-client-consul-0-key.pem",
   "ports": {
     "http": -1,
     "https": 8501
@@ -227,8 +227,8 @@ and the UI:
 ```shell
 $ consul tls cert create -cli
 ==> Using consul-agent-ca.pem and consul-agent-ca-key.pem
-==> Saved consul-cli-dc1-0.pem
-==> Saved consul-cli-dc1-0-key.pem
+==> Saved dc1-cli-consul-0.pem
+==> Saved dc1-cli-consul-0-key.pem
 ```
 
 If you are trying to get members of you cluster, the CLI will return an error:
@@ -247,8 +247,8 @@ Error retrieving members:
 But it will work again if you provide the certificates you provided:
 
 ```shell
-$ consul members -ca-file=consul-agent-ca.pem -client-cert=consul-cli-dc1-0.pem \
-  -client-key=consul-cli-dc1-0-key.pem -http-addr="https://localhost:8501"
+$ consul members -ca-file=consul-agent-ca.pem -client-cert=dc1-cli-consul-0.pem \
+  -client-key=dc1-cli-consul-0-key.pem -http-addr="https://localhost:8501"
   Node     Address         Status  Type    Build     Protocol  DC   Segment
   ...
 ```
@@ -260,8 +260,8 @@ environment variables in your shell:
 ```shell
 $ export CONSUL_HTTP_ADDR=https://localhost:8501
 $ export CONSUL_CACERT=consul-agent-ca.pem
-$ export CONSUL_CLIENT_CERT=consul-cli-dc1-0.pem
-$ export CONSUL_CLIENT_KEY=consul-cli-dc1-0-key.pem
+$ export CONSUL_CLIENT_CERT=dc1-cli-consul-0.pem
+$ export CONSUL_CLIENT_KEY=dc1-cli-consul-0-key.pem
 ```
 
 * `CONSUL_HTTP_ADDR` is the URL of the Consul agent and sets the default for

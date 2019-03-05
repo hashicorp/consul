@@ -62,7 +62,7 @@ func TestCA(t testing.T, xc *structs.CARoot) *structs.CARoot {
 			x509.KeyUsageCRLSign |
 			x509.KeyUsageDigitalSignature,
 		IsCA:           true,
-		NotAfter:       time.Now().Add(10 * 365 * 24 * time.Hour),
+		NotAfter:       time.Now().AddDate(10, 0, 0),
 		NotBefore:      time.Now(),
 		AuthorityKeyId: testKeyID(t, signer.Public()),
 		SubjectKeyId:   testKeyID(t, signer.Public()),
@@ -179,7 +179,7 @@ func TestLeaf(t testing.T, service string, root *structs.CARoot) (string, string
 			x509.ExtKeyUsageClientAuth,
 			x509.ExtKeyUsageServerAuth,
 		},
-		NotAfter:       time.Now().Add(10 * 365 * 24 * time.Hour),
+		NotAfter:       time.Now().AddDate(10, 0, 0),
 		NotBefore:      time.Now(),
 		AuthorityKeyId: testKeyID(t, caSigner.Public()),
 		SubjectKeyId:   testKeyID(t, pkSigner.Public()),
