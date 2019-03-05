@@ -115,7 +115,7 @@ func NewUnstartedAgent(t *testing.T, name string, hcl string) (*Agent, error) {
 	a.sync = ae.NewStateSyncer(a.State, c.AEInterval, a.shutdownCh, a.logger)
 	a.delegate = &consul.Client{}
 	a.State.TriggerSyncChanges = a.sync.SyncChanges.Trigger
-	a.tlsConfigurator = tlsutil.NewConfigurator(c.ToTLSUtilConfig())
+	a.tlsConfigurator = tlsutil.NewConfigurator(c.ToTLSUtilConfig(), nil)
 	return a, nil
 }
 
@@ -165,7 +165,7 @@ func (a *TestAgent) Start(t *testing.T) *TestAgent {
 		agent.LogWriter = a.LogWriter
 		agent.logger = log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
 		agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
-		agent.tlsConfigurator = tlsutil.NewConfigurator(a.Config.ToTLSUtilConfig())
+		agent.tlsConfigurator = tlsutil.NewConfigurator(a.Config.ToTLSUtilConfig(), nil)
 
 		// we need the err var in the next exit condition
 		if err := agent.Start(); err == nil {

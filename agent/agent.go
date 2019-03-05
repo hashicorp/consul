@@ -393,7 +393,7 @@ func (a *Agent) Start() error {
 	// waiting to discover a consul server
 	consulCfg.ServerUp = a.sync.SyncFull.Trigger
 
-	a.tlsConfigurator = tlsutil.NewConfigurator(c.ToTLSUtilConfig())
+	a.tlsConfigurator = tlsutil.NewConfigurator(c.ToTLSUtilConfig(), a.logger)
 
 	// Setup either the client or the server.
 	if c.ServerMode {

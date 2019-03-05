@@ -253,7 +253,7 @@ type Server struct {
 }
 
 func NewServer(config *Config) (*Server, error) {
-	return NewServerLogger(config, nil, new(token.Store), tlsutil.NewConfigurator(config.ToTLSUtilConfig()))
+	return NewServerLogger(config, nil, new(token.Store), tlsutil.NewConfigurator(config.ToTLSUtilConfig(), nil))
 }
 
 // NewServer is used to construct a new Consul server from the

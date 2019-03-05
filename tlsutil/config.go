@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"log"
 	"net"
 	"strings"
 	"sync"
@@ -197,13 +198,15 @@ func (c *Config) wrapTLSClient(conn net.Conn, tlsConfig *tls.Config) (net.Conn, 
 // *tls.Config necessary for Consul. Except the one in the api package.
 type Configurator struct {
 	sync.RWMutex
-	base *Config
+	base    *Config
+	logger  *log.Logger
+	version int
 }
 
 // NewConfigurator creates a new Configurator and sets the provided
 // configuration.
-func NewConfigurator(config Config) *Configurator {
-	return &Configurator{base: &config}
+func NewConfigurator(config Config, logger *log.Logger) *Configurator {
+	return &Configurator{base: &config, logger: logger, version: 1}
 }
 
 // Update updates the internal configuration which is used to generate
@@ -212,6 +215,7 @@ func (c *Configurator) Update(config Config) {
 	c.Lock()
 	defer c.Unlock()
 	c.base = &config
+	c.version++
 
 }
 
@@ -299,6 +303,7 @@ func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) (*tls.
 
 // IncomingRPCConfig generates a *tls.Config for incoming RPC connections.
 func (c *Configurator) IncomingRPCConfig() (*tls.Config, error) {
+	c.log("IncomingRPCConfig")
 	c.RLock()
 	defer c.RUnlock()
 	config, err := c.commonTLSConfig(c.base.VerifyIncomingRPC)
@@ -313,6 +318,7 @@ func (c *Configurator) IncomingRPCConfig() (*tls.Config, error) {
 
 // IncomingHTTPSConfig generates a *tls.Config for incoming HTTPS connections.
 func (c *Configurator) IncomingHTTPSConfig() (*tls.Config, error) {
+	c.log("IncomingHTTPSConfig")
 	c.RLock()
 	defer c.RUnlock()
 	config, err := c.commonTLSConfig(c.base.VerifyIncomingHTTPS)
@@ -330,6 +336,7 @@ func (c *Configurator) IncomingHTTPSConfig() (*tls.Config, error) {
 // consider for checks. EnableAgentTLSForChecks and InsecureSkipVerify has to
 // be checked for checks.
 func (c *Configurator) OutgoingTLSConfigForCheck(skipVerify bool) (*tls.Config, error) {
+	c.log("OutgoingTLSConfigForCheck")
 	c.RLock()
 	defer c.RUnlock()
 	if !c.base.EnableAgentTLSForChecks {
@@ -355,6 +362,7 @@ func (c *Configurator) OutgoingTLSConfigForCheck(skipVerify bool) (*tls.Config, 
 // there is a CA or VerifyOutgoing is set, a *tls.Config will be provided,
 // otherwise we assume that no TLS should be used.
 func (c *Configurator) OutgoingRPCConfig() (*tls.Config, error) {
+	c.log("OutgoingRPCConfig")
 	c.RLock()
 	defer c.RUnlock()
 	useTLS := c.base.CAFile != "" || c.base.CAPath != "" || c.base.VerifyOutgoing
@@ -367,6 +375,7 @@ func (c *Configurator) OutgoingRPCConfig() (*tls.Config, error) {
 // OutgoingRPCWrapper wraps the result of OutgoingRPCConfig in a DCWrapper. It
 // decides if verify server hostname should be used.
 func (c *Configurator) OutgoingRPCWrapper() (DCWrapper, error) {
+	c.log("OutgoingRPCWrapper")
 	// Get the TLS config
 	tlsConfig, err := c.OutgoingRPCConfig()
 	if err != nil {
@@ -392,6 +401,12 @@ func (c *Configurator) OutgoingRPCWrapper() (DCWrapper, error) {
 	}
 
 	return wrapper, nil
+}
+
+func (c *Configurator) log(name string) {
+	if c.logger != nil {
+		c.logger.Printf("[DEBUG] tlsutil: %s with version %d", name, c.version)
+	}
 }
 
 // ParseCiphers parse ciphersuites from the comma-separated string into
