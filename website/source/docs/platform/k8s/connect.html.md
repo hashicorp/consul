@@ -185,12 +185,14 @@ Annotations can be used to configure the injection behavior.
 
     * Multiple Services
 
-        If multiple services would like to be specified they are delimited by commas.
+      If you would like to specify multiple services, delimit them with commas
+
         ```annotations:
         "consul.hashicorp.com/connect-service-upstreams":"[service-name]:[port]:[optional datacenter],[service-name]:[port]:[optional datacenter]"
         ```
 
     * [Prepared Query](https://www.consul.io/docs/connect/proxies.html#upstreams)
+
         ```annotations:
         "consul.hashicorp.com/connect-service-upstreams": "prepared_query:[query name]:[port]"
         ````
