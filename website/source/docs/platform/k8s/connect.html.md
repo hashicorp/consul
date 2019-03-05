@@ -177,8 +177,9 @@ Annotations can be used to configure the injection behavior.
   local port to listen for those connections. 
 
     * Services
-   
+
         The name of the service is the name of the service registered with Consul. You can optionally specify datacenters with this annotation. 
+        
         ```annotations:
         "consul.hashicorp.com/connect-service-upstreams":"[service-name]:[port]:[optional datacenter]"
         ```
