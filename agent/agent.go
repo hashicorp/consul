@@ -393,7 +393,11 @@ func (a *Agent) Start() error {
 	// waiting to discover a consul server
 	consulCfg.ServerUp = a.sync.SyncFull.Trigger
 
-	a.tlsConfigurator = tlsutil.NewConfigurator(c.ToTLSUtilConfig(), a.logger)
+	tlsConfigurator, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), a.logger)
+	if err != nil {
+		return err
+	}
+	a.tlsConfigurator = tlsConfigurator
 
 	// Setup either the client or the server.
 	if c.ServerMode {
@@ -3563,10 +3567,9 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	a.loadTokens(newCfg)
 
 	newTLSConfig := newCfg.ToTLSUtilConfig()
-	if err := a.tlsConfigurator.Check(newTLSConfig); err != nil {
+	if err := a.tlsConfigurator.Update(newTLSConfig); err != nil {
 		return fmt.Errorf("Failed reloading tls configuration: %s", err)
 	}
-	a.tlsConfigurator.Update(newTLSConfig)
 
 	// Reload service/check definitions and metadata.
 	if err := a.loadServices(newCfg); err != nil {

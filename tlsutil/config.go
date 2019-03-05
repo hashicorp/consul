@@ -199,36 +199,74 @@ func (c *Config) wrapTLSClient(conn net.Conn, tlsConfig *tls.Config) (net.Conn, 
 type Configurator struct {
 	sync.RWMutex
 	base    *Config
+	cert    *tls.Certificate
+	cas     *x509.CertPool
 	logger  *log.Logger
 	version int
 }
 
 // NewConfigurator creates a new Configurator and sets the provided
 // configuration.
-func NewConfigurator(config Config, logger *log.Logger) *Configurator {
-	return &Configurator{base: &config, logger: logger, version: 1}
+func NewConfigurator(config Config, logger *log.Logger) (*Configurator, error) {
+	c := &Configurator{logger: logger}
+	err := c.Update(config)
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
 }
 
 // Update updates the internal configuration which is used to generate
 // *tls.Config.
-func (c *Configurator) Update(config Config) {
+func (c *Configurator) Update(config Config) error {
 	c.Lock()
 	defer c.Unlock()
-	c.base = &config
-	c.version++
+	cert, err := c.loadKeyPair(config.CertFile, config.KeyFile)
+	if err != nil {
+		return err
+	}
+	cas, err := c.loadCAs(config.CAFile, config.CAPath)
+	if err != nil {
+		return err
+	}
 
+	origConfig := c.base
+	origCert := c.cert
+	origCAs := c.cas
+
+	c.base = &config
+	c.cert = cert
+	c.cas = cas
+	_, err = c.commonTLSConfig(c.base.VerifyIncomingRPC || c.base.VerifyIncomingHTTPS)
+	if err != nil {
+		c.base = origConfig
+		c.cert = origCert
+		c.cas = origCAs
+		return err
+	}
+	c.version++
+	return nil
 }
 
-// Check is verifying the provided configuration and returns an error if the
-// config has problems.
-func (c *Configurator) Check(config Config) error {
-	c.Lock()
-	defer c.Unlock()
-	orig := c.base
-	c.base = &config
-	defer func() { c.base = orig }()
-	_, err := c.commonTLSConfig(c.base.VerifyIncomingRPC || c.base.VerifyIncomingHTTPS)
-	return err
+func (c *Configurator) loadKeyPair(certFile, keyFile string) (*tls.Certificate, error) {
+	if certFile == "" || keyFile == "" {
+		return nil, nil
+	}
+	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to load cert/key pair: %v", err)
+	}
+	return &cert, nil
+}
+
+func (c *Configurator) loadCAs(caFile, caPath string) (*x509.CertPool, error) {
+	if caFile != "" {
+		return rootcerts.LoadCAFile(caFile)
+	} else if caPath != "" {
+		return rootcerts.LoadCAPath(caPath)
+	}
+	return nil, nil
+
 }
 
 // commonTLSConfig generates a *tls.Config from the base configuration the
@@ -248,11 +286,8 @@ func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) (*tls.
 	}
 
 	// Add cert/key
-	cert, err := c.base.KeyPair()
-	if err != nil {
-		return nil, err
-	} else if cert != nil {
-		tlsConfig.Certificates = []tls.Certificate{*cert}
+	if c.cert != nil {
+		tlsConfig.Certificates = []tls.Certificate{*c.cert}
 	}
 
 	// Check if a minimum TLS version was set
@@ -269,21 +304,9 @@ func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) (*tls.
 		return nil, fmt.Errorf("VerifyOutgoing set, and no CA certificate provided!")
 	}
 
-	// Parse the CA certs if any
-	if c.base.CAFile != "" {
-		pool, err := rootcerts.LoadCAFile(c.base.CAFile)
-		if err != nil {
-			return nil, err
-		}
-		tlsConfig.ClientCAs = pool
-		tlsConfig.RootCAs = pool
-	} else if c.base.CAPath != "" {
-		pool, err := rootcerts.LoadCAPath(c.base.CAPath)
-		if err != nil {
-			return nil, err
-		}
-		tlsConfig.ClientCAs = pool
-		tlsConfig.RootCAs = pool
+	if c.cas != nil {
+		tlsConfig.ClientCAs = c.cas
+		tlsConfig.RootCAs = c.cas
 	}
 
 	// Set ClientAuth if necessary

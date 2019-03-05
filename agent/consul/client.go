@@ -89,7 +89,11 @@ type Client struct {
 // NewClient is used to construct a new Consul client from the
 // configuration, potentially returning an error
 func NewClient(config *Config) (*Client, error) {
-	return NewClientLogger(config, nil, tlsutil.NewConfigurator(config.ToTLSUtilConfig(), nil))
+	c, err := tlsutil.NewConfigurator(config.ToTLSUtilConfig(), nil)
+	if err != nil {
+		return nil, err
+	}
+	return NewClientLogger(config, nil, c)
 }
 
 func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsutil.Configurator) (*Client, error) {
