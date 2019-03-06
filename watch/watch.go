@@ -63,7 +63,7 @@ type BlockingParamVal interface {
 	// Next is called when deciding which value to use on the next blocking call.
 	// It assumes the BlockingParamVal value it is called on is the most recent one
 	// returned and passes the previous one which may be nil as context. This
-	// allows types to customise logic around ordering without assuming there is
+	// allows types to customize logic around ordering without assuming there is
 	// an order. For example WaitIndexVal can check that the index didn't go
 	// backwards and if it did then reset to 0. Most other cases should just
 	// return themselves (the most recent value) to be used in the next request.

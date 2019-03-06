@@ -31,7 +31,7 @@ type ACL struct {
 	srv *Server
 }
 
-// fileBootstrapResetIndex retrieves the reset index specified by the adminstrator from
+// fileBootstrapResetIndex retrieves the reset index specified by the administrator from
 // the file on disk.
 //
 // Q: What is the bootstrap reset index?

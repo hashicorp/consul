@@ -27,7 +27,7 @@ type ServiceDefinition struct {
 	Token             string
 	EnableTagOverride bool
 	// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
-	// ProxyDestination is deprecated in favour of Proxy.DestinationServiceName
+	// ProxyDestination is deprecated in favor of Proxy.DestinationServiceName
 	ProxyDestination string `json:",omitempty"`
 
 	// Proxy is the configuration set for Kind = connect-proxy. It is mandatory in

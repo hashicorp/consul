@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/consul/lib"
 	memdb "github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/memberlist"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/yamux"
 )
 
@@ -417,7 +417,7 @@ RUN_QUERY:
 	err := fn(ws, state)
 	// Note we check queryOpts.MinQueryIndex is greater than zero to determine if
 	// blocking was requested by client, NOT meta.Index since the state function
-	// might return zero if something is not initialised and care wasn't taken to
+	// might return zero if something is not initialized and care wasn't taken to
 	// handle that special case (in practice this happened a lot so fixing it
 	// systematically here beats trying to remember to add zero checks in every
 	// state method). We also need to ensure that unless there is an error, we

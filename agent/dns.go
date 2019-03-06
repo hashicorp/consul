@@ -1015,7 +1015,7 @@ func trimUDPResponse(req, resp *dns.Msg, udpAnswerLimit int) (trimmed bool) {
 	// will allow our responses to be compliant even if some downstream server
 	// uncompresses them.
 	// Even when size is too big for one single record, try to send it anyway
-	// (usefull for 512 bytes messages)
+	// (useful for 512 bytes messages)
 	for len(resp.Answer) > 1 && resp.Len() > maxSize {
 		// More than 100 bytes, find with a binary search
 		if resp.Len()-maxSize > 100 {

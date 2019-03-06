@@ -76,7 +76,7 @@ func TestPeerCertificates(t testing.T, service string, ca *structs.CARoot) []*x5
 }
 
 // TestServer runs a service listener that can be used to test clients. It's
-// behaviour can be controlled by the struct members.
+// behavior can be controlled by the struct members.
 type TestServer struct {
 	// The service name to serve.
 	Service string

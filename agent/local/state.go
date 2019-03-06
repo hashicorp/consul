@@ -534,7 +534,7 @@ func (l *State) RemoveAliasCheck(checkID types.CheckID, srcServiceID string) {
 
 // RemoveCheck is used to remove a health check from the local state.
 // The agent will make a best effort to ensure it is deregistered
-// todo(fs): RemoveService returns an error for a non-existant service. RemoveCheck should as well.
+// todo(fs): RemoveService returns an error for a non-existent service. RemoveCheck should as well.
 // todo(fs): Check code that calls this to handle the error.
 func (l *State) RemoveCheck(id types.CheckID) error {
 	l.Lock()
@@ -774,13 +774,13 @@ func (l *State) AddProxy(proxy *structs.ConnectManagedProxy, token,
 	}
 
 	// Lock now. We can't lock earlier as l.Service would deadlock and shouldn't
-	// anyway to minimise the critical section.
+	// anyway to minimize the critical section.
 	l.Lock()
 	defer l.Unlock()
 
 	pToken := restoredProxyToken
 
-	// Does this proxy instance allready exist?
+	// Does this proxy instance already exist?
 	if existing, ok := l.managedProxies[svc.ID]; ok {
 		// Keep the existing proxy token so we don't have to restart proxy to
 		// re-inject token.
@@ -807,14 +807,14 @@ func (l *State) AddProxy(proxy *structs.ConnectManagedProxy, token,
 	// Allocate port if needed (min and max inclusive).
 	rangeLen := l.config.ProxyBindMaxPort - l.config.ProxyBindMinPort + 1
 	if svc.Port < 1 && l.config.ProxyBindMinPort > 0 && rangeLen > 0 {
-		// This should be a really short list so don't bother optimising lookup yet.
+		// This should be a really short list so don't bother optimizing lookup yet.
 	OUTER:
 		for _, offset := range rand.Perm(rangeLen) {
 			p := l.config.ProxyBindMinPort + offset
 			// See if this port was already allocated to another proxy
 			for _, other := range l.managedProxies {
 				if other.Proxy.ProxyService.Port == p {
-					// allready taken, skip to next random pick in the range
+					// already taken, skip to next random pick in the range
 					continue OUTER
 				}
 			}

@@ -261,7 +261,7 @@ func TestHelperProcess(t *testing.T) {
 		log.Println("Started child")
 
 		// Wait "forever" (calling test chooses when we exit with signal/Wait to
-		// minimise coordination).
+		// minimize coordination).
 		for {
 			time.Sleep(time.Hour)
 		}

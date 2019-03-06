@@ -363,10 +363,10 @@ func TestAgent_Service(t *testing.T) {
 			// into a busy-poll!
 			//
 			// This test though doesn't catch that because busy poll still has the
-			// correct external behaviour. I don't want to instrument the loop to
+			// correct external behavior. I don't want to instrument the loop to
 			// assert it's not executing too fast here as I can't think of a clean way
 			// and the issue is fixed now so this test doesn't actually catch the
-			// error, but does provide an easy way to verify the behaviour by hand:
+			// error, but does provide an easy way to verify the behavior by hand:
 			//  1. Make this test fail e.g. change wantErr to true
 			//  2. Add a log.Println or similar into the blocking loop/function
 			//  3. See whether it's called just once or many times in a tight loop.
@@ -3063,7 +3063,7 @@ func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 		{
 			name: "ACL OK for service but and overridden for sidecar",
 			// This test ensures that if the sidecar embeds it's own token with
-			// different privs from the main request token it will be honoured for the
+			// different privs from the main request token it will be honored for the
 			// sidecar registration. We use the test root token since that should have
 			// permission.
 			json: `
@@ -3342,7 +3342,7 @@ func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 			assert.Equal(sd.Port, svc.Port)
 			// Ensure that the actual registered service _doesn't_ still have it's
 			// sidecar info since it's duplicate and we don't want that synced up to
-			// the catalog or included in responses particulary - it's just
+			// the catalog or included in responses particularly - it's just
 			// registration syntax sugar.
 			assert.Nil(svc.Connect.SidecarService)
 
@@ -4765,7 +4765,7 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 				r.Fatalf("leaf has not updated")
 			}
 
-			// Got a new leaf. Sanity check it's a whole new key as well as differnt
+			// Got a new leaf. Sanity check it's a whole new key as well as different
 			// cert.
 			if issued.PrivateKeyPEM == issued2.PrivateKeyPEM {
 				r.Fatalf("new leaf has same private key as before")
@@ -5057,10 +5057,10 @@ func TestAgentConnectProxyConfig_Blocking(t *testing.T) {
 			// into a busy-poll!
 			//
 			// This test though doesn't catch that because busy poll still has the
-			// correct external behaviour. I don't want to instrument the loop to
+			// correct external behavior. I don't want to instrument the loop to
 			// assert it's not executing too fast here as I can't think of a clean way
 			// and the issue is fixed now so this test doesn't actually catch the
-			// error, but does provide an easy way to verify the behaviour by hand:
+			// error, but does provide an easy way to verify the behavior by hand:
 			//  1. Make this test fail e.g. change wantErr to true
 			//  2. Add a log.Println or similar into the blocking loop/function
 			//  3. See whether it's called just once or many times in a tight loop.

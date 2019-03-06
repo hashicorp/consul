@@ -112,7 +112,7 @@ func makeListenerFromUserConfig(configJSON string) (*envoy.Listener, error) {
 }
 
 // Ensure that the first filter in each filter chain of a public listener is the
-// authz filter to prevent unauthorised access and that every filter chain uses
+// authz filter to prevent unauthorized access and that every filter chain uses
 // our TLS certs. We might allow users to work around this later if there is a
 // good use case but this is actually a feature for now as it allows them to
 // specify custom listener params in config but still get our certs delivered

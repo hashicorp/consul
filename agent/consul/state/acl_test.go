@@ -1046,7 +1046,7 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 		t.Parallel()
 		s := testACLStateStore(t)
 
-		// deletion of non-existant policies is not an error
+		// deletion of non-existent policies is not an error
 		require.NoError(t, s.ACLTokenDeleteByAccessor(3, "ea58a09c-2100-4aef-816b-8ee0ade77dcd"))
 		require.NoError(t, s.ACLTokenDeleteBySecret(3, "376d0cae-dd50-4213-9668-2c7797a7fb2d"))
 	})
@@ -1461,7 +1461,7 @@ func TestStateStore_ACLPolicy_Delete(t *testing.T) {
 		t.Parallel()
 		s := testACLStateStore(t)
 
-		// deletion of non-existant policies is not an error
+		// deletion of non-existent policies is not an error
 		require.NoError(t, s.ACLPolicyDeleteByName(3, "not-found"))
 		require.NoError(t, s.ACLPolicyDeleteByID(3, "376d0cae-dd50-4213-9668-2c7797a7fb2d"))
 	})

@@ -316,7 +316,7 @@ RETRY_GET:
 		// without waiting a whole timeout to see it, but clients that just look up
 		// cache with an older index than the last valid result will still see the
 		// result and not the error here. I.e. the error is not "cached" without a
-		// new fetch attempt occuring, but the last good value can still be fetched
+		// new fetch attempt occurring, but the last good value can still be fetched
 		// from cache.
 		return entry.Value, meta, nil
 	}

@@ -90,7 +90,7 @@ func newState(ns *structs.NodeService, token string) (*state, error) {
 	}, nil
 }
 
-// Watch initialised watches on all necessary cache data for the current proxy
+// Watch initialized watches on all necessary cache data for the current proxy
 // registration state and returns a chan to observe updates to the
 // ConfigSnapshot that contains all necessary config state. The chan is closed
 // when the state is Closed.

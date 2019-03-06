@@ -97,7 +97,7 @@ func TestCacheNotify(t *testing.T) {
 	})
 
 	// We could wait for a full timeout but we can't directly observe it so
-	// simulate the behaviour by triggering a response with the same value and
+	// simulate the behavior by triggering a response with the same value and
 	// index as the last one.
 	close(trigger[1])
 
@@ -122,7 +122,7 @@ func TestCacheNotify(t *testing.T) {
 		Err:           nil,
 	})
 
-	// Sanity check closing chan before context is cancelled doesn't panic
+	// Sanity check closing chan before context is canceled doesn't panic
 	//close(ch)
 
 	// Close context
@@ -136,7 +136,7 @@ func TestCacheNotify(t *testing.T) {
 	// will be cleaned.
 	close(trigger[3])
 
-	// I want to test that cancelling the context cleans up goroutines (which it
+	// I want to test that canceling the context cleans up goroutines (which it
 	// does from manual verification with debugger etc). I had a check based on a
 	// similar approach to https://golang.org/src/net/http/main_test.go#L60 but it
 	// was just too flaky because it relies on the timing of the error backoff

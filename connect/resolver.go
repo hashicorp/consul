@@ -188,7 +188,7 @@ func ConsulResolverFromAddrFunc(client *api.Client) func(addr string) (Resolver,
 		// For now we force use of `.consul` TLD regardless of the configured domain
 		// on the cluster. That's because we don't know that domain here and it
 		// would be really complicated to discover it inline here. We do however
-		// need to be able to distingush a hostname with the optional datacenter
+		// need to be able to distinguish a hostname with the optional datacenter
 		// segment which we can't do unambiguously if we allow arbitrary trailing
 		// domains.
 		domain := ".consul"

@@ -175,7 +175,7 @@ func TestDaemonLaunchesNewProcessGroup(t *testing.T) {
 	require.NoError(err)
 	// Yep the minus PGid is how you kill a whole process group in unix... no idea
 	// how this works on windows. We TERM no KILL since we rely on the child
-	// catching the signal and deleting it's file to detect correct behaviour.
+	// catching the signal and deleting it's file to detect correct behavior.
 	require.NoError(syscall.Kill(-pgid, syscall.SIGTERM))
 
 	_, err = parentCmd.Process.Wait()
@@ -326,7 +326,7 @@ func TestDaemonStop_killAdopted(t *testing.T) {
 
 	path := filepath.Join(td, "file")
 
-	// In this test we want to ensure that gracefull/ungraceful stop works with
+	// In this test we want to ensure that graceful/ungraceful stop works with
 	// processes that were adopted by current process but not started by it. (i.e.
 	// we have to poll them not use Wait).
 	//
@@ -361,7 +361,7 @@ func TestDaemonStop_killAdopted(t *testing.T) {
 		gracefulWait: 200 * time.Millisecond,
 		// Can't just set process as it will bypass intializing stopCh etc.
 	}
-	// Adopt the pid from a fake state snapshot (this correctly initialises Daemon
+	// Adopt the pid from a fake state snapshot (this correctly initializes Daemon
 	// for adoption)
 	fakeSnap := map[string]interface{}{
 		"Pid":         childCmd.Process.Pid,
@@ -375,7 +375,7 @@ func TestDaemonStop_killAdopted(t *testing.T) {
 	require.NoError(d.Start())
 
 	// Wait for the file to exist (child was already running so this doesn't
-	// gaurantee that Daemon is in "polling" state)
+	// guarantee that Daemon is in "polling" state)
 	retry.Run(t, func(r *retry.R) {
 		_, err := os.Stat(path)
 		if err == nil {

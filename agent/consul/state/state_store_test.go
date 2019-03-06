@@ -66,7 +66,7 @@ func testRegisterNodeWithMeta(t *testing.T, s *Store, idx uint64, nodeID string,
 
 // testRegisterServiceWithChange registers a service and allow ensuring the consul index is updated
 // even if service already exists if using `modifyAccordingIndex`.
-// This is done by setting the transation ID in "version" meta so service will be updated if it already exists
+// This is done by setting the transaction ID in "version" meta so service will be updated if it already exists
 func testRegisterServiceWithChange(t *testing.T, s *Store, idx uint64, nodeID, serviceID string, modifyAccordingIndex bool) {
 	meta := make(map[string]string)
 	if modifyAccordingIndex {
@@ -96,7 +96,7 @@ func testRegisterServiceWithChange(t *testing.T, s *Store, idx uint64, nodeID, s
 	}
 }
 
-// testRegisterService register a service with given transation idx
+// testRegisterService register a service with given transaction idx
 // If the service already exists, transaction number might not be increased
 // Use `testRegisterServiceWithChange()` if you want perform a registration that
 // ensures the transaction is updated by setting idx in Meta of Service

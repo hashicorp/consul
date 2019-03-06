@@ -81,7 +81,7 @@ type ConnectCALeaf struct {
 	// delay in tests they can set it to 1 nanosecond. We may separately allow
 	// configuring the jitter limit by users later but this is different and for
 	// tests only since we need to set a deterministic time delay in order to test
-	// the behaviour here fully and determinstically.
+	// the behavior here fully and determinstically.
 	TestOverrideCAChangeInitialDelay time.Duration
 }
 
@@ -233,7 +233,7 @@ func (c *ConnectCALeaf) rootWatcher(ctx context.Context) {
 
 // calculateSoftExpiry encapsulates our logic for when to renew a cert based on
 // it's age. It returns a pair of times min, max which makes it easier to test
-// the logic without non-determinisic jitter to account for. The caller should
+// the logic without non-deterministic jitter to account for. The caller should
 // choose a time randomly in between these.
 //
 // We want to balance a few factors here:
