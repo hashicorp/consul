@@ -154,9 +154,8 @@ func NewConfigurator(config Config, logger *log.Logger) (*Configurator, error) {
 
 // Update updates the internal configuration which is used to generate
 // *tls.Config.
+// This function acquires a write lock because it writes the new config.
 func (c *Configurator) Update(config Config) error {
-	c.Lock()
-	defer c.Unlock()
 	cert, err := loadKeyPair(config.CertFile, config.KeyFile)
 	if err != nil {
 		return err
@@ -169,10 +168,12 @@ func (c *Configurator) Update(config Config) error {
 	if err = c.check(config, cert); err != nil {
 		return err
 	}
+	c.Lock()
 	c.base = &config
 	c.cert = cert
 	c.cas = cas
 	c.version++
+	c.Unlock()
 	c.log("Update")
 	return nil
 }
@@ -225,7 +226,10 @@ func loadCAs(caFile, caPath string) (*x509.CertPool, error) {
 // commonTLSConfig generates a *tls.Config from the base configuration the
 // Configurator has. It accepts an additional flag in case a config is needed
 // for incoming TLS connections.
+// This function acquires a read lock because it reads from the config.
 func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) *tls.Config {
+	c.RLock()
+	defer c.RUnlock()
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: !c.base.VerifyServerHostname,
 	}
@@ -247,6 +251,9 @@ func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) *tls.C
 	tlsConfig.ClientCAs = c.cas
 	tlsConfig.RootCAs = c.cas
 
+	// This is possible because TLSLookup also contains "" with golang's
+	// default (tls10). And because the initial check makes sure the
+	// version correctly matches.
 	tlsConfig.MinVersion = TLSLookup[c.base.TLSMinVersion]
 
 	// Set ClientAuth if necessary
@@ -257,12 +264,55 @@ func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) *tls.C
 	return tlsConfig
 }
 
+// This function acquires a read lock because it reads from the config.
+func (c *Configurator) outgoingRPCTLSDisabled() bool {
+	c.RLock()
+	defer c.RUnlock()
+	return c.base.CAFile == "" && c.base.CAPath == "" && !c.base.VerifyOutgoing
+}
+
+// This function acquires a read lock because it reads from the config.
+func (c *Configurator) someValuesFromConfig() (bool, bool, string) {
+	c.RLock()
+	defer c.RUnlock()
+	return c.base.VerifyServerHostname, c.base.VerifyOutgoing, c.base.Domain
+}
+
+// This function acquires a read lock because it reads from the config.
+func (c *Configurator) verifyIncomingRPC() bool {
+	c.RLock()
+	defer c.RUnlock()
+	return c.base.VerifyIncomingRPC
+}
+
+// This function acquires a read lock because it reads from the config.
+func (c *Configurator) verifyIncomingHTTPS() bool {
+	c.RLock()
+	defer c.RUnlock()
+	return c.base.VerifyIncomingHTTPS
+}
+
+// This function acquires a read lock because it reads from the config.
+func (c *Configurator) enableAgentTLSForChecks() bool {
+	c.RLock()
+	defer c.RUnlock()
+	return c.base.EnableAgentTLSForChecks
+}
+
+// This function acquires a read lock because it reads from the config.
+func (c *Configurator) serverNameOrNodeName() string {
+	c.RLock()
+	defer c.RUnlock()
+	if c.base.ServerName != "" {
+		return c.base.ServerName
+	}
+	return c.base.NodeName
+}
+
 // IncomingRPCConfig generates a *tls.Config for incoming RPC connections.
 func (c *Configurator) IncomingRPCConfig() *tls.Config {
 	c.log("IncomingRPCConfig")
-	c.RLock()
-	defer c.RUnlock()
-	config := c.commonTLSConfig(c.base.VerifyIncomingRPC)
+	config := c.commonTLSConfig(c.verifyIncomingRPC())
 	config.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
 		return c.IncomingRPCConfig(), nil
 	}
@@ -272,9 +322,7 @@ func (c *Configurator) IncomingRPCConfig() *tls.Config {
 // IncomingHTTPSConfig generates a *tls.Config for incoming HTTPS connections.
 func (c *Configurator) IncomingHTTPSConfig() *tls.Config {
 	c.log("IncomingHTTPSConfig")
-	c.RLock()
-	defer c.RUnlock()
-	config := c.commonTLSConfig(c.base.VerifyIncomingHTTPS)
+	config := c.commonTLSConfig(c.verifyIncomingHTTPS())
 	config.GetConfigForClient = func(hello *tls.ClientHelloInfo) (*tls.Config, error) {
 		config := c.IncomingHTTPSConfig()
 		config.NextProtos = hello.SupportedProtos
@@ -289,9 +337,7 @@ func (c *Configurator) IncomingHTTPSConfig() *tls.Config {
 // be checked for checks.
 func (c *Configurator) OutgoingTLSConfigForCheck(skipVerify bool) *tls.Config {
 	c.log("OutgoingTLSConfigForCheck")
-	c.RLock()
-	defer c.RUnlock()
-	if !c.base.EnableAgentTLSForChecks {
+	if !c.enableAgentTLSForChecks() {
 		return &tls.Config{
 			InsecureSkipVerify: skipVerify,
 		}
@@ -299,10 +345,7 @@ func (c *Configurator) OutgoingTLSConfigForCheck(skipVerify bool) *tls.Config {
 
 	config := c.commonTLSConfig(false)
 	config.InsecureSkipVerify = skipVerify
-	config.ServerName = c.base.ServerName
-	if config.ServerName == "" {
-		config.ServerName = c.base.NodeName
-	}
+	config.ServerName = c.serverNameOrNodeName()
 
 	return config
 }
@@ -312,16 +355,10 @@ func (c *Configurator) OutgoingTLSConfigForCheck(skipVerify bool) *tls.Config {
 // otherwise we assume that no TLS should be used.
 func (c *Configurator) OutgoingRPCConfig() *tls.Config {
 	c.log("OutgoingRPCConfig")
-	c.RLock()
-	defer c.RUnlock()
 	if c.outgoingRPCTLSDisabled() {
 		return nil
 	}
 	return c.commonTLSConfig(false)
-}
-
-func (c *Configurator) outgoingRPCTLSDisabled() bool {
-	return c.base.CAFile == "" && c.base.CAPath == "" && !c.base.VerifyOutgoing
 }
 
 // OutgoingRPCWrapper wraps the result of OutgoingRPCConfig in a DCWrapper. It
@@ -340,8 +377,11 @@ func (c *Configurator) OutgoingRPCWrapper() (DCWrapper, error) {
 	return wrapper, nil
 }
 
+// This function acquires a read lock because it reads from the config.
 func (c *Configurator) log(name string) {
 	if c.logger != nil {
+		c.RLock()
+		defer c.RUnlock()
 		c.logger.Printf("[DEBUG] tlsutil: %s with version %d", name, c.version)
 	}
 }
@@ -360,12 +400,8 @@ func (c *Configurator) wrapTLSClient(dc string, conn net.Conn) (net.Conn, error)
 	var err error
 	var tlsConn *tls.Conn
 
-	c.RLock()
 	config := c.OutgoingRPCConfig()
-	verifyServerHostname := c.base.VerifyServerHostname
-	verifyOutgoing := c.base.VerifyOutgoing
-	domain := c.base.Domain
-	c.RUnlock()
+	verifyServerHostname, verifyOutgoing, domain := c.someValuesFromConfig()
 
 	if verifyServerHostname {
 		// Strip the trailing '.' from the domain if any
