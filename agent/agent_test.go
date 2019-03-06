@@ -3565,8 +3565,7 @@ func TestHansAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 		verify_server_hostname = true
 	`
 	c := TestConfig(config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
-	err = a.ReloadConfig(c)
-	require.NoError(t, err)
+	require.NoError(t, a.ReloadConfig(c))
 	tlsConf = a.tlsConfigurator.OutgoingRPCConfig()
 	require.False(t, tlsConf.InsecureSkipVerify)
 	require.Len(t, tlsConf.RootCAs.Subjects(), 2)
@@ -3605,8 +3604,7 @@ func TestHansAgent_ReloadConfigIncomingRPCConfig(t *testing.T) {
 		verify_server_hostname = true
 	`
 	c := TestConfig(config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
-	err = a.ReloadConfig(c)
-	require.NoError(t, err)
+	require.NoError(t, a.ReloadConfig(c))
 	tlsConf, err = tlsConf.GetConfigForClient(nil)
 	require.NoError(t, err)
 	require.False(t, tlsConf.InsecureSkipVerify)
@@ -3635,8 +3633,7 @@ func TestHansAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
 		verify_incoming = true
 	`
 	c := TestConfig(config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
-	err = a.ReloadConfig(c)
-	require.Error(t, err)
+	require.Error(t, a.ReloadConfig(c))
 	tlsConf, err = tlsConf.GetConfigForClient(nil)
 	require.NoError(t, err)
 	require.Equal(t, tls.NoClientCert, tlsConf.ClientAuth)
