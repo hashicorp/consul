@@ -116,14 +116,7 @@ type Config struct {
 
 // KeyPair is used to open and parse a certificate and key file
 func (c *Config) KeyPair() (*tls.Certificate, error) {
-	if c.CertFile == "" || c.KeyFile == "" {
-		return nil, nil
-	}
-	cert, err := tls.LoadX509KeyPair(c.CertFile, c.KeyFile)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to load cert/key pair: %v", err)
-	}
-	return &cert, err
+	return loadKeyPair(c.CertFile, c.KeyFile)
 }
 
 // SpecificDC is used to invoke a static datacenter
@@ -164,11 +157,11 @@ func NewConfigurator(config Config, logger *log.Logger) (*Configurator, error) {
 func (c *Configurator) Update(config Config) error {
 	c.Lock()
 	defer c.Unlock()
-	cert, err := c.loadKeyPair(config.CertFile, config.KeyFile)
+	cert, err := loadKeyPair(config.CertFile, config.KeyFile)
 	if err != nil {
 		return err
 	}
-	cas, err := c.loadCAs(config.CAFile, config.CAPath)
+	cas, err := loadCAs(config.CAFile, config.CAPath)
 	if err != nil {
 		return err
 	}
@@ -209,7 +202,7 @@ func (c *Configurator) check(config Config, cert *tls.Certificate) error {
 	return nil
 }
 
-func (c *Configurator) loadKeyPair(certFile, keyFile string) (*tls.Certificate, error) {
+func loadKeyPair(certFile, keyFile string) (*tls.Certificate, error) {
 	if certFile == "" || keyFile == "" {
 		return nil, nil
 	}
@@ -220,7 +213,7 @@ func (c *Configurator) loadKeyPair(certFile, keyFile string) (*tls.Certificate, 
 	return &cert, nil
 }
 
-func (c *Configurator) loadCAs(caFile, caPath string) (*x509.CertPool, error) {
+func loadCAs(caFile, caPath string) (*x509.CertPool, error) {
 	if caFile != "" {
 		return rootcerts.LoadCAFile(caFile)
 	} else if caPath != "" {

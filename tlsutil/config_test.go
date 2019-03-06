@@ -281,7 +281,7 @@ func TestConfigurator_wrapTLS_OK(t *testing.T) {
 	c, err := NewConfigurator(config, nil)
 	require.NoError(t, err)
 
-	tlsClient, err := c.wrapTLSClient(client, "dc1")
+	tlsClient, err := c.wrapTLSClient("dc1", client)
 	require.NoError(t, err)
 
 	tlsClient.Close()
@@ -307,7 +307,7 @@ func TestConfigurator_wrapTLS_BadCert(t *testing.T) {
 
 	c, err := NewConfigurator(clientConfig, nil)
 	require.NoError(t, err)
-	tlsClient, err := c.wrapTLSClient(client, "dc1")
+	tlsClient, err := c.wrapTLSClient("dc1", client)
 	require.Error(t, err)
 	require.Nil(t, tlsClient)
 
