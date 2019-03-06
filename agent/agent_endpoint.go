@@ -256,7 +256,7 @@ func (s *HTTPServer) AgentService(resp http.ResponseWriter, req *http.Request) (
 	// the interim until they are removed, we need to mirror the default-setting
 	// behavior they had. Rather than thread that through this whole method as
 	// special cases that need to be unwound later (and duplicate logic in the
-	// proxy config endpoint) just defer to that and then translator the response.
+	// proxy config endpoint) just defer to that and then translate the response.
 	if managedProxy := s.agent.State.Proxy(id); managedProxy != nil {
 		// This is for a managed proxy, use the old endpoint's behavior
 		req.URL.Path = "/v1/agent/connect/proxy/" + id
