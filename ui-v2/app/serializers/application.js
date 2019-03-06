@@ -1,11 +1,46 @@
-import Serializer from 'ember-data/serializers/rest';
+import Serializer from './http';
 
 import { set } from '@ember/object';
 import {
   HEADERS_SYMBOL as HTTP_HEADERS_SYMBOL,
   HEADERS_INDEX as HTTP_HEADERS_INDEX,
 } from 'consul-ui/utils/http/consul';
+import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
+
+const map = function(obj, cb) {
+  if (!Array.isArray(obj)) {
+    return [obj].map(cb)[0];
+  }
+  return obj.map(cb);
+};
+const addDatacenter = function(dc) {
+  return function(item) {
+    return {
+      ...item,
+      ...{
+        Datacenter: dc,
+        uid: JSON.stringify([item.Name || item.ID || item.Node, dc]),
+      },
+    };
+  };
+};
 export default Serializer.extend({
+  respondForQuery: function(respond, query) {
+    return respond((headers, body) => map(body, addDatacenter(query.dc)));
+  },
+  respondForQueryRecord: function(respond, query) {
+    return respond((headers, body) => addDatacenter(query.dc)(body));
+  },
+  respondForCreateRecord: function(respond, data) {
+    return respond((headers, body) => addDatacenter(data[DATACENTER_KEY])(body));
+  },
+  respondForUpdateRecord: function(respond, data) {
+    return respond((headers, body) => addDatacenter(data[DATACENTER_KEY])(body));
+  },
+  respondForDeleteRecord: function(respond, data) {
+    const slug = this.getSlugKey();
+    return respond((headers, body) => addDatacenter(data[DATACENTER_KEY])({ [slug]: data[slug] }));
+  },
   // this could get confusing if you tried to override
   // say `normalizeQueryResponse`
   // TODO: consider creating a method for each one of the `normalize...Response` family

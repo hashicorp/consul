@@ -1,7 +1,9 @@
 import Adapter from './application';
 
 export default Adapter.extend({
-  urlForFindAll: function() {
-    return this.appendURL('catalog/datacenters');
+  requestForFindAll: function(request) {
+    return request`
+      GET /v1/catalog/datacenters
+    `;
   },
 });
