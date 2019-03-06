@@ -329,7 +329,7 @@ Finally, apply the token to the Consul agent serving DNS request in default toke
 configuration parameter.
 
 ```sh
-$ curl -H "X-Consul-Token: <your token here>" -D @dns-token.json http://localhost:8500/v1/agent/token/acl_token 
+$ consul acl set-agent-token -token "<your token here>" default "<dns token>"
 ```
 
 The data file must contain a valid token. 
