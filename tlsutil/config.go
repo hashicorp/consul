@@ -136,64 +136,6 @@ func SpecificDC(dc string, tlsWrap DCWrapper) Wrapper {
 	}
 }
 
-// Wrap a net.Conn into a client tls connection, performing any
-// additional verification as needed.
-//
-// As of go 1.3, crypto/tls only supports either doing no certificate
-// verification, or doing full verification including of the peer's
-// DNS name. For consul, we want to validate that the certificate is
-// signed by a known CA, but because consul doesn't use DNS names for
-// node names, we don't verify the certificate DNS names. Since go 1.3
-// no longer supports this mode of operation, we have to do it
-// manually.
-func (c *Config) wrapTLSClient(conn net.Conn, tlsConfig *tls.Config) (net.Conn, error) {
-	var err error
-	var tlsConn *tls.Conn
-
-	tlsConn = tls.Client(conn, tlsConfig)
-
-	// If crypto/tls is doing verification, there's no need to do
-	// our own.
-	if tlsConfig.InsecureSkipVerify == false {
-		return tlsConn, nil
-	}
-
-	// If verification is not turned on, don't do it.
-	if !c.VerifyOutgoing {
-		return tlsConn, nil
-	}
-
-	if err = tlsConn.Handshake(); err != nil {
-		tlsConn.Close()
-		return nil, err
-	}
-
-	// The following is lightly-modified from the doFullHandshake
-	// method in crypto/tls's handshake_client.go.
-	opts := x509.VerifyOptions{
-		Roots:         tlsConfig.RootCAs,
-		CurrentTime:   time.Now(),
-		DNSName:       "",
-		Intermediates: x509.NewCertPool(),
-	}
-
-	certs := tlsConn.ConnectionState().PeerCertificates
-	for i, cert := range certs {
-		if i == 0 {
-			continue
-		}
-		opts.Intermediates.AddCert(cert)
-	}
-
-	_, err = certs[0].Verify(opts)
-	if err != nil {
-		tlsConn.Close()
-		return nil, err
-	}
-
-	return tlsConn, err
-}
-
 // Configurator holds a Config and is responsible for generating all the
 // *tls.Config necessary for Consul. Except the one in the api package.
 type Configurator struct {
@@ -230,21 +172,39 @@ func (c *Configurator) Update(config Config) error {
 		return err
 	}
 
-	origConfig := c.base
-	origCert := c.cert
-	origCAs := c.cas
-
+	if err = c.check(config, cert); err != nil {
+		return err
+	}
 	c.base = &config
 	c.cert = cert
 	c.cas = cas
-	_, err = c.commonTLSConfig(c.base.VerifyIncomingRPC || c.base.VerifyIncomingHTTPS)
-	if err != nil {
-		c.base = origConfig
-		c.cert = origCert
-		c.cas = origCAs
-		return err
-	}
 	c.version++
+	c.log("Update")
+	return nil
+}
+
+func (c *Configurator) check(config Config, cert *tls.Certificate) error {
+	// Check if a minimum TLS version was set
+	if config.TLSMinVersion != "" {
+		if _, ok := TLSLookup[config.TLSMinVersion]; !ok {
+			return fmt.Errorf("TLSMinVersion: value %s not supported, please specify one of [tls10,tls11,tls12]", config.TLSMinVersion)
+		}
+	}
+
+	// Ensure we have a CA if VerifyOutgoing is set
+	if config.VerifyOutgoing && config.CAFile == "" && config.CAPath == "" {
+		return fmt.Errorf("VerifyOutgoing set, and no CA certificate provided!")
+	}
+
+	// Ensure we have a CA and cert if VerifyIncoming is set
+	if config.VerifyIncoming || config.VerifyIncomingRPC || config.VerifyIncomingHTTPS {
+		if config.CAFile == "" && config.CAPath == "" {
+			return fmt.Errorf("VerifyIncoming set, and no CA certificate provided!")
+		}
+		if cert == nil {
+			return fmt.Errorf("VerifyIncoming set, and no Cert/Key pair provided!")
+		}
+	}
 	return nil
 }
 
@@ -266,13 +226,12 @@ func (c *Configurator) loadCAs(caFile, caPath string) (*x509.CertPool, error) {
 		return rootcerts.LoadCAPath(caPath)
 	}
 	return nil, nil
-
 }
 
 // commonTLSConfig generates a *tls.Config from the base configuration the
 // Configurator has. It accepts an additional flag in case a config is needed
 // for incoming TLS connections.
-func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) (*tls.Config, error) {
+func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) *tls.Config {
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: !c.base.VerifyServerHostname,
 	}
@@ -285,23 +244,11 @@ func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) (*tls.
 		tlsConfig.PreferServerCipherSuites = true
 	}
 
-	// Add cert/key
-	if c.cert != nil {
-		tlsConfig.Certificates = []tls.Certificate{*c.cert}
+	tlsConfig.GetCertificate = func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
+		return c.cert, nil
 	}
-
-	// Check if a minimum TLS version was set
-	if c.base.TLSMinVersion != "" {
-		tlsvers, ok := TLSLookup[c.base.TLSMinVersion]
-		if !ok {
-			return nil, fmt.Errorf("TLSMinVersion: value %s not supported, please specify one of [tls10,tls11,tls12]", c.base.TLSMinVersion)
-		}
-		tlsConfig.MinVersion = tlsvers
-	}
-
-	// Ensure we have a CA if VerifyOutgoing is set
-	if c.base.VerifyOutgoing && c.base.CAFile == "" && c.base.CAPath == "" {
-		return nil, fmt.Errorf("VerifyOutgoing set, and no CA certificate provided!")
+	tlsConfig.GetClientCertificate = func(*tls.CertificateRequestInfo) (*tls.Certificate, error) {
+		return c.cert, nil
 	}
 
 	if c.cas != nil {
@@ -309,104 +256,86 @@ func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) (*tls.
 		tlsConfig.RootCAs = c.cas
 	}
 
+	tlsConfig.MinVersion = TLSLookup[c.base.TLSMinVersion]
+
 	// Set ClientAuth if necessary
 	if c.base.VerifyIncoming || additionalVerifyIncomingFlag {
-		if c.base.CAFile == "" && c.base.CAPath == "" {
-			return nil, fmt.Errorf("VerifyIncoming set, and no CA certificate provided!")
-		}
-		if len(tlsConfig.Certificates) == 0 {
-			return nil, fmt.Errorf("VerifyIncoming set, and no Cert/Key pair provided!")
-		}
-
 		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
 	}
 
-	return tlsConfig, nil
+	return tlsConfig
 }
 
 // IncomingRPCConfig generates a *tls.Config for incoming RPC connections.
-func (c *Configurator) IncomingRPCConfig() (*tls.Config, error) {
+func (c *Configurator) IncomingRPCConfig() *tls.Config {
 	c.log("IncomingRPCConfig")
 	c.RLock()
 	defer c.RUnlock()
-	config, err := c.commonTLSConfig(c.base.VerifyIncomingRPC)
-	if err != nil {
-		return nil, err
-	}
+	config := c.commonTLSConfig(c.base.VerifyIncomingRPC)
 	config.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
-		return c.IncomingRPCConfig()
+		return c.IncomingRPCConfig(), nil
 	}
-	return config, nil
+	return config
 }
 
 // IncomingHTTPSConfig generates a *tls.Config for incoming HTTPS connections.
-func (c *Configurator) IncomingHTTPSConfig() (*tls.Config, error) {
+func (c *Configurator) IncomingHTTPSConfig() *tls.Config {
 	c.log("IncomingHTTPSConfig")
 	c.RLock()
 	defer c.RUnlock()
-	config, err := c.commonTLSConfig(c.base.VerifyIncomingHTTPS)
-	if err != nil {
-		return nil, err
-	}
+	config := c.commonTLSConfig(c.base.VerifyIncomingHTTPS)
 	config.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
-		return c.IncomingHTTPSConfig()
+		return c.IncomingHTTPSConfig(), nil
 	}
-	return config, nil
+	return config
 }
 
 // IncomingTLSConfig generates a *tls.Config for outgoing TLS connections for
 // checks. This function is seperated because there is an extra flag to
 // consider for checks. EnableAgentTLSForChecks and InsecureSkipVerify has to
 // be checked for checks.
-func (c *Configurator) OutgoingTLSConfigForCheck(skipVerify bool) (*tls.Config, error) {
+func (c *Configurator) OutgoingTLSConfigForCheck(skipVerify bool) *tls.Config {
 	c.log("OutgoingTLSConfigForCheck")
 	c.RLock()
 	defer c.RUnlock()
 	if !c.base.EnableAgentTLSForChecks {
 		return &tls.Config{
 			InsecureSkipVerify: skipVerify,
-		}, nil
+		}
 	}
 
-	tlsConfig, err := c.commonTLSConfig(false)
-	if err != nil {
-		return nil, err
-	}
-	tlsConfig.InsecureSkipVerify = skipVerify
-	tlsConfig.ServerName = c.base.ServerName
-	if tlsConfig.ServerName == "" {
-		tlsConfig.ServerName = c.base.NodeName
+	config := c.commonTLSConfig(false)
+	config.InsecureSkipVerify = skipVerify
+	config.ServerName = c.base.ServerName
+	if config.ServerName == "" {
+		config.ServerName = c.base.NodeName
 	}
 
-	return tlsConfig, nil
+	return config
 }
 
 // OutgoingRPCConfig generates a *tls.Config for outgoing RPC connections. If
 // there is a CA or VerifyOutgoing is set, a *tls.Config will be provided,
 // otherwise we assume that no TLS should be used.
-func (c *Configurator) OutgoingRPCConfig() (*tls.Config, error) {
+func (c *Configurator) OutgoingRPCConfig() *tls.Config {
 	c.log("OutgoingRPCConfig")
 	c.RLock()
 	defer c.RUnlock()
-	useTLS := c.base.CAFile != "" || c.base.CAPath != "" || c.base.VerifyOutgoing
-	if !useTLS {
-		return nil, nil
+	if c.outgoingRPCTLSDisabled() {
+		return nil
 	}
 	return c.commonTLSConfig(false)
+}
+
+func (c *Configurator) outgoingRPCTLSDisabled() bool {
+	return c.base.CAFile == "" && c.base.CAPath == "" && !c.base.VerifyOutgoing
 }
 
 // OutgoingRPCWrapper wraps the result of OutgoingRPCConfig in a DCWrapper. It
 // decides if verify server hostname should be used.
 func (c *Configurator) OutgoingRPCWrapper() (DCWrapper, error) {
 	c.log("OutgoingRPCWrapper")
-	// Get the TLS config
-	tlsConfig, err := c.OutgoingRPCConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	// Check if TLS is not enabled
-	if tlsConfig == nil {
+	if c.outgoingRPCTLSDisabled() {
 		return nil, nil
 	}
 
@@ -414,13 +343,7 @@ func (c *Configurator) OutgoingRPCWrapper() (DCWrapper, error) {
 	wrapper := func(dc string, conn net.Conn) (net.Conn, error) {
 		c.RLock()
 		defer c.RUnlock()
-		if c.base.VerifyServerHostname {
-			// Strip the trailing '.' from the domain if any
-			domain := strings.TrimSuffix(c.base.Domain, ".")
-			tlsConfig = tlsConfig.Clone()
-			tlsConfig.ServerName = "server." + dc + "." + domain
-		}
-		return c.base.wrapTLSClient(conn, tlsConfig)
+		return c.wrapTLSClient(conn, dc)
 	}
 
 	return wrapper, nil
@@ -430,6 +353,70 @@ func (c *Configurator) log(name string) {
 	if c.logger != nil {
 		c.logger.Printf("[DEBUG] tlsutil: %s with version %d", name, c.version)
 	}
+}
+
+// Wrap a net.Conn into a client tls connection, performing any
+// additional verification as needed.
+//
+// As of go 1.3, crypto/tls only supports either doing no certificate
+// verification, or doing full verification including of the peer's
+// DNS name. For consul, we want to validate that the certificate is
+// signed by a known CA, but because consul doesn't use DNS names for
+// node names, we don't verify the certificate DNS names. Since go 1.3
+// no longer supports this mode of operation, we have to do it
+// manually.
+func (c *Configurator) wrapTLSClient(conn net.Conn, dc string) (net.Conn, error) {
+	var err error
+	var tlsConn *tls.Conn
+
+	config := c.OutgoingRPCConfig()
+	if c.base.VerifyServerHostname {
+		// Strip the trailing '.' from the domain if any
+		domain := strings.TrimSuffix(c.base.Domain, ".")
+		config.ServerName = "server." + dc + "." + domain
+	}
+	tlsConn = tls.Client(conn, config)
+
+	// If crypto/tls is doing verification, there's no need to do
+	// our own.
+	if config.InsecureSkipVerify == false {
+		return tlsConn, nil
+	}
+
+	// If verification is not turned on, don't do it.
+	if !c.base.VerifyOutgoing {
+		return tlsConn, nil
+	}
+
+	if err = tlsConn.Handshake(); err != nil {
+		tlsConn.Close()
+		return nil, err
+	}
+
+	// The following is lightly-modified from the doFullHandshake
+	// method in crypto/tls's handshake_client.go.
+	opts := x509.VerifyOptions{
+		Roots:         config.RootCAs,
+		CurrentTime:   time.Now(),
+		DNSName:       "",
+		Intermediates: x509.NewCertPool(),
+	}
+
+	certs := tlsConn.ConnectionState().PeerCertificates
+	for i, cert := range certs {
+		if i == 0 {
+			continue
+		}
+		opts.Intermediates.AddCert(cert)
+	}
+
+	_, err = certs[0].Verify(opts)
+	if err != nil {
+		tlsConn.Close()
+		return nil, err
+	}
+
+	return tlsConn, err
 }
 
 // ParseCiphers parse ciphersuites from the comma-separated string into

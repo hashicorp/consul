@@ -666,10 +666,7 @@ func (a *Agent) listenHTTP() ([]*HTTPServer, error) {
 			var tlscfg *tls.Config
 			_, isTCP := l.(*tcpKeepAliveListener)
 			if isTCP && proto == "https" {
-				tlscfg, err = a.tlsConfigurator.IncomingHTTPSConfig()
-				if err != nil {
-					return err
-				}
+				tlscfg = a.tlsConfigurator.IncomingHTTPSConfig()
 				l = tls.NewListener(l, tlscfg)
 			}
 			srv := &HTTPServer{
@@ -2236,10 +2233,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				chkType.Interval = checks.MinInterval
 			}
 
-			tlsClientConfig, err := a.tlsConfigurator.OutgoingTLSConfigForCheck(chkType.TLSSkipVerify)
-			if err != nil {
-				return fmt.Errorf("Failed to set up TLS: %v", err)
-			}
+			tlsClientConfig := a.tlsConfigurator.OutgoingTLSConfigForCheck(chkType.TLSSkipVerify)
 
 			http := &checks.CheckHTTP{
 				Notify:          a.State,
@@ -2290,11 +2284,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 
 			var tlsClientConfig *tls.Config
 			if chkType.GRPCUseTLS {
-				var err error
-				tlsClientConfig, err = a.tlsConfigurator.OutgoingTLSConfigForCheck(chkType.TLSSkipVerify)
-				if err != nil {
-					return fmt.Errorf("Failed to set up TLS: %v", err)
-				}
+				tlsClientConfig = a.tlsConfigurator.OutgoingTLSConfigForCheck(chkType.TLSSkipVerify)
 			}
 
 			grpc := &checks.CheckGRPC{

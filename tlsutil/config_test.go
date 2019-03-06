@@ -54,8 +54,7 @@ func TestConfigurator_OutgoingTLS_OnlyCA(t *testing.T) {
 	}
 	c, err := NewConfigurator(conf, nil)
 	require.NoError(t, err)
-	tlsConf, err := c.OutgoingRPCConfig()
-	require.NoError(t, err)
+	tlsConf := c.OutgoingRPCConfig()
 	require.NotNil(t, tlsConf)
 }
 
@@ -66,8 +65,7 @@ func TestConfigurator_OutgoingTLS_VerifyOutgoing(t *testing.T) {
 	}
 	c, err := NewConfigurator(conf, nil)
 	require.NoError(t, err)
-	tlsConf, err := c.OutgoingRPCConfig()
-	require.NoError(t, err)
+	tlsConf := c.OutgoingRPCConfig()
 	require.NotNil(t, tlsConf)
 	require.Len(t, tlsConf.RootCAs.Subjects(), 1)
 	require.Empty(t, tlsConf.ServerName)
@@ -82,8 +80,7 @@ func TestConfigurator_OutgoingTLS_ServerName(t *testing.T) {
 	}
 	c, err := NewConfigurator(conf, nil)
 	require.NoError(t, err)
-	tlsConf, err := c.OutgoingRPCConfig()
-	require.NoError(t, err)
+	tlsConf := c.OutgoingRPCConfig()
 	require.NotNil(t, tlsConf)
 	require.Len(t, tlsConf.RootCAs.Subjects(), 1)
 	require.Empty(t, tlsConf.ServerName)
@@ -98,8 +95,7 @@ func TestConfigurator_OutgoingTLS_VerifyHostname(t *testing.T) {
 	}
 	c, err := NewConfigurator(conf, nil)
 	require.NoError(t, err)
-	tlsConf, err := c.OutgoingRPCConfig()
-	require.NoError(t, err)
+	tlsConf := c.OutgoingRPCConfig()
 	require.NotNil(t, tlsConf)
 	require.Len(t, tlsConf.RootCAs.Subjects(), 1)
 	require.False(t, tlsConf.InsecureSkipVerify)
@@ -114,11 +110,12 @@ func TestConfigurator_OutgoingTLS_WithKeyPair(t *testing.T) {
 	}
 	c, err := NewConfigurator(conf, nil)
 	require.NoError(t, err)
-	tlsConf, err := c.OutgoingRPCConfig()
-	require.NoError(t, err)
+	tlsConf := c.OutgoingRPCConfig()
 	require.NotNil(t, tlsConf)
 	require.True(t, tlsConf.InsecureSkipVerify)
-	require.Len(t, tlsConf.Certificates, 1)
+	cert, err := tlsConf.GetCertificate(nil)
+	require.NoError(t, err)
+	require.NotNil(t, cert)
 }
 
 func TestConfigurator_OutgoingTLS_TLSMinVersion(t *testing.T) {
@@ -131,8 +128,7 @@ func TestConfigurator_OutgoingTLS_TLSMinVersion(t *testing.T) {
 		}
 		c, err := NewConfigurator(conf, nil)
 		require.NoError(t, err)
-		tlsConf, err := c.OutgoingRPCConfig()
-		require.NoError(t, err)
+		tlsConf := c.OutgoingRPCConfig()
 		require.NotNil(t, tlsConf)
 		require.Equal(t, tlsConf.MinVersion, TLSLookup[version])
 	}
@@ -146,12 +142,7 @@ func startTLSServer(config *Config) (net.Conn, chan error) {
 		errc <- err
 		return nil, errc
 	}
-	tlsConfigServer, err := c.IncomingRPCConfig()
-	if err != nil {
-		errc <- err
-		return nil, errc
-	}
-
+	tlsConfigServer := c.IncomingRPCConfig()
 	client, server := net.Pipe()
 
 	// Use yamux to buffer the reads, otherwise it's easy to deadlock
@@ -289,10 +280,8 @@ func TestConfigurator_wrapTLS_OK(t *testing.T) {
 
 	c, err := NewConfigurator(config, nil)
 	require.NoError(t, err)
-	clientConfig, err := c.OutgoingRPCConfig()
-	require.NoError(t, err)
 
-	tlsClient, err := config.wrapTLSClient(client, clientConfig)
+	tlsClient, err := c.wrapTLSClient(client, "dc1")
 	require.NoError(t, err)
 
 	tlsClient.Close()
@@ -318,10 +307,7 @@ func TestConfigurator_wrapTLS_BadCert(t *testing.T) {
 
 	c, err := NewConfigurator(clientConfig, nil)
 	require.NoError(t, err)
-	clientTLSConfig, err := c.OutgoingRPCConfig()
-	require.NoError(t, err)
-
-	tlsClient, err := clientConfig.wrapTLSClient(client, clientTLSConfig)
+	tlsClient, err := c.wrapTLSClient(client, "dc1")
 	require.Error(t, err)
 	require.Nil(t, tlsClient)
 
@@ -397,8 +383,7 @@ func TestConfigurator_IncomingHTTPSConfig_CA_PATH(t *testing.T) {
 
 	c, err := NewConfigurator(conf, nil)
 	require.NoError(t, err)
-	tlsConf, err := c.IncomingHTTPSConfig()
-	require.NoError(t, err)
+	tlsConf := c.IncomingHTTPSConfig()
 	require.Len(t, tlsConf.ClientCAs.Subjects(), 2)
 }
 
@@ -411,12 +396,13 @@ func TestConfigurator_IncomingHTTPS(t *testing.T) {
 	}
 	c, err := NewConfigurator(conf, nil)
 	require.NoError(t, err)
-	tlsConf, err := c.IncomingHTTPSConfig()
-	require.NoError(t, err)
+	tlsConf := c.IncomingHTTPSConfig()
 	require.NotNil(t, tlsConf)
 	require.Len(t, tlsConf.ClientCAs.Subjects(), 1)
 	require.Equal(t, tlsConf.ClientAuth, tls.RequireAndVerifyClientCert)
-	require.Len(t, tlsConf.Certificates, 1)
+	cert, err := tlsConf.GetCertificate(nil)
+	require.NoError(t, err)
+	require.NotNil(t, cert)
 }
 
 func TestConfigurator_IncomingHTTPS_MissingCA(t *testing.T) {
@@ -442,8 +428,7 @@ func TestConfigurator_IncomingHTTPS_NoVerify(t *testing.T) {
 	conf := Config{}
 	c, err := NewConfigurator(conf, nil)
 	require.NoError(t, err)
-	tlsConf, err := c.IncomingHTTPSConfig()
-	require.NoError(t, err)
+	tlsConf := c.IncomingHTTPSConfig()
 	require.NotNil(t, tlsConf)
 	require.Nil(t, tlsConf.ClientCAs)
 	require.Equal(t, tlsConf.ClientAuth, tls.NoClientCert)
@@ -462,8 +447,7 @@ func TestConfigurator_IncomingHTTPS_TLSMinVersion(t *testing.T) {
 		}
 		c, err := NewConfigurator(conf, nil)
 		require.NoError(t, err)
-		tlsConf, err := c.IncomingHTTPSConfig()
-		require.NoError(t, err)
+		tlsConf := c.IncomingHTTPSConfig()
 		require.NotNil(t, tlsConf)
 		require.Equal(t, tlsConf.MinVersion, TLSLookup[version])
 	}
@@ -473,8 +457,7 @@ func TestConfigurator_IncomingHTTPSCAPath_Valid(t *testing.T) {
 
 	c, err := NewConfigurator(Config{CAPath: "../test/ca_path"}, nil)
 	require.NoError(t, err)
-	tlsConf, err := c.IncomingHTTPSConfig()
-	require.NoError(t, err)
+	tlsConf := c.IncomingHTTPSConfig()
 	require.Len(t, tlsConf.ClientCAs.Subjects(), 2)
 }
 
@@ -494,8 +477,7 @@ func TestConfigurator_CommonTLSConfigServerNameNodeName(t *testing.T) {
 	for _, v := range variants {
 		c, err := NewConfigurator(v.config, nil)
 		require.NoError(t, err)
-		tlsConf, err := c.commonTLSConfig(false)
-		require.NoError(t, err)
+		tlsConf := c.commonTLSConfig(false)
 		require.Empty(t, tlsConf.ServerName)
 	}
 }
@@ -503,30 +485,28 @@ func TestConfigurator_CommonTLSConfigServerNameNodeName(t *testing.T) {
 func TestConfigurator_CommonTLSConfigCipherSuites(t *testing.T) {
 	c, err := NewConfigurator(Config{}, nil)
 	require.NoError(t, err)
-	tlsConfig, err := c.commonTLSConfig(false)
-	require.NoError(t, err)
-	require.Empty(t, tlsConfig.CipherSuites)
+	tlsConf := c.commonTLSConfig(false)
+	require.Empty(t, tlsConf.CipherSuites)
 
 	conf := Config{CipherSuites: []uint16{tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305}}
 	require.NoError(t, c.Update(conf))
-	tlsConfig, err = c.commonTLSConfig(false)
-	require.NoError(t, err)
-	require.Equal(t, conf.CipherSuites, tlsConfig.CipherSuites)
+	tlsConf = c.commonTLSConfig(false)
+	require.Equal(t, conf.CipherSuites, tlsConf.CipherSuites)
 }
 
 func TestConfigurator_CommonTLSConfigCertKey(t *testing.T) {
 	c, err := NewConfigurator(Config{}, nil)
 	require.NoError(t, err)
-	tlsConf, err := c.commonTLSConfig(false)
-	require.NoError(t, err)
+	tlsConf := c.commonTLSConfig(false)
 	require.Empty(t, tlsConf.Certificates)
 
 	require.Error(t, c.Update(Config{CertFile: "/something/bogus", KeyFile: "/more/bogus"}))
 
 	require.NoError(t, c.Update(Config{CertFile: "../test/key/ourdomain.cer", KeyFile: "../test/key/ourdomain.key"}))
-	tlsConf, err = c.commonTLSConfig(false)
+	tlsConf = c.commonTLSConfig(false)
+	cert, err := tlsConf.GetCertificate(nil)
 	require.NoError(t, err)
-	require.Len(t, tlsConf.Certificates, 1)
+	require.NotNil(t, cert)
 }
 
 func TestConfigurator_CommonTLSConfigTLSMinVersion(t *testing.T) {
@@ -534,8 +514,7 @@ func TestConfigurator_CommonTLSConfigTLSMinVersion(t *testing.T) {
 	for _, version := range tlsVersions {
 		c, err := NewConfigurator(Config{TLSMinVersion: version}, nil)
 		require.NoError(t, err)
-		tlsConf, err := c.commonTLSConfig(false)
-		require.NoError(t, err)
+		tlsConf := c.commonTLSConfig(false)
 		require.Equal(t, tlsConf.MinVersion, TLSLookup[version])
 	}
 
@@ -551,28 +530,24 @@ func TestConfigurator_CommonTLSConfigValidateVerifyOutgoingCA(t *testing.T) {
 func TestConfigurator_CommonTLSConfigLoadCA(t *testing.T) {
 	c, err := NewConfigurator(Config{}, nil)
 	require.NoError(t, err)
-	tlsConf, err := c.commonTLSConfig(false)
-	require.NoError(t, err)
+	tlsConf := c.commonTLSConfig(false)
 	require.Nil(t, tlsConf.RootCAs)
 	require.Nil(t, tlsConf.ClientCAs)
 
 	require.Error(t, c.Update(Config{CAFile: "/something/bogus"}))
 	require.Error(t, c.Update(Config{CAPath: "/something/bogus/"}))
 	require.NoError(t, c.Update(Config{CAFile: "../test/ca/root.cer"}))
-	tlsConf, err = c.commonTLSConfig(false)
-	require.NoError(t, err)
+	tlsConf = c.commonTLSConfig(false)
 	require.Len(t, tlsConf.RootCAs.Subjects(), 1)
 	require.Len(t, tlsConf.ClientCAs.Subjects(), 1)
 
 	require.NoError(t, c.Update(Config{CAPath: "../test/ca_path"}))
-	tlsConf, err = c.commonTLSConfig(false)
-	require.NoError(t, err)
+	tlsConf = c.commonTLSConfig(false)
 	require.Len(t, tlsConf.RootCAs.Subjects(), 2)
 	require.Len(t, tlsConf.ClientCAs.Subjects(), 2)
 
 	require.NoError(t, c.Update(Config{CAFile: "../test/ca/root.cer", CAPath: "../test/ca_path"}))
-	tlsConf, err = c.commonTLSConfig(false)
-	require.NoError(t, err)
+	tlsConf = c.commonTLSConfig(false)
 	require.Len(t, tlsConf.RootCAs.Subjects(), 1)
 	require.Len(t, tlsConf.ClientCAs.Subjects(), 1)
 }
@@ -580,57 +555,48 @@ func TestConfigurator_CommonTLSConfigLoadCA(t *testing.T) {
 func TestConfigurator_CommonTLSConfigVerifyIncoming(t *testing.T) {
 	c, err := NewConfigurator(Config{}, nil)
 	require.NoError(t, err)
-	tlsConf, err := c.commonTLSConfig(false)
-	require.NoError(t, err)
+	tlsConf := c.commonTLSConfig(false)
 	require.Equal(t, tls.NoClientCert, tlsConf.ClientAuth)
 
 	require.Error(t, c.Update(Config{VerifyIncoming: true}))
 	require.Error(t, c.Update(Config{VerifyIncoming: true, CAFile: "../test/ca/root.cer"}))
 	require.Error(t, c.Update(Config{VerifyIncoming: true, CAFile: "../test/ca/root.cer", CertFile: "../test/cert/ourdomain.cer"}))
 	require.NoError(t, c.Update(Config{VerifyIncoming: true, CAFile: "../test/ca/root.cer", CertFile: "../test/key/ourdomain.cer", KeyFile: "../test/key/ourdomain.key"}))
-	tlsConf, err = c.commonTLSConfig(false)
-	require.NoError(t, err)
+	tlsConf = c.commonTLSConfig(false)
 	require.Equal(t, tls.RequireAndVerifyClientCert, tlsConf.ClientAuth)
 
 	require.NoError(t, c.Update(Config{VerifyIncoming: false, CAFile: "../test/ca/root.cer", CertFile: "../test/key/ourdomain.cer", KeyFile: "../test/key/ourdomain.key"}))
-	tlsConf, err = c.commonTLSConfig(true)
-	require.NoError(t, err)
+	tlsConf = c.commonTLSConfig(true)
 	require.Equal(t, tls.RequireAndVerifyClientCert, tlsConf.ClientAuth)
 
 	require.NoError(t, c.Update(Config{VerifyServerHostname: false, CAFile: "../test/ca/root.cer", CertFile: "../test/key/ourdomain.cer", KeyFile: "../test/key/ourdomain.key"}))
-	tlsConf, err = c.commonTLSConfig(false)
-	require.NoError(t, err)
+	tlsConf = c.commonTLSConfig(false)
 	require.True(t, tlsConf.InsecureSkipVerify)
 
 	require.NoError(t, c.Update(Config{VerifyServerHostname: true, CAFile: "../test/ca/root.cer", CertFile: "../test/key/ourdomain.cer", KeyFile: "../test/key/ourdomain.key"}))
-	tlsConf, err = c.commonTLSConfig(false)
-	require.NoError(t, err)
+	tlsConf = c.commonTLSConfig(false)
 	require.False(t, tlsConf.InsecureSkipVerify)
 }
 
 func TestConfigurator_IncomingRPCConfig(t *testing.T) {
 	c, err := NewConfigurator(Config{}, nil)
 	require.NoError(t, err)
-	tlsConf, err := c.IncomingRPCConfig()
-	require.NoError(t, err)
+	tlsConf := c.IncomingRPCConfig()
 	require.Equal(t, tls.NoClientCert, tlsConf.ClientAuth)
 	require.NotNil(t, tlsConf.GetConfigForClient)
 
 	require.NoError(t, c.Update(Config{VerifyIncoming: true, CAFile: "../test/ca/root.cer", CertFile: "../test/key/ourdomain.cer", KeyFile: "../test/key/ourdomain.key"}))
-	tlsConf, err = c.IncomingRPCConfig()
-	require.NoError(t, err)
+	tlsConf = c.IncomingRPCConfig()
 	require.Equal(t, tls.RequireAndVerifyClientCert, tlsConf.ClientAuth)
 	require.NotNil(t, tlsConf.GetConfigForClient)
 
 	require.NoError(t, c.Update(Config{VerifyIncomingRPC: true, CAFile: "../test/ca/root.cer", CertFile: "../test/key/ourdomain.cer", KeyFile: "../test/key/ourdomain.key"}))
-	tlsConf, err = c.IncomingRPCConfig()
-	require.NoError(t, err)
+	tlsConf = c.IncomingRPCConfig()
 	require.Equal(t, tls.RequireAndVerifyClientCert, tlsConf.ClientAuth)
 	require.NotNil(t, tlsConf.GetConfigForClient)
 
 	require.NoError(t, c.Update(Config{VerifyIncomingHTTPS: true, CAFile: "../test/ca/root.cer", CertFile: "../test/key/ourdomain.cer", KeyFile: "../test/key/ourdomain.key"}))
-	tlsConf, err = c.IncomingRPCConfig()
-	require.NoError(t, err)
+	tlsConf = c.IncomingRPCConfig()
 	require.Equal(t, tls.NoClientCert, tlsConf.ClientAuth)
 	require.NotNil(t, tlsConf.GetConfigForClient)
 }
@@ -638,26 +604,22 @@ func TestConfigurator_IncomingRPCConfig(t *testing.T) {
 func TestConfigurator_IncomingHTTPSConfig(t *testing.T) {
 	c, err := NewConfigurator(Config{}, nil)
 	require.NoError(t, err)
-	tlsConf, err := c.IncomingHTTPSConfig()
-	require.NoError(t, err)
+	tlsConf := c.IncomingHTTPSConfig()
 	require.Equal(t, tls.NoClientCert, tlsConf.ClientAuth)
 	require.NotNil(t, tlsConf.GetConfigForClient)
 
 	require.NoError(t, c.Update(Config{VerifyIncoming: true, CAFile: "../test/ca/root.cer", CertFile: "../test/key/ourdomain.cer", KeyFile: "../test/key/ourdomain.key"}))
-	tlsConf, err = c.IncomingHTTPSConfig()
-	require.NoError(t, err)
+	tlsConf = c.IncomingHTTPSConfig()
 	require.Equal(t, tls.RequireAndVerifyClientCert, tlsConf.ClientAuth)
 	require.NotNil(t, tlsConf.GetConfigForClient)
 
 	require.NoError(t, c.Update(Config{VerifyIncomingHTTPS: true, CAFile: "../test/ca/root.cer", CertFile: "../test/key/ourdomain.cer", KeyFile: "../test/key/ourdomain.key"}))
-	tlsConf, err = c.IncomingHTTPSConfig()
-	require.NoError(t, err)
+	tlsConf = c.IncomingHTTPSConfig()
 	require.Equal(t, tls.RequireAndVerifyClientCert, tlsConf.ClientAuth)
 	require.NotNil(t, tlsConf.GetConfigForClient)
 
 	require.NoError(t, c.Update(Config{VerifyIncomingRPC: true, CAFile: "../test/ca/root.cer", CertFile: "../test/key/ourdomain.cer", KeyFile: "../test/key/ourdomain.key"}))
-	tlsConf, err = c.IncomingHTTPSConfig()
-	require.NoError(t, err)
+	tlsConf = c.IncomingHTTPSConfig()
 	require.Equal(t, tls.NoClientCert, tlsConf.ClientAuth)
 	require.NotNil(t, tlsConf.GetConfigForClient)
 }
@@ -665,55 +627,42 @@ func TestConfigurator_IncomingHTTPSConfig(t *testing.T) {
 func TestConfigurator_OutgoingRPCConfig(t *testing.T) {
 	c, err := NewConfigurator(Config{}, nil)
 	require.NoError(t, err)
-	tlsConf, err := c.OutgoingRPCConfig()
-	require.NoError(t, err)
+	tlsConf := c.OutgoingRPCConfig()
 	require.Nil(t, tlsConf)
 
 	require.Error(t, c.Update(Config{VerifyOutgoing: true}))
 	require.NoError(t, c.Update(Config{VerifyOutgoing: true, CAFile: "../test/ca/root.cer"}))
-	tlsConf, err = c.OutgoingRPCConfig()
-	require.NoError(t, err)
-
 	require.NoError(t, c.Update(Config{VerifyOutgoing: true, CAPath: "../test/ca_path"}))
-	tlsConf, err = c.OutgoingRPCConfig()
-	require.NoError(t, err)
 }
 
 func TestConfigurator_OutgoingTLSConfigForChecks(t *testing.T) {
 	c, err := NewConfigurator(Config{EnableAgentTLSForChecks: false}, nil)
 	require.NoError(t, err)
-	tlsConf, err := c.OutgoingTLSConfigForCheck(false)
-	require.NoError(t, err)
+	tlsConf := c.OutgoingTLSConfigForCheck(false)
 	require.False(t, tlsConf.InsecureSkipVerify)
 
 	require.NoError(t, c.Update(Config{EnableAgentTLSForChecks: false}))
-	tlsConf, err = c.OutgoingTLSConfigForCheck(true)
-	require.NoError(t, err)
+	tlsConf = c.OutgoingTLSConfigForCheck(true)
 	require.True(t, tlsConf.InsecureSkipVerify)
 
 	require.NoError(t, c.Update(Config{EnableAgentTLSForChecks: true}))
-	tlsConf, err = c.OutgoingTLSConfigForCheck(false)
-	require.NoError(t, err)
+	tlsConf = c.OutgoingTLSConfigForCheck(false)
 	require.False(t, tlsConf.InsecureSkipVerify)
 
 	require.NoError(t, c.Update(Config{EnableAgentTLSForChecks: true}))
-	tlsConf, err = c.OutgoingTLSConfigForCheck(true)
-	require.NoError(t, err)
+	tlsConf = c.OutgoingTLSConfigForCheck(true)
 	require.True(t, tlsConf.InsecureSkipVerify)
 
 	require.NoError(t, c.Update(Config{EnableAgentTLSForChecks: true, NodeName: "node", ServerName: "server"}))
-	tlsConf, err = c.OutgoingTLSConfigForCheck(false)
-	require.NoError(t, err)
+	tlsConf = c.OutgoingTLSConfigForCheck(false)
 	require.Equal(t, "server", tlsConf.ServerName)
 
 	require.NoError(t, c.Update(Config{EnableAgentTLSForChecks: true, ServerName: "server"}))
-	tlsConf, err = c.OutgoingTLSConfigForCheck(false)
-	require.NoError(t, err)
+	tlsConf = c.OutgoingTLSConfigForCheck(false)
 	require.Equal(t, "server", tlsConf.ServerName)
 
 	require.NoError(t, c.Update(Config{EnableAgentTLSForChecks: true, NodeName: "node"}))
-	tlsConf, err = c.OutgoingTLSConfigForCheck(false)
-	require.NoError(t, err)
+	tlsConf = c.OutgoingTLSConfigForCheck(false)
 	require.Equal(t, "node", tlsConf.ServerName)
 }
 

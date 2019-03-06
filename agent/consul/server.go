@@ -306,12 +306,6 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 		return nil, err
 	}
 
-	// Get the incoming TLS config.
-	incomingTLS, err := tlsConfigurator.IncomingRPCConfig()
-	if err != nil {
-		return nil, err
-	}
-
 	// Create the tombstone GC.
 	gc, err := state.NewTombstoneGC(config.TombstoneTTL, config.TombstoneTTLGranularity)
 	if err != nil {
@@ -342,7 +336,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 		reconcileCh:      make(chan serf.Member, reconcileChSize),
 		router:           router.NewRouter(logger, config.Datacenter),
 		rpcServer:        rpc.NewServer(),
-		rpcTLS:           incomingTLS,
+		rpcTLS:           tlsConfigurator.IncomingRPCConfig(),
 		reassertLeaderCh: make(chan chan error),
 		segmentLAN:       make(map[string]*serf.Serf, len(config.Segments)),
 		sessionTimers:    NewSessionTimers(),
