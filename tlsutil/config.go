@@ -24,6 +24,7 @@ type Wrapper func(conn net.Conn) (net.Conn, error)
 
 // TLSLookup maps the tls_min_version configuration to the internal value
 var TLSLookup = map[string]uint16{
+	"":      tls.VersionTLS10, // default in golang
 	"tls10": tls.VersionTLS10,
 	"tls11": tls.VersionTLS11,
 	"tls12": tls.VersionTLS12,
@@ -240,9 +241,8 @@ func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) *tls.C
 	if len(c.base.CipherSuites) != 0 {
 		tlsConfig.CipherSuites = c.base.CipherSuites
 	}
-	if c.base.PreferServerCipherSuites {
-		tlsConfig.PreferServerCipherSuites = true
-	}
+
+	tlsConfig.PreferServerCipherSuites = c.base.PreferServerCipherSuites
 
 	tlsConfig.GetCertificate = func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
 		return c.cert, nil
@@ -251,10 +251,8 @@ func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) *tls.C
 		return c.cert, nil
 	}
 
-	if c.cas != nil {
-		tlsConfig.ClientCAs = c.cas
-		tlsConfig.RootCAs = c.cas
-	}
+	tlsConfig.ClientCAs = c.cas
+	tlsConfig.RootCAs = c.cas
 
 	tlsConfig.MinVersion = TLSLookup[c.base.TLSMinVersion]
 
