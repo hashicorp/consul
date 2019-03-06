@@ -127,7 +127,15 @@ and consider if they're appropriate for your deployment.
       flag to the helm chart installation command because of a limitation in the Helm
       templating language.
 
-  * <a name="v-server-extraconfig" href="#v-server-extraconfig">`extraConfig`</a> (`string: "{}"`) -A raw string of extra JSON or HCL configuration for Consul servers. This will be saved as-is into a ConfigMap that is read by the Consul server agents. This can be used to add additional configuration that isn't directly exposed by the chart.
+  * <a name="v-server-extraconfig" href="#v-server-extraconfig">`extraConfig`</a> (`string: "{}"`) - A raw string of extra JSON [configuration](/docs/agent/options.html) for Consul servers. This will be saved as-is into a ConfigMap that is read by the Consul server agents. This can be used to add additional configuration that isn't directly exposed by the chart.
+
+        ```yaml
+        # ExtraConfig values are formatted as a multi-line string:
+        extraConfig: |
+          {
+            "log_level": "DEBUG"
+          }
+        ```
 
   * <a name="v-server-extravolumes" href="#v-server-extravolumes">`extraVolumes`</a> (`array: []`) - A list of extra volumes to mount for server agents. This is useful for bringing in extra data that can be referenced by other configurations at a well known path, such as TLS certificates or Gossip encryption keys. The value of this should be a list of objects. Each object supports the following keys:
 
@@ -185,7 +193,15 @@ and consider if they're appropriate for your deployment.
             memory: "10Gi"
         ```
 
-  * <a name="v-client-extraconfig" href="#v-client-extraconfig">`extraConfig`</a> (`string: "{}"`) - A raw string of extra JSON or HCL configuration for Consul clients. This will be saved as-is into a ConfigMap that is read by the Consul agents. This can be used to add additional configuration that isn't directly exposed by the chart.
+  * <a name="v-client-extraconfig" href="#v-client-extraconfig">`extraConfig`</a> (`string: "{}"`) - A raw string of extra JSON [configuration](/docs/agent/options.html) for Consul clients. This will be saved as-is into a ConfigMap that is read by the Consul agents. This can be used to add additional configuration that isn't directly exposed by the chart.
+
+        ```yaml
+        # ExtraConfig values are formatted as a multi-line string:
+        extraConfig: |
+          {
+            "log_level": "DEBUG"
+          }
+        ```
 
   * <a name="v-client-extravolumes" href="#v-client-extravolumes">`extraVolumes`</a> (`array: []`) - A list of extra volumes to mount for client agents. This is useful for bringing in extra data that can be referenced by other configurations at a well known path, such as TLS certificates or Gossip encryption keys. The value of this should be a list of objects. Each object supports the following keys:
 
