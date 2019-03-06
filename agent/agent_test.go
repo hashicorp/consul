@@ -3551,8 +3551,7 @@ func TestHansAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 	`
 	a, err := NewUnstartedAgent(t, t.Name(), hcl)
 	require.NoError(t, err)
-	tlsConf, err := a.tlsConfigurator.OutgoingRPCConfig()
-	require.NoError(t, err)
+	tlsConf := a.tlsConfigurator.OutgoingRPCConfig()
 	require.True(t, tlsConf.InsecureSkipVerify)
 	require.Len(t, tlsConf.ClientCAs.Subjects(), 1)
 	require.Len(t, tlsConf.RootCAs.Subjects(), 1)
@@ -3568,8 +3567,7 @@ func TestHansAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 	c := TestConfig(config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
 	err = a.ReloadConfig(c)
 	require.NoError(t, err)
-	tlsConf, err = a.tlsConfigurator.OutgoingRPCConfig()
-	require.NoError(t, err)
+	tlsConf = a.tlsConfigurator.OutgoingRPCConfig()
 	require.False(t, tlsConf.InsecureSkipVerify)
 	require.Len(t, tlsConf.RootCAs.Subjects(), 2)
 	require.Len(t, tlsConf.ClientCAs.Subjects(), 2)
@@ -3589,8 +3587,7 @@ func TestHansAgent_ReloadConfigIncomingRPCConfig(t *testing.T) {
 	`
 	a, err := NewUnstartedAgent(t, t.Name(), hcl)
 	require.NoError(t, err)
-	tlsConf, err := a.tlsConfigurator.IncomingRPCConfig()
-	require.NoError(t, err)
+	tlsConf := a.tlsConfigurator.IncomingRPCConfig()
 	require.NotNil(t, tlsConf.GetConfigForClient)
 	tlsConf, err = tlsConf.GetConfigForClient(nil)
 	require.NoError(t, err)
@@ -3631,8 +3628,7 @@ func TestHansAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
 	`
 	a, err := NewUnstartedAgent(t, t.Name(), hcl)
 	require.NoError(t, err)
-	tlsConf, err := a.tlsConfigurator.IncomingRPCConfig()
-	require.NoError(t, err)
+	tlsConf := a.tlsConfigurator.IncomingRPCConfig()
 
 	hcl = `
 		data_dir = "` + dataDir + `"
