@@ -56,7 +56,8 @@ The table below shows this endpoint's support for
   Only one service with a given `ID` may be present per node. The service
   `Tags`, `Address`, `Meta`, and `Port` fields are all optional. For more
   infomation about these fields and the implications of setting them, 
-  see the [Service - Agent API](https://www.consul.io/api/agent/service.html) page.
+  see the [Service - Agent API](https://www.consul.io/api/agent/service.html) page
+  as registering services differs between using this or the Services Agent endpoint.
 
 - `Check` `(Check: nil)` - Specifies to register a check. The register API
   manipulates the health check entry in the Catalog, but it does not setup the
