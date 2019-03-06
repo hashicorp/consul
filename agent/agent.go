@@ -2423,9 +2423,6 @@ func (a *Agent) removeCheckLocked(checkID types.CheckID, persist bool) error {
 		return fmt.Errorf("CheckID missing")
 	}
 
-	// Add to the local state for anti-entropy
-	a.State.RemoveCheck(checkID)
-
 	a.cancelCheckMonitors(checkID)
 	a.State.RemoveCheck(checkID)
 
@@ -3553,8 +3550,7 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	// the checks and service registrations.
 	a.loadTokens(newCfg)
 
-	newTLSConfig := newCfg.ToTLSUtilConfig()
-	if err := a.tlsConfigurator.Update(newTLSConfig); err != nil {
+	if err := a.tlsConfigurator.Update(newCfg.ToTLSUtilConfig()); err != nil {
 		return fmt.Errorf("Failed reloading tls configuration: %s", err)
 	}
 
