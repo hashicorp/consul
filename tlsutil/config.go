@@ -337,11 +337,9 @@ func (c *Configurator) OutgoingRPCWrapper() (DCWrapper, error) {
 		return nil, nil
 	}
 
-	// Generate the wrapper based on hostname verification
+	// Generate the wrapper based on dc
 	wrapper := func(dc string, conn net.Conn) (net.Conn, error) {
-		c.RLock()
-		defer c.RUnlock()
-		return c.wrapTLSClient(conn, dc)
+		return c.wrapTLSClient(dc, conn)
 	}
 
 	return wrapper, nil
@@ -363,26 +361,32 @@ func (c *Configurator) log(name string) {
 // node names, we don't verify the certificate DNS names. Since go 1.3
 // no longer supports this mode of operation, we have to do it
 // manually.
-func (c *Configurator) wrapTLSClient(conn net.Conn, dc string) (net.Conn, error) {
+func (c *Configurator) wrapTLSClient(dc string, conn net.Conn) (net.Conn, error) {
 	var err error
 	var tlsConn *tls.Conn
 
+	c.RLock()
 	config := c.OutgoingRPCConfig()
-	if c.base.VerifyServerHostname {
+	verifyServerHostname := c.base.VerifyServerHostname
+	verifyOutgoing := c.base.VerifyOutgoing
+	domain := c.base.Domain
+	c.RUnlock()
+
+	if verifyServerHostname {
 		// Strip the trailing '.' from the domain if any
-		domain := strings.TrimSuffix(c.base.Domain, ".")
+		domain = strings.TrimSuffix(domain, ".")
 		config.ServerName = "server." + dc + "." + domain
 	}
 	tlsConn = tls.Client(conn, config)
 
 	// If crypto/tls is doing verification, there's no need to do
 	// our own.
-	if config.InsecureSkipVerify == false {
+	if !config.InsecureSkipVerify {
 		return tlsConn, nil
 	}
 
 	// If verification is not turned on, don't do it.
-	if !c.base.VerifyOutgoing {
+	if !verifyOutgoing {
 		return tlsConn, nil
 	}
 
