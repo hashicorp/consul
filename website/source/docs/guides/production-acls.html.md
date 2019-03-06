@@ -169,7 +169,7 @@ review the Bootstrapping the ACL System [guide](/advanced/day-1-operations/acl-g
 file.
 
 ```sh
-$ curl -H "X-Consul-Token: <your token here>" -D @consul-server-one-token.json http://localhost:8500/v1/agent/token/acl_agent_token 
+$ consul acl set-agent-token -token "<your token here>" agent "<agent token here>"
 ``` 
 
 The data file must contain a valid token. 
