@@ -5,6 +5,8 @@ import { Promise } from 'rsvp';
 import getObjectPool from 'consul-ui/utils/get-object-pool';
 import Request from 'consul-ui/utils/http/request';
 
+import { AbortError } from 'ember-data/adapters/errors';
+
 const dispose = function(request) {
   if (request.headers()['content-type'] === 'text/event-stream') {
     const xhr = request.connection();
@@ -21,6 +23,38 @@ const dispose = function(request) {
     }
   }
   return request;
+};
+const url = function(strs, ...values) {
+  return strs
+    .map(function(item, i) {
+      let val = values[i] || '';
+      switch (typeof val) {
+        case 'string':
+          break;
+        case 'array':
+          val = val
+            .map(function(item) {
+              return `${item}`;
+            }, '')
+            .join('/');
+          break;
+        case 'object':
+          val = Object.keys(val)
+            .reduce(function(prev, key) {
+              if (typeof val[key] !== 'undefined') {
+                return prev.concat(`${key}=${val[key]}`);
+              } else if (val[key] === null) {
+                return prev.concat(`${key}`);
+              }
+              return prev;
+            }, [])
+            .join('&');
+          break;
+      }
+      return `${item}${val}`;
+    })
+    .join('')
+    .trim();
 };
 export default Service.extend({
   dom: service('dom'),
@@ -63,6 +97,78 @@ export default Service.extend({
       });
     }
   },
+  request: function(cb) {
+    const client = this;
+    return cb(function(strs, ...values) {
+      const doubleBreak = strs.reduce(function(prev, item, i) {
+        if (item.indexOf('\n\n') !== -1) {
+          return i;
+        }
+        return prev;
+      }, -1);
+      let body;
+      if (doubleBreak !== -1) {
+        // strs.splice(doubleBreak);
+        body = values.splice(doubleBreak).reduce(function(prev, item) {
+          return {
+            ...prev,
+            ...item,
+          };
+        }, {});
+      }
+      let temp = url(strs, ...values).split(' ');
+      const method = temp.shift();
+      let rest = temp.join(' ');
+      temp = rest.split('\n');
+      const path = temp.shift().trim();
+      const headers = temp.join('\n').trim();
+      return new Promise(function(resolve, reject) {
+        const options = {
+          url: path,
+          method: method,
+          complete: function(xhr, textStatus) {
+            client.complete(this.id);
+          },
+          success: function(response, status, xhr) {
+            const headers = xhr.getAllResponseHeaders();
+            const respond = function(cb) {
+              return cb(headers, response);
+            };
+            resolve(respond);
+          },
+          error: function(xhr, textStatus, err) {
+            reject(err);
+          },
+
+          contentType: 'application/json; charset=utf-8',
+          converters: {
+            'text json': function(response) {
+              try {
+                return JSON.parse(response);
+              } catch (e) {
+                return response;
+              }
+            },
+          },
+        };
+        options.beforeSend = function(xhr) {
+          if (headers) {
+            Object.keys(headers).forEach(key => xhr.setRequestHeader(key, headers[key]));
+          }
+          this.id = client.acquire(this, xhr);
+        };
+        if (body) {
+          options.data = body;
+        }
+        return $.ajax(options).catch(function(e) {
+          if (e instanceof AbortError) {
+            e.errors[0].status = '0';
+          }
+          throw e;
+        });
+      });
+    });
+  },
   abort: function(id = null) {
     get(this, 'connections').purge();
   },
@@ -80,7 +186,7 @@ export default Service.extend({
     }
     return Promise.resolve(e);
   },
-  request: function(options, xhr) {
+  acquire: function(options, xhr) {
     const request = new Request(options.type, options.url, { body: options.data || {} }, xhr);
     return get(this, 'connections').acquire(request, request.getId());
   },

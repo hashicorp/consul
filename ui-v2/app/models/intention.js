@@ -30,5 +30,6 @@ export const ATTRS = writable(model, [
   'DestinationName',
   'SourceType',
   'Description',
+  'Datacenter',
 ]);
 export default model;

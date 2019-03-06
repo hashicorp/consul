@@ -1,25 +1,20 @@
-import Adapter, { DATACENTER_QUERY_PARAM as API_DATACENTER_KEY } from './application';
-import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
-import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/node';
-import { OK as HTTP_OK } from 'consul-ui/utils/http/status';
-// TODO: Looks like ID just isn't used at all
-// consider just using .Node for the SLUG_KEY
-const fillSlug = function(item) {
-  if (item[SLUG_KEY] === '') {
-    item[SLUG_KEY] = item['Node'];
-  }
-  return item;
-};
+import Adapter from './application';
 export default Adapter.extend({
-  urlForQuery: function(query, modelName) {
-    return this.appendURL('internal/ui/nodes', [], this.cleanQuery(query));
+  requestForQuery: function(request, { dc, index, id }) {
+    return request`
+      GET /v1/internal/ui/nodes?${{ dc, index }}
+    `;
   },
-  urlForQueryRecord: function(query, modelName) {
-    if (typeof query.id === 'undefined') {
+  requestForQueryRecord: function(request, { dc, index, id }) {
+    if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
-    return this.appendURL('internal/ui/node', [query.id], this.cleanQuery(query));
+    return request`
+      GET /v1/internal/ui/node/${id}?${{ dc, index }}
+    `;
   },
+  // keep the none queryLeader bits in here ready to be refactored
+  // they will all be noops until these are added to the refactor
   urlForRequest: function({ type, snapshot, requestType }) {
     switch (requestType) {
       case 'queryLeader':
