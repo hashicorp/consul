@@ -302,7 +302,7 @@ func (c *Configurator) IncomingHTTPSConfig() (*tls.Config, error) {
 }
 
 // IncomingTLSConfig generates a *tls.Config for outgoing TLS connections for
-// checks. This function is seperated because there is an extra flag to
+// checks. This function is separated because there is an extra flag to
 // consider for checks. EnableAgentTLSForChecks and InsecureSkipVerify has to
 // be checked for checks.
 func (c *Configurator) OutgoingTLSConfigForCheck(id string) (*tls.Config, error) {

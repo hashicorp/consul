@@ -26,7 +26,7 @@ func (a *Agent) sidecarServiceID(serviceID string) string {
 //
 // The third return argument is the effective Token to use for the sidecar
 // registration. This will be the same as the token parameter passed unless the
-// SidecarService definition contains a distint one.
+// SidecarService definition contains a distinct one.
 func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token string) (*structs.NodeService, []*structs.CheckType, string, error) {
 	if ns.Connect.SidecarService == nil {
 		return nil, nil, "", nil

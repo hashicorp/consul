@@ -18,7 +18,7 @@ import (
 	"github.com/mitchellh/hashstructure"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/cache-types"
+	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/debug"
@@ -254,11 +254,11 @@ func (s *HTTPServer) AgentService(resp http.ResponseWriter, req *http.Request) (
 	// Support managed proxies until they are removed entirely. Since built-in
 	// proxy will now use this endpoint, in order to not break managed proxies in
 	// the interim until they are removed, we need to mirror the default-setting
-	// behaviour they had. Rather than thread that through this whole method as
+	// behavior they had. Rather than thread that through this whole method as
 	// special cases that need to be unwound later (and duplicate logic in the
-	// proxy config endpoint) just defer to that and then translater the response.
+	// proxy config endpoint) just defer to that and then translate the response.
 	if managedProxy := s.agent.State.Proxy(id); managedProxy != nil {
-		// This is for a managed proxy, use the old endpoint's behaviour
+		// This is for a managed proxy, use the old endpoint's behavior
 		req.URL.Path = "/v1/agent/connect/proxy/" + id
 		obj, err := s.AgentConnectProxyConfig(resp, req)
 		if err != nil {
@@ -1362,7 +1362,7 @@ func (s *HTTPServer) AgentConnectCARoots(resp http.ResponseWriter, req *http.Req
 // AgentConnectCALeafCert returns the certificate bundle for a service
 // instance. This supports blocking queries to update the returned bundle.
 func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	// Get the service name. Note that this is the name of the sevice,
+	// Get the service name. Note that this is the name of the service,
 	// not the ID of the service instance.
 	serviceName := strings.TrimPrefix(req.URL.Path, "/v1/agent/connect/ca/leaf/")
 
@@ -1539,7 +1539,7 @@ func (s *HTTPServer) AgentConnectProxyConfig(resp http.ResponseWriter, req *http
 type agentLocalBlockingFunc func(ws memdb.WatchSet) (string, interface{}, error)
 
 // agentLocalBlockingQuery performs a blocking query in a generic way against
-// local agent state that has no RPC or raft to back it. It uses `hash` paramter
+// local agent state that has no RPC or raft to back it. It uses `hash` parameter
 // instead of an `index`. The resp is needed to write the `X-Consul-ContentHash`
 // header back on return no Status nor body content is ever written to it.
 func (s *HTTPServer) agentLocalBlockingQuery(resp http.ResponseWriter, hash string,

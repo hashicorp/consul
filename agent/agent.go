@@ -3674,7 +3674,7 @@ func (a *Agent) registerCache() {
 
 // defaultProxyCommand returns the default Connect managed proxy command.
 func defaultProxyCommand(agentCfg *config.RuntimeConfig) ([]string, error) {
-	// Get the path to the current exectuable. This is cached once by the
+	// Get the path to the current executable. This is cached once by the
 	// library so this is effectively just a variable read.
 	execPath, err := os.Executable()
 	if err != nil {

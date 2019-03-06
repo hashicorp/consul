@@ -154,7 +154,7 @@ func (p *Daemon) keepAlive(stopCh <-chan struct{}, exitedCh chan<- struct{}) {
 						// Timer is up, good!
 
 					case <-stopCh:
-						// During our backoff wait, we've been signalled to
+						// During our backoff wait, we've been signaled to
 						// quit, so just quit.
 						timer.Stop()
 						return
@@ -198,7 +198,7 @@ func (p *Daemon) keepAlive(stopCh <-chan struct{}, exitedCh chan<- struct{}) {
 				// We want a busy loop, but not too busy. 1 second between detecting a
 				// process death seems reasonable.
 				//
-				// SUBTELTY: we must NOT select on stopCh here since the Stop function
+				// SUBTLETY: we must NOT select on stopCh here since the Stop function
 				// assumes that as soon as this method returns and closes exitedCh, that
 				// the process is no longer running. If we are polling then we don't
 				// know that is true until we've polled again so we have to keep polling
@@ -445,7 +445,7 @@ func (p *Daemon) UnmarshalSnapshot(m map[string]interface{}) error {
 	return nil
 }
 
-// daemonSnapshot is the structure of the marshalled data for snapshotting.
+// daemonSnapshot is the structure of the marshaled data for snapshotting.
 //
 // Note we don't have to store the ProxyId because this is stored directly
 // within the manager snapshot and is restored automatically.

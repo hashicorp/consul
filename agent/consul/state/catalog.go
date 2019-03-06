@@ -803,7 +803,7 @@ func (s *Store) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *st
 		serviceNode := existing.(*structs.ServiceNode)
 		entry.CreateIndex = serviceNode.CreateIndex
 		entry.ModifyIndex = serviceNode.ModifyIndex
-		// We cannot return here because: we want to keep existing behaviour (ex: failed node lookup -> ErrMissingNode)
+		// We cannot return here because: we want to keep existing behavior (ex: failed node lookup -> ErrMissingNode)
 		// It might be modified in future, but it requires changing many unit tests
 		// Enforcing saving the entry also ensures that if we add default values in .ToServiceNode()
 		// those values will be saved even if node is not really modified for a while.

@@ -74,8 +74,8 @@ type Proxy interface {
 	// for any proxies: proxy ID.
 	//
 	// UnmarshalSnapshot is called to restore the receiving Proxy from its
-	// marshalled state. If UnmarshalSnapshot returns an error, the snapshot
-	// is ignored and the marshalled snapshot will be lost. The manager will
+	// marshaled state. If UnmarshalSnapshot returns an error, the snapshot
+	// is ignored and the marshaled snapshot will be lost. The manager will
 	// log.
 	//
 	// This should save/restore enough state to be able to regain management

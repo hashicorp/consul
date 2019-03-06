@@ -14,7 +14,7 @@ import (
 // even with a very large number of intentions, the size of the data gzipped
 // over HTTP will be relatively small.
 //
-// The Finder will only downlaod the intentions one time. This struct is
+// The Finder will only download the intentions one time. This struct is
 // not expected to be used over a long period of time. Though it may be
 // reused multile times, the intentions list is only downloaded once.
 type Finder struct {
