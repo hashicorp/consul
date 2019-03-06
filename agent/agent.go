@@ -2426,9 +2426,6 @@ func (a *Agent) removeCheckLocked(checkID types.CheckID, persist bool) error {
 	// Add to the local state for anti-entropy
 	a.State.RemoveCheck(checkID)
 
-	a.checkLock.Lock()
-	defer a.checkLock.Unlock()
-
 	a.cancelCheckMonitors(checkID)
 	a.State.RemoveCheck(checkID)
 
