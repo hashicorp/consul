@@ -275,8 +275,10 @@ func (c *Configurator) IncomingHTTPSConfig() *tls.Config {
 	c.RLock()
 	defer c.RUnlock()
 	config := c.commonTLSConfig(c.base.VerifyIncomingHTTPS)
-	config.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
-		return c.IncomingHTTPSConfig(), nil
+	config.GetConfigForClient = func(hello *tls.ClientHelloInfo) (*tls.Config, error) {
+		config := c.IncomingHTTPSConfig()
+		config.NextProtos = hello.SupportedProtos
+		return config, nil
 	}
 	return config
 }
