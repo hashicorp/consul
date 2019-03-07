@@ -56,6 +56,13 @@ export default function(scenario, assert, currentPage) {
       }
       assert.ok(_component[property], `Expected to see ${property} on ${component}`);
     })
+    .then(['I see $num of the $component object'], function(num, component) {
+      assert.equal(
+        currentPage()[component].length,
+        num,
+        `Expected to see ${num} items in the ${component} object`
+      );
+    })
     .then(["I don't see $property on the $component"], function(property, component) {
       // Collection
       var obj;
@@ -64,9 +71,9 @@ export default function(scenario, assert, currentPage) {
       } else {
         obj = currentPage()[component];
       }
-      const func = obj[property].bind(obj);
       assert.throws(
         function() {
+          const func = obj[property].bind(obj);
           func();
         },
         function(e) {
@@ -89,11 +96,20 @@ export default function(scenario, assert, currentPage) {
     .then(['I see $property'], function(property) {
       assert.ok(currentPage()[property], `Expected to see ${property}`);
     })
-    .then(['I see $property like "$value"'], function(property, value) {
+    .then(['I see $property on the $component like "$value"'], function(
+      property,
+      component,
+      value
+    ) {
+      const target = currentPage()[component][property];
       assert.equal(
-        currentPage()[property],
+        target,
         value,
-        `Expected to see ${property}, was ${currentPage()[property]}`
+        `Expected to see ${property} on ${component} as ${value}, was ${target}`
       );
+    })
+    .then(['I see $property like "$value"'], function(property, value) {
+      const target = currentPage()[property];
+      assert.equal(target, value, `Expected to see ${property} as ${value}, was ${target}`);
     });
 }

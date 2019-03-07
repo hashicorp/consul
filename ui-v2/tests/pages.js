@@ -19,6 +19,7 @@ import dcs from 'consul-ui/tests/pages/dc';
 import settings from 'consul-ui/tests/pages/settings';
 import services from 'consul-ui/tests/pages/dc/services/index';
 import service from 'consul-ui/tests/pages/dc/services/show';
+import instance from 'consul-ui/tests/pages/dc/services/instance';
 import nodes from 'consul-ui/tests/pages/dc/nodes/index';
 import node from 'consul-ui/tests/pages/dc/nodes/show';
 import kvs from 'consul-ui/tests/pages/dc/kv/index';
@@ -41,6 +42,7 @@ export default {
   dcs: create(dcs(visitable, clickable, attribute, collection)),
   services: create(services(visitable, clickable, attribute, collection, page, catalogFilter)),
   service: create(service(visitable, attribute, collection, text, catalogFilter)),
+  instance: create(instance(visitable, attribute, collection, text, radiogroup)),
   nodes: create(nodes(visitable, clickable, attribute, collection, catalogFilter)),
   node: create(node(visitable, deletable, clickable, attribute, collection, radiogroup)),
   kvs: create(kvs(visitable, deletable, creatable, clickable, attribute, collection)),
