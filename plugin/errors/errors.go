@@ -35,28 +35,19 @@ func (p *pattern) setTimer(t *time.Timer) {
 // errorHandler handles DNS errors (and errors from other plugin).
 type errorHandler struct {
 	patterns []*pattern
-	eLogger  func(int, string, string, string)
-	cLogger  func(uint32, string, time.Duration)
 	stopFlag uint32
 	Next     plugin.Handler
 }
 
 func newErrorHandler() *errorHandler {
-	return &errorHandler{eLogger: errorLogger, cLogger: consLogger}
-}
-
-func errorLogger(code int, qName, qType, err string) {
-	log.Errorf("%d %s %s: %s", code, qName, qType, err)
-}
-
-func consLogger(cnt uint32, pattern string, p time.Duration) {
-	log.Errorf("%d errors like '%s' occurred in last %s", cnt, pattern, p)
+	return &errorHandler{}
 }
 
 func (h *errorHandler) logPattern(i int) {
 	cnt := atomic.SwapUint32(&h.patterns[i].count, 0)
 	if cnt > 0 {
-		h.cLogger(cnt, h.patterns[i].pattern.String(), h.patterns[i].period)
+		log.Errorf("%d errors like '%s' occurred in last %s",
+			cnt, h.patterns[i].pattern.String(), h.patterns[i].period)
 	}
 }
 
@@ -102,7 +93,7 @@ func (h *errorHandler) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dn
 			}
 		}
 		state := request.Request{W: w, Req: r}
-		h.eLogger(rcode, state.Name(), state.Type(), strErr)
+		log.Errorf("%d %s %s: %s", rcode, state.Name(), state.Type(), strErr)
 	}
 
 	return rcode, err
