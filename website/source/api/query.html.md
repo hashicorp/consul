@@ -19,7 +19,7 @@ would be possible given the limited entry points exposed by DNS.
 See the [Geo Failover Guide](/docs/guides/geo-failover.html) for details and
 examples for using prepared queries to implement geo failover for services.
 
-See the [prepared query rules](https://www.consul.io/docs/agent/acl-rules.html#prepared-query-rules)
+See the [prepared query rules](/docs/agent/acl-rules.html#prepared-query-rules)
 section of the agent ACL documentation for more details about how prepared
 queries work with Consul's ACL system.
 
