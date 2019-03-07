@@ -6,6 +6,12 @@ export default function(scenario, assert, find, currentURL) {
         `Expected to see "${text}" in "${selector}"`
       );
     })
+    .then(['I see the exact text "$text" in "$selector"'], function(text, selector) {
+      assert.ok(
+        find(selector).textContent.trim() === text,
+        `Expected to see the exact "${text}" in "${selector}"`
+      );
+    })
     // TODO: Think of better language
     // TODO: These should be mergeable
     .then(['"$selector" has the "$class" class'], function(selector, cls) {
