@@ -27,19 +27,26 @@
       </dl>
 {{#if proxy}}
       <dl>
-        <dt>Sidecar Proxy</dt>
+        <dt data-test-proxy-type="{{if proxy.ServiceProxy.DestinationServiceID "sidecar-proxy" "proxy"}}">{{if proxy.ServiceProxy.DestinationServiceID "Sidecar " ""}}Proxy</dt>
         <dd><a href="{{href-to 'dc.services.instance' proxy.ServiceName proxy.ServiceID}}">{{proxy.ServiceID}}</a></dd>
       </dl>
 {{/if}}
 {{#if (eq item.Kind 'connect-proxy')}}
+  {{#if item.Proxy.DestinationServiceID}}
       <dl>
-        <dt>Dest. Service Instance</dt>
+        <dt data-test-proxy-destination="instance">Dest. Service Instance</dt>
         <dd><a href="{{href-to 'dc.services.instance' item.Proxy.DestinationServiceName item.Proxy.DestinationServiceID}}">{{item.Proxy.DestinationServiceID}}</a></dd>
       </dl>
       <dl>
         <dt>Local Service Address</dt>
         <dd>{{item.Proxy.LocalServiceAddress}}:{{item.Proxy.LocalServicePort}}</dd>
       </dl>
+  {{else}}
+      <dl>
+        <dt data-test-proxy-destination="service">Dest. Service</dt>
+        <dd><a href="{{href-to 'dc.services.show' item.Proxy.DestinationServiceName}}">{{item.Proxy.DestinationServiceName}}</a></dd>
+      </dl>
+  {{/if}}
 {{/if}}
     {{/block-slot}}
     {{#block-slot 'content'}}
