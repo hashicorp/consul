@@ -20,10 +20,7 @@ export default function(scenario, assert, currentPage, pluralize) {
         }, 100);
       });
     })
-    .then(['I see $num $model', 'I see $num $model model', 'I see $num $model models'], function(
-      num,
-      model
-    ) {
+    .then(['I see $num $model model[s]?'], function(num, model) {
       const len = currentPage()[pluralize(model)].filter(function(item) {
         return item.isVisible;
       }).length;

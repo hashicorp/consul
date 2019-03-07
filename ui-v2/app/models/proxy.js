@@ -8,5 +8,5 @@ export default Model.extend({
   [SLUG_KEY]: attr('string'),
   ServiceName: attr('string'),
   ServiceID: attr('string'),
-  ServiceProxyDestination: attr('string'),
+  ServiceProxy: attr(),
 });
