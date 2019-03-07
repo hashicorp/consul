@@ -159,6 +159,7 @@ func autoParse(c *caddy.Controller) (Auto, error) {
 				a.loader.ReloadInterval = d
 
 			case "no_reload":
+				log.Warning("NO_RELOAD of directory is deprecated. Use RELOAD (set to 0) instead. See https://coredns.io/plugins/auto/#syntax")
 				a.loader.ReloadInterval = 0
 
 			case "upstream":
