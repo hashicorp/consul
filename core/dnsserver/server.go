@@ -230,12 +230,6 @@ func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 		return
 	}
 
-	ctx, err := incrementDepthAndCheck(ctx)
-	if err != nil {
-		DefaultErrorFunc(ctx, w, r, dns.RcodeServerFailure)
-		return
-	}
-
 	q := r.Question[0].Name
 	b := make([]byte, len(q))
 	var off int
@@ -356,35 +350,14 @@ func DefaultErrorFunc(ctx context.Context, w dns.ResponseWriter, r *dns.Msg, rc 
 	w.WriteMsg(answer)
 }
 
-// incrementDepthAndCheck increments the loop counter in the context, and returns an error if
-// the counter exceeds the max number of re-entries
-func incrementDepthAndCheck(ctx context.Context) (context.Context, error) {
-	// Loop counter for self directed lookups
-	loop := ctx.Value(loopKey{})
-	if loop == nil {
-		ctx = context.WithValue(ctx, loopKey{}, 0)
-		return ctx, nil
-	}
-
-	iloop := loop.(int) + 1
-	if iloop > maxreentries {
-		return ctx, fmt.Errorf("too deep")
-	}
-	ctx = context.WithValue(ctx, loopKey{}, iloop)
-	return ctx, nil
-}
-
 const (
 	tcp          = 0
 	udp          = 1
 	maxreentries = 10
 )
 
-type (
-	// Key is the context key for the current server
-	Key     struct{}
-	loopKey struct{} // loopKey is the context key for counting self loops
-)
+// Key is the context key for the current server
+type Key struct{}
 
 // EnableChaos is a map with plugin names for which we should open CH class queries as we block these by default.
 var EnableChaos = map[string]struct{}{
