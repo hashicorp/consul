@@ -5,7 +5,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"sync"
 	"time"
 
 	clog "github.com/coredns/coredns/plugin/pkg/log"
@@ -22,18 +21,12 @@ type health struct {
 	nlSetup bool
 	mux     *http.ServeMux
 
-	// A slice of Healthers that the health plugin will poll every second for their health status.
-	h []Healther
-	sync.RWMutex
-	ok bool // ok is the global boolean indicating an all healthy plugin stack
-
-	stop     chan bool
-	pollstop chan bool
+	stop chan bool
 }
 
 // newHealth returns a new initialized health.
 func newHealth(addr string) *health {
-	return &health{Addr: addr, stop: make(chan bool), pollstop: make(chan bool)}
+	return &health{Addr: addr, stop: make(chan bool)}
 }
 
 func (h *health) OnStartup() error {
@@ -51,12 +44,10 @@ func (h *health) OnStartup() error {
 	h.nlSetup = true
 
 	h.mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
-		if h.Ok() {
-			w.WriteHeader(http.StatusOK)
-			io.WriteString(w, ok)
-			return
-		}
-		w.WriteHeader(http.StatusServiceUnavailable)
+		// We're always healthy.
+		w.WriteHeader(http.StatusOK)
+		io.WriteString(w, ok)
+		return
 	})
 
 	go func() { http.Serve(h.ln, h.mux) }()
@@ -72,11 +63,6 @@ func (h *health) OnFinalShutdown() error {
 		return nil
 	}
 
-	// Stop polling plugins
-	h.pollstop <- true
-	// NACK health
-	h.SetOk(false)
-
 	if h.lameduck > 0 {
 		log.Infof("Going into lameduck mode for %s", h.lameduck)
 		time.Sleep(h.lameduck)
@@ -84,8 +70,8 @@ func (h *health) OnFinalShutdown() error {
 
 	h.ln.Close()
 
-	h.stop <- true
 	h.nlSetup = false
+	close(h.stop)
 	return nil
 }
 

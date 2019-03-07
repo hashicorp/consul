@@ -107,11 +107,6 @@ kubernetes [ZONES...] {
   This allows the querying pod to continue searching for the service in the search path.
   The search path could, for example, include another Kubernetes cluster.
 
-## Health
-
-This plugin implements dynamic health checking. Currently this is limited to reporting healthy when
-the API has synced.
-
 ## Examples
 
 Handle all queries in the `cluster.local` zone. Connect to Kubernetes in-cluster. Also handle all
@@ -143,7 +138,6 @@ kubernetes cluster.local {
     tls cert key cacert
 }
 ~~~
-
 
 ## stubDomains and upstreamNameservers
 

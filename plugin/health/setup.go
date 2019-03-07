@@ -5,7 +5,6 @@ import (
 	"net"
 	"time"
 
-	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/metrics"
 
@@ -27,32 +26,6 @@ func setup(c *caddy.Controller) error {
 
 	h := newHealth(addr)
 	h.lameduck = lame
-
-	c.OnStartup(func() error {
-		plugins := dnsserver.GetConfig(c).Handlers()
-		for _, p := range plugins {
-			if x, ok := p.(Healther); ok {
-				h.h = append(h.h, x)
-			}
-		}
-		return nil
-	})
-
-	c.OnStartup(func() error {
-		// Poll all middleware every second.
-		h.poll()
-		go func() {
-			for {
-				select {
-				case <-time.After(1 * time.Second):
-					h.poll()
-				case <-h.pollstop:
-					return
-				}
-			}
-		}()
-		return nil
-	})
 
 	c.OnStartup(func() error {
 		metrics.MustRegister(c, HealthDuration)
