@@ -18,6 +18,7 @@ var Directives = []string{
 	"bind",
 	"debug",
 	"trace",
+	"ready",
 	"health",
 	"pprof",
 	"prometheus",

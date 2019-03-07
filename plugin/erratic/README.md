@@ -37,6 +37,10 @@ In case of a zone transfer and truncate the final SOA record *isn't* added to th
 
 This plugin implements dynamic health checking. For every dropped query it turns unhealthy.
 
+## Ready
+
+This plugin reports readiness to the ready plugin.
+
 ## Examples
 
 ~~~ corefile
