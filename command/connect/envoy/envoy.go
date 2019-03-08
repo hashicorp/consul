@@ -2,6 +2,7 @@ package envoy
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -68,7 +69,7 @@ func (c *cmd) init() {
 
 	c.flags.StringVar(&c.adminBind, "admin-bind", "localhost:19000",
 		"The address:port to start envoy's admin server on. Envoy requires this "+
-			"but care must be taked to ensure it's not exposed to untrusted network "+
+			"but care must be taken to ensure it's not exposed to untrusted network "+
 			"as it has full control over the secrets and config of the proxy.")
 
 	c.flags.BoolVar(&c.bootstrap, "bootstrap", false,
@@ -254,12 +255,42 @@ func (c *cmd) generateConfig() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	var t = template.Must(template.New("bootstrap").Parse(bootstrapTemplate))
+
+	// Fetch any customization from the registration
+	svc, _, err := c.client.Agent().Service(c.proxyID, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if svc.Proxy == nil {
+		return nil, errors.New("internal error: service is not a Connect proxy")
+	}
+
+	temp := bootstrapTemplate
+	if tpl, ok := svc.Proxy.Config["envoy_bootstrap_tpl"].(string); ok && tpl != "" {
+		temp = tpl
+	}
+
+	t, err := template.New("bootstrap").Parse(bootstrapTemplate)
+	if err != nil {
+		return nil, err
+	}
 	var buf bytes.Buffer
 	err = t.Execute(&buf, args)
 	if err != nil {
 		return nil, err
 	}
+
+	// Now the fun part, we have to merge in optional parts whether or not the
+	// template was from us which means parsing it into JSON, manipulating and
+	// marshalling it back out.
+	var bootstrap map[string]interface{}
+	if err := json.Unmarshal(buf.Bytes(), &bootstrap); err != nil {
+		return nil, err
+	}
+
+	// Setup metrics!
+
 	return buf.Bytes(), nil
 }
 
