@@ -117,12 +117,6 @@ func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsuti
 		config.LogOutput = os.Stderr
 	}
 
-	// Create the tls Wrapper
-	tlsWrap, err := tlsConfigurator.OutgoingRPCWrapper()
-	if err != nil {
-		return nil, err
-	}
-
 	// Create a logger
 	if logger == nil {
 		logger = log.New(config.LogOutput, "", log.LstdFlags)
@@ -133,7 +127,7 @@ func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsuti
 		LogOutput:  config.LogOutput,
 		MaxTime:    clientRPCConnMaxIdle,
 		MaxStreams: clientMaxStreams,
-		TLSWrapper: tlsWrap,
+		TLSWrapper: tlsConfigurator.OutgoingRPCWrapper(),
 		ForceTLS:   config.VerifyOutgoing,
 	}
 
@@ -162,6 +156,7 @@ func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsuti
 		CacheConfig: clientACLCacheConfig,
 		Sentinel:    nil,
 	}
+	var err error
 	if c.acls, err = NewACLResolver(&aclConfig); err != nil {
 		c.Shutdown()
 		return nil, fmt.Errorf("Failed to create ACL resolver: %v", err)

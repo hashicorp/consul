@@ -363,18 +363,16 @@ func (c *Configurator) OutgoingRPCConfig() *tls.Config {
 
 // OutgoingRPCWrapper wraps the result of OutgoingRPCConfig in a DCWrapper. It
 // decides if verify server hostname should be used.
-func (c *Configurator) OutgoingRPCWrapper() (DCWrapper, error) {
+func (c *Configurator) OutgoingRPCWrapper() DCWrapper {
 	c.log("OutgoingRPCWrapper")
 	if c.outgoingRPCTLSDisabled() {
-		return nil, nil
+		return nil
 	}
 
 	// Generate the wrapper based on dc
-	wrapper := func(dc string, conn net.Conn) (net.Conn, error) {
+	return func(dc string, conn net.Conn) (net.Conn, error) {
 		return c.wrapTLSClient(dc, conn)
 	}
-
-	return wrapper, nil
 }
 
 // This function acquires a read lock because it reads from the config.

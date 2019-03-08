@@ -300,12 +300,6 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 		}
 	}
 
-	// Create the TLS wrapper for outgoing connections.
-	tlsWrap, err := tlsConfigurator.OutgoingRPCWrapper()
-	if err != nil {
-		return nil, err
-	}
-
 	// Create the tombstone GC.
 	gc, err := state.NewTombstoneGC(config.TombstoneTTL, config.TombstoneTTLGranularity)
 	if err != nil {
@@ -320,7 +314,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 		LogOutput:  config.LogOutput,
 		MaxTime:    serverRPCCache,
 		MaxStreams: serverMaxStreams,
-		TLSWrapper: tlsWrap,
+		TLSWrapper: tlsConfigurator.OutgoingRPCWrapper(),
 		ForceTLS:   config.VerifyOutgoing,
 	}
 
@@ -371,7 +365,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	}
 
 	// Initialize the RPC layer.
-	if err := s.setupRPC(tlsWrap); err != nil {
+	if err := s.setupRPC(tlsConfigurator.OutgoingRPCWrapper()); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start RPC layer: %v", err)
 	}
