@@ -6,7 +6,10 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-// ProxyConfig describes the keys we understand from Connect.Proxy.Config
+// ProxyConfig describes the keys we understand from Connect.Proxy.Config. Note
+// that this only includes config keys that affects runtime config delivered by
+// xDS. For Envoy config keys that affect bootstrap generation see
+// command/connect/envoy/bootstrap_config.go.
 type ProxyConfig struct {
 	// PublicListenerJSON is a complete override ("escape hatch") for the
 	// upstream's public listener. The Connect server TLS certificate and

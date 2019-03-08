@@ -3,6 +3,7 @@ package envoy
 import (
 	"flag"
 	"io/ioutil"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -56,11 +57,12 @@ func testSetAndResetEnv(t *testing.T, env []string) func() {
 // pass the test of having their template args generated as expected.
 func TestGenerateConfig(t *testing.T) {
 	cases := []struct {
-		Name     string
-		Flags    []string
-		Env      []string
-		WantArgs templateArgs
-		WantErr  string
+		Name            string
+		Flags           []string
+		Env             []string
+		ProxyConfigJSON string
+		WantArgs        BootstrapTplArgs
+		WantErr         string
 	}{
 		{
 			Name:    "no-args",
@@ -72,7 +74,7 @@ func TestGenerateConfig(t *testing.T) {
 			Name:  "defaults",
 			Flags: []string{"-proxy-id", "test-proxy"},
 			Env:   []string{},
-			WantArgs: templateArgs{
+			WantArgs: BootstrapTplArgs{
 				ProxyCluster:          "test-proxy",
 				ProxyID:               "test-proxy",
 				AgentAddress:          "127.0.0.1",
@@ -87,7 +89,7 @@ func TestGenerateConfig(t *testing.T) {
 			Flags: []string{"-proxy-id", "test-proxy",
 				"-grpc-addr", "localhost:9999"},
 			Env: []string{},
-			WantArgs: templateArgs{
+			WantArgs: BootstrapTplArgs{
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// Should resolve IP, note this might not resolve the same way
@@ -106,7 +108,7 @@ func TestGenerateConfig(t *testing.T) {
 			Env: []string{
 				"CONSUL_GRPC_ADDR=localhost:9999",
 			},
-			WantArgs: templateArgs{
+			WantArgs: BootstrapTplArgs{
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// Should resolve IP, note this might not resolve the same way
@@ -119,7 +121,9 @@ func TestGenerateConfig(t *testing.T) {
 				LocalAgentClusterName: xds.LocalAgentClusterName,
 			},
 		},
-		// TODO(banks): all the flags/env manipulation cases
+		// TODO(banks): add tests that setup a local agent and register the proxy
+		// with Proxy.Config from test case. Then write tests for custom bootstrap
+		// template, and the other customization cases.
 	}
 
 	for _, tc := range cases {
@@ -130,6 +134,11 @@ func TestGenerateConfig(t *testing.T) {
 			c := New(ui)
 
 			defer testSetAndResetEnv(t, tc.Env)()
+
+			// Run a mock agent API that just always returns the proxy config in the
+			// test.
+			srv := httptest.Server(testMockAgentProxyConfig(t, tc.ProxyConfigJSON))
+			defer srv.Close()
 
 			// Run the command
 			args := append([]string{"-bootstrap"}, tc.Flags...)
