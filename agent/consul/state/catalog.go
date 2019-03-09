@@ -481,6 +481,12 @@ func (s *Store) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) err
 	if err := tx.Insert("index", &IndexEntry{"nodes", idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
+	// Update the node's service indexes as the node information is included
+	// in health queries and we would otherwise miss node updates in some cases
+	// for those queries.
+	if err := s.updateAllServiceIndexesOfNode(tx, idx, node.Node); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
 
 	return nil
 }
