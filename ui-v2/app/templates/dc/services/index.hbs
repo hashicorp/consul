@@ -24,6 +24,7 @@
             }}
                 {{#block-slot 'header'}}
                     <th style={{remainingWidth}}>Service</th>
+                    <th>Type</th>
                     <th style={{totalWidth}}>Health Checks<span><em>The number of health checks for the service on all nodes</em></span></th>
                     <th style={{remainingWidth}}>Tags</th>
                 {{/block-slot}}
@@ -33,6 +34,13 @@
                         <span data-test-external-source="{{service/external-source item}}" style={{{ concat 'background-image: ' (css-var (concat '--' (service/external-source item) '-color-svg') 'none')}}}></span>
                         {{item.Name}}
                       </a>
+                    </td>
+                    <td>
+{{#if (eq item.Kind 'connect-proxy')}}
+                        <span class="kind-proxy">Proxy</span>
+{{else}}
+                        &nbsp;
+{{/if}}
                     </td>
                     <td style={{totalWidth}}>
                       {{healthcheck-info

@@ -14,6 +14,9 @@
     {{/if}}
   {{/with}}
 {{/with}}
+{{#if (eq item.Service.Kind 'connect-proxy')}}
+        <span class="kind-proxy">Proxy</span>
+{{/if}}
       </h1>
       <label for="toolbar-toggle"></label>
       {{tab-nav
