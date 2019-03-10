@@ -665,16 +665,16 @@ func TestAgent_RemoveService(t *testing.T) {
 		}
 
 		// check the mysql service is unnafected
-		if _, ok := a.checkTTLs["service:redis:1"]; !ok {
+		if _, ok := a.checkTTLs["service:mysql:1"]; !ok {
 			t.Fatalf("check ttl for mysql:1 should not be removed")
 		}
-		if check := a.State.Check(types.CheckID("service:redis:1")); check == nil {
+		if check := a.State.Check(types.CheckID("service:mysql:1")); check == nil {
 			t.Fatalf("check ttl for mysql:1 should not be removed")
 		}
-		if _, ok := a.checkTTLs["service:redis:2"]; !ok {
+		if _, ok := a.checkTTLs["service:mysql:2"]; !ok {
 			t.Fatalf("check ttl for mysql:2 should not be removed")
 		}
-		if check := a.State.Check(types.CheckID("service:redis:2")); check == nil {
+		if check := a.State.Check(types.CheckID("service:mysql:2")); check == nil {
 			t.Fatalf("check ttl for mysql:2 should not be removed")
 		}
 	}
