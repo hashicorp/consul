@@ -323,7 +323,9 @@ func TestHTTPAPI_Ban_Nonprintable_Characters(t *testing.T) {
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
-	req, _ := http.NewRequest("GET", "/v1/kv/bad\x00ness", nil)
+	req, _ := http.NewRequest("GET", "", nil)
+	req.URL.Path = "/v1/kv/bad\x00ness"
+
 	resp := httptest.NewRecorder()
 	a.srv.Handler.ServeHTTP(resp, req)
 	if got, want := resp.Code, http.StatusBadRequest; got != want {
@@ -335,7 +337,9 @@ func TestHTTPAPI_Allow_Nonprintable_Characters_With_Flag(t *testing.T) {
 	a := NewTestAgent(t, t.Name(), "disable_http_unprintable_char_filter = true")
 	defer a.Shutdown()
 
-	req, _ := http.NewRequest("GET", "/v1/kv/bad\x00ness", nil)
+	req, _ := http.NewRequest("GET", "", nil)
+	req.URL.Path = "/v1/kv/bad\x00ness"
+
 	resp := httptest.NewRecorder()
 	a.srv.Handler.ServeHTTP(resp, req)
 	// Key doesn't actually exist so we should get 404
