@@ -9,7 +9,6 @@ Feature: dc / list-blocking
     ---
     consul:client:
       blocking: 1
-      throttle: 200
     ---
   Scenario:
     And 3 [Model] models
