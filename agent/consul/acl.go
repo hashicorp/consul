@@ -422,6 +422,7 @@ func (r *ACLResolver) resolveIdentityFromTokenAsync(token string, cached *struct
 	if cached != nil && (r.config.ACLDownPolicy == "extend-cache" || r.config.ACLDownPolicy == "async-cache") {
 		// extend the cache
 		r.fireAsyncTokenResult(token, cached.Identity, nil)
+		return
 	}
 
 	r.fireAsyncTokenResult(token, nil, err)
