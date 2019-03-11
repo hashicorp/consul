@@ -4,7 +4,22 @@ import (
 	"fmt"
 	"net"
 	"reflect"
+	"strings"
 )
+
+// AddressIsIpv6 detected whether the argument is an IPv6 Address
+func AddressIsIpv6(address string) bool {
+	ip := net.ParseIP(address)
+	return ip != nil && strings.Contains(address, ":")
+}
+
+// FormatAddressPort format a tuple address/port that works with IPv6
+func FormatAddressPort(address string, port int) string {
+	if AddressIsIpv6(address) {
+		return fmt.Sprintf("[%s]:%d", address, port)
+	}
+	return fmt.Sprintf("%s:%d", address, port)
+}
 
 // IsAny checks if the given ip address is an IPv4 or IPv6 ANY address. ip
 // can be either a *net.IP or a string. It panics on another type.
