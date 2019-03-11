@@ -2531,7 +2531,7 @@ func (a *Agent) addProxyLocked(proxy *structs.ConnectManagedProxy, persist, From
 	if chkAddr != "" {
 		bindPort, ok := proxyCfg["bind_port"].(int)
 		if !ok {
-			return fmt.Errorf("Cannot connvert bind_port=%v to an int for creating TCP Check for address %s", proxyCfg["bind_port"], chkAddr)
+			return fmt.Errorf("Cannot convert bind_port=%v to an int for creating TCP Check for address %s", proxyCfg["bind_port"], chkAddr)
 		}
 		chkTypes = []*structs.CheckType{
 			&structs.CheckType{

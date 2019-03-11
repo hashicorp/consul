@@ -35,14 +35,11 @@ func TestIsIPv6(t *testing.T) {
 
 		// hostname
 		{"example.com", false},
-		{"localhost.com", false},
+		{"localhost", false},
 		{"1.257.0.1", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.ip, func(t *testing.T) {
-			if got, want := AddressIsIpv6(tt.ip), tt.ipv6; got != want {
-				t.Fatalf("got %v for %v want %v", got, tt.ip, want)
-			}
 			port := 1234
 			formated := FormatAddressPort(tt.ip, port)
 			if tt.ipv6 {
