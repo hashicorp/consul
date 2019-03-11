@@ -252,6 +252,8 @@ type Server struct {
 	EnterpriseServer
 }
 
+// NewServer is only used to help setting up a server for testing. Normal code
+// exercises NewServerLogger.
 func NewServer(config *Config) (*Server, error) {
 	c, err := tlsutil.NewConfigurator(config.ToTLSUtilConfig(), nil)
 	if err != nil {
@@ -260,7 +262,7 @@ func NewServer(config *Config) (*Server, error) {
 	return NewServerLogger(config, nil, new(token.Store), c)
 }
 
-// NewServer is used to construct a new Consul server from the
+// NewServerLogger is used to construct a new Consul server from the
 // configuration, potentially returning an error
 func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tlsConfigurator *tlsutil.Configurator) (*Server, error) {
 	// Check the protocol version.
