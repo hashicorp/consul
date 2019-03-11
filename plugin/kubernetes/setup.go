@@ -80,9 +80,6 @@ func setup(c *caddy.Controller) error {
 func (k *Kubernetes) RegisterKubeCache(c *caddy.Controller) {
 	c.OnStartup(func() error {
 		go k.APIConn.Run()
-		if k.APIProxy != nil {
-			k.APIProxy.Run()
-		}
 
 		timeout := time.After(5 * time.Second)
 		ticker := time.NewTicker(100 * time.Millisecond)
@@ -99,9 +96,6 @@ func (k *Kubernetes) RegisterKubeCache(c *caddy.Controller) {
 	})
 
 	c.OnShutdown(func() error {
-		if k.APIProxy != nil {
-			k.APIProxy.Stop()
-		}
 		return k.APIConn.Stop()
 	})
 }

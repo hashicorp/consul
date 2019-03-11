@@ -31,7 +31,6 @@ type Kubernetes struct {
 	Zones            []string
 	Upstream         *upstream.Upstream
 	APIServerList    []string
-	APIProxy         *apiProxy
 	APICertAuth      string
 	APIClientCert    string
 	APIClientKey     string
