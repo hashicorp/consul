@@ -34,7 +34,7 @@ option below.
 
 Consul also supports reloading configuration when it receives the
 SIGHUP signal. Not all changes are respected, but those that are
-are documented below in the
+documented below in the
 [Reloadable Configuration](#reloadable-configuration) section. The
 [reload command](/docs/commands/reload.html) can also be used to trigger a
 configuration reload.
