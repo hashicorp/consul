@@ -8,7 +8,7 @@ description: |-
 
 # Bootstrapping a Datacenter
 
-An agent can run in both client and server mode. Server nodes are responsible for running the
+An agent can run in either client or server mode. Server nodes are responsible for running the
 [consensus protocol](/docs/internals/consensus.html) and storing the cluster state.
 The client nodes are mostly stateless and rely heavily on the server nodes.
 
@@ -22,7 +22,6 @@ as data loss is inevitable in a failure scenario. Please refer to the
 
 ~> **Note**: In versions of Consul prior to 0.4, bootstrapping was a manual process. For details on using the `-bootstrap` flag directly, see the
 [manual bootstrapping guide](/docs/install/manual-bootstrap.html).
-
 Manual bootstrapping with `-bootstrap` is not recommended in 
 newer versions of Consul (0.5 and newer) as it is more error-prone. 
 Instead you should use automatic bootstrapping
@@ -63,7 +62,7 @@ There are multiple options for joining the servers. Choose the method which best
 - Specify a list of servers with [-retry-join](https://www.consul.io/docs/agent/options.html#_retry_join) option.
 - Use automatic joining by tag for supported cloud environments with the [-retry-join](https://www.consul.io/docs/agent/options.html#_retry_join) option.
 
-For all three methods, you can use either the agent configuration file or 
+All three methods can be set in the agent configuration file or 
 the command line flag. 
 
 ### Manually Join the Servers
@@ -89,8 +88,8 @@ Since a join operation is symmetric, it does not matter which node initiates it.
 ### Verifying the Cluster and Connect the Clients
 
 As a sanity check, the [`consul info`](/docs/commands/info.html) command
-is a useful tool. It can be used to verify `raft.num_peers` is now 2,
-and you can view the latest log index under `raft.last_log_index`. When
+is a useful tool. It can be used to verify the `raft.num_peers` 
+and to view the latest log index under `raft.last_log_index`. When
 running [`consul info`](/docs/commands/info.html) on the followers, you
 should see `raft.last_log_index` converge to the same value once the
 leader begins replication. That value represents the last log entry that
