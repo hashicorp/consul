@@ -2479,17 +2479,26 @@ func TestAgent_RegisterService(t *testing.T) {
 
 func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), `
+	tests := []struct {
+		ip                    string
+		expectedTCPCheckStart string
+	}{
+		{"127.0.0.1", "127.0.0.1:"}, // private network address
+		{"::1", "[::1]:"},           // shared address space
+	}
+	for _, tt := range tests {
+		t.Run(tt.ip, func(t *testing.T) {
+			a := NewTestAgent(t, t.Name(), `
 	connect {
 		proxy {
 			allow_managed_api_registration = true
 		}
 	}
 `)
-	defer a.Shutdown()
-	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+			defer a.Shutdown()
+			testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-	json := `
+			json := `
 	{
 		"name":"test",
 		"port":8000,
@@ -2499,14 +2508,14 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 			"enable_tag_override": "meta is 'opaque' so should not get translated"
 		},
 		"kind": "connect-proxy",` +
-		// Note the uppercase P is important here - it ensures translation works
-		// correctly in case-insensitive way. Without it this test can pass even
-		// when translation is broken for other valid inputs.
-		`"Proxy": {
+				// Note the uppercase P is important here - it ensures translation works
+				// correctly in case-insensitive way. Without it this test can pass even
+				// when translation is broken for other valid inputs.
+				`"Proxy": {
 			"destination_service_name": "web",
 			"destination_service_id": "web",
 			"local_service_port": 1234,
-			"local_service_address": "127.0.0.1",
+			"local_service_address": "` + tt.ip + `",
 			"config": {
 				"destination_type": "proxy.config is 'opaque' so should not get translated"
 			},
@@ -2515,7 +2524,7 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 					"destination_type": "service",
 					"destination_namespace": "default",
 					"destination_name": "db",
-		      "local_bind_address": "127.0.0.1",
+		      "local_bind_address": "` + tt.ip + `",
 		      "local_bind_port": 1234,
 					"config": {
 						"destination_type": "proxy.upstreams.config is 'opaque' so should not get translated"
@@ -2534,7 +2543,7 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 						"destination_type": "service",
 						"destination_namespace": "default",
 						"destination_name": "db",
-						"local_bind_address": "127.0.0.1",
+						"local_bind_address": "` + tt.ip + `",
 						"local_bind_port": 1234,
 						"config": {
 							"destination_type": "connect.proxy.upstreams.config is 'opaque' so should not get translated"
@@ -2555,13 +2564,13 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 					"destination_service_name": "test",
 					"destination_service_id": "test",
 					"local_service_port": 4321,
-					"local_service_address": "127.0.0.1",
+					"local_service_address": "` + tt.ip + `",
 					"upstreams": [
 						{
 							"destination_type": "service",
 							"destination_namespace": "default",
 							"destination_name": "db",
-							"local_bind_address": "127.0.0.1",
+							"local_bind_address": "` + tt.ip + `",
 							"local_bind_port": 1234,
 							"config": {
 								"destination_type": "sidecar_service.proxy.upstreams.config is 'opaque' so should not get translated"
@@ -2575,109 +2584,121 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 			"passing": 16
 		}
 	}`
-	req, _ := http.NewRequest("PUT", "/v1/agent/service/register", strings.NewReader(json))
+			req, _ := http.NewRequest("PUT", "/v1/agent/service/register", strings.NewReader(json))
 
-	rr := httptest.NewRecorder()
-	obj, err := a.srv.AgentRegisterService(rr, req)
-	require.NoError(t, err)
-	require.Nil(t, obj)
-	require.Equal(t, 200, rr.Code, "body: %s", rr.Body)
+			rr := httptest.NewRecorder()
+			obj, err := a.srv.AgentRegisterService(rr, req)
+			require.NoError(t, err)
+			require.Nil(t, obj)
+			require.Equal(t, 200, rr.Code, "body: %s", rr.Body)
 
-	svc := &structs.NodeService{
-		ID:      "test",
-		Service: "test",
-		Meta: map[string]string{
-			"some":                "meta",
-			"enable_tag_override": "meta is 'opaque' so should not get translated",
-		},
-		Port:              8000,
-		EnableTagOverride: true,
-		Weights:           &structs.Weights{Passing: 16, Warning: 0},
-		Kind:              structs.ServiceKindConnectProxy,
-		Proxy: structs.ConnectProxyConfig{
-			DestinationServiceName: "web",
-			DestinationServiceID:   "web",
-			LocalServiceAddress:    "127.0.0.1",
-			LocalServicePort:       1234,
-			Config: map[string]interface{}{
-				"destination_type": "proxy.config is 'opaque' so should not get translated",
-			},
-			Upstreams: structs.Upstreams{
-				{
-					DestinationType:      structs.UpstreamDestTypeService,
-					DestinationName:      "db",
-					DestinationNamespace: "default",
-					LocalBindAddress:     "127.0.0.1",
-					LocalBindPort:        1234,
+			svc := &structs.NodeService{
+				ID:      "test",
+				Service: "test",
+				Meta: map[string]string{
+					"some":                "meta",
+					"enable_tag_override": "meta is 'opaque' so should not get translated",
+				},
+				Port:              8000,
+				EnableTagOverride: true,
+				Weights:           &structs.Weights{Passing: 16, Warning: 0},
+				Kind:              structs.ServiceKindConnectProxy,
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "web",
+					DestinationServiceID:   "web",
+					LocalServiceAddress:    tt.ip,
+					LocalServicePort:       1234,
 					Config: map[string]interface{}{
-						"destination_type": "proxy.upstreams.config is 'opaque' so should not get translated",
+						"destination_type": "proxy.config is 'opaque' so should not get translated",
 					},
-				},
-			},
-		},
-		Connect: structs.ServiceConnect{
-			Proxy: &structs.ServiceDefinitionConnectProxy{
-				ExecMode: "script",
-				Config: map[string]interface{}{
-					"destination_type": "connect.proxy.config is 'opaque' so should not get translated",
-				},
-				Upstreams: structs.Upstreams{
-					{
-						DestinationType:      structs.UpstreamDestTypeService,
-						DestinationName:      "db",
-						DestinationNamespace: "default",
-						LocalBindAddress:     "127.0.0.1",
-						LocalBindPort:        1234,
-						Config: map[string]interface{}{
-							"destination_type": "connect.proxy.upstreams.config is 'opaque' so should not get translated",
+					Upstreams: structs.Upstreams{
+						{
+							DestinationType:      structs.UpstreamDestTypeService,
+							DestinationName:      "db",
+							DestinationNamespace: "default",
+							LocalBindAddress:     tt.ip,
+							LocalBindPort:        1234,
+							Config: map[string]interface{}{
+								"destination_type": "proxy.upstreams.config is 'opaque' so should not get translated",
+							},
 						},
 					},
 				},
-			},
-			// The sidecar service is nilled since it is only config sugar and
-			// shouldn't be represented in state. We assert that the translations
-			// there worked by inspecting the registered sidecar below.
-			SidecarService: nil,
-		},
-	}
+				Connect: structs.ServiceConnect{
+					Proxy: &structs.ServiceDefinitionConnectProxy{
+						ExecMode: "script",
+						Config: map[string]interface{}{
+							"destination_type": "connect.proxy.config is 'opaque' so should not get translated",
+						},
+						Upstreams: structs.Upstreams{
+							{
+								DestinationType:      structs.UpstreamDestTypeService,
+								DestinationName:      "db",
+								DestinationNamespace: "default",
+								LocalBindAddress:     tt.ip,
+								LocalBindPort:        1234,
+								Config: map[string]interface{}{
+									"destination_type": "connect.proxy.upstreams.config is 'opaque' so should not get translated",
+								},
+							},
+						},
+					},
+					// The sidecar service is nilled since it is only config sugar and
+					// shouldn't be represented in state. We assert that the translations
+					// there worked by inspecting the registered sidecar below.
+					SidecarService: nil,
+				},
+			}
 
-	got := a.State.Service("test")
-	require.Equal(t, svc, got)
+			got := a.State.Service("test")
+			require.Equal(t, svc, got)
 
-	sidecarSvc := &structs.NodeService{
-		Kind:    structs.ServiceKindConnectProxy,
-		ID:      "test-sidecar-proxy",
-		Service: "test-proxy",
-		Meta: map[string]string{
-			"some":                "meta",
-			"enable_tag_override": "sidecar_service.meta is 'opaque' so should not get translated",
-		},
-		Port:                       8001,
-		EnableTagOverride:          true,
-		Weights:                    &structs.Weights{Passing: 1, Warning: 1},
-		LocallyRegisteredAsSidecar: true,
-		Proxy: structs.ConnectProxyConfig{
-			DestinationServiceName: "test",
-			DestinationServiceID:   "test",
-			LocalServiceAddress:    "127.0.0.1",
-			LocalServicePort:       4321,
-			Upstreams: structs.Upstreams{
-				{
-					DestinationType:      structs.UpstreamDestTypeService,
-					DestinationName:      "db",
-					DestinationNamespace: "default",
-					LocalBindAddress:     "127.0.0.1",
-					LocalBindPort:        1234,
-					Config: map[string]interface{}{
-						"destination_type": "sidecar_service.proxy.upstreams.config is 'opaque' so should not get translated",
+			sidecarSvc := &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				ID:      "test-sidecar-proxy",
+				Service: "test-proxy",
+				Meta: map[string]string{
+					"some":                "meta",
+					"enable_tag_override": "sidecar_service.meta is 'opaque' so should not get translated",
+				},
+				Port:                       8001,
+				EnableTagOverride:          true,
+				Weights:                    &structs.Weights{Passing: 1, Warning: 1},
+				LocallyRegisteredAsSidecar: true,
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "test",
+					DestinationServiceID:   "test",
+					LocalServiceAddress:    tt.ip,
+					LocalServicePort:       4321,
+					Upstreams: structs.Upstreams{
+						{
+							DestinationType:      structs.UpstreamDestTypeService,
+							DestinationName:      "db",
+							DestinationNamespace: "default",
+							LocalBindAddress:     tt.ip,
+							LocalBindPort:        1234,
+							Config: map[string]interface{}{
+								"destination_type": "sidecar_service.proxy.upstreams.config is 'opaque' so should not get translated",
+							},
+						},
 					},
 				},
-			},
-		},
+			}
+			gotSidecar := a.State.Service("test-sidecar-proxy")
+			hasNoCorrectTCPCheck := true
+			for _, v := range a.checkTCPs {
+				if strings.HasPrefix(v.TCP, tt.expectedTCPCheckStart) {
+					hasNoCorrectTCPCheck = false
+					break
+				}
+				fmt.Println("TCP Check:= ", v)
+			}
+			if hasNoCorrectTCPCheck {
+				t.Fatalf("Did not find the expected TCP Healtcheck '%s' in %#v ", tt.expectedTCPCheckStart, a.checkTCPs)
+			}
+			require.Equal(t, sidecarSvc, gotSidecar)
+		})
 	}
-
-	gotSidecar := a.State.Service("test-sidecar-proxy")
-	require.Equal(t, sidecarSvc, gotSidecar)
 }
 
 func TestAgent_RegisterService_ACLDeny(t *testing.T) {

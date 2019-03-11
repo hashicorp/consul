@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hashicorp/consul/ipaddr"
+
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -171,7 +173,7 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 				Name: "Connect Sidecar Listening",
 				// Default to localhost rather than agent/service public IP. The checks
 				// can always be overridden if a non-loopback IP is needed.
-				TCP:      fmt.Sprintf("127.0.0.1:%d", sidecar.Port),
+				TCP:      ipaddr.FormatAddressPort(sidecar.Proxy.LocalServiceAddress, sidecar.Port),
 				Interval: 10 * time.Second,
 			},
 			&structs.CheckType{
