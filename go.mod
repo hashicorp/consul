@@ -37,7 +37,7 @@ require (
 	github.com/kr/logfmt v0.0.0-20140226030751-b84e30acd515
 	github.com/matttproud/golang_protobuf_extensions v1.0.1
 	github.com/mholt/caddy v0.11.4
-	github.com/miekg/dns v1.1.5
+	github.com/miekg/dns v1.1.6
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 	github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742
 	github.com/opentracing-contrib/go-observer v0.0.0-20170622124052-a52f23424492
