@@ -384,8 +384,8 @@ func TestConfigurator_ErrorPropagation(t *testing.T) {
 			true, false},
 		{Config{VerifyIncomingHTTPS: true, CAFile: "", CAPath: ""},
 			true, false},
-		{Config{VerifyIncoming: true, CAFile: "a", CAPath: ""}, true, false},
-		{Config{VerifyIncoming: true, CAFile: "", CAPath: "a"}, true, false},
+		{Config{VerifyIncoming: true, CAFile: cafile, CAPath: ""}, true, false},
+		{Config{VerifyIncoming: true, CAFile: "", CAPath: capath}, true, false},
 		{Config{VerifyIncoming: true, CAFile: "", CAPath: capath,
 			CertFile: certfile, KeyFile: keyfile}, false, false},
 		{Config{CertFile: "bogus", KeyFile: "bogus"}, true, true},
@@ -403,7 +403,9 @@ func TestConfigurator_ErrorPropagation(t *testing.T) {
 		if !v.excludeCheck {
 			cert, err := v.config.KeyPair()
 			require.NoError(t, err, info)
-			err3 = c.check(v.config, cert)
+			cas, _ := loadCAs(v.config.CAFile, v.config.CAPath)
+			require.NoError(t, err, info)
+			err3 = c.check(v.config, cas, cert)
 		}
 		if v.shouldErr {
 			require.Error(t, err1, info)
@@ -453,6 +455,7 @@ func TestConfigurator_loadCAs(t *testing.T) {
 		{"", "", false, true, 0},
 		{"bogus", "", true, true, 0},
 		{"", "bogus", true, true, 0},
+		{"", "../test/bin", true, true, 0},
 		{"../test/ca/root.cer", "", false, false, 1},
 		{"", "../test/ca_path", false, false, 2},
 		{"../test/ca/root.cer", "../test/ca_path", false, false, 1},
@@ -589,21 +592,25 @@ func TestConfigurator_OutgoingRPCTLSDisabled(t *testing.T) {
 		path     string
 		expected bool
 	}
+	cafile := "../test/ca/root.cer"
+	capath := "../test/ca_path"
 	variants := []variant{
 		{false, "", "", true},
-		{false, "a", "", false},
-		{false, "", "a", false},
-		{false, "a", "a", false},
+		{false, cafile, "", false},
+		{false, "", capath, false},
+		{false, cafile, capath, false},
 		{true, "", "", false},
-		{true, "a", "", false},
-		{true, "", "a", false},
-		{true, "a", "a", false},
+		{true, cafile, "", false},
+		{true, "", capath, false},
+		{true, cafile, capath, false},
 	}
-	for _, v := range variants {
+	for i, v := range variants {
+		info := fmt.Sprintf("case %d", i)
+		cas, err := loadCAs(v.file, v.path)
+		require.NoError(t, err, info)
+		c.cas = cas
 		c.base.VerifyOutgoing = v.verify
-		c.base.CAFile = v.file
-		c.base.CAPath = v.path
-		require.Equal(t, v.expected, c.outgoingRPCTLSDisabled())
+		require.Equal(t, v.expected, c.outgoingRPCTLSDisabled(), info)
 	}
 }
 

@@ -165,7 +165,7 @@ func (c *Configurator) Update(config Config) error {
 		return err
 	}
 
-	if err = c.check(config, cert); err != nil {
+	if err = c.check(config, cas, cert); err != nil {
 		return err
 	}
 	c.Lock()
@@ -178,7 +178,7 @@ func (c *Configurator) Update(config Config) error {
 	return nil
 }
 
-func (c *Configurator) check(config Config, cert *tls.Certificate) error {
+func (c *Configurator) check(config Config, cas *x509.CertPool, cert *tls.Certificate) error {
 	// Check if a minimum TLS version was set
 	if config.TLSMinVersion != "" {
 		if _, ok := TLSLookup[config.TLSMinVersion]; !ok {
@@ -187,13 +187,13 @@ func (c *Configurator) check(config Config, cert *tls.Certificate) error {
 	}
 
 	// Ensure we have a CA if VerifyOutgoing is set
-	if config.VerifyOutgoing && config.CAFile == "" && config.CAPath == "" {
+	if config.VerifyOutgoing && cas == nil {
 		return fmt.Errorf("VerifyOutgoing set, and no CA certificate provided!")
 	}
 
 	// Ensure we have a CA and cert if VerifyIncoming is set
 	if config.VerifyIncoming || config.VerifyIncomingRPC || config.VerifyIncomingHTTPS {
-		if config.CAFile == "" && config.CAPath == "" {
+		if cas == nil {
 			return fmt.Errorf("VerifyIncoming set, and no CA certificate provided!")
 		}
 		if cert == nil {
@@ -218,7 +218,16 @@ func loadCAs(caFile, caPath string) (*x509.CertPool, error) {
 	if caFile != "" {
 		return rootcerts.LoadCAFile(caFile)
 	} else if caPath != "" {
-		return rootcerts.LoadCAPath(caPath)
+		pool, err := rootcerts.LoadCAPath(caPath)
+		if err != nil {
+			return nil, err
+		}
+		// make sure to not return an empty pool because this is not
+		// the users intention when providing a path for CAs.
+		if len(pool.Subjects()) == 0 {
+			return nil, fmt.Errorf("Error loading CA: path %q has no CAs", caPath)
+		}
+		return pool, nil
 	}
 	return nil, nil
 }
@@ -268,7 +277,7 @@ func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) *tls.C
 func (c *Configurator) outgoingRPCTLSDisabled() bool {
 	c.RLock()
 	defer c.RUnlock()
-	return c.base.CAFile == "" && c.base.CAPath == "" && !c.base.VerifyOutgoing
+	return c.cas == nil && !c.base.VerifyOutgoing
 }
 
 // This function acquires a read lock because it reads from the config.
