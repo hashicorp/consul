@@ -137,6 +137,12 @@ and consider if they're appropriate for your deployment.
           }
         ```
 
+  This can also be set using Helm's `--set` flag (consul-helm v0.7.0 and later), using the following syntax:
+
+        ```
+        --set 'server.extraConfig="{"log_level": "DEBUG"}"'
+        ```
+
   * <a name="v-server-extravolumes" href="#v-server-extravolumes">`extraVolumes`</a> (`array: []`) - A list of extra volumes to mount for server agents. This is useful for bringing in extra data that can be referenced by other configurations at a well known path, such as TLS certificates or Gossip encryption keys. The value of this should be a list of objects. Each object supports the following keys:
 
       - <a name="v-server-extravolumes-type" href="#v-server-extravolumes-type">`type`</a> (`string: required`) -
@@ -205,6 +211,12 @@ and consider if they're appropriate for your deployment.
           {
             "log_level": "DEBUG"
           }
+        ```
+
+  This can also be set using Helm's `--set` flag (consul-helm v0.7.0 and later), using the following syntax:
+
+        ```
+        --set 'client.extraConfig="{"log_level": "DEBUG"}"'
         ```
 
   * <a name="v-client-extravolumes" href="#v-client-extravolumes">`extraVolumes`</a> (`array: []`) - A list of extra volumes to mount for client agents. This is useful for bringing in extra data that can be referenced by other configurations at a well known path, such as TLS certificates or Gossip encryption keys. The value of this should be a list of objects. Each object supports the following keys:
