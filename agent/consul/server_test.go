@@ -239,12 +239,19 @@ func TestServer_JoinLAN(t *testing.T) {
 }
 
 func TestServer_LANReap(t *testing.T) {
+	t.Parallel()
+
+	configureServer := func(c *Config) {
+		c.SerfFloodInterval = 100 * time.Millisecond
+		c.SerfLANConfig.ReconnectTimeout = 250 * time.Millisecond
+		c.SerfLANConfig.TombstoneTimeout = 250 * time.Millisecond
+		c.SerfLANConfig.ReapInterval = 300 * time.Millisecond
+	}
+
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
 		c.Bootstrap = true
-		c.SerfFloodInterval = 100 * time.Millisecond
-		c.SerfLANConfig.ReconnectTimeout = 250 * time.Millisecond
-		c.SerfLANConfig.ReapInterval = 300 * time.Millisecond
+		configureServer(c)
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -252,18 +259,14 @@ func TestServer_LANReap(t *testing.T) {
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
 		c.Bootstrap = false
-		c.SerfFloodInterval = 100 * time.Millisecond
-		c.SerfLANConfig.ReconnectTimeout = 250 * time.Millisecond
-		c.SerfLANConfig.ReapInterval = 300 * time.Millisecond
+		configureServer(c)
 	})
 	defer os.RemoveAll(dir2)
 
 	dir3, s3 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
 		c.Bootstrap = false
-		c.SerfFloodInterval = 100 * time.Millisecond
-		c.SerfLANConfig.ReconnectTimeout = 250 * time.Millisecond
-		c.SerfLANConfig.ReapInterval = 300 * time.Millisecond
+		configureServer(c)
 	})
 	defer os.RemoveAll(dir3)
 	defer s3.Shutdown()
@@ -339,6 +342,7 @@ func TestServer_WANReap(t *testing.T) {
 		c.Bootstrap = true
 		c.SerfFloodInterval = 100 * time.Millisecond
 		c.SerfWANConfig.ReconnectTimeout = 250 * time.Millisecond
+		c.SerfWANConfig.TombstoneTimeout = 250 * time.Millisecond
 		c.SerfWANConfig.ReapInterval = 500 * time.Millisecond
 	})
 	defer os.RemoveAll(dir1)

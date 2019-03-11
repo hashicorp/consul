@@ -73,7 +73,7 @@ func TestConfigurator_OutgoingTLS_VerifyOutgoing(t *testing.T) {
 	require.True(t, tlsConf.InsecureSkipVerify)
 }
 
-func TestConfigurator_OutgoingTLS_ServerName(t *testing.T) {
+func TestConfigurator_OutgoingRPC_ServerName(t *testing.T) {
 	conf := &Config{
 		VerifyOutgoing: true,
 		CAFile:         "../test/ca/root.cer",
@@ -84,8 +84,8 @@ func TestConfigurator_OutgoingTLS_ServerName(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, tlsConf)
 	require.Len(t, tlsConf.RootCAs.Subjects(), 1)
-	require.Equal(t, tlsConf.ServerName, "consul.example.com")
-	require.False(t, tlsConf.InsecureSkipVerify)
+	require.Empty(t, tlsConf.ServerName)
+	require.True(t, tlsConf.InsecureSkipVerify)
 }
 
 func TestConfigurator_OutgoingTLS_VerifyHostname(t *testing.T) {
@@ -130,23 +130,6 @@ func TestConfigurator_OutgoingTLS_TLSMinVersion(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, tlsConf)
 		require.Equal(t, tlsConf.MinVersion, TLSLookup[version])
-	}
-}
-
-func TestConfig_SkipBuiltinVerify(t *testing.T) {
-	type variant struct {
-		config Config
-		result bool
-	}
-	table := []variant{
-		variant{Config{ServerName: "", VerifyServerHostname: true}, false},
-		variant{Config{ServerName: "", VerifyServerHostname: false}, true},
-		variant{Config{ServerName: "consul", VerifyServerHostname: true}, false},
-		variant{Config{ServerName: "consul", VerifyServerHostname: false}, false},
-	}
-
-	for _, v := range table {
-		require.Equal(t, v.result, v.config.skipBuiltinVerify())
 	}
 }
 
@@ -501,7 +484,7 @@ func TestConfigurator_CommonTLSConfigServerNameNodeName(t *testing.T) {
 		c := NewConfigurator(v.config)
 		tlsConf, err := c.commonTLSConfig(false)
 		require.NoError(t, err)
-		require.Equal(t, v.result, tlsConf.ServerName)
+		require.Empty(t, tlsConf.ServerName)
 	}
 }
 
@@ -615,6 +598,16 @@ func TestConfigurator_CommonTLSConfigVerifyIncoming(t *testing.T) {
 	tlsConf, err = c.commonTLSConfig(true)
 	require.NoError(t, err)
 	require.Equal(t, tls.RequireAndVerifyClientCert, tlsConf.ClientAuth)
+
+	c.Update(&Config{VerifyServerHostname: false, CAFile: "../test/ca/root.cer", CertFile: "../test/key/ourdomain.cer", KeyFile: "../test/key/ourdomain.key"})
+	tlsConf, err = c.commonTLSConfig(false)
+	require.NoError(t, err)
+	require.True(t, tlsConf.InsecureSkipVerify)
+
+	c.Update(&Config{VerifyServerHostname: true, CAFile: "../test/ca/root.cer", CertFile: "../test/key/ourdomain.cer", KeyFile: "../test/key/ourdomain.key"})
+	tlsConf, err = c.commonTLSConfig(false)
+	require.NoError(t, err)
+	require.False(t, tlsConf.InsecureSkipVerify)
 }
 
 func TestConfigurator_IncomingRPCConfig(t *testing.T) {
@@ -708,4 +701,19 @@ func TestConfigurator_OutgoingTLSConfigForChecks(t *testing.T) {
 	tlsConf, err = c.OutgoingTLSConfigForCheck("c1")
 	require.NoError(t, err)
 	require.False(t, tlsConf.InsecureSkipVerify)
+
+	c.Update(&Config{EnableAgentTLSForChecks: true, NodeName: "node", ServerName: "server"})
+	tlsConf, err = c.OutgoingTLSConfigForCheck("")
+	require.NoError(t, err)
+	require.Equal(t, "server", tlsConf.ServerName)
+
+	c.Update(&Config{EnableAgentTLSForChecks: true, ServerName: "server"})
+	tlsConf, err = c.OutgoingTLSConfigForCheck("")
+	require.NoError(t, err)
+	require.Equal(t, "server", tlsConf.ServerName)
+
+	c.Update(&Config{EnableAgentTLSForChecks: true, NodeName: "node"})
+	tlsConf, err = c.OutgoingTLSConfigForCheck("")
+	require.NoError(t, err)
+	require.Equal(t, "node", tlsConf.ServerName)
 }

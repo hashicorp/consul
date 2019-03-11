@@ -98,7 +98,7 @@ type RuntimeConfig struct {
 	//                    ACL's to be used to service requests. This
 	//                    is the default. If the ACL is not in the cache,
 	//                    this acts like deny.
-	//   * async-cache - Same behaviour as extend-cache, but perform ACL
+	//   * async-cache - Same behavior as extend-cache, but perform ACL
 	//                   Lookups asynchronously when cache TTL is expired.
 	//
 	// hcl: acl.down_policy = ("allow"|"deny"|"extend-cache"|"async-cache")
@@ -361,7 +361,7 @@ type RuntimeConfig struct {
 	// flag: -datacenter string
 	Datacenter string
 
-	// Defines the maximum stale value for discovery path. Defauls to "0s".
+	// Defines the maximum stale value for discovery path. Defaults to "0s".
 	// Discovery paths are /v1/heath/ paths
 	//
 	// If not set to 0, it will try to perform stale read and perform only a

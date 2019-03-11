@@ -46,7 +46,7 @@ func makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Cluster, error) {
 	var c *envoy.Cluster
 	var err error
 
-	// If we have overriden local cluster config try to parse it into an Envoy cluster
+	// If we have overridden local cluster config try to parse it into an Envoy cluster
 	if clusterJSONRaw, ok := cfgSnap.Proxy.Config["envoy_local_cluster_json"]; ok {
 		if clusterJSON, ok := clusterJSONRaw.(string); ok {
 			c, err = makeClusterFromUserConfig(clusterJSON)
@@ -90,7 +90,7 @@ func makeUpstreamCluster(upstream structs.Upstream, cfgSnap *proxycfg.ConfigSnap
 	var c *envoy.Cluster
 	var err error
 
-	// If we have overriden cluster config attempt to parse it into an Envoy cluster
+	// If we have overridden cluster config attempt to parse it into an Envoy cluster
 	if clusterJSONRaw, ok := upstream.Config["envoy_cluster_json"]; ok {
 		if clusterJSON, ok := clusterJSONRaw.(string); ok {
 			c, err = makeClusterFromUserConfig(clusterJSON)

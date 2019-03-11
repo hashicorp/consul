@@ -1,67 +1,30 @@
-version: 2.1
+---
+version: 2
 
-# reusable 'executor' object for jobs
-executors:
-  go:
-    docker:
-      - image: circleci/golang:1.11.4
-    environment:
-      - TEST_RESULTS: /tmp/test-results  # path to where test results are saved
+references:
+  images:
+    go: &GOLANG_IMAGE circleci/golang:1.11.4
+    middleman: &MIDDLEMAN_IMAGE hashicorp/middleman-hashicorp:0.3.35
+    ember: &EMBER_IMAGE circleci/node:8-browsers
 
-# reusable 'commands' to be added as a step in jobs
-commands:
-  integration-test:
-    description: Run integration tests
-    parameters:
-      version:
-        description: what branch/version/tag to checkout
-        type: string
-        default: master
-      checkout-url:
-        description: HTTPS checkout URL (SSH checkout if using SSH key)
-        type: string
-      checkout-path:
-        description: path to checkout code
-        type: string
-      test-command:
-        description: command to run tests
-        type: string
-    steps:
-        - run: git clone << parameters.checkout-url >> --branch << parameters.version >> << parameters.checkout-path >>
-        
-        # get consul binary
-        - attach_workspace:
-            at: /go/bin
-        # make dev build of nomad
-        - run:
-            command: make dev
-            working_directory: << parameters.checkout-path >>
+  paths:
+    test-results: &TEST_RESULTS_DIR /tmp/test-results
 
-        - run:
-            name: install junit and setup test path
-            command: |
-              go get github.com/jstemmer/go-junit-report
-              mkdir -p /tmp/test-results
-        
-        # run integration tests
-        - run: 
-            command: << parameters.test-command >> | tee ${TEST_RESULTS}/results.out
-            working_directory: << parameters.checkout-path >>
+  cache:
+    yarn: &YARN_CACHE_KEY consul-ui-v1-{{ checksum "ui-v2/yarn.lock" }}
+    rubygem: &RUBYGEM_CACHE_KEY static-site-gems-v1-{{ checksum "Gemfile.lock" }}
 
-
-        # generate XML results
-        - run:
-            command: go-junit-report < ${TEST_RESULTS}/results.out > ${TEST_RESULTS}/results.xml
-            when: always
-        
-        # store test results for CircleCI
-        - store_test_results:
-            path: /tmp/test-results
-
+  environment: &ENVIRONMENT
+    TEST_RESULTS_DIR: *TEST_RESULTS_DIR
+    GOTESTSUM_RELEASE: 0.3.3
+    EMAIL: noreply@hashicorp.com
+    GIT_AUTHOR_NAME: circleci-consul
+    GIT_COMMITTER_NAME: circleci-consul
 
 jobs:
   dev-build:
-    executor: go
+    docker:
+      - image: *GOLANG_IMAGE
     working_directory: /go/src/github.com/hashicorp/consul
     steps:
       - checkout
@@ -80,40 +43,64 @@ jobs:
   # Nomad 0.8 builds on go0.10
   # Run integration tests on nomad/v0.8.7
   nomad-integration-0_8:
-      docker:
-        - image: circleci/golang:1.10
-      environment:
-        - TEST_RESULTS: /tmp/test-results
-      steps:
-        - integration-test:
-            version: v0.8.7
-            checkout-url: https://github.com/hashicorp/nomad.git
-            checkout-path: /go/src/github.com/hashicorp/nomad
-            test-command: go test -v ./command/agent/consul -run TestConsul
+    docker:
+      - image: circleci/golang:1.10
+    environment:
+      <<: *ENVIRONMENT
+      NOMAD_WORKING_DIR: &NOMAD_WORKING_DIR /go/src/github.com/hashicorp/nomad
+      NOMAD_VERSION: v0.8.7
+    steps: &NOMAD_INTEGRATION_TEST_STEPS
+      - run: git clone https://github.com/hashicorp/nomad.git --branch ${NOMAD_VERSION} ${NOMAD_WORKING_DIR}
+
+      # get consul binary
+      - attach_workspace:
+          at: /go/bin
+
+      # make test result directory
+      - run: mkdir -p $TEST_RESULTS_DIR
+
+      # make dev build of nomad
+      - run:
+          command: make dev
+          working_directory: *NOMAD_WORKING_DIR
+
+      # update gotestsum
+      - run: curl -sSL "https://github.com/gotestyourself/gotestsum/releases/download/v${GOTESTSUM_RELEASE}/gotestsum_${GOTESTSUM_RELEASE}_linux_amd64.tar.gz" | tar --overwrite -xz -C /usr/local/bin gotestsum
+
+      # run integration tests
+      - run:
+          command: gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/results.xml -- ./command/agent/consul -run TestConsul
+          working_directory: *NOMAD_WORKING_DIR
+
+      # store test results for CircleCI
+      - store_test_results:
+          path: *TEST_RESULTS_DIR
+      - store_artifacts:
+          path: *TEST_RESULTS_DIR
 
   # run integration tests on nomad/master
   nomad-integration-master:
-      executor: go
-      steps:
-        - integration-test:
-            version: master
-            checkout-url: https://github.com/hashicorp/nomad.git
-            checkout-path: /go/src/github.com/hashicorp/nomad
-            test-command: go test -v ./command/agent/consul -run TestConsul
+    docker:
+      - image: *GOLANG_IMAGE
+    environment:
+      <<: *ENVIRONMENT
+      NOMAD_WORKING_DIR: /go/src/github.com/hashicorp/nomad
+      NOMAD_VERSION: master
+    steps: *NOMAD_INTEGRATION_TEST_STEPS
 
   build-website:
     # setting the working_directory along with the checkout path allows us to not have
     # to cd into the website/ directory for commands
     working_directory: ~/project/website
     docker:
-      - image: hashicorp/middleman-hashicorp:0.3.35
+      - image: *MIDDLEMAN_IMAGE
     steps:
       - checkout:
           path: ~/project
 
       # restores gem cache
       - restore_cache:
-          key: static-site-gems-v1-{{ checksum "Gemfile.lock" }}
+          key: *RUBYGEM_CACHE_KEY
 
       - run:
           name: install gems
@@ -121,7 +108,7 @@ jobs:
 
       # saves gem cache if we have changed the Gemfile
       - save_cache:
-          key: static-site-gems-v1-{{ checksum "Gemfile.lock" }}
+          key: *RUBYGEM_CACHE_KEY
           paths:
             - ~/project/website/vendor/bundle
 
@@ -136,31 +123,31 @@ jobs:
   # build frontend yarn cache
   frontend-cache:
     docker:
-      - image: circleci/node:8
+      - image: *EMBER_IMAGE
     steps:
       - checkout
-      
+
       # cache yarn deps
       - restore_cache:
-          key: consul-ui-v1-{{ checksum "ui-v2/yarn.lock" }}
-      
+          key: *YARN_CACHE_KEY
+
       - run:
           name: install yarn packages
           command: cd ui-v2 && yarn install
-      
+
       - save_cache:
-          key: consul-ui-v1-{{ checksum "ui-v2/yarn.lock" }}
+          key: *YARN_CACHE_KEY
           paths:
             - ui-v2/node_modules
-  
+
   # build ember so frontend tests run faster
   ember-build:
     docker:
-      - image: circleci/node:8
+      - image: *EMBER_IMAGE
     steps:
       - checkout
       - restore_cache:
-          key: consul-ui-v1-{{ checksum "ui-v2/yarn.lock" }}
+          key: *YARN_CACHE_KEY
       - run: cd ui-v2 && yarn build-ci --output-path=dist
 
       # saves the build to a workspace to be passed to a downstream job
@@ -172,7 +159,7 @@ jobs:
   # run ember frontend tests
   ember-test:
     docker:
-      - image: circleci/node:8-browsers
+      - image: *EMBER_IMAGE
     environment:
       EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
       EMBER_TEST_REPORT: test-results/report.xml #outputs test report for CircleCI test summary
@@ -180,7 +167,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: consul-ui-v1-{{ checksum "ui-v2/yarn.lock" }}
+          key: *YARN_CACHE_KEY
       - attach_workspace:
           at: ui-v2
       - run:
@@ -191,12 +178,12 @@ jobs:
 
 workflows:
   version: 2
-  test-apis:
+  test-integrations:
     jobs:
       - dev-build
       - nomad-integration-master:
           requires:
-            - dev-build 
+            - dev-build
       - nomad-integration-0_8:
           requires:
             - dev-build

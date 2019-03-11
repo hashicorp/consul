@@ -42,7 +42,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.tokenID == "" {
-		c.UI.Error(fmt.Sprintf("Must specify the -id paramter"))
+		c.UI.Error(fmt.Sprintf("Must specify the -id parameter"))
 		return 1
 	}
 

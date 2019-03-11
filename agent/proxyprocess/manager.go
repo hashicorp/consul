@@ -269,7 +269,7 @@ func (m *Manager) Run() {
 
 	// Start the timer for snapshots. We don't use a ticker because disk
 	// IO can be slow and we don't want overlapping notifications. So we only
-	// reset the timer once the snapshot is complete rather than continously.
+	// reset the timer once the snapshot is complete rather than continuously.
 	snapshotTimer := time.NewTimer(m.SnapshotPeriod)
 	defer snapshotTimer.Stop()
 

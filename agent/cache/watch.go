@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/consul/lib"
 )
 
-// UpdateEvent is a struct summarising an update to a cache entry
+// UpdateEvent is a struct summarizing an update to a cache entry
 type UpdateEvent struct {
 	// CorrelationID is used by the Notify API to allow correlation of updates
 	// with specific requests. We could return the full request object and
@@ -30,10 +30,10 @@ type UpdateEvent struct {
 // cache actively. It will continue to perform blocking Get requests until the
 // context is canceled.
 //
-// The passed context must be cancelled or timeout in order to free resources
+// The passed context must be canceled or timeout in order to free resources
 // and stop maintaining the value in cache. Typically request-scoped resources
 // do this but if a long-lived context like context.Background is used, then the
-// caller must arrange for it to be cancelled when the watch is no longer
+// caller must arrange for it to be canceled when the watch is no longer
 // needed.
 //
 // The passed chan may be buffered or unbuffered, if the caller doesn't consume
@@ -80,7 +80,7 @@ func (c *Cache) notifyBlockingQuery(ctx context.Context, t string, r Request, co
 	failures := uint(0)
 
 	for {
-		// Check context hasn't been cancelled
+		// Check context hasn't been canceled
 		if ctx.Err() != nil {
 			return
 		}
@@ -88,7 +88,7 @@ func (c *Cache) notifyBlockingQuery(ctx context.Context, t string, r Request, co
 		// Blocking request
 		res, meta, err := c.getWithIndex(t, r, index)
 
-		// Check context hasn't been cancelled
+		// Check context hasn't been canceled
 		if ctx.Err() != nil {
 			return
 		}
@@ -139,7 +139,7 @@ func (c *Cache) notifyPollingQuery(ctx context.Context, t string, r Request, cor
 	var lastValue interface{} = nil
 
 	for {
-		// Check context hasn't been cancelled
+		// Check context hasn't been canceled
 		if ctx.Err() != nil {
 			return
 		}
@@ -147,7 +147,7 @@ func (c *Cache) notifyPollingQuery(ctx context.Context, t string, r Request, cor
 		// Make the request
 		res, meta, err := c.getWithIndex(t, r, index)
 
-		// Check context hasn't been cancelled
+		// Check context hasn't been canceled
 		if ctx.Err() != nil {
 			return
 		}

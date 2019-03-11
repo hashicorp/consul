@@ -92,7 +92,7 @@ type ConnectManagedProxy struct {
 	// Config is the arbitrary configuration data provided with the registration.
 	Config map[string]interface{}
 
-	// Upstreams are the dependencies the proxy should setup outgoing listners for.
+	// Upstreams are the dependencies the proxy should setup outgoing listeners for.
 	Upstreams Upstreams
 
 	// ProxyService is a pointer to the local proxy's service record for

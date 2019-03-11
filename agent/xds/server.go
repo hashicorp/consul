@@ -234,7 +234,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 		case req, ok = <-reqCh:
 			if !ok {
 				// reqCh is closed when stream.Recv errors which is how we detect client
-				// going away. AFAICT the stream.Context() is only cancelled once the
+				// going away. AFAICT the stream.Context() is only canceled once the
 				// RPC method returns which it can't until we return from this one so
 				// there's no point in blocking on that.
 				return nil

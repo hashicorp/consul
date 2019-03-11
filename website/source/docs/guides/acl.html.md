@@ -165,7 +165,8 @@ Policies:
 ## Step 5: Add the Agent Token to all the Servers
 
 Our final step for configuring the servers is to assign the token to all of our
-Consul servers via the configuration file restart Consul on them one last time.
+Consul servers via the configuration file and reload the Consul service 
+on all of the servers, one last time.
 
 ```json
 {
@@ -180,6 +181,10 @@ Consul servers via the configuration file restart Consul on them one last time.
   }
 }
 ```
+
+~> Note: In Consul version 1.4.2 and older any ACL updates
+in the agent configuration file will require a full restart of the 
+Consul service. 
 
 At this point we should no longer see the coordinate warning in the servers logs, however, we should continue to see that the node information is in sync.
 

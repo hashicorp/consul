@@ -41,7 +41,7 @@ Policies can have several control levels:
 * `read`: allow the resource to be read but not modified.
 * `write`: allow the resource to be read and modified.
 * `deny`: do not allow the resource to be read or modified.
-* `list`: allows access to all the keys under a segement in the Consul KV. Note, this policy can only be used with the `key_prefix` resource and [`acl.enabled_key_list_policy`](https://www.consul.io/docs/guides/acl.html#list-policy-for-keys) must be set to true.
+* `list`: allows access to all the keys under a segment in the Consul KV. Note, this policy can only be used with the `key_prefix` resource and [`acl.enabled_key_list_policy`](https://www.consul.io/docs/guides/acl.html#list-policy-for-keys) must be set to true.
 
 When using prefix-based rules, the most specific prefix match determines the action. This
 allows for flexible rules like an empty prefix to allow read-only access to all

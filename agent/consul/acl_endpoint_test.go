@@ -955,7 +955,7 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("don't segfault when attempting to delete non existant token in secondary dc", func(t *testing.T) {
+	t.Run("don't segfault when attempting to delete non existent token in secondary dc", func(t *testing.T) {
 		fakeID, err := uuid.GenerateUUID()
 		require.NoError(t, err)
 

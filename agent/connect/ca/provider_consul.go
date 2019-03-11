@@ -368,7 +368,7 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	sn := &big.Int{}
 	sn.SetUint64(idx + 1)
 	// Sign the certificate valid from 1 minute in the past, this helps it be
-	// accepted right away even when nodes are not in close time sync accross the
+	// accepted right away even when nodes are not in close time sync across the
 	// cluster. A minute is more than enough for typical DC clock drift.
 	effectiveNow := time.Now().Add(-1 * time.Minute)
 	template := x509.Certificate{
@@ -459,7 +459,7 @@ func (c *ConsulProvider) SignIntermediate(csr *x509.CertificateRequest) (string,
 	sn := &big.Int{}
 	sn.SetUint64(idx + 1)
 	// Sign the certificate valid from 1 minute in the past, this helps it be
-	// accepted right away even when nodes are not in close time sync accross the
+	// accepted right away even when nodes are not in close time sync across the
 	// cluster. A minute is more than enough for typical DC clock drift.
 	effectiveNow := time.Now().Add(-1 * time.Minute)
 	template := x509.Certificate{
@@ -537,7 +537,7 @@ func (c *ConsulProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 	template.AuthorityKeyId = keyId
 
 	// Sign the certificate valid from 1 minute in the past, this helps it be
-	// accepted right away even when nodes are not in close time sync accross the
+	// accepted right away even when nodes are not in close time sync across the
 	// cluster. A minute is more than enough for typical DC clock drift.
 	effectiveNow := time.Now().Add(-1 * time.Minute)
 	template.NotBefore = effectiveNow
@@ -624,9 +624,9 @@ func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error
 	serialNum := &big.Int{}
 	serialNum.SetUint64(sn)
 	template := x509.Certificate{
-		SerialNumber: serialNum,
-		Subject:      pkix.Name{CommonName: name},
-		URIs:         []*url.URL{id.URI()},
+		SerialNumber:          serialNum,
+		Subject:               pkix.Name{CommonName: name},
+		URIs:                  []*url.URL{id.URI()},
 		BasicConstraintsValid: true,
 		KeyUsage: x509.KeyUsageCertSign |
 			x509.KeyUsageCRLSign |

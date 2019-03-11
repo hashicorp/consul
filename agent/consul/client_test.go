@@ -108,6 +108,7 @@ func TestClient_LANReap(t *testing.T) {
 		c.Datacenter = "dc1"
 		c.SerfFloodInterval = 100 * time.Millisecond
 		c.SerfLANConfig.ReconnectTimeout = 250 * time.Millisecond
+		c.SerfLANConfig.TombstoneTimeout = 250 * time.Millisecond
 		c.SerfLANConfig.ReapInterval = 500 * time.Millisecond
 	})
 	defer os.RemoveAll(dir2)
