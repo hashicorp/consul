@@ -1010,7 +1010,7 @@ func TestACLResolver_Client(t *testing.T) {
 		require.NoError(t, res2.err)
 		require.Equal(t, res1.authz, res2.authz)
 		require.Equal(t, int32(2), tokenReads)
-		require.Equal(t, int32(1), policyResolves)
+		require.Equal(t, int32(2), policyResolves)
 	})
 
 	t.Run("Concurrent-Policy-Resolve-Permission-Denied", func(t *testing.T) {
