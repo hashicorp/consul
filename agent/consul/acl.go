@@ -219,9 +219,12 @@ func (r *ACLResolver) fetchAndCacheTokenLegacy(token string, cached *structs.Aut
 	if err == nil {
 		parent := acl.RootAuthorizer(reply.Parent)
 		if parent == nil {
-			// TODO(rb): what if cached is nil?
-			r.cache.PutAuthorizerWithTTL(token, cached.Authorizer, cacheTTL)
-			return cached.Authorizer, acl.ErrInvalidParent
+			var authorizer acl.Authorizer
+			if cached != nil {
+				authorizer = cached.Authorizer
+			}
+			r.cache.PutAuthorizerWithTTL(token, authorizer, cacheTTL)
+			return authorizer, acl.ErrInvalidParent
 		}
 
 		var policies []*acl.Policy
@@ -293,15 +296,12 @@ func (r *ACLResolver) resolveTokenLegacy(token string) (acl.Authorizer, error) {
 	metrics.IncrCounter([]string{"acl", "token", "cache_miss"}, 1)
 
 	// Resolve the token in the background and wait on the result if we must
-	var waitChan <-chan singleflight.Result
-
-	waitForResult := entry == nil || r.config.ACLDownPolicy != "async-cache"
-
-	waitChan = r.legacyGroup.DoChan(token, func() (interface{}, error) {
+	waitChan := r.legacyGroup.DoChan(token, func() (interface{}, error) {
 		authorizer, err := r.fetchAndCacheTokenLegacy(token, entry)
 		return authorizer, err
 	})
 
+	waitForResult := entry == nil || r.config.ACLDownPolicy != "async-cache"
 	if !waitForResult {
 		// waitForResult being false requires the cacheEntry to not be nil
 		if entry.Authorizer != nil {
@@ -378,18 +378,14 @@ func (r *ACLResolver) resolveIdentityFromToken(token string) (structs.ACLIdentit
 	metrics.IncrCounter([]string{"acl", "token", "cache_miss"}, 1)
 
 	// Background a RPC request and wait on it if we must
-	var waitChan <-chan singleflight.Result
-
-	waitForResult := cacheEntry == nil || r.config.ACLDownPolicy != "async-cache"
-
-	waitChan = r.identityGroup.DoChan(token, func() (interface{}, error) {
+	waitChan := r.identityGroup.DoChan(token, func() (interface{}, error) {
 		identity, err := r.fetchAndCacheIdentityFromToken(token, cacheEntry)
 		return identity, err
 	})
 
+	waitForResult := cacheEntry == nil || r.config.ACLDownPolicy != "async-cache"
 	if !waitForResult {
 		// waitForResult being false requires the cacheEntry to not be nil
-		// TODO(rb): should this return (nil, acl.ErrNotFound) when the identity is nil?
 		return cacheEntry.Identity, nil
 	}
 
@@ -408,7 +404,6 @@ func (r *ACLResolver) resolveIdentityFromToken(token string) (structs.ACLIdentit
 }
 
 func (r *ACLResolver) fetchAndCachePoliciesForIdentity(identity structs.ACLIdentity, policyIDs []string, cached map[string]*structs.PolicyCacheEntry) (map[string]*structs.ACLPolicy, error) {
-
 	req := structs.ACLPolicyBatchGetRequest{
 		Datacenter: r.delegate.ACLDatacenter(false),
 		PolicyIDs:  policyIDs,
@@ -439,10 +434,6 @@ func (r *ACLResolver) fetchAndCachePoliciesForIdentity(identity structs.ACLIdent
 	if acl.IsErrNotFound(err) {
 		// make sure to indicate that this identity is no longer valid within
 		// the cache
-		//
-		// Note - This must be done before firing the results or else it would
-		// be possible for waiters to get woken up an get the cached identity
-		// again
 		r.cache.PutIdentity(identity.SecretToken(), nil)
 
 		// Do not touch the policy cache. Getting a top level ACL not found error
@@ -454,16 +445,11 @@ func (r *ACLResolver) fetchAndCachePoliciesForIdentity(identity structs.ACLIdent
 	if acl.IsErrPermissionDenied(err) {
 		// invalidate our ID cache so that identity resolution will take place
 		// again in the future
-		//
-		// Note - This must be done before firing the results or else it would
-		// be possible for waiters to get woken up and get the cached identity
-		// again
 		r.cache.RemoveIdentity(identity.SecretToken())
 
 		// Do not remove from the policy cache for permission denied
 		// what this does indicate is that our view of the token is out of date
 		return nil, &policyTokenError{acl.ErrPermissionDenied, identity.SecretToken()}
-
 	}
 
 	// other RPC error - use cache if available
@@ -577,35 +563,29 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 	}
 
 	// Background a RPC request and wait on it if we must
-	var waitChan <-chan singleflight.Result
+	waitChan := r.policyGroup.DoChan(identity.SecretToken(), func() (interface{}, error) {
+		policies, err := r.fetchAndCachePoliciesForIdentity(identity, fetchIDs, expCacheMap)
+		return policies, err
+	})
 
 	waitForResult := hasMissing || r.config.ACLDownPolicy != "async-cache"
-	if len(fetchIDs) > 0 {
-		waitChan = r.policyGroup.DoChan(identity.SecretToken(), func() (interface{}, error) {
-			policies, err := r.fetchAndCachePoliciesForIdentity(identity, fetchIDs, expCacheMap)
-			return policies, err
-		})
-	}
-
 	if !waitForResult {
 		// waitForResult being false requires that all the policies were cached already
 		policies = append(policies, expired...)
 		return r.filterPoliciesByScope(policies), nil
 	}
 
-	if len(fetchIDs) > 0 {
-		res := <-waitChan
+	res := <-waitChan
 
-		if res.Err != nil {
-			return nil, res.Err
-		}
+	if res.Err != nil {
+		return nil, res.Err
+	}
 
-		if res.Val != nil {
-			foundPolicies := res.Val.(map[string]*structs.ACLPolicy)
+	if res.Val != nil {
+		foundPolicies := res.Val.(map[string]*structs.ACLPolicy)
 
-			for _, policy := range foundPolicies {
-				policies = append(policies, policy)
-			}
+		for _, policy := range foundPolicies {
+			policies = append(policies, policy)
 		}
 	}
 
