@@ -668,7 +668,7 @@ func TestConfigurator_IncomingRPCConfig(t *testing.T) {
 
 func TestConfigurator_IncomingHTTPSConfig(t *testing.T) {
 	c := Configurator{base: &Config{}}
-	require.Equal(t, nextProtos, c.IncomingHTTPSConfig().NextProtos)
+	require.Equal(t, []string{"h2", "http/1.1"}, c.IncomingHTTPSConfig().NextProtos)
 }
 
 func TestConfigurator_OutgoingTLSConfigForChecks(t *testing.T) {
