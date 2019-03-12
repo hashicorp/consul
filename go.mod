@@ -45,12 +45,14 @@ require (
 	github.com/openzipkin/zipkin-go-opentracing v0.3.4
 	github.com/petar/GoLLRB v0.0.0-20130427215148-53be0d36a84c
 	github.com/peterbourgon/diskv v2.0.1+incompatible
+	github.com/philhofer/fwd v1.0.0 // indirect
 	github.com/pierrec/lz4 v2.0.3+incompatible
 	github.com/prometheus/client_golang v0.9.2
 	github.com/prometheus/client_model v0.0.0-20180712105110-5c3871d89910
 	github.com/prometheus/common v0.0.0-20181126121408-4724e9255275
 	github.com/rcrowley/go-metrics v0.0.0-20180503174638-e2704e165165
 	github.com/spf13/pflag v1.0.1
+	github.com/tinylib/msgp v1.1.0 // indirect
 	github.com/ugorji/go v0.0.0-20161130061742-9c7f9b7a2bc3
 	golang.org/x/crypto v0.0.0-20180621125126-a49355c7e3f8
 	golang.org/x/net v0.0.0-20181201002055-351d144fa1fc
@@ -61,6 +63,8 @@ require (
 	google.golang.org/appengine v1.2.0
 	google.golang.org/genproto v0.0.0-20180627194029-ff3583edef7d
 	google.golang.org/grpc v1.13.0
+	gopkg.in/DataDog/dd-trace-go.v0 v0.6.1
+	gopkg.in/DataDog/dd-trace-go.v1 v1.10.0
 	gopkg.in/inf.v0 v0.9.1
 	gopkg.in/yaml.v2 v2.2.1
 	k8s.io/api v0.0.0-20181204000039-89a74a8d264d

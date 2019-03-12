@@ -16,10 +16,10 @@ import (
 	_ "github.com/coredns/coredns/plugin/pkg/trace"
 	"github.com/coredns/coredns/request"
 
-	ddtrace "github.com/DataDog/dd-trace-go/opentracing"
 	"github.com/miekg/dns"
 	ot "github.com/opentracing/opentracing-go"
 	zipkin "github.com/openzipkin/zipkin-go-opentracing"
+	ddtrace "gopkg.in/DataDog/dd-trace-go.v0/opentracing"
 )
 
 const (
