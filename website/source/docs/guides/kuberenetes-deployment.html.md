@@ -22,7 +22,8 @@ cluster or make sure that you understand and enable the recommended security
 features. 
 
 To complete this guide successfully, you should have an existing Kubernetes
-cluster, and locally configured Helm and kubectl. If you do not have an
+cluster, and locally configured [Helm](https://helm.sh/docs/using_helm/) and 
+[kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/). If you do not have an
 existing Kubernetes cluster you can use the [Minikube with Consul guide](https://www.consul.io/docs/guides/minikube.html) to get started
 with Consul on Kubernetes. 
 
@@ -30,7 +31,7 @@ with Consul on Kubernetes.
 
 You can deploy a complete Consul datacenter using the official Helm chart. By
 default, the chart will install all the Consul components: three Consul
-servers, client agents on all nodes, and feature components. You can review the
+servers and client agents on all nodes. You can review the
 [Helm chart
 values](https://www.consul.io/docs/platform/k8s/helm.html#configuration-values-)
 to learn more about the default settings. 
@@ -162,10 +163,9 @@ gke-tier-2-cluster-default-pool-zrr0   172.20.0.20:8301  alive   client  1.4.2  
 ### Consul HTTP API
 
 You can use the Consul HTTP API by communicating to the local agent running on
-the Kubernetes node. The process requires the installation and configuration of
-an additional kubernetes API. You can read the
+the Kubernetes node. You can read the
 [documentation](https://www.consul.io/docs/platform/k8s/run.html#accessing-the-consul-http-api)
-if you are interested in setting up the HTTP API.
+if you are interested in learning more about using the Consul HTTP API with Kuberentes.
 
 ## Summary
 
