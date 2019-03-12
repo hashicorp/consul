@@ -139,7 +139,7 @@ HTTP API or by directly connecting to the pod with `kubectl`.
 
 ### Kubectl
 
-To access the pod and data directory you can start a shell with `kubectl`.
+To access the pod and data directory you can exec into the pod with `kubectl` to start a shell session.
 
 ```sh 
 $ kubectl exec -it mollified-robin-consul-server-0 /bin/ash 
