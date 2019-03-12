@@ -33,9 +33,13 @@ export const validateCursor = function(current, prev = null) {
   }
 };
 const throttle = function(configuration, prev, current) {
-  return new Promise(function(resolve, reject) {
-    setTimeout(resolve, 200);
-  });
+  return function(obj) {
+    return new Promise(function(resolve, reject) {
+      setTimeout(function() {
+        resolve(obj);
+      }, 200);
+    });
+  };
 };
 const defaultCreateEvent = function(result, configuration) {
   return {
@@ -94,9 +98,9 @@ export default function(EventSource, backoff = create5xxBackoff()) {
             }
             this.currentEvent = event;
             this.dispatchEvent(this.currentEvent);
-            const throttled = throttle(configuration, this.currentEvent, this.previousEvent);
+            const throttledResolve = throttle(configuration, this.currentEvent, this.previousEvent);
             this.previousEvent = this.currentEvent;
-            return throttled;
+            return throttledResolve(result);
           });
       }, configuration);
     }
