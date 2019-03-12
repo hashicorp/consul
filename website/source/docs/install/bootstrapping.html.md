@@ -14,7 +14,9 @@ The client nodes are mostly stateless and rely heavily on the server nodes.
 
 Before a Consul cluster can begin to service requests, 
 a server node must be elected leader. Bootstrapping is the process
-of joining these initial server nodes into a cluster.
+of joining these initial server nodes into a cluster. Read the 
+[architecture documentation](/docs/internals/architecture.html) to learn more about 
+the internals of Consul.
 
 It is recommended to have three or five total servers per datacenter. A single server deployment is _highly_ discouraged
 as data loss is inevitable in a failure scenario. Please refer to the
