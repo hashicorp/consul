@@ -35,7 +35,7 @@ servers, client agents on all nodes, and feature components. You can review the
 values](https://www.consul.io/docs/platform/k8s/helm.html#configuration-values-)
 to learn more about the default settings. 
 
-### Get the Helm Chart
+### Download the Helm Chart
 
 First, you will need to clone the official Helm chart from HashiCorp's Github
 repo.
