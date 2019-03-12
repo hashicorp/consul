@@ -332,10 +332,9 @@ func (c *Configurator) IncomingRPCConfig() *tls.Config {
 func (c *Configurator) IncomingHTTPSConfig() *tls.Config {
 	c.log("IncomingHTTPSConfig")
 	config := c.commonTLSConfig(c.verifyIncomingHTTPS())
-	config.GetConfigForClient = func(hello *tls.ClientHelloInfo) (*tls.Config, error) {
-		config := c.IncomingHTTPSConfig()
-		config.NextProtos = hello.SupportedProtos
-		return config, nil
+	config.NextProtos = []string{"h2", "http/1.1"}
+	config.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
+		return c.IncomingHTTPSConfig(), nil
 	}
 	return config
 }

@@ -667,22 +667,8 @@ func TestConfigurator_IncomingRPCConfig(t *testing.T) {
 }
 
 func TestConfigurator_IncomingHTTPSConfig(t *testing.T) {
-	c, err := NewConfigurator(Config{
-		VerifyIncomingHTTPS: true,
-		CAFile:              "../test/ca/root.cer",
-		CertFile:            "../test/key/ourdomain.cer",
-		KeyFile:             "../test/key/ourdomain.key",
-	}, nil)
-	require.NoError(t, err)
-	tlsConf := c.IncomingHTTPSConfig()
-	require.Equal(t, tls.RequireAndVerifyClientCert, tlsConf.ClientAuth)
-	require.NotNil(t, tlsConf.GetConfigForClient)
-	tlsConf, err = tlsConf.GetConfigForClient(
-		&tls.ClientHelloInfo{SupportedProtos: []string{"h2"}},
-	)
-	require.NoError(t, err)
-	require.Equal(t, tls.RequireAndVerifyClientCert, tlsConf.ClientAuth)
-	require.Equal(t, []string{"h2"}, tlsConf.NextProtos)
+	c := Configurator{base: &Config{}}
+	require.Equal(t, nextProtos, c.IncomingHTTPSConfig().NextProtos)
 }
 
 func TestConfigurator_OutgoingTLSConfigForChecks(t *testing.T) {
