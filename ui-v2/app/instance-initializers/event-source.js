@@ -34,6 +34,12 @@ export function initialize(container) {
           repo: 'repository/service/event-source',
         },
       },
+      {
+        route: 'dc/services/show',
+        services: {
+          repo: 'repository/service/event-source',
+        },
+      },
     ])
     .forEach(function(definition) {
       if (typeof definition.extend !== 'undefined') {

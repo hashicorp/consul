@@ -15,15 +15,6 @@ export default Serializer.extend({
     const headers = payload[HTTP_HEADERS_SYMBOL] || {};
     delete payload[HTTP_HEADERS_SYMBOL];
     const normalizedPayload = this.normalizePayload(payload, id, requestType);
-    const response = this._super(
-      store,
-      primaryModelClass,
-      {
-        [primaryModelClass.modelName]: normalizedPayload,
-      },
-      id,
-      requestType
-    );
     // put the meta onto the response, here this is ok
     // as JSON-API allows this and our specific data is now in
     // response[primaryModelClass.modelName]
@@ -31,7 +22,7 @@ export default Serializer.extend({
     // (which was the reason for the Symbol-like property earlier)
     // use a method modelled on ember-data methods so we have the opportunity to
     // do this on a per-model level
-    response.meta = this.normalizeMeta(
+    const meta = this.normalizeMeta(
       store,
       primaryModelClass,
       headers,
@@ -39,7 +30,19 @@ export default Serializer.extend({
       id,
       requestType
     );
-    return response;
+    if (requestType === 'queryRecord') {
+      normalizedPayload.meta = meta;
+    }
+    return this._super(
+      store,
+      primaryModelClass,
+      {
+        meta: meta,
+        [primaryModelClass.modelName]: normalizedPayload,
+      },
+      id,
+      requestType
+    );
   },
   normalizeMeta: function(store, primaryModelClass, headers, payload, id, requestType) {
     const meta = {

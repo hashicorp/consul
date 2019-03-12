@@ -1,9 +1,13 @@
 import Controller from '@ember/controller';
 import { get, set, computed } from '@ember/object';
+import { alias } from '@ember/object/computed';
 import { inject as service } from '@ember/service';
 import WithSearching from 'consul-ui/mixins/with-searching';
-export default Controller.extend(WithSearching, {
+import WithEventSource, { listen } from 'consul-ui/mixins/with-event-source';
+export default Controller.extend(WithEventSource, WithSearching, {
   dom: service('dom'),
+  notify: service('flashMessages'),
+  items: alias('item.Nodes'),
   init: function() {
     this.searchParams = {
       serviceInstance: 's',
@@ -17,6 +21,19 @@ export default Controller.extend(WithSearching, {
     // need this variable
     set(this, 'selectedTab', 'instances');
   },
+  item: listen('item').catch(function(e) {
+    if (e.target.readyState === 1) {
+      // OPEN
+      if (get(e, 'error.errors.firstObject.status') === '404') {
+        get(this, 'notify').add({
+          destroyOnClick: false,
+          sticky: true,
+          type: 'warning',
+          action: 'update',
+        });
+      }
+    }
+  }),
   searchable: computed('items', function() {
     return get(this, 'searchables.serviceInstance')
       .add(get(this, 'items'))

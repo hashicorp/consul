@@ -11,8 +11,8 @@ Feature: dc / list-blocking
       blocking: 1
       throttle: 200
     ---
-  Scenario:
-    And 3 [Model] models
+  Scenario: Viewing the listing pages
+    Given 3 [Model] models
     And a network latency of 100
     When I visit the [Page] page for yaml
     ---
@@ -27,8 +27,31 @@ Feature: dc / list-blocking
     And an external edit results in 0 [Model] models
     And pause until I see 0 [Model] models
   Where:
-    --------------------------------------------
-    | Page       | Model       | Url           |
-    | services   | service     | services      |
-    | nodes      | node        | nodes         |
-    --------------------------------------------
+    ------------------------------------------------
+    | Page       | Model       | Url               |
+    | services   | service     | services          |
+    | nodes      | node        | nodes             |
+    ------------------------------------------------
+  Scenario: Viewing detail pages with a listing
+    Given 3 [Model] models
+    And a network latency of 100
+    When I visit the [Page] page for yaml
+    ---
+      dc: dc-1
+      service: service-0
+    ---
+    Then the url should be /dc-1/[Url]
+    And pause until I see 3 [Model] models
+    And an external edit results in 5 [Model] models
+    And pause until I see 5 [Model] models
+    And an external edit results in 1 [Model] model
+    And pause until I see 1 [Model] model
+    And an external edit results in 0 [Model] models
+    And pause for 300
+    And I see the text "deregistered" in "[data-notification]"
+  Where:
+    ------------------------------------------------
+    | Page       | Model       | Url               |
+    | service    | instance    | services/service-0 |
+    ------------------------------------------------
+

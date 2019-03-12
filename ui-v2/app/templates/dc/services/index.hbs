@@ -1,7 +1,6 @@
 {{#app-view class="service list"}}
-    {{!TODO: Look at the item passed through to figure what partial to show, also move into its own service partial, for the moment keeping here for visibility}}
     {{#block-slot 'notification' as |status type|}}
-      {{partial 'dc/acls/notifications'}}
+      {{partial 'dc/services/notifications'}}
     {{/block-slot}}
     {{#block-slot 'header'}}
         <h1>

@@ -68,6 +68,10 @@ test('findBySlug returns the correct data for item endpoint', function(assert) {
           const service = payload.Nodes[0];
           service.Nodes = nodes;
           service.Tags = payload.Nodes[0].Service.Tags;
+          service.meta = {
+            date: undefined,
+            cursor: undefined,
+          };
 
           return service;
         })
