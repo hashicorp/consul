@@ -64,8 +64,6 @@ The following guides are available:
 
 * [Semaphore](/docs/guides/semaphore.html) - This guide covers using the KV store to implement a semaphore.
 
-* [Sentinel](/docs/guides/sentinel.html) - This guide covers using Sentinel for policy enforcement in Consul.
-
 * [Server Performance](/docs/guides/performance.html) - This guide covers minimum requirements for Consul servers as well as guidelines for running Consul servers in production.
 
 * [Windows Service](/docs/guides/windows-guide.html) - This guide covers how to run Consul as a service on Windows.

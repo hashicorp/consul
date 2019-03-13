@@ -279,7 +279,7 @@ EOF
 }
 ```
 
-For more detailed documentation, see the [Consul Sentinel Guide](/docs/guides/sentinel.html).
+For more detailed information, see the [Consul Sentinel documentation](/docs/agent/sentinel.html).
 
 #### Keyring Rules
 
