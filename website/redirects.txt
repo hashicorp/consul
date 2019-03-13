@@ -36,9 +36,10 @@
 # - Items are case-sensitive (please use all lowercase)
 #
 
-/api.html                 /api/index.html
-/docs/agent/http.html     /api/index.html
-/api/acl.html             /api/acl/acl.html
+/api.html                           /api/index.html
+/docs/agent/http.html               /api/index.html
+/api/acl.html                       /api/acl/acl.html
+/docs/guides/bootstrapping.html     /docs/install/bootstrapping.html
 
 # NOTE: Do not use this redirects file for intro doc links.
 #       A custom VCL (Varnish) configuration in the Fastly web admin has been
