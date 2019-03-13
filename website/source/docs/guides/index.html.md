@@ -22,8 +22,6 @@ The following guides are available:
  
 * [Autopilot](https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/autopilot) - This guide covers Autopilot, which provides automatic operator-friendly management of Consul servers.
 
-* [Bootstrapping](/docs/guides/bootstrapping.html) - This guide covers bootstrapping a new datacenter. This covers safely adding the initial Consul servers.
-
 * [Connect in Production](/docs/guides/connect-production.html) - This guide describes critical aspects of operating Consul Connect in Production.
 
 * [Connect with Envoy](/docs/guides/connect-envoy.html) - This guide will describe how to setup a development-mode Consul server and two Envoy proxies on a single machine using Docker.
