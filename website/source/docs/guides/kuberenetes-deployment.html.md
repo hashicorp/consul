@@ -30,8 +30,8 @@ with Consul on Kubernetes.
 ## Deploy Consul 
 
 You can deploy a complete Consul datacenter using the official Helm chart. By
-default, the chart will install all the Consul components: three Consul
-servers and client agents on all nodes. You can review the
+default, the chart will install three Consul
+servers and client on all Kubernetes nodes. You can review the
 [Helm chart
 values](https://www.consul.io/docs/platform/k8s/helm.html#configuration-values-)
 to learn more about the default settings. 
@@ -101,15 +101,16 @@ syncCatalog:
 ui: 
   service: 
     type: "LoadBalancer" 
-affinity: |
-  podAntiAffinity:
-    requiredDuringSchedulingIgnoredDuringExecution:
-      - labelSelector:
-          matchLabels:
-            app: {{ template "consul.name" . }}
-            release: "{{ .Release.Name }}"
-            component: server
-      topologyKey: kubernetes.io/hostname
+server: 
+  affinity: |
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app: {{ template "consul.name" . }}
+              release: "{{ .Release.Name }}"
+              component: server
+        topologyKey: kubernetes.io/hostname
 ```
 
 This file renames your datacenter, enables catalog sync, sets up a load
@@ -147,6 +148,7 @@ Consul and Kubernetes services bidirectionally by
 default.
 
 ```
+$ kubectl get pods
 NAME                                                 READY   STATUS      RESTARTS   AGE
 mollified-robin-consul-d8mnp                          1/1     Running     0         15d
 mollified-robin-consul-p4m89                          1/1     Running     0         15d
