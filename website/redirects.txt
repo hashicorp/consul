@@ -40,6 +40,7 @@
 /docs/agent/http.html               /api/index.html
 /api/acl.html                       /api/acl/acl.html
 /docs/guides/bootstrapping.html     /docs/install/bootstrapping.html
+/docs/guides/sentinel.html          /docs/agent/sentinel.html
 
 # NOTE: Do not use this redirects file for intro doc links.
 #       A custom VCL (Varnish) configuration in the Fastly web admin has been
