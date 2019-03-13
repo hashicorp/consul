@@ -192,7 +192,7 @@ gke-tier-2-cluster-default-pool-zrr0   172.20.0.20:8301  alive   client  1.4.2  
 You can use the Consul HTTP API by communicating to the local agent running on
 the Kubernetes node. You can read the
 [documentation](https://www.consul.io/docs/platform/k8s/run.html#accessing-the-consul-http-api)
-if you are interested in learning more about using the Consul HTTP API with Kuberntes.
+if you are interested in learning more about using the Consul HTTP API with Kubernetes.
 
 ## Summary
 
