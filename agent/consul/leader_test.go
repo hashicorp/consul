@@ -955,20 +955,15 @@ func TestLeader_ChangeServerID(t *testing.T) {
 
 func TestLeader_ChangeNodeID(t *testing.T) {
 	t.Parallel()
-	conf := func(c *Config) {
-		c.Bootstrap = false
-		c.BootstrapExpect = 3
-		c.Datacenter = "dc1"
-	}
-	dir1, s1 := testServerWithConfig(t, conf)
+	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	dir2, s2 := testServerWithConfig(t, conf)
+	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
 
-	dir3, s3 := testServerWithConfig(t, conf)
+	dir3, s3 := testServerDCBootstrap(t, "dc1", false)
 	defer os.RemoveAll(dir3)
 	defer s3.Shutdown()
 
@@ -986,18 +981,18 @@ func TestLeader_ChangeNodeID(t *testing.T) {
 	s3.Shutdown()
 
 	retry.Run(t, func(r *retry.R) {
-		alive := 0
+		failed := 0
 		for _, m := range s1.LANMembers() {
-			if m.Status == serf.StatusAlive {
-				alive++
+			if m.Status == serf.StatusFailed {
+				failed++
 			}
 		}
-		if got, want := alive, 2; got != want {
-			r.Fatalf("got %d alive members want %d", got, want)
+		if got, want := failed, 1; got != want {
+			r.Fatalf("got %d failed members want %d", got, want)
 		}
 	})
 
-	// Bring up a new server with s3's address that will get a different ID
+	// Bring up a new server with s3's name that will get a different ID
 	dir4, s4 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
 		c.Datacenter = "dc1"
@@ -1008,7 +1003,7 @@ func TestLeader_ChangeNodeID(t *testing.T) {
 	joinLAN(t, s4, s1)
 	servers[2] = s4
 
-	// Make sure the dead server is removed and we're back to 3 total peers
+	// Make sure the dead server is gone from both Raft and Serf and we're back to 3 total peers
 	retry.Run(t, func(r *retry.R) {
 		r.Check(wantRaft(servers))
 		for _, s := range servers {
