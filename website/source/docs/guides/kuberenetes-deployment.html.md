@@ -1,7 +1,7 @@
 ---
 layout: "docs"
-page_title: "Deploy Consul with Kuberenetes"
-sidebar_current: "docs-guides-kuberentes"
+page_title: "Deploy Consul with Kubernetes"
+sidebar_current: "docs-guides-kuberntes"
 description: |-
   Deploy Consul on Kubernetes with the official Helm chart.
 ---
@@ -101,10 +101,21 @@ syncCatalog:
 ui: 
   service: 
     type: "LoadBalancer" 
+affinity: |
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchLabels:
+            app: {{ template "consul.name" . }}
+            release: "{{ .Release.Name }}"
+            component: server
+      topologyKey: kubernetes.io/hostname
 ```
 
-This file renames your datacenter, enables catalog sync, and sets up a load
-balancer service for the UI. The catalog sync parameters will allow you to see
+This file renames your datacenter, enables catalog sync, sets up a load
+balancer service for the UI, and enables [affinity](https://www.consul.io/docs/platform/k8s/helm.html#v-server-affinity) to allow only one 
+Consul pod per Kubernetes node. 
+The catalog sync parameters will allow you to see
 the Kubernetes services in the Consul UI. 
 
 ### Initiate Rolling Upgrade 
@@ -118,7 +129,7 @@ processes should also be quick, less than a minute.
 $ helm upgrade consul -f values.yaml 
 ```
 
-You can now use `kubectl` to discover the external IP of your Consul UI.
+You can now use `kubectl get services` to discover the external IP of your Consul UI.
 
 ```sh 
 $ kubectl get services 
@@ -128,6 +139,22 @@ kubernetes                      ClusterIP      122.16.14.1    <none>            
 mollified-robin-consul-dns      ClusterIP      122.16.14.25   <none>                  53/TCP,53/UDP  13d
 mollified-robin-consul-server   ClusterIP      None           <none>                  8500/TCP       13d
 mollified-robin-consul-ui       LoadBalancer   122.16.31.395  36.276.67.195           80:32718/TCP   13d
+```
+
+Additionally, you can use `kubectl get pods` to view the new catalog sync
+process. The [catalog sync](https://www.consul.io/docs/platform/k8s/helm.html#v-synccatalog) process will sync 
+Consul and Kubernetes services bidirectionally by 
+default.
+
+```
+NAME                                                 READY   STATUS      RESTARTS   AGE
+mollified-robin-consul-d8mnp                          1/1     Running     0         15d
+mollified-robin-consul-p4m89                          1/1     Running     0         15d
+mollified-robin-consul-qclqc                          1/1     Running     0         15d
+mollified-robin-consul-server-0                       1/1     Running     0         15d
+mollified-robin-consul-server-1                       1/1     Running     0         15d
+mollified-robin-consul-server-2                       1/1     Running     0         15d
+mollified-robin-consul-sync-catalog-f75cd5846-wjfdk   1/1     Running     0         13d
 ```
 
 The service should have `consul-ui` appended to the deployment name. Note, you
@@ -143,7 +170,7 @@ HTTP API or by directly connecting to the pod with `kubectl`.
 To access the pod and data directory you can exec into the pod with `kubectl` to start a shell session.
 
 ```sh 
-$ kubectl exec -it mollified-robin-consul-server-0 /bin/ash 
+$ kubectl exec -it mollified-robin-consul-server-0 /bin/sh 
 ```
 
 This will allow you to navigate the file system and run Consul CLI commands on
@@ -165,7 +192,7 @@ gke-tier-2-cluster-default-pool-zrr0   172.20.0.20:8301  alive   client  1.4.2  
 You can use the Consul HTTP API by communicating to the local agent running on
 the Kubernetes node. You can read the
 [documentation](https://www.consul.io/docs/platform/k8s/run.html#accessing-the-consul-http-api)
-if you are interested in learning more about using the Consul HTTP API with Kuberentes.
+if you are interested in learning more about using the Consul HTTP API with Kuberntes.
 
 ## Summary
 
