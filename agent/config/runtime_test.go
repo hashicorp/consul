@@ -5434,6 +5434,7 @@ func TestRuntime_ToTLSUtilConfig(t *testing.T) {
 		VerifyIncomingRPC:           true,
 		VerifyIncomingHTTPS:         true,
 		VerifyOutgoing:              true,
+		VerifyServerHostname:        true,
 		CAFile:                      "a",
 		CAPath:                      "b",
 		CertFile:                    "c",
@@ -5450,6 +5451,7 @@ func TestRuntime_ToTLSUtilConfig(t *testing.T) {
 	require.Equal(t, c.VerifyIncomingRPC, r.VerifyIncomingRPC)
 	require.Equal(t, c.VerifyIncomingHTTPS, r.VerifyIncomingHTTPS)
 	require.Equal(t, c.VerifyOutgoing, r.VerifyOutgoing)
+	require.Equal(t, c.VerifyServerHostname, r.VerifyServerHostname)
 	require.Equal(t, c.CAFile, r.CAFile)
 	require.Equal(t, c.CAPath, r.CAPath)
 	require.Equal(t, c.CertFile, r.CertFile)

@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -3366,11 +3367,7 @@ func TestAgent_SetupProxyManager(t *testing.T) {
 		ports { http = -1 }
 		data_dir = "` + dataDir + `"
 	`
-	c := TestConfig(
-		// randomPortsSource(false),
-		config.Source{Name: t.Name(), Format: "hcl", Data: hcl},
-	)
-	a, err := New(c)
+	a, err := NewUnstartedAgent(t, t.Name(), hcl)
 	require.NoError(t, err)
 	require.Error(t, a.setupProxyManager(), "setupProxyManager should fail with invalid HTTP API config")
 
@@ -3378,11 +3375,7 @@ func TestAgent_SetupProxyManager(t *testing.T) {
 		ports { http = 8001 }
 		data_dir = "` + dataDir + `"
 	`
-	c = TestConfig(
-		// randomPortsSource(false),
-		config.Source{Name: t.Name(), Format: "hcl", Data: hcl},
-	)
-	a, err = New(c)
+	a, err = NewUnstartedAgent(t, t.Name(), hcl)
 	require.NoError(t, err)
 	require.NoError(t, a.setupProxyManager())
 }
@@ -3542,4 +3535,108 @@ func TestAgent_loadTokens(t *testing.T) {
 		require.Equal("charlie", a.tokens.AgentMasterToken())
 		require.Equal("foxtrot", a.tokens.ReplicationToken())
 	})
+}
+
+func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
+	t.Parallel()
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	defer os.RemoveAll(dataDir)
+	hcl := `
+		data_dir = "` + dataDir + `"
+		verify_outgoing = true
+		ca_file = "../test/ca/root.cer"
+		cert_file = "../test/key/ourdomain.cer"
+		key_file = "../test/key/ourdomain.key"
+		verify_server_hostname = false
+	`
+	a, err := NewUnstartedAgent(t, t.Name(), hcl)
+	require.NoError(t, err)
+	tlsConf := a.tlsConfigurator.OutgoingRPCConfig()
+	require.True(t, tlsConf.InsecureSkipVerify)
+	require.Len(t, tlsConf.ClientCAs.Subjects(), 1)
+	require.Len(t, tlsConf.RootCAs.Subjects(), 1)
+
+	hcl = `
+		data_dir = "` + dataDir + `"
+		verify_outgoing = true
+		ca_path = "../test/ca_path"
+		cert_file = "../test/key/ourdomain.cer"
+		key_file = "../test/key/ourdomain.key"
+		verify_server_hostname = true
+	`
+	c := TestConfig(config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
+	require.NoError(t, a.ReloadConfig(c))
+	tlsConf = a.tlsConfigurator.OutgoingRPCConfig()
+	require.False(t, tlsConf.InsecureSkipVerify)
+	require.Len(t, tlsConf.RootCAs.Subjects(), 2)
+	require.Len(t, tlsConf.ClientCAs.Subjects(), 2)
+}
+
+func TestAgent_ReloadConfigIncomingRPCConfig(t *testing.T) {
+	t.Parallel()
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	defer os.RemoveAll(dataDir)
+	hcl := `
+		data_dir = "` + dataDir + `"
+		verify_outgoing = true
+		ca_file = "../test/ca/root.cer"
+		cert_file = "../test/key/ourdomain.cer"
+		key_file = "../test/key/ourdomain.key"
+		verify_server_hostname = false
+	`
+	a, err := NewUnstartedAgent(t, t.Name(), hcl)
+	require.NoError(t, err)
+	tlsConf := a.tlsConfigurator.IncomingRPCConfig()
+	require.NotNil(t, tlsConf.GetConfigForClient)
+	tlsConf, err = tlsConf.GetConfigForClient(nil)
+	require.NoError(t, err)
+	require.NotNil(t, tlsConf)
+	require.True(t, tlsConf.InsecureSkipVerify)
+	require.Len(t, tlsConf.ClientCAs.Subjects(), 1)
+	require.Len(t, tlsConf.RootCAs.Subjects(), 1)
+
+	hcl = `
+		data_dir = "` + dataDir + `"
+		verify_outgoing = true
+		ca_path = "../test/ca_path"
+		cert_file = "../test/key/ourdomain.cer"
+		key_file = "../test/key/ourdomain.key"
+		verify_server_hostname = true
+	`
+	c := TestConfig(config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
+	require.NoError(t, a.ReloadConfig(c))
+	tlsConf, err = tlsConf.GetConfigForClient(nil)
+	require.NoError(t, err)
+	require.False(t, tlsConf.InsecureSkipVerify)
+	require.Len(t, tlsConf.ClientCAs.Subjects(), 2)
+	require.Len(t, tlsConf.RootCAs.Subjects(), 2)
+}
+
+func TestAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
+	t.Parallel()
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	defer os.RemoveAll(dataDir)
+	hcl := `
+		data_dir = "` + dataDir + `"
+		verify_outgoing = true
+		ca_file = "../test/ca/root.cer"
+		cert_file = "../test/key/ourdomain.cer"
+		key_file = "../test/key/ourdomain.key"
+		verify_server_hostname = false
+	`
+	a, err := NewUnstartedAgent(t, t.Name(), hcl)
+	require.NoError(t, err)
+	tlsConf := a.tlsConfigurator.IncomingRPCConfig()
+
+	hcl = `
+		data_dir = "` + dataDir + `"
+		verify_incoming = true
+	`
+	c := TestConfig(config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
+	require.Error(t, a.ReloadConfig(c))
+	tlsConf, err = tlsConf.GetConfigForClient(nil)
+	require.NoError(t, err)
+	require.Equal(t, tls.NoClientCert, tlsConf.ClientAuth)
+	require.Len(t, tlsConf.ClientCAs.Subjects(), 1)
+	require.Len(t, tlsConf.RootCAs.Subjects(), 1)
 }

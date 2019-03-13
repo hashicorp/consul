@@ -1731,6 +1731,8 @@ items which are reloaded include:
 * Services
 * Watches
 * HTTP Client Address
+* TLS Configuration
+  * Please be aware that this is currently limited to reload a configuration that is already TLS enabled. You cannot enable or disable TLS only with reloading.
 * <a href="#node_meta">Node Metadata</a>
 * <a href="#telemetry-prefix_filter">Metric Prefix Filter</a>
 * <a href="#discard_check_output">Discard Check Output</a>

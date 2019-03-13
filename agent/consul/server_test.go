@@ -179,7 +179,11 @@ func newServer(c *Config) (*Server, error) {
 		w = os.Stderr
 	}
 	logger := log.New(w, c.NodeName+" - ", log.LstdFlags|log.Lmicroseconds)
-	srv, err := NewServerLogger(c, logger, new(token.Store), tlsutil.NewConfigurator(c.ToTLSUtilConfig()))
+	tlsConf, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), logger)
+	if err != nil {
+		return nil, err
+	}
+	srv, err := NewServerLogger(c, logger, new(token.Store), tlsConf)
 	if err != nil {
 		return nil, err
 	}
