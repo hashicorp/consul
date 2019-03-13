@@ -136,10 +136,9 @@ and consider if they're appropriate for your deployment.
             "log_level": "DEBUG"
           }
         ```
+        This can also be set using Helm's `--set` flag (consul-helm v0.7.0 and later), using the following syntax:
 
-  This can also be set using Helm's `--set` flag (consul-helm v0.7.0 and later), using the following syntax:
-
-        ```
+        ```shell
         --set 'server.extraConfig="{"log_level": "DEBUG"}"'
         ```
 
@@ -212,10 +211,9 @@ and consider if they're appropriate for your deployment.
             "log_level": "DEBUG"
           }
         ```
+        This can also be set using Helm's `--set` flag (consul-helm v0.7.0 and later), using the following syntax:
 
-  This can also be set using Helm's `--set` flag (consul-helm v0.7.0 and later), using the following syntax:
-
-        ```
+        ```shell
         --set 'client.extraConfig="{"log_level": "DEBUG"}"'
         ```
 
