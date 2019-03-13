@@ -1,8 +1,11 @@
 ## UNRELEASED
 
+FEATURES:
+* agent: (Consul Enterprise) Snapshot agent can now use Azure Blob Storage for automated backups.
+
 BUG FIXES:
 
- * api: Fixed a bug where updating node information wasn't reflected in health result index. [[GH-5450](https://github.com/hashicorp/consul/issues/5450)]
+* api: Fixed a bug where updating node information wasn't reflected in health result index. [[GH-5450](https://github.com/hashicorp/consul/issues/5450)]
 
 ## 1.4.3 (March 5, 2019)
 
