@@ -1,3 +1,5 @@
+// +build etcd
+
 package etcd
 
 import (
@@ -126,6 +128,5 @@ func TestSetupEtcd(t *testing.T) {
 				}
 			}
 		}
-
 	}
 }

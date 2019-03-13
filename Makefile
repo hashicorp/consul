@@ -22,21 +22,21 @@ check: presubmit core/plugin/zplugin.go core/dnsserver/zdirectives.go
 .PHONY: travis
 travis:
 ifeq ($(TEST_TYPE),core)
-	( cd request ; GO111MODULE=on go test -v  -tags 'etcd' -race ./... )
-	( cd core ; GO111MODULE=on go test -v  -tags 'etcd' -race  ./... )
-	( cd coremain ; GO111MODULE=on go test -v  -tags 'etcd' -race ./... )
+	( cd request ; GO111MODULE=on go test -v -race ./... )
+	( cd core ; GO111MODULE=on go test -v -race  ./... )
+	( cd coremain ; GO111MODULE=on go test -v -race ./... )
 endif
 ifeq ($(TEST_TYPE),integration)
-	( cd test ; GO111MODULE=on go test -v  -tags 'etcd' -race ./... )
+	( cd test ; GO111MODULE=on go test -v -race ./... )
 endif
 ifeq ($(TEST_TYPE),plugin)
-	( cd plugin ; GO111MODULE=on go test -v  -tags 'etcd' -race ./... )
+	( cd plugin ; GO111MODULE=on go test -v -race ./... )
 endif
 ifeq ($(TEST_TYPE),coverage)
 	for d in `go list ./... | grep -v vendor`; do \
 		t=$$(date +%s); \
-		GO111MODULE=on go test -i -tags 'etcd' -coverprofile=cover.out -covermode=atomic $$d || exit 1; \
-		GO111MODULE=on go test -v -tags 'etcd' -coverprofile=cover.out -covermode=atomic $$d || exit 1; \
+		GO111MODULE=on go test -i -coverprofile=cover.out -covermode=atomic $$d || exit 1; \
+		GO111MODULE=on go test -v -coverprofile=cover.out -covermode=atomic $$d || exit 1; \
 		echo "Coverage test $$d took $$(($$(date +%s)-t)) seconds"; \
 		if [ -f cover.out ]; then \
 			cat cover.out >> coverage.txt; \
