@@ -1332,10 +1332,6 @@ AFTER_CHECK:
 			Status:  api.HealthPassing,
 			Output:  structs.SerfCheckAliveOutput,
 		},
-
-		// If there's existing information about the node, do not
-		// clobber it.
-		//SkipNodeUpdate: true,
 	}
 	if node != nil {
 		req.TaggedAddresses = node.TaggedAddresses

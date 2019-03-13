@@ -375,16 +375,16 @@ func (s *Store) ensureNoNodeWithSimilarNameTxn(tx *memdb.Txn, node *structs.Node
 			if err != nil {
 				return fmt.Errorf("Cannot get status of node %s: %s", enode.Node, err)
 			}
-			if enodeCheck == nil {
-				return fmt.Errorf("Cannot rename node %s: Serf health check not found for existing node", enode.Node)
+
+			var nodeHealthy bool
+			if enodeCheck != nil {
+				enodeSerfCheck, ok := enodeCheck.(*structs.HealthCheck)
+				if ok {
+					nodeHealthy = enodeSerfCheck.Status != api.HealthCritical
+				}
 			}
 
-			enodeSerfCheck, ok := enodeCheck.(*structs.HealthCheck)
-			if !ok {
-				return fmt.Errorf("Existing node %q's Serf health check has type %T", enode.Node, enodeSerfCheck)
-			}
-
-			if !((enode.ID == "" || enodeSerfCheck.Status == api.HealthCritical) && allowClashWithoutID) {
+			if !(enode.ID == "" && allowClashWithoutID) && nodeHealthy {
 				return fmt.Errorf("Node name %s is reserved by node %s with name %s", node.Node, enode.ID, enode.Node)
 			}
 		}

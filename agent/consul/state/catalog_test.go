@@ -84,6 +84,11 @@ func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
 		Address:         "1.2.3.4",
 		TaggedAddresses: map[string]string{"hello": "world"},
 		NodeMeta:        map[string]string{"somekey": "somevalue"},
+		Check: &structs.HealthCheck{
+			Node:    "node1",
+			CheckID: structs.SerfCheckID,
+			Status:  api.HealthPassing,
+		},
 	}
 	if err := s.EnsureRegistration(1, req); err != nil {
 		t.Fatalf("err: %s", err)
@@ -92,6 +97,11 @@ func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
 		ID:      types.NodeID(""),
 		Node:    "node2",
 		Address: "10.0.0.1",
+		Check: &structs.HealthCheck{
+			Node:    "node2",
+			CheckID: structs.SerfCheckID,
+			Status:  api.HealthPassing,
+		},
 	}
 	if err := s.EnsureRegistration(2, req); err != nil {
 		t.Fatalf("err: %s", err)
@@ -119,6 +129,23 @@ func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
 		t.Fatalf("Should not clash with another similar node name without ID, err:=%q", err)
 	}
 
+	// Set node1's Serf health to failing and replace it.
+	newNode := &structs.Node{
+		ID:      makeRandomNodeID(t),
+		Node:    "node1",
+		Address: "2.3.4.5",
+	}
+	if err := s.ensureNoNodeWithSimilarNameTxn(tx, newNode, false); err == nil {
+		t.Fatalf("Should return an error since the previous node is still healthy")
+	}
+	s.ensureCheckTxn(tx, 5, &structs.HealthCheck{
+		Node:    "node1",
+		CheckID: structs.SerfCheckID,
+		Status:  api.HealthCritical,
+	})
+	if err := s.ensureNoNodeWithSimilarNameTxn(tx, newNode, false); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestStateStore_EnsureRegistration(t *testing.T) {
@@ -599,6 +626,13 @@ func TestNodeRenamingNodes(t *testing.T) {
 	if err := s.EnsureNode(1, in1); err != nil {
 		t.Fatalf("err: %s", err)
 	}
+	if err := s.EnsureCheck(2, &structs.HealthCheck{
+		Node:    "node1",
+		CheckID: structs.SerfCheckID,
+		Status:  api.HealthPassing,
+	}); err != nil {
+		t.Fatalf("err: %s", err)
+	}
 
 	// Node2 with ID
 	in2 := &structs.Node{
@@ -607,7 +641,14 @@ func TestNodeRenamingNodes(t *testing.T) {
 		Address: "1.1.1.2",
 	}
 
-	if err := s.EnsureNode(2, in2); err != nil {
+	if err := s.EnsureNode(3, in2); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := s.EnsureCheck(4, &structs.HealthCheck{
+		Node:    "node2",
+		CheckID: structs.SerfCheckID,
+		Status:  api.HealthPassing,
+	}); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -617,7 +658,14 @@ func TestNodeRenamingNodes(t *testing.T) {
 		Address: "1.1.1.3",
 	}
 
-	if err := s.EnsureNode(3, in3); err != nil {
+	if err := s.EnsureNode(5, in3); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := s.EnsureCheck(6, &structs.HealthCheck{
+		Node:    "node3",
+		CheckID: structs.SerfCheckID,
+		Status:  api.HealthPassing,
+	}); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -635,7 +683,7 @@ func TestNodeRenamingNodes(t *testing.T) {
 		Node:    "node1",
 		Address: "1.1.1.2",
 	}
-	if err := s.EnsureNode(4, in2Modify); err == nil {
+	if err := s.EnsureNode(7, in2Modify); err == nil {
 		t.Fatalf("Renaming node2 into node1 should fail")
 	}
 
@@ -645,7 +693,7 @@ func TestNodeRenamingNodes(t *testing.T) {
 		Node:    "NoDe1",
 		Address: "1.1.1.2",
 	}
-	if err := s.EnsureNode(5, in2Modify); err == nil {
+	if err := s.EnsureNode(8, in2Modify); err == nil {
 		t.Fatalf("Renaming node2 into node1 should fail")
 	}
 
@@ -655,7 +703,7 @@ func TestNodeRenamingNodes(t *testing.T) {
 		Node:    "NoDe3",
 		Address: "1.1.1.2",
 	}
-	if err := s.EnsureNode(6, in2Modify); err == nil {
+	if err := s.EnsureNode(9, in2Modify); err == nil {
 		t.Fatalf("Renaming node2 into node1 should fail")
 	}
 
@@ -665,7 +713,7 @@ func TestNodeRenamingNodes(t *testing.T) {
 		Node:    "node2bis",
 		Address: "1.1.1.2",
 	}
-	if err := s.EnsureNode(6, in2Modify); err != nil {
+	if err := s.EnsureNode(10, in2Modify); err != nil {
 		t.Fatalf("Renaming node2 into node1 should fail")
 	}
 
@@ -825,13 +873,22 @@ func TestStateStore_EnsureNode(t *testing.T) {
 
 	newNodeID := types.NodeID("d0347693-65cc-4d9f-a6e0-5025b2e6513f")
 
+	// Set a Serf check on the new node to inform whether to allow changing ID
+	if err := s.EnsureCheck(8, &structs.HealthCheck{
+		Node:    "node1-renamed",
+		CheckID: structs.SerfCheckID,
+		Status:  api.HealthPassing,
+	}); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
 	// Adding another node with same name should fail
 	in = &structs.Node{
 		Node:    "node1-renamed",
 		ID:      newNodeID,
 		Address: "1.1.1.7",
 	}
-	if err := s.EnsureNode(8, in); err == nil {
+	if err := s.EnsureNode(9, in); err == nil {
 		t.Fatalf("There should be an error since node1-renamed already exists")
 	}
 
@@ -841,7 +898,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 		ID:      newNodeID,
 		Address: "1.1.1.7",
 	}
-	if err := s.EnsureNode(8, in); err == nil {
+	if err := s.EnsureNode(9, in); err == nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -851,7 +908,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 		ID:      newNodeID,
 		Address: "1.1.1.7",
 	}
-	if err := s.EnsureNode(9, in); err != nil {
+	if err := s.EnsureNode(10, in); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -867,7 +924,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 		ID:      newNodeID,
 		Address: "1.1.1.7",
 	}
-	if err := s.EnsureNode(9, in); err != nil {
+	if err := s.EnsureNode(10, in); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -877,10 +934,10 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	}
 
 	// Node and indexes were updated
-	if out.ID != newNodeID || out.CreateIndex != 9 || out.ModifyIndex != 9 || out.Address != "1.1.1.7" || out.Node != "Node1bis" {
+	if out.ID != newNodeID || out.CreateIndex != 10 || out.ModifyIndex != 10 || out.Address != "1.1.1.7" || out.Node != "Node1bis" {
 		t.Fatalf("bad: %#v", out)
 	}
-	if idx != 9 {
+	if idx != 10 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
@@ -891,7 +948,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 		ID:      newNodeID,
 		Address: "1.1.1.7",
 	}
-	if err := s.EnsureNode(10, in); err == nil {
+	if err := s.EnsureNode(11, in); err == nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -901,7 +958,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 		ID:      newNodeID,
 		Address: "1.1.1.7",
 	}
-	if err := s.EnsureNode(10, in); err == nil {
+	if err := s.EnsureNode(11, in); err == nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -911,7 +968,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 		ID:      newNodeID,
 		Address: "1.1.1.7",
 	}
-	if err := s.EnsureNode(11, in); err != nil {
+	if err := s.EnsureNode(12, in); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	idx, out, err = s.GetNode("Node1-Renamed2")
@@ -920,10 +977,10 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	}
 
 	// Node and indexes were updated
-	if out.ID != newNodeID || out.CreateIndex != 9 || out.ModifyIndex != 11 || out.Address != "1.1.1.7" || out.Node != "Node1-Renamed2" {
+	if out.ID != newNodeID || out.CreateIndex != 10 || out.ModifyIndex != 12 || out.Address != "1.1.1.7" || out.Node != "Node1-Renamed2" {
 		t.Fatalf("bad: %#v", out)
 	}
-	if idx != 11 {
+	if idx != 12 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
@@ -931,27 +988,27 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	// See https://github.com/hashicorp/consul/pull/3983 for context
 
 	// Deprecated behavior is following
-	deprecatedEnsureNodeWithoutIDCanRegister(t, s, "new-node-without-id", 12)
+	deprecatedEnsureNodeWithoutIDCanRegister(t, s, "new-node-without-id", 13)
 
 	// Deprecated, but should work as well
-	deprecatedEnsureNodeWithoutIDCanRegister(t, s, "new-node-without-id", 13)
+	deprecatedEnsureNodeWithoutIDCanRegister(t, s, "new-node-without-id", 14)
 
 	// All of this is deprecated as well, should be removed
 	in = &structs.Node{
 		Node:    "Node1-Renamed2",
 		Address: "1.1.1.66",
 	}
-	if err := s.EnsureNode(14, in); err != nil {
+	if err := s.EnsureNode(15, in); err != nil {
 		t.Fatalf("[DEPRECATED] it should work, err:= %q", err)
 	}
 	idx, out, err = s.GetNode("Node1-Renamed2")
 	if err != nil {
 		t.Fatalf("[DEPRECATED] err: %s", err)
 	}
-	if out.CreateIndex != 9 {
+	if out.CreateIndex != 10 {
 		t.Fatalf("[DEPRECATED] We expected to modify node previously added, but add index = %d for node %q", out.CreateIndex, out)
 	}
-	if out.Address != "1.1.1.66" || out.ModifyIndex != 14 {
+	if out.Address != "1.1.1.66" || out.ModifyIndex != 15 {
 		t.Fatalf("[DEPRECATED] Node with newNodeID should have been updated, but was: %d with content := %q", out.CreateIndex, out)
 	}
 }
