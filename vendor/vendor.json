@@ -146,7 +146,7 @@
 		{"path":"github.com/hashicorp/hil","checksumSHA1":"kqCMCHy2b+RBMKC+ER+OPqp8C3E=","revision":"1e86c6b523c55d1fa6c6e930ce80b548664c95c2","revisionTime":"2016-07-11T23:18:37Z"},
 		{"path":"github.com/hashicorp/hil/ast","checksumSHA1":"UICubs001+Q4MsUf9zl2vcMzWQQ=","revision":"1e86c6b523c55d1fa6c6e930ce80b548664c95c2","revisionTime":"2016-07-11T23:18:37Z"},
 		{"path":"github.com/hashicorp/logutils","checksumSHA1":"vt+P9D2yWDO3gdvdgCzwqunlhxU=","revision":"0dc08b1671f34c4250ce212759ebd880f743d883","revisionTime":"2015-06-09T07:04:31Z"},
-		{"path":"github.com/hashicorp/memberlist","checksumSHA1":"j4pWTjW3SFOPVwWBEZPuNHETnLE=","revision":"b38abf62d7f3ce5225722cd62a90cfb098e02519","revisionTime":"2019-02-04T18:04:39Z"},
+		{"path":"github.com/hashicorp/memberlist","checksumSHA1":"8aXKnwU1vIeum/LaFtp2O6H0/+Y=","revision":"11f323a32dc835ba6ce39cde2b04919a6bfd32ec","revisionTime":"2019-03-13T22:54:10Z"},
 		{"path":"github.com/hashicorp/net-rpc-msgpackrpc","checksumSHA1":"qnlqWJYV81ENr61SZk9c65R1mDo=","revision":"a14192a58a694c123d8fe5481d4a4727d6ae82f3","revisionTime":"2015-11-16T02:03:38Z"},
 		{"path":"github.com/hashicorp/raft","checksumSHA1":"3U9bQLEMikE47n4TZP6uOdgXIyQ=","revision":"da92cfe76e0c1c9b94bbc9d884ec4b2b3b90b699","revisionTime":"2018-08-17T18:12:11Z","version":"master","versionExact":"master"},
 		{"path":"github.com/hashicorp/raft-boltdb","checksumSHA1":"QAxukkv54/iIvLfsUP6IK4R0m/A=","revision":"d1e82c1ec3f15ee991f7cc7ffd5b67ff6f5bbaee","revisionTime":"2015-02-01T20:08:39Z"},
