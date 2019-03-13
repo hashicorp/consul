@@ -8,6 +8,10 @@ language: go
 go:
   - "1.12.x"
 
+cache:
+  directories:
+    - $GOPATH/pkg/mod
+
 go_import_path: github.com/coredns/coredns
 
 git:
