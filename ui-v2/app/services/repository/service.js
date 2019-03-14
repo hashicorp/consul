@@ -46,6 +46,7 @@ export default RepositoryService.extend({
         service.NodeChecks = item.Nodes[i].Checks.filter(function(item) {
           return item.ServiceID == '';
         });
+        set(service, 'meta', get(item, 'meta'));
         return service;
       }
       // TODO: Add an store.error("404", "message") or similar

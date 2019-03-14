@@ -13,6 +13,9 @@ export default Route.extend({
     return hash({
       item: repo.findInstanceBySlug(params.id, params.name, dc),
     }).then(function(model) {
+      // this will not be run in a blocking loop, but this is ok as
+      // its highly unlikely that a service will suddenly change to being a
+      // connect-proxy or vice versa so leave as is for now
       return hash({
         proxy:
           get(model.item, 'Kind') === 'connect-proxy'

@@ -5,7 +5,7 @@ export function initialize(container) {
   if (config[enabled] || window.localStorage.getItem(enabled) !== null) {
     return;
   }
-  ['node', 'service']
+  ['node', 'service', 'proxy']
     .map(function(item) {
       // create repositories that return a promise resolving to an EventSource
       return {
@@ -38,6 +38,13 @@ export function initialize(container) {
         route: 'dc/services/show',
         services: {
           repo: 'repository/service/event-source',
+        },
+      },
+      {
+        route: 'dc/services/instance',
+        services: {
+          repo: 'repository/service/event-source',
+          proxyRepo: 'repository/proxy/event-source',
         },
       },
     ])

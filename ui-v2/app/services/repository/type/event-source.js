@@ -27,8 +27,11 @@ const createProxy = function(repo, find, settings, cache, serialize = JSON.strin
           // original find... with configuration now added
           return repo[find](...args)
             .then(res => {
-              if (!configuration.settings.enabled) {
-                // blocking isn't enabled, immediately close
+              if (
+                !configuration.settings.enabled ||
+                typeof get(res || {}, 'meta.cursor') === 'undefined'
+              ) {
+                // blocking isn't enabled, or for some reason res doesn't have a cursor, immediately close
                 this.close();
               }
               return res;

@@ -1,6 +1,6 @@
 import RepositoryService from 'consul-ui/services/repository';
 import { PRIMARY_KEY } from 'consul-ui/models/proxy';
-import { get } from '@ember/object';
+import { get, set } from '@ember/object';
 const modelName = 'proxy';
 export default RepositoryService.extend({
   getModelName: function() {
@@ -21,17 +21,20 @@ export default RepositoryService.extend({
   },
   findInstanceBySlug: function(id, slug, dc, configuration) {
     return this.findAllBySlug(slug, dc, configuration).then(function(items) {
+      let res = {};
       if (get(items, 'length') > 0) {
         let instance = items.findBy('ServiceProxy.DestinationServiceID', id);
         if (instance) {
-          return instance;
-        }
-        instance = items.findBy('ServiceProxy.DestinationServiceName', slug);
-        if (instance) {
-          return instance;
+          res = instance;
+        } else {
+          instance = items.findBy('ServiceProxy.DestinationServiceName', slug);
+          if (instance) {
+            res = instance;
+          }
         }
       }
-      return;
+      set(res, 'meta', get(items, 'meta'));
+      return res;
     });
   },
 });
