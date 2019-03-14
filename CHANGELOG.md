@@ -6,6 +6,7 @@ FEATURES:
 BUG FIXES:
 
 * api: Fixed a bug where updating node information wasn't reflected in health result index. [[GH-5450](https://github.com/hashicorp/consul/issues/5450)]
+* agent: Fixed a bug that would cause removal of all of an agents health checks when only one service was removed. [[GH-5456](https://github.com/hashicorp/consul/issues/5456)]
 
 ## 1.4.3 (March 5, 2019)
 
