@@ -2068,7 +2068,10 @@ func (a *Agent) removeServiceLocked(serviceID string, persist bool) error {
 
 	checks := a.State.Checks()
 	var checkIDs []types.CheckID
-	for id := range checks {
+	for id, check := range checks {
+		if check.ServiceID != serviceID {
+			continue
+		}
 		checkIDs = append(checkIDs, id)
 	}
 

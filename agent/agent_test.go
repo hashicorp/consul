@@ -605,12 +605,27 @@ func TestAgent_RemoveService(t *testing.T) {
 
 	// Removing a service with multiple checks works
 	{
+		// add a service to remove
 		srv := &structs.NodeService{
 			ID:      "redis",
 			Service: "redis",
 			Port:    8000,
 		}
 		chkTypes := []*structs.CheckType{
+			&structs.CheckType{TTL: time.Minute},
+			&structs.CheckType{TTL: 30 * time.Second},
+		}
+		if err := a.AddService(srv, chkTypes, false, "", ConfigSourceLocal); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		// add another service that wont be affected
+		srv = &structs.NodeService{
+			ID:      "mysql",
+			Service: "mysql",
+			Port:    3306,
+		}
+		chkTypes = []*structs.CheckType{
 			&structs.CheckType{TTL: time.Minute},
 			&structs.CheckType{TTL: 30 * time.Second},
 		}
@@ -636,12 +651,32 @@ func TestAgent_RemoveService(t *testing.T) {
 			t.Fatalf("check redis:2 should be removed")
 		}
 
-		// Ensure a TTL is setup
+		// Ensure the redis checks are removed
 		if _, ok := a.checkTTLs["service:redis:1"]; ok {
+			t.Fatalf("check ttl for redis:1 should be removed")
+		}
+		if check := a.State.Check(types.CheckID("service:redis:1")); check != nil {
 			t.Fatalf("check ttl for redis:1 should be removed")
 		}
 		if _, ok := a.checkTTLs["service:redis:2"]; ok {
 			t.Fatalf("check ttl for redis:2 should be removed")
+		}
+		if check := a.State.Check(types.CheckID("service:redis:2")); check != nil {
+			t.Fatalf("check ttl for redis:2 should be removed")
+		}
+
+		// check the mysql service is unnafected
+		if _, ok := a.checkTTLs["service:mysql:1"]; !ok {
+			t.Fatalf("check ttl for mysql:1 should not be removed")
+		}
+		if check := a.State.Check(types.CheckID("service:mysql:1")); check == nil {
+			t.Fatalf("check ttl for mysql:1 should not be removed")
+		}
+		if _, ok := a.checkTTLs["service:mysql:2"]; !ok {
+			t.Fatalf("check ttl for mysql:2 should not be removed")
+		}
+		if check := a.State.Check(types.CheckID("service:mysql:2")); check == nil {
+			t.Fatalf("check ttl for mysql:2 should not be removed")
 		}
 	}
 }
@@ -2455,8 +2490,8 @@ func TestAgent_Service_Reap(t *testing.T) {
 	}
 	chkTypes := []*structs.CheckType{
 		&structs.CheckType{
-			Status:                         api.HealthPassing,
-			TTL:                            25 * time.Millisecond,
+			Status: api.HealthPassing,
+			TTL:    25 * time.Millisecond,
 			DeregisterCriticalServiceAfter: 200 * time.Millisecond,
 		},
 	}
