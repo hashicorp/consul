@@ -320,6 +320,7 @@
 		{"path":"golang.org/x/net/trace","checksumSHA1":"u/r66lwYfgg682u5hZG7/E7+VCY=","revision":"d866cfc389cec985d6fda2859936a575a55a3ab6","revisionTime":"2017-12-11T20:45:21Z"},
 		{"path":"golang.org/x/oauth2","revision":""},
 		{"path":"golang.org/x/oauth2/google","revision":""},
+		{"path":"golang.org/x/sync/singleflight","checksumSHA1":"VhUZFUuhLFSBFUfskMC4am5RIdc=","revision":"e225da77a7e68af35c70ccbf71af2b83e6acac3c","revisionTime":"2019-02-15T22:36:53Z"},
 		{"path":"golang.org/x/sys/cpu","checksumSHA1":"REkmyB368pIiip76LiqMLspgCRk=","revision":"ad87a3a340fa7f3bed189293fbfa7a9b7e021ae1","revisionTime":"2018-06-18T16:37:21Z"},
 		{"path":"golang.org/x/sys/unix","checksumSHA1":"su2QDjUzrUO0JnOH9m0cNg0QqsM=","revision":"ac767d655b305d4e9612f5f6e33120b9176c4ad4","revisionTime":"2018-07-08T03:57:06Z"},
 		{"path":"golang.org/x/sys/windows","checksumSHA1":"P8Y8GFwxybTfltfh8Q0lHqlEYIM=","revision":"ac767d655b305d4e9612f5f6e33120b9176c4ad4","revisionTime":"2018-07-08T03:57:06Z"},

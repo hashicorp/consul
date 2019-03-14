@@ -129,23 +129,10 @@ func testIdentityForToken(token string) (bool, structs.ACLIdentity, error) {
 				},
 			},
 		}, nil
-	case "concurrent-resolve-1":
+	case "concurrent-resolve":
 		return true, &structs.ACLToken{
 			AccessorID: "5f57c1f6-6a89-4186-9445-531b316e01df",
 			SecretID:   "a1a54629-5050-4d17-8a4e-560d2423f835",
-			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
-					ID: "node-wr",
-				},
-				structs.ACLTokenPolicyLink{
-					ID: "acl-wr",
-				},
-			},
-		}, nil
-	case "concurrent-resolve-2":
-		return true, &structs.ACLToken{
-			AccessorID: "296bbe10-01aa-437e-ac3b-3ecdc00ea65c",
-			SecretID:   "cc58f0f3-2273-42a7-8b4a-2bef9d2863d7",
 			Policies: []structs.ACLTokenPolicyLink{
 				structs.ACLTokenPolicyLink{
 					ID: "node-wr",
@@ -737,6 +724,135 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 
 		requireIdentityCached(t, r, "foo", false, "no longer cached")
 	})
+
+	t.Run("PolicyResolve-TokenNotFound", func(t *testing.T) {
+		t.Parallel()
+
+		_, rawToken, _ := testIdentityForToken("found")
+		foundToken := rawToken.(*structs.ACLToken)
+		secretID := foundToken.SecretID
+
+		tokenResolved := false
+		policyResolved := false
+		delegate := &ACLResolverTestDelegate{
+			enabled:       true,
+			datacenter:    "dc1",
+			legacy:        false,
+			localTokens:   false,
+			localPolicies: false,
+			tokenReadFn: func(args *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
+				if !tokenResolved {
+					reply.Token = foundToken
+					tokenResolved = true
+					return nil
+				}
+
+				return fmt.Errorf("Not Supposed to be Invoked again")
+			},
+			policyResolveFn: func(args *structs.ACLPolicyBatchGetRequest, reply *structs.ACLPolicyBatchResponse) error {
+				if !policyResolved {
+					for _, policyID := range args.PolicyIDs {
+						_, policy, _ := testPolicyForID(policyID)
+						if policy != nil {
+							reply.Policies = append(reply.Policies, policy)
+						}
+					}
+					policyResolved = true
+					return nil
+				}
+				return acl.ErrNotFound // test condition
+			},
+		}
+		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
+			config.Config.ACLDownPolicy = "extend-cache"
+			config.Config.ACLTokenTTL = 0
+			config.Config.ACLPolicyTTL = 0
+		})
+
+		// Prime the standard caches.
+		authz, err := r.ResolveToken(secretID)
+		require.NoError(t, err)
+		require.NotNil(t, authz)
+		require.True(t, authz.NodeWrite("foo", nil))
+
+		// Verify that the caches are setup properly.
+		requireIdentityCached(t, r, secretID, true, "cached")
+		requirePolicyCached(t, r, "node-wr", true, "cached")    // from "found" token
+		requirePolicyCached(t, r, "dc2-key-wr", true, "cached") // from "found" token
+
+		// Nuke 1 policy from the cache so that we force a policy resolve
+		// during token resolve.
+		r.cache.RemovePolicy("dc2-key-wr")
+
+		_, err = r.ResolveToken(secretID)
+		require.True(t, acl.IsErrNotFound(err))
+
+		requireIdentityCached(t, r, secretID, false, "identity not found cached")
+		requirePolicyCached(t, r, "node-wr", true, "still cached")
+		require.Nil(t, r.cache.GetPolicy("dc2-key-wr"), "not stored at all")
+	})
+
+	t.Run("PolicyResolve-PermissionDenied", func(t *testing.T) {
+		t.Parallel()
+
+		_, rawToken, _ := testIdentityForToken("found")
+		foundToken := rawToken.(*structs.ACLToken)
+		secretID := foundToken.SecretID
+
+		policyResolved := false
+		delegate := &ACLResolverTestDelegate{
+			enabled:       true,
+			datacenter:    "dc1",
+			legacy:        false,
+			localTokens:   false,
+			localPolicies: false,
+			tokenReadFn: func(args *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
+				// no limit
+				reply.Token = foundToken
+				return nil
+			},
+			policyResolveFn: func(args *structs.ACLPolicyBatchGetRequest, reply *structs.ACLPolicyBatchResponse) error {
+				if !policyResolved {
+					for _, policyID := range args.PolicyIDs {
+						_, policy, _ := testPolicyForID(policyID)
+						if policy != nil {
+							reply.Policies = append(reply.Policies, policy)
+						}
+					}
+					policyResolved = true
+					return nil
+				}
+				return acl.ErrPermissionDenied // test condition
+			},
+		}
+		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
+			config.Config.ACLDownPolicy = "extend-cache"
+			config.Config.ACLTokenTTL = 0
+			config.Config.ACLPolicyTTL = 0
+		})
+
+		// Prime the standard caches.
+		authz, err := r.ResolveToken(secretID)
+		require.NoError(t, err)
+		require.NotNil(t, authz)
+		require.True(t, authz.NodeWrite("foo", nil))
+
+		// Verify that the caches are setup properly.
+		requireIdentityCached(t, r, secretID, true, "cached")
+		requirePolicyCached(t, r, "node-wr", true, "cached")    // from "found" token
+		requirePolicyCached(t, r, "dc2-key-wr", true, "cached") // from "found" token
+
+		// Nuke 1 policy from the cache so that we force a policy resolve
+		// during token resolve.
+		r.cache.RemovePolicy("dc2-key-wr")
+
+		_, err = r.ResolveToken(secretID)
+		require.True(t, acl.IsErrPermissionDenied(err))
+
+		require.Nil(t, r.cache.GetIdentity(secretID), "identity not stored at all")
+		requirePolicyCached(t, r, "node-wr", true, "still cached")
+		require.Nil(t, r.cache.GetPolicy("dc2-key-wr"), "not stored at all")
+	})
 }
 
 func TestACLResolver_DatacenterScoping(t *testing.T) {
@@ -893,7 +1009,7 @@ func TestACLResolver_Client(t *testing.T) {
 
 				switch args.TokenID {
 				case "a1a54629-5050-4d17-8a4e-560d2423f835":
-					_, token, _ := testIdentityForToken("concurrent-resolve-1")
+					_, token, _ := testIdentityForToken("concurrent-resolve")
 					reply.Token = token.(*structs.ACLToken)
 				default:
 					return acl.ErrNotFound
@@ -907,6 +1023,7 @@ func TestACLResolver_Client(t *testing.T) {
 			},
 			policyResolveFn: func(args *structs.ACLPolicyBatchGetRequest, reply *structs.ACLPolicyBatchResponse) error {
 				atomic.AddInt32(&policyResolves, 1)
+
 				for _, policyID := range args.PolicyIDs {
 					_, policy, _ := testPolicyForID(policyID)
 					if policy != nil {
@@ -938,255 +1055,6 @@ func TestACLResolver_Client(t *testing.T) {
 		require.Equal(t, res1.authz, res2.authz)
 		require.Equal(t, int32(1), tokenReads)
 		require.Equal(t, int32(1), policyResolves)
-	})
-
-	t.Run("Concurrent-Policy-Resolve", func(t *testing.T) {
-		t.Parallel()
-
-		var tokenReads int32
-		var policyResolves int32
-		delegate := &ACLResolverTestDelegate{
-			enabled:       true,
-			datacenter:    "dc1",
-			legacy:        false,
-			localTokens:   false,
-			localPolicies: false,
-			tokenReadFn: func(args *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
-				atomic.AddInt32(&tokenReads, 1)
-
-				switch args.TokenID {
-				case "a1a54629-5050-4d17-8a4e-560d2423f835":
-					_, token, _ := testIdentityForToken("concurrent-resolve-1")
-					reply.Token = token.(*structs.ACLToken)
-				case "cc58f0f3-2273-42a7-8b4a-2bef9d2863d7":
-					_, token, _ := testIdentityForToken("concurrent-resolve-2")
-					reply.Token = token.(*structs.ACLToken)
-				default:
-					return acl.ErrNotFound
-				}
-
-				return nil
-			},
-			policyResolveFn: func(args *structs.ACLPolicyBatchGetRequest, reply *structs.ACLPolicyBatchResponse) error {
-				atomic.AddInt32(&policyResolves, 1)
-				// waits until both tokens have been read for up to 1 second
-				for i := 0; i < 100; i++ {
-					time.Sleep(10 * time.Millisecond)
-					reads := atomic.LoadInt32(&tokenReads)
-					if reads >= 2 {
-						time.Sleep(100 * time.Millisecond)
-						break
-					}
-				}
-
-				for _, policyID := range args.PolicyIDs {
-					_, policy, _ := testPolicyForID(policyID)
-					if policy != nil {
-						reply.Policies = append(reply.Policies, policy)
-					}
-				}
-				return nil
-			},
-		}
-
-		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
-			config.Config.ACLTokenTTL = 600 * time.Second
-			// effectively disables the cache - therefore the only way we end up
-			// with 1 policy resolution is if they get single flighted
-			config.Config.ACLPolicyTTL = 0 * time.Millisecond
-			config.Config.ACLDownPolicy = "extend-cache"
-		})
-
-		ch1 := make(chan *asyncResolutionResult)
-		ch2 := make(chan *asyncResolutionResult)
-
-		go resolveTokenAsync(r, "a1a54629-5050-4d17-8a4e-560d2423f835", ch1)
-		go resolveTokenAsync(r, "cc58f0f3-2273-42a7-8b4a-2bef9d2863d7", ch2)
-
-		res1 := <-ch1
-		res2 := <-ch2
-
-		require.NoError(t, res1.err)
-		require.NoError(t, res2.err)
-		require.Equal(t, res1.authz, res2.authz)
-		require.Equal(t, int32(2), tokenReads)
-		require.Equal(t, int32(1), policyResolves)
-	})
-
-	t.Run("Concurrent-Policy-Resolve-Permission-Denied", func(t *testing.T) {
-		t.Parallel()
-
-		var waitReady int32 = 1
-		var tokenReads int32
-		var policyResolves int32
-		delegate := &ACLResolverTestDelegate{
-			enabled:       true,
-			datacenter:    "dc1",
-			legacy:        false,
-			localTokens:   false,
-			localPolicies: false,
-			tokenReadFn: func(args *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
-				atomic.AddInt32(&tokenReads, 1)
-
-				switch args.TokenID {
-				case "a1a54629-5050-4d17-8a4e-560d2423f835":
-					_, token, _ := testIdentityForToken("concurrent-resolve-1")
-					reply.Token = token.(*structs.ACLToken)
-				case "cc58f0f3-2273-42a7-8b4a-2bef9d2863d7":
-					_, token, _ := testIdentityForToken("concurrent-resolve-2")
-					reply.Token = token.(*structs.ACLToken)
-				default:
-					return acl.ErrNotFound
-				}
-
-				return nil
-			},
-			policyResolveFn: func(args *structs.ACLPolicyBatchGetRequest, reply *structs.ACLPolicyBatchResponse) error {
-				atomic.AddInt32(&policyResolves, 1)
-
-				if atomic.CompareAndSwapInt32(&waitReady, 1, 0) {
-					// waits until both tokens have been read for up to 1 second
-					for i := 0; i < 100; i++ {
-						time.Sleep(10 * time.Millisecond)
-						reads := atomic.LoadInt32(&tokenReads)
-						if reads >= 2 {
-							time.Sleep(100 * time.Millisecond)
-							break
-						}
-					}
-
-					return acl.ErrPermissionDenied
-				}
-
-				for _, policyID := range args.PolicyIDs {
-					_, policy, _ := testPolicyForID(policyID)
-					if policy != nil {
-						reply.Policies = append(reply.Policies, policy)
-					}
-				}
-				return nil
-			},
-		}
-
-		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
-			config.Config.ACLTokenTTL = 600 * time.Second
-			config.Config.ACLPolicyTTL = 600 * time.Second
-			config.Config.ACLDownPolicy = "extend-cache"
-		})
-
-		ch1 := make(chan *asyncResolutionResult)
-		ch2 := make(chan *asyncResolutionResult)
-
-		go resolveTokenAsync(r, "a1a54629-5050-4d17-8a4e-560d2423f835", ch1)
-		go resolveTokenAsync(r, "cc58f0f3-2273-42a7-8b4a-2bef9d2863d7", ch2)
-
-		res1 := <-ch1
-		res2 := <-ch2
-
-		require.NoError(t, res1.err)
-		require.NoError(t, res2.err)
-		require.Equal(t, res1.authz, res2.authz)
-		// 2 reads for 1 token (cache gets invalidated and only 1 for the other)
-		require.Equal(t, int32(3), tokenReads)
-		require.Equal(t, int32(2), policyResolves)
-		require.True(t, res1.authz.ACLRead())
-		require.True(t, res1.authz.NodeWrite("foo", nil))
-	})
-
-	t.Run("Concurrent-Policy-Resolve-Not-Found", func(t *testing.T) {
-		t.Parallel()
-
-		var waitReady int32 = 1
-		var tokenReads int32
-		var policyResolves int32
-		var tokenNotAllowed string
-		delegate := &ACLResolverTestDelegate{
-			enabled:       true,
-			datacenter:    "dc1",
-			legacy:        false,
-			localTokens:   false,
-			localPolicies: false,
-			tokenReadFn: func(args *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
-				atomic.AddInt32(&tokenReads, 1)
-
-				switch args.TokenID {
-				case "a1a54629-5050-4d17-8a4e-560d2423f835":
-					_, token, _ := testIdentityForToken("concurrent-resolve-1")
-					reply.Token = token.(*structs.ACLToken)
-				case "cc58f0f3-2273-42a7-8b4a-2bef9d2863d7":
-					_, token, _ := testIdentityForToken("concurrent-resolve-2")
-					reply.Token = token.(*structs.ACLToken)
-				default:
-					return acl.ErrNotFound
-				}
-
-				return nil
-			},
-			policyResolveFn: func(args *structs.ACLPolicyBatchGetRequest, reply *structs.ACLPolicyBatchResponse) error {
-				atomic.AddInt32(&policyResolves, 1)
-
-				if atomic.CompareAndSwapInt32(&waitReady, 1, 0) {
-					// waits until both tokens have been read for up to 1 second
-					for i := 0; i < 100; i++ {
-						time.Sleep(10 * time.Millisecond)
-						reads := atomic.LoadInt32(&tokenReads)
-						if reads >= 2 {
-							time.Sleep(100 * time.Millisecond)
-							break
-						}
-					}
-
-					tokenNotAllowed = args.Token
-					return acl.ErrNotFound
-				}
-
-				for _, policyID := range args.PolicyIDs {
-					_, policy, _ := testPolicyForID(policyID)
-					if policy != nil {
-						reply.Policies = append(reply.Policies, policy)
-					}
-				}
-				return nil
-			},
-		}
-
-		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
-			config.Config.ACLTokenTTL = 600 * time.Second
-			config.Config.ACLPolicyTTL = 600 * time.Second
-			config.Config.ACLDownPolicy = "extend-cache"
-		})
-
-		ch1 := make(chan *asyncResolutionResult)
-		ch2 := make(chan *asyncResolutionResult)
-
-		go resolveTokenAsync(r, "a1a54629-5050-4d17-8a4e-560d2423f835", ch1)
-		go resolveTokenAsync(r, "cc58f0f3-2273-42a7-8b4a-2bef9d2863d7", ch2)
-
-		res1 := <-ch1
-		res2 := <-ch2
-
-		var errResult *asyncResolutionResult
-		var goodResult *asyncResolutionResult
-
-		// can't be sure which token resolution is going to be the one that does the first policy resolution
-		// so we record it and then determine here how the results should be validated
-		if tokenNotAllowed == "a1a54629-5050-4d17-8a4e-560d2423f835" {
-			errResult = res1
-			goodResult = res2
-		} else {
-			errResult = res2
-			goodResult = res1
-		}
-
-		require.Error(t, errResult.err)
-		require.Nil(t, errResult.authz)
-		require.EqualError(t, errResult.err, acl.ErrNotFound.Error())
-		require.NoError(t, goodResult.err)
-		require.Equal(t, int32(2), tokenReads)
-		require.Equal(t, int32(2), policyResolves)
-		require.NotNil(t, goodResult.authz)
-		require.True(t, goodResult.authz.ACLRead())
-		require.True(t, goodResult.authz.NodeWrite("foo", nil))
 	})
 }
 
