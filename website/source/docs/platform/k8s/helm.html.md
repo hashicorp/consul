@@ -345,7 +345,7 @@ server:
 ```
 
 Add the `--wait` option to your `helm install` command. This will force Helm to wait for all the pods
-to become ready, then apply the license to your Consul cluster.
+to become ready before it applies the license to your Consul cluster.
 
 ```bash
 $ helm install --wait .
