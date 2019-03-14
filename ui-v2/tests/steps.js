@@ -22,13 +22,13 @@ export default function(assert, library, pages, utils) {
   };
 
   const pauseUntil = function(cb) {
-    return new Promise(function(resolve) {
+    return new Promise(function(resolve, reject) {
       let count = 0;
       const interval = setInterval(function() {
         if (++count >= 50) {
           clearInterval(interval);
           assert.ok(false);
-          resolve();
+          reject();
         }
         cb(function() {
           clearInterval(interval);
