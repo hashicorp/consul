@@ -317,7 +317,7 @@ to run the sync program.
 
 You can also use this Helm chart to deploy Consul Enterprise by following a few extra steps.
 
-Find the license file that was sent to you with your welcome email. It should have the extension `.hclic`. You will use the contents of this file to create a Kubernetes secret before installing the Helm chart.
+Find the license file that you received in your welcome email. It should have the extension `.hclic`. You will use the contents of this file to create a Kubernetes secret before installing the Helm chart.
 
 -> **Note:** If you cannot find your `.hclic` file, please contact your sales team or Technical Account Manager.
 
