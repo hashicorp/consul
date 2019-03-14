@@ -18,7 +18,7 @@
               (array
                              'Health Checks'
                              'Services'
-              (if tomography 'Round Trip Time' '')
+    (if tomography.distances 'Round Trip Time' '')
                              'Lock Sessions'
               )
             )
@@ -48,10 +48,10 @@
         {{#each
             (compact
                 (array
-                    (hash id=(slugify 'Health Checks') partial='dc/nodes/healthchecks')
-                    (hash id=(slugify 'Services') partial='dc/nodes/services')
-     (if tomography (hash id=(slugify 'Round Trip Time') partial='dc/nodes/rtt') '')
-                    (hash id=(slugify 'Lock Sessions') partial='dc/nodes/sessions')
+                            (hash id=(slugify 'Health Checks') partial='dc/nodes/healthchecks')
+                            (hash id=(slugify 'Services') partial='dc/nodes/services')
+   (if tomography.distances (hash id=(slugify 'Round Trip Time') partial='dc/nodes/rtt') '')
+                            (hash id=(slugify 'Lock Sessions') partial='dc/nodes/sessions')
                 )
             ) as |panel|
         }}
