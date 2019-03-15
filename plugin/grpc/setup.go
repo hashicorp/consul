@@ -81,6 +81,12 @@ func parseGRPCStanza(c *caddyfile.Dispenser) (*GRPC, error) {
 		return g, err
 	}
 
+	for c.NextBlock() {
+		if err := parseBlock(c, g); err != nil {
+			return g, err
+		}
+	}
+
 	if g.tlsServerName != "" {
 		if g.tlsConfig == nil {
 			g.tlsConfig = new(tls.Config)
@@ -93,12 +99,6 @@ func parseGRPCStanza(c *caddyfile.Dispenser) (*GRPC, error) {
 			return nil, err
 		}
 		g.proxies = append(g.proxies, pr)
-	}
-
-	for c.NextBlock() {
-		if err := parseBlock(c, g); err != nil {
-			return g, err
-		}
 	}
 
 	return g, nil

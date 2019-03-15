@@ -74,9 +74,6 @@ func TestSetupTLS(t *testing.T) {
 tls_servername dns
 }`, false, "dns", ""},
 		{`grpc . 127.0.0.1 {
-tls_servername dns
-}`, false, "", ""},
-		{`grpc . 127.0.0.1 {
 tls
 }`, false, "", ""},
 		{`grpc . 127.0.0.1`, false, "", ""},
