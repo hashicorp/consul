@@ -167,7 +167,7 @@ This error can have a number of different causes. Here are some things to check 
 
 If you followed the above installation guide, Consul should have registered a service called "ambassador". Make sure you create an intention to allow it to connect to your own services.
 
-To check whether Ambassador is allowed to connect, use the `intention check` subcommand.
+To check whether Ambassador is allowed to connect, use the [`intention check`][intention-check] subcommand.
 
     $ consul intention check ambassador http-echo
     Allowed
@@ -269,3 +269,5 @@ If you have tried the above troubleshooting steps and are still stuck, DataWire 
 [install]: https://www.getambassador.io/user-guide/consul-connect-ambassador/
 [ambassador-service.yaml]: https://getambassador.io/yaml/ambassador/ambassador-service.yaml
 [request access]: https://d6e.co/slack
+[intention-check]: https://www.consul.io/docs/commands/intention/check.html
+
