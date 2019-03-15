@@ -7,6 +7,7 @@ BUG FIXES:
 
 * api: Fixed a bug where updating node information wasn't reflected in health result index. [[GH-5450](https://github.com/hashicorp/consul/issues/5450)]
 * agent: Fixed a bug that would cause removal of all of an agents health checks when only one service was removed. [[GH-5456](https://github.com/hashicorp/consul/issues/5456)]
+* connect: Fixed a bug where `sidecar_service` registered proxies might not be removed correctly due to ACLs for the service being removed first dissallowing the agent permission to delete the proxy. [[GH-5482](https://github.com/hashicorp/consul/pull/5482)]
 
 ## 1.4.3 (March 5, 2019)
 
