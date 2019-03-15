@@ -112,8 +112,8 @@ kubectl create secret tls ambassador-certs --cert=fullchain.pem --key=privkey.pe
 
 Download a copy of the [ambassador-service.yaml] file from Ambassador. Replace
 the `metadata` section with one that includes an Ambassador TLS configuration block,
-using the secret name you created in step 1. Then add an entry for port 443 to the 
-`LoadBalancer` spec. Here is a complete example:
+using the secret name you created in the previous step. Then add an entry for port 443
+to the `LoadBalancer` spec. Here is a complete example:
 
 ```yaml
 apiVersion: v1
