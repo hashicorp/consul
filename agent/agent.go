@@ -2075,6 +2075,17 @@ func (a *Agent) removeServiceLocked(serviceID string, persist bool) error {
 		checkIDs = append(checkIDs, id)
 	}
 
+	// Remove the associated managed proxy if it exists
+	// This has to be DONE before purging configuration as might might have issues
+	// With ACLs otherwise
+	for proxyID, p := range a.State.Proxies() {
+		if p.Proxy.TargetServiceID == serviceID {
+			if err := a.removeProxyLocked(proxyID, true); err != nil {
+				return err
+			}
+		}
+	}
+
 	// Remove service immediately
 	if err := a.State.RemoveServiceWithChecks(serviceID, checkIDs); err != nil {
 		a.logger.Printf("[WARN] agent: Failed to deregister service %q: %s", serviceID, err)
@@ -2095,15 +2106,6 @@ func (a *Agent) removeServiceLocked(serviceID string, persist bool) error {
 		}
 		if err := a.removeCheckLocked(checkID, persist); err != nil {
 			return err
-		}
-	}
-
-	// Remove the associated managed proxy if it exists
-	for proxyID, p := range a.State.Proxies() {
-		if p.Proxy.TargetServiceID == serviceID {
-			if err := a.removeProxyLocked(proxyID, true); err != nil {
-				return err
-			}
 		}
 	}
 
