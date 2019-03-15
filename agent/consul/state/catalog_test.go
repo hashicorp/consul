@@ -3021,43 +3021,11 @@ func TestStateStore_CheckServiceNodes(t *testing.T) {
 		t.Fatalf("bad")
 	}
 
-	// Overwhelm node and check tracking.
-	idx = 13
-	for i := 0; i < 2*watchLimit; i++ {
-		node := fmt.Sprintf("many%d", i)
-		testRegisterNode(t, s, idx, node)
-		idx++
-		testRegisterCheck(t, s, idx, node, "", "check1", api.HealthPassing)
-		idx++
-		testRegisterService(t, s, idx, node, "service1")
-		idx++
-		testRegisterCheck(t, s, idx, node, "service1", "check2", api.HealthPassing)
-		idx++
-	}
-
-	// Now registering an unrelated node will fire the watch.
-	ws = memdb.NewWatchSet()
-	idx, results, err = s.CheckServiceNodes(ws, "service1")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	testRegisterNode(t, s, idx, "more-nope")
-	idx++
-	if !watchFired(ws) {
-		t.Fatalf("bad")
-	}
-
-	// Also, registering an unrelated check will fire the watch.
-	ws = memdb.NewWatchSet()
-	idx, results, err = s.CheckServiceNodes(ws, "service1")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	testRegisterCheck(t, s, idx, "more-nope", "", "check1", api.HealthPassing)
-	idx++
-	if !watchFired(ws) {
-		t.Fatalf("bad")
-	}
+	// Note that we can't overwhelm chan tracking any more since we optimized it
+	// to only need to watch one chan in the happy path. The only path that does
+	// bees to watch more stuff is where there are no service instances which also
+	// means fewer than watchLimit chans too so effectively no way to trigger
+	// Fallback watch any more.
 }
 
 func TestStateStore_CheckConnectServiceNodes(t *testing.T) {
