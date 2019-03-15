@@ -124,8 +124,8 @@ Consul datacenters, and does not allow modification of any state.
 
 3. The [connect CA roots endpoint](/api/connect/ca.html#list-ca-root-certificates) exposes just the public TLS certificate which other systems can use to verify the TLS connection with Consul.
 
-Constructing rules from these policies is covered in detail in the
-[Rule Specification](#rule-specification) section below.
+Constructing rules from these policies is covered in detail on the
+[ACL Rules](/docs/agent/acl-rules.html) page.
 
 ## Configuring ACLs
 
@@ -147,7 +147,7 @@ system, or accessing Consul in special situations:
 | ------------- | ------- | ------- | ------- |
 | [`acl.tokens.agent_master`](/docs/agent/options.html#acl_tokens_agent_master) | `OPTIONAL` | `OPTIONAL` | Special token that can be used to access [Agent API](/api/agent.html) when remote bearer token resolution fails; used for setting up the cluster such as doing initial join operations, see the [ACL Agent Master Token](#acl-agent-master-token) section for more details |
 | [`acl.tokens.agent`](/docs/agent/options.html#acl_tokens_agent) | `OPTIONAL` | `OPTIONAL` | Special token that is used for an agent's internal operations, see the [ACL Agent Token](#acl-agent-token) section for more details |
-| [`acl.tokens.master`](/docs/agent/options.html#acl_tokens_master) | `OPTIONAL` | `N/A` | Special token used to bootstrap the ACL system, see the [Bootstrapping ACLs](#bootstrapping-acls) section for more details |
+| [`acl.tokens.master`](/docs/agent/options.html#acl_tokens_master) | `OPTIONAL` | `N/A` | Special token used to bootstrap the ACL system, see the [Bootstrapping ACLs](https://learn.hashicorp.com/consul/advanced/day-1-operations/acl-guide) guide for more details |
 | [`acl.tokens.default`](/docs/agent/options.html#acl_tokens_default) | `OPTIONAL` | `OPTIONAL` | Default token to use for client requests where no token is supplied; this is often configured with read-only access to services to enable DNS service discovery on agents |
 
 All of these tokens except the `master` token can all be introduced or updated via the [/v1/agent/token API](/api/agent.html#update-acl-tokens).
