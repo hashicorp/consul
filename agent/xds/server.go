@@ -346,7 +346,12 @@ func (t *xDSType) SendIfNew(cfgSnap *proxycfg.ConfigSnapshot, version uint64, no
 	if err != nil {
 		return err
 	}
-	if resources == nil || len(resources) == 0 {
+	// Note that zero length resource results are valid - e.g. a cluster with no
+	// endpoints as they've not come up yet. Envoy will ignore zero-value
+	// resources mostly, but we need to return _something_ otherwise Envoy hangs
+	// during startup if any of the upstream clusters has no endpoints and never
+	// starts accepting any traffic at all.
+	if resources == nil {
 		// Nothing to send yet
 		return nil
 	}
