@@ -59,7 +59,7 @@ There are several different kinds of checks:
   Certificate verification can be turned off by setting the `tls_skip_verify`
   field to `true` in the check definition.
 
-* TCP + Interval - These checks make an TCP connection attempt every Interval
+* TCP + Interval - These checks make a TCP connection attempt every Interval
   (e.g. every 30 seconds) to the specified IP/hostname and port. If no hostname
   is specified, it defaults to "localhost". The status of the service depends on
   whether the connection attempt is successful (ie - the port is currently

@@ -189,7 +189,7 @@ with `bar`.
 
 Since [Agent API](/api/agent.html) utility operations may be reqired before an agent is joined to
 a cluster, or during an outage of the Consul servers or ACL datacenter, a special token may be
-configured with [`acl_agent_master_token`](/docs/agent/options.html#acl_agent_master_token) to allow
+configured with [`acl.tokens.agent_master`](/docs/agent/options.html#acl_tokens_agent_master) to allow
 write access to these operations even if no ACL resolution capability is available.
 
 #### Event Rules

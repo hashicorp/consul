@@ -584,7 +584,7 @@ default will automatically work with some tooling.
 
         * <a name="acl_tokens_agent"></a><a href="#acl_tokens_agent">`agent`</a> - Used for clients
         and servers to perform internal operations. If this isn't specified, then the
-        <a href="#acl_tokens_default">`default`</a> will be used. This was added in Consul
+        <a href="#acl_tokens_default">`default`</a> will be used.
         <br/><br/>
         This token must at least have write access to the node name it will register as in order to set any
         of the node-level information in the catalog such as metadata, or the node's tagged addresses. There
