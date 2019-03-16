@@ -30,7 +30,7 @@ Download the Consul binary for your architecture.
   Use the _sc_ command to create a Service named **Consul**, which starts in the _dev_ mode.
 
    ```text
-   sc.exe create "Consul" binPath="Path to the Consul.exe arg1 arg2 ...argN"
+   sc.exe create "Consul" binPath= "Path to the Consul.exe arg1 arg2 ...argN" start= auto
    [SC] CreateService SUCCESS 
    ```
    
@@ -68,4 +68,4 @@ You have two ways to start the service.
      ```
 
 The service automatically starts up during/after boot, so you don't need to
-launch Consul from the command-line again. 
+launch Consul from the command-line again.
