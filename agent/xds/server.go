@@ -346,12 +346,13 @@ func (t *xDSType) SendIfNew(cfgSnap *proxycfg.ConfigSnapshot, version uint64, no
 	if err != nil {
 		return err
 	}
-	// Note that zero length resource results are valid - e.g. a cluster with no
-	// endpoints as they've not come up yet. Envoy will ignore zero-value
-	// resources mostly, but we need to return _something_ otherwise Envoy hangs
-	// during startup if any of the upstream clusters has no endpoints and never
-	// starts accepting any traffic at all.
-	if resources == nil {
+	// Zero length resource responses should be ignored and are the result of no
+	// data yet. Notice that this caused a bug originally where we had zero
+	// healthy endpoints for an upstream that would cause Envoy to hang waiting
+	// for the EDS response. This is fixed though by ensuring we send an explicit
+	// empty LoadAssignment resource for the cluster rather than allowing junky
+	// empty resources.
+	if len(resources) == 0 {
 		// Nothing to send yet
 		return nil
 	}

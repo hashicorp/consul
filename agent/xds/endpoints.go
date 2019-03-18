@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 )
 
 // endpointsFromSnapshot returns the xDS API representation of the "endpoints"
@@ -20,9 +21,6 @@ func endpointsFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]pr
 	}
 	resources := make([]proto.Message, 0, len(cfgSnap.UpstreamEndpoints))
 	for id, endpoints := range cfgSnap.UpstreamEndpoints {
-		if len(endpoints) < 1 {
-			continue
-		}
 		la := makeLoadAssignment(id, endpoints)
 		resources = append(resources, la)
 	}
@@ -49,13 +47,14 @@ func makeLoadAssignment(clusterName string, endpoints structs.CheckServiceNodes)
 		if ep.Service.Weights != nil {
 			weight = ep.Service.Weights.Passing
 		}
+
 		for _, chk := range ep.Checks {
-			if chk.Status == "critical" {
+			if chk.Status == api.HealthCritical {
 				// This can't actually happen now because health always filters critical
 				// but in the future it may not so set this correctly!
 				healthStatus = core.HealthStatus_UNHEALTHY
 			}
-			if chk.Status == "warning" && ep.Service.Weights != nil {
+			if chk.Status == api.HealthWarning && ep.Service.Weights != nil {
 				weight = ep.Service.Weights.Warning
 			}
 		}
