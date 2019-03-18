@@ -20,6 +20,16 @@ func (s *Server) startACLTokenReaping() {
 	ctx, cancel := context.WithCancel(context.Background())
 	s.aclTokenReapCancel = cancel
 
+	// Do a quick check for config settings that would imply the goroutine
+	// below will just spin forever.
+	//
+	// We can only check the config settings here that cannot change without a
+	// restart, so we omit the check for a non-empty replication token as that
+	// can be changed at runtime.
+	if !s.InACLDatacenter() && !s.config.ACLTokenReplication {
+		return
+	}
+
 	go func() {
 		limiter := rate.NewLimiter(aclTokenReapingRateLimit, aclTokenReapingBurst)
 
