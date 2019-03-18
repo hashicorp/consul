@@ -8,7 +8,7 @@ export default Adapter.extend({
       throw new Error('You must specify an id');
     }
     return request`
-      GET /v1/session/node?${{ dc, index }}
+      GET /v1/session/node/${id}?${{ dc, index }}
     `;
   },
   requestForQueryRecord: function(request, { dc, index, id }) {

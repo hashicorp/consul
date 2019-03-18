@@ -4,6 +4,7 @@ import { Promise } from 'rsvp';
 
 import getObjectPool from 'consul-ui/utils/get-object-pool';
 import Request from 'consul-ui/utils/http/request';
+import createURL from 'consul-ui/utils/createURL';
 
 import { AbortError } from 'ember-data/adapters/errors';
 
@@ -24,38 +25,7 @@ const dispose = function(request) {
   }
   return request;
 };
-const url = function(strs, ...values) {
-  return strs
-    .map(function(item, i) {
-      let val = values[i] || '';
-      switch (typeof val) {
-        case 'string':
-          break;
-        case 'array':
-          val = val
-            .map(function(item) {
-              return `${item}`;
-            }, '')
-            .join('/');
-          break;
-        case 'object':
-          val = Object.keys(val)
-            .reduce(function(prev, key) {
-              if (typeof val[key] !== 'undefined') {
-                return prev.concat(`${key}=${val[key]}`);
-              } else if (val[key] === null) {
-                return prev.concat(`${key}`);
-              }
-              return prev;
-            }, [])
-            .join('&');
-          break;
-      }
-      return `${item}${val}`;
-    })
-    .join('')
-    .trim();
-};
+const url = createURL(encodeURIComponent);
 export default Service.extend({
   dom: service('dom'),
   init: function() {
@@ -96,6 +66,9 @@ export default Service.extend({
         }
       });
     }
+  },
+  url: function() {
+    return url(...arguments);
   },
   request: function(cb) {
     const client = this;

@@ -1,4 +1,4 @@
-import Adapter from './http';
+import Adapter from './application';
 export default Adapter.extend({
   requestForQuery: function(request, { dc, index }) {
     return request`
