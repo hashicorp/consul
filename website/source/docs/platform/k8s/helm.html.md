@@ -323,6 +323,69 @@ to run the sync program.
       The name of the private key for the certificate file within the
       `secretName` secret.
 
+## Using the Helm Chart to deploy Consul Enterprise
+
+You can also use this Helm chart to deploy Consul Enterprise by following a few extra steps.
+
+Find the license file that you received in your welcome email. It should have the extension `.hclic`. You will use the contents of this file to create a Kubernetes secret before installing the Helm chart.
+
+-> **Note:** If you cannot find your `.hclic` file, please contact your sales team or Technical Account Manager.
+
+You can use the following commands to create the secret:
+
+```bash
+secret=$(cat 1931d1f4-bdfd-6881-f3f5-19349374841f.hclic)
+kubectl create secret generic consul-ent-license --from-literal="key=${secret}"
+```
+
+In your `values.yaml`, change the value of `global.image` to one of the enterprise [release tags](https://hub.docker.com/r/hashicorp/consul-enterprise/tags).
+
+```yaml
+global:
+  image: "hashicorp/consul-enterprise:1.4.3-ent"
+```
+
+Add the name of the secret you just created to `server.enterpriseLicense`.
+
+```yaml
+server:
+  enterpriseLicense:
+    secretName: "consul-ent-license"
+    secretKey: "key"
+```
+
+Add the `--wait` option to your `helm install` command. This will force Helm to wait for all the pods
+to become ready before it applies the license to your Consul cluster.
+
+```bash
+$ helm install --wait .
+```
+
+Once the cluster is up, you can verify the nodes are running Consul Enterprise.
+
+```bash
+$ kubectl port-forward service/consul-server 8500 &
+$ consul license get
+License is valid
+License ID: 1931d1f4-bdfd-6881-f3f5-19349374841f
+Customer ID: b2025a4a-8fdd-f268-95ce-1704723b9996
+Expires At: 2020-03-09 03:59:59.999 +0000 UTC
+Datacenter: *
+Package: premium
+Licensed Features:
+        Automated Backups
+        Automated Upgrades
+        Enhanced Read Scalability
+        Network Segments
+        Redundancy Zone
+        Advanced Network Federation
+$ consul members
+Node                                       Address           Status  Type    Build      Protocol  DC   Segment
+consul-server-0                            10.60.0.187:8301  alive   server  1.4.3+ent  2         dc1  <all>
+consul-server-1                            10.60.1.229:8301  alive   server  1.4.3+ent  2         dc1  <all>
+consul-server-2                            10.60.2.197:8301  alive   server  1.4.3+ent  2         dc1  <all>
+```
+
 ## Helm Chart Examples
 
 The below values.yaml can be used to set up a single server Consul cluster with a LoadBalancer to allow external access to the UI and API.
@@ -361,7 +424,7 @@ Note, this would require a secret that contains the enterprise license key.
 global:
   enabled: true
   domain: consul
-  image: "consul:1.4.2-ent"
+  image: "hashicorp/consul-enterprise:1.4.2-ent"
   datacenter: dc1
 
 server:
