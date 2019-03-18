@@ -6,6 +6,7 @@ import {
   HEADERS_INDEX as HTTP_HEADERS_INDEX,
 } from 'consul-ui/utils/http/consul';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
+import createFingerprinter from 'consul-ui/utils/create-fingerprinter';
 
 const map = function(obj, cb) {
   if (!Array.isArray(obj)) {
@@ -13,33 +14,39 @@ const map = function(obj, cb) {
   }
   return obj.map(cb);
 };
-const addDatacenter = function(dc) {
-  return function(item) {
-    return {
-      ...item,
-      ...{
-        Datacenter: dc,
-        uid: JSON.stringify([item.Name || item.ID || item.Node, dc]),
-      },
-    };
-  };
-};
+
 export default Serializer.extend({
+  fingerprint: createFingerprinter(DATACENTER_KEY),
   respondForQuery: function(respond, query) {
-    return respond((headers, body) => map(body, addDatacenter(query.dc)));
+    return respond((headers, body) =>
+      map(body, this.fingerprint(this.primaryKey, this.slugKey, query.dc))
+    );
   },
   respondForQueryRecord: function(respond, query) {
-    return respond((headers, body) => addDatacenter(query.dc)(body));
+    return respond((headers, body) =>
+      this.fingerprint(this.primaryKey, this.slugKey, query.dc)(body)
+    );
   },
   respondForCreateRecord: function(respond, data) {
-    return respond((headers, body) => addDatacenter(data[DATACENTER_KEY])(body));
+    return respond((headers, body) =>
+      this.fingerprint(this.primaryKey, this.slugKey, data[DATACENTER_KEY])(body)
+    );
   },
   respondForUpdateRecord: function(respond, data) {
-    return respond((headers, body) => addDatacenter(data[DATACENTER_KEY])(body));
+    return respond((headers, body) =>
+      this.fingerprint(this.primaryKey, this.slugKey, data[DATACENTER_KEY])(body)
+    );
   },
   respondForDeleteRecord: function(respond, data) {
-    const slug = this.getSlugKey();
-    return respond((headers, body) => addDatacenter(data[DATACENTER_KEY])({ [slug]: data[slug] }));
+    const slugKey = this.slugKey;
+    return respond((headers, body) => {
+      // Deletes only need the primaryKey/uid returning
+      return {
+        [this.primaryKey]: this.fingerprint(this.primaryKey, slugKey, data[DATACENTER_KEY])({
+          [slugKey]: data[slugKey],
+        })[this.primaryKey],
+      };
+    });
   },
   // this could get confusing if you tried to override
   // say `normalizeQueryResponse`

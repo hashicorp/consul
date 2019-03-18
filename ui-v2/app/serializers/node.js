@@ -12,9 +12,16 @@ const fillSlug = function(item) {
 
 export default Serializer.extend({
   primaryKey: PRIMARY_KEY,
+  slugKey: SLUG_KEY,
   respondForQuery: function(respond, query) {
+    return this._super(cb => respond((headers, body) => cb(headers, body.map(fillSlug))), query);
+  },
+  respondForQueryRecord: function(respond, query) {
     return this._super(
-      cb => respond((headers, body) => cb(headers, { Nodes: body.map(fillSlug) })),
+      cb =>
+        respond((headers, body) => {
+          return cb(headers, fillSlug(body));
+        }),
       query
     );
   },

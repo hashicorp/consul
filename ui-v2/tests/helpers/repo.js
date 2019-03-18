@@ -16,18 +16,17 @@ import measure from 'consul-ui/tests/helpers/measure';
  */
 const stubAdapterResponse = function(cb, payload, adapter) {
   const payloadClone = JSON.parse(JSON.stringify(payload));
-  const ajax = adapter._ajaxRequest;
-  adapter._ajaxRequest = function(options) {
-    options.success(payloadClone, '200', {
-      status: 200,
-      textStatus: '200',
-      getAllResponseHeaders: function() {
-        return '';
-      },
+  const client = get(adapter, 'client');
+  const request = client.request;
+  client.request = function(cb) {
+    return cb(function() {
+      return Promise.resolve(function(cb) {
+        return cb({}, payloadClone);
+      });
     });
   };
   return cb(payload).then(function(result) {
-    adapter._ajaxRequest = ajax;
+    client.request = request;
     return result;
   });
 };

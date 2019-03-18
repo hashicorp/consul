@@ -28,6 +28,8 @@ export default Adapter.extend({
     // don't forget to send the data
     return request`
       PUT /v1/acl/policy/${data[SLUG_KEY]}${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
+
+      ${data}
     `;
   },
   requestForDeleteRecord: function(request, data) {

@@ -11,12 +11,12 @@ import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 const API_KEYS_KEY = 'keys';
 export default Adapter.extend({
   decoder: service('atob'),
-  requestForQuery: function(request, { dc, index, id }) {
+  requestForQuery: function(request, { dc, index, id, separator }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
     return request`
-      GET /v1/kv/${keyToArray(id)}?${{ [API_KEYS_KEY]: null, dc, index }}
+      GET /v1/kv/${keyToArray(id)}?${{ [API_KEYS_KEY]: null, dc, index, separator }}
     `;
   },
   requestForQueryRecord: function(request, { dc, index, id }) {
