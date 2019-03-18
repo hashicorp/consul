@@ -18,17 +18,14 @@ import (
 	metrics "github.com/armon/go-metrics"
 	uuid "github.com/hashicorp/go-uuid"
 
-	"github.com/hashicorp/consul/agent/ae"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul"
-	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib/freeport"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testutil/retry"
-	"github.com/hashicorp/consul/tlsutil"
 
 	"github.com/stretchr/testify/require"
 )
@@ -111,15 +108,6 @@ func NewUnstartedAgent(t *testing.T, name string, hcl string) (*Agent, error) {
 	if err != nil {
 		return nil, err
 	}
-	a.State = local.NewState(LocalConfig(c), a.logger, a.tokens)
-	a.sync = ae.NewStateSyncer(a.State, c.AEInterval, a.shutdownCh, a.logger)
-	a.delegate = &consul.Client{}
-	a.State.TriggerSyncChanges = a.sync.SyncChanges.Trigger
-	tlsConfigurator, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), nil)
-	if err != nil {
-		return nil, err
-	}
-	a.tlsConfigurator = tlsConfigurator
 	return a, nil
 }
 
@@ -169,9 +157,6 @@ func (a *TestAgent) Start(t *testing.T) *TestAgent {
 		agent.LogWriter = a.LogWriter
 		agent.logger = log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
 		agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
-		tlsConfigurator, err := tlsutil.NewConfigurator(a.Config.ToTLSUtilConfig(), nil)
-		require.NoError(err)
-		agent.tlsConfigurator = tlsConfigurator
 
 		// we need the err var in the next exit condition
 		if err := agent.Start(); err == nil {
