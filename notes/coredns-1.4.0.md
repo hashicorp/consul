@@ -13,8 +13,8 @@ of CoreDNS-1.4.0! Our first release after we became a graduated project in
 
 Deprecation notice for the *next* release:
 
- *  [*auto*](/plugins/auto) will deprecate **TIMEOUT** and recommends the use of RELOAD ([2516](https://github.com/coredns/coredns/issues/2516).
- *  [*auto*](/plugins/file) and [*file*](/plugins/auto) will deprecate NO_RELOAD and recommends the use of RELOAD set to 0 ([2536](https://github.com/coredns/coredns/issues/2536).
+ *  [*auto*](/plugins/auto) will deprecate **TIMEOUT** and recommends the use of RELOAD ([2516](https://github.com/coredns/coredns/issues/2516)).
+ *  [*auto*](/plugins/file) and [*file*](/plugins/auto) will deprecate NO_RELOAD and recommends the use of RELOAD set to 0 ([2536](https://github.com/coredns/coredns/issues/2536)).
  *  [*health*](/plugins/health) will revert back to report process level health without plugin
     status. A new *ready* plugin will make sure plugins have at least completed their startup
     sequence.
