@@ -1268,6 +1268,9 @@ default will automatically work with some tooling.
         good for a single RPC call to a Consul server. See https://en.wikipedia.org/wiki/Token_bucket
         for more details about how token bucket rate limiters operate.
 
+* <a name="log_file"></a><a href="#log_file">`log_file`</a> Equivalent to the
+  [`-log-file` command-line flag](#_log_file).
+
 * <a name="log_level"></a><a href="#log_level">`log_level`</a> Equivalent to the
   [`-log-level` command-line flag](#_log_level).
 
