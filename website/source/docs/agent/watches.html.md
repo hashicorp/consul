@@ -272,9 +272,6 @@ It may be either a single string value or a slice of strings.
 The "passingonly" is a boolean that will filter to only the 
 instances passing all health checks.
 
-If you pass in both "-tag" and "-tags", the value of "-tag"
-will be appended to the list provided to "-tags".
-
 This maps to the `/v1/health/service` API internally.
 
 Here is an example configuration with a single tag:
