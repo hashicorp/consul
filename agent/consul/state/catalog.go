@@ -376,6 +376,8 @@ func (s *Store) ensureNoNodeWithSimilarNameTxn(tx *memdb.Txn, node *structs.Node
 				return fmt.Errorf("Cannot get status of node %s: %s", enode.Node, err)
 			}
 
+			// Get the node health. If there's no Serf health check, we consider it safe to rename
+			// the node as it's likely an external node registration not managed by Consul.
 			var nodeHealthy bool
 			if enodeCheck != nil {
 				enodeSerfCheck, ok := enodeCheck.(*structs.HealthCheck)

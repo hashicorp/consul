@@ -987,9 +987,7 @@ func TestLeader_ChangeNodeID(t *testing.T) {
 				failed++
 			}
 		}
-		if got, want := failed, 1; got != want {
-			r.Fatalf("got %d failed members want %d", got, want)
-		}
+		require.Equal(r, 1, failed)
 	})
 
 	// Bring up a new server with s3's name that will get a different ID
@@ -1013,9 +1011,7 @@ func TestLeader_ChangeNodeID(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		for _, m := range s1.LANMembers() {
-			if m.Status != serf.StatusAlive {
-				r.Fatalf("bad status: %v", m)
-			}
+			require.Equal(r, serf.StatusAlive, m.Status)
 		}
 	})
 }
