@@ -88,6 +88,25 @@ func makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Cluster, error) {
 	return c, err
 }
 
+func parseTimeMillis(ms interface{}) (time.Duration, error) {
+	switch v := ms.(type) {
+	case string:
+		ms, err := strconv.Atoi(v)
+		if err != nil {
+			return 0, err
+		}
+		return time.Duration(ms) * time.Millisecond, nil
+
+	case float64: // This is what parsing from JSON results in
+		return time.Duration(v) * time.Millisecond, nil
+	// Not sure if this can ever really happen but just in case it does in
+	// some test code...
+	case int:
+		return time.Duration(v) * time.Millisecond, nil
+	}
+	return 0, errors.New("invalid type for millisecond duration")
+}
+
 func makeUpstreamCluster(upstream structs.Upstream, cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Cluster, error) {
 	var c *envoy.Cluster
 	var err error
@@ -105,17 +124,8 @@ func makeUpstreamCluster(upstream structs.Upstream, cfgSnap *proxycfg.ConfigSnap
 	if c == nil {
 		conTimeout := 5 * time.Second
 		if toRaw, ok := upstream.Config["connect_timeout_ms"]; ok {
-			switch v := toRaw.(type) {
-			case string:
-				if ms, err := strconv.Atoi(v); err == nil {
-					conTimeout = time.Duration(ms) * time.Millisecond
-				}
-			case float64: // This is what parsing from JSON results in
-				conTimeout = time.Duration(v) * time.Millisecond
-			// Not sure if this can ever really happen but just in case it does in
-			// some test code...
-			case int:
-				conTimeout = time.Duration(v) * time.Millisecond
+			if ms, err := parseTimeMillis(toRaw); err == nil {
+				conTimeout = ms
 			}
 		}
 		c = &envoy.Cluster{
