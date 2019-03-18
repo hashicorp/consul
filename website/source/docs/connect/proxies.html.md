@@ -131,7 +131,7 @@ until at least 1.5.0 but it's highly recommended to switch to using
    proxy should attempt to connect to the local application instance on.
    Defaults to 127.0.0.1.
 
- - `local_service_port` `(int: <required>)` - Specifies the port a side-car
+ - `local_service_port` `(int: <optional>)` - Specifies the port a side-car
    proxy should attempt to connect to the local application instance on.
    Defaults to the port advertised by the service instance identified by
    `destination_service_id` if it exists otherwise it may be empty in responses.
