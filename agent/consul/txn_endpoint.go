@@ -143,7 +143,7 @@ func (t *Txn) Apply(args *structs.TxnRequest, reply *structs.TxnResponse) error 
 }
 
 // Read is used to perform a read-only transaction that doesn't modify the state
-// store. This is much more scaleable since it doesn't go through Raft and
+// store. This is much more scalable since it doesn't go through Raft and
 // supports staleness, so this should be preferred if you're just performing
 // reads.
 func (t *Txn) Read(args *structs.TxnReadRequest, reply *structs.TxnReadResponse) error {

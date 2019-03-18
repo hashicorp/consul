@@ -490,7 +490,7 @@ type Upstream struct {
 	LocalBindPort *int `json:"local_bind_port,omitempty" hcl:"local_bind_port" mapstructure:"local_bind_port"`
 
 	// Config is an opaque config that is specific to the proxy process being run.
-	// It can be used to pass abritrary configuration for this specific upstream
+	// It can be used to pass arbitrary configuration for this specific upstream
 	// to the proxy.
 	Config map[string]interface{} `json:"config,omitempty" hcl:"config" mapstructure:"config"`
 }
@@ -555,6 +555,8 @@ type DNS struct {
 	UDPAnswerLimit     *int              `json:"udp_answer_limit,omitempty" hcl:"udp_answer_limit" mapstructure:"udp_answer_limit"`
 	NodeMetaTXT        *bool             `json:"enable_additional_node_meta_txt,omitempty" hcl:"enable_additional_node_meta_txt" mapstructure:"enable_additional_node_meta_txt"`
 	SOA                *SOA              `json:"soa,omitempty" hcl:"soa" mapstructure:"soa"`
+	UseCache           *bool             `json:"use_cache,omitempty" hcl:"use_cache" mapstructure:"use_cache"`
+	CacheMaxAge        *string           `json:"cache_max_age,omitempty" hcl:"cache_max_age" mapstructure:"cache_max_age"`
 }
 
 type HTTPConfig struct {
@@ -628,15 +630,16 @@ type Segment struct {
 }
 
 type ACL struct {
-	Enabled             *bool   `json:"enabled,omitempty" hcl:"enabled" mapstructure:"enabled"`
-	TokenReplication    *bool   `json:"enable_token_replication,omitempty" hcl:"enable_token_replication" mapstructure:"enable_token_replication"`
-	PolicyTTL           *string `json:"policy_ttl,omitempty" hcl:"policy_ttl" mapstructure:"policy_ttl"`
-	TokenTTL            *string `json:"token_ttl,omitempty" hcl:"token_ttl" mapstructure:"token_ttl"`
-	DownPolicy          *string `json:"down_policy,omitempty" hcl:"down_policy" mapstructure:"down_policy"`
-	DefaultPolicy       *string `json:"default_policy,omitempty" hcl:"default_policy" mapstructure:"default_policy"`
-	EnableKeyListPolicy *bool   `json:"enable_key_list_policy,omitempty" hcl:"enable_key_list_policy" mapstructure:"enable_key_list_policy"`
-	Tokens              Tokens  `json:"tokens,omitempty" hcl:"tokens" mapstructure:"tokens"`
-	DisabledTTL         *string `json:"disabled_ttl,omitempty" hcl:"disabled_ttl" mapstructure:"disabled_ttl"`
+	Enabled                *bool   `json:"enabled,omitempty" hcl:"enabled" mapstructure:"enabled"`
+	TokenReplication       *bool   `json:"enable_token_replication,omitempty" hcl:"enable_token_replication" mapstructure:"enable_token_replication"`
+	PolicyTTL              *string `json:"policy_ttl,omitempty" hcl:"policy_ttl" mapstructure:"policy_ttl"`
+	TokenTTL               *string `json:"token_ttl,omitempty" hcl:"token_ttl" mapstructure:"token_ttl"`
+	DownPolicy             *string `json:"down_policy,omitempty" hcl:"down_policy" mapstructure:"down_policy"`
+	DefaultPolicy          *string `json:"default_policy,omitempty" hcl:"default_policy" mapstructure:"default_policy"`
+	EnableKeyListPolicy    *bool   `json:"enable_key_list_policy,omitempty" hcl:"enable_key_list_policy" mapstructure:"enable_key_list_policy"`
+	Tokens                 Tokens  `json:"tokens,omitempty" hcl:"tokens" mapstructure:"tokens"`
+	DisabledTTL            *string `json:"disabled_ttl,omitempty" hcl:"disabled_ttl" mapstructure:"disabled_ttl"`
+	EnableTokenPersistence *bool   `json:"enable_token_persistence" hcl:"enable_token_persistence" mapstructure:"enable_token_persistence"`
 }
 
 type Tokens struct {

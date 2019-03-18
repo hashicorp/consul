@@ -1,7 +1,7 @@
 ---
 layout: "docs"
 page_title: "Manual Bootstrapping"
-sidebar_current: "docs-guides-bootstrapping"
+sidebar_current: "docs-install-bootstrapping"
 description: |-
   When deploying Consul to a datacenter for the first time, there is an initial bootstrapping that must be done. As of Consul 0.4, an automatic bootstrapping is available and is the recommended approach. However, older versions only support a manual bootstrap that is documented here.
 ---

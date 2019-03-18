@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -604,12 +605,27 @@ func TestAgent_RemoveService(t *testing.T) {
 
 	// Removing a service with multiple checks works
 	{
+		// add a service to remove
 		srv := &structs.NodeService{
 			ID:      "redis",
 			Service: "redis",
 			Port:    8000,
 		}
 		chkTypes := []*structs.CheckType{
+			&structs.CheckType{TTL: time.Minute},
+			&structs.CheckType{TTL: 30 * time.Second},
+		}
+		if err := a.AddService(srv, chkTypes, false, "", ConfigSourceLocal); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		// add another service that wont be affected
+		srv = &structs.NodeService{
+			ID:      "mysql",
+			Service: "mysql",
+			Port:    3306,
+		}
+		chkTypes = []*structs.CheckType{
 			&structs.CheckType{TTL: time.Minute},
 			&structs.CheckType{TTL: 30 * time.Second},
 		}
@@ -635,12 +651,32 @@ func TestAgent_RemoveService(t *testing.T) {
 			t.Fatalf("check redis:2 should be removed")
 		}
 
-		// Ensure a TTL is setup
+		// Ensure the redis checks are removed
 		if _, ok := a.checkTTLs["service:redis:1"]; ok {
+			t.Fatalf("check ttl for redis:1 should be removed")
+		}
+		if check := a.State.Check(types.CheckID("service:redis:1")); check != nil {
 			t.Fatalf("check ttl for redis:1 should be removed")
 		}
 		if _, ok := a.checkTTLs["service:redis:2"]; ok {
 			t.Fatalf("check ttl for redis:2 should be removed")
+		}
+		if check := a.State.Check(types.CheckID("service:redis:2")); check != nil {
+			t.Fatalf("check ttl for redis:2 should be removed")
+		}
+
+		// check the mysql service is unnafected
+		if _, ok := a.checkTTLs["service:mysql:1"]; !ok {
+			t.Fatalf("check ttl for mysql:1 should not be removed")
+		}
+		if check := a.State.Check(types.CheckID("service:mysql:1")); check == nil {
+			t.Fatalf("check ttl for mysql:1 should not be removed")
+		}
+		if _, ok := a.checkTTLs["service:mysql:2"]; !ok {
+			t.Fatalf("check ttl for mysql:2 should not be removed")
+		}
+		if check := a.State.Check(types.CheckID("service:mysql:2")); check == nil {
+			t.Fatalf("check ttl for mysql:2 should not be removed")
 		}
 	}
 }
@@ -1859,7 +1895,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	if !bytes.Equal(expected, content) {
-		t.Fatalf("bad: %s", string(content))
+		t.Fatalf("bad: %s != %s", string(content), expected)
 	}
 
 	// Updates the check definition on disk
@@ -2454,8 +2490,8 @@ func TestAgent_Service_Reap(t *testing.T) {
 	}
 	chkTypes := []*structs.CheckType{
 		&structs.CheckType{
-			Status:                         api.HealthPassing,
-			TTL:                            25 * time.Millisecond,
+			Status: api.HealthPassing,
+			TTL:    25 * time.Millisecond,
 			DeregisterCriticalServiceAfter: 200 * time.Millisecond,
 		},
 	}
@@ -3366,11 +3402,7 @@ func TestAgent_SetupProxyManager(t *testing.T) {
 		ports { http = -1 }
 		data_dir = "` + dataDir + `"
 	`
-	c := TestConfig(
-		// randomPortsSource(false),
-		config.Source{Name: t.Name(), Format: "hcl", Data: hcl},
-	)
-	a, err := New(c)
+	a, err := NewUnstartedAgent(t, t.Name(), hcl)
 	require.NoError(t, err)
 	require.Error(t, a.setupProxyManager(), "setupProxyManager should fail with invalid HTTP API config")
 
@@ -3378,11 +3410,268 @@ func TestAgent_SetupProxyManager(t *testing.T) {
 		ports { http = 8001 }
 		data_dir = "` + dataDir + `"
 	`
-	c = TestConfig(
-		// randomPortsSource(false),
-		config.Source{Name: t.Name(), Format: "hcl", Data: hcl},
-	)
-	a, err = New(c)
+	a, err = NewUnstartedAgent(t, t.Name(), hcl)
 	require.NoError(t, err)
 	require.NoError(t, a.setupProxyManager())
+}
+
+func TestAgent_loadTokens(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), `
+		acl = {
+			enabled = true
+			tokens = {
+				agent = "alfa"
+				agent_master = "bravo",
+				default = "charlie"
+				replication = "delta"
+			}
+		}
+
+	`)
+	defer a.Shutdown()
+	require := require.New(t)
+
+	tokensFullPath := filepath.Join(a.config.DataDir, tokensPath)
+
+	t.Run("original-configuration", func(t *testing.T) {
+		require.Equal("alfa", a.tokens.AgentToken())
+		require.Equal("bravo", a.tokens.AgentMasterToken())
+		require.Equal("charlie", a.tokens.UserToken())
+		require.Equal("delta", a.tokens.ReplicationToken())
+	})
+
+	t.Run("updated-configuration", func(t *testing.T) {
+		cfg := &config.RuntimeConfig{
+			ACLToken:            "echo",
+			ACLAgentToken:       "foxtrot",
+			ACLAgentMasterToken: "golf",
+			ACLReplicationToken: "hotel",
+		}
+		// ensures no error for missing persisted tokens file
+		require.NoError(a.loadTokens(cfg))
+		require.Equal("echo", a.tokens.UserToken())
+		require.Equal("foxtrot", a.tokens.AgentToken())
+		require.Equal("golf", a.tokens.AgentMasterToken())
+		require.Equal("hotel", a.tokens.ReplicationToken())
+	})
+
+	t.Run("persisted-tokens", func(t *testing.T) {
+		cfg := &config.RuntimeConfig{
+			ACLToken:            "echo",
+			ACLAgentToken:       "foxtrot",
+			ACLAgentMasterToken: "golf",
+			ACLReplicationToken: "hotel",
+		}
+
+		tokens := `{
+			"agent" : "india",
+			"agent_master" : "juliett",
+			"default": "kilo",
+			"replication" : "lima"
+		}`
+
+		require.NoError(ioutil.WriteFile(tokensFullPath, []byte(tokens), 0600))
+		require.NoError(a.loadTokens(cfg))
+
+		// no updates since token persistence is not enabled
+		require.Equal("echo", a.tokens.UserToken())
+		require.Equal("foxtrot", a.tokens.AgentToken())
+		require.Equal("golf", a.tokens.AgentMasterToken())
+		require.Equal("hotel", a.tokens.ReplicationToken())
+
+		a.config.ACLEnableTokenPersistence = true
+		require.NoError(a.loadTokens(cfg))
+
+		require.Equal("india", a.tokens.AgentToken())
+		require.Equal("juliett", a.tokens.AgentMasterToken())
+		require.Equal("kilo", a.tokens.UserToken())
+		require.Equal("lima", a.tokens.ReplicationToken())
+	})
+
+	t.Run("persisted-tokens-override", func(t *testing.T) {
+		tokens := `{
+			"agent" : "mike",
+			"agent_master" : "november",
+			"default": "oscar",
+			"replication" : "papa"
+		}`
+
+		cfg := &config.RuntimeConfig{
+			ACLToken:            "quebec",
+			ACLAgentToken:       "romeo",
+			ACLAgentMasterToken: "sierra",
+			ACLReplicationToken: "tango",
+		}
+
+		require.NoError(ioutil.WriteFile(tokensFullPath, []byte(tokens), 0600))
+		require.NoError(a.loadTokens(cfg))
+
+		require.Equal("mike", a.tokens.AgentToken())
+		require.Equal("november", a.tokens.AgentMasterToken())
+		require.Equal("oscar", a.tokens.UserToken())
+		require.Equal("papa", a.tokens.ReplicationToken())
+	})
+
+	t.Run("partial-persisted", func(t *testing.T) {
+		tokens := `{
+			"agent" : "uniform",
+			"agent_master" : "victor"
+		}`
+
+		cfg := &config.RuntimeConfig{
+			ACLToken:            "whiskey",
+			ACLAgentToken:       "xray",
+			ACLAgentMasterToken: "yankee",
+			ACLReplicationToken: "zulu",
+		}
+
+		require.NoError(ioutil.WriteFile(tokensFullPath, []byte(tokens), 0600))
+		require.NoError(a.loadTokens(cfg))
+
+		require.Equal("uniform", a.tokens.AgentToken())
+		require.Equal("victor", a.tokens.AgentMasterToken())
+		require.Equal("whiskey", a.tokens.UserToken())
+		require.Equal("zulu", a.tokens.ReplicationToken())
+	})
+
+	t.Run("persistence-error-not-json", func(t *testing.T) {
+		cfg := &config.RuntimeConfig{
+			ACLToken:            "one",
+			ACLAgentToken:       "two",
+			ACLAgentMasterToken: "three",
+			ACLReplicationToken: "four",
+		}
+
+		require.NoError(ioutil.WriteFile(tokensFullPath, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, 0600))
+		err := a.loadTokens(cfg)
+		require.Error(err)
+
+		require.Equal("one", a.tokens.UserToken())
+		require.Equal("two", a.tokens.AgentToken())
+		require.Equal("three", a.tokens.AgentMasterToken())
+		require.Equal("four", a.tokens.ReplicationToken())
+	})
+
+	t.Run("persistence-error-wrong-top-level", func(t *testing.T) {
+		cfg := &config.RuntimeConfig{
+			ACLToken:            "alfa",
+			ACLAgentToken:       "bravo",
+			ACLAgentMasterToken: "charlie",
+			ACLReplicationToken: "foxtrot",
+		}
+
+		require.NoError(ioutil.WriteFile(tokensFullPath, []byte("[1,2,3]"), 0600))
+		err := a.loadTokens(cfg)
+		require.Error(err)
+
+		require.Equal("alfa", a.tokens.UserToken())
+		require.Equal("bravo", a.tokens.AgentToken())
+		require.Equal("charlie", a.tokens.AgentMasterToken())
+		require.Equal("foxtrot", a.tokens.ReplicationToken())
+	})
+}
+
+func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
+	t.Parallel()
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	defer os.RemoveAll(dataDir)
+	hcl := `
+		data_dir = "` + dataDir + `"
+		verify_outgoing = true
+		ca_file = "../test/ca/root.cer"
+		cert_file = "../test/key/ourdomain.cer"
+		key_file = "../test/key/ourdomain.key"
+		verify_server_hostname = false
+	`
+	a, err := NewUnstartedAgent(t, t.Name(), hcl)
+	require.NoError(t, err)
+	tlsConf := a.tlsConfigurator.OutgoingRPCConfig()
+	require.True(t, tlsConf.InsecureSkipVerify)
+	require.Len(t, tlsConf.ClientCAs.Subjects(), 1)
+	require.Len(t, tlsConf.RootCAs.Subjects(), 1)
+
+	hcl = `
+		data_dir = "` + dataDir + `"
+		verify_outgoing = true
+		ca_path = "../test/ca_path"
+		cert_file = "../test/key/ourdomain.cer"
+		key_file = "../test/key/ourdomain.key"
+		verify_server_hostname = true
+	`
+	c := TestConfig(config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
+	require.NoError(t, a.ReloadConfig(c))
+	tlsConf = a.tlsConfigurator.OutgoingRPCConfig()
+	require.False(t, tlsConf.InsecureSkipVerify)
+	require.Len(t, tlsConf.RootCAs.Subjects(), 2)
+	require.Len(t, tlsConf.ClientCAs.Subjects(), 2)
+}
+
+func TestAgent_ReloadConfigIncomingRPCConfig(t *testing.T) {
+	t.Parallel()
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	defer os.RemoveAll(dataDir)
+	hcl := `
+		data_dir = "` + dataDir + `"
+		verify_outgoing = true
+		ca_file = "../test/ca/root.cer"
+		cert_file = "../test/key/ourdomain.cer"
+		key_file = "../test/key/ourdomain.key"
+		verify_server_hostname = false
+	`
+	a, err := NewUnstartedAgent(t, t.Name(), hcl)
+	require.NoError(t, err)
+	tlsConf := a.tlsConfigurator.IncomingRPCConfig()
+	require.NotNil(t, tlsConf.GetConfigForClient)
+	tlsConf, err = tlsConf.GetConfigForClient(nil)
+	require.NoError(t, err)
+	require.NotNil(t, tlsConf)
+	require.True(t, tlsConf.InsecureSkipVerify)
+	require.Len(t, tlsConf.ClientCAs.Subjects(), 1)
+	require.Len(t, tlsConf.RootCAs.Subjects(), 1)
+
+	hcl = `
+		data_dir = "` + dataDir + `"
+		verify_outgoing = true
+		ca_path = "../test/ca_path"
+		cert_file = "../test/key/ourdomain.cer"
+		key_file = "../test/key/ourdomain.key"
+		verify_server_hostname = true
+	`
+	c := TestConfig(config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
+	require.NoError(t, a.ReloadConfig(c))
+	tlsConf, err = tlsConf.GetConfigForClient(nil)
+	require.NoError(t, err)
+	require.False(t, tlsConf.InsecureSkipVerify)
+	require.Len(t, tlsConf.ClientCAs.Subjects(), 2)
+	require.Len(t, tlsConf.RootCAs.Subjects(), 2)
+}
+
+func TestAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
+	t.Parallel()
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	defer os.RemoveAll(dataDir)
+	hcl := `
+		data_dir = "` + dataDir + `"
+		verify_outgoing = true
+		ca_file = "../test/ca/root.cer"
+		cert_file = "../test/key/ourdomain.cer"
+		key_file = "../test/key/ourdomain.key"
+		verify_server_hostname = false
+	`
+	a, err := NewUnstartedAgent(t, t.Name(), hcl)
+	require.NoError(t, err)
+	tlsConf := a.tlsConfigurator.IncomingRPCConfig()
+
+	hcl = `
+		data_dir = "` + dataDir + `"
+		verify_incoming = true
+	`
+	c := TestConfig(config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
+	require.Error(t, a.ReloadConfig(c))
+	tlsConf, err = tlsConf.GetConfigForClient(nil)
+	require.NoError(t, err)
+	require.Equal(t, tls.NoClientCert, tlsConf.ClientAuth)
+	require.Len(t, tlsConf.ClientCAs.Subjects(), 1)
+	require.Len(t, tlsConf.RootCAs.Subjects(), 1)
 }

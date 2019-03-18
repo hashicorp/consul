@@ -377,9 +377,22 @@ type Config struct {
 	// CAConfig is used to apply the initial Connect CA configuration when
 	// bootstrapping.
 	CAConfig *structs.CAConfiguration
+}
 
-	// ConnectReplicationToken is used to control Intention replication.
-	ConnectReplicationToken string
+func (c *Config) ToTLSUtilConfig() tlsutil.Config {
+	return tlsutil.Config{
+		VerifyIncoming:           c.VerifyIncoming,
+		VerifyOutgoing:           c.VerifyOutgoing,
+		CAFile:                   c.CAFile,
+		CAPath:                   c.CAPath,
+		CertFile:                 c.CertFile,
+		KeyFile:                  c.KeyFile,
+		NodeName:                 c.NodeName,
+		ServerName:               c.ServerName,
+		TLSMinVersion:            c.TLSMinVersion,
+		CipherSuites:             c.TLSCipherSuites,
+		PreferServerCipherSuites: c.TLSPreferServerCipherSuites,
+	}
 }
 
 // CheckProtocolVersion validates the protocol version.
@@ -499,24 +512,4 @@ func DefaultConfig() *Config {
 	conf.RaftConfig.SnapshotThreshold = 16384
 
 	return conf
-}
-
-// tlsConfig maps this config into a tlsutil config.
-func (c *Config) tlsConfig() *tlsutil.Config {
-	tlsConf := &tlsutil.Config{
-		VerifyIncoming:           c.VerifyIncoming,
-		VerifyOutgoing:           c.VerifyOutgoing,
-		VerifyServerHostname:     c.VerifyServerHostname,
-		UseTLS:                   c.UseTLS,
-		CAFile:                   c.CAFile,
-		CAPath:                   c.CAPath,
-		CertFile:                 c.CertFile,
-		KeyFile:                  c.KeyFile,
-		NodeName:                 c.NodeName,
-		ServerName:               c.ServerName,
-		Domain:                   c.Domain,
-		TLSMinVersion:            c.TLSMinVersion,
-		PreferServerCipherSuites: c.TLSPreferServerCipherSuites,
-	}
-	return tlsConf
 }

@@ -1,11 +1,13 @@
 package agent
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"net"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -16,15 +18,17 @@ import (
 	"github.com/mitchellh/hashstructure"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/cache-types"
+	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/debug"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
+	token_store "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/file"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/logutils"
@@ -250,11 +254,11 @@ func (s *HTTPServer) AgentService(resp http.ResponseWriter, req *http.Request) (
 	// Support managed proxies until they are removed entirely. Since built-in
 	// proxy will now use this endpoint, in order to not break managed proxies in
 	// the interim until they are removed, we need to mirror the default-setting
-	// behaviour they had. Rather than thread that through this whole method as
+	// behavior they had. Rather than thread that through this whole method as
 	// special cases that need to be unwound later (and duplicate logic in the
-	// proxy config endpoint) just defer to that and then translater the response.
+	// proxy config endpoint) just defer to that and then translate the response.
 	if managedProxy := s.agent.State.Proxy(id); managedProxy != nil {
-		// This is for a managed proxy, use the old endpoint's behaviour
+		// This is for a managed proxy, use the old endpoint's behavior
 		req.URL.Path = "/v1/agent/connect/proxy/" + id
 		obj, err := s.AgentConnectProxyConfig(resp, req)
 		if err != nil {
@@ -1262,28 +1266,68 @@ func (s *HTTPServer) AgentToken(resp http.ResponseWriter, req *http.Request) (in
 		return nil, nil
 	}
 
+	if s.agent.config.ACLEnableTokenPersistence {
+		// we hold the lock around updating the internal token store
+		// as well as persisting the tokens because we don't want to write
+		// into the store to have something else wipe it out before we can
+		// persist everything (like an agent config reload). The token store
+		// lock is only held for those operations so other go routines that
+		// just need to read some token out of the store will not be impacted
+		// any more than they would be without token persistence.
+		s.agent.persistedTokensLock.Lock()
+		defer s.agent.persistedTokensLock.Unlock()
+	}
+
 	// Figure out the target token.
 	target := strings.TrimPrefix(req.URL.Path, "/v1/agent/token/")
 	switch target {
-	case "acl_token":
-		s.agent.tokens.UpdateUserToken(args.Token)
+	case "acl_token", "default":
+		s.agent.tokens.UpdateUserToken(args.Token, token_store.TokenSourceAPI)
 
-	case "acl_agent_token":
-		s.agent.tokens.UpdateAgentToken(args.Token)
+	case "acl_agent_token", "agent":
+		s.agent.tokens.UpdateAgentToken(args.Token, token_store.TokenSourceAPI)
 
-	case "acl_agent_master_token":
-		s.agent.tokens.UpdateAgentMasterToken(args.Token)
+	case "acl_agent_master_token", "agent_master":
+		s.agent.tokens.UpdateAgentMasterToken(args.Token, token_store.TokenSourceAPI)
 
-	case "acl_replication_token":
-		s.agent.tokens.UpdateACLReplicationToken(args.Token)
-
-	case "connect_replication_token":
-		s.agent.tokens.UpdateConnectReplicationToken(args.Token)
+	case "acl_replication_token", "replication":
+		s.agent.tokens.UpdateReplicationToken(args.Token, token_store.TokenSourceAPI)
 
 	default:
 		resp.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(resp, "Token %q is unknown", target)
 		return nil, nil
+	}
+
+	if s.agent.config.ACLEnableTokenPersistence {
+		tokens := persistedTokens{}
+
+		if tok, source := s.agent.tokens.UserTokenAndSource(); tok != "" && source == token_store.TokenSourceAPI {
+			tokens.Default = tok
+		}
+
+		if tok, source := s.agent.tokens.AgentTokenAndSource(); tok != "" && source == token_store.TokenSourceAPI {
+			tokens.Agent = tok
+		}
+
+		if tok, source := s.agent.tokens.AgentMasterTokenAndSource(); tok != "" && source == token_store.TokenSourceAPI {
+			tokens.AgentMaster = tok
+		}
+
+		if tok, source := s.agent.tokens.ReplicationTokenAndSource(); tok != "" && source == token_store.TokenSourceAPI {
+			tokens.Replication = tok
+		}
+
+		data, err := json.Marshal(tokens)
+		if err != nil {
+			s.agent.logger.Printf("[WARN] agent: failed to persist tokens - %v", err)
+			return nil, fmt.Errorf("Failed to marshal tokens for persistence: %v", err)
+		}
+
+		if err := file.WriteAtomicWithPerms(filepath.Join(s.agent.config.DataDir, tokensPath), data, 0600); err != nil {
+			s.agent.logger.Printf("[WARN] agent: failed to persist tokens - %v", err)
+			return nil, fmt.Errorf("Failed to persist tokens - %v", err)
+		}
 	}
 
 	s.agent.logger.Printf("[INFO] agent: Updated agent's ACL token %q", target)
@@ -1318,7 +1362,7 @@ func (s *HTTPServer) AgentConnectCARoots(resp http.ResponseWriter, req *http.Req
 // AgentConnectCALeafCert returns the certificate bundle for a service
 // instance. This supports blocking queries to update the returned bundle.
 func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	// Get the service name. Note that this is the name of the sevice,
+	// Get the service name. Note that this is the name of the service,
 	// not the ID of the service instance.
 	serviceName := strings.TrimPrefix(req.URL.Path, "/v1/agent/connect/ca/leaf/")
 
@@ -1495,7 +1539,7 @@ func (s *HTTPServer) AgentConnectProxyConfig(resp http.ResponseWriter, req *http
 type agentLocalBlockingFunc func(ws memdb.WatchSet) (string, interface{}, error)
 
 // agentLocalBlockingQuery performs a blocking query in a generic way against
-// local agent state that has no RPC or raft to back it. It uses `hash` paramter
+// local agent state that has no RPC or raft to back it. It uses `hash` parameter
 // instead of an `index`. The resp is needed to write the `X-Consul-ContentHash`
 // header back on return no Status nor body content is ever written to it.
 func (s *HTTPServer) agentLocalBlockingQuery(resp http.ResponseWriter, hash string,

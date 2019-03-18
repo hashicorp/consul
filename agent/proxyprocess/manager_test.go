@@ -43,7 +43,11 @@ func TestManagerRun_initialSync(t *testing.T) {
 	td, closer := testTempDir(t)
 	defer closer()
 	path := filepath.Join(td, "file")
-	testStateProxy(t, state, "web", helperProcess("restart", path))
+
+	cmd, destroy := helperProcess("restart", path)
+	defer destroy()
+
+	testStateProxy(t, state, "web", cmd)
 
 	// Start the manager
 	go m.Run()
@@ -78,7 +82,11 @@ func TestManagerRun_syncNew(t *testing.T) {
 	td, closer := testTempDir(t)
 	defer closer()
 	path := filepath.Join(td, "file")
-	testStateProxy(t, state, "web", helperProcess("restart", path))
+
+	cmd, destroy := helperProcess("restart", path)
+	defer destroy()
+
+	testStateProxy(t, state, "web", cmd)
 
 	// We should see the path appear shortly
 	retry.Run(t, func(r *retry.R) {
@@ -91,7 +99,11 @@ func TestManagerRun_syncNew(t *testing.T) {
 
 	// Add another proxy
 	path = path + "2"
-	testStateProxy(t, state, "db", helperProcess("restart", path))
+
+	cmd, destroy = helperProcess("restart", path)
+	defer destroy()
+
+	testStateProxy(t, state, "db", cmd)
 	retry.Run(t, func(r *retry.R) {
 		_, err := os.Stat(path)
 		if err == nil {
@@ -117,7 +129,11 @@ func TestManagerRun_syncDelete(t *testing.T) {
 	td, closer := testTempDir(t)
 	defer closer()
 	path := filepath.Join(td, "file")
-	id := testStateProxy(t, state, "web", helperProcess("restart", path))
+
+	cmd, destroy := helperProcess("restart", path)
+	defer destroy()
+
+	id := testStateProxy(t, state, "web", cmd)
 
 	// We should see the path appear shortly
 	retry.Run(t, func(r *retry.R) {
@@ -157,7 +173,11 @@ func TestManagerRun_syncUpdate(t *testing.T) {
 	td, closer := testTempDir(t)
 	defer closer()
 	path := filepath.Join(td, "file")
-	testStateProxy(t, state, "web", helperProcess("restart", path))
+
+	cmd, destroy := helperProcess("restart", path)
+	defer destroy()
+
+	testStateProxy(t, state, "web", cmd)
 
 	// We should see the path appear shortly
 	retry.Run(t, func(r *retry.R) {
@@ -171,7 +191,12 @@ func TestManagerRun_syncUpdate(t *testing.T) {
 	// Update the proxy with a new path
 	oldPath := path
 	path = path + "2"
-	testStateProxy(t, state, "web", helperProcess("restart", path))
+
+	cmd, destroy = helperProcess("restart", path)
+	defer destroy()
+
+	testStateProxy(t, state, "web", cmd)
+
 	retry.Run(t, func(r *retry.R) {
 		_, err := os.Stat(path)
 		if err == nil {
@@ -204,7 +229,11 @@ func TestManagerRun_daemonLogs(t *testing.T) {
 
 	// Create the service and calculate the log paths
 	path := filepath.Join(m.DataDir, "notify")
-	id := testStateProxy(t, state, "web", helperProcess("output", path))
+
+	cmd, destroy := helperProcess("output", path)
+	defer destroy()
+
+	id := testStateProxy(t, state, "web", cmd)
 	stdoutPath := logPath(logDir, id, "stdout")
 	stderrPath := logPath(logDir, id, "stderr")
 
@@ -244,7 +273,11 @@ func TestManagerRun_daemonPid(t *testing.T) {
 
 	// Create the service and calculate the log paths
 	path := filepath.Join(m.DataDir, "notify")
-	id := testStateProxy(t, state, "web", helperProcess("output", path))
+
+	cmd, destroy := helperProcess("output", path)
+	defer destroy()
+
+	id := testStateProxy(t, state, "web", cmd)
 	pidPath := pidPath(pidDir, id)
 
 	// Start the manager
@@ -280,7 +313,11 @@ func TestManagerPassesEnvironment(t *testing.T) {
 	td, closer := testTempDir(t)
 	defer closer()
 	path := filepath.Join(td, "env-variables")
-	testStateProxy(t, state, "environTest", helperProcess("environ", path))
+
+	cmd, destroy := helperProcess("environ", path)
+	defer destroy()
+
+	testStateProxy(t, state, "environTest", cmd)
 
 	//Run the manager
 	go m.Run()
@@ -331,7 +368,11 @@ func TestManagerPassesProxyEnv(t *testing.T) {
 	td, closer := testTempDir(t)
 	defer closer()
 	path := filepath.Join(td, "env-variables")
-	testStateProxy(t, state, "environTest", helperProcess("environ", path))
+
+	cmd, destroy := helperProcess("environ", path)
+	defer destroy()
+
+	testStateProxy(t, state, "environTest", cmd)
 
 	//Run the manager
 	go m.Run()
@@ -378,7 +419,11 @@ func TestManagerRun_snapshotRestore(t *testing.T) {
 	td, closer := testTempDir(t)
 	defer closer()
 	path := filepath.Join(td, "file")
-	testStateProxy(t, state, "web", helperProcess("start-stop", path))
+
+	cmd, destroy := helperProcess("start-stop", path)
+	defer destroy()
+
+	testStateProxy(t, state, "web", cmd)
 
 	// Set a low snapshot period so we get a snapshot
 	m.SnapshotPeriod = 10 * time.Millisecond
@@ -427,7 +472,12 @@ func TestManagerRun_snapshotRestore(t *testing.T) {
 	// Add a second proxy so that we can determine when we're up
 	// and running.
 	path2 := filepath.Join(td, "file2")
-	testStateProxy(t, state, "db", helperProcess("start-stop", path2))
+
+	cmd, destroy = helperProcess("start-stop", path2)
+	defer destroy()
+
+	testStateProxy(t, state, "db", cmd)
+
 	retry.Run(t, func(r *retry.R) {
 		_, err := os.Stat(path2)
 		if err == nil {
@@ -465,7 +515,11 @@ func TestManagerRun_rootDisallow(t *testing.T) {
 	td, closer := testTempDir(t)
 	defer closer()
 	path := filepath.Join(td, "file")
-	testStateProxy(t, state, "web", helperProcess("restart", path))
+
+	cmd, destroy := helperProcess("restart", path)
+	defer destroy()
+
+	testStateProxy(t, state, "web", cmd)
 
 	// Start the manager
 	go m.Run()

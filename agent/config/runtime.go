@@ -1,7 +1,6 @@
 package config
 
 import (
-	"crypto/tls"
 	"fmt"
 	"net"
 	"reflect"
@@ -99,7 +98,7 @@ type RuntimeConfig struct {
 	//                    ACL's to be used to service requests. This
 	//                    is the default. If the ACL is not in the cache,
 	//                    this acts like deny.
-	//   * async-cache - Same behaviour as extend-cache, but perform ACL
+	//   * async-cache - Same behavior as extend-cache, but perform ACL
 	//                   Lookups asynchronously when cache TTL is expired.
 	//
 	// hcl: acl.down_policy = ("allow"|"deny"|"extend-cache"|"async-cache")
@@ -128,10 +127,12 @@ type RuntimeConfig struct {
 	// hcl: acl.tokens.master = string
 	ACLMasterToken string
 
-	// ACLReplicationToken is used to fetch ACLs from the ACLDatacenter in
-	// order to replicate them locally. Setting this to a non-empty value
-	// also enables replication. Replication is only available in datacenters
-	// other than the ACLDatacenter.
+	// ACLReplicationToken is used to replicate data locally from the
+	// PrimaryDatacenter. Replication is only available on servers in
+	// datacenters other than the PrimaryDatacenter
+	//
+	// DEPRECATED (ACL-Legacy-Compat): Setting this to a non-empty value
+	// also enables legacy ACL replication if ACLs are enabled and in legacy mode.
 	//
 	// hcl: acl.tokens.replication = string
 	ACLReplicationToken string
@@ -159,6 +160,10 @@ type RuntimeConfig struct {
 	//
 	// hcl: acl.tokens.default = string
 	ACLToken string
+
+	// ACLEnableTokenPersistence determines whether or not tokens set via the agent HTTP API
+	// should be persisted to disk and reloaded when an agent restarts.
+	ACLEnableTokenPersistence bool
 
 	// AutopilotCleanupDeadServers enables the automatic cleanup of dead servers when new ones
 	// are added to the peer list. Defaults to true.
@@ -314,6 +319,16 @@ type RuntimeConfig struct {
 	// flag: -recursor string [-recursor string]
 	DNSRecursors []string
 
+	// DNSUseCache wether or not to use cache for dns queries
+	//
+	// hcl: dns_config { use_cache = (true|false) }
+	DNSUseCache bool
+
+	// DNSUseCache wether or not to use cache for dns queries
+	//
+	// hcl: dns_config { cache_max_age = "duration" }
+	DNSCacheMaxAge time.Duration
+
 	// HTTPBlockEndpoints is a list of endpoint prefixes to block in the
 	// HTTP API. Any requests to these will get a 403 response.
 	//
@@ -346,7 +361,7 @@ type RuntimeConfig struct {
 	// flag: -datacenter string
 	Datacenter string
 
-	// Defines the maximum stale value for discovery path. Defauls to "0s".
+	// Defines the maximum stale value for discovery path. Defaults to "0s".
 	// Discovery paths are /v1/heath/ paths
 	//
 	// If not set to 0, it will try to perform stale read and perform only a
@@ -535,9 +550,6 @@ type RuntimeConfig struct {
 
 	// ConnectCAConfig is the config to use for the CA provider.
 	ConnectCAConfig map[string]interface{}
-
-	// ConnectReplicationToken is the ACL token used for replicating intentions.
-	ConnectReplicationToken string
 
 	// ConnectTestDisableManagedProxies is not exposed to public config but is
 	// used by TestAgent to prevent self-executing the test binary in the
@@ -1430,25 +1442,6 @@ type RuntimeConfig struct {
 	Watches []map[string]interface{}
 }
 
-// IncomingHTTPSConfig returns the TLS configuration for HTTPS
-// connections to consul.
-func (c *RuntimeConfig) IncomingHTTPSConfig() (*tls.Config, error) {
-	tc := &tlsutil.Config{
-		VerifyIncoming:           c.VerifyIncoming || c.VerifyIncomingHTTPS,
-		VerifyOutgoing:           c.VerifyOutgoing,
-		CAFile:                   c.CAFile,
-		CAPath:                   c.CAPath,
-		CertFile:                 c.CertFile,
-		KeyFile:                  c.KeyFile,
-		NodeName:                 c.NodeName,
-		ServerName:               c.ServerName,
-		TLSMinVersion:            c.TLSMinVersion,
-		CipherSuites:             c.TLSCipherSuites,
-		PreferServerCipherSuites: c.TLSPreferServerCipherSuites,
-	}
-	return tc.IncomingTLSConfig()
-}
-
 func (c *RuntimeConfig) apiAddresses(maxPerType int) (unixAddrs, httpAddrs, httpsAddrs []string) {
 	if len(c.HTTPSAddrs) > 0 {
 		for i, addr := range c.HTTPSAddrs {
@@ -1585,6 +1578,26 @@ func (c *RuntimeConfig) APIConfig(includeClientCerts bool) (*api.Config, error) 
 // time.Duration values are formatted to improve readability.
 func (c *RuntimeConfig) Sanitized() map[string]interface{} {
 	return sanitize("rt", reflect.ValueOf(c)).Interface().(map[string]interface{})
+}
+
+func (c *RuntimeConfig) ToTLSUtilConfig() tlsutil.Config {
+	return tlsutil.Config{
+		VerifyIncoming:           c.VerifyIncoming,
+		VerifyIncomingRPC:        c.VerifyIncomingRPC,
+		VerifyIncomingHTTPS:      c.VerifyIncomingHTTPS,
+		VerifyOutgoing:           c.VerifyOutgoing,
+		VerifyServerHostname:     c.VerifyServerHostname,
+		CAFile:                   c.CAFile,
+		CAPath:                   c.CAPath,
+		CertFile:                 c.CertFile,
+		KeyFile:                  c.KeyFile,
+		NodeName:                 c.NodeName,
+		ServerName:               c.ServerName,
+		TLSMinVersion:            c.TLSMinVersion,
+		CipherSuites:             c.TLSCipherSuites,
+		PreferServerCipherSuites: c.TLSPreferServerCipherSuites,
+		EnableAgentTLSForChecks:  c.EnableAgentTLSForChecks,
+	}
 }
 
 // isSecret determines whether a field name represents a field which

@@ -34,7 +34,7 @@ option below.
 
 Consul also supports reloading configuration when it receives the
 SIGHUP signal. Not all changes are respected, but those that are
-are documented below in the
+documented below in the
 [Reloadable Configuration](#reloadable-configuration) section. The
 [reload command](/docs/commands/reload.html) can also be used to trigger a
 configuration reload.
@@ -554,9 +554,12 @@ default will automatically work with some tooling.
 
      * <a name="acl_enable_key_list"></a><a href="#acl_enable_key_list">`enable_key_list`</a> - Either "enabled" or "disabled", defaults to "disabled". When enabled, the `list` permission will be required on the prefix being recursively read from the KV store. Regardless of being enabled, the full set of KV entries under the prefix will be filtered to remove any entries that the request's ACL token does not grant at least read persmissions. This option is only available in Consul 1.0 and newer.
 
-     * <a name=`acl_enable_token_replication"></a><a href="#acl_enable_token_replication">`enable_token_replication`</a> - By
+     * <a name="acl_enable_token_replication"></a><a href="#acl_enable_token_replication">`enable_token_replication`</a> - By
      default secondary Consul datacenters will perform replication of only ACL policies. Setting this configuration will
      also enable ACL token replication.
+
+     * <a name="acl_enable_token_persistence"></a><a href="#acl_enable_token_persistence">`enable_token_persistence`</a> - Either
+    `true` or `false`. When `true` tokens set using the API will be persisted to disk and reloaded when an agent restarts.
 
      * <a name="acl_tokens"></a><a href="#acl_tokens">`tokens`</a> - This object holds
      all of the configured ACL tokens for the agents usage.
@@ -581,7 +584,7 @@ default will automatically work with some tooling.
 
         * <a name="acl_tokens_agent"></a><a href="#acl_tokens_agent">`agent`</a> - Used for clients
         and servers to perform internal operations. If this isn't specified, then the
-        <a href="#acl_tokens_default">`default`</a> will be used. This was added in Consul
+        <a href="#acl_tokens_default">`default`</a> will be used.
         <br/><br/>
         This token must at least have write access to the node name it will register as in order to set any
         of the node-level information in the catalog such as metadata, or the node's tagged addresses. There
@@ -1071,6 +1074,12 @@ default will automatically work with some tooling.
       * <a name="soa_retry"></a><a href="#soa_retry">`retry`</a> -
         Configures the Retry duration expressed in seconds, default value is
         600, ie: 10 minutes.
+
+    * <a name="dns_use_cache"></a><a href="#dns_use_cache">`use_cache`</a> - When set to true, DNS resolution will use the agent cache described
+      in [agent caching](/api/index.html#agent-caching). This setting affects all service and prepared queries DNS requests. Implies [`allow_stale`](#allow_stale)
+
+    * <a name="dns_cache_max_age"></a><a href="#dns_cache_max_age">`cache_max_age`</a> - When [use_cache](#dns_use_cache) is enabled, the agent
+      will attempt to re-fetch the result from the servers if the cached value is older than this duration. See: [agent caching](/api/index.html#agent-caching).
 
 * <a name="domain"></a><a href="#domain">`domain`</a> Equivalent to the
   [`-domain` command-line flag](#_domain).
@@ -1576,8 +1585,8 @@ default will automatically work with some tooling.
 
 * <a name="tls_min_version"></a><a href="#tls_min_version">`tls_min_version`</a> Added in Consul
   0.7.4, this specifies the minimum supported version of TLS. Accepted values are "tls10", "tls11"
-  or "tls12". This defaults to "tls10". WARNING: TLS 1.1 and lower are generally considered less
-  secure; avoid using these if possible. This will be changed to default to "tls12" in Consul 0.8.0.
+  or "tls12". This defaults to "tls12". WARNING: TLS 1.1 and lower are generally considered less
+  secure; avoid using these if possible.
 
 * <a name="tls_cipher_suites"></a><a href="#tls_cipher_suites">`tls_cipher_suites`</a> Added in Consul
   0.8.2, this specifies the list of supported ciphersuites as a comma-separated-list. The list of all
@@ -1722,6 +1731,8 @@ items which are reloaded include:
 * Services
 * Watches
 * HTTP Client Address
+* TLS Configuration
+  * Please be aware that this is currently limited to reload a configuration that is already TLS enabled. You cannot enable or disable TLS only with reloading.
 * <a href="#node_meta">Node Metadata</a>
 * <a href="#telemetry-prefix_filter">Metric Prefix Filter</a>
 * <a href="#discard_check_output">Discard Check Output</a>

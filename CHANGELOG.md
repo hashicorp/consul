@@ -1,5 +1,23 @@
 ## UNRELEASED
 
+FEATURES:
+* agent: (Consul Enterprise) Snapshot agent can now use Azure Blob Storage for automated backups.
+
+IMPROVEMENTS:
+* api: `/health/service/:service` blocking queries now only need a single goroutine regardless of number of instances in the service and watch channel which can massively reduce the number of goroutines on busy servers. [[GH-5449](https://github.com/hashicorp/consul/pull/5449)]
+
+BUG FIXES:
+
+* api: Fixed a bug where updating node information wasn't reflected in health result index. [[GH-5450](https://github.com/hashicorp/consul/issues/5450)]
+* agent: Fixed a bug that would cause removal of all of an agents health checks when only one service was removed. [[GH-5456](https://github.com/hashicorp/consul/issues/5456)]
+* connect: Fixed a bug where `sidecar_service` registered proxies might not be removed correctly due to ACLs for the service being removed first dissallowing the agent permission to delete the proxy. [[GH-5482](https://github.com/hashicorp/consul/pull/5482)]
+
+## 1.4.3 (March 5, 2019)
+
+SECURITY:
+
+* Fixed a potential privilege escalation issue with the Consul 1.4.X ACL system when ACL token replication was enabled. (CVE-2019-8336) [[GH-5423](https://github.com/hashicorp/consul/issues/5423)]
+
 BUG FIXES:
 
 * agent: Fixed a bug that could cause invalid memberlist protocol versions to propagate throughout the cluster. [[GH-3217](https://github.com/hashicorp/consul/issues/3217)]
@@ -7,15 +25,21 @@ BUG FIXES:
 * agent: only enable TLS on gRPC if the HTTPS API port is enabled [[GH-5287](https://github.com/hashicorp/consul/issues/5287)]
 * agent: Fixed default log file permissions. [[GH-5346](https://github.com/hashicorp/consul/issues/5346)]
 * api: Fixed bug where `/connect/intentions` endpoint didn't return `X-Consul-Index` [[GH-5355](https://github.com/hashicorp/consul/pull/5355)]
+* agent: Ensure that reaped servers are removed from RPC routing. [[GH-5317](https://github.com/hashicorp/consul/pull/5317)]
+* acl: Fix potential race condition when listing or retrieving ACL tokens. [[GH-5412](https://github.com/hashicorp/consul/pull/5412)]
+* agent: Fixed race condition that could turn up while registering services on the local agent. [[GH-4998](https://github.com/hashicorp/consul/issues/4998)]
 
 FEATURES:
 * prepared queries: Enable ServiceMeta filtering for prepared queries. [[GH-5291](https://github.com/hashicorp/consul/pull/5291)]
+* dns: Enabled caching of RPC responses within the DNS server. [[GH-5300](https://github.com/hashicorp/consul/pull/5300)]
 
 IMPROVEMENTS:
 
 * agent: Check ACLs more often for xDS stream endpoints. [[GH-5237](https://github.com/hashicorp/consul/issues/5237)]
 * connect: Sidecar services now inherit tags and service metadata of the parent service by default. [[GH-5291](https://github.com/hashicorp/consul/pull/5291)]
 * connect: Envoy proxies can now have cluster-specific config overrides via new "escape hatches": [[GH-5308](https://github.com/hashicorp/consul/pull/5308)]
+* agent: Added opt-in ACL token persistence for tokens set with the agent/token/* endpoints: [[GH-5328](https://github.com/hashicorp/consul/pull/5328)]
+* agent: Default to requiring protocol version 1.2 for TLS connections. The docs previously said this was going to be the default in 0.8+ but it had been left at 1.0 until now. [[GH-5340](https://github.com/hashicorp/consul/pull/5340)]
 
 ## 1.4.2 (January 28, 2019)
 

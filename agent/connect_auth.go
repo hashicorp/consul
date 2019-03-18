@@ -15,7 +15,7 @@ import (
 // HTTP API authz endpoint and in the gRPX xDS/ext_authz API for envoy.
 //
 // The ACL token and the auth request are provided and the auth decision (true
-// means authorised) and reason string are returned.
+// means authorized) and reason string are returned.
 //
 // If the request input is invalid the error returned will be a BadRequestError,
 // if the token doesn't grant necessary access then an acl.ErrPermissionDenied

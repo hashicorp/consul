@@ -22,8 +22,6 @@ The following guides are available:
  
 * [Autopilot](https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/autopilot) - This guide covers Autopilot, which provides automatic operator-friendly management of Consul servers.
 
-* [Bootstrapping](/docs/guides/bootstrapping.html) - This guide covers bootstrapping a new datacenter. This covers safely adding the initial Consul servers.
-
 * [Connect in Production](/docs/guides/connect-production.html) - This guide describes critical aspects of operating Consul Connect in Production.
 
 * [Connect with Envoy](/docs/guides/connect-envoy.html) - This guide will describe how to setup a development-mode Consul server and two Envoy proxies on a single machine using Docker.
@@ -65,8 +63,6 @@ The following guides are available:
 * [Consul Reference Architecture](https://learn.hashicorp.com/consul/advanced/day-1-operations/reference-architecture) - This document provides recommended practices and a reference architecture, including system requirements, datacenter design, networking, and performance optimizations for Consul production deployments.
 
 * [Semaphore](/docs/guides/semaphore.html) - This guide covers using the KV store to implement a semaphore.
-
-* [Sentinel](/docs/guides/sentinel.html) - This guide covers using Sentinel for policy enforcement in Consul.
 
 * [Server Performance](/docs/guides/performance.html) - This guide covers minimum requirements for Consul servers as well as guidelines for running Consul servers in production.
 

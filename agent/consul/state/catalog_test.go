@@ -2980,8 +2980,8 @@ func TestStateStore_CheckServiceNodes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	// service1 has been registered at idx=6, other different registrations do not count
-	if idx != 6 {
+	// service1 has been updated by node on idx 8
+	if idx != 8 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
@@ -3021,43 +3021,11 @@ func TestStateStore_CheckServiceNodes(t *testing.T) {
 		t.Fatalf("bad")
 	}
 
-	// Overwhelm node and check tracking.
-	idx = 13
-	for i := 0; i < 2*watchLimit; i++ {
-		node := fmt.Sprintf("many%d", i)
-		testRegisterNode(t, s, idx, node)
-		idx++
-		testRegisterCheck(t, s, idx, node, "", "check1", api.HealthPassing)
-		idx++
-		testRegisterService(t, s, idx, node, "service1")
-		idx++
-		testRegisterCheck(t, s, idx, node, "service1", "check2", api.HealthPassing)
-		idx++
-	}
-
-	// Now registering an unrelated node will fire the watch.
-	ws = memdb.NewWatchSet()
-	idx, results, err = s.CheckServiceNodes(ws, "service1")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	testRegisterNode(t, s, idx, "more-nope")
-	idx++
-	if !watchFired(ws) {
-		t.Fatalf("bad")
-	}
-
-	// Also, registering an unrelated check will fire the watch.
-	ws = memdb.NewWatchSet()
-	idx, results, err = s.CheckServiceNodes(ws, "service1")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	testRegisterCheck(t, s, idx, "more-nope", "", "check1", api.HealthPassing)
-	idx++
-	if !watchFired(ws) {
-		t.Fatalf("bad")
-	}
+	// Note that we can't overwhelm chan tracking any more since we optimized it
+	// to only need to watch one chan in the happy path. The only path that does
+	// bees to watch more stuff is where there are no service instances which also
+	// means fewer than watchLimit chans too so effectively no way to trigger
+	// Fallback watch any more.
 }
 
 func TestStateStore_CheckConnectServiceNodes(t *testing.T) {
@@ -3452,4 +3420,30 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 	if watchFired(ws) {
 		t.Fatalf("bad")
 	}
+}
+
+func TestStateStore_ServiceIdxUpdateOnNodeUpdate(t *testing.T) {
+	s := testStateStore(t)
+
+	// Create a service on a node
+	err := s.EnsureNode(10, &structs.Node{Node: "node", Address: "127.0.0.1"})
+	require.Nil(t, err)
+	err = s.EnsureService(12, "node", &structs.NodeService{ID: "srv", Service: "srv", Tags: nil, Address: "", Port: 5000})
+	require.Nil(t, err)
+
+	// Store the current service index
+	ws := memdb.NewWatchSet()
+	lastIdx, _, err := s.ServiceNodes(ws, "srv")
+	require.Nil(t, err)
+
+	// Update the node with some meta
+	err = s.EnsureNode(14, &structs.Node{Node: "node", Address: "127.0.0.1", Meta: map[string]string{"foo": "bar"}})
+	require.Nil(t, err)
+
+	// Read the new service index
+	ws = memdb.NewWatchSet()
+	newIdx, _, err := s.ServiceNodes(ws, "srv")
+	require.Nil(t, err)
+
+	require.True(t, newIdx > lastIdx)
 }

@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil/retry"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -435,7 +435,7 @@ func TestConnectCASign_rateLimit(t *testing.T) {
 	// the test here isn't really the exact token bucket response more a sanity
 	// check that some limiting is being applied. Note that we can't just measure
 	// the time it took to send them all and infer how many should have succeeded
-	// without some complex modelling of the token bucket algorithm.
+	// without some complex modeling of the token bucket algorithm.
 	require.Truef(successCount >= 1, "at least 1 CSRs should have succeeded, got %d", successCount)
 	require.Truef(limitedCount >= 7, "at least 7 CSRs should have been rate limited, got %d", limitedCount)
 }

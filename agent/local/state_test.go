@@ -1646,7 +1646,7 @@ func TestAgent_ServiceTokens(t *testing.T) {
 	t.Parallel()
 
 	tokens := new(token.Store)
-	tokens.UpdateUserToken("default")
+	tokens.UpdateUserToken("default", token.TokenSourceConfig)
 	cfg := config.DefaultRuntimeConfig(`bind_addr = "127.0.0.1" data_dir = "dummy"`)
 	l := local.NewState(agent.LocalConfig(cfg), nil, tokens)
 	l.TriggerSyncChanges = func() {}
@@ -1675,7 +1675,7 @@ func TestAgent_CheckTokens(t *testing.T) {
 	t.Parallel()
 
 	tokens := new(token.Store)
-	tokens.UpdateUserToken("default")
+	tokens.UpdateUserToken("default", token.TokenSourceConfig)
 	cfg := config.DefaultRuntimeConfig(`bind_addr = "127.0.0.1" data_dir = "dummy"`)
 	l := local.NewState(agent.LocalConfig(cfg), nil, tokens)
 	l.TriggerSyncChanges = func() {}

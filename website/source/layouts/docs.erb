@@ -3,6 +3,14 @@
     <ul class="nav docs-sidenav">
       <li<%= sidebar_current('docs-install-install') %>>
         <a href="/docs/install/index.html">Installing Consul</a>
+        <ul class="nav">
+          <li<%= sidebar_current("docs-install-ports") %>>
+            <a href="/docs/install/ports.html">Required Ports</a>
+          </li>
+          <li<%= sidebar_current("docs-install-bootstrapping") %>>
+            <a href="/docs/install/bootstrapping.html">Bootstrapping a Datacenter</a>
+          </li>
+        </ul>
       </li>
 
       <li<%= sidebar_current("docs-upgrading") %>>
@@ -295,6 +303,9 @@
           <li<%= sidebar_current("docs-agent-kv") %>>
             <a href="/docs/agent/kv.html">Consul KV</a>
           </li>
+          <li<%= sidebar_current("docs-agent-sentinel") %>>
+            <a href="/docs/agent/sentinel.html">Sentinel</a>
+          </li>
           <li<%= sidebar_current("docs-agent-encryption") %>>
             <a href="/docs/agent/encryption.html">Encryption</a>
           </li>
@@ -406,9 +417,6 @@
           <li<%= sidebar_current("docs-guides-autopilot") %>>
             <a href="https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/autopilot">Autopilot</a>
           </li>
-          <li<%= sidebar_current("docs-guides-bootstrapping") %>>
-            <a href="/docs/guides/bootstrapping.html">Bootstrapping</a>
-          </li>
           <li<%= sidebar_current("docs-guides-connect-production") %>>
             <a href="/docs/guides/connect-production.html">Connect in Production</a>
           </li>
@@ -474,9 +482,6 @@
           </li>
           <li<%= sidebar_current("docs-guides-semaphore") %>>
             <a href="/docs/guides/semaphore.html">Semaphore</a>
-          </li>
-          <li<%= sidebar_current("docs-guides-sentinel") %>>
-            <a href="/docs/guides/sentinel.html">Sentinel</a>
           </li>
           <li<%= sidebar_current("docs-guides-performance") %>>
             <a href="/docs/guides/performance.html">Server Performance</a>

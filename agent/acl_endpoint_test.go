@@ -14,7 +14,7 @@ import (
 )
 
 // NOTE: The tests contained herein are designed to test the HTTP API
-//       They are not intented to thoroughly test the backing RPC
+//       They are not intended to thoroughly test the backing RPC
 //       functionality as that will be done with other tests.
 
 func TestACL_Disabled_Response(t *testing.T) {

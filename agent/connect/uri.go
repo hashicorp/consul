@@ -34,7 +34,7 @@ var (
 )
 
 // ParseCertURIFromString attempts to parse a string representation of a
-// certificate URI as a convenince helper around ParseCertURI.
+// certificate URI as a convenience helper around ParseCertURI.
 func ParseCertURIFromString(input string) (CertURI, error) {
 	// Parse the certificate URI from the string
 	uriRaw, err := url.Parse(input)

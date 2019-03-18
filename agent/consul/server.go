@@ -252,13 +252,19 @@ type Server struct {
 	EnterpriseServer
 }
 
+// NewServer is only used to help setting up a server for testing. Normal code
+// exercises NewServerLogger.
 func NewServer(config *Config) (*Server, error) {
-	return NewServerLogger(config, nil, new(token.Store))
+	c, err := tlsutil.NewConfigurator(config.ToTLSUtilConfig(), nil)
+	if err != nil {
+		return nil, err
+	}
+	return NewServerLogger(config, nil, new(token.Store), c)
 }
 
-// NewServer is used to construct a new Consul server from the
+// NewServerLogger is used to construct a new Consul server from the
 // configuration, potentially returning an error
-func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*Server, error) {
+func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tlsConfigurator *tlsutil.Configurator) (*Server, error) {
 	// Check the protocol version.
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -296,19 +302,6 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		}
 	}
 
-	// Create the TLS wrapper for outgoing connections.
-	tlsConf := config.tlsConfig()
-	tlsWrap, err := tlsConf.OutgoingTLSWrapper()
-	if err != nil {
-		return nil, err
-	}
-
-	// Get the incoming TLS config.
-	incomingTLS, err := tlsConf.IncomingTLSConfig()
-	if err != nil {
-		return nil, err
-	}
-
 	// Create the tombstone GC.
 	gc, err := state.NewTombstoneGC(config.TombstoneTTL, config.TombstoneTTLGranularity)
 	if err != nil {
@@ -323,7 +316,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		LogOutput:  config.LogOutput,
 		MaxTime:    serverRPCCache,
 		MaxStreams: serverMaxStreams,
-		TLSWrapper: tlsWrap,
+		TLSWrapper: tlsConfigurator.OutgoingRPCWrapper(),
 		ForceTLS:   config.VerifyOutgoing,
 	}
 
@@ -339,7 +332,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		reconcileCh:      make(chan serf.Member, reconcileChSize),
 		router:           router.NewRouter(logger, config.Datacenter),
 		rpcServer:        rpc.NewServer(),
-		rpcTLS:           incomingTLS,
+		rpcTLS:           tlsConfigurator.IncomingRPCConfig(),
 		reassertLeaderCh: make(chan chan error),
 		segmentLAN:       make(map[string]*serf.Serf, len(config.Segments)),
 		sessionTimers:    NewSessionTimers(),
@@ -374,7 +367,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 	}
 
 	// Initialize the RPC layer.
-	if err := s.setupRPC(tlsWrap); err != nil {
+	if err := s.setupRPC(tlsConfigurator.OutgoingRPCWrapper()); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start RPC layer: %v", err)
 	}

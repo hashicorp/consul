@@ -66,7 +66,7 @@ func (c *Conn) CopyBytes() error {
 	return err
 }
 
-// Stats returns number of bytes transmitted and recieved. Transmit means bytes
+// Stats returns number of bytes transmitted and received. Transmit means bytes
 // written to dst, receive means bytes written to src.
 func (c *Conn) Stats() (txBytes, rxBytes uint64) {
 	return c.srcW.Written(), c.dstW.Written()

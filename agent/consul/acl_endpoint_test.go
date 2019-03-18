@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil/retry"
@@ -598,7 +599,7 @@ func TestACLEndpoint_ReplicationStatus(t *testing.T) {
 		c.ACLReplicationRate = 100
 		c.ACLReplicationBurst = 100
 	})
-	s1.tokens.UpdateACLReplicationToken("secret")
+	s1.tokens.UpdateReplicationToken("secret", tokenStore.TokenSourceConfig)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
@@ -876,7 +877,7 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 	codec2 := rpcClient(t, s2)
 	defer codec2.Close()
 
-	s2.tokens.UpdateACLReplicationToken("root")
+	s2.tokens.UpdateReplicationToken("root", tokenStore.TokenSourceConfig)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
@@ -954,7 +955,7 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("don't segfault when attempting to delete non existant token in secondary dc", func(t *testing.T) {
+	t.Run("don't segfault when attempting to delete non existent token in secondary dc", func(t *testing.T) {
 		fakeID, err := uuid.GenerateUUID()
 		require.NoError(t, err)
 
@@ -1150,32 +1151,32 @@ func TestACLEndpoint_PolicyBatchRead(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	t1, err := upsertTestToken(codec, "root", "dc1")
+	p1, err := upsertTestPolicy(codec, "root", "dc1")
 	require.NoError(t, err)
 
-	t2, err := upsertTestToken(codec, "root", "dc1")
+	p2, err := upsertTestPolicy(codec, "root", "dc1")
 	require.NoError(t, err)
 
 	acl := ACL{srv: s1}
-	tokens := []string{t1.AccessorID, t2.AccessorID}
+	policies := []string{p1.ID, p2.ID}
 
-	req := structs.ACLTokenBatchGetRequest{
+	req := structs.ACLPolicyBatchGetRequest{
 		Datacenter:   "dc1",
-		AccessorIDs:  tokens,
+		PolicyIDs:    policies,
 		QueryOptions: structs.QueryOptions{Token: "root"},
 	}
 
-	resp := structs.ACLTokenBatchResponse{}
+	resp := structs.ACLPolicyBatchResponse{}
 
-	err = acl.TokenBatchRead(&req, &resp)
+	err = acl.PolicyBatchRead(&req, &resp)
 	require.NoError(t, err)
 
-	var retrievedTokens []string
+	var retrievedPolicies []string
 
-	for _, v := range resp.Tokens {
-		retrievedTokens = append(retrievedTokens, v.AccessorID)
+	for _, v := range resp.Policies {
+		retrievedPolicies = append(retrievedPolicies, v.ID)
 	}
-	require.EqualValues(t, retrievedTokens, tokens)
+	require.EqualValues(t, retrievedPolicies, policies)
 }
 
 func TestACLEndpoint_PolicySet(t *testing.T) {

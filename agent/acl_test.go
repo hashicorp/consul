@@ -190,6 +190,7 @@ func TestACL_AgentMasterToken(t *testing.T) {
 	}
 
 	a := NewTestACLAgent(t.Name(), TestACLConfig(), resolveFn)
+	a.loadTokens(a.config)
 	authz, err := a.resolveToken("towel")
 	require.NotNil(t, authz)
 	require.Nil(t, err)
