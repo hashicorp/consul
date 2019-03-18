@@ -364,7 +364,7 @@ func TestServiceMultipleTagsWatch(t *testing.T) {
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	invoke := makeInvokeCh()
-	plan := mustParse(t, `{"type":"service", "service":"foo", "tag": "bar", "tags":["buzz"], "passingonly":true}`)
+	plan := mustParse(t, `{"type":"service", "service":"foo", "tag":["bar","buzz"], "passingonly":true}`)
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
 			return // ignore
