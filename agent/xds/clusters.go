@@ -9,7 +9,7 @@ import (
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoyauth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
+	envoycluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
 	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
@@ -130,7 +130,7 @@ func makeUpstreamCluster(upstream structs.Upstream, cfgSnap *proxycfg.ConfigSnap
 				},
 			},
 			// Having an empty config enables outlier detection with default config.
-			OutlierDetection: &cluster.OutlierDetection{},
+			OutlierDetection: &envoycluster.OutlierDetection{},
 		}
 	}
 

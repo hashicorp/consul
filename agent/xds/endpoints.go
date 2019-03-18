@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoyendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	"github.com/gogo/protobuf/proto"
 
@@ -42,7 +42,7 @@ func makeLoadAssignment(clusterName string, endpoints structs.CheckServiceNodes)
 		if addr == "" {
 			addr = ep.Node.Address
 		}
-		healthStatus := core.HealthStatus_HEALTHY
+		healthStatus := envoycore.HealthStatus_HEALTHY
 		weight := 1
 		if ep.Service.Weights != nil {
 			weight = ep.Service.Weights.Passing
@@ -52,7 +52,7 @@ func makeLoadAssignment(clusterName string, endpoints structs.CheckServiceNodes)
 			if chk.Status == api.HealthCritical {
 				// This can't actually happen now because health always filters critical
 				// but in the future it may not so set this correctly!
-				healthStatus = core.HealthStatus_UNHEALTHY
+				healthStatus = envoycore.HealthStatus_UNHEALTHY
 			}
 			if chk.Status == api.HealthWarning && ep.Service.Weights != nil {
 				weight = ep.Service.Weights.Warning
@@ -62,7 +62,7 @@ func makeLoadAssignment(clusterName string, endpoints structs.CheckServiceNodes)
 		// (likely) or Passing (weirdly) weight has been set to 0 effectively making
 		// this instance unhealthy and should not be sent traffic.
 		if weight < 1 {
-			healthStatus = core.HealthStatus_UNHEALTHY
+			healthStatus = envoycore.HealthStatus_UNHEALTHY
 			weight = 1
 		}
 		if weight > 128 {
