@@ -2490,8 +2490,8 @@ func TestAgent_Service_Reap(t *testing.T) {
 	}
 	chkTypes := []*structs.CheckType{
 		&structs.CheckType{
-			Status: api.HealthPassing,
-			TTL:    25 * time.Millisecond,
+			Status:                         api.HealthPassing,
+			TTL:                            25 * time.Millisecond,
 			DeregisterCriticalServiceAfter: 200 * time.Millisecond,
 		},
 	}
@@ -3584,8 +3584,8 @@ func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 		key_file = "../test/key/ourdomain.key"
 		verify_server_hostname = false
 	`
-	a, err := NewUnstartedAgent(t, t.Name(), hcl)
-	require.NoError(t, err)
+	a := NewTestAgent(t, t.Name(), hcl)
+	defer a.Shutdown()
 	tlsConf := a.tlsConfigurator.OutgoingRPCConfig()
 	require.True(t, tlsConf.InsecureSkipVerify)
 	require.Len(t, tlsConf.ClientCAs.Subjects(), 1)
@@ -3619,11 +3619,11 @@ func TestAgent_ReloadConfigIncomingRPCConfig(t *testing.T) {
 		key_file = "../test/key/ourdomain.key"
 		verify_server_hostname = false
 	`
-	a, err := NewUnstartedAgent(t, t.Name(), hcl)
-	require.NoError(t, err)
+	a := NewTestAgent(t, t.Name(), hcl)
+	defer a.Shutdown()
 	tlsConf := a.tlsConfigurator.IncomingRPCConfig()
 	require.NotNil(t, tlsConf.GetConfigForClient)
-	tlsConf, err = tlsConf.GetConfigForClient(nil)
+	tlsConf, err := tlsConf.GetConfigForClient(nil)
 	require.NoError(t, err)
 	require.NotNil(t, tlsConf)
 	require.True(t, tlsConf.InsecureSkipVerify)
@@ -3659,8 +3659,8 @@ func TestAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
 		key_file = "../test/key/ourdomain.key"
 		verify_server_hostname = false
 	`
-	a, err := NewUnstartedAgent(t, t.Name(), hcl)
-	require.NoError(t, err)
+	a := NewTestAgent(t, t.Name(), hcl)
+	defer a.Shutdown()
 	tlsConf := a.tlsConfigurator.IncomingRPCConfig()
 
 	hcl = `
@@ -3669,7 +3669,7 @@ func TestAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
 	`
 	c := TestConfig(config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
 	require.Error(t, a.ReloadConfig(c))
-	tlsConf, err = tlsConf.GetConfigForClient(nil)
+	tlsConf, err := tlsConf.GetConfigForClient(nil)
 	require.NoError(t, err)
 	require.Equal(t, tls.NoClientCert, tlsConf.ClientAuth)
 	require.Len(t, tlsConf.ClientCAs.Subjects(), 1)

@@ -18,11 +18,9 @@ import (
 	metrics "github.com/armon/go-metrics"
 	uuid "github.com/hashicorp/go-uuid"
 
-	"github.com/hashicorp/consul/agent/ae"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul"
-	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib/freeport"
@@ -111,15 +109,6 @@ func NewUnstartedAgent(t *testing.T, name string, hcl string) (*Agent, error) {
 	if err != nil {
 		return nil, err
 	}
-	a.State = local.NewState(LocalConfig(c), a.logger, a.tokens)
-	a.sync = ae.NewStateSyncer(a.State, c.AEInterval, a.shutdownCh, a.logger)
-	a.delegate = &consul.Client{}
-	a.State.TriggerSyncChanges = a.sync.SyncChanges.Trigger
-	tlsConfigurator, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), nil)
-	if err != nil {
-		return nil, err
-	}
-	a.tlsConfigurator = tlsConfigurator
 	return a, nil
 }
 
