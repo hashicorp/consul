@@ -142,7 +142,7 @@ $ consul agent -retry-join "provider=gce project_name=... tag_value=..."
 - `tag_value` (required) - the value of the tag to auto-join on.
 - `project_name` (optional) - the name of the project to auto-join on. Discovered if not set.
 - `zone_pattern` (optional) - the list of zones can be restricted through an RE2 compatible regular expression. If omitted, servers in all zones are returned.
-- `credentials_file` (optional) - the credentials file for authentication. See below for more information.
+- `credentials_file` (optional) - the credentials file for authentication. Note, if you set `-config-dir` do not store the credentials.json file in the configuration directory as it will be parsed as a config file and Consul will fail to start. See below for more information.
 
 #### Authentication & Precedence
 
