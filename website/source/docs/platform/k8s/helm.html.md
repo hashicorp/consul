@@ -156,6 +156,13 @@ and consider if they're appropriate for your deployment.
       configuration files from this volume with `-config-dir`. This defaults
       to false.
 
+        ```yaml
+        extraVolumes:    
+          -  type: "secret"
+             name: "consul-certs"
+             load: false        
+        ```
+
   * <a name="v-server-affinity" href="#v-server-affinity">`affinity`</a> (`string`) - This value defines the [affinity](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity) for server pods. It defaults to allowing only a single pod on each node, which minimizes risk of the cluster becoming unusable if a node is lost. If you need to run more pods per node (for example, testing on Minikube), set this value to `null`.
 
         ```yaml
@@ -230,6 +237,13 @@ and consider if they're appropriate for your deployment.
       If true, then the agent will be configured to automatically load HCL/JSON
       configuration files from this volume with `-config-dir`. This defaults
       to false.
+
+        ```yaml
+        extraVolumes:    
+          -  type: "secret"
+             name: "consul-certs"
+             load: false        
+        ```
 
   * <a name="v-client-priorityclassname" href="#v-client-priorityclassname">`priorityClassName`</a> (`string`) - This value references an existing Kubernetes [priorityClassName](https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/#pod-priority) that can be assigned to client pods.
 
