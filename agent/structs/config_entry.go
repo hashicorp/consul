@@ -1,23 +1,26 @@
 package structs
 
-type ConfigurationKind string
-
 const (
-	ServiceDefaults ConfigurationKind = "service-defaults"
-	ProxyDefaults   ConfigurationKind = "proxy-defaults"
+	ServiceDefaults string = "service-defaults"
+	ProxyDefaults   string = "proxy-defaults"
 )
 
-// Should this be an interface or a switch on the existing config types?
-type Configuration interface {
-	GetKind() ConfigurationKind
+// ConfigEntry is the
+type ConfigEntry interface {
+	GetKind() string
 	GetName() string
+
+	// This is called in the RPC endpoint and can apply defaults
+	Normalize() error
 	Validate() error
+
+	GetRaftIndex() *RaftIndex
 }
 
 // ServiceConfiguration is the top-level struct for the configuration of a service
 // across the entire cluster.
-type ServiceConfiguration struct {
-	Kind                      ConfigurationKind
+type ServiceConfigEntry struct {
+	Kind                      string
 	Name                      string
 	Protocol                  string
 	Connect                   ConnectConfiguration
@@ -26,7 +29,7 @@ type ServiceConfiguration struct {
 	RaftIndex
 }
 
-func (s *ServiceConfiguration) GetKind() ConfigurationKind {
+func (s *ServiceConfigEntry) GetKind() string {
 	return ServiceDefaults
 }
 
@@ -63,13 +66,43 @@ type ServiceDefinitionDefaults struct {
 	DisableDirectDiscovery bool
 }
 
-// ProxyConfiguration is the top-level struct for global proxy configuration defaults.
-type ProxyConfiguration struct {
-	Kind        ConfigurationKind
+// ProxyConfigEntry is the top-level struct for global proxy configuration defaults.
+type ProxyConfigEntry struct {
+	Kind        string
 	Name        string
 	ProxyConfig ConnectProxyConfig
+
+	RaftIndex
 }
 
-func (p *ProxyConfiguration) GetKind() ConfigurationKind {
+func (p *ProxyConfigEntry) GetKind() string {
 	return ProxyDefaults
+}
+
+func (p *ProxyConfigEntry) GetName() string {
+	return p.Name
+}
+
+func (p *ProxyConfigEntry) Normalize() error {
+	return nil
+}
+
+func (p *ProxyConfigEntry) Validate() error {
+	return nil
+}
+
+func (p *ProxyConfigEntry) GetRaftIndex() *RaftIndex {
+	return &p.RaftIndex
+}
+
+type ConfigEntryOp string
+
+const (
+	ConfigEntryUpsert ConfigEntryOp = "upsert"
+	ConfigEntryDelete ConfigEntryOp = "delete"
+)
+
+type ConfigEntryRequest struct {
+	Op    ConfigEntryOp
+	Entry ConfigEntry
 }

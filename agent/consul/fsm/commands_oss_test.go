@@ -1355,3 +1355,39 @@ func TestFSM_CABuiltinProvider(t *testing.T) {
 		assert.Equal(expected, state)
 	}
 }
+
+func TestFSM_ConfigEntry(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	fsm, err := New(nil, os.Stderr)
+	assert.Nil(err)
+
+	// Roots
+	entry := &structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: "global",
+		ProxyConfig: structs.ConnectProxyConfig{
+			DestinationServiceName: "foo",
+		},
+	}
+
+	// Create a new request.
+	req := structs.ConfigEntryRequest{
+		Op:    structs.ConfigEntryUpsert,
+		Entry: entry,
+	}
+
+	{
+		buf, err := structs.Encode(structs.ConfigEntryRequestType, req)
+		assert.Nil(err)
+		assert.True(fsm.Apply(makeLog(buf)).(bool))
+	}
+
+	// Verify it's in the state store.
+	{
+		_, config, err := fsm.state.ConfigEntry(structs.ProxyDefaults, "global")
+		assert.Nil(err)
+		assert.Equal(entry, config)
+	}
+}
