@@ -1592,6 +1592,7 @@ func (c *RuntimeConfig) ToTLSUtilConfig() tlsutil.Config {
 		CertFile:                 c.CertFile,
 		KeyFile:                  c.KeyFile,
 		NodeName:                 c.NodeName,
+		Domain:                   c.DNSDomain,
 		ServerName:               c.ServerName,
 		TLSMinVersion:            c.TLSMinVersion,
 		CipherSuites:             c.TLSCipherSuites,
