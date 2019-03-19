@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-memdb"
+	"github.com/stretchr/testify/require"
 )
 
 func testUUID() string {
@@ -128,6 +129,32 @@ func testRegisterCheck(t *testing.T, s *Store, idx uint64,
 		result.CheckID != checkID {
 		t.Fatalf("bad check: %#v", result)
 	}
+}
+
+func testRegisterSidecarProxy(t *testing.T, s *Store, idx uint64, nodeID string, targetServiceID string) {
+	svc := &structs.NodeService{
+		ID:      targetServiceID + "-sidecar-proxy",
+		Service: targetServiceID + "-sidecar-proxy",
+		Port:    20000,
+		Kind:    structs.ServiceKindConnectProxy,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: targetServiceID,
+			DestinationServiceID:   targetServiceID,
+		},
+	}
+	require.NoError(t, s.EnsureService(idx, nodeID, svc))
+}
+
+func testRegisterConnectNativeService(t *testing.T, s *Store, idx uint64, nodeID string, serviceID string) {
+	svc := &structs.NodeService{
+		ID:      serviceID,
+		Service: serviceID,
+		Port:    1111,
+		Connect: structs.ServiceConnect{
+			Native: true,
+		},
+	}
+	require.NoError(t, s.EnsureService(idx, nodeID, svc))
 }
 
 func testSetKey(t *testing.T, s *Store, idx uint64, key, value string) {
