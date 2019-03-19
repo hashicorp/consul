@@ -1,12 +1,12 @@
 ---
 layout: "docs"
 page_title: "ACL System"
-sidebar_current: "docs-agent-acl-system"
+sidebar_current: "docs-acl-system"
 description: |-
   Consul provides an optional Access Control List (ACL) system which can be used to control access to data and APIs. The ACL system is a Capability-based system that relies on tokens which can have fine grained rules applied to them. It is very similar to AWS IAM in many ways.
 ---
 
--> **1.4.0 and later:** This guide only applies in Consul versions 1.4.0 and later. The documentation for the legacy ACL system is [here](/docs/guides/acl-legacy.html)
+-> **1.4.0 and later:** This guide only applies in Consul versions 1.4.0 and later. The documentation for the legacy ACL system is [here](/docs/acl/acl-legacy.html)
 
 # ACL System
 
@@ -37,7 +37,7 @@ An ACL policy is a named set of rules and is composed of the following elements:
 
 * **ID** - The policies auto-generated public identifier.
 * **Name** - A unique meaningful name for the policy.
-* **Rules** - Set of rules granting or denying permissions. See the [Rule Specification](/docs/agent/acl-rules.html#rule-specification) documentation for more details.
+* **Rules** - Set of rules granting or denying permissions. See the [Rule Specification](/docs/acl/acl-rules.html#rule-specification) documentation for more details.
 * **Datacenters** - A list of datacenters the policy is valid within.
 
 #### Builtin Policies
@@ -125,7 +125,7 @@ Consul datacenters, and does not allow modification of any state.
 3. The [connect CA roots endpoint](/api/connect/ca.html#list-ca-root-certificates) exposes just the public TLS certificate which other systems can use to verify the TLS connection with Consul.
 
 Constructing rules from these policies is covered in detail on the
-[ACL Rules](/docs/agent/acl-rules.html) page.
+[ACL Rules](/docs/acl/acl-rules.html) page.
 
 ## Configuring ACLs
 
@@ -191,5 +191,5 @@ The `service_prefix` policy needs read access for any services that can be regis
 
 ## Next Steps
 
-Setup ACLs with the [Boostrapping guide](/docs/guides/acl.html) or continue reading about
-[ACL rules](/docs/agent/acl-rules.html).
+Setup ACLs with the [Bootstrapping the ACL System guide](https://learn.hashicorp.com/consul/advanced/day-1-operations/acl-guide) or continue reading about
+[ACL rules](/docs/acl/acl-rules.html).

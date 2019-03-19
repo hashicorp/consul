@@ -318,6 +318,24 @@
         </ul>
       </li>
 
+      <li<%= sidebar_current("docs-acl") %>>
+        <a href="/docs/acl/index.html">Access Control (ACLs)</a>
+        <ul class="nav">
+          <li<%= sidebar_current("docs-acl-system") %>>
+            <a href="/docs/acl/acl-system.html">ACL System</a>
+          </li>
+          <li<%= sidebar_current("docs-acl-rules") %>>
+            <a href="/docs/acl/acl-rules.html">ACL Rules</a>
+          </li>
+          <li<%= sidebar_current("docs-acl-legacy") %>>
+            <a href="/docs/acl/acl-legacy.html">Legacy ACLs</a>
+          </li>
+          <li<%= sidebar_current("docs-acl-migration") %>>
+            <a href="/docs/acl/acl-migrate-tokens.html">Token Migration</a>
+          </li>
+         </ul>
+      </li>
+
       <li<%= sidebar_current("docs-connect") %>>
         <a href="/docs/connect/index.html">Connect</a>
         <ul class="nav">
@@ -405,9 +423,6 @@
       <li<%= sidebar_current("docs-guides") %>>
         <a href="/docs/guides/index.html">Guides</a>
         <ul class="nav">
-          <li<%= sidebar_current("docs-guides-acl") %>>
-            <a href="/docs/guides/acl-index.html">ACL Guides</a>
-          </li>
           <li<%= sidebar_current("docs-guides-servers") %>>
             <a href="https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/servers">Adding & Removing Servers</a>
           </li>

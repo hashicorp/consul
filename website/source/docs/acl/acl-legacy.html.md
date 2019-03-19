@@ -6,30 +6,36 @@ description: |-
   Consul provides an optional Access Control List (ACL) system which can be used to control access to data and APIs. The ACL system is a Capability-based system that relies on tokens which can have fine grained rules applied to them. It is very similar to AWS IAM in many ways.
 ---
 
--> **1.3.0 and earlier:** This guide only applies in Consul versions 1.3.0 and before. If you are using the 1.4.0 or later please use the updated guide [here](/docs/guides/acl.html)
+-> **1.3.0 and earlier:** This guide only applies in Consul versions 1.3.0 and before. If you are using the 1.4.0 or later please use the updated guide [here](/docs/acl/acl.html)
 
 
-# Deprecation Notice
-
+~> **Alert: Deprecation Notice**
 The ACL system described here was Consul's original ACL implementation. In Consul 1.4.0
-the ACL system was rewritten and the legacy system was deprecated. The new ACL guide
-can be found [here](https://learn.hashicorp.com/consul/advanced/day-1-operations/acl-guide).
+the ACL system was rewritten and the legacy system was deprecated. The new ACL system information can be found [here](/docs/acl/acl-system.html).
+
+
+The legacy documentation has two sections.
+
+- The [New ACL System Differences](#new-acl-system-differences) section 
+details the differences between ACLs in Consul 1.4.0 and older versions. You should read this section before upgrading to Consul 1.4.0 and [migrating](/docs/acl/acl-migrate-tokens.html)tokens.
+- The [Legacy ACL System documentation](#legacy-acl-system) section details the
+ACL system in Consul 1.3.0 and older. 
 
 # New ACL System Differences
 
-The [ACL guide](/docs/guides/acl.html) and [legacy ACL
-guide](/docs/guides/acl-legacy.html) describes the new and old systems in
+The [ACL System documentation](/docs/acl/acl-system.html) and [legacy ACL
+guide](/docs/acl/acl-legacy.html) describes the new and old systems in
 detail. Below is a summary of the changes that need to be considered when
 migrating legacy tokens to the new system.
 
-## Token and Policy Separation
+### Token and Policy Separation
 
 You can use a single policy in the new system for all tokens that share access
 rules. For example, all tokens created using the clone endpoint in the legacy
 system can be represented with a single policy and a set of tokens that map to
 that policy.
 
-## Rule Syntax Changes
+### Rule Syntax Changes
 
 The most significant change is that rules with selectors _no longer prefix match
 by default_. In the legacy system the following rules would grant access to
@@ -58,7 +64,7 @@ service_prefix "foo" { policy = "write" }
 key_prefix "foo" { policy = "write" }
 ```
 
-## API Separation
+### API Separation
 
 The "old" API endpoints below continue to work for backwards compatibility but
 will continue to create or show only "legacy" tokens that can't take full
@@ -76,7 +82,8 @@ The new ACL system includes new API endpoints to manage
 the [ACL System](/api/acl/acl.html), [Tokens](/api/acl/tokens.html)
 and [Policies](/api/acl/policies.html).
 
-# Legacy ACL System
+
+# Legacy ACL System 
 
 Consul provides an optional Access Control List (ACL) system which can be used to control
 access to data and APIs. The ACL is
