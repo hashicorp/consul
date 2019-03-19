@@ -2,6 +2,7 @@
 
 FEATURES:
 * agent: (Consul Enterprise) Snapshot agent can now use Azure Blob Storage for automated backups.
+* agent: enable reloading of agent-to-agent TLS configuration (https://github.com/hashicorp/consul/pull/5419)]
 
 IMPROVEMENTS:
 * api: `/health/service/:service` blocking queries now only need a single goroutine regardless of number of instances in the service and watch channel which can massively reduce the number of goroutines on busy servers. [[GH-5449](https://github.com/hashicorp/consul/pull/5449)]
