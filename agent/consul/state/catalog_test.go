@@ -3108,7 +3108,56 @@ func TestStateStore_ConnectQueryBlocking(t *testing.T) {
 			wantAfterWatchSetSize: 2,
 		},
 		{
-			// See https://github.com/hashicorp/consul/issues/5506
+			name: "unblocks on connect-native node health check change",
+			setupFn: func(s *Store) {
+				testRegisterConnectNativeService(t, s, 4, "node1", "test")
+				testRegisterCheck(t, s, 6, "node1", "", "check1", "passing")
+			},
+			svc:              "test",
+			wantBeforeResLen: 1,
+			// Should take the optimized path where we only watch the service index
+			// and the connect index iterator.
+			wantBeforeWatchSetSize: 2,
+			updateFn: func(s *Store) {
+				testRegisterCheck(t, s, 7, "node1", "", "check1", "critical")
+			},
+			shouldFire:      true,
+			wantAfterIndex:  7,
+			wantAfterResLen: 1, // critical filtering doesn't happen in the state store method.
+			// Should take the optimized path where we only watch the service index
+			// and the connect index iterator.
+			wantAfterWatchSetSize: 2,
+		},
+		{
+			name: "unblocks on proxy service health check change",
+			setupFn: func(s *Store) {
+				testRegisterSidecarProxy(t, s, 4, "node1", "test")
+				testRegisterCheck(t, s, 6, "node1", "", "check1", "passing")
+			},
+			svc:              "test",
+			wantBeforeResLen: 1,
+			// Should take the optimized path where we only watch the service index
+			// and the connect index iterator.
+			wantBeforeWatchSetSize: 2,
+			updateFn: func(s *Store) {
+				testRegisterCheck(t, s, 7, "node1", "", "check1", "critical")
+			},
+			shouldFire:      true,
+			wantAfterIndex:  7,
+			wantAfterResLen: 1, // critical filtering doesn't happen in the state store method.
+			// Should take the optimized path where we only watch the service index
+			// and the connect index iterator.
+			wantAfterWatchSetSize: 2,
+		},
+		{
+			// See https://github.com/hashicorp/consul/issues/5506. The issue is cause
+			// if the target service exists and is registered meaning it has a
+			// service-specific index. This index is then used for the connect query
+			// even though it is not updated by changes to the actual proxy or it's
+			// checks. If the target service was never registered then it all appears
+			// to work because the code would not find a service index and so fall
+			// back to using the global service index which does change on any update
+			// to proxies.
 			name: "unblocks on proxy service health check change with target service present",
 			setupFn: func(s *Store) {
 				testRegisterService(t, s, 4, "node1", "test") // normal service
