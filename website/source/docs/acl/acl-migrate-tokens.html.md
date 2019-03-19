@@ -21,8 +21,11 @@ guide describes the overall process.
 
 ~> **Note**: Before starting the token migration process all Consul agents, servers
 and clients, must be running at least version 1.4.0. Additionally, you 
-must ensure the Cluster is in a healthy state including a functioning leader.
-You can use `consul info` to investigate the cluster health.
+must ensure the cluster is in a healthy state including a functioning leader. Once
+the leader has determined that all servers in the cluster are capable of using the
+new ACL system, the leader will transition itself. Then, the other servers will
+transition themselves to the new system, followed by the client agents. You can 
+use `consul info` to investigate the cluster health.
 
 Consul 1.4.0 retains full support for "legacy" ACL tokens so upgrades
 from Consul 1.3.0 are safe. Existing tokens will continue to work in the same
