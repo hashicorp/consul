@@ -15,10 +15,9 @@ require (
 	github.com/StackExchange/wmi v0.0.0-20160811214555-e54cbda6595d // indirect
 	github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
 	github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da
-	github.com/armon/go-radix v0.0.0-20160115234725-4239b77079c7
+	github.com/armon/go-radix v0.0.0-20180808171621-7fddfc383310
 	github.com/asaskevich/govalidator v0.0.0-20180319081651-7d2e70ef918f // indirect
 	github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973 // indirect
-	github.com/bgentry/speakeasy v0.0.0-20160520232610-e1439544d8ec // indirect
 	github.com/bitly/go-hostpool v0.0.0-20171023180738-a3a6125de932 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/boltdb/bolt v1.3.1 // indirect
@@ -58,18 +57,18 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.0.0-20180531211321-3b087ef2d313 // indirect
 	github.com/hashicorp/go-rootcerts v0.0.0-20160503143440-6bb64b370b90
 	github.com/hashicorp/go-sockaddr v1.0.0
-	github.com/hashicorp/go-syslog v0.0.0-20150218181946-42a2b573b664
-	github.com/hashicorp/go-uuid v1.0.0
+	github.com/hashicorp/go-syslog v1.0.0
+	github.com/hashicorp/go-uuid v1.0.1
 	github.com/hashicorp/go-version v0.0.0-20170202080759-03c5bf6be031
 	github.com/hashicorp/golang-lru v0.5.0
 	github.com/hashicorp/hcl v0.0.0-20180906183839-65a6292f0157
 	github.com/hashicorp/hil v0.0.0-20160711231837-1e86c6b523c5
-	github.com/hashicorp/logutils v0.0.0-20150609070431-0dc08b1671f3
-	github.com/hashicorp/memberlist v0.0.0-20190204180439-b38abf62d7f3
+	github.com/hashicorp/logutils v1.0.0
+	github.com/hashicorp/memberlist v0.1.3
 	github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69
 	github.com/hashicorp/raft v0.0.0-20180817181211-da92cfe76e0c
 	github.com/hashicorp/raft-boltdb v0.0.0-20150201200839-d1e82c1ec3f1
-	github.com/hashicorp/serf v0.0.0-20190122201206-65da6f27f6e5
+	github.com/hashicorp/serf v0.8.2
 	github.com/hashicorp/vault v0.10.3
 	github.com/hashicorp/vault-plugin-secrets-kv v0.0.0-20190318174639-195e0e9d07f1 // indirect
 	github.com/hashicorp/yamux v0.0.0-20180604194846-3520598351bb
@@ -79,10 +78,9 @@ require (
 	github.com/kr/text v0.1.0
 	github.com/lib/pq v0.0.0-20180523175426-90697d60dd84 // indirect
 	github.com/lyft/protoc-gen-validate v0.0.0-20180911180927-64fcb82c878e // indirect
-	github.com/mattn/go-isatty v0.0.0-20160806122752-66b8e73f3f5c // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/miekg/dns v1.0.14
-	github.com/mitchellh/cli v0.0.0-20170905221009-dff723fff508
+	github.com/mitchellh/cli v1.0.0
 	github.com/mitchellh/copystructure v0.0.0-20160804032330-cdac8253d00f
 	github.com/mitchellh/go-testing-interface v0.0.0-20171004221916-a61a99592b77
 	github.com/mitchellh/hashstructure v0.0.0-20170609045927-2bca23e0e452
@@ -96,7 +94,6 @@ require (
 	github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c
 	github.com/patrickmn/go-cache v0.0.0-20180527043350-9f6ff22cfff8 // indirect
 	github.com/pkg/errors v0.8.0
-	github.com/posener/complete v0.0.0-20171104095702-dc2bc5a81acc // indirect
 	github.com/prometheus/client_golang v0.0.0-20180328130430-f504d69affe1
 	github.com/prometheus/client_model v0.0.0-20171117100541-99fa1f4be8e5 // indirect
 	github.com/prometheus/common v0.0.0-20180326160409-38c53a9f4bfc // indirect
@@ -106,10 +103,9 @@ require (
 	github.com/shirou/gopsutil v0.0.0-20181107111621-48177ef5f880
 	github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4 // indirect
 	github.com/spf13/pflag v1.0.3 // indirect
-	github.com/stretchr/objx v0.0.0-20180426105006-a5cfa15c000a // indirect
-	github.com/stretchr/testify v1.2.2
+	github.com/stretchr/testify v1.3.0
 	golang.org/x/crypto v0.0.0-20181029021203-45a5f77698d3
-	golang.org/x/net v0.0.0-20181023162649-9b4f9f5ad519
+	golang.org/x/net v0.0.0-20181201002055-351d144fa1fc
 	golang.org/x/sync v0.0.0-20190227155943-e225da77a7e6
 	golang.org/x/sys v0.0.0-20181026203630-95b1ffbd15a5
 	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2
