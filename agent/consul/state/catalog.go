@@ -1943,9 +1943,10 @@ func (s *Store) checkServiceNodes(ws memdb.WatchSet, serviceName string, connect
 				// for checks etc.
 				ws.Add(svcCh)
 			} else {
-				// No svcCh shouldn't really happen by construction but just in case it
-				// does due to a bug, fall back to the more expensive old way of
-				// watching every node we touch.
+				// Nil svcCh shouldn't really happen since all existent services should
+				// have a service-specific index but just in case it does due to a bug,
+				// fall back to the more expensive old way of watching every radix node
+				// we touch.
 				watchOptimized = false
 			}
 		}
