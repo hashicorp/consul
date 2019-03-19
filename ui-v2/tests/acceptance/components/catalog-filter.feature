@@ -60,7 +60,7 @@ Feature: components / catalog-filter
   Where:
     -------------------------------------------------
     | Model   | Page     | Url                       |
-    | service | services | /dc-1/services            |
+    # | service | services | /dc-1/services            |
     | node    | nodes    | /dc-1/nodes               |
     -------------------------------------------------
   Scenario: Filtering [Model] in [Page]
@@ -123,7 +123,8 @@ Feature: components / catalog-filter
     | Model   | Page     | Url                       |
     | service | node     | /dc-1/nodes/node-0        |
     -------------------------------------------------
-  Scenario:
+@ignore
+  Scenario: Freetext filtering the service listing
     Given 1 datacenter model with the value "dc-1"
     And 3 service models from yaml
     ---
