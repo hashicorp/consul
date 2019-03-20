@@ -21,8 +21,8 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/internal/testutil"
+	"github.com/hashicorp/consul/testrpc"
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -323,7 +323,14 @@ func TestHTTPAPI_Ban_Nonprintable_Characters(t *testing.T) {
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
-	req, _ := http.NewRequest("GET", "/v1/kv/bad\x00ness", nil)
+	req, err := http.NewRequest("GET", "/v1/kv/bad\x00ness", nil)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	req, err = http.NewRequest("GET", "/v1/kv/bad%00ness", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	resp := httptest.NewRecorder()
 	a.srv.Handler.ServeHTTP(resp, req)
 	if got, want := resp.Code, http.StatusBadRequest; got != want {
