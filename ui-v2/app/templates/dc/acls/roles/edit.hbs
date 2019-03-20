@@ -1,0 +1,32 @@
+{{#app-view class=(concat 'role ' (if (or isAuthorized isEnabled) 'edit' 'list')) loading=isLoading authorized=isAuthorized enabled=isEnabled}}
+    {{#block-slot 'notification' as |status type|}}
+      {{partial 'dc/acls/roles/notifications'}}
+    {{/block-slot}}
+    {{#block-slot 'disabled'}}
+      {{partial 'dc/acls/disabled'}}
+    {{/block-slot}}
+    {{#block-slot 'authorization'}}
+      {{partial 'dc/acls/authorization'}}
+    {{/block-slot}}
+    {{#block-slot 'breadcrumbs'}}
+        <ol>
+            <li><a data-test-back href={{href-to 'dc.acls.roles'}}>All Roles</a></li>
+        </ol>
+    {{/block-slot}}
+    {{#block-slot 'header'}}
+        <h1>
+{{#if isAuthorized }}
+  {{#if create }}
+            New Role
+  {{else}}
+            Edit Role
+  {{/if}}
+{{else}}
+            Access Controls
+{{/if}}
+        </h1>
+    {{/block-slot}}
+    {{#block-slot 'content'}}
+      {{ partial 'dc/acls/roles/form'}}
+    {{/block-slot}}
+{{/app-view}}
