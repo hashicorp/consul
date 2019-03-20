@@ -23,7 +23,7 @@
 <label class="type-text" data-test-policy-element>
   <span>Apply an existing policy</span>
       {{#power-select
-        options=(difference items item.Policies item.Policies.length)
+        options=(difference policies item.Policies item.Policies.length)
         searchField='Name'
         selected=DestinationName
         searchPlaceholder='Type policy name'

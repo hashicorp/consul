@@ -1,4 +1,7 @@
-.template-token.template-edit [for='new-policy-toggle'] {
+// TODO: Move this out of here and into policy/many
+.template-role.template-edit [for='new-policy-toggle'],
+.template-token.template-edit [for='new-policy-toggle'],
+.template-token.template-edit [for='new-role-toggle'] {
   @extend %anchor;
   cursor: pointer;
   float: right;

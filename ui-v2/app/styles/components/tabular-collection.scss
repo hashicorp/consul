@@ -53,11 +53,16 @@ html.template-acl.template-list main table tr {
 html.template-policy.template-list main table tr {
   @extend %policies-row;
 }
+html.template-role.template-list main table tr {
+  @extend %roles-row;
+}
 html.template-token.template-list main table tr {
   @extend %tokens-row;
 }
 html.template-policy.template-edit [role='dialog'] table tr,
-html.template-policy.template-edit main table tr {
+html.template-policy.template-edit main table tr,
+html.template-role.template-edit [role='dialog'] table tr,
+html.template-role.template-edit main table tr {
   @extend %tokens-minimal-row;
 }
 html.template-token.template-list main table tr td.me,
@@ -162,6 +167,12 @@ html.template-node.template-show main table.sessions tr {
   width: calc(33% - 20px);
 }
 %policies-row > *:last-child {
+  @extend %table-actions;
+}
+%roles-row > * {
+  width: calc(33% - 20px);
+}
+%roles-row > *:last-child {
   @extend %table-actions;
 }
 // this will get auto calculated later in tabular-collection.js
