@@ -1,5 +1,9 @@
 ## UNRELEASED
 
+SECURITY:
+
+* Fixed a problem where `verify_server_hostname` was not being respected and the default `false` was being used. This problem exists only in Consul 1.4.3. (CVE-2019-9764) [[GH-5519](https://github.com/hashicorp/consul/issues/5519)]
+
 FEATURES:
 * agent: (Consul Enterprise) Snapshot agent can now use Azure Blob Storage for automated backups.
 * agent: enable reloading of agent-to-agent TLS configuration (https://github.com/hashicorp/consul/pull/5419)]
