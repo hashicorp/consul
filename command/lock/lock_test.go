@@ -35,7 +35,7 @@ func TestLockCommand_noTabs(t *testing.T) {
 
 func TestLockCommand_BadArgs(t *testing.T) {
 	t.Parallel()
-	argFail(t, []string{"-try=blah", "test/prefix", "date"}, "invalid duration")
+	argFail(t, []string{"-try=blah", "test/prefix", "date"}, "parse error")
 	argFail(t, []string{"-try=-10s", "test/prefix", "date"}, "Timeout must be positive")
 	argFail(t, []string{"-monitor-retry=-5", "test/prefix", "date"}, "must be >= 0")
 }
