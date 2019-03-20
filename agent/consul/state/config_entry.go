@@ -57,7 +57,7 @@ func (s *Snapshot) ConfigEntries() ([]structs.ConfigEntry, error) {
 	return ret, nil
 }
 
-// Configuration is used when restoring from a snapshot.
+// ConfigEntry is used when restoring from a snapshot.
 func (s *Restore) ConfigEntry(c structs.ConfigEntry) error {
 	// Insert
 	if err := s.tx.Insert(configTableName, c); err != nil {
@@ -70,7 +70,7 @@ func (s *Restore) ConfigEntry(c structs.ConfigEntry) error {
 	return nil
 }
 
-// Configuration is called to get a given config entry.
+// ConfigEntry is called to get a given config entry.
 func (s *Store) ConfigEntry(kind, name string) (uint64, structs.ConfigEntry, error) {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
@@ -93,6 +93,27 @@ func (s *Store) ConfigEntry(kind, name string) (uint64, structs.ConfigEntry, err
 	}
 
 	return idx, conf, nil
+}
+
+// ConfigEntries is called to get all config entry objects.
+func (s *Store) ConfigEntries() (uint64, []structs.ConfigEntry, error) {
+	tx := s.db.Txn(true)
+	defer tx.Abort()
+
+	// Get the index
+	idx := maxIndexTxn(tx, configTableName)
+
+	// Get all
+	iter, err := tx.Get(configTableName, "id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed config entry lookup: %s", err)
+	}
+
+	var results []structs.ConfigEntry
+	for v := iter.Next(); v != nil; v = iter.Next() {
+		results = append(results, v.(structs.ConfigEntry))
+	}
+	return idx, results, nil
 }
 
 // EnsureConfigEntry is called to upsert creation of a given config entry.

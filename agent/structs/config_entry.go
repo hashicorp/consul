@@ -29,8 +29,24 @@ type ServiceConfigEntry struct {
 	RaftIndex
 }
 
-func (s *ServiceConfigEntry) GetKind() string {
+func (e *ServiceConfigEntry) GetKind() string {
 	return ServiceDefaults
+}
+
+func (e *ServiceConfigEntry) GetName() string {
+	return e.Name
+}
+
+func (e *ServiceConfigEntry) Normalize() error {
+	return nil
+}
+
+func (e *ServiceConfigEntry) Validate() error {
+	return nil
+}
+
+func (e *ServiceConfigEntry) GetRaftIndex() *RaftIndex {
+	return &e.RaftIndex
 }
 
 type ConnectConfiguration struct {
@@ -75,24 +91,24 @@ type ProxyConfigEntry struct {
 	RaftIndex
 }
 
-func (p *ProxyConfigEntry) GetKind() string {
+func (e *ProxyConfigEntry) GetKind() string {
 	return ProxyDefaults
 }
 
-func (p *ProxyConfigEntry) GetName() string {
-	return p.Name
+func (e *ProxyConfigEntry) GetName() string {
+	return e.Name
 }
 
-func (p *ProxyConfigEntry) Normalize() error {
+func (e *ProxyConfigEntry) Normalize() error {
 	return nil
 }
 
-func (p *ProxyConfigEntry) Validate() error {
+func (e *ProxyConfigEntry) Validate() error {
 	return nil
 }
 
-func (p *ProxyConfigEntry) GetRaftIndex() *RaftIndex {
-	return &p.RaftIndex
+func (e *ProxyConfigEntry) GetRaftIndex() *RaftIndex {
+	return &e.RaftIndex
 }
 
 type ConfigEntryOp string

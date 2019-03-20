@@ -202,6 +202,19 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	err = fsm.state.CASetConfig(17, caConfig)
 	assert.Nil(err)
 
+	// Config entries
+	serviceConfig := &structs.ServiceConfigEntry{
+		Kind:     structs.ServiceDefaults,
+		Name:     "foo",
+		Protocol: "http",
+	}
+	proxyConfig := &structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: "global",
+	}
+	assert.Nil(fsm.state.EnsureConfigEntry(18, serviceConfig))
+	assert.Nil(fsm.state.EnsureConfigEntry(19, proxyConfig))
+
 	// Snapshot
 	snap, err := fsm.Snapshot()
 	if err != nil {
@@ -387,6 +400,15 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	_, caConf, err := fsm2.state.CAConfig()
 	assert.Nil(err)
 	assert.Equal(caConfig, caConf)
+
+	// Verify config entries are restored
+	_, serviceConfEntry, err := fsm2.state.ConfigEntry(structs.ServiceDefaults, "foo")
+	assert.Nil(err)
+	assert.Equal(serviceConfig, serviceConfEntry)
+
+	_, proxyConfEntry, err := fsm2.state.ConfigEntry(structs.ProxyDefaults, "global")
+	assert.Nil(err)
+	assert.Equal(proxyConfig, proxyConfEntry)
 
 	// Snapshot
 	snap, err = fsm2.Snapshot()

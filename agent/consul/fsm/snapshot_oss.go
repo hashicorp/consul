@@ -1,6 +1,8 @@
 package fsm
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
@@ -27,6 +29,7 @@ func init() {
 	registerRestorer(structs.IndexRequestType, restoreIndex)
 	registerRestorer(structs.ACLTokenSetRequestType, restoreToken)
 	registerRestorer(structs.ACLPolicySetRequestType, restorePolicy)
+	registerRestorer(structs.ConfigEntryRequestType, restoreConfigEntry)
 }
 
 func persistOSS(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) error {
@@ -61,6 +64,9 @@ func persistOSS(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) err
 		return err
 	}
 	if err := s.persistConnectCAConfig(sink, encoder); err != nil {
+		return err
+	}
+	if err := s.persistConfigEntries(sink, encoder); err != nil {
 		return err
 	}
 	if err := s.persistIndex(sink, encoder); err != nil {
@@ -360,6 +366,27 @@ func (s *snapshot) persistIntentions(sink raft.SnapshotSink,
 	return nil
 }
 
+func (s *snapshot) persistConfigEntries(sink raft.SnapshotSink,
+	encoder *codec.Encoder) error {
+	entries, err := s.state.ConfigEntries()
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		if _, err := sink.Write([]byte{byte(structs.ConfigEntryRequestType)}); err != nil {
+			return err
+		}
+		if err := encoder.Encode(entry.GetKind()); err != nil {
+			return err
+		}
+		if err := encoder.Encode(entry); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (s *snapshot) persistIndex(sink raft.SnapshotSink, encoder *codec.Encoder) error {
 	// Get all the indexes
 	iter, err := s.state.Indexes()
@@ -564,4 +591,26 @@ func restorePolicy(header *snapshotHeader, restore *state.Restore, decoder *code
 		return err
 	}
 	return restore.ACLPolicy(&req)
+}
+
+func restoreConfigEntry(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	var req structs.ConfigEntry
+	var kind string
+	if err := decoder.Decode(&kind); err != nil {
+		return err
+	}
+
+	switch kind {
+	case structs.ServiceDefaults:
+		req = &structs.ServiceConfigEntry{}
+	case structs.ProxyDefaults:
+		req = &structs.ProxyConfigEntry{}
+	default:
+		return fmt.Errorf("invalid config type: %s", kind)
+	}
+
+	if err := decoder.Decode(&req); err != nil {
+		return err
+	}
+	return restore.ConfigEntry(req)
 }

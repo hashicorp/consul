@@ -1379,7 +1379,7 @@ func TestFSM_ConfigEntry(t *testing.T) {
 	}
 
 	{
-		buf, err := structs.Encode(structs.ConfigEntryRequestType, req)
+		buf, err := structs.Encode(structs.ProxyConfigEntryRequestType, req)
 		assert.Nil(err)
 		assert.True(fsm.Apply(makeLog(buf)).(bool))
 	}
@@ -1388,6 +1388,8 @@ func TestFSM_ConfigEntry(t *testing.T) {
 	{
 		_, config, err := fsm.state.ConfigEntry(structs.ProxyDefaults, "global")
 		assert.Nil(err)
+		entry.RaftIndex.CreateIndex = 1
+		entry.RaftIndex.ModifyIndex = 1
 		assert.Equal(entry, config)
 	}
 }
