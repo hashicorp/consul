@@ -107,6 +107,11 @@ kubernetes [ZONES...] {
   This allows the querying pod to continue searching for the service in the search path.
   The search path could, for example, include another Kubernetes cluster.
 
+## Ready
+
+This plugin reports readiness to the ready plugin. This will happen after it has synced to the
+Kubernetes API.
+
 ## Examples
 
 Handle all queries in the `cluster.local` zone. Connect to Kubernetes in-cluster. Also handle all
