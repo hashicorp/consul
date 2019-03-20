@@ -2,10 +2,10 @@ module github.com/hashicorp/consul/api
 
 go 1.12
 
-replace github.com/hashicorp/consul => ../
+replace github.com/hashicorp/consul/internal => ../internal
 
 require (
-	github.com/hashicorp/consul v0.0.0-00010101000000-000000000000
+	github.com/hashicorp/consul/internal v0.0.0-00010101000000-000000000000
 	github.com/hashicorp/go-cleanhttp v0.5.0
 	github.com/hashicorp/go-rootcerts v1.0.0
 	github.com/hashicorp/go-uuid v1.0.1

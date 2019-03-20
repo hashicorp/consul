@@ -13,7 +13,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib/freeport"
+	"github.com/hashicorp/consul/internal/freeport"
 	testing "github.com/mitchellh/go-testing-interface"
 )
 

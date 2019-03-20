@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/internal/testutil"
 )
 
 func TestFoo_bar(t *testing.T) {

@@ -2,6 +2,10 @@ module github.com/hashicorp/consul
 
 go 1.12
 
+replace github.com/hashicorp/consul/api => ./api
+
+replace github.com/hashicorp/consul/internal => ./internal
+
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/Azure/go-autorest v10.15.3+incompatible // indirect
@@ -46,8 +50,10 @@ require (
 	github.com/google/go-github v17.0.0+incompatible // indirect
 	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf
 	github.com/gotestyourself/gotestyourself v2.2.0+incompatible // indirect
+	github.com/hashicorp/consul/api v0.0.0-00010101000000-000000000000
+	github.com/hashicorp/consul/internal v0.0.0-00010101000000-000000000000
 	github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
-	github.com/hashicorp/go-cleanhttp v0.0.0-20171218145408-d5fe4b57a186
+	github.com/hashicorp/go-cleanhttp v0.5.0
 	github.com/hashicorp/go-discover v0.0.0-20190226150400-504b36597c3c
 	github.com/hashicorp/go-hclog v0.0.0-20180402200405-69ff559dc25f // indirect
 	github.com/hashicorp/go-memdb v0.0.0-20180223233045-1289e7fffe71
@@ -55,7 +61,7 @@ require (
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hashicorp/go-plugin v0.0.0-20180331002553-e8d22c780116
 	github.com/hashicorp/go-retryablehttp v0.0.0-20180531211321-3b087ef2d313 // indirect
-	github.com/hashicorp/go-rootcerts v0.0.0-20160503143440-6bb64b370b90
+	github.com/hashicorp/go-rootcerts v1.0.0
 	github.com/hashicorp/go-sockaddr v1.0.0
 	github.com/hashicorp/go-syslog v1.0.0
 	github.com/hashicorp/go-uuid v1.0.1
@@ -82,9 +88,9 @@ require (
 	github.com/miekg/dns v1.0.14
 	github.com/mitchellh/cli v1.0.0
 	github.com/mitchellh/copystructure v0.0.0-20160804032330-cdac8253d00f
-	github.com/mitchellh/go-testing-interface v0.0.0-20171004221916-a61a99592b77
+	github.com/mitchellh/go-testing-interface v1.0.0
 	github.com/mitchellh/hashstructure v0.0.0-20170609045927-2bca23e0e452
-	github.com/mitchellh/mapstructure v0.0.0-20181001021442-5a380f224700
+	github.com/mitchellh/mapstructure v1.1.2
 	github.com/mitchellh/reflectwalk v0.0.0-20170726202117-63d60e9d0dbc
 	github.com/oklog/run v0.0.0-20180308005104-6934b124db28 // indirect
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
@@ -93,7 +99,7 @@ require (
 	github.com/ory/dockertest v3.3.4+incompatible // indirect
 	github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c
 	github.com/patrickmn/go-cache v0.0.0-20180527043350-9f6ff22cfff8 // indirect
-	github.com/pkg/errors v0.8.0
+	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v0.0.0-20180328130430-f504d69affe1
 	github.com/prometheus/client_model v0.0.0-20171117100541-99fa1f4be8e5 // indirect
 	github.com/prometheus/common v0.0.0-20180326160409-38c53a9f4bfc // indirect
