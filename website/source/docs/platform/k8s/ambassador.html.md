@@ -9,7 +9,7 @@ description: |-
 
 # Ambassador Integration with Consul Connect
 
-Besides enabling Kubernetes services to discover and securely connect to each other,
+In addition to enabling Kubernetes services to discover and securely connect to each other,
 Connect also can help route traffic into the cluster from outside, when paired with 
 an [ingress controller] like DataWire's Ambassador.
  
