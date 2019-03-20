@@ -23,7 +23,7 @@ to your Kubernetes services.
 
 ## Installation 
 
-First, install Consul and enable Connect on the agents inside the cluster. Decide
+Before you start, install Consul and enable Connect on the agents inside the cluster. Decide
 whether you will enable [service sync] or manually register your services with
 Consul.
 
