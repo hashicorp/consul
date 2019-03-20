@@ -140,6 +140,8 @@ github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de h1:XDCSyth
 github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de/go.mod h1:xIwEieBHERyEvaeKF/TcHh1Hu+lxPM+n2vT1+g9I4m4=
 github.com/hashicorp/go-cleanhttp v0.5.0 h1:wvCrVc9TjDls6+YGAF2hAifE1E5U1+b4tH6KdvN3Gig=
 github.com/hashicorp/go-cleanhttp v0.5.0/go.mod h1:JpRdi6/HCYpAwUzNwuwqhbovhLtngrth3wmdIIUrZ80=
+github.com/hashicorp/go-cleanhttp v0.5.1 h1:dH3aiDG9Jvb5r5+bYHsikaOUIpcM0xvgMXVoDkXMzJM=
+github.com/hashicorp/go-cleanhttp v0.5.1/go.mod h1:JpRdi6/HCYpAwUzNwuwqhbovhLtngrth3wmdIIUrZ80=
 github.com/hashicorp/go-discover v0.0.0-20190226150400-504b36597c3c h1:LZFWxu8waKjnwYFLzA5uQ5XxrgHSYJ5F8dpryEtcRDA=
 github.com/hashicorp/go-discover v0.0.0-20190226150400-504b36597c3c/go.mod h1:QJNWY8qfSAouvbW3eEPR64yZTpObeM1Cru0SPywP0yA=
 github.com/hashicorp/go-hclog v0.0.0-20180402200405-69ff559dc25f h1:t34t/ySFIGsPOLQ/dCcKeCoErlqhXlNLYvPn7mVogzo=

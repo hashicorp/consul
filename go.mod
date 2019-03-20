@@ -53,7 +53,7 @@ require (
 	github.com/hashicorp/consul/api v0.0.0-00010101000000-000000000000
 	github.com/hashicorp/consul/internal v0.0.0-00010101000000-000000000000
 	github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
-	github.com/hashicorp/go-cleanhttp v0.5.0
+	github.com/hashicorp/go-cleanhttp v0.5.1
 	github.com/hashicorp/go-discover v0.0.0-20190226150400-504b36597c3c
 	github.com/hashicorp/go-hclog v0.0.0-20180402200405-69ff559dc25f // indirect
 	github.com/hashicorp/go-memdb v0.0.0-20180223233045-1289e7fffe71
