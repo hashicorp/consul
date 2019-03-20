@@ -23,7 +23,7 @@ to your Kubernetes services.
 
 ## Installation 
 
-Before you start, install Consul and enable Connect on the agents inside the cluster. Decide
+Before you start, [install Consul] and [enable Connect] on the agents inside the cluster. Decide
 whether you will enable [service sync] or manually register your services with
 Consul.
 
@@ -270,4 +270,6 @@ If you have tried the above troubleshooting steps and are still stuck, DataWire 
 [ambassador-service.yaml]: https://getambassador.io/yaml/ambassador/ambassador-service.yaml
 [request access]: https://d6e.co/slack
 [intention-check]: https://www.consul.io/docs/commands/intention/check.html
+[install consul]: https://www.consul.io/docs/install/index.html
+[enable connect]: https://www.consul.io/docs/connect/index.html#getting-started-with-connect
 
