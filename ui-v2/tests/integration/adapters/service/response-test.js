@@ -4,8 +4,8 @@ import { get } from 'consul-ui/tests/helpers/api';
 import { HEADERS_SYMBOL as META } from 'consul-ui/utils/http/consul';
 module('Integration | Adapter | service | response', function(hooks) {
   setupTest(hooks);
-  test('handleResponse returns the correct data for list endpoint', function(assert) {
-    const adapter = this.owner.lookup('adapter:service');
+  test('respondForQuery returns the correct data for list endpoint', function(assert) {
+    const serializer = this.owner.lookup('serializer:service');
     const dc = 'dc-1';
     const request = {
       url: `/v1/internal/ui/services?dc=${dc}`,
@@ -17,12 +17,21 @@ module('Integration | Adapter | service | response', function(hooks) {
           uid: `["${dc}","${item.Name}"]`,
         })
       );
-      const actual = adapter.handleResponse(200, {}, payload, request);
+      const actual = serializer.respondForQuery(
+        function(cb) {
+          const headers = {};
+          const body = payload;
+          return cb(headers, body);
+        },
+        {
+          dc: dc,
+        }
+      );
       assert.deepEqual(actual, expected);
     });
   });
-  test('handleResponse returns the correct data for item endpoint', function(assert) {
-    const adapter = this.owner.lookup('adapter:service');
+  test('respondForQueryRecord returns the correct data for item endpoint', function(assert) {
+    const serializer = this.owner.lookup('serializer:service');
     const dc = 'dc-1';
     const id = 'service-name';
     const request = {
@@ -33,9 +42,20 @@ module('Integration | Adapter | service | response', function(hooks) {
         Datacenter: dc,
         [META]: {},
         uid: `["${dc}","${id}"]`,
+        Name: id,
         Nodes: payload,
       };
-      const actual = adapter.handleResponse(200, {}, payload, request);
+      const actual = serializer.respondForQueryRecord(
+        function(cb) {
+          const headers = {};
+          const body = payload;
+          return cb(headers, body);
+        },
+        {
+          dc: dc,
+          id: id,
+        }
+      );
       assert.deepEqual(actual, expected);
     });
   });

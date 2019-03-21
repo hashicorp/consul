@@ -5,6 +5,11 @@ export default Serializer.extend({
   primaryKey: PRIMARY_KEY,
   slugKey: SLUG_KEY,
   respondForQueryRecord: function(respond, query) {
-    return this._super(cb => respond((headers, body) => cb(headers, { Nodes: body })), query);
+    // Name is added here from the query, which is used to make the uid
+    // Datacenter gets added in the ApplicationSerializer
+    return this._super(
+      cb => respond((headers, body) => cb(headers, { Name: query.id, Nodes: body })),
+      query
+    );
   },
 });

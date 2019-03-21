@@ -6,8 +6,8 @@ module('Integration | Adapter | kv | response', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
   const id = 'key-name/here';
-  test('handleResponse returns the correct data for list endpoint', function(assert) {
-    const adapter = this.owner.lookup('adapter:kv');
+  test('respondForQuery returns the correct data for list endpoint', function(assert) {
+    const serializer = this.owner.lookup('serializer:kv');
     const request = {
       url: `/v1/kv/${id}?keys&dc=${dc}`,
     };
@@ -24,12 +24,21 @@ module('Integration | Adapter | kv | response', function(hooks) {
           }
         )
       );
-      const actual = adapter.handleResponse(200, {}, payload, request);
+      const actual = serializer.respondForQuery(
+        function(cb) {
+          const headers = {};
+          const body = payload;
+          return cb(headers, body);
+        },
+        {
+          dc: dc,
+        }
+      );
       assert.deepEqual(actual, expected);
     });
   });
-  test('handleResponse returns the correct data for item endpoint', function(assert) {
-    const adapter = this.owner.lookup('adapter:kv');
+  test('respondForQueryRecord returns the correct data for item endpoint', function(assert) {
+    const serializer = this.owner.lookup('serializer:kv');
     const request = {
       url: `/v1/kv/${id}?dc=${dc}`,
     };
@@ -39,7 +48,16 @@ module('Integration | Adapter | kv | response', function(hooks) {
         [META]: {},
         uid: `["${dc}","${id}"]`,
       });
-      const actual = adapter.handleResponse(200, {}, payload, request);
+      const actual = serializer.respondForQueryRecord(
+        function(cb) {
+          const headers = {};
+          const body = payload;
+          return cb(headers, body);
+        },
+        {
+          dc: dc,
+        }
+      );
       assert.deepEqual(actual, expected);
     });
   });

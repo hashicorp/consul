@@ -15,36 +15,72 @@ const map = function(obj, cb) {
   return obj.map(cb);
 };
 
+const attachHeaders = function(headers, body) {
+  // lowercase everything incase we get browser inconsistencies
+  const lower = {};
+  Object.keys(headers).forEach(function(key) {
+    lower[key.toLowerCase()] = headers[key];
+  });
+  body[HTTP_HEADERS_SYMBOL] = lower;
+  return body;
+};
+
 export default Serializer.extend({
   fingerprint: createFingerprinter(DATACENTER_KEY),
   respondForQuery: function(respond, query) {
     return respond((headers, body) =>
-      map(body, this.fingerprint(this.primaryKey, this.slugKey, query.dc))
+      attachHeaders(headers, map(body, this.fingerprint(this.primaryKey, this.slugKey, query.dc)))
     );
   },
   respondForQueryRecord: function(respond, query) {
     return respond((headers, body) =>
-      this.fingerprint(this.primaryKey, this.slugKey, query.dc)(body)
+      attachHeaders(headers, this.fingerprint(this.primaryKey, this.slugKey, query.dc)(body))
     );
   },
   respondForCreateRecord: function(respond, data) {
-    return respond((headers, body) =>
-      this.fingerprint(this.primaryKey, this.slugKey, data[DATACENTER_KEY])(body)
-    );
+    const slugKey = this.slugKey;
+    const primaryKey = this.primaryKey;
+    return respond((headers, body) => {
+      // If creates are true use the info we already have
+      if (body === true) {
+        body = data;
+      }
+      // Creates only need the primaryKey/uid returning
+      return {
+        [primaryKey]: this.fingerprint(primaryKey, slugKey, data[DATACENTER_KEY])({
+          [slugKey]: body[slugKey],
+        })[primaryKey],
+      };
+    });
   },
   respondForUpdateRecord: function(respond, data) {
-    return respond((headers, body) =>
-      this.fingerprint(this.primaryKey, this.slugKey, data[DATACENTER_KEY])(body)
-    );
+    const slugKey = this.slugKey;
+    const primaryKey = this.primaryKey;
+    return respond((headers, body) => {
+      // If updates are true use the info we already have
+      if (body === true) {
+        body = data;
+      }
+
+      // Updates only need the primaryKey/uid returning
+      return {
+        [primaryKey]: this.fingerprint(primaryKey, slugKey, data[DATACENTER_KEY])({
+          [slugKey]: body[slugKey],
+        })[primaryKey],
+      };
+      // TODO: Should updates return the entire object or the uid only
+      // return this.fingerprint(this.primaryKey, this.slugKey, data[DATACENTER_KEY])(body)
+    });
   },
   respondForDeleteRecord: function(respond, data) {
     const slugKey = this.slugKey;
+    const primaryKey = this.primaryKey;
     return respond((headers, body) => {
       // Deletes only need the primaryKey/uid returning
       return {
-        [this.primaryKey]: this.fingerprint(this.primaryKey, slugKey, data[DATACENTER_KEY])({
+        [primaryKey]: this.fingerprint(primaryKey, slugKey, data[DATACENTER_KEY])({
           [slugKey]: data[slugKey],
-        })[this.primaryKey],
+        })[primaryKey],
       };
     });
   },

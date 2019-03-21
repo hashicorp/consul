@@ -3,10 +3,11 @@ import { setupTest } from 'ember-qunit';
 module('Integration | Adapter | coordinate | url', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
-  test('urlForQuery returns the correct url', function(assert) {
+  test('requestForQuery returns the correct url', function(assert) {
     const adapter = this.owner.lookup('adapter:coordinate');
-    const expected = `/v1/coordinate/nodes?dc=${dc}`;
-    const actual = adapter.urlForQuery({
+    const client = this.owner.lookup('service:client/http');
+    const expected = `GET /v1/coordinate/nodes?dc=${dc}`;
+    const actual = adapter.requestForQuery(client.url, {
       dc: dc,
     });
     assert.equal(actual, expected);
