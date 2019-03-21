@@ -6,8 +6,6 @@ GOTOOLS = \
 	github.com/mitchellh/gox \
 	golang.org/x/tools/cmd/cover \
 	golang.org/x/tools/cmd/stringer \
-	github.com/axw/gocov/gocov \
-	gopkg.in/matm/v1/gocov-html \
 	github.com/gogo/protobuf/protoc-gen-gofast \
 	github.com/vektra/mockery/cmd/mockery
 
