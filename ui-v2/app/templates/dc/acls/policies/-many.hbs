@@ -25,7 +25,6 @@
       {{#power-select
         options=(difference policies item.Policies item.Policies.length)
         searchField='Name'
-        selected=DestinationName
         searchPlaceholder='Type policy name'
         onchange=(action 'change' 'Policy') as |policy|
       }}
@@ -37,7 +36,7 @@
       {{#tabular-details
           data-test-policies
           onchange=(action 'change')
-          name="Details"
+          name="PolicyDetails"
           items=(sort-by 'CreateTime:desc' 'Name:asc' item.Policies) as |item index|
       }}
         {{#block-slot 'header'}}

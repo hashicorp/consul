@@ -14,8 +14,11 @@
         <textarea name="role[Description]" value={{item.Description}} oninput={{action 'change'}}></textarea>
       </label>
     </fieldset>
-<fieldset>
-  <h2>Policies</h2>
-  {{partial 'dc/acls/policies/many'}}
-</fieldset>
+{{! temporary property so we can keep things working before moving all this to components}}
+{{# if (not hideRolePolicies)}}
+    <fieldset>
+      <h2>Policies</h2>
+      {{partial 'dc/acls/policies/many'}}
+    </fieldset>
+{{/if}}
 
