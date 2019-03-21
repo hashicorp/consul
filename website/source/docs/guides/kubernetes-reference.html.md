@@ -134,7 +134,7 @@ a Consul cluster running inside of Kubernetes.
 To use catalog sync, you must enable it in the [Helm
 chart](https://www.consul.io/docs/platform/k8s/helm.html#v-synccatalog).
 Catalog sync allows you to sync services between Consul and Kubernetes. The
-sync can be unidirectional, in either direction, or bidirectional. Read the
+sync can be unidirectional in either direction or bidirectional. Read the
 [documentation](https://www.consul.io/docs/platform/k8s/service-sync.html) to
 learn more about the configuration. 
 
