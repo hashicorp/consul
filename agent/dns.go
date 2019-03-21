@@ -554,6 +554,14 @@ PARSE:
 		// name.connect.consul
 		d.serviceLookup(network, datacenter, labels[n-2], "", true, req, resp, maxRecursionLevel)
 
+	case "proxy":
+		if n == 1 {
+			goto INVALID
+		}
+
+		// name.proxy.consul
+		d.proxyLookup(datacenter, labels[n-2], req, resp)
+
 	case "node":
 		if n == 1 {
 			goto INVALID
@@ -1047,6 +1055,57 @@ func (d *DNSServer) trimDNSResponse(network string, req, resp *dns.Msg) (trimmed
 		resp.Truncated = true
 	}
 	return trimmed
+}
+
+// proxyLookup searches for local proxies that proxy to the target upstream service
+func (d *DNSServer) proxyLookup(datacenter, service string, req, resp *dns.Msg) {
+	// Only handle ANY, SRV type requests
+	qType := req.Question[0].Qtype
+	if qType != dns.TypeANY && qType != dns.TypeSRV {
+		return
+	}
+
+	// Determine the TTL
+	ttl, _ := d.GetTTLForService(service)
+
+	for _, svc := range d.agent.State.Services() {
+		if svc != nil {
+			for _, up := range svc.Proxy.Upstreams {
+				if up.DestinationName == service {
+					target := fmt.Sprintf("%s.addr.%s.%s", d.agent.LocalMember().Name, datacenter, d.domain)
+					srvRec := &dns.SRV{
+						Hdr: dns.RR_Header{
+							Name:   req.Question[0].Name,
+							Rrtype: dns.TypeSRV,
+							Class:  dns.ClassINET,
+							Ttl:    uint32(ttl / time.Second),
+						},
+						Priority: 1,
+						Weight:   uint16(1),
+						Port:     uint16(up.LocalBindPort),
+						Target:   target,
+					}
+					resp.Answer = append(resp.Answer, srvRec)
+
+					// Parse the IP
+					ip := net.ParseIP("127.0.0.1")
+
+					aRec := &dns.A{
+						Hdr: dns.RR_Header{
+							Name:   target,
+							Rrtype: dns.TypeA,
+							Class:  dns.ClassINET,
+							Ttl:    uint32(ttl / time.Second),
+						},
+						A: ip,
+					}
+
+					resp.Extra = append(resp.Extra, aRec)
+					break
+				}
+			}
+		}
+	}
 }
 
 // lookupServiceNodes returns nodes with a given service.
