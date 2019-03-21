@@ -2,7 +2,9 @@ package api
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 )
@@ -1000,12 +1002,20 @@ func (a *Agent) updateTokenOnce(target, token string, q *WriteOptions) (*WriteMe
 	r := a.c.newRequest("PUT", fmt.Sprintf("/v1/agent/token/%s", target))
 	r.setWriteOptions(q)
 	r.obj = &AgentToken{Token: token}
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
-		return nil, resp.StatusCode, err
+		return nil, 0, err
 	}
-	resp.Body.Close()
+	defer resp.Body.Close()
 
 	wm := &WriteMeta{RequestTime: rtt}
+
+	if resp.StatusCode != 200 {
+		var buf bytes.Buffer
+		io.Copy(&buf, resp.Body)
+		return wm, resp.StatusCode, fmt.Errorf("Unexpected response code: %d (%s)", resp.StatusCode, buf.Bytes())
+	}
+
 	return wm, resp.StatusCode, nil
 }
