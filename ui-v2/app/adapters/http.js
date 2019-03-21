@@ -2,13 +2,8 @@ import Adapter from 'ember-data/adapter';
 import { get } from '@ember/object';
 
 export default Adapter.extend({
-  snapshotToJSON: function(store, snapshot, type, opts) {
-    const serialized = {};
-    const serializer = store.serializerFor(type.modelName);
-    // TODO: return?
-    serializer.serializeIntoHash(serialized, type, snapshot, opts);
-
-    return serialized[type.modelName];
+  snapshotToJSON: function(snapshot, type, options) {
+    return snapshot.attributes();
   },
   query: function(store, type, query) {
     const serializer = store.serializerFor(type.modelName);
@@ -30,23 +25,26 @@ export default Adapter.extend({
   },
   createRecord: function(store, type, snapshot) {
     const serializer = store.serializerFor(type.modelName);
-    const data = this.snapshotToJSON(store, snapshot, type, { includeId: true });
+    const unserialized = this.snapshotToJSON(snapshot, type);
+    const serialized = serializer.serialize(snapshot, {});
     return get(this, 'client')
-      .request(request => this.requestForCreateRecord(request, data))
-      .then(respond => serializer.respondForCreateRecord(respond, data, type));
+      .request(request => this.requestForCreateRecord(request, unserialized), serialized)
+      .then(respond => serializer.respondForCreateRecord(respond, unserialized, type));
   },
   updateRecord: function(store, type, snapshot) {
     const serializer = store.serializerFor(type.modelName);
-    const data = this.snapshotToJSON(store, snapshot, type);
+    const unserialized = this.snapshotToJSON(snapshot, type);
+    const serialized = serializer.serialize(snapshot, {});
     return get(this, 'client')
-      .request(request => this.requestForUpdateRecord(request, data))
-      .then(respond => serializer.respondForUpdateRecord(respond, data, type));
+      .request(request => this.requestForUpdateRecord(request, unserialized), serialized)
+      .then(respond => serializer.respondForUpdateRecord(respond, unserialized, type));
   },
   deleteRecord: function(store, type, snapshot) {
     const serializer = store.serializerFor(type.modelName);
-    const data = this.snapshotToJSON(store, snapshot, type);
+    const unserialized = this.snapshotToJSON(snapshot, type);
+    const serialized = serializer.serialize(snapshot, {});
     return get(this, 'client')
-      .request(request => this.requestForDeleteRecord(request, data))
-      .then(respond => serializer.respondForDeleteRecord(respond, data, type));
+      .request(request => this.requestForDeleteRecord(request, unserialized), serialized)
+      .then(respond => serializer.respondForDeleteRecord(respond, unserialized, type));
   },
 });

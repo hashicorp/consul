@@ -19,15 +19,11 @@ export default Adapter.extend({
     // TODO: need to make sure we remove dc
     return request`
       POST /v1/connect/intentions?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
-
-      ${data}
     `;
   },
   requestForUpdateRecord: function(request, data) {
     return request`
       PUT /v1/connect/intentions/${data[SLUG_KEY]}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
-
-      ${data}
     `;
   },
   requestForDeleteRecord: function(request, data) {

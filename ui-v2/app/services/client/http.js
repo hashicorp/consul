@@ -70,7 +70,7 @@ export default Service.extend({
   url: function() {
     return url(...arguments);
   },
-  request: function(cb) {
+  request: function(cb, body) {
     const client = this;
     return cb(function(strs, ...values) {
       const doubleBreak = strs.reduce(function(prev, item, i) {
@@ -79,16 +79,16 @@ export default Service.extend({
         }
         return prev;
       }, -1);
-      let body;
-      if (doubleBreak !== -1) {
-        // strs.splice(doubleBreak);
-        body = values.splice(doubleBreak).reduce(function(prev, item) {
-          return {
-            ...prev,
-            ...item,
-          };
-        }, {});
-      }
+      // let body;
+      // if (doubleBreak !== -1) {
+      //   // strs.splice(doubleBreak);
+      //   body = values.splice(doubleBreak).reduce(function(prev, item) {
+      //     return {
+      //       ...prev,
+      //       ...item,
+      //     };
+      //   }, {});
+      // }
       let temp = url(strs, ...values).split(' ');
       const method = temp.shift();
       let rest = temp.join(' ');
@@ -117,7 +117,7 @@ export default Service.extend({
           converters: {
             'text json': function(response) {
               try {
-                return JSON.parse(response);
+                return $.parseJSON(response);
               } catch (e) {
                 return response;
               }
@@ -130,8 +130,8 @@ export default Service.extend({
           }
           this.id = client.acquire(this, xhr);
         };
-        if (body) {
-          options.data = body;
+        if (typeof body !== 'undefined') {
+          options.data = JSON.stringify(body);
         }
         return $.ajax(options).catch(function(e) {
           if (e instanceof AbortError) {

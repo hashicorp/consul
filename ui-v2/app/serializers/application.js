@@ -45,11 +45,14 @@ export default Serializer.extend({
       if (body === true) {
         body = data;
       }
-      // Creates only need the primaryKey/uid returning
+      // Creates need a primaryKey adding
       return {
-        [primaryKey]: this.fingerprint(primaryKey, slugKey, data[DATACENTER_KEY])({
-          [slugKey]: body[slugKey],
-        })[primaryKey],
+        ...body,
+        ...{
+          [primaryKey]: this.fingerprint(primaryKey, slugKey, data[DATACENTER_KEY])({
+            [slugKey]: body[slugKey],
+          })[primaryKey],
+        },
       };
     });
   },

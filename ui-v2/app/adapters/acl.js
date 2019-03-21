@@ -25,8 +25,6 @@ export default Adapter.extend({
     // https://www.consul.io/api/acl.html#create-acl-token
     return request`
       PUT /v1/acl/create?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
-
-      ${data}
     `;
   },
   requestForUpdateRecord: function(request, data) {
@@ -34,8 +32,6 @@ export default Adapter.extend({
     // https://www.consul.io/api/acl.html#update-acl-token
     return request`
       PUT /v1/acl/update?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
-
-      ${data}
     `;
   },
   requestForDeleteRecord: function(request, data) {
@@ -52,10 +48,11 @@ export default Adapter.extend({
   },
   clone: function(store, type, id, snapshot) {
     const serializer = store.serializerFor(type.modelName);
-    const data = this.snapshotToJSON(store, snapshot, type);
+    const unserialized = this.snapshotToJSON(snapshot, type);
+    const serialized = serializer.serialize(snapshot, {});
     return get(this, 'client')
-      .request(request => this.requestForClone(request, data))
-      .then(respond => serializer.respondForQueryRecord(respond, data));
+      .request(request => this.requestForClone(request, unserialized), serialized)
+      .then(respond => serializer.respondForQueryRecord(respond, unserialized));
   },
   handleResponse: function(status, headers, payload, requestData) {
     let response = payload;
