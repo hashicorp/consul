@@ -36,7 +36,40 @@ EOF
 ```
 
 -> **Note:** The `stubDomain` can only point to a static IP. If the cluster IP
-of the `consul-dns` service changes, then it must be updated to continue
+of the `consul-dns` service changes, then it must be updated in the config map to 
+match the new service IP for this to continue
+working. This can happen if the service is deleted and recreated, such as
+in full cluster rebuilds.
+
+## CoreDNS Configuration
+
+If you are using CoreDNS instead of kube-dns in your Kubernetes cluster, you will
+need to update your existing `coredns` ConfigMap in the `kube-system` namespace to
+include a proxy definition for `consul` that points to the cluster IP of the 
+`consul-dns` service.
+
+```
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    addonmanager.kubernetes.io/mode: EnsureExists
+  name: coredns
+  namespace: kube-system
+data:
+  Corefile: |
+    .:53 {
+        <Existing CoreDNS definition>
+    }
+    consul {
+      errors
+      cache 30
+      proxy . <consul-dns service cluster ip>
+    }
+```
+
+-> **Note:** The consul proxy can only point to a static IP. If the cluster IP
+of the `consul-dns` service changes, then it must be updated to the new IP to continue
 working. This can happen if the service is deleted and recreated, such as
 in full cluster rebuilds.
 
