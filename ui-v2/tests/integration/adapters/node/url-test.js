@@ -4,27 +4,30 @@ module('Integration | Adapter | node | url', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
   const id = 'node-name';
-  test('urlForQuery returns the correct url', function(assert) {
+  test('requestForQuery returns the correct url', function(assert) {
     const adapter = this.owner.lookup('adapter:node');
-    const expected = `/v1/internal/ui/nodes?dc=${dc}`;
-    const actual = adapter.urlForQuery({
+    const client = this.owner.lookup('service:client/http');
+    const expected = `GET /v1/internal/ui/nodes?dc=${dc}`;
+    const actual = adapter.requestForQuery(client.url, {
       dc: dc,
     });
     assert.equal(actual, expected);
   });
-  test('urlForQueryRecord returns the correct url', function(assert) {
+  test('requestForQueryRecord returns the correct url', function(assert) {
     const adapter = this.owner.lookup('adapter:node');
-    const expected = `/v1/internal/ui/node/${id}?dc=${dc}`;
-    const actual = adapter.urlForQueryRecord({
+    const client = this.owner.lookup('service:client/http');
+    const expected = `GET /v1/internal/ui/node/${id}?dc=${dc}`;
+    const actual = adapter.requestForQueryRecord(client.url, {
       dc: dc,
       id: id,
     });
     assert.equal(actual, expected);
   });
-  test("urlForQueryRecord throws if you don't specify an id", function(assert) {
+  test("requestForQueryRecord throws if you don't specify an id", function(assert) {
     const adapter = this.owner.lookup('adapter:node');
+    const client = this.owner.lookup('service:client/http');
     assert.throws(function() {
-      adapter.urlForQueryRecord({
+      adapter.requestForQueryRecord(client.url, {
         dc: dc,
       });
     });

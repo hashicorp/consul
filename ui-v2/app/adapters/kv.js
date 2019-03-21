@@ -1,6 +1,4 @@
 import Adapter, { DATACENTER_QUERY_PARAM as API_DATACENTER_KEY } from './application';
-import { get } from '@ember/object';
-import { inject as service } from '@ember/service';
 
 import isFolder from 'consul-ui/utils/isFolder';
 import keyToArray from 'consul-ui/utils/keyToArray';
@@ -10,7 +8,6 @@ import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 
 const API_KEYS_KEY = 'keys';
 export default Adapter.extend({
-  decoder: service('atob'),
   requestForQuery: function(request, { dc, index, id, separator }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
@@ -31,14 +28,14 @@ export default Adapter.extend({
     return request`
       PUT /v1/kv/${keyToArray(data[SLUG_KEY])}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
 
-      ${typeof data.Value === 'string' ? get(this, 'decoder').execute(data.Value) : null}
+      ${data}
     `;
   },
   requestForUpdateRecord: function(request, data) {
     return request`
       PUT /v1/kv/${keyToArray(data[SLUG_KEY])}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
 
-      ${typeof data.Value === 'string' ? get(this, 'decoder').execute(data.Value) : null}
+      ${data}
     `;
   },
   requestForDeleteRecord: function(request, data) {

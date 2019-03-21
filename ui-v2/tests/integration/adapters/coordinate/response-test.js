@@ -4,8 +4,8 @@ import { get } from 'consul-ui/tests/helpers/api';
 module('Integration | Adapter | coordinate | response', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
-  test('handleResponse returns the correct data for list endpoint', function(assert) {
-    const adapter = this.owner.lookup('adapter:coordinate');
+  test('respondForQuery returns the correct data for list endpoint', function(assert) {
+    const serializer = this.owner.lookup('serializer:coordinate');
     const request = {
       url: `/v1/coordinate/nodes?dc=${dc}`,
     };
@@ -16,7 +16,16 @@ module('Integration | Adapter | coordinate | response', function(hooks) {
           uid: `["${dc}","${item.Node}"]`,
         })
       );
-      const actual = adapter.handleResponse(200, {}, payload, request);
+      const actual = serializer.respondForQuery(
+        function(cb) {
+          const headers = {};
+          const body = payload;
+          return cb(headers, body);
+        },
+        {
+          dc: dc,
+        }
+      );
       assert.deepEqual(actual, expected);
     });
   });

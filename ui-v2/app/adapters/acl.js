@@ -33,7 +33,7 @@ export default Adapter.extend({
     // the id is in the data, don't add it in here
     // https://www.consul.io/api/acl.html#update-acl-token
     return request`
-      PUT /v1/acl/update/${data[SLUG_KEY]}${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
+      PUT /v1/acl/update?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
 
       ${data}
     `;
@@ -41,13 +41,13 @@ export default Adapter.extend({
   requestForDeleteRecord: function(request, data) {
     // https://www.consul.io/api/acl.html#delete-acl-token
     return request`
-      PUT /v1/acl/destroy/${data[SLUG_KEY]}${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
+      PUT /v1/acl/destroy/${data[SLUG_KEY]}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
     `;
   },
   requestForCloneRecord: function(request, data) {
     // https://www.consul.io/api/acl.html#clone-acl-token
     return request`
-      PUT /v1/acl/clone/${data[SLUG_KEY]}${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
+      PUT /v1/acl/clone/${data[SLUG_KEY]}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
     `;
   },
   clone: function(store, type, id, snapshot) {

@@ -6,8 +6,8 @@ module('Integration | Adapter | policy | response', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
   const id = 'policy-name';
-  test('handleResponse returns the correct data for list endpoint', function(assert) {
-    const adapter = this.owner.lookup('adapter:policy');
+  test('respondForQuery returns the correct data for list endpoint', function(assert) {
+    const serializer = this.owner.lookup('serializer:policy');
     const request = {
       url: `/v1/acl/policies?dc=${dc}`,
     };
@@ -18,12 +18,21 @@ module('Integration | Adapter | policy | response', function(hooks) {
           uid: `["${dc}","${item.ID}"]`,
         })
       );
-      const actual = adapter.handleResponse(200, {}, payload, request);
+      const actual = serializer.respondForQuery(
+        function(cb) {
+          const headers = {};
+          const body = payload;
+          return cb(headers, body);
+        },
+        {
+          dc: dc,
+        }
+      );
       assert.deepEqual(actual, expected);
     });
   });
-  test('handleResponse returns the correct data for item endpoint', function(assert) {
-    const adapter = this.owner.lookup('adapter:policy');
+  test('respondForQueryRecord returns the correct data for item endpoint', function(assert) {
+    const serializer = this.owner.lookup('serializer:policy');
     const request = {
       url: `/v1/acl/policy/${id}?dc=${dc}`,
     };
@@ -33,7 +42,16 @@ module('Integration | Adapter | policy | response', function(hooks) {
         [META]: {},
         uid: `["${dc}","${id}"]`,
       });
-      const actual = adapter.handleResponse(200, {}, payload, request);
+      const actual = serializer.respondForQueryRecord(
+        function(cb) {
+          const headers = {};
+          const body = payload;
+          return cb(headers, body);
+        },
+        {
+          dc: dc,
+        }
+      );
       assert.deepEqual(actual, expected);
     });
   });

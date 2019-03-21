@@ -4,8 +4,8 @@ import { get } from 'consul-ui/tests/helpers/api';
 import { HEADERS_SYMBOL as META } from 'consul-ui/utils/http/consul';
 module('Integration | Adapter | node | response', function(hooks) {
   setupTest(hooks);
-  test('handleResponse returns the correct data for list endpoint', function(assert) {
-    const adapter = this.owner.lookup('adapter:node');
+  test('respondForQuery returns the correct data for list endpoint', function(assert) {
+    const serializer = this.owner.lookup('serializer:node');
     const dc = 'dc-1';
     const request = {
       url: `/v1/internal/ui/nodes?dc=${dc}`,
@@ -17,12 +17,21 @@ module('Integration | Adapter | node | response', function(hooks) {
           uid: `["${dc}","${item.ID}"]`,
         })
       );
-      const actual = adapter.handleResponse(200, {}, payload, request);
+      const actual = serializer.respondForQuery(
+        function(cb) {
+          const headers = {};
+          const body = payload;
+          return cb(headers, body);
+        },
+        {
+          dc: dc,
+        }
+      );
       assert.deepEqual(actual, expected);
     });
   });
-  test('handleResponse returns the correct data for item endpoint', function(assert) {
-    const adapter = this.owner.lookup('adapter:node');
+  test('respondForQueryRecord returns the correct data for item endpoint', function(assert) {
+    const serializer = this.owner.lookup('serializer:node');
     const dc = 'dc-1';
     const id = 'node-name';
     const request = {
@@ -34,7 +43,16 @@ module('Integration | Adapter | node | response', function(hooks) {
         [META]: {},
         uid: `["${dc}","${id}"]`,
       });
-      const actual = adapter.handleResponse(200, {}, payload, request);
+      const actual = serializer.respondForQueryRecord(
+        function(cb) {
+          const headers = {};
+          const body = payload;
+          return cb(headers, body);
+        },
+        {
+          dc: dc,
+        }
+      );
       assert.deepEqual(actual, expected);
     });
   });
