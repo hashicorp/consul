@@ -33,8 +33,15 @@ export default Controller.extend({
       set(this, 'isScoped', false);
       this.send('clearPolicy');
     },
-    sendCreatePolicy: function(item, policies, success) {
-      this.send('createPolicy', item, policies, success);
+    sendCreatePolicy: function(item, items, success) {
+      this.send('createPolicy', item, items, success);
+    },
+    sendClearRole: function(item) {
+      set(this, 'isScoped', false);
+      this.send('clearRole');
+    },
+    sendCreateRole: function(item, items, success) {
+      this.send('createRole', item, items, success);
     },
     refreshCodeEditor: function(selector, parent) {
       if (parent.target) {
@@ -59,6 +66,10 @@ export default Controller.extend({
           case 'Policy':
             set(value, 'CreateTime', new Date().getTime());
             get(this, 'item.Policies').pushObject(value);
+            break;
+          case 'Role':
+            set(value, 'CreateTime', new Date().getTime());
+            get(this, 'item.Roles').pushObject(value);
             break;
           case 'Details':
             // the Details expander toggle
