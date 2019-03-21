@@ -147,8 +147,8 @@ dev-tree:
 	@$(SHELL) $(CURDIR)/build-support/scripts/dev.sh $(DEV_PUSH_ARG)
 
 cov:
-	gocov test $(GOFILES) | gocov-html > /tmp/coverage.html
-	open /tmp/coverage.html
+	go test ./... -coverprofile=coverage.out
+	go tool cover -html=coverage.out
 
 test: other-consul dev-build vet test-install-deps test-internal
 
