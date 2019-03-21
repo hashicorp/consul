@@ -56,7 +56,7 @@ The following guides are available:
 
 * [Monitoring Consul with Telegraf](/docs/guides/monitoring-telegraf.html) - This guide demonstrates how to setup Consul for monitoring with Telegraf.
 
-* [Network Segments](/docs/guides/segments.html) - Configuring Consul to support partial LAN connectivity using Network Segments.
+* [Network Segments](/docs/guides/network-segments.html) - Configuring Consul to support partial LAN connectivity using Network Segments.
 
 * [Outage Recovery](https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/outage) - This guide covers recovering a cluster that has become unavailable due to server failures.
 
