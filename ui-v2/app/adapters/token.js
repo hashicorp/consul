@@ -26,25 +26,8 @@ export default Adapter.extend(WithRoles, WithPolicies, {
     `;
   },
   requestForCreateRecord: function(request, data) {
-    // TODO: Serializer
-    if (Array.isArray(data.Policies)) {
-      data.Policies = data.Policies.filter(function(item) {
-        // Just incase, don't save any policies that aren't saved
-        return !get(item, 'isNew');
-      }).map(function(item) {
-        return {
-          ID: get(item, 'ID'),
-          Name: get(item, 'Name'),
-        };
-      });
-    } else {
-      delete data.Policies;
-    }
-    // TODO: need to make sure we remove dc
     return request`
       PUT /v1/acl/token?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
-
-      ${data}
     `;
   },
   requestForUpdateRecord: function(request, data) {
@@ -64,7 +47,7 @@ export default Adapter.extend(WithRoles, WithPolicies, {
       delete data['SecretID'];
     }
     return request`
-      POST /v1/acl/token/${data[SLUG_KEY]}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
+      PUT /v1/acl/token/${data[SLUG_KEY]}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
 
       ${data}
     `;
@@ -92,17 +75,19 @@ export default Adapter.extend(WithRoles, WithPolicies, {
   },
   self: function(store, type, snapshot) {
     const serializer = store.serializerFor(type.modelName);
-    const data = this.snapshotToJSON(store, snapshot, type);
+    const unserialized = this.snapshotToJSON(snapshot, type);
+    const serialized = serializer.serialize(snapshot, {});
     return get(this, 'client')
-      .request(request => this.requestForSelf(request, data))
-      .then(respond => serializer.respondForQueryRecord(respond, data));
+      .request(request => this.requestForSelf(request, unserialized), serialized)
+      .then(respond => serializer.respondForQueryRecord(respond, unserialized));
   },
   // TODO: Does id even need to be here now?
   clone: function(store, type, id, snapshot) {
     const serializer = store.serializerFor(type.modelName);
-    const data = this.snapshotToJSON(store, snapshot, type);
+    const unserialized = this.snapshotToJSON(snapshot, type);
+    const serialized = serializer.serialize(snapshot, {});
     return get(this, 'client')
-      .request(request => this.requestForClone(request, data))
-      .then(respond => serializer.respondForQueryRecord(respond, data));
+      .request(request => this.requestForClone(request, unserialized), serialized)
+      .then(respond => serializer.respondForQueryRecord(respond, unserialized));
   },
 });

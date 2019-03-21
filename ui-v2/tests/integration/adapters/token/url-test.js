@@ -46,7 +46,7 @@ module('Integration | Adapter | token | url', function(hooks) {
   test('requestForUpdateRecord returns the correct url (without Rules it uses the v2 API)', function(assert) {
     const adapter = this.owner.lookup('adapter:token');
     const client = this.owner.lookup('service:client/http');
-    const expected = `POST /v1/acl/token/${id}?dc=${dc}`;
+    const expected = `PUT /v1/acl/token/${id}?dc=${dc}`;
     const actual = adapter
       .requestForUpdateRecord(client.url, {
         Datacenter: dc,

@@ -27,15 +27,11 @@ export default Adapter.extend({
   requestForCreateRecord: function(request, data) {
     return request`
       PUT /v1/kv/${keyToArray(data[SLUG_KEY])}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
-
-      ${data}
     `;
   },
   requestForUpdateRecord: function(request, data) {
     return request`
       PUT /v1/kv/${keyToArray(data[SLUG_KEY])}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
-
-      ${data}
     `;
   },
   requestForDeleteRecord: function(request, data) {
