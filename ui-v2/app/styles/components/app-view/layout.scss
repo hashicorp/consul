@@ -30,6 +30,11 @@
   padding-bottom: 0.2em;
   margin-bottom: 1.1em;
 }
+%app-view fieldset h2,
+%app-view fieldset p {
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
 %app-view header .actions > *:not(:last-child) {
   margin-right: 12px;
 }

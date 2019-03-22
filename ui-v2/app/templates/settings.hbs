@@ -7,14 +7,16 @@
         {{/block-slot}}
         {{#block-slot 'content'}}
             <p>
-                These settings allow you to configure your browser for the Consul Web UI. Everything is saved to localstorage, and persists through visits and browser usage.
+                These settings are specific to the Consul web UI. They are saved to local storage and persist through browser usage and visits.
             </p>
             <form>
                 <fieldset>
+                    <h2>Blocking Queries</h2>
+                    <p>Automatically get updated catalog information without refreshing the page. Any changes made to services and nodes would be reflected in real time.</p>
                     <div class="type-toggle">
                       <label>
                           <input type="checkbox" name="client[blocking]" checked={{if item.client.blocking 'checked' }} onchange={{action 'change'}} />
-                          <span>Enable Catalog realtime updates (blocking queries)</span>
+                          <span>{{if item.client.blocking 'On' 'Off' }}</span>
                       </label>
                     </div>
                 </fieldset>
