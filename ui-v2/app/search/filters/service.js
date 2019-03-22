@@ -13,11 +13,11 @@ export default function(filterable) {
     const term = s.toLowerCase();
     let status;
     switch (true) {
-      case term.indexOf('service:') === 0:
+      case term.startsWith('service:'):
         return find(get(item, 'Name'), term.substr(8));
-      case term.indexOf('tag:') === 0:
+      case term.startsWith('tag:'):
         return find(get(item, 'Tags') || [], term.substr(4));
-      case term.indexOf('status:') === 0:
+      case term.startsWith('status:'):
         status = term.substr(7);
         switch (term.substr(7)) {
           case 'warning':
