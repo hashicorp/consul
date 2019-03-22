@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -380,6 +381,59 @@ func TestServeDNS(t *testing.T) {
 	}
 }
 
+var nsTestCases = []test.Case{
+	// A Service for an "exposed" namespace that "does exist"
+	{
+		Qname: "svc1.testns.svc.cluster.local.", Qtype: dns.TypeA,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.A("svc1.testns.svc.cluster.local.	5	IN	A	10.0.0.1"),
+		},
+	},
+	// A service for an "exposed" namespace that "doesn't exist"
+	{
+		Qname: "svc1.nsnoexist.svc.cluster.local.", Qtype: dns.TypeA,
+		Rcode: dns.RcodeNameError,
+		Ns: []dns.RR{
+			test.SOA("cluster.local.	300	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1551484803 7200 1800 86400 30"),
+		},
+	},
+}
+
+func TestServeNamespaceDNS(t *testing.T) {
+	k := New([]string{"cluster.local."})
+	k.APIConn = &APIConnServeTest{}
+	k.Next = test.NextHandler(dns.RcodeSuccess, nil)
+	// if no namespaces are explicitly exposed, then they are all implicitly exposed
+	k.Namespaces = map[string]struct{}{}
+	ctx := context.TODO()
+
+	for i, tc := range nsTestCases {
+		r := tc.Msg()
+
+		w := dnstest.NewRecorder(&test.ResponseWriter{})
+
+		_, err := k.ServeDNS(ctx, w, r)
+		if err != tc.Error {
+			t.Errorf("Test %d expected no error, got %v", i, err)
+			return
+		}
+		if tc.Error != nil {
+			continue
+		}
+
+		resp := w.Msg
+		if resp == nil {
+			t.Fatalf("Test %d, got nil message and no error for %q", i, r.Question[0].Name)
+		}
+
+		// Before sorting, make sure that CNAMES do not appear after their target records
+		test.CNAMEOrder(resp)
+
+		test.SortAndCheck(resp, tc)
+	}
+}
+
 var notSyncedTestCases = []test.Case{
 	{
 		// We should get ServerFailure instead of NameError for missing records when we kubernetes hasn't synced
@@ -626,6 +680,9 @@ func (APIConnServeTest) GetNodeByName(name string) (*api.Node, error) {
 func (APIConnServeTest) GetNamespaceByName(name string) (*api.Namespace, error) {
 	if name == "pod-nons" { // handler_pod_verified_test.go uses this for non-existent namespace.
 		return &api.Namespace{}, nil
+	}
+	if name == "nsnoexist" {
+		return nil, fmt.Errorf("namespace not found")
 	}
 	return &api.Namespace{
 		ObjectMeta: meta.ObjectMeta{

@@ -217,6 +217,15 @@ func (k *Kubernetes) InitKubeCache() (err error) {
 		k.opts.selector = selector
 	}
 
+	if k.opts.namespaceLabelSelector != nil {
+		var selector labels.Selector
+		selector, err = meta.LabelSelectorAsSelector(k.opts.namespaceLabelSelector)
+		if err != nil {
+			return fmt.Errorf("unable to create Selector for LabelSelector '%s': %q", k.opts.namespaceLabelSelector, err)
+		}
+		k.opts.namespaceSelector = selector
+	}
+
 	k.opts.initPodCache = k.podMode == podModeVerified
 
 	k.opts.zones = k.Zones
@@ -302,13 +311,15 @@ func (k *Kubernetes) findPods(r recordRequest, zone string) (pods []msg.Service,
 	}
 
 	namespace := r.namespace
+	if !wildcard(namespace) && !k.namespaceExposed(namespace) {
+		return nil, errNoItems
+	}
+
 	podname := r.service
-	zonePath := msg.Path(zone, coredns)
-	ip := ""
 
 	// handle empty pod name
 	if podname == "" {
-		if k.namespace(namespace) || wildcard(namespace) {
+		if k.namespaceExposed(namespace) || wildcard(namespace) {
 			// NODATA
 			return nil, nil
 		}
@@ -316,6 +327,8 @@ func (k *Kubernetes) findPods(r recordRequest, zone string) (pods []msg.Service,
 		return nil, errNoItems
 	}
 
+	zonePath := msg.Path(zone, coredns)
+	ip := ""
 	if strings.Count(podname, "-") == 3 && !strings.Contains(podname, "--") {
 		ip = strings.Replace(podname, "-", ".", -1)
 	} else {
@@ -323,7 +336,7 @@ func (k *Kubernetes) findPods(r recordRequest, zone string) (pods []msg.Service,
 	}
 
 	if k.podMode == podModeInsecure {
-		if !wildcard(namespace) && !k.namespace(namespace) { // no wildcard, but namespace does not exist
+		if !wildcard(namespace) && !k.namespaceExposed(namespace) { // no wildcard, but namespace does not exist
 			return nil, errNoItems
 		}
 
@@ -338,8 +351,8 @@ func (k *Kubernetes) findPods(r recordRequest, zone string) (pods []msg.Service,
 	// PodModeVerified
 	err = errNoItems
 	if wildcard(podname) && !wildcard(namespace) {
-		// If namespace exist, err should be nil, so that we return nodata instead of NXDOMAIN
-		if k.namespace(namespace) {
+		// If namespace exists, err should be nil, so that we return NODATA instead of NXDOMAIN
+		if k.namespaceExposed(namespace) {
 			err = nil
 		}
 	}
@@ -368,12 +381,24 @@ func (k *Kubernetes) findPods(r recordRequest, zone string) (pods []msg.Service,
 
 // findServices returns the services matching r from the cache.
 func (k *Kubernetes) findServices(r recordRequest, zone string) (services []msg.Service, err error) {
-	zonePath := msg.Path(zone, coredns)
+	if !wildcard(r.namespace) && !k.namespaceExposed(r.namespace) {
+		return nil, errNoItems
+	}
+
+	// handle empty service name
+	if r.service == "" {
+		if k.namespaceExposed(r.namespace) || wildcard(r.namespace) {
+			// NODATA
+			return nil, nil
+		}
+		// NXDOMAIN
+		return nil, errNoItems
+	}
 
 	err = errNoItems
 	if wildcard(r.service) && !wildcard(r.namespace) {
-		// If namespace exist, err should be nil, so that we return nodata instead of NXDOMAIN
-		if k.namespace(r.namespace) {
+		// If namespace exists, err should be nil, so that we return NODATA instead of NXDOMAIN
+		if k.namespaceExposed(r.namespace) {
 			err = nil
 		}
 	}
@@ -384,16 +409,6 @@ func (k *Kubernetes) findServices(r recordRequest, zone string) (services []msg.
 		serviceList       []*object.Service
 	)
 
-	// handle empty service name
-	if r.service == "" {
-		if k.namespace(r.namespace) || wildcard(r.namespace) {
-			// NODATA
-			return nil, nil
-		}
-		// NXDOMAIN
-		return nil, errNoItems
-	}
-
 	if wildcard(r.service) || wildcard(r.namespace) {
 		serviceList = k.APIConn.ServiceList()
 		endpointsListFunc = func() []*object.Endpoints { return k.APIConn.EndpointsList() }
@@ -403,12 +418,13 @@ func (k *Kubernetes) findServices(r recordRequest, zone string) (services []msg.
 		endpointsListFunc = func() []*object.Endpoints { return k.APIConn.EpIndex(idx) }
 	}
 
+	zonePath := msg.Path(zone, coredns)
 	for _, svc := range serviceList {
 		if !(match(r.namespace, svc.Namespace) && match(r.service, svc.Name)) {
 			continue
 		}
 
-		// If namespace has a wildcard, filter results against Corefile namespace list.
+		// If request namespace is a wildcard, filter results against Corefile namespace list.
 		// (Namespaces without a wildcard were filtered before the call to this function.)
 		if wildcard(r.namespace) && !k.namespaceExposed(svc.Namespace) {
 			continue

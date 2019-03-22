@@ -13,15 +13,16 @@ import (
 
 func TestKubernetesParse(t *testing.T) {
 	tests := []struct {
-		input                 string        // Corefile data as string
-		shouldErr             bool          // true if test case is expected to produce an error.
-		expectedErrContent    string        // substring from the expected error. Empty for positive cases.
-		expectedZoneCount     int           // expected count of defined zones.
-		expectedNSCount       int           // expected count of namespaces.
-		expectedResyncPeriod  time.Duration // expected resync period value
-		expectedLabelSelector string        // expected label selector value
-		expectedPodMode       string
-		expectedFallthrough   fall.F
+		input                          string        // Corefile data as string
+		shouldErr                      bool          // true if test case is expected to produce an error.
+		expectedErrContent             string        // substring from the expected error. Empty for positive cases.
+		expectedZoneCount              int           // expected count of defined zones.
+		expectedNSCount                int           // expected count of namespaces.
+		expectedResyncPeriod           time.Duration // expected resync period value
+		expectedLabelSelector          string        // expected label selector value
+		expectedNamespaceLabelSelector string        // expected namespace label selector value
+		expectedPodMode                string
+		expectedFallthrough            fall.F
 	}{
 		// positive
 		{
@@ -31,6 +32,7 @@ func TestKubernetesParse(t *testing.T) {
 			1,
 			0,
 			defaultResyncPeriod,
+			"",
 			"",
 			podModeDisabled,
 			fall.Zero,
@@ -43,6 +45,7 @@ func TestKubernetesParse(t *testing.T) {
 			0,
 			defaultResyncPeriod,
 			"",
+			"",
 			podModeDisabled,
 			fall.Zero,
 		},
@@ -54,6 +57,7 @@ func TestKubernetesParse(t *testing.T) {
 			1,
 			0,
 			defaultResyncPeriod,
+			"",
 			"",
 			podModeDisabled,
 			fall.Zero,
@@ -68,6 +72,7 @@ func TestKubernetesParse(t *testing.T) {
 			0,
 			defaultResyncPeriod,
 			"",
+			"",
 			podModeDisabled,
 			fall.Zero,
 		},
@@ -80,6 +85,7 @@ func TestKubernetesParse(t *testing.T) {
 			1,
 			1,
 			defaultResyncPeriod,
+			"",
 			"",
 			podModeDisabled,
 			fall.Zero,
@@ -94,6 +100,7 @@ func TestKubernetesParse(t *testing.T) {
 			2,
 			defaultResyncPeriod,
 			"",
+			"",
 			podModeDisabled,
 			fall.Zero,
 		},
@@ -106,6 +113,7 @@ func TestKubernetesParse(t *testing.T) {
 			1,
 			0,
 			30 * time.Second,
+			"",
 			"",
 			podModeDisabled,
 			fall.Zero,
@@ -120,6 +128,7 @@ func TestKubernetesParse(t *testing.T) {
 			0,
 			15 * time.Minute,
 			"",
+			"",
 			podModeDisabled,
 			fall.Zero,
 		},
@@ -133,6 +142,7 @@ func TestKubernetesParse(t *testing.T) {
 			0,
 			defaultResyncPeriod,
 			"environment=prod",
+			"",
 			podModeDisabled,
 			fall.Zero,
 		},
@@ -146,6 +156,36 @@ func TestKubernetesParse(t *testing.T) {
 			0,
 			defaultResyncPeriod,
 			"application=nginx,environment in (production,qa,staging)",
+			"",
+			podModeDisabled,
+			fall.Zero,
+		},
+		{
+			`kubernetes coredns.local {
+    namespace_labels istio-injection=enabled
+}`,
+			false,
+			"",
+			1,
+			0,
+			defaultResyncPeriod,
+			"",
+			"istio-injection=enabled",
+			podModeDisabled,
+			fall.Zero,
+		},
+		{
+			`kubernetes coredns.local {
+    namespaces foo bar
+    namespace_labels istio-injection=enabled
+}`,
+			true,
+			"Error during parsing: namespaces and namespace_labels cannot both be set",
+			-1,
+			0,
+			defaultResyncPeriod,
+			"",
+			"istio-injection=enabled",
 			podModeDisabled,
 			fall.Zero,
 		},
@@ -163,6 +203,7 @@ func TestKubernetesParse(t *testing.T) {
 			2,
 			15 * time.Minute,
 			"application=nginx,environment in (production,qa,staging)",
+			"",
 			podModeDisabled,
 			fall.Root,
 		},
@@ -177,6 +218,7 @@ func TestKubernetesParse(t *testing.T) {
 			-1,
 			defaultResyncPeriod,
 			"",
+			"",
 			podModeDisabled,
 			fall.Zero,
 		},
@@ -189,6 +231,7 @@ func TestKubernetesParse(t *testing.T) {
 			-1,
 			-1,
 			defaultResyncPeriod,
+			"",
 			"",
 			podModeDisabled,
 			fall.Zero,
@@ -203,6 +246,7 @@ func TestKubernetesParse(t *testing.T) {
 			0,
 			0 * time.Minute,
 			"",
+			"",
 			podModeDisabled,
 			fall.Zero,
 		},
@@ -215,6 +259,7 @@ func TestKubernetesParse(t *testing.T) {
 			-1,
 			0,
 			0 * time.Second,
+			"",
 			"",
 			podModeDisabled,
 			fall.Zero,
@@ -229,6 +274,7 @@ func TestKubernetesParse(t *testing.T) {
 			0,
 			0 * time.Second,
 			"",
+			"",
 			podModeDisabled,
 			fall.Zero,
 		},
@@ -242,6 +288,7 @@ func TestKubernetesParse(t *testing.T) {
 			0,
 			0 * time.Second,
 			"",
+			"",
 			podModeDisabled,
 			fall.Zero,
 		},
@@ -254,6 +301,7 @@ func TestKubernetesParse(t *testing.T) {
 			-1,
 			0,
 			0 * time.Second,
+			"",
 			"",
 			podModeDisabled,
 			fall.Zero,
@@ -269,6 +317,7 @@ func TestKubernetesParse(t *testing.T) {
 			0,
 			defaultResyncPeriod,
 			"",
+			"",
 			podModeDisabled,
 			fall.Zero,
 		},
@@ -282,6 +331,7 @@ func TestKubernetesParse(t *testing.T) {
 			1,
 			0,
 			defaultResyncPeriod,
+			"",
 			"",
 			podModeInsecure,
 			fall.Zero,
@@ -297,6 +347,7 @@ func TestKubernetesParse(t *testing.T) {
 			0,
 			defaultResyncPeriod,
 			"",
+			"",
 			podModeVerified,
 			fall.Zero,
 		},
@@ -310,6 +361,7 @@ func TestKubernetesParse(t *testing.T) {
 			-1,
 			0,
 			defaultResyncPeriod,
+			"",
 			"",
 			podModeVerified,
 			fall.Zero,
@@ -325,6 +377,7 @@ func TestKubernetesParse(t *testing.T) {
 			0,
 			defaultResyncPeriod,
 			"",
+			"",
 			podModeDisabled,
 			fall.F{Zones: []string{"ip6.arpa.", "inaddr.arpa.", "foo.com."}},
 		},
@@ -339,6 +392,7 @@ func TestKubernetesParse(t *testing.T) {
 			0,
 			defaultResyncPeriod,
 			"",
+			"",
 			podModeDisabled,
 			fall.Zero,
 		},
@@ -351,6 +405,7 @@ kubernetes cluster.local`,
 			-1,
 			0,
 			defaultResyncPeriod,
+			"",
 			"",
 			podModeDisabled,
 			fall.Zero,
@@ -365,6 +420,7 @@ kubernetes cluster.local`,
 			0,
 			defaultResyncPeriod,
 			"",
+			"",
 			podModeDisabled,
 			fall.Zero,
 		},
@@ -378,6 +434,7 @@ kubernetes cluster.local`,
 			0,
 			defaultResyncPeriod,
 			"",
+			"",
 			podModeDisabled,
 			fall.Zero,
 		},
@@ -390,6 +447,7 @@ kubernetes cluster.local`,
 			1,
 			0,
 			defaultResyncPeriod,
+			"",
 			"",
 			podModeDisabled,
 			fall.Zero,

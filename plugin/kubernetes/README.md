@@ -56,6 +56,11 @@ kubernetes [ZONES...] {
 * `kubeconfig` **KUBECONFIG** **CONTEXT** authenticates the connection to a remote k8s cluster using a kubeconfig file. It supports TLS, username and password, or token-based authentication. This option is ignored if connecting in-cluster (i.e., the endpoint is not specified).
 * `namespaces` **NAMESPACE [NAMESPACE...]** only exposes the k8s namespaces listed.
    If this option is omitted all namespaces are exposed
+* `namespace_labels` **EXPRESSION** only expose the records for Kubernetes namespaces that match this label selector.
+   The label selector syntax is described in the
+   [Kubernetes User Guide - Labels](http://kubernetes.io/docs/user-guide/labels/). An example that
+   only exposes namespaces labeled as "istio-injection=enabled", would use: 
+   `labels istio-injection=enabled`.
 * `labels` **EXPRESSION** only exposes the records for Kubernetes objects that match this label selector.
    The label selector syntax is described in the
    [Kubernetes User Guide - Labels](https://kubernetes.io/docs/user-guide/labels/). An example that
