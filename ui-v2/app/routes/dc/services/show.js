@@ -15,14 +15,6 @@ export default Route.extend({
     const repo = get(this, 'repo');
     return hash({
       item: repo.findBySlug(params.name, this.modelFor('dc').dc.Name),
-    }).then(function(model) {
-      return {
-        ...model,
-        ...{
-          // Nodes happen to be the ServiceInstances here
-          items: model.item.Nodes,
-        },
-      };
     });
   },
   setupController: function(controller, model) {
