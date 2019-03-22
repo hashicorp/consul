@@ -9,7 +9,6 @@ Feature: dc / list-blocking
     ---
     consul:client:
       blocking: 1
-      throttle: 200
     ---
   Scenario: Viewing the listing pages
     Given 3 [Model] models
@@ -53,4 +52,3 @@ Feature: dc / list-blocking
     | Page       | Model       | Url                |
     | service    | instance    | services/service-0 |
     -------------------------------------------------
-

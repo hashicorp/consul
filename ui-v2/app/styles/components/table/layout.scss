@@ -65,6 +65,9 @@ td:not(.actions) a {
   html.template-policy.template-list tr > :nth-child(2) {
     display: none;
   }
+  html.template-service.template-list tr > :nth-child(2) {
+    display: none;
+  }
 }
 @media #{$--lt-wide-table} {
   html.template-intention.template-list tr > :nth-last-child(2) {

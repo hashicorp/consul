@@ -54,7 +54,8 @@ th,
 %breadcrumbs li > *,
 %action-group-action,
 %tab-nav,
-%tooltip-bubble {
+%tooltip-bubble,
+%type-icon {
   font-weight: $typo-weight-medium;
 }
 main label a[rel*='help'],
@@ -84,6 +85,7 @@ h2,
 }
 body,
 %action-group-action,
+fieldset h2,
 pre code,
 input,
 textarea,
@@ -96,7 +98,8 @@ caption,
 %form-element > span,
 %tooltip-bubble,
 %healthchecked-resource strong,
-%footer {
+%footer,
+%type-icon {
   font-size: $typo-size-700;
 }
 %toggle label span {
