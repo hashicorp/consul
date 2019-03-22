@@ -1,4 +1,5 @@
 import domEventSourceBlocking, {
+  validateCursor,
   create5xxBackoff,
 } from 'consul-ui/utils/dom/event-source/blocking';
 import { module } from 'qunit';
@@ -83,5 +84,65 @@ test('the 5xx backoff returns a resolve promise on a 5xx (apart from 500)', func
     assert.ok(promise instanceof Promise, 'a promise was returned');
     assert.ok(resolve.calledOnce, 'the promise was resolved with the correct arguments');
     assert.ok(timeout.calledOnce, 'timeout was called once');
+  });
+});
+test("the cursor validation always returns undefined if the cursor can't be parsed to an integer", function(assert) {
+  ['null', null, '', undefined].forEach(item => {
+    const actual = validateCursor(item);
+    assert.equal(actual, undefined);
+  });
+});
+test('the cursor validation always returns a cursor greater than zero', function(assert) {
+  [
+    {
+      cursor: 0,
+      expected: 1,
+    },
+    {
+      cursor: -10,
+      expected: 1,
+    },
+    {
+      cursor: -1,
+      expected: 1,
+    },
+    {
+      cursor: -1000,
+      expected: 1,
+    },
+    {
+      cursor: 10,
+      expected: 10,
+    },
+  ].forEach(item => {
+    const actual = validateCursor(item.cursor);
+    assert.equal(actual, item.expected, 'cursor is greater than zero');
+  });
+});
+test('the cursor validation resets to 1 if its less than the previous cursor', function(assert) {
+  [
+    {
+      previous: 100,
+      cursor: 99,
+      expected: 1,
+    },
+    {
+      previous: 100,
+      cursor: -10,
+      expected: 1,
+    },
+    {
+      previous: 100,
+      cursor: 0,
+      expected: 1,
+    },
+    {
+      previous: 100,
+      cursor: 101,
+      expected: 101,
+    },
+  ].forEach(item => {
+    const actual = validateCursor(item.cursor, item.previous);
+    assert.equal(actual, item.expected);
   });
 });
