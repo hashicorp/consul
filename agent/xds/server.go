@@ -51,11 +51,31 @@ const (
 	PublicListenerName = "public_listener"
 
 	// LocalAppClusterName is the name we give the local application "cluster" in
-	// Envoy config.
+	// Envoy config. Note that all cluster names may collide with service names
+	// since we want cluster names and service names to match to enable nice
+	// metrics correlation without massaging prefixes on cluster names.
+	//
+	// We should probably make this more unlikely to collied however changing it
+	// potentially breaks upgrade compatibility without restarting all Envoy's as
+	// it will no longer match their existing cluster name. Changing this will
+	// affect metrics output so could break dashboards (for local app traffic).
+	//
+	// We should probably just make it configurable if anyone actually has
+	// services named "local_app" in the future.
 	LocalAppClusterName = "local_app"
 
 	// LocalAgentClusterName is the name we give the local agent "cluster" in
-	// Envoy config.
+	// Envoy config. Note that all cluster names may collide with service names
+	// since we want cluster names and service names to match to enable nice
+	// metrics correlation without massaging prefixes on cluster names.
+	//
+	// We should probably make this more unlikely to collied however changing it
+	// potentially breaks upgrade compatibility without restarting all Envoy's as
+	// it will no longer match their existing cluster name. Changing this will
+	// affect metrics output so could break dashboards (for local agent traffic).
+	//
+	// We should probably just make it configurable if anyone actually has
+	// services named "local_app" in the future.
 	LocalAgentClusterName = "local_agent"
 
 	// DefaultAuthCheckFrequency is the default value for
@@ -178,7 +198,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 		},
 		ClusterType: &xDSType{
 			typeURL:   ClusterType,
-			resources: clustersFromSnapshot,
+			resources: s.clustersFromSnapshot,
 			stream:    stream,
 		},
 		RouteType: &xDSType{
@@ -188,7 +208,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 		},
 		ListenerType: &xDSType{
 			typeURL:   ListenerType,
-			resources: listenersFromSnapshot,
+			resources: s.listenersFromSnapshot,
 			stream:    stream,
 		},
 	}

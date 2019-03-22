@@ -168,8 +168,11 @@ func (u *Upstream) Identifier() string {
 		name += "?dc=" + u.Datacenter
 	}
 	typ := u.DestinationType
-	if typ == "" {
-		typ = UpstreamDestTypeService
+	// Service is default type so never prefix it. This is more readable and long
+	// term it is the only type that matters so we can drop the prefix and have
+	// nicer naming in metrics etc.
+	if typ == "" || typ == UpstreamDestTypeService {
+		return name
 	}
 	return typ + ":" + name
 }

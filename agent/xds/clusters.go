@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
 	"time"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -21,7 +20,7 @@ import (
 
 // clustersFromSnapshot returns the xDS API representation of the "clusters"
 // (upstreams) in the snapshot.
-func clustersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
+func (s *Server) clustersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
 	if cfgSnap == nil {
 		return nil, errors.New("nil config given")
 	}
@@ -29,13 +28,13 @@ func clustersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]pro
 	clusters := make([]proto.Message, len(cfgSnap.Proxy.Upstreams)+1)
 
 	var err error
-	clusters[0], err = makeAppCluster(cfgSnap)
+	clusters[0], err = s.makeAppCluster(cfgSnap)
 	if err != nil {
 		return nil, err
 	}
 
 	for idx, upstream := range cfgSnap.Proxy.Upstreams {
-		clusters[idx+1], err = makeUpstreamCluster(upstream, cfgSnap)
+		clusters[idx+1], err = s.makeUpstreamCluster(upstream, cfgSnap)
 		if err != nil {
 			return nil, err
 		}
@@ -44,18 +43,20 @@ func clustersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]pro
 	return clusters, nil
 }
 
-func makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Cluster, error) {
+func (s *Server) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Cluster, error) {
 	var c *envoy.Cluster
 	var err error
 
+	cfg, err := ParseProxyConfig(cfgSnap.Proxy.Config)
+	if err != nil {
+		// Don't hard fail on a config typo, just warn. The parse func returns
+		// default config if there is an error so it's safe to continue.
+		s.Logger.Printf("[WARN] envoy: failed to parse Connect.Proxy.Config: %s", err)
+	}
+
 	// If we have overridden local cluster config try to parse it into an Envoy cluster
-	if clusterJSONRaw, ok := cfgSnap.Proxy.Config["envoy_local_cluster_json"]; ok {
-		if clusterJSON, ok := clusterJSONRaw.(string); ok {
-			c, err = makeClusterFromUserConfig(clusterJSON)
-			if err != nil {
-				return c, err
-			}
-		}
+	if cfg.LocalClusterJSON != "" {
+		return makeClusterFromUserConfig(cfg.LocalClusterJSON)
 	}
 
 	if c == nil {
@@ -65,7 +66,7 @@ func makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Cluster, error) {
 		}
 		c = &envoy.Cluster{
 			Name:           LocalAppClusterName,
-			ConnectTimeout: 5 * time.Second,
+			ConnectTimeout: time.Duration(cfg.LocalConnectTimeoutMs) * time.Millisecond,
 			Type:           envoy.Cluster_STATIC,
 			// API v2 docs say hosts is deprecated and should use LoadAssignment as
 			// below.. but it doesn't work for tcp_proxy target for some reason.
@@ -88,49 +89,29 @@ func makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Cluster, error) {
 	return c, err
 }
 
-func parseTimeMillis(ms interface{}) (time.Duration, error) {
-	switch v := ms.(type) {
-	case string:
-		ms, err := strconv.Atoi(v)
-		if err != nil {
-			return 0, err
-		}
-		return time.Duration(ms) * time.Millisecond, nil
-
-	case float64: // This is what parsing from JSON results in
-		return time.Duration(v) * time.Millisecond, nil
-	// Not sure if this can ever really happen but just in case it does in
-	// some test code...
-	case int:
-		return time.Duration(v) * time.Millisecond, nil
-	}
-	return 0, errors.New("invalid type for millisecond duration")
-}
-
-func makeUpstreamCluster(upstream structs.Upstream, cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Cluster, error) {
+func (s *Server) makeUpstreamCluster(upstream structs.Upstream, cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Cluster, error) {
 	var c *envoy.Cluster
 	var err error
 
-	// If we have overridden cluster config attempt to parse it into an Envoy cluster
-	if clusterJSONRaw, ok := upstream.Config["envoy_cluster_json"]; ok {
-		if clusterJSON, ok := clusterJSONRaw.(string); ok {
-			c, err = makeClusterFromUserConfig(clusterJSON)
-			if err != nil {
-				return c, err
-			}
+	cfg, err := ParseUpstreamConfig(upstream.Config)
+	if err != nil {
+		// Don't hard fail on a config typo, just warn. The parse func returns
+		// default config if there is an error so it's safe to continue.
+		s.Logger.Printf("[WARN] envoy: failed to parse Upstream[%s].Config: %s",
+			upstream.Identifier(), err)
+	}
+	if cfg.ClusterJSON != "" {
+		c, err = makeClusterFromUserConfig(cfg.ClusterJSON)
+		if err != nil {
+			return c, err
 		}
+		// In the happy path don't return yet as we need to inject TLS config still.
 	}
 
 	if c == nil {
-		conTimeout := 5 * time.Second
-		if toRaw, ok := upstream.Config["connect_timeout_ms"]; ok {
-			if ms, err := parseTimeMillis(toRaw); err == nil {
-				conTimeout = ms
-			}
-		}
 		c = &envoy.Cluster{
 			Name:           upstream.Identifier(),
-			ConnectTimeout: conTimeout,
+			ConnectTimeout: time.Duration(cfg.ConnectTimeoutMs) * time.Millisecond,
 			Type:           envoy.Cluster_EDS,
 			EdsClusterConfig: &envoy.Cluster_EdsClusterConfig{
 				EdsConfig: &envoycore.ConfigSource{
@@ -188,8 +169,7 @@ func makeClusterFromUserConfig(configJSON string) (*envoy.Cluster, error) {
 		// And then unmarshal the listener again...
 		err = proto.Unmarshal(any.Value, &c)
 		if err != nil {
-			panic(err)
-			//return nil, err
+			return nil, err
 		}
 		return &c, err
 	}
