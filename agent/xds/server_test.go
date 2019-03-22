@@ -389,7 +389,10 @@ func expectClustersJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot, to
 						}
 					}
 				},
-				"connectTimeout": "5s",
+				"outlierDetection": {
+
+				},
+				"connectTimeout": "1s",
 				"tlsContext": ` + expectedUpstreamTLSContextJSON(t, snap) + `
 			}`,
 		"prepared_query:geo-cache": `
@@ -403,6 +406,9 @@ func expectClustersJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot, to
 
 						}
 					}
+				},
+				"outlierDetection": {
+
 				},
 				"connectTimeout": "5s",
 				"tlsContext": ` + expectedUpstreamTLSContextJSON(t, snap) + `
@@ -461,7 +467,9 @@ func expectEndpointsJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token stri
 											"portValue": 0
 										}
 									}
-								}
+								},
+								"healthStatus": "HEALTHY",
+								"loadBalancingWeight": 1
 							},
 							{
 								"endpoint": {
@@ -471,7 +479,9 @@ func expectEndpointsJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token stri
 											"portValue": 0
 										}
 									}
-								}
+								},
+								"healthStatus": "HEALTHY",
+								"loadBalancingWeight": 1
 							}
 						]
 					}
