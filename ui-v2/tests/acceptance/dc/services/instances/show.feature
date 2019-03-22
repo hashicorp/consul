@@ -1,6 +1,6 @@
 @setupApplicationTest
 Feature: dc / services / instances / show: Show Service Instance
-  Scenario: A Service instance has no Proxy
+  Background:
     Given 1 datacenter model with the value "dc1"
     And 1 service model from yaml
     ---
@@ -41,6 +41,7 @@ Feature: dc / services / instances / show: Show Service Instance
         DestinationServiceName: service-1
         DestinationServiceID: ~
     ---
+  Scenario: A Service instance has no Proxy
     When I visit the instance page for yaml
     ---
       dc: dc1
@@ -49,7 +50,6 @@ Feature: dc / services / instances / show: Show Service Instance
     ---
     Then the url should be /dc1/services/service-0/service-0-with-id
     Then I don't see type on the proxy
-
     Then I see externalSource like "nomad"
 
     And I don't see upstreams on the tabs
@@ -65,4 +65,21 @@ Feature: dc / services / instances / show: Show Service Instance
 
     Then I see the text "Tag1" in "[data-test-tags] span:nth-child(1)"
     Then I see the text "Tag2" in "[data-test-tags] span:nth-child(2)"
+  Scenario: A Service instance warns when deregistered whilst blocking
+    Given settings from yaml
+    ---
+    consul:client:
+      blocking: 1
+      throttle: 200
+    ---
+    And a network latency of 100
+    When I visit the instance page for yaml
+    ---
+      dc: dc1
+      service: service-0
+      id: service-0-with-id
+    ---
+    Then the url should be /dc1/services/service-0/service-0-with-id
+    And an external edit results in 0 instance models
+    And pause until I see the text "deregistered" in "[data-notification]"
 

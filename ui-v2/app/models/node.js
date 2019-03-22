@@ -21,6 +21,7 @@ export default Model.extend({
   Datacenter: attr('string'),
   Segment: attr(),
   Coord: attr(),
+  meta: attr(),
   hasStatus: function(status) {
     return hasStatus(get(this, 'Checks'), status);
   },

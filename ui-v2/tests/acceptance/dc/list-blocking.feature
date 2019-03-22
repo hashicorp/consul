@@ -46,11 +46,9 @@ Feature: dc / list-blocking
     And an external edit results in 1 [Model] model
     And pause until I see 1 [Model] model
     And an external edit results in 0 [Model] models
-    And pause for 300
-    And I see the text "deregistered" in "[data-notification]"
+    And pause until I see the text "deregistered" in "[data-notification]"
   Where:
-    ------------------------------------------------
-    | Page       | Model       | Url               |
+    -------------------------------------------------
+    | Page       | Model       | Url                |
     | service    | instance    | services/service-0 |
-    ------------------------------------------------
-
+    -------------------------------------------------

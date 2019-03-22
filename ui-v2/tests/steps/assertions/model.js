@@ -1,23 +1,14 @@
-export default function(scenario, assert, currentPage, pluralize) {
+export default function(scenario, assert, currentPage, pauseUntil, pluralize) {
   scenario
     .then('pause until I see $number $model model[s]?', function(num, model) {
-      return new Promise(function(resolve) {
-        let count = 0;
-        const interval = setInterval(function() {
-          if (++count >= 50) {
-            clearInterval(interval);
-            assert.ok(false);
-            resolve();
-          }
-          const len = currentPage()[pluralize(model)].filter(function(item) {
-            return item.isVisible;
-          }).length;
-          if (len === num) {
-            clearInterval(interval);
-            assert.equal(len, num, `Expected ${num} ${model}s, saw ${len}`);
-            resolve();
-          }
-        }, 100);
+      return pauseUntil(function(resolve) {
+        const len = currentPage()[pluralize(model)].filter(function(item) {
+          return item.isVisible;
+        }).length;
+        if (len === num) {
+          assert.equal(len, num, `Expected ${num} ${model}s, saw ${len}`);
+          resolve();
+        }
       });
     })
     .then(['I see $num $model model[s]?'], function(num, model) {

@@ -1,4 +1,7 @@
 {{#app-view class="instance show"}}
+    {{#block-slot 'notification' as |status type|}}
+      {{partial 'dc/services/notifications'}}
+    {{/block-slot}}
     {{#block-slot 'breadcrumbs'}}
         <ol>
             <li><a data-test-back href={{href-to 'dc.services'}}>All Services</a></li>
@@ -28,7 +31,7 @@
         <dt>Node Name</dt>
         <dd><a href="{{href-to 'dc.nodes.show' item.Node.Node}}">{{item.Node.Node}}</a></dd>
       </dl>
-{{#if proxy}}
+{{#if proxy.ServiceName}}
       <dl>
         <dt data-test-proxy-type="{{if proxy.ServiceProxy.DestinationServiceID "sidecar-proxy" "proxy"}}">{{if proxy.ServiceProxy.DestinationServiceID "Sidecar " ""}}Proxy</dt>
         <dd><a href="{{href-to 'dc.services.instance' proxy.ServiceName proxy.ServiceID}}">{{proxy.ServiceID}}</a></dd>
