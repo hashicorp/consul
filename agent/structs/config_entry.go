@@ -1,8 +1,12 @@
 package structs
 
+import "fmt"
+
 const (
 	ServiceDefaults string = "service-defaults"
 	ProxyDefaults   string = "proxy-defaults"
+
+	ProxyConfigGlobal string = "global"
 )
 
 // ConfigEntry is the
@@ -34,10 +38,20 @@ func (e *ServiceConfigEntry) GetKind() string {
 }
 
 func (e *ServiceConfigEntry) GetName() string {
+	if e == nil {
+		return ""
+	}
+
 	return e.Name
 }
 
 func (e *ServiceConfigEntry) Normalize() error {
+	if e == nil {
+		return fmt.Errorf("config entry is nil")
+	}
+
+	e.Kind = ServiceDefaults
+
 	return nil
 }
 
@@ -46,6 +60,10 @@ func (e *ServiceConfigEntry) Validate() error {
 }
 
 func (e *ServiceConfigEntry) GetRaftIndex() *RaftIndex {
+	if e == nil {
+		return &RaftIndex{}
+	}
+
 	return &e.RaftIndex
 }
 
@@ -96,18 +114,40 @@ func (e *ProxyConfigEntry) GetKind() string {
 }
 
 func (e *ProxyConfigEntry) GetName() string {
+	if e == nil {
+		return ""
+	}
+
 	return e.Name
 }
 
 func (e *ProxyConfigEntry) Normalize() error {
+	if e == nil {
+		return fmt.Errorf("config entry is nil")
+	}
+
+	e.Kind = ProxyDefaults
+
 	return nil
 }
 
 func (e *ProxyConfigEntry) Validate() error {
+	if e == nil {
+		return fmt.Errorf("config entry is nil")
+	}
+
+	if e.Name != ProxyConfigGlobal {
+		return fmt.Errorf("invalid name (%q), only %q is supported", e.Name, ProxyConfigGlobal)
+	}
+
 	return nil
 }
 
 func (e *ProxyConfigEntry) GetRaftIndex() *RaftIndex {
+	if e == nil {
+		return &RaftIndex{}
+	}
+
 	return &e.RaftIndex
 }
 
