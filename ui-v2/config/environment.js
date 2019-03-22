@@ -27,7 +27,9 @@ module.exports = function(environment) {
       injectionFactories: ['view', 'controller', 'component'],
     },
   };
+  // TODO: These should probably go onto APP
   ENV = Object.assign({}, ENV, {
+    CONSUL_UI_DISABLE_REALTIME: false,
     CONSUL_GIT_SHA: (function() {
       if (process.env.CONSUL_GIT_SHA) {
         return process.env.CONSUL_GIT_SHA;

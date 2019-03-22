@@ -8,6 +8,18 @@ export default RepositoryService.extend({
   findBySlug: function(slug, dc) {
     return this._super(...arguments).then(function(item) {
       const nodes = get(item, 'Nodes');
+      if (nodes.length === 0) {
+        // TODO: Add an store.error("404", "message") or similar
+        // or move all this to serializer
+        const e = new Error();
+        e.errors = [
+          {
+            status: '404',
+            title: 'Not found',
+          },
+        ];
+        throw e;
+      }
       const service = get(nodes, 'firstObject');
       const tags = nodes
         .reduce(function(prev, item) {
@@ -16,6 +28,7 @@ export default RepositoryService.extend({
         .uniq();
       set(service, 'Tags', tags);
       set(service, 'Nodes', nodes);
+      set(service, 'meta', get(item, 'meta'));
       return service;
     });
   },
@@ -36,6 +49,7 @@ export default RepositoryService.extend({
         return service;
       }
       // TODO: Add an store.error("404", "message") or similar
+      // or move all this to serializer
       const e = new Error();
       e.errors = [
         {

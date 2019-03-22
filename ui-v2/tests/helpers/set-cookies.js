@@ -9,6 +9,7 @@ export default function(type, count, obj) {
       key = 'CONSUL_SERVICE_COUNT';
       break;
     case 'node':
+    case 'instance':
       key = 'CONSUL_NODE_COUNT';
       break;
     case 'kv':
