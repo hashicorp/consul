@@ -21,6 +21,22 @@ export default function(assert, library, pages, utils) {
     return page;
   };
 
+  const pauseUntil = function(cb) {
+    return new Promise(function(resolve, reject) {
+      let count = 0;
+      const interval = setInterval(function() {
+        if (++count >= 50) {
+          clearInterval(interval);
+          assert.ok(false);
+          reject();
+        }
+        cb(function() {
+          clearInterval(interval);
+          resolve();
+        });
+      }, 100);
+    });
+  };
   models(library, utils.create);
   http(library, utils.respondWith, utils.set);
   visit(library, pages, setCurrentPage);
@@ -28,9 +44,9 @@ export default function(assert, library, pages, utils) {
   form(library, utils.fillIn, utils.triggerKeyEvent, getCurrentPage);
   debug(library, assert, utils.currentURL);
   assertHttp(library, assert, utils.lastNthRequest);
-  assertModel(library, assert, getCurrentPage, utils.pluralize);
+  assertModel(library, assert, getCurrentPage, pauseUntil, utils.pluralize);
   assertPage(library, assert, getCurrentPage);
-  assertDom(library, assert, utils.find, utils.currentURL);
+  assertDom(library, assert, pauseUntil, utils.find, utils.currentURL);
 
   return library.given(["I'm using a legacy token"], function(number, model, data) {
     window.localStorage['consul:token'] = JSON.stringify({ AccessorID: null, SecretID: 'id' });

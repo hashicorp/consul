@@ -5,7 +5,7 @@ export function initialize(container) {
   if (config[enabled] || window.localStorage.getItem(enabled) !== null) {
     return;
   }
-  ['node', 'service']
+  ['node', 'coordinate', 'session', 'service', 'proxy']
     .map(function(item) {
       // create repositories that return a promise resolving to an EventSource
       return {
@@ -20,12 +20,20 @@ export function initialize(container) {
     })
     .concat([
       // These are the routes where we overwrite the 'default'
-      // repo service. Default repos are repos that return a promise resovlving to
+      // repo service. Default repos are repos that return a promise resolving to
       // an ember-data record or recordset
       {
         route: 'dc/nodes/index',
         services: {
           repo: 'repository/node/event-source',
+        },
+      },
+      {
+        route: 'dc/nodes/show',
+        services: {
+          repo: 'repository/node/event-source',
+          coordinateRepo: 'repository/coordinate/event-source',
+          sessionRepo: 'repository/session/event-source',
         },
       },
       {
@@ -38,6 +46,13 @@ export function initialize(container) {
         route: 'dc/services/show',
         services: {
           repo: 'repository/service/event-source',
+        },
+      },
+      {
+        route: 'dc/services/instance',
+        services: {
+          repo: 'repository/service/event-source',
+          proxyRepo: 'repository/proxy/event-source',
         },
       },
     ])
