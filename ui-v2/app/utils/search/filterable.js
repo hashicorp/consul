@@ -8,22 +8,31 @@ export default function(EventTarget = RSVP.EventTarget, P = Promise) {
         this.data = data;
         return this;
       },
-      search: function(term = '') {
-        this.value = term === null ? '' : term.trim();
+      find: function(terms = []) {
+        this.value = terms
+          .filter(function(item) {
+            return typeof item === 'string' && item !== '';
+          })
+          .map(function(term) {
+            return term.trim();
+          });
+        return P.resolve(
+          this.value.reduce(function(prev, term) {
+            return prev.filter(item => {
+              return filter(item, { s: term });
+            });
+          }, this.data)
+        );
+      },
+      search: function(terms = []) {
         // specifically no return here we return `this` instead
         // right now filtering is sync but we introduce an async
         // flow now for later on
-        P.resolve(
-          this.value !== ''
-            ? this.data.filter(item => {
-                return filter(item, { s: term });
-              })
-            : this.data
-        ).then(data => {
+        this.find(Array.isArray(terms) ? terms : [terms]).then(data => {
           // TODO: For the moment, lets just fake a target
           this.trigger('change', {
             target: {
-              value: this.value,
+              value: this.value.join('\n'),
               // TODO: selectedOptions is what <select> uses, consider that
               data: data,
             },

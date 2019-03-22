@@ -14,6 +14,7 @@ export default Route.extend({
   model: function(params) {
     const repo = get(this, 'repo');
     return hash({
+      terms: typeof params.s !== 'undefined' ? params.s.split('\n') : [],
       items: repo.findAllByDatacenter(this.modelFor('dc').dc.Name),
     });
   },
