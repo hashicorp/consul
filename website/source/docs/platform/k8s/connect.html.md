@@ -192,7 +192,7 @@ Annotations can be used to configure the injection behavior.
 
     * Multiple Upstreams
 
-      If you would like to specify multiple services or upstreams, delimit them with commas
+        If you would like to specify multiple services or upstreams, delimit them with commas
 
         ```annotations:
         "consul.hashicorp.com/connect-service-upstreams":"[service-name]:[port]:[optional datacenter],[service-name]:[port]:[optional datacenter]"
