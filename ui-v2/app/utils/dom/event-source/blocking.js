@@ -21,6 +21,26 @@ export const create5xxBackoff = function(ms = 3000, P = Promise, wait = setTimeo
     throw err;
   };
 };
+export const validateCursor = function(current, prev = null) {
+  let cursor = parseInt(current);
+  if (!isNaN(cursor)) {
+    // if cursor is less than the current cursor, reset to zero
+    if (prev !== null && cursor < prev) {
+      cursor = 0;
+    }
+    // if cursor is less than 0, its always safe to use 1
+    return Math.max(cursor, 1);
+  }
+};
+const throttle = function(configuration, prev, current) {
+  return function(obj) {
+    return new Promise(function(resolve, reject) {
+      setTimeout(function() {
+        resolve(obj);
+      }, 200);
+    });
+  };
+};
 const defaultCreateEvent = function(result, configuration) {
   return {
     type: 'message',
@@ -55,29 +75,32 @@ export default function(EventSource, backoff = create5xxBackoff()) {
           .apply(this, [superConfiguration])
           .catch(backoff)
           .then(result => {
-            if (!(result instanceof Error)) {
-              const _createEvent =
-                typeof createEvent === 'function' ? createEvent : defaultCreateEvent;
-              let event = _createEvent(result, configuration);
-              // allow custom types, but make a default of `message`, ideally this would check for CustomEvent
-              // but keep this flexible for the moment
-              if (!event.type) {
-                event = {
-                  type: 'message',
-                  data: event,
-                };
-              }
-              // meta is also configurable by using createEvent
-              const meta = get(event.data || {}, 'meta');
-              if (meta) {
-                // pick off the `cursor` from the meta and add it to configuration
-                configuration.cursor = meta.cursor;
-              }
-              this.currentEvent = event;
-              this.dispatchEvent(this.currentEvent);
-              this.previousEvent = this.currentEvent;
+            if (result instanceof Error) {
+              return result;
             }
-            return result;
+            const _createEvent =
+              typeof createEvent === 'function' ? createEvent : defaultCreateEvent;
+            let event = _createEvent(result, configuration);
+            // allow custom types, but make a default of `message`, ideally this would check for CustomEvent
+            // but keep this flexible for the moment
+            if (!event.type) {
+              event = {
+                type: 'message',
+                data: event,
+              };
+            }
+            // meta is also configurable by using createEvent
+            const meta = get(event.data || {}, 'meta');
+            if (meta) {
+              // pick off the `cursor` from the meta and add it to configuration
+              // along with cursor validation
+              configuration.cursor = validateCursor(meta.cursor, configuration.cursor);
+            }
+            this.currentEvent = event;
+            this.dispatchEvent(this.currentEvent);
+            const throttledResolve = throttle(configuration, this.currentEvent, this.previousEvent);
+            this.previousEvent = this.currentEvent;
+            return throttledResolve(result);
           });
       }, configuration);
     }
