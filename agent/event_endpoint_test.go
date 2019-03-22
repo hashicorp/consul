@@ -148,11 +148,6 @@ func TestEventList(t *testing.T) {
 		if header == "" || header == "0" {
 			r.Fatalf("bad: %#v", header)
 		}
-
-		ltime := resp.Header().Get("X-Consul-LTime")
-		if ltime == "" {
-			r.Fatalf("bad: %#v", ltime)
-		}
 	})
 }
 

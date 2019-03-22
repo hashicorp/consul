@@ -115,15 +115,12 @@ OUTER:
 		if p.HybridHandler != nil {
 			p.HybridHandler(blockParamVal, result)
 		} else if p.Handler != nil {
-			switch param := p.lastParamVal.(type) {
-			case WaitIndexVal:
-				p.Handler(uint64(param), result)
-			case WaitIndexAndLtimeVal:
-				p.Handler(uint64(param.Index), result)
-			default:
+			idx, ok := blockParamVal.(WaitIndexVal)
+			if !ok {
 				logger.Printf("[ERR] consul.watch: Handler only supports index-based " +
 					" watches but non index-based watch run. Skipping Handler.")
 			}
+			p.Handler(uint64(idx), result)
 		}
 	}
 	return nil

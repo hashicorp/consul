@@ -226,13 +226,12 @@ func eventWatch(params map[string]interface{}) (WatcherFunc, error) {
 
 		// Prune to only the new events
 		for i := 0; i < len(events); i++ {
-			wil := WaitIndexAndLtimeVal{event.IDToIndex(events[i].ID), events[i].LTime}
-			if wil.Equal(p.lastParamVal) {
+			if WaitIndexVal(event.IDToIndex(events[i].ID)).Equal(p.lastParamVal) {
 				events = events[i+1:]
 				break
 			}
 		}
-		return WaitIndexAndLtimeVal{meta.LastIndex, meta.LastLtime}, events, err
+		return WaitIndexVal(meta.LastIndex), events, err
 	}
 	return fn, nil
 }
@@ -315,8 +314,6 @@ func makeQueryOptionsWithContext(p *Plan, stale bool) consulapi.QueryOptions {
 	switch param := p.lastParamVal.(type) {
 	case WaitIndexVal:
 		opts.WaitIndex = uint64(param)
-	case WaitIndexAndLtimeVal:
-		opts.WaitIndex = uint64(param.Index)
 	case WaitHashVal:
 		opts.WaitHash = string(param)
 	}
