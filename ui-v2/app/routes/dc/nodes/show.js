@@ -1,17 +1,14 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
-import { get, set } from '@ember/object';
+import { get } from '@ember/object';
 
-import distance from 'consul-ui/utils/distance';
-import tomographyFactory from 'consul-ui/utils/tomography';
 import WithBlockingActions from 'consul-ui/mixins/with-blocking-actions';
-
-const tomography = tomographyFactory(distance);
 
 export default Route.extend(WithBlockingActions, {
   repo: service('repository/node'),
   sessionRepo: service('repository/session'),
+  coordinateRepo: service('repository/coordinate'),
   queryParams: {
     s: {
       as: 'filter',
@@ -20,24 +17,11 @@ export default Route.extend(WithBlockingActions, {
   },
   model: function(params) {
     const dc = this.modelFor('dc').dc.Name;
-    const repo = get(this, 'repo');
-    const sessionRepo = get(this, 'sessionRepo');
+    const name = params.name;
     return hash({
-      item: repo.findBySlug(params.name, dc),
-    }).then(function(model) {
-      // TODO: Consider loading this after initial page load
-      const coordinates = get(model.item, 'Coordinates');
-      return hash({
-        ...model,
-        ...{
-          tomography:
-            get(coordinates, 'length') > 1
-              ? tomography(params.name, coordinates.map(item => get(item, 'data')))
-              : null,
-          items: get(model.item, 'Services'),
-          sessions: sessionRepo.findByNode(get(model.item, 'Node'), dc),
-        },
-      });
+      item: get(this, 'repo').findBySlug(name, dc),
+      tomography: get(this, 'coordinateRepo').findAllByNode(name, dc),
+      sessions: get(this, 'sessionRepo').findByNode(name, dc),
     });
   },
   setupController: function(controller, model) {
@@ -52,7 +36,9 @@ export default Route.extend(WithBlockingActions, {
         const node = get(item, 'Node');
         return repo.remove(item).then(() => {
           return repo.findByNode(node, dc).then(function(sessions) {
-            set(controller, 'sessions', sessions);
+            controller.setProperties({
+              sessions: sessions,
+            });
           });
         });
       }, 'delete');
