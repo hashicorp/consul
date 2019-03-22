@@ -405,7 +405,7 @@ will exit with an error at startup.
 
 * <a name="_segment"></a><a href="#_segment">`-segment`</a> - (Enterprise-only) This flag is used to set
   the name of the network segment the agent belongs to. An agent can only join and communicate with other agents
-  within its network segment. See the [Network Segments Guide](/docs/guides/segments.html) for more details.
+  within its network segment. See the [Network Segments Guide](/docs/guides/network-segments.html) for more details.
   By default, this is an empty string, which is the default network segment.
 
 * <a name="_serf_lan_port"></a><a href="#_serf_lan_port">`-serf-lan-port`</a> - the Serf LAN port to listen on.
