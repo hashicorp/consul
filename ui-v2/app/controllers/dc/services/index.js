@@ -51,7 +51,12 @@ export default Controller.extend(WithEventSource, WithSearching, WithHealthFilte
     return widthDeclaration(get(this, 'maxWidth'));
   }),
   remainingWidth: computed('maxWidth', function() {
-    return htmlSafe(`width: calc(50% - ${Math.round(get(this, 'maxWidth') / 2)}px)`);
+    // maxWidth is the maximum width of the healthchecks column
+    // there are currently 2 other columns so divide it by 2 and
+    // take that off 50% (100% / number of fluid columns)
+    // also we added a Type column which we've currently fixed to 100px
+    // so again divide that by 2 and take it off each fluid column
+    return htmlSafe(`width: calc(50% - 50px - ${Math.round(get(this, 'maxWidth') / 2)}px)`);
   }),
   maxPassing: computed('filtered', function() {
     return max(get(this, 'filtered'), 'ChecksPassing');
