@@ -112,8 +112,8 @@ func (wil WaitIndexAndLtimeVal) Next(previous BlockingParamVal) BlockingParamVal
 		return wil
 	}
 	prevWil, ok := previous.(WaitIndexAndLtimeVal)
-	if ok && prevWil.Ltime > wil.Ltime {
-		// This value is smaller than the previous ltime, reset.
+	if ok && prevWil.Index > wil.Index && prevWil.Ltime > wil.Ltime {
+		// This value is smaller than the previous index, reset.
 		return WaitIndexAndLtimeVal{0, 0}
 	}
 	return wil
