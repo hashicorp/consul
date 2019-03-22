@@ -1,6 +1,9 @@
 %app-view h2 {
   border-bottom: $decor-border-200;
 }
+%app-view fieldset h2 {
+  border-bottom: none;
+}
 @media #{$--horizontal-selects} {
   %app-view header h1 {
     border-bottom: $decor-border-200;
