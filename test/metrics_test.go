@@ -186,3 +186,39 @@ google.com:0 {
 		t.Errorf("Expected metric data retrieved for %s, expected %d, got %d", cacheSizeMetricName, 1, endCacheSize-beginCacheSize)
 	}
 }
+
+func TestMetricsPluginEnabled(t *testing.T) {
+	corefile := `example.org:0 {
+	chaos CoreDNS-001 miek@miek.nl
+	prometheus localhost:0
+}
+
+example.com:0 {
+	forward . 8.8.4.4:53
+	prometheus localhost:0
+}
+`
+	srv, err := CoreDNSServer(corefile)
+	if err != nil {
+		t.Fatalf("Could not get CoreDNS serving instance: %s", err)
+	}
+	defer srv.Stop()
+
+	metricName := "coredns_plugin_enabled" //{server, zone, name}
+
+	data := test.Scrape("http://" + metrics.ListenAddr + "/metrics")
+
+	// Get the value for the metrics where the one of the labels values matches "chaos".
+	got, _ := test.MetricValueLabel(metricName, "chaos", data)
+
+	if got != "1" {
+		t.Errorf("Expected value %s for %s, but got %s", "1", metricName, got)
+	}
+
+	// Get the value for the metrics where the one of the labels values matches "whoami".
+	got, _ = test.MetricValueLabel(metricName, "whoami", data)
+
+	if got != "" {
+		t.Errorf("Expected value %s for %s, but got %s", "", metricName, got)
+	}
+}

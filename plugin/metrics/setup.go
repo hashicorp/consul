@@ -7,6 +7,7 @@ import (
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/coremain"
 	"github.com/coredns/coredns/plugin"
+	"github.com/coredns/coredns/plugin/metrics/vars"
 	clog "github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/coredns/coredns/plugin/pkg/uniq"
 
@@ -50,6 +51,23 @@ func setup(c *caddy.Controller) error {
 		return nil
 	})
 
+	c.OnRestart(func() error {
+		vars.PluginEnabled.Reset()
+		return nil
+	})
+
+	c.OnStartup(func() error {
+		conf := dnsserver.GetConfig(c)
+		plugins := conf.Handlers()
+		for _, h := range conf.ListenHosts {
+			addrstr := conf.Transport + "://" + net.JoinHostPort(h, conf.Port)
+			for _, p := range plugins {
+				vars.PluginEnabled.WithLabelValues(addrstr, conf.Zone, p.Name()).Set(1)
+			}
+		}
+		return nil
+
+	})
 	c.OnRestart(m.OnRestart)
 	c.OnFinalShutdown(m.OnFinalShutdown)
 

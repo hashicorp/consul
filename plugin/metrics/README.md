@@ -19,6 +19,7 @@ The following metrics are exported:
 * `coredns_dns_request_type_count_total{server, zone, type}` - counter of queries per zone and type.
 * `coredns_dns_response_size_bytes{server, zone, proto}` - response size in bytes.
 * `coredns_dns_response_rcode_count_total{server, zone, rcode}` - response per zone and rcode.
+* `coredns_plugin_enabled{server, zone, name}` - indicates whether a plugin is enabled on per server and zone basis.
 
 Each counter has a label `zone` which is the zonename used for the request/response.
 
@@ -75,3 +76,4 @@ When reloading, the Prometheus handler is stopped before the new server instance
 If that new server fails to start, then the initial server instance is still available and DNS queries still served,
 but Prometheus handler stays down.
 Prometheus will not reply HTTP request until a successful reload or a complete restart of CoreDNS.
+Only the plugins that register as Handler are visible in `coredns_plugin_enabled{server, zone, name}`. As of today the plugins reload and bind will not be reported.
