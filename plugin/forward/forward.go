@@ -74,7 +74,7 @@ func (f *Forward) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 	i := 0
 	list := f.List()
 	deadline := time.Now().Add(defaultTimeout)
-
+	start := time.Now()
 	for time.Now().Before(deadline) {
 		if i >= len(list) {
 			// reached the end of list, reset to begin
@@ -126,6 +126,7 @@ func (f *Forward) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 		if child != nil {
 			child.Finish()
 		}
+		taperr := toDnstap(ctx, proxy.addr, f, state, ret, start)
 
 		upstreamErr = err
 
@@ -147,11 +148,11 @@ func (f *Forward) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 
 			formerr := state.ErrorMessage(dns.RcodeFormatError)
 			w.WriteMsg(formerr)
-			return 0, nil
+			return 0, taperr
 		}
 
 		w.WriteMsg(ret)
-		return 0, nil
+		return 0, taperr
 	}
 
 	if upstreamErr != nil {

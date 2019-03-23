@@ -1,7 +1,6 @@
 package test
 
 import (
-	"context"
 	"net"
 	"reflect"
 
@@ -9,12 +8,6 @@ import (
 
 	tap "github.com/dnstap/golang-dnstap"
 )
-
-// Context is a message trap.
-type Context struct {
-	context.Context
-	TrapTapper
-}
 
 // TestingData returns the Data matching coredns/test.ResponseWriter.
 func TestingData() (d *msg.Builder) {
