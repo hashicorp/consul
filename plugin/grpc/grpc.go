@@ -77,7 +77,8 @@ func (g *GRPC) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 		if !state.Match(ret) {
 			debug.Hexdumpf(ret, "Wrong reply for id: %d, %s %d", ret.Id, state.QName(), state.QType())
 
-			formerr := state.ErrorMessage(dns.RcodeFormatError)
+			formerr := new(dns.Msg)
+			formerr.SetRcode(state.Req, dns.RcodeFormatError)
 			w.WriteMsg(formerr)
 			return 0, nil
 		}

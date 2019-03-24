@@ -433,14 +433,6 @@ func (r *Request) QClass() uint16 {
 
 }
 
-// ErrorMessage returns an error message suitable for sending
-// back to the client.
-func (r *Request) ErrorMessage(rcode int) *dns.Msg {
-	m := new(dns.Msg)
-	m.SetRcode(r.Req, rcode)
-	return m
-}
-
 // Clear clears all caching from Request s.
 func (r *Request) Clear() {
 	r.name = ""
