@@ -1,20 +1,20 @@
 import { moduleFor, test, skip } from 'ember-qunit';
+const NAME = 'role';
 import repo from 'consul-ui/tests/helpers/repo';
-const NAME = 'token';
 moduleFor(`service:repository/${NAME}`, `Integration | Service | ${NAME}`, {
   // Specify the other units that are required for this test.
   integration: true,
 });
 const dc = 'dc-1';
-const id = 'token-id';
+const id = 'role-name';
 test('findByDatacenter returns the correct data for list endpoint', function(assert) {
   return repo(
-    'Token',
+    'Role',
     'findAllByDatacenter',
     this.subject(),
     function retrieveStub(stub) {
-      return stub(`/v1/acl/tokens?dc=${dc}`, {
-        CONSUL_TOKEN_COUNT: '100',
+      return stub(`/v1/acl/roles?dc=${dc}`, {
+        CONSUL_ROLE_COUNT: '100',
       });
     },
     function performTest(service) {
@@ -24,13 +24,12 @@ test('findByDatacenter returns the correct data for list endpoint', function(ass
       assert.deepEqual(
         actual,
         expected(function(payload) {
-          return payload.map(function(item) {
-            return Object.assign({}, item, {
+          return payload.map(item =>
+            Object.assign({}, item, {
               Datacenter: dc,
-              CreateTime: new Date(item.CreateTime),
-              uid: `["${dc}","${item.AccessorID}"]`,
-            });
-          });
+              uid: `["${dc}","${item.ID}"]`,
+            })
+          );
         })
       );
     }
@@ -38,11 +37,11 @@ test('findByDatacenter returns the correct data for list endpoint', function(ass
 });
 test('findBySlug returns the correct data for item endpoint', function(assert) {
   return repo(
-    'Token',
+    'Role',
     'findBySlug',
     this.subject(),
     function retrieveStub(stub) {
-      return stub(`/v1/acl/token/${id}?dc=${dc}`);
+      return stub(`/v1/acl/role/${id}?dc=${dc}`);
     },
     function performTest(service) {
       return service.findBySlug(id, dc);
@@ -54,12 +53,10 @@ test('findBySlug returns the correct data for item endpoint', function(assert) {
           const item = payload;
           return Object.assign({}, item, {
             Datacenter: dc,
-            CreateTime: new Date(item.CreateTime),
-            uid: `["${dc}","${item.AccessorID}"]`,
+            uid: `["${dc}","${item.ID}"]`,
           });
         })
       );
     }
   );
 });
-skip('clone returns the correct data for the clone endpoint');

@@ -71,7 +71,7 @@ export default Controller.extend({
             set(value, 'CreateTime', new Date().getTime());
             get(this, 'item.Roles').pushObject(value);
             break;
-          case 'Details':
+          case 'PolicyDetails':
             // the Details expander toggle
             // only load on opening
             if (target.checked) {
