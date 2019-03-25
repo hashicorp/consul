@@ -69,7 +69,7 @@ A secure ACL setup must meet the following criteria.
 
 ~> Individual Service Tokens: It is best practice to create a unique ACL token per service _instance_ because
 it limits the blast radius of a compromise. However, since Connect intentions manage access based only on service identity, it is
-possible to create only one ACL tokens per _service_ and share it between
+possible to create only one ACL token per _service_ and share it between
 instances.
 
 In practice, managing per-instance tokens requires automated ACL provisioning,
