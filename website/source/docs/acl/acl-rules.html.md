@@ -158,7 +158,7 @@ ACL rules look like this:
 acl = "write"
 ```
 
-There is only one acl rule allowed per policy and its value is set to one of the [policy dispositions](docs/acl/acl-rules.html#rule-specification). In the example
+There is only one acl rule allowed per policy and its value is set to one of the [policy dispositions](/docs/acl/acl-rules.html#rule-specification). In the example
 above ACLs may be read or written including discovering any token's secret ID. Snapshotting also requires `acl = "write"`
 permissions due to the fact that all the token secrets are contained within the snapshot.
 
