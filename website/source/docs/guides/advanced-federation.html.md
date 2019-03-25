@@ -8,7 +8,6 @@ description: |-
 
 # Multiple Datacenters
 
-## [Enterprise] Advanced Federation with Network Areas
 
 ~> The network area functionality described here is available only in [Consul Enterprise](https://www.hashicorp.com/products/consul/) version 0.8.0 and later. 
 
