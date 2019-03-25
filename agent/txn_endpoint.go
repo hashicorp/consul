@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -239,9 +240,9 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 							Header:                         check.Definition.Header,
 							Method:                         check.Definition.Method,
 							TCP:                            check.Definition.TCP,
-							Interval:                       check.Definition.IntervalDuration,
-							Timeout:                        check.Definition.TimeoutDuration,
-							DeregisterCriticalServiceAfter: check.Definition.DeregisterCriticalServiceAfterDuration,
+							Interval:                       time.Duration(check.Definition.Interval),
+							Timeout:                        time.Duration(check.Definition.Timeout),
+							DeregisterCriticalServiceAfter: time.Duration(check.Definition.DeregisterCriticalServiceAfter),
 						},
 						RaftIndex: structs.RaftIndex{
 							ModifyIndex: check.ModifyIndex,
