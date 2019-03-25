@@ -156,7 +156,7 @@ func summarizeServices(dump structs.NodeDump) []*ServiceSummary {
 		nodeServices := make([]*ServiceSummary, len(node.Services))
 		for idx, service := range node.Services {
 			sum := getService(service.Service)
-			sum.Tags = service.Tags
+			sum.Tags = append(sum.Tags, service.Tags...)
 			sum.Nodes = append(sum.Nodes, node.Node)
 			sum.Kind = service.Kind
 
@@ -201,8 +201,20 @@ func summarizeServices(dump structs.NodeDump) []*ServiceSummary {
 	sort.Strings(services)
 	output := make([]*ServiceSummary, len(summary))
 	for idx, service := range services {
-		// Sort the nodes
 		sum := summary[service]
+		// Remove duplicate values from Tags
+		tags := make([]string, 0)
+		hasTag := make(map[string]struct{})
+		for _, tag := range sum.Tags {
+			if _, ok := hasTag[tag]; ok {
+				continue
+			}
+			hasTag[tag] = struct{}{}
+			tags = append(tags, tag)
+		}
+		sum.Tags = tags;
+		// Return both Tags and Nodes in sorted order
+		sort.Strings(sum.Tags)
 		sort.Strings(sum.Nodes)
 		output[idx] = sum
 	}

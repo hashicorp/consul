@@ -162,12 +162,12 @@ func TestSummarizeServices(t *testing.T) {
 				&structs.NodeService{
 					Kind:    structs.ServiceKindTypical,
 					Service: "api",
-					Tags:    []string{"tag1", "tag2"},
+					Tags:    []string{"api-tag1", "api-tag2"},
 				},
 				&structs.NodeService{
 					Kind:    structs.ServiceKindConnectProxy,
 					Service: "web",
-					Tags:    []string{},
+					Tags:    []string{"web-tag1", "web-tag2"},
 					Meta:    map[string]string{metaExternalSource: "k8s"},
 				},
 			},
@@ -193,7 +193,7 @@ func TestSummarizeServices(t *testing.T) {
 				&structs.NodeService{
 					Kind:    structs.ServiceKindConnectProxy,
 					Service: "web",
-					Tags:    []string{},
+					Tags:    []string{"web-tag4", "web-tag3", "web-tag2"},
 					Meta:    map[string]string{metaExternalSource: "k8s"},
 				},
 			},
@@ -210,7 +210,7 @@ func TestSummarizeServices(t *testing.T) {
 			Services: []*structs.NodeService{
 				&structs.NodeService{
 					Service: "cache",
-					Tags:    []string{},
+					Tags:    []string{"cache-tag1", "cache-tag2"},
 				},
 			},
 		},
@@ -224,7 +224,7 @@ func TestSummarizeServices(t *testing.T) {
 	expectAPI := &ServiceSummary{
 		Kind:           structs.ServiceKindTypical,
 		Name:           "api",
-		Tags:           []string{"tag1", "tag2"},
+		Tags:           []string{"api-tag1", "api-tag2"},
 		Nodes:          []string{"foo"},
 		ChecksPassing:  1,
 		ChecksWarning:  1,
@@ -237,7 +237,7 @@ func TestSummarizeServices(t *testing.T) {
 	expectCache := &ServiceSummary{
 		Kind:           structs.ServiceKindTypical,
 		Name:           "cache",
-		Tags:           []string{},
+		Tags:           []string{"cache-tag1", "cache-tag2"},
 		Nodes:          []string{"zip"},
 		ChecksPassing:  0,
 		ChecksWarning:  0,
@@ -250,7 +250,7 @@ func TestSummarizeServices(t *testing.T) {
 	expectWeb := &ServiceSummary{
 		Kind:            structs.ServiceKindConnectProxy,
 		Name:            "web",
-		Tags:            []string{},
+		Tags:            []string{"web-tag1", "web-tag2", "web-tag3", "web-tag4"},
 		Nodes:           []string{"bar", "foo"},
 		ChecksPassing:   2,
 		ChecksWarning:   0,
