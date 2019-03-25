@@ -1057,7 +1057,7 @@ func (d *DNSServer) trimDNSResponse(network string, req, resp *dns.Msg) (trimmed
 	return trimmed
 }
 
-// proxyLookup searches for local proxies that proxy to the target upstream service
+// proxyLookup searches for retrieves local proxy details for the target service
 func (d *DNSServer) proxyLookup(datacenter, service string, req, resp *dns.Msg) {
 	// Only handle ANY, SRV type requests
 	qType := req.Question[0].Qtype
@@ -1068,10 +1068,17 @@ func (d *DNSServer) proxyLookup(datacenter, service string, req, resp *dns.Msg) 
 	// Determine the TTL
 	ttl, _ := d.GetTTLForService(service)
 
+	// Loop over the services registered with the local agent looking for one that
+	// has an upstream targeting the service name in the DNS request
 	for _, svc := range d.agent.State.Services() {
 		if svc != nil {
 			for _, up := range svc.Proxy.Upstreams {
 				if up.DestinationName == service {
+					// Found a local service that has an upstream matching the DNS request
+					// Create SRV response that contains the local_bind_port of the proxy
+
+					// TODO: is this an appropriate target for localhost?
+					// Consul doesn't allow simply returning "localhost" as the target, it requires a fully qualified entry
 					target := fmt.Sprintf("%s.addr.%s.%s", d.agent.LocalMember().Name, datacenter, d.domain)
 					srvRec := &dns.SRV{
 						Hdr: dns.RR_Header{
@@ -1087,9 +1094,8 @@ func (d *DNSServer) proxyLookup(datacenter, service string, req, resp *dns.Msg) 
 					}
 					resp.Answer = append(resp.Answer, srvRec)
 
-					// Parse the IP
+					// Add an A record to the DNS response, pointing our target to 127.0.0.1
 					ip := net.ParseIP("127.0.0.1")
-
 					aRec := &dns.A{
 						Hdr: dns.RR_Header{
 							Name:   target,
