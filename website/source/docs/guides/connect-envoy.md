@@ -9,7 +9,7 @@ description: |-
 # Using Connect with Envoy Proxy
 
 Consul Connect has first class support for using
-[Envoy](https://www.envoyproxy.io) as a proxy. This guide will describe how to setup a development-mode Consul server and two services that use
+[Envoy](https://www.envoyproxy.io/) as a proxy. This guide will describe how to setup a development-mode Consul server and two services that use
 Envoy proxies on a single machine with [Docker](https://www.docker.com/). 
 The aim of this guide is to demonstrate a minimal working setup and the moving parts involved, it is not intended for production deployments.
 
