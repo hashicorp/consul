@@ -22,7 +22,7 @@ Finally, you will configure your services to use Connect.
 
 ~> Note: To complete this guide you should already have a Consul cluster
  with an appropriate number of servers and
-clients and that other reference material like the
+clients deployed according to the other reference material including the
 [deployment](/docs/guides/deployment.html) and
 [performance](/docs/guides/performance.html) guides.
 
