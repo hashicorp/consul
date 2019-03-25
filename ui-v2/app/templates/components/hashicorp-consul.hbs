@@ -42,7 +42,7 @@
             <nav>
                 <ul>
                     <li data-test-main-nav-docs>
-                        <a href="{{ env 'CONSUL_DOCUMENTATION_URL'}}/index.html" rel="help noopener noreferrer" target="_blank">Documentation</a>
+                        <a href="{{ env 'CONSUL_DOCUMENTATION_URL'}}" rel="help noopener noreferrer" target="_blank">Documentation</a>
                     </li>
                     <li data-test-main-nav-settings class={{if (is-href 'settings') 'is-active'}}>
                         <a href={{href-to 'settings'}}>Settings</a>
@@ -57,7 +57,7 @@
     <footer role="contentinfo" data-test-footer>
         <a data-test-footer-copyright href="{{env 'CONSUL_COPYRIGHT_URL'}}/" rel="noopener noreferrer" target="_blank">&copy; {{env 'CONSUL_COPYRIGHT_YEAR'}} HashiCorp</a>
         <p data-test-footer-version>Consul {{env 'CONSUL_VERSION'}}</p>
-        <a data-test-footer-docs href="{{env 'CONSUL_DOCUMENTATION_URL'}}/index.html" rel="help noopener noreferrer" target="_blank">Documentation</a>
+        <a data-test-footer-docs href="{{env 'CONSUL_DOCUMENTATION_URL'}}" rel="help noopener noreferrer" target="_blank">Documentation</a>
         {{{concat '<!-- ' (env 'CONSUL_GIT_SHA') '-->'}}}
     </footer>
     {{modal-layer}}
