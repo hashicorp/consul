@@ -63,7 +63,7 @@ same time, and RPCs will be forwarded as long as servers are available in either
 
 ## Configure Advanced Federation
 
-To get started, follow the [Deployment guide](https://learn.hashicorp.com/consul/advanced/day-1-operations/deployment-guide) to
+To get started, follow the [Deployment guide](https://learn.hashicorp.com/consul/advanced/day-1-operations/deployment-guide/) to
 start each datacenter. After bootstrapping, we should have two datacenters now which
 we can refer to as `dc1` and `dc2`. Note that datacenter names are opaque to Consul;
 they are simply labels that help human operators reason about the Consul clusters.
