@@ -205,7 +205,7 @@ func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 	// The default dns.Mux checks the question section size, but we have our
 	// own mux here. Check if we have a question section. If not drop them here.
 	if r == nil || len(r.Question) == 0 {
-		errorFunc(s.Addr, w, r, dns.RcodeServerFailure)
+		errorAndMetricsFunc(s.Addr, w, r, dns.RcodeServerFailure)
 		return
 	}
 
@@ -215,13 +215,13 @@ func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 			// need to make sure that we stay alive up here
 			if rec := recover(); rec != nil {
 				vars.Panic.Inc()
-				errorFunc(s.Addr, w, r, dns.RcodeServerFailure)
+				errorAndMetricsFunc(s.Addr, w, r, dns.RcodeServerFailure)
 			}
 		}()
 	}
 
 	if !s.classChaos && r.Question[0].Qclass != dns.ClassINET {
-		errorFunc(s.Addr, w, r, dns.RcodeRefused)
+		errorAndMetricsFunc(s.Addr, w, r, dns.RcodeRefused)
 		return
 	}
 
@@ -301,7 +301,7 @@ func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 	}
 
 	// Still here? Error out with REFUSED.
-	errorFunc(s.Addr, w, r, dns.RcodeRefused)
+	errorAndMetricsFunc(s.Addr, w, r, dns.RcodeRefused)
 }
 
 // OnStartupComplete lists the sites served by this server
@@ -333,7 +333,16 @@ func errorFunc(server string, w dns.ResponseWriter, r *dns.Msg, rc int) {
 
 	answer := new(dns.Msg)
 	answer.SetRcode(r, rc)
+	state.SizeAndDo(answer)
 
+	w.WriteMsg(answer)
+}
+
+func errorAndMetricsFunc(server string, w dns.ResponseWriter, r *dns.Msg, rc int) {
+	state := request.Request{W: w, Req: r}
+
+	answer := new(dns.Msg)
+	answer.SetRcode(r, rc)
 	state.SizeAndDo(answer)
 
 	vars.Report(server, state, vars.Dropped, rcode.ToString(rc), answer.Len(), time.Now())
@@ -342,9 +351,8 @@ func errorFunc(server string, w dns.ResponseWriter, r *dns.Msg, rc int) {
 }
 
 const (
-	tcp          = 0
-	udp          = 1
-	maxreentries = 10
+	tcp = 0
+	udp = 1
 )
 
 // Key is the context key for the current server added to the context.
