@@ -1652,14 +1652,8 @@ func TestDNS_ConnectServiceProxyLookup(t *testing.T) {
 		srvRec, ok := in.Answer[0].(*dns.SRV)
 		assert.True(ok)
 		assert.Equal(uint16(13306), srvRec.Port)
-		assert.Equal("local.", srvRec.Target)
+		assert.Equal(fmt.Sprintf("%s.addr.%s.%s", a.Agent.LocalMember().Name, "dc1", "consul"), srvRec.Target)
 		assert.Equal(uint32(0), srvRec.Hdr.Ttl)
-
-		// cnameRec, ok := in.Extra[0].(*dns.A)
-		// assert.True(ok)
-		// assert.Equal("foo.node.dc1.consul.", cnameRec.Hdr.Name)
-		// assert.Equal(uint32(0), srvRec.Hdr.Ttl)
-		// assert.Equal("127.0.0.55", cnameRec.A.String())
 	}
 }
 
