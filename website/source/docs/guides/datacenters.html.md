@@ -17,6 +17,8 @@ failure of any datacenter does not impact the availability of Consul in other
 datacenters. This means each datacenter runs independently, each having a dedicated
 group of servers and a private LAN [gossip pool](/docs/internals/gossip.html).
 
+## The WAN Gossip Pool
+
 This guide covers the basic form of federating Consul clusters using a single
 WAN gossip pool, interconnecting all Consul servers.
 [Consul Enterprise](https://www.hashicorp.com/products/consul/) version 0.8.0 added support
