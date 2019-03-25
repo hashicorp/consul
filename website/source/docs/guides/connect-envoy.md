@@ -14,7 +14,7 @@ Envoy proxies on a single machine with [Docker](https://www.docker.com/).
 The aim of this guide is to demonstrate a minimal working setup and the moving parts involved, it is not intended for production deployments.
 
 For reference documentation on how the integration works and is configured,
-please see [Envoy](/docs/connect/proxies/envoy.html).
+please see our [Envoy documentation](/docs/connect/proxies/envoy.html).
 
 ## Setup Overview
 
