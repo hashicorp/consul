@@ -6,7 +6,6 @@ description: |-
   One of the key features of Consul is its support for multiple datacenters. The architecture of Consul is designed to promote low coupling of datacenters so that connectivity issues or failure of any datacenter does not impact the availability of Consul in other datacenters. This means each datacenter runs independently, each having a dedicated group of servers and a private LAN gossip pool.
 ---
 
-# Multiple Datacenters
 
 ## Basic Federation with the WAN Gossip Pool
 
