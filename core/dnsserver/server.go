@@ -205,7 +205,7 @@ func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 	// The default dns.Mux checks the question section size, but we have our
 	// own mux here. Check if we have a question section. If not drop them here.
 	if r == nil || len(r.Question) == 0 {
-		errorFunc(ctx, w, r, dns.RcodeServerFailure)
+		errorFunc(s.Addr, w, r, dns.RcodeServerFailure)
 		return
 	}
 
@@ -215,13 +215,13 @@ func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 			// need to make sure that we stay alive up here
 			if rec := recover(); rec != nil {
 				vars.Panic.Inc()
-				errorFunc(ctx, w, r, dns.RcodeServerFailure)
+				errorFunc(s.Addr, w, r, dns.RcodeServerFailure)
 			}
 		}()
 	}
 
 	if !s.classChaos && r.Question[0].Qclass != dns.ClassINET {
-		errorFunc(ctx, w, r, dns.RcodeRefused)
+		errorFunc(s.Addr, w, r, dns.RcodeRefused)
 		return
 	}
 
@@ -251,16 +251,11 @@ func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 		}
 
 		if h, ok := s.zones[string(b[:l])]; ok {
-
-			// Set server's address in the context so plugins can reference back to this,
-			// This will makes those metrics unique.
-			ctx = context.WithValue(ctx, plugin.ServerCtx{}, s.Addr)
-
 			if r.Question[0].Qtype != dns.TypeDS {
 				if h.FilterFunc == nil {
 					rcode, _ := h.pluginChain.ServeDNS(ctx, w, r)
 					if !plugin.ClientWrite(rcode) {
-						errorFunc(ctx, w, r, rcode)
+						errorFunc(s.Addr, w, r, rcode)
 					}
 					return
 				}
@@ -269,7 +264,7 @@ func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 				if h.FilterFunc(q) {
 					rcode, _ := h.pluginChain.ServeDNS(ctx, w, r)
 					if !plugin.ClientWrite(rcode) {
-						errorFunc(ctx, w, r, rcode)
+						errorFunc(s.Addr, w, r, rcode)
 					}
 					return
 				}
@@ -291,26 +286,22 @@ func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 		// DS request, and we found a zone, use the handler for the query.
 		rcode, _ := dshandler.pluginChain.ServeDNS(ctx, w, r)
 		if !plugin.ClientWrite(rcode) {
-			errorFunc(ctx, w, r, rcode)
+			errorFunc(s.Addr, w, r, rcode)
 		}
 		return
 	}
 
 	// Wildcard match, if we have found nothing try the root zone as a last resort.
 	if h, ok := s.zones["."]; ok && h.pluginChain != nil {
-
-		// See comment above.
-		ctx = context.WithValue(ctx, plugin.ServerCtx{}, s.Addr)
-
 		rcode, _ := h.pluginChain.ServeDNS(ctx, w, r)
 		if !plugin.ClientWrite(rcode) {
-			errorFunc(ctx, w, r, rcode)
+			errorFunc(s.Addr, w, r, rcode)
 		}
 		return
 	}
 
 	// Still here? Error out with REFUSED.
-	errorFunc(ctx, w, r, dns.RcodeRefused)
+	errorFunc(s.Addr, w, r, dns.RcodeRefused)
 }
 
 // OnStartupComplete lists the sites served by this server
@@ -337,7 +328,7 @@ func (s *Server) Tracer() ot.Tracer {
 }
 
 // errorFunc responds to an DNS request with an error.
-func errorFunc(ctx context.Context, w dns.ResponseWriter, r *dns.Msg, rc int) {
+func errorFunc(server string, w dns.ResponseWriter, r *dns.Msg, rc int) {
 	state := request.Request{W: w, Req: r}
 
 	answer := new(dns.Msg)
@@ -345,7 +336,7 @@ func errorFunc(ctx context.Context, w dns.ResponseWriter, r *dns.Msg, rc int) {
 
 	state.SizeAndDo(answer)
 
-	vars.Report(ctx, state, vars.Dropped, rcode.ToString(rc), answer.Len(), time.Now())
+	vars.Report(server, state, vars.Dropped, rcode.ToString(rc), answer.Len(), time.Now())
 
 	w.WriteMsg(answer)
 }
@@ -356,7 +347,7 @@ const (
 	maxreentries = 10
 )
 
-// Key is the context key for the current server
+// Key is the context key for the current server added to the context.
 type Key struct{}
 
 // EnableChaos is a map with plugin names for which we should open CH class queries as we block these by default.
