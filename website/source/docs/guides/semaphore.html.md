@@ -24,7 +24,8 @@ provides a simpler algorithm that can be used instead.
 ## Contending Nodes in the Semaphore
 
 Let's imagine we have a set of nodes who are attempting to acquire a slot in the
-semaphore. All nodes that are participating should agree on three decisions,
+semaphore. All nodes that are participating should agree on three decisions
+
 - the prefix in the KV store used to coordinate.
 - a single key to use as a lock.
 - a limit on the number of slot holders.
