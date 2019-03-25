@@ -6,10 +6,8 @@ import (
 	"time"
 
 	"github.com/coredns/coredns/plugin"
-	"github.com/coredns/coredns/plugin/metrics/vars"
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	clog "github.com/coredns/coredns/plugin/pkg/log"
-	"github.com/coredns/coredns/plugin/pkg/rcode"
 	"github.com/coredns/coredns/plugin/pkg/replacer"
 	"github.com/coredns/coredns/plugin/pkg/response"
 	"github.com/coredns/coredns/request"
@@ -19,9 +17,8 @@ import (
 
 // Logger is a basic request logging plugin.
 type Logger struct {
-	Next      plugin.Handler
-	Rules     []Rule
-	ErrorFunc func(context.Context, dns.ResponseWriter, *dns.Msg, int) // failover error handler
+	Next  plugin.Handler
+	Rules []Rule
 
 	repl replacer.Replacer
 }
@@ -36,22 +33,6 @@ func (l Logger) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 
 		rrw := dnstest.NewRecorder(w)
 		rc, err := plugin.NextOrFailure(l.Name(), l.Next, ctx, rrw, r)
-
-		if rc > 0 {
-			// There was an error up the chain, but no response has been written yet.
-			// The error must be handled here so the log entry will record the response size.
-			if l.ErrorFunc != nil {
-				l.ErrorFunc(ctx, rrw, r, rc)
-			} else {
-				answer := new(dns.Msg)
-				answer.SetRcode(r, rc)
-
-				vars.Report(ctx, state, vars.Dropped, rcode.ToString(rc), answer.Len(), time.Now())
-
-				w.WriteMsg(answer)
-			}
-			rc = 0
-		}
 
 		tpe, _ := response.Typify(rrw.Msg, time.Now().UTC())
 		class := response.Classify(tpe)

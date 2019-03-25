@@ -41,8 +41,8 @@ func TestLoggedStatus(t *testing.T) {
 	rec := dnstest.NewRecorder(&test.ResponseWriter{})
 
 	rcode, _ := logger.ServeDNS(ctx, rec, r)
-	if rcode != 0 {
-		t.Errorf("Expected rcode to be 0 - was: %d", rcode)
+	if rcode != 2 {
+		t.Errorf("Expected rcode to be 2 - was: %d", rcode)
 	}
 
 	logged := f.String()

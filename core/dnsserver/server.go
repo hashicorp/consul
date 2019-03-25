@@ -205,7 +205,7 @@ func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 	// The default dns.Mux checks the question section size, but we have our
 	// own mux here. Check if we have a question section. If not drop them here.
 	if r == nil || len(r.Question) == 0 {
-		DefaultErrorFunc(ctx, w, r, dns.RcodeServerFailure)
+		errorFunc(ctx, w, r, dns.RcodeServerFailure)
 		return
 	}
 
@@ -215,13 +215,13 @@ func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 			// need to make sure that we stay alive up here
 			if rec := recover(); rec != nil {
 				vars.Panic.Inc()
-				DefaultErrorFunc(ctx, w, r, dns.RcodeServerFailure)
+				errorFunc(ctx, w, r, dns.RcodeServerFailure)
 			}
 		}()
 	}
 
 	if !s.classChaos && r.Question[0].Qclass != dns.ClassINET {
-		DefaultErrorFunc(ctx, w, r, dns.RcodeRefused)
+		errorFunc(ctx, w, r, dns.RcodeRefused)
 		return
 	}
 
@@ -260,7 +260,7 @@ func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 				if h.FilterFunc == nil {
 					rcode, _ := h.pluginChain.ServeDNS(ctx, w, r)
 					if !plugin.ClientWrite(rcode) {
-						DefaultErrorFunc(ctx, w, r, rcode)
+						errorFunc(ctx, w, r, rcode)
 					}
 					return
 				}
@@ -269,7 +269,7 @@ func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 				if h.FilterFunc(q) {
 					rcode, _ := h.pluginChain.ServeDNS(ctx, w, r)
 					if !plugin.ClientWrite(rcode) {
-						DefaultErrorFunc(ctx, w, r, rcode)
+						errorFunc(ctx, w, r, rcode)
 					}
 					return
 				}
@@ -291,7 +291,7 @@ func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 		// DS request, and we found a zone, use the handler for the query.
 		rcode, _ := dshandler.pluginChain.ServeDNS(ctx, w, r)
 		if !plugin.ClientWrite(rcode) {
-			DefaultErrorFunc(ctx, w, r, rcode)
+			errorFunc(ctx, w, r, rcode)
 		}
 		return
 	}
@@ -304,13 +304,13 @@ func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 
 		rcode, _ := h.pluginChain.ServeDNS(ctx, w, r)
 		if !plugin.ClientWrite(rcode) {
-			DefaultErrorFunc(ctx, w, r, rcode)
+			errorFunc(ctx, w, r, rcode)
 		}
 		return
 	}
 
 	// Still here? Error out with REFUSED.
-	DefaultErrorFunc(ctx, w, r, dns.RcodeRefused)
+	errorFunc(ctx, w, r, dns.RcodeRefused)
 }
 
 // OnStartupComplete lists the sites served by this server
@@ -336,8 +336,8 @@ func (s *Server) Tracer() ot.Tracer {
 	return s.trace.Tracer()
 }
 
-// DefaultErrorFunc responds to an DNS request with an error.
-func DefaultErrorFunc(ctx context.Context, w dns.ResponseWriter, r *dns.Msg, rc int) {
+// errorFunc responds to an DNS request with an error.
+func errorFunc(ctx context.Context, w dns.ResponseWriter, r *dns.Msg, rc int) {
 	state := request.Request{W: w, Req: r}
 
 	answer := new(dns.Msg)
