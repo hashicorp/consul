@@ -261,7 +261,7 @@ Finally, add the token to the service definition.
   "service": { 
   	"name": "dashboard", 
   	"port": 9002, 
-  	“token”: “57c5d69a-5f19-469b-0543-12a487eecc66”, 
+  	"token": "57c5d69a-5f19-469b-0543-12a487eecc66", 
   	"check": { 
   		"id": "dashboard-check",
   		"http": "http://localhost:9002/health", 
