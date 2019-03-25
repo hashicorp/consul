@@ -6,7 +6,7 @@ description: |-
   One of the key features of Consul is its support for multiple datacenters. The architecture of Consul is designed to promote low coupling of datacenters so that connectivity issues or failure of any datacenter does not impact the availability of Consul in other datacenters. This means each datacenter runs independently, each having a dedicated group of servers and a private LAN gossip pool.
 ---
 
-# [Enterprise] Advanced Federation
+# [Enterprise] Multiple Datacenter: Advanced Federation with Network Areas
 
 
 ~> The network area functionality described here is available only in [Consul Enterprise](https://www.hashicorp.com/products/consul/) version 0.8.0 and later. 
