@@ -28,6 +28,8 @@ import acls from 'consul-ui/tests/pages/dc/acls/index';
 import acl from 'consul-ui/tests/pages/dc/acls/edit';
 import policies from 'consul-ui/tests/pages/dc/acls/policies/index';
 import policy from 'consul-ui/tests/pages/dc/acls/policies/edit';
+import roles from 'consul-ui/tests/pages/dc/acls/roles/index';
+import role from 'consul-ui/tests/pages/dc/acls/roles/edit';
 import tokens from 'consul-ui/tests/pages/dc/acls/tokens/index';
 import token from 'consul-ui/tests/pages/dc/acls/tokens/edit';
 import intentions from 'consul-ui/tests/pages/dc/intentions/index';
@@ -54,6 +56,12 @@ export default {
   ),
   policy: create(
     policy(visitable, submitable, deletable, cancelable, clickable, attribute, collection)
+  ),
+  roles: create(
+    roles(visitable, deletable, creatable, clickable, attribute, collection, freetextFilter)
+  ),
+  role: create(
+    role(visitable, submitable, deletable, cancelable, clickable, attribute, collection)
   ),
   tokens: create(
     tokens(

@@ -9,6 +9,7 @@ const model = Model.extend({
   [PRIMARY_KEY]: attr('string'),
   [SLUG_KEY]: attr('string'),
   IDPName: attr('string'),
+  ExpirationTime: attr('string'),
   SecretID: attr('string'),
   // Legacy
   Type: attr('string'),
@@ -29,6 +30,11 @@ const model = Model.extend({
     },
   }),
   Roles: attr({
+    defaultValue: function() {
+      return [];
+    },
+  }),
+  ServiceIdentities: attr({
     defaultValue: function() {
       return [];
     },
