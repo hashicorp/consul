@@ -24,7 +24,7 @@ Finally, you will configure your services to use Connect.
  with an appropriate number of servers and
 clients and that other reference material like the
 [deployment](/docs/guides/deployment.html) and
-[performance](/docs/guides/performance.html) guides have been followed.
+[performance](/docs/guides/performance.html) guides.
 
 The steps we need to get to a secure Connect cluster are:
 
