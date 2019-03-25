@@ -16,7 +16,7 @@ clusters that have multiple tenants that should not be able to communicate
 with each other.
 
 To get started with Network Segments,
-[read the guide](/docs/guides/segments.html).
+[read the guide](/docs/guides/network-segments.html).
 
 # Consul Networking Models
 
