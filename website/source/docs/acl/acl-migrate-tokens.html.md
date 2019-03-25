@@ -1,7 +1,7 @@
 ---
 layout: "docs"
 page_title: "ACL Token Migration"
-sidebar_current: "docs-guides-acl-migrate-tokens"
+sidebar_current: "docs-acl-migrate-tokens"
 description: |-
   Consul 1.4.0 introduces a new ACL system with improvements for the security and
   management of ACL tokens and policies. This guide documents how to upgrade
@@ -19,75 +19,20 @@ necessary to manually translate old tokens into new ones to take advantage of
 the new ACL system features. Tooling is provided to help automate this and this
 guide describes the overall process.
 
-~> **Note:** **1.4.0 retains full support for "legacy" ACL tokens** so upgrades
+~> **Note**: Before starting the token migration process all Consul agents, servers
+and clients, must be running at least version 1.4.0. Additionally, you 
+must ensure the cluster is in a healthy state including a functioning leader. Once
+the leader has determined that all servers in the cluster are capable of using the
+new ACL system, the leader will transition itself. Then, the other servers will
+transition themselves to the new system, followed by the client agents. You can 
+use `consul info` to investigate the cluster health.
+
+Consul 1.4.0 retains full support for "legacy" ACL tokens so upgrades
 from Consul 1.3.0 are safe. Existing tokens will continue to work in the same
 way for at least two "major" releases (1.5.x, 1.6.x, etc; note HashiCorp does
 not use SemVer for our products).
 
-This document will briefly describe [what changed](#what-changed), and then walk
-through the [high-level migration process options](#migration-process), finally
-giving some [specific examples](#migration-examples) of migration strategies.
-
-## New ACL System Differences
-
-The [ACL guide](/docs/guides/acl.html) and [legacy ACL
-guide](/docs/guides/acl-legacy.html) describes the new and old systems in
-detail. Below is a summary of the changes that need to be considered when
-migrating legacy tokens to the new system.
-
-### Token and Policy Separation
-
-You can use a single policy in the new system for all tokens that share access
-rules. For example, all tokens created using the clone endpoint in the legacy
-system can be represented with a single policy and a set of tokens that map to
-that policy.
-
-### Rule Syntax Changes
-
-The most significant change is that rules with selectors _no longer prefix match
-by default_. In the legacy system the following rules would grant access to
-nodes, services and keys _prefixed_ with foo.
-
-```
-node "foo" { policy = "write" }
-service "foo" { policy = "write" }
-key "foo" { policy = "write" }
-```
-
-In the new system the same syntax will only perform _exact_ match on the whole
-node name, service name or key.
-
-In general, exact match is what most operators intended most of the time so the
-same policy can be kept, however if you rely on prefix match behavior then using
-the same syntax will break behavior.
-
-Prefix matching can be expressed in the new ACL system explicitly, making the
-following rules in the new system exactly the same as the rules above in the
-old.
-
-```
-node_prefix "foo" { policy = "write" }
-service_prefix "foo" { policy = "write" }
-key_prefix "foo" { policy = "write" }
-```
-
-### API Separation
-
-The "old" API endpoints below continue to work for backwards compatibility but
-will continue to create or show only "legacy" tokens that can't take full
-advantage of the new ACL system improvements. They are documented fully under
-[Legacy Tokens](/api/acl/legacy.html).
-
-- [`PUT /acl/create` - Create Legacy Token](/api/acl/legacy.html#create-acl-token)
-- [`PUT /acl/update` - Update Legacy Token](/api/acl/legacy.html#update-acl-token)
-- [`PUT /acl/destroy/:uuid` - Delete Legacy Token](/api/acl/legacy.html#delete-acl-token)
-- [`GET /acl/info/:uuid` - Read Legacy Token](/api/acl/legacy.html#read-acl-token)
-- [`PUT /acl/clone/:uuid` - Clone Legacy Token](/api/acl/legacy.html#clone-acl-token)
-- [`GET /acl/list` - List Legacy Tokens](/api/acl/legacy.html#list-acls)
-
-The new ACL system includes new API endpoints to manage
-the [ACL System](/api/acl/acl.html), [Tokens](/api/acl/tokens.html)
-and [Policies](/api/acl/policies.html).
+This document will briefly describes the [high-level migration process](#migration-process) and provides some [specific examples](#migration-examples) of migration strategies.
 
 ## Migration Process
 

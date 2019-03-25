@@ -1,18 +1,18 @@
 ---
 layout: "docs"
 page_title: "ACL Rules"
-sidebar_current: "docs-agent-acl-rules"
+sidebar_current: "docs-acl-rules"
 description: |-
   Consul provides an optional Access Control List (ACL) system which can be used to control access to data and APIs. The ACL system is a Capability-based system that relies on tokens which can have fine grained rules applied to them. It is very similar to AWS IAM in many ways.
 ---
 
--> **1.4.0 and later:** This guide only applies in Consul versions 1.4.0 and later. The documentation for the legacy ACL system is [here](/docs/guides/acl-legacy.html)
+-> **1.4.0 and later:** This guide only applies in Consul versions 1.4.0 and later. The documentation for the legacy ACL system is [here](/docs/acl/acl-legacy.html)
 
 # ACL Rules
 
 Consul provides an optional Access Control List (ACL) system which can be used 
 to control access to data and APIs. To learn more about Consul's ACL review the
-[ACL system documentation](/docs/agent/acl-system.html)
+[ACL system documentation](/docs/acl/acl-system.html)
 
 A core part of the ACL system is the rule language, which is used to describe the policy
 that must be enforced. There are two types of rules: prefix based rules and exact matching
@@ -142,7 +142,7 @@ On success, the Policy is returned:
 ```
 
 The created policy can now be specified either by name or by ID when 
-[creating a token](/docs/guides/acl.html#step-4-create-an-agent-token). This will grant the rules
+[creating a token](https://learn.hashicorp.com/consul/advanced/day-1-operations/acl-guide#step-4-create-an-agent-token). This will grant the rules
 provided to the [bearer of that token](https://www.consul.io/api/index.html#authentication).
 
 Below is a breakdown of each rule type. 
@@ -158,7 +158,7 @@ ACL rules look like this:
 acl = "write"
 ```
 
-There is only one acl rule allowed per policy and its value is set to one of the [policy dispositions](https://www.consul.io/docs/guides/acl.html#rule-specification). In the example
+There is only one acl rule allowed per policy and its value is set to one of the [policy dispositions](docs/acl/acl-rules.html#rule-specification). In the example
 above ACLs may be read or written including discovering any token's secret ID. Snapshotting also requires `acl = "write"`
 permissions due to the fact that all the token secrets are contained within the snapshot.
 

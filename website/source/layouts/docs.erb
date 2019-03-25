@@ -279,12 +279,6 @@
           <li<%= sidebar_current("docs-agent-running") %>>
             <a href="/docs/agent/basics.html">Running and Stopping</a>
           </li>
-          <li<%= sidebar_current("docs-agent-acl-system") %>>
-            <a href="/docs/agent/acl-system.html">ACL System</a>
-          </li>
-          <li<%= sidebar_current("docs-agent-acl-rules") %>>
-            <a href="/docs/agent/acl-rules.html">ACL Rules</a>
-          </li>
           <li<%= sidebar_current("docs-agent-dns") %>>
             <a href="/docs/agent/dns.html">DNS Interface</a>
           </li>
@@ -316,6 +310,24 @@
             <a href="/docs/agent/watches.html">Watches</a>
           </li>
         </ul>
+      </li>
+
+      <li<%= sidebar_current("docs-acl") %>>
+        <a href="/docs/acl/index.html">Access Control (ACLs)</a>
+        <ul class="nav">
+          <li<%= sidebar_current("docs-acl-system") %>>
+            <a href="/docs/acl/acl-system.html">ACL System</a>
+          </li>
+          <li<%= sidebar_current("docs-acl-rules") %>>
+            <a href="/docs/acl/acl-rules.html">ACL Rules</a>
+          </li>
+          <li<%= sidebar_current("docs-acl-legacy") %>>
+            <a href="/docs/acl/acl-legacy.html">Legacy ACLs</a>
+          </li>
+          <li<%= sidebar_current("docs-acl-migration") %>>
+            <a href="/docs/acl/acl-migrate-tokens.html">Token Migration</a>
+          </li>
+         </ul>
       </li>
 
       <li<%= sidebar_current("docs-connect") %>>
@@ -408,9 +420,6 @@
       <li<%= sidebar_current("docs-guides") %>>
         <a href="/docs/guides/index.html">Guides</a>
         <ul class="nav">
-          <li<%= sidebar_current("docs-guides-acl") %>>
-            <a href="/docs/guides/acl-index.html">ACL Guides</a>
-          </li>
           <li<%= sidebar_current("docs-guides-servers") %>>
             <a href="https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/servers">Adding & Removing Servers</a>
           </li>
