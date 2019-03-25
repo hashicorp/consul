@@ -175,5 +175,5 @@ external tools like [consul-replicate](https://github.com/hashicorp/consul-repli
 ## Summary
 
 In this guide you setup WAN gossip across two datacenters to create
-basic federation. We also used the Consul HTTP API to ensure the 
+basic federation. You also used the Consul HTTP API to ensure the 
 datacenters were properly configured.
