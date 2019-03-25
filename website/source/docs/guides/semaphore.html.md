@@ -30,7 +30,7 @@ semaphore. All nodes that are participating should agree on three decisions
 - a single key to use as a lock.
 - a limit on the number of slot holders.
 
-### Create a Session
+### Session
 
 The first step is for each contending node to create a session. Sessions allow us to build a system that
 can gracefully handle failures. 
