@@ -7,7 +7,7 @@ description: |-
 ---
 
 
-## Basic Federation with the WAN Gossip Pool
+# Multiple Datacenters: Basic Federation with the WAN Gossip
 
 One of the key features of Consul is its support for multiple datacenters.
 The [architecture](/docs/internals/architecture.html) of Consul is designed to
