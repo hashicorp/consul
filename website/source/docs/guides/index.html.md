@@ -50,7 +50,7 @@ The following guides are available:
 
 * [Geo Failover](/docs/guides/geo-failover.html) - This guide covers using [prepared queries](/api/query.html) to implement geo failover for services.
 
-* [Minikube with Consul](/docs/guides/minikube.html) - In this guide, you'll start a local Kubernetes cluster with minikube, install Consul,and then deploy two custom services.
+* [Minikube with Consul](https://learn.hashicorp.com/consul/getting-started-k8s/minikube/) - In this guide, you'll start a local Kubernetes cluster with minikube, install Consul,and then deploy two custom services.
 
 * [Leader Election](/docs/guides/leader-election.html) - The goal of this guide is to cover how to build client-side leader election using Consul.
 
