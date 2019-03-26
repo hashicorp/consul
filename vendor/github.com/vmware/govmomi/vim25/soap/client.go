@@ -77,17 +77,6 @@ type Client struct {
 
 var schemeMatch = regexp.MustCompile(`^\w+://`)
 
-type errInvalidCACertificate struct {
-	File string
-}
-
-func (e errInvalidCACertificate) Error() string {
-	return fmt.Sprintf(
-		"invalid certificate '%s', cannot be used as a trusted CA certificate",
-		e.File,
-	)
-}
-
 // ParseURL is wrapper around url.Parse, where Scheme defaults to "https" and Path defaults to "/sdk"
 func ParseURL(s string) (*url.URL, error) {
 	var err error
@@ -211,11 +200,7 @@ func (c *Client) SetRootCAs(file string) error {
 			return err
 		}
 
-		if ok := pool.AppendCertsFromPEM(pem); !ok {
-			return errInvalidCACertificate{
-				File: name,
-			}
-		}
+		pool.AppendCertsFromPEM(pem)
 	}
 
 	c.t.TLSClientConfig.RootCAs = pool

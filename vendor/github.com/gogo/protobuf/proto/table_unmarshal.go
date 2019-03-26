@@ -99,8 +99,6 @@ type unmarshalFieldInfo struct {
 
 	// if a required field, contains a single set bit at this field's index in the required field list.
 	reqMask uint64
-
-	name string // name of the field, for error reporting
 }
 
 var (
@@ -362,7 +360,7 @@ func (u *unmarshalInfo) computeUnmarshalInfo() {
 		}
 
 		// Store the info in the correct slot in the message.
-		u.setTag(tag, toField(&f), unmarshal, reqMask, name)
+		u.setTag(tag, toField(&f), unmarshal, reqMask)
 	}
 
 	// Find any types associated with oneof fields.
@@ -378,17 +376,10 @@ func (u *unmarshalInfo) computeUnmarshalInfo() {
 
 			f := typ.Field(0) // oneof implementers have one field
 			baseUnmarshal := fieldUnmarshaler(&f)
-			tags := strings.Split(f.Tag.Get("protobuf"), ",")
-			fieldNum, err := strconv.Atoi(tags[1])
+			tagstr := strings.Split(f.Tag.Get("protobuf"), ",")[1]
+			tag, err := strconv.Atoi(tagstr)
 			if err != nil {
-				panic("protobuf tag field not an integer: " + tags[1])
-			}
-			var name string
-			for _, tag := range tags {
-				if strings.HasPrefix(tag, "name=") {
-					name = strings.TrimPrefix(tag, "name=")
-					break
-				}
+				panic("protobuf tag field not an integer: " + tagstr)
 			}
 
 			// Find the oneof field that this struct implements.
@@ -399,7 +390,7 @@ func (u *unmarshalInfo) computeUnmarshalInfo() {
 					// That lets us know where this struct should be stored
 					// when we encounter it during unmarshaling.
 					unmarshal := makeUnmarshalOneof(typ, of.ityp, baseUnmarshal)
-					u.setTag(fieldNum, of.field, unmarshal, 0, name)
+					u.setTag(tag, of.field, unmarshal, 0)
 				}
 			}
 		}
@@ -420,7 +411,7 @@ func (u *unmarshalInfo) computeUnmarshalInfo() {
 	// [0 0] is [tag=0/wiretype=varint varint-encoded-0].
 	u.setTag(0, zeroField, func(b []byte, f pointer, w int) ([]byte, error) {
 		return nil, fmt.Errorf("proto: %s: illegal tag 0 (wire type %d)", t, w)
-	}, 0, "")
+	}, 0)
 
 	// Set mask for required field check.
 	u.reqMask = uint64(1)<<uint(len(u.reqFields)) - 1
@@ -432,9 +423,8 @@ func (u *unmarshalInfo) computeUnmarshalInfo() {
 // tag = tag # for field
 // field/unmarshal = unmarshal info for that field.
 // reqMask = if required, bitmask for field position in required field list. 0 otherwise.
-// name = short name of the field.
-func (u *unmarshalInfo) setTag(tag int, field field, unmarshal unmarshaler, reqMask uint64, name string) {
-	i := unmarshalFieldInfo{field: field, unmarshal: unmarshal, reqMask: reqMask, name: name}
+func (u *unmarshalInfo) setTag(tag int, field field, unmarshal unmarshaler, reqMask uint64) {
+	i := unmarshalFieldInfo{field: field, unmarshal: unmarshal, reqMask: reqMask}
 	n := u.typ.NumField()
 	if tag >= 0 && (tag < 16 || tag < 2*n) { // TODO: what are the right numbers here?
 		for len(u.dense) <= tag {

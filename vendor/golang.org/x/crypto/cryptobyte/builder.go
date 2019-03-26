@@ -51,7 +51,7 @@ func NewFixedBuilder(buffer []byte) *Builder {
 }
 
 // Bytes returns the bytes written by the builder or an error if one has
-// occurred during during building.
+// occurred during building.
 func (b *Builder) Bytes() ([]byte, error) {
 	if b.err != nil {
 		return nil, b.err

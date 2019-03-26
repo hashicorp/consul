@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -179,10 +178,21 @@ func (a *Authenticator) UpdateTransportConfig(c *transport.Config) error {
 		return &roundTripper{a, rt}
 	}
 
-	if c.TLS.GetCert != nil {
-		return errors.New("can't add TLS certificate callback: transport.Config.TLS.GetCert already set")
+	getCert := c.TLS.GetCert
+	c.TLS.GetCert = func() (*tls.Certificate, error) {
+		// If previous GetCert is present and returns a valid non-nil
+		// certificate, use that. Otherwise use cert from exec plugin.
+		if getCert != nil {
+			cert, err := getCert()
+			if err != nil {
+				return nil, err
+			}
+			if cert != nil {
+				return cert, nil
+			}
+		}
+		return a.cert()
 	}
-	c.TLS.GetCert = a.cert
 
 	var dial func(ctx context.Context, network, addr string) (net.Conn, error)
 	if c.Dial != nil {
