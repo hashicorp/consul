@@ -3,7 +3,7 @@ package api
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/internal/testutil"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestAPI_OperatorKeyringInstallListPutRemove(t *testing.T) {

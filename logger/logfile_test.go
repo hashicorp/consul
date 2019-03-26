@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/internal/testutil"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 const (
