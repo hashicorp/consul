@@ -279,12 +279,6 @@
           <li<%= sidebar_current("docs-agent-running") %>>
             <a href="/docs/agent/basics.html">Running and Stopping</a>
           </li>
-          <li<%= sidebar_current("docs-agent-acl-system") %>>
-            <a href="/docs/agent/acl-system.html">ACL System</a>
-          </li>
-          <li<%= sidebar_current("docs-agent-acl-rules") %>>
-            <a href="/docs/agent/acl-rules.html">ACL Rules</a>
-          </li>
           <li<%= sidebar_current("docs-agent-dns") %>>
             <a href="/docs/agent/dns.html">DNS Interface</a>
           </li>
@@ -316,6 +310,24 @@
             <a href="/docs/agent/watches.html">Watches</a>
           </li>
         </ul>
+      </li>
+
+      <li<%= sidebar_current("docs-acl") %>>
+        <a href="/docs/acl/index.html">Access Control (ACLs)</a>
+        <ul class="nav">
+          <li<%= sidebar_current("docs-acl-system") %>>
+            <a href="/docs/acl/acl-system.html">ACL System</a>
+          </li>
+          <li<%= sidebar_current("docs-acl-rules") %>>
+            <a href="/docs/acl/acl-rules.html">ACL Rules</a>
+          </li>
+          <li<%= sidebar_current("docs-acl-legacy") %>>
+            <a href="/docs/acl/acl-legacy.html">Legacy ACLs</a>
+          </li>
+          <li<%= sidebar_current("docs-acl-migration") %>>
+            <a href="/docs/acl/acl-migrate-tokens.html">Token Migration</a>
+          </li>
+         </ul>
       </li>
 
       <li<%= sidebar_current("docs-connect") %>>
@@ -397,6 +409,9 @@
           <li<%= sidebar_current("docs-platform-k8s-connect") %>>
             <a href="/docs/platform/k8s/connect.html">Connect Sidecar</a>
           </li>
+          <li<%= sidebar_current("docs-platform-k8s-ambassador") %>>
+            <a href="/docs/platform/k8s/ambassador.html">Ambassador Integration</a>
+          </li>
         </ul>
       </li>
 
@@ -405,9 +420,6 @@
       <li<%= sidebar_current("docs-guides") %>>
         <a href="/docs/guides/index.html">Guides</a>
         <ul class="nav">
-          <li<%= sidebar_current("docs-guides-acl") %>>
-            <a href="/docs/guides/acl-index.html">ACL Guides</a>
-          </li>
           <li<%= sidebar_current("docs-guides-servers") %>>
             <a href="https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/servers">Adding & Removing Servers</a>
           </li>
@@ -466,13 +478,13 @@
             <a href="/docs/guides/leader-election.html">Leader Election</a>
           </li>
           <li<%= sidebar_current("docs-guides-minikube") %>>
-            <a href="/docs/guides/minikube.html">Minikube with Consul</a>
+            <a href="https://learn.hashicorp.com/consul/getting-started-k8s/minikube/">Minikube with Consul</a>
           </li>
           <li<%= sidebar_current("docs-guides-monitoring-telegraf") %>>
             <a href="/docs/guides/monitoring-telegraf.html">Monitoring Consul with Telegraf</a>
           </li>
           <li<%= sidebar_current("docs-guides-segments") %>>
-            <a href="/docs/guides/segments.html">Network Segments</a>
+            <a href="/docs/guides/network-segments.html">Network Segments</a>
           </li>
           <li<%= sidebar_current("docs-guides-outage") %>>
             <a href="https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/outage">Outage Recovery</a>

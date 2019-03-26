@@ -36,11 +36,15 @@
 # - Items are case-sensitive (please use all lowercase)
 #
 
-/api.html                           /api/index.html
-/docs/agent/http.html               /api/index.html
-/api/acl.html                       /api/acl/acl.html
-/docs/guides/bootstrapping.html     /docs/install/bootstrapping.html
-/docs/guides/sentinel.html          /docs/agent/sentinel.html
+/api.html                                 /api/index.html
+/docs/agent/http.html                     /api/index.html
+/api/acl.html                             /api/acl/acl.html
+/docs/guides/bootstrapping.html           /docs/install/bootstrapping.html
+/docs/guides/sentinel.html                /docs/agent/sentinel.html
+/docs/guides/acl-migrate-acl-tokens.html  /docs/acl/acl-migrate-acl-tokens.html
+/docs/guides/acl-legacy.html              /docs/acl/acl-legacy.html
+/docs/agent/acl-system.html               /docs/acl/acl-system.html
+/docs/agent/acl-rules.html                /docs/acl/acl-rules.html
 
 # NOTE: Do not use this redirects file for intro doc links.
 #       A custom VCL (Varnish) configuration in the Fastly web admin has been

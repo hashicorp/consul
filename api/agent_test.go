@@ -3,6 +3,9 @@ package api
 import (
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
+	"net/http/httputil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -1243,39 +1246,125 @@ func TestAPI_AgentUpdateToken(t *testing.T) {
 	c, s := makeACLClient(t)
 	defer s.Stop()
 
-	agent := c.Agent()
+	t.Run("deprecated", func(t *testing.T) {
+		agent := c.Agent()
+		if _, err := agent.UpdateACLToken("root", nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 
-	if _, err := agent.UpdateACLToken("root", nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+		if _, err := agent.UpdateACLAgentToken("root", nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 
-	if _, err := agent.UpdateACLAgentToken("root", nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+		if _, err := agent.UpdateACLAgentMasterToken("root", nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 
-	if _, err := agent.UpdateACLAgentMasterToken("root", nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+		if _, err := agent.UpdateACLReplicationToken("root", nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	})
 
-	if _, err := agent.UpdateACLReplicationToken("root", nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	t.Run("new with no fallback", func(t *testing.T) {
+		agent := c.Agent()
+		if _, err := agent.UpdateDefaultACLToken("root", nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 
-	if _, err := agent.UpdateDefaultACLToken("root", nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+		if _, err := agent.UpdateAgentACLToken("root", nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 
-	if _, err := agent.UpdateAgentACLToken("root", nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+		if _, err := agent.UpdateAgentMasterACLToken("root", nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 
-	if _, err := agent.UpdateAgentMasterACLToken("root", nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+		if _, err := agent.UpdateReplicationACLToken("root", nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	})
 
-	if _, err := agent.UpdateReplicationACLToken("root", nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	t.Run("new with fallback", func(t *testing.T) {
+		// Respond with 404 for the new paths to trigger fallback.
+		failer := func(w http.ResponseWriter, req *http.Request) {
+			w.WriteHeader(404)
+		}
+		notfound := httptest.NewServer(http.HandlerFunc(failer))
+		defer notfound.Close()
+
+		raw := c // real consul client
+
+		// Set up a reverse proxy that will send some requests to the
+		// 404 server and pass everything else through to the real Consul
+		// server.
+		director := func(req *http.Request) {
+			req.URL.Scheme = "http"
+
+			switch req.URL.Path {
+			case "/v1/agent/token/default",
+				"/v1/agent/token/agent",
+				"/v1/agent/token/agent_master",
+				"/v1/agent/token/replication":
+				req.URL.Host = notfound.URL[7:] // Strip off "http://".
+			default:
+				req.URL.Host = raw.config.Address
+			}
+		}
+		proxy := httptest.NewServer(&httputil.ReverseProxy{Director: director})
+		defer proxy.Close()
+
+		// Make another client that points at the proxy instead of the real
+		// Consul server.
+		config := raw.config
+		config.Address = proxy.URL[7:] // Strip off "http://".
+		c, err := NewClient(&config)
+		require.NoError(t, err)
+
+		agent := c.Agent()
+
+		_, err = agent.UpdateDefaultACLToken("root", nil)
+		require.NoError(t, err)
+
+		_, err = agent.UpdateAgentACLToken("root", nil)
+		require.NoError(t, err)
+
+		_, err = agent.UpdateAgentMasterACLToken("root", nil)
+		require.NoError(t, err)
+
+		_, err = agent.UpdateReplicationACLToken("root", nil)
+		require.NoError(t, err)
+	})
+
+	t.Run("new with 403s", func(t *testing.T) {
+		failer := func(w http.ResponseWriter, req *http.Request) {
+			w.WriteHeader(403)
+		}
+		authdeny := httptest.NewServer(http.HandlerFunc(failer))
+		defer authdeny.Close()
+
+		raw := c // real consul client
+
+		// Make another client that points at the proxy instead of the real
+		// Consul server.
+		config := raw.config
+		config.Address = authdeny.URL[7:] // Strip off "http://".
+		c, err := NewClient(&config)
+		require.NoError(t, err)
+
+		agent := c.Agent()
+
+		_, err = agent.UpdateDefaultACLToken("root", nil)
+		require.Error(t, err)
+
+		_, err = agent.UpdateAgentACLToken("root", nil)
+		require.Error(t, err)
+
+		_, err = agent.UpdateAgentMasterACLToken("root", nil)
+		require.Error(t, err)
+
+		_, err = agent.UpdateReplicationACLToken("root", nil)
+		require.Error(t, err)
+	})
 }
 
 func TestAPI_AgentConnectCARoots_empty(t *testing.T) {

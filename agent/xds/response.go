@@ -5,6 +5,7 @@ import (
 	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
+	prototypes "github.com/gogo/protobuf/types"
 )
 
 func createResponse(typeURL string, version, nonce string, resources []proto.Message) (*envoy.DiscoveryResponse, error) {
@@ -51,4 +52,8 @@ func makeAddress(ip string, port int) envoycore.Address {
 func makeAddressPtr(ip string, port int) *envoycore.Address {
 	a := makeAddress(ip, port)
 	return &a
+}
+
+func makeUint32Value(n int) *prototypes.UInt32Value {
+	return &prototypes.UInt32Value{Value: uint32(n)}
 }

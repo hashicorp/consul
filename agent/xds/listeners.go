@@ -252,6 +252,9 @@ func makeCommonTLSContext(cfgSnap *proxycfg.ConfigSnapshot) *envoyauth.CommonTls
 	// Concatenate all the root PEMs into one.
 	// TODO(banks): verify this actually works with Envoy (docs are not clear).
 	rootPEMS := ""
+	if cfgSnap.Roots == nil {
+		return nil
+	}
 	for _, root := range cfgSnap.Roots.Roots {
 		rootPEMS += root.RootCert
 	}

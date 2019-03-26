@@ -14,8 +14,6 @@ guidance to do them safely.
 
 The following guides are available:
 
-* [ACLs](/docs/guides/acl-index.html) - This set of guides covers Consul's Access Control List (ACL) capability, which can be used to control access to Consul resources.
-
 * [Adding/Removing Servers](https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/servers) - This guide covers how to safely add and remove Consul servers from the cluster. This should be done carefully to avoid availability outages.
 
 * [Agent Communication Encryption](https://learn.hashicorp.com/consul/advanced/day-1-operations/agent-encryption) - This guide covers how to encrypt both gossip and RPC communication.
@@ -50,13 +48,13 @@ The following guides are available:
 
 * [Geo Failover](/docs/guides/geo-failover.html) - This guide covers using [prepared queries](/api/query.html) to implement geo failover for services.
 
-* [Minikube with Consul](/docs/guides/minikube.html) - In this guide, you'll start a local Kubernetes cluster with minikube, install Consul,and then deploy two custom services.
+* [Minikube with Consul](https://learn.hashicorp.com/consul/getting-started-k8s/minikube/) - In this guide, you'll start a local Kubernetes cluster with minikube, install Consul,and then deploy two custom services.
 
 * [Leader Election](/docs/guides/leader-election.html) - The goal of this guide is to cover how to build client-side leader election using Consul.
 
 * [Monitoring Consul with Telegraf](/docs/guides/monitoring-telegraf.html) - This guide demonstrates how to setup Consul for monitoring with Telegraf.
 
-* [Network Segments](/docs/guides/segments.html) - Configuring Consul to support partial LAN connectivity using Network Segments.
+* [Network Segments](/docs/guides/network-segments.html) - Configuring Consul to support partial LAN connectivity using Network Segments.
 
 * [Outage Recovery](https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/outage) - This guide covers recovering a cluster that has become unavailable due to server failures.
 
