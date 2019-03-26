@@ -410,7 +410,8 @@ func TestTxnEndpoint_UpdateCheck(t *testing.T) {
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-	// Make sure the fields of a check are handled correctly when both creating and updating.
+	// Make sure the fields of a check are handled correctly when both creating and
+	// updating, and test both sets of duration fields to ensure backwards compatibility.
 	buf := bytes.NewBuffer([]byte(fmt.Sprintf(`
 [
 	{
@@ -456,9 +457,31 @@ func TestTxnEndpoint_UpdateCheck(t *testing.T) {
 				}
 			}
 		}
+	},
+	{
+		"Check": {
+			"Verb": "set",
+			"Check": {
+				"Node": "%s",
+				"CheckID": "nodecheck",
+				"Name": "Node http check",
+				"Status": "passing",
+				"Notes": "Http based health check",
+				"Output": "success",
+				"ServiceID": "",
+				"ServiceName": "",
+				"Definition": {
+					"IntervalDuration": "15s",
+					"TimeoutDuration": "15s",
+					"DeregisterCriticalServiceAfterDuration": "30m",
+					"HTTP": "http://localhost:9000",
+					"TLSSkipVerify": false
+				}
+			}
+		}
 	}
 ]
-`, a.config.NodeName, a.config.NodeName)))
+`, a.config.NodeName, a.config.NodeName, a.config.NodeName)))
 	req, _ := http.NewRequest("PUT", "/v1/txn", buf)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.Txn(resp, req)
@@ -473,7 +496,7 @@ func TestTxnEndpoint_UpdateCheck(t *testing.T) {
 	if !ok {
 		t.Fatalf("bad type: %T", obj)
 	}
-	if len(txnResp.Results) != 2 {
+	if len(txnResp.Results) != 3 {
 		t.Fatalf("bad: %v", txnResp)
 	}
 	index := txnResp.Results[0].Check.ModifyIndex
@@ -487,11 +510,11 @@ func TestTxnEndpoint_UpdateCheck(t *testing.T) {
 					Status:  api.HealthCritical,
 					Notes:   "Http based health check",
 					Definition: structs.HealthCheckDefinition{
-						Interval:                       6 * time.Second,
-						Timeout:                        6 * time.Second,
+						Interval: 6 * time.Second,
+						Timeout:  6 * time.Second,
 						DeregisterCriticalServiceAfter: 6 * time.Second,
-						HTTP:                           "http://localhost:8000",
-						TLSSkipVerify:                  true,
+						HTTP:          "http://localhost:8000",
+						TLSSkipVerify: true,
 					},
 					RaftIndex: structs.RaftIndex{
 						CreateIndex: index,
@@ -508,11 +531,32 @@ func TestTxnEndpoint_UpdateCheck(t *testing.T) {
 					Notes:   "Http based health check",
 					Output:  "success",
 					Definition: structs.HealthCheckDefinition{
-						Interval:                       10 * time.Second,
-						Timeout:                        10 * time.Second,
+						Interval: 10 * time.Second,
+						Timeout:  10 * time.Second,
 						DeregisterCriticalServiceAfter: 15 * time.Minute,
-						HTTP:                           "http://localhost:9000",
-						TLSSkipVerify:                  false,
+						HTTP:          "http://localhost:9000",
+						TLSSkipVerify: false,
+					},
+					RaftIndex: structs.RaftIndex{
+						CreateIndex: index,
+						ModifyIndex: index,
+					},
+				},
+			},
+			&structs.TxnResult{
+				Check: &structs.HealthCheck{
+					Node:    a.config.NodeName,
+					CheckID: "nodecheck",
+					Name:    "Node http check",
+					Status:  api.HealthPassing,
+					Notes:   "Http based health check",
+					Output:  "success",
+					Definition: structs.HealthCheckDefinition{
+						Interval: 15 * time.Second,
+						Timeout:  15 * time.Second,
+						DeregisterCriticalServiceAfter: 30 * time.Minute,
+						HTTP:          "http://localhost:9000",
+						TLSSkipVerify: false,
 					},
 					RaftIndex: structs.RaftIndex{
 						CreateIndex: index,

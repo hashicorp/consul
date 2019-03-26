@@ -221,6 +221,24 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 			}
 
 			check := in.Check.Check
+
+			// Check if the internal duration fields are set as well as the normal ones. This is
+			// to be backwards compatible with a bug where the internal duration fields were being
+			// deserialized from instead of the correct fields.
+			// See https://github.com/hashicorp/consul/issues/5477 for more details.
+			interval := check.Definition.IntervalDuration
+			if dur := time.Duration(check.Definition.Interval); dur != 0 {
+				interval = dur
+			}
+			timeout := check.Definition.TimeoutDuration
+			if dur := time.Duration(check.Definition.Timeout); dur != 0 {
+				timeout = dur
+			}
+			deregisterCriticalServiceAfter := check.Definition.DeregisterCriticalServiceAfterDuration
+			if dur := time.Duration(check.Definition.DeregisterCriticalServiceAfter); dur != 0 {
+				deregisterCriticalServiceAfter = dur
+			}
+
 			out := &structs.TxnOp{
 				Check: &structs.TxnCheckOp{
 					Verb: in.Check.Verb,
@@ -235,14 +253,14 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 						ServiceName: check.ServiceName,
 						ServiceTags: check.ServiceTags,
 						Definition: structs.HealthCheckDefinition{
-							HTTP:                           check.Definition.HTTP,
-							TLSSkipVerify:                  check.Definition.TLSSkipVerify,
-							Header:                         check.Definition.Header,
-							Method:                         check.Definition.Method,
-							TCP:                            check.Definition.TCP,
-							Interval:                       time.Duration(check.Definition.Interval),
-							Timeout:                        time.Duration(check.Definition.Timeout),
-							DeregisterCriticalServiceAfter: time.Duration(check.Definition.DeregisterCriticalServiceAfter),
+							HTTP:          check.Definition.HTTP,
+							TLSSkipVerify: check.Definition.TLSSkipVerify,
+							Header:        check.Definition.Header,
+							Method:        check.Definition.Method,
+							TCP:           check.Definition.TCP,
+							Interval:      interval,
+							Timeout:       timeout,
+							DeregisterCriticalServiceAfter: deregisterCriticalServiceAfter,
 						},
 						RaftIndex: structs.RaftIndex{
 							ModifyIndex: check.ModifyIndex,
