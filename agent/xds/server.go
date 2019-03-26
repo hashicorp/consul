@@ -441,6 +441,8 @@ func (s *Server) Check(ctx context.Context, r *envoyauthz.CheckRequest) (*envoya
 	// Parse destination to know the target service
 	dest, err := connect.ParseCertURIFromString(r.Attributes.Destination.Principal)
 	if err != nil {
+		s.Logger.Printf("[DEBUG] grpc: Connect AuthZ DENIED: bad destination URI: src=%s dest=%s",
+			r.Attributes.Source.Principal, r.Attributes.Destination.Principal)
 		// Treat this as an auth error since Envoy has sent something it considers
 		// valid, it's just not an identity we trust.
 		return deniedResponse("Destination Principal is not a valid Connect identity")
@@ -448,6 +450,8 @@ func (s *Server) Check(ctx context.Context, r *envoyauthz.CheckRequest) (*envoya
 
 	destID, ok := dest.(*connect.SpiffeIDService)
 	if !ok {
+		s.Logger.Printf("[DEBUG] grpc: Connect AuthZ DENIED: bad destination service ID: src=%s dest=%s",
+			r.Attributes.Source.Principal, r.Attributes.Destination.Principal)
 		return deniedResponse("Destination Principal is not a valid Service identity")
 	}
 
@@ -472,14 +476,22 @@ func (s *Server) Check(ctx context.Context, r *envoyauthz.CheckRequest) (*envoya
 	authed, reason, _, err := s.Authz.ConnectAuthorize(token, req)
 	if err != nil {
 		if err == acl.ErrPermissionDenied {
+			s.Logger.Printf("[DEBUG] grpc: Connect AuthZ failed ACL check: %s: src=%s dest=%s",
+				err, r.Attributes.Source.Principal, r.Attributes.Destination.Principal)
 			return nil, status.Error(codes.PermissionDenied, err.Error())
 		}
+		s.Logger.Printf("[DEBUG] grpc: Connect AuthZ failed: %s: src=%s dest=%s",
+			err, r.Attributes.Source.Principal, r.Attributes.Destination.Principal)
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 	if !authed {
+		s.Logger.Printf("[DEBUG] grpc: Connect AuthZ DENIED: src=%s dest=%s reason=%s",
+			r.Attributes.Source.Principal, r.Attributes.Destination.Principal, reason)
 		return deniedResponse(reason)
 	}
 
+	s.Logger.Printf("[DEBUG] grpc: Connect AuthZ ALLOWED: src=%s dest=%s reason=%s",
+		r.Attributes.Source.Principal, r.Attributes.Destination.Principal, reason)
 	return &envoyauthz.CheckResponse{
 		Status: &rpc.Status{
 			Code:    int32(rpc.OK),
