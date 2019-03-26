@@ -1,4 +1,4 @@
-import { moduleFor, test, skip } from 'ember-qunit';
+import { moduleFor, test } from 'ember-qunit';
 const NAME = 'role';
 import repo from 'consul-ui/tests/helpers/repo';
 moduleFor(`service:repository/${NAME}`, `Integration | Service | ${NAME}`, {
