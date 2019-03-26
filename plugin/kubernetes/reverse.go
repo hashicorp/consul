@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"context"
 	"strings"
 
 	"github.com/coredns/coredns/plugin"
@@ -10,11 +11,11 @@ import (
 )
 
 // Reverse implements the ServiceBackend interface.
-func (k *Kubernetes) Reverse(state request.Request, exact bool, opt plugin.Options) ([]msg.Service, error) {
+func (k *Kubernetes) Reverse(ctx context.Context, state request.Request, exact bool, opt plugin.Options) ([]msg.Service, error) {
 
 	ip := dnsutil.ExtractAddressFromReverse(state.Name())
 	if ip == "" {
-		_, e := k.Records(state, exact)
+		_, e := k.Records(ctx, state, exact)
 		return nil, e
 	}
 

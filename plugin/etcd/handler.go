@@ -12,7 +12,7 @@ import (
 // ServeDNS implements the plugin.Handler interface.
 func (e *Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	opt := plugin.Options{}
-	state := request.Request{W: w, Req: r, Context: ctx}
+	state := request.Request{W: w, Req: r}
 
 	zone := plugin.Zones(e.Zones).Matches(state.Name())
 	if zone == "" {
@@ -26,44 +26,44 @@ func (e *Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 
 	switch state.QType() {
 	case dns.TypeA:
-		records, err = plugin.A(e, zone, state, nil, opt)
+		records, err = plugin.A(ctx, e, zone, state, nil, opt)
 	case dns.TypeAAAA:
-		records, err = plugin.AAAA(e, zone, state, nil, opt)
+		records, err = plugin.AAAA(ctx, e, zone, state, nil, opt)
 	case dns.TypeTXT:
-		records, err = plugin.TXT(e, zone, state, opt)
+		records, err = plugin.TXT(ctx, e, zone, state, opt)
 	case dns.TypeCNAME:
-		records, err = plugin.CNAME(e, zone, state, opt)
+		records, err = plugin.CNAME(ctx, e, zone, state, opt)
 	case dns.TypePTR:
-		records, err = plugin.PTR(e, zone, state, opt)
+		records, err = plugin.PTR(ctx, e, zone, state, opt)
 	case dns.TypeMX:
-		records, extra, err = plugin.MX(e, zone, state, opt)
+		records, extra, err = plugin.MX(ctx, e, zone, state, opt)
 	case dns.TypeSRV:
-		records, extra, err = plugin.SRV(e, zone, state, opt)
+		records, extra, err = plugin.SRV(ctx, e, zone, state, opt)
 	case dns.TypeSOA:
-		records, err = plugin.SOA(e, zone, state, opt)
+		records, err = plugin.SOA(ctx, e, zone, state, opt)
 	case dns.TypeNS:
 		if state.Name() == zone {
-			records, extra, err = plugin.NS(e, zone, state, opt)
+			records, extra, err = plugin.NS(ctx, e, zone, state, opt)
 			break
 		}
 		fallthrough
 	default:
 		// Do a fake A lookup, so we can distinguish between NODATA and NXDOMAIN
-		_, err = plugin.A(e, zone, state, nil, opt)
+		_, err = plugin.A(ctx, e, zone, state, nil, opt)
 	}
 	if err != nil && e.IsNameError(err) {
 		if e.Fall.Through(state.Name()) {
 			return plugin.NextOrFailure(e.Name(), e.Next, ctx, w, r)
 		}
 		// Make err nil when returning here, so we don't log spam for NXDOMAIN.
-		return plugin.BackendError(e, zone, dns.RcodeNameError, state, nil /* err */, opt)
+		return plugin.BackendError(ctx, e, zone, dns.RcodeNameError, state, nil /* err */, opt)
 	}
 	if err != nil {
-		return plugin.BackendError(e, zone, dns.RcodeServerFailure, state, err, opt)
+		return plugin.BackendError(ctx, e, zone, dns.RcodeServerFailure, state, err, opt)
 	}
 
 	if len(records) == 0 {
-		return plugin.BackendError(e, zone, dns.RcodeSuccess, state, err, opt)
+		return plugin.BackendError(ctx, e, zone, dns.RcodeSuccess, state, err, opt)
 	}
 
 	m := new(dns.Msg)

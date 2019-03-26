@@ -117,7 +117,7 @@ func (h *Route53) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 	var result file.Result
 	for _, hostedZone := range z {
 		h.zMu.RLock()
-		m.Answer, m.Ns, m.Extra, result = hostedZone.z.Lookup(state, qname)
+		m.Answer, m.Ns, m.Extra, result = hostedZone.z.Lookup(ctx, state, qname)
 		h.zMu.RUnlock()
 		if len(m.Answer) != 0 {
 			break

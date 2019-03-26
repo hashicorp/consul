@@ -51,7 +51,7 @@ func (f *Federation) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.
 		return plugin.NextOrFailure(f.Name(), f.Next, ctx, w, r)
 	}
 
-	state := request.Request{W: w, Req: r, Context: ctx}
+	state := request.Request{W: w, Req: r}
 
 	zone := plugin.Zones(f.zones).Matches(state.Name())
 	if zone == "" {
@@ -109,7 +109,7 @@ func (f *Federation) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.
 	m.Answer = []dns.RR{service.NewCNAME(state.QName(), service.Host)}
 
 	if f.Upstream != nil {
-		aRecord, err := f.Upstream.Lookup(state, service.Host, state.QType())
+		aRecord, err := f.Upstream.Lookup(ctx, state, service.Host, state.QType())
 		if err == nil && aRecord != nil && len(aRecord.Answer) > 0 {
 			m.Answer = append(m.Answer, aRecord.Answer...)
 		}

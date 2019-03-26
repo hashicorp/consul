@@ -2,6 +2,7 @@
 package kubernetes
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -86,7 +87,7 @@ var (
 )
 
 // Services implements the ServiceBackend interface.
-func (k *Kubernetes) Services(state request.Request, exact bool, opt plugin.Options) (svcs []msg.Service, err error) {
+func (k *Kubernetes) Services(ctx context.Context, state request.Request, exact bool, opt plugin.Options) (svcs []msg.Service, err error) {
 	// We're looking again at types, which we've already done in ServeDNS, but there are some types k8s just can't answer.
 	switch state.QType() {
 
@@ -119,7 +120,7 @@ func (k *Kubernetes) Services(state request.Request, exact bool, opt plugin.Opti
 		return []msg.Service{svc}, nil
 	}
 
-	s, e := k.Records(state, false)
+	s, e := k.Records(ctx, state, false)
 
 	// SRV for external services is not yet implemented, so remove those records.
 
@@ -141,8 +142,8 @@ func (k *Kubernetes) Services(state request.Request, exact bool, opt plugin.Opti
 func (k *Kubernetes) primaryZone() string { return k.Zones[k.primaryZoneIndex] }
 
 // Lookup implements the ServiceBackend interface.
-func (k *Kubernetes) Lookup(state request.Request, name string, typ uint16) (*dns.Msg, error) {
-	return k.Upstream.Lookup(state, name, typ)
+func (k *Kubernetes) Lookup(ctx context.Context, state request.Request, name string, typ uint16) (*dns.Msg, error) {
+	return k.Upstream.Lookup(ctx, state, name, typ)
 }
 
 // IsNameError implements the ServiceBackend interface.
@@ -236,7 +237,7 @@ func (k *Kubernetes) InitKubeCache() (err error) {
 }
 
 // Records looks up services in kubernetes.
-func (k *Kubernetes) Records(state request.Request, exact bool) ([]msg.Service, error) {
+func (k *Kubernetes) Records(ctx context.Context, state request.Request, exact bool) ([]msg.Service, error) {
 	r, e := parseRequest(state)
 	if e != nil {
 		return nil, e

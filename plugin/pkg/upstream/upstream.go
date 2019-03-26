@@ -2,6 +2,7 @@
 package upstream
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/miekg/dns"
@@ -18,8 +19,8 @@ type Upstream struct{}
 func New() *Upstream { return &Upstream{} }
 
 // Lookup routes lookups to our selves or forward to a remote.
-func (u *Upstream) Lookup(state request.Request, name string, typ uint16) (*dns.Msg, error) {
-	server, ok := state.Context.Value(dnsserver.Key{}).(*dnsserver.Server)
+func (u *Upstream) Lookup(ctx context.Context, state request.Request, name string, typ uint16) (*dns.Msg, error) {
+	server, ok := ctx.Value(dnsserver.Key{}).(*dnsserver.Server)
 	if !ok {
 		return nil, fmt.Errorf("no full server is running")
 	}
@@ -29,7 +30,7 @@ func (u *Upstream) Lookup(state request.Request, name string, typ uint16) (*dns.
 
 	nw := nonwriter.New(state.W)
 
-	server.ServeDNS(state.Context, nw, req)
+	server.ServeDNS(ctx, nw, req)
 
 	return nw.Msg, nil
 }

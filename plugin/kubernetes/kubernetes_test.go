@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"context"
 	"testing"
 
 	"github.com/coredns/coredns/plugin"
@@ -281,7 +282,7 @@ func TestServices(t *testing.T) {
 			Req:  &dns.Msg{Question: []dns.Question{{Name: test.qname, Qtype: test.qtype}}},
 			Zone: "interwebs.test.", // must match from k.Zones[0]
 		}
-		svcs, e := k.Services(state, false, plugin.Options{})
+		svcs, e := k.Services(context.TODO(), state, false, plugin.Options{})
 		if e != nil {
 			t.Errorf("Test %d: got error '%v'", i, e)
 			continue

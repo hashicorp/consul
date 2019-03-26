@@ -1,7 +1,6 @@
 package etcd
 
 import (
-	"context"
 	"crypto/tls"
 
 	"github.com/coredns/coredns/core/dnsserver"
@@ -38,10 +37,7 @@ func setup(c *caddy.Controller) error {
 }
 
 func etcdParse(c *caddy.Controller) (*Etcd, error) {
-	etc := Etcd{
-		PathPrefix: "skydns",
-		Ctx:        context.Background(),
-	}
+	etc := Etcd{PathPrefix: "skydns"}
 	var (
 		tlsConfig *tls.Config
 		err       error

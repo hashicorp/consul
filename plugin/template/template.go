@@ -51,7 +51,7 @@ type templateData struct {
 
 // ServeDNS implements the plugin.Handler interface.
 func (h Handler) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
-	state := request.Request{W: w, Req: r, Context: ctx}
+	state := request.Request{W: w, Req: r}
 
 	zone := plugin.Zones(h.Zones).Matches(state.Name())
 	if zone == "" {
@@ -85,7 +85,7 @@ func (h Handler) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 			}
 			msg.Answer = append(msg.Answer, rr)
 			if template.upstream != nil && (state.QType() == dns.TypeA || state.QType() == dns.TypeAAAA) && rr.Header().Rrtype == dns.TypeCNAME {
-				up, _ := template.upstream.Lookup(state, rr.(*dns.CNAME).Target, state.QType())
+				up, _ := template.upstream.Lookup(ctx, state, rr.(*dns.CNAME).Target, state.QType())
 				msg.Answer = append(msg.Answer, up.Answer...)
 			}
 		}

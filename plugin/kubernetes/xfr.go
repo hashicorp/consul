@@ -45,7 +45,7 @@ func (k *Kubernetes) Transfer(ctx context.Context, state request.Request) (int, 
 	ch := make(chan *dns.Envelope)
 	tr := new(dns.Transfer)
 
-	soa, err := plugin.SOA(k, state.Zone, state, plugin.Options{})
+	soa, err := plugin.SOA(ctx, k, state.Zone, state, plugin.Options{})
 	if err != nil {
 		return dns.RcodeServerFailure, nil
 	}

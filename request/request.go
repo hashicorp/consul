@@ -2,7 +2,6 @@
 package request
 
 import (
-	"context"
 	"net"
 	"strings"
 
@@ -19,12 +18,9 @@ type Request struct {
 	// Optional lowercased zone of this query.
 	Zone string
 
-	Context context.Context
-
 	// Cache size after first call to Size or Do.
 	size int
 	do   *bool // nil: nothing, otherwise *do value
-	// TODO(miek): opt record itself as well?
 
 	// Caches
 	name      string // lowercase qname.

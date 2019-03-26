@@ -1,6 +1,7 @@
 package file
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -33,17 +34,18 @@ func TestZoneReload(t *testing.T) {
 	z.Reload()
 	time.Sleep(time.Second)
 
+	ctx := context.TODO()
 	r := new(dns.Msg)
 	r.SetQuestion("miek.nl", dns.TypeSOA)
 	state := request.Request{W: &test.ResponseWriter{}, Req: r}
-	if _, _, _, res := z.Lookup(state, "miek.nl."); res != Success {
+	if _, _, _, res := z.Lookup(ctx, state, "miek.nl."); res != Success {
 		t.Fatalf("Failed to lookup, got %d", res)
 	}
 
 	r = new(dns.Msg)
 	r.SetQuestion("miek.nl", dns.TypeNS)
 	state = request.Request{W: &test.ResponseWriter{}, Req: r}
-	if _, _, _, res := z.Lookup(state, "miek.nl."); res != Success {
+	if _, _, _, res := z.Lookup(ctx, state, "miek.nl."); res != Success {
 		t.Fatalf("Failed to lookup, got %d", res)
 	}
 

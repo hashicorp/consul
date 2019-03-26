@@ -11,7 +11,7 @@ import (
 
 // ServeDNS implements the plugin.Handler interface.
 func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
-	state := request.Request{W: w, Req: r, Context: ctx}
+	state := request.Request{W: w, Req: r}
 
 	qname := state.QName()
 	zone := plugin.Zones(k.Zones).Matches(qname)
@@ -29,24 +29,24 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 
 	switch state.QType() {
 	case dns.TypeA:
-		records, err = plugin.A(&k, zone, state, nil, plugin.Options{})
+		records, err = plugin.A(ctx, &k, zone, state, nil, plugin.Options{})
 	case dns.TypeAAAA:
-		records, err = plugin.AAAA(&k, zone, state, nil, plugin.Options{})
+		records, err = plugin.AAAA(ctx, &k, zone, state, nil, plugin.Options{})
 	case dns.TypeTXT:
-		records, err = plugin.TXT(&k, zone, state, plugin.Options{})
+		records, err = plugin.TXT(ctx, &k, zone, state, plugin.Options{})
 	case dns.TypeCNAME:
-		records, err = plugin.CNAME(&k, zone, state, plugin.Options{})
+		records, err = plugin.CNAME(ctx, &k, zone, state, plugin.Options{})
 	case dns.TypePTR:
-		records, err = plugin.PTR(&k, zone, state, plugin.Options{})
+		records, err = plugin.PTR(ctx, &k, zone, state, plugin.Options{})
 	case dns.TypeMX:
-		records, extra, err = plugin.MX(&k, zone, state, plugin.Options{})
+		records, extra, err = plugin.MX(ctx, &k, zone, state, plugin.Options{})
 	case dns.TypeSRV:
-		records, extra, err = plugin.SRV(&k, zone, state, plugin.Options{})
+		records, extra, err = plugin.SRV(ctx, &k, zone, state, plugin.Options{})
 	case dns.TypeSOA:
-		records, err = plugin.SOA(&k, zone, state, plugin.Options{})
+		records, err = plugin.SOA(ctx, &k, zone, state, plugin.Options{})
 	case dns.TypeNS:
 		if state.Name() == zone {
-			records, extra, err = plugin.NS(&k, zone, state, plugin.Options{})
+			records, extra, err = plugin.NS(ctx, &k, zone, state, plugin.Options{})
 			break
 		}
 		fallthrough
@@ -54,7 +54,7 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 		k.Transfer(ctx, state)
 	default:
 		// Do a fake A lookup, so we can distinguish between NODATA and NXDOMAIN
-		_, err = plugin.A(&k, zone, state, nil, plugin.Options{})
+		_, err = plugin.A(ctx, &k, zone, state, nil, plugin.Options{})
 	}
 
 	if k.IsNameError(err) {
@@ -63,16 +63,16 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 		}
 		if !k.APIConn.HasSynced() {
 			// If we haven't synchronized with the kubernetes cluster, return server failure
-			return plugin.BackendError(&k, zone, dns.RcodeServerFailure, state, nil /* err */, plugin.Options{})
+			return plugin.BackendError(ctx, &k, zone, dns.RcodeServerFailure, state, nil /* err */, plugin.Options{})
 		}
-		return plugin.BackendError(&k, zone, dns.RcodeNameError, state, nil /* err */, plugin.Options{})
+		return plugin.BackendError(ctx, &k, zone, dns.RcodeNameError, state, nil /* err */, plugin.Options{})
 	}
 	if err != nil {
 		return dns.RcodeServerFailure, err
 	}
 
 	if len(records) == 0 {
-		return plugin.BackendError(&k, zone, dns.RcodeSuccess, state, nil, plugin.Options{})
+		return plugin.BackendError(ctx, &k, zone, dns.RcodeSuccess, state, nil, plugin.Options{})
 	}
 
 	m := new(dns.Msg)
