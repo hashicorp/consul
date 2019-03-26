@@ -6,13 +6,10 @@ description: |-
   One of the key features of Consul is its support for multiple datacenters. The architecture of Consul is designed to promote low coupling of datacenters so that connectivity issues or failure of any datacenter does not impact the availability of Consul in other datacenters. This means each datacenter runs independently, each having a dedicated group of servers and a private LAN gossip pool.
 ---
 
-# Multiple Datacenters
-## Advanced Federation with Network Areas
+# [Enterprise] Multiple Datacenters: Advanced Federation with Network Areas
 
-[//]: # ( ~> The network area functionality described here is available only in )
-[//]: # (   [Consul Enterprise](https://www.hashicorp.com/products/consul/) version 0.8.0 and later. )
 
-<%= enterprise_alert :consul %>
+~> The network area functionality described here is available only in [Consul Enterprise](https://www.hashicorp.com/products/consul/) version 0.8.0 and later. 
 
 One of the key features of Consul is its support for multiple datacenters.
 The [architecture](/docs/internals/architecture.html) of Consul is designed to
@@ -21,22 +18,13 @@ failure of any datacenter does not impact the availability of Consul in other
 datacenters. This means each datacenter runs independently, each having a dedicated
 group of servers and a private LAN [gossip pool](/docs/internals/gossip.html).
 
-In general, data is not replicated between different Consul datacenters. When a
-request is made for a resource in another datacenter, the local Consul servers forward
-an RPC request to the remote Consul servers for that resource and return the results.
-If the remote datacenter is not available, then those resources will also not be
-available, but that won't otherwise affect the local datacenter. There are some special
-situations where a limited subset of data can be replicated, such as with Consul's built-in
-[ACL replication](/docs/guides/acl.html#outages-and-acl-replication) capability, or
-external tools like [consul-replicate](https://github.com/hashicorp/consul-replicate).
-
 This guide covers the advanced form of federating Consul clusters using the new
 network areas capability added in [Consul Enterprise](https://www.hashicorp.com/products/consul/)
 version 0.8.0. For the basic form of federation available in the open source version
 of Consul, please see the [Basic Federation Guide](/docs/guides/datacenters.html)
 for more details.
 
-## Network Areas
+## Network Area Overview
 
 Consul's [Basic Federation](/docs/guides/datacenters.html) support relies on all
 Consul servers in all datacenters having full mesh connectivity via server RPC
@@ -62,7 +50,7 @@ The following can be used to manage network areas:
 * [Network Areas HTTP Endpoint](/api/operator/area.html)
 * [Network Areas CLI](/docs/commands/operator/area.html)
 
-## Network Areas and the WAN Gossip Pool
+### Network Areas and the WAN Gossip Pool
 
 Networks areas can be used alongside the Consul's [Basic Federation](/docs/guides/datacenters.html)
 model and the WAN gossip pool. This helps ease migration, and clusters like the
@@ -72,38 +60,42 @@ the WAN because they need to be available to all Consul datacenters.
 A peer datacenter can connected via the WAN gossip pool and a network area at the
 same time, and RPCs will be forwarded as long as servers are available in either.
 
-## Getting Started
+## Configure Advanced Federation
 
-To get started, follow the [bootstrapping guide](/docs/guides/bootstrapping.html) to
+To get started, follow the [Deployment guide](https://learn.hashicorp.com/consul/advanced/day-1-operations/deployment-guide/) to
 start each datacenter. After bootstrapping, we should have two datacenters now which
 we can refer to as `dc1` and `dc2`. Note that datacenter names are opaque to Consul;
 they are simply labels that help human operators reason about the Consul clusters.
 
+### Create Areas in both Datacenters
+
 A compatible pair of areas must be created in each datacenter:
 
-```text
+```sh
 (dc1) $ consul operator area create -peer-datacenter=dc2
 Created area "cbd364ae-3710-1770-911b-7214e98016c0" with peer datacenter "dc2"!
 ```
 
-```text
+```sh
 (dc2) $ consul operator area create -peer-datacenter=dc1
 Created area "2aea3145-f1e3-cb1d-a775-67d15ddd89bf" with peer datacenter "dc1"!
 ```
 
 Now you can query for the members of the area:
 
-```text
+```sh
 (dc1) $ consul operator area members
 Area                                  Node        Address         Status  Build         Protocol  DC   RTT
 cbd364ae-3710-1770-911b-7214e98016c0  node-1.dc1  127.0.0.1:8300  alive   0.8.0_entrc1  2         dc1  0s
 ```
 
+### Join Servers
+
 Consul will automatically make sure that all servers within the datacenter where
 the area was created are joined to the area using the LAN information. We need to
 join with at least one Consul server in the other datacenter to complete the area:
 
-```text
+```sh
 (dc1) $ consul operator area join -peer-datacenter=dc2 127.0.0.2
 Address    Joined  Error
 127.0.0.2  true    (none)
@@ -112,24 +104,28 @@ Address    Joined  Error
 With a successful join, we should now see the remote Consul servers as part of the
 area's members:
 
-```text
+```sh
 (dc1) $ consul operator area members
 Area                                  Node        Address         Status  Build         Protocol  DC   RTT
 cbd364ae-3710-1770-911b-7214e98016c0  node-1.dc1  127.0.0.1:8300  alive   0.8.0_entrc1  2         dc1  0s
 cbd364ae-3710-1770-911b-7214e98016c0  node-2.dc2  127.0.0.2:8300  alive   0.8.0_entrc1  2         dc2  581.649µs
 ```
 
+### Route RPCs
+
 Now we can route RPC commands in both directions. Here's a sample command to set a KV
 entry in dc2 from dc1:
 
-```text
+```sh
 (dc1) $ consul kv put -datacenter=dc2 hello world
 Success! Data written to: hello
 ```
 
+### DNS Lookups
+
 The DNS interface supports federation as well:
 
-```text
+```sh
 (dc1) $ dig @127.0.0.1 -p 8600 consul.service.dc2.consul
 
 ; <<>> DiG 9.8.3-P1 <<>> @127.0.0.1 -p 8600 consul.service.dc2.consul
@@ -162,3 +158,20 @@ tunneling mechanism. Consul does not handle VPN or NAT traversal for you.
 The [`translate_wan_addrs`](/docs/agent/options.html#translate_wan_addrs) configuration
 provides a basic address rewriting capability.
 
+## Data Replication
+
+
+In general, data is not replicated between different Consul datacenters. When a
+request is made for a resource in another datacenter, the local Consul servers forward
+an RPC request to the remote Consul servers for that resource and return the results.
+If the remote datacenter is not available, then those resources will also not be
+available, but that won't otherwise affect the local datacenter. There are some special
+situations where a limited subset of data can be replicated, such as with Consul's built-in
+[ACL replication](/docs/guides/acl.html#outages-and-acl-replication/) capability, or
+external tools like [consul-replicate](https://github.com/hashicorp/consul-replicate/).
+
+## Summary
+
+In this guide, you setup advanced federation using
+network areas. You then learned how to route RPC commands and use
+the DNS interface with multiple datacenters.
