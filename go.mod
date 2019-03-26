@@ -31,6 +31,7 @@ require (
 	github.com/containerd/continuity v0.0.0-20181203112020-004b46473808 // indirect
 	github.com/coredns/coredns v1.1.2
 	github.com/denisenkom/go-mssqldb v0.0.0-20180620032804-94c9c97e8c9f // indirect
+	github.com/digitalocean/godo v1.10.0 // indirect
 	github.com/docker/go-connections v0.3.0
 	github.com/docker/go-units v0.3.3 // indirect
 	github.com/duosecurity/duo_api_golang v0.0.0-20190308151101-6c680f768e74 // indirect
@@ -54,7 +55,7 @@ require (
 	github.com/hashicorp/consul/internal v0.0.0-00010101000000-000000000000
 	github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
 	github.com/hashicorp/go-cleanhttp v0.5.1
-	github.com/hashicorp/go-discover v0.0.0-20190226150400-504b36597c3c
+	github.com/hashicorp/go-discover v0.0.0-20190319153616-61771d82ff54
 	github.com/hashicorp/go-hclog v0.0.0-20180402200405-69ff559dc25f // indirect
 	github.com/hashicorp/go-memdb v0.0.0-20180223233045-1289e7fffe71
 	github.com/hashicorp/go-msgpack v0.5.3
@@ -122,5 +123,4 @@ require (
 	gotest.tools v2.2.0+incompatible // indirect
 	k8s.io/api v0.0.0-20190118113203-912cbe2bfef3 // indirect
 	k8s.io/apimachinery v0.0.0-20180904193909-def12e63c512 // indirect
-	launchpad.net/gocheck v0.0.0-20140225173054-000000000087 // indirect
 )
