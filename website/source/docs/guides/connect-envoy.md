@@ -9,34 +9,27 @@ description: |-
 # Using Connect with Envoy Proxy
 
 Consul Connect has first class support for using
-[Envoy](https://www.envoyproxy.io) as a proxy. This guide will walk through a
-working example on a local development machine that shows the moving parts.
+[Envoy](https://www.envoyproxy.io/) as a proxy. This guide will describe how to setup a development-mode Consul server and two services that use
+Envoy proxies on a single machine with [Docker](https://www.docker.com/). 
+The aim of this guide is to demonstrate a minimal working setup and the moving parts involved, it is not intended for production deployments.
 
 For reference documentation on how the integration works and is configured,
-please see [Envoy](/docs/connect/proxies/envoy.html).
+please see our [Envoy documentation](/docs/connect/proxies/envoy.html).
 
 ## Setup Overview
 
-This guide will describe how to setup a development-mode Consul server and two
-Envoy proxies on a single machine using [Docker](https://www.docker.com/). The
-aim is to demonstrate a minimal working setup and the moving parts involved.
+We'll start all containers using Docker's `host` network mode and will have a total of five containers running by the end of this guide.
+
+ 1. A single Consul server
+ 2. An example TCP `echo` service as a destination
+ 3. An Envoy sidecar proxy for the `echo` service
+ 4. An Envoy sidecar proxy for the `client` service
+ 5. An example `client` service (netcat)
 
 We choose to run in Docker since Envoy is only distributed as a Docker image so
 it's the quickest way to get a demo running. The same commands used here will
 work in just the same way outside of Docker if you build an Envoy binary
 yourself.
-
-We'll start all containers using Docker's `host` network mode which is not a
-realistic simulation of a production setup, but makes the following steps much
-simpler.
-
-We should end up with five containers running:
-
- 1. The Consul agent
- 2. An example TCP `echo` service as a destination
- 3. An Envoy sidecar proxy for the `echo` service
- 4. An Envoy sidecar proxy for the `client` service
- 5. An example `client` service (netcat)
 
 ## Building an Envoy Image
 
@@ -75,9 +68,9 @@ docker build -t consul-envoy .
 We will use the `consul-envoy` image we just made to configure and run Envoy
 processes later.
 
-## Consul Agent Setup
+## Deploying a Consul Server
 
-Next we need a Consul agent. We'll work with a single Consul agent in `-dev`
+Next we need a Consul server. We'll work with a single Consul server in `-dev`
 mode for simplicity.
 
 -> **Note:** `-dev` mode enables the gRPC server on port 8502 by default. For a
@@ -85,11 +78,11 @@ production agent you'll need to [explicitly configure the gRPC
 port](/docs/agent/options.html#grpc_port).
 
 In order to start a proxy instance, a [proxy service
-definition](/docs/connect/proxies.html) must exist on the local agent. We'll
+definition](/docs/connect/proxies.html) must exist on the local Consul agent. We'll
 create one using the [sidecar service
 registration](/docs/connect/proxies/sidecar-service.html) syntax.
 
-Create a config file called `envoy_demo.hcl` containing the following service
+Create a configuration file called `envoy_demo.hcl` containing the following service
 definitions.
 
 ```hcl
@@ -116,7 +109,7 @@ services {
 }
 ```
 
-The Consul agent container can now be started with that configuration.
+The Consul container can now be started with that configuration.
 
 ```sh
 $ docker run --rm -d -v$(pwd)/envoy_demo.hcl:/etc/consul/envoy_demo.hcl \
@@ -132,13 +125,13 @@ continue in the same terminal. Log output can be seen using the name we gave.
 docker logs -f consul-agent
 ```
 
-Note that the Consul agent has registered two services `client` and `echo`, but
+Note that the Consul server has registered two services `client` and `echo`, but
 also registered two proxies `client-sidecar-proxy` and `echo-sidecar-proxy`.
 Next we'll need to run those services and proxies.
 
 ## Running the Echo Service
 
-Next we'll run the `echo` service. We can use an existing tcp echo utility image
+Next we'll run the `echo` service. We can use an existing TCP echo utility image
 for this.
 
 Start the echo service on port 9090 as registered before.
@@ -182,7 +175,7 @@ listeners, TLS certificates, upstream service instances and so on. The xDS API
 allows the Envoy instance to watch for any changes so certificate rotations or
 changes to the upstream service instances are immediately sent to the proxy.
 
-## Running the Client
+## Running the Client Service
 
 Finally, we can see the connectivity by running a dummy "client" service. Rather
 than run a full service that itself can listen, we'll simulate the service with
