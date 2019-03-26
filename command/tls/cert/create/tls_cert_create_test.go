@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/internal/testutil"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
 

@@ -6,7 +6,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/internal/testutil/retry"
 )
 
 func TestValidateUserEventParams(t *testing.T) {

@@ -16,7 +16,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/internal/testutil"
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 )
 

@@ -10,13 +10,13 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/internal/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/types"
 	"github.com/pascaldekloe/goe/verify"
 )
 
-func verifySession(r *retry.R, a *TestAgent, want structs.Session) {
+func verifySession(t *testing.T, r *retry.R, a *TestAgent, want structs.Session) {
 	args := &structs.SessionSpecificRequest{
 		Datacenter: "dc1",
 		Session:    want.ID,
@@ -34,7 +34,7 @@ func verifySession(r *retry.R, a *TestAgent, want structs.Session) {
 	got := *(out.Sessions[0])
 	got.CreateIndex = 0
 	got.ModifyIndex = 0
-	verify.Values(r, "", got, want)
+	verify.Values(t, "", got, want)
 }
 
 func TestSessionCreate(t *testing.T) {
@@ -90,7 +90,7 @@ func TestSessionCreate(t *testing.T) {
 			LockDelay: 20 * time.Second,
 			Behavior:  structs.SessionKeysRelease,
 		}
-		verifySession(r, a, want)
+		verifySession(t, r, a, want)
 	})
 }
 
@@ -146,7 +146,7 @@ func TestSessionCreate_Delete(t *testing.T) {
 			LockDelay: 20 * time.Second,
 			Behavior:  structs.SessionKeysDelete,
 		}
-		verifySession(r, a, want)
+		verifySession(t, r, a, want)
 	})
 }
 
@@ -182,7 +182,7 @@ func TestSessionCreate_DefaultCheck(t *testing.T) {
 			LockDelay: 20 * time.Second,
 			Behavior:  structs.SessionKeysRelease,
 		}
-		verifySession(r, a, want)
+		verifySession(t, r, a, want)
 	})
 }
 
@@ -219,7 +219,7 @@ func TestSessionCreate_NoCheck(t *testing.T) {
 			LockDelay: 20 * time.Second,
 			Behavior:  structs.SessionKeysRelease,
 		}
-		verifySession(r, a, want)
+		verifySession(t, r, a, want)
 	})
 }
 

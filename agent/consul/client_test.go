@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib/freeport"
+	"github.com/hashicorp/consul/internal/freeport"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/consul/testutil"
-	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/internal/testutil"
+	"github.com/hashicorp/consul/internal/testutil/retry"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"

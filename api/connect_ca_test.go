@@ -6,8 +6,8 @@ import (
 
 	"github.com/pascaldekloe/goe/verify"
 
-	"github.com/hashicorp/consul/testutil"
-	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/internal/testutil"
+	"github.com/hashicorp/consul/internal/testutil/retry"
 	"github.com/stretchr/testify/require"
 )
 

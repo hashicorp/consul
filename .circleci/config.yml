@@ -3,7 +3,7 @@ version: 2
 
 references:
   images:
-    go: &GOLANG_IMAGE circleci/golang:1.11.4
+    go: &GOLANG_IMAGE circleci/golang:1.12.1
     middleman: &MIDDLEMAN_IMAGE hashicorp/middleman-hashicorp:0.3.35
     ember: &EMBER_IMAGE circleci/node:8-browsers
 
@@ -98,7 +98,7 @@ jobs:
           working_directory: *NOMAD_WORKING_DIR
 
       # update gotestsum
-      - run: curl -sSL "https://github.com/gotestyourself/gotestsum/releases/download/v${GOTESTSUM_RELEASE}/gotestsum_${GOTESTSUM_RELEASE}_linux_amd64.tar.gz" | tar --overwrite -xz -C /usr/local/bin gotestsum
+      - run: curl -sSL "https://github.com/gotestyourself/gotestsum/releases/download/v${GOTESTSUM_RELEASE}/gotestsum_${GOTESTSUM_RELEASE}_linux_amd64.tar.gz" | sudo tar --overwrite -xz -C /usr/local/bin gotestsum
 
       # run integration tests
       - run:
