@@ -72,15 +72,6 @@ type Memberlist struct {
 	logger *log.Logger
 }
 
-// BuildVsnArray creates the array of Vsn
-func (conf *Config) BuildVsnArray() []uint8 {
-	return []uint8{
-		ProtocolVersionMin, ProtocolVersionMax, conf.ProtocolVersion,
-		conf.DelegateProtocolMin, conf.DelegateProtocolMax,
-		conf.DelegateProtocolVersion,
-	}
-}
-
 // newMemberlist creates the network listeners.
 // Does not schedule execution of background maintenance.
 func newMemberlist(conf *Config) (*Memberlist, error) {
@@ -411,7 +402,11 @@ func (m *Memberlist) setAlive() error {
 		Addr:        addr,
 		Port:        uint16(port),
 		Meta:        meta,
-		Vsn:         m.config.BuildVsnArray(),
+		Vsn: []uint8{
+			ProtocolVersionMin, ProtocolVersionMax, m.config.ProtocolVersion,
+			m.config.DelegateProtocolMin, m.config.DelegateProtocolMax,
+			m.config.DelegateProtocolVersion,
+		},
 	}
 	m.aliveNode(&a, nil, true)
 	return nil
@@ -452,7 +447,11 @@ func (m *Memberlist) UpdateNode(timeout time.Duration) error {
 		Addr:        state.Addr,
 		Port:        state.Port,
 		Meta:        meta,
-		Vsn:         m.config.BuildVsnArray(),
+		Vsn: []uint8{
+			ProtocolVersionMin, ProtocolVersionMax, m.config.ProtocolVersion,
+			m.config.DelegateProtocolMin, m.config.DelegateProtocolMax,
+			m.config.DelegateProtocolVersion,
+		},
 	}
 	notifyCh := make(chan struct{})
 	m.aliveNode(&a, notifyCh, true)

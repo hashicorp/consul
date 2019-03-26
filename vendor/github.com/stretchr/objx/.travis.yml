@@ -1,0 +1,13 @@
+language: go
+go:
+  - 1.8
+  - 1.9
+  - tip
+
+install:
+- go get github.com/go-task/task/cmd/task
+
+script:
+- task dl-deps
+- task lint
+- task test

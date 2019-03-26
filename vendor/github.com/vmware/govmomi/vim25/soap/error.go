@@ -39,11 +39,7 @@ func (s soapFaultError) Error() string {
 	msg := s.fault.String
 
 	if msg == "" {
-		if s.fault.Detail.Fault == nil {
-			msg = "unknown fault"
-		} else {
-			msg = reflect.TypeOf(s.fault.Detail.Fault).Name()
-		}
+		msg = reflect.TypeOf(s.fault.Detail.Fault).Name()
 	}
 
 	return fmt.Sprintf("%s: %s", s.fault.Code, msg)
