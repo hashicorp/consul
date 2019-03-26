@@ -42,9 +42,21 @@ func TestTypifyRRSIG(t *testing.T) {
 	}
 
 	m = delegationMsgRRSIGFail()
-	m = addOpt(m)
+	m.Extra = append(m.Extra, test.OPT(4096, true))
 	if mt, _ := Typify(m, utc); mt != OtherError {
 		t.Errorf("Message is wrongly typified, expected OtherError, got %s", mt)
+	}
+}
+
+func TestTypifyImpossible(t *testing.T) {
+	// create impossible message that denies it's own existence
+	m := new(dns.Msg)
+	m.SetQuestion("bar.www.example.org.", dns.TypeAAAA)
+	m.Rcode = dns.RcodeNameError                                                      // name does not exist
+	m.Answer = []dns.RR{test.CNAME("bar.www.example.org. IN CNAME foo.example.org.")} // but we add a cname with the name!
+	mt, _ := Typify(m, time.Now().UTC())
+	if mt != OtherError {
+		t.Errorf("Impossible message not typified as OtherError, got %s", mt)
 	}
 }
 
@@ -76,9 +88,4 @@ func delegationMsgRRSIGFail() *dns.Msg {
 		test.RRSIG("miek.nl.		1800	IN	RRSIG	NS 8 2 1800 20160521031301 20160421031301 12051 miek.nl. PIUu3TKX/sB/N1n1E1yWxHHIcPnc2q6Wq9InShk+5ptRqChqKdZNMLDm gCq+1bQAZ7jGvn2PbwTwE65JzES7T+hEiqR5PU23DsidvZyClbZ9l0xG JtKwgzGXLtUHxp4xv/Plq+rq/7pOG61bNCxRyS7WS7i7QcCCWT1BCcv+ wZ0="),
 	)
 	return del
-}
-
-func addOpt(m *dns.Msg) *dns.Msg {
-	m.Extra = append(m.Extra, test.OPT(4096, true))
-	return m
 }
