@@ -84,6 +84,14 @@ and consider if they're appropriate for your deployment.
 
   * <a name="v-global-datacenter" href="#v-global-datacenter">`datacenter`</a> (`string: "dc1"`) - The name of the datacenter that the agent cluster should register as. This may not be changed once the cluster is bootstrapped and running, since Consul doesn't yet support an automatic way to change this value.
 
+  * <a name="v-global-gossip" href="#v-global-gossip">`gossipEncryption`</a> - Configuration to enable [Gossip encryption](https://www.consul.io/docs/agent/encryption.html#gossip-encryption). Use of gossip encryption is highly recommended in production environments.
+
+      - <a name="v-global-gossip-enabled" href="#v-global-gossip-enabled">`enabled`</a> (`boolean: true`) - If true, gossip traffic between agents will be encrypted.
+
+      - <a name="v-global-gossip-secretname" href="#v-global-gossip-secretname">`secretName`</a> (`string: null`) - The name of the Kubernetes secret that contains the Gossip gncryption key. This defaults to null.
+      
+      - <a name="v-global-gossip-secretkey" href="#v-global-gossip-secretkey">`secretKey`</a> (`string: null`) - The key for the Kubernetes secret that contains the gossip key. This defaults to null.
+
 * <a name="v-server" href="#v-server">`server`</a> - Values that configure running a Consul server within Kubernetes.
 
   * <a name="v-server-enabled" href="#v-server-enabled">`enabled`</a> (`boolean: global.enabled`) - If true, the chart will install all the resources necessary for a Consul server cluster. If you're running Consul externally and want agents within Kubernetes to join that cluster, this should probably be false.
