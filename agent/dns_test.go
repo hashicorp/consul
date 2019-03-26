@@ -1611,6 +1611,52 @@ func TestDNS_ConnectServiceLookup(t *testing.T) {
 	}
 }
 
+func TestDNS_ConnectServiceProxyLookup(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Register
+	{
+		args := structs.TestRegisterRequestProxy(t)
+		args.Address = "127.0.0.55"
+		args.Service.Proxy.DestinationServiceName = "db"
+		args.Service.Proxy.Upstreams = structs.Upstreams{
+			structs.Upstream{
+				DestinationName: "db",
+				LocalBindPort:   13306,
+			},
+		}
+		args.Service.Address = ""
+		args.Service.Port = 12345
+		var out struct{}
+		assert.Nil(a.RPC("Catalog.Register", args, &out))
+	}
+
+	// Look up the service
+	questions := []string{
+		"db.proxy.consul.",
+	}
+	for _, question := range questions {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeSRV)
+
+		c := new(dns.Client)
+		in, _, err := c.Exchange(m, a.DNSAddr())
+		assert.Nil(err)
+		assert.Len(in.Answer, 1)
+
+		srvRec, ok := in.Answer[0].(*dns.SRV)
+		assert.True(ok)
+		assert.Equal(uint16(13306), srvRec.Port)
+		assert.Equal(fmt.Sprintf("%s.addr.%s.%s", a.Agent.LocalMember().Name, "dc1", "consul"), srvRec.Target)
+		assert.Equal(uint32(0), srvRec.Hdr.Ttl)
+	}
+}
+
 func TestDNS_ExternalServiceLookup(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")
