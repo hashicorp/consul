@@ -523,16 +523,16 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy strin
 			iter = memdb.NewFilterIterator(iter, func(raw interface{}) bool {
 				token, ok := raw.(*structs.ACLToken)
 				if !ok {
-					return false
+					return true
 				}
 
 				if global && !token.Local {
-					return true
+					return false
 				} else if local && token.Local {
-					return true
+					return false
 				}
 
-				return false
+				return true
 			})
 		}
 	} else if global == local {
