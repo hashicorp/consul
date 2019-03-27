@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/internal/testutil"
-	"github.com/hashicorp/consul/internal/testutil/retry"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/require"
 )

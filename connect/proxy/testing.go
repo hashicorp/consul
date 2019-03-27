@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/connect"
-	"github.com/hashicorp/consul/internal/freeport"
+	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 )

@@ -6,7 +6,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/hashicorp/consul/internal/testutil/retry"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"

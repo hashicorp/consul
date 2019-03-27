@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/consul/internal/testutil/retry"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 func TestAPI_PreparedQuery(t *testing.T) {

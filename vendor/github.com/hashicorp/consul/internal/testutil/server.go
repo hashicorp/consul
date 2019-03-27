@@ -28,8 +28,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/internal/freeport"
-	"github.com/hashicorp/consul/internal/testutil/retry"
+	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-uuid"
 	"github.com/pkg/errors"

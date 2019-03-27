@@ -4,7 +4,7 @@ go 1.12
 
 replace github.com/hashicorp/consul/api => ./api
 
-replace github.com/hashicorp/consul/internal => ./internal
+replace github.com/hashicorp/consul/sdk => ./sdk
 
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
@@ -52,7 +52,7 @@ require (
 	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf
 	github.com/gotestyourself/gotestyourself v2.2.0+incompatible // indirect
 	github.com/hashicorp/consul/api v1.0.0
-	github.com/hashicorp/consul/internal v0.1.0
+	github.com/hashicorp/consul/sdk v0.0.0-00010101000000-000000000000
 	github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
 	github.com/hashicorp/go-cleanhttp v0.5.1
 	github.com/hashicorp/go-discover v0.0.0-20190319153616-61771d82ff54

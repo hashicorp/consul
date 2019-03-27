@@ -9,7 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/internal/freeport"
+	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/raft"

@@ -3,8 +3,8 @@ package api
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/internal/testutil"
-	"github.com/hashicorp/consul/internal/testutil/retry"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 func TestAPI_OperatorAutopilotGetSetConfiguration(t *testing.T) {
