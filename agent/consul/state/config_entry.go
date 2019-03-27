@@ -11,8 +11,8 @@ const (
 	configTableName = "config-entries"
 )
 
-// configTableSchema returns a new table schema used to store global service
-// and proxy configurations.
+// configTableSchema returns a new table schema used to store global
+// config entries.
 func configTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: configTableName,
@@ -34,6 +34,15 @@ func configTableSchema() *memdb.TableSchema {
 					},
 				},
 			},
+			"kind": &memdb.IndexSchema{
+				Name:         "kind",
+				AllowMissing: false,
+				Unique:       true,
+				Indexer: &memdb.StringFieldIndex{
+					Field:     "Kind",
+					Lowercase: true,
+				},
+			},
 		},
 	}
 }
@@ -44,13 +53,13 @@ func init() {
 
 // ConfigEntries is used to pull all the config entries for the snapshot.
 func (s *Snapshot) ConfigEntries() ([]structs.ConfigEntry, error) {
-	ixns, err := s.tx.Get(configTableName, "id")
+	entries, err := s.tx.Get(configTableName, "id")
 	if err != nil {
 		return nil, err
 	}
 
 	var ret []structs.ConfigEntry
-	for wrapped := ixns.Next(); wrapped != nil; wrapped = ixns.Next() {
+	for wrapped := entries.Next(); wrapped != nil; wrapped = entries.Next() {
 		ret = append(ret, wrapped.(structs.ConfigEntry))
 	}
 
@@ -72,7 +81,7 @@ func (s *Restore) ConfigEntry(c structs.ConfigEntry) error {
 
 // ConfigEntry is called to get a given config entry.
 func (s *Store) ConfigEntry(kind, name string) (uint64, structs.ConfigEntry, error) {
-	tx := s.db.Txn(true)
+	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the index
@@ -84,7 +93,7 @@ func (s *Store) ConfigEntry(kind, name string) (uint64, structs.ConfigEntry, err
 		return 0, nil, fmt.Errorf("failed config entry lookup: %s", err)
 	}
 	if existing == nil {
-		return 0, nil, nil
+		return idx, nil, nil
 	}
 
 	conf, ok := existing.(structs.ConfigEntry)
@@ -97,14 +106,26 @@ func (s *Store) ConfigEntry(kind, name string) (uint64, structs.ConfigEntry, err
 
 // ConfigEntries is called to get all config entry objects.
 func (s *Store) ConfigEntries() (uint64, []structs.ConfigEntry, error) {
-	tx := s.db.Txn(true)
+	return s.ConfigEntriesByKind("")
+}
+
+// ConfigEntriesByKind is called to get all config entry objects with the given kind.
+// If kind is empty, all config entries will be returned.
+func (s *Store) ConfigEntriesByKind(kind string) (uint64, []structs.ConfigEntry, error) {
+	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the index
 	idx := maxIndexTxn(tx, configTableName)
 
-	// Get all
-	iter, err := tx.Get(configTableName, "id")
+	// Lookup by kind, or all if kind is empty
+	var iter memdb.ResultIterator
+	var err error
+	if kind != "" {
+		iter, err = tx.Get(configTableName, "kind", kind)
+	} else {
+		iter, err = tx.Get(configTableName, "id")
+	}
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed config entry lookup: %s", err)
 	}
@@ -116,11 +137,21 @@ func (s *Store) ConfigEntries() (uint64, []structs.ConfigEntry, error) {
 	return idx, results, nil
 }
 
-// EnsureConfigEntry is called to upsert creation of a given config entry.
+// EnsureConfigEntry is called to do an upsert of a given config entry.
 func (s *Store) EnsureConfigEntry(idx uint64, conf structs.ConfigEntry) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
+	if err := s.ensureConfigEntryTxn(tx, idx, conf); err != nil {
+		return err
+	}
+
+	tx.Commit()
+	return nil
+}
+
+// ensureConfigEntryTxn upserts a config entry inside of a transaction.
+func (s *Store) ensureConfigEntryTxn(tx *memdb.Txn, idx uint64, conf structs.ConfigEntry) error {
 	// Check for existing configuration.
 	existing, err := tx.First(configTableName, "id", conf.GetKind(), conf.GetName())
 	if err != nil {
@@ -141,20 +172,51 @@ func (s *Store) EnsureConfigEntry(idx uint64, conf structs.ConfigEntry) error {
 	if err := tx.Insert(configTableName, conf); err != nil {
 		return fmt.Errorf("failed inserting config entry: %s", err)
 	}
-	if err := tx.Insert("index", &IndexEntry{configTableName, idx}); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
+	if err := indexUpdateMaxTxn(tx, idx, configTableName); err != nil {
+		return fmt.Errorf("failed updating index: %v", err)
 	}
 
-	tx.Commit()
 	return nil
 }
 
-func (s *Store) DeleteConfigEntry(kind, name string) error {
+// EnsureConfigEntryCAS is called to do a check-and-set upsert of a given config entry.
+func (s *Store) EnsureConfigEntryCAS(idx, cidx uint64, conf structs.ConfigEntry) (bool, error) {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
-	// Get the index
-	idx := maxIndexTxn(tx, configTableName)
+	// Check for existing configuration.
+	existing, err := tx.First(configTableName, "id", conf.GetKind(), conf.GetName())
+	if err != nil {
+		return false, fmt.Errorf("failed configuration lookup: %s", err)
+	}
+
+	// Check if the we should do the set. A ModifyIndex of 0 means that
+	// we are doing a set-if-not-exists.
+	var existingIdx structs.RaftIndex
+	if existing != nil {
+		existingIdx = *existing.(structs.ConfigEntry).GetRaftIndex()
+	}
+	if cidx == 0 && existing != nil {
+		return false, nil
+	}
+	if cidx != 0 && existing == nil {
+		return false, nil
+	}
+	if existing != nil && cidx != 0 && cidx != existingIdx.ModifyIndex {
+		return false, nil
+	}
+
+	if err := s.ensureConfigEntryTxn(tx, idx, conf); err != nil {
+		return false, err
+	}
+
+	tx.Commit()
+	return true, nil
+}
+
+func (s *Store) DeleteConfigEntry(idx uint64, kind, name string) error {
+	tx := s.db.Txn(true)
+	defer tx.Abort()
 
 	// Try to retrieve the existing health check.
 	existing, err := tx.First(configTableName, "id", kind, name)

@@ -1,12 +1,17 @@
 package structs
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 const (
 	ServiceDefaults string = "service-defaults"
 	ProxyDefaults   string = "proxy-defaults"
 
 	ProxyConfigGlobal string = "global"
+
+	DefaultServiceProtocol = "tcp"
 )
 
 // ConfigEntry is the
@@ -14,7 +19,7 @@ type ConfigEntry interface {
 	GetKind() string
 	GetName() string
 
-	// This is called in the RPC endpoint and can apply defaults
+	// This is called in the RPC endpoint and can apply defaults or limits.
 	Normalize() error
 	Validate() error
 
@@ -51,6 +56,11 @@ func (e *ServiceConfigEntry) Normalize() error {
 	}
 
 	e.Kind = ServiceDefaults
+	if e.Protocol == "" {
+		e.Protocol = DefaultServiceProtocol
+	} else {
+		e.Protocol = strings.ToLower(e.Protocol)
+	}
 
 	return nil
 }
@@ -89,22 +99,13 @@ type ServiceDefinitionDefaults struct {
 	Connect ServiceConnect
 
 	Weights Weights
-
-	// DisableDirectDiscovery is a field that marks the service instance as
-	// not discoverable. This is useful in two cases:
-	//   1. Truly headless services like job workers that still need Connect
-	//      sidecars to connect to upstreams.
-	//   2. Connect applications that expose services only through their sidecar
-	//      and so discovery of their IP/port is meaningless since they can't be
-	//      connected to by that means.
-	DisableDirectDiscovery bool
 }
 
 // ProxyConfigEntry is the top-level struct for global proxy configuration defaults.
 type ProxyConfigEntry struct {
-	Kind        string
-	Name        string
-	ProxyConfig ConnectProxyConfig
+	Kind   string
+	Name   string
+	Config map[string]interface{}
 
 	RaftIndex
 }

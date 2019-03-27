@@ -463,7 +463,7 @@ func (c *FSM) applyConfigEntryOperation(index uint64, req structs.ConfigEntryReq
 	case structs.ConfigEntryDelete:
 		defer metrics.MeasureSinceWithLabels([]string{"fsm", "config_entry", req.Entry.GetKind()}, time.Now(),
 			[]metrics.Label{{Name: "op", Value: "delete"}})
-		return c.state.DeleteConfigEntry(req.Entry.GetKind(), req.Entry.GetName())
+		return c.state.DeleteConfigEntry(index, req.Entry.GetKind(), req.Entry.GetName())
 	default:
 		return fmt.Errorf("invalid config entry operation type: %v", req.Op)
 	}
