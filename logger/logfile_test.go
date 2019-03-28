@@ -3,6 +3,7 @@ package logger
 import (
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -10,16 +11,17 @@ import (
 )
 
 const (
-	testFileName = "Consul.log"
-	testDuration = 2 * time.Second
-	testBytes    = 10
+	testFileName   = "Consul.log"
+	testDuration   = 2 * time.Second
+	testBytes      = 10
+	maxLogArchives = 1
 )
 
 func TestLogFile_timeRotation(t *testing.T) {
 	t.Parallel()
 	tempDir := testutil.TempDir(t, "LogWriterTime")
 	defer os.Remove(tempDir)
-	logFile := LogFile{fileName: testFileName, logPath: tempDir, duration: testDuration}
+	logFile := LogFile{fileName: testFileName, logPath: tempDir, duration: testDuration, MaxLogArchives: 1}
 	logFile.Write([]byte("Hello World"))
 	time.Sleep(2 * time.Second)
 	logFile.Write([]byte("Second File"))
@@ -33,7 +35,7 @@ func TestLogFile_openNew(t *testing.T) {
 	t.Parallel()
 	tempDir := testutil.TempDir(t, "LogWriterOpen")
 	defer os.Remove(tempDir)
-	logFile := LogFile{fileName: testFileName, logPath: tempDir, duration: testDuration}
+	logFile := LogFile{fileName: testFileName, logPath: tempDir, duration: testDuration, MaxLogArchives: 1}
 
 	if err := logFile.openNew(); err != nil {
 		t.Errorf("Expected open file %s, got an error (%s)", testFileName, err)
@@ -48,12 +50,43 @@ func TestLogFile_byteRotation(t *testing.T) {
 	t.Parallel()
 	tempDir := testutil.TempDir(t, "LogWriterBytes")
 	defer os.Remove(tempDir)
-	logFile := LogFile{fileName: testFileName, logPath: tempDir, MaxBytes: testBytes, duration: 24 * time.Hour}
+	logFile := LogFile{fileName: testFileName, logPath: tempDir, MaxBytes: testBytes, duration: 24 * time.Hour, MaxLogArchives: 1}
 	logFile.Write([]byte("Hello World"))
 	logFile.Write([]byte("Second File"))
 	want := 2
 	tempFiles, _ := ioutil.ReadDir(tempDir)
 	if got := tempFiles; len(got) != want {
 		t.Errorf("Expected %d files, got %v file(s)", want, len(got))
+	}
+}
+
+func TestLogFile_deleteArchives(t *testing.T) {
+	t.Parallel()
+	tempDir := testutil.TempDir(t, "LogWriteDeleteOld")
+	defer os.Remove(tempDir)
+	logFile := LogFile{fileName: testFileName, logPath: tempDir, MaxBytes: testBytes, duration: 24 * time.Hour, MaxLogArchives: 1}
+	logFile.Write([]byte("Hello World"))
+	logFile.Write([]byte("Second File"))
+	logFile.Write([]byte("Third File"))
+	want := 2
+	tempFiles, _ := ioutil.ReadDir(tempDir)
+	if got := tempFiles; len(got) != want {
+		t.Errorf("Expected %d files, got %v file(s)", want, len(got))
+		return
+	}
+	for _, tempFile := range tempFiles {
+		var bytes []byte
+		var err error
+		path := filepath.Join(tempDir, tempFile.Name())
+		if bytes, err = ioutil.ReadFile(path); err != nil {
+			t.Errorf(err.Error())
+			return
+		}
+		contents := string(bytes)
+
+		if contents != "Second File" && contents != "Third File" {
+			t.Errorf("Should have deleted the eldest log file")
+			return
+		}
 	}
 }

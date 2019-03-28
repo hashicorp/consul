@@ -5092,6 +5092,7 @@ func TestSanitize(t *testing.T) {
 		"LogFile": "",
 		"LogRotateBytes": 0,
 		"LogRotateDuration": "0s",
+		"LogRotateMaxArchives": 0,
 		"NodeID": "",
 		"NodeMeta": {},
 		"NodeName": "",

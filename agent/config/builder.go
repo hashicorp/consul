@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"net"
 	"os"
 	"path/filepath"
@@ -810,62 +811,65 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		LogFile:                                 b.stringVal(c.LogFile),
 		LogRotateBytes:                          b.intVal(c.LogRotateBytes),
 		LogRotateDuration:                       b.durationVal("log_rotate_duration", c.LogRotateDuration),
-		NodeID:                                  types.NodeID(b.stringVal(c.NodeID)),
-		NodeMeta:                                c.NodeMeta,
-		NodeName:                                b.nodeName(c.NodeName),
-		NonVotingServer:                         b.boolVal(c.NonVotingServer),
-		PidFile:                                 b.stringVal(c.PidFile),
-		PrimaryDatacenter:                       primaryDatacenter,
-		RPCAdvertiseAddr:                        rpcAdvertiseAddr,
-		RPCBindAddr:                             rpcBindAddr,
-		RPCHoldTimeout:                          b.durationVal("performance.rpc_hold_timeout", c.Performance.RPCHoldTimeout),
-		RPCMaxBurst:                             b.intVal(c.Limits.RPCMaxBurst),
-		RPCProtocol:                             b.intVal(c.RPCProtocol),
-		RPCRateLimit:                            rate.Limit(b.float64Val(c.Limits.RPCRate)),
-		RaftProtocol:                            b.intVal(c.RaftProtocol),
-		RaftSnapshotThreshold:                   b.intVal(c.RaftSnapshotThreshold),
-		RaftSnapshotInterval:                    b.durationVal("raft_snapshot_interval", c.RaftSnapshotInterval),
-		ReconnectTimeoutLAN:                     b.durationVal("reconnect_timeout", c.ReconnectTimeoutLAN),
-		ReconnectTimeoutWAN:                     b.durationVal("reconnect_timeout_wan", c.ReconnectTimeoutWAN),
-		RejoinAfterLeave:                        b.boolVal(c.RejoinAfterLeave),
-		RetryJoinIntervalLAN:                    b.durationVal("retry_interval", c.RetryJoinIntervalLAN),
-		RetryJoinIntervalWAN:                    b.durationVal("retry_interval_wan", c.RetryJoinIntervalWAN),
-		RetryJoinLAN:                            b.expandAllOptionalAddrs("retry_join", c.RetryJoinLAN),
-		RetryJoinMaxAttemptsLAN:                 b.intVal(c.RetryJoinMaxAttemptsLAN),
-		RetryJoinMaxAttemptsWAN:                 b.intVal(c.RetryJoinMaxAttemptsWAN),
-		RetryJoinWAN:                            b.expandAllOptionalAddrs("retry_join_wan", c.RetryJoinWAN),
-		SegmentName:                             b.stringVal(c.SegmentName),
-		Segments:                                segments,
-		SerfAdvertiseAddrLAN:                    serfAdvertiseAddrLAN,
-		SerfAdvertiseAddrWAN:                    serfAdvertiseAddrWAN,
-		SerfBindAddrLAN:                         serfBindAddrLAN,
-		SerfBindAddrWAN:                         serfBindAddrWAN,
-		SerfPortLAN:                             serfPortLAN,
-		SerfPortWAN:                             serfPortWAN,
-		ServerMode:                              b.boolVal(c.ServerMode),
-		ServerName:                              b.stringVal(c.ServerName),
-		ServerPort:                              serverPort,
-		Services:                                services,
-		SessionTTLMin:                           b.durationVal("session_ttl_min", c.SessionTTLMin),
-		SkipLeaveOnInt:                          skipLeaveOnInt,
-		StartJoinAddrsLAN:                       b.expandAllOptionalAddrs("start_join", c.StartJoinAddrsLAN),
-		StartJoinAddrsWAN:                       b.expandAllOptionalAddrs("start_join_wan", c.StartJoinAddrsWAN),
-		SyslogFacility:                          b.stringVal(c.SyslogFacility),
-		TLSCipherSuites:                         b.tlsCipherSuites("tls_cipher_suites", c.TLSCipherSuites),
-		TLSMinVersion:                           b.stringVal(c.TLSMinVersion),
-		TLSPreferServerCipherSuites:             b.boolVal(c.TLSPreferServerCipherSuites),
-		TaggedAddresses:                         c.TaggedAddresses,
-		TranslateWANAddrs:                       b.boolVal(c.TranslateWANAddrs),
-		UIDir:                                   b.stringVal(c.UIDir),
-		UnixSocketGroup:                         b.stringVal(c.UnixSocket.Group),
-		UnixSocketMode:                          b.stringVal(c.UnixSocket.Mode),
-		UnixSocketUser:                          b.stringVal(c.UnixSocket.User),
-		VerifyIncoming:                          b.boolVal(c.VerifyIncoming),
-		VerifyIncomingHTTPS:                     b.boolVal(c.VerifyIncomingHTTPS),
-		VerifyIncomingRPC:                       b.boolVal(c.VerifyIncomingRPC),
-		VerifyOutgoing:                          verifyOutgoing,
-		VerifyServerHostname:                    verifyServerName,
-		Watches:                                 c.Watches,
+		// For backwards compatibility, if this is not specified we set this value to the maximum int32. In practice, that will prevent any log archives from being deleted
+		// We can't use 0 as a control value for disabling log archives deletion since 0 is a possible setting (remove all rotated logs)
+		LogRotateMaxArchives:        b.intValWithDefault(c.LogRotateMaxArchives, math.MaxInt32),
+		NodeID:                      types.NodeID(b.stringVal(c.NodeID)),
+		NodeMeta:                    c.NodeMeta,
+		NodeName:                    b.nodeName(c.NodeName),
+		NonVotingServer:             b.boolVal(c.NonVotingServer),
+		PidFile:                     b.stringVal(c.PidFile),
+		PrimaryDatacenter:           primaryDatacenter,
+		RPCAdvertiseAddr:            rpcAdvertiseAddr,
+		RPCBindAddr:                 rpcBindAddr,
+		RPCHoldTimeout:              b.durationVal("performance.rpc_hold_timeout", c.Performance.RPCHoldTimeout),
+		RPCMaxBurst:                 b.intVal(c.Limits.RPCMaxBurst),
+		RPCProtocol:                 b.intVal(c.RPCProtocol),
+		RPCRateLimit:                rate.Limit(b.float64Val(c.Limits.RPCRate)),
+		RaftProtocol:                b.intVal(c.RaftProtocol),
+		RaftSnapshotThreshold:       b.intVal(c.RaftSnapshotThreshold),
+		RaftSnapshotInterval:        b.durationVal("raft_snapshot_interval", c.RaftSnapshotInterval),
+		ReconnectTimeoutLAN:         b.durationVal("reconnect_timeout", c.ReconnectTimeoutLAN),
+		ReconnectTimeoutWAN:         b.durationVal("reconnect_timeout_wan", c.ReconnectTimeoutWAN),
+		RejoinAfterLeave:            b.boolVal(c.RejoinAfterLeave),
+		RetryJoinIntervalLAN:        b.durationVal("retry_interval", c.RetryJoinIntervalLAN),
+		RetryJoinIntervalWAN:        b.durationVal("retry_interval_wan", c.RetryJoinIntervalWAN),
+		RetryJoinLAN:                b.expandAllOptionalAddrs("retry_join", c.RetryJoinLAN),
+		RetryJoinMaxAttemptsLAN:     b.intVal(c.RetryJoinMaxAttemptsLAN),
+		RetryJoinMaxAttemptsWAN:     b.intVal(c.RetryJoinMaxAttemptsWAN),
+		RetryJoinWAN:                b.expandAllOptionalAddrs("retry_join_wan", c.RetryJoinWAN),
+		SegmentName:                 b.stringVal(c.SegmentName),
+		Segments:                    segments,
+		SerfAdvertiseAddrLAN:        serfAdvertiseAddrLAN,
+		SerfAdvertiseAddrWAN:        serfAdvertiseAddrWAN,
+		SerfBindAddrLAN:             serfBindAddrLAN,
+		SerfBindAddrWAN:             serfBindAddrWAN,
+		SerfPortLAN:                 serfPortLAN,
+		SerfPortWAN:                 serfPortWAN,
+		ServerMode:                  b.boolVal(c.ServerMode),
+		ServerName:                  b.stringVal(c.ServerName),
+		ServerPort:                  serverPort,
+		Services:                    services,
+		SessionTTLMin:               b.durationVal("session_ttl_min", c.SessionTTLMin),
+		SkipLeaveOnInt:              skipLeaveOnInt,
+		StartJoinAddrsLAN:           b.expandAllOptionalAddrs("start_join", c.StartJoinAddrsLAN),
+		StartJoinAddrsWAN:           b.expandAllOptionalAddrs("start_join_wan", c.StartJoinAddrsWAN),
+		SyslogFacility:              b.stringVal(c.SyslogFacility),
+		TLSCipherSuites:             b.tlsCipherSuites("tls_cipher_suites", c.TLSCipherSuites),
+		TLSMinVersion:               b.stringVal(c.TLSMinVersion),
+		TLSPreferServerCipherSuites: b.boolVal(c.TLSPreferServerCipherSuites),
+		TaggedAddresses:             c.TaggedAddresses,
+		TranslateWANAddrs:           b.boolVal(c.TranslateWANAddrs),
+		UIDir:                       b.stringVal(c.UIDir),
+		UnixSocketGroup:             b.stringVal(c.UnixSocket.Group),
+		UnixSocketMode:              b.stringVal(c.UnixSocket.Mode),
+		UnixSocketUser:              b.stringVal(c.UnixSocket.User),
+		VerifyIncoming:              b.boolVal(c.VerifyIncoming),
+		VerifyIncomingHTTPS:         b.boolVal(c.VerifyIncomingHTTPS),
+		VerifyIncomingRPC:           b.boolVal(c.VerifyIncomingRPC),
+		VerifyOutgoing:              verifyOutgoing,
+		VerifyServerHostname:        verifyServerName,
+		Watches:                     c.Watches,
 	}
 
 	if rt.BootstrapExpect == 1 {
@@ -1325,8 +1329,12 @@ func (b *Builder) durationVal(name string, v *string) (d time.Duration) {
 }
 
 func (b *Builder) intVal(v *int) int {
+	return b.intValWithDefault(v, 0)
+}
+
+func (b *Builder) intValWithDefault(v *int, defaultVal int) int {
 	if v == nil {
-		return 0
+		return defaultVal
 	}
 	return *v
 }
