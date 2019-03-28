@@ -3095,6 +3095,7 @@ func TestFullConfig(t *testing.T) {
 				"rpc_max_burst": 44848
 			},
 			"log_level": "k1zo9Spt",
+			"log_rotation_max_archives": 2147483647,
 			"node_id": "AsUIlw99",
 			"node_meta": {
 				"5mgGQMBk": "mJLtVMSG",
@@ -3651,6 +3652,7 @@ func TestFullConfig(t *testing.T) {
 				rpc_max_burst = 44848
 			}
 			log_level = "k1zo9Spt"
+			log_rotation_max_archives = 2147483647
 			node_id = "AsUIlw99"
 			node_meta {
 				"5mgGQMBk" = "mJLtVMSG"
