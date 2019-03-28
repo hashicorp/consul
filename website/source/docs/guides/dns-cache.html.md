@@ -36,7 +36,7 @@ set to true to enable stale reads.
 are allowed to be when querying DNS.
 
 With these two settings you can allow or prevent stale reads. Below we will discuss
-the advanatages and disadvatages of both.
+the advantages and disadvantages of both.
 
 ### Allow Stale Reads
 
