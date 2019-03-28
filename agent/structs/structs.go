@@ -26,8 +26,8 @@ type MessageType uint8
 // RaftIndex is used to track the index used while creating
 // or modifying a given struct type.
 type RaftIndex struct {
-	CreateIndex uint64
-	ModifyIndex uint64
+	CreateIndex uint64 `bexpr:"-"`
+	ModifyIndex uint64 `bexpr:"-"`
 }
 
 // These are serialized between Consul servers and stored in Consul snapshots,
@@ -313,6 +313,7 @@ type QuerySource struct {
 type DCSpecificRequest struct {
 	Datacenter      string
 	NodeMetaFilters map[string]string
+	Filter          string
 	Source          QuerySource
 	QueryOptions
 }
@@ -361,6 +362,7 @@ type ServiceSpecificRequest struct {
 	ServiceAddress string
 	TagFilter      bool // Controls tag filtering
 	Source         QuerySource
+	Filter         string // Filter expression usable by go-bexpr
 
 	// Connect if true will only search for Connect-compatible services.
 	Connect bool
@@ -424,6 +426,7 @@ func (r *ServiceSpecificRequest) CacheMinIndex() uint64 {
 type NodeSpecificRequest struct {
 	Datacenter string
 	Node       string
+	Filter     string
 	QueryOptions
 }
 
@@ -460,6 +463,7 @@ type ChecksInStateRequest struct {
 	NodeMetaFilters map[string]string
 	State           string
 	Source          QuerySource
+	Filter          string
 	QueryOptions
 }
 
@@ -476,7 +480,7 @@ type Node struct {
 	TaggedAddresses map[string]string
 	Meta            map[string]string
 
-	RaftIndex
+	RaftIndex `bexpr:"-"`
 }
 type Nodes []*Node
 
@@ -583,7 +587,7 @@ type ServiceNode struct {
 	ServiceProxy            ConnectProxyConfig
 	ServiceConnect          ServiceConnect
 
-	RaftIndex
+	RaftIndex `bexpr:"-"`
 }
 
 // PartialClone() returns a clone of the given service node, minus the node-
@@ -694,7 +698,7 @@ type NodeService struct {
 	// may be a service that isn't present in the catalog. This is expected and
 	// allowed to allow for proxies to come up earlier than their target services.
 	// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
-	ProxyDestination string
+	ProxyDestination string `bexpr:"-"`
 
 	// Proxy is the configuration set for Kind = connect-proxy. It is mandatory in
 	// that case and an error to be set for any other kind. This config is part of
@@ -731,7 +735,7 @@ type NodeService struct {
 	// somewhere this is used in API output.
 	LocallyRegisteredAsSidecar bool `json:"-"`
 
-	RaftIndex
+	RaftIndex `bexpr:"-"`
 }
 
 // ServiceConnect are the shared Connect settings between all service
@@ -743,7 +747,7 @@ type ServiceConnect struct {
 	// Proxy configures a connect proxy instance for the service. This is
 	// only used for agent service definitions and is invalid for non-agent
 	// (catalog API) definitions.
-	Proxy *ServiceDefinitionConnectProxy `json:",omitempty"`
+	Proxy *ServiceDefinitionConnectProxy `json:",omitempty" bexpr:"-"`
 
 	// SidecarService is a nested Service Definition to register at the same time.
 	// It's purely a convenience mechanism to allow specifying a sidecar service
@@ -752,7 +756,7 @@ type ServiceConnect struct {
 	// boilerplate needed to register a sidecar service separately, but the end
 	// result is identical to just making a second service registration via any
 	// other means.
-	SidecarService *ServiceDefinition `json:",omitempty"`
+	SidecarService *ServiceDefinition `json:",omitempty" bexpr:"-"`
 }
 
 // Validate validates the node service configuration.
@@ -924,9 +928,9 @@ type HealthCheck struct {
 	ServiceName string        // optional service name
 	ServiceTags []string      // optional service tags
 
-	Definition HealthCheckDefinition
+	Definition HealthCheckDefinition `bexpr:"-"`
 
-	RaftIndex
+	RaftIndex `bexpr:"-"`
 }
 
 type HealthCheckDefinition struct {

@@ -937,3 +937,9 @@ func (s *HTTPServer) checkWriteAccess(req *http.Request) error {
 
 	return ForbiddenError{}
 }
+
+func (s *HTTPServer) parseFilter(req *http.Request, filter *string) {
+	if other := req.FormValue("filter"); other != "" {
+		*filter = other
+	}
+}

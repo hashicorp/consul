@@ -38,7 +38,7 @@ type ConnectProxyConfig struct {
 
 	// Config is the arbitrary configuration data provided with the proxy
 	// registration.
-	Config map[string]interface{} `json:",omitempty"`
+	Config map[string]interface{} `json:",omitempty" bexpr:"-"`
 
 	// Upstreams describes any upstream dependencies the proxy instance should
 	// setup.
