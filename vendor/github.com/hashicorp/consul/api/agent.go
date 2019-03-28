@@ -84,11 +84,11 @@ type AgentService struct {
 	Address           string
 	Weights           AgentWeights
 	EnableTagOverride bool
-	CreateIndex       uint64 `json:",omitempty"`
-	ModifyIndex       uint64 `json:",omitempty"`
-	ContentHash       string `json:",omitempty"`
+	CreateIndex       uint64 `json:",omitempty" bexpr:"-"`
+	ModifyIndex       uint64 `json:",omitempty" bexpr:"-"`
+	ContentHash       string `json:",omitempty" bexpr:"-"`
 	// DEPRECATED (ProxyDestination) - remove this field
-	ProxyDestination string                          `json:",omitempty"`
+	ProxyDestination string                          `json:",omitempty" bexpr:"-"`
 	Proxy            *AgentServiceConnectProxyConfig `json:",omitempty"`
 	Connect          *AgentServiceConnect            `json:",omitempty"`
 }
@@ -103,8 +103,8 @@ type AgentServiceChecksInfo struct {
 // AgentServiceConnect represents the Connect configuration of a service.
 type AgentServiceConnect struct {
 	Native         bool                      `json:",omitempty"`
-	Proxy          *AgentServiceConnectProxy `json:",omitempty"`
-	SidecarService *AgentServiceRegistration `json:",omitempty"`
+	Proxy          *AgentServiceConnectProxy `json:",omitempty" bexpr:"-"`
+	SidecarService *AgentServiceRegistration `json:",omitempty" bexpr:"-"`
 }
 
 // AgentServiceConnectProxy represents the Connect Proxy configuration of a
@@ -112,7 +112,7 @@ type AgentServiceConnect struct {
 type AgentServiceConnectProxy struct {
 	ExecMode  ProxyExecMode          `json:",omitempty"`
 	Command   []string               `json:",omitempty"`
-	Config    map[string]interface{} `json:",omitempty"`
+	Config    map[string]interface{} `json:",omitempty" bexpr:"-"`
 	Upstreams []Upstream             `json:",omitempty"`
 }
 
