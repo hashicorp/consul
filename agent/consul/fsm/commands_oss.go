@@ -29,8 +29,7 @@ func init() {
 	registerCommand(structs.ACLPolicySetRequestType, (*FSM).applyACLPolicySetOperation)
 	registerCommand(structs.ACLPolicyDeleteRequestType, (*FSM).applyACLPolicyDeleteOperation)
 	registerCommand(structs.ConnectCALeafRequestType, (*FSM).applyConnectCALeafOperation)
-	registerCommand(structs.ServiceConfigEntryRequestType, (*FSM).applyServiceConfigEntryOperation)
-	registerCommand(structs.ProxyConfigEntryRequestType, (*FSM).applyProxyConfigEntryOperation)
+	registerCommand(structs.ConfigEntryRequestType, (*FSM).applyConfigEntryOperation)
 }
 
 func (c *FSM) applyRegister(buf []byte, index uint64) interface{} {
@@ -431,30 +430,14 @@ func (c *FSM) applyACLPolicyDeleteOperation(buf []byte, index uint64) interface{
 	return c.state.ACLPolicyBatchDelete(index, req.PolicyIDs)
 }
 
-func (c *FSM) applyServiceConfigEntryOperation(buf []byte, index uint64) interface{} {
-	req := structs.ConfigEntryRequest{
-		Entry: &structs.ServiceConfigEntry{},
-	}
-	if err := structs.Decode(buf, &req); err != nil {
-		panic(fmt.Errorf("failed to decode request: %v", err))
-	}
-	return c.applyConfigEntryOperation(index, req)
-}
-
-func (c *FSM) applyProxyConfigEntryOperation(buf []byte, index uint64) interface{} {
+func (c *FSM) applyConfigEntryOperation(buf []byte, index uint64) interface{} {
 	req := structs.ConfigEntryRequest{
 		Entry: &structs.ProxyConfigEntry{},
 	}
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
-	if err := c.applyConfigEntryOperation(index, req); err != nil {
-		panic(err)
-	}
-	return true
-}
 
-func (c *FSM) applyConfigEntryOperation(index uint64, req structs.ConfigEntryRequest) error {
 	switch req.Op {
 	case structs.ConfigEntryUpsert:
 		defer metrics.MeasureSinceWithLabels([]string{"fsm", "config_entry", req.Entry.GetKind()}, time.Now(),

@@ -1368,21 +1368,24 @@ func TestFSM_ConfigEntry(t *testing.T) {
 	entry := &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
 		Name: "global",
-		ProxyConfig: structs.ConnectProxyConfig{
-			DestinationServiceName: "foo",
+		Config: map[string]interface{}{
+			"DestinationServiceName": "foo",
 		},
 	}
 
 	// Create a new request.
-	req := structs.ConfigEntryRequest{
+	req := &structs.ConfigEntryRequest{
 		Op:    structs.ConfigEntryUpsert,
 		Entry: entry,
 	}
 
 	{
-		buf, err := structs.Encode(structs.ProxyConfigEntryRequestType, req)
+		buf, err := structs.Encode(structs.ConfigEntryRequestType, req)
 		require.NoError(err)
-		require.True(fsm.Apply(makeLog(buf)).(bool))
+		resp := fsm.Apply(makeLog(buf))
+		if _, ok := resp.(error); ok {
+			t.Fatalf("bad: %v", resp)
+		}
 	}
 
 	// Verify it's in the state store.
@@ -1391,6 +1394,14 @@ func TestFSM_ConfigEntry(t *testing.T) {
 		require.NoError(err)
 		entry.RaftIndex.CreateIndex = 1
 		entry.RaftIndex.ModifyIndex = 1
+
+		proxyConf, ok := config.(*structs.ProxyConfigEntry)
+		require.True(ok)
+
+		// Read the map[string]interface{} back out.
+		value, _ := proxyConf.Config["DestinationServiceName"].([]uint8)
+		proxyConf.Config["DestinationServiceName"] = structs.Uint8ToString(value)
+
 		require.Equal(entry, config)
 	}
 }

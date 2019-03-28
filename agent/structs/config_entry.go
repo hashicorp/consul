@@ -3,6 +3,8 @@ package structs
 import (
 	"fmt"
 	"strings"
+
+	"github.com/hashicorp/go-msgpack/codec"
 )
 
 const (
@@ -162,4 +164,63 @@ const (
 type ConfigEntryRequest struct {
 	Op    ConfigEntryOp
 	Entry ConfigEntry
+}
+
+func (r *ConfigEntryRequest) MarshalBinary() (data []byte, err error) {
+	// bs will grow if needed but allocate enough to avoid reallocation in common
+	// case.
+	bs := make([]byte, 128)
+	enc := codec.NewEncoderBytes(&bs, msgpackHandle)
+	// Encode kind first
+	err = enc.Encode(r.Entry.GetKind())
+	if err != nil {
+		return nil, err
+	}
+	// Then actual value using alias trick to avoid infinite recursion
+	type Alias ConfigEntryRequest
+	err = enc.Encode(struct {
+		*Alias
+	}{
+		Alias: (*Alias)(r),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return bs, nil
+}
+
+func (r *ConfigEntryRequest) UnmarshalBinary(data []byte) error {
+	// First decode the kind prefix
+	var kind string
+	dec := codec.NewDecoderBytes(data, msgpackHandle)
+	if err := dec.Decode(&kind); err != nil {
+		return err
+	}
+
+	// Then decode the real thing with appropriate kind of ConfigEntry
+	r.Entry = makeConfigEntry(kind)
+
+	// Alias juggling to prevent infinite recursive calls back to this decode
+	// method.
+	type Alias ConfigEntryRequest
+	as := struct {
+		*Alias
+	}{
+		Alias: (*Alias)(r),
+	}
+	if err := dec.Decode(&as); err != nil {
+		return err
+	}
+	return nil
+}
+
+func makeConfigEntry(kind string) ConfigEntry {
+	switch kind {
+	case ServiceDefaults:
+		return &ServiceConfigEntry{}
+	case ProxyDefaults:
+		return &ProxyConfigEntry{}
+	default:
+		panic("invalid kind")
+	}
 }

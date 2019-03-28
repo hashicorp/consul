@@ -317,8 +317,8 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	// Verify ACL Token is restored
 	_, a, err := fsm2.state.ACLTokenGetByAccessor(nil, token.AccessorID)
 	require.NoError(err)
-	require.Equal(t, token.AccessorID, a.AccessorID)
-	require.Equal(t, token.ModifyIndex, a.ModifyIndex)
+	require.Equal(token.AccessorID, a.AccessorID)
+	require.Equal(token.ModifyIndex, a.ModifyIndex)
 
 	// Verify the acl-token-bootstrap index was restored
 	canBootstrap, index, err := fsm2.state.CanBootstrapACLToken()

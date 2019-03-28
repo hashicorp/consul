@@ -1,8 +1,6 @@
 package fsm
 
 import (
-	"fmt"
-
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
@@ -377,10 +375,10 @@ func (s *snapshot) persistConfigEntries(sink raft.SnapshotSink,
 		if _, err := sink.Write([]byte{byte(structs.ConfigEntryRequestType)}); err != nil {
 			return err
 		}
-		if err := encoder.Encode(entry.GetKind()); err != nil {
-			return err
+		req := &structs.ConfigEntryRequest{
+			Entry: entry,
 		}
-		if err := encoder.Encode(entry); err != nil {
+		if err := encoder.Encode(req); err != nil {
 			return err
 		}
 	}
@@ -594,23 +592,9 @@ func restorePolicy(header *snapshotHeader, restore *state.Restore, decoder *code
 }
 
 func restoreConfigEntry(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
-	var req structs.ConfigEntry
-	var kind string
-	if err := decoder.Decode(&kind); err != nil {
-		return err
-	}
-
-	switch kind {
-	case structs.ServiceDefaults:
-		req = &structs.ServiceConfigEntry{}
-	case structs.ProxyDefaults:
-		req = &structs.ProxyConfigEntry{}
-	default:
-		return fmt.Errorf("invalid config type: %s", kind)
-	}
-
+	var req structs.ConfigEntryRequest
 	if err := decoder.Decode(&req); err != nil {
 		return err
 	}
-	return restore.ConfigEntry(req)
+	return restore.ConfigEntry(req.Entry)
 }
