@@ -101,6 +101,6 @@ func TestAPI_CoordinateUpdate(t *testing.T) {
 		if len(coords) != 1 {
 			r.Fatalf("bad: %v", coords)
 		}
-		require.Equal(t, entry, coords[0])
+		require.Equal(r, entry, coords[0])
 	})
 }
