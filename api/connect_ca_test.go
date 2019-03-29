@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -76,9 +75,7 @@ func TestAPI_ConnectCAConfig_get_set(t *testing.T) {
 		}
 		parsed, err := ParseConsulCAConfig(conf.Config)
 		r.Check(err)
-		if !assert.Equal(t, expected, parsed) {
-			r.FailNow()
-		}
+		require.Equal(r, expected, parsed)
 
 		// Change a config value and update
 		conf.Config["PrivateKey"] = ""
@@ -91,8 +88,6 @@ func TestAPI_ConnectCAConfig_get_set(t *testing.T) {
 		expected.RotationPeriod = 120 * 24 * time.Hour
 		parsed, err = ParseConsulCAConfig(updated.Config)
 		r.Check(err)
-		if !assert.Equal(t, expected, parsed) {
-			r.FailNow()
-		}
+		require.Equal(r, expected, parsed)
 	})
 }

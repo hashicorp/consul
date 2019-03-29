@@ -66,7 +66,7 @@ func TestAPI_CatalogNodes(t *testing.T) {
 				ModifyIndex: meta.LastIndex,
 			},
 		}
-		require.Equal(t, want, nodes)
+		require.Equal(r, want, nodes)
 	})
 }
 

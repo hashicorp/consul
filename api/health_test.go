@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -215,9 +214,7 @@ func TestAPI_HealthChecks(t *testing.T) {
 		}
 		checks[0].CreateIndex = out[0].CreateIndex
 		checks[0].ModifyIndex = out[0].ModifyIndex
-		if !assert.Equal(t, checks, out) {
-			r.FailNow()
-		}
+		require.Equal(r, checks, out)
 	})
 }
 
