@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"reflect"
 	"strings"
@@ -27,8 +28,8 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logger"
-	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/serf"
@@ -627,6 +628,37 @@ func TestAgent_Checks(t *testing.T) {
 	if val["mysql"].Status != api.HealthPassing {
 		t.Fatalf("bad check: %v", obj)
 	}
+}
+
+func TestAgent_ChecksWithFilter(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	chk1 := &structs.HealthCheck{
+		Node:    a.Config.NodeName,
+		CheckID: "mysql",
+		Name:    "mysql",
+		Status:  api.HealthPassing,
+	}
+	a.State.AddCheck(chk1, "")
+
+	chk2 := &structs.HealthCheck{
+		Node:    a.Config.NodeName,
+		CheckID: "redis",
+		Name:    "redis",
+		Status:  api.HealthPassing,
+	}
+	a.State.AddCheck(chk2, "")
+
+	req, _ := http.NewRequest("GET", "/v1/agent/checks?filter="+url.QueryEscape("Name == `redis`"), nil)
+	obj, err := a.srv.AgentChecks(nil, req)
+	require.NoError(t, err)
+	val := obj.(map[types.CheckID]*structs.HealthCheck)
+	require.Len(t, val, 1)
+	_, ok := val["redis"]
+	require.True(t, ok)
 }
 
 func TestAgent_HealthServiceByID(t *testing.T) {

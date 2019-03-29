@@ -9,7 +9,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
 
 	"github.com/hashicorp/consul/testrpc"
@@ -18,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUiIndex(t *testing.T) {
@@ -154,22 +154,38 @@ func TestUiNodeInfo(t *testing.T) {
 
 func TestSummarizeServices(t *testing.T) {
 	t.Parallel()
-	dump := structs.NodeDump{
-		&structs.NodeInfo{
-			Node:    "foo",
-			Address: "127.0.0.1",
-			Services: []*structs.NodeService{
-				&structs.NodeService{
-					Kind:    structs.ServiceKindTypical,
-					Service: "api",
-					Tags:    []string{"tag1", "tag2"},
+	dump := structs.CheckServiceNodes{
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				Node:    "foo",
+				Address: "127.0.0.1",
+			},
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				Service: "api",
+				Tags:    []string{"tag1", "tag2"},
+			},
+			Checks: []*structs.HealthCheck{
+				&structs.HealthCheck{
+					Status:      api.HealthPassing,
+					ServiceName: "",
 				},
-				&structs.NodeService{
-					Kind:    structs.ServiceKindConnectProxy,
-					Service: "web",
-					Tags:    []string{},
-					Meta:    map[string]string{metaExternalSource: "k8s"},
+				&structs.HealthCheck{
+					Status:      api.HealthWarning,
+					ServiceName: "api",
 				},
+			},
+		},
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				Node:    "foo",
+				Address: "127.0.0.1",
+			},
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				Service: "web",
+				Tags:    []string{},
+				Meta:    map[string]string{metaExternalSource: "k8s"},
 			},
 			Checks: []*structs.HealthCheck{
 				&structs.HealthCheck{
@@ -180,22 +196,18 @@ func TestSummarizeServices(t *testing.T) {
 					Status:      api.HealthPassing,
 					ServiceName: "web",
 				},
-				&structs.HealthCheck{
-					Status:      api.HealthWarning,
-					ServiceName: "api",
-				},
 			},
 		},
-		&structs.NodeInfo{
-			Node:    "bar",
-			Address: "127.0.0.2",
-			Services: []*structs.NodeService{
-				&structs.NodeService{
-					Kind:    structs.ServiceKindConnectProxy,
-					Service: "web",
-					Tags:    []string{},
-					Meta:    map[string]string{metaExternalSource: "k8s"},
-				},
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				Node:    "bar",
+				Address: "127.0.0.2",
+			},
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				Service: "web",
+				Tags:    []string{},
+				Meta:    map[string]string{metaExternalSource: "k8s"},
 			},
 			Checks: []*structs.HealthCheck{
 				&structs.HealthCheck{
@@ -204,23 +216,20 @@ func TestSummarizeServices(t *testing.T) {
 				},
 			},
 		},
-		&structs.NodeInfo{
-			Node:    "zip",
-			Address: "127.0.0.3",
-			Services: []*structs.NodeService{
-				&structs.NodeService{
-					Service: "cache",
-					Tags:    []string{},
-				},
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				Node:    "zip",
+				Address: "127.0.0.3",
+			},
+			Service: &structs.NodeService{
+				Service: "cache",
+				Tags:    []string{},
 			},
 		},
 	}
 
 	summary := summarizeServices(dump)
-	if len(summary) != 3 {
-		t.Fatalf("bad: %v", summary)
-	}
-
+	require.Len(t, summary, 3)
 	expectAPI := &ServiceSummary{
 		Kind:           structs.ServiceKindTypical,
 		Name:           "api",
@@ -230,27 +239,23 @@ func TestSummarizeServices(t *testing.T) {
 		ChecksWarning:  1,
 		ChecksCritical: 0,
 	}
-	if !reflect.DeepEqual(summary[0], expectAPI) {
-		t.Fatalf("bad: %v", summary[0])
-	}
+	require.Equal(t, expectAPI, summary[0])
 
 	expectCache := &ServiceSummary{
 		Kind:           structs.ServiceKindTypical,
 		Name:           "cache",
-		Tags:           []string{},
+		Tags:           nil,
 		Nodes:          []string{"zip"},
 		ChecksPassing:  0,
 		ChecksWarning:  0,
 		ChecksCritical: 0,
 	}
-	if !reflect.DeepEqual(summary[1], expectCache) {
-		t.Fatalf("bad: %v", summary[1])
-	}
+	require.Equal(t, expectCache, summary[1])
 
 	expectWeb := &ServiceSummary{
 		Kind:            structs.ServiceKindConnectProxy,
 		Name:            "web",
-		Tags:            []string{},
+		Tags:            nil,
 		Nodes:           []string{"bar", "foo"},
 		ChecksPassing:   2,
 		ChecksWarning:   0,
@@ -258,7 +263,5 @@ func TestSummarizeServices(t *testing.T) {
 		ExternalSources: []string{"k8s"},
 	}
 	summary[2].externalSourceSet = nil
-	if !reflect.DeepEqual(summary[2], expectWeb) {
-		t.Fatalf("bad: %v", summary[2])
-	}
+	require.Equal(t, expectWeb, summary[2])
 }
