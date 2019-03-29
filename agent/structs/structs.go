@@ -588,7 +588,7 @@ type ServiceNode struct {
 	ServicePort              int
 	ServiceEnableTagOverride bool
 	// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
-	ServiceProxyDestination string
+	ServiceProxyDestination string `bexpr:"-"`
 	ServiceProxy            ConnectProxyConfig
 	ServiceConnect          ServiceConnect
 
@@ -738,7 +738,7 @@ type NodeService struct {
 	// internal only. Right now our agent endpoints return api structs which don't
 	// include it but this is a safety net incase we change that or there is
 	// somewhere this is used in API output.
-	LocallyRegisteredAsSidecar bool `json:"-"`
+	LocallyRegisteredAsSidecar bool `json:"-" bexpr:"-"`
 
 	RaftIndex `bexpr:"-"`
 }

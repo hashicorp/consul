@@ -121,7 +121,7 @@ type Upstream struct {
 	// Config is an opaque config that is specific to the proxy process being run.
 	// It can be used to pass arbitrary configuration for this specific upstream
 	// to the proxy.
-	Config map[string]interface{}
+	Config map[string]interface{} `bexpr:"-"`
 }
 
 // Validate sanity checks the struct is valid
