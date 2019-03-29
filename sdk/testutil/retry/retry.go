@@ -28,10 +28,6 @@ type Failer interface {
 
 	// FailNow is called when the retrying is abandoned.
 	FailNow()
-
-	// Marks the function as having failed but doesn't
-	// stop execution
-	Fail()
 }
 
 // R provides context for the retryer.
@@ -41,11 +37,6 @@ type R struct {
 }
 
 func (r *R) FailNow() {
-	r.Fail()
-	runtime.Goexit()
-}
-
-func (r *R) Fail() {
 	r.fail = true
 	runtime.Goexit()
 }

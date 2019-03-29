@@ -339,7 +339,6 @@ type failer struct {
 
 func (f *failer) Log(args ...interface{}) { fmt.Println(args...) }
 func (f *failer) FailNow()                { f.failed = true }
-func (f *failer) Fail()                   { f.failed = true }
 
 // waitForAPI waits for only the agent HTTP endpoint to start
 // responding. This is an indication that the agent has started,
