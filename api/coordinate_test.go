@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/serf/coordinate"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAPI_CoordinateDatacenters(t *testing.T) {
@@ -101,6 +101,8 @@ func TestAPI_CoordinateUpdate(t *testing.T) {
 		if len(coords) != 1 {
 			r.Fatalf("bad: %v", coords)
 		}
-		require.Equal(t, entry, coords[0])
+		if !assert.Equal(t, entry, coords[0]) {
+			r.FailNow()
+		}
 	})
 }

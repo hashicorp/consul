@@ -214,7 +214,9 @@ func TestAPI_HealthChecks(t *testing.T) {
 		}
 		checks[0].CreateIndex = out[0].CreateIndex
 		checks[0].ModifyIndex = out[0].ModifyIndex
-		require.Equal(t, checks, out)
+		if !assert.Equal(t, checks, out) {
+			r.FailNow()
+		}
 	})
 }
 
