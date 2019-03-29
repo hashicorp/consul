@@ -200,11 +200,11 @@ function build_assetfs {
    local ret=$?
    if test $ret -eq 0
    then
-      status "Copying the sources from '${sdir}/(pkg/web_ui|GNUmakefile)' to /go/src/github.com/hashicorp/consul/pkg"
+      status "Copying the sources from '${sdir}/(pkg/web_ui|GNUmakefile)' to /consul/pkg"
       (
-         tar -c pkg/web_ui GNUmakefile | docker cp - ${container_id}:/go/src/github.com/hashicorp/consul &&
+         tar -c pkg/web_ui GNUmakefile | docker cp - ${container_id}:/consul &&
          status "Running build in container" && docker start -i ${container_id} &&
-         status "Copying back artifacts" && docker cp ${container_id}:/go/src/github.com/hashicorp/consul/bindata_assetfs.go ${sdir}/agent/bindata_assetfs.go
+         status "Copying back artifacts" && docker cp ${container_id}:/consul/bindata_assetfs.go ${sdir}/agent/bindata_assetfs.go
       )
       ret=$?
       docker rm ${container_id} > /dev/null
@@ -327,13 +327,13 @@ function build_consul {
 
    if test $ret -eq 0
    then
-      status "Copying the source from '${sdir}' to /go/src/github.com/hashicorp/consul"
+      status "Copying the source from '${sdir}' to /consul"
       (
-         tar -c $(ls | grep -v "^(ui\|ui-v2\|website\|bin\|pkg\|.git)") | docker cp - ${container_id}:/go/src/github.com/hashicorp/consul &&
+         tar -c $(ls | grep -v "^(ui\|ui-v2\|website\|bin\|pkg\|.git)") | docker cp - ${container_id}:/consul &&
          status "Running build in container" &&
          docker start -i ${container_id} &&
          status "Copying back artifacts" &&
-         docker cp ${container_id}:/go/src/github.com/hashicorp/consul/pkg/bin pkg.bin.new
+         docker cp ${container_id}:/consul/pkg/bin pkg.bin.new
       )
       ret=$?
       docker rm ${container_id} > /dev/null

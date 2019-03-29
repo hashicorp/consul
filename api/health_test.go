@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/require"
 )
 
@@ -215,7 +214,7 @@ func TestAPI_HealthChecks(t *testing.T) {
 		}
 		checks[0].CreateIndex = out[0].CreateIndex
 		checks[0].ModifyIndex = out[0].ModifyIndex
-		verify.Values(r, "checks", out, checks)
+		require.Equal(r, checks, out)
 	})
 }
 

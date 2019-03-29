@@ -5,12 +5,12 @@ import (
 	"log"
 	"net"
 	"strings"
-	"sync"
+	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/go.net/ipv4"
-	"github.com/hashicorp/go.net/ipv6"
 	"github.com/miekg/dns"
+	"golang.org/x/net/ipv4"
+	"golang.org/x/net/ipv6"
 )
 
 // ServiceEntry is returned after we query for a service
@@ -102,9 +102,8 @@ type client struct {
 	ipv4MulticastConn *net.UDPConn
 	ipv6MulticastConn *net.UDPConn
 
-	closed    bool
-	closedCh  chan struct{} // TODO(reddaly): This doesn't appear to be used.
-	closeLock sync.Mutex
+	closed   int32
+	closedCh chan struct{} // TODO(reddaly): This doesn't appear to be used.
 }
 
 // NewClient creates a new mdns Client that can be used to query
@@ -150,13 +149,10 @@ func newClient() (*client, error) {
 
 // Close is used to cleanup the client
 func (c *client) Close() error {
-	c.closeLock.Lock()
-	defer c.closeLock.Unlock()
-
-	if c.closed {
+	if !atomic.CompareAndSwapInt32(&c.closed, 0, 1) {
+		// something else already closed it
 		return nil
 	}
-	c.closed = true
 
 	log.Printf("[INFO] mdns: Closing client %v", *c)
 	close(c.closedCh)
@@ -326,8 +322,13 @@ func (c *client) recv(l *net.UDPConn, msgCh chan *dns.Msg) {
 		return
 	}
 	buf := make([]byte, 65536)
-	for !c.closed {
+	for atomic.LoadInt32(&c.closed) == 0 {
 		n, err := l.Read(buf)
+
+		if atomic.LoadInt32(&c.closed) == 1 {
+			return
+		}
+
 		if err != nil {
 			log.Printf("[ERR] mdns: Failed to read packet: %v", err)
 			continue

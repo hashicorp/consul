@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/require"
 )
 
@@ -67,9 +66,7 @@ func TestAPI_CatalogNodes(t *testing.T) {
 				ModifyIndex: meta.LastIndex,
 			},
 		}
-		if !verify.Values(r, "", nodes, want) {
-			r.FailNow()
-		}
+		require.Equal(r, want, nodes)
 	})
 }
 

@@ -227,7 +227,7 @@ vet:
 # changes to the UI assets that aren't checked in.
 static-assets:
 	@go-bindata-assetfs -pkg agent -prefix pkg -o $(ASSETFS_PATH) ./pkg/web_ui/...
-	$(MAKE) format
+	@go fmt $(ASSETFS_PATH)
 
 
 # Build the static web ui and build static assets inside a Docker container

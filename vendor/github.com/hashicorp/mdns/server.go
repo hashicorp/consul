@@ -5,7 +5,7 @@ import (
 	"log"
 	"net"
 	"strings"
-	"sync"
+	"sync/atomic"
 
 	"github.com/miekg/dns"
 )
@@ -51,9 +51,8 @@ type Server struct {
 	ipv4List *net.UDPConn
 	ipv6List *net.UDPConn
 
-	shutdown     bool
-	shutdownCh   chan struct{}
-	shutdownLock sync.Mutex
+	shutdown   int32
+	shutdownCh chan struct{}
 }
 
 // NewServer is used to create a new mDNS server from a config
@@ -87,13 +86,11 @@ func NewServer(config *Config) (*Server, error) {
 
 // Shutdown is used to shutdown the listener
 func (s *Server) Shutdown() error {
-	s.shutdownLock.Lock()
-	defer s.shutdownLock.Unlock()
-
-	if s.shutdown {
+	if !atomic.CompareAndSwapInt32(&s.shutdown, 0, 1) {
+		// something else already closed us
 		return nil
 	}
-	s.shutdown = true
+
 	close(s.shutdownCh)
 
 	if s.ipv4List != nil {
@@ -111,8 +108,9 @@ func (s *Server) recv(c *net.UDPConn) {
 		return
 	}
 	buf := make([]byte, 65536)
-	for !s.shutdown {
+	for atomic.LoadInt32(&s.shutdown) == 0 {
 		n, from, err := c.ReadFrom(buf)
+
 		if err != nil {
 			continue
 		}
