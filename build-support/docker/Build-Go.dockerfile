@@ -3,7 +3,6 @@ FROM golang:${GOLANG_VERSION}
 
 ARG GOTOOLS="github.com/elazarl/go-bindata-assetfs/... \
    github.com/hashicorp/go-bindata/... \
-   github.com/magiconair/vendorfmt/cmd/vendorfmt \
    github.com/mitchellh/gox \
    golang.org/x/tools/cmd/cover \
    golang.org/x/tools/cmd/stringer \
