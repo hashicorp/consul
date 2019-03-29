@@ -1,6 +1,7 @@
 import { get } from '@ember/object';
 import { Promise } from 'rsvp';
 
+const pause = 2000;
 // native EventSource retry is ~3s wait
 export const create5xxBackoff = function(ms = 3000, P = Promise, wait = setTimeout) {
   // This expects an ember-data like error
@@ -37,7 +38,7 @@ const throttle = function(configuration, prev, current) {
     return new Promise(function(resolve, reject) {
       setTimeout(function() {
         resolve(obj);
-      }, 200);
+      }, pause);
     });
   };
 };
