@@ -140,6 +140,10 @@ github.com/hashicorp/errwrap v1.0.0 h1:hLrqtEDnRye3+sgx6z4qVLNuviH3MR5aQ0ykNJa/U
 github.com/hashicorp/errwrap v1.0.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
 github.com/hashicorp/go-bexpr v0.0.0-20190328184005-3ba3d46f5f2d h1:H1TDoDmOkCYsRJ95y6iMiKaZ2btNxIl8u/kHlp7VHgs=
 github.com/hashicorp/go-bexpr v0.0.0-20190328184005-3ba3d46f5f2d/go.mod h1:ANbpTX1oAql27TZkKVeW8p1w8NTdnyzPe/0qqPCKohU=
+github.com/hashicorp/go-bexpr v0.0.0-20190329191257-9049f74a216f h1:f2VH1sjiUbo9EL53/QHiHF5tJIzBcB7YqqFXnCPQCw8=
+github.com/hashicorp/go-bexpr v0.0.0-20190329191257-9049f74a216f/go.mod h1:ANbpTX1oAql27TZkKVeW8p1w8NTdnyzPe/0qqPCKohU=
+github.com/hashicorp/go-bexpr v0.0.0-20190329201445-3b9a9e9d58d3 h1:LIvMrAHU3+EwuysEN8YLLMaG7wow9apw7t/leguKaOk=
+github.com/hashicorp/go-bexpr v0.0.0-20190329201445-3b9a9e9d58d3/go.mod h1:ANbpTX1oAql27TZkKVeW8p1w8NTdnyzPe/0qqPCKohU=
 github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de h1:XDCSythtg8aWSRSO29uwhgh7b127fWr+m5SemqjSUL8=
 github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de/go.mod h1:xIwEieBHERyEvaeKF/TcHh1Hu+lxPM+n2vT1+g9I4m4=
 github.com/hashicorp/go-cleanhttp v0.5.1 h1:dH3aiDG9Jvb5r5+bYHsikaOUIpcM0xvgMXVoDkXMzJM=

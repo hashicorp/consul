@@ -7,7 +7,9 @@ import (
 )
 }
 
-Input <- _? expr:OrExpression _? EOF {
+Input <- _? "(" _? expr:OrExpression _? ")" _? EOF {
+   return expr, nil
+} / _? expr:OrExpression _? EOF {
    return expr, nil
 }
 

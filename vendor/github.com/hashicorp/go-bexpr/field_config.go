@@ -277,3 +277,32 @@ func generateFieldConfigurations(rtype reflect.Type) (FieldConfigurations, error
 
 	return nil, fmt.Errorf("Invalid top level type - can only use structs, map[string]* or an MatchExpressionEvaluator")
 }
+
+func (config *FieldConfiguration) stringInternal(builder *strings.Builder, level int, path string) {
+	fmt.Fprintf(builder, "%sPath: %s, StructFieldName: %s, CoerceFn: %p, SupportedOperations: %v\n", strings.Repeat("   ", level), path, config.StructFieldName, config.CoerceFn, config.SupportedOperations)
+	if len(config.SubFields) > 0 {
+		config.SubFields.stringInternal(builder, level+1, path)
+	}
+}
+
+func (config *FieldConfiguration) String() string {
+	var builder strings.Builder
+	config.stringInternal(&builder, 0, "")
+	return builder.String()
+}
+
+func (configs FieldConfigurations) stringInternal(builder *strings.Builder, level int, path string) {
+	for fieldName, cfg := range configs {
+		newPath := string(fieldName)
+		if level > 0 {
+			newPath = fmt.Sprintf("%s.%s", path, fieldName)
+		}
+		cfg.stringInternal(builder, level, newPath)
+	}
+}
+
+func (configs FieldConfigurations) String() string {
+	var builder strings.Builder
+	configs.stringInternal(&builder, 0, "")
+	return builder.String()
+}
