@@ -335,7 +335,10 @@ func (r *DCSpecificRequest) CacheInfo() cache.RequestInfo {
 	// To calculate the cache key we only hash the node filters. The
 	// datacenter is handled by the cache framework. The other fields are
 	// not, but should not be used in any cache types.
-	v, err := hashstructure.Hash(r.NodeMetaFilters, nil)
+	v, err := hashstructure.Hash([]interface{}{
+		r.NodeMetaFilters,
+		r.Filter,
+	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
 		// no cache for this request so the request is forwarded directly
@@ -407,6 +410,7 @@ func (r *ServiceSpecificRequest) CacheInfo() cache.RequestInfo {
 		r.ServiceAddress,
 		r.TagFilter,
 		r.Connect,
+		r.Filter,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
@@ -446,6 +450,7 @@ func (r *NodeSpecificRequest) CacheInfo() cache.RequestInfo {
 
 	v, err := hashstructure.Hash([]interface{}{
 		r.Node,
+		r.Filter,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
