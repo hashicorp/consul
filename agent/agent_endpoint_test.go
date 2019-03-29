@@ -102,6 +102,48 @@ func TestAgent_Services(t *testing.T) {
 	assert.Equal(t, prxy1.Upstreams.ToAPI(), val["mysql"].Connect.Proxy.Upstreams)
 }
 
+func TestAgent_ServicesFiltered(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	srv1 := &structs.NodeService{
+		ID:      "mysql",
+		Service: "mysql",
+		Tags:    []string{"master"},
+		Meta: map[string]string{
+			"foo": "bar",
+		},
+		Port: 5000,
+	}
+	require.NoError(t, a.State.AddService(srv1, ""))
+
+	// Add another service
+	srv2 := &structs.NodeService{
+		ID:      "redis",
+		Service: "redis",
+		Tags:    []string{"kv"},
+		Meta: map[string]string{
+			"foo": "bar",
+		},
+		Port: 1234,
+	}
+	require.NoError(t, a.State.AddService(srv2, ""))
+
+	req, _ := http.NewRequest("GET", "/v1/agent/services?filter="+url.QueryEscape("foo in Meta"), nil)
+	obj, err := a.srv.AgentServices(nil, req)
+	require.NoError(t, err)
+	val := obj.(map[string]*api.AgentService)
+	require.Len(t, val, 2)
+
+	req, _ = http.NewRequest("GET", "/v1/agent/services?filter="+url.QueryEscape("kv in Tags"), nil)
+	obj, err = a.srv.AgentServices(nil, req)
+	require.NoError(t, err)
+	val = obj.(map[string]*api.AgentService)
+	require.Len(t, val, 1)
+}
+
 // This tests that the agent services endpoint (/v1/agent/services) returns
 // Connect proxies.
 func TestAgent_Services_ExternalConnectProxy(t *testing.T) {
