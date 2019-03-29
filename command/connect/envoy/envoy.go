@@ -1,7 +1,6 @@
 package envoy
 
 import (
-	"bytes"
 	"errors"
 	"flag"
 	"fmt"
@@ -10,7 +9,6 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
-	"text/template"
 
 	"github.com/mitchellh/mapstructure"
 
@@ -297,22 +295,7 @@ func (c *cmd) generateConfig() ([]byte, error) {
 		args.ProxyCluster = svc.Proxy.DestinationServiceName
 	}
 
-	// Apply configuration to arguments
-	if err := bsCfg.ConfigureArgs(args); err != nil {
-		return nil, err
-	}
-
-	t, err := template.New("bootstrap").Parse(bsCfg.Template())
-	if err != nil {
-		return nil, err
-	}
-	var buf bytes.Buffer
-	err = t.Execute(&buf, args)
-	if err != nil {
-		return nil, err
-	}
-
-	return buf.Bytes(), nil
+	return bsCfg.GenerateJSON(args)
 }
 
 func (c *cmd) lookupProxyIDForSidecar() (string, error) {

@@ -23,7 +23,7 @@ environment:
   GOPATH: c:\gopath
   matrix:
   - GOARCH: amd64
-    GOVERSION: 1.4
+    GOVERSION: 1.5
     GOROOT: c:\go
     DOWNLOADPLATFORM: "x64"
 
@@ -37,15 +37,6 @@ install:
   # - set
   - go version
   - go env
-  - c:\gopath\src\github.com\go-ole\go-ole\build\compile-go.bat
-  - go tool dist install -v cmd/8a
-  - go tool dist install -v cmd/8c
-  - go tool dist install -v cmd/8g
-  - go tool dist install -v cmd/8l
-  - go tool dist install -v cmd/6a
-  - go tool dist install -v cmd/6c
-  - go tool dist install -v cmd/6g
-  - go tool dist install -v cmd/6l
   - go get -u golang.org/x/tools/cmd/cover
   - go get -u golang.org/x/tools/cmd/godoc
   - go get -u golang.org/x/tools/cmd/stringer
