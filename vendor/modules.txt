@@ -241,10 +241,6 @@ github.com/hashicorp/go-syslog
 github.com/hashicorp/go-uuid
 # github.com/hashicorp/go-version v0.0.0-20170202080759-03c5bf6be031
 github.com/hashicorp/go-version
-# github.com/hashicorp/go.net v0.0.1
-github.com/hashicorp/go.net/ipv4
-github.com/hashicorp/go.net/ipv6
-github.com/hashicorp/go.net/internal/iana
 # github.com/hashicorp/golang-lru v0.5.0
 github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
@@ -264,7 +260,7 @@ github.com/hashicorp/hil
 github.com/hashicorp/hil/ast
 # github.com/hashicorp/logutils v1.0.0
 github.com/hashicorp/logutils
-# github.com/hashicorp/mdns v1.0.0
+# github.com/hashicorp/mdns v1.0.1
 github.com/hashicorp/mdns
 # github.com/hashicorp/memberlist v0.1.3
 github.com/hashicorp/memberlist
