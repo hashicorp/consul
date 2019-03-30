@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-PPROF" "7" "October 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-PPROF" "7" "March 2019" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIpprof\fR \- publishes runtime profiling data at endpoints under \fB/debug/pprof\fR\.
@@ -24,10 +24,30 @@ pprof [ADDRESS]
 .fi
 .
 .P
-If not specified, ADDRESS defaults to localhost:6053\.
+Optionally pprof takes an address; the default is \fBlocalhost:6053\fR\.
+.
+.P
+An extra option can be set with this extended syntax:
+.
+.IP "" 4
+.
+.nf
+
+pprof [ADDRESS] {
+   block [RATE]
+}
+.
+.fi
+.
+.IP "" 0
+.
+.IP "\(bu" 4
+\fBblock\fR option enables block profiling, \fBRATE\fR defaults to 1\. \fBRATE\fR must be a positive value\. See Diagnostics, chapter profiling \fIhttps://golang\.org/doc/diagnostics\.html\fR and runtime\.SetBlockProfileRate \fIhttps://golang\.org/pkg/runtime/#SetBlockProfileRate\fR for what block profiling entails\.
+.
+.IP "" 0
 .
 .SH "EXAMPLES"
-Enable pprof endpoints:
+Enable a pprof endpoint:
 .
 .IP "" 4
 .
@@ -60,14 +80,16 @@ Listen on an alternate address:
 .IP "" 0
 .
 .P
-Listen on an all addresses on port 6060:
+Listen on an all addresses on port 6060, and enable block profiling
 .
 .IP "" 4
 .
 .nf
 
 \&\. {
-    pprof :6060
+    pprof :6060 {
+       block
+    }
 }
 .
 .fi
@@ -76,3 +98,6 @@ Listen on an all addresses on port 6060:
 .
 .SH "ALSO SEE"
 See Go\'s pprof documentation \fIhttps://golang\.org/pkg/net/http/pprof/\fR and Profiling Go Programs \fIhttps://blog\.golang\.org/profiling\-go\-programs\fR\.
+.
+.P
+See runtime\.SetBlockProfileRate \fIhttps://golang\.org/pkg/runtime/#SetBlockProfileRate\fR for background on block profiling\.

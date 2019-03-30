@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-LOOP" "7" "January 2019" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-LOOP" "7" "March 2019" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIloop\fR \- detect simple forwarding loops and halt the server\.
@@ -78,13 +78,13 @@ Less commonly, CoreDNS forwarding to an upstream server that in turn, forwards r
 .IP "" 0
 .
 .P
-To troubleshoot this problem, look in your Corefile for any \fBproxy\fR or \fBforward\fR to the zone in which the loop was detected\. Make sure that they are not forwarding to a local address or to another DNS server that is forwarding requests back to CoreDNS\. If \fBproxy\fR or \fBforward\fR are using a file (e\.g\. \fB/etc/resolv\.conf\fR), make sure that file does not contain local addresses\.
+To troubleshoot this problem, look in your Corefile for any \fBforward\fRs to the zone in which the loop was detected\. Make sure that they are not forwarding to a local address or to another DNS server that is forwarding requests back to CoreDNS\. If \fBforward\fR is using a file (e\.g\. \fB/etc/resolv\.conf\fR), make sure that file does not contain local addresses\.
 .
 .SS "TROUBLESHOOTING LOOPS IN KUBERNETES CLUSTERS"
 When a CoreDNS Pod deployed in Kubernetes detects a loop, the CoreDNS Pod will start to "CrashLoopBackOff"\. This is because Kubernetes will try to restart the Pod every time CoreDNS detects the loop and exits\.
 .
 .P
-A common cause of forwarding loops in Kubernetes clusters is an interaction with a local DNS cache on the host node (e\.g\. \fBsystemd\-resolved\fR)\. For example, in certain configurations \fBsystemd\-resolved\fR will put the loopback address \fB127\.0\.0\.53\fR as a nameserver into \fB/etc/resolv\.conf\fR\. Kubernetes (via \fBkubelet\fR) by default will pass this \fB/etc/resolv\.conf\fR file to all Pods using the \fBdefault\fR dnsPolicy rendering them unable to make DNS lookups (this includes CoreDNS Pods)\. CoreDNS uses this \fB/etc/resolv\.conf\fR as a list of upstreams to proxy/forward requests to\. Since it contains a loopback address, CoreDNS ends up forwarding requests to itself\.
+A common cause of forwarding loops in Kubernetes clusters is an interaction with a local DNS cache on the host node (e\.g\. \fBsystemd\-resolved\fR)\. For example, in certain configurations \fBsystemd\-resolved\fR will put the loopback address \fB127\.0\.0\.53\fR as a nameserver into \fB/etc/resolv\.conf\fR\. Kubernetes (via \fBkubelet\fR) by default will pass this \fB/etc/resolv\.conf\fR file to all Pods using the \fBdefault\fR dnsPolicy rendering them unable to make DNS lookups (this includes CoreDNS Pods)\. CoreDNS uses this \fB/etc/resolv\.conf\fR as a list of upstreams to forward requests to\. Since it contains a loopback address, CoreDNS ends up forwarding requests to itself\.
 .
 .P
 There are many ways to work around this issue, some are listed here:
@@ -96,7 +96,7 @@ Add the following to \fBkubelet\fR: \fB\-\-resolv\-conf <path\-to\-your\-real\-r
 Disable the local DNS cache on host nodes, and restore \fB/etc/resolv\.conf\fR to the original\.
 .
 .IP "\(bu" 4
-A quick and dirty fix is to edit your Corefile, replacing \fBproxy \. /etc/resolv\.conf\fR with the ip address of your upstream DNS, for example \fBproxy \. 8\.8\.8\.8\fR\. But this only fixes the issue for CoreDNS, kubelet will continue to forward the invalid \fBresolv\.conf\fR to all \fBdefault\fR dnsPolicy Pods, leaving them unable to resolve DNS\.
+A quick and dirty fix is to edit your Corefile, replacing \fBforward \. /etc/resolv\.conf\fR with the ip address of your upstream DNS, for example \fBforward \. 8\.8\.8\.8\fR\. But this only fixes the issue for CoreDNS, kubelet will continue to forward the invalid \fBresolv\.conf\fR to all \fBdefault\fR dnsPolicy Pods, leaving them unable to resolve DNS\.
 .
 .IP "" 0
 

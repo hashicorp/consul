@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-METRICS" "7" "February 2019" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-METRICS" "7" "March 2019" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIprometheus\fR \- enables Prometheus \fIhttps://prometheus\.io/\fR metrics\.
@@ -35,6 +35,9 @@ With \fIprometheus\fR you export metrics from CoreDNS and any plugin that has th
 .
 .IP "\(bu" 4
 \fBcoredns_dns_response_rcode_count_total{server, zone, rcode}\fR \- response per zone and rcode\.
+.
+.IP "\(bu" 4
+\fBcoredns_plugin_enabled{server, zone, name}\fR \- indicates whether a plugin is enabled on per server and zone basis\.
 .
 .IP "" 0
 .
@@ -112,4 +115,4 @@ Or via an environment variable (this is supported throughout the Corefile): \fBe
 .IP "" 0
 .
 .SH "BUGS"
-When reloading, the Prometheus handler is stopped before the new server instance is started\. If that new server fails to start, then the initial server instance is still available and DNS queries still served, but Prometheus handler stays down\. Prometheus will not reply HTTP request until a successful reload or a complete restart of CoreDNS\.
+When reloading, the Prometheus handler is stopped before the new server instance is started\. If that new server fails to start, then the initial server instance is still available and DNS queries still served, but Prometheus handler stays down\. Prometheus will not reply HTTP request until a successful reload or a complete restart of CoreDNS\. Only the plugins that register as Handler are visible in \fBcoredns_plugin_enabled{server, zone, name}\fR\. As of today the plugins reload and bind will not be reported\.

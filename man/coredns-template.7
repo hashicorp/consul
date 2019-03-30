@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-TEMPLATE" "7" "February 2019" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-TEMPLATE" "7" "March 2019" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fItemplate\fR \- allows for dynamic responses based on the incoming query\.
@@ -147,7 +147,7 @@ The \fB\.invalid\fR domain is a reserved TLD (see RFC 2606 Reserved Top Level DN
 .nf
 
 \&\. {
-    proxy \. 8\.8\.8\.8
+    forward \. 8\.8\.8\.8
 
     template ANY ANY invalid {
       rcode NXDOMAIN
@@ -181,7 +181,7 @@ Imagine you run \fBexample\.com\fR with a datacenter \fBdc1\.example\.com\fR\. T
 .nf
 
 \&\. {
-    proxy \. 8\.8\.8\.8
+    forward \. 8\.8\.8\.8
 
     template IN ANY example\.com\.dc1\.example\.com {
       rcode NXDOMAIN
@@ -201,7 +201,7 @@ A more verbose regex based equivalent would be
 .nf
 
 \&\. {
-    proxy \. 8\.8\.8\.8
+    forward \. 8\.8\.8\.8
 
     template IN ANY example\.com {
       match "example\e\.com\e\.(dc1\e\.example\e\.com\e\.)$"
@@ -223,7 +223,7 @@ The regex\-based version can do more complex matching/templating while zone\-bas
 .nf
 
 \&\. {
-    proxy \. 8\.8\.8\.8
+    forward \. 8\.8\.8\.8
 
     # ip\-a\-b\-c\-d\.example A a\.b\.c\.d
 
@@ -260,7 +260,7 @@ Fallthrough is needed for mixed domains where only some responses are templated\
 .nf
 
 \&\. {
-    proxy \. 8\.8\.8\.8
+    forward \. 8\.8\.8\.8
 
     template IN A example {
       match "^ip\-(?P<a>10)\-(?P<b>[0\-9]*)\-(?P<c>[0\-9]*)\-(?P<d>[0\-9]*)[\.]dc[\.]example[\.]$"
@@ -280,7 +280,7 @@ Named capture groups can be used to template one response for multiple patterns\
 .nf
 
 \&\. {
-    proxy \. 8\.8\.8\.8
+    forward \. 8\.8\.8\.8
 
     template IN A example {
       match ^ip\-10\-(?P<b>[0\-9]*)\-(?P<c>[0\-9]*)\-(?P<d>[0\-9]*)[\.]example[\.]$
@@ -302,7 +302,7 @@ Named capture groups can be used to template one response for multiple patterns\
 .nf
 
 \&\. {
-    proxy \. 8\.8\.8\.8
+    forward \. 8\.8\.8\.8
 
     template IN A example {
       match ^ip\-10\-(?P<b>[0\-9]*)\-(?P<c>[0\-9]*)\-(?P<d>[0\-9]*)[\.]example[\.]$

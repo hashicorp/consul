@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-CACHE" "7" "February 2019" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-CACHE" "7" "March 2019" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIcache\fR \- enables a frontend cache\.
@@ -112,7 +112,7 @@ Proxy to Google Public DNS and only cache responses for example\.org (or below)\
 .nf
 
 \&\. {
-    proxy \. 8\.8\.8\.8:53
+    forward \. 8\.8\.8\.8:53
     cache example\.org
 }
 .
@@ -121,4 +121,20 @@ Proxy to Google Public DNS and only cache responses for example\.org (or below)\
 .IP "" 0
 .
 .P
-Enable caching for all zones, keep a positive cache size of 5000 and a negative cache size of 2500: ~~~ corefile \. { cache { success 5000 denial 2500 } } ~~~
+Enable caching for all zones, keep a positive cache size of 5000 and a negative cache size of 2500:
+.
+.IP "" 4
+.
+.nf
+
+ \. {
+     cache {
+         success 5000
+         denial 2500
+    }
+ }
+.
+.fi
+.
+.IP "" 0
+
