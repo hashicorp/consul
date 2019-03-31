@@ -33,12 +33,12 @@ type Server struct {
 	server [2]*dns.Server // 0 is a net.Listener, 1 is a net.PacketConn (a *UDPConn) in our case.
 	m      sync.Mutex     // protects the servers
 
-	zones       map[string]*Config // zones keyed by their address
-	dnsWg       sync.WaitGroup     // used to wait on outstanding connections
-	connTimeout time.Duration      // the maximum duration of a graceful shutdown
-	trace       trace.Trace        // the trace plugin for the server
-	debug       bool               // disable recover()
-	classChaos  bool               // allow non-INET class queries
+	zones        map[string]*Config // zones keyed by their address
+	dnsWg        sync.WaitGroup     // used to wait on outstanding connections
+	graceTimeout time.Duration      // the maximum duration of a graceful shutdown
+	trace        trace.Trace        // the trace plugin for the server
+	debug        bool               // disable recover()
+	classChaos   bool               // allow non-INET class queries
 }
 
 // NewServer returns a new CoreDNS server and compiles all plugins in to it. By default CH class
@@ -46,9 +46,9 @@ type Server struct {
 func NewServer(addr string, group []*Config) (*Server, error) {
 
 	s := &Server{
-		Addr:        addr,
-		zones:       make(map[string]*Config),
-		connTimeout: 5 * time.Second, // TODO(miek): was configurable
+		Addr:         addr,
+		zones:        make(map[string]*Config),
+		graceTimeout: 5 * time.Second,
 	}
 
 	// We have to bound our wg with one increment
@@ -163,7 +163,7 @@ func (s *Server) Stop() (err error) {
 		// Wait for remaining connections to finish or
 		// force them all to close after timeout
 		select {
-		case <-time.After(s.connTimeout):
+		case <-time.After(s.graceTimeout):
 		case <-done:
 		}
 	}
