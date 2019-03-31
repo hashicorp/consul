@@ -16,7 +16,7 @@ chaos [VERSION] [AUTHORS...]
 ~~~
 
 * **VERSION** is the version to return. Defaults to `CoreDNS-<version>`, if not set.
-* **AUTHORS** is what authors to return. No default.
+* **AUTHORS** is what authors to return. This defaults to all GitHub handles in the OWNERS files.
 
 Note that you have to make sure that this plugin will get actual queries for the
 following zones: `version.bind`, `version.server`, `authors.bind`, `hostname.bind` and

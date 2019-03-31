@@ -16,7 +16,7 @@ import (
 type Chaos struct {
 	Next    plugin.Handler
 	Version string
-	Authors map[string]struct{}
+	Authors []string
 }
 
 // ServeDNS implements the plugin.Handler interface.
@@ -32,13 +32,13 @@ func (c Chaos) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 	hdr := dns.RR_Header{Name: state.QName(), Rrtype: dns.TypeTXT, Class: dns.ClassCHAOS, Ttl: 0}
 	switch state.Name() {
 	default:
-		return c.Next.ServeDNS(ctx, w, r)
+		return plugin.NextOrFailure(c.Name(), c.Next, ctx, w, r)
 	case "authors.bind.":
-		for a := range c.Authors {
-			m.Answer = append(m.Answer, &dns.TXT{Hdr: hdr, Txt: []string{trim(a)}})
+		for _, a := range c.Authors {
+			m.Answer = append(m.Answer, &dns.TXT{Hdr: hdr, Txt: []string{a}})
 		}
 	case "version.bind.", "version.server.":
-		m.Answer = []dns.RR{&dns.TXT{Hdr: hdr, Txt: []string{trim(c.Version)}}}
+		m.Answer = []dns.RR{&dns.TXT{Hdr: hdr, Txt: []string{c.Version}}}
 	case "hostname.bind.", "id.server.":
 		hostname, err := os.Hostname()
 		if err != nil {
@@ -52,10 +52,3 @@ func (c Chaos) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 
 // Name implements the Handler interface.
 func (c Chaos) Name() string { return "chaos" }
-
-func trim(s string) string {
-	if len(s) < 256 {
-		return s
-	}
-	return s[:255]
-}

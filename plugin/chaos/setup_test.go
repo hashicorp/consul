@@ -12,7 +12,7 @@ func TestSetupChaos(t *testing.T) {
 		input              string
 		shouldErr          bool
 		expectedVersion    string // expected version.
-		expectedAuthor     string // expected author (string, although we get a map).
+		expectedAuthor     string // expected author (string, although we get a slice).
 		expectedErrContent string // substring from the expected error. Empty for positive cases.
 	}{
 		// positive
@@ -26,7 +26,7 @@ func TestSetupChaos(t *testing.T) {
 
 	for i, test := range tests {
 		c := caddy.NewTestController("dns", test.input)
-		version, authors, err := chaosParse(c)
+		version, authors, err := parse(c)
 
 		if test.shouldErr && err == nil {
 			t.Errorf("Test %d: Expected error but found %s for input %s", i, err, test.input)
@@ -43,11 +43,11 @@ func TestSetupChaos(t *testing.T) {
 		}
 
 		if !test.shouldErr && version != test.expectedVersion {
-			t.Errorf("Chaos not correctly set for input %s. Expected: %s, actual: %s", test.input, test.expectedVersion, version)
+			t.Errorf("Test %d: Chaos not correctly set for input %s. Expected: %s, actual: %s", i, test.input, test.expectedVersion, version)
 		}
-		if !test.shouldErr && authors != nil {
-			if _, ok := authors[test.expectedAuthor]; !ok {
-				t.Errorf("Chaos not correctly set for input %s. Expected: '%s', actual: '%s'", test.input, test.expectedAuthor, "Miek Gieben")
+		if !test.shouldErr && authors != nil && test.expectedAuthor != "" {
+			if authors[0] != test.expectedAuthor {
+				t.Errorf("Test %d: Chaos not correctly set for input %s. Expected: '%s', actual: '%s'", i, test.input, test.expectedAuthor, authors[0])
 			}
 		}
 	}
