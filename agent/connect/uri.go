@@ -31,6 +31,8 @@ type CertURI interface {
 var (
 	spiffeIDServiceRegexp = regexp.MustCompile(
 		`^/ns/([^/]+)/dc/([^/]+)/svc/([^/]+)$`)
+	spiffeIDAgentRegexp = regexp.MustCompile(
+		`^/agent/([^/]+)$`)
 )
 
 // ParseCertURIFromString attempts to parse a string representation of a
@@ -84,6 +86,22 @@ func ParseCertURI(input *url.URL) (CertURI, error) {
 			Namespace:  ns,
 			Datacenter: dc,
 			Service:    service,
+		}, nil
+	} else if v := spiffeIDAgentRegexp.FindStringSubmatch(path); v != nil {
+		// Determine the values. We assume they're sane to save cycles,
+		// but if the raw path is not empty that means that something is
+		// URL encoded so we go to the slow path.
+		uuid := v[1]
+		if input.RawPath != "" {
+			var err error
+			if uuid, err = url.PathUnescape(v[1]); err != nil {
+				return nil, fmt.Errorf("Invalid agent UUID: %s", err)
+			}
+		}
+
+		return &SpiffeIDAgent{
+			Host: input.Host,
+			UUID: uuid,
 		}, nil
 	}
 
