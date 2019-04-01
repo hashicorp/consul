@@ -47,7 +47,7 @@ NAME:=coredns
 VERSION:=$(shell grep 'CoreVersion' coremain/version.go | awk '{ print $$3 }' | tr -d '"')
 GITHUB:=coredns
 DOCKER_IMAGE_NAME:=$(DOCKER)/$(NAME)
-LINUX_ARCH:=amd64 arm arm64 ppc64le s390x
+LINUX_ARCH:=amd64 arm arm64 ppc64le s390x mips
 PLATFORMS:=$(subst $(SPACE),$(COMMA),$(foreach arch,$(LINUX_ARCH),linux/$(arch)))
 
 ifeq ($(DOCKER),)
