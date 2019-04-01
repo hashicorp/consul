@@ -7,17 +7,18 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/coredns/coredns)](https://goreportcard.com/report/coredns/coredns)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/1250/badge)](https://bestpractices.coreinfrastructure.org/projects/1250)
 
-CoreDNS (written in Go) chains [plugins](https://coredns.io/plugins). Each plugin performs a DNS
-function.
+CoreDNS is a DNS server/forwarder, written in Go, that chains [plugins](https://coredns.io/plugins).
+Each plugin performs a (DNS) function.
 
 CoreDNS is a [Cloud Native Computing Foundation](https://cncf.io) graduated project.
 
-CoreDNS is a fast and flexible DNS server. The keyword here is *flexible*: with CoreDNS you
+CoreDNS is a fast and flexible DNS server. The key word here is *flexible*: with CoreDNS you
 are able to do what you want with your DNS data by utilizing plugins. If some functionality is not
 provided out of the box you can add it by [writing a plugin](https://coredns.io/explugins).
 
 CoreDNS can listen for DNS requests coming in over UDP/TCP (go'old DNS), TLS ([RFC
-7858](https://tools.ietf.org/html/rfc7858)) and [gRPC](https://grpc.io) (not a standard).
+7858](https://tools.ietf.org/html/rfc7858)), also called DoT, DNS over HTTP/2 - DoH -
+([RFC 8484](https://tools.ietf.org/html/rfc7858)) and [gRPC](https://grpc.io) (not a standard).
 
 Currently CoreDNS is able to:
 
@@ -27,7 +28,7 @@ Currently CoreDNS is able to:
 * Load balancing of responses (*loadbalance*).
 * Allow for zone transfers, i.e., act as a primary server (*file*).
 * Automatically load zone files from disk (*auto*).
-* Caching (*cache*).
+* Caching of DNS responses (*cache*).
 * Use etcd as a backend (replace [SkyDNS](https://github.com/skynetservices/skydns)) (*etcd*).
 * Use k8s (kubernetes) as a backend (*kubernetes*).
 * Serve as a proxy to forward queries to some other (recursive) nameserver (*forward*).
