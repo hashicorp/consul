@@ -12,6 +12,9 @@ type Filter struct {
 
 func getElementType(dataType interface{}) reflect.Type {
 	rtype := reflect.TypeOf(dataType)
+	if rtype == nil {
+		return nil
+	}
 	switch rtype.Kind() {
 	case reflect.Map, reflect.Slice, reflect.Array:
 		return rtype.Elem()

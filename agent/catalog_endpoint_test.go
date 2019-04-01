@@ -1065,6 +1065,43 @@ func TestCatalogNodeServices(t *testing.T) {
 	require.Equal(t, args.Service.Proxy, services.Services["web-proxy"].Proxy)
 }
 
+func TestCatalogNodeServices_Filter(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	// Register node with a regular service and connect proxy
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "api",
+			Tags:    []string{"a"},
+		},
+	}
+
+	var out struct{}
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+	// Register a connect proxy
+	args.Service = structs.TestNodeServiceProxy(t)
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+	req, _ := http.NewRequest("GET", "/v1/catalog/node/foo?dc=dc1&filter="+url.QueryEscape("Kind == `connect-proxy`"), nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.CatalogNodeServices(resp, req)
+	require.NoError(t, err)
+	assertIndex(t, resp)
+
+	services := obj.(*structs.NodeServices)
+	require.Len(t, services.Services, 1)
+
+	// Proxy service should have it's config intact
+	require.Equal(t, args.Service.Proxy, services.Services["web-proxy"].Proxy)
+}
+
 // Test that the services on a node contain all the Connect proxies on
 // the node as well with their fields properly populated.
 func TestCatalogNodeServices_ConnectProxy(t *testing.T) {

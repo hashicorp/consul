@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-var primitiveEqualityFns = map[reflect.Kind]func(first interface{}, second interface{}) bool{
+var primitiveEqualityFns = map[reflect.Kind]func(first interface{}, second reflect.Value) bool{
 	reflect.Bool:    doEqualBool,
 	reflect.Int:     doEqualInt,
 	reflect.Int8:    doEqualInt8,
@@ -23,60 +23,60 @@ var primitiveEqualityFns = map[reflect.Kind]func(first interface{}, second inter
 	reflect.String:  doEqualString,
 }
 
-func doEqualBool(first interface{}, second interface{}) bool {
-	return first.(bool) == second.(bool)
+func doEqualBool(first interface{}, second reflect.Value) bool {
+	return first.(bool) == second.Bool()
 }
 
-func doEqualInt(first interface{}, second interface{}) bool {
-	return first.(int) == second.(int)
+func doEqualInt(first interface{}, second reflect.Value) bool {
+	return first.(int) == int(second.Int())
 }
 
-func doEqualInt8(first interface{}, second interface{}) bool {
-	return first.(int8) == second.(int8)
+func doEqualInt8(first interface{}, second reflect.Value) bool {
+	return first.(int8) == int8(second.Int())
 }
 
-func doEqualInt16(first interface{}, second interface{}) bool {
-	return first.(int16) == second.(int16)
+func doEqualInt16(first interface{}, second reflect.Value) bool {
+	return first.(int16) == int16(second.Int())
 }
 
-func doEqualInt32(first interface{}, second interface{}) bool {
-	return first.(int32) == second.(int32)
+func doEqualInt32(first interface{}, second reflect.Value) bool {
+	return first.(int32) == int32(second.Int())
 }
 
-func doEqualInt64(first interface{}, second interface{}) bool {
-	return first.(int64) == second.(int64)
+func doEqualInt64(first interface{}, second reflect.Value) bool {
+	return first.(int64) == second.Int()
 }
 
-func doEqualUint(first interface{}, second interface{}) bool {
-	return first.(uint) == second.(uint)
+func doEqualUint(first interface{}, second reflect.Value) bool {
+	return first.(uint) == uint(second.Uint())
 }
 
-func doEqualUint8(first interface{}, second interface{}) bool {
-	return first.(uint8) == second.(uint8)
+func doEqualUint8(first interface{}, second reflect.Value) bool {
+	return first.(uint8) == uint8(second.Uint())
 }
 
-func doEqualUint16(first interface{}, second interface{}) bool {
-	return first.(uint16) == second.(uint16)
+func doEqualUint16(first interface{}, second reflect.Value) bool {
+	return first.(uint16) == uint16(second.Uint())
 }
 
-func doEqualUint32(first interface{}, second interface{}) bool {
-	return first.(uint32) == second.(uint32)
+func doEqualUint32(first interface{}, second reflect.Value) bool {
+	return first.(uint32) == uint32(second.Uint())
 }
 
-func doEqualUint64(first interface{}, second interface{}) bool {
-	return first.(uint64) == second.(uint64)
+func doEqualUint64(first interface{}, second reflect.Value) bool {
+	return first.(uint64) == second.Uint()
 }
 
-func doEqualFloat32(first interface{}, second interface{}) bool {
-	return first.(float32) == second.(float32)
+func doEqualFloat32(first interface{}, second reflect.Value) bool {
+	return first.(float32) == float32(second.Float())
 }
 
-func doEqualFloat64(first interface{}, second interface{}) bool {
-	return first.(float64) == second.(float64)
+func doEqualFloat64(first interface{}, second reflect.Value) bool {
+	return first.(float64) == second.Float()
 }
 
-func doEqualString(first interface{}, second interface{}) bool {
-	return first.(string) == second.(string)
+func doEqualString(first interface{}, second reflect.Value) bool {
+	return first.(string) == second.String()
 }
 
 // Get rid of 0 to many levels of pointers to get at the real type
@@ -91,7 +91,7 @@ func doMatchEqual(expression *MatchExpression, value reflect.Value) (bool, error
 	// NOTE: see preconditions in evaluateMatchExpressionRecurse
 	eqFn := primitiveEqualityFns[value.Kind()]
 	matchValue := getMatchExprValue(expression)
-	return eqFn(matchValue, value.Interface()), nil
+	return eqFn(matchValue, value), nil
 }
 
 func doMatchIn(expression *MatchExpression, value reflect.Value) (bool, error) {
@@ -110,7 +110,7 @@ func doMatchIn(expression *MatchExpression, value reflect.Value) (bool, error) {
 			item := value.Index(i)
 
 			// the value will be the correct type as we verified the itemType
-			if eqFn(matchValue, reflect.Indirect(item).Interface()) {
+			if eqFn(matchValue, reflect.Indirect(item)) {
 				return true, nil
 			}
 		}
