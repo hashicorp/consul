@@ -34,8 +34,6 @@ type (
 		transferTo     []string
 		ReloadInterval time.Duration
 		upstream       *upstream.Upstream // Upstream for looking up names during the resolution process.
-
-		duration time.Duration
 	}
 )
 

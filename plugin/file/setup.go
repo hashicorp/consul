@@ -112,10 +112,6 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 				}
 				reload = d
 
-			case "no_reload":
-				log.Warning("NO_RELOAD of directory is deprecated. Use RELOAD (set to 0) instead. See https://coredns.io/plugins/file/#syntax")
-				reload = 0
-
 			case "upstream":
 				// ignore args, will be error later.
 				c.RemainingArgs() // clear buffer

@@ -77,7 +77,8 @@ func TestMetricsAuto(t *testing.T) {
 
 	corefile := `org:0 {
 		auto {
-			directory ` + tmpdir + ` db\.(.*) {1} 1
+			directory ` + tmpdir + ` db\.(.*) {1}
+			reload 1s
 		}
 		prometheus localhost:0
 	}

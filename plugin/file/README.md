@@ -28,7 +28,6 @@ If you want to round-robin A and AAAA responses look at the *loadbalance* plugin
 file DBFILE [ZONES... ] {
     transfer to ADDRESS...
     reload DURATION
-    no_reload
     upstream
 }
 ~~~
@@ -40,7 +39,6 @@ file DBFILE [ZONES... ] {
 * `reload` interval to perform a reload of the zone if the SOA version changes. Default is one minute.
   Value of `0` means to not scan for changes and reload. For example, `30s` checks the zonefile every 30 seconds
   and reloads the zone when serial changes.
-* `no_reload` deprecated. Sets reload to 0.
 * `upstream` resolve external names found (think CNAMEs) pointing to external names. This is only
   really useful when CoreDNS is configured as a proxy; for normal authoritative serving you don't
   need *or* want to use this. CoreDNS will resolve CNAMEs against itself.
