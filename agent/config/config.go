@@ -188,6 +188,7 @@ type Config struct {
 	Checks                           []CheckDefinition        `json:"checks,omitempty" hcl:"checks" mapstructure:"checks"`
 	ClientAddr                       *string                  `json:"client_addr,omitempty" hcl:"client_addr" mapstructure:"client_addr"`
 	ConfigEntries                    ConfigEntries            `json:"config_entries,omitempty" hcl:"config_entries" mapstructure:"config_entries"`
+	AutoEncrypt                      AutoEncrypt              `json:"auto_encrypt,omitempty" hcl:"auto_encrypt" mapstructure:"auto_encrypt"`
 	Connect                          Connect                  `json:"connect,omitempty" hcl:"connect" mapstructure:"connect"`
 	DNS                              DNS                      `json:"dns_config,omitempty" hcl:"dns_config" mapstructure:"dns_config"`
 	DNSDomain                        *string                  `json:"domain,omitempty" hcl:"domain" mapstructure:"domain"`
@@ -498,6 +499,11 @@ type Upstream struct {
 	// It can be used to pass arbitrary configuration for this specific upstream
 	// to the proxy.
 	Config map[string]interface{} `json:"config,omitempty" hcl:"config" mapstructure:"config"`
+}
+
+// AutoEncrypt is the agent-global auto_encrypt configuration.
+type AutoEncrypt struct {
+	TLS *bool `json:"tls,omitempty" hcl:"tls" mapstructure:"tls"`
 }
 
 // Connect is the agent-global connect configuration.

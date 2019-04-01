@@ -557,6 +557,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	consulRaftHeartbeatTimeout := b.durationVal("consul.raft.heartbeat_timeout", c.Consul.Raft.HeartbeatTimeout) * time.Duration(performanceRaftMultiplier)
 	consulRaftLeaderLeaseTimeout := b.durationVal("consul.raft.leader_lease_timeout", c.Consul.Raft.LeaderLeaseTimeout) * time.Duration(performanceRaftMultiplier)
 
+	autoEncryptTLS := b.boolVal(c.AutoEncrypt.TLS)
+
 	// Connect proxy defaults.
 	connectEnabled := b.boolVal(c.Connect.Enabled)
 	connectCAProvider := b.stringVal(c.Connect.CAProvider)
@@ -789,6 +791,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		Checks:                                  checks,
 		ClientAddrs:                             clientAddrs,
 		ConfigEntryBootstrap:                    configEntries,
+		AutoEncryptTLS:                          autoEncryptTLS,
 		ConnectEnabled:                          connectEnabled,
 		ConnectCAProvider:                       connectCAProvider,
 		ConnectCAConfig:                         connectCAConfig,

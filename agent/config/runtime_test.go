@@ -3095,6 +3095,9 @@ func TestFullConfig(t *testing.T) {
 						}
 					}
 				]
+                        },
+			"auto_encrypt": {
+				"tls": true
 			},
 			"connect": {
 				"ca_provider": "consul",
@@ -3660,6 +3663,8 @@ func TestFullConfig(t *testing.T) {
 						bar = 1.0
 					}
 				}
+			auto_encrypt = {
+				tls = true
 			}
 			connect {
 				ca_provider = "consul"
@@ -4332,6 +4337,7 @@ func TestFullConfig(t *testing.T) {
 				},
 			},
 		},
+		AutoEncryptTLS:          true,
 		ConnectEnabled:          true,
 		ConnectProxyBindMinPort: 2000,
 		ConnectProxyBindMaxPort: 3000,
@@ -5111,6 +5117,7 @@ func TestSanitize(t *testing.T) {
 		}],
 		"ClientAddrs": [],
 		"ConfigEntryBootstrap": [],
+		"AutoEncryptTLS": false,
 		"ConnectCAConfig": {},
 		"ConnectCAProvider": "",
 		"ConnectEnabled": false,
