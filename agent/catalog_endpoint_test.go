@@ -688,6 +688,69 @@ func TestCatalogServiceNodes_NodeMetaFilter(t *testing.T) {
 	}
 }
 
+func TestCatalogServiceNodes_Filter(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+
+	queryPath := "/v1/catalog/service/api?filter=" + url.QueryEscape("ServiceMeta.somekey == somevalue")
+
+	// Make sure an empty list is returned, not a nil
+	{
+		req, _ := http.NewRequest("GET", queryPath, nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.CatalogServiceNodes(resp, req)
+		require.NoError(t, err)
+
+		assertIndex(t, resp)
+
+		nodes := obj.(structs.ServiceNodes)
+		require.Empty(t, nodes)
+	}
+
+	// Register node
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "api",
+			Meta: map[string]string{
+				"somekey": "somevalue",
+			},
+		},
+	}
+
+	var out struct{}
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+	// Register a second service for the node
+	args = &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			ID:      "api2",
+			Service: "api",
+			Meta: map[string]string{
+				"somekey": "notvalue",
+			},
+		},
+		SkipNodeUpdate: true,
+	}
+
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+	req, _ := http.NewRequest("GET", queryPath, nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.CatalogServiceNodes(resp, req)
+	require.NoError(t, err)
+	assertIndex(t, resp)
+
+	nodes := obj.(structs.ServiceNodes)
+	require.Len(t, nodes, 1)
+}
+
 func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 	t.Parallel()
 	a1 := NewTestAgent(t, t.Name(), `
