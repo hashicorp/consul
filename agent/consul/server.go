@@ -2,7 +2,6 @@ package consul
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -217,8 +216,7 @@ type Server struct {
 	Listener  net.Listener
 	rpcServer *rpc.Server
 
-	// rpcTLS is the TLS config for incoming TLS requests
-	rpcTLS *tls.Config
+	tlsConfigurator *tlsutil.Configurator
 
 	// serfLAN is the Serf cluster maintained inside the DC
 	// which contains all the DC nodes
@@ -352,7 +350,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 		reconcileCh:      make(chan serf.Member, reconcileChSize),
 		router:           router.NewRouter(logger, config.Datacenter),
 		rpcServer:        rpc.NewServer(),
-		rpcTLS:           tlsConfigurator.IncomingRPCConfig(),
+		tlsConfigurator:  tlsConfigurator,
 		reassertLeaderCh: make(chan chan error),
 		segmentLAN:       make(map[string]*serf.Serf, len(config.Segments)),
 		sessionTimers:    NewSessionTimers(),
@@ -402,7 +400,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	}
 
 	// Initialize the RPC layer.
-	if err := s.setupRPC(tlsConfigurator.OutgoingRPCWrapper()); err != nil {
+	if err := s.setupRPC(); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start RPC layer: %v", err)
 	}
@@ -704,7 +702,7 @@ func registerEndpoint(fn factory) {
 }
 
 // setupRPC is used to setup the RPC listener
-func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
+func (s *Server) setupRPC() error {
 	for _, fn := range endpoints {
 		s.rpcServer.Register(fn(s))
 	}
@@ -730,7 +728,7 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 
 	// Provide a DC specific wrapper. Raft replication is only
 	// ever done in the same datacenter, so we can provide it as a constant.
-	wrapper := tlsutil.SpecificDC(s.config.Datacenter, tlsWrap)
+	wrapper := tlsutil.SpecificDC(s.config.Datacenter, s.tlsConfigurator.OutgoingRPCWrapper())
 
 	// Define a callback for determining whether to wrap a connection with TLS
 	tlsFunc := func(address raft.ServerAddress) bool {
