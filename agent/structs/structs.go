@@ -332,8 +332,8 @@ func (r *DCSpecificRequest) CacheInfo() cache.RequestInfo {
 		MustRevalidate: r.MustRevalidate,
 	}
 
-	// To calculate the cache key we only hash the node filters. The
-	// datacenter is handled by the cache framework. The other fields are
+	// To calculate the cache key we only hash the node meta filters and the bexpr filter. 
+	// The datacenter is handled by the cache framework. The other fields are
 	// not, but should not be used in any cache types.
 	v, err := hashstructure.Hash([]interface{}{
 		r.NodeMetaFilters,
