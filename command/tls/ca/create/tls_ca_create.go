@@ -61,12 +61,12 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	sn, err := tls.GenerateSerialNumber()
+	sn, err := tlsutil.GenerateSerialNumber()
 	if err != nil {
 		c.UI.Error(err.Error())
 		return 1
 	}
-	s, pk, err := tls.GeneratePrivateKey()
+	s, pk, err := tlsutil.GeneratePrivateKey()
 	if err != nil {
 		c.UI.Error(err.Error())
 	}

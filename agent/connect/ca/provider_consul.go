@@ -349,8 +349,14 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	serviceId, ok := spiffeId.(*connect.SpiffeIDService)
-	if !ok {
+
+	cn := ""
+	switch id := spiffeId.(type) {
+	case *connect.SpiffeIDService:
+		cn = id.Service
+	case *connect.SpiffeIDAgent:
+		cn = fmt.Sprintf("client.TODO")
+	default:
 		return "", fmt.Errorf("SPIFFE ID in CSR must be a service ID")
 	}
 
@@ -373,7 +379,7 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	effectiveNow := time.Now().Add(-1 * time.Minute)
 	template := x509.Certificate{
 		SerialNumber:          sn,
-		Subject:               pkix.Name{CommonName: serviceId.Service},
+		Subject:               pkix.Name{CommonName: cn},
 		URIs:                  csr.URIs,
 		Signature:             csr.Signature,
 		SignatureAlgorithm:    csr.SignatureAlgorithm,

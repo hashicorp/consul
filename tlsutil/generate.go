@@ -1,4 +1,4 @@
-package tls
+package tlsutil
 
 import (
 	"bytes"
@@ -13,8 +13,11 @@ import (
 	"fmt"
 	"math/big"
 	"net"
+	"net/url"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/consul/agent/connect"
 )
 
 // GenerateSerialNumber returns random bigint generated with crypto/rand
@@ -142,6 +145,34 @@ func GenerateCert(signer crypto.Signer, ca string, sn *big.Int, name string, day
 	return buf.String(), pk, nil
 }
 
+// GenerateCSR generates a new CSR for agent TLS (not to be confused with Connect TLS)
+func GenerateCSR(uri connect.CertURI, DNSNames []string, IPAddresses []net.IP) (string, string, error) {
+	signee, pk, err := GeneratePrivateKey()
+	if err != nil {
+		return "", "", err
+	}
+
+	template := x509.CertificateRequest{
+		URIs:               []*url.URL{uri.URI()},
+		SignatureAlgorithm: x509.ECDSAWithSHA256,
+		DNSNames:           DNSNames,
+		IPAddresses:        IPAddresses,
+	}
+
+	bs, err := x509.CreateCertificateRequest(rand.Reader, &template, signee)
+	if err != nil {
+		return "", "", err
+	}
+
+	var buf bytes.Buffer
+	err = pem.Encode(&buf, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: bs})
+	if err != nil {
+		return "", "", err
+	}
+
+	return buf.String(), pk, nil
+}
+
 // KeyId returns a x509 KeyId from the given signing key.
 func keyID(raw interface{}) ([]byte, error) {
 	switch raw.(type) {
@@ -175,6 +206,20 @@ func parseCert(pemValue string) (*x509.Certificate, error) {
 	}
 
 	return x509.ParseCertificate(block.Bytes)
+}
+
+func parseCSR(pemValue string) (*x509.CertificateRequest, error) {
+	// The _ result below is not an error but the remaining PEM bytes.
+	block, _ := pem.Decode([]byte(pemValue))
+	if block == nil {
+		return nil, fmt.Errorf("no PEM-encoded data found")
+	}
+
+	if block.Type != "CERTIFICATE REQUEST" {
+		return nil, fmt.Errorf("first PEM-block should be CERTIFICATE REQUEST type")
+	}
+
+	return x509.ParseCertificateRequest(block.Bytes)
 }
 
 // ParseSigner parses a crypto.Signer from a PEM-encoded key. The private key
