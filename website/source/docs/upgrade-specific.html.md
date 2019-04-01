@@ -96,7 +96,7 @@ as soon as possible after upgrade, as well as updating any integrations to work
 with the the new ACL [Token](/api/acl/tokens.html) and
 [Policy](/api/acl/policies.html) APIs.
 
-More complete details on how to upgrade "legacy" tokens is available [here](/docs/guides/acl-migrate-tokens.html).
+More complete details on how to upgrade "legacy" tokens is available [here](/docs/acl/acl-migrate-tokens.html).
 
 ### Connect Multi-datacenter
 

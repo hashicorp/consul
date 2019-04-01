@@ -195,7 +195,7 @@ instance and relay hosts should not be on the same host or the redirects will
 intercept the traffic.
 
 On Linux systems that support it, incoming requests and requests to
-the local host can use [`iptables`]((http://www.netfilter.org/)) to forward ports on the same machine
+the local host can use [`iptables`](http://www.netfilter.org/) to forward ports on the same machine
 without a secondary service. Since Consul, by default, only resolves
 the `.consul` TLD, it is especially important to use the `recursors`
 option if you wish the `iptables` setup to resolve for other domains.

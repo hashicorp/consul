@@ -11,7 +11,7 @@ description: |-
 # ACL Token HTTP API
 
 The `/acl/token` endpoints [create](#create-a-token), [read](#read-a-token),
-[update](#update-a-token), [list](#list-tokens), [clone](#clone-token) and [delete](#delete-a-token)  ACL policies in Consul.
+[update](#update-a-token), [list](#list-tokens), [clone](#clone-a-token) and [delete](#delete-a-token)  ACL policies in Consul.
 
 For more information about ACLs, please see the [ACL Guide](/docs/guides/acl.html).
 

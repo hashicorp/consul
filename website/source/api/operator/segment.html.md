@@ -20,7 +20,7 @@ The network area functionality described here is available only in
 later. Network segments are operator-defined sections of agents on the LAN, typically
 isolated from other segments by network configuration.
 
-Please see the [Network Segments Guide](/docs/guides/segments.html) for more details.
+Please see the [Network Segments Guide](/docs/guides/network-segments.html) for more details.
 
 ## List Network Segments
 
