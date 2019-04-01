@@ -191,14 +191,12 @@ func (b *Builder) ReadPath(path string) ([]Source, error) {
 		}
 
 		sourceFormat := FormatFrom(fp)
-		if configFormat != "" {
-			if sourceFormat == "json" || sourceFormat == "hcl" || sourceFormat == configFormat {
-				src, err := b.ReadFile(fp)
-				if err != nil {
-					return nil, err
-				}
-				sources = append(sources, src)
+		if sourceFormat == "json" || sourceFormat == "hcl" || configFormat != "" {
+			src, err := b.ReadFile(fp)
+			if err != nil {
+				return nil, err
 			}
+			sources = append(sources, src)
 		}
 	}
 	return sources, nil
