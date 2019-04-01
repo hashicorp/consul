@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"testing"
@@ -100,6 +101,48 @@ func TestUiNodes(t *testing.T) {
 		nodes[1].Checks == nil || len(nodes[1].Checks) != 0 {
 		t.Fatalf("bad: %v", obj)
 	}
+}
+
+func TestUiNodes_Filter(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "test",
+		Address:    "127.0.0.1",
+		NodeMeta: map[string]string{
+			"os": "linux",
+		},
+	}
+
+	var out struct{}
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+	args = &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "test2",
+		Address:    "127.0.0.1",
+		NodeMeta: map[string]string{
+			"os": "macos",
+		},
+	}
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+	req, _ := http.NewRequest("GET", "/v1/internal/ui/nodes/dc1?filter="+url.QueryEscape("Meta.os == linux"), nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.UINodes(resp, req)
+	require.NoError(t, err)
+	assertIndex(t, resp)
+
+	// Should be 2 nodes, and all the empty lists should be non-nil
+	nodes := obj.(structs.NodeDump)
+	require.Len(t, nodes, 1)
+	require.Equal(t, nodes[0].Node, "test")
+	require.Empty(t, nodes[0].Services)
+	require.Empty(t, nodes[0].Checks)
 }
 
 func TestUiNodeInfo(t *testing.T) {
