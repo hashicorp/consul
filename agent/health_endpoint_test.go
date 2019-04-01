@@ -366,6 +366,67 @@ func TestHealthServiceChecks_NodeMetaFilter(t *testing.T) {
 	}
 }
 
+func TestHealthServiceChecks_Filtering(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	req, _ := http.NewRequest("GET", "/v1/health/checks/consul?dc=dc1&node-meta=somekey:somevalue", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.HealthServiceChecks(resp, req)
+	require.NoError(t, err)
+	assertIndex(t, resp)
+
+	// Should be a non-nil empty list
+	nodes := obj.(structs.HealthChecks)
+	require.Empty(t, nodes)
+
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       a.Config.NodeName,
+		Address:    "127.0.0.1",
+		NodeMeta:   map[string]string{"somekey": "somevalue"},
+		Check: &structs.HealthCheck{
+			Node:      a.Config.NodeName,
+			Name:      "consul check",
+			ServiceID: "consul",
+		},
+		SkipNodeUpdate: true,
+	}
+
+	var out struct{}
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+	// Create a new node, service and check
+	args = &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "test-health-node",
+		Address:    "127.0.0.2",
+		NodeMeta:   map[string]string{"somekey": "somevalue"},
+		Service: &structs.NodeService{
+			ID:      "consul",
+			Service: "consul",
+		},
+		Check: &structs.HealthCheck{
+			Node:      "test-health-node",
+			Name:      "consul check",
+			ServiceID: "consul",
+		},
+	}
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+	req, _ = http.NewRequest("GET", "/v1/health/checks/consul?dc=dc1&filter="+url.QueryEscape("Node == `test-health-node`"), nil)
+	resp = httptest.NewRecorder()
+	obj, err = a.srv.HealthServiceChecks(resp, req)
+	require.NoError(t, err)
+	assertIndex(t, resp)
+
+	// Should be 1 health check for consul
+	nodes = obj.(structs.HealthChecks)
+	require.Len(t, nodes, 1)
+}
+
 func TestHealthServiceChecks_DistanceSort(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")
@@ -713,7 +774,7 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 	// Create a failing service check
 	args := &structs.RegisterRequest{
 		Datacenter: dc,
-		Node:       a.Config.NodeName,
+		Node:       "tes",
 		Address:    "127.0.0.1",
 		Check: &structs.HealthCheck{
 			Node:      a.Config.NodeName,
