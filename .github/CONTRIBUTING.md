@@ -131,15 +131,7 @@ it does not fail after 30 iterations, it should be sufficiently stable.
 
 ## Vendoring
 
-Consul currently uses [govendor](https://github.com/kardianos/govendor) for
-vendoring and [vendorfmt](https://github.com/magiconair/vendorfmt) for formatting
-`vendor.json` to a more merge-friendly "one line per package" format.
-
-If you are submitting a change that requires new or updated dependencies, 
-please include them in `vendor/vendor.json` and in the `vendor/` folder. 
-This helps everything get tested properly in CI.
-
-Use `govendor fetch <project>` to add a project as a dependency. See govendor's [Quick Start](https://github.com/kardianos/govendor#quick-start-also-see-the-faq) for examples.
+Consul currently uses Go Modules for vendoring.
 
 Please only apply the minimal vendor changes to get your PR to work. 
 Consul does not attempt to track the latest version for each dependency.
