@@ -1036,6 +1036,44 @@ func TestHealthConnectServiceNodes(t *testing.T) {
 	assert.Len(nodes[0].Checks, 0)
 }
 
+func TestHealthConnectServiceNodes_Filter(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Register
+	args := structs.TestRegisterRequestProxy(t)
+	args.Service.Address = "127.0.0.55"
+	var out struct{}
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+	args = structs.TestRegisterRequestProxy(t)
+	args.Service.Address = "127.0.0.55"
+	args.Service.Meta = map[string]string{
+		"version": "2",
+	}
+	args.Service.ID = "web-proxy2"
+	args.SkipNodeUpdate = true
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf(
+		"/v1/health/connect/%s?filter=%s",
+		args.Service.Proxy.DestinationServiceName,
+		url.QueryEscape("Service.Meta.version == 2")), nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.HealthConnectServiceNodes(resp, req)
+	require.NoError(t, err)
+	assertIndex(t, resp)
+
+	nodes := obj.(structs.CheckServiceNodes)
+	require.Len(t, nodes, 1)
+	require.Equal(t, structs.ServiceKindConnectProxy, nodes[0].Service.Kind)
+	require.Equal(t, args.Service.Address, nodes[0].Service.Address)
+	require.Equal(t, args.Service.Proxy, nodes[0].Service.Proxy)
+}
+
 func TestHealthConnectServiceNodes_PassingFilter(t *testing.T) {
 	t.Parallel()
 
