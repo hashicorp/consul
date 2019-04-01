@@ -108,6 +108,52 @@ func TestHealthChecksInState_NodeMetaFilter(t *testing.T) {
 	})
 }
 
+func TestHealthChecksInState_Filter(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "bar",
+		Address:    "127.0.0.1",
+		NodeMeta:   map[string]string{"somekey": "somevalue"},
+		Check: &structs.HealthCheck{
+			Node:   "bar",
+			Name:   "node check",
+			Status: api.HealthCritical,
+		},
+	}
+	var out struct{}
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+	args = &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "bar",
+		Address:    "127.0.0.1",
+		NodeMeta:   map[string]string{"somekey": "somevalue"},
+		Check: &structs.HealthCheck{
+			Node:   "bar",
+			Name:   "node check 2",
+			Status: api.HealthCritical,
+		},
+		SkipNodeUpdate: true,
+	}
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+	req, _ := http.NewRequest("GET", "/v1/health/state/critical?filter="+url.QueryEscape("Name == `node check 2`"), nil)
+	retry.Run(t, func(r *retry.R) {
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.HealthChecksInState(resp, req)
+		require.NoError(r, err)
+		require.NoError(r, checkIndex(resp))
+
+		// Should be 1 health check for the server
+		nodes := obj.(structs.HealthChecks)
+		require.Len(r, nodes, 1)
+	})
+}
+
 func TestHealthChecksInState_DistanceSort(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")
