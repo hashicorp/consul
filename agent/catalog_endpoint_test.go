@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -151,6 +152,42 @@ func TestCatalogNodes_MetaFilter(t *testing.T) {
 	if v, ok := nodes[0].Meta["somekey"]; !ok || v != "somevalue" {
 		t.Fatalf("bad: %v", nodes[0].Meta)
 	}
+}
+
+func TestCatalogNodes_Filter(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	// Register a node with a meta field
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		NodeMeta: map[string]string{
+			"somekey": "somevalue",
+		},
+	}
+
+	var out struct{}
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?filter="+url.QueryEscape("Meta.somekey == somevalue"), nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.CatalogNodes(resp, req)
+	require.NoError(t, err)
+
+	// Verify an index is set
+	assertIndex(t, resp)
+
+	// Verify we only get the node with the correct meta field back
+	nodes := obj.(structs.Nodes)
+	require.Len(t, nodes, 1)
+
+	v, ok := nodes[0].Meta["somekey"]
+	require.True(t, ok)
+	require.Equal(t, v, "somevalue")
 }
 
 func TestCatalogNodes_WanTranslation(t *testing.T) {
