@@ -138,14 +138,6 @@ github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed h1:5upAirOpQc
 github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed/go.mod h1:tMWxXQ9wFIaZeTI9F+hmhFiGpFmhOHzyShyFUhRm0H4=
 github.com/hashicorp/errwrap v1.0.0 h1:hLrqtEDnRye3+sgx6z4qVLNuviH3MR5aQ0ykNJa/UYA=
 github.com/hashicorp/errwrap v1.0.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
-github.com/hashicorp/go-bexpr v0.0.0-20190328184005-3ba3d46f5f2d h1:H1TDoDmOkCYsRJ95y6iMiKaZ2btNxIl8u/kHlp7VHgs=
-github.com/hashicorp/go-bexpr v0.0.0-20190328184005-3ba3d46f5f2d/go.mod h1:ANbpTX1oAql27TZkKVeW8p1w8NTdnyzPe/0qqPCKohU=
-github.com/hashicorp/go-bexpr v0.0.0-20190329191257-9049f74a216f h1:f2VH1sjiUbo9EL53/QHiHF5tJIzBcB7YqqFXnCPQCw8=
-github.com/hashicorp/go-bexpr v0.0.0-20190329191257-9049f74a216f/go.mod h1:ANbpTX1oAql27TZkKVeW8p1w8NTdnyzPe/0qqPCKohU=
-github.com/hashicorp/go-bexpr v0.0.0-20190329201445-3b9a9e9d58d3 h1:LIvMrAHU3+EwuysEN8YLLMaG7wow9apw7t/leguKaOk=
-github.com/hashicorp/go-bexpr v0.0.0-20190329201445-3b9a9e9d58d3/go.mod h1:ANbpTX1oAql27TZkKVeW8p1w8NTdnyzPe/0qqPCKohU=
-github.com/hashicorp/go-bexpr v0.0.0-20190329204355-25d90e33183a h1:eqgRr4UdbPZ4mkKf2+5blvWf3c3UtGbuMh7V8ltRjjI=
-github.com/hashicorp/go-bexpr v0.0.0-20190329204355-25d90e33183a/go.mod h1:ANbpTX1oAql27TZkKVeW8p1w8NTdnyzPe/0qqPCKohU=
 github.com/hashicorp/go-bexpr v0.0.0-20190401144033-e78c8a4165e7 h1:sJLseyWElkTYWZw6AhOYIUUN7QBwYx1J571iuyhVies=
 github.com/hashicorp/go-bexpr v0.0.0-20190401144033-e78c8a4165e7/go.mod h1:ANbpTX1oAql27TZkKVeW8p1w8NTdnyzPe/0qqPCKohU=
 github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de h1:XDCSythtg8aWSRSO29uwhgh7b127fWr+m5SemqjSUL8=
