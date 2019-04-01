@@ -11,7 +11,6 @@ import (
 	_ "github.com/coredns/coredns/plugin/cancel"
 	_ "github.com/coredns/coredns/plugin/chaos"
 	_ "github.com/coredns/coredns/plugin/debug"
-	_ "github.com/coredns/coredns/plugin/deprecated"
 	_ "github.com/coredns/coredns/plugin/dnssec"
 	_ "github.com/coredns/coredns/plugin/dnstap"
 	_ "github.com/coredns/coredns/plugin/erratic"
