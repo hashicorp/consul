@@ -6,13 +6,14 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"reflect"
 	"testing"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -214,6 +215,50 @@ func TestHealthNodeChecks(t *testing.T) {
 	if len(nodes) != 1 {
 		t.Fatalf("bad: %v", obj)
 	}
+}
+
+func TestHealthNodeChecks_Filtering(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	// Create a node check
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "test-health-node",
+		Address:    "127.0.0.2",
+		Check: &structs.HealthCheck{
+			Node: "test-health-node",
+			Name: "check1",
+		},
+	}
+
+	var out struct{}
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+	// Create a second check
+	args = &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "test-health-node",
+		Address:    "127.0.0.2",
+		Check: &structs.HealthCheck{
+			Node: "test-health-node",
+			Name: "check2",
+		},
+		SkipNodeUpdate: true,
+	}
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+	req, _ := http.NewRequest("GET", "/v1/health/node/test-health-node?filter="+url.QueryEscape("Name == check2"), nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.HealthNodeChecks(resp, req)
+	require.NoError(t, err)
+	assertIndex(t, resp)
+
+	// Should be 1 health check for the server
+	nodes := obj.(structs.HealthChecks)
+	require.Len(t, nodes, 1)
 }
 
 func TestHealthServiceChecks(t *testing.T) {
