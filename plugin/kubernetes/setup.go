@@ -321,4 +321,4 @@ func searchFromResolvConf() []string {
 	return rc.Search
 }
 
-const defaultResyncPeriod = 5 * time.Minute
+const defaultResyncPeriod = 5 * time.Hour
