@@ -124,6 +124,35 @@ func TestAPI_CatalogNodes_MetaFilter(t *testing.T) {
 	})
 }
 
+func TestAPI_CatalogNodes_Filter(t *testing.T) {
+	t.Parallel()
+	meta := map[string]string{"somekey": "somevalue"}
+	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+		conf.NodeMeta = meta
+	})
+	defer s.Stop()
+
+	catalog := c.Catalog()
+	// Make sure we get the node back when filtering by its metadata
+	retry.Run(t, func(r *retry.R) {
+		nodes, meta, err := catalog.Nodes(&QueryOptions{NodeMeta: meta})
+		require.NoError(r, err)
+		require.NotEqual(r, meta.LastIndex, 0)
+		require.NotEmpty(r, nodes)
+		require.Contains(r, nodes[0].TaggedAddresses, "wan")
+		require.Contains(r, nodes[0].Meta, "somekey")
+		require.Equal(r, nodes[0].Meta["somekey"], "somevalue")
+	})
+
+	retry.Run(t, func(r *retry.R) {
+		// Get nothing back when we use an invalid filter
+		nodes, meta, err := catalog.Nodes(&QueryOptions{NodeMeta: map[string]string{"nope": "nope"}})
+		require.NoError(r, err)
+		require.NotEqual(r, meta.LastIndex, 0)
+		require.Empty(r, nodes)
+	})
+}
+
 func TestAPI_CatalogServices(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
@@ -398,6 +427,28 @@ func TestAPI_CatalogService_NodeMetaFilter(t *testing.T) {
 	})
 }
 
+func TestAPI_CatalogService_Filter(t *testing.T) {
+	t.Parallel()
+	meta := map[string]string{"somekey": "somevalue"}
+	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+		conf.NodeMeta = meta
+	})
+	defer s.Stop()
+
+	catalog := c.Catalog()
+	retry.Run(t, func(r *retry.R) {
+		services, qmeta, err := catalog.ServiceWithFilter("consul", "NodeMeta.somekey == somevalue", nil)
+		require.NoError(r, err)
+		require.NotEqual(r, qmeta.LastIndex, 0)
+		require.NotEmpty(r, services)
+
+		services, qmeta, err = catalog.ServiceWithFilter("consul", "NodeMeta.somekey != somevalue", nil)
+		require.NoError(r, err)
+		require.NotEqual(r, qmeta.LastIndex, 0)
+		require.Empty(r, services)
+	})
+}
+
 func testUpstreams(t *testing.T) []Upstream {
 	return []Upstream{
 		{
@@ -594,6 +645,53 @@ func TestAPI_CatalogConnectNative(t *testing.T) {
 	})
 }
 
+func TestAPI_CatalogConnect_Filter(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	catalog := c.Catalog()
+
+	// Register service and proxy instances to test against.
+	service := &AgentService{
+		ID:      "redis1",
+		Service: "redis",
+		Port:    8000,
+		Connect: &AgentServiceConnect{Native: true},
+	}
+	check := &AgentCheck{
+		Node:      "foobar",
+		CheckID:   "service:redis1",
+		Name:      "Redis health check",
+		Notes:     "Script based health check",
+		Status:    HealthPassing,
+		ServiceID: "redis1",
+	}
+
+	reg := &CatalogRegistration{
+		Datacenter: "dc1",
+		Node:       "foobar",
+		Address:    "192.168.10.10",
+		Service:    service,
+		Check:      check,
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		_, err := catalog.Register(reg, nil)
+		require.NoError(r, err)
+
+		services, _, err := catalog.ConnectWithFilter("redis", "ServicePort == 8000", nil)
+		require.NoError(r, err)
+		require.Len(r, services, 1)
+
+		// I think there will be another consul service so the filter I am passing should be guaranteed to result
+		// in an empty set of services since it cannot possibly evaluate to true
+		services, _, err = catalog.ConnectWithFilter("redis", "ServicePort != 8000 and ServicePort == 8000", nil)
+		require.NoError(r, err)
+		require.Empty(r, services)
+	})
+}
+
 func TestAPI_CatalogNode(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
@@ -642,6 +740,37 @@ func TestAPI_CatalogNode(t *testing.T) {
 			r.Fatalf("Bad proxy config:\nwant %v\n got: %v", proxyReg.Service.Proxy,
 				info.Services["web-proxy"].Proxy)
 		}
+	})
+}
+
+func TestAPI_CatalogNode_Filter(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	catalog := c.Catalog()
+
+	name, err := c.Agent().NodeName()
+	require.NoError(t, err)
+
+	proxyReg := testUnmanagedProxyRegistration(t)
+	proxyReg.Node = name
+	proxyReg.SkipNodeUpdate = true
+
+	retry.Run(t, func(r *retry.R) {
+		// Register a connect proxy to ensure all it's config fields are returned
+		_, err := catalog.Register(proxyReg, nil)
+		require.NoError(r, err)
+
+		info, _, err := catalog.NodeWithFilter(name, "Kind == `connect-proxy`", nil)
+		require.NoError(r, err)
+		require.Len(r, info.Services, 1)
+		require.Contains(r, info.Services, proxyReg.Service.ID)
+
+		info, _, err = catalog.NodeWithFilter(name, "Kind != `connect-proxy`", nil)
+		require.NoError(r, err)
+		require.Len(r, info.Services, 1)
+		require.NotContains(r, info.Services, proxyReg.Service.ID)
 	})
 }
 
