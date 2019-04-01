@@ -9,6 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const dumpFieldConfig bool = false
+
 ///////////////////////////////////////////////////////////////////////////////
 //
 // NOTE: The tests within this file are designed to validate that the fields
@@ -487,8 +489,10 @@ func TestStructs_FilterFieldConfigurations(t *testing.T) {
 		tcase := tcase
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-
 			fields, err := bexpr.GenerateFieldConfigurations(tcase.dataType)
+			if dumpFieldConfig {
+				fmt.Printf("===== %s =====\n%s\n", name, fields)
+			}
 			require.NoError(t, err)
 			validateFieldConfigurations(t, tcase.expected, fields)
 		})
