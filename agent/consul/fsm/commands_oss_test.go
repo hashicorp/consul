@@ -1369,7 +1369,7 @@ func TestFSM_ConfigEntry(t *testing.T) {
 		Kind: structs.ProxyDefaults,
 		Name: "global",
 		Config: map[string]interface{}{
-			"DestinationServiceName": "foo",
+			"foo": "bar",
 		},
 	}
 
@@ -1399,8 +1399,8 @@ func TestFSM_ConfigEntry(t *testing.T) {
 		require.True(ok)
 
 		// Read the map[string]interface{} back out.
-		value, _ := proxyConf.Config["DestinationServiceName"].([]uint8)
-		proxyConf.Config["DestinationServiceName"] = structs.Uint8ToString(value)
+		value, _ := proxyConf.Config["foo"].([]uint8)
+		proxyConf.Config["foo"] = structs.Uint8ToString(value)
 
 		require.Equal(entry, config)
 	}

@@ -198,7 +198,11 @@ func (r *ConfigEntryRequest) UnmarshalBinary(data []byte) error {
 	}
 
 	// Then decode the real thing with appropriate kind of ConfigEntry
-	r.Entry = makeConfigEntry(kind)
+	entry, err := makeConfigEntry(kind)
+	if err != nil {
+		return err
+	}
+	r.Entry = entry
 
 	// Alias juggling to prevent infinite recursive calls back to this decode
 	// method.
@@ -214,13 +218,13 @@ func (r *ConfigEntryRequest) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-func makeConfigEntry(kind string) ConfigEntry {
+func makeConfigEntry(kind string) (ConfigEntry, error) {
 	switch kind {
 	case ServiceDefaults:
-		return &ServiceConfigEntry{}
+		return &ServiceConfigEntry{}, nil
 	case ProxyDefaults:
-		return &ProxyConfigEntry{}
+		return &ProxyConfigEntry{}, nil
 	default:
-		panic("invalid kind")
+		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}
 }

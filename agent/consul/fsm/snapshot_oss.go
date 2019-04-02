@@ -375,6 +375,9 @@ func (s *snapshot) persistConfigEntries(sink raft.SnapshotSink,
 		if _, err := sink.Write([]byte{byte(structs.ConfigEntryRequestType)}); err != nil {
 			return err
 		}
+		// Encode the entry request without an operation since we don't need it for restoring.
+		// The request is used for its custom decoding/encoding logic around the ConfigEntry
+		// interface.
 		req := &structs.ConfigEntryRequest{
 			Entry: entry,
 		}
