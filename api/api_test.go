@@ -322,6 +322,56 @@ func testNodeServiceCheckRegistrations(t *testing.T, client *Client, datacenter 
 				},
 			},
 		},
+		"Service critical on baz": &CatalogRegistration{
+			Datacenter:     datacenter,
+			Node:           "baz",
+			SkipNodeUpdate: true,
+			Service: &AgentService{
+				Kind:    ServiceKindTypical,
+				ID:      "criticalV2",
+				Service: "critical",
+				Tags:    []string{"v2"},
+				Meta:    map[string]string{"version": "2"},
+				Port:    8080,
+				Address: "198.18.1.4",
+			},
+			Checks: HealthChecks{
+				&HealthCheck{
+					Node:        "baz",
+					CheckID:     "baz:critical:v2",
+					Name:        "critical-v2-liveness",
+					Status:      HealthCritical,
+					Notes:       "critical v2 is in the critical state",
+					ServiceID:   "criticalV2",
+					ServiceName: "critical",
+				},
+			},
+		},
+		"Service warning on baz": &CatalogRegistration{
+			Datacenter:     datacenter,
+			Node:           "baz",
+			SkipNodeUpdate: true,
+			Service: &AgentService{
+				Kind:    ServiceKindTypical,
+				ID:      "warningV2",
+				Service: "warning",
+				Tags:    []string{"v2"},
+				Meta:    map[string]string{"version": "2"},
+				Port:    8081,
+				Address: "198.18.1.4",
+			},
+			Checks: HealthChecks{
+				&HealthCheck{
+					Node:        "baz",
+					CheckID:     "baz:warning:v2",
+					Name:        "warning-v2-liveness",
+					Status:      HealthWarning,
+					Notes:       "warning v2 is in the warning state",
+					ServiceID:   "warningV2",
+					ServiceName: "warning",
+				},
+			},
+		},
 	}
 
 	catalog := client.Catalog()
