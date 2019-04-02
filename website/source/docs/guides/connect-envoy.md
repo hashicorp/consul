@@ -9,16 +9,19 @@ description: |-
 # Using Connect with Envoy Proxy
 
 Consul Connect has first class support for using
-[Envoy](https://www.envoyproxy.io/) as a proxy. This guide will describe how to setup a development-mode Consul server and two services that use
-Envoy proxies on a single machine with [Docker](https://www.docker.com/). 
-The aim of this guide is to demonstrate a minimal working setup and the moving parts involved, it is not intended for production deployments.
+[Envoy](https://www.envoyproxy.io/) as a proxy. This guide will describe how to
+setup a development-mode Consul server and two services that use Envoy proxies
+on a single machine with [Docker](https://www.docker.com/).  The aim of this
+guide is to demonstrate a minimal working setup and the moving parts involved,
+it is not intended for production deployments.
 
 For reference documentation on how the integration works and is configured,
 please see our [Envoy documentation](/docs/connect/proxies/envoy.html).
 
 ## Setup Overview
 
-We'll start all containers using Docker's `host` network mode and will have a total of five containers running by the end of this guide.
+We'll start all containers using Docker's `host` network mode and will have a
+total of five containers running by the end of this guide.
 
  1. A single Consul server
  2. An example TCP `echo` service as a destination
@@ -78,12 +81,12 @@ production agent you'll need to [explicitly configure the gRPC
 port](/docs/agent/options.html#grpc_port).
 
 In order to start a proxy instance, a [proxy service
-definition](/docs/connect/proxies.html) must exist on the local Consul agent. We'll
-create one using the [sidecar service
+definition](/docs/connect/proxies.html) must exist on the local Consul agent.
+We'll create one using the [sidecar service
 registration](/docs/connect/proxies/sidecar-service.html) syntax.
 
-Create a configuration file called `envoy_demo.hcl` containing the following service
-definitions.
+Create a configuration file called `envoy_demo.hcl` containing the following
+service definitions.
 
 ```hcl
 services {
