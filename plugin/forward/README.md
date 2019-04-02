@@ -83,6 +83,9 @@ forward FROM TO... {
   but they have to use the same `tls_servername`. E.g. mixing 9.9.9.9 (QuadDNS) with 1.1.1.1
   (Cloudflare) will not work.
 * `policy` specifies the policy to use for selecting upstream servers. The default is `random`.
+  * `random` is a policy that implements random upstream selection.
+  * `round_robin` is a policy that selects hosts based on round robin ordering.
+  * `sequential` is a policy that selects hosts based on sequential ordering.
 * `health_check`, use a different **DURATION** for health checking, the default duration is 0.5s.
 
 Also note the TLS config is "global" for the whole forwarding proxy if you need a different
