@@ -6,7 +6,6 @@ func init() {
 	registerEndpoint(func(s *Server) interface{} { return NewCoordinate(s) })
 	registerEndpoint(func(s *Server) interface{} { return &ConfigEntry{s} })
 	registerEndpoint(func(s *Server) interface{} { return &ConnectCA{srv: s} })
-	registerEndpoint(func(s *Server) interface{} { return &AutoEncrypt{srv: s} })
 	registerEndpoint(func(s *Server) interface{} { return &Health{s} })
 	registerEndpoint(func(s *Server) interface{} { return &Intention{s} })
 	registerEndpoint(func(s *Server) interface{} { return &Internal{s} })

@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/url"
 	"testing"
 	"time"
 
@@ -151,7 +152,8 @@ func TestGenerateCSR(t *testing.T) {
 	DNSNames := []string{"server.dc1.consul"}
 	IPAddresses := []net.IP{net.ParseIP("123.234.243.213")}
 	name := "Cert Name"
-	rawCSR, pk, err := GenerateCSR(name, DNSNames, IPAddresses)
+	uri, err := url.Parse("")
+	rawCSR, pk, err := GenerateCSR(uri, DNSNames, IPAddresses)
 	require.Nil(t, err)
 	require.NotEmpty(t, pk)
 	require.NotEmpty(t, rawCSR)

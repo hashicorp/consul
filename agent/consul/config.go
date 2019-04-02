@@ -417,6 +417,10 @@ type Config struct {
 	// ConfigEntryBootstrap contains a list of ConfigEntries to ensure are created
 	// If entries of the same Kind/Name exist already these will not update them.
 	ConfigEntryBootstrap []structs.ConfigEntry
+
+	// AutoEncryptTLS is whether to enable auto agent TLS certificate
+	// provisioning.
+	AutoEncryptTLS bool
 }
 
 func (c *Config) ToTLSUtilConfig() tlsutil.Config {
@@ -432,6 +436,7 @@ func (c *Config) ToTLSUtilConfig() tlsutil.Config {
 		TLSMinVersion:            c.TLSMinVersion,
 		CipherSuites:             c.TLSCipherSuites,
 		PreferServerCipherSuites: c.TLSPreferServerCipherSuites,
+		AutoEncryptTLS:           c.AutoEncryptTLS,
 	}
 }
 

@@ -424,7 +424,7 @@ func (s *ConnectCA) Sign(
 	}
 	signingID := connect.SpiffeIDSigningForCluster(config)
 	serviceID, isService := spiffeID.(*connect.SpiffeIDService)
-	_, isAgent := spiffeID.(*connect.SpiffeIDAgent)
+	agentID, isAgent := spiffeID.(*connect.SpiffeIDAgent)
 	if !isService && !isAgent {
 		return fmt.Errorf("SPIFFE ID in CSR must be a service or agent ID")
 	}
@@ -441,16 +441,20 @@ func (s *ConnectCA) Sign(
 	if err != nil {
 		return err
 	}
-	if rule != nil && !rule.ServiceWrite(serviceID.Service, nil) {
-		return acl.ErrPermissionDenied
-	}
-
 	if isService {
+		if rule != nil && !rule.ServiceWrite(serviceID.Service, nil) {
+			return acl.ErrPermissionDenied
+		}
+
 		// Verify that the DC in the service URI matches us. We might relax this
 		// requirement later but being restrictive for now is safer.
 		if serviceID.Datacenter != s.srv.config.Datacenter {
 			return fmt.Errorf("SPIFFE ID in CSR from a different datacenter: %s, "+
 				"we are %s", serviceID.Datacenter, s.srv.config.Datacenter)
+		}
+	} else if isAgent {
+		if rule != nil && !rule.NodeWrite(agentID.Node, nil) {
+			return acl.ErrPermissionDenied
 		}
 	}
 
