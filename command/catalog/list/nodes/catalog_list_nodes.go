@@ -29,11 +29,13 @@ type cmd struct {
 	near     string
 	nodeMeta map[string]string
 	service  string
+	filter   string
 }
 
 // init sets up command flags and help text
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.StringVar(&c.filter, "filter", "", "Filter to use with the request")
 	c.flags.BoolVar(&c.detailed, "detailed", false, "Output detailed information about "+
 		"the nodes including their addresses and metadata.")
 	c.flags.StringVar(&c.near, "near", "", "Node name to sort the node list in ascending "+
@@ -70,7 +72,7 @@ func (c *cmd) Run(args []string) int {
 
 	var nodes []*api.Node
 	if c.service != "" {
-		services, _, err := client.Catalog().Service(c.service, "", &api.QueryOptions{
+		services, _, err := client.Catalog().ServiceWithFilter(c.service, c.filter, &api.QueryOptions{
 			Near:     c.near,
 			NodeMeta: c.nodeMeta,
 		})
@@ -93,7 +95,7 @@ func (c *cmd) Run(args []string) int {
 			}
 		}
 	} else {
-		nodes, _, err = client.Catalog().Nodes(&api.QueryOptions{
+		nodes, _, err = client.Catalog().NodesWithFilter(c.filter, &api.QueryOptions{
 			Near:     c.near,
 			NodeMeta: c.nodeMeta,
 		})
