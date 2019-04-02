@@ -126,31 +126,32 @@ func TestAPI_CatalogNodes_MetaFilter(t *testing.T) {
 
 func TestAPI_CatalogNodes_Filter(t *testing.T) {
 	t.Parallel()
-	meta := map[string]string{"somekey": "somevalue"}
-	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
-		conf.NodeMeta = meta
-	})
+	c, s := makeClient(t)
 	defer s.Stop()
 
-	catalog := c.Catalog()
-	// Make sure we get the node back when filtering by its metadata
-	retry.Run(t, func(r *retry.R) {
-		nodes, meta, err := catalog.Nodes(&QueryOptions{NodeMeta: meta})
-		require.NoError(r, err)
-		require.NotEqual(r, meta.LastIndex, 0)
-		require.NotEmpty(r, nodes)
-		require.Contains(r, nodes[0].TaggedAddresses, "wan")
-		require.Contains(r, nodes[0].Meta, "somekey")
-		require.Equal(r, nodes[0].Meta["somekey"], "somevalue")
-	})
+	// this sets up the catalog entries with things we can filter on
+	testNodeServiceCheckRegistrations(t, c, "dc1")
 
-	retry.Run(t, func(r *retry.R) {
-		// Get nothing back when we use an invalid filter
-		nodes, meta, err := catalog.Nodes(&QueryOptions{NodeMeta: map[string]string{"nope": "nope"}})
-		require.NoError(r, err)
-		require.NotEqual(r, meta.LastIndex, 0)
-		require.Empty(r, nodes)
-	})
+	catalog := c.Catalog()
+	nodes, _, err := catalog.Nodes(nil)
+	require.NoError(t, err)
+	// 3 nodes inserted by the setup func above plus the agent itself
+	require.Len(t, nodes, 4)
+
+	// now filter down to just a couple nodes with a specific meta entry
+	nodes, _, err = catalog.NodesWithFilter("Meta.env == production", nil)
+	require.NoError(t, err)
+	require.Len(t, nodes, 2)
+
+	// filter out everything that isn't bar or baz
+	nodes, _, err = catalog.NodesWithFilter("Node == bar or Node == baz", nil)
+	require.NoError(t, err)
+	require.Len(t, nodes, 2)
+
+	// check for non-existent ip for the node addr
+	nodes, _, err = catalog.NodesWithFilter("Address == `10.0.0.1`", nil)
+	require.NoError(t, err)
+	require.Empty(t, nodes)
 }
 
 func TestAPI_CatalogServices(t *testing.T) {
@@ -429,24 +430,35 @@ func TestAPI_CatalogService_NodeMetaFilter(t *testing.T) {
 
 func TestAPI_CatalogService_Filter(t *testing.T) {
 	t.Parallel()
-	meta := map[string]string{"somekey": "somevalue"}
-	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
-		conf.NodeMeta = meta
-	})
+	c, s := makeClient(t)
 	defer s.Stop()
 
-	catalog := c.Catalog()
-	retry.Run(t, func(r *retry.R) {
-		services, qmeta, err := catalog.ServiceWithFilter("consul", "NodeMeta.somekey == somevalue", nil)
-		require.NoError(r, err)
-		require.NotEqual(r, qmeta.LastIndex, 0)
-		require.NotEmpty(r, services)
+	// this sets up the catalog entries with things we can filter on
+	testNodeServiceCheckRegistrations(t, c, "dc1")
 
-		services, qmeta, err = catalog.ServiceWithFilter("consul", "NodeMeta.somekey != somevalue", nil)
-		require.NoError(r, err)
-		require.NotEqual(r, qmeta.LastIndex, 0)
-		require.Empty(r, services)
+	catalog := c.Catalog()
+
+	services, _, err := catalog.ServiceWithFilter("redis", "ServiceMeta.version == 1", nil)
+	require.NoError(t, err)
+	// finds it on both foo and bar nodes
+	require.Len(t, services, 2)
+
+	require.Condition(t, func() bool {
+		return (services[0].Node == "foo" && services[1].Node == "bar") ||
+			(services[0].Node == "bar" && services[1].Node == "foo")
 	})
+
+	services, _, err = catalog.ServiceWithFilter("redis", "NodeMeta.os != windows", nil)
+	require.NoError(t, err)
+	// finds both service instances on foo
+	require.Len(t, services, 2)
+	require.Equal(t, "foo", services[0].Node)
+	require.Equal(t, "foo", services[1].Node)
+
+	services, _, err = catalog.ServiceWithFilter("redis", "Address == `10.0.0.1`", nil)
+	require.NoError(t, err)
+	require.Empty(t, services)
+
 }
 
 func testUpstreams(t *testing.T) []Upstream {
@@ -650,46 +662,23 @@ func TestAPI_CatalogConnect_Filter(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
+	// this sets up the catalog entries with things we can filter on
+	testNodeServiceCheckRegistrations(t, c, "dc1")
+
 	catalog := c.Catalog()
 
-	// Register service and proxy instances to test against.
-	service := &AgentService{
-		ID:      "redis1",
-		Service: "redis",
-		Port:    8000,
-		Connect: &AgentServiceConnect{Native: true},
-	}
-	check := &AgentCheck{
-		Node:      "foobar",
-		CheckID:   "service:redis1",
-		Name:      "Redis health check",
-		Notes:     "Script based health check",
-		Status:    HealthPassing,
-		ServiceID: "redis1",
-	}
-
-	reg := &CatalogRegistration{
-		Datacenter: "dc1",
-		Node:       "foobar",
-		Address:    "192.168.10.10",
-		Service:    service,
-		Check:      check,
-	}
-
-	retry.Run(t, func(r *retry.R) {
-		_, err := catalog.Register(reg, nil)
-		require.NoError(r, err)
-
-		services, _, err := catalog.ConnectWithFilter("redis", "ServicePort == 8000", nil)
-		require.NoError(r, err)
-		require.Len(r, services, 1)
-
-		// I think there will be another consul service so the filter I am passing should be guaranteed to result
-		// in an empty set of services since it cannot possibly evaluate to true
-		services, _, err = catalog.ConnectWithFilter("redis", "ServicePort != 8000 and ServicePort == 8000", nil)
-		require.NoError(r, err)
-		require.Empty(r, services)
+	services, _, err := catalog.ConnectWithFilter("web", "ServicePort == 443", nil)
+	require.NoError(t, err)
+	require.Len(t, services, 2)
+	require.Condition(t, func() bool {
+		return (services[0].Node == "bar" && services[1].Node == "baz") ||
+			(services[0].Node == "baz" && services[1].Node == "bar")
 	})
+
+	// All the web-connect services are native
+	services, _, err = catalog.ConnectWithFilter("web", "ServiceConnect.Native != true", nil)
+	require.NoError(t, err)
+	require.Empty(t, services)
 }
 
 func TestAPI_CatalogNode(t *testing.T) {
@@ -748,30 +737,22 @@ func TestAPI_CatalogNode_Filter(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
+	// this sets up the catalog entries with things we can filter on
+	testNodeServiceCheckRegistrations(t, c, "dc1")
+
 	catalog := c.Catalog()
 
-	name, err := c.Agent().NodeName()
+	// should have only 1 matching service
+	info, _, err := catalog.NodeWithFilter("bar", "connect in Tags", nil)
 	require.NoError(t, err)
+	require.Len(t, info.Services, 1)
+	require.Contains(t, info.Services, "webV1")
+	require.Equal(t, "web", info.Services["webV1"].Service)
 
-	proxyReg := testUnmanagedProxyRegistration(t)
-	proxyReg.Node = name
-	proxyReg.SkipNodeUpdate = true
-
-	retry.Run(t, func(r *retry.R) {
-		// Register a connect proxy to ensure all it's config fields are returned
-		_, err := catalog.Register(proxyReg, nil)
-		require.NoError(r, err)
-
-		info, _, err := catalog.NodeWithFilter(name, "Kind == `connect-proxy`", nil)
-		require.NoError(r, err)
-		require.Len(r, info.Services, 1)
-		require.Contains(r, info.Services, proxyReg.Service.ID)
-
-		info, _, err = catalog.NodeWithFilter(name, "Kind != `connect-proxy`", nil)
-		require.NoError(r, err)
-		require.Len(r, info.Services, 1)
-		require.NotContains(r, info.Services, proxyReg.Service.ID)
-	})
+	// should get two services for the node
+	info, _, err = catalog.NodeWithFilter("baz", "connect in Tags", nil)
+	require.NoError(t, err)
+	require.Len(t, info.Services, 2)
 }
 
 func TestAPI_CatalogRegistration(t *testing.T) {
