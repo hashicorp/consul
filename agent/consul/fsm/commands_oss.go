@@ -29,6 +29,7 @@ func init() {
 	registerCommand(structs.ACLPolicySetRequestType, (*FSM).applyACLPolicySetOperation)
 	registerCommand(structs.ACLPolicyDeleteRequestType, (*FSM).applyACLPolicyDeleteOperation)
 	registerCommand(structs.ConnectCALeafRequestType, (*FSM).applyConnectCALeafOperation)
+	registerCommand(structs.ConfigEntryRequestType, (*FSM).applyConfigEntryOperation)
 }
 
 func (c *FSM) applyRegister(buf []byte, index uint64) interface{} {
@@ -427,4 +428,26 @@ func (c *FSM) applyACLPolicyDeleteOperation(buf []byte, index uint64) interface{
 		[]metrics.Label{{Name: "op", Value: "delete"}})
 
 	return c.state.ACLPolicyBatchDelete(index, req.PolicyIDs)
+}
+
+func (c *FSM) applyConfigEntryOperation(buf []byte, index uint64) interface{} {
+	req := structs.ConfigEntryRequest{
+		Entry: &structs.ProxyConfigEntry{},
+	}
+	if err := structs.Decode(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode request: %v", err))
+	}
+
+	switch req.Op {
+	case structs.ConfigEntryUpsert:
+		defer metrics.MeasureSinceWithLabels([]string{"fsm", "config_entry", req.Entry.GetKind()}, time.Now(),
+			[]metrics.Label{{Name: "op", Value: "upsert"}})
+		return c.state.EnsureConfigEntry(index, req.Entry)
+	case structs.ConfigEntryDelete:
+		defer metrics.MeasureSinceWithLabels([]string{"fsm", "config_entry", req.Entry.GetKind()}, time.Now(),
+			[]metrics.Label{{Name: "op", Value: "delete"}})
+		return c.state.DeleteConfigEntry(index, req.Entry.GetKind(), req.Entry.GetName())
+	default:
+		return fmt.Errorf("invalid config entry operation type: %v", req.Op)
+	}
 }

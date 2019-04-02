@@ -18,6 +18,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func generateUUID() (ret string) {
@@ -1353,5 +1354,54 @@ func TestFSM_CABuiltinProvider(t *testing.T) {
 		_, state, err := fsm.state.CAProviderState("foo")
 		assert.Nil(err)
 		assert.Equal(expected, state)
+	}
+}
+
+func TestFSM_ConfigEntry(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	fsm, err := New(nil, os.Stderr)
+	require.NoError(err)
+
+	// Create a simple config entry
+	entry := &structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: "global",
+		Config: map[string]interface{}{
+			"foo": "bar",
+		},
+	}
+
+	// Create a new request.
+	req := &structs.ConfigEntryRequest{
+		Op:    structs.ConfigEntryUpsert,
+		Entry: entry,
+	}
+
+	{
+		buf, err := structs.Encode(structs.ConfigEntryRequestType, req)
+		require.NoError(err)
+		resp := fsm.Apply(makeLog(buf))
+		if _, ok := resp.(error); ok {
+			t.Fatalf("bad: %v", resp)
+		}
+	}
+
+	// Verify it's in the state store.
+	{
+		_, config, err := fsm.state.ConfigEntry(structs.ProxyDefaults, "global")
+		require.NoError(err)
+		entry.RaftIndex.CreateIndex = 1
+		entry.RaftIndex.ModifyIndex = 1
+
+		proxyConf, ok := config.(*structs.ProxyConfigEntry)
+		require.True(ok)
+
+		// Read the map[string]interface{} back out.
+		value, _ := proxyConf.Config["foo"].([]uint8)
+		proxyConf.Config["foo"] = structs.Uint8ToString(value)
+
+		require.Equal(entry, config)
 	}
 }
