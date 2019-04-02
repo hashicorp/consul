@@ -3,6 +3,7 @@ package consul
 import (
 	"crypto/x509"
 	"net"
+	"net/url"
 	"os"
 	"testing"
 
@@ -19,17 +20,25 @@ import (
 func TestAutoEncryptSign(t *testing.T) {
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	codec := rpcClient(t, s1)
+	c := tlsutil.Config{AutoEncryptTLS: true}
+
+	dir, s := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = true
+		c.CAFile = "../../test/client_certs/rootca.crt"
+		c.CertFile = "../../test/client_certs/server.crt"
+		c.KeyFile = "../../test/client_certs/server.key"
+	})
+	defer os.RemoveAll(dir)
+	defer s.Shutdown()
+	codec := insecureRPCClient(t, s, c)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s.RPC, "dc1")
 
 	// Generate a CSR and request signing
-	id := &connect.SpiffeIDAgent{"a1.consul", "uuid-a1"}
-	csr, _, err := tlsutil.GenerateCSR(id, []string{"localhost"}, []net.IP{net.ParseIP("123.234.243.213")})
+	uri, err := url.Parse("spiffe://a.consul/agent/uuid")
+	require.NoError(t, err)
+	csr, _, err := tlsutil.GenerateCSR(uri, []string{"localhost"}, []net.IP{net.ParseIP("123.234.243.213")})
 	require.Nil(t, err)
 	require.NotEmpty(t, csr)
 	args := &structs.CASignRequest{
@@ -40,7 +49,7 @@ func TestAutoEncryptSign(t *testing.T) {
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "AutoEncrypt.Sign", args, &reply))
 
 	// Get the current CA
-	state := s1.fsm.State()
+	state := s.fsm.State()
 	_, ca, err := state.CARootActive(nil)
 	require.NoError(t, err)
 

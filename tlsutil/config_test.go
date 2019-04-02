@@ -587,22 +587,31 @@ func TestConfigurator_CommonTLSConfigVerifyIncoming(t *testing.T) {
 func TestConfigurator_OutgoingRPCTLSDisabled(t *testing.T) {
 	c := Configurator{base: &Config{}}
 	type variant struct {
-		verify   bool
-		file     string
-		path     string
-		expected bool
+		verify      bool
+		file        string
+		path        string
+		autoEncrypt bool
+		expected    bool
 	}
 	cafile := "../test/ca/root.cer"
 	capath := "../test/ca_path"
 	variants := []variant{
-		{false, "", "", true},
-		{false, cafile, "", false},
-		{false, "", capath, false},
-		{false, cafile, capath, false},
-		{true, "", "", false},
-		{true, cafile, "", false},
-		{true, "", capath, false},
-		{true, cafile, capath, false},
+		{false, "", "", false, true},
+		{false, cafile, "", false, false},
+		{false, "", capath, false, false},
+		{false, cafile, capath, false, false},
+		{false, "", "", true, true},
+		{false, cafile, "", true, false},
+		{false, "", capath, true, false},
+		{false, cafile, capath, true, false},
+		{true, "", "", false, false},
+		{true, cafile, "", false, false},
+		{true, "", capath, false, false},
+		{true, cafile, capath, false, false},
+		{true, "", "", true, false},
+		{true, cafile, "", true, false},
+		{true, "", capath, true, false},
+		{true, cafile, capath, true, false},
 	}
 	for i, v := range variants {
 		info := fmt.Sprintf("case %d", i)

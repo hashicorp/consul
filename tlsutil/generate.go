@@ -16,8 +16,6 @@ import (
 	"net/url"
 	"strings"
 	"time"
-
-	"github.com/hashicorp/consul/agent/connect"
 )
 
 // GenerateSerialNumber returns random bigint generated with crypto/rand
@@ -146,14 +144,14 @@ func GenerateCert(signer crypto.Signer, ca string, sn *big.Int, name string, day
 }
 
 // GenerateCSR generates a new CSR for agent TLS (not to be confused with Connect TLS)
-func GenerateCSR(uri connect.CertURI, DNSNames []string, IPAddresses []net.IP) (string, string, error) {
+func GenerateCSR(uri *url.URL, DNSNames []string, IPAddresses []net.IP) (string, string, error) {
 	signee, pk, err := GeneratePrivateKey()
 	if err != nil {
 		return "", "", err
 	}
 
 	template := x509.CertificateRequest{
-		URIs:               []*url.URL{uri.URI()},
+		URIs:               []*url.URL{uri},
 		SignatureAlgorithm: x509.ECDSAWithSHA256,
 		DNSNames:           DNSNames,
 		IPAddresses:        IPAddresses,

@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
@@ -21,6 +22,32 @@ func rpcClient(t *testing.T, s *Server) rpc.ClientCodec {
 
 	// Write the Consul RPC byte to set the mode
 	conn.Write([]byte{byte(pool.RPCConsul)})
+	return msgpackrpc.NewClientCodec(conn)
+}
+
+func insecureRPCClient(t *testing.T, s *Server, c tlsutil.Config) rpc.ClientCodec {
+	addr := s.config.RPCAdvertise
+	conn, err := net.DialTimeout("tcp", addr.String(), time.Second)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	// Write the Consul RPC byte to set the mode
+	conn.Write([]byte{byte(pool.RPCTLSINSECURE)})
+
+	configurator, err := tlsutil.NewConfigurator(c, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	wrap := configurator.OutgoingRPCWrapper()
+	if wrap == nil {
+		t.Fatalf("wrapper shouldn't be nil")
+	}
+	conn, err = wrap(s.config.Datacenter, conn)
+	if err != nil {
+		conn.Close()
+		t.Fatalf("err: %v", err)
+	}
+
 	return msgpackrpc.NewClientCodec(conn)
 }
 

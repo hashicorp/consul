@@ -112,6 +112,8 @@ type Config struct {
 	// the server using the same TLS configuration as the agent (CA, cert,
 	// and key).
 	EnableAgentTLSForChecks bool
+
+	AutoEncryptTLS bool
 }
 
 // KeyPair is used to open and parse a certificate and key file
@@ -277,7 +279,7 @@ func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) *tls.C
 func (c *Configurator) outgoingRPCTLSDisabled() bool {
 	c.RLock()
 	defer c.RUnlock()
-	return c.cas == nil && !c.base.VerifyOutgoing
+	return c.cas == nil && !c.base.VerifyOutgoing && !c.base.AutoEncryptTLS
 }
 
 // This function acquires a read lock because it reads from the config.
@@ -322,6 +324,17 @@ func (c *Configurator) serverNameOrNodeName() string {
 func (c *Configurator) IncomingRPCConfig() *tls.Config {
 	c.log("IncomingRPCConfig")
 	config := c.commonTLSConfig(c.verifyIncomingRPC())
+	config.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
+		return c.IncomingRPCConfig(), nil
+	}
+	return config
+}
+
+// IncomingNoClientCertRPCConfig generates a *tls.Config for incoming RPC connections.
+func (c *Configurator) IncomingAnyCertRPCConfig() *tls.Config {
+	c.log("IncomingRPCConfig")
+	config := c.commonTLSConfig(false)
+	config.ClientAuth = tls.RequireAnyClientCert
 	config.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
 		return c.IncomingRPCConfig(), nil
 	}

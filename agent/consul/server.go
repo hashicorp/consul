@@ -206,8 +206,9 @@ type Server struct {
 	router *router.Router
 
 	// Listener is used to listen for incoming connections
-	Listener  net.Listener
-	rpcServer *rpc.Server
+	Listener          net.Listener
+	rpcServer         *rpc.Server
+	insecureRPCServer *rpc.Server
 
 	tlsConfigurator *tlsutil.Configurator
 
@@ -333,23 +334,24 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 
 	// Create server.
 	s := &Server{
-		config:           config,
-		tokens:           tokens,
-		connPool:         connPool,
-		eventChLAN:       make(chan serf.Event, serfEventChSize),
-		eventChWAN:       make(chan serf.Event, serfEventChSize),
-		logger:           logger,
-		leaveCh:          make(chan struct{}),
-		reconcileCh:      make(chan serf.Member, reconcileChSize),
-		router:           router.NewRouter(logger, config.Datacenter),
-		rpcServer:        rpc.NewServer(),
-		tlsConfigurator:  tlsConfigurator,
-		reassertLeaderCh: make(chan chan error),
-		segmentLAN:       make(map[string]*serf.Serf, len(config.Segments)),
-		sessionTimers:    NewSessionTimers(),
-		tombstoneGC:      gc,
-		serverLookup:     NewServerLookup(),
-		shutdownCh:       shutdownCh,
+		config:            config,
+		tokens:            tokens,
+		connPool:          connPool,
+		eventChLAN:        make(chan serf.Event, serfEventChSize),
+		eventChWAN:        make(chan serf.Event, serfEventChSize),
+		logger:            logger,
+		leaveCh:           make(chan struct{}),
+		reconcileCh:       make(chan serf.Member, reconcileChSize),
+		router:            router.NewRouter(logger, config.Datacenter),
+		rpcServer:         rpc.NewServer(),
+		insecureRPCServer: rpc.NewServer(),
+		tlsConfigurator:   tlsConfigurator,
+		reassertLeaderCh:  make(chan chan error),
+		segmentLAN:        make(map[string]*serf.Serf, len(config.Segments)),
+		sessionTimers:     NewSessionTimers(),
+		tombstoneGC:       gc,
+		serverLookup:      NewServerLookup(),
+		shutdownCh:        shutdownCh,
 	}
 
 	// Initialize enterprise specific server functionality
@@ -691,6 +693,9 @@ func (s *Server) setupRPC() error {
 	for _, fn := range endpoints {
 		s.rpcServer.Register(fn(s))
 	}
+
+	// only register AutoEncrypt on the insecure RPC server
+	s.insecureRPCServer.Register(&AutoEncrypt{srv: s})
 
 	ln, err := net.ListenTCP("tcp", s.config.RPCAddr)
 	if err != nil {
