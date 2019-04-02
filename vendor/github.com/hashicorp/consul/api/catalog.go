@@ -125,7 +125,14 @@ func (c *Catalog) Datacenters() ([]string, error) {
 
 // Nodes is used to query all the known nodes
 func (c *Catalog) Nodes(q *QueryOptions) ([]*Node, *QueryMeta, error) {
+	return c.NodesWithFilter("", q)
+}
+
+// NodesWithFilter is used to query all the known nodes and returns a subset of
+// those that match the given filter expression
+func (c *Catalog) NodesWithFilter(filter string, q *QueryOptions) ([]*Node, *QueryMeta, error) {
 	r := c.c.newRequest("GET", "/v1/catalog/nodes")
+	r.filterQuery(filter)
 	r.setQueryOptions(q)
 	rtt, resp, err := requireOK(c.c.doRequest(r))
 	if err != nil {
@@ -171,12 +178,18 @@ func (c *Catalog) Service(service, tag string, q *QueryOptions) ([]*CatalogServi
 	if tag != "" {
 		tags = []string{tag}
 	}
-	return c.service(service, tags, q, false)
+	return c.service(service, tags, "", q, false)
+}
+
+// ServiceWithFilter is used to query catalog entries for a given service and returns a subset
+// of the instances which match the given filter expression
+func (c *Catalog) ServiceWithFilter(service string, filter string, q *QueryOptions) ([]*CatalogService, *QueryMeta, error) {
+	return c.service(service, nil, filter, q, false)
 }
 
 // Supports multiple tags for filtering
 func (c *Catalog) ServiceMultipleTags(service string, tags []string, q *QueryOptions) ([]*CatalogService, *QueryMeta, error) {
-	return c.service(service, tags, q, false)
+	return c.service(service, tags, "", q, false)
 }
 
 // Connect is used to query catalog entries for a given Connect-enabled service
@@ -185,20 +198,27 @@ func (c *Catalog) Connect(service, tag string, q *QueryOptions) ([]*CatalogServi
 	if tag != "" {
 		tags = []string{tag}
 	}
-	return c.service(service, tags, q, true)
+	return c.service(service, tags, "", q, true)
+}
+
+// ConnectWithFilter is used to query catalog entries for a given Connect-enabled service
+// and returns a subset of the instances which match the given filter expression.
+func (c *Catalog) ConnectWithFilter(service string, filter string, q *QueryOptions) ([]*CatalogService, *QueryMeta, error) {
+	return c.service(service, nil, filter, q, true)
 }
 
 // Supports multiple tags for filtering
 func (c *Catalog) ConnectMultipleTags(service string, tags []string, q *QueryOptions) ([]*CatalogService, *QueryMeta, error) {
-	return c.service(service, tags, q, true)
+	return c.service(service, tags, "", q, true)
 }
 
-func (c *Catalog) service(service string, tags []string, q *QueryOptions, connect bool) ([]*CatalogService, *QueryMeta, error) {
+func (c *Catalog) service(service string, tags []string, filter string, q *QueryOptions, connect bool) ([]*CatalogService, *QueryMeta, error) {
 	path := "/v1/catalog/service/" + service
 	if connect {
 		path = "/v1/catalog/connect/" + service
 	}
 	r := c.c.newRequest("GET", path)
+	r.filterQuery(filter)
 	r.setQueryOptions(q)
 	if len(tags) > 0 {
 		for _, tag := range tags {
@@ -224,7 +244,14 @@ func (c *Catalog) service(service string, tags []string, q *QueryOptions, connec
 
 // Node is used to query for service information about a single node
 func (c *Catalog) Node(node string, q *QueryOptions) (*CatalogNode, *QueryMeta, error) {
+	return c.NodeWithFilter(node, "", q)
+}
+
+// NodeWithFilter is used to query for service information about a single node and returns
+// a node with a subset of its services that match the given filter expression
+func (c *Catalog) NodeWithFilter(node string, filter string, q *QueryOptions) (*CatalogNode, *QueryMeta, error) {
 	r := c.c.newRequest("GET", "/v1/catalog/node/"+node)
+	r.filterQuery(filter)
 	r.setQueryOptions(q)
 	rtt, resp, err := requireOK(c.c.doRequest(r))
 	if err != nil {

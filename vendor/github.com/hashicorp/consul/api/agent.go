@@ -387,7 +387,14 @@ func (a *Agent) NodeName() (string, error) {
 
 // Checks returns the locally registered checks
 func (a *Agent) Checks() (map[string]*AgentCheck, error) {
+	return a.ChecksWithFilter("")
+}
+
+// ChecksWithFilter returns a subset of the locally registered checks that match
+// the given filter expression
+func (a *Agent) ChecksWithFilter(filter string) (map[string]*AgentCheck, error) {
 	r := a.c.newRequest("GET", "/v1/agent/checks")
+	r.filterQuery(filter)
 	_, resp, err := requireOK(a.c.doRequest(r))
 	if err != nil {
 		return nil, err
@@ -403,7 +410,14 @@ func (a *Agent) Checks() (map[string]*AgentCheck, error) {
 
 // Services returns the locally registered services
 func (a *Agent) Services() (map[string]*AgentService, error) {
+	return a.ServicesWithFilter("")
+}
+
+// ServicesWithFilter returns a subset of the locally registered services that match
+// the given filter expression
+func (a *Agent) ServicesWithFilter(filter string) (map[string]*AgentService, error) {
 	r := a.c.newRequest("GET", "/v1/agent/services")
+	r.filterQuery(filter)
 	_, resp, err := requireOK(a.c.doRequest(r))
 	if err != nil {
 		return nil, err

@@ -897,3 +897,11 @@ func requireOK(d time.Duration, resp *http.Response, e error) (time.Duration, *h
 	}
 	return d, resp, nil
 }
+
+func (req *request) filterQuery(filter string) {
+	if filter == "" {
+		return
+	}
+
+	req.params.Set("filter", filter)
+}

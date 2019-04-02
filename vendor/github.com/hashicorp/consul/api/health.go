@@ -195,7 +195,14 @@ func (c *Client) Health() *Health {
 
 // Node is used to query for checks belonging to a given node
 func (h *Health) Node(node string, q *QueryOptions) (HealthChecks, *QueryMeta, error) {
+	return h.NodeWithFilter(node, "", q)
+}
+
+// NodeWithFilter is used to query for checks belonging to a given node and then
+// return a subset of those checks that match the given filter expression
+func (h *Health) NodeWithFilter(node string, filter string, q *QueryOptions) (HealthChecks, *QueryMeta, error) {
 	r := h.c.newRequest("GET", "/v1/health/node/"+node)
+	r.filterQuery(filter)
 	r.setQueryOptions(q)
 	rtt, resp, err := requireOK(h.c.doRequest(r))
 	if err != nil {
@@ -216,7 +223,14 @@ func (h *Health) Node(node string, q *QueryOptions) (HealthChecks, *QueryMeta, e
 
 // Checks is used to return the checks associated with a service
 func (h *Health) Checks(service string, q *QueryOptions) (HealthChecks, *QueryMeta, error) {
+	return h.ChecksWithFilter(service, "", q)
+}
+
+// ChecksWithFilter is used to return the checks associated with a service and then
+// return a subset of those checks that match the given filter expression
+func (h *Health) ChecksWithFilter(service string, filter string, q *QueryOptions) (HealthChecks, *QueryMeta, error) {
 	r := h.c.newRequest("GET", "/v1/health/checks/"+service)
+	r.filterQuery(filter)
 	r.setQueryOptions(q)
 	rtt, resp, err := requireOK(h.c.doRequest(r))
 	if err != nil {
@@ -243,11 +257,18 @@ func (h *Health) Service(service, tag string, passingOnly bool, q *QueryOptions)
 	if tag != "" {
 		tags = []string{tag}
 	}
-	return h.service(service, tags, passingOnly, q, false)
+	return h.service(service, tags, passingOnly, "", q, false)
+}
+
+// ServiceWithFilter is used to query health information along with service info
+// for a given service and then return a subset of those service instances
+// that match the given filter expression
+func (h *Health) ServiceWithFilter(service string, passingOnly bool, filter string, q *QueryOptions) ([]*ServiceEntry, *QueryMeta, error) {
+	return h.service(service, nil, passingOnly, filter, q, false)
 }
 
 func (h *Health) ServiceMultipleTags(service string, tags []string, passingOnly bool, q *QueryOptions) ([]*ServiceEntry, *QueryMeta, error) {
-	return h.service(service, tags, passingOnly, q, false)
+	return h.service(service, tags, passingOnly, "", q, false)
 }
 
 // Connect is equivalent to Service except that it will only return services
@@ -260,19 +281,26 @@ func (h *Health) Connect(service, tag string, passingOnly bool, q *QueryOptions)
 	if tag != "" {
 		tags = []string{tag}
 	}
-	return h.service(service, tags, passingOnly, q, true)
+	return h.service(service, tags, passingOnly, "", q, true)
+}
+
+// ConnectWithFilter is used to query health information for a Connect-enabled
+// service and then return a subset of the services that match the given filter expression
+func (h *Health) ConnectWithFilter(service string, passingOnly bool, filter string, q *QueryOptions) ([]*ServiceEntry, *QueryMeta, error) {
+	return h.service(service, nil, passingOnly, filter, q, true)
 }
 
 func (h *Health) ConnectMultipleTags(service string, tags []string, passingOnly bool, q *QueryOptions) ([]*ServiceEntry, *QueryMeta, error) {
-	return h.service(service, tags, passingOnly, q, true)
+	return h.service(service, tags, passingOnly, "", q, true)
 }
 
-func (h *Health) service(service string, tags []string, passingOnly bool, q *QueryOptions, connect bool) ([]*ServiceEntry, *QueryMeta, error) {
+func (h *Health) service(service string, tags []string, passingOnly bool, filter string, q *QueryOptions, connect bool) ([]*ServiceEntry, *QueryMeta, error) {
 	path := "/v1/health/service/" + service
 	if connect {
 		path = "/v1/health/connect/" + service
 	}
 	r := h.c.newRequest("GET", path)
+	r.filterQuery(filter)
 	r.setQueryOptions(q)
 	if len(tags) > 0 {
 		for _, tag := range tags {
@@ -302,6 +330,13 @@ func (h *Health) service(service string, tags []string, passingOnly bool, q *Que
 // State is used to retrieve all the checks in a given state.
 // The wildcard "any" state can also be used for all checks.
 func (h *Health) State(state string, q *QueryOptions) (HealthChecks, *QueryMeta, error) {
+	return h.StateWithFilter(state, "", q)
+}
+
+// StatewithFilter is used to retrieve all the checks in a given state and then
+// return a subset of those that match the given expression filter.
+// The wildcard "any" state can also be used for all checks.
+func (h *Health) StateWithFilter(state string, filter string, q *QueryOptions) (HealthChecks, *QueryMeta, error) {
 	switch state {
 	case HealthAny:
 	case HealthWarning:
@@ -311,6 +346,7 @@ func (h *Health) State(state string, q *QueryOptions) (HealthChecks, *QueryMeta,
 		return nil, nil, fmt.Errorf("Unsupported state: %v", state)
 	}
 	r := h.c.newRequest("GET", "/v1/health/state/"+state)
+	r.filterQuery(filter)
 	r.setQueryOptions(q)
 	rtt, resp, err := requireOK(h.c.doRequest(r))
 	if err != nil {
