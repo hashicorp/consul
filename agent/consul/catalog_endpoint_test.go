@@ -12,8 +12,8 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
@@ -923,6 +923,216 @@ func TestCatalog_ListNodes_NodeMetaFilter(t *testing.T) {
 		if len(out.Nodes) != 0 {
 			r.Fatal(nil)
 		}
+	})
+}
+
+func TestCatalog_RPC_Filter(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// prep the cluster with some data we can use in our filters
+	registrations := map[string]*structs.RegisterRequest{
+		"Node foo": &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			ID:         types.NodeID("e0155642-135d-4739-9853-a1ee6c9f945b"),
+			Address:    "127.0.0.2",
+			TaggedAddresses: map[string]string{
+				"lan": "127.0.0.2",
+				"wan": "198.18.0.2",
+			},
+			NodeMeta: map[string]string{
+				"env": "production",
+				"os":  "linux",
+			},
+		},
+		"Service redis v1 on foo": &structs.RegisterRequest{
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				ID:      "redisV1",
+				Service: "redis",
+				Tags:    []string{"v1"},
+				Meta:    map[string]string{"version": "1"},
+				Port:    1234,
+				Address: "198.18.1.2",
+			},
+		},
+		"Service redis v2 on foo": &structs.RegisterRequest{
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				ID:      "redisV2",
+				Service: "redis",
+				Tags:    []string{"v2"},
+				Meta:    map[string]string{"version": "2"},
+				Port:    1235,
+				Address: "198.18.1.2",
+			},
+		},
+		"Node bar": &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "bar",
+			ID:         types.NodeID("c6e7a976-8f4f-44b5-bdd3-631be7e8ecac"),
+			Address:    "127.0.0.3",
+			TaggedAddresses: map[string]string{
+				"lan": "127.0.0.3",
+				"wan": "198.18.0.3",
+			},
+			NodeMeta: map[string]string{
+				"env": "production",
+				"os":  "windows",
+			},
+		},
+		"Service redis v1 on bar": &structs.RegisterRequest{
+			Datacenter:     "dc1",
+			Node:           "bar",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				ID:      "redisV1",
+				Service: "redis",
+				Tags:    []string{"v1"},
+				Meta:    map[string]string{"version": "1"},
+				Port:    1234,
+				Address: "198.18.1.3",
+			},
+		},
+		"Service web v1 on bar": &structs.RegisterRequest{
+			Datacenter:     "dc1",
+			Node:           "bar",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				ID:      "webV1",
+				Service: "web",
+				Tags:    []string{"v1", "connect"},
+				Meta:    map[string]string{"version": "1", "connect": "enabled"},
+				Port:    443,
+				Address: "198.18.1.4",
+				Connect: structs.ServiceConnect{Native: true},
+			},
+		},
+		"Node baz": &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "baz",
+			ID:         types.NodeID("12f96b27-a7b0-47bd-add7-044a2bfc7bfb"),
+			Address:    "127.0.0.4",
+			TaggedAddresses: map[string]string{
+				"lan": "127.0.0.4",
+			},
+			NodeMeta: map[string]string{
+				"env": "qa",
+				"os":  "linux",
+			},
+		},
+		"Service web v1 on baz": &structs.RegisterRequest{
+			Datacenter:     "dc1",
+			Node:           "baz",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				ID:      "webV1",
+				Service: "web",
+				Tags:    []string{"v1", "connect"},
+				Meta:    map[string]string{"version": "1", "connect": "enabled"},
+				Port:    443,
+				Address: "198.18.1.4",
+				Connect: structs.ServiceConnect{Native: true},
+			},
+		},
+		"Service web v2 on baz": &structs.RegisterRequest{
+			Datacenter:     "dc1",
+			Node:           "baz",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				ID:      "webV2",
+				Service: "web",
+				Tags:    []string{"v2", "connect"},
+				Meta:    map[string]string{"version": "2", "connect": "enabled"},
+				Port:    8443,
+				Address: "198.18.1.4",
+				Connect: structs.ServiceConnect{Native: true},
+			},
+		},
+	}
+
+	for name, reg := range registrations {
+		err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", reg, nil)
+		require.NoError(t, err, "Failed catalog registration %q: %v", name, err)
+	}
+
+	// Run the tests against the test server
+
+	t.Run("ListNodes", func(t *testing.T) {
+		args := structs.DCSpecificRequest{
+			Datacenter: "dc1",
+			Filter:     "Meta.os == linux",
+		}
+
+		out := new(structs.IndexedNodes)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, out))
+		require.Len(t, out.Nodes, 2)
+		require.Condition(t, func() bool {
+			return (out.Nodes[0].Node == "foo" && out.Nodes[1].Node == "baz") ||
+				(out.Nodes[0].Node == "baz" && out.Nodes[1].Node == "foo")
+		})
+
+		args.Filter = "Meta.os == linux and Meta.env == qa"
+		out = new(structs.IndexedNodes)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, out))
+		require.Len(t, out.Nodes, 1)
+		require.Equal(t, "baz", out.Nodes[0].Node)
+	})
+
+	t.Run("ServiceNodes", func(t *testing.T) {
+		args := structs.ServiceSpecificRequest{
+			Datacenter:  "dc1",
+			ServiceName: "redis",
+			Filter:      "ServiceMeta.version == 1",
+		}
+
+		out := new(structs.IndexedServiceNodes)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &args, &out))
+		require.Len(t, out.ServiceNodes, 2)
+		require.Condition(t, func() bool {
+			return (out.ServiceNodes[0].Node == "foo" && out.ServiceNodes[1].Node == "bar") ||
+				(out.ServiceNodes[0].Node == "bar" && out.ServiceNodes[1].Node == "foo")
+		})
+
+		args.Filter = "ServiceMeta.version == 2"
+		out = new(structs.IndexedServiceNodes)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &args, &out))
+		require.Len(t, out.ServiceNodes, 1)
+		require.Equal(t, "foo", out.ServiceNodes[0].Node)
+	})
+
+	t.Run("NodeServices", func(t *testing.T) {
+		args := structs.NodeSpecificRequest{
+			Datacenter: "dc1",
+			Node:       "baz",
+			Filter:     "Service == web",
+		}
+
+		out := new(structs.IndexedNodeServices)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &out))
+		require.Len(t, out.NodeServices.Services, 2)
+
+		args.Filter = "Service == web and Meta.version == 2"
+		out = new(structs.IndexedNodeServices)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &out))
+		require.Len(t, out.NodeServices.Services, 1)
 	})
 }
 
