@@ -24,7 +24,7 @@ and understand the minimum networking requirements.
 Consul server agents are responsible for the cluster state, responding to RPC
 queries, and processing all write operations. Since the Consul servers are
 highly active and are responsible for maintaining the cluster state, server
-sizing is critical for the overall performance efficiency and health of the
+sizing is critical for the overall performance, efficiency, and health of the
 Consul cluster. Review the [Consul Reference
 Architecture](/advanced/day-1-operations/reference-architecture#consul-servers)
 guide for sizing recommendations for small and large Consul datacenters. 
