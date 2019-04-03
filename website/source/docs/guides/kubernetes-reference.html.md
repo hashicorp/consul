@@ -109,7 +109,7 @@ forwarded to the servers via RPCs.
 
 To use an existing Consul cluster to manage services in Kubernetes, Consul
 clients can be deployed within the Kubernetes cluster. This will also allow
-Kubernetes services to be synced to Consul. This design allows Consul tools
+Kubernetes-defined services to be synced to Consul. This design allows Consul tools
 such as envconsul, consul-template, and more to work on Kubernetes. It will
 also register each Kubernetes node with the Consul catalog for full visibility
 into your infrastructure.
