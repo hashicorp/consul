@@ -71,7 +71,7 @@ RBAC](https://kubernetes.io/docs/reference/access-authn-authz/rbac/),
 [GCP](https://cloud.google.com/kubernetes-engine/docs/how-to/role-based-access-control),
 and
 [Azure](https://docs.microsoft.com/en-us/cli/azure/aks?view=azure-cli-latest#az-aks-create).
-In Azure, RBAC is enabled by default . 
+In Azure, RBAC is enabled by default. 
 
 ## Datacenter Design 
 
