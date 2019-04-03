@@ -32,7 +32,7 @@ guide for sizing recommendations for small and large Consul datacenters.
 The CPU and memory recommendations can be used when you select the resources
 limits for the Consul pods. The disk recommendations can also be used when
 selecting the resources limits and configuring persistent volumes. You will
-need to set both `limits` and `required` in the Helm chart. Below is an example
+need to set both `limits` and `requests` in the Helm chart. Below is an example
 Helm chart for a Consul server in a large environment.
 
 ```yaml 
