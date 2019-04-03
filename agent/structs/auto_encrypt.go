@@ -2,6 +2,6 @@ package structs
 
 type SignResponse struct {
 	IssuedCert *IssuedCert
-	ActiveRoot CARoot
+	Roots      *IndexedCARoots
 	GossipKey  string
 }
