@@ -35,7 +35,8 @@ The table below shows this endpoint's support for
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter. Using this across datacenters is not recommended.
 
-- `LockDelay` `(string: "15s")` - Specifies the duration for the lock delay.
+- `LockDelay` `(string: "15s")` - Specifies the duration for the lock delay. This
+  must be greater than `0`.
 
 - `Node` `(string: "<agent>")` - Specifies the name of the node. This must refer
   to a node that is already registered.
@@ -55,8 +56,9 @@ The table below shows this endpoint's support for
 - `TTL` `(string: "")` - Specifies the number of seconds (between 10s and
   86400s). If provided, the session is invalidated if it is not renewed before
   the TTL expires. The lowest practical TTL should be used to keep the number of
-  managed sessions low. When locks are forcibly expired, such as during a leader
-  election, sessions may not be reaped for up to double this TTL, so long TTL
+  managed sessions low. When locks are forcibly expired, such as when following
+  the [leader election pattern](/docs/guides/leader-election.html) in an application,
+  sessions may not be reaped for up to double this TTL, so long TTL
   values (> 1 hour) should be avoided.
 
 ### Sample Payload

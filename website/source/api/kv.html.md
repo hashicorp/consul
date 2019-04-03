@@ -182,8 +182,8 @@ The table below shows this endpoint's support for
   index is non-zero, the key is only set if the index matches the `ModifyIndex`
   of that key.
 
-- `acquire` `(string: "")` - Specifies to use a lock acquisition operation. This
-  is useful as it allows leader election to be built on top of Consul. If the
+- `acquire` `(string: "")` - Supply a session ID to use in a lock acquisition operation.
+  This is useful as it allows leader election to be built on top of Consul. If the
   lock is not held and the session is valid, this increments the `LockIndex` and
   sets the `Session` value of the key in addition to updating the key contents.
   A key does not need to exist to be acquired. If the lock is already held by
@@ -196,7 +196,7 @@ The table below shows this endpoint's support for
     For an example of how to use the lock feature, see the [Leader Election Guide]
     (/docs/guides/leader-election.html).
 
-- `release` `(string: "")` - Specifies to use a lock release operation. This is
+- `release` `(string: "")` - Supply a session ID to use in a release operation. This is
   useful when paired with `?acquire=` as it allows clients to yield a lock. This
   will leave the `LockIndex` unmodified but will clear the associated `Session`
   of the key. The key must be held by this session to be unlocked.
