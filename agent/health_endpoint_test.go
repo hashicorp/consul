@@ -882,7 +882,7 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 	// Create a failing service check
 	args := &structs.RegisterRequest{
 		Datacenter: dc,
-		Node:       "tes",
+		Node:       a.Config.NodeName,
 		Address:    "127.0.0.1",
 		Check: &structs.HealthCheck{
 			Node:      a.Config.NodeName,
