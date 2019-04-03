@@ -80,7 +80,7 @@ we will cover three of the most common.
 
 1. Consul agents can be solely deployed within Kubernetes.  
 1. Consul servers
-can be deployed outside of kubernetes and clients inside of Kubernetes.  
+can be deployed outside of Kubernetes and clients inside of Kubernetes.  
 1. Multiple Consul datacenters with agents inside and outside of Kubernetes.  
 
 Review the Kubernetes
