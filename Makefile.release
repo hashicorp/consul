@@ -47,7 +47,8 @@ NAME:=coredns
 VERSION:=$(shell grep 'CoreVersion' coremain/version.go | awk '{ print $$3 }' | tr -d '"')
 GITHUB:=coredns
 DOCKER_IMAGE_NAME:=$(DOCKER)/$(NAME)
-LINUX_ARCH:=amd64 arm arm64 ppc64le s390x mips
+# mips is not in LINUX_ARCH because it's not supported by the manifest-tool.
+LINUX_ARCH:=amd64 arm arm64 ppc64le s390x
 PLATFORMS:=$(subst $(SPACE),$(COMMA),$(foreach arch,$(LINUX_ARCH),linux/$(arch)))
 
 ifeq ($(DOCKER),)
@@ -73,6 +74,8 @@ build:
 	mkdir -p build/darwin/amd64 && $(MAKE) coredns BINARY=build/darwin/amd64/$(NAME) SYSTEM="GOOS=darwin GOARCH=amd64" CHECKS="" BUILDOPTS=""
 	@echo Building: windows/amd64 - $(VERSION)
 	mkdir -p build/windows/amd64 && $(MAKE) coredns BINARY=build/windows/amd64/$(NAME).exe SYSTEM="GOOS=windows GOARCH=amd64" CHECKS="" BUILDOPTS=""
+	@echo Building: linux/mips - $(VERSION)
+	mkdir -p build/linux/mips  && $(MAKE) coredns BINARY=build/linux/mips/$(NAME) SYSTEM="GOOS=linux GOARCH=mips" CHECKS="" BUILDOPTS=""
 	@echo Building: linux/$(LINUX_ARCH) - $(VERSION) ;\
 	for arch in $(LINUX_ARCH); do \
 	    mkdir -p build/linux/$$arch  && $(MAKE) coredns BINARY=build/linux/$$arch/$(NAME) SYSTEM="GOOS=linux GOARCH=$$arch" CHECKS="" BUILDOPTS="" ;\
@@ -84,6 +87,7 @@ tar:
 	@rm -rf release && mkdir release
 	tar -zcf release/$(NAME)_$(VERSION)_darwin_amd64.tgz -C build/darwin/amd64 $(NAME)
 	tar -zcf release/$(NAME)_$(VERSION)_windows_amd64.tgz -C build/windows/amd64 $(NAME).exe
+	tar -zcf release/$(NAME)_$(VERSION)_linux_mips.tgz -C build/linux/mips $(NAME)
 	for arch in $(LINUX_ARCH); do \
 	    tar -zcf release/$(NAME)_$(VERSION)_linux_$$arch.tgz -C build/linux/$$arch $(NAME) ;\
 	done
