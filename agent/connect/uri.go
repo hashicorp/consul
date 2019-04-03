@@ -91,17 +91,17 @@ func ParseCertURI(input *url.URL) (CertURI, error) {
 		// Determine the values. We assume they're sane to save cycles,
 		// but if the raw path is not empty that means that something is
 		// URL encoded so we go to the slow path.
-		node := v[1]
+		agent := v[1]
 		if input.RawPath != "" {
 			var err error
-			if node, err = url.PathUnescape(v[1]); err != nil {
+			if agent, err = url.PathUnescape(v[1]); err != nil {
 				return nil, fmt.Errorf("Invalid node: %s", err)
 			}
 		}
 
 		return &SpiffeIDAgent{
-			Host: input.Host,
-			Node: node,
+			Host:  input.Host,
+			Agent: agent,
 		}, nil
 	}
 

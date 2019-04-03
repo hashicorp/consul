@@ -45,7 +45,7 @@ func TestAutoEncryptSign(t *testing.T) {
 		Datacenter: "dc1",
 		CSR:        csr,
 	}
-	var reply structs.IssuedCert
+	var reply structs.SignResponse
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "AutoEncrypt.Sign", args, &reply))
 
 	// Get the current CA
@@ -56,7 +56,7 @@ func TestAutoEncryptSign(t *testing.T) {
 	// Verify that the cert is signed by the CA
 	roots := x509.NewCertPool()
 	assert.True(t, roots.AppendCertsFromPEM([]byte(ca.RootCert)))
-	leaf, err := connect.ParseCert(reply.CertPEM)
+	leaf, err := connect.ParseCert(reply.IssuedCert.CertPEM)
 	require.NoError(t, err)
 	_, err = leaf.Verify(x509.VerifyOptions{
 		Roots: roots,
@@ -64,5 +64,6 @@ func TestAutoEncryptSign(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify other fields
-	require.Empty(t, reply.Service)
+	require.Empty(t, reply.IssuedCert.Service)
+	require.Equal(t, "uuid", reply.IssuedCert.Agent)
 }
