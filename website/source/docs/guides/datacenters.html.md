@@ -6,8 +6,8 @@ description: |-
   One of the key features of Consul is its support for multiple datacenters. The architecture of Consul is designed to promote low coupling of datacenters so that connectivity issues or failure of any datacenter does not impact the availability of Consul in other datacenters. This means each datacenter runs independently, each having a dedicated group of servers and a private LAN gossip pool.
 ---
 
-# Multiple Datacenters
-## Basic Federation with the WAN Gossip Pool
+
+# Multiple Datacenters: Basic Federation with the WAN Gossip
 
 One of the key features of Consul is its support for multiple datacenters.
 The [architecture](/docs/internals/architecture.html) of Consul is designed to
@@ -16,14 +16,7 @@ failure of any datacenter does not impact the availability of Consul in other
 datacenters. This means each datacenter runs independently, each having a dedicated
 group of servers and a private LAN [gossip pool](/docs/internals/gossip.html).
 
-In general, data is not replicated between different Consul datacenters. When a
-request is made for a resource in another datacenter, the local Consul servers forward
-an RPC request to the remote Consul servers for that resource and return the results.
-If the remote datacenter is not available, then those resources will also not be
-available, but that won't otherwise affect the local datacenter. There are some special
-situations where a limited subset of data can be replicated, such as with Consul's built-in
-[ACL replication](/docs/guides/acl.html#outages-and-acl-replication) capability, or
-external tools like [consul-replicate](https://github.com/hashicorp/consul-replicate).
+## The WAN Gossip Pool
 
 This guide covers the basic form of federating Consul clusters using a single
 WAN gossip pool, interconnecting all Consul servers.
@@ -31,31 +24,35 @@ WAN gossip pool, interconnecting all Consul servers.
 for an advanced multiple datacenter capability. Please see the
 [Advanced Federation Guide](/docs/guides/areas.html) for more details.
 
-## Getting Started
+## Setup Two Datacenters
 
-To get started, follow the [bootstrapping guide](/docs/guides/bootstrapping.html) to
+To get started, follow the [
+Deployment guide](https://learn.hashicorp.com/consul/advanced/day-1-operations/deployment-guide/) to
 start each datacenter. After bootstrapping, we should have two datacenters now which
 we can refer to as `dc1` and `dc2`. Note that datacenter names are opaque to Consul;
 they are simply labels that help human operators reason about the Consul clusters.
 
 To query the known WAN nodes, we use the [`members`](/docs/commands/members.html)
-command with the `-wan` parameter:
+command with the `-wan` parameter on either datacenter.
 
-```text
+```sh
 $ consul members -wan
-...
 ```
 
-This will provide a list of all known members in the WAN gossip pool. This should
+This will provide a list of all known members in the WAN gossip pool. In
+this case, we have not connected the servers so there will be no output.
+
+`consul members -wan` should
 only contain server nodes. Client nodes send requests to a datacenter-local server,
 so they do not participate in WAN gossip. Client requests are forwarded by local
 servers to a server in the target datacenter as necessary.
 
-The next step is to ensure that all the server nodes join the WAN gossip pool (include all the servers in all the datacenters):
+## Join the Servers
 
-```text
+The next step is to ensure that all the server nodes join the WAN gossip pool (include all the servers in all the datacenters).
+
+```sh
 $ consul join -wan <server 1> <server 2> ...
-...
 ```
 
 The [`join`](/docs/commands/join.html) command is used with the `-wan` flag to indicate
@@ -66,35 +63,77 @@ will only know about itself and must be added to the cluster. Consul 0.8.0 added
 flooding, so if one Consul server in a datacenter joins the WAN, it will automatically
 join the other servers in its local datacenter that it knows about via the LAN.
 
+### Persist Join with Retry Join
+
+In order to persist the `join` information, the following can be added to each server's configuration file, in both datacenters. For example, in `dc1` server nodes.
+
+```json
+  "retry_join_wan":[
+    "dc2-server-1",
+    "dc2-server-2"
+  ],
+```
+
+## Verify Multi-DC Configuration
+
 Once the join is complete, the [`members`](/docs/commands/members.html) command can be
 used to verify that all server nodes gossiping over WAN.
+
+```sh
+$ consul members -wan
+Node          Address          Status  Type    Build  Protocol  DC   Segment
+dc1-server-1  127.0.0.1:8701   alive   server  1.4.3  2         dc1  <all>
+dc2-server-1  127.0.0.1:8702   alive   server  1.4.3  2         dc2  <all>
+```
 
 We can also verify that both datacenters are known using the
 [HTTP Catalog API](/api/catalog.html#catalog_datacenters):
 
-```text
+```sh
 $ curl http://localhost:8500/v1/catalog/datacenters
 ["dc1", "dc2"]
 ```
 
 As a simple test, you can try to query the nodes in each datacenter:
 
-```text
+```sh
 $ curl http://localhost:8500/v1/catalog/nodes?dc=dc1
-...
+{
+	"ID": "ee8b5f7b-9cc1-a382-978c-5ce4b1219a55",
+	"Node": "dc1-server-1",
+	"Address": "127.0.0.1",
+	"Datacenter": "dc1",
+	"TaggedAddresses": {
+		"lan": "127.0.0.1",
+		"wan": "127.0.0.1"
+	},
+	"Meta": {
+		"consul-network-segment": ""
+	},
+	"CreateIndex": 12,
+	"ModifyIndex": 14
+}
+```
+```sh
 $ curl http://localhost:8500/v1/catalog/nodes?dc=dc2
-...
+{
+	"ID": "ee8b5f7b-9cc1-a382-978c-5ce4b1219a55",
+	"Node": "dc2-server-1",
+	"Address": "127.0.0.1",
+	"Datacenter": "dc1",
+	"TaggedAddresses": {
+		"lan": "127.0.0.1",
+		"wan": "127.0.0.1"
+	},
+	"Meta": {
+		"consul-network-segment": ""
+	},
+	"CreateIndex": 11,
+	"ModifyIndex": 16
+}
 ```
-In order to persist the `join` information, the following can be added to the `consul` configuration in each of the `server` nodes in the cluster. For example, in `dc1` server nodes:
-```
-...
-  "retry_join_wan":[
-    "dc2-server-1",
-    ...
-    "dc2-server-N"
-  ],
-...
-```
+
+## Network Configuration 
 
 There are a few networking requirements that must be satisfied for this to
 work. Of course, all server nodes must be able to talk to each other. Otherwise,
@@ -120,3 +159,20 @@ been established.
 
 The [`translate_wan_addrs`](/docs/agent/options.html#translate_wan_addrs) configuration
 provides a basic address rewriting capability.
+
+## Data Replication
+
+In general, data is not replicated between different Consul datacenters. When a
+request is made for a resource in another datacenter, the local Consul servers forward
+an RPC request to the remote Consul servers for that resource and return the results.
+If the remote datacenter is not available, then those resources will also not be
+available, but that won't otherwise affect the local datacenter. There are some special
+situations where a limited subset of data can be replicated, such as with Consul's built-in
+[ACL replication](/docs/guides/acl.html#outages-and-acl-replication) capability, or
+external tools like [consul-replicate](https://github.com/hashicorp/consul-replicate/).
+
+## Summary
+
+In this guide you setup WAN gossip across two datacenters to create
+basic federation. You also used the Consul HTTP API to ensure the 
+datacenters were properly configured.
