@@ -37,7 +37,7 @@ over the WAN. Consul clients make use of resources in federated clusters by
 forwarding RPCs through the Consul servers in their local cluster, but they
 never interact with remote Consul servers directly. There are currently two
 inter-cluster network models: [WAN Gossip (OSS)](/docs/guides/datacenters.html)
-and [Network Areas (Enterprise)](/docs/guides/areas.html).
+and [Network Areas (Enterprise)](/docs/guides/advanced-federation.html).
 
 **LAN Gossip Pool**: A set of Consul agents that have full mesh connectivity
 among themselves, and use Serf to maintain a shared view of the members of the
