@@ -98,13 +98,13 @@ func (c *cmd) Run(args []string) int {
 	if c.server {
 		name = fmt.Sprintf("server.%s.%s", c.dc, c.domain)
 		DNSNames = append(DNSNames, []string{name, "localhost"}...)
-		IPAddresses = append(IPAddresses, []net.IP{net.ParseIP("127.0.0.1")}...)
+		IPAddresses = append(IPAddresses, net.ParseIP("127.0.0.1"))
 		extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth}
 		prefix = fmt.Sprintf("%s-server-%s", c.dc, c.domain)
 	} else if c.client {
 		name = fmt.Sprintf("client.%s.%s", c.dc, c.domain)
 		DNSNames = append(DNSNames, []string{name, "localhost"}...)
-		IPAddresses = append(IPAddresses, []net.IP{net.ParseIP("127.0.0.1")}...)
+		IPAddresses = append(IPAddresses, net.ParseIP("127.0.0.1"))
 		extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth}
 		prefix = fmt.Sprintf("%s-client-%s", c.dc, c.domain)
 	} else if c.cli {
