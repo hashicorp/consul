@@ -59,7 +59,7 @@ allow you to have a fixed disk location for the Consul data. This ensures that
 if a Consul server is lost, the data will not be lost. This is an important
 feature of Kubernetes, but may take some additional configuration. If you are
 running Kubernetes on one of the major cloud platforms, persistent volumes
-should already be configured; be sure to read their documentation for more
+should already be configured for you; be sure to read their documentation for more
 details. In addition to setting up the PV resource in Kubernetes, you will need
 to map the Consul server to that volume with the [storage class
 parameter](https://www.consul.io/docs/platform/k8s/helm.html#v-server-storageclass).
