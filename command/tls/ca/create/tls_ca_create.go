@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/tls"
+	"github.com/hashicorp/consul/tlsutil"
 	"github.com/mitchellh/cli"
 )
 
@@ -74,7 +75,7 @@ func (c *cmd) Run(args []string) int {
 	if c.constraint {
 		constraints = append(c.additionalConstraints, []string{c.domain, "localhost"}...)
 	}
-	ca, err := tls.GenerateCA(s, sn, c.days, constraints)
+	ca, err := tlsutil.GenerateCA(s, sn, c.days, constraints)
 	if err != nil {
 		c.UI.Error(err.Error())
 	}
