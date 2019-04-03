@@ -166,7 +166,7 @@ it will be discoverable by Consul like any other service in the datacenter.
 ### Network Security
 
 Finally, you should consider securing your Consul datacenter with
-[ACLs](bootrapping). ACLs should be used with [Consul
+[ACLs](/consul/advanced/day-1-operations/production-acls). ACLs should be used with [Consul
 Connect](https://www.consul.io/docs/platform/k8s/connect.html) to secure
 service to service communication. The Kubernetes cluster should also be
 secured. 
