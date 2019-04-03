@@ -10,7 +10,7 @@ description: |-
 
 Preparing your Kubernetes cluster to successfully deploy and run Consul is an
 important first step in your production deployment process. In this guide you
-will prepare your Kubernetes cluster, independent of its underlying platform
+will prepare your Kubernetes cluster, that can be running on any platform
 (AKS, EKS, GKE, etc). However, we will call out cloud specific differences when
 applicable. Before starting this guide you should have experience with
 Kubernetes, and have `kubectl` and helm configured locally. 
