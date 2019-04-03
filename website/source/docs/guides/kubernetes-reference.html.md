@@ -103,7 +103,7 @@ common for users who do not already have a production Consul datacenter.
 The Consul datacenter in Kubernetes will function the same as a platform
 independent Consul datacenter. Agents will communicate over LAN Gossip, servers
 will participate in the Raft consensus and quorum, and client requests will be
-forwarded to the leading server with the RPC.
+forwarded to the servers via RPCs.
 
 ### Consul Datacenter with a Kubernetes Cluster
 
