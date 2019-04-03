@@ -19,12 +19,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/vic/pkg/vsphere/tags"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
-	"github.com/vmware/vic/pkg/vsphere/tags"
 )
 
 // providerLog is the local provider logger. This should be initialized from

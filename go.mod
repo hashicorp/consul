@@ -55,7 +55,7 @@ require (
 	github.com/hashicorp/consul/sdk v0.1.0
 	github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
 	github.com/hashicorp/go-cleanhttp v0.5.1
-	github.com/hashicorp/go-discover v0.0.0-20190319153616-61771d82ff54
+	github.com/hashicorp/go-discover v0.0.0-20190403160810-22221edb15cd
 	github.com/hashicorp/go-hclog v0.0.0-20180402200405-69ff559dc25f // indirect
 	github.com/hashicorp/go-memdb v0.0.0-20180223233045-1289e7fffe71
 	github.com/hashicorp/go-msgpack v0.5.3
