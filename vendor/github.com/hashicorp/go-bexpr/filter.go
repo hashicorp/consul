@@ -24,8 +24,8 @@ func getElementType(dataType interface{}) reflect.Type {
 }
 
 // Creates a filter to operate on the given data type.
-// The data type is the type of the elements that will be filtered and not the top level container type.
-// For example, if you want to filter a []Foo then the data type to pass here is Foo.
+// The data type passed can be either be a container type (map, slice or array) or the element type.
+// For example, if you want to filter a []Foo then the data type to pass here is either []Foo or just Foo.
 // If no expression is provided the nil filter will be returned but is not an error. This is done
 // to allow for executing the nil filter which is just a no-op
 func CreateFilter(expression string, config *EvaluatorConfig, dataType interface{}) (*Filter, error) {

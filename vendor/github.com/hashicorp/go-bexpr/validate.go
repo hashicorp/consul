@@ -7,8 +7,31 @@ import (
 func validateRecurse(ast Expression, fields FieldConfigurations, maxRawValueLength int) (int, error) {
 	switch node := ast.(type) {
 	case *UnaryExpression:
-		return validateRecurse(node, fields, maxRawValueLength)
+		switch node.Operator {
+		case UnaryOpNot:
+			// this is fine
+		default:
+			return 0, fmt.Errorf("Invalid unary expression operator: %d", node.Operator)
+		}
+
+		if node.Operand == nil {
+			return 0, fmt.Errorf("Invalid unary expression operand: nil")
+		}
+		return validateRecurse(node.Operand, fields, maxRawValueLength)
 	case *BinaryExpression:
+		switch node.Operator {
+		case BinaryOpAnd, BinaryOpOr:
+			// this is fine
+		default:
+			return 0, fmt.Errorf("Invalid binary expression operator: %d", node.Operator)
+		}
+
+		if node.Left == nil {
+			return 0, fmt.Errorf("Invalid left hand side of binary expression: nil")
+		} else if node.Right == nil {
+			return 0, fmt.Errorf("Invalid right hand side of binary expression: nil")
+		}
+
 		leftMatches, err := validateRecurse(node.Left, fields, maxRawValueLength)
 		if err != nil {
 			return leftMatches, err
@@ -72,6 +95,13 @@ func validateRecurse(ast Expression, fields FieldConfigurations, maxRawValueLeng
 				}
 
 				node.Value.Converted = coerced
+			}
+		} else {
+			switch node.Operator {
+			case MatchIsEmpty, MatchIsNotEmpty:
+				// these don't require values
+			default:
+				return 1, fmt.Errorf("Match operator %q requires a non-nil value", node.Operator)
 			}
 		}
 		return 1, nil

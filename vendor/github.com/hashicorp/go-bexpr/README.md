@@ -12,6 +12,10 @@ the `MatchExpressionEvaluator` interface and provide the necessary field configu
 
 Eventually this lib will support handling these cycles automatically.
 
+## Stability
+
+Currently there is a `MatchExpressionEvaluator` interface that can be used to implement custom behavior. This interface should be considered *experimental* and is likely to change in the future. One need for the change is to make it easier for custom implementations to re-invoke the main bexpr logic on subfields so that they do not have to implement custom logic for themselves and every sub field they contain. With the current interface its not really possible.
+
 ## Usage (Reflection)
 
 This example program is available in [examples/simple](examples/simple)
