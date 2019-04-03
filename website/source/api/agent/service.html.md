@@ -38,6 +38,11 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | -------------- |
 | `NO`             | `none`            | `none`        | `service:read` |
 
+### Parameters
+
+- `filter` `(string: "")` - Specifies the expression used to filter the
+  queries results prior to returning the data.
+
 ### Sample Request
 
 ```text
@@ -66,6 +71,22 @@ $ curl \
   }
 }
 ```
+
+### Filtering
+
+The following selectors and filter operations are supported:
+
+| Selector      | Supported Operations               |
+| ------------- | ---------------------------------- |
+| `CheckID`     | Equal, Not Equal                   |
+| `Name`        | Equal, Not Equal                   |
+| `Node`        | Equal, Not Equal                   |
+| `Notes`       | Equal, Not Equal                   |
+| `Output`      | Equal, Not Equal                   |
+| `ServiceID`   | Equal, Not Equal                   |
+| `ServiceName` | Equal, Not Equal                   |
+| `ServiceTags` | In, Not In, Is Empty, Is Not Empty |
+| `Status`      | Equal, Not Equal                   |
 
 ## Get Service Configuration
 
