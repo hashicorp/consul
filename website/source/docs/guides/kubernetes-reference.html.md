@@ -75,7 +75,7 @@ In Azure, RBAC is enabled by default .
 
 ## Datacenter Design 
 
-There are many configurations for running Consul with Kubernetes. In this guide
+There are many possible configurations for running Consul with Kubernetes. In this guide
 we will cover three of the most common.
 
 1. Consul agents can be solely deployed within kubernetes.  
