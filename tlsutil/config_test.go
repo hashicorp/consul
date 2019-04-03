@@ -403,9 +403,9 @@ func TestConfigurator_ErrorPropagation(t *testing.T) {
 		if !v.excludeCheck {
 			cert, err := v.config.KeyPair()
 			require.NoError(t, err, info)
-			cas, _ := loadCAs(v.config.CAFile, v.config.CAPath)
+			pool, _, _ := loadCAs(v.config.CAFile, v.config.CAPath)
 			require.NoError(t, err, info)
-			err3 = c.check(v.config, cas, cert)
+			err3 = c.check(v.config, pool, cert)
 		}
 		if v.shouldErr {
 			require.Error(t, err1, info)
@@ -461,7 +461,7 @@ func TestConfigurator_loadCAs(t *testing.T) {
 		{"../test/ca/root.cer", "../test/ca_path", false, false, 1},
 	}
 	for i, v := range variants {
-		cas, err := loadCAs(v.cafile, v.capath)
+		pool, pems, err := loadCAs(v.cafile, v.capath)
 		info := fmt.Sprintf("case %d", i)
 		if v.shouldErr {
 			require.Error(t, err, info)
@@ -469,10 +469,11 @@ func TestConfigurator_loadCAs(t *testing.T) {
 			require.NoError(t, err, info)
 		}
 		if v.isNil {
-			require.Nil(t, cas, info)
+			require.Nil(t, pool, info)
 		} else {
-			require.NotNil(t, cas, info)
-			require.Len(t, cas.Subjects(), v.count, info)
+			require.NotNil(t, pool, info)
+			require.Len(t, pool.Subjects(), v.count, info)
+			require.Len(t, pems, v.count, info)
 		}
 	}
 }
@@ -544,9 +545,9 @@ func TestConfigurator_CommonTLSConfigCAs(t *testing.T) {
 	require.Nil(t, c.commonTLSConfig(false).ClientCAs)
 	require.Nil(t, c.commonTLSConfig(false).RootCAs)
 
-	c.cas = &x509.CertPool{}
-	require.Equal(t, c.cas, c.commonTLSConfig(false).ClientCAs)
-	require.Equal(t, c.cas, c.commonTLSConfig(false).RootCAs)
+	c.caPool = &x509.CertPool{}
+	require.Equal(t, c.caPool, c.commonTLSConfig(false).ClientCAs)
+	require.Equal(t, c.caPool, c.commonTLSConfig(false).RootCAs)
 }
 
 func TestConfigurator_CommonTLSConfigTLSMinVersion(t *testing.T) {
@@ -615,9 +616,9 @@ func TestConfigurator_OutgoingRPCTLSDisabled(t *testing.T) {
 	}
 	for i, v := range variants {
 		info := fmt.Sprintf("case %d", i)
-		cas, err := loadCAs(v.file, v.path)
+		pool, _, err := loadCAs(v.file, v.path)
 		require.NoError(t, err, info)
-		c.cas = cas
+		c.caPool = pool
 		c.base.VerifyOutgoing = v.verify
 		require.Equal(t, v.expected, c.outgoingRPCTLSDisabled(), info)
 	}
@@ -728,7 +729,7 @@ func TestConfigurator_UpdateChecks(t *testing.T) {
 func TestConfigurator_UpdateSetsStuff(t *testing.T) {
 	c, err := NewConfigurator(Config{}, nil)
 	require.NoError(t, err)
-	require.Nil(t, c.cas)
+	require.Nil(t, c.caPool)
 	require.Nil(t, c.cert)
 	require.Equal(t, c.base, &Config{})
 	require.Equal(t, 1, c.version)
@@ -742,8 +743,8 @@ func TestConfigurator_UpdateSetsStuff(t *testing.T) {
 		KeyFile:  "../test/key/ourdomain.key",
 	}
 	require.NoError(t, c.Update(config))
-	require.NotNil(t, c.cas)
-	require.Len(t, c.cas.Subjects(), 1)
+	require.NotNil(t, c.caPool)
+	require.Len(t, c.caPool.Subjects(), 1)
 	require.NotNil(t, c.cert)
 	require.Equal(t, c.base, &config)
 	require.Equal(t, 2, c.version)

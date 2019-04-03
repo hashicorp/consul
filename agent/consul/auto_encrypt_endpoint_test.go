@@ -66,5 +66,6 @@ func TestAutoEncryptSign(t *testing.T) {
 	// Verify other fields
 	require.Empty(t, reply.IssuedCert.Service)
 	require.Equal(t, "uuid", reply.IssuedCert.Agent)
-	require.Equal(t, ca.ID, reply.Roots.ActiveRootID)
+	require.Equal(t, ca.ID, reply.ConnectRoots.ActiveRootID)
+	require.Len(t, reply.ManualRoots, 1)
 }

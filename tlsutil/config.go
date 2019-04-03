@@ -4,13 +4,14 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/hashicorp/go-rootcerts"
 )
 
 // DCWrapper is a function that is used to wrap a non-TLS connection
@@ -138,7 +139,8 @@ type Configurator struct {
 	sync.RWMutex
 	base    *Config
 	cert    *tls.Certificate
-	cas     *x509.CertPool
+	caPool  *x509.CertPool
+	caPems  [][]byte
 	logger  *log.Logger
 	version int
 }
@@ -154,6 +156,19 @@ func NewConfigurator(config Config, logger *log.Logger) (*Configurator, error) {
 	return c, nil
 }
 
+// CAPems returns the currently loaded CAs in PEM format.
+func (c *Configurator) CAPems() [][]byte {
+	c.RLock()
+	defer c.RUnlock()
+	copied := make([][]byte, len(c.caPems))
+	for i, pem := range c.caPems {
+		var x []byte
+		copy(x, pem)
+		copied[i] = x
+	}
+	return copied
+}
+
 // Update updates the internal configuration which is used to generate
 // *tls.Config.
 // This function acquires a write lock because it writes the new config.
@@ -162,25 +177,26 @@ func (c *Configurator) Update(config Config) error {
 	if err != nil {
 		return err
 	}
-	cas, err := loadCAs(config.CAFile, config.CAPath)
+	pool, pems, err := loadCAs(config.CAFile, config.CAPath)
 	if err != nil {
 		return err
 	}
 
-	if err = c.check(config, cas, cert); err != nil {
+	if err = c.check(config, pool, cert); err != nil {
 		return err
 	}
 	c.Lock()
 	c.base = &config
 	c.cert = cert
-	c.cas = cas
+	c.caPool = pool
+	c.caPems = pems
 	c.version++
 	c.Unlock()
 	c.log("Update")
 	return nil
 }
 
-func (c *Configurator) check(config Config, cas *x509.CertPool, cert *tls.Certificate) error {
+func (c *Configurator) check(config Config, pool *x509.CertPool, cert *tls.Certificate) error {
 	// Check if a minimum TLS version was set
 	if config.TLSMinVersion != "" {
 		if _, ok := TLSLookup[config.TLSMinVersion]; !ok {
@@ -189,13 +205,13 @@ func (c *Configurator) check(config Config, cas *x509.CertPool, cert *tls.Certif
 	}
 
 	// Ensure we have a CA if VerifyOutgoing is set
-	if config.VerifyOutgoing && cas == nil {
+	if config.VerifyOutgoing && pool == nil {
 		return fmt.Errorf("VerifyOutgoing set, and no CA certificate provided!")
 	}
 
 	// Ensure we have a CA and cert if VerifyIncoming is set
 	if config.VerifyIncoming || config.VerifyIncomingRPC || config.VerifyIncomingHTTPS {
-		if cas == nil {
+		if pool == nil {
 			return fmt.Errorf("VerifyIncoming set, and no CA certificate provided!")
 		}
 		if cert == nil {
@@ -216,22 +232,53 @@ func loadKeyPair(certFile, keyFile string) (*tls.Certificate, error) {
 	return &cert, nil
 }
 
-func loadCAs(caFile, caPath string) (*x509.CertPool, error) {
-	if caFile != "" {
-		return rootcerts.LoadCAFile(caFile)
-	} else if caPath != "" {
-		pool, err := rootcerts.LoadCAPath(caPath)
-		if err != nil {
-			return nil, err
-		}
-		// make sure to not return an empty pool because this is not
-		// the users intention when providing a path for CAs.
-		if len(pool.Subjects()) == 0 {
-			return nil, fmt.Errorf("Error loading CA: path %q has no CAs", caPath)
-		}
-		return pool, nil
+func loadCAs(caFile, caPath string) (*x509.CertPool, [][]byte, error) {
+	if caFile == "" && caPath == "" {
+		return nil, nil, nil
 	}
-	return nil, nil
+
+	pool := x509.NewCertPool()
+	pems := [][]byte{}
+
+	readFn := func(mode, path string) error {
+		pem := []byte{}
+		var err error
+		if pem, err = ioutil.ReadFile(path); err != nil {
+			return fmt.Errorf("Error loading file from %s at %s: %s", mode, path, err)
+		}
+
+		if !pool.AppendCertsFromPEM(pem) {
+			return fmt.Errorf("Error loading file from %s: Couldn't parse PEM in %s", mode, path)
+		}
+		pems = append(pems, pem)
+		return nil
+	}
+
+	walkFn := func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !info.IsDir() {
+			if err := readFn("CAPath", path); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	if caFile != "" {
+		err := readFn("CAFile", caFile)
+		if err != nil {
+			return nil, pems, err
+		}
+	} else if caPath != "" {
+		err := filepath.Walk(caPath, walkFn)
+		if err != nil {
+			return nil, pems, err
+		}
+	}
+	return pool, pems, nil
 }
 
 // commonTLSConfig generates a *tls.Config from the base configuration the
@@ -259,8 +306,8 @@ func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) *tls.C
 		return c.cert, nil
 	}
 
-	tlsConfig.ClientCAs = c.cas
-	tlsConfig.RootCAs = c.cas
+	tlsConfig.ClientCAs = c.caPool
+	tlsConfig.RootCAs = c.caPool
 
 	// This is possible because TLSLookup also contains "" with golang's
 	// default (tls10). And because the initial check makes sure the
@@ -279,7 +326,7 @@ func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) *tls.C
 func (c *Configurator) outgoingRPCTLSDisabled() bool {
 	c.RLock()
 	defer c.RUnlock()
-	return c.cas == nil && !c.base.VerifyOutgoing && !c.base.AutoEncryptTLS
+	return c.caPool == nil && !c.base.VerifyOutgoing && !c.base.AutoEncryptTLS
 }
 
 // This function acquires a read lock because it reads from the config.
