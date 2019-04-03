@@ -33,8 +33,6 @@ github.com/SermoDigital/jose/crypto
 github.com/SermoDigital/jose/jws
 github.com/SermoDigital/jose/jwt
 github.com/SermoDigital/jose
-# github.com/Sirupsen/logrus v1.0.6
-github.com/Sirupsen/logrus
 # github.com/StackExchange/wmi v0.0.0-20160811214555-e54cbda6595d
 github.com/StackExchange/wmi
 # github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
@@ -201,7 +199,7 @@ github.com/hashicorp/errwrap
 github.com/hashicorp/go-checkpoint
 # github.com/hashicorp/go-cleanhttp v0.5.1
 github.com/hashicorp/go-cleanhttp
-# github.com/hashicorp/go-discover v0.0.0-20190319153616-61771d82ff54
+# github.com/hashicorp/go-discover v0.0.0-20190403160810-22221edb15cd
 github.com/hashicorp/go-discover
 github.com/hashicorp/go-discover/provider/k8s
 github.com/hashicorp/go-discover/provider/aliyun
@@ -323,6 +321,8 @@ github.com/hashicorp/vault/plugins/helper/database/dbutil
 github.com/hashicorp/vault/helper/dbtxn
 github.com/hashicorp/vault/helper/keysutil
 github.com/hashicorp/vault/helper/kdf
+# github.com/hashicorp/vic v1.5.1-0.20190403131502-bbfe86ec9443
+github.com/hashicorp/vic/pkg/vsphere/tags
 # github.com/hashicorp/yamux v0.0.0-20180604194846-3520598351bb
 github.com/hashicorp/yamux
 # github.com/imdario/mergo v0.3.6
@@ -439,6 +439,8 @@ github.com/shirou/gopsutil/process
 github.com/shirou/gopsutil/net
 # github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4
 github.com/shirou/w32
+# github.com/sirupsen/logrus v1.0.6
+github.com/sirupsen/logrus
 # github.com/softlayer/softlayer-go v0.0.0-20180806151055-260589d94c7d
 github.com/softlayer/softlayer-go/filter
 github.com/softlayer/softlayer-go/services
@@ -460,10 +462,10 @@ github.com/vmware/govmomi/find
 github.com/vmware/govmomi/object
 github.com/vmware/govmomi/vim25/mo
 github.com/vmware/govmomi/vim25/types
+github.com/vmware/govmomi/vim25/soap
 github.com/vmware/govmomi/property
 github.com/vmware/govmomi/session
 github.com/vmware/govmomi/vim25
-github.com/vmware/govmomi/vim25/soap
 github.com/vmware/govmomi/list
 github.com/vmware/govmomi/nfc
 github.com/vmware/govmomi/task
@@ -471,8 +473,6 @@ github.com/vmware/govmomi/vim25/methods
 github.com/vmware/govmomi/vim25/progress
 github.com/vmware/govmomi/vim25/debug
 github.com/vmware/govmomi/vim25/xml
-# github.com/vmware/vic v1.4.1
-github.com/vmware/vic/pkg/vsphere/tags
 # golang.org/x/crypto v0.0.0-20181029021203-45a5f77698d3
 golang.org/x/crypto/blake2b
 golang.org/x/crypto/ed25519

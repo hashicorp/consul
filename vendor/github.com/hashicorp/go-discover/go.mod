@@ -4,7 +4,6 @@ require (
 	cloud.google.com/go v0.26.0 // indirect
 	github.com/Azure/azure-sdk-for-go v16.0.0+incompatible
 	github.com/Azure/go-autorest v10.7.0+incompatible
-	github.com/Sirupsen/logrus v1.0.6 // indirect
 	github.com/abdullin/seq v0.0.0-20160510034733-d5467c17e7af // indirect
 	github.com/aws/aws-sdk-go v1.15.24
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -25,6 +24,7 @@ require (
 	github.com/gregjones/httpcache v0.0.0-20180305231024-9cad4c3443a7 // indirect
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hashicorp/mdns v1.0.0
+	github.com/hashicorp/vic v1.5.1-0.20190403131502-bbfe86ec9443
 	github.com/hpcloud/tail v1.0.0 // indirect
 	github.com/imdario/mergo v0.3.6 // indirect
 	github.com/jarcoal/httpmock v0.0.0-20180424175123-9c70cfe4a1da // indirect
@@ -51,7 +51,6 @@ require (
 	github.com/stretchr/testify v1.2.2 // indirect
 	github.com/tent/http-link-go v0.0.0-20130702225549-ac974c61c2f9 // indirect
 	github.com/vmware/govmomi v0.18.0
-	github.com/vmware/vic v1.4.1
 	golang.org/x/oauth2 v0.0.0-20170807180024-9a379c6b3e95
 	golang.org/x/text v0.3.0 // indirect
 	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2 // indirect
