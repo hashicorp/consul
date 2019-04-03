@@ -43,7 +43,8 @@ func (a *AutoEncrypt) Sign(
 	if err != nil {
 		return err
 	}
-	reply.Roots = roots
+	reply.ConnectRoots = roots
+	reply.ManualRoots = a.srv.tlsConfigurator.CAPems()
 
 	return nil
 }
