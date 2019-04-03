@@ -83,7 +83,7 @@ we will cover three of the most common.
 can be deployed outside of Kubernetes and clients inside of Kubernetes.  
 1. Multiple Consul datacenters with agents inside and outside of Kubernetes.  
 
-Review the Kubernetes
+Review the Consul Kubernetes-specific
 [documentation](https://www.consul.io/docs/platform/k8s/index.html#use-cases)
 for additional use case information. 
 
