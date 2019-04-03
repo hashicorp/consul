@@ -26,7 +26,7 @@ queries, and processing all write operations. Since the Consul servers are
 highly active and are responsible for maintaining the cluster state, server
 sizing is critical for the overall performance, efficiency, and health of the
 Consul cluster. Review the [Consul Reference
-Architecture](/advanced/day-1-operations/reference-architecture#consul-servers)
+Architecture](/consul/advanced/day-1-operations/reference-architecture#consul-servers)
 guide for sizing recommendations for small and large Consul datacenters. 
 
 The CPU and memory recommendations can be used when you select the resources
@@ -42,10 +42,10 @@ server
       memory: "32Gi" 
       cpu: "4" 
       disk: "50Gi"
-   limits: 
-     memory: "32Gi"
-     cpu: "4" 
-     disk: "50Gi" 
+    limits: 
+      memory: "32Gi"
+      cpu: "4" 
+      disk: "50Gi" 
 ```
 
 You should also set [resource limits for Consul
@@ -60,18 +60,19 @@ if a Consul server is lost, the data will not be lost. This is an important
 feature of Kubernetes, but may take some additional configuration. If you are
 running Kubernetes on one of the major cloud platforms, persistent volumes
 should already be configured for you; be sure to read their documentation for more
-details. In addition to setting up the PV resource in Kubernetes, you will need
+details. If you are setting up the persistent volumes resource in Kubernetes, you may need
 to map the Consul server to that volume with the [storage class
 parameter](https://www.consul.io/docs/platform/k8s/helm.html#v-server-storageclass).
 
 Finally, you will need to enable RBAC on your Kubernetes cluster. Review
-[Kubernetes
-RBAC](https://kubernetes.io/docs/reference/access-authn-authz/rbac/),
-[AWS](https://docs.aws.amazon.com/eks/latest/userguide/managing-auth.html),
-[GCP](https://cloud.google.com/kubernetes-engine/docs/how-to/role-based-access-control),
-and
-[Azure](https://docs.microsoft.com/en-us/cli/azure/aks?view=azure-cli-latest#az-aks-create).
-In Azure, RBAC is enabled by default. 
+the [Kubernetes
+RBAC](https://kubernetes.io/docs/reference/access-authn-authz/rbac/) documenation. You
+should also review RBAC and authentication documentation if your Kubernetes cluster
+is running on a major cloud platorom.
+
+- [AWS](https://docs.aws.amazon.com/eks/latest/userguide/managing-auth.html).
+- [GCP](https://cloud.google.com/kubernetes-engine/docs/how-to/role-based-access-control).
+- [Azure](https://docs.microsoft.com/en-us/cli/azure/aks?view=azure-cli-latest#az-aks-create). In Azure, RBAC is enabled by default. 
 
 ## Datacenter Design 
 
@@ -101,7 +102,8 @@ common for users who do not already have a production Consul datacenter.
 ![Reference Diagram](/assets/images/k8s-consul-simple.png "Consul in Kubernetes Reference Diagram")
 
 The Consul datacenter in Kubernetes will function the same as a platform
-independent Consul datacenter. Agents will communicate over LAN Gossip, servers
+independent Consul datacenter, such as Consul clusters deployed on bare metal servers
+or virtual machines. Agents will communicate over LAN gossip, servers
 will participate in the Raft consensus, and client requests will be
 forwarded to the servers via RPCs.
 
@@ -110,9 +112,7 @@ forwarded to the servers via RPCs.
 To use an existing Consul cluster to manage services in Kubernetes, Consul
 clients can be deployed within the Kubernetes cluster. This will also allow
 Kubernetes-defined services to be synced to Consul. This design allows Consul tools
-such as envconsul, consul-template, and more to work on Kubernetes. It will
-also register each Kubernetes node with the Consul catalog for full visibility
-into your infrastructure.
+such as envconsul, consul-template, and more to work on Kubernetes. 
 
 ![Reference Diagram](/assets/images/k8s-cluster-consul-datacenter.png "Consul and Kubernetes Reference Diagram")
 
@@ -125,7 +125,7 @@ chart.
 Consul clusters in different datacenters running the same service can be joined
 by WAN links. The clusters can operate independently and only communicate over
 the WAN. This type datacenter design is detailed in the [Reference Architecture
-guide](/advanced/day-1-operations/reference-architecture#multiple-datacenters).
+guide](/consul/advanced/day-1-operations/reference-architecture#multiple-datacenters).
 In this setup, you can have a Consul cluster running outside of Kubernetes and
 a Consul cluster running inside of Kubernetes. 
 
@@ -149,7 +149,7 @@ unidirectional setups.
 
 ## Networking Connectivity 
 
-When running Consul inside Kubernetes as a pod, the Consul servers will be
+When running Consul as a pod inside of Kubernetes, the Consul servers will be
 automatically configured with the appropriate addresses. However, when running
 Consul servers outside of the Kubernetes cluster and clients inside Kubernetes
 as pods, there are additional [networking
@@ -162,6 +162,11 @@ need to ensure the Kubernetes services are supported [service
 types](https://www.consul.io/docs/platform/k8s/service-sync.html#kubernetes-service-types)
 and configure correctly in Kubernetes. If the service is configured correctly,
 it will be discoverable by Consul like any other service in the datacenter. 
+
+~> Warning: You are responsible for ensuring that external services can communicate 
+with services deployed in the Kubernetes cluster. For example, `ClusterIP` type services 
+may not be directly accessible by IP address from outside the Kubernetes cluster 
+for some Kubernetes configurations.
 
 ### Network Security
 
@@ -178,7 +183,7 @@ guide, you were introduced to several a datacenter design for a variety of use
 cases. This guide also outlined the Kubernetes prerequisites, resource
 requirements for Consul, and networking considerations. Continue onto the
 [Deploying Consul with Kubernetes
-guide](https://learn.hashicorp.com/consul/getting-started-k8s/helm-deploy) for
+guide](/consul/getting-started-k8s/helm-deploy) for
 information on deploying Consul with the official Helm chart or continue
 reading about Consul Operations in the [Day 1 Path](https://learn.hashicorp.com/consul/?track=advanced#advanced). 
  
