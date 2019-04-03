@@ -44,5 +44,6 @@ func (a *AutoEncrypt) Sign(
 		return err
 	}
 	reply.Roots = roots
+
 	return nil
 }
