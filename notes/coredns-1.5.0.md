@@ -34,8 +34,12 @@ And a update on two important and active bugs:
 * the [*pprof*](/plugins/pprof) adds a `block` option that enables the block profiling.
 * the [*prometheus*](/plugins/metrics)  adds a `coredns_plugin_enabled` metric that shows which plugins are enabled.
 * the [*chaos*](/plugins/chaos) returns the maintainers when queried for "authors.bind TXT CH".
-* the `resync` in the [*kubernetes*](/plugins/kubernetes) is disabled by default and will be removed
-  in future versions.
+* the `resyncperiod` in [*kubernetes*](/plugins/kubernetes) now defaults to zero seconds, which disables resyncing
+
+# Deprecations
+
+* the `resyncperiod` option in [*kubernetes*](/plugins/kubernetes) is deprecated
+  and will be made a no-op in 1.6.0 and removed in 1.7.0
 
 ## Brought to You By
 
@@ -46,6 +50,7 @@ dilyevsky,
 Francois Tur,
 Iñigo,
 Jiacheng Xu,
+John Belamaric,
 Matt Greenfield,
 MengZeLee,
 Miek Gieben,
