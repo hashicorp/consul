@@ -88,7 +88,7 @@ Review the Consul Kubernetes-specific
 for additional use case information. 
 
 Since all three use cases will also need catalog sync, review the
-implementation details for catalog sync.  
+implementation [details for catalog sync](https://www.consul.io/docs/platform/k8s/service-sync.html).  
 
 ### Consul Datacenter Deployed in Kubernetes 
 
