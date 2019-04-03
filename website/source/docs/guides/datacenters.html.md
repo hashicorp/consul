@@ -22,7 +22,7 @@ This guide covers the basic form of federating Consul clusters using a single
 WAN gossip pool, interconnecting all Consul servers.
 [Consul Enterprise](https://www.hashicorp.com/products/consul/) version 0.8.0 added support
 for an advanced multiple datacenter capability. Please see the
-[Advanced Federation Guide](/docs/guides/areas.html) for more details.
+[Advanced Federation Guide](/docs/guides/advanced-federation.html) for more details.
 
 ## Setup Two Datacenters
 
