@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1175,4 +1176,407 @@ func TestHealth_ChecksInState_FilterACL(t *testing.T) {
 	// that we respect the version 8 ACL flag, since the test server sets
 	// that to false (the regression value of *not* changing this is better
 	// for now until we change the sense of the version 8 ACL flag).
+}
+
+func TestHealth_RPC_Filter(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// prep the cluster with some data we can use in our filters
+	registrations := map[string]*structs.RegisterRequest{
+		"Node foo": &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			ID:         types.NodeID("e0155642-135d-4739-9853-a1ee6c9f945b"),
+			Address:    "127.0.0.2",
+			TaggedAddresses: map[string]string{
+				"lan": "127.0.0.2",
+				"wan": "198.18.0.2",
+			},
+			NodeMeta: map[string]string{
+				"env": "production",
+				"os":  "linux",
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:    "foo",
+					CheckID: "foo:alive",
+					Name:    "foo-liveness",
+					Status:  api.HealthPassing,
+					Notes:   "foo is alive and well",
+				},
+				&structs.HealthCheck{
+					Node:    "foo",
+					CheckID: "foo:ssh",
+					Name:    "foo-remote-ssh",
+					Status:  api.HealthPassing,
+					Notes:   "foo has ssh access",
+				},
+			},
+		},
+		"Service redis v1 on foo": &structs.RegisterRequest{
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				ID:      "redisV1",
+				Service: "redis",
+				Tags:    []string{"v1"},
+				Meta:    map[string]string{"version": "1"},
+				Port:    1234,
+				Address: "198.18.1.2",
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "foo",
+					CheckID:     "foo:redisV1",
+					Name:        "redis-liveness",
+					Status:      api.HealthPassing,
+					Notes:       "redis v1 is alive and well",
+					ServiceID:   "redisV1",
+					ServiceName: "redis",
+				},
+			},
+		},
+		"Service redis v2 on foo": &structs.RegisterRequest{
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				ID:      "redisV2",
+				Service: "redis",
+				Tags:    []string{"v2"},
+				Meta:    map[string]string{"version": "2"},
+				Port:    1235,
+				Address: "198.18.1.2",
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "foo",
+					CheckID:     "foo:redisV2",
+					Name:        "redis-v2-liveness",
+					Status:      api.HealthPassing,
+					Notes:       "redis v2 is alive and well",
+					ServiceID:   "redisV2",
+					ServiceName: "redis",
+				},
+			},
+		},
+		"Node bar": &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "bar",
+			ID:         types.NodeID("c6e7a976-8f4f-44b5-bdd3-631be7e8ecac"),
+			Address:    "127.0.0.3",
+			TaggedAddresses: map[string]string{
+				"lan": "127.0.0.3",
+				"wan": "198.18.0.3",
+			},
+			NodeMeta: map[string]string{
+				"env": "production",
+				"os":  "windows",
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:    "bar",
+					CheckID: "bar:alive",
+					Name:    "bar-liveness",
+					Status:  api.HealthPassing,
+					Notes:   "bar is alive and well",
+				},
+			},
+		},
+		"Service redis v1 on bar": &structs.RegisterRequest{
+			Datacenter:     "dc1",
+			Node:           "bar",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				ID:      "redisV1",
+				Service: "redis",
+				Tags:    []string{"v1"},
+				Meta:    map[string]string{"version": "1"},
+				Port:    1234,
+				Address: "198.18.1.3",
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "bar",
+					CheckID:     "bar:redisV1",
+					Name:        "redis-liveness",
+					Status:      api.HealthPassing,
+					Notes:       "redis v1 is alive and well",
+					ServiceID:   "redisV1",
+					ServiceName: "redis",
+				},
+			},
+		},
+		"Service web v1 on bar": &structs.RegisterRequest{
+			Datacenter:     "dc1",
+			Node:           "bar",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				ID:      "webV1",
+				Service: "web",
+				Tags:    []string{"v1", "connect"},
+				Meta:    map[string]string{"version": "1", "connect": "enabled"},
+				Port:    443,
+				Address: "198.18.1.4",
+				Connect: structs.ServiceConnect{Native: true},
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "bar",
+					CheckID:     "bar:web:v1",
+					Name:        "web-v1-liveness",
+					Status:      api.HealthPassing,
+					Notes:       "web connect v1 is alive and well",
+					ServiceID:   "webV1",
+					ServiceName: "web",
+				},
+			},
+		},
+		"Node baz": &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "baz",
+			ID:         types.NodeID("12f96b27-a7b0-47bd-add7-044a2bfc7bfb"),
+			Address:    "127.0.0.4",
+			TaggedAddresses: map[string]string{
+				"lan": "127.0.0.4",
+			},
+			NodeMeta: map[string]string{
+				"env": "qa",
+				"os":  "linux",
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:    "baz",
+					CheckID: "baz:alive",
+					Name:    "baz-liveness",
+					Status:  api.HealthPassing,
+					Notes:   "baz is alive and well",
+				},
+				&structs.HealthCheck{
+					Node:    "baz",
+					CheckID: "baz:ssh",
+					Name:    "baz-remote-ssh",
+					Status:  api.HealthPassing,
+					Notes:   "baz has ssh access",
+				},
+			},
+		},
+		"Service web v1 on baz": &structs.RegisterRequest{
+			Datacenter:     "dc1",
+			Node:           "baz",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				ID:      "webV1",
+				Service: "web",
+				Tags:    []string{"v1", "connect"},
+				Meta:    map[string]string{"version": "1", "connect": "enabled"},
+				Port:    443,
+				Address: "198.18.1.4",
+				Connect: structs.ServiceConnect{Native: true},
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "baz",
+					CheckID:     "baz:web:v1",
+					Name:        "web-v1-liveness",
+					Status:      api.HealthPassing,
+					Notes:       "web connect v1 is alive and well",
+					ServiceID:   "webV1",
+					ServiceName: "web",
+				},
+			},
+		},
+		"Service web v2 on baz": &structs.RegisterRequest{
+			Datacenter:     "dc1",
+			Node:           "baz",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				ID:      "webV2",
+				Service: "web",
+				Tags:    []string{"v2", "connect"},
+				Meta:    map[string]string{"version": "2", "connect": "enabled"},
+				Port:    8443,
+				Address: "198.18.1.4",
+				Connect: structs.ServiceConnect{Native: true},
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "baz",
+					CheckID:     "baz:web:v2",
+					Name:        "web-v2-liveness",
+					Status:      api.HealthPassing,
+					Notes:       "web connect v2 is alive and well",
+					ServiceID:   "webV2",
+					ServiceName: "web",
+				},
+			},
+		},
+		"Service critical on baz": &structs.RegisterRequest{
+			Datacenter:     "dc1",
+			Node:           "baz",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				ID:      "criticalV2",
+				Service: "critical",
+				Tags:    []string{"v2"},
+				Meta:    map[string]string{"version": "2"},
+				Port:    8080,
+				Address: "198.18.1.4",
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "baz",
+					CheckID:     "baz:critical:v2",
+					Name:        "critical-v2-liveness",
+					Status:      api.HealthCritical,
+					Notes:       "critical v2 is in the critical state",
+					ServiceID:   "criticalV2",
+					ServiceName: "critical",
+				},
+			},
+		},
+		"Service warning on baz": &structs.RegisterRequest{
+			Datacenter:     "dc1",
+			Node:           "baz",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				ID:      "warningV2",
+				Service: "warning",
+				Tags:    []string{"v2"},
+				Meta:    map[string]string{"version": "2"},
+				Port:    8081,
+				Address: "198.18.1.4",
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "baz",
+					CheckID:     "baz:warning:v2",
+					Name:        "warning-v2-liveness",
+					Status:      api.HealthWarning,
+					Notes:       "warning v2 is in the warning state",
+					ServiceID:   "warningV2",
+					ServiceName: "warning",
+				},
+			},
+		},
+	}
+
+	for name, reg := range registrations {
+		err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", reg, nil)
+		require.NoError(t, err, "Failed catalog registration %q: %v", name, err)
+	}
+
+	// Run the tests against the test server
+
+	t.Run("NodeChecks", func(t *testing.T) {
+		args := structs.NodeSpecificRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Filter:     "ServiceName == redis and v1 in ServiceTags",
+		}
+
+		out := new(structs.IndexedHealthChecks)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.NodeChecks", &args, out))
+		require.Len(t, out.HealthChecks, 1)
+		require.Equal(t, types.CheckID("foo:redisV1"), out.HealthChecks[0].CheckID)
+
+		args.Filter = "ServiceID == ``"
+		out = new(structs.IndexedHealthChecks)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.NodeChecks", &args, out))
+		require.Len(t, out.HealthChecks, 2)
+	})
+
+	t.Run("ServiceChecks", func(t *testing.T) {
+		args := structs.ServiceSpecificRequest{
+			Datacenter:  "dc1",
+			ServiceName: "redis",
+			Filter:      "Node == foo",
+		}
+
+		out := new(structs.IndexedHealthChecks)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceChecks", &args, out))
+		// 1 service check for each instance
+		require.Len(t, out.HealthChecks, 2)
+
+		args.Filter = "Node == bar"
+		out = new(structs.IndexedHealthChecks)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceChecks", &args, out))
+		// 1 service check for each instance
+		require.Len(t, out.HealthChecks, 1)
+
+		args.Filter = "Node == foo and v1 in ServiceTags"
+		out = new(structs.IndexedHealthChecks)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceChecks", &args, out))
+		// 1 service check for the matching instance
+		require.Len(t, out.HealthChecks, 1)
+	})
+
+	t.Run("ServiceNodes", func(t *testing.T) {
+		args := structs.ServiceSpecificRequest{
+			Datacenter:  "dc1",
+			ServiceName: "redis",
+			Filter:      "Service.Meta.version == 2",
+		}
+
+		out := new(structs.IndexedCheckServiceNodes)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &args, out))
+		require.Len(t, out.Nodes, 1)
+
+		args.ServiceName = "web"
+		args.Filter = "Node.Meta.os == linux"
+		out = new(structs.IndexedCheckServiceNodes)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &args, out))
+		require.Len(t, out.Nodes, 2)
+		require.Equal(t, "baz", out.Nodes[0].Node.Node)
+		require.Equal(t, "baz", out.Nodes[1].Node.Node)
+
+		args.Filter = "Node.Meta.os == linux and Service.Meta.version == 1"
+		out = new(structs.IndexedCheckServiceNodes)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &args, out))
+		require.Len(t, out.Nodes, 1)
+	})
+
+	t.Run("ChecksInState", func(t *testing.T) {
+		args := structs.ChecksInStateRequest{
+			Datacenter: "dc1",
+			State:      api.HealthAny,
+			Filter:     "Node == baz",
+		}
+
+		out := new(structs.IndexedHealthChecks)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ChecksInState", &args, out))
+		require.Len(t, out.HealthChecks, 6)
+
+		args.Filter = "Status == warning or Status == critical"
+		out = new(structs.IndexedHealthChecks)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ChecksInState", &args, out))
+		require.Len(t, out.HealthChecks, 2)
+
+		args.State = api.HealthCritical
+		args.Filter = "Node == baz"
+		out = new(structs.IndexedHealthChecks)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ChecksInState", &args, out))
+		require.Len(t, out.HealthChecks, 1)
+
+		args.State = api.HealthWarning
+		out = new(structs.IndexedHealthChecks)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ChecksInState", &args, out))
+		require.Len(t, out.HealthChecks, 1)
+	})
 }
