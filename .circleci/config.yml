@@ -20,6 +20,7 @@ references:
     EMAIL: noreply@hashicorp.com
     GIT_AUTHOR_NAME: circleci-consul
     GIT_COMMITTER_NAME: circleci-consul
+    S3_ARTIFACT_BUCKET:  consul-dev-artifacts
 
 jobs:
   # build all distros
@@ -38,6 +39,7 @@ jobs:
       - store_artifacts:
           path: ./pkg/bin
 
+  # build all 386 architecture supported OS binaries
   build-386:
     <<: *build-distros
     environment:
@@ -45,6 +47,7 @@ jobs:
       XC_OS: "darwin freebsd linux windows"
       XC_ARCH: "386"
 
+  # build all amd64 architecture supported OS binaries
   build-amd64:
     <<: *build-distros
     environment:
@@ -52,6 +55,7 @@ jobs:
       XC_OS: "darwin freebsd linux solaris windows"
       XC_ARCH: "amd64"
 
+  # build all arm/arm64 architecture supported OS binaries
   build-arm-arm64:
     <<: *build-distros
     environment:
@@ -59,6 +63,7 @@ jobs:
       XC_OS: linux
       XC_ARCH: "arm arm64"
 
+  # create a development build
   dev-build:
     docker:
       - image: *GOLANG_IMAGE
@@ -72,6 +77,34 @@ jobs:
           root: /go/bin
           paths:
             - consul
+
+  # upload development build to s3
+  dev-upload-s3:
+    docker:
+      - image: circleci/python:stretch
+    environment:
+      <<: *ENVIRONMENT
+    steps:
+      - run:
+          name: Install awscli
+          command: sudo pip install awscli
+      # get consul binary
+      - attach_workspace:
+          at: bin/
+      - run:
+          name: package binary
+          command: tar -czf consul.tar.gz -C bin/ .
+      - run:
+          name: Upload to s3
+          command: |
+            if [ -n "${S3_ARTIFACT_PATH}" ]; then
+              aws s3 cp \
+              --metadata "CIRCLECI=${CIRCLECI},CIRCLE_BUILD_URL=${CIRCLE_BUILD_URL},CIRCLE_BRANCH=${CIRCLE_BRANCH}" \
+              "consul.tar.gz" "s3://${S3_ARTIFACT_BUCKET}/${S3_ARTIFACT_PATH}/${CIRCLE_SHA1}.tar.gz"
+            else
+              echo "CircleCI - S3_ARTIFACT_PATH was not set"
+              exit 1
+            fi
 
   # Nomad 0.8 builds on go0.10
   # Run integration tests on nomad/v0.8.7
@@ -219,6 +252,13 @@ workflows:
   test-integrations:
     jobs:
       - dev-build
+      - dev-upload-s3:
+          requires:
+            - dev-build
+          filters:
+            branches:
+              ignore:
+                - /^pull\/.*$/ # only push dev builds from non forks
       - nomad-integration-master:
           requires:
             - dev-build
