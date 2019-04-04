@@ -57,7 +57,7 @@ blank `AccessorID`.
 
 In addition, it is assumed that all clients that might _create_ ACL tokens (e.g.
 Vault's Consul secrets engine) have been updated to use the [new ACL
-APIs](/docs/guides/acl-migrate-tokens.html#api-separation).
+APIs](/api/acl/tokens.html).
 
 Specifically if you are using Vault's Consul secrets engine you need to be
 running Vault 1.0.0 or higher, _and_ you must update all roles defined in Vault
