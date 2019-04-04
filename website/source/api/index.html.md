@@ -79,46 +79,46 @@ duration.
 
 ### Implementation Details
 
-While the mechanism is relatively simple to work with, there are a few edge 
+While the mechanism is relatively simple to work with, there are a few edge
 cases that must be handled correctly.
 
- * **Reset the index if it goes backwards**. While indexes in general are 
-   monotonically increasing(i.e. they should only ever increase as time passes), 
-   there are several real-world scenarios in 
-   which they can go backwards for a given query. Implementations must check 
-   to see if a returned index is lower than the previous value, 
-   and if it is, should reset index to `0` - effectively restarting their blocking loop. 
-   Failure to do so may cause the client to miss future updates for an unbounded 
-   time, or to use an invalid index value that causes no blocking and increases 
+ * **Reset the index if it goes backwards**. While indexes in general are
+   monotonically increasing(i.e. they should only ever increase as time passes),
+   there are several real-world scenarios in
+   which they can go backwards for a given query. Implementations must check
+   to see if a returned index is lower than the previous value,
+   and if it is, should reset index to `0` - effectively restarting their blocking loop.
+   Failure to do so may cause the client to miss future updates for an unbounded
+   time, or to use an invalid index value that causes no blocking and increases
    load on the servers. Cases where this can occur include:
    * If a raft snapshot is restored on the servers with older version of the data.
    * KV list operations where an item with the highest index is removed.
-   * A Consul upgrade changes the way watches work to optimize them with more 
+   * A Consul upgrade changes the way watches work to optimize them with more
    granular indexes.
 
  * **Sanity check index is greater than zero**. After the initial request (or a
    reset as above) the `X-Consul-Index` returned _should_ always be greater than zero. It
    is a bug in Consul if it is not, however this has happened a few times and can
    still be triggered on some older Consul versions. It's especially bad because it
-   causes blocking clients that are not aware to enter a busy loop, using excessive 
-   client CPU and causing high load on servers. It is _always_ safe to use an 
+   causes blocking clients that are not aware to enter a busy loop, using excessive
+   client CPU and causing high load on servers. It is _always_ safe to use an
    index of `1` to wait for updates when the data being requested doesn't exist
-   yet, so clients _should_ sanity check that their index is at least 1 after 
-   each blocking response is handled to be sure they actually block on the next 
+   yet, so clients _should_ sanity check that their index is at least 1 after
+   each blocking response is handled to be sure they actually block on the next
    request.
 
- * **Rate limit**. The blocking query mechanism is reasonably efficient when updates 
-   are relatively rare (order of tens of seconds to minutes between updates). In cases 
-   where a result gets updated very fast however - possibly during an outage or incident 
-   with a badly behaved client - blocking query loops degrade into busy loops that 
-   consume excessive client CPU and cause high server load. While it's possible to just add a sleep 
-   to every iteration of the loop, this is **not** recommended since it causes update 
-   delivery to be delayed in the happy case, and it can exacerbate the problem since 
-   it increases the chance that the index has changed on the next request. Clients 
-   _should_ instead rate limit the loop so that in the happy case they proceed without 
-   waiting, but when values start to churn quickly they degrade into polling at a 
-   reasonable rate (say every 15 seconds). Ideally this is done with an algorithm that 
-   allows a couple of quick successive deliveries before it starts to limit rate - a 
+ * **Rate limit**. The blocking query mechanism is reasonably efficient when updates
+   are relatively rare (order of tens of seconds to minutes between updates). In cases
+   where a result gets updated very fast however - possibly during an outage or incident
+   with a badly behaved client - blocking query loops degrade into busy loops that
+   consume excessive client CPU and cause high server load. While it's possible to just add a sleep
+   to every iteration of the loop, this is **not** recommended since it causes update
+   delivery to be delayed in the happy case, and it can exacerbate the problem since
+   it increases the chance that the index has changed on the next request. Clients
+   _should_ instead rate limit the loop so that in the happy case they proceed without
+   waiting, but when values start to churn quickly they degrade into polling at a
+   reasonable rate (say every 15 seconds). Ideally this is done with an algorithm that
+   allows a couple of quick successive deliveries before it starts to limit rate - a
    [token bucket](https://en.wikipedia.org/wiki/Token_bucket) with burst of 2 is a simple
    way to achieve this.
 
@@ -187,12 +187,83 @@ was last contacted by the leader node. The `X-Consul-KnownLeader` header also
 indicates if there is a known leader. These can be used by clients to gauge the
 staleness of a result and take appropriate action.
 
+## Filtering
+
+Some listing endpoints support passing a filter expression to be executed on
+the data prior to sending back a response. For those endpoints a `filter`
+query parameter can be used to pass the expression to Consul.
+
+### Syntax
+
+Filtering expressions are text based. Boolean logic and parenthesization is
+supported. In general whitespace is mostly ignored except within literal
+strings.
+
+#### Expression
+
+An expression can take one of a few forms.
+
+```
+// Logical Or - evaluates to true if either sub-expression does
+<Expression> or <Expression>
+
+// Logical And - evaluates to true if both sub-expressions do
+<Expression> and <Expression>
+
+// Logical Not - evaluates to true if the sub-expression does not
+not <Expression>
+
+// Grouping - Overrides normal precdedence rules
+( <Expression> )
+
+// Inspects data to check for a match
+<Matching Expression>
+```
+
+Standard operator precedence can be expected for the various forms. For
+example, the following two expressions would be equivalent.
+
+```
+<Expression 1> and not <Expression 2> or <Expression 3>
+
+( <Expression 1> and (not <Expression 2> )) or <Expression 3>
+```
+
+#### Matching Expressions
+
+All matching expressions use a Selector to choose what data should be
+matched. Each endpoint that supports filtering accepts a potentially
+different list of selectors and is detailed in the API documentation of
+those endpoints. For many matching operations a value is also required.
+
+```
+// Equality/Inequality checks
+<Selector> == <Value>
+<Selector> != <Value>
+
+// Emptiness checks
+<Selector> is empty
+<Selector> is not empty
+
+// Contains checks
+<Value> in <Selector>
+<Value> not in <Selector>
+<Selector> contains <Value>
+<Selector> not contains <Value>
+```
+
+### Performance
+
+Filters are executed on the servers and therefore will consume some amount
+of CPU time on the server. For non-stale queries this means that the filter
+is executed on the leader.
+
 ## Agent Caching
 
 Some read endpoints support agent caching. They are clearly marked in the
-documentation. Agent caching can take two forms, [`simple`](#simple-caching) or 
-[`background refresh`](#blocking-refresh-caching) depending on the endpoint's 
-semantics. The documentation for each endpoint clearly identify which if any 
+documentation. Agent caching can take two forms, [`simple`](#simple-caching) or
+[`background refresh`](#blocking-refresh-caching) depending on the endpoint's
+semantics. The documentation for each endpoint clearly identify which if any
 form of caching is supported. The details for each are described below.
 
 Where supported, caching can be enabled though the `?cached` parameter.

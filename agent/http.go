@@ -939,7 +939,7 @@ func (s *HTTPServer) checkWriteAccess(req *http.Request) error {
 }
 
 func (s *HTTPServer) parseFilter(req *http.Request, filter *string) {
-	if other := req.FormValue("filter"); other != "" {
+	if other := req.URL.Query().Get("filter"); other != "" {
 		*filter = other
 	}
 }
