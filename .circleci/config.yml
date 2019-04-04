@@ -182,9 +182,38 @@ jobs:
           name: middleman build
           command: bundle exec middleman build
 
+      # saves website build directory
+      - persist_to_workspace:
+          root: .
+          paths:
+            - build
+
+  deploy-website:
+    # setting the working_directory along with the checkout path allows us to not have
+    # to cd into the website/ directory for commands
+    working_directory: ~/project/website
+    docker:
+      - image: *MIDDLEMAN_IMAGE
+    steps:
+      - checkout:
+          path: ~/project
+      # attach website build directory
+      - attach_workspace:
+          at: ~/project/website
       - run:
           name: website deploy
           command: ./scripts/deploy.sh
+
+  # Link check on a temporary netlify deployed site
+  docs-link-checker:
+    docker:
+      - image: circleci/node:lts
+    steps:
+      - checkout
+      # attach website build directory
+      - attach_workspace:
+          at: ~/project/website
+      - run: ./website/scripts/link-check.sh
 
   # build frontend yarn cache
   frontend-cache:
@@ -267,7 +296,13 @@ workflows:
             - dev-build
   website:
     jobs:
-      - build-website:
+      - build-website
+      - docs-link-checker:
+          requires:
+            - build-website
+      - deploy-website:
+          requires:
+            - docs-link-checker
           context: static-sites
           filters:
             branches:
