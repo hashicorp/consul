@@ -30,6 +30,7 @@ import (
 	"github.com/hashicorp/consul/sentinel"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/raft"
 	raftboltdb "github.com/hashicorp/raft-boltdb"
 	"github.com/hashicorp/serf/serf"
@@ -411,6 +412,10 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 		return nil, fmt.Errorf("Failed to start Raft: %v", err)
 	}
 
+	if s.config.ConnectEnabled && s.config.AutoEncryptTLS {
+		go s.trackConnectCARoots()
+	}
+
 	// Serf and dynamic bind ports
 	//
 	// The LAN serf cluster announces the port of the WAN serf cluster
@@ -501,6 +506,25 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	go s.sessionStats()
 
 	return s, nil
+}
+
+func (s *Server) trackConnectCARoots() {
+	for {
+		ws := memdb.NewWatchSet()
+		state := s.fsm.State()
+		ws.Add(state.AbandonCh())
+		_, cas, err := state.CARoots(ws)
+		if err != nil {
+			s.logger.Printf("[DEBUG] agent: Failed to watch Connect CARoots: %v", err)
+			return
+		}
+		for _, ca := range cas {
+			if ca.Active {
+				s.tlsConfigurator.UpdateConnectCA(&ca.RootCert)
+			}
+		}
+		ws.Watch(nil)
+	}
 }
 
 // setupRaft is used to setup and initialize Raft

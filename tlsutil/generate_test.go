@@ -151,7 +151,6 @@ func TestGenerateCSR(t *testing.T) {
 
 	DNSNames := []string{"server.dc1.consul"}
 	IPAddresses := []net.IP{net.ParseIP("123.234.243.213")}
-	name := "Cert Name"
 	uri, err := url.Parse("")
 	rawCSR, pk, err := GenerateCSR(uri, DNSNames, IPAddresses)
 	require.Nil(t, err)
@@ -160,7 +159,6 @@ func TestGenerateCSR(t *testing.T) {
 
 	csr, err := parseCSR(rawCSR)
 	require.Nil(t, err)
-	require.Equal(t, name, csr.Subject.CommonName)
 
 	// https://github.com/golang/go/blob/10538a8f9e2e718a47633ac5a6e90415a2c3f5f1/src/crypto/x509/verify.go#L414
 	require.Equal(t, DNSNames, csr.DNSNames)

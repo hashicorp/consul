@@ -137,12 +137,13 @@ func SpecificDC(dc string, tlsWrap DCWrapper) Wrapper {
 // *tls.Config necessary for Consul. Except the one in the api package.
 type Configurator struct {
 	sync.RWMutex
-	base    *Config
-	cert    *tls.Certificate
-	caPool  *x509.CertPool
-	caPems  [][]byte
-	logger  *log.Logger
-	version int
+	base      *Config
+	cert      *tls.Certificate
+	caPool    *x509.CertPool
+	caPems    []string
+	caConnect *string
+	logger    *log.Logger
+	version   int
 }
 
 // NewConfigurator creates a new Configurator and sets the provided
@@ -157,15 +158,11 @@ func NewConfigurator(config Config, logger *log.Logger) (*Configurator, error) {
 }
 
 // CAPems returns the currently loaded CAs in PEM format.
-func (c *Configurator) CAPems() [][]byte {
+func (c *Configurator) CAPems() []string {
 	c.RLock()
 	defer c.RUnlock()
-	copied := make([][]byte, len(c.caPems))
-	for i, pem := range c.caPems {
-		var x []byte
-		copy(x, pem)
-		copied[i] = x
-	}
+	copied := make([]string, len(c.caPems))
+	copy(copied, c.caPems)
 	return copied
 }
 
@@ -173,27 +170,69 @@ func (c *Configurator) CAPems() [][]byte {
 // *tls.Config.
 // This function acquires a write lock because it writes the new config.
 func (c *Configurator) Update(config Config) error {
+	c.Lock()
+	// order matters because log acquires a RLock()
+	defer c.log("Update")
+	defer c.Unlock()
+
 	cert, err := loadKeyPair(config.CertFile, config.KeyFile)
 	if err != nil {
 		return err
 	}
-	pool, pems, err := loadCAs(config.CAFile, config.CAPath)
+	pems, err := loadCAs(config.CAFile, config.CAPath)
 	if err != nil {
 		return err
 	}
-
+	pool, err := combinedPool(pems, c.caConnect)
+	if err != nil {
+		return err
+	}
 	if err = c.check(config, pool, cert); err != nil {
 		return err
 	}
-	c.Lock()
 	c.base = &config
 	c.cert = cert
-	c.caPool = pool
 	c.caPems = pems
+	c.caPool = pool
 	c.version++
-	c.Unlock()
-	c.log("Update")
 	return nil
+}
+
+func (c *Configurator) UpdateConnectCA(pem *string) error {
+	c.Lock()
+	// order matters because log acquires a RLock()
+	defer c.log("UpdateConnectCA")
+	defer c.Unlock()
+
+	pool, err := combinedPool(c.caPems, pem)
+	if err != nil {
+		c.RUnlock()
+		return err
+	}
+	if err = c.check(*c.base, pool, c.cert); err != nil {
+		c.RUnlock()
+		return err
+	}
+	c.caConnect = pem
+	c.caPool = pool
+	c.version++
+	return nil
+}
+
+func combinedPool(pems []string, connectCA *string) (*x509.CertPool, error) {
+	pool := x509.NewCertPool()
+	if connectCA != nil {
+		pems = append(pems, *connectCA)
+	}
+	for _, pem := range pems {
+		if !pool.AppendCertsFromPEM([]byte(pem)) {
+			return nil, fmt.Errorf("Couldn't parse PEM %s", pem)
+		}
+	}
+	if len(pool.Subjects()) == 0 {
+		return nil, nil
+	}
+	return pool, nil
 }
 
 func (c *Configurator) check(config Config, pool *x509.CertPool, cert *tls.Certificate) error {
@@ -232,25 +271,19 @@ func loadKeyPair(certFile, keyFile string) (*tls.Certificate, error) {
 	return &cert, nil
 }
 
-func loadCAs(caFile, caPath string) (*x509.CertPool, [][]byte, error) {
+func loadCAs(caFile, caPath string) ([]string, error) {
 	if caFile == "" && caPath == "" {
-		return nil, nil, nil
+		return nil, nil
 	}
 
-	pool := x509.NewCertPool()
-	pems := [][]byte{}
+	pems := []string{}
 
-	readFn := func(mode, path string) error {
-		pem := []byte{}
-		var err error
-		if pem, err = ioutil.ReadFile(path); err != nil {
-			return fmt.Errorf("Error loading file from %s at %s: %s", mode, path, err)
+	readFn := func(path string) error {
+		pem, err := ioutil.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("Error loading from %s: %s", path, err)
 		}
-
-		if !pool.AppendCertsFromPEM(pem) {
-			return fmt.Errorf("Error loading file from %s: Couldn't parse PEM in %s", mode, path)
-		}
-		pems = append(pems, pem)
+		pems = append(pems, string(pem))
 		return nil
 	}
 
@@ -260,7 +293,7 @@ func loadCAs(caFile, caPath string) (*x509.CertPool, [][]byte, error) {
 		}
 
 		if !info.IsDir() {
-			if err := readFn("CAPath", path); err != nil {
+			if err := readFn(path); err != nil {
 				return err
 			}
 		}
@@ -268,17 +301,20 @@ func loadCAs(caFile, caPath string) (*x509.CertPool, [][]byte, error) {
 	}
 
 	if caFile != "" {
-		err := readFn("CAFile", caFile)
+		err := readFn(caFile)
 		if err != nil {
-			return nil, pems, err
+			return pems, err
 		}
 	} else if caPath != "" {
 		err := filepath.Walk(caPath, walkFn)
 		if err != nil {
-			return nil, pems, err
+			return pems, err
+		}
+		if len(pems) == 0 {
+			return pems, fmt.Errorf("Error loading from CAPath: no CAs found")
 		}
 	}
-	return pool, pems, nil
+	return pems, nil
 }
 
 // commonTLSConfig generates a *tls.Config from the base configuration the

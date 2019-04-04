@@ -3,6 +3,6 @@ package structs
 type SignResponse struct {
 	IssuedCert   *IssuedCert
 	ConnectRoots *IndexedCARoots
-	ManualRoots  [][]byte
+	ManualRoots  []string
 	GossipKey    string
 }
