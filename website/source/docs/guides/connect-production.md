@@ -8,38 +8,39 @@ description: |-
 
 # Running Connect in Production
 
-Consul Connect can secure all inter-service communication via mutual TLS. It's
+Consul Connect can secure all inter-service communication with mutual TLS. It's
 designed to work with [minimal configuration out of the
-box](https://learn.hashicorp.com/consul/getting-started/connect), but completing the [security
+box](https://learn.hashicorp.com/consul/getting-started/connect), however, completing the [security
 checklist](/docs/connect/security.html) and understanding the [Consul security
 model](/docs/internals/security.html) are prerequisites for production
 deployments.
 
-This guide aims to walk through the steps required to ensure the security
-guarantees hold.
+After completing this guide, you will be able to configure Connect to 
+secure services. First, you will secure your Consul cluster with ACLs and
+TLS encryption. Next, you will configure Connect on the servers and host. 
+Finally, you will configure your services to use Connect.
 
-We assume a cluster is already running with an appropriate number of servers and
-clients and that other reference material like the
+~> Note: To complete this guide you should already have a Consul cluster
+ with an appropriate number of servers and
+clients deployed according to the other reference material including the
 [deployment](/docs/guides/deployment.html) and
-[performance](/docs/guides/performance.html) guides have been followed.
-
-In practical deployments it may be necessary to incrementally adopt Connect
-service-by-service. In this case some or all of the advice below may not apply
-during the transition but should give a good understanding on which security
-properties have been sacrificed in the interim. The final deployment goal should
-be to end up compliant with all the advice below.
+[performance](/docs/guides/performance.html) guides.
 
 The steps we need to get to a secure Connect cluster are:
 
  1. [Configure ACLs](#configure-acls)
  1. [Configure Agent Transport Encryption](#configure-agent-transport-encryption)
- 1. [Bootstrap Certificate Authority](#bootstrap-certificate-authority)
+ 1. [Bootstrap Connect's Certificate Authority](#bootstrap-certificate-authority)
  1. [Setup Host Firewall](#setup-host-firewall)
  1. [Configure Service Instances](#configure-service-instances)
 
+For existing Consul deployments, it may be necessary to incrementally adopt Connect
+service-by-service. In this case, step one and two should already be complete. 
+However, we recommend reviewing all steps since the final deployment goal is to be compliant with all the security recommendations in this guide.
+
 ## Configure ACLs
 
-Consul Connect's security is based on service identity. In practice the identity
+Consul Connect's security is based on service identity. In practice, the identity
 of the service is only enforcible with sufficiently restrictive ACLs.
 
 This section will not replace reading the full [ACL
@@ -52,49 +53,24 @@ words, any client that has permission to _register_ an instance of a service
 will be able to identify as that service and access all of the resources that that
 service is allowed to access.
 
-A secure ACL setup must meet these criteria:
+A secure ACL setup must meet the following criteria.
 
  1. **[ACL default
     policy](/docs/agent/options.html#acl_default_policy)
-    must be `deny`.** It is technically sufficient to keep the default policy of
-    `allow` but add an explicit ACL denying anonymous `service:write`. Note
-    however that in this case the Connect intention graph will also default to
+    must be `deny`.** If for any reason you cannot use the default policy of
+    `deny`, you must add an explicit ACL denying anonymous `service:write`. Note, in this case the Connect intention graph will also default to
     `allow` and explicit `deny` intentions will be needed to restrict service
     access. Also note that explicit rules to limit who can manage intentions are
     necessary in this case. It is assumed for the remainder of this guide that
     ACL policy defaults to `deny`.
- 2. **Each service must have a distinct ACL token** that is restricted to
-    `service:write` only for the named service. Current Consul ACLs only support
-    prefix matching but in a near-future release we will allow exact name
-    matching. It is possible for all instances of the service to share the same
-    token although best practices is for each instance to get a unique token as
-    described below.
+ 2. **Each service must have a unique ACL token** that is restricted to
+    `service:write` only for the named service. You can review the [Securing Consul with ACLs](https://learn.hashicorp.com/consul/advanced/day-1-operations/production-acls#apply-individual-tokens-to-the-services) guide for a 
+    service token example. Note, it is best practices for each instance to get a unique token as described below.
 
-### Fine Grained Enforcement
-
-Connect intentions manage access based only on service identity so it is
-sufficient for ACL tokens to only be unique per _service_ and shared between
+~> Individual Service Tokens: It is best practice to create a unique ACL token per service _instance_ because
+it limits the blast radius of a compromise. However, since Connect intentions manage access based only on service identity, it is
+possible to create only one ACL token per _service_ and share it between
 instances.
-
-It is much better though if ACL tokens are unique per service _instance_ because
-it limits the blast radius of a compromise.
-
-A future release of Connect will support revoking specific certificates that
-have been issued. For example if a single node in a datacenter has been
-compromised, it will be possible to find all certificates issued to the agent on
-that node and revoke them. This will block all access to the intruder without
-taking instances of the service(s) on other nodes offline too.
-
-While this will work with service-unique tokens, there is nothing stopping an
-attacker from obtaining certificates while spoofing the agent ID or other
-identifier – these certificates will not appear to have been issued to the
-compromised agent and so will not be revoked.
-
-If every service instance has a unique token however, it will be possible to
-revoke all certificates that were requested under that token. Assuming the
-attacker can only access the tokens present on the compromised host, this
-guarantees that any certificate they might have access to or requested directly
-will be revoked.
 
 In practice, managing per-instance tokens requires automated ACL provisioning,
 for example using [HashiCorp's
@@ -110,17 +86,13 @@ are used on but are delivered to the application or proxy over local
 HTTP so local agent traffic should be encrypted where potentially
 untrusted parties might be able to observe localhost agent API traffic.
 
-Follow the [encryption documentation](/docs/agent/encryption.html) to ensure
+Follow the [encryption guide](https://learn.hashicorp.com/consul/advanced/day-1-operations/agent-encryption) to ensure
 both gossip encryption and RPC/HTTP TLS are configured securely.
 
-For now client and server TLS certificates are still managed by manual
-configuration. In the future we plan to automate more of that with the same
-mechanisms Connect offers to user applications.
+## Bootstrap Connect's Certificate Authority
 
-## Bootstrap Certificate Authority
-
-Consul Connect comes with a built in Certificate Authority (CA) that will
-bootstrap by default when you first enable Connect on your servers.
+Consul Connect comes with a built-in Certificate Authority (CA) that will
+bootstrap by default when you first [enable](https://www.consul.io/docs/agent/options.html#connect_enabled) Connect on your servers.
 
 To use the built-in CA, enable it in the server's configuration.
 
@@ -130,7 +102,7 @@ connect {
 }
 ```
 
-This config change requires a restart which you can perform one server at a time
+This configuration change requires a Consul server restart, which you can perform one server at a time
 to maintain availability in an existing cluster.
 
 As soon as a server that has Connect enabled becomes the leader, it will
@@ -140,14 +112,8 @@ Raft state.
 Alternatively, an external private key can be provided via the [CA
 configuration](/docs/connect/ca.html#specifying-a-private-key-and-root-certificate).
 
-### External CAs
-
-Connect has been designed with a pluggable CA component so external CAs can be
-integrated. We will expand the external CA systems that are supported in the
-future and will allow seamless online migration to a different CA or
-bootstrapping with an external CA.
-
-For production workloads we recommend using [Vault or another external
+~> External CAs: Connect has been designed with a pluggable CA component so external CAs can be
+integrated. For production workloads we recommend using [Vault or another external
 CA](/docs/connect/ca.html#external-ca-certificate-authority-providers) once
 available such that the root key is not stored within Consul state at all.
 
@@ -184,21 +150,38 @@ With [necessary ACL tokens](#configure-acls) in place, all service registrations
 need to have an appropriate ACL token present.
 
 For on-disk configuration the `token` parameter of the service definition must
-be set.
+be set. 
 
-For registration via the API [the token is passed in the request
-header](/api/index.html#acls) or by using the [Go
+```json
+{ 
+  "service": { 
+    "name": "cassandra_db", 
+    "port": 9002, 
+    "token: "<your_token_here>"
+    } 
+ }
+```
+
+For registration via the API the token is passed in the [request
+header](/api/index.html#authentication), `X-Consul-Token`, or by using the [Go
 client configuration](https://godoc.org/github.com/hashicorp/consul/api#Config).
-
-For examples of proxy service definitions see the [proxy
-documentation](/docs/connect/proxies.html).
 
 To avoid the overhead of a proxy, applications may [natively
 integrate](/docs/connect/native.html) with connect.
 
-### Protect Application Listener
-
-If using any kind of proxy for connect, the application must ensure no untrusted
+~> Protect Application Listener: If using any kind of proxy for connect, the application must ensure no untrusted
 connections can be made to it's unprotected listening port. This is typically
 done by binding to `localhost` and only allowing loopback traffic, but may also
 be achieved using firewall rules or network namespacing.
+
+For examples of proxy service definitions see the [proxy
+documentation](/docs/connect/proxies.html).
+
+## Summary
+
+After securing your Consul cluster with ACLs and TLS encryption, you 
+can use Connect to secure service-to-service communication. If you
+encounter any issues while setting up Consul Connect, there are 
+many [community](https://www.consul.io/community.html) resources where you can find help.
+
+
