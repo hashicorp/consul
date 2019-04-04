@@ -21,19 +21,20 @@ func New(ui cli.Ui) *cmd {
 }
 
 type cmd struct {
-	UI       cli.Ui
-	flags    *flag.FlagSet
-	ca       string
-	key      string
-	server   bool
-	client   bool
-	cli      bool
-	dc       string
-	days     int
-	domain   string
-	help     string
-	dnsnames flags.AppendSliceValue
-	prefix   string
+	UI          cli.Ui
+	flags       *flag.FlagSet
+	ca          string
+	key         string
+	server      bool
+	client      bool
+	cli         bool
+	dc          string
+	days        int
+	domain      string
+	help        string
+	dnsnames    flags.AppendSliceValue
+	ipaddresses flags.AppendSliceValue
+	prefix      string
 }
 
 func (c *cmd) init() {
@@ -47,7 +48,9 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.dc, "dc", "dc1", "Provide the datacenter. Matters only for -server certificates. Defaults to dc1.")
 	c.flags.StringVar(&c.domain, "domain", "consul", "Provide the domain. Matters only for -server certificates.")
 	c.flags.Var(&c.dnsnames, "additional-dnsname", "Provide an additional dnsname for Subject Alternative Names. "+
-		"127.0.0.1 and localhost are always included. This flag may be provided multiple times.")
+		"localhost is always included. This flag may be provided multiple times.")
+	c.flags.Var(&c.ipaddresses, "additional-ipaddress", "Provide an additional ipaddress for Subject Alternative Names. "+
+		"127.0.0.1 is always included. This flag may be provided multiple times.")
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -86,16 +89,22 @@ func (c *cmd) Run(args []string) int {
 		}
 	}
 
+	for _, i := range c.ipaddresses {
+		if len(i) > 0 {
+			IPAddresses = append(IPAddresses, net.ParseIP(strings.TrimSpace(i)))
+		}
+	}
+
 	if c.server {
 		name = fmt.Sprintf("server.%s.%s", c.dc, c.domain)
 		DNSNames = append(DNSNames, []string{name, "localhost"}...)
-		IPAddresses = []net.IP{net.ParseIP("127.0.0.1")}
+		IPAddresses = append(IPAddresses, net.ParseIP("127.0.0.1"))
 		extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth}
 		prefix = fmt.Sprintf("%s-server-%s", c.dc, c.domain)
 	} else if c.client {
 		name = fmt.Sprintf("client.%s.%s", c.dc, c.domain)
 		DNSNames = append(DNSNames, []string{name, "localhost"}...)
-		IPAddresses = []net.IP{net.ParseIP("127.0.0.1")}
+		IPAddresses = append(IPAddresses, net.ParseIP("127.0.0.1"))
 		extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth}
 		prefix = fmt.Sprintf("%s-client-%s", c.dc, c.domain)
 	} else if c.cli {
