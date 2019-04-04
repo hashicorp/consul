@@ -403,7 +403,9 @@ func TestConfigurator_ErrorPropagation(t *testing.T) {
 		if !v.excludeCheck {
 			cert, err := v.config.KeyPair()
 			require.NoError(t, err, info)
-			pool, _, _ := loadCAs(v.config.CAFile, v.config.CAPath)
+			pems, err := loadCAs(v.config.CAFile, v.config.CAPath)
+			require.NoError(t, err, info)
+			pool, err := combinedPool(pems, nil)
 			require.NoError(t, err, info)
 			err3 = c.check(v.config, pool, cert)
 		}
@@ -461,16 +463,21 @@ func TestConfigurator_loadCAs(t *testing.T) {
 		{"../test/ca/root.cer", "../test/ca_path", false, false, 1},
 	}
 	for i, v := range variants {
-		pool, pems, err := loadCAs(v.cafile, v.capath)
+		pems, err1 := loadCAs(v.cafile, v.capath)
+		pool, err2 := combinedPool(pems, nil)
 		info := fmt.Sprintf("case %d", i)
 		if v.shouldErr {
-			require.Error(t, err, info)
+			if err1 == nil && err2 == nil {
+				t.Fatal("An error is expected but got nil.")
+			}
 		} else {
-			require.NoError(t, err, info)
+			require.NoError(t, err1, info)
+			require.NoError(t, err2, info)
 		}
 		if v.isNil {
 			require.Nil(t, pool, info)
 		} else {
+			require.NotEmpty(t, pems, info)
 			require.NotNil(t, pool, info)
 			require.Len(t, pool.Subjects(), v.count, info)
 			require.Len(t, pems, v.count, info)
@@ -616,7 +623,9 @@ func TestConfigurator_OutgoingRPCTLSDisabled(t *testing.T) {
 	}
 	for i, v := range variants {
 		info := fmt.Sprintf("case %d", i)
-		pool, _, err := loadCAs(v.file, v.path)
+		pems, err := loadCAs(v.file, v.path)
+		require.NoError(t, err, info)
+		pool, err := combinedPool(pems, nil)
 		require.NoError(t, err, info)
 		c.caPool = pool
 		c.base.VerifyOutgoing = v.verify
