@@ -102,7 +102,7 @@ connect {
 }
 ```
 
-This configuration change requires a Consul service restart, which you can perform one server at a time
+This configuration change requires a Consul server restart, which you can perform one server at a time
 to maintain availability in an existing cluster.
 
 As soon as a server that has Connect enabled becomes the leader, it will
