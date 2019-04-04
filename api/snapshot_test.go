@@ -11,6 +11,7 @@ func TestAPI_Snapshot(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
+	s.WaitForSerfCheck(t)
 	// Place an initial key into the store.
 	kv := c.KV()
 	key := &KVPair{Key: testKey(), Value: []byte("hello")}

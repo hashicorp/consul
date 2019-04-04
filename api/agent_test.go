@@ -42,6 +42,8 @@ func TestAPI_AgentMetrics(t *testing.T) {
 	defer s.Stop()
 
 	agent := c.Agent()
+	s.WaitForSerfCheck(t)
+
 	timer := &retry.Timer{Timeout: 10 * time.Second, Wait: 500 * time.Millisecond}
 	retry.RunWith(timer, t, func(r *retry.R) {
 		metrics, err := agent.Metrics()
@@ -171,6 +173,7 @@ func TestAPI_AgentServices(t *testing.T) {
 	defer s.Stop()
 
 	agent := c.Agent()
+	s.WaitForSerfCheck(t)
 
 	reg := &AgentServiceRegistration{
 		Name: "foo",
@@ -296,6 +299,7 @@ func TestAPI_AgentServices_ManagedConnectProxyDeprecatedUpstreams(t *testing.T) 
 	defer s.Stop()
 
 	agent := c.Agent()
+	s.WaitForSerfCheck(t)
 
 	reg := &AgentServiceRegistration{
 		Name: "foo",
@@ -745,6 +749,7 @@ func TestAPI_AgentSetTTLStatus(t *testing.T) {
 	defer s.Stop()
 
 	agent := c.Agent()
+	s.WaitForSerfCheck(t)
 
 	reg := &AgentServiceRegistration{
 		Name: "foo",
@@ -959,6 +964,7 @@ func TestAPI_AgentChecks_serviceBound(t *testing.T) {
 	defer s.Stop()
 
 	agent := c.Agent()
+	s.WaitForSerfCheck(t)
 
 	// First register a service
 	serviceReg := &AgentServiceRegistration{
@@ -1200,6 +1206,7 @@ func TestAPI_NodeMaintenance(t *testing.T) {
 	defer s.Stop()
 
 	agent := c.Agent()
+	s.WaitForSerfCheck(t)
 
 	// Enable maintenance mode
 	if err := agent.EnableNodeMaintenance("broken"); err != nil {

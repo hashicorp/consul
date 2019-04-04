@@ -498,6 +498,7 @@ func TestAPI_ACLToken_List(t *testing.T) {
 	defer s.Stop()
 
 	acl := c.ACL()
+	s.WaitForSerfCheck(t)
 
 	policies := prepTokenPolicies(t, acl)
 

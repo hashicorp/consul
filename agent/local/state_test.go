@@ -1733,18 +1733,18 @@ func TestAgent_CheckCriticalTime(t *testing.T) {
 	if c, ok := l.CriticalCheckStates()[checkID]; !ok {
 		t.Fatalf("should have a critical check")
 	} else if c.CriticalFor() > time.Millisecond {
-		t.Fatalf("bad: %#v", c)
+		t.Fatalf("bad: %#v, check was critical for %v", c, c.CriticalFor())
 	}
 
 	// Wait a while, then fail it again and make sure the time keeps track
-	// of the initial failure, and doesn't reset here.
+	// of the initial failure, and doesn't reset here. Since we are sleeping for
+	// 50ms the check should not be any less than that.
 	time.Sleep(50 * time.Millisecond)
 	l.UpdateCheck(chk.CheckID, api.HealthCritical, "")
 	if c, ok := l.CriticalCheckStates()[checkID]; !ok {
 		t.Fatalf("should have a critical check")
-	} else if c.CriticalFor() < 25*time.Millisecond ||
-		c.CriticalFor() > 75*time.Millisecond {
-		t.Fatalf("bad: %#v", c)
+	} else if c.CriticalFor() < 50*time.Millisecond {
+		t.Fatalf("bad: %#v, check was critical for %v", c, c.CriticalFor())
 	}
 
 	// Set it passing again.
@@ -1759,7 +1759,7 @@ func TestAgent_CheckCriticalTime(t *testing.T) {
 	if c, ok := l.CriticalCheckStates()[checkID]; !ok {
 		t.Fatalf("should have a critical check")
 	} else if c.CriticalFor() > time.Millisecond {
-		t.Fatalf("bad: %#v", c)
+		t.Fatalf("bad: %#v, check was critical for %v", c, c.CriticalFor())
 	}
 }
 
