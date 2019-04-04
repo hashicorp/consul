@@ -21,10 +21,6 @@ connect to a random upstream (which may or may not work).
 
 This plugin can only be used once per Server Block.
 
-How does *forward* relate to *proxy*? This plugin is the "new" version of *proxy* and is faster
-because it re-uses connections to the upstreams. It also does in-band health checks - using DNS
-instead of HTTP. Since it is newer it has a little less (production) mileage on it.
-
 ## Syntax
 
 In its most basic form, a simple forwarder uses this syntax:
