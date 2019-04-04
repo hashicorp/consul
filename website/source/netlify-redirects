@@ -1,0 +1,22 @@
+# Consul Redirects
+/api.html                                  /api/index.html
+/api/acl.html                              /api/acl/acl.html
+/docs/agent/acl-rules.html                 /docs/acl/acl-rules.html
+/docs/agent/acl-system.html                /docs/acl/acl-system.html
+/docs/agent/http.html                      /api/index.html
+/docs/guides/acl-legacy.html               /docs/acl/acl-legacy.html
+/docs/guides/acl-migrate-acl-tokens.html   /docs/acl/acl-migrate-acl-tokens.html
+/docs/guides/bootstrapping.html            /docs/install/bootstrapping.html
+/docs/guides/sentinel.html                 /docs/agent/sentinel.html
+
+# Consul Learn Redirects
+/docs/guides/acl.html                          https://learn.hashicorp.com/consul/advanced/day-1-operations/acl-guide
+/docs/guides/agent-encryption.html             https://learn.hashicorp.com/consul/advanced/day-1-operations/agent-encryption
+/docs/guides/autopilot.html                    https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/autopilot
+/docs/guides/backup.html                       https://learn.hashicorp.com/consul/advanced/day-1-operations/backup
+/docs/guides/cluster-monitoring-metrics.html   https://learn.hashicorp.com/consul/advanced/day-1-operations/monitoring
+/docs/guides/creating-certificates.html        https://learn.hashicorp.com/consul/advanced/day-1-operations/certificates
+/docs/guides/deployment-guide.html             https://learn.hashicorp.com/consul/advanced/day-1-operations/deployment-guide
+/docs/guides/deployment.html                   https://learn.hashicorp.com/consul/advanced/day-1-operations/reference-architecture
+/docs/guides/dns-cache.html                    https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/dns-caching
+/docs/guides/minikube.html                     https://learn.hashicorp.com/consul/getting-started-k8s/minikube
