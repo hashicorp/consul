@@ -25,21 +25,21 @@ And a update on two important and active bugs:
 
 # Plugins
 
-* a new [*ready*](/plugins/ready) was added that signals a plugin is ready to receive queries. First user is the *kubernetes* plugin.
-* a new [*grpc*](/plugins/grpc) was added to implement forwarding gRPC. If you were relying on this in the [*proxy*](/explugins/proxy) you can migrate to this one.
-* the [*cancel*](/plugins/cancel) was added that adds a context.WithTimeout to each context (but not
+* The [*ready*](/plugins/ready) plugin was added that signals a plugin is ready to receive queries. First user is the *kubernetes* plugin.
+* The [*grpc*](/plugins/grpc) plugin was added to implement forwarding gRPC. If you were relying on this in the [*proxy*](/explugins/proxy) you can migrate to this one.
+* The [*cancel*](/plugins/cancel) plugin was added that adds a context.WithTimeout to each context (but not
   enabled - yet).
-* the [*forward*](/plugins/forward) adds dnstap support.
-* the [*route53*](/plugins/route53) now supports wildcards.
-* the [*pprof*](/plugins/pprof) adds a `block` option that enables the block profiling.
-* the [*prometheus*](/plugins/metrics)  adds a `coredns_plugin_enabled` metric that shows which plugins are enabled.
-* the [*chaos*](/plugins/chaos) returns the maintainers when queried for "authors.bind TXT CH".
-* the `resyncperiod` in [*kubernetes*](/plugins/kubernetes) now defaults to zero seconds, which disables resyncing
+* The [*forward*](/plugins/forward) plugin adds dnstap support.
+* The [*route53*](/plugins/route53) plugin now supports wildcards.
+* The [*pprof*](/plugins/pprof) plugin adds a `block` option that enables the block profiling.
+* The [*prometheus*](/plugins/metrics) plugin  adds a `coredns_plugin_enabled` metric that shows which plugins are enabled.
+* The [*chaos*](/plugins/chaos) plugin returns the maintainers when queried for "authors.bind TXT CH".
+* The `resyncperiod` option in [*kubernetes*](/plugins/kubernetes) now defaults to zero seconds, which disables resyncing.
 
 # Deprecations
 
-* the `resyncperiod` option in [*kubernetes*](/plugins/kubernetes) is deprecated
-  and will be made a no-op in 1.6.0 and removed in 1.7.0
+* The `resyncperiod` option in [*kubernetes*](/plugins/kubernetes) is deprecated
+  and will be made a no-op in 1.6.0 and removed in 1.7.0.
 
 ## Brought to You By
 
