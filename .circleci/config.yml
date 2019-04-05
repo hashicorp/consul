@@ -300,6 +300,10 @@ workflows:
       - docs-link-checker:
           requires:
             - build-website
+          filters:
+            branches:
+              ignore:
+                - /^pull\/.*$/ # only run link checker on non forks
       - deploy-website:
           requires:
             - docs-link-checker
