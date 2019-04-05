@@ -1724,6 +1724,8 @@ port.
 
 * DNS Interface (Default 8600). Used to resolve DNS queries. TCP and UDP.
 
+* gRPC API (Default 8302). Currently gRPC is only used to expose Envoy xDS API to Envoy proxies.
+
 ## <a id="reloadable-configuration"></a>Reloadable Configuration
 
 Reloading configuration does not reload all configuration items. The
