@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/consul/api"
 	bexpr "github.com/hashicorp/go-bexpr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -445,6 +446,12 @@ var fieldConfigTests map[string]fieldConfigTest = map[string]fieldConfigTest{
 	"NodeInfo": fieldConfigTest{
 		dataType: (*NodeInfo)(nil),
 		expected: expectedFieldConfigNodeInfo,
+	},
+	"api.AgentService": fieldConfigTest{
+		dataType: (*api.AgentService)(nil),
+		// this also happens to ensure that our API representation of a service that can be
+		// registered with an agent stays in sync with our internal NodeService structure
+		expected: expectedFieldConfigNodeService,
 	},
 }
 
