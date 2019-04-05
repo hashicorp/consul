@@ -191,7 +191,10 @@ staleness of a result and take appropriate action.
 
 Some listing endpoints support passing a filter expression to be executed on
 the data prior to sending back a response. For those endpoints a `filter`
-query parameter can be used to pass the expression to Consul.
+query parameter can be used to pass the expression to Consul. Only one level
+of container is filtered. This is usually the outermost list of a response
+but in some cases such the [`/catalog/node/:node`](api/catalog.html#list-services-for-node)
+endpoint the filtering is performed on a container embedded the results.
 
 ### Syntax
 

@@ -331,7 +331,8 @@ $ curl \
 
 ### Filtering
 
-The following selectors and filter operations are supported:
+The filter will be executed agains each Node in the result list with
+the following selectors and filter operations being supported:
 
 | Selector                | Supported Operations               |
 | ----------------------- | ---------------------------------- |
@@ -544,7 +545,8 @@ $ curl \
 
 ### Filtering
 
-The following selectors and filter operations are supported:
+Filtering is executed against each entry in the top level result list with the
+following selectors and filter operations being supported:
 
 | Selector                                      | Supported Operations               |
 | --------------------------------------------- | ---------------------------------- |
@@ -674,8 +676,8 @@ $ curl \
 
 ### Filtering
 
-The following selectors and filter operations are supported:
-
+The filter will be executed against each value in the `Services` mapping within the
+top level Node object. The following selectors and filter operations are supported:
 
 | Selector                               | Supported Operations               |
 | -------------------------------------- | ---------------------------------- |

@@ -85,7 +85,8 @@ $ curl \
 
 ### Filtering
 
-The following selectors and filter operations are supported:
+The filter will be executed against each health check in the results list with
+the following selectors and filter operations being supported:
 
 | Selector      | Supported Operations               |
 | ------------- | ---------------------------------- |
@@ -167,7 +168,9 @@ $ curl \
 
 ### Filtering
 
-The following selectors and filter operations are supported:
+The filter will be executed against each health check in the results list with
+the following selectors and filter operations being supported:
+
 
 | Selector      | Supported Operations               |
 | ------------- | ---------------------------------- |
@@ -301,7 +304,8 @@ $ curl \
 
 ### Filtering
 
-The following selectors and filter operations are supported:
+The filter will be executed against each entry in the top level results list with the
+following selectors and filter operations being supported:
 
 | Selector                                       | Supported Operations               |
 | ---------------------------------------------- | ---------------------------------- |
@@ -441,7 +445,9 @@ $ curl \
 
 ### Filtering
 
-The following selectors and filter operations are supported:
+The filter will be executed against each health check in the results list with
+the following selectors and filter operations being supported:
+
 
 | Selector      | Supported Operations               |
 | ------------- | ---------------------------------- |

@@ -69,7 +69,9 @@ $ curl \
 
 ### Filtering
 
-The following selectors and filter operations are supported:
+The filter will be executed against each health check value in the results map with
+the following selectors and filter operations being supported:
+
 
 | Selector      | Supported Operations               |
 | ------------- | ---------------------------------- |
