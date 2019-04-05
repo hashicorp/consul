@@ -252,6 +252,33 @@ those endpoints. For many matching operations a value is also required.
 <Selector> not contains <Value>
 ```
 
+#### Selectors
+
+Selectors are a `.` separated list of names where each name must start with
+a an ASCII letter and can contain ASCII letters, numbers and underscores. When
+part of the selector references a map value it may be expressed using the form
+`["<map key name>"]` instead of `.<map key name>`. This allows the possibility
+of using map keys that are not valid selectors in and of themselves.
+
+A few examples of selectors are:
+
+```
+// selects the foo key within the ServiceMeta mapping for the
+// /catalog/service/:service endpoint
+ServiceMeta.foo
+
+// Also selects the foo key for the same endpoint
+ServiceMeta["foo"]
+```
+
+#### Values
+
+Values can be any valid Selector, a number or a quoted string. For numbers any
+base 10 integers and floating point numbers are possible. For quoted strings,
+they may either be enclosed in double quotes or backticks. When enclosed in
+backticks they are treated as raw strings and escape sequences such as `\n`
+will not be expanded.
+
 ### Performance
 
 Filters are executed on the servers and therefore will consume some amount
