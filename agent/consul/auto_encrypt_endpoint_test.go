@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Test CA signing
 func TestAutoEncryptSign(t *testing.T) {
 	t.Parallel()
 

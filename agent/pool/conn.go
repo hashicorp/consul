@@ -11,5 +11,5 @@ const (
 	RPCMultiplexV2         = 4
 	RPCSnapshot            = 5
 	RPCGossip              = 6
-	RPCTLSINSECURE         = 7
+	RPCTLSInsecure         = 7
 )
