@@ -9,7 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
 func (c *Client) AutoEncrypt(servers []string, token string) {
@@ -17,8 +17,9 @@ func (c *Client) AutoEncrypt(servers []string, token string) {
 	DNSNames := []string{"client.dc1.consul", "localhost"}
 	IPAddresses := []net.IP{net.ParseIP("127.0.0.1")}
 	// TODO (Hans): spiffeid
-	uri, err := url.Parse("")
+	uri, err := url.Parse(fmt.Sprintf("spiffe://%s/agent/%s", c.config.NodeName, c.config.NodeID))
 	if err != nil {
+		c.logger.Printf("[DEBUG] consul: AutoEncrypt error: %v", err)
 		return
 	}
 
@@ -54,7 +55,7 @@ func (c *Client) AutoEncrypt(servers []string, token string) {
 	autoEncryptTLSConfigurator.UpdateConnectCert(pub, priv)
 
 	csr, _, err := tlsutil.GenerateCSR(uri, DNSNames, IPAddresses)
-	var reply structs.SignResponse
+	reply := structs.SignResponse{}
 	args := structs.CASignRequest{
 		WriteRequest: structs.WriteRequest{Token: token},
 		Datacenter:   c.config.Datacenter,
@@ -69,48 +70,19 @@ func (c *Client) AutoEncrypt(servers []string, token string) {
 		// }
 		addr := &net.TCPAddr{IP: net.ParseIP(parts[0]), Port: 8300}
 		// Make the request.
-		conn, hc, err := c.connPool.DialTimeoutInsecure(c.config.Datacenter, addr, 1*time.Second, autoEncryptTLSConfigurator.OutgoingRPCWrapper())
+		conn, _, err := c.connPool.DialTimeoutInsecure(c.config.Datacenter, addr, 1*time.Second, autoEncryptTLSConfigurator.OutgoingRPCWrapper())
 		if err != nil {
 			c.logger.Printf("[DEBUG] consul: AutoEncrypt error: %v", err)
 			continue
 		}
 
-		// // Write the snapshot RPC byte to set the mode, then perform the
-		// // request.
-		// if _, err := conn.Write([]byte{byte(pool.RPCConsul)}); err != nil {
-		// 	c.logger.Printf("[DEBUG] consul: AutoEncrypt error: %v", fmt.Errorf("failed to write stream type: %v", err))
-		// 	continue
-		// }
-
-		// Push the header encoded as msgpack, then stream the input.
-		enc := codec.NewEncoder(conn, &codec.MsgpackHandle{})
-		if err := enc.Encode(&args); err != nil {
-			c.logger.Printf("[DEBUG] consul: AutoEncrypt error: %v", fmt.Errorf("failed to encode request: %v", err))
+		codec := msgpackrpc.NewClientCodec(conn)
+		err = msgpackrpc.CallWithCodec(codec, "AutoEncrypt.Sign", args, reply)
+		if err != nil {
+			c.logger.Printf("[DEBUG] consul: AutoEncrypt error: %v", err)
 			continue
 		}
 
-		// Our RPC protocol requires support for a half-close in order to signal
-		// the other side that they are done reading the stream, since we don't
-		// know the size in advance. This saves us from having to buffer just to
-		// calculate the size.
-		if hc != nil {
-			if err := hc.CloseWrite(); err != nil {
-				c.logger.Printf("[DEBUG] consul: AutoEncrypt error: %v", fmt.Errorf("failed to half close connection: %v", err))
-				continue
-			}
-		} else {
-			c.logger.Printf("[DEBUG] consul: AutoEncrypt error: %v", fmt.Errorf("connection requires half-close support"))
-			continue
-		}
-
-		// Pull the header decoded as msgpack. The caller can continue to read
-		// the conn to stream the remaining data.
-		dec := codec.NewDecoder(conn, &codec.MsgpackHandle{})
-		if err := dec.Decode(reply); err != nil {
-			c.logger.Printf("[DEBUG] consul: AutoEncrypt error: %v", fmt.Errorf("failed to decode response: %v", err))
-			continue
-		}
-		fmt.Printf("EHEHEHEHE: %+v\n", reply)
 		return
 	}
 }

@@ -164,6 +164,9 @@ func (c *Configurator) CAPems() []string {
 	defer c.RUnlock()
 	copied := make([]string, len(c.caPems))
 	copy(copied, c.caPems)
+	if c.caConnect != "" {
+		copied = append(copied, c.caConnect)
+	}
 	return copied
 }
 

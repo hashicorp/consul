@@ -21,9 +21,6 @@ func (a *AutoEncrypt) Sign(
 	if !a.srv.config.ConnectEnabled {
 		return ErrConnectNotEnabled
 	}
-	if !a.srv.config.AutoEncryptTLS {
-		return ErrAutoEncryptTLSNotEnabled
-	}
 
 	if done, err := a.srv.forward("AutoEncrypt.Sign", args, args, reply); done {
 		return err
@@ -35,16 +32,14 @@ func (a *AutoEncrypt) Sign(
 	if err != nil {
 		return err
 	}
-	reply.IssuedCert = cert
+	reply.CertPEM = cert.CertPEM
+	reply.Agent = cert.Agent
+	reply.AgentURI = cert.AgentURI
 
-	rootsArgs := &structs.DCSpecificRequest{Datacenter: args.Datacenter}
-	roots := &structs.IndexedCARoots{}
-	err = c.Roots(rootsArgs, roots)
-	if err != nil {
-		return err
+	pems := a.srv.tlsConfigurator.CAPems()
+	if len(pems) > 0 {
+		reply.RootCAs = pems[0]
 	}
-	reply.ConnectRoots = roots
-	reply.ManualRoots = a.srv.tlsConfigurator.CAPems()
 
 	return nil
 }

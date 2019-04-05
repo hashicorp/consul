@@ -55,7 +55,7 @@ func TestAutoEncryptSign(t *testing.T) {
 	// Verify that the cert is signed by the CA
 	roots := x509.NewCertPool()
 	assert.True(t, roots.AppendCertsFromPEM([]byte(ca.RootCert)))
-	leaf, err := connect.ParseCert(reply.IssuedCert.CertPEM)
+	leaf, err := connect.ParseCert(reply.CertPEM)
 	require.NoError(t, err)
 	_, err = leaf.Verify(x509.VerifyOptions{
 		Roots: roots,
@@ -63,8 +63,6 @@ func TestAutoEncryptSign(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify other fields
-	require.Empty(t, reply.IssuedCert.Service)
-	require.Equal(t, "uuid", reply.IssuedCert.Agent)
-	require.Equal(t, ca.ID, reply.ConnectRoots.ActiveRootID)
-	require.Len(t, reply.ManualRoots, 1)
+	require.Equal(t, "uuid", reply.Agent)
+	require.Len(t, reply.RootCAs, 1)
 }

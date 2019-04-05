@@ -1,8 +1,8 @@
 package structs
 
 type SignResponse struct {
-	IssuedCert   *IssuedCert
-	ConnectRoots *IndexedCARoots
-	ManualRoots  []string
-	GossipKey    string
+	CertPEM  string `json:",omitempty"`
+	Agent    string `json:",omitempty"`
+	AgentURI string `json:",omitempty"`
+	RootCAs  string `json:",omitempty"`
 }
