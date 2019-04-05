@@ -71,3 +71,8 @@ Usage: `consul catalog nodes [options]`
 
 - `-service=<id or name>` - Service id or name to filter nodes. Only nodes
   which are providing the given service will be returned.
+
+- `-filter=<filter>` - Expression to use for filtering the results. Can be passed
+   via stdin by using `-` for the value or from a file by passing `@<file path>`.
+   See the [`/catalog/nodes` API documentation](api/catalog.html#filtering) for a
+   description of what is filterable.
