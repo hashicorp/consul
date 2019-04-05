@@ -32,7 +32,7 @@ func insecureRPCClient(t *testing.T, s *Server, c tlsutil.Config) rpc.ClientCode
 		t.Fatalf("err: %v", err)
 	}
 	// Write the Consul RPC byte to set the mode
-	conn.Write([]byte{byte(pool.RPCTLSINSECURE)})
+	conn.Write([]byte{byte(pool.RPCTLSInsecure)})
 
 	configurator, err := tlsutil.NewConfigurator(c, nil)
 	if err != nil {

@@ -520,7 +520,7 @@ func (s *Server) trackConnectCARoots() {
 		}
 		for _, ca := range cas {
 			if ca.Active {
-				s.tlsConfigurator.UpdateConnectCA(&ca.RootCert)
+				s.tlsConfigurator.UpdateConnectCA(ca.RootCert)
 			}
 		}
 		ws.Watch(nil)

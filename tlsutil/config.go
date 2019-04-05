@@ -137,13 +137,14 @@ func SpecificDC(dc string, tlsWrap DCWrapper) Wrapper {
 // *tls.Config necessary for Consul. Except the one in the api package.
 type Configurator struct {
 	sync.RWMutex
-	base      *Config
-	cert      *tls.Certificate
-	caPool    *x509.CertPool
-	caPems    []string
-	caConnect *string
-	logger    *log.Logger
-	version   int
+	base        *Config
+	cert        *tls.Certificate
+	caPool      *x509.CertPool
+	caPems      []string
+	caConnect   string
+	certConnect *tls.Certificate
+	logger      *log.Logger
+	version     int
 }
 
 // NewConfigurator creates a new Configurator and sets the provided
@@ -187,7 +188,7 @@ func (c *Configurator) Update(config Config) error {
 	if err != nil {
 		return err
 	}
-	if err = c.check(config, pool, cert); err != nil {
+	if err = c.check(config, pool, cert, c.certConnect); err != nil {
 		return err
 	}
 	c.base = &config
@@ -198,7 +199,7 @@ func (c *Configurator) Update(config Config) error {
 	return nil
 }
 
-func (c *Configurator) UpdateConnectCA(pem *string) error {
+func (c *Configurator) UpdateConnectCA(pem string) error {
 	c.Lock()
 	// order matters because log acquires a RLock()
 	defer c.log("UpdateConnectCA")
@@ -209,7 +210,7 @@ func (c *Configurator) UpdateConnectCA(pem *string) error {
 		c.RUnlock()
 		return err
 	}
-	if err = c.check(*c.base, pool, c.cert); err != nil {
+	if err = c.check(*c.base, pool, c.cert, c.certConnect); err != nil {
 		c.RUnlock()
 		return err
 	}
@@ -219,10 +220,25 @@ func (c *Configurator) UpdateConnectCA(pem *string) error {
 	return nil
 }
 
-func combinedPool(pems []string, connectCA *string) (*x509.CertPool, error) {
+func (c *Configurator) UpdateConnectCert(pub, priv string) error {
+	// order matters because log acquires a RLock()
+	defer c.log("UpdateConnectCert")
+	cert, err := tls.X509KeyPair([]byte(pub), []byte(priv))
+	if err != nil {
+		return fmt.Errorf("Failed to load cert/key pair: %v", err)
+	}
+
+	c.Lock()
+	defer c.Unlock()
+	c.certConnect = &cert
+	c.version++
+	return nil
+}
+
+func combinedPool(pems []string, connectCA string) (*x509.CertPool, error) {
 	pool := x509.NewCertPool()
-	if connectCA != nil {
-		pems = append(pems, *connectCA)
+	if connectCA != "" {
+		pems = append(pems, connectCA)
 	}
 	for _, pem := range pems {
 		if !pool.AppendCertsFromPEM([]byte(pem)) {
@@ -235,7 +251,7 @@ func combinedPool(pems []string, connectCA *string) (*x509.CertPool, error) {
 	return pool, nil
 }
 
-func (c *Configurator) check(config Config, pool *x509.CertPool, cert *tls.Certificate) error {
+func (c *Configurator) check(config Config, pool *x509.CertPool, cert, certConnect *tls.Certificate) error {
 	// Check if a minimum TLS version was set
 	if config.TLSMinVersion != "" {
 		if _, ok := TLSLookup[config.TLSMinVersion]; !ok {
@@ -253,7 +269,7 @@ func (c *Configurator) check(config Config, pool *x509.CertPool, cert *tls.Certi
 		if pool == nil {
 			return fmt.Errorf("VerifyIncoming set, and no CA certificate provided!")
 		}
-		if cert == nil {
+		if cert == nil && certConnect == nil {
 			return fmt.Errorf("VerifyIncoming set, and no Cert/Key pair provided!")
 		}
 	}
@@ -335,11 +351,22 @@ func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) *tls.C
 
 	tlsConfig.PreferServerCipherSuites = c.base.PreferServerCipherSuites
 
+	// TODO (hans): be smarter about which cert to serve
 	tlsConfig.GetCertificate = func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
-		return c.cert, nil
+		cert := c.certConnect
+		if cert == nil {
+			cert = c.cert
+		}
+
+		return cert, nil
 	}
 	tlsConfig.GetClientCertificate = func(*tls.CertificateRequestInfo) (*tls.Certificate, error) {
-		return c.cert, nil
+		cert := c.certConnect
+		if cert == nil {
+			cert = c.cert
+		}
+
+		return cert, nil
 	}
 
 	tlsConfig.ClientCAs = c.caPool
@@ -362,7 +389,7 @@ func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) *tls.C
 func (c *Configurator) outgoingRPCTLSDisabled() bool {
 	c.RLock()
 	defer c.RUnlock()
-	return c.caPool == nil && !c.base.VerifyOutgoing && !c.base.AutoEncryptTLS
+	return c.caPool == nil && !c.base.VerifyOutgoing
 }
 
 // This function acquires a read lock because it reads from the config.
@@ -413,13 +440,12 @@ func (c *Configurator) IncomingRPCConfig() *tls.Config {
 	return config
 }
 
-// IncomingNoClientCertRPCConfig generates a *tls.Config for incoming RPC connections.
-func (c *Configurator) IncomingAnyCertRPCConfig() *tls.Config {
-	c.log("IncomingRPCConfig")
+func (c *Configurator) IncomingRequireAnyClientCertRPCConfig() *tls.Config {
+	c.log("IncomingRequireAnyClientCertRPCConfig")
 	config := c.commonTLSConfig(false)
 	config.ClientAuth = tls.RequireAnyClientCert
 	config.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
-		return c.IncomingRPCConfig(), nil
+		return c.IncomingRequireAnyClientCertRPCConfig(), nil
 	}
 	return config
 }

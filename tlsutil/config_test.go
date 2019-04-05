@@ -405,9 +405,9 @@ func TestConfigurator_ErrorPropagation(t *testing.T) {
 			require.NoError(t, err, info)
 			pems, err := loadCAs(v.config.CAFile, v.config.CAPath)
 			require.NoError(t, err, info)
-			pool, err := combinedPool(pems, nil)
+			pool, err := combinedPool(pems, "")
 			require.NoError(t, err, info)
-			err3 = c.check(v.config, pool, cert)
+			err3 = c.check(v.config, pool, cert, nil)
 		}
 		if v.shouldErr {
 			require.Error(t, err1, info)
@@ -464,7 +464,7 @@ func TestConfigurator_loadCAs(t *testing.T) {
 	}
 	for i, v := range variants {
 		pems, err1 := loadCAs(v.cafile, v.capath)
-		pool, err2 := combinedPool(pems, nil)
+		pool, err2 := combinedPool(pems, "")
 		info := fmt.Sprintf("case %d", i)
 		if v.shouldErr {
 			if err1 == nil && err2 == nil {
@@ -625,7 +625,7 @@ func TestConfigurator_OutgoingRPCTLSDisabled(t *testing.T) {
 		info := fmt.Sprintf("case %d", i)
 		pems, err := loadCAs(v.file, v.path)
 		require.NoError(t, err, info)
-		pool, err := combinedPool(pems, nil)
+		pool, err := combinedPool(pems, "")
 		require.NoError(t, err, info)
 		c.caPool = pool
 		c.base.VerifyOutgoing = v.verify

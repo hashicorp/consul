@@ -84,7 +84,7 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 	typ := pool.RPCType(buf[0])
 
 	// Enforce TLS if VerifyIncoming is set
-	if s.config.VerifyIncoming && !isTLS && typ != pool.RPCTLS && typ != pool.RPCTLSINSECURE {
+	if s.config.VerifyIncoming && !isTLS && typ != pool.RPCTLS && typ != pool.RPCTLSInsecure {
 		s.logger.Printf("[WARN] consul.rpc: Non-TLS connection attempted with VerifyIncoming set %s", logConn(conn))
 		conn.Close()
 		return
@@ -109,8 +109,8 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 	case pool.RPCSnapshot:
 		s.handleSnapshotConn(conn)
 
-	case pool.RPCTLSINSECURE:
-		conn = tls.Server(conn, s.tlsConfigurator.IncomingAnyCertRPCConfig())
+	case pool.RPCTLSInsecure:
+		conn = tls.Server(conn, s.tlsConfigurator.IncomingRequireAnyClientCertRPCConfig())
 		s.handleInsecureConn(conn)
 
 	default:

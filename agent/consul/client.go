@@ -84,6 +84,8 @@ type Client struct {
 
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseClient
+
+	tlsConfigurator *tlsutil.Configurator
 }
 
 // NewClient is used to construct a new Consul client from the configuration,
@@ -135,11 +137,12 @@ func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsuti
 
 	// Create client
 	c := &Client{
-		config:     config,
-		connPool:   connPool,
-		eventCh:    make(chan serf.Event, serfEventBacklog),
-		logger:     logger,
-		shutdownCh: make(chan struct{}),
+		config:          config,
+		connPool:        connPool,
+		eventCh:         make(chan serf.Event, serfEventBacklog),
+		logger:          logger,
+		shutdownCh:      make(chan struct{}),
+		tlsConfigurator: tlsConfigurator,
 	}
 
 	c.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))

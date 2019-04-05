@@ -417,6 +417,9 @@ func (a *Agent) Start() error {
 			return fmt.Errorf("Failed to start Consul client: %v", err)
 		}
 		a.delegate = client
+
+		// TODO (hans): add a.config.RetryJoinLAN, but make sure to deal with autodisover
+		client.AutoEncrypt(a.config.StartJoinAddrsLAN, a.tokens.AgentToken())
 	}
 
 	// the staggering of the state syncing depends on the cluster size.
