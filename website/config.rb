@@ -6,6 +6,9 @@ activate :hashicorp do |h|
   h.github_slug = "hashicorp/consul"
 end
 
+# Netlify redirects/headers
+proxy '_redirects', 'netlify-redirects', ignore: true
+
 helpers do
   # Returns a segment tracking ID such that local development is not
   # tracked to production systems.
