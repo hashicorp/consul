@@ -3,11 +3,13 @@ package nodes
 import (
 	"flag"
 	"fmt"
+	"io"
 	"sort"
 	"strings"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
+	"github.com/hashicorp/consul/command/helpers"
 	"github.com/mitchellh/cli"
 	"github.com/ryanuber/columnize"
 )
@@ -30,6 +32,8 @@ type cmd struct {
 	nodeMeta map[string]string
 	service  string
 	filter   string
+
+	testStdin io.Reader
 }
 
 // init sets up command flags and help text
@@ -68,6 +72,15 @@ func (c *cmd) Run(args []string) int {
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
+	}
+
+	if c.filter != "" {
+		data, err := helpers.LoadDataSource(c.filter, c.testStdin)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Could not process filter argument: %v", err))
+			return 1
+		}
+		c.filter = data
 	}
 
 	var nodes []*api.Node

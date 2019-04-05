@@ -123,7 +123,7 @@ type AgentServiceConnectProxyConfig struct {
 	DestinationServiceID   string                 `json:",omitempty"`
 	LocalServiceAddress    string                 `json:",omitempty"`
 	LocalServicePort       int                    `json:",omitempty"`
-	Config                 map[string]interface{} `json:",omitempty"`
+	Config                 map[string]interface{} `json:",omitempty" bexpr:"-"`
 	Upstreams              []Upstream
 }
 
@@ -278,9 +278,9 @@ type ConnectProxyConfig struct {
 	ContentHash       string
 	// DEPRECATED(managed-proxies) - this struct is re-used for sidecar configs
 	// but they don't need ExecMode or Command
-	ExecMode  ProxyExecMode `json:",omitempty"`
-	Command   []string      `json:",omitempty"`
-	Config    map[string]interface{}
+	ExecMode  ProxyExecMode          `json:",omitempty"`
+	Command   []string               `json:",omitempty"`
+	Config    map[string]interface{} `bexpr:"-"`
 	Upstreams []Upstream
 }
 
@@ -292,7 +292,7 @@ type Upstream struct {
 	Datacenter           string                 `json:",omitempty"`
 	LocalBindAddress     string                 `json:",omitempty"`
 	LocalBindPort        int                    `json:",omitempty"`
-	Config               map[string]interface{} `json:",omitempty"`
+	Config               map[string]interface{} `json:",omitempty" bexpr:"-"`
 }
 
 // Agent can be used to query the Agent endpoints

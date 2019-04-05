@@ -331,7 +331,7 @@ $ curl \
 
 ### Filtering
 
-The filter will be executed agains each Node in the result list with
+The filter will be executed against each Node in the result list with
 the following selectors and filter operations being supported:
 
 | Selector                | Supported Operations               |
