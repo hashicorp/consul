@@ -1,13 +1,12 @@
-ORG:=organization=CoreDNS
-RONN:=ronn -r
+MMARK:=mmark -man
 PLUGINS:=$(wildcard plugin/*/README.md)
 READMES:=$(subst plugin/,,$(PLUGINS))
 READMES:=$(subst /README.md,,$(READMES))
 PLUGINS:=$(subst plugin/,coredns-,$(PLUGINS))
 PLUGINS:=$(subst /README.md,(7),$(PLUGINS))
 
-ifeq (, $(shell which ronn))
-    $(warning "No ronn in $$PATH, exiting")
+ifeq (, $(shell which mmark))
+    $(warning "No mmark in $$PATH, exiting, see github.com/mmarkdown/mmark")
 all:
 	@echo "noop"
 else
@@ -15,15 +14,17 @@ all: man/coredns.1 man/corefile.5 plugins
 endif
 
 man/coredns.1: coredns.1.md
-	sed -e 's/^\(#.*\)/\U\1/' $< > $@.md
-	sed -i -e "s/@@PLUGINS@@/$(PLUGINS)/" $@.md
-	$(RONN) --$(ORG) --manual='CoreDNS' $@.md
-	rm $@.md
+	@/bin/echo -e '%%%\n title = "coredns 1"\n' \
+		'area = "CoreDNS"\n workgroup = "CoreDNS"\n%%%\n\n' > $@.header
+	@cat $@.header $< > $@.md && rm $@.header
+	@sed -i -e "s/@@PLUGINS@@/$(PLUGINS)/" $@.md
+	$(MMARK) $@.md > $@ && rm $@.md
 
 man/corefile.5: corefile.5.md
-	sed -e 's/^\(#.*\)/\U\1/' $< > $@.md
-	$(RONN) --$(ORG) --manual='CoreDNS' $@.md
-	rm $@.md
+	@/bin/echo -e '%%%\n title = "corefile 5"\n' \
+		'area = "CoreDNS"\n workgroup = "CoreDNS"\n%%%\n\n' > $@.header
+	@cat $@.header $< > $@.md && rm $@.header
+	$(MMARK) $@.md > $@ && rm $@.md
 
 .PHONY: plugins
 plugins:
@@ -32,9 +33,10 @@ plugins:
 	done
 
 man/coredns-%.7: plugin/%/README.md
-	sed -e 's/^\(#.*\)/\U\1/' $< > $@.md
-	$(RONN) --$(ORG) --manual='CoreDNS plugins' $@.md
-	rm $@.md
+	@/bin/echo -e "%%%\n title = \"`basename $@ | sed s\/\.7\/\/` 7\"\n" \
+		'area = "CoreDNS"\n workgroup = "CoreDNS Plugins"\n%%%\n\n' > $@.header
+	@cat $@.header $< > $@.md && rm $@.header
+	$(MMARK) $@.md > $@ && rm $@.md
 
 PHONY: clean
 clean:
