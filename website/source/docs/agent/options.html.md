@@ -1722,9 +1722,13 @@ port.
 * HTTP API (Default 8500). This is used by clients to talk to the HTTP
   API. TCP only.
 
+* HTTPS API (Default 8501). This is used by clients to talk to the HTTPS API. TCP only. 
+
 * DNS Interface (Default 8600). Used to resolve DNS queries. TCP and UDP.
 
 * gRPC API (Default 8502). Currently gRPC is only used to expose Envoy xDS API to Envoy proxies.
+
+* Sidecar Service (Default 21000 - 21255).  Inclusive minimum and maximum ports to use for automatically assigning [sidecar service registrations](https://www.consul.io/docs/connect/proxies/sidecar-service.html). 
 
 ## <a id="reloadable-configuration"></a>Reloadable Configuration
 
