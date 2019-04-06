@@ -36,6 +36,7 @@ man/coredns-%.7: plugin/%/README.md
 	@/bin/echo -e "%%%\n title = \"`basename $@ | sed s\/\.7\/\/` 7\"\n" \
 		'area = "CoreDNS"\n workgroup = "CoreDNS Plugins"\n%%%\n\n' > $@.header
 	@cat $@.header $< > $@.md && rm $@.header
+	@sed -i '/^# .*/d' $@.md
 	$(MMARK) $@.md > $@ && rm $@.md
 
 PHONY: clean
