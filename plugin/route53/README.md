@@ -26,10 +26,10 @@ route53 [ZONE:HOSTED_ZONE_ID...] {
     domains (private vs. public hosted zone), CoreDNS does the lookup in the given order here.
     Therefore, for a non-existing resource record, SOA response will be from the rightmost zone.
 
-*   **HOSTED*ZONE*ID** the ID of the hosted zone that contains the resource record sets to be
+*   **HOSTED_ZONE_ID** the ID of the hosted zone that contains the resource record sets to be
     accessed.
 
-*   **AWS*ACCESS*KEY_ID** and **AWS*SECRET*ACCESS_KEY** the AWS access key ID and secret access key
+*   **AWS_ACCESS_KEY_ID** and **AWS_SECRET_ACCESS_KEY** the AWS access key ID and secret access key
     to be used when query AWS (optional). If they are not provided, then coredns tries to access
     AWS credentials the same way as AWS CLI, e.g., environmental variables, AWS credentials file,
     instance profile credentials, etc.
