@@ -31,11 +31,10 @@ type ConfigEntry interface {
 // ServiceConfiguration is the top-level struct for the configuration of a service
 // across the entire cluster.
 type ServiceConfigEntry struct {
-	Kind                      string
-	Name                      string
-	Protocol                  string
-	Connect                   ConnectConfiguration
-	ServiceDefinitionDefaults ServiceDefinitionDefaults
+	Kind     string
+	Name     string
+	Protocol string
+	Connect  ConnectConfiguration
 
 	RaftIndex
 }
@@ -83,26 +82,6 @@ type ConnectConfiguration struct {
 	SidecarProxy bool
 }
 
-type ServiceDefinitionDefaults struct {
-	EnableTagOverride bool
-
-	// Non script/docker checks only
-	Check  *HealthCheck
-	Checks HealthChecks
-
-	// Kind is allowed to accommodate non-sidecar proxies but it will be an error
-	// if they also set Connect.DestinationServiceID since sidecars are
-	// configured via their associated service's config.
-	Kind ServiceKind
-
-	// Only DestinationServiceName and Config are supported.
-	Proxy ConnectProxyConfig
-
-	Connect ServiceConnect
-
-	Weights Weights
-}
-
 // ProxyConfigEntry is the top-level struct for global proxy configuration defaults.
 type ProxyConfigEntry struct {
 	Kind   string
@@ -130,6 +109,7 @@ func (e *ProxyConfigEntry) Normalize() error {
 	}
 
 	e.Kind = ProxyDefaults
+	e.Name = ProxyConfigGlobal
 
 	return nil
 }
@@ -161,18 +141,26 @@ const (
 	ConfigEntryDelete ConfigEntryOp = "delete"
 )
 
+// ConfigEntryRequest is used when creating/updating/deleting a ConfigEntry.
 type ConfigEntryRequest struct {
-	Op    ConfigEntryOp
-	Entry ConfigEntry
+	Op         ConfigEntryOp
+	Datacenter string
+	Entry      ConfigEntry
+
+	WriteRequest
 }
 
-func (r *ConfigEntryRequest) MarshalBinary() (data []byte, err error) {
+func (c *ConfigEntryRequest) RequestDatacenter() string {
+	return c.Datacenter
+}
+
+func (c *ConfigEntryRequest) MarshalBinary() (data []byte, err error) {
 	// bs will grow if needed but allocate enough to avoid reallocation in common
 	// case.
 	bs := make([]byte, 128)
 	enc := codec.NewEncoderBytes(&bs, msgpackHandle)
 	// Encode kind first
-	err = enc.Encode(r.Entry.GetKind())
+	err = enc.Encode(c.Entry.GetKind())
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +169,7 @@ func (r *ConfigEntryRequest) MarshalBinary() (data []byte, err error) {
 	err = enc.Encode(struct {
 		*Alias
 	}{
-		Alias: (*Alias)(r),
+		Alias: (*Alias)(c),
 	})
 	if err != nil {
 		return nil, err
@@ -189,7 +177,7 @@ func (r *ConfigEntryRequest) MarshalBinary() (data []byte, err error) {
 	return bs, nil
 }
 
-func (r *ConfigEntryRequest) UnmarshalBinary(data []byte) error {
+func (c *ConfigEntryRequest) UnmarshalBinary(data []byte) error {
 	// First decode the kind prefix
 	var kind string
 	dec := codec.NewDecoderBytes(data, msgpackHandle)
@@ -202,7 +190,7 @@ func (r *ConfigEntryRequest) UnmarshalBinary(data []byte) error {
 	if err != nil {
 		return err
 	}
-	r.Entry = entry
+	c.Entry = entry
 
 	// Alias juggling to prevent infinite recursive calls back to this decode
 	// method.
@@ -210,7 +198,7 @@ func (r *ConfigEntryRequest) UnmarshalBinary(data []byte) error {
 	as := struct {
 		*Alias
 	}{
-		Alias: (*Alias)(r),
+		Alias: (*Alias)(c),
 	}
 	if err := dec.Decode(&as); err != nil {
 		return err
@@ -227,4 +215,36 @@ func makeConfigEntry(kind string) (ConfigEntry, error) {
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}
+}
+
+// ConfigEntryQuery is used when requesting info about a config entry.
+type ConfigEntryQuery struct {
+	Kind       string
+	Name       string
+	Datacenter string
+
+	QueryOptions
+}
+
+func (c *ConfigEntryQuery) RequestDatacenter() string {
+	return c.Datacenter
+}
+
+// ServiceConfigRequest is used when requesting the resolved configuration
+// for a service.
+type ServiceConfigRequest struct {
+	Name       string
+	Datacenter string
+
+	QueryOptions
+}
+
+func (s *ServiceConfigRequest) RequestDatacenter() string {
+	return s.Datacenter
+}
+
+type ServiceConfigResponse struct {
+	Definition ServiceDefinition
+
+	QueryMeta
 }

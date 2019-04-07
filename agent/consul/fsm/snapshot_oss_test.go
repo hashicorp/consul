@@ -403,11 +403,11 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	assert.Equal(caConfig, caConf)
 
 	// Verify config entries are restored
-	_, serviceConfEntry, err := fsm2.state.ConfigEntry(structs.ServiceDefaults, "foo")
+	_, serviceConfEntry, err := fsm2.state.ConfigEntry(nil, structs.ServiceDefaults, "foo")
 	require.NoError(err)
 	assert.Equal(serviceConfig, serviceConfEntry)
 
-	_, proxyConfEntry, err := fsm2.state.ConfigEntry(structs.ProxyDefaults, "global")
+	_, proxyConfEntry, err := fsm2.state.ConfigEntry(nil, structs.ProxyDefaults, "global")
 	require.NoError(err)
 	assert.Equal(proxyConfig, proxyConfEntry)
 
