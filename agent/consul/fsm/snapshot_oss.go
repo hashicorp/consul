@@ -174,6 +174,8 @@ func (s *snapshot) persistACLs(sink raft.SnapshotSink,
 		return err
 	}
 
+	// Don't check expiration times. Wait for explicit deletions.
+
 	for token := tokens.Next(); token != nil; token = tokens.Next() {
 		if _, err := sink.Write([]byte{byte(structs.ACLTokenSetRequestType)}); err != nil {
 			return err

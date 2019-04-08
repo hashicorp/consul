@@ -208,7 +208,7 @@ func TestStructs_ACLToken_EstimateSize(t *testing.T) {
 
 	// this test is very contrived. Basically just tests that the
 	// math is okay and returns the value.
-	require.Equal(t, 120, token.EstimateSize())
+	require.Equal(t, 128, token.EstimateSize())
 }
 
 func TestStructs_ACLToken_Stub(t *testing.T) {
