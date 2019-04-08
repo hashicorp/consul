@@ -95,13 +95,19 @@ func (c *Client) AutoEncrypt(servers []string, port int, token string) (*structs
 			lastError = err
 			continue
 		}
+		if response.Error != "" {
+			err := fmt.Errorf("error in response: %v", response.Error)
+			c.logger.Printf("[DEBUG] consul: AutoEncrypt error: %v", err)
+			lastError = err
+			continue
+		}
+
 		if err := dec.Decode(&reply); err != nil {
 			err := fmt.Errorf("failed to decode reply: %v", err)
 			c.logger.Printf("[DEBUG] consul: AutoEncrypt error: %v", err)
 			lastError = err
 			continue
 		}
-
 		return &reply, priv, nil
 	}
 	return nil, "", lastError

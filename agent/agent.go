@@ -426,6 +426,8 @@ func (a *Agent) Start() error {
 			err := a.tlsConfigurator.UpdateConnect(reply.RootCAs, reply.CertPEM, priv, reply.VerifyServerHostname)
 			if err != nil {
 				a.logger.Printf("[DEBUG] AutoEncrypt: update connect failed: %s", err)
+			} else {
+				a.logger.Printf("[DEBUG] AutoEncrypt: upgraded to TLS")
 			}
 			if reply.GossipKey != "" {
 			}
@@ -1096,6 +1098,9 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	base.TLSMinVersion = a.config.TLSMinVersion
 	base.TLSCipherSuites = a.config.TLSCipherSuites
 	base.TLSPreferServerCipherSuites = a.config.TLSPreferServerCipherSuites
+
+	base.AutoEncryptTLS = a.config.AutoEncryptTLS
+	base.AutoEncryptGossip = a.config.AutoEncryptGossip
 
 	// Copy the Connect CA bootstrap config
 	if a.config.ConnectEnabled {
