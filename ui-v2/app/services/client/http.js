@@ -1,3 +1,4 @@
+/*global $*/
 import Service, { inject as service } from '@ember/service';
 import { get, set } from '@ember/object';
 import { Promise } from 'rsvp';
@@ -6,8 +7,12 @@ import getObjectPool from 'consul-ui/utils/get-object-pool';
 import Request from 'consul-ui/utils/http/request';
 import createURL from 'consul-ui/utils/createURL';
 
-import { AbortError } from 'ember-data/adapters/errors';
-
+class HTTPError extends Error {
+  constructor(statusCode, message) {
+    super(message);
+    this.statusCode = statusCode;
+  }
+}
 const dispose = function(request) {
   if (request.headers()['content-type'] === 'text/event-stream') {
     const xhr = request.connection();
@@ -28,6 +33,7 @@ const dispose = function(request) {
 const url = createURL(encodeURIComponent);
 export default Service.extend({
   dom: service('dom'),
+  settings: service('settings'),
   init: function() {
     this._super(...arguments);
     let protocol = 'http/1.1';
@@ -79,41 +85,70 @@ export default Service.extend({
         }
         return prev;
       }, -1);
-      // let body;
-      // if (doubleBreak !== -1) {
-      //   // strs.splice(doubleBreak);
-      //   body = values.splice(doubleBreak).reduce(function(prev, item) {
-      //     return {
-      //       ...prev,
-      //       ...item,
-      //     };
-      //   }, {});
-      // }
+      if (doubleBreak !== -1) {
+        body = values.splice(doubleBreak).reduce(function(prev, item) {
+          return {
+            ...prev,
+            ...item,
+          };
+        }, body || {});
+      }
       let temp = url(strs, ...values).split(' ');
       const method = temp.shift();
       let rest = temp.join(' ');
       temp = rest.split('\n');
       const path = temp.shift().trim();
-      const headers = temp.join('\n').trim();
+      const createHeaders = function(lines) {
+        return lines.reduce(function(prev, item) {
+          const temp = item.split(':');
+          if (temp.length > 1) {
+            prev[temp[0].trim()] = temp[1].trim();
+          }
+          return prev;
+        }, {});
+      };
+      const headers = {
+        ...{
+          'Content-Type': 'application/json; charset=utf-8',
+        },
+        ...createHeaders(temp),
+        ...get(client, 'settings').findHeaders(),
+      };
       return new Promise(function(resolve, reject) {
         const options = {
           url: path,
           method: method,
+          contentType: headers['Content-Type'],
+          // type: 'json',
           complete: function(xhr, textStatus) {
             client.complete(this.id);
           },
           success: function(response, status, xhr) {
-            const headers = xhr.getAllResponseHeaders();
+            const headers = createHeaders(xhr.getAllResponseHeaders().split('\n'));
             const respond = function(cb) {
               return cb(headers, response);
             };
+            //TODO: nextTick ?
             resolve(respond);
           },
           error: function(xhr, textStatus, err) {
-            reject(err);
+            let error;
+            if (err instanceof Error) {
+              error = err;
+            } else {
+              let status = xhr.status;
+              // TODO: Not sure if we actually need this, but ember-data checks it
+              if (textStatus === 'abort') {
+                status = 0;
+              }
+              if (textStatus === 'timeout') {
+                status = 408;
+              }
+              error = new HTTPError(status, xhr.responseText);
+            }
+            //TODO: nextTick ?
+            reject(error);
           },
-
-          contentType: 'application/json; charset=utf-8',
           converters: {
             'text json': function(response) {
               try {
@@ -124,21 +159,21 @@ export default Service.extend({
             },
           },
         };
+        if (typeof body !== 'undefined') {
+          if (method !== 'GET' && headers['Content-Type'].indexOf('json') !== -1) {
+            options.data = JSON.stringify(body);
+          } else {
+            // TODO: Does this need urlencoding? Assuming jQuery does this
+            options.data = body;
+          }
+        }
         options.beforeSend = function(xhr) {
           if (headers) {
             Object.keys(headers).forEach(key => xhr.setRequestHeader(key, headers[key]));
           }
-          this.id = client.acquire(this, xhr);
+          this.id = client.acquire(options, xhr);
         };
-        if (typeof body !== 'undefined') {
-          options.data = JSON.stringify(body);
-        }
-        return $.ajax(options).catch(function(e) {
-          if (e instanceof AbortError) {
-            e.errors[0].status = '0';
-          }
-          throw e;
-        });
+        return $.ajax(options);
       });
     });
   },
