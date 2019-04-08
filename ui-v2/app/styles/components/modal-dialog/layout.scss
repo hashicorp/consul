@@ -46,6 +46,8 @@
   padding-right: 15px;
 }
 %modal-window > div {
+  overflow-y: auto;
+  max-height: 80vh;
   padding: 20px 23px;
 }
 %modal-window > footer,

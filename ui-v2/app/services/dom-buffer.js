@@ -15,7 +15,9 @@ export default Service.extend(Evented, {
     return dom;
   },
   remove: function(name) {
-    buffer[name].remove();
-    delete buffer[name];
+    if (typeof buffer[name] !== 'undefined') {
+      buffer[name].remove();
+      delete buffer[name];
+    }
   },
 });
