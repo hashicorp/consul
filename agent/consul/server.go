@@ -412,7 +412,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 		return nil, fmt.Errorf("Failed to start Raft: %v", err)
 	}
 
-	if s.config.ConnectEnabled && s.config.AutoEncryptTLS {
+	if s.config.ConnectEnabled {
 		go s.trackConnectCARoots()
 	}
 
@@ -515,12 +515,16 @@ func (s *Server) trackConnectCARoots() {
 		ws.Add(state.AbandonCh())
 		_, cas, err := state.CARoots(ws)
 		if err != nil {
-			s.logger.Printf("[DEBUG] agent: Failed to watch Connect CARoots: %v", err)
+			s.logger.Printf("[DEBUG] agent: Failed to watch Connect CARoot: %v", err)
 			return
 		}
 		for _, ca := range cas {
 			if ca.Active {
-				s.tlsConfigurator.UpdateConnectCA([]string{ca.RootCert})
+				if err := s.tlsConfigurator.UpdateConnectCA([]string{ca.RootCert}); err != nil {
+					s.logger.Printf("[DEBUG] agent: Failed to update Connect CARoot: %v", err)
+				} else {
+					s.logger.Printf("[DEBUG] agent: Updated Connect CARoot")
+				}
 			}
 		}
 		ws.Watch(nil)
