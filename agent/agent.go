@@ -425,7 +425,7 @@ func (a *Agent) Start() error {
 		} else {
 			err := a.tlsConfigurator.UpdateConnect(reply.RootCAs, reply.CertPEM, priv, reply.VerifyServerHostname)
 			if err != nil {
-				a.logger.Printf("[DEBUG] AutoEncrypt: request failed: %s", err)
+				a.logger.Printf("[DEBUG] AutoEncrypt: update connect failed: %s", err)
 			}
 		}
 	}
