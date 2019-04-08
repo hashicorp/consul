@@ -95,7 +95,8 @@ if [ -z "$NO_UPLOAD" ]; then
 fi
 
 # Add redirects if they exist
-if [ -z "$NO_REDIRECTS" ] || [ ! test -f "./redirects.txt" ]; then
+# The redirects file is in the source/ directory
+if [ -z "$NO_REDIRECTS" ] || [ ! test -f "./source/redirects.txt" ]; then
   echo "Adding redirects..."
   fields=()
   while read -r line; do
