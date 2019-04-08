@@ -127,12 +127,12 @@ func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsuti
 	}
 
 	connPool := &pool.ConnPool{
-		SrcAddr:    config.RPCSrcAddr,
-		LogOutput:  config.LogOutput,
-		MaxTime:    clientRPCConnMaxIdle,
-		MaxStreams: clientMaxStreams,
-		TLSWrapper: tlsConfigurator.OutgoingRPCWrapper(),
-		ForceTLS:   config.VerifyOutgoing,
+		SrcAddr:         config.RPCSrcAddr,
+		LogOutput:       config.LogOutput,
+		MaxTime:         clientRPCConnMaxIdle,
+		MaxStreams:      clientMaxStreams,
+		TLSConfigurator: tlsConfigurator,
+		ForceTLS:        config.VerifyOutgoing,
 	}
 
 	// Create client

@@ -325,12 +325,12 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	shutdownCh := make(chan struct{})
 
 	connPool := &pool.ConnPool{
-		SrcAddr:    config.RPCSrcAddr,
-		LogOutput:  config.LogOutput,
-		MaxTime:    serverRPCCache,
-		MaxStreams: serverMaxStreams,
-		TLSWrapper: tlsConfigurator.OutgoingRPCWrapper(),
-		ForceTLS:   config.VerifyOutgoing,
+		SrcAddr:         config.RPCSrcAddr,
+		LogOutput:       config.LogOutput,
+		MaxTime:         serverRPCCache,
+		MaxStreams:      serverMaxStreams,
+		TLSConfigurator: tlsConfigurator,
+		ForceTLS:        config.VerifyOutgoing,
 	}
 
 	// Create server.
@@ -520,7 +520,7 @@ func (s *Server) trackConnectCARoots() {
 		}
 		for _, ca := range cas {
 			if ca.Active {
-				s.tlsConfigurator.UpdateConnectCA(ca.RootCert)
+				s.tlsConfigurator.UpdateConnectCA([]string{ca.RootCert})
 			}
 		}
 		ws.Watch(nil)
