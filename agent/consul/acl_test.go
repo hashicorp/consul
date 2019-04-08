@@ -2861,3 +2861,92 @@ service "service" {
 		t.Fatalf("err: %v", err)
 	}
 }
+
+func TestDedupeServiceIdentities(t *testing.T) {
+	srvid := func(name string, datacenters ...string) *structs.ACLServiceIdentity {
+		return &structs.ACLServiceIdentity{
+			ServiceName: name,
+			Datacenters: datacenters,
+		}
+	}
+
+	tests := []struct {
+		name   string
+		in     []*structs.ACLServiceIdentity
+		expect []*structs.ACLServiceIdentity
+	}{
+		{
+			name:   "empty",
+			in:     nil,
+			expect: nil,
+		},
+		{
+			name: "one",
+			in: []*structs.ACLServiceIdentity{
+				srvid("foo"),
+			},
+			expect: []*structs.ACLServiceIdentity{
+				srvid("foo"),
+			},
+		},
+		{
+			name: "just names",
+			in: []*structs.ACLServiceIdentity{
+				srvid("fooZ"),
+				srvid("fooA"),
+				srvid("fooY"),
+				srvid("fooB"),
+			},
+			expect: []*structs.ACLServiceIdentity{
+				srvid("fooA"),
+				srvid("fooB"),
+				srvid("fooY"),
+				srvid("fooZ"),
+			},
+		},
+		{
+			name: "just names with dupes",
+			in: []*structs.ACLServiceIdentity{
+				srvid("fooZ"),
+				srvid("fooA"),
+				srvid("fooY"),
+				srvid("fooB"),
+				srvid("fooA"),
+				srvid("fooB"),
+				srvid("fooY"),
+				srvid("fooZ"),
+			},
+			expect: []*structs.ACLServiceIdentity{
+				srvid("fooA"),
+				srvid("fooB"),
+				srvid("fooY"),
+				srvid("fooZ"),
+			},
+		},
+		{
+			name: "names with dupes and datacenters",
+			in: []*structs.ACLServiceIdentity{
+				srvid("fooZ", "dc2", "dc4"),
+				srvid("fooA"),
+				srvid("fooY", "dc1"),
+				srvid("fooB"),
+				srvid("fooA", "dc9", "dc8"),
+				srvid("fooB"),
+				srvid("fooY", "dc1"),
+				srvid("fooZ", "dc3", "dc4"),
+			},
+			expect: []*structs.ACLServiceIdentity{
+				srvid("fooA"),
+				srvid("fooB"),
+				srvid("fooY", "dc1"),
+				srvid("fooZ", "dc2", "dc3", "dc4"),
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := dedupeServiceIdentities(test.in)
+			require.ElementsMatch(t, test.expect, got)
+		})
+	}
+}
