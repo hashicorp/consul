@@ -478,6 +478,12 @@ func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToke
 		return err
 	}
 
+	for _, svcid := range token.ServiceIdentities {
+		if svcid.ServiceName == "" {
+			return fmt.Errorf("Encountered a Token with an empty service identity name in the state store")
+		}
+	}
+
 	// Set the indexes
 	if original != nil {
 		if original.AccessorID != "" && token.AccessorID != original.AccessorID {

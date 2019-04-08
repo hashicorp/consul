@@ -27,6 +27,14 @@ func PrintToken(token *api.ACLToken, ui cli.Ui, showMeta bool) {
 	for _, policy := range token.Policies {
 		ui.Info(fmt.Sprintf("   %s - %s", policy.ID, policy.Name))
 	}
+	ui.Info(fmt.Sprintf("Service Identities:"))
+	for _, svcid := range token.ServiceIdentities {
+		if len(svcid.Datacenters) > 0 {
+			ui.Info(fmt.Sprintf("   %s (Datacenters: %s)", svcid.ServiceName, strings.Join(svcid.Datacenters, ", ")))
+		} else {
+			ui.Info(fmt.Sprintf("   %s (Datacenters: all)", svcid.ServiceName))
+		}
+	}
 	if token.Rules != "" {
 		ui.Info(fmt.Sprintf("Rules:"))
 		ui.Info(token.Rules)
@@ -50,6 +58,14 @@ func PrintTokenListEntry(token *api.ACLTokenListEntry, ui cli.Ui, showMeta bool)
 	ui.Info(fmt.Sprintf("Policies:"))
 	for _, policy := range token.Policies {
 		ui.Info(fmt.Sprintf("   %s - %s", policy.ID, policy.Name))
+	}
+	ui.Info(fmt.Sprintf("Service Identities:"))
+	for _, svcid := range token.ServiceIdentities {
+		if len(svcid.Datacenters) > 0 {
+			ui.Info(fmt.Sprintf("   %s (Datacenters: %s)", svcid.ServiceName, strings.Join(svcid.Datacenters, ", ")))
+		} else {
+			ui.Info(fmt.Sprintf("   %s (Datacenters: all)", svcid.ServiceName))
+		}
 	}
 }
 
@@ -190,4 +206,25 @@ func GetRulesFromLegacyToken(client *api.Client, tokenID string, isSecret bool) 
 	}
 
 	return token.Rules, nil
+}
+
+func ExtractServiceIdentities(serviceIdents []string) ([]*api.ACLServiceIdentity, error) {
+	var out []*api.ACLServiceIdentity
+	for _, svcidRaw := range serviceIdents {
+		parts := strings.Split(svcidRaw, ":")
+		switch len(parts) {
+		case 2:
+			out = append(out, &api.ACLServiceIdentity{
+				ServiceName: parts[0],
+				Datacenters: strings.Split(parts[1], ","),
+			})
+		case 1:
+			out = append(out, &api.ACLServiceIdentity{
+				ServiceName: parts[0],
+			})
+		default:
+			return nil, fmt.Errorf("Malformed -service-identity argument: %q", svcidRaw)
+		}
+	}
+	return out, nil
 }

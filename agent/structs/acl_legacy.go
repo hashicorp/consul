@@ -73,14 +73,15 @@ func (a *ACL) Convert() *ACLToken {
 	}
 
 	return &ACLToken{
-		AccessorID:  "",
-		SecretID:    a.ID,
-		Description: a.Name,
-		Policies:    nil,
-		Type:        a.Type,
-		Rules:       a.Rules,
-		Local:       false,
-		RaftIndex:   a.RaftIndex,
+		AccessorID:        "",
+		SecretID:          a.ID,
+		Description:       a.Name,
+		Policies:          nil,
+		ServiceIdentities: nil,
+		Type:              a.Type,
+		Rules:             a.Rules,
+		Local:             false,
+		RaftIndex:         a.RaftIndex,
 	}
 }
 

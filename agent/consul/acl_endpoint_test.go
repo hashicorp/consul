@@ -919,6 +919,124 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.Len(t, token.Policies, 0)
 	})
 
+	t.Run("Create it with invalid service identity (empty)", func(t *testing.T) {
+		req := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				Description: "foobar",
+				Policies:    nil,
+				Local:       false,
+				ServiceIdentities: []*structs.ACLServiceIdentity{
+					&structs.ACLServiceIdentity{ServiceName: ""},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		resp := structs.ACLToken{}
+
+		err := acl.TokenSet(&req, &resp)
+		requireErrorContains(t, err, "Service identity is missing the service name field")
+	})
+
+	t.Run("Create it with invalid service identity (too large)", func(t *testing.T) {
+		long := strings.Repeat("x", serviceIdentityNameMaxLength+1)
+		req := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				Description: "foobar",
+				Policies:    nil,
+				Local:       false,
+				ServiceIdentities: []*structs.ACLServiceIdentity{
+					&structs.ACLServiceIdentity{ServiceName: long},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		resp := structs.ACLToken{}
+
+		err := acl.TokenSet(&req, &resp)
+		require.NotNil(t, err)
+	})
+
+	for _, test := range []struct {
+		name string
+		ok   bool
+	}{
+		{"-abc", false},
+		{"abc-", false},
+		{"a-bc", true},
+		{"_abc", false},
+		{"abc_", false},
+		{"a_bc", true},
+		{":abc", false},
+		{"abc:", false},
+		{"a:bc", false},
+		{"Abc", false},
+		{"aBc", false},
+		{"abC", false},
+		{"0abc", true},
+		{"abc0", true},
+		{"a0bc", true},
+	} {
+		var testName string
+		if test.ok {
+			testName = "Create it with valid service identity (by regex): " + test.name
+		} else {
+			testName = "Create it with invalid service identity (by regex): " + test.name
+		}
+		t.Run(testName, func(t *testing.T) {
+			req := structs.ACLTokenSetRequest{
+				Datacenter: "dc1",
+				ACLToken: structs.ACLToken{
+					Description: "foobar",
+					Policies:    nil,
+					Local:       false,
+					ServiceIdentities: []*structs.ACLServiceIdentity{
+						&structs.ACLServiceIdentity{ServiceName: test.name},
+					},
+				},
+				WriteRequest: structs.WriteRequest{Token: "root"},
+			}
+
+			resp := structs.ACLToken{}
+
+			err := acl.TokenSet(&req, &resp)
+			if test.ok {
+				require.NoError(t, err)
+
+				// Get the token directly to validate that it exists
+				tokenResp, err := retrieveTestToken(codec, "root", "dc1", resp.AccessorID)
+				require.NoError(t, err)
+				token := tokenResp.Token
+				require.ElementsMatch(t, req.ACLToken.ServiceIdentities, token.ServiceIdentities)
+			} else {
+				require.NotNil(t, err)
+			}
+		})
+	}
+
+	t.Run("Create it with invalid service identity (datacenters set on local token)", func(t *testing.T) {
+		req := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				Description: "foobar",
+				Policies:    nil,
+				Local:       true,
+				ServiceIdentities: []*structs.ACLServiceIdentity{
+					&structs.ACLServiceIdentity{ServiceName: "foo", Datacenters: []string{"dc2"}},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		resp := structs.ACLToken{}
+
+		err := acl.TokenSet(&req, &resp)
+		requireErrorContains(t, err, "cannot specify a list of datacenters on a local token")
+	})
+
 	for _, test := range []struct {
 		name         string
 		offset       time.Duration
