@@ -113,7 +113,8 @@ export default CollectionComponent.extend(SlotsMixin, WithResizing, {
   classNames: ['dom-recycling'],
   attributeBindings: ['style'],
   width: 1150,
-  height: 500,
+  rowHeight: 50,
+  maxHeight: 500,
   style: style('getStyle'),
   checked: null,
   hasCaption: false,
@@ -123,11 +124,17 @@ export default CollectionComponent.extend(SlotsMixin, WithResizing, {
     this.change = change.bind(this);
     this.confirming = [];
     // TODO: The row height should auto calculate properly from the CSS
-    this['cell-layout'] = new ZIndexedGrid(get(this, 'width'), 50);
+    this['cell-layout'] = new ZIndexedGrid(get(this, 'width'), get(this, 'rowHeight'));
   },
-  getStyle: computed('height', function() {
+  getStyle: computed('rowHeight', '_items', 'maxRows', 'maxHeight', function() {
+    const maxRows = get(this, 'rows');
+    let rows = get(this._items || [], 'length');
+    if (maxRows) {
+      rows = Math.min(maxRows, rows);
+    }
+    const height = get(this, 'rowHeight') * rows + 29;
     return {
-      height: get(this, 'height'),
+      height: Math.min(get(this, 'maxHeight'), height),
     };
   }),
   resize: function(e) {
@@ -140,9 +147,9 @@ export default CollectionComponent.extend(SlotsMixin, WithResizing, {
       const $footer = dom.element('footer[role="contentinfo"]');
       const space = rect.top + $footer.clientHeight + border;
       const height = e.detail.height - space;
-      this.set('height', Math.max(0, height));
+      this.set('maxHeight', Math.max(0, height));
       // TODO: The row height should auto calculate properly from the CSS
-      this['cell-layout'] = new ZIndexedGrid($appContent.clientWidth, 50);
+      this['cell-layout'] = new ZIndexedGrid($appContent.clientWidth, get(this, 'rowHeight'));
       this.updateItems();
       this.updateScrollPosition();
     }
