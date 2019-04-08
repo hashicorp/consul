@@ -10,8 +10,10 @@ export default DomBufferFlushComponent.extend({
         .filter(function(item) {
           return item.getAttribute('id') !== 'modal_close';
         })
-        .forEach(function(item) {
-          item.onchange();
+        .forEach(function(item, i) {
+          if (item.getAttribute('data-checked') === 'true') {
+            item.onchange({ target: item });
+          }
         });
     },
   },

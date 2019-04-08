@@ -105,15 +105,17 @@ export default DomBufferComponent.extend(SlotsMixin, WithResizing, {
   },
   actions: {
     change: function(e) {
-      if (e && e.target && e.target.checked) {
+      if (get(e, 'target.checked')) {
         this._open(e);
       } else {
         this._close();
       }
     },
     close: function() {
-      get(this, 'dom').element('#modal_close').checked = true;
-      this.onclose();
+      const $close = get(this, 'dom').element('#modal_close');
+      $close.checked = true;
+      const $input = get(this, 'dom').element('input[name="modal"]', this.element);
+      $input.onchange({ target: $input });
     },
   },
 });
