@@ -5,8 +5,8 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
-* api: fix panic in 'consul acl set-agent-token' [[GH-5533]]
-* acl: memdb filter of tokens-by-policy was inverted [[GH-5575]]
+* api: fix panic in 'consul acl set-agent-token' [[GH-5533](https://github.com/hashicorp/consul/issues/5533)]
+* acl: memdb filter of tokens-by-policy was inverted [[GH-5575](https://github.com/hashicorp/consul/issues/5575)]
 
 ## 1.4.4 (March 21, 2019)
 
