@@ -504,7 +504,7 @@ type Upstream struct {
 // AutoEncrypt is the agent-global auto_encrypt configuration.
 type AutoEncrypt struct {
 	TLS    *bool `json:"tls,omitempty" hcl:"tls" mapstructure:"tls"`
-	Gossip *bool `json:"gossip,omitempty" hcl:"gossip" mapstructure:"tls"`
+	Gossip *bool `json:"gossip,omitempty" hcl:"gossip" mapstructure:"gossip"`
 }
 
 // Connect is the agent-global connect configuration.
