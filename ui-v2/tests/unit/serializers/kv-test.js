@@ -30,6 +30,8 @@ module('Unit | Serializer | kv', function(hooks) {
     const dc = 'dc1';
     const expected = {
       uid: JSON.stringify([dc, uid]),
+      Key: uid,
+      Datacenter: dc,
     };
     const serializer = this.owner.lookup('serializer:kv');
     serializer.primaryKey = 'uid';
@@ -54,6 +56,8 @@ module('Unit | Serializer | kv', function(hooks) {
     const dc = 'dc1';
     const expected = {
       uid: JSON.stringify([dc, uid]),
+      Key: uid,
+      Datacenter: dc,
     };
     const serializer = this.owner.lookup('serializer:kv');
     serializer.primaryKey = 'uid';
@@ -64,6 +68,7 @@ module('Unit | Serializer | kv', function(hooks) {
           const headers = {};
           const body = {
             Key: uid,
+            Datacenter: dc,
           };
           return cb(headers, body);
         },
