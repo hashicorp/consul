@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"hash"
 	"hash/fnv"
 	"sort"
 	"strings"
@@ -84,6 +85,22 @@ session_prefix "" {
 	// This is the policy ID for anonymous access. This is configurable by the
 	// user.
 	ACLTokenAnonymousID = "00000000-0000-0000-0000-000000000002"
+
+	// aclPolicyTemplateServiceIdentity is the template used for synthesizing
+	// policies for service identities.
+	aclPolicyTemplateServiceIdentity = `
+service "%s" {
+	policy = "write"
+}
+service "%s-sidecar-proxy" {
+	policy = "write"
+}
+service_prefix "" {
+	policy = "read"
+}
+node_prefix "" {
+	policy = "read"
+}`
 )
 
 func ACLIDReserved(id string) bool {
@@ -113,12 +130,56 @@ type ACLIdentity interface {
 	SecretToken() string
 	PolicyIDs() []string
 	EmbeddedPolicy() *ACLPolicy
+	ServiceIdentityList() []*ACLServiceIdentity
 	IsExpired(asOf time.Time) bool
 }
 
 type ACLTokenPolicyLink struct {
 	ID   string
 	Name string `hash:"ignore"`
+}
+
+// ACLServiceIdentity represents a high-level grant of all necessary privileges
+// to assume the identity of the named Service in the Catalog and within
+// Connect.
+type ACLServiceIdentity struct {
+	ServiceName string
+
+	// Datacenters that the synthetic policy will be valid within.
+	//   - No wildcards allowed
+	//   - If empty then the synthetic policy is valid within all datacenters
+	//
+	// Only valid for global tokens. It is an error to specify this for local tokens.
+	Datacenters []string `json:",omitempty"`
+}
+
+func (s *ACLServiceIdentity) Clone() *ACLServiceIdentity {
+	s2 := *s
+	s2.Datacenters = cloneStringSlice(s.Datacenters)
+	return &s2
+}
+
+func (s *ACLServiceIdentity) AddToHash(h hash.Hash) {
+	h.Write([]byte(s.ServiceName))
+	for _, dc := range s.Datacenters {
+		h.Write([]byte(dc))
+	}
+}
+
+func (s *ACLServiceIdentity) SyntheticPolicy() *ACLPolicy {
+	// Given that we validate this string name before persisting, we do not
+	// have to escape it before doing the following interpolation.
+	rules := fmt.Sprintf(aclPolicyTemplateServiceIdentity, s.ServiceName, s.ServiceName)
+
+	hasher := fnv.New128a()
+	policy := &ACLPolicy{}
+	policy.ID = fmt.Sprintf("%x", hasher.Sum([]byte(rules)))
+	policy.Name = fmt.Sprintf("synthetic-policy-%s", policy.ID)
+	policy.Rules = rules
+	policy.Syntax = acl.SyntaxCurrent
+	policy.Datacenters = s.Datacenters
+	policy.SetHash(true)
+	return policy
 }
 
 type ACLToken struct {
@@ -131,10 +192,13 @@ type ACLToken struct {
 	// Human readable string to display for the token (Optional)
 	Description string
 
-	// List of policy links - nil/empty for legacy tokens
+	// List of policy links - nil/empty for legacy tokens or if service identities are in use.
 	// Note this is the list of IDs and not the names. Prior to token creation
 	// the list of policy names gets validated and the policy IDs get stored herein
-	Policies []ACLTokenPolicyLink
+	Policies []ACLTokenPolicyLink `json:",omitempty"`
+
+	// List of services to generate synthetic policies for.
+	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
 
 	// Type is the V1 Token Type
 	// DEPRECATED (ACL-Legacy-Compat) - remove once we no longer support v1 ACL compat
@@ -181,10 +245,17 @@ type ACLToken struct {
 func (t *ACLToken) Clone() *ACLToken {
 	t2 := *t
 	t2.Policies = nil
+	t2.ServiceIdentities = nil
 
 	if len(t.Policies) > 0 {
 		t2.Policies = make([]ACLTokenPolicyLink, len(t.Policies))
 		copy(t2.Policies, t.Policies)
+	}
+	if len(t.ServiceIdentities) > 0 {
+		t2.ServiceIdentities = make([]*ACLServiceIdentity, len(t.ServiceIdentities))
+		for i, s := range t.ServiceIdentities {
+			t2.ServiceIdentities[i] = s.Clone()
+		}
 	}
 	return &t2
 }
@@ -198,11 +269,27 @@ func (t *ACLToken) SecretToken() string {
 }
 
 func (t *ACLToken) PolicyIDs() []string {
-	var ids []string
+	if len(t.Policies) == 0 {
+		return nil
+	}
+
+	ids := make([]string, 0, len(t.Policies))
 	for _, link := range t.Policies {
 		ids = append(ids, link.ID)
 	}
 	return ids
+}
+
+func (t *ACLToken) ServiceIdentityList() []*ACLServiceIdentity {
+	if len(t.ServiceIdentities) == 0 {
+		return nil
+	}
+
+	out := make([]*ACLServiceIdentity, 0, len(t.ServiceIdentities))
+	for _, s := range t.ServiceIdentities {
+		out = append(out, s.Clone())
+	}
+	return out
 }
 
 func (t *ACLToken) IsExpired(asOf time.Time) bool {
@@ -214,6 +301,7 @@ func (t *ACLToken) IsExpired(asOf time.Time) bool {
 
 func (t *ACLToken) UsesNonLegacyFields() bool {
 	return len(t.Policies) > 0 ||
+		len(t.ServiceIdentities) > 0 ||
 		t.Type == "" ||
 		!t.ExpirationTime.IsZero() ||
 		t.ExpirationTTL != 0
@@ -280,6 +368,10 @@ func (t *ACLToken) SetHash(force bool) []byte {
 			hash.Write([]byte(link.ID))
 		}
 
+		for _, srvid := range t.ServiceIdentities {
+			srvid.AddToHash(hash)
+		}
+
 		// Finalize the hash
 		hashVal := hash.Sum(nil)
 
@@ -295,6 +387,12 @@ func (t *ACLToken) EstimateSize() int {
 	for _, link := range t.Policies {
 		size += len(link.ID) + len(link.Name)
 	}
+	for _, srvid := range t.ServiceIdentities {
+		size += len(srvid.ServiceName)
+		for _, dc := range srvid.Datacenters {
+			size += len(dc)
+		}
+	}
 	return size
 }
 
@@ -302,32 +400,34 @@ func (t *ACLToken) EstimateSize() int {
 type ACLTokens []*ACLToken
 
 type ACLTokenListStub struct {
-	AccessorID     string
-	Description    string
-	Policies       []ACLTokenPolicyLink
-	Local          bool
-	ExpirationTime time.Time `json:",omitempty"`
-	CreateTime     time.Time `json:",omitempty"`
-	Hash           []byte
-	CreateIndex    uint64
-	ModifyIndex    uint64
-	Legacy         bool `json:",omitempty"`
+	AccessorID        string
+	Description       string
+	Policies          []ACLTokenPolicyLink  `json:",omitempty"`
+	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
+	Local             bool
+	ExpirationTime    time.Time `json:",omitempty"`
+	CreateTime        time.Time `json:",omitempty"`
+	Hash              []byte
+	CreateIndex       uint64
+	ModifyIndex       uint64
+	Legacy            bool `json:",omitempty"`
 }
 
 type ACLTokenListStubs []*ACLTokenListStub
 
 func (token *ACLToken) Stub() *ACLTokenListStub {
 	return &ACLTokenListStub{
-		AccessorID:     token.AccessorID,
-		Description:    token.Description,
-		Policies:       token.Policies,
-		Local:          token.Local,
-		ExpirationTime: token.ExpirationTime,
-		CreateTime:     token.CreateTime,
-		Hash:           token.Hash,
-		CreateIndex:    token.CreateIndex,
-		ModifyIndex:    token.ModifyIndex,
-		Legacy:         token.Rules != "",
+		AccessorID:        token.AccessorID,
+		Description:       token.Description,
+		Policies:          token.Policies,
+		ServiceIdentities: token.ServiceIdentities,
+		Local:             token.Local,
+		ExpirationTime:    token.ExpirationTime,
+		CreateTime:        token.CreateTime,
+		Hash:              token.Hash,
+		CreateIndex:       token.CreateIndex,
+		ModifyIndex:       token.ModifyIndex,
+		Legacy:            token.Rules != "",
 	}
 }
 
@@ -381,11 +481,7 @@ type ACLPolicy struct {
 
 func (p *ACLPolicy) Clone() *ACLPolicy {
 	p2 := *p
-	p2.Datacenters = nil
-	if len(p.Datacenters) > 0 {
-		p2.Datacenters = make([]string, len(p.Datacenters))
-		copy(p2.Datacenters, p.Datacenters)
-	}
+	p2.Datacenters = cloneStringSlice(p.Datacenters)
 	return &p2
 }
 
@@ -764,4 +860,13 @@ type ACLPolicyBatchSetRequest struct {
 // This is particularly useful during replication
 type ACLPolicyBatchDeleteRequest struct {
 	PolicyIDs []string
+}
+
+func cloneStringSlice(s []string) []string {
+	if len(s) == 0 {
+		return nil
+	}
+	out := make([]string, len(s))
+	copy(out, s)
+	return out
 }

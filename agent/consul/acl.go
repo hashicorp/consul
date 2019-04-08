@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
 	"sync"
 	"time"
 
-	"github.com/armon/go-metrics"
+	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -133,7 +134,7 @@ type ACLResolverConfig struct {
 //   - Resolving policies remotely via an ACL.PolicyResolve RPC
 //
 // Remote Resolution:
-//   Remote resolution can be done syncrhonously or asynchronously depending
+//   Remote resolution can be done synchronously or asynchronously depending
 //   on the ACLDownPolicy in the Config passed to the resolver.
 //
 //   When the down policy is set to async-cache and we have already cached values
@@ -503,7 +504,9 @@ func (r *ACLResolver) filterPoliciesByScope(policies structs.ACLPolicies) struct
 
 func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (structs.ACLPolicies, error) {
 	policyIDs := identity.PolicyIDs()
-	if len(policyIDs) == 0 {
+	serviceIdentities := identity.ServiceIdentityList()
+
+	if len(policyIDs) == 0 && len(serviceIdentities) == 0 {
 		policy := identity.EmbeddedPolicy()
 		if policy != nil {
 			return []*structs.ACLPolicy{policy}, nil
@@ -513,9 +516,96 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 		return nil, nil
 	}
 
+	syntheticPolicies := r.synthesizePoliciesForServiceIdentities(serviceIdentities)
+
 	// For the new ACLs policy replication is mandatory for correct operation on servers. Therefore
 	// we only attempt to resolve policies locally
-	policies := make([]*structs.ACLPolicy, 0, len(policyIDs))
+	policies, err := r.collectPoliciesForIdentity(identity, policyIDs, len(syntheticPolicies))
+	if err != nil {
+		return nil, err
+	}
+
+	policies = append(policies, syntheticPolicies...)
+	filtered := r.filterPoliciesByScope(policies)
+	return filtered, nil
+}
+
+func (r *ACLResolver) synthesizePoliciesForServiceIdentities(serviceIdentities []*structs.ACLServiceIdentity) []*structs.ACLPolicy {
+	if len(serviceIdentities) == 0 {
+		return nil
+	}
+
+	// Collect and dedupe service identities. Prefer increasing datacenter scope.
+	serviceIdentities = dedupeServiceIdentities(serviceIdentities)
+
+	syntheticPolicies := make([]*structs.ACLPolicy, 0, len(serviceIdentities))
+	for _, s := range serviceIdentities {
+		syntheticPolicies = append(syntheticPolicies, s.SyntheticPolicy())
+	}
+
+	return syntheticPolicies
+}
+
+func dedupeServiceIdentities(in []*structs.ACLServiceIdentity) []*structs.ACLServiceIdentity {
+	// From: https://github.com/golang/go/wiki/SliceTricks#in-place-deduplicate-comparable
+
+	if len(in) <= 1 {
+		return in
+	}
+
+	sort.Slice(in, func(i, j int) bool {
+		return in[i].ServiceName < in[j].ServiceName
+	})
+
+	j := 0
+	for i := 1; i < len(in); i++ {
+		if in[j].ServiceName == in[i].ServiceName {
+			// Prefer increasing scope.
+			if len(in[j].Datacenters) == 0 || len(in[i].Datacenters) == 0 {
+				in[j].Datacenters = nil
+			} else {
+				in[j].Datacenters = mergeStringSlice(in[j].Datacenters, in[i].Datacenters)
+			}
+			continue
+		}
+		j++
+		in[j] = in[i]
+	}
+
+	// Discard the skipped items.
+	for i := j + 1; i < len(in); i++ {
+		in[i] = nil
+	}
+
+	return in[:j+1]
+}
+
+func mergeStringSlice(a, b []string) []string {
+	out := make([]string, 0, len(a)+len(b))
+	out = append(out, a...)
+	out = append(out, b...)
+	return dedupeStringSlice(out)
+}
+
+func dedupeStringSlice(in []string) []string {
+	// From: https://github.com/golang/go/wiki/SliceTricks#in-place-deduplicate-comparable
+
+	sort.Strings(in)
+
+	j := 0
+	for i := 1; i < len(in); i++ {
+		if in[j] == in[i] {
+			continue
+		}
+		j++
+		in[j] = in[i]
+	}
+
+	return in[:j+1]
+}
+
+func (r *ACLResolver) collectPoliciesForIdentity(identity structs.ACLIdentity, policyIDs []string, extraCap int) ([]*structs.ACLPolicy, error) {
+	policies := make([]*structs.ACLPolicy, 0, len(policyIDs)+extraCap)
 
 	// Get all associated policies
 	var missing []string
@@ -559,7 +649,7 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 
 	// Hot-path if we have no missing or expired policies
 	if len(missing)+len(expired) == 0 {
-		return r.filterPoliciesByScope(policies), nil
+		return policies, nil
 	}
 
 	hasMissing := len(missing) > 0
@@ -579,7 +669,7 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 	if !waitForResult {
 		// waitForResult being false requires that all the policies were cached already
 		policies = append(policies, expired...)
-		return r.filterPoliciesByScope(policies), nil
+		return policies, nil
 	}
 
 	res := <-waitChan
@@ -596,7 +686,7 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 		}
 	}
 
-	return r.filterPoliciesByScope(policies), nil
+	return policies, nil
 }
 
 func (r *ACLResolver) resolveTokenToPolicies(token string) (structs.ACLPolicies, error) {

@@ -25,6 +25,7 @@ type cmd struct {
 
 	policyIDs     []string
 	policyNames   []string
+	serviceIdents []string
 	expirationTTL time.Duration
 	description   string
 	local         bool
@@ -41,6 +42,9 @@ func (c *cmd) init() {
 		"policy to use for this token. May be specified multiple times")
 	c.flags.Var((*flags.AppendSliceValue)(&c.policyNames), "policy-name", "Name of a "+
 		"policy to use for this token. May be specified multiple times")
+	c.flags.Var((*flags.AppendSliceValue)(&c.serviceIdents), "service-identity", "Name of a "+
+		"service identity to use for this token. May be specified multiple times. Format is "+
+		"the SERVICENAME or SERVICENAME:DATACENTER1,DATACENTER2,...")
 	c.flags.DurationVar(&c.expirationTTL, "expires-ttl", 0, "Duration of time this "+
 		"token should be valid for")
 	c.http = &flags.HTTPFlags{}
@@ -54,8 +58,9 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	if len(c.policyNames) == 0 && len(c.policyIDs) == 0 {
-		c.UI.Error(fmt.Sprintf("Cannot create a token without specifying -policy-name or -policy-id at least once"))
+	if len(c.policyNames) == 0 && len(c.policyIDs) == 0 &&
+		len(c.serviceIdents) == 0 {
+		c.UI.Error(fmt.Sprintf("Cannot create a token without specifying -policy-name, -policy-id, or -service-identity at least once"))
 		return 1
 	}
 
@@ -72,6 +77,13 @@ func (c *cmd) Run(args []string) int {
 	if c.expirationTTL > 0 {
 		newToken.ExpirationTTL = c.expirationTTL
 	}
+
+	parsedServiceIdents, err := acl.ExtractServiceIdentities(c.serviceIdents)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+	newToken.ServiceIdentities = parsedServiceIdents
 
 	for _, policyName := range c.policyNames {
 		// We could resolve names to IDs here but there isn't any reason why its would be better
@@ -119,4 +131,7 @@ Usage: consul acl token create [options]
           $ consul acl token create -description "Replication token" \
                                     -policy-id b52fc3de-5 \
                                     -policy-name "acl-replication"
+                                    -policy-name "acl-replication" \
+                                    -service-identity "web" \
+                                    -service-identity "db:east,west"
 `

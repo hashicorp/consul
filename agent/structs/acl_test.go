@@ -140,6 +140,69 @@ func TestStructs_ACLToken_EmbeddedPolicy(t *testing.T) {
 	})
 }
 
+func TestStructs_ACLServiceIdentity_SyntheticPolicy(t *testing.T) {
+	t.Parallel()
+
+	for _, test := range []struct {
+		serviceName string
+		datacenters []string
+		expectRules string
+	}{
+		{"web", nil, `
+service "web" {
+	policy = "write"
+}
+service "web-sidecar-proxy" {
+	policy = "write"
+}
+service_prefix "" {
+	policy = "read"
+}
+node_prefix "" {
+	policy = "read"
+}`},
+		{"companion-cube-99", []string{"dc1", "dc2"}, `
+service "companion-cube-99" {
+	policy = "write"
+}
+service "companion-cube-99-sidecar-proxy" {
+	policy = "write"
+}
+service_prefix "" {
+	policy = "read"
+}
+node_prefix "" {
+	policy = "read"
+}`},
+	} {
+		name := test.serviceName
+		if len(test.datacenters) > 0 {
+			name += " [" + strings.Join(test.datacenters, ", ") + "]"
+		}
+		t.Run(name, func(t *testing.T) {
+			svcid := &ACLServiceIdentity{
+				ServiceName: test.serviceName,
+				Datacenters: test.datacenters,
+			}
+
+			expect := &ACLPolicy{
+				Syntax:      acl.SyntaxCurrent,
+				Datacenters: test.datacenters,
+				Rules:       test.expectRules,
+			}
+
+			got := svcid.SyntheticPolicy()
+			require.NotEmpty(t, got.ID)
+			require.Equal(t, got.Name, "synthetic-policy-"+got.ID)
+			// strip irrelevant fields before equality
+			got.ID = ""
+			got.Name = ""
+			got.Hash = nil
+			require.Equal(t, expect, got)
+		})
+	}
+}
+
 func TestStructs_ACLToken_SetHash(t *testing.T) {
 	t.Parallel()
 
