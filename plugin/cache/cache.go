@@ -163,6 +163,9 @@ func (w *ResponseWriter) WriteMsg(res *dns.Msg) error {
 	var duration time.Duration
 	if mt == response.NameError || mt == response.NoData {
 		duration = computeTTL(msgTTL, w.minnttl, w.nttl)
+	} else if mt == response.ServerError {
+		// use default ttl which is 5s
+		duration = minTTL
 	} else {
 		duration = computeTTL(msgTTL, w.minpttl, w.pttl)
 	}
@@ -206,7 +209,7 @@ func (w *ResponseWriter) set(m *dns.Msg, key uint64, mt response.Type, duration 
 		i := newItem(m, w.now(), duration)
 		w.pcache.Add(key, i)
 
-	case response.NameError, response.NoData:
+	case response.NameError, response.NoData, response.ServerError:
 		i := newItem(m, w.now(), duration)
 		w.ncache.Add(key, i)
 

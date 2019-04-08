@@ -88,6 +88,34 @@ var cacheTestCases = []cacheTestCase{
 		shouldCache: true,
 	},
 	{
+		RecursionAvailable: true, Authoritative: false,
+		Case: test.Case{
+			Rcode: dns.RcodeServerFailure,
+			Qname: "example.org.", Qtype: dns.TypeA,
+			Ns: []dns.RR{},
+		},
+		in: test.Case{
+			Rcode: dns.RcodeServerFailure,
+			Qname: "example.org.", Qtype: dns.TypeA,
+			Ns: []dns.RR{},
+		},
+		shouldCache: true,
+	},
+	{
+		RecursionAvailable: true, Authoritative: false,
+		Case: test.Case{
+			Rcode: dns.RcodeNotImplemented,
+			Qname: "example.org.", Qtype: dns.TypeA,
+			Ns: []dns.RR{},
+		},
+		in: test.Case{
+			Rcode: dns.RcodeNotImplemented,
+			Qname: "example.org.", Qtype: dns.TypeA,
+			Ns: []dns.RR{},
+		},
+		shouldCache: true,
+	},
+	{
 		RecursionAvailable: true, Authoritative: true,
 		Case: test.Case{
 			Qname: "miek.nl.", Qtype: dns.TypeMX,
