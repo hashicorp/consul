@@ -510,6 +510,10 @@ type RuntimeConfig struct {
 	// TLS certificates.
 	AutoEncryptTLS bool
 
+	// AutoEncryptGossip opts the agent into provisioning gossip
+	// key.
+	AutoEncryptGossip bool
+
 	// ConnectEnabled opts the agent into connect. It should be set on all clients
 	// and servers in a cluster for correct connect operation.
 	ConnectEnabled bool

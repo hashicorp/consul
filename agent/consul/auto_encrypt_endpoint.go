@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	ErrAutoEncryptTLSNotEnabled = errors.New("AutoEncrypt.TLS must be enabled in order to use this endpoint")
+	ErrAutoEncryptNotEnabled = errors.New("Either AutoEncrypt.TLS or AutoEncrypt.Gossip must be enabled in order to use this endpoint")
 )
 
 type AutoEncrypt struct {
@@ -21,23 +21,29 @@ func (a *AutoEncrypt) Sign(
 	if !a.srv.config.ConnectEnabled {
 		return ErrConnectNotEnabled
 	}
-
+	if !a.srv.config.AutoEncryptTLS && !a.srv.config.AutoEncryptGossip {
+		return ErrAutoEncryptNotEnabled
+	}
 	if done, err := a.srv.forward("AutoEncrypt.Sign", args, args, reply); done {
 		return err
 	}
 
-	cert := &structs.IssuedCert{}
-	c := &ConnectCA{srv: a.srv}
-	err := c.Sign(args, cert)
-	if err != nil {
-		return err
-	}
-	reply.CertPEM = cert.CertPEM
-	reply.Agent = cert.Agent
-	reply.AgentURI = cert.AgentURI
+	if a.srv.config.AutoEncryptTLS {
+		cert := &structs.IssuedCert{}
+		c := &ConnectCA{srv: a.srv}
+		err := c.Sign(args, cert)
+		if err != nil {
+			return err
+		}
 
-	reply.RootCAs = a.srv.tlsConfigurator.CAPems()
-	reply.VerifyServerHostname = a.srv.tlsConfigurator.VerifyServerHostname()
+		reply.Agent = cert.Agent
+		reply.AgentURI = cert.AgentURI
+		reply.CertPEM = cert.CertPEM
+		reply.RootCAs = a.srv.tlsConfigurator.CAPems()
+		reply.VerifyServerHostname = a.srv.tlsConfigurator.VerifyServerHostname()
+	}
+	if a.srv.config.AutoEncryptGossip {
+	}
 
 	return nil
 }

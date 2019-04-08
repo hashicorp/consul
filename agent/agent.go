@@ -427,6 +427,8 @@ func (a *Agent) Start() error {
 			if err != nil {
 				a.logger.Printf("[DEBUG] AutoEncrypt: update connect failed: %s", err)
 			}
+			if reply.GossipKey != "" {
+			}
 		}
 	}
 
