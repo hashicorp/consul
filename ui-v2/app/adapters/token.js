@@ -14,7 +14,9 @@ export default Adapter.extend(WithRoles, WithPolicies, {
 
   requestForQuery: function(request, { dc, index, policy }) {
     return request`
-      GET /v1/acl/tokens?${{ dc, index, policy }}
+      GET /v1/acl/tokens?${{ policy, dc }}
+
+      ${{ index }}
     `;
   },
   requestForQueryRecord: function(request, { dc, index, id }) {
@@ -22,7 +24,9 @@ export default Adapter.extend(WithRoles, WithPolicies, {
       throw new Error('You must specify an id');
     }
     return request`
-      GET /v1/acl/token/${id}?${{ dc, index }}
+      GET /v1/acl/token/${id}?${{ dc }}
+
+      ${{ index }}
     `;
   },
   requestForCreateRecord: function(request, data) {
@@ -38,9 +42,7 @@ export default Adapter.extend(WithRoles, WithPolicies, {
       data['ID'] = data['SecretID'];
       data['Name'] = data['Description'];
       return request`
-        POST /v1/acl/update?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
-
-        ${data}
+        PUT /v1/acl/update?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
       `;
     }
     if (typeof data['SecretID'] !== 'undefined') {
@@ -48,8 +50,6 @@ export default Adapter.extend(WithRoles, WithPolicies, {
     }
     return request`
       PUT /v1/acl/token/${data[SLUG_KEY]}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
-
-      ${data}
     `;
   },
   requestForDeleteRecord: function(request, data) {
@@ -57,11 +57,13 @@ export default Adapter.extend(WithRoles, WithPolicies, {
       DELETE /v1/acl/token/${data[SLUG_KEY]}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
     `;
   },
-  requestForSelf: function(request, headers, { dc, index, secret }) {
+  requestForSelf: function(request, { dc, index, secret }) {
     // do we need dc and index here?
     return request`
-      GET /v1/acl/token/self?${{ dc, index }}
+      GET /v1/acl/token/self?${{ dc }}
       X-Consul-Token: ${secret}
+
+      ${{ index }}
     `;
   },
   requestForClone: function(request, { dc, id }) {
@@ -73,10 +75,13 @@ export default Adapter.extend(WithRoles, WithPolicies, {
       PUT /v1/acl/token/${id}/clone?${{ dc }}
     `;
   },
-  self: function(store, type, snapshot) {
+  // TODO: self doesn't get passed a snapshot right now
+  // ideally it would just for consistency
+  // thing is its probably not the same shape as a 'Token'
+  self: function(store, type, unserialized) {
     const serializer = store.serializerFor(type.modelName);
-    const unserialized = this.snapshotToJSON(snapshot, type);
-    const serialized = serializer.serialize(snapshot, {});
+    // const unserialized = this.snapshotToJSON(snapshot, type);
+    const serialized = unserialized; //serializer.serialize(snapshot, {});
     return get(this, 'client')
       .request(request => this.requestForSelf(request, unserialized), serialized)
       .then(respond => serializer.respondForQueryRecord(respond, unserialized));

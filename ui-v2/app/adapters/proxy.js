@@ -5,7 +5,9 @@ export default Adapter.extend({
       throw new Error('You must specify an id');
     }
     return request`
-      GET /v1/catalog/connect/${id}?${{ dc, index }}
+      GET /v1/catalog/connect/${id}?${{ dc }}
+
+      ${{ index }}
     `;
   },
 });

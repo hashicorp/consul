@@ -2,7 +2,9 @@ import Adapter from './application';
 export default Adapter.extend({
   requestForQuery: function(request, { dc, index, id }) {
     return request`
-      GET /v1/internal/ui/nodes?${{ dc, index }}
+      GET /v1/internal/ui/nodes?${{ dc }}
+
+      ${{ index }}
     `;
   },
   requestForQueryRecord: function(request, { dc, index, id }) {
@@ -10,7 +12,9 @@ export default Adapter.extend({
       throw new Error('You must specify an id');
     }
     return request`
-      GET /v1/internal/ui/node/${id}?${{ dc, index }}
+      GET /v1/internal/ui/node/${id}?${{ dc }}
+
+      ${{ index }}
     `;
   },
 });
