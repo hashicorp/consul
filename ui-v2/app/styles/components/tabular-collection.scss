@@ -3,10 +3,6 @@ table.dom-recycling {
   @extend %dom-recycling-table;
 }
 /* project specific */
-%dom-recycling-table {
-  /* minimum of 4x50px heigh rows plus top/bottom margins*/
-  min-height: 249px;
-}
 %dom-recycling-table tbody {
   /* tbodys are all absolute so,*/
   /* make room for the header */
