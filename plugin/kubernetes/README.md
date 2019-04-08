@@ -39,7 +39,7 @@ kubernetes [ZONES...] {
     labels EXPRESSION
     pods POD-MODE
     endpoint_pod_names
-    upstream [ADDRESS...]
+    upstream
     ttl TTL
     noendpoints
     transfer to ADDRESS...
@@ -60,7 +60,7 @@ kubernetes [ZONES...] {
 * `namespace_labels` **EXPRESSION** only expose the records for Kubernetes namespaces that match this label selector.
    The label selector syntax is described in the
    [Kubernetes User Guide - Labels](http://kubernetes.io/docs/user-guide/labels/). An example that
-   only exposes namespaces labeled as "istio-injection=enabled", would use: 
+   only exposes namespaces labeled as "istio-injection=enabled", would use:
    `labels istio-injection=enabled`.
 * `labels` **EXPRESSION** only exposes the records for Kubernetes objects that match this label selector.
    The label selector syntax is described in the
@@ -90,10 +90,9 @@ kubernetes [ZONES...] {
    follows: Use the hostname of the endpoint, or if hostname is not set, use the
    pod name of the pod targeted by the endpoint. If there is no pod targeted by
    the endpoint, use the dashed IP address form.
-* `upstream` [**ADDRESS**...] defines the upstream resolvers used for resolving services
-  that point to external hosts (aka External Services, aka CNAMEs).  If no **ADDRESS** is given, CoreDNS
-  will resolve External Services against itself. **ADDRESS** can be an IP, an IP:port, or a path
-  to a file structured like resolv.conf.
+* `upstream` defines the upstream resolvers used for resolving services
+  that point to external hosts (aka External Services, aka CNAMEs).  CoreDNS
+  will resolve External Services against itself.
 * `ttl` allows you to set a custom TTL for responses. The default is 5 seconds.  The minimum TTL allowed is
   0 seconds, and the maximum is capped at 3600 seconds. Setting TTL to 0 will prevent records from being cached.
 * `noendpoints` will turn off the serving of endpoint records by disabling the watch on endpoints.

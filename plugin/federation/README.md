@@ -23,8 +23,9 @@ federation [ZONES...] {
 
 * Each **NAME** and **DOMAIN** defines federation membership. One entry for each. A duplicate
   **NAME** will silently overwrite any previous value.
-* `upstream` [**ADDRESS**...] resolve the `CNAME` target produced by this plugin.  CoreDNS
-  will resolve External Services against itself.
+* `upstream` resolve the `CNAME` target produced by this plugin.  CoreDNS
+  will resolve External Services against itself and needs the *forward* plugin to be active to do
+  so.
 
 ## Examples
 
@@ -38,18 +39,6 @@ Here we handle all service requests in the `prod` and `stage` federations.
         staging staging.feddomain.com
         upstream
     }
-}
-~~~
-
-Or slightly shorter:
-
-~~~
-cluster.local {
-    kubernetes
-    federation {
-        prod prod.feddomain.com
-        staging staging.feddomain.com
-        upstream
-    }
+    forward . 192.168.1.12
 }
 ~~~

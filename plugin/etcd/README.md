@@ -32,7 +32,7 @@ etcd [ZONES...] {
     path PATH
     endpoint ENDPOINT...
     credentials USERNAME PASSWORD
-    upstream [ADDRESS...]
+    upstream
     tls CERT KEY CACERT
 }
 ~~~
@@ -46,9 +46,7 @@ etcd [ZONES...] {
 * `credentials` is used to set the **USERNAME** and **PASSWORD** for accessing the etcd cluster.
 * `upstream` upstream resolvers to be used resolve external names found in etcd (think CNAMEs)
   pointing to external names. If you want CoreDNS to act as a proxy for clients, you'll need to add
-  the *forward* plugin. If no **ADDRESS** is given, CoreDNS will resolve CNAMEs against itself.
-  **ADDRESS** can be an IP address, and IP:port or a string pointing to a file that is structured
-  as /etc/resolv.conf.
+  the *forward* plugin.
 * `tls` followed by:
 
     * no arguments, if the server certificate is signed by a system-installed CA and no client cert is needed
