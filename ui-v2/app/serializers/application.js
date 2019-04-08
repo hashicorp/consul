@@ -46,14 +46,7 @@ export default Serializer.extend({
         body = data;
       }
       // Creates need a primaryKey adding
-      return {
-        ...body,
-        ...{
-          [primaryKey]: this.fingerprint(primaryKey, slugKey, data[DATACENTER_KEY])({
-            [slugKey]: body[slugKey],
-          })[primaryKey],
-        },
-      };
+      return this.fingerprint(primaryKey, slugKey, data[DATACENTER_KEY])(body);
     });
   },
   respondForUpdateRecord: function(respond, data) {
@@ -64,15 +57,7 @@ export default Serializer.extend({
       if (body === true) {
         body = data;
       }
-
-      // Updates only need the primaryKey/uid returning
-      return {
-        [primaryKey]: this.fingerprint(primaryKey, slugKey, data[DATACENTER_KEY])({
-          [slugKey]: body[slugKey],
-        })[primaryKey],
-      };
-      // TODO: Should updates return the entire object or the uid only
-      // return this.fingerprint(this.primaryKey, this.slugKey, data[DATACENTER_KEY])(body)
+      return this.fingerprint(primaryKey, slugKey, data[DATACENTER_KEY])(body);
     });
   },
   respondForDeleteRecord: function(respond, data) {
