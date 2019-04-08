@@ -6,7 +6,9 @@ import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 export default Adapter.extend({
   requestForQuery: function(request, { dc, index, id }) {
     return request`
-      GET /v1/acl/policies?${{ dc, index }}
+      GET /v1/acl/policies?${{ dc }}
+
+      ${{ index }}
     `;
   },
   requestForQueryRecord: function(request, { dc, index, id }) {
@@ -14,7 +16,9 @@ export default Adapter.extend({
       throw new Error('You must specify an id');
     }
     return request`
-      GET /v1/acl/policy/${id}?${{ dc, index }}
+      GET /v1/acl/policy/${id}?${{ dc }}
+
+      ${{ index }}
     `;
   },
   requestForCreateRecord: function(request, data) {

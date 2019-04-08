@@ -13,7 +13,9 @@ export default Adapter.extend({
       throw new Error('You must specify an id');
     }
     return request`
-      GET /v1/kv/${keyToArray(id)}?${{ [API_KEYS_KEY]: null, dc, index, separator }}
+      GET /v1/kv/${keyToArray(id)}?${{ [API_KEYS_KEY]: null, dc, separator }}
+
+      ${{ index }}
     `;
   },
   requestForQueryRecord: function(request, { dc, index, id }) {
@@ -21,17 +23,21 @@ export default Adapter.extend({
       throw new Error('You must specify an id');
     }
     return request`
-      GET /v1/kv/${keyToArray(id)}?${{ dc, index }}
+      GET /v1/kv/${keyToArray(id)}?${{ dc }}
+
+      ${{ index }}
     `;
   },
   requestForCreateRecord: function(request, data) {
     return request`
       PUT /v1/kv/${keyToArray(data[SLUG_KEY])}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
+      Content-Type: application/x-www-form-urlencoded
     `;
   },
   requestForUpdateRecord: function(request, data) {
     return request`
       PUT /v1/kv/${keyToArray(data[SLUG_KEY])}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
+      Content-Type: application/x-www-form-urlencoded
     `;
   },
   requestForDeleteRecord: function(request, data) {

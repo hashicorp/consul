@@ -9,7 +9,9 @@ export default Adapter.extend({
   requestForQuery: function(request, { dc, index }) {
     // https://www.consul.io/api/acl.html#list-acls
     return request`
-      GET /v1/acl/list?${{ dc, index }}
+      GET /v1/acl/list?${{ dc }}
+
+      ${{ index }}
     `;
   },
   requestForQueryRecord: function(request, { dc, index, id }) {
@@ -18,7 +20,9 @@ export default Adapter.extend({
     }
     // https://www.consul.io/api/acl.html#read-acl-token
     return request`
-      GET /v1/acl/info/${id}?${{ dc, index }}
+      GET /v1/acl/info/${id}?${{ dc }}
+
+      ${{ index }}
     `;
   },
   requestForCreateRecord: function(request, data) {

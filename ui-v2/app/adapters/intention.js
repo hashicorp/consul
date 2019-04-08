@@ -4,7 +4,9 @@ import { SLUG_KEY } from 'consul-ui/models/intention';
 export default Adapter.extend({
   requestForQuery: function(request, { dc, index, id }) {
     return request`
-      GET /v1/connect/intentions?${{ dc, index }}
+      GET /v1/connect/intentions?${{ dc }}
+
+      ${{ index }}
     `;
   },
   requestForQueryRecord: function(request, { dc, index, id }) {
@@ -12,7 +14,9 @@ export default Adapter.extend({
       throw new Error('You must specify an id');
     }
     return request`
-      GET /v1/connect/intentions/${id}?${{ dc, index }}
+      GET /v1/connect/intentions/${id}?${{ dc }}
+
+      ${{ index }}
     `;
   },
   requestForCreateRecord: function(request, data) {
