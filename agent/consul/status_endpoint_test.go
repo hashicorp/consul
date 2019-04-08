@@ -27,27 +27,16 @@ func rpcClient(t *testing.T, s *Server) rpc.ClientCodec {
 
 func insecureRPCClient(t *testing.T, s *Server, c tlsutil.Config) rpc.ClientCodec {
 	addr := s.config.RPCAdvertise
-	conn, err := net.DialTimeout("tcp", addr.String(), time.Second)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	// Write the Consul RPC byte to set the mode
-	conn.Write([]byte{byte(pool.RPCTLSInsecure)})
-
 	configurator, err := tlsutil.NewConfigurator(c, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	configurator.EnableAutoEncryptModeStartup()
 	wrap := configurator.OutgoingRPCWrapper()
 	if wrap == nil {
 		t.Fatalf("wrapper shouldn't be nil")
 	}
-	conn, err = wrap(s.config.Datacenter, conn)
-	if err != nil {
-		conn.Close()
-		t.Fatalf("err: %v", err)
-	}
-
+	conn, _, err := pool.DialTimeoutWithRPCType(s.config.Datacenter, addr, nil, time.Second, true, wrap, pool.RPCTLSInsecure)
 	return msgpackrpc.NewClientCodec(conn)
 }
 

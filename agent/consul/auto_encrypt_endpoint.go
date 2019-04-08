@@ -36,10 +36,8 @@ func (a *AutoEncrypt) Sign(
 	reply.Agent = cert.Agent
 	reply.AgentURI = cert.AgentURI
 
-	pems := a.srv.tlsConfigurator.CAPems()
-	if len(pems) > 0 {
-		reply.RootCAs = pems[0]
-	}
+	reply.RootCAs = a.srv.tlsConfigurator.CAPems()
+	reply.VerifyServerHostname = a.srv.tlsConfigurator.VerifyServerHostname()
 
 	return nil
 }

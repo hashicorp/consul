@@ -419,7 +419,15 @@ func (a *Agent) Start() error {
 		a.delegate = client
 
 		// TODO (hans): add a.config.RetryJoinLAN, but make sure to deal with autodisover
-		client.AutoEncrypt(a.config.StartJoinAddrsLAN, a.tokens.AgentToken())
+		reply, priv, err := client.AutoEncrypt(a.config.StartJoinAddrsLAN, a.config.ServerPort, a.tokens.AgentToken())
+		if err != nil {
+			a.logger.Printf("[DEBUG] AutoEncrypt: request failed: %s", err)
+		} else {
+			err := a.tlsConfigurator.UpdateConnect(reply.RootCAs, reply.CertPEM, priv, reply.VerifyServerHostname)
+			if err != nil {
+				a.logger.Printf("[DEBUG] AutoEncrypt: request failed: %s", err)
+			}
+		}
 	}
 
 	// the staggering of the state syncing depends on the cluster size.

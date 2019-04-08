@@ -19,8 +19,6 @@ import (
 func TestAutoEncryptSign(t *testing.T) {
 	t.Parallel()
 
-	c := tlsutil.Config{AutoEncryptTLS: true}
-
 	dir, s := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = true
 		c.CAFile = "../../test/client_certs/rootca.crt"
@@ -29,6 +27,7 @@ func TestAutoEncryptSign(t *testing.T) {
 	})
 	defer os.RemoveAll(dir)
 	defer s.Shutdown()
+	c := tlsutil.Config{}
 	codec := insecureRPCClient(t, s, c)
 	defer codec.Close()
 
@@ -64,5 +63,5 @@ func TestAutoEncryptSign(t *testing.T) {
 
 	// Verify other fields
 	require.Equal(t, "uuid", reply.Agent)
-	require.Len(t, reply.RootCAs, 1)
+	require.Len(t, reply.RootCAs, 2)
 }

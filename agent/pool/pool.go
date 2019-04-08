@@ -133,8 +133,8 @@ type ConnPool struct {
 	// The maximum number of open streams to keep
 	MaxStreams int
 
-	// TLS wrapper
-	TLSWrapper tlsutil.DCWrapper
+	// TLSConfigurator
+	TLSConfigurator *tlsutil.Configurator
 
 	// ForceTLS is used to enforce outgoing TLS verification
 	ForceTLS bool
@@ -271,8 +271,22 @@ type HalfCloser interface {
 func (p *ConnPool) DialTimeout(dc string, addr net.Addr, timeout time.Duration, useTLS bool) (net.Conn, HalfCloser, error) {
 	p.once.Do(p.init)
 
+	return DialTimeoutWithRPCType(dc, addr, p.SrcAddr, timeout, useTLS || p.ForceTLS, p.TLSConfigurator.OutgoingRPCWrapper(), RPCTLS)
+}
+
+func (p *ConnPool) DialTimeoutInsecure(dc string, addr net.Addr, timeout time.Duration, wrapper tlsutil.DCWrapper) (net.Conn, HalfCloser, error) {
+	p.once.Do(p.init)
+
+	if wrapper == nil {
+		return nil, nil, fmt.Errorf("wrapper cannot be nil")
+	}
+
+	return DialTimeoutWithRPCType(dc, addr, p.SrcAddr, timeout, true, wrapper, RPCTLSInsecure)
+}
+
+func DialTimeoutWithRPCType(dc string, addr net.Addr, src *net.TCPAddr, timeout time.Duration, useTLS bool, wrapper tlsutil.DCWrapper, rpcType RPCType) (net.Conn, HalfCloser, error) {
 	// Try to dial the conn
-	d := &net.Dialer{LocalAddr: p.SrcAddr, Timeout: timeout}
+	d := &net.Dialer{LocalAddr: src, Timeout: timeout}
 	conn, err := d.Dial("tcp", addr.String())
 	if err != nil {
 		return nil, nil, err
@@ -287,15 +301,15 @@ func (p *ConnPool) DialTimeout(dc string, addr net.Addr, timeout time.Duration, 
 	}
 
 	// Check if TLS is enabled
-	if (useTLS || p.ForceTLS) && p.TLSWrapper != nil {
+	if (useTLS) && wrapper != nil {
 		// Switch the connection into TLS mode
-		if _, err := conn.Write([]byte{byte(RPCTLS)}); err != nil {
+		if _, err := conn.Write([]byte{byte(rpcType)}); err != nil {
 			conn.Close()
 			return nil, nil, err
 		}
 
 		// Wrap the connection in a TLS client
-		tlsConn, err := p.TLSWrapper(dc, conn)
+		tlsConn, err := wrapper(dc, conn)
 		if err != nil {
 			conn.Close()
 			return nil, nil, err
@@ -304,44 +318,6 @@ func (p *ConnPool) DialTimeout(dc string, addr net.Addr, timeout time.Duration, 
 	}
 
 	return conn, hc, nil
-}
-
-func (p *ConnPool) DialTimeoutInsecure(dc string, addr net.Addr, timeout time.Duration, wrapper tlsutil.DCWrapper) (net.Conn, HalfCloser, error) {
-	p.once.Do(p.init)
-
-	if wrapper == nil {
-		return nil, nil, fmt.Errorf("wrapper cannot be nil")
-	}
-
-	// Try to dial the conn
-	d := &net.Dialer{LocalAddr: p.SrcAddr, Timeout: timeout}
-	conn, err := d.Dial("tcp", addr.String())
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// Cast to TCPConn
-	var hc HalfCloser
-	if tcp, ok := conn.(*net.TCPConn); ok {
-		tcp.SetKeepAlive(true)
-		tcp.SetNoDelay(true)
-		hc = tcp
-	}
-
-	// Switch the connection into TLS insecure mode
-	if _, err := conn.Write([]byte{byte(RPCTLSInsecure)}); err != nil {
-		conn.Close()
-		return nil, nil, err
-	}
-
-	// Wrap the connection in a TLS client
-	tlsConn, err := wrapper(dc, conn)
-	if err != nil {
-		conn.Close()
-		return nil, nil, err
-	}
-
-	return tlsConn, hc, nil
 }
 
 // getNewConn is used to return a new connection

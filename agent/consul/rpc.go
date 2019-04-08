@@ -110,7 +110,7 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 		s.handleSnapshotConn(conn)
 
 	case pool.RPCTLSInsecure:
-		conn = tls.Server(conn, s.tlsConfigurator.IncomingRequireAnyClientCertRPCConfig())
+		conn = tls.Server(conn, s.tlsConfigurator.IncomingInsecureRPCConfig())
 		s.handleInsecureConn(conn)
 
 	default:

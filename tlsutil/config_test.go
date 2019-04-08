@@ -405,7 +405,7 @@ func TestConfigurator_ErrorPropagation(t *testing.T) {
 			require.NoError(t, err, info)
 			pems, err := loadCAs(v.config.CAFile, v.config.CAPath)
 			require.NoError(t, err, info)
-			pool, err := combinedPool(pems, "")
+			pool, err := combinedPool(pems, nil)
 			require.NoError(t, err, info)
 			err3 = c.check(v.config, pool, cert, nil)
 		}
@@ -464,7 +464,7 @@ func TestConfigurator_loadCAs(t *testing.T) {
 	}
 	for i, v := range variants {
 		pems, err1 := loadCAs(v.cafile, v.capath)
-		pool, err2 := combinedPool(pems, "")
+		pool, err2 := combinedPool(pems, nil)
 		info := fmt.Sprintf("case %d", i)
 		if v.shouldErr {
 			if err1 == nil && err2 == nil {
@@ -625,24 +625,12 @@ func TestConfigurator_OutgoingRPCTLSDisabled(t *testing.T) {
 		info := fmt.Sprintf("case %d", i)
 		pems, err := loadCAs(v.file, v.path)
 		require.NoError(t, err, info)
-		pool, err := combinedPool(pems, "")
+		pool, err := combinedPool(pems, nil)
 		require.NoError(t, err, info)
 		c.caPool = pool
 		c.base.VerifyOutgoing = v.verify
 		require.Equal(t, v.expected, c.outgoingRPCTLSDisabled(), info)
 	}
-}
-
-func TestConfigurator_SomeValuesFromConfig(t *testing.T) {
-	c := Configurator{base: &Config{
-		VerifyServerHostname: true,
-		VerifyOutgoing:       true,
-		Domain:               "abc.de",
-	}}
-	one, two, three := c.someValuesFromConfig()
-	require.Equal(t, c.base.VerifyServerHostname, one)
-	require.Equal(t, c.base.VerifyOutgoing, two)
-	require.Equal(t, c.base.Domain, three)
 }
 
 func TestConfigurator_VerifyIncomingRPC(t *testing.T) {
