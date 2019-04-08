@@ -11,14 +11,14 @@
       <tr data-test-tabular-row onclick={{action 'click'}}>
           {{#yield-slot 'row'}}{{yield item index}}{{/yield-slot}}
           <td class="actions">
-            <label for={{concat name '-summary-' index '-toggle'}}><span>Show details</span></label>
+            <label for={{concat inputId index}}><span>Show details</span></label>
           </td>
       </tr>
       <tr>
         <td colspan="3">
-          <input type="checkbox" value={{index}} name={{name}} id={{{ concat name '-summary-' index '-toggle'}}} onchange={{action 'change' item}} />
+          <input type="checkbox" value={{index}} name={{name}} id={{concat inputId index}} onchange={{action 'change' item}} />
           <div>
-            <label for={{concat name '-summary-' index '-toggle'}}><span>Hide details</span></label>
+            <label for={{concat inputId index}}><span>Hide details</span></label>
             <div>
               {{#yield-slot 'details'}}
                 {{yield item index}}
