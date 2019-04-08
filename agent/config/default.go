@@ -162,6 +162,7 @@ func DevSource() Source {
 		}
 		auto_encrypt = {
 			tls = true
+			gossip = true
 		}
 		performance = {
 			raft_multiplier = 1

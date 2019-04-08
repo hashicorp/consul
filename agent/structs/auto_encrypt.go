@@ -5,5 +5,6 @@ type SignResponse struct {
 	AgentURI             string   `json:",omitempty"`
 	CertPEM              string   `json:",omitempty"`
 	RootCAs              []string `json:",omitempty"`
+	GossipKey            string   `json:",omitempty"`
 	VerifyServerHostname bool     `json:",omitempty"`
 }
