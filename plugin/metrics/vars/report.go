@@ -40,24 +40,24 @@ func Report(server string, req request.Request, zone, rcode string, size int, st
 }
 
 var monitorType = map[uint16]struct{}{
-	dns.TypeAAAA:   struct{}{},
-	dns.TypeA:      struct{}{},
-	dns.TypeCNAME:  struct{}{},
-	dns.TypeDNSKEY: struct{}{},
-	dns.TypeDS:     struct{}{},
-	dns.TypeMX:     struct{}{},
-	dns.TypeNSEC3:  struct{}{},
-	dns.TypeNSEC:   struct{}{},
-	dns.TypeNS:     struct{}{},
-	dns.TypePTR:    struct{}{},
-	dns.TypeRRSIG:  struct{}{},
-	dns.TypeSOA:    struct{}{},
-	dns.TypeSRV:    struct{}{},
-	dns.TypeTXT:    struct{}{},
+	dns.TypeAAAA:   {},
+	dns.TypeA:      {},
+	dns.TypeCNAME:  {},
+	dns.TypeDNSKEY: {},
+	dns.TypeDS:     {},
+	dns.TypeMX:     {},
+	dns.TypeNSEC3:  {},
+	dns.TypeNSEC:   {},
+	dns.TypeNS:     {},
+	dns.TypePTR:    {},
+	dns.TypeRRSIG:  {},
+	dns.TypeSOA:    {},
+	dns.TypeSRV:    {},
+	dns.TypeTXT:    {},
 	// Meta Qtypes
-	dns.TypeIXFR: struct{}{},
-	dns.TypeAXFR: struct{}{},
-	dns.TypeANY:  struct{}{},
+	dns.TypeIXFR: {},
+	dns.TypeAXFR: {},
+	dns.TypeANY:  {},
 }
 
 const other = "other"

@@ -53,7 +53,7 @@ type dnsControl struct {
 
 	client kubernetes.Interface
 
-	selector labels.Selector
+	selector          labels.Selector
 	namespaceSelector labels.Selector
 
 	svcController cache.Controller
@@ -84,10 +84,10 @@ type dnsControlOpts struct {
 	ignoreEmptyService bool
 
 	// Label handling.
-	labelSelector *meta.LabelSelector
-	selector      labels.Selector
+	labelSelector          *meta.LabelSelector
+	selector               labels.Selector
 	namespaceLabelSelector *meta.LabelSelector
-	namespaceSelector labels.Selector
+	namespaceSelector      labels.Selector
 
 	zones            []string
 	endpointNameMode bool
@@ -96,12 +96,12 @@ type dnsControlOpts struct {
 // newDNSController creates a controller for CoreDNS.
 func newdnsController(kubeClient kubernetes.Interface, opts dnsControlOpts) *dnsControl {
 	dns := dnsControl{
-		client:           kubeClient,
-		selector:         opts.selector,
+		client:            kubeClient,
+		selector:          opts.selector,
 		namespaceSelector: opts.namespaceSelector,
-		stopCh:           make(chan struct{}),
-		zones:            opts.zones,
-		endpointNameMode: opts.endpointNameMode,
+		stopCh:            make(chan struct{}),
+		zones:             opts.zones,
+		endpointNameMode:  opts.endpointNameMode,
 	}
 
 	dns.svcLister, dns.svcController = object.NewIndexerInformer(

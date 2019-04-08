@@ -18,71 +18,71 @@ func TestLogParse(t *testing.T) {
 		{`log`, false, []Rule{{
 			NameScope: ".",
 			Format:    DefaultLogFormat,
-			Class:     map[response.Class]struct{}{response.All: struct{}{}},
+			Class:     map[response.Class]struct{}{response.All: {}},
 		}}},
 		{`log example.org`, false, []Rule{{
 			NameScope: "example.org.",
 			Format:    DefaultLogFormat,
-			Class:     map[response.Class]struct{}{response.All: struct{}{}},
+			Class:     map[response.Class]struct{}{response.All: {}},
 		}}},
 		{`log example.org. {common}`, false, []Rule{{
 			NameScope: "example.org.",
 			Format:    CommonLogFormat,
-			Class:     map[response.Class]struct{}{response.All: struct{}{}},
+			Class:     map[response.Class]struct{}{response.All: {}},
 		}}},
 		{`log example.org {combined}`, false, []Rule{{
 			NameScope: "example.org.",
 			Format:    CombinedLogFormat,
-			Class:     map[response.Class]struct{}{response.All: struct{}{}},
+			Class:     map[response.Class]struct{}{response.All: {}},
 		}}},
 		{`log example.org.
 		log example.net {combined}`, false, []Rule{{
 			NameScope: "example.org.",
 			Format:    DefaultLogFormat,
-			Class:     map[response.Class]struct{}{response.All: struct{}{}},
+			Class:     map[response.Class]struct{}{response.All: {}},
 		}, {
 			NameScope: "example.net.",
 			Format:    CombinedLogFormat,
-			Class:     map[response.Class]struct{}{response.All: struct{}{}},
+			Class:     map[response.Class]struct{}{response.All: {}},
 		}}},
 		{`log example.org {host}
 			  log example.org {when}`, false, []Rule{{
 			NameScope: "example.org.",
 			Format:    "{host}",
-			Class:     map[response.Class]struct{}{response.All: struct{}{}},
+			Class:     map[response.Class]struct{}{response.All: {}},
 		}, {
 			NameScope: "example.org.",
 			Format:    "{when}",
-			Class:     map[response.Class]struct{}{response.All: struct{}{}},
+			Class:     map[response.Class]struct{}{response.All: {}},
 		}}},
 		{`log example.org example.net`, false, []Rule{{
 			NameScope: "example.org.",
 			Format:    DefaultLogFormat,
-			Class:     map[response.Class]struct{}{response.All: struct{}{}},
+			Class:     map[response.Class]struct{}{response.All: {}},
 		}, {
 			NameScope: "example.net.",
 			Format:    DefaultLogFormat,
-			Class:     map[response.Class]struct{}{response.All: struct{}{}},
+			Class:     map[response.Class]struct{}{response.All: {}},
 		}}},
 		{`log example.org example.net {host}`, false, []Rule{{
 			NameScope: "example.org.",
 			Format:    "{host}",
-			Class:     map[response.Class]struct{}{response.All: struct{}{}},
+			Class:     map[response.Class]struct{}{response.All: {}},
 		}, {
 			NameScope: "example.net.",
 			Format:    "{host}",
-			Class:     map[response.Class]struct{}{response.All: struct{}{}},
+			Class:     map[response.Class]struct{}{response.All: {}},
 		}}},
 		{`log example.org example.net {when} {
 			class denial
 		}`, false, []Rule{{
 			NameScope: "example.org.",
 			Format:    "{when}",
-			Class:     map[response.Class]struct{}{response.Denial: struct{}{}},
+			Class:     map[response.Class]struct{}{response.Denial: {}},
 		}, {
 			NameScope: "example.net.",
 			Format:    "{when}",
-			Class:     map[response.Class]struct{}{response.Denial: struct{}{}},
+			Class:     map[response.Class]struct{}{response.Denial: {}},
 		}}},
 
 		{`log example.org {
@@ -90,28 +90,28 @@ func TestLogParse(t *testing.T) {
 			}`, false, []Rule{{
 			NameScope: "example.org.",
 			Format:    CommonLogFormat,
-			Class:     map[response.Class]struct{}{response.All: struct{}{}},
+			Class:     map[response.Class]struct{}{response.All: {}},
 		}}},
 		{`log example.org {
 			class denial
 		}`, false, []Rule{{
 			NameScope: "example.org.",
 			Format:    CommonLogFormat,
-			Class:     map[response.Class]struct{}{response.Denial: struct{}{}},
+			Class:     map[response.Class]struct{}{response.Denial: {}},
 		}}},
 		{`log {
 			class denial
 		}`, false, []Rule{{
 			NameScope: ".",
 			Format:    CommonLogFormat,
-			Class:     map[response.Class]struct{}{response.Denial: struct{}{}},
+			Class:     map[response.Class]struct{}{response.Denial: {}},
 		}}},
 		{`log {
 			class denial error
 		}`, false, []Rule{{
 			NameScope: ".",
 			Format:    CommonLogFormat,
-			Class:     map[response.Class]struct{}{response.Denial: struct{}{}, response.Error: struct{}{}},
+			Class:     map[response.Class]struct{}{response.Denial: {}, response.Error: {}},
 		}}},
 		{`log {
 			class denial
@@ -119,7 +119,7 @@ func TestLogParse(t *testing.T) {
 		}`, false, []Rule{{
 			NameScope: ".",
 			Format:    CommonLogFormat,
-			Class:     map[response.Class]struct{}{response.Denial: struct{}{}, response.Error: struct{}{}},
+			Class:     map[response.Class]struct{}{response.Denial: {}, response.Error: {}},
 		}}},
 		{`log {
 			class abracadabra

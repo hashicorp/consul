@@ -5,13 +5,13 @@ import (
 )
 
 func TestFilteredNamespaceExists(t *testing.T) {
-	tests := []struct{
+	tests := []struct {
 		expected             bool
 		kubernetesNamespaces map[string]struct{}
 		testNamespace        string
 	}{
-		{true, map[string]struct{}{}, "foobar" },
-		{false, map[string]struct{}{}, "nsnoexist" },
+		{true, map[string]struct{}{}, "foobar"},
+		{false, map[string]struct{}{}, "nsnoexist"},
 	}
 
 	k := Kubernetes{}
@@ -26,15 +26,15 @@ func TestFilteredNamespaceExists(t *testing.T) {
 }
 
 func TestNamespaceExposed(t *testing.T) {
-	tests := []struct{
+	tests := []struct {
 		expected             bool
 		kubernetesNamespaces map[string]struct{}
 		testNamespace        string
 	}{
-		{true, map[string]struct{}{ "foobar": {} }, "foobar" },
-		{false, map[string]struct{}{ "foobar": {} }, "nsnoexist" },
-		{true, map[string]struct{}{}, "foobar" },
-		{true, map[string]struct{}{}, "nsnoexist" },
+		{true, map[string]struct{}{"foobar": {}}, "foobar"},
+		{false, map[string]struct{}{"foobar": {}}, "nsnoexist"},
+		{true, map[string]struct{}{}, "foobar"},
+		{true, map[string]struct{}{}, "nsnoexist"},
 	}
 
 	k := Kubernetes{}
@@ -49,15 +49,15 @@ func TestNamespaceExposed(t *testing.T) {
 }
 
 func TestNamespaceValid(t *testing.T) {
-	tests := []struct{
+	tests := []struct {
 		expected             bool
 		kubernetesNamespaces map[string]struct{}
 		testNamespace        string
 	}{
-		{true, map[string]struct{}{ "foobar": {} }, "foobar" },
-		{false, map[string]struct{}{ "foobar": {} }, "nsnoexist" },
-		{true, map[string]struct{}{}, "foobar" },
-		{false, map[string]struct{}{}, "nsnoexist" },
+		{true, map[string]struct{}{"foobar": {}}, "foobar"},
+		{false, map[string]struct{}{"foobar": {}}, "nsnoexist"},
+		{true, map[string]struct{}{}, "foobar"},
+		{false, map[string]struct{}{}, "nsnoexist"},
 	}
 
 	k := Kubernetes{}
