@@ -1,11 +1,16 @@
 package state
 
 import (
+	"math/rand"
+	"strconv"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
+	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 )
 
@@ -45,6 +50,13 @@ func setupExtraPolicies(t *testing.T, s *Store) {
 			Name:        "node-read",
 			Description: "Allows reading all node information",
 			Rules:       `node_prefix "" { policy = "read" }`,
+			Syntax:      acl.SyntaxCurrent,
+		},
+		&structs.ACLPolicy{
+			ID:          "9386ecae-6677-4686-bcd4-5ab9d86cca1d",
+			Name:        "agent-read",
+			Description: "Allows reading all node information",
+			Rules:       `agent_prefix "" { policy = "read" }`,
 			Syntax:      acl.SyntaxCurrent,
 		},
 	}
@@ -94,23 +106,6 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 		Type: structs.ACLTokenTypeManagement,
 	}
 
-	stripIrrelevantFields := func(token *structs.ACLToken) *structs.ACLToken {
-		tokenCopy := token.Clone()
-		// When comparing the tokens disregard the policy link names.  This
-		// data is not cleanly updated in a variety of scenarios and should not
-		// be relied upon.
-		for i, _ := range tokenCopy.Policies {
-			tokenCopy.Policies[i].Name = ""
-		}
-		// The raft indexes won't match either because the requester will not
-		// have access to that.
-		tokenCopy.RaftIndex = structs.RaftIndex{}
-		return tokenCopy
-	}
-	compareTokens := func(expected, actual *structs.ACLToken) {
-		require.Equal(t, stripIrrelevantFields(expected), stripIrrelevantFields(actual))
-	}
-
 	s := testStateStore(t)
 	setupGlobalManagement(t, s)
 
@@ -143,7 +138,7 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 	_, tokens, err := s.ACLTokenList(nil, true, true, "")
 	require.NoError(t, err)
 	require.Len(t, tokens, 1)
-	compareTokens(token1, tokens[0])
+	compareTokens(t, token1, tokens[0])
 
 	// bootstrap reset
 	err = s.ACLBootstrap(32, index-1, token2.Clone(), false)
@@ -175,10 +170,10 @@ func TestStateStore_ACLToken_SetGet_Legacy(t *testing.T) {
 			},
 		}
 
-		require.NoError(t, s.ACLTokenSet(2, token, false))
+		require.NoError(t, s.ACLTokenSet(2, token.Clone(), false))
 
 		// legacy flag is set so it should disallow setting this token
-		err := s.ACLTokenSet(3, token, true)
+		err := s.ACLTokenSet(3, token.Clone(), true)
 		require.Error(t, err)
 	})
 
@@ -190,10 +185,10 @@ func TestStateStore_ACLToken_SetGet_Legacy(t *testing.T) {
 			SecretID:   "c0056225-5785-43b3-9b77-3954f06d6aee",
 		}
 
-		require.NoError(t, s.ACLTokenSet(2, token, false))
+		require.NoError(t, s.ACLTokenSet(2, token.Clone(), false))
 
 		// legacy flag is set so it should disallow setting this token
-		err := s.ACLTokenSet(3, token, true)
+		err := s.ACLTokenSet(3, token.Clone(), true)
 		require.Error(t, err)
 	})
 
@@ -206,7 +201,7 @@ func TestStateStore_ACLToken_SetGet_Legacy(t *testing.T) {
 			Rules:    `service "" { policy = "read" }`,
 		}
 
-		require.NoError(t, s.ACLTokenSet(2, token, true))
+		require.NoError(t, s.ACLTokenSet(2, token.Clone(), true))
 
 		idx, rtoken, err := s.ACLTokenGetBySecret(nil, token.SecretID)
 		require.NoError(t, err)
@@ -230,7 +225,7 @@ func TestStateStore_ACLToken_SetGet_Legacy(t *testing.T) {
 			Rules:    `service "" { policy = "read" }`,
 		}
 
-		require.NoError(t, s.ACLTokenSet(2, original, true))
+		require.NoError(t, s.ACLTokenSet(2, original.Clone(), true))
 
 		updatedRules := `service "" { policy = "read" } service "foo" { policy = "deny"}`
 		update := &structs.ACLToken{
@@ -239,7 +234,7 @@ func TestStateStore_ACLToken_SetGet_Legacy(t *testing.T) {
 			Rules:    updatedRules,
 		}
 
-		require.NoError(t, s.ACLTokenSet(3, update, true))
+		require.NoError(t, s.ACLTokenSet(3, update.Clone(), true))
 
 		idx, rtoken, err := s.ACLTokenGetBySecret(nil, original.SecretID)
 		require.NoError(t, err)
@@ -265,7 +260,7 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 			AccessorID: "39171632-6f34-4411-827f-9416403687f4",
 		}
 
-		err := s.ACLTokenSet(2, token, false)
+		err := s.ACLTokenSet(2, token.Clone(), false)
 		require.Error(t, err)
 		require.Equal(t, ErrMissingACLTokenSecret, err)
 	})
@@ -277,7 +272,7 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 			SecretID: "39171632-6f34-4411-827f-9416403687f4",
 		}
 
-		err := s.ACLTokenSet(2, token, false)
+		err := s.ACLTokenSet(2, token.Clone(), false)
 		require.Error(t, err)
 		require.Equal(t, ErrMissingACLTokenAccessor, err)
 	})
@@ -295,7 +290,7 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 			},
 		}
 
-		err := s.ACLTokenSet(2, token, false)
+		err := s.ACLTokenSet(2, token.Clone(), false)
 		require.Error(t, err)
 	})
 
@@ -312,7 +307,7 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 			},
 		}
 
-		err := s.ACLTokenSet(2, token, false)
+		err := s.ACLTokenSet(2, token.Clone(), false)
 		require.Error(t, err)
 	})
 
@@ -329,13 +324,12 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 			},
 		}
 
-		require.NoError(t, s.ACLTokenSet(2, token, false))
+		require.NoError(t, s.ACLTokenSet(2, token.Clone(), false))
 
 		idx, rtoken, err := s.ACLTokenGetByAccessor(nil, "daf37c07-d04d-4fd5-9678-a8206a57d61a")
 		require.NoError(t, err)
 		require.Equal(t, uint64(2), idx)
-		// pointer equality
-		require.True(t, rtoken == token)
+		compareTokens(t, token, rtoken)
 		require.Equal(t, uint64(2), rtoken.CreateIndex)
 		require.Equal(t, uint64(2), rtoken.ModifyIndex)
 		require.Len(t, rtoken.Policies, 1)
@@ -355,7 +349,7 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 			},
 		}
 
-		require.NoError(t, s.ACLTokenSet(2, token, false))
+		require.NoError(t, s.ACLTokenSet(2, token.Clone(), false))
 
 		updated := &structs.ACLToken{
 			AccessorID: "daf37c07-d04d-4fd5-9678-a8206a57d61a",
@@ -367,13 +361,12 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 			},
 		}
 
-		require.NoError(t, s.ACLTokenSet(3, updated, false))
+		require.NoError(t, s.ACLTokenSet(3, updated.Clone(), false))
 
 		idx, rtoken, err := s.ACLTokenGetByAccessor(nil, "daf37c07-d04d-4fd5-9678-a8206a57d61a")
 		require.NoError(t, err)
 		require.Equal(t, uint64(3), idx)
-		// pointer equality
-		require.True(t, rtoken == updated)
+		compareTokens(t, updated, rtoken)
 		require.Equal(t, uint64(2), rtoken.CreateIndex)
 		require.Equal(t, uint64(3), rtoken.ModifyIndex)
 		require.Len(t, rtoken.Policies, 1)
@@ -945,7 +938,7 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 			Local: true,
 		}
 
-		require.NoError(t, s.ACLTokenSet(2, token, false))
+		require.NoError(t, s.ACLTokenSet(2, token.Clone(), false))
 
 		_, rtoken, err := s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b")
 		require.NoError(t, err)
@@ -973,7 +966,7 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 			Local: true,
 		}
 
-		require.NoError(t, s.ACLTokenSet(2, token, false))
+		require.NoError(t, s.ACLTokenSet(2, token.Clone(), false))
 
 		_, rtoken, err := s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b")
 		require.NoError(t, err)
@@ -1183,7 +1176,7 @@ func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
 		// this creates the node read policy which we can update
 		s := testACLTokensStateStore(t)
 
-		update := structs.ACLPolicy{
+		update := &structs.ACLPolicy{
 			ID:          "a0625e95-9b3e-42de-a8d6-ceef5b6f3286",
 			Name:        "node-read-modified",
 			Description: "Modified",
@@ -1192,19 +1185,29 @@ func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
 			Datacenters: []string{"dc1", "dc2"},
 		}
 
-		require.NoError(t, s.ACLPolicySet(3, &update))
+		require.NoError(t, s.ACLPolicySet(3, update.Clone()))
 
+		expect := update.Clone()
+		expect.CreateIndex = 2
+		expect.ModifyIndex = 3
+
+		// policy found via id
 		idx, rpolicy, err := s.ACLPolicyGetByID(nil, "a0625e95-9b3e-42de-a8d6-ceef5b6f3286")
+		require.NoError(t, err)
+		require.Equal(t, uint64(3), idx)
+		require.Equal(t, expect, rpolicy)
+
+		// policy no longer found via old name
+		idx, rpolicy, err = s.ACLPolicyGetByName(nil, "node-read")
 		require.Equal(t, uint64(3), idx)
 		require.NoError(t, err)
-		require.NotNil(t, rpolicy)
-		require.Equal(t, "node-read-modified", rpolicy.Name)
-		require.Equal(t, "Modified", rpolicy.Description)
-		require.Equal(t, `node_prefix "" { policy = "read" } node "secret" { policy = "deny" }`, rpolicy.Rules)
-		require.Equal(t, acl.SyntaxCurrent, rpolicy.Syntax)
-		require.ElementsMatch(t, []string{"dc1", "dc2"}, rpolicy.Datacenters)
-		require.Equal(t, uint64(2), rpolicy.CreateIndex)
-		require.Equal(t, uint64(3), rpolicy.ModifyIndex)
+		require.Nil(t, rpolicy)
+
+		// policy is found via new name
+		idx, rpolicy, err = s.ACLPolicyGetByName(nil, "node-read-modified")
+		require.NoError(t, err)
+		require.Equal(t, uint64(3), idx)
+		require.Equal(t, expect, rpolicy)
 	})
 }
 
@@ -1631,4 +1634,167 @@ func TestStateStore_ACLPolicies_Snapshot_Restore(t *testing.T) {
 		require.ElementsMatch(t, policies, res)
 		require.Equal(t, uint64(2), s.maxIndex("acl-policies"))
 	}()
+}
+
+func TestTokenPoliciesIndex(t *testing.T) {
+	lib.SeedMathRand()
+
+	idIndex := &memdb.IndexSchema{
+		Name:         "id",
+		AllowMissing: false,
+		Unique:       true,
+		Indexer:      &memdb.StringFieldIndex{Field: "AccessorID", Lowercase: false},
+	}
+	globalIndex := &memdb.IndexSchema{
+		Name:         "global",
+		AllowMissing: true,
+		Unique:       false,
+		Indexer:      &TokenExpirationIndex{LocalFilter: false},
+	}
+	localIndex := &memdb.IndexSchema{
+		Name:         "local",
+		AllowMissing: true,
+		Unique:       false,
+		Indexer:      &TokenExpirationIndex{LocalFilter: true},
+	}
+	schema := &memdb.DBSchema{
+		Tables: map[string]*memdb.TableSchema{
+			"test": &memdb.TableSchema{
+				Name: "test",
+				Indexes: map[string]*memdb.IndexSchema{
+					"id":     idIndex,
+					"global": globalIndex,
+					"local":  localIndex,
+				},
+			},
+		},
+	}
+
+	knownUUIDs := make(map[string]struct{})
+	newUUID := func() string {
+		for {
+			ret, err := uuid.GenerateUUID()
+			require.NoError(t, err)
+			if _, ok := knownUUIDs[ret]; !ok {
+				knownUUIDs[ret] = struct{}{}
+				return ret
+			}
+		}
+	}
+
+	baseTime := time.Date(2010, 12, 31, 11, 30, 7, 0, time.UTC)
+
+	newToken := func(local bool, desc string, expTime time.Time) *structs.ACLToken {
+		return &structs.ACLToken{
+			AccessorID:     newUUID(),
+			SecretID:       newUUID(),
+			Description:    desc,
+			Local:          local,
+			ExpirationTime: expTime,
+			CreateTime:     baseTime,
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 9,
+				ModifyIndex: 10,
+			},
+		}
+	}
+
+	db, err := memdb.NewMemDB(schema)
+	require.NoError(t, err)
+
+	dumpItems := func(index string) ([]string, error) {
+		tx := db.Txn(false)
+		defer tx.Abort()
+
+		iter, err := tx.Get("test", index)
+		if err != nil {
+			return nil, err
+		}
+
+		var out []string
+		for raw := iter.Next(); raw != nil; raw = iter.Next() {
+			tok := raw.(*structs.ACLToken)
+			out = append(out, tok.Description)
+		}
+
+		return out, nil
+	}
+
+	{ // insert things with no expiration time
+		tx := db.Txn(true)
+		for i := 0; i < 10; i++ {
+			tok := newToken(i%2 != 1, "tok["+strconv.Itoa(i)+"]", time.Time{})
+
+			require.NoError(t, tx.Insert("test", tok))
+		}
+		tx.Commit()
+	}
+
+	t.Run("no expiration", func(t *testing.T) {
+		dump, err := dumpItems("local")
+		require.NoError(t, err)
+		require.Len(t, dump, 0)
+
+		dump, err = dumpItems("global")
+		require.NoError(t, err)
+		require.Len(t, dump, 0)
+	})
+
+	{ // insert things with laddered expiration time, inserted in random order
+		var tokens []*structs.ACLToken
+		for i := 0; i < 10; i++ {
+			expTime := baseTime.Add(time.Duration(i+1) * time.Minute)
+			tok := newToken(i%2 == 0, "exp-tok["+strconv.Itoa(i)+"]", expTime)
+			tokens = append(tokens, tok)
+		}
+		rand.Shuffle(len(tokens), func(i, j int) {
+			tokens[i], tokens[j] = tokens[j], tokens[i]
+		})
+
+		tx := db.Txn(true)
+		for _, tok := range tokens {
+			require.NoError(t, tx.Insert("test", tok))
+		}
+		tx.Commit()
+	}
+
+	t.Run("mixed expiration", func(t *testing.T) {
+		dump, err := dumpItems("local")
+		require.NoError(t, err)
+		require.ElementsMatch(t, []string{
+			"exp-tok[0]",
+			"exp-tok[2]",
+			"exp-tok[4]",
+			"exp-tok[6]",
+			"exp-tok[8]",
+		}, dump)
+
+		dump, err = dumpItems("global")
+		require.NoError(t, err)
+		require.ElementsMatch(t, []string{
+			"exp-tok[1]",
+			"exp-tok[3]",
+			"exp-tok[5]",
+			"exp-tok[7]",
+			"exp-tok[9]",
+		}, dump)
+	})
+}
+
+func stripIrrelevantTokenFields(token *structs.ACLToken) *structs.ACLToken {
+	tokenCopy := token.Clone()
+	// When comparing the tokens disregard the policy link names.  This
+	// data is not cleanly updated in a variety of scenarios and should not
+	// be relied upon.
+	for i, _ := range tokenCopy.Policies {
+		tokenCopy.Policies[i].Name = ""
+	}
+	// The raft indexes won't match either because the requester will not
+	// have access to that.
+	tokenCopy.RaftIndex = structs.RaftIndex{}
+	return tokenCopy
+}
+
+func compareTokens(t *testing.T, expected, actual *structs.ACLToken) {
+	require.Equal(t, stripIrrelevantTokenFields(expected), stripIrrelevantTokenFields(actual))
 }

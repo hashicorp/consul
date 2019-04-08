@@ -630,6 +630,8 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
+		c.ACLTokenMinExpirationTTL = 10 * time.Millisecond
+		c.ACLTokenMaxExpirationTTL = 5 * time.Second
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -638,14 +640,12 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	token, err := upsertTestToken(codec, "root", "dc1")
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
 	acl := ACL{srv: s1}
 
 	t.Run("exists and matches what we created", func(t *testing.T) {
+		token, err := upsertTestToken(codec, "root", "dc1", nil)
+		require.NoError(t, err)
+
 		req := structs.ACLTokenGetRequest{
 			Datacenter:   "dc1",
 			TokenID:      token.AccessorID,
@@ -655,12 +655,50 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 
 		resp := structs.ACLTokenResponse{}
 
-		err := acl.TokenRead(&req, &resp)
+		err = acl.TokenRead(&req, &resp)
 		require.NoError(t, err)
 
 		if !reflect.DeepEqual(resp.Token, token) {
 			t.Fatalf("tokens are not equal: %v != %v", resp.Token, token)
 		}
+	})
+
+	t.Run("expired tokens are filtered", func(t *testing.T) {
+		// insert a token that will expire
+		token, err := upsertTestToken(codec, "root", "dc1", func(t *structs.ACLToken) {
+			t.ExpirationTTL = 20 * time.Millisecond
+		})
+		require.NoError(t, err)
+
+		t.Run("readable until expiration", func(t *testing.T) {
+			req := structs.ACLTokenGetRequest{
+				Datacenter:   "dc1",
+				TokenID:      token.AccessorID,
+				TokenIDType:  structs.ACLTokenAccessor,
+				QueryOptions: structs.QueryOptions{Token: "root"},
+			}
+
+			resp := structs.ACLTokenResponse{}
+
+			require.NoError(t, acl.TokenRead(&req, &resp))
+			require.Equal(t, token, resp.Token)
+		})
+
+		time.Sleep(50 * time.Millisecond)
+
+		t.Run("not returned when expired", func(t *testing.T) {
+			req := structs.ACLTokenGetRequest{
+				Datacenter:   "dc1",
+				TokenID:      token.AccessorID,
+				TokenIDType:  structs.ACLTokenAccessor,
+				QueryOptions: structs.QueryOptions{Token: "root"},
+			}
+
+			resp := structs.ACLTokenResponse{}
+
+			require.NoError(t, acl.TokenRead(&req, &resp))
+			require.Nil(t, resp.Token)
+		})
 	})
 
 	t.Run("nil when token does not exist", func(t *testing.T) {
@@ -704,6 +742,8 @@ func TestACLEndpoint_TokenClone(t *testing.T) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
+		c.ACLTokenMinExpirationTTL = 10 * time.Millisecond
+		c.ACLTokenMaxExpirationTTL = 5 * time.Second
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -712,28 +752,52 @@ func TestACLEndpoint_TokenClone(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	t1, err := upsertTestToken(codec, "root", "dc1")
+	t1, err := upsertTestToken(codec, "root", "dc1", nil)
 	require.NoError(t, err)
 
-	acl := ACL{srv: s1}
+	endpoint := ACL{srv: s1}
 
-	req := structs.ACLTokenSetRequest{
-		Datacenter:   "dc1",
-		ACLToken:     structs.ACLToken{AccessorID: t1.AccessorID},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
+	t.Run("normal", func(t *testing.T) {
+		req := structs.ACLTokenSetRequest{
+			Datacenter:   "dc1",
+			ACLToken:     structs.ACLToken{AccessorID: t1.AccessorID},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
 
-	t2 := structs.ACLToken{}
+		t2 := structs.ACLToken{}
 
-	err = acl.TokenClone(&req, &t2)
-	require.NoError(t, err)
+		err = endpoint.TokenClone(&req, &t2)
+		require.NoError(t, err)
 
-	require.Equal(t, t1.Description, t2.Description)
-	require.Equal(t, t1.Policies, t2.Policies)
-	require.Equal(t, t1.Rules, t2.Rules)
-	require.Equal(t, t1.Local, t2.Local)
-	require.NotEqual(t, t1.AccessorID, t2.AccessorID)
-	require.NotEqual(t, t1.SecretID, t2.SecretID)
+		require.Equal(t, t1.Description, t2.Description)
+		require.Equal(t, t1.Policies, t2.Policies)
+		require.Equal(t, t1.Rules, t2.Rules)
+		require.Equal(t, t1.Local, t2.Local)
+		require.NotEqual(t, t1.AccessorID, t2.AccessorID)
+		require.NotEqual(t, t1.SecretID, t2.SecretID)
+	})
+
+	t.Run("can't clone expired token", func(t *testing.T) {
+		// insert a token that will expire
+		t1, err := upsertTestToken(codec, "root", "dc1", func(t *structs.ACLToken) {
+			t.ExpirationTTL = 11 * time.Millisecond
+		})
+		require.NoError(t, err)
+
+		time.Sleep(30 * time.Millisecond)
+
+		req := structs.ACLTokenSetRequest{
+			Datacenter:   "dc1",
+			ACLToken:     structs.ACLToken{AccessorID: t1.AccessorID},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		t2 := structs.ACLToken{}
+
+		err = endpoint.TokenClone(&req, &t2)
+		require.Error(t, err)
+		require.Equal(t, acl.ErrNotFound, err)
+	})
 }
 
 func TestACLEndpoint_TokenSet(t *testing.T) {
@@ -743,6 +807,8 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
+		c.ACLTokenMinExpirationTTL = 10 * time.Millisecond
+		c.ACLTokenMaxExpirationTTL = 5 * time.Second
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -752,6 +818,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	acl := ACL{srv: s1}
+
 	var tokenID string
 
 	t.Run("Create it", func(t *testing.T) {
@@ -806,6 +873,262 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.Equal(t, token.Description, "new-description")
 		require.Equal(t, token.AccessorID, resp.AccessorID)
 	})
+
+	t.Run("Create it using Policies linked by id and name", func(t *testing.T) {
+		policy1, err := upsertTestPolicy(codec, "root", "dc1")
+		require.NoError(t, err)
+		policy2, err := upsertTestPolicy(codec, "root", "dc1")
+		require.NoError(t, err)
+
+		req := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				Description: "foobar",
+				Policies: []structs.ACLTokenPolicyLink{
+					structs.ACLTokenPolicyLink{
+						ID: policy1.ID,
+					},
+					structs.ACLTokenPolicyLink{
+						Name: policy2.Name,
+					},
+				},
+				Local: false,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		resp := structs.ACLToken{}
+
+		err = acl.TokenSet(&req, &resp)
+		require.NoError(t, err)
+
+		// Delete both policies to ensure that we skip resolving ID->Name
+		// in the returned data.
+		require.NoError(t, deleteTestPolicy(codec, "root", "dc1", policy1.ID))
+		require.NoError(t, deleteTestPolicy(codec, "root", "dc1", policy2.ID))
+
+		// Get the token directly to validate that it exists
+		tokenResp, err := retrieveTestToken(codec, "root", "dc1", resp.AccessorID)
+		require.NoError(t, err)
+		token := tokenResp.Token
+
+		require.NotNil(t, token.AccessorID)
+		require.Equal(t, token.Description, "foobar")
+		require.Equal(t, token.AccessorID, resp.AccessorID)
+
+		require.Len(t, token.Policies, 0)
+	})
+
+	for _, test := range []struct {
+		name         string
+		offset       time.Duration
+		errString    string
+		errStringTTL string
+	}{
+		{"before create time", -5 * time.Minute, "ExpirationTime cannot be before CreateTime", ""},
+		{"too soon", 1 * time.Millisecond, "ExpirationTime cannot be less than", "ExpirationTime cannot be less than"},
+		{"too distant", 25 * time.Hour, "ExpirationTime cannot be more than", "ExpirationTime cannot be more than"},
+	} {
+		t.Run("Create it with an expiration time that is "+test.name, func(t *testing.T) {
+			req := structs.ACLTokenSetRequest{
+				Datacenter: "dc1",
+				ACLToken: structs.ACLToken{
+					Description:    "foobar",
+					Policies:       nil,
+					Local:          false,
+					ExpirationTime: time.Now().Add(test.offset),
+				},
+				WriteRequest: structs.WriteRequest{Token: "root"},
+			}
+
+			resp := structs.ACLToken{}
+
+			err := acl.TokenSet(&req, &resp)
+			if test.errString != "" {
+				requireErrorContains(t, err, test.errString)
+			} else {
+				require.NotNil(t, err)
+			}
+		})
+
+		t.Run("Create it with an expiration TTL that is "+test.name, func(t *testing.T) {
+			req := structs.ACLTokenSetRequest{
+				Datacenter: "dc1",
+				ACLToken: structs.ACLToken{
+					Description:   "foobar",
+					Policies:      nil,
+					Local:         false,
+					ExpirationTTL: test.offset,
+				},
+				WriteRequest: structs.WriteRequest{Token: "root"},
+			}
+
+			resp := structs.ACLToken{}
+
+			err := acl.TokenSet(&req, &resp)
+			if test.errString != "" {
+				requireErrorContains(t, err, test.errStringTTL)
+			} else {
+				require.NotNil(t, err)
+			}
+		})
+	}
+
+	t.Run("Create it with expiration time AND expiration TTL set (error)", func(t *testing.T) {
+		req := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				Description:    "foobar",
+				Policies:       nil,
+				Local:          false,
+				ExpirationTime: time.Now().Add(4 * time.Second),
+				ExpirationTTL:  4 * time.Second,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		resp := structs.ACLToken{}
+
+		err := acl.TokenSet(&req, &resp)
+		requireErrorContains(t, err, "Expiration TTL and Expiration Time cannot both be set")
+	})
+
+	t.Run("Create it with expiration time using TTLs", func(t *testing.T) {
+		req := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				Description:   "foobar",
+				Policies:      nil,
+				Local:         false,
+				ExpirationTTL: 4 * time.Second,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		resp := structs.ACLToken{}
+
+		err := acl.TokenSet(&req, &resp)
+		require.NoError(t, err)
+
+		// Get the token directly to validate that it exists
+		tokenResp, err := retrieveTestToken(codec, "root", "dc1", resp.AccessorID)
+		require.NoError(t, err)
+		token := tokenResp.Token
+
+		expectExpTime := resp.CreateTime.Add(4 * time.Second)
+
+		require.NotNil(t, token.AccessorID)
+		require.Equal(t, token.Description, "foobar")
+		require.Equal(t, token.AccessorID, resp.AccessorID)
+		requireTimeEquals(t, expectExpTime, resp.ExpirationTime)
+
+		tokenID = token.AccessorID
+	})
+
+	var expTime time.Time
+	t.Run("Create it with expiration time", func(t *testing.T) {
+		expTime = time.Now().Add(4 * time.Second)
+		req := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				Description:    "foobar",
+				Policies:       nil,
+				Local:          false,
+				ExpirationTime: expTime,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		resp := structs.ACLToken{}
+
+		err := acl.TokenSet(&req, &resp)
+		require.NoError(t, err)
+
+		// Get the token directly to validate that it exists
+		tokenResp, err := retrieveTestToken(codec, "root", "dc1", resp.AccessorID)
+		require.NoError(t, err)
+		token := tokenResp.Token
+
+		require.NotNil(t, token.AccessorID)
+		require.Equal(t, token.Description, "foobar")
+		require.Equal(t, token.AccessorID, resp.AccessorID)
+		requireTimeEquals(t, expTime, resp.ExpirationTime)
+
+		tokenID = token.AccessorID
+	})
+
+	// do not insert another test at this point: these tests need to be serial
+
+	t.Run("Update expiration time is not allowed", func(t *testing.T) {
+		req := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				Description:    "new-description",
+				AccessorID:     tokenID,
+				ExpirationTime: expTime.Add(-1 * time.Second),
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		resp := structs.ACLToken{}
+
+		err := acl.TokenSet(&req, &resp)
+		requireErrorContains(t, err, "Cannot change expiration time")
+	})
+
+	// do not insert another test at this point: these tests need to be serial
+
+	t.Run("Update anything except expiration time is ok", func(t *testing.T) {
+		req := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				Description:    "new-description",
+				AccessorID:     tokenID,
+				ExpirationTime: expTime,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		resp := structs.ACLToken{}
+
+		err := acl.TokenSet(&req, &resp)
+		require.NoError(t, err)
+
+		// Get the token directly to validate that it exists
+		tokenResp, err := retrieveTestToken(codec, "root", "dc1", resp.AccessorID)
+		require.NoError(t, err)
+		token := tokenResp.Token
+
+		require.NotNil(t, token.AccessorID)
+		require.Equal(t, token.Description, "new-description")
+		require.Equal(t, token.AccessorID, resp.AccessorID)
+		requireTimeEquals(t, expTime, resp.ExpirationTime)
+	})
+
+	t.Run("cannot update a token that is past its expiration time", func(t *testing.T) {
+		// create a token that will expire
+		expiringToken, err := upsertTestToken(codec, "root", "dc1", func(token *structs.ACLToken) {
+			token.ExpirationTTL = 11 * time.Millisecond
+		})
+		require.NoError(t, err)
+
+		time.Sleep(20 * time.Millisecond) // now 'expiringToken' is expired
+
+		req := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				Description:   "new-description",
+				AccessorID:    expiringToken.AccessorID,
+				ExpirationTTL: 4 * time.Second,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		resp := structs.ACLToken{}
+
+		err = acl.TokenSet(&req, &resp)
+		requireErrorContains(t, err, "Cannot find token")
+	})
 }
 
 func TestACLEndpoint_TokenSet_anon(t *testing.T) {
@@ -857,6 +1180,8 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
+		c.ACLTokenMinExpirationTTL = 10 * time.Millisecond
+		c.ACLTokenMaxExpirationTTL = 5 * time.Second
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -869,6 +1194,8 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.Datacenter = "dc2"
+		c.ACLTokenMinExpirationTTL = 10 * time.Millisecond
+		c.ACLTokenMaxExpirationTTL = 5 * time.Second
 		// token replication is required to test deleting non-local tokens in secondary dc
 		c.ACLTokenReplication = true
 	})
@@ -885,11 +1212,73 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 	// Try to join
 	joinWAN(t, s2, s1)
 
-	existingToken, err := upsertTestToken(codec, "root", "dc1")
-	require.NoError(t, err)
-
 	acl := ACL{srv: s1}
 	acl2 := ACL{srv: s2}
+
+	existingToken, err := upsertTestToken(codec, "root", "dc1", nil)
+	require.NoError(t, err)
+
+	t.Run("deletes a token that has an expiration time in the future", func(t *testing.T) {
+		// create a token that will expire
+		testToken, err := upsertTestToken(codec, "root", "dc1", func(token *structs.ACLToken) {
+			token.ExpirationTTL = 4 * time.Second
+		})
+		require.NoError(t, err)
+
+		// Make sure the token is listable
+		tokenResp, err := retrieveTestToken(codec, "root", "dc1", testToken.AccessorID)
+		require.NoError(t, err)
+		require.NotNil(t, tokenResp.Token)
+
+		// Now try to delete it (this should work).
+		req := structs.ACLTokenDeleteRequest{
+			Datacenter:   "dc1",
+			TokenID:      testToken.AccessorID,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		var resp string
+
+		err = acl.TokenDelete(&req, &resp)
+		require.NoError(t, err)
+
+		// Make sure the token is gone
+		tokenResp, err = retrieveTestToken(codec, "root", "dc1", testToken.AccessorID)
+		require.NoError(t, err)
+		require.Nil(t, tokenResp.Token)
+	})
+
+	t.Run("deletes a token that is past its expiration time", func(t *testing.T) {
+		// create a token that will expire
+		expiringToken, err := upsertTestToken(codec, "root", "dc1", func(token *structs.ACLToken) {
+			token.ExpirationTTL = 11 * time.Millisecond
+		})
+		require.NoError(t, err)
+
+		time.Sleep(20 * time.Millisecond) // now 'expiringToken' is expired
+
+		// Make sure the token is not listable (filtered due to expiry)
+		tokenResp, err := retrieveTestToken(codec, "root", "dc1", expiringToken.AccessorID)
+		require.NoError(t, err)
+		require.Nil(t, tokenResp.Token)
+
+		// Now try to delete it (this should work).
+		req := structs.ACLTokenDeleteRequest{
+			Datacenter:   "dc1",
+			TokenID:      expiringToken.AccessorID,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		var resp string
+
+		err = acl.TokenDelete(&req, &resp)
+		require.NoError(t, err)
+
+		// Make sure the token is still gone (this time it's actually gone)
+		tokenResp, err = retrieveTestToken(codec, "root", "dc1", expiringToken.AccessorID)
+		require.NoError(t, err)
+		require.Nil(t, tokenResp.Token)
+	})
 
 	t.Run("deletes a token", func(t *testing.T) {
 		req := structs.ACLTokenDeleteRequest{
@@ -919,7 +1308,7 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 
 		var out structs.ACLTokenResponse
 
-		err := msgpackrpc.CallWithCodec(codec, "ACL.TokenRead", &readReq, &out)
+		err := acl.TokenRead(&readReq, &out)
 
 		require.NoError(t, err)
 
@@ -1019,6 +1408,8 @@ func TestACLEndpoint_TokenList(t *testing.T) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
+		c.ACLTokenMinExpirationTTL = 10 * time.Millisecond
+		c.ACLTokenMaxExpirationTTL = 5 * time.Second
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1027,31 +1418,74 @@ func TestACLEndpoint_TokenList(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	t1, err := upsertTestToken(codec, "root", "dc1")
-	require.NoError(t, err)
-
-	t2, err := upsertTestToken(codec, "root", "dc1")
-	require.NoError(t, err)
-
 	acl := ACL{srv: s1}
 
-	req := structs.ACLTokenListRequest{
-		Datacenter:   "dc1",
-		QueryOptions: structs.QueryOptions{Token: "root"},
-	}
-
-	resp := structs.ACLTokenListResponse{}
-
-	err = acl.TokenList(&req, &resp)
+	t1, err := upsertTestToken(codec, "root", "dc1", nil)
 	require.NoError(t, err)
 
-	tokens := []string{t1.AccessorID, t2.AccessorID}
-	var retrievedTokens []string
+	t2, err := upsertTestToken(codec, "root", "dc1", nil)
+	require.NoError(t, err)
 
-	for _, v := range resp.Tokens {
-		retrievedTokens = append(retrievedTokens, v.AccessorID)
-	}
-	require.Subset(t, retrievedTokens, tokens)
+	t3, err := upsertTestToken(codec, "root", "dc1", func(token *structs.ACLToken) {
+		token.ExpirationTTL = 11 * time.Millisecond
+	})
+	require.NoError(t, err)
+
+	masterTokenAccessorID, err := retrieveTestTokenAccessorForSecret(codec, "root", "dc1", "root")
+	require.NoError(t, err)
+
+	t.Run("normal", func(t *testing.T) {
+		req := structs.ACLTokenListRequest{
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Token: "root"},
+		}
+
+		resp := structs.ACLTokenListResponse{}
+
+		err = acl.TokenList(&req, &resp)
+		require.NoError(t, err)
+
+		tokens := []string{
+			masterTokenAccessorID,
+			structs.ACLTokenAnonymousID,
+			t1.AccessorID,
+			t2.AccessorID,
+			t3.AccessorID,
+		}
+
+		var retrievedTokens []string
+		for _, v := range resp.Tokens {
+			retrievedTokens = append(retrievedTokens, v.AccessorID)
+		}
+		require.ElementsMatch(t, retrievedTokens, tokens)
+	})
+
+	time.Sleep(20 * time.Millisecond) // now 't3' is expired
+
+	t.Run("filter expired", func(t *testing.T) {
+		req := structs.ACLTokenListRequest{
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Token: "root"},
+		}
+
+		resp := structs.ACLTokenListResponse{}
+
+		err = acl.TokenList(&req, &resp)
+		require.NoError(t, err)
+
+		tokens := []string{
+			masterTokenAccessorID,
+			structs.ACLTokenAnonymousID,
+			t1.AccessorID,
+			t2.AccessorID,
+		}
+
+		var retrievedTokens []string
+		for _, v := range resp.Tokens {
+			retrievedTokens = append(retrievedTokens, v.AccessorID)
+		}
+		require.ElementsMatch(t, retrievedTokens, tokens)
+	})
 }
 
 func TestACLEndpoint_TokenBatchRead(t *testing.T) {
@@ -1061,6 +1495,8 @@ func TestACLEndpoint_TokenBatchRead(t *testing.T) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
+		c.ACLTokenMinExpirationTTL = 10 * time.Millisecond
+		c.ACLTokenMaxExpirationTTL = 5 * time.Second
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1069,32 +1505,64 @@ func TestACLEndpoint_TokenBatchRead(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	t1, err := upsertTestToken(codec, "root", "dc1")
-	require.NoError(t, err)
-
-	t2, err := upsertTestToken(codec, "root", "dc1")
-	require.NoError(t, err)
-
 	acl := ACL{srv: s1}
-	tokens := []string{t1.AccessorID, t2.AccessorID}
 
-	req := structs.ACLTokenBatchGetRequest{
-		Datacenter:   "dc1",
-		AccessorIDs:  tokens,
-		QueryOptions: structs.QueryOptions{Token: "root"},
-	}
-
-	resp := structs.ACLTokenBatchResponse{}
-
-	err = acl.TokenBatchRead(&req, &resp)
+	t1, err := upsertTestToken(codec, "root", "dc1", nil)
 	require.NoError(t, err)
 
-	var retrievedTokens []string
+	t2, err := upsertTestToken(codec, "root", "dc1", nil)
+	require.NoError(t, err)
 
-	for _, v := range resp.Tokens {
-		retrievedTokens = append(retrievedTokens, v.AccessorID)
-	}
-	require.EqualValues(t, retrievedTokens, tokens)
+	t3, err := upsertTestToken(codec, "root", "dc1", func(token *structs.ACLToken) {
+		token.ExpirationTTL = 4 * time.Second
+	})
+	require.NoError(t, err)
+
+	t.Run("normal", func(t *testing.T) {
+		tokens := []string{t1.AccessorID, t2.AccessorID, t3.AccessorID}
+
+		req := structs.ACLTokenBatchGetRequest{
+			Datacenter:   "dc1",
+			AccessorIDs:  tokens,
+			QueryOptions: structs.QueryOptions{Token: "root"},
+		}
+
+		resp := structs.ACLTokenBatchResponse{}
+
+		err = acl.TokenBatchRead(&req, &resp)
+		require.NoError(t, err)
+
+		var retrievedTokens []string
+
+		for _, v := range resp.Tokens {
+			retrievedTokens = append(retrievedTokens, v.AccessorID)
+		}
+		require.EqualValues(t, retrievedTokens, tokens)
+	})
+
+	time.Sleep(20 * time.Millisecond) // now 't3' is expired
+
+	t.Run("returns expired tokens", func(t *testing.T) {
+		tokens := []string{t1.AccessorID, t2.AccessorID, t3.AccessorID}
+
+		req := structs.ACLTokenBatchGetRequest{
+			Datacenter:   "dc1",
+			AccessorIDs:  tokens,
+			QueryOptions: structs.QueryOptions{Token: "root"},
+		}
+
+		resp := structs.ACLTokenBatchResponse{}
+
+		err = acl.TokenBatchRead(&req, &resp)
+		require.NoError(t, err)
+
+		var retrievedTokens []string
+
+		for _, v := range resp.Tokens {
+			retrievedTokens = append(retrievedTokens, v.AccessorID)
+		}
+		require.EqualValues(t, retrievedTokens, tokens)
+	})
 }
 
 func TestACLEndpoint_PolicyRead(t *testing.T) {
@@ -1419,13 +1887,17 @@ func TestACLEndpoint_PolicyList(t *testing.T) {
 	err = acl.PolicyList(&req, &resp)
 	require.NoError(t, err)
 
-	policies := []string{p1.ID, p2.ID}
+	policies := []string{
+		structs.ACLPolicyGlobalManagementID,
+		p1.ID,
+		p2.ID,
+	}
 	var retrievedPolicies []string
 
 	for _, v := range resp.Policies {
 		retrievedPolicies = append(retrievedPolicies, v.ID)
 	}
-	require.Subset(t, retrievedPolicies, policies)
+	require.ElementsMatch(t, retrievedPolicies, policies)
 }
 
 func TestACLEndpoint_PolicyResolve(t *testing.T) {
@@ -1491,7 +1963,8 @@ func TestACLEndpoint_PolicyResolve(t *testing.T) {
 }
 
 // upsertTestToken creates a token for testing purposes
-func upsertTestToken(codec rpc.ClientCodec, masterToken string, datacenter string) (*structs.ACLToken, error) {
+func upsertTestToken(codec rpc.ClientCodec, masterToken string, datacenter string,
+	tokenModificationFn func(token *structs.ACLToken)) (*structs.ACLToken, error) {
 	arg := structs.ACLTokenSetRequest{
 		Datacenter: datacenter,
 		ACLToken: structs.ACLToken{
@@ -1500,6 +1973,10 @@ func upsertTestToken(codec rpc.ClientCodec, masterToken string, datacenter strin
 			Policies:    nil,
 		},
 		WriteRequest: structs.WriteRequest{Token: masterToken},
+	}
+
+	if tokenModificationFn != nil {
+		tokenModificationFn(&arg.ACLToken)
 	}
 
 	var out structs.ACLToken
@@ -1515,6 +1992,29 @@ func upsertTestToken(codec rpc.ClientCodec, masterToken string, datacenter strin
 	}
 
 	return &out, nil
+}
+
+func retrieveTestTokenAccessorForSecret(codec rpc.ClientCodec, masterToken string, datacenter string, id string) (string, error) {
+	arg := structs.ACLTokenGetRequest{
+		TokenID:      "root",
+		TokenIDType:  structs.ACLTokenSecret,
+		Datacenter:   "dc1",
+		QueryOptions: structs.QueryOptions{Token: "root"},
+	}
+
+	var out structs.ACLTokenResponse
+
+	err := msgpackrpc.CallWithCodec(codec, "ACL.TokenRead", &arg, &out)
+
+	if err != nil {
+		return "", err
+	}
+
+	if out.Token == nil {
+		return "", nil
+	}
+
+	return out.Token.AccessorID, nil
 }
 
 // retrieveTestToken returns a policy for testing purposes
@@ -1535,6 +2035,18 @@ func retrieveTestToken(codec rpc.ClientCodec, masterToken string, datacenter str
 	}
 
 	return &out, nil
+}
+
+func deleteTestPolicy(codec rpc.ClientCodec, masterToken string, datacenter string, policyID string) error {
+	arg := structs.ACLPolicyDeleteRequest{
+		Datacenter:   datacenter,
+		PolicyID:     policyID,
+		WriteRequest: structs.WriteRequest{Token: masterToken},
+	}
+
+	var ignored string
+	err := msgpackrpc.CallWithCodec(codec, "ACL.PolicyDelete", &arg, &ignored)
+	return err
 }
 
 // upsertTestPolicy creates a policy for testing purposes
@@ -1585,4 +2097,21 @@ func retrieveTestPolicy(codec rpc.ClientCodec, masterToken string, datacenter st
 	}
 
 	return &out, nil
+}
+
+func requireTimeEquals(t *testing.T, expect, got time.Time) {
+	t.Helper()
+	if !expect.Equal(got) {
+		t.Fatalf("expected=%q != got=%q", expect, got)
+	}
+}
+
+func requireErrorContains(t *testing.T, err error, expectedErrorMessage string) {
+	t.Helper()
+	if err == nil {
+		t.Fatal("An error is expected but got nil.")
+	}
+	if !strings.Contains(err.Error(), expectedErrorMessage) {
+		t.Fatalf("unexpected error: %v", err)
+	}
 }

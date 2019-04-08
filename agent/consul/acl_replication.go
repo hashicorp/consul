@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/armon/go-metrics"
+	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -468,6 +468,7 @@ func (s *Server) replicateACLTokens(lastRemoteIndex uint64, ctx context.Context)
 	if err != nil {
 		return 0, false, fmt.Errorf("failed to retrieve local ACL tokens: %v", err)
 	}
+	// Do not filter by expiration times. Wait until the tokens are explicitly deleted.
 
 	// If the remote index ever goes backwards, it's a good indication that
 	// the remote side was rebuilt and we should do a full sync since we

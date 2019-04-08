@@ -10,7 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/armon/go-metrics"
+	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	ca "github.com/hashicorp/consul/agent/connect/ca"
@@ -22,7 +22,7 @@ import (
 	"github.com/hashicorp/consul/types"
 	memdb "github.com/hashicorp/go-memdb"
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/go-version"
+	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
@@ -308,6 +308,8 @@ func (s *Server) revokeLeadership() error {
 
 	s.setCAProvider(nil, nil)
 
+	s.stopACLTokenReaping()
+
 	s.stopACLUpgrade()
 
 	s.resetConsistentReadReady()
@@ -329,6 +331,7 @@ func (s *Server) initializeLegacyACL() error {
 	if err != nil {
 		return fmt.Errorf("failed to get anonymous token: %v", err)
 	}
+	// Ignoring expiration times to avoid an insertion collision.
 	if token == nil {
 		req := structs.ACLRequest{
 			Datacenter: authDC,
@@ -352,6 +355,7 @@ func (s *Server) initializeLegacyACL() error {
 		if err != nil {
 			return fmt.Errorf("failed to get master token: %v", err)
 		}
+		// Ignoring expiration times to avoid an insertion collision.
 		if token == nil {
 			req := structs.ACLRequest{
 				Datacenter: authDC,
@@ -482,6 +486,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 			if err != nil {
 				return fmt.Errorf("failed to get master token: %v", err)
 			}
+			// Ignoring expiration times to avoid an insertion collision.
 			if token == nil {
 				accessor, err := lib.GenerateUUID(s.checkTokenUUID)
 				if err != nil {
@@ -543,6 +548,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 		if err != nil {
 			return fmt.Errorf("failed to get anonymous token: %v", err)
 		}
+		// Ignoring expiration times to avoid an insertion collision.
 		if token == nil {
 			// DEPRECATED (ACL-Legacy-Compat) - Don't need to query for previous "anonymous" token
 			// check for legacy token that needs an upgrade
@@ -550,6 +556,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 			if err != nil {
 				return fmt.Errorf("failed to get anonymous token: %v", err)
 			}
+			// Ignoring expiration times to avoid an insertion collision.
 
 			// the token upgrade routine will take care of upgrading the token if a legacy version exists
 			if legacyToken == nil {
@@ -572,6 +579,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 				s.logger.Printf("[INFO] consul: Created ACL anonymous token from configuration")
 			}
 		}
+		// launch the upgrade go routine to generate accessors for everything
 		s.startACLUpgrade()
 	} else {
 		if s.UseLegacyACLs() && !upgrade {
@@ -588,7 +596,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 		s.startACLReplication()
 	}
 
-	// launch the upgrade go routine to generate accessors for everything
+	s.startACLTokenReaping()
 
 	return nil
 }
@@ -617,6 +625,7 @@ func (s *Server) startACLUpgrade() {
 			if err != nil {
 				s.logger.Printf("[WARN] acl: encountered an error while searching for tokens without accessor ids: %v", err)
 			}
+			// No need to check expiration time here, as that only exists for v2 tokens.
 
 			if len(tokens) == 0 {
 				ws := memdb.NewWatchSet()
@@ -797,10 +806,10 @@ func (s *Server) startACLReplication() {
 
 	if s.config.ACLTokenReplication {
 		replicationType = structs.ACLReplicateTokens
-
 		go func() {
 			var failedAttempts uint
 			limiter := rate.NewLimiter(rate.Limit(s.config.ACLReplicationRate), s.config.ACLReplicationBurst)
+
 			var lastRemoteIndex uint64
 			for {
 				if err := limiter.Wait(ctx); err != nil {

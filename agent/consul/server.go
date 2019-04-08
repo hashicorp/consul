@@ -109,6 +109,12 @@ type Server struct {
 	aclReplicationLock    sync.RWMutex
 	aclReplicationEnabled bool
 
+	// aclTokenReapCancel is used to shut down the ACL Token expiration reap
+	// goroutine when we lose leadership.
+	aclTokenReapCancel  context.CancelFunc
+	aclTokenReapLock    sync.RWMutex
+	aclTokenReapEnabled bool
+
 	// DEPRECATED (ACL-Legacy-Compat) - only needed while we support both
 	// useNewACLs is used to determine whether we can use new ACLs or not
 	useNewACLs int32

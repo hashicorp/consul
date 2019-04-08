@@ -192,7 +192,9 @@ Usage: consul acl token update [options]
 
         $ consul acl token update -id abcd -description "replication" -merge-policies
 
-      Update all editable fields of the token:
+    Update all editable fields of the token:
 
-          $ consul acl token update -id abcd -description "replication" -policy-name "token-replication"
+        $ consul acl token update -id abcd \
+                                  -description "replication" \
+                                  -policy-name "token-replication"
 `
