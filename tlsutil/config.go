@@ -139,26 +139,30 @@ const (
 	AutoEncryptModeEstablished
 )
 
+type connect struct {
+	caPems               []string
+	cert                 *tls.Certificate
+	verifyServerHostname bool
+}
+
 // Configurator holds a Config and is responsible for generating all the
 // *tls.Config necessary for Consul. Except the one in the api package.
 type Configurator struct {
 	sync.RWMutex
-	base                        *Config
-	cert                        *tls.Certificate
-	caPool                      *x509.CertPool
-	caPems                      []string
-	caConnect                   []string
-	certConnect                 *tls.Certificate
-	verifyServerHostnameConnect bool
-	autoEncryptMode             AutoEncryptMode
-	logger                      *log.Logger
-	version                     int
+	base            *Config
+	connect         *connect
+	cert            *tls.Certificate
+	caPool          *x509.CertPool
+	caPems          []string
+	autoEncryptMode AutoEncryptMode
+	logger          *log.Logger
+	version         int
 }
 
 // NewConfigurator creates a new Configurator and sets the provided
 // configuration.
 func NewConfigurator(config Config, logger *log.Logger) (*Configurator, error) {
-	c := &Configurator{logger: logger}
+	c := &Configurator{logger: logger, connect: &connect{}}
 	err := c.Update(config)
 	if err != nil {
 		return nil, err
@@ -170,11 +174,7 @@ func NewConfigurator(config Config, logger *log.Logger) (*Configurator, error) {
 func (c *Configurator) CAPems() []string {
 	c.RLock()
 	defer c.RUnlock()
-	manual := make([]string, len(c.caPems))
-	connect := make([]string, len(c.caConnect))
-	copy(manual, c.caPems)
-	copy(connect, c.caConnect)
-	return append(manual, connect...)
+	return append(c.caPems, c.connect.caPems...)
 }
 
 // Update updates the internal configuration which is used to generate
@@ -182,7 +182,7 @@ func (c *Configurator) CAPems() []string {
 // This function acquires a write lock because it writes the new config.
 func (c *Configurator) Update(config Config) error {
 	c.Lock()
-	// order matters because log acquires a RLock()
+	// order of defers matters because log acquires a RLock()
 	defer c.log("Update")
 	defer c.Unlock()
 
@@ -194,11 +194,11 @@ func (c *Configurator) Update(config Config) error {
 	if err != nil {
 		return err
 	}
-	pool, err := combinedPool(pems, c.caConnect)
+	pool, err := pool(append(pems, c.connect.caPems...))
 	if err != nil {
 		return err
 	}
-	if err = c.check(config, pool, cert, c.certConnect); err != nil {
+	if err = c.check(config, pool, cert); err != nil {
 		return err
 	}
 	c.base = &config
@@ -209,44 +209,34 @@ func (c *Configurator) Update(config Config) error {
 	return nil
 }
 
+// UpdateConnectCA updates the connect.caPems. This is supposed to be called
+// from the server in order to be able to accept TLS connections with TLS
+// certificates.
 func (c *Configurator) UpdateConnectCA(pems []string) error {
 	c.Lock()
-	// order matters because log acquires a RLock()
+	// order of defers matters because log acquires a RLock()
 	defer c.log("UpdateConnectCA")
 	defer c.Unlock()
 
-	pool, err := combinedPool(c.caPems, pems)
+	pool, err := pool(append(c.caPems, pems...))
 	if err != nil {
 		c.RUnlock()
 		return err
 	}
-	if err = c.check(*c.base, pool, c.cert, c.certConnect); err != nil {
+	if err = c.check(*c.base, pool, c.cert); err != nil {
 		c.RUnlock()
 		return err
 	}
-	c.caConnect = pems
+	c.connect.caPems = pems
 	c.caPool = pool
 	c.version++
 	return nil
 }
 
-// func (c *Configurator) UpdateConnectCert(pub, priv string) error {
-// 	// order matters because log acquires a RLock()
-// 	defer c.log("UpdateConnectCert")
-// 	cert, err := tls.X509KeyPair([]byte(pub), []byte(priv))
-// 	if err != nil {
-// 		return fmt.Errorf("Failed to load cert/key pair: %v", err)
-// 	}
-
-// 	c.Lock()
-// 	defer c.Unlock()
-// 	c.certConnect = &cert
-// 	c.version++
-// 	return nil
-// }
-
-func (c *Configurator) UpdateConnect(cas []string, pub, priv string, verifyServerHostname bool) error {
-	// order matters because log acquires a RLock()
+// UpdateConnect sets everything under connect. This is being called on the
+// client when it received its cert from AutoEncrypt endpoint.
+func (c *Configurator) UpdateConnect(caPems []string, pub, priv string, verifyServerHostname bool) error {
+	// order of defers matters because log acquires a RLock()
 	defer c.log("UpdateConnect")
 	cert, err := tls.X509KeyPair([]byte(pub), []byte(priv))
 	if err != nil {
@@ -256,40 +246,22 @@ func (c *Configurator) UpdateConnect(cas []string, pub, priv string, verifyServe
 	c.Lock()
 	defer c.Unlock()
 
-	pool, err := combinedPool(c.caPems, cas)
+	pool, err := pool(append(c.caPems, caPems...))
 	if err != nil {
 		return err
 	}
-	if err = c.check(*c.base, pool, c.cert, &cert); err != nil {
-		return err
-	}
-	c.caConnect = cas
-	c.certConnect = &cert
+	c.connect.caPems = caPems
+	c.connect.cert = &cert
 	c.caPool = pool
-	c.verifyServerHostnameConnect = verifyServerHostname
+	c.connect.verifyServerHostname = verifyServerHostname
 	c.autoEncryptMode = AutoEncryptModeEstablished
 	c.version++
 	return nil
 }
 
-func (c *Configurator) UpdateConnectCert(pub, priv string) error {
-	// order matters because log acquires a RLock()
-	defer c.log("UpdateConnectCert")
-	cert, err := tls.X509KeyPair([]byte(pub), []byte(priv))
-	if err != nil {
-		return fmt.Errorf("Failed to load cert/key pair: %v", err)
-	}
-
-	c.Lock()
-	defer c.Unlock()
-	c.certConnect = &cert
-	c.version++
-	return nil
-}
-
-func combinedPool(pems []string, connectCAs []string) (*x509.CertPool, error) {
+func pool(pems []string) (*x509.CertPool, error) {
 	pool := x509.NewCertPool()
-	for _, pem := range append(pems, connectCAs...) {
+	for _, pem := range pems {
 		if !pool.AppendCertsFromPEM([]byte(pem)) {
 			return nil, fmt.Errorf("Couldn't parse PEM %s", pem)
 		}
@@ -300,7 +272,7 @@ func combinedPool(pems []string, connectCAs []string) (*x509.CertPool, error) {
 	return pool, nil
 }
 
-func (c *Configurator) check(config Config, pool *x509.CertPool, cert, certConnect *tls.Certificate) error {
+func (c *Configurator) check(config Config, pool *x509.CertPool, cert *tls.Certificate) error {
 	// Check if a minimum TLS version was set
 	if config.TLSMinVersion != "" {
 		if _, ok := TLSLookup[config.TLSMinVersion]; !ok {
@@ -318,7 +290,7 @@ func (c *Configurator) check(config Config, pool *x509.CertPool, cert, certConne
 		if pool == nil {
 			return fmt.Errorf("VerifyIncoming set, and no CA certificate provided!")
 		}
-		if cert == nil && certConnect == nil {
+		if cert == nil {
 			return fmt.Errorf("VerifyIncoming set, and no Cert/Key pair provided!")
 		}
 	}
@@ -406,7 +378,7 @@ func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) *tls.C
 
 	// TODO (hans): be smarter about which cert to serve
 	tlsConfig.GetCertificate = func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
-		cert := c.certConnect
+		cert := c.connect.cert
 		if cert == nil {
 			cert = c.cert
 		}
@@ -414,7 +386,7 @@ func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) *tls.C
 		return cert, nil
 	}
 	tlsConfig.GetClientCertificate = func(*tls.CertificateRequestInfo) (*tls.Certificate, error) {
-		cert := c.certConnect
+		cert := c.connect.cert
 		if cert == nil {
 			cert = c.cert
 		}
@@ -501,7 +473,7 @@ func (c *Configurator) serverNameOrNodeName() string {
 func (c *Configurator) VerifyServerHostname() bool {
 	c.RLock()
 	defer c.RUnlock()
-	return c.base.VerifyServerHostname || c.verifyServerHostnameConnect
+	return c.base.VerifyServerHostname || c.connect.verifyServerHostname
 }
 
 // This function acquires a lock because it writes to the config.
