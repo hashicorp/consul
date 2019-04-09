@@ -74,7 +74,7 @@ require (
 	github.com/hashicorp/mdns v1.0.1 // indirect
 	github.com/hashicorp/memberlist v0.1.3
 	github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69
-	github.com/hashicorp/raft v0.0.0-20180817181211-da92cfe76e0c
+	github.com/hashicorp/raft v1.0.1-0.20190409200437-d9fe23f7d472
 	github.com/hashicorp/raft-boltdb v0.0.0-20150201200839-d1e82c1ec3f1
 	github.com/hashicorp/serf v0.8.2
 	github.com/hashicorp/vault v0.10.3
