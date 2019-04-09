@@ -27,10 +27,11 @@ The steps presented here, assume that you have launched Powershell with _Adminst
 
 Download the Consul binary for your architecture.
 
-Use the _sc_ command to create a service named **Consul**, which starts in the _dev_ mode.
+Use the _sc_ command to create a service named **Consul**, that will load configuration files from the `config-dir`. Read the agent configuration
+[documentation](/docs/agent/options.html#configuration-files) to learn more about configuration options.
 
 ```text
-sc.exe create "Consul" binPath= "Path to the Consul.exe arg1 arg2 ...argN" start= auto
+sc.exe create "Consul" binPath= "<path to the Consul.exe> -config-dir <path to configuration directory>" start= auto
 [SC] CreateService SUCCESS 
 ```
    
