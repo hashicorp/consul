@@ -5,8 +5,6 @@ GOTOOLS = \
 	github.com/mitchellh/gox \
 	golang.org/x/tools/cmd/cover \
 	golang.org/x/tools/cmd/stringer \
-	github.com/axw/gocov/gocov \
-	gopkg.in/matm/v1/gocov-html \
 	github.com/gogo/protobuf/protoc-gen-gofast \
 	github.com/vektra/mockery/cmd/mockery
 
@@ -143,8 +141,8 @@ dev-tree:
 	@$(SHELL) $(CURDIR)/build-support/scripts/dev.sh $(DEV_PUSH_ARG)
 
 cov:
-	gocov test $(GOFILES) | gocov-html > /tmp/coverage.html
-	open /tmp/coverage.html
+	go test ./... -coverprofile=coverage.out
+	go tool cover -html=coverage.out
 
 test: other-consul dev-build vet test-install-deps test-internal
 
