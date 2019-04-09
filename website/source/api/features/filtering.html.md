@@ -9,69 +9,68 @@ description: |-
 
 # Filtering
 
-Some listing endpoints support the use of a filter expression. 
-Filter expressions can be used on a requested
-set of data, prior to sending back a response. This reduces the amount of
-data returned, which is helpful for reducing load, searching, and monitoring. 
+A filter expression is used to refine a data query for the agent, heath, and catalog API list endpoints. Filtering will be executed
+on the Consul server before data is returned, reducing load. To pass a
+filter expression to Consul, with a data query, use the `filter` parameter. 
 
-A filter expression can be passed to Consul with the `filter` query parameter. For example:
-
-```text
-?filter --data [ Expression or Expression]
+```sh
+curl -G <path> --data-urlencode 'filter=<filter expression>'  
 ```
 
-Note, generally, only the main object is filtered. When filtering for
-an item within an array, the entire object that contains the full array
-will be returned. This is usually the outermost object of a response,
-but in some cases such the [`/catalog/node/:node`](api/catalog.html#list-services-for-node)
-endpoint the filtering is performed on a object embedded within the results. 
+To create a filter expression, you will write one or more expressions using matching operators, selectors, and values. 
 
+## Expression Syntax
 
-## Syntax
-
-Filtering expressions are text based. Boolean logic and parenthesization are
+Expressions are written in plain text format. Boolean logic and parenthesization are
 supported. In general whitespace is ignored, except within literal
 strings. 
 
-### Expression
+### Expressions
 
-An expression can take one of a few forms.
+There are several methods for connecting expressions, including
 
-```
+- logical `or`
+- logical `and`
+- Logical `not`
+- grouping with parenthesis
+- matching expressions
+
+```text
 // Logical Or - evaluates to true if either sub-expression does
-<Expression> or <Expression>
+<Expression 1> or <Expression 2>
 
 // Logical And - evaluates to true if both sub-expressions do
-<Expression> and <Expression>
+<Expression 1 > and <Expression 2>
 
 // Logical Not - evaluates to true if the sub-expression does not
-not <Expression>
+not <Expression 1>
 
 // Grouping - Overrides normal precedence rules
-( <Expression> )
+( <Expression 1> )
 
 // Inspects data to check for a match
-<Matching Expression>
+<Matching Expression 1>
 ```
 
 Standard operator precedence can be expected for the various forms. For
 example, the following two expressions would be equivalent.
 
-```
+```text
 <Expression 1> and not <Expression 2> or <Expression 3>
 
 ( <Expression 1> and (not <Expression 2> )) or <Expression 3>
 ```
 
-### Matching Expressions
+### Matching Operators 
 
-All matching expressions use a Selector to choose what data should be
+Matching operators are used to create an expression. All matching operators use a selector or value to choose what data should be
 matched. Each endpoint that supports filtering accepts a potentially
-different list of selectors and is detailed in the API documentation of
-those endpoints. For many matching operations a value is also required.
+different list of selectors and is detailed in the API documentation for
+those endpoints. 
+ 
 
-```
-// Equality/Inequality checks
+```text
+// Equality & Inequality checks
 <Selector> == <Value>
 <Selector> != <Value>
 
@@ -88,15 +87,14 @@ those endpoints. For many matching operations a value is also required.
 
 ### Selectors
 
-Selectors are a `.` separated list of names. Each name must start with
-a an ASCII letter and can contain ASCII letters, numbers and underscores. When
+Selectors are used by matching operators to create an expression. They are 
+defined by a `.` separated list of names. Each name must start with
+a an ASCII letter and can contain ASCII letters, numbers, and underscores. When
 part of the selector references a map value it may be expressed using the form
 `["<map key name>"]` instead of `.<map key name>`. This allows the possibility
 of using map keys that are not valid selectors in and of themselves.
 
-A few examples of selectors are:
-
-```
+```text
 // selects the foo key within the ServiceMeta mapping for the
 // /catalog/service/:service endpoint
 ServiceMeta.foo
@@ -107,14 +105,30 @@ ServiceMeta["foo"]
 
 ### Values
 
-Values can be any valid Selector, a number or a quoted string. For numbers any
+Values are used by matching operators to create an expression. Values can be any valid selector, a number, or a quoted string. For numbers any
 base 10 integers and floating point numbers are possible. For quoted strings,
 they may either be enclosed in double quotes or backticks. When enclosed in
 backticks they are treated as raw strings and escape sequences such as `\n`
 will not be expanded.
 
-## Performance
+## Filter Utilization 
+
+Generally, only the main object is filtered. When filtering for
+an item within an array, that is not at the top level, the entire array that contains the item
+will be returned. This is usually the outermost object of a response,
+but in some cases such the [`/catalog/node/:node`](api/catalog.html#list-services-for-node)
+endpoint the filtering is performed on a object embedded within the results.
+
+### Performance
 
 Filters are executed on the servers and therefore will consume some amount
 of CPU time on the server. For non-stale queries this means that the filter
 is executed on the leader.
+
+### Filtering Examples
+
+#### Agent API
+
+#### Catalog API
+
+#### Health API
