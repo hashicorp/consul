@@ -441,9 +441,6 @@ func (s *HTTPServer) AgentMembers(resp http.ResponseWriter, req *http.Request) (
 	var token string
 	s.parseToken(req, &token)
 
-	var filterExpression string
-	s.parseFilter(req, &filterExpression)
-
 	// Check if the WAN is being queried
 	wan := false
 	if other := req.URL.Query().Get("wan"); other != "" {
