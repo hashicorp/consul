@@ -413,7 +413,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	}
 
 	if s.config.ConnectEnabled {
-		go s.trackConnectCARoots()
+		go s.trackAutoEncryptCARoots()
 	}
 
 	// Serf and dynamic bind ports
@@ -508,22 +508,22 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	return s, nil
 }
 
-func (s *Server) trackConnectCARoots() {
+func (s *Server) trackAutoEncryptCARoots() {
 	for {
 		ws := memdb.NewWatchSet()
 		state := s.fsm.State()
 		ws.Add(state.AbandonCh())
 		_, cas, err := state.CARoots(ws)
 		if err != nil {
-			s.logger.Printf("[DEBUG] agent: Failed to watch Connect CARoot: %v", err)
+			s.logger.Printf("[DEBUG] agent: Failed to watch AutoEncrypt CARoot: %v", err)
 			return
 		}
 		for _, ca := range cas {
 			if ca.Active {
-				if err := s.tlsConfigurator.UpdateConnectCA([]string{ca.RootCert}); err != nil {
-					s.logger.Printf("[DEBUG] agent: Failed to update Connect CARoot: %v", err)
+				if err := s.tlsConfigurator.UpdateAutoEncryptCA([]string{ca.RootCert}); err != nil {
+					s.logger.Printf("[DEBUG] agent: Failed to update AutoEncrypt CARoot: %v", err)
 				} else {
-					s.logger.Printf("[DEBUG] agent: Updated Connect CARoot")
+					s.logger.Printf("[DEBUG] agent: Updated AutoEncrypt CARoot")
 				}
 			}
 		}

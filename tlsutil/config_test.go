@@ -393,7 +393,7 @@ func TestConfigurator_ErrorPropagation(t *testing.T) {
 		{Config{CAPath: "bogus"}, true, true},
 	}
 
-	c := Configurator{connect: &connect{}}
+	c := Configurator{autoEncrypt: &autoEncrypt{}}
 	for i, v := range variants {
 		info := fmt.Sprintf("case %d", i)
 		_, err1 := NewConfigurator(v.config, nil)
@@ -573,7 +573,7 @@ func TestConfigurator_CommonTLSConfigTLSMinVersion(t *testing.T) {
 }
 
 func TestConfigurator_CommonTLSConfigVerifyIncoming(t *testing.T) {
-	c := Configurator{base: &Config{}, connect: &connect{}}
+	c := Configurator{base: &Config{}, autoEncrypt: &autoEncrypt{}}
 	type variant struct {
 		verify     bool
 		additional bool
@@ -685,7 +685,7 @@ func TestConfigurator_IncomingRPCConfig(t *testing.T) {
 }
 
 func TestConfigurator_IncomingHTTPSConfig(t *testing.T) {
-	c := Configurator{base: &Config{}, connect: &connect{}}
+	c := Configurator{base: &Config{}, autoEncrypt: &autoEncrypt{}}
 	require.Equal(t, []string{"h2", "http/1.1"}, c.IncomingHTTPSConfig().NextProtos)
 }
 
@@ -693,7 +693,7 @@ func TestConfigurator_OutgoingTLSConfigForChecks(t *testing.T) {
 	c := Configurator{base: &Config{
 		TLSMinVersion:           "tls12",
 		EnableAgentTLSForChecks: false,
-	}, connect: &connect{}}
+	}, autoEncrypt: &autoEncrypt{}}
 	tlsConf := c.OutgoingTLSConfigForCheck(true)
 	require.Equal(t, true, tlsConf.InsecureSkipVerify)
 	require.Equal(t, uint16(0), tlsConf.MinVersion)
@@ -707,7 +707,7 @@ func TestConfigurator_OutgoingTLSConfigForChecks(t *testing.T) {
 }
 
 func TestConfigurator_OutgoingRPCConfig(t *testing.T) {
-	c := Configurator{base: &Config{}, connect: &connect{}}
+	c := Configurator{base: &Config{}, autoEncrypt: &autoEncrypt{}}
 	require.Nil(t, c.OutgoingRPCConfig())
 	c.base.VerifyOutgoing = true
 	require.NotNil(t, c.OutgoingRPCConfig())
@@ -789,32 +789,19 @@ func TestConfigurator_VerifyOutgoing(t *testing.T) {
 	require.True(t, c.verifyOutgoing())
 }
 
-func TestConfigurator_VerifyIncoming(t *testing.T) {
-	c := Configurator{base: &Config{}}
-	require.False(t, c.verifyIncoming())
-	c.autoEncryptMode = AutoEncryptModeStartup
-	require.False(t, c.verifyIncoming())
-	c.base.VerifyIncoming = true
-	c.autoEncryptMode = AutoEncryptModeNone
-	require.True(t, c.verifyIncoming())
-	c.base.VerifyIncoming = false
-	c.autoEncryptMode = AutoEncryptModeEstablished
-	require.True(t, c.verifyIncoming())
-}
-
 func TestConfigurator_Domain(t *testing.T) {
 	c := Configurator{base: &Config{Domain: "something"}}
 	require.Equal(t, "something", c.domain())
 }
 
 func TestConfigurator_VerifyServerHostname(t *testing.T) {
-	c := Configurator{base: &Config{}, connect: &connect{}}
+	c := Configurator{base: &Config{}, autoEncrypt: &autoEncrypt{}}
 	require.False(t, c.VerifyServerHostname())
 	c.base.VerifyServerHostname = true
-	c.connect.verifyServerHostname = false
+	c.autoEncrypt.verifyServerHostname = false
 	require.True(t, c.VerifyServerHostname())
 	c.base.VerifyServerHostname = false
-	c.connect.verifyServerHostname = true
+	c.autoEncrypt.verifyServerHostname = true
 	require.True(t, c.VerifyServerHostname())
 }
 
