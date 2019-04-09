@@ -393,7 +393,7 @@ func TestConfigurator_ErrorPropagation(t *testing.T) {
 		{Config{CAPath: "bogus"}, true, true},
 	}
 
-	c := &Configurator{}
+	c := Configurator{connect: &connect{}}
 	for i, v := range variants {
 		info := fmt.Sprintf("case %d", i)
 		_, err1 := NewConfigurator(v.config, nil)
@@ -405,9 +405,9 @@ func TestConfigurator_ErrorPropagation(t *testing.T) {
 			require.NoError(t, err, info)
 			pems, err := loadCAs(v.config.CAFile, v.config.CAPath)
 			require.NoError(t, err, info)
-			pool, err := combinedPool(pems, nil)
+			pool, err := pool(pems)
 			require.NoError(t, err, info)
-			err3 = c.check(v.config, pool, cert, nil)
+			err3 = c.check(v.config, pool, cert)
 		}
 		if v.shouldErr {
 			require.Error(t, err1, info)
@@ -464,7 +464,7 @@ func TestConfigurator_loadCAs(t *testing.T) {
 	}
 	for i, v := range variants {
 		pems, err1 := loadCAs(v.cafile, v.capath)
-		pool, err2 := combinedPool(pems, nil)
+		pool, err2 := pool(pems)
 		info := fmt.Sprintf("case %d", i)
 		if v.shouldErr {
 			if err1 == nil && err2 == nil {
@@ -573,7 +573,7 @@ func TestConfigurator_CommonTLSConfigTLSMinVersion(t *testing.T) {
 }
 
 func TestConfigurator_CommonTLSConfigVerifyIncoming(t *testing.T) {
-	c := Configurator{base: &Config{}}
+	c := Configurator{base: &Config{}, connect: &connect{}}
 	type variant struct {
 		verify     bool
 		additional bool
@@ -595,40 +595,51 @@ func TestConfigurator_CommonTLSConfigVerifyIncoming(t *testing.T) {
 func TestConfigurator_OutgoingRPCTLSDisabled(t *testing.T) {
 	c := Configurator{base: &Config{}}
 	type variant struct {
-		verify      bool
-		file        string
-		path        string
-		autoEncrypt bool
-		expected    bool
+		verify          bool
+		file            string
+		path            string
+		autoEncryptMode AutoEncryptMode
+		expected        bool
 	}
 	cafile := "../test/ca/root.cer"
 	capath := "../test/ca_path"
 	variants := []variant{
-		{false, "", "", false, true},
-		{false, cafile, "", false, false},
-		{false, "", capath, false, false},
-		{false, cafile, capath, false, false},
-		{false, "", "", true, true},
-		{false, cafile, "", true, false},
-		{false, "", capath, true, false},
-		{false, cafile, capath, true, false},
-		{true, "", "", false, false},
-		{true, cafile, "", false, false},
-		{true, "", capath, false, false},
-		{true, cafile, capath, false, false},
-		{true, "", "", true, false},
-		{true, cafile, "", true, false},
-		{true, "", capath, true, false},
-		{true, cafile, capath, true, false},
+		{false, "", "", AutoEncryptModeNone, true},
+		{false, cafile, "", AutoEncryptModeNone, false},
+		{false, "", capath, AutoEncryptModeNone, false},
+		{false, cafile, capath, AutoEncryptModeNone, false},
+		{true, "", "", AutoEncryptModeNone, false},
+		{true, cafile, "", AutoEncryptModeNone, false},
+		{true, "", capath, AutoEncryptModeNone, false},
+		{true, cafile, capath, AutoEncryptModeNone, false},
+
+		{false, "", "", AutoEncryptModeStartup, false},
+		{false, cafile, "", AutoEncryptModeStartup, false},
+		{false, "", capath, AutoEncryptModeStartup, false},
+		{false, cafile, capath, AutoEncryptModeStartup, false},
+		{true, "", "", AutoEncryptModeStartup, false},
+		{true, cafile, "", AutoEncryptModeStartup, false},
+		{true, "", capath, AutoEncryptModeStartup, false},
+		{true, cafile, capath, AutoEncryptModeStartup, false},
+
+		{false, "", "", AutoEncryptModeEstablished, false},
+		{false, cafile, "", AutoEncryptModeEstablished, false},
+		{false, "", capath, AutoEncryptModeEstablished, false},
+		{false, cafile, capath, AutoEncryptModeEstablished, false},
+		{true, "", "", AutoEncryptModeEstablished, false},
+		{true, cafile, "", AutoEncryptModeEstablished, false},
+		{true, "", capath, AutoEncryptModeEstablished, false},
+		{true, cafile, capath, AutoEncryptModeEstablished, false},
 	}
 	for i, v := range variants {
 		info := fmt.Sprintf("case %d", i)
 		pems, err := loadCAs(v.file, v.path)
 		require.NoError(t, err, info)
-		pool, err := combinedPool(pems, nil)
+		pool, err := pool(pems)
 		require.NoError(t, err, info)
 		c.caPool = pool
 		c.base.VerifyOutgoing = v.verify
+		c.autoEncryptMode = v.autoEncryptMode
 		require.Equal(t, v.expected, c.outgoingRPCTLSDisabled(), info)
 	}
 }
@@ -674,7 +685,7 @@ func TestConfigurator_IncomingRPCConfig(t *testing.T) {
 }
 
 func TestConfigurator_IncomingHTTPSConfig(t *testing.T) {
-	c := Configurator{base: &Config{}}
+	c := Configurator{base: &Config{}, connect: &connect{}}
 	require.Equal(t, []string{"h2", "http/1.1"}, c.IncomingHTTPSConfig().NextProtos)
 }
 
@@ -682,7 +693,7 @@ func TestConfigurator_OutgoingTLSConfigForChecks(t *testing.T) {
 	c := Configurator{base: &Config{
 		TLSMinVersion:           "tls12",
 		EnableAgentTLSForChecks: false,
-	}}
+	}, connect: &connect{}}
 	tlsConf := c.OutgoingTLSConfigForCheck(true)
 	require.Equal(t, true, tlsConf.InsecureSkipVerify)
 	require.Equal(t, uint16(0), tlsConf.MinVersion)
@@ -696,7 +707,7 @@ func TestConfigurator_OutgoingTLSConfigForChecks(t *testing.T) {
 }
 
 func TestConfigurator_OutgoingRPCConfig(t *testing.T) {
-	c := Configurator{base: &Config{}}
+	c := Configurator{base: &Config{}, connect: &connect{}}
 	require.Nil(t, c.OutgoingRPCConfig())
 	c.base.VerifyOutgoing = true
 	require.NotNil(t, c.OutgoingRPCConfig())
@@ -763,4 +774,60 @@ func TestConfigurator_ServerNameOrNodeName(t *testing.T) {
 		c.base.NodeName = v.node
 		require.Equal(t, v.expected, c.serverNameOrNodeName())
 	}
+}
+
+func TestConfigurator_VerifyOutgoing(t *testing.T) {
+	c := Configurator{base: &Config{}}
+	require.False(t, c.verifyOutgoing())
+	c.autoEncryptMode = AutoEncryptModeStartup
+	require.False(t, c.verifyOutgoing())
+	c.base.VerifyOutgoing = true
+	c.autoEncryptMode = AutoEncryptModeNone
+	require.True(t, c.verifyOutgoing())
+	c.base.VerifyOutgoing = false
+	c.autoEncryptMode = AutoEncryptModeEstablished
+	require.True(t, c.verifyOutgoing())
+}
+
+func TestConfigurator_VerifyIncoming(t *testing.T) {
+	c := Configurator{base: &Config{}}
+	require.False(t, c.verifyIncoming())
+	c.autoEncryptMode = AutoEncryptModeStartup
+	require.False(t, c.verifyIncoming())
+	c.base.VerifyIncoming = true
+	c.autoEncryptMode = AutoEncryptModeNone
+	require.True(t, c.verifyIncoming())
+	c.base.VerifyIncoming = false
+	c.autoEncryptMode = AutoEncryptModeEstablished
+	require.True(t, c.verifyIncoming())
+}
+
+func TestConfigurator_Domain(t *testing.T) {
+	c := Configurator{base: &Config{Domain: "something"}}
+	require.Equal(t, "something", c.domain())
+}
+
+func TestConfigurator_VerifyServerHostname(t *testing.T) {
+	c := Configurator{base: &Config{}, connect: &connect{}}
+	require.False(t, c.VerifyServerHostname())
+	c.base.VerifyServerHostname = true
+	c.connect.verifyServerHostname = false
+	require.True(t, c.VerifyServerHostname())
+	c.base.VerifyServerHostname = false
+	c.connect.verifyServerHostname = true
+	require.True(t, c.VerifyServerHostname())
+}
+
+func TestConfigurator_EnableAutoEncryptModeStartup(t *testing.T) {
+	c := Configurator{}
+	require.Equal(t, AutoEncryptModeNone, c.autoEncryptMode)
+	c.EnableAutoEncryptModeStartup()
+	require.Equal(t, AutoEncryptModeStartup, c.autoEncryptMode)
+}
+
+func TestConfigurator_EnableAutoEncryptModeEstablished(t *testing.T) {
+	c := Configurator{}
+	require.Equal(t, AutoEncryptModeNone, c.autoEncryptMode)
+	c.EnableAutoEncryptModeEstablished()
+	require.Equal(t, AutoEncryptModeEstablished, c.autoEncryptMode)
 }
