@@ -513,7 +513,7 @@ function update_git_env {
 
    export GIT_COMMIT=$(git rev-parse --short HEAD)
    export GIT_DIRTY=$(test -n "$(git status --porcelain)" && echo "+CHANGES")
-   export GIT_DESCRIBE=$(git describe --tags --always)
+   export GIT_DESCRIBE=$(git describe --tags --always --match "v*")
    export GIT_IMPORT=github.com/hashicorp/consul/version
    export GOLDFLAGS="-X ${GIT_IMPORT}.GitCommit=${GIT_COMMIT}${GIT_DIRTY} -X ${GIT_IMPORT}.GitDescribe=${GIT_DESCRIBE}"
    return 0
