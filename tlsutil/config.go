@@ -139,7 +139,7 @@ const (
 	AutoEncryptModeEstablished
 )
 
-type connect struct {
+type autoEncrypt struct {
 	caPems               []string
 	cert                 *tls.Certificate
 	verifyServerHostname bool
@@ -150,7 +150,7 @@ type connect struct {
 type Configurator struct {
 	sync.RWMutex
 	base            *Config
-	connect         *connect
+	autoEncrypt     *autoEncrypt
 	cert            *tls.Certificate
 	caPool          *x509.CertPool
 	caPems          []string
@@ -162,7 +162,7 @@ type Configurator struct {
 // NewConfigurator creates a new Configurator and sets the provided
 // configuration.
 func NewConfigurator(config Config, logger *log.Logger) (*Configurator, error) {
-	c := &Configurator{logger: logger, connect: &connect{}}
+	c := &Configurator{logger: logger, autoEncrypt: &autoEncrypt{}}
 	err := c.Update(config)
 	if err != nil {
 		return nil, err
@@ -174,7 +174,7 @@ func NewConfigurator(config Config, logger *log.Logger) (*Configurator, error) {
 func (c *Configurator) CAPems() []string {
 	c.RLock()
 	defer c.RUnlock()
-	return append(c.caPems, c.connect.caPems...)
+	return append(c.caPems, c.autoEncrypt.caPems...)
 }
 
 // Update updates the internal configuration which is used to generate
@@ -194,7 +194,7 @@ func (c *Configurator) Update(config Config) error {
 	if err != nil {
 		return err
 	}
-	pool, err := pool(append(pems, c.connect.caPems...))
+	pool, err := pool(append(pems, c.autoEncrypt.caPems...))
 	if err != nil {
 		return err
 	}
@@ -209,13 +209,13 @@ func (c *Configurator) Update(config Config) error {
 	return nil
 }
 
-// UpdateConnectCA updates the connect.caPems. This is supposed to be called
+// UpdateAutoEncryptCA updates the autoEncrypt.caPems. This is supposed to be called
 // from the server in order to be able to accept TLS connections with TLS
 // certificates.
-func (c *Configurator) UpdateConnectCA(pems []string) error {
+func (c *Configurator) UpdateAutoEncryptCA(pems []string) error {
 	c.Lock()
 	// order of defers matters because log acquires a RLock()
-	defer c.log("UpdateConnectCA")
+	defer c.log("UpdateAutoEncryptCA")
 	defer c.Unlock()
 
 	pool, err := pool(append(c.caPems, pems...))
@@ -227,17 +227,17 @@ func (c *Configurator) UpdateConnectCA(pems []string) error {
 		c.RUnlock()
 		return err
 	}
-	c.connect.caPems = pems
+	c.autoEncrypt.caPems = pems
 	c.caPool = pool
 	c.version++
 	return nil
 }
 
-// UpdateConnect sets everything under connect. This is being called on the
+// UpdateAutoEncrypt sets everything under autoEncrypt. This is being called on the
 // client when it received its cert from AutoEncrypt endpoint.
-func (c *Configurator) UpdateConnect(caPems []string, pub, priv string, verifyServerHostname bool) error {
+func (c *Configurator) UpdateAutoEncrypt(caPems []string, pub, priv string, verifyServerHostname bool) error {
 	// order of defers matters because log acquires a RLock()
-	defer c.log("UpdateConnect")
+	defer c.log("UpdateAutoEncrypt")
 	cert, err := tls.X509KeyPair([]byte(pub), []byte(priv))
 	if err != nil {
 		return fmt.Errorf("Failed to load cert/key pair: %v", err)
@@ -250,10 +250,10 @@ func (c *Configurator) UpdateConnect(caPems []string, pub, priv string, verifySe
 	if err != nil {
 		return err
 	}
-	c.connect.caPems = caPems
-	c.connect.cert = &cert
+	c.autoEncrypt.caPems = caPems
+	c.autoEncrypt.cert = &cert
 	c.caPool = pool
-	c.connect.verifyServerHostname = verifyServerHostname
+	c.autoEncrypt.verifyServerHostname = verifyServerHostname
 	c.autoEncryptMode = AutoEncryptModeEstablished
 	c.version++
 	return nil
@@ -361,7 +361,6 @@ func loadCAs(caFile, caPath string) ([]string, error) {
 func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) *tls.Config {
 	// this needs to be outside of RLock because it acquires an RLock itself
 	verifyServerHostname := c.VerifyServerHostname()
-	verifyIncoming := c.verifyIncoming()
 
 	c.RLock()
 	defer c.RUnlock()
@@ -376,17 +375,19 @@ func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) *tls.C
 
 	tlsConfig.PreferServerCipherSuites = c.base.PreferServerCipherSuites
 
-	// TODO (hans): be smarter about which cert to serve
+	// GetCertificate is used when acting as a server and responding to
+	// client requests. Always return the manually configured cert, because
+	// on the server this is all we have. And on the client, this is the
+	// only sensitive option.
 	tlsConfig.GetCertificate = func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
-		cert := c.connect.cert
-		if cert == nil {
-			cert = c.cert
-		}
-
-		return cert, nil
+		return c.cert, nil
 	}
+
+	// GetClientCertificate is used when acting as a client and responding
+	// to a server requesting a certificate. Return the autoEncrypt certificate
+	// if possible, otherwise default to the manually provisioned one.
 	tlsConfig.GetClientCertificate = func(*tls.CertificateRequestInfo) (*tls.Certificate, error) {
-		cert := c.connect.cert
+		cert := c.autoEncrypt.cert
 		if cert == nil {
 			cert = c.cert
 		}
@@ -403,7 +404,7 @@ func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) *tls.C
 	tlsConfig.MinVersion = TLSLookup[c.base.TLSMinVersion]
 
 	// Set ClientAuth if necessary
-	if verifyIncoming || additionalVerifyIncomingFlag {
+	if c.base.VerifyIncoming || additionalVerifyIncomingFlag {
 		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
 	}
 
@@ -422,13 +423,6 @@ func (c *Configurator) verifyOutgoing() bool {
 	c.RLock()
 	defer c.RUnlock()
 	return c.base.VerifyOutgoing || c.autoEncryptMode == AutoEncryptModeEstablished
-}
-
-// This function acquires a read lock because it reads from the config.
-func (c *Configurator) verifyIncoming() bool {
-	c.RLock()
-	defer c.RUnlock()
-	return c.base.VerifyIncoming || c.autoEncryptMode == AutoEncryptModeEstablished
 }
 
 // This function acquires a read lock because it reads from the config.
@@ -473,7 +467,7 @@ func (c *Configurator) serverNameOrNodeName() string {
 func (c *Configurator) VerifyServerHostname() bool {
 	c.RLock()
 	defer c.RUnlock()
-	return c.base.VerifyServerHostname || c.connect.verifyServerHostname
+	return c.base.VerifyServerHostname || c.autoEncrypt.verifyServerHostname
 }
 
 // This function acquires a lock because it writes to the config.
