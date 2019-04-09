@@ -380,6 +380,18 @@ These metrics are used to monitor the health of the Consul servers.
     <td>counter</td>
   </tr>
   <tr>
+    <td>`consul.raft.commitNumLogs`</td>
+    <td>This metric measures the count of logs processed for application to the FSM in a single batch.</td>
+    <td>logs</td>
+    <td>gauge</td>
+  </tr>
+  <tr>
+    <td>`consul.raft.fsm.enqueue`</td>
+    <td>This metric measures the amount of time to enqueue a batch of logs for the FSM to apply.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
     <td>`consul.raft.fsm.restore`</td>
     <td>This metric measures the time taken by the FSM to restore its state from a snapshot.</td>
     <td>ms</td>
@@ -469,6 +481,12 @@ These metrics are used to monitor the health of the Consul servers.
     <td>This measures the time it takes for the leader to write log entries to disk.</td>
     <td>ms</td>
     <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.raft.leader.dispatchNumLogs`</td>
+    <td>This metric measures the number of logs committed to disk in a batch.</td>
+    <td>logs</td>
+    <td>gauge</td>
   </tr>
   <tr>
     <td>`consul.raft.replication.appendEntries`</td>
