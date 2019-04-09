@@ -1,7 +1,7 @@
 ---
 layout: "docs"
 page_title: "Server Performance"
-sidebar_current: "docs-guides-performance"
+sidebar_current: "docs-install-performance"
 description: |-
   Consul requires different amounts of compute resources, depending on cluster size and expected workload. This guide provides guidance on choosing compute resources.
 ---
