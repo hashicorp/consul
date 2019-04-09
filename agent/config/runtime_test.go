@@ -267,6 +267,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.AdvertiseAddrWAN = ipAddr("127.0.0.1")
 				rt.BindAddr = ipAddr("127.0.0.1")
 				rt.ConnectEnabled = true
+				rt.AutoEncryptTLS = true
+				rt.AutoEncryptGossip = true
 				rt.DevMode = true
 				rt.DisableAnonymousSignature = true
 				rt.DisableKeyringFile = true
@@ -3163,7 +3165,7 @@ func TestFullConfig(t *testing.T) {
 				]
                         },
 			"auto_encrypt": {
-				"tls": true
+				"tls": true,
 				"gossip": true
 			},
 			"connect": {
