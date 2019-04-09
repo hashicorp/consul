@@ -87,6 +87,10 @@ and [Policies](/api/acl/policies.html).
 
 # Legacy ACL System 
 
+~> **Warning**: In this document we use the deprecated
+ configuration parameter `acl_datacenter`. In Consul 1.4 and newer the
+ parameter has been updated to [`primary_datacenter`](https://www.consul.io/docs/agent/options.html#primary_datacenter).
+
 Consul provides an optional Access Control List (ACL) system which can be used to control
 access to data and APIs. The ACL is
 [Capability-based](https://en.wikipedia.org/wiki/Capability-based_security), relying
