@@ -14,6 +14,10 @@ import (
 )
 
 func (c *Client) AutoEncrypt(servers []string, port int, token string) (*structs.SignResponse, string, error) {
+	if len(servers) == 0 {
+		return nil, "", fmt.Errorf("No servers to request AutoEncrypt.Sign")
+	}
+
 	DNSNames := []string{"client.dc1.consul", "localhost"}
 	IPAddresses := []net.IP{net.ParseIP("127.0.0.1")}
 	uri, err := url.Parse(fmt.Sprintf("spiffe://%s/agent/%s", c.config.NodeName, c.config.NodeID))
