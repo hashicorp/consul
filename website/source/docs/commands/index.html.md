@@ -26,9 +26,11 @@ $ consul
 Usage: consul [--version] [--help] <command> [<args>]
 
 Available commands are:
+    acl            Interact with Consul's ACLs
     agent          Runs a Consul agent
     catalog        Interact with the catalog
     connect        Interact with Consul Connect
+    debug          Records a debugging archive for operators
     event          Fire a new event
     exec           Executes a command on Consul nodes
     force-leave    Forces a member of the cluster to enter the "left" state
@@ -40,6 +42,8 @@ Available commands are:
     kv             Interact with the key-value store
     leave          Gracefully leaves the Consul cluster and shuts down
     lock           Execute a command holding a lock
+    login          Login to Consul using an Auth Method
+    logout         Destroy a Consul Token created with Login
     maint          Controls node or service maintenance mode
     members        Lists the members of a Consul cluster
     monitor        Stream logs from a Consul agent
@@ -48,6 +52,7 @@ Available commands are:
     rtt            Estimates network round trip time between nodes
     services       Interact with services
     snapshot       Saves, restores and inspects snapshots of Consul server state
+    tls            Builtin helpers for creating CAs and certificates
     validate       Validate config files/directories
     version        Prints the Consul version
     watch          Watch for changes in Consul

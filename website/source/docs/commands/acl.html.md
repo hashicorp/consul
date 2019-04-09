@@ -94,9 +94,12 @@ Usage: consul acl <subcommand> [options] [args]
   For more examples, ask for subcommand help or view the documentation.
 
 Subcommands:
+    auth-method        Manage Consul's ACL Auth Methods
+    binding-rule       Manage Consul's ACL Binding Rules
     bootstrap          Bootstrap Consul's ACL system
     policy             Manage Consul's ACL Policies
-    set-agent-token    Interact with the Consul's ACLs
+    role               Manage Consul's ACL Roles
+    set-agent-token    Assign tokens for the Consul Agent's usage
     token              Manage Consul's ACL Tokens
     translate-rules    Translate the legacy rule syntax into the current syntax
 

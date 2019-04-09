@@ -60,9 +60,8 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
-$ curl \
-    --request PUT \
+```sh
+$ curl -X PUT \
     --data @payload.json \
     http://127.0.0.1:8500/v1/acl/policy
 ```
@@ -110,7 +109,7 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
+```sh
 $ curl -X GET http://127.0.0.1:8500/v1/acl/policy/e359bd81-baca-903e-7e64-1ccd9fdc78f5
 ```
 
@@ -181,9 +180,8 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
-$ curl \
-    --request PUT \
+```sh
+$ curl -X PUT \
     --data @payload.json \
     http://127.0.0.1:8500/v1/acl/policy/c01a1f82-44be-41b0-a686-685fb6e0f485
 ```
@@ -230,8 +228,8 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
-$ curl -X DELETE
+```sh
+$ curl -X DELETE \
     http://127.0.0.1:8500/v1/acl/policy/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
 ```
 
@@ -260,7 +258,7 @@ The table below shows this endpoint's support for
 
 ## Sample Request
 
-```text
+```sh
 $ curl -X GET http://127.0.0.1:8500/v1/acl/policies
 ```
 

@@ -40,7 +40,7 @@ func (c *cmd) init() {
 		"meta",
 		false,
 		"Indicates that binding rule metadata such "+
-			"as the content hash and raft indices should be shown for each entry.",
+			"as the raft indices should be shown for each entry.",
 	)
 
 	c.flags.StringVar(

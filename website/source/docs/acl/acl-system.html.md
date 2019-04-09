@@ -27,8 +27,26 @@ At the highest level, there are two major components to the ACL system:
  Accessor ID which is used to name a token, and a Secret ID which is used as the bearer token used to
  make requests to Consul.
 
- ACL tokens and policies are managed by Consul operators via Consul's
-[ACL API](/api/acl/acl.html), [ACL CLI](/docs/commands/acl.html), or systems like
+For many scenarios policies and tokens are sufficient, but more advanced setups
+may benefit from additional components in the ACL system:
+
+ * **ACL Roles** - Roles allow for grouping a set of policies and service
+   identities into a reusable higher-level entity that can be linked with many
+   tokens. (Added in Consul 1.5)
+
+ * **ACL Service Identities** - Service Identities allow for an abbreviated
+   syntax for expressing a kind of policy needed for an token to be usable with
+   [Consul Connect](/docs/connect/index.html). At authorization time this acts
+   like an additional policy was attached, the contents of which are described
+   further below. These are directly attached to tokens and roles and not
+   independently configured. (Added in Consul 1.5)
+
+ * **ACL Auth Methods and Binding Rules** - To learn more about these topics,
+   see the [dedicated auth methods documentation page](/docs/acl/acl-auth-methods.html).
+
+ACL tokens, policies, roles, auth methods, and binding rules are managed by 
+Consul operators via Consul's [ACL API](/api/acl/acl.html), 
+[ACL CLI](/docs/commands/acl.html), or systems like 
 [HashiCorp's Vault](https://www.vaultproject.io/docs/secrets/consul/index.html).
 
 ### ACL Policies
@@ -37,6 +55,7 @@ An ACL policy is a named set of rules and is composed of the following elements:
 
 * **ID** - The policies auto-generated public identifier.
 * **Name** - A unique meaningful name for the policy.
+* **Description** - A human readable description of the policy. (Optional)
 * **Rules** - Set of rules granting or denying permissions. See the [Rule Specification](/docs/acl/acl-rules.html#rule-specification) documentation for more details.
 * **Datacenters** - A list of datacenters the policy is valid within.
 
@@ -45,6 +64,51 @@ An ACL policy is a named set of rules and is composed of the following elements:
 * **Global Management** - Grants unrestricted privileges to any token that uses it. When created it will be named `global-management`
 and will be assigned the reserved ID of `00000000-0000-0000-0000-000000000001`. This policy can be renamed but modification
 of anything else including the rule set and datacenter scoping will be prevented by Consul.
+
+### ACL Service Identities
+
+-> (Added in Consul 1.5)
+
+An ACL Service Identity is an abbreviated syntax for expressing a link to a
+policy suitable for use in [Consul Connect](/docs/connect/index.html). They are
+usable on both Tokens and Roles and are composed of the following elements:
+
+* **Service Name** - The name of the service.
+* **Datacenters** - A list of datacenters the effective policy is valid within. (Optional)
+
+At authorization time a service identity acts like an additional policy was
+attached to the token with the following contents:
+
+```hcl
+// Allow the service and its sidecar proxy to register into the catalog.
+service "{{ SERVICE_NAME_FIELD }}" {
+	policy = "write"
+}
+service "{{ SERVICE_NAME_FIELD }}-sidecar-proxy" {
+	policy = "write"
+}
+
+// Allow for any potential upstreams to be resolved.
+service_prefix "" {
+	policy = "read"
+}
+node_prefix "" {
+	policy = "read"
+}
+```
+
+### ACL Roles
+
+-> (Added in Consul 1.5)
+
+An ACL role is a named set of policies and service identities and is composed
+of the following elements:
+
+* **ID** - The policies auto-generated public identifier.
+* **Name** - A unique meaningful name for the role.
+* **Description** - A human readable description of the role. (Optional)
+* **Policy Set** - The list of policies that are applicable for the role.
+* **Service Identity Set** - The list of service identities that are applicable for the role.
 
 ### ACL Tokens
 
@@ -55,8 +119,11 @@ elements:
 * **Secret ID** -The bearer token used when making requests to Consul.
 * **Description** - A human readable description of the token. (Optional)
 * **Policy Set** - The list of policies that are applicable for the token.
+* **Role Set** - The list of roles that are applicable for the token. (Added in Consul 1.5)
+* **Service Identity Set** - The list of service identities that are applicable for the token. (Added in Consul 1.5)
 * **Locality** - Indicates whether the token should be local to the datacenter it was created within or created in
 the primary datacenter and globally replicated.
+* **Expiration Time** - The time at which this token is revoked. (Optional; Added in Consul 1.5)
 
 #### Builtin Tokens
 
@@ -137,6 +204,7 @@ as to whether they are set on servers, clients, or both.
 | [`acl.enabled`](/docs/agent/options.html#acl_enabled) | `REQUIRED` | `REQUIRED` | Controls whether ACLs are enabled |
 | [`acl.default_policy`](/docs/agent/options.html#acl_default_policy) | `OPTIONAL` | `N/A` | Determines whitelist or blacklist mode |
 | [`acl.down_policy`](/docs/agent/options.html#acl_down_policy) | `OPTIONAL` | `OPTIONAL` | Determines what to do when the remote token or policy resolution fails |
+| [`acl.role_ttl`](/docs/agent/options.html#acl_role_ttl) | `OPTIONAL` | `OPTIONAL` | Determines time-to-live for cached ACL Roles |
 | [`acl.policy_ttl`](/docs/agent/options.html#acl_policy_ttl) | `OPTIONAL` | `OPTIONAL` | Determines time-to-live for cached ACL Policies |
 | [`acl.token_ttl`](/docs/agent/options.html#acl_token_ttl) | `OPTIONAL` | `OPTIONAL` | Determines time-to-live for cached ACL Tokens |
 
@@ -156,7 +224,7 @@ All of these tokens except the `master` token can all be introduced or updated v
 
 Since the [`acl.tokens.agent_master`](/docs/agent/options.html#acl_tokens_agent_master) is designed to be used when the Consul servers are not available, its policy is managed locally on the agent and does not need to have a token defined on the Consul servers via the ACL API. Once set, it implicitly has the following policy associated with it
 
-```text
+```hcl
 agent "<node name of agent>" {
   policy = "write"
 }
@@ -175,7 +243,7 @@ The [`acl.tokens.agent`](/docs/agent/options.html#acl_tokens_agent) is a special
 
 Here's an example policy sufficient to accomplish the above for a node called `mynode`:
 
-```text
+```hcl
 node "mynode" {
   policy = "write"
 }

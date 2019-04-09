@@ -41,7 +41,7 @@ The most significant change is that rules with selectors _no longer prefix match
 by default_. In the legacy system the following rules would grant access to
 nodes, services and keys _prefixed_ with foo.
 
-```
+```hcl
 node "foo" { policy = "write" }
 service "foo" { policy = "write" }
 key "foo" { policy = "write" }
@@ -58,7 +58,7 @@ Prefix matching can be expressed in the new ACL system explicitly, making the
 following rules in the new system exactly the same as the rules above in the
 old.
 
-```
+```hcl
 node_prefix "foo" { policy = "write" }
 service_prefix "foo" { policy = "write" }
 key_prefix "foo" { policy = "write" }
@@ -218,7 +218,7 @@ In Consul 0.9.1 and later, the agent ACL tokens can be introduced or updated via
 
 Since the [`acl_agent_master_token`](/docs/agent/options.html#acl_agent_master_token_legacy) is designed to be used when the Consul servers are not available, its policy is managed locally on the agent and does not need to have a token defined on the Consul servers via the ACL API. Once set, it implicitly has the following policy associated with it (the `node` policy was added in Consul 0.9.0):
 
-```text
+```hcl
 agent "<node name of agent>" {
   policy = "write"
 }
@@ -240,7 +240,7 @@ The [`acl_agent_token`](/docs/agent/options.html#acl_agent_token) is a special t
 
 Here's an example policy sufficient to accomplish the above for a node called `mynode`:
 
-```text
+```hcl
 node "mynode" {
   policy = "write"
 }
@@ -617,7 +617,7 @@ machine-generate. Rules can make use of one or more policies.
 
 Specification in the HCL format looks like:
 
-```text
+```hcl
 # These control access to the key/value store.
 key "" {
   policy = "read"
@@ -702,7 +702,7 @@ and [`service`](#service-rules) policies instead.
 
 Agent rules look like this:
 
-```text
+```hcl
 agent "" {
   policy = "read"
 }
@@ -731,7 +731,7 @@ firing events and listing events.
 
 Event rules look like this:
 
-```text
+```hcl
 event "" {
   policy = "read"
 }
@@ -754,7 +754,7 @@ give agents a token with access to this event prefix, in addition to configuring
 The `key` policy controls access to key/value store operations in the [KV API](/api/kv.html). Key
 rules look like this:
 
-```text
+```hcl
 key "" {
   policy = "read"
 }
@@ -777,7 +777,7 @@ Consul 1.0 introduces a new `list` policy for keys that is only enforced when op
 `list` controls access to recursively list entries and keys, and enables more fine grained policies. With "acl_enable_key_list_policy",
 recursive reads via [the KV API](/api/kv.html#recurse) with an invalid token result in a 403. Example:
 
-```text
+```hcl
 key "" {
  policy = "deny"
 }
@@ -801,7 +801,7 @@ Consul Enterprise supports additional optional fields for key write policies for
 [Sentinel](https://docs.hashicorp.com/sentinel/app/consul/) integration. An example key rule with a
 Sentinel code policy looks like this:
 
-```text
+```hcl
 key "foo" {
   policy = "write"
   sentinel {
@@ -838,7 +838,7 @@ operations like fetching the list of cluster members.
 
 Node rules look like this:
 
-```text
+```hcl
 node "" {
   policy = "read"
 }
@@ -911,7 +911,7 @@ policies, as will be explained below.
 
 Query rules look like this:
 
-```text
+```hcl
 query "" {
   policy = "read"
 }
@@ -1030,7 +1030,7 @@ and service discovery with the [Health API](/api/health.html).
 
 Service rules look like this:
 
-```text
+```hcl
 service "" {
   policy = "read"
 }
@@ -1086,7 +1086,7 @@ The `session` policy controls access to [Session API](/api/session.html) operati
 
 Session rules look like this:
 
-```text
+```hcl
 session "" {
   policy = "read"
 }

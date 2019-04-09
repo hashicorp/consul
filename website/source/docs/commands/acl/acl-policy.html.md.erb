@@ -17,7 +17,7 @@ subcommands for the individual operations that can be performed.
 * [`delete`](#delete)
 * [`list`](#list)
 
-ACL policies are also accessible via the [HTTP API](/api/acl/acl.html).
+ACL policies are also accessible via the [HTTP API](/api/acl/policies.html).
 
 Usage: `consul acl policy <subcommand> [options] [args]`
 
@@ -82,7 +82,7 @@ Usage: `consul acl policy create [options] [args]`
 * `-meta` - Indicates that policy metadata such as the content hash and raft
    indices should be shown for each entry.
 
-* `-name=<string>` - The new policy's name. This flag is required.
+* `-name=<string>` - The new policies name. This flag is required.
 
 * `-rules=<string>` - The policy rules. May be prefixed with '@' to indicate that the
    value is a file path to load the rules from. '-' may also be given
@@ -93,7 +93,6 @@ Usage: `consul acl policy create [options] [args]`
 
 * `-valid-datacenter=<value>` - Datacenter that the policy should be valid within.
    This flag may be specified multiple times.
-
 
 ### Examples
 
@@ -285,7 +284,7 @@ Usage: `consul acl policy update [options] [args]`
 * `-meta` - Indicates that policy metadata such as the content hash and raft
   indices should be shown for each entry
 
-* `-name=<string>` - The policies name.
+* `-name=<string>` - The policy's name.
 
 * `-no-merge` - Do not merge the current policy information with what is provided
    to the command. Instead overwrite all fields with the exception of

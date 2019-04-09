@@ -529,6 +529,12 @@ default will automatically work with some tooling.
      it reduces the number of refreshes. However, because the caches are not actively invalidated,
      ACL policy may be stale up to the TTL value.
 
+     * <a name="acl_role_ttl"></a><a href="#acl_role_ttl">`role_ttl`</a> - Used to control
+     Time-To-Live caching of ACL roles. By default, this is 30 seconds. This setting has a
+     major performance impact: reducing it will cause more frequent refreshes while increasing
+     it reduces the number of refreshes. However, because the caches are not actively invalidated,
+     ACL role may be stale up to the TTL value.
+
      * <a name="acl_token_ttl"></a><a href="#acl_token_ttl">`token_ttl`</a> - Used to control
      Time-To-Live caching of ACL tokens. By default, this is 30 seconds. This setting has a
      major performance impact: reducing it will cause more frequent refreshes while increasing

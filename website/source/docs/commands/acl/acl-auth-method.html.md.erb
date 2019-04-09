@@ -1,0 +1,259 @@
+---
+layout: "docs"
+page_title: "Commands: ACL Auth Method Management"
+sidebar_current: "docs-commands-acl-auth-method"
+---
+
+-> **1.5.0+:**  These commands are available in Consul versions 1.5.0 and later.
+
+# Consul ACL Auth Methods
+
+Command: `consul acl auth-method`
+
+The `acl auth-method` command is used to manage Consul's ACL auth methods. There are
+subcommands for the individual operations that can be performed.
+
+* [`create`](#create)
+* [`read`](#read)
+* [`update`](#update)
+* [`delete`](#delete)
+* [`list`](#list)
+
+ACL auth methods are also accessible via the [HTTP API](/api/acl/auth-methods.html).
+
+Usage: `consul acl auth-method <subcommand> [options] [args]`
+
+-> **Note:** All of the examples show for the subcommands will require a valid
+Consul token with the appropriate permissions.  Either set the
+`CONSUL_HTTP_TOKEN` environment variable to the tokens secret ID or pass the
+secret ID as the value of the `-token` parameter.
+
+## Common Subcommand Options
+
+All of the `consul acl auth-method` subcommands support the following options:
+
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
+
+## `create`
+
+Command: `consul acl auth-method create`
+
+This command creates new auth methods.
+
+### Usage
+
+Usage: `consul acl auth-method create [options] [args]`
+
+#### Options
+
+* [Common Subcommand Options](#common-subcommand-options)
+
+* `-description=<string>` - A description of the auth method.
+
+* `-meta` - Indicates that auth method metadata such as the raft indices should
+  be shown for each entry.
+
+* `-name=<string>` - The new auth method's name. This flag is required.
+
+* `-type=<string>` - The new auth method's type. This flag is required.
+
+* `-kubernetes-ca-cert=<string>` - PEM encoded CA cert for use by the TLS
+  client used to talk with the Kubernetes API. May be prefixed with '@' to
+  indicate that the value is a file path to load the cert from. This flag is
+  required for `-type=kubernetes`.
+
+* `-kubernetes-host=<string>` - Address of the Kubernetes API server. This flag
+  is required for `-type=kubernetes`.
+
+* `-kubernetes-service-account-jwt=<string>` - A kubernetes service account JWT
+  used to access the TokenReview API to validate other JWTs during login. This
+  flag is required for `-type=kubernetes`.
+
+### Examples
+
+Create a new Kubernetes auth method:
+
+```sh
+$ consul acl auth-method create -name minikube -type kubernetes \
+    -description 'minikube auth method' \
+    -kubernetes-host 'https://192.0.2.42:8443' \
+    -kubernetes-ca-cert '@minikube-ca.crt' \
+    -kubernetes-service-account-jwt 'eyJhbGciOiJSUzI1NiIsImtpZCI...'
+Name:         minikube
+Type:         kubernetes
+Description:  minikube auth method
+Config:
+{
+  "CACert": "-----BEGIN CERTIFICATE-----\n...-----END CERTIFICATE-----\n",
+  "Host": "https://192.0.2.42:8443",
+  "ServiceAccountJWT": "eyJhbGciOiJSUzI1NiIsImtpZCI..."
+}
+```
+
+## `read`
+
+Command: `consul acl auth-method read`
+
+This command reads and displays an auth method's details.
+
+### Usage
+
+Usage: `consul acl auth-method read [options] [args]`
+
+#### Options
+
+* [Common Subcommand Options](#common-subcommand-options)
+
+* `-meta` - Indicates that auth method metadata such as the raft
+  indices should be shown for each entry.
+
+* `-name=<string>` - The name of the auth method to read.
+
+### Examples
+
+Get auth method details:
+
+```sh
+$ consul acl auth-method read -name minikube
+Name:         minikube
+Type:         kubernetes
+Description:  minikube auth method
+Config:
+{
+  "CACert": "-----BEGIN CERTIFICATE-----\n...-----END CERTIFICATE-----\n",
+  "Host": "https://192.0.2.42:8443",
+  "ServiceAccountJWT": "eyJhbGciOiJSUzI1NiIsImtpZCI..."
+}
+```
+
+## `update`
+
+Command: `consul acl auth-method update`
+
+This command is used to update an auth method. The default operations is to
+merge the current auth method with those values provided to the command
+invocation. Therefore to update just one field, only the `-name`
+options and the option to modify must be provided.
+
+### Usage
+
+Usage: `consul acl auth-method update [options] [args]`
+
+#### Options
+
+* [Common Subcommand Options](#common-subcommand-options)
+
+* `-description=<string>` - A description of the auth method.
+
+* `-kubernetes-ca-cert=<string>` - PEM encoded CA cert for use by the TLS
+  client used to talk with the Kubernetes API. May be prefixed with '@' to
+  indicate that the value is a file path to load the cert from. This flag is
+  required for `-type=kubernetes`.
+
+* `-kubernetes-host=<string>` - Address of the Kubernetes API server. This flag
+  is required for `-type=kubernetes`.
+
+* `-kubernetes-service-account-jwt=<string>` - A kubernetes service account JWT
+  used to access the TokenReview API to validate other JWTs during login. This
+  flag is required for `-type=kubernetes`.
+
+* `-meta` - Indicates that auth method metadata such as the raft
+  indices should be shown for each entry
+
+* `-name=<string>` - The name of the auth method to update.
+
+* `-no-merge` - Do not merge the current auth method information with what is provided
+  to the command. Instead overwrite all fields with the exception of the auth method
+  ID which is immutable.
+
+### Examples
+
+Update an auth method:
+
+```sh
+$ consul acl auth-method update -name minikube \
+    -description 'dev cluster' \
+    -kubernetes-host 'https://192.0.2.44:8443'
+Name:         minikube
+Type:         kubernetes
+Description:  dev cluster
+Config:
+{
+  "CACert": "-----BEGIN CERTIFICATE-----\n...-----END CERTIFICATE-----\n",
+  "Host": "https://192.0.2.44:8443",
+  "ServiceAccountJWT": "eyJhbGciOiJSUzI1NiIsImtpZCI..."
+}
+```
+
+## `delete`
+
+Command: `consul acl auth-method delete`
+
+This command deletes an auth method.
+
+### Usage
+
+Usage: `consul acl auth-method delete [options]`
+
+#### Options
+
+* [Common Subcommand Options](#common-subcommand-options)
+
+* `-name=<string>` - The Name of the auth method to delete.
+
+### Examples
+
+Delete an auth method:
+
+```sh
+$ consul acl auth-method delete -name minikube
+Auth-method "minikube" deleted successfully
+```
+
+## `list`
+
+Command: `consul acl auth-method list`
+
+This command lists all auth methods. By default it will not show metadata.
+
+### Usage
+
+Usage: `consul acl auth-method list`
+
+#### Options
+
+* [Common Subcommand Options](#common-subcommand-options)
+
+* `-meta` - Indicates that auth method metadata such as the raft indices should
+  be shown for each entry.
+
+### Examples
+
+Default listing.
+
+```sh
+$ consul acl auth-method list
+minikube:
+   Type:         kubernetes
+   Description:  minikube auth method
+minikube-two:
+   Type:         kubernetes
+   Description:  dev cluster
+```
+
+Show Metadata.
+
+```sh
+$ consul acl auth-method list -meta
+minikube:
+   Type:         kubernetes
+   Description:  minikube auth method
+   Create Index: 443
+   Modify Index: 443
+minikube-two:
+   Type:         kubernetes
+   Description:  dev cluster
+   Create Index: 445
+   Modify Index: 445
+```

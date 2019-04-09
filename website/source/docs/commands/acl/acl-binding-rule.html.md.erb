@@ -1,0 +1,280 @@
+---
+layout: "docs"
+page_title: "Commands: ACL Binding Rule Management"
+sidebar_current: "docs-commands-acl-binding-rule"
+---
+
+-> **1.5.0+:**  These commands are available in Consul versions 1.5.0 and later.
+
+# Consul ACL Binding Rules
+
+Command: `consul acl binding-rule`
+
+The `acl binding-rule` command is used to manage Consul's ACL binding rules. There are
+subcommands for the individual operations that can be performed.
+
+* [`create`](#create)
+* [`read`](#read)
+* [`update`](#update)
+* [`delete`](#delete)
+* [`list`](#list)
+
+ACL binding rules are also accessible via the [HTTP API](/api/acl/binding-rules.html).
+
+Usage: `consul acl binding-rule <subcommand> [options] [args]`
+
+-> **Note:** All of the examples show for the subcommands will require a valid
+Consul token with the appropriate permissions.  Either set the
+`CONSUL_HTTP_TOKEN` environment variable to the tokens secret ID or pass the
+secret ID as the value of the `-token` parameter.
+
+## Identifying Binding Rules
+
+In several of the subcommands a binding rule will have to be identified to be
+read, modified, or deleted. Those subcommands support specifying the binding
+rule by its ID using the `-id` parameter. When specifying the binding rule by
+its ID a unique binding rule ID prefix may be specified instead of the entire
+UUID. As long as it is unique it will be resolved to the full UUID and used.
+
+## Common Subcommand Options
+
+All of the `consul acl binding-rule` subcommands support the following options:
+
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
+
+## `create`
+
+Command: `consul acl binding-rule create`
+
+This command creates new binding rules.
+
+### Usage
+
+Usage: `consul acl binding-rule create [options] [args]`
+
+#### Options
+
+* [Common Subcommand Options](#common-subcommand-options)
+
+* `-bind-name=<string>` - Name to bind on match. Can use `${var}`
+  interpolation. This flag is required.
+
+* `-bind-type=<string>` - Type of binding to perform (`"service"` or `"role"`).
+
+* `-description=<string>` - A description of the binding rule.
+
+* `-meta` - Indicates that binding rule metadata such as the raft
+   indices should be shown for each entry.
+
+* `-method=<string>` - The auth method's name for which this binding rule
+  applies. This flag is required.
+
+* `-selector=<string>` - Selector is an expression that matches against
+  verified identity attributes returned from the auth method during login.
+
+### Examples
+
+Create a new binding rule that binds to a service identity:
+
+```sh
+$ consul acl binding-rule create -method 'minikube' \
+    -description 'wildcard service' \
+    -bind-type 'service' \
+    -bind-name 'k8s-${serviceaccount.name}' \
+    -selector 'serviceaccount.namespace==default and serviceaccount.name!=vault'
+ID:           0ec1bd2f-1d3b-bafb-d9bf-90ef04ab1890
+AuthMethod:   minikube
+Description:  wildcard service
+BindType:     service
+BindName:     k8s-${serviceaccount.name}
+Selector:     serviceaccount.namespace==default and serviceaccount.name!=vault
+```
+
+Create a new binding rule that binds to a role:
+
+```sh
+$ consul acl binding-rule create -method 'minikube' \
+    -description 'just vault role' \
+    -bind-type 'role' \
+    -bind-name 'vault' \
+    -selector 'serviceaccount.namespace==default and serviceaccount.name==vault'
+ID:           e21ae868-7b13-a230-0235-f8e83510642c
+AuthMethod:   minikube
+Description:  just vault role
+BindType:     role
+BindName:     vault
+Selector:     serviceaccount.namespace==default and serviceaccount.name==vault
+```
+
+## `read`
+
+Command: `consul acl binding-rule read`
+
+This command reads and displays a binding rules details.
+
+### Usage
+
+Usage: `consul acl binding-rule read [options] [args]`
+
+#### Options
+
+* [Common Subcommand Options](#common-subcommand-options)
+
+* `-id=<string>` - The ID of the binding rule to read. It may be specified as a unique ID
+   prefix but will error if the prefix matches multiple binding rule IDs.
+
+* `-meta` - Indicates that binding rule metadata such as the raft
+  indices should be shown for each entry.
+
+### Examples
+
+Get binding rule details:
+
+```sh
+$ consul acl binding-rule read -id '0ec1bd2f-1d3b-bafb-d9bf-90ef04ab1890'
+ID:           0ec1bd2f-1d3b-bafb-d9bf-90ef04ab1890
+AuthMethod:   minikube
+Description:  wildcard service
+BindType:     service
+BindName:     k8s-${serviceaccount.name}
+Selector:     serviceaccount.namespace==default and serviceaccount.name!=vault
+```
+
+## `update`
+
+Command: `consul acl binding-rule update`
+
+This command is used to update a binding rule. The default operations is to merge the
+current binding rule with those values provided to the command invocation. Therefore to
+update just one field, only the `-id` option and the option to
+modify must be provided.
+
+### Usage
+
+Usage: `consul acl binding-rule update [options] [args]`
+
+#### Options
+
+* [Common Subcommand Options](#common-subcommand-options)
+
+* `-bind-name=<string>` - Name to bind on match. Can use `${var}`
+  interpolation. This flag is required.
+
+* `-bind-type=<string>` - Type of binding to perform (`"service"` or `"role"`).
+
+* `-description=<string>` - A description of the binding rule.
+
+* `-id=<string>` - The ID of the binding rule to update. It may be specified as a
+  unique ID prefix but will error if the prefix matches multiple binding rule IDs
+
+* `-meta` - Indicates that binding rule metadata such as the raft
+   indices should be shown for each entry.
+
+* `-no-merge` - Do not merge the current binding rule information with what is
+  provided to the command. Instead overwrite all fields with the exception of the
+  binding rule ID which is immutable.
+
+* `-selector=<string>` - Selector is an expression that matches against
+  verified identity attributes returned from the auth method during login.
+
+### Examples
+
+Update a binding rule:
+
+```sh
+$ consul acl binding-rule update -id '0ec1bd2f-1d3b-bafb-d9bf-90ef04ab1890' \
+    -selector 'serviceaccount.namespace==default'
+Binding rule updated successfully
+ID:           0ec1bd2f-1d3b-bafb-d9bf-90ef04ab1890
+AuthMethod:   minikube
+Description:  wildcard service
+BindType:     service
+BindName:     k8s-${serviceaccount.name}
+Selector:     serviceaccount.namespace==default
+```
+
+## `delete`
+
+Command: `consul acl binding-rule delete`
+
+This command deletes a binding rule.
+
+### Usage
+
+Usage: `consul acl binding-rule delete [options]`
+
+#### Options
+
+* [Common Subcommand Options](#common-subcommand-options)
+
+* `-id=<string>` - The ID of the binding rule to delete. It may be specified as a
+  unique ID prefix but will error if the prefix matches multiple binding rule IDs.
+
+### Examples
+
+Delete a binding rule:
+
+```sh
+$ consul acl binding-rule delete -id 0ec1bd
+Binding rule "0ec1bd2f-1d3b-bafb-d9bf-90ef04ab1890" deleted successfully
+```
+
+## `list`
+
+Command: `consul acl binding-rule list`
+
+This command lists all binding rules. By default it will not show metadata.
+
+### Usage
+
+Usage: `consul acl binding-rule list`
+
+#### Options
+
+* [Common Subcommand Options](#common-subcommand-options)
+
+* `-meta` - Indicates that binding rule metadata such as the raft indices
+  should be shown for each entry.
+
+### Examples
+
+Default listing.
+
+```sh
+$ consul acl binding-rule list
+0ec1bd2f-1d3b-bafb-d9bf-90ef04ab1890:
+   AuthMethod:   minikube
+   Description:  wildcard service
+   BindType:     service
+   BindName:     k8s-${serviceaccount.name}
+   Selector:     serviceaccount.namespace==default
+e21ae868-7b13-a230-0235-f8e83510642c:
+   AuthMethod:   minikube
+   Description:  just vault role
+   BindType:     role
+   BindName:     vault
+   Selector:     serviceaccount.namespace==default and serviceaccount.name==vault
+```
+
+Show Metadata.
+
+```sh
+$ consul acl binding-rule list -meta
+0ec1bd2f-1d3b-bafb-d9bf-90ef04ab1890:
+   AuthMethod:   minikube
+   Description:  wildcard service
+   BindType:     service
+   BindName:     k8s-${serviceaccount.name}
+   Selector:     serviceaccount.namespace==default
+   Create Index: 558
+   Modify Index: 583
+e21ae868-7b13-a230-0235-f8e83510642c:
+   AuthMethod:   minikube
+   Description:  just vault role
+   BindType:     role
+   BindName:     vault
+   Selector:     serviceaccount.namespace==default and serviceaccount.name==vault
+   Create Index: 593
+   Modify Index: 593
+```

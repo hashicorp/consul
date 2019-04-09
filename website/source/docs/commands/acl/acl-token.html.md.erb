@@ -18,7 +18,7 @@ subcommands for the individual operations that can be performed.
 * [`delete`](#delete)
 * [`list`](#list)
 
-ACL tokens are also accessible via the [HTTP API](/api/acl/acl.html).
+ACL tokens are also accessible via the [HTTP API](/api/acl/tokens.html).
 
 Usage: `consul acl token <subcommand> [options] [args]`
 
@@ -51,7 +51,7 @@ All of the `consul acl token` subcommands support the following options:
 Command: `consul acl token create`
 
 This command creates new tokens. When creating a new token, policies may be linked using
-either the `-policy-id` or the `-policy-name options. When specifying policies by IDs you
+either the `-policy-id` or the `-policy-name` options. When specifying policies by IDs you
 may use a unique prefix of the UUID as a shortcut for specifying the entire UUID.
 
 ### Usage
@@ -65,14 +65,24 @@ may use a unique prefix of the UUID as a shortcut for specifying the entire UUID
 
 * `-description=<string>` - A description of the token.
 
+* `-expires-ttl=<duration>` - Duration of time this token should be valid for.
+
 * `-local` - Create this as a datacenter local token.
+
+* `-meta` - Indicates that token metadata such as the content hash and raft indices should be shown
+   for each entry.
 
 * `-policy-id=<value>` - ID of a policy to use for this token. May be specified multiple times.
 
 * `-policy-name=<value>` - Name of a policy to use for this token. May be specified multiple times.
 
-* `-meta` - Indicates that token metadata such as the content hash and raft indices should be shown
-   for each entry.
+* `-role-id=<value>` - ID of a role to use for this token. May be specified multiple times.
+
+* `-role-name=<value>` - Name of a role to use for this token. May be specified multiple times.
+
+* `-service-identity=<value>` - Name of a service identity to use for this
+  token. May be specified multiple times. Format is the `SERVICENAME` or
+  `SERVICENAME:DATACENTER1,DATACENTER2,...`
 
 * `-secret=<string>` - Create the token with this Secret ID. It must be a UUID. If not
    specified one will be auto-generated.
@@ -107,7 +117,7 @@ Policies:
    06acc965-df4b-5a99-58cb-3250930c6324 - node-services-read
 ```
 
-Create a new policy and link with policies by name:
+Create a new token and link with policies by name:
 
 ```sh
 $ consul acl token create -description "Super User" -policy-name global-management
@@ -118,6 +128,20 @@ Local:        false
 Create Time:  2018-10-22 15:35:28.787003 -0400 EDT
 Policies:
    00000000-0000-0000-0000-000000000001 - global-management
+```
+
+Create a new token with one service identity that expires in 15 minutes:
+
+```sh
+$ consul acl token create -description 'crawler token' -service-identity 'crawler' -expires-ttl '15m'
+AccessorID:       0c083aca-6c15-f0cc-c4d9-30578db54cd9
+SecretID:         930dafb6-5c08-040b-23fb-a368a95256f9
+Description:      crawler token
+Local:            false
+Create Time:      2019-04-25 16:45:49.337687334 -0500 CDT
+Expiration Time:  2019-04-25 17:00:49.337687334 -0500 CDT
+Service Identities:
+   crawler (Datacenters: all)
 ```
 
 ## `clone`
@@ -180,7 +204,6 @@ Usage: `consul acl token read [options] [args]`
 * `-self` - Indicates that the current HTTP token should be read by secret ID
    instead of expecting a -id option.
 
-
 ### Examples
 
 Get token details:
@@ -241,7 +264,11 @@ Usage: `consul acl token update [options]`
 * `-id=<string>` - The Accessor ID of the token to read. It may be specified as a
    unique ID prefix but will error if the prefix matches multiple token Accessor IDs
 
-* `-merge-policies` - Merge the new policies with the existing policies
+* `-merge-policies` - Merge the new policies with the existing policies.
+
+* `-merge-roles` - Merge the new roles with the existing roles.
+
+* `-merge-service-identities` - Merge the new service identities with the existing service identities.
 
 * `-meta` - Indicates that token metadata such as the content hash and Raft indices should be
    shown for each entry.
@@ -249,6 +276,14 @@ Usage: `consul acl token update [options]`
 * `-policy-id=<value>` - ID of a policy to use for this token. May be specified multiple times.
 
 * `-policy-name=<value>` - Name of a policy to use for this token. May be specified multiple times.
+
+* `-role-id=<value>` - ID of a role to use for this token. May be specified multiple times.
+
+* `-role-name=<value>` - Name of a role to use for this token. May be specified multiple times.
+
+* `-service-identity=<value>` - Name of a service identity to use for this
+  token. May be specified multiple times. Format is the `SERVICENAME` or
+  `SERVICENAME:DATACENTER1,DATACENTER2,...`
 
 ### Examples
 

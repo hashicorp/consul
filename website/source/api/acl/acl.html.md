@@ -263,3 +263,112 @@ agent_prefix "" {
    policy = "read"
 }
 ```
+
+## Login to Auth Method
+
+This endpoint was added in Consul 1.5.0 and is used to exchange an [auth
+method](/docs/acl/acl-auth-methods.html) bearer tokens for a newly-created
+Consul ACL token.
+
+| Method | Path                         | Produces                   |
+| ------ | ---------------------------- | -------------------------- |
+| `POST` | `/acl/login`                 | `application/json`         |
+
+The table below shows this endpoint's support for
+[blocking queries](/api/index.html#blocking-queries),
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
+[required ACLs](/api/index.html#acls).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`             | `none`            | `none`        | `none`       |
+
+### Parameters
+
+- `AuthMethod` `(string: <required>)` - The name of the auth method to use for login.
+
+- `BearerToken` `(string: <required>)` - The bearer token to present to the
+  auth method during login for authentication purposes. For the Kubernetes Auth
+  Method this is a [Service Account Token
+  (JWT)](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#service-account-tokens).
+
+- `Meta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata
+  linked to the token. Can be useful to track origins.
+
+### Sample Payload
+
+```json
+{
+    "AuthMethod": "minikube",
+    "BearerToken": "eyJhbGciOiJSUzI1NiIsImtpZCI6IiJ9..."
+}
+```
+
+### Sample Request
+
+```sh
+$ curl \
+    --request POST \
+    --data @payload.json \
+    http://127.0.0.1:8500/v1/acl/login
+```
+
+### Sample Response
+
+```json
+{
+    "AccessorID": "87675b6d-92d4-e66c-7e07-a4be2f9bee2e",
+    "SecretID": "ebd930c0-f484-871f-3d27-b1d9d8d4215d",
+    "Description": "token created via login",
+    "Roles": [
+        {
+            "BoundName": "demo"
+        }
+    ],
+    "ServiceIdentities": [
+        {
+            "ServiceName": "example"
+        }
+    ],
+    "Local": true,
+    "AuthMethod": "minikube",
+    "CreateTime": "2019-04-10T14:16:16.629679569-05:00",
+    "Hash": "Hs9sG4BuS+SBjHJFAYF8Sw8D2faatpfNPVSAih3+Uvo=",
+    "CreateIndex": 48,
+    "ModifyIndex": 48
+}
+```
+
+## Logout from Auth Method
+
+This endpoint was added in Consul 1.5.0 and is used to destroy a token created
+via the [login endpoint](#login-to-auth-method). The token deleted is specified
+with the `X-Consul-Token` header or the `token` query parameter.
+
+| Method | Path                         | Produces                   |
+| ------ | ---------------------------- | -------------------------- |
+| `POST` | `/acl/logout`                | `application/json`         |
+
+The table below shows this endpoint's support for
+[blocking queries](/api/index.html#blocking-queries),
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
+[required ACLs](/api/index.html#acls).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`             | `none`            | `none`        | `none`       |
+
+-> **Note** - This endpoint requires no specific privileges as it is just
+deleting a token for which you already must possess its secret.
+
+### Sample Request
+
+```sh
+$ curl \
+    -H "X-Consul-Token: ebd930c0-f484-871f-3d27-b1d9d8d4215d" \
+    --request POST \
+    --data @payload.json \
+    http://127.0.0.1:8500/v1/acl/logout
+```
