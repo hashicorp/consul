@@ -12,9 +12,9 @@ description: |-
 Some listing endpoints support the use of a filter expression. 
 Filter expressions can be used on a requested
 set of data, prior to sending back a response. This reduces the amount of
-data returned, which is helpful for searching and monitoring. 
+data returned, which is helpful for reducing load, searching, and monitoring. 
 
-The filter expression can be passed to Consul with a `filter` query parameter. For example
+A filter expression can be passed to Consul with the `filter` query parameter. For example:
 
 ```text
 ?filter --data [ Expression or Expression]
@@ -22,16 +22,16 @@ The filter expression can be passed to Consul with a `filter` query parameter. F
 
 Note, generally, only the main object is filtered. When filtering for
 an item within an array, the entire object that contains the full array
-will be returned. This is usually the outermost object of a response
+will be returned. This is usually the outermost object of a response,
 but in some cases such the [`/catalog/node/:node`](api/catalog.html#list-services-for-node)
 endpoint the filtering is performed on a object embedded within the results. 
 
 
 ## Syntax
 
-Filtering expressions are text based, boolean logic and parenthesization is
+Filtering expressions are text based. Boolean logic and parenthesization are
 supported. In general whitespace is ignored, except within literal
-strings.
+strings. 
 
 ### Expression
 
@@ -88,7 +88,7 @@ those endpoints. For many matching operations a value is also required.
 
 ### Selectors
 
-Selectors are a `.` separated list of names where each name must start with
+Selectors are a `.` separated list of names. Each name must start with
 a an ASCII letter and can contain ASCII letters, numbers and underscores. When
 part of the selector references a map value it may be expressed using the form
 `["<map key name>"]` instead of `.<map key name>`. This allows the possibility
