@@ -140,29 +140,38 @@ const (
 )
 
 type autoEncrypt struct {
+	mode                 AutoEncryptMode
 	caPems               []string
 	cert                 *tls.Certificate
 	verifyServerHostname bool
+}
+
+type manual struct {
+	caPems []string
+	cert   *tls.Certificate
 }
 
 // Configurator holds a Config and is responsible for generating all the
 // *tls.Config necessary for Consul. Except the one in the api package.
 type Configurator struct {
 	sync.RWMutex
-	base            *Config
-	autoEncrypt     *autoEncrypt
-	cert            *tls.Certificate
-	caPool          *x509.CertPool
-	caPems          []string
-	autoEncryptMode AutoEncryptMode
-	logger          *log.Logger
-	version         int
+	base        *Config
+	autoEncrypt *autoEncrypt
+	manual      *manual
+
+	caPool  *x509.CertPool
+	logger  *log.Logger
+	version int
+}
+
+func (c *Configurator) String() string {
+	return fmt.Sprintf("base: %+v manual: %+v autoEncrypt: %+v", c.base, c.manual, c.autoEncrypt)
 }
 
 // NewConfigurator creates a new Configurator and sets the provided
 // configuration.
 func NewConfigurator(config Config, logger *log.Logger) (*Configurator, error) {
-	c := &Configurator{logger: logger, autoEncrypt: &autoEncrypt{}}
+	c := &Configurator{logger: logger, manual: &manual{}, autoEncrypt: &autoEncrypt{}}
 	err := c.Update(config)
 	if err != nil {
 		return nil, err
@@ -174,7 +183,7 @@ func NewConfigurator(config Config, logger *log.Logger) (*Configurator, error) {
 func (c *Configurator) CAPems() []string {
 	c.RLock()
 	defer c.RUnlock()
-	return append(c.caPems, c.autoEncrypt.caPems...)
+	return append(c.manual.caPems, c.autoEncrypt.caPems...)
 }
 
 // Update updates the internal configuration which is used to generate
@@ -202,8 +211,8 @@ func (c *Configurator) Update(config Config) error {
 		return err
 	}
 	c.base = &config
-	c.cert = cert
-	c.caPems = pems
+	c.manual.cert = cert
+	c.manual.caPems = pems
 	c.caPool = pool
 	c.version++
 	return nil
@@ -218,12 +227,12 @@ func (c *Configurator) UpdateAutoEncryptCA(pems []string) error {
 	defer c.log("UpdateAutoEncryptCA")
 	defer c.Unlock()
 
-	pool, err := pool(append(c.caPems, pems...))
+	pool, err := pool(append(c.manual.caPems, pems...))
 	if err != nil {
 		c.RUnlock()
 		return err
 	}
-	if err = c.check(*c.base, pool, c.cert); err != nil {
+	if err = c.check(*c.base, pool, c.manual.cert); err != nil {
 		c.RUnlock()
 		return err
 	}
@@ -246,7 +255,7 @@ func (c *Configurator) UpdateAutoEncrypt(caPems []string, pub, priv string, veri
 	c.Lock()
 	defer c.Unlock()
 
-	pool, err := pool(append(c.caPems, caPems...))
+	pool, err := pool(append(c.manual.caPems, caPems...))
 	if err != nil {
 		return err
 	}
@@ -254,7 +263,7 @@ func (c *Configurator) UpdateAutoEncrypt(caPems []string, pub, priv string, veri
 	c.autoEncrypt.cert = &cert
 	c.caPool = pool
 	c.autoEncrypt.verifyServerHostname = verifyServerHostname
-	c.autoEncryptMode = AutoEncryptModeEstablished
+	c.autoEncrypt.mode = AutoEncryptModeEstablished
 	c.version++
 	return nil
 }
@@ -380,7 +389,7 @@ func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) *tls.C
 	// on the server this is all we have. And on the client, this is the
 	// only sensitive option.
 	tlsConfig.GetCertificate = func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
-		return c.cert, nil
+		return c.manual.cert, nil
 	}
 
 	// GetClientCertificate is used when acting as a client and responding
@@ -389,7 +398,7 @@ func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) *tls.C
 	tlsConfig.GetClientCertificate = func(*tls.CertificateRequestInfo) (*tls.Certificate, error) {
 		cert := c.autoEncrypt.cert
 		if cert == nil {
-			cert = c.cert
+			cert = c.manual.cert
 		}
 
 		return cert, nil
@@ -415,14 +424,14 @@ func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) *tls.C
 func (c *Configurator) outgoingRPCTLSDisabled() bool {
 	c.RLock()
 	defer c.RUnlock()
-	return c.caPool == nil && !c.base.VerifyOutgoing && c.autoEncryptMode != AutoEncryptModeEstablished && c.autoEncryptMode != AutoEncryptModeStartup
+	return c.caPool == nil && !c.base.VerifyOutgoing && c.autoEncrypt.mode != AutoEncryptModeEstablished && c.autoEncrypt.mode != AutoEncryptModeStartup
 }
 
 // This function acquires a read lock because it reads from the config.
 func (c *Configurator) verifyOutgoing() bool {
 	c.RLock()
 	defer c.RUnlock()
-	return c.base.VerifyOutgoing || c.autoEncryptMode == AutoEncryptModeEstablished
+	return c.base.VerifyOutgoing || c.autoEncrypt.mode == AutoEncryptModeEstablished
 }
 
 // This function acquires a read lock because it reads from the config.
@@ -474,13 +483,13 @@ func (c *Configurator) VerifyServerHostname() bool {
 func (c *Configurator) EnableAutoEncryptModeStartup() {
 	c.Lock()
 	defer c.Unlock()
-	c.autoEncryptMode = AutoEncryptModeStartup
+	c.autoEncrypt.mode = AutoEncryptModeStartup
 }
 
 func (c *Configurator) EnableAutoEncryptModeEstablished() {
 	c.Lock()
 	defer c.Unlock()
-	c.autoEncryptMode = AutoEncryptModeEstablished
+	c.autoEncrypt.mode = AutoEncryptModeEstablished
 }
 
 // IncomingRPCConfig generates a *tls.Config for incoming RPC connections.
