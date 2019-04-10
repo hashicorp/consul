@@ -267,12 +267,9 @@ ui-docker: ui-build-image
 ui-legacy-docker: ui-legacy-build-image
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh ui-legacy
 
-test-envoy-integ: dev-docker
-	@$(SHELL) $(CURDIR)/test/integration/connect/envoy/run-tests.sh
-
 proto:
 	protoc agent/connect/ca/plugin/*.proto --gofast_out=plugins=grpc:../../..
 
 .PHONY: all ci bin dev dist cov test test-ci test-internal test-install-deps cover format vet ui static-assets tools
 .PHONY: docker-images go-build-image ui-build-image ui-legacy-build-image static-assets-docker consul-docker ui-docker
-.PHONY: ui-legacy-docker version proto test-envoy-integ
+.PHONY: ui-legacy-docker version proto
