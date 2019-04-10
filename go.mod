@@ -66,7 +66,7 @@ require (
 	github.com/hashicorp/go-sockaddr v1.0.0
 	github.com/hashicorp/go-syslog v1.0.0
 	github.com/hashicorp/go-uuid v1.0.1
-	github.com/hashicorp/go-version v0.0.0-20170202080759-03c5bf6be031
+	github.com/hashicorp/go-version v1.0.0
 	github.com/hashicorp/golang-lru v0.5.0
 	github.com/hashicorp/hcl v0.0.0-20180906183839-65a6292f0157
 	github.com/hashicorp/hil v0.0.0-20160711231837-1e86c6b523c5

@@ -237,7 +237,7 @@ github.com/hashicorp/go-sockaddr
 github.com/hashicorp/go-syslog
 # github.com/hashicorp/go-uuid v1.0.1
 github.com/hashicorp/go-uuid
-# github.com/hashicorp/go-version v0.0.0-20170202080759-03c5bf6be031
+# github.com/hashicorp/go-version v1.0.0
 github.com/hashicorp/go-version
 # github.com/hashicorp/golang-lru v0.5.0
 github.com/hashicorp/golang-lru
