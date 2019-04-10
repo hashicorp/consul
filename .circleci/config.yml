@@ -29,7 +29,6 @@ jobs:
       - image: *GOLANG_IMAGE
     environment: &build-env
       GOXPARALLEL: 2 # CircleCI containers are 2 CPU x 4GB RAM
-    working_directory: /go/src/github.com/hashicorp/consul
     steps:
       - checkout
       - run: make tools
@@ -67,7 +66,6 @@ jobs:
   dev-build:
     docker:
       - image: *GOLANG_IMAGE
-    working_directory: /go/src/github.com/hashicorp/consul
     steps:
       - checkout
       - run: make dev
