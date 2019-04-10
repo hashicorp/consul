@@ -393,7 +393,7 @@ func TestConfigurator_ErrorPropagation(t *testing.T) {
 		{Config{CAPath: "bogus"}, true, true},
 	}
 
-	c := Configurator{autoEncrypt: &autoEncrypt{}}
+	c := Configurator{autoEncrypt: &autoEncrypt{}, manual: &manual{}}
 	for i, v := range variants {
 		info := fmt.Sprintf("case %d", i)
 		_, err1 := NewConfigurator(v.config, nil)
@@ -536,14 +536,14 @@ func TestConfigurator_CommonTLSConfigGetClientCertificate(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, cert)
 
-	c.cert = &tls.Certificate{}
+	c.manual.cert = &tls.Certificate{}
 	cert, err = c.commonTLSConfig(false).GetCertificate(nil)
 	require.NoError(t, err)
-	require.Equal(t, c.cert, cert)
+	require.Equal(t, c.manual.cert, cert)
 
 	cert, err = c.commonTLSConfig(false).GetClientCertificate(nil)
 	require.NoError(t, err)
-	require.Equal(t, c.cert, cert)
+	require.Equal(t, c.manual.cert, cert)
 }
 
 func TestConfigurator_CommonTLSConfigCAs(t *testing.T) {
@@ -593,7 +593,7 @@ func TestConfigurator_CommonTLSConfigVerifyIncoming(t *testing.T) {
 }
 
 func TestConfigurator_OutgoingRPCTLSDisabled(t *testing.T) {
-	c := Configurator{base: &Config{}}
+	c := Configurator{base: &Config{}, autoEncrypt: &autoEncrypt{}}
 	type variant struct {
 		verify          bool
 		file            string
@@ -639,7 +639,7 @@ func TestConfigurator_OutgoingRPCTLSDisabled(t *testing.T) {
 		require.NoError(t, err, info)
 		c.caPool = pool
 		c.base.VerifyOutgoing = v.verify
-		c.autoEncryptMode = v.autoEncryptMode
+		c.autoEncrypt.mode = v.autoEncryptMode
 		require.Equal(t, v.expected, c.outgoingRPCTLSDisabled(), info)
 	}
 }
@@ -714,7 +714,7 @@ func TestConfigurator_OutgoingRPCConfig(t *testing.T) {
 }
 
 func TestConfigurator_OutgoingRPCWrapper(t *testing.T) {
-	c := Configurator{base: &Config{}}
+	c := Configurator{base: &Config{}, autoEncrypt: &autoEncrypt{}}
 	require.Nil(t, c.OutgoingRPCWrapper())
 	c.base.VerifyOutgoing = true
 	wrap := c.OutgoingRPCWrapper()
@@ -738,7 +738,7 @@ func TestConfigurator_UpdateSetsStuff(t *testing.T) {
 	c, err := NewConfigurator(Config{}, nil)
 	require.NoError(t, err)
 	require.Nil(t, c.caPool)
-	require.Nil(t, c.cert)
+	require.Nil(t, c.manual.cert)
 	require.Equal(t, c.base, &Config{})
 	require.Equal(t, 1, c.version)
 
@@ -753,7 +753,7 @@ func TestConfigurator_UpdateSetsStuff(t *testing.T) {
 	require.NoError(t, c.Update(config))
 	require.NotNil(t, c.caPool)
 	require.Len(t, c.caPool.Subjects(), 1)
-	require.NotNil(t, c.cert)
+	require.NotNil(t, c.manual.cert)
 	require.Equal(t, c.base, &config)
 	require.Equal(t, 2, c.version)
 }
@@ -777,15 +777,15 @@ func TestConfigurator_ServerNameOrNodeName(t *testing.T) {
 }
 
 func TestConfigurator_VerifyOutgoing(t *testing.T) {
-	c := Configurator{base: &Config{}}
+	c := Configurator{base: &Config{}, autoEncrypt: &autoEncrypt{}}
 	require.False(t, c.verifyOutgoing())
-	c.autoEncryptMode = AutoEncryptModeStartup
+	c.autoEncrypt.mode = AutoEncryptModeStartup
 	require.False(t, c.verifyOutgoing())
 	c.base.VerifyOutgoing = true
-	c.autoEncryptMode = AutoEncryptModeNone
+	c.autoEncrypt.mode = AutoEncryptModeNone
 	require.True(t, c.verifyOutgoing())
 	c.base.VerifyOutgoing = false
-	c.autoEncryptMode = AutoEncryptModeEstablished
+	c.autoEncrypt.mode = AutoEncryptModeEstablished
 	require.True(t, c.verifyOutgoing())
 }
 
@@ -806,15 +806,15 @@ func TestConfigurator_VerifyServerHostname(t *testing.T) {
 }
 
 func TestConfigurator_EnableAutoEncryptModeStartup(t *testing.T) {
-	c := Configurator{}
-	require.Equal(t, AutoEncryptModeNone, c.autoEncryptMode)
+	c := Configurator{autoEncrypt: &autoEncrypt{}}
+	require.Equal(t, AutoEncryptModeNone, c.autoEncrypt.mode)
 	c.EnableAutoEncryptModeStartup()
-	require.Equal(t, AutoEncryptModeStartup, c.autoEncryptMode)
+	require.Equal(t, AutoEncryptModeStartup, c.autoEncrypt.mode)
 }
 
 func TestConfigurator_EnableAutoEncryptModeEstablished(t *testing.T) {
-	c := Configurator{}
-	require.Equal(t, AutoEncryptModeNone, c.autoEncryptMode)
+	c := Configurator{autoEncrypt: &autoEncrypt{}}
+	require.Equal(t, AutoEncryptModeNone, c.autoEncrypt.mode)
 	c.EnableAutoEncryptModeEstablished()
-	require.Equal(t, AutoEncryptModeEstablished, c.autoEncryptMode)
+	require.Equal(t, AutoEncryptModeEstablished, c.autoEncrypt.mode)
 }
