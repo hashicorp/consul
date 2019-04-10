@@ -26,6 +26,8 @@ GIT_DIRTY?=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true
 GIT_DESCRIBE?=$(shell git describe --tags --always --match "v*")
 GIT_IMPORT=github.com/hashicorp/consul/version
 GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY) -X $(GIT_IMPORT).GitDescribe=$(GIT_DESCRIBE)
+# This should determine if go modules are supported and if so then we will want to pass -mod=vendor to most of the go commands
+GOMODFLAGS?=$(shell go help modules >/dev/null 2>&1 && echo "-mod=vendor")
 
 ifeq ($(FORCE_REBUILD),1)
 NOCACHE=--no-cache
@@ -95,6 +97,7 @@ export GIT_DIRTY
 export GIT_DESCRIBE
 export GOTAGS
 export GOLDFLAGS
+export GOMODFLAGS
 
 
 DEV_PUSH?=0
@@ -147,7 +150,7 @@ cov:
 test: other-consul dev-build vet test-install-deps test-internal
 
 test-install-deps:
-	go test -mod vendor -tags '$(GOTAGS)' -i $(GOTEST_PKGS)
+	go test $(GOMODFLAGS) -tags '$(GOTAGS)' -i $(GOTEST_PKGS)
 
 test-internal:
 	@echo "--> Running go test"
@@ -156,7 +159,7 @@ test-internal:
 	@# hide it from travis as it exceeds their log limits and causes job to be
 	@# terminated (over 4MB and over 10k lines in the UI). We need to output
 	@# _something_ to stop them terminating us due to inactivity...
-	{ go test -mod vendor -v $(GOTEST_FLAGS) -tags '$(GOTAGS)' $(GOTEST_PKGS) 2>&1 ; echo $$? > exit-code ; } | tee test.log | egrep '^(ok|FAIL|panic:|--- FAIL|--- PASS)'
+	{ go test $(GOMODFLAGS) -v $(GOTEST_FLAGS) -tags '$(GOTAGS)' $(GOTEST_PKGS) 2>&1 ; echo $$? > exit-code ; } | tee test.log | egrep '^(ok|FAIL|panic:|--- FAIL|--- PASS)'
 	@echo "Exit code: $$(cat exit-code)"
 	@# This prints all the race report between ====== lines
 	@awk '/^WARNING: DATA RACE/ {do_print=1; print "=================="} do_print==1 {print} /^={10,}/ {do_print=0}' test.log || true
@@ -199,7 +202,7 @@ other-consul:
 	fi
 
 cover:
-	go test -mod vendor $(GOFILES) --cover
+	go test $(GOMODFLAGS) $(GOFILES) --cover
 
 format:
 	@echo "--> Running go fmt"

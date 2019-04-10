@@ -322,7 +322,7 @@ function build_consul {
       extra_dir="${extra_dir_name}/"
    fi
 
-   local container_id=$(docker create -it -e CGO_ENABLED=0 ${image_name} gox -mod vendor -os="${XC_OS}" -arch="${XC_ARCH}" -osarch="!darwin/arm !freebsd/arm !darwin/arm64" -ldflags "${GOLDFLAGS}" -output "pkg/bin/${extra_dir}{{.OS}}_{{.Arch}}/consul" -tags="${GOTAGS}")
+   local container_id=$(docker create -it -e CGO_ENABLED=0 ${image_name} gox ${GOMODFLAGS} -os="${XC_OS}" -arch="${XC_ARCH}" -osarch="!darwin/arm !freebsd/arm !darwin/arm64" -ldflags "${GOLDFLAGS}" -output "pkg/bin/${extra_dir}{{.OS}}_{{.Arch}}/consul" -tags="${GOTAGS}")
    ret=$?
 
    if test $ret -eq 0
@@ -362,6 +362,7 @@ function build_consul_local {
    #   * - error
    #
    # Note:
+   #   If GOMODFLAGS is set this will override default arguments used specific to Go modules.
    #   The GOLDFLAGS and GOTAGS environment variables will be used if set
    #   If the CONSUL_DEV environment var is truthy only the local platform/architecture is built.
    #   If the XC_OS or the XC_ARCH environment vars are present then only those platforms/architectures
@@ -381,6 +382,7 @@ function build_consul_local {
    local build_arch="$3"
    local extra_dir_name="$4"
    local extra_dir=""
+   local module_args="${GOMODFLAGS--mod=vendor}"
 
    if test -n "${extra_dir_name}"
    then
@@ -423,8 +425,7 @@ function build_consul_local {
    then
       status "Using gox for concurrent compilation"
 
-      CGO_ENABLED=0 gox \
-         -mod=vendor \
+      CGO_ENABLED=0 gox ${module_args} \
          -os="${build_os}" \
          -arch="${build_arch}" \
          -osarch="!darwin/arm !darwin/arm64 !freebsd/arm"  \
@@ -471,7 +472,7 @@ function build_consul_local {
             if [ $os == "windows" ];then
                 binname="consul.exe"
             fi
-            CGO_ENABLED=0 GOOS=${os} GOARCH=${arch} go install -mod vendor -ldflags "${GOLDFLAGS}" -tags "${GOTAGS}" && cp "${MAIN_GOPATH}/bin/${GOBIN_EXTRA}${binname}" "${outdir}/${binname}"
+            CGO_ENABLED=0 GOOS=${os} GOARCH=${arch} go install ${module_args} -ldflags "${GOLDFLAGS}" -tags "${GOTAGS}" && cp "${MAIN_GOPATH}/bin/${GOBIN_EXTRA}${binname}" "${outdir}/${binname}"
             if test $? -ne 0
             then
                err "ERROR: Failed to build Consul for ${osarch}"
