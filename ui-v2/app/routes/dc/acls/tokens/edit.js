@@ -4,10 +4,8 @@ import { hash } from 'rsvp';
 import { get } from '@ember/object';
 
 import WithTokenActions from 'consul-ui/mixins/token/with-actions';
-import WithManyPolicyActions from 'consul-ui/mixins/policy/with-many-actions';
-import WithManyRoleActions from 'consul-ui/mixins/role/with-many-actions';
 
-export default SingleRoute.extend(WithManyRoleActions, WithManyPolicyActions, WithTokenActions, {
+export default SingleRoute.extend(WithTokenActions, {
   repo: service('repository/token'),
   settings: service('settings'),
   model: function(params, transition) {

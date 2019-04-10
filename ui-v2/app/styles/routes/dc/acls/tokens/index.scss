@@ -1,7 +1,5 @@
-// TODO: Move this out of here and into policy/many
-.template-role.template-edit [for='new-policy-toggle'],
-.template-token.template-edit [for='new-policy-toggle'],
-.template-token.template-edit [for='new-role-toggle'] {
+// TODO: Move this out of here and into probably modal
+.type-dialog {
   @extend %anchor;
   cursor: pointer;
   float: right;

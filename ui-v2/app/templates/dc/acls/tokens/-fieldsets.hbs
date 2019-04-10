@@ -14,11 +14,11 @@
     <textarea name="Description" oninput={{action 'change'}}>{{item.Description}}</textarea>
   </label>
 </fieldset>
-<fieldset>
+<fieldset id="roles">
   <h2>Roles</h2>
-  {{partial 'dc/acls/roles/many'}}
+  {{role-selector dc=dc items=item.Roles}}
 </fieldset>
-<fieldset>
+<fieldset id="policies">
   <h2>Policies</h2>
-  {{partial 'dc/acls/policies/many'}}
+  {{policy-selector dc=dc items=item.Policies}}
 </fieldset>

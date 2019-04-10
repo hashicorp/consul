@@ -22,20 +22,6 @@ export default Controller.extend({
     );
   },
   actions: {
-    sendClearPolicy: function(item) {
-      this.send('clearPolicy');
-    },
-    sendCreatePolicy: function(item, policies, success) {
-      this.send('createPolicy', item, policies, success);
-    },
-    refreshCodeEditor: function(selector, parent) {
-      if (parent.target) {
-        parent = undefined;
-      }
-      get(this, 'dom')
-        .component(selector, parent)
-        .didAppear();
-    },
     change: function(e, value, item) {
       const event = get(this, 'dom').normalizeEvent(e, value);
       const form = get(this, 'form');

@@ -1,5 +1,5 @@
 <form>
-  {{partial 'dc/acls/policies/fieldsets'}}
+  {{policy-form form=form item=item}}
 {{#if (not create) }}
   {{token-list caption="Applied to the following tokens:" items=items}}
 {{/if}}
