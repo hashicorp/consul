@@ -18,6 +18,6 @@ matrix:
     - env: GOTEST_PKGS_EXCLUDE="./api|./agent|./agent/consul"
 
 script:
-  - make test-ci
+  - env GO111MODULE=on make test-ci
 
 sudo: false
