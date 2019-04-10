@@ -1143,6 +1143,7 @@ type IndexedNodeDump struct {
 // IndexedConfigEntries has its own encoding logic which differs from
 // ConfigEntryRequest as it has to send a slice of ConfigEntry.
 type IndexedConfigEntries struct {
+	Kind    string
 	Entries []ConfigEntry
 	QueryMeta
 }
@@ -1153,16 +1154,16 @@ func (c *IndexedConfigEntries) MarshalBinary() (data []byte, err error) {
 	bs := make([]byte, 128)
 	enc := codec.NewEncoderBytes(&bs, msgpackHandle)
 
-	// Encode kinds of entries first
+	// Encode length.
 	err = enc.Encode(len(c.Entries))
 	if err != nil {
 		return nil, err
 	}
-	for _, entry := range c.Entries {
-		err = enc.Encode(entry.GetKind())
-		if err != nil {
-			return nil, err
-		}
+
+	// Encode kind.
+	err = enc.Encode(c.Kind)
+	if err != nil {
+		return nil, err
 	}
 
 	// Then actual value using alias trick to avoid infinite recursion
@@ -1179,23 +1180,23 @@ func (c *IndexedConfigEntries) MarshalBinary() (data []byte, err error) {
 }
 
 func (c *IndexedConfigEntries) UnmarshalBinary(data []byte) error {
-	// First decode the number of entries
+	// First decode the number of entries.
 	var numEntries int
 	dec := codec.NewDecoderBytes(data, msgpackHandle)
 	if err := dec.Decode(&numEntries); err != nil {
 		return err
 	}
 
+	// Next decode the kind.
+	var kind string
+	if err := dec.Decode(&kind); err != nil {
+		return err
+	}
+
+	// Then decode the slice of ConfigEntries
 	c.Entries = make([]ConfigEntry, numEntries)
 	for i := 0; i < numEntries; i++ {
-		// First decode the kind prefix
-		var kind string
-		if err := dec.Decode(&kind); err != nil {
-			return err
-		}
-
-		// Then decode the real thing with appropriate kind of ConfigEntry
-		entry, err := makeConfigEntry(kind)
+		entry, err := MakeConfigEntry(kind, "")
 		if err != nil {
 			return err
 		}

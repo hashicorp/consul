@@ -36,8 +36,8 @@ func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *struct{}) e
 	if err != nil {
 		return err
 	}
-	if err := verifyConfigWriteACL(rule, args.Entry.GetKind(), args.Entry.GetName()); err != nil {
-		return err
+	if rule != nil && !args.Entry.VerifyWriteACL(rule) {
+		return acl.ErrPermissionDenied
 	}
 
 	args.Op = structs.ConfigEntryUpsert
@@ -63,8 +63,14 @@ func (c *ConfigEntry) Get(args *structs.ConfigEntryQuery, reply *structs.Indexed
 	if err != nil {
 		return err
 	}
-	if err := verifyConfigReadACL(rule, args.Kind, args.Name); err != nil {
+
+	// Create a dummy config entry to check the ACL permissions.
+	lookupEntry, err := structs.MakeConfigEntry(args.Kind, args.Name)
+	if err != nil {
 		return err
+	}
+	if rule != nil && !lookupEntry.VerifyReadACL(rule) {
+		return acl.ErrPermissionDenied
 	}
 
 	return c.srv.blockingQuery(
@@ -77,6 +83,11 @@ func (c *ConfigEntry) Get(args *structs.ConfigEntryQuery, reply *structs.Indexed
 			}
 
 			reply.Index = index
+			if entry == nil {
+				return nil
+			}
+
+			reply.Kind = args.Kind
 			reply.Entries = []structs.ConfigEntry{entry}
 			return nil
 		})
@@ -106,20 +117,15 @@ func (c *ConfigEntry) List(args *structs.ConfigEntryQuery, reply *structs.Indexe
 			}
 
 			// Filter the entries returned by ACL permissions.
-			// TODO(kyhavlov): should we handle the proxy config differently here since
-			// it's a singleton?
 			filteredEntries := make([]structs.ConfigEntry, 0, len(entries))
 			for _, entry := range entries {
-				if err := verifyConfigReadACL(rule, entry.GetKind(), entry.GetName()); err != nil {
-					if acl.IsErrPermissionDenied(err) {
-						continue
-					} else {
-						return err
-					}
+				if rule != nil && !entry.VerifyReadACL(rule) {
+					continue
 				}
 				filteredEntries = append(filteredEntries, entry)
 			}
 
+			reply.Kind = args.Kind
 			reply.Index = index
 			reply.Entries = filteredEntries
 			return nil
@@ -143,8 +149,8 @@ func (c *ConfigEntry) Delete(args *structs.ConfigEntryRequest, reply *struct{}) 
 	if err != nil {
 		return err
 	}
-	if err := verifyConfigWriteACL(rule, args.Entry.GetKind(), args.Entry.GetName()); err != nil {
-		return err
+	if rule != nil && !args.Entry.VerifyWriteACL(rule) {
+		return acl.ErrPermissionDenied
 	}
 
 	args.Op = structs.ConfigEntryDelete
@@ -217,50 +223,4 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 			reply.Definition = definition
 			return nil
 		})
-}
-
-// verifyConfigReadACL checks whether the given ACL authorizer has permission
-// to read the config entry of the given kind/name.
-func verifyConfigReadACL(rule acl.Authorizer, kind, name string) error {
-	if rule == nil {
-		return nil
-	}
-
-	switch kind {
-	case structs.ServiceDefaults:
-		if !rule.ServiceRead(name) {
-			return acl.ErrPermissionDenied
-		}
-	case structs.ProxyDefaults:
-		if !rule.OperatorRead() {
-			return acl.ErrPermissionDenied
-		}
-	default:
-		return fmt.Errorf("unknown config entry type %q", kind)
-	}
-
-	return nil
-}
-
-// verifyConfigWriteACL checks whether the given ACL authorizer has permission
-// to update the config entry of the given kind/name.
-func verifyConfigWriteACL(rule acl.Authorizer, kind, name string) error {
-	if rule == nil {
-		return nil
-	}
-
-	switch kind {
-	case structs.ServiceDefaults:
-		if !rule.ServiceWrite(name, nil) {
-			return acl.ErrPermissionDenied
-		}
-	case structs.ProxyDefaults:
-		if !rule.OperatorWrite() {
-			return acl.ErrPermissionDenied
-		}
-	default:
-		return fmt.Errorf("unknown config entry type %q", kind)
-	}
-
-	return nil
 }

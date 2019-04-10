@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/go-msgpack/codec"
 )
 
@@ -24,6 +25,11 @@ type ConfigEntry interface {
 	// This is called in the RPC endpoint and can apply defaults or limits.
 	Normalize() error
 	Validate() error
+
+	// VerifyReadACL and VerifyWriteACL return whether or not the given Authorizer
+	// has permission to read or write to the config entry, respectively.
+	VerifyReadACL(acl.Authorizer) bool
+	VerifyWriteACL(acl.Authorizer) bool
 
 	GetRaftIndex() *RaftIndex
 }
@@ -68,6 +74,14 @@ func (e *ServiceConfigEntry) Normalize() error {
 
 func (e *ServiceConfigEntry) Validate() error {
 	return nil
+}
+
+func (e *ServiceConfigEntry) VerifyReadACL(rule acl.Authorizer) bool {
+	return rule.ServiceRead(e.Name)
+}
+
+func (e *ServiceConfigEntry) VerifyWriteACL(rule acl.Authorizer) bool {
+	return rule.ServiceWrite(e.Name, nil)
 }
 
 func (e *ServiceConfigEntry) GetRaftIndex() *RaftIndex {
@@ -124,6 +138,14 @@ func (e *ProxyConfigEntry) Validate() error {
 	}
 
 	return nil
+}
+
+func (e *ProxyConfigEntry) VerifyReadACL(rule acl.Authorizer) bool {
+	return true
+}
+
+func (e *ProxyConfigEntry) VerifyWriteACL(rule acl.Authorizer) bool {
+	return rule.OperatorWrite()
 }
 
 func (e *ProxyConfigEntry) GetRaftIndex() *RaftIndex {
@@ -186,7 +208,7 @@ func (c *ConfigEntryRequest) UnmarshalBinary(data []byte) error {
 	}
 
 	// Then decode the real thing with appropriate kind of ConfigEntry
-	entry, err := makeConfigEntry(kind)
+	entry, err := MakeConfigEntry(kind, "")
 	if err != nil {
 		return err
 	}
@@ -206,12 +228,12 @@ func (c *ConfigEntryRequest) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-func makeConfigEntry(kind string) (ConfigEntry, error) {
+func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 	switch kind {
 	case ServiceDefaults:
-		return &ServiceConfigEntry{}, nil
+		return &ServiceConfigEntry{Name: name}, nil
 	case ProxyDefaults:
-		return &ProxyConfigEntry{}, nil
+		return &ProxyConfigEntry{Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}

@@ -200,7 +200,6 @@ operator = "read"
 		t.Fatalf("err: %v", err)
 	}
 
-	// Create a dummy service in the state store to look up.
 	// Create some dummy service/proxy configs to be looked up.
 	state := s1.fsm.State()
 	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
@@ -233,18 +232,6 @@ operator = "read"
 	require.True(ok)
 	require.Equal("foo", serviceConf.Name)
 	require.Equal(structs.ServiceDefaults, serviceConf.Kind)
-
-	// Try to look up the proxy config with no token.
-	args.Kind = structs.ProxyDefaults
-	args.Name = structs.ProxyConfigGlobal
-	args.QueryOptions.Token = ""
-	err = msgpackrpc.CallWithCodec(codec, "ConfigEntry.Get", &args, &out)
-	if !acl.IsErrPermissionDenied(err) {
-		t.Fatalf("err: %v", err)
-	}
-
-	args.QueryOptions.Token = id
-	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.Get", &args, &out))
 }
 
 func TestConfigEntry_List(t *testing.T) {
@@ -282,6 +269,7 @@ func TestConfigEntry_List(t *testing.T) {
 	var out structs.IndexedConfigEntries
 	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.List", &args, &out))
 
+	expected.Kind = structs.ServiceDefaults
 	expected.QueryMeta = out.QueryMeta
 	require.Equal(expected, out)
 }
