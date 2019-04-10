@@ -23,7 +23,7 @@ ASSETFS_PATH?=agent/bindata_assetfs.go
 # Get the git commit
 GIT_COMMIT?=$(shell git rev-parse --short HEAD)
 GIT_DIRTY?=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true)
-GIT_DESCRIBE?=$(shell git describe --tags --always)
+GIT_DESCRIBE?=$(shell git describe --tags --always --match "v*")
 GIT_IMPORT=github.com/hashicorp/consul/version
 GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY) -X $(GIT_IMPORT).GitDescribe=$(GIT_DESCRIBE)
 
@@ -269,4 +269,5 @@ proto:
 	protoc agent/connect/ca/plugin/*.proto --gofast_out=plugins=grpc:../../..
 
 .PHONY: all ci bin dev dist cov test test-ci test-internal test-install-deps cover format vet ui static-assets tools
-.PHONY: docker-images go-build-image ui-build-image ui-legacy-build-image static-assets-docker consul-docker ui-docker ui-legacy-docker version proto
+.PHONY: docker-images go-build-image ui-build-image ui-legacy-build-image static-assets-docker consul-docker ui-docker
+.PHONY: ui-legacy-docker version proto
