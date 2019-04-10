@@ -12,12 +12,6 @@ Thumbs.db
 bin/
 changelog.tmp
 exit-code
-ui/.bundle
-ui/.sass-cache
-ui/dist/
-ui/static/application.min.js
-ui/static/base.css
-ui/vendor
 website/.bundle
 website/build/
 website/npm-debug.log
