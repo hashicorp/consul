@@ -71,7 +71,7 @@
   %header-nav-panel {
     box-sizing: border-box;
     padding: 15px 35px;
-    z-index: 10000;
+    z-index: 499;
     text-align: right;
   }
   %header-nav-toggle-button {
@@ -79,7 +79,7 @@
     right: 0px;
     width: 100px;
     height: 40px;
-    z-index: 2;
+    z-index: 200;
     cursor: pointer;
   }
   %header-nav-panel {
@@ -88,7 +88,7 @@
     height: 100%;
     position: absolute;
     top: 0px;
-    z-index: 3;
+    z-index: 300;
     padding: 0;
     padding-top: 15px;
     right: -100%;
@@ -167,7 +167,7 @@
 %header-drop-nav {
   display: block;
   position: absolute;
-  z-index: 100;
+  z-index: 400;
 }
 %header-drop-nav a {
   text-align: left;
