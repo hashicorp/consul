@@ -322,7 +322,7 @@ function build_consul {
       extra_dir="${extra_dir_name}/"
    fi
 
-   local container_id=$(docker create -it -e CGO_ENABLED=0 ${image_name} gox -os="${XC_OS}" -arch="${XC_ARCH}" -osarch="!darwin/arm !freebsd/arm !darwin/arm64" -ldflags "${GOLDFLAGS}" -output "pkg/bin/${extra_dir}{{.OS}}_{{.Arch}}/consul" -tags="${GOTAGS}")
+   local container_id=$(docker create -it -e CGO_ENABLED=0 ${image_name} gox -mod vendor -os="${XC_OS}" -arch="${XC_ARCH}" -osarch="!darwin/arm !freebsd/arm !darwin/arm64" -ldflags "${GOLDFLAGS}" -output "pkg/bin/${extra_dir}{{.OS}}_{{.Arch}}/consul" -tags="${GOTAGS}")
    ret=$?
 
    if test $ret -eq 0
@@ -424,6 +424,7 @@ function build_consul_local {
       status "Using gox for concurrent compilation"
 
       CGO_ENABLED=0 gox \
+         -mod=vendor \
          -os="${build_os}" \
          -arch="${build_arch}" \
          -osarch="!darwin/arm !darwin/arm64 !freebsd/arm"  \
@@ -470,7 +471,7 @@ function build_consul_local {
             if [ $os == "windows" ];then
                 binname="consul.exe"
             fi
-            CGO_ENABLED=0 GOOS=${os} GOARCH=${arch} go install -ldflags "${GOLDFLAGS}" -tags "${GOTAGS}" && cp "${MAIN_GOPATH}/bin/${GOBIN_EXTRA}${binname}" "${outdir}/${binname}"
+            CGO_ENABLED=0 GOOS=${os} GOARCH=${arch} go install -mod vendor -ldflags "${GOLDFLAGS}" -tags "${GOTAGS}" && cp "${MAIN_GOPATH}/bin/${GOBIN_EXTRA}${binname}" "${outdir}/${binname}"
             if test $? -ne 0
             then
                err "ERROR: Failed to build Consul for ${osarch}"

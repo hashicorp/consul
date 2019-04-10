@@ -147,7 +147,7 @@ cov:
 test: other-consul dev-build vet test-install-deps test-internal
 
 test-install-deps:
-	go test -tags '$(GOTAGS)' -i $(GOTEST_PKGS)
+	go test -mod vendor -tags '$(GOTAGS)' -i $(GOTEST_PKGS)
 
 test-internal:
 	@echo "--> Running go test"
@@ -156,7 +156,7 @@ test-internal:
 	@# hide it from travis as it exceeds their log limits and causes job to be
 	@# terminated (over 4MB and over 10k lines in the UI). We need to output
 	@# _something_ to stop them terminating us due to inactivity...
-	{ go test -v $(GOTEST_FLAGS) -tags '$(GOTAGS)' $(GOTEST_PKGS) 2>&1 ; echo $$? > exit-code ; } | tee test.log | egrep '^(ok|FAIL|panic:|--- FAIL|--- PASS)'
+	{ go test -mod vendor -v $(GOTEST_FLAGS) -tags '$(GOTAGS)' $(GOTEST_PKGS) 2>&1 ; echo $$? > exit-code ; } | tee test.log | egrep '^(ok|FAIL|panic:|--- FAIL|--- PASS)'
 	@echo "Exit code: $$(cat exit-code)"
 	@# This prints all the race report between ====== lines
 	@awk '/^WARNING: DATA RACE/ {do_print=1; print "=================="} do_print==1 {print} /^={10,}/ {do_print=0}' test.log || true
@@ -199,7 +199,7 @@ other-consul:
 	fi
 
 cover:
-	go test $(GOFILES) --cover
+	go test -mod vendor $(GOFILES) --cover
 
 format:
 	@echo "--> Running go fmt"
@@ -221,6 +221,9 @@ static-assets:
 	@go-bindata-assetfs -pkg agent -prefix pkg -o $(ASSETFS_PATH) ./pkg/web_ui/...
 	@go fmt $(ASSETFS_PATH)
 
+mod-update:
+	@go mod tidy
+	@go mod vendor
 
 # Build the static web ui and build static assets inside a Docker container
 ui: ui-legacy-docker ui-docker static-assets-docker
