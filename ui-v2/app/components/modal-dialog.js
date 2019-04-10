@@ -14,9 +14,6 @@ export default DomBufferComponent.extend(SlotsMixin, WithResizing, {
   overflowingClass: 'overflowing',
   onclose: function() {},
   onopen: function() {},
-  getBufferName: function() {
-    return this.name;
-  },
   _open: function(e) {
     set(this, 'checked', true);
     if (get(this, 'height') === null) {
