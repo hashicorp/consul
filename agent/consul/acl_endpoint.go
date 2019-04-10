@@ -358,16 +358,16 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 			if token.ExpirationTTL < 0 {
 				return fmt.Errorf("Token Expiration TTL '%s' should be > 0", token.ExpirationTTL)
 			}
-			if !token.ExpirationTime.IsZero() {
+			if token.HasExpirationTime() {
 				return fmt.Errorf("Token Expiration TTL and Expiration Time cannot both be set")
 			}
 
-			token.ExpirationTime = token.CreateTime.Add(token.ExpirationTTL)
+			token.ExpirationTime = timePointer(token.CreateTime.Add(token.ExpirationTTL))
 			token.ExpirationTTL = 0
 		}
 
-		if !token.ExpirationTime.IsZero() {
-			if token.CreateTime.After(token.ExpirationTime) {
+		if token.HasExpirationTime() {
+			if token.CreateTime.After(*token.ExpirationTime) {
 				return fmt.Errorf("ExpirationTime cannot be before CreateTime")
 			}
 
@@ -417,7 +417,15 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 			return fmt.Errorf("cannot toggle local mode of %s", token.AccessorID)
 		}
 
-		if token.ExpirationTTL != 0 || !token.ExpirationTime.Equal(existing.ExpirationTime) {
+		if token.ExpirationTTL != 0 {
+			return fmt.Errorf("Cannot change expiration time of %s", token.AccessorID)
+		}
+
+		if !token.HasExpirationTime() {
+			token.ExpirationTime = existing.ExpirationTime
+		} else if !existing.HasExpirationTime() {
+			return fmt.Errorf("Cannot change expiration time of %s", token.AccessorID)
+		} else if !token.ExpirationTime.Equal(*existing.ExpirationTime) {
 			return fmt.Errorf("Cannot change expiration time of %s", token.AccessorID)
 		}
 
@@ -1040,4 +1048,8 @@ func (a *ACL) ReplicationStatus(args *structs.DCSpecificRequest,
 	*reply = a.srv.aclReplicationStatus
 	a.srv.aclReplicationStatusLock.RUnlock()
 	return nil
+}
+
+func timePointer(t time.Time) *time.Time {
+	return &t
 }
