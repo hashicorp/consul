@@ -8,12 +8,15 @@ GOTOOLS = \
 	github.com/gogo/protobuf/protoc-gen-gofast \
 	github.com/vektra/mockery/cmd/mockery
 
+# This should determine if go modules are supported and if so then we will want to pass -mod=vendor to most of the go commands
+GOMODFLAGS?=$(shell go help modules >/dev/null 2>&1 && echo "-mod=vendor")
+
 GOTAGS ?=
-GOFILES ?= $(shell go list ./... | grep -v /vendor/)
+GOFILES ?= $(shell go list $(GOMODFLAGS) ./... | grep -v /vendor/)
 ifeq ($(origin GOTEST_PKGS_EXCLUDE), undefined)
 GOTEST_PKGS ?= "./..."
 else
-GOTEST_PKGS=$(shell go list ./... | sed 's/github.com\/hashicorp\/consul/./' | egrep -v "^($(GOTEST_PKGS_EXCLUDE))$$")
+GOTEST_PKGS=$(shell go list $(GOMODFLAGS) ./... | sed 's/github.com\/hashicorp\/consul/./' | egrep -v "^($(GOTEST_PKGS_EXCLUDE))$$")
 endif
 GOOS?=$(shell go env GOOS)
 GOARCH?=$(shell go env GOARCH)
@@ -26,8 +29,6 @@ GIT_DIRTY?=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true
 GIT_DESCRIBE?=$(shell git describe --tags --always --match "v*")
 GIT_IMPORT=github.com/hashicorp/consul/version
 GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY) -X $(GIT_IMPORT).GitDescribe=$(GIT_DESCRIBE)
-# This should determine if go modules are supported and if so then we will want to pass -mod=vendor to most of the go commands
-GOMODFLAGS?=$(shell go help modules >/dev/null 2>&1 && echo "-mod=vendor")
 
 ifeq ($(FORCE_REBUILD),1)
 NOCACHE=--no-cache
@@ -144,7 +145,7 @@ dev-tree:
 	@$(SHELL) $(CURDIR)/build-support/scripts/dev.sh $(DEV_PUSH_ARG)
 
 cov:
-	go test ./... -coverprofile=coverage.out
+	go test $(GOMODFLAGS) ./... -coverprofile=coverage.out
 	go tool cover -html=coverage.out
 
 test: other-consul dev-build vet test-install-deps test-internal
@@ -206,11 +207,12 @@ cover:
 
 format:
 	@echo "--> Running go fmt"
+	# Unfortunately this will populate the module cache: https://github.com/golang/go/issues/27841
 	@go fmt $(GOFILES)
 
 vet:
 	@echo "--> Running go vet"
-	@go vet -tags '$(GOTAGS)' $(GOFILES); if [ $$? -eq 1 ]; then \
+	@go vet $(GOMODFLAGS) -tags '$(GOTAGS)' $(GOFILES); if [ $$? -eq 1 ]; then \
 		echo ""; \
 		echo "Vet found suspicious constructs. Please check the reported constructs"; \
 		echo "and fix them if necessary before submitting the code for review."; \
@@ -222,7 +224,7 @@ vet:
 # changes to the UI assets that aren't checked in.
 static-assets:
 	@go-bindata-assetfs -pkg agent -prefix pkg -o $(ASSETFS_PATH) ./pkg/web_ui/...
-	@go fmt $(ASSETFS_PATH)
+	@gofmt -l -w $(ASSETFS_PATH)
 
 mod-update:
 	@go mod tidy
@@ -232,6 +234,8 @@ mod-update:
 ui: ui-legacy-docker ui-docker static-assets-docker
 
 tools:
+	# Should we maybe execute this with GO111MODULE=off - otherwise it will populate the module
+	# cache which requires downloading a ton of stuff
 	go get -u -v $(GOTOOLS)
 
 version:
