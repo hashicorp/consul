@@ -21,7 +21,6 @@ func TestLogFile_timeRotation(t *testing.T) {
 	tempDir := testutil.TempDir(t, "LogWriterTime")
 	defer os.Remove(tempDir)
 	filt := LevelFilter()
-	filt.MinLevel = logutils.LogLevel("INFO")
 	logFile := LogFile{logFilter: filt, fileName: testFileName, logPath: tempDir, duration: testDuration}
 	logFile.Write([]byte("Hello World"))
 	time.Sleep(2 * time.Second)
@@ -36,10 +35,7 @@ func TestLogFile_openNew(t *testing.T) {
 	t.Parallel()
 	tempDir := testutil.TempDir(t, "LogWriterOpen")
 	defer os.Remove(tempDir)
-	filt := LevelFilter()
-	filt.MinLevel = logutils.LogLevel("INFO")
-	logFile := LogFile{logFilter: filt, fileName: testFileName, logPath: tempDir, duration: testDuration}
-
+	logFile := LogFile{fileName: testFileName, logPath: tempDir, duration: testDuration}
 	if err := logFile.openNew(); err != nil {
 		t.Errorf("Expected open file %s, got an error (%s)", testFileName, err)
 	}
@@ -70,13 +66,10 @@ func TestLogFile_logLevelFiltering(t *testing.T) {
 	tempDir := testutil.TempDir(t, "LogWriterTime")
 	defer os.Remove(tempDir)
 	filt := LevelFilter()
-	filt.MinLevel = logutils.LogLevel("INFO	")
-	logFile := LogFile{logFilter: filt, fileName: testFileName, logPath: tempDir, duration: testDuration}
-	logFile.Write([]byte("This is an info message"))
-	time.Sleep(2 * time.Second)
+	logFile := LogFile{logFilter: filt, fileName: testFileName, logPath: tempDir, MaxBytes: testBytes, duration: testDuration}
+	logFile.Write([]byte("[INFO] This is an info message"))
 	logFile.Write([]byte("[DEBUG] This is a debug message"))
-	time.Sleep(2 * time.Second)
-	logFile.Write([]byte("[ERROR] This is an error message"))
+	logFile.Write([]byte("[ERR] This is an error message"))
 	want := 2
 	if got, _ := ioutil.ReadDir(tempDir); len(got) != want {
 		t.Errorf("Expected %d files, got %v file(s)", want, len(got))
