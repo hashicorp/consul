@@ -21,12 +21,31 @@ export default function(scenario, fillIn, triggerKeyEvent, currentPage) {
       }, currentPage());
     })
     .then(
-      ['I fill in the $form form with yaml\n$yaml', 'I fill in the $form with json\n$json'],
+      ['I fill in the $form form with yaml\n$yaml', 'I fill in the $form form with json\n$json'],
       function(form, data) {
         return Object.keys(data).reduce(function(prev, item, i, arr) {
           const name = `${form}[${item}]`;
           return fillInElement(prev, name, data[item]);
         }, currentPage());
+      }
+    )
+    .then(
+      [
+        'I fill in the $form form on the $component component with yaml\n$yaml',
+        'I fill in the $form form on the $component component with json\n$json',
+      ],
+      function(form, component, data) {
+        // Collection
+        let obj;
+        if (typeof currentPage()[component].objectAt === 'function') {
+          obj = currentPage()[component].objectAt(0);
+        } else {
+          obj = currentPage()[component];
+        }
+        return Object.keys(data).reduce(function(prev, item, i, arr) {
+          const name = `${form}[${item}]`;
+          return fillInElement(prev, name, data[item]);
+        }, obj);
       }
     )
     .then(['I type "$text" into "$selector"'], function(text, selector) {

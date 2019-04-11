@@ -21,7 +21,16 @@ export default function(
             cancelable({}, '[data-test-policy-form]'),
             '[data-test-policy-form]'
           ),
-          roleForm: submitable(cancelable({}, '[data-test-role-form]'), '[data-test-role-form]'),
+          roleForm: submitable(
+            cancelable(
+              {
+                newPolicy: clickable('[data-test-create-policy]'),
+                policyForm: submitable({}, '[data-test-role-form]'),
+              },
+              '[data-test-role-form]'
+            ),
+            '[data-test-role-form]'
+          ),
           policies: collection(
             '[data-test-policies] [data-test-tabular-row]',
             deletable(

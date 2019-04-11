@@ -8,6 +8,7 @@ import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/role';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 import { OK as HTTP_OK } from 'consul-ui/utils/http/status';
 import { PUT as HTTP_PUT } from 'consul-ui/utils/http/method';
+import minimizeModel from 'consul-ui/utils/minimizeModel';
 
 export default Adapter.extend({
   urlForQuery: function(query, modelName) {
@@ -34,15 +35,6 @@ export default Adapter.extend({
       [API_DATACENTER_KEY]: snapshot.attr(DATACENTER_KEY),
     });
   },
-  dataForRequest: function(params) {
-    const data = this._super(...arguments);
-    switch (params.requestType) {
-      case REQUEST_UPDATE:
-      case REQUEST_CREATE:
-        return data.role;
-    }
-    return data;
-  },
   handleResponse: function(status, headers, payload, requestData) {
     let response = payload;
     if (status === HTTP_OK) {
@@ -60,11 +52,31 @@ export default Adapter.extend({
     }
     return this._super(status, headers, response, requestData);
   },
+  handleSingleResponse: function(url, response, primary, slug) {
+    // Sometimes we get `Policies: null`, make null equal an empty array
+    ['Policies'].forEach(function(prop) {
+      if (typeof response[prop] === 'undefined' || response[prop] === null) {
+        response[prop] = [];
+      }
+    });
+    return this._super(url, response, primary, slug);
+  },
   methodForRequest: function(params) {
     switch (params.requestType) {
       case REQUEST_CREATE:
         return HTTP_PUT;
     }
     return this._super(...arguments);
+  },
+  dataForRequest: function(params) {
+    let data = this._super(...arguments);
+    switch (params.requestType) {
+      case REQUEST_UPDATE:
+      case REQUEST_CREATE:
+        data.role.Policies = minimizeModel(data.role.Policies);
+        data = data.role;
+        break;
+    }
+    return data;
   },
 });

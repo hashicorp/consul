@@ -67,7 +67,7 @@
       {{#block-slot 'policy'}}
         {{#policy-selector dc=dc items=item.Policies}}
           {{#block-slot 'trigger'}}
-            <label class="type-dialog" onclick={{action 'createPolicy'}}>
+            <label data-test-create-policy class="type-dialog" onclick={{action 'createPolicy'}}>
               <span>Create new policy</span>
             </label>
           {{/block-slot}}
@@ -75,7 +75,7 @@
       {{/block-slot}}
     {{/role-form}}
 {{else}}
-    {{policy-form form=policyForm dc=dc item=policy}}
+    {{policy-form data-test-policy-form form=policyForm dc=dc item=policy}}
 {{/if}}
   {{/block-slot}}
   {{#block-slot 'actions' as |close|}}
