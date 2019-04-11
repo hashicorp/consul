@@ -9,7 +9,6 @@ const model = Model.extend({
   [PRIMARY_KEY]: attr('string'),
   [SLUG_KEY]: attr('string'),
   IDPName: attr('string'),
-  ExpirationTime: attr('string'),
   SecretID: attr('string'),
   // Legacy
   Type: attr('string'),
@@ -40,6 +39,7 @@ const model = Model.extend({
     },
   }),
   CreateTime: attr('date'),
+  Hash: attr('string'),
   CreateIndex: attr('number'),
   ModifyIndex: attr('number'),
 });

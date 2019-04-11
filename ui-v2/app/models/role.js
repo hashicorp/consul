@@ -28,6 +28,7 @@ export default Model.extend({
   Datacenter: attr('string'),
   // TODO: Figure out whether we need this or not
   Datacenters: attr(),
+  Hash: attr('string'),
   CreateIndex: attr('number'),
   ModifyIndex: attr('number'),
 });
