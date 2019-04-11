@@ -113,9 +113,9 @@ function build_ui {
    # Copy UI over ready to be packaged into the binary
    if test ${ret} -eq 0
    then
-      rm -rf ${1}/pkg/web_ui/v2
+      rm -rf ${1}/pkg/web_ui
       mkdir -p ${1}/pkg/web_ui
-      cp -r ${1}/ui-v2/dist ${1}/pkg/web_ui/v2
+      cp -r ${1}/ui-v2/dist ${1}/pkg/web_ui
    fi
 
    popd > /dev/null

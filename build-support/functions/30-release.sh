@@ -465,7 +465,7 @@ function build_release {
          err "ERROR: Failed to build the ui" 
          return 1
       fi
-      status "UI Built with Version: $(ui_version "${sdir}/pkg/web_ui/v2/index.html")"
+      status "UI Built with Version: $(ui_version "${sdir}/pkg/web_ui/index.html")"
       
       status_stage "==> Building Static Assets for version ${vers}"
       build_assetfs "${sdir}" "${GO_BUILD_TAG}"

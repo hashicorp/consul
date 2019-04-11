@@ -224,7 +224,6 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 			uifs = http.Dir(s.agent.config.UIDir)
 		} else {
 			fs := assetFS()
-			fs.Prefix += "/v2/"
 			uifs = fs
 		}
 		uifs = &redirectFS{fs: uifs}
