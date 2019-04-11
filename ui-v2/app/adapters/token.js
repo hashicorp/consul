@@ -109,9 +109,11 @@ export default Adapter.extend({
   },
   handleSingleResponse: function(url, response, primary, slug) {
     // Sometimes we get `Policies: null`, make null equal an empty array
-    if (typeof response.Policies === 'undefined' || response.Policies === null) {
-      response.Policies = [];
-    }
+    ['Policies', 'Roles'].forEach(function(prop) {
+      if (typeof response[prop] === 'undefined' || response[prop] === null) {
+        response[prop] = [];
+      }
+    });
     // Convert an old style update response to a new style
     if (typeof response['ID'] !== 'undefined') {
       const item = get(this, 'store')
@@ -169,19 +171,23 @@ export default Adapter.extend({
         }
       // falls through
       case REQUEST_CREATE:
-        if (Array.isArray(data.token.Policies)) {
-          data.token.Policies = data.token.Policies.filter(function(item) {
-            // Just incase, don't save any policies that aren't saved
-            return !get(item, 'isNew');
-          }).map(function(item) {
-            return {
-              ID: get(item, 'ID'),
-              Name: get(item, 'Name'),
-            };
-          });
-        } else {
-          delete data.token.Policies;
-        }
+        ['Policies', 'Roles'].forEach(function(prop) {
+          if (Array.isArray(data.token[prop])) {
+            data.token[prop] = data.token[prop]
+              .filter(function(item) {
+                // Just incase, don't save any policies that aren't saved
+                return !get(item, 'isNew');
+              })
+              .map(function(item) {
+                return {
+                  ID: get(item, 'ID'),
+                  Name: get(item, 'Name'),
+                };
+              });
+          } else {
+            delete data.token[prop];
+          }
+        });
         data = data.token;
         break;
       case REQUEST_SELF:
