@@ -129,13 +129,13 @@ is executed on the leader.
 
 #### Agent API
 
-##### Command - Unfiltered
+**Command - Unfiltered**
 
 ```sh
-curl localhost:8500/v1/agent/services
+curl -X GET localhost:8500/v1/agent/services
 ```
 
-##### Response - Unfiltered
+**Response - Unfiltered**
 
 ```json
 {
@@ -198,13 +198,13 @@ curl localhost:8500/v1/agent/services
 }
 ```
 
-##### Command - Filtered
+**Command - Filtered**
 
 ```sh
 curl -G localhost:8500/v1/agent/services --data-urlencode 'filter=Meta.env == qa'
 ```
 
-##### Response - Filtered
+**Response - Filtered**
 
 ```json
 {
@@ -231,13 +231,13 @@ curl -G localhost:8500/v1/agent/services --data-urlencode 'filter=Meta.env == qa
 
 #### Catalog API
 
-##### Command - Unfiltered
+**Command - Unfiltered**
 
 ```sh
-curl localhost:8500/v1/catalog/service/api-internal
+curl -X GET localhost:8500/v1/catalog/service/api-internal
 ```
 
-##### Response - Unfiltered
+**Response - Unfiltered**
 
 ```json
 [
@@ -340,13 +340,13 @@ curl localhost:8500/v1/catalog/service/api-internal
 ]
 ```
 
-##### Command - Filtered
+**Command - Filtered**
 
 ```sh
 curl -G localhost:8500/v1/catalog/service/api-internal --data-urlencode 'filter=NodeMeta.os == linux'
 ```
 
-##### Response - Filtered
+**Response - Filtered**
 
 ```json
 [
@@ -389,13 +389,13 @@ curl -G localhost:8500/v1/catalog/service/api-internal --data-urlencode 'filter=
 
 #### Health API
 
-##### Command - Unfiltered
+**Command - Unfiltered**
 
 ```sh
-curl localhost:8500/v1/health/node/node-1
+curl -X GET localhost:8500/v1/health/node/node-1
 ```
 
-##### Response - Unfiltered
+**Response - Unfiltered**
 
 ```json
 [
@@ -430,13 +430,13 @@ curl localhost:8500/v1/health/node/node-1
 ]
 ```
 
-##### Command - Filtered
+**Command - Filtered**
 
 ```sh
 curl -G localhost:8500/v1/health/node/node-1 --data-urlencode 'filter=ServiceName != ""'
 ```
 
-##### Response - Filtered
+**Response - Filtered**
 
 ```json
 [
