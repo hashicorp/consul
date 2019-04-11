@@ -9,21 +9,21 @@ description: |-
 
 # Filtering
 
-A filter expression is used to refine a data query for the agent, heath, and catalog API list endpoints. Filtering will be executed
-on the Consul server before data is returned, reducing load. To pass a
-filter expression to Consul, with a data query, use the `filter` parameter. 
+A filter expression is used to refine a data query for the agent, health, and catalog API list endpoints. Filtering will be executed
+on the Consul server before data is returned, reducing the network load. To pass a
+filter expression to Consul, with a data query, use the `filter` parameter.
 
 ```sh
-curl -G <path> --data-urlencode 'filter=<filter expression>'  
+curl -G <path> --data-urlencode 'filter=<filter expression>'
 ```
 
-To create a filter expression, you will write one or more expressions using matching operators, selectors, and values. 
+To create a filter expression, you will write one or more expressions using matching operators, selectors, and values.
 
 ## Expression Syntax
 
 Expressions are written in plain text format. Boolean logic and parenthesization are
 supported. In general whitespace is ignored, except within literal
-strings. 
+strings.
 
 ### Expressions
 
@@ -31,7 +31,7 @@ There are several methods for connecting expressions, including
 
 - logical `or`
 - logical `and`
-- Logical `not`
+- logical `not`
 - grouping with parenthesis
 - matching expressions
 
@@ -61,13 +61,13 @@ example, the following two expressions would be equivalent.
 ( <Expression 1> and (not <Expression 2> )) or <Expression 3>
 ```
 
-### Matching Operators 
+### Matching Operators
 
 Matching operators are used to create an expression. All matching operators use a selector or value to choose what data should be
 matched. Each endpoint that supports filtering accepts a potentially
 different list of selectors and is detailed in the API documentation for
-those endpoints. 
- 
+those endpoints.
+
 
 ```text
 // Equality & Inequality checks
@@ -87,7 +87,7 @@ those endpoints.
 
 ### Selectors
 
-Selectors are used by matching operators to create an expression. They are 
+Selectors are used by matching operators to create an expression. They are
 defined by a `.` separated list of names. Each name must start with
 a an ASCII letter and can contain ASCII letters, numbers, and underscores. When
 part of the selector references a map value it may be expressed using the form
@@ -111,7 +111,7 @@ they may either be enclosed in double quotes or backticks. When enclosed in
 backticks they are treated as raw strings and escape sequences such as `\n`
 will not be expanded.
 
-## Filter Utilization 
+## Filter Utilization
 
 Generally, only the main object is filtered. When filtering for
 an item within an array, that is not at the top level, the entire array that contains the item
@@ -129,6 +129,330 @@ is executed on the leader.
 
 #### Agent API
 
+##### Command - Unfiltered
+
+```sh
+curl localhost:8500/v1/agent/services
+```
+
+##### Response - Unfiltered
+
+```json
+{
+    "redis1": {
+        "ID": "redis1",
+        "Service": "redis",
+        "Tags": [
+            "primary",
+            "production"
+        ],
+        "Meta": {
+            "env": "production",
+            "foo": "bar"
+        },
+        "Port": 1234,
+        "Address": "",
+        "Weights": {
+            "Passing": 1,
+            "Warning": 1
+        },
+        "EnableTagOverride": false
+    },
+    "redis2": {
+        "ID": "redis2",
+        "Service": "redis",
+        "Tags": [
+            "secondary",
+            "production"
+        ],
+        "Meta": {
+            "env": "production",
+            "foo": "bar"
+        },
+        "Port": 1235,
+        "Address": "",
+        "Weights": {
+            "Passing": 1,
+            "Warning": 1
+        },
+        "EnableTagOverride": false
+    },
+    "redis3": {
+        "ID": "redis3",
+        "Service": "redis",
+        "Tags": [
+            "primary",
+            "qa"
+        ],
+        "Meta": {
+            "env": "qa"
+        },
+        "Port": 1234,
+        "Address": "",
+        "Weights": {
+            "Passing": 1,
+            "Warning": 1
+        },
+        "EnableTagOverride": false
+    }
+}
+```
+
+##### Command - Filtered
+
+```sh
+curl -G localhost:8500/v1/agent/services --data-urlencode 'filter=Meta.env == qa'
+```
+
+##### Response - Filtered
+
+```json
+{
+    "redis3": {
+        "ID": "redis3",
+        "Service": "redis",
+        "Tags": [
+            "primary",
+            "qa"
+        ],
+        "Meta": {
+            "env": "qa"
+        },
+        "Port": 1234,
+        "Address": "",
+        "Weights": {
+            "Passing": 1,
+            "Warning": 1
+        },
+        "EnableTagOverride": false
+    }
+}
+```
+
 #### Catalog API
 
+##### Command - Unfiltered
+
+```sh
+curl localhost:8500/v1/catalog/service/api-internal
+```
+
+##### Response - Unfiltered
+
+```json
+[
+    {
+        "ID": "b4f64e8c-5c7d-11e9-bf68-8c8590bd0966",
+        "Node": "node-1",
+        "Address": "198.18.0.1",
+        "Datacenter": "dc1",
+        "TaggedAddresses": null,
+        "NodeMeta": {
+            "agent": "true",
+            "arch": "i386",
+            "os": "darwin"
+        },
+        "ServiceKind": "",
+        "ServiceID": "api-internal",
+        "ServiceName": "api-internal",
+        "ServiceTags": [
+            "tag"
+        ],
+        "ServiceAddress": "",
+        "ServiceWeights": {
+            "Passing": 1,
+            "Warning": 1
+        },
+        "ServiceMeta": {
+            "environment": "qa"
+        },
+        "ServicePort": 9090,
+        "ServiceEnableTagOverride": false,
+        "ServiceProxyDestination": "",
+        "ServiceProxy": {},
+        "ServiceConnect": {},
+        "CreateIndex": 30,
+        "ModifyIndex": 30
+    },
+    {
+        "ID": "b4faf93a-5c7d-11e9-840d-8c8590bd0966",
+        "Node": "node-2",
+        "Address": "198.18.0.2",
+        "Datacenter": "dc1",
+        "TaggedAddresses": null,
+        "NodeMeta": {
+            "arch": "arm",
+            "os": "linux"
+        },
+        "ServiceKind": "",
+        "ServiceID": "api-internal",
+        "ServiceName": "api-internal",
+        "ServiceTags": [
+            "test",
+            "tag"
+        ],
+        "ServiceAddress": "",
+        "ServiceWeights": {
+            "Passing": 1,
+            "Warning": 1
+        },
+        "ServiceMeta": {
+            "environment": "production"
+        },
+        "ServicePort": 9090,
+        "ServiceEnableTagOverride": false,
+        "ServiceProxyDestination": "",
+        "ServiceProxy": {},
+        "ServiceConnect": {},
+        "CreateIndex": 29,
+        "ModifyIndex": 29
+    },
+    {
+        "ID": "b4fbe7f4-5c7d-11e9-ac82-8c8590bd0966",
+        "Node": "node-4",
+        "Address": "198.18.0.4",
+        "Datacenter": "dc1",
+        "TaggedAddresses": null,
+        "NodeMeta": {
+            "arch": "i386",
+            "os": "freebsd"
+        },
+        "ServiceKind": "",
+        "ServiceID": "api-internal",
+        "ServiceName": "api-internal",
+        "ServiceTags": [],
+        "ServiceAddress": "",
+        "ServiceWeights": {
+            "Passing": 1,
+            "Warning": 1
+        },
+        "ServiceMeta": {
+            "environment": "qa"
+        },
+        "ServicePort": 9090,
+        "ServiceEnableTagOverride": false,
+        "ServiceProxyDestination": "",
+        "ServiceProxy": {},
+        "ServiceConnect": {},
+        "CreateIndex": 28,
+        "ModifyIndex": 28
+    }
+]
+```
+
+##### Command - Filtered
+
+```sh
+curl -G localhost:8500/v1/catalog/service/api-internal --data-urlencode 'filter=NodeMeta.os == linux'
+```
+
+##### Response - Filtered
+
+```json
+[
+    {
+        "ID": "b4faf93a-5c7d-11e9-840d-8c8590bd0966",
+        "Node": "node-2",
+        "Address": "198.18.0.2",
+        "Datacenter": "dc1",
+        "TaggedAddresses": null,
+        "NodeMeta": {
+            "arch": "arm",
+            "os": "linux"
+        },
+        "ServiceKind": "",
+        "ServiceID": "api-internal",
+        "ServiceName": "api-internal",
+        "ServiceTags": [
+            "test",
+            "tag"
+        ],
+        "ServiceAddress": "",
+        "ServiceWeights": {
+            "Passing": 1,
+            "Warning": 1
+        },
+        "ServiceMeta": {
+            "environment": "production"
+        },
+        "ServicePort": 9090,
+        "ServiceEnableTagOverride": false,
+        "ServiceProxyDestination": "",
+        "ServiceProxy": {},
+        "ServiceConnect": {},
+        "CreateIndex": 29,
+        "ModifyIndex": 29
+    }
+]
+
+```
+
 #### Health API
+
+##### Command - Unfiltered
+
+```sh
+curl localhost:8500/v1/health/node/node-1
+```
+
+##### Response - Unfiltered
+
+```json
+[
+    {
+        "Node": "node-1",
+        "CheckID": "node-health",
+        "Name": "Node level check",
+        "Status": "critical",
+        "Notes": "",
+        "Output": "",
+        "ServiceID": "",
+        "ServiceName": "",
+        "ServiceTags": [],
+        "Definition": {},
+        "CreateIndex": 13,
+        "ModifyIndex": 13
+    },
+    {
+        "Node": "node-1",
+        "CheckID": "svc-web-health",
+        "Name": "Service level check - web",
+        "Status": "warning",
+        "Notes": "",
+        "Output": "",
+        "ServiceID": "",
+        "ServiceName": "web",
+        "ServiceTags": [],
+        "Definition": {},
+        "CreateIndex": 18,
+        "ModifyIndex": 18
+    }
+]
+```
+
+##### Command - Filtered
+
+```sh
+curl -G localhost:8500/v1/health/node/node-1 --data-urlencode 'filter=ServiceName != ""'
+```
+
+##### Response - Filtered
+
+```json
+[
+    {
+        "Node": "node-1",
+        "CheckID": "svc-web-health",
+        "Name": "Service level check - web",
+        "Status": "warning",
+        "Notes": "",
+        "Output": "",
+        "ServiceID": "",
+        "ServiceName": "web",
+        "ServiceTags": [],
+        "Definition": {},
+        "CreateIndex": 18,
+        "ModifyIndex": 18
+    }
+]
+```
