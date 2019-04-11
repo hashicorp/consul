@@ -9,8 +9,8 @@ description: |-
 
 # Filtering
 
-A filter expression is used to refine a data query for the agent, health, and catalog API list endpoints. Filtering will be executed
-on the Consul server before data is returned, reducing the network load. To pass a
+A filter expression is used to refine a data query for some API listing endpoints, notated in the individual API documentation.
+Filtering will be executed on the Consul server before data is returned, reducing the network load. To pass a
 filter expression to Consul, with a data query, use the `filter` parameter.
 
 ```sh
