@@ -33,12 +33,9 @@ export default function(
           ),
           roles: collection(
             '[data-test-roles] [data-test-tabular-row]',
-            deletable(
-              {
-                expand: clickable('label'),
-              },
-              '+ tr'
-            )
+            deletable({
+              actions: clickable('label'),
+            })
           ),
         },
         'form > div'

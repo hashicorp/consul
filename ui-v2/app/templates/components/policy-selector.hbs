@@ -41,7 +41,7 @@
           <div>
             {{#confirmation-dialog message='Are you sure you want to remove this policy from this token?'}}
               {{#block-slot 'action' as |confirm|}}
-                <button data-test-delete type="button" class="type-delete" {{action confirm remove item items}}>Remove</button>
+                <button data-test-delete type="button" class="type-delete" {{action confirm 'remove' item items}}>Remove</button>
               {{/block-slot}}
               {{#block-slot 'dialog' as |execute cancel message|}}
                 <p>

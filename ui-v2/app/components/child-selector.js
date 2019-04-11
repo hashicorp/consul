@@ -25,18 +25,29 @@ export default Component.extend(SlotsMixin, WithListeners, {
       this.form.setData(get(this, 'repo').create({ Datacenter: get(this, 'dc') })).getData()
     );
   },
-  remove: function(item, items) {
-    return items.removeObject(item);
-  },
   options: computed('items.[]', 'allOptions.[]', function() {
-    const options = get(this, 'allOptions') || [];
-    const items = get(this, 'items') || options;
-    // find a proper ember-data diff
-    const diff = options.filter(item => !items.findBy('ID', get(item, 'ID')));
-    this.searchable.add(diff);
-    return diff;
+    // It's not massively important here that we are defaulting `items` and
+    // losing reference as its just to figure out the diff
+    let options = get(this, 'allOptions') || [];
+    const items = get(this, 'items') || [];
+    if (get(items, 'length') > 0) {
+      // find a proper ember-data diff
+      options = options.filter(item => !items.findBy('ID', get(item, 'ID')));
+      this.searchable.add(options);
+    }
+    return options;
   }),
   actions: {
+    remove: function(item, items) {
+      const prop = get(this, 'repo').getSlugKey();
+      const value = get(item, prop);
+      const pos = items.findIndex(function(item) {
+        return get(item, prop) === value;
+      });
+      if (pos !== -1) {
+        return items.removeAt(pos, 1);
+      }
+    },
     search: function(term) {
       // TODO: make sure we can either search before things are loaded
       // or wait until we are loaded, guess power select take care of that

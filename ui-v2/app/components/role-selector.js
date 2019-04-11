@@ -4,7 +4,7 @@ import { get, set } from '@ember/object';
 
 export default ChildSelectorComponent.extend({
   repo: service('repository/role/component'),
-  policyRepo: service('repository/policy'),
+  policyRepo: service('repository/policy/component'),
   name: 'role',
   state: 'role',
   init: function() {
