@@ -115,7 +115,7 @@ function build_ui {
    then
       rm -rf ${1}/pkg/web_ui
       mkdir -p ${1}/pkg/web_ui
-      cp -r ${1}/ui-v2/dist ${1}/pkg/web_ui
+      cp -r ${1}/ui-v2/dist/ ${1}/pkg/web_ui
    fi
 
    popd > /dev/null
