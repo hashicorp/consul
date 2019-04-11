@@ -3,10 +3,13 @@
 IMPROVEMENTS:
 * cli: allow to add ip addresses as Subject Alternative Names when creating certificates with `consul tls cert create` [[GH-5602](https://github.com/hashicorp/consul/pull/5602)]
 
+
 BUG FIXES:
 
 * api: fix panic in 'consul acl set-agent-token' [[GH-5533](https://github.com/hashicorp/consul/issues/5533)]
 * acl: memdb filter of tokens-by-policy was inverted [[GH-5575](https://github.com/hashicorp/consul/issues/5575)]
+* connect: fix an issue where Envoy woudl fail to bootstrap if some upstreams were unavailable [[GH-5499]https://github.com/hashicorp/consul/pull/5499]
+* connect: fix an issue where health checks on proxies might be missed by watchers of `/health/service/:service` API [[GH-5506]https://github.com/hashicorp/consul/issues/5506]
 
 ## 1.4.4 (March 21, 2019)
 
