@@ -295,7 +295,17 @@ function build_consul {
    fi
 
    status "Creating the Go Build Container with image: ${image_name}"
-   local container_id=$(docker create -it ${volume_mount} -e CGO_ENABLED=0 ${image_name} gox -os="${XC_OS}" -arch="${XC_ARCH}" -osarch="!darwin/arm !freebsd/arm !darwin/arm64" -ldflags "${GOLDFLAGS}" -output "pkg/bin/${extra_dir}{{.OS}}_{{.Arch}}/consul" -tags="${GOTAGS}")
+   local container_id=$(docker create -it \
+      ${volume_mount} \
+      -e CGO_ENABLED=0 \
+      ${image_name} \
+      gox \
+         -os="${XC_OS}" \
+         -arch="${XC_ARCH}" \
+         -osarch="!darwin/arm !freebsd/arm !darwin/arm64" \
+         -ldflags "${GOLDFLAGS}" \
+         -output "pkg/bin/${extra_dir}{{.OS}}_{{.Arch}}/consul" \
+         -tags="${GOTAGS}")
    ret=$?
 
    if test $ret -eq 0
