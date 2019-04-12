@@ -125,7 +125,7 @@ You have installed an Enterprise version of Consul. If you are an Enterprise cus
 
   
 [troubleshooting]: https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/troubleshooting
-[node_name]: https://www.consul.io/docs/agent/options.html#retry-join
+[node_name]: https://www.consul.io/docs/agent/options.html#node_name
 [retry_join]: https://www.consul.io/docs/agent/options.html#retry-join
 [license]: https://www.consul.io/docs/commands/license.html
 [releases]: https://releases.hashicorp.com/consul/
