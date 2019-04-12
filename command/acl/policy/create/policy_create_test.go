@@ -74,8 +74,8 @@ func TestPolicyCreateCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(code, 0)
 		require.Empty(ui.ErrorWriter.String())
+		require.Equal(code, 0)
 
 		conf := api.DefaultConfig()
 		conf.Address = a.HTTPAddr()
