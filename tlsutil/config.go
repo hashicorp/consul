@@ -526,12 +526,6 @@ func (c *Configurator) EnableAutoEncryptModeClientStartup() {
 	c.autoEncrypt.mode = AutoEncryptModeClientStartup
 }
 
-func (c *Configurator) EnableAutoEncryptModeClientEstablished() {
-	c.Lock()
-	defer c.Unlock()
-	c.autoEncrypt.mode = AutoEncryptModeClientEstablished
-}
-
 // IncomingRPCConfig generates a *tls.Config for incoming RPC connections.
 func (c *Configurator) IncomingRPCConfig() *tls.Config {
 	c.log("IncomingRPCConfig")
