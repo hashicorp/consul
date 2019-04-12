@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"net/url"
-	"os"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -218,10 +217,6 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 	handlePProf("/debug/pprof/trace", pprof.Trace)
 
 	if s.IsUIEnabled() {
-		legacy_ui, err := strconv.ParseBool(os.Getenv("CONSUL_UI_LEGACY"))
-		if err != nil {
-			legacy_ui = false
-		}
 		var uifs http.FileSystem
 
 		// Use the custom UI dir if provided.
@@ -229,18 +224,9 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 			uifs = http.Dir(s.agent.config.UIDir)
 		} else {
 			fs := assetFS()
-
-			if legacy_ui {
-				fs.Prefix += "/v1/"
-			} else {
-				fs.Prefix += "/v2/"
-			}
 			uifs = fs
 		}
-
-		if !legacy_ui {
-			uifs = &redirectFS{fs: uifs}
-		}
+		uifs = &redirectFS{fs: uifs}
 
 		mux.Handle("/robots.txt", http.FileServer(uifs))
 		mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(uifs)))

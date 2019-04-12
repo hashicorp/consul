@@ -43,7 +43,6 @@ endif
 CONSUL_DEV_IMAGE?=consul-dev
 GO_BUILD_TAG?=consul-build-go
 UI_BUILD_TAG?=consul-build-ui
-UI_LEGACY_BUILD_TAG?=consul-build-ui-legacy
 BUILD_CONTAINER_NAME?=consul-builder
 
 DIST_TAG?=1
@@ -88,7 +87,6 @@ NOGOX?=1
 export NOGOX
 export GO_BUILD_TAG
 export UI_BUILD_TAG
-export UI_LEGACY_BUILD_TAG
 export BUILD_CONTAINER_NAME
 export GIT_COMMIT
 export GIT_DIRTY
@@ -223,7 +221,7 @@ static-assets:
 
 
 # Build the static web ui and build static assets inside a Docker container
-ui: ui-legacy-docker ui-docker static-assets-docker
+ui: ui-docker static-assets-docker
 
 tools:
 	go get -u -v $(GOTOOLS)
@@ -239,7 +237,7 @@ version:
 	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh -r -g
 
 
-docker-images: go-build-image ui-build-image ui-legacy-build-image
+docker-images: go-build-image ui-build-image
 
 go-build-image:
 	@echo "Building Golang build container"
@@ -248,10 +246,6 @@ go-build-image:
 ui-build-image:
 	@echo "Building UI build container"
 	@docker build $(NOCACHE) $(QUIET) -t $(UI_BUILD_TAG) - < build-support/docker/Build-UI.dockerfile
-
-ui-legacy-build-image:
-	@echo "Building Legacy UI build container"
-	@docker build $(NOCACHE) $(QUIET) -t $(UI_LEGACY_BUILD_TAG) - < build-support/docker/Build-UI-Legacy.dockerfile
 
 static-assets-docker: go-build-image
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh static-assets
@@ -262,12 +256,9 @@ consul-docker: go-build-image
 ui-docker: ui-build-image
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh ui
 
-ui-legacy-docker: ui-legacy-build-image
-	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh ui-legacy
-
 proto:
 	protoc agent/connect/ca/plugin/*.proto --gofast_out=plugins=grpc:../../..
 
 .PHONY: all ci bin dev dist cov test test-ci test-internal test-install-deps cover format vet ui static-assets tools
-.PHONY: docker-images go-build-image ui-build-image ui-legacy-build-image static-assets-docker consul-docker ui-docker
-.PHONY: ui-legacy-docker version proto
+.PHONY: docker-images go-build-image ui-build-image static-assets-docker consul-docker ui-docker
+.PHONY: version proto
