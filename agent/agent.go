@@ -418,18 +418,19 @@ func (a *Agent) Start() error {
 		}
 		a.delegate = client
 
-		// TODO (hans): add a.config.RetryJoinLAN, but make sure to deal with autodisover
-		reply, priv, err := client.AutoEncrypt(a.config.StartJoinAddrsLAN, a.config.ServerPort, a.tokens.AgentToken())
-		if err != nil {
-			a.logger.Printf("[DEBUG] AutoEncrypt: request failed: %s", err)
-		} else {
-			err := a.tlsConfigurator.UpdateAutoEncrypt(reply.RootCAs, reply.CertPEM, priv, reply.VerifyServerHostname)
+		if a.config.AutoEncryptTLS {
+			reply, priv, err := client.AutoEncrypt(a.config.StartJoinAddrsLAN, a.config.ServerPort, a.tokens.AgentToken())
 			if err != nil {
-				a.logger.Printf("[DEBUG] AutoEncrypt: update autoEncrypt failed: %s", err)
+				a.logger.Printf("[DEBUG] AutoEncrypt: request failed: %s", err)
 			} else {
-				a.logger.Printf("[DEBUG] AutoEncrypt: upgraded to TLS")
-			}
-			if reply.GossipKey != "" {
+				err := a.tlsConfigurator.UpdateAutoEncrypt(reply.RootCAs, reply.CertPEM, priv, reply.VerifyServerHostname)
+				if err != nil {
+					a.logger.Printf("[DEBUG] AutoEncrypt: update autoEncrypt failed: %s", err)
+				} else {
+					a.logger.Printf("[DEBUG] AutoEncrypt: upgraded to TLS")
+				}
+				if reply.GossipKey != "" {
+				}
 			}
 		}
 	}
