@@ -959,7 +959,7 @@ function shasum_directory {
    return $ret
 }
 
- function ui_version {
+function ui_version {
    # Arguments:
    #   $1 - path to index.html
    #
@@ -977,8 +977,9 @@ function shasum_directory {
    local ui_version="$(grep '<!-- CONSUL_VERSION: .* -->$' "$1" | sed 's/^<!-- CONSUL_VERSION: \(.*\) -->$/\1/')" || return 1
    echo "$ui_version"
    return 0
- }
- function ui_logo_type {
+}
+
+function ui_logo_type {
    # Arguments:
    #   $1 - path to index.html
    #
@@ -1004,4 +1005,29 @@ function shasum_directory {
      echo "oss"
    fi
    return 0
- }
+}
+
+function go_mod_assert {
+   # Returns:
+   #   0 - success
+   #   * - failure
+   #
+   # Notes: will ensure all the necessary go modules are cached
+   # and if the CONSUL_MOD_VERIFY env var is set will force
+   # reverification of all modules.
+   if ! go mod download >/dev/null
+   then
+      err "ERROR: Failed to populate the go module cache"
+      return 1
+   fi
+
+   if is_set "${CONSUL_MOD_VERIFY}"
+   then
+      if ! go mod verify
+      then
+         err "ERROR: Failed to verify go module checksums"
+         return 1
+      fi
+   fi
+   return 0
+}

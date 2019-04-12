@@ -254,7 +254,6 @@ function build_consul {
    fi
 
    pushd ${sdir} > /dev/null
-   status "Creating the Go Build Container with image: ${image_name}"
    if is_set "${CONSUL_DEV}"
    then
       if test -z "${XC_OS}"
@@ -275,7 +274,38 @@ function build_consul {
       extra_dir="${extra_dir_name}/"
    fi
 
-   local container_id=$(docker create -it -e CGO_ENABLED=0 ${image_name} gox -os="${XC_OS}" -arch="${XC_ARCH}" -osarch="!darwin/arm !freebsd/arm !darwin/arm64" -ldflags "${GOLDFLAGS}" -output "pkg/bin/${extra_dir}{{.OS}}_{{.Arch}}/consul" -tags="${GOTAGS}")
+   # figure out if the compiler supports modules
+   local use_modules=0
+   if go help modules >/dev/null 2>&1
+   then
+      use_modules=1
+   elif test -n "${GO111MODULE}"
+   then
+      use_modules=1
+   fi
+
+   local volume_mount=
+   if is_set "${use_modules}"
+   then
+      status "Ensuring Go modules are up to date"
+      # ensure our go module cache is correct
+      go_mod_assert || return 1
+      # setup to bind mount our hosts module cache into the container
+      volume_mount="--mount=type=bind,source=${MAIN_GOPATH}/pkg/mod,target=/go/pkg/mod"
+   fi
+
+   status "Creating the Go Build Container with image: ${image_name}"
+   local container_id=$(docker create -it \
+      ${volume_mount} \
+      -e CGO_ENABLED=0 \
+      ${image_name} \
+      gox \
+         -os="${XC_OS}" \
+         -arch="${XC_ARCH}" \
+         -osarch="!darwin/arm !freebsd/arm !darwin/arm64" \
+         -ldflags "${GOLDFLAGS}" \
+         -output "pkg/bin/${extra_dir}{{.OS}}_{{.Arch}}/consul" \
+         -tags="${GOTAGS}")
    ret=$?
 
    if test $ret -eq 0
