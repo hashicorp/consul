@@ -169,12 +169,6 @@ type Configurator struct {
 	version int
 }
 
-func (c *Configurator) String() string {
-	c.RLock()
-	defer c.RUnlock()
-	return fmt.Sprintf("VerifyIncoming{,RPC,HTTP}: %t %t %t VerifyOutgoing: %t\n\tbase: %+v manual: %+v autoEncrypt: %+v", c.base.allVerifyIncoming(), c.base.specialVerifyIncoming(c.base.VerifyIncomingRPC), c.base.specialVerifyIncoming(c.base.VerifyIncomingHTTPS), c.verifyOutgoing(), c.base, c.manual, c.autoEncrypt)
-}
-
 // NewConfigurator creates a new Configurator and sets the provided
 // configuration.
 func NewConfigurator(config Config, logger *log.Logger) (*Configurator, error) {
@@ -221,7 +215,7 @@ func (c *Configurator) Update(config Config) error {
 	c.manual.cert = cert
 	c.manual.caPems = pems
 	c.caPool = pool
-	if c.base.autoEncryptServerMode() {
+	if c.base.ServerMode && c.base.AutoEncryptTLS {
 		c.autoEncrypt.mode = AutoEncryptModeServer
 	}
 	c.version++
@@ -278,6 +272,12 @@ func (c *Configurator) UpdateAutoEncrypt(caPems []string, pub, priv string, veri
 	return nil
 }
 
+func (c *Configurator) Base() Config {
+	c.RLock()
+	defer c.RUnlock()
+	return *c.base
+}
+
 func pool(pems []string) (*x509.CertPool, error) {
 	pool := x509.NewCertPool()
 	for _, pem := range pems {
@@ -305,7 +305,9 @@ func (c *Configurator) check(config Config, pool *x509.CertPool, cert *tls.Certi
 	}
 
 	// Ensure we have a CA and cert if VerifyIncoming is set
-	if config.anyVerifyIncoming() {
+	if config.VerifyIncoming || config.VerifyIncomingRPC ||
+		config.VerifyIncomingHTTPS ||
+		(config.ServerMode && config.AutoEncryptTLS) {
 		if pool == nil {
 			return fmt.Errorf("VerifyIncoming set, and no CA certificate provided!")
 		}
@@ -423,56 +425,31 @@ func (c *Configurator) commonTLSConfig(specialVerifyIncomingFlag bool) *tls.Conf
 	tlsConfig.MinVersion = TLSLookup[c.base.TLSMinVersion]
 
 	// Set ClientAuth if necessary
-	if c.base.specialVerifyIncoming(specialVerifyIncomingFlag) {
+	if c.base.VerifyIncoming || specialVerifyIncomingFlag ||
+		(c.base.ServerMode && c.base.AutoEncryptTLS) {
 		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
 	}
 
 	return tlsConfig
 }
 
-func (c *Config) autoEncryptServerMode() bool {
-	return c.ServerMode && c.AutoEncryptTLS
-}
-
-func (c *Config) allVerifyIncoming() bool {
-	return verifyIncoming(
-		c.VerifyIncoming,
-		false,
-		c.autoEncryptServerMode(),
-	)
-}
-func (c *Config) anyVerifyIncoming() bool {
-	return verifyIncoming(
-		c.VerifyIncoming,
-		c.VerifyIncomingRPC || c.VerifyIncomingHTTPS,
-		c.autoEncryptServerMode(),
-	)
-}
-
-func (c *Config) specialVerifyIncoming(specialVerifyIncomingFlag bool) bool {
-	return verifyIncoming(
-		c.VerifyIncoming,
-		specialVerifyIncomingFlag,
-		c.autoEncryptServerMode(),
-	)
-}
-
-func verifyIncoming(all, special, autoEncryptServerMode bool) bool {
-	return all || special || autoEncryptServerMode
-}
-
 // This function acquires a read lock because it reads from the config.
 func (c *Configurator) outgoingRPCTLSDisabled() bool {
 	c.RLock()
 	defer c.RUnlock()
-	return c.caPool == nil && !c.base.VerifyOutgoing && c.autoEncrypt.mode != AutoEncryptModeClientEstablished && c.autoEncrypt.mode != AutoEncryptModeClientStartup
+	return c.caPool == nil &&
+		!c.base.VerifyOutgoing &&
+		c.autoEncrypt.mode != AutoEncryptModeClientEstablished &&
+		c.autoEncrypt.mode != AutoEncryptModeClientStartup
 }
 
 // This function acquires a read lock because it reads from the config.
 func (c *Configurator) verifyOutgoing() bool {
 	c.RLock()
 	defer c.RUnlock()
-	return c.base.VerifyOutgoing || c.autoEncrypt.mode == AutoEncryptModeClientEstablished
+	return c.base.VerifyOutgoing ||
+		c.autoEncrypt.mode == AutoEncryptModeClientEstablished ||
+		c.autoEncrypt.mode == AutoEncryptModeClientStartup
 }
 
 // This function acquires a read lock because it reads from the config.

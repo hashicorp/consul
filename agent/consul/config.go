@@ -424,15 +424,19 @@ func (c *Config) ToTLSUtilConfig() tlsutil.Config {
 	return tlsutil.Config{
 		VerifyIncoming:           c.VerifyIncoming,
 		VerifyOutgoing:           c.VerifyOutgoing,
+		VerifyServerHostname:     c.VerifyServerHostname,
 		CAFile:                   c.CAFile,
 		CAPath:                   c.CAPath,
 		CertFile:                 c.CertFile,
 		KeyFile:                  c.KeyFile,
 		NodeName:                 c.NodeName,
+		Domain:                   c.Domain,
 		ServerName:               c.ServerName,
 		TLSMinVersion:            c.TLSMinVersion,
 		CipherSuites:             c.TLSCipherSuites,
 		PreferServerCipherSuites: c.TLSPreferServerCipherSuites,
+		ServerMode:               true,
+		AutoEncryptTLS:           c.AutoEncryptTLS,
 	}
 }
 
