@@ -285,7 +285,7 @@ function build_consul {
    fi
 
    local volume_mount=
-   if is_set "${USE_MODULES}"
+   if is_set "${use_modules}"
    then
       status "Ensuring Go modules are up to date"
       # ensure our go module cache is correct
