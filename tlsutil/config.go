@@ -305,17 +305,31 @@ func (c *Configurator) check(config Config, pool *x509.CertPool, cert *tls.Certi
 	}
 
 	// Ensure we have a CA and cert if VerifyIncoming is set
-	if config.VerifyIncoming || config.VerifyIncomingRPC ||
-		config.VerifyIncomingHTTPS ||
-		(config.ServerMode && config.AutoEncryptTLS) {
+	if config.anyVerifyIncoming() {
 		if pool == nil {
 			return fmt.Errorf("VerifyIncoming set, and no CA certificate provided!")
 		}
-		if cert == nil {
+		if cert == nil || cert.Certificate == nil {
 			return fmt.Errorf("VerifyIncoming set, and no Cert/Key pair provided!")
 		}
 	}
 	return nil
+}
+
+func (c Config) anyVerifyIncoming() bool {
+	return c.baseVerifyIncoming() || c.VerifyIncomingRPC || c.VerifyIncomingHTTPS
+}
+
+func (c Config) verifyIncomingRPC() bool {
+	return c.baseVerifyIncoming() || c.VerifyIncomingRPC
+}
+
+func (c Config) verifyIncomingHTTPS() bool {
+	return c.baseVerifyIncoming() || c.VerifyIncomingHTTPS
+}
+
+func (c *Config) baseVerifyIncoming() bool {
+	return c.VerifyIncoming || (c.ServerMode && c.AutoEncryptTLS)
 }
 
 func loadKeyPair(certFile, keyFile string) (*tls.Certificate, error) {
@@ -379,7 +393,7 @@ func loadCAs(caFile, caPath string) ([]string, error) {
 // Configurator has. It accepts an additional flag in case a config is needed
 // for incoming TLS connections.
 // This function acquires a read lock because it reads from the config.
-func (c *Configurator) commonTLSConfig(specialVerifyIncomingFlag bool) *tls.Config {
+func (c *Configurator) commonTLSConfig(verifyIncoming bool) *tls.Config {
 	// this needs to be outside of RLock because it acquires an RLock itself
 	verifyServerHostname := c.VerifyServerHostname()
 
@@ -425,12 +439,18 @@ func (c *Configurator) commonTLSConfig(specialVerifyIncomingFlag bool) *tls.Conf
 	tlsConfig.MinVersion = TLSLookup[c.base.TLSMinVersion]
 
 	// Set ClientAuth if necessary
-	if c.base.VerifyIncoming || specialVerifyIncomingFlag ||
-		(c.base.ServerMode && c.base.AutoEncryptTLS) {
+	if verifyIncoming {
 		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
 	}
 
 	return tlsConfig
+}
+
+// This function acquires a read lock because it reads from the config.
+func (c *Configurator) VerifyIncomingRPC() bool {
+	c.RLock()
+	defer c.RUnlock()
+	return c.base.verifyIncomingRPC()
 }
 
 // This function acquires a read lock because it reads from the config.
@@ -440,7 +460,8 @@ func (c *Configurator) outgoingRPCTLSDisabled() bool {
 	return c.caPool == nil &&
 		!c.base.VerifyOutgoing &&
 		c.autoEncrypt.mode != AutoEncryptModeClientEstablished &&
-		c.autoEncrypt.mode != AutoEncryptModeClientStartup
+		c.autoEncrypt.mode != AutoEncryptModeClientStartup ||
+		(c.base.ServerMode && c.base.AutoEncryptTLS)
 }
 
 // This function acquires a read lock because it reads from the config.
@@ -449,7 +470,8 @@ func (c *Configurator) verifyOutgoing() bool {
 	defer c.RUnlock()
 	return c.base.VerifyOutgoing ||
 		c.autoEncrypt.mode == AutoEncryptModeClientEstablished ||
-		c.autoEncrypt.mode == AutoEncryptModeClientStartup
+		(c.autoEncrypt.mode == AutoEncryptModeClientStartup && c.caPool != nil) ||
+		(c.base.ServerMode && c.base.AutoEncryptTLS)
 }
 
 // This function acquires a read lock because it reads from the config.
@@ -463,14 +485,14 @@ func (c *Configurator) domain() string {
 func (c *Configurator) verifyIncomingRPC() bool {
 	c.RLock()
 	defer c.RUnlock()
-	return c.base.VerifyIncomingRPC
+	return c.base.verifyIncomingRPC()
 }
 
 // This function acquires a read lock because it reads from the config.
 func (c *Configurator) verifyIncomingHTTPS() bool {
 	c.RLock()
 	defer c.RUnlock()
-	return c.base.VerifyIncomingHTTPS
+	return c.base.verifyIncomingHTTPS()
 }
 
 // This function acquires a read lock because it reads from the config.
