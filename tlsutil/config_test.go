@@ -613,23 +613,23 @@ func TestConfigurator_OutgoingRPCTLSDisabled(t *testing.T) {
 		{true, "", capath, AutoEncryptModeNone, false},
 		{true, cafile, capath, AutoEncryptModeNone, false},
 
-		{false, "", "", AutoEncryptModeStartup, false},
-		{false, cafile, "", AutoEncryptModeStartup, false},
-		{false, "", capath, AutoEncryptModeStartup, false},
-		{false, cafile, capath, AutoEncryptModeStartup, false},
-		{true, "", "", AutoEncryptModeStartup, false},
-		{true, cafile, "", AutoEncryptModeStartup, false},
-		{true, "", capath, AutoEncryptModeStartup, false},
-		{true, cafile, capath, AutoEncryptModeStartup, false},
+		{false, "", "", AutoEncryptModeClientStartup, false},
+		{false, cafile, "", AutoEncryptModeClientStartup, false},
+		{false, "", capath, AutoEncryptModeClientStartup, false},
+		{false, cafile, capath, AutoEncryptModeClientStartup, false},
+		{true, "", "", AutoEncryptModeClientStartup, false},
+		{true, cafile, "", AutoEncryptModeClientStartup, false},
+		{true, "", capath, AutoEncryptModeClientStartup, false},
+		{true, cafile, capath, AutoEncryptModeClientStartup, false},
 
-		{false, "", "", AutoEncryptModeEstablished, false},
-		{false, cafile, "", AutoEncryptModeEstablished, false},
-		{false, "", capath, AutoEncryptModeEstablished, false},
-		{false, cafile, capath, AutoEncryptModeEstablished, false},
-		{true, "", "", AutoEncryptModeEstablished, false},
-		{true, cafile, "", AutoEncryptModeEstablished, false},
-		{true, "", capath, AutoEncryptModeEstablished, false},
-		{true, cafile, capath, AutoEncryptModeEstablished, false},
+		{false, "", "", AutoEncryptModeClientEstablished, false},
+		{false, cafile, "", AutoEncryptModeClientEstablished, false},
+		{false, "", capath, AutoEncryptModeClientEstablished, false},
+		{false, cafile, capath, AutoEncryptModeClientEstablished, false},
+		{true, "", "", AutoEncryptModeClientEstablished, false},
+		{true, cafile, "", AutoEncryptModeClientEstablished, false},
+		{true, "", capath, AutoEncryptModeClientEstablished, false},
+		{true, cafile, capath, AutoEncryptModeClientEstablished, false},
 	}
 	for i, v := range variants {
 		info := fmt.Sprintf("case %d", i)
@@ -779,13 +779,13 @@ func TestConfigurator_ServerNameOrNodeName(t *testing.T) {
 func TestConfigurator_VerifyOutgoing(t *testing.T) {
 	c := Configurator{base: &Config{}, autoEncrypt: &autoEncrypt{}}
 	require.False(t, c.verifyOutgoing())
-	c.autoEncrypt.mode = AutoEncryptModeStartup
+	c.autoEncrypt.mode = AutoEncryptModeClientStartup
 	require.False(t, c.verifyOutgoing())
 	c.base.VerifyOutgoing = true
 	c.autoEncrypt.mode = AutoEncryptModeNone
 	require.True(t, c.verifyOutgoing())
 	c.base.VerifyOutgoing = false
-	c.autoEncrypt.mode = AutoEncryptModeEstablished
+	c.autoEncrypt.mode = AutoEncryptModeClientEstablished
 	require.True(t, c.verifyOutgoing())
 }
 
@@ -805,16 +805,16 @@ func TestConfigurator_VerifyServerHostname(t *testing.T) {
 	require.True(t, c.VerifyServerHostname())
 }
 
-func TestConfigurator_EnableAutoEncryptModeStartup(t *testing.T) {
+func TestConfigurator_EnableAutoEncryptModeClientStartup(t *testing.T) {
 	c := Configurator{autoEncrypt: &autoEncrypt{}}
 	require.Equal(t, AutoEncryptModeNone, c.autoEncrypt.mode)
-	c.EnableAutoEncryptModeStartup()
-	require.Equal(t, AutoEncryptModeStartup, c.autoEncrypt.mode)
+	c.EnableAutoEncryptModeClientStartup()
+	require.Equal(t, AutoEncryptModeClientStartup, c.autoEncrypt.mode)
 }
 
-func TestConfigurator_EnableAutoEncryptModeEstablished(t *testing.T) {
+func TestConfigurator_EnableAutoEncryptModeClientEstablished(t *testing.T) {
 	c := Configurator{autoEncrypt: &autoEncrypt{}}
 	require.Equal(t, AutoEncryptModeNone, c.autoEncrypt.mode)
-	c.EnableAutoEncryptModeEstablished()
-	require.Equal(t, AutoEncryptModeEstablished, c.autoEncrypt.mode)
+	c.EnableAutoEncryptModeClientEstablished()
+	require.Equal(t, AutoEncryptModeClientEstablished, c.autoEncrypt.mode)
 }
