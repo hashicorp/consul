@@ -1,7 +1,7 @@
 <fieldset>
     <label class="type-text{{if item.error.Name ' has-error'}}">
         <span>Name</span>
-        {{input value=item.Name name='policy[Name]' autofocus='autofocus'}}
+        <input type="text" value={{item.Name}} name="policy[Name]" autofocus="autofocus" oninput={{action 'change'}} />
         <em>
           Maximum 128 characters. May only include letters (uppercase and/or lowercase) and/or numbers. Must be unique.
         </em>

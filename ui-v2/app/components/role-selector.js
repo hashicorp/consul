@@ -2,35 +2,23 @@ import ChildSelectorComponent from './child-selector';
 import { inject as service } from '@ember/service';
 import { get, set } from '@ember/object';
 
+import { alias } from '@ember/object/computed';
+
 export default ChildSelectorComponent.extend({
   repo: service('repository/role/component'),
-  policyRepo: service('repository/policy/component'),
   name: 'role',
   state: 'role',
-  init: function() {
-    this._super(...arguments);
-    this.policyForm = this.form.form('policy');
-  },
-  reset: function(e) {
-    this._super(...arguments);
-    set(
-      this,
-      'policy',
-      this.policyForm
-        .setData(get(this, 'policyRepo').create({ Datacenter: get(this, 'dc') }))
-        .getData()
-    );
-  },
+  // You have to alias data
+  // is you just set it it loses its reference?
+  policy: alias('policyForm.data'),
   actions: {
-    createPolicy: function() {
-      set(
-        this,
-        'policy',
-        this.policyForm
-          .setData(get(this, 'policyRepo').create({ Datacenter: get(this, 'dc') }))
-          .getData()
-      );
-      set(this, 'state', 'policy');
+    reset: function(e) {
+      const event = get(this, 'dom').normalizeEvent(...arguments);
+      if (event.target.name === 'policy') {
+        set(this, 'policyForm', event.target);
+      } else {
+        this._super(...arguments);
+      }
     },
   },
 });

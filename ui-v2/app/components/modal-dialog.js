@@ -110,7 +110,7 @@ export default DomBufferComponent.extend(SlotsMixin, WithResizing, {
       if (get(e, 'target.checked')) {
         this._open(e);
       } else {
-        this._close();
+        this._close(e);
       }
     },
     close: function() {

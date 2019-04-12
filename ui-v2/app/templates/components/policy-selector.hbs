@@ -47,6 +47,7 @@
                 <p>
                   {{message}}
                 </p>
+
                 <button type="button" class="type-delete" {{action execute}}>Confirm remove</button>
                 <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
               {{/block-slot}}
@@ -58,12 +59,12 @@
   {{/block-slot}}
 {{/child-selector}}
 
-{{#modal-dialog data-test-policy-form onopen=(action reset) name="new-policy-toggle"}}
+{{#modal-dialog data-test-policy-form name="new-policy-toggle"}}
   {{#block-slot 'header'}}
     <h2>New Policy</h2>
   {{/block-slot}}
   {{#block-slot 'body'}}
-    {{policy-form form=form item=item}}
+    {{policy-form dc=dc onreset=(action 'reset')}}
   {{/block-slot}}
   {{#block-slot 'actions' as |close|}}
     <button type="submit" {{action 'save' item items close}} disabled={{if (or item.isSaving item.isPristine item.isInvalid) 'disabled'}}>
@@ -72,6 +73,6 @@
       {{/if}}
       <span>Create and apply</span>
     </button>
-    <button type="reset" disabled={{if item.isSaving 'disabled'}} {{action close}}>Cancel</button>
+    <button type="reset" disabled={{if item.isSaving 'disabled'}} {{action (queue (action close) (action form.reset))}}>Cancel</button>
   {{/block-slot}}
 {{/modal-dialog}}

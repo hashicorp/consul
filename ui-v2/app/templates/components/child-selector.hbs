@@ -9,7 +9,7 @@
         loadingMessage="Loading..."
         searchMessage="No possible options"
         searchPlaceholder=placeholder
-        onchange=(action 'add' items) as |item|
+        onchange=(action 'change' 'items[]' items) as |item|
       }}
         {{#yield-slot 'option' (block-params item)}}{{yield}}{{/yield-slot}}
       {{/power-select}}

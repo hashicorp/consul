@@ -58,8 +58,9 @@ export const fromPromise = function(promise) {
       });
   });
 };
-export const toPromise = function(source, cb) {
+export const toPromise = function(target, cb, eventName = 'message', errorName = 'error') {
   return new Promise(function(resolve, reject) {
+    // TODO: e.target.data
     const message = function(e) {
       resolve(e.data);
     };
@@ -67,12 +68,14 @@ export const toPromise = function(source, cb) {
       reject(e.error);
     };
     const remove = function() {
-      source.close();
-      source.removeEventListener('message', message);
-      source.removeEventListener('error', error);
+      if (typeof target.close === 'function') {
+        target.close();
+      }
+      target.removeEventListener(eventName, message);
+      target.removeEventListener(errorName, error);
     };
-    source.addEventListener('message', message);
-    source.addEventListener('error', error);
+    target.addEventListener(eventName, message);
+    target.addEventListener(errorName, error);
     cb(remove);
   });
 };
