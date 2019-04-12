@@ -160,10 +160,6 @@ func DevSource() Source {
 		connect = {
 			enabled = true
 		}
-		auto_encrypt = {
-			tls = true
-			gossip = true
-		}
 		performance = {
 			raft_multiplier = 1
 		}

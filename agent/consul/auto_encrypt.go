@@ -25,11 +25,11 @@ func (c *Client) AutoEncrypt(servers []string, port int, token string) (*structs
 		return nil, "", err
 	}
 
-	autoEncryptTLSConfigurator, err := tlsutil.NewConfigurator(c.config.ToTLSUtilConfig(), c.logger)
-	autoEncryptTLSConfigurator.EnableAutoEncryptModeClientStartup()
+	autoEncryptTLSConfigurator, err := tlsutil.NewConfigurator(c.tlsConfigurator.Base(), c.logger)
 	if err != nil {
 		return nil, "", err
 	}
+	autoEncryptTLSConfigurator.EnableAutoEncryptModeClientStartup()
 
 	csr, priv, err := tlsutil.GenerateCSR(uri, DNSNames, IPAddresses)
 
