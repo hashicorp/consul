@@ -115,6 +115,8 @@ dev-build:
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-local.sh -o $(GOOS) -a $(GOARCH)
 
 dev-docker: linux
+	@echo "Pulling latest consul container image"
+	@docker pull consul:latest >/dev/null
 	@echo "Building Consul Development container - $(CONSUL_DEV_IMAGE)"
 	@docker build $(NOCACHE) $(QUIET) -t '$(CONSUL_DEV_IMAGE)' $(CURDIR)/pkg/bin/linux_amd64 -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile
 
