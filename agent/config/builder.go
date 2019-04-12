@@ -557,9 +557,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	consulRaftHeartbeatTimeout := b.durationVal("consul.raft.heartbeat_timeout", c.Consul.Raft.HeartbeatTimeout) * time.Duration(performanceRaftMultiplier)
 	consulRaftLeaderLeaseTimeout := b.durationVal("consul.raft.leader_lease_timeout", c.Consul.Raft.LeaderLeaseTimeout) * time.Duration(performanceRaftMultiplier)
 
-	autoEncryptTLS := b.boolVal(c.AutoEncrypt.TLS)
-	autoEncryptGossip := b.boolVal(c.AutoEncrypt.Gossip)
-
 	// Connect proxy defaults.
 	connectEnabled := b.boolVal(c.Connect.Enabled)
 	connectCAProvider := b.stringVal(c.Connect.CAProvider)
@@ -588,6 +585,13 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 			"csr_max_per_second": "CSRMaxPerSecond",
 			"csr_max_concurrent": "CSRMaxConcurrent",
 		})
+	}
+
+	autoEncryptTLS := b.boolVal(c.AutoEncrypt.TLS)
+	autoEncryptGossip := b.boolVal(c.AutoEncrypt.Gossip)
+
+	if autoEncryptTLS {
+		connectEnabled = true
 	}
 
 	datacenter := strings.ToLower(b.stringVal(c.Datacenter))
