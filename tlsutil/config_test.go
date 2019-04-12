@@ -293,34 +293,40 @@ func TestConfigurator_loadKeyPair(t *testing.T) {
 		cert, key string
 		shoulderr bool
 		isnil     bool
+		isempty   bool
 	}
 	variants := []variant{
-		{"", "", false, true},
-		{"bogus", "", false, true},
-		{"", "bogus", false, true},
-		{"../test/key/ourdomain.cer", "", false, true},
-		{"", "../test/key/ourdomain.key", false, true},
-		{"bogus", "bogus", true, true},
+		{"", "", false, false, true},
+		{"bogus", "", false, false, true},
+		{"", "bogus", false, false, true},
+		{"../test/key/ourdomain.cer", "", false, false, true},
+		{"", "../test/key/ourdomain.key", false, false, true},
+		{"bogus", "bogus", true, true, false},
 		{"../test/key/ourdomain.cer", "../test/key/ourdomain.key",
-			false, false},
+			false, false, false},
 	}
-	for _, v := range variants {
+	for i, v := range variants {
+		info := fmt.Sprintf("case %d", i)
 		cert1, err1 := loadKeyPair(v.cert, v.key)
 		config := &Config{CertFile: v.cert, KeyFile: v.key}
 		cert2, err2 := config.KeyPair()
 		if v.shoulderr {
-			require.Error(t, err1)
-			require.Error(t, err2)
+			require.Error(t, err1, info)
+			require.Error(t, err2, info)
 		} else {
-			require.NoError(t, err1)
-			require.NoError(t, err2)
+			require.NoError(t, err1, info)
+			require.NoError(t, err2, info)
+		}
+		if v.isempty {
+			require.Empty(t, cert1.Certificate, info)
+			require.Empty(t, cert2.Certificate, info)
 		}
 		if v.isnil {
-			require.Nil(t, cert1)
-			require.Nil(t, cert2)
+			require.Nil(t, cert1, info)
+			require.Nil(t, cert2, info)
 		} else {
-			require.NotNil(t, cert1)
-			require.NotNil(t, cert2)
+			require.NotNil(t, cert1, info)
+			require.NotNil(t, cert2, info)
 		}
 	}
 }
@@ -359,43 +365,43 @@ func TestConfigurator_ErrorPropagation(t *testing.T) {
 	certfile := "../test/key/ourdomain.cer"
 	keyfile := "../test/key/ourdomain.key"
 	variants := []variant{
-		{Config{}, false, false},
-		{Config{TLSMinVersion: "tls9"}, true, false},
-		{Config{TLSMinVersion: ""}, false, false},
-		{Config{TLSMinVersion: "tls10"}, false, false},
-		{Config{TLSMinVersion: "tls11"}, false, false},
-		{Config{TLSMinVersion: "tls12"}, false, false},
-		{Config{VerifyOutgoing: true, CAFile: "", CAPath: ""}, true, false},
-		{Config{VerifyOutgoing: false, CAFile: "", CAPath: ""}, false, false},
+		{Config{}, false, false},                                              // 1
+		{Config{TLSMinVersion: "tls9"}, true, false},                          // 1
+		{Config{TLSMinVersion: ""}, false, false},                             // 2
+		{Config{TLSMinVersion: "tls10"}, false, false},                        // 3
+		{Config{TLSMinVersion: "tls11"}, false, false},                        // 4
+		{Config{TLSMinVersion: "tls12"}, false, false},                        // 5
+		{Config{VerifyOutgoing: true, CAFile: "", CAPath: ""}, true, false},   // 6
+		{Config{VerifyOutgoing: false, CAFile: "", CAPath: ""}, false, false}, // 7
 		{Config{VerifyOutgoing: false, CAFile: cafile, CAPath: ""},
-			false, false},
+			false, false}, // 8
 		{Config{VerifyOutgoing: false, CAFile: "", CAPath: capath},
-			false, false},
+			false, false}, // 9
 		{Config{VerifyOutgoing: false, CAFile: cafile, CAPath: capath},
-			false, false},
+			false, false}, // 10
 		{Config{VerifyOutgoing: true, CAFile: cafile, CAPath: ""},
-			false, false},
+			false, false}, // 11
 		{Config{VerifyOutgoing: true, CAFile: "", CAPath: capath},
-			false, false},
+			false, false}, // 12
 		{Config{VerifyOutgoing: true, CAFile: cafile, CAPath: capath},
-			false, false},
-		{Config{VerifyIncoming: true, CAFile: "", CAPath: ""}, true, false},
+			false, false}, // 13
+		{Config{VerifyIncoming: true, CAFile: "", CAPath: ""}, true, false}, // 14
 		{Config{VerifyIncomingRPC: true, CAFile: "", CAPath: ""},
-			true, false},
+			true, false}, // 15
 		{Config{VerifyIncomingHTTPS: true, CAFile: "", CAPath: ""},
-			true, false},
-		{Config{VerifyIncoming: true, CAFile: cafile, CAPath: ""}, true, false},
-		{Config{VerifyIncoming: true, CAFile: "", CAPath: capath}, true, false},
+			true, false}, // 16
+		{Config{VerifyIncoming: true, CAFile: cafile, CAPath: ""}, true, false}, // 17
+		{Config{VerifyIncoming: true, CAFile: "", CAPath: capath}, true, false}, // 18
 		{Config{VerifyIncoming: true, CAFile: "", CAPath: capath,
-			CertFile: certfile, KeyFile: keyfile}, false, false},
-		{Config{CertFile: "bogus", KeyFile: "bogus"}, true, true},
-		{Config{CAFile: "bogus"}, true, true},
-		{Config{CAPath: "bogus"}, true, true},
+			CertFile: certfile, KeyFile: keyfile}, false, false}, // 19
+		{Config{CertFile: "bogus", KeyFile: "bogus"}, true, true}, // 20
+		{Config{CAFile: "bogus"}, true, true},                     // 21
+		{Config{CAPath: "bogus"}, true, true},                     // 22
 	}
 
 	c := Configurator{autoEncrypt: &autoEncrypt{}, manual: &manual{}}
 	for i, v := range variants {
-		info := fmt.Sprintf("case %d", i)
+		info := fmt.Sprintf("case %d, config: %+v", i, v.config)
 		_, err1 := NewConfigurator(v.config, nil)
 		err2 := c.Update(v.config)
 
@@ -534,7 +540,7 @@ func TestConfigurator_CommonTLSConfigGetClientCertificate(t *testing.T) {
 
 	cert, err := c.commonTLSConfig(false).GetCertificate(nil)
 	require.NoError(t, err)
-	require.Nil(t, cert)
+	require.Nil(t, cert.Certificate)
 
 	c.manual.cert = &tls.Certificate{}
 	cert, err = c.commonTLSConfig(false).GetCertificate(nil)
@@ -575,20 +581,15 @@ func TestConfigurator_CommonTLSConfigTLSMinVersion(t *testing.T) {
 func TestConfigurator_CommonTLSConfigVerifyIncoming(t *testing.T) {
 	c := Configurator{base: &Config{}, autoEncrypt: &autoEncrypt{}}
 	type variant struct {
-		verify     bool
-		additional bool
-		expected   tls.ClientAuthType
+		verify   bool
+		expected tls.ClientAuthType
 	}
 	variants := []variant{
-		{false, false, tls.NoClientCert},
-		{true, false, tls.RequireAndVerifyClientCert},
-		{false, true, tls.RequireAndVerifyClientCert},
-		{true, true, tls.RequireAndVerifyClientCert},
+		{true, tls.RequireAndVerifyClientCert},
+		{false, tls.NoClientCert},
 	}
 	for _, v := range variants {
-		c.base.VerifyIncoming = v.verify
-		require.Equal(t, v.expected,
-			c.commonTLSConfig(v.additional).ClientAuth)
+		require.Equal(t, v.expected, c.commonTLSConfig(v.verify).ClientAuth)
 	}
 }
 
@@ -738,7 +739,7 @@ func TestConfigurator_UpdateSetsStuff(t *testing.T) {
 	c, err := NewConfigurator(Config{}, nil)
 	require.NoError(t, err)
 	require.Nil(t, c.caPool)
-	require.Nil(t, c.manual.cert)
+	require.Nil(t, c.manual.cert.Certificate)
 	require.Equal(t, c.base, &Config{})
 	require.Equal(t, 1, c.version)
 
