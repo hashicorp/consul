@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
@@ -57,7 +56,7 @@ type Client struct {
 	useNewACLs int32
 
 	// Connection pool to consul servers
-	connPool *pool.ConnPool
+	rpcClient *RPCClient
 
 	// routers is responsible for the selection and maintenance of
 	// Consul servers this agent uses for RPC requests
@@ -124,19 +123,16 @@ func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsuti
 		logger = log.New(config.LogOutput, "", log.LstdFlags)
 	}
 
-	connPool := &pool.ConnPool{
-		SrcAddr:    config.RPCSrcAddr,
-		LogOutput:  config.LogOutput,
-		MaxTime:    clientRPCConnMaxIdle,
-		MaxStreams: clientMaxStreams,
-		TLSWrapper: tlsConfigurator.OutgoingRPCWrapper(),
-		ForceTLS:   config.VerifyOutgoing,
-	}
-
 	// Create client
 	c := &Client{
-		config:     config,
-		connPool:   connPool,
+		config: config,
+		rpcClient: NewRPCClient(
+			logger,
+			config,
+			tlsConfigurator,
+			clientMaxStreams,
+			clientRPCConnMaxIdle,
+		),
 		eventCh:    make(chan serf.Event, serfEventBacklog),
 		logger:     logger,
 		shutdownCh: make(chan struct{}),
@@ -177,7 +173,7 @@ func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsuti
 	}
 
 	// Start maintenance task for servers
-	c.routers = router.New(c.logger, c.shutdownCh, c.serf, c.connPool)
+	c.routers = router.New(c.logger, c.shutdownCh, c.serf, c.rpcClient)
 	go c.routers.Start()
 
 	// Start LAN event handlers after the router is complete since the event
@@ -210,7 +206,7 @@ func (c *Client) Shutdown() error {
 	}
 
 	// Close the connection pool
-	c.connPool.Shutdown()
+	c.rpcClient.Shutdown()
 	return nil
 }
 
@@ -274,6 +270,10 @@ func (c *Client) Encrypted() bool {
 	return c.serf.EncryptionEnabled()
 }
 
+var grpcAbleEndpoints = map[string]bool{
+	"Health.ServiceNodes": true,
+}
+
 // RPC is used to forward an RPC call to a consul server, or fail if no servers
 func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 	// This is subtle but we start measuring the time on the client side
@@ -297,8 +297,7 @@ TRY:
 		return structs.ErrRPCRateExceeded
 	}
 
-	// Make the request.
-	rpcErr := c.connPool.RPC(c.config.Datacenter, server.Addr, server.Version, method, server.UseTLS, args, reply)
+	rpcErr := c.rpcClient.Call(c.config.Datacenter, server, method, args, reply)
 	if rpcErr == nil {
 		return nil
 	}
@@ -342,7 +341,7 @@ func (c *Client) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 
 	// Request the operation.
 	var reply structs.SnapshotResponse
-	snap, err := SnapshotRPC(c.connPool, c.config.Datacenter, server.Addr, server.UseTLS, args, in, &reply)
+	snap, err := SnapshotRPC(c.rpcClient.rpcPool, c.config.Datacenter, server.Addr, server.UseTLS, args, in, &reply)
 	if err != nil {
 		return err
 	}

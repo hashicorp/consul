@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package consul;
+
+import "github.com/hashicorp/consul/agent/structs/structs.proto";
+
+service Health {
+    rpc ServiceNodes(structs.ServiceSpecificRequest) returns (structs.IndexedCheckServiceNodes) {}
+}

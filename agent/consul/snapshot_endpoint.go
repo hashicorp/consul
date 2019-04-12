@@ -37,7 +37,7 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 			return nil, structs.ErrNoDCPath
 		}
 
-		snap, err := SnapshotRPC(s.connPool, dc, server.Addr, server.UseTLS, args, in, reply)
+		snap, err := SnapshotRPC(s.rpcClient.rpcPool, dc, server.Addr, server.UseTLS, args, in, reply)
 		if err != nil {
 			manager.NotifyFailedServer(server)
 			return nil, err
@@ -52,7 +52,7 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 			if server == nil {
 				return nil, structs.ErrNoLeader
 			}
-			return SnapshotRPC(s.connPool, args.Datacenter, server.Addr, server.UseTLS, args, in, reply)
+			return SnapshotRPC(s.rpcClient.rpcPool, args.Datacenter, server.Addr, server.UseTLS, args, in, reply)
 		}
 	}
 

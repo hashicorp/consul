@@ -3,7 +3,6 @@ package consul
 import (
 	"context"
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -18,12 +17,13 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/pkg/errors"
+
 	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/metadata"
-	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
@@ -34,6 +34,7 @@ import (
 	"github.com/hashicorp/raft"
 	raftboltdb "github.com/hashicorp/raft-boltdb"
 	"github.com/hashicorp/serf/serf"
+	"google.golang.org/grpc"
 )
 
 // These are the protocol versions that Consul can _understand_. These are
@@ -156,8 +157,7 @@ type Server struct {
 	// the configuration directly.
 	tokens *token.Store
 
-	// Connection pool to other consul servers
-	connPool *pool.ConnPool
+	rpcClient *RPCClient
 
 	// eventChLAN is used to receive events from the
 	// serf cluster in the datacenter
@@ -207,8 +207,9 @@ type Server struct {
 	router *router.Router
 
 	// Listener is used to listen for incoming connections
-	Listener  net.Listener
-	rpcServer *rpc.Server
+	RPCListener  net.Listener
+	GRPCListener *grpcListener
+	rpcServer    *rpc.Server
 
 	// rpcTLS is the TLS config for incoming TLS requests
 	rpcTLS *tls.Config
@@ -324,20 +325,17 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	// Create the shutdown channel - this is closed but never written to.
 	shutdownCh := make(chan struct{})
 
-	connPool := &pool.ConnPool{
-		SrcAddr:    config.RPCSrcAddr,
-		LogOutput:  config.LogOutput,
-		MaxTime:    serverRPCCache,
-		MaxStreams: serverMaxStreams,
-		TLSWrapper: tlsConfigurator.OutgoingRPCWrapper(),
-		ForceTLS:   config.VerifyOutgoing,
-	}
-
 	// Create server.
 	s := &Server{
-		config:           config,
-		tokens:           tokens,
-		connPool:         connPool,
+		config: config,
+		tokens: tokens,
+		rpcClient: NewRPCClient(
+			logger,
+			config,
+			tlsConfigurator,
+			serverMaxStreams,
+			serverRPCCache,
+		),
 		eventChLAN:       make(chan serf.Event, serfEventChSize),
 		eventChWAN:       make(chan serf.Event, serfEventChSize),
 		logger:           logger,
@@ -374,7 +372,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	}
 
 	// Initialize the stats fetcher that autopilot will use.
-	s.statsFetcher = NewStatsFetcher(logger, s.connPool, s.config.Datacenter)
+	s.statsFetcher = NewStatsFetcher(logger, s.rpcClient, s.config.Datacenter)
 
 	s.sentinel = sentinel.New(logger)
 	s.useNewACLs = 0
@@ -396,6 +394,14 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	if err := s.setupRPC(tlsConfigurator.OutgoingRPCWrapper()); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start RPC layer: %v", err)
+	}
+
+	// Initialize the GRPC layer.
+	if s.config.EnableGRPC {
+		if err := s.setupGRPC(); err != nil {
+			s.Shutdown()
+			return nil, fmt.Errorf("Failed to start GRPC layer: %v", err)
+		}
 	}
 
 	// Initialize any extra RPC listeners for segments.
@@ -424,7 +430,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	serfBindPortWAN := -1
 	if config.SerfWANConfig != nil {
 		serfBindPortWAN = config.SerfWANConfig.MemberlistConfig.BindPort
-		s.serfWAN, err = s.setupSerf(config.SerfWANConfig, s.eventChWAN, serfWANSnapshot, true, serfBindPortWAN, "", s.Listener)
+		s.serfWAN, err = s.setupSerf(config.SerfWANConfig, s.eventChWAN, serfWANSnapshot, true, serfBindPortWAN, "", s.RPCListener)
 		if err != nil {
 			s.Shutdown()
 			return nil, fmt.Errorf("Failed to start WAN Serf: %v", err)
@@ -447,7 +453,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	}
 
 	// Initialize the LAN Serf for the default network segment.
-	s.serfLAN, err = s.setupSerf(config.SerfLANConfig, s.eventChLAN, serfLANSnapshot, false, serfBindPortWAN, "", s.Listener)
+	s.serfLAN, err = s.setupSerf(config.SerfLANConfig, s.eventChLAN, serfLANSnapshot, false, serfBindPortWAN, "", s.RPCListener)
 	if err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start LAN Serf: %v", err)
@@ -459,7 +465,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 
 	// Add a "static route" to the WAN Serf and hook it up to Serf events.
 	if s.serfWAN != nil {
-		if err := s.router.AddArea(types.AreaWAN, s.serfWAN, s.connPool, s.config.VerifyOutgoing); err != nil {
+		if err := s.router.AddArea(types.AreaWAN, s.serfWAN, s.rpcClient, s.config.VerifyOutgoing); err != nil {
 			s.Shutdown()
 			return nil, fmt.Errorf("Failed to add WAN serf route: %v", err)
 		}
@@ -490,7 +496,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	go s.monitorLeadership()
 
 	// Start listening for RPC requests.
-	go s.listen(s.Listener)
+	go s.listen(s.RPCListener)
 
 	// Start listeners for any segments with separate RPC listeners.
 	for _, listener := range segmentListeners {
@@ -688,6 +694,18 @@ func registerEndpoint(fn factory) {
 	endpoints = append(endpoints, fn)
 }
 
+// grpcEndpointFactory is a function that returns an RPC endpoint bound to the given
+// server.
+type grpcfactory func(s *Server, grpcServer *grpc.Server)
+
+// endpoints is a list of registered RPC endpoint factories.
+var grpcEndpoints []grpcfactory
+
+// registerEndpoint registers a new RPC endpoint factory.
+func registerGRPCEndpoint(fn grpcfactory) {
+	grpcEndpoints = append(grpcEndpoints, fn)
+}
+
 // setupRPC is used to setup the RPC listener
 func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 	for _, fn := range endpoints {
@@ -698,7 +716,7 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 	if err != nil {
 		return err
 	}
-	s.Listener = ln
+	s.RPCListener = ln
 	if s.config.NotifyListen != nil {
 		s.config.NotifyListen()
 	}
@@ -732,6 +750,22 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 		return server.UseTLS
 	}
 	s.raftLayer = NewRaftLayer(s.config.RPCSrcAddr, s.config.RPCAdvertise, wrapper, tlsFunc)
+	return nil
+}
+
+func (s *Server) setupGRPC() error {
+	lis := &grpcListener{
+		addr:  s.RPCListener.Addr(),
+		conns: make(chan net.Conn),
+	}
+
+	srv := grpc.NewServer()
+	for _, fn := range grpcEndpoints {
+		fn(s, srv)
+	}
+
+	go srv.Serve(lis)
+	s.GRPCListener = lis
 	return nil
 }
 
@@ -772,12 +806,12 @@ func (s *Server) Shutdown() error {
 		}
 	}
 
-	if s.Listener != nil {
-		s.Listener.Close()
+	if s.RPCListener != nil {
+		s.RPCListener.Close()
 	}
 
 	// Close the connection pool
-	s.connPool.Shutdown()
+	s.rpcClient.Shutdown()
 
 	return nil
 }

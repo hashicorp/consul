@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
@@ -386,7 +386,7 @@ func TestClient_RPC_ConsulServerPing(t *testing.T) {
 	for range servers {
 		time.Sleep(200 * time.Millisecond)
 		s := c.routers.FindServer()
-		ok, err := c.connPool.Ping(s.Datacenter, s.Addr, s.Version, s.UseTLS)
+		ok, err := c.rpcClient.Ping(s.Datacenter, s.Addr, s.Version, s.UseTLS)
 		if !ok {
 			t.Errorf("Unable to ping server %v: %s", s.String(), err)
 		}

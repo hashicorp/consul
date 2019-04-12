@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/metadata"
-	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -20,17 +19,17 @@ import (
 // as we run the health check fairly frequently.
 type StatsFetcher struct {
 	logger       *log.Logger
-	pool         *pool.ConnPool
+	rpcClient    *RPCClient
 	datacenter   string
 	inflight     map[string]struct{}
 	inflightLock sync.Mutex
 }
 
 // NewStatsFetcher returns a stats fetcher.
-func NewStatsFetcher(logger *log.Logger, pool *pool.ConnPool, datacenter string) *StatsFetcher {
+func NewStatsFetcher(logger *log.Logger, rpcClient *RPCClient, datacenter string) *StatsFetcher {
 	return &StatsFetcher{
 		logger:     logger,
-		pool:       pool,
+		rpcClient:  rpcClient,
 		datacenter: datacenter,
 		inflight:   make(map[string]struct{}),
 	}
@@ -43,7 +42,7 @@ func NewStatsFetcher(logger *log.Logger, pool *pool.ConnPool, datacenter string)
 func (f *StatsFetcher) fetch(server *metadata.Server, replyCh chan *autopilot.ServerStats) {
 	var args struct{}
 	var reply autopilot.ServerStats
-	err := f.pool.RPC(f.datacenter, server.Addr, server.Version, "Status.RaftStats", server.UseTLS, &args, &reply)
+	err := f.rpcClient.Call(f.datacenter, server, "Status.RaftStats", &args, &reply)
 	if err != nil {
 		f.logger.Printf("[WARN] consul: error getting server health from %q: %v",
 			server.Name, err)

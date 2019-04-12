@@ -201,7 +201,7 @@ func newServer(c *Config) (*Server, error) {
 	// todo(fs): but for now it is a shortcut to avoid fixing
 	// todo(fs): tests which depend on that value. They should
 	// todo(fs): just get the listener address instead.
-	c.RPCAddr = srv.Listener.Addr().(*net.TCPAddr)
+	c.RPCAddr = srv.RPCListener.Addr().(*net.TCPAddr)
 	return srv, nil
 }
 
@@ -862,7 +862,7 @@ func testVerifyRPC(s1, s2 *Server, t *testing.T) (bool, error) {
 	if leader == nil {
 		t.Fatal("no leader")
 	}
-	return s2.connPool.Ping(leader.Datacenter, leader.Addr, leader.Version, leader.UseTLS)
+	return s2.rpcClient.Ping(leader.Datacenter, leader.Addr, leader.Version, leader.UseTLS)
 }
 
 func TestServer_TLSToNoTLS(t *testing.T) {

@@ -113,6 +113,10 @@ type Config struct {
 	// by the WAN and LAN
 	RPCAddr *net.TCPAddr
 
+	// EnableServerGRPC controls wether GRPC can be used for server RPC
+	// communications
+	EnableGRPC bool
+
 	// RPCAdvertise is the address that is advertised to other nodes for
 	// the RPC endpoint. This can differ from the RPC address, if for example
 	// the RPCAddr is unspecified "0.0.0.0:8300", but this address must be
@@ -469,6 +473,7 @@ func DefaultConfig() *Config {
 		Datacenter:                  DefaultDC,
 		NodeName:                    hostname,
 		RPCAddr:                     DefaultRPCAddr,
+		EnableGRPC:                  true,
 		RaftConfig:                  raft.DefaultConfig(),
 		SerfLANConfig:               lib.SerfDefaultConfig(),
 		SerfWANConfig:               lib.SerfDefaultConfig(),

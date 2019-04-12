@@ -4606,6 +4606,7 @@ func TestFullConfig(t *testing.T) {
 		SerfAdvertiseAddrWAN: tcpAddr("78.63.37.19:8302"),
 		SerfBindAddrLAN:      tcpAddr("99.43.63.15:8301"),
 		SerfBindAddrWAN:      tcpAddr("67.88.33.19:8302"),
+		ServerEnableGRPC:     true,
 		SessionTTLMin:        26627 * time.Second,
 		SkipLeaveOnInt:       true,
 		StartJoinAddrsLAN:    []string{"LR3hGDoG", "MwVpZ4Up"},
@@ -4928,6 +4929,7 @@ func TestSanitize(t *testing.T) {
 	rt := RuntimeConfig{
 		BindAddr:             &net.IPAddr{IP: net.ParseIP("127.0.0.1")},
 		SerfAdvertiseAddrLAN: &net.TCPAddr{IP: net.ParseIP("1.2.3.4"), Port: 5678},
+		ServerEnableGRPC:     true,
 		DNSAddrs: []net.Addr{
 			&net.TCPAddr{IP: net.ParseIP("1.2.3.4"), Port: 5678},
 			&net.UDPAddr{IP: net.ParseIP("1.2.3.4"), Port: 5678},
@@ -5136,6 +5138,7 @@ func TestSanitize(t *testing.T) {
 		"PrimaryDatacenter": "",
 		"RPCAdvertiseAddr": "",
 		"RPCBindAddr": "",
+		"ServerEnableGRPC": true,
 		"RPCHoldTimeout": "0s",
 		"RPCMaxBurst": 0,
 		"RPCProtocol": 0,

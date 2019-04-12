@@ -29,6 +29,7 @@ type Server struct {
 	Datacenter   string
 	Segment      string
 	Port         int
+	GRPCEnabled  bool
 	SegmentAddrs map[string]string
 	SegmentPorts map[string]int
 	WanJoinPort  int
@@ -93,6 +94,8 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 	if err != nil {
 		return false, nil
 	}
+
+	grpcEnabled := m.Tags["grpc_enabled"] == "true"
 
 	var acls structs.ACLMode
 	if aclMode, ok := m.Tags["acls"]; ok {
@@ -160,6 +163,7 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		Datacenter:   datacenter,
 		Segment:      segment,
 		Port:         port,
+		GRPCEnabled:  grpcEnabled,
 		SegmentAddrs: segmentAddrs,
 		SegmentPorts: segmentPorts,
 		WanJoinPort:  wanJoinPort,

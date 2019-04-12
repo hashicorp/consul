@@ -307,6 +307,7 @@ func randomPortsSource(tls bool) config.Source {
 	} else {
 		ports[2] = -1
 	}
+
 	return config.Source{
 		Name:   "ports",
 		Format: "hcl",

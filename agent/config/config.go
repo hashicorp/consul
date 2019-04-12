@@ -224,6 +224,7 @@ type Config struct {
 	NodeMeta                         map[string]string        `json:"node_meta,omitempty" hcl:"node_meta" mapstructure:"node_meta"`
 	NodeName                         *string                  `json:"node_name,omitempty" hcl:"node_name" mapstructure:"node_name"`
 	NonVotingServer                  *bool                    `json:"non_voting_server,omitempty" hcl:"non_voting_server" mapstructure:"non_voting_server"`
+	ServerEnableGRPC                 *bool                    `json:"server_enable_grpc,omitempty" hcl:"server_enable_grpc" mapstructure:"server_enable_grpc"`
 	Performance                      Performance              `json:"performance,omitempty" hcl:"performance" mapstructure:"performance"`
 	PidFile                          *string                  `json:"pid_file,omitempty" hcl:"pid_file" mapstructure:"pid_file"`
 	Ports                            Ports                    `json:"ports,omitempty" hcl:"ports" mapstructure:"ports"`

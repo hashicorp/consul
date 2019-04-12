@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"context"
 	"fmt"
 	"sort"
 
@@ -14,6 +15,15 @@ import (
 // Health endpoint is used to query the health information
 type Health struct {
 	srv *Server
+}
+
+type HealthGRPCAdapter struct {
+	Health
+}
+
+func (h *HealthGRPCAdapter) ServiceNodes(ctx context.Context, in *structs.ServiceSpecificRequest) (*structs.IndexedCheckServiceNodes, error) {
+	res := &structs.IndexedCheckServiceNodes{}
+	return res, h.Health.ServiceNodes(in, res)
 }
 
 // ChecksInState is used to get all the checks in a given state
