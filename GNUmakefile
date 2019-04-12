@@ -44,6 +44,7 @@ CONSUL_DEV_IMAGE?=consul-dev
 GO_BUILD_TAG?=consul-build-go
 UI_BUILD_TAG?=consul-build-ui
 BUILD_CONTAINER_NAME?=consul-builder
+CONSUL_IMAGE_VERSION?=latest
 
 DIST_TAG?=1
 DIST_BUILD?=1
@@ -115,10 +116,10 @@ dev-build:
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-local.sh -o $(GOOS) -a $(GOARCH)
 
 dev-docker: linux
-	@echo "Pulling latest consul container image"
-	@docker pull consul:latest >/dev/null
+	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
+	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
 	@echo "Building Consul Development container - $(CONSUL_DEV_IMAGE)"
-	@docker build $(NOCACHE) $(QUIET) -t '$(CONSUL_DEV_IMAGE)' $(CURDIR)/pkg/bin/linux_amd64 -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile
+	@docker build $(NOCACHE) $(QUIET) -t '$(CONSUL_DEV_IMAGE)' --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) $(CURDIR)/pkg/bin/linux_amd64 -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile
 
 changelogfmt:
 	@echo "--> Making [GH-xxxx] references clickable..."
