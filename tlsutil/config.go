@@ -318,7 +318,7 @@ func (c *Configurator) check(config Config, pool *x509.CertPool, cert *tls.Certi
 
 func loadKeyPair(certFile, keyFile string) (*tls.Certificate, error) {
 	if certFile == "" || keyFile == "" {
-		return nil, nil
+		return &tls.Certificate{}, nil
 	}
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
