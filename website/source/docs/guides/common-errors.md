@@ -101,7 +101,7 @@ Make sure that your Consul clients and servers are using the correct certificate
 
 If you generate your own certificates, make sure the server certificates include the special name `server.dc1.consul` in the Subject Alternative Name (SAN) field. (If you change the values of `datacenter` or `domain` in your configuration, update the SAN accordingly.) 
 
----
+### HTTP instead of HTTPS
 
 ```
 Error querying agent: malformed HTTP response
