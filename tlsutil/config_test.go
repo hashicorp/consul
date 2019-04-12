@@ -812,10 +812,3 @@ func TestConfigurator_EnableAutoEncryptModeClientStartup(t *testing.T) {
 	c.EnableAutoEncryptModeClientStartup()
 	require.Equal(t, AutoEncryptModeClientStartup, c.autoEncrypt.mode)
 }
-
-func TestConfigurator_EnableAutoEncryptModeClientEstablished(t *testing.T) {
-	c := Configurator{autoEncrypt: &autoEncrypt{}}
-	require.Equal(t, AutoEncryptModeNone, c.autoEncrypt.mode)
-	c.EnableAutoEncryptModeClientEstablished()
-	require.Equal(t, AutoEncryptModeClientEstablished, c.autoEncrypt.mode)
-}
