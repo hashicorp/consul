@@ -89,6 +89,8 @@ This indicates that you have ACL enabled in your cluster, but you aren't passing
 
 ## TLS and Certificates
 
+### Incorrect certificate or certificate name
+
 ```
 Remote error: tls: bad certificate
 ```
