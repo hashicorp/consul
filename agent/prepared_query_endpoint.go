@@ -167,7 +167,7 @@ func (s *HTTPServer) preparedQueryExecute(id string, resp http.ResponseWriter, r
 
 	// Use empty list instead of nil.
 	if reply.Nodes == nil {
-		reply.Nodes = make(structs.CheckServiceNodes, 0)
+		reply.Nodes = make([]structs.CheckServiceNode, 0)
 	}
 	return reply, nil
 }

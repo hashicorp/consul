@@ -35,7 +35,7 @@ func makeEndpoint(clusterName, host string, port int) envoyendpoint.LbEndpoint {
 	}
 }
 
-func makeLoadAssignment(clusterName string, endpoints structs.CheckServiceNodes) *envoy.ClusterLoadAssignment {
+func makeLoadAssignment(clusterName string, endpoints []structs.CheckServiceNode) *envoy.ClusterLoadAssignment {
 	es := make([]envoyendpoint.LbEndpoint, 0, len(endpoints))
 	for _, ep := range endpoints {
 		addr := ep.Service.Address

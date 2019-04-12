@@ -38,7 +38,7 @@ func (m *ConfigureRequest) Reset()         { *m = ConfigureRequest{} }
 func (m *ConfigureRequest) String() string { return proto.CompactTextString(m) }
 func (*ConfigureRequest) ProtoMessage()    {}
 func (*ConfigureRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_provider_8ff2d2670790989c, []int{0}
+	return fileDescriptor_provider_c6aa363ed8da135d, []int{0}
 }
 func (m *ConfigureRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -100,7 +100,7 @@ func (m *SetIntermediateRequest) Reset()         { *m = SetIntermediateRequest{}
 func (m *SetIntermediateRequest) String() string { return proto.CompactTextString(m) }
 func (*SetIntermediateRequest) ProtoMessage()    {}
 func (*SetIntermediateRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_provider_8ff2d2670790989c, []int{1}
+	return fileDescriptor_provider_c6aa363ed8da135d, []int{1}
 }
 func (m *SetIntermediateRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -154,7 +154,7 @@ func (m *SignRequest) Reset()         { *m = SignRequest{} }
 func (m *SignRequest) String() string { return proto.CompactTextString(m) }
 func (*SignRequest) ProtoMessage()    {}
 func (*SignRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_provider_8ff2d2670790989c, []int{2}
+	return fileDescriptor_provider_c6aa363ed8da135d, []int{2}
 }
 func (m *SignRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -201,7 +201,7 @@ func (m *SignIntermediateRequest) Reset()         { *m = SignIntermediateRequest
 func (m *SignIntermediateRequest) String() string { return proto.CompactTextString(m) }
 func (*SignIntermediateRequest) ProtoMessage()    {}
 func (*SignIntermediateRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_provider_8ff2d2670790989c, []int{3}
+	return fileDescriptor_provider_c6aa363ed8da135d, []int{3}
 }
 func (m *SignIntermediateRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -248,7 +248,7 @@ func (m *CrossSignCARequest) Reset()         { *m = CrossSignCARequest{} }
 func (m *CrossSignCARequest) String() string { return proto.CompactTextString(m) }
 func (*CrossSignCARequest) ProtoMessage()    {}
 func (*CrossSignCARequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_provider_8ff2d2670790989c, []int{4}
+	return fileDescriptor_provider_c6aa363ed8da135d, []int{4}
 }
 func (m *CrossSignCARequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -295,7 +295,7 @@ func (m *ActiveRootResponse) Reset()         { *m = ActiveRootResponse{} }
 func (m *ActiveRootResponse) String() string { return proto.CompactTextString(m) }
 func (*ActiveRootResponse) ProtoMessage()    {}
 func (*ActiveRootResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_provider_8ff2d2670790989c, []int{5}
+	return fileDescriptor_provider_c6aa363ed8da135d, []int{5}
 }
 func (m *ActiveRootResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -342,7 +342,7 @@ func (m *GenerateIntermediateCSRResponse) Reset()         { *m = GenerateInterme
 func (m *GenerateIntermediateCSRResponse) String() string { return proto.CompactTextString(m) }
 func (*GenerateIntermediateCSRResponse) ProtoMessage()    {}
 func (*GenerateIntermediateCSRResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_provider_8ff2d2670790989c, []int{6}
+	return fileDescriptor_provider_c6aa363ed8da135d, []int{6}
 }
 func (m *GenerateIntermediateCSRResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -389,7 +389,7 @@ func (m *ActiveIntermediateResponse) Reset()         { *m = ActiveIntermediateRe
 func (m *ActiveIntermediateResponse) String() string { return proto.CompactTextString(m) }
 func (*ActiveIntermediateResponse) ProtoMessage()    {}
 func (*ActiveIntermediateResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_provider_8ff2d2670790989c, []int{7}
+	return fileDescriptor_provider_c6aa363ed8da135d, []int{7}
 }
 func (m *ActiveIntermediateResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -436,7 +436,7 @@ func (m *GenerateIntermediateResponse) Reset()         { *m = GenerateIntermedia
 func (m *GenerateIntermediateResponse) String() string { return proto.CompactTextString(m) }
 func (*GenerateIntermediateResponse) ProtoMessage()    {}
 func (*GenerateIntermediateResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_provider_8ff2d2670790989c, []int{8}
+	return fileDescriptor_provider_c6aa363ed8da135d, []int{8}
 }
 func (m *GenerateIntermediateResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -483,7 +483,7 @@ func (m *SignResponse) Reset()         { *m = SignResponse{} }
 func (m *SignResponse) String() string { return proto.CompactTextString(m) }
 func (*SignResponse) ProtoMessage()    {}
 func (*SignResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_provider_8ff2d2670790989c, []int{9}
+	return fileDescriptor_provider_c6aa363ed8da135d, []int{9}
 }
 func (m *SignResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -530,7 +530,7 @@ func (m *SignIntermediateResponse) Reset()         { *m = SignIntermediateRespon
 func (m *SignIntermediateResponse) String() string { return proto.CompactTextString(m) }
 func (*SignIntermediateResponse) ProtoMessage()    {}
 func (*SignIntermediateResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_provider_8ff2d2670790989c, []int{10}
+	return fileDescriptor_provider_c6aa363ed8da135d, []int{10}
 }
 func (m *SignIntermediateResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -577,7 +577,7 @@ func (m *CrossSignCAResponse) Reset()         { *m = CrossSignCAResponse{} }
 func (m *CrossSignCAResponse) String() string { return proto.CompactTextString(m) }
 func (*CrossSignCAResponse) ProtoMessage()    {}
 func (*CrossSignCAResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_provider_8ff2d2670790989c, []int{11}
+	return fileDescriptor_provider_c6aa363ed8da135d, []int{11}
 }
 func (m *CrossSignCAResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -625,7 +625,7 @@ func (m *Empty) Reset()         { *m = Empty{} }
 func (m *Empty) String() string { return proto.CompactTextString(m) }
 func (*Empty) ProtoMessage()    {}
 func (*Empty) Descriptor() ([]byte, []int) {
-	return fileDescriptor_provider_8ff2d2670790989c, []int{12}
+	return fileDescriptor_provider_c6aa363ed8da135d, []int{12}
 }
 func (m *Empty) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -2879,10 +2879,10 @@ var (
 )
 
 func init() {
-	proto.RegisterFile("agent/connect/ca/plugin/provider.proto", fileDescriptor_provider_8ff2d2670790989c)
+	proto.RegisterFile("agent/connect/ca/plugin/provider.proto", fileDescriptor_provider_c6aa363ed8da135d)
 }
 
-var fileDescriptor_provider_8ff2d2670790989c = []byte{
+var fileDescriptor_provider_c6aa363ed8da135d = []byte{
 	// 566 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x54, 0xdf, 0x6e, 0xd3, 0x3e,
 	0x18, 0xfd, 0xa5, 0xfb, 0xad, 0x5d, 0xbf, 0x15, 0xad, 0xf2, 0xa6, 0xb5, 0x14, 0x68, 0xab, 0x08,

@@ -42,7 +42,7 @@ func (a *Agent) TranslateAddresses(dc string, subj interface{}) {
 	// which ensures this is safe to do since we are operating on a local
 	// copy of the data.
 	switch v := subj.(type) {
-	case structs.CheckServiceNodes:
+	case []structs.CheckServiceNode:
 		for _, entry := range v {
 			entry.Node.Address = a.TranslateAddress(dc, entry.Node.Address, entry.Node.TaggedAddresses)
 		}

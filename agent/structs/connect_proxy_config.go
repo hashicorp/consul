@@ -6,45 +6,6 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
-// ConnectProxyConfig describes the configuration needed for any proxy managed
-// or unmanaged. It describes a single logical service's listener and optionally
-// upstreams and sidecar-related config for a single instance. To describe a
-// centralized proxy that routed traffic for multiple services, a different one
-// of these would be needed for each, sharing the same LogicalProxyID.
-type ConnectProxyConfig struct {
-	// DestinationServiceName is required and is the name of the service to accept
-	// traffic for.
-	DestinationServiceName string `json:",omitempty"`
-
-	// DestinationServiceID is optional and should only be specified for
-	// "side-car" style proxies where the proxy is in front of just a single
-	// instance of the service. It should be set to the service ID of the instance
-	// being represented which must be registered to the same agent. It's valid to
-	// provide a service ID that does not yet exist to avoid timing issues when
-	// bootstrapping a service with a proxy.
-	DestinationServiceID string `json:",omitempty"`
-
-	// LocalServiceAddress is the address of the local service instance. It is
-	// optional and should only be specified for "side-car" style proxies. It will
-	// default to 127.0.0.1 if the proxy is a "side-car" (DestinationServiceID is
-	// set) but otherwise will be ignored.
-	LocalServiceAddress string `json:",omitempty"`
-
-	// LocalServicePort is the port of the local service instance. It is optional
-	// and should only be specified for "side-car" style proxies. It will default
-	// to the registered port for the instance if the proxy is a "side-car"
-	// (DestinationServiceID is set) but otherwise will be ignored.
-	LocalServicePort int `json:",omitempty"`
-
-	// Config is the arbitrary configuration data provided with the proxy
-	// registration.
-	Config map[string]interface{} `json:",omitempty" bexpr:"-"`
-
-	// Upstreams describes any upstream dependencies the proxy instance should
-	// setup.
-	Upstreams Upstreams `json:",omitempty"`
-}
-
 // ToAPI returns the api struct with the same fields. We have duplicates to
 // avoid the api package depending on this one which imports a ton of Consul's
 // core which you don't want if you are just trying to use our client in your
@@ -56,7 +17,7 @@ func (c *ConnectProxyConfig) ToAPI() *api.AgentServiceConnectProxyConfig {
 		LocalServiceAddress:    c.LocalServiceAddress,
 		LocalServicePort:       c.LocalServicePort,
 		Config:                 c.Config,
-		Upstreams:              c.Upstreams.ToAPI(),
+		Upstreams:              Upstreams(c.Upstreams).ToAPI(),
 	}
 }
 
@@ -87,41 +48,6 @@ func UpstreamsFromAPI(us []api.Upstream) Upstreams {
 		a[i] = UpstreamFromAPI(u)
 	}
 	return a
-}
-
-// Upstream represents a single upstream dependency for a service or proxy. It
-// describes the mechanism used to discover instances to communicate with (the
-// Target) as well as any potential client configuration that may be useful such
-// as load balancer options, timeouts etc.
-type Upstream struct {
-	// Destination fields are the required ones for determining what this upstream
-	// points to. Depending on DestinationType some other fields below might
-	// further restrict the set of instances allowable.
-	//
-	// DestinationType would be better as an int constant but even with custom
-	// JSON marshallers it causes havoc with all the mapstructure mangling we do
-	// on service definitions in various places.
-	DestinationType      string
-	DestinationNamespace string `json:",omitempty"`
-	DestinationName      string
-
-	// Datacenter that the service discovery request should be run against. Note
-	// for prepared queries, the actual results might be from a different
-	// datacenter.
-	Datacenter string
-
-	// LocalBindAddress is the ip address a side-car proxy should listen on for
-	// traffic destined for this upstream service. Default if empty is 127.0.0.1.
-	LocalBindAddress string `json:",omitempty"`
-
-	// LocalBindPort is the ip address a side-car proxy should listen on for traffic
-	// destined for this upstream service. Required.
-	LocalBindPort int
-
-	// Config is an opaque config that is specific to the proxy process being run.
-	// It can be used to pass arbitrary configuration for this specific upstream
-	// to the proxy.
-	Config map[string]interface{} `bexpr:"-"`
 }
 
 // Validate sanity checks the struct is valid

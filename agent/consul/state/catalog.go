@@ -1860,17 +1860,17 @@ func (s *Store) deleteCheckTxn(tx *memdb.Txn, idx uint64, node string, checkID t
 }
 
 // CheckServiceNodes is used to query all nodes and checks for a given service.
-func (s *Store) CheckServiceNodes(ws memdb.WatchSet, serviceName string) (uint64, structs.CheckServiceNodes, error) {
+func (s *Store) CheckServiceNodes(ws memdb.WatchSet, serviceName string) (uint64, []structs.CheckServiceNode, error) {
 	return s.checkServiceNodes(ws, serviceName, false)
 }
 
 // CheckConnectServiceNodes is used to query all nodes and checks for Connect
 // compatible endpoints for a given service.
-func (s *Store) CheckConnectServiceNodes(ws memdb.WatchSet, serviceName string) (uint64, structs.CheckServiceNodes, error) {
+func (s *Store) CheckConnectServiceNodes(ws memdb.WatchSet, serviceName string) (uint64, []structs.CheckServiceNode, error) {
 	return s.checkServiceNodes(ws, serviceName, true)
 }
 
-func (s *Store) checkServiceNodes(ws memdb.WatchSet, serviceName string, connect bool) (uint64, structs.CheckServiceNodes, error) {
+func (s *Store) checkServiceNodes(ws memdb.WatchSet, serviceName string, connect bool) (uint64, []structs.CheckServiceNode, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -1986,7 +1986,7 @@ func (s *Store) checkServiceNodes(ws memdb.WatchSet, serviceName string, connect
 
 // CheckServiceTagNodes is used to query all nodes and checks for a given
 // service, filtering out services that don't contain the given tag.
-func (s *Store) CheckServiceTagNodes(ws memdb.WatchSet, serviceName string, tags []string) (uint64, structs.CheckServiceNodes, error) {
+func (s *Store) CheckServiceTagNodes(ws memdb.WatchSet, serviceName string, tags []string) (uint64, []structs.CheckServiceNode, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -2019,7 +2019,7 @@ func (s *Store) CheckServiceTagNodes(ws memdb.WatchSet, serviceName string, tags
 func (s *Store) parseCheckServiceNodes(
 	tx *memdb.Txn, ws memdb.WatchSet, idx uint64,
 	serviceName string, services structs.ServiceNodes,
-	err error) (uint64, structs.CheckServiceNodes, error) {
+	err error) (uint64, []structs.CheckServiceNode, error) {
 	if err != nil {
 		return 0, nil, err
 	}
@@ -2047,7 +2047,7 @@ func (s *Store) parseCheckServiceNodes(
 	}
 	allChecksCh := allChecks.WatchCh()
 
-	results := make(structs.CheckServiceNodes, 0, len(services))
+	results := make([]structs.CheckServiceNode, 0, len(services))
 	for _, sn := range services {
 		// Retrieve the node.
 		watchCh, n, err := tx.FirstWatch("nodes", "id", sn.Node)
@@ -2131,7 +2131,7 @@ func (s *Store) NodeDump(ws memdb.WatchSet) (uint64, structs.NodeDump, error) {
 	return s.parseNodes(tx, ws, idx, nodes)
 }
 
-func (s *Store) ServiceDump(ws memdb.WatchSet) (uint64, structs.CheckServiceNodes, error) {
+func (s *Store) ServiceDump(ws memdb.WatchSet) (uint64, []structs.CheckServiceNode, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 

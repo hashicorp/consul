@@ -140,7 +140,7 @@ RPC:
 	return summarizeServices(out.Nodes), nil
 }
 
-func summarizeServices(dump structs.CheckServiceNodes) []*ServiceSummary {
+func summarizeServices(dump []structs.CheckServiceNode) []*ServiceSummary {
 	// Collect the summary information
 	var services []string
 	summary := make(map[string]*ServiceSummary)

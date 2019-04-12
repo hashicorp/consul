@@ -112,7 +112,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 		Proxy:   webProxy.Proxy,
 		Roots:   roots,
 		Leaf:    leaf,
-		UpstreamEndpoints: map[string]structs.CheckServiceNodes{
+		UpstreamEndpoints: map[string][]structs.CheckServiceNode{
 			"service:db": TestUpstreamNodes(t),
 		},
 	}

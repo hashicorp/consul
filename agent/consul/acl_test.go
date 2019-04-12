@@ -2506,8 +2506,8 @@ node "node1" {
 func TestACL_filterCheckServiceNodes(t *testing.T) {
 	t.Parallel()
 	// Create some nodes.
-	fill := func() structs.CheckServiceNodes {
-		return structs.CheckServiceNodes{
+	fill := func() []structs.CheckServiceNode {
+		return []structs.CheckServiceNode{
 			structs.CheckServiceNode{
 				Node: &structs.Node{
 					Node: "node1",

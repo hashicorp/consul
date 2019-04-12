@@ -23,13 +23,6 @@ import (
 
 type MessageType uint8
 
-// RaftIndex is used to track the index used while creating
-// or modifying a given struct type.
-type RaftIndex struct {
-	CreateIndex uint64 `bexpr:"-"`
-	ModifyIndex uint64 `bexpr:"-"`
-}
-
 // These are serialized between Consul servers and stored in Consul snapshots,
 // so entries must only ever be added.
 const (
@@ -113,69 +106,6 @@ type RPCInfo interface {
 	TokenSecret() string
 }
 
-// QueryOptions is used to specify various flags for read queries
-type QueryOptions struct {
-	// Token is the ACL token ID. If not provided, the 'anonymous'
-	// token is assumed for backwards compatibility.
-	Token string
-
-	// If set, wait until query exceeds given index. Must be provided
-	// with MaxQueryTime.
-	MinQueryIndex uint64
-
-	// Provided with MinQueryIndex to wait for change.
-	MaxQueryTime time.Duration
-
-	// If set, any follower can service the request. Results
-	// may be arbitrarily stale.
-	AllowStale bool
-
-	// If set, the leader must verify leadership prior to
-	// servicing the request. Prevents a stale read.
-	RequireConsistent bool
-
-	// If set, the local agent may respond with an arbitrarily stale locally
-	// cached response. The semantics differ from AllowStale since the agent may
-	// be entirely partitioned from the servers and still considered "healthy" by
-	// operators. Stale responses from Servers are also arbitrarily stale, but can
-	// provide additional bounds on the last contact time from the leader. It's
-	// expected that servers that are partitioned are noticed and replaced in a
-	// timely way by operators while the same may not be true for client agents.
-	UseCache bool
-
-	// If set and AllowStale is true, will try first a stale
-	// read, and then will perform a consistent read if stale
-	// read is older than value.
-	MaxStaleDuration time.Duration
-
-	// MaxAge limits how old a cached value will be returned if UseCache is true.
-	// If there is a cached response that is older than the MaxAge, it is treated
-	// as a cache miss and a new fetch invoked. If the fetch fails, the error is
-	// returned. Clients that wish to allow for stale results on error can set
-	// StaleIfError to a longer duration to change this behavior. It is ignored
-	// if the endpoint supports background refresh caching. See
-	// https://www.consul.io/api/index.html#agent-caching for more details.
-	MaxAge time.Duration
-
-	// MustRevalidate forces the agent to fetch a fresh version of a cached
-	// resource or at least validate that the cached version is still fresh. It is
-	// implied by either max-age=0 or must-revalidate Cache-Control headers. It
-	// only makes sense when UseCache is true. We store it since MaxAge = 0 is the
-	// default unset value.
-	MustRevalidate bool
-
-	// StaleIfError specifies how stale the client will accept a cached response
-	// if the servers are unavailable to fetch a fresh one. Only makes sense when
-	// UseCache is true and MaxAge is set to a lower, non-zero value. It is
-	// ignored if the endpoint supports background refresh caching. See
-	// https://www.consul.io/api/index.html#agent-caching for more details.
-	StaleIfError time.Duration
-
-	// Filter specifies the go-bexpr filter expression to be used for
-	// filtering the data prior to returning a response
-	Filter string
-}
-
 // IsRead is always true for QueryOption.
 func (q QueryOptions) IsRead() bool {
 	return true
@@ -217,26 +147,6 @@ func (w WriteRequest) AllowStaleRead() bool {
 
 func (w WriteRequest) TokenSecret() string {
 	return w.Token
-}
-
-// QueryMeta allows a query response to include potentially
-// useful metadata about a query
-type QueryMeta struct {
-	// This is the index associated with the read
-	Index uint64
-
-	// If AllowStale is used, this is time elapsed since
-	// last contact between the follower and leader. This
-	// can be used to gauge staleness.
-	LastContact time.Duration
-
-	// Used to indicate if there is a known leader node
-	KnownLeader bool
-
-	// Consistencylevel returns the consistency used to serve the query
-	// Having `discovery_max_stale` on the agent can affect whether
-	// the request was served by a leader.
-	ConsistencyLevel string
 }
 
 // RegisterRequest is used for the Catalog.Register endpoint
@@ -310,16 +220,6 @@ func (r *DeregisterRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
-// QuerySource is used to pass along information about the source node
-// in queries so that we can adjust the response based on its network
-// coordinates.
-type QuerySource struct {
-	Datacenter string
-	Segment    string
-	Node       string
-	Ip         string
-}
-
 // DCSpecificRequest is used to query about a specific DC
 type DCSpecificRequest struct {
 	Datacenter      string
@@ -361,25 +261,6 @@ func (r *DCSpecificRequest) CacheInfo() cache.RequestInfo {
 
 func (r *DCSpecificRequest) CacheMinIndex() uint64 {
 	return r.QueryOptions.MinQueryIndex
-}
-
-// ServiceSpecificRequest is used to query about a specific service
-type ServiceSpecificRequest struct {
-	Datacenter      string
-	NodeMetaFilters map[string]string
-	ServiceName     string
-	// DEPRECATED (singular-service-tag) - remove this when backwards RPC compat
-	// with 1.2.x is not required.
-	ServiceTag     string
-	ServiceTags    []string
-	ServiceAddress string
-	TagFilter      bool // Controls tag filtering
-	Source         QuerySource
-
-	// Connect if true will only search for Connect-compatible services.
-	Connect bool
-
-	QueryOptions
 }
 
 func (r *ServiceSpecificRequest) RequestDatacenter() string {
@@ -483,17 +364,6 @@ func (r *ChecksInStateRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
-// Used to return information about a node
-type Node struct {
-	ID              types.NodeID
-	Node            string
-	Address         string
-	Datacenter      string
-	TaggedAddresses map[string]string
-	Meta            map[string]string
-
-	RaftIndex `bexpr:"-"`
-}
 type Nodes []*Node
 
 // IsSame return whether nodes are similar without taking into account
@@ -658,12 +528,6 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 	}
 }
 
-// Weights represent the weight used by DNS for a given status
-type Weights struct {
-	Passing int
-	Warning int
-}
-
 type ServiceNodes []*ServiceNode
 
 // ServiceKind is the kind of service being registered.
@@ -681,95 +545,6 @@ const (
 	// protocol.
 	ServiceKindConnectProxy ServiceKind = "connect-proxy"
 )
-
-// NodeService is a service provided by a node
-type NodeService struct {
-	// Kind is the kind of service this is. Different kinds of services may
-	// have differing validation, DNS behavior, etc. An empty kind will default
-	// to the Default kind. See ServiceKind for the full list of kinds.
-	Kind ServiceKind `json:",omitempty"`
-
-	ID                string
-	Service           string
-	Tags              []string
-	Address           string
-	Meta              map[string]string
-	Port              int
-	Weights           *Weights
-	EnableTagOverride bool
-
-	// ProxyDestination is DEPRECATED in favor of Proxy.DestinationServiceName.
-	// It's retained since this struct is used to parse input for
-	// /catalog/register but nothing else internal should use it - once
-	// request/config definitions are passes all internal uses of NodeService
-	// should have this empty and use the Proxy.DestinationServiceNames field
-	// below.
-	//
-	// It used to store the name of the service that this service is a Connect
-	// proxy for. This is only valid if Kind is "connect-proxy". The destination
-	// may be a service that isn't present in the catalog. This is expected and
-	// allowed to allow for proxies to come up earlier than their target services.
-	// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
-	ProxyDestination string `bexpr:"-"`
-
-	// Proxy is the configuration set for Kind = connect-proxy. It is mandatory in
-	// that case and an error to be set for any other kind. This config is part of
-	// a proxy service definition and is distinct from but shares some fields with
-	// the Connect.Proxy which configures a managed proxy as part of the actual
-	// service's definition. This duplication is ugly but seemed better than the
-	// alternative which was to re-use the same struct fields for both cases even
-	// though the semantics are different and the non-shred fields make no sense
-	// in the other case. ProxyConfig may be a more natural name here, but it's
-	// confusing for the UX because one of the fields in ConnectProxyConfig is
-	// also called just "Config"
-	Proxy ConnectProxyConfig
-
-	// Connect are the Connect settings for a service. This is purposely NOT
-	// a pointer so that we never have to nil-check this.
-	Connect ServiceConnect
-
-	// LocallyRegisteredAsSidecar is private as it is only used by a local agent
-	// state to track if the service was registered from a nested sidecar_service
-	// block. We need to track that so we can know whether we need to deregister
-	// it automatically too if it's removed from the service definition or if the
-	// parent service is deregistered. Relying only on ID would cause us to
-	// deregister regular services if they happen to be registered using the same
-	// ID scheme as our sidecars do by default. We could use meta but that gets
-	// unpleasant because we can't use the consul- prefix from an agent (reserved
-	// for use internally but in practice that means within the state store or in
-	// responses only), and it leaks the detail publicly which people might rely
-	// on which is a bit unpleasant for something that is meant to be config-file
-	// syntax sugar. Note this is not translated to ServiceNode and friends and
-	// may not be set on a NodeService that isn't the one the agent registered and
-	// keeps in it's local state. We never want this rendered in JSON as it's
-	// internal only. Right now our agent endpoints return api structs which don't
-	// include it but this is a safety net incase we change that or there is
-	// somewhere this is used in API output.
-	LocallyRegisteredAsSidecar bool `json:"-" bexpr:"-"`
-
-	RaftIndex `bexpr:"-"`
-}
-
-// ServiceConnect are the shared Connect settings between all service
-// definitions from the agent to the state store.
-type ServiceConnect struct {
-	// Native is true when this service can natively understand Connect.
-	Native bool `json:",omitempty"`
-
-	// Proxy configures a connect proxy instance for the service. This is
-	// only used for agent service definitions and is invalid for non-agent
-	// (catalog API) definitions.
-	Proxy *ServiceDefinitionConnectProxy `json:",omitempty" bexpr:"-"`
-
-	// SidecarService is a nested Service Definition to register at the same time.
-	// It's purely a convenience mechanism to allow specifying a sidecar service
-	// along with the application service definition. It's nested nature allows
-	// all of the fields to be defaulted which can reduce the amount of
-	// boilerplate needed to register a sidecar service separately, but the end
-	// result is identical to just making a second service registration via any
-	// other means.
-	SidecarService *ServiceDefinition `json:",omitempty" bexpr:"-"`
-}
 
 // Merge overlays any non-empty fields of other onto s. Tags, metadata and proxy
 // config are unioned together instead of overwritten. The Connect field and the
@@ -915,7 +690,7 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 		s.EnableTagOverride != other.EnableTagOverride ||
 		s.Kind != other.Kind ||
 		!reflect.DeepEqual(s.Proxy, other.Proxy) ||
-		s.Connect != other.Connect {
+		!reflect.DeepEqual(s.Connect, other.Connect) {
 		return false
 	}
 
@@ -998,34 +773,6 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 type NodeServices struct {
 	Node     *Node
 	Services map[string]*NodeService
-}
-
-// HealthCheck represents a single check on a given node
-type HealthCheck struct {
-	Node        string
-	CheckID     types.CheckID // Unique per-node ID
-	Name        string        // Check name
-	Status      string        // The current check status
-	Notes       string        // Additional notes with the status
-	Output      string        // Holds output of script runs
-	ServiceID   string        // optional associated service
-	ServiceName string        // optional service name
-	ServiceTags []string      // optional service tags
-
-	Definition HealthCheckDefinition `bexpr:"-"`
-
-	RaftIndex `bexpr:"-"`
-}
-
-type HealthCheckDefinition struct {
-	HTTP                           string              `json:",omitempty"`
-	TLSSkipVerify                  bool                `json:",omitempty"`
-	Header                         map[string][]string `json:",omitempty"`
-	Method                         string              `json:",omitempty"`
-	TCP                            string              `json:",omitempty"`
-	Interval                       time.Duration       `json:",omitempty"`
-	Timeout                        time.Duration       `json:",omitempty"`
-	DeregisterCriticalServiceAfter time.Duration       `json:",omitempty"`
 }
 
 func (d *HealthCheckDefinition) MarshalJSON() ([]byte, error) {
@@ -1117,17 +864,8 @@ func (c *HealthCheck) Clone() *HealthCheck {
 // HealthChecks is a collection of HealthCheck structs.
 type HealthChecks []*HealthCheck
 
-// CheckServiceNode is used to provide the node, its service
-// definition, as well as a HealthCheck that is associated.
-type CheckServiceNode struct {
-	Node    *Node
-	Service *NodeService
-	Checks  HealthChecks
-}
-type CheckServiceNodes []CheckServiceNode
-
 // Shuffle does an in-place random shuffle using the Fisher-Yates algorithm.
-func (nodes CheckServiceNodes) Shuffle() {
+func ShuffleCheckServiceNodes(nodes []CheckServiceNode) {
 	for i := len(nodes) - 1; i > 0; i-- {
 		j := rand.Int31n(int32(i + 1))
 		nodes[i], nodes[j] = nodes[j], nodes[i]
@@ -1137,16 +875,16 @@ func (nodes CheckServiceNodes) Shuffle() {
 // Filter removes nodes that are failing health checks (and any non-passing
 // check if that option is selected). Note that this returns the filtered
 // results AND modifies the receiver for performance.
-func (nodes CheckServiceNodes) Filter(onlyPassing bool) CheckServiceNodes {
-	return nodes.FilterIgnore(onlyPassing, nil)
+func FilterCheckServiceNodes(nodes []CheckServiceNode, onlyPassing bool) []CheckServiceNode {
+	return FilterIgnoreCheckServiceNodes(nodes, onlyPassing, nil)
 }
 
 // FilterIgnore removes nodes that are failing health checks just like Filter.
 // It also ignores the status of any check with an ID present in ignoreCheckIDs
 // as if that check didn't exist. Note that this returns the filtered results
 // AND modifies the receiver for performance.
-func (nodes CheckServiceNodes) FilterIgnore(onlyPassing bool,
-	ignoreCheckIDs []types.CheckID) CheckServiceNodes {
+func FilterIgnoreCheckServiceNodes(nodes []CheckServiceNode, onlyPassing bool,
+	ignoreCheckIDs []types.CheckID) []CheckServiceNode {
 	n := len(nodes)
 OUTER:
 	for i := 0; i < n; i++ {
@@ -1214,11 +952,6 @@ type IndexedNodeServices struct {
 
 type IndexedHealthChecks struct {
 	HealthChecks HealthChecks
-	QueryMeta
-}
-
-type IndexedCheckServiceNodes struct {
-	Nodes CheckServiceNodes
 	QueryMeta
 }
 

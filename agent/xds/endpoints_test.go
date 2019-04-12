@@ -15,7 +15,7 @@ import (
 
 func Test_makeLoadAssignment(t *testing.T) {
 
-	testCheckServiceNodes := structs.CheckServiceNodes{
+	testCheckServiceNodes := []structs.CheckServiceNode{
 		structs.CheckServiceNode{
 			Node: &structs.Node{
 				ID:         "node1-id",
@@ -70,7 +70,7 @@ func Test_makeLoadAssignment(t *testing.T) {
 
 	testWeightedCheckServiceNodesRaw, err := copystructure.Copy(testCheckServiceNodes)
 	require.NoError(t, err)
-	testWeightedCheckServiceNodes := testWeightedCheckServiceNodesRaw.(structs.CheckServiceNodes)
+	testWeightedCheckServiceNodes := testWeightedCheckServiceNodesRaw.([]structs.CheckServiceNode)
 
 	testWeightedCheckServiceNodes[0].Service.Weights = &structs.Weights{
 		Passing: 10,
@@ -83,7 +83,7 @@ func Test_makeLoadAssignment(t *testing.T) {
 
 	testWarningCheckServiceNodesRaw, err := copystructure.Copy(testWeightedCheckServiceNodes)
 	require.NoError(t, err)
-	testWarningCheckServiceNodes := testWarningCheckServiceNodesRaw.(structs.CheckServiceNodes)
+	testWarningCheckServiceNodes := testWarningCheckServiceNodesRaw.([]structs.CheckServiceNode)
 
 	testWarningCheckServiceNodes[0].Checks[0].Status = "warning"
 	testWarningCheckServiceNodes[1].Checks[0].Status = "warning"
@@ -91,13 +91,13 @@ func Test_makeLoadAssignment(t *testing.T) {
 	tests := []struct {
 		name        string
 		clusterName string
-		endpoints   structs.CheckServiceNodes
+		endpoints   []structs.CheckServiceNode
 		want        *envoy.ClusterLoadAssignment
 	}{
 		{
 			name:        "no instances",
 			clusterName: "service:test",
-			endpoints:   structs.CheckServiceNodes{},
+			endpoints:   []structs.CheckServiceNode{},
 			want: &envoy.ClusterLoadAssignment{
 				ClusterName: "service:test",
 				Endpoints: []envoyendpoint.LocalityLbEndpoints{{

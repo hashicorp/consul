@@ -1151,7 +1151,7 @@ func (f *aclFilter) filterNodeServices(services **structs.NodeServices) {
 }
 
 // filterCheckServiceNodes is used to filter nodes based on ACL rules.
-func (f *aclFilter) filterCheckServiceNodes(nodes *structs.CheckServiceNodes) {
+func (f *aclFilter) filterCheckServiceNodes(nodes *[]structs.CheckServiceNode) {
 	csn := *nodes
 	for i := 0; i < len(csn); i++ {
 		node := csn[i]
@@ -1364,7 +1364,7 @@ func (r *ACLResolver) filterACLWithAuthorizer(authorizer acl.Authorizer, subj in
 	filt := newACLFilter(authorizer, r.logger, r.config.ACLEnforceVersion8)
 
 	switch v := subj.(type) {
-	case *structs.CheckServiceNodes:
+	case *[]structs.CheckServiceNode:
 		filt.filterCheckServiceNodes(v)
 
 	case *structs.IndexedCheckServiceNodes:

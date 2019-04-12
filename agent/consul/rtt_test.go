@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
 // verifyNodeSort makes sure the order of the nodes in the slice is the same as
@@ -55,7 +55,7 @@ func verifyHealthCheckSort(t *testing.T, checks structs.HealthChecks, expected s
 
 // verifyCheckServiceNodeSort makes sure the order of the nodes in the slice is
 // the same as the expected order, expressed as a comma-separated string.
-func verifyCheckServiceNodeSort(t *testing.T, nodes structs.CheckServiceNodes, expected string) {
+func verifyCheckServiceNodeSort(t *testing.T, nodes []structs.CheckServiceNode, expected string) {
 	vec := make([]string, len(nodes))
 	for i, node := range nodes {
 		vec[i] = node.Node.Node
@@ -344,7 +344,7 @@ func TestRTT_sortNodesByDistanceFrom_CheckServiceNodes(t *testing.T) {
 	testrpc.WaitForTestAgent(t, server.RPC, "dc1")
 
 	seedCoordinates(t, codec, server)
-	nodes := structs.CheckServiceNodes{
+	nodes := []structs.CheckServiceNode{
 		structs.CheckServiceNode{Node: &structs.Node{Node: "apple"}},
 		structs.CheckServiceNode{Node: &structs.Node{Node: "node1"}},
 		structs.CheckServiceNode{Node: &structs.Node{Node: "node2"}},

@@ -239,7 +239,7 @@ func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Requ
 
 	// Use empty list instead of nil
 	if out.Nodes == nil {
-		out.Nodes = make(structs.CheckServiceNodes, 0)
+		out.Nodes = make([]structs.CheckServiceNode, 0)
 	}
 	for i := range out.Nodes {
 		if out.Nodes[i].Checks == nil {
@@ -262,7 +262,7 @@ func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Requ
 }
 
 // filterNonPassing is used to filter out any nodes that have check that are not passing
-func filterNonPassing(nodes structs.CheckServiceNodes) structs.CheckServiceNodes {
+func filterNonPassing(nodes []structs.CheckServiceNode) []structs.CheckServiceNode {
 	n := len(nodes)
 
 	// Make a copy of the cached nodes rather than operating on the cache directly

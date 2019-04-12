@@ -15,7 +15,7 @@ type ConfigSnapshot struct {
 	Proxy             structs.ConnectProxyConfig
 	Roots             *structs.IndexedCARoots
 	Leaf              *structs.IssuedCert
-	UpstreamEndpoints map[string]structs.CheckServiceNodes
+	UpstreamEndpoints map[string][]structs.CheckServiceNode
 
 	// Skip intentions for now as we don't push those down yet, just pre-warm them.
 }

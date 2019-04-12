@@ -18,7 +18,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/stretchr/testify/require"
 )
@@ -2846,8 +2846,8 @@ func TestPreparedQuery_Execute_ConnectExact(t *testing.T) {
 
 func TestPreparedQuery_tagFilter(t *testing.T) {
 	t.Parallel()
-	testNodes := func() structs.CheckServiceNodes {
-		return structs.CheckServiceNodes{
+	testNodes := func() []structs.CheckServiceNode {
+		return []structs.CheckServiceNode{
 			structs.CheckServiceNode{
 				Node:    &structs.Node{Node: "node1"},
 				Service: &structs.NodeService{Tags: []string{"foo"}},
@@ -2876,7 +2876,7 @@ func TestPreparedQuery_tagFilter(t *testing.T) {
 
 	// This always sorts so that it's not annoying to compare after the swap
 	// operations that the algorithm performs.
-	stringify := func(nodes structs.CheckServiceNodes) string {
+	stringify := func(nodes []structs.CheckServiceNode) string {
 		var names []string
 		for _, node := range nodes {
 			names = append(names, node.Node.Node)
@@ -3030,8 +3030,8 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 		},
 	}
 
-	nodes := func() structs.CheckServiceNodes {
-		return structs.CheckServiceNodes{
+	nodes := func() []structs.CheckServiceNode {
+		return []structs.CheckServiceNode{
 			structs.CheckServiceNode{
 				Node: &structs.Node{Node: "node1"},
 			},

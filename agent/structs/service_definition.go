@@ -11,40 +11,6 @@ import (
 	"github.com/mitchellh/reflectwalk"
 )
 
-// ServiceDefinition is used to JSON decode the Service definitions. For
-// documentation on specific fields see NodeService which is better documented.
-type ServiceDefinition struct {
-	Kind              ServiceKind `json:",omitempty"`
-	ID                string
-	Name              string
-	Tags              []string
-	Address           string
-	Meta              map[string]string
-	Port              int
-	Check             CheckType
-	Checks            CheckTypes
-	Weights           *Weights
-	Token             string
-	EnableTagOverride bool
-	// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
-	// ProxyDestination is deprecated in favor of Proxy.DestinationServiceName
-	ProxyDestination string `json:",omitempty"`
-
-	// Proxy is the configuration set for Kind = connect-proxy. It is mandatory in
-	// that case and an error to be set for any other kind. This config is part of
-	// a proxy service definition and is distinct from but shares some fields with
-	// the Connect.Proxy which configures a managed proxy as part of the actual
-	// service's definition. This duplication is ugly but seemed better than the
-	// alternative which was to re-use the same struct fields for both cases even
-	// though the semantics are different and the non-shared fields make no sense
-	// in the other case. ProxyConfig may be a more natural name here, but it's
-	// confusing for the UX because one of the fields in ConnectProxyConfig is
-	// also called just "Config"
-	Proxy *ConnectProxyConfig
-
-	Connect *ServiceConnect
-}
-
 func (s *ServiceDefinition) NodeService() *NodeService {
 	ns := &NodeService{
 		Kind:              s.Kind,
@@ -242,16 +208,6 @@ func (s *ServiceDefinition) CheckTypes() (checks CheckTypes, err error) {
 	return checks, nil
 }
 
-// ServiceDefinitionConnectProxy is the connect proxy config  within a service
-// registration. Note this is duplicated in config.ServiceConnectProxy and needs
-// to be kept in sync.
-type ServiceDefinitionConnectProxy struct {
-	Command   []string               `json:",omitempty"`
-	ExecMode  string                 `json:",omitempty"`
-	Config    map[string]interface{} `json:",omitempty"`
-	Upstreams []Upstream             `json:",omitempty"`
-}
-
 func (p *ServiceDefinitionConnectProxy) MarshalJSON() ([]byte, error) {
 	type typeCopy ServiceDefinitionConnectProxy
 	copy := typeCopy(*p)
@@ -266,7 +222,7 @@ func (p *ServiceDefinitionConnectProxy) MarshalJSON() ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		configCopy, ok := configCopyRaw.(map[string]interface{})
+		configCopy, ok := configCopyRaw.(UntypedMap)
 		if !ok {
 			// This should never fail because we KNOW the input type,
 			// but we don't ever want to risk the panic.

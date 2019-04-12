@@ -204,7 +204,7 @@ func (s *state) run() {
 		Address:           s.address,
 		Port:              s.port,
 		Proxy:             s.proxyCfg,
-		UpstreamEndpoints: make(map[string]structs.CheckServiceNodes),
+		UpstreamEndpoints: make(map[string][]structs.CheckServiceNode),
 	}
 	// This turns out to be really fiddly/painful by just using time.Timer.C
 	// directly in the code below since you can't detect when a timer is stopped

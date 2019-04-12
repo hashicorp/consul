@@ -480,7 +480,7 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 		EnableTagOverride: true,
 		Proxy: ConnectProxyConfig{
 			DestinationServiceName: "db",
-			Config: map[string]interface{}{
+			Config: UntypedMap{
 				"foo": "bar",
 			},
 		},
@@ -504,7 +504,7 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 		},
 		Proxy: ConnectProxyConfig{
 			DestinationServiceName: "db",
-			Config: map[string]interface{}{
+			Config: UntypedMap{
 				"foo": "bar",
 			},
 		},
@@ -770,7 +770,7 @@ func TestStructs_HealthCheck_Clone(t *testing.T) {
 
 func TestStructs_CheckServiceNodes_Shuffle(t *testing.T) {
 	// Make a huge list of nodes.
-	var nodes CheckServiceNodes
+	var nodes []CheckServiceNode
 	for i := 0; i < 100; i++ {
 		nodes = append(nodes, CheckServiceNode{
 			Node: &Node{
@@ -783,7 +783,7 @@ func TestStructs_CheckServiceNodes_Shuffle(t *testing.T) {
 	// Keep track of how many unique shuffles we get.
 	uniques := make(map[string]struct{})
 	for i := 0; i < 100; i++ {
-		nodes.Shuffle()
+		ShuffleCheckServiceNodes(nodes)
 
 		var names []string
 		for _, node := range nodes {
@@ -802,7 +802,7 @@ func TestStructs_CheckServiceNodes_Shuffle(t *testing.T) {
 }
 
 func TestStructs_CheckServiceNodes_Filter(t *testing.T) {
-	nodes := CheckServiceNodes{
+	nodes := []CheckServiceNode{
 		CheckServiceNode{
 			Node: &Node{
 				Node:    "node1",
@@ -854,12 +854,12 @@ func TestStructs_CheckServiceNodes_Filter(t *testing.T) {
 
 	// Test the case where warnings are allowed.
 	{
-		twiddle := make(CheckServiceNodes, len(nodes))
+		twiddle := make([]CheckServiceNode, len(nodes))
 		if n := copy(twiddle, nodes); n != len(nodes) {
 			t.Fatalf("bad: %d", n)
 		}
-		filtered := twiddle.Filter(false)
-		expected := CheckServiceNodes{
+		filtered := FilterCheckServiceNodes(twiddle, false)
+		expected := []CheckServiceNode{
 			nodes[0],
 			nodes[1],
 		}
@@ -870,12 +870,12 @@ func TestStructs_CheckServiceNodes_Filter(t *testing.T) {
 
 	// Limit to only passing checks.
 	{
-		twiddle := make(CheckServiceNodes, len(nodes))
+		twiddle := make([]CheckServiceNode, len(nodes))
 		if n := copy(twiddle, nodes); n != len(nodes) {
 			t.Fatalf("bad: %d", n)
 		}
-		filtered := twiddle.Filter(true)
-		expected := CheckServiceNodes{
+		filtered := FilterCheckServiceNodes(twiddle, true)
+		expected := []CheckServiceNode{
 			nodes[1],
 		}
 		if !reflect.DeepEqual(filtered, expected) {
@@ -886,12 +886,12 @@ func TestStructs_CheckServiceNodes_Filter(t *testing.T) {
 	// Allow failing checks to be ignored (note that the test checks have empty
 	// CheckID which is valid).
 	{
-		twiddle := make(CheckServiceNodes, len(nodes))
+		twiddle := make([]CheckServiceNode, len(nodes))
 		if n := copy(twiddle, nodes); n != len(nodes) {
 			t.Fatalf("bad: %d", n)
 		}
-		filtered := twiddle.FilterIgnore(true, []types.CheckID{""})
-		expected := CheckServiceNodes{
+		filtered := FilterIgnoreCheckServiceNodes(twiddle, true, []types.CheckID{""})
+		expected := []CheckServiceNode{
 			nodes[0],
 			nodes[1],
 			nodes[2], // Node 3's critical check should be ignored.

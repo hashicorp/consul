@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 
 	"github.com/stretchr/testify/require"
 )
@@ -452,7 +452,7 @@ func TestInternal_ServiceDump(t *testing.T) {
 	// prep the cluster with some data we can use in our filters
 	registerTestCatalogEntries(t, codec)
 
-	doRequest := func(t *testing.T, filter string) structs.CheckServiceNodes {
+	doRequest := func(t *testing.T, filter string) []structs.CheckServiceNode {
 		t.Helper()
 		args := structs.DCSpecificRequest{
 			Datacenter:   "dc1",

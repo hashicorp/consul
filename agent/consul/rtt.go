@@ -132,13 +132,13 @@ func (n *healthCheckSorter) Less(i, j int) bool {
 // distances and implements sort.Interface, keeping both structures coherent and
 // sorting by distance.
 type checkServiceNodeSorter struct {
-	Nodes structs.CheckServiceNodes
+	Nodes []structs.CheckServiceNode
 	Vec   []float64
 }
 
 // newCheckServiceNodeSorter returns a new sorter for the given source coordinate
 // and set of nodes with health checks.
-func (s *Server) newCheckServiceNodeSorter(cs lib.CoordinateSet, nodes structs.CheckServiceNodes) (sort.Interface, error) {
+func (s *Server) newCheckServiceNodeSorter(cs lib.CoordinateSet, nodes []structs.CheckServiceNode) (sort.Interface, error) {
 	state := s.fsm.State()
 	vec := make([]float64, len(nodes))
 	for i, node := range nodes {
@@ -177,7 +177,7 @@ func (s *Server) newSorterByDistanceFrom(cs lib.CoordinateSet, subj interface{})
 		return s.newServiceNodeSorter(cs, v)
 	case structs.HealthChecks:
 		return s.newHealthCheckSorter(cs, v)
-	case structs.CheckServiceNodes:
+	case []structs.CheckServiceNode:
 		return s.newCheckServiceNodeSorter(cs, v)
 	default:
 		panic(fmt.Errorf("Unhandled type passed to newSorterByDistanceFrom: %#v", subj))

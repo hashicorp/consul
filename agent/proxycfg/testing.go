@@ -122,8 +122,8 @@ func TestIntentions(t testing.T) *structs.IndexedIntentionMatches {
 
 // TestUpstreamNodes returns a sample service discovery result useful to
 // mocking service discovery cache results.
-func TestUpstreamNodes(t testing.T) structs.CheckServiceNodes {
-	return structs.CheckServiceNodes{
+func TestUpstreamNodes(t testing.T) []structs.CheckServiceNode {
+	return []structs.CheckServiceNode{
 		structs.CheckServiceNode{
 			Node: &structs.Node{
 				ID:         "test1",
@@ -164,7 +164,7 @@ func TestConfigSnapshot(t testing.T) *ConfigSnapshot {
 		},
 		Roots: roots,
 		Leaf:  leaf,
-		UpstreamEndpoints: map[string]structs.CheckServiceNodes{
+		UpstreamEndpoints: map[string][]structs.CheckServiceNode{
 			"service:db": TestUpstreamNodes(t),
 		},
 	}

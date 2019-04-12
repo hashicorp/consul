@@ -303,7 +303,7 @@ type PreparedQueryExecuteResponse struct {
 	Service string
 
 	// Nodes has the nodes that were output by the query.
-	Nodes CheckServiceNodes
+	Nodes []CheckServiceNode
 
 	// DNS has the options for serving these results over DNS.
 	DNS QueryDNSOptions

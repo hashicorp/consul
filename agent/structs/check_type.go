@@ -3,49 +3,8 @@ package structs
 import (
 	"fmt"
 	"reflect"
-	"time"
-
-	"github.com/hashicorp/consul/types"
 )
 
-// CheckType is used to create either the CheckMonitor or the CheckTTL.
-// The following types are supported: Script, HTTP, TCP, Docker, TTL, GRPC, Alias. Script,
-// HTTP, Docker, TCP and GRPC all require Interval. Only one of the types may
-// to be provided: TTL or Script/Interval or HTTP/Interval or TCP/Interval or
-// Docker/Interval or GRPC/Interval or AliasService.
-type CheckType struct {
-	// fields already embedded in CheckDefinition
-	// Note: CheckType.CheckID == CheckDefinition.ID
-
-	CheckID types.CheckID
-	Name    string
-	Status  string
-	Notes   string
-
-	// fields copied to CheckDefinition
-	// Update CheckDefinition when adding fields here
-
-	ScriptArgs        []string
-	HTTP              string
-	Header            map[string][]string
-	Method            string
-	TCP               string
-	Interval          time.Duration
-	AliasNode         string
-	AliasService      string
-	DockerContainerID string
-	Shell             string
-	GRPC              string
-	GRPCUseTLS        bool
-	TLSSkipVerify     bool
-	Timeout           time.Duration
-	TTL               time.Duration
-
-	// DeregisterCriticalServiceAfter, if >0, will cause the associated
-	// service, if any, to be deregistered if this check is critical for
-	// longer than this duration.
-	DeregisterCriticalServiceAfter time.Duration
-}
 type CheckTypes []*CheckType
 
 // Validate returns an error message if the check is invalid

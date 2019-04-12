@@ -21,7 +21,7 @@ func TestConnectProxyConfig_ToAPI(t *testing.T) {
 				DestinationServiceID:   "web1",
 				LocalServiceAddress:    "127.0.0.2",
 				LocalServicePort:       5555,
-				Config: map[string]interface{}{
+				Config: UntypedMap{
 					"foo": "bar",
 				},
 				Upstreams: Upstreams{

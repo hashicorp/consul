@@ -149,7 +149,7 @@ func TestServiceDefinitionConnectProxy_json(t *testing.T) {
 		{
 			"basic config",
 			&ServiceDefinitionConnectProxy{
-				Config: map[string]interface{}{
+				Config: UntypedMap{
 					"foo": "bar",
 				},
 			},
@@ -166,7 +166,7 @@ func TestServiceDefinitionConnectProxy_json(t *testing.T) {
 		{
 			"config with upstreams",
 			&ServiceDefinitionConnectProxy{
-				Config: map[string]interface{}{
+				Config: UntypedMap{
 					"upstreams": []interface{}{
 						map[interface{}]interface{}{
 							"key": []byte("value"),

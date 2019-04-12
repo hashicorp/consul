@@ -105,7 +105,7 @@ func (m *Internal) ServiceDump(args *structs.DCSpecificRequest, reply *structs.I
 				return err
 			}
 
-			reply.Nodes = raw.(structs.CheckServiceNodes)
+			reply.Nodes = raw.([]structs.CheckServiceNode)
 			return nil
 		})
 }

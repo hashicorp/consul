@@ -271,6 +271,8 @@ ui-docker: ui-build-image
 
 proto:
 	protoc agent/connect/ca/plugin/*.proto --gofast_out=plugins=grpc:../../..
+	cd agent/structs && protoc -I$(GOPATH)/src:. --gofast_out=. *.proto
+	cd agent/consul && protoc -I$(GOPATH)/src:. --gofast_out=plugins=grpc:. *.proto
 
 .PHONY: all ci bin dev dist cov test test-ci test-internal test-install-deps cover format vet ui static-assets tools
 .PHONY: docker-images go-build-image ui-build-image static-assets-docker consul-docker ui-docker

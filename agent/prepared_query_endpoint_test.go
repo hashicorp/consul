@@ -507,7 +507,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 		m := MockPreparedQuery{
 			executeFn: func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExecuteResponse) error {
-				nodesResponse := make(structs.CheckServiceNodes, 1)
+				nodesResponse := make([]structs.CheckServiceNode, 1)
 				nodesResponse[0].Node = &structs.Node{
 					Node: "foo", Address: "127.0.0.1",
 					TaggedAddresses: map[string]string{
@@ -557,7 +557,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 		m := MockPreparedQuery{
 			executeFn: func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExecuteResponse) error {
-				nodesResponse := make(structs.CheckServiceNodes, 1)
+				nodesResponse := make([]structs.CheckServiceNode, 1)
 				nodesResponse[0].Node = &structs.Node{
 					Node: "foo", Address: "127.0.0.1",
 					TaggedAddresses: map[string]string{

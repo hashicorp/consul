@@ -375,7 +375,7 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 
 	// Shuffle the results in case coordinates are not available if they
 	// requested an RTT sort.
-	reply.Nodes.Shuffle()
+	structs.ShuffleCheckServiceNodes(reply.Nodes)
 
 	// Build the query source. This can be provided by the client, or by
 	// the prepared query. Client-specified takes priority.
@@ -496,7 +496,7 @@ func (p *PreparedQuery) ExecuteRemote(args *structs.PreparedQueryExecuteRemoteRe
 	// We don't bother trying to do an RTT sort here since we are by
 	// definition in another DC. We just shuffle to make sure that we
 	// balance the load across the results.
-	reply.Nodes.Shuffle()
+	structs.ShuffleCheckServiceNodes(reply.Nodes)
 
 	// Apply the limit if given.
 	if args.Limit > 0 && len(reply.Nodes) > args.Limit {
@@ -526,7 +526,7 @@ func (p *PreparedQuery) execute(query *structs.PreparedQuery,
 	}
 
 	// Filter out any unhealthy nodes.
-	nodes = nodes.FilterIgnore(query.Service.OnlyPassing,
+	nodes = structs.FilterIgnoreCheckServiceNodes(nodes, query.Service.OnlyPassing,
 		query.Service.IgnoreCheckIDs)
 
 	// Apply the node metadata filters, if any.
@@ -558,7 +558,7 @@ func (p *PreparedQuery) execute(query *structs.PreparedQuery,
 // tagFilter returns a list of nodes who satisfy the given tags. Nodes must have
 // ALL the given tags, and NONE of the forbidden tags (prefixed with !). Note
 // for performance this modifies the original slice.
-func tagFilter(tags []string, nodes structs.CheckServiceNodes) structs.CheckServiceNodes {
+func tagFilter(tags []string, nodes []structs.CheckServiceNode) []structs.CheckServiceNode {
 	// Build up lists of required and disallowed tags.
 	must, not := make([]string, 0), make([]string, 0)
 	for _, tag := range tags {
@@ -611,8 +611,8 @@ func tagFilter(tags []string, nodes structs.CheckServiceNodes) structs.CheckServ
 
 // nodeMetaFilter returns a list of the nodes who satisfy the given metadata filters. Nodes
 // must have ALL the given tags.
-func nodeMetaFilter(filters map[string]string, nodes structs.CheckServiceNodes) structs.CheckServiceNodes {
-	var filtered structs.CheckServiceNodes
+func nodeMetaFilter(filters map[string]string, nodes []structs.CheckServiceNode) []structs.CheckServiceNode {
+	var filtered []structs.CheckServiceNode
 	for _, node := range nodes {
 		if structs.SatisfiesMetaFilters(node.Node.Meta, filters) {
 			filtered = append(filtered, node)
@@ -621,8 +621,8 @@ func nodeMetaFilter(filters map[string]string, nodes structs.CheckServiceNodes) 
 	return filtered
 }
 
-func serviceMetaFilter(filters map[string]string, nodes structs.CheckServiceNodes) structs.CheckServiceNodes {
-	var filtered structs.CheckServiceNodes
+func serviceMetaFilter(filters map[string]string, nodes []structs.CheckServiceNode) []structs.CheckServiceNode {
+	var filtered []structs.CheckServiceNode
 	for _, node := range nodes {
 		if structs.SatisfiesMetaFilters(node.Service.Meta, filters) {
 			filtered = append(filtered, node)
