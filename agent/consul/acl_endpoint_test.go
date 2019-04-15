@@ -1054,7 +1054,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 					Description:    "foobar",
 					Policies:       nil,
 					Local:          false,
-					ExpirationTime: time.Now().Add(test.offset),
+					ExpirationTime: timePointer(time.Now().Add(test.offset)),
 				},
 				WriteRequest: structs.WriteRequest{Token: "root"},
 			}
@@ -1099,7 +1099,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 				Description:    "foobar",
 				Policies:       nil,
 				Local:          false,
-				ExpirationTime: time.Now().Add(4 * time.Second),
+				ExpirationTime: timePointer(time.Now().Add(4 * time.Second)),
 				ExpirationTTL:  4 * time.Second,
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
@@ -1138,7 +1138,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.NotNil(t, token.AccessorID)
 		require.Equal(t, token.Description, "foobar")
 		require.Equal(t, token.AccessorID, resp.AccessorID)
-		requireTimeEquals(t, expectExpTime, resp.ExpirationTime)
+		requireTimeEquals(t, &expectExpTime, resp.ExpirationTime)
 
 		tokenID = token.AccessorID
 	})
@@ -1152,7 +1152,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 				Description:    "foobar",
 				Policies:       nil,
 				Local:          false,
-				ExpirationTime: expTime,
+				ExpirationTime: &expTime,
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
@@ -1170,7 +1170,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.NotNil(t, token.AccessorID)
 		require.Equal(t, token.Description, "foobar")
 		require.Equal(t, token.AccessorID, resp.AccessorID)
-		requireTimeEquals(t, expTime, resp.ExpirationTime)
+		requireTimeEquals(t, &expTime, resp.ExpirationTime)
 
 		tokenID = token.AccessorID
 	})
@@ -1183,7 +1183,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 			ACLToken: structs.ACLToken{
 				Description:    "new-description",
 				AccessorID:     tokenID,
-				ExpirationTime: expTime.Add(-1 * time.Second),
+				ExpirationTime: timePointer(expTime.Add(-1 * time.Second)),
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
@@ -1202,7 +1202,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 			ACLToken: structs.ACLToken{
 				Description:    "new-description",
 				AccessorID:     tokenID,
-				ExpirationTime: expTime,
+				ExpirationTime: &expTime,
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
@@ -1220,7 +1220,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.NotNil(t, token.AccessorID)
 		require.Equal(t, token.Description, "new-description")
 		require.Equal(t, token.AccessorID, resp.AccessorID)
-		requireTimeEquals(t, expTime, resp.ExpirationTime)
+		requireTimeEquals(t, &expTime, resp.ExpirationTime)
 	})
 
 	t.Run("cannot update a token that is past its expiration time", func(t *testing.T) {
@@ -2217,10 +2217,16 @@ func retrieveTestPolicy(codec rpc.ClientCodec, masterToken string, datacenter st
 	return &out, nil
 }
 
-func requireTimeEquals(t *testing.T, expect, got time.Time) {
+func requireTimeEquals(t *testing.T, expect, got *time.Time) {
 	t.Helper()
-	if !expect.Equal(got) {
-		t.Fatalf("expected=%q != got=%q", expect, got)
+	if expect == nil && got == nil {
+		return
+	} else if expect == nil && got != nil {
+		t.Fatalf("expected=NIL != got=%q", *got)
+	} else if expect != nil && got == nil {
+		t.Fatalf("expected=%q != got=NIL", *expect)
+	} else if !expect.Equal(*got) {
+		t.Fatalf("expected=%q != got=%q", *expect, *got)
 	}
 }
 

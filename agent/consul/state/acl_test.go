@@ -1741,7 +1741,7 @@ func TestTokenPoliciesIndex(t *testing.T) {
 			SecretID:       newUUID(),
 			Description:    desc,
 			Local:          local,
-			ExpirationTime: expTime,
+			ExpirationTime: &expTime,
 			CreateTime:     baseTime,
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 9,

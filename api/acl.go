@@ -31,7 +31,7 @@ type ACLToken struct {
 	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
 	Local             bool
 	ExpirationTTL     time.Duration `json:",omitempty"`
-	ExpirationTime    time.Time     `json:",omitempty"`
+	ExpirationTime    *time.Time    `json:",omitempty"`
 	CreateTime        time.Time     `json:",omitempty"`
 	Hash              []byte        `json:",omitempty"`
 
@@ -48,7 +48,7 @@ type ACLTokenListEntry struct {
 	Policies          []*ACLTokenPolicyLink `json:",omitempty"`
 	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
 	Local             bool
-	ExpirationTime    time.Time `json:",omitempty"`
+	ExpirationTime    *time.Time `json:",omitempty"`
 	CreateTime        time.Time
 	Hash              []byte
 	Legacy            bool
