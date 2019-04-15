@@ -1,10 +1,11 @@
 import Component from '@ember/component';
+import SlotsMixin from 'block-slots';
 import { inject as service } from '@ember/service';
 import { get } from '@ember/object';
 import { alias } from '@ember/object/computed';
 import WithListeners from 'consul-ui/mixins/with-listeners';
 
-export default Component.extend(WithListeners, {
+export default Component.extend(WithListeners, SlotsMixin, {
   onreset: function() {},
   onchange: function() {},
   onerror: function() {},

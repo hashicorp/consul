@@ -1,5 +1,8 @@
 <form>
-  {{policy-form form=form item=item}}
+  {{#policy-form form=form item=item}}
+    {{!don't show type here}}
+    {{block-slot 'type'}}
+  {{/policy-form}}
 {{#if (not create) }}
   {{token-list caption="Applied to the following tokens:" items=items}}
 {{/if}}
