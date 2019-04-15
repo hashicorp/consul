@@ -1414,6 +1414,12 @@ func TestRulesTranslate_GH5493(t *testing.T) {
 		"": {
 			"policy": "read"
 		},
+		"key": {
+			"policy": "read"
+		},
+		"policy": {
+			"policy": "read"
+		},
 		"privatething1/": {
 			"policy": "deny"
 		},
@@ -1457,6 +1463,14 @@ func TestRulesTranslate_GH5493(t *testing.T) {
 }`
 	expected := `
 key_prefix "" {
+  policy = "read"
+}
+
+key_prefix "key" {
+  policy = "read"
+}
+
+key_prefix "policy" {
   policy = "read"
 }
 
