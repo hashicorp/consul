@@ -114,7 +114,7 @@ will not be expanded.
 ## Filter Utilization
 
 Generally, only the main object is filtered. When filtering for
-an item within an array, that is not at the top level, the entire array that contains the item
+an item within an array that is not at the top level, the entire array that contains the item
 will be returned. This is usually the outermost object of a response,
 but in some cases such the [`/catalog/node/:node`](api/catalog.html#list-services-for-node)
 endpoint the filtering is performed on a object embedded within the results.

@@ -619,7 +619,6 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 		r.params.Set("near", q.Near)
 	}
 	if q.Filter != "" {
-		fmt.Printf("filter set to %q\n", q.Filter)
 		r.params.Set("filter", q.Filter)
 	}
 	if len(q.NodeMeta) > 0 {
