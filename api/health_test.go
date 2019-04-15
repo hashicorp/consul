@@ -11,7 +11,7 @@ import (
 
 func TestAPI_HealthNode(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := MakeClient(t)
 	defer s.Stop()
 
 	agent := c.Agent()
@@ -192,7 +192,7 @@ func TestAPI_HealthChecks_AggregatedStatus(t *testing.T) {
 
 func TestAPI_HealthChecks(t *testing.T) {
 	t.Parallel()
-	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+	c, s := MakeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
 		conf.NodeName = "node123"
 	})
 	defer s.Stop()
@@ -242,7 +242,7 @@ func TestAPI_HealthChecks(t *testing.T) {
 func TestAPI_HealthChecks_NodeMetaFilter(t *testing.T) {
 	t.Parallel()
 	meta := map[string]string{"somekey": "somevalue"}
-	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+	c, s := MakeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
 		conf.NodeMeta = meta
 	})
 	defer s.Stop()
@@ -306,7 +306,7 @@ func TestAPI_HealthChecks_Filter(t *testing.T) {
 
 func TestAPI_HealthService(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := MakeClient(t)
 	defer s.Stop()
 
 	health := c.Health()
@@ -333,7 +333,7 @@ func TestAPI_HealthService(t *testing.T) {
 
 func TestAPI_HealthService_SingleTag(t *testing.T) {
 	t.Parallel()
-	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+	c, s := MakeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
 		conf.NodeName = "node123"
 	})
 	defer s.Stop()
@@ -360,7 +360,7 @@ func TestAPI_HealthService_SingleTag(t *testing.T) {
 }
 func TestAPI_HealthService_MultipleTags(t *testing.T) {
 	t.Parallel()
-	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+	c, s := MakeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
 		conf.NodeName = "node123"
 	})
 	defer s.Stop()
@@ -416,7 +416,7 @@ func TestAPI_HealthService_MultipleTags(t *testing.T) {
 func TestAPI_HealthService_NodeMetaFilter(t *testing.T) {
 	t.Parallel()
 	meta := map[string]string{"somekey": "somevalue"}
-	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+	c, s := MakeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
 		conf.NodeMeta = meta
 	})
 	defer s.Stop()
@@ -460,7 +460,7 @@ func TestAPI_HealthService_Filter(t *testing.T) {
 
 func TestAPI_HealthConnect(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := MakeClient(t)
 	defer s.Stop()
 
 	agent := c.Agent()
@@ -535,7 +535,7 @@ func TestAPI_HealthConnect_Filter(t *testing.T) {
 
 func TestAPI_HealthState(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := MakeClient(t)
 	defer s.Stop()
 
 	health := c.Health()
@@ -556,7 +556,7 @@ func TestAPI_HealthState(t *testing.T) {
 func TestAPI_HealthState_NodeMetaFilter(t *testing.T) {
 	t.Parallel()
 	meta := map[string]string{"somekey": "somevalue"}
-	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+	c, s := MakeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
 		conf.NodeMeta = meta
 	})
 	defer s.Stop()

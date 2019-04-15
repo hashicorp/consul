@@ -13,7 +13,7 @@ func TestAPI_ConnectCARoots_empty(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	c, s := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
+	c, s := MakeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
 		// Don't bootstrap CA
 		c.Connect = nil
 	})
@@ -31,7 +31,7 @@ func TestAPI_ConnectCARoots_empty(t *testing.T) {
 func TestAPI_ConnectCARoots_list(t *testing.T) {
 	t.Parallel()
 
-	c, s := makeClient(t)
+	c, s := MakeClient(t)
 	defer s.Stop()
 
 	// This fails occasionally if server doesn't have time to bootstrap CA so
@@ -57,7 +57,7 @@ func TestAPI_ConnectCARoots_list(t *testing.T) {
 func TestAPI_ConnectCAConfig_get_set(t *testing.T) {
 	t.Parallel()
 
-	c, s := makeClient(t)
+	c, s := MakeClient(t)
 	defer s.Stop()
 
 	s.WaitForSerfCheck(t)

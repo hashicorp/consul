@@ -10,7 +10,7 @@ func TestAPI_ConnectIntentionCreateListGetUpdateDelete(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	c, s := makeClient(t)
+	c, s := MakeClient(t)
 	defer s.Stop()
 
 	connect := c.Connect()
@@ -65,7 +65,7 @@ func TestAPI_ConnectIntentionGet_invalidId(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	c, s := makeClient(t)
+	c, s := MakeClient(t)
 	defer s.Stop()
 
 	connect := c.Connect()
@@ -81,7 +81,7 @@ func TestAPI_ConnectIntentionMatch(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	c, s := makeClient(t)
+	c, s := MakeClient(t)
 	defer s.Stop()
 
 	connect := c.Connect()
@@ -128,7 +128,7 @@ func TestAPI_ConnectIntentionCheck(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	c, s := makeClient(t)
+	c, s := MakeClient(t)
 	defer s.Stop()
 
 	connect := c.Connect()

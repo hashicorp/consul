@@ -189,6 +189,7 @@ github.com/gregjones/httpcache/diskcache
 github.com/hailocab/go-hostpool
 # github.com/hashicorp/consul/api v1.0.1 => ./api
 github.com/hashicorp/consul/api
+github.com/hashicorp/consul/api/watch
 # github.com/hashicorp/consul/sdk v0.1.0 => ./sdk
 github.com/hashicorp/consul/sdk/freeport
 github.com/hashicorp/consul/sdk/testutil/retry

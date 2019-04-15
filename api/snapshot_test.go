@@ -8,7 +8,7 @@ import (
 
 func TestAPI_Snapshot(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := MakeClient(t)
 	defer s.Stop()
 
 	s.WaitForSerfCheck(t)
@@ -83,7 +83,7 @@ func TestAPI_Snapshot(t *testing.T) {
 
 func TestAPI_Snapshot_Options(t *testing.T) {
 	t.Parallel()
-	c, s := makeACLClient(t)
+	c, s := MakeACLClient(t)
 	defer s.Stop()
 
 	// Try to take a snapshot with a bad token.

@@ -8,7 +8,7 @@ import (
 
 func TestAPI_DebugHeap(t *testing.T) {
 	t.Parallel()
-	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+	c, s := MakeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
 		conf.EnableDebug = true
 	})
 
@@ -27,7 +27,7 @@ func TestAPI_DebugHeap(t *testing.T) {
 
 func TestAPI_DebugProfile(t *testing.T) {
 	t.Parallel()
-	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+	c, s := MakeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
 		conf.EnableDebug = true
 	})
 
@@ -46,7 +46,7 @@ func TestAPI_DebugProfile(t *testing.T) {
 
 func TestAPI_DebugGoroutine(t *testing.T) {
 	t.Parallel()
-	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+	c, s := MakeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
 		conf.EnableDebug = true
 	})
 
@@ -65,7 +65,7 @@ func TestAPI_DebugGoroutine(t *testing.T) {
 
 func TestAPI_DebugTrace(t *testing.T) {
 	t.Parallel()
-	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+	c, s := MakeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
 		conf.EnableDebug = true
 	})
 

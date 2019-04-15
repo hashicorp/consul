@@ -9,11 +9,12 @@ GOTOOLS = \
 	github.com/vektra/mockery/cmd/mockery
 
 GOTAGS ?=
-GOFILES ?= $(shell go list ./... | grep -v /vendor/)
+GOMODULES ?= ./... ./api/... ./sdk/...
+GOFILES ?= $(shell go list $(GOMODULES) | grep -v /vendor/)
 ifeq ($(origin GOTEST_PKGS_EXCLUDE), undefined)
-GOTEST_PKGS ?= "./..."
+GOTEST_PKGS ?= $(GOMODULES)
 else
-GOTEST_PKGS=$(shell go list ./... | sed 's/github.com\/hashicorp\/consul/./' | egrep -v "^($(GOTEST_PKGS_EXCLUDE))$$")
+GOTEST_PKGS=$(shell go list $(GOMODULES) | sed 's/github.com\/hashicorp\/consul/./' | egrep -v "^($(GOTEST_PKGS_EXCLUDE))$$")
 endif
 GOOS?=$(shell go env GOOS)
 GOARCH?=$(shell go env GOARCH)
@@ -143,7 +144,7 @@ dev-tree:
 	@$(SHELL) $(CURDIR)/build-support/scripts/dev.sh $(DEV_PUSH_ARG)
 
 cov:
-	go test ./... -coverprofile=coverage.out
+	go test $(GOMODULES) -coverprofile=coverage.out
 	go tool cover -html=coverage.out
 
 test: other-consul dev-build vet test-install-deps test-internal

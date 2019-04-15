@@ -10,7 +10,7 @@ import (
 
 func TestAPI_ClientPutGetDelete(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := MakeClient(t)
 	defer s.Stop()
 
 	kv := c.KV()
@@ -76,7 +76,7 @@ func TestAPI_ClientPutGetDelete(t *testing.T) {
 
 func TestAPI_ClientList_DeleteRecurse(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := MakeClient(t)
 	defer s.Stop()
 
 	kv := c.KV()
@@ -131,7 +131,7 @@ func TestAPI_ClientList_DeleteRecurse(t *testing.T) {
 
 func TestAPI_ClientDeleteCAS(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := MakeClient(t)
 	defer s.Stop()
 
 	kv := c.KV()
@@ -177,7 +177,7 @@ func TestAPI_ClientDeleteCAS(t *testing.T) {
 
 func TestAPI_ClientCAS(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := MakeClient(t)
 	defer s.Stop()
 
 	kv := c.KV()
@@ -225,7 +225,7 @@ func TestAPI_ClientCAS(t *testing.T) {
 
 func TestAPI_ClientWatchGet(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := MakeClient(t)
 	defer s.Stop()
 
 	kv := c.KV()
@@ -283,7 +283,7 @@ func TestAPI_ClientWatchGet(t *testing.T) {
 
 func TestAPI_ClientWatchList(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := MakeClient(t)
 	defer s.Stop()
 
 	kv := c.KV()
@@ -341,7 +341,7 @@ func TestAPI_ClientWatchList(t *testing.T) {
 
 func TestAPI_ClientKeys_DeleteRecurse(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := MakeClient(t)
 	defer s.Stop()
 
 	kv := c.KV()
@@ -391,7 +391,7 @@ func TestAPI_ClientKeys_DeleteRecurse(t *testing.T) {
 
 func TestAPI_ClientAcquireRelease(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := MakeClient(t)
 	defer s.Stop()
 
 	session := c.Session()
@@ -460,7 +460,7 @@ func TestAPI_ClientAcquireRelease(t *testing.T) {
 
 func TestAPI_KVClientTxn(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := MakeClient(t)
 	defer s.Stop()
 
 	session := c.Session()

@@ -8,7 +8,7 @@ import (
 
 func TestAPI_EventFireList(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := MakeClient(t)
 	defer s.Stop()
 
 	event := c.Event()

@@ -7,7 +7,7 @@ import (
 
 func TestAPI_OperatorRaftGetConfiguration(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := MakeClient(t)
 	defer s.Stop()
 
 	operator := c.Operator()
@@ -24,7 +24,7 @@ func TestAPI_OperatorRaftGetConfiguration(t *testing.T) {
 
 func TestAPI_OperatorRaftRemovePeerByAddress(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := MakeClient(t)
 	defer s.Stop()
 
 	// If we get this error, it proves we sent the address all the way

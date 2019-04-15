@@ -8,9 +8,9 @@ import (
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/watch"
 	"github.com/hashicorp/consul/connect"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/watch"
 )
 
 // Config is the publicly configurable state for an entire proxy instance. It's

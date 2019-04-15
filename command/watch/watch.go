@@ -12,8 +12,8 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/exec"
+	consulwatch "github.com/hashicorp/consul/api/watch"
 	"github.com/hashicorp/consul/command/flags"
-	consulwatch "github.com/hashicorp/consul/watch"
 	"github.com/mitchellh/cli"
 )
 
