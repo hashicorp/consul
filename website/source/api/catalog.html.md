@@ -55,7 +55,7 @@ The table below shows this endpoint's support for
   provided, it will be defaulted to the value of the `Service.Service` property.
   Only one service with a given `ID` may be present per node. The service
   `Tags`, `Address`, `Meta`, and `Port` fields are all optional. For more
-  infomation about these fields and the implications of setting them,
+  information about these fields and the implications of setting them,
   see the [Service - Agent API](https://www.consul.io/api/agent/service.html) page
   as registering services differs between using this or the Services Agent endpoint.
 
