@@ -68,6 +68,13 @@ export function initialize(container) {
           proxyRepo: 'repository/proxy/event-source',
         },
       },
+      {
+        service: 'form',
+        services: {
+          role: 'repository/role/component',
+          policy: 'repository/policy/component',
+        },
+      },
     ])
     .forEach(function(definition) {
       if (typeof definition.extend !== 'undefined') {

@@ -7,8 +7,8 @@ export default Service.extend({
 
   // TODO: Temporarily add these here until something else needs
   // dynamic repos
-  role: service('repository/role/component'),
-  policy: service('repository/policy/component'),
+  role: service('repository/role'),
+  policy: service('repository/policy'),
   //
   init: function() {
     this._super(...arguments);
@@ -17,4 +17,5 @@ export default Service.extend({
   build: function(obj, name) {
     return builder(...arguments);
   },
+  form: function() {},
 });
