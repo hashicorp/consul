@@ -107,7 +107,7 @@ if [ -z "$NO_REDIRECTS" ] || [ ! test -f $REDIRECTS_FILE ]; then
     # Read fields
     IFS=" " read -ra parts <<<"$line"
     fields+=("${parts[@]}")
-  done < REDIRECTS_FILE
+  done < $REDIRECTS_FILE
 
   # Check we have pairs
   if [ $((${#fields[@]} % 2)) -ne 0 ]; then
