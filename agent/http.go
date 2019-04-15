@@ -892,6 +892,7 @@ func (s *HTTPServer) parseMetaFilter(req *http.Request) map[string]string {
 func (s *HTTPServer) parseInternal(resp http.ResponseWriter, req *http.Request, dc *string, b *structs.QueryOptions, resolveProxyToken bool) bool {
 	s.parseDC(req, dc)
 	s.parseTokenInternal(req, &b.Token, resolveProxyToken)
+	s.parseFilter(req, &b.Filter)
 	if s.parseConsistency(resp, req, b) {
 		return true
 	}

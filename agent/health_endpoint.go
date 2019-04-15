@@ -15,7 +15,6 @@ func (s *HTTPServer) HealthChecksInState(resp http.ResponseWriter, req *http.Req
 	// Set default DC
 	args := structs.ChecksInStateRequest{}
 	s.parseSource(req, &args.Source)
-	s.parseFilter(req, &args.Filter)
 	args.NodeMetaFilters = s.parseMetaFilter(req)
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
@@ -63,7 +62,6 @@ func (s *HTTPServer) HealthNodeChecks(resp http.ResponseWriter, req *http.Reques
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
-	s.parseFilter(req, &args.Filter)
 
 	// Pull out the service name
 	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/health/node/")
@@ -105,7 +103,6 @@ func (s *HTTPServer) HealthServiceChecks(resp http.ResponseWriter, req *http.Req
 	// Set default DC
 	args := structs.ServiceSpecificRequest{}
 	s.parseSource(req, &args.Source)
-	s.parseFilter(req, &args.Filter)
 	args.NodeMetaFilters = s.parseMetaFilter(req)
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
@@ -159,7 +156,6 @@ func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Requ
 	// Set default DC
 	args := structs.ServiceSpecificRequest{Connect: connect}
 	s.parseSource(req, &args.Source)
-	s.parseFilter(req, &args.Filter)
 	args.NodeMetaFilters = s.parseMetaFilter(req)
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil

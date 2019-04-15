@@ -92,7 +92,6 @@ func (s *HTTPServer) CatalogNodes(resp http.ResponseWriter, req *http.Request) (
 	// Setup the request
 	args := structs.DCSpecificRequest{}
 	s.parseSource(req, &args.Source)
-	s.parseFilter(req, &args.Filter)
 	args.NodeMetaFilters = s.parseMetaFilter(req)
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_nodes"}, 1,
@@ -181,7 +180,6 @@ func (s *HTTPServer) catalogServiceNodes(resp http.ResponseWriter, req *http.Req
 	// Set default DC
 	args := structs.ServiceSpecificRequest{Connect: connect}
 	s.parseSource(req, &args.Source)
-	s.parseFilter(req, &args.Filter)
 	args.NodeMetaFilters = s.parseMetaFilter(req)
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
@@ -262,8 +260,6 @@ func (s *HTTPServer) CatalogNodeServices(resp http.ResponseWriter, req *http.Req
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
-
-	s.parseFilter(req, &args.Filter)
 
 	// Pull out the node name
 	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/catalog/node/")
