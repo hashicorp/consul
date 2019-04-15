@@ -22,6 +22,13 @@ export default RepositoryService.extend({
   status: function(obj) {
     return status(obj);
   },
+  persist: function(item) {
+    switch (get(item, 'template')) {
+      case 'default':
+        return item.save();
+    }
+    return Promise.resolve(item);
+  },
   translate: function(item) {
     return get(this, 'store').translate('policy', get(item, 'Rules'));
   },

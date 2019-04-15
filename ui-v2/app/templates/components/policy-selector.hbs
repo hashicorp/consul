@@ -45,7 +45,11 @@
       {{/block-slot}}
       {{#block-slot 'row'}}
         <td>
+{{#if item.ID }}
           <a href={{href-to 'dc.acls.policies.edit' item.ID}}>{{item.Name}}</a>
+{{else}}
+          <a name={{item.Name}}>{{item.Name}}</a>
+{{/if}}
         </td>
         <td>
           {{if (not item.isSaving) (join ', ' (policy/datacenters item)) 'Saving...'}}
@@ -54,7 +58,13 @@
       {{#block-slot 'details'}}
           <label class="type-text">
             <span>Rules <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
-            {{code-editor readonly=true value=item.Rules}}
+            {{#if (eq item.template 'default')}}
+              {{code-editor syntax='hcl' readonly=true value=item.Rules}}
+            {{else}}
+              {{#code-editor syntax='hcl' readonly=true}}
+                {{~component 'service-identity' name=item.Name~}}
+              {{/code-editor}}
+            {{/if}}
           </label>
           <div>
             {{#confirmation-dialog message='Are you sure you want to remove this policy from this token?'}}

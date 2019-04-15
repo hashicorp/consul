@@ -1,4 +1,20 @@
+{{yield}}
 <fieldset>
+  {{#yield-slot 'template'}}
+  {{else}}
+    <h3>Policy or service identity?</h3>
+    <p>
+      A Service Identity is default policy with a configurable service name. This saves you some time and effort you're using Consul for Connect features.
+    </p>
+    <div role="radiogroup" class={{if item.error.Type ' has-error'}}>
+        {{#each-in templates as |name template|}}
+            <label>
+              <span>{{template.name}}</span>
+                <input type="radio" name="policy[template]" value="{{name}}" checked={{if (eq item.template name) 'checked'}} onchange={{ action 'change' }}/>
+            </label>
+        {{/each-in}}
+    </div>
+  {{/yield-slot}}
     <label class="type-text{{if item.error.Name ' has-error'}}">
         <span>Name</span>
         <input type="text" value={{item.Name}} name="policy[Name]" autofocus="autofocus" oninput={{action 'change'}} />
@@ -11,10 +27,16 @@
     </label>
     <label class="type-text">
         <span>Rules <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
+{{#if (eq item.template 'default') }}
         {{code-editor syntax='hcl' class=(if item.error.Rules 'error') name='policy[Rules]' value=item.Rules onkeyup=(action 'change' 'policy[Rules]')}}
         {{#if item.error.Rules}}
           <strong>{{item.error.Rules.validation}}</strong>
         {{/if}}
+{{else}}
+        {{#code-editor name='policy[Rules]' syntax='hcl' oninput=(action 'change' 'policy[Rules]')}}
+          {{~component 'service-identity' name=item.Name~}}
+        {{/code-editor}}
+{{/if}}
     </label>
     <div class="type-toggle">
       <span>Valid datacenters</span>

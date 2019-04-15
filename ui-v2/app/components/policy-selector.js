@@ -28,6 +28,9 @@ export default ChildSelectorComponent.extend({
       if (target.checked) {
         const value = item;
         this.refreshCodeEditor(e, target.parentNode);
+        if (get(item, 'template') === 'service-identity') {
+          return;
+        }
         // potentially the item could change between load, so we don't check
         // anything to see if its already loaded here
         const repo = get(this, 'repo');
