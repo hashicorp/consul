@@ -113,6 +113,6 @@ func TestRulesTranslateCommand(t *testing.T) {
 
 		code := cmd.Run(args)
 		require.Equal(t, 1, code, 0)
-		require.Equal(t, "Error - cannot specify both -token-secret and -token-accessor", ui.ErrorWriter.String())
+		require.Equal(t, "Error - cannot specify both -token-secret and -token-accessor\n", ui.ErrorWriter.String())
 	})
 }
