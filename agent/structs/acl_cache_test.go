@@ -16,7 +16,7 @@ func TestStructs_ACLCaches(t *testing.T) {
 		t.Run("Valid Sizes", func(t *testing.T) {
 			t.Parallel()
 			// 1 isn't valid due to a bug in golang-lru library
-			config := ACLCachesConfig{2, 2, 2, 2}
+			config := ACLCachesConfig{2, 2, 2, 2, 2}
 
 			cache, err := NewACLCaches(&config)
 			require.NoError(t, err)
@@ -30,7 +30,7 @@ func TestStructs_ACLCaches(t *testing.T) {
 		t.Run("Zero Sizes", func(t *testing.T) {
 			t.Parallel()
 			// 1 isn't valid due to a bug in golang-lru library
-			config := ACLCachesConfig{0, 0, 0, 0}
+			config := ACLCachesConfig{0, 0, 0, 0, 0}
 
 			cache, err := NewACLCaches(&config)
 			require.NoError(t, err)
@@ -101,5 +101,20 @@ func TestStructs_ACLCaches(t *testing.T) {
 		require.NotNil(t, entry)
 		require.NotNil(t, entry.Authorizer)
 		require.True(t, entry.Authorizer == acl.DenyAll())
+	})
+
+	t.Run("Roles", func(t *testing.T) {
+		t.Parallel()
+		// 1 isn't valid due to a bug in golang-lru library
+		config := ACLCachesConfig{Roles: 4}
+
+		cache, err := NewACLCaches(&config)
+		require.NoError(t, err)
+		require.NotNil(t, cache)
+
+		cache.PutRole("foo", &ACLRole{})
+		entry := cache.GetRole("foo")
+		require.NotNil(t, entry)
+		require.NotNil(t, entry.Role)
 	})
 }

@@ -129,12 +129,18 @@ type ACLIdentity interface {
 	ID() string
 	SecretToken() string
 	PolicyIDs() []string
+	RoleIDs() []string
 	EmbeddedPolicy() *ACLPolicy
 	ServiceIdentityList() []*ACLServiceIdentity
 	IsExpired(asOf time.Time) bool
 }
 
 type ACLTokenPolicyLink struct {
+	ID   string
+	Name string `hash:"ignore"`
+}
+
+type ACLTokenRoleLink struct {
 	ID   string
 	Name string `hash:"ignore"`
 }
@@ -164,6 +170,14 @@ func (s *ACLServiceIdentity) AddToHash(h hash.Hash) {
 	for _, dc := range s.Datacenters {
 		h.Write([]byte(dc))
 	}
+}
+
+func (s *ACLServiceIdentity) EstimateSize() int {
+	size := len(s.ServiceName)
+	for _, dc := range s.Datacenters {
+		size += len(dc)
+	}
+	return size
 }
 
 func (s *ACLServiceIdentity) SyntheticPolicy() *ACLPolicy {
@@ -196,6 +210,11 @@ type ACLToken struct {
 	// Note this is the list of IDs and not the names. Prior to token creation
 	// the list of policy names gets validated and the policy IDs get stored herein
 	Policies []ACLTokenPolicyLink `json:",omitempty"`
+
+	// List of role links. Note this is the list of IDs and not the names.
+	// Prior to token creation the list of role names gets validated and the
+	// role IDs get stored herein
+	Roles []ACLTokenRoleLink `json:",omitempty"`
 
 	// List of services to generate synthetic policies for.
 	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
@@ -249,11 +268,16 @@ type ACLToken struct {
 func (t *ACLToken) Clone() *ACLToken {
 	t2 := *t
 	t2.Policies = nil
+	t2.Roles = nil
 	t2.ServiceIdentities = nil
 
 	if len(t.Policies) > 0 {
 		t2.Policies = make([]ACLTokenPolicyLink, len(t.Policies))
 		copy(t2.Policies, t.Policies)
+	}
+	if len(t.Roles) > 0 {
+		t2.Roles = make([]ACLTokenRoleLink, len(t.Roles))
+		copy(t2.Roles, t.Roles)
 	}
 	if len(t.ServiceIdentities) > 0 {
 		t2.ServiceIdentities = make([]*ACLServiceIdentity, len(t.ServiceIdentities))
@@ -279,6 +303,14 @@ func (t *ACLToken) PolicyIDs() []string {
 
 	ids := make([]string, 0, len(t.Policies))
 	for _, link := range t.Policies {
+		ids = append(ids, link.ID)
+	}
+	return ids
+}
+
+func (t *ACLToken) RoleIDs() []string {
+	var ids []string
+	for _, link := range t.Roles {
 		ids = append(ids, link.ID)
 	}
 	return ids
@@ -310,6 +342,7 @@ func (t *ACLToken) HasExpirationTime() bool {
 func (t *ACLToken) UsesNonLegacyFields() bool {
 	return len(t.Policies) > 0 ||
 		len(t.ServiceIdentities) > 0 ||
+		len(t.Roles) > 0 ||
 		t.Type == "" ||
 		t.HasExpirationTime() ||
 		t.ExpirationTTL != 0
@@ -376,6 +409,10 @@ func (t *ACLToken) SetHash(force bool) []byte {
 			hash.Write([]byte(link.ID))
 		}
 
+		for _, link := range t.Roles {
+			hash.Write([]byte(link.ID))
+		}
+
 		for _, srvid := range t.ServiceIdentities {
 			srvid.AddToHash(hash)
 		}
@@ -395,11 +432,11 @@ func (t *ACLToken) EstimateSize() int {
 	for _, link := range t.Policies {
 		size += len(link.ID) + len(link.Name)
 	}
+	for _, link := range t.Roles {
+		size += len(link.ID) + len(link.Name)
+	}
 	for _, srvid := range t.ServiceIdentities {
-		size += len(srvid.ServiceName)
-		for _, dc := range srvid.Datacenters {
-			size += len(dc)
-		}
+		size += srvid.EstimateSize()
 	}
 	return size
 }
@@ -411,6 +448,7 @@ type ACLTokenListStub struct {
 	AccessorID        string
 	Description       string
 	Policies          []ACLTokenPolicyLink  `json:",omitempty"`
+	Roles             []ACLTokenRoleLink    `json:",omitempty"`
 	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
 	Local             bool
 	ExpirationTime    *time.Time `json:",omitempty"`
@@ -428,6 +466,7 @@ func (token *ACLToken) Stub() *ACLTokenListStub {
 		AccessorID:        token.AccessorID,
 		Description:       token.Description,
 		Policies:          token.Policies,
+		Roles:             token.Roles,
 		ServiceIdentities: token.ServiceIdentities,
 		Local:             token.Local,
 		ExpirationTime:    token.ExpirationTime,
@@ -650,13 +689,159 @@ func (policies ACLPolicies) Merge(cache *ACLCaches, sentinel sentinel.Evaluator)
 	return acl.MergePolicies(parsed), nil
 }
 
+type ACLRoles []*ACLRole
+
+// HashKey returns a consistent hash for a set of roles.
+func (roles ACLRoles) HashKey() string {
+	cacheKeyHash, err := blake2b.New256(nil)
+	if err != nil {
+		panic(err)
+	}
+	for _, role := range roles {
+		cacheKeyHash.Write([]byte(role.ID))
+		// including the modify index prevents a role set from being
+		// cached if one of the roles has changed
+		binary.Write(cacheKeyHash, binary.BigEndian, role.ModifyIndex)
+	}
+	return fmt.Sprintf("%x", cacheKeyHash.Sum(nil))
+}
+
+func (roles ACLRoles) Sort() {
+	sort.Slice(roles, func(i, j int) bool {
+		return roles[i].ID < roles[j].ID
+	})
+}
+
+type ACLRolePolicyLink struct {
+	ID   string
+	Name string `hash:"ignore"`
+}
+
+type ACLRole struct {
+	// ID is the internal UUID associated with the role
+	ID string
+
+	// Name is the unique name to reference the role by.
+	//
+	// Validated with structs.isValidRoleName()
+	Name string
+
+	// Description is a human readable description (Optional)
+	Description string
+
+	// List of policy links.
+	// Note this is the list of IDs and not the names. Prior to role creation
+	// the list of policy names gets validated and the policy IDs get stored herein
+	Policies []ACLRolePolicyLink `json:",omitempty"`
+
+	// List of services to generate synthetic policies for.
+	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
+
+	// Hash of the contents of the role
+	// This does not take into account the ID (which is immutable)
+	// nor the raft metadata.
+	//
+	// This is needed mainly for replication purposes. When replicating from
+	// one DC to another keeping the content Hash will allow us to avoid
+	// unnecessary calls to the authoritative DC
+	Hash []byte
+
+	// Embedded Raft Metadata
+	RaftIndex `hash:"ignore"`
+}
+
+func (r *ACLRole) Clone() *ACLRole {
+	r2 := *r
+	r2.Policies = nil
+	r2.ServiceIdentities = nil
+
+	if len(r.Policies) > 0 {
+		r2.Policies = make([]ACLRolePolicyLink, len(r.Policies))
+		copy(r2.Policies, r.Policies)
+	}
+	if len(r.ServiceIdentities) > 0 {
+		r2.ServiceIdentities = make([]*ACLServiceIdentity, len(r.ServiceIdentities))
+		for i, s := range r.ServiceIdentities {
+			r2.ServiceIdentities[i] = s.Clone()
+		}
+	}
+	return &r2
+}
+
+func (r *ACLRole) SetHash(force bool) []byte {
+	if force || r.Hash == nil {
+		// Initialize a 256bit Blake2 hash (32 bytes)
+		hash, err := blake2b.New256(nil)
+		if err != nil {
+			panic(err)
+		}
+
+		// Any non-immutable "content" fields should be involved with the
+		// overall hash. The ID is immutable which is why it isn't here.  The
+		// raft indices are metadata similar to the hash which is why they
+		// aren't incorporated. CreateTime is similarly immutable
+		//
+		// The Hash is really only used for replication to determine if a role
+		// has changed and should be updated locally.
+
+		// Write all the user set fields
+		hash.Write([]byte(r.Name))
+		hash.Write([]byte(r.Description))
+		for _, link := range r.Policies {
+			hash.Write([]byte(link.ID))
+		}
+		for _, srvid := range r.ServiceIdentities {
+			srvid.AddToHash(hash)
+		}
+
+		// Finalize the hash
+		hashVal := hash.Sum(nil)
+
+		// Set and return the hash
+		r.Hash = hashVal
+	}
+	return r.Hash
+}
+
+func (r *ACLRole) EstimateSize() int {
+	// This is just an estimate. There is other data structure overhead
+	// pointers etc that this does not account for.
+
+	// 60 = 36 (uuid) + 16 (RaftIndex) + 8 (Hash)
+	size := 60 + len(r.Name) + len(r.Description)
+	for _, link := range r.Policies {
+		size += len(link.ID) + len(link.Name)
+	}
+	for _, srvid := range r.ServiceIdentities {
+		size += srvid.EstimateSize()
+	}
+
+	return size
+}
+
 type ACLReplicationType string
 
 const (
 	ACLReplicateLegacy   ACLReplicationType = "legacy"
 	ACLReplicatePolicies ACLReplicationType = "policies"
+	ACLReplicateRoles    ACLReplicationType = "roles"
 	ACLReplicateTokens   ACLReplicationType = "tokens"
 )
+
+func (t ACLReplicationType) SingularNoun() string {
+	switch t {
+	case ACLReplicateLegacy:
+		return "legacy"
+	case ACLReplicatePolicies:
+		return "policy"
+	case ACLReplicateRoles:
+		return "role"
+	case ACLReplicateTokens:
+		return "token"
+	default:
+		return "<UNKNOWN>"
+	}
+}
 
 // ACLReplicationStatus provides information about the health of the ACL
 // replication system.
@@ -666,6 +851,7 @@ type ACLReplicationStatus struct {
 	SourceDatacenter     string
 	ReplicationType      ACLReplicationType
 	ReplicatedIndex      uint64
+	ReplicatedRoleIndex  uint64
 	ReplicatedTokenIndex uint64
 	LastSuccess          time.Time
 	LastError            time.Time
@@ -711,6 +897,7 @@ type ACLTokenListRequest struct {
 	IncludeLocal  bool   // Whether local tokens should be included
 	IncludeGlobal bool   // Whether global tokens should be included
 	Policy        string // Policy filter
+	Role          string // Role filter
 	Datacenter    string // The datacenter to perform the request within
 	QueryOptions
 }
@@ -877,4 +1064,93 @@ func cloneStringSlice(s []string) []string {
 	out := make([]string, len(s))
 	copy(out, s)
 	return out
+}
+
+// ACLRoleSetRequest is used at the RPC layer for creation and update requests
+type ACLRoleSetRequest struct {
+	Role       ACLRole // The policy to upsert
+	Datacenter string  // The datacenter to perform the request within
+	WriteRequest
+}
+
+func (r *ACLRoleSetRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+// ACLRoleDeleteRequest is used at the RPC layer deletion requests
+type ACLRoleDeleteRequest struct {
+	RoleID     string // id of the role to delete
+	Datacenter string // The datacenter to perform the request within
+	WriteRequest
+}
+
+func (r *ACLRoleDeleteRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+// ACLRoleGetRequest is used at the RPC layer to perform role read operations
+type ACLRoleGetRequest struct {
+	RoleID     string // id used for the role lookup (one of RoleID or RoleName is allowed)
+	RoleName   string // name used for the role lookup (one of RoleID or RoleName is allowed)
+	Datacenter string // The datacenter to perform the request within
+	QueryOptions
+}
+
+func (r *ACLRoleGetRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+// ACLRoleListRequest is used at the RPC layer to request a listing of roles
+type ACLRoleListRequest struct {
+	Policy     string // Policy filter
+	Datacenter string // The datacenter to perform the request within
+	QueryOptions
+}
+
+func (r *ACLRoleListRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+type ACLRoleListResponse struct {
+	Roles ACLRoles
+	QueryMeta
+}
+
+// ACLRoleBatchGetRequest is used at the RPC layer to request a subset of
+// the roles associated with the token used for retrieval
+type ACLRoleBatchGetRequest struct {
+	RoleIDs    []string // List of role ids to fetch
+	Datacenter string   // The datacenter to perform the request within
+	QueryOptions
+}
+
+func (r *ACLRoleBatchGetRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+// ACLRoleResponse returns a single role + metadata
+type ACLRoleResponse struct {
+	Role *ACLRole
+	QueryMeta
+}
+
+type ACLRoleBatchResponse struct {
+	Roles []*ACLRole
+	QueryMeta
+}
+
+// ACLRoleBatchSetRequest is used at the Raft layer for batching
+// multiple role creations and updates
+//
+// This is particularly useful during replication
+type ACLRoleBatchSetRequest struct {
+	Roles ACLRoles
+}
+
+// ACLRoleBatchDeleteRequest is used at the Raft layer for batching
+// multiple role deletions
+//
+// This is particularly useful during replication
+type ACLRoleBatchDeleteRequest struct {
+	RoleIDs []string
 }

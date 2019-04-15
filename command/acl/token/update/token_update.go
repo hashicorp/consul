@@ -25,9 +25,12 @@ type cmd struct {
 	tokenID            string
 	policyIDs          []string
 	policyNames        []string
+	roleIDs            []string
+	roleNames          []string
 	serviceIdents      []string
 	description        string
 	mergePolicies      bool
+	mergeRoles         bool
 	mergeServiceIdents bool
 	showMeta           bool
 	upgradeLegacy      bool
@@ -39,6 +42,8 @@ func (c *cmd) init() {
 		"as the content hash and raft indices should be shown for each entry")
 	c.flags.BoolVar(&c.mergePolicies, "merge-policies", false, "Merge the new policies "+
 		"with the existing policies")
+	c.flags.BoolVar(&c.mergeRoles, "merge-roles", false, "Merge the new roles "+
+		"with the existing roles")
 	c.flags.BoolVar(&c.mergeServiceIdents, "merge-service-identities", false, "Merge the new service identities "+
 		"with the existing service identities")
 	c.flags.StringVar(&c.tokenID, "id", "", "The Accessor ID of the token to read. "+
@@ -49,6 +54,10 @@ func (c *cmd) init() {
 		"policy to use for this token. May be specified multiple times")
 	c.flags.Var((*flags.AppendSliceValue)(&c.policyNames), "policy-name", "Name of a "+
 		"policy to use for this token. May be specified multiple times")
+	c.flags.Var((*flags.AppendSliceValue)(&c.roleIDs), "role-id", "ID of a "+
+		"role to use for this token. May be specified multiple times")
+	c.flags.Var((*flags.AppendSliceValue)(&c.roleNames), "role-name", "Name of a "+
+		"role to use for this token. May be specified multiple times")
 	c.flags.Var((*flags.AppendSliceValue)(&c.serviceIdents), "service-identity", "Name of a "+
 		"service identity to use for this token. May be specified multiple times. Format is "+
 		"the SERVICENAME or SERVICENAME:DATACENTER1,DATACENTER2,...")
@@ -175,6 +184,61 @@ func (c *cmd) Run(args []string) int {
 		}
 	}
 
+	if c.mergeRoles {
+		for _, roleName := range c.roleNames {
+			found := false
+			for _, link := range token.Roles {
+				if link.Name == roleName {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				// We could resolve names to IDs here but there isn't any reason why its would be better
+				// than allowing the agent to do it.
+				token.Roles = append(token.Roles, &api.ACLTokenRoleLink{Name: roleName})
+			}
+		}
+
+		for _, roleID := range c.roleIDs {
+			roleID, err := acl.GetRoleIDFromPartial(client, roleID)
+			if err != nil {
+				c.UI.Error(fmt.Sprintf("Error resolving role ID %s: %v", roleID, err))
+				return 1
+			}
+			found := false
+
+			for _, link := range token.Roles {
+				if link.ID == roleID {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				token.Roles = append(token.Roles, &api.ACLTokenRoleLink{Name: roleID})
+			}
+		}
+	} else {
+		token.Roles = nil
+
+		for _, roleName := range c.roleNames {
+			// We could resolve names to IDs here but there isn't any reason why its would be better
+			// than allowing the agent to do it.
+			token.Roles = append(token.Roles, &api.ACLTokenRoleLink{Name: roleName})
+		}
+
+		for _, roleID := range c.roleIDs {
+			roleID, err := acl.GetRoleIDFromPartial(client, roleID)
+			if err != nil {
+				c.UI.Error(fmt.Sprintf("Error resolving role ID %s: %v", roleID, err))
+				return 1
+			}
+			token.Roles = append(token.Roles, &api.ACLTokenRoleLink{ID: roleID})
+		}
+	}
+
 	if c.mergeServiceIdents {
 		for _, svcid := range parsedServiceIdents {
 			found := -1
@@ -229,5 +293,6 @@ Usage: consul acl token update [options]
 
         $ consul acl token update -id abcd \
                                   -description "replication" \
-                                  -policy-name "token-replication"
+                                  -policy-name "token-replication" \
+                                  -role-name "db-updater"
 `

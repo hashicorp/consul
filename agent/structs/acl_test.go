@@ -514,6 +514,7 @@ func TestStructs_ACLPolicies_resolveWithCache(t *testing.T) {
 		Policies:       0,
 		ParsedPolicies: 4,
 		Authorizers:    0,
+		Roles:          0,
 	}
 	cache, err := NewACLCaches(&config)
 	require.NoError(t, err)
@@ -606,6 +607,7 @@ func TestStructs_ACLPolicies_Compile(t *testing.T) {
 		Policies:       0,
 		ParsedPolicies: 4,
 		Authorizers:    2,
+		Roles:          0,
 	}
 	cache, err := NewACLCaches(&config)
 	require.NoError(t, err)

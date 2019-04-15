@@ -897,10 +897,7 @@ func requireOK(d time.Duration, resp *http.Response, e error) (time.Duration, *h
 		return d, nil, e
 	}
 	if resp.StatusCode != 200 {
-		var buf bytes.Buffer
-		io.Copy(&buf, resp.Body)
-		resp.Body.Close()
-		return d, nil, fmt.Errorf("Unexpected response code: %d (%s)", resp.StatusCode, buf.Bytes())
+		return d, nil, generateUnexpectedResponseCodeError(resp)
 	}
 	return d, resp, nil
 }
@@ -911,4 +908,31 @@ func (req *request) filterQuery(filter string) {
 	}
 
 	req.params.Set("filter", filter)
+}
+
+// generateUnexpectedResponseCodeError consumes the rest of the body, closes
+// the body stream and generates an error indicating the status code was
+// unexpected.
+func generateUnexpectedResponseCodeError(resp *http.Response) error {
+	var buf bytes.Buffer
+	io.Copy(&buf, resp.Body)
+	resp.Body.Close()
+	return fmt.Errorf("Unexpected response code: %d (%s)", resp.StatusCode, buf.Bytes())
+}
+
+func requireNotFoundOrOK(d time.Duration, resp *http.Response, e error) (bool, time.Duration, *http.Response, error) {
+	if e != nil {
+		if resp != nil {
+			resp.Body.Close()
+		}
+		return false, d, nil, e
+	}
+	switch resp.StatusCode {
+	case 200:
+		return true, d, resp, nil
+	case 404:
+		return false, d, resp, nil
+	default:
+		return false, d, nil, generateUnexpectedResponseCodeError(resp)
+	}
 }

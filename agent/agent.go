@@ -1001,6 +1001,9 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	if a.config.ACLPolicyTTL != 0 {
 		base.ACLPolicyTTL = a.config.ACLPolicyTTL
 	}
+	if a.config.ACLRoleTTL != 0 {
+		base.ACLRoleTTL = a.config.ACLRoleTTL
+	}
 	if a.config.ACLDefaultPolicy != "" {
 		base.ACLDefaultPolicy = a.config.ACLDefaultPolicy
 	}
