@@ -266,8 +266,7 @@ func filterNonPassing(nodes structs.CheckServiceNodes) structs.CheckServiceNodes
 	n := len(nodes)
 
 	// Make a copy of the cached nodes rather than operating on the cache directly
-	out := make([]structs.CheckServiceNode, n)
-	out = append(nodes[:0:0], nodes...)
+	out := append(nodes[:0:0], nodes...)
 
 OUTER:
 	for i := 0; i < n; i++ {
