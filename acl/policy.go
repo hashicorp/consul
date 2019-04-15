@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"strconv"
 
 	"github.com/hashicorp/consul/sentinel"
 	"github.com/hashicorp/hcl"
 	"github.com/hashicorp/hcl/hcl/ast"
 	hclprinter "github.com/hashicorp/hcl/hcl/printer"
+	"github.com/hashicorp/hcl/hcl/token"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -819,7 +821,17 @@ func TranslateLegacyRules(policyBytes []byte) ([]byte, error) {
 	rewritten := ast.Walk(parsed, func(node ast.Node) (ast.Node, bool) {
 		switch n := node.(type) {
 		case *ast.ObjectKey:
-			switch n.Token.Text {
+			txt := n.Token.Text
+			if n.Token.Type == token.STRING {
+				txt, err = strconv.Unquote(txt)
+				if err != nil {
+					return node, true
+				}
+			}
+
+			switch txt {
+			case "policy":
+				n.Token.Text = "policy"
 			case "agent":
 				n.Token.Text = "agent_prefix"
 			case "key":
