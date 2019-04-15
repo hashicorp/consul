@@ -28,8 +28,7 @@ var (
 	validPolicyName              = regexp.MustCompile(`^[A-Za-z0-9\-_]{1,128}$`)
 	validServiceIdentityName     = regexp.MustCompile(`^[a-z0-9]([a-z0-9\-_]*[a-z0-9])?$`)
 	serviceIdentityNameMaxLength = 256
-	validRoleName                = regexp.MustCompile(`^[a-z0-9]([a-z0-9\-_]*[a-z0-9])?$`)
-	roleNameMaxLength            = 256
+	validRoleName                = regexp.MustCompile(`^[A-Za-z0-9\-_]{1,256}$`)
 )
 
 // ACL endpoint is used to manipulate ACLs
@@ -1083,15 +1082,6 @@ func timePointer(t time.Time) *time.Time {
 	return &t
 }
 
-// isValidRoleName returns true if the provided name can be used as an ACLRole
-// name.
-func isValidRoleName(name string) bool {
-	if len(name) < 1 || len(name) > roleNameMaxLength {
-		return false
-	}
-	return validRoleName.MatchString(name)
-}
-
 func (a *ACL) RoleRead(args *structs.ACLRoleGetRequest, reply *structs.ACLRoleResponse) error {
 	if err := a.aclPreCheck(); err != nil {
 		return err
@@ -1190,7 +1180,7 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 		return fmt.Errorf("Invalid Role: no Name is set")
 	}
 
-	if !isValidRoleName(role.Name) {
+	if !validRoleName.MatchString(role.Name) {
 		return fmt.Errorf("Invalid Role: invalid Name. Only alphanumeric characters, '-' and '_' are allowed")
 	}
 

@@ -2434,7 +2434,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 	}
 }
 
-func TestACLEndpoint_RoleSet_invalid(t *testing.T) {
+func TestACLEndpoint_RoleSet_names(t *testing.T) {
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
@@ -2454,20 +2454,47 @@ func TestACLEndpoint_RoleSet_invalid(t *testing.T) {
 	testPolicy1, err := upsertTestPolicy(codec, "root", "dc1")
 	require.NoError(t, err)
 
-	names := []string{
-		"",
-		"-bad",
-		"bad-",
-		"bad?bad",
-		strings.Repeat("x", 257),
-	}
+	for _, test := range []struct {
+		name string
+		ok   bool
+	}{
+		{"", false},
+		{"-bad", true},
+		{"bad-", true},
+		{"bad?bad", false},
+		{strings.Repeat("x", 257), false},
+		{strings.Repeat("x", 256), true},
+		{"-abc", true},
+		{"abc-", true},
+		{"a-bc", true},
+		{"_abc", true},
+		{"abc_", true},
+		{"a_bc", true},
+		{":abc", false},
+		{"abc:", false},
+		{"a:bc", false},
+		{"Abc", true},
+		{"aBc", true},
+		{"abC", true},
+		{"0abc", true},
+		{"abc0", true},
+		{"a0bc", true},
+	} {
+		var testName string
+		if test.ok {
+			testName = "create with valid name: " + test.name
+		} else {
+			testName = "create with invalid name: " + test.name
+		}
 
-	for _, name := range names {
-		t.Run(name, func(t *testing.T) {
+		t.Run(testName, func(t *testing.T) {
+			// cleanup from a prior insertion that may have succeeded
+			require.NoError(t, deleteTestRoleByName(codec, "root", "dc1", test.name))
+
 			req := structs.ACLRoleSetRequest{
 				Datacenter: "dc1",
 				Role: structs.ACLRole{
-					Name:        name,
+					Name:        test.name,
 					Description: "foobar",
 					Policies: []structs.ACLRolePolicyLink{
 						structs.ACLRolePolicyLink{
@@ -2480,7 +2507,16 @@ func TestACLEndpoint_RoleSet_invalid(t *testing.T) {
 			resp := structs.ACLRole{}
 
 			err := acl.RoleSet(&req, &resp)
-			require.Error(t, err)
+			if test.ok {
+				require.NoError(t, err)
+
+				roleResp, err := retrieveTestRole(codec, "root", "dc1", resp.ID)
+				require.NoError(t, err)
+				role := roleResp.Role
+				require.Equal(t, test.name, role.Name)
+			} else {
+				require.Error(t, err)
+			}
 		})
 	}
 }
@@ -2712,6 +2748,18 @@ func deleteTestRole(codec rpc.ClientCodec, masterToken string, datacenter string
 	return err
 }
 
+func deleteTestRoleByName(codec rpc.ClientCodec, masterToken string, datacenter string, roleName string) error {
+	resp, err := retrieveTestRoleByName(codec, masterToken, datacenter, roleName)
+	if err != nil {
+		return err
+	}
+	if resp.Role == nil {
+		return nil
+	}
+
+	return deleteTestRole(codec, masterToken, datacenter, resp.Role.ID)
+}
+
 // upsertTestRole creates a role for testing purposes
 func upsertTestRole(codec rpc.ClientCodec, masterToken string, datacenter string) (*structs.ACLRole, error) {
 	// Make sure test roles can't collide
@@ -2752,11 +2800,28 @@ func upsertTestRole(codec rpc.ClientCodec, masterToken string, datacenter string
 	return &out, nil
 }
 
-// retrieveTestRole returns a role for testing purposes
 func retrieveTestRole(codec rpc.ClientCodec, masterToken string, datacenter string, id string) (*structs.ACLRoleResponse, error) {
 	arg := structs.ACLRoleGetRequest{
 		Datacenter:   datacenter,
 		RoleID:       id,
+		QueryOptions: structs.QueryOptions{Token: masterToken},
+	}
+
+	var out structs.ACLRoleResponse
+
+	err := msgpackrpc.CallWithCodec(codec, "ACL.RoleRead", &arg, &out)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+func retrieveTestRoleByName(codec rpc.ClientCodec, masterToken string, datacenter string, name string) (*structs.ACLRoleResponse, error) {
+	arg := structs.ACLRoleGetRequest{
+		Datacenter:   datacenter,
+		RoleName:     name,
 		QueryOptions: structs.QueryOptions{Token: masterToken},
 	}
 
