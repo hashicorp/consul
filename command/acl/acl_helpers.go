@@ -27,6 +27,10 @@ func PrintToken(token *api.ACLToken, ui cli.Ui, showMeta bool) {
 	for _, policy := range token.Policies {
 		ui.Info(fmt.Sprintf("   %s - %s", policy.ID, policy.Name))
 	}
+	ui.Info(fmt.Sprintf("Roles:"))
+	for _, role := range token.Roles {
+		ui.Info(fmt.Sprintf("   %s - %s", role.ID, role.Name))
+	}
 	ui.Info(fmt.Sprintf("Service Identities:"))
 	for _, svcid := range token.ServiceIdentities {
 		if len(svcid.Datacenters) > 0 {
@@ -58,6 +62,10 @@ func PrintTokenListEntry(token *api.ACLTokenListEntry, ui cli.Ui, showMeta bool)
 	ui.Info(fmt.Sprintf("Policies:"))
 	for _, policy := range token.Policies {
 		ui.Info(fmt.Sprintf("   %s - %s", policy.ID, policy.Name))
+	}
+	ui.Info(fmt.Sprintf("Roles:"))
+	for _, role := range token.Roles {
+		ui.Info(fmt.Sprintf("   %s - %s", role.ID, role.Name))
 	}
 	ui.Info(fmt.Sprintf("Service Identities:"))
 	for _, svcid := range token.ServiceIdentities {
@@ -92,6 +100,52 @@ func PrintPolicyListEntry(policy *api.ACLPolicyListEntry, ui cli.Ui, showMeta bo
 		ui.Info(fmt.Sprintf("   Hash:         %x", policy.Hash))
 		ui.Info(fmt.Sprintf("   Create Index: %d", policy.CreateIndex))
 		ui.Info(fmt.Sprintf("   Modify Index: %d", policy.ModifyIndex))
+	}
+}
+
+func PrintRole(role *api.ACLRole, ui cli.Ui, showMeta bool) {
+	ui.Info(fmt.Sprintf("ID:           %s", role.ID))
+	ui.Info(fmt.Sprintf("Name:         %s", role.Name))
+	ui.Info(fmt.Sprintf("Description:  %s", role.Description))
+	if showMeta {
+		ui.Info(fmt.Sprintf("Hash:         %x", role.Hash))
+		ui.Info(fmt.Sprintf("Create Index: %d", role.CreateIndex))
+		ui.Info(fmt.Sprintf("Modify Index: %d", role.ModifyIndex))
+	}
+	ui.Info(fmt.Sprintf("Policies:"))
+	for _, policy := range role.Policies {
+		ui.Info(fmt.Sprintf("   %s - %s", policy.ID, policy.Name))
+	}
+	ui.Info(fmt.Sprintf("Service Identities:"))
+	for _, svcid := range role.ServiceIdentities {
+		if len(svcid.Datacenters) > 0 {
+			ui.Info(fmt.Sprintf("   %s (Datacenters: %s)", svcid.ServiceName, strings.Join(svcid.Datacenters, ", ")))
+		} else {
+			ui.Info(fmt.Sprintf("   %s (Datacenters: all)", svcid.ServiceName))
+		}
+	}
+}
+
+func PrintRoleListEntry(role *api.ACLRole, ui cli.Ui, showMeta bool) {
+	ui.Info(fmt.Sprintf("%s:", role.Name))
+	ui.Info(fmt.Sprintf("   ID:           %s", role.ID))
+	ui.Info(fmt.Sprintf("   Description:  %s", role.Description))
+	if showMeta {
+		ui.Info(fmt.Sprintf("   Hash:         %x", role.Hash))
+		ui.Info(fmt.Sprintf("   Create Index: %d", role.CreateIndex))
+		ui.Info(fmt.Sprintf("   Modify Index: %d", role.ModifyIndex))
+	}
+	ui.Info(fmt.Sprintf("   Policies:"))
+	for _, policy := range role.Policies {
+		ui.Info(fmt.Sprintf("      %s - %s", policy.ID, policy.Name))
+	}
+	ui.Info(fmt.Sprintf("   Service Identities:"))
+	for _, svcid := range role.ServiceIdentities {
+		if len(svcid.Datacenters) > 0 {
+			ui.Info(fmt.Sprintf("      %s (Datacenters: %s)", svcid.ServiceName, strings.Join(svcid.Datacenters, ", ")))
+		} else {
+			ui.Info(fmt.Sprintf("      %s (Datacenters: all)", svcid.ServiceName))
+		}
 	}
 }
 
@@ -206,6 +260,53 @@ func GetRulesFromLegacyToken(client *api.Client, tokenID string, isSecret bool) 
 	}
 
 	return token.Rules, nil
+}
+
+func GetRoleIDFromPartial(client *api.Client, partialID string) (string, error) {
+	// the full UUID string was given
+	if len(partialID) == 36 {
+		return partialID, nil
+	}
+
+	roles, _, err := client.ACL().RoleList(nil)
+	if err != nil {
+		return "", err
+	}
+
+	roleID := ""
+	for _, role := range roles {
+		if strings.HasPrefix(role.ID, partialID) {
+			if roleID != "" {
+				return "", fmt.Errorf("Partial role ID is not unique")
+			}
+			roleID = role.ID
+		}
+	}
+
+	if roleID == "" {
+		return "", fmt.Errorf("No such role ID with prefix: %s", partialID)
+	}
+
+	return roleID, nil
+}
+
+func GetRoleIDByName(client *api.Client, name string) (string, error) {
+	if name == "" {
+		return "", fmt.Errorf("No name specified")
+	}
+
+	roles, _, err := client.ACL().RoleList(nil)
+	if err != nil {
+		return "", err
+	}
+
+	for _, role := range roles {
+		if role.Name == name {
+			return role.ID, nil
+		}
+	}
+
+	return "", fmt.Errorf("No such role with name %s", name)
 }
 
 func ExtractServiceIdentities(serviceIdents []string) ([]*api.ACLServiceIdentity, error) {

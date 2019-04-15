@@ -3,6 +3,7 @@ package consul
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -15,6 +16,11 @@ import (
 )
 
 func TestACLReplication_diffACLPolicies(t *testing.T) {
+	diffACLPolicies := func(local structs.ACLPolicies, remote structs.ACLPolicyListStubs, lastRemoteIndex uint64) ([]string, []string) {
+		tr := &aclPolicyReplicator{local: local, remote: remote}
+		res := diffACLType(tr, lastRemoteIndex)
+		return res.LocalDeletes, res.LocalUpserts
+	}
 	local := structs.ACLPolicies{
 		&structs.ACLPolicy{
 			ID:          "44ef9aec-7654-4401-901b-4d4a8b3c80fc",
@@ -127,6 +133,15 @@ func TestACLReplication_diffACLPolicies(t *testing.T) {
 }
 
 func TestACLReplication_diffACLTokens(t *testing.T) {
+	diffACLTokens := func(
+		local structs.ACLTokens,
+		remote structs.ACLTokenListStubs,
+		lastRemoteIndex uint64,
+	) itemDiffResults {
+		tr := &aclTokenReplicator{local: local, remote: remote}
+		return diffACLType(tr, lastRemoteIndex)
+	}
+
 	local := structs.ACLTokens{
 		// When a just-upgraded (1.3->1.4+) secondary DC is replicating from an
 		// upgraded primary DC (1.4+), the local state for tokens predating the
@@ -307,6 +322,12 @@ func TestACLReplication_Tokens(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s1.RPC, "dc2")
 
+	// Wait for legacy acls to be disabled so we are clear that
+	// legacy replication isn't meddling.
+	waitForNewACLs(t, s1)
+	waitForNewACLs(t, s2)
+	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens)
+
 	// Create a bunch of new tokens and policies
 	var tokens structs.ACLTokens
 	for i := 0; i < 50; i++ {
@@ -328,11 +349,11 @@ func TestACLReplication_Tokens(t *testing.T) {
 		tokens = append(tokens, &token)
 	}
 
-	checkSame := func(t *retry.R) error {
+	checkSame := func(t *retry.R) {
 		// only account for global tokens - local tokens shouldn't be replicated
-		index, remote, err := s1.fsm.State().ACLTokenList(nil, false, true, "")
+		index, remote, err := s1.fsm.State().ACLTokenList(nil, false, true, "", "")
 		require.NoError(t, err)
-		_, local, err := s2.fsm.State().ACLTokenList(nil, false, true, "")
+		_, local, err := s2.fsm.State().ACLTokenList(nil, false, true, "", "")
 		require.NoError(t, err)
 
 		require.Len(t, local, len(remote))
@@ -340,18 +361,15 @@ func TestACLReplication_Tokens(t *testing.T) {
 			require.Equal(t, token.Hash, local[i].Hash)
 		}
 
-		var status structs.ACLReplicationStatus
 		s2.aclReplicationStatusLock.RLock()
-		status = s2.aclReplicationStatus
+		status := s2.aclReplicationStatus
 		s2.aclReplicationStatusLock.RUnlock()
-		if !status.Enabled || !status.Running ||
-			status.ReplicationType != structs.ACLReplicateTokens ||
-			status.ReplicatedTokenIndex != index ||
-			status.SourceDatacenter != "dc1" {
-			return fmt.Errorf("ACL replication status differs")
-		}
 
-		return nil
+		require.True(t, status.Enabled)
+		require.True(t, status.Running)
+		require.Equal(t, status.ReplicationType, structs.ACLReplicateTokens)
+		require.Equal(t, status.ReplicatedTokenIndex, index)
+		require.Equal(t, status.SourceDatacenter, "dc1")
 	}
 	// Wait for the replica to converge.
 	retry.Run(t, func(r *retry.R) {
@@ -426,7 +444,7 @@ func TestACLReplication_Tokens(t *testing.T) {
 	})
 
 	// verify dc2 local tokens didn't get blown away
-	_, local, err := s2.fsm.State().ACLTokenList(nil, true, false, "")
+	_, local, err := s2.fsm.State().ACLTokenList(nil, true, false, "", "")
 	require.NoError(t, err)
 	require.Len(t, local, 50)
 
@@ -479,6 +497,12 @@ func TestACLReplication_Policies(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s1.RPC, "dc2")
 
+	// Wait for legacy acls to be disabled so we are clear that
+	// legacy replication isn't meddling.
+	waitForNewACLs(t, s1)
+	waitForNewACLs(t, s2)
+	waitForNewACLReplication(t, s2, structs.ACLReplicatePolicies)
+
 	// Create a bunch of new policies
 	var policies structs.ACLPolicies
 	for i := 0; i < 50; i++ {
@@ -496,7 +520,7 @@ func TestACLReplication_Policies(t *testing.T) {
 		policies = append(policies, &policy)
 	}
 
-	checkSame := func(t *retry.R) error {
+	checkSame := func(t *retry.R) {
 		// only account for global tokens - local tokens shouldn't be replicated
 		index, remote, err := s1.fsm.State().ACLPolicyList(nil)
 		require.NoError(t, err)
@@ -508,18 +532,15 @@ func TestACLReplication_Policies(t *testing.T) {
 			require.Equal(t, policy.Hash, local[i].Hash)
 		}
 
-		var status structs.ACLReplicationStatus
 		s2.aclReplicationStatusLock.RLock()
-		status = s2.aclReplicationStatus
+		status := s2.aclReplicationStatus
 		s2.aclReplicationStatusLock.RUnlock()
-		if !status.Enabled || !status.Running ||
-			status.ReplicationType != structs.ACLReplicatePolicies ||
-			status.ReplicatedIndex != index ||
-			status.SourceDatacenter != "dc1" {
-			return fmt.Errorf("ACL replication status differs")
-		}
 
-		return nil
+		require.True(t, status.Enabled)
+		require.True(t, status.Running)
+		require.Equal(t, status.ReplicationType, structs.ACLReplicatePolicies)
+		require.Equal(t, status.ReplicatedIndex, index)
+		require.Equal(t, status.SourceDatacenter, "dc1")
 	}
 	// Wait for the replica to converge.
 	retry.Run(t, func(r *retry.R) {
@@ -708,4 +729,250 @@ func TestACLReplication_TokensRedacted(t *testing.T) {
 		// ensures that token replication is erroring
 		require.True(r, status.LastError.After(minErrorTime), "Replication LastError not after the minErrorTime")
 	})
+}
+
+func TestACLReplication_AllTypes(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLTokenReplication = true
+		c.ACLReplicationRate = 100
+		c.ACLReplicationBurst = 100
+		c.ACLReplicationApplyLimit = 1000000
+	})
+	s2.tokens.UpdateReplicationToken("root", tokenStore.TokenSourceConfig)
+	testrpc.WaitForLeader(t, s2.RPC, "dc2")
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	// Try to join.
+	joinWAN(t, s2, s1)
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc2")
+
+	// Wait for legacy acls to be disabled so we are clear that
+	// legacy replication isn't meddling.
+	waitForNewACLs(t, s1)
+	waitForNewACLs(t, s2)
+	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens)
+
+	const (
+		numItems             = 50
+		numItemsThatAreLocal = 10
+	)
+
+	// Create some data.
+	policyIDs, roleIDs, tokenIDs := createACLTestData(t, s1, "b1", numItems, numItemsThatAreLocal)
+
+	checkSameTokens := func(t *retry.R) {
+		// only account for global tokens - local tokens shouldn't be replicated
+		index, remote, err := s1.fsm.State().ACLTokenList(nil, false, true, "", "")
+		require.NoError(t, err)
+		// Query for all of them, so that we can prove that no globals snuck in.
+		_, local, err := s2.fsm.State().ACLTokenList(nil, true, true, "", "")
+		require.NoError(t, err)
+
+		require.Len(t, remote, len(local))
+		for i, token := range remote {
+			require.Equal(t, token.Hash, local[i].Hash)
+		}
+
+		s2.aclReplicationStatusLock.RLock()
+		status := s2.aclReplicationStatus
+		s2.aclReplicationStatusLock.RUnlock()
+
+		require.True(t, status.Enabled)
+		require.True(t, status.Running)
+		require.Equal(t, status.ReplicationType, structs.ACLReplicateTokens)
+		require.Equal(t, status.ReplicatedTokenIndex, index)
+		require.Equal(t, status.SourceDatacenter, "dc1")
+	}
+	checkSamePolicies := func(t *retry.R) {
+		index, remote, err := s1.fsm.State().ACLPolicyList(nil)
+		require.NoError(t, err)
+		_, local, err := s2.fsm.State().ACLPolicyList(nil)
+		require.NoError(t, err)
+
+		require.Len(t, remote, len(local))
+		for i, policy := range remote {
+			require.Equal(t, policy.Hash, local[i].Hash)
+		}
+
+		s2.aclReplicationStatusLock.RLock()
+		status := s2.aclReplicationStatus
+		s2.aclReplicationStatusLock.RUnlock()
+
+		require.True(t, status.Enabled)
+		require.True(t, status.Running)
+		require.Equal(t, status.ReplicationType, structs.ACLReplicateTokens)
+		require.Equal(t, status.ReplicatedIndex, index)
+		require.Equal(t, status.SourceDatacenter, "dc1")
+	}
+	checkSameRoles := func(t *retry.R) {
+		index, remote, err := s1.fsm.State().ACLRoleList(nil, "")
+		require.NoError(t, err)
+		_, local, err := s2.fsm.State().ACLRoleList(nil, "")
+		require.NoError(t, err)
+
+		require.Len(t, remote, len(local))
+		for i, role := range remote {
+			require.Equal(t, role.Hash, local[i].Hash)
+		}
+
+		s2.aclReplicationStatusLock.RLock()
+		status := s2.aclReplicationStatus
+		s2.aclReplicationStatusLock.RUnlock()
+
+		require.True(t, status.Enabled)
+		require.True(t, status.Running)
+		require.Equal(t, status.ReplicationType, structs.ACLReplicateTokens)
+		require.Equal(t, status.ReplicatedRoleIndex, index)
+		require.Equal(t, status.SourceDatacenter, "dc1")
+	}
+	checkSame := func(t *retry.R) {
+		checkSameTokens(t)
+		checkSamePolicies(t)
+		checkSameRoles(t)
+	}
+	// Wait for the replica to converge.
+	retry.Run(t, func(r *retry.R) {
+		checkSame(r)
+	})
+
+	// Create additional data to replicate.
+	_, _, _ = createACLTestData(t, s1, "b2", numItems, numItemsThatAreLocal)
+
+	// Wait for the replica to converge.
+	retry.Run(t, func(r *retry.R) {
+		checkSame(r)
+	})
+
+	// Delete one piece of each type of data from batch 1.
+	const itemToDelete = numItems - 1
+	{
+		id := tokenIDs[itemToDelete]
+
+		arg := structs.ACLTokenDeleteRequest{
+			Datacenter:   "dc1",
+			TokenID:      id,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		var dontCare string
+		if err := s1.RPC("ACL.TokenDelete", &arg, &dontCare); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+	{
+		id := roleIDs[itemToDelete]
+
+		arg := structs.ACLRoleDeleteRequest{
+			Datacenter:   "dc1",
+			RoleID:       id,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		var dontCare string
+		if err := s1.RPC("ACL.RoleDelete", &arg, &dontCare); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+	{
+		id := policyIDs[itemToDelete]
+
+		arg := structs.ACLPolicyDeleteRequest{
+			Datacenter:   "dc1",
+			PolicyID:     id,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		var dontCare string
+		if err := s1.RPC("ACL.PolicyDelete", &arg, &dontCare); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+	// Wait for the replica to converge.
+	retry.Run(t, func(r *retry.R) {
+		checkSame(r)
+	})
+}
+
+func createACLTestData(t *testing.T, srv *Server, namePrefix string, numObjects, numItemsThatAreLocal int) (policyIDs, roleIDs, tokenIDs []string) {
+	require.True(t, numItemsThatAreLocal <= numObjects, 0, "numItemsThatAreLocal <= numObjects")
+
+	// Create some policies.
+	for i := 0; i < numObjects; i++ {
+		str := strconv.Itoa(i)
+		arg := structs.ACLPolicySetRequest{
+			Datacenter: "dc1",
+			Policy: structs.ACLPolicy{
+				Name:        namePrefix + "-policy-" + str,
+				Description: namePrefix + "-policy " + str,
+				Rules:       testACLPolicyNew,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		var out structs.ACLPolicy
+		if err := srv.RPC("ACL.PolicySet", &arg, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		policyIDs = append(policyIDs, out.ID)
+	}
+
+	// Create some roles.
+	for i := 0; i < numObjects; i++ {
+		str := strconv.Itoa(i)
+		arg := structs.ACLRoleSetRequest{
+			Datacenter: "dc1",
+			Role: structs.ACLRole{
+				Name:        namePrefix + "-role-" + str,
+				Description: namePrefix + "-role " + str,
+				Policies: []structs.ACLRolePolicyLink{
+					{ID: policyIDs[i]},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		var out structs.ACLRole
+		if err := srv.RPC("ACL.RoleSet", &arg, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		roleIDs = append(roleIDs, out.ID)
+	}
+
+	// Create a bunch of new tokens.
+	for i := 0; i < numObjects; i++ {
+		str := strconv.Itoa(i)
+		arg := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				Description: namePrefix + "-token " + str,
+				Policies: []structs.ACLTokenPolicyLink{
+					{ID: policyIDs[i]},
+				},
+				Roles: []structs.ACLTokenRoleLink{
+					{ID: roleIDs[i]},
+				},
+				Local: (i < numItemsThatAreLocal),
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		var out structs.ACLToken
+		if err := srv.RPC("ACL.TokenSet", &arg, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		tokenIDs = append(tokenIDs, out.AccessorID)
+	}
+
+	return policyIDs, roleIDs, tokenIDs
 }

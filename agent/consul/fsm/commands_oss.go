@@ -30,6 +30,8 @@ func init() {
 	registerCommand(structs.ACLPolicyDeleteRequestType, (*FSM).applyACLPolicyDeleteOperation)
 	registerCommand(structs.ConnectCALeafRequestType, (*FSM).applyConnectCALeafOperation)
 	registerCommand(structs.ConfigEntryRequestType, (*FSM).applyConfigEntryOperation)
+	registerCommand(structs.ACLRoleSetRequestType, (*FSM).applyACLRoleSetOperation)
+	registerCommand(structs.ACLRoleDeleteRequestType, (*FSM).applyACLRoleDeleteOperation)
 }
 
 func (c *FSM) applyRegister(buf []byte, index uint64) interface{} {
@@ -451,4 +453,26 @@ func (c *FSM) applyConfigEntryOperation(buf []byte, index uint64) interface{} {
 	default:
 		return fmt.Errorf("invalid config entry operation type: %v", req.Op)
 	}
+}
+
+func (c *FSM) applyACLRoleSetOperation(buf []byte, index uint64) interface{} {
+	var req structs.ACLRoleBatchSetRequest
+	if err := structs.Decode(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode request: %v", err))
+	}
+	defer metrics.MeasureSinceWithLabels([]string{"fsm", "acl", "role"}, time.Now(),
+		[]metrics.Label{{Name: "op", Value: "upsert"}})
+
+	return c.state.ACLRoleBatchSet(index, req.Roles)
+}
+
+func (c *FSM) applyACLRoleDeleteOperation(buf []byte, index uint64) interface{} {
+	var req structs.ACLRoleBatchDeleteRequest
+	if err := structs.Decode(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode request: %v", err))
+	}
+	defer metrics.MeasureSinceWithLabels([]string{"fsm", "acl", "role"}, time.Now(),
+		[]metrics.Label{{Name: "op", Value: "delete"}})
+
+	return c.state.ACLRoleBatchDelete(index, req.RoleIDs)
 }

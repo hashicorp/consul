@@ -647,6 +647,7 @@ func (s *Server) startACLUpgrade() {
 				// Assign the global-management policy to legacy management tokens
 				if len(newToken.Policies) == 0 &&
 					len(newToken.ServiceIdentities) == 0 &&
+					len(newToken.Roles) == 0 &&
 					newToken.Type == structs.ACLTokenTypeManagement {
 					newToken.Policies = append(newToken.Policies, structs.ACLTokenPolicyLink{ID: structs.ACLPolicyGlobalManagementID})
 				}
@@ -725,7 +726,7 @@ func (s *Server) startLegacyACLReplication() {
 				s.logger.Printf("[WARN] consul: Legacy ACL replication error (will retry if still leader): %v", err)
 			} else {
 				lastRemoteIndex = index
-				s.updateACLReplicationStatusIndex(index)
+				s.updateACLReplicationStatusIndex(structs.ACLReplicateLegacy, index)
 				s.logger.Printf("[DEBUG] consul: Legacy ACL replication completed through remote index %d", index)
 			}
 		}
@@ -747,8 +748,22 @@ func (s *Server) startACLReplication() {
 	ctx, cancel := context.WithCancel(context.Background())
 	s.aclReplicationCancel = cancel
 
-	replicationType := structs.ACLReplicatePolicies
+	s.startACLReplicator(ctx, structs.ACLReplicatePolicies, s.replicateACLPolicies)
+	s.startACLReplicator(ctx, structs.ACLReplicateRoles, s.replicateACLRoles)
 
+	if s.config.ACLTokenReplication {
+		s.startACLReplicator(ctx, structs.ACLReplicateTokens, s.replicateACLTokens)
+		s.updateACLReplicationStatusRunning(structs.ACLReplicateTokens)
+	} else {
+		s.updateACLReplicationStatusRunning(structs.ACLReplicatePolicies)
+	}
+
+	s.aclReplicationEnabled = true
+}
+
+type replicateFunc func(ctx context.Context, lastRemoteIndex uint64) (uint64, bool, error)
+
+func (s *Server) startACLReplicator(ctx context.Context, replicationType structs.ACLReplicationType, replicateFunc replicateFunc) {
 	go func() {
 		var failedAttempts uint
 		limiter := rate.NewLimiter(rate.Limit(s.config.ACLReplicationRate), s.config.ACLReplicationBurst)
@@ -763,7 +778,7 @@ func (s *Server) startACLReplication() {
 				continue
 			}
 
-			index, exit, err := s.replicateACLPolicies(lastRemoteIndex, ctx)
+			index, exit, err := replicateFunc(ctx, lastRemoteIndex)
 			if exit {
 				return
 			}
@@ -771,7 +786,7 @@ func (s *Server) startACLReplication() {
 			if err != nil {
 				lastRemoteIndex = 0
 				s.updateACLReplicationStatusError()
-				s.logger.Printf("[WARN] consul: ACL policy replication error (will retry if still leader): %v", err)
+				s.logger.Printf("[WARN] consul: ACL %s replication error (will retry if still leader): %v", replicationType.SingularNoun(), err)
 				if (1 << failedAttempts) < aclReplicationMaxRetryBackoff {
 					failedAttempts++
 				}
@@ -784,65 +799,14 @@ func (s *Server) startACLReplication() {
 				}
 			} else {
 				lastRemoteIndex = index
-				s.updateACLReplicationStatusIndex(index)
-				s.logger.Printf("[DEBUG] consul: ACL policy replication completed through remote index %d", index)
+				s.updateACLReplicationStatusIndex(replicationType, index)
+				s.logger.Printf("[DEBUG] consul: ACL %s replication completed through remote index %d", replicationType.SingularNoun(), index)
 				failedAttempts = 0
 			}
 		}
 	}()
 
-	s.logger.Printf("[INFO] acl: started ACL Policy replication")
-
-	if s.config.ACLTokenReplication {
-		replicationType = structs.ACLReplicateTokens
-		go func() {
-			var failedAttempts uint
-			limiter := rate.NewLimiter(rate.Limit(s.config.ACLReplicationRate), s.config.ACLReplicationBurst)
-
-			var lastRemoteIndex uint64
-			for {
-				if err := limiter.Wait(ctx); err != nil {
-					return
-				}
-
-				if s.tokens.ReplicationToken() == "" {
-					continue
-				}
-
-				index, exit, err := s.replicateACLTokens(lastRemoteIndex, ctx)
-				if exit {
-					return
-				}
-
-				if err != nil {
-					lastRemoteIndex = 0
-					s.updateACLReplicationStatusError()
-					s.logger.Printf("[WARN] consul: ACL token replication error (will retry if still leader): %v", err)
-					if (1 << failedAttempts) < aclReplicationMaxRetryBackoff {
-						failedAttempts++
-					}
-
-					select {
-					case <-ctx.Done():
-						return
-					case <-time.After((1 << failedAttempts) * time.Second):
-						// do nothing
-					}
-				} else {
-					lastRemoteIndex = index
-					s.updateACLReplicationStatusTokenIndex(index)
-					s.logger.Printf("[DEBUG] consul: ACL token replication completed through remote index %d", index)
-					failedAttempts = 0
-				}
-			}
-		}()
-
-		s.logger.Printf("[INFO] acl: started ACL Token replication")
-	}
-
-	s.updateACLReplicationStatusRunning(replicationType)
-
-	s.aclReplicationEnabled = true
+	s.logger.Printf("[INFO] acl: started ACL %s replication", replicationType.SingularNoun())
 }
 
 func (s *Server) stopACLReplication() {

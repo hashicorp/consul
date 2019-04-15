@@ -10,6 +10,12 @@ import (
 	aclplist "github.com/hashicorp/consul/command/acl/policy/list"
 	aclpread "github.com/hashicorp/consul/command/acl/policy/read"
 	aclpupdate "github.com/hashicorp/consul/command/acl/policy/update"
+	aclrole "github.com/hashicorp/consul/command/acl/role"
+	aclrcreate "github.com/hashicorp/consul/command/acl/role/create"
+	aclrdelete "github.com/hashicorp/consul/command/acl/role/delete"
+	aclrlist "github.com/hashicorp/consul/command/acl/role/list"
+	aclrread "github.com/hashicorp/consul/command/acl/role/read"
+	aclrupdate "github.com/hashicorp/consul/command/acl/role/update"
 	aclrules "github.com/hashicorp/consul/command/acl/rules"
 	acltoken "github.com/hashicorp/consul/command/acl/token"
 	acltclone "github.com/hashicorp/consul/command/acl/token/clone"
@@ -106,6 +112,12 @@ func init() {
 	Register("acl token read", func(ui cli.Ui) (cli.Command, error) { return acltread.New(ui), nil })
 	Register("acl token update", func(ui cli.Ui) (cli.Command, error) { return acltupdate.New(ui), nil })
 	Register("acl token delete", func(ui cli.Ui) (cli.Command, error) { return acltdelete.New(ui), nil })
+	Register("acl role", func(cli.Ui) (cli.Command, error) { return aclrole.New(), nil })
+	Register("acl role create", func(ui cli.Ui) (cli.Command, error) { return aclrcreate.New(ui), nil })
+	Register("acl role list", func(ui cli.Ui) (cli.Command, error) { return aclrlist.New(ui), nil })
+	Register("acl role read", func(ui cli.Ui) (cli.Command, error) { return aclrread.New(ui), nil })
+	Register("acl role update", func(ui cli.Ui) (cli.Command, error) { return aclrupdate.New(ui), nil })
+	Register("acl role delete", func(ui cli.Ui) (cli.Command, error) { return aclrdelete.New(ui), nil })
 	Register("agent", func(ui cli.Ui) (cli.Command, error) {
 		return agent.New(ui, rev, ver, verPre, verHuman, make(chan struct{})), nil
 	})

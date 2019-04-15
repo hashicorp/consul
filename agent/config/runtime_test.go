@@ -2901,6 +2901,7 @@ func TestFullConfig(t *testing.T) {
 				"enable_key_list_policy": false,
 				"enable_token_persistence": true,
 				"policy_ttl": "1123s",
+				"role_ttl": "9876s",
 				"token_ttl": "3321s",
 				"enable_token_replication" : true,
 				"tokens" : {
@@ -3453,6 +3454,7 @@ func TestFullConfig(t *testing.T) {
 				enable_key_list_policy = false
 				enable_token_persistence = true
 				policy_ttl = "1123s"
+				role_ttl = "9876s"
 				token_ttl = "3321s"
 				enable_token_replication = true
 				tokens = {
@@ -4127,6 +4129,7 @@ func TestFullConfig(t *testing.T) {
 		ACLReplicationToken:              "5795983a",
 		ACLTokenTTL:                      3321 * time.Second,
 		ACLPolicyTTL:                     1123 * time.Second,
+		ACLRoleTTL:                       9876 * time.Second,
 		ACLToken:                         "418fdff1",
 		ACLTokenReplication:              true,
 		AdvertiseAddrLAN:                 ipAddr("17.99.29.16"),
@@ -4945,6 +4948,7 @@ func TestSanitize(t *testing.T) {
 		"ACLMasterToken": "hidden",
 		"ACLPolicyTTL": "0s",
 		"ACLReplicationToken": "hidden",
+		"ACLRoleTTL": "0s",
 		"ACLTokenReplication": false,
 		"ACLTokenTTL": "0s",
 		"ACLToken": "hidden",

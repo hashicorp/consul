@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 type ACLCachesConfig struct {
@@ -12,6 +12,7 @@ type ACLCachesConfig struct {
 	Policies       int
 	ParsedPolicies int
 	Authorizers    int
+	Roles          int
 }
 
 type ACLCaches struct {
@@ -19,6 +20,7 @@ type ACLCaches struct {
 	parsedPolicies *lru.TwoQueueCache // policy content hash -> acl.Policy
 	policies       *lru.TwoQueueCache // policy ID -> ACLPolicy
 	authorizers    *lru.TwoQueueCache // token secret -> acl.Authorizer
+	roles          *lru.TwoQueueCache // role ID -> ACLRole
 }
 
 type IdentityCacheEntry struct {
@@ -55,6 +57,16 @@ type AuthorizerCacheEntry struct {
 }
 
 func (e *AuthorizerCacheEntry) Age() time.Duration {
+	return time.Since(e.CacheTime)
+}
+
+// RoleCacheEntry is the payload for by by-id and by-name caches.
+type RoleCacheEntry struct {
+	Role      *ACLRole
+	CacheTime time.Time
+}
+
+func (e *RoleCacheEntry) Age() time.Duration {
 	return time.Since(e.CacheTime)
 }
 
@@ -95,6 +107,15 @@ func NewACLCaches(config *ACLCachesConfig) (*ACLCaches, error) {
 		}
 
 		cache.authorizers = authCache
+	}
+
+	if config != nil && config.Roles > 0 {
+		roleCache, err := lru.New2Q(config.Roles)
+		if err != nil {
+			return nil, err
+		}
+
+		cache.roles = roleCache
 	}
 
 	return cache, nil
@@ -152,6 +173,19 @@ func (c *ACLCaches) GetAuthorizer(id string) *AuthorizerCacheEntry {
 	return nil
 }
 
+// GetRoleByID fetches a role from the cache by id and returns it
+func (c *ACLCaches) GetRole(roleID string) *RoleCacheEntry {
+	if c == nil || c.roles == nil {
+		return nil
+	}
+
+	if raw, ok := c.roles.Get(roleID); ok {
+		return raw.(*RoleCacheEntry)
+	}
+
+	return nil
+}
+
 // PutIdentity adds a new identity to the cache
 func (c *ACLCaches) PutIdentity(id string, ident ACLIdentity) {
 	if c == nil || c.identities == nil {
@@ -193,6 +227,12 @@ func (c *ACLCaches) PutAuthorizerWithTTL(id string, authorizer acl.Authorizer, t
 	c.authorizers.Add(id, &AuthorizerCacheEntry{Authorizer: authorizer, CacheTime: time.Now(), TTL: ttl})
 }
 
+func (c *ACLCaches) PutRole(roleID string, role *ACLRole) {
+	if c != nil && c.roles != nil {
+		c.roles.Add(roleID, &RoleCacheEntry{Role: role, CacheTime: time.Now()})
+	}
+}
+
 func (c *ACLCaches) RemoveIdentity(id string) {
 	if c != nil && c.identities != nil {
 		c.identities.Remove(id)
@@ -202,6 +242,12 @@ func (c *ACLCaches) RemoveIdentity(id string) {
 func (c *ACLCaches) RemovePolicy(policyID string) {
 	if c != nil && c.policies != nil {
 		c.policies.Remove(policyID)
+	}
+}
+
+func (c *ACLCaches) RemoveRole(roleID string) {
+	if c != nil && c.roles != nil && roleID != "" {
+		c.roles.Remove(roleID)
 	}
 }
 
@@ -218,6 +264,9 @@ func (c *ACLCaches) Purge() {
 		}
 		if c.authorizers != nil {
 			c.authorizers.Purge()
+		}
+		if c.roles != nil {
+			c.roles.Purge()
 		}
 	}
 }

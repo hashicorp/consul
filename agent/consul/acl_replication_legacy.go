@@ -138,7 +138,7 @@ func reconcileLegacyACLs(local, remote structs.ACLs, lastRemoteIndex uint64) str
 
 // FetchLocalACLs returns the ACLs in the local state store.
 func (s *Server) fetchLocalLegacyACLs() (structs.ACLs, error) {
-	_, local, err := s.fsm.State().ACLTokenList(nil, false, true, "")
+	_, local, err := s.fsm.State().ACLTokenList(nil, false, true, "", "")
 	if err != nil {
 		return nil, err
 	}

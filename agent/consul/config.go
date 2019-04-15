@@ -243,6 +243,11 @@ type Config struct {
 	// a substantial cost.
 	ACLPolicyTTL time.Duration
 
+	// ACLRoleTTL controls the time-to-live of cached ACL roles.
+	// It can be set to zero to disable caching, but this adds
+	// a substantial cost.
+	ACLRoleTTL time.Duration
+
 	// ACLDisabledTTL is the time between checking if ACLs should be
 	// enabled. This
 	ACLDisabledTTL time.Duration
@@ -452,6 +457,7 @@ func DefaultConfig() *Config {
 		SerfFloodInterval:        60 * time.Second,
 		ReconcileInterval:        60 * time.Second,
 		ProtocolVersion:          ProtocolVersion2Compatible,
+		ACLRoleTTL:               30 * time.Second,
 		ACLPolicyTTL:             30 * time.Second,
 		ACLTokenTTL:              30 * time.Second,
 		ACLDefaultPolicy:         "allow",

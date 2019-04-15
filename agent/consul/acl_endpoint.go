@@ -28,6 +28,7 @@ var (
 	validPolicyName              = regexp.MustCompile(`^[A-Za-z0-9\-_]{1,128}$`)
 	validServiceIdentityName     = regexp.MustCompile(`^[a-z0-9]([a-z0-9\-_]*[a-z0-9])?$`)
 	serviceIdentityNameMaxLength = 256
+	validRoleName                = regexp.MustCompile(`^[A-Za-z0-9\-_]{1,256}$`)
 )
 
 // ACL endpoint is used to manipulate ACLs
@@ -463,6 +464,33 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 	}
 	token.Policies = policies
 
+	roleIDs := make(map[string]struct{})
+	var roles []structs.ACLTokenRoleLink
+
+	// Validate all the role names and convert them to role IDs
+	for _, link := range token.Roles {
+		if link.ID == "" {
+			_, role, err := state.ACLRoleGetByName(nil, link.Name)
+			if err != nil {
+				return fmt.Errorf("Error looking up role for name %q: %v", link.Name, err)
+			}
+			if role == nil {
+				return fmt.Errorf("No such ACL role with name %q", link.Name)
+			}
+			link.ID = role.ID
+		}
+
+		// Do not store the role name within raft/memdb as the role could be renamed in the future.
+		link.Name = ""
+
+		// dedup role links by id
+		if _, ok := roleIDs[link.ID]; !ok {
+			roles = append(roles, link)
+			roleIDs[link.ID] = struct{}{}
+		}
+	}
+	token.Roles = roles
+
 	for _, svcid := range token.ServiceIdentities {
 		if svcid.ServiceName == "" {
 			return fmt.Errorf("Service identity is missing the service name field on this token")
@@ -624,7 +652,7 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, tokens, err := state.ACLTokenList(ws, args.IncludeLocal, args.IncludeGlobal, args.Policy)
+			index, tokens, err := state.ACLTokenList(ws, args.IncludeLocal, args.IncludeGlobal, args.Policy, args.Role)
 			if err != nil {
 				return err
 			}
@@ -1052,4 +1080,335 @@ func (a *ACL) ReplicationStatus(args *structs.DCSpecificRequest,
 
 func timePointer(t time.Time) *time.Time {
 	return &t
+}
+
+func (a *ACL) RoleRead(args *structs.ACLRoleGetRequest, reply *structs.ACLRoleResponse) error {
+	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if done, err := a.srv.forward("ACL.RoleRead", args, args, reply); done {
+		return err
+	}
+
+	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
+		return err
+	} else if rule == nil || !rule.ACLRead() {
+		return acl.ErrPermissionDenied
+	}
+
+	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			var (
+				index uint64
+				role  *structs.ACLRole
+				err   error
+			)
+			if args.RoleID != "" {
+				index, role, err = state.ACLRoleGetByID(ws, args.RoleID)
+			} else {
+				index, role, err = state.ACLRoleGetByName(ws, args.RoleName)
+			}
+
+			if err != nil {
+				return err
+			}
+
+			reply.Index, reply.Role = index, role
+			return nil
+		})
+}
+
+func (a *ACL) RoleBatchRead(args *structs.ACLRoleBatchGetRequest, reply *structs.ACLRoleBatchResponse) error {
+	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if done, err := a.srv.forward("ACL.RoleBatchRead", args, args, reply); done {
+		return err
+	}
+
+	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
+		return err
+	} else if rule == nil || !rule.ACLRead() {
+		return acl.ErrPermissionDenied
+	}
+
+	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			index, roles, err := state.ACLRoleBatchGet(ws, args.RoleIDs)
+			if err != nil {
+				return err
+			}
+
+			reply.Index, reply.Roles = index, roles
+			return nil
+		})
+}
+
+func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) error {
+	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if !a.srv.InACLDatacenter() {
+		args.Datacenter = a.srv.config.ACLDatacenter
+	}
+
+	if done, err := a.srv.forward("ACL.RoleSet", args, args, reply); done {
+		return err
+	}
+
+	defer metrics.MeasureSince([]string{"acl", "role", "upsert"}, time.Now())
+
+	// Verify token is permitted to modify ACLs
+	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
+		return err
+	} else if rule == nil || !rule.ACLWrite() {
+		return acl.ErrPermissionDenied
+	}
+
+	role := &args.Role
+	state := a.srv.fsm.State()
+
+	// Almost all of the checks here are also done in the state store. However,
+	// we want to prevent the raft operations when we know they are going to fail
+	// so we still do them here.
+
+	// ensure a name is set
+	if role.Name == "" {
+		return fmt.Errorf("Invalid Role: no Name is set")
+	}
+
+	if !validRoleName.MatchString(role.Name) {
+		return fmt.Errorf("Invalid Role: invalid Name. Only alphanumeric characters, '-' and '_' are allowed")
+	}
+
+	if role.ID == "" {
+		// with no role ID one will be generated
+		var err error
+
+		role.ID, err = lib.GenerateUUID(a.srv.checkRoleUUID)
+		if err != nil {
+			return err
+		}
+
+		// validate the name is unique
+		if _, existing, err := state.ACLRoleGetByName(nil, role.Name); err != nil {
+			return fmt.Errorf("acl role lookup by name failed: %v", err)
+		} else if existing != nil {
+			return fmt.Errorf("Invalid Role: A Role with Name %q already exists", role.Name)
+		}
+	} else {
+		if _, err := uuid.ParseUUID(role.ID); err != nil {
+			return fmt.Errorf("Role ID invalid UUID")
+		}
+
+		// Verify the role exists
+		_, existing, err := state.ACLRoleGetByID(nil, role.ID)
+		if err != nil {
+			return fmt.Errorf("acl role lookup failed: %v", err)
+		} else if existing == nil {
+			return fmt.Errorf("cannot find role %s", role.ID)
+		}
+
+		if existing.Name != role.Name {
+			if _, nameMatch, err := state.ACLRoleGetByName(nil, role.Name); err != nil {
+				return fmt.Errorf("acl role lookup by name failed: %v", err)
+			} else if nameMatch != nil {
+				return fmt.Errorf("Invalid Role: A role with name %q already exists", role.Name)
+			}
+		}
+	}
+
+	policyIDs := make(map[string]struct{})
+	var policies []structs.ACLRolePolicyLink
+
+	// Validate all the policy names and convert them to policy IDs
+	for _, link := range role.Policies {
+		if link.ID == "" {
+			_, policy, err := state.ACLPolicyGetByName(nil, link.Name)
+			if err != nil {
+				return fmt.Errorf("Error looking up policy for name %q: %v", link.Name, err)
+			}
+			if policy == nil {
+				return fmt.Errorf("No such ACL policy with name %q", link.Name)
+			}
+			link.ID = policy.ID
+		}
+
+		// Do not store the policy name within raft/memdb as the policy could be renamed in the future.
+		link.Name = ""
+
+		// dedup policy links by id
+		if _, ok := policyIDs[link.ID]; !ok {
+			policies = append(policies, link)
+			policyIDs[link.ID] = struct{}{}
+		}
+	}
+	role.Policies = policies
+
+	for _, svcid := range role.ServiceIdentities {
+		if svcid.ServiceName == "" {
+			return fmt.Errorf("Service identity is missing the service name field on this role")
+		}
+		// TODO(rb): ugh if a local token gets a role that has a service
+		// identity that has datacenters set, we won't be anble to enforce this
+		// next blob here. This makes me lean more towards nuking ServiceIdentity.Datacenters again
+		//
+		// if token.Local && len(svcid.Datacenters) > 0 {
+		// 	return fmt.Errorf("Service identity %q cannot specify a list of datacenters on a local token", svcid.ServiceName)
+		// }
+		if !isValidServiceIdentityName(svcid.ServiceName) {
+			return fmt.Errorf("Service identity %q has an invalid name. Only alphanumeric characters, '-' and '_' are allowed", svcid.ServiceName)
+		}
+	}
+
+	// calculate the hash for this role
+	role.SetHash(true)
+
+	req := &structs.ACLRoleBatchSetRequest{
+		Roles: structs.ACLRoles{role},
+	}
+
+	resp, err := a.srv.raftApply(structs.ACLRoleSetRequestType, req)
+	if err != nil {
+		return fmt.Errorf("Failed to apply role upsert request: %v", err)
+	}
+
+	// Remove from the cache to prevent stale cache usage
+	a.srv.acls.cache.RemoveRole(role.ID)
+
+	if respErr, ok := resp.(error); ok {
+		return respErr
+	}
+
+	if _, role, err := a.srv.fsm.State().ACLRoleGetByID(nil, role.ID); err == nil && role != nil {
+		*reply = *role
+	}
+
+	return nil
+}
+
+func (a *ACL) RoleDelete(args *structs.ACLRoleDeleteRequest, reply *string) error {
+	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if !a.srv.InACLDatacenter() {
+		args.Datacenter = a.srv.config.ACLDatacenter
+	}
+
+	if done, err := a.srv.forward("ACL.RoleDelete", args, args, reply); done {
+		return err
+	}
+
+	defer metrics.MeasureSince([]string{"acl", "role", "delete"}, time.Now())
+
+	// Verify token is permitted to modify ACLs
+	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
+		return err
+	} else if rule == nil || !rule.ACLWrite() {
+		return acl.ErrPermissionDenied
+	}
+
+	_, role, err := a.srv.fsm.State().ACLRoleGetByID(nil, args.RoleID)
+	if err != nil {
+		return err
+	}
+
+	if role == nil {
+		return nil
+	}
+
+	req := structs.ACLRoleBatchDeleteRequest{
+		RoleIDs: []string{args.RoleID},
+	}
+
+	resp, err := a.srv.raftApply(structs.ACLRoleDeleteRequestType, &req)
+	if err != nil {
+		return fmt.Errorf("Failed to apply role delete request: %v", err)
+	}
+
+	a.srv.acls.cache.RemoveRole(role.ID)
+
+	if respErr, ok := resp.(error); ok {
+		return respErr
+	}
+
+	if role != nil {
+		*reply = role.Name
+	}
+
+	return nil
+}
+
+func (a *ACL) RoleList(args *structs.ACLRoleListRequest, reply *structs.ACLRoleListResponse) error {
+	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if done, err := a.srv.forward("ACL.RoleList", args, args, reply); done {
+		return err
+	}
+
+	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
+		return err
+	} else if rule == nil || !rule.ACLRead() {
+		return acl.ErrPermissionDenied
+	}
+
+	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			index, roles, err := state.ACLRoleList(ws, args.Policy)
+			if err != nil {
+				return err
+			}
+
+			reply.Index, reply.Roles = index, roles
+			return nil
+		})
+}
+
+// RoleResolve is used to retrieve a subset of the roles associated with a given token
+// The role ids in the args simply act as a filter on the role set assigned to the token
+func (a *ACL) RoleResolve(args *structs.ACLRoleBatchGetRequest, reply *structs.ACLRoleBatchResponse) error {
+	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if done, err := a.srv.forward("ACL.RoleResolve", args, args, reply); done {
+		return err
+	}
+
+	// get full list of roles for this token
+	identity, roles, err := a.srv.acls.resolveTokenToIdentityAndRoles(args.Token)
+	if err != nil {
+		return err
+	}
+
+	idMap := make(map[string]*structs.ACLRole)
+	for _, roleID := range identity.RoleIDs() {
+		idMap[roleID] = nil
+	}
+	for _, role := range roles {
+		idMap[role.ID] = role
+	}
+
+	for _, roleID := range args.RoleIDs {
+		if role, ok := idMap[roleID]; ok {
+			// only add non-deleted roles
+			if role != nil {
+				reply.Roles = append(reply.Roles, role)
+			}
+		} else {
+			// send a permission denied to indicate that the request included
+			// role ids not associated with this token
+			return acl.ErrPermissionDenied
+		}
+	}
+
+	a.srv.setQueryMeta(&reply.QueryMeta)
+
+	return nil
 }

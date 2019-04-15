@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-memdb"
+	memdb "github.com/hashicorp/go-memdb"
 )
 
 var (
@@ -36,6 +36,18 @@ var (
 	// ErrMissingACLPolicyName is returned when a policy set is called on a
 	// policy with an empty Name.
 	ErrMissingACLPolicyName = errors.New("Missing ACL Policy Name")
+
+	// ErrMissingACLRoleID is returned when an role set is called on
+	// a role with an empty ID.
+	ErrMissingACLRoleID = errors.New("Missing ACL Role ID")
+
+	// ErrMissingACLRoleName is returned when an role set is called on
+	// a role with an empty Name.
+	ErrMissingACLRoleName = errors.New("Missing ACL Role Name")
+
+	// ErrInvalidACLRoleName is returned when an role set is called on
+	// a role with an invalid Name.
+	ErrInvalidACLRoleName = errors.New("Invalid ACL Role Name")
 
 	// ErrMissingQueryID is returned when a Query set is called on
 	// a Query with an empty ID.
