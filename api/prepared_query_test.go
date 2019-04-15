@@ -4,12 +4,13 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/hashicorp/consul/api/internal"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 func TestAPI_PreparedQuery(t *testing.T) {
 	t.Parallel()
-	c, s := MakeClient(t)
+	c, s := internal.MakeClient(t)
 	defer s.Stop()
 
 	// Set up a node and a service.

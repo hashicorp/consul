@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/api/internal"
 	"github.com/hashicorp/go-uuid"
 
 	"github.com/pascaldekloe/goe/verify"
@@ -14,7 +15,7 @@ import (
 func TestAPI_ClientTxn(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
-	c, s := MakeClient(t)
+	c, s := internal.MakeClient(t)
 	defer s.Stop()
 
 	session := c.Session()

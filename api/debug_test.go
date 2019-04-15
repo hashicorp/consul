@@ -3,12 +3,13 @@ package api
 import (
 	"testing"
 
+	"github.com/hashicorp/consul/api/internal"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestAPI_DebugHeap(t *testing.T) {
 	t.Parallel()
-	c, s := MakeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+	c, s := internal.MakeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
 		conf.EnableDebug = true
 	})
 
@@ -27,7 +28,7 @@ func TestAPI_DebugHeap(t *testing.T) {
 
 func TestAPI_DebugProfile(t *testing.T) {
 	t.Parallel()
-	c, s := MakeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+	c, s := internal.MakeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
 		conf.EnableDebug = true
 	})
 
@@ -46,7 +47,7 @@ func TestAPI_DebugProfile(t *testing.T) {
 
 func TestAPI_DebugGoroutine(t *testing.T) {
 	t.Parallel()
-	c, s := MakeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+	c, s := internal.MakeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
 		conf.EnableDebug = true
 	})
 
@@ -65,7 +66,7 @@ func TestAPI_DebugGoroutine(t *testing.T) {
 
 func TestAPI_DebugTrace(t *testing.T) {
 	t.Parallel()
-	c, s := MakeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+	c, s := internal.MakeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
 		conf.EnableDebug = true
 	})
 

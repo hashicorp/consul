@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/api/internal"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/stretchr/testify/require"
@@ -12,7 +13,7 @@ import (
 
 func TestAPI_CoordinateDatacenters(t *testing.T) {
 	t.Parallel()
-	c, s := MakeClient(t)
+	c, s := internal.MakeClient(t)
 	defer s.Stop()
 
 	coord := c.Coordinate()
@@ -30,7 +31,7 @@ func TestAPI_CoordinateDatacenters(t *testing.T) {
 
 func TestAPI_CoordinateNodes(t *testing.T) {
 	t.Parallel()
-	c, s := MakeClient(t)
+	c, s := internal.MakeClient(t)
 	defer s.Stop()
 
 	coord := c.Coordinate()
@@ -49,7 +50,7 @@ func TestAPI_CoordinateNodes(t *testing.T) {
 
 func TestAPI_CoordinateNode(t *testing.T) {
 	t.Parallel()
-	c, s := MakeClient(t)
+	c, s := internal.MakeClient(t)
 	defer s.Stop()
 
 	coord := c.Coordinate()
@@ -68,7 +69,7 @@ func TestAPI_CoordinateNode(t *testing.T) {
 
 func TestAPI_CoordinateUpdate(t *testing.T) {
 	t.Parallel()
-	c, s := MakeClient(t)
+	c, s := internal.MakeClient(t)
 	defer s.Stop()
 
 	s.WaitForSerfCheck(t)

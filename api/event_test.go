@@ -3,12 +3,13 @@ package api
 import (
 	"testing"
 
+	"github.com/hashicorp/consul/api/internal"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 func TestAPI_EventFireList(t *testing.T) {
 	t.Parallel()
-	c, s := MakeClient(t)
+	c, s := internal.MakeClient(t)
 	defer s.Stop()
 
 	event := c.Event()
