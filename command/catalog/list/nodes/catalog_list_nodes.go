@@ -85,9 +85,10 @@ func (c *cmd) Run(args []string) int {
 
 	var nodes []*api.Node
 	if c.service != "" {
-		services, _, err := client.Catalog().ServiceWithFilter(c.service, c.filter, &api.QueryOptions{
+		services, _, err := client.Catalog().Service(c.service, "", &api.QueryOptions{
 			Near:     c.near,
 			NodeMeta: c.nodeMeta,
+			Filter:   c.filter,
 		})
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error listing nodes for service: %s", err))
@@ -108,9 +109,10 @@ func (c *cmd) Run(args []string) int {
 			}
 		}
 	} else {
-		nodes, _, err = client.Catalog().NodesWithFilter(c.filter, &api.QueryOptions{
+		nodes, _, err = client.Catalog().Nodes(&api.QueryOptions{
 			Near:     c.near,
 			NodeMeta: c.nodeMeta,
+			Filter:   c.filter,
 		})
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error listing nodes: %s", err))

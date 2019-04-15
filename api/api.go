@@ -146,6 +146,10 @@ type QueryOptions struct {
 	// ctx is an optional context pass through to the underlying HTTP
 	// request layer. Use Context() and WithContext() to manage this.
 	ctx context.Context
+
+	// Filter requests filtering data prior to it being returned. The string
+	// is a go-bexpr compatible expression.
+	Filter string
 }
 
 func (o *QueryOptions) Context() context.Context {
@@ -613,6 +617,10 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 	}
 	if q.Near != "" {
 		r.params.Set("near", q.Near)
+	}
+	if q.Filter != "" {
+		fmt.Printf("filter set to %q\n", q.Filter)
+		r.params.Set("filter", q.Filter)
 	}
 	if len(q.NodeMeta) > 0 {
 		for key, value := range q.NodeMeta {

@@ -163,6 +163,10 @@ type QueryOptions struct {
 	// ignored if the endpoint supports background refresh caching. See
 	// https://www.consul.io/api/index.html#agent-caching for more details.
 	StaleIfError time.Duration
+
+	// Filter specifies the go-bexpr filter expression to be used for
+	// filtering the data prior to returning a response
+	Filter string
 }
 
 // IsRead is always true for QueryOption.
@@ -313,7 +317,6 @@ type QuerySource struct {
 type DCSpecificRequest struct {
 	Datacenter      string
 	NodeMetaFilters map[string]string
-	Filter          string
 	Source          QuerySource
 	QueryOptions
 }
@@ -332,7 +335,7 @@ func (r *DCSpecificRequest) CacheInfo() cache.RequestInfo {
 		MustRevalidate: r.MustRevalidate,
 	}
 
-	// To calculate the cache key we only hash the node meta filters and the bexpr filter. 
+	// To calculate the cache key we only hash the node meta filters and the bexpr filter.
 	// The datacenter is handled by the cache framework. The other fields are
 	// not, but should not be used in any cache types.
 	v, err := hashstructure.Hash([]interface{}{
@@ -365,7 +368,6 @@ type ServiceSpecificRequest struct {
 	ServiceAddress string
 	TagFilter      bool // Controls tag filtering
 	Source         QuerySource
-	Filter         string // Filter expression usable by go-bexpr
 
 	// Connect if true will only search for Connect-compatible services.
 	Connect bool
@@ -430,7 +432,6 @@ func (r *ServiceSpecificRequest) CacheMinIndex() uint64 {
 type NodeSpecificRequest struct {
 	Datacenter string
 	Node       string
-	Filter     string
 	QueryOptions
 }
 
@@ -468,7 +469,6 @@ type ChecksInStateRequest struct {
 	NodeMetaFilters map[string]string
 	State           string
 	Source          QuerySource
-	Filter          string
 	QueryOptions
 }
 

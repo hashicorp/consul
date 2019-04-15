@@ -139,17 +139,17 @@ func TestAPI_CatalogNodes_Filter(t *testing.T) {
 	require.Len(t, nodes, 4)
 
 	// now filter down to just a couple nodes with a specific meta entry
-	nodes, _, err = catalog.NodesWithFilter("Meta.env == production", nil)
+	nodes, _, err = catalog.Nodes(&QueryOptions{Filter: "Meta.env == production"})
 	require.NoError(t, err)
 	require.Len(t, nodes, 2)
 
 	// filter out everything that isn't bar or baz
-	nodes, _, err = catalog.NodesWithFilter("Node == bar or Node == baz", nil)
+	nodes, _, err = catalog.Nodes(&QueryOptions{Filter: "Node == bar or Node == baz"})
 	require.NoError(t, err)
 	require.Len(t, nodes, 2)
 
 	// check for non-existent ip for the node addr
-	nodes, _, err = catalog.NodesWithFilter("Address == `10.0.0.1`", nil)
+	nodes, _, err = catalog.Nodes(&QueryOptions{Filter: "Address == `10.0.0.1`"})
 	require.NoError(t, err)
 	require.Empty(t, nodes)
 }
@@ -438,7 +438,7 @@ func TestAPI_CatalogService_Filter(t *testing.T) {
 
 	catalog := c.Catalog()
 
-	services, _, err := catalog.ServiceWithFilter("redis", "ServiceMeta.version == 1", nil)
+	services, _, err := catalog.Service("redis", "", &QueryOptions{Filter: "ServiceMeta.version == 1"})
 	require.NoError(t, err)
 	// finds it on both foo and bar nodes
 	require.Len(t, services, 2)
@@ -448,14 +448,14 @@ func TestAPI_CatalogService_Filter(t *testing.T) {
 			(services[0].Node == "bar" && services[1].Node == "foo")
 	})
 
-	services, _, err = catalog.ServiceWithFilter("redis", "NodeMeta.os != windows", nil)
+	services, _, err = catalog.Service("redis", "", &QueryOptions{Filter: "NodeMeta.os != windows"})
 	require.NoError(t, err)
 	// finds both service instances on foo
 	require.Len(t, services, 2)
 	require.Equal(t, "foo", services[0].Node)
 	require.Equal(t, "foo", services[1].Node)
 
-	services, _, err = catalog.ServiceWithFilter("redis", "Address == `10.0.0.1`", nil)
+	services, _, err = catalog.Service("redis", "", &QueryOptions{Filter: "Address == `10.0.0.1`"})
 	require.NoError(t, err)
 	require.Empty(t, services)
 
@@ -667,7 +667,7 @@ func TestAPI_CatalogConnect_Filter(t *testing.T) {
 
 	catalog := c.Catalog()
 
-	services, _, err := catalog.ConnectWithFilter("web", "ServicePort == 443", nil)
+	services, _, err := catalog.Connect("web", "", &QueryOptions{Filter: "ServicePort == 443"})
 	require.NoError(t, err)
 	require.Len(t, services, 2)
 	require.Condition(t, func() bool {
@@ -676,7 +676,7 @@ func TestAPI_CatalogConnect_Filter(t *testing.T) {
 	})
 
 	// All the web-connect services are native
-	services, _, err = catalog.ConnectWithFilter("web", "ServiceConnect.Native != true", nil)
+	services, _, err = catalog.Connect("web", "", &QueryOptions{Filter: "ServiceConnect.Native != true"})
 	require.NoError(t, err)
 	require.Empty(t, services)
 }
@@ -743,14 +743,14 @@ func TestAPI_CatalogNode_Filter(t *testing.T) {
 	catalog := c.Catalog()
 
 	// should have only 1 matching service
-	info, _, err := catalog.NodeWithFilter("bar", "connect in Tags", nil)
+	info, _, err := catalog.Node("bar", &QueryOptions{Filter: "connect in Tags"})
 	require.NoError(t, err)
 	require.Len(t, info.Services, 1)
 	require.Contains(t, info.Services, "webV1")
 	require.Equal(t, "web", info.Services["webV1"].Service)
 
 	// should get two services for the node
-	info, _, err = catalog.NodeWithFilter("baz", "connect in Tags", nil)
+	info, _, err = catalog.Node("baz", &QueryOptions{Filter: "connect in Tags"})
 	require.NoError(t, err)
 	require.Len(t, info.Services, 2)
 }
