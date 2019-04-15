@@ -218,7 +218,11 @@ type ACLToken struct {
 	// ExpirationTime represents the point after which a token should be
 	// considered revoked and is eligible for destruction. The zero value
 	// represents NO expiration.
-	ExpirationTime time.Time `json:",omitempty"`
+	//
+	// This is a pointer value so that the zero value is omitted properly
+	// during json serialization. time.Time does not respect json omitempty
+	// directives unfortunately.
+	ExpirationTime *time.Time `json:",omitempty"`
 
 	// ExpirationTTL is a convenience field for helping set ExpirationTime to a
 	// value of CreateTime+ExpirationTTL. This can only be set during
@@ -293,17 +297,21 @@ func (t *ACLToken) ServiceIdentityList() []*ACLServiceIdentity {
 }
 
 func (t *ACLToken) IsExpired(asOf time.Time) bool {
-	if asOf.IsZero() || t.ExpirationTime.IsZero() {
+	if asOf.IsZero() || !t.HasExpirationTime() {
 		return false
 	}
 	return t.ExpirationTime.Before(asOf)
+}
+
+func (t *ACLToken) HasExpirationTime() bool {
+	return t.ExpirationTime != nil && !t.ExpirationTime.IsZero()
 }
 
 func (t *ACLToken) UsesNonLegacyFields() bool {
 	return len(t.Policies) > 0 ||
 		len(t.ServiceIdentities) > 0 ||
 		t.Type == "" ||
-		!t.ExpirationTime.IsZero() ||
+		t.HasExpirationTime() ||
 		t.ExpirationTTL != 0
 }
 
@@ -405,8 +413,8 @@ type ACLTokenListStub struct {
 	Policies          []ACLTokenPolicyLink  `json:",omitempty"`
 	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
 	Local             bool
-	ExpirationTime    time.Time `json:",omitempty"`
-	CreateTime        time.Time `json:",omitempty"`
+	ExpirationTime    *time.Time `json:",omitempty"`
+	CreateTime        time.Time  `json:",omitempty"`
 	Hash              []byte
 	CreateIndex       uint64
 	ModifyIndex       uint64

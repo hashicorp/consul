@@ -15,8 +15,8 @@ func PrintToken(token *api.ACLToken, ui cli.Ui, showMeta bool) {
 	ui.Info(fmt.Sprintf("Description:      %s", token.Description))
 	ui.Info(fmt.Sprintf("Local:            %t", token.Local))
 	ui.Info(fmt.Sprintf("Create Time:      %v", token.CreateTime))
-	if !token.ExpirationTime.IsZero() {
-		ui.Info(fmt.Sprintf("Expiration Time:  %v", token.ExpirationTime))
+	if token.ExpirationTime != nil && !token.ExpirationTime.IsZero() {
+		ui.Info(fmt.Sprintf("Expiration Time:  %v", *token.ExpirationTime))
 	}
 	if showMeta {
 		ui.Info(fmt.Sprintf("Hash:             %x", token.Hash))
@@ -46,8 +46,8 @@ func PrintTokenListEntry(token *api.ACLTokenListEntry, ui cli.Ui, showMeta bool)
 	ui.Info(fmt.Sprintf("Description:      %s", token.Description))
 	ui.Info(fmt.Sprintf("Local:            %t", token.Local))
 	ui.Info(fmt.Sprintf("Create Time:      %v", token.CreateTime))
-	if !token.ExpirationTime.IsZero() {
-		ui.Info(fmt.Sprintf("Expiration Time:  %v", token.ExpirationTime))
+	if token.ExpirationTime != nil && !token.ExpirationTime.IsZero() {
+		ui.Info(fmt.Sprintf("Expiration Time:  %v", *token.ExpirationTime))
 	}
 	ui.Info(fmt.Sprintf("Legacy:           %t", token.Legacy))
 	if showMeta {

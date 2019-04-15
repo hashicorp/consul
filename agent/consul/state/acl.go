@@ -79,14 +79,14 @@ func (s *TokenExpirationIndex) FromObject(obj interface{}) (bool, []byte, error)
 	if s.LocalFilter != token.Local {
 		return false, nil, nil
 	}
-	if token.ExpirationTime.IsZero() {
+	if !token.HasExpirationTime() {
 		return false, nil, nil
 	}
 	if token.ExpirationTime.Unix() < 0 {
 		return false, nil, fmt.Errorf("token expiration time cannot be before the unix epoch: %s", token.ExpirationTime)
 	}
 
-	buf := s.encodeTime(token.ExpirationTime)
+	buf := s.encodeTime(*token.ExpirationTime)
 
 	return true, buf, nil
 }
@@ -669,10 +669,10 @@ func (s *Store) ACLTokenMinExpirationTime(local bool) (time.Time, error) {
 
 	token := item.(*structs.ACLToken)
 
-	return token.ExpirationTime, nil
+	return *token.ExpirationTime, nil
 }
 
-// ACLTokenListExpires lists tokens that are expires as of the provided time.
+// ACLTokenListExpires lists tokens that are expired as of the provided time.
 // The returned set will be no larger than the max value provided.
 func (s *Store) ACLTokenListExpired(local bool, asOf time.Time, max int) (structs.ACLTokens, <-chan struct{}, error) {
 	tx := s.db.Txn(false)
@@ -689,8 +689,7 @@ func (s *Store) ACLTokenListExpired(local bool, asOf time.Time, max int) (struct
 	)
 	for raw := iter.Next(); raw != nil; raw = iter.Next() {
 		token := raw.(*structs.ACLToken)
-
-		if !token.ExpirationTime.Before(asOf) {
+		if token.ExpirationTime != nil && !token.ExpirationTime.Before(asOf) {
 			return tokens, nil, nil
 		}
 
