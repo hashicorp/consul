@@ -4,13 +4,11 @@ import (
 	"bytes"
 	"strings"
 	"testing"
-
-	"github.com/hashicorp/consul/api/internal"
 )
 
 func TestAPI_Snapshot(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	s.WaitForSerfCheck(t)
@@ -85,7 +83,7 @@ func TestAPI_Snapshot(t *testing.T) {
 
 func TestAPI_Snapshot_Options(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeACLClient(t)
+	c, s := MakeTestACLClient(t)
 	defer s.Stop()
 
 	// Try to take a snapshot with a bad token.

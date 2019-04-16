@@ -3,13 +3,11 @@ package api
 import (
 	"strings"
 	"testing"
-
-	"github.com/hashicorp/consul/api/internal"
 )
 
 func TestAPI_OperatorRaftGetConfiguration(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	operator := c.Operator()
@@ -26,7 +24,7 @@ func TestAPI_OperatorRaftGetConfiguration(t *testing.T) {
 
 func TestAPI_OperatorRaftRemovePeerByAddress(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	// If we get this error, it proves we sent the address all the way

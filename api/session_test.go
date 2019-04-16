@@ -6,13 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/api/internal"
 	"github.com/pascaldekloe/goe/verify"
 )
 
 func TestAPI_SessionCreateDestroy(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	s.WaitForSerfCheck(t)
@@ -44,7 +43,7 @@ func TestAPI_SessionCreateDestroy(t *testing.T) {
 
 func TestAPI_SessionCreateRenewDestroy(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	s.WaitForSerfCheck(t)
@@ -97,7 +96,7 @@ func TestAPI_SessionCreateRenewDestroy(t *testing.T) {
 
 func TestAPI_SessionCreateRenewDestroyRenew(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	s.WaitForSerfCheck(t)
@@ -153,7 +152,7 @@ func TestAPI_SessionCreateRenewDestroyRenew(t *testing.T) {
 
 func TestAPI_SessionCreateDestroyRenewPeriodic(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	s.WaitForSerfCheck(t)
@@ -209,7 +208,7 @@ func TestAPI_SessionCreateDestroyRenewPeriodic(t *testing.T) {
 
 func TestAPI_SessionRenewPeriodic_Cancel(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	s.WaitForSerfCheck(t)
@@ -287,7 +286,7 @@ func TestAPI_SessionRenewPeriodic_Cancel(t *testing.T) {
 
 func TestAPI_SessionInfo(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	s.WaitForSerfCheck(t)
@@ -328,7 +327,7 @@ func TestAPI_SessionInfo(t *testing.T) {
 
 func TestAPI_SessionInfo_NoChecks(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	session := c.Session()
@@ -368,7 +367,7 @@ func TestAPI_SessionInfo_NoChecks(t *testing.T) {
 
 func TestAPI_SessionNode(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	s.WaitForSerfCheck(t)
@@ -405,7 +404,7 @@ func TestAPI_SessionNode(t *testing.T) {
 
 func TestAPI_SessionList(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	s.WaitForSerfCheck(t)

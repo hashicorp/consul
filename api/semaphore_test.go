@@ -9,8 +9,6 @@ import (
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/hashicorp/consul/api/internal"
 )
 
 func createTestSemaphore(t *testing.T, c *Client, prefix string, limit int) (*Semaphore, *Session) {
@@ -44,7 +42,7 @@ func createTestSemaphore(t *testing.T, c *Client, prefix string, limit int) (*Se
 
 func TestAPI_SemaphoreAcquireRelease(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	sema, session := createTestSemaphore(t, c, "test/semaphore", 2)
@@ -100,7 +98,7 @@ func TestAPI_SemaphoreAcquireRelease(t *testing.T) {
 
 func TestAPI_SemaphoreForceInvalidate(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	sema, session := createTestSemaphore(t, c, "test/semaphore", 2)
@@ -133,7 +131,7 @@ func TestAPI_SemaphoreForceInvalidate(t *testing.T) {
 
 func TestAPI_SemaphoreDeleteKey(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	sema, session := createTestSemaphore(t, c, "test/semaphore", 2)
@@ -165,7 +163,7 @@ func TestAPI_SemaphoreDeleteKey(t *testing.T) {
 
 func TestAPI_SemaphoreContend(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	wg := &sync.WaitGroup{}
@@ -216,7 +214,7 @@ func TestAPI_SemaphoreContend(t *testing.T) {
 
 func TestAPI_SemaphoreBadLimit(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	sema, err := c.SemaphorePrefix("test/semaphore", 0)
@@ -243,7 +241,7 @@ func TestAPI_SemaphoreBadLimit(t *testing.T) {
 
 func TestAPI_SemaphoreDestroy(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	sema, session := createTestSemaphore(t, c, "test/semaphore", 2)
@@ -295,7 +293,7 @@ func TestAPI_SemaphoreDestroy(t *testing.T) {
 
 func TestAPI_SemaphoreConflict(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	s.WaitForSerfCheck(t)
@@ -330,7 +328,7 @@ func TestAPI_SemaphoreConflict(t *testing.T) {
 
 func TestAPI_SemaphoreMonitorRetry(t *testing.T) {
 	t.Parallel()
-	raw, s := internal.MakeClient(t)
+	raw, s := MakeTestClient(t)
 	defer s.Stop()
 
 	s.WaitForSerfCheck(t)
@@ -449,7 +447,7 @@ func TestAPI_SemaphoreMonitorRetry(t *testing.T) {
 
 func TestAPI_SemaphoreOneShot(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	s.WaitForSerfCheck(t)

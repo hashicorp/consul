@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/api/internal"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 
 	"github.com/stretchr/testify/require"
@@ -19,7 +18,7 @@ func TestAPI_ACLBootstrap(t *testing.T) {
 
 func TestAPI_ACLCreateDestroy(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeTestACLClient(t)
+	c, s := MakeTestACLClient(t)
 	defer s.Stop()
 	s.WaitForSerfCheck(t)
 
@@ -65,7 +64,7 @@ func TestAPI_ACLCreateDestroy(t *testing.T) {
 
 func TestAPI_ACLCloneDestroy(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeTestACLClient(t)
+	c, s := MakeTestACLClient(t)
 	defer s.Stop()
 
 	acl := c.ACL()
@@ -95,7 +94,7 @@ func TestAPI_ACLCloneDestroy(t *testing.T) {
 
 func TestAPI_ACLInfo(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeTestACLClient(t)
+	c, s := MakeTestACLClient(t)
 	defer s.Stop()
 
 	acl := c.ACL()
@@ -119,7 +118,7 @@ func TestAPI_ACLInfo(t *testing.T) {
 
 func TestAPI_ACLList(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeTestACLClient(t)
+	c, s := MakeTestACLClient(t)
 	defer s.Stop()
 
 	acl := c.ACL()
@@ -144,7 +143,7 @@ func TestAPI_ACLList(t *testing.T) {
 
 func TestAPI_ACLReplication(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeTestACLClient(t)
+	c, s := MakeTestACLClient(t)
 	defer s.Stop()
 
 	acl := c.ACL()
@@ -173,7 +172,7 @@ func TestAPI_ACLReplication(t *testing.T) {
 
 func TestAPI_ACLPolicy_CreateReadDelete(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeTestACLClient(t)
+	c, s := MakeTestACLClient(t)
 	defer s.Stop()
 
 	acl := c.ACL()
@@ -208,7 +207,7 @@ func TestAPI_ACLPolicy_CreateReadDelete(t *testing.T) {
 
 func TestAPI_ACLPolicy_CreateUpdate(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeTestACLClient(t)
+	c, s := MakeTestACLClient(t)
 	defer s.Stop()
 
 	acl := c.ACL()
@@ -248,7 +247,7 @@ func TestAPI_ACLPolicy_CreateUpdate(t *testing.T) {
 
 func TestAPI_ACLPolicy_List(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeTestACLClient(t)
+	c, s := MakeTestACLClient(t)
 	defer s.Stop()
 
 	acl := c.ACL()
@@ -379,7 +378,7 @@ func prepTokenPolicies(t *testing.T, acl *ACL) (policies []*ACLPolicy) {
 
 func TestAPI_ACLToken_CreateReadDelete(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeTestACLClient(t)
+	c, s := MakeTestACLClient(t)
 	defer s.Stop()
 
 	acl := c.ACL()
@@ -432,7 +431,7 @@ func TestAPI_ACLToken_CreateReadDelete(t *testing.T) {
 
 func TestAPI_ACLToken_CreateUpdate(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeTestACLClient(t)
+	c, s := MakeTestACLClient(t)
 	defer s.Stop()
 
 	acl := c.ACL()
@@ -495,7 +494,7 @@ func TestAPI_ACLToken_CreateUpdate(t *testing.T) {
 
 func TestAPI_ACLToken_List(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeTestACLClient(t)
+	c, s := MakeTestACLClient(t)
 	defer s.Stop()
 
 	acl := c.ACL()
@@ -600,7 +599,7 @@ func TestAPI_ACLToken_List(t *testing.T) {
 
 func TestAPI_ACLToken_Clone(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeTestACLClient(t)
+	c, s := MakeTestACLClient(t)
 	defer s.Stop()
 
 	acl := c.ACL()
@@ -625,7 +624,7 @@ func TestAPI_ACLToken_Clone(t *testing.T) {
 
 func TestAPI_RulesTranslate_FromToken(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeTestACLClient(t)
+	c, s := MakeTestACLClient(t)
 	defer s.Stop()
 
 	acl := c.ACL()
@@ -659,7 +658,7 @@ func TestAPI_RulesTranslate_FromToken(t *testing.T) {
 
 func TestAPI_RulesTranslate_Raw(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeTestACLClient(t)
+	c, s := MakeTestACLClient(t)
 	defer s.Stop()
 
 	acl := c.ACL()

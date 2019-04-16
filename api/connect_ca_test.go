@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/api/internal"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/stretchr/testify/require"
@@ -14,7 +13,7 @@ func TestAPI_ConnectCARoots_empty(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	c, s := internal.MakeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
+	c, s := MakeTestClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
 		// Don't bootstrap CA
 		c.Connect = nil
 	})
@@ -32,7 +31,7 @@ func TestAPI_ConnectCARoots_empty(t *testing.T) {
 func TestAPI_ConnectCARoots_list(t *testing.T) {
 	t.Parallel()
 
-	c, s := internal.MakeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	// This fails occasionally if server doesn't have time to bootstrap CA so
@@ -58,7 +57,7 @@ func TestAPI_ConnectCARoots_list(t *testing.T) {
 func TestAPI_ConnectCAConfig_get_set(t *testing.T) {
 	t.Parallel()
 
-	c, s := internal.MakeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	s.WaitForSerfCheck(t)

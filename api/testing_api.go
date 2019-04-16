@@ -1,26 +1,25 @@
-package internal
+package api
 
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
-type ConfigCallback func(c *api.Config)
+type ConfigCallback func(c *Config)
 
-func MakeTestClient(t *testing.T) (*api.Client, *testutil.TestServer) {
+func MakeTestClient(t *testing.T) (*Client, *testutil.TestServer) {
 	return MakeTestClientWithConfig(t, nil, nil)
 }
 
-func MakeTestClientWithoutConnect(t *testing.T) (*api.Client, *testutil.TestServer) {
+func MakeTestClientWithoutConnect(t *testing.T) (*Client, *testutil.TestServer) {
 	return MakeTestClientWithConfig(t, nil, func(serverConfig *testutil.TestServerConfig) {
 		serverConfig.Connect = nil
 	})
 }
 
-func MakeTestACLClient(t *testing.T) (*api.Client, *testutil.TestServer) {
-	return MakeTestClientWithConfig(t, func(clientConfig *api.Config) {
+func MakeTestACLClient(t *testing.T) (*Client, *testutil.TestServer) {
+	return MakeTestClientWithConfig(t, func(clientConfig *Config) {
 		clientConfig.Token = "root"
 	}, func(serverConfig *testutil.TestServerConfig) {
 		serverConfig.PrimaryDatacenter = "dc1"
@@ -33,10 +32,10 @@ func MakeTestACLClient(t *testing.T) (*api.Client, *testutil.TestServer) {
 func MakeTestClientWithConfig(
 	t *testing.T,
 	cb1 ConfigCallback,
-	cb2 testutil.ServerConfigCallback) (*api.Client, *testutil.TestServer) {
+	cb2 testutil.ServerConfigCallback) (*Client, *testutil.TestServer) {
 
 	// Make client config
-	conf := api.DefaultConfig()
+	conf := DefaultConfig()
 	if cb1 != nil {
 		cb1(conf)
 	}
@@ -48,7 +47,7 @@ func MakeTestClientWithConfig(
 	conf.Address = server.HTTPAddr
 
 	// Create client
-	client, err := api.NewClient(conf)
+	client, err := NewClient(conf)
 	if err != nil {
 		server.Stop()
 		t.Fatalf("err: %v", err)

@@ -14,7 +14,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/api/internal"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -521,7 +520,7 @@ func TestAPI_SetupTLSConfig(t *testing.T) {
 func TestAPI_ClientTLSOptions(t *testing.T) {
 	t.Parallel()
 	// Start a server that verifies incoming HTTPS connections
-	_, srvVerify := internal.MakeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+	_, srvVerify := MakeTestClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
 		conf.CAFile = "../test/client_certs/rootca.crt"
 		conf.CertFile = "../test/client_certs/server.crt"
 		conf.KeyFile = "../test/client_certs/server.key"
@@ -530,7 +529,7 @@ func TestAPI_ClientTLSOptions(t *testing.T) {
 	defer srvVerify.Stop()
 
 	// Start a server without VerifyIncomingHTTPS
-	_, srvNoVerify := internal.MakeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+	_, srvNoVerify := MakeTestClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
 		conf.CAFile = "../test/client_certs/rootca.crt"
 		conf.CertFile = "../test/client_certs/server.crt"
 		conf.KeyFile = "../test/client_certs/server.key"
@@ -629,7 +628,7 @@ func TestAPI_ClientTLSOptions(t *testing.T) {
 
 func TestAPI_SetQueryOptions(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	assert := assert.New(t)
@@ -684,7 +683,7 @@ func TestAPI_SetQueryOptions(t *testing.T) {
 
 func TestAPI_SetWriteOptions(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	r := c.newRequest("GET", "/v1/kv/foo")
@@ -704,7 +703,7 @@ func TestAPI_SetWriteOptions(t *testing.T) {
 
 func TestAPI_RequestToHTTP(t *testing.T) {
 	t.Parallel()
-	c, s := internal.MakeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	r := c.newRequest("DELETE", "/v1/kv/foo")
@@ -764,7 +763,7 @@ func TestAPI_UnixSocket(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 	socket := filepath.Join(tempDir, "test.sock")
 
-	c, s := internal.MakeClientWithConfig(t, func(c *Config) {
+	c, s := MakeTestClientWithConfig(t, func(c *Config) {
 		c.Address = "unix://" + socket
 	}, func(c *testutil.TestServerConfig) {
 		c.Addresses = &testutil.TestAddressConfig{
