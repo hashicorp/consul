@@ -14,20 +14,24 @@ import (
 )
 
 func (c *Client) AutoEncrypt(servers []string, port int, token string) (*structs.SignResponse, string, error) {
+	errFn := func(err error) (*structs.SignResponse, string, error) {
+		return nil, "", err
+	}
+
 	if len(servers) == 0 {
-		return nil, "", fmt.Errorf("No servers to request AutoEncrypt.Sign")
+		return errFn(fmt.Errorf("No servers to request AutoEncrypt.Sign"))
 	}
 
 	DNSNames := []string{"client.dc1.consul", "localhost"}
 	IPAddresses := []net.IP{net.ParseIP("127.0.0.1")}
 	uri, err := url.Parse(fmt.Sprintf("spiffe://%s/agent/%s", c.config.NodeName, c.config.NodeID))
 	if err != nil {
-		return nil, "", err
+		return errFn(err)
 	}
 
 	autoEncryptTLSConfigurator, err := tlsutil.NewConfigurator(c.tlsConfigurator.Base(), c.logger)
 	if err != nil {
-		return nil, "", err
+		return errFn(err)
 	}
 	autoEncryptTLSConfigurator.EnableAutoEncryptModeClientStartup()
 
@@ -114,5 +118,5 @@ func (c *Client) AutoEncrypt(servers []string, port int, token string) (*structs
 		}
 		return &reply, priv, nil
 	}
-	return nil, "", lastError
+	return errFn(lastError)
 }
