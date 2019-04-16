@@ -385,6 +385,9 @@ func TestSessionTTLRenew(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	if obj == nil {
+		t.Fatalf("session '%s' expired", id)
+	}
 	respObj, ok := obj.(structs.Sessions)
 	if !ok {
 		t.Fatalf("should work")
@@ -397,13 +400,20 @@ func TestSessionTTLRenew(t *testing.T) {
 	}
 
 	// Sleep to consume some time before renew
-	time.Sleep(ttl * (structs.SessionTTLMultiplier / 3))
+	sleepFor := ttl * structs.SessionTTLMultiplier / 3
+	if sleepFor <= 0 {
+		t.Fatalf("timing tests need to sleep")
+	}
+	time.Sleep(sleepFor)
 
 	req, _ = http.NewRequest("PUT", "/v1/session/renew/"+id, nil)
 	resp = httptest.NewRecorder()
 	obj, err = a.srv.SessionRenew(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
+	}
+	if obj == nil {
+		t.Fatalf("session '%s' expired before renewal", id)
 	}
 	respObj, ok = obj.(structs.Sessions)
 	if !ok {
@@ -422,6 +432,9 @@ func TestSessionTTLRenew(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	if obj == nil {
+		t.Fatalf("session '%s' expired before renewal", id)
+	}
 	respObj, ok = obj.(structs.Sessions)
 	if !ok {
 		t.Fatalf("session '%s' should have renewed", id)
@@ -439,12 +452,14 @@ func TestSessionTTLRenew(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	respObj, ok = obj.(structs.Sessions)
-	if !ok {
-		t.Fatalf("session '%s' should have destroyed", id)
-	}
-	if len(respObj) != 0 {
-		t.Fatalf("session '%s' should have destroyed", id)
+	if obj != nil {
+		respObj, ok = obj.(structs.Sessions)
+		if !ok {
+			t.Fatalf("session '%s' should have destroyed", id)
+		}
+		if len(respObj) != 0 {
+			t.Fatalf("session '%s' should have destroyed", id)
+		}
 	}
 }
 
