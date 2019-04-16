@@ -1,0 +1,102 @@
+product: Consul
+docs_url: https://www.consul.io/docs/index.html
+header: 'Learn how to deploy a service mesh with HashiCorp Consul'
+docs:
+  - label: Internals
+    url: https://www.consul.io/docs/internals/index.html
+  - label: Kubernetes
+    url: https://www.consul.io/docs/platform/k8s/index.html
+  - label: Configuration
+    url: https://www.consul.io/docs/agent/options.html
+  - label: CLI
+    url: https://www.consul.io/docs/commands/index.html
+  - label: Connect
+    url: https://www.consul.io/docs/connect/index.html
+  - label: Enterprise
+    url: https://www.consul.io/docs/enterprise/index.html
+
+footer_links:
+  - title: Docs
+    url: https://www.consul.io/docs/index.html
+  - title: API
+    url: https://www.consul.io/api/index.html
+  - title: Enterprise
+    url: https://www.hashicorp.com/products/consul
+  - title: Security
+    url: https://www.consul.io/security.html
+  - title: Press Kit
+    url: https://www.consul.io/assets/files/press-kit.zip
+
+tracks:
+  - name: 'Getting Started'
+    product: consul
+    level: getting-started
+    id: getting-started
+    description: |-
+      Consul is a service mesh solution providing a full featured control plane with service discovery, configuration, and segmentation functionality. Get started here with day 0 operations.
+    icon: grad_hat
+    topics:
+      - install
+      - agent
+      - services
+      - connect
+      - join
+      - checks
+      - kv
+      - ui
+      - next-steps
+
+  - name: 'Getting Started with Kubernetes'
+    product: consul
+    level: getting-started
+    id: getting-started-k8s
+    description: |-
+      Consul deployments on Kubernetes offers the same valuable functionality. Get started here with day 0 operations for Consul on Kubernetes.
+    icon: grad_hat
+    topics:
+      - minikube
+      - helm-deploy
+
+  - name: 'Day 1: Deploying Your First Datacenter'
+    product: consul
+    level: advanced
+    id: advanced
+    description: |-
+      Learn to deploy your first datacenter. If you are responsible for setting up and maintaining a healthy datacenter, this path will help you do so successfully.
+    icon: cubes
+    topics:
+      - /day-1-operations/path-intro
+      - /day-1-operations/reference-architecture
+      - /day-1-operations/deployment-guide
+      - /day-1-operations/backup
+      - /day-1-operations/acl-guide
+      - /day-1-operations/production-acls
+      - /day-1-operations/certificates
+      - /day-1-operations/agent-encryption
+      - /day-1-operations/monitoring
+      - /day-1-operations/path-next-steps
+      - /day-1-operations/production-checklist
+
+  - name: 'Day 2: Advanced Operations'
+    product: consul
+    level: advanced
+    id: day-2-operations
+    description: |-
+      Learn to conduct ongoing maintenance on your first datacenter. This track includes a series of guides for advanced operations that may need to be performed after the initial setup.
+    icon: cubes
+    topics:
+      - /advanced-operations/servers
+      - /advanced-operations/autopilot
+      - /advanced-operations/dns-caching
+      - /advanced-operations/outage
+      - /advanced-operations/troubleshooting
+
+  - name: 'Day 1: Kubernetes Operations'
+    product: consul
+    level: advanced
+    id: kubernetes
+    description: |-
+      Learn how to prepare a Kubernetes cluster to deploy Consul.
+    icon: cubes
+    topics:
+      - /kubernetes/kubernetes-reference
