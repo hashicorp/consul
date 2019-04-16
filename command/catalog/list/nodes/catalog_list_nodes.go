@@ -3,11 +3,13 @@ package nodes
 import (
 	"flag"
 	"fmt"
+	"io"
 	"sort"
 	"strings"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
+	"github.com/hashicorp/consul/command/helpers"
 	"github.com/mitchellh/cli"
 	"github.com/ryanuber/columnize"
 )
@@ -29,11 +31,15 @@ type cmd struct {
 	near     string
 	nodeMeta map[string]string
 	service  string
+	filter   string
+
+	testStdin io.Reader
 }
 
 // init sets up command flags and help text
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.StringVar(&c.filter, "filter", "", "Filter to use with the request")
 	c.flags.BoolVar(&c.detailed, "detailed", false, "Output detailed information about "+
 		"the nodes including their addresses and metadata.")
 	c.flags.StringVar(&c.near, "near", "", "Node name to sort the node list in ascending "+
@@ -68,11 +74,21 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	if c.filter != "" {
+		data, err := helpers.LoadDataSource(c.filter, c.testStdin)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Could not process filter argument: %v", err))
+			return 1
+		}
+		c.filter = data
+	}
+
 	var nodes []*api.Node
 	if c.service != "" {
 		services, _, err := client.Catalog().Service(c.service, "", &api.QueryOptions{
 			Near:     c.near,
 			NodeMeta: c.nodeMeta,
+			Filter:   c.filter,
 		})
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error listing nodes for service: %s", err))
@@ -96,6 +112,7 @@ func (c *cmd) Run(args []string) int {
 		nodes, _, err = client.Catalog().Nodes(&api.QueryOptions{
 			Near:     c.near,
 			NodeMeta: c.nodeMeta,
+			Filter:   c.filter,
 		})
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error listing nodes: %s", err))

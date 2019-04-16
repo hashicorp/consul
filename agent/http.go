@@ -878,6 +878,7 @@ func (s *HTTPServer) parseMetaFilter(req *http.Request) map[string]string {
 func (s *HTTPServer) parseInternal(resp http.ResponseWriter, req *http.Request, dc *string, b *structs.QueryOptions, resolveProxyToken bool) bool {
 	s.parseDC(req, dc)
 	s.parseTokenInternal(req, &b.Token, resolveProxyToken)
+	s.parseFilter(req, &b.Filter)
 	if s.parseConsistency(resp, req, b) {
 		return true
 	}
@@ -922,4 +923,10 @@ func (s *HTTPServer) checkWriteAccess(req *http.Request) error {
 	}
 
 	return ForbiddenError{}
+}
+
+func (s *HTTPServer) parseFilter(req *http.Request, filter *string) {
+	if other := req.URL.Query().Get("filter"); other != "" {
+		*filter = other
+	}
 }

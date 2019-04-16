@@ -38,6 +38,11 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | -------------- |
 | `NO`             | `none`            | `none`        | `service:read` |
 
+### Parameters
+
+- `filter` `(string: "")` - Specifies the expression used to filter the
+  queries results prior to returning the data.
+
 ### Sample Request
 
 ```text
@@ -66,6 +71,38 @@ $ curl \
   }
 }
 ```
+
+### Filtering
+
+The filter is executed against each value in the service mapping with the
+following selectors and filter operations being supported:
+
+| Selector                               | Supported Operations               |
+| -------------------------------------- | ---------------------------------- |
+| `Address`                              | Equal, Not Equal                   |
+| `Connect.Native`                       | Equal, Not Equal                   |
+| `EnableTagOverride`                    | Equal, Not Equal                   |
+| `ID`                                   | Equal, Not Equal                   |
+| `Kind`                                 | Equal, Not Equal                   |
+| `Meta`                                 | In, Not In, Is Empty, Is Not Empty |
+| `Meta.<any>`                           | Equal, Not Equal                   |
+| `Port`                                 | Equal, Not Equal                   |
+| `Proxy.DestinationServiceID`           | Equal, Not Equal                   |
+| `Proxy.DestinationServiceName`         | Equal, Not Equal                   |
+| `Proxy.LocalServiceAddress`            | Equal, Not Equal                   |
+| `Proxy.LocalServicePort`               | Equal, Not Equal                   |
+| `Proxy.Upstreams`                      | Is Empty, Is Not Empty             |
+| `Proxy.Upstreams.Datacenter`           | Equal, Not Equal                   |
+| `Proxy.Upstreams.DestinationName`      | Equal, Not Equal                   |
+| `Proxy.Upstreams.DestinationNamespace` | Equal, Not Equal                   |
+| `Proxy.Upstreams.DestinationType`      | Equal, Not Equal                   |
+| `Proxy.Upstreams.LocalBindAddress`     | Equal, Not Equal                   |
+| `Proxy.Upstreams.LocalBindPort`        | Equal, Not Equal                   |
+| `Service`                              | Equal, Not Equal                   |
+| `Tags`                                 | In, Not In, Is Empty, Is Not Empty |
+| `Weights.Passing`                      | Equal, Not Equal                   |
+| `Weights.Warning`                      | Equal, Not Equal                   |
+
 
 ## Get Service Configuration
 

@@ -7,9 +7,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
 
 	"github.com/hashicorp/consul/testrpc"
@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUiIndex(t *testing.T) {
@@ -102,6 +103,48 @@ func TestUiNodes(t *testing.T) {
 	}
 }
 
+func TestUiNodes_Filter(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "test",
+		Address:    "127.0.0.1",
+		NodeMeta: map[string]string{
+			"os": "linux",
+		},
+	}
+
+	var out struct{}
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+	args = &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "test2",
+		Address:    "127.0.0.1",
+		NodeMeta: map[string]string{
+			"os": "macos",
+		},
+	}
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+	req, _ := http.NewRequest("GET", "/v1/internal/ui/nodes/dc1?filter="+url.QueryEscape("Meta.os == linux"), nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.UINodes(resp, req)
+	require.NoError(t, err)
+	assertIndex(t, resp)
+
+	// Should be 2 nodes, and all the empty lists should be non-nil
+	nodes := obj.(structs.NodeDump)
+	require.Len(t, nodes, 1)
+	require.Equal(t, nodes[0].Node, "test")
+	require.Empty(t, nodes[0].Services)
+	require.Empty(t, nodes[0].Checks)
+}
+
 func TestUiNodeInfo(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")
@@ -152,113 +195,207 @@ func TestUiNodeInfo(t *testing.T) {
 	}
 }
 
-func TestSummarizeServices(t *testing.T) {
+func TestUiServices(t *testing.T) {
 	t.Parallel()
-	dump := structs.NodeDump{
-		&structs.NodeInfo{
-			Node:    "foo",
-			Address: "127.0.0.1",
-			Services: []*structs.NodeService{
-				&structs.NodeService{
-					Kind:    structs.ServiceKindTypical,
-					Service: "api",
-					Tags:    []string{"tag1", "tag2"},
-				},
-				&structs.NodeService{
-					Kind:    structs.ServiceKindConnectProxy,
-					Service: "web",
-					Tags:    []string{},
-					Meta:    map[string]string{metaExternalSource: "k8s"},
-				},
-			},
-			Checks: []*structs.HealthCheck{
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	requests := []*structs.RegisterRequest{
+		// register foo node
+		&structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Checks: structs.HealthChecks{
 				&structs.HealthCheck{
-					Status:      api.HealthPassing,
-					ServiceName: "",
-				},
-				&structs.HealthCheck{
-					Status:      api.HealthPassing,
-					ServiceName: "web",
-				},
-				&structs.HealthCheck{
-					Status:      api.HealthWarning,
-					ServiceName: "api",
+					Node:   "foo",
+					Name:   "node check",
+					Status: api.HealthPassing,
 				},
 			},
 		},
-		&structs.NodeInfo{
-			Node:    "bar",
-			Address: "127.0.0.2",
-			Services: []*structs.NodeService{
-				&structs.NodeService{
-					Kind:    structs.ServiceKindConnectProxy,
-					Service: "web",
-					Tags:    []string{},
-					Meta:    map[string]string{metaExternalSource: "k8s"},
+		//register api service on node foo
+		&structs.RegisterRequest{
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				Service: "api",
+				Tags:    []string{"tag1", "tag2"},
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "foo",
+					Name:        "api svc check",
+					ServiceName: "api",
+					Status:      api.HealthWarning,
+				},
+			},
+		},
+		// register web svc on node foo
+		&structs.RegisterRequest{
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				Service: "web",
+				Tags:    []string{},
+				Meta:    map[string]string{metaExternalSource: "k8s"},
+				Port:    1234,
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "api",
+				},
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "foo",
+					Name:        "web svc check",
+					ServiceName: "web",
+					Status:      api.HealthPassing,
+				},
+			},
+		},
+		// register bar node with service web
+		&structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Address:    "127.0.0.2",
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				Service: "web",
+				Tags:    []string{},
+				Meta:    map[string]string{metaExternalSource: "k8s"},
+				Port:    1234,
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "api",
 				},
 			},
 			Checks: []*structs.HealthCheck{
 				&structs.HealthCheck{
+					Node:        "bar",
+					Name:        "web svc check",
 					Status:      api.HealthCritical,
 					ServiceName: "web",
 				},
 			},
 		},
-		&structs.NodeInfo{
-			Node:    "zip",
-			Address: "127.0.0.3",
-			Services: []*structs.NodeService{
-				&structs.NodeService{
-					Service: "cache",
-					Tags:    []string{},
-				},
+		// register zip node with service cache
+		&structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "zip",
+			Address:    "127.0.0.3",
+			Service: &structs.NodeService{
+				Service: "cache",
+				Tags:    []string{},
 			},
 		},
 	}
 
-	summary := summarizeServices(dump)
-	if len(summary) != 3 {
-		t.Fatalf("bad: %v", summary)
+	for _, args := range requests {
+		var out struct{}
+		require.NoError(t, a.RPC("Catalog.Register", args, &out))
 	}
 
-	expectAPI := &ServiceSummary{
-		Kind:           structs.ServiceKindTypical,
-		Name:           "api",
-		Tags:           []string{"tag1", "tag2"},
-		Nodes:          []string{"foo"},
-		ChecksPassing:  1,
-		ChecksWarning:  1,
-		ChecksCritical: 0,
-	}
-	if !reflect.DeepEqual(summary[0], expectAPI) {
-		t.Fatalf("bad: %v", summary[0])
-	}
+	t.Run("No Filter", func(t *testing.T) {
+		t.Parallel()
+		req, _ := http.NewRequest("GET", "/v1/internal/ui/services/dc1", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.UIServices(resp, req)
+		require.NoError(t, err)
+		assertIndex(t, resp)
 
-	expectCache := &ServiceSummary{
-		Kind:           structs.ServiceKindTypical,
-		Name:           "cache",
-		Tags:           []string{},
-		Nodes:          []string{"zip"},
-		ChecksPassing:  0,
-		ChecksWarning:  0,
-		ChecksCritical: 0,
-	}
-	if !reflect.DeepEqual(summary[1], expectCache) {
-		t.Fatalf("bad: %v", summary[1])
-	}
+		// Should be 2 nodes, and all the empty lists should be non-nil
+		summary := obj.([]*ServiceSummary)
+		require.Len(t, summary, 4)
 
-	expectWeb := &ServiceSummary{
-		Kind:            structs.ServiceKindConnectProxy,
-		Name:            "web",
-		Tags:            []string{},
-		Nodes:           []string{"bar", "foo"},
-		ChecksPassing:   2,
-		ChecksWarning:   0,
-		ChecksCritical:  1,
-		ExternalSources: []string{"k8s"},
-	}
-	summary[2].externalSourceSet = nil
-	if !reflect.DeepEqual(summary[2], expectWeb) {
-		t.Fatalf("bad: %v", summary[2])
-	}
+		// internal accounting that users don't see can be blown away
+		for _, sum := range summary {
+			sum.externalSourceSet = nil
+		}
+
+		expected := []*ServiceSummary{
+			&ServiceSummary{
+				Kind:           structs.ServiceKindTypical,
+				Name:           "api",
+				Tags:           []string{"tag1", "tag2"},
+				Nodes:          []string{"foo"},
+				ChecksPassing:  2,
+				ChecksWarning:  1,
+				ChecksCritical: 0,
+			},
+			&ServiceSummary{
+				Kind:           structs.ServiceKindTypical,
+				Name:           "cache",
+				Tags:           nil,
+				Nodes:          []string{"zip"},
+				ChecksPassing:  0,
+				ChecksWarning:  0,
+				ChecksCritical: 0,
+			},
+			&ServiceSummary{
+				Kind:            structs.ServiceKindConnectProxy,
+				Name:            "web",
+				Tags:            nil,
+				Nodes:           []string{"bar", "foo"},
+				ChecksPassing:   2,
+				ChecksWarning:   1,
+				ChecksCritical:  1,
+				ExternalSources: []string{"k8s"},
+			},
+			&ServiceSummary{
+				Kind:           structs.ServiceKindTypical,
+				Name:           "consul",
+				Tags:           nil,
+				Nodes:          []string{a.Config.NodeName},
+				ChecksPassing:  1,
+				ChecksWarning:  0,
+				ChecksCritical: 0,
+			},
+		}
+		require.ElementsMatch(t, expected, summary)
+	})
+
+	t.Run("Filtered", func(t *testing.T) {
+		filterQuery := url.QueryEscape("Service.Service == web or Service.Service == api")
+		req, _ := http.NewRequest("GET", "/v1/internal/ui/services?filter="+filterQuery, nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.UIServices(resp, req)
+		require.NoError(t, err)
+		assertIndex(t, resp)
+
+		// Should be 2 nodes, and all the empty lists should be non-nil
+		summary := obj.([]*ServiceSummary)
+		require.Len(t, summary, 2)
+
+		// internal accounting that users don't see can be blown away
+		for _, sum := range summary {
+			sum.externalSourceSet = nil
+		}
+
+		expected := []*ServiceSummary{
+			&ServiceSummary{
+				Kind:           structs.ServiceKindTypical,
+				Name:           "api",
+				Tags:           []string{"tag1", "tag2"},
+				Nodes:          []string{"foo"},
+				ChecksPassing:  2,
+				ChecksWarning:  1,
+				ChecksCritical: 0,
+			},
+			&ServiceSummary{
+				Kind:            structs.ServiceKindConnectProxy,
+				Name:            "web",
+				Tags:            nil,
+				Nodes:           []string{"bar", "foo"},
+				ChecksPassing:   2,
+				ChecksWarning:   1,
+				ChecksCritical:  1,
+				ExternalSources: []string{"k8s"},
+			},
+		}
+		require.ElementsMatch(t, expected, summary)
+	})
 }

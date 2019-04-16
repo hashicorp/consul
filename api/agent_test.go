@@ -231,6 +231,42 @@ func TestAPI_AgentServices(t *testing.T) {
 	}
 }
 
+func TestAPI_AgentServicesWithFilter(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	reg := &AgentServiceRegistration{
+		Name: "foo",
+		ID:   "foo",
+		Tags: []string{"bar", "baz"},
+		Port: 8000,
+		Check: &AgentServiceCheck{
+			TTL: "15s",
+		},
+	}
+	require.NoError(t, agent.ServiceRegister(reg))
+
+	reg = &AgentServiceRegistration{
+		Name: "foo",
+		ID:   "foo2",
+		Tags: []string{"foo", "baz"},
+		Port: 8001,
+		Check: &AgentServiceCheck{
+			TTL: "15s",
+		},
+	}
+	require.NoError(t, agent.ServiceRegister(reg))
+
+	services, err := agent.ServicesWithFilter("foo in Tags")
+	require.NoError(t, err)
+	require.Len(t, services, 1)
+	_, ok := services["foo2"]
+	require.True(t, ok)
+}
+
 func TestAPI_AgentServices_ManagedConnectProxy(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
@@ -858,6 +894,31 @@ func TestAPI_AgentChecks(t *testing.T) {
 	if err := agent.CheckDeregister("foo"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+}
+
+func TestAPI_AgentChecksWithFilter(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	reg := &AgentCheckRegistration{
+		Name: "foo",
+	}
+	reg.TTL = "15s"
+	require.NoError(t, agent.CheckRegister(reg))
+	reg = &AgentCheckRegistration{
+		Name: "bar",
+	}
+	reg.TTL = "15s"
+	require.NoError(t, agent.CheckRegister(reg))
+
+	checks, err := agent.ChecksWithFilter("Name == foo")
+	require.NoError(t, err)
+	require.Len(t, checks, 1)
+	_, ok := checks["foo"]
+	require.True(t, ok)
 }
 
 func TestAPI_AgentScriptCheck(t *testing.T) {

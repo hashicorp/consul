@@ -31,6 +31,7 @@ import (
 	"github.com/hashicorp/consul/lib/file"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/types"
+	bexpr "github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/logutils"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
@@ -219,6 +220,9 @@ func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) 
 	var token string
 	s.parseToken(req, &token)
 
+	var filterExpression string
+	s.parseFilter(req, &filterExpression)
+
 	services := s.agent.State.Services()
 	if err := s.agent.filterServices(token, &services); err != nil {
 		return nil, err
@@ -238,7 +242,12 @@ func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) 
 		agentSvcs[id] = &agentService
 	}
 
-	return agentSvcs, nil
+	filter, err := bexpr.CreateFilter(filterExpression, nil, agentSvcs)
+	if err != nil {
+		return nil, err
+	}
+
+	return filter.Execute(agentSvcs)
 }
 
 // GET /v1/agent/service/:service_id
@@ -403,6 +412,13 @@ func (s *HTTPServer) AgentChecks(resp http.ResponseWriter, req *http.Request) (i
 	var token string
 	s.parseToken(req, &token)
 
+	var filterExpression string
+	s.parseFilter(req, &filterExpression)
+	filter, err := bexpr.CreateFilter(filterExpression, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
 	checks := s.agent.State.Checks()
 	if err := s.agent.filterChecks(token, &checks); err != nil {
 		return nil, err
@@ -417,7 +433,7 @@ func (s *HTTPServer) AgentChecks(resp http.ResponseWriter, req *http.Request) (i
 		}
 	}
 
-	return checks, nil
+	return filter.Execute(checks)
 }
 
 func (s *HTTPServer) AgentMembers(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
