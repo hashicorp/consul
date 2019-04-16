@@ -28,8 +28,8 @@ export default Component.extend({
     ];
   }),
   distances: computed('tomography', function() {
-    const tomography = this.get('tomography');
-    let distances = tomography.distances || [];
+    const tomography = get(this, 'tomography');
+    let distances = get(tomography, 'distances') || [];
     distances.forEach((d, i) => {
       if (d.distance > get(this, 'max')) {
         set(this, 'max', d.distance);
@@ -46,7 +46,7 @@ export default Component.extend({
     }
     return distances.map((d, i) => {
       return {
-        rotate: i * 360 / distances.length,
+        rotate: (i * 360) / distances.length,
         y2: -insetSize * (d.distance / get(this, 'max')),
         node: d.node,
         distance: d.distance,
