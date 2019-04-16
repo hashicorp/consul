@@ -312,7 +312,7 @@ considered for security. For a properly production-secured agent with TLS
 and ACLs, this is safe.
 
 Some people prefer to run **Consul agent per pod** architectures, since this
-makes it easy to register the pod as a service easily. However, this turns
+makes it easy to register the pod as a service. However, this turns
 a pod into a "node" in Consul and also causes an explosion of resource usage
 since every pod needs a Consul agent. We recommend instead running an
 agent (in a dedicated pod) per node, via the DaemonSet. This maintains the
