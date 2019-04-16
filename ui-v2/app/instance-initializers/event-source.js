@@ -1,8 +1,7 @@
-import config from '../config/environment';
+import env from 'consul-ui/env';
 
-const enabled = 'CONSUL_UI_DISABLE_REALTIME';
 export function initialize(container) {
-  if (config[enabled] || window.localStorage.getItem(enabled) !== null) {
+  if (env('CONSUL_UI_DISABLE_REALTIME')) {
     return;
   }
   ['node', 'coordinate', 'session', 'service', 'proxy']
