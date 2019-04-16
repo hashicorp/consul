@@ -4,12 +4,43 @@ import Adapter, {
   DATACENTER_QUERY_PARAM as API_DATACENTER_KEY,
 } from './application';
 
+import { get } from '@ember/object';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/role';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 import { OK as HTTP_OK } from 'consul-ui/utils/http/status';
 import { PUT as HTTP_PUT } from 'consul-ui/utils/http/method';
 import minimizeModel from 'consul-ui/utils/minimizeModel';
 
+const createTemplatedPolicies = function(item) {
+  item.ServiceIdentities.forEach(function(identity) {
+    const policy = {
+      Name: identity.ServiceName,
+      template: 'service-identity',
+      Datacenters: identity.Datacenters,
+    };
+    item.Policies.push(policy);
+  });
+  return item;
+};
+const createServiceIdentities = function(item) {
+  item.ServiceIdentities = item.Policies.filter(function(item) {
+    return get(item, 'template') === 'service-identity';
+  }).map(function(item) {
+    return {
+      ServiceName: get(item, 'Name'),
+      Datacenters: get(item, 'Datacenters'),
+    };
+  });
+  item.Policies = item.Policies.filter(function(item) {
+    return get(item, 'template') !== 'service-identity';
+  }).map(function(item) {
+    return {
+      Name: get(item, 'Name'),
+      ID: get(item, 'ID'),
+    };
+  });
+  return item;
+};
 export default Adapter.extend({
   urlForQuery: function(query, modelName) {
     return this.appendURL('acl/roles', [], this.cleanQuery(query));
@@ -54,12 +85,12 @@ export default Adapter.extend({
   },
   handleSingleResponse: function(url, response, primary, slug) {
     // Sometimes we get `Policies: null`, make null equal an empty array
-    ['Policies'].forEach(function(prop) {
+    ['Policies', 'ServiceIdentities'].forEach(function(prop) {
       if (typeof response[prop] === 'undefined' || response[prop] === null) {
         response[prop] = [];
       }
     });
-    return this._super(url, response, primary, slug);
+    return this._super(url, createTemplatedPolicies(response), primary, slug);
   },
   methodForRequest: function(params) {
     switch (params.requestType) {
@@ -73,8 +104,8 @@ export default Adapter.extend({
     switch (params.requestType) {
       case REQUEST_UPDATE:
       case REQUEST_CREATE:
-        data.role.Policies = minimizeModel(data.role.Policies);
-        data = data.role;
+        data = createServiceIdentities(data.role);
+        data.Policies = minimizeModel(data.Policies);
         break;
     }
     return data;

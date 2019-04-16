@@ -110,7 +110,7 @@ export default Adapter.extend({
   },
   handleSingleResponse: function(url, response, primary, slug) {
     // Sometimes we get `Policies: null`, make null equal an empty array
-    ['Policies', 'Roles'].forEach(function(prop) {
+    ['Policies', 'Roles', 'ServiceIdentities'].forEach(function(prop) {
       if (typeof response[prop] === 'undefined' || response[prop] === null) {
         response[prop] = [];
       }
