@@ -1195,9 +1195,9 @@ func TestHealth_RPC_Filter(t *testing.T) {
 
 	t.Run("NodeChecks", func(t *testing.T) {
 		args := structs.NodeSpecificRequest{
-			Datacenter: "dc1",
-			Node:       "foo",
-			Filter:     "ServiceName == redis and v1 in ServiceTags",
+			Datacenter:   "dc1",
+			Node:         "foo",
+			QueryOptions: structs.QueryOptions{Filter: "ServiceName == redis and v1 in ServiceTags"},
 		}
 
 		out := new(structs.IndexedHealthChecks)
@@ -1213,9 +1213,9 @@ func TestHealth_RPC_Filter(t *testing.T) {
 
 	t.Run("ServiceChecks", func(t *testing.T) {
 		args := structs.ServiceSpecificRequest{
-			Datacenter:  "dc1",
-			ServiceName: "redis",
-			Filter:      "Node == foo",
+			Datacenter:   "dc1",
+			ServiceName:  "redis",
+			QueryOptions: structs.QueryOptions{Filter: "Node == foo"},
 		}
 
 		out := new(structs.IndexedHealthChecks)
@@ -1238,9 +1238,9 @@ func TestHealth_RPC_Filter(t *testing.T) {
 
 	t.Run("ServiceNodes", func(t *testing.T) {
 		args := structs.ServiceSpecificRequest{
-			Datacenter:  "dc1",
-			ServiceName: "redis",
-			Filter:      "Service.Meta.version == 2",
+			Datacenter:   "dc1",
+			ServiceName:  "redis",
+			QueryOptions: structs.QueryOptions{Filter: "Service.Meta.version == 2"},
 		}
 
 		out := new(structs.IndexedCheckServiceNodes)
@@ -1263,9 +1263,9 @@ func TestHealth_RPC_Filter(t *testing.T) {
 
 	t.Run("ChecksInState", func(t *testing.T) {
 		args := structs.ChecksInStateRequest{
-			Datacenter: "dc1",
-			State:      api.HealthAny,
-			Filter:     "Node == baz",
+			Datacenter:   "dc1",
+			State:        api.HealthAny,
+			QueryOptions: structs.QueryOptions{Filter: "Node == baz"},
 		}
 
 		out := new(structs.IndexedHealthChecks)

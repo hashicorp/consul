@@ -209,8 +209,8 @@ func TestInternal_NodeDump_Filter(t *testing.T) {
 
 	var out2 structs.IndexedNodeDump
 	req := structs.DCSpecificRequest{
-		Datacenter: "dc1",
-		Filter:     "master in Services.Tags",
+		Datacenter:   "dc1",
+		QueryOptions: structs.QueryOptions{Filter: "master in Services.Tags"},
 	}
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.NodeDump", &req, &out2))
 
@@ -455,8 +455,8 @@ func TestInternal_ServiceDump(t *testing.T) {
 	doRequest := func(t *testing.T, filter string) structs.CheckServiceNodes {
 		t.Helper()
 		args := structs.DCSpecificRequest{
-			Datacenter: "dc1",
-			Filter:     filter,
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Filter: filter},
 		}
 
 		var out structs.IndexedCheckServiceNodes

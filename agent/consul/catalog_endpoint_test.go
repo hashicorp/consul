@@ -943,8 +943,8 @@ func TestCatalog_RPC_Filter(t *testing.T) {
 
 	t.Run("ListNodes", func(t *testing.T) {
 		args := structs.DCSpecificRequest{
-			Datacenter: "dc1",
-			Filter:     "Meta.os == linux",
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Filter: "Meta.os == linux"},
 		}
 
 		out := new(structs.IndexedNodes)
@@ -964,9 +964,9 @@ func TestCatalog_RPC_Filter(t *testing.T) {
 
 	t.Run("ServiceNodes", func(t *testing.T) {
 		args := structs.ServiceSpecificRequest{
-			Datacenter:  "dc1",
-			ServiceName: "redis",
-			Filter:      "ServiceMeta.version == 1",
+			Datacenter:   "dc1",
+			ServiceName:  "redis",
+			QueryOptions: structs.QueryOptions{Filter: "ServiceMeta.version == 1"},
 		}
 
 		out := new(structs.IndexedServiceNodes)
@@ -986,9 +986,9 @@ func TestCatalog_RPC_Filter(t *testing.T) {
 
 	t.Run("NodeServices", func(t *testing.T) {
 		args := structs.NodeSpecificRequest{
-			Datacenter: "dc1",
-			Node:       "baz",
-			Filter:     "Service == web",
+			Datacenter:   "dc1",
+			Node:         "baz",
+			QueryOptions: structs.QueryOptions{Filter: "Service == web"},
 		}
 
 		out := new(structs.IndexedNodeServices)
