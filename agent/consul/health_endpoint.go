@@ -7,6 +7,7 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	bexpr "github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-memdb"
 )
 
@@ -19,6 +20,11 @@ type Health struct {
 func (h *Health) ChecksInState(args *structs.ChecksInStateRequest,
 	reply *structs.IndexedHealthChecks) error {
 	if done, err := h.srv.forward("Health.ChecksInState", args, args, reply); done {
+		return err
+	}
+
+	filter, err := bexpr.CreateFilter(args.Filter, nil, reply.HealthChecks)
+	if err != nil {
 		return err
 	}
 
@@ -41,6 +47,13 @@ func (h *Health) ChecksInState(args *structs.ChecksInStateRequest,
 			if err := h.srv.filterACL(args.Token, reply); err != nil {
 				return err
 			}
+
+			raw, err := filter.Execute(reply.HealthChecks)
+			if err != nil {
+				return err
+			}
+			reply.HealthChecks = raw.(structs.HealthChecks)
+
 			return h.srv.sortNodesByDistanceFrom(args.Source, reply.HealthChecks)
 		})
 }
@@ -49,6 +62,11 @@ func (h *Health) ChecksInState(args *structs.ChecksInStateRequest,
 func (h *Health) NodeChecks(args *structs.NodeSpecificRequest,
 	reply *structs.IndexedHealthChecks) error {
 	if done, err := h.srv.forward("Health.NodeChecks", args, args, reply); done {
+		return err
+	}
+
+	filter, err := bexpr.CreateFilter(args.Filter, nil, reply.HealthChecks)
+	if err != nil {
 		return err
 	}
 
@@ -61,7 +79,16 @@ func (h *Health) NodeChecks(args *structs.NodeSpecificRequest,
 				return err
 			}
 			reply.Index, reply.HealthChecks = index, checks
-			return h.srv.filterACL(args.Token, reply)
+			if err := h.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+
+			raw, err := filter.Execute(reply.HealthChecks)
+			if err != nil {
+				return err
+			}
+			reply.HealthChecks = raw.(structs.HealthChecks)
+			return nil
 		})
 }
 
@@ -75,6 +102,11 @@ func (h *Health) ServiceChecks(args *structs.ServiceSpecificRequest,
 
 	// Potentially forward
 	if done, err := h.srv.forward("Health.ServiceChecks", args, args, reply); done {
+		return err
+	}
+
+	filter, err := bexpr.CreateFilter(args.Filter, nil, reply.HealthChecks)
+	if err != nil {
 		return err
 	}
 
@@ -97,6 +129,13 @@ func (h *Health) ServiceChecks(args *structs.ServiceSpecificRequest,
 			if err := h.srv.filterACL(args.Token, reply); err != nil {
 				return err
 			}
+
+			raw, err := filter.Execute(reply.HealthChecks)
+			if err != nil {
+				return err
+			}
+			reply.HealthChecks = raw.(structs.HealthChecks)
+
 			return h.srv.sortNodesByDistanceFrom(args.Source, reply.HealthChecks)
 		})
 }
@@ -138,7 +177,12 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 		}
 	}
 
-	err := h.srv.blockingQuery(
+	filter, err := bexpr.CreateFilter(args.Filter, nil, reply.Nodes)
+	if err != nil {
+		return err
+	}
+
+	err = h.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
@@ -151,9 +195,17 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 			if len(args.NodeMetaFilters) > 0 {
 				reply.Nodes = nodeMetaFilter(args.NodeMetaFilters, reply.Nodes)
 			}
+
 			if err := h.srv.filterACL(args.Token, reply); err != nil {
 				return err
 			}
+
+			raw, err := filter.Execute(reply.Nodes)
+			if err != nil {
+				return err
+			}
+			reply.Nodes = raw.(structs.CheckServiceNodes)
+
 			return h.srv.sortNodesByDistanceFrom(args.Source, reply.Nodes)
 		})
 

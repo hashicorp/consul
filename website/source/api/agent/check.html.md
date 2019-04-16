@@ -37,6 +37,11 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------------------ |
 | `NO`             | `none`            | `none`        | `node:read,service:read` |
 
+### Parameters
+
+- `filter` `(string: "")` - Specifies the expression used to filter the
+  queries results prior to returning the data.
+
 ### Sample Request
 
 ```text
@@ -61,6 +66,24 @@ $ curl \
   }
 }
 ```
+
+### Filtering
+
+The filter will be executed against each health check value in the results map with
+the following selectors and filter operations being supported:
+
+
+| Selector      | Supported Operations               |
+| ------------- | ---------------------------------- |
+| `CheckID`     | Equal, Not Equal                   |
+| `Name`        | Equal, Not Equal                   |
+| `Node`        | Equal, Not Equal                   |
+| `Notes`       | Equal, Not Equal                   |
+| `Output`      | Equal, Not Equal                   |
+| `ServiceID`   | Equal, Not Equal                   |
+| `ServiceName` | Equal, Not Equal                   |
+| `ServiceTags` | In, Not In, Is Empty, Is Not Empty |
+| `Status`      | Equal, Not Equal                   |
 
 ## Register Check
 

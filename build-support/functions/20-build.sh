@@ -113,58 +113,11 @@ function build_ui {
    # Copy UI over ready to be packaged into the binary
    if test ${ret} -eq 0
    then
-      rm -rf ${1}/pkg/web_ui/v2
+      rm -rf ${1}/pkg/web_ui
       mkdir -p ${1}/pkg/web_ui
-      cp -r ${1}/ui-v2/dist ${1}/pkg/web_ui/v2
+      cp -r ${1}/ui-v2/dist/ ${1}/pkg/web_ui
    fi
 
-   popd > /dev/null
-   return $ret
-}
-
-function build_ui_legacy {
-   # Arguments:
-   #   $1 - Path to the top level Consul source
-   #   $2 - The docker image to run the build within (optional)
-   #
-   # Returns:
-   #   0 - success
-   #   * - error
-
-   if ! test -d "$1"
-   then
-      err "ERROR: '$1' is not a directory. build_ui_legacy must be called with the path to the top level source as the first argument'"
-      return 1
-   fi
-
-   local sdir="$1"
-   local ui_legacy_dir="${sdir}/ui"
-
-   local image_name=${UI_LEGACY_BUILD_CONTAINER_DEFAULT}
-   if test -n "$2"
-   then
-      image_name="$2"
-   fi
-
-   pushd ${ui_legacy_dir} > /dev/null
-   status "Creating the Legacy UI Build Container with image: ${image_name}"
-   rm -r ${sdir}/pkg/web_ui/v1 >/dev/null 2>&1
-   mkdir -p ${sdir}/pkg/web_ui/v1
-   local container_id=$(docker create -it ${image_name})
-   local ret=$?
-   if test $ret -eq 0
-   then
-      status "Copying the source from '${ui_legacy_dir}' to /consul-src/ui within the container"
-      (
-         docker cp . ${container_id}:/consul-src/ui &&
-         status "Running build in container" &&
-         docker start -i ${container_id} &&
-         status "Copying back artifacts" &&
-         docker cp ${container_id}:/consul-src/pkg/web_ui/v1/. ${sdir}/pkg/web_ui/v1
-      )
-      ret=$?
-      docker rm ${container_id} > /dev/null
-   fi
    popd > /dev/null
    return $ret
 }
@@ -301,7 +254,6 @@ function build_consul {
    fi
 
    pushd ${sdir} > /dev/null
-   status "Creating the Go Build Container with image: ${image_name}"
    if is_set "${CONSUL_DEV}"
    then
       if test -z "${XC_OS}"
@@ -322,7 +274,38 @@ function build_consul {
       extra_dir="${extra_dir_name}/"
    fi
 
-   local container_id=$(docker create -it -e CGO_ENABLED=0 ${image_name} gox -os="${XC_OS}" -arch="${XC_ARCH}" -osarch="!darwin/arm !freebsd/arm !darwin/arm64" -ldflags "${GOLDFLAGS}" -output "pkg/bin/${extra_dir}{{.OS}}_{{.Arch}}/consul" -tags="${GOTAGS}")
+   # figure out if the compiler supports modules
+   local use_modules=0
+   if go help modules >/dev/null 2>&1
+   then
+      use_modules=1
+   elif test -n "${GO111MODULE}"
+   then
+      use_modules=1
+   fi
+
+   local volume_mount=
+   if is_set "${use_modules}"
+   then
+      status "Ensuring Go modules are up to date"
+      # ensure our go module cache is correct
+      go_mod_assert || return 1
+      # setup to bind mount our hosts module cache into the container
+      volume_mount="--mount=type=bind,source=${MAIN_GOPATH}/pkg/mod,target=/go/pkg/mod"
+   fi
+
+   status "Creating the Go Build Container with image: ${image_name}"
+   local container_id=$(docker create -it \
+      ${volume_mount} \
+      -e CGO_ENABLED=0 \
+      ${image_name} \
+      gox \
+         -os="${XC_OS}" \
+         -arch="${XC_ARCH}" \
+         -osarch="!darwin/arm !freebsd/arm !darwin/arm64" \
+         -ldflags "${GOLDFLAGS}" \
+         -output "pkg/bin/${extra_dir}{{.OS}}_{{.Arch}}/consul" \
+         -tags="${GOTAGS}")
    ret=$?
 
    if test $ret -eq 0

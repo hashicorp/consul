@@ -1407,6 +1407,114 @@ operator = "write"
 	require.Equal(t, strings.Trim(expected, "\n"), string(output))
 }
 
+func TestRulesTranslate_GH5493(t *testing.T) {
+	input := `
+{
+	"key": {
+		"": {
+			"policy": "read"
+		},
+		"key": {
+			"policy": "read"
+		},
+		"policy": {
+			"policy": "read"
+		},
+		"privatething1/": {
+			"policy": "deny"
+		},
+		"anapplication/private/": {
+			"policy": "deny"
+		},
+		"privatething2/": {
+			"policy": "deny"
+		}
+	},
+	"session": {
+		"": {
+			"policy": "write"
+		}
+	},
+	"node": {
+		"": {
+			"policy": "read"
+		}
+	},
+	"agent": {
+		"": {
+			"policy": "read"
+		}
+	},
+	"service": {
+		"": {
+			"policy": "read"
+		}
+	},
+	"event": {
+		"": {
+			"policy": "read"
+		}
+	},
+	"query": {
+		"": {
+			"policy": "read"
+		}
+	}
+}`
+	expected := `
+key_prefix "" {
+  policy = "read"
+}
+
+key_prefix "key" {
+  policy = "read"
+}
+
+key_prefix "policy" {
+  policy = "read"
+}
+
+key_prefix "privatething1/" {
+  policy = "deny"
+}
+
+key_prefix "anapplication/private/" {
+  policy = "deny"
+}
+
+key_prefix "privatething2/" {
+  policy = "deny"
+}
+
+session_prefix "" {
+  policy = "write"
+}
+
+node_prefix "" {
+  policy = "read"
+}
+
+agent_prefix "" {
+  policy = "read"
+}
+
+service_prefix "" {
+  policy = "read"
+}
+
+event_prefix "" {
+  policy = "read"
+}
+
+query_prefix "" {
+  policy = "read"
+}
+`
+	output, err := TranslateLegacyRules([]byte(input))
+	require.NoError(t, err)
+	require.Equal(t, strings.Trim(expected, "\n"), string(output))
+}
+
 func TestPrecedence(t *testing.T) {
 	type testCase struct {
 		name     string

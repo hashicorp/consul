@@ -42,6 +42,9 @@ The table below shows this endpoint's support for
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter.
 
+- `filter` `(string: "")` - Specifies the expression used to filter the
+  queries results prior to returning the data.
+
 ### Sample Request
 
 ```text
@@ -79,6 +82,23 @@ $ curl \
   }
 ]
 ```
+
+### Filtering
+
+The filter will be executed against each health check in the results list with
+the following selectors and filter operations being supported:
+
+| Selector      | Supported Operations               |
+| ------------- | ---------------------------------- |
+| `CheckID`     | Equal, Not Equal                   |
+| `Name`        | Equal, Not Equal                   |
+| `Node`        | Equal, Not Equal                   |
+| `Notes`       | Equal, Not Equal                   |
+| `Output`      | Equal, Not Equal                   |
+| `ServiceID`   | Equal, Not Equal                   |
+| `ServiceName` | Equal, Not Equal                   |
+| `ServiceTags` | In, Not In, Is Empty, Is Not Empty |
+| `Status`      | Equal, Not Equal                   |
 
 ## List Checks for Service
 
@@ -118,6 +138,9 @@ The table below shows this endpoint's support for
   will filter the results to nodes with the specified key/value pairs. This is
   specified as part of the URL as a query parameter.
 
+- `filter` `(string: "")` - Specifies the expression used to filter the
+  queries results prior to returning the data.
+
 ### Sample Request
 
 ```text
@@ -138,10 +161,28 @@ $ curl \
     "Output": "",
     "ServiceID": "redis",
     "ServiceName": "redis",
-	"ServiceTags": ["primary"]
+	  "ServiceTags": ["primary"]
   }
 ]
 ```
+
+### Filtering
+
+The filter will be executed against each health check in the results list with
+the following selectors and filter operations being supported:
+
+
+| Selector      | Supported Operations               |
+| ------------- | ---------------------------------- |
+| `CheckID`     | Equal, Not Equal                   |
+| `Name`        | Equal, Not Equal                   |
+| `Node`        | Equal, Not Equal                   |
+| `Notes`       | Equal, Not Equal                   |
+| `Output`      | Equal, Not Equal                   |
+| `ServiceID`   | Equal, Not Equal                   |
+| `ServiceName` | Equal, Not Equal                   |
+| `ServiceTags` | In, Not In, Is Empty, Is Not Empty |
+| `Status`      | Equal, Not Equal                   |
 
 ## List Nodes for Service
 
@@ -178,8 +219,8 @@ The table below shows this endpoint's support for
   part of the URL as a query parameter.
 
 - `tag` `(string: "")` - Specifies the tag to filter the list. This is
-  specified as part of the URL as a query parameter. Can be used multiple times 
-  for additional filtering, returning only the results that include all of the tag 
+  specified as part of the URL as a query parameter. Can be used multiple times
+  for additional filtering, returning only the results that include all of the tag
   values provided.
 
 - `node-meta` `(string: "")` - Specifies a desired node metadata key/value pair
@@ -190,6 +231,9 @@ The table below shows this endpoint's support for
 - `passing` `(bool: false)` - Specifies that the server should return only nodes
   with all checks in the `passing` state. This can be used to avoid additional
   filtering on the client side.
+
+- `filter` `(string: "")` - Specifies the expression used to filter the
+  queries results prior to returning the data.
 
 ### Sample Request
 
@@ -240,7 +284,7 @@ $ curl \
         "Output": "",
         "ServiceID": "redis",
         "ServiceName": "redis",
-		"ServiceTags": ["primary"]
+        "ServiceTags": ["primary"]
       },
       {
         "Node": "foobar",
@@ -257,6 +301,55 @@ $ curl \
   }
 ]
 ```
+
+### Filtering
+
+The filter will be executed against each entry in the top level results list with the
+following selectors and filter operations being supported:
+
+| Selector                                       | Supported Operations               |
+| ---------------------------------------------- | ---------------------------------- |
+| `Checks`                                       | Is Empty, Is Not Empty             |
+| `Checks.CheckID`                               | Equal, Not Equal                   |
+| `Checks.Name`                                  | Equal, Not Equal                   |
+| `Checks.Node`                                  | Equal, Not Equal                   |
+| `Checks.Notes`                                 | Equal, Not Equal                   |
+| `Checks.Output`                                | Equal, Not Equal                   |
+| `Checks.ServiceID`                             | Equal, Not Equal                   |
+| `Checks.ServiceName`                           | Equal, Not Equal                   |
+| `Checks.ServiceTags`                           | In, Not In, Is Empty, Is Not Empty |
+| `Checks.Status`                                | Equal, Not Equal                   |
+| `Node.Address`                                 | Equal, Not Equal                   |
+| `Node.Datacenter`                              | Equal, Not Equal                   |
+| `Node.ID`                                      | Equal, Not Equal                   |
+| `Node.Meta`                                    | In, Not In, Is Empty, Is Not Empty |
+| `Node.Meta.<any>`                              | Equal, Not Equal                   |
+| `Node.Node`                                    | Equal, Not Equal                   |
+| `Node.TaggedAddresses`                         | In, Not In, Is Empty, Is Not Empty |
+| `Node.TaggedAddresses.<any>`                   | Equal, Not Equal                   |
+| `Service.Address`                              | Equal, Not Equal                   |
+| `Service.Connect.Native`                       | Equal, Not Equal                   |
+| `Service.EnableTagOverride`                    | Equal, Not Equal                   |
+| `Service.ID`                                   | Equal, Not Equal                   |
+| `Service.Kind`                                 | Equal, Not Equal                   |
+| `Service.Meta`                                 | In, Not In, Is Empty, Is Not Empty |
+| `Service.Meta.<any>`                           | Equal, Not Equal                   |
+| `Service.Port`                                 | Equal, Not Equal                   |
+| `Service.Proxy.DestinationServiceID`           | Equal, Not Equal                   |
+| `Service.Proxy.DestinationServiceName`         | Equal, Not Equal                   |
+| `Service.Proxy.LocalServiceAddress`            | Equal, Not Equal                   |
+| `Service.Proxy.LocalServicePort`               | Equal, Not Equal                   |
+| `Service.Proxy.Upstreams`                      | Is Empty, Is Not Empty             |
+| `Service.Proxy.Upstreams.Datacenter`           | Equal, Not Equal                   |
+| `Service.Proxy.Upstreams.DestinationName`      | Equal, Not Equal                   |
+| `Service.Proxy.Upstreams.DestinationNamespace` | Equal, Not Equal                   |
+| `Service.Proxy.Upstreams.DestinationType`      | Equal, Not Equal                   |
+| `Service.Proxy.Upstreams.LocalBindAddress`     | Equal, Not Equal                   |
+| `Service.Proxy.Upstreams.LocalBindPort`        | Equal, Not Equal                   |
+| `Service.Service`                              | Equal, Not Equal                   |
+| `Service.Tags`                                 | In, Not In, Is Empty, Is Not Empty |
+| `Service.Weights.Passing`                      | Equal, Not Equal                   |
+| `Service.Weights.Warning`                      | Equal, Not Equal                   |
 
 ## List Nodes for Connect-capable Service
 
@@ -311,6 +404,9 @@ The table below shows this endpoint's support for
   will filter the results to nodes with the specified key/value pairs. This is
   specified as part of the URL as a query parameter.
 
+- `filter` `(string: "")` - Specifies the expression used to filter the
+  queries results prior to returning the data.
+
 ### Sample Request
 
 ```text
@@ -346,3 +442,21 @@ $ curl \
   }
 ]
 ```
+
+### Filtering
+
+The filter will be executed against each health check in the results list with
+the following selectors and filter operations being supported:
+
+
+| Selector      | Supported Operations               |
+| ------------- | ---------------------------------- |
+| `CheckID`     | Equal, Not Equal                   |
+| `Name`        | Equal, Not Equal                   |
+| `Node`        | Equal, Not Equal                   |
+| `Notes`       | Equal, Not Equal                   |
+| `Output`      | Equal, Not Equal                   |
+| `ServiceID`   | Equal, Not Equal                   |
+| `ServiceName` | Equal, Not Equal                   |
+| `ServiceTags` | In, Not In, Is Empty, Is Not Empty |
+| `Status`      | Equal, Not Equal                   |

@@ -26,8 +26,8 @@ type MessageType uint8
 // RaftIndex is used to track the index used while creating
 // or modifying a given struct type.
 type RaftIndex struct {
-	CreateIndex uint64
-	ModifyIndex uint64
+	CreateIndex uint64 `bexpr:"-"`
+	ModifyIndex uint64 `bexpr:"-"`
 }
 
 // These are serialized between Consul servers and stored in Consul snapshots,
@@ -164,6 +164,10 @@ type QueryOptions struct {
 	// ignored if the endpoint supports background refresh caching. See
 	// https://www.consul.io/api/index.html#agent-caching for more details.
 	StaleIfError time.Duration
+
+	// Filter specifies the go-bexpr filter expression to be used for
+	// filtering the data prior to returning a response
+	Filter string
 }
 
 // IsRead is always true for QueryOption.
@@ -332,10 +336,13 @@ func (r *DCSpecificRequest) CacheInfo() cache.RequestInfo {
 		MustRevalidate: r.MustRevalidate,
 	}
 
-	// To calculate the cache key we only hash the node filters. The
-	// datacenter is handled by the cache framework. The other fields are
+	// To calculate the cache key we only hash the node meta filters and the bexpr filter.
+	// The datacenter is handled by the cache framework. The other fields are
 	// not, but should not be used in any cache types.
-	v, err := hashstructure.Hash(r.NodeMetaFilters, nil)
+	v, err := hashstructure.Hash([]interface{}{
+		r.NodeMetaFilters,
+		r.Filter,
+	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
 		// no cache for this request so the request is forwarded directly
@@ -406,6 +413,7 @@ func (r *ServiceSpecificRequest) CacheInfo() cache.RequestInfo {
 		r.ServiceAddress,
 		r.TagFilter,
 		r.Connect,
+		r.Filter,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
@@ -444,6 +452,7 @@ func (r *NodeSpecificRequest) CacheInfo() cache.RequestInfo {
 
 	v, err := hashstructure.Hash([]interface{}{
 		r.Node,
+		r.Filter,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
@@ -477,7 +486,7 @@ type Node struct {
 	TaggedAddresses map[string]string
 	Meta            map[string]string
 
-	RaftIndex
+	RaftIndex `bexpr:"-"`
 }
 type Nodes []*Node
 
@@ -580,11 +589,11 @@ type ServiceNode struct {
 	ServicePort              int
 	ServiceEnableTagOverride bool
 	// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
-	ServiceProxyDestination string
+	ServiceProxyDestination string `bexpr:"-"`
 	ServiceProxy            ConnectProxyConfig
 	ServiceConnect          ServiceConnect
 
-	RaftIndex
+	RaftIndex `bexpr:"-"`
 }
 
 // PartialClone() returns a clone of the given service node, minus the node-
@@ -695,7 +704,7 @@ type NodeService struct {
 	// may be a service that isn't present in the catalog. This is expected and
 	// allowed to allow for proxies to come up earlier than their target services.
 	// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
-	ProxyDestination string
+	ProxyDestination string `bexpr:"-"`
 
 	// Proxy is the configuration set for Kind = connect-proxy. It is mandatory in
 	// that case and an error to be set for any other kind. This config is part of
@@ -730,9 +739,9 @@ type NodeService struct {
 	// internal only. Right now our agent endpoints return api structs which don't
 	// include it but this is a safety net incase we change that or there is
 	// somewhere this is used in API output.
-	LocallyRegisteredAsSidecar bool `json:"-"`
+	LocallyRegisteredAsSidecar bool `json:"-" bexpr:"-"`
 
-	RaftIndex
+	RaftIndex `bexpr:"-"`
 }
 
 // ServiceConnect are the shared Connect settings between all service
@@ -744,7 +753,7 @@ type ServiceConnect struct {
 	// Proxy configures a connect proxy instance for the service. This is
 	// only used for agent service definitions and is invalid for non-agent
 	// (catalog API) definitions.
-	Proxy *ServiceDefinitionConnectProxy `json:",omitempty"`
+	Proxy *ServiceDefinitionConnectProxy `json:",omitempty" bexpr:"-"`
 
 	// SidecarService is a nested Service Definition to register at the same time.
 	// It's purely a convenience mechanism to allow specifying a sidecar service
@@ -753,7 +762,7 @@ type ServiceConnect struct {
 	// boilerplate needed to register a sidecar service separately, but the end
 	// result is identical to just making a second service registration via any
 	// other means.
-	SidecarService *ServiceDefinition `json:",omitempty"`
+	SidecarService *ServiceDefinition `json:",omitempty" bexpr:"-"`
 }
 
 // Validate validates the node service configuration.
@@ -925,9 +934,9 @@ type HealthCheck struct {
 	ServiceName string        // optional service name
 	ServiceTags []string      // optional service tags
 
-	Definition HealthCheckDefinition
+	Definition HealthCheckDefinition `bexpr:"-"`
 
-	RaftIndex
+	RaftIndex `bexpr:"-"`
 }
 
 type HealthCheckDefinition struct {

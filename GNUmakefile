@@ -43,8 +43,8 @@ endif
 CONSUL_DEV_IMAGE?=consul-dev
 GO_BUILD_TAG?=consul-build-go
 UI_BUILD_TAG?=consul-build-ui
-UI_LEGACY_BUILD_TAG?=consul-build-ui-legacy
 BUILD_CONTAINER_NAME?=consul-builder
+CONSUL_IMAGE_VERSION?=latest
 
 DIST_TAG?=1
 DIST_BUILD?=1
@@ -88,7 +88,6 @@ NOGOX?=1
 export NOGOX
 export GO_BUILD_TAG
 export UI_BUILD_TAG
-export UI_LEGACY_BUILD_TAG
 export BUILD_CONTAINER_NAME
 export GIT_COMMIT
 export GIT_DIRTY
@@ -116,8 +115,11 @@ dev: changelogfmt dev-build
 dev-build:
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-local.sh -o $(GOOS) -a $(GOARCH)
 
-dev-docker: go-build-image
-	@docker build -t '$(CONSUL_DEV_IMAGE)' --build-arg 'GIT_COMMIT=$(GIT_COMMIT)' --build-arg 'GIT_DIRTY=$(GIT_DIRTY)' --build-arg 'GIT_DESCRIBE=$(GIT_DESCRIBE)' --build-arg 'CONSUL_BUILD_IMAGE=$(GO_BUILD_TAG)' -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile '$(CURDIR)'
+dev-docker: linux
+	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
+	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
+	@echo "Building Consul Development container - $(CONSUL_DEV_IMAGE)"
+	@docker build $(NOCACHE) $(QUIET) -t '$(CONSUL_DEV_IMAGE)' --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) $(CURDIR)/pkg/bin/linux_amd64 -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile
 
 changelogfmt:
 	@echo "--> Making [GH-xxxx] references clickable..."
@@ -223,7 +225,7 @@ static-assets:
 
 
 # Build the static web ui and build static assets inside a Docker container
-ui: ui-legacy-docker ui-docker static-assets-docker
+ui: ui-docker static-assets-docker
 
 tools:
 	go get -u -v $(GOTOOLS)
@@ -239,7 +241,7 @@ version:
 	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh -r -g
 
 
-docker-images: go-build-image ui-build-image ui-legacy-build-image
+docker-images: go-build-image ui-build-image
 
 go-build-image:
 	@echo "Building Golang build container"
@@ -248,10 +250,6 @@ go-build-image:
 ui-build-image:
 	@echo "Building UI build container"
 	@docker build $(NOCACHE) $(QUIET) -t $(UI_BUILD_TAG) - < build-support/docker/Build-UI.dockerfile
-
-ui-legacy-build-image:
-	@echo "Building Legacy UI build container"
-	@docker build $(NOCACHE) $(QUIET) -t $(UI_LEGACY_BUILD_TAG) - < build-support/docker/Build-UI-Legacy.dockerfile
 
 static-assets-docker: go-build-image
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh static-assets
@@ -262,12 +260,9 @@ consul-docker: go-build-image
 ui-docker: ui-build-image
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh ui
 
-ui-legacy-docker: ui-legacy-build-image
-	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh ui-legacy
-
 proto:
 	protoc agent/connect/ca/plugin/*.proto --gofast_out=plugins=grpc:../../..
 
 .PHONY: all ci bin dev dist cov test test-ci test-internal test-install-deps cover format vet ui static-assets tools
-.PHONY: docker-images go-build-image ui-build-image ui-legacy-build-image static-assets-docker consul-docker ui-docker
-.PHONY: ui-legacy-docker version proto
+.PHONY: docker-images go-build-image ui-build-image static-assets-docker consul-docker ui-docker
+.PHONY: version proto

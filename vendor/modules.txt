@@ -195,6 +195,8 @@ github.com/hashicorp/consul/sdk/testutil/retry
 github.com/hashicorp/consul/sdk/testutil
 # github.com/hashicorp/errwrap v1.0.0
 github.com/hashicorp/errwrap
+# github.com/hashicorp/go-bexpr v0.1.0
+github.com/hashicorp/go-bexpr
 # github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
 github.com/hashicorp/go-checkpoint
 # github.com/hashicorp/go-cleanhttp v0.5.1
@@ -450,7 +452,7 @@ github.com/softlayer/softlayer-go/sl
 github.com/softlayer/softlayer-go/config
 # github.com/spf13/pflag v1.0.3
 github.com/spf13/pflag
-# github.com/stretchr/objx v0.1.0
+# github.com/stretchr/objx v0.1.1
 github.com/stretchr/objx
 # github.com/stretchr/testify v1.3.0
 github.com/stretchr/testify/require

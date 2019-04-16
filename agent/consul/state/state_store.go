@@ -214,14 +214,19 @@ func (s *Store) maxIndex(tables ...string) uint64 {
 // maxIndexTxn is a helper used to retrieve the highest known index
 // amongst a set of tables in the db.
 func maxIndexTxn(tx *memdb.Txn, tables ...string) uint64 {
+	return maxIndexWatchTxn(tx, nil, tables...)
+}
+
+func maxIndexWatchTxn(tx *memdb.Txn, ws memdb.WatchSet, tables ...string) uint64 {
 	var lindex uint64
 	for _, table := range tables {
-		ti, err := tx.First("index", "id", table)
+		ch, ti, err := tx.FirstWatch("index", "id", table)
 		if err != nil {
 			panic(fmt.Sprintf("unknown index: %s err: %s", table, err))
 		}
 		if idx, ok := ti.(*IndexEntry); ok && idx.Value > lindex {
 			lindex = idx.Value
+			ws.Add(ch)
 		}
 	}
 	return lindex

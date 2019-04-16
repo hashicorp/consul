@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"strconv"
 
 	"github.com/hashicorp/consul/sentinel"
 	"github.com/hashicorp/hcl"
 	"github.com/hashicorp/hcl/hcl/ast"
 	hclprinter "github.com/hashicorp/hcl/hcl/printer"
+	"github.com/hashicorp/hcl/hcl/token"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -818,22 +820,36 @@ func TranslateLegacyRules(policyBytes []byte) ([]byte, error) {
 
 	rewritten := ast.Walk(parsed, func(node ast.Node) (ast.Node, bool) {
 		switch n := node.(type) {
-		case *ast.ObjectKey:
-			switch n.Token.Text {
+		case *ast.ObjectItem:
+			if len(n.Keys) < 1 {
+				return node, true
+			}
+
+			txt := n.Keys[0].Token.Text
+			if n.Keys[0].Token.Type == token.STRING {
+				txt, err = strconv.Unquote(txt)
+				if err != nil {
+					return node, true
+				}
+			}
+
+			switch txt {
+			case "policy":
+				n.Keys[0].Token.Text = "policy"
 			case "agent":
-				n.Token.Text = "agent_prefix"
+				n.Keys[0].Token.Text = "agent_prefix"
 			case "key":
-				n.Token.Text = "key_prefix"
+				n.Keys[0].Token.Text = "key_prefix"
 			case "node":
-				n.Token.Text = "node_prefix"
+				n.Keys[0].Token.Text = "node_prefix"
 			case "query":
-				n.Token.Text = "query_prefix"
+				n.Keys[0].Token.Text = "query_prefix"
 			case "service":
-				n.Token.Text = "service_prefix"
+				n.Keys[0].Token.Text = "service_prefix"
 			case "session":
-				n.Token.Text = "session_prefix"
+				n.Keys[0].Token.Text = "session_prefix"
 			case "event":
-				n.Token.Text = "event_prefix"
+				n.Keys[0].Token.Text = "event_prefix"
 			}
 		}
 
