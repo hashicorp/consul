@@ -35,18 +35,19 @@ export default Component.extend({
         set(this, 'max', d.distance);
       }
     });
-    if (tomography.n > 360) {
-      let n = distances.length;
+    let n = get(distances, 'length');
+    if (n > 360) {
       // We have more nodes than we want to show, take a random sampling to keep
       // the number around 360.
-      const sampling = 360 / tomography.n;
+      const sampling = 360 / n;
       distances = distances.filter(function(_, i) {
         return i == 0 || i == n - 1 || Math.random() < sampling;
       });
+      n = get(distances, 'length');
     }
     return distances.map((d, i) => {
       return {
-        rotate: (i * 360) / distances.length,
+        rotate: (i * 360) / n,
         y2: -insetSize * (d.distance / get(this, 'max')),
         node: d.node,
         distance: d.distance,
