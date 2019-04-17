@@ -44,7 +44,6 @@ export default function(distance) {
     }
     return {
       distances: distances,
-      n: distances.length,
       min: parseInt(min * 100) / 100,
       median: parseInt(median * 100) / 100,
       max: parseInt(max * 100) / 100,
