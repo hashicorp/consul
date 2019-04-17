@@ -1,5 +1,5 @@
 /* eslint no-console: "off" */
-export default function(scenario, assert, currentPage) {
+export default function(scenario, assert, find, currentPage) {
   scenario
     .then('I see $property on the $component like yaml\n$yaml', function(
       property,
@@ -77,7 +77,7 @@ export default function(scenario, assert, currentPage) {
           func();
         },
         function(e) {
-          return e.toString().indexOf('Element not found') !== -1;
+          return e.message.startsWith('Element not found');
         },
         `Expected to not see ${property} on ${component}`
       );
@@ -85,10 +85,10 @@ export default function(scenario, assert, currentPage) {
     .then(["I don't see $property"], function(property) {
       assert.throws(
         function() {
-          currentPage()[property]();
+          return currentPage()[property]();
         },
         function(e) {
-          return e.toString().indexOf('Element not found') !== -1;
+          return e.message.startsWith('Element not found');
         },
         `Expected to not see ${property}`
       );

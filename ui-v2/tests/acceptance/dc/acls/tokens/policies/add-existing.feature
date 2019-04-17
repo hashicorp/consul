@@ -23,10 +23,10 @@ Feature: dc / acls / tokens / policies: ACL Token add existing policy
     Then the url should be /datacenter/acls/tokens/key
     And I click "#policies .ember-power-select-trigger"
     And I click ".ember-power-select-option:first-child"
-    And I see 1 policy model
+    And I see 1 policy model on the policies component
     And I click "#policies .ember-power-select-trigger"
     And I click ".ember-power-select-option:nth-child(1)"
-    And I see 2 policy models
+    And I see 2 policy models on the policies component
     Then I fill in with yaml
     ---
       Description: The Description

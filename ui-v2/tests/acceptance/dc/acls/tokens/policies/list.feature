@@ -19,4 +19,4 @@ Feature: dc / acls / tokens / policies: List
       token: key
     ---
     Then the url should be /datacenter/acls/tokens/key
-    Then I see 3 policy models
+    Then I see 3 policy models on the policies component

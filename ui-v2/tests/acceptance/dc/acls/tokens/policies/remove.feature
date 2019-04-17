@@ -15,12 +15,12 @@ Feature: dc / acls / tokens / policies: Remove
       token: key
     ---
     Then the url should be /datacenter/acls/tokens/key
-    And I see 1 policy model
-    And I click expand on the policies
+    And I see 1 policy model on the policies component
+    And I click expand on the policies.selectedOptions
     And the last GET request was made to "/v1/acl/policy/00000000-0000-0000-0000-000000000001?dc=datacenter"
-    And I click delete on the policies
-    And I click confirmDelete on the policies
-    And I see 0 policy models
+    And I click delete on the policies.selectedOptions
+    And I click confirmDelete on the policies.selectedOptions
+    And I see 0 policy models on the policies component
     And I submit
     Then a PUT request is made to "/v1/acl/token/key?dc=datacenter" with the body from yaml
     ---

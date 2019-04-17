@@ -19,4 +19,4 @@ Feature: dc / acls / tokens / roles: List
       token: key
     ---
     Then the url should be /datacenter/acls/tokens/key
-    Then I see 3 role models
+    Then I see 3 role models on the roles component

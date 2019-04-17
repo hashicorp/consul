@@ -15,11 +15,11 @@ Feature: dc / acls / tokens / roles: Remove
       token: key
     ---
     Then the url should be /datacenter/acls/tokens/key
-    And I see 1 role model
-    And I click actions on the roles
-    And I click delete on the roles
-    And I click confirmDelete on the roles
-    And I see 0 role models
+    And I see 1 role model on the roles component
+    And I click actions on the roles.selectedOptions
+    And I click delete on the roles.selectedOptions
+    And I click confirmDelete on the roles.selectedOptions
+    And I see 0 role models on the roles component
     And I submit
     Then a PUT request is made to "/v1/acl/token/key?dc=datacenter" with the body from yaml
     ---

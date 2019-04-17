@@ -19,14 +19,14 @@ Feature: dc / acls / tokens / roles: Add new
       token: key
     ---
     Then the url should be /datacenter/acls/tokens/key
-    And I click newRole
-    Then I fill in the role form with yaml
+    And I click roles.create
+    Then I fill in the roles.form with yaml
     ---
       Name: New-Role
       Description: New Role Description
     ---
   Scenario: Add Policy-less Role
-    And I click submit on the roleForm
+    And I click submit on the roles.form
     Then the last PUT request was made to "/v1/acl/role?dc=datacenter" with the body from yaml
     ---
       Name: New-Role
@@ -46,7 +46,7 @@ Feature: dc / acls / tokens / roles: Add new
   Scenario: Add Role that has an existing Policy
     And I click "#new-role-toggle + div .ember-power-select-trigger"
     And I click ".ember-power-select-option:first-child"
-    And I click submit on the roleForm
+    And I click submit on the roles.form
     Then the last PUT request was made to "/v1/acl/role?dc=datacenter" with the body from yaml
     ---
       Name: New-Role
@@ -67,22 +67,22 @@ Feature: dc / acls / tokens / roles: Add new
     And "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "success" class
   Scenario: Add Role and add a new Policy
-    And I click newPolicy on the roleForm
-    Then I fill in the policy form on the roleForm component with yaml
+    And I click roles.form.policies.create
+    Then I fill in the roles.form.policies.form with yaml
     ---
       Name: New-Policy
       Description: New Policy Description
       Rules: key {}
     ---
     # This next line is actually the popped up policyForm due to the way things currently work
-    And I click submit on the roleForm
+    And I click submit on the roles.form
     Then the last PUT request was made to "/v1/acl/policy?dc=datacenter" with the body from yaml
     ---
       Name: New-Policy
       Description: New Policy Description
       Rules: key {}
     ---
-    And I click submit on the roleForm
+    And I click submit on the roles.form
     Then the last PUT request was made to "/v1/acl/role?dc=datacenter" with the body from yaml
     ---
       Name: New-Role
@@ -103,7 +103,35 @@ Feature: dc / acls / tokens / roles: Add new
     Then the url should be /datacenter/acls/tokens
     And "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "success" class
-@pending:
+  Scenario: Add Role and add a new Service Identity
+    And I click roles.form.policies.create
+    Then I fill in the roles.form.policies.form with yaml
+    ---
+      Name: New-Service-Identity
+    ---
+    And I click "[value='service-identity']"
+    # This next line is actually the popped up policyForm due to the way things currently work
+    And I click submit on the roles.form
+    And I click submit on the roles.form
+    Then the last PUT request was made to "/v1/acl/role?dc=datacenter" with the body from yaml
+    ---
+      Name: New-Role
+      Description: New Role Description
+      ServiceIdentities:
+        - ServiceName: New-Service-Identity
+    ---
+    And I submit
+    # Then a PUT request is made to "/v1/acl/token/key?dc=datacenter" with the body from yaml
+    # ---
+    #   Description: The Description
+    #   Roles:
+    #     - Name: New-Role
+    #       ID: ee52203d-989f-4f7a-ab5a-2bef004164ca-1
+    # ---
+    Then the url should be /datacenter/acls/tokens
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "success" class
+@ignore:
   Scenario: Click the cancel form
     Then ok
     # And I click cancel on the policyForm
