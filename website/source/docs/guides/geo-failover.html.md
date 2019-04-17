@@ -66,7 +66,7 @@ Failover is just another policy choice for a prepared query, it works in the sam
 
 - `Datacenters` `(array<string>: nil)` - Specifies a fixed list of remote datacenters to forward the query to if there are no healthy nodes in the local datacenter. Datacenters are queried in the order given in the list.
 
-The following examples use those fields to implement different geo failover policies methods.
+The following examples use those fields to implement different geo failover methods.
 
 ### Static Policy
 
