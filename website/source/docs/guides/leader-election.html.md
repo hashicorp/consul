@@ -76,7 +76,7 @@ the lock.
 ### Watch the Session 
 
 All instances now remain in an idle waiting state. In this state, they watch for changes
-on "mysql" key. This is because the lock may be released or the instance could fail, etc.
+on the key `service/mysql/leader`. This is because the lock may be released or the instance could fail, etc.
 
 The leader must also watch for changes since its lock may be released by an operator
 or automatically released due to a false positive in the failure detector.
