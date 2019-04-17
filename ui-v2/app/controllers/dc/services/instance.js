@@ -22,6 +22,10 @@ export default Controller.extend(WithEventSource, {
           type: 'warning',
           action: 'update',
         });
+        const proxy = get(this, 'proxy');
+        if (proxy) {
+          proxy.close();
+        }
       }
     }
   }),

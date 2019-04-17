@@ -82,4 +82,7 @@ Feature: dc / services / instances / show: Show Service Instance
     Then the url should be /dc1/services/service-0/service-0-with-id
     And an external edit results in 0 instance models
     And pause until I see the text "deregistered" in "[data-notification]"
+  @ignore
+    Scenario: A Service Instance's proxy blocking query is closed when the instance is deregistered
+    Then ok
 
