@@ -74,4 +74,10 @@ Feature: dc / nodes / show: Show node
     Then the url should be /dc1/nodes/node-0
     And the url "/v1/internal/ui/node/node-0" responds with a 404 status
     And pause until I see the text "no longer exists" in "[data-notification]"
+  @ignore
+    Scenario: The RTT for the node is displayed properly
+    Then ok
+  @ignore
+    Scenario: The RTT for the node displays properly whilst blocking
+    Then ok
 
