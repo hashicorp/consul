@@ -99,7 +99,7 @@ The agent's status directly affects the service discovery results. If an agent i
 
 In addition, the agent also periodically performs a full state sync over TCP which gossips each agent’s understanding of the member list around it (node names, IP addresses, and health status). These operations are expensive relative to the standard gossip protocol mentioned above and are synced at a rate determined by cluster size to keep overhead low. It's typically between 30 seconds and 5 minutes. For more details, refer to [Serf Gossip docs](https://www.serf.io/docs/internals/gossip.html)
 
-In a larger network that spans L2 segments, traffic typically traverses through a firewall and/or a router. ACL or firewall rules must be updated to allow the following ports:
+In a larger network that spans L3 segments, traffic typically traverses through a firewall and/or a router. ACL or firewall rules must be updated to allow the following ports:
 
 | Name          | Port | Flag | Description |
 |---------------|------|------|-------------|
