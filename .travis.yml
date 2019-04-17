@@ -1,25 +1,35 @@
-os:
-  - linux
-  - linux-ppc64le
-
 language: go
 
 go:
   # Please keep this in-sync with the go version we build against in
   # build-support/docker/Build-Go.dockerfile.
   - "1.12.1"
-
+  
+matrix:
+  include:
+    - os: linux # x86_64 queue name
+      env: GOTEST_PKGS="./api"
+    - os: linux # x86_64 queue name
+      env: GOTEST_PKGS="./agent"
+    - os: linux # x86_64 queue name
+      env: GOTEST_PKGS="./agent/consul"
+    - os: linux # x86_64 queue name
+      env: GOTEST_PKGS_EXCLUDE="./api|./agent|./agent/consul"
+    - os: linux-ppc64le # power queue name
+      env: GOTEST_PKGS="./api"
+    - os: linux-ppc64le # power queue name
+      env: GOTEST_PKGS="./agent"
+    - os: linux-ppc64le # power queue name
+      env: GOTEST_PKGS="./agent/consul"
+    - os: linux-ppc64le # power queue name
+      env: GOTEST_PKGS_EXCLUDE="./api|./agent|./agent/consul"
+    
 branches:
   only:
     - master
     - f-acl-ux
 
-matrix:
-  include:
-    - env: GOTEST_PKGS="./api"
-    - env: GOTEST_PKGS="./agent"
-    - env: GOTEST_PKGS="./agent/consul"
-    - env: GOTEST_PKGS_EXCLUDE="./api|./agent|./agent/consul"
+
 
 script:
   - make test-ci
