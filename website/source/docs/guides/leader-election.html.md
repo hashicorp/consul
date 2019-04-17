@@ -65,7 +65,7 @@ communicate with your application (e.g., it could be a JSON object
 that contains the node's name and the application's port).
 
 ```sh
-$ curl -X PUT -d <body> http://localhost:8500/v1/kv/lead?acquire=ca8e74b-6350-7587-addf-a18084928f3c
+$ curl -X PUT -d <body> http://localhost:8500/v1/kv/lead?acquire=4ca8e74b-6350-7587-addf-a18084928f3c
  ```
 
 This will either return `true` or `false`. If `true`, the lock has been acquired and
