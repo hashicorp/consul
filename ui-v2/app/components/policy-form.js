@@ -6,24 +6,26 @@ export default FormComponent.extend({
   repo: service('repository/policy/component'),
   datacenterRepo: service('repository/dc/component'),
   name: 'policy',
+  classNames: ['role-form'],
+
   isScoped: false,
   init: function() {
     this._super(...arguments);
     set(this, 'isScoped', get(this, 'item.Datacenters.length') > 0);
     set(this, 'datacenters', get(this, 'datacenterRepo').findAll());
-    this.templates = {
-      default: {
+    this.templates = [
+      {
         name: 'Policy',
         template: '',
       },
-      'service-identity': {
+      {
         name: 'Service Identity',
         template: 'service-identity',
       },
-    };
+    ];
   },
   actions: {
-    change: function() {
+    change: function(e) {
       try {
         this._super(...arguments);
       } catch (err) {

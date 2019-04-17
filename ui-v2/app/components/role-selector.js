@@ -7,6 +7,7 @@ import { alias } from '@ember/object/computed';
 export default ChildSelectorComponent.extend({
   repo: service('repository/role/component'),
   name: 'role',
+  classNames: ['role-selector'],
   state: 'role',
   init: function() {
     this._super(...arguments);

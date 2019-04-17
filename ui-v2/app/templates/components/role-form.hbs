@@ -15,7 +15,7 @@
     <textarea name="role[Description]" value={{item.Description}} oninput={{action 'change'}}></textarea>
   </label>
 </fieldset>
-<fieldset>
+<fieldset class="policies">
   <h2>Policies</h2>
   {{#yield-slot 'policy' (block-params item)}}
     {{yield}}

@@ -10,6 +10,8 @@ export default ChildSelectorComponent.extend({
   repo: service('repository/policy/component'),
   datacenterRepo: service('repository/dc/component'),
   name: 'policy',
+  classNames: ['policy-selector'],
+
   reset: function(e) {
     this._super(...arguments);
     set(this, 'isScoped', false);
