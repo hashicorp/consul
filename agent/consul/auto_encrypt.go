@@ -28,6 +28,10 @@ func (c *Client) AutoEncrypt(servers []string, port int, token string) (*structs
 	}
 	autoEncryptTLSConfigurator.EnableAutoEncryptModeClientStartup()
 
+	// We don't provide the correct host here, because we don't know any
+	// better at this point. Apart from the domain, we would need the
+	// ClusterID, which we don't have. This is why we go with the domain
+	// the first time. Subsequent CSRs will have the correct Host.
 	id := &connect.SpiffeIDAgent{
 		Host:  strings.TrimSuffix(c.config.Domain, "."),
 		Agent: string(c.config.NodeID),

@@ -355,7 +355,7 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	case *connect.SpiffeIDService:
 		cn = id.Service
 	case *connect.SpiffeIDAgent:
-		cn = fmt.Sprintf("client.TODO")
+		cn = id.Agent
 	default:
 		return "", fmt.Errorf("SPIFFE ID in CSR must be a service ID")
 	}

@@ -71,6 +71,12 @@ const (
 		"but no reason was provided. This is a default message."
 	defaultServiceMaintReason = "Maintenance mode is enabled for this " +
 		"service, but no reason was provided. This is a default message."
+
+	// ID of the roots watch
+	rootsWatchID = "roots"
+
+	// ID of the leaf watch
+	leafWatchID = "leaf"
 )
 
 type configSource int
@@ -417,7 +423,6 @@ func (a *Agent) Start() error {
 			return fmt.Errorf("Failed to start Consul client: %v", err)
 		}
 		a.delegate = client
-
 	}
 
 	// the staggering of the state syncing depends on the cluster size.
@@ -540,11 +545,6 @@ func (a *Agent) Start() error {
 
 	return nil
 }
-
-const (
-	rootsWatchID = "roots"
-	leafWatchID  = "leaf"
-)
 
 func (a *Agent) setupClientAutoEncrypt() error {
 	client := a.delegate.(*consul.Client)
