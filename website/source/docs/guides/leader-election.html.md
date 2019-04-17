@@ -21,18 +21,19 @@ are interested in the leader election used internally by Consul, please refer to
 
 ## Contending Service Instances 
 
-Imagine you have a set of service instances who are attempting to acquire leadership
-for a given service. All service instances that are participating should agree on a given
+Imagine you have a set of MySQL service instances who are attempting to acquire leadership. All service instances that are participating should agree on a given
 key to coordinate. A good pattern is simply:
 
 ```text
 service/<service name>/leader
 ```
 
-Let's abbreviate this pattern as simply as a `<key>` for the rest of this guide.
+This key will be used for all requests to the Consul KV API.
+
+We will use the same, simple pattern for the MySQL services for the remainder of the guide.
 
 ```text
-service/dbservice/leader = lead
+service/mysql/leader
 ```
 
 ### Create a Session 
@@ -41,7 +42,7 @@ The first step is to create a session using the
 [Session HTTP API](/api/session.html#session_create).
 
 ```sh
-$ curl  -X PUT -d '{"Name": "dbservice"}' http://localhost:8500/v1/session/create
+$ curl  -X PUT -d '{"Name": "mysql-session"}' http://localhost:8500/v1/session/create
 ```
 
 This will return a JSON object containing the session ID:
@@ -65,7 +66,7 @@ communicate with your application (e.g., it could be a JSON object
 that contains the node's name and the application's port).
 
 ```sh
-$ curl -X PUT -d <body> http://localhost:8500/v1/kv/lead?acquire=4ca8e74b-6350-7587-addf-a18084928f3c
+$ curl -X PUT -d <body> http://localhost:8500/v1/kv/service/mysql/leader?acquire=4ca8e74b-6350-7587-addf-a18084928f3c
  ```
 
 This will either return `true` or `false`. If `true`, the lock has been acquired and
@@ -75,7 +76,7 @@ the lock.
 ### Watch the Session 
 
 All instances now remain in an idle waiting state. In this state, they watch for changes
-on key `dbservice`. This is because the lock may be released or the instance could fail, etc.
+on "mysql" key. This is because the lock may be released or the instance could fail, etc.
 
 The leader must also watch for changes since its lock may be released by an operator
 or automatically released due to a false positive in the failure detector.
@@ -84,8 +85,8 @@ By default, the session makes use of only the gossip failure detector. That
 is, the session is considered held by a node as long as the default Serf health check
 has not declared the node unhealthy. Additional checks can be specified if desired.
 
-Watching for changes is done via a blocking query against `<key>`. If they ever
-notice that the `Session` of the `<key>` is blank, there is no leader, and then should
+Watching for changes is done via a blocking query against the key. If they ever
+notice that the `Session` of "mysql" is blank, there is no leader, and then should
 retry lock acquisition. Each attempt to acquire the key should be separated by a timed
 wait. This is because Consul may be enforcing a [`lock-delay`](/docs/internals/sessions.html).
 
@@ -95,28 +96,27 @@ If the leader ever wishes to step down voluntarily, this should be done by simpl
 releasing the lock:
 
 ```sh
-$ curl -X PUT http://localhost:8500/v1/kv/dbservice?release=4ca8e74b-6350-7587-addf-a18084928f3c
+$ curl -X PUT http://localhost:8500/v1/kv/service/mysql/leader?release=4ca8e74b-6350-7587-addf-a18084928f3c
 ```
 
 ## Discover the Leader
 
-Another common practice regarding leader election is for non-leader instances may wish to identify the leader for the given set of service instances.
+It is possible to identify the leader of a set of service instances participating in the election process.
 
-As with leader election, all instances that are participating should agree on the key
-being used to coordinate. This key will be referred to as just `key`.
+As with leader election, all instances that are participating should agree on the key being used to coordinate. 
 
 ### Retrieve the Key  
 
-Instances have a very simple role, they simply read the `key` to discover the current leader. If the key has an associated `Session`, then there is a leader.
+Instances have a very simple role, they simply read the Consul KV key to discover the current leader. If the key has an associated `Session`, then there is a leader.
 
 ```sh
-$ curl -X GET http://localhost:8500/v1/kv/dbservice
+$ curl -X GET http://localhost:8500/v1/kv/service/mysql/leader
 [
   {
     "Session": "4ca8e74b-6350-7587-addf-a18084928f3c",
     "Value": "Ym9keQ==",
     "Flags": 0,
-    "Key": "dbservice,
+    "Key": "service/mysql/leader",
     "LockIndex": 1,
     "ModifyIndex": 29,
     "CreateIndex": 29
@@ -143,7 +143,7 @@ $ curl -X GET http://localhost:8500/v1/session/info/4ca8e74b-6350-7587-addf-a180
       "serfHealth"
     ],
     "Node": "consul-primary-bjsiobmvdij6-node-lhe5ihreel7y",
-    "Name": "dbservice",
+    "Name": "mysql-session",
     "ID": "4ca8e74b-6350-7587-addf-a18084928f3c",
     "CreateIndex": 28
   }
