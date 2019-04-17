@@ -38,9 +38,9 @@ $ curl \
     --request POST \
     --data \
 '{
-  "Name": "banking-app",
+  "Name": "payments",
   "Service": {
-    "Service": "banking-app",
+    "Service": "payments",
     "Tags": ["v1.2.3"]
   }
 }' http://127.0.0.1:8500/v1/query
@@ -48,17 +48,17 @@ $ curl \
 {"ID":"fe3b8d40-0ee0-8783-6cc2-ab1aa9bb16c1"}
 ```
 
-This creates a prepared query called "banking-app" that does a lookup for all instances of the "banking-app" service with the tag "v1.2.3". This policy could be used to control which version of a "banking-app" applications should be using in a centralized way. By [updating this prepared query](/api/query.html#update-prepared-query) to look for the tag "v1.2.4" applications could start to find the newer version of the service without having to reconfigure anything.
+This creates a prepared query called "banking-pp" that does a lookup for all instances of the "payments" service with the tag "v1.2.3". This policy could be used to control which version of a "payments" applications should be using in a centralized way. By [updating this prepared query](/api/query.html#update-prepared-query) to look for the tag "v1.2.4" applications could start to find the newer version of the service without having to reconfigure anything.
 
 Applications can make use of this query in two ways. 
 
-1. Since we gave the prepared query a name, they can simply do a DNS lookup for "banking-app.query.consul" instead of "banking-app.service.consul". Now with the prepared query, there's the additional filter policy working behind the scenes that the application doesn't have to know about. 
+1. Since we gave the prepared query a name, they can simply do a DNS lookup for "payments.query.consul" instead of "payments.service.consul". Now with the prepared query, there's the additional filter policy working behind the scenes that the application doesn't have to know about. 
 
 1. Queries can also be executed using the [prepared query execute API](/api/query.html#execute-prepared-query) for applications that integrate with Consul's APIs directly.
 
 ## Failover Policy Types 
 
-Using the techniques in this section you will develop prepared queries with failover policies where simply changing application configurations to look up "banking-app.query.consul" instead of "banking-app.service.consul" via DNS will result in automatic geo failover to the next closest [federated](/docs/guides/datacenters.html) Consul datacenters, in order of increasing network round trip time.
+Using the techniques in this section you will develop prepared queries with failover policies where simply changing application configurations to look up "payments.query.consul" instead of "payments.service.consul" via DNS will result in automatic geo failover to the next closest [federated](/docs/guides/datacenters.html) Consul datacenters, in order of increasing network round trip time.
 
 Failover is just another policy choice for a prepared query, it works in the same manner as the previous example and is similarly transparent to applications. The failover policy is configured using the `Failover` structure, which contains two fields, both of which are optional, and determine what happens if no healthy nodes are available in the local datacenter when the query is executed.
 
@@ -79,9 +79,9 @@ $ curl \
     --request POST \
     --data \
 '{
-  "Name": "banking-app",
+  "Name": "payments",
   "Service": {
-    "Service": "banking-app",
+    "Service": "payments",
     "Tags": ["v1.2.3"],
     "Failover": {
       "Datacenters": ["dc2", "dc3"]
@@ -92,9 +92,9 @@ $ curl \
 {"ID":"fe3b8d40-0ee0-8783-6cc2-ab1aa9bb16c1"}
 ```
 
-When this query is executed, such as with a DNS lookup to "banking-app.query.consul", the following actions will occur:
+When this query is executed, such as with a DNS lookup to "payments.query.consul", the following actions will occur:
 
-1. Consul servers in the local datacenter will attempt to find healthy instances of the "banking-app" service with the required tag.
+1. Consul servers in the local datacenter will attempt to find healthy instances of the "payments" service with the required tag.
 2. If none are available locally, the Consul servers will make an RPC request to the Consul servers in "dc2" to perform the query there.
 3. If none are available in "dc2", then an RPC will be made to the Consul servers in "dc3" to perform the query there.
 4. Finally an error will be returned if none of these datacenters had any instances available.
@@ -112,9 +112,9 @@ $ curl \
     --request POST \
     --data \
 '{
-  "Name": "banking-app",
+  "Name": "payments",
   "Service": {
-    "Service": "banking-app",
+    "Service": "payments",
     "Tags": ["v1.2.3"],
     "Failover": {
       "NearestN": 2
@@ -136,9 +136,9 @@ $ curl \
     --request POST \
     --data \
 '{
-  "Name": "banking-app",
+  "Name": "payments",
   "Service": {
-    "Service": "banking-app",
+    "Service": "payments",
     "Tags": ["v1.2.3"],
     "Failover": {
       "NearestN": 2,
@@ -182,7 +182,7 @@ $ curl \
 
 ~> Note: If multiple queries are registered, the most specific one will be selected, so it's possible to have a template like this as a catch-all, and then apply more specific policies to certain services.
 
-With this one prepared query template in place, simply changing application configurations to look up "banking-app.query.consul" instead of "banking-app.service.consul" via DNS will result in automatic geo failover to the next closest federated Consul datacenters, in order of increasing network round trip time.
+With this one prepared query template in place, simply changing application configurations to look up "payments.query.consul" instead of "payments.service.consul" via DNS will result in automatic geo failover to the next closest federated Consul datacenters, in order of increasing network round trip time.
 
 ## Summary
 
