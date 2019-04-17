@@ -1313,12 +1313,12 @@ default will automatically work with some tooling.
         performance.
 
         By default, Consul will use a lower-performance timing that's suitable
-        for [minimal Consul servers](/docs/guides/performance.html#minimum), currently equivalent
+        for [minimal Consul servers](/docs/install/performance.html#minimum), currently equivalent
         to setting this to a value of 5 (this default may be changed in future versions of Consul,
         depending if the target minimum server profile changes). Setting this to a value of 1 will
         configure Raft to its highest-performance mode, equivalent to the default timing of Consul
-        prior to 0.7, and is recommended for [production Consul servers](/docs/guides/performance.html#production).
-        See the note on [last contact](/docs/guides/performance.html#last-contact) timing for more
+        prior to 0.7, and is recommended for [production Consul servers](/docs/install/performance.html#production).
+        See the note on [last contact](/docs/install/performance.html#last-contact) timing for more
         details on tuning this parameter. The maximum allowed value is 10.
 
     *   <a name="rpc_hold_timeout"></a><a href="#rpc_hold_timeout">`rpc_hold_timeout`</a> - A duration

@@ -43,7 +43,7 @@ or "Burstable CPU".
 
 ~> **NOTE** For large workloads, ensure that the disks support a high number of IOPS to keep up with the rapid Raft log update rate.
 
-For more information on server requirements, review the [server performance](/docs/guides/performance.html) documentation.
+For more information on server requirements, review the [server performance](/docs/install/performance.html) documentation.
 
 ## Infrastructure Diagram
 
@@ -118,5 +118,5 @@ By default agents will only listen for HTTP and DNS traffic on the local interfa
 - Read [Deployment Guide](/docs/guides/deployment-guide.html) to learn
   the steps required to install and configure a single HashiCorp Consul cluster.
 
-- Read [Server Performance](/docs/guides/performance.html) to learn about
+- Read [Server Performance](/docs/install/performance.html) to learn about
   additional configuration that benefits production deployments.
