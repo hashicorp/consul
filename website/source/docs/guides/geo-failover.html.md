@@ -48,7 +48,7 @@ $ curl \
 {"ID":"fe3b8d40-0ee0-8783-6cc2-ab1aa9bb16c1"}
 ```
 
-This creates a prepared query called "banking-pp" that does a lookup for all instances of the "payments" service with the tag "v1.2.3". This policy could be used to control which version of a "payments" applications should be using in a centralized way. By [updating this prepared query](/api/query.html#update-prepared-query) to look for the tag "v1.2.4" applications could start to find the newer version of the service without having to reconfigure anything.
+This creates a prepared query called "payments" that does a lookup for all instances of the "payments" service with the tag "v1.2.3". This policy could be used to control which version of a "payments" applications should be using in a centralized way. By [updating this prepared query](/api/query.html#update-prepared-query) to look for the tag "v1.2.4" applications could start to find the newer version of the service without having to reconfigure anything.
 
 Applications can make use of this query in two ways. 
 
