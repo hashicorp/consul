@@ -24,7 +24,6 @@ require (
 	github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973 // indirect
 	github.com/bitly/go-hostpool v0.0.0-20171023180738-a3a6125de932 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
-	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/cenkalti/backoff v2.1.1+incompatible // indirect
 	github.com/circonus-labs/circonus-gometrics v0.0.0-20161109192337-d17a8420c36e // indirect
 	github.com/circonus-labs/circonusllhist v0.0.0-20161110002650-365d370cc145 // indirect
@@ -74,7 +73,7 @@ require (
 	github.com/hashicorp/mdns v1.0.1 // indirect
 	github.com/hashicorp/memberlist v0.1.3
 	github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69
-	github.com/hashicorp/raft v1.0.1-0.20190409200437-d9fe23f7d472
+	github.com/hashicorp/raft v1.0.1
 	github.com/hashicorp/raft-boltdb v0.0.0-20150201200839-d1e82c1ec3f1
 	github.com/hashicorp/serf v0.8.2
 	github.com/hashicorp/vault v0.10.3
@@ -99,7 +98,7 @@ require (
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/opencontainers/runc v0.1.1 // indirect
 	github.com/ory/dockertest v3.3.4+incompatible // indirect
-	github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c
+	github.com/pascaldekloe/goe v0.1.0
 	github.com/patrickmn/go-cache v0.0.0-20180527043350-9f6ff22cfff8 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v0.0.0-20180328130430-f504d69affe1
@@ -117,7 +116,7 @@ require (
 	golang.org/x/crypto v0.0.0-20181029021203-45a5f77698d3
 	golang.org/x/net v0.0.0-20181201002055-351d144fa1fc
 	golang.org/x/sync v0.0.0-20190227155943-e225da77a7e6
-	golang.org/x/sys v0.0.0-20181026203630-95b1ffbd15a5
+	golang.org/x/sys v0.0.0-20190416152802-12500544f89f
 	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2
 	google.golang.org/grpc v0.0.0-20180920234847-8997b5fa0873
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
@@ -127,3 +126,11 @@ require (
 	k8s.io/api v0.0.0-20190118113203-912cbe2bfef3 // indirect
 	k8s.io/apimachinery v0.0.0-20180904193909-def12e63c512 // indirect
 )
+
+replace github.com/hashicorp/raft => github.com/hashicorp/raft v1.0.2-0.20190417150152-7e6e9aa8891c
+
+replace github.com/hashicorp/raft-boltdb => github.com/hashicorp/raft-boltdb v0.0.0-20190417150303-c014d5248611
+
+replace github.com/hashicorp/memberlist => github.com/hashicorp/memberlist v0.1.4-0.20190417144026-81496871b2b7
+
+replace github.com/hashicorp/serf => github.com/hashicorp/serf v0.8.4-0.20190417145558-a3a0bdaa9e06
