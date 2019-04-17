@@ -1,6 +1,6 @@
 <form>
   {{#policy-form form=form item=item}}
-    {{!don't show type here}}
+    {{!don't show template selection here, i.e. Service Identity}}
     {{block-slot 'template'}}
   {{/policy-form}}
 {{#if (not create) }}
@@ -27,7 +27,7 @@
                   {{/block-slot}}
                   {{#block-slot 'body'}}
                     <p>
-                    This Policy is currently in use. If you choose to delete this Policy, it will be removed from the following <strong>{{items.length}} Tokens</strong>:
+                      This Policy is currently in use. If you choose to delete this Policy, it will be removed from the following <strong>{{items.length}} Tokens</strong>:
                     </p>
                     {{token-list items=items target='_blank'}}
                     <p>

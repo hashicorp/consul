@@ -29,7 +29,6 @@ export default FormComponent.extend({
       } catch (err) {
         const scoped = get(this, 'isScoped');
         const name = err.target.name;
-        const value = err.target.value;
         switch (name) {
           case 'policy[isScoped]':
             if (scoped) {

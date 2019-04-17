@@ -23,8 +23,11 @@ export default RepositoryService.extend({
     return status(obj);
   },
   persist: function(item) {
+    // only if a policy doesn't have a template, save it
+    // right now only ServiceIdentities have templates and
+    // are not saveable themselves (but can be saved to a Role/Token)
     switch (get(item, 'template')) {
-      case 'default':
+      case '':
         return item.save();
     }
     return Promise.resolve(item);
