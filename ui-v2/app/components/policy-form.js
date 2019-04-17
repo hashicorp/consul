@@ -1,6 +1,6 @@
 import FormComponent from './form-component';
 import { inject as service } from '@ember/service';
-import { get, set, computed } from '@ember/object';
+import { get, set } from '@ember/object';
 
 export default FormComponent.extend({
   repo: service('repository/policy/component'),
@@ -40,9 +40,6 @@ export default FormComponent.extend({
               set(this, 'previousDatacenters', null);
             }
             set(this, 'isScoped', !scoped);
-            break;
-          case 'policy[type]':
-            set(this, 'type', value);
             break;
           default:
             this.onerror(err);

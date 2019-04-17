@@ -2,7 +2,9 @@
 <fieldset>
   {{#yield-slot 'template'}}
   {{else}}
-    <h3>Policy or service identity?</h3>
+    <header>
+      Policy or service identity?
+    </header>
     <p>
       A Service Identity is default policy with a configurable service name. This saves you some time and effort you're using Consul for Connect features.
     </p>
@@ -10,7 +12,7 @@
         {{#each-in templates as |name template|}}
             <label>
               <span>{{template.name}}</span>
-                <input type="radio" name="policy[template]" value="{{name}}" checked={{if (eq item.template name) 'checked'}} onchange={{ action 'change' }}/>
+              <input type="radio" name="policy[template]" value={{template.template}} checked={{eq item.template template.template}} onchange={{action 'change'}}/>
             </label>
         {{/each-in}}
     </div>
@@ -27,7 +29,7 @@
     </label>
     <label class="type-text">
         <span>Rules <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
-{{#if (eq item.template 'default') }}
+{{#if (eq item.template '') }}
         {{code-editor syntax='hcl' class=(if item.error.Rules 'error') name='policy[Rules]' value=item.Rules onkeyup=(action 'change' 'policy[Rules]')}}
         {{#if item.error.Rules}}
           <strong>{{item.error.Rules.validation}}</strong>
@@ -63,9 +65,11 @@
       {{/each}}
     </div>
 {{/if}}
+{{#if (eq item.template '') }}
   <label class="type-text">
     <span>Description (Optional)</span>
     <textarea name="policy[Description]" value={{item.Description}} oninput={{action 'change'}}></textarea>
   </label>
+{{/if}}
 </fieldset>
 
