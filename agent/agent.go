@@ -418,21 +418,6 @@ func (a *Agent) Start() error {
 		}
 		a.delegate = client
 
-		if a.config.AutoEncryptTLS {
-			reply, priv, err := client.AutoEncrypt(a.config.StartJoinAddrsLAN, a.config.ServerPort, a.tokens.AgentToken())
-			if err != nil {
-				a.logger.Printf("[DEBUG] AutoEncrypt: request failed: %s", err)
-			} else {
-				err := a.tlsConfigurator.UpdateAutoEncrypt(reply.RootCAs, reply.CertPEM, priv, reply.VerifyServerHostname)
-				if err != nil {
-					a.logger.Printf("[DEBUG] AutoEncrypt: update autoEncrypt failed: %s", err)
-				} else {
-					a.logger.Printf("[DEBUG] AutoEncrypt: upgraded to TLS")
-				}
-				if reply.GossipKey != "" {
-				}
-			}
-		}
 	}
 
 	// the staggering of the state syncing depends on the cluster size.
@@ -448,6 +433,14 @@ func (a *Agent) Start() error {
 	// Register the cache. We do this much later so the delegate is
 	// populated from above.
 	a.registerCache()
+
+	if a.config.AutoEncryptTLS && !a.config.ServerMode {
+		if err := a.setupClientAutoEncrypt(); err != nil {
+			a.logger.Printf("[DEBUG] AutoEncrypt failed: %s", err)
+		} else {
+			a.logger.Printf("[DEBUG] AutoEncrypt: upgraded to TLS")
+		}
+	}
 
 	// Load checks/services/metadata.
 	if err := a.loadServices(c); err != nil {
@@ -545,6 +538,77 @@ func (a *Agent) Start() error {
 	go a.retryJoinLAN()
 	go a.retryJoinWAN()
 
+	return nil
+}
+
+const (
+	rootsWatchID = "roots"
+	leafWatchID  = "leaf"
+)
+
+func (a *Agent) setupClientAutoEncrypt() error {
+	client := a.delegate.(*consul.Client)
+	reply, priv, err := client.AutoEncrypt(a.config.StartJoinAddrsLAN, a.config.ServerPort, a.tokens.AgentToken())
+	if err != nil {
+		return err
+	}
+	err = a.tlsConfigurator.UpdateAutoEncrypt(reply.RootCAs, reply.CertPEM, priv, reply.VerifyServerHostname)
+	if err != nil {
+		return err
+	}
+
+	// setup watches
+	ch := make(chan cache.UpdateEvent, 10)
+	ctx, _ := context.WithCancel(context.Background())
+
+	// Watch for root changes
+	err = a.cache.Notify(ctx, cachetype.ConnectCARootName, &structs.DCSpecificRequest{
+		Datacenter:   a.config.Datacenter,
+		QueryOptions: structs.QueryOptions{Token: a.tokens.AgentToken()},
+	}, rootsWatchID, ch)
+	if err != nil {
+		return err
+	}
+
+	// Watch the leaf cert
+	err = a.cache.Notify(ctx, cachetype.ConnectCALeafName, &cachetype.ConnectCALeafRequest{
+		Datacenter: a.config.Datacenter,
+		Token:      a.tokens.AgentToken(),
+		Agent:      a.config.NodeName,
+	}, leafWatchID, ch)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case u := <-ch:
+				switch u.CorrelationID {
+				case rootsWatchID:
+					roots, ok := u.Result.(*structs.IndexedCARoots)
+					if !ok {
+						err := fmt.Errorf("invalid type for roots response: %T", u.Result)
+						a.logger.Printf("[ERR] %s watch error: %s", u.CorrelationID, err)
+					}
+					pems := []string{}
+					for _, root := range roots.Roots {
+						pems = append(pems, root.RootCert)
+					}
+					a.tlsConfigurator.UpdateAutoEncryptCA(pems)
+				case leafWatchID:
+					leaf, ok := u.Result.(*structs.IssuedCert)
+					if !ok {
+						err := fmt.Errorf("invalid type for leaf response: %T", u.Result)
+						a.logger.Printf("[ERR] %s watch error: %s", u.CorrelationID, err)
+					}
+					a.tlsConfigurator.UpdateAutoEncryptCert(leaf.CertPEM, leaf.PrivateKeyPEM)
+				}
+			}
+		}
+	}()
 	return nil
 }
 
