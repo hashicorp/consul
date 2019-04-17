@@ -20,7 +20,7 @@
       {{/block-slot}}
     {{/role-form}}
 {{else}}
-    {{policy-form data-test-policy-form form=policyForm dc=dc}}
+    {{policy-form data-test-policy-form radioGroupName="role[policy]" form=policyForm dc=dc}}
 {{/if}}
   {{/block-slot}}
   {{#block-slot 'actions' as |close|}}

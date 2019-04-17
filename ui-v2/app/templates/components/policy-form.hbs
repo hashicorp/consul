@@ -9,12 +9,12 @@
       A Service Identity is default policy with a configurable service name. This saves you some time and effort you're using Consul for Connect features.
     </p>
     <div role="radiogroup" class={{if item.error.Type ' has-error'}}>
-        {{#each-in templates as |name template|}}
+        {{#each templates as |template|}}
             <label>
               <span>{{template.name}}</span>
-              <input type="radio" name="policy[template]" value={{template.template}} checked={{eq item.template template.template}} onchange={{action 'change'}}/>
+              <input type="radio" name="{{or radioGroupName 'policy'}}[template]" value={{template.template}} checked={{eq item.template template.template}} onchange={{action (changeset-set item 'template') value='target.value'}}/>
             </label>
-        {{/each-in}}
+        {{/each}}
     </div>
   {{/yield-slot}}
     <label class="type-text{{if item.error.Name ' has-error'}}">
