@@ -42,6 +42,7 @@ h2,
 td:first-child a {
   font-weight: $typo-weight-semibold;
 }
+fieldset > header,
 %form-element > span,
 %toggle label span,
 caption {
@@ -86,6 +87,7 @@ h2,
 body,
 %action-group-action,
 fieldset h2,
+fieldset > header,
 pre code,
 input,
 textarea,
@@ -110,6 +112,7 @@ caption,
 %app-view > div.disabled > div,
 .template-error > div,
 %button,
+fieldset > p,
 %form-element > em,
 %form-element > strong,
 .with-confirmation p,

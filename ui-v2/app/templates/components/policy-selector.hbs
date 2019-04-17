@@ -1,21 +1,3 @@
-{{#modal-dialog data-test-policy-form name="new-policy-toggle"}}
-  {{#block-slot 'header'}}
-    <h2>New Policy</h2>
-  {{/block-slot}}
-  {{#block-slot 'body'}}
-    {{policy-form form=form dc=dc}}
-  {{/block-slot}}
-  {{#block-slot 'actions' as |close|}}
-    <button type="submit" {{action 'save' item items close}} disabled={{if (or item.isSaving item.isPristine item.isInvalid) 'disabled'}}>
-      {{#if item.isSaving }}
-        <div class="progress indeterminate"></div>
-      {{/if}}
-      <span>Create and apply</span>
-    </button>
-    <button type="reset" disabled={{if item.isSaving 'disabled'}} {{action (queue (action close) (action 'reset'))}}>Cancel</button>
-  {{/block-slot}}
-{{/modal-dialog}}
-
 {{#child-selector repo=repo dc=dc name="policy" placeholder="Search for policy" items=items onedit=onedit}}
   {{yield}}
   {{#block-slot 'label'}}
@@ -28,6 +10,25 @@
       <label class="type-dialog" for="new-policy-toggle">
         <span>Create new policy</span>
       </label>
+      {{!TODO: potentially call trigger something else}}
+      {{!the modal has to go here so that if you provide a slot to trigger it doesn't get rendered}}
+      {{#modal-dialog data-test-policy-form name="new-policy-toggle"}}
+        {{#block-slot 'header'}}
+          <h2>New Policy</h2>
+        {{/block-slot}}
+        {{#block-slot 'body'}}
+          {{policy-form form=form dc=dc}}
+        {{/block-slot}}
+        {{#block-slot 'actions' as |close|}}
+          <button type="submit" {{action 'save' item items close}} disabled={{if (or item.isSaving item.isPristine item.isInvalid) 'disabled'}}>
+            {{#if item.isSaving }}
+              <div class="progress indeterminate"></div>
+            {{/if}}
+            <span>Create and apply</span>
+          </button>
+          <button type="reset" disabled={{if item.isSaving 'disabled'}} {{action (queue (action close) (action 'reset'))}}>Cancel</button>
+        {{/block-slot}}
+      {{/modal-dialog}}
     {{/yield-slot}}
   {{/block-slot}}
   {{#block-slot 'option' as |option|}}
