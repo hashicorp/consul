@@ -2,6 +2,7 @@
 
 FEATURES:
 * api: Implement data filtering for some endpoints using a new filtering language. [[GH-5579](https://github.com/hashicorp/consul/pull/5579)]
+* snapshot agent (Consul Enterprise): Added support for saving snapshots to Azure Blob Storage.
 
 IMPROVEMENTS:
 * cli: allow to add ip addresses as Subject Alternative Names when creating certificates with `consul tls cert create` [[GH-5602](https://github.com/hashicorp/consul/pull/5602)]
