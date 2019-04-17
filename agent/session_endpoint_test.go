@@ -385,9 +385,6 @@ func TestSessionTTLRenew(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if obj == nil {
-		t.Fatalf("session '%s' expired", id)
-	}
 	respObj, ok := obj.(structs.Sessions)
 	if !ok {
 		t.Fatalf("should work")
@@ -432,9 +429,6 @@ func TestSessionTTLRenew(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if obj == nil {
-		t.Fatalf("session '%s' expired before renewal", id)
-	}
 	respObj, ok = obj.(structs.Sessions)
 	if !ok {
 		t.Fatalf("session '%s' should have renewed", id)
@@ -452,14 +446,12 @@ func TestSessionTTLRenew(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if obj != nil {
-		respObj, ok = obj.(structs.Sessions)
-		if !ok {
-			t.Fatalf("session '%s' should have destroyed", id)
-		}
-		if len(respObj) != 0 {
-			t.Fatalf("session '%s' should have destroyed", id)
-		}
+	respObj, ok = obj.(structs.Sessions)
+	if !ok {
+		t.Fatalf("session '%s' should have destroyed", id)
+	}
+	if len(respObj) != 0 {
+		t.Fatalf("session '%s' should have destroyed", id)
 	}
 }
 
