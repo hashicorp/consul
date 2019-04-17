@@ -1,6 +1,6 @@
 <form>
   {{role-form form=form item=item dc=dc}}
-{{#if (not create) }}
+{{#if (and (not create) (gt items.length 0))}}
   <h2>Where is this role used?</h2>
   <p>
     We're only able to show information for the primary datacenter and the current datacenter. This list may not show every case where this role is applied.
