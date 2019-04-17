@@ -225,6 +225,7 @@ func (c *Configurator) Update(config Config) error {
 // UpdateAutoEncryptCA updates the autoEncrypt.caPems. This is supposed to be called
 // from the server in order to be able to accept TLS connections with TLS
 // certificates.
+// Or it is being called on the client side when CA changes are detected.
 func (c *Configurator) UpdateAutoEncryptCA(pems []string) error {
 	c.Lock()
 	// order of defers matters because log acquires a RLock()
@@ -242,6 +243,23 @@ func (c *Configurator) UpdateAutoEncryptCA(pems []string) error {
 	}
 	c.autoEncrypt.caPems = pems
 	c.caPool = pool
+	c.version++
+	return nil
+}
+
+// UpdateAutoEncryptCert
+func (c *Configurator) UpdateAutoEncryptCert(pub, priv string) error {
+	// order of defers matters because log acquires a RLock()
+	defer c.log("UpdateAutoEncryptCert")
+	cert, err := tls.X509KeyPair([]byte(pub), []byte(priv))
+	if err != nil {
+		return fmt.Errorf("Failed to load cert/key pair: %v", err)
+	}
+
+	c.Lock()
+	defer c.Unlock()
+
+	c.autoEncrypt.cert = &cert
 	c.version++
 	return nil
 }

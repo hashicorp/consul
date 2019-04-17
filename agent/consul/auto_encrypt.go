@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"net"
 	"net/rpc"
-	"net/url"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/go-msgpack/codec"
@@ -22,20 +22,28 @@ func (c *Client) AutoEncrypt(servers []string, port int, token string) (*structs
 		return errFn(fmt.Errorf("No servers to request AutoEncrypt.Sign"))
 	}
 
-	DNSNames := []string{"client.dc1.consul", "localhost"}
-	IPAddresses := []net.IP{net.ParseIP("127.0.0.1")}
-	uri, err := url.Parse(fmt.Sprintf("spiffe://%s/agent/%s", c.config.NodeName, c.config.NodeID))
-	if err != nil {
-		return errFn(err)
-	}
-
 	autoEncryptTLSConfigurator, err := tlsutil.NewConfigurator(c.tlsConfigurator.Base(), c.logger)
 	if err != nil {
 		return errFn(err)
 	}
 	autoEncryptTLSConfigurator.EnableAutoEncryptModeClientStartup()
 
-	csr, priv, err := tlsutil.GenerateCSR(uri, DNSNames, IPAddresses)
+	id := &connect.SpiffeIDAgent{
+		Host:  strings.TrimSuffix(c.config.Domain, "."),
+		Agent: string(c.config.NodeID),
+	}
+
+	// Create a new private key
+	pk, pkPEM, err := connect.GeneratePrivateKey()
+	if err != nil {
+		return errFn(err)
+	}
+
+	// Create a CSR.
+	csr, err := connect.CreateCSR(id, pk)
+	if err != nil {
+		return errFn(err)
+	}
 
 	reply := structs.SignResponse{}
 	args := structs.CASignRequest{
@@ -116,7 +124,7 @@ func (c *Client) AutoEncrypt(servers []string, port int, token string) (*structs
 			lastError = err
 			continue
 		}
-		return &reply, priv, nil
+		return &reply, pkPEM, nil
 	}
 	return errFn(lastError)
 }
