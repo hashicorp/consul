@@ -501,9 +501,9 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 		return result, errors.New("cluster has no CA bootstrapped yet")
 	}
 
+	// Build the cert uri
 	var id connect.CertURI
 	if req.Service != "" {
-		// Build the service ID
 		id = &connect.SpiffeIDService{
 			Host:       roots.TrustDomain,
 			Datacenter: req.Datacenter,
