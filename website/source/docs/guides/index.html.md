@@ -16,9 +16,10 @@ Tracks include:
 
 - [Getting Started]()
 - [Getting Started with Kubernetes]()
-- [Day 0]()
-- [Day 1 Operations]()
-- [Day 2 Operations]()
+- [Day 1: Deploying Your First Datacenter]()
+- [Day 1: Security and Network Operations]()
+- [Day 1: Kubernetes Operations]()
+- [Day 2: Advanced Operations]()
 - [Development]()
 - [Integrations]()
 - [Kubernetes in Production]()
