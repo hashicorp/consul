@@ -86,7 +86,7 @@ is, the session is considered held by a node as long as the default Serf health 
 has not declared the node unhealthy. Additional checks can be specified if desired.
 
 Watching for changes is done via a blocking query against the key. If they ever
-notice that the `Session` of "mysql" is blank, there is no leader, and then should
+notice that the `Session` field in the response is blank, there is no leader, and then should
 retry lock acquisition. Each attempt to acquire the key should be separated by a timed
 wait. This is because Consul may be enforcing a [`lock-delay`](/docs/internals/sessions.html).
 
