@@ -11,12 +11,15 @@ export default Component.extend(SlotsMixin, WithListeners, {
 
   dom: service('dom'),
   container: service('search'),
+  formContainer: service('form'),
 
   item: alias('form.data'),
 
   init: function() {
     this._super(...arguments);
     this.searchable = get(this, 'container').searchable(get(this, 'name'));
+    this.form = get(this, 'formContainer').form(get(this, 'name'));
+    this.form.clear({ Datacenter: get(this, 'dc') });
   },
   options: computed('items.[]', 'allOptions.[]', function() {
     // It's not massively important here that we are defaulting `items` and
@@ -42,14 +45,13 @@ export default Component.extend(SlotsMixin, WithListeners, {
         this.searchable.search(term);
       });
     },
+    reset: function() {
+      get(this, 'form').clear({ Datacenter: get(this, 'dc') });
+    },
     open: function() {
       if (!get(this, 'allOptions.closed')) {
         set(this, 'allOptions', get(this, 'repo').findAllByDatacenter(get(this, 'dc')));
       }
-    },
-    reset: function() {
-      const event = get(this, 'dom').normalizeEvent(...arguments);
-      set(this, 'form', event.target);
     },
     save: function(item, items, success = function() {}) {
       const repo = get(this, 'repo');
