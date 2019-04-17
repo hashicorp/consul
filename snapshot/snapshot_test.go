@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/raft"
+	"github.com/ugorji/go/codec"
 )
 
 // MockFSM is a simple FSM for testing that simply stores its logs in a slice of

@@ -13,14 +13,18 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/ugorji/go/codec"
 )
 
 // msgpackHandle is a shared handle for encoding/decoding of
 // messages
 var msgpackHandle = &codec.MsgpackHandle{
-	RawToString: true,
-	WriteExt:    true,
+	BasicHandle: codec.BasicHandle{
+		DecodeOptions: codec.DecodeOptions{
+			RawToString: true,
+		},
+	},
+	WriteExt: true,
 }
 
 // decodeMsgPack is used to decode a MsgPack encoded object
