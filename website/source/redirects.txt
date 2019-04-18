@@ -1,3 +1,42 @@
+#
+# REDIRECTS FILE
+#
+# This is a sample redirect file. Redirects allow individual projects to add
+# their own redirect rules in a declarative manner using Fastly edge
+# dictionaries.
+#
+# FORMAT
+#
+# Redirects are in the format. There must be at least one space between the
+# original path and the new path, and there must be exactly two entries per
+# line. Make sure to include the full URL in the redirect even if it resides on
+# the same domain.
+#
+#     /original-path    https://www.consul.io/new-path
+#
+# GLOB MATCHING
+#
+# Because of the way lookup tables work, there is no support for glob matching.
+# Fastly does not provide a way to iterate through the lookup table, so it is
+# not possible to run through the table and find anything that matches. As such
+# URLs must match directly.
+#
+# More complex redirects are possible, but must be added directly to the
+# configuration. Please contact the Engineering Services team for assistance.
+#
+# DELETING
+#
+# Deleting items is not supported at this time. To delete an item, contact the
+# Engineering Services team and they will delete the dictionary item.
+#
+# MISC
+#
+# - Blank lines are ignored
+# - Comments are hash-style
+# - URLs are limited to 256 characters
+# - Items are case-sensitive (please use all lowercase)
+#
+
 # Consul Redirects
 /api.html                                  https://www.consul.io/api/index.html
 /api/acl.html                              https://www.consul.io/api/acl/acl.html
@@ -20,3 +59,8 @@
 /docs/guides/deployment.html                   https://learn.hashicorp.com/consul/advanced/day-1-operations/reference-architecture
 /docs/guides/dns-cache.html                    https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/dns-caching
 /docs/guides/minikube.html                     https://learn.hashicorp.com/consul/getting-started-k8s/minikube
+
+# NOTE: Do not use this redirects file for intro doc links.
+#       A custom VCL (Varnish) configuration in the Fastly web admin has been
+#       used to redirect from `/intro/getting-started/*` to subpaths of
+#       https://learn.hashicorp.com/consul/
