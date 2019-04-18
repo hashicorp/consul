@@ -534,7 +534,9 @@ func (c *Configurator) serverNameOrNodeName() string {
 func (c *Configurator) VerifyServerHostname() bool {
 	c.RLock()
 	defer c.RUnlock()
-	return c.base.VerifyServerHostname || c.autoEncrypt.verifyServerHostname
+	return c.base.VerifyServerHostname ||
+		c.autoEncrypt.verifyServerHostname ||
+		(c.autoEncrypt.mode == AutoEncryptModeClientStartup && c.caPool != nil)
 }
 
 // This function acquires a lock because it writes to the config.
