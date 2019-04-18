@@ -3774,6 +3774,7 @@ func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 	defer os.RemoveAll(dataDir)
 	hcl := `
 		data_dir = "` + dataDir + `"
+                connect = { enabled = false }
 		verify_outgoing = true
 		ca_file = "../test/ca/root.cer"
 		cert_file = "../test/key/ourdomain.cer"
