@@ -99,7 +99,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			wantErr:  false,
 		},
 		{
-			name: "override-stats-sinks",
+			name: "extra-stats-sinks",
 			input: BootstrapConfig{
 				StatsSinksJSON: `{
 					"name": "envoy.custom_exciting_sink",
@@ -109,12 +109,12 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				}`,
 			},
 			wantArgs: BootstrapTplArgs{
-				StatsSinksJSON: `{
+				StatsSinksJSON: `[{
 					"name": "envoy.custom_exciting_sink",
 					"config": {
 						"foo": "bar"
 					}
-				}`,
+				}]`,
 			},
 		},
 		{
@@ -132,6 +132,38 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 								"port_value": 9125
 							}
 						}
+					}
+				}]`,
+			},
+			wantErr: false,
+		},
+		{
+			name: "simple-statsd-sink-plus-extra",
+			input: BootstrapConfig{
+				StatsdURL: "udp://127.0.0.1:9125",
+				StatsSinksJSON: `{
+					"name": "envoy.custom_exciting_sink",
+					"config": {
+						"foo": "bar"
+					}
+				}`,
+			},
+			wantArgs: BootstrapTplArgs{
+				StatsSinksJSON: `[{
+					"name": "envoy.statsd",
+					"config": {
+						"address": {
+							"socket_address": {
+								"address": "127.0.0.1",
+								"port_value": 9125
+							}
+						}
+					}
+				},
+				{
+					"name": "envoy.custom_exciting_sink",
+					"config": {
+						"foo": "bar"
 					}
 				}]`,
 			},

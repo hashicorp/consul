@@ -126,7 +126,8 @@ const bootstrapTemplate = `{
         ]
       }
       {{- if .StaticClustersJSON -}}
-      ,{{ .StaticClustersJSON }}
+      ,
+      {{ .StaticClustersJSON }}
       {{- end }}
     ]{{- if .StaticListenersJSON -}}
     ,
@@ -135,16 +136,16 @@ const bootstrapTemplate = `{
     ]
     {{- end }}
   },
-  {{- if .StatsSinksJSON -}}
+  {{- if .StatsSinksJSON }}
   "stats_sinks": {{ .StatsSinksJSON }},
   {{- end }}
-  {{- if .StatsConfigJSON -}}
+  {{- if .StatsConfigJSON }}
   "stats_config": {{ .StatsConfigJSON }},
   {{- end }}
-  {{- if .StatsFlushInterval -}}
+  {{- if .StatsFlushInterval }}
   "stats_flush_interval": "{{ .StatsFlushInterval }}",
   {{- end }}
-  {{- if .TracingConfigJSON -}}
+  {{- if .TracingConfigJSON }}
   "tracing": {{ .TracingConfigJSON }},
   {{- end }}
   "dynamic_resources": {

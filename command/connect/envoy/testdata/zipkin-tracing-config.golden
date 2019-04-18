@@ -23,11 +23,35 @@
           {
             "socket_address": {
               "address": "127.0.0.1",
-              "port_value": 9999
+              "port_value": 8502
             }
           }
         ]
-      }
+      },
+      {
+					"name": "zipkin",
+					"type": "STRICT_DNS",
+					"connect_timeout": "5s",
+					"load_assignment": {
+						"cluster_name": "zipkin",
+						"endpoints": [
+							{
+								"lb_endpoints": [
+									{
+										"endpoint": {
+											"address": {
+												"socket_address": {
+													"address": "zipkin.service.consul",
+													"port_value": 9411
+												}
+											}
+										}
+									}
+								]
+							}
+						]
+					}
+				}
     ]
   },
   "stats_config": {
@@ -38,6 +62,12 @@
 		}
 			]
 		},
+  "tracing": {
+					"http": {
+						"collector_cluster": "zipkin",
+						"collector_endpoint": "/api/v1/spans"
+					}
+				},
   "dynamic_resources": {
     "lds_config": { "ads": {} },
     "cds_config": { "ads": {} },

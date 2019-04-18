@@ -30,6 +30,14 @@
       }
     ]
   },
+  "stats_config": {
+			"stats_tags": [
+				{
+			"tag_name": "local_cluster",
+			"fixed_value": "test-proxy"
+		}
+			]
+		},
   "dynamic_resources": {
     "lds_config": { "ads": {} },
     "cds_config": { "ads": {} },

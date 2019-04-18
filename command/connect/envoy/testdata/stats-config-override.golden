@@ -23,21 +23,17 @@
           {
             "socket_address": {
               "address": "127.0.0.1",
-              "port_value": 9999
+              "port_value": 8502
             }
           }
         ]
       }
     ]
   },
-  "stats_config": {
-			"stats_tags": [
+  "stats_config": 
 				{
-			"tag_name": "local_cluster",
-			"fixed_value": "test-proxy"
-		}
-			]
-		},
+					"name": "fake_config"
+				},
   "dynamic_resources": {
     "lds_config": { "ads": {} },
     "cds_config": { "ads": {} },

@@ -92,14 +92,18 @@ type BootstrapConfig struct {
 	// See https://www.envoyproxy.io/docs/envoy/v1.9.0/api-v2/api/v2/lds.proto.
 	StaticListenersJSON string `mapstructure:"envoy_extra_static_listeners_json"`
 
-	// StatsSinksJSON is a JSON string containing an array in the right format
-	// to be rendered as the body of the `stats_sinks` field at the top level of
-	// the bootstrap config. It's format may vary based on Envoy version used. See
+	// StatsSinksJSON is a JSON string containing zero or more StatsSink
+	// definititions. They are appended to the `stats_sinks` array at the top
+	// level of the bootstrap config. A single sink should be given as a plain
+	// object, if more than one is to be added, they should be separated by a
+	// comma suitable for direct injection into a JSON array.
+	//
+	// See
 	// https://www.envoyproxy.io/docs/envoy/v1.9.0/api-v2/config/metrics/v2/stats.proto#config-metrics-v2-statssink.
 	//
 	// If this is non-empty then it will override anything configured in
 	// StatsTags.
-	StatsSinksJSON string `mapstructure:"envoy_stats_sinks_json"`
+	StatsSinksJSON string `mapstructure:"envoy_extra_stats_sinks_json"`
 
 	// StatsConfigJSON is a JSON string containing an object in the right format
 	// to be rendered as the body of the `stats_config` field at the top level of
@@ -152,16 +156,10 @@ func (c *BootstrapConfig) GenerateJSON(args *BootstrapTplArgs) ([]byte, error) {
 // arguments and environment and modifies them according to the BootstrapConfig.
 func (c *BootstrapConfig) ConfigureArgs(args *BootstrapTplArgs) error {
 
-	// Override any args based on the config
-	if c.StatsSinksJSON != "" {
-		// StatsSinks overridden explicitly
-		args.StatsSinksJSON = c.StatsSinksJSON
-	} else {
-		// Attempt to setup sink(s) from high-level config. Note the args are passed
-		// by ref and modified in place.
-		if err := c.generateStatsSinks(args); err != nil {
-			return err
-		}
+	// Attempt to setup sink(s) from high-level config. Note the args are passed
+	// by ref and modified in place.
+	if err := c.generateStatsSinks(args); err != nil {
+		return err
 	}
 
 	if c.StatsConfigJSON != "" {
@@ -215,6 +213,9 @@ func (c *BootstrapConfig) generateStatsSinks(args *BootstrapTplArgs) error {
 			return err
 		}
 		stats_sinks = append(stats_sinks, sinkJSON)
+	}
+	if c.StatsSinksJSON != "" {
+		stats_sinks = append(stats_sinks, c.StatsSinksJSON)
 	}
 
 	if len(stats_sinks) > 0 {
