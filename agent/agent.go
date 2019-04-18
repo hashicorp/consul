@@ -243,6 +243,8 @@ type Agent struct {
 	// directly.
 	proxyConfig *proxycfg.Manager
 
+	serviceManager *ServiceManager
+
 	// xdsServer is the Server instance that serves xDS gRPC API.
 	xdsServer *xds.Server
 
@@ -472,6 +474,9 @@ func (a *Agent) Start() error {
 			a.logger.Printf("[ERR] Proxy Config Manager exited: %s", err)
 		}
 	}()
+
+	// Start the service registration manager.
+	a.serviceManager = NewServiceManager(a)
 
 	// Start watching for critical services to deregister, based on their
 	// checks.
@@ -1892,6 +1897,7 @@ func (a *Agent) purgeCheck(checkID types.CheckID) error {
 func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string, source configSource) error {
 	a.stateLock.Lock()
 	defer a.stateLock.Unlock()
+	a.serviceManager.AddService(service, chkTypes, persist, token, source)
 	return a.addServiceLocked(service, chkTypes, persist, token, source)
 }
 
@@ -2055,6 +2061,7 @@ func (a *Agent) cleanupRegistration(serviceIDs []string, checksIDs []types.Check
 func (a *Agent) RemoveService(serviceID string, persist bool) error {
 	a.stateLock.Lock()
 	defer a.stateLock.Unlock()
+	a.serviceManager.RemoveService(serviceID)
 	return a.removeServiceLocked(serviceID, persist)
 }
 
