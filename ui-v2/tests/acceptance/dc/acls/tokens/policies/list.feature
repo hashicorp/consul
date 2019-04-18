@@ -5,6 +5,11 @@ Feature: dc / acls / tokens / policies: List
     And 1 token model from yaml
     ---
       AccessorID: key
+      ServiceIdentities:
+        - ServiceName: Service-Identity
+        - ServiceName: Service-Identity 2
+        - ServiceName: Service-Identity 3
+
       Policies:
         - Name: Policy
           ID: 0000
@@ -19,4 +24,5 @@ Feature: dc / acls / tokens / policies: List
       token: key
     ---
     Then the url should be /datacenter/acls/tokens/key
-    Then I see 3 policy models on the policies component
+    # ServiceIdentities turn into policies
+    Then I see 6 policy models on the policies component

@@ -7,6 +7,7 @@ Feature: dc / acls / tokens / policies: ACL Token add existing policy
       AccessorID: key
       Description: The Description
       Policies: ~
+      ServiceIdentities: ~
     ---
     And 2 policy models from yaml
     ---

@@ -21,7 +21,7 @@
             {{/block-slot}}
             {{#block-slot 'dialog' as |execute cancel message|}}
     {{#if (gt items.length 0)}}
-              {{#modal-dialog onclose=(action cancel)}}
+              {{#modal-dialog data-test-delete-modal onclose=(action cancel)}}
                   {{#block-slot 'header'}}
                       <h2>Policy in Use</h2>
                   {{/block-slot}}

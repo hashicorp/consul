@@ -5,6 +5,7 @@ Feature: dc / acls / tokens / policies: Remove
     And 1 token model from yaml
     ---
       AccessorID: key
+      ServiceIdentities: ~
       Policies:
         - Name: Policy
           ID: 00000000-0000-0000-0000-000000000001

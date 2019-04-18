@@ -7,6 +7,7 @@ Feature: dc / acls / tokens / policies: Add new
       AccessorID: key
       Description: The Description
       Policies: ~
+      ServiceIdentities: ~
     ---
     When I visit the token page for yaml
     ---
@@ -46,13 +47,14 @@ Feature: dc / acls / tokens / policies: Add new
       Name: New-Service-Identity
       Description: New Service Identity Description
     ---
+    And I click serviceIdentity on the policies.form
     And I click submit on the policies.form
     And I submit
     Then a PUT request is made to "/v1/acl/token/key?dc=datacenter" with the body from yaml
     ---
       Description: The Description
       ServiceIdentities:
-        - ServiceName: ServiceIdentities
+        - ServiceName: New-Service-Identity
     ---
     Then the url should be /datacenter/acls/tokens
     And "[data-notification]" has the "notification-update" class

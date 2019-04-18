@@ -9,14 +9,16 @@ import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/token';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 import { OK as HTTP_OK } from 'consul-ui/utils/http/status';
 import { PUT as HTTP_PUT } from 'consul-ui/utils/http/method';
-import minimizeModel from 'consul-ui/utils/minimizeModel';
+
+import WithPolicies from 'consul-ui/mixins/policy/as-many';
+import WithRoles from 'consul-ui/mixins/role/as-many';
 
 import { get } from '@ember/object';
 
 const REQUEST_CLONE = 'cloneRecord';
 const REQUEST_SELF = 'querySelf';
 
-export default Adapter.extend({
+export default Adapter.extend(WithRoles, WithPolicies, {
   store: service('store'),
   cleanQuery: function(_query) {
     const query = this._super(...arguments);
@@ -109,12 +111,6 @@ export default Adapter.extend({
     return this._makeRequest(request);
   },
   handleSingleResponse: function(url, response, primary, slug) {
-    // Sometimes we get `Policies: null`, make null equal an empty array
-    ['Policies', 'Roles', 'ServiceIdentities'].forEach(function(prop) {
-      if (typeof response[prop] === 'undefined' || response[prop] === null) {
-        response[prop] = [];
-      }
-    });
     // Convert an old style update response to a new style
     if (typeof response['ID'] !== 'undefined') {
       const item = get(this, 'store')
@@ -172,8 +168,6 @@ export default Adapter.extend({
         }
       // falls through
       case REQUEST_CREATE:
-        data.token.Policies = minimizeModel(data.token.Policies);
-        data.token.Roles = minimizeModel(data.token.Roles);
         data = data.token;
         break;
       case REQUEST_SELF:
