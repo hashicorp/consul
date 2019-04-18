@@ -510,6 +510,12 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 
 func (s *Server) trackAutoEncryptCARoots() {
 	for {
+		select {
+		case <-s.shutdownCh:
+			s.logger.Printf("[DEBUG] agent: shutting down trackAutoEncryptCARoots because shutdown")
+			return
+		default:
+		}
 		ws := memdb.NewWatchSet()
 		state := s.fsm.State()
 		ws.Add(state.AbandonCh())
