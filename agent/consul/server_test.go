@@ -108,8 +108,6 @@ func testServerConfig(t *testing.T) (string, *Config) {
 			"LeafCertTTL":    "72h",
 		},
 	}
-	config.AutoEncryptTLS = true
-	config.AutoEncryptGossip = true
 
 	return dir, config
 }
