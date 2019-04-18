@@ -29,7 +29,7 @@ health [ADDRESS] {
 * Where `lameduck` will make the process unhealthy then *wait* for **DURATION** before the process
   shuts down.
 
-If you have multiple Server Blocks, *health* should only be enabled in one of them (as it is process
+If you have multiple Server Blocks, *health* can only be enabled in one of them (as it is process
 wide). If you really need multiple endpoints, you must run health endpoints on different ports:
 
 ~~~ corefile
@@ -44,13 +44,15 @@ net {
 }
 ~~~
 
+Doing this is supported but both endponts ":8080" and ":8081" will export the exact same health.
+
 ## Metrics
 
 If monitoring is enabled (via the *prometheus* directive) then the following metric is exported:
 
-* `coredns_health_request_duration_seconds{}` - duration to process a /health query. As this should
-  be a local operation it should be fast. A (large) increases in this duration indicates the
-  CoreDNS process is having trouble keeping up with its query load.
+ *  `coredns_health_request_duration_seconds{}` - duration to process a HTTP query to the local
+    `/health` endpoint. As this a local operation it should be fast. A (large) increase in this
+    duration indicates the CoreDNS process is having trouble keeping up with its query load.
 
 Note that this metric *does not* have a `server` label, because being overloaded is a symptom of
 the running process, *not* a specific server.
