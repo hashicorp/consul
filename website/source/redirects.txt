@@ -67,6 +67,20 @@
 /docs/guides/deployment.html                   https://learn.hashicorp.com/consul/advanced/day-1-operations/reference-architecture
 /docs/guides/dns-cache.html                    https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/dns-caching
 /docs/guides/minikube.html                     https://learn.hashicorp.com/consul/getting-started-k8s/minikube
+/docs/guides/connect-production.html           https://learn.hashicorp.com/consul/
+/docs/guides/connect-envoy.html                https://learn.hashicorp.com/consul/
+/docs/guides/consul-template.html              https://learn.hashicorp.com/consul/
+/docs/guides/consul-aws.html                   https://learn.hashicorp.com/consul/
+/docs/guides/forwarding.html                   https://learn.hashicorp.com/consul/
+/docs/guides/external.html                     https://learn.hashicorp.com/consul/
+/docs/guides/advanced-federation.html          https://learn.hashicorp.com/consul/
+/docs/guides/datacenters.html                  https://learn.hashicorp.com/consul/
+/docs/guides/geo-failover.html                 https://learn.hashicorp.com/consul/
+/docs/guides/leader-election.html              https://learn.hashicorp.com/consul/
+/docs/guides/monitoring-telegraf.html          https://learn.hashicorp.com/consul/
+/docs/guides/network-segments.html             https://learn.hashicorp.com/consul/
+/docs/guides/semaphore.html                    https://learn.hashicorp.com/consul/
+/docs/guides/windows-guide.html                https://learn.hashicorp.com/consul/
 
 # NOTE: Do not use this redirects file for intro doc links.
 #       A custom VCL (Varnish) configuration in the Fastly web admin has been
