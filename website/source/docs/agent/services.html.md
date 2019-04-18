@@ -66,7 +66,8 @@ example shows all possible fields, but note that only a few are required.
     "weights": {
       "passing": 5,
       "warning": 1
-    }
+    },
+    "token": "233b604b-b92e-48c8-a253-5f11514e4b50"
   }
 }
 ```
