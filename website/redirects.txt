@@ -46,21 +46,6 @@
 /docs/agent/acl-system.html               /docs/acl/acl-system.html
 /docs/agent/acl-rules.html                /docs/acl/acl-rules.html
 
-/docs/guides/connect-production.html      
-/docs/guides/connect-envoy.html           
-/docs/guides/consul-template.html         
-/docs/guides/consul-aws.html              https://learn.hashicorp.com/consul/integrations/consul-aws
-/docs/guides/forwarding.html              https://learn.hashicorp.com/consul/day-1-operations/security-networking/forwarding
-/docs/guides/external.html  
-/docs/guides/advanced-federation.html     https://learn.hashicorp.com/consul/day-2-operations/advanced-federation
-/docs/guides/datacenters.html             https://learn.hashicorp.com/consul/day-1-operations/security-networking/datacenters
-/docs/guides/geo-failover.html  
-/docs/guides/leader-election.html  
-/docs/guides/monitoring-telegraf.html     https://learn.hashicorp.com/consul/integrations/telegraf
-/docs/guides/network-segments.html        https://learn.hashicorp.com/consul/day-2-operations/network-segments
-/docs/guides/semaphore.html 
-/docs/guides/windows-guide.html           https://learn.hashicorp.com/consul/day-1-operations/datacenter-deploy/windows
-
 # NOTE: Do not use this redirects file for intro doc links.
 #       A custom VCL (Varnish) configuration in the Fastly web admin has been
 #       used to redirect from `/intro/getting-started/*` to subpaths of
