@@ -114,8 +114,13 @@ type Config struct {
 	// and key).
 	EnableAgentTLSForChecks bool
 
+	// ServerMode controls if this agent acts like a Consul server,
+	// or merely as a client. Servers have more state, take part
+	// in leader election, etc.
 	ServerMode bool
 
+	// AutoEncryptTLS opts the agent into provisioning agent
+	// TLS certificates.
 	AutoEncryptTLS bool
 }
 
