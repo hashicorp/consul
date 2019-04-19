@@ -15,7 +15,7 @@ Guides are step by step command-line walk throughs that demonstrate how to perfo
 Tracks include:
 
 - [Getting Started](https://learn.hashicorp.com/consul/?track=getting-started#getting-started)
-- [Getting Started with Kubernetes]()
+- [Getting Started with Kubernetes](https://learn.hashicorp.com/consul/?track=getting-started-k8s#getting-started-k8s)
 - [Day 1: Deploying Your First Datacenter]()
 - [Day 1: Security and Network Operations]()
 - [Day 1: Kubernetes Operations](https://learn.hashicorp.com/consul/?track=kubernetes#kubernetes)
