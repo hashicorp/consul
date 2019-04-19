@@ -19,7 +19,7 @@ Tracks include:
 - [Day 1: Deploying Your First Datacenter]()
 - [Day 1: Security and Network Operations]()
 - [Day 1: Kubernetes Operations](https://learn.hashicorp.com/consul/?track=kubernetes#kubernetes)
-- [Day 2: Advanced Operations]()
+- [Day 2: Advanced Operations](https://learn.hashicorp.com/consul/?track=day-2-operations#day-2-operations)
 - [Development]()
 - [Integrations]()
 - [Kubernetes in Production]()
