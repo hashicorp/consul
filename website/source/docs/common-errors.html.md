@@ -1,10 +1,7 @@
 ---
 layout: "docs"
 page_title: "Common Error Messages"
-sidebar_current: "docs-guides-common-errors"
-description: |-
-  Error messages you might see while installing and running Consul, and 
-  how to fix them.
+sidebar_current: "docs-common-errors"
 ---
 
 # Common Error Messages
@@ -15,14 +12,16 @@ If you are getting an error message you don't see listed on this page, please co
 
 ## Configuration file errors
 
+### Multiple network interfaces
+
 ```
 Multiple private IPv4 addresses found. Please configure one with 'bind' and/or 'advertise'.
 ```
-Your server has multiple active network interfaces. Consul needs to know which interface to use for local LAN communications. Add the [`bind`][bind] option to your configuration. 
+Your server has multiple active network interfaces. Consul needs to know which interface to use for local LAN communications. Add the [`bind`][bind] option to your configuration.
 
 -> **Tip**: If your server does not have a static IP address, you can use a [go-sockaddr template][go-sockaddr] as the argument to the `bind` option, e.g. `"bind_addr": "{{GetInterfaceIP \"eth0\"}}"`.
 
----
+### Configuration syntax errors
 
 ```
 Error parsing config.hcl: At 1:12: illegal char
@@ -99,7 +98,7 @@ X509: certificate signed by unknown authority
 ```
 Make sure that your Consul clients and servers are using the correct certificates, and that they've been signed by the same CA. The easiest way to do this is to follow [our guide][certificates].
 
-If you generate your own certificates, make sure the server certificates include the special name `server.dc1.consul` in the Subject Alternative Name (SAN) field. (If you change the values of `datacenter` or `domain` in your configuration, update the SAN accordingly.) 
+If you generate your own certificates, make sure the server certificates include the special name `server.dc1.consul` in the Subject Alternative Name (SAN) field. (If you change the values of `datacenter` or `domain` in your configuration, update the SAN accordingly.)
 
 ### HTTP instead of HTTPS
 
@@ -125,7 +124,7 @@ You have installed an Enterprise version of Consul. If you are an Enterprise cus
 
 -> **Note:** Enterprise binaries can be identified on our [download site][releases] by the `+ent` suffix.
 
-  
+
 [troubleshooting]: https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/troubleshooting
 [node_name]: https://www.consul.io/docs/agent/options.html#node_name
 [retry_join]: https://www.consul.io/docs/agent/options.html#retry-join

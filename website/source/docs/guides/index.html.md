@@ -19,13 +19,10 @@ The following guides are available:
 * [Adding/Removing Servers](https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/servers) - This guide covers how to safely add and remove Consul servers from the cluster. This should be done carefully to avoid availability outages.
 
 * [Agent Communication Encryption](https://learn.hashicorp.com/consul/advanced/day-1-operations/agent-encryption) - This guide covers how to encrypt both gossip and RPC communication.
- 
+
 * [Autopilot](https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/autopilot) - This guide covers Autopilot, which provides automatic operator-friendly management of Consul servers.
 
 * [Bootstrapping](/docs/guides/bootstrapping.html) - This guide covers bootstrapping a new datacenter. This covers safely adding the initial Consul servers.
-
-* [Common Error Messages](/docs/guides/common-errors.html) - Describes some error
-messages you might see, and what you can do about them.
 
 * [Connect in Production](/docs/guides/connect-production.html) - This guide describes critical aspects of operating Consul Connect in Production.
 
