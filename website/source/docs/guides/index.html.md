@@ -18,7 +18,7 @@ Tracks include:
 - [Getting Started with Kubernetes]()
 - [Day 1: Deploying Your First Datacenter]()
 - [Day 1: Security and Network Operations]()
-- [Day 1: Kubernetes Operations]()
+- [Day 1: Kubernetes Operations](https://learn.hashicorp.com/consul/?track=kubernetes#kubernetes)
 - [Day 2: Advanced Operations]()
 - [Development]()
 - [Integrations]()
