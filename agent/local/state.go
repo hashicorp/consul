@@ -489,18 +489,7 @@ func (l *State) addCheckLocked(check *structs.HealthCheck, token string) error {
 	}
 
 	// If this is a check for an aliased service, then notify the waiters.
-	if aliases, ok := l.checkAliases[check.ServiceID]; ok && len(aliases) > 0 {
-		for _, notifyCh := range aliases {
-			// Do not block. All notify channels should be buffered to at
-			// least 1 in which case not-blocking does not result in loss
-			// of data because a failed send means a notification is
-			// already queued. This must be called with the lock held.
-			select {
-			case notifyCh <- struct{}{}:
-			default:
-			}
-		}
-	}
+	l.notifyIfAliased(check.ServiceID)
 
 	// hard-set the node name
 	check.Node = l.config.NodeName
@@ -563,18 +552,7 @@ func (l *State) removeCheckLocked(id types.CheckID) error {
 	}
 
 	// If this is a check for an aliased service, then notify the waiters.
-	if aliases, ok := l.checkAliases[c.Check.ServiceID]; ok && len(aliases) > 0 {
-		for _, notifyCh := range aliases {
-			// Do not block. All notify channels should be buffered to at
-			// least 1 in which case not-blocking does not result in loss
-			// of data because a failed send means a notification is
-			// already queued. This must be called with the lock held.
-			select {
-			case notifyCh <- struct{}{}:
-			default:
-			}
-		}
-	}
+	l.notifyIfAliased(c.Check.ServiceID)
 
 	// To remove the check on the server we need the token.
 	// Therefore, we mark the service as deleted and keep the
@@ -644,18 +622,7 @@ func (l *State) UpdateCheck(id types.CheckID, status, output string) {
 	}
 
 	// If this is a check for an aliased service, then notify the waiters.
-	if aliases, ok := l.checkAliases[c.Check.ServiceID]; ok && len(aliases) > 0 {
-		for _, notifyCh := range aliases {
-			// Do not block. All notify channels should be buffered to at
-			// least 1 in which case not-blocking does not result in loss
-			// of data because a failed send means a notification is
-			// already queued. This must be called with the lock held.
-			select {
-			case notifyCh <- struct{}{}:
-			default:
-			}
-		}
-	}
+	l.notifyIfAliased(c.Check.ServiceID)
 
 	// Update status and mark out of sync
 	c.Check.Status = status
@@ -713,6 +680,10 @@ func (l *State) SetCheckState(c *CheckState) {
 
 func (l *State) setCheckStateLocked(c *CheckState) {
 	l.checks[c.Check.CheckID] = c
+
+	// If this is a check for an aliased service, then notify the waiters.
+	l.notifyIfAliased(c.Check.ServiceID)
+
 	l.TriggerSyncChanges()
 }
 
@@ -1500,5 +1471,21 @@ func (l *State) syncNodeInfo() error {
 	default:
 		l.logger.Printf("[WARN] agent: Syncing node info failed. %s", err)
 		return err
+	}
+}
+
+// notifyIfAliased will notify waiters if this is a check for an aliased service
+func (l *State) notifyIfAliased(serviceID string) {
+	if aliases, ok := l.checkAliases[serviceID]; ok && len(aliases) > 0 {
+		for _, notifyCh := range aliases {
+			// Do not block. All notify channels should be buffered to at
+			// least 1 in which case not-blocking does not result in loss
+			// of data because a failed send means a notification is
+			// already queued. This must be called with the lock held.
+			select {
+			case notifyCh <- struct{}{}:
+			default:
+			}
+		}
 	}
 }
