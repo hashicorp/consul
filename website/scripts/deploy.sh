@@ -30,6 +30,12 @@ if ! command -v "s3cmd" >/dev/null 2>&1; then
   exit 1
 fi
 
+# Ensure the proper analytics Segment ID is set
+if [ "$ENV" != "production" ]; then
+  echo "ENV is not set to production for Segment Analytics!"
+  exit 1
+fi
+
 # Get the parent directory of where this script is and cd there
 DIR="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
 
