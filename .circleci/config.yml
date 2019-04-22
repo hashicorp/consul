@@ -195,9 +195,24 @@ jobs:
     steps:
       - checkout:
           path: ~/project
+
       # attach website build directory
       - attach_workspace:
           at: ~/project/website
+
+      # restores gem cache
+      - restore_cache:
+          key: *RUBYGEM_CACHE_KEY
+      # rerun build with 'ENV=production' to add analytics
+      - run:
+          name: install gems
+          command: bundle check || bundle install --path vendor/bundle --retry=3
+
+      # rerun build with 'ENV=production' to add analytics
+      - run:
+          name: middleman build
+          command: bundle exec middleman build
+
       - run:
           name: website deploy
           command: ./scripts/deploy.sh
