@@ -488,6 +488,20 @@ func (l *State) addCheckLocked(check *structs.HealthCheck, token string) error {
 		return fmt.Errorf("Check %q refers to non-existent service %q", check.CheckID, check.ServiceID)
 	}
 
+	// If this is a check for an aliased service, then notify the waiters.
+	if aliases, ok := l.checkAliases[check.ServiceID]; ok && len(aliases) > 0 {
+		for _, notifyCh := range aliases {
+			// Do not block. All notify channels should be buffered to at
+			// least 1 in which case not-blocking does not result in loss
+			// of data because a failed send means a notification is
+			// already queued. This must be called with the lock held.
+			select {
+			case notifyCh <- struct{}{}:
+			default:
+			}
+		}
+	}
+
 	// hard-set the node name
 	check.Node = l.config.NodeName
 
@@ -546,6 +560,20 @@ func (l *State) removeCheckLocked(id types.CheckID) error {
 	c := l.checks[id]
 	if c == nil || c.Deleted {
 		return fmt.Errorf("Check %q does not exist", id)
+	}
+
+	// If this is a check for an aliased service, then notify the waiters.
+	if aliases, ok := l.checkAliases[c.Check.ServiceID]; ok && len(aliases) > 0 {
+		for _, notifyCh := range aliases {
+			// Do not block. All notify channels should be buffered to at
+			// least 1 in which case not-blocking does not result in loss
+			// of data because a failed send means a notification is
+			// already queued. This must be called with the lock held.
+			select {
+			case notifyCh <- struct{}{}:
+			default:
+			}
+		}
 	}
 
 	// To remove the check on the server we need the token.
