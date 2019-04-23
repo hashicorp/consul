@@ -4,7 +4,6 @@ import Adapter, {
   DATACENTER_QUERY_PARAM as API_DATACENTER_KEY,
 } from './application';
 
-import { get } from '@ember/object';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/role';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 import { OK as HTTP_OK } from 'consul-ui/utils/http/status';

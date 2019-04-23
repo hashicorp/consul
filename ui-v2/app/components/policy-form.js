@@ -5,8 +5,9 @@ import { get, set } from '@ember/object';
 export default FormComponent.extend({
   repo: service('repository/policy/component'),
   datacenterRepo: service('repository/dc/component'),
+  type: 'policy',
   name: 'policy',
-  classNames: ['role-form'],
+  classNames: ['policy-form'],
 
   isScoped: false,
   init: function() {
