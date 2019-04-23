@@ -24,7 +24,7 @@ func NewServiceManager(agent *Agent) *ServiceManager {
 	}
 }
 
-func (s *ServiceManager) AddService(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string, source configSource) {
+func (s *ServiceManager) AddService(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string, source configSource) error {
 	s.Lock()
 	defer s.Unlock()
 
@@ -40,17 +40,45 @@ func (s *ServiceManager) AddService(service *structs.NodeService, chkTypes []*st
 	// start a new config watcher.
 	watch, ok := s.services[service.ID]
 	if ok {
-		watch.updateRegistration(&reg)
+		s.agent.logger.Printf("[DEBUG] agent: updating local registration for service %q", service.ID)
+		if err := watch.updateRegistration(&reg); err != nil {
+			return err
+		}
 	} else {
+		// This is a new entry, so get the existing global config and do the initial
+		// registration with the merged config.
+		args := structs.ServiceConfigRequest{
+			Name:         service.Service,
+			Datacenter:   s.agent.config.Datacenter,
+			QueryOptions: structs.QueryOptions{Token: s.agent.config.ACLAgentToken},
+		}
+		if token != "" {
+			args.QueryOptions.Token = token
+		}
+		var resp structs.ServiceConfigResponse
+		if err := s.agent.RPC("ConfigEntry.ResolveServiceConfig", &args, &resp); err != nil {
+			s.agent.logger.Printf("[WARN] agent: could not retrieve central configuration for service %q: %v",
+				service.Service, err)
+		}
+
 		watch := &serviceConfigWatch{
-			registration: &reg,
-			updateCh:     make(chan cache.UpdateEvent, 1),
-			agent:        s.agent,
+			updateCh: make(chan cache.UpdateEvent, 1),
+			agent:    s.agent,
+			config:   &resp.Definition,
+		}
+
+		// Force an update/register immediately.
+		if err := watch.updateRegistration(&reg); err != nil {
+			return err
 		}
 
 		s.services[service.ID] = watch
-		watch.Start()
+		if err := watch.Start(); err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 func (s *ServiceManager) RemoveService(serviceID string) {
@@ -84,7 +112,7 @@ type serviceConfigWatch struct {
 	ctx        context.Context
 	cancelFunc func()
 
-	sync.RWMutex
+	sync.Mutex
 }
 
 func (s *serviceConfigWatch) Start() error {
@@ -103,81 +131,80 @@ func (s *serviceConfigWatch) runWatch() {
 		case <-s.ctx.Done():
 			return
 		case event := <-s.updateCh:
-			s.handleUpdate(event)
+			if err := s.handleUpdate(event, false); err != nil {
+				s.agent.logger.Printf("[ERR] agent: error handling service update: %v", err)
+				continue
+			}
 		}
 	}
 }
 
-func (s *serviceConfigWatch) handleUpdate(event cache.UpdateEvent) {
+func (s *serviceConfigWatch) handleUpdate(event cache.UpdateEvent, locked bool) error {
+	s.Lock()
+	defer s.Unlock()
+
+	if event.Err != nil {
+		return fmt.Errorf("error watching service config: %v", event.Err)
+	}
+
 	switch event.Result.(type) {
-	case serviceRegistration:
-		s.Lock()
+	case *serviceRegistration:
 		s.registration = event.Result.(*serviceRegistration)
-		s.Unlock()
-	case structs.ServiceConfigResponse:
-		s.Lock()
-		s.config = &event.Result.(*structs.ServiceConfigResponse).Definition
-		s.Unlock()
+	case *structs.ServiceConfigResponse:
+		resp := event.Result.(*structs.ServiceConfigResponse)
+		s.config = &resp.Definition
 	default:
-		s.agent.logger.Printf("[ERR] unknown update event type: %T", event)
+		return fmt.Errorf("unknown update event type: %T", event)
 	}
 
 	service := s.mergeServiceConfig()
-	s.agent.logger.Printf("[INFO] updating service registration: %v, %v", service.ID, service.Meta)
-	/*err := s.agent.AddService(service, s.registration.chkTypes, s.registration.persist, s.registration.token, s.registration.source)
+
+	if !locked {
+		s.agent.stateLock.Lock()
+		defer s.agent.stateLock.Unlock()
+	}
+
+	err := s.agent.addServiceInternal(service, s.registration.chkTypes, s.registration.persist, s.registration.token, s.registration.source)
 	if err != nil {
-		s.agent.logger.Printf("[ERR] error updating service registration: %v", err)
-	}*/
+		return fmt.Errorf("error updating service registration: %v", err)
+	}
+
+	return nil
 }
 
 func (s *serviceConfigWatch) startConfigWatch() error {
-	s.RLock()
 	name := s.registration.service.Service
-	s.RUnlock()
 
 	req := &structs.ServiceConfigRequest{
-		Name:       name,
-		Datacenter: s.agent.config.Datacenter,
+		Name:         name,
+		Datacenter:   s.agent.config.Datacenter,
+		QueryOptions: structs.QueryOptions{Token: s.agent.config.ACLAgentToken},
+	}
+	if s.registration.token != "" {
+		req.QueryOptions.Token = s.registration.token
 	}
 	err := s.agent.cache.Notify(s.ctx, cachetype.ResolvedServiceConfigName, req, fmt.Sprintf("service-config:%s", name), s.updateCh)
 
 	return err
 }
 
-func (s *serviceConfigWatch) updateRegistration(registration *serviceRegistration) {
-	s.updateCh <- cache.UpdateEvent{
+func (s *serviceConfigWatch) updateRegistration(registration *serviceRegistration) error {
+	return s.handleUpdate(cache.UpdateEvent{
 		Result: registration,
-	}
+	}, true)
 }
 
 func (s *serviceConfigWatch) mergeServiceConfig() *structs.NodeService {
-	return nil
+	if s.config == nil {
+		return s.registration.service
+	}
+
+	svc := s.config.NodeService()
+	svc.Merge(s.registration.service)
+
+	return svc
 }
 
 func (s *serviceConfigWatch) Stop() {
 	s.cancelFunc()
 }
-
-/*
-// Construct the service config request. This will be re-used with an updated
-	// index to watch for changes in the effective service config.
-	req := structs.ServiceConfigRequest{
-		Name:         s.registration.service.Service,
-		Datacenter:   s.agent.config.Datacenter,
-		QueryOptions: structs.QueryOptions{Token: s.agent.tokens.AgentToken()},
-	}
-
-	consul.RetryLoopBackoff(s.shutdownCh, func() error {
-		var reply structs.ServiceConfigResponse
-		if err := s.agent.RPC("ConfigEntry.ResolveServiceConfig", &req, &reply); err != nil {
-			return err
-		}
-
-		s.updateConfig(&reply.Definition)
-
-		req.QueryOptions.MinQueryIndex = reply.QueryMeta.Index
-		return nil
-	}, func(err error) {
-		s.agent.logger.Printf("[ERR] Error getting service config: %v", err)
-	})
-*/

@@ -765,6 +765,57 @@ type ServiceConnect struct {
 	SidecarService *ServiceDefinition `json:",omitempty" bexpr:"-"`
 }
 
+// Merge overlays the given node's attributes onto the existing node.
+func (s *NodeService) Merge(other *NodeService) {
+	if other.Kind != "" {
+		s.Kind = other.Kind
+	}
+	if other.ID != "" {
+		s.ID = other.ID
+	}
+	if other.Service != "" {
+		s.Service = other.Service
+	}
+	for _, tag := range other.Tags {
+		s.Tags = append(s.Tags, tag)
+	}
+	if other.Address != "" {
+		s.Address = other.Address
+	}
+	if s.Meta == nil {
+		s.Meta = other.Meta
+	} else {
+		for k, v := range other.Meta {
+			s.Meta[k] = v
+		}
+	}
+	if other.Port != 0 {
+		s.Port = other.Port
+	}
+	if other.Weights != nil {
+		s.Weights = other.Weights
+	}
+	s.EnableTagOverride = other.EnableTagOverride
+	if other.ProxyDestination != "" {
+		s.ProxyDestination = other.ProxyDestination
+	}
+
+	// Take the incoming service's proxy fields and merge the config map.
+	proxyConf := s.Proxy.Config
+	s.Proxy = other.Proxy
+	if proxyConf == nil {
+		proxyConf = other.Proxy.Config
+	} else {
+		for k, v := range other.Proxy.Config {
+			proxyConf[k] = v
+		}
+	}
+	s.Proxy.Config = proxyConf
+
+	s.Connect = other.Connect
+	s.LocallyRegisteredAsSidecar = other.LocallyRegisteredAsSidecar
+}
+
 // Validate validates the node service configuration.
 //
 // NOTE(mitchellh): This currently only validates fields for a ConnectProxy.
