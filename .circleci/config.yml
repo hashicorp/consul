@@ -333,7 +333,7 @@ jobs:
       - run: docker build -t consul-dev -f ./build-support/docker/Consul-Dev.dockerfile .
       - run:
           name: Envoy Integration Tests
-          command: make test-envoy-integ SKIP_DOCKER=1
+          command: make test-envoy-integ SKIP_DOCKER_BUILD=1
           environment:
             # tput complains if this isn't set to something.
             TERM: xterm
