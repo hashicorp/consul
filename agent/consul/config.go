@@ -414,10 +414,6 @@ type Config struct {
 	// AutoEncryptTLS is whether to enable auto agent TLS certificate
 	// provisioning.
 	AutoEncryptTLS bool
-
-	// AutoEncryptGossip is whether to enable auto agent gossip key
-	// provisioning.
-	AutoEncryptGossip bool
 }
 
 func (c *Config) ToTLSUtilConfig() tlsutil.Config {
