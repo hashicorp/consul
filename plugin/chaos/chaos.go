@@ -3,7 +3,9 @@ package chaos
 
 import (
 	"context"
+	"math/rand"
 	"os"
+	"time"
 
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/request"
@@ -34,8 +36,10 @@ func (c Chaos) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 	default:
 		return plugin.NextOrFailure(c.Name(), c.Next, ctx, w, r)
 	case "authors.bind.":
-		for _, a := range c.Authors {
-			m.Answer = append(m.Answer, &dns.TXT{Hdr: hdr, Txt: []string{a}})
+		rnd := rand.New(rand.NewSource(time.Now().Unix()))
+
+		for _, i := range rnd.Perm(len(c.Authors)) {
+			m.Answer = append(m.Answer, &dns.TXT{Hdr: hdr, Txt: []string{c.Authors[i]}})
 		}
 	case "version.bind.", "version.server.":
 		m.Answer = []dns.RR{&dns.TXT{Hdr: hdr, Txt: []string{c.Version}}}
