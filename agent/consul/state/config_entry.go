@@ -37,7 +37,7 @@ func configTableSchema() *memdb.TableSchema {
 			"kind": &memdb.IndexSchema{
 				Name:         "kind",
 				AllowMissing: false,
-				Unique:       true,
+				Unique:       false,
 				Indexer: &memdb.StringFieldIndex{
 					Field:     "Kind",
 					Lowercase: true,
@@ -80,7 +80,7 @@ func (s *Restore) ConfigEntry(c structs.ConfigEntry) error {
 }
 
 // ConfigEntry is called to get a given config entry.
-func (s *Store) ConfigEntry(kind, name string) (uint64, structs.ConfigEntry, error) {
+func (s *Store) ConfigEntry(ws memdb.WatchSet, kind, name string) (uint64, structs.ConfigEntry, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -88,13 +88,14 @@ func (s *Store) ConfigEntry(kind, name string) (uint64, structs.ConfigEntry, err
 	idx := maxIndexTxn(tx, configTableName)
 
 	// Get the existing config entry.
-	existing, err := tx.First(configTableName, "id", kind, name)
+	watchCh, existing, err := tx.FirstWatch(configTableName, "id", kind, name)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed config entry lookup: %s", err)
 	}
 	if existing == nil {
 		return idx, nil, nil
 	}
+	ws.Add(watchCh)
 
 	conf, ok := existing.(structs.ConfigEntry)
 	if !ok {
@@ -105,13 +106,13 @@ func (s *Store) ConfigEntry(kind, name string) (uint64, structs.ConfigEntry, err
 }
 
 // ConfigEntries is called to get all config entry objects.
-func (s *Store) ConfigEntries() (uint64, []structs.ConfigEntry, error) {
-	return s.ConfigEntriesByKind("")
+func (s *Store) ConfigEntries(ws memdb.WatchSet) (uint64, []structs.ConfigEntry, error) {
+	return s.ConfigEntriesByKind(nil, "")
 }
 
 // ConfigEntriesByKind is called to get all config entry objects with the given kind.
 // If kind is empty, all config entries will be returned.
-func (s *Store) ConfigEntriesByKind(kind string) (uint64, []structs.ConfigEntry, error) {
+func (s *Store) ConfigEntriesByKind(ws memdb.WatchSet, kind string) (uint64, []structs.ConfigEntry, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -129,6 +130,7 @@ func (s *Store) ConfigEntriesByKind(kind string) (uint64, []structs.ConfigEntry,
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed config entry lookup: %s", err)
 	}
+	ws.Add(iter.WatchCh())
 
 	var results []structs.ConfigEntry
 	for v := iter.Next(); v != nil; v = iter.Next() {
@@ -218,7 +220,7 @@ func (s *Store) DeleteConfigEntry(idx uint64, kind, name string) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
-	// Try to retrieve the existing health check.
+	// Try to retrieve the existing config entry.
 	existing, err := tx.First(configTableName, "id", kind, name)
 	if err != nil {
 		return fmt.Errorf("failed config entry lookup: %s", err)
