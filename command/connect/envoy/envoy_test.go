@@ -261,8 +261,11 @@ func TestGenerateConfig(t *testing.T) {
 				// effect.
 				"envoy_tracing_json": `{
 					"http": {
-						"collector_cluster": "zipkin",
-						"collector_endpoint": "/api/v1/spans"
+						"name": "envoy.zipkin",
+						"config": {
+							"collector_cluster": "zipkin",
+							"collector_endpoint": "/api/v1/spans"
+						}
 					}
 				}`,
 				// Need to setup the cluster to send that too as well

@@ -37,6 +37,10 @@ services:
       # Exposing to host makes debugging locally a bit easier
       - "8500:8500"
       - "8502:8502"
+      # For zipkin which uses this containers network
+      - 9411:9411
+      # Jaeger UI
+      - 16686:16686
 
   s1:
     depends_on:
@@ -163,6 +167,20 @@ services:
     image: alpine
     command:
       - cp
-      - -r 
+      - -r
       - /workdir/.
       - /cwd/etc/
+
+  zipkin:
+    volumes:
+      - *workdir-volume
+    image: openzipkin/zipkin
+    network_mode: service:consul
+
+  jaeger:
+    volumes:
+      - *workdir-volume
+    image: jaegertracing/all-in-one:1.11
+    network_mode: service:consul
+    command:
+      - --collector.zipkin.http-port=9411

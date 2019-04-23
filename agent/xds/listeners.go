@@ -14,6 +14,7 @@ import (
 	extauthz "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/ext_authz/v2"
 	envoyhttp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	envoytcp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
+	envoytype "github.com/envoyproxy/go-control-plane/envoy/type"
 	"github.com/envoyproxy/go-control-plane/pkg/util"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
@@ -167,7 +168,7 @@ func (s *Server) makePublicListener(cfgSnap *proxycfg.ConfigSnapshot, token stri
 		}
 		l = makeListener(PublicListenerName, addr, cfgSnap.Port)
 
-		filter, err := makeListenerFilter(cfg.Protocol, "public_listener", LocalAppClusterName, "")
+		filter, err := makeListenerFilter(cfg.Protocol, "public_listener", LocalAppClusterName, "", true)
 		if err != nil {
 			return nil, err
 		}
@@ -202,7 +203,7 @@ func (s *Server) makeUpstreamListener(u *structs.Upstream) (proto.Message, error
 	}
 
 	l := makeListener(u.Identifier(), addr, u.LocalBindPort)
-	filter, err := makeListenerFilter(cfg.Protocol, u.Identifier(), u.Identifier(), "upstream_")
+	filter, err := makeListenerFilter(cfg.Protocol, u.Identifier(), u.Identifier(), "upstream_", false)
 	if err != nil {
 		return nil, err
 	}
@@ -216,14 +217,14 @@ func (s *Server) makeUpstreamListener(u *structs.Upstream) (proto.Message, error
 	return l, nil
 }
 
-func makeListenerFilter(protocol, filterName, cluster, statPrefix string) (envoylistener.Filter, error) {
+func makeListenerFilter(protocol, filterName, cluster, statPrefix string, ingress bool) (envoylistener.Filter, error) {
 	switch protocol {
 	case "grpc":
 		// TODO(banks) test this, we probably need to inject extra settings to
 		// make gRPC work nicely.
 		fallthrough
 	case "http":
-		return makeHTTPFilter(filterName, cluster, statPrefix)
+		return makeHTTPFilter(filterName, cluster, statPrefix, ingress)
 	case "tcp":
 		fallthrough
 	default:
@@ -246,7 +247,11 @@ func makeStatPrefix(protocol, prefix, filterName string) string {
 	return fmt.Sprintf("%s%s_%s", prefix, strings.Replace(filterName, ":", "_", -1), protocol)
 }
 
-func makeHTTPFilter(filterName, cluster, statPrefix string) (envoylistener.Filter, error) {
+func makeHTTPFilter(filterName, cluster, statPrefix string, ingress bool) (envoylistener.Filter, error) {
+	op := envoyhttp.INGRESS
+	if !ingress {
+		op = envoyhttp.EGRESS
+	}
 	cfg := &envoyhttp.HttpConnectionManager{
 		StatPrefix: makeStatPrefix("http", statPrefix, filterName),
 		CodecType:  envoyhttp.AUTO,
@@ -281,6 +286,13 @@ func makeHTTPFilter(filterName, cluster, statPrefix string) (envoylistener.Filte
 			&envoyhttp.HttpFilter{
 				Name: "envoy.router",
 			},
+		},
+		Tracing: &envoyhttp.HttpConnectionManager_Tracing{
+			OperationName: op,
+			// Don't trace any requests by default unless the client application
+			// explicitly propagates trace headers that indicate this should be
+			// sampled.
+			RandomSampling: &envoytype.Percent{Value: 0.0},
 		},
 	}
 	return makeFilter("envoy.http_connection_manager", cfg)
