@@ -2263,9 +2263,7 @@ func TestAliasNotifications_local(t *testing.T) {
 	chkt := &structs.CheckType{
 		AliasService: svcID,
 	}
-	if err := a.AddCheck(chk1, chkt, true, "", agent.ConfigSourceLocal); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, a.AddCheck(chk1, chkt, true, "", agent.ConfigSourceLocal))
 
 	// Add a failing check to the same service ID, alias should also fail
 	maintID := types.CheckID("service:socat-maintenance")
@@ -2279,27 +2277,21 @@ func TestAliasNotifications_local(t *testing.T) {
 	a.State.AddCheck(chk2, "")
 
 	retry.Run(t, func(r *retry.R) {
-		if got, want := a.State.Check(proxyID).Status, api.HealthCritical; got != want {
-			r.Fatalf("got state %q want %q", got, want)
-		}
+		require.Equal(r, api.HealthCritical, a.State.Check(proxyID).Status)
 	})
 
 	// Remove the failing check, alias should pass
 	a.State.RemoveCheck(maintID)
 
 	retry.Run(t, func(r *retry.R) {
-		if got, want := a.State.Check(proxyID).Status, api.HealthPassing; got != want {
-			r.Fatalf("got state %q want %q", got, want)
-		}
+		require.Equal(r, api.HealthPassing, a.State.Check(proxyID).Status)
 	})
 
 	// Update TCP check to failing, alias should fail
 	a.State.UpdateCheck(tcpID, api.HealthCritical, "")
 
 	retry.Run(t, func(r *retry.R) {
-		if got, want := a.State.Check(proxyID).Status, api.HealthCritical; got != want {
-			r.Fatalf("got state %q want %q", got, want)
-		}
+		require.Equal(r, api.HealthCritical, a.State.Check(proxyID).Status)
 	})
 }
 

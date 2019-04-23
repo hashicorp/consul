@@ -488,9 +488,6 @@ func (l *State) addCheckLocked(check *structs.HealthCheck, token string) error {
 		return fmt.Errorf("Check %q refers to non-existent service %q", check.CheckID, check.ServiceID)
 	}
 
-	// If this is a check for an aliased service, then notify the waiters.
-	l.notifyIfAliased(check.ServiceID)
-
 	// hard-set the node name
 	check.Node = l.config.NodeName
 
