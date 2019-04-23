@@ -330,7 +330,7 @@ jobs:
       - setup_remote_docker:
           docker_layer_caching: true
       # Build the consul-dev image from the already built binary
-      - run: docker build -t consul-dev -f ./build-support/docker/Consul-Dev-CI.dockerfile .
+      - run: docker build -t consul-dev -f ./build-support/docker/Consul-Dev.dockerfile .
       - run:
           name: Envoy Integration Tests
           command: make test-envoy-integ SKIP_DOCKER=1
