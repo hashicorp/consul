@@ -548,7 +548,15 @@ func (a *Agent) Start() error {
 
 func (a *Agent) setupClientAutoEncrypt() error {
 	client := a.delegate.(*consul.Client)
-	reply, priv, err := client.AutoEncrypt(a.config.StartJoinAddrsLAN, a.config.ServerPort, a.tokens.AgentToken())
+	// we don't care about the error since we might have servers in StartJoin
+
+	addrs := a.config.StartJoinAddrsLAN
+	disco, err := discoverDiscover()
+	if err == nil {
+		addrs = append(addrs, retryJoinAddrs(disco, "LAN", a.config.RetryJoinLAN)...)
+	}
+
+	reply, priv, err := client.AutoEncrypt(addrs, a.config.ServerPort, a.tokens.AgentToken())
 	if err != nil {
 		return err
 	}
