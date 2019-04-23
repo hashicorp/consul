@@ -10,8 +10,18 @@ export default ChildSelectorComponent.extend({
   repo: service('repository/policy/component'),
   datacenterRepo: service('repository/dc/component'),
   name: 'policy',
+  type: 'policy',
   classNames: ['policy-selector'],
-
+  init: function() {
+    this._super(...arguments);
+    const source = get(this, 'source');
+    if (source) {
+      const event = 'save';
+      this.listen(source, event, e => {
+        this.actions[event].bind(this)(...e.data);
+      });
+    }
+  },
   reset: function(e) {
     this._super(...arguments);
     set(this, 'isScoped', false);
@@ -22,6 +32,31 @@ export default ChildSelectorComponent.extend({
     get(this, 'dom')
       .component(selector, target)
       .didAppear();
+  },
+  error: function(e) {
+    const item = get(this, 'item');
+    const err = e.error;
+    if (typeof err.errors !== 'undefined') {
+      const error = err.errors[0];
+      let prop;
+      let message = error.detail;
+      switch (true) {
+        case message.indexOf(ERROR_PARSE_RULES) === 0:
+          prop = 'Rules';
+          message = error.detail;
+          break;
+        case message.indexOf(ERROR_NAME_EXISTS) === 0:
+          prop = 'Name';
+          message = message.substr(ERROR_NAME_EXISTS.indexOf(':') + 1);
+          break;
+      }
+      if (prop) {
+        item.addError(prop, message);
+      }
+    } else {
+      // TODO: Conponents can't throw, use onerror
+      throw err;
+    }
   },
   actions: {
     loadItem: function(e, item, items) {
@@ -41,33 +76,6 @@ export default ChildSelectorComponent.extend({
         const slugKey = repo.getSlugKey();
         const slug = get(value, slugKey);
         updateArrayObject(items, repo.findBySlug(slug, dc), slugKey, slug);
-      }
-    },
-    save: function(item, items) {
-      try {
-        this._super(...arguments);
-      } catch (err) {
-        if (typeof err.errors !== 'undefined') {
-          const error = err.errors[0];
-          let prop;
-          let message = error.detail;
-          switch (true) {
-            case message.indexOf(ERROR_PARSE_RULES) === 0:
-              prop = 'Rules';
-              message = error.detail;
-              break;
-            case message.indexOf(ERROR_NAME_EXISTS) === 0:
-              prop = 'Name';
-              message = message.substr(ERROR_NAME_EXISTS.indexOf(':') + 1);
-              break;
-          }
-          if (prop) {
-            item.addError(prop, message);
-          }
-        } else {
-          // TODO: Conponents can't throw, use onerror
-          throw err;
-        }
       }
     },
   },

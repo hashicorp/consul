@@ -7,21 +7,25 @@
 {{/if}}
   {{/block-slot}}
   {{#block-slot 'body'}}
-{{#if (eq state 'role')}}
+
+    <input id="{{name}}_state_role" type="radio" name="{{name}}[state]" value="role" checked={{eq state 'role'}} onchange={{action 'change'}} />
     {{#role-form form=form dc=dc}}
       {{#block-slot 'policy'}}
-        {{#policy-selector dc=dc items=item.Policies}}
+
+        {{#policy-selector source=source dc=dc items=item.Policies}}
           {{#block-slot 'trigger'}}
-            <label data-test-create-policy class="type-dialog" onclick={{action (mut state) 'policy'}}>
+            <label for="{{name}}_state_policy" data-test-create-policy class="type-dialog">
               <span>Create new policy</span>
             </label>
           {{/block-slot}}
         {{/policy-selector}}
+
       {{/block-slot}}
     {{/role-form}}
-{{else}}
-    {{policy-form data-test-policy-form radioGroupName="role[policy]" form=policyForm dc=dc}}
-{{/if}}
+
+    <input id="{{name}}_state_policy" type="radio" name="{{name}}[state]" value="policy" checked={{eq state 'policy'}} onchange={{action 'change'}} />
+    {{policy-form data-test-policy-form name="role[policy]" form=policyForm dc=dc}}
+
   {{/block-slot}}
   {{#block-slot 'actions' as |close|}}
 
@@ -34,7 +38,7 @@
     </button>
     <button type="reset" disabled={{if item.isSaving 'disabled'}} {{action (queue (action close) (action 'reset'))}}>Cancel</button>
 {{else}}
-    <button type="submit" {{action 'save' policy item.Policies (action (mut state) 'role')}} disabled={{if (or policy.isSaving policy.isPristine policy.isInvalid) 'disabled'}}>
+    <button type="submit" {{action 'dispatch' 'save' (array policy item.Policies (action (mut state) 'role'))}} disabled={{if (or policy.isSaving policy.isPristine policy.isInvalid) 'disabled'}}>
       {{#if policy.isSaving }}
         <div class="progress indeterminate"></div>
       {{/if}}
@@ -46,7 +50,7 @@
   {{/block-slot}}
 {{/modal-dialog}}
 
-{{#child-selector repo=repo dc=dc name="role" placeholder="Search for role" items=items}}
+{{#child-selector repo=repo dc=dc type="role" placeholder="Search for role" items=items}}
   {{#block-slot 'label'}}
     Apply an existing role
   {{/block-slot}}

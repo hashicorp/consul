@@ -1,13 +1,17 @@
 import Component from '@ember/component';
-import SlotsMixin from 'block-slots';
 import { get, set, computed } from '@ember/object';
+import { alias } from '@ember/object/computed';
 import { inject as service } from '@ember/service';
 import { Promise } from 'rsvp';
+
+import SlotsMixin from 'block-slots';
 import WithListeners from 'consul-ui/mixins/with-listeners';
-import { alias } from '@ember/object/computed';
 
 export default Component.extend(SlotsMixin, WithListeners, {
   onchange: function() {},
+
+  error: function() {},
+  type: '',
 
   dom: service('dom'),
   container: service('search'),
@@ -15,17 +19,19 @@ export default Component.extend(SlotsMixin, WithListeners, {
 
   item: alias('form.data'),
 
+  selectedOptions: alias('items'),
+
   init: function() {
     this._super(...arguments);
-    this.searchable = get(this, 'container').searchable(get(this, 'name'));
-    this.form = get(this, 'formContainer').form(get(this, 'name'));
+    this.searchable = get(this, 'container').searchable(get(this, 'type'));
+    this.form = get(this, 'formContainer').form(get(this, 'type'));
     this.form.clear({ Datacenter: get(this, 'dc') });
   },
-  options: computed('items.[]', 'allOptions.[]', function() {
+  options: computed('selectedOptions.[]', 'allOptions.[]', function() {
     // It's not massively important here that we are defaulting `items` and
     // losing reference as its just to figure out the diff
     let options = get(this, 'allOptions') || [];
-    const items = get(this, 'items') || [];
+    const items = get(this, 'selectedOptions') || [];
     if (get(items, 'length') > 0) {
       // find a proper ember-data diff
       options = options.filter(item => !items.findBy('ID', get(item, 'ID')));
@@ -54,21 +60,29 @@ export default Component.extend(SlotsMixin, WithListeners, {
       }
     },
     save: function(item, items, success = function() {}) {
+      // Specifically this saves an 'new' option/child
+      // and then adds it to the selectedOptions, not options
       const repo = get(this, 'repo');
       set(item, 'CreateTime', new Date().getTime());
       // TODO: temporary async
       // this should be `set(this, 'item', repo.persist(item));`
       // need to be sure that its saved before adding/closing the modal for now
       // and we don't open the modal on prop change yet
-      this.listen(repo.persist(item), 'message', e => {
-        const item = e.data;
-        set(item, 'CreateTime', new Date().getTime());
-        items.pushObject(item);
-        this.onchange({ target: this });
-        // It looks like success is the only potentially unsafe
-        // operation here
+      item = repo.persist(item);
+      this.listen(item, 'message', e => {
+        this.actions.change.bind(this)(
+          {
+            target: {
+              name: 'items[]',
+              value: items,
+            },
+          },
+          items,
+          e.data
+        );
         success();
       });
+      this.listen(item, 'error', this.error.bind(this));
     },
     remove: function(item, items) {
       const prop = get(this, 'repo').getSlugKey();
@@ -84,7 +98,6 @@ export default Component.extend(SlotsMixin, WithListeners, {
     change: function(e, value, item) {
       const event = get(this, 'dom').normalizeEvent(...arguments);
       const items = value;
-      // const item = event.target.value;
       switch (event.target.name) {
         case 'items[]':
           set(item, 'CreateTime', new Date().getTime());
