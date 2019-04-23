@@ -50,6 +50,8 @@ services:
      - "server"
      - "-http-port"
      - ":8080"
+     - "-grpc-port"
+     - ":8079"
     network_mode: service:consul
 
   s2:
@@ -60,6 +62,8 @@ services:
      - "server"
      - "-http-port"
      - ":8181"
+     - "-grpc-port"
+     - ":8179"
     network_mode: service:consul
 
   s1-sidecar-proxy:
@@ -169,7 +173,7 @@ services:
       - cp
       - -r
       - /workdir/.
-      - /cwd/etc/
+      - /cwd/workdir/
 
   zipkin:
     volumes:

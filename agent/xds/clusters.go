@@ -123,6 +123,9 @@ func (s *Server) makeUpstreamCluster(upstream structs.Upstream, cfgSnap *proxycf
 			// Having an empty config enables outlier detection with default config.
 			OutlierDetection: &envoycluster.OutlierDetection{},
 		}
+		if cfg.Protocol == "http" || cfg.Protocol == "grpc" {
+			c.Http2ProtocolOptions = &envoycore.Http2ProtocolOptions{}
+		}
 	}
 
 	// Enable TLS upstream with the configured client certificate.

@@ -220,11 +220,9 @@ func (s *Server) makeUpstreamListener(u *structs.Upstream) (proto.Message, error
 func makeListenerFilter(protocol, filterName, cluster, statPrefix string, ingress bool) (envoylistener.Filter, error) {
 	switch protocol {
 	case "grpc":
-		// TODO(banks) test this, we probably need to inject extra settings to
-		// make gRPC work nicely.
-		fallthrough
+		return makeHTTPFilter(filterName, cluster, statPrefix, ingress, true)
 	case "http":
-		return makeHTTPFilter(filterName, cluster, statPrefix, ingress)
+		return makeHTTPFilter(filterName, cluster, statPrefix, ingress, false)
 	case "tcp":
 		fallthrough
 	default:
@@ -247,7 +245,7 @@ func makeStatPrefix(protocol, prefix, filterName string) string {
 	return fmt.Sprintf("%s%s_%s", prefix, strings.Replace(filterName, ":", "_", -1), protocol)
 }
 
-func makeHTTPFilter(filterName, cluster, statPrefix string, ingress bool) (envoylistener.Filter, error) {
+func makeHTTPFilter(filterName, cluster, statPrefix string, ingress, grpc bool) (envoylistener.Filter, error) {
 	op := envoyhttp.INGRESS
 	if !ingress {
 		op = envoyhttp.EGRESS
@@ -294,7 +292,16 @@ func makeHTTPFilter(filterName, cluster, statPrefix string, ingress bool) (envoy
 			// sampled.
 			RandomSampling: &envoytype.Percent{Value: 0.0},
 		},
+		Http2ProtocolOptions: &envoycore.Http2ProtocolOptions{},
 	}
+
+	if grpc {
+		// Add grpc bridge before router
+		cfg.HttpFilters = append([]*envoyhttp.HttpFilter{&envoyhttp.HttpFilter{
+			Name: "envoy.grpc_http1_bridge",
+		}}, cfg.HttpFilters...)
+	}
+
 	return makeFilter("envoy.http_connection_manager", cfg)
 }
 

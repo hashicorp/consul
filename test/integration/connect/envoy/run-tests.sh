@@ -15,11 +15,6 @@ FILTER_TESTS=${FILTER_TESTS:-}
 # useful for debugging.
 LEAVE_CONSUL_UP=${LEAVE_CONSUL_UP:-}
 
-# CONTAINER_LOGS_ON_FAIL=1 can be used in teardown scripts to dump logs from all
-# test containers before stopping them. This can be useful for debugging but is
-# very verbose so not done by default on a fail.
-CONTAINER_LOGS_ON_FAIL=${CONTAINER_LOGS_ON_FAIL:-}
-
 # QUIESCE_SECS=1 will cause the runner to sleep for 1 second after setup but
 # before veirfy container is run this is useful for CI which seems to pass more
 # reliably with this even though docker-compose up waits for containers to
@@ -42,7 +37,7 @@ FILTER_TESTS=${FILTER_TESTS:-}
 LEAVE_CONSUL_UP=${LEAVE_CONSUL_UP:-}
 PROXY_LOGS_ON_FAIL=${PROXY_LOGS_ON_FAIL:-}
 
-mkdir -p etc/{consul,envoy,bats,statsd}
+mkdir -p workdir/{consul,envoy,bats,statsd,logs}
 
 source helpers.bash
 
@@ -68,14 +63,14 @@ for c in ./case-*/ ; do
     docker-compose up wipe-volumes
 
     # Reload consul config from defaults
-    cp consul-base-cfg/* etc/consul
+    cp consul-base-cfg/* workdir/consul
 
     # Add any overrides if there are any (no op if not)
-    cp -f ${c}*.hcl etc/consul 2>/dev/null || :
+    cp -f ${c}*.hcl workdir/consul 2>/dev/null || :
 
     # Push the state to the shared docker volume (note this is because CircleCI
     # can't use shared volumes)
-    docker cp etc/. envoy_workdir_1:/workdir
+    docker cp workdir/. envoy_workdir_1:/workdir
 
     # Start Consul first we do this here even though typically nothing stopped
     # it because it sometimes seems to be killed by something else (OOM killer)?
@@ -91,15 +86,15 @@ for c in ./case-*/ ; do
     fi
 
     # Copy all the test files
-    cp ${c}*.bats etc/bats
-    cp helpers.bash etc/bats
+    cp ${c}*.bats workdir/bats
+    cp helpers.bash workdir/bats
 
     # Run test case setup (e.g. generating Envoy bootstrap, starting containers)
     source ${c}setup.sh
 
     # Push the state to the shared docker volume (note this is because CircleCI
     # can't use shared volumes)
-    docker cp etc/. envoy_workdir_1:/workdir
+    docker cp workdir/. envoy_workdir_1:/workdir
 
     # Start containers required
     if [ ! -z "$REQUIRED_SERVICES" ] ; then
@@ -125,10 +120,9 @@ for c in ./case-*/ ; do
 
     # Teardown
     if [ ! -z "$REQUIRED_SERVICES" ] ; then
-      if [[ "$RESULT" == 0  && ! -z "$CONTAINER_LOGS_ON_FAIL" ]] ; then
-        # doing this in one command interleaves the logs which is gross
+      if [[ "$RESULT" == 0 ]] ; then
         for cont in $REQUIRED_SERVICES; do
-          docker-compose logs $cont
+          docker-compose logs --no-color $cont 2>&1 > workdir/logs/$cont.log
         done
       fi
       docker-compose stop $REQUIRED_SERVICES

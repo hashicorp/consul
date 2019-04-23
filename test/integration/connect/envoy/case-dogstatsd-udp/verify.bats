@@ -12,6 +12,9 @@ load helpers
 
 @test "s1 upstream should be able to connect to s2" {
   run retry_default curl -s -f -d hello localhost:5000
+
+  echo "OUTPUT: $output"
+
   [ "$status" == 0 ]
   [ "$output" == "hello" ]
 }
