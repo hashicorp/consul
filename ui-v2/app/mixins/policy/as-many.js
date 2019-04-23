@@ -5,30 +5,42 @@ import { get } from '@ember/object';
 
 import minimizeModel from 'consul-ui/utils/minimizeModel';
 
-const createTemplatedPolicies = function(item) {
-  item.ServiceIdentities.forEach(function(identity) {
+const normalizeServiceIdentities = function(items) {
+  return (items || []).map(function(item) {
     const policy = {
-      Name: identity.ServiceName,
       template: 'service-identity',
-      Datacenters: identity.Datacenters,
+      Name: item.ServiceName,
     };
-    item.Policies.push(policy);
+    if (typeof item.Datacenters !== 'undefined') {
+      policy.Datacenters = item.Datacenters;
+    }
+    return policy;
   });
-  return item;
 };
-const createServiceIdentities = function(items) {
+const normalizePolicies = function(items) {
+  return (items || []).map(function(item) {
+    return {
+      template: '',
+      ...item,
+    };
+  });
+};
+const serializeServiceIdentities = function(items) {
   return items
     .filter(function(item) {
       return get(item, 'template') === 'service-identity';
     })
     .map(function(item) {
-      return {
+      const identity = {
         ServiceName: get(item, 'Name'),
-        Datacenters: get(item, 'Datacenters'),
       };
+      if (get(item, 'Datacenters')) {
+        identity.Datacenters = get(item, 'Datacenters');
+      }
+      return identity;
     });
 };
-const createPolicies = function(items) {
+const serializePolicies = function(items) {
   return items.filter(function(item) {
     return get(item, 'template') === '';
   });
@@ -36,12 +48,10 @@ const createPolicies = function(items) {
 
 export default Mixin.create({
   handleSingleResponse: function(url, response, primary, slug) {
-    ['Policies', 'ServiceIdentities'].forEach(function(prop) {
-      if (typeof response[prop] === 'undefined' || response[prop] === null) {
-        response[prop] = [];
-      }
-    });
-    return this._super(url, createTemplatedPolicies(response), primary, slug);
+    response.Policies = normalizePolicies(response.Policies).concat(
+      normalizeServiceIdentities(response.ServiceIdentities)
+    );
+    return this._super(url, response, primary, slug);
   },
   dataForRequest: function(params) {
     const data = this._super(...arguments);
@@ -50,8 +60,9 @@ export default Mixin.create({
       case REQUEST_UPDATE:
       // falls through
       case REQUEST_CREATE:
-        data[name].ServiceIdentities = createServiceIdentities(data[name].Policies);
-        data[name].Policies = minimizeModel(createPolicies(data[name].Policies));
+        // ServiceIdentities serialization must happen first, or a copy taken
+        data[name].ServiceIdentities = serializeServiceIdentities(data[name].Policies);
+        data[name].Policies = minimizeModel(serializePolicies(data[name].Policies));
         break;
     }
     return data;
