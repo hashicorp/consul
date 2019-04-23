@@ -11,24 +11,24 @@ test('it renders', function(assert) {
 
   this.render(hbs`{{service-identity}}`);
 
-  assert.equal(
+  assert.ok(
     this.$()
       .text()
-      .trim(),
+      .trim()
+      .indexOf('service_prefix') !== -1,
     ''
   );
 
   // Template block usage:
   this.render(hbs`
-    {{#service-identity}}
-      template block text
-    {{/service-identity}}
+    {{#service-identity}}{{/service-identity}}
   `);
 
-  assert.equal(
+  assert.ok(
     this.$()
       .text()
-      .trim(),
-    'template block text'
+      .trim()
+      .indexOf('service_prefix') !== -1,
+    ''
   );
 });
