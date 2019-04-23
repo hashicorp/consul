@@ -4,7 +4,7 @@ export default function(visitable, submitable, deletable, cancelable, policySele
     ...submitable({}, 'form > div'),
     ...cancelable({}, 'form > div'),
     ...deletable({}, 'form > div'),
-    policies: policySelector(),
+    policies: policySelector(''),
     tokens: tokenList(),
   };
 }

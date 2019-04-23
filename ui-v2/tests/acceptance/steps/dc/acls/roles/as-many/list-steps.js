@@ -4,8 +4,7 @@ import steps from '../../../../steps';
 // tests/acceptance/steps/steps.js file
 
 export default function(assert) {
-  return steps(assert)
-    .then('I should find a file', function() {
-      assert.ok(true, this.step);
-    });
+  return steps(assert).then('I should find a file', function() {
+    assert.ok(true, this.step);
+  });
 }

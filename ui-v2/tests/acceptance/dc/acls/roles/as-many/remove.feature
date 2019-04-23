@@ -1,5 +1,5 @@
 @setupApplicationTest
-Feature: dc / acls / tokens / roles: Remove
+Feature: dc / acls / roles / as many / remove: Remove
   Scenario:
     Given 1 datacenter model with the value "datacenter"
     And 1 token model from yaml

@@ -1,5 +1,5 @@
 @setupApplicationTest
-Feature: dc / acls / tokens / roles: List
+Feature: dc / acls / roles / as many / list: List
   Scenario:
     Given 1 datacenter model with the value "datacenter"
     And 1 token model from yaml

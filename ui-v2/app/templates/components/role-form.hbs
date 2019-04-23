@@ -15,7 +15,8 @@
     <textarea name="role[Description]" value={{item.Description}} oninput={{action 'change'}}></textarea>
   </label>
 </fieldset>
-<fieldset class="policies">
+{{!TODO: temporary policies id, look at the inception token modals and get rid of id="policies" and use something else}}
+<fieldset id="policies" class="policies">
   <h2>Policies</h2>
   {{#yield-slot 'policy' (block-params item)}}
     {{yield}}

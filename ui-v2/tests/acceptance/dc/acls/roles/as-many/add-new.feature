@@ -1,5 +1,5 @@
 @setupApplicationTest
-Feature: dc / acls / tokens / roles: Add new
+Feature: dc / acls / roles / as many / add new: Add new
   Background:
     Given 1 datacenter model with the value "datacenter"
     And 1 token model from yaml
@@ -7,6 +7,8 @@ Feature: dc / acls / tokens / roles: Add new
       AccessorID: key
       Description: The Description
       Roles: ~
+      Policies: ~
+      ServiceIdentities: ~
     ---
     And 1 policy model from yaml
     ---
@@ -121,13 +123,13 @@ Feature: dc / acls / tokens / roles: Add new
         - ServiceName: New-Service-Identity
     ---
     And I submit
-    # Then a PUT request is made to "/v1/acl/token/key?dc=datacenter" with the body from yaml
-    # ---
-    #   Description: The Description
-    #   Roles:
-    #     - Name: New-Role
-    #       ID: ee52203d-989f-4f7a-ab5a-2bef004164ca-1
-    # ---
+    Then a PUT request is made to "/v1/acl/token/key?dc=datacenter" with the body from yaml
+    ---
+      Description: The Description
+      Roles:
+        - Name: New-Role
+          ID: ee52203d-989f-4f7a-ab5a-2bef004164ca-1
+    ---
     Then the url should be /datacenter/acls/tokens
     And "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "success" class

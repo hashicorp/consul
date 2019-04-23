@@ -1,22 +1,20 @@
 @setupApplicationTest
-Feature: dc / acls / tokens / policies: Add new
+Feature: dc / acls / policies / as many / add new: Add new policy
   Background:
     Given 1 datacenter model with the value "datacenter"
-    And 1 token model from yaml
+    And 1 [Model] model from yaml
     ---
-      AccessorID: key
-      Description: The Description
       Policies: ~
       ServiceIdentities: ~
     ---
-    When I visit the token page for yaml
+    When I visit the [Model] page for yaml
     ---
       dc: datacenter
-      token: key
+      [Model]: key
     ---
-    Then the url should be /datacenter/acls/tokens/key
+    Then the url should be /datacenter/acls/[Model]s/key
     And I click policies.create
-  Scenario: Adding a new policy
+  Scenario: Adding a new policy as a child of [Model]
     Then I fill in the policies.form with yaml
     ---
       Name: New-Policy
@@ -31,17 +29,22 @@ Feature: dc / acls / tokens / policies: Add new
       Rules: key {}
     ---
     And I submit
-    Then a PUT request is made to "/v1/acl/token/key?dc=datacenter" with the body from yaml
+    Then a PUT request is made to "/v1/acl/[Model]/key?dc=datacenter" with the body from yaml
     ---
-      Description: The Description
       Policies:
         - Name: New-Policy
           ID: ee52203d-989f-4f7a-ab5a-2bef004164ca-1
     ---
-    Then the url should be /datacenter/acls/tokens
+    Then the url should be /datacenter/acls/[Model]s
     And "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "success" class
-  Scenario: Adding a new service identity
+  Where:
+    -------------
+    | Model     |
+    | token     |
+    | role      |
+    -------------
+  Scenario: Adding a new service identity as a child of [Model]
     Then I fill in the policies.form with yaml
     ---
       Name: New-Service-Identity
@@ -50,16 +53,27 @@ Feature: dc / acls / tokens / policies: Add new
     And I click serviceIdentity on the policies.form
     And I click submit on the policies.form
     And I submit
-    Then a PUT request is made to "/v1/acl/token/key?dc=datacenter" with the body from yaml
+    Then a PUT request is made to "/v1/acl/[Model]/key?dc=datacenter" with the body from yaml
     ---
-      Description: The Description
       ServiceIdentities:
         - ServiceName: New-Service-Identity
     ---
-    Then the url should be /datacenter/acls/tokens
+    Then the url should be /datacenter/acls/[Model]s
     And "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "success" class
+  Where:
+    -------------
+    | Model     |
+    | token     |
+    | role      |
+    -------------
 @ignore:
   Scenario: Click the cancel form
     Then ok
     # And I click cancel on the policyForm
+  Where:
+    -------------
+    | Model     |
+    | token     |
+    | role      |
+    -------------

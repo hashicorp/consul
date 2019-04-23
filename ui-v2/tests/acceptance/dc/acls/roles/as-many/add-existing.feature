@@ -1,20 +1,19 @@
 @setupApplicationTest
-Feature: dc / acls / tokens / policies: ACL Token add existing policy
+Feature: dc / acls / roles / as many / add existing: Add existing
   Scenario:
     Given 1 datacenter model with the value "datacenter"
     And 1 token model from yaml
     ---
       AccessorID: key
       Description: The Description
-      Policies: ~
-      ServiceIdentities: ~
+      Roles: ~
     ---
-    And 2 policy models from yaml
+    And 2 role models from yaml
     ---
-    - ID: policy-1
-      Name: Policy 1
-    - ID: policy-2
-      Name: Policy 2
+    - ID: role-1
+      Name: Role 1
+    - ID: role-2
+      Name: Role 2
     ---
     When I visit the token page for yaml
     ---
@@ -22,12 +21,12 @@ Feature: dc / acls / tokens / policies: ACL Token add existing policy
       token: key
     ---
     Then the url should be /datacenter/acls/tokens/key
-    And I click "#policies .ember-power-select-trigger"
+    And I click "#roles .ember-power-select-trigger"
     And I click ".ember-power-select-option:first-child"
-    And I see 1 policy model on the policies component
-    And I click "#policies .ember-power-select-trigger"
+    And I see 1 role model on the roles component
+    And I click "#roles .ember-power-select-trigger"
     And I click ".ember-power-select-option:nth-child(1)"
-    And I see 2 policy models on the policies component
+    And I see 2 role models on the roles component
     Then I fill in with yaml
     ---
       Description: The Description
@@ -36,11 +35,11 @@ Feature: dc / acls / tokens / policies: ACL Token add existing policy
     Then a PUT request is made to "/v1/acl/token/key?dc=datacenter" with the body from yaml
     ---
       Description: The Description
-      Policies:
-      - ID: policy-1
-        Name: Policy 1
-      - ID: policy-2
-        Name: Policy 2
+      Roles:
+      - ID: role-1
+        Name: Role 1
+      - ID: role-2
+        Name: Role 2
     ---
     Then the url should be /datacenter/acls/tokens
     And "[data-notification]" has the "notification-update" class
