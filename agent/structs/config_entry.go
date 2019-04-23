@@ -26,10 +26,10 @@ type ConfigEntry interface {
 	Normalize() error
 	Validate() error
 
-	// VerifyReadACL and VerifyWriteACL return whether or not the given Authorizer
+	// CanRead and CanWrite return whether or not the given Authorizer
 	// has permission to read or write to the config entry, respectively.
-	VerifyReadACL(acl.Authorizer) bool
-	VerifyWriteACL(acl.Authorizer) bool
+	CanRead(acl.Authorizer) bool
+	CanWrite(acl.Authorizer) bool
 
 	GetRaftIndex() *RaftIndex
 }
@@ -76,11 +76,11 @@ func (e *ServiceConfigEntry) Validate() error {
 	return nil
 }
 
-func (e *ServiceConfigEntry) VerifyReadACL(rule acl.Authorizer) bool {
+func (e *ServiceConfigEntry) CanRead(rule acl.Authorizer) bool {
 	return rule.ServiceRead(e.Name)
 }
 
-func (e *ServiceConfigEntry) VerifyWriteACL(rule acl.Authorizer) bool {
+func (e *ServiceConfigEntry) CanWrite(rule acl.Authorizer) bool {
 	return rule.ServiceWrite(e.Name, nil)
 }
 
@@ -140,11 +140,11 @@ func (e *ProxyConfigEntry) Validate() error {
 	return nil
 }
 
-func (e *ProxyConfigEntry) VerifyReadACL(rule acl.Authorizer) bool {
+func (e *ProxyConfigEntry) CanRead(rule acl.Authorizer) bool {
 	return true
 }
 
-func (e *ProxyConfigEntry) VerifyWriteACL(rule acl.Authorizer) bool {
+func (e *ProxyConfigEntry) CanWrite(rule acl.Authorizer) bool {
 	return rule.OperatorWrite()
 }
 

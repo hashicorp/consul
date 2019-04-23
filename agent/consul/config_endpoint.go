@@ -36,7 +36,7 @@ func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *struct{}) e
 	if err != nil {
 		return err
 	}
-	if rule != nil && !args.Entry.VerifyWriteACL(rule) {
+	if rule != nil && !args.Entry.CanWrite(rule) {
 		return acl.ErrPermissionDenied
 	}
 
@@ -69,7 +69,7 @@ func (c *ConfigEntry) Get(args *structs.ConfigEntryQuery, reply *structs.Indexed
 	if err != nil {
 		return err
 	}
-	if rule != nil && !lookupEntry.VerifyReadACL(rule) {
+	if rule != nil && !lookupEntry.CanRead(rule) {
 		return acl.ErrPermissionDenied
 	}
 
@@ -119,7 +119,7 @@ func (c *ConfigEntry) List(args *structs.ConfigEntryQuery, reply *structs.Indexe
 			// Filter the entries returned by ACL permissions.
 			filteredEntries := make([]structs.ConfigEntry, 0, len(entries))
 			for _, entry := range entries {
-				if rule != nil && !entry.VerifyReadACL(rule) {
+				if rule != nil && !entry.CanRead(rule) {
 					continue
 				}
 				filteredEntries = append(filteredEntries, entry)
@@ -149,7 +149,7 @@ func (c *ConfigEntry) Delete(args *structs.ConfigEntryRequest, reply *struct{}) 
 	if err != nil {
 		return err
 	}
-	if rule != nil && !args.Entry.VerifyWriteACL(rule) {
+	if rule != nil && !args.Entry.CanWrite(rule) {
 		return acl.ErrPermissionDenied
 	}
 
