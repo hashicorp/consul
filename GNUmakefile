@@ -279,8 +279,7 @@ ui-docker: ui-build-image
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh ui
 
 test-envoy-integ: $(ENVOY_INTEG_DEPS)
-	@echo "INTEG"
-	#@$(SHELL) $(CURDIR)/test/integration/connect/envoy/run-tests.sh
+	@$(SHELL) $(CURDIR)/test/integration/connect/envoy/run-tests.sh
 
 proto:
 	protoc agent/connect/ca/plugin/*.proto --gofast_out=plugins=grpc:../../..
