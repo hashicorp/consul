@@ -23,6 +23,6 @@ func (id *SpiffeIDAgent) URI() *url.URL {
 }
 
 // CertURI impl.
-func (id *SpiffeIDAgent) Authorize(ixn *structs.Intention) (bool, bool) {
+func (id *SpiffeIDAgent) Authorize(_ *structs.Intention) (bool, bool) {
 	return true, true
 }
