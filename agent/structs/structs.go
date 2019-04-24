@@ -765,7 +765,9 @@ type ServiceConnect struct {
 	SidecarService *ServiceDefinition `json:",omitempty" bexpr:"-"`
 }
 
-// Merge overlays the given node's attributes onto the existing node.
+// Merge overlays any non-empty fields of other onto s. Tags, metadata and proxy
+// config are unioned together instead of overwritten. The Connect field and the
+// non-config proxy fields are taken from other.
 func (s *NodeService) Merge(other *NodeService) {
 	if other.Kind != "" {
 		s.Kind = other.Kind
@@ -776,9 +778,26 @@ func (s *NodeService) Merge(other *NodeService) {
 	if other.Service != "" {
 		s.Service = other.Service
 	}
-	for _, tag := range other.Tags {
-		s.Tags = append(s.Tags, tag)
+
+	if s.Tags == nil {
+		s.Tags = other.Tags
+	} else if other.Tags != nil {
+		// Both nodes have tags, so deduplicate and merge them.
+		tagSet := make(map[string]struct{})
+		for _, tag := range s.Tags {
+			tagSet[tag] = struct{}{}
+		}
+		for _, tag := range other.Tags {
+			tagSet[tag] = struct{}{}
+		}
+		tags := make([]string, 0, len(tagSet))
+		for tag, _ := range tagSet {
+			tags = append(tags, tag)
+		}
+		sort.Strings(tags)
+		s.Tags = tags
 	}
+
 	if other.Address != "" {
 		s.Address = other.Address
 	}
@@ -812,6 +831,8 @@ func (s *NodeService) Merge(other *NodeService) {
 	}
 	s.Proxy.Config = proxyConf
 
+	// Just take the entire Connect block from the other node.
+	// We can revisit this when adding more fields to centralized config.
 	s.Connect = other.Connect
 	s.LocallyRegisteredAsSidecar = other.LocallyRegisteredAsSidecar
 }

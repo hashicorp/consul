@@ -1898,18 +1898,21 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 	return a.addServiceLocked(service, chkTypes, persist, token, source)
 }
 
+// addServiceLocked adds a service entry to the service manager if enabled, or directly
+// to the local state if it is not. This function assumes the state lock is already held.
 func (a *Agent) addServiceLocked(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string, source configSource) error {
 	if err := a.validateService(service, chkTypes); err != nil {
 		return err
 	}
 
-	if err := a.serviceManager.AddService(service, chkTypes, persist, token, source); err != nil {
-		return err
+	if a.config.EnableCentralServiceConfig {
+		return a.serviceManager.AddService(service, chkTypes, persist, token, source)
 	}
 
-	return nil
+	return a.addServiceInternal(service, chkTypes, persist, token, source)
 }
 
+// addServiceInternal adds the given service and checks to the local state.
 func (a *Agent) addServiceInternal(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string, source configSource) error {
 	// Pause the service syncs during modification
 	a.PauseSync()

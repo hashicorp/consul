@@ -19,7 +19,7 @@ type ServiceManager struct {
 	services map[string]*serviceConfigWatch
 	agent    *Agent
 
-	sync.Mutex
+	lock sync.Mutex
 }
 
 func NewServiceManager(agent *Agent) *ServiceManager {
@@ -44,9 +44,9 @@ func (s *ServiceManager) AddService(service *structs.NodeService, chkTypes []*st
 
 	// If a service watch already exists, update the registration. Otherwise,
 	// start a new config watcher.
-	s.Lock()
+	s.lock.Lock()
 	watch, ok := s.services[service.ID]
-	s.Unlock()
+	s.lock.Unlock()
 	if ok {
 		if err := watch.updateRegistration(&reg); err != nil {
 			return err
@@ -55,46 +55,39 @@ func (s *ServiceManager) AddService(service *structs.NodeService, chkTypes []*st
 	} else {
 		// This is a new entry, so get the existing global config and do the initial
 		// registration with the merged config.
-		args := structs.ServiceConfigRequest{
-			Name:         service.Service,
-			Datacenter:   s.agent.config.Datacenter,
-			QueryOptions: structs.QueryOptions{Token: s.agent.config.ACLAgentToken},
-		}
-		if token != "" {
-			args.QueryOptions.Token = token
-		}
-		var resp structs.ServiceConfigResponse
-		if err := s.agent.RPC("ConfigEntry.ResolveServiceConfig", &args, &resp); err != nil {
-			s.agent.logger.Printf("[WARN] agent: could not retrieve central configuration for service %q: %v",
-				service.Service, err)
-		}
-
 		watch := &serviceConfigWatch{
-			updateCh: make(chan cache.UpdateEvent, 1),
-			agent:    s.agent,
-			config:   &resp.Definition,
+			registration: &reg,
+			readyCh:      make(chan error),
+			updateCh:     make(chan cache.UpdateEvent, 1),
+			agent:        s.agent,
 		}
 
-		// Force an update/register immediately.
-		if err := watch.updateRegistration(&reg); err != nil {
-			return err
-		}
-
-		s.Lock()
-		s.services[service.ID] = watch
-		s.Unlock()
+		// Start the config watch, which starts a blocking query for the resolved service config
+		// in the background.
 		if err := watch.Start(); err != nil {
 			return err
 		}
-		s.agent.logger.Printf("[DEBUG] agent.manager: adding local registration for service %q", service.ID)
+
+		// Call ReadyWait to block until the cache has returned the initial config and the service
+		// has been registered.
+		if err := watch.ReadyWait(); err != nil {
+			watch.Stop()
+			return err
+		}
+
+		s.lock.Lock()
+		s.services[service.ID] = watch
+		s.lock.Unlock()
+
+		s.agent.logger.Printf("[DEBUG] agent.manager: added local registration for service %q", service.ID)
 	}
 
 	return nil
 }
 
 func (s *ServiceManager) RemoveService(serviceID string) {
-	s.Lock()
-	defer s.Unlock()
+	s.lock.Lock()
+	defer s.lock.Unlock()
 
 	serviceWatch, ok := s.services[serviceID]
 	if !ok {
@@ -123,13 +116,21 @@ type serviceConfigWatch struct {
 
 	agent *Agent
 
+	// readyCh is used for ReadyWait in order to block until the first update
+	// for the resolved service config is received from the cache. Both this
+	// and ready are protected the lock.
+	readyCh chan error
+	ready   bool
+
 	updateCh   chan cache.UpdateEvent
 	ctx        context.Context
 	cancelFunc func()
 
-	sync.Mutex
+	lock sync.Mutex
 }
 
+// Start starts the config watch and a goroutine to handle updates over
+// the updateCh. This is not safe to call more than once.
 func (s *serviceConfigWatch) Start() error {
 	s.ctx, s.cancelFunc = context.WithCancel(context.Background())
 	if err := s.startConfigWatch(); err != nil {
@@ -142,6 +143,14 @@ func (s *serviceConfigWatch) Start() error {
 
 func (s *serviceConfigWatch) Stop() {
 	s.cancelFunc()
+}
+
+// ReadyWait blocks until the readyCh is closed, which means the initial
+// registration of the service has been completed. If there was an error
+// with the initial registration, it will be returned.
+func (s *serviceConfigWatch) ReadyWait() error {
+	err := <-s.readyCh
+	return err
 }
 
 // runWatch handles any update events from the cache.Notify until the
@@ -166,32 +175,53 @@ func (s *serviceConfigWatch) runWatch() {
 func (s *serviceConfigWatch) handleUpdate(event cache.UpdateEvent, locked bool) error {
 	// Take the agent state lock if needed. This is done before the local config watch
 	// lock in order to prevent a race between this config watch and others - the config
-	// watch lock is the inner lock and the agent stateLock is the outer lock.
-	if !locked {
+	// watch lock is the inner lock and the agent stateLock is the outer lock. In the case
+	// where s.ready == false we assume the lock is already held, since this update is being
+	// waited on for the initial registration by a call from the agent that already holds
+	// the lock.
+	if !locked && s.ready {
 		s.agent.stateLock.Lock()
 		defer s.agent.stateLock.Unlock()
 	}
-	s.Lock()
-	defer s.Unlock()
+	s.lock.Lock()
+	defer s.lock.Unlock()
 
+	// If we got an error, log a warning if this is the first update; otherwise return the error.
+	// We want the initial update to cause a service registration no matter what.
 	if event.Err != nil {
-		return fmt.Errorf("error watching service config: %v", event.Err)
-	}
-
-	switch event.Result.(type) {
-	case *serviceRegistration:
-		s.registration = event.Result.(*serviceRegistration)
-	case *structs.ServiceConfigResponse:
-		resp := event.Result.(*structs.ServiceConfigResponse)
-		s.config = &resp.Definition
-	default:
-		return fmt.Errorf("unknown update event type: %T", event)
+		if !s.ready {
+			s.agent.logger.Printf("[WARN] could not retrieve initial service_defaults config for service %q: %v",
+				s.registration.service.ID, event.Err)
+		} else {
+			return fmt.Errorf("error watching service config: %v", event.Err)
+		}
+	} else {
+		switch event.Result.(type) {
+		case *serviceRegistration:
+			s.registration = event.Result.(*serviceRegistration)
+		case *structs.ServiceConfigResponse:
+			resp := event.Result.(*structs.ServiceConfigResponse)
+			s.config = &resp.Definition
+		default:
+			return fmt.Errorf("unknown update event type: %T", event)
+		}
 	}
 
 	service := s.mergeServiceConfig()
 	err := s.agent.addServiceInternal(service, s.registration.chkTypes, s.registration.persist, s.registration.token, s.registration.source)
 	if err != nil {
+		// If this is the initial registration, return the error through the readyCh
+		// so it can be passed back to the original caller.
+		if !s.ready {
+			s.readyCh <- err
+		}
 		return fmt.Errorf("error updating service registration: %v", err)
+	}
+
+	// If this is the first registration, set the ready status by closing the channel.
+	if !s.ready {
+		close(s.readyCh)
+		s.ready = true
 	}
 
 	return nil
@@ -216,7 +246,7 @@ func (s *serviceConfigWatch) startConfigWatch() error {
 }
 
 // updateRegistration does a synchronous update of the local service registration and
-// returns the result.
+// returns the result. The agent stateLock should be held when calling this function.
 func (s *serviceConfigWatch) updateRegistration(registration *serviceRegistration) error {
 	return s.handleUpdate(cache.UpdateEvent{
 		Result: registration,
