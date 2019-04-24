@@ -18,7 +18,7 @@ This plugin can only be used once per Server Block.
 
 ## The hosts file
 
-Commonly the entries are of the from `IP_address canonical_hostname [aliases...]` as explained by the hosts(5) man page.
+Commonly the entries are of the form `IP_address canonical_hostname [aliases...]` as explained by the hosts(5) man page.
 
 Examples:
 
