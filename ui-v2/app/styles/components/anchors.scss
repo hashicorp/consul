@@ -5,6 +5,9 @@
 %main-content a[rel*='help'] {
   @extend %with-info;
 }
+a[rel*='external'] {
+  @extend %with-exit;
+}
 %main-content label a[rel*='help'] {
   color: $gray-400;
 }

@@ -161,6 +161,15 @@
   width: 16px;
   height: 16px;
 }
+%with-exit::after {
+  @extend %pseudo-icon-bg-img;
+  top: 3px;
+  right: -8px;
+  background-image: $exit-svg;
+  background-color: $color-transparent;
+  width: 16px;
+  height: 16px;
+}
 /*TODO: All chevrons need merging */
 %with-chevron-down::before {
   @extend %pseudo-icon-bg-img;
