@@ -19,12 +19,9 @@ load helpers
 }
 
 @test "s1 proxy should be sending gRPC metrics to statsd" {
-  run retry_default cat /workdir/statsd/statsd.log
+  run retry_default must_match_in_statsd_logs 'envoy.cluster.grpc.PingServer.total'
 
-  echo "METRICS:"
-  echo "$output"
-  echo "COUNT: $(echo "$output" | grep -Ec 'envoy.cluster.grpc.PingServer.total')"
+  echo "OUTPUT: $output"
 
   [ "$status" == 0 ]
-  [ $(echo $output | grep -Ec 'envoy.cluster.grpc.PingServer.total') -gt "0" ]
 }

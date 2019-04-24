@@ -80,3 +80,13 @@ function get_envoy_stats_flush_interval {
 function docker_consul {
   docker run -ti --network container:envoy_consul_1 consul-dev $@
 }
+
+function must_match_in_statsd_logs {
+  run cat /workdir/statsd/statsd.log
+  COUNT=$( echo "$output" | grep -Ec $1 )
+
+  echo "COUNT of '$1' matches: $COUNT"
+
+  [ "$status" == 0 ]
+  [ "$COUNT" -gt "0" ]
+}

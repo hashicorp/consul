@@ -339,6 +339,7 @@ jobs:
             TERM: xterm
       - store_artifacts:
           path: ./test/integration/connect/envoy/workdir/logs
+          destination: container-logs
 
   envoy-integration-test-1.9.1:
     docker:

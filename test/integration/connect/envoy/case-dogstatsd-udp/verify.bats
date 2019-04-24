@@ -31,42 +31,27 @@ load helpers
 }
 
 @test "s1 proxy should be sending dogstatsd tagged metrics" {
-  run retry_default cat /workdir/statsd/statsd.log
+  run retry_default must_match_in_statsd_logs '[#,]local_cluster:s1(,|$)'
 
-  COUNT=$(echo "$output" | grep -Ec '[#,]local_cluster:s1(,|$)')
-
-  echo "METRICS:"
-  echo "$output"
-  echo "COUNT: $COUNT"
+  echo "OUTPUT: $output"
 
   [ "$status" == 0 ]
-  [ "$COUNT" -gt "0" ]
 }
 
 @test "s1 proxy should be adding cluster name as a tag" {
-  run retry_default cat /workdir/statsd/statsd.log
+  run retry_default must_match_in_statsd_logs '[#,]envoy.cluster_name:s2(,|$)'
 
-  COUNT=$(echo "$output" | grep -Ec '[#,]envoy.cluster_name:s2(,|$)')
-
-  echo "METRICS:"
-  echo "$output"
-  echo "COUNT: $COUNT"
+  echo "OUTPUT: $output"
 
   [ "$status" == 0 ]
-  [ "$COUNT" -gt "0" ]
 }
 
 @test "s1 proxy should be sending additional configured tags" {
-  run retry_default cat /workdir/statsd/statsd.log
+  run retry_default must_match_in_statsd_logs '[#,]foo:bar(,|$)'
 
-  COUNT=$(echo "$output" | grep -Ec '[#,]foo:bar(,|$)')
-
-  echo "METRICS:"
-  echo "$output"
-  echo "COUNT: $COUNT"
+  echo "OUTPUT: $output"
 
   [ "$status" == 0 ]
-  [ "$COUNT" -gt "0" ]
 }
 
 @test "s1 proxy should have custom stats flush interval" {
