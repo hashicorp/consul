@@ -107,6 +107,7 @@ for c in ./case-*/ ; do
     fi
 
     # Execute tests
+    THISRESULT=1
     if docker-compose up --build --abort-on-container-exit --exit-code-from verify verify ; then
       echo -n "==> CASE $CASENAME: "
       echogreen "✓ PASS"
@@ -116,11 +117,12 @@ for c in ./case-*/ ; do
       if [ $RESULT -eq 1 ] ; then
         RESULT=0
       fi
+      THISRESULT=0
     fi
 
     # Teardown
     if [ ! -z "$REQUIRED_SERVICES" ] ; then
-      if [[ "$RESULT" == 0 ]] ; then
+      if [[ "$THISRESULT" == 0 ]] ; then
         mkdir -p workdir/logs/$c/$ENVOY_VERSION
         for cont in $REQUIRED_SERVICES; do
           docker-compose logs --no-color $cont 2>&1 > workdir/logs/$c/$ENVOY_VERSION/$cont.log
