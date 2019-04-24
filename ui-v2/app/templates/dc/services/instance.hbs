@@ -55,6 +55,11 @@
   {{/if}}
 {{/if}}
     {{/block-slot}}
+    {{#block-slot 'actions'}}
+      {{#if false}}
+        {{#templated-anchor href="" rel="external"}}Open in Dashboard{{/templated-anchor}}
+      {{/if}}
+    {{/block-slot}}
     {{#block-slot 'content'}}
         {{tab-nav
             items=(compact

@@ -32,6 +32,11 @@
           selected=selectedTab
       }}
     {{/block-slot}}
+    {{#block-slot 'actions'}}
+    {{#if false}}
+      {{#templated-anchor href="" rel="external"}}Open in Dashboard{{/templated-anchor}}
+    {{/if}}
+    {{/block-slot}}
     {{#block-slot 'content'}}
         {{#each
             (compact
