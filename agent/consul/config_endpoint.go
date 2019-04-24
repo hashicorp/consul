@@ -132,6 +132,43 @@ func (c *ConfigEntry) List(args *structs.ConfigEntryQuery, reply *structs.Indexe
 		})
 }
 
+// ListAll returns all the known configuration entries
+func (c *ConfigEntry) ListAll(args *structs.DCSpecificRequest, reply *structs.IndexedGenericConfigEntries) error {
+	if done, err := c.srv.forward("ConfigEntry.ListAll", args, args, reply); done {
+		return err
+	}
+	defer metrics.MeasureSince([]string{"config_entry", "listAll"}, time.Now())
+
+	// Fetch the ACL token, if any.
+	rule, err := c.srv.ResolveToken(args.Token)
+	if err != nil {
+		return err
+	}
+
+	return c.srv.blockingQuery(
+		&args.QueryOptions,
+		&reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			index, entries, err := state.ConfigEntries(ws)
+			if err != nil {
+				return err
+			}
+
+			// Filter the entries returned by ACL permissions.
+			filteredEntries := make([]structs.ConfigEntry, 0, len(entries))
+			for _, entry := range entries {
+				if rule != nil && !entry.CanRead(rule) {
+					continue
+				}
+				filteredEntries = append(filteredEntries, entry)
+			}
+
+			reply.Entries = filteredEntries
+			reply.Index = index
+			return nil
+		})
+}
+
 // Delete deletes a config entry.
 func (c *ConfigEntry) Delete(args *structs.ConfigEntryRequest, reply *struct{}) error {
 	if done, err := c.srv.forward("ConfigEntry.Delete", args, args, reply); done {

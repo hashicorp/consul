@@ -107,7 +107,7 @@ func (s *Store) ConfigEntry(ws memdb.WatchSet, kind, name string) (uint64, struc
 
 // ConfigEntries is called to get all config entry objects.
 func (s *Store) ConfigEntries(ws memdb.WatchSet) (uint64, []structs.ConfigEntry, error) {
-	return s.ConfigEntriesByKind(nil, "")
+	return s.ConfigEntriesByKind(ws, "")
 }
 
 // ConfigEntriesByKind is called to get all config entry objects with the given kind.
