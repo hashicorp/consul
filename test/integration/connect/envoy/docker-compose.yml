@@ -136,6 +136,9 @@ services:
       - "envoy"
       - "-sidecar-for"
       - "s1"
+      - "--"
+      - "-l"
+      - "debug"
     network_mode: service:consul
 
   fake-statsd:
