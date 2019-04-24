@@ -135,14 +135,25 @@ func expectClustersJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot, to
 				"@type": "type.googleapis.com/envoy.api.v2.Cluster",
 				"name": "local_app",
 				"connectTimeout": "5s",
-				"hosts": [
-					{
-						"socketAddress": {
-							"address": "127.0.0.1",
-							"portValue": 8080
+				"loadAssignment": {
+					"clusterName": "local_app",
+					"endpoints": [
+						{
+							"lbEndpoints": [
+								{
+									"endpoint": {
+										"address": {
+											"socketAddress": {
+												"address": "127.0.0.1",
+												"portValue": 8080
+											}
+										}
+									}
+								}
+							]
 						}
-					}
-				]
+					]
+				}
 			}`,
 		"db": `
 			{

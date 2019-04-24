@@ -105,7 +105,12 @@
                                   }
                             ]
                       },
-                  "stat_prefix": "upstream_db_http"
+                  "stat_prefix": "upstream_db_http",
+                  "tracing": {
+                        "operation_name": "EGRESS",
+                        "random_sampling": {
+                            }
+                      }
                 }
             }
           ]

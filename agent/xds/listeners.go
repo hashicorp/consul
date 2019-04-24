@@ -10,7 +10,7 @@ import (
 	envoyauth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoylistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	envoyroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	extauthz "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/ext_authz/v2"
 	envoyhttp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	envoytcp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
@@ -262,14 +262,14 @@ func makeHTTPFilter(filterName, cluster, statPrefix string, ingress, grpc, http2
 		RouteSpecifier: &envoyhttp.HttpConnectionManager_RouteConfig{
 			RouteConfig: &envoy.RouteConfiguration{
 				Name: filterName,
-				VirtualHosts: []route.VirtualHost{
-					route.VirtualHost{
+				VirtualHosts: []envoyroute.VirtualHost{
+					envoyroute.VirtualHost{
 						Name:    filterName,
 						Domains: []string{"*"},
-						Routes: []route.Route{
-							route.Route{
-								Match: route.RouteMatch{
-									PathSpecifier: &route.RouteMatch_Prefix{
+						Routes: []envoyroute.Route{
+							envoyroute.Route{
+								Match: envoyroute.RouteMatch{
+									PathSpecifier: &envoyroute.RouteMatch_Prefix{
 										Prefix: "/",
 									},
 									// TODO(banks) Envoy supports matching only valid GRPC
@@ -278,9 +278,9 @@ func makeHTTPFilter(filterName, cluster, statPrefix string, ingress, grpc, http2
 									// although docs say it was supported by 1.8.0. Going to defer
 									// that until we've updated the deps.
 								},
-								Action: &route.Route_Route{
-									Route: &route.RouteAction{
-										ClusterSpecifier: &route.RouteAction_Cluster{
+								Action: &envoyroute.Route_Route{
+									Route: &envoyroute.RouteAction{
+										ClusterSpecifier: &envoyroute.RouteAction_Cluster{
 											Cluster: cluster,
 										},
 									},

@@ -75,7 +75,7 @@ const (
 	// affect metrics output so could break dashboards (for local agent traffic).
 	//
 	// We should probably just make it configurable if anyone actually has
-	// services named "local_app" in the future.
+	// services named "local_agent" in the future.
 	LocalAgentClusterName = "local_agent"
 
 	// DefaultAuthCheckFrequency is the default value for

@@ -82,7 +82,11 @@
                                   }
                             ]
                       },
-                  "stat_prefix": "public_listener_http"
+                  "stat_prefix": "public_listener_http",
+                  "tracing": {
+                        "random_sampling": {
+                            }
+                      }
                 }
             }
           ]
