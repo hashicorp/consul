@@ -43,6 +43,19 @@ load helpers
   [ "$COUNT" -gt "0" ]
 }
 
+@test "s1 proxy should be adding cluster name as a tag" {
+  run retry_default cat /workdir/statsd/statsd.log
+
+  COUNT=$(echo "$output" | grep -Ec '[#,]envoy.cluster_name:s2(,|$)')
+
+  echo "METRICS:"
+  echo "$output"
+  echo "COUNT: $COUNT"
+
+  [ "$status" == 0 ]
+  [ "$COUNT" -gt "0" ]
+}
+
 @test "s1 proxy should be sending additional configured tags" {
   run retry_default cat /workdir/statsd/statsd.log
 

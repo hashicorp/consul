@@ -1,12 +1,11 @@
 services {
   name = "s2"
-  # Advertise gRPC port
-  port = 8179
+  port = 8181
   connect {
     sidecar_service {
       proxy {
         config {
-          protocol = "grpc"
+          protocol = "http"
         }
       }
     }

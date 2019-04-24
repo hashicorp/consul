@@ -19,8 +19,8 @@ load helpers
   assert_proxy_presents_cert_uri localhost:21001 s2
 }
 
-@test "s1 upstream should be able to connect to s2" {
-  run retry_default curl -s -f -d hello localhost:5000
+@test "s1 upstream should be able to connect to s2 with http/1.1" {
+  run retry_default curl --http1.1 -s -f -d hello localhost:5000
   [ "$status" -eq 0 ]
   [ "$output" = "hello" ]
 }

@@ -10,6 +10,7 @@ import (
 	envoyauth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	envoycluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
 	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	"github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
@@ -68,21 +69,24 @@ func (s *Server) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Cluste
 			Name:           LocalAppClusterName,
 			ConnectTimeout: time.Duration(cfg.LocalConnectTimeoutMs) * time.Millisecond,
 			Type:           envoy.Cluster_STATIC,
-			// API v2 docs say hosts is deprecated and should use LoadAssignment as
-			// below.. but it doesn't work for tcp_proxy target for some reason.
-			Hosts: []*envoycore.Address{makeAddressPtr(addr, cfgSnap.Proxy.LocalServicePort)},
-			// LoadAssignment: &envoy.ClusterLoadAssignment{
-			//  ClusterName: LocalAppClusterName,
-			//  Endpoints: []endpoint.LocalityLbEndpoints{
-			//    {
-			//      LbEndpoints: []endpoint.LbEndpoint{
-			//        makeEndpoint(LocalAppClusterName,
-			//          addr,
-			//          cfgSnap.Proxy.LocalServicePort),
-			//      },
-			//    },
-			//  },
-			// },
+			// // API v2 docs say hosts is deprecated and should use LoadAssignment as
+			// // below.. but it doesn't work for tcp_proxy target for some reason.
+			// Hosts: []*envoycore.Address{makeAddressPtr(addr, cfgSnap.Proxy.LocalServicePort)},
+			LoadAssignment: &envoy.ClusterLoadAssignment{
+				ClusterName: LocalAppClusterName,
+				Endpoints: []endpoint.LocalityLbEndpoints{
+					{
+						LbEndpoints: []endpoint.LbEndpoint{
+							makeEndpoint(LocalAppClusterName,
+								addr,
+								cfgSnap.Proxy.LocalServicePort),
+						},
+					},
+				},
+			},
+		}
+		if cfg.Protocol == "http2" || cfg.Protocol == "grpc" {
+			c.Http2ProtocolOptions = &envoycore.Http2ProtocolOptions{}
 		}
 	}
 
@@ -123,7 +127,7 @@ func (s *Server) makeUpstreamCluster(upstream structs.Upstream, cfgSnap *proxycf
 			// Having an empty config enables outlier detection with default config.
 			OutlierDetection: &envoycluster.OutlierDetection{},
 		}
-		if cfg.Protocol == "http" || cfg.Protocol == "grpc" {
+		if cfg.Protocol == "http2" || cfg.Protocol == "grpc" {
 			c.Http2ProtocolOptions = &envoycore.Http2ProtocolOptions{}
 		}
 	}

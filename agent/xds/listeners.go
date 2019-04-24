@@ -220,9 +220,11 @@ func (s *Server) makeUpstreamListener(u *structs.Upstream) (proto.Message, error
 func makeListenerFilter(protocol, filterName, cluster, statPrefix string, ingress bool) (envoylistener.Filter, error) {
 	switch protocol {
 	case "grpc":
-		return makeHTTPFilter(filterName, cluster, statPrefix, ingress, true)
+		return makeHTTPFilter(filterName, cluster, statPrefix, ingress, true, true)
+	case "http2":
+		return makeHTTPFilter(filterName, cluster, statPrefix, ingress, false, true)
 	case "http":
-		return makeHTTPFilter(filterName, cluster, statPrefix, ingress, false)
+		return makeHTTPFilter(filterName, cluster, statPrefix, ingress, false, false)
 	case "tcp":
 		fallthrough
 	default:
@@ -245,13 +247,17 @@ func makeStatPrefix(protocol, prefix, filterName string) string {
 	return fmt.Sprintf("%s%s_%s", prefix, strings.Replace(filterName, ":", "_", -1), protocol)
 }
 
-func makeHTTPFilter(filterName, cluster, statPrefix string, ingress, grpc bool) (envoylistener.Filter, error) {
+func makeHTTPFilter(filterName, cluster, statPrefix string, ingress, grpc, http2 bool) (envoylistener.Filter, error) {
 	op := envoyhttp.INGRESS
 	if !ingress {
 		op = envoyhttp.EGRESS
 	}
+	proto := "http"
+	if grpc {
+		proto = "grpc"
+	}
 	cfg := &envoyhttp.HttpConnectionManager{
-		StatPrefix: makeStatPrefix("http", statPrefix, filterName),
+		StatPrefix: makeStatPrefix(proto, statPrefix, filterName),
 		CodecType:  envoyhttp.AUTO,
 		RouteSpecifier: &envoyhttp.HttpConnectionManager_RouteConfig{
 			RouteConfig: &envoy.RouteConfiguration{
@@ -266,6 +272,11 @@ func makeHTTPFilter(filterName, cluster, statPrefix string, ingress, grpc bool) 
 									PathSpecifier: &route.RouteMatch_Prefix{
 										Prefix: "/",
 									},
+									// TODO(banks) Envoy supports matching only valid GRPC
+									// requests which might be nice to add here for gRPC services
+									// but it's not supported in our current envoy SDK version
+									// although docs say it was supported by 1.8.0. Going to defer
+									// that until we've updated the deps.
 								},
 								Action: &route.Route_Route{
 									Route: &route.RouteAction{
@@ -292,13 +303,17 @@ func makeHTTPFilter(filterName, cluster, statPrefix string, ingress, grpc bool) 
 			// sampled.
 			RandomSampling: &envoytype.Percent{Value: 0.0},
 		},
-		Http2ProtocolOptions: &envoycore.Http2ProtocolOptions{},
+	}
+
+	if http2 {
+		cfg.Http2ProtocolOptions = &envoycore.Http2ProtocolOptions{}
 	}
 
 	if grpc {
 		// Add grpc bridge before router
 		cfg.HttpFilters = append([]*envoyhttp.HttpFilter{&envoyhttp.HttpFilter{
-			Name: "envoy.grpc_http1_bridge",
+			Name:   "envoy.grpc_http1_bridge",
+			Config: &types.Struct{},
 		}}, cfg.HttpFilters...)
 	}
 

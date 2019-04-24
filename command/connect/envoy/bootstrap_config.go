@@ -305,10 +305,12 @@ func (c *BootstrapConfig) generateStatsConfig(args *BootstrapTplArgs) error {
 	}
 
 	if len(tagJSONs) > 0 {
+		// use_all_default_tags is true by default but we'll make it explicit!
 		args.StatsConfigJSON = `{
 			"stats_tags": [
 				` + strings.Join(tagJSONs, ",\n") + `
-			]
+			],
+			"use_all_default_tags": true
 		}`
 	}
 	return nil

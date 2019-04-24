@@ -23,8 +23,8 @@ load helpers
 
   echo "METRICS:"
   echo "$output"
-  echo "COUNT: $(echo "$output" | grep -Ec 'Ping')"
+  echo "COUNT: $(echo "$output" | grep -Ec 'envoy.cluster.grpc.PingServer.total')"
 
-  [ "$status" == 1 ]
-  [ $(echo $output | grep -Ec 'Ping') -gt "0" ]
+  [ "$status" == 0 ]
+  [ $(echo $output | grep -Ec 'envoy.cluster.grpc.PingServer.total') -gt "0" ]
 }
