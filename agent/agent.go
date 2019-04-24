@@ -243,6 +243,8 @@ type Agent struct {
 	// directly.
 	proxyConfig *proxycfg.Manager
 
+	// serviceManager is the manager for combining local service registrations with
+	// the centrally configured proxy/service defaults.
 	serviceManager *ServiceManager
 
 	// xdsServer is the Server instance that serves xDS gRPC API.
