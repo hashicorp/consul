@@ -39,7 +39,7 @@ func (a *Agent) retryJoinWAN() {
 	}
 }
 
-func discoverDiscover() (*discover.Discover, error) {
+func newDiscover() (*discover.Discover, error) {
 	providers := make(map[string]discover.Provider)
 	for k, v := range discover.Providers {
 		providers[k] = v
@@ -52,8 +52,11 @@ func discoverDiscover() (*discover.Discover, error) {
 	)
 }
 
-func retryJoinAddrs(disco *discover.Discover, cluster string, retryJoin []string, logger *log.Logger) ([]string, error) {
+func retryJoinAddrs(disco *discover.Discover, cluster string, retryJoin []string, logger *log.Logger) []string {
 	addrs := []string{}
+	if disco == nil {
+		return addrs
+	}
 	for _, addr := range retryJoin {
 		switch {
 		case strings.Contains(addr, "provider="):
@@ -70,7 +73,7 @@ func retryJoinAddrs(disco *discover.Discover, cluster string, retryJoin []string
 		}
 	}
 
-	return addrs, nil
+	return addrs
 }
 
 // retryJoiner is used to handle retrying a join until it succeeds or all
@@ -103,7 +106,7 @@ func (r *retryJoiner) retryJoin() error {
 		return nil
 	}
 
-	disco, err := discoverDiscover()
+	disco, err := newDiscover()
 	if err != nil {
 		return err
 	}
