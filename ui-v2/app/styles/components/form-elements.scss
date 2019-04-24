@@ -24,7 +24,8 @@ form table,
 %app-content form dl {
   @extend %form-row;
 }
-%app-content form:not(.filter-bar) [role='radiogroup'] {
+%app-content form:not(.filter-bar) [role='radiogroup'],
+[role='dialog'] [role='radiogroup'] {
   @extend %radio-group;
 }
 %radio-group label {
