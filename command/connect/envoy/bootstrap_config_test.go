@@ -285,7 +285,8 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 							"tag_name": "baz",
 							"fixed_value": "2"
 						}
-					]
+					],
+					"use_all_default_tags": true
 				}`,
 			},
 			wantErr: false,

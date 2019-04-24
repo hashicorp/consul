@@ -57,7 +57,8 @@
 			"tag_name": "local_cluster",
 			"fixed_value": "test-proxy"
 		}
-			]
+			],
+			"use_all_default_tags": true
 		},
   "dynamic_resources": {
     "lds_config": { "ads": {} },
