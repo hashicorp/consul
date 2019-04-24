@@ -2211,6 +2211,90 @@ func TestStateProxyRestore(t *testing.T) {
 	assert.Equal(p1.ProxyService.Port, p2.ProxyService.Port)
 }
 
+// Test that alias check is updated after AddCheck, UpdateCheck, and RemoveCheck for the same service id
+func TestAliasNotifications_local(t *testing.T) {
+	t.Parallel()
+
+	a := agent.NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	// Register service with a failing TCP check
+	svcID := "socat"
+	srv := &structs.NodeService{
+		ID:      svcID,
+		Service: "echo",
+		Tags:    []string{},
+		Address: "127.0.0.10",
+		Port:    8080,
+	}
+	a.State.AddService(srv, "")
+
+	scID := "socat-sidecar-proxy"
+	sc := &structs.NodeService{
+		ID:      scID,
+		Service: scID,
+		Tags:    []string{},
+		Address: "127.0.0.10",
+		Port:    9090,
+	}
+	a.State.AddService(sc, "")
+
+	tcpID := types.CheckID("service:socat-tcp")
+	chk0 := &structs.HealthCheck{
+		Node:      "",
+		CheckID:   tcpID,
+		Name:      "tcp check",
+		Status:    api.HealthPassing,
+		ServiceID: svcID,
+	}
+	a.State.AddCheck(chk0, "")
+
+	// Register an alias for the service
+	proxyID := types.CheckID("service:socat-sidecar-proxy:2")
+	chk1 := &structs.HealthCheck{
+		Node:      "",
+		CheckID:   proxyID,
+		Name:      "Connect Sidecar Aliasing socat",
+		Status:    api.HealthPassing,
+		ServiceID: scID,
+	}
+	chkt := &structs.CheckType{
+		AliasService: svcID,
+	}
+	require.NoError(t, a.AddCheck(chk1, chkt, true, "", agent.ConfigSourceLocal))
+
+	// Add a failing check to the same service ID, alias should also fail
+	maintID := types.CheckID("service:socat-maintenance")
+	chk2 := &structs.HealthCheck{
+		Node:      "",
+		CheckID:   maintID,
+		Name:      "socat:Service Maintenance Mode",
+		Status:    api.HealthCritical,
+		ServiceID: svcID,
+	}
+	a.State.AddCheck(chk2, "")
+
+	retry.Run(t, func(r *retry.R) {
+		require.Equal(r, api.HealthCritical, a.State.Check(proxyID).Status)
+	})
+
+	// Remove the failing check, alias should pass
+	a.State.RemoveCheck(maintID)
+
+	retry.Run(t, func(r *retry.R) {
+		require.Equal(r, api.HealthPassing, a.State.Check(proxyID).Status)
+	})
+
+	// Update TCP check to failing, alias should fail
+	a.State.UpdateCheck(tcpID, api.HealthCritical, "")
+
+	retry.Run(t, func(r *retry.R) {
+		require.Equal(r, api.HealthCritical, a.State.Check(proxyID).Status)
+	})
+}
+
 // drainCh drains a channel by reading messages until it would block.
 func drainCh(ch chan struct{}) {
 	for {
