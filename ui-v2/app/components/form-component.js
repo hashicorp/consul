@@ -5,7 +5,7 @@ import { get } from '@ember/object';
 import { alias } from '@ember/object/computed';
 import WithListeners from 'consul-ui/mixins/with-listeners';
 // match anything that isn't a [ or ] into multiple groups
-const propRe = /([^\[\]])+/g;
+const propRe = /([^[\]])+/g;
 export default Component.extend(WithListeners, SlotsMixin, {
   onreset: function() {},
   onchange: function() {},
