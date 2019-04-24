@@ -1726,7 +1726,7 @@ port.
 
 * DNS Interface (Default 8600). Used to resolve DNS queries. TCP and UDP.
 
-* gRPC API (Default 8502). Currently gRPC is only used to expose Envoy xDS API to Envoy proxies.
+* gRPC API (Optional, Defaults to 8502 in -dev mode). Disabled by default. Currently gRPC is only used to expose the xDS API to Envoy proxies. Port 8502 is a convention used by various tools as the default.
 
 * Sidecar Service (Default 21000 - 21255).  Inclusive minimum and maximum ports to use for automatically assigning [sidecar service registrations](https://www.consul.io/docs/connect/proxies/sidecar-service.html). 
 
