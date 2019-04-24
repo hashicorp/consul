@@ -2,9 +2,8 @@ package consul
 
 import (
 	"crypto/x509"
-	"net"
-	"net/url"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -35,10 +34,18 @@ func TestAutoEncryptSign(t *testing.T) {
 	testrpc.WaitForLeader(t, s.RPC, "dc1")
 
 	// Generate a CSR and request signing
-	uri, err := url.Parse("spiffe://a.consul/agent/uuid")
+	id := &connect.SpiffeIDAgent{
+		Host:  strings.TrimSuffix("domain", "."),
+		Agent: string("uuid"),
+	}
+
+	// Create a new private key
+	pk, _, err := connect.GeneratePrivateKey()
 	require.NoError(t, err)
-	csr, _, err := tlsutil.GenerateCSR(uri, []string{"localhost"}, []net.IP{net.ParseIP("123.234.243.213")})
-	require.Nil(t, err)
+
+	// Create a CSR.
+	csr, err := connect.CreateCSR(id, pk)
+	require.NoError(t, err)
 	require.NotEmpty(t, csr)
 	args := &structs.CASignRequest{
 		Datacenter: "dc1",

@@ -62,10 +62,14 @@ func retryJoinAddrs(disco *discover.Discover, cluster string, retryJoin []string
 		case strings.Contains(addr, "provider="):
 			servers, err := disco.Addrs(addr, logger)
 			if err != nil {
-				logger.Printf("[ERR] agent: Cannot discover %s %s: %s", cluster, addr, err)
+				if logger != nil {
+					logger.Printf("[ERR] agent: Cannot discover %s %s: %s", cluster, addr, err)
+				}
 			} else {
 				addrs = append(addrs, servers...)
-				logger.Printf("[INFO] agent: Discovered %s servers: %s", cluster, strings.Join(servers, " "))
+				if logger != nil {
+					logger.Printf("[INFO] agent: Discovered %s servers: %s", cluster, strings.Join(servers, " "))
+				}
 			}
 
 		default:
