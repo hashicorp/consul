@@ -121,8 +121,9 @@ for c in ./case-*/ ; do
     # Teardown
     if [ ! -z "$REQUIRED_SERVICES" ] ; then
       if [[ "$RESULT" == 0 ]] ; then
+        mkdir -p workdir/logs/$c/$ENVOY_VERSION
         for cont in $REQUIRED_SERVICES; do
-          docker-compose logs --no-color $cont 2>&1 > workdir/logs/$cont.log
+          docker-compose logs --no-color $cont 2>&1 > workdir/logs/$c/$ENVOY_VERSION/$cont.log
         done
       fi
       docker-compose stop $REQUIRED_SERVICES

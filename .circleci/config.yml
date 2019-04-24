@@ -337,6 +337,8 @@ jobs:
           environment:
             # tput complains if this isn't set to something.
             TERM: xterm
+      - store_artifacts:
+          path: ./test/integration/connect/envoy/workdir/logs
 
   envoy-integration-test-1.9.1:
     docker:
