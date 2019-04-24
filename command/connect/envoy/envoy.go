@@ -69,7 +69,7 @@ func (c *cmd) init() {
 
 	c.flags.StringVar(&c.adminBind, "admin-bind", "localhost:19000",
 		"The address:port to start envoy's admin server on. Envoy requires this "+
-			"but care must be taken to ensure it's not exposed to untrusted network "+
+			"but care must be taken to ensure it's not exposed to an untrusted network "+
 			"as it has full control over the secrets and config of the proxy.")
 
 	c.flags.BoolVar(&c.bootstrap, "bootstrap", false,

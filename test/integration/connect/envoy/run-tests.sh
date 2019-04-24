@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-# DEBUG=1 enabled -x for this script so echos every command run
+# DEBUG=1 enables set -x for this script so echos every command run
 DEBUG=${DEBUG:-}
 
 # FILTER_TESTS="<pattern>" skips any test whose CASENAME doesn't match the
@@ -16,7 +16,7 @@ FILTER_TESTS=${FILTER_TESTS:-}
 LEAVE_CONSUL_UP=${LEAVE_CONSUL_UP:-}
 
 # QUIESCE_SECS=1 will cause the runner to sleep for 1 second after setup but
-# before veirfy container is run this is useful for CI which seems to pass more
+# before verify container is run this is useful for CI which seems to pass more
 # reliably with this even though docker-compose up waits for containers to
 # start, and our tests retry.
 QUIESCE_SECS=${QUIESCE_SECS:-}

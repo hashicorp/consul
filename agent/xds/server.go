@@ -55,7 +55,7 @@ const (
 	// since we want cluster names and service names to match to enable nice
 	// metrics correlation without massaging prefixes on cluster names.
 	//
-	// We should probably make this more unlikely to collied however changing it
+	// We should probably make this more unlikely to collide however changing it
 	// potentially breaks upgrade compatibility without restarting all Envoy's as
 	// it will no longer match their existing cluster name. Changing this will
 	// affect metrics output so could break dashboards (for local app traffic).

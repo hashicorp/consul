@@ -77,7 +77,7 @@ services:
      - "-l"
      - "debug"
      # Hot restart breaks since both envoys seem to interact with each other
-     # despite separate containers taht don't share IPC namespace. Not quire
+     # despite separate containers that don't share IPC namespace. Not quite
      # sure how this happens but may be due to unix socket being in some shared
      # location?
      - "--disable-hot-restart"
@@ -98,7 +98,7 @@ services:
      - "-l"
      - "debug"
      # Hot restart breaks since both envoys seem to interact with each other
-     # despite separate containers taht don't share IPC namespace. Not quire
+     # despite separate containers that don't share IPC namespace. Not quite
      # sure how this happens but may be due to unix socket being in some shared
      # location?
      - "--disable-hot-restart"
