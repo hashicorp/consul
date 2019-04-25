@@ -3,11 +3,13 @@ td {
   border-bottom: $decor-border-100;
 }
 th {
-  color: $gray-400 !important;
-}
-th {
-  border-color: $keyline-dark;
+  border-color: $gray-300;
 }
 td {
-  border-color: $keyline-mid;
+  border-color: $gray-200;
+  color: $gray-500;
+}
+th,
+td strong {
+  color: $gray-600;
 }

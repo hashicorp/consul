@@ -4,9 +4,6 @@
   cursor: pointer;
   float: right;
 }
-%pill.policy-management {
-  @extend %with-star;
-}
 %token-yours {
   text-indent: 20px;
   color: $blue-500;

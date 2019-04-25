@@ -3,3 +3,25 @@ td strong,
 %tag-list span {
   @extend %pill;
 }
+
+%pill:not([class]) {
+  @extend %frame-gray-900;
+}
+%pill[class]::before {
+  @extend %as-pseudo;
+  margin-right: 3px;
+}
+%pill.policy::before {
+  @extend %with-file-fill-icon;
+  opacity: 0.3;
+}
+%pill.policy-management::before {
+  @extend %with-star-icon;
+}
+%pill.policy-service-identity::before {
+  @extend %with-service-identity-icon;
+}
+%pill.role::before {
+  @extend %with-user-plain-icon;
+  opacity: 0.3;
+}

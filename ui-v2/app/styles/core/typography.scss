@@ -39,9 +39,7 @@ h2,
 %healthcheck-output dt,
 %copy-button,
 %app-content div > dl > dt,
-td:first-child a {
-  font-weight: $typo-weight-semibold;
-}
+td:first-child a,
 fieldset > header,
 %form-element > span,
 %toggle label span,
@@ -52,6 +50,7 @@ caption {
   font-weight: $typo-weight-semibold !important;
 }
 th,
+td strong,
 %breadcrumbs li > *,
 %action-group-action,
 %tab-nav,

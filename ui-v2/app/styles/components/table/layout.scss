@@ -2,7 +2,7 @@ table {
   width: 100%;
 }
 %table-actions {
-  width: 60px;
+  width: 60px !important;
 }
 th.actions input {
   display: none;
