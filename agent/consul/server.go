@@ -352,12 +352,11 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	}
 
 	configReplicatorConfig := ReplicatorConfig{
-		Name:            "Config Entry",
-		ReplicateFn:     s.replicateConfig,
-		Rate:            s.config.ConfigReplicationRate,
-		Burst:           s.config.ConfigReplicationBurst,
-		MaxRetryBackoff: replicationMaxRetryBackoff,
-		Logger:          logger,
+		Name:        "Config Entry",
+		ReplicateFn: s.replicateConfig,
+		Rate:        s.config.ConfigReplicationRate,
+		Burst:       s.config.ConfigReplicationBurst,
+		Logger:      logger,
 	}
 	s.configReplicator, err = NewReplicator(&configReplicatorConfig)
 	if err != nil {

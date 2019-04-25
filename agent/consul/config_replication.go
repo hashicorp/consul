@@ -30,7 +30,7 @@ func diffConfigEntries(local []structs.ConfigEntry, remote []structs.ConfigEntry
 	var remoteIdx int
 	for localIdx, remoteIdx = 0, 0; localIdx < len(local) && remoteIdx < len(remote); {
 		if local[localIdx].GetKind() == remote[remoteIdx].GetKind() && local[localIdx].GetName() == remote[remoteIdx].GetName() {
-			// config is in both the local and remote state - need to check raft indices and the Hash
+			// config is in both the local and remote state - need to check raft indices
 			if remote[remoteIdx].GetRaftIndex().ModifyIndex > lastRemoteIndex {
 				updates = append(updates, remote[remoteIdx])
 			}

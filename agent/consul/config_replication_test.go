@@ -111,8 +111,6 @@ func TestReplication_ConfigEntries(t *testing.T) {
 		checkSame(r)
 	})
 
-	t.Logf("First round of updates successful")
-
 	// Update those policies
 	for i := 0; i < 50; i++ {
 		arg := structs.ConfigEntryRequest{
@@ -144,7 +142,6 @@ func TestReplication_ConfigEntries(t *testing.T) {
 
 	require.NoError(t, s1.RPC("ConfigEntry.Apply", &arg, &out))
 
-	t.Logf("Now waiting for second round")
 	// Wait for the replica to converge.
 	retry.Run(t, func(r *retry.R) {
 		checkSame(r)
