@@ -9,7 +9,7 @@ import (
 
 func TestAPI_PreparedQuery(t *testing.T) {
 	t.Parallel()
-	c, s := MakeTestClient(t)
+	c, s := makeClient(t)
 	defer s.Stop()
 
 	// Set up a node and a service.

@@ -14,7 +14,7 @@ import (
 func TestAPI_ClientTxn(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
-	c, s := MakeTestClient(t)
+	c, s := makeClient(t)
 	defer s.Stop()
 
 	session := c.Session()

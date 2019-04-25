@@ -10,7 +10,7 @@ func TestAPI_OperatorKeyringInstallListPutRemove(t *testing.T) {
 	t.Parallel()
 	oldKey := "d8wu8CSUrqgtjVsvcBPmhQ=="
 	newKey := "qxycTi/SsePj/TZzCBmNXw=="
-	c, s := MakeTestClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
+	c, s := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
 		c.Encrypt = oldKey
 	})
 	defer s.Stop()

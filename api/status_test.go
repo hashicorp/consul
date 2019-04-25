@@ -6,7 +6,7 @@ import (
 
 func TestAPI_StatusLeader(t *testing.T) {
 	t.Parallel()
-	c, s := MakeTestClient(t)
+	c, s := makeClient(t)
 	defer s.Stop()
 	s.WaitForSerfCheck(t)
 
@@ -23,7 +23,7 @@ func TestAPI_StatusLeader(t *testing.T) {
 
 func TestAPI_StatusPeers(t *testing.T) {
 	t.Parallel()
-	c, s := MakeTestClient(t)
+	c, s := makeClient(t)
 	defer s.Stop()
 	s.WaitForSerfCheck(t)
 
