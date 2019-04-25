@@ -1136,6 +1136,8 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 		return nil, fmt.Errorf("Failed to configure keyring: %v", err)
 	}
 
+	base.ConfigEntryBootstrap = a.config.ConfigEntryBootstrap
+
 	return base, nil
 }
 
