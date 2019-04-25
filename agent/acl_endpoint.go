@@ -312,7 +312,7 @@ func (s *HTTPServer) aclPolicyWriteInternal(resp http.ResponseWriter, req *http.
 	args.Policy.Syntax = acl.SyntaxCurrent
 
 	if create {
-		if args.Policy.ID == "" {
+		if args.Policy.ID != "" {
 			return nil, BadRequestError{Reason: "Cannot specify the ID when creating a new policy"}
 		}
 	} else {
