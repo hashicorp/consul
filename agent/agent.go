@@ -243,6 +243,10 @@ type Agent struct {
 	// directly.
 	proxyConfig *proxycfg.Manager
 
+	// serviceManager is the manager for combining local service registrations with
+	// the centrally configured proxy/service defaults.
+	serviceManager *ServiceManager
+
 	// xdsServer is the Server instance that serves xDS gRPC API.
 	xdsServer *xds.Server
 
@@ -287,6 +291,7 @@ func New(c *config.RuntimeConfig) (*Agent, error) {
 		endpoints:       make(map[string]string),
 		tokens:          new(token.Store),
 	}
+	a.serviceManager = NewServiceManager(a)
 
 	if err := a.initializeACLs(); err != nil {
 		return nil, err
@@ -1895,49 +1900,22 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 	return a.addServiceLocked(service, chkTypes, persist, token, source)
 }
 
+// addServiceLocked adds a service entry to the service manager if enabled, or directly
+// to the local state if it is not. This function assumes the state lock is already held.
 func (a *Agent) addServiceLocked(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string, source configSource) error {
-	if service.Service == "" {
-		return fmt.Errorf("Service name missing")
-	}
-	if service.ID == "" && service.Service != "" {
-		service.ID = service.Service
-	}
-	for _, check := range chkTypes {
-		if err := check.Validate(); err != nil {
-			return fmt.Errorf("Check is not valid: %v", err)
-		}
+	if err := a.validateService(service, chkTypes); err != nil {
+		return err
 	}
 
-	// Set default weights if not specified. This is important as it ensures AE
-	// doesn't consider the service different since it has nil weights.
-	if service.Weights == nil {
-		service.Weights = &structs.Weights{Passing: 1, Warning: 1}
+	if a.config.EnableCentralServiceConfig {
+		return a.serviceManager.AddService(service, chkTypes, persist, token, source)
 	}
 
-	// Warn if the service name is incompatible with DNS
-	if InvalidDnsRe.MatchString(service.Service) {
-		a.logger.Printf("[WARN] agent: Service name %q will not be discoverable "+
-			"via DNS due to invalid characters. Valid characters include "+
-			"all alpha-numerics and dashes.", service.Service)
-	} else if len(service.Service) > MaxDNSLabelLength {
-		a.logger.Printf("[WARN] agent: Service name %q will not be discoverable "+
-			"via DNS due to it being too long. Valid lengths are between "+
-			"1 and 63 bytes.", service.Service)
-	}
+	return a.addServiceInternal(service, chkTypes, persist, token, source)
+}
 
-	// Warn if any tags are incompatible with DNS
-	for _, tag := range service.Tags {
-		if InvalidDnsRe.MatchString(tag) {
-			a.logger.Printf("[DEBUG] agent: Service tag %q will not be discoverable "+
-				"via DNS due to invalid characters. Valid characters include "+
-				"all alpha-numerics and dashes.", tag)
-		} else if len(tag) > MaxDNSLabelLength {
-			a.logger.Printf("[DEBUG] agent: Service tag %q will not be discoverable "+
-				"via DNS due to it being too long. Valid lengths are between "+
-				"1 and 63 bytes.", tag)
-		}
-	}
-
+// addServiceInternal adds the given service and checks to the local state.
+func (a *Agent) addServiceInternal(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string, source configSource) error {
 	// Pause the service syncs during modification
 	a.PauseSync()
 	defer a.ResumeSync()
@@ -2027,6 +2005,54 @@ func (a *Agent) addServiceLocked(service *structs.NodeService, chkTypes []*struc
 	return nil
 }
 
+// validateService validates an service and its checks, either returning an error or emitting a
+// warning based on the nature of the error.
+func (a *Agent) validateService(service *structs.NodeService, chkTypes []*structs.CheckType) error {
+	if service.Service == "" {
+		return fmt.Errorf("Service name missing")
+	}
+	if service.ID == "" && service.Service != "" {
+		service.ID = service.Service
+	}
+	for _, check := range chkTypes {
+		if err := check.Validate(); err != nil {
+			return fmt.Errorf("Check is not valid: %v", err)
+		}
+	}
+
+	// Set default weights if not specified. This is important as it ensures AE
+	// doesn't consider the service different since it has nil weights.
+	if service.Weights == nil {
+		service.Weights = &structs.Weights{Passing: 1, Warning: 1}
+	}
+
+	// Warn if the service name is incompatible with DNS
+	if InvalidDnsRe.MatchString(service.Service) {
+		a.logger.Printf("[WARN] agent: Service name %q will not be discoverable "+
+			"via DNS due to invalid characters. Valid characters include "+
+			"all alpha-numerics and dashes.", service.Service)
+	} else if len(service.Service) > MaxDNSLabelLength {
+		a.logger.Printf("[WARN] agent: Service name %q will not be discoverable "+
+			"via DNS due to it being too long. Valid lengths are between "+
+			"1 and 63 bytes.", service.Service)
+	}
+
+	// Warn if any tags are incompatible with DNS
+	for _, tag := range service.Tags {
+		if InvalidDnsRe.MatchString(tag) {
+			a.logger.Printf("[DEBUG] agent: Service tag %q will not be discoverable "+
+				"via DNS due to invalid characters. Valid characters include "+
+				"all alpha-numerics and dashes.", tag)
+		} else if len(tag) > MaxDNSLabelLength {
+			a.logger.Printf("[DEBUG] agent: Service tag %q will not be discoverable "+
+				"via DNS due to it being too long. Valid lengths are between "+
+				"1 and 63 bytes.", tag)
+		}
+	}
+
+	return nil
+}
+
 // cleanupRegistration is called on  registration error to ensure no there are no
 // leftovers after a partial failure
 func (a *Agent) cleanupRegistration(serviceIDs []string, checksIDs []types.CheckID) {
@@ -2064,6 +2090,11 @@ func (a *Agent) removeServiceLocked(serviceID string, persist bool) error {
 	// Validate ServiceID
 	if serviceID == "" {
 		return fmt.Errorf("ServiceID missing")
+	}
+
+	// Shut down the config watch in the service manager if enabled.
+	if a.config.EnableCentralServiceConfig {
+		a.serviceManager.RemoveService(serviceID)
 	}
 
 	checks := a.State.Checks()
@@ -3669,6 +3700,15 @@ func (a *Agent) registerCache() {
 	})
 
 	a.cache.RegisterType(cachetype.NodeServicesName, &cachetype.NodeServices{
+		RPC: a,
+	}, &cache.RegisterOptions{
+		// Maintain a blocking query, retry dropped connections quickly
+		Refresh:        true,
+		RefreshTimer:   0 * time.Second,
+		RefreshTimeout: 10 * time.Minute,
+	})
+
+	a.cache.RegisterType(cachetype.ResolvedServiceConfigName, &cachetype.ResolvedServiceConfig{
 		RPC: a,
 	}, &cache.RegisterOptions{
 		// Maintain a blocking query, retry dropped connections quickly

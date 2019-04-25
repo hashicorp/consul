@@ -561,6 +561,103 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 	}
 }
 
+func TestStructs_NodeService_Merge(t *testing.T) {
+	a := &NodeService{
+		Kind:    "service",
+		ID:      "foo:1",
+		Service: "foo",
+		Tags:    []string{"a", "b"},
+		Address: "127.0.0.1",
+		Meta:    map[string]string{"a": "b"},
+		Port:    1234,
+		Weights: &Weights{
+			Passing: 1,
+			Warning: 1,
+		},
+		EnableTagOverride: false,
+		ProxyDestination:  "asdf",
+		Proxy: ConnectProxyConfig{
+			DestinationServiceName: "baz",
+			DestinationServiceID:   "baz:1",
+			LocalServiceAddress:    "127.0.0.1",
+			LocalServicePort:       2345,
+			Config: map[string]interface{}{
+				"foo": 1,
+			},
+		},
+		Connect: ServiceConnect{
+			Native: false,
+		},
+		LocallyRegisteredAsSidecar: false,
+	}
+
+	b := &NodeService{
+		Kind:    "other",
+		ID:      "bar:1",
+		Service: "bar",
+		Tags:    []string{"c", "d"},
+		Address: "127.0.0.2",
+		Meta:    map[string]string{"c": "d"},
+		Port:    4567,
+		Weights: &Weights{
+			Passing: 2,
+			Warning: 2,
+		},
+		EnableTagOverride: true,
+		ProxyDestination:  "qwer",
+		Proxy: ConnectProxyConfig{
+			DestinationServiceName: "zoo",
+			DestinationServiceID:   "zoo:1",
+			LocalServiceAddress:    "127.0.0.2",
+			LocalServicePort:       6789,
+			Config: map[string]interface{}{
+				"bar": 2,
+			},
+		},
+		Connect: ServiceConnect{
+			Native: true,
+		},
+		LocallyRegisteredAsSidecar: true,
+	}
+
+	expected := &NodeService{
+		Kind:    "other",
+		ID:      "bar:1",
+		Service: "bar",
+		Tags:    []string{"a", "b", "c", "d"},
+		Address: "127.0.0.2",
+		Meta: map[string]string{
+			"a": "b",
+			"c": "d",
+		},
+		Port: 4567,
+		Weights: &Weights{
+			Passing: 2,
+			Warning: 2,
+		},
+		EnableTagOverride: true,
+		ProxyDestination:  "qwer",
+		Proxy: ConnectProxyConfig{
+			DestinationServiceName: "zoo",
+			DestinationServiceID:   "zoo:1",
+			LocalServiceAddress:    "127.0.0.2",
+			LocalServicePort:       6789,
+			Config: map[string]interface{}{
+				"foo": 1,
+				"bar": 2,
+			},
+		},
+		Connect: ServiceConnect{
+			Native: true,
+		},
+		LocallyRegisteredAsSidecar: true,
+	}
+
+	a.Merge(b)
+
+	require.Equal(t, expected, a)
+}
+
 func TestStructs_HealthCheck_IsSame(t *testing.T) {
 	hc := &HealthCheck{
 		Node:        "node1",

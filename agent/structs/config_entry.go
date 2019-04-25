@@ -2,10 +2,13 @@ package structs
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/mitchellh/hashstructure"
 )
 
 const (
@@ -263,6 +266,30 @@ type ServiceConfigRequest struct {
 
 func (s *ServiceConfigRequest) RequestDatacenter() string {
 	return s.Datacenter
+}
+
+func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {
+	info := cache.RequestInfo{
+		Token:          r.Token,
+		Datacenter:     r.Datacenter,
+		MinIndex:       r.MinQueryIndex,
+		Timeout:        r.MaxQueryTime,
+		MaxAge:         r.MaxAge,
+		MustRevalidate: r.MustRevalidate,
+	}
+
+	// To calculate the cache key we only hash the service name. The
+	// datacenter is handled by the cache framework. The other fields are
+	// not, but should not be used in any cache types.
+	v, err := hashstructure.Hash(r.Name, nil)
+	if err == nil {
+		// If there is an error, we don't set the key. A blank key forces
+		// no cache for this request so the request is forwarded directly
+		// to the server.
+		info.Key = strconv.FormatUint(v, 10)
+	}
+
+	return info
 }
 
 type ServiceConfigResponse struct {

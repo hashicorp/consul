@@ -669,6 +669,12 @@ type RuntimeConfig struct {
 	// and key).
 	EnableAgentTLSForChecks bool
 
+	// EnableCentralServiceConfig controls whether the agent should incorporate
+	// centralized config such as service-defaults into local service registrations.
+	//
+	// hcl: enable_central_service_config = (true|false)
+	EnableCentralServiceConfig bool
+
 	// EnableDebug is used to enable various debugging features.
 	//
 	// hcl: enable_debug = (true|false)

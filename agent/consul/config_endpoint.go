@@ -191,18 +191,25 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 			if err != nil {
 				return err
 			}
-			serviceConf, ok := serviceEntry.(*structs.ServiceConfigEntry)
-			if !ok {
-				return fmt.Errorf("invalid service config type %T", serviceEntry)
+			var serviceConf *structs.ServiceConfigEntry
+			var ok bool
+			if serviceEntry != nil {
+				serviceConf, ok = serviceEntry.(*structs.ServiceConfigEntry)
+				if !ok {
+					return fmt.Errorf("invalid service config type %T", serviceEntry)
+				}
 			}
 
 			_, proxyEntry, err := state.ConfigEntry(ws, structs.ProxyDefaults, structs.ProxyConfigGlobal)
 			if err != nil {
 				return err
 			}
-			proxyConf, ok := proxyEntry.(*structs.ProxyConfigEntry)
-			if !ok {
-				return fmt.Errorf("invalid proxy config type %T", serviceEntry)
+			var proxyConf *structs.ProxyConfigEntry
+			if proxyEntry != nil {
+				proxyConf, ok = proxyEntry.(*structs.ProxyConfigEntry)
+				if !ok {
+					return fmt.Errorf("invalid proxy config type %T", proxyEntry)
+				}
 			}
 
 			// Resolve the service definition by overlaying the service config onto the global

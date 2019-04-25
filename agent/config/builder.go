@@ -793,6 +793,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		DiscardCheckOutput:                      b.boolVal(c.DiscardCheckOutput),
 		DiscoveryMaxStale:                       b.durationVal("discovery_max_stale", c.DiscoveryMaxStale),
 		EnableAgentTLSForChecks:                 b.boolVal(c.EnableAgentTLSForChecks),
+		EnableCentralServiceConfig:              b.boolVal(c.EnableCentralServiceConfig),
 		EnableDebug:                             b.boolVal(c.EnableDebug),
 		EnableRemoteScriptChecks:                enableRemoteScriptChecks,
 		EnableLocalScriptChecks:                 enableLocalScriptChecks,
