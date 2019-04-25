@@ -19,6 +19,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type configCallback func(c *Config)
+
 func makeClient(t *testing.T) (*Client, *testutil.TestServer) {
 	return makeClientWithConfig(t, nil, nil)
 }
@@ -42,7 +44,7 @@ func makeACLClient(t *testing.T) (*Client, *testutil.TestServer) {
 
 func makeClientWithConfig(
 	t *testing.T,
-	cb1 func(c *Config),
+	cb1 configCallback,
 	cb2 testutil.ServerConfigCallback) (*Client, *testutil.TestServer) {
 
 	// Make client config
