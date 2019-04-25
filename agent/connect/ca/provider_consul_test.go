@@ -181,6 +181,33 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 		require.True(parsed.NotAfter.Sub(time.Now()) < 3*24*time.Hour)
 		require.True(parsed.NotBefore.Before(time.Now()))
 	}
+
+	spiffeAgent := &connect.SpiffeIDAgent{
+		Host:  "node1",
+		Agent: "uuid",
+	}
+	// Generate a leaf cert for an agent.
+	{
+		raw, _ := connect.TestCSR(t, spiffeAgent)
+
+		csr, err := connect.ParseCSR(raw)
+		require.NoError(err)
+
+		cert, err := provider.Sign(csr)
+		require.NoError(err)
+
+		parsed, err := connect.ParseCert(cert)
+		require.NoError(err)
+		require.Equal(spiffeAgent.URI(), parsed.URIs[0])
+		require.Equal("uuid", parsed.Subject.CommonName)
+		require.Equal(uint64(2), parsed.SerialNumber.Uint64())
+
+		// Ensure the cert is valid now and expires within the correct limit.
+		now := time.Now()
+		require.True(parsed.NotAfter.Sub(now) < time.Hour)
+		require.True(parsed.NotBefore.Before(now))
+	}
+
 }
 
 func TestConsulCAProvider_CrossSignCA(t *testing.T) {
