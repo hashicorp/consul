@@ -146,6 +146,16 @@ func (s *Server) replicateConfig(ctx context.Context, lastRemoteIndex uint64) (u
 	// If the remote index ever goes backwards, it's a good indication that
 	// the remote side was rebuilt and we should do a full sync since we
 	// can't make any assumptions about what's going on.
+	//
+	// Resetting lastRemoteIndex to 0 will work because we never consider local
+	// raft indices. Instead we compare the raft modify index in the response object
+	// with the lastRemoteIndex (only when we already have a config entry of the same kind/name)
+	// to determine if an update is needed. Resetting lastRemoteIndex to 0 then has the affect
+	// of making us think all the local state is out of date and any matching entries should
+	// still be updated.
+	//
+	// The lastRemoteIndex is not used when the entry exists either only in the local state or
+	// only in the remote state. In those situations we need to either delete it or create it.
 	if remote.QueryMeta.Index < lastRemoteIndex {
 		s.logger.Printf("[WARN] replication: Config Entry replication remote index moved backwards (%d to %d), forcing a full Config Entry sync", lastRemoteIndex, remote.QueryMeta.Index)
 		lastRemoteIndex = 0
