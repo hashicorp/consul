@@ -23,6 +23,35 @@ references:
     S3_ARTIFACT_BUCKET:  consul-dev-artifacts
 
 jobs:
+  # Runs go fmt and go vet
+  go-fmt-and-vet:
+    docker:
+    - image: *GOLANG_IMAGE
+    steps:
+    - checkout
+    - restore_cache:
+        keys:
+        - consul-modcache-v1-{{ checksum "go.mod" }}
+    - run:
+        command: go mod download
+    - save_cache:
+        key: consul-modcache-v1-{{ checksum "go.mod" }}
+        paths:
+        - /go/pkg/mod
+    - run:
+        name: check go fmt
+        command: |
+          files=$(go fmt ./...)
+          if [ -n "$files" ]; then
+            echo "The following file(s) do not conform to go fmt:"
+            echo "$files"
+            exit 1
+          fi
+    - run:
+        command: go vet ./...
+    environment:
+      <<: *ENVIRONMENT
+
   # build all distros
   build-distros: &build-distros
     docker:
@@ -288,9 +317,12 @@ workflows:
   version: 2
   build-distros:
     jobs:
-      - build-386
-      - build-amd64
-      - build-arm-arm64
+      - go-fmt-and-vet
+      - build-386: &require-go-fmt-vet
+          requires:
+            - go-fmt-and-vet
+      - build-amd64: *require-go-fmt-vet
+      - build-arm-arm64: *require-go-fmt-vet
   test-integrations:
     jobs:
       - dev-build

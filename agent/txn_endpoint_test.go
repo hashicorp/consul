@@ -510,11 +510,11 @@ func TestTxnEndpoint_UpdateCheck(t *testing.T) {
 					Status:  api.HealthCritical,
 					Notes:   "Http based health check",
 					Definition: structs.HealthCheckDefinition{
-						Interval: 6 * time.Second,
-						Timeout:  6 * time.Second,
+						Interval:                       6 * time.Second,
+						Timeout:                        6 * time.Second,
 						DeregisterCriticalServiceAfter: 6 * time.Second,
-						HTTP:          "http://localhost:8000",
-						TLSSkipVerify: true,
+						HTTP:                           "http://localhost:8000",
+						TLSSkipVerify:                  true,
 					},
 					RaftIndex: structs.RaftIndex{
 						CreateIndex: index,
@@ -531,11 +531,11 @@ func TestTxnEndpoint_UpdateCheck(t *testing.T) {
 					Notes:   "Http based health check",
 					Output:  "success",
 					Definition: structs.HealthCheckDefinition{
-						Interval: 10 * time.Second,
-						Timeout:  10 * time.Second,
+						Interval:                       10 * time.Second,
+						Timeout:                        10 * time.Second,
 						DeregisterCriticalServiceAfter: 15 * time.Minute,
-						HTTP:          "http://localhost:9000",
-						TLSSkipVerify: false,
+						HTTP:                           "http://localhost:9000",
+						TLSSkipVerify:                  false,
 					},
 					RaftIndex: structs.RaftIndex{
 						CreateIndex: index,
@@ -552,11 +552,11 @@ func TestTxnEndpoint_UpdateCheck(t *testing.T) {
 					Notes:   "Http based health check",
 					Output:  "success",
 					Definition: structs.HealthCheckDefinition{
-						Interval: 15 * time.Second,
-						Timeout:  15 * time.Second,
+						Interval:                       15 * time.Second,
+						Timeout:                        15 * time.Second,
 						DeregisterCriticalServiceAfter: 30 * time.Minute,
-						HTTP:          "http://localhost:9000",
-						TLSSkipVerify: false,
+						HTTP:                           "http://localhost:9000",
+						TLSSkipVerify:                  false,
 					},
 					RaftIndex: structs.RaftIndex{
 						CreateIndex: index,
