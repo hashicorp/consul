@@ -152,6 +152,14 @@ test: other-consul dev-build vet test-install-deps test-internal
 test-install-deps:
 	go test -tags '$(GOTAGS)' -i $(GOTEST_PKGS)
 
+update-vendor:
+	@echo "--> Running go mod vendor"
+	@go mod vendor
+	@echo "--> Removing vendoring of our own nested modules"
+	@rm -rf vendor/github.com/hashicorp/consul
+	@grep -v "hashicorp/consul/" < vendor/modules.txt > vendor/modules.txt.new
+	@mv vendor/modules.txt.new vendor/modules.txt
+
 test-internal:
 	@echo "--> Running go test"
 	@rm -f test.log exit-code
