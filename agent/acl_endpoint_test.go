@@ -282,6 +282,23 @@ func TestACL_HTTP(t *testing.T) {
 			policyMap[policy.ID] = policy
 		})
 
+		t.Run("ID Supplied", func(t *testing.T) {
+			policyInput := &structs.ACLPolicy{
+				ID:          "12123d01-37f1-47e6-b55b-32328652bd38",
+				Name:        "with-id",
+				Description: "test",
+				Rules:       `acl = "read"`,
+				Datacenters: []string{"dc1"},
+			}
+
+			req, _ := http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonBody(policyInput))
+			resp := httptest.NewRecorder()
+			_, err := a.srv.ACLPolicyCreate(resp, req)
+			require.Error(t, err)
+			_, ok := err.(BadRequestError)
+			require.True(t, ok)
+		})
+
 		t.Run("Invalid payload", func(t *testing.T) {
 			body := bytes.NewBuffer(nil)
 			body.Write([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
@@ -340,71 +357,6 @@ func TestACL_HTTP(t *testing.T) {
 			policy, ok := raw.(*structs.ACLPolicy)
 			require.True(t, ok)
 			require.Equal(t, policyMap[idMap["policy-read-all-nodes"]], policy)
-		})
-
-		t.Run("ID Supplied", func(t *testing.T) {
-			policyInput := &structs.ACLPolicy{
-				ID:          "12123d01-37f1-47e6-b55b-32328652bd38",
-				Name:        "with-id",
-				Description: "test",
-				Rules:       `acl = "read"`,
-				Datacenters: []string{"dc1"},
-			}
-
-			req, _ := http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonBody(policyInput))
-			resp := httptest.NewRecorder()
-			obj, err := a.srv.ACLPolicyCreate(resp, req)
-			require.NoError(t, err)
-			policy, ok := obj.(*structs.ACLPolicy)
-			require.True(t, ok)
-
-			require.Equal(t, "12123d01-37f1-47e6-b55b-32328652bd38", policy.ID)
-			require.Equal(t, "with-id", policy.Name)
-		})
-
-		t.Run("ID Reserved", func(t *testing.T) {
-			policyInput := &structs.ACLPolicy{
-				ID:          "00000000-0000-0000-0000-000000000038",
-				Name:        "with-id-2",
-				Description: "test",
-				Rules:       `acl = "read"`,
-				Datacenters: []string{"dc1"},
-			}
-
-			req, _ := http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonBody(policyInput))
-			resp := httptest.NewRecorder()
-			_, err := a.srv.ACLPolicyCreate(resp, req)
-			require.Error(t, err)
-		})
-
-		t.Run("ID Duplicate", func(t *testing.T) {
-			policyInput := &structs.ACLPolicy{
-				ID:          "12123d01-37f1-47e6-b55b-32328652bd38",
-				Name:        "with-id-3",
-				Description: "test",
-				Rules:       `acl = "read"`,
-				Datacenters: []string{"dc1"},
-			}
-
-			req, _ := http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonBody(policyInput))
-			resp := httptest.NewRecorder()
-			_, err := a.srv.ACLPolicyCreate(resp, req)
-			require.Error(t, err)
-		})
-
-		t.Run("ID Supplied - dup name", func(t *testing.T) {
-			policyInput := &structs.ACLPolicy{
-				ID:          "cb7f8916-90b4-4e4f-b346-a93556f56d15",
-				Name:        "with-id",
-				Description: "test",
-				Rules:       `acl = "read"`,
-				Datacenters: []string{"dc1"},
-			}
-
-			req, _ := http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonBody(policyInput))
-			resp := httptest.NewRecorder()
-			_, err := a.srv.ACLPolicyCreate(resp, req)
-			require.Error(t, err)
 		})
 	})
 

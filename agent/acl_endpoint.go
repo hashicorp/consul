@@ -302,7 +302,6 @@ func (s *HTTPServer) ACLPolicyWrite(resp http.ResponseWriter, req *http.Request,
 func (s *HTTPServer) aclPolicyWriteInternal(resp http.ResponseWriter, req *http.Request, policyID string, create bool) (interface{}, error) {
 	args := structs.ACLPolicySetRequest{
 		Datacenter: s.agent.config.Datacenter,
-		Create:     create,
 	}
 	s.parseToken(req, &args.Token)
 
@@ -312,7 +311,11 @@ func (s *HTTPServer) aclPolicyWriteInternal(resp http.ResponseWriter, req *http.
 
 	args.Policy.Syntax = acl.SyntaxCurrent
 
-	if !create {
+	if create {
+		if args.Policy.ID == "" {
+			return nil, BadRequestError{Reason: "Cannot specify the ID when creating a new policy"}
+		}
+	} else {
 		if args.Policy.ID != "" && args.Policy.ID != policyID {
 			return nil, BadRequestError{Reason: "Policy ID in URL and payload do not match"}
 		} else if args.Policy.ID == "" {

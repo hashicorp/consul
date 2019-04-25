@@ -639,7 +639,6 @@ type ACLTokenBatchResponse struct {
 // ACLPolicySetRequest is used at the RPC layer for creation and update requests
 type ACLPolicySetRequest struct {
 	Policy     ACLPolicy // The policy to upsert
-	Create     bool      // Used to explicitly mark this request as a creation
 	Datacenter string    // The datacenter to perform the request within
 	WriteRequest
 }

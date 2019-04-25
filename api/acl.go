@@ -423,9 +423,12 @@ func (a *ACL) TokenList(q *QueryOptions) ([]*ACLTokenListEntry, *QueryMeta, erro
 	return entries, qm, nil
 }
 
-// PolicyCreate will create a new policy. If the ACLPolicy ID field is empty then it will
-// be filled in by Consul.
+// PolicyCreate will create a new policy. It is not allowed for the policy parameters
+// ID field to be set as this will be gneerated by Consul while processing the request.
 func (a *ACL) PolicyCreate(policy *ACLPolicy, q *WriteOptions) (*ACLPolicy, *WriteMeta, error) {
+	if policy.ID != "" {
+		return nil, nil, fmt.Errorf("Cannot specify an ID in Policy Creation")
+	}
 	r := a.c.newRequest("PUT", "/v1/acl/policy")
 	r.setWriteOptions(q)
 	r.obj = policy

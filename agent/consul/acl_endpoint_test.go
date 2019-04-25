@@ -1535,91 +1535,21 @@ func TestACLEndpoint_PolicySet_CustomID(t *testing.T) {
 
 	acl := ACL{srv: s1}
 
-	// Create it - no Create arg
-	{
-		req := structs.ACLPolicySetRequest{
-			Datacenter: "dc1",
-			Policy: structs.ACLPolicy{
-				ID:          "7ee166a5-b4b7-453c-bdc0-bca8ce50823e",
-				Description: "foobar",
-				Name:        "baz",
-				Rules:       "service \"\" { policy = \"read\" }",
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		resp := structs.ACLPolicy{}
-
-		err := acl.PolicySet(&req, &resp)
-		require.Error(t, err)
+	// Attempt to create policy with ID
+	req := structs.ACLPolicySetRequest{
+		Datacenter: "dc1",
+		Policy: structs.ACLPolicy{
+			ID:          "7ee166a5-b4b7-453c-bdc0-bca8ce50823e",
+			Description: "foobar",
+			Name:        "baz",
+			Rules:       "service \"\" { policy = \"read\" }",
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
+	resp := structs.ACLPolicy{}
 
-	// Create it
-	{
-		req := structs.ACLPolicySetRequest{
-			Datacenter: "dc1",
-			Policy: structs.ACLPolicy{
-				ID:          "7ee166a5-b4b7-453c-bdc0-bca8ce50823e",
-				Description: "foobar",
-				Name:        "baz",
-				Rules:       "service \"\" { policy = \"read\" }",
-			},
-			Create:       true,
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		resp := structs.ACLPolicy{}
-
-		err := acl.PolicySet(&req, &resp)
-		require.NoError(t, err)
-		require.NotNil(t, resp.ID)
-
-		// Get the policy directly to validate that it exists
-		policyResp, err := retrieveTestPolicy(codec, "root", "dc1", resp.ID)
-		require.NoError(t, err)
-		policy := policyResp.Policy
-
-		require.Equal(t, req.Policy.ID, policy.ID)
-		require.Equal(t, policy.Description, "foobar")
-		require.Equal(t, policy.Name, "baz")
-		require.Equal(t, policy.Rules, "service \"\" { policy = \"read\" }")
-	}
-
-	// Create it - Duplicate Name
-	{
-		req := structs.ACLPolicySetRequest{
-			Datacenter: "dc1",
-			Policy: structs.ACLPolicy{
-				ID:          "fc925e4d-a02c-43c2-837b-5c039690d4c1",
-				Description: "foobar",
-				Name:        "baz",
-				Rules:       "service \"\" { policy = \"read\" }",
-			},
-			Create:       true,
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		resp := structs.ACLPolicy{}
-
-		err := acl.PolicySet(&req, &resp)
-		require.Error(t, err)
-	}
-
-	// Rename with Create arg
-	{
-		req := structs.ACLPolicySetRequest{
-			Datacenter: "dc1",
-			Policy: structs.ACLPolicy{
-				ID:          "7ee166a5-b4b7-453c-bdc0-bca8ce50823e",
-				Description: "foobar",
-				Name:        "different",
-				Rules:       "service \"\" { policy = \"read\" }",
-			},
-			Create:       true,
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		resp := structs.ACLPolicy{}
-
-		err := acl.PolicySet(&req, &resp)
-		require.Error(t, err)
-	}
+	err := acl.PolicySet(&req, &resp)
+	require.Error(t, err)
 }
 
 func TestACLEndpoint_PolicySet_globalManagement(t *testing.T) {

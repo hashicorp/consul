@@ -34,9 +34,6 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `ID` `(string: "")` - Specifies the UUID to use for the policy ID. If not
-   specified a UUID will be generated. Added in v1.4.3.
-
 - `Name` `(string: <required>)` - Specifies a name for the ACL policy. The name
    can only contain alphanumeric characters as well as `-` and `_` and must be
    unique.

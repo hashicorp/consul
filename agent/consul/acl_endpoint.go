@@ -747,25 +747,12 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 		return fmt.Errorf("acl policy lookup by name failed: %v", err)
 	}
 
-	if args.Create || policy.ID == "" {
+	if policy.ID == "" {
 		// with no policy ID one will be generated
 		var err error
-
-		if policy.ID == "" {
-			policy.ID, err = lib.GenerateUUID(a.srv.checkPolicyUUID)
-			if err != nil {
-				return err
-			}
-		} else {
-			if idMatch != nil {
-				return fmt.Errorf("Invalid Policy: A Policy with ID %q already exists", policy.ID)
-			} else if nameMatch != nil {
-				return fmt.Errorf("Invalid Policy: A Policy with Name %q already exists", policy.Name)
-			}
-
-			if structs.ACLIDReserved(policy.ID) {
-				return fmt.Errorf("Invalid Policy: Policy IDs with prefix %q are reserved", structs.ACLReservedPrefix)
-			}
+		policy.ID, err = lib.GenerateUUID(a.srv.checkPolicyUUID)
+		if err != nil {
+			return err
 		}
 	} else {
 		// Verify the policy exists
