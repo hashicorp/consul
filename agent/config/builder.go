@@ -185,11 +185,17 @@ func (b *Builder) ReadPath(path string) ([]Source, error) {
 			continue
 		}
 
-		src, err := b.ReadFile(fp)
-		if err != nil {
-			return nil, err
+		configFormat := b.stringVal(b.Flags.ConfigFormat)
+		srcFormat := FormatFrom(fp)
+
+		// If config-format is not set, only read files with supported extensions
+		if srcFormat == "json" || srcFormat == "hcl" || configFormat != "" {
+			src, err := b.ReadFile(fp)
+			if err != nil {
+				return nil, err
+			}
+			sources = append(sources, src)
 		}
-		sources = append(sources, src)
 	}
 	return sources, nil
 }
@@ -234,7 +240,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	// ----------------------------------------------------------------
 	// merge config sources as follows
 	//
-
 	configFormat := b.stringVal(b.Flags.ConfigFormat)
 	if configFormat != "" && configFormat != "json" && configFormat != "hcl" {
 		return RuntimeConfig{}, fmt.Errorf("config: -config-format must be either 'hcl' or 'json'")
