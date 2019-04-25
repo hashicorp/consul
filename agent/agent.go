@@ -2092,8 +2092,10 @@ func (a *Agent) removeServiceLocked(serviceID string, persist bool) error {
 		return fmt.Errorf("ServiceID missing")
 	}
 
-	// Shut down the config watch in the service manager.
-	a.serviceManager.RemoveService(serviceID)
+	// Shut down the config watch in the service manager if enabled.
+	if a.config.EnableCentralServiceConfig {
+		a.serviceManager.RemoveService(serviceID)
+	}
 
 	checks := a.State.Checks()
 	var checkIDs []types.CheckID
