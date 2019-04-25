@@ -38,7 +38,7 @@ func TestAPI_HealthNode(t *testing.T) {
 
 func TestAPI_HealthNode_Filter(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	// this sets up the catalog entries with things we can filter on
@@ -280,7 +280,7 @@ func TestAPI_HealthChecks_NodeMetaFilter(t *testing.T) {
 
 func TestAPI_HealthChecks_Filter(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	// this sets up the catalog entries with things we can filter on
@@ -435,7 +435,7 @@ func TestAPI_HealthService_NodeMetaFilter(t *testing.T) {
 
 func TestAPI_HealthService_Filter(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	// this sets up the catalog entries with things we can filter on
@@ -514,7 +514,7 @@ func TestAPI_HealthConnect(t *testing.T) {
 
 func TestAPI_HealthConnect_Filter(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	// this sets up the catalog entries with things we can filter on
@@ -578,7 +578,7 @@ func TestAPI_HealthState_NodeMetaFilter(t *testing.T) {
 
 func TestAPI_HealthState_Filter(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	// this sets up the catalog entries with things we can filter on

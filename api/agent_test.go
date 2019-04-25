@@ -233,7 +233,7 @@ func TestAPI_AgentServices(t *testing.T) {
 
 func TestAPI_AgentServicesWithFilter(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	agent := c.Agent()
@@ -898,7 +898,7 @@ func TestAPI_AgentChecks(t *testing.T) {
 
 func TestAPI_AgentChecksWithFilter(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	agent := c.Agent()

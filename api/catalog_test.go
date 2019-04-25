@@ -127,7 +127,7 @@ func TestAPI_CatalogNodes_MetaFilter(t *testing.T) {
 
 func TestAPI_CatalogNodes_Filter(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	// this sets up the catalog entries with things we can filter on
@@ -431,7 +431,7 @@ func TestAPI_CatalogService_NodeMetaFilter(t *testing.T) {
 
 func TestAPI_CatalogService_Filter(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	// this sets up the catalog entries with things we can filter on
@@ -660,7 +660,7 @@ func TestAPI_CatalogConnectNative(t *testing.T) {
 
 func TestAPI_CatalogConnect_Filter(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	// this sets up the catalog entries with things we can filter on
@@ -735,7 +735,7 @@ func TestAPI_CatalogNode(t *testing.T) {
 
 func TestAPI_CatalogNode_Filter(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	// this sets up the catalog entries with things we can filter on

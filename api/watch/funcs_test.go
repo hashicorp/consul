@@ -21,8 +21,29 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/api/watch"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/stretchr/testify/require"
 )
+
+func MakeTestClient(t *testing.T) (*api.Client, *testutil.TestServer) {
+	// Make client config
+	conf := api.DefaultConfig()
+
+	// Create server
+	server, err := testutil.NewTestServerConfigT(t, nil)
+	require.NoError(t, err)
+	conf.Address = server.HTTPAddr
+
+	// Create client
+	client, err := api.NewClient(conf)
+	if err != nil {
+		server.Stop()
+		// guaranteed to fail but will be a nice error message
+		require.NoError(t, err)
+	}
+
+	return client, server
+}
 
 var errBadContent = errors.New("bad content")
 var errTimeout = errors.New("timeout")
@@ -87,7 +108,7 @@ func updateConnectCA(t *testing.T, client *api.Client) {
 
 func TestKeyWatch(t *testing.T) {
 	t.Parallel()
-	c, s := api.MakeTestClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	invoke := makeInvokeCh()
@@ -141,7 +162,7 @@ func TestKeyWatch(t *testing.T) {
 
 func TestKeyWatch_With_PrefixDelete(t *testing.T) {
 	t.Parallel()
-	c, s := api.MakeTestClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	invoke := makeInvokeCh()
@@ -195,7 +216,7 @@ func TestKeyWatch_With_PrefixDelete(t *testing.T) {
 
 func TestKeyPrefixWatch(t *testing.T) {
 	t.Parallel()
-	c, s := api.MakeTestClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	invoke := makeInvokeCh()
@@ -248,7 +269,7 @@ func TestKeyPrefixWatch(t *testing.T) {
 
 func TestServicesWatch(t *testing.T) {
 	t.Parallel()
-	c, s := api.MakeTestClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	invoke := makeInvokeCh()
@@ -302,7 +323,7 @@ func TestServicesWatch(t *testing.T) {
 
 func TestNodesWatch(t *testing.T) {
 	t.Parallel()
-	c, s := api.MakeTestClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	invoke := makeInvokeCh()
@@ -353,7 +374,7 @@ func TestNodesWatch(t *testing.T) {
 
 func TestServiceWatch(t *testing.T) {
 	t.Parallel()
-	c, s := api.MakeTestClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	invoke := makeInvokeCh()
@@ -409,7 +430,7 @@ func TestServiceWatch(t *testing.T) {
 
 func TestChecksWatch_State(t *testing.T) {
 	t.Parallel()
-	c, s := api.MakeTestClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	invoke := makeInvokeCh()
@@ -470,7 +491,7 @@ func TestChecksWatch_State(t *testing.T) {
 
 func TestChecksWatch_Service(t *testing.T) {
 	t.Parallel()
-	c, s := api.MakeTestClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	invoke := makeInvokeCh()
@@ -536,7 +557,7 @@ func TestChecksWatch_Service(t *testing.T) {
 
 func TestEventWatch(t *testing.T) {
 	t.Parallel()
-	c, s := api.MakeTestClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	invoke := makeInvokeCh()
@@ -588,7 +609,7 @@ func TestEventWatch(t *testing.T) {
 func TestConnectRootsWatch(t *testing.T) {
 	t.Parallel()
 	// MakeTestClient will bootstrap a CA
-	c, s := api.MakeTestClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	var originalCAID string
@@ -640,7 +661,7 @@ func TestConnectRootsWatch(t *testing.T) {
 func TestConnectLeafWatch(t *testing.T) {
 	t.Parallel()
 	// MakeTestClient will bootstrap a CA
-	c, s := api.MakeTestClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	// Register a web service to get certs for
@@ -709,7 +730,7 @@ func TestConnectLeafWatch(t *testing.T) {
 
 func TestConnectProxyConfigWatch(t *testing.T) {
 	t.Parallel()
-	c, s := api.MakeTestClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	// Register a local agent service with a managed proxy
@@ -772,7 +793,7 @@ func TestConnectProxyConfigWatch(t *testing.T) {
 
 func TestAgentServiceWatch(t *testing.T) {
 	t.Parallel()
-	c, s := api.MakeTestClient(t)
+	c, s := MakeTestClient(t)
 	defer s.Stop()
 
 	// Register a local agent service
