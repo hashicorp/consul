@@ -115,7 +115,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-   http://127.0.0.1:8500/v1/connect/ca/roots
+   http://127.0.0.1:8500/v1/agent/connect/ca/roots
 ```
 
 ### Sample Response
@@ -182,7 +182,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-   http://127.0.0.1:8500/v1/connect/ca/leaf/web
+   http://127.0.0.1:8500/v1/agent/connect/ca/leaf/web
 ```
 
 ### Sample Response
