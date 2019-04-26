@@ -10,7 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/armon/go-metrics"
+	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	ca "github.com/hashicorp/consul/agent/connect/ca"
@@ -22,7 +22,7 @@ import (
 	"github.com/hashicorp/consul/types"
 	memdb "github.com/hashicorp/go-memdb"
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/go-version"
+	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
@@ -308,6 +308,8 @@ func (s *Server) revokeLeadership() error {
 
 	s.setCAProvider(nil, nil)
 
+	s.stopACLTokenReaping()
+
 	s.stopACLUpgrade()
 
 	s.resetConsistentReadReady()
@@ -329,6 +331,7 @@ func (s *Server) initializeLegacyACL() error {
 	if err != nil {
 		return fmt.Errorf("failed to get anonymous token: %v", err)
 	}
+	// Ignoring expiration times to avoid an insertion collision.
 	if token == nil {
 		req := structs.ACLRequest{
 			Datacenter: authDC,
@@ -352,6 +355,7 @@ func (s *Server) initializeLegacyACL() error {
 		if err != nil {
 			return fmt.Errorf("failed to get master token: %v", err)
 		}
+		// Ignoring expiration times to avoid an insertion collision.
 		if token == nil {
 			req := structs.ACLRequest{
 				Datacenter: authDC,
@@ -423,6 +427,10 @@ func (s *Server) initializeACLs(upgrade bool) error {
 	// leader.
 	s.acls.cache.Purge()
 
+	// Purge the auth method validators since they could've changed while we
+	// were not leader.
+	s.purgeAuthMethodValidators()
+
 	// Remove any token affected by CVE-2019-8336
 	if !s.InACLDatacenter() {
 		_, token, err := s.fsm.State().ACLTokenGetBySecret(nil, redactedToken)
@@ -482,6 +490,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 			if err != nil {
 				return fmt.Errorf("failed to get master token: %v", err)
 			}
+			// Ignoring expiration times to avoid an insertion collision.
 			if token == nil {
 				accessor, err := lib.GenerateUUID(s.checkTokenUUID)
 				if err != nil {
@@ -543,6 +552,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 		if err != nil {
 			return fmt.Errorf("failed to get anonymous token: %v", err)
 		}
+		// Ignoring expiration times to avoid an insertion collision.
 		if token == nil {
 			// DEPRECATED (ACL-Legacy-Compat) - Don't need to query for previous "anonymous" token
 			// check for legacy token that needs an upgrade
@@ -550,6 +560,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 			if err != nil {
 				return fmt.Errorf("failed to get anonymous token: %v", err)
 			}
+			// Ignoring expiration times to avoid an insertion collision.
 
 			// the token upgrade routine will take care of upgrading the token if a legacy version exists
 			if legacyToken == nil {
@@ -572,6 +583,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 				s.logger.Printf("[INFO] consul: Created ACL anonymous token from configuration")
 			}
 		}
+		// launch the upgrade go routine to generate accessors for everything
 		s.startACLUpgrade()
 	} else {
 		if s.UseLegacyACLs() && !upgrade {
@@ -588,7 +600,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 		s.startACLReplication()
 	}
 
-	// launch the upgrade go routine to generate accessors for everything
+	s.startACLTokenReaping()
 
 	return nil
 }
@@ -617,6 +629,7 @@ func (s *Server) startACLUpgrade() {
 			if err != nil {
 				s.logger.Printf("[WARN] acl: encountered an error while searching for tokens without accessor ids: %v", err)
 			}
+			// No need to check expiration time here, as that only exists for v2 tokens.
 
 			if len(tokens) == 0 {
 				ws := memdb.NewWatchSet()
@@ -649,7 +662,10 @@ func (s *Server) startACLUpgrade() {
 				}
 
 				// Assign the global-management policy to legacy management tokens
-				if len(newToken.Policies) == 0 && newToken.Type == structs.ACLTokenTypeManagement {
+				if len(newToken.Policies) == 0 &&
+					len(newToken.ServiceIdentities) == 0 &&
+					len(newToken.Roles) == 0 &&
+					newToken.Type == structs.ACLTokenTypeManagement {
 					newToken.Policies = append(newToken.Policies, structs.ACLTokenPolicyLink{ID: structs.ACLPolicyGlobalManagementID})
 				}
 
@@ -727,7 +743,7 @@ func (s *Server) startLegacyACLReplication() {
 				s.logger.Printf("[WARN] consul: Legacy ACL replication error (will retry if still leader): %v", err)
 			} else {
 				lastRemoteIndex = index
-				s.updateACLReplicationStatusIndex(index)
+				s.updateACLReplicationStatusIndex(structs.ACLReplicateLegacy, index)
 				s.logger.Printf("[DEBUG] consul: Legacy ACL replication completed through remote index %d", index)
 			}
 		}
@@ -749,8 +765,22 @@ func (s *Server) startACLReplication() {
 	ctx, cancel := context.WithCancel(context.Background())
 	s.aclReplicationCancel = cancel
 
-	replicationType := structs.ACLReplicatePolicies
+	s.startACLReplicator(ctx, structs.ACLReplicatePolicies, s.replicateACLPolicies)
+	s.startACLReplicator(ctx, structs.ACLReplicateRoles, s.replicateACLRoles)
 
+	if s.config.ACLTokenReplication {
+		s.startACLReplicator(ctx, structs.ACLReplicateTokens, s.replicateACLTokens)
+		s.updateACLReplicationStatusRunning(structs.ACLReplicateTokens)
+	} else {
+		s.updateACLReplicationStatusRunning(structs.ACLReplicatePolicies)
+	}
+
+	s.aclReplicationEnabled = true
+}
+
+type replicateFunc func(ctx context.Context, lastRemoteIndex uint64) (uint64, bool, error)
+
+func (s *Server) startACLReplicator(ctx context.Context, replicationType structs.ACLReplicationType, replicateFunc replicateFunc) {
 	go func() {
 		var failedAttempts uint
 		limiter := rate.NewLimiter(rate.Limit(s.config.ACLReplicationRate), s.config.ACLReplicationBurst)
@@ -765,7 +795,7 @@ func (s *Server) startACLReplication() {
 				continue
 			}
 
-			index, exit, err := s.replicateACLPolicies(lastRemoteIndex, ctx)
+			index, exit, err := replicateFunc(ctx, lastRemoteIndex)
 			if exit {
 				return
 			}
@@ -773,7 +803,7 @@ func (s *Server) startACLReplication() {
 			if err != nil {
 				lastRemoteIndex = 0
 				s.updateACLReplicationStatusError()
-				s.logger.Printf("[WARN] consul: ACL policy replication error (will retry if still leader): %v", err)
+				s.logger.Printf("[WARN] consul: ACL %s replication error (will retry if still leader): %v", replicationType.SingularNoun(), err)
 				if (1 << failedAttempts) < aclReplicationMaxRetryBackoff {
 					failedAttempts++
 				}
@@ -786,65 +816,14 @@ func (s *Server) startACLReplication() {
 				}
 			} else {
 				lastRemoteIndex = index
-				s.updateACLReplicationStatusIndex(index)
-				s.logger.Printf("[DEBUG] consul: ACL policy replication completed through remote index %d", index)
+				s.updateACLReplicationStatusIndex(replicationType, index)
+				s.logger.Printf("[DEBUG] consul: ACL %s replication completed through remote index %d", replicationType.SingularNoun(), index)
 				failedAttempts = 0
 			}
 		}
 	}()
 
-	s.logger.Printf("[INFO] acl: started ACL Policy replication")
-
-	if s.config.ACLTokenReplication {
-		replicationType = structs.ACLReplicateTokens
-
-		go func() {
-			var failedAttempts uint
-			limiter := rate.NewLimiter(rate.Limit(s.config.ACLReplicationRate), s.config.ACLReplicationBurst)
-			var lastRemoteIndex uint64
-			for {
-				if err := limiter.Wait(ctx); err != nil {
-					return
-				}
-
-				if s.tokens.ReplicationToken() == "" {
-					continue
-				}
-
-				index, exit, err := s.replicateACLTokens(lastRemoteIndex, ctx)
-				if exit {
-					return
-				}
-
-				if err != nil {
-					lastRemoteIndex = 0
-					s.updateACLReplicationStatusError()
-					s.logger.Printf("[WARN] consul: ACL token replication error (will retry if still leader): %v", err)
-					if (1 << failedAttempts) < aclReplicationMaxRetryBackoff {
-						failedAttempts++
-					}
-
-					select {
-					case <-ctx.Done():
-						return
-					case <-time.After((1 << failedAttempts) * time.Second):
-						// do nothing
-					}
-				} else {
-					lastRemoteIndex = index
-					s.updateACLReplicationStatusTokenIndex(index)
-					s.logger.Printf("[DEBUG] consul: ACL token replication completed through remote index %d", index)
-					failedAttempts = 0
-				}
-			}
-		}()
-
-		s.logger.Printf("[INFO] acl: started ACL Token replication")
-	}
-
-	s.updateACLReplicationStatusRunning(replicationType)
-
-	s.aclReplicationEnabled = true
+	s.logger.Printf("[INFO] acl: started ACL %s replication", replicationType.SingularNoun())
 }
 
 func (s *Server) stopACLReplication() {

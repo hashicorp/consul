@@ -104,7 +104,7 @@ func (c *cmd) Run(args []string) int {
 		// enabled.
 		c.grpcAddr = "localhost:8502"
 	}
-	if c.http.Token() == "" {
+	if c.http.Token() == "" && c.http.TokenFile() == "" {
 		// Extra check needed since CONSUL_HTTP_TOKEN has not been consulted yet but
 		// calling SetToken with empty will force that to override the
 		if proxyToken := os.Getenv(proxyAgent.EnvProxyToken); proxyToken != "" {
