@@ -7,6 +7,10 @@ BREAKING CHANGES:
 FEATURES:
 * api: Implement data filtering for some endpoints using a new filtering language. [[GH-5579](https://github.com/hashicorp/consul/pull/5579)]
 * snapshot agent (Consul Enterprise): Added support for saving snapshots to Azure Blob Storage.
+* acl: tokens can be created with an optional expiration time [[GH-5353](https://github.com/hashicorp/consul/issues/5353)]
+* acl: tokens can now be assigned an optional set of service identities [[GH-5390](https://github.com/hashicorp/consul/issues/5390)]
+* acl: tokens can now be assigned to roles [[GH-5514](https://github.com/hashicorp/consul/issues/5514)]
+* acl: adding support for kubernetes auth provider login [[GH-5600](https://github.com/hashicorp/consul/issues/5600)]
 
 IMPROVEMENTS:
 * cli: allow to add ip addresses as Subject Alternative Names when creating certificates with `consul tls cert create` [[GH-5602](https://github.com/hashicorp/consul/pull/5602)]
