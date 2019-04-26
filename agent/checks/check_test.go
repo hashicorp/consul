@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-uuid"
+	"github.com/stretchr/testify/require"
 )
 
 func uniqueID() string {
@@ -43,13 +44,17 @@ func TestCheckMonitor_Script(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.status, func(t *testing.T) {
 			notif := mock.NewNotify()
+			logger := log.New(ioutil.Discard, uniqueID(), log.LstdFlags)
+			statusHandler := NewStatusHandler(notif, logger, 0, 0)
+
 			check := &CheckMonitor{
 				Notify:        notif,
 				CheckID:       types.CheckID("foo"),
 				Script:        tt.script,
 				Interval:      25 * time.Millisecond,
-				Logger:        log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
 				OutputMaxSize: DefaultBufSize,
+				Logger:        logger,
+				StatusHandler: statusHandler,
 			}
 			check.Start()
 			defer check.Stop()
@@ -79,13 +84,16 @@ func TestCheckMonitor_Args(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.status, func(t *testing.T) {
 			notif := mock.NewNotify()
+			logger := log.New(ioutil.Discard, uniqueID(), log.LstdFlags)
+			statusHandler := NewStatusHandler(notif, logger, 0, 0)
 			check := &CheckMonitor{
 				Notify:        notif,
 				CheckID:       types.CheckID("foo"),
 				ScriptArgs:    tt.args,
 				Interval:      25 * time.Millisecond,
-				Logger:        log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
 				OutputMaxSize: DefaultBufSize,
+				Logger:        logger,
+				StatusHandler: statusHandler,
 			}
 			check.Start()
 			defer check.Stop()
@@ -104,14 +112,18 @@ func TestCheckMonitor_Args(t *testing.T) {
 func TestCheckMonitor_Timeout(t *testing.T) {
 	// t.Parallel() // timing test. no parallel
 	notif := mock.NewNotify()
+	logger := log.New(ioutil.Discard, uniqueID(), log.LstdFlags)
+	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+
 	check := &CheckMonitor{
 		Notify:        notif,
 		CheckID:       types.CheckID("foo"),
 		ScriptArgs:    []string{"sh", "-c", "sleep 1 && exit 0"},
 		Interval:      50 * time.Millisecond,
 		Timeout:       25 * time.Millisecond,
-		Logger:        log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
 		OutputMaxSize: DefaultBufSize,
+		Logger:        logger,
+		StatusHandler: statusHandler,
 	}
 	check.Start()
 	defer check.Stop()
@@ -130,13 +142,16 @@ func TestCheckMonitor_Timeout(t *testing.T) {
 func TestCheckMonitor_RandomStagger(t *testing.T) {
 	// t.Parallel() // timing test. no parallel
 	notif := mock.NewNotify()
+	logger := log.New(ioutil.Discard, uniqueID(), log.LstdFlags)
+	statusHandler := NewStatusHandler(notif, logger, 0, 0)
 	check := &CheckMonitor{
 		Notify:        notif,
 		CheckID:       types.CheckID("foo"),
 		ScriptArgs:    []string{"sh", "-c", "exit 0"},
 		Interval:      25 * time.Millisecond,
-		Logger:        log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
 		OutputMaxSize: DefaultBufSize,
+		Logger:        logger,
+		StatusHandler: statusHandler,
 	}
 	check.Start()
 	defer check.Stop()
@@ -156,13 +171,16 @@ func TestCheckMonitor_RandomStagger(t *testing.T) {
 func TestCheckMonitor_LimitOutput(t *testing.T) {
 	t.Parallel()
 	notif := mock.NewNotify()
+	logger := log.New(ioutil.Discard, uniqueID(), log.LstdFlags)
+	statusHandler := NewStatusHandler(notif, logger, 0, 0)
 	check := &CheckMonitor{
 		Notify:        notif,
 		CheckID:       types.CheckID("foo"),
 		ScriptArgs:    []string{"od", "-N", "81920", "/dev/urandom"},
 		Interval:      25 * time.Millisecond,
-		Logger:        log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
 		OutputMaxSize: DefaultBufSize,
+		Logger:        logger,
+		StatusHandler: statusHandler,
 	}
 	check.Start()
 	defer check.Stop()
@@ -299,15 +317,17 @@ func TestCheckHTTP(t *testing.T) {
 			defer server.Close()
 
 			notif := mock.NewNotify()
+			logger := log.New(ioutil.Discard, uniqueID(), log.LstdFlags)
+			statusHandler := NewStatusHandler(notif, logger, 0, 0)
+
 			check := &CheckHTTP{
-				Notify:        notif,
 				CheckID:       types.CheckID("foo"),
 				HTTP:          server.URL,
 				Method:        tt.method,
-				OutputMaxSize: DefaultBufSize,
 				Header:        tt.header,
 				Interval:      10 * time.Millisecond,
-				Logger:        log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
+				Logger:        logger,
+				StatusHandler: statusHandler,
 			}
 			check.Start()
 			defer check.Stop()
@@ -337,15 +357,18 @@ func TestCheckHTTP_Proxied(t *testing.T) {
 	defer proxy.Close()
 
 	notif := mock.NewNotify()
+	logger := log.New(ioutil.Discard, uniqueID(), log.LstdFlags)
+	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+
 	check := &CheckHTTP{
-		Notify:        notif,
 		CheckID:       types.CheckID("foo"),
 		HTTP:          "",
 		Method:        "GET",
 		OutputMaxSize: DefaultBufSize,
 		Interval:      10 * time.Millisecond,
-		Logger:        log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
+		Logger:        logger,
 		ProxyHTTP:     proxy.URL,
+		StatusHandler: statusHandler,
 	}
 
 	check.Start()
@@ -369,15 +392,18 @@ func TestCheckHTTP_NotProxied(t *testing.T) {
 	defer server.Close()
 
 	notif := mock.NewNotify()
+	logger := log.New(ioutil.Discard, uniqueID(), log.LstdFlags)
+	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+
 	check := &CheckHTTP{
-		Notify:        notif,
 		CheckID:       types.CheckID("foo"),
 		HTTP:          server.URL,
 		Method:        "GET",
 		OutputMaxSize: DefaultBufSize,
 		Interval:      10 * time.Millisecond,
-		Logger:        log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
+		Logger:        logger,
 		ProxyHTTP:     "",
+		StatusHandler: statusHandler,
 	}
 	check.Start()
 	defer check.Stop()
@@ -480,15 +506,16 @@ func TestCheckMaxOutputSize(t *testing.T) {
 	defer server.Close()
 
 	notif := mock.NewNotify()
+	logger := log.New(ioutil.Discard, uniqueID(), log.LstdFlags)
 	maxOutputSize := 32
 	check := &CheckHTTP{
-		Notify:        notif,
 		CheckID:       types.CheckID("bar"),
 		HTTP:          server.URL + "/v1/agent/self",
 		Timeout:       timeout,
 		Interval:      2 * time.Millisecond,
-		Logger:        log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
+		Logger:        logger,
 		OutputMaxSize: maxOutputSize,
+		StatusHandler: NewStatusHandler(notif, logger, 0, 0),
 	}
 
 	check.Start()
@@ -515,13 +542,16 @@ func TestCheckHTTPTimeout(t *testing.T) {
 	defer server.Close()
 
 	notif := mock.NewNotify()
+	logger := log.New(ioutil.Discard, uniqueID(), log.LstdFlags)
+	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+
 	check := &CheckHTTP{
-		Notify:   notif,
-		CheckID:  types.CheckID("bar"),
-		HTTP:     server.URL,
-		Timeout:  timeout,
-		Interval: 10 * time.Millisecond,
-		Logger:   log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
+		CheckID:       types.CheckID("bar"),
+		HTTP:          server.URL,
+		Timeout:       timeout,
+		Interval:      10 * time.Millisecond,
+		Logger:        logger,
+		StatusHandler: statusHandler,
 	}
 
 	check.Start()
@@ -538,11 +568,14 @@ func TestCheckHTTPTimeout(t *testing.T) {
 
 func TestCheckHTTP_disablesKeepAlives(t *testing.T) {
 	t.Parallel()
+	notif := mock.NewNotify()
+	logger := log.New(ioutil.Discard, uniqueID(), log.LstdFlags)
 	check := &CheckHTTP{
-		CheckID:  types.CheckID("foo"),
-		HTTP:     "http://foo.bar/baz",
-		Interval: 10 * time.Second,
-		Logger:   log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
+		CheckID:       types.CheckID("foo"),
+		HTTP:          "http://foo.bar/baz",
+		Interval:      10 * time.Second,
+		Logger:        logger,
+		StatusHandler: NewStatusHandler(notif, logger, 0, 0),
 	}
 
 	check.Start()
@@ -576,13 +609,16 @@ func TestCheckHTTP_TLS_SkipVerify(t *testing.T) {
 	}
 
 	notif := mock.NewNotify()
+	logger := log.New(ioutil.Discard, uniqueID(), log.LstdFlags)
+	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+
 	check := &CheckHTTP{
-		Notify:          notif,
 		CheckID:         types.CheckID("skipverify_true"),
 		HTTP:            server.URL,
 		Interval:        25 * time.Millisecond,
-		Logger:          log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
+		Logger:          logger,
 		TLSClientConfig: tlsClientConfig,
+		StatusHandler:   statusHandler,
 	}
 
 	check.Start()
@@ -610,13 +646,15 @@ func TestCheckHTTP_TLS_BadVerify(t *testing.T) {
 	}
 
 	notif := mock.NewNotify()
+	logger := log.New(ioutil.Discard, uniqueID(), log.LstdFlags)
+	statusHandler := NewStatusHandler(notif, logger, 0, 0)
 	check := &CheckHTTP{
-		Notify:          notif,
 		CheckID:         types.CheckID("skipverify_false"),
 		HTTP:            server.URL,
 		Interval:        100 * time.Millisecond,
-		Logger:          log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
+		Logger:          logger,
 		TLSClientConfig: tlsClientConfig,
+		StatusHandler:   statusHandler,
 	}
 
 	check.Start()
@@ -658,12 +696,14 @@ func mockTCPServer(network string) net.Listener {
 
 func expectTCPStatus(t *testing.T, tcp string, status string) {
 	notif := mock.NewNotify()
+	logger := log.New(ioutil.Discard, uniqueID(), log.LstdFlags)
+	statusHandler := NewStatusHandler(notif, logger, 0, 0)
 	check := &CheckTCP{
-		Notify:   notif,
-		CheckID:  types.CheckID("foo"),
-		TCP:      tcp,
-		Interval: 10 * time.Millisecond,
-		Logger:   log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
+		CheckID:       types.CheckID("foo"),
+		TCP:           tcp,
+		Interval:      10 * time.Millisecond,
+		Logger:        logger,
+		StatusHandler: statusHandler,
 	}
 	check.Start()
 	defer check.Stop()
@@ -674,6 +714,98 @@ func expectTCPStatus(t *testing.T, tcp string, status string) {
 		if got, want := notif.State("foo"), status; got != want {
 			r.Fatalf("got state %q want %q", got, want)
 		}
+	})
+}
+
+func TestStatusHandlerUpdateStatusAfterConsecutiveChecksThresholdIsReached(t *testing.T) {
+	t.Parallel()
+	checkID := types.CheckID("foo")
+	notif := mock.NewNotify()
+	logger := log.New(ioutil.Discard, uniqueID(), log.LstdFlags)
+	statusHandler := NewStatusHandler(notif, logger, 2, 3)
+
+	// Set the initial status to passing after a single success
+	statusHandler.updateCheck(checkID, api.HealthPassing, "bar")
+
+	// Status should become critical after 3 failed checks only
+	statusHandler.updateCheck(checkID, api.HealthCritical, "bar")
+	statusHandler.updateCheck(checkID, api.HealthCritical, "bar")
+
+	retry.Run(t, func(r *retry.R) {
+		require.Equal(r, 1, notif.Updates("foo"))
+		require.Equal(r, api.HealthPassing, notif.State("foo"))
+	})
+
+	statusHandler.updateCheck(checkID, api.HealthCritical, "bar")
+
+	retry.Run(t, func(r *retry.R) {
+		require.Equal(r, 2, notif.Updates("foo"))
+		require.Equal(r, api.HealthCritical, notif.State("foo"))
+	})
+
+	// Status should be passing after 2 passing check
+	statusHandler.updateCheck(checkID, api.HealthPassing, "bar")
+
+	retry.Run(t, func(r *retry.R) {
+		require.Equal(r, 2, notif.Updates("foo"))
+		require.Equal(r, api.HealthCritical, notif.State("foo"))
+	})
+
+	statusHandler.updateCheck(checkID, api.HealthPassing, "bar")
+
+	retry.Run(t, func(r *retry.R) {
+		require.Equal(r, 3, notif.Updates("foo"))
+		require.Equal(r, api.HealthPassing, notif.State("foo"))
+	})
+}
+
+func TestStatusHandlerResetCountersOnNonIdenticalsConsecutiveChecks(t *testing.T) {
+	t.Parallel()
+	checkID := types.CheckID("foo")
+	notif := mock.NewNotify()
+	logger := log.New(ioutil.Discard, uniqueID(), log.LstdFlags)
+	statusHandler := NewStatusHandler(notif, logger, 2, 3)
+
+	// Set the initial status to passing after a single success
+	statusHandler.updateCheck(checkID, api.HealthPassing, "bar")
+
+	// Status should remain passing after FAIL PASS FAIL FAIL sequence
+	// Although we have 3 FAILS, they are not consecutive
+
+	statusHandler.updateCheck(checkID, api.HealthCritical, "bar")
+	statusHandler.updateCheck(checkID, api.HealthPassing, "bar")
+	statusHandler.updateCheck(checkID, api.HealthCritical, "bar")
+	statusHandler.updateCheck(checkID, api.HealthCritical, "bar")
+
+	retry.Run(t, func(r *retry.R) {
+		require.Equal(r, 1, notif.Updates("foo"))
+		require.Equal(r, api.HealthPassing, notif.State("foo"))
+	})
+
+	// Critical after a 3rd consecutive FAIL
+	statusHandler.updateCheck(checkID, api.HealthCritical, "bar")
+
+	retry.Run(t, func(r *retry.R) {
+		require.Equal(r, 2, notif.Updates("foo"))
+		require.Equal(r, api.HealthCritical, notif.State("foo"))
+	})
+
+	// Status should remain critical after PASS FAIL PASS sequence
+	statusHandler.updateCheck(checkID, api.HealthPassing, "bar")
+	statusHandler.updateCheck(checkID, api.HealthCritical, "bar")
+	statusHandler.updateCheck(checkID, api.HealthPassing, "bar")
+
+	retry.Run(t, func(r *retry.R) {
+		require.Equal(r, 2, notif.Updates("foo"))
+		require.Equal(r, api.HealthCritical, notif.State("foo"))
+	})
+
+	// Passing after a 2nd consecutive PASS
+	statusHandler.updateCheck(checkID, api.HealthPassing, "bar")
+
+	retry.Run(t, func(r *retry.R) {
+		require.Equal(r, 3, notif.Updates("foo"))
+		require.Equal(r, api.HealthPassing, notif.State("foo"))
 	})
 }
 
@@ -971,14 +1103,15 @@ func TestCheck_Docker(t *testing.T) {
 			}
 
 			notif, upd := mock.NewNotifyChan()
+			statusHandler := NewStatusHandler(notif, log.New(ioutil.Discard, uniqueID(), log.LstdFlags), 0, 0)
 			id := types.CheckID("chk")
 			check := &CheckDocker{
-				Notify:            notif,
 				CheckID:           id,
 				ScriptArgs:        []string{"/health.sh"},
 				DockerContainerID: "123",
 				Interval:          25 * time.Millisecond,
 				Client:            c,
+				StatusHandler:     statusHandler,
 			}
 			check.Start()
 			defer check.Stop()
