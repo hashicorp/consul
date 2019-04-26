@@ -8,7 +8,7 @@ description: |-
 
 # Connect - Agent HTTP API
 
-The `/agent/connect` endpoints interact with [Connect](/docs/connect/index.html)
+The `v1/agent/connect` endpoints interact with [Connect](/docs/connect/index.html)
 with agent-local operations.
 
 These endpoints may mirror the [non-agent Connect endpoints](/api/connect.html)
@@ -32,7 +32,7 @@ connection attempt.
 
 | Method | Path                         | Produces                   |
 | ------ | ---------------------------- | -------------------------- |
-| `POST`  | `/agent/connect/authorize`  | `application/json`         |
+| `POST` | `v1/agent/connect/authorize` | `application/json`         |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -99,7 +99,7 @@ unavailable. This endpoint should be used by proxies and native integrations.
 
 | Method | Path                         | Produces                   |
 | ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/agent/connect/ca/roots`    | `application/json`         |
+| `GET`  | `v1/agent/connect/ca/roots`  | `application/json`         |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -158,9 +158,9 @@ a new certificate is necessary because the existing certificate will expire
 or the root certificate is being rotated. This blocking behavior allows
 clients to efficiently wait for certificate rotations.
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/agent/connect/ca/leaf/:service`    | `application/json`         |
+| Method | Path                                 | Produces                   |
+| ------ | ------------------------------------ | -------------------------- |
+| `GET`  | `v1/agent/connect/ca/leaf/:service`  | `application/json`         |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -234,7 +234,7 @@ a blocking query to detect any configuration changes.
 
 | Method | Path                         | Produces                   |
 | ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/agent/connect/proxy/:id`    | `application/json`        |
+| `GET`  | `v1/agent/connect/proxy/:id` | `application/json`         |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -259,7 +259,7 @@ blocking](/api/index.html#hash-based-blocking-queries) only.
 
 ```text
 $ curl \
-   http://127.0.0.1:8500/v1/connect/proxy/web-proxy
+   http://127.0.0.1:8500/v1/agent/connect/proxy/web-proxy
 ```
 
 ### Sample Response
