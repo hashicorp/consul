@@ -15,8 +15,7 @@ trusted external party to authorize the creation of an appropriately scoped ACL
 Token usable within the local datacenter.
 
 The only supported type of auth method in Consul 1.5 is
-[`kubernetes`](/docs/acl/auth-methods/kubernetes.html) but it is expected that
-more will come later.
+[`kubernetes`](/docs/acl/auth-methods/kubernetes.html).
 
 ## Overview
 
