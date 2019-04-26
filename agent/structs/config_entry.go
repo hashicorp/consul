@@ -20,7 +20,8 @@ const (
 	DefaultServiceProtocol = "tcp"
 )
 
-// ConfigEntry is the
+// ConfigEntry is the interface for centralized configuration stored in Raft.
+// Currently only service-defaults and proxy-defaults are supported.
 type ConfigEntry interface {
 	GetKind() string
 	GetName() string
