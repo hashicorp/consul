@@ -1488,6 +1488,23 @@ func TestACLEndpoint_PolicySet(t *testing.T) {
 		policyID = policy.ID
 	}
 
+	// Cannot duplicate the name
+	{
+		req := structs.ACLPolicySetRequest{
+			Datacenter: "dc1",
+			Policy: structs.ACLPolicy{
+				Description: "foobar",
+				Name:        "baz",
+				Rules:       "service \"\" { policy = \"read\" }",
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		resp := structs.ACLPolicy{}
+
+		err := acl.PolicySet(&req, &resp)
+		require.Error(t, err)
+	}
+
 	// Update it
 	{
 		req := structs.ACLPolicySetRequest{

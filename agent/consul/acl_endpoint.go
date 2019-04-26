@@ -754,6 +754,11 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 		if err != nil {
 			return err
 		}
+
+		// validate the name is unique
+		if nameMatch != nil {
+			return fmt.Errorf("Invalid Policy: A Policy with Name %q already exists", policy.Name)
+		}
 	} else {
 		// Verify the policy exists
 		if idMatch == nil {
