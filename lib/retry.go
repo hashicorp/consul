@@ -24,8 +24,6 @@ type JitterRandomStagger struct {
 func NewJitterRandomStagger(percent int) *JitterRandomStagger {
 	if percent < 0 {
 		percent = 0
-	} else if percent > 100 {
-		percent = 100
 	}
 
 	return &JitterRandomStagger{
@@ -41,7 +39,7 @@ func (j *JitterRandomStagger) AddJitter(baseTime time.Duration) time.Duration {
 
 	// time.Duration is actually a type alias for int64 which is why casting
 	// to the duration type and then dividing works
-	return baseTime + RandomStagger(baseTime/time.Duration(j.percent))
+	return baseTime + RandomStagger((baseTime*time.Duration(j.percent))/100)
 }
 
 // RetryWaiter will record failed and successful operations and provide

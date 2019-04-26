@@ -27,7 +27,7 @@ func TestJitterRandomStagger(t *testing.T) {
 			baseTime := 5000 * time.Millisecond
 			maxTime := 5500 * time.Millisecond
 			newTime := jitter.AddJitter(baseTime)
-			require.True(t, newTime >= baseTime)
+			require.True(t, newTime > baseTime)
 			require.True(t, newTime <= maxTime)
 		}
 	})
@@ -39,7 +39,7 @@ func TestJitterRandomStagger(t *testing.T) {
 			baseTime := 1234 * time.Millisecond
 			maxTime := 2468 * time.Millisecond
 			newTime := jitter.AddJitter(baseTime)
-			require.True(t, newTime >= baseTime)
+			require.True(t, newTime > baseTime)
 			require.True(t, newTime <= maxTime)
 		}
 	})
