@@ -1415,7 +1415,13 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 	if err != nil {
 		return err
 	}
-	if node != nil && node.Address == member.Addr.String() {
+
+	if node == nil {
+		s.logger.Printf("[INFO] consul: ignoring failed event for member '%s' because it does not exist in the catalog", member.Name)
+		return nil
+	}
+
+	if node.Address == member.Addr.String() {
 		// Check if the serfCheck is in the critical state
 		_, checks, err := state.NodeChecks(nil, member.Name)
 		if err != nil {
