@@ -3571,11 +3571,9 @@ func TestFullConfig(t *testing.T) {
 			check_update_interval = "16507s"
 			client_addr = "93.83.18.19"
 			config_entries {
-				bootstrap {
-					proxy_defaults "global" {
-						foo = "bar"
-						bar = 1.0
-					}
+				bootstrap proxy_defaults global {
+					foo = "bar"
+					bar = 1.0
 				}
 			}
 			connect {
@@ -5025,6 +5023,7 @@ func TestSanitize(t *testing.T) {
 			"Token": "hidden"
 		}],
 		"ClientAddrs": [],
+		"ConfigEntryBootstrap": [],
 		"ConnectCAConfig": {},
 		"ConnectCAProvider": "",
 		"ConnectEnabled": false,
