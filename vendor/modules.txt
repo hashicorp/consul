@@ -187,12 +187,6 @@ github.com/gregjones/httpcache
 github.com/gregjones/httpcache/diskcache
 # github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed
 github.com/hailocab/go-hostpool
-# github.com/hashicorp/consul/api v1.0.1 => ./api
-github.com/hashicorp/consul/api
-# github.com/hashicorp/consul/sdk v0.1.0 => ./sdk
-github.com/hashicorp/consul/sdk/freeport
-github.com/hashicorp/consul/sdk/testutil/retry
-github.com/hashicorp/consul/sdk/testutil
 # github.com/hashicorp/errwrap v1.0.0
 github.com/hashicorp/errwrap
 # github.com/hashicorp/go-bexpr v0.1.0
