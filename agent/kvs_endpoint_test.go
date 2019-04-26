@@ -398,6 +398,101 @@ func TestKVSEndpoint_AcquireRelease(t *testing.T) {
 	}
 }
 
+func TestKVSEndpoint_AcquireRelease_InPlace(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	id := makeTestSession(t, a.srv)
+
+	// Create the item
+	originalValue := "original_value"
+	req, err := http.NewRequest("PUT", "/v1/kv/test", bytes.NewBuffer([]byte(originalValue)))
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	_, err = a.srv.KVSEndpoint(httptest.NewRecorder(), req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Acquire the lock in place
+	req, err = http.NewRequest("PUT",
+		"/v1/kv/test?acquire-inplace="+id, bytes.NewReader(nil))
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.KVSEndpoint(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if res := obj.(bool); !res {
+		t.Fatalf("should work")
+	}
+
+	// Verify we have the lock and the original value
+	req, err = http.NewRequest("GET", "/v1/kv/test", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp = httptest.NewRecorder()
+	obj, err = a.srv.KVSEndpoint(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d := obj.(structs.DirEntries)[0]
+
+	// Check the session
+	if d.Session != id {
+		t.Fatalf("bad: %v", d)
+	}
+
+	if string(d.Value) != originalValue {
+		t.Fatalf("Original value not preserved. Got: %v. Expected %v.", string(d.Value), originalValue)
+	}
+
+	// Release the lock in place
+	req, err = http.NewRequest("PUT",
+		"/v1/kv/test?release-inplace="+id, bytes.NewReader(nil))
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp = httptest.NewRecorder()
+	obj, err = a.srv.KVSEndpoint(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if res := obj.(bool); !res {
+		t.Fatalf("should work")
+	}
+
+	// Verify we do not have the lock and check the original value again
+	req, err = http.NewRequest("GET", "/v1/kv/test", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp = httptest.NewRecorder()
+	obj, err = a.srv.KVSEndpoint(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d = obj.(structs.DirEntries)[0]
+
+	// Check the flags
+	if d.Session != "" {
+		t.Fatalf("bad: %v", d)
+	}
+
+	if string(d.Value) != originalValue {
+		t.Fatalf("Original value not preserved. Got: %v. Expected %v.", string(d.Value), originalValue)
+	}
+}
+
 func TestKVSEndpoint_GET_Raw(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")
@@ -433,17 +528,35 @@ func TestKVSEndpoint_PUT_ConflictingFlags(t *testing.T) {
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
-	req, _ := http.NewRequest("PUT", "/v1/kv/test?cas=0&acquire=xxx", nil)
-	resp := httptest.NewRecorder()
-	if _, err := a.srv.KVSEndpoint(resp, req); err != nil {
-		t.Fatalf("err: %v", err)
+	// Not exhaustive
+	conflictingFlags := []struct {
+		flag1 string
+		flag2 string
+	}{
+		{"cas", "acquire"},
+		{"acquire", "release"},
+		{"cas", "acquire-inplace"},
+		{"acquire-inplace", "release-inplace"},
 	}
 
-	if resp.Code != 400 {
-		t.Fatalf("expected 400, got %d", resp.Code)
-	}
-	if !bytes.Contains(resp.Body.Bytes(), []byte("Conflicting")) {
-		t.Fatalf("expected conflicting args error")
+	for _, flags := range conflictingFlags {
+		path := fmt.Sprintf("/v1/kv/test?%v=xxx&%v=xxx", flags.flag1, flags.flag2)
+
+		// Create a buffer so that we get good failure messages (prevent nil panic)
+		buf := bytes.NewBuffer([]byte("test"))
+		req, _ := http.NewRequest("PUT", path, buf)
+		resp := httptest.NewRecorder()
+		if _, err := a.srv.KVSEndpoint(resp, req); err != nil {
+			// Don't fail the test here - the below tests will fail with a better error message
+			t.Errorf("err: %v", err)
+		}
+
+		if resp.Code != 400 {
+			t.Fatalf("expected 400, got %d for %v", resp.Code, path)
+		}
+		if !bytes.Contains(resp.Body.Bytes(), []byte("Conflicting")) {
+			t.Fatalf("expected conflicting args error")
+		}
 	}
 }
 

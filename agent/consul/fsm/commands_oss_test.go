@@ -599,6 +599,50 @@ func TestFSM_KVSLock(t *testing.T) {
 	}
 }
 
+func TestFSM_KVSLockInPlace(t *testing.T) {
+	t.Parallel()
+	fsm, err := New(nil, os.Stderr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	fsm.state.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
+	session := &structs.Session{ID: generateUUID(), Node: "foo"}
+	fsm.state.SessionCreate(2, session)
+
+	req := structs.KVSRequest{
+		Datacenter: "dc1",
+		Op:         api.KVLockInPlace,
+		DirEnt: structs.DirEntry{
+			Key:     "/test/path",
+			Session: session.ID,
+		},
+	}
+	buf, err := structs.Encode(structs.KVSRequestType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp := fsm.Apply(makeLog(buf))
+	if resp != true {
+		t.Fatalf("resp: %v", resp)
+	}
+
+	// Verify key is locked
+	_, d, err := fsm.state.KVSGet(nil, "/test/path")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if d == nil {
+		t.Fatalf("missing")
+	}
+	if d.LockIndex != 1 {
+		t.Fatalf("bad: %v", *d)
+	}
+	if d.Session != session.ID {
+		t.Fatalf("bad: %v", *d)
+	}
+}
+
 func TestFSM_KVSUnlock(t *testing.T) {
 	t.Parallel()
 	fsm, err := New(nil, os.Stderr)
@@ -634,6 +678,68 @@ func TestFSM_KVSUnlock(t *testing.T) {
 		DirEnt: structs.DirEntry{
 			Key:     "/test/path",
 			Value:   []byte("test"),
+			Session: session.ID,
+		},
+	}
+	buf, err = structs.Encode(structs.KVSRequestType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp = fsm.Apply(makeLog(buf))
+	if resp != true {
+		t.Fatalf("resp: %v", resp)
+	}
+
+	// Verify key is unlocked
+	_, d, err := fsm.state.KVSGet(nil, "/test/path")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if d == nil {
+		t.Fatalf("missing")
+	}
+	if d.LockIndex != 1 {
+		t.Fatalf("bad: %v", *d)
+	}
+	if d.Session != "" {
+		t.Fatalf("bad: %v", *d)
+	}
+}
+
+func TestFSM_KVSUnlockInPlace(t *testing.T) {
+	t.Parallel()
+	fsm, err := New(nil, os.Stderr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	fsm.state.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
+	session := &structs.Session{ID: generateUUID(), Node: "foo"}
+	fsm.state.SessionCreate(2, session)
+
+	req := structs.KVSRequest{
+		Datacenter: "dc1",
+		Op:         api.KVLock,
+		DirEnt: structs.DirEntry{
+			Key:     "/test/path",
+			Value:   []byte("test"),
+			Session: session.ID,
+		},
+	}
+	buf, err := structs.Encode(structs.KVSRequestType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp := fsm.Apply(makeLog(buf))
+	if resp != true {
+		t.Fatalf("resp: %v", resp)
+	}
+
+	req = structs.KVSRequest{
+		Datacenter: "dc1",
+		Op:         api.KVUnlockInPlace,
+		DirEnt: structs.DirEntry{
+			Key:     "/test/path",
 			Session: session.ID,
 		},
 	}

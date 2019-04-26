@@ -108,8 +108,20 @@ func (c *FSM) applyKVSOperation(buf []byte, index uint64) interface{} {
 			return err
 		}
 		return act
+	case api.KVLockInPlace:
+		act, err := c.state.KVSLockInPlace(index, &req.DirEnt)
+		if err != nil {
+			return err
+		}
+		return act
 	case api.KVUnlock:
 		act, err := c.state.KVSUnlock(index, &req.DirEnt)
+		if err != nil {
+			return err
+		}
+		return act
+	case api.KVUnlockInPlace:
+		act, err := c.state.KVSUnlockInPlace(index, &req.DirEnt)
 		if err != nil {
 			return err
 		}

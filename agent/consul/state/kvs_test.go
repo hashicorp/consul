@@ -1266,6 +1266,39 @@ func TestStateStore_KVSLock(t *testing.T) {
 	}
 }
 
+func TestStateStore_KVSLockInPlace(t *testing.T) {
+	s := testStateStore(t)
+
+	testRegisterNode(t, s, 0, "node1")
+	testSetKey(t, s, 1, "myKey", "myValue")
+
+	session1 := testUUID()
+	if err := s.SessionCreate(2, &structs.Session{ID: session1, Node: "node1"}); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Create the lock in place
+	ok, err := s.KVSLockInPlace(3, &structs.DirEntry{Key: "myKey", Session: session1})
+	if !ok || err != nil {
+		t.Fatalf("didn't get the lock: %v %s", ok, err)
+	}
+
+	// Make sure the lock didn't update the value.
+	idx, result, err := s.KVSGet(nil, "myKey")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if result.LockIndex != 1 || result.CreateIndex != 1 || result.ModifyIndex != 3 || string(result.Value) != "myValue" {
+		t.Fatalf("bad entry: %#v", result)
+	}
+	if idx != 3 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if result.Session != session1 {
+		t.Fatalf("bad session: %v", result.Session)
+	}
+}
+
 func TestStateStore_KVSUnlock(t *testing.T) {
 	s := testStateStore(t)
 
@@ -1374,6 +1407,64 @@ func TestStateStore_KVSUnlock(t *testing.T) {
 	}
 	if idx != 9 {
 		t.Fatalf("bad index: %d", idx)
+	}
+}
+
+func TestStateStore_KVSUnlockInPlace(t *testing.T) {
+	s := testStateStore(t)
+
+	testRegisterNode(t, s, 0, "node1")
+
+	session1 := testUUID()
+	if err := s.SessionCreate(1, &structs.Session{ID: session1, Node: "node1"}); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Create the item with a lock
+	ok, err := s.KVSLock(2, &structs.DirEntry{Key: "myKey", Session: session1, Value: []byte("myValue")})
+	if !ok || err != nil {
+		t.Fatalf("didn't get the lock: %v %s", ok, err)
+	}
+
+	// Unlock the item in place
+	ok, err = s.KVSUnlockInPlace(3, &structs.DirEntry{Key: "myKey", Session: session1})
+	if !ok || err != nil {
+		t.Fatalf("failed to unlock: %v %s", ok, err)
+	}
+	// Make sure that unlock didn't update the value.
+	idx, result, err := s.KVSGet(nil, "myKey")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if result.LockIndex != 1 || result.CreateIndex != 2 || result.ModifyIndex != 3 || string(result.Value) != "myValue" {
+		t.Fatalf("bad entry: %#v", result)
+	}
+	if idx != 3 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if result.Session != "" {
+		t.Fatalf("bad session: %v", result.Session)
+	}
+
+	// Unlocking again should fail and not change anything.
+	ok, err = s.KVSUnlockInPlace(4, &structs.DirEntry{Key: "myKey", Value: []byte("nope"), Session: session1})
+	if ok || err != nil {
+		t.Fatalf("didn't handle unlocking with the previous session: %v %s", ok, err)
+	}
+
+	// Make sure the indices didn't update.
+	idx, result, err = s.KVSGet(nil, "myKey")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if result.LockIndex != 1 || result.CreateIndex != 2 || result.ModifyIndex != 3 || string(result.Value) != "myValue" {
+		t.Fatalf("bad entry: %#v", result)
+	}
+	if idx != 3 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if result.Session != "" {
+		t.Fatalf("bad session: %v", result.Session)
 	}
 }
 

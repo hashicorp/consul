@@ -135,7 +135,7 @@ func (s *HTTPServer) KVSPut(resp http.ResponseWriter, req *http.Request, args *s
 	if missingKey(resp, args) {
 		return nil, nil
 	}
-	if conflictingFlags(resp, req, "cas", "acquire", "release") {
+	if conflictingFlags(resp, req, "cas", "acquire", "acquire-inplace", "release", "release-inplace") {
 		return nil, nil
 	}
 	applyReq := structs.KVSRequest{
@@ -175,10 +175,22 @@ func (s *HTTPServer) KVSPut(resp http.ResponseWriter, req *http.Request, args *s
 		applyReq.Op = api.KVLock
 	}
 
+	// Check for in place lock acquisition
+	if _, ok := params["acquire-inplace"]; ok {
+		applyReq.DirEnt.Session = params.Get("acquire-inplace")
+		applyReq.Op = api.KVLockInPlace
+	}
+
 	// Check for lock release
 	if _, ok := params["release"]; ok {
 		applyReq.DirEnt.Session = params.Get("release")
 		applyReq.Op = api.KVUnlock
+	}
+
+	// Check for in place lock release
+	if _, ok := params["release-inplace"]; ok {
+		applyReq.DirEnt.Session = params.Get("release-inplace")
+		applyReq.Op = api.KVUnlockInPlace
 	}
 
 	// Check the content-length

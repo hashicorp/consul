@@ -42,7 +42,15 @@ func (s *Store) txnKVS(tx *memdb.Txn, idx uint64, op *structs.TxnKVOp) (structs.
 	case api.KVLock:
 		var ok bool
 		entry = &op.DirEnt
-		ok, err = s.kvsLockTxn(tx, idx, entry)
+		ok, err = s.kvsLockTxn(tx, idx, entry, false)
+		if !ok && err == nil {
+			err = fmt.Errorf("failed to lock key %q, lock is already held", op.DirEnt.Key)
+		}
+
+	case api.KVLockInPlace:
+		var ok bool
+		entry = &op.DirEnt
+		ok, err = s.kvsLockTxn(tx, idx, entry, true)
 		if !ok && err == nil {
 			err = fmt.Errorf("failed to lock key %q, lock is already held", op.DirEnt.Key)
 		}
@@ -50,7 +58,15 @@ func (s *Store) txnKVS(tx *memdb.Txn, idx uint64, op *structs.TxnKVOp) (structs.
 	case api.KVUnlock:
 		var ok bool
 		entry = &op.DirEnt
-		ok, err = s.kvsUnlockTxn(tx, idx, entry)
+		ok, err = s.kvsUnlockTxn(tx, idx, entry, false)
+		if !ok && err == nil {
+			err = fmt.Errorf("failed to unlock key %q, lock isn't held, or is held by another session", op.DirEnt.Key)
+		}
+
+	case api.KVUnlockInPlace:
+		var ok bool
+		entry = &op.DirEnt
+		ok, err = s.kvsUnlockTxn(tx, idx, entry, true)
 		if !ok && err == nil {
 			err = fmt.Errorf("failed to unlock key %q, lock isn't held, or is held by another session", op.DirEnt.Key)
 		}

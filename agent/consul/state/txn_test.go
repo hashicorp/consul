@@ -645,6 +645,42 @@ func TestStateStore_Txn_KVS(t *testing.T) {
 				},
 			},
 		},
+		&structs.TxnOp{
+			KV: &structs.TxnKVOp{
+				Verb: api.KVLockInPlace,
+				DirEnt: structs.DirEntry{
+					Key:     "foo/lock-inplace",
+					Session: session,
+				},
+			},
+		},
+		&structs.TxnOp{
+			KV: &structs.TxnKVOp{
+				Verb: api.KVCheckSession,
+				DirEnt: structs.DirEntry{
+					Key:     "foo/lock-inplace",
+					Session: session,
+				},
+			},
+		},
+		&structs.TxnOp{
+			KV: &structs.TxnKVOp{
+				Verb: api.KVUnlockInPlace,
+				DirEnt: structs.DirEntry{
+					Key:     "foo/lock-inplace",
+					Session: session,
+				},
+			},
+		},
+		&structs.TxnOp{
+			KV: &structs.TxnKVOp{
+				Verb: api.KVCheckSession,
+				DirEnt: structs.DirEntry{
+					Key:     "foo/lock-inplace",
+					Session: "",
+				},
+			},
+		},
 	}
 	results, errors := s.TxnRW(8, ops)
 	if len(errors) > 0 {
@@ -772,6 +808,48 @@ func TestStateStore_Txn_KVS(t *testing.T) {
 				},
 			},
 		},
+		&structs.TxnResult{
+			KV: &structs.DirEntry{
+				Key:       "foo/lock-inplace",
+				Session:   session,
+				LockIndex: 1,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 8,
+					ModifyIndex: 8,
+				},
+			},
+		},
+		&structs.TxnResult{
+			KV: &structs.DirEntry{
+				Key:       "foo/lock-inplace",
+				Session:   session,
+				LockIndex: 1,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 8,
+					ModifyIndex: 8,
+				},
+			},
+		},
+		&structs.TxnResult{
+			KV: &structs.DirEntry{
+				Key:       "foo/lock-inplace",
+				LockIndex: 1,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 8,
+					ModifyIndex: 8,
+				},
+			},
+		},
+		&structs.TxnResult{
+			KV: &structs.DirEntry{
+				Key:       "foo/lock-inplace",
+				LockIndex: 1,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 8,
+					ModifyIndex: 8,
+				},
+			},
+		},
 	}
 	if len(results) != len(expected) {
 		t.Fatalf("bad: %v", results)
@@ -795,6 +873,14 @@ func TestStateStore_Txn_KVS(t *testing.T) {
 	entries := structs.DirEntries{
 		&structs.DirEntry{
 			Key:       "foo/lock",
+			LockIndex: 1,
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 8,
+				ModifyIndex: 8,
+			},
+		},
+		&structs.DirEntry{
+			Key:       "foo/lock-inplace",
 			LockIndex: 1,
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 8,
