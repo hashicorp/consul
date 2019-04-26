@@ -274,6 +274,49 @@ func TestConfigEntry_List(t *testing.T) {
 	require.Equal(expected, out)
 }
 
+func TestConfigEntry_ListAll(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	// Create some dummy services in the state store to look up.
+	state := s1.fsm.State()
+	expected := structs.IndexedGenericConfigEntries{
+		Entries: []structs.ConfigEntry{
+			&structs.ProxyConfigEntry{
+				Kind: structs.ProxyDefaults,
+				Name: "global",
+			},
+			&structs.ServiceConfigEntry{
+				Kind: structs.ServiceDefaults,
+				Name: "bar",
+			},
+			&structs.ServiceConfigEntry{
+				Kind: structs.ServiceDefaults,
+				Name: "foo",
+			},
+		},
+	}
+	require.NoError(state.EnsureConfigEntry(1, expected.Entries[0]))
+	require.NoError(state.EnsureConfigEntry(2, expected.Entries[1]))
+	require.NoError(state.EnsureConfigEntry(3, expected.Entries[2]))
+
+	args := structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+	var out structs.IndexedGenericConfigEntries
+	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.ListAll", &args, &out))
+
+	expected.QueryMeta = out.QueryMeta
+	require.Equal(expected, out)
+}
+
 func TestConfigEntry_List_ACLDeny(t *testing.T) {
 	t.Parallel()
 
@@ -351,6 +394,86 @@ operator = "read"
 	proxyConf, ok := out.Entries[0].(*structs.ProxyConfigEntry)
 	require.Len(out.Entries, 1)
 	require.True(ok)
+	require.Equal(structs.ProxyConfigGlobal, proxyConf.Name)
+	require.Equal(structs.ProxyDefaults, proxyConf.Kind)
+}
+
+func TestConfigEntry_ListAll_ACLDeny(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	// Create the ACL.
+	arg := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name: "User token",
+			Type: structs.ACLTokenTypeClient,
+			Rules: `
+service "foo" {
+	policy = "read"
+}
+operator = "read"
+`,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var id string
+	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Create some dummy service/proxy configs to be looked up.
+	state := s1.fsm.State()
+	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+	}))
+	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
+		Kind: structs.ServiceDefaults,
+		Name: "foo",
+	}))
+	require.NoError(state.EnsureConfigEntry(3, &structs.ServiceConfigEntry{
+		Kind: structs.ServiceDefaults,
+		Name: "db",
+	}))
+
+	// This should filter out the "db" service since we don't have permissions for it.
+	args := structs.ConfigEntryQuery{
+		Datacenter:   s1.config.Datacenter,
+		QueryOptions: structs.QueryOptions{Token: id},
+	}
+	var out structs.IndexedGenericConfigEntries
+	err := msgpackrpc.CallWithCodec(codec, "ConfigEntry.ListAll", &args, &out)
+	require.NoError(err)
+	require.Len(out.Entries, 2)
+	svcIndex := 0
+	proxyIndex := 1
+	if out.Entries[0].GetKind() == structs.ProxyDefaults {
+		svcIndex = 1
+		proxyIndex = 0
+	}
+
+	svcConf, ok := out.Entries[svcIndex].(*structs.ServiceConfigEntry)
+	require.True(ok)
+	proxyConf, ok := out.Entries[proxyIndex].(*structs.ProxyConfigEntry)
+	require.True(ok)
+
+	require.Equal("foo", svcConf.Name)
+	require.Equal(structs.ServiceDefaults, svcConf.Kind)
 	require.Equal(structs.ProxyConfigGlobal, proxyConf.Name)
 	require.Equal(structs.ProxyDefaults, proxyConf.Kind)
 }

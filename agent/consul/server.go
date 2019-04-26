@@ -138,6 +138,10 @@ type Server struct {
 	// Consul configuration
 	config *Config
 
+	// configReplicator is used to manage the leaders replication routines for
+	// centralized config
+	configReplicator *Replicator
+
 	// tokens holds ACL tokens initially from the configuration, but can
 	// be updated at runtime, so should always be used instead of going to
 	// the configuration directly.
@@ -343,6 +347,19 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 
 	// Initialize enterprise specific server functionality
 	if err := s.initEnterprise(); err != nil {
+		s.Shutdown()
+		return nil, err
+	}
+
+	configReplicatorConfig := ReplicatorConfig{
+		Name:        "Config Entry",
+		ReplicateFn: s.replicateConfig,
+		Rate:        s.config.ConfigReplicationRate,
+		Burst:       s.config.ConfigReplicationBurst,
+		Logger:      logger,
+	}
+	s.configReplicator, err = NewReplicator(&configReplicatorConfig)
+	if err != nil {
 		s.Shutdown()
 		return nil, err
 	}
@@ -1115,6 +1132,11 @@ func (s *Server) GetLANCoordinate() (lib.CoordinateSet, error) {
 // ReloadConfig is used to have the Server do an online reload of
 // relevant configuration information
 func (s *Server) ReloadConfig(config *Config) error {
+	if s.IsLeader() {
+		// only bootstrap the config entries if we are the leader
+		// this will error if we lose leadership while bootstrapping here.
+		return s.bootstrapConfigEntries(config.ConfigEntryBootstrap)
+	}
 	return nil
 }
 

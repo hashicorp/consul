@@ -36,13 +36,13 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/watch"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/file"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/consul/watch"
 	multierror "github.com/hashicorp/go-multierror"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/memberlist"
@@ -1135,6 +1135,8 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	if err := a.setupKeyrings(base); err != nil {
 		return nil, fmt.Errorf("Failed to configure keyring: %v", err)
 	}
+
+	base.ConfigEntryBootstrap = a.config.ConfigEntryBootstrap
 
 	return base, nil
 }
@@ -3615,6 +3617,12 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 			return fmt.Errorf("Failed reloading dns config : %v", err)
 		}
 	}
+
+	// this only gets used by the consulConfig function and since
+	// that is only ever done during init and reload here then
+	// an in place modification is safe as reloads cannot be
+	// concurrent due to both gaing a full lock on the stateLock
+	a.config.ConfigEntryBootstrap = newCfg.ConfigEntryBootstrap
 
 	// create the config for the rpc server/client
 	consulCfg, err := a.consulConfig()

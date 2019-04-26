@@ -1,22 +1,49 @@
 package watch_test
 
 import (
+	"bytes"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/sha256"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
+	"fmt"
+	"math/big"
+	"net/url"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/testrpc"
-
-	"github.com/stretchr/testify/assert"
-
-	"github.com/hashicorp/consul/agent"
-	"github.com/hashicorp/consul/agent/connect"
-	consulapi "github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/watch"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/watch"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/stretchr/testify/require"
 )
+
+func makeClient(t *testing.T) (*api.Client, *testutil.TestServer) {
+	// Make client config
+	conf := api.DefaultConfig()
+
+	// Create server
+	server, err := testutil.NewTestServerConfigT(t, nil)
+	require.NoError(t, err)
+	conf.Address = server.HTTPAddr
+
+	// Create client
+	client, err := api.NewClient(conf)
+	if err != nil {
+		server.Stop()
+		// guaranteed to fail but will be a nice error message
+		require.NoError(t, err)
+	}
+
+	return client, server
+}
 
 var errBadContent = errors.New("bad content")
 var errTimeout = errors.New("timeout")
@@ -29,11 +56,60 @@ func makeInvokeCh() chan error {
 	return ch
 }
 
+func updateConnectCA(t *testing.T, client *api.Client) {
+	t.Helper()
+
+	connect := client.Connect()
+	cfg, _, err := connect.CAGetConfig(nil)
+	require.NoError(t, err)
+	require.NotNil(t, cfg.Config)
+
+	// update the cert
+	// Create the private key we'll use for this CA cert.
+	pk, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(t, err)
+	bs, err := x509.MarshalECPrivateKey(pk)
+	require.NoError(t, err)
+
+	var buf bytes.Buffer
+	require.NoError(t, pem.Encode(&buf, &pem.Block{Type: "EC PRIVATE KEY", Bytes: bs}))
+	cfg.Config["PrivateKey"] = buf.String()
+
+	bs, err = x509.MarshalPKIXPublicKey(pk.Public())
+	require.NoError(t, err)
+	kID := []byte(strings.Replace(fmt.Sprintf("% x", sha256.Sum256(bs)), " ", ":", -1))
+
+	// Create the CA cert
+	template := x509.Certificate{
+		SerialNumber:          big.NewInt(42),
+		Subject:               pkix.Name{CommonName: "CA Modified"},
+		URIs:                  []*url.URL{&url.URL{Scheme: "spiffe", Host: fmt.Sprintf("11111111-2222-3333-4444-555555555555.%s", "consul")}},
+		BasicConstraintsValid: true,
+		KeyUsage: x509.KeyUsageCertSign |
+			x509.KeyUsageCRLSign |
+			x509.KeyUsageDigitalSignature,
+		IsCA:           true,
+		NotAfter:       time.Now().AddDate(10, 0, 0),
+		NotBefore:      time.Now(),
+		AuthorityKeyId: kID,
+		SubjectKeyId:   kID,
+	}
+
+	bs, err = x509.CreateCertificate(rand.Reader, &template, &template, pk.Public(), pk)
+	require.NoError(t, err)
+
+	buf.Reset()
+	require.NoError(t, pem.Encode(&buf, &pem.Block{Type: "CERTIFICATE", Bytes: bs}))
+	cfg.Config["RootCert"] = buf.String()
+
+	_, err = connect.CASetConfig(cfg, nil)
+	require.NoError(t, err)
+}
+
 func TestKeyWatch(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
-	defer a.Shutdown()
-	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	c, s := makeClient(t)
+	defer s.Stop()
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"key", "key":"foo/bar/baz"}`)
@@ -41,7 +117,7 @@ func TestKeyWatch(t *testing.T) {
 		if raw == nil {
 			return // ignore
 		}
-		v, ok := raw.(*consulapi.KVPair)
+		v, ok := raw.(*api.KVPair)
 		if !ok || v == nil {
 			return // ignore
 		}
@@ -56,10 +132,10 @@ func TestKeyWatch(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		kv := a.Client().KV()
+		kv := c.KV()
 
 		time.Sleep(20 * time.Millisecond)
-		pair := &consulapi.KVPair{
+		pair := &api.KVPair{
 			Key:   "foo/bar/baz",
 			Value: []byte("test"),
 		}
@@ -71,7 +147,7 @@ func TestKeyWatch(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := plan.Run(a.HTTPAddr()); err != nil {
+		if err := plan.Run(s.HTTPAddr); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}()
@@ -86,9 +162,8 @@ func TestKeyWatch(t *testing.T) {
 
 func TestKeyWatch_With_PrefixDelete(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
-	defer a.Shutdown()
-	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	c, s := makeClient(t)
+	defer s.Stop()
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"key", "key":"foo/bar/baz"}`)
@@ -96,7 +171,7 @@ func TestKeyWatch_With_PrefixDelete(t *testing.T) {
 		if raw == nil {
 			return // ignore
 		}
-		v, ok := raw.(*consulapi.KVPair)
+		v, ok := raw.(*api.KVPair)
 		if !ok || v == nil {
 			return // ignore
 		}
@@ -111,10 +186,10 @@ func TestKeyWatch_With_PrefixDelete(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		kv := a.Client().KV()
+		kv := c.KV()
 
 		time.Sleep(20 * time.Millisecond)
-		pair := &consulapi.KVPair{
+		pair := &api.KVPair{
 			Key:   "foo/bar/baz",
 			Value: []byte("test"),
 		}
@@ -126,7 +201,7 @@ func TestKeyWatch_With_PrefixDelete(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := plan.Run(a.HTTPAddr()); err != nil {
+		if err := plan.Run(s.HTTPAddr); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}()
@@ -141,9 +216,8 @@ func TestKeyWatch_With_PrefixDelete(t *testing.T) {
 
 func TestKeyPrefixWatch(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
-	defer a.Shutdown()
-	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	c, s := makeClient(t)
+	defer s.Stop()
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"keyprefix", "prefix":"foo/"}`)
@@ -151,7 +225,7 @@ func TestKeyPrefixWatch(t *testing.T) {
 		if raw == nil {
 			return // ignore
 		}
-		v, ok := raw.(consulapi.KVPairs)
+		v, ok := raw.(api.KVPairs)
 		if !ok || len(v) == 0 {
 			return
 		}
@@ -166,10 +240,10 @@ func TestKeyPrefixWatch(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		kv := a.Client().KV()
+		kv := c.KV()
 
 		time.Sleep(20 * time.Millisecond)
-		pair := &consulapi.KVPair{
+		pair := &api.KVPair{
 			Key: "foo/bar",
 		}
 		if _, err := kv.Put(pair, nil); err != nil {
@@ -180,7 +254,7 @@ func TestKeyPrefixWatch(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := plan.Run(a.HTTPAddr()); err != nil {
+		if err := plan.Run(s.HTTPAddr); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}()
@@ -195,9 +269,8 @@ func TestKeyPrefixWatch(t *testing.T) {
 
 func TestServicesWatch(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
-	defer a.Shutdown()
-	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	c, s := makeClient(t)
+	defer s.Stop()
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"services"}`)
@@ -220,10 +293,10 @@ func TestServicesWatch(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		agent := a.Client().Agent()
+		agent := c.Agent()
 
 		time.Sleep(20 * time.Millisecond)
-		reg := &consulapi.AgentServiceRegistration{
+		reg := &api.AgentServiceRegistration{
 			ID:   "foo",
 			Name: "foo",
 		}
@@ -235,7 +308,7 @@ func TestServicesWatch(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := plan.Run(a.HTTPAddr()); err != nil {
+		if err := plan.Run(s.HTTPAddr); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}()
@@ -250,9 +323,8 @@ func TestServicesWatch(t *testing.T) {
 
 func TestNodesWatch(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
-	defer a.Shutdown()
-	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	c, s := makeClient(t)
+	defer s.Stop()
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"nodes"}`)
@@ -260,7 +332,7 @@ func TestNodesWatch(t *testing.T) {
 		if raw == nil {
 			return // ignore
 		}
-		v, ok := raw.([]*consulapi.Node)
+		v, ok := raw.([]*api.Node)
 		if !ok || len(v) == 0 {
 			return // ignore
 		}
@@ -271,10 +343,10 @@ func TestNodesWatch(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		catalog := a.Client().Catalog()
+		catalog := c.Catalog()
 
 		time.Sleep(20 * time.Millisecond)
-		reg := &consulapi.CatalogRegistration{
+		reg := &api.CatalogRegistration{
 			Node:       "foobar",
 			Address:    "1.1.1.1",
 			Datacenter: "dc1",
@@ -287,7 +359,7 @@ func TestNodesWatch(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := plan.Run(a.HTTPAddr()); err != nil {
+		if err := plan.Run(s.HTTPAddr); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}()
@@ -302,9 +374,8 @@ func TestNodesWatch(t *testing.T) {
 
 func TestServiceWatch(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
-	defer a.Shutdown()
-	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	c, s := makeClient(t)
+	defer s.Stop()
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"service", "service":"foo", "tag":"bar", "passingonly":true}`)
@@ -312,7 +383,7 @@ func TestServiceWatch(t *testing.T) {
 		if raw == nil {
 			return // ignore
 		}
-		v, ok := raw.([]*consulapi.ServiceEntry)
+		v, ok := raw.([]*api.ServiceEntry)
 		if !ok || len(v) == 0 {
 			return // ignore
 		}
@@ -328,10 +399,10 @@ func TestServiceWatch(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		agent := a.Client().Agent()
+		agent := c.Agent()
 
 		time.Sleep(20 * time.Millisecond)
-		reg := &consulapi.AgentServiceRegistration{
+		reg := &api.AgentServiceRegistration{
 			ID:   "foo",
 			Name: "foo",
 			Tags: []string{"bar"},
@@ -344,7 +415,7 @@ func TestServiceWatch(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := plan.Run(a.HTTPAddr()); err != nil {
+		if err := plan.Run(s.HTTPAddr); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}()
@@ -359,9 +430,8 @@ func TestServiceWatch(t *testing.T) {
 
 func TestChecksWatch_State(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
-	defer a.Shutdown()
-	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	c, s := makeClient(t)
+	defer s.Stop()
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"checks", "state":"warning"}`)
@@ -369,7 +439,7 @@ func TestChecksWatch_State(t *testing.T) {
 		if raw == nil {
 			return // ignore
 		}
-		v, ok := raw.([]*consulapi.HealthCheck)
+		v, ok := raw.([]*api.HealthCheck)
 		if !ok || len(v) == 0 {
 			return // ignore
 		}
@@ -384,18 +454,18 @@ func TestChecksWatch_State(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		catalog := a.Client().Catalog()
+		catalog := c.Catalog()
 
 		time.Sleep(20 * time.Millisecond)
-		reg := &consulapi.CatalogRegistration{
+		reg := &api.CatalogRegistration{
 			Node:       "foobar",
 			Address:    "1.1.1.1",
 			Datacenter: "dc1",
-			Check: &consulapi.AgentCheck{
+			Check: &api.AgentCheck{
 				Node:    "foobar",
 				CheckID: "foobar",
 				Name:    "foobar",
-				Status:  consulapi.HealthWarning,
+				Status:  api.HealthWarning,
 			},
 		}
 		if _, err := catalog.Register(reg, nil); err != nil {
@@ -406,7 +476,7 @@ func TestChecksWatch_State(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := plan.Run(a.HTTPAddr()); err != nil {
+		if err := plan.Run(s.HTTPAddr); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}()
@@ -421,9 +491,8 @@ func TestChecksWatch_State(t *testing.T) {
 
 func TestChecksWatch_Service(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
-	defer a.Shutdown()
-	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	c, s := makeClient(t)
+	defer s.Stop()
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"checks", "service":"foobar"}`)
@@ -431,7 +500,7 @@ func TestChecksWatch_Service(t *testing.T) {
 		if raw == nil {
 			return // ignore
 		}
-		v, ok := raw.([]*consulapi.HealthCheck)
+		v, ok := raw.([]*api.HealthCheck)
 		if !ok || len(v) == 0 {
 			return // ignore
 		}
@@ -446,22 +515,22 @@ func TestChecksWatch_Service(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		catalog := a.Client().Catalog()
+		catalog := c.Catalog()
 
 		time.Sleep(20 * time.Millisecond)
-		reg := &consulapi.CatalogRegistration{
+		reg := &api.CatalogRegistration{
 			Node:       "foobar",
 			Address:    "1.1.1.1",
 			Datacenter: "dc1",
-			Service: &consulapi.AgentService{
+			Service: &api.AgentService{
 				ID:      "foobar",
 				Service: "foobar",
 			},
-			Check: &consulapi.AgentCheck{
+			Check: &api.AgentCheck{
 				Node:      "foobar",
 				CheckID:   "foobar",
 				Name:      "foobar",
-				Status:    consulapi.HealthPassing,
+				Status:    api.HealthPassing,
 				ServiceID: "foobar",
 			},
 		}
@@ -473,7 +542,7 @@ func TestChecksWatch_Service(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := plan.Run(a.HTTPAddr()); err != nil {
+		if err := plan.Run(s.HTTPAddr); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}()
@@ -488,9 +557,8 @@ func TestChecksWatch_Service(t *testing.T) {
 
 func TestEventWatch(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
-	defer a.Shutdown()
-	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	c, s := makeClient(t)
+	defer s.Stop()
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"event", "name": "foo"}`)
@@ -498,7 +566,7 @@ func TestEventWatch(t *testing.T) {
 		if raw == nil {
 			return
 		}
-		v, ok := raw.([]*consulapi.UserEvent)
+		v, ok := raw.([]*api.UserEvent)
 		if !ok || len(v) == 0 {
 			return // ignore
 		}
@@ -513,10 +581,10 @@ func TestEventWatch(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		event := a.Client().Event()
+		event := c.Event()
 
 		time.Sleep(20 * time.Millisecond)
-		params := &consulapi.UserEvent{Name: "foo"}
+		params := &api.UserEvent{Name: "foo"}
 		if _, _, err := event.Fire(params, nil); err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -525,7 +593,7 @@ func TestEventWatch(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := plan.Run(a.HTTPAddr()); err != nil {
+		if err := plan.Run(s.HTTPAddr); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}()
@@ -540,10 +608,9 @@ func TestEventWatch(t *testing.T) {
 
 func TestConnectRootsWatch(t *testing.T) {
 	t.Parallel()
-	// NewTestAgent will bootstrap a new CA
-	a := agent.NewTestAgent(t, t.Name(), "")
-	defer a.Shutdown()
-	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	// makeClient will bootstrap a CA
+	c, s := makeClient(t)
+	defer s.Stop()
 
 	var originalCAID string
 	invoke := makeInvokeCh()
@@ -552,7 +619,7 @@ func TestConnectRootsWatch(t *testing.T) {
 		if raw == nil {
 			return // ignore
 		}
-		v, ok := raw.(*consulapi.CARootList)
+		v, ok := raw.(*api.CARootList)
 		if !ok || v == nil {
 			return // ignore
 		}
@@ -562,8 +629,8 @@ func TestConnectRootsWatch(t *testing.T) {
 			originalCAID = v.ActiveRootID
 			return
 		}
-		assert.NotEmpty(t, originalCAID)
-		assert.NotEqual(t, originalCAID, v.ActiveRootID)
+		require.NotEmpty(t, originalCAID)
+		require.NotEqual(t, originalCAID, v.ActiveRootID)
 		invoke <- nil
 	}
 
@@ -571,15 +638,14 @@ func TestConnectRootsWatch(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		time.Sleep(20 * time.Millisecond)
-		// Set a new CA
-		connect.TestCAConfigSet(t, a, nil)
+		time.Sleep(100 * time.Millisecond)
+		updateConnectCA(t, c)
 	}()
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := plan.Run(a.HTTPAddr()); err != nil {
+		if err := plan.Run(s.HTTPAddr); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}()
@@ -594,15 +660,14 @@ func TestConnectRootsWatch(t *testing.T) {
 
 func TestConnectLeafWatch(t *testing.T) {
 	t.Parallel()
-	// NewTestAgent will bootstrap a new CA
-	a := agent.NewTestAgent(t, t.Name(), ``)
-	defer a.Shutdown()
-	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	// makeClient will bootstrap a CA
+	c, s := makeClient(t)
+	defer s.Stop()
 
 	// Register a web service to get certs for
 	{
-		agent := a.Client().Agent()
-		reg := consulapi.AgentServiceRegistration{
+		agent := c.Agent()
+		reg := api.AgentServiceRegistration{
 			ID:   "web",
 			Name: "web",
 			Port: 9090,
@@ -611,7 +676,7 @@ func TestConnectLeafWatch(t *testing.T) {
 		require.Nil(t, err)
 	}
 
-	var lastCert *consulapi.LeafCert
+	var lastCert *api.LeafCert
 
 	//invoke := makeInvokeCh()
 	invoke := make(chan error)
@@ -620,7 +685,7 @@ func TestConnectLeafWatch(t *testing.T) {
 		if raw == nil {
 			return // ignore
 		}
-		v, ok := raw.(*consulapi.LeafCert)
+		v, ok := raw.(*api.LeafCert)
 		if !ok || v == nil {
 			return // ignore
 		}
@@ -632,10 +697,10 @@ func TestConnectLeafWatch(t *testing.T) {
 		// TODO(banks): right now the root rotation actually causes Serial numbers
 		// to reset so these end up all being the same. That needs fixing but it's
 		// a bigger task than I want to bite off for this PR.
-		//assert.NotEqual(t, lastCert.SerialNumber, v.SerialNumber)
-		assert.NotEqual(t, lastCert.CertPEM, v.CertPEM)
-		assert.NotEqual(t, lastCert.PrivateKeyPEM, v.PrivateKeyPEM)
-		assert.NotEqual(t, lastCert.ModifyIndex, v.ModifyIndex)
+		//require.NotEqual(t, lastCert.SerialNumber, v.SerialNumber)
+		require.NotEqual(t, lastCert.CertPEM, v.CertPEM)
+		require.NotEqual(t, lastCert.PrivateKeyPEM, v.PrivateKeyPEM)
+		require.NotEqual(t, lastCert.ModifyIndex, v.ModifyIndex)
 		invoke <- nil
 	}
 
@@ -643,15 +708,14 @@ func TestConnectLeafWatch(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		time.Sleep(20 * time.Millisecond)
-		// Change the CA to trigger a leaf change
-		connect.TestCAConfigSet(t, a, nil)
+		time.Sleep(100 * time.Millisecond)
+		updateConnectCA(t, c)
 	}()
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := plan.Run(a.HTTPAddr()); err != nil {
+		if err := plan.Run(s.HTTPAddr); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}()
@@ -666,31 +730,22 @@ func TestConnectLeafWatch(t *testing.T) {
 
 func TestConnectProxyConfigWatch(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), `
-	connect {
-		enabled = true
-		proxy {
-			allow_managed_api_registration = true
-		}
-	}
-	`)
-	defer a.Shutdown()
-	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	c, s := makeClient(t)
+	defer s.Stop()
 
 	// Register a local agent service with a managed proxy
-	reg := &consulapi.AgentServiceRegistration{
+	reg := &api.AgentServiceRegistration{
 		Name: "web",
 		Port: 8080,
-		Connect: &consulapi.AgentServiceConnect{
-			Proxy: &consulapi.AgentServiceConnectProxy{
+		Connect: &api.AgentServiceConnect{
+			Proxy: &api.AgentServiceConnectProxy{
 				Config: map[string]interface{}{
 					"foo": "bar",
 				},
 			},
 		},
 	}
-	client := a.Client()
-	agent := client.Agent()
+	agent := c.Agent()
 	err := agent.ServiceRegister(reg)
 	require.NoError(t, err)
 
@@ -700,7 +755,7 @@ func TestConnectProxyConfigWatch(t *testing.T) {
 		if raw == nil {
 			return // ignore
 		}
-		v, ok := raw.(*consulapi.ConnectProxyConfig)
+		v, ok := raw.(*api.ConnectProxyConfig)
 		if !ok || v == nil {
 			return // ignore
 		}
@@ -723,7 +778,7 @@ func TestConnectProxyConfigWatch(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := plan.Run(a.HTTPAddr()); err != nil {
+		if err := plan.Run(s.HTTPAddr); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}()
@@ -738,16 +793,15 @@ func TestConnectProxyConfigWatch(t *testing.T) {
 
 func TestAgentServiceWatch(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
-	defer a.Shutdown()
-	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	c, s := makeClient(t)
+	defer s.Stop()
 
 	// Register a local agent service
-	reg := &consulapi.AgentServiceRegistration{
+	reg := &api.AgentServiceRegistration{
 		Name: "web",
 		Port: 8080,
 	}
-	client := a.Client()
+	client := c
 	agent := client.Agent()
 	err := agent.ServiceRegister(reg)
 	require.NoError(t, err)
@@ -758,7 +812,7 @@ func TestAgentServiceWatch(t *testing.T) {
 		if raw == nil {
 			return // ignore
 		}
-		v, ok := raw.(*consulapi.AgentService)
+		v, ok := raw.(*api.AgentService)
 		if !ok || v == nil {
 			return // ignore
 		}
@@ -780,7 +834,7 @@ func TestAgentServiceWatch(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := plan.Run(a.HTTPAddr()); err != nil {
+		if err := plan.Run(s.HTTPAddr); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}()

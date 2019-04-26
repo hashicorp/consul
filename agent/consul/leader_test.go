@@ -1206,3 +1206,38 @@ func TestLeader_ACLUpgrade(t *testing.T) {
 		require.Equal(t, client.ACL.Rules, token.Rules)
 	})
 }
+
+func TestLeader_ConfigEntryBootstrap(t *testing.T) {
+	t.Parallel()
+	global_entry_init := &structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		Config: map[string]interface{}{
+			// these are made a []uint8 and a int64 to allow the Equals test to pass
+			// otherwise it will fail complaining about data types
+			"foo": []uint8("bar"),
+			"bar": int64(1),
+		},
+	}
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Build = "1.5.0"
+		c.ConfigEntryBootstrap = []structs.ConfigEntry{
+			global_entry_init,
+		}
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
+	retry.Run(t, func(t *retry.R) {
+		_, entry, err := s1.fsm.State().ConfigEntry(nil, structs.ProxyDefaults, structs.ProxyConfigGlobal)
+		require.NoError(t, err)
+		require.NotNil(t, entry)
+		global, ok := entry.(*structs.ProxyConfigEntry)
+		require.True(t, ok)
+		require.Equal(t, global_entry_init.Kind, global.Kind)
+		require.Equal(t, global_entry_init.Name, global.Name)
+		require.Equal(t, global_entry_init.Config, global.Config)
+	})
+}
