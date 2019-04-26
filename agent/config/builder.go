@@ -189,6 +189,7 @@ func (b *Builder) ReadPath(path string) ([]Source, error) {
 		srcFormat := FormatFrom(fp)
 
 		// If config-format is not set, only read files with supported extensions
+		// If config-format is set, files of any extension will be interpreted in that format
 		if srcFormat == "json" || srcFormat == "hcl" || configFormat != "" {
 			src, err := b.ReadFile(fp)
 			if err != nil {
