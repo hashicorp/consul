@@ -596,51 +596,27 @@ func TestConfigurator_CommonTLSConfigVerifyIncoming(t *testing.T) {
 func TestConfigurator_OutgoingRPCTLSDisabled(t *testing.T) {
 	c := Configurator{base: &Config{}, autoEncrypt: &autoEncrypt{}}
 	type variant struct {
-		verify          bool
-		file            string
-		path            string
-		autoEncryptMode AutoEncryptMode
-		expected        bool
+		verify         bool
+		autoEncryptTLS bool
+		pool           *x509.CertPool
+		expected       bool
 	}
-	cafile := "../test/ca/root.cer"
-	capath := "../test/ca_path"
 	variants := []variant{
-		{false, "", "", AutoEncryptModeNone, true},
-		{false, cafile, "", AutoEncryptModeNone, false},
-		{false, "", capath, AutoEncryptModeNone, false},
-		{false, cafile, capath, AutoEncryptModeNone, false},
-		{true, "", "", AutoEncryptModeNone, false},
-		{true, cafile, "", AutoEncryptModeNone, false},
-		{true, "", capath, AutoEncryptModeNone, false},
-		{true, cafile, capath, AutoEncryptModeNone, false},
+		{false, false, nil, true},
+		{true, false, nil, false},
+		{false, true, nil, false},
+		{true, true, nil, false},
 
-		{false, "", "", AutoEncryptModeClientStartup, false},
-		{false, cafile, "", AutoEncryptModeClientStartup, false},
-		{false, "", capath, AutoEncryptModeClientStartup, false},
-		{false, cafile, capath, AutoEncryptModeClientStartup, false},
-		{true, "", "", AutoEncryptModeClientStartup, false},
-		{true, cafile, "", AutoEncryptModeClientStartup, false},
-		{true, "", capath, AutoEncryptModeClientStartup, false},
-		{true, cafile, capath, AutoEncryptModeClientStartup, false},
-
-		{false, "", "", AutoEncryptModeClientEstablished, false},
-		{false, cafile, "", AutoEncryptModeClientEstablished, false},
-		{false, "", capath, AutoEncryptModeClientEstablished, false},
-		{false, cafile, capath, AutoEncryptModeClientEstablished, false},
-		{true, "", "", AutoEncryptModeClientEstablished, false},
-		{true, cafile, "", AutoEncryptModeClientEstablished, false},
-		{true, "", capath, AutoEncryptModeClientEstablished, false},
-		{true, cafile, capath, AutoEncryptModeClientEstablished, false},
+		{false, false, &x509.CertPool{}, false},
+		{true, false, &x509.CertPool{}, false},
+		{false, true, &x509.CertPool{}, false},
+		{true, true, &x509.CertPool{}, false},
 	}
 	for i, v := range variants {
 		info := fmt.Sprintf("case %d", i)
-		pems, err := loadCAs(v.file, v.path)
-		require.NoError(t, err, info)
-		pool, err := pool(pems)
-		require.NoError(t, err, info)
-		c.caPool = pool
+		c.caPool = v.pool
 		c.base.VerifyOutgoing = v.verify
-		c.autoEncrypt.mode = v.autoEncryptMode
+		c.base.AutoEncryptTLS = v.autoEncryptTLS
 		require.Equal(t, v.expected, c.outgoingRPCTLSDisabled(), info)
 	}
 }
@@ -779,15 +755,30 @@ func TestConfigurator_ServerNameOrNodeName(t *testing.T) {
 
 func TestConfigurator_VerifyOutgoing(t *testing.T) {
 	c := Configurator{base: &Config{}, autoEncrypt: &autoEncrypt{}}
-	require.False(t, c.verifyOutgoing())
-	c.autoEncrypt.mode = AutoEncryptModeClientStartup
-	require.False(t, c.verifyOutgoing())
-	c.base.VerifyOutgoing = true
-	c.autoEncrypt.mode = AutoEncryptModeNone
-	require.True(t, c.verifyOutgoing())
-	c.base.VerifyOutgoing = false
-	c.autoEncrypt.mode = AutoEncryptModeClientEstablished
-	require.True(t, c.verifyOutgoing())
+	type variant struct {
+		verify         bool
+		autoEncryptTLS bool
+		pool           *x509.CertPool
+		expected       bool
+	}
+	variants := []variant{
+		{false, false, nil, false},
+		{true, false, nil, true},
+		{false, true, nil, false},
+		{true, true, nil, true},
+
+		{false, false, &x509.CertPool{}, false},
+		{true, false, &x509.CertPool{}, true},
+		{false, true, &x509.CertPool{}, true},
+		{true, true, &x509.CertPool{}, true},
+	}
+	for i, v := range variants {
+		info := fmt.Sprintf("case %d", i)
+		c.caPool = v.pool
+		c.base.VerifyOutgoing = v.verify
+		c.base.AutoEncryptTLS = v.autoEncryptTLS
+		require.Equal(t, v.expected, c.verifyOutgoing(), info)
+	}
 }
 
 func TestConfigurator_Domain(t *testing.T) {
@@ -804,11 +795,4 @@ func TestConfigurator_VerifyServerHostname(t *testing.T) {
 	c.base.VerifyServerHostname = false
 	c.autoEncrypt.verifyServerHostname = true
 	require.True(t, c.VerifyServerHostname())
-}
-
-func TestConfigurator_EnableAutoEncryptModeClientStartup(t *testing.T) {
-	c := Configurator{autoEncrypt: &autoEncrypt{}}
-	require.Equal(t, AutoEncryptModeNone, c.autoEncrypt.mode)
-	c.EnableAutoEncryptModeClientStartup()
-	require.Equal(t, AutoEncryptModeClientStartup, c.autoEncrypt.mode)
 }

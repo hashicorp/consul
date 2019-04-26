@@ -140,17 +140,7 @@ func SpecificDC(dc string, tlsWrap DCWrapper) Wrapper {
 	}
 }
 
-type AutoEncryptMode int
-
-const (
-	AutoEncryptModeNone AutoEncryptMode = iota
-	AutoEncryptModeClientStartup
-	AutoEncryptModeClientEstablished
-	AutoEncryptModeServer
-)
-
 type autoEncrypt struct {
-	mode                 AutoEncryptMode
 	caPems               []string
 	cert                 *tls.Certificate
 	verifyServerHostname bool
@@ -220,9 +210,6 @@ func (c *Configurator) Update(config Config) error {
 	c.manual.cert = cert
 	c.manual.caPems = pems
 	c.caPool = pool
-	if c.base.ServerMode && c.base.AutoEncryptTLS {
-		c.autoEncrypt.mode = AutoEncryptModeServer
-	}
 	c.version++
 	return nil
 }
@@ -290,7 +277,6 @@ func (c *Configurator) UpdateAutoEncrypt(caPems []string, pub, priv string, veri
 	c.autoEncrypt.cert = &cert
 	c.caPool = pool
 	c.autoEncrypt.verifyServerHostname = verifyServerHostname
-	c.autoEncrypt.mode = AutoEncryptModeClientEstablished
 	c.version++
 	return nil
 }
@@ -480,21 +466,31 @@ func (c *Configurator) VerifyIncomingRPC() bool {
 func (c *Configurator) outgoingRPCTLSDisabled() bool {
 	c.RLock()
 	defer c.RUnlock()
-	return c.caPool == nil &&
-		!c.base.VerifyOutgoing &&
-		c.autoEncrypt.mode != AutoEncryptModeClientEstablished &&
-		c.autoEncrypt.mode != AutoEncryptModeClientStartup ||
-		(c.base.ServerMode && c.base.AutoEncryptTLS)
+
+	// if AutoEncrypt enabled, always use TLS
+	if c.base.AutoEncryptTLS {
+		return false
+	}
+
+	// if CAs are provided or VerifyOutgoing is set, use TLS
+	if c.caPool != nil || c.base.VerifyOutgoing {
+		return false
+	}
+
+	return true
 }
 
 // This function acquires a read lock because it reads from the config.
 func (c *Configurator) verifyOutgoing() bool {
 	c.RLock()
 	defer c.RUnlock()
-	return c.base.VerifyOutgoing ||
-		c.autoEncrypt.mode == AutoEncryptModeClientEstablished ||
-		(c.autoEncrypt.mode == AutoEncryptModeClientStartup && c.caPool != nil) ||
-		(c.base.ServerMode && c.base.AutoEncryptTLS)
+
+	// If AutoEncryptTLS is enabled and there is a CA, then verify
+	// outgoing.
+	if c.base.AutoEncryptTLS && c.caPool != nil {
+		return true
+	}
+	return c.base.VerifyOutgoing
 }
 
 // This function acquires a read lock because it reads from the config.
@@ -542,13 +538,6 @@ func (c *Configurator) VerifyServerHostname() bool {
 	return c.base.VerifyServerHostname || c.autoEncrypt.verifyServerHostname
 }
 
-// This function acquires a lock because it writes to the config.
-func (c *Configurator) EnableAutoEncryptModeClientStartup() {
-	c.Lock()
-	defer c.Unlock()
-	c.autoEncrypt.mode = AutoEncryptModeClientStartup
-}
-
 // IncomingRPCConfig generates a *tls.Config for incoming RPC connections.
 func (c *Configurator) IncomingRPCConfig() *tls.Config {
 	c.log("IncomingRPCConfig")
@@ -562,7 +551,6 @@ func (c *Configurator) IncomingRPCConfig() *tls.Config {
 func (c *Configurator) IncomingInsecureRPCConfig() *tls.Config {
 	c.log("IncomingInsecureRPCConfig")
 	config := c.commonTLSConfig(false)
-	config.ClientAuth = tls.NoClientCert
 	config.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
 		return c.IncomingInsecureRPCConfig(), nil
 	}

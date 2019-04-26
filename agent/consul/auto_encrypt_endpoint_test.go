@@ -27,7 +27,7 @@ func TestAutoEncryptSign(t *testing.T) {
 	})
 	defer os.RemoveAll(dir)
 	defer s.Shutdown()
-	c := tlsutil.Config{}
+	c := tlsutil.Config{AutoEncryptTLS: true}
 	codec := insecureRPCClient(t, s, c)
 	defer codec.Close()
 
@@ -35,8 +35,9 @@ func TestAutoEncryptSign(t *testing.T) {
 
 	// Generate a CSR and request signing
 	id := &connect.SpiffeIDAgent{
-		Host:  strings.TrimSuffix("domain", "."),
-		Agent: string("uuid"),
+		Host:       strings.TrimSuffix("domain", "."),
+		Datacenter: "dc1",
+		Agent:      "uuid",
 	}
 
 	// Create a new private key

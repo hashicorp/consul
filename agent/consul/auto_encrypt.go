@@ -9,7 +9,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/go-msgpack/codec"
 )
 
@@ -61,17 +60,11 @@ func (c *Client) queryServer(server string, port int, token, csr string) (*struc
 		return nil, err
 	}
 
-	autoEncryptTLSConfigurator, err := tlsutil.NewConfigurator(c.tlsConfigurator.Base(), c.logger)
-	if err != nil {
-		return errFn(err)
-	}
-	autoEncryptTLSConfigurator.EnableAutoEncryptModeClientStartup()
-
 	host := strings.SplitN(server, ":", 2)[0]
 	addr := &net.TCPAddr{IP: net.ParseIP(host), Port: port}
 
 	// Make the request.
-	conn, hc, err := c.connPool.DialTimeoutInsecure(c.config.Datacenter, addr, 1*time.Second, autoEncryptTLSConfigurator.OutgoingRPCWrapper())
+	conn, hc, err := c.connPool.DialTimeoutInsecure(c.config.Datacenter, addr, 1*time.Second, c.tlsConfigurator.OutgoingRPCWrapper())
 	if err != nil {
 		return errFn(err)
 	}

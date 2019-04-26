@@ -31,7 +31,6 @@ func insecureRPCClient(t *testing.T, s *Server, c tlsutil.Config) rpc.ClientCode
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	configurator.EnableAutoEncryptModeClientStartup()
 	wrap := configurator.OutgoingRPCWrapper()
 	if wrap == nil {
 		t.Fatalf("wrapper shouldn't be nil")

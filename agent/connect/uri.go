@@ -32,7 +32,7 @@ var (
 	spiffeIDServiceRegexp = regexp.MustCompile(
 		`^/ns/([^/]+)/dc/([^/]+)/svc/([^/]+)$`)
 	spiffeIDAgentRegexp = regexp.MustCompile(
-		`^/agent/([^/]+)$`)
+		`^/agent/client/dc/([^/]+)/id/([^/]+)$`)
 )
 
 // ParseCertURIFromString attempts to parse a string representation of a
@@ -91,17 +91,22 @@ func ParseCertURI(input *url.URL) (CertURI, error) {
 		// Determine the values. We assume they're sane to save cycles,
 		// but if the raw path is not empty that means that something is
 		// URL encoded so we go to the slow path.
-		agent := v[1]
+		dc := v[1]
+		agent := v[2]
 		if input.RawPath != "" {
 			var err error
-			if agent, err = url.PathUnescape(v[1]); err != nil {
+			if dc, err = url.PathUnescape(v[1]); err != nil {
+				return nil, fmt.Errorf("Invalid datacenter: %s", err)
+			}
+			if agent, err = url.PathUnescape(v[2]); err != nil {
 				return nil, fmt.Errorf("Invalid node: %s", err)
 			}
 		}
 
 		return &SpiffeIDAgent{
-			Host:  input.Host,
-			Agent: agent,
+			Host:       input.Host,
+			Datacenter: dc,
+			Agent:      agent,
 		}, nil
 	}
 
