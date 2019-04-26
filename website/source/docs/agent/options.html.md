@@ -807,6 +807,21 @@ default will automatically work with some tooling.
 * <a name="client_addr"></a><a href="#client_addr">`client_addr`</a> Equivalent to the
   [`-client` command-line flag](#_client).
 
+* <a name="config_entries"></a><a href="#config_entries">`config_entries`</a>
+    This object allows setting options for centralized config entries.
+
+    The following sub-keys are available:
+
+    * <a name="bootstrap"></a><a href="#config_entries_bootstrap">`bootstrap`</a>
+        This object allows configuring centralized config entries to be bootstrapped
+        by the leader. These entries will be reloaded during an agent config reload.
+
+        The following sub-keys are available:
+
+        * <a name="proxy_defaults"></a><a href="#config_entries_bootstrap_proxy_defaults">`proxy_defaults`</a>
+          This object should contain a mapping of config entry names to an opaque proxy configuration mapping.
+          Currently the only supported name is `global`
+
 * <a name="connect"></a><a href="#connect">`connect`</a>
     This object allows setting options for the Connect feature.
 
