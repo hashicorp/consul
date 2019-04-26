@@ -2,10 +2,15 @@
 td strong,
 %tag-list span {
   @extend %pill;
+  margin-right: 3px;
 }
-
+// For the moment pills with classes are iconed ones
 %pill:not([class]) {
   @extend %frame-gray-900;
+}
+%pill[class] {
+  padding-left: 0;
+  margin-right: 16px;
 }
 %pill[class]::before {
   @extend %as-pseudo;

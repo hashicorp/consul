@@ -1,6 +1,3 @@
-%button {
-  font-family: $typo-family-sans;
-}
 main p,
 %modal-window p {
   margin-bottom: 1em;
@@ -24,30 +21,39 @@ main p,
 %footer {
   letter-spacing: -0.05em;
 }
-th,
-button,
-td strong,
-td:first-child,
+
+%button {
+  font-family: $typo-family-sans;
+}
+/* Weighting */
 h1,
 %app-content div > dt,
 %header-drop-nav .is-active {
   font-weight: $typo-weight-bold;
 }
 h2,
+fieldset > header,
+caption,
 %header-nav,
 %healthchecked-resource header span,
 %healthcheck-output dt,
 %copy-button,
 %app-content div > dl > dt,
-td:first-child a,
-fieldset > header,
+%tbody-th,
 %form-element > span,
-%toggle label span,
-caption {
+%toggle label span {
   font-weight: $typo-weight-semibold;
 }
 %button {
   font-weight: $typo-weight-semibold !important;
+}
+main label a[rel*='help'],
+%pill,
+%tbody-th em,
+%form-element > strong,
+%healthchecked-resource strong,
+%app-view h1 em {
+  font-weight: $typo-weight-normal;
 }
 th,
 td strong,
@@ -58,20 +64,16 @@ td strong,
 %type-icon {
   font-weight: $typo-weight-medium;
 }
-main label a[rel*='help'],
-td:first-child em,
-%pill,
-%form-element > strong,
-%healthchecked-resource strong,
-%app-view h1 em {
-  font-weight: $typo-weight-normal;
-}
+
+/* Styling */
 %form-element > em,
-td:first-child em,
+%tbody-th em,
 %healthchecked-resource header em,
 %app-view h1 em {
   font-style: normal;
 }
+
+/* Sizing */
 %footer > * {
   font-size: inherit;
 }
@@ -79,21 +81,23 @@ h1 {
   font-size: $typo-header-100;
 }
 h2,
+%healthcheck-info dt,
 %header-drop-nav .is-active,
 %app-view h1 em {
   font-size: $typo-size-500;
 }
 body,
-%action-group-action,
 fieldset h2,
 fieldset > header,
 pre code,
 input,
 textarea,
-td {
+%action-group-action,
+%tbody-th {
   font-size: $typo-size-600;
 }
 th,
+td,
 caption,
 .type-dialog,
 %form-element > span,
@@ -106,15 +110,15 @@ caption,
 %toggle label span {
   font-size: $typo-size-700 !important;
 }
-%app-content > p:only-child,
-[role='tabpanel'] > p:only-child,
-%app-view > div.disabled > div,
-.template-error > div,
-%button,
 fieldset > p,
+.template-error > div,
+[role='tabpanel'] > p:only-child,
+.with-confirmation p,
+%app-content > p:only-child,
+%app-view > div.disabled > div,
+%button,
 %form-element > em,
 %form-element > strong,
-.with-confirmation p,
 %feedback-dialog-inline p {
   font-size: $typo-size-800;
 }

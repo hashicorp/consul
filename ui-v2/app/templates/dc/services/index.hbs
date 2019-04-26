@@ -47,12 +47,8 @@
                         passingWidth=passingWidth warningWidth=warningWidth criticalWidth=criticalWidth
                       }}
                     </td>
-                    <td class="tags" style={{remainingWidth}}>
-                    {{#if (gt item.Tags.length 0)}}
-                      {{#each item.Tags as |item|}}
-                        <span>{{item}}</span>
-                      {{/each}}
-                    {{/if}}
+                    <td style={{remainingWidth}}>
+                      {{tag-list items=item.Tags}}
                     </td>
                 {{/block-slot}}
             {{/tabular-collection}}

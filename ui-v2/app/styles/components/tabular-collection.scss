@@ -78,6 +78,9 @@ html.template-service.template-show #instances table tr {
 html.template-token.template-list main table tr {
   @extend %tokens-row;
 }
+html.template-role.template-list main table tr {
+  @extend %roles-row;
+}
 html.template-policy.template-edit [role='dialog'] table tr,
 html.template-policy.template-edit main table tr,
 html.template-role.template-edit [role='dialog'] table tr,
@@ -92,6 +95,21 @@ html.template-token.template-list main table tr th {
 html.template-node.template-show main table.sessions tr {
   @extend %node-sessions-row;
 }
+// this will get auto calculated later in tabular-collection.js
+// keeping this here for reference
+// %services-row > * {
+// (100% / 2) - (160px / 2)
+// width: calc(50% - 160px);
+// }
+%services-row > *:nth-child(2) {
+  width: 100px;
+}
+%services-row > * {
+  width: auto;
+}
+%instances-row > * {
+  width: calc(100% / 5);
+}
 %tokens-row > *:first-child,
 %tokens-minimal-row > *:not(last-child),
 %tokens-row > *:nth-child(2),
@@ -99,13 +117,13 @@ html.template-node.template-show main table.sessions tr {
   width: 120px;
 }
 %tokens-row > *:nth-child(3) {
-  width: calc(50% - 150px);
+  width: calc(30% - 150px);
 }
 %tokens-row > *:nth-child(4) {
-  width: calc(50% - 150px);
+  width: calc(70% - 150px);
 }
 %tokens-your-row:nth-child(4) {
-  width: calc(50% - 270px) !important;
+  width: calc(70% - 270px) !important;
 }
 %tokens-row > *:last-child {
   @extend %table-actions;
@@ -113,6 +131,15 @@ html.template-node.template-show main table.sessions tr {
 %tokens-minimal-row > *:last-child {
   width: calc(100% - 240px) !important;
 }
+
+%roles-row > *:nth-child(1),
+%roles-row > *:nth-child(2) {
+  width: calc(22% - 20px) !important;
+}
+%roles-row > *:nth-child(3) {
+  width: calc(56% - 20px) !important;
+}
+
 @media #{$--horizontal-session-list} {
   %node-sessions-row > * {
     // (100% / 7) - (300px / 6) - (120px / 6)
@@ -158,19 +185,4 @@ html.template-node.template-show main table.sessions tr {
   %instances-row > * {
     width: calc(100% / 4);
   }
-}
-// this will get auto calculated later in tabular-collection.js
-// keeping this here for reference
-// %services-row > * {
-// (100% / 2) - (160px / 2)
-// width: calc(50% - 160px);
-// }
-%services-row > *:nth-child(2) {
-  width: 100px;
-}
-%services-row > * {
-  width: auto;
-}
-%instances-row > * {
-  width: calc(100% / 5);
 }

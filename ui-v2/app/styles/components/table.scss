@@ -24,10 +24,9 @@ td .kind-proxy {
   @extend %type-icon, %with-proxy;
   text-indent: -9000px !important;
   width: 24px;
-  margin-top: -8px;
   transform: scale(0.7);
 }
-table:not(.sessions) tr {
+table:not(.sessions) tbody tr {
   cursor: pointer;
 }
 table:not(.sessions) td:first-child {
@@ -39,14 +38,12 @@ th {
 }
 th span {
   @extend %tooltip;
-  @extend %with-info;
-  margin-left: 12px;
-  top: 3px;
-  width: 23px;
-  height: 15px;
+  margin-left: 2px;
+  vertical-align: text-top;
 }
-th span:after {
-  left: -8px;
+th span::after {
+  @extend %with-info-circle-outline-icon, %as-pseudo;
+  opacity: 0.6;
 }
 th span em::after {
   @extend %tooltip-tail;
@@ -65,4 +62,32 @@ th span em {
 th span:hover em::after,
 th span:hover em {
   @extend %blink-in-fade-out-active;
+}
+/* ideally these would be in route css files, but left here as they */
+/* accomplish the same thing (hide non-essential columns for tables) */
+@media #{$--lt-medium-table} {
+  /* Policy > Datacenters */
+  html.template-policy.template-list tr > :nth-child(2) {
+    display: none;
+  }
+  html.template-service.template-list tr > :nth-child(2) {
+    display: none;
+  }
+}
+@media #{$--lt-wide-table} {
+  html.template-intention.template-list tr > :nth-last-child(2) {
+    display: none;
+  }
+  html.template-service.template-list tr > :last-child {
+    display: none;
+  }
+  html.template-node.template-show #services tr > :last-child {
+    display: none;
+  }
+  html.template-node.template-show #lock-sessions tr > :not(:first-child):not(:last-child) {
+    display: none;
+  }
+  html.template-node.template-show #lock-sessions td:last-child {
+    padding: 0;
+  }
 }
