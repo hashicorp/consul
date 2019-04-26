@@ -1,5 +1,9 @@
 ## UNRELEASED
 
+BREAKING CHANGES:
+
+  * watch: The watch package was moved from github.com/hashicorp/consul/watch to github.com/hashicorp/consul/api/watch to live in the API module. This was necessary after updating the repo to use Go modules or else various other bugs cropped up. The watch API itself has not changed so users should need to only update the import statement to get their code functioning again. [[GH-5664](https://github.com/hashicorp/consul/pull/5664)]
+
 FEATURES:
 * api: Implement data filtering for some endpoints using a new filtering language. [[GH-5579](https://github.com/hashicorp/consul/pull/5579)]
 * snapshot agent (Consul Enterprise): Added support for saving snapshots to Azure Blob Storage.
