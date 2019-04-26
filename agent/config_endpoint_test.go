@@ -161,3 +161,76 @@ func TestConfig_Apply(t *testing.T) {
 		require.Equal(entry.Name, "foo")
 	}
 }
+
+func TestConfig_Apply_Decoding(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	t.Run("No Kind", func(t *testing.T) {
+		body := bytes.NewBuffer([]byte(
+			`{
+			"Name": "foo",
+			"Protocol": "tcp"
+		}`))
+
+		req, _ := http.NewRequest("PUT", "/v1/config", body)
+		resp := httptest.NewRecorder()
+
+		_, err := a.srv.ConfigApply(resp, req)
+		require.Error(t, err)
+		badReq, ok := err.(BadRequestError)
+		require.True(t, ok)
+		require.Equal(t, "Request decoding failed: Payload does not contain a kind/Kind key at the top level", badReq.Reason)
+	})
+
+	t.Run("Kind Not String", func(t *testing.T) {
+		body := bytes.NewBuffer([]byte(
+			`{
+			"Kind": 123,
+			"Name": "foo",
+			"Protocol": "tcp"
+		}`))
+
+		req, _ := http.NewRequest("PUT", "/v1/config", body)
+		resp := httptest.NewRecorder()
+
+		_, err := a.srv.ConfigApply(resp, req)
+		require.Error(t, err)
+		badReq, ok := err.(BadRequestError)
+		require.True(t, ok)
+		require.Equal(t, "Request decoding failed: Kind value in payload is not a string", badReq.Reason)
+	})
+
+	t.Run("Lowercase kind", func(t *testing.T) {
+		body := bytes.NewBuffer([]byte(
+			`{
+			"kind": "service-defaults",
+			"Name": "foo",
+			"Protocol": "tcp"
+		}`))
+
+		req, _ := http.NewRequest("PUT", "/v1/config", body)
+		resp := httptest.NewRecorder()
+		_, err := a.srv.ConfigApply(resp, req)
+		require.NoError(t, err)
+		require.EqualValues(t, 200, resp.Code, resp.Body.String())
+
+		// Get the remaining entry.
+		{
+			args := structs.ConfigEntryQuery{
+				Kind:       structs.ServiceDefaults,
+				Name:       "foo",
+				Datacenter: "dc1",
+			}
+			var out structs.IndexedConfigEntries
+			require.NoError(t, a.RPC("ConfigEntry.Get", &args, &out))
+			require.Equal(t, structs.ServiceDefaults, out.Kind)
+			require.Len(t, out.Entries, 1)
+			entry := out.Entries[0].(*structs.ServiceConfigEntry)
+			require.Equal(t, entry.Name, "foo")
+		}
+	})
+}

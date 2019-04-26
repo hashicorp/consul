@@ -1,11 +1,14 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/mitchellh/mapstructure"
 )
 
 // Config switches on the different CRUD operations for config entries.
@@ -89,19 +92,113 @@ func (s *HTTPServer) configDelete(resp http.ResponseWriter, req *http.Request) (
 	return reply, nil
 }
 
+// decodeBody is used to decode a JSON request body
+func decodeConfigBody(req *http.Request) (structs.ConfigEntry, error) {
+	// This generally only happens in tests since real HTTP requests set
+	// a non-nil body with no content. We guard against it anyways to prevent
+	// a panic. The EOF response is the same behavior as an empty reader.
+	if req.Body == nil {
+		return nil, io.EOF
+	}
+
+	var raw map[string]interface{}
+	dec := json.NewDecoder(req.Body)
+	if err := dec.Decode(&raw); err != nil {
+		return nil, err
+	}
+
+	var entry structs.ConfigEntry
+
+	kindVal, ok := raw["Kind"]
+	if !ok {
+		kindVal, ok = raw["kind"]
+	}
+	if !ok {
+		return nil, fmt.Errorf("Payload does not contain a kind/Kind key at the top level")
+	}
+
+	if kindStr, ok := kindVal.(string); ok {
+		newEntry, err := structs.MakeConfigEntry(kindStr, "")
+		if err != nil {
+			return nil, err
+		}
+		entry = newEntry
+	} else {
+		return nil, fmt.Errorf("Kind value in payload is not a string")
+	}
+
+	decodeConf := &mapstructure.DecoderConfig{
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			mapstructure.StringToTimeDurationHookFunc(),
+			stringToReadableDurationFunc(),
+		),
+		Result: &entry,
+	}
+
+	decoder, err := mapstructure.NewDecoder(decodeConf)
+	if err != nil {
+		return nil, err
+	}
+
+	return entry, decoder.Decode(raw)
+}
+
+func decodeConfigEntry(raw map[string]interface{}) (structs.ConfigEntry, error) {
+	var entry structs.ConfigEntry
+
+	kindVal, ok := raw["Kind"]
+	if !ok {
+		kindVal, ok = raw["kind"]
+	}
+	if !ok {
+		return nil, fmt.Errorf("Payload does not contain a kind/Kind key at the top level")
+	}
+
+	if kindStr, ok := kindVal.(string); ok {
+		newEntry, err := structs.MakeConfigEntry(kindStr, "")
+		if err != nil {
+			return nil, err
+		}
+		entry = newEntry
+	} else {
+		return nil, fmt.Errorf("Kind value in payload is not a string")
+	}
+
+	decodeConf := &mapstructure.DecoderConfig{
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			mapstructure.StringToTimeDurationHookFunc(),
+			stringToReadableDurationFunc(),
+		),
+		Result: &entry,
+	}
+
+	decoder, err := mapstructure.NewDecoder(decodeConf)
+	if err != nil {
+		return nil, err
+	}
+
+	return entry, decoder.Decode(raw)
+}
+
 // ConfigCreate applies the given config entry update.
 func (s *HTTPServer) ConfigApply(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	var args structs.ConfigEntryRequest
+	args := structs.ConfigEntryRequest{
+		Op: structs.ConfigEntryUpsert,
+	}
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
-	var rawEntry map[string]interface{}
-	if err := decodeBody(req, rawEntry, nil); err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "Request decode failed: %v", err)
-		return nil, nil
+
+	var raw map[string]interface{}
+	if err := decodeBody(req, &raw, nil); err != nil {
+		return nil, BadRequestError{Reason: fmt.Sprintf("Request decoding failed: %v", err)}
+	}
+
+	if entry, err := decodeConfigEntry(raw); err == nil {
+		args.Entry = entry
+	} else {
+		return nil, BadRequestError{Reason: fmt.Sprintf("Request decoding failed: %v", err)}
 	}
 
 	var reply struct{}
-	err := s.agent.RPC("ConfigEntry.Apply", &args, &reply)
-	return nil, err
+	return nil, s.agent.RPC("ConfigEntry.Apply", &args, &reply)
 }
