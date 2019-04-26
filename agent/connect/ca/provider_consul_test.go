@@ -183,8 +183,9 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 	}
 
 	spiffeAgent := &connect.SpiffeIDAgent{
-		Host:  "node1",
-		Agent: "uuid",
+		Host:       "node1",
+		Datacenter: "dc1",
+		Agent:      "uuid",
 	}
 	// Generate a leaf cert for an agent.
 	{

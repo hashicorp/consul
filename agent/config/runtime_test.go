@@ -3163,8 +3163,7 @@ func TestFullConfig(t *testing.T) {
 				]
                         },
 			"auto_encrypt": {
-				"tls": true,
-				"gossip": true
+				"tls": true
 			},
 			"connect": {
 				"ca_provider": "consul",
@@ -3742,7 +3741,6 @@ func TestFullConfig(t *testing.T) {
 				}
 			auto_encrypt = {
 				tls = true
-				gossip = true
 			}
 			connect {
 				ca_provider = "consul"

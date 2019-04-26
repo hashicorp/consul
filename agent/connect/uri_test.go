@@ -35,10 +35,11 @@ var testCertURICases = []struct {
 
 	{
 		"basic agent ID",
-		"spiffe://1234.consul/agent/uuid",
+		"spiffe://1234.consul/agent/client/dc/dc1/id/uuid",
 		&SpiffeIDAgent{
-			Host:  "1234.consul",
-			Agent: "uuid",
+			Host:       "1234.consul",
+			Datacenter: "dc1",
+			Agent:      "uuid",
 		},
 		"",
 	},
