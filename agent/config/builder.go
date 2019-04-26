@@ -635,8 +635,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 
 	var configEntries []structs.ConfigEntry
 
-	if len(c.Config.ProxyDefaults) > 0 {
-		for name, config := range c.Config.ProxyDefaults {
+	if len(c.ConfigEntries.Bootstrap.ProxyDefaults) > 0 {
+		for name, config := range c.ConfigEntries.Bootstrap.ProxyDefaults {
 			if name != structs.ProxyConfigGlobal {
 				return RuntimeConfig{}, fmt.Errorf("invalid config.proxy_defaults name (%q), only %q is supported", name, structs.ProxyConfigGlobal)
 			}

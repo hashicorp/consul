@@ -3007,11 +3007,13 @@ func TestFullConfig(t *testing.T) {
 			],
 			"check_update_interval": "16507s",
 			"client_addr": "93.83.18.19",
-			"config": {
-				"proxy_defaults": {
-					"global": {
-						"foo": "bar",
-						"bar": 1.0
+			"config_entries": {
+				"bootstrap": {
+					"proxy_defaults": {
+						"global": {
+							"foo": "bar",
+							"bar": 1.0
+						}
 					}
 				}
 			},
@@ -3568,9 +3570,9 @@ func TestFullConfig(t *testing.T) {
 			]
 			check_update_interval = "16507s"
 			client_addr = "93.83.18.19"
-			config {
-				proxy_defaults {
-					global {
+			config_entries {
+				bootstrap {
+					proxy_defaults "global" {
 						foo = "bar"
 						bar = 1.0
 					}
