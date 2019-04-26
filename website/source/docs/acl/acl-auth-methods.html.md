@@ -40,11 +40,12 @@ An operator needs to configure each auth method that is to be trusted by
 using the API or command line before they can be used by applications.
 
 * **Authentication** - One or more **auth methods** should be configured with
-  details about how to authenticate application credentials. These can be
-  managed with the `consul acl auth-method` subcommands or the corresponding
-  [API endpoints](/api/acl/auth-methods.html). The specific details of
-  configuration are type dependent and described in their own documentation
-  pages.
+  details about how to authenticate application credentials. Successful
+  validation of application credentials will return a set of trusted identity
+  attributes. These can be managed with the `consul acl auth-method`
+  subcommands or the corresponding [API endpoints](/api/acl/auth-methods.html).
+  The specific details of configuration are type dependent and described in
+  their own documentation pages.
 
 * **Authorization** - One or more **binding rules** must be configured defining
   how to translate trusted identity attributes from each auth method into
@@ -54,15 +55,16 @@ using the API or command line before they can be used by applications.
 
 ## Binding Rules
 
-Once an auth method has been been used to successfully validate a user-provided
-secret bearer token and mapped it to a set of trusted identity attributes,
-those attributes are matched against all configured Binding Rules for that auth
-method.
-
-Binding rules allow an operator to express a systematic way to automatically
-[roles](/docs/acl/acl-system.html#acl-roles) and [service
+Binding rules allow an operator to express a systematic way of automatically
+linking [roles](/docs/acl/acl-system.html#acl-roles) and [service
 identities](/docs/acl/acl-system.html#acl-service-identities) to newly created
 Tokens without operator intervention.
+
+Successfully authenticating with an auth method returns a set of trusted
+identity attributes corresponding to the authenticated identity.  Those
+attributes are matched against all configured Binding Rules for that auth
+method to determine what privileges to grant the the Consul ACL Token it will
+ultimately create.
 
 Each binding rule is composed of two portions:
 
