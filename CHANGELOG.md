@@ -2,7 +2,7 @@
 
 BREAKING CHANGES:
 
-  * watch: The watch package was moved from github.com/hashicorp/consul/watch to github.com/hashicorp/consul/api/watch to live in the API module. This was necessary after updating the repo to use Go modules or else various other bugs cropped up. The watch API itself has not changed so users should need to only update the import statement to get their code functioning again. [[GH-5664](https://github.com/hashicorp/consul/pull/5664)]
+* /watch: (note this only affects downstream programs importing `/watch` package as a library not the `watch` feature in Consul) The watch package was moved from github.com/hashicorp/consul/watch to github.com/hashicorp/consul/api/watch to live in the API module. This was necessary after updating the repo to use Go modules or else various other bugs cropped up. The watch package API has not changed so projects depending on it should need to only update the import statement to get their code functioning again. [[GH-5664](https://github.com/hashicorp/consul/pull/5664)]
 
 FEATURES:
 * api: Implement data filtering for some endpoints using a new filtering language. [[GH-5579](https://github.com/hashicorp/consul/pull/5579)]
@@ -11,7 +11,6 @@ FEATURES:
 IMPROVEMENTS:
 * cli: allow to add ip addresses as Subject Alternative Names when creating certificates with `consul tls cert create` [[GH-5602](https://github.com/hashicorp/consul/pull/5602)]
 * dns: Allow for hot-reload of many DNS configurations. [[GH-4875](https://github.com/hashicorp/consul/pull/4875)]
-
 
 BUG FIXES:
 
@@ -22,6 +21,7 @@ BUG FIXES:
 * connect: fix an issue where Envoy woudl fail to bootstrap if some upstreams were unavailable [[GH-5499](https://github.com/hashicorp/consul/pull/5499)]
 * connect: fix an issue where health checks on proxies might be missed by watchers of `/health/service/:service` API [[GH-5506](https://github.com/hashicorp/consul/issues/5506)]
 * logger: fix an issue where the `log-file` option was not respecting the `log-level` [[GH-4778](https://github.com/hashicorp/consul/issues/4778)]
+* catalog: fix an issue where renaming nodes could cause registration instability [[GH-5518](https://github.com/hashicorp/consul/issues/5518)]
 
 ## 1.4.4 (March 21, 2019)
 
