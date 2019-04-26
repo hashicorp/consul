@@ -1132,6 +1132,11 @@ func (s *Server) GetLANCoordinate() (lib.CoordinateSet, error) {
 // ReloadConfig is used to have the Server do an online reload of
 // relevant configuration information
 func (s *Server) ReloadConfig(config *Config) error {
+	if s.IsLeader() {
+		// only bootstrap the config entries if we are the leader
+		// this will error if we lose leadership while bootstrapping here.
+		return s.bootstrapConfigEntries(config.ConfigEntryBootstrap)
+	}
 	return nil
 }
 

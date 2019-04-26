@@ -1136,6 +1136,8 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 		return nil, fmt.Errorf("Failed to configure keyring: %v", err)
 	}
 
+	base.ConfigEntryBootstrap = a.config.ConfigEntryBootstrap
+
 	return base, nil
 }
 
@@ -3615,6 +3617,12 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 			return fmt.Errorf("Failed reloading dns config : %v", err)
 		}
 	}
+
+	// this only gets used by the consulConfig function and since
+	// that is only ever done during init and reload here then
+	// an in place modification is safe as reloads cannot be
+	// concurrent due to both gaing a full lock on the stateLock
+	a.config.ConfigEntryBootstrap = newCfg.ConfigEntryBootstrap
 
 	// create the config for the rpc server/client
 	consulCfg, err := a.consulConfig()

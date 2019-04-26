@@ -40,6 +40,10 @@ var (
 	// minAutopilotVersion is the minimum Consul version in which Autopilot features
 	// are supported.
 	minAutopilotVersion = version.Must(version.NewVersion("0.8.0"))
+
+	// minCentralizedConfigVersion is the minimum Consul version in which centralized
+	// config is supported
+	minCentralizedConfigVersion = version.Must(version.NewVersion("1.5.0"))
 )
 
 // monitorLeadership is used to monitor if we acquire or lose our role
@@ -258,6 +262,11 @@ func (s *Server) establishLeadership() error {
 	// are available to be initialized. Otherwise initialization may use stale
 	// data.
 	if err := s.initializeSessionTimers(); err != nil {
+		return err
+	}
+
+	// attempt to bootstrap config entries
+	if err := s.bootstrapConfigEntries(s.config.ConfigEntryBootstrap); err != nil {
 		return err
 	}
 
@@ -891,6 +900,44 @@ func (s *Server) getOrCreateAutopilotConfig() *autopilot.Config {
 	}
 
 	return config
+}
+
+func (s *Server) bootstrapConfigEntries(entries []structs.ConfigEntry) error {
+	if s.config.PrimaryDatacenter != "" && s.config.PrimaryDatacenter != s.config.Datacenter {
+		// only bootstrap in the primary datacenter
+		return nil
+	}
+
+	if len(entries) < 1 {
+		// nothing to initialize
+		return nil
+	}
+
+	if !ServersMeetMinimumVersion(s.LANMembers(), minCentralizedConfigVersion) {
+		s.logger.Printf("[WARN] centralized config: can't initialize until all servers >= %s", minCentralizedConfigVersion.String())
+		return nil
+	}
+
+	state := s.fsm.State()
+	for _, entry := range entries {
+		_, existing, err := state.ConfigEntry(nil, entry.GetKind(), entry.GetName())
+		if err != nil {
+			return fmt.Errorf("Failed to determine whether the configuration for %q / %q already exists: %v", entry.GetKind(), entry.GetName(), err)
+		}
+
+		if existing == nil {
+			req := structs.ConfigEntryRequest{
+				Op:         structs.ConfigEntryUpsert,
+				Datacenter: s.config.Datacenter,
+				Entry:      entry,
+			}
+
+			if _, err = s.raftApply(structs.ConfigEntryRequestType, &req); err != nil {
+				return fmt.Errorf("Failed to apply configuration entry %q / %q: %v", entry.GetKind(), entry.GetName(), err)
+			}
+		}
+	}
+	return nil
 }
 
 // initializeCAConfig is used to initialize the CA config if necessary

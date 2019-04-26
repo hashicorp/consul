@@ -3007,6 +3007,16 @@ func TestFullConfig(t *testing.T) {
 			],
 			"check_update_interval": "16507s",
 			"client_addr": "93.83.18.19",
+			"config_entries": {
+				"bootstrap": {
+					"proxy_defaults": {
+						"global": {
+							"foo": "bar",
+							"bar": 1.0
+						}
+					}
+				}
+			},
 			"connect": {
 				"ca_provider": "consul",
 				"ca_config": {
@@ -3560,6 +3570,12 @@ func TestFullConfig(t *testing.T) {
 			]
 			check_update_interval = "16507s"
 			client_addr = "93.83.18.19"
+			config_entries {
+				bootstrap proxy_defaults global {
+					foo = "bar"
+					bar = 1.0
+				}
+			}
 			connect {
 				ca_provider = "consul"
 				ca_config {
@@ -4217,8 +4233,19 @@ func TestFullConfig(t *testing.T) {
 				DeregisterCriticalServiceAfter: 13209 * time.Second,
 			},
 		},
-		CheckUpdateInterval:     16507 * time.Second,
-		ClientAddrs:             []*net.IPAddr{ipAddr("93.83.18.19")},
+		CheckUpdateInterval: 16507 * time.Second,
+		ClientAddrs:         []*net.IPAddr{ipAddr("93.83.18.19")},
+		ConfigEntryBootstrap: []structs.ConfigEntry{
+			&structs.ProxyConfigEntry{
+				Kind: structs.ProxyDefaults,
+				Name: structs.ProxyConfigGlobal,
+				Config: map[string]interface{}{
+					"foo": "bar",
+					// has to be a float due to being a map[string]interface
+					"bar": float64(1),
+				},
+			},
+		},
 		ConnectEnabled:          true,
 		ConnectProxyBindMinPort: 2000,
 		ConnectProxyBindMaxPort: 3000,
@@ -4996,6 +5023,7 @@ func TestSanitize(t *testing.T) {
 			"Token": "hidden"
 		}],
 		"ClientAddrs": [],
+		"ConfigEntryBootstrap": [],
 		"ConnectCAConfig": {},
 		"ConnectCAProvider": "",
 		"ConnectEnabled": false,
