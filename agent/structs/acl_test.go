@@ -188,12 +188,13 @@ node_prefix "" {
 			expect := &ACLPolicy{
 				Syntax:      acl.SyntaxCurrent,
 				Datacenters: test.datacenters,
+				Description: "synthetic policy",
 				Rules:       test.expectRules,
 			}
 
 			got := svcid.SyntheticPolicy()
 			require.NotEmpty(t, got.ID)
-			require.Equal(t, got.Name, "synthetic-policy-"+got.ID)
+			require.True(t, strings.HasPrefix(got.Name, "synthetic-policy-"))
 			// strip irrelevant fields before equality
 			got.ID = ""
 			got.Name = ""

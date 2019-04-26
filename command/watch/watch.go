@@ -87,6 +87,14 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	token := c.http.Token()
+	if tokenFromFile, err := c.http.ReadTokenFile(); err != nil {
+		c.UI.Error(fmt.Sprintf("Error loading token file: %s", err))
+		return 1
+	} else if tokenFromFile != "" {
+		token = tokenFromFile
+	}
+
 	// Compile the watch parameters
 	params := make(map[string]interface{})
 	if c.watchType != "" {
@@ -95,8 +103,8 @@ func (c *cmd) Run(args []string) int {
 	if c.http.Datacenter() != "" {
 		params["datacenter"] = c.http.Datacenter()
 	}
-	if c.http.Token() != "" {
-		params["token"] = c.http.Token()
+	if token != "" {
+		params["token"] = token
 	}
 	if c.key != "" {
 		params["key"] = c.key

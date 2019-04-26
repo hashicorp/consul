@@ -51,7 +51,7 @@ func testACLTokenReap_Primary(t *testing.T, local, global bool) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	acl := ACL{s1}
+	acl := ACL{srv: s1}
 
 	masterTokenAccessorID, err := retrieveTestTokenAccessorForSecret(codec, "root", "dc1", "root")
 	require.NoError(t, err)

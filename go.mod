@@ -123,7 +123,9 @@ require (
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 	gopkg.in/mgo.v2 v2.0.0-20160818020120-3f83fa500528 // indirect
 	gopkg.in/ory-am/dockertest.v3 v3.3.4 // indirect
+	gopkg.in/square/go-jose.v2 v2.3.1
 	gotest.tools v2.2.0+incompatible // indirect
-	k8s.io/api v0.0.0-20190118113203-912cbe2bfef3 // indirect
-	k8s.io/apimachinery v0.0.0-20180904193909-def12e63c512 // indirect
+	k8s.io/api v0.0.0-20190325185214-7544f9db76f6
+	k8s.io/apimachinery v0.0.0-20190223001710-c182ff3b9841
+	k8s.io/client-go v8.0.0+incompatible
 )

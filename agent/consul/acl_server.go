@@ -73,6 +73,17 @@ func (s *Server) checkRoleUUID(id string) (bool, error) {
 	return !structs.ACLIDReserved(id), nil
 }
 
+func (s *Server) checkBindingRuleUUID(id string) (bool, error) {
+	state := s.fsm.State()
+	if _, rule, err := state.ACLBindingRuleGetByID(nil, id); err != nil {
+		return false, err
+	} else if rule != nil {
+		return false, nil
+	}
+
+	return !structs.ACLIDReserved(id), nil
+}
+
 func (s *Server) updateACLAdvertisement() {
 	// One thing to note is that once in new ACL mode the server will
 	// never transition to legacy ACL mode. This is not currently a

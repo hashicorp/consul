@@ -1,6 +1,8 @@
 package consul
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -10,9 +12,11 @@ import (
 
 	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/go-bexpr"
 	memdb "github.com/hashicorp/go-memdb"
 	uuid "github.com/hashicorp/go-uuid"
 )
@@ -29,6 +33,7 @@ var (
 	validServiceIdentityName     = regexp.MustCompile(`^[a-z0-9]([a-z0-9\-_]*[a-z0-9])?$`)
 	serviceIdentityNameMaxLength = 256
 	validRoleName                = regexp.MustCompile(`^[A-Za-z0-9\-_]{1,256}$`)
+	validAuthMethod              = regexp.MustCompile(`^[A-Za-z0-9\-_]{1,128}$`)
 )
 
 // ACL endpoint is used to manipulate ACLs
@@ -273,6 +278,10 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 		return a.srv.forwardDC("ACL.TokenClone", a.srv.config.ACLDatacenter, args, reply)
 	}
 
+	if token.AuthMethod != "" {
+		return fmt.Errorf("Cannot clone a token created from an auth method")
+	}
+
 	if token.Rules != "" {
 		return fmt.Errorf("Cannot clone a legacy ACL with this endpoint")
 	}
@@ -324,7 +333,7 @@ func (a *ACL) TokenSet(args *structs.ACLTokenSetRequest, reply *structs.ACLToken
 	return a.tokenSetInternal(args, reply, false)
 }
 
-func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.ACLToken, upgrade bool) error {
+func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.ACLToken, fromLogin bool) error {
 	token := &args.ACLToken
 
 	if !a.srv.LocalTokensEnabled() {
@@ -353,6 +362,19 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 		}
 
 		token.CreateTime = time.Now()
+
+		if fromLogin {
+			if token.AuthMethod == "" {
+				return fmt.Errorf("AuthMethod field is required during Login")
+			}
+			if !token.Local {
+				return fmt.Errorf("Cannot create Global token via Login")
+			}
+		} else {
+			if token.AuthMethod != "" {
+				return fmt.Errorf("AuthMethod field is disallowed outside of Login")
+			}
+		}
 
 		// Ensure an ExpirationTTL is valid if provided.
 		if token.ExpirationTTL != 0 {
@@ -418,6 +440,12 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 			return fmt.Errorf("cannot toggle local mode of %s", token.AccessorID)
 		}
 
+		if token.AuthMethod == "" {
+			token.AuthMethod = existing.AuthMethod
+		} else if token.AuthMethod != existing.AuthMethod {
+			return fmt.Errorf("Cannot change AuthMethod of %s", token.AccessorID)
+		}
+
 		if token.ExpirationTTL != 0 {
 			return fmt.Errorf("Cannot change expiration time of %s", token.AccessorID)
 		}
@@ -430,11 +458,7 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 			return fmt.Errorf("Cannot change expiration time of %s", token.AccessorID)
 		}
 
-		if upgrade {
-			token.CreateTime = time.Now()
-		} else {
-			token.CreateTime = existing.CreateTime
-		}
+		token.CreateTime = existing.CreateTime
 	}
 
 	policyIDs := make(map[string]struct{})
@@ -467,7 +491,7 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 	roleIDs := make(map[string]struct{})
 	var roles []structs.ACLTokenRoleLink
 
-	// Validate all the role names and convert them to role IDs
+	// Validate all the role names and convert them to role IDs.
 	for _, link := range token.Roles {
 		if link.ID == "" {
 			_, role, err := state.ACLRoleGetByName(nil, link.Name)
@@ -502,6 +526,7 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 			return fmt.Errorf("Service identity %q has an invalid name. Only alphanumeric characters, '-' and '_' are allowed", svcid.ServiceName)
 		}
 	}
+	token.ServiceIdentities = dedupeServiceIdentities(token.ServiceIdentities)
 
 	if token.Rules != "" {
 		return fmt.Errorf("Rules cannot be specified for this token")
@@ -538,6 +563,51 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 	}
 
 	return nil
+}
+
+func validateBindingRuleBindName(bindType, bindName string, availableFields []string) (bool, error) {
+	if bindType == "" || bindName == "" {
+		return false, nil
+	}
+
+	fakeVarMap := make(map[string]string)
+	for _, v := range availableFields {
+		fakeVarMap[v] = "fake"
+	}
+
+	_, valid, err := computeBindingRuleBindName(bindType, bindName, fakeVarMap)
+	if err != nil {
+		return false, err
+	}
+	return valid, nil
+}
+
+// computeBindingRuleBindName processes the HIL for the provided bind type+name
+// using the verified fields.
+//
+// - If the HIL is invalid ("", false, AN_ERROR) is returned.
+// - If the computed name is not valid for the type ("INVALID_NAME", false, nil) is returned.
+// - If the computed name is valid for the type ("VALID_NAME", true, nil) is returned.
+func computeBindingRuleBindName(bindType, bindName string, verifiedFields map[string]string) (string, bool, error) {
+	bindName, err := InterpolateHIL(bindName, verifiedFields)
+	if err != nil {
+		return "", false, err
+	}
+
+	valid := false
+
+	switch bindType {
+	case structs.BindingRuleBindTypeService:
+		valid = isValidServiceIdentityName(bindName)
+
+	case structs.BindingRuleBindTypeRole:
+		valid = validRoleName.MatchString(bindName)
+
+	default:
+		return "", false, fmt.Errorf("unknown binding rule bind type: %s", bindType)
+	}
+
+	return bindName, valid, nil
 }
 
 // isValidServiceIdentityName returns true if the provided name can be used as
@@ -652,7 +722,7 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, tokens, err := state.ACLTokenList(ws, args.IncludeLocal, args.IncludeGlobal, args.Policy, args.Role)
+			index, tokens, err := state.ACLTokenList(ws, args.IncludeLocal, args.IncludeGlobal, args.Policy, args.Role, args.AuthMethod)
 			if err != nil {
 				return err
 			}
@@ -1252,17 +1322,11 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 		if svcid.ServiceName == "" {
 			return fmt.Errorf("Service identity is missing the service name field on this role")
 		}
-		// TODO(rb): ugh if a local token gets a role that has a service
-		// identity that has datacenters set, we won't be anble to enforce this
-		// next blob here. This makes me lean more towards nuking ServiceIdentity.Datacenters again
-		//
-		// if token.Local && len(svcid.Datacenters) > 0 {
-		// 	return fmt.Errorf("Service identity %q cannot specify a list of datacenters on a local token", svcid.ServiceName)
-		// }
 		if !isValidServiceIdentityName(svcid.ServiceName) {
 			return fmt.Errorf("Service identity %q has an invalid name. Only alphanumeric characters, '-' and '_' are allowed", svcid.ServiceName)
 		}
 	}
+	role.ServiceIdentities = dedupeServiceIdentities(role.ServiceIdentities)
 
 	// calculate the hash for this role
 	role.SetHash(true)
@@ -1409,6 +1473,580 @@ func (a *ACL) RoleResolve(args *structs.ACLRoleBatchGetRequest, reply *structs.A
 	}
 
 	a.srv.setQueryMeta(&reply.QueryMeta)
+
+	return nil
+}
+
+var errAuthMethodsRequireTokenReplication = errors.New("Token replication is required for auth methods to function")
+
+func (a *ACL) BindingRuleRead(args *structs.ACLBindingRuleGetRequest, reply *structs.ACLBindingRuleResponse) error {
+	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if !a.srv.LocalTokensEnabled() {
+		return errAuthMethodsRequireTokenReplication
+	}
+
+	if done, err := a.srv.forward("ACL.BindingRuleRead", args, args, reply); done {
+		return err
+	}
+
+	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
+		return err
+	} else if rule == nil || !rule.ACLRead() {
+		return acl.ErrPermissionDenied
+	}
+
+	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			index, rule, err := state.ACLBindingRuleGetByID(ws, args.BindingRuleID)
+
+			if err != nil {
+				return err
+			}
+
+			reply.Index, reply.BindingRule = index, rule
+			return nil
+		})
+}
+
+func (a *ACL) BindingRuleSet(args *structs.ACLBindingRuleSetRequest, reply *structs.ACLBindingRule) error {
+	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if !a.srv.LocalTokensEnabled() {
+		return errAuthMethodsRequireTokenReplication
+	}
+
+	if done, err := a.srv.forward("ACL.BindingRuleSet", args, args, reply); done {
+		return err
+	}
+
+	defer metrics.MeasureSince([]string{"acl", "bindingrule", "upsert"}, time.Now())
+
+	// Verify token is permitted to modify ACLs
+	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
+		return err
+	} else if rule == nil || !rule.ACLWrite() {
+		return acl.ErrPermissionDenied
+	}
+
+	rule := &args.BindingRule
+	state := a.srv.fsm.State()
+
+	if rule.ID == "" {
+		// with no binding rule ID one will be generated
+		var err error
+
+		rule.ID, err = lib.GenerateUUID(a.srv.checkBindingRuleUUID)
+		if err != nil {
+			return err
+		}
+	} else {
+		if _, err := uuid.ParseUUID(rule.ID); err != nil {
+			return fmt.Errorf("Binding Rule ID invalid UUID")
+		}
+
+		// Verify the role exists
+		_, existing, err := state.ACLBindingRuleGetByID(nil, rule.ID)
+		if err != nil {
+			return fmt.Errorf("acl binding rule lookup failed: %v", err)
+		} else if existing == nil {
+			return fmt.Errorf("cannot find binding rule %s", rule.ID)
+		}
+
+		if rule.AuthMethod == "" {
+			rule.AuthMethod = existing.AuthMethod
+		} else if existing.AuthMethod != rule.AuthMethod {
+			return fmt.Errorf("the AuthMethod field of an Binding Rule is immutable")
+		}
+	}
+
+	if rule.AuthMethod == "" {
+		return fmt.Errorf("Invalid Binding Rule: no AuthMethod is set")
+	}
+
+	methodIdx, method, err := state.ACLAuthMethodGetByName(nil, rule.AuthMethod)
+	if err != nil {
+		return fmt.Errorf("acl auth method lookup failed: %v", err)
+	} else if method == nil {
+		return fmt.Errorf("cannot find auth method with name %q", rule.AuthMethod)
+	}
+	validator, err := a.srv.loadAuthMethodValidator(methodIdx, method)
+	if err != nil {
+		return err
+	}
+
+	if rule.Selector != "" {
+		selectableVars := validator.MakeFieldMapSelectable(map[string]string{})
+		_, err := bexpr.CreateEvaluatorForType(rule.Selector, nil, selectableVars)
+		if err != nil {
+			return fmt.Errorf("invalid Binding Rule: Selector is invalid: %v", err)
+		}
+	}
+
+	if rule.BindType == "" {
+		return fmt.Errorf("Invalid Binding Rule: no BindType is set")
+	}
+
+	if rule.BindName == "" {
+		return fmt.Errorf("Invalid Binding Rule: no BindName is set")
+	}
+
+	switch rule.BindType {
+	case structs.BindingRuleBindTypeService:
+	case structs.BindingRuleBindTypeRole:
+	default:
+		return fmt.Errorf("Invalid Binding Rule: unknown BindType %q", rule.BindType)
+	}
+
+	if valid, err := validateBindingRuleBindName(rule.BindType, rule.BindName, validator.AvailableFields()); err != nil {
+		return fmt.Errorf("Invalid Binding Rule: invalid BindName: %v", err)
+	} else if !valid {
+		return fmt.Errorf("Invalid Binding Rule: invalid BindName")
+	}
+
+	req := &structs.ACLBindingRuleBatchSetRequest{
+		BindingRules: structs.ACLBindingRules{rule},
+	}
+
+	resp, err := a.srv.raftApply(structs.ACLBindingRuleSetRequestType, req)
+	if err != nil {
+		return fmt.Errorf("Failed to apply binding rule upsert request: %v", err)
+	}
+
+	if respErr, ok := resp.(error); ok {
+		return respErr
+	}
+
+	if _, rule, err := a.srv.fsm.State().ACLBindingRuleGetByID(nil, rule.ID); err == nil && rule != nil {
+		*reply = *rule
+	}
+
+	return nil
+}
+
+func (a *ACL) BindingRuleDelete(args *structs.ACLBindingRuleDeleteRequest, reply *bool) error {
+	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if !a.srv.LocalTokensEnabled() {
+		return errAuthMethodsRequireTokenReplication
+	}
+
+	if done, err := a.srv.forward("ACL.BindingRuleDelete", args, args, reply); done {
+		return err
+	}
+
+	defer metrics.MeasureSince([]string{"acl", "bindingrule", "delete"}, time.Now())
+
+	// Verify token is permitted to modify ACLs
+	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
+		return err
+	} else if rule == nil || !rule.ACLWrite() {
+		return acl.ErrPermissionDenied
+	}
+
+	_, rule, err := a.srv.fsm.State().ACLBindingRuleGetByID(nil, args.BindingRuleID)
+	if err != nil {
+		return err
+	}
+
+	if rule == nil {
+		return nil
+	}
+
+	req := structs.ACLBindingRuleBatchDeleteRequest{
+		BindingRuleIDs: []string{args.BindingRuleID},
+	}
+
+	resp, err := a.srv.raftApply(structs.ACLBindingRuleDeleteRequestType, &req)
+	if err != nil {
+		return fmt.Errorf("Failed to apply binding rule delete request: %v", err)
+	}
+
+	if respErr, ok := resp.(error); ok {
+		return respErr
+	}
+
+	*reply = true
+
+	return nil
+}
+
+func (a *ACL) BindingRuleList(args *structs.ACLBindingRuleListRequest, reply *structs.ACLBindingRuleListResponse) error {
+	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if !a.srv.LocalTokensEnabled() {
+		return errAuthMethodsRequireTokenReplication
+	}
+
+	if done, err := a.srv.forward("ACL.BindingRuleList", args, args, reply); done {
+		return err
+	}
+
+	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
+		return err
+	} else if rule == nil || !rule.ACLRead() {
+		return acl.ErrPermissionDenied
+	}
+
+	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			index, rules, err := state.ACLBindingRuleList(ws, args.AuthMethod)
+			if err != nil {
+				return err
+			}
+
+			reply.Index, reply.BindingRules = index, rules
+			return nil
+		})
+}
+
+func (a *ACL) AuthMethodRead(args *structs.ACLAuthMethodGetRequest, reply *structs.ACLAuthMethodResponse) error {
+	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if !a.srv.LocalTokensEnabled() {
+		return errAuthMethodsRequireTokenReplication
+	}
+
+	if done, err := a.srv.forward("ACL.AuthMethodRead", args, args, reply); done {
+		return err
+	}
+
+	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
+		return err
+	} else if rule == nil || !rule.ACLRead() {
+		return acl.ErrPermissionDenied
+	}
+
+	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			index, method, err := state.ACLAuthMethodGetByName(ws, args.AuthMethodName)
+
+			if err != nil {
+				return err
+			}
+
+			reply.Index, reply.AuthMethod = index, method
+			return nil
+		})
+}
+
+func (a *ACL) AuthMethodSet(args *structs.ACLAuthMethodSetRequest, reply *structs.ACLAuthMethod) error {
+	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if !a.srv.LocalTokensEnabled() {
+		return errAuthMethodsRequireTokenReplication
+	}
+
+	if done, err := a.srv.forward("ACL.AuthMethodSet", args, args, reply); done {
+		return err
+	}
+
+	defer metrics.MeasureSince([]string{"acl", "authmethod", "upsert"}, time.Now())
+
+	// Verify token is permitted to modify ACLs
+	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
+		return err
+	} else if rule == nil || !rule.ACLWrite() {
+		return acl.ErrPermissionDenied
+	}
+
+	method := &args.AuthMethod
+	state := a.srv.fsm.State()
+
+	// ensure a name is set
+	if method.Name == "" {
+		return fmt.Errorf("Invalid Auth Method: no Name is set")
+	}
+	if !validAuthMethod.MatchString(method.Name) {
+		return fmt.Errorf("Invalid Auth Method: invalid Name. Only alphanumeric characters, '-' and '_' are allowed")
+	}
+
+	// Check to see if the method exists first.
+	_, existing, err := state.ACLAuthMethodGetByName(nil, method.Name)
+	if err != nil {
+		return fmt.Errorf("acl auth method lookup failed: %v", err)
+	}
+
+	if existing != nil {
+		if method.Type == "" {
+			method.Type = existing.Type
+		} else if existing.Type != method.Type {
+			return fmt.Errorf("the Type field of an Auth Method is immutable")
+		}
+	}
+
+	if !authmethod.IsRegisteredType(method.Type) {
+		return fmt.Errorf("Invalid Auth Method: Type should be one of: %v", authmethod.Types())
+	}
+
+	// Instantiate a validator but do not cache it yet. This will validate the
+	// configuration.
+	if _, err := authmethod.NewValidator(method); err != nil {
+		return fmt.Errorf("Invalid Auth Method: %v", err)
+	}
+
+	req := &structs.ACLAuthMethodBatchSetRequest{
+		AuthMethods: structs.ACLAuthMethods{method},
+	}
+
+	resp, err := a.srv.raftApply(structs.ACLAuthMethodSetRequestType, req)
+	if err != nil {
+		return fmt.Errorf("Failed to apply auth method upsert request: %v", err)
+	}
+
+	if respErr, ok := resp.(error); ok {
+		return respErr
+	}
+
+	if _, method, err := a.srv.fsm.State().ACLAuthMethodGetByName(nil, method.Name); err == nil && method != nil {
+		*reply = *method
+	}
+
+	return nil
+}
+
+func (a *ACL) AuthMethodDelete(args *structs.ACLAuthMethodDeleteRequest, reply *bool) error {
+	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if !a.srv.LocalTokensEnabled() {
+		return errAuthMethodsRequireTokenReplication
+	}
+
+	if done, err := a.srv.forward("ACL.AuthMethodDelete", args, args, reply); done {
+		return err
+	}
+
+	defer metrics.MeasureSince([]string{"acl", "authmethod", "delete"}, time.Now())
+
+	// Verify token is permitted to modify ACLs
+	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
+		return err
+	} else if rule == nil || !rule.ACLWrite() {
+		return acl.ErrPermissionDenied
+	}
+
+	_, method, err := a.srv.fsm.State().ACLAuthMethodGetByName(nil, args.AuthMethodName)
+	if err != nil {
+		return err
+	}
+
+	if method == nil {
+		return nil
+	}
+
+	req := structs.ACLAuthMethodBatchDeleteRequest{
+		AuthMethodNames: []string{args.AuthMethodName},
+	}
+
+	resp, err := a.srv.raftApply(structs.ACLAuthMethodDeleteRequestType, &req)
+	if err != nil {
+		return fmt.Errorf("Failed to apply auth method delete request: %v", err)
+	}
+
+	if respErr, ok := resp.(error); ok {
+		return respErr
+	}
+
+	*reply = true
+
+	return nil
+}
+
+func (a *ACL) AuthMethodList(args *structs.ACLAuthMethodListRequest, reply *structs.ACLAuthMethodListResponse) error {
+	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if !a.srv.LocalTokensEnabled() {
+		return errAuthMethodsRequireTokenReplication
+	}
+
+	if done, err := a.srv.forward("ACL.AuthMethodList", args, args, reply); done {
+		return err
+	}
+
+	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
+		return err
+	} else if rule == nil || !rule.ACLRead() {
+		return acl.ErrPermissionDenied
+	}
+
+	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			index, methods, err := state.ACLAuthMethodList(ws)
+			if err != nil {
+				return err
+			}
+
+			var stubs structs.ACLAuthMethodListStubs
+			for _, method := range methods {
+				stubs = append(stubs, method.Stub())
+			}
+
+			reply.Index, reply.AuthMethods = index, stubs
+			return nil
+		})
+}
+
+func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) error {
+	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if !a.srv.LocalTokensEnabled() {
+		return errAuthMethodsRequireTokenReplication
+	}
+
+	if args.Token != "" { // This shouldn't happen.
+		return errors.New("do not provide a token when logging in")
+	}
+
+	if done, err := a.srv.forward("ACL.Login", args, args, reply); done {
+		return err
+	}
+
+	defer metrics.MeasureSince([]string{"acl", "login"}, time.Now())
+
+	auth := args.Auth
+
+	// 1. take args.Data.AuthMethod to get an AuthMethod Validator
+	idx, method, err := a.srv.fsm.State().ACLAuthMethodGetByName(nil, auth.AuthMethod)
+	if err != nil {
+		return err
+	} else if method == nil {
+		return acl.ErrNotFound
+	}
+
+	validator, err := a.srv.loadAuthMethodValidator(idx, method)
+	if err != nil {
+		return err
+	}
+
+	// 2. Send args.Data.BearerToken to method validator and get back a fields map
+	verifiedFields, err := validator.ValidateLogin(auth.BearerToken)
+	if err != nil {
+		return err
+	}
+
+	// 3. send map through role bindings
+	serviceIdentities, roleLinks, err := a.srv.evaluateRoleBindings(validator, verifiedFields)
+	if err != nil {
+		return err
+	}
+
+	if len(serviceIdentities) == 0 && len(roleLinks) == 0 {
+		return acl.ErrPermissionDenied
+	}
+
+	description := "token created via login"
+	loginMeta, err := encodeLoginMeta(auth.Meta)
+	if err != nil {
+		return err
+	}
+	if loginMeta != "" {
+		description += ": " + loginMeta
+	}
+
+	// 4. create token
+	createReq := structs.ACLTokenSetRequest{
+		Datacenter: args.Datacenter,
+		ACLToken: structs.ACLToken{
+			Description:       description,
+			Local:             true,
+			AuthMethod:        auth.AuthMethod,
+			ServiceIdentities: serviceIdentities,
+			Roles:             roleLinks,
+		},
+		WriteRequest: args.WriteRequest,
+	}
+
+	// 5. return token information like a TokenCreate would
+	return a.tokenSetInternal(&createReq, reply, true)
+}
+
+func encodeLoginMeta(meta map[string]string) (string, error) {
+	if len(meta) == 0 {
+		return "", nil
+	}
+
+	d, err := json.Marshal(meta)
+	if err != nil {
+		return "", err
+	}
+	return string(d), nil
+}
+
+func (a *ACL) Logout(args *structs.ACLLogoutRequest, reply *bool) error {
+	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if !a.srv.LocalTokensEnabled() {
+		return errAuthMethodsRequireTokenReplication
+	}
+
+	if args.Token == "" {
+		return acl.ErrNotFound
+	}
+
+	if done, err := a.srv.forward("ACL.Logout", args, args, reply); done {
+		return err
+	}
+
+	defer metrics.MeasureSince([]string{"acl", "logout"}, time.Now())
+
+	_, token, err := a.srv.fsm.State().ACLTokenGetBySecret(nil, args.Token)
+	if err != nil {
+		return err
+
+	} else if token == nil {
+		return acl.ErrNotFound
+
+	} else if token.AuthMethod == "" {
+		// Can't "logout" of a token that wasn't a result of login.
+		return acl.ErrPermissionDenied
+
+	} else if !a.srv.InACLDatacenter() && !token.Local {
+		// global token writes must be forwarded to the primary DC
+		args.Datacenter = a.srv.config.ACLDatacenter
+		return a.srv.forwardDC("ACL.Logout", a.srv.config.ACLDatacenter, args, reply)
+	}
+
+	// No need to check expiration time because it's being deleted.
+
+	req := &structs.ACLTokenBatchDeleteRequest{
+		TokenIDs: []string{token.AccessorID},
+	}
+
+	resp, err := a.srv.raftApply(structs.ACLTokenDeleteRequestType, req)
+	if err != nil {
+		return fmt.Errorf("Failed to apply token delete request: %v", err)
+	}
+
+	// Purge the identity from the cache to prevent using the previous definition of the identity
+	if token != nil {
+		a.srv.acls.cache.RemoveIdentity(token.SecretID)
+	}
+
+	if respErr, ok := resp.(error); ok {
+		return respErr
+	}
+
+	*reply = true
 
 	return nil
 }

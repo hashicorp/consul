@@ -3,6 +3,18 @@ package command
 import (
 	"github.com/hashicorp/consul/command/acl"
 	aclagent "github.com/hashicorp/consul/command/acl/agenttokens"
+	aclam "github.com/hashicorp/consul/command/acl/authmethod"
+	aclamcreate "github.com/hashicorp/consul/command/acl/authmethod/create"
+	aclamdelete "github.com/hashicorp/consul/command/acl/authmethod/delete"
+	aclamlist "github.com/hashicorp/consul/command/acl/authmethod/list"
+	aclamread "github.com/hashicorp/consul/command/acl/authmethod/read"
+	aclamupdate "github.com/hashicorp/consul/command/acl/authmethod/update"
+	aclbr "github.com/hashicorp/consul/command/acl/bindingrule"
+	aclbrcreate "github.com/hashicorp/consul/command/acl/bindingrule/create"
+	aclbrdelete "github.com/hashicorp/consul/command/acl/bindingrule/delete"
+	aclbrlist "github.com/hashicorp/consul/command/acl/bindingrule/list"
+	aclbrread "github.com/hashicorp/consul/command/acl/bindingrule/read"
+	aclbrupdate "github.com/hashicorp/consul/command/acl/bindingrule/update"
 	aclbootstrap "github.com/hashicorp/consul/command/acl/bootstrap"
 	aclpolicy "github.com/hashicorp/consul/command/acl/policy"
 	aclpcreate "github.com/hashicorp/consul/command/acl/policy/create"
@@ -57,6 +69,8 @@ import (
 	kvput "github.com/hashicorp/consul/command/kv/put"
 	"github.com/hashicorp/consul/command/leave"
 	"github.com/hashicorp/consul/command/lock"
+	login "github.com/hashicorp/consul/command/login"
+	logout "github.com/hashicorp/consul/command/logout"
 	"github.com/hashicorp/consul/command/maint"
 	"github.com/hashicorp/consul/command/members"
 	"github.com/hashicorp/consul/command/monitor"
@@ -118,6 +132,18 @@ func init() {
 	Register("acl role read", func(ui cli.Ui) (cli.Command, error) { return aclrread.New(ui), nil })
 	Register("acl role update", func(ui cli.Ui) (cli.Command, error) { return aclrupdate.New(ui), nil })
 	Register("acl role delete", func(ui cli.Ui) (cli.Command, error) { return aclrdelete.New(ui), nil })
+	Register("acl auth-method", func(cli.Ui) (cli.Command, error) { return aclam.New(), nil })
+	Register("acl auth-method create", func(ui cli.Ui) (cli.Command, error) { return aclamcreate.New(ui), nil })
+	Register("acl auth-method list", func(ui cli.Ui) (cli.Command, error) { return aclamlist.New(ui), nil })
+	Register("acl auth-method read", func(ui cli.Ui) (cli.Command, error) { return aclamread.New(ui), nil })
+	Register("acl auth-method update", func(ui cli.Ui) (cli.Command, error) { return aclamupdate.New(ui), nil })
+	Register("acl auth-method delete", func(ui cli.Ui) (cli.Command, error) { return aclamdelete.New(ui), nil })
+	Register("acl binding-rule", func(cli.Ui) (cli.Command, error) { return aclbr.New(), nil })
+	Register("acl binding-rule create", func(ui cli.Ui) (cli.Command, error) { return aclbrcreate.New(ui), nil })
+	Register("acl binding-rule list", func(ui cli.Ui) (cli.Command, error) { return aclbrlist.New(ui), nil })
+	Register("acl binding-rule read", func(ui cli.Ui) (cli.Command, error) { return aclbrread.New(ui), nil })
+	Register("acl binding-rule update", func(ui cli.Ui) (cli.Command, error) { return aclbrupdate.New(ui), nil })
+	Register("acl binding-rule delete", func(ui cli.Ui) (cli.Command, error) { return aclbrdelete.New(ui), nil })
 	Register("agent", func(ui cli.Ui) (cli.Command, error) {
 		return agent.New(ui, rev, ver, verPre, verHuman, make(chan struct{})), nil
 	})
@@ -153,6 +179,8 @@ func init() {
 	Register("kv put", func(ui cli.Ui) (cli.Command, error) { return kvput.New(ui), nil })
 	Register("leave", func(ui cli.Ui) (cli.Command, error) { return leave.New(ui), nil })
 	Register("lock", func(ui cli.Ui) (cli.Command, error) { return lock.New(ui), nil })
+	Register("login", func(ui cli.Ui) (cli.Command, error) { return login.New(ui), nil })
+	Register("logout", func(ui cli.Ui) (cli.Command, error) { return logout.New(ui), nil })
 	Register("maint", func(ui cli.Ui) (cli.Command, error) { return maint.New(ui), nil })
 	Register("members", func(ui cli.Ui) (cli.Command, error) { return members.New(ui), nil })
 	Register("monitor", func(ui cli.Ui) (cli.Command, error) { return monitor.New(ui, MakeShutdownCh()), nil })

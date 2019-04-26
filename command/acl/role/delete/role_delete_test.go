@@ -45,7 +45,7 @@ func TestRoleDeleteCommand(t *testing.T) {
 
 	client := a.Client()
 
-	t.Run("id required", func(t *testing.T) {
+	t.Run("id or name required", func(t *testing.T) {
 		ui := cli.NewMockUi()
 		cmd := New(ui)
 
@@ -56,7 +56,7 @@ func TestRoleDeleteCommand(t *testing.T) {
 
 		code := cmd.Run(args)
 		require.Equal(t, code, 1)
-		require.Contains(t, ui.ErrorWriter.String(), "Must specify the -id parameter")
+		require.Contains(t, ui.ErrorWriter.String(), "Must specify the -id or -name parameters")
 	})
 
 	t.Run("delete works", func(t *testing.T) {

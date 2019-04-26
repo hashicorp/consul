@@ -186,9 +186,12 @@ func (s *ACLServiceIdentity) SyntheticPolicy() *ACLPolicy {
 	rules := fmt.Sprintf(aclPolicyTemplateServiceIdentity, s.ServiceName, s.ServiceName)
 
 	hasher := fnv.New128a()
+	hashID := fmt.Sprintf("%x", hasher.Sum([]byte(rules)))
+
 	policy := &ACLPolicy{}
-	policy.ID = fmt.Sprintf("%x", hasher.Sum([]byte(rules)))
-	policy.Name = fmt.Sprintf("synthetic-policy-%s", policy.ID)
+	policy.ID = hashID
+	policy.Name = fmt.Sprintf("synthetic-policy-%s", hashID)
+	policy.Description = "synthetic policy"
 	policy.Rules = rules
 	policy.Syntax = acl.SyntaxCurrent
 	policy.Datacenters = s.Datacenters
@@ -233,6 +236,9 @@ type ACLToken struct {
 	// Whether this token is DC local. This means that it will not be synced
 	// to the ACL datacenter and replicated to others.
 	Local bool
+
+	// AuthMethod is the name of the auth method used to create this token.
+	AuthMethod string `json:",omitempty"`
 
 	// ExpirationTime represents the point after which a token should be
 	// considered revoked and is eligible for destruction. The zero value
@@ -309,7 +315,11 @@ func (t *ACLToken) PolicyIDs() []string {
 }
 
 func (t *ACLToken) RoleIDs() []string {
-	var ids []string
+	if len(t.Roles) == 0 {
+		return nil
+	}
+
+	ids := make([]string, 0, len(t.Roles))
 	for _, link := range t.Roles {
 		ids = append(ids, link.ID)
 	}
@@ -345,7 +355,8 @@ func (t *ACLToken) UsesNonLegacyFields() bool {
 		len(t.Roles) > 0 ||
 		t.Type == "" ||
 		t.HasExpirationTime() ||
-		t.ExpirationTTL != 0
+		t.ExpirationTTL != 0 ||
+		t.AuthMethod != ""
 }
 
 func (t *ACLToken) EmbeddedPolicy() *ACLPolicy {
@@ -428,7 +439,7 @@ func (t *ACLToken) SetHash(force bool) []byte {
 
 func (t *ACLToken) EstimateSize() int {
 	// 41 = 16 (RaftIndex) + 8 (Hash) + 8 (ExpirationTime) + 8 (CreateTime) + 1 (Local)
-	size := 41 + len(t.AccessorID) + len(t.SecretID) + len(t.Description) + len(t.Type) + len(t.Rules)
+	size := 41 + len(t.AccessorID) + len(t.SecretID) + len(t.Description) + len(t.Type) + len(t.Rules) + len(t.AuthMethod)
 	for _, link := range t.Policies {
 		size += len(link.ID) + len(link.Name)
 	}
@@ -451,6 +462,7 @@ type ACLTokenListStub struct {
 	Roles             []ACLTokenRoleLink    `json:",omitempty"`
 	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
 	Local             bool
+	AuthMethod        string     `json:",omitempty"`
 	ExpirationTime    *time.Time `json:",omitempty"`
 	CreateTime        time.Time  `json:",omitempty"`
 	Hash              []byte
@@ -469,6 +481,7 @@ func (token *ACLToken) Stub() *ACLTokenListStub {
 		Roles:             token.Roles,
 		ServiceIdentities: token.ServiceIdentities,
 		Local:             token.Local,
+		AuthMethod:        token.AuthMethod,
 		ExpirationTime:    token.ExpirationTime,
 		CreateTime:        token.CreateTime,
 		Hash:              token.Hash,
@@ -722,8 +735,6 @@ type ACLRole struct {
 	ID string
 
 	// Name is the unique name to reference the role by.
-	//
-	// Validated with structs.isValidRoleName()
 	Name string
 
 	// Description is a human readable description (Optional)
@@ -819,6 +830,136 @@ func (r *ACLRole) EstimateSize() int {
 	return size
 }
 
+const (
+	// BindingRuleBindTypeService is the binding rule bind type that
+	// assigns a Service Identity to the token that is created using the value
+	// of the computed BindName as the ServiceName like:
+	//
+	// &ACLToken{
+	//   ...other fields...
+	//   ServiceIdentities: []*ACLServiceIdentity{
+	//     &ACLServiceIdentity{
+	//       ServiceName: "<computed BindName>",
+	//     },
+	//   },
+	// }
+	BindingRuleBindTypeService = "service"
+
+	// BindingRuleBindTypeRole is the binding rule bind type that only allows
+	// the binding rule to function if a role with the given name (BindName)
+	// exists at login-time. If it does the token that is created is directly
+	// linked to that role like:
+	//
+	// &ACLToken{
+	//   ...other fields...
+	//   Roles: []ACLTokenRoleLink{
+	//     { Name: "<computed BindName>" }
+	//   }
+	// }
+	//
+	// If it does not exist at login-time the rule is ignored.
+	BindingRuleBindTypeRole = "role"
+)
+
+type ACLBindingRule struct {
+	// ID is the internal UUID associated with the binding rule
+	ID string
+
+	// Description is a human readable description (Optional)
+	Description string
+
+	// AuthMethod is the name of the auth method for which this rule applies.
+	AuthMethod string
+
+	// Selector is an expression that matches against verified identity
+	// attributes returned from the auth method during login.
+	Selector string
+
+	// BindType adjusts how this binding rule is applied at login time.  The
+	// valid values are:
+	//
+	//  - BindingRuleBindTypeService = "service"
+	//  - BindingRuleBindTypeRole    = "role"
+	BindType string
+
+	// BindName is the target of the binding. Can be lightly templated using
+	// HIL ${foo} syntax from available field names. How it is used depends
+	// upon the BindType.
+	BindName string
+
+	// Embedded Raft Metadata
+	RaftIndex `hash:"ignore"`
+}
+
+func (r *ACLBindingRule) Clone() *ACLBindingRule {
+	r2 := *r
+	return &r2
+}
+
+type ACLBindingRules []*ACLBindingRule
+
+func (rules ACLBindingRules) Sort() {
+	sort.Slice(rules, func(i, j int) bool {
+		return rules[i].ID < rules[j].ID
+	})
+}
+
+type ACLAuthMethodListStub struct {
+	Name        string
+	Description string
+	Type        string
+	CreateIndex uint64
+	ModifyIndex uint64
+}
+
+func (p *ACLAuthMethod) Stub() *ACLAuthMethodListStub {
+	return &ACLAuthMethodListStub{
+		Name:        p.Name,
+		Description: p.Description,
+		Type:        p.Type,
+		CreateIndex: p.CreateIndex,
+		ModifyIndex: p.ModifyIndex,
+	}
+}
+
+type ACLAuthMethods []*ACLAuthMethod
+type ACLAuthMethodListStubs []*ACLAuthMethodListStub
+
+func (methods ACLAuthMethods) Sort() {
+	sort.Slice(methods, func(i, j int) bool {
+		return methods[i].Name < methods[j].Name
+	})
+}
+
+func (methods ACLAuthMethodListStubs) Sort() {
+	sort.Slice(methods, func(i, j int) bool {
+		return methods[i].Name < methods[j].Name
+	})
+}
+
+type ACLAuthMethod struct {
+	// Name is a unique identifier for this specific auth method.
+	//
+	// Immutable once set and only settable during create.
+	Name string
+
+	// Type is the type of the auth method this is.
+	//
+	// Immutable once set and only settable during create.
+	Type string
+
+	// Description is just an optional bunch of explanatory text.
+	Description string
+
+	// Configuration is arbitrary configuration for the auth method. This
+	// should only contain primitive values and containers (such as lists and
+	// maps).
+	Config map[string]interface{}
+
+	// Embedded Raft Metadata
+	RaftIndex `hash:"ignore"`
+}
+
 type ACLReplicationType string
 
 const (
@@ -898,6 +1039,7 @@ type ACLTokenListRequest struct {
 	IncludeGlobal bool   // Whether global tokens should be included
 	Policy        string // Policy filter
 	Role          string // Role filter
+	AuthMethod    string // Auth Method filter
 	Datacenter    string // The datacenter to perform the request within
 	QueryOptions
 }
@@ -1068,7 +1210,7 @@ func cloneStringSlice(s []string) []string {
 
 // ACLRoleSetRequest is used at the RPC layer for creation and update requests
 type ACLRoleSetRequest struct {
-	Role       ACLRole // The policy to upsert
+	Role       ACLRole // The role to upsert
 	Datacenter string  // The datacenter to perform the request within
 	WriteRequest
 }
@@ -1153,4 +1295,162 @@ type ACLRoleBatchSetRequest struct {
 // This is particularly useful during replication
 type ACLRoleBatchDeleteRequest struct {
 	RoleIDs []string
+}
+
+// ACLBindingRuleSetRequest is used at the RPC layer for creation and update requests
+type ACLBindingRuleSetRequest struct {
+	BindingRule ACLBindingRule // The rule to upsert
+	Datacenter  string         // The datacenter to perform the request within
+	WriteRequest
+}
+
+func (r *ACLBindingRuleSetRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+// ACLBindingRuleDeleteRequest is used at the RPC layer deletion requests
+type ACLBindingRuleDeleteRequest struct {
+	BindingRuleID string // id of the rule to delete
+	Datacenter    string // The datacenter to perform the request within
+	WriteRequest
+}
+
+func (r *ACLBindingRuleDeleteRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+// ACLBindingRuleGetRequest is used at the RPC layer to perform rule read operations
+type ACLBindingRuleGetRequest struct {
+	BindingRuleID string // id used for the rule lookup
+	Datacenter    string // The datacenter to perform the request within
+	QueryOptions
+}
+
+func (r *ACLBindingRuleGetRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+// ACLBindingRuleListRequest is used at the RPC layer to request a listing of rules
+type ACLBindingRuleListRequest struct {
+	AuthMethod string // optional filter
+	Datacenter string // The datacenter to perform the request within
+	QueryOptions
+}
+
+func (r *ACLBindingRuleListRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+type ACLBindingRuleListResponse struct {
+	BindingRules ACLBindingRules
+	QueryMeta
+}
+
+// ACLBindingRuleResponse returns a single binding + metadata
+type ACLBindingRuleResponse struct {
+	BindingRule *ACLBindingRule
+	QueryMeta
+}
+
+// ACLBindingRuleBatchSetRequest is used at the Raft layer for batching
+// multiple rule creations and updates
+type ACLBindingRuleBatchSetRequest struct {
+	BindingRules ACLBindingRules
+}
+
+// ACLBindingRuleBatchDeleteRequest is used at the Raft layer for batching
+// multiple rule deletions
+type ACLBindingRuleBatchDeleteRequest struct {
+	BindingRuleIDs []string
+}
+
+// ACLAuthMethodSetRequest is used at the RPC layer for creation and update requests
+type ACLAuthMethodSetRequest struct {
+	AuthMethod ACLAuthMethod // The auth method to upsert
+	Datacenter string        // The datacenter to perform the request within
+	WriteRequest
+}
+
+func (r *ACLAuthMethodSetRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+// ACLAuthMethodDeleteRequest is used at the RPC layer deletion requests
+type ACLAuthMethodDeleteRequest struct {
+	AuthMethodName string // name of the auth method to delete
+	Datacenter     string // The datacenter to perform the request within
+	WriteRequest
+}
+
+func (r *ACLAuthMethodDeleteRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+// ACLAuthMethodGetRequest is used at the RPC layer to perform rule read operations
+type ACLAuthMethodGetRequest struct {
+	AuthMethodName string // name used for the auth method lookup
+	Datacenter     string // The datacenter to perform the request within
+	QueryOptions
+}
+
+func (r *ACLAuthMethodGetRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+// ACLAuthMethodListRequest is used at the RPC layer to request a listing of auth methods
+type ACLAuthMethodListRequest struct {
+	Datacenter string // The datacenter to perform the request within
+	QueryOptions
+}
+
+func (r *ACLAuthMethodListRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+type ACLAuthMethodListResponse struct {
+	AuthMethods ACLAuthMethodListStubs
+	QueryMeta
+}
+
+// ACLAuthMethodResponse returns a single auth method + metadata
+type ACLAuthMethodResponse struct {
+	AuthMethod *ACLAuthMethod
+	QueryMeta
+}
+
+// ACLAuthMethodBatchSetRequest is used at the Raft layer for batching
+// multiple auth method creations and updates
+type ACLAuthMethodBatchSetRequest struct {
+	AuthMethods ACLAuthMethods
+}
+
+// ACLAuthMethodBatchDeleteRequest is used at the Raft layer for batching
+// multiple auth method deletions
+type ACLAuthMethodBatchDeleteRequest struct {
+	AuthMethodNames []string
+}
+
+type ACLLoginParams struct {
+	AuthMethod  string
+	BearerToken string
+	Meta        map[string]string `json:",omitempty"`
+}
+
+type ACLLoginRequest struct {
+	Auth       *ACLLoginParams
+	Datacenter string // The datacenter to perform the request within
+	WriteRequest
+}
+
+func (r *ACLLoginRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+type ACLLogoutRequest struct {
+	Datacenter string // The datacenter to perform the request within
+	WriteRequest
+}
+
+func (r *ACLLogoutRequest) RequestDatacenter() string {
+	return r.Datacenter
 }

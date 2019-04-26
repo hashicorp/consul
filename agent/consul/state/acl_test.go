@@ -1,6 +1,7 @@
 package state
 
 import (
+	"fmt"
 	"math/rand"
 	"strconv"
 	"testing"
@@ -51,6 +52,17 @@ func testACLStateStore(t *testing.T) *Store {
 	setupGlobalManagement(t, s)
 	setupAnonymous(t, s)
 	return s
+}
+
+func setupExtraAuthMethods(t *testing.T, s *Store) {
+	methods := structs.ACLAuthMethods{
+		&structs.ACLAuthMethod{
+			Name:        "test",
+			Type:        "testing",
+			Description: "test",
+		},
+	}
+	require.NoError(t, s.ACLAuthMethodBatchSet(2, methods))
 }
 
 func setupExtraPolicies(t *testing.T, s *Store) {
@@ -205,7 +217,7 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 	require.Equal(t, uint64(3), index)
 
 	// Make sure the ACLs are in an expected state.
-	_, tokens, err := s.ACLTokenList(nil, true, true, "", "")
+	_, tokens, err := s.ACLTokenList(nil, true, true, "", "", "")
 	require.NoError(t, err)
 	require.Len(t, tokens, 1)
 	compareTokens(t, token1, tokens[0])
@@ -219,7 +231,7 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 	err = s.ACLBootstrap(32, index, token2.Clone(), false)
 	require.NoError(t, err)
 
-	_, tokens, err = s.ACLTokenList(nil, true, true, "", "")
+	_, tokens, err = s.ACLTokenList(nil, true, true, "", "", "")
 	require.NoError(t, err)
 	require.Len(t, tokens, 2)
 }
@@ -447,6 +459,19 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 		require.Error(t, err)
 	})
 
+	t.Run("Unresolvable AuthMethod", func(t *testing.T) {
+		t.Parallel()
+		s := testACLTokensStateStore(t)
+		token := &structs.ACLToken{
+			AccessorID: "daf37c07-d04d-4fd5-9678-a8206a57d61a",
+			SecretID:   "39171632-6f34-4411-827f-9416403687f4",
+			AuthMethod: "test",
+		}
+
+		err := s.ACLTokenSet(2, token, false)
+		require.Error(t, err)
+	})
+
 	t.Run("New", func(t *testing.T) {
 		t.Parallel()
 		s := testACLTokensStateStore(t)
@@ -542,6 +567,37 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 		require.Equal(t, "node-read-role", rtoken.Roles[0].Name)
 		require.Len(t, rtoken.ServiceIdentities, 1)
 		require.Equal(t, "db", rtoken.ServiceIdentities[0].ServiceName)
+	})
+
+	t.Run("New with auth method", func(t *testing.T) {
+		t.Parallel()
+		s := testACLTokensStateStore(t)
+		setupExtraAuthMethods(t, s)
+
+		token := &structs.ACLToken{
+			AccessorID: "daf37c07-d04d-4fd5-9678-a8206a57d61a",
+			SecretID:   "39171632-6f34-4411-827f-9416403687f4",
+			AuthMethod: "test",
+			Roles: []structs.ACLTokenRoleLink{
+				structs.ACLTokenRoleLink{
+					ID: testRoleID_A,
+				},
+			},
+		}
+
+		require.NoError(t, s.ACLTokenSet(2, token.Clone(), false))
+
+		idx, rtoken, err := s.ACLTokenGetByAccessor(nil, "daf37c07-d04d-4fd5-9678-a8206a57d61a")
+		require.NoError(t, err)
+		require.Equal(t, uint64(2), idx)
+		compareTokens(t, token, rtoken)
+		require.Equal(t, uint64(2), rtoken.CreateIndex)
+		require.Equal(t, uint64(2), rtoken.ModifyIndex)
+		require.Equal(t, "test", rtoken.AuthMethod)
+		require.Len(t, rtoken.Policies, 0)
+		require.Len(t, rtoken.ServiceIdentities, 0)
+		require.Len(t, rtoken.Roles, 1)
+		require.Equal(t, "node-read-role", rtoken.Roles[0].Name)
 	})
 }
 
@@ -828,6 +884,7 @@ func TestStateStore_ACLTokens_ListUpgradeable(t *testing.T) {
 func TestStateStore_ACLToken_List(t *testing.T) {
 	t.Parallel()
 	s := testACLTokensStateStore(t)
+	setupExtraAuthMethods(t, s)
 
 	tokens := structs.ACLTokens{
 		// the local token
@@ -893,118 +950,167 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 			},
 			Local: true,
 		},
+		// the method specific token
+		&structs.ACLToken{
+			AccessorID: "74277ae1-6a9b-4035-b444-2370fe6a2cb5",
+			SecretID:   "ab8ac834-0d35-4cb7-83c3-168203f986cd",
+			AuthMethod: "test",
+		},
+		// the method specific token and local
+		&structs.ACLToken{
+			AccessorID: "211f0360-ef53-41d3-9d4d-db84396eb6c0",
+			SecretID:   "087a0eb4-366f-4190-ab4c-a4aa3d2562aa",
+			AuthMethod: "test",
+			Local:      true,
+		},
 	}
 
 	require.NoError(t, s.ACLTokenBatchSet(2, tokens, false))
 
 	type testCase struct {
-		name      string
-		local     bool
-		global    bool
-		policy    string
-		role      string
-		accessors []string
+		name       string
+		local      bool
+		global     bool
+		policy     string
+		role       string
+		methodName string
+		accessors  []string
 	}
 
 	cases := []testCase{
 		{
-			name:   "Global",
-			local:  false,
-			global: true,
-			policy: "",
-			role:   "",
+			name:       "Global",
+			local:      false,
+			global:     true,
+			policy:     "",
+			role:       "",
+			methodName: "",
 			accessors: []string{
 				structs.ACLTokenAnonymousID,
 				"47eea4da-bda1-48a6-901c-3e36d2d9262f", // policy + global
 				"54866514-3cf2-4fec-8a8a-710583831834", // mgmt + global
+				"74277ae1-6a9b-4035-b444-2370fe6a2cb5", // authMethod + global
 				"a7715fde-8954-4c92-afbc-d84c6ecdc582", // role + global
 			},
 		},
 		{
-			name:   "Local",
-			local:  true,
-			global: false,
-			policy: "",
-			role:   "",
+			name:       "Local",
+			local:      true,
+			global:     false,
+			policy:     "",
+			role:       "",
+			methodName: "",
 			accessors: []string{
+				"211f0360-ef53-41d3-9d4d-db84396eb6c0", // authMethod + local
 				"4915fc9d-3726-4171-b588-6c271f45eecd", // policy + local
 				"cadb4f13-f62a-49ab-ab3f-5a7e01b925d9", // role + local
 				"f1093997-b6c7-496d-bfb8-6b1b1895641b", // mgmt + local
 			},
 		},
 		{
-			name:   "Policy",
-			local:  true,
-			global: true,
-			policy: testPolicyID_A,
-			role:   "",
+			name:       "Policy",
+			local:      true,
+			global:     true,
+			policy:     testPolicyID_A,
+			role:       "",
+			methodName: "",
 			accessors: []string{
 				"47eea4da-bda1-48a6-901c-3e36d2d9262f", // policy + global
 				"4915fc9d-3726-4171-b588-6c271f45eecd", // policy + local
 			},
 		},
 		{
-			name:   "Policy - Local",
-			local:  true,
-			global: false,
-			policy: testPolicyID_A,
-			role:   "",
+			name:       "Policy - Local",
+			local:      true,
+			global:     false,
+			policy:     testPolicyID_A,
+			role:       "",
+			methodName: "",
 			accessors: []string{
 				"4915fc9d-3726-4171-b588-6c271f45eecd", // policy + local
 			},
 		},
 		{
-			name:   "Policy - Global",
-			local:  false,
-			global: true,
-			policy: testPolicyID_A,
-			role:   "",
+			name:       "Policy - Global",
+			local:      false,
+			global:     true,
+			policy:     testPolicyID_A,
+			role:       "",
+			methodName: "",
 			accessors: []string{
 				"47eea4da-bda1-48a6-901c-3e36d2d9262f", // policy + global
 			},
 		},
 		{
-			name:   "Role",
-			local:  true,
-			global: true,
-			policy: "",
-			role:   testRoleID_A,
+			name:       "Role",
+			local:      true,
+			global:     true,
+			policy:     "",
+			role:       testRoleID_A,
+			methodName: "",
 			accessors: []string{
 				"a7715fde-8954-4c92-afbc-d84c6ecdc582", // role + global
 				"cadb4f13-f62a-49ab-ab3f-5a7e01b925d9", // role + local
 			},
 		},
 		{
-			name:   "Role - Local",
-			local:  true,
-			global: false,
-			policy: "",
-			role:   testRoleID_A,
+			name:       "Role - Local",
+			local:      true,
+			global:     false,
+			policy:     "",
+			role:       testRoleID_A,
+			methodName: "",
 			accessors: []string{
 				"cadb4f13-f62a-49ab-ab3f-5a7e01b925d9", // role + local
 			},
 		},
 		{
-			name:   "Role - Global",
-			local:  false,
-			global: true,
-			policy: "",
-			role:   testRoleID_A,
+			name:       "Role - Global",
+			local:      false,
+			global:     true,
+			policy:     "",
+			role:       testRoleID_A,
+			methodName: "",
 			accessors: []string{
 				"a7715fde-8954-4c92-afbc-d84c6ecdc582", // role + global
 			},
 		},
 		{
-			name:   "All",
-			local:  true,
-			global: true,
-			policy: "",
-			role:   "",
+			name:       "AuthMethod - Local",
+			local:      true,
+			global:     false,
+			policy:     "",
+			role:       "",
+			methodName: "test",
+			accessors: []string{
+				"211f0360-ef53-41d3-9d4d-db84396eb6c0", // authMethod + local
+			},
+		},
+		{
+			name:       "AuthMethod - Global",
+			local:      false,
+			global:     true,
+			policy:     "",
+			role:       "",
+			methodName: "test",
+			accessors: []string{
+				"74277ae1-6a9b-4035-b444-2370fe6a2cb5", // authMethod + global
+			},
+		},
+		{
+			name:       "All",
+			local:      true,
+			global:     true,
+			policy:     "",
+			role:       "",
+			methodName: "",
 			accessors: []string{
 				structs.ACLTokenAnonymousID,
+				"211f0360-ef53-41d3-9d4d-db84396eb6c0", // authMethod + local
 				"47eea4da-bda1-48a6-901c-3e36d2d9262f", // policy + global
 				"4915fc9d-3726-4171-b588-6c271f45eecd", // policy + local
 				"54866514-3cf2-4fec-8a8a-710583831834", // mgmt + global
+				"74277ae1-6a9b-4035-b444-2370fe6a2cb5", // authMethod + global
 				"a7715fde-8954-4c92-afbc-d84c6ecdc582", // role + global
 				"cadb4f13-f62a-49ab-ab3f-5a7e01b925d9", // role + local
 				"f1093997-b6c7-496d-bfb8-6b1b1895641b", // mgmt + local
@@ -1012,16 +1118,23 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 		},
 	}
 
-	t.Run("can't filter on both", func(t *testing.T) {
-		_, _, err := s.ACLTokenList(nil, false, false, testPolicyID_A, testRoleID_A)
-		require.Error(t, err)
-	})
+	for _, tc := range []struct{ policy, role, methodName string }{
+		{testPolicyID_A, testRoleID_A, "test"},
+		{"", testRoleID_A, "test"},
+		{testPolicyID_A, "", "test"},
+		{testPolicyID_A, testRoleID_A, ""},
+	} {
+		t.Run(fmt.Sprintf("can't filter on more than one: %s/%s/%s", tc.policy, tc.role, tc.methodName), func(t *testing.T) {
+			_, _, err := s.ACLTokenList(nil, false, false, tc.policy, tc.role, tc.methodName)
+			require.Error(t, err)
+		})
+	}
 
 	for _, tc := range cases {
 		tc := tc // capture range variable
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			_, tokens, err := s.ACLTokenList(nil, tc.local, tc.global, tc.policy, tc.role)
+			_, tokens, err := s.ACLTokenList(nil, tc.local, tc.global, tc.policy, tc.role, tc.methodName)
 			require.NoError(t, err)
 			require.Len(t, tokens, len(tc.accessors))
 			tokens.Sort()
@@ -1082,7 +1195,7 @@ func TestStateStore_ACLToken_FixupPolicyLinks(t *testing.T) {
 	require.Equal(t, "node-read-renamed", retrieved.Policies[0].Name)
 
 	// list tokens without stale links
-	_, tokens, err := s.ACLTokenList(nil, true, true, "", "")
+	_, tokens, err := s.ACLTokenList(nil, true, true, "", "", "")
 	require.NoError(t, err)
 
 	found := false
@@ -1126,7 +1239,7 @@ func TestStateStore_ACLToken_FixupPolicyLinks(t *testing.T) {
 	require.Len(t, retrieved.Policies, 0)
 
 	// list tokens without stale links
-	_, tokens, err = s.ACLTokenList(nil, true, true, "", "")
+	_, tokens, err = s.ACLTokenList(nil, true, true, "", "", "")
 	require.NoError(t, err)
 
 	found = false
@@ -1211,7 +1324,7 @@ func TestStateStore_ACLToken_FixupRoleLinks(t *testing.T) {
 	require.Equal(t, "node-read-role-renamed", retrieved.Roles[0].Name)
 
 	// list tokens without stale links
-	_, tokens, err := s.ACLTokenList(nil, true, true, "", "")
+	_, tokens, err := s.ACLTokenList(nil, true, true, "", "", "")
 	require.NoError(t, err)
 
 	found := false
@@ -1255,7 +1368,7 @@ func TestStateStore_ACLToken_FixupRoleLinks(t *testing.T) {
 	require.Len(t, retrieved.Roles, 0)
 
 	// list tokens without stale links
-	_, tokens, err = s.ACLTokenList(nil, true, true, "", "")
+	_, tokens, err = s.ACLTokenList(nil, true, true, "", "", "")
 	require.NoError(t, err)
 
 	found = false
@@ -2504,6 +2617,730 @@ func TestStateStore_ACLRole_Delete(t *testing.T) {
 	})
 }
 
+func TestStateStore_ACLAuthMethod_SetGet(t *testing.T) {
+	t.Parallel()
+
+	// The state store only validates key pieces of data, so we only have to
+	// care about filling in Name+Type.
+
+	t.Run("Missing Name", func(t *testing.T) {
+		t.Parallel()
+		s := testACLStateStore(t)
+
+		method := structs.ACLAuthMethod{
+			Name:        "",
+			Type:        "testing",
+			Description: "test",
+		}
+
+		require.Error(t, s.ACLAuthMethodSet(3, &method))
+	})
+
+	t.Run("Missing Type", func(t *testing.T) {
+		t.Parallel()
+		s := testACLStateStore(t)
+
+		method := structs.ACLAuthMethod{
+			Name:        "test",
+			Type:        "",
+			Description: "test",
+		}
+
+		require.Error(t, s.ACLAuthMethodSet(3, &method))
+	})
+
+	t.Run("New", func(t *testing.T) {
+		t.Parallel()
+		s := testACLStateStore(t)
+
+		method := structs.ACLAuthMethod{
+			Name:        "test",
+			Type:        "testing",
+			Description: "test",
+		}
+
+		require.NoError(t, s.ACLAuthMethodSet(3, &method))
+
+		idx, rmethod, err := s.ACLAuthMethodGetByName(nil, "test")
+		require.NoError(t, err)
+		require.Equal(t, uint64(3), idx)
+		require.NotNil(t, rmethod)
+		require.Equal(t, "test", rmethod.Name)
+		require.Equal(t, "testing", rmethod.Type)
+		require.Equal(t, "test", rmethod.Description)
+		require.Equal(t, uint64(3), rmethod.CreateIndex)
+		require.Equal(t, uint64(3), rmethod.ModifyIndex)
+	})
+
+	t.Run("Update", func(t *testing.T) {
+		t.Parallel()
+		s := testACLStateStore(t)
+
+		// Create the initial method
+		method := structs.ACLAuthMethod{
+			Name:        "test",
+			Type:        "testing",
+			Description: "test",
+		}
+
+		require.NoError(t, s.ACLAuthMethodSet(2, &method))
+
+		// Now make sure we can update it
+		update := structs.ACLAuthMethod{
+			Name:        "test",
+			Type:        "testing",
+			Description: "modified",
+			Config: map[string]interface{}{
+				"Host": "https://localhost:8443",
+			},
+		}
+
+		require.NoError(t, s.ACLAuthMethodSet(3, &update))
+
+		idx, rmethod, err := s.ACLAuthMethodGetByName(nil, "test")
+		require.NoError(t, err)
+		require.Equal(t, uint64(3), idx)
+		require.NotNil(t, rmethod)
+		require.Equal(t, "test", rmethod.Name)
+		require.Equal(t, "testing", rmethod.Type)
+		require.Equal(t, "modified", rmethod.Description)
+		require.Equal(t, update.Config, rmethod.Config)
+		require.Equal(t, uint64(2), rmethod.CreateIndex)
+		require.Equal(t, uint64(3), rmethod.ModifyIndex)
+	})
+}
+
+func TestStateStore_ACLAuthMethods_UpsertBatchRead(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Normal", func(t *testing.T) {
+		t.Parallel()
+		s := testACLStateStore(t)
+
+		methods := structs.ACLAuthMethods{
+			&structs.ACLAuthMethod{
+				Name:        "test-1",
+				Type:        "testing",
+				Description: "test-1",
+			},
+			&structs.ACLAuthMethod{
+				Name:        "test-2",
+				Type:        "testing",
+				Description: "test-1",
+			},
+		}
+
+		require.NoError(t, s.ACLAuthMethodBatchSet(2, methods))
+
+		idx, rmethods, err := s.ACLAuthMethodList(nil)
+		require.NoError(t, err)
+		require.Equal(t, uint64(2), idx)
+		require.Len(t, rmethods, 2)
+		rmethods.Sort()
+		require.ElementsMatch(t, methods, rmethods)
+		require.Equal(t, uint64(2), rmethods[0].CreateIndex)
+		require.Equal(t, uint64(2), rmethods[0].ModifyIndex)
+		require.Equal(t, uint64(2), rmethods[1].CreateIndex)
+		require.Equal(t, uint64(2), rmethods[1].ModifyIndex)
+	})
+
+	t.Run("Update", func(t *testing.T) {
+		t.Parallel()
+		s := testACLStateStore(t)
+
+		// Seed initial data.
+		methods := structs.ACLAuthMethods{
+			&structs.ACLAuthMethod{
+				Name:        "test-1",
+				Type:        "testing",
+				Description: "test-1",
+			},
+			&structs.ACLAuthMethod{
+				Name:        "test-2",
+				Type:        "testing",
+				Description: "test-2",
+			},
+		}
+
+		require.NoError(t, s.ACLAuthMethodBatchSet(2, methods))
+
+		// Update two methods at the same time.
+		updates := structs.ACLAuthMethods{
+			&structs.ACLAuthMethod{
+				Name:        "test-1",
+				Type:        "testing",
+				Description: "test-1 modified",
+				Config: map[string]interface{}{
+					"Host": "https://localhost:8443",
+				},
+			},
+			&structs.ACLAuthMethod{
+				Name:        "test-2",
+				Type:        "testing",
+				Description: "test-2 modified",
+				Config: map[string]interface{}{
+					"Host": "https://localhost:8444",
+				},
+			},
+		}
+
+		require.NoError(t, s.ACLAuthMethodBatchSet(3, updates))
+
+		idx, rmethods, err := s.ACLAuthMethodList(nil)
+		require.NoError(t, err)
+		require.Equal(t, uint64(3), idx)
+		require.Len(t, rmethods, 2)
+		rmethods.Sort()
+		require.ElementsMatch(t, updates, rmethods)
+		require.Equal(t, uint64(2), rmethods[0].CreateIndex)
+		require.Equal(t, uint64(3), rmethods[0].ModifyIndex)
+		require.Equal(t, uint64(2), rmethods[1].CreateIndex)
+		require.Equal(t, uint64(3), rmethods[1].ModifyIndex)
+	})
+}
+
+func TestStateStore_ACLAuthMethod_List(t *testing.T) {
+	t.Parallel()
+	s := testACLStateStore(t)
+
+	methods := structs.ACLAuthMethods{
+		&structs.ACLAuthMethod{
+			Name:        "test-1",
+			Type:        "testing",
+			Description: "test-1",
+		},
+		&structs.ACLAuthMethod{
+			Name:        "test-2",
+			Type:        "testing",
+			Description: "test-2",
+		},
+	}
+
+	require.NoError(t, s.ACLAuthMethodBatchSet(2, methods))
+
+	_, rmethods, err := s.ACLAuthMethodList(nil)
+	require.NoError(t, err)
+
+	require.Len(t, rmethods, 2)
+	rmethods.Sort()
+
+	require.Equal(t, "test-1", rmethods[0].Name)
+	require.Equal(t, "testing", rmethods[0].Type)
+	require.Equal(t, "test-1", rmethods[0].Description)
+	require.Equal(t, uint64(2), rmethods[0].CreateIndex)
+	require.Equal(t, uint64(2), rmethods[0].ModifyIndex)
+
+	require.Equal(t, "test-2", rmethods[1].Name)
+	require.Equal(t, "testing", rmethods[1].Type)
+	require.Equal(t, "test-2", rmethods[1].Description)
+	require.Equal(t, uint64(2), rmethods[1].CreateIndex)
+	require.Equal(t, uint64(2), rmethods[1].ModifyIndex)
+}
+
+func TestStateStore_ACLAuthMethod_Delete(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Name", func(t *testing.T) {
+		t.Parallel()
+		s := testACLStateStore(t)
+
+		method := structs.ACLAuthMethod{
+			Name:        "test",
+			Type:        "testing",
+			Description: "test",
+		}
+
+		require.NoError(t, s.ACLAuthMethodSet(2, &method))
+
+		_, rmethod, err := s.ACLAuthMethodGetByName(nil, "test")
+		require.NoError(t, err)
+		require.NotNil(t, rmethod)
+
+		require.NoError(t, s.ACLAuthMethodDeleteByName(3, "test"))
+		require.NoError(t, err)
+
+		_, rmethod, err = s.ACLAuthMethodGetByName(nil, "test")
+		require.NoError(t, err)
+		require.Nil(t, rmethod)
+	})
+
+	t.Run("Multiple", func(t *testing.T) {
+		t.Parallel()
+		s := testACLStateStore(t)
+
+		methods := structs.ACLAuthMethods{
+			&structs.ACLAuthMethod{
+				Name:        "test-1",
+				Type:        "testing",
+				Description: "test-1",
+			},
+			&structs.ACLAuthMethod{
+				Name:        "test-2",
+				Type:        "testing",
+				Description: "test-2",
+			},
+		}
+
+		require.NoError(t, s.ACLAuthMethodBatchSet(2, methods))
+
+		_, rmethod, err := s.ACLAuthMethodGetByName(nil, "test-1")
+		require.NoError(t, err)
+		require.NotNil(t, rmethod)
+		_, rmethod, err = s.ACLAuthMethodGetByName(nil, "test-2")
+		require.NoError(t, err)
+		require.NotNil(t, rmethod)
+
+		require.NoError(t, s.ACLAuthMethodBatchDelete(3, []string{"test-1", "test-2"}))
+
+		_, rmethod, err = s.ACLAuthMethodGetByName(nil, "test-1")
+		require.NoError(t, err)
+		require.Nil(t, rmethod)
+		_, rmethod, err = s.ACLAuthMethodGetByName(nil, "test-2")
+		require.NoError(t, err)
+		require.Nil(t, rmethod)
+	})
+
+	t.Run("Not Found", func(t *testing.T) {
+		t.Parallel()
+		s := testACLStateStore(t)
+
+		// deletion of non-existant methods is not an error
+		require.NoError(t, s.ACLAuthMethodDeleteByName(3, "not-found"))
+	})
+}
+
+// Deleting an auth method atomically deletes all rules and tokens as well.
+func TestStateStore_ACLAuthMethod_Delete_RuleAndTokenCascade(t *testing.T) {
+	t.Parallel()
+
+	s := testACLStateStore(t)
+
+	methods := structs.ACLAuthMethods{
+		&structs.ACLAuthMethod{
+			Name:        "test-1",
+			Type:        "testing",
+			Description: "test-1",
+		},
+		&structs.ACLAuthMethod{
+			Name:        "test-2",
+			Type:        "testing",
+			Description: "test-2",
+		},
+	}
+	require.NoError(t, s.ACLAuthMethodBatchSet(2, methods))
+
+	const (
+		method1_rule1 = "dff6f8a3-0115-4b22-8661-04a497ebb23c"
+		method1_rule2 = "69e2d304-703d-4889-bd94-4a720c061fc3"
+		method2_rule1 = "997ee45c-d6ba-4da1-a98e-aaa012e7d1e2"
+		method2_rule2 = "9ebae132-f1f1-4b72-b1d9-a4313ac22075"
+	)
+
+	rules := structs.ACLBindingRules{
+		&structs.ACLBindingRule{
+			ID:          method1_rule1,
+			AuthMethod:  "test-1",
+			Description: "test-m1-r1",
+		},
+		&structs.ACLBindingRule{
+			ID:          method1_rule2,
+			AuthMethod:  "test-1",
+			Description: "test-m1-r2",
+		},
+		&structs.ACLBindingRule{
+			ID:          method2_rule1,
+			AuthMethod:  "test-2",
+			Description: "test-m2-r1",
+		},
+		&structs.ACLBindingRule{
+			ID:          method2_rule2,
+			AuthMethod:  "test-2",
+			Description: "test-m2-r2",
+		},
+	}
+	require.NoError(t, s.ACLBindingRuleBatchSet(3, rules))
+
+	const ( // accessors
+		method1_tok1 = "6d020c5d-c4fd-4348-ba79-beac37ed0b9c"
+		method1_tok2 = "169160dc-34ab-45c6-aba7-ff65e9ace9cb"
+		method2_tok1 = "8e14628e-7dde-4573-aca1-6386c0f2095d"
+		method2_tok2 = "291e5af9-c68e-4dd3-8824-b2bdfdcc89e6"
+	)
+
+	tokens := structs.ACLTokens{
+		&structs.ACLToken{
+			AccessorID:  method1_tok1,
+			SecretID:    "7a1950c6-79dc-441c-acd2-e22cd3db0240",
+			Description: "test-m1-t1",
+			AuthMethod:  "test-1",
+		},
+		&structs.ACLToken{
+			AccessorID:  method1_tok2,
+			SecretID:    "442cee4c-353f-4957-adbb-33db2f9e267f",
+			Description: "test-m1-t2",
+			AuthMethod:  "test-1",
+		},
+		&structs.ACLToken{
+			AccessorID:  method2_tok1,
+			SecretID:    "d9399b7d-6c34-46bd-a675-c1352fadb6fd",
+			Description: "test-m2-t1",
+			AuthMethod:  "test-2",
+		},
+		&structs.ACLToken{
+			AccessorID:  method2_tok2,
+			SecretID:    "3b72fc27-9230-42ab-a1e8-02cb489ab177",
+			Description: "test-m2-t2",
+			AuthMethod:  "test-2",
+		},
+	}
+	require.NoError(t, s.ACLTokenBatchSet(4, tokens, false))
+
+	// Delete one method.
+	require.NoError(t, s.ACLAuthMethodDeleteByName(4, "test-1"))
+
+	// Make sure the method is gone.
+	_, rmethod, err := s.ACLAuthMethodGetByName(nil, "test-1")
+	require.NoError(t, err)
+	require.Nil(t, rmethod)
+
+	// Make sure the rules and tokens are gone.
+	for _, ruleID := range []string{method1_rule1, method1_rule2} {
+		_, rrule, err := s.ACLBindingRuleGetByID(nil, ruleID)
+		require.NoError(t, err)
+		require.Nil(t, rrule)
+	}
+	for _, tokID := range []string{method1_tok1, method1_tok2} {
+		_, tok, err := s.ACLTokenGetByAccessor(nil, tokID)
+		require.NoError(t, err)
+		require.Nil(t, tok)
+	}
+
+	// Make sure the rules and tokens for the untouched method are still there.
+	for _, ruleID := range []string{method2_rule1, method2_rule2} {
+		_, rrule, err := s.ACLBindingRuleGetByID(nil, ruleID)
+		require.NoError(t, err)
+		require.NotNil(t, rrule)
+	}
+	for _, tokID := range []string{method2_tok1, method2_tok2} {
+		_, tok, err := s.ACLTokenGetByAccessor(nil, tokID)
+		require.NoError(t, err)
+		require.NotNil(t, tok)
+	}
+}
+
+func TestStateStore_ACLBindingRule_SetGet(t *testing.T) {
+	t.Parallel()
+
+	// The state store only validates key pieces of data, so we only have to
+	// care about filling in ID+AuthMethod.
+
+	t.Run("Missing ID", func(t *testing.T) {
+		t.Parallel()
+		s := testACLStateStore(t)
+		setupExtraAuthMethods(t, s)
+
+		rule := structs.ACLBindingRule{
+			ID:          "",
+			AuthMethod:  "test",
+			Description: "test",
+		}
+
+		require.Error(t, s.ACLBindingRuleSet(3, &rule))
+	})
+
+	t.Run("Missing AuthMethod", func(t *testing.T) {
+		t.Parallel()
+		s := testACLStateStore(t)
+		setupExtraAuthMethods(t, s)
+
+		rule := structs.ACLBindingRule{
+			ID:          "9669b2d7-455c-4d70-b0ac-457fd7969a2e",
+			AuthMethod:  "",
+			Description: "test",
+		}
+
+		require.Error(t, s.ACLBindingRuleSet(3, &rule))
+	})
+
+	t.Run("Unknown AuthMethod", func(t *testing.T) {
+		t.Parallel()
+		s := testACLStateStore(t)
+		setupExtraAuthMethods(t, s)
+
+		rule := structs.ACLBindingRule{
+			ID:          "9669b2d7-455c-4d70-b0ac-457fd7969a2e",
+			AuthMethod:  "unknown",
+			Description: "test",
+		}
+
+		require.Error(t, s.ACLBindingRuleSet(3, &rule))
+	})
+
+	t.Run("New", func(t *testing.T) {
+		t.Parallel()
+		s := testACLStateStore(t)
+		setupExtraAuthMethods(t, s)
+
+		rule := structs.ACLBindingRule{
+			ID:          "9669b2d7-455c-4d70-b0ac-457fd7969a2e",
+			AuthMethod:  "test",
+			Description: "test",
+		}
+
+		require.NoError(t, s.ACLBindingRuleSet(3, &rule))
+
+		idx, rrule, err := s.ACLBindingRuleGetByID(nil, rule.ID)
+		require.NoError(t, err)
+		require.Equal(t, uint64(3), idx)
+		require.NotNil(t, rrule)
+		require.Equal(t, rule.ID, rrule.ID)
+		require.Equal(t, "test", rrule.AuthMethod)
+		require.Equal(t, "test", rrule.Description)
+		require.Equal(t, uint64(3), rrule.CreateIndex)
+		require.Equal(t, uint64(3), rrule.ModifyIndex)
+	})
+
+	t.Run("Update", func(t *testing.T) {
+		t.Parallel()
+		s := testACLStateStore(t)
+		setupExtraAuthMethods(t, s)
+
+		// Create the initial rule
+		rule := structs.ACLBindingRule{
+			ID:          "9669b2d7-455c-4d70-b0ac-457fd7969a2e",
+			AuthMethod:  "test",
+			Description: "test",
+		}
+
+		require.NoError(t, s.ACLBindingRuleSet(2, &rule))
+
+		// Now make sure we can update it
+		update := structs.ACLBindingRule{
+			ID:          "9669b2d7-455c-4d70-b0ac-457fd7969a2e",
+			AuthMethod:  "test",
+			Description: "modified",
+			BindType:    structs.BindingRuleBindTypeService,
+			BindName:    "web",
+		}
+
+		require.NoError(t, s.ACLBindingRuleSet(3, &update))
+
+		idx, rrule, err := s.ACLBindingRuleGetByID(nil, rule.ID)
+		require.NoError(t, err)
+		require.Equal(t, uint64(3), idx)
+		require.NotNil(t, rrule)
+		require.Equal(t, rule.ID, rrule.ID)
+		require.Equal(t, "test", rrule.AuthMethod)
+		require.Equal(t, "modified", rrule.Description)
+		require.Equal(t, structs.BindingRuleBindTypeService, rrule.BindType)
+		require.Equal(t, "web", rrule.BindName)
+		require.Equal(t, uint64(2), rrule.CreateIndex)
+		require.Equal(t, uint64(3), rrule.ModifyIndex)
+	})
+}
+
+func TestStateStore_ACLBindingRules_UpsertBatchRead(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Normal", func(t *testing.T) {
+		t.Parallel()
+		s := testACLStateStore(t)
+		setupExtraAuthMethods(t, s)
+
+		rules := structs.ACLBindingRules{
+			&structs.ACLBindingRule{
+				ID:          "9669b2d7-455c-4d70-b0ac-457fd7969a2e",
+				AuthMethod:  "test",
+				Description: "test-1",
+			},
+			&structs.ACLBindingRule{
+				ID:          "3ebcc27b-f8ba-4611-b385-79a065dfb983",
+				AuthMethod:  "test",
+				Description: "test-2",
+			},
+		}
+
+		require.NoError(t, s.ACLBindingRuleBatchSet(2, rules))
+
+		idx, rrules, err := s.ACLBindingRuleList(nil, "test")
+		require.NoError(t, err)
+		require.Equal(t, uint64(2), idx)
+		require.Len(t, rrules, 2)
+		rrules.Sort()
+		require.ElementsMatch(t, rules, rrules)
+		require.Equal(t, uint64(2), rrules[0].CreateIndex)
+		require.Equal(t, uint64(2), rrules[0].ModifyIndex)
+		require.Equal(t, uint64(2), rrules[1].CreateIndex)
+		require.Equal(t, uint64(2), rrules[1].ModifyIndex)
+	})
+
+	t.Run("Update", func(t *testing.T) {
+		t.Parallel()
+		s := testACLStateStore(t)
+		setupExtraAuthMethods(t, s)
+
+		// Seed initial data.
+		rules := structs.ACLBindingRules{
+			&structs.ACLBindingRule{
+				ID:          "9669b2d7-455c-4d70-b0ac-457fd7969a2e",
+				AuthMethod:  "test",
+				Description: "test-1",
+			},
+			&structs.ACLBindingRule{
+				ID:          "3ebcc27b-f8ba-4611-b385-79a065dfb983",
+				AuthMethod:  "test",
+				Description: "test-2",
+			},
+		}
+
+		require.NoError(t, s.ACLBindingRuleBatchSet(2, rules))
+
+		// Update two rules at the same time.
+		updates := structs.ACLBindingRules{
+			&structs.ACLBindingRule{
+				ID:          "9669b2d7-455c-4d70-b0ac-457fd7969a2e",
+				AuthMethod:  "test",
+				Description: "test-1 modified",
+				BindType:    structs.BindingRuleBindTypeService,
+				BindName:    "web-1",
+			},
+			&structs.ACLBindingRule{
+				ID:          "3ebcc27b-f8ba-4611-b385-79a065dfb983",
+				AuthMethod:  "test",
+				Description: "test-2 modified",
+				BindType:    structs.BindingRuleBindTypeService,
+				BindName:    "web-2",
+			},
+		}
+
+		require.NoError(t, s.ACLBindingRuleBatchSet(3, updates))
+
+		idx, rrules, err := s.ACLBindingRuleList(nil, "test")
+		require.NoError(t, err)
+		require.Equal(t, uint64(3), idx)
+		require.Len(t, rrules, 2)
+		rrules.Sort()
+		require.ElementsMatch(t, updates, rrules)
+		require.Equal(t, uint64(2), rrules[0].CreateIndex)
+		require.Equal(t, uint64(3), rrules[0].ModifyIndex)
+		require.Equal(t, uint64(2), rrules[1].CreateIndex)
+		require.Equal(t, uint64(3), rrules[1].ModifyIndex)
+	})
+}
+
+func TestStateStore_ACLBindingRule_List(t *testing.T) {
+	t.Parallel()
+	s := testACLStateStore(t)
+	setupExtraAuthMethods(t, s)
+
+	rules := structs.ACLBindingRules{
+		&structs.ACLBindingRule{
+			ID:          "3ebcc27b-f8ba-4611-b385-79a065dfb983",
+			AuthMethod:  "test",
+			Description: "test-1",
+		},
+		&structs.ACLBindingRule{
+			ID:          "9669b2d7-455c-4d70-b0ac-457fd7969a2e",
+			AuthMethod:  "test",
+			Description: "test-2",
+		},
+	}
+
+	require.NoError(t, s.ACLBindingRuleBatchSet(2, rules))
+
+	_, rrules, err := s.ACLBindingRuleList(nil, "")
+	require.NoError(t, err)
+
+	require.Len(t, rrules, 2)
+	rrules.Sort()
+
+	require.Equal(t, "3ebcc27b-f8ba-4611-b385-79a065dfb983", rrules[0].ID)
+	require.Equal(t, "test", rrules[0].AuthMethod)
+	require.Equal(t, "test-1", rrules[0].Description)
+	require.Equal(t, uint64(2), rrules[0].CreateIndex)
+	require.Equal(t, uint64(2), rrules[0].ModifyIndex)
+
+	require.Equal(t, "9669b2d7-455c-4d70-b0ac-457fd7969a2e", rrules[1].ID)
+	require.Equal(t, "test", rrules[1].AuthMethod)
+	require.Equal(t, "test-2", rrules[1].Description)
+	require.Equal(t, uint64(2), rrules[1].CreateIndex)
+	require.Equal(t, uint64(2), rrules[1].ModifyIndex)
+}
+
+func TestStateStore_ACLBindingRule_Delete(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Name", func(t *testing.T) {
+		t.Parallel()
+		s := testACLStateStore(t)
+		setupExtraAuthMethods(t, s)
+
+		rule := structs.ACLBindingRule{
+			ID:          "9669b2d7-455c-4d70-b0ac-457fd7969a2e",
+			AuthMethod:  "test",
+			Description: "test",
+		}
+
+		require.NoError(t, s.ACLBindingRuleSet(2, &rule))
+
+		_, rrule, err := s.ACLBindingRuleGetByID(nil, rule.ID)
+		require.NoError(t, err)
+		require.NotNil(t, rrule)
+
+		require.NoError(t, s.ACLBindingRuleDeleteByID(3, rule.ID))
+		require.NoError(t, err)
+
+		_, rrule, err = s.ACLBindingRuleGetByID(nil, rule.ID)
+		require.NoError(t, err)
+		require.Nil(t, rrule)
+	})
+
+	t.Run("Multiple", func(t *testing.T) {
+		t.Parallel()
+		s := testACLStateStore(t)
+		setupExtraAuthMethods(t, s)
+
+		rules := structs.ACLBindingRules{
+			&structs.ACLBindingRule{
+				ID:          "3ebcc27b-f8ba-4611-b385-79a065dfb983",
+				AuthMethod:  "test",
+				Description: "test-1",
+			},
+			&structs.ACLBindingRule{
+				ID:          "9669b2d7-455c-4d70-b0ac-457fd7969a2e",
+				AuthMethod:  "test",
+				Description: "test-2",
+			},
+		}
+
+		require.NoError(t, s.ACLBindingRuleBatchSet(2, rules))
+
+		_, rrule, err := s.ACLBindingRuleGetByID(nil, rules[0].ID)
+		require.NoError(t, err)
+		require.NotNil(t, rrule)
+		_, rrule, err = s.ACLBindingRuleGetByID(nil, rules[1].ID)
+		require.NoError(t, err)
+		require.NotNil(t, rrule)
+
+		require.NoError(t, s.ACLBindingRuleBatchDelete(3, []string{rules[0].ID, rules[1].ID}))
+
+		_, rrule, err = s.ACLBindingRuleGetByID(nil, rules[0].ID)
+		require.NoError(t, err)
+		require.Nil(t, rrule)
+		_, rrule, err = s.ACLBindingRuleGetByID(nil, rules[1].ID)
+		require.NoError(t, err)
+		require.Nil(t, rrule)
+	})
+
+	t.Run("Not Found", func(t *testing.T) {
+		t.Parallel()
+		s := testACLStateStore(t)
+
+		// deletion of non-existant rules is not an error
+		require.NoError(t, s.ACLBindingRuleDeleteByID(3, "ed3ce1b8-3a16-4e2f-b82e-f92e3b92410d"))
+	})
+}
+
 func TestStateStore_ACLTokens_Snapshot_Restore(t *testing.T) {
 	s := testStateStore(t)
 
@@ -2651,7 +3488,7 @@ func TestStateStore_ACLTokens_Snapshot_Restore(t *testing.T) {
 		require.NoError(t, s.ACLRoleBatchSet(2, roles))
 
 		// Read the restored ACLs back out and verify that they match.
-		idx, res, err := s.ACLTokenList(nil, true, true, "", "")
+		idx, res, err := s.ACLTokenList(nil, true, true, "", "", "")
 		require.NoError(t, err)
 		require.Equal(t, uint64(4), idx)
 		require.ElementsMatch(t, tokens, res)
@@ -2989,5 +3826,122 @@ func TestStateStore_ACLRoles_Snapshot_Restore(t *testing.T) {
 		require.Equal(t, uint64(2), idx)
 		require.ElementsMatch(t, roles, res)
 		require.Equal(t, uint64(2), s.maxIndex("acl-roles"))
+	}()
+}
+
+func TestStateStore_ACLAuthMethods_Snapshot_Restore(t *testing.T) {
+	s := testACLStateStore(t)
+
+	methods := structs.ACLAuthMethods{
+		&structs.ACLAuthMethod{
+			Name:        "test-1",
+			Type:        "testing",
+			Description: "test-1",
+			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
+		},
+		&structs.ACLAuthMethod{
+			Name:        "test-2",
+			Type:        "testing",
+			Description: "test-2",
+			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
+		},
+	}
+
+	require.NoError(t, s.ACLAuthMethodBatchSet(2, methods))
+
+	// Snapshot the ACLs.
+	snap := s.Snapshot()
+	defer snap.Close()
+
+	// Alter the real state store.
+	require.NoError(t, s.ACLAuthMethodDeleteByName(3, "test-1"))
+
+	// Verify the snapshot.
+	require.Equal(t, uint64(2), snap.LastIndex())
+
+	iter, err := snap.ACLAuthMethods()
+	require.NoError(t, err)
+
+	var dump structs.ACLAuthMethods
+	for method := iter.Next(); method != nil; method = iter.Next() {
+		dump = append(dump, method.(*structs.ACLAuthMethod))
+	}
+	require.ElementsMatch(t, dump, methods)
+
+	// Restore the values into a new state store.
+	func() {
+		s := testStateStore(t)
+		restore := s.Restore()
+		for _, method := range dump {
+			require.NoError(t, restore.ACLAuthMethod(method))
+		}
+		restore.Commit()
+
+		// Read the restored methods back out and verify that they match.
+		idx, res, err := s.ACLAuthMethodList(nil)
+		require.NoError(t, err)
+		require.Equal(t, uint64(2), idx)
+		require.ElementsMatch(t, methods, res)
+		require.Equal(t, uint64(2), s.maxIndex("acl-auth-methods"))
+	}()
+}
+
+func TestStateStore_ACLBindingRules_Snapshot_Restore(t *testing.T) {
+	s := testACLStateStore(t)
+	setupExtraAuthMethods(t, s)
+
+	rules := structs.ACLBindingRules{
+		&structs.ACLBindingRule{
+			ID:          "9669b2d7-455c-4d70-b0ac-457fd7969a2e",
+			AuthMethod:  "test",
+			Description: "test-1",
+			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
+		},
+		&structs.ACLBindingRule{
+			ID:          "3ebcc27b-f8ba-4611-b385-79a065dfb983",
+			AuthMethod:  "test",
+			Description: "test-2",
+			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
+		},
+	}
+
+	require.NoError(t, s.ACLBindingRuleBatchSet(2, rules))
+
+	// Snapshot the ACLs.
+	snap := s.Snapshot()
+	defer snap.Close()
+
+	// Alter the real state store.
+	require.NoError(t, s.ACLBindingRuleDeleteByID(3, rules[0].ID))
+
+	// Verify the snapshot.
+	require.Equal(t, uint64(2), snap.LastIndex())
+
+	iter, err := snap.ACLBindingRules()
+	require.NoError(t, err)
+
+	var dump structs.ACLBindingRules
+	for rule := iter.Next(); rule != nil; rule = iter.Next() {
+		dump = append(dump, rule.(*structs.ACLBindingRule))
+	}
+	require.ElementsMatch(t, dump, rules)
+
+	// Restore the values into a new state store.
+	func() {
+		s := testStateStore(t)
+		setupExtraAuthMethods(t, s)
+
+		restore := s.Restore()
+		for _, rule := range dump {
+			require.NoError(t, restore.ACLBindingRule(rule))
+		}
+		restore.Commit()
+
+		// Read the restored rules back out and verify that they match.
+		idx, res, err := s.ACLBindingRuleList(nil, "")
+		require.NoError(t, err)
+		require.Equal(t, uint64(2), idx)
+		require.ElementsMatch(t, rules, res)
+		require.Equal(t, uint64(2), s.maxIndex("acl-binding-rules"))
 	}()
 }
