@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -143,43 +144,6 @@ func decodeConfigBody(req *http.Request) (structs.ConfigEntry, error) {
 	return entry, decoder.Decode(raw)
 }
 
-func decodeConfigEntry(raw map[string]interface{}) (structs.ConfigEntry, error) {
-	var entry structs.ConfigEntry
-
-	kindVal, ok := raw["Kind"]
-	if !ok {
-		kindVal, ok = raw["kind"]
-	}
-	if !ok {
-		return nil, fmt.Errorf("Payload does not contain a kind/Kind key at the top level")
-	}
-
-	if kindStr, ok := kindVal.(string); ok {
-		newEntry, err := structs.MakeConfigEntry(kindStr, "")
-		if err != nil {
-			return nil, err
-		}
-		entry = newEntry
-	} else {
-		return nil, fmt.Errorf("Kind value in payload is not a string")
-	}
-
-	decodeConf := &mapstructure.DecoderConfig{
-		DecodeHook: mapstructure.ComposeDecodeHookFunc(
-			mapstructure.StringToTimeDurationHookFunc(),
-			stringToReadableDurationFunc(),
-		),
-		Result: &entry,
-	}
-
-	decoder, err := mapstructure.NewDecoder(decodeConf)
-	if err != nil {
-		return nil, err
-	}
-
-	return entry, decoder.Decode(raw)
-}
-
 // ConfigCreate applies the given config entry update.
 func (s *HTTPServer) ConfigApply(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	args := structs.ConfigEntryRequest{
@@ -193,10 +157,20 @@ func (s *HTTPServer) ConfigApply(resp http.ResponseWriter, req *http.Request) (i
 		return nil, BadRequestError{Reason: fmt.Sprintf("Request decoding failed: %v", err)}
 	}
 
-	if entry, err := decodeConfigEntry(raw); err == nil {
+	if entry, err := structs.DecodeConfigEntry(raw); err == nil {
 		args.Entry = entry
 	} else {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Request decoding failed: %v", err)}
+	}
+
+	// Check for cas value
+	if casStr := req.URL.Query().Get("cas"); casStr != "" {
+		casVal, err := strconv.ParseUint(casStr, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		args.Op = structs.ConfigEntryUpsertCAS
+		args.Entry.GetRaftIndex().ModifyIndex = casVal
 	}
 
 	var reply struct{}

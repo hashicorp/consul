@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/mitchellh/hashstructure"
+	"github.com/mitchellh/mapstructure"
 )
 
 const (
@@ -160,11 +161,46 @@ func (e *ProxyConfigEntry) GetRaftIndex() *RaftIndex {
 	return &e.RaftIndex
 }
 
+func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
+	var entry ConfigEntry
+
+	kindVal, ok := raw["Kind"]
+	if !ok {
+		kindVal, ok = raw["kind"]
+	}
+	if !ok {
+		return nil, fmt.Errorf("Payload does not contain a kind/Kind key at the top level")
+	}
+
+	if kindStr, ok := kindVal.(string); ok {
+		newEntry, err := MakeConfigEntry(kindStr, "")
+		if err != nil {
+			return nil, err
+		}
+		entry = newEntry
+	} else {
+		return nil, fmt.Errorf("Kind value in payload is not a string")
+	}
+
+	decodeConf := &mapstructure.DecoderConfig{
+		DecodeHook: mapstructure.StringToTimeDurationHookFunc(),
+		Result:     &entry,
+	}
+
+	decoder, err := mapstructure.NewDecoder(decodeConf)
+	if err != nil {
+		return nil, err
+	}
+
+	return entry, decoder.Decode(raw)
+}
+
 type ConfigEntryOp string
 
 const (
-	ConfigEntryUpsert ConfigEntryOp = "upsert"
-	ConfigEntryDelete ConfigEntryOp = "delete"
+	ConfigEntryUpsert    ConfigEntryOp = "upsert"
+	ConfigEntryUpsertCAS ConfigEntryOp = "upsert-cas"
+	ConfigEntryDelete    ConfigEntryOp = "delete"
 )
 
 // ConfigEntryRequest is used when creating/updating/deleting a ConfigEntry.
