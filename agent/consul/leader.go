@@ -265,7 +265,8 @@ func (s *Server) establishLeadership() error {
 		return err
 	}
 
-	if err := s.bootstrapConfigEntries(); err != nil {
+	// attempt to bootstrap config entries
+	if err := s.bootstrapConfigEntries(s.config.ConfigEntryBootstrap); err != nil {
 		return err
 	}
 
@@ -883,25 +884,24 @@ func (s *Server) getOrCreateAutopilotConfig() *autopilot.Config {
 	return config
 }
 
-func (s *Server) bootstrapConfigEntries() error {
+func (s *Server) bootstrapConfigEntries(entries []structs.ConfigEntry) error {
 	if s.config.PrimaryDatacenter != "" && s.config.PrimaryDatacenter != s.config.Datacenter {
 		// only bootstrap in the primary datacenter
 		return nil
 	}
 
-	if len(s.config.ConfigEntryBootstrap) < 1 {
+	if len(entries) < 1 {
 		// nothing to initialize
 		return nil
 	}
 
-	// TODO (mkeeler)- maybe figure out a way to retry this later. Right now it will require leadership change to cause the initialization to happen
 	if !ServersMeetMinimumVersion(s.LANMembers(), minCentralizedConfigVersion) {
 		s.logger.Printf("[WARN] centralized config: can't initialize until all servers >= %s", minCentralizedConfigVersion.String())
 		return nil
 	}
 
 	state := s.fsm.State()
-	for _, entry := range s.config.ConfigEntryBootstrap {
+	for _, entry := range entries {
 		_, existing, err := state.ConfigEntry(nil, entry.GetKind(), entry.GetName())
 		if err != nil {
 			return fmt.Errorf("Failed to determine whether the configuration for %q / %q already exists: %v", entry.GetKind(), entry.GetName(), err)

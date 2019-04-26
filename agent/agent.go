@@ -3618,6 +3618,12 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 		}
 	}
 
+	// this only gets used by the consulConfig function and since
+	// that is only ever done during init and reload here then
+	// an in place modification is safe as reloads cannot be
+	// concurrent due to both gaing a full lock on the stateLock
+	a.config.ConfigEntryBootstrap = newCfg.ConfigEntryBootstrap
+
 	// create the config for the rpc server/client
 	consulCfg, err := a.consulConfig()
 	if err != nil {
