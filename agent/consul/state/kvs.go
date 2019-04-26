@@ -514,7 +514,7 @@ func (s *Store) KVSLock(idx uint64, entry *structs.DirEntry) (bool, error) {
 	return true, nil
 }
 
- // KVSLockInPlace aquires a lock while preserving the existing value
+// KVSLockInPlace aquires a lock while preserving the existing value
 func (s *Store) KVSLockInPlace(idx uint64, entry *structs.DirEntry) (bool, error) {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
