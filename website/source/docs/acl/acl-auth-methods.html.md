@@ -85,6 +85,9 @@ jointly linked to the token created by the login process.
 
 ## Overall Login Process
 
+Applications are responsible for exchanging their auth method specific secret
+bearer token for a Consul ACL Token by using the Login process:
+
 ![diagram of auth method login](/assets/images/auth-methods.svg)
 
 1. Applications use the `consul login` subcommand or the [login API
