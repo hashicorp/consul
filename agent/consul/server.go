@@ -138,6 +138,10 @@ type Server struct {
 	// Consul configuration
 	config *Config
 
+	// configReplicator is used to manage the leaders replication routines for
+	// centralized config
+	configReplicator *Replicator
+
 	// tokens holds ACL tokens initially from the configuration, but can
 	// be updated at runtime, so should always be used instead of going to
 	// the configuration directly.
@@ -343,6 +347,19 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 
 	// Initialize enterprise specific server functionality
 	if err := s.initEnterprise(); err != nil {
+		s.Shutdown()
+		return nil, err
+	}
+
+	configReplicatorConfig := ReplicatorConfig{
+		Name:        "Config Entry",
+		ReplicateFn: s.replicateConfig,
+		Rate:        s.config.ConfigReplicationRate,
+		Burst:       s.config.ConfigReplicationBurst,
+		Logger:      logger,
+	}
+	s.configReplicator, err = NewReplicator(&configReplicatorConfig)
+	if err != nil {
 		s.Shutdown()
 		return nil, err
 	}

@@ -1298,6 +1298,73 @@ func (c *IndexedConfigEntries) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
+type IndexedGenericConfigEntries struct {
+	Entries []ConfigEntry
+	QueryMeta
+}
+
+func (c *IndexedGenericConfigEntries) MarshalBinary() (data []byte, err error) {
+	// bs will grow if needed but allocate enough to avoid reallocation in common
+	// case.
+	bs := make([]byte, 128)
+	enc := codec.NewEncoderBytes(&bs, msgpackHandle)
+
+	if err := enc.Encode(len(c.Entries)); err != nil {
+		return nil, err
+	}
+
+	for _, entry := range c.Entries {
+		if err := enc.Encode(entry.GetKind()); err != nil {
+			return nil, err
+		}
+		if err := enc.Encode(entry); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := enc.Encode(c.QueryMeta); err != nil {
+		return nil, err
+	}
+
+	return bs, nil
+}
+
+func (c *IndexedGenericConfigEntries) UnmarshalBinary(data []byte) error {
+	// First decode the number of entries.
+	var numEntries int
+	dec := codec.NewDecoderBytes(data, msgpackHandle)
+	if err := dec.Decode(&numEntries); err != nil {
+		return err
+	}
+
+	// Then decode the slice of ConfigEntries
+	c.Entries = make([]ConfigEntry, numEntries)
+	for i := 0; i < numEntries; i++ {
+		var kind string
+		if err := dec.Decode(&kind); err != nil {
+			return err
+		}
+
+		entry, err := MakeConfigEntry(kind, "")
+		if err != nil {
+			return err
+		}
+
+		if err := dec.Decode(entry); err != nil {
+			return err
+		}
+
+		c.Entries[i] = entry
+	}
+
+	if err := dec.Decode(&c.QueryMeta); err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
 // DirEntry is used to represent a directory entry. This is
 // used for values in our Key-Value store.
 type DirEntry struct {

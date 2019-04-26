@@ -321,6 +321,20 @@ type Config struct {
 	// user events. This function should not block.
 	UserEventHandler func(serf.UserEvent)
 
+	// ConfigReplicationRate is the max number of replication rounds that can
+	// be run per second. Note that either 1 or 2 RPCs are used during each replication
+	// round
+	ConfigReplicationRate int
+
+	// ConfigReplicationBurst is how many replication rounds can be bursted after a
+	// period of idleness
+	ConfigReplicationBurst int
+
+	// ConfigReplicationApply limit is the max number of replication-related
+	// apply operations that we allow during a one second period. This is
+	// used to limit the amount of Raft bandwidth used for replication.
+	ConfigReplicationApplyLimit int
+
 	// CoordinateUpdatePeriod controls how long a server batches coordinate
 	// updates before applying them in a Raft transaction. A larger period
 	// leads to fewer Raft transactions, but also the stored coordinates
@@ -432,26 +446,29 @@ func DefaultConfig() *Config {
 	}
 
 	conf := &Config{
-		Build:                    version.Version,
-		Datacenter:               DefaultDC,
-		NodeName:                 hostname,
-		RPCAddr:                  DefaultRPCAddr,
-		RaftConfig:               raft.DefaultConfig(),
-		SerfLANConfig:            lib.SerfDefaultConfig(),
-		SerfWANConfig:            lib.SerfDefaultConfig(),
-		SerfFloodInterval:        60 * time.Second,
-		ReconcileInterval:        60 * time.Second,
-		ProtocolVersion:          ProtocolVersion2Compatible,
-		ACLPolicyTTL:             30 * time.Second,
-		ACLTokenTTL:              30 * time.Second,
-		ACLDefaultPolicy:         "allow",
-		ACLDownPolicy:            "extend-cache",
-		ACLReplicationRate:       1,
-		ACLReplicationBurst:      5,
-		ACLReplicationApplyLimit: 100, // ops / sec
-		TombstoneTTL:             15 * time.Minute,
-		TombstoneTTLGranularity:  30 * time.Second,
-		SessionTTLMin:            10 * time.Second,
+		Build:                       version.Version,
+		Datacenter:                  DefaultDC,
+		NodeName:                    hostname,
+		RPCAddr:                     DefaultRPCAddr,
+		RaftConfig:                  raft.DefaultConfig(),
+		SerfLANConfig:               lib.SerfDefaultConfig(),
+		SerfWANConfig:               lib.SerfDefaultConfig(),
+		SerfFloodInterval:           60 * time.Second,
+		ReconcileInterval:           60 * time.Second,
+		ProtocolVersion:             ProtocolVersion2Compatible,
+		ACLPolicyTTL:                30 * time.Second,
+		ACLTokenTTL:                 30 * time.Second,
+		ACLDefaultPolicy:            "allow",
+		ACLDownPolicy:               "extend-cache",
+		ACLReplicationRate:          1,
+		ACLReplicationBurst:         5,
+		ACLReplicationApplyLimit:    100, // ops / sec
+		ConfigReplicationRate:       1,
+		ConfigReplicationBurst:      5,
+		ConfigReplicationApplyLimit: 100, // ops / sec
+		TombstoneTTL:                15 * time.Minute,
+		TombstoneTTLGranularity:     30 * time.Second,
+		SessionTTLMin:               10 * time.Second,
 
 		// These are tuned to provide a total throughput of 128 updates
 		// per second. If you update these, you should update the client-

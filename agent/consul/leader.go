@@ -269,6 +269,8 @@ func (s *Server) establishLeadership() error {
 		return err
 	}
 
+	s.startConfigReplication()
+
 	s.startEnterpriseLeader()
 
 	s.startCARootPruning()
@@ -288,6 +290,8 @@ func (s *Server) revokeLeadership() error {
 	if err := s.clearAllSessionTimers(); err != nil {
 		return err
 	}
+
+	s.stopConfigReplication()
 
 	s.stopEnterpriseLeader()
 
@@ -846,6 +850,20 @@ func (s *Server) stopACLReplication() {
 	s.aclReplicationCancel = nil
 	s.updateACLReplicationStatusStopped()
 	s.aclReplicationEnabled = false
+}
+
+func (s *Server) startConfigReplication() {
+	if s.config.PrimaryDatacenter == "" || s.config.PrimaryDatacenter == s.config.Datacenter {
+		// replication shouldn't run in the primary DC
+		return
+	}
+
+	s.configReplicator.Start()
+}
+
+func (s *Server) stopConfigReplication() {
+	// will be a no-op when not started
+	s.configReplicator.Stop()
 }
 
 // getOrCreateAutopilotConfig is used to get the autopilot config, initializing it if necessary
