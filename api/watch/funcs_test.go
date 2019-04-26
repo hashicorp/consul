@@ -430,9 +430,8 @@ func TestServiceWatch(t *testing.T) {
 
 func TestServiceMultipleTagsWatch(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
-	defer a.Shutdown()
-	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	c, s := makeClient(t)
+	defer s.Stop()
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"service", "service":"foo", "tag":["bar","buzz"], "passingonly":true}`)
@@ -440,7 +439,7 @@ func TestServiceMultipleTagsWatch(t *testing.T) {
 		if raw == nil {
 			return // ignore
 		}
-		v, ok := raw.([]*consulapi.ServiceEntry)
+		v, ok := raw.([]*api.ServiceEntry)
 		if !ok || len(v) == 0 {
 			return // ignore
 		}
@@ -474,11 +473,11 @@ func TestServiceMultipleTagsWatch(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		agent := a.Client().Agent()
+		agent := c.Agent()
 
 		// we do not want to find this one.
 		time.Sleep(20 * time.Millisecond)
-		reg := &consulapi.AgentServiceRegistration{
+		reg := &api.AgentServiceRegistration{
 			ID:   "foobarbiff",
 			Name: "foo",
 			Tags: []string{"bar", "biff"},
@@ -488,7 +487,7 @@ func TestServiceMultipleTagsWatch(t *testing.T) {
 		}
 
 		// we do not want to find this one.
-		reg = &consulapi.AgentServiceRegistration{
+		reg = &api.AgentServiceRegistration{
 			ID:   "foobuzzbiff",
 			Name: "foo",
 			Tags: []string{"buzz", "biff"},
@@ -498,7 +497,7 @@ func TestServiceMultipleTagsWatch(t *testing.T) {
 		}
 
 		// we want to find this one
-		reg = &consulapi.AgentServiceRegistration{
+		reg = &api.AgentServiceRegistration{
 			ID:   "foobarbuzzbiff",
 			Name: "foo",
 			Tags: []string{"bar", "buzz", "biff"},
@@ -511,7 +510,7 @@ func TestServiceMultipleTagsWatch(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := plan.Run(a.HTTPAddr()); err != nil {
+		if err := plan.Run(s.HTTPAddr); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}()
