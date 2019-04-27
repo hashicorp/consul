@@ -185,12 +185,7 @@ func (b *Builder) ReadPath(path string) ([]Source, error) {
 			continue
 		}
 
-		configFormat := b.stringVal(b.Flags.ConfigFormat)
-		srcFormat := FormatFrom(fp)
-
-		// If config-format is not set, only read files with supported extensions
-		// If config-format is set, files of any extension will be interpreted in that format
-		if srcFormat == "json" || srcFormat == "hcl" || configFormat != "" {
+		if b.shouldParseFile(fp) {
 			src, err := b.ReadFile(fp)
 			if err != nil {
 				return nil, err
@@ -209,6 +204,19 @@ func (b *Builder) ReadFile(path string) (Source, error) {
 		return Source{}, fmt.Errorf("config: ReadFile failed on %s: %s", path, err)
 	}
 	return Source{Name: path, Data: string(data)}, nil
+}
+
+// shouldParse file determines whether the file to be read is of a supported extension
+func (b *Builder) shouldParseFile(path string) bool {
+	configFormat := b.stringVal(b.Flags.ConfigFormat)
+	srcFormat := FormatFrom(path)
+
+	// If config-format is not set, only read files with supported extensions
+	if configFormat == "" && srcFormat != "hcl" && srcFormat != "json" {
+		return false
+	}
+	fmt.Println(">>> true", configFormat, srcFormat)
+	return true
 }
 
 type byName []os.FileInfo
@@ -250,23 +258,15 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	var srcs []Source
 	srcs = append(srcs, b.Head...)
 	for _, src := range b.Sources {
+		// skip file if it should not be parsed
+		if !b.shouldParseFile(src.Name) {
+			continue
+		}
+
+		// if config-format is set, files of any extension will be interpreted in that format
 		src.Format = FormatFrom(src.Name)
 		if configFormat != "" {
 			src.Format = configFormat
-		} else {
-			// If they haven't forced things to a specific format,
-			// then skip anything we don't understand, which is the
-			// behavior before we added the -config-format option.
-			switch src.Format {
-			case "json", "hcl":
-				// OK
-			default:
-				// SKIP
-				continue
-			}
-		}
-		if src.Format == "" {
-			return RuntimeConfig{}, fmt.Errorf(`config: Missing or invalid file extension for %q. Please use ".json" or ".hcl".`, src.Name)
 		}
 		srcs = append(srcs, src)
 	}
