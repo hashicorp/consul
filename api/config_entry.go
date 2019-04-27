@@ -17,6 +17,11 @@ type ConfigEntry interface {
 	GetName() string
 }
 
+type ConfigEntryList struct {
+	Kind string
+	Entries []ConfigEntry
+}
+
 type ConnectConfiguration struct {
 	SidecarProxy bool
 }
@@ -119,7 +124,7 @@ func (conf *ConfigEntries) ConfigEntryGet(kind string, name string, q *QueryOpti
 	if kind == "" || name == "" {
 		return nil, nil, fmt.Errorf("Both kind and name parameters must not be empty")
 	}
-
+	
 	entry, err := makeConfigEntry(kind, name)
 	if err != nil {
 		return nil, nil, err
@@ -138,7 +143,7 @@ func (conf *ConfigEntries) ConfigEntryGet(kind string, name string, q *QueryOpti
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
 
-	if err := decodeBody(resp, &entry); err != nil {
+	if err := decodeBody(resp, entry); err != nil {
 		return nil, nil, err
 	}
 
@@ -194,7 +199,7 @@ func (conf *ConfigEntries) ConfigEntrySet(entry ConfigEntry, w *WriteOptions) (*
 	return wm, nil
 }
 
-func (conf *ConfigEntries) ConfigDelete(kind string, name string, w *WriteOptions) (*WriteMeta, error) {
+func (conf *ConfigEntries) ConfigEntryDelete(kind string, name string, w *WriteOptions) (*WriteMeta, error) {
 	if kind == "" || name == "" {
 		return nil, fmt.Errorf("Both kind and name parameters must not be empty")
 	}
