@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -20,7 +19,7 @@ func TestAPI_ConfigEntry(t *testing.T) {
 			Name: ProxyConfigGlobal,
 			Config: map[string]interface{}{
 				"foo": "bar",
-				"bar": 1,
+				"bar": 1.0,
 			},
 		}
 
@@ -39,7 +38,6 @@ func TestAPI_ConfigEntry(t *testing.T) {
 		// verify it
 		readProxy, ok := entry.(*ProxyConfigEntry)
 		require.True(t, ok)
-		fmt.Printf("\n\nreadProxy: %#v\n\n", readProxy)
 		require.Equal(t, global_proxy.Kind, readProxy.Kind)
 		require.Equal(t, global_proxy.Name, readProxy.Name)
 		require.Equal(t, global_proxy.Config, readProxy.Config)
@@ -70,11 +68,7 @@ func TestAPI_ConfigEntry(t *testing.T) {
 		require.NotEqual(t, 0, wm.RequestTime)
 
 		entry, qm, err = config.ConfigEntryGet(ProxyDefaults, ProxyConfigGlobal, nil)
-		require.NoError(t, err)
-		require.NotNil(t, qm)
-		require.NotEqual(t, 0, qm.RequestTime)
-		require.Nil(t, entry)
-
+		require.Error(t, err)
 	})
 
 	t.Run("Service Defaults", func(t *testing.T) {
@@ -108,19 +102,19 @@ func TestAPI_ConfigEntry(t *testing.T) {
 		require.NotNil(t, qm)
 		require.NotEqual(t, 0, qm.RequestTime)
 
-		// update it
-		service.Protocol = "tcp"
-		wm, err = config.ConfigEntrySet(service, nil)
-		require.NoError(t, err)
-		require.NotNil(t, wm)
-		require.NotEqual(t, 0, wm.RequestTime)
-
 		// verify it
 		readService, ok := entry.(*ServiceConfigEntry)
 		require.True(t, ok)
 		require.Equal(t, service.Kind, readService.Kind)
 		require.Equal(t, service.Name, readService.Name)
 		require.Equal(t, service.Protocol, readService.Protocol)
+
+		// update it
+		service.Protocol = "tcp"
+		wm, err = config.ConfigEntrySet(service, nil)
+		require.NoError(t, err)
+		require.NotNil(t, wm)
+		require.NotEqual(t, 0, wm.RequestTime)
 
 		// list them
 		entries, qm, err := config.ConfigEntryList(ServiceDefaults, nil)
@@ -147,9 +141,6 @@ func TestAPI_ConfigEntry(t *testing.T) {
 
 		// verify deletion
 		entry, qm, err = config.ConfigEntryGet(ServiceDefaults, "foo", nil)
-		require.NoError(t, err)
-		require.NotNil(t, qm)
-		require.NotEqual(t, 0, qm.RequestTime)
-		require.Nil(t, entry)
+		require.Error(t, err)
 	})
 }

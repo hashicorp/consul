@@ -17,11 +17,6 @@ type ConfigEntry interface {
 	GetName() string
 }
 
-type ConfigEntryList struct {
-	Kind string
-	Entries []ConfigEntry
-}
-
 type ConnectConfiguration struct {
 	SidecarProxy bool
 }
@@ -168,13 +163,13 @@ func (conf *ConfigEntries) ConfigEntryList(kind string, q *QueryOptions) ([]Conf
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
 
-	var raw rawEntryListResponse
+	var raw []map[string]interface{}
 	if err := decodeBody(resp, &raw); err != nil {
 		return nil, nil, err
 	}
 
 	var entries []ConfigEntry
-	for _, rawEntry := range raw.Entries {
+	for _, rawEntry := range raw {
 		entry, err := DecodeConfigEntry(rawEntry)
 		if err != nil {
 			return nil, nil, err

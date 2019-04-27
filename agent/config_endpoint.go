@@ -46,6 +46,10 @@ func (s *HTTPServer) configGet(resp http.ResponseWriter, req *http.Request) (int
 			return nil, err
 		}
 
+		if reply.Entry == nil {
+			return nil, fmt.Errorf("Config entry not found for %q / %q", pathArgs[0], pathArgs[1])
+		}
+
 		return reply.Entry, nil
 	case 1:
 		// Only kind provided, list entries.
