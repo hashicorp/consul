@@ -153,10 +153,10 @@ func TestConfigEntry_Get(t *testing.T) {
 		Name:       "foo",
 		Datacenter: s1.config.Datacenter,
 	}
-	var out structs.IndexedConfigEntries
+	var out structs.ConfigEntryResponse
 	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.Get", &args, &out))
 
-	serviceConf, ok := out.Entries[0].(*structs.ServiceConfigEntry)
+	serviceConf, ok := out.Entry.(*structs.ServiceConfigEntry)
 	require.True(ok)
 	require.Equal("foo", serviceConf.Name)
 	require.Equal(structs.ServiceDefaults, serviceConf.Kind)
@@ -218,7 +218,7 @@ operator = "read"
 		Datacenter:   s1.config.Datacenter,
 		QueryOptions: structs.QueryOptions{Token: id},
 	}
-	var out structs.IndexedConfigEntries
+	var out structs.ConfigEntryResponse
 	err := msgpackrpc.CallWithCodec(codec, "ConfigEntry.Get", &args, &out)
 	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
@@ -228,7 +228,7 @@ operator = "read"
 	args.Name = "foo"
 	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.Get", &args, &out))
 
-	serviceConf, ok := out.Entries[0].(*structs.ServiceConfigEntry)
+	serviceConf, ok := out.Entry.(*structs.ServiceConfigEntry)
 	require.True(ok)
 	require.Equal("foo", serviceConf.Name)
 	require.Equal(structs.ServiceDefaults, serviceConf.Kind)

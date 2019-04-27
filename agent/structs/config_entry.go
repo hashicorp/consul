@@ -334,3 +334,53 @@ type ServiceConfigResponse struct {
 
 	QueryMeta
 }
+
+// ConfigEntryResponse returns a single ConfigEntry
+type ConfigEntryResponse struct {
+	Entry ConfigEntry
+	QueryMeta
+}
+
+func (c *ConfigEntryResponse) MarshalBinary() (data []byte, err error) {
+	// bs will grow if needed but allocate enough to avoid reallocation in common
+	// case.
+	bs := make([]byte, 128)
+	enc := codec.NewEncoderBytes(&bs, msgpackHandle)
+
+	if err := enc.Encode(c.Entry.GetKind()); err != nil {
+		return nil, err
+	}
+	if err := enc.Encode(c.Entry); err != nil {
+		return nil, err
+	}
+	if err := enc.Encode(c.QueryMeta); err != nil {
+		return nil, err
+	}
+
+	return bs, nil
+}
+
+func (c *ConfigEntryResponse) UnmarshalBinary(data []byte) error {
+	dec := codec.NewDecoderBytes(data, msgpackHandle)
+
+	var kind string
+	if err := dec.Decode(&kind); err != nil {
+		return err
+	}
+
+	entry, err := MakeConfigEntry(kind, "")
+	if err != nil {
+		return err
+	}
+
+	if err := dec.Decode(entry); err != nil {
+		return err
+	}
+	c.Entry = entry
+
+	if err := dec.Decode(&c.QueryMeta); err != nil {
+		return err
+	}
+
+	return nil
+}

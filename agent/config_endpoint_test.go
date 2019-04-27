@@ -47,10 +47,9 @@ func TestConfig_Get(t *testing.T) {
 		obj, err := a.srv.Config(resp, req)
 		require.NoError(err)
 
-		value := obj.(structs.IndexedConfigEntries)
-		require.Equal(structs.ServiceDefaults, value.Kind)
-		require.Len(value.Entries, 1)
-		entry := value.Entries[0].(*structs.ServiceConfigEntry)
+		value := obj.(structs.ConfigEntry)
+		require.Equal(structs.ServiceDefaults, value.GetKind())
+		entry := value.(*structs.ServiceConfigEntry)
 		require.Equal(entry.Name, "foo")
 	})
 	t.Run("list both service entries", func(t *testing.T) {
@@ -59,11 +58,10 @@ func TestConfig_Get(t *testing.T) {
 		obj, err := a.srv.Config(resp, req)
 		require.NoError(err)
 
-		value := obj.(structs.IndexedConfigEntries)
-		require.Equal(structs.ServiceDefaults, value.Kind)
-		require.Len(value.Entries, 2)
-		require.Equal(value.Entries[0].(*structs.ServiceConfigEntry).Name, "bar")
-		require.Equal(value.Entries[1].(*structs.ServiceConfigEntry).Name, "foo")
+		value := obj.([]structs.ConfigEntry)
+		require.Len(value, 2)
+		require.Equal(value[0].(*structs.ServiceConfigEntry).Name, "bar")
+		require.Equal(value[1].(*structs.ServiceConfigEntry).Name, "foo")
 	})
 	t.Run("error on no arguments", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/config/", nil)
@@ -154,11 +152,10 @@ func TestConfig_Apply(t *testing.T) {
 			Name:       "foo",
 			Datacenter: "dc1",
 		}
-		var out structs.IndexedConfigEntries
+		var out structs.ConfigEntryResponse
 		require.NoError(a.RPC("ConfigEntry.Get", &args, &out))
-		require.Equal(structs.ServiceDefaults, out.Kind)
-		require.Len(out.Entries, 1)
-		entry := out.Entries[0].(*structs.ServiceConfigEntry)
+		require.NotNil(out.Entry)
+		entry := out.Entry.(*structs.ServiceConfigEntry)
 		require.Equal(entry.Name, "foo")
 	}
 }
@@ -194,11 +191,10 @@ func TestConfig_Apply_CAS(t *testing.T) {
 		Datacenter: "dc1",
 	}
 
-	out := &structs.IndexedConfigEntries{}
+	out := &structs.ConfigEntryResponse{}
 	require.NoError(a.RPC("ConfigEntry.Get", &args, out))
-	require.Equal(structs.ServiceDefaults, out.Kind)
-	require.Len(out.Entries, 1)
-	entry := out.Entries[0].(*structs.ServiceConfigEntry)
+	require.NotNil(out.Entry)
+	entry := out.Entry.(*structs.ServiceConfigEntry)
 
 	req, _ = http.NewRequest("PUT", "/v1/config?cas=0", body)
 	resp = httptest.NewRecorder()
@@ -227,11 +223,10 @@ func TestConfig_Apply_CAS(t *testing.T) {
 		Datacenter: "dc1",
 	}
 
-	out = &structs.IndexedConfigEntries{}
+	out = &structs.ConfigEntryResponse{}
 	require.NoError(a.RPC("ConfigEntry.Get", &args, out))
-	require.Equal(structs.ServiceDefaults, out.Kind)
-	require.Len(out.Entries, 1)
-	newEntry := out.Entries[0].(*structs.ServiceConfigEntry)
+	require.NotNil(out.Entry)
+	newEntry := out.Entry.(*structs.ServiceConfigEntry)
 	require.NotEqual(entry.GetRaftIndex(), newEntry.GetRaftIndex())
 }
 
@@ -298,11 +293,10 @@ func TestConfig_Apply_Decoding(t *testing.T) {
 				Name:       "foo",
 				Datacenter: "dc1",
 			}
-			var out structs.IndexedConfigEntries
+			var out structs.ConfigEntryResponse
 			require.NoError(t, a.RPC("ConfigEntry.Get", &args, &out))
-			require.Equal(t, structs.ServiceDefaults, out.Kind)
-			require.Len(t, out.Entries, 1)
-			entry := out.Entries[0].(*structs.ServiceConfigEntry)
+			require.NotNil(t, out.Entry)
+			entry := out.Entry.(*structs.ServiceConfigEntry)
 			require.Equal(t, entry.Name, "foo")
 		}
 	})

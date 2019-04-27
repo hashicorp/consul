@@ -41,12 +41,12 @@ func (s *HTTPServer) configGet(resp http.ResponseWriter, req *http.Request) (int
 		args.Kind = pathArgs[0]
 		args.Name = pathArgs[1]
 
-		var reply structs.IndexedConfigEntries
+		var reply structs.ConfigEntryResponse
 		if err := s.agent.RPC("ConfigEntry.Get", &args, &reply); err != nil {
 			return nil, err
 		}
 
-		return reply, nil
+		return reply.Entry, nil
 	case 1:
 		// Only kind provided, list entries.
 		args.Kind = pathArgs[0]
@@ -56,7 +56,7 @@ func (s *HTTPServer) configGet(resp http.ResponseWriter, req *http.Request) (int
 			return nil, err
 		}
 
-		return reply, nil
+		return reply.Entries, nil
 	default:
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Must provide either a kind or both kind and name")
