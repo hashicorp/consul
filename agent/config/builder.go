@@ -633,6 +633,22 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		verifyOutgoing = true
 	}
 
+	var configEntries []structs.ConfigEntry
+
+	if len(c.ConfigEntries.Bootstrap.ProxyDefaults) > 0 {
+		for name, config := range c.ConfigEntries.Bootstrap.ProxyDefaults {
+			if name != structs.ProxyConfigGlobal {
+				return RuntimeConfig{}, fmt.Errorf("invalid config.proxy_defaults name (%q), only %q is supported", name, structs.ProxyConfigGlobal)
+			}
+
+			configEntries = append(configEntries, &structs.ProxyConfigEntry{
+				Kind:   structs.ProxyDefaults,
+				Name:   structs.ProxyConfigGlobal,
+				Config: config,
+			})
+		}
+	}
+
 	// ----------------------------------------------------------------
 	// build runtime config
 	//
@@ -686,6 +702,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		ACLReplicationToken:       b.stringValWithDefault(c.ACL.Tokens.Replication, b.stringVal(c.ACLReplicationToken)),
 		ACLTokenTTL:               b.durationValWithDefault("acl.token_ttl", c.ACL.TokenTTL, b.durationVal("acl_ttl", c.ACLTTL)),
 		ACLPolicyTTL:              b.durationVal("acl.policy_ttl", c.ACL.PolicyTTL),
+		ACLRoleTTL:                b.durationVal("acl.role_ttl", c.ACL.RoleTTL),
 		ACLToken:                  b.stringValWithDefault(c.ACL.Tokens.Default, b.stringVal(c.ACLToken)),
 		ACLTokenReplication:       b.boolValWithDefault(c.ACL.TokenReplication, b.boolValWithDefault(c.EnableACLReplication, enableTokenReplication)),
 		ACLEnableTokenPersistence: b.boolValWithDefault(c.ACL.EnableTokenPersistence, false),
@@ -767,6 +784,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		CheckUpdateInterval:                     b.durationVal("check_update_interval", c.CheckUpdateInterval),
 		Checks:                                  checks,
 		ClientAddrs:                             clientAddrs,
+		ConfigEntryBootstrap:                    configEntries,
 		ConnectEnabled:                          connectEnabled,
 		ConnectCAProvider:                       connectCAProvider,
 		ConnectCAConfig:                         connectCAConfig,

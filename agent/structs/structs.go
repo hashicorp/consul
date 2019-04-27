@@ -33,29 +33,35 @@ type RaftIndex struct {
 // These are serialized between Consul servers and stored in Consul snapshots,
 // so entries must only ever be added.
 const (
-	RegisterRequestType        MessageType = 0
-	DeregisterRequestType                  = 1
-	KVSRequestType                         = 2
-	SessionRequestType                     = 3
-	ACLRequestType                         = 4 // DEPRECATED (ACL-Legacy-Compat)
-	TombstoneRequestType                   = 5
-	CoordinateBatchUpdateType              = 6
-	PreparedQueryRequestType               = 7
-	TxnRequestType                         = 8
-	AutopilotRequestType                   = 9
-	AreaRequestType                        = 10
-	ACLBootstrapRequestType                = 11
-	IntentionRequestType                   = 12
-	ConnectCARequestType                   = 13
-	ConnectCAProviderStateType             = 14
-	ConnectCAConfigType                    = 15 // FSM snapshots only.
-	IndexRequestType                       = 16 // FSM snapshots only.
-	ACLTokenSetRequestType                 = 17
-	ACLTokenDeleteRequestType              = 18
-	ACLPolicySetRequestType                = 19
-	ACLPolicyDeleteRequestType             = 20
-	ConnectCALeafRequestType               = 21
-	ConfigEntryRequestType                 = 22
+	RegisterRequestType             MessageType = 0
+	DeregisterRequestType                       = 1
+	KVSRequestType                              = 2
+	SessionRequestType                          = 3
+	ACLRequestType                              = 4 // DEPRECATED (ACL-Legacy-Compat)
+	TombstoneRequestType                        = 5
+	CoordinateBatchUpdateType                   = 6
+	PreparedQueryRequestType                    = 7
+	TxnRequestType                              = 8
+	AutopilotRequestType                        = 9
+	AreaRequestType                             = 10
+	ACLBootstrapRequestType                     = 11
+	IntentionRequestType                        = 12
+	ConnectCARequestType                        = 13
+	ConnectCAProviderStateType                  = 14
+	ConnectCAConfigType                         = 15 // FSM snapshots only.
+	IndexRequestType                            = 16 // FSM snapshots only.
+	ACLTokenSetRequestType                      = 17
+	ACLTokenDeleteRequestType                   = 18
+	ACLPolicySetRequestType                     = 19
+	ACLPolicyDeleteRequestType                  = 20
+	ConnectCALeafRequestType                    = 21
+	ConfigEntryRequestType                      = 22
+	ACLRoleSetRequestType                       = 23
+	ACLRoleDeleteRequestType                    = 24
+	ACLBindingRuleSetRequestType                = 25
+	ACLBindingRuleDeleteRequestType             = 26
+	ACLAuthMethodSetRequestType                 = 27
+	ACLAuthMethodDeleteRequestType              = 28
 )
 
 const (
@@ -1296,6 +1302,73 @@ func (c *IndexedConfigEntries) UnmarshalBinary(data []byte) error {
 		return err
 	}
 	return nil
+}
+
+type IndexedGenericConfigEntries struct {
+	Entries []ConfigEntry
+	QueryMeta
+}
+
+func (c *IndexedGenericConfigEntries) MarshalBinary() (data []byte, err error) {
+	// bs will grow if needed but allocate enough to avoid reallocation in common
+	// case.
+	bs := make([]byte, 128)
+	enc := codec.NewEncoderBytes(&bs, msgpackHandle)
+
+	if err := enc.Encode(len(c.Entries)); err != nil {
+		return nil, err
+	}
+
+	for _, entry := range c.Entries {
+		if err := enc.Encode(entry.GetKind()); err != nil {
+			return nil, err
+		}
+		if err := enc.Encode(entry); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := enc.Encode(c.QueryMeta); err != nil {
+		return nil, err
+	}
+
+	return bs, nil
+}
+
+func (c *IndexedGenericConfigEntries) UnmarshalBinary(data []byte) error {
+	// First decode the number of entries.
+	var numEntries int
+	dec := codec.NewDecoderBytes(data, msgpackHandle)
+	if err := dec.Decode(&numEntries); err != nil {
+		return err
+	}
+
+	// Then decode the slice of ConfigEntries
+	c.Entries = make([]ConfigEntry, numEntries)
+	for i := 0; i < numEntries; i++ {
+		var kind string
+		if err := dec.Decode(&kind); err != nil {
+			return err
+		}
+
+		entry, err := MakeConfigEntry(kind, "")
+		if err != nil {
+			return err
+		}
+
+		if err := dec.Decode(entry); err != nil {
+			return err
+		}
+
+		c.Entries[i] = entry
+	}
+
+	if err := dec.Decode(&c.QueryMeta); err != nil {
+		return err
+	}
+
+	return nil
+
 }
 
 // DirEntry is used to represent a directory entry. This is

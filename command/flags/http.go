@@ -2,6 +2,8 @@ package flags
 
 import (
 	"flag"
+	"io/ioutil"
+	"strings"
 
 	"github.com/hashicorp/consul/api"
 )
@@ -10,6 +12,7 @@ type HTTPFlags struct {
 	// client api flags
 	address       StringValue
 	token         StringValue
+	tokenFile     StringValue
 	caFile        StringValue
 	caPath        StringValue
 	certFile      StringValue
@@ -33,6 +36,10 @@ func (f *HTTPFlags) ClientFlags() *flag.FlagSet {
 		"ACL token to use in the request. This can also be specified via the "+
 			"CONSUL_HTTP_TOKEN environment variable. If unspecified, the query will "+
 			"default to the token of the Consul agent at the HTTP address.")
+	fs.Var(&f.tokenFile, "token-file",
+		"File containing the ACL token to use in the request instead of one specified "+
+			"via the -token argument or CONSUL_HTTP_TOKEN environment variable. "+
+			"This can also be specified via the CONSUL_HTTP_TOKEN_FILE environment variable.")
 	fs.Var(&f.caFile, "ca-file",
 		"Path to a CA file to use for TLS when communicating with Consul. This "+
 			"can also be specified via the CONSUL_CACERT environment variable.")
@@ -88,6 +95,28 @@ func (f *HTTPFlags) SetToken(v string) error {
 	return f.token.Set(v)
 }
 
+func (f *HTTPFlags) TokenFile() string {
+	return f.tokenFile.String()
+}
+
+func (f *HTTPFlags) SetTokenFile(v string) error {
+	return f.tokenFile.Set(v)
+}
+
+func (f *HTTPFlags) ReadTokenFile() (string, error) {
+	tokenFile := f.tokenFile.String()
+	if tokenFile == "" {
+		return "", nil
+	}
+
+	data, err := ioutil.ReadFile(tokenFile)
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(string(data)), nil
+}
+
 func (f *HTTPFlags) APIClient() (*api.Client, error) {
 	c := api.DefaultConfig()
 
@@ -99,6 +128,7 @@ func (f *HTTPFlags) APIClient() (*api.Client, error) {
 func (f *HTTPFlags) MergeOntoConfig(c *api.Config) {
 	f.address.Merge(&c.Address)
 	f.token.Merge(&c.Token)
+	f.tokenFile.Merge(&c.TokenFile)
 	f.caFile.Merge(&c.TLSConfig.CAFile)
 	f.caPath.Merge(&c.TLSConfig.CAPath)
 	f.certFile.Merge(&c.TLSConfig.CertFile)

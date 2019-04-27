@@ -8,7 +8,6 @@ go:
 branches:
   only:
     - master
-    - f-acl-ux
 
 matrix:
   include:

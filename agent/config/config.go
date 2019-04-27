@@ -184,6 +184,7 @@ type Config struct {
 	CheckUpdateInterval              *string                  `json:"check_update_interval,omitempty" hcl:"check_update_interval" mapstructure:"check_update_interval"`
 	Checks                           []CheckDefinition        `json:"checks,omitempty" hcl:"checks" mapstructure:"checks"`
 	ClientAddr                       *string                  `json:"client_addr,omitempty" hcl:"client_addr" mapstructure:"client_addr"`
+	ConfigEntries                    ConfigEntries            `json:"config_entries,omitempty" hcl:"config_entries" mapstructure:"config_entries"`
 	Connect                          Connect                  `json:"connect,omitempty" hcl:"connect" mapstructure:"connect"`
 	DNS                              DNS                      `json:"dns_config,omitempty" hcl:"dns_config" mapstructure:"dns_config"`
 	DNSDomain                        *string                  `json:"domain,omitempty" hcl:"domain" mapstructure:"domain"`
@@ -634,6 +635,7 @@ type ACL struct {
 	Enabled                *bool   `json:"enabled,omitempty" hcl:"enabled" mapstructure:"enabled"`
 	TokenReplication       *bool   `json:"enable_token_replication,omitempty" hcl:"enable_token_replication" mapstructure:"enable_token_replication"`
 	PolicyTTL              *string `json:"policy_ttl,omitempty" hcl:"policy_ttl" mapstructure:"policy_ttl"`
+	RoleTTL                *string `json:"role_ttl,omitempty" hcl:"role_ttl" mapstructure:"role_ttl"`
 	TokenTTL               *string `json:"token_ttl,omitempty" hcl:"token_ttl" mapstructure:"token_ttl"`
 	DownPolicy             *string `json:"down_policy,omitempty" hcl:"down_policy" mapstructure:"down_policy"`
 	DefaultPolicy          *string `json:"default_policy,omitempty" hcl:"default_policy" mapstructure:"default_policy"`
@@ -649,4 +651,12 @@ type Tokens struct {
 	AgentMaster *string `json:"agent_master,omitempty" hcl:"agent_master" mapstructure:"agent_master"`
 	Default     *string `json:"default,omitempty" hcl:"default" mapstructure:"default"`
 	Agent       *string `json:"agent,omitempty" hcl:"agent" mapstructure:"agent"`
+}
+
+type ConfigEntries struct {
+	Bootstrap ConfigEntriesBootstrap `json:"bootstrap,omitempty" hcl:"bootstrap" mapstructure:"bootstrap"`
+}
+
+type ConfigEntriesBootstrap struct {
+	ProxyDefaults map[string]map[string]interface{} `json:"proxy_defaults,omitempty" hcl:"proxy_defaults" mapstructure:"proxy_defaults"`
 }

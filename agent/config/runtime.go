@@ -155,6 +155,12 @@ type RuntimeConfig struct {
 	// hcl: acl.token_ttl = "duration"
 	ACLPolicyTTL time.Duration
 
+	// ACLRoleTTL is used to control the time-to-live of cached ACL roles. This has
+	// a major impact on performance. By default, it is set to 30 seconds.
+	//
+	// hcl: acl.role_ttl = "duration"
+	ACLRoleTTL time.Duration
+
 	// ACLToken is the default token used to make requests if a per-request
 	// token is not provided. If not configured the 'anonymous' token is used.
 	//
@@ -495,6 +501,10 @@ type RuntimeConfig struct {
 	// hcl: client_addr = string
 	// flag: -client string
 	ClientAddrs []*net.IPAddr
+
+	// ConfigEntryBootstrap contains a list of ConfigEntries to ensure are created
+	// If entries of the same Kind/Name exist already these will not update them.
+	ConfigEntryBootstrap []structs.ConfigEntry
 
 	// ConnectEnabled opts the agent into connect. It should be set on all clients
 	// and servers in a cluster for correct connect operation.

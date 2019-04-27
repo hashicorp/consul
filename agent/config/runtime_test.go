@@ -2901,6 +2901,7 @@ func TestFullConfig(t *testing.T) {
 				"enable_key_list_policy": false,
 				"enable_token_persistence": true,
 				"policy_ttl": "1123s",
+				"role_ttl": "9876s",
 				"token_ttl": "3321s",
 				"enable_token_replication" : true,
 				"tokens" : {
@@ -3007,6 +3008,16 @@ func TestFullConfig(t *testing.T) {
 			],
 			"check_update_interval": "16507s",
 			"client_addr": "93.83.18.19",
+			"config_entries": {
+				"bootstrap": {
+					"proxy_defaults": {
+						"global": {
+							"foo": "bar",
+							"bar": 1.0
+						}
+					}
+				}
+			},
 			"connect": {
 				"ca_provider": "consul",
 				"ca_config": {
@@ -3454,6 +3465,7 @@ func TestFullConfig(t *testing.T) {
 				enable_key_list_policy = false
 				enable_token_persistence = true
 				policy_ttl = "1123s"
+				role_ttl = "9876s"
 				token_ttl = "3321s"
 				enable_token_replication = true
 				tokens = {
@@ -3560,6 +3572,12 @@ func TestFullConfig(t *testing.T) {
 			]
 			check_update_interval = "16507s"
 			client_addr = "93.83.18.19"
+			config_entries {
+				bootstrap proxy_defaults global {
+					foo = "bar"
+					bar = 1.0
+				}
+			}
 			connect {
 				ca_provider = "consul"
 				ca_config {
@@ -4129,6 +4147,7 @@ func TestFullConfig(t *testing.T) {
 		ACLReplicationToken:              "5795983a",
 		ACLTokenTTL:                      3321 * time.Second,
 		ACLPolicyTTL:                     1123 * time.Second,
+		ACLRoleTTL:                       9876 * time.Second,
 		ACLToken:                         "418fdff1",
 		ACLTokenReplication:              true,
 		AdvertiseAddrLAN:                 ipAddr("17.99.29.16"),
@@ -4217,8 +4236,19 @@ func TestFullConfig(t *testing.T) {
 				DeregisterCriticalServiceAfter: 13209 * time.Second,
 			},
 		},
-		CheckUpdateInterval:     16507 * time.Second,
-		ClientAddrs:             []*net.IPAddr{ipAddr("93.83.18.19")},
+		CheckUpdateInterval: 16507 * time.Second,
+		ClientAddrs:         []*net.IPAddr{ipAddr("93.83.18.19")},
+		ConfigEntryBootstrap: []structs.ConfigEntry{
+			&structs.ProxyConfigEntry{
+				Kind: structs.ProxyDefaults,
+				Name: structs.ProxyConfigGlobal,
+				Config: map[string]interface{}{
+					"foo": "bar",
+					// has to be a float due to being a map[string]interface
+					"bar": float64(1),
+				},
+			},
+		},
 		ConnectEnabled:          true,
 		ConnectProxyBindMinPort: 2000,
 		ConnectProxyBindMaxPort: 3000,
@@ -4948,6 +4978,7 @@ func TestSanitize(t *testing.T) {
 		"ACLMasterToken": "hidden",
 		"ACLPolicyTTL": "0s",
 		"ACLReplicationToken": "hidden",
+		"ACLRoleTTL": "0s",
 		"ACLTokenReplication": false,
 		"ACLTokenTTL": "0s",
 		"ACLToken": "hidden",
@@ -4996,6 +5027,7 @@ func TestSanitize(t *testing.T) {
 			"Token": "hidden"
 		}],
 		"ClientAddrs": [],
+		"ConfigEntryBootstrap": [],
 		"ConnectCAConfig": {},
 		"ConnectCAProvider": "",
 		"ConnectEnabled": false,
