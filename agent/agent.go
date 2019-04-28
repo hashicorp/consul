@@ -441,9 +441,9 @@ func (a *Agent) Start() error {
 
 	if a.config.AutoEncryptTLS && !a.config.ServerMode {
 		if err := a.setupClientAutoEncrypt(); err != nil {
-			a.logger.Printf("[DEBUG] AutoEncrypt failed: %s", err)
+			return fmt.Errorf("AutoEncrypt failed: %s", err)
 		} else {
-			a.logger.Printf("[DEBUG] AutoEncrypt: upgraded to TLS")
+			a.logger.Printf("[INFO] AutoEncrypt: upgraded to TLS")
 		}
 	}
 

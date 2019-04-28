@@ -548,6 +548,11 @@ func (c *Configurator) IncomingRPCConfig() *tls.Config {
 	return config
 }
 
+// IncomingInsecureRPCConfig means that it doesn't verify incoming even thought
+// it might have been configured. This is only supposed to be used by the
+// servers for the insecure RPC server. At the time of writing only the
+// AutoEncrypt.Sign call is supported on that server. And it might be the only
+// usecase ever.
 func (c *Configurator) IncomingInsecureRPCConfig() *tls.Config {
 	c.log("IncomingInsecureRPCConfig")
 	config := c.commonTLSConfig(false)

@@ -28,8 +28,10 @@ func (a *AutoEncrypt) Sign(
 		return err
 	}
 
-	cert := &structs.IssuedCert{}
+	// This is the ConnectCA endpoint which is reused here because it is
+	// exactly what is needed.
 	c := &ConnectCA{srv: a.srv}
+	cert := &structs.IssuedCert{}
 	err := c.Sign(args, cert)
 	if err != nil {
 		return err

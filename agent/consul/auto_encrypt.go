@@ -12,6 +12,8 @@ import (
 	"github.com/hashicorp/go-msgpack/codec"
 )
 
+const DummyTrustDomain = "dummy.trustdomain"
+
 func (c *Client) AutoEncrypt(servers []string, port int, token string) (*structs.SignResponse, string, error) {
 	errFn := func(err error) (*structs.SignResponse, string, error) {
 		return nil, "", err
@@ -23,10 +25,11 @@ func (c *Client) AutoEncrypt(servers []string, port int, token string) (*structs
 
 	// We don't provide the correct host here, because we don't know any
 	// better at this point. Apart from the domain, we would need the
-	// ClusterID, which we don't have. This is why we go with the domain
-	// the first time. Subsequent CSRs will have the correct Host.
+	// ClusterID, which we don't have. This is why we go with
+	// DummyTrustDomain the first time. Subsequent CSRs will have the
+	// correct TrustDomain.
 	id := &connect.SpiffeIDAgent{
-		Host:  strings.TrimSuffix(c.config.Domain, "."),
+		Host:  DummyTrustDomain,
 		Agent: string(c.config.NodeID),
 	}
 
