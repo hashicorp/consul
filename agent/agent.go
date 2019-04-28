@@ -567,7 +567,8 @@ func (a *Agent) setupClientAutoEncrypt() error {
 
 	// setup watches
 	ch := make(chan cache.UpdateEvent, 10)
-	ctx, _ := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	// Watch for root changes
 	err = a.cache.Notify(ctx, cachetype.ConnectCARootName, &structs.DCSpecificRequest{
@@ -591,6 +592,9 @@ func (a *Agent) setupClientAutoEncrypt() error {
 	go func() {
 		for {
 			select {
+			case <-a.shutdownCh:
+				cancel()
+				return
 			case <-ctx.Done():
 				return
 			case u := <-ch:

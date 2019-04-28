@@ -19,7 +19,7 @@ func TestAutoEncryptSign(t *testing.T) {
 	t.Parallel()
 
 	dir, s := testServerWithConfig(t, func(c *Config) {
-		c.AutoEncryptTLS = true
+		c.AutoEncryptAllowTLS = true
 		c.Bootstrap = true
 		c.CAFile = "../../test/client_certs/rootca.crt"
 		c.CertFile = "../../test/client_certs/server.crt"

@@ -5576,7 +5576,6 @@ func TestRuntime_ToTLSUtilConfig(t *testing.T) {
 		TLSCipherSuites:             []uint16{tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305},
 		TLSPreferServerCipherSuites: true,
 		EnableAgentTLSForChecks:     true,
-		ServerMode:                  true,
 	}
 	r := c.ToTLSUtilConfig()
 	require.Equal(t, c.VerifyIncoming, r.VerifyIncoming)
@@ -5595,7 +5594,6 @@ func TestRuntime_ToTLSUtilConfig(t *testing.T) {
 	require.Equal(t, c.TLSCipherSuites, r.CipherSuites)
 	require.Equal(t, c.TLSPreferServerCipherSuites, r.PreferServerCipherSuites)
 	require.Equal(t, c.EnableAgentTLSForChecks, r.EnableAgentTLSForChecks)
-	require.Equal(t, c.ServerMode, r.ServerMode)
 	require.Equal(t, c.AutoEncryptTLS, r.AutoEncryptTLS)
 }
 

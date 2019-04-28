@@ -538,8 +538,6 @@ func (s *Server) trackAutoEncryptCARoots() {
 		}
 		if err := s.tlsConfigurator.UpdateAutoEncryptCA(caPems); err != nil {
 			s.logger.Printf("[DEBUG] agent: Failed to update AutoEncrypt CAPems: %v", err)
-		} else {
-			s.logger.Printf("[DEBUG] agent: Updated AutoEncrypt CAPems")
 		}
 		ws.Watch(nil)
 	}
