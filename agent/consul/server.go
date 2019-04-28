@@ -207,10 +207,18 @@ type Server struct {
 	router *router.Router
 
 	// Listener is used to listen for incoming connections
-	Listener          net.Listener
-	rpcServer         *rpc.Server
+	Listener  net.Listener
+	rpcServer *rpc.Server
+
+	// insecureRPCServer is a RPC server that is configure with
+	// IncomingInsecureRPCConfig to allow clients to call AutoEncrypt.Sign
+	// to request client certificates. At this point a client doesn't have
+	// a client cert and thus cannot present it. This is the only RPC
+	// Endpoint that is available at the time of writing.
 	insecureRPCServer *rpc.Server
 
+	// tlsConfigurator holds the agent configuration relevant to TLS and
+	// configures everything related to it.
 	tlsConfigurator *tlsutil.Configurator
 
 	// serfLAN is the Serf cluster maintained inside the DC
@@ -524,14 +532,14 @@ func (s *Server) trackAutoEncryptCARoots() {
 			s.logger.Printf("[DEBUG] agent: Failed to watch AutoEncrypt CARoot: %v", err)
 			return
 		}
+		caPems := []string{}
 		for _, ca := range cas {
-			if ca.Active {
-				if err := s.tlsConfigurator.UpdateAutoEncryptCA([]string{ca.RootCert}); err != nil {
-					s.logger.Printf("[DEBUG] agent: Failed to update AutoEncrypt CARoot: %v", err)
-				} else {
-					s.logger.Printf("[DEBUG] agent: Updated AutoEncrypt CARoot")
-				}
-			}
+			caPems = append(caPems, ca.RootCert)
+		}
+		if err := s.tlsConfigurator.UpdateAutoEncryptCA(caPems); err != nil {
+			s.logger.Printf("[DEBUG] agent: Failed to update AutoEncrypt CAPems: %v", err)
+		} else {
+			s.logger.Printf("[DEBUG] agent: Updated AutoEncrypt CAPems")
 		}
 		ws.Watch(nil)
 	}
@@ -728,7 +736,9 @@ func (s *Server) setupRPC() error {
 		s.rpcServer.Register(fn(s))
 	}
 
-	// only register AutoEncrypt on the insecure RPC server
+	// Only register AutoEncrypt on the insecure RPC server. Insecure only
+	// means that verify incoming is turned off even though it might have
+	// been configured.
 	s.insecureRPCServer.Register(&AutoEncrypt{srv: s})
 
 	ln, err := net.ListenTCP("tcp", s.config.RPCAddr)
