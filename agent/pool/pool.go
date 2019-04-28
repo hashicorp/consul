@@ -271,7 +271,7 @@ type HalfCloser interface {
 func (p *ConnPool) DialTimeout(dc string, addr net.Addr, timeout time.Duration, useTLS bool) (net.Conn, HalfCloser, error) {
 	p.once.Do(p.init)
 
-	return dialTimeoutWithRPCType(dc, addr, p.SrcAddr, timeout, useTLS || p.ForceTLS, p.TLSConfigurator.OutgoingRPCWrapper(), RPCTLS)
+	return DialTimeoutWithRPCType(dc, addr, p.SrcAddr, timeout, useTLS || p.ForceTLS, p.TLSConfigurator.OutgoingRPCWrapper(), RPCTLS)
 }
 
 // DialTimeoutInsecure is used to establish a raw connection to the given
@@ -285,10 +285,10 @@ func (p *ConnPool) DialTimeoutInsecure(dc string, addr net.Addr, timeout time.Du
 		return nil, nil, fmt.Errorf("wrapper cannot be nil")
 	}
 
-	return dialTimeoutWithRPCType(dc, addr, p.SrcAddr, timeout, true, wrapper, RPCTLSInsecure)
+	return DialTimeoutWithRPCType(dc, addr, p.SrcAddr, timeout, true, wrapper, RPCTLSInsecure)
 }
 
-func dialTimeoutWithRPCType(dc string, addr net.Addr, src *net.TCPAddr, timeout time.Duration, useTLS bool, wrapper tlsutil.DCWrapper, rpcType RPCType) (net.Conn, HalfCloser, error) {
+func DialTimeoutWithRPCType(dc string, addr net.Addr, src *net.TCPAddr, timeout time.Duration, useTLS bool, wrapper tlsutil.DCWrapper, rpcType RPCType) (net.Conn, HalfCloser, error) {
 	// Try to dial the conn
 	d := &net.Dialer{LocalAddr: src, Timeout: timeout}
 	conn, err := d.Dial("tcp", addr.String())

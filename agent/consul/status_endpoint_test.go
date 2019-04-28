@@ -35,7 +35,7 @@ func insecureRPCClient(t *testing.T, s *Server, c tlsutil.Config) rpc.ClientCode
 	if wrap == nil {
 		t.Fatalf("wrapper shouldn't be nil")
 	}
-	conn, _, err := pool.DialTimeoutInsecure(s.config.Datacenter, addr, nil, time.Second, true, wrap)
+	conn, _, err := pool.DialTimeoutWithRPCType(s.config.Datacenter, addr, nil, time.Second, true, wrap, pool.RPCTLSInsecure)
 	return msgpackrpc.NewClientCodec(conn)
 }
 
