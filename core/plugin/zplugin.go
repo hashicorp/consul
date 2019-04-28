@@ -4,6 +4,7 @@ package plugin
 
 import (
 	// Include all plugins.
+	_ "github.com/coredns/coredns/plugin/any"
 	_ "github.com/coredns/coredns/plugin/auto"
 	_ "github.com/coredns/coredns/plugin/autopath"
 	_ "github.com/coredns/coredns/plugin/bind"

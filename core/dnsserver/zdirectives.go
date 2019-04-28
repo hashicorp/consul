@@ -26,6 +26,7 @@ var Directives = []string{
 	"errors",
 	"log",
 	"dnstap",
+	"any",
 	"chaos",
 	"loadbalance",
 	"cache",
