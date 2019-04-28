@@ -420,7 +420,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 		return nil, fmt.Errorf("Failed to start Raft: %v", err)
 	}
 
-	if s.config.ConnectEnabled {
+	if s.config.ConnectEnabled && s.config.AutoEncryptAllowTLS {
 		go s.trackAutoEncryptCARoots()
 	}
 
