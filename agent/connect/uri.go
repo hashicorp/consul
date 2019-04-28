@@ -121,5 +121,5 @@ func ParseCertURI(input *url.URL) (CertURI, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("SPIFFE ID is not in the expected format: %s", path)
+	return nil, fmt.Errorf("SPIFFE ID is not in the expected format: %s", input.String())
 }

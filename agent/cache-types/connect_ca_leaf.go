@@ -512,8 +512,9 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 		}
 	} else if req.Agent != "" {
 		id = &connect.SpiffeIDAgent{
-			Host:  roots.TrustDomain,
-			Agent: req.Agent,
+			Host:       roots.TrustDomain,
+			Datacenter: req.Datacenter,
+			Agent:      req.Agent,
 		}
 	}
 
