@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	ErrAutoEncryptNotEnabled = errors.New("AutoEncrypt.TLS must be enabled in order to use this endpoint")
+	ErrAutoEncryptAllowTLSNotEnabled = errors.New("AutoEncrypt.AllowTLS must be enabled in order to use this endpoint")
 )
 
 type AutoEncrypt struct {
@@ -21,8 +21,8 @@ func (a *AutoEncrypt) Sign(
 	if !a.srv.config.ConnectEnabled {
 		return ErrConnectNotEnabled
 	}
-	if !a.srv.config.AutoEncryptTLS {
-		return ErrAutoEncryptNotEnabled
+	if !a.srv.config.AutoEncryptAllowTLS {
+		return ErrAutoEncryptAllowTLSNotEnabled
 	}
 	if done, err := a.srv.forward("AutoEncrypt.Sign", args, args, reply); done {
 		return err

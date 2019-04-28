@@ -503,7 +503,12 @@ type Upstream struct {
 
 // AutoEncrypt is the agent-global auto_encrypt configuration.
 type AutoEncrypt struct {
+	// TLS enables receiving certificates for clients from servers
 	TLS *bool `json:"tls,omitempty" hcl:"tls" mapstructure:"tls"`
+
+	// AllowTLS enables the RPC endpoint on the server to answer
+	// AutoEncrypt.Sign requests.
+	AllowTLS *bool `json:"allow_tls,omitempty" hcl:"allow_tls" mapstructure:"allow_tls"`
 }
 
 // Connect is the agent-global connect configuration.

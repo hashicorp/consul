@@ -114,11 +114,6 @@ type Config struct {
 	// and key).
 	EnableAgentTLSForChecks bool
 
-	// ServerMode controls if this agent acts like a Consul server,
-	// or merely as a client. Servers have more state, take part
-	// in leader election, etc.
-	ServerMode bool
-
 	// AutoEncryptTLS opts the agent into provisioning agent
 	// TLS certificates.
 	AutoEncryptTLS bool
@@ -338,7 +333,7 @@ func (c Config) verifyIncomingHTTPS() bool {
 }
 
 func (c *Config) baseVerifyIncoming() bool {
-	return c.VerifyIncoming || (c.ServerMode && c.AutoEncryptTLS)
+	return c.VerifyIncoming
 }
 
 func loadKeyPair(certFile, keyFile string) (*tls.Certificate, error) {
@@ -490,6 +485,7 @@ func (c *Configurator) verifyOutgoing() bool {
 	if c.base.AutoEncryptTLS && c.caPool != nil {
 		return true
 	}
+
 	return c.base.VerifyOutgoing
 }
 

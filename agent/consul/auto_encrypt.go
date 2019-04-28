@@ -28,9 +28,11 @@ func (c *Client) AutoEncrypt(servers []string, port int, token string) (*structs
 	// ClusterID, which we don't have. This is why we go with
 	// DummyTrustDomain the first time. Subsequent CSRs will have the
 	// correct TrustDomain.
+	fmt.Println("DATACENTER:", c.config.Datacenter)
 	id := &connect.SpiffeIDAgent{
-		Host:  DummyTrustDomain,
-		Agent: string(c.config.NodeID),
+		Host:       DummyTrustDomain,
+		Datacenter: c.config.Datacenter,
+		Agent:      string(c.config.NodeID),
 	}
 
 	// Create a new private key

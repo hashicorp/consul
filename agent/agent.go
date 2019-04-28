@@ -1172,7 +1172,7 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	base.TLSCipherSuites = a.config.TLSCipherSuites
 	base.TLSPreferServerCipherSuites = a.config.TLSPreferServerCipherSuites
 
-	base.AutoEncryptTLS = a.config.AutoEncryptTLS
+	base.AutoEncryptAllowTLS = a.config.AutoEncryptAllowTLS
 
 	// Copy the Connect CA bootstrap config
 	if a.config.ConnectEnabled {

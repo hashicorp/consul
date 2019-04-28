@@ -506,9 +506,13 @@ type RuntimeConfig struct {
 	// If entries of the same Kind/Name exist already these will not update them.
 	ConfigEntryBootstrap []structs.ConfigEntry
 
-	// AutoEncryptTLS opts the agent into provisioning agent
-	// TLS certificates.
+	// AutoEncryptTLS enables the client to request TLS certificates from
+	// the server.
 	AutoEncryptTLS bool
+
+	// AutoEncryptAllowTLS enables the server to respond to
+	// AutoEncrypt.Sign requests.
+	AutoEncryptAllowTLS bool
 
 	// ConnectEnabled opts the agent into connect. It should be set on all clients
 	// and servers in a cluster for correct connect operation.
@@ -1618,7 +1622,6 @@ func (c *RuntimeConfig) ToTLSUtilConfig() tlsutil.Config {
 		CipherSuites:             c.TLSCipherSuites,
 		PreferServerCipherSuites: c.TLSPreferServerCipherSuites,
 		EnableAgentTLSForChecks:  c.EnableAgentTLSForChecks,
-		ServerMode:               c.ServerMode,
 		AutoEncryptTLS:           c.AutoEncryptTLS,
 	}
 }
