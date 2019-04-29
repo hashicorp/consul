@@ -25,6 +25,7 @@ import (
 	catlistsvc "github.com/hashicorp/consul/command/catalog/list/services"
 	"github.com/hashicorp/consul/command/config"
 	configdelete "github.com/hashicorp/consul/command/config/delete"
+	configlist "github.com/hashicorp/consul/command/config/list"
 	configread "github.com/hashicorp/consul/command/config/read"
 	configwrite "github.com/hashicorp/consul/command/config/write"
 	"github.com/hashicorp/consul/command/connect"
@@ -119,6 +120,7 @@ func init() {
 	Register("catalog services", func(ui cli.Ui) (cli.Command, error) { return catlistsvc.New(ui), nil })
 	Register("config", func(ui cli.Ui) (cli.Command, error) { return config.New(), nil })
 	Register("config delete", func(ui cli.Ui) (cli.Command, error) { return configdelete.New(ui), nil })
+	Register("config list", func(ui cli.Ui) (cli.Command, error) { return configlist.New(ui), nil })
 	Register("config read", func(ui cli.Ui) (cli.Command, error) { return configread.New(ui), nil })
 	Register("config write", func(ui cli.Ui) (cli.Command, error) { return configwrite.New(ui), nil })
 	Register("connect", func(ui cli.Ui) (cli.Command, error) { return connect.New(), nil })

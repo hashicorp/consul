@@ -39,6 +39,10 @@ Usage: consul config <subcommand> [options] [args]
 
       $ consul config read -kind service-defaults -name web
 
+  List all configs for a type:
+
+      $ consul config list -kind service-defaults
+
   Delete a config:
 
       $ consul config delete -kind service-defaults -name web
