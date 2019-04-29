@@ -90,3 +90,13 @@ function must_match_in_statsd_logs {
   [ "$status" == 0 ]
   [ "$COUNT" -gt "0" ]
 }
+
+function must_match_in_prometheus_response {
+  run curl -f -s $1/metrics
+  COUNT=$( echo "$output" | grep -Ec $2 )
+
+  echo "COUNT of '$2' matches: $COUNT"
+
+  [ "$status" == 0 ]
+  [ "$COUNT" -gt "0" ]
+}
