@@ -1,7 +1,6 @@
 package list
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 
@@ -55,13 +54,9 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	b, err := json.MarshalIndent(entries, "", "    ")
-	if err != nil {
-		c.UI.Error("Failed to encode output data")
-		return 1
+	for _, entry := range entries {
+		c.UI.Info(entry.GetName())
 	}
-
-	c.UI.Info(string(b))
 	return 0
 }
 
