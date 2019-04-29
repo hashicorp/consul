@@ -22,7 +22,7 @@ grpc FROM TO...
 * **TO...** are the destination endpoints to proxy to. The number of upstreams is
   limited to 15.
 
-Multiple upstreams are randomized (see `policy`) on first use. When a proxy returns an error 
+Multiple upstreams are randomized (see `policy`) on first use. When a proxy returns an error
 the next upstream in the list is tried.
 
 Extra knobs are available with an expanded syntax:

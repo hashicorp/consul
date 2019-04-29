@@ -23,10 +23,10 @@ func TestPProf(t *testing.T) {
         }`, true},
 		{`pprof { block
                 }`, false},
-		{`pprof :1234 { 
+		{`pprof :1234 {
                    block 20
                 }`, false},
-		{`pprof { 
+		{`pprof {
                    block 20 30
                 }`, true},
 		{`pprof
