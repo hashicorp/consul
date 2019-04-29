@@ -23,6 +23,10 @@ import (
 	catlistdc "github.com/hashicorp/consul/command/catalog/list/dc"
 	catlistnodes "github.com/hashicorp/consul/command/catalog/list/nodes"
 	catlistsvc "github.com/hashicorp/consul/command/catalog/list/services"
+	"github.com/hashicorp/consul/command/config"
+	configdelete "github.com/hashicorp/consul/command/config/delete"
+	configread "github.com/hashicorp/consul/command/config/read"
+	configwrite "github.com/hashicorp/consul/command/config/write"
 	"github.com/hashicorp/consul/command/connect"
 	"github.com/hashicorp/consul/command/connect/ca"
 	caget "github.com/hashicorp/consul/command/connect/ca/get"
@@ -113,6 +117,10 @@ func init() {
 	Register("catalog datacenters", func(ui cli.Ui) (cli.Command, error) { return catlistdc.New(ui), nil })
 	Register("catalog nodes", func(ui cli.Ui) (cli.Command, error) { return catlistnodes.New(ui), nil })
 	Register("catalog services", func(ui cli.Ui) (cli.Command, error) { return catlistsvc.New(ui), nil })
+	Register("config", func(ui cli.Ui) (cli.Command, error) { return config.New(), nil })
+	Register("config delete", func(ui cli.Ui) (cli.Command, error) { return configdelete.New(), nil })
+	Register("config read", func(ui cli.Ui) (cli.Command, error) { return configread.New(ui), nil })
+	Register("config write", func(ui cli.Ui) (cli.Command, error) { return configwrite.New(), nil })
 	Register("connect", func(ui cli.Ui) (cli.Command, error) { return connect.New(), nil })
 	Register("connect ca", func(ui cli.Ui) (cli.Command, error) { return ca.New(), nil })
 	Register("connect ca get-config", func(ui cli.Ui) (cli.Command, error) { return caget.New(ui), nil })
