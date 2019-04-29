@@ -59,7 +59,7 @@ func (s *HTTPServer) configGet(resp http.ResponseWriter, req *http.Request) (int
 
 		return reply.Entries, nil
 	default:
-		resp.WriteHeader(http.StatusBadRequest)
+		resp.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(resp, "Must provide either a kind or both kind and name")
 		return nil, nil
 	}
@@ -73,7 +73,7 @@ func (s *HTTPServer) configDelete(resp http.ResponseWriter, req *http.Request) (
 	pathArgs := strings.SplitN(strings.TrimPrefix(req.URL.Path, "/v1/config/"), "/", 2)
 
 	if len(pathArgs) != 2 {
-		resp.WriteHeader(http.StatusBadRequest)
+		resp.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(resp, "Must provide both a kind and name to delete")
 		return nil, nil
 	}

@@ -233,6 +233,37 @@ func assignValueBool(params map[string]interface{}, name string, out *bool) erro
 	return nil
 }
 
+// assignValueStringSlice is used to extract a value ensuring it is either a string or a slice of strings
+func assignValueStringSlice(params map[string]interface{}, name string, out *[]string) error {
+	if raw, ok := params[name]; ok {
+		var tmp []string
+		switch raw.(type) {
+		case string:
+			tmp = make([]string, 1, 1)
+			tmp[0] = raw.(string)
+		case []string:
+			l := len(raw.([]string))
+			tmp = make([]string, l, l)
+			copy(tmp, raw.([]string))
+		case []interface{}:
+			l := len(raw.([]interface{}))
+			tmp = make([]string, l, l)
+			for i, v := range raw.([]interface{}) {
+				if s, ok := v.(string); ok {
+					tmp[i] = s
+				} else {
+					return fmt.Errorf("Index %d of %s expected to be string", i, name)
+				}
+			}
+		default:
+			return fmt.Errorf("Expecting %s to be a string or []string", name)
+		}
+		*out = tmp
+		delete(params, name)
+	}
+	return nil
+}
+
 // Parse the 'http_handler_config' parameters
 func parseHttpHandlerConfig(configParams interface{}) (*HttpHandlerConfig, error) {
 	var config HttpHandlerConfig

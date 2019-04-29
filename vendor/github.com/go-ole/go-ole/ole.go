@@ -26,6 +26,16 @@ type EXCEPINFO struct {
 	scode             uint32
 }
 
+// WCode return wCode in EXCEPINFO.
+func (e EXCEPINFO) WCode() uint16 {
+	return e.wCode
+}
+
+// SCODE return scode in EXCEPINFO.
+func (e EXCEPINFO) SCODE() uint32 {
+	return e.scode
+}
+
 // String convert EXCEPINFO to string.
 func (e EXCEPINFO) String() string {
 	var src, desc, hlp string

@@ -162,10 +162,16 @@ func (e *ProxyConfigEntry) GetRaftIndex() *RaftIndex {
 	return &e.RaftIndex
 }
 
-func (c *ProxyConfigEntry) MarshalBinary() (data []byte, err error) {
+func (e *ProxyConfigEntry) MarshalBinary() (data []byte, err error) {
+	// We mainly want to implement the BinaryMarshaller interface so that
+	// we can fixup some msgpack types to coerce them into JSON compatible
+	// values. No special encoding needs to be done - we just simply msgpack
+	// encode the struct which requires a type alias to prevent recursively
+	// calling this function.
+
 	type alias ProxyConfigEntry
 
-	a := alias(*c)
+	a := alias(*e)
 
 	// bs will grow if needed but allocate enough to avoid reallocation in common
 	// case.
@@ -180,6 +186,12 @@ func (c *ProxyConfigEntry) MarshalBinary() (data []byte, err error) {
 }
 
 func (e *ProxyConfigEntry) UnmarshalBinary(data []byte) error {
+	// The goal here is to add a post-decoding operation to
+	// decoding of a ProxyConfigEntry. The cleanest way I could
+	// find to do so was to implement the BinaryMarshaller interface
+	// and use a type alias to do the original round of decoding,
+	// followed by a MapWalk of the Config to coerce everything
+	// into JSON compatible types.
 	type alias ProxyConfigEntry
 
 	var a alias
@@ -199,6 +211,12 @@ func (e *ProxyConfigEntry) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
+// DecodeConfigEntry can be used to decode a ConfigEntry from a raw map value.
+// Currently its used in the HTTP API to decode ConfigEntry structs coming from
+// JSON. Unlike some of our custom binary encodings we don't have a preamble including
+// the kind so we will not have a concrete type to decode into. In those cases we must
+// first decode into a map[string]interface{} and then call this function to decode
+// into a concrete type.
 func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 	var entry ConfigEntry
 

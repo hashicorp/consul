@@ -124,13 +124,23 @@ func TestAPI_ConfigEntries(t *testing.T) {
 		require.Len(t, entries, 2)
 
 		for _, entry = range entries {
-			if entry.GetName() == "foo" {
+			switch entry.GetName() {
+			case "foo":
+				// this also verfies that the update value was persisted and
+				// the updated values are seen
 				readService, ok = entry.(*ServiceConfigEntry)
 				require.True(t, ok)
 				require.Equal(t, service.Kind, readService.Kind)
 				require.Equal(t, service.Name, readService.Name)
 				require.Equal(t, service.Protocol, readService.Protocol)
+			case "bar":
+				readService, ok = entry.(*ServiceConfigEntry)
+				require.True(t, ok)
+				require.Equal(t, service2.Kind, readService.Kind)
+				require.Equal(t, service2.Name, readService.Name)
+				require.Equal(t, service2.Protocol, readService.Protocol)
 			}
+
 		}
 
 		// delete it

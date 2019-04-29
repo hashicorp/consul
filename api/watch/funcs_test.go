@@ -428,6 +428,101 @@ func TestServiceWatch(t *testing.T) {
 	wg.Wait()
 }
 
+func TestServiceMultipleTagsWatch(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	invoke := makeInvokeCh()
+	plan := mustParse(t, `{"type":"service", "service":"foo", "tag":["bar","buzz"], "passingonly":true}`)
+	plan.Handler = func(idx uint64, raw interface{}) {
+		if raw == nil {
+			return // ignore
+		}
+		v, ok := raw.([]*api.ServiceEntry)
+		if !ok || len(v) == 0 {
+			return // ignore
+		}
+		if v[0].Service.ID != "foobarbuzzbiff" {
+			invoke <- errBadContent
+			return
+		}
+		if len(v[0].Service.Tags) == 0 {
+			invoke <- errBadContent
+			return
+		}
+		// test for our tags
+		barFound := false
+		buzzFound := false
+		for _, t := range v[0].Service.Tags {
+			if t == "bar" {
+				barFound = true
+			} else if t == "buzz" {
+				buzzFound = true
+			}
+		}
+		if !barFound || !buzzFound {
+			invoke <- errBadContent
+			return
+		}
+		invoke <- nil
+	}
+
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		agent := c.Agent()
+
+		// we do not want to find this one.
+		time.Sleep(20 * time.Millisecond)
+		reg := &api.AgentServiceRegistration{
+			ID:   "foobarbiff",
+			Name: "foo",
+			Tags: []string{"bar", "biff"},
+		}
+		if err := agent.ServiceRegister(reg); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		// we do not want to find this one.
+		reg = &api.AgentServiceRegistration{
+			ID:   "foobuzzbiff",
+			Name: "foo",
+			Tags: []string{"buzz", "biff"},
+		}
+		if err := agent.ServiceRegister(reg); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		// we want to find this one
+		reg = &api.AgentServiceRegistration{
+			ID:   "foobarbuzzbiff",
+			Name: "foo",
+			Tags: []string{"bar", "buzz", "biff"},
+		}
+		if err := agent.ServiceRegister(reg); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := plan.Run(s.HTTPAddr); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}()
+
+	if err := <-invoke; err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	plan.Stop()
+	wg.Wait()
+}
+
 func TestChecksWatch_State(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
