@@ -17,7 +17,7 @@ func MapWalk(input interface{}) (map[string]interface{}, error) {
 
 	mapCopy, ok := mapCopyRaw.(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("internal error: type used in MapWalk is not a map[string]interface{}")
+		return nil, fmt.Errorf("internal error: input to MapWalk is not a map[string]interface{}")
 	}
 
 	if err := reflectwalk.Walk(mapCopy, &mapWalker{}); err != nil {
