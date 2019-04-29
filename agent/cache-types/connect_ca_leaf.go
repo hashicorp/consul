@@ -627,6 +627,7 @@ func (r *ConnectCALeafRequest) key() string {
 
 	return fmt.Sprintf("service:%s", r.Service)
 }
+
 func (r *ConnectCALeafRequest) CacheInfo() cache.RequestInfo {
 	return cache.RequestInfo{
 		Token:      r.Token,
