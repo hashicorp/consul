@@ -9,6 +9,12 @@ import (
 	"github.com/mitchellh/reflectwalk"
 )
 
+// MapWalk will traverse through the supplied input which should be a
+// map[string]interface{} (or something compatible that we can coerce
+// to a map[string]interface{}) and from it create a new map[string]interface{}
+// with all internal values coerced to JSON compatible types. i.e. a []uint8
+// can be converted (in most cases) to a string so it will not be base64 encoded
+// when output in JSON
 func MapWalk(input interface{}) (map[string]interface{}, error) {
 	mapCopyRaw, err := copystructure.Copy(input)
 	if err != nil {
