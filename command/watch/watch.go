@@ -36,7 +36,7 @@ type cmd struct {
 	key         string
 	prefix      string
 	service     string
-	tag         string
+	tag         []string
 	passingOnly string
 	state       string
 	name        string
@@ -55,8 +55,8 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.service, "service", "",
 		"Specifies the service to watch. Required for 'service' type, "+
 			"optional for 'checks' type.")
-	c.flags.StringVar(&c.tag, "tag", "",
-		"Specifies the service tag to filter on. Optional for 'service' type.")
+	c.flags.Var((*flags.AppendSliceValue)(&c.tag), "tag", "Specifies the service tag(s) to filter on. "+
+		"Optional for 'service' type. May be specified multiple times")
 	c.flags.StringVar(&c.passingOnly, "passingonly", "",
 		"Specifies if only hosts passing all checks are displayed. "+
 			"Optional for 'service' type, must be one of `[true|false]`. Defaults false.")
@@ -115,7 +115,7 @@ func (c *cmd) Run(args []string) int {
 	if c.service != "" {
 		params["service"] = c.service
 	}
-	if c.tag != "" {
+	if len(c.tag) > 0 {
 		params["tag"] = c.tag
 	}
 	if c.http.Stale() {

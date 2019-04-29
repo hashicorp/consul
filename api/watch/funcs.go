@@ -134,15 +134,17 @@ func serviceWatch(params map[string]interface{}) (WatcherFunc, error) {
 		return nil, err
 	}
 
-	var service, tag string
+	var (
+		service string
+		tags    []string
+	)
 	if err := assignValue(params, "service", &service); err != nil {
 		return nil, err
 	}
 	if service == "" {
 		return nil, fmt.Errorf("Must specify a single service to watch")
 	}
-
-	if err := assignValue(params, "tag", &tag); err != nil {
+	if err := assignValueStringSlice(params, "tag", &tags); err != nil {
 		return nil, err
 	}
 
@@ -155,7 +157,7 @@ func serviceWatch(params map[string]interface{}) (WatcherFunc, error) {
 		health := p.client.Health()
 		opts := makeQueryOptionsWithContext(p, stale)
 		defer p.cancelFunc()
-		nodes, meta, err := health.Service(service, tag, passingOnly, &opts)
+		nodes, meta, err := health.ServiceMultipleTags(service, tags, passingOnly, &opts)
 		if err != nil {
 			return nil, nil, err
 		}

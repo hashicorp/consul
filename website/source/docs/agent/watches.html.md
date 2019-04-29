@@ -266,26 +266,45 @@ An example of the output of this command:
 
 The "service" watch type is used to monitor the providers
 of a single service. It requires the "service" parameter
-and optionally takes the parameters "tag" and "passingonly".
-The "tag" parameter will filter by tag, and "passingonly" is
-a boolean that will filter to only the instances passing all
-health checks.
+and optionally takes the parameters "tag" and 
+"passingonly". The "tag" parameter will filter by one or more tags.
+It may be either a single string value or a slice of strings.
+The "passingonly" is a boolean that will filter to only the 
+instances passing all health checks.
 
 This maps to the `/v1/health/service` API internally.
 
-Here is an example configuration:
+Here is an example configuration with a single tag:
 
 ```javascript
 {
   "type": "service",
   "service": "redis",
-  "args": ["/usr/bin/my-service-handler.sh", "-redis"]
+  "args": ["/usr/bin/my-service-handler.sh", "-redis"],
+  "tag": "bar"
+}
+```
+
+Here is an example configuration with multiple tags:
+
+```javascript
+{
+  "type": "service",
+  "service": "redis",
+  "args": ["/usr/bin/my-service-handler.sh", "-redis"],
+  "tag": ["bar", "foo"]
 }
 ```
 
 Or, using the watch command:
 
-    $ consul watch -type=service -service=redis /usr/bin/my-service-handler.sh
+Single tag:
+
+    $ consul watch -type=service -service=redis -tag=bar /usr/bin/my-service-handler.sh
+
+Multiple tag:
+
+    $ consul watch -type=service -service=redis -tag=bar -tag=foo /usr/bin/my-service-handler.sh
 
 An example of the output of this command:
 
@@ -299,7 +318,10 @@ An example of the output of this command:
     "Service": {
       "ID": "redis",
       "Service": "redis",
-      "Tags": null,
+      "Tags": [
+        "bar", 
+        "foo"
+      ],
       "Port": 8000
     },
     "Checks": [
