@@ -444,7 +444,9 @@ func (a *Agent) Start() error {
 			return fmt.Errorf("AutoEncrypt failed: %s", err)
 		}
 		a.logger.Printf("[INFO] AutoEncrypt: upgraded to TLS")
-		a.setupClientAutoEncryptWatching()
+		if err = a.setupClientAutoEncryptWatching(); err != nil {
+			return fmt.Errorf("AutoEncrypt failed: %s", err)
+		}
 	}
 
 	// Load checks/services/metadata.
