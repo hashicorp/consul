@@ -215,7 +215,6 @@ func (b *Builder) shouldParseFile(path string) bool {
 	if configFormat == "" && srcFormat != "hcl" && srcFormat != "json" {
 		return false
 	}
-	fmt.Println(">>> true", configFormat, srcFormat)
 	return true
 }
 
