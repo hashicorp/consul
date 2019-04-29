@@ -97,57 +97,6 @@ func (s *HTTPServer) configDelete(resp http.ResponseWriter, req *http.Request) (
 	return reply, nil
 }
 
-// decodeBody is used to decode a JSON request body
-func decodeConfigBody(req *http.Request) (structs.ConfigEntry, error) {
-	// This generally only happens in tests since real HTTP requests set
-	// a non-nil body with no content. We guard against it anyways to prevent
-	// a panic. The EOF response is the same behavior as an empty reader.
-	if req.Body == nil {
-		return nil, io.EOF
-	}
-
-	var raw map[string]interface{}
-	dec := json.NewDecoder(req.Body)
-	if err := dec.Decode(&raw); err != nil {
-		return nil, err
-	}
-
-	var entry structs.ConfigEntry
-
-	kindVal, ok := raw["Kind"]
-	if !ok {
-		kindVal, ok = raw["kind"]
-	}
-	if !ok {
-		return nil, fmt.Errorf("Payload does not contain a kind/Kind key at the top level")
-	}
-
-	if kindStr, ok := kindVal.(string); ok {
-		newEntry, err := structs.MakeConfigEntry(kindStr, "")
-		if err != nil {
-			return nil, err
-		}
-		entry = newEntry
-	} else {
-		return nil, fmt.Errorf("Kind value in payload is not a string")
-	}
-
-	decodeConf := &mapstructure.DecoderConfig{
-		DecodeHook: mapstructure.ComposeDecodeHookFunc(
-			mapstructure.StringToTimeDurationHookFunc(),
-			stringToReadableDurationFunc(),
-		),
-		Result: &entry,
-	}
-
-	decoder, err := mapstructure.NewDecoder(decodeConf)
-	if err != nil {
-		return nil, err
-	}
-
-	return entry, decoder.Decode(raw)
-}
-
 // ConfigCreate applies the given config entry update.
 func (s *HTTPServer) ConfigApply(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	args := structs.ConfigEntryRequest{
