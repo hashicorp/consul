@@ -453,7 +453,7 @@ func (s *ConnectCA) Sign(
 				"we are %s", serviceID.Datacenter, s.srv.config.Datacenter)
 		}
 	} else if isAgent {
-		if rule != nil && !rule.NodeWrite(agentID.Agent, nil) {
+		if rule != nil && !rule.AgentWrite(agentID.Agent) {
 			return acl.ErrPermissionDenied
 		}
 	}

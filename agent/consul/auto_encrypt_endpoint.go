@@ -2,6 +2,7 @@ package consul
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/hashicorp/consul/agent/structs"
 )

@@ -442,9 +442,9 @@ func (a *Agent) Start() error {
 	if a.config.AutoEncryptTLS && !a.config.ServerMode {
 		if err := a.setupClientAutoEncrypt(); err != nil {
 			return fmt.Errorf("AutoEncrypt failed: %s", err)
-		} else {
-			a.logger.Printf("[INFO] AutoEncrypt: upgraded to TLS")
 		}
+		a.logger.Printf("[INFO] AutoEncrypt: upgraded to TLS")
+		a.setupClientAutoEncryptWatching()
 	}
 
 	// Load checks/services/metadata.
@@ -564,14 +564,16 @@ func (a *Agent) setupClientAutoEncrypt() error {
 	if err != nil {
 		return err
 	}
-
+	return nil
+}
+func (a *Agent) setupClientAutoEncryptWatching() error {
 	// setup watches
 	ch := make(chan cache.UpdateEvent, 10)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	// Watch for root changes
-	err = a.cache.Notify(ctx, cachetype.ConnectCARootName, &structs.DCSpecificRequest{
+	err := a.cache.Notify(ctx, cachetype.ConnectCARootName, &structs.DCSpecificRequest{
 		Datacenter:   a.config.Datacenter,
 		QueryOptions: structs.QueryOptions{Token: a.tokens.AgentToken()},
 	}, rootsWatchID, ch)

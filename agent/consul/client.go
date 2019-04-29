@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
+	"net/rpc"
 	"os"
 	"strconv"
 	"sync"
@@ -16,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
 )
@@ -310,6 +313,67 @@ TRY:
 	c.logger.Printf("[ERR] consul: %q RPC failed to server %s: %v", method, server.Addr, rpcErr)
 	metrics.IncrCounterWithLabels([]string{"client", "rpc", "failed"}, 1, []metrics.Label{{Name: "server", Value: server.Name}})
 	c.routers.NotifyFailedServer(server)
+	if retry := canRetry(args, rpcErr); !retry {
+		return rpcErr
+	}
+
+	// We can wait a bit and retry!
+	if time.Since(firstCheck) < c.config.RPCHoldTimeout {
+		jitter := lib.RandomStagger(c.config.RPCHoldTimeout / jitterFraction)
+		select {
+		case <-time.After(jitter):
+			goto TRY
+		case <-c.shutdownCh:
+		}
+	}
+	return rpcErr
+}
+
+func (c *Client) RPCInsecure(method string, args interface{}, reply interface{}, addrs []*net.TCPAddr) error {
+	// This is subtle but we start measuring the time on the client side
+	// right at the time of the first request, vs. on the first retry as
+	// is done on the server side inside forward(). This is because the
+	// servers may already be applying the RPCHoldTimeout up there, so by
+	// starting the timer here we won't potentially double up the delay.
+	// TODO (slackpad) Plumb a deadline here with a context.
+	firstCheck := time.Now()
+
+	if len(addrs) == 0 {
+		return structs.ErrNoServers
+	}
+
+TRY:
+	// put first server at the end
+	addrs = append(addrs[1:], addrs[0])
+	server := addrs[0]
+
+	// Enforce the RPC limit.
+	metrics.IncrCounter([]string{"client", "rpc"}, 1)
+	if !c.rpcLimiter.Load().(*rate.Limiter).Allow() {
+		metrics.IncrCounter([]string{"client", "rpc", "exceeded"}, 1)
+		return structs.ErrRPCRateExceeded
+	}
+
+	var codec rpc.ClientCodec
+	conn, _, rpcErr := c.connPool.DialTimeoutInsecure(c.config.Datacenter, server, 1*time.Second, c.tlsConfigurator.OutgoingRPCWrapper())
+	if rpcErr != nil {
+		goto ERROR
+	}
+	codec = msgpackrpc.NewClientCodec(conn)
+
+	// Make the RPC call
+	rpcErr = msgpackrpc.CallWithCodec(codec, method, args, reply)
+	if rpcErr != nil {
+		goto ERROR
+	}
+	return nil
+
+ERROR:
+	rpcErr = fmt.Errorf("rpc error making call: %v", rpcErr)
+
+	// Move off to another server, and see if we can retry.
+	c.logger.Printf("[ERR] consul: %q RPC failed to server %s: %v", method, server, rpcErr)
+	metrics.IncrCounterWithLabels([]string{"client", "rpc", "failed"}, 1, []metrics.Label{{Name: "server", Value: server.String()}})
 	if retry := canRetry(args, rpcErr); !retry {
 		return rpcErr
 	}
