@@ -267,7 +267,7 @@ An example of the output of this command:
 The "service" watch type is used to monitor the providers
 of a single service. It requires the "service" parameter
 and optionally takes the parameters "tag" and 
-"passingonly". The "tag" parameter will filter by tag or tags.
+"passingonly". The "tag" parameter will filter by one or more tags.
 It may be either a single string value or a slice of strings.
 The "passingonly" is a boolean that will filter to only the 
 instances passing all health checks.
