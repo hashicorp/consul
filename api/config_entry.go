@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/mitchellh/mapstructure"
@@ -103,6 +104,15 @@ func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 	}
 
 	return entry, decoder.Decode(raw)
+}
+
+func DecodeConfigEntryFromJSON(data []byte) (ConfigEntry, error) {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return nil, err
+	}
+
+	return DecodeConfigEntry(raw)
 }
 
 // Config can be used to query the Config endpoints
