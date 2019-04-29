@@ -32,7 +32,6 @@ DIR=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
 
 cd $DIR
 
-
 FILTER_TESTS=${FILTER_TESTS:-}
 LEAVE_CONSUL_UP=${LEAVE_CONSUL_UP:-}
 PROXY_LOGS_ON_FAIL=${PROXY_LOGS_ON_FAIL:-}
@@ -42,6 +41,19 @@ mkdir -p workdir/{consul,envoy,bats,statsd,logs}
 source helpers.bash
 
 RESULT=1
+CLEANED_UP=0
+
+function cleanup {
+  if [ "$CLEANED_UP" != 0 ] ; then
+    return
+  fi
+  CLEANED_UP=1
+
+  if [ -z "$LEAVE_CONSUL_UP" ] ; then
+    docker-compose down
+  fi
+}
+trap cleanup EXIT
 
 # Start the volume container
 docker-compose up -d workdir
@@ -121,6 +133,9 @@ for c in ./case-*/ ; do
     fi
 
     # Teardown
+    if [ -f "${c}teardown.sh" ] ; then
+      source "${c}teardown.sh"
+    fi
     if [ ! -z "$REQUIRED_SERVICES" ] ; then
       if [[ "$THISRESULT" == 0 ]] ; then
         mkdir -p workdir/logs/$c/$ENVOY_VERSION
@@ -133,9 +148,7 @@ for c in ./case-*/ ; do
   done
 done
 
-if [ -z "$LEAVE_CONSUL_UP" ] ; then
-  docker-compose down
-fi
+cleanup
 
 if [ $RESULT -eq 1 ] ; then
   echogreen "✓ PASS"
