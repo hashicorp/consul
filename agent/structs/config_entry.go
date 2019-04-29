@@ -211,6 +211,12 @@ func (e *ProxyConfigEntry) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
+// DecodeConfigEntry can be used to decode a ConfigEntry from a raw map value.
+// Currently its used in the HTTP API to decode ConfigEntry structs coming from
+// JSON. Unlike some of our custom binary encodings we don't have a preamble including
+// the kind so we will not have a concrete type to decode into. In those cases we must
+// first decode into a map[string]interface{} and then call this function to decode
+// into a concrete type.
 func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 	var entry ConfigEntry
 
