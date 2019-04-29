@@ -20,9 +20,9 @@ node and may be associated with any number of checks.
 | `PUT`  | `/session/create`            | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
 [required ACLs](/api/index.html#acls).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
@@ -108,9 +108,9 @@ either a literal `true` or `false`, indicating of whether the destroy was
 successful.
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
 [required ACLs](/api/index.html#acls).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
@@ -149,9 +149,9 @@ This endpoint returns the requested session information.
 | `GET`  | `/session/info/:uuid`        | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
 [required ACLs](/api/index.html#acls).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
@@ -205,9 +205,9 @@ This endpoint returns the active sessions for a given node.
 | `GET`  | `/session/node/:node`        | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
 [required ACLs](/api/index.html#acls).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
@@ -259,9 +259,9 @@ This endpoint returns the list of active sessions.
 | `GET`  | `/session/list`              | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
 [required ACLs](/api/index.html#acls).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
@@ -311,9 +311,9 @@ TTL, and it extends the expiration by the TTL.
 | `PUT`  | `/session/renew/:uuid`       | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
 [required ACLs](/api/index.html#acls).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |

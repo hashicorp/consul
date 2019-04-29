@@ -30,9 +30,9 @@ by agent. The strongly consistent view of nodes is instead provided by
 | `GET`  | `/agent/members`             | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
 [required ACLs](/api/index.html#acls).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -96,9 +96,9 @@ to change without notice or deprecation.
 | `GET`  | `/agent/self`                | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
 [required ACLs](/api/index.html#acls).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -176,9 +176,9 @@ section on the agent options page for details on which options are supported.
 | `PUT`  | `/agent/reload`              | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
 [required ACLs](/api/index.html#acls).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
@@ -207,9 +207,9 @@ restart.
 | `PUT`  | `/agent/maintenance`         | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
 [required ACLs](/api/index.html#acls).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -257,9 +257,9 @@ passed to external metrics providers even though it is not visible through this 
 | `GET`  | `/agent/metrics?format=prometheus` | `text/plain; version=0.0.4; charset=utf-8` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
 [required ACLs](/api/index.html#acls).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -379,9 +379,9 @@ This endpoint streams logs from the local agent until the connection is closed.
 | `GET`  | `/agent/monitor`             | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
 [required ACLs](/api/index.html#acls).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -421,9 +421,9 @@ This endpoint instructs the agent to attempt to connect to a given address.
 | `PUT`  | `/agent/join/:address`       | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
 [required ACLs](/api/index.html#acls).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
@@ -461,9 +461,9 @@ can affect cluster availability.
 | `PUT`  | `/agent/leave`               | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
 [required ACLs](/api/index.html#acls).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
@@ -491,9 +491,9 @@ state allows its old entries to be removed.
 | `PUT`  | `/agent/force-leave/:node`   | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
 [required ACLs](/api/index.html#acls).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
@@ -548,9 +548,9 @@ The paths above correspond to the token names as found in the agent configuratio
 [`acl_replication_token`](/docs/agent/options.html#acl_replication_token_legacy).
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
 [required ACLs](/api/index.html#acls).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
