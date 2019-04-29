@@ -218,10 +218,20 @@ func TestConfig_Apply_CAS(t *testing.T) {
 	require.NotNil(out.Entry)
 	entry := out.Entry.(*structs.ServiceConfigEntry)
 
+	body = bytes.NewBuffer([]byte(`
+	{
+		"Kind": "service-defaults",
+		"Name": "foo",
+		"Protocol": "udp"
+	}
+	`))
 	req, _ = http.NewRequest("PUT", "/v1/config?cas=0", body)
 	resp = httptest.NewRecorder()
-	_, err = a.srv.ConfigApply(resp, req)
-	require.Error(err)
+	writtenRaw, err := a.srv.ConfigApply(resp, req)
+	require.NoError(err)
+	written, ok := writtenRaw.(bool)
+	require.True(ok)
+	require.False(written)
 	require.EqualValues(200, resp.Code, resp.Body.String())
 
 	body = bytes.NewBuffer([]byte(`
@@ -231,11 +241,13 @@ func TestConfig_Apply_CAS(t *testing.T) {
 		"Protocol": "udp"
 	}
 	`))
-
 	req, _ = http.NewRequest("PUT", fmt.Sprintf("/v1/config?cas=%d", entry.GetRaftIndex().ModifyIndex), body)
 	resp = httptest.NewRecorder()
-	_, err = a.srv.ConfigApply(resp, req)
+	writtenRaw, err = a.srv.ConfigApply(resp, req)
 	require.NoError(err)
+	written, ok = writtenRaw.(bool)
+	require.True(ok)
+	require.True(written)
 	require.EqualValues(200, resp.Code, resp.Body.String())
 
 	// Get the entry remaining entry.

@@ -128,5 +128,5 @@ func (s *HTTPServer) ConfigApply(resp http.ResponseWriter, req *http.Request) (i
 		return nil, err
 	}
 
-	return &reply, nil
+	return reply, nil
 }
