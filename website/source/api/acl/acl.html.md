@@ -31,8 +31,8 @@ configuration files.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/features/blocking.html),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
 [required ACLs](/api/index.html#acls).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -96,8 +96,8 @@ section for more details.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/features/blocking.html),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
 [required ACLs](/api/index.html#acls).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -195,8 +195,8 @@ migrations.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/features/blocking.html),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
 [required ACLs](/api/index.html#acls).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
@@ -242,8 +242,8 @@ Accessor ID of the legacy token. This ID can be retrieved using the
 
 The table below shows this endpoint's support for
 [blocking queries](/api/features/blocking.html),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
 [required ACLs](/api/index.html#acls).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
