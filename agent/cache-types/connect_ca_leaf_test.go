@@ -1016,3 +1016,10 @@ func (r *testGatedRootsRPC) RPC(method string, args interface{}, reply interface
 	*replyReal = <-r.ValueCh
 	return nil
 }
+
+func TestConnectCALeaf_key(t *testing.T) {
+	r := ConnectCALeafRequest{Service: "web"}
+	require.Equal(t, "service:web", r.key())
+	r = ConnectCALeafRequest{Agent: "abc"}
+	require.Equal(t, "agent:abc", r.key())
+}

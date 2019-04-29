@@ -620,10 +620,17 @@ type ConnectCALeafRequest struct {
 	MaxQueryTime  time.Duration
 }
 
+func (r *ConnectCALeafRequest) key() string {
+	if len(r.Agent) > 0 {
+		return fmt.Sprintf("agent:%s", r.Agent)
+	}
+
+	return fmt.Sprintf("service:%s", r.Service)
+}
 func (r *ConnectCALeafRequest) CacheInfo() cache.RequestInfo {
 	return cache.RequestInfo{
 		Token:      r.Token,
-		Key:        r.Service,
+		Key:        r.key(),
 		Datacenter: r.Datacenter,
 		MinIndex:   r.MinQueryIndex,
 		Timeout:    r.MaxQueryTime,
