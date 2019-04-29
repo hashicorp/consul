@@ -1,10 +1,21 @@
 ## UNRELEASED
 
+SECURITY:
+* connect: Envoy versions lower than 1.9.1 are vulnerable to
+ [CVE-2019-9900](https://github.com/envoyproxy/envoy/issues/6434) and
+ [CVE-2019-9901](https://github.com/envoyproxy/envoy/issues/6435). Both are
+ related to HTTP request parsing and so only affect Consul Connect users if they
+ have configured HTTP routing rules via the ["escape
+ hatch"](#custom-configuration). We recommend Envoy 1.9.1 be used where
+ possible. Note that while we officially deprecate support for older version of Envoy in 1.5.0, 
+ we recommend using Envoy 1.9.1 will all previous versions of Consul Connect (back to 1.3.0 where it was introduced).
+
 BREAKING CHANGES:
 
 * /watch: (note this only affects downstream programs importing `/watch` package as a library not the `watch` feature in Consul) The watch package was moved from github.com/hashicorp/consul/watch to github.com/hashicorp/consul/api/watch to live in the API module. This was necessary after updating the repo to use Go modules or else various other bugs cropped up. The watch package API has not changed so projects depending on it should need to only update the import statement to get their code functioning again. [[GH-5664](https://github.com/hashicorp/consul/pull/5664)]
 
 FEATURES:
+* **Connect Envoy Supports L7 Observability:** We introduce features that allow configuring Envoy sidecars to emit metrics and tracing at L7 (http, http2, grpc supported). For more information see [TODO](#TODO).
 * api: Implement data filtering for some endpoints using a new filtering language. [[GH-5579](https://github.com/hashicorp/consul/pull/5579)]
 * snapshot agent (Consul Enterprise): Added support for saving snapshots to Azure Blob Storage.
 * acl: tokens can be created with an optional expiration time [[GH-5353](https://github.com/hashicorp/consul/issues/5353)]
