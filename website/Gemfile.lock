@@ -6,6 +6,8 @@ GEM
       minitest (~> 5.1)
       thread_safe (~> 0.3, >= 0.3.4)
       tzinfo (~> 1.1)
+    addressable (2.6.0)
+      public_suffix (>= 2.0.2, < 4.0)
     autoprefixer-rails (9.4.10)
       execjs
     bootstrap-sass (3.4.1)
@@ -23,6 +25,7 @@ GEM
       coffee-script-source
       execjs
     coffee-script-source (1.12.2)
+    colorize (0.8.1)
     compass (1.0.3)
       chunky_png (~> 1.2)
       compass-core (~> 1.0.2)
@@ -39,6 +42,8 @@ GEM
       eventmachine (>= 0.12.9)
       http_parser.rb (~> 0.6.0)
     erubis (2.7.0)
+    ethon (0.12.0)
+      ffi (>= 1.3.0)
     eventmachine (1.2.5)
     execjs (2.7.0)
     ffi (1.9.25)
@@ -48,6 +53,15 @@ GEM
     hike (1.2.3)
     hooks (0.4.1)
       uber (~> 0.0.14)
+    html-proofer (3.10.2)
+      activesupport (>= 4.2, < 6.0)
+      addressable (~> 2.3)
+      colorize (~> 0.8)
+      mercenary (~> 0.3.2)
+      nokogiri (~> 1.9)
+      parallel (~> 1.3)
+      typhoeus (~> 1.3)
+      yell (~> 2.0)
     http_parser.rb (0.6.0)
     i18n (0.7.0)
     json (2.1.0)
@@ -55,6 +69,7 @@ GEM
     listen (3.0.8)
       rb-fsevent (~> 0.9, >= 0.9.4)
       rb-inotify (~> 0.9, >= 0.9.7)
+    mercenary (0.3.6)
     middleman (3.4.1)
       coffee-script (~> 2.2)
       compass (>= 1.0.0, < 2.0.0)
@@ -112,6 +127,8 @@ GEM
       tilt (>= 1.4.1, < 3)
     padrino-support (0.12.9)
       activesupport (>= 3.1)
+    parallel (1.17.0)
+    public_suffix (3.0.3)
     rack (1.6.11)
     rack-livereload (0.3.17)
       rack
@@ -144,6 +161,8 @@ GEM
     turbolinks (5.1.1)
       turbolinks-source (~> 5.1)
     turbolinks-source (5.1.0)
+    typhoeus (1.3.1)
+      ethon (>= 0.9.0)
     tzinfo (1.2.5)
       thread_safe (~> 0.1)
     uber (0.0.15)
@@ -152,12 +171,14 @@ GEM
       json (>= 1.8.0)
     xpath (2.1.0)
       nokogiri (~> 1.3)
+    yell (2.1.0)
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
+  html-proofer
   middleman-hashicorp (= 0.3.35)
 
 BUNDLED WITH
-   1.16.1
+   1.17.3

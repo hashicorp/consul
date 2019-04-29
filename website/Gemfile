@@ -1,3 +1,7 @@
 source "https://rubygems.org"
 
 gem "middleman-hashicorp", "0.3.35"
+
+group :development do
+  gem 'html-proofer'
+end
