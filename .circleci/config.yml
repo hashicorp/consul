@@ -336,7 +336,7 @@ jobs:
           command: make test-envoy-integ SKIP_DOCKER_BUILD=1
           environment:
             # tput complains if this isn't set to something.
-            TERM: xterm
+            TERM: ansi
       - store_artifacts:
           path: ./test/integration/connect/envoy/workdir/logs
           destination: container-logs
