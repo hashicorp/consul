@@ -118,7 +118,7 @@ func init() {
 	Register("catalog nodes", func(ui cli.Ui) (cli.Command, error) { return catlistnodes.New(ui), nil })
 	Register("catalog services", func(ui cli.Ui) (cli.Command, error) { return catlistsvc.New(ui), nil })
 	Register("config", func(ui cli.Ui) (cli.Command, error) { return config.New(), nil })
-	Register("config delete", func(ui cli.Ui) (cli.Command, error) { return configdelete.New(), nil })
+	Register("config delete", func(ui cli.Ui) (cli.Command, error) { return configdelete.New(ui), nil })
 	Register("config read", func(ui cli.Ui) (cli.Command, error) { return configread.New(ui), nil })
 	Register("config write", func(ui cli.Ui) (cli.Command, error) { return configwrite.New(), nil })
 	Register("connect", func(ui cli.Ui) (cli.Command, error) { return connect.New(), nil })
