@@ -13,6 +13,7 @@ SECURITY:
 BREAKING CHANGES:
 
 * /watch: (note this only affects downstream programs importing `/watch` package as a library not the `watch` feature in Consul) The watch package was moved from github.com/hashicorp/consul/watch to github.com/hashicorp/consul/api/watch to live in the API module. This was necessary after updating the repo to use Go modules or else various other bugs cropped up. The watch package API has not changed so projects depending on it should need to only update the import statement to get their code functioning again. [[GH-5664](https://github.com/hashicorp/consul/pull/5664)]
+* ui: Legacy UI has been removed. Setting the CONSUL_UI_LEGACY environment variable to 1 or true will no longer revert to serving the old UI. [[GH-5643](https://github.com/hashicorp/consul/pull/5643)]
 
 FEATURES:
 * **Connect Envoy Supports L7 Observability:** We introduce features that allow configuring Envoy sidecars to emit metrics and tracing at L7 (http, http2, grpc supported). For more information see [TODO](#TODO).
