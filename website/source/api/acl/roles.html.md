@@ -48,8 +48,9 @@ The table below shows this endpoint's support for
   linking roles internally by IDs, Consul enables policy renaming without
   breaking tokens.
 
-- `ServiceIdentities` `(array<ServiceIdentity>)` - The list of service
-  identities that should be applied to the role. 
+- `ServiceIdentities` `(array<ServiceIdentity>)` - The list of [service
+  identities](/docs/acl/acl-system.html#acl-service-identities) that should be
+  applied to the role.  Added in Consul 1.5.0.
 
   - `ServiceName` `(string: <required>)` - The name of the service. The name
     must be no longer than 256 characters, must start and end with a lowercase
@@ -57,10 +58,9 @@ The table below shows this endpoint's support for
     characters as well as `-` and `_`.
 
   - `Datacenters` `(array<string>)` - Specifies the datacenters the effective
-    policy is valid within. When no datacenters are provided the 
-    [effective policy](/docs/acl/acl-system.html#acl-service-identities) is 
-    valid in all datacenters including those which do not yet exist but may in
-    the future.
+    policy is valid within. When no datacenters are provided the effective
+    policy is valid in all datacenters including those which do not yet exist
+    but may in the future.
 
 ### Sample Payload
 
@@ -286,19 +286,9 @@ The table below shows this endpoint's support for
   linking roles internally by IDs, Consul enables policy renaming without
   breaking tokens.
 
-- `ServiceIdentities` `(array<ServiceIdentity>)` - The list of service
-  identities that should be applied to the role. 
-
-  - `ServiceName` `(string: <required>)` - The name of the service. The name
-    must be no longer than 256 characters, must start and end with a lowercase
-    alphanumeric character, and can only contain lowercase alphanumeric
-    characters as well as `-` and `_`.
-
-  - `Datacenters` `(array<string>)` - Specifies the datacenters the effective
-    policy is valid within. When no datacenters are provided the 
-    [effective policy](/docs/acl/acl-system.html#acl-service-identities) is 
-    valid in all datacenters including those which do not yet exist but may in
-    the future.
+- `ServiceIdentities` `(array<ServiceIdentity>)` - The list of [service
+  identities](/docs/acl/acl-system.html#acl-service-identities) that should be
+  applied to the role.  Added in Consul 1.5.0.
 
 ### Sample Payload
 

@@ -60,8 +60,9 @@ The table below shows this endpoint's support for
   resolved to the role ID. With linking tokens internally by IDs, Consul
   enables role renaming without breaking tokens. Added in Consul 1.5.0.
 
-- `ServiceIdentities` `(array<ServiceIdentity>)` - The list of service
-  identities that should be applied to the token.  Added in Consul 1.5.0.
+- `ServiceIdentities` `(array<ServiceIdentity>)` - The list of [service
+  identities](/docs/acl/acl-system.html#acl-service-identities) that should be
+  applied to the token.  Added in Consul 1.5.0.
 
   - `ServiceName` `(string: <required>)` - The name of the service. The name
     must be no longer than 256 characters, must start and end with a lowercase
@@ -69,9 +70,9 @@ The table below shows this endpoint's support for
     characters as well as `-` and `_`.
 
   - `Datacenters` `(array<string>)` - Specifies the datacenters the effective
-    policy is valid within. When no datacenters are provided the [effective
-    policy](/docs/acl/acl-system.html#acl-service-identities) is valid in all
-    datacenters including those which do not yet exist but may in the future.
+    policy is valid within. When no datacenters are provided the effective
+    policy is valid in all datacenters including those which do not yet exist
+    but may in the future.
 
 - `Local` `(bool: false)` - If true, indicates that the token should not be
   replicated globally and instead be local to the current datacenter.
@@ -299,8 +300,9 @@ The table below shows this endpoint's support for
   resolved to the role ID. With linking tokens internally by IDs, Consul
   enables role renaming without breaking tokens.
 
-- `ServiceIdentities` `(array<ServiceIdentity>)` - The list of service
-  identities that should be applied to the token. 
+- `ServiceIdentities` `(array<ServiceIdentity>)` - The list of [service
+  identities](/docs/acl/acl-system.html#acl-service-identities) that should be
+  applied to the token.  Added in Consul 1.5.0.
 
   - `ServiceName` `(string: <required>)` - The name of the service. The name
     must be no longer than 256 characters, must start and end with a lowercase
@@ -308,9 +310,9 @@ The table below shows this endpoint's support for
     characters as well as `-` and `_`.
 
   - `Datacenters` `(array<string>)` - Specifies the datacenters the effective
-    policy is valid within. When no datacenters are provided the [effective
-    policy](/docs/acl/acl-system.html#acl-service-identities) is valid in all
-    datacenters including those which do not yet exist but may in the future.
+    policy is valid within. When no datacenters are provided the effective
+    policy is valid in all datacenters including those which do not yet exist
+    but may in the future.
 
 - `Local` `(bool: false)` - If true, indicates that this token should not be
   replicated globally and instead be local to the current datacenter. This

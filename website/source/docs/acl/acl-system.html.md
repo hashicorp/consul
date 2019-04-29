@@ -38,7 +38,7 @@ may benefit from additional components in the ACL system:
    syntax for expressing a kind of policy needed for an token to be usable with
    [Consul Connect](/docs/connect/index.html). At authorization time this acts
    like an additional policy was attached, the contents of which are described
-   further below. These are directly attached to tokens and roles and not
+   further below. These are directly attached to tokens and roles and are not
    independently configured. (Added in Consul 1.5)
 
  * **ACL Auth Methods and Binding Rules** - To learn more about these topics,
