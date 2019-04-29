@@ -1,7 +1,6 @@
 package structs
 
 import (
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -163,25 +162,41 @@ func (e *ProxyConfigEntry) GetRaftIndex() *RaftIndex {
 	return &e.RaftIndex
 }
 
-func (e *ProxyConfigEntry) MarshalJSON() ([]byte, error) {
-	type typeCopy ProxyConfigEntry
-	copy := typeCopy(*e)
+func (c *ProxyConfigEntry) MarshalBinary() (data []byte, err error) {
+	type alias ProxyConfigEntry
 
-	// If we have flags, then we want to run it through our flagsWalker
-	// wich is a reflectwalk implementation that attempts to turn arbitrary
-	// interface{} values into JSON-safe equivalents (more or less). This
-	// should always work because the flags were originally encoded in JSON
-	// within the license blob
-	if copy.Config != nil {
-		newMap, err := lib.MapWalk(copy.Config)
-		if err != nil {
-			return nil, err
-		}
+	a := alias(*c)
 
-		copy.Config = newMap
+	// bs will grow if needed but allocate enough to avoid reallocation in common
+	// case.
+	bs := make([]byte, 128)
+	enc := codec.NewEncoderBytes(&bs, msgpackHandle)
+	err = enc.Encode(a)
+	if err != nil {
+		return nil, err
 	}
 
-	return json.Marshal(&copy)
+	return bs, nil
+}
+
+func (e *ProxyConfigEntry) UnmarshalBinary(data []byte) error {
+	type alias ProxyConfigEntry
+
+	var a alias
+	dec := codec.NewDecoderBytes(data, msgpackHandle)
+	if err := dec.Decode(&a); err != nil {
+		return err
+	}
+
+	*e = ProxyConfigEntry(a)
+
+	config, err := lib.MapWalk(e.Config)
+	if err != nil {
+		return err
+	}
+
+	e.Config = config
+	return nil
 }
 
 func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
