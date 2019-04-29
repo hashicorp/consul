@@ -7,8 +7,10 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/mitchellh/hashstructure"
+	"github.com/mitchellh/mapstructure"
 )
 
 const (
@@ -20,7 +22,8 @@ const (
 	DefaultServiceProtocol = "tcp"
 )
 
-// ConfigEntry is the
+// ConfigEntry is the interface for centralized configuration stored in Raft.
+// Currently only service-defaults and proxy-defaults are supported.
 type ConfigEntry interface {
 	GetKind() string
 	GetName() string
@@ -159,11 +162,101 @@ func (e *ProxyConfigEntry) GetRaftIndex() *RaftIndex {
 	return &e.RaftIndex
 }
 
+func (e *ProxyConfigEntry) MarshalBinary() (data []byte, err error) {
+	// We mainly want to implement the BinaryMarshaller interface so that
+	// we can fixup some msgpack types to coerce them into JSON compatible
+	// values. No special encoding needs to be done - we just simply msgpack
+	// encode the struct which requires a type alias to prevent recursively
+	// calling this function.
+
+	type alias ProxyConfigEntry
+
+	a := alias(*e)
+
+	// bs will grow if needed but allocate enough to avoid reallocation in common
+	// case.
+	bs := make([]byte, 128)
+	enc := codec.NewEncoderBytes(&bs, msgpackHandle)
+	err = enc.Encode(a)
+	if err != nil {
+		return nil, err
+	}
+
+	return bs, nil
+}
+
+func (e *ProxyConfigEntry) UnmarshalBinary(data []byte) error {
+	// The goal here is to add a post-decoding operation to
+	// decoding of a ProxyConfigEntry. The cleanest way I could
+	// find to do so was to implement the BinaryMarshaller interface
+	// and use a type alias to do the original round of decoding,
+	// followed by a MapWalk of the Config to coerce everything
+	// into JSON compatible types.
+	type alias ProxyConfigEntry
+
+	var a alias
+	dec := codec.NewDecoderBytes(data, msgpackHandle)
+	if err := dec.Decode(&a); err != nil {
+		return err
+	}
+
+	*e = ProxyConfigEntry(a)
+
+	config, err := lib.MapWalk(e.Config)
+	if err != nil {
+		return err
+	}
+
+	e.Config = config
+	return nil
+}
+
+// DecodeConfigEntry can be used to decode a ConfigEntry from a raw map value.
+// Currently its used in the HTTP API to decode ConfigEntry structs coming from
+// JSON. Unlike some of our custom binary encodings we don't have a preamble including
+// the kind so we will not have a concrete type to decode into. In those cases we must
+// first decode into a map[string]interface{} and then call this function to decode
+// into a concrete type.
+func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
+	var entry ConfigEntry
+
+	kindVal, ok := raw["Kind"]
+	if !ok {
+		kindVal, ok = raw["kind"]
+	}
+	if !ok {
+		return nil, fmt.Errorf("Payload does not contain a kind/Kind key at the top level")
+	}
+
+	if kindStr, ok := kindVal.(string); ok {
+		newEntry, err := MakeConfigEntry(kindStr, "")
+		if err != nil {
+			return nil, err
+		}
+		entry = newEntry
+	} else {
+		return nil, fmt.Errorf("Kind value in payload is not a string")
+	}
+
+	decodeConf := &mapstructure.DecoderConfig{
+		DecodeHook: mapstructure.StringToTimeDurationHookFunc(),
+		Result:     &entry,
+	}
+
+	decoder, err := mapstructure.NewDecoder(decodeConf)
+	if err != nil {
+		return nil, err
+	}
+
+	return entry, decoder.Decode(raw)
+}
+
 type ConfigEntryOp string
 
 const (
-	ConfigEntryUpsert ConfigEntryOp = "upsert"
-	ConfigEntryDelete ConfigEntryOp = "delete"
+	ConfigEntryUpsert    ConfigEntryOp = "upsert"
+	ConfigEntryUpsertCAS ConfigEntryOp = "upsert-cas"
+	ConfigEntryDelete    ConfigEntryOp = "delete"
 )
 
 // ConfigEntryRequest is used when creating/updating/deleting a ConfigEntry.
@@ -296,4 +389,54 @@ type ServiceConfigResponse struct {
 	Definition ServiceDefinition
 
 	QueryMeta
+}
+
+// ConfigEntryResponse returns a single ConfigEntry
+type ConfigEntryResponse struct {
+	Entry ConfigEntry
+	QueryMeta
+}
+
+func (c *ConfigEntryResponse) MarshalBinary() (data []byte, err error) {
+	// bs will grow if needed but allocate enough to avoid reallocation in common
+	// case.
+	bs := make([]byte, 128)
+	enc := codec.NewEncoderBytes(&bs, msgpackHandle)
+
+	if err := enc.Encode(c.Entry.GetKind()); err != nil {
+		return nil, err
+	}
+	if err := enc.Encode(c.Entry); err != nil {
+		return nil, err
+	}
+	if err := enc.Encode(c.QueryMeta); err != nil {
+		return nil, err
+	}
+
+	return bs, nil
+}
+
+func (c *ConfigEntryResponse) UnmarshalBinary(data []byte) error {
+	dec := codec.NewDecoderBytes(data, msgpackHandle)
+
+	var kind string
+	if err := dec.Decode(&kind); err != nil {
+		return err
+	}
+
+	entry, err := MakeConfigEntry(kind, "")
+	if err != nil {
+		return err
+	}
+
+	if err := dec.Decode(entry); err != nil {
+		return err
+	}
+	c.Entry = entry
+
+	if err := dec.Decode(&c.QueryMeta); err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -446,6 +446,14 @@ func (c *FSM) applyConfigEntryOperation(buf []byte, index uint64) interface{} {
 	}
 
 	switch req.Op {
+	case structs.ConfigEntryUpsertCAS:
+		defer metrics.MeasureSinceWithLabels([]string{"fsm", "config_entry", req.Entry.GetKind()}, time.Now(),
+			[]metrics.Label{{Name: "op", Value: "upsert"}})
+		updated, err := c.state.EnsureConfigEntryCAS(index, req.Entry.GetRaftIndex().ModifyIndex, req.Entry)
+		if err != nil {
+			return err
+		}
+		return updated
 	case structs.ConfigEntryUpsert:
 		defer metrics.MeasureSinceWithLabels([]string{"fsm", "config_entry", req.Entry.GetKind()}, time.Now(),
 			[]metrics.Label{{Name: "op", Value: "upsert"}})

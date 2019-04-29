@@ -52,7 +52,7 @@ func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *struct{}) e
 }
 
 // Get returns a single config entry by Kind/Name.
-func (c *ConfigEntry) Get(args *structs.ConfigEntryQuery, reply *structs.IndexedConfigEntries) error {
+func (c *ConfigEntry) Get(args *structs.ConfigEntryQuery, reply *structs.ConfigEntryResponse) error {
 	if done, err := c.srv.forward("ConfigEntry.Get", args, args, reply); done {
 		return err
 	}
@@ -87,8 +87,7 @@ func (c *ConfigEntry) Get(args *structs.ConfigEntryQuery, reply *structs.Indexed
 				return nil
 			}
 
-			reply.Kind = args.Kind
-			reply.Entries = []structs.ConfigEntry{entry}
+			reply.Entry = entry
 			return nil
 		})
 }

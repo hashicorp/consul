@@ -899,14 +899,18 @@ func (s *Server) bootstrapConfigEntries(entries []structs.ConfigEntry) error {
 
 	state := s.fsm.State()
 	for _, entry := range entries {
+		// avoid a round trip through Raft if we know the CAS is going to fail
 		_, existing, err := state.ConfigEntry(nil, entry.GetKind(), entry.GetName())
 		if err != nil {
 			return fmt.Errorf("Failed to determine whether the configuration for %q / %q already exists: %v", entry.GetKind(), entry.GetName(), err)
 		}
 
 		if existing == nil {
+			// ensure the ModifyIndex is set to 0 for the CAS request
+			entry.GetRaftIndex().ModifyIndex = 0
+
 			req := structs.ConfigEntryRequest{
-				Op:         structs.ConfigEntryUpsert,
+				Op:         structs.ConfigEntryUpsertCAS,
 				Datacenter: s.config.Datacenter,
 				Entry:      entry,
 			}

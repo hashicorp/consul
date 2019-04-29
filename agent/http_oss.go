@@ -69,6 +69,8 @@ func init() {
 	registerEndpoint("/v1/catalog/services", []string{"GET"}, (*HTTPServer).CatalogServices)
 	registerEndpoint("/v1/catalog/service/", []string{"GET"}, (*HTTPServer).CatalogServiceNodes)
 	registerEndpoint("/v1/catalog/node/", []string{"GET"}, (*HTTPServer).CatalogNodeServices)
+	registerEndpoint("/v1/config/", []string{"GET", "DELETE"}, (*HTTPServer).Config)
+	registerEndpoint("/v1/config", []string{"PUT"}, (*HTTPServer).ConfigApply)
 	registerEndpoint("/v1/connect/ca/configuration", []string{"GET", "PUT"}, (*HTTPServer).ConnectCAConfiguration)
 	registerEndpoint("/v1/connect/ca/roots", []string{"GET"}, (*HTTPServer).ConnectCARoots)
 	registerEndpoint("/v1/connect/intentions", []string{"GET", "POST"}, (*HTTPServer).IntentionEndpoint)
