@@ -37,7 +37,7 @@ export default Controller.extend(WithEventSource, WithSearching, {
     };
     this._super(...arguments);
   },
-  searchable: computed('items', function() {
+  searchable: computed('items.[]', function() {
     return get(this, 'searchables.service')
       .add(get(this, 'items'))
       .search((get(this, this.searchParams.service) || '').split('\n'));
@@ -59,13 +59,13 @@ export default Controller.extend(WithEventSource, WithSearching, {
     // so again divide that by 2 and take it off each fluid column
     return htmlSafe(`width: calc(50% - 50px - ${Math.round(get(this, 'maxWidth') / 2)}px)`);
   }),
-  maxPassing: computed('items', function() {
+  maxPassing: computed('items.[]', function() {
     return max(get(this, 'items'), 'ChecksPassing');
   }),
-  maxWarning: computed('items', function() {
+  maxWarning: computed('items.[]', function() {
     return max(get(this, 'items'), 'ChecksWarning');
   }),
-  maxCritical: computed('items', function() {
+  maxCritical: computed('items.[]', function() {
     return max(get(this, 'items'), 'ChecksCritical');
   }),
   passingWidth: computed('maxPassing', function() {
