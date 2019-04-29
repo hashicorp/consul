@@ -1,9 +1,9 @@
 ---
 layout: api
-page_title: ACL Policies - HTTP API
+page_title: ACL Tokens - HTTP API
 sidebar_current: api-acl-tokens
 description: |-
-  The /acl/token endpoints manage Consul's ACL Policies.
+  The /acl/token endpoints manage Consul's ACL Tokens.
 ---
 
 -> **1.4.0+:**  The APIs are available in Consul versions 1.4.0 and later. The documentation for the legacy ACL API is [here](/api/acl/legacy.html)
