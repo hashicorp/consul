@@ -92,7 +92,18 @@ func (c *cmd) Help() string {
 
 const synopsis = "Create or update a centralized config entry"
 const help = `
-Usage: consul config write <subcommand> [options] [args]
+Usage: consul config write [options] <configuration>
 
-TODO (mkeeler) update this help message
+Request a config entry to be created or updated. The configuration
+argument is either a file path or '-' to indicate that the config
+should be read from stdin. The data should be either in HCL or
+JSON form.
+
+Example (from file):
+
+    $ consul config write web.service.hcl
+
+Example (from stdin):
+
+    $ consul config write -
 `

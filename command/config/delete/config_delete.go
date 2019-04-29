@@ -75,7 +75,11 @@ func (c *cmd) Help() string {
 
 const synopsis = "Delete a centralized config entry"
 const help = `
-Usage: consul config delete <subcommand> [options] [args]
+Usage: consul config delete [options] -kind <config kind> -name <config name>
 
-TODO (mkeeler) update this help message
+Deletes the configuration entry specified by the kind and name.
+
+Example:
+
+   $ consul config delete -kind service-defaults -name web
 `

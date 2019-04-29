@@ -82,7 +82,12 @@ func (c *cmd) Help() string {
 
 const synopsis = "Read a centralized config entry"
 const help = `
-Usage: consul config read <subcommand> [options] [args]
+Usage: consul config read [options] -kind <config kind> -name <config name>
 
-TODO (mkeeler) update this help message
+Reads the config entry specified by the given kind and name and outputs its
+JSON representation.
+
+Example:
+
+   $ consul config read -kind proxy-defaults -name global
 `

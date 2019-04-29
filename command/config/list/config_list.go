@@ -26,7 +26,7 @@ type cmd struct {
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
-	c.flags.StringVar(&c.kind, "kind", "", "The kind of configuration to read.")
+	c.flags.StringVar(&c.kind, "kind", "", "The kind of configurations to list.")
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
@@ -75,9 +75,15 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Read a centralized config entry"
+const synopsis = "List centralized config entries of a given kind"
 const help = `
-Usage: consul config read <subcommand> [options] [args]
+Usage: consul config list [options] -kind <config kind>
 
-TODO (mkeeler) update this help message
+Lists all of the config entries for a given kind. The -kind parameter
+is required.
+
+Example:
+
+   $ consul config list -kind service-defaults
+
 `
