@@ -980,7 +980,7 @@ func TestServer_Reload(t *testing.T) {
 		Config: map[string]interface{}{
 			// these are made a []uint8 and a int64 to allow the Equals test to pass
 			// otherwise it will fail complaining about data types
-			"foo": []uint8("bar"),
+			"foo": "bar",
 			"bar": int64(1),
 		},
 	}
