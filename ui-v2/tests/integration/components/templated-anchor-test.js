@@ -6,29 +6,69 @@ moduleForComponent('templated-anchor', 'Integration | Component | templated anch
 });
 
 test('it renders', function(assert) {
-  // Set any properties with this.set('myProperty', 'value');
-  // Handle any actions with this.on('myAction', function(val) { ... });
-
-  this.render(hbs`{{templated-anchor}}`);
-
-  assert.equal(
-    this.$()
-      .text()
-      .trim(),
-    ''
-  );
-
-  // Template block usage:
-  this.render(hbs`
-    {{#templated-anchor}}
-      template block text
-    {{/templated-anchor}}
-  `);
-
-  assert.equal(
-    this.$()
-      .text()
-      .trim(),
-    'template block text'
-  );
+  [
+    {
+      href: 'http://localhost/?={{Name}}/{{ID}}',
+      vars: {
+        Name: 'name',
+        ID: 'id',
+      },
+      result: 'http://localhost/?=name/id',
+    },
+    {
+      href: 'http://localhost/?={{Name}}/{{ID}}',
+      vars: {
+        Name: '{{Name}}',
+        ID: '{{ID}}',
+      },
+      result: 'http://localhost/?={{Name}}/{{ID}}',
+    },
+    {
+      href: 'http://localhost/?={{deep.Name}}/{{deep.ID}}',
+      vars: {
+        deep: {
+          Name: '{{Name}}',
+          ID: '{{ID}}',
+        },
+      },
+      result: 'http://localhost/?={{Name}}/{{ID}}',
+    },
+    {
+      href: 'http://localhost/?={{}}/{{}}',
+      vars: {
+        Name: 'name',
+        ID: 'id',
+      },
+      result: 'http://localhost/?={{}}/{{}}',
+    },
+    {
+      href: 'http://localhost/?={{Service_Name}}/{{Meta-Key}}',
+      vars: {
+        Service_Name: 'name',
+        ['Meta-Key']: 'id',
+      },
+      result: 'http://localhost/?=name/id',
+    },
+    {
+      href: 'http://localhost/?={{Service_Name}}/{{Meta-Key}}',
+      vars: {
+        WrongPropertyName: 'name',
+        ['Meta-Key']: 'id',
+      },
+      result: 'http://localhost/?=/id',
+    },
+  ].forEach(item => {
+    this.set('item', item);
+    this.render(hbs`
+        {{#templated-anchor href=item.href vars=item.vars}}
+          Dashboard link
+        {{/templated-anchor}}
+      `);
+    assert.equal(
+      this.$()
+        .find('a')
+        .attr('href'),
+      item.result
+    );
+  });
 });
