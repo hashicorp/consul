@@ -5576,25 +5576,26 @@ func TestRuntime_ToTLSUtilConfig(t *testing.T) {
 		TLSCipherSuites:             []uint16{tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305},
 		TLSPreferServerCipherSuites: true,
 		EnableAgentTLSForChecks:     true,
+		AutoEncryptTLS:              true,
 	}
 	r := c.ToTLSUtilConfig()
-	require.Equal(t, c.VerifyIncoming, r.VerifyIncoming)
-	require.Equal(t, c.VerifyIncomingRPC, r.VerifyIncomingRPC)
-	require.Equal(t, c.VerifyIncomingHTTPS, r.VerifyIncomingHTTPS)
-	require.Equal(t, c.VerifyOutgoing, r.VerifyOutgoing)
-	require.Equal(t, c.VerifyServerHostname, r.VerifyServerHostname)
-	require.Equal(t, c.CAFile, r.CAFile)
-	require.Equal(t, c.CAPath, r.CAPath)
-	require.Equal(t, c.CertFile, r.CertFile)
-	require.Equal(t, c.KeyFile, r.KeyFile)
-	require.Equal(t, c.NodeName, r.NodeName)
-	require.Equal(t, c.ServerName, r.ServerName)
-	require.Equal(t, c.DNSDomain, r.Domain)
-	require.Equal(t, c.TLSMinVersion, r.TLSMinVersion)
-	require.Equal(t, c.TLSCipherSuites, r.CipherSuites)
-	require.Equal(t, c.TLSPreferServerCipherSuites, r.PreferServerCipherSuites)
-	require.Equal(t, c.EnableAgentTLSForChecks, r.EnableAgentTLSForChecks)
-	require.Equal(t, c.AutoEncryptTLS, r.AutoEncryptTLS)
+	require.True(t, r.VerifyIncoming)
+	require.True(t, r.VerifyIncomingRPC)
+	require.True(t, r.VerifyIncomingHTTPS)
+	require.True(t, r.VerifyOutgoing)
+	require.True(t, r.EnableAgentTLSForChecks)
+	require.True(t, r.AutoEncryptTLS)
+	require.True(t, r.VerifyServerHostname)
+	require.True(t, r.PreferServerCipherSuites)
+	require.Equal(t, "a", r.CAFile)
+	require.Equal(t, "b", r.CAPath)
+	require.Equal(t, "c", r.CertFile)
+	require.Equal(t, "d", r.KeyFile)
+	require.Equal(t, "e", r.NodeName)
+	require.Equal(t, "f", r.ServerName)
+	require.Equal(t, "g", r.Domain)
+	require.Equal(t, "tls12", r.TLSMinVersion)
+	require.Equal(t, []uint16{tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305}, r.CipherSuites)
 }
 
 func TestReadPath(t *testing.T) {
