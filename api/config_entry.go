@@ -115,11 +115,11 @@ func (c *Client) ConfigEntries() *ConfigEntries {
 	return &ConfigEntries{c}
 }
 
-func (conf *ConfigEntries) ConfigEntryGet(kind string, name string, q *QueryOptions) (ConfigEntry, *QueryMeta, error) {
+func (conf *ConfigEntries) Get(kind string, name string, q *QueryOptions) (ConfigEntry, *QueryMeta, error) {
 	if kind == "" || name == "" {
 		return nil, nil, fmt.Errorf("Both kind and name parameters must not be empty")
 	}
-	
+
 	entry, err := makeConfigEntry(kind, name)
 	if err != nil {
 		return nil, nil, err
@@ -145,7 +145,7 @@ func (conf *ConfigEntries) ConfigEntryGet(kind string, name string, q *QueryOpti
 	return entry, qm, nil
 }
 
-func (conf *ConfigEntries) ConfigEntryList(kind string, q *QueryOptions) ([]ConfigEntry, *QueryMeta, error) {
+func (conf *ConfigEntries) List(kind string, q *QueryOptions) ([]ConfigEntry, *QueryMeta, error) {
 	if kind == "" {
 		return nil, nil, fmt.Errorf("The kind parameter must not be empty")
 	}
@@ -180,7 +180,7 @@ func (conf *ConfigEntries) ConfigEntryList(kind string, q *QueryOptions) ([]Conf
 	return entries, qm, nil
 }
 
-func (conf *ConfigEntries) ConfigEntrySet(entry ConfigEntry, w *WriteOptions) (*WriteMeta, error) {
+func (conf *ConfigEntries) Set(entry ConfigEntry, w *WriteOptions) (*WriteMeta, error) {
 	r := conf.c.newRequest("PUT", "/v1/config")
 	r.setWriteOptions(w)
 	r.obj = entry
@@ -194,7 +194,7 @@ func (conf *ConfigEntries) ConfigEntrySet(entry ConfigEntry, w *WriteOptions) (*
 	return wm, nil
 }
 
-func (conf *ConfigEntries) ConfigEntryDelete(kind string, name string, w *WriteOptions) (*WriteMeta, error) {
+func (conf *ConfigEntries) Delete(kind string, name string, w *WriteOptions) (*WriteMeta, error) {
 	if kind == "" || name == "" {
 		return nil, fmt.Errorf("Both kind and name parameters must not be empty")
 	}
