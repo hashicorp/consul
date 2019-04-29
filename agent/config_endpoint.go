@@ -1,15 +1,12 @@
 package agent
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/mitchellh/mapstructure"
 )
 
 // Config switches on the different CRUD operations for config entries.
