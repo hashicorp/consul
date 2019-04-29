@@ -49,7 +49,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	entries, _, err := client.ConfigEntries().ConfigEntryList(c.kind, nil)
+	entries, _, err := client.ConfigEntries().List(c.kind, nil)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error listing config entries for kind %q: %v", c.kind, err))
 		return 1

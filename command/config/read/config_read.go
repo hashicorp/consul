@@ -56,7 +56,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	entry, _, err := client.ConfigEntries().ConfigEntryGet(c.kind, c.name, nil)
+	entry, _, err := client.ConfigEntries().Get(c.kind, c.name, nil)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error reading config entry %q / %q: %v", c.kind, c.name, err))
 		return 1

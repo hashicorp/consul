@@ -55,7 +55,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	_, err = client.ConfigEntries().ConfigEntryDelete(c.kind, c.name, nil)
+	_, err = client.ConfigEntries().Delete(c.kind, c.name, nil)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error deleting config entry %q / %q: %v", c.kind, c.name, err))
 		return 1

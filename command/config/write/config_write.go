@@ -72,7 +72,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	_, err = client.ConfigEntries().ConfigEntrySet(entry, nil)
+	_, err = client.ConfigEntries().Set(entry, nil)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error writing config entry %q / %q: %v", entry.GetKind(), entry.GetName(), err))
 		return 1
