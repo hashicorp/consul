@@ -51,7 +51,10 @@ The table below shows this endpoint's support for
 - `ServiceIdentities` `(array<ServiceIdentity>)` - The list of service
   identities that should be applied to the role. 
 
-  - `ServiceName` `(string: <required>)` - The name of the service.
+  - `ServiceName` `(string: <required>)` - The name of the service. The name
+    must be no longer than 256 characters, must start and end with a lowercase
+    alphanumeric character and can only contain lowercase alphanumeric
+    characters as well as `-` and `_`.
 
   - `Datacenters` `(array<string>)` - Specifies the datacenters the effective
     policy is valid within. When no datacenters are provided the 
@@ -286,7 +289,10 @@ The table below shows this endpoint's support for
 - `ServiceIdentities` `(array<ServiceIdentity>)` - The list of service
   identities that should be applied to the role. 
 
-  - `ServiceName` `(string: <required>)` - The name of the service.
+  - `ServiceName` `(string: <required>)` - The name of the service. The name
+    must be no longer than 256 characters, must start and end with a lowercase
+    alphanumeric character and can only contain lowercase alphanumeric
+    characters as well as `-` and `_`.
 
   - `Datacenters` `(array<string>)` - Specifies the datacenters the effective
     policy is valid within. When no datacenters are provided the 
