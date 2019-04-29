@@ -53,7 +53,7 @@ Consul operators via Consul's [ACL API](/api/acl/acl.html),
 
 An ACL policy is a named set of rules and is composed of the following elements:
 
-* **ID** - The policies auto-generated public identifier.
+* **ID** - The policy's auto-generated public identifier.
 * **Name** - A unique meaningful name for the policy.
 * **Description** - A human readable description of the policy. (Optional)
 * **Rules** - Set of rules granting or denying permissions. See the [Rule Specification](/docs/acl/acl-rules.html#rule-specification) documentation for more details.
@@ -71,7 +71,7 @@ of anything else including the rule set and datacenter scoping will be prevented
 
 An ACL Service Identity is an abbreviated syntax for expressing a link to a
 policy suitable for use in [Consul Connect](/docs/connect/index.html). They are
-usable on both Tokens and Roles and are composed of the following elements:
+usable on both tokens and roles and are composed of the following elements:
 
 * **Service Name** - The name of the service.
 * **Datacenters** - A list of datacenters the effective policy is valid within. (Optional)
@@ -104,7 +104,7 @@ node_prefix "" {
 An ACL role is a named set of policies and service identities and is composed
 of the following elements:
 
-* **ID** - The policies auto-generated public identifier.
+* **ID** - The role's auto-generated public identifier.
 * **Name** - A unique meaningful name for the role.
 * **Description** - A human readable description of the role. (Optional)
 * **Policy Set** - The list of policies that are applicable for the role.
@@ -131,7 +131,7 @@ During cluster bootstrapping when ACLs are enabled both the special `anonymous` 
 injected.
 
 * **Anonymous Token** - The anonymous token is used when a request is made to Consul without specifying a bearer token.
-The anonymous token's description and policies may be updated but Consul will prevent this tokens deletion. When created,
+The anonymous token's description and policies may be updated but Consul will prevent this token's deletion. When created,
 it will be assigned `00000000-0000-0000-0000-000000000002` for its Accessor ID and `anonymous` for its Secret ID.
 
 * **Master Token** - When a master token is present within the Consul configuration, it is created and will be linked
@@ -145,7 +145,9 @@ The token Secret ID is passed along with each RPC request to the servers. Consul
 query string parameter, the `X-Consul-Token` request header, or an 
 [RFC6750](https://tools.ietf.org/html/rfc6750) authorization bearer token. Consul's
 [CLI commands](/docs/commands/index.html) can accept tokens via the
-`token` argument, or the `CONSUL_HTTP_TOKEN` environment variable.
+`token` argument, or the `CONSUL_HTTP_TOKEN` environment variable. The CLI
+commands can also accept token values stored in files with the `token-file`
+argument, or the `CONSUL_HTTP_TOKEN_FILE` environment variable.
 
 If no token is provided for an HTTP request then Consul will use the default ACL token
 if it has been configured. If no default ACL token was configured then the anonymous
@@ -153,7 +155,7 @@ token will be used.
 
 #### ACL Rules and Scope
 
-The rules from all policies linked with a token are combined to form that token's
+The rules from all policies, roles, and service identities linked with a token are combined to form that token's
 effective rule set. Policy rules can be defined in either a whitelist or blacklist
 mode depending on the configuration of [`acl_default_policy`](/docs/agent/options.html#acl_default_policy).
 If the default policy is to "deny" access to all resources, then policy rules can be set to
