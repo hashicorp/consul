@@ -33,7 +33,7 @@ github.com/SermoDigital/jose/crypto
 github.com/SermoDigital/jose/jws
 github.com/SermoDigital/jose/jwt
 github.com/SermoDigital/jose
-# github.com/StackExchange/wmi v0.0.0-20160811214555-e54cbda6595d
+# github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6
 github.com/StackExchange/wmi
 # github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
 github.com/armon/circbuf
@@ -114,12 +114,13 @@ github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster
 github.com/envoyproxy/go-control-plane/envoy/api/v2/core
 github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint
 github.com/envoyproxy/go-control-plane/envoy/api/v2/listener
+github.com/envoyproxy/go-control-plane/envoy/api/v2/route
 github.com/envoyproxy/go-control-plane/envoy/config/filter/network/ext_authz/v2
+github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2
 github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2
 github.com/envoyproxy/go-control-plane/envoy/service/auth/v2alpha
 github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2
 github.com/envoyproxy/go-control-plane/pkg/util
-github.com/envoyproxy/go-control-plane/envoy/api/v2/route
 github.com/envoyproxy/go-control-plane/envoy/type
 github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2
 # github.com/fatih/color v1.7.0
@@ -130,7 +131,7 @@ github.com/fatih/structs
 github.com/ghodss/yaml
 # github.com/go-ini/ini v1.25.4
 github.com/go-ini/ini
-# github.com/go-ole/go-ole v0.0.0-20170601135611-02d3668a0cf0
+# github.com/go-ole/go-ole v1.2.1
 github.com/go-ole/go-ole
 github.com/go-ole/go-ole/oleutil
 # github.com/go-sql-driver/mysql v0.0.0-20180618115901-749ddf1598b4
@@ -469,7 +470,7 @@ github.com/vmware/govmomi/vim25/methods
 github.com/vmware/govmomi/vim25/progress
 github.com/vmware/govmomi/vim25/debug
 github.com/vmware/govmomi/vim25/xml
-# golang.org/x/crypto v0.0.0-20181029021203-45a5f77698d3
+# golang.org/x/crypto v0.0.0-20190325154230-a5d413f7728c
 golang.org/x/crypto/blake2b
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/ssh/terminal
@@ -486,7 +487,7 @@ golang.org/x/crypto/internal/subtle
 golang.org/x/crypto/md4
 golang.org/x/crypto/chacha20poly1305
 golang.org/x/crypto/hkdf
-# golang.org/x/net v0.0.0-20181201002055-351d144fa1fc
+# golang.org/x/net v0.0.0-20190403144856-b630fd6fe46b
 golang.org/x/net/context
 golang.org/x/net/http2
 golang.org/x/net/ipv4
@@ -511,7 +512,7 @@ golang.org/x/oauth2/jwt
 # golang.org/x/sync v0.0.0-20190227155943-e225da77a7e6
 golang.org/x/sync/singleflight
 golang.org/x/sync/errgroup
-# golang.org/x/sys v0.0.0-20181026203630-95b1ffbd15a5
+# golang.org/x/sys v0.0.0-20190403152447-81d4e9dc473e
 golang.org/x/sys/unix
 golang.org/x/sys/windows/svc
 golang.org/x/sys/cpu

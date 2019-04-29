@@ -1,16 +1,21 @@
 package envoy
 
 import (
+	"encoding/json"
 	"flag"
 	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/agent/xds"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/xds"
+	"github.com/hashicorp/consul/api"
 )
 
 var update = flag.Bool("update", false, "update golden files")
@@ -56,11 +61,12 @@ func testSetAndResetEnv(t *testing.T, env []string) func() {
 // pass the test of having their template args generated as expected.
 func TestGenerateConfig(t *testing.T) {
 	cases := []struct {
-		Name     string
-		Flags    []string
-		Env      []string
-		WantArgs templateArgs
-		WantErr  string
+		Name        string
+		Flags       []string
+		Env         []string
+		ProxyConfig map[string]interface{}
+		WantArgs    BootstrapTplArgs
+		WantErr     string
 	}{
 		{
 			Name:    "no-args",
@@ -72,7 +78,7 @@ func TestGenerateConfig(t *testing.T) {
 			Name:  "defaults",
 			Flags: []string{"-proxy-id", "test-proxy"},
 			Env:   []string{},
-			WantArgs: templateArgs{
+			WantArgs: BootstrapTplArgs{
 				ProxyCluster:          "test-proxy",
 				ProxyID:               "test-proxy",
 				AgentAddress:          "127.0.0.1",
@@ -87,7 +93,7 @@ func TestGenerateConfig(t *testing.T) {
 			Flags: []string{"-proxy-id", "test-proxy",
 				"-grpc-addr", "localhost:9999"},
 			Env: []string{},
-			WantArgs: templateArgs{
+			WantArgs: BootstrapTplArgs{
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// Should resolve IP, note this might not resolve the same way
@@ -106,7 +112,7 @@ func TestGenerateConfig(t *testing.T) {
 			Env: []string{
 				"CONSUL_GRPC_ADDR=localhost:9999",
 			},
-			WantArgs: templateArgs{
+			WantArgs: BootstrapTplArgs{
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// Should resolve IP, note this might not resolve the same way
@@ -119,7 +125,185 @@ func TestGenerateConfig(t *testing.T) {
 				LocalAgentClusterName: xds.LocalAgentClusterName,
 			},
 		},
-		// TODO(banks): all the flags/env manipulation cases
+		{
+			Name:  "custom-bootstrap",
+			Flags: []string{"-proxy-id", "test-proxy"},
+			Env:   []string{},
+			ProxyConfig: map[string]interface{}{
+				// Add a completely custom bootstrap template. Never mind if this is
+				// invalid envoy config just as long as it works and gets the variables
+				// interplated.
+				"envoy_bootstrap_json_tpl": `
+				{
+					"admin": {
+						"access_log_path": "/dev/null",
+						"address": {
+							"socket_address": {
+								"address": "{{ .AdminBindAddress }}",
+								"port_value": {{ .AdminBindPort }}
+							}
+						}
+					},
+					"node": {
+						"cluster": "{{ .ProxyCluster }}",
+						"id": "{{ .ProxyID }}"
+					},
+					custom_field = "foo"
+				}`,
+			},
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster:          "test-proxy",
+				ProxyID:               "test-proxy",
+				AgentAddress:          "127.0.0.1",
+				AgentPort:             "8502",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+			},
+		},
+		{
+			Name:  "extra_-single",
+			Flags: []string{"-proxy-id", "test-proxy"},
+			Env:   []string{},
+			ProxyConfig: map[string]interface{}{
+				// Add a custom sections with interpolated variables. These are all
+				// invalid config syntax too but we are just testing they have the right
+				// effect.
+				"envoy_extra_static_clusters_json": `
+				{
+					"name": "fake_cluster_1"
+				}`,
+				"envoy_extra_static_listeners_json": `
+				{
+					"name": "fake_listener_1"
+				}`,
+				"envoy_extra_stats_sinks_json": `
+				{
+					"name": "fake_sink_1"
+				}`,
+			},
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster:          "test-proxy",
+				ProxyID:               "test-proxy",
+				AgentAddress:          "127.0.0.1",
+				AgentPort:             "8502",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+			},
+		},
+		{
+			Name:  "extra_-multiple",
+			Flags: []string{"-proxy-id", "test-proxy"},
+			Env:   []string{},
+			ProxyConfig: map[string]interface{}{
+				// Add a custom sections with interpolated variables. These are all
+				// invalid config syntax too but we are just testing they have the right
+				// effect.
+				"envoy_extra_static_clusters_json": `
+				{
+					"name": "fake_cluster_1"
+				},
+				{
+					"name": "fake_cluster_2"
+				}`,
+				"envoy_extra_static_listeners_json": `
+				{
+					"name": "fake_listener_1"
+				},{
+					"name": "fake_listener_2"
+				}`,
+				"envoy_extra_stats_sinks_json": `
+				{
+					"name": "fake_sink_1"
+				} , { "name": "fake_sink_2" }`,
+			},
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster:          "test-proxy",
+				ProxyID:               "test-proxy",
+				AgentAddress:          "127.0.0.1",
+				AgentPort:             "8502",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+			},
+		},
+		{
+			Name:  "stats-config-override",
+			Flags: []string{"-proxy-id", "test-proxy"},
+			Env:   []string{},
+			ProxyConfig: map[string]interface{}{
+				// Add a custom sections with interpolated variables. These are all
+				// invalid config syntax too but we are just testing they have the right
+				// effect.
+				"envoy_stats_config_json": `
+				{
+					"name": "fake_config"
+				}`,
+			},
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster:          "test-proxy",
+				ProxyID:               "test-proxy",
+				AgentAddress:          "127.0.0.1",
+				AgentPort:             "8502",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+			},
+		},
+		{
+			Name:  "zipkin-tracing-config",
+			Flags: []string{"-proxy-id", "test-proxy"},
+			Env:   []string{},
+			ProxyConfig: map[string]interface{}{
+				// Add a custom sections with interpolated variables. These are all
+				// invalid config syntax too but we are just testing they have the right
+				// effect.
+				"envoy_tracing_json": `{
+					"http": {
+						"name": "envoy.zipkin",
+						"config": {
+							"collector_cluster": "zipkin",
+							"collector_endpoint": "/api/v1/spans"
+						}
+					}
+				}`,
+				// Need to setup the cluster to send that too as well
+				"envoy_extra_static_clusters_json": `{
+					"name": "zipkin",
+					"type": "STRICT_DNS",
+					"connect_timeout": "5s",
+					"load_assignment": {
+						"cluster_name": "zipkin",
+						"endpoints": [
+							{
+								"lb_endpoints": [
+									{
+										"endpoint": {
+											"address": {
+												"socket_address": {
+													"address": "zipkin.service.consul",
+													"port_value": 9411
+												}
+											}
+										}
+									}
+								]
+							}
+						]
+					}
+				}`,
+			},
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster:          "test-proxy",
+				ProxyID:               "test-proxy",
+				AgentAddress:          "127.0.0.1",
+				AgentPort:             "8502",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+			},
+		},
 	}
 
 	for _, tc := range cases {
@@ -128,6 +312,14 @@ func TestGenerateConfig(t *testing.T) {
 
 			ui := cli.NewMockUi()
 			c := New(ui)
+
+			// Run a mock agent API that just always returns the proxy config in the
+			// test.
+			srv := httptest.NewServer(testMockAgentProxyConfig(tc.ProxyConfig))
+			defer srv.Close()
+
+			// Set the agent HTTP address in ENV to be our mock
+			tc.Env = append(tc.Env, "CONSUL_HTTP_ADDR="+srv.URL)
 
 			defer testSetAndResetEnv(t, tc.Env)()
 
@@ -164,4 +356,32 @@ func TestGenerateConfig(t *testing.T) {
 			require.Equal(string(expected), string(actual))
 		})
 	}
+}
+
+func testMockAgentProxyConfig(cfg map[string]interface{}) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Parse the proxy-id from the end of the URL (blindly assuming it's correct
+		// format)
+		proxyID := strings.TrimPrefix(r.URL.Path, "/v1/agent/service/")
+		serviceID := strings.TrimSuffix(proxyID, "-sidecar-proxy")
+
+		svc := api.AgentService{
+			Kind:    api.ServiceKindConnectProxy,
+			ID:      proxyID,
+			Service: proxyID,
+			Proxy: &api.AgentServiceConnectProxyConfig{
+				DestinationServiceName: serviceID,
+				DestinationServiceID:   serviceID,
+				Config:                 cfg,
+			},
+		}
+
+		cfgJSON, err := json.Marshal(svc)
+		if err != nil {
+			w.WriteHeader(500)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		w.Write(cfgJSON)
+	})
 }

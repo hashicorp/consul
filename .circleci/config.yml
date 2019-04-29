@@ -313,6 +313,41 @@ jobs:
       - store_test_results:
           path: ui-v2/test-results
 
+  # Envoy integration tests. Require docker dev binary to be built already
+  envoy-integration-test-1.8.0:
+    docker:
+      # We only really need bash and docker-compose which is installed on all
+      # Circle images but pick Go since we have to pick one of them.
+      - image: *GOLANG_IMAGE
+    environment:
+      ENVOY_VERSIONS: "1.8.0"
+    steps:
+      &ENVOY_INTEGRATION_TEST_STEPS
+      - checkout
+      # Get go binary from workspace
+      - attach_workspace:
+          at: .
+      - setup_remote_docker:
+          docker_layer_caching: true
+      # Build the consul-dev image from the already built binary
+      - run: docker build -t consul-dev -f ./build-support/docker/Consul-Dev.dockerfile .
+      - run:
+          name: Envoy Integration Tests
+          command: make test-envoy-integ SKIP_DOCKER_BUILD=1
+          environment:
+            # tput complains if this isn't set to something.
+            TERM: ansi
+      - store_artifacts:
+          path: ./test/integration/connect/envoy/workdir/logs
+          destination: container-logs
+
+  envoy-integration-test-1.9.1:
+    docker:
+      - image: *GOLANG_IMAGE
+    environment:
+      ENVOY_VERSIONS: "1.9.1"
+    steps: *ENVOY_INTEGRATION_TEST_STEPS
+
 workflows:
   version: 2
   build-distros:
@@ -337,6 +372,12 @@ workflows:
           requires:
             - dev-build
       - nomad-integration-0_8:
+          requires:
+            - dev-build
+      - envoy-integration-test-1.8.0:
+          requires:
+            - dev-build
+      - envoy-integration-test-1.9.1:
           requires:
             - dev-build
   website:
