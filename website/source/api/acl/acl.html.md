@@ -30,7 +30,7 @@ configuration files.
 | `PUT`  | `/acl/bootstrap`             | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
+[blocking queries](/api/features/blocking.html),
 [consistency modes](/api/index.html#consistency-modes),
 [agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
@@ -95,7 +95,7 @@ section for more details.
 | `GET`  | `/acl/replication`           | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
+[blocking queries](/api/features/blocking.html),
 [consistency modes](/api/index.html#consistency-modes),
 [agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
@@ -194,7 +194,7 @@ migrations.
 | `POST` | `/acl/rules/translate`      | `text/plain`               |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
+[blocking queries](/api/features/blocking.html),
 [consistency modes](/api/index.html#consistency-modes),
 [agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
@@ -241,7 +241,7 @@ Accessor ID of the legacy token. This ID can be retrieved using the
 | `GET`  | `/acl/rules/translate/:accessor_id` | `text/plain`               |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
+[blocking queries](/api/features/blocking.html),
 [consistency modes](/api/index.html#consistency-modes),
 [agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).

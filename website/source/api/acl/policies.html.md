@@ -23,7 +23,7 @@ This endpoint creates a new ACL policy.
 | `PUT`  | `/acl/policy`                | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
+[blocking queries](/api/features/blocking.html),
 [consistency modes](/api/index.html#consistency-modes),
 [agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
@@ -94,7 +94,7 @@ This endpoint reads an ACL policy with the given ID.
 | `GET`  | `/acl/policy/:id`            | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
+[blocking queries](/api/features/blocking.html),
 [consistency modes](/api/index.html#consistency-modes),
 [agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
@@ -140,7 +140,7 @@ This endpoint updates an existing ACL policy.
 | `PUT`  | `/acl/policy/:id`            | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
+[blocking queries](/api/features/blocking.html),
 [consistency modes](/api/index.html#consistency-modes),
 [agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
@@ -214,7 +214,7 @@ Even though the return type is application/json, the value is either true or
 false indicating whether the delete succeeded.
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
+[blocking queries](/api/features/blocking.html),
 [consistency modes](/api/index.html#consistency-modes),
 [agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
@@ -249,7 +249,7 @@ This endpoint lists all the ACL policies.
 | `GET`  | `/acl/policies`              | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
+[blocking queries](/api/features/blocking.html),
 [consistency modes](/api/index.html#consistency-modes),
 [agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).

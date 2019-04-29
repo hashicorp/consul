@@ -23,7 +23,7 @@ This endpoint makes a new ACL token.
 | `PUT`  | `/acl/create`                | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
+[blocking queries](/api/features/blocking.html),
 [consistency modes](/api/index.html#consistency-modes),
 [agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
@@ -82,7 +82,7 @@ generating a new token ID, the `ID` field must be provided.
 | `PUT`  | `/acl/update`                | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
+[blocking queries](/api/features/blocking.html),
 [consistency modes](/api/index.html#consistency-modes),
 [agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
@@ -136,7 +136,7 @@ Even though the return type is application/json, the value is either true or
 false, indicating whether the delete succeeded.
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
+[blocking queries](/api/features/blocking.html),
 [consistency modes](/api/index.html#consistency-modes),
 [agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
@@ -172,7 +172,7 @@ This endpoint reads an ACL token with the given ID.
 | `GET`  | `/acl/info/:uuid`            | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
+[blocking queries](/api/features/blocking.html),
 [consistency modes](/api/index.html#consistency-modes),
 [agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
@@ -221,7 +221,7 @@ complex rule management.
 | `PUT`  | `/acl/clone/:uuid`         | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
+[blocking queries](/api/features/blocking.html),
 [consistency modes](/api/index.html#consistency-modes),
 [agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
@@ -260,7 +260,7 @@ This endpoint lists all the active ACL tokens.
 | `GET`  | `/acl/list`                  | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
+[blocking queries](/api/features/blocking.html),
 [consistency modes](/api/index.html#consistency-modes),
 [agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
