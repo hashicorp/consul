@@ -55,15 +55,13 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	for _, entry := range entries {
-		c.UI.Info(fmt.Sprintf("%s / %s:", entry.GetKind(), entry.GetName()))
-		b, err := json.MarshalIndent(entry, "    ", "    ")
-		if err != nil {
-			c.UI.Error("Failed to encode output data")
-			return 1
-		}
-		c.UI.Info(fmt.Sprintf("   %s", b))
+	b, err := json.MarshalIndent(entries, "", "    ")
+	if err != nil {
+		c.UI.Error("Failed to encode output data")
+		return 1
 	}
+
+	c.UI.Info(string(b))
 	return 0
 }
 
