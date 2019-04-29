@@ -318,12 +318,13 @@ $ curl \
 
 ```json
 {
-    "AccessorID": "87675b6d-92d4-e66c-7e07-a4be2f9bee2e",
-    "SecretID": "ebd930c0-f484-871f-3d27-b1d9d8d4215d",
+    "AccessorID": "926e2bd2-b344-d91b-0c83-ae89f372cd9b",
+    "SecretID": "b78d37c7-0ca7-5f4d-99ee-6d9975ce4586",
     "Description": "token created via login",
     "Roles": [
         {
-            "BoundName": "demo"
+            "ID": "3356c67c-5535-403a-ad79-c1d5f9df8fc7",
+            "Name": "demo"
         }
     ],
     "ServiceIdentities": [
@@ -333,10 +334,10 @@ $ curl \
     ],
     "Local": true,
     "AuthMethod": "minikube",
-    "CreateTime": "2019-04-10T14:16:16.629679569-05:00",
-    "Hash": "Hs9sG4BuS+SBjHJFAYF8Sw8D2faatpfNPVSAih3+Uvo=",
-    "CreateIndex": 48,
-    "ModifyIndex": 48
+    "CreateTime": "2019-04-29T10:08:08.404370762-05:00",
+    "Hash": "nLimyD+7l6miiHEBmN/tvCelAmE/SbIXxcnTzG3pbGY=",
+    "CreateIndex": 36,
+    "ModifyIndex": 36
 }
 ```
 
@@ -367,8 +368,7 @@ deleting a token for which you already must possess its secret.
 
 ```sh
 $ curl \
-    -H "X-Consul-Token: ebd930c0-f484-871f-3d27-b1d9d8d4215d" \
+    -H "X-Consul-Token: b78d37c7-0ca7-5f4d-99ee-6d9975ce4586" \
     --request POST \
-    --data @payload.json \
     http://127.0.0.1:8500/v1/acl/logout
 ```
