@@ -33,19 +33,19 @@ Usage: consul config <subcommand> [options] [args]
 
   Write a config::
 
-      $ consul config write web.serviceconf.hcl
+    $ consul config write web.serviceconf.hcl
 
   Read a config:
 
-      $ consul config read -kind service-defaults -name web
+    $ consul config read -kind service-defaults -name web
 
   List all configs for a type:
 
-      $ consul config list -kind service-defaults
+    $ consul config list -kind service-defaults
 
   Delete a config:
 
-      $ consul config delete -kind service-defaults -name web
+    $ consul config delete -kind service-defaults -name web
 
   For more examples, ask for subcommand help or view the documentation.
 `

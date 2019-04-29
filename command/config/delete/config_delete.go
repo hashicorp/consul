@@ -77,9 +77,9 @@ const synopsis = "Delete a centralized config entry"
 const help = `
 Usage: consul config delete [options] -kind <config kind> -name <config name>
 
-Deletes the configuration entry specified by the kind and name.
+  Deletes the configuration entry specified by the kind and name.
 
-Example:
+  Example:
 
-   $ consul config delete -kind service-defaults -name web
+    $ consul config delete -kind service-defaults -name web
 `

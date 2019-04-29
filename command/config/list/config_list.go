@@ -79,11 +79,11 @@ const synopsis = "List centralized config entries of a given kind"
 const help = `
 Usage: consul config list [options] -kind <config kind>
 
-Lists all of the config entries for a given kind. The -kind parameter
-is required.
+  Lists all of the config entries for a given kind. The -kind parameter
+  is required.
 
-Example:
+  Example:
 
-   $ consul config list -kind service-defaults
+    $ consul config list -kind service-defaults
 
 `

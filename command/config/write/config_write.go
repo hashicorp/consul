@@ -94,16 +94,16 @@ const synopsis = "Create or update a centralized config entry"
 const help = `
 Usage: consul config write [options] <configuration>
 
-Request a config entry to be created or updated. The configuration
-argument is either a file path or '-' to indicate that the config
-should be read from stdin. The data should be either in HCL or
-JSON form.
+  Request a config entry to be created or updated. The configuration
+  argument is either a file path or '-' to indicate that the config
+  should be read from stdin. The data should be either in HCL or
+  JSON form.
 
-Example (from file):
+  Example (from file):
 
     $ consul config write web.service.hcl
 
-Example (from stdin):
+  Example (from stdin):
 
     $ consul config write -
 `

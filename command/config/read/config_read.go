@@ -84,10 +84,10 @@ const synopsis = "Read a centralized config entry"
 const help = `
 Usage: consul config read [options] -kind <config kind> -name <config name>
 
-Reads the config entry specified by the given kind and name and outputs its
-JSON representation.
+  Reads the config entry specified by the given kind and name and outputs its
+  JSON representation.
 
-Example:
+  Example:
 
-   $ consul config read -kind proxy-defaults -name global
+    $ consul config read -kind proxy-defaults -name global
 `
