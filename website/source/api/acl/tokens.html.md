@@ -75,18 +75,15 @@ The table below shows this endpoint's support for
 
 - `ExpirationTime` `(time: "")`- If set this represents the point after which a
   token should be considered revoked and is eligible for destruction. The
-  default unset value represents NO expiration. Added in Consul 1.5.0.
-
-~> TODO: mention hard coded min/max limits
-~> TODO: indicate this is a pointer?
+  default unset value represents NO expiration. This value must be between 1
+  minute and 24 hours in the future. Added in Consul 1.5.0.
 
 - `ExpirationTTL` `(duration: 0s)` - This is a convenience field and if set
   will initialize the `ExpirationTime` field to a value of `CreateTime +
   ExpirationTTL`. This field is not persisted beyond its initial use. Can be
   specified in the form of `"10s"` or `"5m"` (i.e., 10 seconds or 5 minutes,
-  respectively). Added in Consul 1.5.0.
-
-~> TODO: mention hard coded min/max limits
+  respectively). This value must be no smaller than 1 minute and no longer than
+  24 hours. Added in Consul 1.5.0.
 
 ### Sample Payload
 
