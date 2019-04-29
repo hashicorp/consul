@@ -53,7 +53,7 @@ The table below shows this endpoint's support for
 
   - `ServiceName` `(string: <required>)` - The name of the service. The name
     must be no longer than 256 characters, must start and end with a lowercase
-    alphanumeric character and can only contain lowercase alphanumeric
+    alphanumeric character, and can only contain lowercase alphanumeric
     characters as well as `-` and `_`.
 
   - `Datacenters` `(array<string>)` - Specifies the datacenters the effective
@@ -291,7 +291,7 @@ The table below shows this endpoint's support for
 
   - `ServiceName` `(string: <required>)` - The name of the service. The name
     must be no longer than 256 characters, must start and end with a lowercase
-    alphanumeric character and can only contain lowercase alphanumeric
+    alphanumeric character, and can only contain lowercase alphanumeric
     characters as well as `-` and `_`.
 
   - `Datacenters` `(array<string>)` - Specifies the datacenters the effective
