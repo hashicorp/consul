@@ -33,9 +33,9 @@
       }}
     {{/block-slot}}
     {{#block-slot 'actions'}}
-    {{#if false}}
-      {{#templated-anchor href="" rel="external"}}Open in Dashboard{{/templated-anchor}}
-    {{/if}}
+      {{#if item.Service.Meta.consul-dashboard-url}}
+        {{#templated-anchor href=item.Service.Meta.consul-dashboard-url vars=item.Service rel="external"}}Open in Dashboard{{/templated-anchor}}
+      {{/if}}
     {{/block-slot}}
     {{#block-slot 'content'}}
         {{#each
