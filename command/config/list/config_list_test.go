@@ -24,21 +24,21 @@ func TestConfigList(t *testing.T) {
 	ui := cli.NewMockUi()
 	c := New(ui)
 
-	_, err := client.ConfigEntries().Set(&api.ServiceConfigEntry{
+	_, _, err := client.ConfigEntries().Set(&api.ServiceConfigEntry{
 		Kind:     api.ServiceDefaults,
 		Name:     "web",
 		Protocol: "tcp",
 	}, nil)
 	require.NoError(t, err)
 
-	_, err = client.ConfigEntries().Set(&api.ServiceConfigEntry{
+	_, _, err = client.ConfigEntries().Set(&api.ServiceConfigEntry{
 		Kind:     api.ServiceDefaults,
 		Name:     "foo",
 		Protocol: "tcp",
 	}, nil)
 	require.NoError(t, err)
 
-	_, err = client.ConfigEntries().Set(&api.ServiceConfigEntry{
+	_, _, err = client.ConfigEntries().Set(&api.ServiceConfigEntry{
 		Kind:     api.ServiceDefaults,
 		Name:     "api",
 		Protocol: "tcp",

@@ -95,7 +95,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if !written {
-		c.UI.Error(fmt.Sprintf("Config entry %q / %q not updated", entry.GetKind(), entry.GetName))
+		c.UI.Error(fmt.Sprintf("Config entry %q / %q not updated", entry.GetKind(), entry.GetName()))
 		return 1
 	}
 

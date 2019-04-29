@@ -25,7 +25,7 @@ func TestConfigRead(t *testing.T) {
 	ui := cli.NewMockUi()
 	c := New(ui)
 
-	_, err := client.ConfigEntries().Set(&api.ServiceConfigEntry{
+	_, _, err := client.ConfigEntries().Set(&api.ServiceConfigEntry{
 		Kind:     api.ServiceDefaults,
 		Name:     "web",
 		Protocol: "tcp",
