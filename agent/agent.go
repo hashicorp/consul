@@ -560,12 +560,9 @@ func (a *Agent) setupClientAutoEncrypt() error {
 	if err != nil {
 		return err
 	}
-	err = a.tlsConfigurator.UpdateAutoEncrypt(reply.RootCAs, reply.CertPEM, priv, reply.VerifyServerHostname)
-	if err != nil {
-		return err
-	}
-	return nil
+	return a.tlsConfigurator.UpdateAutoEncrypt(reply.RootCAs, reply.CertPEM, priv, reply.VerifyServerHostname)
 }
+
 func (a *Agent) setupClientAutoEncryptWatching() error {
 	// setup watches
 	ch := make(chan cache.UpdateEvent, 10)
@@ -623,6 +620,7 @@ func (a *Agent) setupClientAutoEncryptWatching() error {
 			}
 		}
 	}()
+
 	return nil
 }
 
