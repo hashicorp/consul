@@ -96,4 +96,13 @@ func TestConfigWrite(t *testing.T) {
 		require.Equal(t, map[string]interface{}{"foo": "bar", "bar": 1.0}, proxy.Config)
 	})
 
+	t.Run("No config", func(t *testing.T) {
+		ui := cli.NewMockUi()
+		c := New(ui)
+
+		code := c.Run([]string{})
+		require.NotEqual(t, 0, code)
+		require.NotEmpty(t, ui.ErrorWriter.String())
+	})
+
 }
