@@ -15,6 +15,6 @@ test('it renders', function(assert) {
     this.$()
       .text()
       .trim(),
-    '1234'
+    'role'
   );
 });
