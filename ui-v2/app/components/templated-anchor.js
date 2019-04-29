@@ -21,8 +21,9 @@ const createWeak = function(wm = new WeakMap()) {
   };
 };
 const weak = createWeak();
-
-const templateRe = /{{([A-Za-z.]*)}}/g;
+// Covers alpha-capitalized dot separated API keys such as
+// `{{Name}}`, `{{Service.Name}}` etc. but not `{{}}`
+const templateRe = /{{([A-Za-z.0-9_-]+)}}/g;
 export default Component.extend({
   tagName: 'a',
   attributeBindings: ['href', 'rel', 'target'],
@@ -58,7 +59,7 @@ export default Component.extend({
       const vars = weak.get(this, 'vars');
       if (typeof vars !== 'undefined' && typeof value !== 'undefined') {
         value = value.replace(templateRe, function(match, group) {
-          return get(vars, group);
+          return get(vars, group) || '';
         });
         return weak.set(this, prop, value);
       }
