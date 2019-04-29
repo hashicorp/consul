@@ -162,7 +162,7 @@ func (e *ProxyConfigEntry) GetRaftIndex() *RaftIndex {
 	return &e.RaftIndex
 }
 
-func (c *ProxyConfigEntry) MarshalBinary() (data []byte, err error) {
+func (e *ProxyConfigEntry) MarshalBinary() (data []byte, err error) {
 	// We mainly want to implement the BinaryMarshaller interface so that
 	// we can fixup some msgpack types to coerce them into JSON compatible
 	// values. No special encoding needs to be done - we just simply msgpack
@@ -171,7 +171,7 @@ func (c *ProxyConfigEntry) MarshalBinary() (data []byte, err error) {
 
 	type alias ProxyConfigEntry
 
-	a := alias(*c)
+	a := alias(*e)
 
 	// bs will grow if needed but allocate enough to avoid reallocation in common
 	// case.
