@@ -3679,3 +3679,16 @@ func TestAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
 	require.Len(t, tlsConf.ClientCAs.Subjects(), 1)
 	require.Len(t, tlsConf.RootCAs.Subjects(), 1)
 }
+
+func TestAgent_consulConfig(t *testing.T) {
+	t.Parallel()
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	defer os.RemoveAll(dataDir)
+	hcl := `
+		data_dir = "` + dataDir + `"
+		auto_encrypt { allow_tls = true }
+	`
+	a := NewTestAgent(t, t.Name(), hcl)
+	defer a.Shutdown()
+	require.True(t, a.consulConfig().AutoEncryptAllowTLS)
+}
