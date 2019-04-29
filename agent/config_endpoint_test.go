@@ -16,7 +16,6 @@ import (
 func TestConfig_Get(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -35,39 +34,62 @@ func TestConfig_Get(t *testing.T) {
 				Name: "bar",
 			},
 		},
+		{
+			Datacenter: "dc1",
+			Entry: &structs.ProxyConfigEntry{
+				Name: structs.ProxyConfigGlobal,
+				Config: map[string]interface{}{
+					"foo": "bar",
+					"bar": 1,
+				},
+			},
+		},
 	}
 	for _, req := range reqs {
 		var out struct{}
-		require.NoError(a.RPC("ConfigEntry.Apply", &req, &out))
+		require.NoError(t, a.RPC("ConfigEntry.Apply", &req, &out))
 	}
 
 	t.Run("get a single service entry", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/config/service-defaults/foo", nil)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.Config(resp, req)
-		require.NoError(err)
+		require.NoError(t, err)
 
 		value := obj.(structs.ConfigEntry)
-		require.Equal(structs.ServiceDefaults, value.GetKind())
+		require.Equal(t, structs.ServiceDefaults, value.GetKind())
 		entry := value.(*structs.ServiceConfigEntry)
-		require.Equal(entry.Name, "foo")
+		require.Equal(t, entry.Name, "foo")
 	})
 	t.Run("list both service entries", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/config/service-defaults", nil)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.Config(resp, req)
-		require.NoError(err)
+		require.NoError(t, err)
 
 		value := obj.([]structs.ConfigEntry)
-		require.Len(value, 2)
-		require.Equal(value[0].(*structs.ServiceConfigEntry).Name, "bar")
-		require.Equal(value[1].(*structs.ServiceConfigEntry).Name, "foo")
+		require.Len(t, value, 2)
+		require.Equal(t, value[0].(*structs.ServiceConfigEntry).Name, "bar")
+		require.Equal(t, value[1].(*structs.ServiceConfigEntry).Name, "foo")
+	})
+	t.Run("get global proxy config", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/config/proxy-defaults/global", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.Config(resp, req)
+		require.NoError(t, err)
+
+		value := obj.(structs.ConfigEntry)
+		require.Equal(t, value.GetKind(), structs.ProxyDefaults)
+		entry := value.(*structs.ProxyConfigEntry)
+		require.Equal(t, structs.ProxyConfigGlobal, entry.Name)
+		require.Contains(t, entry.Config, "foo")
+		require.Equal(t, "bar", entry.Config["foo"])
 	})
 	t.Run("error on no arguments", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/config/", nil)
 		resp := httptest.NewRecorder()
 		_, err := a.srv.Config(resp, req)
-		require.Error(errors.New("Must provide either a kind or both kind and name"), err)
+		require.Error(t, errors.New("Must provide either a kind or both kind and name"), err)
 	})
 }
 

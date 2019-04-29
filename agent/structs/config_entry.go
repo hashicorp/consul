@@ -1,12 +1,14 @@
 package structs
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/mitchellh/hashstructure"
 	"github.com/mitchellh/mapstructure"
@@ -159,6 +161,27 @@ func (e *ProxyConfigEntry) GetRaftIndex() *RaftIndex {
 	}
 
 	return &e.RaftIndex
+}
+
+func (e *ProxyConfigEntry) MarshalJSON() ([]byte, error) {
+	type typeCopy ProxyConfigEntry
+	copy := typeCopy(*e)
+
+	// If we have flags, then we want to run it through our flagsWalker
+	// wich is a reflectwalk implementation that attempts to turn arbitrary
+	// interface{} values into JSON-safe equivalents (more or less). This
+	// should always work because the flags were originally encoded in JSON
+	// within the license blob
+	if copy.Config != nil {
+		newMap, err := lib.MapWalk(copy.Config)
+		if err != nil {
+			return nil, err
+		}
+
+		copy.Config = newMap
+	}
+
+	return json.Marshal(&copy)
 }
 
 func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
