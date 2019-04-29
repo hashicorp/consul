@@ -11,11 +11,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
 )
 
 var update = flag.Bool("update", false, "update golden files")
@@ -64,6 +64,7 @@ func TestGenerateConfig(t *testing.T) {
 		Name        string
 		Flags       []string
 		Env         []string
+		Files       map[string]string
 		ProxyConfig map[string]interface{}
 		WantArgs    BootstrapTplArgs
 		WantErr     string
@@ -86,6 +87,79 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+			},
+		},
+		{
+			Name: "token-arg",
+			Flags: []string{"-proxy-id", "test-proxy",
+				"-token", "c9a52720-bf6c-4aa6-b8bc-66881a5ade95"},
+			Env: []string{},
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster:          "test-proxy",
+				ProxyID:               "test-proxy",
+				AgentAddress:          "127.0.0.1",
+				AgentPort:             "8502", // Note this is the gRPC port
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+				Token:                 "c9a52720-bf6c-4aa6-b8bc-66881a5ade95",
+			},
+		},
+		{
+			Name:  "token-env",
+			Flags: []string{"-proxy-id", "test-proxy"},
+			Env: []string{
+				"CONSUL_HTTP_TOKEN=c9a52720-bf6c-4aa6-b8bc-66881a5ade95",
+			},
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster:          "test-proxy",
+				ProxyID:               "test-proxy",
+				AgentAddress:          "127.0.0.1",
+				AgentPort:             "8502", // Note this is the gRPC port
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+				Token:                 "c9a52720-bf6c-4aa6-b8bc-66881a5ade95",
+			},
+		},
+		{
+			Name: "token-file-arg",
+			Flags: []string{"-proxy-id", "test-proxy",
+				"-token-file", "@@TEMPDIR@@token.txt",
+			},
+			Env: []string{},
+			Files: map[string]string{
+				"token.txt": "c9a52720-bf6c-4aa6-b8bc-66881a5ade95",
+			},
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster:          "test-proxy",
+				ProxyID:               "test-proxy",
+				AgentAddress:          "127.0.0.1",
+				AgentPort:             "8502", // Note this is the gRPC port
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+				Token:                 "c9a52720-bf6c-4aa6-b8bc-66881a5ade95",
+			},
+		},
+		{
+			Name:  "token-file-env",
+			Flags: []string{"-proxy-id", "test-proxy"},
+			Env: []string{
+				"CONSUL_HTTP_TOKEN_FILE=@@TEMPDIR@@token.txt",
+			},
+			Files: map[string]string{
+				"token.txt": "c9a52720-bf6c-4aa6-b8bc-66881a5ade95",
+			},
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster:          "test-proxy",
+				ProxyID:               "test-proxy",
+				AgentAddress:          "127.0.0.1",
+				AgentPort:             "8502", // Note this is the gRPC port
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+				Token:                 "c9a52720-bf6c-4aa6-b8bc-66881a5ade95",
 			},
 		},
 		{
@@ -306,9 +380,27 @@ func TestGenerateConfig(t *testing.T) {
 		},
 	}
 
+	copyAndReplaceAll := func(s []string, old, new string) []string {
+		out := make([]string, len(s))
+		for i, v := range s {
+			out[i] = strings.ReplaceAll(v, old, new)
+		}
+		return out
+	}
+
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
 			require := require.New(t)
+
+			testDir := testutil.TempDir(t, "envoytest")
+			defer os.RemoveAll(testDir)
+
+			if len(tc.Files) > 0 {
+				for fn, fv := range tc.Files {
+					fullname := filepath.Join(testDir, fn)
+					require.NoError(ioutil.WriteFile(fullname, []byte(fv), 0600))
+				}
+			}
 
 			ui := cli.NewMockUi()
 			c := New(ui)
@@ -321,10 +413,15 @@ func TestGenerateConfig(t *testing.T) {
 			// Set the agent HTTP address in ENV to be our mock
 			tc.Env = append(tc.Env, "CONSUL_HTTP_ADDR="+srv.URL)
 
-			defer testSetAndResetEnv(t, tc.Env)()
+			testDirPrefix := testDir + string(filepath.Separator)
+
+			myFlags := copyAndReplaceAll(tc.Flags, "@@TEMPDIR@@", testDirPrefix)
+			myEnv := copyAndReplaceAll(tc.Env, "@@TEMPDIR@@", testDirPrefix)
+
+			defer testSetAndResetEnv(t, myEnv)()
 
 			// Run the command
-			args := append([]string{"-bootstrap"}, tc.Flags...)
+			args := append([]string{"-bootstrap"}, myFlags...)
 			code := c.Run(args)
 			if tc.WantErr == "" {
 				require.Equal(0, code, ui.ErrorWriter.String())
