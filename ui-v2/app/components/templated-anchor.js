@@ -59,7 +59,11 @@ export default Component.extend({
       const vars = weak.get(this, 'vars');
       if (typeof vars !== 'undefined' && typeof value !== 'undefined') {
         value = value.replace(templateRe, function(match, group) {
-          return get(vars, group) || '';
+          try {
+            return get(vars, group) || '';
+          } catch (e) {
+            return '';
+          }
         });
         return weak.set(this, prop, value);
       }

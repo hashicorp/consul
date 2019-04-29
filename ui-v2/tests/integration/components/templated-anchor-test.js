@@ -57,6 +57,30 @@ test('it renders', function(assert) {
       },
       result: 'http://localhost/?=/id',
     },
+    {
+      href: 'http://localhost/?={{.Name}}',
+      vars: {
+        ['.Name']: 'name',
+      },
+      result: 'http://localhost/?=',
+    },
+    {
+      href: 'http://localhost/?={{.}}',
+      vars: {
+        ['.']: 'name',
+      },
+      result: 'http://localhost/?=',
+    },
+    {
+      href: 'http://localhost/?={{deep..Name}}',
+      vars: {
+        deep: {
+          Name: 'Name',
+          ID: 'ID',
+        },
+      },
+      result: 'http://localhost/?=',
+    },
   ].forEach(item => {
     this.set('item', item);
     this.render(hbs`
