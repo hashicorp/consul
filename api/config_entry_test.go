@@ -24,7 +24,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 		}
 
 		// set it
-		wm, err := config_entries.Set(global_proxy, nil)
+		_, wm, err := config_entries.Set(global_proxy, nil)
 		require.NoError(t, err)
 		require.NotNil(t, wm)
 		require.NotEqual(t, 0, wm.RequestTime)
@@ -42,9 +42,23 @@ func TestAPI_ConfigEntries(t *testing.T) {
 		require.Equal(t, global_proxy.Name, readProxy.Name)
 		require.Equal(t, global_proxy.Config, readProxy.Config)
 
-		// update it
 		global_proxy.Config["baz"] = true
-		wm, err = config_entries.Set(global_proxy, nil)
+		// CAS update fail
+		written, _, err := config_entries.CAS(global_proxy, 0, nil)
+		require.NoError(t, err)
+		require.False(t, written)
+
+		// CAS update success
+		written, wm, err = config_entries.CAS(global_proxy, readProxy.ModifyIndex, nil)
+		require.NoError(t, err)
+		require.NotNil(t, wm)
+		require.NotEqual(t, 0, wm.RequestTime)
+		require.NoError(t, err)
+		require.True(t, written)
+
+		// Non CAS update
+		global_proxy.Config["baz"] = "baz"
+		_, wm, err = config_entries.Set(global_proxy, nil)
 		require.NoError(t, err)
 		require.NotNil(t, wm)
 		require.NotEqual(t, 0, wm.RequestTime)
@@ -85,13 +99,13 @@ func TestAPI_ConfigEntries(t *testing.T) {
 		}
 
 		// set it
-		wm, err := config_entries.Set(service, nil)
+		_, wm, err := config_entries.Set(service, nil)
 		require.NoError(t, err)
 		require.NotNil(t, wm)
 		require.NotEqual(t, 0, wm.RequestTime)
 
 		// also set the second one
-		wm, err = config_entries.Set(service2, nil)
+		_, wm, err = config_entries.Set(service2, nil)
 		require.NoError(t, err)
 		require.NotNil(t, wm)
 		require.NotEqual(t, 0, wm.RequestTime)
@@ -111,7 +125,23 @@ func TestAPI_ConfigEntries(t *testing.T) {
 
 		// update it
 		service.Protocol = "tcp"
-		wm, err = config_entries.Set(service, nil)
+
+		// CAS fail
+		written, _, err := config_entries.CAS(service, 0, nil)
+		require.NoError(t, err)
+		require.False(t, written)
+
+		// CAS success
+		written, wm, err = config_entries.CAS(service, readService.ModifyIndex, nil)
+		require.NoError(t, err)
+		require.NotNil(t, wm)
+		require.NotEqual(t, 0, wm.RequestTime)
+		require.True(t, written)
+
+		// update no cas
+		service.Connect.SidecarProxy = true
+
+		_, wm, err = config_entries.Set(service, nil)
 		require.NoError(t, err)
 		require.NotNil(t, wm)
 		require.NotEqual(t, 0, wm.RequestTime)
@@ -133,6 +163,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 				require.Equal(t, service.Kind, readService.Kind)
 				require.Equal(t, service.Name, readService.Name)
 				require.Equal(t, service.Protocol, readService.Protocol)
+				require.Equal(t, service.Connect.SidecarProxy, readService.Connect.SidecarProxy)
 			case "bar":
 				readService, ok = entry.(*ServiceConfigEntry)
 				require.True(t, ok)

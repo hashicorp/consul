@@ -24,12 +24,21 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
-	testStdin io.Reader
+	cas         bool
+	modifyIndex uint64
+	testStdin   io.Reader
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.http = &flags.HTTPFlags{}
+	c.flags.BoolVar(&c.cas, "cas", false,
+		"Perform a Check-And-Set operation. Specifying this value also "+
+			"requires the -modify-index flag to be set. The default value "+
+			"is false.")
+	c.flags.Uint64Var(&c.modifyIndex, "modify-index", 0,
+		"Unsigned integer representing the ModifyIndex of the config entry. "+
+			"This is used in combination with the -cas flag.")
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
 	c.help = flags.Usage(help, c.flags)
@@ -72,9 +81,21 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	_, err = client.ConfigEntries().Set(entry, nil)
+	entries := client.ConfigEntries()
+
+	written := false
+	if c.cas {
+		written, _, err = entries.CAS(entry, c.modifyIndex, nil)
+	} else {
+		written, _, err = entries.Set(entry, nil)
+	}
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error writing config entry %q / %q: %v", entry.GetKind(), entry.GetName(), err))
+		return 1
+	}
+
+	if !written {
+		c.UI.Error(fmt.Sprintf("Config entry %q / %q not updated", entry.GetKind(), entry.GetName))
 		return 1
 	}
 

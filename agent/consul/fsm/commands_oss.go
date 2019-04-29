@@ -457,7 +457,10 @@ func (c *FSM) applyConfigEntryOperation(buf []byte, index uint64) interface{} {
 	case structs.ConfigEntryUpsert:
 		defer metrics.MeasureSinceWithLabels([]string{"fsm", "config_entry", req.Entry.GetKind()}, time.Now(),
 			[]metrics.Label{{Name: "op", Value: "upsert"}})
-		return c.state.EnsureConfigEntry(index, req.Entry)
+		if err := c.state.EnsureConfigEntry(index, req.Entry); err != nil {
+			return err
+		}
+		return true
 	case structs.ConfigEntryDelete:
 		defer metrics.MeasureSinceWithLabels([]string{"fsm", "config_entry", req.Entry.GetKind()}, time.Now(),
 			[]metrics.Label{{Name: "op", Value: "delete"}})
