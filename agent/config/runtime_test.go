@@ -5585,6 +5585,92 @@ func TestRuntime_ToTLSUtilConfig(t *testing.T) {
 	require.Equal(t, c.EnableAgentTLSForChecks, r.EnableAgentTLSForChecks)
 }
 
+func TestReadPath(t *testing.T) {
+	dataDir := testutil.TempDir(t, "consul")
+	defer os.RemoveAll(dataDir)
+
+	tt := []struct{
+		name string
+		pre func()
+		args []string
+		expect int
+	}{
+		{
+			name: "dir skip non json or hcl if config-format not set",
+			pre: func() {
+				writeFile(filepath.Join(dataDir, "conf.d/conf.json"), []byte(`{}`))
+				writeFile(filepath.Join(dataDir, "conf.d/conf.foobar"), []byte(`{}`))
+			},
+			args: []string{
+					`-config-dir`, filepath.Join(dataDir, "conf.d"),
+				},
+			expect: 1,
+		},
+		{
+			name: "dir read non json or hcl if config-format set",
+			pre: func() {
+				writeFile(filepath.Join(dataDir, "conf.d/conf.json"), []byte(`{}`))
+				writeFile(filepath.Join(dataDir, "conf.d/conf.foobar"), []byte(`{}`))
+			},
+			args: []string{
+					`-config-dir`, filepath.Join(dataDir, "conf.d"),
+					`-config-format`, "json",
+				},
+			expect: 2,
+		},
+		{
+			name: "file skip non json or hcl if config-format not set",
+			pre: func() {
+				writeFile(filepath.Join(dataDir, "conf.d/conf.foobar"), []byte(`{}`))
+			},
+			args: []string{
+					`-config-file`, filepath.Join(dataDir, "conf.d"),
+				},
+			expect: 0,
+		},
+		{
+			name: "file read non json or hcl if config-format set",
+			pre: func() {
+				writeFile(filepath.Join(dataDir, "conf.d/conf.foobar"), []byte(`{}`))
+			},
+			args: []string{
+					`-config-file`, filepath.Join(dataDir, "conf.d"),
+					`-config-format`, "json",
+				},
+			expect: 1,
+		},
+	}
+
+	for _, tc := range tt {
+		cleanDir(dataDir)
+
+		t.Run(tc.name, func(t * testing.T) {
+			flags := Flags{}
+			fs := flag.NewFlagSet("", flag.ContinueOnError)
+			AddFlags(fs, &flags)
+			err := fs.Parse(tc.args)
+			if err != nil {
+				t.Fatalf("ParseFlags failed: %s", err)
+			}
+			flags.Args = fs.Args()
+
+			// write cfg files
+			tc.pre()
+
+			// Then create a builder with the flags.
+			b, err := NewBuilder(flags)
+			if err != nil {
+				t.Fatal("NewBuilder", err)
+			}
+
+			got := len(b.Sources)
+			if tc.expect != got {
+				t.Fatalf("expected %d sources, got %d", tc.expect, got)
+			}
+		})
+	}
+}
+
 func splitIPPort(hostport string) (net.IP, int) {
 	h, p, err := net.SplitHostPort(hostport)
 	if err != nil {
