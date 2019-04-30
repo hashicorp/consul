@@ -562,7 +562,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	connectCAProvider := b.stringVal(c.Connect.CAProvider)
 	connectCAConfig := c.Connect.CAConfig
 	if connectCAConfig != nil {
-		TranslateKeys(connectCAConfig, map[string]string{
+		lib.TranslateKeys(connectCAConfig, map[string]string{
 			// Consul CA config
 			"private_key":     "PrivateKey",
 			"root_cert":       "RootCert",

@@ -218,14 +218,20 @@ func (e *ProxyConfigEntry) UnmarshalBinary(data []byte) error {
 // first decode into a map[string]interface{} and then call this function to decode
 // into a concrete type.
 func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
+	lib.TranslateKeys(raw, map[string]string{
+		"kind":          "Kind",
+		"name":          "Name",
+		"connect":       "Connect",
+		"sidecar_proxy": "SidecarProxy",
+		"protocol":      "Protocol",
+		"Config":        "",
+	})
+
 	var entry ConfigEntry
 
 	kindVal, ok := raw["Kind"]
 	if !ok {
-		kindVal, ok = raw["kind"]
-	}
-	if !ok {
-		return nil, fmt.Errorf("Payload does not contain a kind/Kind key at the top level")
+		return nil, fmt.Errorf("Payload does not contain a Kind key at the top level")
 	}
 
 	if kindStr, ok := kindVal.(string); ok {
@@ -332,6 +338,15 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &ProxyConfigEntry{Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
+	}
+}
+
+func ValidateConfigEntryKind(kind string) bool {
+	switch kind {
+	case ServiceDefaults, ProxyDefaults:
+		return true
+	default:
+		return false
 	}
 }
 

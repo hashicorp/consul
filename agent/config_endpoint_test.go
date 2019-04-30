@@ -273,7 +273,7 @@ func TestConfig_Apply_Decoding(t *testing.T) {
 		require.Error(t, err)
 		badReq, ok := err.(BadRequestError)
 		require.True(t, ok)
-		require.Equal(t, "Request decoding failed: Payload does not contain a kind/Kind key at the top level", badReq.Reason)
+		require.Equal(t, "Request decoding failed: Payload does not contain a Kind key at the top level", badReq.Reason)
 	})
 
 	t.Run("Kind Not String", func(t *testing.T) {

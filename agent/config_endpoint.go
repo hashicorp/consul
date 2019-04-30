@@ -44,7 +44,7 @@ func (s *HTTPServer) configGet(resp http.ResponseWriter, req *http.Request) (int
 		}
 
 		if reply.Entry == nil {
-			return nil, fmt.Errorf("Config entry not found for %q / %q", pathArgs[0], pathArgs[1])
+			return nil, NotFoundError{Reason: fmt.Sprintf("Config entry not found for %q / %q", pathArgs[0], pathArgs[1])}
 		}
 
 		return reply.Entry, nil
@@ -59,9 +59,7 @@ func (s *HTTPServer) configGet(resp http.ResponseWriter, req *http.Request) (int
 
 		return reply.Entries, nil
 	default:
-		resp.WriteHeader(http.StatusNotFound)
-		fmt.Fprintf(resp, "Must provide either a kind or both kind and name")
-		return nil, nil
+		return nil, NotFoundError{Reason: "Must provide either a kind or both kind and name"}
 	}
 }
 

@@ -2715,7 +2715,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					foo = "bar"
 				}
 			}`},
-			err: "config_entries.bootstrap[0]: Payload does not contain a kind/Kind",
+			err: "config_entries.bootstrap[0]: Payload does not contain a Kind",
 		},
 		{
 			desc: "ConfigEntry bootstrap unknown kind",
