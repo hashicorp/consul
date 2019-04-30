@@ -3,16 +3,16 @@ layout: "docs"
 page_title: "Kubernetes Auth Method"
 sidebar_current: "docs-acl-auth-methods-kubernetes"
 description: |-
-  The kubernetes auth method type allows for a Kubernetes Service Account Token to be used to authenticate to Consul. This method of authentication makes it easy to introduce a Consul token into a Kubernetes Pod.
+  The Kubernetes auth method type allows for a Kubernetes service account token to be used to authenticate to Consul. This method of authentication makes it easy to introduce a Consul token into a Kubernetes pod.
 ---
 
 -> **1.5.0+:**  This guide only applies in Consul versions 1.5.0 and newer.
 
 # Kubernetes Auth Method
 
-The `kubernetes` auth method type allows for a Kubernetes Service Account Token
+The `kubernetes` auth method type allows for a Kubernetes service account token
 to be used to authenticate to Consul. This method of authentication makes it
-easy to introduce a Consul token into a Kubernetes Pod.
+easy to introduce a Consul token into a Kubernetes pod.
 
 ## Config Parameters
 
@@ -45,7 +45,7 @@ parameters are required to properly configure an auth method of type
 
 ## RBAC
 
-The service account corresponding to the configured
+The Kubernetes service account corresponding to the configured
 [`ServiceAccountJWT`](/docs/acl/auth-methods/kubernetes.html#serviceaccountjwt)
 needs to have access to two Kubernetes APIs:
 
@@ -107,7 +107,7 @@ roleRef:
 ## Trusted Identity Attributes
 
 The authentication step returns the following trusted identity attributes for 
-use in binding rule selectors and bind name interpolation:
+use in binding rule selectors and bind name interpolation.
 
 | Attributes                 | Supported Selector Operations      | Can be Interpolated |
 | -------------------------- | ---------------------------------- | ------------------- |
@@ -120,7 +120,7 @@ use in binding rule selectors and bind name interpolation:
 Initially the
 [`ServiceAccountJWT`](/docs/acl/auth-methods/kubernetes.html#serviceaccountjwt)
 given to the Consul leader uses the TokenReview API to validate the provided
-JWT is still valid. The trusted attributes of `serviceaccount.namespace`,
+JWT. The trusted attributes of `serviceaccount.namespace`,
 `serviceaccount.name`, and `serviceaccount.uid` are populated directly from the
 Service Account metadata.
 
