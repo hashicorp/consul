@@ -21,16 +21,16 @@ This endpoint creates or updates the given config entry.
 | `PUT`  | `/config`                    | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
 | ---------------- | ----------------- | ------------- | ------------- |
 | `NO`             | `none`            | `none`        | `service:write`<br>`operator:write`<sup>1</sup> |
 
-<sup>1</sup> The ACL required depends on the Kind of the config entry being updated:
+<sup>1</sup> The ACL required depends on the config entry kind being updated:
 
 | Config Entry Kind | Required ACL     |
 | ----------------- | ---------------- |
@@ -44,7 +44,7 @@ The table below shows this endpoint's support for
   URL as a query parameter.
 
 - `cas` `(int: 0)` - Specifies to use a Check-And-Set operation. If the index is 
-  0, Consul will only put the entry if it does not already exist. If the index is 
+  0, Consul will only store the entry if it does not already exist. If the index is 
   non-zero, the entry is only set if the current index matches the `ModifyIndex` 
   of that entry.
 
@@ -64,7 +64,7 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
+```sh
 $ curl \
     --request PUT \
     --data @payload \
@@ -80,16 +80,16 @@ This endpoint returns a specific config entry.
 | `GET`  | `/config/:kind/:name`        | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
 | ---------------- | ----------------- | ------------- | ------------- |
 | `YES`            | `all`             | `none`        | `service:read`<sup>1</sup> |
 
-<sup>1</sup> The ACL required depends on the Kind of the config entry being read:
+<sup>1</sup> The ACL required depends on the config entry kind being read:
 
 | Config Entry Kind | Required ACL     |
 | ----------------- | ---------------- |
@@ -102,18 +102,18 @@ The table below shows this endpoint's support for
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter.
 
-- `kind` `(string: <required>)` - Specifies the Kind of the entry to read. This
+- `kind` `(string: <required>)` - Specifies the kind of the entry to read. This
   is specified as part of the URL. 
 
-- `name` `(string: <required>)` - Specifies the Name of the entry to read. This
+- `name` `(string: <required>)` - Specifies the name of the entry to read. This
   is specified as part of the URL. 
 
 ### Sample Request
 
-```text
+```sh
 $ curl \
     --request GET \
-    http://127.0.0.1:8500/v1/service-defaults/web
+    http://127.0.0.1:8500/v1/config/service-defaults/web
 ```
 
 ### Sample Response
@@ -133,23 +133,23 @@ $ curl \
 
 ## List Configurations
 
-This endpoint returns all config entries of the given Kind.
+This endpoint returns all config entries of the given kind.
 
 | Method | Path                         | Produces                   |
 | ------ | ---------------------------- | -------------------------- |
 | `GET`  | `/config/:kind`              | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
 | ---------------- | ----------------- | ------------- | ------------- |
 | `YES`            | `all`             | `none`        | `service:read`<sup>1</sup> |
 
-<sup>1</sup> The ACL required depends on the Kind of the config entry being read:
+<sup>1</sup> The ACL required depends on the config entry kind being read:
 
 | Config Entry Kind | Required ACL     |
 | ----------------- | ---------------- |
@@ -162,15 +162,15 @@ The table below shows this endpoint's support for
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter.
 
-- `kind` `(string: <required>)` - Specifies the Kind of the entry to list. This
+- `kind` `(string: <required>)` - Specifies the kind of the entry to list. This
   is specified as part of the URL. 
 
 ### Sample Request
 
-```text
+```sh
 $ curl \
     --request GET \
-    http://127.0.0.1:8500/v1/service-defaults
+    http://127.0.0.1:8500/v1/config/service-defaults
 ```
 
 ### Sample Response
@@ -209,16 +209,16 @@ This endpoint creates or updates the given config entry.
 | `DELETE` | `/config/:kind/:name`        | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
 | ---------------- | ----------------- | ------------- | ------------- |
 | `NO`             | `none`            | `none`        | `service:write`<br>`operator:write`<sup>1</sup> |
 
-<sup>1</sup> The ACL required depends on the Kind of the config entry being deleted:
+<sup>1</sup> The ACL required depends on the config entry kind being deleted:
 
 | Config Entry Kind | Required ACL     |
 | ----------------- | ---------------- |
@@ -231,15 +231,15 @@ The table below shows this endpoint's support for
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter.
 
-- `kind` `(string: <required>)` - Specifies the Kind of the entry to delete. This
+- `kind` `(string: <required>)` - Specifies the kind of the entry to delete. This
   is specified as part of the URL. 
 
-- `name` `(string: <required>)` - Specifies the Name of the entry to delete. This
+- `name` `(string: <required>)` - Specifies the name of the entry to delete. This
   is specified as part of the URL. 
 
 ### Sample Request
 
-```text
+```sh
 $ curl \
     --request DELETE \
     http://127.0.0.1:8500/v1/config/service-defaults/web

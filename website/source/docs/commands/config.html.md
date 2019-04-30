@@ -22,8 +22,8 @@ the complete list of subcommands.
 ```text
 Usage: consul config <subcommand> [options] [args]
 
-  This command has subcommands for interacting with Consul's Centralized
-  Configuration system. Here are some simple examples, and more detailed
+  This command has subcommands for interacting with Consul's centralized
+  configuration system. Here are some simple examples, and more detailed
   examples are available in the subcommands or the documentation.
 
   Write a config:

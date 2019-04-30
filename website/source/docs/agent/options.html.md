@@ -1111,8 +1111,8 @@ default will automatically work with some tooling.
   be checked using the agent's credentials. This was added in Consul 1.0.1 and defaults to false.
 
 * <a name="enable_central_service_config"></a><a href="#enable_central_service_config">`enable_central_service_config`</a>
-  When set, the Consul agent will merge any service registrations with centrally configured defaults, if available.
-  This allows for things like service protocol or proxy configuration to be defined centrally and inherited by any
+  When set, the Consul agent will merge any service registrations with centrally configured defaults for that service, if 
+  they exist. This allows for things like service protocol or proxy configuration to be defined centrally and inherited by any
   affected service registrations.
 
 * <a name="enable_debug"></a><a href="#enable_debug">`enable_debug`</a> When set, enables some
