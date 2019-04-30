@@ -30,16 +30,16 @@ At the highest level, there are two major components to the ACL system:
 For many scenarios policies and tokens are sufficient, but more advanced setups
 may benefit from additional components in the ACL system:
 
- * **ACL Roles** - Roles allow for grouping a set of policies and service
-   identities into a reusable higher-level entity that can be linked with many
-   tokens. (Added in Consul 1.5)
+ * **ACL Roles** - Roles allow for the grouping of a set of policies and service
+   identities into a reusable higher-level entity that can be applied to many
+   tokens. (Added in Consul 1.5.0)
 
  * **ACL Service Identities** - Service Identities allow for an abbreviated
    syntax for expressing a kind of policy needed for an token to be usable with
    [Consul Connect](/docs/connect/index.html). At authorization time this acts
    like an additional policy was attached, the contents of which are described
    further below. These are directly attached to tokens and roles and are not
-   independently configured. (Added in Consul 1.5)
+   independently configured. (Added in Consul 1.5.0)
 
  * **ACL Auth Methods and Binding Rules** - To learn more about these topics,
    see the [dedicated auth methods documentation page](/docs/acl/acl-auth-methods.html).
@@ -67,9 +67,9 @@ of anything else including the rule set and datacenter scoping will be prevented
 
 ### ACL Service Identities
 
--> (Added in Consul 1.5)
+-> Added in Consul 1.5.0
 
-An ACL Service Identity is an abbreviated syntax for expressing a link to a
+An ACL service identity is an abbreviated syntax for expressing a link to a
 policy suitable for use in [Consul Connect](/docs/connect/index.html). They are
 usable on both tokens and roles and are composed of the following elements:
 
@@ -81,10 +81,10 @@ attached to the token with the following contents:
 
 ```hcl
 // Allow the service and its sidecar proxy to register into the catalog.
-service "{{ SERVICE_NAME_FIELD }}" {
+service "<Service Name>" {
 	policy = "write"
 }
-service "{{ SERVICE_NAME_FIELD }}-sidecar-proxy" {
+service "<Service Name>-sidecar-proxy" {
 	policy = "write"
 }
 
@@ -99,7 +99,7 @@ node_prefix "" {
 
 ### ACL Roles
 
--> (Added in Consul 1.5)
+-> Added in Consul 1.5.0
 
 An ACL role is a named set of policies and service identities and is composed
 of the following elements:
@@ -119,11 +119,11 @@ elements:
 * **Secret ID** -The bearer token used when making requests to Consul.
 * **Description** - A human readable description of the token. (Optional)
 * **Policy Set** - The list of policies that are applicable for the token.
-* **Role Set** - The list of roles that are applicable for the token. (Added in Consul 1.5)
-* **Service Identity Set** - The list of service identities that are applicable for the token. (Added in Consul 1.5)
+* **Role Set** - The list of roles that are applicable for the token. (Added in Consul 1.5.0)
+* **Service Identity Set** - The list of service identities that are applicable for the token. (Added in Consul 1.5.0)
 * **Locality** - Indicates whether the token should be local to the datacenter it was created within or created in
 the primary datacenter and globally replicated.
-* **Expiration Time** - The time at which this token is revoked. (Optional; Added in Consul 1.5)
+* **Expiration Time** - The time at which this token is revoked. (Optional; Added in Consul 1.5.0)
 
 #### Builtin Tokens
 
