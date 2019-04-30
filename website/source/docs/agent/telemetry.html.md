@@ -923,7 +923,7 @@ These metrics give insight into the health of the cluster as a whole.
   </tr>
   <tr>
     <td>`consul.serf.member.join`</td>
-    <td>This increments when an agent joins the cluster.</td>
+    <td>This increments when an agent joins the cluster. If an agent flapped or failed this counter is also incremented when it re-joins.</td>
     <td>joins / interval</td>
     <td>counter</td>
   </tr>
