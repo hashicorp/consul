@@ -82,7 +82,7 @@ func (c *cmd) init() {
 		&c.k8sServiceAccountJWT,
 		"kubernetes-service-account-jwt",
 		"",
-		"A kubernetes service account JWT used to access the TokenReview API to "+
+		"A Kubernetes service account JWT used to access the TokenReview API to "+
 			"validate other JWTs during login. "+
 			"This flag is required for type=kubernetes.",
 	)
