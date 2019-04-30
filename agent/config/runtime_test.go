@@ -2709,7 +2709,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					]
 				}
 			}`},
-			hcl:  []string{`
+			hcl: []string{`
 			config_entries {
 				bootstrap {
 					foo = "bar"
@@ -2731,7 +2731,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					]
 				}
 			}`},
-			hcl:  []string{`
+			hcl: []string{`
 			config_entries {
 				bootstrap {
 					kind = "foo"
@@ -2757,7 +2757,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					]
 				}
 			}`},
-			hcl:  []string{`
+			hcl: []string{`
 			config_entries {
 				bootstrap {
 					kind = "proxy-defaults"
