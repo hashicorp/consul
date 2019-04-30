@@ -45,7 +45,7 @@
         <th>Datacenters</th>
       {{/block-slot}}
       {{#block-slot 'row'}}
-        <td>
+        <td class={{policy/typeof item}}>
 {{#if item.ID }}
           <a href={{href-to 'dc.acls.policies.edit' item.ID}}>{{item.Name}}</a>
 {{else}}
