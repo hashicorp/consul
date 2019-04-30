@@ -25,10 +25,10 @@ perform [anti-entropy](/docs/internals/anti-entropy.html).
 | `PUT`  | `/catalog/register`          | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required              |
 | ---------------- | ----------------- | ------------- | ------------------------- |
@@ -156,10 +156,10 @@ perform [anti-entropy](/docs/internals/anti-entropy.html).
 | `PUT`  | `/catalog/deregister`        | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required               |
 | ---------------- | ----------------- | ------------- | -------------------------- |
@@ -230,10 +230,10 @@ Consul servers are routable.
 | `GET`  | `/catalog/datacenters`       | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -261,10 +261,10 @@ This endpoint and returns the nodes registered in a given datacenter.
 | `GET`  | `/catalog/nodes`             | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -355,10 +355,10 @@ This endpoint returns the services registered in a given datacenter.
 | `GET`  | `/catalog/services`          | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
 | ---------------- | ----------------- | ------------- | -------------- |
@@ -407,10 +407,10 @@ This endpoint returns the nodes providing a service in a given datacenter.
 | `GET`  | `/catalog/service/:service`  | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching        | ACL Required             |
 | ---------------- | ----------------- | -------------------- | ------------------------ |
@@ -606,10 +606,10 @@ This endpoint returns the node's registered services.
 | `GET`  | `/catalog/node/:node`        | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required             |
 | ---------------- | ----------------- | ------------- | ------------------------ |

@@ -97,6 +97,8 @@ func Parse(data string, format string) (c Config, err error) {
 		"services.connect.sidecar_service.checks",
 		"service.connect.sidecar_service.proxy.upstreams",
 		"services.connect.sidecar_service.proxy.upstreams",
+
+		"config_entries.bootstrap",
 	})
 
 	// There is a difference of representation of some fields depending on
@@ -654,9 +656,10 @@ type Tokens struct {
 }
 
 type ConfigEntries struct {
-	Bootstrap ConfigEntriesBootstrap `json:"bootstrap,omitempty" hcl:"bootstrap" mapstructure:"bootstrap"`
-}
-
-type ConfigEntriesBootstrap struct {
-	ProxyDefaults map[string]map[string]interface{} `json:"proxy_defaults,omitempty" hcl:"proxy_defaults" mapstructure:"proxy_defaults"`
+	// Bootstrap is the list of config_entries that should only be persisted to
+	// cluster on initial startup of a new leader if no such config exists
+	// already. The type is map not structs.ConfigEntry for decoding reasons - we
+	// need to figure out the right concrete type before we can decode it
+	// unabiguously.
+	Bootstrap []map[string]interface{} `json:"bootstrap,omitempty" hcl:"bootstrap" mapstructure:"bootstrap"`
 }

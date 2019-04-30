@@ -44,7 +44,8 @@
 /docs/agent/acl-system.html                https://www.consul.io/docs/acl/acl-system.html
 /docs/agent/http.html                      https://www.consul.io/api/index.html
 /docs/guides/acl-legacy.html               https://www.consul.io/docs/acl/acl-legacy.html
-/docs/guides/acl-migrate-acl-tokens.html   https://www.consul.io/docs/acl/acl-migrate-acl-tokens.html
+/docs/guide/acl-migrate-tokens.html        https://www.consul.io/docs/acl/acl-migrate-tokens.html
+/docs/guides/acl-migrate-tokens.html       https://www.consul.io/docs/acl/acl-migrate-tokens.html
 /docs/guides/bootstrapping.html            https://www.consul.io/docs/install/bootstrapping.html
 /docs/guides/sentinel.html                 https://www.consul.io/docs/agent/sentinel.html
 

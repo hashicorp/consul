@@ -191,6 +191,11 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 	httpCfg := api.DefaultConfig()
 	c.http.MergeOntoConfig(httpCfg)
 
+	// Trigger the Client init to do any last-minute updates to the Config.
+	if _, err := api.NewClient(httpCfg); err != nil {
+		return nil, err
+	}
+
 	// Decide on TLS if the scheme is provided and indicates it, if the HTTP env
 	// suggests TLS is supported explicitly (CONSUL_HTTP_SSL) or implicitly
 	// (CONSUL_HTTP_ADDR) is https://

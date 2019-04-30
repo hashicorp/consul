@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPolicyCreateCommand_noTabs(t *testing.T) {
@@ -24,7 +24,7 @@ func TestPolicyCreateCommand_noTabs(t *testing.T) {
 
 func TestPolicyCreateCommand(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
+	require := require.New(t)
 
 	testDir := testutil.TempDir(t, "acl")
 	defer os.RemoveAll(testDir)
@@ -48,7 +48,7 @@ func TestPolicyCreateCommand(t *testing.T) {
 
 	rules := []byte("service \"\" { policy = \"write\" }")
 	err := ioutil.WriteFile(testDir+"/rules.hcl", rules, 0644)
-	assert.NoError(err)
+	require.NoError(err)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
@@ -58,6 +58,6 @@ func TestPolicyCreateCommand(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	assert.Equal(code, 0)
-	assert.Empty(ui.ErrorWriter.String())
+	require.Equal(code, 0)
+	require.Empty(ui.ErrorWriter.String())
 }

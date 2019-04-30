@@ -15,21 +15,34 @@ CRUD operations on nodes, services, checks, configuration, and more.
 ## Authentication
 
 When authentication is enabled, a Consul token should be provided to API
-requests using the `X-Consul-Token` header. This reduces the probability of the
+requests using the `X-Consul-Token` header or with the
+ Bearer scheme in the authorization header. 
+This reduces the probability of the
 token accidentally getting logged or exposed. When using authentication,
-clients should communicate via TLS.
+clients should communicate via TLS. If you don’t provide a token in the request, then the agent default token will be used.
 
-Here is an example using `curl`:
 
-```text
+Below is an example using `curl` with `X-Consul-Token`.
+
+```sh
 $ curl \
-    --header "X-Consul-Token: abcd1234" \
+    --header "X-Consul-Token: <consul token>" \
+    http://127.0.0.1:8500/v1/agent/members
+```
+
+Below is an example using `curl` with Bearer scheme.
+
+```sh
+$ curl \
+    --header "Authorization: Bearer <consul token>" \
     http://127.0.0.1:8500/v1/agent/members
 ```
 
 Previously this was provided via a `?token=` query parameter. This functionality
 exists on many endpoints for backwards compatibility, but its use is **highly
 discouraged**, since it can show up in access logs as part of the URL.
+
+To learn more about the ACL system read the [documentation](/docs/acl/acl-system.html).
 
 ## Version Prefix
 

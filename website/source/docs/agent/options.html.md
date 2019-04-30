@@ -1091,10 +1091,10 @@ default will automatically work with some tooling.
         600, ie: 10 minutes.
 
     * <a name="dns_use_cache"></a><a href="#dns_use_cache">`use_cache`</a> - When set to true, DNS resolution will use the agent cache described
-      in [agent caching](/api/index.html#agent-caching). This setting affects all service and prepared queries DNS requests. Implies [`allow_stale`](#allow_stale)
+      in [agent caching](/api/features/caching.html). This setting affects all service and prepared queries DNS requests. Implies [`allow_stale`](#allow_stale)
 
     * <a name="dns_cache_max_age"></a><a href="#dns_cache_max_age">`cache_max_age`</a> - When [use_cache](#dns_use_cache) is enabled, the agent
-      will attempt to re-fetch the result from the servers if the cached value is older than this duration. See: [agent caching](/api/index.html#agent-caching).
+      will attempt to re-fetch the result from the servers if the cached value is older than this duration. See: [agent caching](/api/features/caching.html).
 
 * <a name="domain"></a><a href="#domain">`domain`</a> Equivalent to the
   [`-domain` command-line flag](#_domain).

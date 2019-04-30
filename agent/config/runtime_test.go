@@ -2693,6 +2693,82 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				}
 			},
 		},
+
+		// ------------------------------------------------------------
+		// ConfigEntry Handling
+		//
+		{
+			desc: "ConfigEntry bootstrap doesn't parse",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"config_entries": {
+					"bootstrap": [
+						{
+							"foo": "bar"
+						}
+					]
+				}
+			}`},
+			hcl: []string{`
+			config_entries {
+				bootstrap {
+					foo = "bar"
+				}
+			}`},
+			err: "config_entries.bootstrap[0]: Payload does not contain a kind/Kind",
+		},
+		{
+			desc: "ConfigEntry bootstrap unknown kind",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"config_entries": {
+					"bootstrap": [
+						{
+							"kind": "foo",
+							"name": "bar",
+							"baz": 1
+						}
+					]
+				}
+			}`},
+			hcl: []string{`
+			config_entries {
+				bootstrap {
+					kind = "foo"
+					name = "bar"
+					baz = 1
+				}
+			}`},
+			err: "config_entries.bootstrap[0]: invalid config entry kind: foo",
+		},
+		{
+			desc: "ConfigEntry bootstrap invalid",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"config_entries": {
+					"bootstrap": [
+						{
+							"kind": "proxy-defaults",
+							"name": "invalid-name",
+							"config": {
+								"foo": "bar"
+							}
+						}
+					]
+				}
+			}`},
+			hcl: []string{`
+			config_entries {
+				bootstrap {
+					kind = "proxy-defaults"
+					name = "invalid-name"
+					config {
+						foo = "bar"
+					}
+				}
+			}`},
+			err: "config_entries.bootstrap[0]: invalid name (\"invalid-name\"), only \"global\" is supported",
+		},
 	}
 
 	testConfig(t, tests, dataDir)
@@ -3009,14 +3085,16 @@ func TestFullConfig(t *testing.T) {
 			"check_update_interval": "16507s",
 			"client_addr": "93.83.18.19",
 			"config_entries": {
-				"bootstrap": {
-					"proxy_defaults": {
-						"global": {
+				"bootstrap": [
+					{
+						"kind": "proxy-defaults",
+						"name": "global",
+						"config": {
 							"foo": "bar",
 							"bar": 1.0
 						}
 					}
-				}
+				]
 			},
 			"connect": {
 				"ca_provider": "consul",
@@ -3573,9 +3651,14 @@ func TestFullConfig(t *testing.T) {
 			check_update_interval = "16507s"
 			client_addr = "93.83.18.19"
 			config_entries {
-				bootstrap proxy_defaults global {
-					foo = "bar"
-					bar = 1.0
+				# This is using the repeated block-to-array HCL magic
+				bootstrap {
+					kind = "proxy-defaults"
+					name = "global"
+					config {
+						foo = "bar"
+						bar = 1.0
+					}
 				}
 			}
 			connect {
@@ -5500,6 +5583,92 @@ func TestRuntime_ToTLSUtilConfig(t *testing.T) {
 	require.Equal(t, c.TLSCipherSuites, r.CipherSuites)
 	require.Equal(t, c.TLSPreferServerCipherSuites, r.PreferServerCipherSuites)
 	require.Equal(t, c.EnableAgentTLSForChecks, r.EnableAgentTLSForChecks)
+}
+
+func TestReadPath(t *testing.T) {
+	dataDir := testutil.TempDir(t, "consul")
+	defer os.RemoveAll(dataDir)
+
+	tt := []struct {
+		name   string
+		pre    func()
+		args   []string
+		expect int
+	}{
+		{
+			name: "dir skip non json or hcl if config-format not set",
+			pre: func() {
+				writeFile(filepath.Join(dataDir, "conf.d/conf.json"), []byte(`{}`))
+				writeFile(filepath.Join(dataDir, "conf.d/conf.foobar"), []byte(`{}`))
+			},
+			args: []string{
+				`-config-dir`, filepath.Join(dataDir, "conf.d"),
+			},
+			expect: 1,
+		},
+		{
+			name: "dir read non json or hcl if config-format set",
+			pre: func() {
+				writeFile(filepath.Join(dataDir, "conf.d/conf.json"), []byte(`{}`))
+				writeFile(filepath.Join(dataDir, "conf.d/conf.foobar"), []byte(`{}`))
+			},
+			args: []string{
+				`-config-dir`, filepath.Join(dataDir, "conf.d"),
+				`-config-format`, "json",
+			},
+			expect: 2,
+		},
+		{
+			name: "file skip non json or hcl if config-format not set",
+			pre: func() {
+				writeFile(filepath.Join(dataDir, "conf.d/conf.foobar"), []byte(`{}`))
+			},
+			args: []string{
+				`-config-file`, filepath.Join(dataDir, "conf.d"),
+			},
+			expect: 0,
+		},
+		{
+			name: "file read non json or hcl if config-format set",
+			pre: func() {
+				writeFile(filepath.Join(dataDir, "conf.d/conf.foobar"), []byte(`{}`))
+			},
+			args: []string{
+				`-config-file`, filepath.Join(dataDir, "conf.d"),
+				`-config-format`, "json",
+			},
+			expect: 1,
+		},
+	}
+
+	for _, tc := range tt {
+		cleanDir(dataDir)
+
+		t.Run(tc.name, func(t *testing.T) {
+			flags := Flags{}
+			fs := flag.NewFlagSet("", flag.ContinueOnError)
+			AddFlags(fs, &flags)
+			err := fs.Parse(tc.args)
+			if err != nil {
+				t.Fatalf("ParseFlags failed: %s", err)
+			}
+			flags.Args = fs.Args()
+
+			// write cfg files
+			tc.pre()
+
+			// Then create a builder with the flags.
+			b, err := NewBuilder(flags)
+			if err != nil {
+				t.Fatal("NewBuilder", err)
+			}
+
+			got := len(b.Sources)
+			if tc.expect != got {
+				t.Fatalf("expected %d sources, got %d", tc.expect, got)
+			}
+		})
+	}
 }
 
 func splitIPPort(hostport string) (net.IP, int) {

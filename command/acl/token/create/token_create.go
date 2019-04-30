@@ -23,19 +23,25 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
+	accessor      string
+	secret        string
 	policyIDs     []string
 	policyNames   []string
+	description   string
 	roleIDs       []string
 	roleNames     []string
 	serviceIdents []string
 	expirationTTL time.Duration
-	description   string
 	local         bool
 	showMeta      bool
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.StringVar(&c.accessor, "accessor", "", "Create the token with this Accessor ID. "+
+		"It must be a UUID. If not specified one will be auto-generated")
+	c.flags.StringVar(&c.secret, "secret", "", "Create the token with this Secret ID. "+
+		"It must be a UUID. If not specified one will be auto-generated")
 	c.flags.BoolVar(&c.showMeta, "meta", false, "Indicates that token metadata such "+
 		"as the content hash and raft indices should be shown for each entry")
 	c.flags.BoolVar(&c.local, "local", false, "Create this as a datacenter local token")
@@ -80,6 +86,8 @@ func (c *cmd) Run(args []string) int {
 	newToken := &api.ACLToken{
 		Description: c.description,
 		Local:       c.local,
+		AccessorID:  c.accessor,
+		SecretID:    c.secret,
 	}
 	if c.expirationTTL > 0 {
 		newToken.ExpirationTTL = c.expirationTTL
