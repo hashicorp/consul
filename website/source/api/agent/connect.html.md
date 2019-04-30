@@ -259,7 +259,7 @@ blocking](/api/features/blocking.html#hash-based-blocking-queries) only.
 
 ```text
 $ curl \
-   http://127.0.0.1:8500/v1/connect/proxy/web-proxy
+   http://127.0.0.1:8500/v1/agent/connect/proxy/web-proxy
 ```
 
 ### Sample Response
