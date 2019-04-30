@@ -1,7 +1,12 @@
 package api
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
+	"strconv"
+	"strings"
 
 	"github.com/mitchellh/mapstructure"
 )
@@ -15,6 +20,8 @@ const (
 type ConfigEntry interface {
 	GetKind() string
 	GetName() string
+	GetCreateIndex() uint64
+	GetModifyIndex() uint64
 }
 
 type ConnectConfiguration struct {
@@ -38,6 +45,14 @@ func (s *ServiceConfigEntry) GetName() string {
 	return s.Name
 }
 
+func (s *ServiceConfigEntry) GetCreateIndex() uint64 {
+	return s.CreateIndex
+}
+
+func (s *ServiceConfigEntry) GetModifyIndex() uint64 {
+	return s.ModifyIndex
+}
+
 type ProxyConfigEntry struct {
 	Kind        string
 	Name        string
@@ -52,6 +67,14 @@ func (p *ProxyConfigEntry) GetKind() string {
 
 func (p *ProxyConfigEntry) GetName() string {
 	return p.Name
+}
+
+func (p *ProxyConfigEntry) GetCreateIndex() uint64 {
+	return p.CreateIndex
+}
+
+func (p *ProxyConfigEntry) GetModifyIndex() uint64 {
+	return p.ModifyIndex
 }
 
 type rawEntryListResponse struct {
@@ -103,6 +126,15 @@ func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 	}
 
 	return entry, decoder.Decode(raw)
+}
+
+func DecodeConfigEntryFromJSON(data []byte) (ConfigEntry, error) {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return nil, err
+	}
+
+	return DecodeConfigEntry(raw)
 }
 
 // Config can be used to query the Config endpoints
@@ -180,18 +212,35 @@ func (conf *ConfigEntries) List(kind string, q *QueryOptions) ([]ConfigEntry, *Q
 	return entries, qm, nil
 }
 
-func (conf *ConfigEntries) Set(entry ConfigEntry, w *WriteOptions) (*WriteMeta, error) {
+func (conf *ConfigEntries) Set(entry ConfigEntry, w *WriteOptions) (bool, *WriteMeta, error) {
+	return conf.set(entry, nil, w)
+}
+
+func (conf *ConfigEntries) CAS(entry ConfigEntry, index uint64, w *WriteOptions) (bool, *WriteMeta, error) {
+	return conf.set(entry, map[string]string{"cas": strconv.FormatUint(index, 10)}, w)
+}
+
+func (conf *ConfigEntries) set(entry ConfigEntry, params map[string]string, w *WriteOptions) (bool, *WriteMeta, error) {
 	r := conf.c.newRequest("PUT", "/v1/config")
 	r.setWriteOptions(w)
+	for param, value := range params {
+		r.params.Set(param, value)
+	}
 	r.obj = entry
 	rtt, resp, err := requireOK(conf.c.doRequest(r))
 	if err != nil {
-		return nil, err
+		return false, nil, err
 	}
-	resp.Body.Close()
+	defer resp.Body.Close()
+
+	var buf bytes.Buffer
+	if _, err := io.Copy(&buf, resp.Body); err != nil {
+		return false, nil, fmt.Errorf("Failed to read response: %v", err)
+	}
+	res := strings.Contains(buf.String(), "true")
 
 	wm := &WriteMeta{RequestTime: rtt}
-	return wm, nil
+	return res, wm, nil
 }
 
 func (conf *ConfigEntries) Delete(kind string, name string, w *WriteOptions) (*WriteMeta, error) {

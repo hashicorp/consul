@@ -25,7 +25,7 @@ func TestServiceManager_RegisterService(t *testing.T) {
 			},
 		},
 	}
-	var out struct{}
+	out := false
 	require.NoError(a.RPC("ConfigEntry.Apply", args, &out))
 
 	// Now register a service locally and make sure the resulting State entry
@@ -71,7 +71,7 @@ func TestServiceManager_Disabled(t *testing.T) {
 			},
 		},
 	}
-	var out struct{}
+	out := false
 	require.NoError(a.RPC("ConfigEntry.Apply", args, &out))
 
 	// Now register a service locally and make sure the resulting State entry

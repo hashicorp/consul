@@ -121,6 +121,10 @@ func (s *HTTPServer) ConfigApply(resp http.ResponseWriter, req *http.Request) (i
 		args.Entry.GetRaftIndex().ModifyIndex = casVal
 	}
 
-	var reply struct{}
-	return nil, s.agent.RPC("ConfigEntry.Apply", &args, &reply)
+	var reply bool
+	if err := s.agent.RPC("ConfigEntry.Apply", &args, &reply); err != nil {
+		return nil, err
+	}
+
+	return reply, nil
 }

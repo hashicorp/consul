@@ -41,10 +41,16 @@ import (
 	catlistdc "github.com/hashicorp/consul/command/catalog/list/dc"
 	catlistnodes "github.com/hashicorp/consul/command/catalog/list/nodes"
 	catlistsvc "github.com/hashicorp/consul/command/catalog/list/services"
+	"github.com/hashicorp/consul/command/config"
+	configdelete "github.com/hashicorp/consul/command/config/delete"
+	configlist "github.com/hashicorp/consul/command/config/list"
+	configread "github.com/hashicorp/consul/command/config/read"
+	configwrite "github.com/hashicorp/consul/command/config/write"
 	"github.com/hashicorp/consul/command/connect"
 	"github.com/hashicorp/consul/command/connect/ca"
 	caget "github.com/hashicorp/consul/command/connect/ca/get"
 	caset "github.com/hashicorp/consul/command/connect/ca/set"
+	connectenable "github.com/hashicorp/consul/command/connect/enable"
 	"github.com/hashicorp/consul/command/connect/envoy"
 	"github.com/hashicorp/consul/command/connect/proxy"
 	"github.com/hashicorp/consul/command/debug"
@@ -151,10 +157,16 @@ func init() {
 	Register("catalog datacenters", func(ui cli.Ui) (cli.Command, error) { return catlistdc.New(ui), nil })
 	Register("catalog nodes", func(ui cli.Ui) (cli.Command, error) { return catlistnodes.New(ui), nil })
 	Register("catalog services", func(ui cli.Ui) (cli.Command, error) { return catlistsvc.New(ui), nil })
+	Register("config", func(ui cli.Ui) (cli.Command, error) { return config.New(), nil })
+	Register("config delete", func(ui cli.Ui) (cli.Command, error) { return configdelete.New(ui), nil })
+	Register("config list", func(ui cli.Ui) (cli.Command, error) { return configlist.New(ui), nil })
+	Register("config read", func(ui cli.Ui) (cli.Command, error) { return configread.New(ui), nil })
+	Register("config write", func(ui cli.Ui) (cli.Command, error) { return configwrite.New(ui), nil })
 	Register("connect", func(ui cli.Ui) (cli.Command, error) { return connect.New(), nil })
 	Register("connect ca", func(ui cli.Ui) (cli.Command, error) { return ca.New(), nil })
 	Register("connect ca get-config", func(ui cli.Ui) (cli.Command, error) { return caget.New(ui), nil })
 	Register("connect ca set-config", func(ui cli.Ui) (cli.Command, error) { return caset.New(ui), nil })
+	Register("connect enable", func(ui cli.Ui) (cli.Command, error) { return connectenable.New(ui), nil })
 	Register("connect proxy", func(ui cli.Ui) (cli.Command, error) { return proxy.New(ui, MakeShutdownCh()), nil })
 	Register("connect envoy", func(ui cli.Ui) (cli.Command, error) { return envoy.New(ui), nil })
 	Register("debug", func(ui cli.Ui) (cli.Command, error) { return debug.New(ui, MakeShutdownCh()), nil })

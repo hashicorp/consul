@@ -28,8 +28,9 @@ func TestConfigEntry_Apply(t *testing.T) {
 			Name: "foo",
 		},
 	}
-	var out struct{}
+	out := false
 	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out))
+	require.True(out)
 
 	state := s1.fsm.State()
 	_, entry, err := state.ConfigEntry(nil, structs.ServiceDefaults, "foo")
@@ -39,6 +40,33 @@ func TestConfigEntry_Apply(t *testing.T) {
 	require.True(ok)
 	require.Equal("foo", serviceConf.Name)
 	require.Equal(structs.ServiceDefaults, serviceConf.Kind)
+
+	args = structs.ConfigEntryRequest{
+		Datacenter: "dc1",
+		Op:         structs.ConfigEntryUpsertCAS,
+		Entry: &structs.ServiceConfigEntry{
+			Name:     "foo",
+			Protocol: "tcp",
+		},
+	}
+
+	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out))
+	require.False(out)
+
+	args.Entry.GetRaftIndex().ModifyIndex = serviceConf.ModifyIndex
+	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out))
+	require.True(out)
+
+	state = s1.fsm.State()
+	_, entry, err = state.ConfigEntry(nil, structs.ServiceDefaults, "foo")
+	require.NoError(err)
+
+	serviceConf, ok = entry.(*structs.ServiceConfigEntry)
+	require.True(ok)
+	require.Equal("foo", serviceConf.Name)
+	require.Equal("tcp", serviceConf.Protocol)
+	require.Equal(structs.ServiceDefaults, serviceConf.Kind)
+
 }
 
 func TestConfigEntry_Apply_ACLDeny(t *testing.T) {
@@ -87,7 +115,7 @@ operator = "write"
 		},
 		WriteRequest: structs.WriteRequest{Token: id},
 	}
-	var out struct{}
+	out := false
 	err := msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out)
 	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)

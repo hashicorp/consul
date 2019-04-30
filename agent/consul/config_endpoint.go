@@ -17,7 +17,7 @@ type ConfigEntry struct {
 }
 
 // Apply does an upsert of the given config entry.
-func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *struct{}) error {
+func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *bool) error {
 	if done, err := c.srv.forward("ConfigEntry.Apply", args, args, reply); done {
 		return err
 	}
@@ -40,7 +40,9 @@ func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *struct{}) e
 		return acl.ErrPermissionDenied
 	}
 
-	args.Op = structs.ConfigEntryUpsert
+	if args.Op != structs.ConfigEntryUpsert && args.Op != structs.ConfigEntryUpsertCAS {
+		args.Op = structs.ConfigEntryUpsert
+	}
 	resp, err := c.srv.raftApply(structs.ConfigEntryRequestType, args)
 	if err != nil {
 		return err
@@ -48,6 +50,10 @@ func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *struct{}) e
 	if respErr, ok := resp.(error); ok {
 		return respErr
 	}
+	if respBool, ok := resp.(bool); ok {
+		*reply = respBool
+	}
+
 	return nil
 }
 
