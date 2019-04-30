@@ -45,7 +45,6 @@ func TestConfigWrite(t *testing.T) {
 			f.Name(),
 		}
 
-		fmt.Printf("\n\n running \n\n")
 		code := c.Run(args)
 		require.Empty(t, ui.ErrorWriter.String())
 		require.Equal(t, 0, code)
