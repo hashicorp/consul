@@ -6,15 +6,15 @@ description: |-
   The /acl/auth-method endpoints manage Consul's ACL Auth Methods.
 ---
 
--> **1.5.0+:**  The APIs are available in Consul versions 1.5.0 and later.
+-> **1.5.0+:**  The auth method APIs are available in Consul versions 1.5.0 and newer.
 
 # ACL Auth Method HTTP API
 
 The `/acl/auth-method` endpoints [create](#create-an-auth-method),
 [read](#read-an-auth-method), [update](#update-an-auth-method),
 [list](#list-auth-methods) and [delete](#delete-an-auth-method)
-ACL auth methods in Consul.  For more information about ACLs, please see
-the [ACL Guide](/docs/guides/acl.html).
+ACL auth methods in Consul.  For more information on how to setup ACLs, please see
+the [ACL Guide](https://learn.hashicorp.com/consul/advanced/day-1-operations/production-acls).
 
 ## Create an Auth Method
 
@@ -37,8 +37,8 @@ The table below shows this endpoint's support for
 ### Parameters
 
 - `Name` `(string: <required>)` - Specifies a name for the ACL auth method. The
-  name can only contain alphanumeric characters as well as `-` and `_` and must
-  be unique. This field is immutable.
+  name can contain alphanumeric characters, dashes `-`, and  underscores `_`.
+ This field is immutable and must be unique.
    
 - `Type` `(string: <required>)` - The type of auth method being configured.
   The only allowed value in Consul 1.5.0 is `"kubernetes"`. This field is

@@ -6,7 +6,7 @@ description: |-
   The /acl/binding-rule endpoints manage Consul's ACL Binding Rules.
 ---
 
--> **1.5.0+:** The APIs are available in Consul versions 1.5.0 and later.
+-> **1.5.0+:** The binding rule APIs are available in Consul versions 1.5.0 and newer.
 
 # ACL Binding Rule HTTP API
 
