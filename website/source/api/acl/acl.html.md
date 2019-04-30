@@ -268,7 +268,7 @@ agent_prefix "" {
 ## Login to Auth Method
 
 This endpoint was added in Consul 1.5.0 and is used to exchange an [auth
-method](/docs/acl/acl-auth-methods.html) bearer tokens for a newly-created
+method](/docs/acl/acl-auth-methods.html) bearer token for a newly-created
 Consul ACL token.
 
 | Method | Path                         | Produces                   |
