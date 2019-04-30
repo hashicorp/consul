@@ -10,7 +10,10 @@ description: |-
 # Config HTTP Endpoint
 
 The `/config` endpoints create, update, delete and query central configuration
-entries registered with Consul.
+entries registered with Consul. See the
+[agent configuration](/docs/agent/options.html#enable_central_service_config)
+for more information on how to enable this functionality for centrally 
+configuring services.
 
 ## Apply Configuration
 
