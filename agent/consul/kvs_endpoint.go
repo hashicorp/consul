@@ -216,7 +216,7 @@ func (k *KVS) ListKeys(args *structs.KeyListRequest, reply *structs.IndexedKeyLi
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, keys, err := state.KVSListKeys(ws, args.Prefix, args.Seperator)
+			index, keys, err := state.KVSListKeys(ws, args.Prefix, args.Separator)
 			if err != nil {
 				return err
 			}

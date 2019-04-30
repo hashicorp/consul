@@ -560,7 +560,7 @@ key "zip" {
 	getKeysReq := structs.KeyListRequest{
 		Datacenter:   "dc1",
 		Prefix:       "",
-		Seperator:    "/",
+		Separator:    "/",
 		QueryOptions: structs.QueryOptions{Token: id},
 	}
 	var keyList structs.IndexedKeyList
@@ -640,7 +640,7 @@ func TestKVSEndpoint_ListKeys(t *testing.T) {
 	getR := structs.KeyListRequest{
 		Datacenter: "dc1",
 		Prefix:     "/test/",
-		Seperator:  "/",
+		Separator:  "/",
 	}
 	var dirent structs.IndexedKeyList
 	if err := msgpackrpc.CallWithCodec(codec, "KVS.ListKeys", &getR, &dirent); err != nil {
@@ -734,7 +734,7 @@ func TestKVSEndpoint_ListKeys_ACLDeny(t *testing.T) {
 	getR := structs.KeyListRequest{
 		Datacenter:   "dc1",
 		Prefix:       "",
-		Seperator:    "/",
+		Separator:    "/",
 		QueryOptions: structs.QueryOptions{Token: id},
 	}
 	var dirent structs.IndexedKeyList

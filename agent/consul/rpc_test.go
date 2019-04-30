@@ -76,7 +76,7 @@ func TestRPC_NoLeader_Fail_on_stale_read(t *testing.T) {
 	getKeysReq := structs.KeyListRequest{
 		Datacenter:   "dc1",
 		Prefix:       "",
-		Seperator:    "/",
+		Separator:    "/",
 		QueryOptions: structs.QueryOptions{AllowStale: true},
 	}
 	var keyList structs.IndexedKeyList

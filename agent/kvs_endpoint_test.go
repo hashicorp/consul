@@ -319,7 +319,7 @@ func TestKVSEndpoint_ListKeys(t *testing.T) {
 
 	{
 		// Get all the keys
-		req, _ := http.NewRequest("GET", "/v1/kv/?keys&seperator=/", nil)
+		req, _ := http.NewRequest("GET", "/v1/kv/?keys&separator=/", nil)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.KVSEndpoint(resp, req)
 		if err != nil {
