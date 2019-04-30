@@ -335,6 +335,15 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 	}
 }
 
+func ValidateConfigEntryKind(kind string) bool {
+	switch kind {
+	case ServiceDefaults, ProxyDefaults:
+		return true
+	default:
+		return false
+	}
+}
+
 // ConfigEntryQuery is used when requesting info about a config entry.
 type ConfigEntryQuery struct {
 	Kind       string
