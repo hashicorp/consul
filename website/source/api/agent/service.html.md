@@ -29,9 +29,9 @@ everything will be in sync within a few seconds.
 | `GET`  | `/agent/services`            | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
 [required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
@@ -122,9 +122,9 @@ everything will be in sync within a few seconds.
 | `GET`  | `/agent/service/:service_id` | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
 [required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
@@ -132,7 +132,7 @@ The table below shows this endpoint's support for
 | `YES`<sup>1</sup>| `none`            | `none`        | `service:read` |
 
 <sup>1</sup> Supports [hash-based
-blocking](/api/index.html#hash-based-blocking-queries) only.
+blocking](/api/features/blocking.html#hash-based-blocking-queries) only.
 
 ### Parameters
 
@@ -185,7 +185,7 @@ $ curl \
 The response has the same structure as the [service
 definition](/docs/agent/services.html) with one extra field `ContentHash` which
 contains the [hash-based blocking
-query](/api/index.html#hash-based-blocking-queries) hash for the result. The
+query](/api/features/blocking.html#hash-based-blocking-queries) hash for the result. The
 same hash is also present in `X-Consul-ContentHash`.
 
 ## Get local service health
@@ -203,9 +203,9 @@ the URL or use Mime Content negotiation by specifying a HTTP Header
 | `GET`  | `/v1/agent/health/service/name/:service_name?format=text` | `text/plain`       |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
 [required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
@@ -415,9 +415,9 @@ For "connect-proxy" kind services, the `service:write` ACL for the
 | `PUT`  | `/agent/service/register`    | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
 [required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
@@ -578,9 +578,9 @@ is an associated check, that is also deregistered.
 | `PUT`  | `/agent/service/deregister/:service_id` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
 [required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
@@ -612,9 +612,9 @@ will be automatically restored on agent restart.
 | `PUT`  | `/agent/service/maintenance/:service_id` | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
 [required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
