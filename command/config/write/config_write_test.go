@@ -1,7 +1,6 @@
 package write
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"testing"
