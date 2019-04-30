@@ -13,7 +13,8 @@ description: |-
 The `/acl/token` endpoints [create](#create-a-token), [read](#read-a-token),
 [update](#update-a-token), [list](#list-tokens), [clone](#clone-a-token) and [delete](#delete-a-token)  ACL policies in Consul.
 
-For more information about ACLs, please see the [ACL Guide](/docs/guides/acl.html).
+For more information on how to setup ACLs, please see
+the [ACL Guide](https://learn.hashicorp.com/consul/advanced/day-1-operations/production-acls).
 
 ## Create a Token
 

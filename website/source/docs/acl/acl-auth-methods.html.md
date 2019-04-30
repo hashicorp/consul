@@ -6,7 +6,7 @@ description: |-
   An Auth Method is a component in Consul that performs authentication against a trusted external party to authorize the creation of an appropriately scoped ACL Token usable within the local datacenter.
 ---
 
--> **1.5.0+:**  This guide only applies in Consul versions 1.5.0 and later.
+-> **1.5.0+:**  This guide only applies in Consul versions 1.5.0 and newer.
 
 # ACL Auth Methods
 

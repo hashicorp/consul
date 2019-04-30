@@ -6,13 +6,15 @@ description: |-
   The /acl/role endpoints manage Consul's ACL Roles.
 ---
 
--> **1.5.0+:**  The APIs are available in Consul versions 1.5.0 and later.
+-> **1.5.0+:**  The role APIs are available in Consul versions 1.5.0 and newer.
 
 # ACL Role HTTP API
 
 The `/acl/role` endpoints [create](#create-a-role), [read](#read-a-role),
 [update](#update-a-role), [list](#list-roles) and [delete](#delete-a-role)  ACL roles in Consul.
-For more information about ACLs, please see the [ACL Guide](/docs/guides/acl.html).
+
+For more information on how to setup ACLs, please see
+the [ACL Guide](https://learn.hashicorp.com/consul/advanced/day-1-operations/production-acls).
 
 ## Create a Role
 
@@ -35,8 +37,8 @@ The table below shows this endpoint's support for
 ### Parameters
 
 - `Name` `(string: <required>)` - Specifies a name for the ACL role. The name
-  can only contain alphanumeric characters as well as `-` and `_` and must be
-  unique. 
+  can contain alphanumeric characters, dashes `-`, and  underscores `_`.
+  This name must be unique.
    
 - `Description` `(string: "")` - Free form human readable description of the role.
 

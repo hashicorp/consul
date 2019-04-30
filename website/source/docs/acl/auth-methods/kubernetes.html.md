@@ -6,7 +6,7 @@ description: |-
   The kubernetes auth method type allows for a Kubernetes Service Account Token to be used to authenticate to Consul. This method of authentication makes it easy to introduce a Consul token into a Kubernetes Pod.
 ---
 
--> **1.5.0+:**  This guide only applies in Consul versions 1.5.0 and later.
+-> **1.5.0+:**  This guide only applies in Consul versions 1.5.0 and newer.
 
 # Kubernetes Auth Method
 

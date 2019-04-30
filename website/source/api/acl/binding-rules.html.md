@@ -13,8 +13,10 @@ description: |-
 The `/acl/binding-rule` endpoints [create](#create-a-binding-rule),
 [read](#read-a-binding-rule), [update](#update-a-binding-rule),
 [list](#list-binding-rules) and [delete](#delete-a-binding-rule)  ACL binding
-rules in Consul.  For more information about ACLs, please see the 
-[ACL Guide](/docs/guides/acl.html).
+rules in Consul.
+
+For more information on how to setup ACLs, please see
+the [ACL Guide](https://learn.hashicorp.com/consul/advanced/day-1-operations/production-acls).
 
 ## Create a Binding Rule
 

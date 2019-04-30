@@ -12,7 +12,8 @@ description: |-
 
 The `/acl` endpoints are used to manage ACL tokens and policies in Consul, [bootstrap the ACL system](#bootstrap-acls), [check ACL replication status](#check-acl-replication), and [translate rules](#translate-rules). There are additional pages for managing [tokens](/api/acl/tokens.html) and [policies](/api/acl/policies.html) with the `/acl` endpoints.
 
-For more information about ACLs, please see the [ACL Guide](/docs/guides/acl.html).
+For more information on how to setup ACLs, please see
+the [ACL Guide](https://learn.hashicorp.com/consul/advanced/day-1-operations/production-acls).
 
 ## Bootstrap ACLs
 
