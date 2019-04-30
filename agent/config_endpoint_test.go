@@ -46,7 +46,7 @@ func TestConfig_Get(t *testing.T) {
 		},
 	}
 	for _, req := range reqs {
-		var out struct{}
+		out := false
 		require.NoError(t, a.RPC("ConfigEntry.Apply", &req, &out))
 	}
 
@@ -117,7 +117,7 @@ func TestConfig_Delete(t *testing.T) {
 		},
 	}
 	for _, req := range reqs {
-		var out struct{}
+		out := false
 		require.NoError(a.RPC("ConfigEntry.Apply", &req, &out))
 	}
 

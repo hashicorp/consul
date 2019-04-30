@@ -51,7 +51,7 @@ func TestReplication_ConfigEntries(t *testing.T) {
 			},
 		}
 
-		var out struct{}
+		out := false
 		require.NoError(t, s1.RPC("ConfigEntry.Apply", &arg, &out))
 		entries = append(entries, arg.Entry)
 	}
@@ -69,7 +69,7 @@ func TestReplication_ConfigEntries(t *testing.T) {
 		},
 	}
 
-	var out struct{}
+	out := false
 	require.NoError(t, s1.RPC("ConfigEntry.Apply", &arg, &out))
 	entries = append(entries, arg.Entry)
 
@@ -123,7 +123,7 @@ func TestReplication_ConfigEntries(t *testing.T) {
 			},
 		}
 
-		var out struct{}
+		out := false
 		require.NoError(t, s1.RPC("ConfigEntry.Apply", &arg, &out))
 	}
 
