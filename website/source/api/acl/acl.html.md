@@ -289,8 +289,8 @@ The table below shows this endpoint's support for
 - `AuthMethod` `(string: <required>)` - The name of the auth method to use for login.
 
 - `BearerToken` `(string: <required>)` - The bearer token to present to the
-  auth method during login for authentication purposes. For the Kubernetes Auth
-  Method this is a [Service Account Token
+  auth method during login for authentication purposes. For the Kubernetes auth
+  method this is a [Service Account Token
   (JWT)](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#service-account-tokens).
 
 - `Meta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata
