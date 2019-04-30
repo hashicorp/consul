@@ -396,17 +396,9 @@ func (a *ACL) Replication(q *QueryOptions) (*ACLReplicationStatus, *QueryMeta, e
 	return entries, qm, nil
 }
 
-// TokenCreate creates a new ACL token. It requires that the AccessorID and SecretID fields
-// of the ACLToken structure to be empty as these will be filled in by Consul.
+// TokenCreate creates a new ACL token. If either the AccessorID or SecretID fields
+// of the ACLToken structure are empty they will be filled in by Consul.
 func (a *ACL) TokenCreate(token *ACLToken, q *WriteOptions) (*ACLToken, *WriteMeta, error) {
-	if token.AccessorID != "" {
-		return nil, nil, fmt.Errorf("Cannot specify an AccessorID in Token Creation")
-	}
-
-	if token.SecretID != "" {
-		return nil, nil, fmt.Errorf("Cannot specify a SecretID in Token Creation")
-	}
-
 	r := a.c.newRequest("PUT", "/v1/acl/token")
 	r.setWriteOptions(q)
 	r.obj = token
@@ -567,7 +559,6 @@ func (a *ACL) PolicyCreate(policy *ACLPolicy, q *WriteOptions) (*ACLPolicy, *Wri
 	if policy.ID != "" {
 		return nil, nil, fmt.Errorf("Cannot specify an ID in Policy Creation")
 	}
-
 	r := a.c.newRequest("PUT", "/v1/acl/policy")
 	r.setWriteOptions(q)
 	r.obj = policy

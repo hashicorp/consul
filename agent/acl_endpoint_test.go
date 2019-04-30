@@ -143,7 +143,12 @@ func TestACL_HTTP(t *testing.T) {
 	//    we can intelligently order these tests so we can still
 	//    test everything with less actual operations and do
 	//    so in a manner that is less prone to being flaky
-	// 3. While this test will be large it should
+	//
+	// This could be accomplished with just blocks of code but I find
+	// the go test output nicer to pinpoint the error if they are grouped.
+	//
+	// NOTE: None of the subtests should be parallelized in order for
+	// any of it to work properly.
 	t.Run("Policy", func(t *testing.T) {
 		t.Run("Create", func(t *testing.T) {
 			policyInput := &structs.ACLPolicy{
@@ -821,6 +826,252 @@ func TestACL_HTTP(t *testing.T) {
 			require.Equal(t, "Master Token", token.Description)
 			require.Len(t, token.Policies, 1)
 			require.Equal(t, structs.ACLPolicyGlobalManagementID, token.Policies[0].ID)
+		})
+		t.Run("Create with Accessor", func(t *testing.T) {
+			tokenInput := &structs.ACLToken{
+				AccessorID:  "56e8e6a3-708b-4a2f-8ab3-b973cce39108",
+				Description: "test",
+				Policies: []structs.ACLTokenPolicyLink{
+					structs.ACLTokenPolicyLink{
+						ID:   idMap["policy-test"],
+						Name: policyMap[idMap["policy-test"]].Name,
+					},
+					structs.ACLTokenPolicyLink{
+						ID:   idMap["policy-read-all-nodes"],
+						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
+					},
+				},
+			}
+
+			req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(tokenInput))
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.ACLTokenCreate(resp, req)
+			require.NoError(t, err)
+
+			token, ok := obj.(*structs.ACLToken)
+			require.True(t, ok)
+
+			// 36 = length of the string form of uuids
+			require.Equal(t, tokenInput.AccessorID, token.AccessorID)
+			require.Len(t, token.SecretID, 36)
+			require.Equal(t, tokenInput.Description, token.Description)
+			require.Equal(t, tokenInput.Policies, token.Policies)
+			require.True(t, token.CreateIndex > 0)
+			require.Equal(t, token.CreateIndex, token.ModifyIndex)
+			require.NotNil(t, token.Hash)
+			require.NotEqual(t, token.Hash, []byte{})
+
+			idMap["token-test"] = token.AccessorID
+			tokenMap[token.AccessorID] = token
+		})
+
+		t.Run("Create with Secret", func(t *testing.T) {
+			tokenInput := &structs.ACLToken{
+				SecretID:    "4e3efd15-d06c-442e-a7cc-1744f55c8dea",
+				Description: "test",
+				Policies: []structs.ACLTokenPolicyLink{
+					structs.ACLTokenPolicyLink{
+						ID:   idMap["policy-test"],
+						Name: policyMap[idMap["policy-test"]].Name,
+					},
+					structs.ACLTokenPolicyLink{
+						ID:   idMap["policy-read-all-nodes"],
+						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
+					},
+				},
+			}
+
+			req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(tokenInput))
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.ACLTokenCreate(resp, req)
+			require.NoError(t, err)
+
+			token, ok := obj.(*structs.ACLToken)
+			require.True(t, ok)
+
+			// 36 = length of the string form of uuids
+			require.Equal(t, tokenInput.SecretID, token.SecretID)
+			require.Len(t, token.AccessorID, 36)
+			require.Equal(t, tokenInput.Description, token.Description)
+			require.Equal(t, tokenInput.Policies, token.Policies)
+			require.True(t, token.CreateIndex > 0)
+			require.Equal(t, token.CreateIndex, token.ModifyIndex)
+			require.NotNil(t, token.Hash)
+			require.NotEqual(t, token.Hash, []byte{})
+
+			idMap["token-test"] = token.AccessorID
+			tokenMap[token.AccessorID] = token
+		})
+
+		t.Run("Create with Accessor and Secret", func(t *testing.T) {
+			tokenInput := &structs.ACLToken{
+				AccessorID:  "dee863fa-e548-4c61-a96f-9aa07999249f",
+				SecretID:    "10126ffa-b28f-4137-b9a9-e89ab1e97c5b",
+				Description: "test",
+				Policies: []structs.ACLTokenPolicyLink{
+					structs.ACLTokenPolicyLink{
+						ID:   idMap["policy-test"],
+						Name: policyMap[idMap["policy-test"]].Name,
+					},
+					structs.ACLTokenPolicyLink{
+						ID:   idMap["policy-read-all-nodes"],
+						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
+					},
+				},
+			}
+
+			req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(tokenInput))
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.ACLTokenCreate(resp, req)
+			require.NoError(t, err)
+
+			token, ok := obj.(*structs.ACLToken)
+			require.True(t, ok)
+
+			// 36 = length of the string form of uuids
+			require.Equal(t, tokenInput.SecretID, token.SecretID)
+			require.Equal(t, tokenInput.AccessorID, token.AccessorID)
+			require.Equal(t, tokenInput.Description, token.Description)
+			require.Equal(t, tokenInput.Policies, token.Policies)
+			require.True(t, token.CreateIndex > 0)
+			require.Equal(t, token.CreateIndex, token.ModifyIndex)
+			require.NotNil(t, token.Hash)
+			require.NotEqual(t, token.Hash, []byte{})
+
+			idMap["token-test"] = token.AccessorID
+			tokenMap[token.AccessorID] = token
+		})
+
+		t.Run("Create with Accessor Dup", func(t *testing.T) {
+			tokenInput := &structs.ACLToken{
+				AccessorID:  "dee863fa-e548-4c61-a96f-9aa07999249f",
+				Description: "test",
+				Policies: []structs.ACLTokenPolicyLink{
+					structs.ACLTokenPolicyLink{
+						ID:   idMap["policy-test"],
+						Name: policyMap[idMap["policy-test"]].Name,
+					},
+					structs.ACLTokenPolicyLink{
+						ID:   idMap["policy-read-all-nodes"],
+						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
+					},
+				},
+			}
+
+			req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(tokenInput))
+			resp := httptest.NewRecorder()
+			_, err := a.srv.ACLTokenCreate(resp, req)
+			require.Error(t, err)
+		})
+
+		t.Run("Create with Secret as Accessor Dup", func(t *testing.T) {
+			tokenInput := &structs.ACLToken{
+				SecretID:    "dee863fa-e548-4c61-a96f-9aa07999249f",
+				Description: "test",
+				Policies: []structs.ACLTokenPolicyLink{
+					structs.ACLTokenPolicyLink{
+						ID:   idMap["policy-test"],
+						Name: policyMap[idMap["policy-test"]].Name,
+					},
+					structs.ACLTokenPolicyLink{
+						ID:   idMap["policy-read-all-nodes"],
+						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
+					},
+				},
+			}
+
+			req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(tokenInput))
+			resp := httptest.NewRecorder()
+			_, err := a.srv.ACLTokenCreate(resp, req)
+			require.Error(t, err)
+		})
+
+		t.Run("Create with Secret Dup", func(t *testing.T) {
+			tokenInput := &structs.ACLToken{
+				SecretID:    "10126ffa-b28f-4137-b9a9-e89ab1e97c5b",
+				Description: "test",
+				Policies: []structs.ACLTokenPolicyLink{
+					structs.ACLTokenPolicyLink{
+						ID:   idMap["policy-test"],
+						Name: policyMap[idMap["policy-test"]].Name,
+					},
+					structs.ACLTokenPolicyLink{
+						ID:   idMap["policy-read-all-nodes"],
+						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
+					},
+				},
+			}
+
+			req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(tokenInput))
+			resp := httptest.NewRecorder()
+			_, err := a.srv.ACLTokenCreate(resp, req)
+			require.Error(t, err)
+		})
+
+		t.Run("Create with Accessor as Secret Dup", func(t *testing.T) {
+			tokenInput := &structs.ACLToken{
+				AccessorID:  "10126ffa-b28f-4137-b9a9-e89ab1e97c5b",
+				Description: "test",
+				Policies: []structs.ACLTokenPolicyLink{
+					structs.ACLTokenPolicyLink{
+						ID:   idMap["policy-test"],
+						Name: policyMap[idMap["policy-test"]].Name,
+					},
+					structs.ACLTokenPolicyLink{
+						ID:   idMap["policy-read-all-nodes"],
+						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
+					},
+				},
+			}
+
+			req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(tokenInput))
+			resp := httptest.NewRecorder()
+			_, err := a.srv.ACLTokenCreate(resp, req)
+			require.Error(t, err)
+		})
+
+		t.Run("Create with Reserved Accessor", func(t *testing.T) {
+			tokenInput := &structs.ACLToken{
+				AccessorID:  "00000000-0000-0000-0000-00000000005b",
+				Description: "test",
+				Policies: []structs.ACLTokenPolicyLink{
+					structs.ACLTokenPolicyLink{
+						ID:   idMap["policy-test"],
+						Name: policyMap[idMap["policy-test"]].Name,
+					},
+					structs.ACLTokenPolicyLink{
+						ID:   idMap["policy-read-all-nodes"],
+						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
+					},
+				},
+			}
+
+			req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(tokenInput))
+			resp := httptest.NewRecorder()
+			_, err := a.srv.ACLTokenCreate(resp, req)
+			require.Error(t, err)
+		})
+
+		t.Run("Create with Reserved Secret", func(t *testing.T) {
+			tokenInput := &structs.ACLToken{
+				SecretID:    "00000000-0000-0000-0000-00000000005b",
+				Description: "test",
+				Policies: []structs.ACLTokenPolicyLink{
+					structs.ACLTokenPolicyLink{
+						ID:   idMap["policy-test"],
+						Name: policyMap[idMap["policy-test"]].Name,
+					},
+					structs.ACLTokenPolicyLink{
+						ID:   idMap["policy-read-all-nodes"],
+						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
+					},
+				},
+			}
+
+			req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(tokenInput))
+			resp := httptest.NewRecorder()
+			_, err := a.srv.ACLTokenCreate(resp, req)
+			require.Error(t, err)
 		})
 	})
 }

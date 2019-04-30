@@ -86,6 +86,8 @@ session_prefix "" {
 	// user.
 	ACLTokenAnonymousID = "00000000-0000-0000-0000-000000000002"
 
+	ACLReservedPrefix = "00000000-0000-0000-0000-0000000000"
+
 	// aclPolicyTemplateServiceIdentity is the template used for synthesizing
 	// policies for service identities.
 	aclPolicyTemplateServiceIdentity = `
@@ -104,7 +106,7 @@ node_prefix "" {
 )
 
 func ACLIDReserved(id string) bool {
-	return strings.HasPrefix(id, "00000000-0000-0000-0000-0000000000")
+	return strings.HasPrefix(id, ACLReservedPrefix)
 }
 
 const (
@@ -1002,6 +1004,7 @@ type ACLReplicationStatus struct {
 // at the RPC layer
 type ACLTokenSetRequest struct {
 	ACLToken   ACLToken // Token to manipulate - I really dislike this name but "Token" is taken in the WriteRequest
+	Create     bool     // Used to explicitly mark this request as a creation
 	Datacenter string   // The datacenter to perform the request within
 	WriteRequest
 }

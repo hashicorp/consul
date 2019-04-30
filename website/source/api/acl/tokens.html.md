@@ -35,6 +35,14 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
+- `AccessorID` `(string: "")` - Specifies a UUID to use as the token's Accessor ID.
+   If not specified a UUID will be generated for this field. Added in v1.5.0.
+
+- `SecretID` `(string: "")` - Specifies a UUID to use as the token's Secret ID.
+   If not specified a UUID will be generated for this field. Added in v1.5.0.
+   **Note**: The SecretID is used to authorize operations against Consul and should
+   be generated from an appropriate cryptographic source.
+
 - `Description` `(string: "")` - Free form human readable description of the token.
 
 - `Policies` `(array<PolicyLink>)` - The list of policies that should

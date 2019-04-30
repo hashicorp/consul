@@ -661,6 +661,7 @@ func TestACLReplication_TokensRedacted(t *testing.T) {
 		}
 		err := s2.RPC("ACL.TokenRead", &req, &tokenResp)
 		require.NoError(r, err)
+		require.NotNil(r, tokenResp.Token)
 		require.Equal(r, "root", tokenResp.Token.SecretID)
 
 		var status structs.ACLReplicationStatus

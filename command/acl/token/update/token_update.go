@@ -46,7 +46,7 @@ func (c *cmd) init() {
 		"with the existing roles")
 	c.flags.BoolVar(&c.mergeServiceIdents, "merge-service-identities", false, "Merge the new service identities "+
 		"with the existing service identities")
-	c.flags.StringVar(&c.tokenID, "id", "", "The Accessor ID of the token to read. "+
+	c.flags.StringVar(&c.tokenID, "id", "", "The Accessor ID of the token to update. "+
 		"It may be specified as a unique ID prefix but will error if the prefix "+
 		"matches multiple token Accessor IDs")
 	c.flags.StringVar(&c.description, "description", "", "A description of the token")

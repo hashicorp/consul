@@ -60,6 +60,9 @@ may use a unique prefix of the UUID as a shortcut for specifying the entire UUID
 
 * [Common Subcommand Options](#common-subcommand-options)
 
+* `-accessor=<string>` - Create the token with this Accessor ID. It must be a UUID. If not
+   specified one will be auto-generated
+
 * `-description=<string>` - A description of the token.
 
 * `-local` - Create this as a datacenter local token.
@@ -70,6 +73,11 @@ may use a unique prefix of the UUID as a shortcut for specifying the entire UUID
 
 * `-meta` - Indicates that token metadata such as the content hash and raft indices should be shown
    for each entry.
+
+* `-secret=<string>` - Create the token with this Secret ID. It must be a UUID. If not
+   specified one will be auto-generated.
+   **Note**: The SecretID is used to authorize operations against Consul and should
+   be generated from an appropriate cryptographic source.
 
 ### Examples
 

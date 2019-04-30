@@ -345,20 +345,62 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 
 	state := a.srv.fsm.State()
 
-	if token.AccessorID == "" {
-		// Token Create
-		var err error
+	var accessorMatch *structs.ACLToken
+	var secretMatch *structs.ACLToken
+	var err error
 
-		// Generate the AccessorID
-		token.AccessorID, err = lib.GenerateUUID(a.srv.checkTokenUUID)
+	if token.AccessorID != "" {
+		_, accessorMatch, err = state.ACLTokenGetByAccessor(nil, token.AccessorID)
 		if err != nil {
-			return err
+			return fmt.Errorf("Failed acl token lookup by accessor: %v", err)
+		}
+	}
+	if token.SecretID != "" {
+		_, secretMatch, err = state.ACLTokenGetBySecret(nil, token.SecretID)
+		if err != nil {
+			return fmt.Errorf("Failed acl token lookup by secret: %v", err)
+		}
+	}
+
+	if token.AccessorID == "" || args.Create {
+		// Token Create
+
+		// Generate the AccessorID if not specified
+		if token.AccessorID == "" {
+			token.AccessorID, err = lib.GenerateUUID(a.srv.checkTokenUUID)
+			if err != nil {
+				return err
+			}
+		} else if _, err := uuid.ParseUUID(token.AccessorID); err != nil {
+			return fmt.Errorf("Invalid Token: AccessorID is not a valid UUID")
+		} else if accessorMatch != nil {
+			return fmt.Errorf("Invalid Token: AccessorID is already in use")
+		} else if _, match, err := state.ACLTokenGetBySecret(nil, token.AccessorID); err != nil || match != nil {
+			if err != nil {
+				return fmt.Errorf("Failed to lookup the acl token: %v", err)
+			}
+			return fmt.Errorf("Invalid Token: AccessorID is already in use")
+		} else if structs.ACLIDReserved(token.AccessorID) {
+			return fmt.Errorf("Invalid Token: UUIDs with the prefix %q are reserved", structs.ACLReservedPrefix)
 		}
 
-		// Generate the SecretID - not supporting non-UUID secrets
-		token.SecretID, err = lib.GenerateUUID(a.srv.checkTokenUUID)
-		if err != nil {
-			return err
+		// Generate the AccessorID if not specified
+		if token.SecretID == "" {
+			token.SecretID, err = lib.GenerateUUID(a.srv.checkTokenUUID)
+			if err != nil {
+				return err
+			}
+		} else if _, err := uuid.ParseUUID(token.SecretID); err != nil {
+			return fmt.Errorf("Invalid Token: SecretID is not a valid UUID")
+		} else if secretMatch != nil {
+			return fmt.Errorf("Invalid Token: SecretID is already in use")
+		} else if _, match, err := state.ACLTokenGetByAccessor(nil, token.SecretID); err != nil || match != nil {
+			if err != nil {
+				return fmt.Errorf("Failed to lookup the acl token: %v", err)
+			}
+			return fmt.Errorf("Invalid Token: SecretID is already in use")
+		} else if structs.ACLIDReserved(token.SecretID) {
+			return fmt.Errorf("Invalid Token: UUIDs with the prefix %q are reserved", structs.ACLReservedPrefix)
 		}
 
 		token.CreateTime = time.Now()
@@ -422,27 +464,23 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 		}
 
 		// Verify the token exists
-		_, existing, err := state.ACLTokenGetByAccessor(nil, token.AccessorID)
-		if err != nil {
-			return fmt.Errorf("Failed to lookup the acl token %q: %v", token.AccessorID, err)
-		}
-		if existing == nil || existing.IsExpired(time.Now()) {
+		if accessorMatch == nil || accessorMatch.IsExpired(time.Now()) {
 			return fmt.Errorf("Cannot find token %q", token.AccessorID)
 		}
 		if token.SecretID == "" {
-			token.SecretID = existing.SecretID
-		} else if existing.SecretID != token.SecretID {
+			token.SecretID = accessorMatch.SecretID
+		} else if accessorMatch.SecretID != token.SecretID {
 			return fmt.Errorf("Changing a tokens SecretID is not permitted")
 		}
 
 		// Cannot toggle the "Global" mode
-		if token.Local != existing.Local {
+		if token.Local != accessorMatch.Local {
 			return fmt.Errorf("cannot toggle local mode of %s", token.AccessorID)
 		}
 
 		if token.AuthMethod == "" {
-			token.AuthMethod = existing.AuthMethod
-		} else if token.AuthMethod != existing.AuthMethod {
+			token.AuthMethod = accessorMatch.AuthMethod
+		} else if token.AuthMethod != accessorMatch.AuthMethod {
 			return fmt.Errorf("Cannot change AuthMethod of %s", token.AccessorID)
 		}
 
@@ -451,14 +489,14 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 		}
 
 		if !token.HasExpirationTime() {
-			token.ExpirationTime = existing.ExpirationTime
-		} else if !existing.HasExpirationTime() {
+			token.ExpirationTime = accessorMatch.ExpirationTime
+		} else if !accessorMatch.HasExpirationTime() {
 			return fmt.Errorf("Cannot change expiration time of %s", token.AccessorID)
-		} else if !token.ExpirationTime.Equal(*existing.ExpirationTime) {
+		} else if !token.ExpirationTime.Equal(*accessorMatch.ExpirationTime) {
 			return fmt.Errorf("Cannot change expiration time of %s", token.AccessorID)
 		}
 
-		token.CreateTime = existing.CreateTime
+		token.CreateTime = accessorMatch.CreateTime
 	}
 
 	policyIDs := make(map[string]struct{})
@@ -871,40 +909,46 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 		return fmt.Errorf("Invalid Policy: invalid Name. Only alphanumeric characters, '-' and '_' are allowed")
 	}
 
+	var idMatch *structs.ACLPolicy
+	var nameMatch *structs.ACLPolicy
+	var err error
+
+	if policy.ID != "" {
+		if _, err := uuid.ParseUUID(policy.ID); err != nil {
+			return fmt.Errorf("Policy ID invalid UUID")
+		}
+
+		_, idMatch, err = state.ACLPolicyGetByID(nil, policy.ID)
+		if err != nil {
+			return fmt.Errorf("acl policy lookup by id failed: %v", err)
+		}
+	}
+	_, nameMatch, err = state.ACLPolicyGetByName(nil, policy.Name)
+	if err != nil {
+		return fmt.Errorf("acl policy lookup by name failed: %v", err)
+	}
+
 	if policy.ID == "" {
 		// with no policy ID one will be generated
 		var err error
-
 		policy.ID, err = lib.GenerateUUID(a.srv.checkPolicyUUID)
 		if err != nil {
 			return err
 		}
 
 		// validate the name is unique
-		if _, existing, err := state.ACLPolicyGetByName(nil, policy.Name); err != nil {
-			return fmt.Errorf("acl policy lookup by name failed: %v", err)
-		} else if existing != nil {
+		if nameMatch != nil {
 			return fmt.Errorf("Invalid Policy: A Policy with Name %q already exists", policy.Name)
 		}
 	} else {
-		if _, err := uuid.ParseUUID(policy.ID); err != nil {
-			return fmt.Errorf("Policy ID invalid UUID")
-		}
-
 		// Verify the policy exists
-		_, existing, err := state.ACLPolicyGetByID(nil, policy.ID)
-		if err != nil {
-			return fmt.Errorf("acl policy lookup failed: %v", err)
-		} else if existing == nil {
+		if idMatch == nil {
 			return fmt.Errorf("cannot find policy %s", policy.ID)
 		}
 
-		if existing.Name != policy.Name {
-			if _, nameMatch, err := state.ACLPolicyGetByName(nil, policy.Name); err != nil {
-				return fmt.Errorf("acl policy lookup by name failed: %v", err)
-			} else if nameMatch != nil {
-				return fmt.Errorf("Invalid Policy: A policy with name %q already exists", policy.Name)
-			}
+		// Verify that the name isn't changing or that the name is not already used
+		if idMatch.Name != policy.Name && nameMatch != nil {
+			return fmt.Errorf("Invalid Policy: A policy with name %q already exists", policy.Name)
 		}
 
 		if policy.ID == structs.ACLPolicyGlobalManagementID {
@@ -912,14 +956,14 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 				return fmt.Errorf("Changing the Datacenters of the builtin global-management policy is not permitted")
 			}
 
-			if policy.Rules != existing.Rules {
+			if policy.Rules != idMatch.Rules {
 				return fmt.Errorf("Changing the Rules for the builtin global-management policy is not permitted")
 			}
 		}
 	}
 
 	// validate the rules
-	_, err := acl.NewPolicyFromSource("", 0, policy.Rules, policy.Syntax, a.srv.sentinel)
+	_, err = acl.NewPolicyFromSource("", 0, policy.Rules, policy.Syntax, a.srv.sentinel)
 	if err != nil {
 		return err
 	}
