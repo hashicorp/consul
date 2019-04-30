@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/consul/lib"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/mapstructure"
@@ -114,7 +115,7 @@ func Parse(data string, format string) (c Config, err error) {
 	// snake_case that is used in the config file parser. If both the CamelCase
 	// and snake_case values are set the snake_case value is used and the other
 	// value is discarded.
-	TranslateKeys(m, map[string]string{
+	lib.TranslateKeys(m, map[string]string{
 		"deregistercriticalserviceafter": "deregister_critical_service_after",
 		"dockercontainerid":              "docker_container_id",
 		"scriptargs":                     "args",

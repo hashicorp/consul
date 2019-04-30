@@ -1,10 +1,10 @@
-package config
+package lib
 
 import (
 	"encoding/json"
 	"testing"
 
-	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTranslateKeys(t *testing.T) {
@@ -75,9 +75,7 @@ func TestTranslateKeys(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
 			TranslateKeys(tt.in, tt.dict)
-			if got, want := tt.in, tt.out; !verify.Values(t, "", got, want) {
-				t.Fail()
-			}
+			require.Equal(t, tt.out, tt.in)
 		})
 	}
 }

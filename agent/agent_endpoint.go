@@ -20,7 +20,6 @@ import (
 	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/checks"
-	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/debug"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
@@ -859,7 +858,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 
 		// see https://github.com/hashicorp/consul/pull/3557 why we need this
 		// and why we should get rid of it.
-		config.TranslateKeys(rawMap, map[string]string{
+		lib.TranslateKeys(rawMap, map[string]string{
 			"enable_tag_override": "EnableTagOverride",
 			// Managed Proxy Config
 			"exec_mode": "ExecMode",
