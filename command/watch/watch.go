@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/exec"
+	"github.com/hashicorp/consul/api"
 	consulwatch "github.com/hashicorp/consul/api/watch"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
@@ -74,6 +75,17 @@ func (c *cmd) init() {
 	c.help = flags.Usage(help, c.flags)
 }
 
+func (c *cmd) loadToken() (string, error) {
+	httpCfg := api.DefaultConfig()
+	c.http.MergeOntoConfig(httpCfg)
+	// Trigger the Client init to do any last-minute updates to the Config.
+	if _, err := api.NewClient(httpCfg); err != nil {
+		return "", err
+	}
+
+	return httpCfg.Token, nil
+}
+
 func (c *cmd) Run(args []string) int {
 	if err := c.flags.Parse(args); err != nil {
 		return 1
@@ -87,12 +99,10 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	token := c.http.Token()
-	if tokenFromFile, err := c.http.ReadTokenFile(); err != nil {
-		c.UI.Error(fmt.Sprintf("Error loading token file: %s", err))
+	token, err := c.loadToken()
+	if err != nil {
+		c.UI.Error(err.Error())
 		return 1
-	} else if tokenFromFile != "" {
-		token = tokenFromFile
 	}
 
 	// Compile the watch parameters

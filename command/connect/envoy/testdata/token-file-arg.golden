@@ -1,0 +1,60 @@
+{
+  "admin": {
+    "access_log_path": "/dev/null",
+    "address": {
+      "socket_address": {
+        "address": "127.0.0.1",
+        "port_value": 19000
+      }
+    }
+  },
+  "node": {
+    "cluster": "test-proxy",
+    "id": "test-proxy"
+  },
+  "static_resources": {
+    "clusters": [
+      {
+        "name": "local_agent",
+        "connect_timeout": "1s",
+        "type": "STATIC",
+        "http2_protocol_options": {},
+        "hosts": [
+          {
+            "socket_address": {
+              "address": "127.0.0.1",
+              "port_value": 8502
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "stats_config": {
+			"stats_tags": [
+				{
+			"tag_name": "local_cluster",
+			"fixed_value": "test-proxy"
+		}
+			],
+			"use_all_default_tags": true
+		},
+  "dynamic_resources": {
+    "lds_config": { "ads": {} },
+    "cds_config": { "ads": {} },
+    "ads_config": {
+      "api_type": "GRPC",
+      "grpc_services": {
+        "initial_metadata": [
+          {
+            "key": "x-consul-token",
+            "value": "c9a52720-bf6c-4aa6-b8bc-66881a5ade95"
+          }
+        ],
+        "envoy_grpc": {
+          "cluster_name": "local_agent"
+        }
+      }
+    }
+  }
+}
