@@ -246,6 +246,24 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 				}
 			}
 
+			reply.Index = index
+			reply.Definition = structs.ServiceDefinition{
+				Name: args.Name,
+			}
+
+			if serviceConf == nil || !serviceConf.Connect.SidecarProxy {
+				// No central config for this service, return an simple response with no
+				// defaults to apply; OR No sidecar proxy means nothing else to add to
+				// service definition (for now).
+				return nil
+			}
+
+			// We do need a sidecar proxy, set one up and get it's config from the
+			// defaults.
+			reply.Definition.Connect = &structs.ServiceConnect{
+				SidecarService: &structs.ServiceDefinition{},
+			}
+
 			_, proxyEntry, err := state.ConfigEntry(ws, structs.ProxyDefaults, structs.ProxyConfigGlobal)
 			if err != nil {
 				return err
@@ -258,22 +276,13 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 				}
 			}
 
-			// Resolve the service definition by overlaying the service config onto the global
-			// proxy config.
-			definition := structs.ServiceDefinition{
-				Name: args.Name,
-			}
+			// Apply the proxy defaults to the sidecar's proxy config
 			if proxyConf != nil {
-				definition.Proxy = &structs.ConnectProxyConfig{
+				reply.Definition.Connect.SidecarService.Proxy = &structs.ConnectProxyConfig{
 					Config: proxyConf.Config,
 				}
 			}
-			if serviceConf != nil {
-				definition.Name = serviceConf.Name
-			}
 
-			reply.Index = index
-			reply.Definition = definition
 			return nil
 		})
 }
