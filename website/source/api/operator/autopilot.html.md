@@ -25,9 +25,9 @@ This endpoint retrieves its latest Autopilot configuration.
 | `GET`  | `/operator/autopilot/configuration` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
 [required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
@@ -79,9 +79,9 @@ This endpoint updates the Autopilot configuration of the cluster.
 | `PUT`  | `/operator/autopilot/configuration` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
 [required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
@@ -152,9 +152,9 @@ This endpoint queries the health of the autopilot status.
 | `GET`  | `/operator/autopilot/health` | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
 [required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
