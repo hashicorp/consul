@@ -30,6 +30,7 @@ export default Model.extend({
   Node: attr(),
   Service: attr(),
   Checks: attr(),
+  SyncTime: attr('number'),
   meta: attr(),
   passing: computed('ChecksPassing', 'Checks', function() {
     let num = 0;

@@ -1,6 +1,6 @@
 import Serializer from 'ember-data/serializers/rest';
 
-import { get } from '@ember/object';
+import { get, set } from '@ember/object';
 import {
   HEADERS_SYMBOL as HTTP_HEADERS_SYMBOL,
   HEADERS_INDEX as HTTP_HEADERS_INDEX,
@@ -47,11 +47,11 @@ export default Serializer.extend({
   normalizeMeta: function(store, primaryModelClass, headers, payload, id, requestType) {
     const meta = {
       cursor: headers[HTTP_HEADERS_INDEX],
-      date: headers['date'],
     };
     if (requestType === 'query') {
-      meta.ids = payload.map(item => {
-        return get(item, this.primaryKey);
+      meta.date = new Date().getTime();
+      payload.forEach(function(item) {
+        set(item, 'SyncTime', meta.date);
       });
     }
     return meta;
