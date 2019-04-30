@@ -26,7 +26,7 @@ Below is an example using `curl` with `X-Consul-Token`.
 
 ```sh
 $ curl \
-    --header "X-Consul-Token: abcd1234" \
+    --header "X-Consul-Token: <consul token>" \
     http://127.0.0.1:8500/v1/agent/members
 ```
 
