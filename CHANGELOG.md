@@ -8,7 +8,7 @@ SECURITY:
  have configured HTTP routing rules via the ["escape
  hatch"](#custom-configuration). We recommend Envoy 1.9.1 be used where
  possible. Note that while we officially deprecate support for older version of Envoy in 1.5.0, 
- we recommend using Envoy 1.9.1 will all previous versions of Consul Connect (back to 1.3.0 where it was introduced).
+ we recommend using Envoy 1.9.1 with all previous versions of Consul Connect (back to 1.3.0 where it was introduced).
 
 BREAKING CHANGES:
 
@@ -39,6 +39,7 @@ BUG FIXES:
 * connect: fix an issue where health checks on proxies might be missed by watchers of `/health/service/:service` API [[GH-5506](https://github.com/hashicorp/consul/issues/5506)]
 * logger: fix an issue where the `log-file` option was not respecting the `log-level` [[GH-4778](https://github.com/hashicorp/consul/issues/4778)]
 * catalog: fix an issue where renaming nodes could cause registration instability [[GH-5518](https://github.com/hashicorp/consul/issues/5518)]
+* network areas (Consul Enterprise): Fixed an issue that could cause a lock to be held unnecessarily causing other operations to hang.
 
 ## 1.4.4 (March 21, 2019)
 
