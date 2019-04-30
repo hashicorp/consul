@@ -5589,10 +5589,10 @@ func TestReadPath(t *testing.T) {
 	dataDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(dataDir)
 
-	tt := []struct{
-		name string
-		pre func()
-		args []string
+	tt := []struct {
+		name   string
+		pre    func()
+		args   []string
 		expect int
 	}{
 		{
@@ -5602,8 +5602,8 @@ func TestReadPath(t *testing.T) {
 				writeFile(filepath.Join(dataDir, "conf.d/conf.foobar"), []byte(`{}`))
 			},
 			args: []string{
-					`-config-dir`, filepath.Join(dataDir, "conf.d"),
-				},
+				`-config-dir`, filepath.Join(dataDir, "conf.d"),
+			},
 			expect: 1,
 		},
 		{
@@ -5613,9 +5613,9 @@ func TestReadPath(t *testing.T) {
 				writeFile(filepath.Join(dataDir, "conf.d/conf.foobar"), []byte(`{}`))
 			},
 			args: []string{
-					`-config-dir`, filepath.Join(dataDir, "conf.d"),
-					`-config-format`, "json",
-				},
+				`-config-dir`, filepath.Join(dataDir, "conf.d"),
+				`-config-format`, "json",
+			},
 			expect: 2,
 		},
 		{
@@ -5624,8 +5624,8 @@ func TestReadPath(t *testing.T) {
 				writeFile(filepath.Join(dataDir, "conf.d/conf.foobar"), []byte(`{}`))
 			},
 			args: []string{
-					`-config-file`, filepath.Join(dataDir, "conf.d"),
-				},
+				`-config-file`, filepath.Join(dataDir, "conf.d"),
+			},
 			expect: 0,
 		},
 		{
@@ -5634,9 +5634,9 @@ func TestReadPath(t *testing.T) {
 				writeFile(filepath.Join(dataDir, "conf.d/conf.foobar"), []byte(`{}`))
 			},
 			args: []string{
-					`-config-file`, filepath.Join(dataDir, "conf.d"),
-					`-config-format`, "json",
-				},
+				`-config-file`, filepath.Join(dataDir, "conf.d"),
+				`-config-format`, "json",
+			},
 			expect: 1,
 		},
 	}
@@ -5644,7 +5644,7 @@ func TestReadPath(t *testing.T) {
 	for _, tc := range tt {
 		cleanDir(dataDir)
 
-		t.Run(tc.name, func(t * testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			flags := Flags{}
 			fs := flag.NewFlagSet("", flag.ContinueOnError)
 			AddFlags(fs, &flags)
