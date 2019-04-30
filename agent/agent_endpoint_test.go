@@ -1957,28 +1957,127 @@ func TestAgent_RegisterCheck_BadStatus(t *testing.T) {
 
 func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), TestACLConfig())
+	a := NewTestAgent(t, t.Name(), TestACLConfigNew())
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-	args := &structs.CheckDefinition{
+	nodeCheck := &structs.CheckDefinition{
 		Name: "test",
 		TTL:  15 * time.Second,
 	}
 
-	t.Run("no token", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(args))
-		if _, err := a.srv.AgentRegisterCheck(nil, req); !acl.IsErrPermissionDenied(err) {
-			t.Fatalf("err: %v", err)
-		}
+	svc := &structs.ServiceDefinition{
+		ID:   "foo:1234",
+		Name: "foo",
+		Port: 1234,
+	}
+
+	svcCheck := &structs.CheckDefinition{
+		Name:      "test2",
+		ServiceID: "foo:1234",
+		TTL:       15 * time.Second,
+	}
+
+	// ensure the service is ready for registering a check for it.
+	req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(svc))
+	resp := httptest.NewRecorder()
+	_, err := a.srv.AgentRegisterService(resp, req)
+	require.NoError(t, err)
+
+	// create a policy that has write on service foo
+	policyReq := &structs.ACLPolicy{
+		Name:  "write-foo",
+		Rules: `service "foo" { policy = "write"}`,
+	}
+
+	req, _ = http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonReader(policyReq))
+	resp = httptest.NewRecorder()
+	_, err = a.srv.ACLPolicyCreate(resp, req)
+	require.NoError(t, err)
+
+	// create a policy that has write on the node name of the agent
+	policyReq = &structs.ACLPolicy{
+		Name:  "write-node",
+		Rules: fmt.Sprintf(`node "%s" { policy = "write" }`, a.config.NodeName),
+	}
+
+	req, _ = http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonReader(policyReq))
+	resp = httptest.NewRecorder()
+	_, err = a.srv.ACLPolicyCreate(resp, req)
+	require.NoError(t, err)
+
+	// create a token using the write-foo policy
+	tokenReq := &structs.ACLToken{
+		Description: "write-foo",
+		Policies: []structs.ACLTokenPolicyLink{
+			structs.ACLTokenPolicyLink{
+				Name: "write-foo",
+			},
+		},
+	}
+
+	req, _ = http.NewRequest("PUT", "/v1/acl/token?token=root", jsonReader(tokenReq))
+	resp = httptest.NewRecorder()
+	tokInf, err := a.srv.ACLTokenCreate(resp, req)
+	require.NoError(t, err)
+	svcToken, ok := tokInf.(*structs.ACLToken)
+	require.True(t, ok)
+	require.NotNil(t, svcToken)
+
+	// create a token using the write-node policy
+	tokenReq = &structs.ACLToken{
+		Description: "write-node",
+		Policies: []structs.ACLTokenPolicyLink{
+			structs.ACLTokenPolicyLink{
+				Name: "write-node",
+			},
+		},
+	}
+
+	req, _ = http.NewRequest("PUT", "/v1/acl/token?token=root", jsonReader(tokenReq))
+	resp = httptest.NewRecorder()
+	tokInf, err = a.srv.ACLTokenCreate(resp, req)
+	require.NoError(t, err)
+	nodeToken, ok := tokInf.(*structs.ACLToken)
+	require.True(t, ok)
+	require.NotNil(t, nodeToken)
+
+	t.Run("no token - node check", func(t *testing.T) {
+		req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(nodeCheck))
+		_, err := a.srv.AgentRegisterCheck(nil, req)
+		require.True(t, acl.IsErrPermissionDenied(err))
 	})
 
-	t.Run("root token", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token=root", jsonReader(args))
-		if _, err := a.srv.AgentRegisterCheck(nil, req); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+	t.Run("svc token - node check", func(t *testing.T) {
+		req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+svcToken.SecretID, jsonReader(nodeCheck))
+		_, err := a.srv.AgentRegisterCheck(nil, req)
+		require.True(t, acl.IsErrPermissionDenied(err))
 	})
+
+	t.Run("node token - node check", func(t *testing.T) {
+		req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+nodeToken.SecretID, jsonReader(nodeCheck))
+		_, err := a.srv.AgentRegisterCheck(nil, req)
+		require.NoError(t, err)
+	})
+
+	t.Run("no token - svc check", func(t *testing.T) {
+		req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(svcCheck))
+		_, err := a.srv.AgentRegisterCheck(nil, req)
+		require.True(t, acl.IsErrPermissionDenied(err))
+	})
+
+	t.Run("node token - svc check", func(t *testing.T) {
+		req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+nodeToken.SecretID, jsonReader(svcCheck))
+		_, err := a.srv.AgentRegisterCheck(nil, req)
+		require.True(t, acl.IsErrPermissionDenied(err))
+	})
+
+	t.Run("svc token - svc check", func(t *testing.T) {
+		req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+svcToken.SecretID, jsonReader(svcCheck))
+		_, err := a.srv.AgentRegisterCheck(nil, req)
+		require.NoError(t, err)
+	})
+
 }
 
 func TestAgent_DeregisterCheck(t *testing.T) {

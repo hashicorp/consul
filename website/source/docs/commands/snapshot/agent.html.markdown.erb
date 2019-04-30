@@ -59,7 +59,6 @@ If ACLs are enabled the following privileges are required:
 | `key`     | `<lock key>`     | `write`    | The lock key (which defaults to `consul-snapshot/lock`) is used during snapshot agent leader election. |
 | `session` | `<agent name>`   | `write`    | The session used for locking during leader election is created against the agent name of the Consul agent that the Snapshot agent is registering itself with. |
 | `service` | `<service name>` | `write`    | The Snapshot agent registers itself with the local Consul agent and must have write privileges on it's service name which is configured with `-service`. |
-| `node`    | `<agent name>`   | `write`    | Write is required on the local Consul agents name in order to register health checks for the Snapshot agent. |
 
 ## Usage
 
