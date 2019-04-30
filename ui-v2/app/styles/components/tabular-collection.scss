@@ -84,7 +84,7 @@ html.template-role.template-list main table tr {
 html.template-policy.template-edit [role='dialog'] table tr,
 html.template-policy.template-edit main table tr,
 html.template-role.template-edit [role='dialog'] table tr,
-html.template-role.template-edit main table tr {
+html.template-role.template-edit main table.token-list tr {
   @extend %tokens-minimal-row;
 }
 html.template-token.template-list main table tr td.me,
