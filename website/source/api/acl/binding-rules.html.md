@@ -51,7 +51,7 @@ The table below shows this endpoint's support for
     serviceaccount.namespace==default and serviceaccount.name!=vault
     ```
 
-- `BindType` `(string: <required>)` - Specifies the way this binding rule is
+- `BindType` `(string: <required>)` - Specifies the way the binding rule
   affects a token created at login. 
   
   - `BindType=service` - The computed bind name value is used as an
@@ -80,7 +80,7 @@ The table below shows this endpoint's support for
 
 - `BindName` `(string: <required>)` - The name to bind to a token at
   login-time.  What it binds to can be adjusted with different values of the
-  `BindType` field. This can either be a plain string, or lightly templated
+  `BindType` field. This can either be a plain string or lightly templated
   using [HIL syntax](https://github.com/hashicorp/hil) to interpolate the same
   values that are usable by the `Selector` syntax. For example:
   
@@ -125,7 +125,7 @@ $ curl -X PUT \
 
 ## Read a Binding Rule
 
-This endpoint reads an ACL binding rule with the given ID. If no role
+This endpoint reads an ACL binding rule with the given ID. If no
 binding rule exists with the given ID, a 404 is returned instead of a 200
 response.
 
@@ -208,7 +208,7 @@ The table below shows this endpoint's support for
     serviceaccount.namespace==default and serviceaccount.name!=vault
     ```
 
-- `BindType` `(string: <required>)` - Specifies the way this binding rule is
+- `BindType` `(string: <required>)` - Specifies the way the binding rule
   affects a token created at login. 
   
   - `BindType=service` - The computed bind name value is used as an
@@ -237,7 +237,7 @@ The table below shows this endpoint's support for
 
 - `BindName` `(string: <required>)` - The name to bind to a token at
   login-time.  What it binds to can be adjusted with different values of the
-  `BindType` field. This can either be a plain string, or lightly templated
+  `BindType` field. This can either be a plain string or lightly templated
   using [HIL syntax](https://github.com/hashicorp/hil) to interpolate the same
   values that are usable by the `Selector` syntax. For example:
   

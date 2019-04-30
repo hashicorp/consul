@@ -256,6 +256,7 @@ $ curl -X DELETE \
 ```
 
 ### Sample Response
+
 ```json
 true
 ```
