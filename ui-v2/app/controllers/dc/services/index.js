@@ -40,7 +40,7 @@ export default Controller.extend(WithEventSource, WithSearching, {
   searchable: computed('items.[]', function() {
     return get(this, 'searchables.service')
       .add(get(this, 'items'))
-      .search((get(this, this.searchParams.service) || '').split('\n'));
+      .search(get(this, 'terms'));
   }),
   maxWidth: computed('{maxPassing,maxWarning,maxCritical}', function() {
     const PADDING = 32 * 3 + 13;
