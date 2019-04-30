@@ -27,7 +27,7 @@ The table below shows this endpoint's support for
 [blocking queries](/api/features/blocking.html),
 [consistency modes](/api/features/consistency.html),
 [agent caching](/api/features/caching.html), and
-[required ACLs](/api/index.html#acls).
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -111,7 +111,7 @@ The table below shows this endpoint's support for
 [blocking queries](/api/features/blocking.html),
 [consistency modes](/api/features/consistency.html),
 [agent caching](/api/features/caching.html), and
-[required ACLs](/api/index.html#acls).
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -172,7 +172,7 @@ The table below shows this endpoint's support for
 [blocking queries](/api/features/blocking.html),
 [consistency modes](/api/features/consistency.html),
 [agent caching](/api/features/caching.html), and
-[required ACLs](/api/index.html#acls).
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -226,7 +226,7 @@ The table below shows this endpoint's support for
 [blocking queries](/api/features/blocking.html),
 [consistency modes](/api/features/consistency.html),
 [agent caching](/api/features/caching.html), and
-[required ACLs](/api/index.html#acls).
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -326,7 +326,7 @@ The table below shows this endpoint's support for
 [blocking queries](/api/features/blocking.html),
 [consistency modes](/api/features/consistency.html),
 [agent caching](/api/features/caching.html), and
-[required ACLs](/api/index.html#acls).
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -400,7 +400,7 @@ The table below shows this endpoint's support for
 [blocking queries](/api/features/blocking.html),
 [consistency modes](/api/features/consistency.html),
 [agent caching](/api/features/caching.html), and
-[required ACLs](/api/index.html#acls).
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -435,7 +435,7 @@ The table below shows this endpoint's support for
 [blocking queries](/api/features/blocking.html),
 [consistency modes](/api/features/consistency.html),
 [agent caching](/api/features/caching.html), and
-[required ACLs](/api/index.html#acls).
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
