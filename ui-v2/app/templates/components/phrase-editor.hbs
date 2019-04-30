@@ -1,0 +1,11 @@
+<ul>
+  {{#each items as |item index|}}
+    <li>
+      <button type="button" onclick={{action remove index}}>Remove</button>{{item}}
+    </li>
+  {{/each}}
+</ul>
+<label class="type-search">
+    <span>Search</span>
+    <input onchange={{action add}} onsearch={{action add}} oninput={{action oninput}} onkeydown={{action onkeydown}} placeholder="{{placeholder}}" value="{{item}}" type="search" name="s" autofocus="autofocus" />
+</label>

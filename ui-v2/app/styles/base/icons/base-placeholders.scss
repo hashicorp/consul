@@ -1,0 +1,14 @@
+%with-icon {
+  background-repeat: no-repeat;
+  background-position: center;
+}
+%as-pseudo {
+  display: inline-block;
+  content: '';
+  visibility: visible;
+  background-size: contain;
+}
+%with-cancel-plain-icon {
+  @extend %with-icon;
+  background-image: $cancel-plain-svg;
+}

@@ -2,7 +2,6 @@ import Controller from '@ember/controller';
 import { get, computed } from '@ember/object';
 import { htmlSafe } from '@ember/string';
 import WithEventSource from 'consul-ui/mixins/with-event-source';
-import WithHealthFiltering from 'consul-ui/mixins/with-health-filtering';
 import WithSearching from 'consul-ui/mixins/with-searching';
 const max = function(arr, prop) {
   return arr.reduce(function(prev, item) {
@@ -26,21 +25,23 @@ const width = function(num) {
 const widthDeclaration = function(num) {
   return htmlSafe(`width: ${num}px`);
 };
-export default Controller.extend(WithEventSource, WithSearching, WithHealthFiltering, {
+export default Controller.extend(WithEventSource, WithSearching, {
+  queryParams: {
+    s: {
+      as: 'filter',
+    },
+  },
   init: function() {
     this.searchParams = {
       service: 's',
     };
     this._super(...arguments);
   },
-  searchable: computed('filtered', function() {
+  searchable: computed('items.[]', function() {
     return get(this, 'searchables.service')
-      .add(get(this, 'filtered'))
-      .search(get(this, this.searchParams.service));
+      .add(get(this, 'items'))
+      .search(get(this, 'terms'));
   }),
-  filter: function(item, { s = '', status = '' }) {
-    return item.hasStatus(status);
-  },
   maxWidth: computed('{maxPassing,maxWarning,maxCritical}', function() {
     const PADDING = 32 * 3 + 13;
     return ['maxPassing', 'maxWarning', 'maxCritical'].reduce((prev, item) => {
@@ -58,14 +59,14 @@ export default Controller.extend(WithEventSource, WithSearching, WithHealthFilte
     // so again divide that by 2 and take it off each fluid column
     return htmlSafe(`width: calc(50% - 50px - ${Math.round(get(this, 'maxWidth') / 2)}px)`);
   }),
-  maxPassing: computed('filtered', function() {
-    return max(get(this, 'filtered'), 'ChecksPassing');
+  maxPassing: computed('items.[]', function() {
+    return max(get(this, 'items'), 'ChecksPassing');
   }),
-  maxWarning: computed('filtered', function() {
-    return max(get(this, 'filtered'), 'ChecksWarning');
+  maxWarning: computed('items.[]', function() {
+    return max(get(this, 'items'), 'ChecksWarning');
   }),
-  maxCritical: computed('filtered', function() {
-    return max(get(this, 'filtered'), 'ChecksCritical');
+  maxCritical: computed('items.[]', function() {
+    return max(get(this, 'items'), 'ChecksCritical');
   }),
   passingWidth: computed('maxPassing', function() {
     return widthDeclaration(width(get(this, 'maxPassing')));
