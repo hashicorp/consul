@@ -31,16 +31,20 @@ func (a *AutoEncrypt) Sign(
 	// This is the ConnectCA endpoint which is reused here because it is
 	// exactly what is needed.
 	c := &ConnectCA{srv: a.srv}
+
+	rootsArgs := &structs.DCSpecificRequest{Datacenter: args.Datacenter}
+	roots := &structs.IndexedCARoots{}
+	err := c.Roots(rootsArgs, roots)
+
 	cert := &structs.IssuedCert{}
-	err := c.Sign(args, cert)
+	err = c.Sign(args, cert)
 	if err != nil {
 		return err
 	}
 
-	reply.Agent = cert.Agent
-	reply.AgentURI = cert.AgentURI
-	reply.CertPEM = cert.CertPEM
-	reply.RootCAs = a.srv.tlsConfigurator.CAPems()
+	reply.IssuedCert = *cert
+	reply.ConnectCARoots = *roots
+	reply.ManualCARoots = a.srv.tlsConfigurator.ManualCAPems()
 	reply.VerifyServerHostname = a.srv.tlsConfigurator.VerifyServerHostname()
 
 	return nil
