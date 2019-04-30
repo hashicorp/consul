@@ -136,9 +136,14 @@ func SpecificDC(dc string, tlsWrap DCWrapper) Wrapper {
 }
 
 type autoEncrypt struct {
-	caPems               []string
+	manualCAPems         []string
+	connectCAPems        []string
 	cert                 *tls.Certificate
 	verifyServerHostname bool
+}
+
+func (a *autoEncrypt) caPems() []string {
+	return append(a.manualCAPems, a.connectCAPems...)
 }
 
 type manual struct {
@@ -174,7 +179,14 @@ func NewConfigurator(config Config, logger *log.Logger) (*Configurator, error) {
 func (c *Configurator) CAPems() []string {
 	c.RLock()
 	defer c.RUnlock()
-	return append(c.manual.caPems, c.autoEncrypt.caPems...)
+	return append(c.manual.caPems, c.autoEncrypt.caPems()...)
+}
+
+// ManualCAPems returns the currently loaded CAs in PEM format.
+func (c *Configurator) ManualCAPems() []string {
+	c.RLock()
+	defer c.RUnlock()
+	return c.manual.caPems
 }
 
 // Update updates the internal configuration which is used to generate
@@ -194,7 +206,7 @@ func (c *Configurator) Update(config Config) error {
 	if err != nil {
 		return err
 	}
-	pool, err := pool(append(pems, c.autoEncrypt.caPems...))
+	pool, err := pool(append(pems, c.autoEncrypt.caPems()...))
 	if err != nil {
 		return err
 	}
@@ -213,13 +225,13 @@ func (c *Configurator) Update(config Config) error {
 // from the server in order to be able to accept TLS connections with TLS
 // certificates.
 // Or it is being called on the client side when CA changes are detected.
-func (c *Configurator) UpdateAutoEncryptCA(pems []string) error {
+func (c *Configurator) UpdateAutoEncryptCA(connectCAPems []string) error {
 	c.Lock()
 	// order of defers matters because log acquires a RLock()
 	defer c.log("UpdateAutoEncryptCA")
 	defer c.Unlock()
 
-	pool, err := pool(append(c.manual.caPems, pems...))
+	pool, err := pool(append(c.manual.caPems, append(c.autoEncrypt.manualCAPems, connectCAPems...)...))
 	if err != nil {
 		c.RUnlock()
 		return err
@@ -228,7 +240,7 @@ func (c *Configurator) UpdateAutoEncryptCA(pems []string) error {
 		c.RUnlock()
 		return err
 	}
-	c.autoEncrypt.caPems = pems
+	c.autoEncrypt.connectCAPems = connectCAPems
 	c.caPool = pool
 	c.version++
 	return nil
@@ -253,7 +265,7 @@ func (c *Configurator) UpdateAutoEncryptCert(pub, priv string) error {
 
 // UpdateAutoEncrypt sets everything under autoEncrypt. This is being called on the
 // client when it received its cert from AutoEncrypt endpoint.
-func (c *Configurator) UpdateAutoEncrypt(caPems []string, pub, priv string, verifyServerHostname bool) error {
+func (c *Configurator) UpdateAutoEncrypt(manualCAPems, connectCAPems []string, pub, priv string, verifyServerHostname bool) error {
 	// order of defers matters because log acquires a RLock()
 	defer c.log("UpdateAutoEncrypt")
 	cert, err := tls.X509KeyPair([]byte(pub), []byte(priv))
@@ -264,11 +276,12 @@ func (c *Configurator) UpdateAutoEncrypt(caPems []string, pub, priv string, veri
 	c.Lock()
 	defer c.Unlock()
 
-	pool, err := pool(append(c.manual.caPems, caPems...))
+	pool, err := pool(append(c.manual.caPems, append(manualCAPems, connectCAPems...)...))
 	if err != nil {
 		return err
 	}
-	c.autoEncrypt.caPems = caPems
+	c.autoEncrypt.manualCAPems = manualCAPems
+	c.autoEncrypt.connectCAPems = connectCAPems
 	c.autoEncrypt.cert = &cert
 	c.caPool = pool
 	c.autoEncrypt.verifyServerHostname = verifyServerHostname

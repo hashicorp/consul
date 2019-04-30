@@ -562,7 +562,12 @@ func (a *Agent) setupClientAutoEncrypt() error {
 	if err != nil {
 		return err
 	}
-	return a.tlsConfigurator.UpdateAutoEncrypt(reply.RootCAs, reply.CertPEM, priv, reply.VerifyServerHostname)
+
+	connectCAPems := []string{}
+	for _, ca := range reply.ConnectCARoots.Roots {
+		connectCAPems = append(connectCAPems, ca.RootCert)
+	}
+	return a.tlsConfigurator.UpdateAutoEncrypt(reply.ManualCARoots, connectCAPems, reply.IssuedCert.CertPEM, priv, reply.VerifyServerHostname)
 }
 
 func (a *Agent) setupClientAutoEncryptWatching() error {
