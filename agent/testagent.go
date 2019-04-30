@@ -398,3 +398,18 @@ func TestACLConfig() string {
 		acl_enforce_version_8 = true
 	`
 }
+
+func TestACLConfigNew() string {
+	return `
+		primary_datacenter = "dc1"
+		acl {
+			enabled = true
+			default_policy = "deny"
+			tokens {
+				master = "root"
+				agent = "root"
+				agent_master = "towel"
+			}
+		}
+	`
+}

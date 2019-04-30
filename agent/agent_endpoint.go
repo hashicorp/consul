@@ -588,6 +588,14 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 		return nil, nil
 	}
 
+	if health.ServiceID != "" {
+		// fixup the service name so that vetCheckRegister requires the right ACLs
+		service := s.agent.State.Service(health.ServiceID)
+		if service != nil {
+			health.ServiceName = service.Service
+		}
+	}
+
 	// Get the provided token, if any, and vet against any ACL policies.
 	var token string
 	s.parseToken(req, &token)
