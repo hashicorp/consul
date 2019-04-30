@@ -2693,6 +2693,82 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				}
 			},
 		},
+
+		// ------------------------------------------------------------
+		// ConfigEntry Handling
+		//
+		{
+			desc: "ConfigEntry bootstrap doesn't parse",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"config_entries": {
+					"bootstrap": [
+						{
+							"foo": "bar"
+						}
+					]
+				}
+			}`},
+			hcl: []string{`
+			config_entries {
+				bootstrap {
+					foo = "bar"
+				}
+			}`},
+			err: "config_entries.bootstrap[0]: Payload does not contain a kind/Kind",
+		},
+		{
+			desc: "ConfigEntry bootstrap unknown kind",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"config_entries": {
+					"bootstrap": [
+						{
+							"kind": "foo",
+							"name": "bar",
+							"baz": 1
+						}
+					]
+				}
+			}`},
+			hcl: []string{`
+			config_entries {
+				bootstrap {
+					kind = "foo"
+					name = "bar"
+					baz = 1
+				}
+			}`},
+			err: "config_entries.bootstrap[0]: invalid config entry kind: foo",
+		},
+		{
+			desc: "ConfigEntry bootstrap invalid",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"config_entries": {
+					"bootstrap": [
+						{
+							"kind": "proxy-defaults",
+							"name": "invalid-name",
+							"config": {
+								"foo": "bar"
+							}
+						}
+					]
+				}
+			}`},
+			hcl: []string{`
+			config_entries {
+				bootstrap {
+					kind = "proxy-defaults"
+					name = "invalid-name"
+					config {
+						foo = "bar"
+					}
+				}
+			}`},
+			err: "config_entries.bootstrap[0]: invalid name (\"invalid-name\"), only \"global\" is supported",
+		},
 	}
 
 	testConfig(t, tests, dataDir)
@@ -3009,14 +3085,16 @@ func TestFullConfig(t *testing.T) {
 			"check_update_interval": "16507s",
 			"client_addr": "93.83.18.19",
 			"config_entries": {
-				"bootstrap": {
-					"proxy_defaults": {
-						"global": {
+				"bootstrap": [
+					{
+						"kind": "proxy-defaults",
+						"name": "global",
+						"config": {
 							"foo": "bar",
 							"bar": 1.0
 						}
 					}
-				}
+				]
 			},
 			"connect": {
 				"ca_provider": "consul",
@@ -3573,9 +3651,14 @@ func TestFullConfig(t *testing.T) {
 			check_update_interval = "16507s"
 			client_addr = "93.83.18.19"
 			config_entries {
-				bootstrap proxy_defaults global {
-					foo = "bar"
-					bar = 1.0
+				# This is using the repeated block-to-array HCL magic
+				bootstrap {
+					kind = "proxy-defaults"
+					name = "global"
+					config {
+						foo = "bar"
+						bar = 1.0
+					}
 				}
 			}
 			connect {

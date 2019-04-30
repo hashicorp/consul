@@ -635,17 +635,16 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 
 	var configEntries []structs.ConfigEntry
 
-	if len(c.ConfigEntries.Bootstrap.ProxyDefaults) > 0 {
-		for name, config := range c.ConfigEntries.Bootstrap.ProxyDefaults {
-			if name != structs.ProxyConfigGlobal {
-				return RuntimeConfig{}, fmt.Errorf("invalid config.proxy_defaults name (%q), only %q is supported", name, structs.ProxyConfigGlobal)
+	if len(c.ConfigEntries.Bootstrap) > 0 {
+		for i, rawEntry := range c.ConfigEntries.Bootstrap {
+			entry, err := structs.DecodeConfigEntry(rawEntry)
+			if err != nil {
+				return RuntimeConfig{}, fmt.Errorf("config_entries.bootstrap[%d]: %s", i, err)
 			}
-
-			configEntries = append(configEntries, &structs.ProxyConfigEntry{
-				Kind:   structs.ProxyDefaults,
-				Name:   structs.ProxyConfigGlobal,
-				Config: config,
-			})
+			if err := entry.Validate(); err != nil {
+				return RuntimeConfig{}, fmt.Errorf("config_entries.bootstrap[%d]: %s", i, err)
+			}
+			configEntries = append(configEntries, entry)
 		}
 	}
 
