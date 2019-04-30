@@ -75,7 +75,9 @@ may use a unique prefix of the UUID as a shortcut for specifying the entire UUID
    for each entry.
 
 * `-secret=<string>` - Create the token with this Secret ID. It must be a UUID. If not
-   specified one will be auto-generated
+   specified one will be auto-generated.
+   **Note**: The SecretID is used to authorize operations against Consul and should
+   be generated from an appropriate cryptographic source.
 
 ### Examples
 
