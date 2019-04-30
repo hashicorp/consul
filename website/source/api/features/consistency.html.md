@@ -40,7 +40,7 @@ should be provided on requests. It is an error to provide both.
 
 Note that some endpoints support a `cached` parameter which has some of the same
 semantics as `stale` but different trade offs. This behavior is described in
-[Agent Caching](#agent-caching).
+[agent caching feature documentation](/api/features/caching.html).
 
 To support bounding the acceptable staleness of data, responses provide the
 `X-Consul-LastContact` header containing the time in milliseconds that a server

@@ -23,10 +23,10 @@ This endpoint makes a new ACL token.
 | `PUT`  | `/acl/create`                | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -82,10 +82,10 @@ generating a new token ID, the `ID` field must be provided.
 | `PUT`  | `/acl/update`                | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -136,10 +136,10 @@ Even though the return type is application/json, the value is either true or
 false, indicating whether the delete succeeded.
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -172,10 +172,10 @@ This endpoint reads an ACL token with the given ID.
 | `GET`  | `/acl/info/:uuid`            | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -221,10 +221,10 @@ complex rule management.
 | `PUT`  | `/acl/clone/:uuid`         | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -260,10 +260,10 @@ This endpoint lists all the active ACL tokens.
 | `GET`  | `/acl/list`                  | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |

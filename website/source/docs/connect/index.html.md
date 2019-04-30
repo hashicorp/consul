@@ -87,7 +87,7 @@ There are several ways to try Connect in different environments.
 To enable microsecond-speed responses on
 [agent Connect API endpoints](/api/agent/connect.html), the Consul agent
 locally caches most Connect-related data and sets up background
-[blocking queries](/api/index.html#blocking-queries) against the server
+[blocking queries](/api/features/blocking.html) against the server
 to update the cache in the background. This allows most API calls such
 as retrieving certificates or authorizing connections to use in-memory
 data and respond very quickly.

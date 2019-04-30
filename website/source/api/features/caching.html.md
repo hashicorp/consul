@@ -11,7 +11,7 @@ description: |-
 
 Some read endpoints support agent caching. They are clearly marked in the
 documentation. Agent caching can take two forms, [`simple`](#simple-caching) or
-[`background refresh`](#blocking-refresh-caching) depending on the endpoint's
+[`background refresh`](#background-refresh-caching) depending on the endpoint's
 semantics. The documentation for each endpoint clearly identify which if any
 form of caching is supported. The details for each are described below.
 

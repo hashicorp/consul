@@ -142,10 +142,10 @@ successfully.
 | `POST`  | `/query`                     | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
 | ---------------- | ----------------- | ------------- | ------------- |
@@ -303,10 +303,10 @@ This endpoint returns a list of all prepared queries.
 | `GET`  | `/query`                     | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -366,10 +366,10 @@ given ID, an error is returned.
 | `PUT`  | `/query/:uuid`               | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
 | ---------------- | ----------------- | ------------- | ------------- |
@@ -406,10 +406,10 @@ given ID, an error is returned.
 | `GET`  | `/query/:uuid`               | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -446,10 +446,10 @@ given ID, an error is returned.
 | `DELETE`  | `/query/:uuid`               | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
 | ---------------- | ----------------- | ------------- | ------------- |
@@ -482,10 +482,10 @@ given ID, an error is returned.
 | `GET`  | `/query/:uuid/execute`       | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -610,10 +610,10 @@ interpolation.
 | `GET`  | `/query/:uuid/explain`       | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
