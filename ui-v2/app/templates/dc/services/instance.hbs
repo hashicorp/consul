@@ -55,11 +55,6 @@
   {{/if}}
 {{/if}}
     {{/block-slot}}
-    {{#block-slot 'actions'}}
-      {{#if item.Meta.consul-dashboard-url}}
-        {{#templated-anchor href=item.Meta.consul-dashboard-url vars=item rel="external"}}Open in Dashboard{{/templated-anchor}}
-      {{/if}}
-    {{/block-slot}}
     {{#block-slot 'content'}}
         {{tab-nav
             items=(compact

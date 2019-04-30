@@ -23,6 +23,13 @@ export default Controller.extend({
           set(this, 'item.client.blocking', !blocking);
           this.send('update', get(this, 'item'));
           break;
+        case 'urls[service]':
+          if (typeof get(this, 'item.urls') === 'undefined') {
+            set(this, 'item.urls', {});
+          }
+          set(this, 'item.urls.service', target.value);
+          this.send('update', get(this, 'item'));
+          break;
       }
     },
   },

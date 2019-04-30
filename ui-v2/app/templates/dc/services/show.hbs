@@ -33,8 +33,8 @@
       }}
     {{/block-slot}}
     {{#block-slot 'actions'}}
-      {{#if item.Service.Meta.consul-dashboard-url}}
-        {{#templated-anchor href=item.Service.Meta.consul-dashboard-url vars=item.Service rel="external"}}Open in Dashboard{{/templated-anchor}}
+      {{#if urls.service}}
+        {{#templated-anchor href=urls.service vars=(hash Service=(hash Name=item.Service.Service)) rel="external"}}Open Dashboard{{/templated-anchor}}
       {{/if}}
     {{/block-slot}}
     {{#block-slot 'content'}}
