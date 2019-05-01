@@ -159,7 +159,7 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Update an ACL Policy"
+const synopsis = "Update an ACL policy"
 const help = `
 Usage: consul acl policy update [options]
 
@@ -167,7 +167,7 @@ Usage: consul acl policy update [options]
   current state so that you do not have to provide all parameters. This
   behavior can be disabled by passing -no-merge.
 
-  Rename the Policy:
+  Rename the policy:
 
           $ consul acl policy update -id abcd -name "better-name"
 

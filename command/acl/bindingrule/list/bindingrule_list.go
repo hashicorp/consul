@@ -82,7 +82,7 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Lists ACL Binding Rules"
+const synopsis = "Lists ACL binding rules"
 const help = `
 Usage: consul acl binding-rule list [options]
 

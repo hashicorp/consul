@@ -72,7 +72,7 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Delete an ACL Auth Method"
+const synopsis = "Delete an ACL auth method"
 const help = `
 Usage: consul acl auth-method delete -name NAME [options]
 

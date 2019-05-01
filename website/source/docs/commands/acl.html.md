@@ -75,11 +75,11 @@ Usage: consul acl <subcommand> [options] [args]
 
       $ consul acl bootstrap
 
-  List all ACL Tokens:
+  List all ACL tokens:
 
       $ consul acl token list
 
-  Create a new ACL Policy:
+  Create a new ACL policy:
 
       $ consul acl policy create -name "new-policy" \
                                  -description "This is an example policy" \
@@ -94,13 +94,13 @@ Usage: consul acl <subcommand> [options] [args]
   For more examples, ask for subcommand help or view the documentation.
 
 Subcommands:
-    auth-method        Manage Consul's ACL Auth Methods
-    binding-rule       Manage Consul's ACL Binding Rules
+    auth-method        Manage Consul's ACL auth methods
+    binding-rule       Manage Consul's ACL binding rules
     bootstrap          Bootstrap Consul's ACL system
-    policy             Manage Consul's ACL Policies
-    role               Manage Consul's ACL Roles
+    policy             Manage Consul's ACL policies
+    role               Manage Consul's ACL roles
     set-agent-token    Assign tokens for the Consul Agent's usage
-    token              Manage Consul's ACL Tokens
+    token              Manage Consul's ACL tokens
     translate-rules    Translate the legacy rule syntax into the current syntax
 
 ```

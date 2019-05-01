@@ -131,7 +131,7 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Create an ACL Policy"
+const synopsis = "Create an ACL policy"
 const help = `
 Usage: consul acl policy create -name NAME [options]
 
@@ -151,6 +151,6 @@ Usage: consul acl policy create -name NAME [options]
     Creation a policy from a legacy token:
 
         $ consul acl policy create -name "legacy-policy" \
-                                   -description "Token Converted to Policy" \
+                                   -description "Token Converted to policy" \
                                    -from-token "c1e34113-e7ab-4451-b1a6-336ddcc58fc6"
 `

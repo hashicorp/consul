@@ -193,7 +193,7 @@ func isFlagSet(flags *flag.FlagSet, name string) bool {
 	return found
 }
 
-const synopsis = "Update an ACL Binding Rule"
+const synopsis = "Update an ACL binding rule"
 const help = `
 Usage: consul acl binding-rule update -id ID [options]
 

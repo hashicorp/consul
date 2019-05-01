@@ -73,7 +73,7 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Lists ACL Auth Methods"
+const synopsis = "Lists ACL auth methods"
 const help = `
 Usage: consul acl auth-method list [options]
 

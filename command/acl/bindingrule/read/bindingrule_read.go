@@ -95,7 +95,7 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Read an ACL Binding Rule"
+const synopsis = "Read an ACL binding rule"
 const help = `
 Usage: consul acl binding-rule read -id ID [options]
 

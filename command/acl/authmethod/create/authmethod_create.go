@@ -170,7 +170,7 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Create an ACL Auth Method"
+const synopsis = "Create an ACL auth method"
 
 const help = `
 Usage: consul acl auth-method create -name NAME -type TYPE [options]
