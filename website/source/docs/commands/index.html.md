@@ -42,8 +42,8 @@ Available commands are:
     kv             Interact with the key-value store
     leave          Gracefully leaves the Consul cluster and shuts down
     lock           Execute a command holding a lock
-    login          Login to Consul using an Auth Method
-    logout         Destroy a Consul Token created with Login
+    login          Login to Consul using an auth method
+    logout         Destroy a Consul token created with login
     maint          Controls node or service maintenance mode
     members        Lists the members of a Consul cluster
     monitor        Stream logs from a Consul agent
@@ -141,6 +141,15 @@ are enabled, for example:
 
 ```
 CONSUL_HTTP_TOKEN=aba7cbe5-879b-999a-07cc-2efd9ac0ffe
+```
+
+### `CONSUL_HTTP_TOKEN_FILE`
+
+This is a path to a file containing the API access token required when access
+control lists (ACLs) are enabled, for example:
+
+```
+CONSUL_HTTP_TOKEN_FILE=/path/to/consul.token
 ```
 
 ### `CONSUL_HTTP_AUTH`
