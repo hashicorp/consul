@@ -86,7 +86,7 @@ The table below shows this endpoint's support for
 - `ExpirationTTL` `(duration: 0s)` - This is a convenience field and if set
   will initialize the `ExpirationTime` field to a value of `CreateTime +
   ExpirationTTL`. This field is not persisted beyond its initial use. Can be
-  specified in the form of `"10s"` or `"5m"` (i.e., 10 seconds or 5 minutes,
+  specified in the form of `"60s"` or `"5m"` (i.e., 60 seconds or 5 minutes,
   respectively). This value must be no smaller than 1 minute and no longer than
   24 hours. Added in Consul 1.5.0.
 
@@ -289,7 +289,7 @@ The table below shows this endpoint's support for
 
 - `Policies` `(array<PolicyLink>)` - This is the list of policies that should
   be applied to this token. A PolicyLink is an object with an "ID" and/or
-  "Name" field to specify a policy. With this tokens can be linked to policies
+  "Name" field to specify a policy. With the PolicyLink tokens can be linked to policies
   either by the policy name or by the policy ID. When policies are linked by
   name they will internally be resolved to the policy ID. With linking tokens
   internally by IDs, Consul enables policy renaming without breaking tokens.
@@ -303,7 +303,7 @@ The table below shows this endpoint's support for
 
 - `ServiceIdentities` `(array<ServiceIdentity>)` - The list of [service
   identities](/docs/acl/acl-system.html#acl-service-identities) that should be
-  applied to the token.  Added in Consul 1.5.0.
+  applied to the token. Added in Consul 1.5.0.
 
   - `ServiceName` `(string: <required>)` - The name of the service. The name
     must be no longer than 256 characters, must start and end with a lowercase
