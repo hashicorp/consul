@@ -42,10 +42,11 @@ using the API or command line before they can be used by applications.
 * **Authentication** - One or more **auth methods** should be configured with
   details about how to authenticate application credentials. Successful
   validation of application credentials will return a set of trusted identity
-  attributes. These can be managed with the `consul acl auth-method`
-  subcommands or the corresponding [API endpoints](/api/acl/auth-methods.html).
-  The specific details of configuration are type dependent and described in
-  their own documentation pages.
+  attributes (such as a username). These can be managed with the `consul acl
+  auth-method` subcommands or the corresponding [API
+  endpoints](/api/acl/auth-methods.html).  The specific details of
+  configuration are type dependent and described in their own documentation
+  pages.
 
 * **Authorization** - One or more **binding rules** must be configured to define
   how to translate trusted identity attributes from each auth method into
