@@ -80,13 +80,16 @@ const change = function(e) {
       // therefore we don't need to calculate
       if (e.currentTarget.getAttribute('id') !== 'actions_close') {
         const dom = get(this, 'dom');
+
         const $tr = dom.closest('tr', e.currentTarget);
         const $group = dom.sibling(e.currentTarget, 'ul');
-        const $footer = dom.element('footer[role="contentinfo"]');
         const groupRect = $group.getBoundingClientRect();
-        const footerRect = $footer.getBoundingClientRect();
         const groupBottom = groupRect.top + $group.clientHeight;
+
+        const $footer = dom.element('footer[role="contentinfo"]');
+        const footerRect = $footer.getBoundingClientRect();
         const footerTop = footerRect.top;
+
         if (groupBottom > footerTop) {
           $group.classList.add('above');
         } else {
@@ -111,6 +114,7 @@ const change = function(e) {
 export default CollectionComponent.extend(SlotsMixin, WithResizing, {
   tagName: 'table',
   classNames: ['dom-recycling'],
+  classNameBindings: ['hasActions'],
   attributeBindings: ['style'],
   width: 1150,
   rowHeight: 50,
@@ -128,13 +132,14 @@ export default CollectionComponent.extend(SlotsMixin, WithResizing, {
   },
   getStyle: computed('rowHeight', '_items', 'maxRows', 'maxHeight', function() {
     const maxRows = get(this, 'rows');
-    let rows = get(this._items || [], 'length');
+    let height = get(this, 'maxHeight');
     if (maxRows) {
+      let rows = Math.max(3, get(this._items || [], 'length'));
       rows = Math.min(maxRows, rows);
+      height = get(this, 'rowHeight') * rows + 29;
     }
-    const height = get(this, 'rowHeight') * rows + 29;
     return {
-      height: Math.min(get(this, 'maxHeight'), height),
+      height: height,
     };
   }),
   resize: function(e) {

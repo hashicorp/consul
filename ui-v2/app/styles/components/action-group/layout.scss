@@ -9,21 +9,12 @@
 %action-group li > * {
   @extend %action-group-action;
 }
-%action-group::before {
-  margin-left: -1px;
-}
-%action-group label::after {
-  margin-left: 5px;
-}
-%action-group label::before {
-  margin-left: -7px;
-}
 %action-group {
   width: 30px;
   height: 30px;
   position: absolute;
   top: 8px;
-  right: 15px;
+  right: 3px;
 }
 %action-group label {
   display: block;
@@ -38,12 +29,12 @@
 /* this is actually the group */
 %action-group ul {
   position: absolute;
-  right: -10px;
+  right: 0px;
   padding: 1px;
 }
 %action-group ul::before {
   position: absolute;
-  right: 18px;
+  right: 9px;
   content: '';
   display: block;
   width: 10px;

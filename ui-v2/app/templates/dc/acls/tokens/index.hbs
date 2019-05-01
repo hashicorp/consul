@@ -55,7 +55,7 @@
                   Legacy tokens have embedded rules.
 {{ else }}
                   {{#each (append item.Policies item.Roles) as |item|}}
-                    <strong class={{if (policy/is-management item) 'policy-management' }}>{{item.Name}}</strong>
+                    <strong class={{policy/typeof item}}>{{item.Name}}</strong>
                   {{/each}}
 {{/if}}
               </td>
