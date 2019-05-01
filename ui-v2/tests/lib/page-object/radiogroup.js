@@ -1,12 +1,12 @@
 import { is, clickable } from 'ember-cli-page-object';
 import ucfirst from 'consul-ui/utils/ucfirst';
-export default function(name, items) {
+export default function(name, items, blankKey = 'all') {
   return items.reduce(function(prev, item, i, arr) {
     // if item is empty then it means 'all'
     // otherwise camelCase based on something-here = somethingHere for the key
     const key =
       item === ''
-        ? 'all'
+        ? blankKey
         : item.split('-').reduce(function(prev, item, i, arr) {
             if (i === 0) {
               return item;

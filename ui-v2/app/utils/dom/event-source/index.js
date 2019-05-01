@@ -22,7 +22,7 @@ export const BlockingEventSource = BlockingEventSourceFactory(ReopenableEventSou
 export const StorageEventSource = StorageEventSourceFactory(EventTarget, Promise);
 
 // various utils
-export const proxy = proxyFactory(ObjectProxy, ArrayProxy);
+export const proxy = proxyFactory(ObjectProxy, ArrayProxy, createListeners);
 export const resolve = firstResolverFactory(Promise);
 
 export const source = function(source) {
@@ -30,7 +30,52 @@ export const source = function(source) {
   // i.e. resolve/reject on first response
   return resolve(source, createListeners()).then(function(data) {
     // create API needed for conventional DD/computed and Controllers
-    return proxy(data, source, createListeners());
+    return proxy(source, data);
   });
 };
 export const cache = cacheFactory(source, BlockingEventSource, Promise);
+
+const errorEvent = function(e) {
+  return new ErrorEvent('error', {
+    error: e,
+    message: e.message,
+  });
+};
+export const fromPromise = function(promise) {
+  return new CallableEventSource(function(configuration) {
+    const dispatch = this.dispatchEvent.bind(this);
+    const close = () => {
+      this.close();
+    };
+    return promise
+      .then(function(result) {
+        close();
+        dispatch({ type: 'message', data: result });
+      })
+      .catch(function(e) {
+        close();
+        dispatch(errorEvent(e));
+      });
+  });
+};
+export const toPromise = function(target, cb, eventName = 'message', errorName = 'error') {
+  return new Promise(function(resolve, reject) {
+    // TODO: e.target.data
+    const message = function(e) {
+      resolve(e.data);
+    };
+    const error = function(e) {
+      reject(e.error);
+    };
+    const remove = function() {
+      if (typeof target.close === 'function') {
+        target.close();
+      }
+      target.removeEventListener(eventName, message);
+      target.removeEventListener(errorName, error);
+    };
+    target.addEventListener(eventName, message);
+    target.addEventListener(errorName, error);
+    cb(remove);
+  });
+};

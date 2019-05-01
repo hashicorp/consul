@@ -17,6 +17,20 @@ export function initialize(container) {
         },
       };
     })
+    .concat(
+      ['dc', 'policy', 'role'].map(function(item) {
+        // create repositories that return a promise resolving to an EventSource
+        return {
+          service: `repository/${item}/component`,
+          extend: 'repository/type/component',
+          // Inject our original respository that is used by this class
+          // within the callable of the EventSource
+          services: {
+            content: `repository/${item}`,
+          },
+        };
+      })
+    )
     .concat([
       // These are the routes where we overwrite the 'default'
       // repo service. Default repos are repos that return a promise resolving to
@@ -52,6 +66,13 @@ export function initialize(container) {
         services: {
           repo: 'repository/service/event-source',
           proxyRepo: 'repository/proxy/event-source',
+        },
+      },
+      {
+        service: 'form',
+        services: {
+          role: 'repository/role/component',
+          policy: 'repository/policy/component',
         },
       },
     ])

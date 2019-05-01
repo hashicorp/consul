@@ -1,5 +1,8 @@
 <form>
-  {{partial 'dc/acls/policies/fieldsets'}}
+  {{#policy-form form=form item=item}}
+    {{!don't show template selection here, i.e. Service Identity}}
+    {{block-slot 'template'}}
+  {{/policy-form}}
 {{#if (not create) }}
   {{token-list caption="Applied to the following tokens:" items=items}}
 {{/if}}
@@ -18,13 +21,13 @@
             {{/block-slot}}
             {{#block-slot 'dialog' as |execute cancel message|}}
     {{#if (gt items.length 0)}}
-              {{#modal-dialog onclose=(action cancel)}}
+              {{#modal-dialog data-test-delete-modal onclose=(action cancel)}}
                   {{#block-slot 'header'}}
                       <h2>Policy in Use</h2>
                   {{/block-slot}}
                   {{#block-slot 'body'}}
                     <p>
-                    This Policy is currently in use. If you choose to delete this Policy, it will be removed from the following <strong>{{items.length}} Tokens</strong>:
+                      This Policy is currently in use. If you choose to delete this Policy, it will be removed from the following <strong>{{items.length}} Tokens</strong>:
                     </p>
                     {{token-list items=items target='_blank'}}
                     <p>

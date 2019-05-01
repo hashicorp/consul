@@ -3,6 +3,7 @@
 }
 %tabular-details td:only-child {
   cursor: default;
+  border: 0;
 }
 %tabular-detail {
   border: 1px solid $gray-300;
@@ -17,4 +18,15 @@
 }
 %tabular-detail > label::before {
   transform: rotate(180deg);
+}
+// this is here as its a fake border
+%tabular-detail::before {
+  background: $gray-200;
+  content: '';
+  display: block;
+  height: 1px;
+  position: absolute;
+  bottom: -20px;
+  left: 10px;
+  width: calc(100% - 20px);
 }

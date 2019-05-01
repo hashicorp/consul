@@ -7,8 +7,7 @@
   content: '';
   visibility: visible;
   background-size: contain;
-}
-%with-cancel-plain-icon {
-  @extend %with-icon;
-  background-image: $cancel-plain-svg;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: text-top;
 }

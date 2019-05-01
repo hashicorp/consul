@@ -1,5 +1,6 @@
 export const defaultRunner = function(target, configuration, isClosed) {
   if (isClosed(target)) {
+    target.dispatchEvent({ type: 'close' });
     return;
   }
   // TODO Consider wrapping this is a promise for none thenable returns

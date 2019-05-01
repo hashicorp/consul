@@ -149,18 +149,6 @@
   height: 0.05em;
   transform: rotate(45deg);
 }
-%with-info {
-  position: relative;
-  padding-right: 23px;
-}
-%with-info::after {
-  @extend %pseudo-icon;
-  right: 0;
-  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="16" height="16" xmlns="http://www.w3.org/2000/svg"><circle stroke="%23BBC4D1" fill="%23FFF" cx="7" cy="7" r="7"/><path fill="%236A7786" d="M6.15 4.677V3.233h1.56v1.444zM6.15 11.374V6.35h1.56v5.023z"/></svg>');
-  background-color: $color-transparent;
-  width: 16px;
-  height: 16px;
-}
 /*TODO: All chevrons need merging */
 %with-chevron-down::before {
   @extend %pseudo-icon-bg-img;
