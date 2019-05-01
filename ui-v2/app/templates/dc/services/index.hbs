@@ -10,7 +10,7 @@
     {{/block-slot}}
     {{#block-slot 'toolbar'}}
 {{#if (gt items.length 0) }}
-        {{catalog-filter searchable=searchable search=filters.s status=filters.status onchange=(action 'filter')}}
+    {{#phrase-editor placeholder=(if (eq terms.length 0) 'service:name tag:name status:critical search-term' '') items=terms searchable=searchable}}{{/phrase-editor}}
 {{/if}}
     {{/block-slot}}
     {{#block-slot 'content'}}
