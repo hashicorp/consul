@@ -112,10 +112,18 @@ func (k *Kubernetes) Services(ctx context.Context, state request.Request, exact 
 		return []msg.Service{svc}, nil
 	}
 
-	if state.QType() == dns.TypeA && isDefaultNS(state.Name(), state.Zone) {
+	if isDefaultNS(state.Name(), state.Zone) {
+		ns := k.nsAddr()
+
+		isIPv4 := ns.A.To4() != nil
+
+		if !((state.QType() == dns.TypeA && isIPv4) || (state.QType() == dns.TypeAAAA && !isIPv4)) {
+			// NODATA
+			return nil, nil
+		}
+
 		// If this is an A request for "ns.dns", respond with a "fake" record for coredns.
 		// SOA records always use this hardcoded name
-		ns := k.nsAddr()
 		svc := msg.Service{Host: ns.A.String(), Key: msg.Path(state.QName(), coredns), TTL: k.ttl}
 		return []msg.Service{svc}, nil
 	}
