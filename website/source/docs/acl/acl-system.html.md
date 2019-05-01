@@ -34,11 +34,11 @@ may benefit from additional components in the ACL system:
    identities into a reusable higher-level entity that can be applied to many
    tokens. (Added in Consul 1.5.0)
 
- * **ACL Service Identities** - Service Identities allow for an abbreviated
-   syntax for expressing a kind of policy needed for an token to be usable with
-   [Consul Connect](/docs/connect/index.html). At authorization time this acts
-   like an additional policy was attached, the contents of which are described
-   further below. These are directly attached to tokens and roles and are not
+ * **ACL Service Identities** - Service identities are a policy template for
+   expressing a link to a policy suitable for use in [Consul
+   Connect](/docs/connect/index.html). At authorization time this acts like an
+   additional policy was attached, the contents of which are described further
+   below. These are directly attached to tokens and roles and are not
    independently configured. (Added in Consul 1.5.0)
 
  * **ACL Auth Methods and Binding Rules** - To learn more about these topics,
@@ -69,12 +69,17 @@ of anything else including the rule set and datacenter scoping will be prevented
 
 -> Added in Consul 1.5.0
 
-An ACL service identity is an abbreviated syntax for expressing a link to a
-policy suitable for use in [Consul Connect](/docs/connect/index.html). They are
-usable on both tokens and roles and are composed of the following elements:
+An ACL service identity is a policy template for expressing a link to a policy
+suitable for use in [Consul Connect](/docs/connect/index.html). They are usable
+on both tokens and roles and are composed of the following elements:
 
 * **Service Name** - The name of the service.
 * **Datacenters** - A list of datacenters the effective policy is valid within. (Optional)
+
+Services participating in the service mesh will need privileges to both _be
+discovered_ and to _discover other healthy service instances_. Suitable
+policies tend to all look nearly identical so a service identity is a policy
+template to aid in avoiding boilerplate policy creation.
 
 At authorization time a service identity acts like an additional policy was
 attached to the token with the following contents:
