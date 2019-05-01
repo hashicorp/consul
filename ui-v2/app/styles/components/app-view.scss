@@ -13,7 +13,7 @@ main {
 }
 @media #{$--lt-spacious-page-header} {
   %app-view header .actions {
-    margin-top: 5px;
+    margin-top: 9px;
   }
 }
 // TODO: This should be its own component

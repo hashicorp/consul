@@ -6,6 +6,13 @@ export default Controller.extend({
   repo: service('settings'),
   dom: service('dom'),
   actions: {
+    key: function(e) {
+      switch (true) {
+        case e.keyCode === 13:
+          // disable ENTER
+          e.preventDefault();
+      }
+    },
     change: function(e, value, item) {
       const event = get(this, 'dom').normalizeEvent(e, value);
       // TODO: Switch to using forms like the rest of the app
@@ -21,6 +28,13 @@ export default Controller.extend({
             set(this, 'item.client', {});
           }
           set(this, 'item.client.blocking', !blocking);
+          this.send('update', get(this, 'item'));
+          break;
+        case 'urls[service]':
+          if (typeof get(this, 'item.urls') === 'undefined') {
+            set(this, 'item.urls', {});
+          }
+          set(this, 'item.urls.service', target.value);
           this.send('update', get(this, 'item'));
           break;
       }

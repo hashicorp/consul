@@ -9,6 +9,7 @@
   float: right;
   display: flex;
   align-items: flex-start;
+  margin-top: 9px;
 }
 %app-view header dl {
   float: left;
@@ -28,12 +29,7 @@
 }
 %app-view h2 {
   padding-bottom: 0.2em;
-  margin-bottom: 1.1em;
-}
-%app-view fieldset h2,
-%app-view fieldset p {
-  padding-bottom: 0;
-  margin-bottom: 0;
+  margin-bottom: 0.2em;
 }
 %app-view header .actions > *:not(:last-child) {
   margin-right: 12px;
@@ -63,4 +59,9 @@
 %app-content div > dl > * {
   min-height: 1em;
   margin-bottom: 0.4em;
+}
+// TODO: Think about an %app-form or similar
+%app-content fieldset {
+  padding-bottom: 0.3em;
+  margin-bottom: 2em;
 }

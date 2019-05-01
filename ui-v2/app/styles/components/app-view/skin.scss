@@ -1,4 +1,5 @@
-%app-view h2 {
+%app-view h2,
+%app-view fieldset {
   border-bottom: $decor-border-200;
 }
 %app-view fieldset h2 {
@@ -16,7 +17,8 @@
 }
 %app-view header > div > div:last-child,
 %app-view header h1,
-%app-view h2 {
+%app-view h2,
+%app-view fieldset {
   border-color: $gray-200;
 }
 // We know that any sibling navs might have a top border
