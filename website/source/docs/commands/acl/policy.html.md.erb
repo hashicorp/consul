@@ -44,11 +44,15 @@ of the subcommand in the sidebar.
 
 ## Identifying Policies
 
-In several of the subcommands a policy will have to be identified to be read, modified or deleted. Those subcommands support
-specifying the policy by its ID using the `-id` parameter or by name using the `-name` parameter. When specifying the policy
-by its ID a unique policy ID prefix may be specified instead of the entire UUID. As long as it is unique it will be resolved
-to the full UUID and used. Additionally builtin policy names will be accepted as the value to the `-id` parameter. Even if
-the builtin policies are renamed their original name can be used to operate on them.
+Several of the subcommands need to operate on a specific policy. Those
+subcommands support specifying the policy by its ID using the `-id` parameter
+or by name using the `-name` parameter.
+
+When specifying the policy by its ID a unique policy ID prefix may be specified
+instead of the entire UUID. As long as it is unique it will be resolved to the
+full UUID and used. Additionally builtin policy names will be accepted as the
+value to the `-id` parameter. Even if the builtin policies are renamed their
+original name can be used to operate on them.
 
 Builtin policies:
 
