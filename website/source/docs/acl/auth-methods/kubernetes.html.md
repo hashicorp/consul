@@ -31,8 +31,9 @@ parameters are required to properly configure an auth method of type
   client used to talk with the Kubernetes API. NOTE: Every line must end with a
   newline (`\n`).
 
-- `ServiceAccountJWT` `(string: <required>)` - A Service Account Token (JWT)
-  used by the Consul leader to validate application JWTs during login. 
+- `ServiceAccountJWT` `(string: <required>)` - A Service Account Token
+  ([JWT](https://jwt.io/ "JSON Web Token")) used by the Consul leader to
+  validate application JWTs during login.
 
 ### Sample Config
 
