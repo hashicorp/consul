@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/mitchellh/copystructure"
 	"golang.org/x/net/context"
 )
 
@@ -36,6 +37,17 @@ func NewServiceManager(agent *Agent) *ServiceManager {
 func (s *ServiceManager) AddService(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string, source configSource) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
+
+	// TODO(banks): this is jank - it fixes the issue for now and makes the
+	// integration test work but we need to support registration-configured
+	// sidecar registrations too. It's a bit gross because if they manually
+	// register a sidecar AND the central config enables one, we could end up
+	// doing two lots of watches and have the ServiceManager duplicating work of
+	// updating the sidecar's registration on config changes. That might be OK
+	// though since the cache will de-dupe the RPC watch in that case anyway.
+	if service.Kind == "connect-proxy" {
+		return nil
+	}
 
 	reg := serviceRegistration{
 		service:  service,
@@ -111,7 +123,7 @@ type serviceRegistration struct {
 // service/proxy defaults.
 type serviceConfigWatch struct {
 	registration *serviceRegistration
-	config       *structs.ServiceDefinition
+	defaults     *structs.ServiceDefinition
 
 	agent *Agent
 
@@ -223,7 +235,7 @@ func (s *serviceConfigWatch) handleUpdate(event cache.UpdateEvent, locked, first
 				// delivered) the correct config so just ignore this old message.
 				return nil
 			}
-			s.config = &res.Definition
+			s.defaults = &res.Definition
 		default:
 			return fmt.Errorf("unknown update event type: %T", event)
 		}
@@ -231,7 +243,10 @@ func (s *serviceConfigWatch) handleUpdate(event cache.UpdateEvent, locked, first
 
 	// Merge the local registration with the central defaults and update this service
 	// in the local state.
-	service := s.mergeServiceConfig()
+	service, err := s.mergeServiceConfig()
+	if err != nil {
+		return err
+	}
 	if err := s.updateAgentRegistration(service); err != nil {
 		// If this is the initial registration, return the error through the readyCh
 		// so it can be passed back to the original caller.
@@ -347,13 +362,18 @@ func (s *serviceConfigWatch) updateRegistration(registration *serviceRegistratio
 
 // mergeServiceConfig returns the final effective config for the watched service,
 // including the latest known global defaults from the servers.
-func (s *serviceConfigWatch) mergeServiceConfig() *structs.NodeService {
-	if s.config == nil {
-		return s.registration.service
+func (s *serviceConfigWatch) mergeServiceConfig() (*structs.NodeService, error) {
+	if s.defaults == nil {
+		return s.registration.service, nil
 	}
 
-	svc := s.config.NodeService()
-	svc.Merge(s.registration.service)
-
-	return svc
+	// We don't want to change s.registration in place since it is our source of
+	// truth about what was actually registered before defaults. So copy it first.
+	nsRaw, err := copystructure.Copy(s.registration.service)
+	if err != nil {
+		return nil, err
+	}
+	ns := nsRaw.(*structs.NodeService)
+	err = ns.MergeDefaults(s.defaults.NodeService())
+	return ns, err
 }

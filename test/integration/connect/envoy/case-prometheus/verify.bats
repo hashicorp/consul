@@ -28,17 +28,17 @@ load helpers
 @test "s1 proxy should be exposing metrics to prometheus" {
   # Should have http metrics. This is just a sample one. Require the metric to
   # be present not just found in a comment (anchor the regexp).
-  run retry_defaults \
+  retry_default \
     must_match_in_prometheus_response localhost:1234 \
     '^envoy_http_downstream_rq_active'
 
   # Should be labelling with local_cluster.
-  run retry_defaults \
+  retry_default \
     must_match_in_prometheus_response localhost:1234 \
     '[\{,]local_cluster="s1"[,}] '
 
   # Should be labelling with http listener prefix.
-  run retry_defaults \
+  retry_default \
     must_match_in_prometheus_response localhost:1234 \
     '[\{,]envoy_http_conn_manager_prefix="public_listener_http"[,}]'
 }

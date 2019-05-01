@@ -12,13 +12,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/agent/cache"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-msgpack/codec"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/coordinate"
+	"github.com/imdario/mergo"
 	"github.com/mitchellh/hashstructure"
+
+	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/types"
 )
 
 type MessageType uint8
@@ -771,108 +773,12 @@ type ServiceConnect struct {
 	SidecarService *ServiceDefinition `json:",omitempty" bexpr:"-"`
 }
 
-// Merge overlays any non-empty fields of other onto s. Tags, metadata and proxy
-// config are unioned together instead of overwritten. The Connect field and the
-// non-config proxy fields are taken from other.
-func (s *NodeService) Merge(other *NodeService) {
-	if other.Kind != "" {
-		s.Kind = other.Kind
-	}
-	if other.ID != "" {
-		s.ID = other.ID
-	}
-	if other.Service != "" {
-		s.Service = other.Service
-	}
-
-	if s.Tags == nil {
-		s.Tags = other.Tags
-	} else if other.Tags != nil {
-		// Both nodes have tags, so deduplicate and merge them.
-		tagSet := make(map[string]struct{})
-		for _, tag := range s.Tags {
-			tagSet[tag] = struct{}{}
-		}
-		for _, tag := range other.Tags {
-			tagSet[tag] = struct{}{}
-		}
-		tags := make([]string, 0, len(tagSet))
-		for tag, _ := range tagSet {
-			tags = append(tags, tag)
-		}
-		sort.Strings(tags)
-		s.Tags = tags
-	}
-
-	if other.Address != "" {
-		s.Address = other.Address
-	}
-	if s.Meta == nil {
-		s.Meta = other.Meta
-	} else {
-		for k, v := range other.Meta {
-			s.Meta[k] = v
-		}
-	}
-	if other.Port != 0 {
-		s.Port = other.Port
-	}
-	if other.Weights != nil {
-		s.Weights = other.Weights
-	}
-	s.EnableTagOverride = other.EnableTagOverride
-	if other.ProxyDestination != "" {
-		s.ProxyDestination = other.ProxyDestination
-	}
-
-	// Take the incoming service's proxy fields and merge the config map.
-	proxyConf := s.Proxy.Config
-	s.Proxy = other.Proxy
-	if proxyConf == nil {
-		proxyConf = other.Proxy.Config
-	} else {
-		for k, v := range other.Proxy.Config {
-			proxyConf[k] = v
-		}
-	}
-	s.Proxy.Config = proxyConf
-
-	// Just take the entire Connect block from the other node.
-	// We can revisit this when adding more fields to centralized config.
-	if other.Connect.Native {
-		s.Connect.Native = true
-	}
-
-	// Merge the Proxy block.
-	if other.Connect.Proxy != nil {
-		if s.Connect.Proxy == nil {
-			s.Connect.Proxy = other.Connect.Proxy
-		} else {
-			if len(other.Connect.Proxy.Command) != 0 {
-				s.Connect.Proxy.Command = other.Connect.Proxy.Command
-			}
-			if other.Connect.Proxy.ExecMode != "" {
-				s.Connect.Proxy.ExecMode = other.Connect.Proxy.ExecMode
-			}
-
-			// Merge the Config.
-			if len(s.Connect.Proxy.Config) == 0 {
-				s.Connect.Proxy.Config = other.Connect.Proxy.Config
-			} else {
-				for k, v := range other.Connect.Proxy.Config {
-					s.Connect.Proxy.Config[k] = v
-				}
-			}
-
-			// Merge the Upstreams.
-			s.Connect.Proxy.Upstreams = MergeUpstreams(s.Connect.Proxy.Upstreams, other.Connect.Proxy.Upstreams)
-		}
-	}
-	if other.Connect.SidecarService != nil {
-		s.Connect.SidecarService = other.Connect.SidecarService
-	}
-
-	s.LocallyRegisteredAsSidecar = other.LocallyRegisteredAsSidecar
+// MergeDefaults overlays any empty fields in s with those taken from defaults.
+// Tags, metadata and proxy/upstream configs are unioned together instead of
+// overwritten.
+func (s *NodeService) MergeDefaults(defaults *NodeService) error {
+	return mergo.Merge(s, defaults,
+		mergo.WithAppendSlice, mergo.WithTransformers(&upstreamsMergeTransformer{}))
 }
 
 // Validate validates the node service configuration.

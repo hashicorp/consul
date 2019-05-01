@@ -36,8 +36,6 @@ FILTER_TESTS=${FILTER_TESTS:-}
 LEAVE_CONSUL_UP=${LEAVE_CONSUL_UP:-}
 PROXY_LOGS_ON_FAIL=${PROXY_LOGS_ON_FAIL:-}
 
-mkdir -p workdir/{consul,envoy,bats,statsd,logs}
-
 source helpers.bash
 
 RESULT=1
@@ -87,6 +85,8 @@ for c in ./case-*/ ; do
 
     # Wipe state
     docker-compose up wipe-volumes
+    rm -rf workdir/*
+    mkdir -p workdir/{consul,envoy,bats,statsd,logs}
 
     # Reload consul config from defaults
     cp consul-base-cfg/* workdir/consul

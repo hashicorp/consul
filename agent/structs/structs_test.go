@@ -561,101 +561,265 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 	}
 }
 
-func TestStructs_NodeService_Merge(t *testing.T) {
-	a := &NodeService{
-		Kind:    "service",
-		ID:      "foo:1",
-		Service: "foo",
-		Tags:    []string{"a", "b"},
-		Address: "127.0.0.1",
-		Meta:    map[string]string{"a": "b"},
-		Port:    1234,
-		Weights: &Weights{
-			Passing: 1,
-			Warning: 1,
-		},
-		EnableTagOverride: false,
-		ProxyDestination:  "asdf",
-		Proxy: ConnectProxyConfig{
-			DestinationServiceName: "baz",
-			DestinationServiceID:   "baz:1",
-			LocalServiceAddress:    "127.0.0.1",
-			LocalServicePort:       2345,
-			Config: map[string]interface{}{
-				"foo": 1,
+func TestStructs_NodeService_MergeDefaults(t *testing.T) {
+	tests := []struct {
+		name     string
+		ns       NodeService
+		defaults NodeService
+		want     NodeService
+	}{
+		{
+			name: "kitchen sink",
+			defaults: NodeService{
+				Kind:    "service",
+				ID:      "foo:1",
+				Service: "foo",
+				Address: "127.0.0.1",
+				Meta:    map[string]string{"a": "b"},
+				Port:    1234,
+				Weights: &Weights{
+					Passing: 1,
+					Warning: 1,
+				},
+				EnableTagOverride: false,
+				ProxyDestination:  "asdf",
+				Proxy: ConnectProxyConfig{
+					DestinationServiceName: "baz",
+					DestinationServiceID:   "baz:1",
+					LocalServiceAddress:    "127.0.0.1",
+					LocalServicePort:       2345,
+					Config: map[string]interface{}{
+						"foo": 1,
+					},
+				},
+				Connect: ServiceConnect{
+					Native: false,
+				},
+				LocallyRegisteredAsSidecar: false,
+			},
+			ns: NodeService{
+				Kind:    "other",
+				ID:      "bar:1",
+				Service: "bar",
+				Address: "127.0.0.2",
+				Meta:    map[string]string{"c": "d"},
+				Port:    4567,
+				Weights: &Weights{
+					Passing: 2,
+					Warning: 2,
+				},
+				EnableTagOverride: true,
+				ProxyDestination:  "qwer",
+				Proxy: ConnectProxyConfig{
+					DestinationServiceName: "zoo",
+					DestinationServiceID:   "zoo:1",
+					LocalServiceAddress:    "127.0.0.2",
+					LocalServicePort:       6789,
+					Config: map[string]interface{}{
+						"bar": 2,
+					},
+				},
+				Connect: ServiceConnect{
+					Native: true,
+				},
+				LocallyRegisteredAsSidecar: true,
+			},
+			want: NodeService{
+				Kind:    "other",
+				ID:      "bar:1",
+				Service: "bar",
+				Address: "127.0.0.2",
+				Meta: map[string]string{
+					"a": "b",
+					"c": "d",
+				},
+				Port: 4567,
+				Weights: &Weights{
+					Passing: 2,
+					Warning: 2,
+				},
+				EnableTagOverride: true,
+				ProxyDestination:  "qwer",
+				Proxy: ConnectProxyConfig{
+					DestinationServiceName: "zoo",
+					DestinationServiceID:   "zoo:1",
+					LocalServiceAddress:    "127.0.0.2",
+					LocalServicePort:       6789,
+					Config: map[string]interface{}{
+						"foo": 1,
+						"bar": 2,
+					},
+				},
+				Connect: ServiceConnect{
+					Native: true,
+				},
+				LocallyRegisteredAsSidecar: true,
 			},
 		},
-		Connect: ServiceConnect{
-			Native: false,
-		},
-		LocallyRegisteredAsSidecar: false,
-	}
-
-	b := &NodeService{
-		Kind:    "other",
-		ID:      "bar:1",
-		Service: "bar",
-		Tags:    []string{"c", "d"},
-		Address: "127.0.0.2",
-		Meta:    map[string]string{"c": "d"},
-		Port:    4567,
-		Weights: &Weights{
-			Passing: 2,
-			Warning: 2,
-		},
-		EnableTagOverride: true,
-		ProxyDestination:  "qwer",
-		Proxy: ConnectProxyConfig{
-			DestinationServiceName: "zoo",
-			DestinationServiceID:   "zoo:1",
-			LocalServiceAddress:    "127.0.0.2",
-			LocalServicePort:       6789,
-			Config: map[string]interface{}{
-				"bar": 2,
+		{
+			name: "trivial sidecar service",
+			ns: NodeService{
+				Connect: ServiceConnect{
+					SidecarService: &ServiceDefinition{},
+				},
+			},
+			defaults: NodeService{
+				Connect: ServiceConnect{
+					SidecarService: &ServiceDefinition{
+						Name: "foo",
+					},
+				},
+			},
+			want: NodeService{
+				Connect: ServiceConnect{
+					SidecarService: &ServiceDefinition{
+						Name: "foo",
+					},
+				},
 			},
 		},
-		Connect: ServiceConnect{
-			Native: true,
-		},
-		LocallyRegisteredAsSidecar: true,
-	}
-
-	expected := &NodeService{
-		Kind:    "other",
-		ID:      "bar:1",
-		Service: "bar",
-		Tags:    []string{"a", "b", "c", "d"},
-		Address: "127.0.0.2",
-		Meta: map[string]string{
-			"a": "b",
-			"c": "d",
-		},
-		Port: 4567,
-		Weights: &Weights{
-			Passing: 2,
-			Warning: 2,
-		},
-		EnableTagOverride: true,
-		ProxyDestination:  "qwer",
-		Proxy: ConnectProxyConfig{
-			DestinationServiceName: "zoo",
-			DestinationServiceID:   "zoo:1",
-			LocalServiceAddress:    "127.0.0.2",
-			LocalServicePort:       6789,
-			Config: map[string]interface{}{
-				"foo": 1,
-				"bar": 2,
+		{
+			name: "tags union",
+			ns: NodeService{
+				Tags: []string{"a", "b"},
+			},
+			defaults: NodeService{
+				Tags: []string{"c"},
+			},
+			want: NodeService{
+				Tags: []string{"a", "b", "c"},
 			},
 		},
-		Connect: ServiceConnect{
-			Native: true,
+		{
+			name: "sidecar service",
+			defaults: NodeService{
+				Connect: ServiceConnect{
+					SidecarService: &ServiceDefinition{
+						Proxy: &ConnectProxyConfig{
+							Config: map[string]interface{}{
+								"a": "b",
+							},
+							Upstreams: Upstreams{
+								{
+									DestinationName: "s2",
+									Config: map[string]interface{}{
+										"protocol": "http",
+									},
+								},
+								{
+									DestinationName: "s3",
+								},
+							},
+						},
+					},
+				},
+			},
+			ns: NodeService{
+				Connect: ServiceConnect{
+					SidecarService: &ServiceDefinition{
+						Proxy: &ConnectProxyConfig{
+							Config: map[string]interface{}{
+								"foo": "bar",
+							},
+							Upstreams: Upstreams{
+								{
+									DestinationName: "s2",
+									Config: map[string]interface{}{
+										"foo": "bar",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			want: NodeService{
+				Connect: ServiceConnect{
+					SidecarService: &ServiceDefinition{
+						Proxy: &ConnectProxyConfig{
+							Config: map[string]interface{}{
+								"a":   "b",
+								"foo": "bar",
+							},
+							Upstreams: Upstreams{
+								{
+									DestinationName: "s2",
+									Config: map[string]interface{}{
+										"protocol": "http",
+										"foo":      "bar",
+									},
+								},
+								{
+									DestinationName: "s3",
+								},
+							},
+						},
+					},
+				},
+			},
 		},
-		LocallyRegisteredAsSidecar: true,
+		{
+			name: "sidecar service not working",
+			defaults: NodeService{
+				Connect: ServiceConnect{
+					SidecarService: &ServiceDefinition{
+						Proxy: &ConnectProxyConfig{
+							Config: map[string]interface{}{
+								"protocol": "http",
+							},
+							Upstreams: Upstreams{
+								{
+									DestinationName: "s2",
+									Config: map[string]interface{}{
+										"protocol": "http",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			ns: NodeService{
+				Connect: ServiceConnect{
+					SidecarService: &ServiceDefinition{
+						Proxy: &ConnectProxyConfig{
+							Upstreams: Upstreams{
+								{
+									DestinationName: "s2",
+								},
+							},
+						},
+					},
+				},
+			},
+			want: NodeService{
+				Connect: ServiceConnect{
+					SidecarService: &ServiceDefinition{
+						Proxy: &ConnectProxyConfig{
+							Config: map[string]interface{}{
+								"protocol": "http",
+							},
+							Upstreams: Upstreams{
+								{
+									DestinationName: "s2",
+									Config: map[string]interface{}{
+										"protocol": "http",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
-	a.Merge(b)
-
-	require.Equal(t, expected, a)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			require.NoError(t, tc.ns.MergeDefaults(&tc.defaults))
+			require.Equal(t, tc.want, tc.ns)
+		})
+	}
 }
 
 func TestStructs_HealthCheck_IsSame(t *testing.T) {
