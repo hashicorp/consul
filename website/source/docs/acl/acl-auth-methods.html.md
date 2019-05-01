@@ -122,6 +122,5 @@ bearer token for a Consul ACL token by using the login process:
    [logout API endpoint](/api/acl/acl.html#logout-from-auth-method) to destroy
    their token when it is no longer required.
 
-For more details about specific auth methods and how to configure them, consult
-the type-specific docs linked in the sidebar.
-
+For more details about specific auth methods and how to configure them, click
+on the name of the auth method type in the sidebar.
