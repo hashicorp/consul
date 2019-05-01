@@ -139,7 +139,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 		require.True(t, written)
 
 		// update no cas
-		service.Connect.SidecarProxy = true
+		service.Protocol = "http"
 
 		_, wm, err = config_entries.Set(service, nil)
 		require.NoError(t, err)
@@ -156,14 +156,13 @@ func TestAPI_ConfigEntries(t *testing.T) {
 		for _, entry = range entries {
 			switch entry.GetName() {
 			case "foo":
-				// this also verfies that the update value was persisted and
+				// this also verifies that the update value was persisted and
 				// the updated values are seen
 				readService, ok = entry.(*ServiceConfigEntry)
 				require.True(t, ok)
 				require.Equal(t, service.Kind, readService.Kind)
 				require.Equal(t, service.Name, readService.Name)
 				require.Equal(t, service.Protocol, readService.Protocol)
-				require.Equal(t, service.Connect.SidecarProxy, readService.Connect.SidecarProxy)
 			case "bar":
 				readService, ok = entry.(*ServiceConfigEntry)
 				require.True(t, ok)

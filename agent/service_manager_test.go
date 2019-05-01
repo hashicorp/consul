@@ -26,7 +26,7 @@ func TestServiceManager_RegisterService(t *testing.T) {
 				},
 			},
 		}
-		var out struct{}
+		var out bool
 		require.NoError(a.RPC("ConfigEntry.Apply", args, &out))
 	}
 	{
@@ -38,7 +38,7 @@ func TestServiceManager_RegisterService(t *testing.T) {
 				Protocol: "tcp",
 			},
 		}
-		var out struct{}
+		var out bool
 		require.NoError(a.RPC("ConfigEntry.Apply", args, &out))
 	}
 
@@ -82,7 +82,7 @@ func TestServiceManager_RegisterSidecar(t *testing.T) {
 				},
 			},
 		}
-		var out struct{}
+		var out bool
 		require.NoError(a.RPC("ConfigEntry.Apply", args, &out))
 	}
 	{
@@ -94,7 +94,7 @@ func TestServiceManager_RegisterSidecar(t *testing.T) {
 				Protocol: "http",
 			},
 		}
-		var out struct{}
+		var out bool
 		require.NoError(a.RPC("ConfigEntry.Apply", args, &out))
 	}
 	{
@@ -106,7 +106,7 @@ func TestServiceManager_RegisterSidecar(t *testing.T) {
 				Protocol: "tcp",
 			},
 		}
-		var out struct{}
+		var out bool
 		require.NoError(a.RPC("ConfigEntry.Apply", args, &out))
 	}
 
@@ -185,7 +185,7 @@ func TestServiceManager_Disabled(t *testing.T) {
 				},
 			},
 		}
-		var out struct{}
+		var out bool
 		require.NoError(a.RPC("ConfigEntry.Apply", args, &out))
 	}
 	{
@@ -197,7 +197,7 @@ func TestServiceManager_Disabled(t *testing.T) {
 				Protocol: "http",
 			},
 		}
-		var out struct{}
+		var out bool
 		require.NoError(a.RPC("ConfigEntry.Apply", args, &out))
 	}
 	{
@@ -209,7 +209,7 @@ func TestServiceManager_Disabled(t *testing.T) {
 				Protocol: "tcp",
 			},
 		}
-		var out struct{}
+		var out bool
 		require.NoError(a.RPC("ConfigEntry.Apply", args, &out))
 	}
 
