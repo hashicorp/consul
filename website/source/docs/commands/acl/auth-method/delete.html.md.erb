@@ -1,0 +1,33 @@
+---
+layout: "docs"
+page_title: "Commands: ACL Auth Method Delete"
+sidebar_current: "docs-commands-acl-auth-method-delete"
+---
+
+# Consul ACL Auth Method Delete
+
+Command: `consul acl auth-method delete`
+
+The `acl auth-method delete` command deletes an auth method.
+
+## Usage
+
+Usage: `consul acl auth-method delete [options]`
+
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
+
+#### Command Options
+
+* `-name=<string>` - The Name of the auth method to delete.
+
+## Examples
+
+Delete an auth method:
+
+```sh
+$ consul acl auth-method delete -name minikube
+Auth-method "minikube" deleted successfully
+```

@@ -1,0 +1,67 @@
+---
+layout: "docs"
+page_title: "Commands: ACL Auth Method Update"
+sidebar_current: "docs-commands-acl-auth-method-update"
+---
+
+# Consul ACL Auth Method Update
+
+Command: `consul acl auth-method update`
+
+The `acl auth-method update` command is used to update an auth method. The
+default operations is to merge the current auth method with those values
+provided to the command invocation. Therefore to update just one field, only
+the `-name` options and the option to modify must be provided.
+
+## Usage
+
+Usage: `consul acl auth-method update [options] [args]`
+
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
+
+#### Command Options
+
+* `-description=<string>` - A description of the auth method.
+
+* `-kubernetes-ca-cert=<string>` - PEM encoded CA cert for use by the TLS
+  client used to talk with the Kubernetes API. May be prefixed with '@' to
+  indicate that the value is a file path to load the cert from. This flag is
+  required for `-type=kubernetes`.
+
+* `-kubernetes-host=<string>` - Address of the Kubernetes API server. This flag
+  is required for `-type=kubernetes`.
+
+* `-kubernetes-service-account-jwt=<string>` - A Kubernetes service account JWT
+  used to access the TokenReview API to validate other JWTs during login. This
+  flag is required for `-type=kubernetes`.
+
+* `-meta` - Indicates that auth method metadata such as the raft
+  indices should be shown for each entry
+
+* `-name=<string>` - The name of the auth method to update.
+
+* `-no-merge` - Do not merge the current auth method information with what is provided
+  to the command. Instead overwrite all fields with the exception of the auth method
+  ID which is immutable.
+
+## Examples
+
+Update an auth method:
+
+```sh
+$ consul acl auth-method update -name minikube \
+    -description 'dev cluster' \
+    -kubernetes-host 'https://192.0.2.44:8443'
+Name:         minikube
+Type:         kubernetes
+Description:  dev cluster
+Config:
+{
+  "CACert": "-----BEGIN CERTIFICATE-----\n...-----END CERTIFICATE-----\n",
+  "Host": "https://192.0.2.44:8443",
+  "ServiceAccountJWT": "eyJhbGciOiJSUzI1NiIsImtpZCI..."
+}
+```

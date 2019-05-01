@@ -1,0 +1,79 @@
+---
+layout: "docs"
+page_title: "Commands: ACL Token Update"
+sidebar_current: "docs-commands-acl-token-update"
+---
+
+# Consul ACL Token Update
+
+Command: `consul acl token update`
+
+The `acl token update` command will update a token. Some parts of the token like whether the
+token is local to the datacenter cannot be changed.
+
+## Usage
+
+Usage: `consul acl token update [options]`
+
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
+
+#### Command Options
+
+* `-description=<string>` - A description of the token
+
+* `-id=<string>` - The Accessor ID of the token to read. It may be specified as a
+   unique ID prefix but will error if the prefix matches multiple token Accessor IDs
+
+* `-merge-policies` - Merge the new policies with the existing policies.
+
+* `-merge-roles` - Merge the new roles with the existing roles.
+
+* `-merge-service-identities` - Merge the new service identities with the existing service identities.
+
+* `-meta` - Indicates that token metadata such as the content hash and Raft indices should be
+   shown for each entry.
+
+* `-policy-id=<value>` - ID of a policy to use for this token. May be specified multiple times.
+
+* `-policy-name=<value>` - Name of a policy to use for this token. May be specified multiple times.
+
+* `-role-id=<value>` - ID of a role to use for this token. May be specified multiple times.
+
+* `-role-name=<value>` - Name of a role to use for this token. May be specified multiple times.
+
+* `-service-identity=<value>` - Name of a service identity to use for this
+  token. May be specified multiple times. Format is the `SERVICENAME` or
+  `SERVICENAME:DATACENTER1,DATACENTER2,...`
+
+## Examples
+
+Update the anonymous token:
+
+```sh
+$ consul acl token update -id anonymous -policy-id 06acc
+Token updated successfully.
+AccessorID:   00000000-0000-0000-0000-000000000002
+SecretID:     anonymous
+Description:  Anonymous Token
+Local:        false
+Create Time:  0001-01-01 00:00:00 +0000 UTC
+Policies:
+   06acc965-df4b-5a99-58cb-3250930c6324 - node-services-read
+```
+
+Update a token description and take the policies from the existing token:
+
+```sh
+$ consul acl token update -id 986193 -description "WonderToken" -merge-policies
+Token updated successfully.
+AccessorID:   986193b5-e2b5-eb26-6264-b524ea60cc6d
+SecretID:     ec15675e-2999-d789-832e-8c4794daa8d7
+Description:  WonderToken
+Local:        false
+Create Time:  2018-10-22 15:33:39.01789 -0400 EDT
+Policies:
+   06acc965-df4b-5a99-58cb-3250930c6324 - node-services-read
+```

@@ -1,0 +1,69 @@
+---
+layout: "docs"
+page_title: "Commands: ACL Role List"
+sidebar_current: "docs-commands-acl-role-list"
+---
+
+# Consul ACL Role List
+
+Command: `consul acl role list`
+
+The `acl role list` command lists all roles. By default it will not show metadata.
+
+## Usage
+
+Usage: `consul acl role list`
+
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
+
+#### Command Options
+
+* `-meta` - Indicates that role metadata such as the content hash and
+   Raft indices should be shown for each entry.
+
+## Examples
+
+Default listing.
+
+```sh
+$ consul acl role list
+web-crawler:
+   ID:           57147d87-6bf7-f794-1a6e-7d038c4e4ae9
+   Description:  web crawler updated role
+   Policies:
+      2f8f99c7-edd9-2f09-7e4b-a1f519eb4fc2 - crawler-kv
+   Service Identities:
+      crawler (Datacenters: all)
+archiver:
+   ID:           a365fdc9-ac71-e754-0645-7ab6bd747301
+   Description:  archiver role
+   Service Identities:
+      archiver (Datacenters: dc2)
+```
+
+Show Metadata.
+
+```sh
+$ consul acl role list -meta
+web-crawler:
+   ID:           57147d87-6bf7-f794-1a6e-7d038c4e4ae9
+   Description:  web crawler updated role
+   Hash:         3bd7c15a77c8d1d45c515378f1176df2e6f76d9c96d541f96de8272ff4dba7b5
+   Create Index: 18
+   Modify Index: 39
+   Policies:
+      2f8f99c7-edd9-2f09-7e4b-a1f519eb4fc2 - crawler-kv
+   Service Identities:
+      crawler (Datacenters: all)
+archiver:
+   ID:           a365fdc9-ac71-e754-0645-7ab6bd747301
+   Description:  archiver role
+   Hash:         9af397ea92ee901366d6333c658195be16f4aee8aa64d2b529b921c879b70a58
+   Create Index: 22
+   Modify Index: 22
+   Service Identities:
+      archiver (Datacenters: dc2)
+```
