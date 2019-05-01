@@ -102,6 +102,9 @@ node_prefix "" {
 }
 ```
 
+The [API documentation for roles](/api/acl/roles.html#sample-payload) has some
+examples of using a service identity.
+
 ### ACL Roles
 
 -> Added in Consul 1.5.0
