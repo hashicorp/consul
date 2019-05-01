@@ -46,7 +46,11 @@ type ServiceConfigEntry struct {
 	Kind     string
 	Name     string
 	Protocol string
-	Connect  ConnectConfiguration
+	// TODO(banks): enable this once we have upstreams supported too. Enabling
+	// sidecars actually makes no sense and adds complications when you don't
+	// allow upstreams to be specified centrally too.
+	//
+	// Connect ConnectConfiguration
 
 	RaftIndex
 }
@@ -368,6 +372,7 @@ func (c *ConfigEntryQuery) RequestDatacenter() string {
 type ServiceConfigRequest struct {
 	Name       string
 	Datacenter string
+	Upstreams  []string
 
 	QueryOptions
 }
@@ -386,10 +391,18 @@ func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {
 		MustRevalidate: r.MustRevalidate,
 	}
 
-	// To calculate the cache key we only hash the service name. The
-	// datacenter is handled by the cache framework. The other fields are
-	// not, but should not be used in any cache types.
-	v, err := hashstructure.Hash(r.Name, nil)
+	// To calculate the cache key we only hash the service name and upstream set.
+	// We don't want ordering of the upstreams to affect the outcome so use an
+	// anonymous struct field with hash:set behavior. Note the order of fields in
+	// the slice would affect cache keys if we ever persist between agent restarts
+	// and change it.
+	v, err := hashstructure.Hash(struct {
+		Name      string
+		Upstreams []string `hash:"set"`
+	}{
+		Name:      r.Name,
+		Upstreams: r.Upstreams,
+	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
 		// no cache for this request so the request is forwarded directly
@@ -401,8 +414,8 @@ func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {
 }
 
 type ServiceConfigResponse struct {
-	Definition ServiceDefinition
-
+	ProxyConfig     map[string]interface{}
+	UpstreamConfigs map[string]map[string]interface{}
 	QueryMeta
 }
 

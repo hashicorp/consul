@@ -25,7 +25,7 @@ load helpers
   [ "$output" = "hello" ]
 }
 
-@test "s1 proxy should be exposing metrics to prometheus" {
+@test "s1 proxy should be exposing metrics to prometheus from central config" {
   # Should have http metrics. This is just a sample one. Require the metric to
   # be present not just found in a comment (anchor the regexp).
   retry_default \
@@ -37,8 +37,13 @@ load helpers
     must_match_in_prometheus_response localhost:1234 \
     '[\{,]local_cluster="s1"[,}] '
 
-  # Should be labelling with http listener prefix.
+  # Ensure we have http metrics for public listener
   retry_default \
     must_match_in_prometheus_response localhost:1234 \
     '[\{,]envoy_http_conn_manager_prefix="public_listener_http"[,}]'
+
+  # Ensure we have http metrics for s2 upstream
+  retry_default \
+    must_match_in_prometheus_response localhost:1234 \
+    '[\{,]envoy_http_conn_manager_prefix="upstream_s2_http"[,}]'
 }

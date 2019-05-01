@@ -258,22 +258,45 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 				}
 			}
 
-			// Resolve the service definition by overlaying the service config onto the global
-			// proxy config.
-			definition := structs.ServiceDefinition{
-				Name: args.Name,
-			}
-			if proxyConf != nil {
-				definition.Proxy = &structs.ConnectProxyConfig{
-					Config: proxyConf.Config,
+			reply.Index = index
+			// Apply the proxy defaults to the sidecar's proxy config
+			reply.ProxyConfig = proxyConf.Config
+
+			if serviceConf != nil && serviceConf.Protocol != "" {
+				if reply.ProxyConfig == nil {
+					reply.ProxyConfig = make(map[string]interface{})
 				}
-			}
-			if serviceConf != nil {
-				definition.Name = serviceConf.Name
+				reply.ProxyConfig["protocol"] = serviceConf.Protocol
 			}
 
-			reply.Index = index
-			reply.Definition = definition
+			// Apply the upstream protocols to the upstream configs
+			for _, upstream := range args.Upstreams {
+				_, upstreamEntry, err := state.ConfigEntry(ws, structs.ServiceDefaults, upstream)
+				if err != nil {
+					return err
+				}
+				var upstreamConf *structs.ServiceConfigEntry
+				var ok bool
+				if upstreamEntry != nil {
+					upstreamConf, ok = upstreamEntry.(*structs.ServiceConfigEntry)
+					if !ok {
+						return fmt.Errorf("invalid service config type %T", upstreamEntry)
+					}
+				}
+
+				// Nothing to configure if a protocol hasn't been set.
+				if upstreamConf == nil || upstreamConf.Protocol == "" {
+					continue
+				}
+
+				if reply.UpstreamConfigs == nil {
+					reply.UpstreamConfigs = make(map[string]map[string]interface{})
+				}
+				reply.UpstreamConfigs[upstream] = map[string]interface{}{
+					"protocol": upstreamConf.Protocol,
+				}
+			}
+
 			return nil
 		})
 }

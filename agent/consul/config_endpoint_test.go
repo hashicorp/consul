@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testrpc"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/require"
@@ -659,31 +660,51 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 		Kind: structs.ProxyDefaults,
 		Name: structs.ProxyConfigGlobal,
 		Config: map[string]interface{}{
-			"foo": "bar",
+			"foo": 1,
 		},
 	}))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
-		Kind: structs.ServiceDefaults,
-		Name: "foo",
+		Kind:     structs.ServiceDefaults,
+		Name:     "foo",
+		Protocol: "http",
+	}))
+	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
+		Kind:     structs.ServiceDefaults,
+		Name:     "bar",
+		Protocol: "grpc",
 	}))
 
 	args := structs.ServiceConfigRequest{
 		Name:       "foo",
 		Datacenter: s1.config.Datacenter,
+		Upstreams:  []string{"bar", "baz"},
 	}
 	var out structs.ServiceConfigResponse
 	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &args, &out))
+	// Hack to fix up the string encoding in the map[string]interface{}.
+	// msgpackRPC's codec doesn't use RawToString.
+	var err error
+	out.ProxyConfig, err = lib.MapWalk(out.ProxyConfig)
+	require.NoError(err)
+	for k := range out.UpstreamConfigs {
+		out.UpstreamConfigs[k], err = lib.MapWalk(out.UpstreamConfigs[k])
+		require.NoError(err)
+	}
 
-	expected := structs.ServiceDefinition{
-		Name: "foo",
-		Proxy: &structs.ConnectProxyConfig{
-			Config: map[string]interface{}{
-				"foo": "bar",
+	expected := structs.ServiceConfigResponse{
+		ProxyConfig: map[string]interface{}{
+			"foo":      int64(1),
+			"protocol": "http",
+		},
+		UpstreamConfigs: map[string]map[string]interface{}{
+			"bar": map[string]interface{}{
+				"protocol": "grpc",
 			},
 		},
+		// Don't know what this is deterministically
+		QueryMeta: out.QueryMeta,
 	}
-	out.Definition.Proxy.Config["foo"] = structs.Uint8ToString(out.Definition.Proxy.Config["foo"].([]uint8))
-	require.Equal(expected, out.Definition)
+	require.Equal(expected, out)
 }
 
 func TestConfigEntry_ResolveServiceConfig_ACLDeny(t *testing.T) {

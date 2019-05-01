@@ -36,24 +36,36 @@ FILTER_TESTS=${FILTER_TESTS:-}
 LEAVE_CONSUL_UP=${LEAVE_CONSUL_UP:-}
 PROXY_LOGS_ON_FAIL=${PROXY_LOGS_ON_FAIL:-}
 
-mkdir -p workdir/{consul,envoy,bats,statsd,logs}
-
 source helpers.bash
 
 RESULT=1
 CLEANED_UP=0
 
+PREV_CMD=""
+THIS_CMD=""
+
 function cleanup {
+  local STATUS="$?"
+  local CMD="$THIS_CMD"
+
   if [ "$CLEANED_UP" != 0 ] ; then
     return
   fi
   CLEANED_UP=1
+
+  # We failed due to set -e catching an error, output some useful info about
+  # that error.
+  echo "ERR: command exited with $STATUS"
+  echo "     command: $CMD"
 
   if [ -z "$LEAVE_CONSUL_UP" ] ; then
     docker-compose down
   fi
 }
 trap cleanup EXIT
+# Magic to capture commands and statuses so we can show them when we exit due to
+# set -e This is useful for debugging setup.sh failures.
+trap 'PREV_CMD=$THIS_CMD; THIS_CMD=$BASH_COMMAND' DEBUG
 
 # Start the volume container
 docker-compose up -d workdir
@@ -73,6 +85,8 @@ for c in ./case-*/ ; do
 
     # Wipe state
     docker-compose up wipe-volumes
+    rm -rf workdir/*
+    mkdir -p workdir/{consul,envoy,bats,statsd,logs}
 
     # Reload consul config from defaults
     cp consul-base-cfg/* workdir/consul

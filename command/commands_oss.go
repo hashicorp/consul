@@ -50,7 +50,6 @@ import (
 	"github.com/hashicorp/consul/command/connect/ca"
 	caget "github.com/hashicorp/consul/command/connect/ca/get"
 	caset "github.com/hashicorp/consul/command/connect/ca/set"
-	connectenable "github.com/hashicorp/consul/command/connect/enable"
 	"github.com/hashicorp/consul/command/connect/envoy"
 	"github.com/hashicorp/consul/command/connect/proxy"
 	"github.com/hashicorp/consul/command/debug"
@@ -166,7 +165,6 @@ func init() {
 	Register("connect ca", func(ui cli.Ui) (cli.Command, error) { return ca.New(), nil })
 	Register("connect ca get-config", func(ui cli.Ui) (cli.Command, error) { return caget.New(ui), nil })
 	Register("connect ca set-config", func(ui cli.Ui) (cli.Command, error) { return caset.New(ui), nil })
-	Register("connect enable", func(ui cli.Ui) (cli.Command, error) { return connectenable.New(ui), nil })
 	Register("connect proxy", func(ui cli.Ui) (cli.Command, error) { return proxy.New(ui, MakeShutdownCh()), nil })
 	Register("connect envoy", func(ui cli.Ui) (cli.Command, error) { return envoy.New(ui), nil })
 	Register("debug", func(ui cli.Ui) (cli.Command, error) { return debug.New(ui, MakeShutdownCh()), nil })

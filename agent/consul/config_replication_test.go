@@ -93,7 +93,6 @@ func TestReplication_ConfigEntries(t *testing.T) {
 				require.True(t, ok)
 
 				require.Equal(t, remoteSvc.Protocol, localSvc.Protocol)
-				require.Equal(t, remoteSvc.Connect, localSvc.Connect)
 			case structs.ProxyDefaults:
 				localProxy, ok := local[i].(*structs.ProxyConfigEntry)
 				require.True(t, ok)

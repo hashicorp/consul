@@ -7,6 +7,8 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/imdario/mergo"
+	"github.com/mitchellh/copystructure"
 	"golang.org/x/net/context"
 )
 
@@ -34,6 +36,12 @@ func NewServiceManager(agent *Agent) *ServiceManager {
 // to fetch the merged global defaults that apply to the service in order to compose the
 // initial registration.
 func (s *ServiceManager) AddService(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string, source configSource) error {
+	// For now only sidecar proxies have anything that can be configured
+	// centrally. So bypass the whole manager for regular services.
+	if !service.IsSidecarProxy() {
+		return s.agent.addServiceInternal(service, chkTypes, persist, token, source)
+	}
+
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -111,7 +119,7 @@ type serviceRegistration struct {
 // service/proxy defaults.
 type serviceConfigWatch struct {
 	registration *serviceRegistration
-	config       *structs.ServiceDefinition
+	defaults     *structs.ServiceConfigResponse
 
 	agent *Agent
 
@@ -119,9 +127,23 @@ type serviceConfigWatch struct {
 	// for the resolved service config is received from the cache.
 	readyCh chan error
 
-	updateCh   chan cache.UpdateEvent
+	// ctx and cancelFunc store the overall context that lives as long as the
+	// Watch instance is needed, possibly spanning multiple cache.Notify
+	// lifetimes.
 	ctx        context.Context
 	cancelFunc func()
+
+	// cacheKey stores the key of the current request, when registration changes
+	// we check to see if a new cache watch is needed.
+	cacheKey string
+
+	// updateCh receives changes from cache watchers or registration changes.
+	updateCh chan cache.UpdateEvent
+
+	// notifyCancel, if non-nil it the cancel func that will stop the currently
+	// active Notify loop. It does not cancel ctx and is used when we need to
+	// switch to a new Notify call because cache key changed.
+	notifyCancel func()
 
 	lock sync.Mutex
 }
@@ -130,7 +152,7 @@ type serviceConfigWatch struct {
 // the updateCh. This is not safe to call more than once.
 func (s *serviceConfigWatch) Start() error {
 	s.ctx, s.cancelFunc = context.WithCancel(context.Background())
-	if err := s.startConfigWatch(); err != nil {
+	if err := s.ensureConfigWatch(); err != nil {
 		return err
 	}
 	go s.runWatch()
@@ -194,20 +216,34 @@ func (s *serviceConfigWatch) handleUpdate(event cache.UpdateEvent, locked, first
 			return fmt.Errorf("error watching service config: %v", event.Err)
 		}
 	} else {
-		switch event.Result.(type) {
+		switch res := event.Result.(type) {
 		case *serviceRegistration:
-			s.registration = event.Result.(*serviceRegistration)
+			s.registration = res
+			// We may need to restart watch if upstreams changed
+			if err := s.ensureConfigWatch(); err != nil {
+				return err
+			}
 		case *structs.ServiceConfigResponse:
-			resp := event.Result.(*structs.ServiceConfigResponse)
-			s.config = &resp.Definition
+			// Sanity check this even came from the currently active watch to ignore
+			// rare races when switching cache keys
+			if event.CorrelationID != s.cacheKey {
+				// It's a no-op. The new watcher will deliver (or may have already
+				// delivered) the correct config so just ignore this old message.
+				return nil
+			}
+			s.defaults = res
 		default:
 			return fmt.Errorf("unknown update event type: %T", event)
 		}
 	}
 
-	service := s.mergeServiceConfig()
-	err := s.agent.addServiceInternal(service, s.registration.chkTypes, s.registration.persist, s.registration.token, s.registration.source)
+	// Merge the local registration with the central defaults and update this service
+	// in the local state.
+	service, err := s.mergeServiceConfig()
 	if err != nil {
+		return err
+	}
+	if err := s.updateAgentRegistration(service); err != nil {
 		// If this is the initial registration, return the error through the readyCh
 		// so it can be passed back to the original caller.
 		if firstRun {
@@ -224,20 +260,75 @@ func (s *serviceConfigWatch) handleUpdate(event cache.UpdateEvent, locked, first
 	return nil
 }
 
-// startConfigWatch starts a cache.Notify goroutine to run a continuous blocking query
-// on the resolved service config for this service.
-func (s *serviceConfigWatch) startConfigWatch() error {
-	name := s.registration.service.Service
+// updateAgentRegistration updates the service (and its sidecar, if applicable) in the
+// local state.
+func (s *serviceConfigWatch) updateAgentRegistration(ns *structs.NodeService) error {
+	return s.agent.addServiceInternal(ns, s.registration.chkTypes, s.registration.persist, s.registration.token, s.registration.source)
+}
+
+// ensureConfigWatch starts a cache.Notify goroutine to run a continuous
+// blocking query on the resolved service config for this service. If the
+// registration has changed in a way that requires a new blocking query, it will
+// cancel any current watch and start a new one. It is a no-op if there is an
+// existing watch that is sufficient for the current registration. It is not
+// thread-safe and must only be called from the Start method (which is only safe
+// to call once as documented) or from inside the run loop.
+func (s *serviceConfigWatch) ensureConfigWatch() error {
+	ns := s.registration.service
+	name := ns.Service
+	var upstreams []string
+
+	// Note that only sidecar proxies should even make it here for now although
+	// later that will change to add the condition.
+	if ns.IsSidecarProxy() {
+		// This is a sidecar proxy, ignore the proxy service's config since we are
+		// managed by the target service config.
+		name = ns.Proxy.DestinationServiceName
+
+		// Also if we have any upstreams defined, add them to the request so we can
+		// learn about their configs.
+		for _, us := range ns.Proxy.Upstreams {
+			if us.DestinationType == "" || us.DestinationType == structs.UpstreamDestTypeService {
+				upstreams = append(upstreams, us.DestinationName)
+			}
+		}
+	}
 
 	req := &structs.ServiceConfigRequest{
 		Name:         name,
 		Datacenter:   s.agent.config.Datacenter,
 		QueryOptions: structs.QueryOptions{Token: s.agent.config.ACLAgentToken},
+		Upstreams:    upstreams,
 	}
 	if s.registration.token != "" {
 		req.QueryOptions.Token = s.registration.token
 	}
-	err := s.agent.cache.Notify(s.ctx, cachetype.ResolvedServiceConfigName, req, fmt.Sprintf("service-config:%s", name), s.updateCh)
+
+	// See if this request is different from the current one
+	cacheKey := req.CacheInfo().Key
+	if cacheKey == s.cacheKey {
+		return nil
+	}
+
+	// If there is an existing notify running, stop it first. This may leave a
+	// blocking query running in the background but the Notify loop will swallow
+	// the response and exit when it next unblocks so we can consider it stopped.
+	if s.notifyCancel != nil {
+		s.notifyCancel()
+	}
+
+	// Make a new context just for this Notify call
+	ctx, cancel := context.WithCancel(s.ctx)
+	s.notifyCancel = cancel
+	s.cacheKey = cacheKey
+	// We use the cache key as the correlationID here. Notify in general will not
+	// respond on the updateCh after the context is cancelled however there could
+	// possible be a race where it has only just got an update and checked the
+	// context before we cancel and so might still deliver the old event. Using
+	// the cacheKey allows us to ignore updates from the old cache watch and makes
+	// even this rare edge case safe.
+	err := s.agent.cache.Notify(ctx, cachetype.ResolvedServiceConfigName, req,
+		s.cacheKey, s.updateCh)
 
 	return err
 }
@@ -252,13 +343,40 @@ func (s *serviceConfigWatch) updateRegistration(registration *serviceRegistratio
 
 // mergeServiceConfig returns the final effective config for the watched service,
 // including the latest known global defaults from the servers.
-func (s *serviceConfigWatch) mergeServiceConfig() *structs.NodeService {
-	if s.config == nil {
-		return s.registration.service
+func (s *serviceConfigWatch) mergeServiceConfig() (*structs.NodeService, error) {
+	if s.defaults == nil || !s.registration.service.IsSidecarProxy() {
+		return s.registration.service, nil
 	}
 
-	svc := s.config.NodeService()
-	svc.Merge(s.registration.service)
+	// We don't want to change s.registration in place since it is our source of
+	// truth about what was actually registered before defaults applied. So copy
+	// it first.
+	nsRaw, err := copystructure.Copy(s.registration.service)
+	if err != nil {
+		return nil, err
+	}
 
-	return svc
+	// Merge proxy defaults
+	ns := nsRaw.(*structs.NodeService)
+
+	if err := mergo.Merge(&ns.Proxy.Config, s.defaults.ProxyConfig); err != nil {
+		return nil, err
+	}
+	// Merge upstream defaults if there were any returned
+	for i := range ns.Proxy.Upstreams {
+		// Get a pointer not a value copy of the upstream struct
+		us := &ns.Proxy.Upstreams[i]
+		if us.DestinationType != "" && us.DestinationType != structs.UpstreamDestTypeService {
+			continue
+		}
+		usCfg, ok := s.defaults.UpstreamConfigs[us.DestinationName]
+		if !ok {
+			// No config defaults to merge
+			continue
+		}
+		if err := mergo.Merge(&us.Config, usCfg); err != nil {
+			return nil, err
+		}
+	}
+	return ns, err
 }

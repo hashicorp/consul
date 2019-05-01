@@ -81,6 +81,7 @@ require (
 	github.com/hashicorp/vault v0.10.3
 	github.com/hashicorp/vault-plugin-secrets-kv v0.0.0-20190318174639-195e0e9d07f1 // indirect
 	github.com/hashicorp/yamux v0.0.0-20180604194846-3520598351bb
+	github.com/imdario/mergo v0.3.6
 	github.com/jefferai/jsonx v0.0.0-20160721235117-9cc31c3135ee // indirect
 	github.com/keybase/go-crypto v0.0.0-20180614160407-5114a9a81e1b // indirect
 	github.com/kr/pretty v0.1.0 // indirect

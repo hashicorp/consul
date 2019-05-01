@@ -120,8 +120,8 @@ github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connecti
 github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2
 github.com/envoyproxy/go-control-plane/envoy/service/auth/v2alpha
 github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2
-github.com/envoyproxy/go-control-plane/pkg/util
 github.com/envoyproxy/go-control-plane/envoy/type
+github.com/envoyproxy/go-control-plane/pkg/util
 github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2
 # github.com/fatih/color v1.7.0
 github.com/fatih/color

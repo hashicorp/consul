@@ -95,6 +95,8 @@ function must_match_in_prometheus_response {
   run curl -f -s $1/metrics
   COUNT=$( echo "$output" | grep -Ec $2 )
 
+  echo "OUTPUT head -n 10"
+  echo "$output" | head -n 10
   echo "COUNT of '$2' matches: $COUNT"
 
   [ "$status" == 0 ]
@@ -129,4 +131,23 @@ function must_fail_http_connection {
 
   # Should fail request with 503
   echo "$output" | grep '503 Service Unavailable'
+}
+
+function gen_envoy_bootstrap {
+  SERVICE=$1
+  ADMIN_PORT=$2
+
+  if output=$(docker_consul connect envoy -bootstrap \
+    -proxy-id $SERVICE-sidecar-proxy \
+    -admin-bind 0.0.0.0:$ADMIN_PORT 2>&1); then
+
+    # All OK, write config to file
+    echo "$output" > workdir/envoy/$SERVICE-bootstrap.json
+  else
+    status=$?
+    # Command failed, instead of swallowing error (printed on stdout by docker
+    # it seems) by writing it to file, echo it
+    echo "$output"
+    return $status
+  fi
 }

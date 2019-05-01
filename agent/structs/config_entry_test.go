@@ -62,7 +62,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				Kind:     ServiceDefaults,
 				Name:     "foo",
 				Protocol: "tcp",
-				Connect:  ConnectConfiguration{SidecarProxy: true},
+				//Connect:  ConnectConfiguration{SidecarProxy: true},
 			},
 		},
 		"service-defaults translations": tcase{
@@ -78,7 +78,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				Kind:     ServiceDefaults,
 				Name:     "foo",
 				Protocol: "tcp",
-				Connect:  ConnectConfiguration{SidecarProxy: true},
+				//Connect:  ConnectConfiguration{SidecarProxy: true},
 			},
 		},
 	}
