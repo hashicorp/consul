@@ -1,4 +1,4 @@
-export default function(scenario, fillIn, triggerKeyEvent, currentPage) {
+export default function(scenario, find, fillIn, triggerKeyEvent, currentPage) {
   const fillInElement = function(page, name, value) {
     const cm = document.querySelector(`textarea[name="${name}"] + .CodeMirror`);
     if (cm) {
@@ -21,31 +21,41 @@ export default function(scenario, fillIn, triggerKeyEvent, currentPage) {
       }, currentPage());
     })
     .then(
-      ['I fill in the $form form with yaml\n$yaml', 'I fill in the $form form with json\n$json'],
-      function(form, data) {
-        return Object.keys(data).reduce(function(prev, item, i, arr) {
-          const name = `${form}[${item}]`;
-          return fillInElement(prev, name, data[item]);
-        }, currentPage());
-      }
-    )
-    .then(
       [
-        'I fill in the $form form on the $component component with yaml\n$yaml',
-        'I fill in the $form form on the $component component with json\n$json',
+        'I fill in the $property form with yaml\n$yaml',
+        'I fill in $property with yaml\n$yaml',
+        'I fill in the $property with yaml\n$yaml',
+        'I fill in the property form with json\n$json',
+
+        'I fill in the $property form on the $component component with yaml\n$yaml',
+        'I fill in the $property form on the $component component with json\n$json',
+        'I fill in the $property on the $component component with yaml\n$yaml',
       ],
-      function(form, component, data) {
-        // Collection
-        let obj;
-        if (typeof currentPage()[component].objectAt === 'function') {
-          obj = currentPage()[component].objectAt(0);
-        } else {
-          obj = currentPage()[component];
+      function(property, component, data, next) {
+        try {
+          switch (true) {
+            case typeof component === 'string':
+              property = `${component}.${property}`;
+            // fallthrough
+            case typeof data === 'undefined':
+              data = component;
+            // // fallthrough
+            // case typeof property !== 'string':
+            // data = property;
+          }
+          let obj;
+          try {
+            obj = find(property);
+          } catch (e) {
+            obj = currentPage();
+          }
+          return Object.keys(data).reduce(function(prev, item, i, arr) {
+            const name = `${obj.prefix || property}[${item}]`;
+            return fillInElement(prev, name, data[item]);
+          }, obj);
+        } catch (e) {
+          throw e;
         }
-        return Object.keys(data).reduce(function(prev, item, i, arr) {
-          const name = `${form}[${item}]`;
-          return fillInElement(prev, name, data[item]);
-        }, obj);
       }
     )
     .then(['I type "$text" into "$selector"'], function(text, selector) {

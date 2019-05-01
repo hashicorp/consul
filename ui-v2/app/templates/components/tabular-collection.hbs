@@ -12,12 +12,12 @@
   </thead>
   {{#ember-native-scrollable tagName='tbody' content-size=_contentSize scroll-left=_scrollLeft scroll-top=_scrollTop scrollChange=(action "scrollChange") clientSizeChange=(action "clientSizeChange")}}
       <tr></tr>
-{{~#each _cells as |cell|~}}
+{{~#each _cells as |cell index|~}}
       <tr data-test-tabular-row style={{{cell.style}}} onclick={{action 'click'}}>
-          {{#yield-slot 'row'}}{{yield cell.item cell.index}}{{/yield-slot}}
+        {{#yield-slot 'row'}}{{yield cell.item index}}{{/yield-slot}}
 {{#if hasActions }}
           <td class="actions">
-              {{#yield-slot 'actions' (block-params (concat cell.index) change checked)}}{{yield cell.item cell.index}}{{/yield-slot}}
+              {{#yield-slot 'actions' (block-params (concat index) change checked)}}{{yield cell.item index}}{{/yield-slot}}
           </td>
 {{/if}}
       </tr>

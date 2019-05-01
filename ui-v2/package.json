@@ -49,7 +49,7 @@
     "dart-sass": "^1.14.1",
     "ember-ajax": "^3.0.0",
     "ember-browserify": "^1.2.2",
-    "ember-changeset-validations": "^1.2.11",
+    "ember-changeset-validations": "^2.1.0",
     "ember-cli": "~2.18.2",
     "ember-cli-app-version": "^3.0.0",
     "ember-cli-autoprefixer": "^0.8.1",

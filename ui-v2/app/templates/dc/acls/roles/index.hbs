@@ -44,7 +44,7 @@
                     </td>
                     <td>
                       {{#each item.Policies as |item|}}
-                        <strong class={{if (policy/is-management item) 'policy-management' }}>{{item.Name}}</strong>
+                        <strong class={{policy/typeof item}}>{{item.Name}}</strong>
                       {{/each}}
                     </td>
                 {{/block-slot}}
@@ -53,19 +53,12 @@
                         {{#block-slot 'action' as |confirm|}}
                             {{#action-group index=index onchange=(action change) checked=(if (eq checked index) 'checked')}}
                                 <ul>
-    {{#if (policy/is-management item)}}
-                                    <li>
-                                        <a data-test-edit href={{href-to 'dc.acls.roles.edit' item.ID}}>View</a>
-                                    </li>
-    {{else}}
-
                                     <li>
                                         <a data-test-edit href={{href-to 'dc.acls.roles.edit' item.ID}}>Edit</a>
                                     </li>
                                     <li>
                                         <button type="button" class="type-delete" data-test-delete {{action confirm 'delete' item}}>Delete</button>
                                     </li>
-    {{/if}}
                                 </ul>
                             {{/action-group}}
                         {{/block-slot}}

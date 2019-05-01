@@ -2,11 +2,12 @@
 %main-content a {
   color: $gray-900;
 }
-%main-content a[rel*='help'] {
-  @extend %with-info;
-}
 %main-content label a[rel*='help'] {
   color: $gray-400;
+}
+%main-content a[rel*='help']::after {
+  @extend %with-info-circle-outline-icon, %as-pseudo;
+  opacity: 0.4;
 }
 
 [role='tabpanel'] > p:only-child [rel*='help']::after {

@@ -9,10 +9,9 @@
 %action-group-action {
   cursor: pointer;
 }
-%action-group label::after,
-%action-group label::before,
-%action-group::before {
-  @extend %with-dot;
+%action-group label:first-of-type::after {
+  @extend %with-more-horizontal-icon, %as-pseudo;
+  opacity: 0.7;
 }
 %action-group ul {
   border: $decor-border-100;

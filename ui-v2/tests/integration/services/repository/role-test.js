@@ -1,6 +1,8 @@
 import { moduleFor, test } from 'ember-qunit';
-const NAME = 'role';
 import repo from 'consul-ui/tests/helpers/repo';
+import { createPolicies } from 'consul-ui/tests/helpers/normalizers';
+
+const NAME = 'role';
 moduleFor(`service:repository/${NAME}`, `Integration | Service | ${NAME}`, {
   // Specify the other units that are required for this test.
   integration: true,
@@ -28,6 +30,7 @@ test('findByDatacenter returns the correct data for list endpoint', function(ass
             Object.assign({}, item, {
               Datacenter: dc,
               uid: `["${dc}","${item.ID}"]`,
+              Policies: createPolicies(item),
             })
           );
         })
@@ -54,6 +57,7 @@ test('findBySlug returns the correct data for item endpoint', function(assert) {
           return Object.assign({}, item, {
             Datacenter: dc,
             uid: `["${dc}","${item.ID}"]`,
+            Policies: createPolicies(item),
           });
         })
       );

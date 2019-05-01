@@ -19,7 +19,7 @@
   {{#if create }}
           New Policy
   {{else}}
-    {{#if (policy/is-management item)}}
+    {{#if (eq (policy/typeof item) 'policy-management')}}
           View Policy
     {{else}}
           Edit Policy
@@ -31,7 +31,7 @@
         </h1>
     {{/block-slot}}
     {{#block-slot 'content'}}
-{{#if (policy/is-management item)}}
+{{#if (eq (policy/typeof item) 'policy-management')}}
       {{ partial 'dc/acls/policies/view'}}
 {{else}}
       {{ partial 'dc/acls/policies/form'}}

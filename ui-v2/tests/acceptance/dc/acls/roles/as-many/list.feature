@@ -1,5 +1,5 @@
 @setupApplicationTest
-Feature: dc / acls / tokens / roles: List
+Feature: dc / acls / roles / as many / list: List
   Scenario:
     Given 1 datacenter model with the value "datacenter"
     And 1 token model from yaml
@@ -19,4 +19,4 @@ Feature: dc / acls / tokens / roles: List
       token: key
     ---
     Then the url should be /datacenter/acls/tokens/key
-    Then I see 3 role models
+    Then I see 3 role models on the roles component

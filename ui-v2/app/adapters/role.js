@@ -8,9 +8,10 @@ import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/role';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 import { OK as HTTP_OK } from 'consul-ui/utils/http/status';
 import { PUT as HTTP_PUT } from 'consul-ui/utils/http/method';
-import minimizeModel from 'consul-ui/utils/minimizeModel';
 
-export default Adapter.extend({
+import WithPolicies from 'consul-ui/mixins/policy/as-many';
+
+export default Adapter.extend(WithPolicies, {
   urlForQuery: function(query, modelName) {
     return this.appendURL('acl/roles', [], this.cleanQuery(query));
   },
@@ -52,15 +53,6 @@ export default Adapter.extend({
     }
     return this._super(status, headers, response, requestData);
   },
-  handleSingleResponse: function(url, response, primary, slug) {
-    // Sometimes we get `Policies: null`, make null equal an empty array
-    ['Policies'].forEach(function(prop) {
-      if (typeof response[prop] === 'undefined' || response[prop] === null) {
-        response[prop] = [];
-      }
-    });
-    return this._super(url, response, primary, slug);
-  },
   methodForRequest: function(params) {
     switch (params.requestType) {
       case REQUEST_CREATE:
@@ -69,13 +61,11 @@ export default Adapter.extend({
     return this._super(...arguments);
   },
   dataForRequest: function(params) {
-    let data = this._super(...arguments);
+    const data = this._super(...arguments);
     switch (params.requestType) {
       case REQUEST_UPDATE:
       case REQUEST_CREATE:
-        data.role.Policies = minimizeModel(data.role.Policies);
-        data = data.role;
-        break;
+        return data.role;
     }
     return data;
   },

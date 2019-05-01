@@ -1,5 +1,6 @@
 import FormComponent from './form-component';
-import SlotsMixin from 'block-slots';
-export default FormComponent.extend(SlotsMixin, {
+export default FormComponent.extend({
+  type: 'role',
   name: 'role',
+  classNames: ['role-form'],
 });
