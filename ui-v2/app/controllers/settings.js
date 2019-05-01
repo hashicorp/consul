@@ -6,6 +6,13 @@ export default Controller.extend({
   repo: service('settings'),
   dom: service('dom'),
   actions: {
+    key: function(e) {
+      switch (true) {
+        case e.keyCode === 13:
+          // disable ENTER
+          e.preventDefault();
+      }
+    },
     change: function(e, value, item) {
       const event = get(this, 'dom').normalizeEvent(e, value);
       // TODO: Switch to using forms like the rest of the app
