@@ -106,12 +106,12 @@ bearer token for a Consul ACL token by using the login process:
    leader.
 
 5. The Consul leader consults the configured set of binding rules associated
-   with the specified auth method and selects only those that match the trusted
-   identity attributes.
+   with the specified auth method and selects only those rules that match the
+   trusted identity attributes.
 
-6. Bound roles and service identites are computed. If none are computed the
-   login attempt fails. The bound roles and service identities are assigned to
-   a newly-created ACL token created exclusively in the _local_ datacenter.
+6. The Consul leader uses the matching binding rules to generate a list of
+   roles and service identities and assigns them to a token created exclusively
+   in the _local_ datacenter. If none are generated the login attempt fails.
    
 7. The relevant `SecretID` and remaining details about the token are returned to
    the originating Consul client.
