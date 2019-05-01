@@ -1,8 +1,8 @@
 %button {
   font-family: $typo-family-sans;
 }
-main p,
-%modal-window p {
+main p:not(:last-child),
+%modal-window p:not(:last-child) {
   margin-bottom: 1em;
 }
 %button,
@@ -11,6 +11,7 @@ main p,
 %form-element [type='password'] {
   line-height: 1.5;
 }
+h3,
 %radio-group label {
   line-height: 1.25;
 }
@@ -34,6 +35,7 @@ h1,
   font-weight: $typo-weight-bold;
 }
 h2,
+h3,
 %header-nav,
 %healthchecked-resource header span,
 %healthcheck-output dt,
@@ -75,17 +77,23 @@ td:first-child em,
 %footer > * {
   font-size: inherit;
 }
+
 h1 {
   font-size: $typo-header-100;
 }
-h2,
+h2 {
+  font-size: $typo-header-200;
+}
+h3 {
+  font-size: $typo-header-300;
+}
+
 %header-drop-nav .is-active,
 %app-view h1 em {
   font-size: $typo-size-500;
 }
 body,
 %action-group-action,
-fieldset h2,
 pre code,
 input,
 textarea,
