@@ -275,7 +275,7 @@ to run the sync program.
 
   * <a name="v-synccatalog-k8sprefix" href="#v-synccatalog-k8sprefix">`k8sPrefix`</a> (`string: ""`) - A prefix to prepend to all services registered in Kubernetes from Consul. This defaults to `""` where no prefix is prepended; Consul services are synced with the same name to Kubernetes. (Consul -> Kubernetes sync only)
 
-  * <a name="v-synccatalog-consulPrefix" href="#v-synccatalog-consulPrefix">`consulPrefix`</a> (`string: ""`) - A prefix to prepend to all services registered in Consul from Kubernetes. This defaults to `""` where no prefix is prepended. Consul services are synced with the same name to Kubernetes. (Kubernetes -> Consul sync only)
+  * <a name="v-synccatalog-consulPrefix" href="#v-synccatalog-consulPrefix">`consulPrefix`</a> (`string: ""`) - A prefix to prepend to all services registered in Consul from Kubernetes. This defaults to `""` where no prefix is prepended. Service names within Kubernetes remain unchanged. (Kubernetes -> Consul sync only)
 
   * <a name="v-synccatalog-k8stag" href="#v-synccatalog-k8stag">`k8sTag`</a> (`string: null`) - An optional tag that is applied to all of the Kubernetes services that are synced into Consul. If nothing is set, this defaults to "k8s". (Kubernetes -> Consul sync only)
 
