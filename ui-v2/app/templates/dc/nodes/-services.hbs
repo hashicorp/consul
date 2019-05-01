@@ -25,12 +25,8 @@
               <td data-test-service-port="{{item.Port}}" class="port">
                   {{item.Port}}
               </td>
-              <td data-test-service-tags class="tags">
-                  {{#if (gt item.Tags.length 0)}}
-                    {{#each item.Tags as |item|}}
-                      <span>{{item}}</span>
-                    {{/each}}
-                  {{/if}}
+              <td data-test-service-tags>
+                {{tag-list items=item.Tags}}
               </td>
           {{/block-slot}}
       {{/tabular-collection}}

@@ -37,7 +37,7 @@
               <th>Accessor ID</th>
               <th>Scope</th>
               <th>Description</th>
-              <th>Policies</th>
+              <th>Roles &amp; Policies</th>
               <th>&nbsp;</th>
           {{/block-slot}}
           {{#block-slot 'row'}}
@@ -52,10 +52,10 @@
               </td>
               <td colspan={{if (not-eq item.AccessorID token.AccessorID) '2' }}>
 {{#if (token/is-legacy item) }}
-                  Legacy tokens have embedded policies.
+                  Legacy tokens have embedded rules.
 {{ else }}
-                  {{#each item.Policies as |item|}}
-                    <strong class={{if (policy/is-management item) 'policy-management' }}>{{item.Name}}</strong>
+                  {{#each (append item.Policies item.Roles) as |item|}}
+                    <strong class={{policy/typeof item}}>{{item.Name}}</strong>
                   {{/each}}
 {{/if}}
               </td>

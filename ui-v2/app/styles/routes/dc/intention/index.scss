@@ -7,5 +7,5 @@ html.template-intention.template-list td.intent-deny strong {
   visibility: hidden;
 }
 html.template-intention.template-list td.destination {
-  font-weight: $typo-weight-semibold;
+  @extend %tbody-th;
 }

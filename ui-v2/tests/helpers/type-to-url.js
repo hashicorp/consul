@@ -26,6 +26,9 @@ export default function(type) {
     case 'policy':
       requests = ['/v1/acl/policies', '/v1/acl/policy/'];
       break;
+    case 'role':
+      requests = ['/v1/acl/roles', '/v1/acl/role/'];
+      break;
     case 'token':
       requests = ['/v1/acl/tokens', '/v1/acl/token/'];
       break;

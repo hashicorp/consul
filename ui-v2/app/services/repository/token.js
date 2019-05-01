@@ -49,4 +49,10 @@ export default RepositoryService.extend({
       dc: dc,
     });
   },
+  findByRole: function(id, dc) {
+    return get(this, 'store').query(this.getModelName(), {
+      role: id,
+      dc: dc,
+    });
+  },
 });

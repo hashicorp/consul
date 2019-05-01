@@ -37,7 +37,6 @@ Feature: deleting: Deleting items with confirmations, success and error notifica
     | kv        | kvs        | DELETE | /v1/kv/key-name?dc=datacenter                                             | ["key-name"]                                                         | kv: key-name                                    |
     | intention | intentions | DELETE | /v1/connect/intentions/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=datacenter | {"SourceName": "name", "ID": "ee52203d-989f-4f7a-ab5a-2bef004164ca"} | intention: ee52203d-989f-4f7a-ab5a-2bef004164ca |
     | token     | tokens     | DELETE | /v1/acl/token/001fda31-194e-4ff1-a5ec-589abf2cafd0?dc=datacenter          | {"AccessorID": "001fda31-194e-4ff1-a5ec-589abf2cafd0"}               | token: 001fda31-194e-4ff1-a5ec-589abf2cafd0     |
-    | policy    | policies   | DELETE | /v1/acl/policy/1981f51d-301a-497b-89a0-05112ef02b4b?dc=datacenter         | {"ID": "1981f51d-301a-497b-89a0-05112ef02b4b"}                       | policy: 1981f51d-301a-497b-89a0-05112ef02b4b    |
     ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   Scenario: Deleting a [Model] from the [Model] detail page
     When I visit the [Model] page for yaml

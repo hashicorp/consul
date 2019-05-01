@@ -10,12 +10,15 @@ import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 import { OK as HTTP_OK } from 'consul-ui/utils/http/status';
 import { PUT as HTTP_PUT } from 'consul-ui/utils/http/method';
 
+import WithPolicies from 'consul-ui/mixins/policy/as-many';
+import WithRoles from 'consul-ui/mixins/role/as-many';
+
 import { get } from '@ember/object';
 
 const REQUEST_CLONE = 'cloneRecord';
 const REQUEST_SELF = 'querySelf';
 
-export default Adapter.extend({
+export default Adapter.extend(WithRoles, WithPolicies, {
   store: service('store'),
   cleanQuery: function(_query) {
     const query = this._super(...arguments);
@@ -108,10 +111,6 @@ export default Adapter.extend({
     return this._makeRequest(request);
   },
   handleSingleResponse: function(url, response, primary, slug) {
-    // Sometimes we get `Policies: null`, make null equal an empty array
-    if (typeof response.Policies === 'undefined' || response.Policies === null) {
-      response.Policies = [];
-    }
     // Convert an old style update response to a new style
     if (typeof response['ID'] !== 'undefined') {
       const item = get(this, 'store')
@@ -169,19 +168,6 @@ export default Adapter.extend({
         }
       // falls through
       case REQUEST_CREATE:
-        if (Array.isArray(data.token.Policies)) {
-          data.token.Policies = data.token.Policies.filter(function(item) {
-            // Just incase, don't save any policies that aren't saved
-            return !get(item, 'isNew');
-          }).map(function(item) {
-            return {
-              ID: get(item, 'ID'),
-              Name: get(item, 'Name'),
-            };
-          });
-        } else {
-          delete data.token.Policies;
-        }
         data = data.token;
         break;
       case REQUEST_SELF:

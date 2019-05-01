@@ -12,9 +12,14 @@ export default Service.extend({
       if (typeof content[prop] === 'function') {
         if (this.shouldProxy(content, prop)) {
           this[prop] = function() {
-            return this.execute(content, prop).then(method => {
-              return method.apply(this, arguments);
-            });
+            const cb = this.execute(content, prop);
+            if (typeof cb.then !== 'undefined') {
+              return cb.then(method => {
+                return method.apply(this, arguments);
+              });
+            } else {
+              return cb.apply(this, arguments);
+            }
           };
         } else if (typeof this[prop] !== 'function') {
           this[prop] = function() {

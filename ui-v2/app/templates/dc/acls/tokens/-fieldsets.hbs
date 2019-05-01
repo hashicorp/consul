@@ -14,7 +14,11 @@
     <textarea name="Description" oninput={{action 'change'}}>{{item.Description}}</textarea>
   </label>
 </fieldset>
-<fieldset>
+<fieldset id="roles">
+  <h2>Roles</h2>
+  {{role-selector dc=dc items=item.Roles}}
+</fieldset>
+<fieldset id="policies">
   <h2>Policies</h2>
-  {{partial 'dc/acls/tokens/policies'}}
+  {{policy-selector dc=dc items=item.Policies}}
 </fieldset>
