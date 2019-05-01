@@ -193,11 +193,11 @@ Update a role:
 
 ```sh
 $ consul acl role update -id 57147d87-6bf7-f794-1a6e-7d038c4e4ae9 \
-    -description 'better description' -service-identity 'crawler'
+    -description 'web crawler updated role' -service-identity 'crawler'
 Role updated successfully
 ID:           57147d87-6bf7-f794-1a6e-7d038c4e4ae9
 Name:         crawler
-Description:  better description
+Description:  web crawler updated role
 Policies:
    2f8f99c7-edd9-2f09-7e4b-a1f519eb4fc2 - crawler-kv
 Service Identities:
@@ -211,7 +211,7 @@ $ consul acl role update -id 57147 -name web-crawler
 Role updated successfully
 ID:           57147d87-6bf7-f794-1a6e-7d038c4e4ae9
 Name:         web-crawler
-Description:  better description
+Description:  web crawler updated role
 Policies:
    2f8f99c7-edd9-2f09-7e4b-a1f519eb4fc2 - crawler-kv
 Service Identities:
@@ -278,7 +278,7 @@ Default listing.
 $ consul acl role list
 web-crawler:
    ID:           57147d87-6bf7-f794-1a6e-7d038c4e4ae9
-   Description:  better description
+   Description:  web crawler updated role
    Policies:
       2f8f99c7-edd9-2f09-7e4b-a1f519eb4fc2 - crawler-kv
    Service Identities:
@@ -296,7 +296,7 @@ Show Metadata.
 $ consul acl role list -meta
 web-crawler:
    ID:           57147d87-6bf7-f794-1a6e-7d038c4e4ae9
-   Description:  better description
+   Description:  web crawler updated role
    Hash:         3bd7c15a77c8d1d45c515378f1176df2e6f76d9c96d541f96de8272ff4dba7b5
    Create Index: 18
    Modify Index: 39
