@@ -2,8 +2,6 @@ package structs
 
 import (
 	"fmt"
-	"reflect"
-	"sort"
 
 	"github.com/hashicorp/consul/api"
 )
@@ -89,62 +87,6 @@ func UpstreamsFromAPI(us []api.Upstream) Upstreams {
 		a[i] = UpstreamFromAPI(u)
 	}
 	return a
-}
-
-// Merge merges the two sets of Upstreams, using the Identifier method
-// as a key to deduplicate. Any non-identifying fields or config set on an
-// upstream in b will override the same field on the same upstream in a.
-func MergeUpstreams(a, b Upstreams) Upstreams {
-	upstreams := make(map[string]Upstream)
-	for _, upstream := range a {
-		upstreams[upstream.Identifier()] = upstream
-	}
-	for _, other := range b {
-		if upstream, ok := upstreams[other.Identifier()]; ok {
-			if other.LocalBindAddress != "" {
-				upstream.LocalBindAddress = other.LocalBindAddress
-			}
-			if other.LocalBindPort != 0 {
-				upstream.LocalBindPort = other.LocalBindPort
-			}
-			if upstream.Config == nil {
-				upstream.Config = other.Config
-			} else {
-				for k, v := range other.Config {
-					upstream.Config[k] = v
-				}
-			}
-		} else {
-			upstreams[other.Identifier()] = other
-		}
-	}
-
-	results := make(Upstreams, 0, len(upstreams))
-	for _, us := range upstreams {
-		results = append(results, us)
-	}
-	sort.Slice(results, func(a, b int) bool {
-		return results[a].Identifier() < results[b].Identifier()
-	})
-
-	return results
-}
-
-// upstreamsMergeTransformer implements mergo.Transformer and is used to merge lists of
-// upstreams in a semantically meaningful way.
-type upstreamsMergeTransformer struct{}
-
-func (t *upstreamsMergeTransformer) Transformer(typ reflect.Type) func(dst, src reflect.Value) error {
-	if typ == reflect.TypeOf(Upstreams{}) {
-		return func(dst, src reflect.Value) error {
-			if dst.CanSet() {
-				merged := MergeUpstreams(src.Interface().(Upstreams), dst.Interface().(Upstreams))
-				dst.Set(reflect.ValueOf(merged))
-			}
-			return nil
-		}
-	}
-	return nil
 }
 
 // Upstream represents a single upstream dependency for a service or proxy. It
