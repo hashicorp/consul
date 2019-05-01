@@ -69,7 +69,7 @@ of anything else including the rule set and datacenter scoping will be prevented
 
 -> Added in Consul 1.5.0
 
-An ACL service identity is a policy template for expressing a link to a policy
+An ACL service identity is an [ACL policy](/docs/acl/acl-system.html#acl-policies) template for expressing a link to a policy
 suitable for use in [Consul Connect](/docs/connect/index.html). They are usable
 on both tokens and roles and are composed of the following elements:
 
