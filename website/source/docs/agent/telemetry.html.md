@@ -911,7 +911,7 @@ These metrics give insight into the health of the cluster as a whole.
   </tr>
   <tr>
     <td>`consul.serf.member.failed`</td>
-    <td>This increments when an agent is marked dead. This can be an indicator of overloaded agents, network problems, or configuration errors where agents can not connect to each other on the [required ports](/docs/agent/options.html#ports).</td>
+    <td>This increments when an agent is marked dead. This can be an indicator of overloaded agents, network problems, or configuration errors where agents cannot connect to each other on the [required ports](/docs/agent/options.html#ports).</td>
     <td>failures / interval</td>
     <td>counter</td>
   </tr>
