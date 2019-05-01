@@ -18,6 +18,9 @@ export const routes = {
       show: {
         _options: { path: '/:name' },
       },
+      instance: {
+        _options: { path: '/:name/:id' },
+      },
     },
     // Nodes represent a consul node
     nodes: {
@@ -71,6 +74,15 @@ export const routes = {
           _options: { path: '/create' },
         },
       },
+      roles: {
+        _options: { path: '/roles' },
+        edit: {
+          _options: { path: '/:id' },
+        },
+        create: {
+          _options: { path: '/create' },
+        },
+      },
       tokens: {
         _options: { path: '/tokens' },
         edit: {
@@ -88,9 +100,9 @@ export const routes = {
     _options: { path: '/' },
   },
   // The settings page is global.
-  // settings: {
-  //   _options: { path: '/setting' },
-  // },
+  settings: {
+    _options: { path: '/setting' },
+  },
   notfound: {
     _options: { path: '/*path' },
   },

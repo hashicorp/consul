@@ -5,7 +5,7 @@
   overflow: hidden;
 }
 %modal-dialog {
-  z-index: 10000;
+  z-index: 500;
   position: fixed;
   left: 0;
   top: 0;
@@ -46,6 +46,8 @@
   padding-right: 15px;
 }
 %modal-window > div {
+  overflow-y: auto;
+  max-height: 80vh;
   padding: 20px 23px;
 }
 %modal-window > footer,

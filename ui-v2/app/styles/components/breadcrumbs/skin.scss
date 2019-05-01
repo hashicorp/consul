@@ -1,9 +1,18 @@
-%breadcrumbs a {
+%breadcrumbs li > * {
   @extend %with-chevron;
+}
+%breadcrumbs li > strong::before {
+  color: $gray-300;
+}
+%breadcrumbs li > a::before {
+  color: rgba($color-action, 0.5);
 }
 %breadcrumbs ol {
   list-style-type: none;
 }
 %breadcrumbs a {
-  color: $ui-color-action;
+  color: $color-action;
+}
+%breadcrumbs strong {
+  color: $gray-400;
 }

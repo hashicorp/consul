@@ -1,3 +1,12 @@
+%tab-nav {
+  /* %frame-gray-something */
+  border-bottom: $decor-border-100;
+  border-top: $decor-border-200;
+}
+%tab-nav {
+  /* %frame-gray-something */
+  border-color: $gray-200;
+}
 %tab-nav label {
   cursor: pointer;
 }
@@ -8,17 +17,16 @@
   border-bottom: $decor-border-200;
 }
 %tab-nav a {
-  border-color: $ui-color-transparent;
-  color: $ui-gray-500;
+  border-color: $color-transparent;
+  color: $gray-500;
 }
 %tab-nav li:not(.selected) a:hover,
 %tab-nav li:not(.selected) a:focus,
 %tab-nav li:not(.selected) a:active {
   /* %frame-gray-something */
-  border-color: $ui-color-transparent;
-  background-color: $ui-gray-100;
+  border-color: $color-transparent;
+  background-color: $gray-100;
 }
 %tab-nav .selected a {
   @extend %frame-magenta-300;
 }
-

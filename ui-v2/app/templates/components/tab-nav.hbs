@@ -1,7 +1,7 @@
 {{!<nav role="tablist">}}
     <ul>
 {{#each items as |item|}}
-        <li class={{if (eq selected (if item.label (slugify item.label) (slugify item))) 'selected'}}>
+        <li class={{if (or item.selected (eq selected (if item.label (slugify item.label) (slugify item)))) 'selected'}}>
             <label for="radiogroup_{{name}}_{{if item.label (slugify item.label) (slugify item)}}" data-test-radiobutton="{{name}}_{{if item.label (slugify item.label) (slugify item)}}" role="tab" aria-controls="radiogroup_{{name}}_{{if item.label (slugify item.label) (slugify item)}}_panel">
 {{#if item.href }}
   <a href="{{ item.href }}">{{ item.label }}</a>

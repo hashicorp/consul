@@ -1,0 +1,30 @@
+%healthcheck-output::before {
+  background-size: 55%;
+  width: 25px !important;
+  height: 25px !important;
+  left: 17px;
+  top: 20px !important;
+  margin-top: 0 !important;
+}
+%healthcheck-output.warning::before {
+  background-size: 100%;
+}
+%healthcheck-output {
+  padding: 20px 24px;
+  padding-bottom: 26px;
+  padding-left: 57px;
+  margin-bottom: 24px;
+  position: relative;
+}
+%healthcheck-output pre {
+  padding: 12px;
+}
+%healthcheck-output .with-feedback {
+  float: right;
+}
+%healthcheck-output dt {
+  margin-bottom: 0.2em;
+}
+%healthcheck-output dd:first-of-type {
+  margin-bottom: 0.6em;
+}

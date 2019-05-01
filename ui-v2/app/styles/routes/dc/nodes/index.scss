@@ -1,5 +1,10 @@
-// TODO: Generalize this, also see services/index
-@import '../../../components/pill/index';
-html.template-node.template-show td.tags span {
-  @extend %pill;
+html.template-node.template-show .sessions td:last-child {
+  justify-content: flex-end;
+}
+html.template-node.template-show .sessions td:first-child {
+  @extend %tbody-th;
+}
+html.template-node.template-list .healthy h2,
+html.template-node.template-list .unhealthy h2 {
+  margin-bottom: 0.7em;
 }

@@ -1,0 +1,5 @@
+<ul data-test-healthchecks>
+{{#each (sort-by (action 'sortChecksByImportance') items) as |check| }}
+  {{healthcheck-output data-test-node-healthcheck=check.Name tagName='li' name=check.Name class=check.Status status=check.Status notes=check.Notes output=check.Output}}
+{{/each}}
+</ul>

@@ -1,34 +1,56 @@
 import Controller from '@ember/controller';
-import { get } from '@ember/object';
-import { computed } from '@ember/object';
-import sumOfUnhealthy from 'consul-ui/utils/sumOfUnhealthy';
-import hasStatus from 'consul-ui/utils/hasStatus';
-import WithHealthFiltering from 'consul-ui/mixins/with-health-filtering';
-export default Controller.extend(WithHealthFiltering, {
+import { get, set, computed } from '@ember/object';
+import { alias } from '@ember/object/computed';
+import { inject as service } from '@ember/service';
+import WithSearching from 'consul-ui/mixins/with-searching';
+import WithEventSource, { listen } from 'consul-ui/mixins/with-event-source';
+export default Controller.extend(WithEventSource, WithSearching, {
+  dom: service('dom'),
+  notify: service('flashMessages'),
+  items: alias('item.Nodes'),
   init: function() {
+    this.searchParams = {
+      serviceInstance: 's',
+    };
     this._super(...arguments);
   },
-  unhealthy: computed('filtered', function() {
-    return get(this, 'filtered').filter(function(item) {
-      return sumOfUnhealthy(item.Checks) > 0;
-    });
+  setProperties: function() {
+    this._super(...arguments);
+    // This method is called immediately after `Route::setupController`, and done here rather than there
+    // as this is a variable used purely for view level things, if the view was different we might not
+    // need this variable
+    set(this, 'selectedTab', 'instances');
+  },
+  item: listen('item').catch(function(e) {
+    if (e.target.readyState === 1) {
+      // OPEN
+      if (get(e, 'error.errors.firstObject.status') === '404') {
+        get(this, 'notify').add({
+          destroyOnClick: false,
+          sticky: true,
+          type: 'warning',
+          action: 'update',
+        });
+      }
+    }
   }),
-  healthy: computed('filtered', function() {
-    return get(this, 'filtered').filter(function(item) {
-      return sumOfUnhealthy(item.Checks) === 0;
-    });
+  searchable: computed('items', function() {
+    return get(this, 'searchables.serviceInstance')
+      .add(get(this, 'items'))
+      .search(get(this, this.searchParams.serviceInstance));
   }),
-  filter: function(item, { s = '', status = '' }) {
-    const term = s.toLowerCase();
-
-    return (
-      get(item, 'Node.Node')
-        .toLowerCase()
-        .indexOf(term) !== -1 ||
-      (get(item, 'Service.ID')
-        .toLowerCase()
-        .indexOf(term) !== -1 &&
-        hasStatus(get(item, 'Checks'), status))
-    );
+  actions: {
+    change: function(e) {
+      set(this, 'selectedTab', e.target.value);
+      // Ensure tabular-collections sizing is recalculated
+      // now it is visible in the DOM
+      get(this, 'dom')
+        .components('.tab-section input[type="radio"]:checked + div table')
+        .forEach(function(item) {
+          if (typeof item.didAppear === 'function') {
+            item.didAppear();
+          }
+        });
+    },
   },
 });

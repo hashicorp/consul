@@ -1,0 +1,50 @@
+<form>
+  {{role-form form=form item=item dc=dc}}
+{{#if (and (not create) (gt items.length 0))}}
+  <h2>Where is this role used?</h2>
+  <p>
+    We're only able to show information for the primary datacenter and the current datacenter. This list may not show every case where this role is applied.
+  </p>
+  {{token-list caption="Tokens" items=items}}
+{{/if}}
+    <div>
+{{#if create }}
+        {{! we only need to check for an empty name here as ember munges autofocus, once we have autofocus back revisit this}}
+        <button type="submit" {{ action "create" item}} disabled={{if (or item.isPristine item.isInvalid (eq item.Name '')) 'disabled'}}>Save</button>
+{{ else }}
+        <button type="submit" {{ action "update" item}} disabled={{if item.isInvalid 'disabled'}}>Save</button>
+{{/if}}
+        <button type="reset" {{ action "cancel" item}}>Cancel</button>
+{{# if (not create) }}
+        {{#confirmation-dialog message='Are you sure you want to delete this Role?'}}
+            {{#block-slot 'action' as |confirm|}}
+                <button type="button" data-test-delete class="type-delete" {{action confirm 'delete' item}}>Delete</button>
+            {{/block-slot}}
+            {{#block-slot 'dialog' as |execute cancel message|}}
+    {{#if (gt items.length 0)}}
+              {{#modal-dialog onclose=(action cancel)}}
+                  {{#block-slot 'header'}}
+                      <h2>Role in Use</h2>
+                  {{/block-slot}}
+                  {{#block-slot 'body'}}
+                    <p>
+                      This Role is currently in use. If you choose to delete this Role, it will be removed from the following <strong>{{items.length}} Tokens</strong>:
+                    </p>
+                    {{token-list items=items target='_blank'}}
+                    <p>
+                      This action cannot be undone. {{message}}
+                    </p>
+                  {{/block-slot}}
+                  {{#block-slot 'actions' as |close|}}
+                    <button type="button" class="type-delete" {{action execute}}>Yes, Delete</button>
+                    <button type="button" class="type-cancel" {{action close}}>Cancel</button>
+                  {{/block-slot}}
+                {{/modal-dialog}}
+    {{else}}
+                {{delete-confirmation message=message execute=execute cancel=cancel}}
+    {{/if}}
+            {{/block-slot}}
+        {{/confirmation-dialog}}
+{{/if}}
+    </div>
+</form>

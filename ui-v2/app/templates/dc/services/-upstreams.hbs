@@ -1,0 +1,31 @@
+{{#if (gt item.Proxy.Upstreams.length 0) }}
+{{#tabular-collection
+    data-test-upstreams
+    items=item.Proxy.Upstreams as |item index|
+}}
+    {{#block-slot 'header'}}
+      <th>Upstream</th>
+      <th>Datacenter</th>
+      <th>Type</th>
+      <th>Local Bind Address</th>
+    {{/block-slot}}
+    {{#block-slot 'row'}}
+      <td>
+        <a data-test-destination-name>{{item.DestinationName}}</a>
+      </td>
+      <td data-test-destination-datacenter>
+        {{item.Datacenter}}
+      </td>
+      <td data-test-destination-type>
+          {{item.DestinationType}}
+      </td>
+      <td data-test-local-bind-address>
+        {{item.LocalBindAddress}}:{{item.LocalBindPort}}
+      </td>
+    {{/block-slot}}
+{{/tabular-collection}}
+{{else}}
+  <p>
+    There are no upstreams.
+  </p>
+{{/if}}
