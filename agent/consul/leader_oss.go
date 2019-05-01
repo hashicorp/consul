@@ -1,4 +1,4 @@
-// +build !ent
+// +build !consulent
 
 package consul
 
