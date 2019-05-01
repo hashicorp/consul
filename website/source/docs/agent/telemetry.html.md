@@ -910,9 +910,27 @@ These metrics give insight into the health of the cluster as a whole.
     <td>counter</td>
   </tr>
   <tr>
+    <td>`consul.serf.member.failed`</td>
+    <td>This increments when an agent is marked dead. This can be an indicator of overloaded agents, network problems, or configuration errors where agents cannot connect to each other on the [required ports](/docs/agent/options.html#ports).</td>
+    <td>failures / interval</td>
+    <td>counter</td>
+  </tr>
+  <tr>
     <td>`consul.serf.member.flap`</td>
-    <td>Available in Consul 0.7 and later, this increments when an agent is marked dead and then recovers within a short time period. This can be an indicator of overloaded agents, network problems, or configuration errors where agents can not connect to each other on the [required ports](/docs/agent/options.html#ports).</td>
+     <td>Available in Consul 0.7 and later, this increments when an agent is marked dead and then recovers within a short time period. This can be an indicator of overloaded agents, network problems, or configuration errors where agents cannot connect to each other on the [required ports](/docs/agent/options.html#ports).</td>
     <td>flaps / interval</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.serf.member.join`</td>
+    <td>This increments when an agent joins the cluster. If an agent flapped or failed this counter also increments when it re-joins.</td>
+    <td>joins / interval</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.serf.member.left`</td>
+    <td>This increments when an agent leaves the cluster.</td>
+    <td>leaves / interval</td>
     <td>counter</td>
   </tr>
   <tr>
