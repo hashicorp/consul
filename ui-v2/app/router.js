@@ -74,6 +74,15 @@ export const routes = {
           _options: { path: '/create' },
         },
       },
+      roles: {
+        _options: { path: '/roles' },
+        edit: {
+          _options: { path: '/:id' },
+        },
+        create: {
+          _options: { path: '/create' },
+        },
+      },
       tokens: {
         _options: { path: '/tokens' },
         edit: {

@@ -8,6 +8,7 @@ export const SLUG_KEY = 'AccessorID';
 const model = Model.extend({
   [PRIMARY_KEY]: attr('string'),
   [SLUG_KEY]: attr('string'),
+  IDPName: attr('string'),
   SecretID: attr('string'),
   // Legacy
   Type: attr('string'),
@@ -27,7 +28,18 @@ const model = Model.extend({
       return [];
     },
   }),
+  Roles: attr({
+    defaultValue: function() {
+      return [];
+    },
+  }),
+  ServiceIdentities: attr({
+    defaultValue: function() {
+      return [];
+    },
+  }),
   CreateTime: attr('date'),
+  Hash: attr('string'),
   CreateIndex: attr('number'),
   ModifyIndex: attr('number'),
 });
@@ -39,6 +51,7 @@ export const ATTRS = writable(model, [
   'Local',
   'Description',
   'Policies',
+  'Roles',
   // SecretID isn't writable but we need it to identify an
   // update via the old API, see TokenAdapter dataForRequest
   'SecretID',

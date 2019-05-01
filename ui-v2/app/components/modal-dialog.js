@@ -38,9 +38,11 @@ export default DomBufferComponent.extend(SlotsMixin, WithResizing, {
   _close: function(e) {
     set(this, 'checked', false);
     const dialogPanel = get(this, 'dialog');
-    const overflowing = get(this, 'overflowingClass');
-    if (dialogPanel.classList.contains(overflowing)) {
-      dialogPanel.classList.remove(overflowing);
+    if (dialogPanel) {
+      const overflowing = get(this, 'overflowingClass');
+      if (dialogPanel.classList.contains(overflowing)) {
+        dialogPanel.classList.remove(overflowing);
+      }
     }
     // TODO: should we make a didDisappear?
     get(this, 'dom')
@@ -108,7 +110,7 @@ export default DomBufferComponent.extend(SlotsMixin, WithResizing, {
       if (get(e, 'target.checked')) {
         this._open(e);
       } else {
-        this._close();
+        this._close(e);
       }
     },
     close: function() {

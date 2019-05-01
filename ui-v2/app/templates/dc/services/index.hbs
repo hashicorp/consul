@@ -10,7 +10,7 @@
     {{/block-slot}}
     {{#block-slot 'toolbar'}}
 {{#if (gt items.length 0) }}
-        {{catalog-filter searchable=searchable search=filters.s status=filters.status onchange=(action 'filter')}}
+    {{#phrase-editor placeholder=(if (eq terms.length 0) 'service:name tag:name status:critical search-term' '') items=terms searchable=searchable}}{{/phrase-editor}}
 {{/if}}
     {{/block-slot}}
     {{#block-slot 'content'}}
@@ -47,12 +47,8 @@
                         passingWidth=passingWidth warningWidth=warningWidth criticalWidth=criticalWidth
                       }}
                     </td>
-                    <td class="tags" style={{remainingWidth}}>
-                    {{#if (gt item.Tags.length 0)}}
-                      {{#each item.Tags as |item|}}
-                        <span>{{item}}</span>
-                      {{/each}}
-                    {{/if}}
+                    <td style={{remainingWidth}}>
+                      {{tag-list items=item.Tags}}
                     </td>
                 {{/block-slot}}
             {{/tabular-collection}}

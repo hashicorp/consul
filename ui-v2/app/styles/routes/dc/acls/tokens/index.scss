@@ -1,10 +1,8 @@
-.template-token.template-edit [for='new-policy-toggle'] {
+// TODO: Move this out of here and into probably modal
+.type-dialog {
   @extend %anchor;
   cursor: pointer;
   float: right;
-}
-%pill.policy-management {
-  @extend %with-star;
 }
 %token-yours {
   text-indent: 20px;
@@ -27,7 +25,4 @@
 }
 .template-token.template-edit dl {
   @extend %form-row;
-}
-.template-token.template-edit dd .with-feedback {
-  top: -5px;
 }

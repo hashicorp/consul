@@ -35,7 +35,7 @@ test('it creates an EventSource class implementing EventTarget', function(assert
   assert.ok(source instanceof EventTarget);
 });
 test('the default runner loops and can be closed', function(assert) {
-  assert.expect(12); // 10 not closed, 1 to close and the final call count
+  assert.expect(13); // 10 not closed, 1 to close, the final call count, plus the close event
   let count = 0;
   const isClosed = function() {
     count++;
@@ -50,9 +50,11 @@ test('the default runner loops and can be closed', function(assert) {
         then: then,
       };
     },
+    dispatchEvent: this.stub(),
   };
   defaultRunner(target, configuration, isClosed);
   assert.ok(then.callCount == 10);
+  assert.ok(target.dispatchEvent.calledOnce);
 });
 test('it calls the defaultRunner', function(assert) {
   const Promise = createPromise();

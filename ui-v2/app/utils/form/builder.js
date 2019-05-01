@@ -32,26 +32,25 @@ const defaultChangeset = function(data, validators) {
  */
 export default function(changeset = defaultChangeset, getFormNameProperty = parseElementName) {
   return function(name = '', obj = {}) {
-    let _data;
-    const _name = name;
     const _children = {};
     let _validators = null;
     // TODO make this into a class to reuse prototype
-    return {
+    const form = {
+      data: null,
+      name: name,
       getName: function() {
-        return _name;
+        return this.name;
       },
       setData: function(data) {
         // Array check temporarily for when we get an empty array from repo.status
         if (_validators && !Array.isArray(data)) {
-          _data = changeset(data, _validators);
-        } else {
-          _data = data;
+          data = changeset(data, _validators);
         }
+        set(this, 'data', data);
         return this;
       },
       getData: function() {
-        return _data;
+        return this.data;
       },
       add: function(child) {
         _children[child.getName()] = child;
@@ -66,7 +65,7 @@ export default function(changeset = defaultChangeset, getFormNameProperty = pars
         //
         let config = obj;
         // if the name (usually the name of the model) isn't this form, look at its children
-        if (name !== _name) {
+        if (name !== this.getName()) {
           if (this.has(name)) {
             // is its a child form then use the child form
             return this.form(name).handleEvent(e);
@@ -128,6 +127,20 @@ export default function(changeset = defaultChangeset, getFormNameProperty = pars
         }
         return this;
       },
+      clear: function(cb = {}) {
+        if (typeof cb === 'function') {
+          return (this.clearer = cb);
+        } else {
+          return this.setData(this.clearer(cb)).getData();
+        }
+      },
+      submit: function(cb = {}) {
+        if (typeof cb === 'function') {
+          return (this.submitter = cb);
+        } else {
+          this.submitter(this.getData());
+        }
+      },
       setValidators: function(validators) {
         _validators = validators;
         return this;
@@ -156,5 +169,8 @@ export default function(changeset = defaultChangeset, getFormNameProperty = pars
         return typeof _children[name] !== 'undefined';
       },
     };
+    form.submit = form.submit.bind(form);
+    form.reset = form.reset.bind(form);
+    return form;
   };
 }

@@ -1,6 +1,7 @@
 import intention from 'consul-ui/search/filters/intention';
 import token from 'consul-ui/search/filters/token';
 import policy from 'consul-ui/search/filters/policy';
+import role from 'consul-ui/search/filters/role';
 import kv from 'consul-ui/search/filters/kv';
 import acl from 'consul-ui/search/filters/acl';
 import node from 'consul-ui/search/filters/node';
@@ -19,6 +20,7 @@ export function initialize(application) {
     token: token(filterable),
     acl: acl(filterable),
     policy: policy(filterable),
+    role: role(filterable),
     kv: kv(filterable),
     healthyNode: node(filterable),
     unhealthyNode: node(filterable),

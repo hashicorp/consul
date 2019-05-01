@@ -29,6 +29,10 @@ export default function(type, count, obj) {
       key = 'CONSUL_POLICY_COUNT';
       obj['CONSUL_ACLS_ENABLE'] = 1;
       break;
+    case 'role':
+      key = 'CONSUL_ROLE_COUNT';
+      obj['CONSUL_ACLS_ENABLE'] = 1;
+      break;
     case 'token':
       key = 'CONSUL_TOKEN_COUNT';
       obj['CONSUL_ACLS_ENABLE'] = 1;

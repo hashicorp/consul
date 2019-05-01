@@ -1,0 +1,76 @@
+{{yield}}
+<fieldset>
+  {{#yield-slot 'template'}}
+  {{else}}
+    <header>
+      Policy or service identity?
+    </header>
+    <p>
+      A Service Identity is default policy with a configurable service name. This saves you some time and effort you're using Consul for Connect features.
+    </p>
+    {{! this should use radio-group }}
+    <div role="radiogroup" class={{if item.error.Type ' has-error'}}>
+        {{#each templates as |template|}}
+            <label>
+              <span>{{template.name}}</span>
+              <input data-test-radiobutton={{concat 'template_' template.template}} type="radio" name="{{name}}[template]" value={{template.template}} checked={{eq item.template template.template}} onchange={{action (changeset-set item 'template') value='target.value'}}/>
+            </label>
+        {{/each}}
+    </div>
+  {{/yield-slot}}
+    <label class="type-text{{if item.error.Name ' has-error'}}">
+        <span>Name</span>
+        <input type="text" value={{item.Name}} name="{{name}}[Name]" autofocus="autofocus" oninput={{action 'change'}} />
+        <em>
+          Maximum 128 characters. May only include letters (uppercase and/or lowercase) and/or numbers. Must be unique.
+        </em>
+        {{#if item.error.Name}}
+          <strong>{{item.error.Name.validation}}</strong>
+        {{/if}}
+    </label>
+    <label class="type-text">
+        <span>Rules <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
+{{#if (eq item.template '') }}
+        {{code-editor syntax='hcl' class=(if item.error.Rules 'error') name=(concat name '[Rules]') value=item.Rules onkeyup=(action 'change' (concat name '[Rules]'))}}
+        {{#if item.error.Rules}}
+          <strong>{{item.error.Rules.validation}}</strong>
+        {{/if}}
+{{else}}
+        {{#code-editor name=(concat name '[Rules]') syntax='hcl' oninput=(action 'change' (concat name '[Rules]'))}}
+          {{~component 'service-identity' name=item.Name~}}
+        {{/code-editor}}
+{{/if}}
+    </label>
+    <div class="type-toggle">
+      <span>Valid datacenters</span>
+      <label>
+        <input type="checkbox" name="{{name}}[isScoped]" checked={{if (not isScoped) 'checked' }} onchange={{action 'change'}} />
+        <span>All</span>
+      </label>
+    </div>
+{{#if isScoped }}
+    <div class="checkbox-group" role="group">
+      {{#each datacenters as |dc| }}
+        <label class="type-checkbox">
+          <input type="checkbox" name="{{name}}[Datacenters]" value={{dc.Name}} checked={{if (contains dc.Name item.Datacenters) 'checked' }} onchange={{action 'change'}} />
+          <span>{{dc.Name}}</span>
+        </label>
+      {{/each}}
+      {{#each item.Datacenters as |dc| }}
+{{#if (not (find-by 'Name' dc datacenters))}}
+        <label class="type-checkbox">
+          <input type="checkbox" name="{{name}}[Datacenters]" value={{dc}} checked="checked" onchange={{action 'change'}} />
+          <span>{{dc}}</span>
+        </label>
+{{/if}}
+      {{/each}}
+    </div>
+{{/if}}
+{{#if (eq item.template '') }}
+  <label class="type-text">
+    <span>Description (Optional)</span>
+    <textarea name="{{name}}[Description]" value={{item.Description}} oninput={{action 'change'}}></textarea>
+  </label>
+{{/if}}
+</fieldset>
+

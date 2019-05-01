@@ -2,6 +2,7 @@
 {{#if (gt items.length 0)}}
   {{#tabular-collection
       data-test-tokens
+      class='token-list'
       items=(sort-by 'AccessorID:asc' items) as |item index|
   }}
   {{#if caption}}

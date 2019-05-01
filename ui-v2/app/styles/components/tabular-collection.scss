@@ -31,6 +31,43 @@ table.dom-recycling {
 /* using: */
 /* calc(<100% divided by number of non-fixed width cells> - <sum of widths of fixed cells divided by number of non-fixed width cells>) */
 
+table tr > *:nth-last-child(2):first-child,
+table tr > *:nth-last-child(2):first-child ~ * {
+  width: calc(100% / 2);
+}
+table tr > *:nth-last-child(3):first-child,
+table tr > *:nth-last-child(3):first-child ~ * {
+  width: calc(100% / 3);
+}
+table tr > *:nth-last-child(4):first-child,
+table tr > *:nth-last-child(4):first-child ~ * {
+  width: calc(100% / 4);
+}
+table tr > *:nth-last-child(5):first-child,
+table tr > *:nth-last-child(5):first-child ~ * {
+  width: calc(100% / 5);
+}
+
+table.has-actions tr > .actions {
+  @extend %table-actions;
+}
+table.has-actions tr > *:nth-last-child(2):first-child,
+table.has-actions tr > *:nth-last-child(2):first-child ~ * {
+  width: calc(100% - 60px);
+}
+table.has-actions tr > *:nth-last-child(3):first-child,
+table.has-actions tr > *:nth-last-child(3):first-child ~ * {
+  width: calc(50% - 30px);
+}
+table.has-actions tr > *:nth-last-child(4):first-child,
+table.has-actions tr > *:nth-last-child(4):first-child ~ * {
+  width: calc(33% - 20px);
+}
+table.has-actions tr > *:nth-last-child(5):first-child,
+table.has-actions tr > *:nth-last-child(5):first-child ~ * {
+  width: calc(25% - 15px);
+}
+
 /*TODO: trs only live in tables, get rid of table */
 html.template-service.template-list main table tr {
   @extend %services-row;
@@ -38,26 +75,16 @@ html.template-service.template-list main table tr {
 html.template-service.template-show #instances table tr {
   @extend %instances-row;
 }
-html.template-instance.template-show #upstreams table tr {
-  @extend %upstreams-row;
-}
-html.template-intention.template-list main table tr {
-  @extend %intentions-row;
-}
-html.template-kv.template-list main table tr {
-  @extend %kvs-row;
-}
-html.template-acl.template-list main table tr {
-  @extend %acls-row;
-}
-html.template-policy.template-list main table tr {
-  @extend %policies-row;
-}
 html.template-token.template-list main table tr {
   @extend %tokens-row;
 }
+html.template-role.template-list main table tr {
+  @extend %roles-row;
+}
 html.template-policy.template-edit [role='dialog'] table tr,
-html.template-policy.template-edit main table tr {
+html.template-policy.template-edit main table tr,
+html.template-role.template-edit [role='dialog'] table tr,
+html.template-role.template-edit main table.token-list tr {
   @extend %tokens-minimal-row;
 }
 html.template-token.template-list main table tr td.me,
@@ -65,12 +92,54 @@ html.template-token.template-list main table tr td.me ~ td,
 html.template-token.template-list main table tr th {
   @extend %tokens-your-row;
 }
-html.template-node.template-show main table tr {
-  @extend %node-services-row;
-}
 html.template-node.template-show main table.sessions tr {
   @extend %node-sessions-row;
 }
+// this will get auto calculated later in tabular-collection.js
+// keeping this here for reference
+// %services-row > * {
+// (100% / 2) - (160px / 2)
+// width: calc(50% - 160px);
+// }
+%services-row > *:nth-child(2) {
+  width: 100px;
+}
+%services-row > * {
+  width: auto;
+}
+%instances-row > * {
+  width: calc(100% / 5);
+}
+%tokens-row > *:first-child,
+%tokens-minimal-row > *:not(last-child),
+%tokens-row > *:nth-child(2),
+%tokens-your-row:nth-last-child(2) {
+  width: 120px;
+}
+%tokens-row > *:nth-child(3) {
+  width: calc(30% - 150px);
+}
+%tokens-row > *:nth-child(4) {
+  width: calc(70% - 150px);
+}
+%tokens-your-row:nth-child(4) {
+  width: calc(70% - 270px) !important;
+}
+%tokens-row > *:last-child {
+  @extend %table-actions;
+}
+%tokens-minimal-row > *:last-child {
+  width: calc(100% - 240px) !important;
+}
+
+%roles-row > *:nth-child(1),
+%roles-row > *:nth-child(2) {
+  width: calc(22% - 20px) !important;
+}
+%roles-row > *:nth-child(3) {
+  width: calc(56% - 20px) !important;
+}
+
 @media #{$--horizontal-session-list} {
   %node-sessions-row > * {
     // (100% / 7) - (300px / 6) - (120px / 6)
@@ -101,37 +170,6 @@ html.template-node.template-show main table.sessions tr {
     display: none;
   }
 }
-%intentions-row > * {
-  width: calc(25% - 15px);
-}
-%intentions-row > *:last-child {
-  @extend %table-actions;
-}
-%acls-row > * {
-  width: calc(50% - 30px);
-}
-%acls-row > *:last-child {
-  @extend %table-actions;
-}
-%tokens-row > *:first-child,
-%tokens-minimal-row > *:not(last-child),
-%tokens-row > *:nth-child(2),
-%tokens-your-row:nth-last-child(2) {
-  width: 120px;
-}
-%tokens-row > *:nth-child(3),
-%tokens-row > *:nth-child(4) {
-  width: calc(50% - 150px);
-}
-%tokens-your-row:nth-child(4) {
-  width: calc(50% - 270px) !important;
-}
-%tokens-row > *:last-child {
-  @extend %table-actions;
-}
-%tokens-minimal-row > *:last-child {
-  width: calc(100% - 240px);
-}
 @media #{$--lt-medium-table} {
   /* Token > Policies */
   /* Token > Your Token */
@@ -147,38 +185,4 @@ html.template-node.template-show main table.sessions tr {
   %instances-row > * {
     width: calc(100% / 4);
   }
-}
-
-%kvs-row > *:first-child {
-  width: calc(100% - 60px);
-}
-%kvs-row > *:last-child {
-  @extend %table-actions;
-}
-%node-services-row > * {
-  width: calc(100% / 3);
-}
-%policies-row > * {
-  width: calc(33% - 20px);
-}
-%policies-row > *:last-child {
-  @extend %table-actions;
-}
-// this will get auto calculated later in tabular-collection.js
-// keeping this here for reference
-// %services-row > * {
-// (100% / 2) - (160px / 2)
-// width: calc(50% - 160px);
-// }
-%services-row > *:nth-child(2) {
-  width: 100px;
-}
-%services-row > * {
-  width: auto;
-}
-%instances-row > * {
-  width: calc(100% / 5);
-}
-%upstreams-row > * {
-  width: calc(100% / 4);
 }

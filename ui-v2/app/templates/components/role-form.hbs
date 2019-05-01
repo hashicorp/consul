@@ -1,0 +1,26 @@
+{{yield}}
+<fieldset>
+    <label class="type-text{{if item.error.Name ' has-error'}}">
+        <span>Name</span>
+        <input type="text" value={{item.Name}} name="role[Name]" autofocus="autofocus" oninput={{action 'change'}} />
+        <em>
+          Maximum 256 characters. May only include letters (uppercase and/or lowercase) and/or numbers. Must be unique.
+        </em>
+        {{#if item.error.Name}}
+          <strong>{{item.error.Name.validation}}</strong>
+        {{/if}}
+    </label>
+  <label class="type-text">
+    <span>Description (Optional)</span>
+    <textarea name="role[Description]" value={{item.Description}} oninput={{action 'change'}}></textarea>
+  </label>
+</fieldset>
+{{!TODO: temporary policies id, look at the inception token modals and get rid of id="policies" and use something else}}
+<fieldset id="policies" class="policies">
+  <h2>Policies</h2>
+  {{#yield-slot 'policy' (block-params item)}}
+    {{yield}}
+  {{else}}
+    {{policy-selector dc=dc items=item.Policies}}
+  {{/yield-slot}}
+</fieldset>

@@ -1,5 +1,5 @@
 {{yield}}
-<table class="with-details">
+<table class="with-details has-actions">
   <thead>
     <tr>
       {{#yield-slot 'header'}}{{yield}}{{/yield-slot}}
@@ -16,7 +16,7 @@
       </tr>
       <tr>
         <td colspan="3">
-          <input type="checkbox" value={{index}} name={{name}} id={{concat inputId index}} onchange={{action 'change' item}} />
+          <input type="checkbox" checked={{ not (is-empty item.closed) }} value={{index}} name={{name}} id={{concat inputId index}} onchange={{action 'change' item items}} />
           <div>
             <label for={{concat inputId index}}><span>Hide details</span></label>
             <div>

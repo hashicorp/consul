@@ -1,4 +1,4 @@
-export default function(scenario, assert, currentPage, pauseUntil, pluralize) {
+export default function(scenario, assert, find, currentPage, pauseUntil, pluralize) {
   scenario
     .then('pause until I see $number $model model[s]?', function(num, model) {
       return pauseUntil(function(resolve) {
@@ -13,6 +13,18 @@ export default function(scenario, assert, currentPage, pauseUntil, pluralize) {
     })
     .then(['I see $num $model model[s]?'], function(num, model) {
       const len = currentPage()[pluralize(model)].filter(function(item) {
+        return item.isVisible;
+      }).length;
+
+      assert.equal(len, num, `Expected ${num} ${pluralize(model)}, saw ${len}`);
+    })
+    .then(['I see $num $model model[s]? on the $component component'], function(
+      num,
+      model,
+      component
+    ) {
+      const obj = find(component);
+      const len = obj[pluralize(model)].filter(function(item) {
         return item.isVisible;
       }).length;
 

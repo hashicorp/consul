@@ -29,3 +29,10 @@ td a.is-management::after {
     margin-top: 0;
   }
 }
+[name='role[state]'],
+[name='role[state]'] + * {
+  display: none;
+}
+[name='role[state]']:checked + * {
+  display: block;
+}
