@@ -1110,6 +1110,14 @@ default will automatically work with some tooling.
   `server_name`) to set up the client for HTTP or gRPC health checks. This allows services requiring 2-way TLS to
   be checked using the agent's credentials. This was added in Consul 1.0.1 and defaults to false.
 
+* <a name="enable_central_service_config"></a><a href="#enable_central_service_config">`enable_central_service_config`</a>
+  When set, the Consul agent will look for any centralized service configurations that match a registering service instance. 
+  If it finds any, the agent will merge the centralized defaults with the service instance configuration. This allows for 
+  things like service protocol or proxy configuration to be defined centrally and inherited by any
+  affected service registrations.
+  
+  
+
 * <a name="enable_debug"></a><a href="#enable_debug">`enable_debug`</a> When set, enables some
   additional debugging features. Currently, this is only used to access runtime profiling HTTP endpoints, which
   are available with an `operator:read` ACL regardles of the value of `enable_debug`.

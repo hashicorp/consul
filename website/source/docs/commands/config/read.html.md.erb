@@ -1,0 +1,45 @@
+---
+layout: "docs"
+page_title: "Commands: Config Read"
+sidebar_current: "docs-commands-config-read"
+---
+
+# Consul Config Read
+
+Command: `consul config read`
+
+The `config read` command reads the config entry specified by the given 
+kind and name and outputs its JSON representation. See the
+[agent configuration](/docs/agent/options.html#enable_central_service_config)
+for more information on how to enable this functionality for centrally 
+configuring services.
+
+## Usage
+
+Usage: `consul config read [options]`
+
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+
+#### Config Read Options
+
+* `-kind` - Specifies the kind of the config entry to read.
+
+* `-name` - Specifies the name of the config entry to read.
+
+## Examples
+
+    $ consul config read -kind service-defaults -name web
+    {
+        "Kind": "service-defaults",
+        "Name": "web",
+        "Protocol": "http",
+        "Connect": {
+            "SidecarProxy": false
+        },
+        "CreateIndex": 13,
+        "ModifyIndex": 13
+    }
+
+
