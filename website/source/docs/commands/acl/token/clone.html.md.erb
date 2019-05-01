@@ -1,0 +1,45 @@
+---
+layout: "docs"
+page_title: "Commands: ACL Token Clone"
+sidebar_current: "docs-commands-acl-token-clone"
+---
+
+# Consul ACL Token Clone
+
+Command: `consul acl token clone`
+
+The `acl token clone` command clones an existing token.
+
+## Usage
+
+Usage: `consul acl token clone [options]`
+
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
+
+#### Command Options
+
+* `-description=<string>` - A description of the new cloned token.
+
+* `-id=<string>` -  The Accessor ID of the token to clone. It may be specified
+   as a unique ID prefix but will error if the prefix matches multiple token
+   Accessor IDs. The special value of 'anonymous' may be provided instead of
+   the anonymous tokens accessor ID
+
+## Examples
+
+Clone a token:
+
+```sh
+$ consul acl token clone -id 59f8 -description "Clone of Super User"
+Token cloned successfully.
+AccessorID:   dcfa52ed-9288-b3ff-056d-255ef69d2d88
+SecretID:     0005d17e-5bb2-7e8b-7bfa-15f2eee9ad14
+Description:  Clone of Super User
+Local:        false
+Create Time:  2018-10-22 16:26:02.909096 -0400 EDT
+Policies:
+   00000000-0000-0000-0000-000000000001 - global-management
+```

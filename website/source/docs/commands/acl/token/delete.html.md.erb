@@ -1,0 +1,34 @@
+---
+layout: "docs"
+page_title: "Commands: ACL Token Delete"
+sidebar_current: "docs-commands-acl-token-delete"
+---
+
+# Consul ACL Token Delete
+
+Command: `consul acl token delete`
+
+The `acl token delete` command deletes a token.
+
+## Usage
+
+Usage: `consul acl token delete [options]`
+
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
+
+#### Command Options
+
+* `-id=<string>` - The ID of the token to delete. It may be specified as a
+   unique ID prefix but will error if the prefix matches multiple token IDs.
+
+## Examples
+
+Delete a token:
+
+```sh
+$ consul acl token delete -id 35b8
+Token "35b8ecb0-707c-ee18-2002-81b238b54b38" deleted successfully
+```

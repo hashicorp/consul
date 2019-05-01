@@ -203,7 +203,7 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Update an ACL Role"
+const synopsis = "Update an ACL role"
 const help = `
 Usage: consul acl role update [options]
 
@@ -211,7 +211,7 @@ Usage: consul acl role update [options]
   current state so that you do not have to provide all parameters. This
   behavior can be disabled by passing -no-merge.
 
-  Rename the Role:
+  Rename the role:
 
           $ consul acl role update -id abcd -name "better-name"
 

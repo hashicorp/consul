@@ -23,11 +23,11 @@ func (c *cmd) Help() string {
 	return flags.Usage(help, nil)
 }
 
-const synopsis = "Manage Consul's ACL Binding Rules"
+const synopsis = "Manage Consul's ACL binding rules"
 const help = `
 Usage: consul acl binding-rule <subcommand> [options] [args]
 
-  This command has subcommands for managing Consul's ACL Binding Rules. Here
+  This command has subcommands for managing Consul's ACL binding rules. Here
   are some simple examples, and more detailed examples are available in the
   subcommands or the documentation.
 

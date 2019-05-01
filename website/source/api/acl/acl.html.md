@@ -12,7 +12,8 @@ description: |-
 
 The `/acl` endpoints are used to manage ACL tokens and policies in Consul, [bootstrap the ACL system](#bootstrap-acls), [check ACL replication status](#check-acl-replication), and [translate rules](#translate-rules). There are additional pages for managing [tokens](/api/acl/tokens.html) and [policies](/api/acl/policies.html) with the `/acl` endpoints.
 
-For more information about ACLs, please see the [ACL Guide](/docs/guides/acl.html).
+For more information on how to setup ACLs, please see
+the [ACL Guide](https://learn.hashicorp.com/consul/advanced/day-1-operations/production-acls).
 
 ## Bootstrap ACLs
 
@@ -262,4 +263,113 @@ $ curl -X GET http://127.0.0.1:8500/v1/acl/rules/translate/4f48f7e6-9359-4890-8e
 agent_prefix "" {
    policy = "read"
 }
+```
+
+## Login to Auth Method
+
+This endpoint was added in Consul 1.5.0 and is used to exchange an [auth
+method](/docs/acl/acl-auth-methods.html) bearer token for a newly-created
+Consul ACL token.
+
+| Method | Path                         | Produces                   |
+| ------ | ---------------------------- | -------------------------- |
+| `POST` | `/acl/login`                 | `application/json`         |
+
+The table below shows this endpoint's support for
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`             | `none`            | `none`        | `none`       |
+
+### Parameters
+
+- `AuthMethod` `(string: <required>)` - The name of the auth method to use for login.
+
+- `BearerToken` `(string: <required>)` - The bearer token to present to the
+  auth method during login for authentication purposes. For the Kubernetes auth
+  method this is a [Service Account Token
+  (JWT)](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#service-account-tokens).
+
+- `Meta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata
+  linked to the token. Can be useful to track origins.
+
+### Sample Payload
+
+```json
+{
+    "AuthMethod": "minikube",
+    "BearerToken": "eyJhbGciOiJSUzI1NiIsImtpZCI6IiJ9..."
+}
+```
+
+### Sample Request
+
+```sh
+$ curl \
+    --request POST \
+    --data @payload.json \
+    http://127.0.0.1:8500/v1/acl/login
+```
+
+### Sample Response
+
+```json
+{
+    "AccessorID": "926e2bd2-b344-d91b-0c83-ae89f372cd9b",
+    "SecretID": "b78d37c7-0ca7-5f4d-99ee-6d9975ce4586",
+    "Description": "token created via login",
+    "Roles": [
+        {
+            "ID": "3356c67c-5535-403a-ad79-c1d5f9df8fc7",
+            "Name": "demo"
+        }
+    ],
+    "ServiceIdentities": [
+        {
+            "ServiceName": "example"
+        }
+    ],
+    "Local": true,
+    "AuthMethod": "minikube",
+    "CreateTime": "2019-04-29T10:08:08.404370762-05:00",
+    "Hash": "nLimyD+7l6miiHEBmN/tvCelAmE/SbIXxcnTzG3pbGY=",
+    "CreateIndex": 36,
+    "ModifyIndex": 36
+}
+```
+
+## Logout from Auth Method
+
+This endpoint was added in Consul 1.5.0 and is used to destroy a token created
+via the [login endpoint](#login-to-auth-method). The token deleted is specified
+with the `X-Consul-Token` header or the `token` query parameter.
+
+| Method | Path                         | Produces                   |
+| ------ | ---------------------------- | -------------------------- |
+| `POST` | `/acl/logout`                | `application/json`         |
+
+The table below shows this endpoint's support for
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`             | `none`            | `none`        | `none`       |
+
+-> **Note** - This endpoint requires no specific privileges as it is just
+deleting a token for which you already must possess its secret.
+
+### Sample Request
+
+```sh
+$ curl \
+    -H "X-Consul-Token: b78d37c7-0ca7-5f4d-99ee-6d9975ce4586" \
+    --request POST \
+    http://127.0.0.1:8500/v1/acl/logout
 ```

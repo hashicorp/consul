@@ -23,15 +23,15 @@ func (c *cmd) Help() string {
 	return flags.Usage(help, nil)
 }
 
-const synopsis = "Manage Consul's ACL Roles"
+const synopsis = "Manage Consul's ACL roles"
 const help = `
 Usage: consul acl role <subcommand> [options] [args]
 
-  This command has subcommands for managing Consul's ACL Roles.
+  This command has subcommands for managing Consul's ACL roles.
   Here are some simple examples, and more detailed examples are available
   in the subcommands or the documentation.
 
-  Create a new ACL Role:
+  Create a new ACL role:
 
       $ consul acl role create -name "new-role" \
                                -description "This is an example role" \

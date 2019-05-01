@@ -57,7 +57,7 @@ machine-generate. Rules can make use of one or more policies.
 
 Specification in the HCL format looks like:
 
-```text
+```hcl
 # These control access to the key/value store.
 key_prefix "" {
   policy = "read"
@@ -79,7 +79,7 @@ operator = "read"
 
 This is equivalent to the following JSON input:
 
-```javascript
+```json
 {
   "key_prefix": {
     "": {
@@ -154,7 +154,7 @@ The `acl` resource controls access to ACL operations in the
 
 ACL rules look like this:
 
-```text
+```hcl
 acl = "write"
 ```
 
@@ -170,7 +170,7 @@ and [`service` or `service_prefix`](#service-rules) policies instead.
 
 Agent rules look like this:
 
-```text
+```hcl
 agent_prefix "" {
   policy = "read"
 }
@@ -199,7 +199,7 @@ firing events and listing events.
 
 Event rules look like this:
 
-```text
+```hcl
 event_prefix "" {
   policy = "read"
 }
@@ -221,7 +221,7 @@ give agents a token with access to this event prefix, in addition to configuring
 The `key` and `key_prefix` resources control access to key/value store operations in the [KV API](/api/kv.html). Key
 rules look like this:
 
-```text
+```hcl
 key_prefix "" {
   policy = "read"
 }
@@ -242,7 +242,7 @@ Consul 1.0 introduces a new `list` policy for keys that is only enforced when op
 `list` controls access to recursively list entries and keys, and enables more fine grained policies. With "acl.enable_key_list_policy",
 recursive reads via [the KV API](/api/kv.html#recurse) with an invalid token result in a 403. Example:
 
-```text
+```hcl
 key_prefix "" {
  policy = "deny"
 }
@@ -266,7 +266,7 @@ Consul Enterprise supports additional optional fields for key write policies for
 [Sentinel](https://docs.hashicorp.com/sentinel/app/consul/) integration. An example key rule with a
 Sentinel code policy looks like this:
 
-```text
+```hcl
 key "foo" {
   policy = "write"
   sentinel {
@@ -288,7 +288,7 @@ The `keyring` resource controls access to keyring operations in the
 
 Keyring rules look like this:
 
-```text
+```hcl
 keyring = "write"
 ```
 
@@ -303,7 +303,7 @@ operations like fetching the list of cluster members.
 
 Node rules look like this:
 
-```text
+```hcl
 node_prefix "" {
   policy = "read"
 }
@@ -358,7 +358,7 @@ The `operator` resource controls access to cluster-level operations in the
 
 Operator rules look like this:
 
-```text
+```hcl
 operator = "read"
 ```
 
@@ -374,7 +374,7 @@ policies, as will be explained below.
 
 Query rules look like this:
 
-```text
+```hcl
 query_prefix "" {
   policy = "read"
 }
@@ -491,7 +491,7 @@ and service discovery with the [Health API](/api/health.html).
 
 Service rules look like this:
 
-```text
+```hcl
 service_prefix "" {
   policy = "read"
 }
@@ -546,7 +546,7 @@ The `session` and `session_prefix` resources controls access to [Session API](/a
 
 Session rules look like this:
 
-```text
+```hcl
 session_prefix "" {
   policy = "read"
 }

@@ -49,6 +49,13 @@
 /docs/guides/bootstrapping.html            https://www.consul.io/docs/install/bootstrapping.html
 /docs/guides/sentinel.html                 https://www.consul.io/docs/agent/sentinel.html
 
+# CLI renames
+/docs/commands/acl/acl-bootstrap.html       https://www.consul.io/docs/commands/acl/bootstrap.html
+/docs/commands/acl/acl-policy.html          https://www.consul.io/docs/commands/acl/policy.html
+/docs/commands/acl/acl-set-agent-token.html https://www.consul.io/docs/commands/acl/set-agent-token.html
+/docs/commands/acl/acl-token.html           https://www.consul.io/docs/commands/acl/token.html
+/docs/commands/acl/acl-translate-rules.html https://www.consul.io/docs/commands/acl/translate-rules.html
+
 # Consul Learn Redirects
 /docs/guides/acl.html                          https://learn.hashicorp.com/consul/advanced/day-1-operations/acl-guide
 /docs/guides/agent-encryption.html             https://learn.hashicorp.com/consul/advanced/day-1-operations/agent-encryption

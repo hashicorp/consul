@@ -35,11 +35,11 @@ Usage: consul acl <subcommand> [options] [args]
 
       $ consul acl bootstrap
 
-  List all ACL Tokens:
+  List all ACL tokens:
 
       $ consul acl token list
 
-  Create a new ACL Policy:
+  Create a new ACL policy:
 
       $ consul acl policy create -name "new-policy" \
                                  -description "This is an example policy" \

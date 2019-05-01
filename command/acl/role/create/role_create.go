@@ -118,7 +118,7 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Create an ACL Role"
+const synopsis = "Create an ACL role"
 
 const help = `
 Usage: consul acl role create -name NAME [options]

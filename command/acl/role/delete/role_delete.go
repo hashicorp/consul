@@ -81,7 +81,7 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Delete an ACL Role"
+const synopsis = "Delete an ACL role"
 const help = `
 Usage: consul acl role delete [options] -id ROLE
 

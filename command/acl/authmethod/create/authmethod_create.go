@@ -45,7 +45,7 @@ func (c *cmd) init() {
 		"meta",
 		false,
 		"Indicates that auth method metadata such "+
-			"as the content hash and raft indices should be shown for each entry.",
+			"as the raft indices should be shown for each entry.",
 	)
 
 	c.flags.StringVar(
@@ -86,7 +86,7 @@ func (c *cmd) init() {
 		&c.k8sServiceAccountJWT,
 		"kubernetes-service-account-jwt",
 		"",
-		"A kubernetes service account JWT used to access the TokenReview API to "+
+		"A Kubernetes service account JWT used to access the TokenReview API to "+
 			"validate other JWTs during login. "+
 			"This flag is required for type=kubernetes.",
 	)
@@ -170,7 +170,7 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Create an ACL Auth Method"
+const synopsis = "Create an ACL auth method"
 
 const help = `
 Usage: consul acl auth-method create -name NAME -type TYPE [options]

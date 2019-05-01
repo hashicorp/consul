@@ -11,8 +11,11 @@ description: |-
 # ACL Policy HTTP API
 
 The `/acl/policy` endpoints [create](#create-a-policy), [read](#read-a-policy),
-[update](#update-a-policy), [list](#list-policies) and [delete](#delete-a-policy)  ACL policies in Consul.
-For more information about ACLs, please see the [ACL Guide](/docs/guides/acl.html).
+[update](#update-a-policy), [list](#list-policies) and
+[delete](#delete-a-policy)  ACL policies in Consul.  
+
+For more information on how to setup ACLs, please see
+the [ACL Guide](https://learn.hashicorp.com/consul/advanced/day-1-operations/production-acls).
 
 ## Create a Policy
 
@@ -35,8 +38,8 @@ The table below shows this endpoint's support for
 ### Parameters
 
 - `Name` `(string: <required>)` - Specifies a name for the ACL policy. The name
-   can only contain alphanumeric characters as well as `-` and `_` and must be
-   unique.
+  can contain alphanumeric characters, dashes `-`, and  underscores `_`.
+  This name must be unique.
 
 - `Description` `(string: "")` - Free form human readable description of the policy.
 
@@ -60,9 +63,8 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
-$ curl \
-    --request PUT \
+```sh
+$ curl -X PUT \
     --data @payload.json \
     http://127.0.0.1:8500/v1/acl/policy
 ```
@@ -110,7 +112,7 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
+```sh
 $ curl -X GET http://127.0.0.1:8500/v1/acl/policy/e359bd81-baca-903e-7e64-1ccd9fdc78f5
 ```
 
@@ -181,9 +183,8 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
-$ curl \
-    --request PUT \
+```sh
+$ curl -X PUT \
     --data @payload.json \
     http://127.0.0.1:8500/v1/acl/policy/c01a1f82-44be-41b0-a686-685fb6e0f485
 ```
@@ -230,8 +231,8 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
-$ curl -X DELETE
+```sh
+$ curl -X DELETE \
     http://127.0.0.1:8500/v1/acl/policy/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
 ```
 
@@ -260,7 +261,7 @@ The table below shows this endpoint's support for
 
 ## Sample Request
 
-```text
+```sh
 $ curl -X GET http://127.0.0.1:8500/v1/acl/policies
 ```
 

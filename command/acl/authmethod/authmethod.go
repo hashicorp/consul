@@ -23,11 +23,11 @@ func (c *cmd) Help() string {
 	return flags.Usage(help, nil)
 }
 
-const synopsis = "Manage Consul's ACL Auth Methods"
+const synopsis = "Manage Consul's ACL auth methods"
 const help = `
 Usage: consul acl auth-method <subcommand> [options] [args]
 
-  This command has subcommands for managing Consul's ACL Auth Methods.
+  This command has subcommands for managing Consul's ACL auth methods.
   Here are some simple examples, and more detailed examples are available in
   the subcommands or the documentation.
 

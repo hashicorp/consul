@@ -40,7 +40,7 @@ func (c *cmd) init() {
 		"meta",
 		false,
 		"Indicates that binding rule metadata such "+
-			"as the content hash and raft indices should be shown for each entry.",
+			"as the raft indices should be shown for each entry.",
 	)
 
 	c.flags.StringVar(
@@ -193,7 +193,7 @@ func isFlagSet(flags *flag.FlagSet, name string) bool {
 	return found
 }
 
-const synopsis = "Update an ACL Binding Rule"
+const synopsis = "Update an ACL binding rule"
 const help = `
 Usage: consul acl binding-rule update -id ID [options]
 
