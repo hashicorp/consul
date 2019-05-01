@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "ACL Auth Methods"
 sidebar_current: "docs-acl-auth-methods"
 description: |-
-  An auth method is a component in Consul that performs authentication against a trusted external party to authorize the creation of an appropriately scoped ACL token usable within the local datacenter.
+  An auth method is a component in Consul that performs authentication against a trusted external party to authorize the creation of an ACL tokens usable within the local datacenter.
 ---
 
 -> **1.5.0+:**  This guide only applies in Consul versions 1.5.0 and newer.
@@ -11,8 +11,8 @@ description: |-
 # ACL Auth Methods
 
 An auth method is a component in Consul that performs authentication against a
-trusted external party to authorize the creation of an appropriately scoped ACL
-token usable within the local datacenter.
+trusted external party to authorize the creation of an ACL tokens usable within
+the local datacenter.
 
 The only supported type of auth method in Consul 1.5.0 is
 [`kubernetes`](/docs/acl/auth-methods/kubernetes.html).
