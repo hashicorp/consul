@@ -285,7 +285,7 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 				}
 
 				// Nothing to configure if a protocol hasn't been set.
-				if upstreamConf.Protocol == "" {
+				if upstreamConf == nil || upstreamConf.Protocol == "" {
 					continue
 				}
 

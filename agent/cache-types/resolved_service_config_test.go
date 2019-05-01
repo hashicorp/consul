@@ -28,9 +28,13 @@ func TestResolvedServiceConfig(t *testing.T) {
 			require.True(req.AllowStale)
 
 			reply := args.Get(2).(*structs.ServiceConfigResponse)
-			reply.Definition = structs.ServiceDefinition{
-				ID:   "1234",
-				Name: "foo",
+			reply.ProxyConfig = map[string]interface{}{
+				"protocol": "http",
+			}
+			reply.UpstreamConfigs = map[string]map[string]interface{}{
+				"s2": map[string]interface{}{
+					"protocol": "http",
+				},
 			}
 
 			reply.QueryMeta.Index = 48

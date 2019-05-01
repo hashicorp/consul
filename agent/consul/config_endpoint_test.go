@@ -667,77 +667,44 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 		Kind:     structs.ServiceDefaults,
 		Name:     "foo",
 		Protocol: "http",
-		Connect: structs.ConnectConfiguration{
-			SidecarProxy: true,
-		},
+	}))
+	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
+		Kind:     structs.ServiceDefaults,
+		Name:     "bar",
+		Protocol: "grpc",
 	}))
 
 	args := structs.ServiceConfigRequest{
 		Name:       "foo",
 		Datacenter: s1.config.Datacenter,
+		Upstreams:  []string{"bar", "baz"},
 	}
 	var out structs.ServiceConfigResponse
 	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &args, &out))
+	// Hack to fix up the string encoding in the map[string]interface{}.
+	// msgpackRPC's codec doesn't use RawToString.
 	var err error
-	out.Definition.Connect.SidecarService.Proxy.Config, err = lib.MapWalk(out.Definition.Connect.SidecarService.Proxy.Config)
+	out.ProxyConfig, err = lib.MapWalk(out.ProxyConfig)
 	require.NoError(err)
+	for k := range out.UpstreamConfigs {
+		out.UpstreamConfigs[k], err = lib.MapWalk(out.UpstreamConfigs[k])
+		require.NoError(err)
+	}
 
-	expected := structs.ServiceDefinition{
-		Name: "foo",
-		Connect: &structs.ServiceConnect{
-			SidecarService: &structs.ServiceDefinition{
-				Proxy: &structs.ConnectProxyConfig{
-					Config: map[string]interface{}{
-						"foo":      int64(1),
-						"protocol": "http",
-					},
-				},
+	expected := structs.ServiceConfigResponse{
+		ProxyConfig: map[string]interface{}{
+			"foo":      int64(1),
+			"protocol": "http",
+		},
+		UpstreamConfigs: map[string]map[string]interface{}{
+			"bar": map[string]interface{}{
+				"protocol": "grpc",
 			},
 		},
+		// Don't know what this is deterministically
+		QueryMeta: out.QueryMeta,
 	}
-	require.Equal(expected, out.Definition)
-}
-
-func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
-	t.Parallel()
-
-	require := require.New(t)
-
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	codec := rpcClient(t, s1)
-	defer codec.Close()
-
-	// Create a dummy proxy/service config in the state store to look up.
-	state := s1.fsm.State()
-	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
-		Kind: structs.ProxyDefaults,
-		Name: structs.ProxyConfigGlobal,
-		Config: map[string]interface{}{
-			"foo": 1,
-		},
-	}))
-	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
-		Kind:     structs.ServiceDefaults,
-		Name:     "foo",
-		Protocol: "http",
-		Connect: structs.ConnectConfiguration{
-			SidecarProxy: true,
-		},
-	}))
-
-	// Add an upstream for foo to reference
-	require.NoError(state.EnsureConfigEntry(3, &structs.ServiceConfigEntry{
-		Kind:     structs.ServiceDefaults,
-		Name:     "web",
-		Protocol: "http",
-		Connect: structs.ConnectConfiguration{
-			SidecarProxy: true,
-		},
-	}))
-
-	t.Fatal("todo")
+	require.Equal(expected, out)
 }
 
 func TestConfigEntry_ResolveServiceConfig_ACLDeny(t *testing.T) {
