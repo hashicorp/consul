@@ -119,9 +119,23 @@ type serviceConfigWatch struct {
 	// for the resolved service config is received from the cache.
 	readyCh chan error
 
-	updateCh   chan cache.UpdateEvent
+	// ctx and cancelFunc store the overall context that lives as long as the
+	// Watch instance is needed, possibly spanning multiple cache.Notify
+	// lifetimes.
 	ctx        context.Context
 	cancelFunc func()
+
+	// cacheKey stores the key of the current request, when registration changes
+	// we check to see if a new cache watch is needed.
+	cacheKey string
+
+	// updateCh receives changes from cache watchers or registration changes.
+	updateCh chan cache.UpdateEvent
+
+	// notifyCancel, if non-nil it the cancel func that will stop the currently
+	// active Notify loop. It does not cancel ctx and is used when we need to
+	// switch to a new Notify call because cache key changed.
+	notifyCancel func()
 
 	lock sync.Mutex
 }
@@ -130,7 +144,7 @@ type serviceConfigWatch struct {
 // the updateCh. This is not safe to call more than once.
 func (s *serviceConfigWatch) Start() error {
 	s.ctx, s.cancelFunc = context.WithCancel(context.Background())
-	if err := s.startConfigWatch(); err != nil {
+	if err := s.ensureConfigWatch(); err != nil {
 		return err
 	}
 	go s.runWatch()
@@ -194,12 +208,22 @@ func (s *serviceConfigWatch) handleUpdate(event cache.UpdateEvent, locked, first
 			return fmt.Errorf("error watching service config: %v", event.Err)
 		}
 	} else {
-		switch event.Result.(type) {
+		switch res := event.Result.(type) {
 		case *serviceRegistration:
-			s.registration = event.Result.(*serviceRegistration)
+			s.registration = res
+			// We may need to restart watch if upstreams changed
+			if err := s.ensureConfigWatch(); err != nil {
+				return err
+			}
 		case *structs.ServiceConfigResponse:
-			resp := event.Result.(*structs.ServiceConfigResponse)
-			s.config = &resp.Definition
+			// Sanity check this even came from the currently active watch to ignore
+			// rare races when switching cache keys
+			if event.CorrelationID != s.cacheKey {
+				// It's a no-op. The new watcher will deliver (or may have already
+				// delivered) the correct config so just ignore this old message.
+				return nil
+			}
+			s.config = &res.Definition
 		default:
 			return fmt.Errorf("unknown update event type: %T", event)
 		}
@@ -252,20 +276,63 @@ func (s *serviceConfigWatch) updateAgentRegistration(ns *structs.NodeService) er
 	return nil
 }
 
-// startConfigWatch starts a cache.Notify goroutine to run a continuous blocking query
-// on the resolved service config for this service.
-func (s *serviceConfigWatch) startConfigWatch() error {
+// ensureConfigWatch starts a cache.Notify goroutine to run a continuous
+// blocking query on the resolved service config for this service. If the
+// registration has changed in a way that requires a new blocking query, it will
+// cancel any current watch and start a new one. It is a no-op if there is an
+// existing watch that is sufficient for the current registration. It is not
+// thread-safe and must only be called from the Start method (which is only safe
+// to call once as documented) or from inside the run loop.
+func (s *serviceConfigWatch) ensureConfigWatch() error {
 	name := s.registration.service.Service
+
+	var upstreams []string
+
+	if ss := s.registration.service.Connect.SidecarService; ss != nil {
+		if ss.Proxy != nil {
+			for _, us := range ss.Proxy.Upstreams {
+				if us.DestinationType == "" || us.DestinationType == structs.UpstreamDestTypeService {
+					upstreams = append(upstreams, us.DestinationName)
+				}
+			}
+		}
+	}
 
 	req := &structs.ServiceConfigRequest{
 		Name:         name,
 		Datacenter:   s.agent.config.Datacenter,
 		QueryOptions: structs.QueryOptions{Token: s.agent.config.ACLAgentToken},
+		Upstreams:    upstreams,
 	}
 	if s.registration.token != "" {
 		req.QueryOptions.Token = s.registration.token
 	}
-	err := s.agent.cache.Notify(s.ctx, cachetype.ResolvedServiceConfigName, req, fmt.Sprintf("service-config:%s", name), s.updateCh)
+
+	// See if this request is different from the current one
+	cacheKey := req.CacheInfo().Key
+	if cacheKey == s.cacheKey {
+		return nil
+	}
+
+	// If there is an existing notify running, stop it first. This may leave a
+	// blocking query running in the background but the Notify loop will swallow
+	// the response and exit when it next unblocks so we can consider it stopped.
+	if s.notifyCancel != nil {
+		s.notifyCancel()
+	}
+
+	// Make a new context just for this Notify call
+	ctx, cancel := context.WithCancel(s.ctx)
+	s.notifyCancel = cancel
+	s.cacheKey = cacheKey
+	// We use the cache key as the correlationID here. Notify in general will not
+	// respond on the updateCh after the context is cancelled however there could
+	// possible be a race where it has only just got an update and checked the
+	// context before we cancel and so might still deliver the old event. Using
+	// the cacheKey allows us to ignore updates from the old cache watch and makes
+	// even this rare edge case safe.
+	err := s.agent.cache.Notify(ctx, cachetype.ResolvedServiceConfigName, req,
+		s.cacheKey, s.updateCh)
 
 	return err
 }

@@ -37,8 +37,13 @@ load helpers
     must_match_in_prometheus_response localhost:1234 \
     '[\{,]local_cluster="s1"[,}] '
 
-  # Should be labelling with http listener prefix.
+  # Ensure we have http metrics for public listener
   run retry_defaults \
     must_match_in_prometheus_response localhost:1234 \
     '[\{,]envoy_http_conn_manager_prefix="public_listener_http"[,}]'
+
+  # Ensure we have http metrics for s2 upstream
+  run retry_defaults \
+    must_match_in_prometheus_response localhost:1234 \
+    '[\{,]envoy_http_conn_manager_prefix="upstram_s2_http"[,}]'
 }
