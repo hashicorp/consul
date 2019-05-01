@@ -205,9 +205,10 @@ func (s *serviceConfigWatch) handleUpdate(event cache.UpdateEvent, locked, first
 		}
 	}
 
+	// Merge the local registration with the central defaults and update this service
+	// in the local state.
 	service := s.mergeServiceConfig()
-	err := s.agent.addServiceInternal(service, s.registration.chkTypes, s.registration.persist, s.registration.token, s.registration.source)
-	if err != nil {
+	if err := s.updateAgentRegistration(service); err != nil {
 		// If this is the initial registration, return the error through the readyCh
 		// so it can be passed back to the original caller.
 		if firstRun {
@@ -219,6 +220,33 @@ func (s *serviceConfigWatch) handleUpdate(event cache.UpdateEvent, locked, first
 	// If this is the first registration, set the ready status by closing the channel.
 	if firstRun {
 		close(s.readyCh)
+	}
+
+	return nil
+}
+
+// updateAgentRegistration updates the service (and its sidecar, if applicable) in the
+// local state.
+func (s *serviceConfigWatch) updateAgentRegistration(ns *structs.NodeService) error {
+	// Grab and validate sidecar if there is one too
+	sidecar, sidecarChecks, sidecarToken, err := s.agent.sidecarServiceFromNodeService(ns, s.registration.token)
+	if err != nil {
+		return fmt.Errorf("Failed to validate sidecar for service %q: %v", ns.Service, err)
+	}
+
+	// Remove sidecar from NodeService now it's done it's job it's just a config
+	// syntax sugar and shouldn't be persisted in local or server state.
+	ns.Connect.SidecarService = nil
+
+	if err := s.agent.addServiceInternal(ns, s.registration.chkTypes, s.registration.persist, s.registration.token, s.registration.source); err != nil {
+		return fmt.Errorf("Failed to register service %q: %v", ns.Service, err)
+	}
+
+	// If there is a sidecar service, register that too.
+	if sidecar != nil {
+		if err := s.agent.addServiceInternal(sidecar, sidecarChecks, s.registration.persist, sidecarToken, s.registration.source); err != nil {
+			return fmt.Errorf("Failed to register sidecar for service %q: %v", ns.Service, err)
+		}
 	}
 
 	return nil

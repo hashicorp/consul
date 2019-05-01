@@ -368,6 +368,7 @@ func (c *ConfigEntryQuery) RequestDatacenter() string {
 type ServiceConfigRequest struct {
 	Name       string
 	Datacenter string
+	Upstreams  []string
 
 	QueryOptions
 }

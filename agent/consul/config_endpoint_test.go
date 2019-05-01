@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testrpc"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/require"
@@ -659,12 +660,16 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 		Kind: structs.ProxyDefaults,
 		Name: structs.ProxyConfigGlobal,
 		Config: map[string]interface{}{
-			"foo": "bar",
+			"foo": 1,
 		},
 	}))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
-		Kind: structs.ServiceDefaults,
-		Name: "foo",
+		Kind:     structs.ServiceDefaults,
+		Name:     "foo",
+		Protocol: "http",
+		Connect: structs.ConnectConfiguration{
+			SidecarProxy: true,
+		},
 	}))
 
 	args := structs.ServiceConfigRequest{
@@ -673,17 +678,66 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 	}
 	var out structs.ServiceConfigResponse
 	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &args, &out))
+	var err error
+	out.Definition.Connect.SidecarService.Proxy.Config, err = lib.MapWalk(out.Definition.Connect.SidecarService.Proxy.Config)
+	require.NoError(err)
 
 	expected := structs.ServiceDefinition{
 		Name: "foo",
-		Proxy: &structs.ConnectProxyConfig{
-			Config: map[string]interface{}{
-				"foo": "bar",
+		Connect: &structs.ServiceConnect{
+			SidecarService: &structs.ServiceDefinition{
+				Proxy: &structs.ConnectProxyConfig{
+					Config: map[string]interface{}{
+						"foo":      int64(1),
+						"protocol": "http",
+					},
+				},
 			},
 		},
 	}
-	out.Definition.Proxy.Config["foo"] = structs.Uint8ToString(out.Definition.Proxy.Config["foo"].([]uint8))
 	require.Equal(expected, out.Definition)
+}
+
+func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	// Create a dummy proxy/service config in the state store to look up.
+	state := s1.fsm.State()
+	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		Config: map[string]interface{}{
+			"foo": 1,
+		},
+	}))
+	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
+		Kind:     structs.ServiceDefaults,
+		Name:     "foo",
+		Protocol: "http",
+		Connect: structs.ConnectConfiguration{
+			SidecarProxy: true,
+		},
+	}))
+
+	// Add an upstream for foo to reference
+	require.NoError(state.EnsureConfigEntry(3, &structs.ServiceConfigEntry{
+		Kind:     structs.ServiceDefaults,
+		Name:     "web",
+		Protocol: "http",
+		Connect: structs.ConnectConfiguration{
+			SidecarProxy: true,
+		},
+	}))
+
+	t.Fatal("todo")
 }
 
 func TestConfigEntry_ResolveServiceConfig_ACLDeny(t *testing.T) {

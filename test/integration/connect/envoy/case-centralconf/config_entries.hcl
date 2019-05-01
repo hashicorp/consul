@@ -12,7 +12,7 @@ config_entries {
     name = "s1"
     protocol = "http"
     connect {
-      sidecarproxy = true
+      sidecar_proxy = true
     }
   }
   bootstrap {
@@ -20,7 +20,7 @@ config_entries {
     name = "s2"
     protocol = "http"
     connect {
-      sidecarproxy = true
+      sidecar_proxy = true
     }
   }
 }

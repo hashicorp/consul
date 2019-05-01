@@ -839,7 +839,39 @@ func (s *NodeService) Merge(other *NodeService) {
 
 	// Just take the entire Connect block from the other node.
 	// We can revisit this when adding more fields to centralized config.
-	s.Connect = other.Connect
+	if other.Connect.Native {
+		s.Connect.Native = true
+	}
+
+	// Merge the Proxy block.
+	if other.Connect.Proxy != nil {
+		if s.Connect.Proxy == nil {
+			s.Connect.Proxy = other.Connect.Proxy
+		} else {
+			if len(other.Connect.Proxy.Command) != 0 {
+				s.Connect.Proxy.Command = other.Connect.Proxy.Command
+			}
+			if other.Connect.Proxy.ExecMode != "" {
+				s.Connect.Proxy.ExecMode = other.Connect.Proxy.ExecMode
+			}
+
+			// Merge the Config.
+			if len(s.Connect.Proxy.Config) == 0 {
+				s.Connect.Proxy.Config = other.Connect.Proxy.Config
+			} else {
+				for k, v := range other.Connect.Proxy.Config {
+					s.Connect.Proxy.Config[k] = v
+				}
+			}
+
+			// Merge the Upstreams.
+			s.Connect.Proxy.Upstreams = MergeUpstreams(s.Connect.Proxy.Upstreams, other.Connect.Proxy.Upstreams)
+		}
+	}
+	if other.Connect.SidecarService != nil {
+		s.Connect.SidecarService = other.Connect.SidecarService
+	}
+
 	s.LocallyRegisteredAsSidecar = other.LocallyRegisteredAsSidecar
 }
 
