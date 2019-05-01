@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/go-msgpack/codec"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/coordinate"
-	"github.com/imdario/mergo"
 	"github.com/mitchellh/hashstructure"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -773,12 +772,9 @@ type ServiceConnect struct {
 	SidecarService *ServiceDefinition `json:",omitempty" bexpr:"-"`
 }
 
-// MergeDefaults overlays any empty fields in s with those taken from defaults.
-// Tags, metadata and proxy/upstream configs are unioned together instead of
-// overwritten.
-func (s *NodeService) MergeDefaults(defaults *NodeService) error {
-	return mergo.Merge(s, defaults,
-		mergo.WithAppendSlice, mergo.WithTransformers(&upstreamsMergeTransformer{}))
+// IsSidecarProxy returns true if the NodeService is a sidecar proxy.
+func (s *NodeService) IsSidecarProxy() bool {
+	return s.Kind == ServiceKindConnectProxy && s.Proxy.DestinationServiceID != ""
 }
 
 // Validate validates the node service configuration.

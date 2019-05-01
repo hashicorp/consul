@@ -246,31 +246,6 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 				}
 			}
 
-			reply.Index = index
-			reply.Definition = structs.ServiceDefinition{
-				Name: args.Name,
-			}
-
-			if serviceConf == nil || !serviceConf.Connect.SidecarProxy {
-				// No central config for this service, return an simple response with no
-				// defaults to apply; OR No sidecar proxy means nothing else to add to
-				// service definition (for now).
-				return nil
-			}
-
-			// We do need a sidecar proxy, set one up and get it's config from the
-			// defaults.
-			reply.Definition.Connect = &structs.ServiceConnect{
-				SidecarService: &structs.ServiceDefinition{},
-			}
-			if serviceConf.Protocol != "" {
-				reply.Definition.Connect.SidecarService.Proxy = &structs.ConnectProxyConfig{
-					Config: map[string]interface{}{
-						"protocol": serviceConf.Protocol,
-					},
-				}
-			}
-
 			_, proxyEntry, err := state.ConfigEntry(ws, structs.ProxyDefaults, structs.ProxyConfigGlobal)
 			if err != nil {
 				return err
@@ -283,19 +258,15 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 				}
 			}
 
+			reply.Index = index
 			// Apply the proxy defaults to the sidecar's proxy config
-			if proxyConf != nil {
-				if reply.Definition.Connect.SidecarService.Proxy == nil {
-					reply.Definition.Connect.SidecarService.Proxy = &structs.ConnectProxyConfig{
-						Config: proxyConf.Config,
-					}
-				} else if reply.Definition.Connect.SidecarService.Proxy.Config == nil {
-					reply.Definition.Connect.SidecarService.Proxy.Config = proxyConf.Config
-				} else {
-					for k, v := range proxyConf.Config {
-						reply.Definition.Connect.SidecarService.Proxy.Config[k] = v
-					}
+			reply.ProxyConfig = proxyConf.Config
+
+			if serviceConf != nil && serviceConf.Protocol != "" {
+				if reply.ProxyConfig == nil {
+					reply.ProxyConfig = make(map[string]interface{})
 				}
+				reply.ProxyConfig["protocol"] = serviceConf.Protocol
 			}
 
 			// Apply the upstream protocols to the upstream configs
@@ -318,17 +289,12 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 					continue
 				}
 
-				// Add the protocol to the config for this upstream.
-				if reply.Definition.Connect.SidecarService.Proxy == nil {
-					reply.Definition.Connect.SidecarService.Proxy = &structs.ConnectProxyConfig{}
+				if reply.UpstreamConfigs == nil {
+					reply.UpstreamConfigs = make(map[string]map[string]interface{})
 				}
-				reply.Definition.Connect.SidecarService.Proxy.Upstreams = append(reply.Definition.Connect.SidecarService.Proxy.Upstreams,
-					structs.Upstream{
-						DestinationName: upstream,
-						Config: map[string]interface{}{
-							"protocol": upstreamConf.Protocol,
-						},
-					})
+				reply.UpstreamConfigs[upstream] = map[string]interface{}{
+					"protocol": upstreamConf.Protocol,
+				}
 			}
 
 			return nil

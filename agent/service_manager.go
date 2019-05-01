@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/imdario/mergo"
 	"github.com/mitchellh/copystructure"
 	"golang.org/x/net/context"
 )
@@ -35,19 +36,14 @@ func NewServiceManager(agent *Agent) *ServiceManager {
 // to fetch the merged global defaults that apply to the service in order to compose the
 // initial registration.
 func (s *ServiceManager) AddService(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string, source configSource) error {
+	// For now only sidecar proxies have anything that can be configured
+	// centrally. So bypass the whole manager for regular services.
+	if !service.IsSidecarProxy() {
+		return s.agent.addServiceInternal(service, chkTypes, persist, token, source)
+	}
+
 	s.lock.Lock()
 	defer s.lock.Unlock()
-
-	// TODO(banks): this is jank - it fixes the issue for now and makes the
-	// integration test work but we need to support registration-configured
-	// sidecar registrations too. It's a bit gross because if they manually
-	// register a sidecar AND the central config enables one, we could end up
-	// doing two lots of watches and have the ServiceManager duplicating work of
-	// updating the sidecar's registration on config changes. That might be OK
-	// though since the cache will de-dupe the RPC watch in that case anyway.
-	if service.Kind == "connect-proxy" {
-		return nil
-	}
 
 	reg := serviceRegistration{
 		service:  service,
@@ -123,7 +119,7 @@ type serviceRegistration struct {
 // service/proxy defaults.
 type serviceConfigWatch struct {
 	registration *serviceRegistration
-	defaults     *structs.ServiceDefinition
+	defaults     *structs.ServiceConfigResponse
 
 	agent *Agent
 
@@ -235,7 +231,7 @@ func (s *serviceConfigWatch) handleUpdate(event cache.UpdateEvent, locked, first
 				// delivered) the correct config so just ignore this old message.
 				return nil
 			}
-			s.defaults = &res.Definition
+			s.defaults = res
 		default:
 			return fmt.Errorf("unknown update event type: %T", event)
 		}
@@ -267,28 +263,7 @@ func (s *serviceConfigWatch) handleUpdate(event cache.UpdateEvent, locked, first
 // updateAgentRegistration updates the service (and its sidecar, if applicable) in the
 // local state.
 func (s *serviceConfigWatch) updateAgentRegistration(ns *structs.NodeService) error {
-	// Grab and validate sidecar if there is one too
-	sidecar, sidecarChecks, sidecarToken, err := s.agent.sidecarServiceFromNodeService(ns, s.registration.token)
-	if err != nil {
-		return fmt.Errorf("Failed to validate sidecar for service %q: %v", ns.Service, err)
-	}
-
-	// Remove sidecar from NodeService now it's done it's job it's just a config
-	// syntax sugar and shouldn't be persisted in local or server state.
-	ns.Connect.SidecarService = nil
-
-	if err := s.agent.addServiceInternal(ns, s.registration.chkTypes, s.registration.persist, s.registration.token, s.registration.source); err != nil {
-		return fmt.Errorf("Failed to register service %q: %v", ns.Service, err)
-	}
-
-	// If there is a sidecar service, register that too.
-	if sidecar != nil {
-		if err := s.agent.addServiceInternal(sidecar, sidecarChecks, s.registration.persist, sidecarToken, s.registration.source); err != nil {
-			return fmt.Errorf("Failed to register sidecar for service %q: %v", ns.Service, err)
-		}
-	}
-
-	return nil
+	return s.agent.addServiceInternal(ns, s.registration.chkTypes, s.registration.persist, s.registration.token, s.registration.source)
 }
 
 // ensureConfigWatch starts a cache.Notify goroutine to run a continuous
@@ -299,16 +274,22 @@ func (s *serviceConfigWatch) updateAgentRegistration(ns *structs.NodeService) er
 // thread-safe and must only be called from the Start method (which is only safe
 // to call once as documented) or from inside the run loop.
 func (s *serviceConfigWatch) ensureConfigWatch() error {
-	name := s.registration.service.Service
-
+	ns := s.registration.service
+	name := ns.Service
 	var upstreams []string
 
-	if ss := s.registration.service.Connect.SidecarService; ss != nil {
-		if ss.Proxy != nil {
-			for _, us := range ss.Proxy.Upstreams {
-				if us.DestinationType == "" || us.DestinationType == structs.UpstreamDestTypeService {
-					upstreams = append(upstreams, us.DestinationName)
-				}
+	// Note that only sidecar proxies should even make it here for now although
+	// later that will change to add the condition.
+	if ns.IsSidecarProxy() {
+		// This is a sidecar proxy, ignore the proxy service's config since we are
+		// managed by the target service config.
+		name = ns.Proxy.DestinationServiceName
+
+		// Also if we have any upstreams defined, add them to the request so we can
+		// learn about their configs.
+		for _, us := range ns.Proxy.Upstreams {
+			if us.DestinationType == "" || us.DestinationType == structs.UpstreamDestTypeService {
+				upstreams = append(upstreams, us.DestinationName)
 			}
 		}
 	}
@@ -363,17 +344,39 @@ func (s *serviceConfigWatch) updateRegistration(registration *serviceRegistratio
 // mergeServiceConfig returns the final effective config for the watched service,
 // including the latest known global defaults from the servers.
 func (s *serviceConfigWatch) mergeServiceConfig() (*structs.NodeService, error) {
-	if s.defaults == nil {
+	if s.defaults == nil || !s.registration.service.IsSidecarProxy() {
 		return s.registration.service, nil
 	}
 
 	// We don't want to change s.registration in place since it is our source of
-	// truth about what was actually registered before defaults. So copy it first.
+	// truth about what was actually registered before defaults applied. So copy
+	// it first.
 	nsRaw, err := copystructure.Copy(s.registration.service)
 	if err != nil {
 		return nil, err
 	}
+
+	// Merge proxy defaults
 	ns := nsRaw.(*structs.NodeService)
-	err = ns.MergeDefaults(s.defaults.NodeService())
+
+	if err := mergo.Merge(&ns.Proxy.Config, s.defaults.ProxyConfig); err != nil {
+		return nil, err
+	}
+	// Merge upstream defaults if there were any returned
+	for i := range ns.Proxy.Upstreams {
+		// Get a pointer not a value copy of the upstream struct
+		us := &ns.Proxy.Upstreams[i]
+		if us.DestinationType != "" && us.DestinationType != structs.UpstreamDestTypeService {
+			continue
+		}
+		usCfg, ok := s.defaults.UpstreamConfigs[us.DestinationName]
+		if !ok {
+			// No config defaults to merge
+			continue
+		}
+		if err := mergo.Merge(&us.Config, usCfg); err != nil {
+			return nil, err
+		}
+	}
 	return ns, err
 }

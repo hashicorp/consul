@@ -46,7 +46,11 @@ type ServiceConfigEntry struct {
 	Kind     string
 	Name     string
 	Protocol string
-	Connect  ConnectConfiguration
+	// TODO(banks): enable this once we have upstreams supported too. Enabling
+	// sidecars actually makes no sense and adds complications when you don't
+	// allow upstreams to be specified centrally too.
+	//
+	// Connect ConnectConfiguration
 
 	RaftIndex
 }
@@ -410,8 +414,8 @@ func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {
 }
 
 type ServiceConfigResponse struct {
-	Definition ServiceDefinition
-
+	ProxyConfig     map[string]interface{}
+	UpstreamConfigs map[string]map[string]interface{}
 	QueryMeta
 }
 

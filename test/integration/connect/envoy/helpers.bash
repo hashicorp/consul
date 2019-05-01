@@ -25,7 +25,7 @@ function retry {
 }
 
 function retry_default {
-  retry 2 10 $@
+  retry 5 1 $@
 }
 
 function echored {
