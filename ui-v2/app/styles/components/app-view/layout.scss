@@ -61,7 +61,7 @@
   margin-bottom: 0.4em;
 }
 // TODO: Think about an %app-form or similar
-%app-content fieldset {
+%app-content fieldset:not(.freetext-filter) {
   padding-bottom: 0.3em;
   margin-bottom: 2em;
 }

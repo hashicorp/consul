@@ -19,6 +19,9 @@ main {
 // TODO: This should be its own component
 %app-view h1 span[data-tooltip] {
   @extend %with-external-source-icon;
+  // TODO: Look to remove this, right now its needed but this
+  // should automaticaly vertically center
+  margin-top: 20px;
 }
 %app-view h1 span.kind-proxy {
   @extend %type-icon, %with-proxy;

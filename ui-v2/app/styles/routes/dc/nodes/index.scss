@@ -4,3 +4,7 @@ html.template-node.template-show .sessions td:last-child {
 html.template-node.template-show .sessions td:first-child {
   @extend %tbody-th;
 }
+html.template-node.template-list .healthy h2,
+html.template-node.template-list .unhealthy h2 {
+  margin-bottom: 0.7em;
+}
