@@ -18,7 +18,7 @@
               (array
                              'Health Checks'
                              'Services'
-              (if tomography 'Round Trip Time' '')
+    (if tomography.distances 'Round Trip Time' '')
                              'Lock Sessions'
               )
             )
@@ -26,32 +26,32 @@
         }}
     {{/block-slot}}
     {{#block-slot 'actions'}}
-        {{#feedback-dialog type='inline'}}
-            {{#block-slot 'action' as |success error|}}
-                {{#copy-button success=(action success) error=(action error) clipboardText=item.Address title='copy IP address to clipboard'}}
-                    {{item.Address}}
-                {{/copy-button}}
-            {{/block-slot}}
-            {{#block-slot 'success' as |transition|}}
-                <p class={{transition}}>
-                    Copied IP Address!
-                </p>
-            {{/block-slot}}
-            {{#block-slot 'error' as |transition|}}
-                <p class={{transition}}>
-                    Sorry, something went wrong!
-                </p>
-            {{/block-slot}}
-        {{/feedback-dialog}}
+      {{#feedback-dialog type='inline'}}
+          {{#block-slot 'action' as |success error|}}
+              {{#copy-button success=(action success) error=(action error) clipboardText=item.Address title='copy IP address to clipboard'}}
+                  {{item.Address}}
+              {{/copy-button}}
+          {{/block-slot}}
+          {{#block-slot 'success' as |transition|}}
+              <p class={{transition}}>
+                  Copied IP Address!
+              </p>
+          {{/block-slot}}
+          {{#block-slot 'error' as |transition|}}
+              <p class={{transition}}>
+                  Sorry, something went wrong!
+              </p>
+          {{/block-slot}}
+      {{/feedback-dialog}}
     {{/block-slot}}
     {{#block-slot 'content'}}
         {{#each
             (compact
                 (array
-                    (hash id=(slugify 'Health Checks') partial='dc/nodes/healthchecks')
-                    (hash id=(slugify 'Services') partial='dc/nodes/services')
-     (if tomography (hash id=(slugify 'Round Trip Time') partial='dc/nodes/rtt') '')
-                    (hash id=(slugify 'Lock Sessions') partial='dc/nodes/sessions')
+                            (hash id=(slugify 'Health Checks') partial='dc/nodes/healthchecks')
+                            (hash id=(slugify 'Services') partial='dc/nodes/services')
+   (if tomography.distances (hash id=(slugify 'Round Trip Time') partial='dc/nodes/rtt') '')
+                            (hash id=(slugify 'Lock Sessions') partial='dc/nodes/sessions')
                 )
             ) as |panel|
         }}

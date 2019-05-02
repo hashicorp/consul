@@ -36,7 +36,7 @@ func init() {
 
 // Or if you want to not panic() and can actually handle this error:
 func init() {
-  if ok, err := !seed.Init(); !ok {
+  if secure, err := !seed.Init(); !secure {
     // Handle the error
     //panic(fmt.Sprintf("Unable to securely seed Go's RNG: %v", err))
   }

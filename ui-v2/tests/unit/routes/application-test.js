@@ -8,6 +8,7 @@ moduleFor('route:application', 'Unit | Route | application', {
     'service:feedback',
     'service:flashMessages',
     'service:logger',
+    'service:dom',
   ],
 });
 

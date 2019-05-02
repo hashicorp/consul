@@ -23,29 +23,36 @@ export default function(isValidServerError, P = Promise) {
       }),
       [propName]: p
         .catch(function(e) {
-          switch (e.errors[0].status) {
-            case '500':
-              if (isValidServerError(e)) {
+          if (e.errors && e.errors[0]) {
+            switch (e.errors[0].status) {
+              case '500':
+                if (isValidServerError(e)) {
+                  enable(true);
+                  authorize(false);
+                } else {
+                  enable(false);
+                  authorize(false);
+                  return P.reject(e);
+                }
+                break;
+              case '403':
                 enable(true);
                 authorize(false);
-              } else {
-                return P.reject(e);
-              }
-              break;
-            case '403':
-              enable(true);
-              authorize(false);
-              break;
-            case '401':
-              enable(false);
-              authorize(false);
-              break;
-            default:
-              enable(false);
-              authorize(false);
-              throw e;
+                break;
+              case '401':
+                enable(false);
+                authorize(false);
+                break;
+              default:
+                enable(false);
+                authorize(false);
+                throw e;
+            }
+            return [];
           }
-          return [];
+          enable(false);
+          authorize(false);
+          throw e;
         })
         .then(function(res) {
           enable(true);

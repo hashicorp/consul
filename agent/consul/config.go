@@ -26,7 +26,7 @@ const (
 	DefaultWANSerfPort = 8302
 
 	// DefaultRaftMultiplier is used as a baseline Raft configuration that
-	// will be reliable on a very basic server. See docs/guides/performance.html
+	// will be reliable on a very basic server. See docs/install/performance.html
 	// for information on how this value was obtained.
 	DefaultRaftMultiplier uint = 5
 
@@ -243,6 +243,11 @@ type Config struct {
 	// a substantial cost.
 	ACLPolicyTTL time.Duration
 
+	// ACLRoleTTL controls the time-to-live of cached ACL roles.
+	// It can be set to zero to disable caching, but this adds
+	// a substantial cost.
+	ACLRoleTTL time.Duration
+
 	// ACLDisabledTTL is the time between checking if ACLs should be
 	// enabled. This
 	ACLDisabledTTL time.Duration
@@ -313,6 +318,16 @@ type Config struct {
 	// Minimum Session TTL
 	SessionTTLMin time.Duration
 
+	// maxTokenExpirationDuration is the maximum difference allowed between
+	// ACLToken CreateTime and ExpirationTime values if ExpirationTime is set
+	// on a token.
+	ACLTokenMaxExpirationTTL time.Duration
+
+	// ACLTokenMinExpirationTTL is the minimum difference allowed between
+	// ACLToken CreateTime and ExpirationTime values if ExpirationTime is set
+	// on a token.
+	ACLTokenMinExpirationTTL time.Duration
+
 	// ServerUp callback can be used to trigger a notification that
 	// a Consul server is now up and known about.
 	ServerUp func()
@@ -320,6 +335,20 @@ type Config struct {
 	// UserEventHandler callback can be used to handle incoming
 	// user events. This function should not block.
 	UserEventHandler func(serf.UserEvent)
+
+	// ConfigReplicationRate is the max number of replication rounds that can
+	// be run per second. Note that either 1 or 2 RPCs are used during each replication
+	// round
+	ConfigReplicationRate int
+
+	// ConfigReplicationBurst is how many replication rounds can be bursted after a
+	// period of idleness
+	ConfigReplicationBurst int
+
+	// ConfigReplicationApply limit is the max number of replication-related
+	// apply operations that we allow during a one second period. This is
+	// used to limit the amount of Raft bandwidth used for replication.
+	ConfigReplicationApplyLimit int
 
 	// CoordinateUpdatePeriod controls how long a server batches coordinate
 	// updates before applying them in a Raft transaction. A larger period
@@ -377,10 +406,14 @@ type Config struct {
 	// CAConfig is used to apply the initial Connect CA configuration when
 	// bootstrapping.
 	CAConfig *structs.CAConfiguration
+
+	// ConfigEntryBootstrap contains a list of ConfigEntries to ensure are created
+	// If entries of the same Kind/Name exist already these will not update them.
+	ConfigEntryBootstrap []structs.ConfigEntry
 }
 
-func (c *Config) ToTLSUtilConfig() *tlsutil.Config {
-	return &tlsutil.Config{
+func (c *Config) ToTLSUtilConfig() tlsutil.Config {
+	return tlsutil.Config{
 		VerifyIncoming:           c.VerifyIncoming,
 		VerifyOutgoing:           c.VerifyOutgoing,
 		CAFile:                   c.CAFile,
@@ -432,26 +465,32 @@ func DefaultConfig() *Config {
 	}
 
 	conf := &Config{
-		Build:                    version.Version,
-		Datacenter:               DefaultDC,
-		NodeName:                 hostname,
-		RPCAddr:                  DefaultRPCAddr,
-		RaftConfig:               raft.DefaultConfig(),
-		SerfLANConfig:            lib.SerfDefaultConfig(),
-		SerfWANConfig:            lib.SerfDefaultConfig(),
-		SerfFloodInterval:        60 * time.Second,
-		ReconcileInterval:        60 * time.Second,
-		ProtocolVersion:          ProtocolVersion2Compatible,
-		ACLPolicyTTL:             30 * time.Second,
-		ACLTokenTTL:              30 * time.Second,
-		ACLDefaultPolicy:         "allow",
-		ACLDownPolicy:            "extend-cache",
-		ACLReplicationRate:       1,
-		ACLReplicationBurst:      5,
-		ACLReplicationApplyLimit: 100, // ops / sec
-		TombstoneTTL:             15 * time.Minute,
-		TombstoneTTLGranularity:  30 * time.Second,
-		SessionTTLMin:            10 * time.Second,
+		Build:                       version.Version,
+		Datacenter:                  DefaultDC,
+		NodeName:                    hostname,
+		RPCAddr:                     DefaultRPCAddr,
+		RaftConfig:                  raft.DefaultConfig(),
+		SerfLANConfig:               lib.SerfDefaultConfig(),
+		SerfWANConfig:               lib.SerfDefaultConfig(),
+		SerfFloodInterval:           60 * time.Second,
+		ReconcileInterval:           60 * time.Second,
+		ProtocolVersion:             ProtocolVersion2Compatible,
+		ACLRoleTTL:                  30 * time.Second,
+		ACLPolicyTTL:                30 * time.Second,
+		ACLTokenTTL:                 30 * time.Second,
+		ACLDefaultPolicy:            "allow",
+		ACLDownPolicy:               "extend-cache",
+		ACLReplicationRate:          1,
+		ACLReplicationBurst:         5,
+		ACLReplicationApplyLimit:    100, // ops / sec
+		ConfigReplicationRate:       1,
+		ConfigReplicationBurst:      5,
+		ConfigReplicationApplyLimit: 100, // ops / sec
+		TombstoneTTL:                15 * time.Minute,
+		TombstoneTTLGranularity:     30 * time.Second,
+		SessionTTLMin:               10 * time.Second,
+		ACLTokenMinExpirationTTL:    1 * time.Minute,
+		ACLTokenMaxExpirationTTL:    24 * time.Hour,
 
 		// These are tuned to provide a total throughput of 128 updates
 		// per second. If you update these, you should update the client-

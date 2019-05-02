@@ -13,17 +13,19 @@ requires elevated privileges. Instead of running Consul with an administrative
 or root account, it is possible to instead forward appropriate queries to Consul,
 running on an unprivileged port, from another DNS server or port redirect.
 
-In this guide, we will demonstrate forwarding from
-[BIND](https://www.isc.org/downloads/bind/) as well as
-[dnsmasq](http://www.thekelleys.org.uk/dnsmasq/doc.html),
-[Unbound](https://www.unbound.net/),
-[systemd-resolved](https://www.freedesktop.org/wiki/Software/systemd/resolved/), and [iptables](http://www.netfilter.org/).
-For the sake of simplicity, BIND and Consul are running on the same machine in 
-this example. For iptables the rules must be set on the same host as the Consul
-instance and relay hosts should not be on the same host or the redirects will 
-intercept the traffic.
+In this guide, we will demonstrate forwarding from:
 
-It is worth mentioning that, by default, Consul does not resolve DNS
+- [BIND](#bind-setup) 
+- [dnsmasq](#dnsmasq-setup)
+- [Unbound](#unbound-setup)
+- [systemd-resolved](#systemd-resolved-setup)
+- [iptables](#iptables-setup)
+- [macOS](#macos-setup)
+
+After configuring forwarding, we will demonstrate how to test the configuration. Finally, we will also provide some troubleshooting
+guidance. 
+
+~> Note, by default, Consul does not resolve DNS
 records outside the `.consul.` zone unless the
 [recursors](/docs/agent/options.html#recursors) configuration option
 has been set. As an example of how this changes Consul's behavior,
@@ -33,12 +35,12 @@ default. By contrast, when `recursors` is set and the upstream resolver is
 functioning correctly, Consul will try to resolve CNAMEs and include
 any records (e.g. A, AAAA, PTR) for them in its DNS reply.
 
-You can either do one of the following:
 
-### BIND Setup
+## BIND Setup
 
-First, you have to disable DNSSEC so that Consul and BIND can communicate.
-Here is an example of such a configuration:
+Note, in this example, BIND and Consul are running on the same machine.
+
+First, you have to disable DNSSEC so that Consul and [BIND](https://www.isc.org/downloads/bind/) can communicate. Here is an example of such a configuration:
 
 ```text
 options {
@@ -78,9 +80,9 @@ zone "consul" IN {
 Here we assume Consul is running with default settings and is serving
 DNS on port 8600.
 
-### Dnsmasq Setup
+## Dnsmasq Setup
 
-Dnsmasq is typically configured via a `dnsmasq.conf` or a series of files in
+[Dnsmasq](http://www.thekelleys.org.uk/dnsmasq/doc.html) is typically configured via a `dnsmasq.conf` or a series of files in
 the `/etc/dnsmasq.d` directory. In Dnsmasq's configuration file
 (e.g. `/etc/dnsmasq.d/10-consul`), add the following:
 
@@ -131,9 +133,9 @@ for additional details):
 #cache-size=65536
 ```
 
-### Unbound Setup
+## Unbound Setup
 
-Unbound is typically configured via a `unbound.conf` or a series of files in
+[Unbound](https://www.unbound.net/) is typically configured via a `unbound.conf` or a series of files in
 the `/etc/unbound/unbound.conf.d` directory. In an Unbound configuration file
 (e.g. `/etc/unbound/unbound.conf.d/consul.conf`), add the following:
 
@@ -156,9 +158,9 @@ You may have to add the following line to the bottom of your
 include: "/etc/unbound/unbound.conf.d/*.conf"
 ```
 
-### systemd-resolved Setup
+## systemd-resolved Setup
 
-`systemd-resolved` is typically configured with `/etc/systemd/resolved.conf`. 
+[`systemd-resolved`](https://www.freedesktop.org/wiki/Software/systemd/resolved/) is typically configured with `/etc/systemd/resolved.conf`. 
 To configure systemd-resolved to send queries for the consul domain to
 Consul, configure resolved.conf to contain the following:
 
@@ -186,10 +188,14 @@ environment to allow Consul to use the port: `CONSUL_ALLOW_PRIVILEGED_PORTS=yes`
 Note: With this setup, PTR record queries will still be sent out
 to the other configured resolvers in addition to Consul. 
 
-### iptables Setup
+## iptables Setup
+
+Note, for iptables, the rules must be set on the same host as the Consul
+instance and relay hosts should not be on the same host or the redirects will 
+intercept the traffic.
 
 On Linux systems that support it, incoming requests and requests to
-the local host can use `iptables` to forward ports on the same machine
+the local host can use [`iptables`](http://www.netfilter.org/) to forward ports on the same machine
 without a secondary service. Since Consul, by default, only resolves
 the `.consul` TLD, it is especially important to use the `recursors`
 option if you wish the `iptables` setup to resolve for other domains.
@@ -210,7 +216,7 @@ but not need the overhead of a separate service on the Consul host.
 [root@localhost ~]# iptables -t nat -A OUTPUT -d localhost -p tcp -m tcp --dport 53 -j REDIRECT --to-ports 8600
 ```
 
-### macOS Setup
+## macOS Setup
 
 On macOS systems, you can use the macOS system resolver to point all .consul requests to consul.
 Just add a resolver entry in /etc/resolver/ to point at consul. 
@@ -224,7 +230,7 @@ port 8600
 
 This is telling the macOS resolver daemon for all .consul TLD requests, ask 127.0.0.1 on port 8600.
 
-### Testing
+## Testing
 
 First, perform a DNS query against Consul directly to be sure that the record exists:
 
@@ -302,7 +308,7 @@ If desired, verify reverse DNS using the same methodology:
 consul1.node.dc1.consul.
 ```
 
-### Troubleshooting
+## Troubleshooting
 
 If you don't get an answer from your DNS server (e.g. BIND, Dnsmasq) but you
 do get an answer from Consul, your best bet is to turn on your DNS server's
@@ -329,3 +335,10 @@ or routing problems between the servers running BIND and Consul.
 
 For Dnsmasq, see the `log-queries` configuration option and the `USR1`
 signal.
+
+## Summary
+
+In this guide we provided examples of configuring DNS forwarding with many 
+common, third-party tools. It is the responsibility of the operator to ensure
+which ever tool they select is configured properly prior to integration 
+with Consul. 

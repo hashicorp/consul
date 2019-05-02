@@ -1,0 +1,42 @@
+---
+layout: "docs"
+page_title: "Commands: ACL Binding Rule Read"
+sidebar_current: "docs-commands-acl-binding-rule-read"
+---
+
+# Consul ACL Binding Rule Read
+
+Command: `consul acl binding-rule read`
+
+The `acl binding-rule read` command reads and displays a binding rules details.
+
+## Usage
+
+Usage: `consul acl binding-rule read [options] [args]`
+
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
+
+#### Command Options
+
+* `-id=<string>` - The ID of the binding rule to read. It may be specified as a unique ID
+   prefix but will error if the prefix matches multiple binding rule IDs.
+
+* `-meta` - Indicates that binding rule metadata such as the raft
+  indices should be shown for each entry.
+
+## Examples
+
+Get binding rule details:
+
+```sh
+$ consul acl binding-rule read -id '0ec1bd2f-1d3b-bafb-d9bf-90ef04ab1890'
+ID:           0ec1bd2f-1d3b-bafb-d9bf-90ef04ab1890
+AuthMethod:   minikube
+Description:  wildcard service
+BindType:     service
+BindName:     k8s-${serviceaccount.name}
+Selector:     serviceaccount.namespace==default and serviceaccount.name!=vault
+```

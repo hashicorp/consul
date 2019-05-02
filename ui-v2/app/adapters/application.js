@@ -1,9 +1,12 @@
 import Adapter from 'ember-data/adapters/rest';
+import { AbortError } from 'ember-data/adapters/errors';
 import { inject as service } from '@ember/service';
+import { get } from '@ember/object';
 
 import URL from 'url';
 import createURL from 'consul-ui/utils/createURL';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
+import { HEADERS_SYMBOL as HTTP_HEADERS_SYMBOL } from 'consul-ui/utils/http/consul';
 
 export const REQUEST_CREATE = 'createRecord';
 export const REQUEST_READ = 'queryRecord';
@@ -16,11 +19,67 @@ export const DATACENTER_QUERY_PARAM = 'dc';
 export default Adapter.extend({
   namespace: 'v1',
   repo: service('settings'),
+  client: service('client/http'),
+  manageConnection: function(options) {
+    const client = get(this, 'client');
+    const complete = options.complete;
+    const beforeSend = options.beforeSend;
+    options.beforeSend = function(xhr) {
+      if (typeof beforeSend === 'function') {
+        beforeSend(...arguments);
+      }
+      options.id = client.request(options, xhr);
+    };
+    options.complete = function(xhr, textStatus) {
+      client.complete(options.id);
+      if (typeof complete === 'function') {
+        complete(...arguments);
+      }
+    };
+    return options;
+  },
+  _ajaxRequest: function(options) {
+    return this._super(this.manageConnection(options));
+  },
+  queryRecord: function() {
+    return this._super(...arguments).catch(function(e) {
+      if (e instanceof AbortError) {
+        e.errors[0].status = '0';
+      }
+      throw e;
+    });
+  },
+  query: function() {
+    return this._super(...arguments).catch(function(e) {
+      if (e instanceof AbortError) {
+        e.errors[0].status = '0';
+      }
+      throw e;
+    });
+  },
   headersForRequest: function(params) {
     return {
       ...this.get('repo').findHeaders(),
       ...this._super(...arguments),
     };
+  },
+  handleResponse: function(status, headers, response, requestData) {
+    // The ember-data RESTAdapter drops the headers after this call,
+    // and there is no where else to get to these
+    // save them to response[HTTP_HEADERS_SYMBOL] for the moment
+    // so we can save them as meta in the serializer...
+    if (
+      (typeof response == 'object' && response.constructor == Object) ||
+      Array.isArray(response)
+    ) {
+      // lowercase everything incase we get browser inconsistencies
+      const lower = {};
+      Object.keys(headers).forEach(function(key) {
+        lower[key.toLowerCase()] = headers[key];
+      });
+      response[HTTP_HEADERS_SYMBOL] = lower;
+    }
+    return this._super(status, headers, response, requestData);
   },
   handleBooleanResponse: function(url, response, primary, slug) {
     return {
@@ -52,6 +111,12 @@ export default Adapter.extend({
       delete _query.id;
     }
     const query = { ..._query };
+    if (typeof query.separator !== 'undefined') {
+      delete query.separator;
+    }
+    if (typeof query.index !== 'undefined') {
+      delete query.index;
+    }
     delete _query[DATACENTER_QUERY_PARAM];
     return query;
   },

@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"net/url"
-	"os"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -44,6 +43,15 @@ type BadRequestError struct {
 
 func (e BadRequestError) Error() string {
 	return fmt.Sprintf("Bad request: %s", e.Reason)
+}
+
+// NotFoundError should be returned by a handler when a resource specified does not exist
+type NotFoundError struct {
+	Reason string
+}
+
+func (e NotFoundError) Error() string {
+	return e.Reason
 }
 
 // CodeWithPayloadError allow returning non HTTP 200
@@ -218,10 +226,6 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 	handlePProf("/debug/pprof/trace", pprof.Trace)
 
 	if s.IsUIEnabled() {
-		legacy_ui, err := strconv.ParseBool(os.Getenv("CONSUL_UI_LEGACY"))
-		if err != nil {
-			legacy_ui = false
-		}
 		var uifs http.FileSystem
 
 		// Use the custom UI dir if provided.
@@ -229,18 +233,9 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 			uifs = http.Dir(s.agent.config.UIDir)
 		} else {
 			fs := assetFS()
-
-			if legacy_ui {
-				fs.Prefix += "/v1/"
-			} else {
-				fs.Prefix += "/v2/"
-			}
 			uifs = fs
 		}
-
-		if !legacy_ui {
-			uifs = &redirectFS{fs: uifs}
-		}
+		uifs = &redirectFS{fs: uifs}
 
 		mux.Handle("/robots.txt", http.FileServer(uifs))
 		mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(uifs)))
@@ -338,6 +333,11 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 			return ok
 		}
 
+		isNotFound := func(err error) bool {
+			_, ok := err.(NotFoundError)
+			return ok
+		}
+
 		isTooManyRequests := func(err error) bool {
 			// Sadness net/rpc can't do nice typed errors so this is all we got
 			return err.Error() == consul.ErrRateLimited.Error()
@@ -366,6 +366,9 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 			case isBadRequest(err):
 				resp.WriteHeader(http.StatusBadRequest)
 				fmt.Fprint(resp, err.Error())
+			case isNotFound(err):
+				resp.WriteHeader(http.StatusNotFound)
+				fmt.Fprintf(resp, err.Error())
 			case isTooManyRequests(err):
 				resp.WriteHeader(http.StatusTooManyRequests)
 				fmt.Fprint(resp, err.Error())
@@ -892,6 +895,7 @@ func (s *HTTPServer) parseMetaFilter(req *http.Request) map[string]string {
 func (s *HTTPServer) parseInternal(resp http.ResponseWriter, req *http.Request, dc *string, b *structs.QueryOptions, resolveProxyToken bool) bool {
 	s.parseDC(req, dc)
 	s.parseTokenInternal(req, &b.Token, resolveProxyToken)
+	s.parseFilter(req, &b.Filter)
 	if s.parseConsistency(resp, req, b) {
 		return true
 	}
@@ -936,4 +940,10 @@ func (s *HTTPServer) checkWriteAccess(req *http.Request) error {
 	}
 
 	return ForbiddenError{}
+}
+
+func (s *HTTPServer) parseFilter(req *http.Request, filter *string) {
+	if other := req.URL.Query().Get("filter"); other != "" {
+		*filter = other
+	}
 }

@@ -20,7 +20,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/require"
@@ -2693,6 +2693,82 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				}
 			},
 		},
+
+		// ------------------------------------------------------------
+		// ConfigEntry Handling
+		//
+		{
+			desc: "ConfigEntry bootstrap doesn't parse",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"config_entries": {
+					"bootstrap": [
+						{
+							"foo": "bar"
+						}
+					]
+				}
+			}`},
+			hcl: []string{`
+			config_entries {
+				bootstrap {
+					foo = "bar"
+				}
+			}`},
+			err: "config_entries.bootstrap[0]: Payload does not contain a Kind",
+		},
+		{
+			desc: "ConfigEntry bootstrap unknown kind",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"config_entries": {
+					"bootstrap": [
+						{
+							"kind": "foo",
+							"name": "bar",
+							"baz": 1
+						}
+					]
+				}
+			}`},
+			hcl: []string{`
+			config_entries {
+				bootstrap {
+					kind = "foo"
+					name = "bar"
+					baz = 1
+				}
+			}`},
+			err: "config_entries.bootstrap[0]: invalid config entry kind: foo",
+		},
+		{
+			desc: "ConfigEntry bootstrap invalid",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"config_entries": {
+					"bootstrap": [
+						{
+							"kind": "proxy-defaults",
+							"name": "invalid-name",
+							"config": {
+								"foo": "bar"
+							}
+						}
+					]
+				}
+			}`},
+			hcl: []string{`
+			config_entries {
+				bootstrap {
+					kind = "proxy-defaults"
+					name = "invalid-name"
+					config {
+						foo = "bar"
+					}
+				}
+			}`},
+			err: "config_entries.bootstrap[0]: invalid name (\"invalid-name\"), only \"global\" is supported",
+		},
 	}
 
 	testConfig(t, tests, dataDir)
@@ -2901,6 +2977,7 @@ func TestFullConfig(t *testing.T) {
 				"enable_key_list_policy": false,
 				"enable_token_persistence": true,
 				"policy_ttl": "1123s",
+				"role_ttl": "9876s",
 				"token_ttl": "3321s",
 				"enable_token_replication" : true,
 				"tokens" : {
@@ -3007,6 +3084,18 @@ func TestFullConfig(t *testing.T) {
 			],
 			"check_update_interval": "16507s",
 			"client_addr": "93.83.18.19",
+			"config_entries": {
+				"bootstrap": [
+					{
+						"kind": "proxy-defaults",
+						"name": "global",
+						"config": {
+							"foo": "bar",
+							"bar": 1.0
+						}
+					}
+				]
+			},
 			"connect": {
 				"ca_provider": "consul",
 				"ca_config": {
@@ -3073,6 +3162,7 @@ func TestFullConfig(t *testing.T) {
 			},
 			"enable_acl_replication": true,
 			"enable_agent_tls_for_checks": true,
+			"enable_central_service_config": true,
 			"enable_debug": true,
 			"enable_script_checks": true,
 			"enable_local_script_checks": true,
@@ -3453,6 +3543,7 @@ func TestFullConfig(t *testing.T) {
 				enable_key_list_policy = false
 				enable_token_persistence = true
 				policy_ttl = "1123s"
+				role_ttl = "9876s"
 				token_ttl = "3321s"
 				enable_token_replication = true
 				tokens = {
@@ -3559,6 +3650,17 @@ func TestFullConfig(t *testing.T) {
 			]
 			check_update_interval = "16507s"
 			client_addr = "93.83.18.19"
+			config_entries {
+				# This is using the repeated block-to-array HCL magic
+				bootstrap {
+					kind = "proxy-defaults"
+					name = "global"
+					config {
+						foo = "bar"
+						bar = 1.0
+					}
+				}
+			}
 			connect {
 				ca_provider = "consul"
 				ca_config {
@@ -3629,6 +3731,7 @@ func TestFullConfig(t *testing.T) {
 			}
 			enable_acl_replication = true
 			enable_agent_tls_for_checks = true
+			enable_central_service_config = true
 			enable_debug = true
 			enable_script_checks = true
 			enable_local_script_checks = true
@@ -4127,6 +4230,7 @@ func TestFullConfig(t *testing.T) {
 		ACLReplicationToken:              "5795983a",
 		ACLTokenTTL:                      3321 * time.Second,
 		ACLPolicyTTL:                     1123 * time.Second,
+		ACLRoleTTL:                       9876 * time.Second,
 		ACLToken:                         "418fdff1",
 		ACLTokenReplication:              true,
 		AdvertiseAddrLAN:                 ipAddr("17.99.29.16"),
@@ -4215,8 +4319,19 @@ func TestFullConfig(t *testing.T) {
 				DeregisterCriticalServiceAfter: 13209 * time.Second,
 			},
 		},
-		CheckUpdateInterval:     16507 * time.Second,
-		ClientAddrs:             []*net.IPAddr{ipAddr("93.83.18.19")},
+		CheckUpdateInterval: 16507 * time.Second,
+		ClientAddrs:         []*net.IPAddr{ipAddr("93.83.18.19")},
+		ConfigEntryBootstrap: []structs.ConfigEntry{
+			&structs.ProxyConfigEntry{
+				Kind: structs.ProxyDefaults,
+				Name: structs.ProxyConfigGlobal,
+				Config: map[string]interface{}{
+					"foo": "bar",
+					// has to be a float due to being a map[string]interface
+					"bar": float64(1),
+				},
+			},
+		},
 		ConnectEnabled:          true,
 		ConnectProxyBindMinPort: 2000,
 		ConnectProxyBindMaxPort: 3000,
@@ -4270,6 +4385,7 @@ func TestFullConfig(t *testing.T) {
 		DiscardCheckOutput:               true,
 		DiscoveryMaxStale:                5 * time.Second,
 		EnableAgentTLSForChecks:          true,
+		EnableCentralServiceConfig:       true,
 		EnableDebug:                      true,
 		EnableRemoteScriptChecks:         true,
 		EnableLocalScriptChecks:          true,
@@ -4945,6 +5061,7 @@ func TestSanitize(t *testing.T) {
 		"ACLMasterToken": "hidden",
 		"ACLPolicyTTL": "0s",
 		"ACLReplicationToken": "hidden",
+		"ACLRoleTTL": "0s",
 		"ACLTokenReplication": false,
 		"ACLTokenTTL": "0s",
 		"ACLToken": "hidden",
@@ -4993,6 +5110,7 @@ func TestSanitize(t *testing.T) {
 			"Token": "hidden"
 		}],
 		"ClientAddrs": [],
+		"ConfigEntryBootstrap": [],
 		"ConnectCAConfig": {},
 		"ConnectCAProvider": "",
 		"ConnectEnabled": false,
@@ -5067,6 +5185,7 @@ func TestSanitize(t *testing.T) {
 		"DiscoveryMaxStale": "0s",
 		"EnableAgentTLSForChecks": false,
 		"EnableDebug": false,
+		"EnableCentralServiceConfig": false,
 		"EnableLocalScriptChecks": false,
 		"EnableRemoteScriptChecks": false,
 		"EnableSyslog": false,
@@ -5434,12 +5553,14 @@ func TestRuntime_ToTLSUtilConfig(t *testing.T) {
 		VerifyIncomingRPC:           true,
 		VerifyIncomingHTTPS:         true,
 		VerifyOutgoing:              true,
+		VerifyServerHostname:        true,
 		CAFile:                      "a",
 		CAPath:                      "b",
 		CertFile:                    "c",
 		KeyFile:                     "d",
 		NodeName:                    "e",
 		ServerName:                  "f",
+		DNSDomain:                   "g",
 		TLSMinVersion:               "tls12",
 		TLSCipherSuites:             []uint16{tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305},
 		TLSPreferServerCipherSuites: true,
@@ -5450,16 +5571,104 @@ func TestRuntime_ToTLSUtilConfig(t *testing.T) {
 	require.Equal(t, c.VerifyIncomingRPC, r.VerifyIncomingRPC)
 	require.Equal(t, c.VerifyIncomingHTTPS, r.VerifyIncomingHTTPS)
 	require.Equal(t, c.VerifyOutgoing, r.VerifyOutgoing)
+	require.Equal(t, c.VerifyServerHostname, r.VerifyServerHostname)
 	require.Equal(t, c.CAFile, r.CAFile)
 	require.Equal(t, c.CAPath, r.CAPath)
 	require.Equal(t, c.CertFile, r.CertFile)
 	require.Equal(t, c.KeyFile, r.KeyFile)
 	require.Equal(t, c.NodeName, r.NodeName)
 	require.Equal(t, c.ServerName, r.ServerName)
+	require.Equal(t, c.DNSDomain, r.Domain)
 	require.Equal(t, c.TLSMinVersion, r.TLSMinVersion)
 	require.Equal(t, c.TLSCipherSuites, r.CipherSuites)
 	require.Equal(t, c.TLSPreferServerCipherSuites, r.PreferServerCipherSuites)
 	require.Equal(t, c.EnableAgentTLSForChecks, r.EnableAgentTLSForChecks)
+}
+
+func TestReadPath(t *testing.T) {
+	dataDir := testutil.TempDir(t, "consul")
+	defer os.RemoveAll(dataDir)
+
+	tt := []struct {
+		name   string
+		pre    func()
+		args   []string
+		expect int
+	}{
+		{
+			name: "dir skip non json or hcl if config-format not set",
+			pre: func() {
+				writeFile(filepath.Join(dataDir, "conf.d/conf.json"), []byte(`{}`))
+				writeFile(filepath.Join(dataDir, "conf.d/conf.foobar"), []byte(`{}`))
+			},
+			args: []string{
+				`-config-dir`, filepath.Join(dataDir, "conf.d"),
+			},
+			expect: 1,
+		},
+		{
+			name: "dir read non json or hcl if config-format set",
+			pre: func() {
+				writeFile(filepath.Join(dataDir, "conf.d/conf.json"), []byte(`{}`))
+				writeFile(filepath.Join(dataDir, "conf.d/conf.foobar"), []byte(`{}`))
+			},
+			args: []string{
+				`-config-dir`, filepath.Join(dataDir, "conf.d"),
+				`-config-format`, "json",
+			},
+			expect: 2,
+		},
+		{
+			name: "file skip non json or hcl if config-format not set",
+			pre: func() {
+				writeFile(filepath.Join(dataDir, "conf.d/conf.foobar"), []byte(`{}`))
+			},
+			args: []string{
+				`-config-file`, filepath.Join(dataDir, "conf.d"),
+			},
+			expect: 0,
+		},
+		{
+			name: "file read non json or hcl if config-format set",
+			pre: func() {
+				writeFile(filepath.Join(dataDir, "conf.d/conf.foobar"), []byte(`{}`))
+			},
+			args: []string{
+				`-config-file`, filepath.Join(dataDir, "conf.d"),
+				`-config-format`, "json",
+			},
+			expect: 1,
+		},
+	}
+
+	for _, tc := range tt {
+		cleanDir(dataDir)
+
+		t.Run(tc.name, func(t *testing.T) {
+			flags := Flags{}
+			fs := flag.NewFlagSet("", flag.ContinueOnError)
+			AddFlags(fs, &flags)
+			err := fs.Parse(tc.args)
+			if err != nil {
+				t.Fatalf("ParseFlags failed: %s", err)
+			}
+			flags.Args = fs.Args()
+
+			// write cfg files
+			tc.pre()
+
+			// Then create a builder with the flags.
+			b, err := NewBuilder(flags)
+			if err != nil {
+				t.Fatal("NewBuilder", err)
+			}
+
+			got := len(b.Sources)
+			if tc.expect != got {
+				t.Fatalf("expected %d sources, got %d", tc.expect, got)
+			}
+		})
+	}
 }
 
 func splitIPPort(hostport string) (net.IP, int) {

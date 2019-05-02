@@ -175,7 +175,7 @@ func extractCertURI(certs []*x509.Certificate) (*url.URL, error) {
 	return cert.URIs[0], nil
 }
 
-// verifyServerCertMatchesURI is used on tls connections dialled to a connect
+// verifyServerCertMatchesURI is used on tls connections dialed to a connect
 // server to ensure that the certificate it presented has the correct identity.
 func verifyServerCertMatchesURI(certs []*x509.Certificate,
 	expected connect.CertURI) error {
@@ -253,7 +253,7 @@ func newServerSideVerifier(client *api.Client, serviceName string) verifierFunc 
 // clientSideVerifier is a verifierFunc that performs verification of certificates
 // on the client end of the connection. For now it is just basic TLS
 // verification since the identity check needs additional state and becomes
-// clunky to customise the callback for every outgoing request. That is done
+// clunky to customize the callback for every outgoing request. That is done
 // within Service.Dial for now.
 func clientSideVerifier(tlsCfg *tls.Config, rawCerts [][]byte) error {
 	_, err := verifyChain(tlsCfg, rawCerts, true)
@@ -303,10 +303,10 @@ func verifyChain(tlsCfg *tls.Config, rawCerts [][]byte, client bool) (*x509.Cert
 
 // dynamicTLSConfig represents the state for returning a tls.Config that can
 // have root and leaf certificates updated dynamically with all existing clients
-// and servers automatically picking up the changes. It requires initialising
+// and servers automatically picking up the changes. It requires initializing
 // with a valid base config from which all the non-certificate and verification
 // params are used. The base config passed should not be modified externally as
-// it is assumed to be serialised by the embedded mutex.
+// it is assumed to be serialized by the embedded mutex.
 type dynamicTLSConfig struct {
 	base *tls.Config
 

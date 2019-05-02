@@ -102,6 +102,13 @@ $ consul agent -retry-join "provider=azure tag_name=... tag_value=... tenant_id=
 - `client_id` (required) - the client to authenticate with.
 - `secret_access_key` (required) - the secret client key. **NOTE** This value often may have an equals sign in it's value, especially if generated from the Azure Portal, so is important to wrap in single quotes eg. `secret_acccess_key='fpOfcHQJAQBczjAxiVpeyLmX1M0M0KPBST+GU2GvEN4='`
 
+Variables can also be provided by environmental variables:
+
+* `ARM_SUBSCRIPTION_ID` for subscription
+* `ARM_TENANT_ID` for tenant
+* `ARM_CLIENT_ID` for client
+* `ARM_CLIENT_SECRET` for secret access key
+
 Use these configuration parameters when using tags:
 
 - `tag_name` - the name of the tag to auto-join on.
@@ -135,7 +142,7 @@ $ consul agent -retry-join "provider=gce project_name=... tag_value=..."
 - `tag_value` (required) - the value of the tag to auto-join on.
 - `project_name` (optional) - the name of the project to auto-join on. Discovered if not set.
 - `zone_pattern` (optional) - the list of zones can be restricted through an RE2 compatible regular expression. If omitted, servers in all zones are returned.
-- `credentials_file` (optional) - the credentials file for authentication. See below for more information.
+- `credentials_file` (optional) - the credentials file for authentication. Note, if you set `-config-dir` do not store the credentials.json file in the configuration directory as it will be parsed as a config file and Consul will fail to start. See below for more information.
 
 #### Authentication & Precedence
 

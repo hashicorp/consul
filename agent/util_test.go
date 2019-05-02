@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/pascaldekloe/goe/verify"
 )
 

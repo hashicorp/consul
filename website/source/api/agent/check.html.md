@@ -28,14 +28,19 @@ everything will be in sync within a few seconds.
 | `GET`  | `/agent/checks`              | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required             |
 | ---------------- | ----------------- | ------------- | ------------------------ |
 | `NO`             | `none`            | `none`        | `node:read,service:read` |
+
+### Parameters
+
+- `filter` `(string: "")` - Specifies the expression used to filter the
+  queries results prior to returning the data.
 
 ### Sample Request
 
@@ -62,6 +67,24 @@ $ curl \
 }
 ```
 
+### Filtering
+
+The filter will be executed against each health check value in the results map with
+the following selectors and filter operations being supported:
+
+
+| Selector      | Supported Operations               |
+| ------------- | ---------------------------------- |
+| `CheckID`     | Equal, Not Equal                   |
+| `Name`        | Equal, Not Equal                   |
+| `Node`        | Equal, Not Equal                   |
+| `Notes`       | Equal, Not Equal                   |
+| `Output`      | Equal, Not Equal                   |
+| `ServiceID`   | Equal, Not Equal                   |
+| `ServiceName` | Equal, Not Equal                   |
+| `ServiceTags` | In, Not In, Is Empty, Is Not Empty |
+| `Status`      | Equal, Not Equal                   |
+
 ## Register Check
 
 This endpoint adds a new check to the local agent. Checks may be of script,
@@ -73,10 +96,10 @@ check and keeping the Catalog in sync.
 | `PUT`  | `/agent/check/register`      | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required               |
 | ---------------- | ----------------- | ------------- | -------------------------- |
@@ -220,10 +243,10 @@ not exist, no action is taken.
 | `PUT`  | `/agent/check/deregister/:check_id` | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required               |
 | ---------------- | ----------------- | ------------- | -------------------------- |
@@ -252,10 +275,10 @@ This endpoint is used with a TTL type check to set the status of the check to
 | `PUT`  | `/agent/check/pass/:check_id` | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required               |
 | ---------------- | ----------------- | ------------- | -------------------------- |
@@ -286,10 +309,10 @@ This endpoint is used with a TTL type check to set the status of the check to
 | `PUT`  | `/agent/check/warn/:check_id` | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required               |
 | ---------------- | ----------------- | ------------- | -------------------------- |
@@ -320,10 +343,10 @@ This endpoint is used with a TTL type check to set the status of the check to
 | `PUT`  | `/agent/check/fail/:check_id` | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required               |
 | ---------------- | ----------------- | ------------- | -------------------------- |
@@ -354,10 +377,10 @@ to reset the TTL clock.
 | `PUT`  | `/agent/check/update/:check_id` | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required               |
 | ---------------- | ----------------- | ------------- | -------------------------- |

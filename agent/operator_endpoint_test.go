@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 func TestOperator_RaftConfiguration(t *testing.T) {
@@ -346,6 +346,7 @@ func TestOperator_AutopilotCASConfiguration(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	body := bytes.NewBuffer([]byte(`{"CleanupDeadServers": false}`))
 	req, _ := http.NewRequest("PUT", "/v1/operator/autopilot/configuration", body)

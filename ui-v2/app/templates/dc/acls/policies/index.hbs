@@ -22,60 +22,63 @@
     {{#block-slot 'content'}}
 {{#if (gt items.length 0) }}
         <form class="filter-bar">
-            {{freetext-filter onchange=(action 'filter') value=filter.s placeholder="Search"}}
+          {{freetext-filter searchable=searchable value=s placeholder="Search"}}
         </form>
 {{/if}}
-{{#if (gt filtered.length 0)}}
-        {{#tabular-collection
-            items=(sort-by 'CreateIndex:desc' 'Name:asc' filtered) as |item index|
-        }}
-            {{#block-slot 'header'}}
-                <th>Name</th>
-                <th>Datacenters</th>
-                <th>Description</th>
-            {{/block-slot}}
-            {{#block-slot 'row' }}
-                <td data-test-policy="{{item.Name}}">
-                  <a href={{href-to 'dc.acls.policies.edit' item.ID}} class={{if (policy/is-management item) 'is-management'}}>{{item.Name}}</a>
-                </td>
-                <td>
-                  {{join ', ' (policy/datacenters item)}}
-                </td>
-                <td>
-                  {{item.Description}}
-                </td>
-            {{/block-slot}}
-            {{#block-slot 'actions' as |index change checked|}}
-                {{#confirmation-dialog confirming=false index=index message="Are you sure you want to delete this Policy?"}}
-                    {{#block-slot 'action' as |confirm|}}
-                        {{#action-group index=index onchange=(action change) checked=(if (eq checked index) 'checked')}}
-                            <ul>
-{{#if (policy/is-management item)}}
-                                <li>
-                                    <a data-test-edit href={{href-to 'dc.acls.policies.edit' item.ID}}>View</a>
-                                </li>
-{{else}}
+        {{#changeable-set dispatcher=searchable}}
+          {{#block-slot 'set' as |filtered|}}
+            {{#tabular-collection
+                items=(sort-by 'CreateIndex:desc' 'Name:asc' filtered) as |item index|
+            }}
+                {{#block-slot 'header'}}
+                    <th>Name</th>
+                    <th>Datacenters</th>
+                    <th>Description</th>
+                {{/block-slot}}
+                {{#block-slot 'row' }}
+                    <td data-test-policy="{{item.Name}}">
+                      <a href={{href-to 'dc.acls.policies.edit' item.ID}} class={{if (eq (policy/typeof item) 'policy-management') 'is-management'}}>{{item.Name}}</a>
+                    </td>
+                    <td>
+                      {{join ', ' (policy/datacenters item)}}
+                    </td>
+                    <td>
+                      {{item.Description}}
+                    </td>
+                {{/block-slot}}
+                {{#block-slot 'actions' as |index change checked|}}
+                    {{#confirmation-dialog confirming=false index=index message="Are you sure you want to delete this Policy?"}}
+                        {{#block-slot 'action' as |confirm|}}
+                            {{#action-group index=index onchange=(action change) checked=(if (eq checked index) 'checked')}}
+                                <ul>
+    {{#if (eq (policy/typeof item) 'policy-management')}}
+                                    <li>
+                                        <a data-test-edit href={{href-to 'dc.acls.policies.edit' item.ID}}>View</a>
+                                    </li>
+    {{else}}
 
-                                <li>
-                                    <a data-test-edit href={{href-to 'dc.acls.policies.edit' item.ID}}>Edit</a>
-                                </li>
-                                <li>
-                                    <a data-test-delete onclick={{action confirm 'delete' item}}>Delete</a>
-                                </li>
-{{/if}}
-                            </ul>
-                        {{/action-group}}
-                    {{/block-slot}}
-                    {{#block-slot 'dialog' as |execute cancel message name|}}
-                      {{delete-confirmation message=message execute=execute cancel=cancel}}
-                    {{/block-slot}}
-                {{/confirmation-dialog}}
-            {{/block-slot}}
-        {{/tabular-collection}}
-{{else}}
-        <p>
-            There are no Policies.
-        </p>
-{{/if}}
+                                    <li>
+                                        <a data-test-edit href={{href-to 'dc.acls.policies.edit' item.ID}}>Edit</a>
+                                    </li>
+                                    <li>
+                                        <button type="button" class="type-delete" data-test-delete {{action confirm 'delete' item}}>Delete</button>
+                                    </li>
+    {{/if}}
+                                </ul>
+                            {{/action-group}}
+                        {{/block-slot}}
+                        {{#block-slot 'dialog' as |execute cancel message name|}}
+                          {{delete-confirmation message=message execute=execute cancel=cancel}}
+                        {{/block-slot}}
+                    {{/confirmation-dialog}}
+                {{/block-slot}}
+            {{/tabular-collection}}
+          {{/block-slot}}
+          {{#block-slot 'empty'}}
+            <p>
+              There are no Policies.
+            </p>
+          {{/block-slot}}
+        {{/changeable-set}}
     {{/block-slot}}
 {{/app-view}}

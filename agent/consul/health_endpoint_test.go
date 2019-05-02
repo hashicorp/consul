@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1175,4 +1176,116 @@ func TestHealth_ChecksInState_FilterACL(t *testing.T) {
 	// that we respect the version 8 ACL flag, since the test server sets
 	// that to false (the regression value of *not* changing this is better
 	// for now until we change the sense of the version 8 ACL flag).
+}
+
+func TestHealth_RPC_Filter(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// prep the cluster with some data we can use in our filters
+	registerTestCatalogEntries(t, codec)
+
+	// Run the tests against the test server
+
+	t.Run("NodeChecks", func(t *testing.T) {
+		args := structs.NodeSpecificRequest{
+			Datacenter:   "dc1",
+			Node:         "foo",
+			QueryOptions: structs.QueryOptions{Filter: "ServiceName == redis and v1 in ServiceTags"},
+		}
+
+		out := new(structs.IndexedHealthChecks)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.NodeChecks", &args, out))
+		require.Len(t, out.HealthChecks, 1)
+		require.Equal(t, types.CheckID("foo:redisV1"), out.HealthChecks[0].CheckID)
+
+		args.Filter = "ServiceID == ``"
+		out = new(structs.IndexedHealthChecks)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.NodeChecks", &args, out))
+		require.Len(t, out.HealthChecks, 2)
+	})
+
+	t.Run("ServiceChecks", func(t *testing.T) {
+		args := structs.ServiceSpecificRequest{
+			Datacenter:   "dc1",
+			ServiceName:  "redis",
+			QueryOptions: structs.QueryOptions{Filter: "Node == foo"},
+		}
+
+		out := new(structs.IndexedHealthChecks)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceChecks", &args, out))
+		// 1 service check for each instance
+		require.Len(t, out.HealthChecks, 2)
+
+		args.Filter = "Node == bar"
+		out = new(structs.IndexedHealthChecks)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceChecks", &args, out))
+		// 1 service check for each instance
+		require.Len(t, out.HealthChecks, 1)
+
+		args.Filter = "Node == foo and v1 in ServiceTags"
+		out = new(structs.IndexedHealthChecks)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceChecks", &args, out))
+		// 1 service check for the matching instance
+		require.Len(t, out.HealthChecks, 1)
+	})
+
+	t.Run("ServiceNodes", func(t *testing.T) {
+		args := structs.ServiceSpecificRequest{
+			Datacenter:   "dc1",
+			ServiceName:  "redis",
+			QueryOptions: structs.QueryOptions{Filter: "Service.Meta.version == 2"},
+		}
+
+		out := new(structs.IndexedCheckServiceNodes)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &args, out))
+		require.Len(t, out.Nodes, 1)
+
+		args.ServiceName = "web"
+		args.Filter = "Node.Meta.os == linux"
+		out = new(structs.IndexedCheckServiceNodes)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &args, out))
+		require.Len(t, out.Nodes, 2)
+		require.Equal(t, "baz", out.Nodes[0].Node.Node)
+		require.Equal(t, "baz", out.Nodes[1].Node.Node)
+
+		args.Filter = "Node.Meta.os == linux and Service.Meta.version == 1"
+		out = new(structs.IndexedCheckServiceNodes)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &args, out))
+		require.Len(t, out.Nodes, 1)
+	})
+
+	t.Run("ChecksInState", func(t *testing.T) {
+		args := structs.ChecksInStateRequest{
+			Datacenter:   "dc1",
+			State:        api.HealthAny,
+			QueryOptions: structs.QueryOptions{Filter: "Node == baz"},
+		}
+
+		out := new(structs.IndexedHealthChecks)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ChecksInState", &args, out))
+		require.Len(t, out.HealthChecks, 6)
+
+		args.Filter = "Status == warning or Status == critical"
+		out = new(structs.IndexedHealthChecks)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ChecksInState", &args, out))
+		require.Len(t, out.HealthChecks, 2)
+
+		args.State = api.HealthCritical
+		args.Filter = "Node == baz"
+		out = new(structs.IndexedHealthChecks)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ChecksInState", &args, out))
+		require.Len(t, out.HealthChecks, 1)
+
+		args.State = api.HealthWarning
+		out = new(structs.IndexedHealthChecks)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ChecksInState", &args, out))
+		require.Len(t, out.HealthChecks, 1)
+	})
 }

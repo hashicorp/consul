@@ -1,18 +1,46 @@
 import Controller from '@ember/controller';
-import { get, set } from '@ember/object';
-import { getOwner } from '@ember/application';
-import WithFiltering from 'consul-ui/mixins/with-filtering';
-import qsaFactory from 'consul-ui/utils/dom/qsa-factory';
-import getComponentFactory from 'consul-ui/utils/get-component-factory';
+import { inject as service } from '@ember/service';
+import { get, set, computed } from '@ember/object';
+import { alias } from '@ember/object/computed';
+import WithSearching from 'consul-ui/mixins/with-searching';
+import WithEventSource, { listen } from 'consul-ui/mixins/with-event-source';
 
-const $$ = qsaFactory();
-export default Controller.extend(WithFiltering, {
+export default Controller.extend(WithEventSource, WithSearching, {
+  dom: service('dom'),
+  notify: service('flashMessages'),
+  items: alias('item.Services'),
   queryParams: {
     s: {
       as: 'filter',
       replace: true,
     },
   },
+  init: function() {
+    this.searchParams = {
+      nodeservice: 's',
+    };
+    this._super(...arguments);
+  },
+  item: listen('item').catch(function(e) {
+    if (e.target.readyState === 1) {
+      // OPEN
+      if (get(e, 'error.errors.firstObject.status') === '404') {
+        get(this, 'notify').add({
+          destroyOnClick: false,
+          sticky: true,
+          type: 'warning',
+          action: 'update',
+        });
+        get(this, 'tomography').close();
+        get(this, 'sessions').close();
+      }
+    }
+  }),
+  searchable: computed('items', function() {
+    return get(this, 'searchables.nodeservice')
+      .add(get(this, 'items'))
+      .search(get(this, this.searchParams.nodeservice));
+  }),
   setProperties: function() {
     this._super(...arguments);
     // the default selected tab depends on whether you have any healthchecks or not
@@ -20,38 +48,20 @@ export default Controller.extend(WithFiltering, {
     // This method is called immediately after `Route::setupController`, and done here rather than there
     // as this is a variable used purely for view level things, if the view was different we might not
     // need this variable
-    set(this, 'selectedTab', get(this.item, 'Checks.length') > 0 ? 'health-checks' : 'services');
-  },
-  filter: function(item, { s = '' }) {
-    const term = s.toLowerCase();
-    return (
-      get(item, 'Service')
-        .toLowerCase()
-        .indexOf(term) !== -1 ||
-      get(item, 'ID')
-        .toLowerCase()
-        .indexOf(term) !== -1 ||
-      (get(item, 'Tags') || []).some(function(item) {
-        return item.toLowerCase().indexOf(term) !== -1;
-      }) ||
-      get(item, 'Port')
-        .toString()
-        .toLowerCase()
-        .indexOf(term) !== -1
-    );
+    set(this, 'selectedTab', get(this, 'item.Checks.length') > 0 ? 'health-checks' : 'services');
   },
   actions: {
     change: function(e) {
       set(this, 'selectedTab', e.target.value);
-      const getComponent = getComponentFactory(getOwner(this));
       // Ensure tabular-collections sizing is recalculated
       // now it is visible in the DOM
-      [...$$('.tab-section input[type="radio"]:checked + div table')].forEach(function(item) {
-        const component = getComponent(item);
-        if (component && typeof component.didAppear === 'function') {
-          getComponent(item).didAppear();
-        }
-      });
+      get(this, 'dom')
+        .components('.tab-section input[type="radio"]:checked + div table')
+        .forEach(function(item) {
+          if (typeof item.didAppear === 'function') {
+            item.didAppear();
+          }
+        });
     },
     sortChecksByImportance: function(a, b) {
       const statusA = get(a, 'Status');

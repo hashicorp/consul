@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"net"
 	"reflect"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -13,8 +14,8 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/miekg/dns"
 	"github.com/pascaldekloe/goe/verify"
@@ -3740,6 +3741,24 @@ func TestDNS_ServiceLookup_OnlyPassing(t *testing.T) {
 			t.Fatalf("Bad: %#v", in.Answer[0])
 		}
 	}
+
+	newCfg := *a.Config
+	newCfg.DNSOnlyPassing = false
+	err := a.ReloadConfig(&newCfg)
+	require.NoError(t, err)
+
+	// only_passing is now false. we should now get two nodes
+	m := new(dns.Msg)
+	m.SetQuestion("db.service.consul.", dns.TypeANY)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	require.NoError(t, err)
+
+	require.Equal(t, 2, len(in.Answer))
+	ips := []string{in.Answer[0].(*dns.A).A.String(), in.Answer[1].(*dns.A).A.String()}
+	sort.Strings(ips)
+	require.Equal(t, []string{"127.0.0.1", "127.0.0.2"}, ips)
 }
 
 func TestDNS_ServiceLookup_Randomize(t *testing.T) {
@@ -4151,7 +4170,7 @@ func testDNSServiceLookupResponseLimits(t *testing.T, answerLimit int, qType uin
 		}
 	`)
 	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	for i := 0; i < generateNumNodes; i++ {
 		nodeAddress := fmt.Sprintf("127.0.0.%d", i+1)
@@ -4241,7 +4260,7 @@ func checkDNSService(t *testing.T, generateNumNodes int, aRecordLimit int, qType
 		}
 	`)
 	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	for i := 0; i < generateNumNodes; i++ {
 		nodeAddress := fmt.Sprintf("127.0.0.%d", i+1)
@@ -5190,7 +5209,6 @@ func TestDNS_ServiceLookup_FilterACL(t *testing.T) {
 		})
 	}
 }
-
 func TestDNS_ServiceLookup_MetaTXT(t *testing.T) {
 	a := NewTestAgent(t, t.Name(), `dns_config = { enable_additional_node_meta_txt = true }`)
 	defer a.Shutdown()
@@ -6341,11 +6359,177 @@ func TestDNS_formatNodeRecord(t *testing.T) {
 		},
 	}
 
-	records, meta := s.formatNodeRecord(node, "198.18.0.1", "test.node.consul", dns.TypeA, 5*time.Minute, false, 3, false)
+	records, meta := s.formatNodeRecord(&dnsConfig{}, node, "198.18.0.1", "test.node.consul", dns.TypeA, 5*time.Minute, false, 3, false)
 	require.Len(t, records, 1)
 	require.Len(t, meta, 0)
 
-	records, meta = s.formatNodeRecord(node, "198.18.0.1", "test.node.consul", dns.TypeA, 5*time.Minute, false, 3, true)
+	records, meta = s.formatNodeRecord(&dnsConfig{}, node, "198.18.0.1", "test.node.consul", dns.TypeA, 5*time.Minute, false, 3, true)
 	require.Len(t, records, 1)
 	require.Len(t, meta, 2)
+}
+
+func TestDNS_ConfigReload(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, t.Name(), `
+		recursors = ["8.8.8.8:53"]
+		dns_config = {
+			allow_stale = false
+			max_stale = "20s"
+			node_ttl = "10s"
+			service_ttl = {
+				"my_services*" = "5s"
+				"my_specific_service" = "30s"
+			}
+			enable_truncate = false
+			only_passing = false
+			recursor_timeout = "15s"
+			disable_compression = false
+			a_record_limit = 1
+			enable_additional_node_meta_txt = false
+			soa = {
+				refresh = 1
+				retry = 2
+				expire = 3
+				min_ttl = 4
+			}
+		}
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	for _, s := range a.dnsServers {
+		cfg := s.config.Load().(*dnsConfig)
+		require.Equal(t, []string{"8.8.8.8:53"}, cfg.Recursors)
+		require.False(t, cfg.AllowStale)
+		require.Equal(t, 20*time.Second, cfg.MaxStale)
+		require.Equal(t, 10*time.Second, cfg.NodeTTL)
+		ttl, _ := cfg.GetTTLForService("my_services_1")
+		require.Equal(t, 5*time.Second, ttl)
+		ttl, _ = cfg.GetTTLForService("my_specific_service")
+		require.Equal(t, 30*time.Second, ttl)
+		require.False(t, cfg.EnableTruncate)
+		require.False(t, cfg.OnlyPassing)
+		require.Equal(t, 15*time.Second, cfg.RecursorTimeout)
+		require.False(t, cfg.DisableCompression)
+		require.Equal(t, 1, cfg.ARecordLimit)
+		require.False(t, cfg.NodeMetaTXT)
+		require.Equal(t, uint32(1), cfg.SOAConfig.Refresh)
+		require.Equal(t, uint32(2), cfg.SOAConfig.Retry)
+		require.Equal(t, uint32(3), cfg.SOAConfig.Expire)
+		require.Equal(t, uint32(4), cfg.SOAConfig.Minttl)
+	}
+
+	newCfg := *a.Config
+	newCfg.DNSRecursors = []string{"1.1.1.1:53"}
+	newCfg.DNSAllowStale = true
+	newCfg.DNSMaxStale = 21 * time.Second
+	newCfg.DNSNodeTTL = 11 * time.Second
+	newCfg.DNSServiceTTL = map[string]time.Duration{
+		"2_my_services*":        6 * time.Second,
+		"2_my_specific_service": 31 * time.Second,
+	}
+	newCfg.DNSEnableTruncate = true
+	newCfg.DNSOnlyPassing = true
+	newCfg.DNSRecursorTimeout = 16 * time.Second
+	newCfg.DNSDisableCompression = true
+	newCfg.DNSARecordLimit = 2
+	newCfg.DNSNodeMetaTXT = true
+	newCfg.DNSSOA.Refresh = 10
+	newCfg.DNSSOA.Retry = 20
+	newCfg.DNSSOA.Expire = 30
+	newCfg.DNSSOA.Minttl = 40
+
+	err := a.ReloadConfig(&newCfg)
+	require.NoError(t, err)
+
+	for _, s := range a.dnsServers {
+		cfg := s.config.Load().(*dnsConfig)
+		require.Equal(t, []string{"1.1.1.1:53"}, cfg.Recursors)
+		require.True(t, cfg.AllowStale)
+		require.Equal(t, 21*time.Second, cfg.MaxStale)
+		require.Equal(t, 11*time.Second, cfg.NodeTTL)
+		ttl, _ := cfg.GetTTLForService("my_services_1")
+		require.Equal(t, time.Duration(0), ttl)
+		ttl, _ = cfg.GetTTLForService("2_my_services_1")
+		require.Equal(t, 6*time.Second, ttl)
+		ttl, _ = cfg.GetTTLForService("my_specific_service")
+		require.Equal(t, time.Duration(0), ttl)
+		ttl, _ = cfg.GetTTLForService("2_my_specific_service")
+		require.Equal(t, 31*time.Second, ttl)
+		require.True(t, cfg.EnableTruncate)
+		require.True(t, cfg.OnlyPassing)
+		require.Equal(t, 16*time.Second, cfg.RecursorTimeout)
+		require.True(t, cfg.DisableCompression)
+		require.Equal(t, 2, cfg.ARecordLimit)
+		require.True(t, cfg.NodeMetaTXT)
+		require.Equal(t, uint32(10), cfg.SOAConfig.Refresh)
+		require.Equal(t, uint32(20), cfg.SOAConfig.Retry)
+		require.Equal(t, uint32(30), cfg.SOAConfig.Expire)
+		require.Equal(t, uint32(40), cfg.SOAConfig.Minttl)
+	}
+}
+
+func TestDNS_ReloadConfig_DuringQuery(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	m := MockPreparedQuery{
+		executeFn: func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExecuteResponse) error {
+			time.Sleep(100 * time.Millisecond)
+			reply.Nodes = structs.CheckServiceNodes{
+				{
+					Node: &structs.Node{
+						ID:      "my_node",
+						Address: "127.0.0.1",
+					},
+					Service: &structs.NodeService{
+						Address: "127.0.0.1",
+						Port:    8080,
+					},
+				},
+			}
+			return nil
+		},
+	}
+
+	err := a.registerEndpoint("PreparedQuery", &m)
+	require.NoError(t, err)
+
+	{
+		m := new(dns.Msg)
+		m.SetQuestion("nope.query.consul.", dns.TypeA)
+
+		timeout := time.NewTimer(time.Second)
+		res := make(chan *dns.Msg)
+		errs := make(chan error)
+
+		go func() {
+			c := new(dns.Client)
+			in, _, err := c.Exchange(m, a.DNSAddr())
+			if err != nil {
+				errs <- err
+				return
+			}
+			res <- in
+		}()
+
+		time.Sleep(50 * time.Millisecond)
+
+		// reload the config halfway through, that should not affect the ongoing query
+		newCfg := *a.Config
+		newCfg.DNSAllowStale = true
+		a.ReloadConfig(&newCfg)
+
+		select {
+		case in := <-res:
+			require.Equal(t, "127.0.0.1", in.Answer[0].(*dns.A).A.String())
+		case err := <-errs:
+			require.NoError(t, err)
+		case <-timeout.C:
+			require.FailNow(t, "timeout")
+		}
+	}
 }

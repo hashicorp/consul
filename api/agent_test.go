@@ -3,14 +3,17 @@ package api
 import (
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
+	"net/http/httputil"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/testutil"
-	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
 )
@@ -39,6 +42,8 @@ func TestAPI_AgentMetrics(t *testing.T) {
 	defer s.Stop()
 
 	agent := c.Agent()
+	s.WaitForSerfCheck(t)
+
 	timer := &retry.Timer{Timeout: 10 * time.Second, Wait: 500 * time.Millisecond}
 	retry.RunWith(timer, t, func(r *retry.R) {
 		metrics, err := agent.Metrics()
@@ -168,6 +173,7 @@ func TestAPI_AgentServices(t *testing.T) {
 	defer s.Stop()
 
 	agent := c.Agent()
+	s.WaitForSerfCheck(t)
 
 	reg := &AgentServiceRegistration{
 		Name: "foo",
@@ -223,6 +229,42 @@ func TestAPI_AgentServices(t *testing.T) {
 	if err := agent.ServiceDeregister("foo"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+}
+
+func TestAPI_AgentServicesWithFilter(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	reg := &AgentServiceRegistration{
+		Name: "foo",
+		ID:   "foo",
+		Tags: []string{"bar", "baz"},
+		Port: 8000,
+		Check: &AgentServiceCheck{
+			TTL: "15s",
+		},
+	}
+	require.NoError(t, agent.ServiceRegister(reg))
+
+	reg = &AgentServiceRegistration{
+		Name: "foo",
+		ID:   "foo2",
+		Tags: []string{"foo", "baz"},
+		Port: 8001,
+		Check: &AgentServiceCheck{
+			TTL: "15s",
+		},
+	}
+	require.NoError(t, agent.ServiceRegister(reg))
+
+	services, err := agent.ServicesWithFilter("foo in Tags")
+	require.NoError(t, err)
+	require.Len(t, services, 1)
+	_, ok := services["foo2"]
+	require.True(t, ok)
 }
 
 func TestAPI_AgentServices_ManagedConnectProxy(t *testing.T) {
@@ -293,6 +335,7 @@ func TestAPI_AgentServices_ManagedConnectProxyDeprecatedUpstreams(t *testing.T) 
 	defer s.Stop()
 
 	agent := c.Agent()
+	s.WaitForSerfCheck(t)
 
 	reg := &AgentServiceRegistration{
 		Name: "foo",
@@ -742,6 +785,7 @@ func TestAPI_AgentSetTTLStatus(t *testing.T) {
 	defer s.Stop()
 
 	agent := c.Agent()
+	s.WaitForSerfCheck(t)
 
 	reg := &AgentServiceRegistration{
 		Name: "foo",
@@ -852,6 +896,31 @@ func TestAPI_AgentChecks(t *testing.T) {
 	}
 }
 
+func TestAPI_AgentChecksWithFilter(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	reg := &AgentCheckRegistration{
+		Name: "foo",
+	}
+	reg.TTL = "15s"
+	require.NoError(t, agent.CheckRegister(reg))
+	reg = &AgentCheckRegistration{
+		Name: "bar",
+	}
+	reg.TTL = "15s"
+	require.NoError(t, agent.CheckRegister(reg))
+
+	checks, err := agent.ChecksWithFilter("Name == foo")
+	require.NoError(t, err)
+	require.Len(t, checks, 1)
+	_, ok := checks["foo"]
+	require.True(t, ok)
+}
+
 func TestAPI_AgentScriptCheck(t *testing.T) {
 	t.Parallel()
 	c, s := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
@@ -956,6 +1025,7 @@ func TestAPI_AgentChecks_serviceBound(t *testing.T) {
 	defer s.Stop()
 
 	agent := c.Agent()
+	s.WaitForSerfCheck(t)
 
 	// First register a service
 	serviceReg := &AgentServiceRegistration{
@@ -1197,6 +1267,7 @@ func TestAPI_NodeMaintenance(t *testing.T) {
 	defer s.Stop()
 
 	agent := c.Agent()
+	s.WaitForSerfCheck(t)
 
 	// Enable maintenance mode
 	if err := agent.EnableNodeMaintenance("broken"); err != nil {
@@ -1243,39 +1314,125 @@ func TestAPI_AgentUpdateToken(t *testing.T) {
 	c, s := makeACLClient(t)
 	defer s.Stop()
 
-	agent := c.Agent()
+	t.Run("deprecated", func(t *testing.T) {
+		agent := c.Agent()
+		if _, err := agent.UpdateACLToken("root", nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 
-	if _, err := agent.UpdateACLToken("root", nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+		if _, err := agent.UpdateACLAgentToken("root", nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 
-	if _, err := agent.UpdateACLAgentToken("root", nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+		if _, err := agent.UpdateACLAgentMasterToken("root", nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 
-	if _, err := agent.UpdateACLAgentMasterToken("root", nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+		if _, err := agent.UpdateACLReplicationToken("root", nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	})
 
-	if _, err := agent.UpdateACLReplicationToken("root", nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	t.Run("new with no fallback", func(t *testing.T) {
+		agent := c.Agent()
+		if _, err := agent.UpdateDefaultACLToken("root", nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 
-	if _, err := agent.UpdateDefaultACLToken("root", nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+		if _, err := agent.UpdateAgentACLToken("root", nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 
-	if _, err := agent.UpdateAgentACLToken("root", nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+		if _, err := agent.UpdateAgentMasterACLToken("root", nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 
-	if _, err := agent.UpdateAgentMasterACLToken("root", nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+		if _, err := agent.UpdateReplicationACLToken("root", nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	})
 
-	if _, err := agent.UpdateReplicationACLToken("root", nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	t.Run("new with fallback", func(t *testing.T) {
+		// Respond with 404 for the new paths to trigger fallback.
+		failer := func(w http.ResponseWriter, req *http.Request) {
+			w.WriteHeader(404)
+		}
+		notfound := httptest.NewServer(http.HandlerFunc(failer))
+		defer notfound.Close()
+
+		raw := c // real consul client
+
+		// Set up a reverse proxy that will send some requests to the
+		// 404 server and pass everything else through to the real Consul
+		// server.
+		director := func(req *http.Request) {
+			req.URL.Scheme = "http"
+
+			switch req.URL.Path {
+			case "/v1/agent/token/default",
+				"/v1/agent/token/agent",
+				"/v1/agent/token/agent_master",
+				"/v1/agent/token/replication":
+				req.URL.Host = notfound.URL[7:] // Strip off "http://".
+			default:
+				req.URL.Host = raw.config.Address
+			}
+		}
+		proxy := httptest.NewServer(&httputil.ReverseProxy{Director: director})
+		defer proxy.Close()
+
+		// Make another client that points at the proxy instead of the real
+		// Consul server.
+		config := raw.config
+		config.Address = proxy.URL[7:] // Strip off "http://".
+		c, err := NewClient(&config)
+		require.NoError(t, err)
+
+		agent := c.Agent()
+
+		_, err = agent.UpdateDefaultACLToken("root", nil)
+		require.NoError(t, err)
+
+		_, err = agent.UpdateAgentACLToken("root", nil)
+		require.NoError(t, err)
+
+		_, err = agent.UpdateAgentMasterACLToken("root", nil)
+		require.NoError(t, err)
+
+		_, err = agent.UpdateReplicationACLToken("root", nil)
+		require.NoError(t, err)
+	})
+
+	t.Run("new with 403s", func(t *testing.T) {
+		failer := func(w http.ResponseWriter, req *http.Request) {
+			w.WriteHeader(403)
+		}
+		authdeny := httptest.NewServer(http.HandlerFunc(failer))
+		defer authdeny.Close()
+
+		raw := c // real consul client
+
+		// Make another client that points at the proxy instead of the real
+		// Consul server.
+		config := raw.config
+		config.Address = authdeny.URL[7:] // Strip off "http://".
+		c, err := NewClient(&config)
+		require.NoError(t, err)
+
+		agent := c.Agent()
+
+		_, err = agent.UpdateDefaultACLToken("root", nil)
+		require.Error(t, err)
+
+		_, err = agent.UpdateAgentACLToken("root", nil)
+		require.Error(t, err)
+
+		_, err = agent.UpdateAgentMasterACLToken("root", nil)
+		require.Error(t, err)
+
+		_, err = agent.UpdateReplicationACLToken("root", nil)
+		require.Error(t, err)
+	})
 }
 
 func TestAPI_AgentConnectCARoots_empty(t *testing.T) {

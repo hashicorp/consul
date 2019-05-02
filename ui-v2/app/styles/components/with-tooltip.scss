@@ -1,4 +1,4 @@
 @import './with-tooltip/index';
-%app-view h1 span {
+%app-view h1 span[data-tooltip] {
   @extend %with-pseudo-tooltip;
 }

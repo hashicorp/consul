@@ -19,8 +19,8 @@
     "assert",
     "require"
   ]
-  revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
-  version = "v1.2.1"
+  revision = "b91bfb9ebec76498946beb6af7c0230c7cc7ba6c"
+  version = "v1.2.0"
 
 [solve-meta]
   analyzer-name = "dep"

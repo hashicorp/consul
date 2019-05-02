@@ -13,8 +13,8 @@ import (
 	agConnect "github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/connect"
-	"github.com/hashicorp/consul/lib/freeport"
-	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/stretchr/testify/require"
 )
 

@@ -380,6 +380,18 @@ These metrics are used to monitor the health of the Consul servers.
     <td>counter</td>
   </tr>
   <tr>
+    <td>`consul.raft.commitNumLogs`</td>
+    <td>This metric measures the count of logs processed for application to the FSM in a single batch.</td>
+    <td>logs</td>
+    <td>gauge</td>
+  </tr>
+  <tr>
+    <td>`consul.raft.fsm.enqueue`</td>
+    <td>This metric measures the amount of time to enqueue a batch of logs for the FSM to apply.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
     <td>`consul.raft.fsm.restore`</td>
     <td>This metric measures the time taken by the FSM to restore its state from a snapshot.</td>
     <td>ms</td>
@@ -471,6 +483,12 @@ These metrics are used to monitor the health of the Consul servers.
     <td>timer</td>
   </tr>
   <tr>
+    <td>`consul.raft.leader.dispatchNumLogs`</td>
+    <td>This metric measures the number of logs committed to disk in a batch.</td>
+    <td>logs</td>
+    <td>gauge</td>
+  </tr>
+  <tr>
     <td>`consul.raft.replication.appendEntries`</td>
     <td>This measures the time it takes to replicate log entries to followers. This is a general indicator of the load pressure on the Consul servers, as well as the performance of the communication between the servers.</td>
     <td>ms</td>
@@ -544,7 +562,7 @@ These metrics are used to monitor the health of the Consul servers.
   </tr>
   <tr>
     <td><a name="last-contact"></a>`consul.raft.leader.lastContact`</td>
-    <td>This will only be emitted by the Raft leader and measures the time since the leader was last able to contact the follower nodes when checking its leader lease. It can be used as a measure for how stable the Raft timing is and how close the leader is to timing out its lease.<br><br>The lease timeout is 500 ms times the [`raft_multiplier` configuration](/docs/agent/options.html#raft_multiplier), so this telemetry value should not be getting close to that configured value, otherwise the Raft timing is marginal and might need to be tuned, or more powerful servers might be needed. See the [Server Performance](/docs/guides/performance.html) guide for more details.</td>
+    <td>This will only be emitted by the Raft leader and measures the time since the leader was last able to contact the follower nodes when checking its leader lease. It can be used as a measure for how stable the Raft timing is and how close the leader is to timing out its lease.<br><br>The lease timeout is 500 ms times the [`raft_multiplier` configuration](/docs/agent/options.html#raft_multiplier), so this telemetry value should not be getting close to that configured value, otherwise the Raft timing is marginal and might need to be tuned, or more powerful servers might be needed. See the [Server Performance](/docs/install/performance.html) guide for more details.</td>
     <td>ms</td>
     <td>timer</td>
   </tr>
@@ -892,9 +910,27 @@ These metrics give insight into the health of the cluster as a whole.
     <td>counter</td>
   </tr>
   <tr>
+    <td>`consul.serf.member.failed`</td>
+    <td>This increments when an agent is marked dead. This can be an indicator of overloaded agents, network problems, or configuration errors where agents cannot connect to each other on the [required ports](/docs/agent/options.html#ports).</td>
+    <td>failures / interval</td>
+    <td>counter</td>
+  </tr>
+  <tr>
     <td>`consul.serf.member.flap`</td>
-    <td>Available in Consul 0.7 and later, this increments when an agent is marked dead and then recovers within a short time period. This can be an indicator of overloaded agents, network problems, or configuration errors where agents can not connect to each other on the [required ports](/docs/agent/options.html#ports).</td>
+     <td>Available in Consul 0.7 and later, this increments when an agent is marked dead and then recovers within a short time period. This can be an indicator of overloaded agents, network problems, or configuration errors where agents cannot connect to each other on the [required ports](/docs/agent/options.html#ports).</td>
     <td>flaps / interval</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.serf.member.join`</td>
+    <td>This increments when an agent joins the cluster. If an agent flapped or failed this counter also increments when it re-joins.</td>
+    <td>joins / interval</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.serf.member.left`</td>
+    <td>This increments when an agent leaves the cluster.</td>
+    <td>leaves / interval</td>
     <td>counter</td>
   </tr>
   <tr>

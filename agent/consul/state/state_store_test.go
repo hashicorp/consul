@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-memdb"
+	"github.com/stretchr/testify/require"
 )
 
 func testUUID() string {
@@ -66,7 +67,7 @@ func testRegisterNodeWithMeta(t *testing.T, s *Store, idx uint64, nodeID string,
 
 // testRegisterServiceWithChange registers a service and allow ensuring the consul index is updated
 // even if service already exists if using `modifyAccordingIndex`.
-// This is done by setting the transation ID in "version" meta so service will be updated if it already exists
+// This is done by setting the transaction ID in "version" meta so service will be updated if it already exists
 func testRegisterServiceWithChange(t *testing.T, s *Store, idx uint64, nodeID, serviceID string, modifyAccordingIndex bool) {
 	meta := make(map[string]string)
 	if modifyAccordingIndex {
@@ -96,7 +97,7 @@ func testRegisterServiceWithChange(t *testing.T, s *Store, idx uint64, nodeID, s
 	}
 }
 
-// testRegisterService register a service with given transation idx
+// testRegisterService register a service with given transaction idx
 // If the service already exists, transaction number might not be increased
 // Use `testRegisterServiceWithChange()` if you want perform a registration that
 // ensures the transaction is updated by setting idx in Meta of Service
@@ -128,6 +129,32 @@ func testRegisterCheck(t *testing.T, s *Store, idx uint64,
 		result.CheckID != checkID {
 		t.Fatalf("bad check: %#v", result)
 	}
+}
+
+func testRegisterSidecarProxy(t *testing.T, s *Store, idx uint64, nodeID string, targetServiceID string) {
+	svc := &structs.NodeService{
+		ID:      targetServiceID + "-sidecar-proxy",
+		Service: targetServiceID + "-sidecar-proxy",
+		Port:    20000,
+		Kind:    structs.ServiceKindConnectProxy,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: targetServiceID,
+			DestinationServiceID:   targetServiceID,
+		},
+	}
+	require.NoError(t, s.EnsureService(idx, nodeID, svc))
+}
+
+func testRegisterConnectNativeService(t *testing.T, s *Store, idx uint64, nodeID string, serviceID string) {
+	svc := &structs.NodeService{
+		ID:      serviceID,
+		Service: serviceID,
+		Port:    1111,
+		Connect: structs.ServiceConnect{
+			Native: true,
+		},
+	}
+	require.NoError(t, s.EnsureService(idx, nodeID, svc))
 }
 
 func testSetKey(t *testing.T, s *Store, idx uint64, key, value string) {

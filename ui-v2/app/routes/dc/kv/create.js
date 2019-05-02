@@ -24,7 +24,6 @@ export default Route.extend(WithKvActions, {
     });
   },
   setupController: function(controller, model) {
-    this._super(...arguments);
     controller.setProperties(model);
   },
   deactivate: function() {

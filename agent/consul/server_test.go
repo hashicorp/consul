@@ -14,10 +14,10 @@ import (
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/lib/freeport"
+	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/consul/testutil"
-	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-uuid"
@@ -179,7 +179,11 @@ func newServer(c *Config) (*Server, error) {
 		w = os.Stderr
 	}
 	logger := log.New(w, c.NodeName+" - ", log.LstdFlags|log.Lmicroseconds)
-	srv, err := NewServerLogger(c, logger, new(token.Store), tlsutil.NewConfigurator(c.ToTLSUtilConfig()))
+	tlsConf, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), logger)
+	if err != nil {
+		return nil, err
+	}
+	srv, err := NewServerLogger(c, logger, new(token.Store), tlsConf)
 	if err != nil {
 		return nil, err
 	}
@@ -240,12 +244,18 @@ func TestServer_JoinLAN(t *testing.T) {
 
 func TestServer_LANReap(t *testing.T) {
 	t.Parallel()
+
+	configureServer := func(c *Config) {
+		c.SerfFloodInterval = 100 * time.Millisecond
+		c.SerfLANConfig.ReconnectTimeout = 250 * time.Millisecond
+		c.SerfLANConfig.TombstoneTimeout = 250 * time.Millisecond
+		c.SerfLANConfig.ReapInterval = 300 * time.Millisecond
+	}
+
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
 		c.Bootstrap = true
-		c.SerfFloodInterval = 100 * time.Millisecond
-		c.SerfLANConfig.ReconnectTimeout = 250 * time.Millisecond
-		c.SerfLANConfig.ReapInterval = 500 * time.Millisecond
+		configureServer(c)
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -253,18 +263,14 @@ func TestServer_LANReap(t *testing.T) {
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
 		c.Bootstrap = false
-		c.SerfFloodInterval = 100 * time.Millisecond
-		c.SerfLANConfig.ReconnectTimeout = 250 * time.Millisecond
-		c.SerfLANConfig.ReapInterval = 500 * time.Millisecond
+		configureServer(c)
 	})
 	defer os.RemoveAll(dir2)
 
 	dir3, s3 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
 		c.Bootstrap = false
-		c.SerfFloodInterval = 100 * time.Millisecond
-		c.SerfLANConfig.ReconnectTimeout = 250 * time.Millisecond
-		c.SerfLANConfig.ReapInterval = 500 * time.Millisecond
+		configureServer(c)
 	})
 	defer os.RemoveAll(dir3)
 	defer s3.Shutdown()
@@ -273,6 +279,8 @@ func TestServer_LANReap(t *testing.T) {
 	joinLAN(t, s2, s1)
 	joinLAN(t, s3, s1)
 
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s2.RPC, "dc1")
 	testrpc.WaitForLeader(t, s3.RPC, "dc1")
 
 	retry.Run(t, func(r *retry.R) {
@@ -338,6 +346,7 @@ func TestServer_WANReap(t *testing.T) {
 		c.Bootstrap = true
 		c.SerfFloodInterval = 100 * time.Millisecond
 		c.SerfWANConfig.ReconnectTimeout = 250 * time.Millisecond
+		c.SerfWANConfig.TombstoneTimeout = 250 * time.Millisecond
 		c.SerfWANConfig.ReapInterval = 500 * time.Millisecond
 	})
 	defer os.RemoveAll(dir1)
@@ -960,4 +969,42 @@ func TestServer_RevokeLeadershipIdempotent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestServer_Reload(t *testing.T) {
+	t.Parallel()
+
+	global_entry_init := &structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		Config: map[string]interface{}{
+			// these are made a []uint8 and a int64 to allow the Equals test to pass
+			// otherwise it will fail complaining about data types
+			"foo": "bar",
+			"bar": int64(1),
+		},
+	}
+
+	dir1, s := testServerWithConfig(t, func(c *Config) {
+		c.Build = "1.5.0"
+	})
+	defer os.RemoveAll(dir1)
+	defer s.Shutdown()
+
+	testrpc.WaitForTestAgent(t, s.RPC, "dc1")
+
+	s.config.ConfigEntryBootstrap = []structs.ConfigEntry{
+		global_entry_init,
+	}
+
+	s.ReloadConfig(s.config)
+
+	_, entry, err := s.fsm.State().ConfigEntry(nil, structs.ProxyDefaults, structs.ProxyConfigGlobal)
+	require.NoError(t, err)
+	require.NotNil(t, entry)
+	global, ok := entry.(*structs.ProxyConfigEntry)
+	require.True(t, ok)
+	require.Equal(t, global_entry_init.Kind, global.Kind)
+	require.Equal(t, global_entry_init.Name, global.Name)
+	require.Equal(t, global_entry_init.Config, global.Config)
 }

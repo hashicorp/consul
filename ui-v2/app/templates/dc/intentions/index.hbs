@@ -4,7 +4,7 @@
     {{/block-slot}}
     {{#block-slot 'header'}}
         <h1>
-            Intentions
+            Intentions <em>{{format-number items.length}} total</em>
         </h1>
         <label for="toolbar-toggle"></label>
     {{/block-slot}}
@@ -13,70 +13,73 @@
     {{/block-slot}}
     {{#block-slot 'toolbar'}}
 {{#if (gt items.length 0) }}
-        {{intention-filter filters=actionFilters search=filters.s type=filters.action onchange=(action 'filter')}}
+        {{intention-filter searchable=searchable filters=actionFilters search=filters.s type=filters.action onchange=(action 'filter')}}
 {{/if}}
     {{/block-slot}}
     {{#block-slot 'content'}}
-{{#if (gt filtered.length 0) }}
-        {{#tabular-collection
-            route='dc.intentions.edit'
-            key='SourceName'
-            items=filtered as |item index|
-        }}
-            {{#block-slot 'header'}}
-                <th>Source</th>
-                <th>&nbsp;</th>
-                <th>Destination</th>
-                <th>Precedence</th>
-            {{/block-slot}}
-            {{#block-slot 'row'}}
-                <td class="source" data-test-intention="{{item.ID}}">
-                  <a href={{href-to 'dc.intentions.edit' item.ID}} data-test-intention-source="{{item.SourceName}}">
-                    {{#if (eq item.SourceName '*') }}
-                      All Services (*)
-                    {{else}}
-                      {{item.SourceName}}
-                    {{/if}}
-                  </a>
-                </td>
-                <td class="intent-{{item.Action}}" data-test-intention-action="{{item.Action}}">
-                    <strong>{{item.Action}}</strong>
-                </td>
-                <td class="destination" data-test-intention-destination="{{item.DestinationName}}">
-                    {{#if (eq item.DestinationName '*') }}
-                      All Services (*)
-                    {{else}}
-                      {{item.DestinationName}}
-                    {{/if}}
-                </td>
-                <td class="precedence">
-                    {{item.Precedence}}
-                </td>
-            {{/block-slot}}
-            {{#block-slot 'actions' as |index change checked|}}
-                {{#confirmation-dialog confirming=false index=index message='Are you sure you want to delete this intention?'}}
-                    {{#block-slot 'action' as |confirm|}}
-                        {{#action-group index=index onchange=(action change) checked=(if (eq checked index) 'checked')}}
-                            <ul>
-                                <li>
-                                    <a href={{href-to 'dc.intentions.edit' item.ID}}>Edit</a>
-                                </li>
-                                <li>
-                                    <a data-test-delete onclick={{action confirm 'delete' item}}>Delete</a>
-                                </li>
-                            </ul>
-                        {{/action-group}}
-                    {{/block-slot}}
-                    {{#block-slot 'dialog' as |execute cancel message|}}
-                      {{delete-confirmation message=message execute=execute cancel=cancel}}
-                    {{/block-slot}}
-                {{/confirmation-dialog}}
-            {{/block-slot}}
-        {{/tabular-collection}}
-{{else}}
-        <p>
-            There are no intentions.
-        </p>
-{{/if}}
+        {{#changeable-set dispatcher=searchable}}
+          {{#block-slot 'set' as |filtered|}}
+            {{#tabular-collection
+                route='dc.intentions.edit'
+                key='SourceName'
+                items=filtered as |item index|
+            }}
+                {{#block-slot 'header'}}
+                    <th>Source</th>
+                    <th>&nbsp;</th>
+                    <th>Destination</th>
+                    <th>Precedence</th>
+                {{/block-slot}}
+                {{#block-slot 'row'}}
+                    <td class="source" data-test-intention="{{item.ID}}">
+                      <a href={{href-to 'dc.intentions.edit' item.ID}} data-test-intention-source="{{item.SourceName}}">
+                        {{#if (eq item.SourceName '*') }}
+                          All Services (*)
+                        {{else}}
+                          {{item.SourceName}}
+                        {{/if}}
+                      </a>
+                    </td>
+                    <td class="intent-{{item.Action}}" data-test-intention-action="{{item.Action}}">
+                        <strong>{{item.Action}}</strong>
+                    </td>
+                    <td class="destination" data-test-intention-destination="{{item.DestinationName}}">
+                        {{#if (eq item.DestinationName '*') }}
+                          All Services (*)
+                        {{else}}
+                          {{item.DestinationName}}
+                        {{/if}}
+                    </td>
+                    <td class="precedence">
+                        {{item.Precedence}}
+                    </td>
+                {{/block-slot}}
+                {{#block-slot 'actions' as |index change checked|}}
+                    {{#confirmation-dialog confirming=false index=index message='Are you sure you want to delete this intention?'}}
+                        {{#block-slot 'action' as |confirm|}}
+                            {{#action-group index=index onchange=(action change) checked=(if (eq checked index) 'checked')}}
+                                <ul>
+                                    <li>
+                                        <a href={{href-to 'dc.intentions.edit' item.ID}}>Edit</a>
+                                    </li>
+                                    <li>
+                                        <button type="button" class="type-delete" data-test-delete {{action confirm 'delete' item}}>Delete</button>
+                                    </li>
+                                </ul>
+                            {{/action-group}}
+                        {{/block-slot}}
+                        {{#block-slot 'dialog' as |execute cancel message|}}
+                          {{delete-confirmation message=message execute=execute cancel=cancel}}
+                        {{/block-slot}}
+                    {{/confirmation-dialog}}
+                {{/block-slot}}
+            {{/tabular-collection}}
+          {{/block-slot}}
+          {{#block-slot 'empty'}}
+            <p>
+              There are no intentions.
+            </p>
+          {{/block-slot}}
+        {{/changeable-set}}
     {{/block-slot}}
 {{/app-view}}

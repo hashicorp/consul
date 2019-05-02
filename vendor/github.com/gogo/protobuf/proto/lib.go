@@ -570,11 +570,9 @@ func SetDefaults(pb Message) {
 	setDefaults(reflect.ValueOf(pb), true, false)
 }
 
-// v is a struct.
+// v is a pointer to a struct.
 func setDefaults(v reflect.Value, recur, zeros bool) {
-	if v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
+	v = v.Elem()
 
 	defaultMu.RLock()
 	dm, ok := defaults[v.Type()]
@@ -676,11 +674,8 @@ func setDefaults(v reflect.Value, recur, zeros bool) {
 
 	for _, ni := range dm.nested {
 		f := v.Field(ni)
-		// f is *T or T or []*T or []T
+		// f is *T or []*T or map[T]*T
 		switch f.Kind() {
-		case reflect.Struct:
-			setDefaults(f, recur, zeros)
-
 		case reflect.Ptr:
 			if f.IsNil() {
 				continue
@@ -690,7 +685,7 @@ func setDefaults(v reflect.Value, recur, zeros bool) {
 		case reflect.Slice:
 			for i := 0; i < f.Len(); i++ {
 				e := f.Index(i)
-				if e.Kind() == reflect.Ptr && e.IsNil() {
+				if e.IsNil() {
 					continue
 				}
 				setDefaults(e, recur, zeros)
@@ -762,9 +757,6 @@ func buildDefaultMessage(t reflect.Type) (dm defaultMessage) {
 func fieldDefault(ft reflect.Type, prop *Properties) (sf *scalarField, nestedMessage bool, err error) {
 	var canHaveDefault bool
 	switch ft.Kind() {
-	case reflect.Struct:
-		nestedMessage = true // non-nullable
-
 	case reflect.Ptr:
 		if ft.Elem().Kind() == reflect.Struct {
 			nestedMessage = true
@@ -774,7 +766,7 @@ func fieldDefault(ft reflect.Type, prop *Properties) (sf *scalarField, nestedMes
 
 	case reflect.Slice:
 		switch ft.Elem().Kind() {
-		case reflect.Ptr, reflect.Struct:
+		case reflect.Ptr:
 			nestedMessage = true // repeated message
 		case reflect.Uint8:
 			canHaveDefault = true // bytes field

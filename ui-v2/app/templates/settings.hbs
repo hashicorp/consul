@@ -1,39 +1,40 @@
 {{#hashicorp-consul id="wrapper" dcs=dcs dc=dc}}
-    {{#app-view class="settings show"}}
-        {{#block-slot 'notification' as |status type|}}
-          {{#if (eq type 'update')}}
-            {{#if (eq status 'success') }}
-              Your settings were saved.
-            {{else}}
-              There was an error saving your settings.
-            {{/if}}
-          {{ else if (eq type 'delete')}}
-            {{#if (eq status 'success') }}
-              You settings have been reset.
-            {{else}}
-              There was an error resetting your settings.
-            {{/if}}
-          {{/if}}
-        {{/block-slot}}
-        {{#block-slot 'header'}}
-            <h1>
-                Settings
-            </h1>
-        {{/block-slot}}
-        {{#block-slot 'content'}}
-            <p>
-                These settings allow you to configure your browser for the Consul Web UI. Everything is saved to localstorage, and persists through visits and browser usage.
-            </p>
-            <form>
-                <fieldset>
-                    <label class="type-text">
-                        <span>ACL Token</span>
-                        {{ input type='password' value=item.token name="token" }}
-                        <em>The token is sent with requests as the <code>X-Consul-Token</code> HTTP header parameter. This is used to control the ACL for the web UI.</em>
-                    </label>
-                </fieldset>
-                <button type="submit" {{action 'update' item}}>Save</button>
-            </form>
-        {{/block-slot}}
-    {{/app-view}}
+  {{#app-view class="settings show"}}
+    {{#block-slot 'header'}}
+      <h1>
+          Settings
+      </h1>
+    {{/block-slot}}
+    {{#block-slot 'content'}}
+      <div class="notice info">
+        <h3>Local Storage</h3>
+        <p>
+          These settings are immediately saved to local storage and persisted through browser usage.
+        </p>
+      </div>
+      <form>
+        <fieldset>
+          <h2>Dashboard Links</h2>
+          <p>
+            Add a link to the service detail page in the UI to get quick access to a service-wide metrics dashboard. Enter the dashboard URL into the field below. You can use the placeholder {{Service.Name}} which will be replaced with the name of the service currently being viewed.
+          </p>
+          <label class="type-text">
+            <span>Link template for services</span>
+            <input type="text" name="urls[service]" value={{item.urls.service}} onchange={{action 'change'}} onkeypress={{action 'key'}} onkeydown={{action 'key'}} />
+            <em>e.g. https://grafana.example.com/d/1/consul-service-mesh&amp;orgid=1&amp;service-name={{ '{{Service.Name}}' }}</em>
+          </label>
+        </fieldset>
+        <fieldset>
+          <h2>Blocking Queries</h2>
+          <p>Keep catalog info up-to-date without refreshing the page. Any changes made to services and nodes would be reflected in real time.</p>
+          <div class="type-toggle">
+            <label>
+                <input type="checkbox" name="client[blocking]" checked={{if item.client.blocking 'checked' }} onchange={{action 'change'}} />
+                <span>{{if item.client.blocking 'On' 'Off' }}</span>
+            </label>
+          </div>
+        </fieldset>
+      </form>
+    {{/block-slot}}
+  {{/app-view}}
 {{/hashicorp-consul}}

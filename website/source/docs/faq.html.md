@@ -93,7 +93,7 @@ The limit on a key's value size is 512KB. This is strictly enforced and an
 HTTP 413 status will be returned to any client that attempts to store more
 than that limit in a value. It should be noted that the Consul key/value store
 is not designed to be used as a general purpose database. See
-[Server Performance](/docs/guides/performance.html) for more details.
+[Server Performance](/docs/install/performance.html) for more details.
 
 ## Q: What data is replicated between Consul datacenters?
 

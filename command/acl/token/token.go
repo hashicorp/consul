@@ -23,7 +23,7 @@ func (c *cmd) Help() string {
 	return flags.Usage(help, nil)
 }
 
-const synopsis = "Manage Consul's ACL Tokens"
+const synopsis = "Manage Consul's ACL tokens"
 const help = `
 Usage: consul acl token <subcommand> [options] [args]
 
@@ -31,7 +31,7 @@ Usage: consul acl token <subcommand> [options] [args]
   Here are some simple examples, and more detailed examples are available
   in the subcommands or the documentation.
 
-  Create a new ACL Token:
+  Create a new ACL token:
 
       $ consul acl token create \
                                  -description "This is an example token" \

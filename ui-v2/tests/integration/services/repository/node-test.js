@@ -55,6 +55,10 @@ test('findBySlug returns the correct data for item endpoint', function(assert) {
           return Object.assign({}, item, {
             Datacenter: dc,
             uid: `["${dc}","${item.ID}"]`,
+            meta: {
+              date: undefined,
+              cursor: undefined,
+            },
           });
         })
       );

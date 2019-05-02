@@ -17,7 +17,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/mock"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/types"
 	uuid "github.com/hashicorp/go-uuid"
 )
@@ -516,6 +516,9 @@ func TestCheckTCPPassing(t *testing.T) {
 
 	if os.Getenv("TRAVIS") == "true" {
 		t.Skip("IPV6 not supported on travis-ci")
+	}
+	if os.Getenv("CIRCLECI") == "true" {
+		t.Skip("IPV6 not supported on CircleCI")
 	}
 	tcpServer = mockTCPServer(`tcp6`)
 	expectTCPStatus(t, tcpServer.Addr().String(), api.HealthPassing)

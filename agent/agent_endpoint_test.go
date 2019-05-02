@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"reflect"
 	"strings"
@@ -27,8 +28,8 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logger"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/serf"
@@ -99,6 +100,48 @@ func TestAgent_Services(t *testing.T) {
 	assert.Equal(t, prxy1.Command, val["mysql"].Connect.Proxy.Command)
 	assert.Equal(t, prxy1.Config, val["mysql"].Connect.Proxy.Config)
 	assert.Equal(t, prxy1.Upstreams.ToAPI(), val["mysql"].Connect.Proxy.Upstreams)
+}
+
+func TestAgent_ServicesFiltered(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	srv1 := &structs.NodeService{
+		ID:      "mysql",
+		Service: "mysql",
+		Tags:    []string{"master"},
+		Meta: map[string]string{
+			"foo": "bar",
+		},
+		Port: 5000,
+	}
+	require.NoError(t, a.State.AddService(srv1, ""))
+
+	// Add another service
+	srv2 := &structs.NodeService{
+		ID:      "redis",
+		Service: "redis",
+		Tags:    []string{"kv"},
+		Meta: map[string]string{
+			"foo": "bar",
+		},
+		Port: 1234,
+	}
+	require.NoError(t, a.State.AddService(srv2, ""))
+
+	req, _ := http.NewRequest("GET", "/v1/agent/services?filter="+url.QueryEscape("foo in Meta"), nil)
+	obj, err := a.srv.AgentServices(nil, req)
+	require.NoError(t, err)
+	val := obj.(map[string]*api.AgentService)
+	require.Len(t, val, 2)
+
+	req, _ = http.NewRequest("GET", "/v1/agent/services?filter="+url.QueryEscape("kv in Tags"), nil)
+	obj, err = a.srv.AgentServices(nil, req)
+	require.NoError(t, err)
+	val = obj.(map[string]*api.AgentService)
+	require.Len(t, val, 1)
 }
 
 // This tests that the agent services endpoint (/v1/agent/services) returns
@@ -363,10 +406,10 @@ func TestAgent_Service(t *testing.T) {
 			// into a busy-poll!
 			//
 			// This test though doesn't catch that because busy poll still has the
-			// correct external behaviour. I don't want to instrument the loop to
+			// correct external behavior. I don't want to instrument the loop to
 			// assert it's not executing too fast here as I can't think of a clean way
 			// and the issue is fixed now so this test doesn't actually catch the
-			// error, but does provide an easy way to verify the behaviour by hand:
+			// error, but does provide an easy way to verify the behavior by hand:
 			//  1. Make this test fail e.g. change wantErr to true
 			//  2. Add a log.Println or similar into the blocking loop/function
 			//  3. See whether it's called just once or many times in a tight loop.
@@ -627,6 +670,37 @@ func TestAgent_Checks(t *testing.T) {
 	if val["mysql"].Status != api.HealthPassing {
 		t.Fatalf("bad check: %v", obj)
 	}
+}
+
+func TestAgent_ChecksWithFilter(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	chk1 := &structs.HealthCheck{
+		Node:    a.Config.NodeName,
+		CheckID: "mysql",
+		Name:    "mysql",
+		Status:  api.HealthPassing,
+	}
+	a.State.AddCheck(chk1, "")
+
+	chk2 := &structs.HealthCheck{
+		Node:    a.Config.NodeName,
+		CheckID: "redis",
+		Name:    "redis",
+		Status:  api.HealthPassing,
+	}
+	a.State.AddCheck(chk2, "")
+
+	req, _ := http.NewRequest("GET", "/v1/agent/checks?filter="+url.QueryEscape("Name == `redis`"), nil)
+	obj, err := a.srv.AgentChecks(nil, req)
+	require.NoError(t, err)
+	val := obj.(map[types.CheckID]*structs.HealthCheck)
+	require.Len(t, val, 1)
+	_, ok := val["redis"]
+	require.True(t, ok)
 }
 
 func TestAgent_HealthServiceByID(t *testing.T) {
@@ -1883,28 +1957,127 @@ func TestAgent_RegisterCheck_BadStatus(t *testing.T) {
 
 func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), TestACLConfig())
+	a := NewTestAgent(t, t.Name(), TestACLConfigNew())
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-	args := &structs.CheckDefinition{
+	nodeCheck := &structs.CheckDefinition{
 		Name: "test",
 		TTL:  15 * time.Second,
 	}
 
-	t.Run("no token", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(args))
-		if _, err := a.srv.AgentRegisterCheck(nil, req); !acl.IsErrPermissionDenied(err) {
-			t.Fatalf("err: %v", err)
-		}
+	svc := &structs.ServiceDefinition{
+		ID:   "foo:1234",
+		Name: "foo",
+		Port: 1234,
+	}
+
+	svcCheck := &structs.CheckDefinition{
+		Name:      "test2",
+		ServiceID: "foo:1234",
+		TTL:       15 * time.Second,
+	}
+
+	// ensure the service is ready for registering a check for it.
+	req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(svc))
+	resp := httptest.NewRecorder()
+	_, err := a.srv.AgentRegisterService(resp, req)
+	require.NoError(t, err)
+
+	// create a policy that has write on service foo
+	policyReq := &structs.ACLPolicy{
+		Name:  "write-foo",
+		Rules: `service "foo" { policy = "write"}`,
+	}
+
+	req, _ = http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonReader(policyReq))
+	resp = httptest.NewRecorder()
+	_, err = a.srv.ACLPolicyCreate(resp, req)
+	require.NoError(t, err)
+
+	// create a policy that has write on the node name of the agent
+	policyReq = &structs.ACLPolicy{
+		Name:  "write-node",
+		Rules: fmt.Sprintf(`node "%s" { policy = "write" }`, a.config.NodeName),
+	}
+
+	req, _ = http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonReader(policyReq))
+	resp = httptest.NewRecorder()
+	_, err = a.srv.ACLPolicyCreate(resp, req)
+	require.NoError(t, err)
+
+	// create a token using the write-foo policy
+	tokenReq := &structs.ACLToken{
+		Description: "write-foo",
+		Policies: []structs.ACLTokenPolicyLink{
+			structs.ACLTokenPolicyLink{
+				Name: "write-foo",
+			},
+		},
+	}
+
+	req, _ = http.NewRequest("PUT", "/v1/acl/token?token=root", jsonReader(tokenReq))
+	resp = httptest.NewRecorder()
+	tokInf, err := a.srv.ACLTokenCreate(resp, req)
+	require.NoError(t, err)
+	svcToken, ok := tokInf.(*structs.ACLToken)
+	require.True(t, ok)
+	require.NotNil(t, svcToken)
+
+	// create a token using the write-node policy
+	tokenReq = &structs.ACLToken{
+		Description: "write-node",
+		Policies: []structs.ACLTokenPolicyLink{
+			structs.ACLTokenPolicyLink{
+				Name: "write-node",
+			},
+		},
+	}
+
+	req, _ = http.NewRequest("PUT", "/v1/acl/token?token=root", jsonReader(tokenReq))
+	resp = httptest.NewRecorder()
+	tokInf, err = a.srv.ACLTokenCreate(resp, req)
+	require.NoError(t, err)
+	nodeToken, ok := tokInf.(*structs.ACLToken)
+	require.True(t, ok)
+	require.NotNil(t, nodeToken)
+
+	t.Run("no token - node check", func(t *testing.T) {
+		req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(nodeCheck))
+		_, err := a.srv.AgentRegisterCheck(nil, req)
+		require.True(t, acl.IsErrPermissionDenied(err))
 	})
 
-	t.Run("root token", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token=root", jsonReader(args))
-		if _, err := a.srv.AgentRegisterCheck(nil, req); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+	t.Run("svc token - node check", func(t *testing.T) {
+		req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+svcToken.SecretID, jsonReader(nodeCheck))
+		_, err := a.srv.AgentRegisterCheck(nil, req)
+		require.True(t, acl.IsErrPermissionDenied(err))
 	})
+
+	t.Run("node token - node check", func(t *testing.T) {
+		req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+nodeToken.SecretID, jsonReader(nodeCheck))
+		_, err := a.srv.AgentRegisterCheck(nil, req)
+		require.NoError(t, err)
+	})
+
+	t.Run("no token - svc check", func(t *testing.T) {
+		req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(svcCheck))
+		_, err := a.srv.AgentRegisterCheck(nil, req)
+		require.True(t, acl.IsErrPermissionDenied(err))
+	})
+
+	t.Run("node token - svc check", func(t *testing.T) {
+		req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+nodeToken.SecretID, jsonReader(svcCheck))
+		_, err := a.srv.AgentRegisterCheck(nil, req)
+		require.True(t, acl.IsErrPermissionDenied(err))
+	})
+
+	t.Run("svc token - svc check", func(t *testing.T) {
+		req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+svcToken.SecretID, jsonReader(svcCheck))
+		_, err := a.srv.AgentRegisterCheck(nil, req)
+		require.NoError(t, err)
+	})
+
 }
 
 func TestAgent_DeregisterCheck(t *testing.T) {
@@ -3063,7 +3236,7 @@ func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 		{
 			name: "ACL OK for service but and overridden for sidecar",
 			// This test ensures that if the sidecar embeds it's own token with
-			// different privs from the main request token it will be honoured for the
+			// different privs from the main request token it will be honored for the
 			// sidecar registration. We use the test root token since that should have
 			// permission.
 			json: `
@@ -3342,7 +3515,7 @@ func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 			assert.Equal(sd.Port, svc.Port)
 			// Ensure that the actual registered service _doesn't_ still have it's
 			// sidecar info since it's duplicate and we don't want that synced up to
-			// the catalog or included in responses particulary - it's just
+			// the catalog or included in responses particularly - it's just
 			// registration syntax sugar.
 			assert.Nil(svc.Connect.SidecarService)
 
@@ -4765,7 +4938,7 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 				r.Fatalf("leaf has not updated")
 			}
 
-			// Got a new leaf. Sanity check it's a whole new key as well as differnt
+			// Got a new leaf. Sanity check it's a whole new key as well as different
 			// cert.
 			if issued.PrivateKeyPEM == issued2.PrivateKeyPEM {
 				r.Fatalf("new leaf has same private key as before")
@@ -5057,10 +5230,10 @@ func TestAgentConnectProxyConfig_Blocking(t *testing.T) {
 			// into a busy-poll!
 			//
 			// This test though doesn't catch that because busy poll still has the
-			// correct external behaviour. I don't want to instrument the loop to
+			// correct external behavior. I don't want to instrument the loop to
 			// assert it's not executing too fast here as I can't think of a clean way
 			// and the issue is fixed now so this test doesn't actually catch the
-			// error, but does provide an easy way to verify the behaviour by hand:
+			// error, but does provide an easy way to verify the behavior by hand:
 			//  1. Make this test fail e.g. change wantErr to true
 			//  2. Add a log.Println or similar into the blocking loop/function
 			//  3. See whether it's called just once or many times in a tight loop.

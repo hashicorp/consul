@@ -1,11 +1,11 @@
 import { get, set } from '@ember/object';
 import { inject as service } from '@ember/service';
-import Component from 'consul-ui/components/dom-buffer';
+import DomBufferComponent from 'consul-ui/components/dom-buffer';
 import SlotsMixin from 'block-slots';
 import WithResizing from 'consul-ui/mixins/with-resizing';
 
 import templatize from 'consul-ui/utils/templatize';
-export default Component.extend(SlotsMixin, WithResizing, {
+export default DomBufferComponent.extend(SlotsMixin, WithResizing, {
   dom: service('dom'),
   checked: true,
   height: null,
@@ -38,9 +38,11 @@ export default Component.extend(SlotsMixin, WithResizing, {
   _close: function(e) {
     set(this, 'checked', false);
     const dialogPanel = get(this, 'dialog');
-    const overflowing = get(this, 'overflowingClass');
-    if (dialogPanel.classList.contains(overflowing)) {
-      dialogPanel.classList.remove(overflowing);
+    if (dialogPanel) {
+      const overflowing = get(this, 'overflowingClass');
+      if (dialogPanel.classList.contains(overflowing)) {
+        dialogPanel.classList.remove(overflowing);
+      }
     }
     // TODO: should we make a didDisappear?
     get(this, 'dom')
@@ -105,15 +107,17 @@ export default Component.extend(SlotsMixin, WithResizing, {
   },
   actions: {
     change: function(e) {
-      if (e && e.target && e.target.checked) {
+      if (get(e, 'target.checked')) {
         this._open(e);
       } else {
-        this._close();
+        this._close(e);
       }
     },
     close: function() {
-      get(this, 'dom').element('#modal_close').checked = true;
-      this.onclose();
+      const $close = get(this, 'dom').element('#modal_close');
+      $close.checked = true;
+      const $input = get(this, 'dom').element('input[name="modal"]', this.element);
+      $input.onchange({ target: $input });
     },
   },
 });

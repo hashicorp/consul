@@ -281,8 +281,8 @@ respond as expected.
 Using `localhost` and `127.0.0.1` as `Subject Alternative Names` in server
 and client certificates allows tools like `curl` to be able to communicate with
 Consul's HTTPS API when run on the same host. Other SANs may be added during
-server/client certificates creation with `-additional-dnsname` to allow remote
-HTTPS requests from other hosts.
+server/client certificates creation with `-additional-dnsname` or 
+`-additional-ipaddress`to allow remote HTTPS requests from other hosts.
 
 ## Configuring the Consul UI for HTTPS
 

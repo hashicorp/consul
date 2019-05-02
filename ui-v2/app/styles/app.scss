@@ -4,7 +4,13 @@
 @import 'base/reset/index';
 @import 'variables/index';
 
+/*TODO: Move this to its own local component*/
 @import 'ember-power-select';
+#ember-basic-dropdown-wormhole {
+  z-index: 510;
+  position: relative;
+}
+/**/
 
 @import 'components/index';
 @import 'core/typography';

@@ -22,13 +22,14 @@ properly installed and configured with your Kubernetes cluster.
 may still change significantly over time. Please always run Helm with
 `--dry-run` before any install or upgrade to verify changes.
 
-~> **Security Warning:** By default, the chart will install an insecure configuration
-of Consul. This provides a less complicated out-of-box experience for new users,
-but is not appropriate for a production setup. It is highly recommended to use
-a properly secured Kubernetes cluster or make sure that you understand and enable
-the [recommended security features](/docs/internals/security.html). Currently,
-some of these features are not supported in the Helm chart and require additional
-manual configuration.
+~> **Security Warning:** By default, the chart will install an insecure
+configuration of Consul. This provides a less complicated out-of-box experience
+for new users, but is not appropriate for a production setup. Make sure that
+your Kubernetes cluster is properly secured to prevent unwanted access to
+Consul, or that you understand and enable the
+[recommended Consul security features](/docs/internals/security.html).
+Currently, some of these features are not supported in the Helm chart and
+require additional manual configuration.
 
 ## Using the Helm Chart
 
@@ -127,7 +128,20 @@ and consider if they're appropriate for your deployment.
       flag to the helm chart installation command because of a limitation in the Helm
       templating language.
 
-  * <a name="v-server-extraconfig" href="#v-server-extraconfig">`extraConfig`</a> (`string: "{}"`) -A raw string of extra JSON or HCL configuration for Consul servers. This will be saved as-is into a ConfigMap that is read by the Consul server agents. This can be used to add additional configuration that isn't directly exposed by the chart.
+  * <a name="v-server-extraconfig" href="#v-server-extraconfig">`extraConfig`</a> (`string: "{}"`) - A raw string of extra JSON [configuration](/docs/agent/options.html) for Consul servers. This will be saved as-is into a ConfigMap that is read by the Consul server agents. This can be used to add additional configuration that isn't directly exposed by the chart.
+
+        ```yaml
+        # ExtraConfig values are formatted as a multi-line string:
+        extraConfig: |
+          {
+            "log_level": "DEBUG"
+          }
+        ```
+        This can also be set using Helm's `--set` flag (consul-helm v0.7.0 and later), using the following syntax:
+
+        ```shell
+        --set 'server.extraConfig="{"log_level": "DEBUG"}"'
+        ```
 
   * <a name="v-server-extravolumes" href="#v-server-extravolumes">`extraVolumes`</a> (`array: []`) - A list of extra volumes to mount for server agents. This is useful for bringing in extra data that can be referenced by other configurations at a well known path, such as TLS certificates or Gossip encryption keys. The value of this should be a list of objects. Each object supports the following keys:
 
@@ -142,6 +156,13 @@ and consider if they're appropriate for your deployment.
       If true, then the agent will be configured to automatically load HCL/JSON
       configuration files from this volume with `-config-dir`. This defaults
       to false.
+
+        ```yaml
+        extraVolumes:    
+          -  type: "secret"
+             name: "consul-certs"
+             load: false        
+        ```
 
   * <a name="v-server-affinity" href="#v-server-affinity">`affinity`</a> (`string`) - This value defines the [affinity](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity) for server pods. It defaults to allowing only a single pod on each node, which minimizes risk of the cluster becoming unusable if a node is lost. If you need to run more pods per node (for example, testing on Minikube), set this value to `null`.
 
@@ -158,11 +179,15 @@ and consider if they're appropriate for your deployment.
               topologyKey: kubernetes.io/hostname
         ```
 
-    * <a name="v-acl-sync-token" href="#v-acl-sync-token">`aclSyncToken`</a> - references a Kubernetes [secret](https://kubernetes.io/docs/concepts/configuration/secret/#creating-your-own-secrets) that contains an existing Consul ACL token. This will provide the sync process the correct permissions. This is only needed if ACLs are enabled on the Consul cluster.
+  * <a name="v-server-priorityclassname" href="#v-server-priorityclassname">`priorityClassName`</a> (`string`) - This value references an existing Kubernetes [priorityClassName](https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/#pod-priority) that can be assigned to server pods.
 
-      - <a name="v-acl-sync-token-secret-name" href="#v-acl-sync-token-secret-name">secretName </a>`(string: null)` - The name of the Kubernetes secret. This defaults to null.
+  * <a name="v-server-annotations" href="#v-server-annotations">`annotations`</a> (`string`) - This value defines additional annotations for server pods. This should be a formatted as a multi-line string.
 
-      - <a name="v-acl-sync-token-secret-key" href="#v-acl-sync-token-secret-key">secretKey </a>`(string: null)` - The key for the Kubernetes secret. This defaults to null. 
+        ```yaml
+        annotations: |
+          "sample/annotation1": "foo"
+          "sample/annotation2": "bar"
+        ```
 
 * <a name="v-client" href="#v-client">`client`</a> - Values that configure running a Consul client on Kubernetes nodes.
 
@@ -185,7 +210,20 @@ and consider if they're appropriate for your deployment.
             memory: "10Gi"
         ```
 
-  * <a name="v-client-extraconfig" href="#v-client-extraconfig">`extraConfig`</a> (`string: "{}"`) - A raw string of extra JSON or HCL configuration for Consul clients. This will be saved as-is into a ConfigMap that is read by the Consul agents. This can be used to add additional configuration that isn't directly exposed by the chart.
+  * <a name="v-client-extraconfig" href="#v-client-extraconfig">`extraConfig`</a> (`string: "{}"`) - A raw string of extra JSON [configuration](/docs/agent/options.html) for Consul clients. This will be saved as-is into a ConfigMap that is read by the Consul agents. This can be used to add additional configuration that isn't directly exposed by the chart.
+
+        ```yaml
+        # ExtraConfig values are formatted as a multi-line string:
+        extraConfig: |
+          {
+            "log_level": "DEBUG"
+          }
+        ```
+        This can also be set using Helm's `--set` flag (consul-helm v0.7.0 and later), using the following syntax:
+
+        ```shell
+        --set 'client.extraConfig="{"log_level": "DEBUG"}"'
+        ```
 
   * <a name="v-client-extravolumes" href="#v-client-extravolumes">`extraVolumes`</a> (`array: []`) - A list of extra volumes to mount for client agents. This is useful for bringing in extra data that can be referenced by other configurations at a well known path, such as TLS certificates or Gossip encryption keys. The value of this should be a list of objects. Each object supports the following keys:
 
@@ -200,6 +238,23 @@ and consider if they're appropriate for your deployment.
       If true, then the agent will be configured to automatically load HCL/JSON
       configuration files from this volume with `-config-dir`. This defaults
       to false.
+
+        ```yaml
+        extraVolumes:    
+          -  type: "secret"
+             name: "consul-certs"
+             load: false        
+        ```
+
+  * <a name="v-client-priorityclassname" href="#v-client-priorityclassname">`priorityClassName`</a> (`string`) - This value references an existing Kubernetes [priorityClassName](https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/#pod-priority) that can be assigned to client pods.
+
+  * <a name="v-client-annotations" href="#v-client-annotations">`annotations`</a> (`string`) - This value defines additional annotations for client pods. This should be a formatted as a multi-line string.
+
+        ```yaml
+        annotations: |
+          "sample/annotation1": "foo"
+          "sample/annotation2": "bar"
+        ```
 
 * <a name="v-dns" href="#v-dns">`dns`</a> - Values that configure Consul DNS service.
 
@@ -225,6 +280,12 @@ to run the sync program.
   * <a name="v-synccatalog-clusterip-sync" href="#v-synccatalog-clusterip-sync">`syncClusterIPServices`</a> (`boolean: true`) - If true, will sync Kubernetes ClusterIP services to Consul. This can be disabled to have the sync ignore ClusterIP-type services.
 
   * <a name="v-synccatalog-nodeport-sync" href="#v-synccatalog-nodeport-sync">`nodePortSyncType`</a> (`string: ExternalFirst`) - Configures the type of syncing that happens for NodePort services. The only valid options are: `ExternalOnly`, `InternalOnly`, and `ExternalFirst`. `ExternalOnly` will only use a node's ExternalIP address for the sync, otherwise the service will not be synced. `InternalOnly` uses the node's InternalIP address. `ExternalFirst` will preferentially use the node's ExternalIP address, but if it doesn't exist, it will use the node's InternalIP address instead.
+
+  * <a name="v-synccatalog-acl-sync-token" href="#v-synccatalog-acl-sync-token">`aclSyncToken`</a> - references a Kubernetes [secret](https://kubernetes.io/docs/concepts/configuration/secret/#creating-your-own-secrets) that contains an existing Consul ACL token. This will provide the sync process the correct permissions. This is only needed if ACLs are enabled on the Consul cluster.
+
+    - <a name="v-synccatalog-acl-sync-token-secret-name" href="#v-synccatalog-acl-sync-token-secret-name">secretName </a>`(string: null)` - The name of the Kubernetes secret. This defaults to null.
+
+    - <a name="v-synccatalog-acl-sync-token-secret-key" href="#v-synccatalog-acl-sync-token-secret-key">secretKey </a>`(string: null)` - The key for the Kubernetes secret. This defaults to null.
 
 * <a name="v-ui" href="#v-ui">`ui`</a> - Values that configure the Consul UI.
 
@@ -277,6 +338,69 @@ to run the sync program.
       The name of the private key for the certificate file within the
       `secretName` secret.
 
+## Using the Helm Chart to deploy Consul Enterprise
+
+You can also use this Helm chart to deploy Consul Enterprise by following a few extra steps.
+
+Find the license file that you received in your welcome email. It should have the extension `.hclic`. You will use the contents of this file to create a Kubernetes secret before installing the Helm chart.
+
+-> **Note:** If you cannot find your `.hclic` file, please contact your sales team or Technical Account Manager.
+
+You can use the following commands to create the secret:
+
+```bash
+secret=$(cat 1931d1f4-bdfd-6881-f3f5-19349374841f.hclic)
+kubectl create secret generic consul-ent-license --from-literal="key=${secret}"
+```
+
+In your `values.yaml`, change the value of `global.image` to one of the enterprise [release tags](https://hub.docker.com/r/hashicorp/consul-enterprise/tags).
+
+```yaml
+global:
+  image: "hashicorp/consul-enterprise:1.4.3-ent"
+```
+
+Add the name of the secret you just created to `server.enterpriseLicense`.
+
+```yaml
+server:
+  enterpriseLicense:
+    secretName: "consul-ent-license"
+    secretKey: "key"
+```
+
+Add the `--wait` option to your `helm install` command. This will force Helm to wait for all the pods
+to become ready before it applies the license to your Consul cluster.
+
+```bash
+$ helm install --wait .
+```
+
+Once the cluster is up, you can verify the nodes are running Consul Enterprise.
+
+```bash
+$ kubectl port-forward service/consul-server 8500 &
+$ consul license get
+License is valid
+License ID: 1931d1f4-bdfd-6881-f3f5-19349374841f
+Customer ID: b2025a4a-8fdd-f268-95ce-1704723b9996
+Expires At: 2020-03-09 03:59:59.999 +0000 UTC
+Datacenter: *
+Package: premium
+Licensed Features:
+        Automated Backups
+        Automated Upgrades
+        Enhanced Read Scalability
+        Network Segments
+        Redundancy Zone
+        Advanced Network Federation
+$ consul members
+Node                                       Address           Status  Type    Build      Protocol  DC   Segment
+consul-server-0                            10.60.0.187:8301  alive   server  1.4.3+ent  2         dc1  <all>
+consul-server-1                            10.60.1.229:8301  alive   server  1.4.3+ent  2         dc1  <all>
+consul-server-2                            10.60.2.197:8301  alive   server  1.4.3+ent  2         dc1  <all>
+```
+
 ## Helm Chart Examples
 
 The below values.yaml can be used to set up a single server Consul cluster with a LoadBalancer to allow external access to the UI and API.
@@ -315,7 +439,7 @@ Note, this would require a secret that contains the enterprise license key.
 global:
   enabled: true
   domain: consul
-  image: "consul:1.4.2-ent"
+  image: "hashicorp/consul-enterprise:1.4.2-ent"
   datacenter: dc1
 
 server:
@@ -352,7 +476,7 @@ ui:
 
 connectInject:
   enabled: true
-  default: false 
+  default: false
   namespaceSelector: "my-app"
 
 ```

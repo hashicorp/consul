@@ -11,9 +11,11 @@ export default Component.extend({
     this.append = append.bind(this);
   },
   didInsertElement: function() {
+    this._super(...arguments);
     get(this, 'buffer').on('add', this.append);
   },
   didDestroyElement: function() {
+    this._super(...arguments);
     get(this, 'buffer').off('add', this.append);
   },
 });

@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/watch"
+	"github.com/hashicorp/consul/api/watch"
 	"golang.org/x/net/http2"
 )
 
@@ -156,7 +156,7 @@ func (s *Service) ServerTLSConfig() *tls.Config {
 }
 
 // Dial connects to a remote Connect-enabled server. The passed Resolver is used
-// to discover a single candidate instance which will be dialled and have it's
+// to discover a single candidate instance which will be dialed and have it's
 // TLS certificate verified against the expected identity. Failures are returned
 // directly with no retries. Repeated dials may use different instances
 // depending on the Resolver implementation.

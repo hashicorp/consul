@@ -7,6 +7,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/hashicorp/logutils"
 )
 
 var (
@@ -15,6 +17,9 @@ var (
 
 //LogFile is used to setup a file based logger that also performs log rotation
 type LogFile struct {
+	// Log level Filter to filter out logs that do not matcch LogLevel criteria
+	logFilter *logutils.LevelFilter
+
 	//Name of the log file
 	fileName string
 
@@ -41,13 +46,13 @@ type LogFile struct {
 }
 
 func (l *LogFile) openNew() error {
-	// Extract the file extention
+	// Extract the file extension
 	fileExt := filepath.Ext(l.fileName)
 	// If we have no file extension we append .log
 	if fileExt == "" {
 		fileExt = ".log"
 	}
-	// Remove the file extention from the filename
+	// Remove the file extension from the filename
 	fileName := strings.TrimSuffix(l.fileName, fileExt)
 	// New file name has the format : filename-timestamp.extension
 	createTime := now()
@@ -76,7 +81,13 @@ func (l *LogFile) rotate() error {
 	return nil
 }
 
+// Write is used to implement io.Writer
 func (l *LogFile) Write(b []byte) (n int, err error) {
+	// Filter out log entries that do not match log level criteria
+	if !l.logFilter.Check(b) {
+		return 0, nil
+	}
+
 	l.acquire.Lock()
 	defer l.acquire.Unlock()
 	//Create a new file if we have no file to write to

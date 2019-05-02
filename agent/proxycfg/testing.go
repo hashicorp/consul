@@ -165,7 +165,7 @@ func TestConfigSnapshot(t testing.T) *ConfigSnapshot {
 		Roots: roots,
 		Leaf:  leaf,
 		UpstreamEndpoints: map[string]structs.CheckServiceNodes{
-			"service:db": TestUpstreamNodes(t),
+			"db": TestUpstreamNodes(t),
 		},
 	}
 }

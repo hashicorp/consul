@@ -1,0 +1,494 @@
+%with-alert-circle-fill-icon {
+  @extend %with-icon;
+  background-image: $alert-circle-fill-svg;
+}
+
+%with-alert-circle-outline-icon {
+  @extend %with-icon;
+  background-image: $alert-circle-outline-svg;
+}
+
+%with-alert-triangle-icon {
+  @extend %with-icon;
+  background-image: $alert-triangle-svg;
+}
+
+%with-arrow-down-icon {
+  @extend %with-icon;
+  background-image: $arrow-down-svg;
+}
+
+%with-arrow-left-icon {
+  @extend %with-icon;
+  background-image: $arrow-left-svg;
+}
+
+%with-arrow-right-icon {
+  @extend %with-icon;
+  background-image: $arrow-right-svg;
+}
+
+%with-arrow-up-icon {
+  @extend %with-icon;
+  background-image: $arrow-up-svg;
+}
+
+%with-calendar-icon {
+  @extend %with-icon;
+  background-image: $calendar-svg;
+}
+
+%with-cancel-circle-fill-icon {
+  @extend %with-icon;
+  background-image: $cancel-circle-fill-svg;
+}
+
+%with-cancel-circle-outline-icon {
+  @extend %with-icon;
+  background-image: $cancel-circle-outline-svg;
+}
+
+%with-cancel-plain-icon {
+  @extend %with-icon;
+  background-image: $cancel-plain-svg;
+}
+
+%with-cancel-square-fill-icon {
+  @extend %with-icon;
+  background-image: $cancel-square-fill-svg;
+}
+
+%with-cancel-square-outline-icon {
+  @extend %with-icon;
+  background-image: $cancel-square-outline-svg;
+}
+
+%with-caret-down-icon {
+  @extend %with-icon;
+  background-image: $caret-down-svg;
+}
+
+%with-caret-up-icon {
+  @extend %with-icon;
+  background-image: $caret-up-svg;
+}
+
+%with-check-circle-fill-icon {
+  @extend %with-icon;
+  background-image: $check-circle-fill-svg;
+}
+
+%with-check-circle-outline-icon {
+  @extend %with-icon;
+  background-image: $check-circle-outline-svg;
+}
+
+%with-check-plain-icon {
+  @extend %with-icon;
+  background-image: $check-plain-svg;
+}
+
+%with-chevron-down-2-icon {
+  @extend %with-icon;
+  background-image: $chevron-down-2-svg;
+}
+
+%with-chevron-down-icon {
+  @extend %with-icon;
+  background-image: $chevron-down-svg;
+}
+
+%with-chevron-left-icon {
+  @extend %with-icon;
+  background-image: $chevron-left-svg;
+}
+
+%with-chevron-right-icon {
+  @extend %with-icon;
+  background-image: $chevron-right-svg;
+}
+
+%with-chevron-up-icon {
+  @extend %with-icon;
+  background-image: $chevron-up-svg;
+}
+
+%with-chevron-icon {
+  @extend %with-icon;
+  background-image: $chevron-svg;
+}
+
+%with-clock-fill-icon {
+  @extend %with-icon;
+  background-image: $clock-fill-svg;
+}
+
+%with-clock-outline-icon {
+  @extend %with-icon;
+  background-image: $clock-outline-svg;
+}
+
+%with-code-icon {
+  @extend %with-icon;
+  background-image: $code-svg;
+}
+
+%with-consul-logo-color-icon {
+  @extend %with-icon;
+  background-image: $consul-logo-color-svg;
+}
+
+%with-copy-action-icon {
+  @extend %with-icon;
+  background-image: $copy-action-svg;
+}
+
+%with-copy-success-icon {
+  @extend %with-icon;
+  background-image: $copy-success-svg;
+}
+
+%with-disabled-icon {
+  @extend %with-icon;
+  background-image: $disabled-svg;
+}
+
+%with-download-icon {
+  @extend %with-icon;
+  background-image: $download-svg;
+}
+
+%with-edit-icon {
+  @extend %with-icon;
+  background-image: $edit-svg;
+}
+
+%with-exit-icon {
+  @extend %with-icon;
+  background-image: $exit-svg;
+}
+
+%with-expand-less-icon {
+  @extend %with-icon;
+  background-image: $expand-less-svg;
+}
+
+%with-expand-more-icon {
+  @extend %with-icon;
+  background-image: $expand-more-svg;
+}
+
+%with-eye-icon {
+  @extend %with-icon;
+  background-image: $eye-svg;
+}
+
+%with-file-fill-icon {
+  @extend %with-icon;
+  background-image: $file-fill-svg;
+}
+
+%with-file-outline-icon {
+  @extend %with-icon;
+  background-image: $file-outline-svg;
+}
+
+%with-filter-icon {
+  @extend %with-icon;
+  background-image: $filter-svg;
+}
+
+%with-flag-icon {
+  @extend %with-icon;
+  background-image: $flag-svg;
+}
+
+%with-folder-fill-icon {
+  @extend %with-icon;
+  background-image: $folder-fill-svg;
+}
+
+%with-folder-outline-icon {
+  @extend %with-icon;
+  background-image: $folder-outline-svg;
+}
+
+%with-git-branch-icon {
+  @extend %with-icon;
+  background-image: $git-branch-svg;
+}
+
+%with-git-commit-icon {
+  @extend %with-icon;
+  background-image: $git-commit-svg;
+}
+
+%with-git-pull-request-icon {
+  @extend %with-icon;
+  background-image: $git-pull-request-svg;
+}
+
+%with-hashicorp-logo-icon {
+  @extend %with-icon;
+  background-image: $hashicorp-logo-svg;
+}
+
+%with-help-circle-fill-icon {
+  @extend %with-icon;
+  background-image: $help-circle-fill-svg;
+}
+
+%with-help-circle-outline-icon {
+  @extend %with-icon;
+  background-image: $help-circle-outline-svg;
+}
+
+%with-history-icon {
+  @extend %with-icon;
+  background-image: $history-svg;
+}
+
+%with-info-circle-fill-icon {
+  @extend %with-icon;
+  background-image: $info-circle-fill-svg;
+}
+
+%with-info-circle-outline-icon {
+  @extend %with-icon;
+  background-image: $info-circle-outline-svg;
+}
+
+%with-kubernetes-logo-color-icon {
+  @extend %with-icon;
+  background-image: $kubernetes-logo-color-svg;
+}
+
+%with-link-icon {
+  @extend %with-icon;
+  background-image: $link-svg;
+}
+
+%with-loading-icon {
+  @extend %with-icon;
+  background-image: $loading-svg;
+}
+
+%with-lock-closed-icon {
+  @extend %with-icon;
+  background-image: $lock-closed-svg;
+}
+
+%with-lock-disabled-icon {
+  @extend %with-icon;
+  background-image: $lock-disabled-svg;
+}
+
+%with-lock-open-icon {
+  @extend %with-icon;
+  background-image: $lock-open-svg;
+}
+
+%with-menu-icon {
+  @extend %with-icon;
+  background-image: $menu-svg;
+}
+
+%with-minus-circle-fill-icon {
+  @extend %with-icon;
+  background-image: $minus-circle-fill-svg;
+}
+
+%with-minus-circle-outline-icon {
+  @extend %with-icon;
+  background-image: $minus-circle-outline-svg;
+}
+
+%with-minus-plain-icon {
+  @extend %with-icon;
+  background-image: $minus-plain-svg;
+}
+
+%with-minus-square-fill-icon {
+  @extend %with-icon;
+  background-image: $minus-square-fill-svg;
+}
+
+%with-minus-icon {
+  @extend %with-icon;
+  background-image: $minus-svg;
+}
+
+%with-more-horizontal-icon {
+  @extend %with-icon;
+  background-image: $more-horizontal-svg;
+}
+
+%with-more-vertical-icon {
+  @extend %with-icon;
+  background-image: $more-vertical-svg;
+}
+
+%with-nomad-logo-color-icon {
+  @extend %with-icon;
+  background-image: $nomad-logo-color-svg;
+}
+
+%with-plus-circle-fill-icon {
+  @extend %with-icon;
+  background-image: $plus-circle-fill-svg;
+}
+
+%with-plus-circle-outline-icon {
+  @extend %with-icon;
+  background-image: $plus-circle-outline-svg;
+}
+
+%with-plus-plain-icon {
+  @extend %with-icon;
+  background-image: $plus-plain-svg;
+}
+
+%with-plus-square-fill-icon {
+  @extend %with-icon;
+  background-image: $plus-square-fill-svg;
+}
+
+%with-queue-icon {
+  @extend %with-icon;
+  background-image: $queue-svg;
+}
+
+%with-refresh-icon {
+  @extend %with-icon;
+  background-image: $refresh-svg;
+}
+
+%with-run-icon {
+  @extend %with-icon;
+  background-image: $run-svg;
+}
+
+%with-search-icon {
+  @extend %with-icon;
+  background-image: $search-svg;
+}
+
+%with-service-identity-icon {
+  @extend %with-icon;
+  background-image: $service-identity-svg;
+}
+
+%with-settings-icon {
+  @extend %with-icon;
+  background-image: $settings-svg;
+}
+
+%with-star-fill-icon {
+  @extend %with-icon;
+  background-image: $star-fill-svg;
+}
+
+%with-star-outline-icon {
+  @extend %with-icon;
+  background-image: $star-outline-svg;
+}
+
+%with-star-icon {
+  @extend %with-icon;
+  background-image: $star-svg;
+}
+
+%with-sub-arrow-left-icon {
+  @extend %with-icon;
+  background-image: $sub-arrow-left-svg;
+}
+
+%with-sub-arrow-right-icon {
+  @extend %with-icon;
+  background-image: $sub-arrow-right-svg;
+}
+
+%with-swap-horizontal-icon {
+  @extend %with-icon;
+  background-image: $swap-horizontal-svg;
+}
+
+%with-swap-vertical-icon {
+  @extend %with-icon;
+  background-image: $swap-vertical-svg;
+}
+
+%with-terraform-logo-color-icon {
+  @extend %with-icon;
+  background-image: $terraform-logo-color-svg;
+}
+
+%with-tier-enterprise-icon {
+  @extend %with-icon;
+  background-image: $tier-enterprise-svg;
+}
+
+%with-tier-oss-icon {
+  @extend %with-icon;
+  background-image: $tier-oss-svg;
+}
+
+%with-trash-icon {
+  @extend %with-icon;
+  background-image: $trash-svg;
+}
+
+%with-tune-icon {
+  @extend %with-icon;
+  background-image: $tune-svg;
+}
+
+%with-unfold-less-icon {
+  @extend %with-icon;
+  background-image: $unfold-less-svg;
+}
+
+%with-unfold-more-icon {
+  @extend %with-icon;
+  background-image: $unfold-more-svg;
+}
+
+%with-upload-icon {
+  @extend %with-icon;
+  background-image: $upload-svg;
+}
+
+%with-user-organization-icon {
+  @extend %with-icon;
+  background-image: $user-organization-svg;
+}
+
+%with-user-plain-icon {
+  @extend %with-icon;
+  background-image: $user-plain-svg;
+}
+
+%with-user-square-fill-icon {
+  @extend %with-icon;
+  background-image: $user-square-fill-svg;
+}
+
+%with-user-square-outline-icon {
+  @extend %with-icon;
+  background-image: $user-square-outline-svg;
+}
+
+%with-user-team-icon {
+  @extend %with-icon;
+  background-image: $user-team-svg;
+}
+
+%with-visibility-hide-icon {
+  @extend %with-icon;
+  background-image: $visibility-hide-svg;
+}
+
+%with-visibility-show-icon {
+  @extend %with-icon;
+  background-image: $visibility-show-svg;
+}

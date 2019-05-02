@@ -1,30 +1,31 @@
 import Controller from '@ember/controller';
-import { set } from '@ember/object';
-import Changeset from 'ember-changeset';
-import validations from 'consul-ui/validations/acl';
-import lookupValidator from 'ember-changeset-validations';
+import { inject as service } from '@ember/service';
+import { get } from '@ember/object';
 
 export default Controller.extend({
+  builder: service('form'),
+  dom: service('dom'),
+  init: function() {
+    this._super(...arguments);
+    this.form = get(this, 'builder').form('acl');
+  },
   setProperties: function(model) {
-    this.changeset = new Changeset(model.item, lookupValidator(validations), validations);
-    this._super({
-      ...model,
-      ...{
-        item: this.changeset,
-      },
-    });
+    // essentially this replaces the data with changesets
+    this._super(
+      Object.keys(model).reduce((prev, key, i) => {
+        switch (key) {
+          case 'item':
+            prev[key] = this.form.setData(prev[key]).getData();
+            break;
+        }
+        return prev;
+      }, model)
+    );
   },
   actions: {
-    change: function(e) {
-      const target = e.target || { name: 'Rules', value: e };
-      switch (target.name) {
-        case 'Type':
-          set(this.changeset, target.name, target.value);
-          break;
-        case 'Rules':
-          set(this, 'item.Rules', target.value);
-          break;
-      }
+    change: function(e, value, item) {
+      const event = get(this, 'dom').normalizeEvent(e, value);
+      get(this, 'form').handleEvent(event);
     },
   },
 });

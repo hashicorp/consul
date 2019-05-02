@@ -42,7 +42,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.tokenID == "" {
-		c.UI.Error(fmt.Sprintf("Must specify the -id paramter"))
+		c.UI.Error(fmt.Sprintf("Must specify the -id parameter"))
 		return 1
 	}
 
@@ -75,7 +75,7 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Delete an ACL Token"
+const synopsis = "Delete an ACL token"
 const help = `
 Usage: consul acl token delete [options] -id TOKEN
 

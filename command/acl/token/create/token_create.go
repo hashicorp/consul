@@ -3,6 +3,7 @@ package tokencreate
 import (
 	"flag"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/acl"
@@ -22,15 +23,25 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
-	policyIDs   []string
-	policyNames []string
-	description string
-	local       bool
-	showMeta    bool
+	accessor      string
+	secret        string
+	policyIDs     []string
+	policyNames   []string
+	description   string
+	roleIDs       []string
+	roleNames     []string
+	serviceIdents []string
+	expirationTTL time.Duration
+	local         bool
+	showMeta      bool
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.StringVar(&c.accessor, "accessor", "", "Create the token with this Accessor ID. "+
+		"It must be a UUID. If not specified one will be auto-generated")
+	c.flags.StringVar(&c.secret, "secret", "", "Create the token with this Secret ID. "+
+		"It must be a UUID. If not specified one will be auto-generated")
 	c.flags.BoolVar(&c.showMeta, "meta", false, "Indicates that token metadata such "+
 		"as the content hash and raft indices should be shown for each entry")
 	c.flags.BoolVar(&c.local, "local", false, "Create this as a datacenter local token")
@@ -39,6 +50,15 @@ func (c *cmd) init() {
 		"policy to use for this token. May be specified multiple times")
 	c.flags.Var((*flags.AppendSliceValue)(&c.policyNames), "policy-name", "Name of a "+
 		"policy to use for this token. May be specified multiple times")
+	c.flags.Var((*flags.AppendSliceValue)(&c.roleIDs), "role-id", "ID of a "+
+		"role to use for this token. May be specified multiple times")
+	c.flags.Var((*flags.AppendSliceValue)(&c.roleNames), "role-name", "Name of a "+
+		"role to use for this token. May be specified multiple times")
+	c.flags.Var((*flags.AppendSliceValue)(&c.serviceIdents), "service-identity", "Name of a "+
+		"service identity to use for this token. May be specified multiple times. Format is "+
+		"the SERVICENAME or SERVICENAME:DATACENTER1,DATACENTER2,...")
+	c.flags.DurationVar(&c.expirationTTL, "expires-ttl", 0, "Duration of time this "+
+		"token should be valid for")
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
@@ -50,8 +70,10 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	if len(c.policyNames) == 0 && len(c.policyIDs) == 0 {
-		c.UI.Error(fmt.Sprintf("Cannot create a token without specifying -policy-name or -policy-id at least once"))
+	if len(c.policyNames) == 0 && len(c.policyIDs) == 0 &&
+		len(c.roleNames) == 0 && len(c.roleIDs) == 0 &&
+		len(c.serviceIdents) == 0 {
+		c.UI.Error(fmt.Sprintf("Cannot create a token without specifying -policy-name, -policy-id, -role-name, -role-id, or -service-identity at least once"))
 		return 1
 	}
 
@@ -64,7 +86,19 @@ func (c *cmd) Run(args []string) int {
 	newToken := &api.ACLToken{
 		Description: c.description,
 		Local:       c.local,
+		AccessorID:  c.accessor,
+		SecretID:    c.secret,
 	}
+	if c.expirationTTL > 0 {
+		newToken.ExpirationTTL = c.expirationTTL
+	}
+
+	parsedServiceIdents, err := acl.ExtractServiceIdentities(c.serviceIdents)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+	newToken.ServiceIdentities = parsedServiceIdents
 
 	for _, policyName := range c.policyNames {
 		// We could resolve names to IDs here but there isn't any reason why its would be better
@@ -79,6 +113,21 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 		newToken.Policies = append(newToken.Policies, &api.ACLTokenPolicyLink{ID: policyID})
+	}
+
+	for _, roleName := range c.roleNames {
+		// We could resolve names to IDs here but there isn't any reason why its would be better
+		// than allowing the agent to do it.
+		newToken.Roles = append(newToken.Roles, &api.ACLTokenRoleLink{Name: roleName})
+	}
+
+	for _, roleID := range c.roleIDs {
+		roleID, err := acl.GetRoleIDFromPartial(client, roleID)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error resolving role ID %s: %v", roleID, err))
+			return 1
+		}
+		newToken.Roles = append(newToken.Roles, &api.ACLTokenRoleLink{ID: roleID})
 	}
 
 	token, _, err := client.ACL().TokenCreate(newToken, nil)
@@ -99,7 +148,7 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Create an ACL Token"
+const synopsis = "Create an ACL token"
 const help = `
 Usage: consul acl token create [options]
 
@@ -109,7 +158,11 @@ Usage: consul acl token create [options]
 
   Create a new token:
 
-          $ consul acl token create -description "Replication token"
-                                            -policy-id b52fc3de-5
-                                            -policy-name "acl-replication"
+          $ consul acl token create -description "Replication token" \
+                                    -policy-id b52fc3de-5 \
+                                    -policy-name "acl-replication" \
+                                    -role-id c630d4ef-6 \
+                                    -role-name "db-updater" \
+                                    -service-identity "web" \
+                                    -service-identity "db:east,west"
 `

@@ -8,8 +8,8 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"

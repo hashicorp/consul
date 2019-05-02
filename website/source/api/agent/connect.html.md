@@ -35,10 +35,10 @@ connection attempt.
 | `POST`  | `/agent/connect/authorize`  | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching        | ACL Required    |
 | ---------------- | ----------------- | -------------------- | --------------- |
@@ -102,10 +102,10 @@ unavailable. This endpoint should be used by proxies and native integrations.
 | `GET`  | `/agent/connect/ca/roots`    | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching        | ACL Required |
 | ---------------- | ----------------- | -------------------- | ------------ |
@@ -115,7 +115,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-   http://127.0.0.1:8500/v1/connect/ca/roots
+   http://127.0.0.1:8500/v1/agent/connect/ca/roots
 ```
 
 ### Sample Response
@@ -163,10 +163,10 @@ clients to efficiently wait for certificate rotations.
 | `GET`  | `/agent/connect/ca/leaf/:service`    | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching        | ACL Required    |
 | ---------------- | ----------------- | -------------------- | --------------- |
@@ -182,7 +182,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-   http://127.0.0.1:8500/v1/connect/ca/leaf/web
+   http://127.0.0.1:8500/v1/agent/connect/ca/leaf/web
 ```
 
 ### Sample Response
@@ -237,17 +237,17 @@ a blocking query to detect any configuration changes.
 | `GET`  | `/agent/connect/proxy/:id`    | `application/json`        |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required                 |
 | ---------------- | ----------------- | ------------- | ---------------------------- |
 | `YES`<sup>1</sup>| `all`             | `none`        | `service:write, proxy token` |
 
 <sup>1</sup> Supports [hash-based
-blocking](/api/index.html#hash-based-blocking-queries) only.
+blocking](/api/features/blocking.html#hash-based-blocking-queries) only.
 
 ### Parameters
 
@@ -259,7 +259,7 @@ blocking](/api/index.html#hash-based-blocking-queries) only.
 
 ```text
 $ curl \
-   http://127.0.0.1:8500/v1/connect/proxy/web-proxy
+   http://127.0.0.1:8500/v1/agent/connect/proxy/web-proxy
 ```
 
 ### Sample Response

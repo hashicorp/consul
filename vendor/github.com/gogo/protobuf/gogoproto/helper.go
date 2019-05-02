@@ -356,11 +356,3 @@ func RegistersGolangProto(file *google_protobuf.FileDescriptorProto) bool {
 func HasMessageName(file *google_protobuf.FileDescriptorProto, message *google_protobuf.DescriptorProto) bool {
 	return proto.GetBoolExtension(message.Options, E_Messagename, proto.GetBoolExtension(file.Options, E_MessagenameAll, false))
 }
-
-func HasSizecache(file *google_protobuf.FileDescriptorProto, message *google_protobuf.DescriptorProto) bool {
-	return proto.GetBoolExtension(message.Options, E_GoprotoSizecache, proto.GetBoolExtension(file.Options, E_GoprotoSizecacheAll, true))
-}
-
-func HasUnkeyed(file *google_protobuf.FileDescriptorProto, message *google_protobuf.DescriptorProto) bool {
-	return proto.GetBoolExtension(message.Options, E_GoprotoUnkeyed, proto.GetBoolExtension(file.Options, E_GoprotoUnkeyedAll, true))
-}

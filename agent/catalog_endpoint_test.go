@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -151,6 +152,42 @@ func TestCatalogNodes_MetaFilter(t *testing.T) {
 	if v, ok := nodes[0].Meta["somekey"]; !ok || v != "somevalue" {
 		t.Fatalf("bad: %v", nodes[0].Meta)
 	}
+}
+
+func TestCatalogNodes_Filter(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	// Register a node with a meta field
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		NodeMeta: map[string]string{
+			"somekey": "somevalue",
+		},
+	}
+
+	var out struct{}
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?filter="+url.QueryEscape("Meta.somekey == somevalue"), nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.CatalogNodes(resp, req)
+	require.NoError(t, err)
+
+	// Verify an index is set
+	assertIndex(t, resp)
+
+	// Verify we only get the node with the correct meta field back
+	nodes := obj.(structs.Nodes)
+	require.Len(t, nodes, 1)
+
+	v, ok := nodes[0].Meta["somekey"]
+	require.True(t, ok)
+	require.Equal(t, v, "somevalue")
 }
 
 func TestCatalogNodes_WanTranslation(t *testing.T) {
@@ -651,6 +688,69 @@ func TestCatalogServiceNodes_NodeMetaFilter(t *testing.T) {
 	}
 }
 
+func TestCatalogServiceNodes_Filter(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+
+	queryPath := "/v1/catalog/service/api?filter=" + url.QueryEscape("ServiceMeta.somekey == somevalue")
+
+	// Make sure an empty list is returned, not a nil
+	{
+		req, _ := http.NewRequest("GET", queryPath, nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.CatalogServiceNodes(resp, req)
+		require.NoError(t, err)
+
+		assertIndex(t, resp)
+
+		nodes := obj.(structs.ServiceNodes)
+		require.Empty(t, nodes)
+	}
+
+	// Register node
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "api",
+			Meta: map[string]string{
+				"somekey": "somevalue",
+			},
+		},
+	}
+
+	var out struct{}
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+	// Register a second service for the node
+	args = &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			ID:      "api2",
+			Service: "api",
+			Meta: map[string]string{
+				"somekey": "notvalue",
+			},
+		},
+		SkipNodeUpdate: true,
+	}
+
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+	req, _ := http.NewRequest("GET", queryPath, nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.CatalogServiceNodes(resp, req)
+	require.NoError(t, err)
+	assertIndex(t, resp)
+
+	nodes := obj.(structs.ServiceNodes)
+	require.Len(t, nodes, 1)
+}
+
 func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 	t.Parallel()
 	a1 := NewTestAgent(t, t.Name(), `
@@ -884,6 +984,44 @@ func TestCatalogConnectServiceNodes_good(t *testing.T) {
 	assert.Equal(args.Service.Proxy, nodes[0].ServiceProxy)
 }
 
+func TestCatalogConnectServiceNodes_Filter(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Register
+	args := structs.TestRegisterRequestProxy(t)
+	args.Service.Address = "127.0.0.55"
+	var out struct{}
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+	args = structs.TestRegisterRequestProxy(t)
+	args.Service.Address = "127.0.0.55"
+	args.Service.Meta = map[string]string{
+		"version": "2",
+	}
+	args.Service.ID = "web-proxy2"
+	args.SkipNodeUpdate = true
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf(
+		"/v1/catalog/connect/%s?filter=%s",
+		args.Service.Proxy.DestinationServiceName,
+		url.QueryEscape("ServiceMeta.version == 2")), nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.CatalogConnectServiceNodes(resp, req)
+	require.NoError(t, err)
+	assertIndex(t, resp)
+
+	nodes := obj.(structs.ServiceNodes)
+	require.Len(t, nodes, 1)
+	require.Equal(t, structs.ServiceKindConnectProxy, nodes[0].ServiceKind)
+	require.Equal(t, args.Service.Address, nodes[0].ServiceAddress)
+	require.Equal(t, args.Service.Proxy, nodes[0].ServiceProxy)
+}
+
 func TestCatalogNodeServices(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")
@@ -922,6 +1060,43 @@ func TestCatalogNodeServices(t *testing.T) {
 	if len(services.Services) != 2 {
 		t.Fatalf("bad: %v", obj)
 	}
+
+	// Proxy service should have it's config intact
+	require.Equal(t, args.Service.Proxy, services.Services["web-proxy"].Proxy)
+}
+
+func TestCatalogNodeServices_Filter(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	// Register node with a regular service and connect proxy
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "api",
+			Tags:    []string{"a"},
+		},
+	}
+
+	var out struct{}
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+	// Register a connect proxy
+	args.Service = structs.TestNodeServiceProxy(t)
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+	req, _ := http.NewRequest("GET", "/v1/catalog/node/foo?dc=dc1&filter="+url.QueryEscape("Kind == `connect-proxy`"), nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.CatalogNodeServices(resp, req)
+	require.NoError(t, err)
+	assertIndex(t, resp)
+
+	services := obj.(*structs.NodeServices)
+	require.Len(t, services.Services, 1)
 
 	// Proxy service should have it's config intact
 	require.Equal(t, args.Service.Proxy, services.Services["web-proxy"].Proxy)

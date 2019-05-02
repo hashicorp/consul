@@ -13,7 +13,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 func TestEventFire(t *testing.T) {

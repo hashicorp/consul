@@ -244,7 +244,7 @@ func testKeyID(t testing.T, raw interface{}) []byte {
 // crypto/rand will never block and always reads from /dev/urandom on unix OSes
 // which does not consume entropy.
 //
-// If we find by profiling it's taking a lot of cycles we could optimise/cache
+// If we find by profiling it's taking a lot of cycles we could optimize/cache
 // again but we at least need to use different keys for each distinct CA (when
 // multiple CAs are generated at once e.g. to test cross-signing) and a
 // different one again for the leafs otherwise we risk tests that have false

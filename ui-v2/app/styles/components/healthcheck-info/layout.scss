@@ -1,0 +1,27 @@
+%healthcheck-info {
+  display: inline-flex;
+}
+%healthcheck-info > * {
+  display: block;
+}
+%healthcheck-info dt {
+  text-indent: -9000px;
+}
+%healthcheck-info dt.zero {
+  display: none;
+}
+%healthcheck-info dd.zero {
+  visibility: hidden;
+}
+%healthcheck-info dt.warning::before {
+  top: 7px;
+}
+%healthcheck-info dt.warning::after {
+  left: -2px;
+  top: -1px;
+}
+%healthcheck-info dd {
+  box-sizing: content-box;
+  margin-left: 22px;
+  padding-right: 10px;
+}

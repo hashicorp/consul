@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
@@ -162,10 +162,11 @@ func TestResetSessionTimerLocked(t *testing.T) {
 		t.Fatalf("missing timer")
 	}
 
-	time.Sleep(10 * time.Millisecond * structs.SessionTTLMultiplier)
-	if s1.sessionTimers.Get("foo") != nil {
-		t.Fatalf("timer should be gone")
-	}
+	retry.Run(t, func(r *retry.R) {
+		if s1.sessionTimers.Get("foo") != nil {
+			r.Fatal("timer should be gone")
+		}
+	})
 }
 
 func TestResetSessionTimerLocked_Renew(t *testing.T) {

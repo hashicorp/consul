@@ -1,0 +1,89 @@
+{{#child-selector repo=repo dc=dc type="policy" placeholder="Search for policy" items=items}}
+  {{yield}}
+  {{#block-slot 'label'}}
+    Apply an existing policy
+  {{/block-slot}}
+  {{#block-slot 'create'}}
+    {{#yield-slot 'trigger'}}
+      {{yield}}
+    {{else}}
+      <label class="type-dialog" for="new-policy-toggle">
+        <span>Create new policy</span>
+      </label>
+      {{!TODO: potentially call trigger something else}}
+      {{!the modal has to go here so that if you provide a slot to trigger it doesn't get rendered}}
+      {{#modal-dialog data-test-policy-form name="new-policy-toggle"}}
+        {{#block-slot 'header'}}
+          <h2>New Policy</h2>
+        {{/block-slot}}
+        {{#block-slot 'body'}}
+          {{policy-form form=form dc=dc}}
+        {{/block-slot}}
+        {{#block-slot 'actions' as |close|}}
+          <button type="submit" {{action 'save' item items (queue (action close) (action 'reset'))}} disabled={{if (or item.isSaving item.isPristine item.isInvalid) 'disabled'}}>
+            {{#if item.isSaving }}
+              <div class="progress indeterminate"></div>
+            {{/if}}
+            <span>Create and apply</span>
+          </button>
+          <button type="reset" disabled={{if item.isSaving 'disabled'}} {{action (queue (action close) (action 'reset'))}}>Cancel</button>
+        {{/block-slot}}
+      {{/modal-dialog}}
+    {{/yield-slot}}
+  {{/block-slot}}
+  {{#block-slot 'option' as |option|}}
+    {{option.Name}}
+  {{/block-slot}}
+  {{#block-slot 'set'}}
+    {{#tabular-details
+        data-test-policies
+        onchange=(action 'loadItem')
+        items=(sort-by 'CreateTime:desc' 'Name:asc' items) as |item index|
+    }}
+      {{#block-slot 'header'}}
+        <th>Name</th>
+        <th>Datacenters</th>
+      {{/block-slot}}
+      {{#block-slot 'row'}}
+        <td class={{policy/typeof item}}>
+{{#if item.ID }}
+          <a href={{href-to 'dc.acls.policies.edit' item.ID}}>{{item.Name}}</a>
+{{else}}
+          <a name={{item.Name}}>{{item.Name}}</a>
+{{/if}}
+        </td>
+        <td>
+          {{if (not item.isSaving) (join ', ' (policy/datacenters item)) 'Saving...'}}
+        </td>
+      {{/block-slot}}
+      {{#block-slot 'details'}}
+          <label class="type-text">
+            <span>Rules <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
+            {{#if (eq item.template 'default')}}
+              {{code-editor syntax='hcl' readonly=true value=item.Rules}}
+            {{else}}
+              {{#code-editor syntax='hcl' readonly=true}}
+                {{~component 'service-identity' name=item.Name~}}
+              {{/code-editor}}
+            {{/if}}
+          </label>
+          <div>
+            {{#confirmation-dialog message='Are you sure you want to remove this policy from this token?'}}
+              {{#block-slot 'action' as |confirm|}}
+                <button data-test-delete type="button" class="type-delete" {{action confirm 'remove' item items}}>Remove</button>
+              {{/block-slot}}
+              {{#block-slot 'dialog' as |execute cancel message|}}
+                <p>
+                  {{message}}
+                </p>
+
+                <button type="button" class="type-delete" {{action execute}}>Confirm remove</button>
+                <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
+              {{/block-slot}}
+            {{/confirmation-dialog}}
+          </div>
+      {{/block-slot}}
+    {{/tabular-details}}
+
+  {{/block-slot}}
+{{/child-selector}}
