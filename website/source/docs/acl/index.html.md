@@ -33,6 +33,14 @@ The ACL system in Consul 1.3.1 and older is now called legacy. For information o
 [The migration documentation](/docs/acl/acl-migrate-tokens.html) details how to upgrade
 existing legacy tokens after upgrading to 1.4.0. It will briefly describe what changed, and then walk through the high-level migration process options, finally giving some specific examples of migration strategies. The new ACL system has improvements for the security and management of ACL tokens and policies.
 
+### ACL Auth Methods
+
+An auth method is a component in Consul that performs authentication against a
+trusted external party to authorize the creation of an ACL tokens usable within
+the local datacenter. Read the ACL auth method
+[documentation](/docs/acl/acl-auth-methods.html) to learn more about how they
+work and why you may want to use them.
+
 ## ACL Guides on Learn
 
 We have several guides for setting up and configuring Consul's ACL system. They include how to bootstrap the ACL system in Consul version 1.4.0 and newer. Please select one of the following guides to get started.
