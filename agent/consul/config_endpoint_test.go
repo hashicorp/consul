@@ -697,6 +697,45 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 	require.Equal(expected, out)
 }
 
+func TestConfigEntry_ResolveServiceConfigNoConfig(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	// Don't create any config and make sure we don't nil panic (spoiler alert -
+	// we did in first RC)
+	args := structs.ServiceConfigRequest{
+		Name:       "foo",
+		Datacenter: s1.config.Datacenter,
+		Upstreams:  []string{"bar", "baz"},
+	}
+	var out structs.ServiceConfigResponse
+	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &args, &out))
+	// Hack to fix up the string encoding in the map[string]interface{}.
+	// msgpackRPC's codec doesn't use RawToString.
+	var err error
+	out.ProxyConfig, err = lib.MapWalk(out.ProxyConfig)
+	require.NoError(err)
+	for k := range out.UpstreamConfigs {
+		out.UpstreamConfigs[k], err = lib.MapWalk(out.UpstreamConfigs[k])
+		require.NoError(err)
+	}
+
+	expected := structs.ServiceConfigResponse{
+		ProxyConfig:     nil,
+		UpstreamConfigs: nil,
+		// Don't know what this is deterministically
+		QueryMeta: out.QueryMeta,
+	}
+	require.Equal(expected, out)
+}
+
 func TestConfigEntry_ResolveServiceConfig_ACLDeny(t *testing.T) {
 	t.Parallel()
 

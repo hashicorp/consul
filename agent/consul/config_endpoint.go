@@ -256,11 +256,11 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 				if !ok {
 					return fmt.Errorf("invalid proxy config type %T", proxyEntry)
 				}
+				// Apply the proxy defaults to the sidecar's proxy config
+				reply.ProxyConfig = proxyConf.Config
 			}
 
 			reply.Index = index
-			// Apply the proxy defaults to the sidecar's proxy config
-			reply.ProxyConfig = proxyConf.Config
 
 			if serviceConf != nil && serviceConf.Protocol != "" {
 				if reply.ProxyConfig == nil {
