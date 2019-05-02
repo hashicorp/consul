@@ -65,6 +65,9 @@ func (c *Client) AutoEncrypt(servers []string, port int, token string) (*structs
 		addrs = append(addrs, &net.TCPAddr{IP: net.ParseIP(host), Port: port})
 	}
 
+	// Retry implementation modelled after https://github.com/hashicorp/consul/pull/5228.
+	// TLDR; there is a 30s window from which a random time is picked.
+	// Repeat until the call is successful.
 	attempts := 0
 	for {
 		if err = c.RPCInsecure("AutoEncrypt.Sign", &args, &reply, addrs); err == nil {
