@@ -3664,6 +3664,7 @@ func TestFullConfig(t *testing.T) {
 						bar = 1.0
 					}
 				}
+			}
 			auto_encrypt = {
 				tls = true
 				allow_tls = true
