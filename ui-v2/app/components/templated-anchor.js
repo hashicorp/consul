@@ -60,7 +60,7 @@ export default Component.extend({
       if (typeof vars !== 'undefined' && typeof value !== 'undefined') {
         value = value.replace(templateRe, function(match, group) {
           try {
-            return get(vars, group) || '';
+            return encodeURIComponent(get(vars, group) || '');
           } catch (e) {
             return '';
           }
