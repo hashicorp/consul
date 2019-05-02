@@ -21,7 +21,7 @@ test('it renders', function(assert) {
         Name: '{{Name}}',
         ID: '{{ID}}',
       },
-      result: 'http://localhost/?={{Name}}/{{ID}}',
+      result: 'http://localhost/?=%7B%7BName%7D%7D/%7B%7BID%7D%7D',
     },
     {
       href: 'http://localhost/?={{deep.Name}}/{{deep.ID}}',
@@ -31,7 +31,7 @@ test('it renders', function(assert) {
           ID: '{{ID}}',
         },
       },
-      result: 'http://localhost/?={{Name}}/{{ID}}',
+      result: 'http://localhost/?=%7B%7BName%7D%7D/%7B%7BID%7D%7D',
     },
     {
       href: 'http://localhost/?={{}}/{{}}',
@@ -39,6 +39,8 @@ test('it renders', function(assert) {
         Name: 'name',
         ID: 'id',
       },
+      // If you don't pass actual variables then nothing
+      // gets replaced and nothing is URL encoded
       result: 'http://localhost/?={{}}/{{}}',
     },
     {
@@ -80,6 +82,16 @@ test('it renders', function(assert) {
         },
       },
       result: 'http://localhost/?=',
+    },
+    {
+      href: 'http://localhost/?={{deep.Name}}',
+      vars: {
+        deep: {
+          Name: '#Na/me',
+          ID: 'ID',
+        },
+      },
+      result: 'http://localhost/?=%23Na%2Fme',
     },
   ].forEach(item => {
     this.set('item', item);
