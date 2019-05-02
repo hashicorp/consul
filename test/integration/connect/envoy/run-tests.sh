@@ -11,15 +11,10 @@ DEBUG=${DEBUG:-}
 # over that string.
 FILTER_TESTS=${FILTER_TESTS:-}
 
-# LEAVE_CONSUL_UP=1 leaves the consul container running at the end which can be
-# useful for debugging.
-LEAVE_CONSUL_UP=${LEAVE_CONSUL_UP:-}
-
-# QUIESCE_SECS=1 will cause the runner to sleep for 1 second after setup but
-# before verify container is run this is useful for CI which seems to pass more
-# reliably with this even though docker-compose up waits for containers to
-# start, and our tests retry.
-QUIESCE_SECS=${QUIESCE_SECS:-}
+# STOP_ON_FAIL exits after a case fails so the workdir state can be viewed and
+# the components interacted with to debug the failure. This is useful when tests
+# only fail when run as part of a whole suite but work in isolation.
+STOP_ON_FAIL=${STOP_ON_FAIL:-}
 
 # ENVOY_VERSIONS is the list of envoy versions to run each test against
 ENVOY_VERSIONS=${ENVOY_VERSIONS:-"1.8.0 1.9.1"}
@@ -53,14 +48,14 @@ function cleanup {
   fi
   CLEANED_UP=1
 
-  # We failed due to set -e catching an error, output some useful info about
-  # that error.
-  echo "ERR: command exited with $STATUS"
-  echo "     command: $CMD"
-
-  if [ -z "$LEAVE_CONSUL_UP" ] ; then
-    docker-compose down
+  if [ $STATUS -ne 0 ] ; then
+    # We failed due to set -e catching an error, output some useful info about
+    # that error.
+    echo "ERR: command exited with $STATUS"
+    echo "     command: $CMD"
   fi
+
+  docker-compose down
 }
 trap cleanup EXIT
 # Magic to capture commands and statuses so we can show them when we exit due to
@@ -72,13 +67,16 @@ docker-compose up -d workdir
 
 for c in ./case-*/ ; do
   for ev in $ENVOY_VERSIONS ; do
-    CASENAME="$( basename $c | cut -c6- ), envoy $ev"
-    echo ""
-    echo "==> CASE $CASENAME"
+    CASE_NAME=$( basename $c | cut -c6- )
+    CASE_ENVOY_VERSION="envoy $ev"
+    CASE_STR="$CASE_NAME, $CASE_ENVOY_VERSION"
+    echo "================================================"
+    echoblue "CASE $CASE_STR"
+    echo "- - - - - - - - - - - - - - - - - - - - - - - -"
 
     export ENVOY_VERSION=$ev
 
-    if [ ! -z "$FILTER_TESTS" ] && echo "$CASENAME" | grep -v "$FILTER_TESTS" > /dev/null ; then
+    if [ ! -z "$FILTER_TESTS" ] && echo "$CASE_STR" | grep -v "$FILTER_TESTS" > /dev/null ; then
       echo "   SKIPPED: doesn't match FILTER_TESTS=$FILTER_TESTS"
       continue 1
     fi
@@ -98,18 +96,13 @@ for c in ./case-*/ ; do
     # can't use shared volumes)
     docker cp workdir/. envoy_workdir_1:/workdir
 
-    # Start Consul first we do this here even though typically nothing stopped
-    # it because it sometimes seems to be killed by something else (OOM killer)?
+    # Restart Consul. We don't just reload because some configs under test don't
+    # work with reload and because you can get different effects from running
+    # tests in isolation which always have fresh Consul vs in the full suite.
+    # It's pretty quick to start and stop so this is better isolation.
+    echo "(Re)starting Consul"
+    docker-compose stop consul
     docker-compose up -d consul
-
-    # Reload consul
-    echo "Reloading Consul config"
-    if ! retry 10 2 docker_consul reload ; then
-      # Clean up everything before we abort
-      #docker-compose down
-      echored "⨯ FAIL - couldn't reload consul config"
-      exit 1
-    fi
 
     # Copy all the test files
     cp ${c}*.bats workdir/bats
@@ -127,24 +120,25 @@ for c in ./case-*/ ; do
       docker-compose up -d $REQUIRED_SERVICES
     fi
 
-    if [ ! -z "$QUIESCE_SECS" ] ; then
-      echo "Sleeping for $QUIESCE_SECS seconds"
-      sleep $QUIESCE_SECS
-    fi
-
     # Execute tests
     THISRESULT=1
     if docker-compose up --build --abort-on-container-exit --exit-code-from verify verify ; then
-      echo -n "==> CASE $CASENAME: "
+      echo "- - - - - - - - - - - - - - - - - - - - - - - -"
+      echoblue -n "CASE $CASE_STR"
+      echo -n ": "
       echogreen "✓ PASS"
     else
-      echo -n "==> CASE $CASENAME: "
+      echo "- - - - - - - - - - - - - - - - - - - - - - - -"
+      echoblue -n "CASE $CASE_STR"
+      echo -n ": "
       echored "⨯ FAIL"
       if [ $RESULT -eq 1 ] ; then
         RESULT=0
       fi
       THISRESULT=0
     fi
+    echo "================================================"
+
 
     # Teardown
     if [ -f "${c}teardown.sh" ] ; then
@@ -158,6 +152,11 @@ for c in ./case-*/ ; do
         done
       fi
       docker-compose stop $REQUIRED_SERVICES
+    fi
+
+    if [ $RESULT -eq 0 ] && [ ! -z "$STOP_ON_FAIL" ] ; then
+      echo "  => STOPPING because STOP_ON_FAIL set"
+      break 2
     fi
   done
 done
