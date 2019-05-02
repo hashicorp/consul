@@ -479,17 +479,19 @@ func (c *ConfigEntryResponse) MarshalBinary() (data []byte, err error) {
 	bs := make([]byte, 128)
 	enc := codec.NewEncoderBytes(&bs, msgpackHandle)
 
-	kind := ""
 	if c.Entry != nil {
-		kind = c.Entry.GetKind()
+		if err := enc.Encode(c.Entry.GetKind()); err != nil {
+			return nil, err
+		}
+		if err := enc.Encode(c.Entry); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := enc.Encode(""); err != nil {
+			return nil, err
+		}
 	}
 
-	if err := enc.Encode(kind); err != nil {
-		return nil, err
-	}
-	if err := enc.Encode(c.Entry); err != nil {
-		return nil, err
-	}
 	if err := enc.Encode(c.QueryMeta); err != nil {
 		return nil, err
 	}
