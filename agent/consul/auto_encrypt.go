@@ -76,9 +76,9 @@ func (c *Client) AutoEncrypt(servers []string, port int, token string) (*structs
 		c.logger.Printf("[WARN] agent: AutoEncrypt failed: %v, retrying in %v", err, interval)
 		select {
 		case <-time.After(interval):
+			continue
 		case <-c.shutdownCh:
+			return errFn(fmt.Errorf("aborting AutoEncrypt because shutting down"))
 		}
 	}
-
-	return &reply, pkPEM, nil
 }
