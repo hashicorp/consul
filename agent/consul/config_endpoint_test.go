@@ -717,15 +717,6 @@ func TestConfigEntry_ResolveServiceConfigNoConfig(t *testing.T) {
 	}
 	var out structs.ServiceConfigResponse
 	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &args, &out))
-	// Hack to fix up the string encoding in the map[string]interface{}.
-	// msgpackRPC's codec doesn't use RawToString.
-	var err error
-	out.ProxyConfig, err = lib.MapWalk(out.ProxyConfig)
-	require.NoError(err)
-	for k := range out.UpstreamConfigs {
-		out.UpstreamConfigs[k], err = lib.MapWalk(out.UpstreamConfigs[k])
-		require.NoError(err)
-	}
 
 	expected := structs.ServiceConfigResponse{
 		ProxyConfig:     nil,
@@ -795,7 +786,7 @@ operator = "write"
 		Datacenter:   s1.config.Datacenter,
 		QueryOptions: structs.QueryOptions{Token: id},
 	}
-	var out struct{}
+	var out structs.ServiceConfigResponse
 	err := msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &args, &out)
 	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
