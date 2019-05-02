@@ -77,7 +77,7 @@
 /docs/guides/datacenters.html                  https://learn.hashicorp.com/consul/security-networking/datacenters
 /docs/guides/geo-failover.html                 https://learn.hashicorp.com/consul/developer-discovery/geo-failover
 /docs/guides/leader-election.html              https://learn.hashicorp.com/consul/developer-configuration/elections
-/docs/guides/monitoring-telegraf.html          https://learn.hashicorp.com/consul//integrations/telegraf
+/docs/guides/monitoring-telegraf.html          https://learn.hashicorp.com/consul/integrations/telegraf
 /docs/guides/network-segments.html             https://learn.hashicorp.com/consul/day-2-operations/network-segments
 /docs/guides/semaphore.html                    https://learn.hashicorp.com/consul/developer-configuration/semaphore
 /docs/guides/windows-guide.html                https://learn.hashicorp.com/consul/datacenter-deploy/windows
