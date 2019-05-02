@@ -143,3 +143,45 @@ func TestServiceConfigResponse_MsgPack(t *testing.T) {
 
 	require.Equal(t, a, b)
 }
+
+func TestConfigEntryResponseMarshalling(t *testing.T) {
+	t.Parallel()
+
+	cases := map[string]ConfigEntryResponse{
+		"nil entry": ConfigEntryResponse{},
+		"proxy-default entry": ConfigEntryResponse{
+			Entry: &ProxyConfigEntry{
+				Kind: ProxyDefaults,
+				Name: ProxyConfigGlobal,
+				Config: map[string]interface{}{
+					"foo": "bar",
+				},
+			},
+		},
+		"service-default entry": ConfigEntryResponse{
+			Entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "foo",
+				Protocol: "tcp",
+				// Connect:  ConnectConfiguration{SideCarProxy: true},
+			},
+		},
+	}
+
+	for name, tcase := range cases {
+		name := name
+		tcase := tcase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			data, err := tcase.MarshalBinary()
+			require.NoError(t, err)
+			require.NotEmpty(t, data)
+
+			var resp ConfigEntryResponse
+			require.NoError(t, resp.UnmarshalBinary(data))
+
+			require.Equal(t, tcase, resp)
+		})
+	}
+}
