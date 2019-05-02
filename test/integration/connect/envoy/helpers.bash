@@ -42,6 +42,20 @@ function echogreen {
   tput sgr0
 }
 
+function echoyellow {
+  tput setaf 3
+  tput bold
+  echo $@
+  tput sgr0
+}
+
+function echoblue {
+  tput setaf 4
+  tput bold
+  echo $@
+  tput sgr0
+}
+
 function get_cert {
   local HOSTPORT=$1
   openssl s_client -connect $HOSTPORT \
