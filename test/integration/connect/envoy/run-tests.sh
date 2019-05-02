@@ -54,7 +54,7 @@ function cleanup {
     echo "ERR: command exited with $STATUS"
     echo "     command: $CMD"
   fi
-  
+
   docker-compose down
 }
 trap cleanup EXIT
@@ -64,8 +64,6 @@ trap 'PREV_CMD=$THIS_CMD; THIS_CMD=$BASH_COMMAND' DEBUG
 
 # Start the volume container
 docker-compose up -d workdir
-
-LAST_CASE_NEEDED_RESTART=0
 
 for c in ./case-*/ ; do
   for ev in $ENVOY_VERSIONS ; do
