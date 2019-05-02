@@ -1,8 +1,10 @@
 package structs
 
 import (
+	"bytes"
 	"testing"
 
+	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/stretchr/testify/require"
 )
 
@@ -99,4 +101,45 @@ func TestDecodeConfigEntry(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestServiceConfigResponse_MsgPack(t *testing.T) {
+	// TODO(banks) lib.MapWalker doesn't actually fix the map[interface{}] issue
+	// it claims to in docs yet. When it does uncomment those cases below.
+	a := ServiceConfigResponse{
+		ProxyConfig: map[string]interface{}{
+			"string": "foo",
+			// "map": map[string]interface{}{
+			// 	"baz": "bar",
+			// },
+		},
+		UpstreamConfigs: map[string]map[string]interface{}{
+			"a": map[string]interface{}{
+				"string": "aaaa",
+				// "map": map[string]interface{}{
+				// 	"baz": "aa",
+				// },
+			},
+			"b": map[string]interface{}{
+				"string": "bbbb",
+				// "map": map[string]interface{}{
+				// 	"baz": "bb",
+				// },
+			},
+		},
+	}
+
+	var buf bytes.Buffer
+
+	// Encode as msgPack using a regular handle i.e. NOT one with RawAsString
+	// since our RPC codec doesn't use that.
+	enc := codec.NewEncoder(&buf, msgpackHandle)
+	require.NoError(t, enc.Encode(&a))
+
+	var b ServiceConfigResponse
+
+	dec := codec.NewDecoder(&buf, msgpackHandle)
+	require.NoError(t, dec.Decode(&b))
+
+	require.Equal(t, a, b)
 }

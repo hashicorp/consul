@@ -419,6 +419,54 @@ type ServiceConfigResponse struct {
 	QueryMeta
 }
 
+// MarshalBinary writes ServiceConfigResponse as msgpack encoded. It's only here
+// because we need custom decoding of the raw interface{} values.
+func (r *ServiceConfigResponse) MarshalBinary() (data []byte, err error) {
+	// bs will grow if needed but allocate enough to avoid reallocation in common
+	// case.
+	bs := make([]byte, 128)
+	enc := codec.NewEncoderBytes(&bs, msgpackHandle)
+
+	type Alias ServiceConfigResponse
+
+	if err := enc.Encode((*Alias)(r)); err != nil {
+		return nil, err
+	}
+
+	return bs, nil
+}
+
+// UnmarshalBinary decodes msgpack encoded ServiceConfigResponse. It used
+// default msgpack encoding but fixes up the uint8 strings and other problems we
+// have with encoding map[string]interface{}.
+func (r *ServiceConfigResponse) UnmarshalBinary(data []byte) error {
+	dec := codec.NewDecoderBytes(data, msgpackHandle)
+
+	type Alias ServiceConfigResponse
+	var a Alias
+
+	if err := dec.Decode(&a); err != nil {
+		return err
+	}
+
+	*r = ServiceConfigResponse(a)
+
+	var err error
+
+	// Fix strings and maps in the returned maps
+	r.ProxyConfig, err = lib.MapWalk(r.ProxyConfig)
+	if err != nil {
+		return err
+	}
+	for k := range r.UpstreamConfigs {
+		r.UpstreamConfigs[k], err = lib.MapWalk(r.UpstreamConfigs[k])
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // ConfigEntryResponse returns a single ConfigEntry
 type ConfigEntryResponse struct {
 	Entry ConfigEntry

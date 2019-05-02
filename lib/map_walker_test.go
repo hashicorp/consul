@@ -38,6 +38,20 @@ func TestMapWalk(t *testing.T) {
 			},
 			unexpected: true,
 		},
+		// TODO(banks): despite the doc comment, MapWalker doesn't actually fix
+		// these cases yet. Do that in a later PR.
+		// "map iface": tcase{
+		//  input: map[string]interface{}{
+		//    "foo": map[interface{}]interface{}{
+		//      "bar": "baz",
+		//    },
+		//  },
+		//  expected: map[string]interface{}{
+		//    "foo": map[string]interface{}{
+		//      "bar": "baz",
+		//    },
+		//  },
+		// },
 	}
 
 	for name, tcase := range cases {
