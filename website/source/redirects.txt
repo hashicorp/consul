@@ -57,16 +57,30 @@
 /docs/commands/acl/acl-translate-rules.html https://www.consul.io/docs/commands/acl/translate-rules.html
 
 # Consul Learn Redirects
-/docs/guides/acl.html                          https://learn.hashicorp.com/consul/advanced/day-1-operations/acl-guide
-/docs/guides/agent-encryption.html             https://learn.hashicorp.com/consul/advanced/day-1-operations/agent-encryption
-/docs/guides/autopilot.html                    https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/autopilot
-/docs/guides/backup.html                       https://learn.hashicorp.com/consul/advanced/day-1-operations/backup
-/docs/guides/cluster-monitoring-metrics.html   https://learn.hashicorp.com/consul/advanced/day-1-operations/monitoring
-/docs/guides/creating-certificates.html        https://learn.hashicorp.com/consul/advanced/day-1-operations/certificates
-/docs/guides/deployment-guide.html             https://learn.hashicorp.com/consul/advanced/day-1-operations/deployment-guide
-/docs/guides/deployment.html                   https://learn.hashicorp.com/consul/advanced/day-1-operations/reference-architecture
-/docs/guides/dns-cache.html                    https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/dns-caching
+/docs/guides/acl.html                          https://learn.hashicorp.com/consul/security-networking/production-acls
+/docs/guides/agent-encryption.html             https://learn.hashicorp.com/consul/security-networking/agent-encryption
+/docs/guides/autopilot.html                    https://learn.hashicorp.com/consul/day-2-operations/autopilot
+/docs/guides/backup.html                       https://learn.hashicorp.com/consul/datacenter-deploy/backup
+/docs/guides/cluster-monitoring-metrics.html   https://learn.hashicorp.com/consul/day-2-operations/monitoring
+/docs/guides/creating-certificates.html        https://learn.hashicorp.com/consul/security-networking/certificates
+/docs/guides/deployment-guide.html             https://learn.hashicorp.com/consul/datacenter-deploy/deployment-guide
+/docs/guides/deployment.html                   https://learn.hashicorp.com/consul/datacenter-deploy/reference-architecture
+/docs/guides/dns-cache.html                    https://learn.hashicorp.com/consul/security-networking/dns-caching
 /docs/guides/minikube.html                     https://learn.hashicorp.com/consul/getting-started-k8s/minikube
+/docs/guides/connect-production.html           https://learn.hashicorp.com/consul/developer-segmentation/connect-production
+/docs/guides/connect-envoy.html                https://learn.hashicorp.com/consul/developer-segmentation/connect-envoy
+/docs/guides/consul-template.html              https://learn.hashicorp.com/consul/developer-configuration/consul-template
+/docs/guides/consul-aws.html                   https://learn.hashicorp.com/consul/integrations/consul-aws
+/docs/guides/forwarding.html                   https://learn.hashicorp.com/consul/security-networking/forwarding
+/docs/guides/external.html                     https://learn.hashicorp.com/consul/developer-discovery/external
+/docs/guides/advanced-federation.html          https://learn.hashicorp.com/consul/day-2-operations/advanced-federation
+/docs/guides/datacenters.html                  https://learn.hashicorp.com/consul/security-networking/datacenters
+/docs/guides/geo-failover.html                 https://learn.hashicorp.com/consul/developer-discovery/geo-failover
+/docs/guides/leader-election.html              https://learn.hashicorp.com/consul/developer-configuration/elections
+/docs/guides/monitoring-telegraf.html          https://learn.hashicorp.com/consul/integrations/telegraf
+/docs/guides/network-segments.html             https://learn.hashicorp.com/consul/day-2-operations/network-segments
+/docs/guides/semaphore.html                    https://learn.hashicorp.com/consul/developer-configuration/semaphore
+/docs/guides/windows-guide.html                https://learn.hashicorp.com/consul/datacenter-deploy/windows
 
 # NOTE: Do not use this redirects file for intro doc links.
 #       A custom VCL (Varnish) configuration in the Fastly web admin has been
