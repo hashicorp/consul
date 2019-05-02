@@ -1,0 +1,34 @@
+---
+layout: "docs"
+page_title: "Commands: ACL Binding Rule Delete"
+sidebar_current: "docs-commands-acl-binding-rule-delete"
+---
+
+# Consul ACL Binding Rule Delete
+
+Command: `consul acl binding-rule delete`
+
+The `acl binding-rule delete` command deletes a binding rule.
+
+## Usage
+
+Usage: `consul acl binding-rule delete [options]`
+
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
+
+#### Command Options
+
+* `-id=<string>` - The ID of the binding rule to delete. It may be specified as a
+  unique ID prefix but will error if the prefix matches multiple binding rule IDs.
+
+## Examples
+
+Delete a binding rule:
+
+```sh
+$ consul acl binding-rule delete -id 0ec1bd
+Binding rule "0ec1bd2f-1d3b-bafb-d9bf-90ef04ab1890" deleted successfully
+```

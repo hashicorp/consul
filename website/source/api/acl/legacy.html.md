@@ -12,7 +12,9 @@ the new ACL [Token](/api/acl/tokens.html) and [Policy](/api/acl/policies.html) A
 
 # ACL HTTP API
 
-The `/acl` endpoints create, update, destroy, and query ACL tokens in Consul. For more information about ACLs, please see the [ACL Guide](/docs/guides/acl-legacy.html).
+The `/acl` endpoints create, update, destroy, and query ACL tokens in Consul.
+
+For more information about ACLs, please see the [ACL Guide](/docs/guides/acl-legacy.html).
 
 ## Create ACL Token
 

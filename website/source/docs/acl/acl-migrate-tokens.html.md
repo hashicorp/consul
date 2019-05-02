@@ -82,7 +82,7 @@ The simplest and most automatic strategy is to create one new policy for every
 existing token. This is easy to automate, but may result in a lot of policies
 with exactly the same rules and with non-human-readable names which will make
 managing policies harder. This approach can be accomplished using the [`consul
-acl policy create`](/docs/commands/acl/acl-policy.html#create) command with
+acl policy create`](/docs/commands/acl/policy/create.html) command with
 `-from-token` option.
 
 | Pros | Cons |
@@ -112,7 +112,7 @@ semantics of the old ACL system.
 To assist with this approach, there is a CLI tool and corresponding API that can
 translate a legacy ACL token's rules into a new ACL policy that is exactly
 equivalent. See [`consul acl
-translate-rules`](/docs/commands/acl/acl-translate-rules.html).
+translate-rules`](/docs/commands/acl/translate-rules.html).
 
 | Pros | Cons |
 | ---- | ---- |
@@ -141,7 +141,7 @@ endpoint. Specifically, ensure that the `Rules` field is omitted or empty. Empty
 
 #### Update via CLI
 
-Use the [`consul acl token update`](/docs/commands/acl/acl-token.html#update)
+Use the [`consul acl token update`](/docs/commands/acl/token/update.html)
 command to update the token. Specifically you need to use `-upgrade-legacy`
 which will ensure that legacy rules are removed as well as the new policies
 added.

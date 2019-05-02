@@ -38,7 +38,6 @@ func TestMapWalk(t *testing.T) {
 			},
 			unexpected: true,
 		},
-
 		// ensure nested maps get processed correctly
 		"nested": tcase{
 			input: map[string]interface{}{
@@ -54,6 +53,7 @@ func TestMapWalk(t *testing.T) {
 				"bar": "baz",
 			},
 		},
+
 	}
 
 	for name, tcase := range cases {

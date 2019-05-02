@@ -3,63 +3,34 @@ layout: "docs"
 page_title: "Guides"
 sidebar_current: "docs-guides"
 description: |-
-  This section provides various guides for common actions. Due to the nature of Consul, some of these procedures can be complex, so our goal is to provide guidance to do them safely.
+  This section provides various guides for common actions. Due to the nature of
+  Consul, some of these procedures can be complex, so our goal is to provide
+  guidance to do them safely.
 ---
 
 # Consul Guides
 
-This section provides various guides for common actions. Due to the nature
-of Consul, some of these procedures can be complex, so our goal is to provide
-guidance to do them safely.
+~> The Consul guides have moved to the [HashiCorp Learn platform](https://learn.hashicorp.com/).
 
-The following guides are available:
+Guides are step by step command-line walkthroughs that demonstrate how to
+perform common operations using Consul, and complement the feature-focused
+Consul documentation. Guide content begins with getting-started tracks to help
+new users learn the basics of Consul, and continues through production-playbook
+tracks that cover topics like Day 1 and Day 2 operations, production
+considerations, and recommendations for securing your Consul cluster.
 
-* [Adding/Removing Servers](https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/servers) - This guide covers how to safely add and remove Consul servers from the cluster. This should be done carefully to avoid availability outages.
+You can work through the guides sequentially using the tracks, or just refer to
+the material that is most relevant to you.
 
-* [Agent Communication Encryption](https://learn.hashicorp.com/consul/advanced/day-1-operations/agent-encryption) - This guide covers how to encrypt both gossip and RPC communication.
- 
-* [Autopilot](https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/autopilot) - This guide covers Autopilot, which provides automatic operator-friendly management of Consul servers.
+Tracks include:
 
-* [Connect in Production](/docs/guides/connect-production.html) - This guide describes critical aspects of operating Consul Connect in Production.
-
-* [Connect with Envoy](/docs/guides/connect-envoy.html) - This guide will describe how to setup a development-mode Consul server and two Envoy proxies on a single machine using Docker.
-
-* [Consul Cluster Monitoring & Metrics](https://learn.hashicorp.com/consul/advanced/day-1-operations/monitoring) - After setting up your first datacenter, it is an ideal time to make sure your cluster is healthy and establish a baseline. This guide will cover several types of metrics in two sections: Consul health and server health.
-
-* [Consul with Containers](/docs/guides/consul-containers.html) - This guide describes critical aspects of operating a Consul cluster that's run inside containers.
-
-* [Consul Template](/docs/guides/consul-template.html) - This guide covers the Consul template tool, which provides a programmatic method for populating values into the file system.
-
-* [Consul-AWS](/docs/guides/consul-aws.html) - This guide covers the Consul-AWS tool, which syncs Consul's and AWS Cloud Map's service catalog.
-
-* [Creating Certificates](https://learn.hashicorp.com/consul/advanced/day-1-operations/certificates) - This guide describes how to setup CA and certificates to secure a Consul cluster with TLS.
-
-* [Datacenter Backups](https://learn.hashicorp.com/consul/advanced/day-1-operations/backup) - Consul provide the snapshot tool for backing up and restoring data. In this guide you will learn how to use both.
-
-* [Deployment Guide](https://learn.hashicorp.com/consul/advanced/day-1-operations/deployment-guide) - This deployment guide covers the steps required to install and configure a single HashiCorp Consul cluster as defined in the Consul Reference Architecture.
-
-* [DNS Caching](https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/dns-caching) - Enabling TTLs for DNS query caching
-
-* [DNS Forwarding](/docs/guides/forwarding.html) - Forward DNS queries from Bind to Consul
-
-* [External Services](/docs/guides/external.html) - This guide covers registering an external service. This allows using 3rd party services within the Consul framework.
-
-* Federation ([Basic](/docs/guides/datacenters.html) and [Advanced](/docs/guides/advanced-federation.html)) - Configuring Consul to support multiple datacenters.
-
-* [Geo Failover](/docs/guides/geo-failover.html) - This guide covers using [prepared queries](/api/query.html) to implement geo failover for services.
-
-* [Minikube with Consul](https://learn.hashicorp.com/consul/getting-started-k8s/minikube/) - In this guide, you'll start a local Kubernetes cluster with minikube, install Consul,and then deploy two custom services.
-
-* [Leader Election](/docs/guides/leader-election.html) - The goal of this guide is to cover how to build client-side leader election using Consul.
-
-* [Monitoring Consul with Telegraf](/docs/guides/monitoring-telegraf.html) - This guide demonstrates how to setup Consul for monitoring with Telegraf.
-
-* [Network Segments](/docs/guides/network-segments.html) - Configuring Consul to support partial LAN connectivity using Network Segments.
-
-* [Outage Recovery](https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/outage) - This guide covers recovering a cluster that has become unavailable due to server failures.
-
-* [Consul Reference Architecture](https://learn.hashicorp.com/consul/advanced/day-1-operations/reference-architecture) - This document provides recommended practices and a reference architecture, including system requirements, datacenter design, networking, and performance optimizations for Consul production deployments.
-
-* [Semaphore](/docs/guides/semaphore.html) - This guide covers using the KV store to implement a semaphore.
-
-* [Windows Service](/docs/guides/windows-guide.html) - This guide covers how to run Consul as a service on Windows.
+- [Getting Started](https://learn.hashicorp.com/consul/?track=getting-started#getting-started)
+- [Getting Started with Kubernetes](https://learn.hashicorp.com/consul/?track=getting-started-k8s#getting-started-k8s)
+- [Day 1: Deploying Your First Datacenter](https://learn.hashicorp.com/consul/?track=datacenter-deploy#datacenter-deploy)
+- [Day 1: Security and Network Operations](https://learn.hashicorp.com/consul/?track=security-networking#security-networking)
+- [Day 1: Kubernetes Operations](https://learn.hashicorp.com/consul/?track=kubernetes#kubernetes)
+- [Day 2: Advanced Operations and Maintenance](https://learn.hashicorp.com/consul/?track=day-2-operations#day-2-operations)
+- [Development: Service Discovery](https://learn.hashicorp.com/consul/?track=developer-discovery#developer-discovery)
+- [Development: Service Segmentation](https://learn.hashicorp.com/consul/?track=developer-segmentation#developer-segmentation)
+- [Development: Service Configuration](https://learn.hashicorp.com/consul/?track=developer-configuration#developer-configuration)
+- [Integrations](https://learn.hashicorp.com/consul/?track=integrations#integrations)

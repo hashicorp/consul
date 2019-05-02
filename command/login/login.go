@@ -136,13 +136,13 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Login to Consul using an Auth Method"
+const synopsis = "Login to Consul using an auth method"
 
 const help = `
 Usage: consul login [options]
 
   The login command will exchange the provided third party credentials with the
-  requested auth method for a newly minted Consul ACL Token. The companion
+  requested auth method for a newly minted Consul ACL token. The companion
   command 'consul logout' should be used to destroy any tokens created this way
   to avoid a resource leak.
 `

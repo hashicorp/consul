@@ -41,7 +41,7 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
+```sh
 $ curl \
     --request PUT \
     http://127.0.0.1:8500/v1/acl/bootstrap
@@ -106,7 +106,7 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
+```sh
 $ curl \
     --request PUT \
     --data @payload.json \
@@ -158,7 +158,7 @@ required.
 
 ### Sample Request
 
-```text
+```sh
 $ curl \
     --request PUT \
     --data @payload.json \
@@ -200,7 +200,7 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
+```sh
 $ curl \
     --request PUT \
     http://127.0.0.1:8500/v1/acl/destroy/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
@@ -240,7 +240,7 @@ Note: No ACL is required because the ACL is specified in the URL path.
 
 ### Sample Request
 
-```text
+```sh
 $ curl \
     http://127.0.0.1:8500/v1/acl/info/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
 ```
@@ -287,7 +287,7 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
+```sh
 $ curl \
     --request PUT \
     http://127.0.0.1:8500/v1/acl/clone/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
@@ -321,7 +321,7 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
+```sh
 $ curl \
     http://127.0.0.1:8500/v1/acl/list
 ```
@@ -372,7 +372,7 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
+```sh
 $ curl \
     http://127.0.0.1:8500/v1/acl/replication
 ```

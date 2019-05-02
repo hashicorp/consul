@@ -91,7 +91,7 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Read an ACL Token"
+const synopsis = "Read an ACL token"
 const help = `
 Usage: consul acl token read [options] -id TOKENID
 

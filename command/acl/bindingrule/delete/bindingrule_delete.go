@@ -81,7 +81,7 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Delete an ACL Binding Rule"
+const synopsis = "Delete an ACL binding rule"
 const help = `
 Usage: consul acl binding-rule delete -id ID [options]
 

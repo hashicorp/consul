@@ -60,7 +60,7 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Destroy a Consul Token created with Login"
+const synopsis = "Destroy a Consul token created with login"
 
 const help = `
 Usage: consul logout [options]

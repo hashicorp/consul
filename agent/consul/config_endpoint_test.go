@@ -659,31 +659,72 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 		Kind: structs.ProxyDefaults,
 		Name: structs.ProxyConfigGlobal,
 		Config: map[string]interface{}{
-			"foo": "bar",
+			"foo": 1,
 		},
 	}))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
-		Kind: structs.ServiceDefaults,
-		Name: "foo",
+		Kind:     structs.ServiceDefaults,
+		Name:     "foo",
+		Protocol: "http",
+	}))
+	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
+		Kind:     structs.ServiceDefaults,
+		Name:     "bar",
+		Protocol: "grpc",
 	}))
 
 	args := structs.ServiceConfigRequest{
 		Name:       "foo",
 		Datacenter: s1.config.Datacenter,
+		Upstreams:  []string{"bar", "baz"},
 	}
 	var out structs.ServiceConfigResponse
 	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &args, &out))
 
-	expected := structs.ServiceDefinition{
-		Name: "foo",
-		Proxy: &structs.ConnectProxyConfig{
-			Config: map[string]interface{}{
-				"foo": "bar",
+	expected := structs.ServiceConfigResponse{
+		ProxyConfig: map[string]interface{}{
+			"foo":      int64(1),
+			"protocol": "http",
+		},
+		UpstreamConfigs: map[string]map[string]interface{}{
+			"bar": map[string]interface{}{
+				"protocol": "grpc",
 			},
 		},
+		// Don't know what this is deterministically
+		QueryMeta: out.QueryMeta,
 	}
-	out.Definition.Proxy.Config["foo"] = structs.Uint8ToString(out.Definition.Proxy.Config["foo"].([]uint8))
-	require.Equal(expected, out.Definition)
+	require.Equal(expected, out)
+}
+
+func TestConfigEntry_ResolveServiceConfigNoConfig(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	// Don't create any config and make sure we don't nil panic (spoiler alert -
+	// we did in first RC)
+	args := structs.ServiceConfigRequest{
+		Name:       "foo",
+		Datacenter: s1.config.Datacenter,
+		Upstreams:  []string{"bar", "baz"},
+	}
+	var out structs.ServiceConfigResponse
+	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &args, &out))
+
+	expected := structs.ServiceConfigResponse{
+		ProxyConfig:     nil,
+		UpstreamConfigs: nil,
+		// Don't know what this is deterministically
+		QueryMeta: out.QueryMeta,
+	}
+	require.Equal(expected, out)
 }
 
 func TestConfigEntry_ResolveServiceConfig_ACLDeny(t *testing.T) {
@@ -745,7 +786,7 @@ operator = "write"
 		Datacenter:   s1.config.Datacenter,
 		QueryOptions: structs.QueryOptions{Token: id},
 	}
-	var out struct{}
+	var out structs.ServiceConfigResponse
 	err := msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &args, &out)
 	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)

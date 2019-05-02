@@ -34,7 +34,7 @@ func (c *cmd) init() {
 		"meta",
 		false,
 		"Indicates that binding rule metadata such "+
-			"as the content hash and raft indices should be shown for each entry.",
+			"as the raft indices should be shown for each entry.",
 	)
 
 	c.flags.StringVar(
@@ -82,7 +82,7 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Lists ACL Binding Rules"
+const synopsis = "Lists ACL binding rules"
 const help = `
 Usage: consul acl binding-rule list [options]
 

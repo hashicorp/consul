@@ -32,7 +32,7 @@ func (c *cmd) init() {
 		"meta",
 		false,
 		"Indicates that auth method metadata such "+
-			"as the content hash and raft indices should be shown for each entry.",
+			"as the raft indices should be shown for each entry.",
 	)
 
 	c.http = &flags.HTTPFlags{}
@@ -73,7 +73,7 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Lists ACL Auth Methods"
+const synopsis = "Lists ACL auth methods"
 const help = `
 Usage: consul acl auth-method list [options]
 

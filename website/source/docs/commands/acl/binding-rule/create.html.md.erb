@@ -1,0 +1,72 @@
+---
+layout: "docs"
+page_title: "Commands: ACL Binding Rule Create"
+sidebar_current: "docs-commands-acl-binding-rule-create"
+---
+
+# Consul ACL Binding Rule Create
+
+Command: `consul acl binding-rule create`
+
+The `acl binding-rule create` command creates new binding rules.
+
+## Usage
+
+Usage: `consul acl binding-rule create [options] [args]`
+
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
+
+#### Command Options
+
+* `-bind-name=<string>` - Name to bind on match. Can use `${var}`
+  interpolation. This flag is required.
+
+* `-bind-type=<string>` - Type of binding to perform (`"service"` or `"role"`).
+
+* `-description=<string>` - A description of the binding rule.
+
+* `-meta` - Indicates that binding rule metadata such as the raft
+   indices should be shown for each entry.
+
+* `-method=<string>` - The auth method's name for which this binding rule
+  applies. This flag is required.
+
+* `-selector=<string>` - Selector is an expression that matches against
+  verified identity attributes returned from the auth method during login.
+
+## Examples
+
+Create a new binding rule that binds to a service identity:
+
+```sh
+$ consul acl binding-rule create -method 'minikube' \
+    -description 'wildcard service' \
+    -bind-type 'service' \
+    -bind-name 'k8s-${serviceaccount.name}' \
+    -selector 'serviceaccount.namespace==default and serviceaccount.name!=vault'
+ID:           0ec1bd2f-1d3b-bafb-d9bf-90ef04ab1890
+AuthMethod:   minikube
+Description:  wildcard service
+BindType:     service
+BindName:     k8s-${serviceaccount.name}
+Selector:     serviceaccount.namespace==default and serviceaccount.name!=vault
+```
+
+Create a new binding rule that binds to a role:
+
+```sh
+$ consul acl binding-rule create -method 'minikube' \
+    -description 'just vault role' \
+    -bind-type 'role' \
+    -bind-name 'vault' \
+    -selector 'serviceaccount.namespace==default and serviceaccount.name==vault'
+ID:           e21ae868-7b13-a230-0235-f8e83510642c
+AuthMethod:   minikube
+Description:  just vault role
+BindType:     role
+BindName:     vault
+Selector:     serviceaccount.namespace==default and serviceaccount.name==vault
+```

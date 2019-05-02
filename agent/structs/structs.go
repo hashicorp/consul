@@ -12,13 +12,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/agent/cache"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-msgpack/codec"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/mitchellh/hashstructure"
+
+	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/types"
 )
 
 type MessageType uint8
@@ -771,76 +772,9 @@ type ServiceConnect struct {
 	SidecarService *ServiceDefinition `json:",omitempty" bexpr:"-"`
 }
 
-// Merge overlays any non-empty fields of other onto s. Tags, metadata and proxy
-// config are unioned together instead of overwritten. The Connect field and the
-// non-config proxy fields are taken from other.
-func (s *NodeService) Merge(other *NodeService) {
-	if other.Kind != "" {
-		s.Kind = other.Kind
-	}
-	if other.ID != "" {
-		s.ID = other.ID
-	}
-	if other.Service != "" {
-		s.Service = other.Service
-	}
-
-	if s.Tags == nil {
-		s.Tags = other.Tags
-	} else if other.Tags != nil {
-		// Both nodes have tags, so deduplicate and merge them.
-		tagSet := make(map[string]struct{})
-		for _, tag := range s.Tags {
-			tagSet[tag] = struct{}{}
-		}
-		for _, tag := range other.Tags {
-			tagSet[tag] = struct{}{}
-		}
-		tags := make([]string, 0, len(tagSet))
-		for tag, _ := range tagSet {
-			tags = append(tags, tag)
-		}
-		sort.Strings(tags)
-		s.Tags = tags
-	}
-
-	if other.Address != "" {
-		s.Address = other.Address
-	}
-	if s.Meta == nil {
-		s.Meta = other.Meta
-	} else {
-		for k, v := range other.Meta {
-			s.Meta[k] = v
-		}
-	}
-	if other.Port != 0 {
-		s.Port = other.Port
-	}
-	if other.Weights != nil {
-		s.Weights = other.Weights
-	}
-	s.EnableTagOverride = other.EnableTagOverride
-	if other.ProxyDestination != "" {
-		s.ProxyDestination = other.ProxyDestination
-	}
-
-	// Take the incoming service's proxy fields and merge the config map.
-	proxyConf := s.Proxy.Config
-	s.Proxy = other.Proxy
-	if proxyConf == nil {
-		proxyConf = other.Proxy.Config
-	} else {
-		for k, v := range other.Proxy.Config {
-			proxyConf[k] = v
-		}
-	}
-	s.Proxy.Config = proxyConf
-
-	// Just take the entire Connect block from the other node.
-	// We can revisit this when adding more fields to centralized config.
-	s.Connect = other.Connect
-	s.LocallyRegisteredAsSidecar = other.LocallyRegisteredAsSidecar
+// IsSidecarProxy returns true if the NodeService is a sidecar proxy.
+func (s *NodeService) IsSidecarProxy() bool {
+	return s.Kind == ServiceKindConnectProxy && s.Proxy.DestinationServiceID != ""
 }
 
 // Validate validates the node service configuration.
