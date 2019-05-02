@@ -10,27 +10,31 @@ description: |-
 
 # Consul Guides
 
-~> The Consul guides have moved to the [HashiCorp Learn platform](https://learn.hashicorp.com/).
+~> The Consul guides have moved to the [HashiCorp Learn platform](https://learn.hashicorp.com/consul).
 
-Guides are step by step command-line walkthroughs that demonstrate how to
-perform common operations using Consul, and complement the feature-focused
-Consul documentation. Guide content begins with getting-started tracks to help
-new users learn the basics of Consul, and continues through production-playbook
-tracks that cover topics like Day 1 and Day 2 operations, production
-considerations, and recommendations for securing your Consul cluster.
+[Guides](https://learn.hashicorp.com/consul) are step by step command-line
+walkthroughs that demonstrate how to perform common operations using Consul, and
+complement the feature-focused Consul documentation.
+
+Guide content begins with getting-started tracks to help new users learn the
+basics of Consul, and continues through production-playbook tracks that cover
+topics like Day 1 and Day 2 operations, production considerations, and
+recommendations for securing your Consul cluster.
 
 You can work through the guides sequentially using the tracks, or just refer to
 the material that is most relevant to you.
 
 Tracks include:
 
-- [Getting Started](https://learn.hashicorp.com/consul/?track=getting-started#getting-started)
-- [Getting Started with Kubernetes](https://learn.hashicorp.com/consul/?track=getting-started-k8s#getting-started-k8s)
-- [Day 1: Deploying Your First Datacenter](https://learn.hashicorp.com/consul/?track=datacenter-deploy#datacenter-deploy)
-- [Day 1: Security and Network Operations](https://learn.hashicorp.com/consul/?track=security-networking#security-networking)
-- [Day 1: Kubernetes Operations](https://learn.hashicorp.com/consul/?track=kubernetes#kubernetes)
-- [Day 2: Advanced Operations and Maintenance](https://learn.hashicorp.com/consul/?track=day-2-operations#day-2-operations)
-- [Development: Service Discovery](https://learn.hashicorp.com/consul/?track=developer-discovery#developer-discovery)
-- [Development: Service Segmentation](https://learn.hashicorp.com/consul/?track=developer-segmentation#developer-segmentation)
-- [Development: Service Configuration](https://learn.hashicorp.com/consul/?track=developer-configuration#developer-configuration)
-- [Integrations](https://learn.hashicorp.com/consul/?track=integrations#integrations)
+- Getting Started
+- Getting Started with Kubernetes
+- Day 1: Deploying Your First Datacenter
+- Day 1: Security and Network Operations
+- Day 1: Kubernetes Operations
+- Day 2: Advanced Operations and Maintenance
+- Development: Service Discovery
+- Development: Service Segmentation
+- Development: Service Configuration
+- Integrations
+
+[**Explore the Learn platform**](https://learn.hashicorp.com/consul)
