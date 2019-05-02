@@ -53,7 +53,6 @@ func TestMapWalk(t *testing.T) {
 				"bar": "baz",
 			},
 		},
-
 	}
 
 	for name, tcase := range cases {
