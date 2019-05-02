@@ -794,14 +794,12 @@ func (s *Store) ACLTokenSet(idx uint64, token *structs.ACLToken, legacy bool) er
 	return nil
 }
 
-func (s *Store) ACLTokenBatchSet(idx uint64, tokens structs.ACLTokens, cas bool) error {
+func (s *Store) ACLTokenBatchSet(idx uint64, tokens structs.ACLTokens, cas, allowMissingPolicyAndRoleIDs bool) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
 	for _, token := range tokens {
-		// this is only used when doing batch insertions for upgrades and replication. Therefore
-		// we take whatever those said.
-		if err := s.aclTokenSetTxn(tx, idx, token, cas, true, false); err != nil {
+		if err := s.aclTokenSetTxn(tx, idx, token, cas, allowMissingPolicyAndRoleIDs, false); err != nil {
 			return err
 		}
 	}
@@ -1469,12 +1467,12 @@ func (s *Store) aclPolicyDeleteTxn(tx *memdb.Txn, idx uint64, value, index strin
 	return nil
 }
 
-func (s *Store) ACLRoleBatchSet(idx uint64, roles structs.ACLRoles) error {
+func (s *Store) ACLRoleBatchSet(idx uint64, roles structs.ACLRoles, allowMissingPolicyIDs bool) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
 	for _, role := range roles {
-		if err := s.aclRoleSetTxn(tx, idx, role, true); err != nil {
+		if err := s.aclRoleSetTxn(tx, idx, role, allowMissingPolicyIDs); err != nil {
 			return err
 		}
 	}

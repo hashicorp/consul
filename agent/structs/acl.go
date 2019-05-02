@@ -1077,8 +1077,9 @@ func (r *ACLTokenBatchGetRequest) RequestDatacenter() string {
 // This is particularly useful during token replication and during
 // automatic legacy token upgrades.
 type ACLTokenBatchSetRequest struct {
-	Tokens ACLTokens
-	CAS    bool
+	Tokens            ACLTokens
+	CAS               bool
+	AllowMissingLinks bool
 }
 
 // ACLTokenBatchDeleteRequest is used only at the Raft layer
@@ -1289,7 +1290,8 @@ type ACLRoleBatchResponse struct {
 //
 // This is particularly useful during replication
 type ACLRoleBatchSetRequest struct {
-	Roles ACLRoles
+	Roles             ACLRoles
+	AllowMissingLinks bool
 }
 
 // ACLRoleBatchDeleteRequest is used at the Raft layer for batching

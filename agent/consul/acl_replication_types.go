@@ -110,8 +110,9 @@ func (r *aclTokenReplicator) PendingUpdateIsRedacted(i int) bool {
 
 func (r *aclTokenReplicator) UpdateLocalBatch(ctx context.Context, srv *Server, start, end int) error {
 	req := structs.ACLTokenBatchSetRequest{
-		Tokens: r.updated[start:end],
-		CAS:    false,
+		Tokens:            r.updated[start:end],
+		CAS:               false,
+		AllowMissingLinks: true,
 	}
 
 	resp, err := srv.raftApply(structs.ACLTokenSetRequestType, &req)
@@ -355,7 +356,8 @@ func (r *aclRoleReplicator) PendingUpdateIsRedacted(i int) bool {
 
 func (r *aclRoleReplicator) UpdateLocalBatch(ctx context.Context, srv *Server, start, end int) error {
 	req := structs.ACLRoleBatchSetRequest{
-		Roles: r.updated[start:end],
+		Roles:             r.updated[start:end],
+		AllowMissingLinks: true,
 	}
 
 	resp, err := srv.raftApply(structs.ACLRoleSetRequestType, &req)

@@ -391,7 +391,7 @@ func (c *FSM) applyACLTokenSetOperation(buf []byte, index uint64) interface{} {
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "acl", "token"}, time.Now(),
 		[]metrics.Label{{Name: "op", Value: "upsert"}})
 
-	return c.state.ACLTokenBatchSet(index, req.Tokens, req.CAS)
+	return c.state.ACLTokenBatchSet(index, req.Tokens, req.CAS, req.AllowMissingLinks)
 }
 
 func (c *FSM) applyACLTokenDeleteOperation(buf []byte, index uint64) interface{} {
@@ -478,7 +478,7 @@ func (c *FSM) applyACLRoleSetOperation(buf []byte, index uint64) interface{} {
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "acl", "role"}, time.Now(),
 		[]metrics.Label{{Name: "op", Value: "upsert"}})
 
-	return c.state.ACLRoleBatchSet(index, req.Roles)
+	return c.state.ACLRoleBatchSet(index, req.Roles, req.AllowMissingLinks)
 }
 
 func (c *FSM) applyACLRoleDeleteOperation(buf []byte, index uint64) interface{} {

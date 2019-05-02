@@ -5301,20 +5301,11 @@ func upsertTestRole(codec rpc.ClientCodec, masterToken string, datacenter string
 	if err != nil {
 		return nil, err
 	}
-	policyID, err := uuid.GenerateUUID()
-	if err != nil {
-		return nil, err
-	}
 
 	arg := structs.ACLRoleSetRequest{
 		Datacenter: datacenter,
 		Role: structs.ACLRole{
 			Name: fmt.Sprintf("test-role-%s", roleUnq),
-			Policies: []structs.ACLRolePolicyLink{
-				structs.ACLRolePolicyLink{
-					ID: policyID,
-				},
-			},
 		},
 		WriteRequest: structs.WriteRequest{Token: masterToken},
 	}
