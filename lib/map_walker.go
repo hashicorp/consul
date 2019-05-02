@@ -95,8 +95,31 @@ func (w *mapWalker) Map(m reflect.Value) error {
 func (w *mapWalker) MapElem(m, k, v reflect.Value) error {
 	w.csData = k
 	w.csKey = append(w.csKey, k)
-
 	w.lastValue = v
+
+	// We're looking specifically for map[interface{}]interface{}, but the
+	// values in a map could be wrapped up in interface{} so we need to unwrap
+	// that first. Therefore, we do three checks: 1.) is it valid? so we
+	// don't panic, 2.) is it an interface{}? so we can unwrap it and 3.)
+	// after unwrapping the interface do we have the map we expect?
+	if !v.IsValid() {
+		return nil
+	}
+
+	if v.Kind() != reflect.Interface {
+		return nil
+	}
+
+	if inner := v.Elem(); inner.Type() == typMapIfaceIface {
+		// map[interface{}]interface{}, attempt to weakly decode into string keys
+		var target map[string]interface{}
+		if err := mapstructure.WeakDecode(v.Interface(), &target); err != nil {
+			return err
+		}
+
+		m.SetMapIndex(k, reflect.ValueOf(target))
+	}
+
 	return nil
 }
 
