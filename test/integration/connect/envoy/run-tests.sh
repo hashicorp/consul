@@ -83,7 +83,7 @@ for c in ./case-*/ ; do
 
     # Wipe state
     docker-compose up wipe-volumes
-    rm -rf workdir/*
+    rm -rf workdir/{consul,envoy,bats,statsd}
     mkdir -p workdir/{consul,envoy,bats,statsd,logs}
 
     # Reload consul config from defaults
@@ -128,6 +128,9 @@ for c in ./case-*/ ; do
       echo -n ": "
       echogreen "✓ PASS"
     else
+      echo "Current Container Status at fail time ($(date))"
+      docker-compose ps
+
       echo "- - - - - - - - - - - - - - - - - - - - - - - -"
       echoblue -n "CASE $CASE_STR"
       echo -n ": "
