@@ -29,6 +29,11 @@ var (
 	// token with an empty AccessorID.
 	ErrMissingACLTokenAccessor = errors.New("Missing ACL Token AccessorID")
 
+	// ErrTokenHasNoPrivileges is returned when a token set is called on a
+	// token with no policies, roles, or service identities and the caller
+	// requires at least one to be set.
+	ErrTokenHasNoPrivileges = errors.New("Token has no privileges")
+
 	// ErrMissingACLPolicyID is returned when a policy set is called on a
 	// policy with an empty ID.
 	ErrMissingACLPolicyID = errors.New("Missing ACL Policy ID")

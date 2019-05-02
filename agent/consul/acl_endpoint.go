@@ -581,6 +581,14 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 		CAS:    false,
 	}
 
+	if fromLogin {
+		// Logins may attempt to link to roles that do not exist. These
+		// may be persisted, but don't allow tokens to be created that
+		// have no privileges (i.e. role links that point nowhere).
+		req.AllowMissingLinks = true
+		req.ProhibitUnprivileged = true
+	}
+
 	resp, err := a.srv.raftApply(structs.ACLTokenSetRequestType, req)
 	if err != nil {
 		return fmt.Errorf("Failed to apply token write request: %v", err)
@@ -1992,6 +2000,8 @@ func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) erro
 		return err
 	}
 
+	// We try to prevent the creation of a useless token without taking a trip
+	// through the state store if we can.
 	if len(serviceIdentities) == 0 && len(roleLinks) == 0 {
 		return acl.ErrPermissionDenied
 	}
@@ -2019,7 +2029,17 @@ func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) erro
 	}
 
 	// 5. return token information like a TokenCreate would
-	return a.tokenSetInternal(&createReq, reply, true)
+	err = a.tokenSetInternal(&createReq, reply, true)
+
+	// If we were in a slight race with a role delete operation then we may
+	// still end up failing to insert an unprivileged token in the state
+	// machine instead.  Return the same error as earlier so it doesn't
+	// actually matter which one prevents the insertion.
+	if err != nil && err.Error() == state.ErrTokenHasNoPrivileges.Error() {
+		return acl.ErrPermissionDenied
+	}
+
+	return err
 }
 
 func encodeLoginMeta(meta map[string]string) (string, error) {
