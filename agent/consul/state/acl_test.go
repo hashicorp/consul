@@ -141,7 +141,7 @@ func setupExtraPoliciesAndRoles(t *testing.T, s *Store) {
 		role.SetHash(true)
 	}
 
-	require.NoError(t, s.ACLRoleBatchSet(3, roles))
+	require.NoError(t, s.ACLRoleBatchSet(3, roles, false))
 }
 
 func testACLTokensStateStore(t *testing.T) *Store {
@@ -619,7 +619,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 			},
 		}
 
-		require.NoError(t, s.ACLTokenBatchSet(2, tokens, true))
+		require.NoError(t, s.ACLTokenBatchSet(2, tokens, true, false))
 
 		_, token, err := s.ACLTokenGetByAccessor(nil, tokens[0].AccessorID)
 		require.NoError(t, err)
@@ -640,7 +640,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 			},
 		}
 
-		require.NoError(t, s.ACLTokenBatchSet(5, tokens, true))
+		require.NoError(t, s.ACLTokenBatchSet(5, tokens, true, false))
 
 		updated := structs.ACLTokens{
 			&structs.ACLToken{
@@ -651,7 +651,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 			},
 		}
 
-		require.NoError(t, s.ACLTokenBatchSet(6, updated, true))
+		require.NoError(t, s.ACLTokenBatchSet(6, updated, true, false))
 
 		_, token, err := s.ACLTokenGetByAccessor(nil, tokens[0].AccessorID)
 		require.NoError(t, err)
@@ -670,7 +670,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 			},
 		}
 
-		require.NoError(t, s.ACLTokenBatchSet(5, tokens, true))
+		require.NoError(t, s.ACLTokenBatchSet(5, tokens, true, false))
 
 		updated := structs.ACLTokens{
 			&structs.ACLToken{
@@ -680,7 +680,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 			},
 		}
 
-		require.NoError(t, s.ACLTokenBatchSet(6, updated, true))
+		require.NoError(t, s.ACLTokenBatchSet(6, updated, true, false))
 
 		_, token, err := s.ACLTokenGetByAccessor(nil, tokens[0].AccessorID)
 		require.NoError(t, err)
@@ -703,7 +703,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 			},
 		}
 
-		require.NoError(t, s.ACLTokenBatchSet(2, tokens, false))
+		require.NoError(t, s.ACLTokenBatchSet(2, tokens, false, false))
 
 		idx, rtokens, err := s.ACLTokenBatchGet(nil, []string{
 			"a4f68bd6-3af5-4f56-b764-3c6f20247879",
@@ -734,7 +734,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 			},
 		}
 
-		require.NoError(t, s.ACLTokenBatchSet(2, tokens, false))
+		require.NoError(t, s.ACLTokenBatchSet(2, tokens, false, false))
 
 		updates := structs.ACLTokens{
 			&structs.ACLToken{
@@ -759,7 +759,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 			},
 		}
 
-		require.NoError(t, s.ACLTokenBatchSet(3, updates, false))
+		require.NoError(t, s.ACLTokenBatchSet(3, updates, false, false))
 
 		idx, rtokens, err := s.ACLTokenBatchGet(nil, []string{
 			"a4f68bd6-3af5-4f56-b764-3c6f20247879",
@@ -786,6 +786,83 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 		require.Equal(t, "node-read", rtokens[1].Policies[0].Name)
 		require.Equal(t, uint64(2), rtokens[1].CreateIndex)
 		require.Equal(t, uint64(3), rtokens[1].ModifyIndex)
+	})
+
+	t.Run("AllowMissing - Policy", func(t *testing.T) {
+		t.Parallel()
+		s := testACLTokensStateStore(t)
+
+		const fakePolicyID = "0ea7b58a-3d86-4e82-b656-577b63d727f3"
+
+		tokens := structs.ACLTokens{
+			&structs.ACLToken{
+				AccessorID: "a4f68bd6-3af5-4f56-b764-3c6f20247879",
+				SecretID:   "00ff4564-dd96-4d1b-8ad6-578a08279f79",
+				Policies: []structs.ACLTokenPolicyLink{
+					structs.ACLTokenPolicyLink{
+						ID: fakePolicyID,
+					},
+				},
+			},
+		}
+
+		require.Error(t, s.ACLTokenBatchSet(2, tokens, false, false))
+
+		require.NoError(t, s.ACLTokenBatchSet(2, tokens, false, true))
+
+		idx, rtokens, err := s.ACLTokenBatchGet(nil, []string{
+			"a4f68bd6-3af5-4f56-b764-3c6f20247879",
+		})
+
+		require.NoError(t, err)
+		require.Equal(t, uint64(2), idx)
+		require.Len(t, rtokens, 1)
+
+		// Persisting invalid IDs will cause them to be masked during read. So
+		// before we compare structures strike the dead entries.
+		tokens[0].Policies = []structs.ACLTokenPolicyLink{}
+
+		require.Equal(t, tokens[0], rtokens[0])
+		require.Equal(t, uint64(2), rtokens[0].CreateIndex)
+		require.Equal(t, uint64(2), rtokens[0].ModifyIndex)
+	})
+
+	t.Run("AllowMissing - Role", func(t *testing.T) {
+		t.Parallel()
+		s := testACLTokensStateStore(t)
+
+		const fakeRoleID = "fbd9776e-4403-47a1-8ff1-8d24179ec307"
+
+		tokens := structs.ACLTokens{
+			&structs.ACLToken{
+				AccessorID: "a4f68bd6-3af5-4f56-b764-3c6f20247879",
+				SecretID:   "00ff4564-dd96-4d1b-8ad6-578a08279f79",
+				Roles: []structs.ACLTokenRoleLink{
+					structs.ACLTokenRoleLink{
+						ID: fakeRoleID,
+					},
+				},
+			},
+		}
+
+		require.Error(t, s.ACLTokenBatchSet(2, tokens, false, false))
+
+		require.NoError(t, s.ACLTokenBatchSet(2, tokens, false, true))
+
+		idx, rtokens, err := s.ACLTokenBatchGet(nil, []string{
+			"a4f68bd6-3af5-4f56-b764-3c6f20247879",
+		})
+
+		// Persisting invalid IDs will cause them to be masked during read. So
+		// before we compare structures strike the dead entries.
+		tokens[0].Roles = []structs.ACLTokenRoleLink{}
+
+		require.NoError(t, err)
+		require.Equal(t, uint64(2), idx)
+		require.Len(t, rtokens, 1)
+		require.Equal(t, tokens[0], rtokens[0])
+		require.Equal(t, uint64(2), rtokens[0].CreateIndex)
+		require.Equal(t, uint64(2), rtokens[0].ModifyIndex)
 	})
 }
 
@@ -874,7 +951,7 @@ func TestStateStore_ACLTokens_ListUpgradeable(t *testing.T) {
 		},
 	}
 
-	require.NoError(t, s.ACLTokenBatchSet(7, updates, false))
+	require.NoError(t, s.ACLTokenBatchSet(7, updates, false, false))
 
 	tokens, _, err = s.ACLTokenListUpgradeable(10)
 	require.NoError(t, err)
@@ -965,7 +1042,7 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 		},
 	}
 
-	require.NoError(t, s.ACLTokenBatchSet(2, tokens, false))
+	require.NoError(t, s.ACLTokenBatchSet(2, tokens, false, false))
 
 	type testCase struct {
 		name       string
@@ -1486,7 +1563,7 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 			},
 		}
 
-		require.NoError(t, s.ACLTokenBatchSet(2, tokens, false))
+		require.NoError(t, s.ACLTokenBatchSet(2, tokens, false, false))
 
 		_, rtoken, err := s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b")
 		require.NoError(t, err)
@@ -2185,7 +2262,7 @@ func TestStateStore_ACLRoles_UpsertBatchRead(t *testing.T) {
 			},
 		}
 
-		require.NoError(t, s.ACLRoleBatchSet(2, roles))
+		require.NoError(t, s.ACLRoleBatchSet(2, roles, false))
 
 		idx, rroles, err := s.ACLRoleBatchGet(nil, []string{testRoleID_A, testRoleID_B})
 		require.NoError(t, err)
@@ -2227,7 +2304,7 @@ func TestStateStore_ACLRoles_UpsertBatchRead(t *testing.T) {
 			},
 		}
 
-		require.NoError(t, s.ACLRoleBatchSet(2, roles))
+		require.NoError(t, s.ACLRoleBatchSet(2, roles, false))
 
 		// Update two roles at the same time.
 		updates := structs.ACLRoles{
@@ -2255,7 +2332,7 @@ func TestStateStore_ACLRoles_UpsertBatchRead(t *testing.T) {
 			},
 		}
 
-		require.NoError(t, s.ACLRoleBatchSet(3, updates))
+		require.NoError(t, s.ACLRoleBatchSet(3, updates, false))
 
 		idx, rroles, err := s.ACLRoleBatchGet(nil, []string{testRoleID_A, testRoleID_B})
 
@@ -2276,6 +2353,46 @@ func TestStateStore_ACLRoles_UpsertBatchRead(t *testing.T) {
 		require.ElementsMatch(t, updates[1].Policies, rroles[1].Policies)
 		require.Equal(t, uint64(2), rroles[1].CreateIndex)
 		require.Equal(t, uint64(3), rroles[1].ModifyIndex)
+	})
+
+	t.Run("AllowMissing - Policy", func(t *testing.T) {
+		t.Parallel()
+		s := testACLRolesStateStore(t)
+
+		const fakePolicyID = "0ea7b58a-3d86-4e82-b656-577b63d727f3"
+
+		roles := structs.ACLRoles{
+			&structs.ACLRole{
+				ID:          "d08ca6e3-a000-487e-8d25-e0cb616c221d",
+				Name:        "role1",
+				Description: "test-role1",
+				Policies: []structs.ACLRolePolicyLink{
+					structs.ACLRolePolicyLink{
+						ID: fakePolicyID,
+					},
+				},
+			},
+		}
+
+		require.Error(t, s.ACLRoleBatchSet(2, roles, false))
+
+		require.NoError(t, s.ACLRoleBatchSet(2, roles, true))
+
+		idx, rroles, err := s.ACLRoleBatchGet(nil, []string{
+			"d08ca6e3-a000-487e-8d25-e0cb616c221d",
+		})
+
+		require.NoError(t, err)
+		require.Equal(t, uint64(2), idx)
+		require.Len(t, rroles, 1)
+
+		// Persisting invalid IDs will cause them to be masked during read. So
+		// before we compare structures strike the dead entries.
+		roles[0].Policies = []structs.ACLRolePolicyLink{}
+
+		require.Equal(t, roles[0], rroles[0])
+		require.Equal(t, uint64(2), rroles[0].CreateIndex)
+		require.Equal(t, uint64(2), rroles[0].ModifyIndex)
 	})
 }
 
@@ -2306,7 +2423,7 @@ func TestStateStore_ACLRole_List(t *testing.T) {
 		},
 	}
 
-	require.NoError(t, s.ACLRoleBatchSet(2, roles))
+	require.NoError(t, s.ACLRoleBatchSet(2, roles, false))
 
 	type testCase struct {
 		name   string
@@ -2588,7 +2705,7 @@ func TestStateStore_ACLRole_Delete(t *testing.T) {
 			},
 		}
 
-		require.NoError(t, s.ACLRoleBatchSet(2, roles))
+		require.NoError(t, s.ACLRoleBatchSet(2, roles, false))
 
 		_, rrole, err := s.ACLRoleGetByID(nil, testRoleID_A)
 		require.NoError(t, err)
@@ -2993,7 +3110,7 @@ func TestStateStore_ACLAuthMethod_Delete_RuleAndTokenCascade(t *testing.T) {
 			AuthMethod:  "test-2",
 		},
 	}
-	require.NoError(t, s.ACLTokenBatchSet(4, tokens, false))
+	require.NoError(t, s.ACLTokenBatchSet(4, tokens, false, false))
 
 	// Delete one method.
 	require.NoError(t, s.ACLAuthMethodDeleteByName(4, "test-1"))
@@ -3394,7 +3511,7 @@ func TestStateStore_ACLTokens_Snapshot_Restore(t *testing.T) {
 		role.SetHash(true)
 	}
 
-	require.NoError(t, s.ACLRoleBatchSet(3, roles))
+	require.NoError(t, s.ACLRoleBatchSet(3, roles, false))
 
 	tokens := structs.ACLTokens{
 		&structs.ACLToken{
@@ -3451,7 +3568,7 @@ func TestStateStore_ACLTokens_Snapshot_Restore(t *testing.T) {
 		},
 	}
 
-	require.NoError(t, s.ACLTokenBatchSet(4, tokens, false))
+	require.NoError(t, s.ACLTokenBatchSet(4, tokens, false, false))
 
 	// Snapshot the ACLs.
 	snap := s.Snapshot()
@@ -3485,7 +3602,7 @@ func TestStateStore_ACLTokens_Snapshot_Restore(t *testing.T) {
 		require.NoError(t, s.ACLPolicyBatchSet(2, policies))
 
 		// need to ensure we have the roles or else the links will be removed
-		require.NoError(t, s.ACLRoleBatchSet(2, roles))
+		require.NoError(t, s.ACLRoleBatchSet(2, roles, false))
 
 		// Read the restored ACLs back out and verify that they match.
 		idx, res, err := s.ACLTokenList(nil, true, true, "", "", "")
@@ -3787,7 +3904,7 @@ func TestStateStore_ACLRoles_Snapshot_Restore(t *testing.T) {
 		},
 	}
 
-	require.NoError(t, s.ACLRoleBatchSet(2, roles))
+	require.NoError(t, s.ACLRoleBatchSet(2, roles, false))
 
 	// Snapshot the ACLs.
 	snap := s.Snapshot()
