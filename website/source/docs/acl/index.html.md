@@ -31,6 +31,14 @@ A core part of the ACL system is the rule language, which is used to describe
 the policy that must be enforced. Read the ACL rules
 [documentation](/docs/acl/acl-rules.html) to learn about rule specifications. 
 
+### ACL Auth Methods
+
+An auth method is a component in Consul that performs authentication against a
+trusted external party to authorize the creation of an ACL tokens usable within
+the local datacenter. Read the ACL auth method
+[documentation](/docs/acl/acl-auth-methods.html) to learn more about how they
+work and why you may want to use them.
+
 ### ACL Legacy System
 
 The ACL system in Consul 1.3.1 and older is now called legacy. For information
@@ -46,21 +54,16 @@ options, finally giving some specific examples of migration strategies. The new
 ACL system has improvements for the security and management of ACL tokens and
 policies.
 
-### ACL Auth Methods
-
-An auth method is a component in Consul that performs authentication against a
-trusted external party to authorize the creation of an ACL tokens usable within
-the local datacenter. Read the ACL auth method
-[documentation](/docs/acl/acl-auth-methods.html) to learn more about how they
-work and why you may want to use them.
-
 ## Learn ACL Guide
 
-~> Note: the following guide is located on HashiCorp Learn. By selecting it, you will be directed to a new site.
+~> Note: the following guide is located on HashiCorp Learn. By selecting it,
+you will be directed to a new site.
 
 ### Securing Consul with ACLs
 
 In this guide, you will learn how to secure the UI, API, CLI, service
-communications, and agent communications with ACLs. When securing your cluster you should configure the ACLs first. The ACL 
-documentation introduces basic concepts and syntax for the ACL system, and we 
-recommend that you read it before you begin [this guide](https://learn.hashicorp.com/consul/security-networking/production-acls).
+communications, and agent communications with ACLs. When securing your cluster
+you should configure the ACLs first. The ACL documentation introduces basic
+concepts and syntax for the ACL system, and we recommend that you read it
+before you begin [this
+guide](https://learn.hashicorp.com/consul/security-networking/production-acls).
