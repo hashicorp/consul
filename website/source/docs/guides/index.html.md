@@ -28,7 +28,7 @@ Tracks include:
 - [Getting Started with Kubernetes](https://learn.hashicorp.com/consul/?track=getting-started-k8s#getting-started-k8s)
 - [Day 1: Deploying Your First Datacenter](https://learn.hashicorp.com/consul/?track=datacenter-deploy#datacenter-deploy)
 - [Day 1: Security and Network Operations](https://learn.hashicorp.com/consul/?track=security-networking#security-networking)
-- [Day 1: Kubernetes Operations](https://learn.hashicorp.com/consul/?track=kubernetes#kubernetes)
+- [Day 1: Kubernetes Operations](https://learn.hashicorp.com/consul/?track=day-1-operations#day-1-operations)
 - [Day 2: Advanced Operations and Maintenance](https://learn.hashicorp.com/consul/?track=day-2-operations#day-2-operations)
 - [Development: Service Discovery](https://learn.hashicorp.com/consul/?track=developer-discovery#developer-discovery)
 - [Development: Service Segmentation](https://learn.hashicorp.com/consul/?track=developer-segmentation#developer-segmentation)
