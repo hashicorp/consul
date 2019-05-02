@@ -5,6 +5,9 @@ export default function(visitable, attribute, collection, text, filter) {
     instances: collection('#instances [data-test-tabular-row]', {
       address: text('[data-test-address]'),
     }),
+    dashboardAnchor: {
+      href: attribute('href', '[data-test-dashboard-anchor]'),
+    },
     filter: filter,
   };
 }

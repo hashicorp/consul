@@ -34,7 +34,7 @@
     {{/block-slot}}
     {{#block-slot 'actions'}}
       {{#if urls.service}}
-        {{#templated-anchor href=urls.service vars=(hash Service=(hash Name=item.Service.Service)) rel="external"}}Open Dashboard{{/templated-anchor}}
+        {{#templated-anchor data-test-dashboard-anchor href=urls.service vars=(hash Datacenter=dc Service=(hash Name=item.Service.Service)) rel="external"}}Open Dashboard{{/templated-anchor}}
       {{/if}}
     {{/block-slot}}
     {{#block-slot 'content'}}
