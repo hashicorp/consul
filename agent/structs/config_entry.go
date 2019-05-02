@@ -479,12 +479,19 @@ func (c *ConfigEntryResponse) MarshalBinary() (data []byte, err error) {
 	bs := make([]byte, 128)
 	enc := codec.NewEncoderBytes(&bs, msgpackHandle)
 
-	if err := enc.Encode(c.Entry.GetKind()); err != nil {
-		return nil, err
+	if c.Entry != nil {
+		if err := enc.Encode(c.Entry.GetKind()); err != nil {
+			return nil, err
+		}
+		if err := enc.Encode(c.Entry); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := enc.Encode(""); err != nil {
+			return nil, err
+		}
 	}
-	if err := enc.Encode(c.Entry); err != nil {
-		return nil, err
-	}
+
 	if err := enc.Encode(c.QueryMeta); err != nil {
 		return nil, err
 	}
@@ -500,15 +507,19 @@ func (c *ConfigEntryResponse) UnmarshalBinary(data []byte) error {
 		return err
 	}
 
-	entry, err := MakeConfigEntry(kind, "")
-	if err != nil {
-		return err
-	}
+	if kind != "" {
+		entry, err := MakeConfigEntry(kind, "")
+		if err != nil {
+			return err
+		}
 
-	if err := dec.Decode(entry); err != nil {
-		return err
+		if err := dec.Decode(entry); err != nil {
+			return err
+		}
+		c.Entry = entry
+	} else {
+		c.Entry = nil
 	}
-	c.Entry = entry
 
 	if err := dec.Decode(&c.QueryMeta); err != nil {
 		return err

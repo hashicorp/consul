@@ -92,10 +92,10 @@ func (s *Store) ConfigEntry(ws memdb.WatchSet, kind, name string) (uint64, struc
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed config entry lookup: %s", err)
 	}
+	ws.Add(watchCh)
 	if existing == nil {
 		return idx, nil, nil
 	}
-	ws.Add(watchCh)
 
 	conf, ok := existing.(structs.ConfigEntry)
 	if !ok {
