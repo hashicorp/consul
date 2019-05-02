@@ -786,7 +786,7 @@ operator = "write"
 		Datacenter:   s1.config.Datacenter,
 		QueryOptions: structs.QueryOptions{Token: id},
 	}
-	var out struct{}
+	var out structs.ServiceConfigResponse
 	err := msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &args, &out)
 	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
