@@ -7,18 +7,18 @@ const PREFIX = '_';
 export default Mixin.create(WithListeners, {
   setProperties: function(model) {
     const _model = {};
-    Object.keys(model).forEach(key => {
+    Object.keys(model).forEach(prop => {
       // here (see comment below on deleting)
-      if (typeof this[key] !== 'undefined' && this[key].isDescriptor) {
-        _model[`${PREFIX}${key}`] = model[key];
-        const meta = this.constructor.metaForProperty(key) || {};
+      if (this[prop] && this[prop].isDescriptor) {
+        _model[`${PREFIX}${prop}`] = model[prop];
+        const meta = this.constructor.metaForProperty(prop) || {};
         if (typeof meta.catch === 'function') {
-          if (typeof _model[`${PREFIX}${key}`].addEventListener === 'function') {
-            this.listen(_model[`_${key}`], 'error', meta.catch.bind(this));
+          if (typeof _model[`${PREFIX}${prop}`].addEventListener === 'function') {
+            this.listen(_model[`_${prop}`], 'error', meta.catch.bind(this));
           }
         }
       } else {
-        _model[key] = model[key];
+        _model[prop] = model[prop];
       }
     });
     return this._super(_model);
