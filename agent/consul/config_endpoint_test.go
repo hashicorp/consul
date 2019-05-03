@@ -695,6 +695,13 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 		QueryMeta: out.QueryMeta,
 	}
 	require.Equal(expected, out)
+
+	_, entry, err := s1.fsm.State().ConfigEntry(nil, structs.ProxyDefaults, structs.ProxyConfigGlobal)
+	require.NoError(err)
+	require.NotNil(entry)
+	proxyConf, ok := entry.(*structs.ProxyConfigEntry)
+	require.True(ok)
+	require.Equal(map[string]interface{}{"foo": 1}, proxyConf.Config)
 }
 
 func TestConfigEntry_ResolveServiceConfigNoConfig(t *testing.T) {

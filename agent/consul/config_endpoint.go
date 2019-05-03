@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	memdb "github.com/hashicorp/go-memdb"
+	"github.com/mitchellh/copystructure"
 )
 
 // The ConfigEntry endpoint is used to query centralized config information
@@ -257,7 +258,11 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 					return fmt.Errorf("invalid proxy config type %T", proxyEntry)
 				}
 				// Apply the proxy defaults to the sidecar's proxy config
-				reply.ProxyConfig = proxyConf.Config
+				mapCopy, err := copystructure.Copy(proxyConf.Config)
+				if err != nil {
+					return fmt.Errorf("failed to copy global proxy-defaults: %v", err)
+				}
+				reply.ProxyConfig = mapCopy.(map[string]interface{})
 			}
 
 			reply.Index = index
