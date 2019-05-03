@@ -77,3 +77,6 @@ Feature: dc / acls / policies / as many / add new: Add new policy
     | token     |
     | role      |
     -------------
+@ignore
+  Scenario: Make sure the Service Identity Rules are readonly
+    Then ok
