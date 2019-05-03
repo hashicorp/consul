@@ -4524,24 +4524,49 @@ func TestACLEndpoint_Login(t *testing.T) {
 	)
 	testauth.InstallSessionToken(
 		testSessionID,
-		"fake-db", // 1 rule
+		"fake-db", // 1 rule (service)
 		"default", "db", "def456",
 	)
 	testauth.InstallSessionToken(
 		testSessionID,
-		"fake-monolith", // 1 rule, must exist
+		"fake-vault", // 1 rule (role)
+		"default", "vault", "jkl012",
+	)
+	testauth.InstallSessionToken(
+		testSessionID,
+		"fake-monolith", // 2 rules (one of each)
 		"default", "monolith", "ghi789",
 	)
 
 	method, err := upsertTestAuthMethod(codec, "root", "dc1", testSessionID)
 	require.NoError(t, err)
 
+	// 'fake-db' rules
 	ruleDB, err := upsertTestBindingRule(
 		codec, "root", "dc1", method.Name,
 		"serviceaccount.namespace==default and serviceaccount.name==db",
 		structs.BindingRuleBindTypeService,
 		"method-${serviceaccount.name}",
 	)
+	require.NoError(t, err)
+
+	// 'fake-vault' rules
+	_, err = upsertTestBindingRule(
+		codec, "root", "dc1", method.Name,
+		"serviceaccount.namespace==default and serviceaccount.name==vault",
+		structs.BindingRuleBindTypeRole,
+		"method-${serviceaccount.name}",
+	)
+	require.NoError(t, err)
+
+	// 'fake-monolith' rules
+	_, err = upsertTestBindingRule(
+		codec, "root", "dc1", method.Name,
+		"serviceaccount.namespace==default and serviceaccount.name==monolith",
+		structs.BindingRuleBindTypeService,
+		"method-${serviceaccount.name}",
+	)
+	require.NoError(t, err)
 	_, err = upsertTestBindingRule(
 		codec, "root", "dc1", method.Name,
 		"serviceaccount.namespace==default and serviceaccount.name==monolith",
@@ -4607,27 +4632,27 @@ func TestACLEndpoint_Login(t *testing.T) {
 		requireErrorContains(t, acl.Login(&req, &resp), "Permission denied")
 	})
 
-	t.Run("valid method token 1 role binding must exist and does not exist", func(t *testing.T) {
+	t.Run("valid method token 1 role binding and role does not exist", func(t *testing.T) {
 		req := structs.ACLLoginRequest{
 			Auth: &structs.ACLLoginParams{
 				AuthMethod:  method.Name,
-				BearerToken: "fake-monolith",
+				BearerToken: "fake-vault",
 				Meta:        map[string]string{"pod": "pod1"},
 			},
 			Datacenter: "dc1",
 		}
 		resp := structs.ACLToken{}
 
-		require.Error(t, acl.Login(&req, &resp))
+		requireErrorContains(t, acl.Login(&req, &resp), "Permission denied")
 	})
 
-	// create the role so that the bindtype=existing login works
-	var monolithRoleID string
+	// create the role so that the bindtype=role login works
+	var vaultRoleID string
 	{
 		arg := structs.ACLRoleSetRequest{
 			Datacenter: "dc1",
 			Role: structs.ACLRole{
-				Name: "method-monolith",
+				Name: "method-vault",
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
@@ -4635,11 +4660,33 @@ func TestACLEndpoint_Login(t *testing.T) {
 		var out structs.ACLRole
 		require.NoError(t, acl.RoleSet(&arg, &out))
 
-		monolithRoleID = out.ID
+		vaultRoleID = out.ID
 	}
-	s1.purgeAuthMethodValidators()
 
-	t.Run("valid bearer token 1 role binding must exist and now exists", func(t *testing.T) {
+	t.Run("valid method token 1 role binding and role now exists", func(t *testing.T) {
+		req := structs.ACLLoginRequest{
+			Auth: &structs.ACLLoginParams{
+				AuthMethod:  method.Name,
+				BearerToken: "fake-vault",
+				Meta:        map[string]string{"pod": "pod1"},
+			},
+			Datacenter: "dc1",
+		}
+		resp := structs.ACLToken{}
+
+		require.NoError(t, acl.Login(&req, &resp))
+
+		require.Equal(t, method.Name, resp.AuthMethod)
+		require.Equal(t, `token created via login: {"pod":"pod1"}`, resp.Description)
+		require.True(t, resp.Local)
+		require.Len(t, resp.ServiceIdentities, 0)
+		require.Len(t, resp.Roles, 1)
+		role := resp.Roles[0]
+		require.Equal(t, vaultRoleID, role.ID)
+		require.Equal(t, "method-vault", role.Name)
+	})
+
+	t.Run("valid method token 1 service binding 1 role binding and role does not exist", func(t *testing.T) {
 		req := structs.ACLLoginRequest{
 			Auth: &structs.ACLLoginParams{
 				AuthMethod:  method.Name,
@@ -4655,11 +4702,54 @@ func TestACLEndpoint_Login(t *testing.T) {
 		require.Equal(t, method.Name, resp.AuthMethod)
 		require.Equal(t, `token created via login: {"pod":"pod1"}`, resp.Description)
 		require.True(t, resp.Local)
-		require.Len(t, resp.ServiceIdentities, 0)
+		require.Len(t, resp.ServiceIdentities, 1)
+		require.Len(t, resp.Roles, 0)
+		svcid := resp.ServiceIdentities[0]
+		require.Len(t, svcid.Datacenters, 0)
+		require.Equal(t, "method-monolith", svcid.ServiceName)
+	})
+
+	// create the role so that the bindtype=role login works
+	var monolithRoleID string
+	{
+		arg := structs.ACLRoleSetRequest{
+			Datacenter: "dc1",
+			Role: structs.ACLRole{
+				Name: "method-monolith",
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+
+		var out structs.ACLRole
+		require.NoError(t, acl.RoleSet(&arg, &out))
+
+		monolithRoleID = out.ID
+	}
+
+	t.Run("valid method token 1 service binding 1 role binding and role now exists", func(t *testing.T) {
+		req := structs.ACLLoginRequest{
+			Auth: &structs.ACLLoginParams{
+				AuthMethod:  method.Name,
+				BearerToken: "fake-monolith",
+				Meta:        map[string]string{"pod": "pod1"},
+			},
+			Datacenter: "dc1",
+		}
+		resp := structs.ACLToken{}
+
+		require.NoError(t, acl.Login(&req, &resp))
+
+		require.Equal(t, method.Name, resp.AuthMethod)
+		require.Equal(t, `token created via login: {"pod":"pod1"}`, resp.Description)
+		require.True(t, resp.Local)
+		require.Len(t, resp.ServiceIdentities, 1)
 		require.Len(t, resp.Roles, 1)
 		role := resp.Roles[0]
 		require.Equal(t, monolithRoleID, role.ID)
 		require.Equal(t, "method-monolith", role.Name)
+		svcid := resp.ServiceIdentities[0]
+		require.Len(t, svcid.Datacenters, 0)
+		require.Equal(t, "method-monolith", svcid.ServiceName)
 	})
 
 	t.Run("valid bearer token 1 service binding", func(t *testing.T) {

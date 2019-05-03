@@ -136,9 +136,16 @@ func (s *Server) evaluateRoleBindings(
 			})
 
 		case structs.BindingRuleBindTypeRole:
-			roleLinks = append(roleLinks, structs.ACLTokenRoleLink{
-				Name: bindName,
-			})
+			_, role, err := s.fsm.State().ACLRoleGetByName(nil, bindName)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			if role != nil {
+				roleLinks = append(roleLinks, structs.ACLTokenRoleLink{
+					ID: role.ID,
+				})
+			}
 
 		default:
 			// skip unknown bind type; don't grant privileges

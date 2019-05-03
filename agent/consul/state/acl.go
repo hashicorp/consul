@@ -528,7 +528,7 @@ func (s *Store) ACLBootstrap(idx, resetIndex uint64, token *structs.ACLToken, le
 		}
 	}
 
-	if err := s.aclTokenSetTxn(tx, idx, token, false, false, legacy); err != nil {
+	if err := s.aclTokenSetTxn(tx, idx, token, false, false, false, legacy); err != nil {
 		return fmt.Errorf("failed inserting bootstrap token: %v", err)
 	}
 	if err := indexUpdateMaxTxn(tx, idx, "acl-tokens"); err != nil {
@@ -560,26 +560,28 @@ func (s *Store) CanBootstrapACLToken() (bool, uint64, error) {
 	return false, out.(*IndexEntry).Value, nil
 }
 
-func (s *Store) resolveTokenPolicyLinks(tx *memdb.Txn, token *structs.ACLToken, allowMissing bool) error {
+func (s *Store) resolveTokenPolicyLinks(tx *memdb.Txn, token *structs.ACLToken, allowMissing bool) (int, error) {
+	var numValid int
 	for linkIndex, link := range token.Policies {
 		if link.ID != "" {
 			policy, err := s.getPolicyWithTxn(tx, nil, link.ID, "id")
 
 			if err != nil {
-				return err
+				return 0, err
 			}
 
 			if policy != nil {
 				// the name doesn't matter here
 				token.Policies[linkIndex].Name = policy.Name
+				numValid++
 			} else if !allowMissing {
-				return fmt.Errorf("No such policy with ID: %s", link.ID)
+				return 0, fmt.Errorf("No such policy with ID: %s", link.ID)
 			}
 		} else {
-			return fmt.Errorf("Encountered a Token with policies linked by Name in the state store")
+			return 0, fmt.Errorf("Encountered a Token with policies linked by Name in the state store")
 		}
 	}
-	return nil
+	return numValid, nil
 }
 
 // fixupTokenPolicyLinks is to be used when retrieving tokens from memdb. The policy links could have gotten
@@ -632,26 +634,28 @@ func (s *Store) fixupTokenPolicyLinks(tx *memdb.Txn, original *structs.ACLToken)
 	return token, nil
 }
 
-func (s *Store) resolveTokenRoleLinks(tx *memdb.Txn, token *structs.ACLToken, allowMissing bool) error {
+func (s *Store) resolveTokenRoleLinks(tx *memdb.Txn, token *structs.ACLToken, allowMissing bool) (int, error) {
+	var numValid int
 	for linkIndex, link := range token.Roles {
 		if link.ID != "" {
 			role, err := s.getRoleWithTxn(tx, nil, link.ID, "id")
 
 			if err != nil {
-				return err
+				return 0, err
 			}
 
 			if role != nil {
 				// the name doesn't matter here
 				token.Roles[linkIndex].Name = role.Name
+				numValid++
 			} else if !allowMissing {
-				return fmt.Errorf("No such role with ID: %s", link.ID)
+				return 0, fmt.Errorf("No such role with ID: %s", link.ID)
 			}
 		} else {
-			return fmt.Errorf("Encountered a Token with roles linked by Name in the state store")
+			return 0, fmt.Errorf("Encountered a Token with roles linked by Name in the state store")
 		}
 	}
-	return nil
+	return numValid, nil
 }
 
 // fixupTokenRoleLinks is to be used when retrieving tokens from memdb. The role links could have gotten
@@ -782,7 +786,7 @@ func (s *Store) ACLTokenSet(idx uint64, token *structs.ACLToken, legacy bool) er
 	defer tx.Abort()
 
 	// Call set on the ACL
-	if err := s.aclTokenSetTxn(tx, idx, token, false, false, legacy); err != nil {
+	if err := s.aclTokenSetTxn(tx, idx, token, false, false, false, legacy); err != nil {
 		return err
 	}
 
@@ -794,12 +798,12 @@ func (s *Store) ACLTokenSet(idx uint64, token *structs.ACLToken, legacy bool) er
 	return nil
 }
 
-func (s *Store) ACLTokenBatchSet(idx uint64, tokens structs.ACLTokens, cas, allowMissingPolicyAndRoleIDs bool) error {
+func (s *Store) ACLTokenBatchSet(idx uint64, tokens structs.ACLTokens, cas, allowMissingPolicyAndRoleIDs, prohibitUnprivileged bool) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
 	for _, token := range tokens {
-		if err := s.aclTokenSetTxn(tx, idx, token, cas, allowMissingPolicyAndRoleIDs, false); err != nil {
+		if err := s.aclTokenSetTxn(tx, idx, token, cas, allowMissingPolicyAndRoleIDs, prohibitUnprivileged, false); err != nil {
 			return err
 		}
 	}
@@ -814,7 +818,7 @@ func (s *Store) ACLTokenBatchSet(idx uint64, tokens structs.ACLTokens, cas, allo
 
 // aclTokenSetTxn is the inner method used to insert an ACL token with the
 // proper indexes into the state store.
-func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToken, cas, allowMissingPolicyAndRoleIDs, legacy bool) error {
+func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToken, cas, allowMissingPolicyAndRoleIDs, prohibitUnprivileged, legacy bool) error {
 	// Check that the ID is set
 	if token.SecretID == "" {
 		return ErrMissingACLTokenSecret
@@ -871,11 +875,13 @@ func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToke
 		token.AccessorID = original.AccessorID
 	}
 
-	if err := s.resolveTokenPolicyLinks(tx, token, allowMissingPolicyAndRoleIDs); err != nil {
+	var numValidPolicies int
+	if numValidPolicies, err = s.resolveTokenPolicyLinks(tx, token, allowMissingPolicyAndRoleIDs); err != nil {
 		return err
 	}
 
-	if err := s.resolveTokenRoleLinks(tx, token, allowMissingPolicyAndRoleIDs); err != nil {
+	var numValidRoles int
+	if numValidRoles, err = s.resolveTokenRoleLinks(tx, token, allowMissingPolicyAndRoleIDs); err != nil {
 		return err
 	}
 
@@ -891,6 +897,12 @@ func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToke
 	for _, svcid := range token.ServiceIdentities {
 		if svcid.ServiceName == "" {
 			return fmt.Errorf("Encountered a Token with an empty service identity name in the state store")
+		}
+	}
+
+	if prohibitUnprivileged {
+		if numValidRoles == 0 && numValidPolicies == 0 && len(token.ServiceIdentities) == 0 {
+			return ErrTokenHasNoPrivileges
 		}
 	}
 
