@@ -15,9 +15,11 @@ export default Route.extend({
   model: function(params) {
     const repo = get(this, 'repo');
     const settings = get(this, 'settings');
+    const dc = this.modelFor('dc').dc.Name;
     return hash({
-      item: repo.findBySlug(params.name, this.modelFor('dc').dc.Name),
+      item: repo.findBySlug(params.name, dc),
       urls: settings.findBySlug('urls'),
+      dc: dc,
     });
   },
   setupController: function(controller, model) {
