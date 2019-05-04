@@ -9,15 +9,14 @@ import (
 )
 
 func TestHealth(t *testing.T) {
-	h := newHealth(":0")
+	h := &health{Addr: ":0", stop: make(chan bool)}
 
 	if err := h.OnStartup(); err != nil {
 		t.Fatalf("Unable to startup the health server: %v", err)
 	}
 	defer h.OnFinalShutdown()
 
-	// Reconstruct the http address based on the port allocated by operating system.
-	address := fmt.Sprintf("http://%s%s", h.ln.Addr().String(), path)
+	address := fmt.Sprintf("http://%s%s", h.ln.Addr().String(), "/health")
 
 	response, err := http.Get(address)
 	if err != nil {
@@ -32,14 +31,13 @@ func TestHealth(t *testing.T) {
 	}
 	response.Body.Close()
 
-	if string(content) != ok {
+	if string(content) != "OK" {
 		t.Errorf("Invalid response body: expecting 'OK', got '%s'", string(content))
 	}
 }
 
 func TestHealthLameduck(t *testing.T) {
-	h := newHealth(":0")
-	h.lameduck = 250 * time.Millisecond
+	h := &health{Addr: ":0", stop: make(chan bool), lameduck: 250 * time.Millisecond}
 
 	if err := h.OnStartup(); err != nil {
 		t.Fatalf("Unable to startup the health server: %v", err)

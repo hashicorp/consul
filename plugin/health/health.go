@@ -12,7 +12,7 @@ import (
 
 var log = clog.NewWithPlugin("health")
 
-// Health implements healthchecks by polling plugins.
+// Health implements healthchecks by exporting a HTTP endpoint.
 type health struct {
 	Addr     string
 	lameduck time.Duration
@@ -24,14 +24,9 @@ type health struct {
 	stop chan bool
 }
 
-// newHealth returns a new initialized health.
-func newHealth(addr string) *health {
-	return &health{Addr: addr, stop: make(chan bool)}
-}
-
 func (h *health) OnStartup() error {
 	if h.Addr == "" {
-		h.Addr = defAddr
+		h.Addr = ":8080"
 	}
 
 	ln, err := net.Listen("tcp", h.Addr)
@@ -43,10 +38,10 @@ func (h *health) OnStartup() error {
 	h.mux = http.NewServeMux()
 	h.nlSetup = true
 
-	h.mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+	h.mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		// We're always healthy.
 		w.WriteHeader(http.StatusOK)
-		io.WriteString(w, ok)
+		io.WriteString(w, "OK")
 		return
 	})
 
@@ -74,9 +69,3 @@ func (h *health) OnFinalShutdown() error {
 	close(h.stop)
 	return nil
 }
-
-const (
-	ok      = "OK"
-	defAddr = ":8080"
-	path    = "/health"
-)

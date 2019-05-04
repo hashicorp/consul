@@ -6,7 +6,7 @@
 
 ## Description
 
-Enabled process wide health endpoint. When CoreDNS is up and running this returns a 200 OK http
+Enabled process wide health endpoint. When CoreDNS is up and running this returns a 200 OK HTTP
 status code. The health is exported, by default, on port 8080/health .
 
 ## Syntax
