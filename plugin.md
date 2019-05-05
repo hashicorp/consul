@@ -59,8 +59,10 @@ When exporting metrics the *Namespace* should be `plugin.Namespace` (="coredns")
 *Subsystem* should be the name of the plugin. The README.md for the plugin should then also contain
 a *Metrics* section detailing the metrics.
 
+## Readiness
+
 If the plugin supports signalling readiness it should have a *Ready* section detailing how it
-works.
+works, and implement the `ready.Readiness` interface.
 
 ## Documentation
 
@@ -108,21 +110,14 @@ entire domain and all sub domains.
 In this example the *file* plugin is handling all names below (and including) `example.org`. If
 a query comes in that is not a subdomain (or equal to) `example.org` the next plugin is called.
 
-Now, the world isn't perfect, and there are good reasons to "fallthrough" to the next middleware,
-meaning a plugin is only responsible for a *subset* of names within the zone. The first of these
-to appear was the *reverse* plugin that synthesis PTR and A/AAAA responses (useful with IPv6).
-
-The nature of the *reverse* plugin is such that it only deals with A,AAAA and PTR and then only
-for a subset of the names. Ideally you would want to layer *reverse* **in front off** another
-plugin such as *file* or *auto* (or even *forward*). This means *reverse* handles some special
-reverse cases and **all other** request are handled by the backing plugin. This is exactly what
-"fallthrough" does. To keep things explicit we've opted that plugins implement such behavior
-should implement a `fallthrough` keyword.
+Now, the world isn't perfect, and there are may be reasons to "fallthrough" to the next plugin,
+meaning a plugin is only responsible for a *subset* of names within the zone.
 
 The `fallthrough` directive should optionally accept a list of zones. Only queries for records
-in one of those zones should be allowed to fallthrough.
+in one of those zones should be allowed to fallthrough. See `plugin/pkg/fallthrough` for the
+implementation.
 
-## Qualifying for main repo
+## Qualifying for Main Repo
 
 Plugins for CoreDNS can live out-of-tree, `plugin.cfg` defaults to CoreDNS' repo but other
 repos work just as well. So when do we consider the inclusion of a new plugin in the main repo?
