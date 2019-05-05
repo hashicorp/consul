@@ -7,7 +7,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// MustRegister registers the prometheus Collectors when the metrics middleware is used.
+// MustRegister registers the prometheus Collectors when the metrics plugin is used.
 func MustRegister(c *caddy.Controller, cs ...prometheus.Collector) {
 	m := dnsserver.GetConfig(c).Handler("prometheus")
 	if m == nil {
