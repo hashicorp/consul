@@ -81,8 +81,9 @@ discovered_ and to _discover other healthy service instances_. Suitable
 policies tend to all look nearly identical so a service identity is a policy
 template to aid in avoiding boilerplate policy creation.
 
-At authorization time a service identity acts like an additional policy was
-attached to the token with the following contents:
+During the authorization process, the configured service identity is automatically
+applied as a policy with the following preconfigured [ACL
+rules](/docs/acl/acl-system.html#acl-rules-and-scope):
 
 ```hcl
 // Allow the service and its sidecar proxy to register into the catalog.
