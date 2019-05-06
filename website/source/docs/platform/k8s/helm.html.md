@@ -84,9 +84,9 @@ and consider if they're appropriate for your deployment.
 
   * <a name="v-global-datacenter" href="#v-global-datacenter">`datacenter`</a> (`string: "dc1"`) - The name of the datacenter that the agent cluster should register as. This may not be changed once the cluster is bootstrapped and running, since Consul doesn't yet support an automatic way to change this value.
 
-  * <a name="v-global-gossip" href="#v-global-gossip">`gossipEncryption`</a> - Configuration to enable [Gossip encryption](https://www.consul.io/docs/agent/encryption.html#gossip-encryption). Use of gossip encryption is highly recommended in production environments. You must specify both `secretName` and `secretKey` to enable gossip encryption.
+  * <a name="v-global-gossip" href="#v-global-gossip">`gossipEncryption`</a> - Provides the ability to enable [Gossip encryption](https://www.consul.io/docs/agent/encryption.html#gossip-encryption). Use of gossip encryption is highly recommended in production environments. You must specify both `secretName` and `secretKey` to enable gossip encryption.
 
-      - <a name="v-global-gossip-secretname" href="#v-global-gossip-secretname">`secretName`</a> (`string: null`) - The name of the Kubernetes secret that contains the Gossip gncryption key. This defaults to null.
+      - <a name="v-global-gossip-secretname" href="#v-global-gossip-secretname">`secretName`</a> (`string: null`) - The name of the Kubernetes secret that contains the Gossip encryption key. This defaults to null.
       
       - <a name="v-global-gossip-secretkey" href="#v-global-gossip-secretkey">`secretKey`</a> (`string: null`) - The key for the Kubernetes secret that contains the gossip key. This defaults to null.
 
