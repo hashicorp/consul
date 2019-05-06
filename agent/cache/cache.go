@@ -352,11 +352,17 @@ RETRY_GET:
 		timeoutCh = time.After(info.Timeout)
 	}
 
-	// At this point, we know we either don't have a value at all or the
-	// value we have is too old. We need to wait for new data.
-	waiterCh, err := c.fetch(t, key, r, true, 0)
-	if err != nil {
-		return nil, ResultMeta{Index: entry.Index}, err
+	var waiterCh <-chan struct{}
+	if ok && entry.Fetching {
+		waiterCh = entry.Waiter
+	} else {
+		var err error
+		// At this point, we know we either don't have a value at all or the
+		// value we have is too old. We need to wait for new data.
+		waiterCh, err = c.fetch(t, key, r, true, 0)
+		if err != nil {
+			return nil, ResultMeta{Index: entry.Index}, err
+		}
 	}
 
 	select {
