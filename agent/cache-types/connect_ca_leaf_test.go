@@ -1017,9 +1017,9 @@ func (r *testGatedRootsRPC) RPC(method string, args interface{}, reply interface
 	return nil
 }
 
-func TestConnectCALeaf_key(t *testing.T) {
+func TestConnectCALeaf_Key(t *testing.T) {
 	r := ConnectCALeafRequest{Service: "web"}
-	require.Equal(t, "service:web", r.key())
+	require.Equal(t, "service:web", r.Key())
 	r = ConnectCALeafRequest{Agent: "abc"}
-	require.Equal(t, "agent:abc", r.key())
+	require.Equal(t, "agent:abc", r.Key())
 }
