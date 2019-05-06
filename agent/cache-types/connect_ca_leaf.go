@@ -620,6 +620,10 @@ type ConnectCALeafRequest struct {
 	MaxQueryTime  time.Duration
 }
 
+func (r *ConnectCALeafRequest) Key() string {
+	return r.key()
+}
+
 func (r *ConnectCALeafRequest) key() string {
 	if len(r.Agent) > 0 {
 		return fmt.Sprintf("agent:%s", r.Agent)
