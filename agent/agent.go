@@ -440,10 +440,12 @@ func (a *Agent) Start() error {
 	a.registerCache()
 
 	if a.config.AutoEncryptTLS && !a.config.ServerMode {
-		if err := a.setupClientAutoEncrypt(); err != nil {
+		var reply *structs.SignResponse
+		var err error
+		if reply, err = a.setupClientAutoEncrypt(); err != nil {
 			return fmt.Errorf("AutoEncrypt failed: %s", err)
 		}
-		if err = a.setupClientAutoEncryptWatching(); err != nil {
+		if err = a.setupClientAutoEncryptWatching(reply); err != nil {
 			return fmt.Errorf("AutoEncrypt failed: %s", err)
 		}
 		a.logger.Printf("[INFO] AutoEncrypt: upgraded to TLS")
@@ -548,49 +550,68 @@ func (a *Agent) Start() error {
 	return nil
 }
 
-func (a *Agent) setupClientAutoEncrypt() error {
+func (a *Agent) setupClientAutoEncrypt() (*structs.SignResponse, error) {
 	client := a.delegate.(*consul.Client)
 
 	addrs := a.config.StartJoinAddrsLAN
 	disco, err := newDiscover()
 	if err != nil && len(addrs) == 0 {
-		return err
+		return nil, err
 	}
 	addrs = append(addrs, retryJoinAddrs(disco, "LAN", a.config.RetryJoinLAN, a.logger)...)
 
 	reply, priv, err := client.AutoEncrypt(addrs, a.config.ServerPort, a.tokens.AgentToken())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	connectCAPems := []string{}
 	for _, ca := range reply.ConnectCARoots.Roots {
 		connectCAPems = append(connectCAPems, ca.RootCert)
 	}
-	return a.tlsConfigurator.UpdateAutoEncrypt(reply.ManualCARoots, connectCAPems, reply.IssuedCert.CertPEM, priv, reply.VerifyServerHostname)
+	if err := a.tlsConfigurator.UpdateAutoEncrypt(reply.ManualCARoots, connectCAPems, reply.IssuedCert.CertPEM, priv, reply.VerifyServerHostname); err != nil {
+		return nil, err
+	}
+	return reply, nil
+
 }
 
-func (a *Agent) setupClientAutoEncryptWatching() error {
+func (a *Agent) setupClientAutoEncryptWatching(reply *structs.SignResponse) error {
+	rootsReq := &structs.DCSpecificRequest{
+		Datacenter:   a.config.Datacenter,
+		QueryOptions: structs.QueryOptions{Token: a.tokens.AgentToken()},
+	}
+
+	// prepolutate roots cache
+	rootRes := cache.FetchResult{Value: &reply.ConnectCARoots, Index: reply.ConnectCARoots.QueryMeta.Index}
+	if err := a.cache.Prepopulate(cachetype.ConnectCARootName, rootRes, a.config.Datacenter, a.tokens.AgentToken(), rootsReq.CacheInfo().Key); err != nil {
+		return err
+	}
+
+	leafReq := &cachetype.ConnectCALeafRequest{
+		Datacenter: a.config.Datacenter,
+		Token:      a.tokens.AgentToken(),
+		Agent:      a.config.NodeName,
+	}
+
+	// prepolutate leaf cache
+	certRes := cache.FetchResult{Value: &reply.IssuedCert, Index: reply.ConnectCARoots.QueryMeta.Index}
+	if err := a.cache.Prepopulate(cachetype.ConnectCALeafName, certRes, a.config.Datacenter, a.tokens.AgentToken(), leafReq.Key()); err != nil {
+		return err
+	}
+
 	// setup watches
 	ch := make(chan cache.UpdateEvent, 10)
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	// Watch for root changes
-	err := a.cache.Notify(ctx, cachetype.ConnectCARootName, &structs.DCSpecificRequest{
-		Datacenter:   a.config.Datacenter,
-		QueryOptions: structs.QueryOptions{Token: a.tokens.AgentToken()},
-	}, rootsWatchID, ch)
+	err := a.cache.Notify(ctx, cachetype.ConnectCARootName, rootsReq, rootsWatchID, ch)
 	if err != nil {
 		return err
 	}
 
 	// Watch the leaf cert
-	err = a.cache.Notify(ctx, cachetype.ConnectCALeafName, &cachetype.ConnectCALeafRequest{
-		Datacenter: a.config.Datacenter,
-		Token:      a.tokens.AgentToken(),
-		Agent:      a.config.NodeName,
-	}, leafWatchID, ch)
+	err = a.cache.Notify(ctx, cachetype.ConnectCALeafName, leafReq, leafWatchID, ch)
 	if err != nil {
 		return err
 	}

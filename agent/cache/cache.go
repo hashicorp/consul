@@ -387,7 +387,11 @@ RETRY_GET:
 // entryKey returns the key for the entry in the cache. See the note
 // about the entry key format in the structure docs for Cache.
 func (c *Cache) entryKey(t string, r *RequestInfo) string {
-	return fmt.Sprintf("%s/%s/%s/%s", t, r.Datacenter, r.Token, r.Key)
+	return entryKey(t, r.Datacenter, r.Token, r.Key)
+}
+
+func entryKey(t, dc, token, key string) string {
+	return fmt.Sprintf("%s/%s/%s/%s", t, dc, token, key)
 }
 
 // fetch triggers a new background fetch for the given Request. If a
@@ -743,5 +747,28 @@ func (c *Cache) Close() error {
 		// First time only, close stop chan
 		close(c.stopCh)
 	}
+	return nil
+}
+
+func (c *Cache) Prepopulate(t string, res FetchResult, dc, token, k string) error {
+	// Check the type that we're prepolulating
+	c.typesLock.RLock()
+	tEntry, ok := c.types[t]
+	c.typesLock.RUnlock()
+	if !ok {
+		return fmt.Errorf("unknown type in cache: %s", t)
+	}
+	key := entryKey(t, dc, token, k)
+	newEntry := cacheEntry{
+		Valid: true, Value: res.Value, State: res.State, Index: res.Index,
+		FetchedAt: time.Now(), Waiter: make(chan struct{}),
+	}
+	newEntry.Expiry = &cacheEntryExpiry{
+		Key: key,
+		TTL: tEntry.Opts.LastGetTTL,
+	}
+	c.entriesLock.Lock()
+	c.entries[key] = newEntry
+	c.entriesLock.Unlock()
 	return nil
 }
