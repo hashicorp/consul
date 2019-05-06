@@ -621,10 +621,6 @@ type ConnectCALeafRequest struct {
 }
 
 func (r *ConnectCALeafRequest) Key() string {
-	return r.key()
-}
-
-func (r *ConnectCALeafRequest) key() string {
 	if len(r.Agent) > 0 {
 		return fmt.Sprintf("agent:%s", r.Agent)
 	}
@@ -635,7 +631,7 @@ func (r *ConnectCALeafRequest) key() string {
 func (r *ConnectCALeafRequest) CacheInfo() cache.RequestInfo {
 	return cache.RequestInfo{
 		Token:      r.Token,
-		Key:        r.key(),
+		Key:        r.Key(),
 		Datacenter: r.Datacenter,
 		MinIndex:   r.MinQueryIndex,
 		Timeout:    r.MaxQueryTime,
