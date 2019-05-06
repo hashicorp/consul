@@ -607,12 +607,14 @@ func (a *Agent) setupClientAutoEncryptWatching(reply *structs.SignResponse) erro
 	// Watch for root changes
 	err := a.cache.Notify(ctx, cachetype.ConnectCARootName, rootsReq, rootsWatchID, ch)
 	if err != nil {
+		cancel()
 		return err
 	}
 
 	// Watch the leaf cert
 	err = a.cache.Notify(ctx, cachetype.ConnectCALeafName, leafReq, leafWatchID, ch)
 	if err != nil {
+		cancel()
 		return err
 	}
 
