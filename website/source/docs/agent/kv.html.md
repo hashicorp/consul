@@ -14,7 +14,7 @@ The Consul KV datastore is located on the servers, but can be accessed by any ag
 
 ## Accessing the KV store
 
-The KV store can be accessed by the [consul kv CLI subcommands](/docs/commands/kv.html), [HTTP API](/api/kv.html), and Consul UI. To restrict access, enable and configure [ACLs](https://learn.hashicorp.com/consul/advanced/day-1-operations/acl-guide). Once the ACL system has been bootstrapped, users and services, will need a valid token with KV [privileges](/docs/agent/acl-rules.html#key-value-rules) to access the the data store, this includes even reads.  We recommend creating a token with limited privileges, for example, you could create a token with write privileges on one key for developers to update the value related to their application.
+The KV store can be accessed by the [consul kv CLI subcommands](/docs/commands/kv.html), [HTTP API](/api/kv.html), and Consul UI. To restrict access, enable and configure [ACLs](https://learn.hashicorp.com/consul/security-networking/production-acls). Once the ACL system has been bootstrapped, users and services, will need a valid token with KV [privileges](/docs/agent/acl-rules.html#key-value-rules) to access the the data store, this includes even reads.  We recommend creating a token with limited privileges, for example, you could create a token with write privileges on one key for developers to update the value related to their application.
 
 The datastore itself is located on the Consul servers in the [data directory](/docs/agent/options.html#_data_dir). To ensure data is not lost in the event of a complete outage, use the [`consul snapshot`](/docs/commands/snapshot/restore.html) feature to backup the data. 
 
@@ -30,7 +30,7 @@ If you have not used Consul KV, check out this [Getting Started guide](https://l
 
 ### Consul Template
 
-If you plan to use Consul KV as part of your configuration management process review the [Consul Template](/docs/guides/consul-template.html) guide on how to update configuration based on value updates in the KV. Consul Template is based on Go Templates and allows for a series of scripted actions to be initiated on value changes to a Consul key. 
+If you plan to use Consul KV as part of your configuration management process review the [Consul Template](https://learn.hashicorp.com/consul/developer-configuration/consul-template) guide on how to update configuration based on value updates in the KV. Consul Template is based on Go Templates and allows for a series of scripted actions to be initiated on value changes to a Consul key. 
 
 ### Watches
 

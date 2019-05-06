@@ -31,7 +31,7 @@ Envoy 1.7.1 and 1.8.0.
 ## Getting Started
 
 To get started with Envoy and see a working example you can follow the [Using
-Envoy with Connect](/docs/guides/connect-envoy.html) guide.
+Envoy with Connect](https://learn.hashicorp.com/consul/developer-segmentation/connect-envoy) guide.
 
 ## Limitations
 

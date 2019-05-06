@@ -38,7 +38,7 @@ Network coordinates manifest in several ways inside Consul:
 
 * [Prepared queries](/api/query.html) can automatically fail over services 
   to other Consul datacenters based on network round trip times. See the
-  [Geo Failover](/docs/guides/geo-failover.html) for some examples.
+  [Geo Failover](https://learn.hashicorp.com/consul/developer-discovery/geo-failover) for some examples.
 
 * The [Coordinate endpoint](/api/coordinate.html) exposes raw network
   coordinates for use in other applications.

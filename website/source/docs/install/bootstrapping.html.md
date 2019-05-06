@@ -23,7 +23,7 @@ as data loss is inevitable in a failure scenario. Please refer to the
 [deployment table](/docs/internals/consensus.html#deployment-table) for more detail.
 
 ~> **Note**: In versions of Consul prior to 0.4, bootstrapping was a manual process. For details on using the `-bootstrap` flag directly, see the
-[manual bootstrapping guide](/docs/install/manual-bootstrap.html).
+[manual bootstrapping documentation](/docs/install/bootstrapping.html#manually-join-the-servers).
 Manual bootstrapping with `-bootstrap` is not recommended in 
 newer versions of Consul (0.5 and newer) as it is more error-prone. 
 Instead you should use automatic bootstrapping

@@ -8,8 +8,8 @@ description: |-
 
 # ACL System
 
-This content has been moved into the [ACL Guide](/docs/guides/acl.html).
+This content has been moved into the [ACL Guide](https://learn.hashicorp.com/consul/security-networking/production-acls).
 
 <a name="version_8_acls"></a>
-See [Complete ACL Coverage in Consul 0.8](/docs/guides/acl.html#complete-acl-coverage-in-consul-0-8)
+See [Complete ACL Coverage in Consul 0.8](/docs/acl/acl-legacy.html)
 for details about ACL changes in Consul 0.8 and later.

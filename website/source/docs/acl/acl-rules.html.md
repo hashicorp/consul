@@ -6,7 +6,7 @@ description: |-
   Consul provides an optional Access Control List (ACL) system which can be used to control access to data and APIs. The ACL system is a Capability-based system that relies on tokens which can have fine grained rules applied to them. It is very similar to AWS IAM in many ways.
 ---
 
--> **1.4.0 and later:** This guide only applies in Consul versions 1.4.0 and later. The documentation for the legacy ACL system is [here](/docs/acl/acl-legacy.html)
+-> **1.4.0 and later:** This document only applies in Consul versions 1.4.0 and later. The documentation for the legacy ACL system is [here](/docs/acl/acl-legacy.html)
 
 # ACL Rules
 
@@ -41,7 +41,7 @@ Policies can have several control levels:
 * `read`: allow the resource to be read but not modified.
 * `write`: allow the resource to be read and modified.
 * `deny`: do not allow the resource to be read or modified.
-* `list`: allows access to all the keys under a segment in the Consul KV. Note, this policy can only be used with the `key_prefix` resource and [`acl.enabled_key_list_policy`](https://www.consul.io/docs/guides/acl.html#list-policy-for-keys) must be set to true.
+* `list`: allows access to all the keys under a segment in the Consul KV. Note, this policy can only be used with the `key_prefix` resource and [`acl.enable_key_list_policy`](/docs/agent/options.html#acl_enable_key_list) must be set to true.
 
 When using prefix-based rules, the most specific prefix match determines the action. This
 allows for flexible rules like an empty prefix to allow read-only access to all
@@ -142,8 +142,8 @@ On success, the Policy is returned:
 ```
 
 The created policy can now be specified either by name or by ID when 
-[creating a token](https://learn.hashicorp.com/consul/advanced/day-1-operations/acl-guide#step-4-create-an-agent-token). This will grant the rules
-provided to the [bearer of that token](https://www.consul.io/api/index.html#authentication).
+[creating a token](https://learn.hashicorp.com/consul/security-networking/production-acls#create-the-agent-token). This will grant the rules
+provided to the [bearer of that token](/api/index.html#authentication).
 
 Below is a breakdown of each rule type. 
 

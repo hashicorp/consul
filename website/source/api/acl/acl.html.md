@@ -80,7 +80,7 @@ consider the cluster in a potentially compromised state.
 
 The returned token will have unrestricted privileges to manage all details of the system.
 It can then be used to further configure the ACL system. Please see the
-[ACL Guide](/docs/guides/acl.html) for more details.
+[ACL Guide](https://learn.hashicorp.com/consul/security-networking/production-acls) for more details.
 
 ## Check ACL Replication
 
@@ -88,7 +88,7 @@ This endpoint returns the status of the ACL replication processes in the
 datacenter. This is intended to be used by operators or by automation checking 
 to discover the health of ACL replication.
 
-Please see the [ACL Guide](/docs/guides/acl.html#replication) replication
+Please see the [ACL Guide](/docs/agent/options.html#acl_enable_token_replication) replication
 section for more details.
 
 | Method | Path                         | Produces                   |

@@ -14,7 +14,7 @@ The `/operator/autopilot` endpoints allow for automatic operator-friendly
 management of Consul servers including cleanup of dead servers, monitoring
 the state of the Raft cluster, and stable server introduction.
 
-Please see the [Autopilot Guide](/docs/guides/autopilot.html) for more details.
+Please see the [Autopilot Guide](https://learn.hashicorp.com/consul/day-2-operations/autopilot) for more details.
 
 ## Read Configuration
 

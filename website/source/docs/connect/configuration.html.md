@@ -42,7 +42,7 @@ dev mode with `consul agent -dev`.
 
 ~> **Security note:** Enabling Connect is enough to try the feature but doesn't
 automatically ensure complete security. Please read the [Connect production
-guide](/docs/guides/connect-production.html) to understand the additional steps
+guide](https://learn.hashicorp.com/consul/developer-segmentation/connect-production) to understand the additional steps
 needed for a secure deployment.
 
 ## Built-In Proxy Options

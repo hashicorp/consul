@@ -123,7 +123,7 @@ When getting started, a single Consul server is put into "bootstrap" mode. This 
 allows it to self-elect as a leader. Once a leader is elected, other servers can be
 added to the peer set in a way that preserves consistency and safety. Eventually,
 once the first few servers are added, bootstrap mode can be disabled. See [this
-guide](/docs/guides/bootstrapping.html) for more details.
+document](/docs/install/bootstrapping.html) for more details.
 
 Since all servers participate as part of the peer set, they all know the current
 leader. When an RPC request arrives at a non-leader server, the request is

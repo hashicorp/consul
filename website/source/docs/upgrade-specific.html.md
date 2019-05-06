@@ -20,7 +20,7 @@ There are two major features in Consul 1.4.0 that may impact upgrades: a [new AC
 
 ### ACL Upgrade
 
-Consul 1.4.0 includes a [new ACL system](/docs/guides/acl.html) that is
+Consul 1.4.0 includes a [new ACL system](https://learn.hashicorp.com/consul/security-networking/production-acls) that is
 designed to have a smooth upgrade path but requires care to upgrade components
 in the right order.
 
@@ -167,7 +167,7 @@ before proceeding.
 
 #### Carefully Check and Remove Stale Servers During Rolling Upgrades
 
-Consul 1.0 (and earlier versions of Consul when running with [Raft protocol 3](/docs/agent/options.html#_raft_protocol) had an issue where performing rolling updates of Consul servers could result in an outage from old servers remaining in the cluster. [Autopilot](/docs/guides/autopilot.html) would normally remove old servers when new ones come online, but it was also waiting to promote servers to voters in pairs to maintain an odd quorum size. The pairwise promotion feature was removed so that servers become voters as soon as they are stable, allowing Autopilot to remove old servers in a safer way.
+Consul 1.0 (and earlier versions of Consul when running with [Raft protocol 3](/docs/agent/options.html#_raft_protocol) had an issue where performing rolling updates of Consul servers could result in an outage from old servers remaining in the cluster. [Autopilot](https://learn.hashicorp.com/consul/day-2-operations/autopilot) would normally remove old servers when new ones come online, but it was also waiting to promote servers to voters in pairs to maintain an odd quorum size. The pairwise promotion feature was removed so that servers become voters as soon as they are stable, allowing Autopilot to remove old servers in a safer way.
 
 When upgrading from Consul 1.0, you may need to manually [force-leave](/docs/commands/force-leave.html) old servers as part of a rolling update to Consul 1.0.1.
 
@@ -177,15 +177,15 @@ Consul 1.0 has several important breaking changes that are documented here. Plea
 
 #### Raft Protocol Now Defaults to 3
 
-The [`-raft-protocol`](/docs/agent/options.html#_raft_protocol) default has been changed from 2 to 3, enabling all [Autopilot](/docs/guides/autopilot.html) features by default.
+The [`-raft-protocol`](/docs/agent/options.html#_raft_protocol) default has been changed from 2 to 3, enabling all [Autopilot](https://learn.hashicorp.com/consul/day-2-operations/autopilot) features by default.
 
-Raft protocol version 3 requires Consul running 0.8.0 or newer on all servers in order to work, so if you are upgrading with older servers in a cluster then you will need to set this back to 2 in order to upgrade. See [Raft Protocol Version Compatibility](/docs/upgrade-specific.html#raft-protocol-version-compatibility) for more details. Also the format of `peers.json` used for outage recovery is different when running with the latest Raft protocol. See [Manual Recovery Using peers.json](/docs/guides/outage.html#manual-recovery-using-peers-json) for a description of the required format.
+Raft protocol version 3 requires Consul running 0.8.0 or newer on all servers in order to work, so if you are upgrading with older servers in a cluster then you will need to set this back to 2 in order to upgrade. See [Raft Protocol Version Compatibility](/docs/upgrade-specific.html#raft-protocol-version-compatibility) for more details. Also the format of `peers.json` used for outage recovery is different when running with the latest Raft protocol. See [Manual Recovery Using peers.json](https://learn.hashicorp.com/consul/day-2-operations/outage#manual-recovery-using-peers-json) for a description of the required format.
 
 Please note that the Raft protocol is different from Consul's internal protocol as described on the [Protocol Compatibility Promise](/docs/compatibility.html) page, and as is shown in commands like `consul members` and `consul version`. To see the version of the Raft protocol in use on each server, use the `consul operator raft list-peers` command.
 
 The easiest way to upgrade servers is to have each server leave the cluster, upgrade its Consul version, and then add it back. Make sure the new server joins successfully and that the cluster is stable before rolling the upgrade forward to the next server. It's also possible to stand up a new set of servers, and then slowly stand down each of the older servers in a similar fashion.
 
-When using Raft protocol version 3, servers are identified by their [`-node-id`](/docs/agent/options.html#_node_id) instead of their IP address when Consul makes changes to its internal Raft quorum configuration. This means that once a cluster has been upgraded with servers all running Raft protocol version 3, it will no longer allow servers running any older Raft protocol versions to be added. If running a single Consul server, restarting it in-place will result in that server not being able to elect itself as a leader. To avoid this, either set the Raft protocol back to 2, or use [Manual Recovery Using peers.json](/docs/guides/outage.html#manual-recovery-using-peers-json) to map the server to its node ID in the Raft quorum configuration.
+When using Raft protocol version 3, servers are identified by their [`-node-id`](/docs/agent/options.html#_node_id) instead of their IP address when Consul makes changes to its internal Raft quorum configuration. This means that once a cluster has been upgraded with servers all running Raft protocol version 3, it will no longer allow servers running any older Raft protocol versions to be added. If running a single Consul server, restarting it in-place will result in that server not being able to elect itself as a leader. To avoid this, either set the Raft protocol back to 2, or use [Manual Recovery Using peers.json](https://learn.hashicorp.com/consul/day-2-operations/outage#manual-recovery-using-peers-json) to map the server to its node ID in the Raft quorum configuration.
 
 #### Config Files Require an Extension
 
@@ -331,7 +331,7 @@ Consul agents now validate health check definitions in their configuration and w
 
 A new [`enable_script_checks`](/docs/agent/options.html#_enable_script_checks) configuration option was added, and defaults to `false`, meaning that in order to allow an agent to run health checks that execute scripts, this will need to be configured and set to `true`. This provides a safer out-of-the-box configuration for Consul where operators must opt-in to allow script-based health checks.
 
-If your cluster uses script health checks please be sure to set this to `true` as part of upgrading agents. If this is set to `true`, you should also enable [ACLs](/docs/guides/acl.html) to provide control over which users are allowed to register health checks that could potentially execute scripts on the agent machines.
+If your cluster uses script health checks please be sure to set this to `true` as part of upgrading agents. If this is set to `true`, you should also enable [ACLs](https://learn.hashicorp.com/consul/security-networking/production-acls) to provide control over which users are allowed to register health checks that could potentially execute scripts on the agent machines.
 
 #### Web UI Is No Longer Released Separately
 
@@ -364,7 +364,7 @@ and update any scripts that passed a custom `-rpc-addr` to the following command
 
 #### Version 8 ACLs Are Now Opt-Out
 
-The [`acl_enforce_version_8`](/docs/agent/options.html#acl_enforce_version_8) configuration now defaults to `true` to enable [full version 8 ACL support](/docs/guides/acl.html#version_8_acls) by default. If you are upgrading an existing cluster with ACLs enabled, you will need to set this to `false` during the upgrade on **both Consul agents and Consul servers**. Version 8 ACLs were also changed so that [`acl_datacenter`](/docs/agent/options.html#acl_datacenter) must be set on agents in order to enable the agent-side enforcement of ACLs. This makes for a smoother experience in clusters where ACLs aren't enabled at all, but where the agents would have to wait to contact a Consul server before learning that.
+The [`acl_enforce_version_8`](/docs/agent/options.html#acl_enforce_version_8) configuration now defaults to `true` to enable full version 8 ACL support by default. If you are upgrading an existing cluster with ACLs enabled, you will need to set this to `false` during the upgrade on **both Consul agents and Consul servers**. Version 8 ACLs were also changed so that [`acl_datacenter`](/docs/agent/options.html#acl_datacenter) must be set on agents in order to enable the agent-side enforcement of ACLs. This makes for a smoother experience in clusters where ACLs aren't enabled at all, but where the agents would have to wait to contact a Consul server before learning that.
 
 #### Remote Exec Is Now Opt-In
 
@@ -403,7 +403,7 @@ Raft Protocol versions supported by each Consul version:
   </tr>
 </table>
 
-In order to enable all [Autopilot](/docs/guides/autopilot.html) features, all servers
+In order to enable all [Autopilot](https://learn.hashicorp.com/consul/day-2-operations/autopilot) features, all servers
 in a Consul cluster must be running with Raft protocol version 3 or later.
 
 ## Consul 0.7.1
@@ -515,7 +515,7 @@ the file. Consul 0.7 also uses a new, automatically-created raft/peers.info file
 to avoid ingesting the `peers.json` file on the first start after upgrading (the
 `peers.json` file is simply deleted on the first start after upgrading).
 
-Please be sure to review the [Outage Recovery Guide](/docs/guides/outage.html)
+Please be sure to review the [Outage Recovery Guide](https://learn.hashicorp.com/consul/day-2-operations/outage)
 before upgrading for more details.
 
 ## Consul 0.6.4
@@ -528,7 +528,7 @@ require any ACL to manage them, and prepared queries with a `Name` defined are
 now governed by a new `query` ACL policy that will need to be configured
 after the upgrade.
 
-See the [ACL Guide](/docs/guides/acl.html#prepared_query_acls) for more details
+See the [ACL rules documentation](/docs/acl/acl-rules.html#prepared-query-rules) for more details
 about the new behavior and how it compares to previous versions of Consul.
 
 ## Consul 0.6

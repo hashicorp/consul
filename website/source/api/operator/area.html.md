@@ -26,7 +26,7 @@ datacenters, so not all servers need to be fully connected. This allows for
 complex topologies among Consul datacenters like hub/spoke and more general
 trees.
 
-Please see the [Network Areas Guide](/docs/guides/advanced-federation.html) for more details.
+Please see the [Network Areas Guide](https://learn.hashicorp.com/consul/day-2-operations/advanced-federation) for more details.
 
 ## Create Network Area
 
