@@ -288,7 +288,7 @@ The table below shows this endpoint's support for
 -> **Note** - [ACL token
 replication](/docs/agent/options.html#acl_enable_token_replication) must be
 enabled in any secondary datacenter before login can be used there. Login
-require the ability to create local tokens which is restricted to the primary
+requires the ability to create local tokens which is restricted to the primary
 datacenter and any secondary datacenters with ACL token replication enabled.
 
 ### Parameters
