@@ -54,6 +54,12 @@ using the API or command line before they can be used by applications.
   with the `consul acl binding-rule` subcommands or the corresponding [API
   endpoints](/api/acl/binding-rules.html).
 
+-> **Note** - To configure auth methods in any connected secondary datacenter,
+[ACL token replication](/docs/agent/options.html#acl_enable_token_replication)
+must be enabled.  Auth methods require the ability to create local tokens which
+is restricted to the primary datacenter and any secondary datacenters with ACL
+token replication enabled.
+
 ## Binding Rules
 
 Binding rules allow an operator to express a systematic way of automatically

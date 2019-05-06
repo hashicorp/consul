@@ -285,6 +285,14 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `none`       |
 
+-> **Note** - To use the login process to create tokens in any connected
+secondary datacenter, [ACL
+replication](/docs/agent/options.html#acl_enable_token_replication) must be
+enabled. Login requires the ability to create local tokens which is restricted
+to the primary datacenter and any secondary datacenters with ACL token
+replication enabled.
+
+
 ### Parameters
 
 - `AuthMethod` `(string: <required>)` - The name of the auth method to use for login.
