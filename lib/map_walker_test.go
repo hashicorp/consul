@@ -59,6 +59,8 @@ func TestMapWalk(t *testing.T) {
 				"bar": []interface{}{
 					[]uint8("one"),
 					[]uint8("two"),
+					3,
+					4,
 				},
 			},
 			expected: map[string]interface{}{
@@ -66,6 +68,8 @@ func TestMapWalk(t *testing.T) {
 				"bar": []interface{}{
 					"one",
 					"two",
+					3,
+					4,
 				},
 			},
 		},
