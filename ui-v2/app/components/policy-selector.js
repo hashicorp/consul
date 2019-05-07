@@ -38,7 +38,7 @@ export default ChildSelectorComponent.extend({
     const err = e.error;
     if (typeof err.errors !== 'undefined') {
       const error = err.errors[0];
-      let prop;
+      let prop = 'Rules';
       let message = error.detail;
       switch (true) {
         case message.indexOf(ERROR_PARSE_RULES) === 0:
