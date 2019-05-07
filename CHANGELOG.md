@@ -6,9 +6,10 @@ SECURITY:
  [CVE-2019-9901](https://github.com/envoyproxy/envoy/issues/6435). Both are
  related to HTTP request parsing and so only affect Consul Connect users if they
  have configured HTTP routing rules via the ["escape
- hatch"](#custom-configuration). We recommend Envoy 1.9.1 be used where
- possible. Note that while we officially deprecate support for older version of Envoy in 1.5.0, 
- we recommend using Envoy 1.9.1 with all previous versions of Consul Connect (back to 1.3.0 where it was introduced).
+ hatch"](#custom-configuration). We recommend Envoy 1.9.1 be used. 
+ Note that while we officially deprecate support for older version of Envoy in 1.5.0, 
+ we recommend using Envoy 1.9.1 with all previous versions of Consul Connect too 
+ (back to 1.3.0 where Envoy support was introduced).
 
 BREAKING CHANGES:
 
@@ -35,12 +36,14 @@ BUG FIXES:
 * acl: memdb filter of tokens-by-policy was inverted [[GH-5575](https://github.com/hashicorp/consul/issues/5575)]
 * acl: Fix legacy rules translation for JSON based rules. [[GH-5493](https://github.com/hashicorp/consul/issues/5493)]
 * agent: Fixed a bug causing RPC errors when the `discovery_max_stale` time was exceeded. [[GH-4673](https://github.com/hashicorp/consul/issues/4673)]
-* connect: fix an issue where Envoy woudl fail to bootstrap if some upstreams were unavailable [[GH-5499](https://github.com/hashicorp/consul/pull/5499)]
+* agent: Fix an issue with registering health checks for an agent service where the service name would be missing. [[GH-5705](https://github.com/hashicorp/consul/issues/5705)]
+* connect: fix an issue where Envoy would fail to bootstrap if some upstreams were unavailable [[GH-5499](https://github.com/hashicorp/consul/pull/5499)]
 * connect: fix an issue where health checks on proxies might be missed by watchers of `/health/service/:service` API [[GH-5506](https://github.com/hashicorp/consul/issues/5506)]
+* connect: fix a race condition that could leave proxies with no configuration for long periods on startup [[GH-5793](https://github.com/hashicorp/consul/issues/5793)]
 * logger: fix an issue where the `log-file` option was not respecting the `log-level` [[GH-4778](https://github.com/hashicorp/consul/issues/4778)]
 * catalog: fix an issue where renaming nodes could cause registration instability [[GH-5518](https://github.com/hashicorp/consul/issues/5518)]
 * network areas (Consul Enterprise): Fixed an issue that could cause a lock to be held unnecessarily causing other operations to hang.
-* agent: Fix an issue with registering health checks for an agent service where the service name would be missing. [[GH-5705](https://github.com/hashicorp/consul/issues/5705)]
+
 
 ## 1.4.4 (March 21, 2019)
 
