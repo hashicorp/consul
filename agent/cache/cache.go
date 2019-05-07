@@ -412,11 +412,11 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool, attempt uint, min
 	// We acquire a write lock because we may have to set Fetching to true.
 	c.entriesLock.Lock()
 	defer c.entriesLock.Unlock()
-	ok, entryReady, entry := c.getEntryLocked(tEntry, key, info.MaxAge, info.MustRevalidate && !ignoreRevalidation, minIndex)
+	ok, cacheHit, entry := c.getEntryLocked(tEntry, key, info.MaxAge, info.MustRevalidate && !ignoreRevalidation, minIndex)
 
 	// This handles the case where a fetch succeeded after checking for its existence in
 	// getWithIndex. This ensures that we don't miss updates.
-	if ok && entryReady && !ignoreExisting {
+	if ok && cacheHit && !ignoreExisting {
 		ch := make(chan struct{})
 		close(ch)
 		return ch, nil
