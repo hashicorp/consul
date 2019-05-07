@@ -3,7 +3,7 @@ version: 2
 
 references:
   images:
-    go: &GOLANG_IMAGE circleci/golang:1.12.1
+    go: &GOLANG_IMAGE circleci/golang:1.12.5
     middleman: &MIDDLEMAN_IMAGE hashicorp/middleman-hashicorp:0.3.35
     ember: &EMBER_IMAGE circleci/node:8-browsers
 
