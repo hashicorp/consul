@@ -53,6 +53,22 @@ func TestMapWalk(t *testing.T) {
 				"bar": "baz",
 			},
 		},
+		"map with slice": tcase{
+			input: map[string]interface{}{
+				"foo": []uint8("bar"),
+				"bar": []interface{}{
+					[]uint8("one"),
+					[]uint8("two"),
+				},
+			},
+			expected: map[string]interface{}{
+				"foo": "bar",
+				"bar": []interface{}{
+					"one",
+					"two",
+				},
+			},
+		},
 	}
 
 	for name, tcase := range cases {
