@@ -217,13 +217,14 @@ func (c *Cache) Get(t string, r Request) (interface{}, ResultMeta, error) {
 // retrieves a cache entry and checks if it is ready to be returned given the other parameters
 func (c *Cache) getEntryLocked(tEntry typeEntry, key string, maxAge time.Duration, revalidate bool, minIndex uint64) (bool, bool, cacheEntry) {
 	entry, ok := c.entries[key]
+	cacheHit := false
 
 	if !ok {
-		return false, false, entry
+		return ok, cacheHit, entry
 	}
 
 	// Check if we have a hit
-	cacheHit := ok && entry.Valid
+	cacheHit = ok && entry.Valid
 
 	supportsBlocking := tEntry.Type.SupportsBlocking()
 
@@ -249,7 +250,7 @@ func (c *Cache) getEntryLocked(tEntry typeEntry, key string, maxAge time.Duratio
 		cacheHit = false
 	}
 
-	return true, cacheHit, entry
+	return ok, cacheHit, entry
 }
 
 // getWithIndex implements the main Get functionality but allows internal
