@@ -26,7 +26,7 @@ Other `Kind` specific fields will be detailed below.
 When the agent is [configured](/docs/agent/options.html#enable_central_service_config) to enable central service configurations,
 it will look for service configuration defaults that match a registering service instance. If it finds any, the agent will merge
 those defaults with the service instance configuration. This allows for things like service protocol or proxy configuration to
-be defined globally and inherited by any affect service registrations.
+be defined globally and inherited by any affected service registrations.
 
 ## Configuration Entry Kinds
 
