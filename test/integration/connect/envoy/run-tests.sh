@@ -83,8 +83,10 @@ for c in ./case-*/ ; do
 
     # Wipe state
     docker-compose up wipe-volumes
-    # Note, we use explicit set of dirs so we don't delete .gitignore
-    rm -rf workdir/{consul,envoy,bats,statsd,logs}
+    # Note, we use explicit set of dirs so we don't delete .gitignore. Also,
+    # don't wipe logs between runs as they are already split and we need them to
+    # upload as artifacts later.
+    rm -rf workdir/{consul,envoy,bats,statsd}
     mkdir -p workdir/{consul,envoy,bats,statsd,logs}
 
     # Reload consul config from defaults
