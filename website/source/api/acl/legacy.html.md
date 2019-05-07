@@ -292,3 +292,9 @@ $ curl \
   }
 ]
 ```
+
+
+## Check ACL Replication
+
+The check ACL replication endpoint has not changed between the legacy system and the new system. Review the [latest documentation](/api/acl/acl.html#check-acl-replication) to learn more about this endpoint. 
+
