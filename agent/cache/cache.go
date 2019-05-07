@@ -214,7 +214,9 @@ func (c *Cache) Get(t string, r Request) (interface{}, ResultMeta, error) {
 	return c.getWithIndex(t, r, r.CacheInfo().MinIndex)
 }
 
-// retrieves a cache entry and checks if it is ready to be returned given the other parameters
+// getEntryLocked retrieves a cache entry and checks if it is ready to be
+// returned given the other parameters. It reads from entries and the caller
+// has to issue a read lock if necessary.
 func (c *Cache) getEntryLocked(tEntry typeEntry, key string, maxAge time.Duration, revalidate bool, minIndex uint64) (bool, bool, cacheEntry) {
 	entry, ok := c.entries[key]
 	cacheHit := false
