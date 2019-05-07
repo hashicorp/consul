@@ -265,7 +265,7 @@ func (c *cmd) run(args []string) int {
 	c.UI.Info(fmt.Sprintf("  Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
 		config.SerfPortLAN, config.SerfPortWAN))
 	c.UI.Info(fmt.Sprintf("       Encrypt: Gossip: %v, TLS-Outgoing: %v, TLS-Incoming: %v, Auto-Encrypt-TLS: %t",
-		agent.GossipEncrypted(), config.VerifyOutgoing, config.VerifyIncoming, config.AutoEncryptTLS))
+		agent.GossipEncrypted(), config.VerifyOutgoing, config.VerifyIncoming, config.AutoEncryptTLS || config.AutoEncryptAllowTLS))
 
 	// Enable log streaming
 	c.UI.Info("")
