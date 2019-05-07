@@ -24,11 +24,17 @@ FEATURES:
 * acl: tokens can now be assigned an optional set of service identities [[GH-5390](https://github.com/hashicorp/consul/issues/5390)]
 * acl: tokens can now be assigned to roles [[GH-5514](https://github.com/hashicorp/consul/issues/5514)]
 * acl: adding support for kubernetes auth provider login [[GH-5600](https://github.com/hashicorp/consul/issues/5600)]
+* ui: Template-able Dashboard links for Service detail pages [[GH-5704]](https://github.com/hashicorp/consul/pull/5704) [[GH-5777]](https://github.com/hashicorp/consul/pull/5777)
+
 
 IMPROVEMENTS:
 * cli: allow to add ip addresses as Subject Alternative Names when creating certificates with `consul tls cert create` [[GH-5602](https://github.com/hashicorp/consul/pull/5602)]
 * dns: Allow for hot-reload of many DNS configurations. [[GH-4875](https://github.com/hashicorp/consul/pull/4875)]
 * acl: Allow setting token accessor ids and secret ids during token creation. [[GH-4977](https://github.com/hashicorp/consul/issues/4977)]
+* ui: Service Instances page redesign and further visibility of Connect Proxies [[GH-5326]](https://github.com/hashicorp/consul/pull/5326)
+* ui: Blocking Query support / live updates for Services and Nodes, requires enabling per user via the UI Settings area [[GH-5070]](https://github.com/hashicorp/consul/pull/5070) [[GH-5267]](https://github.com/hashicorp/consul/pull/5267)
+* ui: Finer grained searching for the Service listing page [[GH-5507]](https://github.com/hashicorp/consul/pull/5507)
+
 
 BUG FIXES:
 
