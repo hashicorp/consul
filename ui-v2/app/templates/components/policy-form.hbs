@@ -36,7 +36,7 @@
           <strong>{{item.error.Rules.validation}}</strong>
         {{/if}}
 {{else}}
-        {{#code-editor name=(concat name '[Rules]') syntax='hcl' oninput=(action 'change' (concat name '[Rules]'))}}
+        {{#code-editor readonly=true name=(concat name '[Rules]') syntax='hcl' oninput=(action 'change' (concat name '[Rules]'))}}
           {{~component 'service-identity' name=item.Name~}}
         {{/code-editor}}
 {{/if}}
