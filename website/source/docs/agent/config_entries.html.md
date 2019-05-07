@@ -68,6 +68,6 @@ Protocol = "http"
 ## Bootstrapping
 
 Configuration entries can be bootstrapped by putting them into the Consul server's [configuration file](/docs/agent/options.html#config_entries_bootstrap).
-Each entry is embedded inline within the configuration and when that server gains leadership it will attempt to intialize that
+Each entry is embedded inline within the configuration and when that server gains leadership it will attempt to initialize that
 configuration entry with the desired values if it does not exist. If a configuration entry with the same kind and name already exists
 nothing will be done for that entry.
