@@ -92,7 +92,7 @@ function get_envoy_stats_flush_interval {
 }
 
 function docker_consul {
-  docker run -ti --network container:envoy_consul_1 consul-dev $@
+  docker run -ti --rm --network container:envoy_consul_1 consul-dev $@
 }
 
 function must_match_in_statsd_logs {
