@@ -1,3 +1,4 @@
+const SECONDARY_BUTTON = 2;
 const isSelecting = function(win = window) {
   const selection = win.getSelection();
   let selecting = false;
@@ -18,6 +19,13 @@ export default {
     const mousedown = function(e) {
       const $a = findAnchor(e.target);
       if ($a) {
+        if (typeof e.button !== 'undefined' && e.button === SECONDARY_BUTTON) {
+          const dataHref = $a.dataset.href;
+          if (dataHref) {
+            $a.setAttribute('href', dataHref);
+          }
+          return;
+        }
         const href = $a.getAttribute('href');
         if (href) {
           $a.dataset.href = href;
