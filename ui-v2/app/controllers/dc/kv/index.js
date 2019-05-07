@@ -1,18 +1,22 @@
 import Controller from '@ember/controller';
-import { get } from '@ember/object';
-import WithFiltering from 'consul-ui/mixins/with-filtering';
-import rightTrim from 'consul-ui/utils/right-trim';
-export default Controller.extend(WithFiltering, {
+import { get, computed } from '@ember/object';
+import WithSearching from 'consul-ui/mixins/with-searching';
+export default Controller.extend(WithSearching, {
   queryParams: {
     s: {
       as: 'filter',
       replace: true,
     },
   },
-  filter: function(item, { s = '' }) {
-    const key = rightTrim(get(item, 'Key'), '/')
-      .split('/')
-      .pop();
-    return key.toLowerCase().indexOf(s.toLowerCase()) !== -1;
+  init: function() {
+    this.searchParams = {
+      kv: 's',
+    };
+    this._super(...arguments);
   },
+  searchable: computed('items', function() {
+    return get(this, 'searchables.kv')
+      .add(get(this, 'items'))
+      .search(get(this, this.searchParams.kv));
+  }),
 });

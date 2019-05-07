@@ -5,6 +5,7 @@ PROJECT="consul"
 PROJECT_URL="www.consul.io"
 FASTLY_SERVICE_ID="7GrxRJP3PVBuqQbyxYQ0MV"
 FASTLY_DICTIONARY_ID="7d0yAgSHAQ2efWKeUC3kqW"
+REDIRECTS_FILE="./source/redirects.txt"
 
 # Ensure the proper AWS environment variables are set
 if [ -z "$AWS_ACCESS_KEY_ID" ]; then
@@ -26,6 +27,12 @@ fi
 # Ensure we have s3cmd installed
 if ! command -v "s3cmd" >/dev/null 2>&1; then
   echo "Missing s3cmd!"
+  exit 1
+fi
+
+# Ensure the proper analytics Segment ID is set
+if [ "$ENV" != "production" ]; then
+  echo "ENV is not set to production for Segment Analytics!"
   exit 1
 fi
 
@@ -95,7 +102,8 @@ if [ -z "$NO_UPLOAD" ]; then
 fi
 
 # Add redirects if they exist
-if [ -z "$NO_REDIRECTS" ] || [ ! test -f "./redirects.txt" ]; then
+# The redirects file is in the source/ directory
+if [ -z "$NO_REDIRECTS" ] || [ ! test -f $REDIRECTS_FILE ]; then
   echo "Adding redirects..."
   fields=()
   while read -r line; do
@@ -105,7 +113,7 @@ if [ -z "$NO_REDIRECTS" ] || [ ! test -f "./redirects.txt" ]; then
     # Read fields
     IFS=" " read -ra parts <<<"$line"
     fields+=("${parts[@]}")
-  done < "./redirects.txt"
+  done < $REDIRECTS_FILE
 
   # Check we have pairs
   if [ $((${#fields[@]} % 2)) -ne 0 ]; then
@@ -124,11 +132,6 @@ if [ -z "$NO_REDIRECTS" ] || [ ! test -f "./redirects.txt" ]; then
   for field in "${fields[@]}"; do
     if [ "${#field}" -gt 256 ]; then
       echo "'$field' is > 256 characters!"
-      exit 1
-    fi
-
-    if [ "${field:0:1}" != "/" ]; then
-      echo "'$field' does not start with /!"
       exit 1
     fi
   done

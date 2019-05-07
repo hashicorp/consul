@@ -1,0 +1,21 @@
+%healthcheck-info dt.passing {
+  @extend %with-passing;
+}
+%healthcheck-info dt.warning {
+  @extend %with-warning;
+}
+%healthcheck-info dt.critical {
+  @extend %with-critical;
+}
+%healthcheck-info dt.passing,
+%healthcheck-info dt.passing + dd {
+  color: $color-success;
+}
+%healthcheck-info dt.warning,
+%healthcheck-info dt.warning + dd {
+  color: $color-alert;
+}
+%healthcheck-info dt.critical,
+%healthcheck-info dt.critical + dd {
+  color: $color-failure;
+}

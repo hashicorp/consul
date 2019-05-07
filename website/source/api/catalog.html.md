@@ -25,10 +25,10 @@ perform [anti-entropy](/docs/internals/anti-entropy.html).
 | `PUT`  | `/catalog/register`          | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required              |
 | ---------------- | ----------------- | ------------- | ------------------------- |
@@ -55,7 +55,7 @@ The table below shows this endpoint's support for
   provided, it will be defaulted to the value of the `Service.Service` property.
   Only one service with a given `ID` may be present per node. The service
   `Tags`, `Address`, `Meta`, and `Port` fields are all optional. For more
-  infomation about these fields and the implications of setting them, 
+  information about these fields and the implications of setting them,
   see the [Service - Agent API](https://www.consul.io/api/agent/service.html) page
   as registering services differs between using this or the Services Agent endpoint.
 
@@ -79,11 +79,11 @@ The table below shows this endpoint's support for
     sending an array of `Check` objects.
 
 - `SkipNodeUpdate` `(bool: false)` - Specifies whether to skip updating the
-  node's information in the registration. This is useful in the case where 
-  only a health check or service entry on a node needs to be updated or when 
+  node's information in the registration. This is useful in the case where
+  only a health check or service entry on a node needs to be updated or when
   a register request is intended to  update a service entry or health check.
-  In both use cases, node information will not be overwritten, if the node is 
-  already registered. Note, if the paramater is enabled for a node that doesn't 
+  In both use cases, node information will not be overwritten, if the node is
+  already registered. Note, if the paramater is enabled for a node that doesn't
   exist, it will still be created.
 
 It is important to note that `Check` does not have to be provided with `Service`
@@ -156,10 +156,10 @@ perform [anti-entropy](/docs/internals/anti-entropy.html).
 | `PUT`  | `/catalog/deregister`        | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required               |
 | ---------------- | ----------------- | ------------- | -------------------------- |
@@ -230,10 +230,10 @@ Consul servers are routable.
 | `GET`  | `/catalog/datacenters`       | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -261,10 +261,10 @@ This endpoint and returns the nodes registered in a given datacenter.
 | `GET`  | `/catalog/nodes`             | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -285,6 +285,9 @@ The table below shows this endpoint's support for
   of the form `key:value`. This parameter can be specified multiple times, and
   will filter the results to nodes with the specified key/value pairs. This is
   specified as part of the URL as a query parameter.
+
+- `filter` `(string: "")` - Specifies the expression used to filter the
+  queries results prior to returning the data.
 
 ### Sample Request
 
@@ -326,6 +329,23 @@ $ curl \
 ]
 ```
 
+### Filtering
+
+The filter will be executed against each Node in the result list with
+the following selectors and filter operations being supported:
+
+| Selector                | Supported Operations               |
+| ----------------------- | ---------------------------------- |
+| `Address`               | Equal, Not Equal                   |
+| `Datacenter`            | Equal, Not Equal                   |
+| `ID`                    | Equal, Not Equal                   |
+| `Meta`                  | In, Not In, Is Empty, Is Not Empty |
+| `Meta.<any>`            | Equal, Not Equal                   |
+| `Node`                  | Equal, Not Equal                   |
+| `TaggedAddresses`       | In, Not In, Is Empty, Is Not Empty |
+| `TaggedAddresses.<any>` | Equal, Not Equal                   |
+
+
 ## List Services
 
 This endpoint returns the services registered in a given datacenter.
@@ -335,10 +355,10 @@ This endpoint returns the services registered in a given datacenter.
 | `GET`  | `/catalog/services`          | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
 | ---------------- | ----------------- | ------------- | -------------- |
@@ -387,10 +407,10 @@ This endpoint returns the nodes providing a service in a given datacenter.
 | `GET`  | `/catalog/service/:service`  | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching        | ACL Required             |
 | ---------------- | ----------------- | -------------------- | ------------------------ |
@@ -405,7 +425,7 @@ The table below shows this endpoint's support for
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter.
 
-- `tag` `(string: "")` - Specifies the tag to filter on. This is specified as part of 
+- `tag` `(string: "")` - Specifies the tag to filter on. This is specified as part of
   the URL as a query parameter. Can be used multiple times for additional filtering,
   returning only the results that include all of the tag values provided.
 
@@ -418,6 +438,9 @@ The table below shows this endpoint's support for
   of the form `key:value`. This parameter can be specified multiple times, and
   will filter the results to nodes with the specified key/value pairs. This is
   specified as part of the URL as a query parameter.
+
+- `filter` `(string: "")` - Specifies the expression used to filter the
+  queries results prior to returning the data.
 
 ### Sample Request
 
@@ -520,6 +543,45 @@ $ curl \
   value of this struct is equivalent to the `Connect` field for service
   registration.
 
+### Filtering
+
+Filtering is executed against each entry in the top level result list with the
+following selectors and filter operations being supported:
+
+| Selector                                      | Supported Operations               |
+| --------------------------------------------- | ---------------------------------- |
+| `Address`                                     | Equal, Not Equal                   |
+| `Datacenter`                                  | Equal, Not Equal                   |
+| `ID`                                          | Equal, Not Equal                   |
+| `Node`                                        | Equal, Not Equal                   |
+| `NodeMeta`                                    | In, Not In, Is Empty, Is Not Empty |
+| `NodeMeta.<any>`                              | Equal, Not Equal                   |
+| `ServiceAddress`                              | Equal, Not Equal                   |
+| `ServiceConnect.Native`                       | Equal, Not Equal                   |
+| `ServiceEnableTagOverride`                    | Equal, Not Equal                   |
+| `ServiceID`                                   | Equal, Not Equal                   |
+| `ServiceKind`                                 | Equal, Not Equal                   |
+| `ServiceMeta`                                 | In, Not In, Is Empty, Is Not Empty |
+| `ServiceMeta.<any>`                           | Equal, Not Equal                   |
+| `ServiceName`                                 | Equal, Not Equal                   |
+| `ServicePort`                                 | Equal, Not Equal                   |
+| `ServiceProxy.DestinationServiceID`           | Equal, Not Equal                   |
+| `ServiceProxy.DestinationServiceName`         | Equal, Not Equal                   |
+| `ServiceProxy.LocalServiceAddress`            | Equal, Not Equal                   |
+| `ServiceProxy.LocalServicePort`               | Equal, Not Equal                   |
+| `ServiceProxy.Upstreams`                      | Is Empty, Is Not Empty             |
+| `ServiceProxy.Upstreams.Datacenter`           | Equal, Not Equal                   |
+| `ServiceProxy.Upstreams.DestinationName`      | Equal, Not Equal                   |
+| `ServiceProxy.Upstreams.DestinationNamespace` | Equal, Not Equal                   |
+| `ServiceProxy.Upstreams.DestinationType`      | Equal, Not Equal                   |
+| `ServiceProxy.Upstreams.LocalBindAddress`     | Equal, Not Equal                   |
+| `ServiceProxy.Upstreams.LocalBindPort`        | Equal, Not Equal                   |
+| `ServiceTags`                                 | In, Not In, Is Empty, Is Not Empty |
+| `ServiceWeights.Passing`                      | Equal, Not Equal                   |
+| `ServiceWeights.Warning`                      | Equal, Not Equal                   |
+| `TaggedAddresses`                             | In, Not In, Is Empty, Is Not Empty |
+| `TaggedAddresses.<any>`                       | Equal, Not Equal                   |
+
 ## List Nodes for Connect-capable Service
 
 This endpoint returns the nodes providing a
@@ -544,10 +606,10 @@ This endpoint returns the node's registered services.
 | `GET`  | `/catalog/node/:node`        | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required             |
 | ---------------- | ----------------- | ------------- | ------------------------ |
@@ -561,6 +623,9 @@ The table below shows this endpoint's support for
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter.
+
+- `filter` `(string: "")` - Specifies the expression used to filter the
+  queries results prior to returning the data.
 
 ### Sample Request
 
@@ -608,3 +673,34 @@ $ curl \
   }
 }
 ```
+
+### Filtering
+
+The filter will be executed against each value in the `Services` mapping within the
+top level Node object. The following selectors and filter operations are supported:
+
+| Selector                               | Supported Operations               |
+| -------------------------------------- | ---------------------------------- |
+| `Address`                              | Equal, Not Equal                   |
+| `Connect.Native`                       | Equal, Not Equal                   |
+| `EnableTagOverride`                    | Equal, Not Equal                   |
+| `ID`                                   | Equal, Not Equal                   |
+| `Kind`                                 | Equal, Not Equal                   |
+| `Meta`                                 | In, Not In, Is Empty, Is Not Empty |
+| `Meta.<any>`                           | Equal, Not Equal                   |
+| `Port`                                 | Equal, Not Equal                   |
+| `Proxy.DestinationServiceID`           | Equal, Not Equal                   |
+| `Proxy.DestinationServiceName`         | Equal, Not Equal                   |
+| `Proxy.LocalServiceAddress`            | Equal, Not Equal                   |
+| `Proxy.LocalServicePort`               | Equal, Not Equal                   |
+| `Proxy.Upstreams`                      | Is Empty, Is Not Empty             |
+| `Proxy.Upstreams.Datacenter`           | Equal, Not Equal                   |
+| `Proxy.Upstreams.DestinationName`      | Equal, Not Equal                   |
+| `Proxy.Upstreams.DestinationNamespace` | Equal, Not Equal                   |
+| `Proxy.Upstreams.DestinationType`      | Equal, Not Equal                   |
+| `Proxy.Upstreams.LocalBindAddress`     | Equal, Not Equal                   |
+| `Proxy.Upstreams.LocalBindPort`        | Equal, Not Equal                   |
+| `Service`                              | Equal, Not Equal                   |
+| `Tags`                                 | In, Not In, Is Empty, Is Not Empty |
+| `Weights.Passing`                      | Equal, Not Equal                   |
+| `Weights.Warning`                      | Equal, Not Equal                   |

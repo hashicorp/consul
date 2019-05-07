@@ -1,0 +1,68 @@
+---
+layout: "docs"
+page_title: "Commands: ACL Policy List"
+sidebar_current: "docs-commands-acl-policy-list"
+---
+
+# Consul ACL Policy List
+
+Command: `consul acl policy list`
+
+The `acl policy list` command lists all policies. By default it will not show metadata.
+
+## Usage
+
+Usage: `consul acl policy list`
+
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
+
+#### Command Options
+
+* `-meta` - Indicates that policy metadata such as the content hash and
+   Raft indices should be shown for each entry.
+
+## Examples
+
+Default listing.
+
+```sh
+$ consul acl policy list
+global-management:
+   ID:           00000000-0000-0000-0000-000000000001
+   Description:  Builtin Policy that grants unlimited access
+   Datacenters:
+acl-replication:
+   ID:           35b8ecb0-707c-ee18-2002-81b238b54b38
+   Description:  Policy capable of replicating ACL policies
+   Datacenters:
+```
+
+Show Metadata.
+
+```sh
+$ consul acl policy list -meta
+global-management:
+   ID:           00000000-0000-0000-0000-000000000001
+   Description:  Builtin Policy that grants unlimited access
+   Datacenters:
+   Hash:         b30210b7aba9facd1c57891e3df27669174a08b690cb2905e0797535f75eba69
+   Create Index: 4
+   Modify Index: 4
+node-services-read:
+   ID:           06acc965-df4b-5a99-58cb-3250930c6324
+   Description:  Can read any node and service
+   Datacenters:
+   Hash:         19d2a73dcd315506af73bfff1492779a0dc0235066fcac07f432fb2cc3402133
+   Create Index: 244
+   Modify Index: 244
+acl-replication:
+   ID:           ca44555b-a2d8-94de-d763-88caffdaf11f
+   Description:  Token capable of replicating ACL policies
+   Datacenters:  dc1, dc2
+   Hash:         b94669679cc24e0d064412e4aa90b470b7f900a8e0801f65feaf1f7d716a5390
+   Create Index: 198
+   Modify Index: 198
+```

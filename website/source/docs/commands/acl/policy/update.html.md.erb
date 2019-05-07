@@ -1,0 +1,85 @@
+---
+layout: "docs"
+page_title: "Commands: ACL Policy Update"
+sidebar_current: "docs-commands-acl-policy-update"
+---
+
+# Consul ACL Policy Update
+
+Command: `consul acl policy update`
+
+The `acl policy update` command is used to update a policy. The default operations is to merge the current policy
+with those values provided to the command invocation. Therefore to update just one field, only
+the `-id` or `-name` options and the option to modify must be provided. Note that renaming
+policies requires both the `-id` and `-name` as the new name cannot yet be used to lookup the
+policy.
+
+## Usage
+
+Usage: `consul acl policy update [options] [args]`
+
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
+
+#### Command Options
+
+* `-description=<string>` - A description of the policy.
+
+* `-id=<string>` - The ID of the policy to update. It may be specified as a
+   unique ID prefix but will error if the prefix matches multiple policy IDs
+
+* `-meta` - Indicates that policy metadata such as the content hash and raft
+  indices should be shown for each entry
+
+* `-name=<string>` - The policy's name.
+
+* `-no-merge` - Do not merge the current policy information with what is provided
+   to the command. Instead overwrite all fields with the exception of
+   the policy ID which is immutable.
+
+* `-rules=<string>` - The policy rules. May be prefixed with `@` to indicate that
+   the value is a file path to load the rules from. `-` may also be given to
+   indicate that the rules are available on stdin.
+
+* `-valid-datacenter=<value>` - Datacenter that the policy should be valid within.
+   This flag may be specified multiple times.
+
+## Examples
+
+Update a policy:
+
+```sh
+$ consul acl policy update -id 35b8 -name "replication" -description "Policy capable of replication ACL policies and Intentions" -rules @rules.hcl
+Policy updated successfully
+ID:           35b8ecb0-707c-ee18-2002-81b238b54b38
+Name:         replication
+Description:  Policy capable of replication ACL policies and Intentions
+Datacenters:
+Rules:
+acl = "read"
+
+service_prefix "" {
+   policy = "read"
+   intentions = "read"
+}
+```
+
+Rename a policy:
+
+```sh
+$ consul acl policy update -id 35b8 -name "dc1-replication"
+Policy updated successfully
+ID:           35b8ecb0-707c-ee18-2002-81b238b54b38
+Name:         dc1-replication
+Description:  Policy capable of replication ACL policies and Intentions
+Datacenters:  dc1
+Rules:
+acl = "read"
+
+service_prefix "" {
+   policy = "read"
+   intentions = "read"
+}
+```

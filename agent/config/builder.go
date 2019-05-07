@@ -185,11 +185,13 @@ func (b *Builder) ReadPath(path string) ([]Source, error) {
 			continue
 		}
 
-		src, err := b.ReadFile(fp)
-		if err != nil {
-			return nil, err
+		if b.shouldParseFile(fp) {
+			src, err := b.ReadFile(fp)
+			if err != nil {
+				return nil, err
+			}
+			sources = append(sources, src)
 		}
-		sources = append(sources, src)
 	}
 	return sources, nil
 }
@@ -202,6 +204,18 @@ func (b *Builder) ReadFile(path string) (Source, error) {
 		return Source{}, fmt.Errorf("config: ReadFile failed on %s: %s", path, err)
 	}
 	return Source{Name: path, Data: string(data)}, nil
+}
+
+// shouldParse file determines whether the file to be read is of a supported extension
+func (b *Builder) shouldParseFile(path string) bool {
+	configFormat := b.stringVal(b.Flags.ConfigFormat)
+	srcFormat := FormatFrom(path)
+
+	// If config-format is not set, only read files with supported extensions
+	if configFormat == "" && srcFormat != "hcl" && srcFormat != "json" {
+		return false
+	}
+	return true
 }
 
 type byName []os.FileInfo
@@ -234,7 +248,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	// ----------------------------------------------------------------
 	// merge config sources as follows
 	//
-
 	configFormat := b.stringVal(b.Flags.ConfigFormat)
 	if configFormat != "" && configFormat != "json" && configFormat != "hcl" {
 		return RuntimeConfig{}, fmt.Errorf("config: -config-format must be either 'hcl' or 'json'")
@@ -244,23 +257,15 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	var srcs []Source
 	srcs = append(srcs, b.Head...)
 	for _, src := range b.Sources {
+		// skip file if it should not be parsed
+		if !b.shouldParseFile(src.Name) {
+			continue
+		}
+
+		// if config-format is set, files of any extension will be interpreted in that format
 		src.Format = FormatFrom(src.Name)
 		if configFormat != "" {
 			src.Format = configFormat
-		} else {
-			// If they haven't forced things to a specific format,
-			// then skip anything we don't understand, which is the
-			// behavior before we added the -config-format option.
-			switch src.Format {
-			case "json", "hcl":
-				// OK
-			default:
-				// SKIP
-				continue
-			}
-		}
-		if src.Format == "" {
-			return RuntimeConfig{}, fmt.Errorf(`config: Missing or invalid file extension for %q. Please use ".json" or ".hcl".`, src.Name)
 		}
 		srcs = append(srcs, src)
 	}
@@ -557,7 +562,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	connectCAProvider := b.stringVal(c.Connect.CAProvider)
 	connectCAConfig := c.Connect.CAConfig
 	if connectCAConfig != nil {
-		TranslateKeys(connectCAConfig, map[string]string{
+		lib.TranslateKeys(connectCAConfig, map[string]string{
 			// Consul CA config
 			"private_key":     "PrivateKey",
 			"root_cert":       "RootCert",
@@ -633,6 +638,21 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		verifyOutgoing = true
 	}
 
+	var configEntries []structs.ConfigEntry
+
+	if len(c.ConfigEntries.Bootstrap) > 0 {
+		for i, rawEntry := range c.ConfigEntries.Bootstrap {
+			entry, err := structs.DecodeConfigEntry(rawEntry)
+			if err != nil {
+				return RuntimeConfig{}, fmt.Errorf("config_entries.bootstrap[%d]: %s", i, err)
+			}
+			if err := entry.Validate(); err != nil {
+				return RuntimeConfig{}, fmt.Errorf("config_entries.bootstrap[%d]: %s", i, err)
+			}
+			configEntries = append(configEntries, entry)
+		}
+	}
+
 	// ----------------------------------------------------------------
 	// build runtime config
 	//
@@ -686,6 +706,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		ACLReplicationToken:       b.stringValWithDefault(c.ACL.Tokens.Replication, b.stringVal(c.ACLReplicationToken)),
 		ACLTokenTTL:               b.durationValWithDefault("acl.token_ttl", c.ACL.TokenTTL, b.durationVal("acl_ttl", c.ACLTTL)),
 		ACLPolicyTTL:              b.durationVal("acl.policy_ttl", c.ACL.PolicyTTL),
+		ACLRoleTTL:                b.durationVal("acl.role_ttl", c.ACL.RoleTTL),
 		ACLToken:                  b.stringValWithDefault(c.ACL.Tokens.Default, b.stringVal(c.ACLToken)),
 		ACLTokenReplication:       b.boolValWithDefault(c.ACL.TokenReplication, b.boolValWithDefault(c.EnableACLReplication, enableTokenReplication)),
 		ACLEnableTokenPersistence: b.boolValWithDefault(c.ACL.EnableTokenPersistence, false),
@@ -767,6 +788,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		CheckUpdateInterval:                     b.durationVal("check_update_interval", c.CheckUpdateInterval),
 		Checks:                                  checks,
 		ClientAddrs:                             clientAddrs,
+		ConfigEntryBootstrap:                    configEntries,
 		ConnectEnabled:                          connectEnabled,
 		ConnectCAProvider:                       connectCAProvider,
 		ConnectCAConfig:                         connectCAConfig,
@@ -793,6 +815,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		DiscardCheckOutput:                      b.boolVal(c.DiscardCheckOutput),
 		DiscoveryMaxStale:                       b.durationVal("discovery_max_stale", c.DiscoveryMaxStale),
 		EnableAgentTLSForChecks:                 b.boolVal(c.EnableAgentTLSForChecks),
+		EnableCentralServiceConfig:              b.boolVal(c.EnableCentralServiceConfig),
 		EnableDebug:                             b.boolVal(c.EnableDebug),
 		EnableRemoteScriptChecks:                enableRemoteScriptChecks,
 		EnableLocalScriptChecks:                 enableLocalScriptChecks,

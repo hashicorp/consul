@@ -24,10 +24,10 @@ This endpoint reads the current raft configuration.
 | `GET`  | `/operator/raft/configuration` | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes     | Agent Caching | ACL Required    |
 | ---------------- | --------------------- | ------------- | --------------- |
@@ -44,7 +44,7 @@ The table below shows this endpoint's support for
   Raft configuration from any of the Consul servers. Not setting this will choose
   the default consistency mode which will forward the request to the leader for
   processing but not re-confirm the server is still the leader before returning
-  results. See [default consistency](/api/index.html#default) for more details.
+  results. See [default consistency](/api/features/consistency.html#default) for more details.
 
 ### Sample Request
 
@@ -122,10 +122,10 @@ write privileges.
 | `DELETE` | `/operator/raft/peer`        | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
 | ---------------- | ----------------- | ------------- | ---------------- |

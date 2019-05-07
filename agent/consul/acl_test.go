@@ -2,7 +2,6 @@ package consul
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"reflect"
 	"strings"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -60,6 +60,29 @@ func testIdentityForToken(token string) (bool, structs.ACLIdentity, error) {
 				},
 			},
 		}, nil
+	case "missing-role":
+		return true, &structs.ACLToken{
+			AccessorID: "435a75af-1763-4980-89f4-f0951dda53b4",
+			SecretID:   "b1b6be70-ed2e-4c80-8495-bdb3db110b1e",
+			Roles: []structs.ACLTokenRoleLink{
+				structs.ACLTokenRoleLink{
+					ID: "not-found",
+				},
+				structs.ACLTokenRoleLink{
+					ID: "acl-ro",
+				},
+			},
+		}, nil
+	case "missing-policy-on-role":
+		return true, &structs.ACLToken{
+			AccessorID: "435a75af-1763-4980-89f4-f0951dda53b4",
+			SecretID:   "b1b6be70-ed2e-4c80-8495-bdb3db110b1e",
+			Roles: []structs.ACLTokenRoleLink{
+				structs.ACLTokenRoleLink{
+					ID: "missing-policy",
+				},
+			},
+		}, nil
 	case "legacy-management":
 		return true, &structs.ACLToken{
 			AccessorID: "d109a033-99d1-47e2-a711-d6593373a973",
@@ -83,6 +106,56 @@ func testIdentityForToken(token string) (bool, structs.ACLIdentity, error) {
 				},
 				structs.ACLTokenPolicyLink{
 					ID: "dc2-key-wr",
+				},
+			},
+		}, nil
+	case "found-role":
+		// This should be permission-wise identical to "found", except it
+		// gets it's policies indirectly by way of a Role.
+		return true, &structs.ACLToken{
+			AccessorID: "5f57c1f6-6a89-4186-9445-531b316e01df",
+			SecretID:   "a1a54629-5050-4d17-8a4e-560d2423f835",
+			Roles: []structs.ACLTokenRoleLink{
+				structs.ACLTokenRoleLink{
+					ID: "found",
+				},
+			},
+		}, nil
+	case "found-policy-and-role":
+		return true, &structs.ACLToken{
+			AccessorID: "5f57c1f6-6a89-4186-9445-531b316e01df",
+			SecretID:   "a1a54629-5050-4d17-8a4e-560d2423f835",
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID: "node-wr",
+				},
+				structs.ACLTokenPolicyLink{
+					ID: "dc2-key-wr",
+				},
+			},
+			Roles: []structs.ACLTokenRoleLink{
+				structs.ACLTokenRoleLink{
+					ID: "service-ro",
+				},
+			},
+		}, nil
+	case "found-synthetic-policy-1":
+		return true, &structs.ACLToken{
+			AccessorID: "f6c5a5fb-4da4-422b-9abf-2c942813fc71",
+			SecretID:   "55cb7d69-2bea-42c3-a68f-2a1443d2abbc",
+			ServiceIdentities: []*structs.ACLServiceIdentity{
+				&structs.ACLServiceIdentity{
+					ServiceName: "service1",
+				},
+			},
+		}, nil
+	case "found-synthetic-policy-2":
+		return true, &structs.ACLToken{
+			AccessorID: "7c87dfad-be37-446e-8305-299585677cb5",
+			SecretID:   "dfca9676-ac80-453a-837b-4c0cf923473c",
+			ServiceIdentities: []*structs.ACLServiceIdentity{
+				&structs.ACLServiceIdentity{
+					ServiceName: "service2",
 				},
 			},
 		}, nil
@@ -177,6 +250,24 @@ func testPolicyForID(policyID string) (bool, *structs.ACLPolicy, error) {
 			Syntax:      acl.SyntaxCurrent,
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 		}, nil
+	case "service-ro":
+		return true, &structs.ACLPolicy{
+			ID:          "service-ro",
+			Name:        "service-ro",
+			Description: "service-ro",
+			Rules:       `service_prefix "" { policy = "read" }`,
+			Syntax:      acl.SyntaxCurrent,
+			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
+		}, nil
+	case "service-wr":
+		return true, &structs.ACLPolicy{
+			ID:          "service-wr",
+			Name:        "service-wr",
+			Description: "service-wr",
+			Rules:       `service_prefix "" { policy = "write" }`,
+			Syntax:      acl.SyntaxCurrent,
+			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
+		}, nil
 	case "node-wr":
 		return true, &structs.ACLPolicy{
 			ID:          "node-wr",
@@ -202,6 +293,141 @@ func testPolicyForID(policyID string) (bool, *structs.ACLPolicy, error) {
 	}
 }
 
+func testRoleForID(roleID string) (bool, *structs.ACLRole, error) {
+	switch roleID {
+	case "service-ro":
+		return true, &structs.ACLRole{
+			ID:          "service-ro",
+			Name:        "service-ro",
+			Description: "service-ro",
+			Policies: []structs.ACLRolePolicyLink{
+				structs.ACLRolePolicyLink{
+					ID: "service-ro",
+				},
+			},
+			RaftIndex: structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
+		}, nil
+	case "service-wr":
+		return true, &structs.ACLRole{
+			ID:          "service-wr",
+			Name:        "service-wr",
+			Description: "service-wr",
+			Policies: []structs.ACLRolePolicyLink{
+				structs.ACLRolePolicyLink{
+					ID: "service-wr",
+				},
+			},
+			RaftIndex: structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
+		}, nil
+	case "missing-policy":
+		return true, &structs.ACLRole{
+			ID:          "missing-policy",
+			Name:        "missing-policy",
+			Description: "missing-policy",
+			Policies: []structs.ACLRolePolicyLink{
+				structs.ACLRolePolicyLink{
+					ID: "not-found",
+				},
+				structs.ACLRolePolicyLink{
+					ID: "acl-ro",
+				},
+			},
+			RaftIndex: structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
+		}, nil
+	case "found":
+		return true, &structs.ACLRole{
+			ID:          "found",
+			Name:        "found",
+			Description: "found",
+			Policies: []structs.ACLRolePolicyLink{
+				structs.ACLRolePolicyLink{
+					ID: "node-wr",
+				},
+				structs.ACLRolePolicyLink{
+					ID: "dc2-key-wr",
+				},
+			},
+		}, nil
+	case "acl-ro":
+		return true, &structs.ACLRole{
+			ID:          "acl-ro",
+			Name:        "acl-ro",
+			Description: "acl-ro",
+			Policies: []structs.ACLRolePolicyLink{
+				structs.ACLRolePolicyLink{
+					ID: "acl-ro",
+				},
+			},
+		}, nil
+	case "acl-wr":
+		return true, &structs.ACLRole{
+			ID:          "acl-rw",
+			Name:        "acl-rw",
+			Description: "acl-rw",
+			Policies: []structs.ACLRolePolicyLink{
+				structs.ACLRolePolicyLink{
+					ID: "acl-wr",
+				},
+			},
+		}, nil
+	case "racey-unmodified":
+		return true, &structs.ACLRole{
+			ID:          "racey-unmodified",
+			Name:        "racey-unmodified",
+			Description: "racey-unmodified",
+			Policies: []structs.ACLRolePolicyLink{
+				structs.ACLRolePolicyLink{
+					ID: "node-wr",
+				},
+				structs.ACLRolePolicyLink{
+					ID: "acl-wr",
+				},
+			},
+		}, nil
+	case "racey-modified":
+		return true, &structs.ACLRole{
+			ID:          "racey-modified",
+			Name:        "racey-modified",
+			Description: "racey-modified",
+			Policies: []structs.ACLRolePolicyLink{
+				structs.ACLRolePolicyLink{
+					ID: "node-wr",
+				},
+			},
+		}, nil
+	case "concurrent-resolve-1":
+		return true, &structs.ACLRole{
+			ID:          "concurrent-resolve-1",
+			Name:        "concurrent-resolve-1",
+			Description: "concurrent-resolve-1",
+			Policies: []structs.ACLRolePolicyLink{
+				structs.ACLRolePolicyLink{
+					ID: "node-wr",
+				},
+				structs.ACLRolePolicyLink{
+					ID: "acl-wr",
+				},
+			},
+		}, nil
+	case "concurrent-resolve-2":
+		return true, &structs.ACLRole{
+			ID:          "concurrent-resolve-2",
+			Name:        "concurrent-resolve-2",
+			Description: "concurrent-resolve-2",
+			Policies: []structs.ACLRolePolicyLink{
+				structs.ACLRolePolicyLink{
+					ID: "node-wr",
+				},
+				structs.ACLRolePolicyLink{
+					ID: "acl-wr",
+				},
+			},
+		}, nil
+	default:
+		return true, nil, acl.ErrNotFound
+	}
+}
+
 // ACLResolverTestDelegate is used to test
 // the ACLResolver without running Agents
 type ACLResolverTestDelegate struct {
@@ -210,9 +436,99 @@ type ACLResolverTestDelegate struct {
 	legacy          bool
 	localTokens     bool
 	localPolicies   bool
+	localRoles      bool
 	getPolicyFn     func(*structs.ACLPolicyResolveLegacyRequest, *structs.ACLPolicyResolveLegacyResponse) error
 	tokenReadFn     func(*structs.ACLTokenGetRequest, *structs.ACLTokenResponse) error
 	policyResolveFn func(*structs.ACLPolicyBatchGetRequest, *structs.ACLPolicyBatchResponse) error
+	roleResolveFn   func(*structs.ACLRoleBatchGetRequest, *structs.ACLRoleBatchResponse) error
+
+	// state for the optional default resolver function defaultTokenReadFn
+	tokenCached bool
+	// state for the optional default resolver function defaultPolicyResolveFn
+	policyCached bool
+	// state for the optional default resolver function defaultRoleResolveFn
+	roleCached bool
+}
+
+func (d *ACLResolverTestDelegate) Reset() {
+	d.tokenCached = false
+	d.policyCached = false
+	d.roleCached = false
+}
+
+var errRPC = fmt.Errorf("Induced RPC Error")
+
+func (d *ACLResolverTestDelegate) defaultTokenReadFn(errAfterCached error) func(*structs.ACLTokenGetRequest, *structs.ACLTokenResponse) error {
+	return func(args *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
+		if !d.tokenCached {
+			err := d.plainTokenReadFn(args, reply)
+			d.tokenCached = true
+			return err
+		}
+		return errAfterCached
+	}
+}
+
+func (d *ACLResolverTestDelegate) plainTokenReadFn(args *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
+	_, token, err := testIdentityForToken(args.TokenID)
+	if token != nil {
+		reply.Token = token.(*structs.ACLToken)
+	}
+	return err
+}
+
+func (d *ACLResolverTestDelegate) defaultPolicyResolveFn(errAfterCached error) func(*structs.ACLPolicyBatchGetRequest, *structs.ACLPolicyBatchResponse) error {
+	return func(args *structs.ACLPolicyBatchGetRequest, reply *structs.ACLPolicyBatchResponse) error {
+		if !d.policyCached {
+			err := d.plainPolicyResolveFn(args, reply)
+			d.policyCached = true
+			return err
+		}
+
+		return errAfterCached
+	}
+}
+
+func (d *ACLResolverTestDelegate) plainPolicyResolveFn(args *structs.ACLPolicyBatchGetRequest, reply *structs.ACLPolicyBatchResponse) error {
+	// TODO: if we were being super correct about it, we'd verify the token first
+	// TODO: and possibly return a not-found or permission-denied here
+
+	for _, policyID := range args.PolicyIDs {
+		_, policy, _ := testPolicyForID(policyID)
+		if policy != nil {
+			reply.Policies = append(reply.Policies, policy)
+		}
+	}
+
+	return nil
+}
+
+func (d *ACLResolverTestDelegate) defaultRoleResolveFn(errAfterCached error) func(*structs.ACLRoleBatchGetRequest, *structs.ACLRoleBatchResponse) error {
+	return func(args *structs.ACLRoleBatchGetRequest, reply *structs.ACLRoleBatchResponse) error {
+		if !d.roleCached {
+			err := d.plainRoleResolveFn(args, reply)
+			d.roleCached = true
+			return err
+		}
+
+		return errAfterCached
+	}
+}
+
+// plainRoleResolveFn tries to follow the normal logic of ACL.RoleResolve using
+// the test fixtures.
+func (d *ACLResolverTestDelegate) plainRoleResolveFn(args *structs.ACLRoleBatchGetRequest, reply *structs.ACLRoleBatchResponse) error {
+	// TODO: if we were being super correct about it, we'd verify the token first
+	// TODO: and possibly return a not-found or permission-denied here
+
+	for _, roleID := range args.RoleIDs {
+		_, role, _ := testRoleForID(roleID)
+		if role != nil {
+			reply.Roles = append(reply.Roles, role)
+		}
+	}
+
+	return nil
 }
 
 func (d *ACLResolverTestDelegate) ACLsEnabled() bool {
@@ -243,23 +559,36 @@ func (d *ACLResolverTestDelegate) ResolvePolicyFromID(policyID string) (bool, *s
 	return testPolicyForID(policyID)
 }
 
+func (d *ACLResolverTestDelegate) ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error) {
+	if !d.localRoles {
+		return false, nil, nil
+	}
+
+	return testRoleForID(roleID)
+}
+
 func (d *ACLResolverTestDelegate) RPC(method string, args interface{}, reply interface{}) error {
 	switch method {
 	case "ACL.GetPolicy":
 		if d.getPolicyFn != nil {
 			return d.getPolicyFn(args.(*structs.ACLPolicyResolveLegacyRequest), reply.(*structs.ACLPolicyResolveLegacyResponse))
 		}
-		panic("Bad Test Implmentation: should provide a getPolicyFn to the ACLResolverTestDelegate")
+		panic("Bad Test Implementation: should provide a getPolicyFn to the ACLResolverTestDelegate")
 	case "ACL.TokenRead":
 		if d.tokenReadFn != nil {
 			return d.tokenReadFn(args.(*structs.ACLTokenGetRequest), reply.(*structs.ACLTokenResponse))
 		}
-		panic("Bad Test Implmentation: should provide a tokenReadFn to the ACLResolverTestDelegate")
+		panic("Bad Test Implementation: should provide a tokenReadFn to the ACLResolverTestDelegate")
 	case "ACL.PolicyResolve":
 		if d.policyResolveFn != nil {
 			return d.policyResolveFn(args.(*structs.ACLPolicyBatchGetRequest), reply.(*structs.ACLPolicyBatchResponse))
 		}
-		panic("Bad Test Implmentation: should provide a policyResolveFn to the ACLResolverTestDelegate")
+		panic("Bad Test Implementation: should provide a policyResolveFn to the ACLResolverTestDelegate")
+	case "ACL.RoleResolve":
+		if d.roleResolveFn != nil {
+			return d.roleResolveFn(args.(*structs.ACLRoleBatchGetRequest), reply.(*structs.ACLRoleBatchResponse))
+		}
+		panic("Bad Test Implementation: should provide a roleResolveFn to the ACLResolverTestDelegate")
 	}
 	panic("Bad Test Implementation: Was the ACLResolver updated to use new RPC methods")
 }
@@ -270,12 +599,13 @@ func newTestACLResolver(t *testing.T, delegate ACLResolverDelegate, cb func(*ACL
 	config.ACLDownPolicy = "extend-cache"
 	rconf := &ACLResolverConfig{
 		Config: config,
-		Logger: log.New(os.Stdout, t.Name()+" - ", log.LstdFlags|log.Lmicroseconds),
+		Logger: testutil.TestLoggerWithName(t, t.Name()),
 		CacheConfig: &structs.ACLCachesConfig{
 			Identities:     4,
 			Policies:       4,
 			ParsedPolicies: 4,
 			Authorizers:    4,
+			Roles:          4,
 		},
 		AutoDisable: true,
 		Delegate:    delegate,
@@ -371,8 +701,9 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 			legacy:        false,
 			localTokens:   false,
 			localPolicies: true,
+			localRoles:    true,
 			tokenReadFn: func(*structs.ACLTokenGetRequest, *structs.ACLTokenResponse) error {
-				return fmt.Errorf("Induced RPC Error")
+				return errRPC
 			},
 		}
 		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
@@ -395,8 +726,9 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 			legacy:        false,
 			localTokens:   false,
 			localPolicies: true,
+			localRoles:    true,
 			tokenReadFn: func(*structs.ACLTokenGetRequest, *structs.ACLTokenResponse) error {
-				return fmt.Errorf("Induced RPC Error")
+				return errRPC
 			},
 		}
 		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
@@ -413,32 +745,20 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 
 	t.Run("Expired-Policy", func(t *testing.T) {
 		t.Parallel()
-		policyCached := false
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
 			legacy:        false,
 			localTokens:   true,
 			localPolicies: false,
-			policyResolveFn: func(args *structs.ACLPolicyBatchGetRequest, reply *structs.ACLPolicyBatchResponse) error {
-				if !policyCached {
-					for _, policyID := range args.PolicyIDs {
-						_, policy, _ := testPolicyForID(policyID)
-						if policy != nil {
-							reply.Policies = append(reply.Policies, policy)
-						}
-					}
-
-					policyCached = true
-					return nil
-				}
-
-				return fmt.Errorf("Induced RPC Error")
-			},
+			localRoles:    false,
 		}
+		delegate.policyResolveFn = delegate.defaultPolicyResolveFn(errRPC)
+
 		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
 			config.Config.ACLDownPolicy = "deny"
 			config.Config.ACLPolicyTTL = 0
+			config.Config.ACLRoleTTL = 0
 		})
 
 		authz, err := r.ResolveToken("found")
@@ -460,75 +780,118 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		requirePolicyCached(t, r, "dc2-key-wr", false, "expired") // from "found" token
 	})
 
-	t.Run("Extend-Cache", func(t *testing.T) {
+	t.Run("Expired-Role", func(t *testing.T) {
 		t.Parallel()
-		cached := false
-		delegate := &ACLResolverTestDelegate{
-			enabled:       true,
-			datacenter:    "dc1",
-			legacy:        false,
-			localTokens:   false,
-			localPolicies: true,
-			tokenReadFn: func(args *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
-				if !cached {
-					_, token, _ := testIdentityForToken("found")
-					reply.Token = token.(*structs.ACLToken)
-					cached = true
-					return nil
-				}
-				return fmt.Errorf("Induced RPC Error")
-			},
-		}
-		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
-			config.Config.ACLDownPolicy = "extend-cache"
-			config.Config.ACLTokenTTL = 0
-		})
-
-		authz, err := r.ResolveToken("foo")
-		require.NoError(t, err)
-		require.NotNil(t, authz)
-		require.True(t, authz.NodeWrite("foo", nil))
-
-		requireIdentityCached(t, r, "foo", true, "cached")
-
-		authz2, err := r.ResolveToken("foo")
-		require.NoError(t, err)
-		require.NotNil(t, authz2)
-		// testing pointer equality - these will be the same object because it is cached.
-		require.True(t, authz == authz2)
-		require.True(t, authz.NodeWrite("foo", nil))
-
-		requireIdentityCached(t, r, "foo", true, "still cached")
-	})
-
-	t.Run("Extend-Cache-Expired-Policy", func(t *testing.T) {
-		t.Parallel()
-		policyCached := false
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
 			legacy:        false,
 			localTokens:   true,
 			localPolicies: false,
-			policyResolveFn: func(args *structs.ACLPolicyBatchGetRequest, reply *structs.ACLPolicyBatchResponse) error {
-				if !policyCached {
-					for _, policyID := range args.PolicyIDs {
-						_, policy, _ := testPolicyForID(policyID)
-						if policy != nil {
-							reply.Policies = append(reply.Policies, policy)
-						}
-					}
-
-					policyCached = true
-					return nil
-				}
-
-				return fmt.Errorf("Induced RPC Error")
-			},
+			localRoles:    false,
 		}
+		delegate.policyResolveFn = delegate.defaultPolicyResolveFn(errRPC)
+		delegate.roleResolveFn = delegate.defaultRoleResolveFn(errRPC)
+
+		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
+			config.Config.ACLDownPolicy = "deny"
+			config.Config.ACLPolicyTTL = 0
+			config.Config.ACLRoleTTL = 0
+		})
+
+		authz, err := r.ResolveToken("found-role")
+		require.NoError(t, err)
+		require.NotNil(t, authz)
+		require.True(t, authz.NodeWrite("foo", nil))
+
+		// role cache expired - so we will fail to resolve that role and use the default policy only
+		authz2, err := r.ResolveToken("found-role")
+		require.NoError(t, err)
+		require.NotNil(t, authz2)
+		require.False(t, authz == authz2)
+		require.False(t, authz2.NodeWrite("foo", nil))
+	})
+
+	t.Run("Extend-Cache-Policy", func(t *testing.T) {
+		t.Parallel()
+		delegate := &ACLResolverTestDelegate{
+			enabled:       true,
+			datacenter:    "dc1",
+			legacy:        false,
+			localTokens:   false,
+			localPolicies: true,
+			localRoles:    true,
+		}
+		delegate.tokenReadFn = delegate.defaultTokenReadFn(errRPC)
+
+		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
+			config.Config.ACLDownPolicy = "extend-cache"
+			config.Config.ACLTokenTTL = 0
+		})
+
+		authz, err := r.ResolveToken("found")
+		require.NoError(t, err)
+		require.NotNil(t, authz)
+		require.True(t, authz.NodeWrite("foo", nil))
+
+		requireIdentityCached(t, r, "found", true, "cached")
+
+		authz2, err := r.ResolveToken("found")
+		require.NoError(t, err)
+		require.NotNil(t, authz2)
+		// testing pointer equality - these will be the same object because it is cached.
+		require.True(t, authz == authz2)
+		require.True(t, authz2.NodeWrite("foo", nil))
+	})
+
+	t.Run("Extend-Cache-Role", func(t *testing.T) {
+		t.Parallel()
+		delegate := &ACLResolverTestDelegate{
+			enabled:       true,
+			datacenter:    "dc1",
+			legacy:        false,
+			localTokens:   false,
+			localPolicies: true,
+			localRoles:    true,
+		}
+		delegate.tokenReadFn = delegate.defaultTokenReadFn(errRPC)
+
+		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
+			config.Config.ACLDownPolicy = "extend-cache"
+			config.Config.ACLTokenTTL = 0
+		})
+
+		authz, err := r.ResolveToken("found-role")
+		require.NoError(t, err)
+		require.NotNil(t, authz)
+		require.True(t, authz.NodeWrite("foo", nil))
+
+		requireIdentityCached(t, r, "found-role", true, "still cached")
+
+		authz2, err := r.ResolveToken("found-role")
+		require.NoError(t, err)
+		require.NotNil(t, authz2)
+		// testing pointer equality - these will be the same object because it is cached.
+		require.True(t, authz == authz2)
+		require.True(t, authz2.NodeWrite("foo", nil))
+	})
+
+	t.Run("Extend-Cache-Expired-Policy", func(t *testing.T) {
+		t.Parallel()
+		delegate := &ACLResolverTestDelegate{
+			enabled:       true,
+			datacenter:    "dc1",
+			legacy:        false,
+			localTokens:   true,
+			localPolicies: false,
+			localRoles:    false,
+		}
+		delegate.policyResolveFn = delegate.defaultPolicyResolveFn(errRPC)
+
 		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
 			config.Config.ACLDownPolicy = "extend-cache"
 			config.Config.ACLPolicyTTL = 0
+			config.Config.ACLRoleTTL = 0
 		})
 
 		authz, err := r.ResolveToken("found")
@@ -550,36 +913,56 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		requirePolicyCached(t, r, "dc2-key-wr", true, "still cached") // from "found" token
 	})
 
-	t.Run("Async-Cache-Expired-Policy", func(t *testing.T) {
+	t.Run("Extend-Cache-Expired-Role", func(t *testing.T) {
 		t.Parallel()
-		policyCached := false
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
 			legacy:        false,
 			localTokens:   true,
 			localPolicies: false,
-			policyResolveFn: func(args *structs.ACLPolicyBatchGetRequest, reply *structs.ACLPolicyBatchResponse) error {
-				if !policyCached {
-					for _, policyID := range args.PolicyIDs {
-						_, policy, _ := testPolicyForID(policyID)
-						if policy != nil {
-							reply.Policies = append(reply.Policies, policy)
-						}
-					}
-
-					policyCached = true
-					return nil
-				}
-
-				// We don't need to return acl.ErrNotFound here but we could. The ACLResolver will search for any
-				// policies not in the response and emit an ACL not found for any not-found within the result set.
-				return nil
-			},
+			localRoles:    false,
 		}
+		delegate.policyResolveFn = delegate.defaultPolicyResolveFn(errRPC)
+		delegate.roleResolveFn = delegate.defaultRoleResolveFn(errRPC)
+
+		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
+			config.Config.ACLDownPolicy = "extend-cache"
+			config.Config.ACLPolicyTTL = 0
+			config.Config.ACLRoleTTL = 0
+		})
+
+		authz, err := r.ResolveToken("found-role")
+		require.NoError(t, err)
+		require.NotNil(t, authz)
+		require.True(t, authz.NodeWrite("foo", nil))
+
+		// Will just use the policy cache
+		authz2, err := r.ResolveToken("found-role")
+		require.NoError(t, err)
+		require.NotNil(t, authz2)
+		require.True(t, authz == authz2)
+		require.True(t, authz.NodeWrite("foo", nil))
+	})
+
+	t.Run("Async-Cache-Expired-Policy", func(t *testing.T) {
+		t.Parallel()
+		delegate := &ACLResolverTestDelegate{
+			enabled:       true,
+			datacenter:    "dc1",
+			legacy:        false,
+			localTokens:   true,
+			localPolicies: false,
+			localRoles:    false,
+		}
+		// We don't need to return acl.ErrNotFound here but we could. The ACLResolver will search for any
+		// policies not in the response and emit an ACL not found for any not-found within the result set.
+		delegate.policyResolveFn = delegate.defaultPolicyResolveFn(nil)
+
 		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
 			config.Config.ACLDownPolicy = "async-cache"
 			config.Config.ACLPolicyTTL = 0
+			config.Config.ACLRoleTTL = 0
 		})
 
 		authz, err := r.ResolveToken("found")
@@ -613,45 +996,67 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		requirePolicyCached(t, r, "dc2-key-wr", false, "no longer cached") // from "found" token
 	})
 
-	t.Run("Extend-Cache-Client", func(t *testing.T) {
+	t.Run("Async-Cache-Expired-Role", func(t *testing.T) {
 		t.Parallel()
-		tokenCached := false
-		policyCached := false
+		delegate := &ACLResolverTestDelegate{
+			enabled:       true,
+			datacenter:    "dc1",
+			legacy:        false,
+			localTokens:   true,
+			localPolicies: false,
+			localRoles:    false,
+		}
+		// We don't need to return acl.ErrNotFound here but we could. The ACLResolver will search for any
+		// policies not in the response and emit an ACL not found for any not-found within the result set.
+		delegate.policyResolveFn = delegate.defaultPolicyResolveFn(nil)
+		delegate.roleResolveFn = delegate.defaultRoleResolveFn(nil)
+
+		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
+			config.Config.ACLDownPolicy = "async-cache"
+			config.Config.ACLPolicyTTL = 0
+			config.Config.ACLRoleTTL = 0
+		})
+
+		authz, err := r.ResolveToken("found-role")
+		require.NoError(t, err)
+		require.NotNil(t, authz)
+		require.True(t, authz.NodeWrite("foo", nil))
+
+		// The identity should have been cached so this should still be valid
+		authz2, err := r.ResolveToken("found-role")
+		require.NoError(t, err)
+		require.NotNil(t, authz2)
+		// testing pointer equality - these will be the same object because it is cached.
+		require.True(t, authz == authz2)
+		require.True(t, authz.NodeWrite("foo", nil))
+
+		// the go routine spawned will eventually return with a authz that doesn't have the policy
+		retry.Run(t, func(t *retry.R) {
+			authz3, err := r.ResolveToken("found-role")
+			assert.NoError(t, err)
+			assert.NotNil(t, authz3)
+			assert.False(t, authz3.NodeWrite("foo", nil))
+		})
+	})
+
+	t.Run("Extend-Cache-Client-Policy", func(t *testing.T) {
+		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
 			legacy:        false,
 			localTokens:   false,
 			localPolicies: false,
-			tokenReadFn: func(args *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
-				if !tokenCached {
-					_, token, _ := testIdentityForToken("found")
-					reply.Token = token.(*structs.ACLToken)
-					tokenCached = true
-					return nil
-				}
-				return fmt.Errorf("Induced RPC Error")
-			},
-			policyResolveFn: func(args *structs.ACLPolicyBatchGetRequest, reply *structs.ACLPolicyBatchResponse) error {
-				if !policyCached {
-					for _, policyID := range args.PolicyIDs {
-						_, policy, _ := testPolicyForID(policyID)
-						if policy != nil {
-							reply.Policies = append(reply.Policies, policy)
-						}
-					}
-
-					policyCached = true
-					return nil
-				}
-
-				return fmt.Errorf("Induced RPC Error")
-			},
+			localRoles:    false,
 		}
+		delegate.tokenReadFn = delegate.defaultTokenReadFn(errRPC)
+		delegate.policyResolveFn = delegate.defaultPolicyResolveFn(errRPC)
+
 		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
 			config.Config.ACLDownPolicy = "extend-cache"
 			config.Config.ACLTokenTTL = 0
 			config.Config.ACLPolicyTTL = 0
+			config.Config.ACLRoleTTL = 0
 		})
 
 		authz, err := r.ResolveToken("found")
@@ -667,62 +1072,89 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		require.NotNil(t, authz2)
 		// testing pointer equality - these will be the same object because it is cached.
 		require.True(t, authz == authz2)
+		require.True(t, authz2.NodeWrite("foo", nil))
+	})
+
+	t.Run("Extend-Cache-Client-Role", func(t *testing.T) {
+		t.Parallel()
+		delegate := &ACLResolverTestDelegate{
+			enabled:       true,
+			datacenter:    "dc1",
+			legacy:        false,
+			localTokens:   false,
+			localPolicies: false,
+			localRoles:    false,
+		}
+		delegate.tokenReadFn = delegate.defaultTokenReadFn(errRPC)
+		delegate.policyResolveFn = delegate.defaultPolicyResolveFn(errRPC)
+		delegate.roleResolveFn = delegate.defaultRoleResolveFn(errRPC)
+
+		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
+			config.Config.ACLDownPolicy = "extend-cache"
+			config.Config.ACLTokenTTL = 0
+			config.Config.ACLPolicyTTL = 0
+			config.Config.ACLRoleTTL = 0
+		})
+
+		authz, err := r.ResolveToken("found-role")
+		require.NoError(t, err)
+		require.NotNil(t, authz)
 		require.True(t, authz.NodeWrite("foo", nil))
 
 		requirePolicyCached(t, r, "node-wr", true, "still cached")    // from "found" token
 		requirePolicyCached(t, r, "dc2-key-wr", true, "still cached") // from "found" token
+
+		authz2, err := r.ResolveToken("found-role")
+		require.NoError(t, err)
+		require.NotNil(t, authz2)
+		// testing pointer equality - these will be the same object because it is cached.
+		require.True(t, authz == authz2, "\n[1]={%+v} != \n[2]={%+v}", authz, authz2)
+		require.True(t, authz2.NodeWrite("foo", nil))
 	})
 
 	t.Run("Async-Cache", func(t *testing.T) {
 		t.Parallel()
-		cached := false
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
 			legacy:        false,
 			localTokens:   false,
 			localPolicies: true,
-			tokenReadFn: func(args *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
-				if !cached {
-					_, token, _ := testIdentityForToken("found")
-					reply.Token = token.(*structs.ACLToken)
-					cached = true
-					return nil
-				}
-				return acl.ErrNotFound
-			},
+			localRoles:    true,
 		}
+		delegate.tokenReadFn = delegate.defaultTokenReadFn(acl.ErrNotFound)
+
 		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
 			config.Config.ACLDownPolicy = "async-cache"
 			config.Config.ACLTokenTTL = 0
 		})
 
-		authz, err := r.ResolveToken("foo")
+		authz, err := r.ResolveToken("found")
 		require.NoError(t, err)
 		require.NotNil(t, authz)
 		require.True(t, authz.NodeWrite("foo", nil))
 
-		requireIdentityCached(t, r, "foo", true, "cached")
+		requireIdentityCached(t, r, "found", true, "cached")
 
 		// The identity should have been cached so this should still be valid
-		authz2, err := r.ResolveToken("foo")
+		authz2, err := r.ResolveToken("found")
 		require.NoError(t, err)
 		require.NotNil(t, authz2)
 		// testing pointer equality - these will be the same object because it is cached.
 		require.True(t, authz == authz2)
-		require.True(t, authz.NodeWrite("foo", nil))
+		require.True(t, authz2.NodeWrite("foo", nil))
 
-		requireIdentityCached(t, r, "foo", true, "cached")
+		requireIdentityCached(t, r, "found", true, "cached")
 
 		// the go routine spawned will eventually return and this will be a not found error
 		retry.Run(t, func(t *retry.R) {
-			authz3, err := r.ResolveToken("foo")
+			authz3, err := r.ResolveToken("found")
 			assert.Error(t, err)
 			assert.True(t, acl.IsErrNotFound(err))
 			assert.Nil(t, authz3)
 		})
 
-		requireIdentityCached(t, r, "foo", false, "no longer cached")
+		requireIdentityCached(t, r, "found", false, "no longer cached")
 	})
 
 	t.Run("PolicyResolve-TokenNotFound", func(t *testing.T) {
@@ -864,6 +1296,7 @@ func TestACLResolver_DatacenterScoping(t *testing.T) {
 			legacy:        false,
 			localTokens:   true,
 			localPolicies: true,
+			localRoles:    true,
 			// No need to provide any of the RPC callbacks
 		}
 		r := newTestACLResolver(t, delegate, nil)
@@ -883,6 +1316,7 @@ func TestACLResolver_DatacenterScoping(t *testing.T) {
 			legacy:        false,
 			localTokens:   true,
 			localPolicies: true,
+			localRoles:    true,
 			// No need to provide any of the RPC callbacks
 		}
 		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
@@ -898,6 +1332,7 @@ func TestACLResolver_DatacenterScoping(t *testing.T) {
 	})
 }
 
+// TODO(rb): replicate this sort of test but for roles
 func TestACLResolver_Client(t *testing.T) {
 	t.Parallel()
 
@@ -951,6 +1386,7 @@ func TestACLResolver_Client(t *testing.T) {
 		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
 			config.Config.ACLTokenTTL = 600 * time.Second
 			config.Config.ACLPolicyTTL = 30 * time.Millisecond
+			config.Config.ACLRoleTTL = 30 * time.Millisecond
 			config.Config.ACLDownPolicy = "extend-cache"
 		})
 
@@ -1039,6 +1475,7 @@ func TestACLResolver_Client(t *testing.T) {
 			// being resolved concurrently
 			config.Config.ACLTokenTTL = 0 * time.Second
 			config.Config.ACLPolicyTTL = 30 * time.Millisecond
+			config.Config.ACLRoleTTL = 30 * time.Millisecond
 			config.Config.ACLDownPolicy = "extend-cache"
 		})
 
@@ -1058,7 +1495,24 @@ func TestACLResolver_Client(t *testing.T) {
 	})
 }
 
-func TestACLResolver_LocalTokensAndPolicies(t *testing.T) {
+func TestACLResolver_Client_TokensPoliciesAndRoles(t *testing.T) {
+	t.Parallel()
+	delegate := &ACLResolverTestDelegate{
+		enabled:       true,
+		datacenter:    "dc1",
+		legacy:        false,
+		localTokens:   false,
+		localPolicies: false,
+		localRoles:    false,
+	}
+	delegate.tokenReadFn = delegate.plainTokenReadFn
+	delegate.policyResolveFn = delegate.plainPolicyResolveFn
+	delegate.roleResolveFn = delegate.plainRoleResolveFn
+
+	testACLResolver_variousTokens(t, delegate)
+}
+
+func TestACLResolver_LocalTokensPoliciesAndRoles(t *testing.T) {
 	t.Parallel()
 	delegate := &ACLResolverTestDelegate{
 		enabled:       true,
@@ -1066,85 +1520,60 @@ func TestACLResolver_LocalTokensAndPolicies(t *testing.T) {
 		legacy:        false,
 		localTokens:   true,
 		localPolicies: true,
+		localRoles:    true,
 		// No need to provide any of the RPC callbacks
 	}
-	r := newTestACLResolver(t, delegate, nil)
 
-	t.Run("Missing Identity", func(t *testing.T) {
-		authz, err := r.ResolveToken("doesn't exist")
-		require.Nil(t, authz)
-		require.Error(t, err)
-		require.True(t, acl.IsErrNotFound(err))
-	})
-
-	t.Run("Missing Policy", func(t *testing.T) {
-		authz, err := r.ResolveToken("missing-policy")
-		require.NoError(t, err)
-		require.NotNil(t, authz)
-		require.True(t, authz.ACLRead())
-		require.False(t, authz.NodeWrite("foo", nil))
-	})
-
-	t.Run("Normal", func(t *testing.T) {
-		authz, err := r.ResolveToken("found")
-		require.NotNil(t, authz)
-		require.NoError(t, err)
-		require.False(t, authz.ACLRead())
-		require.True(t, authz.NodeWrite("foo", nil))
-	})
-
-	t.Run("Anonymous", func(t *testing.T) {
-		authz, err := r.ResolveToken("")
-		require.NotNil(t, authz)
-		require.NoError(t, err)
-		require.False(t, authz.ACLRead())
-		require.True(t, authz.NodeWrite("foo", nil))
-	})
-
-	t.Run("legacy-management", func(t *testing.T) {
-		authz, err := r.ResolveToken("legacy-management")
-		require.NotNil(t, authz)
-		require.NoError(t, err)
-		require.True(t, authz.ACLWrite())
-		require.True(t, authz.KeyRead("foo"))
-	})
-
-	t.Run("legacy-client", func(t *testing.T) {
-		authz, err := r.ResolveToken("legacy-client")
-		require.NoError(t, err)
-		require.NotNil(t, authz)
-		require.False(t, authz.OperatorRead())
-		require.True(t, authz.ServiceRead("foo"))
-	})
+	testACLResolver_variousTokens(t, delegate)
 }
 
-func TestACLResolver_LocalPolicies(t *testing.T) {
+func TestACLResolver_LocalPoliciesAndRoles(t *testing.T) {
 	t.Parallel()
+
 	delegate := &ACLResolverTestDelegate{
 		enabled:       true,
 		datacenter:    "dc1",
 		legacy:        false,
 		localTokens:   false,
 		localPolicies: true,
-		tokenReadFn: func(args *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
-			_, token, err := testIdentityForToken(args.TokenID)
-
-			if token != nil {
-				reply.Token = token.(*structs.ACLToken)
-			}
-			return err
-		},
+		localRoles:    true,
 	}
-	r := newTestACLResolver(t, delegate, nil)
+	delegate.tokenReadFn = delegate.plainTokenReadFn
 
-	t.Run("Missing Identity", func(t *testing.T) {
+	testACLResolver_variousTokens(t, delegate)
+}
+
+func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelegate) {
+	t.Helper()
+	r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
+		config.Config.ACLTokenTTL = 600 * time.Second
+		config.Config.ACLPolicyTTL = 30 * time.Millisecond
+		config.Config.ACLRoleTTL = 30 * time.Millisecond
+		config.Config.ACLDownPolicy = "extend-cache"
+	})
+	reset := func() {
+		// prevent subtest bleedover
+		r.cache.Purge()
+		delegate.Reset()
+	}
+
+	runTwiceAndReset := func(name string, f func(t *testing.T)) {
+		t.Helper()
+		defer reset() // reset the stateful resolve AND blow away the cache
+
+		t.Run(name+" (no-cache)", f)
+		delegate.Reset() // allow the stateful resolve functions to reset
+		t.Run(name+" (cached)", f)
+	}
+
+	runTwiceAndReset("Missing Identity", func(t *testing.T) {
 		authz, err := r.ResolveToken("doesn't exist")
 		require.Nil(t, authz)
 		require.Error(t, err)
 		require.True(t, acl.IsErrNotFound(err))
 	})
 
-	t.Run("Missing Policy", func(t *testing.T) {
+	runTwiceAndReset("Missing Policy", func(t *testing.T) {
 		authz, err := r.ResolveToken("missing-policy")
 		require.NoError(t, err)
 		require.NotNil(t, authz)
@@ -1152,7 +1581,23 @@ func TestACLResolver_LocalPolicies(t *testing.T) {
 		require.False(t, authz.NodeWrite("foo", nil))
 	})
 
-	t.Run("Normal", func(t *testing.T) {
+	runTwiceAndReset("Missing Role", func(t *testing.T) {
+		authz, err := r.ResolveToken("missing-role")
+		require.NoError(t, err)
+		require.NotNil(t, authz)
+		require.True(t, authz.ACLRead())
+		require.False(t, authz.NodeWrite("foo", nil))
+	})
+
+	runTwiceAndReset("Missing Policy on Role", func(t *testing.T) {
+		authz, err := r.ResolveToken("missing-policy-on-role")
+		require.NoError(t, err)
+		require.NotNil(t, authz)
+		require.True(t, authz.ACLRead())
+		require.False(t, authz.NodeWrite("foo", nil))
+	})
+
+	runTwiceAndReset("Normal with Policy", func(t *testing.T) {
 		authz, err := r.ResolveToken("found")
 		require.NotNil(t, authz)
 		require.NoError(t, err)
@@ -1160,7 +1605,58 @@ func TestACLResolver_LocalPolicies(t *testing.T) {
 		require.True(t, authz.NodeWrite("foo", nil))
 	})
 
-	t.Run("Anonymous", func(t *testing.T) {
+	runTwiceAndReset("Normal with Role", func(t *testing.T) {
+		authz, err := r.ResolveToken("found-role")
+		require.NotNil(t, authz)
+		require.NoError(t, err)
+		require.False(t, authz.ACLRead())
+		require.True(t, authz.NodeWrite("foo", nil))
+	})
+
+	runTwiceAndReset("Normal with Policy and Role", func(t *testing.T) {
+		authz, err := r.ResolveToken("found-policy-and-role")
+		require.NotNil(t, authz)
+		require.NoError(t, err)
+		require.False(t, authz.ACLRead())
+		require.True(t, authz.NodeWrite("foo", nil))
+		require.True(t, authz.ServiceRead("bar"))
+	})
+
+	runTwiceAndReset("Synthetic Policies Independently Cache", func(t *testing.T) {
+		// We resolve both of these tokens in the same cache session
+		// to verify that the keys for caching synthetic policies don't bleed
+		// over between each other.
+		{
+			authz, err := r.ResolveToken("found-synthetic-policy-1")
+			require.NotNil(t, authz)
+			require.NoError(t, err)
+			// spot check some random perms
+			require.False(t, authz.ACLRead())
+			require.False(t, authz.NodeWrite("foo", nil))
+			// ensure we didn't bleed over to the other synthetic policy
+			require.False(t, authz.ServiceWrite("service2", nil))
+			// check our own synthetic policy
+			require.True(t, authz.ServiceWrite("service1", nil))
+			require.True(t, authz.ServiceRead("literally-anything"))
+			require.True(t, authz.NodeRead("any-node"))
+		}
+		{
+			authz, err := r.ResolveToken("found-synthetic-policy-2")
+			require.NotNil(t, authz)
+			require.NoError(t, err)
+			// spot check some random perms
+			require.False(t, authz.ACLRead())
+			require.False(t, authz.NodeWrite("foo", nil))
+			// ensure we didn't bleed over to the other synthetic policy
+			require.False(t, authz.ServiceWrite("service1", nil))
+			// check our own synthetic policy
+			require.True(t, authz.ServiceWrite("service2", nil))
+			require.True(t, authz.ServiceRead("literally-anything"))
+			require.True(t, authz.NodeRead("any-node"))
+		}
+	})
+
+	runTwiceAndReset("Anonymous", func(t *testing.T) {
 		authz, err := r.ResolveToken("")
 		require.NotNil(t, authz)
 		require.NoError(t, err)
@@ -1168,7 +1664,7 @@ func TestACLResolver_LocalPolicies(t *testing.T) {
 		require.True(t, authz.NodeWrite("foo", nil))
 	})
 
-	t.Run("legacy-management", func(t *testing.T) {
+	runTwiceAndReset("legacy-management", func(t *testing.T) {
 		authz, err := r.ResolveToken("legacy-management")
 		require.NotNil(t, authz)
 		require.NoError(t, err)
@@ -1176,7 +1672,7 @@ func TestACLResolver_LocalPolicies(t *testing.T) {
 		require.True(t, authz.KeyRead("foo"))
 	})
 
-	t.Run("legacy-client", func(t *testing.T) {
+	runTwiceAndReset("legacy-client", func(t *testing.T) {
 		authz, err := r.ResolveToken("legacy-client")
 		require.NoError(t, err)
 		require.NotNil(t, authz)
@@ -1214,7 +1710,7 @@ func TestACLResolver_Legacy(t *testing.T) {
 					cached = true
 					return nil
 				}
-				return fmt.Errorf("Induced RPC Error")
+				return errRPC
 			},
 		}
 		r := newTestACLResolver(t, delegate, nil)
@@ -1263,7 +1759,7 @@ func TestACLResolver_Legacy(t *testing.T) {
 					cached = true
 					return nil
 				}
-				return fmt.Errorf("Induced RPC Error")
+				return errRPC
 			},
 		}
 		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
@@ -1314,7 +1810,7 @@ func TestACLResolver_Legacy(t *testing.T) {
 					cached = true
 					return nil
 				}
-				return fmt.Errorf("Induced RPC Error")
+				return errRPC
 			},
 		}
 		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
@@ -1366,7 +1862,7 @@ func TestACLResolver_Legacy(t *testing.T) {
 					cached = true
 					return nil
 				}
-				return fmt.Errorf("Induced RPC Error")
+				return errRPC
 			},
 		}
 		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
@@ -2859,5 +3355,94 @@ service "service" {
 	ns.Service = "service"
 	if err := vetDeregisterWithACL(perms, args, ns, nil); err != nil {
 		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestDedupeServiceIdentities(t *testing.T) {
+	srvid := func(name string, datacenters ...string) *structs.ACLServiceIdentity {
+		return &structs.ACLServiceIdentity{
+			ServiceName: name,
+			Datacenters: datacenters,
+		}
+	}
+
+	tests := []struct {
+		name   string
+		in     []*structs.ACLServiceIdentity
+		expect []*structs.ACLServiceIdentity
+	}{
+		{
+			name:   "empty",
+			in:     nil,
+			expect: nil,
+		},
+		{
+			name: "one",
+			in: []*structs.ACLServiceIdentity{
+				srvid("foo"),
+			},
+			expect: []*structs.ACLServiceIdentity{
+				srvid("foo"),
+			},
+		},
+		{
+			name: "just names",
+			in: []*structs.ACLServiceIdentity{
+				srvid("fooZ"),
+				srvid("fooA"),
+				srvid("fooY"),
+				srvid("fooB"),
+			},
+			expect: []*structs.ACLServiceIdentity{
+				srvid("fooA"),
+				srvid("fooB"),
+				srvid("fooY"),
+				srvid("fooZ"),
+			},
+		},
+		{
+			name: "just names with dupes",
+			in: []*structs.ACLServiceIdentity{
+				srvid("fooZ"),
+				srvid("fooA"),
+				srvid("fooY"),
+				srvid("fooB"),
+				srvid("fooA"),
+				srvid("fooB"),
+				srvid("fooY"),
+				srvid("fooZ"),
+			},
+			expect: []*structs.ACLServiceIdentity{
+				srvid("fooA"),
+				srvid("fooB"),
+				srvid("fooY"),
+				srvid("fooZ"),
+			},
+		},
+		{
+			name: "names with dupes and datacenters",
+			in: []*structs.ACLServiceIdentity{
+				srvid("fooZ", "dc2", "dc4"),
+				srvid("fooA"),
+				srvid("fooY", "dc1"),
+				srvid("fooB"),
+				srvid("fooA", "dc9", "dc8"),
+				srvid("fooB"),
+				srvid("fooY", "dc1"),
+				srvid("fooZ", "dc3", "dc4"),
+			},
+			expect: []*structs.ACLServiceIdentity{
+				srvid("fooA"),
+				srvid("fooB"),
+				srvid("fooY", "dc1"),
+				srvid("fooZ", "dc2", "dc3", "dc4"),
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := dedupeServiceIdentities(test.in)
+			require.ElementsMatch(t, test.expect, got)
+		})
 	}
 }

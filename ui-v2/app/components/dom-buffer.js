@@ -9,9 +9,11 @@ export default Component.extend({
     return 'modal';
   },
   didInsertElement: function() {
+    this._super(...arguments);
     get(this, 'buffer').add(this.getBufferName(), this.element);
   },
   didDestroyElement: function() {
+    this._super(...arguments);
     get(this, 'buffer').remove(this.getBufferName());
   },
 });

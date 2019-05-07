@@ -10,25 +10,11 @@ test('it renders', function(assert) {
   // Handle any actions with this.on('myAction', function(val) { ... });
 
   this.render(hbs`{{healthcheck-status}}`);
-
-  assert.notEqual(
-    this.$()
-      .text()
-      .trim()
-      .indexOf('Output'),
-    -1
-  );
+  assert.equal(this.$('dt').length, 1);
 
   // Template block usage:
   this.render(hbs`
     {{#healthcheck-status}}{{/healthcheck-status}}
   `);
-
-  assert.notEqual(
-    this.$()
-      .text()
-      .trim()
-      .indexOf('Output'),
-    -1
-  );
+  assert.equal(this.$('dt').length, 1);
 });

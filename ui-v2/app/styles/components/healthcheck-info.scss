@@ -1,0 +1,12 @@
+@import './healthcheck-info/index';
+@import './icons/index';
+tr .healthcheck-info {
+  @extend %healthcheck-info;
+}
+td span.zero {
+  @extend %with-no-healthchecks;
+  // TODO: Why isn't this in layout?
+  display: block;
+  text-indent: 20px;
+  color: $gray-400;
+}

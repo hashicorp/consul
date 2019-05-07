@@ -4,7 +4,7 @@
     {{/block-slot}}
     {{#block-slot 'header'}}
         <h1>
-            ACL Tokens
+            ACL Tokens <em>{{format-number items.length}} total</em>
         </h1>
         <label for="toolbar-toggle"></label>
     {{/block-slot}}
@@ -13,87 +13,90 @@
     {{/block-slot}}
     {{#block-slot 'toolbar'}}
 {{#if (gt items.length 0) }}
-        {{acl-filter filters=typeFilters search=filters.s type=filters.type onchange=(action 'filter')}}
+        {{acl-filter searchable=searchable filters=typeFilters search=filters.s type=filters.type onchange=(action 'filter')}}
 {{/if}}
     {{/block-slot}}
     {{#block-slot 'content'}}
-{{#if (gt filtered.length 0)}}
-        {{#tabular-collection
-            items=(sort-by 'Name:asc' filtered) as |item index|
-        }}
-            {{#block-slot 'header'}}
-                <th>Name</th>
-                <th>Type</th>
-            {{/block-slot}}
-            {{#block-slot 'row'}}
-                <td data-test-acl="{{item.Name}}">
-                    <a href={{href-to 'dc.acls.edit' item.ID}}>{{item.Name}}</a>
-                </td>
-                <td>
-                    {{#if (eq item.Type 'management')}}
-                        <strong>{{item.Type}}</strong>
-                    {{else}}
-                        <span>{{item.Type}}</span>
-                    {{/if}}
-                </td>
-            {{/block-slot}}
-            {{#block-slot 'actions' as |index change checked|}}
-                {{#confirmation-dialog confirming=false index=index}}
-                    {{#block-slot 'action' as |confirm|}}
-                        {{#action-group index=index onchange=(action change) checked=(if (eq checked index) 'checked')}}
-                            <ul>
-                                <li>
+        {{#changeable-set dispatcher=searchable}}
+          {{#block-slot 'set' as |filtered|}}
+            {{#tabular-collection
+                items=(sort-by 'Name:asc' filtered) as |item index|
+            }}
+                {{#block-slot 'header'}}
+                    <th>Name</th>
+                    <th>Type</th>
+                {{/block-slot}}
+                {{#block-slot 'row'}}
+                    <td data-test-acl="{{item.Name}}">
+                        <a href={{href-to 'dc.acls.edit' item.ID}}>{{item.Name}}</a>
+                    </td>
+                    <td>
+                        {{#if (eq item.Type 'management')}}
+                            <strong>{{item.Type}}</strong>
+                        {{else}}
+                            <span>{{item.Type}}</span>
+                        {{/if}}
+                    </td>
+                {{/block-slot}}
+                {{#block-slot 'actions' as |index change checked|}}
+                    {{#confirmation-dialog confirming=false index=index}}
+                        {{#block-slot 'action' as |confirm|}}
+                            {{#action-group index=index onchange=(action change) checked=(if (eq checked index) 'checked')}}
+                                <ul>
+                                  <li>
                                     <a data-test-edit href={{href-to 'dc.acls.edit' item.ID}}>Edit</a>
-                                </li>
+                                  </li>
 {{#if (eq item.ID token.SecretID) }}
-                                <li>
-                                    <a data-test-logout onclick={{queue (action confirm 'logout' item) (action change)}}>Stop using</a>
-                                </li>
+                                  <li>
+                                      <button type="button" data-test-logout {{action confirm 'logout' item}}>Stop using</button>
+                                  </li>
 {{else}}
 
-                                <li>
-                                    <a data-test-use onclick={{queue (action confirm 'use' item) (action change)}}>Use</a>
-                                </li>
+                                  <li>
+                                      <button type="button" data-test-use {{action confirm 'use' item}}>Use</button>
+                                  </li>
 {{/if}}
-                                <li>
-                                    <a data-test-clone onclick={{action 'sendClone' item}}>Clone</a>
-                                </li>
+                                  <li>
+                                      <button type="button" data-test-clone {{action 'sendClone' item}}>Clone</button>
+                                  </li>
 {{# if (not-eq item.ID 'anonymous') }}
-                                <li>
-                                    <a data-test-delete onclick={{action confirm 'delete' item}}>Delete</a>
-                                </li>
+                                  <li>
+                                      <button type="button" class="type-delete" data-test-delete {{action confirm 'delete' item}}>Delete</button>
+                                  </li>
 {{/if}}
-                            </ul>
-                        {{/action-group}}
-                    {{/block-slot}}
-                    {{#block-slot 'dialog' as |execute cancel message name|}}
-                        <p>
-                            {{#if (eq name 'delete')}}
-                                Are you sure you want to delete this ACL token?
-                            {{else if (eq name 'logout')}}
-                                Are you sure you want to stop using this ACL token? This will log you out.
-                            {{ else if (eq name 'use')}}
-                                Are you sure you want to use this ACL token?
-                            {{/if}}
-                        </p>
-                        <button type="button" class="type-delete" {{action execute}}>
-                            {{#if (eq name 'delete')}}
-                                Confirm Delete
-                            {{else if (eq name 'logout')}}
-                                Confirm Logout
-                            {{ else if (eq name 'use')}}
-                                Confirm Use
-                            {{/if}}
-                        </button>
-                        <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
-                    {{/block-slot}}
-                {{/confirmation-dialog}}
-            {{/block-slot}}
-        {{/tabular-collection}}
-{{else}}
-    <p>
-        There are no ACLs.
-    </p>
-{{/if}}
+                              </ul>
+                            {{/action-group}}
+                        {{/block-slot}}
+                        {{#block-slot 'dialog' as |execute cancel message name|}}
+                            <p>
+                                {{#if (eq name 'delete')}}
+                                    Are you sure you want to delete this ACL token?
+                                {{else if (eq name 'logout')}}
+                                    Are you sure you want to stop using this ACL token? This will log you out.
+                                {{ else if (eq name 'use')}}
+                                    Are you sure you want to use this ACL token?
+                                {{/if}}
+                            </p>
+                            <button type="button" class="type-delete" {{action execute}}>
+                                {{#if (eq name 'delete')}}
+                                    Confirm Delete
+                                {{else if (eq name 'logout')}}
+                                    Confirm Logout
+                                {{ else if (eq name 'use')}}
+                                    Confirm Use
+                                {{/if}}
+                            </button>
+                            <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
+                        {{/block-slot}}
+                    {{/confirmation-dialog}}
+                {{/block-slot}}
+            {{/tabular-collection}}
+          {{/block-slot}}
+          {{#block-slot 'empty'}}
+            <p>
+              There are no ACLs.
+            </p>
+          {{/block-slot}}
+        {{/changeable-set}}
     {{/block-slot}}
 {{/app-view}}

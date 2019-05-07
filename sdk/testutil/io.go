@@ -56,6 +56,7 @@ func TempFile(t *testing.T, name string) *os.File {
 	if t != nil && t.Name() != "" {
 		name = t.Name() + "-" + name
 	}
+	name = strings.Replace(name, "/", "_", -1)
 	f, err := ioutil.TempFile(tmpdir, name)
 	if err != nil {
 		if t == nil {

@@ -1123,7 +1123,6 @@ func TestCacheGet_nonBlockingType(t *testing.T) {
 	t.Parallel()
 
 	typ := TestTypeNonBlocking(t)
-	defer typ.AssertExpectations(t)
 	c := TestCache(t)
 	c.RegisterType("t", typ, nil)
 

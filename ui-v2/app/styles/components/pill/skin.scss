@@ -1,4 +1,13 @@
 %pill {
-  background-color: $ui-gray-100;
   border-radius: $radius-small;
+}
+%pill button {
+  background-color: transparent;
+  font-size: 0;
+  cursor: pointer;
+}
+%pill button::before {
+  @extend %with-cancel-plain-icon, %as-pseudo;
+  width: 10px;
+  height: 10px;
 }

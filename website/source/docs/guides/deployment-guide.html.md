@@ -189,7 +189,7 @@ performance {
 
 - [`raft_multiplier`](/docs/agent/options.html#raft_multiplier) - An integer multiplier used by Consul servers to scale key Raft timing parameters. Setting this to a value of 1 will configure Raft to its highest-performance mode, equivalent to the default timing of Consul prior to 0.7, and is recommended for production Consul servers.
 
-For more information on Raft tuning and the `raft_multiplier` setting, see the [server performance](/docs/guides/performance.html) documentation.
+For more information on Raft tuning and the `raft_multiplier` setting, see the [server performance](/docs/install/performance.html) documentation.
 
 ### Telemetry stanza
 
@@ -275,5 +275,5 @@ This spreads the load across nodes at the possible expense of losing full consis
   for recovery from a Consul outage due to a majority of server nodes in a
   datacenter being lost.
 
-- Read [Server Performance](/docs/guides/performance.html) to learn about
+- Read [Server Performance](/docs/install/performance.html) to learn about
   additional configuration that benefits production deployments.

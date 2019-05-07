@@ -3,11 +3,21 @@ td {
   border-bottom: $decor-border-100;
 }
 th {
-  color: $ui-gray-400 !important;
-}
-th {
-  border-color: $keyline-dark;
+  border-color: $gray-300;
 }
 td {
-  border-color: $keyline-mid;
+  border-color: $gray-200;
+  color: $gray-500;
+}
+th,
+td strong {
+  color: $gray-600;
+}
+// TODO: Add to native selector `tbody th` - will involve moving all
+// current th's to `thead th` and changing the templates
+%tbody-th {
+  color: $gray-900;
+}
+td:first-child {
+  @extend %tbody-th;
 }

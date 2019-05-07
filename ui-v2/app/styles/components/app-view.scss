@@ -1,6 +1,7 @@
 @import './app-view/index';
 @import './filter-bar/index';
 @import './buttons/index';
+@import './type-icon/index';
 main {
   @extend %app-view;
 }
@@ -12,11 +13,21 @@ main {
 }
 @media #{$--lt-spacious-page-header} {
   %app-view header .actions {
-    margin-top: 5px;
+    margin-top: 9px;
   }
 }
-%app-view h1 span {
+// TODO: This should be its own component
+%app-view h1 span[data-tooltip] {
   @extend %with-external-source-icon;
+  // TODO: Look to remove this, right now its needed but this
+  // should automaticaly vertically center
+  margin-top: 20px;
+}
+%app-view h1 span.kind-proxy {
+  @extend %type-icon, %with-proxy;
+}
+%app-view h1 em {
+  color: $gray-600;
 }
 %app-view header .actions a,
 %app-view header .actions button {

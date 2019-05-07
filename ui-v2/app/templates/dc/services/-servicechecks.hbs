@@ -1,0 +1,8 @@
+{{#if (gt item.ServiceChecks.length 0) }}
+  {{healthcheck-list items=item.ServiceChecks}}
+{{else}}
+  <p>
+    This instance has no service health checks.
+  </p>
+{{/if}}
+

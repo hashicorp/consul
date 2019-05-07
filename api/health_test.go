@@ -36,6 +36,27 @@ func TestAPI_HealthNode(t *testing.T) {
 	})
 }
 
+func TestAPI_HealthNode_Filter(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	// this sets up the catalog entries with things we can filter on
+	testNodeServiceCheckRegistrations(t, c, "dc1")
+
+	health := c.Health()
+
+	// filter for just the redis service checks
+	checks, _, err := health.Node("foo", &QueryOptions{Filter: "ServiceName == redis"})
+	require.NoError(t, err)
+	require.Len(t, checks, 2)
+
+	// filter out service checks
+	checks, _, err = health.Node("foo", &QueryOptions{Filter: "ServiceID == ``"})
+	require.NoError(t, err)
+	require.Len(t, checks, 2)
+}
+
 func TestAPI_HealthChecks_AggregatedStatus(t *testing.T) {
 	t.Parallel()
 
@@ -257,6 +278,32 @@ func TestAPI_HealthChecks_NodeMetaFilter(t *testing.T) {
 	})
 }
 
+func TestAPI_HealthChecks_Filter(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	// this sets up the catalog entries with things we can filter on
+	testNodeServiceCheckRegistrations(t, c, "dc1")
+
+	health := c.Health()
+
+	checks, _, err := health.Checks("redis", &QueryOptions{Filter: "Node == foo"})
+	require.NoError(t, err)
+	// 1 service check for each instance
+	require.Len(t, checks, 2)
+
+	checks, _, err = health.Checks("redis", &QueryOptions{Filter: "Node == bar"})
+	require.NoError(t, err)
+	// 1 service check for each instance
+	require.Len(t, checks, 1)
+
+	checks, _, err = health.Checks("redis", &QueryOptions{Filter: "Node == foo and v1 in ServiceTags"})
+	require.NoError(t, err)
+	// 1 service check for the matching instance
+	require.Len(t, checks, 1)
+}
+
 func TestAPI_HealthService(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
@@ -386,6 +433,31 @@ func TestAPI_HealthService_NodeMetaFilter(t *testing.T) {
 	})
 }
 
+func TestAPI_HealthService_Filter(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	// this sets up the catalog entries with things we can filter on
+	testNodeServiceCheckRegistrations(t, c, "dc1")
+
+	health := c.Health()
+
+	services, _, err := health.Service("redis", "", false, &QueryOptions{Filter: "Service.Meta.version == 2"})
+	require.NoError(t, err)
+	require.Len(t, services, 1)
+
+	services, _, err = health.Service("web", "", false, &QueryOptions{Filter: "Node.Meta.os == linux"})
+	require.NoError(t, err)
+	require.Len(t, services, 2)
+	require.Equal(t, "baz", services[0].Node.Node)
+	require.Equal(t, "baz", services[1].Node.Node)
+
+	services, _, err = health.Service("web", "", false, &QueryOptions{Filter: "Node.Meta.os == linux and Service.Meta.version == 1"})
+	require.NoError(t, err)
+	require.Len(t, services, 1)
+}
+
 func TestAPI_HealthConnect(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
@@ -440,6 +512,27 @@ func TestAPI_HealthConnect(t *testing.T) {
 	})
 }
 
+func TestAPI_HealthConnect_Filter(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	// this sets up the catalog entries with things we can filter on
+	testNodeServiceCheckRegistrations(t, c, "dc1")
+
+	health := c.Health()
+
+	services, _, err := health.Connect("web", "", false, &QueryOptions{Filter: "Node.Meta.os == linux"})
+	require.NoError(t, err)
+	require.Len(t, services, 2)
+	require.Equal(t, "baz", services[0].Node.Node)
+	require.Equal(t, "baz", services[1].Node.Node)
+
+	services, _, err = health.Service("web", "", false, &QueryOptions{Filter: "Node.Meta.os == linux and Service.Meta.version == 1"})
+	require.NoError(t, err)
+	require.Len(t, services, 1)
+}
+
 func TestAPI_HealthState(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
@@ -481,4 +574,31 @@ func TestAPI_HealthState_NodeMetaFilter(t *testing.T) {
 			r.Fatalf("Bad: %v", checks)
 		}
 	})
+}
+
+func TestAPI_HealthState_Filter(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	// this sets up the catalog entries with things we can filter on
+	testNodeServiceCheckRegistrations(t, c, "dc1")
+
+	health := c.Health()
+
+	checks, _, err := health.State(HealthAny, &QueryOptions{Filter: "Node == baz"})
+	require.NoError(t, err)
+	require.Len(t, checks, 6)
+
+	checks, _, err = health.State(HealthAny, &QueryOptions{Filter: "Status == warning or Status == critical"})
+	require.NoError(t, err)
+	require.Len(t, checks, 2)
+
+	checks, _, err = health.State(HealthCritical, &QueryOptions{Filter: "Node == baz"})
+	require.NoError(t, err)
+	require.Len(t, checks, 1)
+
+	checks, _, err = health.State(HealthWarning, &QueryOptions{Filter: "Node == baz"})
+	require.NoError(t, err)
+	require.Len(t, checks, 1)
 }

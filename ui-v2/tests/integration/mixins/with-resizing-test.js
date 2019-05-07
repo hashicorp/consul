@@ -12,8 +12,13 @@ module('Integration | Mixin | with-resizing', function(hooks) {
       addEventListener: this.stub(),
       removeEventListener: this.stub(),
     };
+    const dom = {
+      viewport: function() {
+        return win;
+      },
+    };
     const subject = EmberObject.extend(Mixin, {
-      win: win,
+      dom: dom,
     }).create();
     const resize = this.stub(subject, 'resize');
     subject.didInsertElement();

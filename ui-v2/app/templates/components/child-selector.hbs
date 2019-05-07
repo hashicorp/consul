@@ -1,0 +1,21 @@
+{{yield}}
+  {{#yield-slot 'create'}}{{yield}}{{/yield-slot}}
+  <label class="type-text">
+    <span>{{#yield-slot 'label'}}{{yield}}{{/yield-slot}}</span>
+      {{#power-select
+        onopen=(action 'open')
+        search=(action 'search')
+        options=options
+        loadingMessage="Loading..."
+        searchMessage="No possible options"
+        searchPlaceholder=placeholder
+        onchange=(action 'change' 'items[]' items) as |item|
+      }}
+        {{#yield-slot 'option' (block-params item)}}{{yield}}{{/yield-slot}}
+      {{/power-select}}
+  </label>
+{{#if (gt items.length 0)}}
+  {{#yield-slot 'set'}}{{yield}}{{/yield-slot}}
+{{else}}
+
+{{/if}}

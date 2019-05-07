@@ -7,7 +7,7 @@
               searchField='Name'
               selected=SourceName
               searchPlaceholder='Type service name'
-              buildSuggestion=(action 'createNewLabel')
+              buildSuggestion=(action 'createNewLabel' "Use a future Consul Service called '{{term}}'")
               showCreateWhen=(action "isUnique")
               oncreate=(action 'change' 'SourceName')
               onchange=(action 'change' 'SourceName') as |service search|
@@ -27,7 +27,7 @@
               searchField='Name'
               selected=DestinationName
               searchPlaceholder='Type service name'
-              buildSuggestion=(action 'createNewLabel')
+              buildSuggestion=(action 'createNewLabel' "Use a future Consul Service called '{{term}}'")
               showCreateWhen=(action "isUnique")
               oncreate=(action 'change' 'DestinationName')
               onchange=(action 'change' 'DestinationName') as |service|

@@ -4,7 +4,7 @@ import { module, test } from 'qunit';
 module('Unit | Utility | update array object');
 
 // Replace this with your real tests.
-test('it works', function(assert) {
+test('it updates the correct item in the array', function(assert) {
   const expected = {
     data: {
       id: '2',
@@ -27,4 +27,5 @@ test('it works', function(assert) {
   ];
   const actual = updateArrayObject(arr, expected, 'id');
   assert.ok(actual, expected);
+  assert.equal(arr[1].name, expected.name);
 });

@@ -79,7 +79,7 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Clone an ACL Token"
+const synopsis = "Clone an ACL token"
 const help = `
 Usage: consul acl token clone [options]
 

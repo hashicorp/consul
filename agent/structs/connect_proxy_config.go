@@ -38,7 +38,7 @@ type ConnectProxyConfig struct {
 
 	// Config is the arbitrary configuration data provided with the proxy
 	// registration.
-	Config map[string]interface{} `json:",omitempty"`
+	Config map[string]interface{} `json:",omitempty" bexpr:"-"`
 
 	// Upstreams describes any upstream dependencies the proxy instance should
 	// setup.
@@ -121,7 +121,7 @@ type Upstream struct {
 	// Config is an opaque config that is specific to the proxy process being run.
 	// It can be used to pass arbitrary configuration for this specific upstream
 	// to the proxy.
-	Config map[string]interface{}
+	Config map[string]interface{} `bexpr:"-"`
 }
 
 // Validate sanity checks the struct is valid
@@ -168,8 +168,11 @@ func (u *Upstream) Identifier() string {
 		name += "?dc=" + u.Datacenter
 	}
 	typ := u.DestinationType
-	if typ == "" {
-		typ = UpstreamDestTypeService
+	// Service is default type so never prefix it. This is more readable and long
+	// term it is the only type that matters so we can drop the prefix and have
+	// nicer naming in metrics etc.
+	if typ == "" || typ == UpstreamDestTypeService {
+		return name
 	}
 	return typ + ":" + name
 }

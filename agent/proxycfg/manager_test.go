@@ -113,7 +113,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 		Roots:   roots,
 		Leaf:    leaf,
 		UpstreamEndpoints: map[string]structs.CheckServiceNodes{
-			"service:db": TestUpstreamNodes(t),
+			"db": TestUpstreamNodes(t),
 		},
 	}
 	start := time.Now()

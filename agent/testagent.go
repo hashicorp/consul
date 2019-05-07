@@ -23,8 +23,8 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/logger"
+	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 
 	"github.com/stretchr/testify/require"
@@ -279,7 +279,8 @@ func (a *TestAgent) Client() *api.Client {
 // DNSDisableCompression disables compression for all started DNS servers.
 func (a *TestAgent) DNSDisableCompression(b bool) {
 	for _, srv := range a.dnsServers {
-		srv.disableCompression.Store(b)
+		cfg := srv.config.Load().(*dnsConfig)
+		cfg.DisableCompression = b
 	}
 }
 
@@ -395,5 +396,20 @@ func TestACLConfig() string {
 		acl_agent_token = "root"
 		acl_agent_master_token = "towel"
 		acl_enforce_version_8 = true
+	`
+}
+
+func TestACLConfigNew() string {
+	return `
+		primary_datacenter = "dc1"
+		acl {
+			enabled = true
+			default_policy = "deny"
+			tokens {
+				master = "root"
+				agent = "root"
+				agent_master = "towel"
+			}
+		}
 	`
 }

@@ -14,16 +14,24 @@ export default Service.extend({
   },
   //
   store: service('store'),
-  findAllByDatacenter: function(dc) {
-    return get(this, 'store').query(this.getModelName(), {
+  findAllByDatacenter: function(dc, configuration = {}) {
+    const query = {
       dc: dc,
-    });
+    };
+    if (typeof configuration.cursor !== 'undefined') {
+      query.index = configuration.cursor;
+    }
+    return get(this, 'store').query(this.getModelName(), query);
   },
-  findBySlug: function(slug, dc) {
-    return get(this, 'store').queryRecord(this.getModelName(), {
-      id: slug,
+  findBySlug: function(slug, dc, configuration = {}) {
+    const query = {
       dc: dc,
-    });
+      id: slug,
+    };
+    if (typeof configuration.cursor !== 'undefined') {
+      query.index = configuration.cursor;
+    }
+    return get(this, 'store').queryRecord(this.getModelName(), query);
   },
   create: function(obj) {
     // TODO: This should probably return a Promise

@@ -129,7 +129,7 @@ func (c *cmd) Run(args []string) int {
 	if c.sidecarFor == "" {
 		c.sidecarFor = os.Getenv(proxyAgent.EnvSidecarFor)
 	}
-	if c.http.Token() == "" {
+	if c.http.Token() == "" && c.http.TokenFile() == "" {
 		c.http.SetToken(os.Getenv(proxyAgent.EnvProxyToken))
 	}
 

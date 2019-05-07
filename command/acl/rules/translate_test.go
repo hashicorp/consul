@@ -9,10 +9,10 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/logger"
-	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRulesTranslateCommand_noTabs(t *testing.T) {
@@ -25,7 +25,6 @@ func TestRulesTranslateCommand_noTabs(t *testing.T) {
 
 func TestRulesTranslateCommand(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
 
 	testDir := testutil.TempDir(t, "acl")
 	defer os.RemoveAll(testDir)
@@ -53,9 +52,9 @@ func TestRulesTranslateCommand(t *testing.T) {
 	expected := "service_prefix \"\" {\n  policy = \"write\"\n}"
 
 	// From a file
-	{
+	t.Run("file", func(t *testing.T) {
 		err := ioutil.WriteFile(testDir+"/rules.hcl", []byte(rules), 0644)
-		assert.NoError(err)
+		require.NoError(t, err)
 
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
@@ -64,13 +63,13 @@ func TestRulesTranslateCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		assert.Equal(code, 0)
-		assert.Empty(ui.ErrorWriter.String())
-		assert.Contains(ui.OutputWriter.String(), expected)
-	}
+		require.Equal(t, code, 0)
+		require.Empty(t, ui.ErrorWriter.String())
+		require.Contains(t, ui.OutputWriter.String(), expected)
+	})
 
 	// From stdin
-	{
+	t.Run("stdin", func(t *testing.T) {
 		go func() {
 			stdinW.Write([]byte(rules))
 			stdinW.Close()
@@ -83,13 +82,13 @@ func TestRulesTranslateCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		assert.Equal(code, 0)
-		assert.Empty(ui.ErrorWriter.String())
-		assert.Contains(ui.OutputWriter.String(), expected)
-	}
+		require.Equal(t, code, 0)
+		require.Empty(t, ui.ErrorWriter.String())
+		require.Contains(t, ui.OutputWriter.String(), expected)
+	})
 
 	// From arg
-	{
+	t.Run("arg", func(t *testing.T) {
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"-token=root",
@@ -97,8 +96,23 @@ func TestRulesTranslateCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		assert.Equal(code, 0)
-		assert.Empty(ui.ErrorWriter.String())
-		assert.Contains(ui.OutputWriter.String(), expected)
-	}
+		require.Equal(t, code, 0)
+		require.Empty(t, ui.ErrorWriter.String())
+		require.Contains(t, ui.OutputWriter.String(), expected)
+	})
+
+	// cannot specify both secret and accessor
+	t.Run("exclusive-options", func(t *testing.T) {
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-token-secret",
+			"-token-accessor",
+			`token "" { policy = "write" }`,
+		}
+
+		code := cmd.Run(args)
+		require.Equal(t, 1, code, 0)
+		require.Equal(t, "Error - cannot specify both -token-secret and -token-accessor\n", ui.ErrorWriter.String())
+	})
 }

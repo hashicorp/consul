@@ -5,6 +5,7 @@ moduleFor('route:dc/acls/tokens/create', 'Unit | Route | dc/acls/tokens/create',
   needs: [
     'service:repository/token',
     'service:repository/policy',
+    'service:repository/role',
     'service:repository/dc',
     'service:feedback',
     'service:logger',

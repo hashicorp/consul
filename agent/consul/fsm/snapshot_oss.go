@@ -28,6 +28,9 @@ func init() {
 	registerRestorer(structs.ACLTokenSetRequestType, restoreToken)
 	registerRestorer(structs.ACLPolicySetRequestType, restorePolicy)
 	registerRestorer(structs.ConfigEntryRequestType, restoreConfigEntry)
+	registerRestorer(structs.ACLRoleSetRequestType, restoreRole)
+	registerRestorer(structs.ACLBindingRuleSetRequestType, restoreBindingRule)
+	registerRestorer(structs.ACLAuthMethodSetRequestType, restoreAuthMethod)
 }
 
 func persistOSS(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) error {
@@ -178,6 +181,8 @@ func (s *snapshot) persistACLs(sink raft.SnapshotSink,
 		return err
 	}
 
+	// Don't check expiration times. Wait for explicit deletions.
+
 	for token := tokens.Next(); token != nil; token = tokens.Next() {
 		if _, err := sink.Write([]byte{byte(structs.ACLTokenSetRequestType)}); err != nil {
 			return err
@@ -197,6 +202,48 @@ func (s *snapshot) persistACLs(sink raft.SnapshotSink,
 			return err
 		}
 		if err := encoder.Encode(policy.(*structs.ACLPolicy)); err != nil {
+			return err
+		}
+	}
+
+	roles, err := s.state.ACLRoles()
+	if err != nil {
+		return err
+	}
+
+	for role := roles.Next(); role != nil; role = roles.Next() {
+		if _, err := sink.Write([]byte{byte(structs.ACLRoleSetRequestType)}); err != nil {
+			return err
+		}
+		if err := encoder.Encode(role.(*structs.ACLRole)); err != nil {
+			return err
+		}
+	}
+
+	rules, err := s.state.ACLBindingRules()
+	if err != nil {
+		return err
+	}
+
+	for rule := rules.Next(); rule != nil; rule = rules.Next() {
+		if _, err := sink.Write([]byte{byte(structs.ACLBindingRuleSetRequestType)}); err != nil {
+			return err
+		}
+		if err := encoder.Encode(rule.(*structs.ACLBindingRule)); err != nil {
+			return err
+		}
+	}
+
+	methods, err := s.state.ACLAuthMethods()
+	if err != nil {
+		return err
+	}
+
+	for method := methods.Next(); method != nil; method = rules.Next() {
+		if _, err := sink.Write([]byte{byte(structs.ACLAuthMethodSetRequestType)}); err != nil {
+			return err
+		}
+		if err := encoder.Encode(method.(*structs.ACLAuthMethod)); err != nil {
 			return err
 		}
 	}
@@ -600,4 +647,28 @@ func restoreConfigEntry(header *snapshotHeader, restore *state.Restore, decoder 
 		return err
 	}
 	return restore.ConfigEntry(req.Entry)
+}
+
+func restoreRole(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	var req structs.ACLRole
+	if err := decoder.Decode(&req); err != nil {
+		return err
+	}
+	return restore.ACLRole(&req)
+}
+
+func restoreBindingRule(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	var req structs.ACLBindingRule
+	if err := decoder.Decode(&req); err != nil {
+		return err
+	}
+	return restore.ACLBindingRule(&req)
+}
+
+func restoreAuthMethod(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	var req structs.ACLAuthMethod
+	if err := decoder.Decode(&req); err != nil {
+		return err
+	}
+	return restore.ACLAuthMethod(&req)
 }

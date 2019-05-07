@@ -2,6 +2,9 @@
   /* this keeps in-tab-section toolbars flush to the top, see Node Detail > Services */
   margin-top: 0 !important;
 }
+%tab-nav {
+  clear: both;
+}
 @media #{$--horizontal-tabs} {
   %tab-nav ul {
     display: flex;

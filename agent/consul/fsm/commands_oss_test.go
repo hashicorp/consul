@@ -1390,18 +1390,10 @@ func TestFSM_ConfigEntry(t *testing.T) {
 
 	// Verify it's in the state store.
 	{
-		_, config, err := fsm.state.ConfigEntry(structs.ProxyDefaults, "global")
+		_, config, err := fsm.state.ConfigEntry(nil, structs.ProxyDefaults, "global")
 		require.NoError(err)
 		entry.RaftIndex.CreateIndex = 1
 		entry.RaftIndex.ModifyIndex = 1
-
-		proxyConf, ok := config.(*structs.ProxyConfigEntry)
-		require.True(ok)
-
-		// Read the map[string]interface{} back out.
-		value, _ := proxyConf.Config["foo"].([]uint8)
-		proxyConf.Config["foo"] = structs.Uint8ToString(value)
-
 		require.Equal(entry, config)
 	}
 }

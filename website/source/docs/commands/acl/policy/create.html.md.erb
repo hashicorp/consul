@@ -1,0 +1,104 @@
+---
+layout: "docs"
+page_title: "Commands: ACL Policy Create"
+sidebar_current: "docs-commands-acl-policy-create"
+---
+
+# Consul ACL Policy Create
+
+Command: `consul acl policy create`
+
+The `acl policy create` command creates new policies. The policies rules can either be set explicitly or the
+`-from-token` parameter may be used to load the rules from a legacy ACL token. When loading
+the rules from an existing legacy ACL token, the rules get translated from the legacy syntax
+to the new syntax.
+
+Both the `-rules` and `-from-token` parameter values allow loading the value
+from stdin, a file or the raw value. To use stdin pass `-` as the value.
+To load the value from a file prefix the value with an `@`. Any other
+values will be used directly.
+
+-> **Deprecated:** The `-from-token` and `-token-secret` arguments exist only as a convenience
+to make legacy ACL migration easier. These will be removed in a future major release when
+support for the legacy ACL system is removed.
+
+## Usage
+
+Usage: `consul acl policy create [options] [args]`
+
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
+
+#### Command Options
+
+* `-description=<string>` - A description of the policy.
+
+* `-from-token=<string>` - The legacy token to retrieve the rules for when creating this
+   policy. When this is specified no other rules should be given.
+   Similar to the -rules option the token to use can be loaded from
+   stdin or from a file.
+
+* `-meta` - Indicates that policy metadata such as the content hash and raft
+   indices should be shown for each entry.
+
+* `-name=<string>` - The new policy's name. This flag is required.
+
+* `-rules=<string>` - The policy rules. May be prefixed with '@' to indicate that the
+   value is a file path to load the rules from. '-' may also be given
+   to indicate that the rules are available on stdin.
+
+* `-token-secret` - Indicates the token provided with -from-token is a SecretID and not
+   an AccessorID.
+
+* `-valid-datacenter=<value>` - Datacenter that the policy should be valid within.
+   This flag may be specified multiple times.
+
+## Examples
+
+Create a new policy that is valid in all datacenters:
+
+```sh
+$ consul acl policy create -name "acl-replication" -description "Policy capable of replicating ACL policies" -rules 'acl = "read"'
+ID:           35b8ecb0-707c-ee18-2002-81b238b54b38
+Name:         acl-replication
+Description:  Policy capable of replicating ACL policies
+Datacenters:
+Rules:
+acl = "read"
+```
+
+Create a new policy valid only in specific datacenters with rules read from a file:
+
+```sh
+$ consul acl policy create -name "replication" -description "Replication" -rules @rules.hcl -valid-datacenter dc1 -valid-datacenter dc2
+ID:           ca44555b-a2d8-94de-d763-88caffdaf11f
+Name:         replication
+Description:  Replication
+Datacenters:  dc1, dc2
+Rules:
+acl = "read"
+service_prefix "" {
+   policy = "read"
+   intentions = "read"
+}
+```
+
+Create a new policy with rules equivalent to that of a legacy ACL token:
+
+```sh
+$ consul acl policy create -name "node-services-read" -from-token 5793a5ce -description "Can read any node and service"
+ID:           06acc965-df4b-5a99-58cb-3250930c6324
+Name:         node-services-read
+Description:  Can read any node and service
+Datacenters:
+Rules:
+service_prefix "" {
+  policy = "read"
+}
+
+node_prefix "" {
+  policy = "read"
+}
+```

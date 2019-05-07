@@ -3,7 +3,6 @@ HASHICORP_GPG_KEY="348FFC4C"
 
 # Default Image Names
 UI_BUILD_CONTAINER_DEFAULT="consul-build-ui"
-UI_LEGACY_BUILD_CONTAINER_DEFAULT="consul-build-ui-legacy"
 GO_BUILD_CONTAINER_DEFAULT="consul-build-go"
 
 # Whether to colorize shell output

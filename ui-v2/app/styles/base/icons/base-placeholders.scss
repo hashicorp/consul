@@ -1,0 +1,13 @@
+%with-icon {
+  background-repeat: no-repeat;
+  background-position: center;
+}
+%as-pseudo {
+  display: inline-block;
+  content: '';
+  visibility: visible;
+  background-size: contain;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: text-top;
+}

@@ -36,7 +36,6 @@ export default Route.extend(WithTokenActions, {
     });
   },
   setupController: function(controller, model) {
-    this._super(...arguments);
     controller.setProperties(model);
   },
 });

@@ -51,8 +51,14 @@ Snapshots can be restored using the
 [`consul snapshot restore`](/docs/commands/snapshot/restore.html) command, or
 the [HTTP API](/api/snapshot.html).
 
-If ACLs are enabled, a management token must be supplied in order to perform
-snapshot operations.
+If ACLs are enabled the following privileges are required:
+
+| Resource  | Segment          | Permission | Explanation |
+| --------- | ---------------- | ---------- | ----------- |
+| `acl`     | N/A              | `write`    | All snapshotting operations require this privilege due to snapshots containing ACL tokens including unredacted secrets. |
+| `key`     | `<lock key>`     | `write`    | The lock key (which defaults to `consul-snapshot/lock`) is used during snapshot agent leader election. |
+| `session` | `<agent name>`   | `write`    | The session used for locking during leader election is created against the agent name of the Consul agent that the Snapshot agent is registering itself with. |
+| `service` | `<service name>` | `write`    | The Snapshot agent registers itself with the local Consul agent and must have write privileges on its service name which is configured with `-service`. |
 
 ## Usage
 

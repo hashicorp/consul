@@ -397,13 +397,20 @@ func TestSessionTTLRenew(t *testing.T) {
 	}
 
 	// Sleep to consume some time before renew
-	time.Sleep(ttl * (structs.SessionTTLMultiplier / 3))
+	sleepFor := ttl * structs.SessionTTLMultiplier / 3
+	if sleepFor <= 0 {
+		t.Fatalf("timing tests need to sleep")
+	}
+	time.Sleep(sleepFor)
 
 	req, _ = http.NewRequest("PUT", "/v1/session/renew/"+id, nil)
 	resp = httptest.NewRecorder()
 	obj, err = a.srv.SessionRenew(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
+	}
+	if obj == nil {
+		t.Fatalf("session '%s' expired before renewal", id)
 	}
 	respObj, ok = obj.(structs.Sessions)
 	if !ok {
