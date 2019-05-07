@@ -3,7 +3,6 @@ package consul
 import (
 	"fmt"
 	"net"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -61,8 +60,12 @@ func (c *Client) AutoEncrypt(servers []string, port int, token string) (*structs
 	// RPCInsecure.
 	addrs := []*net.TCPAddr{}
 	for _, s := range servers {
-		host := strings.SplitN(s, ":", 2)[0]
-		addrs = append(addrs, &net.TCPAddr{IP: net.ParseIP(host), Port: port})
+		addr, err := net.ResolveTCPAddr("tcp", s)
+		if err != nil {
+			continue
+		}
+		addr.Port = port
+		addrs = append(addrs, addr)
 	}
 
 	// Retry implementation modelled after https://github.com/hashicorp/consul/pull/5228.
