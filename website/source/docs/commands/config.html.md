@@ -9,11 +9,12 @@ sidebar_current: "docs-commands-config"
 Command: `consul config`
 
 The `config` command is used to interact with Consul's central configuration
-system. It exposes commands for creating, updating, reading, and deleting 
+system. It exposes commands for creating, updating, reading, and deleting
 different kinds of config entries. See the
 [agent configuration](/docs/agent/options.html#enable_central_service_config)
-for more information on how to enable this functionality for centrally 
-configuring services.
+for more information on how to enable this functionality for centrally
+configuring services and [configuration entries docs](/docs/agent/config_entries.html) for a description
+of the configuration entries content.
 
 ## Usage
 

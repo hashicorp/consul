@@ -9,10 +9,8 @@ sidebar_current: "docs-commands-config-write"
 Command: `consul config write`
 
 The `config write` command creates or updates a centralized config entry.
-See the
-[agent configuration](/docs/agent/options.html#enable_central_service_config)
-for more information on how to enable this functionality for centrally 
-configuring services.
+See the [configuration entries docs](/docs/agent/config_entries.html) for more
+details about configuration entries.
 
 ## Usage
 
@@ -24,9 +22,9 @@ Usage: `consul config write [options] FILE`
 
 #### Config Write Options
 
-* `-cas` - Specifies to use a Check-And-Set operation. If the index is 
-  0, Consul will only store the entry if it does not already exist. If the index is 
-  non-zero, the entry is only set if the current index matches the `ModifyIndex` 
+* `-cas` - Specifies to use a Check-And-Set operation. If the index is
+  0, Consul will only store the entry if it does not already exist. If the index is
+  non-zero, the entry is only set if the current index matches the `ModifyIndex`
   of that entry.
 
 ## Examples
@@ -47,17 +45,14 @@ supported types are `service-defaults` and `proxy-defaults`.
 
 #### Service defaults
 
-Service defaults control default global values for a service, such as the 
-protocol and Connect fields. 
+Service defaults control default global values for a service, such as the
+protocol and Connect fields.
 
 ```json
 {
     "Kind": "service-defaults",
     "Name": "web",
     "Protocol": "http",
-    "Connect": {
-        "SidecarProxy": false
-    }
 }
 ```
 
