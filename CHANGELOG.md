@@ -25,6 +25,7 @@ FEATURES:
 * acl: tokens can now be assigned to roles [[GH-5514](https://github.com/hashicorp/consul/issues/5514)]
 * acl: adding support for kubernetes auth provider login [[GH-5600](https://github.com/hashicorp/consul/issues/5600)]
 * ui: Template-able Dashboard links for Service detail pages [[GH-5704]](https://github.com/hashicorp/consul/pull/5704) [[GH-5777]](https://github.com/hashicorp/consul/pull/5777)
+* ui: support for ACL Roles [[GH-5635](https://github.com/hashicorp/consul/pull/5635)]
 
 
 IMPROVEMENTS:
@@ -34,6 +35,7 @@ IMPROVEMENTS:
 * ui: Service Instances page redesign and further visibility of Connect Proxies [[GH-5326]](https://github.com/hashicorp/consul/pull/5326)
 * ui: Blocking Query support / live updates for Services and Nodes, requires enabling per user via the UI Settings area [[GH-5070]](https://github.com/hashicorp/consul/pull/5070) [[GH-5267]](https://github.com/hashicorp/consul/pull/5267)
 * ui: Finer grained searching for the Service listing page [[GH-5507]](https://github.com/hashicorp/consul/pull/5507)
+* ui: Add proxy icons to proxy services and instances where appropriate [[GH-5463](https://github.com/hashicorp/consul/pull/5463)]
 
 
 BUG FIXES:
