@@ -72,7 +72,7 @@ them in a running cluster. The second way is by placing inlined configuration en
 
 ### Managing Configuration Entries with the Consul CLI
 
-Configuration entries should usually managed with the Consul [CLI](/docs/commands/config.html). The `consul config` command has four subcommands
+Configuration entries should be managed with the Consul [CLI](/docs/commands/config.html). The `consul config` command has four subcommands
 for managing the entries: `write`, `read`, `list` and `delete`.
 
 #### Creating or Updating a Configuration Entry
