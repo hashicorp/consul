@@ -94,16 +94,16 @@ the ability to control some parts of the bootstrap config via proxy
 configuration options.
 
 Users can add the following configuration items to the [global `proxy-defaults`
-configuration entry](#TODO) or override them directly in the `proxy.config` field
+configuration entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaults) or override them directly in the `proxy.config` field
 of a [proxy service
 definition](/docs/connect/proxies.html#proxy-service-definitions) or
 [`sidecar_service`](/docs/connect/proxies/sidecar-service.html) block.
 
 - `envoy_statsd_url` - A URL in the form `udp://ip:port` identifying a UDP
   StatsD listener that Envoy should deliver metrics to. For example, this may be
-  `udp://127.0.0.1:8125` if every host has a local StatsD listener. In this
-  case users can configure this property once in the [global proxy
-  defaults](#TODO) config entry for convenience. Currently, TCP is not supported.
+  `udp://127.0.0.1:8125` if every host has a local StatsD listener. In this case
+  users can configure this property once in the [global `proxy-defaults`
+configuration entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaults) for convenience. Currently, TCP is not supported.
 
     ~> **Note:** currently the url **must use an ip address** not a dns name due
     to the way Envoy is setup for StatsD.
@@ -114,7 +114,7 @@ definition](/docs/connect/proxies.html#proxy-service-definitions) or
     pod in a Kubernetes cluster to learn of a pod-specific IP address for StatsD
     when the Envoy instance is bootstrapped while still allowing global
     configuration of all proxies to use StatsD in the [global `proxy-defaults`
-    configuration entry](#TODO). The env variable must contain a full valid URL
+configuration entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaults). The env variable must contain a full valid URL
     value as specified above and nothing else. It is not currently possible to use
     environment variables as only part of the URL.
 
@@ -146,21 +146,41 @@ complete control over the bootstrap configuration generated.
 
 ## Dynamic Configuration
 
-Consul automatically generates Envoy's dynamic configuration. For Envoy
-we generate different listener configurations depending on the service's
-protocol, which is defined using the [`service-defaults` configuration
-entries](#TODO).
+Consul automatically generates Envoy's dynamic configuration based on its
+knowledge of the cluster. Users may specify default configuration options for
+each service such as which protocol they speak. Consul will use this information
+to configure appropriate proxy settings for that service's proxies and also for
+the upstream listeners of any downstream service.
 
-Users may add the following configuration items to the [global `proxy-defaults`
-configuration entry](#TODO) or override them directly in the `proxy.config` field
-of a [proxy service
-definition](/docs/connect/proxies.html#proxy-service-definitions) or
-[`sidecar_service`](/docs/connect/proxies/sidecar-service.html) block.
+Users can define a service's protocol in its [`service-defaults` configuration
+entry](/docs/agent/config_entries.html#service-defaults-service-defaults). Agents with
+[`enable_central_service_config`](/docs/agent/options.html#enable_central_service_config)
+set to true will automatically discover the protocol when configuring a proxy
+for a service. The proxy will discover the main protocol of the service it
+represents and use this to configure its main public listener. It will also
+discover the protocols defined for any of its upstream services and
+automatically configure its upstream listeners appropriately too as below.
 
-- `protocol` - The protocol the service speaks. Connect's Envoy integration currently supports the following `protocol` values:
-  - `tcp` - Unless otherwise specified this is the default, which causes Envoy to proxy at L4. This provides all the
-    security benefits of Connect's mTLS and works for any TCP-based protocol.
-    Load-balancing and metrics are available at the connection level.
+This automated discovery results in Consul auto-populating the `proxy.config`
+and `proxy.upstreams[*].config` fields of the [proxy service
+definition](/docs/connect/proxies.html#proxy-service-definitions) that is
+actually registered.
+
+### Proxy Config Options
+
+These fields may also be overridden explicitly in the [proxy service
+definition](/docs/connect/proxies.html#proxy-service-definitions), or defined in
+the  [global `proxy-defaults` configuration
+entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaults) to act as
+defaults that are inherited by all services.
+
+
+- `protocol` - The protocol the service speaks. Connect's Envoy integration
+  currently supports the following `protocol` values:
+  - `tcp` - Unless otherwise specified this is the default, which causes Envoy
+    to proxy at L4. This provides all the security benefits of Connect's mTLS
+    and works for any TCP-based protocol. Load-balancing and metrics are
+    available at the connection level.
   - `http` - This specifies that the service speaks HTTP/1.x. Envoy will setup an
     `http_connection_manager` and will be able to load-balance requests
     individually to available upstream services. Envoy will also emit L7 metrics
@@ -179,6 +199,8 @@ definition](/docs/connect/proxies.html#proxy-service-definitions) or
 - `local_connect_timeout_ms` - The number of milliseconds allowed to make
   connections to the local application instance before timing out. Defaults to 5000
   (5 seconds).
+
+### Proxy Upstream Config Options
 
 The following configuration items may be overridden directly in the
 `proxy.upstreams[].config` field of a [proxy service
@@ -230,8 +252,9 @@ with no `@type` field.
 ### Advanced Bootstrap Options
 
 Users may add the following configuration items to the [global `proxy-defaults`
-configuration entry](#TODO) or override them directly in the `proxy.config` field
-of a [proxy service
+configuration
+entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaults) or
+override them directly in the `proxy.config` field of a [proxy service
 definition](/docs/connect/proxies.html#proxy-service-definitions) or
 [`sidecar_service`](/docs/connect/proxies/sidecar-service.html) block.
 
@@ -265,8 +288,9 @@ definition](/docs/connect/proxies.html#proxy-service-definitions) or
 ### Escape-Hatch Overrides
 
 Users may add the following configuration items to the [global `proxy-defaults`
-configuration entry](#TODO) or override them directly in the `proxy.config` field
-of a [proxy service
+configuration
+entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaults) or
+override them directly in the `proxy.config` field of a [proxy service
 definition](/docs/connect/proxies.html#proxy-service-definitions) or
 [`sidecar_service`](/docs/connect/proxies/sidecar-service.html) block.
 
