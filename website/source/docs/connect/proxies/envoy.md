@@ -19,12 +19,12 @@ L7 or any other tcp-based protocol at L4. Prior to Consul 1.5.0 Envoy proxies
 could only proxy tcp at L4.
 
 Currently configuration of additional L7 features is limited, however we have
-plans to support a wide range of further features in the next major release
+plans to support a wider range of features in the next major release
 cycle.
 
-As an interim solution, [custom Envoy configuration](#custom-configuration) can
-be specified in [proxy service definition](/docs/connect/proxies.html) allowing
-more powerful features of Envoy to be used.
+As an interim solution, you can add [custom Envoy configuration](#custom-configuration)
+in the [proxy service definition](/docs/connect/proxies.html) allowing
+you to use the more powerful features of Envoy.
 
 ## Supported Versions
 
@@ -36,12 +36,12 @@ compatible Envoy versions.
 | 1.5.x and higher | 1.9.1, 1.8.0† |
 | 1.3.x, 1.4.x | 1.9.1, 1.8.0†, 1.7.0† |
 
- ~> **† Security Note:** Envoy versions lower than 1.9.1 are vulnerable to
+!> **Security Note:** Envoy versions lower than 1.9.1 are vulnerable to
  [CVE-2019-9900](https://github.com/envoyproxy/envoy/issues/6434) and
  [CVE-2019-9901](https://github.com/envoyproxy/envoy/issues/6435). Both are
  related to HTTP request parsing and so only affect Consul Connect users if they
  have configured HTTP routing rules via the ["escape
- hatch"](#custom-configuration). Still, we recommend Envoy 1.9.1 be used where
+ hatch"](#custom-configuration). Still, we recommend that you use Envoy 1.9.1 where
  possible.
 
 ## Getting Started
@@ -60,67 +60,67 @@ identity (node id) and the location of it's local Consul agent from which it
 discovers all of it's dynamic configuration. See [Bootstrap
 Configuration](#bootstrap-configuration) for more details.
 
-The dynamic configuration Consul Connect provides to each Envoy includes:
+The dynamic configuration Consul Connect provides to each Envoy instance includes:
 
- - TLS certificates and keys to enable mutual auth and keep certificates
+ - TLS certificates and keys to enable mutual authentication and keep certificates
    rotating.
- - Service discovery results for upstreams to enable the sidecar to load-balance
+ - Service-discovery results for upstreams to enable each sidecar proxy to load-balance
    outgoing connections.
- - L7 configuration including timeouts and protocol specific options.
+ - L7 configuration including timeouts and protocol-specific options.
 
-For more information on the parts of the runtime configuration of Envoy proxies
+For more information on the parts of the Envoy proxy runtime configuration
 that are currently controllable via Consul Connect see [Dynamic
 Configuration](#dynamic-configuration).
 
-We plan to continue to enable more and more of Envoy's features through
+We plan to enable more and more of Envoy's features through
 Connect's first-class configuration over time, however some advanced users will
-need more control to configure Envoy in specific ways. To enable this, we
+need additional control to configure Envoy in specific ways. To enable this, we
 provide several ["escape hatch"](#advanced-configuration) options that allow
-low-level raw Envoy config syntax to be provided for some sub-components in each
-Envoy instance which allows full control although with operator taking
-responsibility for correct configuration and Envoy version support etc.
+users to provide low-level raw Envoy config syntax for some sub-components in each
+Envoy instance. This allows operators to have full control over and
+responsibility for correctly configuring Envoy and ensuring version support etc.
 
 ## Bootstrap Configuration
 
 Envoy requires an initial bootstrap configuration file. The easiest way to
-create this is the [`consul connect envoy`
+create this is using the [`consul connect envoy`
 command](/docs/commands/connect/envoy.html). The command can either output the
 bootstrap configuration directly to stdout or can generate it and then `exec`
 the Envoy binary as a convenience wrapper.
 
-Some Envoy configuration options like metrics and tracing sinks can only be
-specified via the bootstrap configuration and so Connect as of Consul 1.5.0 adds
+Because some Envoy configuration options like metrics and tracing sinks can only be
+specified via the bootstrap configuration, Connect as of Consul 1.5.0 adds
 the ability to control some parts of the bootstrap config via proxy
 configuration options.
 
-The following configuration items may be added to the [global `proxy-defaults`
-configuration entry](#TODO) or overridden directly in the `proxy.config` field
+Users can add the following configuration items to the [global `proxy-defaults`
+configuration entry](#TODO) or override them directly in the `proxy.config` field
 of a [proxy service
 definition](/docs/connect/proxies.html#proxy-service-definitions) or
 [`sidecar_service`](/docs/connect/proxies/sidecar-service.html) block.
 
 - `envoy_statsd_url` - A URL in the form `udp://ip:port` identifying a UDP
-  statsd listener that metrics should be delivered to. For example this may be
-  `udp://127.0.0.1:8125` if every host has a local statsd listener. In this
-  case it is convenient to configure this property once in the [global proxy
-  defaults](#TODO) config entry. Currently, TCP is not supported.
+  StatsD listener that Envoy should deliver metrics to. For example, this may be
+  `udp://127.0.0.1:8125` if every host has a local StatsD listener. In this
+  case users can configure this property once in the [global proxy
+  defaults](#TODO) config entry for convenience. Currently, TCP is not supported.
 
-    -> **Note:** currently the url **must use an ip address** not a dns name due
-    to the way Envoy is setup for statsd.
+    ~> **Note:** currently the url **must use an ip address** not a dns name due
+    to the way Envoy is setup for StatsD.
 
-    The whole parameter may also be specified in the form `$ENV_VAR_NAME` which
+    Users can also specify the whole parameter in the form `$ENV_VAR_NAME`, which
     will cause the `consul connect envoy` command to resolve the actual URL from
-    the named environment variable when it runs. This for example allows each
-    pod in a Kubernetes cluster to learn of a pod-specific IP address for statsd
-    when the envoy instance is bootstrapped while still allowing global
-    configuration of all proxies to use statsd in the [global `proxy-defaults`
+    the named environment variable when it runs. This, for example, allows each
+    pod in a Kubernetes cluster to learn of a pod-specific IP address for StatsD
+    when the Envoy instance is bootstrapped while still allowing global
+    configuration of all proxies to use StatsD in the [global `proxy-defaults`
     configuration entry](#TODO). The env variable must contain a full valid URL
-    value as specified above and nothing else. It is not possible to use
-    environment variables as only part of the URL currently.
+    value as specified above and nothing else. It is not currently possible to use
+    environment variables as only part of the URL.
 
 - `envoy_dogstatsd_url` - The same as `envoy_statsd_url` with the following
   differences in behavior:
-    - Envoy will use dogstatsd tags instead of statsd dot-separated metric names
+    - Envoy will use dogstatsd tags instead of statsd dot-separated metric names.
     - As well as `udp://`, a `unix://` URL may be specified if your agent can
       listen on a unix socket (e.g. the dogstatsd agent).
 
@@ -131,7 +131,7 @@ definition](/docs/connect/proxies.html#proxy-service-definitions) or
   available interfaces or a pod IP address.
 
     -> **Note:** Envoy versions prior to 1.10 do not export timing histograms
-    using the internal prometheus endpoint. Consul 1.5.0 [doesn't yet support
+    using the internal Prometheus endpoint. Consul 1.5.0 [doesn't yet support
     Envoy 1.10](#supported-versions) although support will soon be added.
 
 - `envoy_stats_tags` - Specifies one or more static tags that will be added to
@@ -146,41 +146,38 @@ complete control over the bootstrap configuration generated.
 
 ## Dynamic Configuration
 
-Envoy's dynamic configuration is generated by Consul and is automatic. For Envoy
+Consul automatically generates Envoy's dynamic configuration. For Envoy
 we generate different listener configurations depending on the service's
-protocol which is defined using [`service-defaults` configuration
+protocol, which is defined using the [`service-defaults` configuration
 entries](#TODO).
 
-The following configuration items may be added to the [global `proxy-defaults`
-configuration entry](#TODO) or overridden directly in the `proxy.config` field
+Users may add the following configuration items to the [global `proxy-defaults`
+configuration entry](#TODO) or override them directly in the `proxy.config` field
 of a [proxy service
 definition](/docs/connect/proxies.html#proxy-service-definitions) or
 [`sidecar_service`](/docs/connect/proxies/sidecar-service.html) block.
 
-- `protocol` - The protocol the service speaks. The following `protocol` values
-  are supported by Connect's Envoy integration currently:
-  - `tcp` - The default is plain TCP and will proxy at L4. This gets all the
+- `protocol` - The protocol the service speaks. Connect's Envoy integration currently supports the following `protocol` values:
+  - `tcp` - Unless otherwise specified this is the default, which causes Envoy to proxy at L4. This provides all the
     security benefits of Connect's mTLS and works for any TCP-based protocol.
     Load-balancing and metrics are available at the connection level.
-  - `http` - This specified the service speaks HTTP/1.x. Envoy will setup an
+  - `http` - This specifies that the service speaks HTTP/1.x. Envoy will setup an
     `http_connection_manager` and will be able to load-balance requests
     individually to available upstream services. Envoy will also emit L7 metrics
     such as request rates broken down by HTTP response code family (2xx, 4xx, 5xx,
     etc).
-  - `http2` - This specifies that the service speaks http2. Specifically h2c since
+  - `http2` - This specifies that the service speaks http2 (specifically h2c since
     Envoy will still only connect to the local service instance via plain TCP not
-    TLS. This behaves much like `http` with L7 load-balancing and metrics but has
-    additional settings that correctly enable end-to-end http2. Envoy in the
-    future may support automatic upgrades between HTTP/1.x and http2 and not need
-    explicit configuration.
+    TLS). This behaves much like `http` with L7 load-balancing and metrics but has
+    additional settings that correctly enable end-to-end http2.
   - `grpc` - gRPC is a common RPC protocol based on http2. In addition to the
-    http2 support above, a service with `grpc` protocol will be configured with a
+    http2 support above, Envoy listeners will be configured with a
     [gRPC bridge
     filter](https://www.envoyproxy.io/docs/envoy/v1.9.1/configuration/http_filters/grpc_http1_bridge_filter#config-http-filters-grpc-bridge)
-    that allows HTTP/1.1 calls to be translated into gRPC as well as instrumenting
+    that translates HTTP/1.1 calls into gRPC, and instruments
     metrics with `gRPC-status` trailer codes.
-- `local_connect_timeout_ms` - The number of milliseconds to allow when making
-  connections the local application instance before timing out. Defaults to 5000
+- `local_connect_timeout_ms` - The number of milliseconds allowed to make
+  connections to the local application instance before timing out. Defaults to 5000
   (5 seconds).
 
 The following configuration items may be overridden directly in the
@@ -196,32 +193,32 @@ definition](/docs/connect/proxies.html#proxy-service-definitions) or
 
 ## Advanced Configuration
 
-To support more flexibility when configuring Envoy, several options exist that
-are "lower level" and require a good knowledge of Envoy's configuration format
-and options. Many require configuring a subsection of either the bootstrap or
+To support more flexibility when configuring Envoy, several "lower-level" options exist that
+exist that require knowledge of Envoy's configuration format.
+Many allow configuring a subsection of either the bootstrap or
 dynamic configuration using your own custom protobuf config.
 
 We separate these into two sets, [Advanced Bootstrap
 Options](#advanced-bootstrap-options) and [Escape Hatch
 Overrides](#escape-hatch-overrides). Both require writing Envoy config in it's
-protobuf JSON encoding, however advanced options are smaller chunks that might
-commonly need to be set for tasks like configuring tracing, while escape hatches
-give almost complete control over the proxy setup at the expense of needing to
+protobuf JSON encoding. Advanced options are smaller chunks that might
+commonly need to be set for tasks like configuring tracing. In contrast, escape hatches
+give almost complete control over the proxy setup, but require operators to
 manually code the entire configuration in protobuf JSON.
 
--> **Advanced Topic!** This section covers optional ways of taking almost
-complete control of Envoy's configuration which is provided as a way to
-experiment or take advantage of features not yet fully supported. While we don't
-plan to remove the ability to do this in the future, it should be considered
-experimental and requires in-depth knowledge of Envoy's configuration format.
-Envoy version compatibility when using these features should be considered and
-is outside of Consul's control. Incorrect configuration could prevent all
-proxies in your mesh from functioning correctly or bypass the security
+~> **Advanced Topic!** This section covers options that allow users to take almost
+complete control of Envoy's configuration. We provide these options so users can
+experiment or take advantage of features not yet fully supported in Consul Connect. We
+plan to retain this ability in the future, but it should still be considered
+experimental because it requires in-depth knowledge of Envoy's configuration format.
+Users should consider Envoy version compatibility when using these features because they can configure Envoy in ways that
+are outside of Consul's control. Incorrect configuration could prevent all
+proxies in your mesh from functioning correctly, or bypass the security
 guarantees Connect is designed to enforce.
 
 ### Configuration Formatting
 
-They are all specified as strings containing the serialized proto3 JSON encoding
+All configurations are specified as strings containing the serialized proto3 JSON encoding
 of the specified Envoy configuration type. They are full JSON types except where
 noted.
 
@@ -232,8 +229,8 @@ with no `@type` field.
 
 ### Advanced Bootstrap Options
 
-The following configuration items may be added to the [global `proxy-defaults`
-configuration entry](#TODO) or overridden directly in the `proxy.config` field
+Users may add the following configuration items to the [global `proxy-defaults`
+configuration entry](#TODO) or override them directly in the `proxy.config` field
 of a [proxy service
 definition](/docs/connect/proxies.html#proxy-service-definitions) or
 [`sidecar_service`](/docs/connect/proxies/sidecar-service.html) block.
@@ -246,12 +243,12 @@ definition](/docs/connect/proxies.html#proxy-service-definitions) or
   for example. For a single cluster just encode a single object, for multiple,
   they should be comma separated with no trailing comma suitable for
   interpolating directly into a JSON array inside the braces.
-- `envoy_extra_static_listeners_json` - As with
+- `envoy_extra_static_listeners_json` - Similar to
   `envoy_extra_static_clusters_json` but appends [static
   listener](https://www.envoyproxy.io/docs/envoy/v1.9.1/api-v2/config/bootstrap/v2/bootstrap.proto#envoy-api-field-config-bootstrap-v2-bootstrap-staticresources-listeners) definitions.
   Can be used to setup limited access that bypasses Connect mTLS or
   authorization for health checks or metrics.
-- `envoy_extra_stats_sinks_json` - As with `envoy_extra_static_clusters_json`
+- `envoy_extra_stats_sinks_json` - Similar to `envoy_extra_static_clusters_json`
   but for [stats sinks](https://www.envoyproxy.io/docs/envoy/v1.9.1/api-v2/config/bootstrap/v2/bootstrap.proto#envoy-api-field-config-bootstrap-v2-bootstrap-stats-sinks). These are appended to any sinks defined by use of the
   higher-level [`envoy_statsd_url`](#envoy_statsd_url) or
   [`envoy_dogstatsd_url`](#envoy_dogstatsd_url) config options.
@@ -267,8 +264,8 @@ definition](/docs/connect/proxies.html#proxy-service-definitions) or
 
 ### Escape-Hatch Overrides
 
-The following configuration items may be added to the [global `proxy-defaults`
-configuration entry](#TODO) or overridden directly in the `proxy.config` field
+Users may add the following configuration items to the [global `proxy-defaults`
+configuration entry](#TODO) or override them directly in the `proxy.config` field
 of a [proxy service
 definition](/docs/connect/proxies.html#proxy-service-definitions) or
 [`sidecar_service`](/docs/connect/proxies/sidecar-service.html) block.
