@@ -1360,8 +1360,8 @@ default will automatically work with some tooling.
 
 * <a name="ports"></a><a href="#ports">`ports`</a> This is a nested object that allows setting
   the bind ports for the following keys:
-    * <a name="dns_port"></a><a href="#dns_port">`dns`</a> - The DNS server, -1 to disable. Default 8600.
-    * <a name="http_port"></a><a href="#http_port">`http`</a> - The HTTP API, -1 to disable. Default 8500.
+    * <a name="dns_port"></a><a href="#dns_port">`dns`</a> - The DNS server, -1 to disable. Default 8600. TCP and UDP.
+    * <a name="http_port"></a><a href="#http_port">`http`</a> - The HTTP API, -1 to disable. Default 8500. TCP only.
     * <a name="https_port"></a><a href="#https_port">`https`</a> - The HTTPS
       API, -1 to disable. Default -1 (disabled). **We recommend using `8501`** for
       `https` by convention as some tooling will work automatically with this.
@@ -1370,11 +1370,11 @@ default will automatically work with some tooling.
       `grpc` by convention as some tooling will work automatically with this.
       This is set to `8502` by default when the agent runs in `-dev` mode.
       Currently gRPC is only used to expose Envoy xDS API to Envoy proxies.
-    * <a name="serf_lan_port"></a><a href="#serf_lan_port">`serf_lan`</a> - The Serf LAN port. Default 8301.
+    * <a name="serf_lan_port"></a><a href="#serf_lan_port">`serf_lan`</a> - The Serf LAN port. Default 8301. TCP and UDP.
     * <a name="serf_wan_port"></a><a href="#serf_wan_port">`serf_wan`</a> - The Serf WAN port. Default 8302. Set to -1
       to disable. **Note**: this will disable WAN federation which is not recommended. Various catalog and WAN related
-      endpoints will return errors or empty results.
-    * <a name="server_rpc_port"></a><a href="#server_rpc_port">`server`</a> - Server RPC address. Default 8300.
+      endpoints will return errors or empty results. TCP and UDP.
+    * <a name="server_rpc_port"></a><a href="#server_rpc_port">`server`</a> - Server RPC address. Default 8300. TCP only.
     * <a name="proxy_min_port"></a><a href="#proxy_min_port">`proxy_min_port`</a> [**Deprecated**](/docs/connect/proxies/managed-deprecated.html) - Minimum port number to use for automatically assigned [managed proxies](/docs/connect/proxies/managed-deprecated.html). Default 20000.
     * <a name="proxy_max_port"></a><a href="#proxy_max_port">`proxy_max_port`</a> [**Deprecated**](/docs/connect/proxies/managed-deprecated.html) - Maximum port number to use for automatically assigned [managed proxies](/docs/connect/proxies/managed-deprecated.html). Default 20255.
     * <a name="sidecar_min_port"></a><a
@@ -1737,26 +1737,10 @@ default will automatically work with some tooling.
 ## <a id="ports-used"></a>Ports Used
 
 Consul requires up to 6 different ports to work properly, some on
-TCP, UDP, or both protocols. Below we document the requirements for each
-port.
+TCP, UDP, or both protocols. 
 
-* Server RPC (Default 8300). This is used by servers to handle incoming
-  requests from other agents. TCP only.
-
-* Serf LAN (Default 8301). This is used to handle gossip in the LAN.
-  Required by all agents. TCP and UDP.
-
-* Serf WAN (Default 8302). This is used by servers to gossip over the WAN, to
-  other servers. TCP and UDP. As of Consul 0.8 the WAN join flooding feature requires
-  the Serf WAN port (TCP/UDP) to be listening on both WAN and LAN interfaces. See also:
-   [Consul 0.8.0 CHANGELOG](https://github.com/hashicorp/consul/blob/master/CHANGELOG.md#080-april-5-2017) and [GH-3058](https://github.com/hashicorp/consul/issues/3058)
-
-* HTTP API (Default 8500). This is used by clients to talk to the HTTP
-  API. TCP only.
-
-* DNS Interface (Default 8600). Used to resolve DNS queries. TCP and UDP.
-
-* gRPC API (Default 8302). Currently gRPC is only used to expose Envoy xDS API to Envoy proxies.
+Review the [required ports](/docs/install/ports.html) table for a list of 
+required ports and their default settings. 
 
 ## <a id="reloadable-configuration"></a>Reloadable Configuration
 

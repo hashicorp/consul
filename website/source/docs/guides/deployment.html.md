@@ -107,7 +107,7 @@ In a larger network that spans L3 segments, traffic typically traverses through 
 | Serf LAN      | 8301 |      | Used to handle gossip in the LAN. Required by all agents. TCP and UDP. |
 | Serf WAN      | 8302 | `-1` to disable (available in Consul 1.0.7) | Used by servers to gossip over the LAN and WAN to other servers. TCP and UDP. |
 | HTTP API      | 8500 | `-1` to disable | Used by clients to talk to the HTTP API. TCP only. |
-| DNS Interface | 8600 | `-1` to disable | |
+| DNS Interface | 8600 | `-1` to disable | Used to resolve DNS queries. TCP and UDP. |
 
 -> As mentioned in the [datacenter design section](#datacenter-design), network areas and network segments can be used to prevent opening up firewall ports between different subnets.
 
