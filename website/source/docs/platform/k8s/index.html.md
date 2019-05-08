@@ -26,7 +26,7 @@ nodes via the network.
 and expose the Consul API to running pods. This enables many Consul tools
 such as envconsul, consul-template, and more to work on Kubernetes since a
 local agent is available. This will also register each Kubernetes node with
-the Consul catalog for full visibility into your infrastructure
+the Consul catalog for full visibility into your infrastructure.
 
 **Service sync to enable Kubernetes and non-Kubernetes services to communicate:**
 Consul can sync Kubernetes services with its own service registry. This allows
