@@ -439,7 +439,9 @@ func (k *Kubernetes) findServices(r recordRequest, zone string) (services []msg.
 			continue
 		}
 
-		if k.opts.ignoreEmptyService && svc.ClusterIP != api.ClusterIPNone {
+		// If "ignore empty_service" option is set and no endpoints exist, return NXDOMAIN unless
+		// it's a headless or externalName service (covered below).
+		if k.opts.ignoreEmptyService && svc.ClusterIP != api.ClusterIPNone && svc.Type != api.ServiceTypeExternalName {
 			// serve NXDOMAIN if no endpoint is able to answer
 			podsCount := 0
 			for _, ep := range endpointsListFunc() {
