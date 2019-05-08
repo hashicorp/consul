@@ -59,7 +59,7 @@
       {{#block-slot 'details'}}
           <label class="type-text">
             <span>Rules <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
-            {{#if (eq item.template 'default')}}
+            {{#if (eq item.template '')}}
               {{code-editor syntax='hcl' readonly=true value=item.Rules}}
             {{else}}
               {{#code-editor syntax='hcl' readonly=true}}
