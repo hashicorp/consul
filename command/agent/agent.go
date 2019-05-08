@@ -223,6 +223,7 @@ func (c *cmd) run(args []string) int {
 	agent.LogWriter = logWriter
 	agent.MemSink = memSink
 
+	logGate.Flush()
 	if err := agent.Start(); err != nil {
 		c.UI.Error(fmt.Sprintf("Error starting agent: %s", err))
 		return 1
@@ -270,7 +271,6 @@ func (c *cmd) run(args []string) int {
 	// Enable log streaming
 	c.UI.Info("")
 	c.UI.Output("Log data will now stream in as it occurs:\n")
-	logGate.Flush()
 
 	// wait for signal
 	signalCh := make(chan os.Signal, 10)
