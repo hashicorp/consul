@@ -140,7 +140,7 @@ for this.
 Start the echo service on port 9090 as registered before.
 
 ```sh
-$ docker run -d --network host abrarov/tcp-echo --port 9090
+$ docker run --rm -d --network host abrarov/tcp-echo --port 9090
 1a0b0c569016d00aadc4fc2b2954209b32b510966083f2a9e17d3afc6d185d87
 ```
 
