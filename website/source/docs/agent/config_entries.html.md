@@ -75,9 +75,13 @@ them in a running cluster. The second way is by placing inlined configuration en
 Configuration entries should usually managed with the Consul [CLI](/docs/commands/config.html). The `consul config` command has four subcommands
 for managing the entries: `write`, `read`, `list` and `delete`.
 
-TODO figure out the example walkthrough here:
+#### Creating or Updating a Configuration Entry
 
-proxy-defaults.hcl - using some configurations of our builtin proxy
+The [`consul config write`](/docs/commands/config/write.html) command is used to create and update configuration entries. This command
+will load either a JSON or HCL file holding the configuration entry definition and then will push this configuration to Consul.
+
+Example HCL Configuration File - `proxy-defaults.hcl`:
+
 ```hcl
 Kind = "proxy-defaults"
 Name = "global"
@@ -87,13 +91,60 @@ Config {
 }
 ```
 
-`consul config write proxy-defaults.hcl`
+Then to apply this configuration, run:
 
-`consul config read -kind proxy-defaults -name global`
+```bash
+> consul config write proxy-defaults.hcl
+```
 
-`consul config list -kind service-defaults`
+If you need to make changes to a configuration
+entry, simple edit that file and then rerun the command. This command will not output anything unless there is an error in applying
+the configuration entry. The `write` command also supports a `-cas` option to enable performing a compare-and-swap operation to
+prevent overwriting other unknown modifications.
 
-`consul config delete -kind service-defaults -name web`
+#### Reading a Configuration Entry
+
+The [`consul config read`](/docs/commands/config/read.html) command is used to read the current value of a configuration entry. The
+configuration entry will be displayed in JSON form which is how its transmitted between the CLI client and Consul's HTTP API.
+
+Example:
+
+```bash
+> consul config read -kind service-defaults -name web
+{
+   "Kind": "service-defaults",
+   "Name": "web",
+   "Protocol": "http"
+}
+```
+
+#### Listing Configuration Entries
+
+The [`consul config list`](/docs/commands/config/list.html) command is used to list out all the configuration entries for a
+given kind.
+
+Example:
+
+```bash
+> consul config list -kind service-defaults
+web
+api
+db
+```
+
+
+#### Deleting Configuration Entries
+
+The [`consul config delete`](/docs/commands/config/delete.html) command is used to delete an entry by specifying both its
+`kind` and `name`.
+
+Example:
+
+```bash
+> consul config delete -kind service-defaults -name web
+```
+
+This command will not output anything when the deletion is successful.
 
 ### Bootstrapping From A Configuration File
 
