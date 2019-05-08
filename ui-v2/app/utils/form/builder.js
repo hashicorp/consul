@@ -56,9 +56,11 @@ export default function(changeset = defaultChangeset, getFormNameProperty = pars
         _children[child.getName()] = child;
         return this;
       },
-      handleEvent: function(e) {
+      handleEvent: function(e, targetName) {
         const target = e.target;
-        const parts = getFormNameProperty(target.name);
+        // currently we only use targetName in {{form-component}} for handling deeply
+        // nested forms, once {{form-component}} handles deeply nested forms targetName can go
+        const parts = getFormNameProperty(targetName || target.name);
         // split the form element name from `name[prop]`
         const name = parts[0];
         const prop = parts[1];
