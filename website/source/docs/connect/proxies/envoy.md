@@ -82,7 +82,7 @@ admin:
   # they are set to though and never accesses the admin API.
 node:
   # cluter is required by Envoy but Consul doesn't use it
-  cluster: "<cluster_name"
+  cluster: "<cluster_name>"
   # id must be the ID (not name if they differ) of the proxy service
   # registration in Consul
   id: "<proxy_service_id>"
