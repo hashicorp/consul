@@ -32,7 +32,8 @@ only one global entry is supported.
 Kind = "proxy-defaults"
 Name = "global"
 Config {
-   proxy_specific_value = "foo"
+   local_connect_timeout_ms = 1000
+   handshake_timeout_ms = 10000
 }
 ```
 
