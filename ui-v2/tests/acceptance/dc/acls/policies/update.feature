@@ -40,8 +40,8 @@ Feature: dc / acls / policies / update: ACL Policy Update
       ------------------------------------------------------------------------------
       | Name          |  Rules                        | Description                |
       | policy-name   |  key "foo" {policy = "read"}  | policy-name description    |
-      # | policy_name   |  key "foo" {policy = "write"} | policy name description    |
-      # | policyName    |  key "foo" {policy = "read"}  | policy%20name description  |
+      | policy_name   |  key "foo" {policy = "write"} | policy name description    |
+      | policyName    |  key "foo" {policy = "read"}  | policy%20name description  |
       ------------------------------------------------------------------------------
   Scenario: There was an error saving the key
     Given the url "/v1/acl/policy/policy-id" responds with a 500 status
