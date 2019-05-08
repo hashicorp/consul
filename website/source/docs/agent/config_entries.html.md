@@ -64,16 +64,13 @@ Protocol = "http"
 
 * `Protocol` - Sets the protocol of the service. This is used by Connect proxies for things like observability features.
 
-## Applying Configuration Entries
+## Managing Configuration Entries
 
-There are two ways to introduce new configuration entries to Consul. The first way is to use either the [API](/api/config.html) or [CLI](/docs/commands/config.html) to manage
-them in a running cluster. The second way is by placing inlined configuration entry definitions into the Consul server's
-[configuration file](/docs/agent/options.html#config_entries_bootstrap).
+Configuration entries should be managed with the Consul [CLI](/docs/commands/config.html) or [API](/api/config.html). Additionally,
+as a convenience for initial cluster bootstrapping, configuration entries can be specified in all of the Consul servers's
+[configuration files](/docs/agent/options.html#config_entries_bootstrap)
 
-### Managing Configuration Entries with the Consul CLI
-
-Configuration entries should be managed with the Consul [CLI](/docs/commands/config.html). The `consul config` command has four subcommands
-for managing the entries: `write`, `read`, `list` and `delete`.
+### Managing Configuration Entries with the CLI
 
 #### Creating or Updating a Configuration Entry
 
@@ -97,9 +94,9 @@ Then to apply this configuration, run:
 $ consul config write proxy-defaults.hcl
 ```
 
-If you need to make changes to a configuration
-entry, simple edit that file and then rerun the command. This command will not output anything unless there is an error in applying
-the configuration entry. The `write` command also supports a `-cas` option to enable performing a compare-and-swap operation to
+If you need to make changes to a configuration entry, simple edit that file and then rerun the command.
+This command will not output anything unless there is an error in applying the configuration entry.
+The `write` command also supports a `-cas` option to enable performing a compare-and-swap operation to
 prevent overwriting other unknown modifications.
 
 #### Reading a Configuration Entry
@@ -147,6 +144,7 @@ $ consul config delete -kind service-defaults -name web
 This command will not output anything when the deletion is successful.
 
 ### Bootstrapping From A Configuration File
+
 
 Configuration entries can be bootstrapped by adding them inline to each Consul server’s configuration file. When a server
 gains leadership, it will attempt to initialize the configuration entries. If a configuration entry does not already exist
