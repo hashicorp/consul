@@ -71,7 +71,28 @@ them in a running cluster. The second way is by placing inlined configuration en
 
 ### Managing Configuration Entries with the Consul CLI
 
-TODO INCOMING
+Configuration entries should usually managed with the Consul [CLI](/docs/commands/config.html). The `consul config` command has four subcommands
+for managing the entries: `write`, `read`, `list` and `delete`.
+
+TODO figure out the example walkthrough here:
+
+proxy-defaults.hcl - using some configurations of our builtin proxy
+```hcl
+Kind = "proxy-defaults"
+Name = "global"
+Config {
+   local_connect_timeout_ms = 1000
+   handshake_timeout_ms = 10000
+}
+```
+
+`consul config write proxy-defaults.hcl`
+
+`consul config read -kind proxy-defaults -name global`
+
+`consul config list -kind service-defaults`
+
+`consul config delete -kind service-defaults -name web`
 
 ### Bootstrapping From A Configuration File
 
