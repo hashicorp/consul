@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.5.0 (May 08, 2019)
 
 SECURITY:
 * connect: Envoy versions lower than 1.9.1 are vulnerable to
