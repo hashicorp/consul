@@ -94,7 +94,7 @@ Config {
 Then to apply this configuration, run:
 
 ```bash
-> consul config write proxy-defaults.hcl
+$ consul config write proxy-defaults.hcl
 ```
 
 If you need to make changes to a configuration
@@ -110,7 +110,7 @@ configuration entry will be displayed in JSON form which is how its transmitted 
 Example:
 
 ```bash
-> consul config read -kind service-defaults -name web
+$ consul config read -kind service-defaults -name web
 {
    "Kind": "service-defaults",
    "Name": "web",
@@ -126,7 +126,7 @@ given kind.
 Example:
 
 ```bash
-> consul config list -kind service-defaults
+$ consul config list -kind service-defaults
 web
 api
 db
@@ -141,7 +141,7 @@ The [`consul config delete`](/docs/commands/config/delete.html) command is used 
 Example:
 
 ```bash
-> consul config delete -kind service-defaults -name web
+$ consul config delete -kind service-defaults -name web
 ```
 
 This command will not output anything when the deletion is successful.
