@@ -96,10 +96,10 @@ Config {
 
 ### Bootstrapping From A Configuration File
 
-Configuration entries can be bootstrapped by putting them into all of the Consul server's [configuration files](/docs/agent/options.html#config_entries_bootstrap).
-Each entry is embedded inline within the configuration and when that server gains leadership it will attempt to initialize that
-configuration entry with the desired values if it does not exist. If a configuration entry with the same kind and name already exists
-nothing will be done for that entry.
+Configuration entries can be bootstrapped by adding them inline to each Consul server’s configuration file. When a server
+gains leadership, it will attempt to initialize the configuration entries. If a configuration entry does not already exist
+outside of the servers configuration, then it will create it. If a configuration entry does exist, that matches both `kind`
+and `name`, then the server will do nothing.
 
 
 ## Using Configuration Entries For Service Defaults
