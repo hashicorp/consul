@@ -24,7 +24,7 @@ FEATURES:
 * acl: tokens can now be assigned an optional set of service identities [[GH-5390](https://github.com/hashicorp/consul/issues/5390)]
 * acl: tokens can now be assigned to roles [[GH-5514](https://github.com/hashicorp/consul/issues/5514)]
 * acl: adding support for kubernetes auth provider login [[GH-5600](https://github.com/hashicorp/consul/issues/5600)]
-* ui: Template-able Dashboard links for Service detail pages [[GH-5704]](https://github.com/hashicorp/consul/pull/5704) [[GH-5777]](https://github.com/hashicorp/consul/pull/5777)
+* ui: Template-able Dashboard links for Service detail pages [[GH-5704](https://github.com/hashicorp/consul/pull/5704)] [[GH-5777](https://github.com/hashicorp/consul/pull/5777)]
 * ui: support for ACL Roles [[GH-5635](https://github.com/hashicorp/consul/pull/5635)]
 
 
