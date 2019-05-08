@@ -1705,8 +1705,7 @@ default will automatically work with some tooling.
 ## <a id="ports-used"></a>Ports Used
 
 Consul requires up to 6 different ports to work properly, some on
-TCP, UDP, or both protocols. Below we document the requirements for each
-port.
+TCP, UDP, or both protocols. 
 
 Review the [required ports](/docs/install/ports.html) table for a list of 
 required ports and their default settings. 

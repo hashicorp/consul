@@ -13,7 +13,7 @@ Consul requires up to 6 different ports to work properly, some on
 TCP, UDP, or both protocols. Below we document the requirements for each
 port. 
 
-### Ports Table
+## Ports Table
 
 Before running Consul, you should ensure the following bind ports are accessible. 
 
@@ -30,15 +30,21 @@ Before running Consul, you should ensure the following bind ports are accessible
 | Sidecar Proxy Min: Inclusive min port number to use for automatically assigned sidecar service registrations.   | 21000            | 
 | Sidecar Proxy Max: Inclusive max port number to use for automatically assigned sidecar service registrations. | 21255            | 
 
+*For `HTTPS` and `gRPC` the ports specified in the table 
+are recommendations.
 
-### Port Information
+## Port Information
 
 **DNS Interface** Used to resolve DNS queries. 
 
 **HTTP API** This is used by clients to talk to the HTTP
   API.
 
-**gRPC API** Currently gRPC is only used to expose Envoy xDS API to Envoy proxies.
+**HTTPS API** (Optional) Is off by default, but port 8501 is a convention 
+  used by various tools as the default.
+
+**gRPC API** (Optional). Currently gRPC is
+   only used to expose the xDS API to Envoy proxies. It is off by default, but port 8502 is a convention used by various tools as the default. Defaults to 8502 in `-dev` mode.
 
 **Serf LAN** This is used to handle gossip in the LAN.
   Required by all agents. 
@@ -50,10 +56,5 @@ Before running Consul, you should ensure the following bind ports are accessible
 
 **Server RPC** This is used by servers to handle incoming
   requests from other agents. 
-
-
-
-*For `HTTPS` and `gRPC` the ports specified in the table 
-are recommendations.
 
 Note, the default ports can be changed in the [agent configuration](/docs/agent/options.html#ports). 
