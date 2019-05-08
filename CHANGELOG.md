@@ -41,6 +41,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * api: fix panic in 'consul acl set-agent-token' [[GH-5533](https://github.com/hashicorp/consul/issues/5533)]
+* api: fix issue in the transaction API where the health check definition struct wasn't being deserialized properly [[GH-5553](https://github.com/hashicorp/consul/issues/5553)]
 * acl: memdb filter of tokens-by-policy was inverted [[GH-5575](https://github.com/hashicorp/consul/issues/5575)]
 * acl: Fix legacy rules translation for JSON based rules. [[GH-5493](https://github.com/hashicorp/consul/issues/5493)]
 * agent: Fixed a bug causing RPC errors when the `discovery_max_stale` time was exceeded. [[GH-4673](https://github.com/hashicorp/consul/issues/4673)]
