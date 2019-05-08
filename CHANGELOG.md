@@ -46,6 +46,7 @@ BUG FIXES:
 * acl: Fix legacy rules translation for JSON based rules. [[GH-5493](https://github.com/hashicorp/consul/issues/5493)]
 * agent: Fixed a bug causing RPC errors when the `discovery_max_stale` time was exceeded. [[GH-4673](https://github.com/hashicorp/consul/issues/4673)]
 * agent: Fix an issue with registering health checks for an agent service where the service name would be missing. [[GH-5705](https://github.com/hashicorp/consul/issues/5705)]
+* agent: config is now read if json or hcl is set as the config-format or the extension is either json or hcl [[GH-5723](https://github.com/hashicorp/consul/issues/5723)]
 * connect: fix an issue where Envoy would fail to bootstrap if some upstreams were unavailable [[GH-5499](https://github.com/hashicorp/consul/pull/5499)]
 * connect: fix an issue where health checks on proxies might be missed by watchers of `/health/service/:service` API [[GH-5506](https://github.com/hashicorp/consul/issues/5506)]
 * connect: fix a race condition that could leave proxies with no configuration for long periods on startup [[GH-5793](https://github.com/hashicorp/consul/issues/5793)]
