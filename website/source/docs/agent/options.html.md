@@ -824,7 +824,7 @@ default will automatically work with some tooling.
     * <a name="config_entries_bootstrap"></a><a href="#config_entries_bootstrap">`bootstrap`</a>
         This is a list of inlined config entries to insert into the state store when the Consul server
         gains leadership. This option is only applicable to server nodes. Each bootstrap
-        entry will be created only if it does not exist. When reloading any newly entries
+        entry will be created only if it does not exist. When reloading, any new entries
         that have been added to the configuration will be processed. See the
         [configuration entry docs](/docs/agent/config_entries.html) for more details about the
         contents of each entry.
