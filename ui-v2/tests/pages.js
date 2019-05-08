@@ -69,7 +69,7 @@ export default {
   policies: create(
     policies(visitable, deletable, creatable, clickable, attribute, collection, freetextFilter)
   ),
-  policy: create(policy(visitable, submitable, deletable, cancelable, tokenList)),
+  policy: create(policy(visitable, submitable, deletable, cancelable, clickable, tokenList)),
   roles: create(
     roles(visitable, deletable, creatable, clickable, attribute, collection, freetextFilter)
   ),
