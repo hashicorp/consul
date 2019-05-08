@@ -19,7 +19,7 @@ Kind = "<supported kind>"
 Name = "<name of entry>"
 ```
 
-Other `Kind` specific fields will be detailed below.
+The two supported `Kind` configuration entries are detailed below.
 
 ## Configuration Entry Kinds
 
