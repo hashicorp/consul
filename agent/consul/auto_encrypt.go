@@ -2,12 +2,15 @@ package consul
 
 import (
 	"fmt"
+	"log"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/miekg/dns"
 )
 
 const (
@@ -60,12 +63,13 @@ func (c *Client) AutoEncrypt(servers []string, port int, token string) (*structs
 	// RPCInsecure.
 	addrs := []*net.TCPAddr{}
 	for _, s := range servers {
-		addr, err := net.ResolveTCPAddr("tcp", s)
+		ips, err := resolveAddr(s, c.logger)
 		if err != nil {
 			continue
 		}
-		addr.Port = port
-		addrs = append(addrs, addr)
+		for _, ip := range ips {
+			addrs = append(addrs, &net.TCPAddr{IP: ip, Port: port})
+		}
 	}
 
 	// Retry implementation modelled after https://github.com/hashicorp/consul/pull/5228.
@@ -87,4 +91,87 @@ func (c *Client) AutoEncrypt(servers []string, port int, token string) (*structs
 			return errFn(fmt.Errorf("aborting AutoEncrypt because shutting down"))
 		}
 	}
+}
+
+// resolveAddr is used to resolve the address into an address,
+// port, and error. If no port is given, use the default
+func resolveAddr(rawHost string, logger *log.Logger) ([]net.IP, error) {
+	// If it looks like an IP address we are done. The SplitHostPort() above
+	// will make sure the host part is in good shape for parsing, even for
+	// IPv6 addresses.
+	host, _, err := net.SplitHostPort(rawHost)
+	if err != nil {
+		return nil, err
+	}
+	if ip := net.ParseIP(host); ip != nil {
+		return []net.IP{ip}, nil
+	}
+
+	// First try TCP so we have the best chance for the largest list of
+	// hosts to join. If this fails it's not fatal since this isn't a standard
+	// way to query DNS, and we have a fallback below.
+	if ips, err := tcpLookupIP(host, logger); err != nil {
+		logger.Printf("[DEBUG] memberlist: TCP-first lookup failed for '%s', falling back to UDP: %s", rawHost, err)
+	} else if len(ips) > 0 {
+		return ips, nil
+	}
+
+	// If TCP didn't yield anything then use the normal Go resolver which
+	// will try UDP, then might possibly try TCP again if the UDP response
+	// indicates it was truncated.
+	return net.LookupIP(host)
+}
+
+// tcpLookupIP is a helper to initiate a TCP-based DNS lookup for the given host.
+// The built-in Go resolver will do a UDP lookup first, and will only use TCP if
+// the response has the truncate bit set, which isn't common on DNS servers like
+// Consul's. By doing the TCP lookup directly, we get the best chance for the
+// largest list of hosts to join. Since joins are relatively rare events, it's ok
+// to do this rather expensive operation.
+func tcpLookupIP(host string, logger *log.Logger) ([]net.IP, error) {
+	// Don't attempt any TCP lookups against non-fully qualified domain
+	// names, since those will likely come from the resolv.conf file.
+	if !strings.Contains(host, ".") {
+		return nil, nil
+	}
+
+	// Make sure the domain name is terminated with a dot (we know there's
+	// at least one character at this point).
+	dn := host
+	if dn[len(dn)-1] != '.' {
+		dn = dn + "."
+	}
+
+	// See if we can find a server to try.
+	cc, err := dns.ClientConfigFromFile("/etc/resolv.conf")
+	if err != nil {
+		return nil, err
+	}
+	if len(cc.Servers) > 0 {
+		// Do the lookup.
+		c := new(dns.Client)
+		c.Net = "tcp"
+		msg := new(dns.Msg)
+		msg.SetQuestion(dn, dns.TypeANY)
+		in, _, err := c.Exchange(msg, cc.Servers[0])
+		if err != nil {
+			return nil, err
+		}
+
+		// Handle any IPs we get back that we can attempt to join.
+		var ips []net.IP
+		for _, r := range in.Answer {
+			switch rr := r.(type) {
+			case (*dns.A):
+				ips = append(ips, rr.A)
+			case (*dns.AAAA):
+				ips = append(ips, rr.AAAA)
+			case (*dns.CNAME):
+				logger.Printf("[DEBUG] memberlist: Ignoring CNAME RR in TCP-first answer for '%s'", host)
+			}
+		}
+		return ips, nil
+	}
+
+	return nil, nil
 }
