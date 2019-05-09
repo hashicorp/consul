@@ -1,5 +1,5 @@
 ---
-name: 'ACL Replication for Multiple Datacenters '
+name: 'ACL Replication for Multiple Datacenters'
 content_length: 15
 id: acl-replication
 layout: content_layout
@@ -39,13 +39,13 @@ operation on either datacenter. The privileged token can be the initial
 ## Configure the Primary Datacenter
 
 ~> Note, if your primary datacenter uses the default `datacenter` name of
-`dc1`, you must set the `datacenter` parameter on the secondary datacenter.
+`dc1`, you must set a different `datacenter` parameter on each secondary datacenter.
 Otherwise, both datacenters will be named `dc1` and there will be conflicts.
 
 ### Consul Servers and Clients
 
 You should explicitly set the  `primary_datacenter` parameter on all servers
-and clients, even though, replication is enabled by default on the primary
+and clients even though replication is enabled by default on the primary
 datacenter. Your agent configuration should be similar to the example below.  
 
 ```json 
@@ -96,7 +96,7 @@ service_prefix "" {
 } 
 ```
 
-Now that you have the ACL rules defined, create a policy. 
+Now that you have the ACL rules defined, create a policy with those rules. 
 
 ```sh 
 $ consul acl policy create -name replication -rules @replication-policy.hcl 
@@ -146,7 +146,7 @@ federation](/consul/security-networking/datacenters).
 	"default_policy": "deny", 
 	"down_policy": "extend-cache", 
 	"enable_token_persistence": true,
-    "enable_token_replication": true, 
+    "enable_token_replication": true
     } 
 } 
 ```
