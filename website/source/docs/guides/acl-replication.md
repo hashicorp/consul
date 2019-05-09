@@ -162,7 +162,7 @@ actions, the servers will need agent tokens. You can create server specific
 tokens on your primary datacenter and then set the token on the server.  
 
 ```sh
-$ consul acl set-agent-token <token here> 
+$ consul acl set-agent-token agent <token here> 
 ACL token "agent" set successfully
 ``` 
 -> Note, your initial bootstrap token can be used for the necessary
@@ -184,7 +184,7 @@ name of your primary datacenter and `enable_token_replication` to true.
   "default_policy": "deny", 
   "down_policy": "extend-cache", 
   "enable_token_persistence": true, 
-  "enable_token_replication": true, 
+  "enable_token_replication": true 
   } 
 } 
 ```
@@ -195,8 +195,7 @@ Now you can start the agent.
 $ consul agent -config-file=server.json 
 ``` 
 
-Repeat this process on all
-clients. 
+Repeat this process on all clients. 
 
 ### Apply the Replication Token to the Servers
 
