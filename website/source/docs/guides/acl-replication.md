@@ -91,8 +91,8 @@ acl = "write"
 operator = "read"
 
 service_prefix "" { 
-	policy = "read" 
-	intentions = "read" 
+  policy = "read" 
+  intentions = "read" 
 } 
 ```
 
@@ -142,12 +142,12 @@ federation](/consul/security-networking/datacenters).
 "retry_join_wan": ["<address_here>"],
 "primary_datacenter": "primary_dc", 
 "acl": { 
-	"enabled": true, 
-	"default_policy": "deny", 
-	"down_policy": "extend-cache", 
-	"enable_token_persistence": true,
-    "enable_token_replication": true
-    } 
+  "enabled": true, 
+  "default_policy": "deny", 
+  "down_policy": "extend-cache", 
+  "enable_token_persistence": true,
+  "enable_token_replication": true
+  } 
 } 
 ```
 
@@ -180,12 +180,12 @@ name of your primary datacenter and `enable_token_replication` to true.
 "datacenter": "dc_secondary", 
 "primary_datacenter": "primary_dc",
 "acl": { 
-	"enabled": true, 
-	"default_policy": "deny", 
-	"down_policy": "extend-cache", 
-	"enable_token_persistence": true, 
-    "enable_token_replication": true, 
-    } 
+  "enabled": true, 
+  "default_policy": "deny", 
+  "down_policy": "extend-cache", 
+  "enable_token_persistence": true, 
+  "enable_token_replication": true, 
+  } 
 } 
 ```
 
@@ -220,14 +220,14 @@ the configuration.
 ```sh 
 $ curl http://localhost:8500/v1/acl/replication
 {
-	"Enabled":true,
-	"Running":true,
-	"SourceDatacenter":"primary_dc",
-	"ReplicationType":"tokens",
-	"ReplicatedIndex":19,
-	"ReplicatedTokenIndex":22,
-	"LastSuccess":"2019-05-09T18:54:09Z",
-	"LastError":"0001-01-01T00:00:00Z"
+  "Enabled":true,
+  "Running":true,
+  "SourceDatacenter":"primary_dc",
+  "ReplicationType":"tokens",
+  "ReplicatedIndex":19,
+  "ReplicatedTokenIndex":22,
+  "LastSuccess":"2019-05-09T18:54:09Z",
+  "LastError":"0001-01-01T00:00:00Z"
 }
 ```
 
