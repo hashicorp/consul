@@ -1,0 +1,17 @@
+#urls_service span {
+  position: relative;
+}
+#urls_service span::after {
+  @extend %with-tick;
+  background-color: $green-500;
+  border-radius: 100%;
+  top: 13px;
+  right: 0;
+}
+#urls_service span::after {
+  @extend %blink-in-fade-out;
+  transition-delay: 3s;
+}
+#urls_service.confirming span::after {
+  @extend %blink-in-fade-out-active;
+}
