@@ -46,7 +46,7 @@ Otherwise, both datacenters will be named `dc1` and there will be conflicts.
 ### Consul Servers and Clients
 
 You should explicitly set the  `primary_datacenter` parameter on all servers
-and clients, even though, replication is enabled by default on the primary
+and clients even though replication is enabled by default on the primary
 datacenter. Your agent configuration should be similar to the example below.  
 
 ```json 
