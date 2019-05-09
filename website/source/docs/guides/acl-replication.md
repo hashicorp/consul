@@ -165,7 +165,7 @@ actions, the servers will need agent tokens. You can create server specific
 tokens on your primary datacenter and then set the token on the server.  
 
 ```sh
-$ consul acl set-agent-token <token here> 
+$ consul acl set-agent-token agent <token here> 
 ACL token "agent" set successfully
 ``` 
 -> Note, your initial bootstrap token can be used for the necessary
