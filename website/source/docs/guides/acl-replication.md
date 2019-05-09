@@ -40,7 +40,7 @@ operation on either datacenter. The privileged token can be the initial
 ## Configure the Primary Datacenter
 
 ~> Note, if your primary datacenter uses the default `datacenter` name of
-`dc1`, you must set the `datacenter` parameter on the secondary datacenter.
+`dc1`, you must set a different `datacenter` parameter on each secondary datacenter.
 Otherwise, both datacenters will be named `dc1` and there will be conflicts.
 
 ### Consul Servers and Clients
