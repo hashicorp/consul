@@ -1,5 +1,5 @@
 ---
-name: 'ACL Replication for Multiple Datacenters '
+name: 'ACL Replication for Multiple Datacenters'
 content_length: 15
 id: acl-replication
 layout: content_layout
