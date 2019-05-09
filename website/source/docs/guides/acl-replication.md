@@ -80,10 +80,10 @@ Complete this process on all agents.
 Next create the replication token for managing ACLs. The token should be
 created with the following privileges:
 
-acl = "write" which will allow you to replicate tokens.  operator = "read" for
-replicating proxy-default configuration entries.  service_prefix, policy =
-"read" and intentions = "read" for replicating service-default configuration
-entries, CA, and intention data. 
+- acl = "write" which will allow you to replicate tokens.  
+- operator = "read" for replicating proxy-default configuration entries.
+- service_prefix, policy = "read" and intentions = "read" for replicating
+service-default configuration entries, CA, and intention data. 
 
 ```hcl 
 acl = "write"
@@ -99,8 +99,7 @@ service_prefix "" {
 Now that you have the ACL rules defined, create a policy. 
 
 ```sh 
-$ consul acl policy create -name replication -rules
-@replication-policy.hcl 
+$ consul acl policy create -name replication -rules @replication-policy.hcl 
 ID:           240f1d01-6517-78d3-ec32-1d237f92ab58
 Name:         replication 
 Description: Datacenters: 
@@ -114,8 +113,7 @@ service_prefix "" { policy = "read" intentions = "read" }
 Finally, use your newly created policy to create the replication token.
 
 ```sh 
-$ consul acl token create description "replication token" -policy-name
-replication 
+$ consul acl token create description "replication token" -policy-name replication 
 AccessorID:   67d55dc1-b667-1835-42ab-64658d64a2ff 
 SecretID:     fc48e84d-3f4d-3646-4b6a-2bff7c4aaffb 
 Description:  replication token 
