@@ -166,10 +166,10 @@ and consider if they're appropriate for your deployment.
       to false.
 
         ```yaml
-        extraVolumes:    
+        extraVolumes:
           -  type: "secret"
              name: "consul-certs"
-             load: false        
+             load: false
         ```
 
   * <a name="v-server-affinity" href="#v-server-affinity">`affinity`</a> (`string`) - This value defines the [affinity](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity) for server pods. It defaults to allowing only a single pod on each node, which minimizes risk of the cluster becoming unusable if a node is lost. If you need to run more pods per node (for example, testing on Minikube), set this value to `null`.
@@ -248,10 +248,10 @@ and consider if they're appropriate for your deployment.
       to false.
 
         ```yaml
-        extraVolumes:    
+        extraVolumes:
           -  type: "secret"
              name: "consul-certs"
-             load: false        
+             load: false
         ```
 
   * <a name="v-client-priorityclassname" href="#v-client-priorityclassname">`priorityClassName`</a> (`string`) - This value references an existing Kubernetes [priorityClassName](https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/#pod-priority) that can be assigned to client pods.
@@ -264,6 +264,7 @@ and consider if they're appropriate for your deployment.
           "sample/annotation2": "bar"
         ```
 
+  * <a name="v-client-affinity" href="#v-client-affinity">`affinity`</a> (`string: "{}"`) - This value defines the [affinity](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity) for client pods.
 
 * <a name="v-dns" href="#v-dns">`dns`</a> - Values that configure Consul DNS service.
 
