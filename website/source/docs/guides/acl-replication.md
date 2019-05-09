@@ -23,12 +23,11 @@ agents.
 In this guide, you will setup ACL replication. this is a multi-step process
 that includes:
 
-Setting the `primary_datacenter` parameter on all Consul agents in the primary
-datacenter.  Creating the replication token.  Configuring the
-`primary_datacenter` parameter on all Consul agents in the secondary
-datacenter.  Enabling token replication on the servers in the secondary
-datacenter.  Applying the replication token to all the servers in the secondary
-datacenter. 
+- Setting the `primary_datacenter` parameter on all Consul agents in the primary datacenter.  
+- Creating the replication token.  
+- Configuring the `primary_datacenter` parameter on all Consul agents in the secondary datacenter.  
+- Enabling token replication on the servers in the secondary datacenter.  
+- Applying the replication token to all the servers in the secondary datacenter. 
 
 This guide is intended to be completed during the initial ACL bootstrapping
 process. 
