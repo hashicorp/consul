@@ -97,7 +97,7 @@ service_prefix "" {
 } 
 ```
 
-Now that you have the ACL rules defined, create a policy. 
+Now that you have the ACL rules defined, create a policy with those rules. 
 
 ```sh 
 $ consul acl policy create -name replication -rules
