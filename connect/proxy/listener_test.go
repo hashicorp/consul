@@ -16,8 +16,8 @@ import (
 
 	agConnect "github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/connect"
-	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/ipaddr"
+	"github.com/hashicorp/consul/sdk/freeport"
 )
 
 func testSetupMetrics(t *testing.T) *metrics.InmemSink {
