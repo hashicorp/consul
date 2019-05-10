@@ -129,7 +129,7 @@ CONSUL_HTTP_ADDR=127.0.0.1:8500
 or as a Unix socket path:
 
 ```
-CONSUL_HTTP_ADDR=unix://var/run/consul_http.sock
+CONSUL_HTTP_ADDR=unix:///var/run/consul_http.sock
 ```
 
 If the `https://` scheme is used, `CONSUL_HTTP_SSL` is implied to be true.
