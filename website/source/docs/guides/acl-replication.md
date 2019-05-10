@@ -14,13 +14,12 @@ primary datacenter and failover for the secondary datacenters. If the primary
 datacenter goes offline, the secondary datacenters will still have the security
 policies in place. 
 
-Note, each datacenter should have ACLs enabled and you need to complete the
-bootstrapping process outlined in the [Securing Consul with ACLs
-guide](/consul/security-networking/production-acls) on the primary datacenter.
-This guide includes the additional ACL replication configuration for the Consul
-agents. 
+~> Note, each datacenter will need to have ACLs enabled, the process is outlined in the [Securing Consul with ACLs
+guide](/consul/security-networking/production-acls). This guide includes the additional ACL replication configuration for the Consul
+agents not covered in the Securing Consul with ACL guide. Additionally,
+[Basic Federation with WAN Gossip](/consul/security-networking/datacenters) is required. 
 
-In this guide, you will setup ACL replication. this is a multi-step process
+In this guide, you will setup ACL replication. This is a multi-step process
 that includes:
 
 - Setting the `primary_datacenter` parameter on all Consul agents in the primary datacenter.  
@@ -33,8 +32,8 @@ This guide is intended to be completed during the initial ACL bootstrapping
 process. 
 
 -> After ACLs are enabled you must have a privileged token to complete any
-operation on either datacenter. The privileged token can be the initial
-`bootstrap` token. 
+operation on either datacenter. You can use the initial
+`bootstrap` token as your privileged token.
 
 ## Configure the Primary Datacenter
 
@@ -45,7 +44,7 @@ Otherwise, both datacenters will be named `dc1` and there will be conflicts.
 ### Consul Servers and Clients
 
 You should explicitly set the  `primary_datacenter` parameter on all servers
-and clients even though replication is enabled by default on the primary
+and clients, even though replication is enabled by default on the primary
 datacenter. Your agent configuration should be similar to the example below.  
 
 ```json 
@@ -73,12 +72,13 @@ Finally, start the agent.
 $ consul agent -config-file=server.json 
 ```
 
-Complete this process on all agents. 
+Complete this process on all agents. If you are configuring ACLs for the
+first time, you will also need to [compelete the bootstrapping process](/consul/security-networking/production-acls).
 
 ## Create the Replication Token for ACL Management
 
-Next create the replication token for managing ACLs. The token should be
-created with the following privileges:
+Next, create the replication token for managing ACLs. The token should be
+created with the following privileges.
 
 - acl = "write" which will allow you to replicate tokens.  
 - operator = "read" for replicating proxy-default configuration entries.
@@ -128,18 +128,17 @@ Policies:
 Once you have configured the primary datacenter and created the replication
 token, you can setup the secondary datacenter. 
 
+-> Note, your initial `bootstrap` token can be used for the necessary
+privileges to complete any action on the secondary servers. 
+
 ### Configure the Servers 
 
 You will need to set the `primary_datacenter` parameter to the name of your
-primary datacenter, `enable_token_replication` to true, and `retry_join_wan` to
-the primary datacenters server's addresses. By configuring the retry join
-parameter for wan gossip, you are also setting up [basic
-federation](/consul/security-networking/datacenters). 
+primary datacenter and `enable_token_replication` to true.  
 
 ```json 
 { 
 "datacenter": "dc_secondary", 
-"retry_join_wan": ["<address_here>"],
 "primary_datacenter": "primary_dc", 
 "acl": { 
   "enabled": true, 
@@ -157,18 +156,22 @@ Now you can start the agent.
 $ consul agent -config-file=server.json 
 ``` 
 
-To complete any further
-actions, the servers will need agent tokens. You can create server specific
-tokens on your primary datacenter and then set the token on the server.  
+### Apply the Replication Token to the Servers
 
-```sh
-$ consul acl set-agent-token agent <token here> 
-ACL token "agent" set successfully
-``` 
--> Note, your initial bootstrap token can be used for the necessary
-privileges to complete any action on the secondary servers. 
+Finally, apply the replication token to all the servers using the CLI. 
 
-Repeat this process on all servers. 
+```sh 
+$ consul acl set-agent-token replication <token> 
+ACL token "replication" set successfully 
+```
+
+Once token replication has been enabled, you will also be able to create
+datacenter local tokens.
+
+Repeat this process on all servers. If you are configuring ACLs for the
+first time, you will also need to [set the agent token](/consul/security-networking/production-acls#add-the-token-to-the-agent).
+
+Note, the clients do not need the replication token.
 
 ### Configure the Clients
 
@@ -195,25 +198,12 @@ Now you can start the agent.
 $ consul agent -config-file=server.json 
 ``` 
 
-Repeat this process on all clients. 
-
-### Apply the Replication Token to the Servers
-
-Finally, apply the replication token to all the servers using the CLI. 
-
-```sh 
-$ consul acl set-agent-token replication <token> 
-ACL token "replication" set successfully 
-```
-
-Once token replication has been enabled, you will also be able to create
-datacenter local tokens.
-
-Note, the clients do not need the replication token. 
+Repeat this process on all clients. If you are configuring ACLs for the
+first time, you will also need to [set the agent token](/consul/security-networking/production-acls#add-the-token-to-the-agent). 
 
 ## Check Replication 
 
-Now that you have set up ACL replication, you can use the [HTTP API] to check
+Now that you have set up ACL replication, you can use the [HTTP API](https://www.consul.io/api/acl/acl.html#check-acl-replication) to check
 the configuration.
 
 ```sh 
@@ -235,6 +225,11 @@ and roles are being replicated.
 
 ## Summary
 
-In this guide you setup token replication and basic federation with WAN gossip.
-Now you can share use tokens, policies, and rules across your datacenters. 
+In this guide you setup token replication on multiple datacenters. This process can be completed on an existing datacenters, with minimal 
+modifications. Mainly, you will need to restart the Consul agent when updating
+agent configuration with ACL parameters. 
 
+If you have not configured other secure features of Consul,
+[certificates](consul/security-networking/certificates) and
+[encryption](consul/security-networking/agent-encryption),
+we recommend doing so now. 
