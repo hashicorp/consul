@@ -4274,10 +4274,7 @@ func TestFullConfig(t *testing.T) {
 				TLSSkipVerify:                  true,
 				Timeout:                        1813 * time.Second,
 				TTL:                            21743 * time.Second,
-<<<<<<< HEAD
-=======
 				WarningThreshold:               1524 * time.Second,
->>>>>>> Implement WarningThreshold for TCP/HTTP HealthChecks
 				DeregisterCriticalServiceAfter: 14232 * time.Second,
 			},
 			&structs.CheckDefinition{
@@ -4301,10 +4298,7 @@ func TestFullConfig(t *testing.T) {
 				TLSSkipVerify:                  true,
 				Timeout:                        18506 * time.Second,
 				TTL:                            31006 * time.Second,
-<<<<<<< HEAD
-=======
 				WarningThreshold:               14506 * time.Second,
->>>>>>> Implement WarningThreshold for TCP/HTTP HealthChecks
 				DeregisterCriticalServiceAfter: 2366 * time.Second,
 			},
 			&structs.CheckDefinition{

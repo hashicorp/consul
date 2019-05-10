@@ -1346,7 +1346,7 @@ func TestAgent_HTTPCheck_WarningThreshold(t *testing.T) {
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	health := &structs.HealthCheck{
@@ -1362,7 +1362,7 @@ func TestAgent_HTTPCheck_WarningThreshold(t *testing.T) {
 		WarningThreshold: durationMs,
 	}
 
-	err := a.AddCheck(health, chk, false, "")
+	err := a.AddCheck(health, chk, false, "", ConfigSourceLocal)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1388,7 +1388,7 @@ func TestAgent_TCPCheck_WarningThreshold(t *testing.T) {
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	health := &structs.HealthCheck{
@@ -1405,7 +1405,7 @@ func TestAgent_TCPCheck_WarningThreshold(t *testing.T) {
 		WarningThreshold: durationMs,
 	}
 
-	err := a.AddCheck(health, chk, false, "")
+	err := a.AddCheck(health, chk, false, "", ConfigSourceLocal)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
