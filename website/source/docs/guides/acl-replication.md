@@ -207,7 +207,7 @@ Now that you have set up ACL replication, you can use the [HTTP API](https://www
 the configuration.
 
 ```sh 
-$ curl http://localhost:8500/v1/acl/replication
+$ curl http://localhost:8500/v1/acl/replication?pretty
 {
   "Enabled":true,
   "Running":true,
