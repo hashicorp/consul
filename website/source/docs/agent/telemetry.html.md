@@ -94,7 +94,7 @@ These are some metrics emitted that can help you understand the health of your c
 
 **Why they're important:** Consul keeps all of its data in memory. If Consul consumes all available memory, it will crash.
 
-**What to look for:** If `consul.runtime.sys_bytes` exceeds 90% of total avaliable system memory.
+**What to look for:** If `consul.runtime.sys_bytes` exceeds 90% of total available system memory.
 
 ### Garbage collection
 
@@ -556,7 +556,7 @@ These metrics are used to monitor the health of the Consul servers.
   </tr>
   <tr>
     <td>`consul.raft.replication.appendEntries.logs`</td>
-    <td>This metric measures the number of logs replicated to an agent, to bring it upto speed with the leader's logs.</td>
+    <td>This metric measures the number of logs replicated to an agent, to bring it up to speed with the leader's logs.</td>
     <td>logs appended/ interval</td>
     <td>counter</td>
   </tr>
@@ -821,7 +821,7 @@ These metrics give insight into the health of the cluster as a whole.
   </tr>
   <tr>
     <td>`consul.memberlist.degraded.probe`</td>
-    <td>This metric counts the number of times the agent has performed failure detection on an other agent at a slower probe rate. The agent uses its own health metric as an indicator to perform this action. (If its health score is low, means that the node is healthy, and vice versa.)</td>
+    <td>This metric counts the number of times the agent has performed failure detection on another agent at a slower probe rate. The agent uses its own health metric as an indicator to perform this action. (If its health score is low, means that the node is healthy, and vice versa.)</td>
     <td>probes / interval</td>
     <td>counter</td>
   </tr>
@@ -1028,7 +1028,7 @@ sinks and timeseries stores that support labels or tags, these allow aggregating
 the connections by service name.
 
 Assuming all services are using a managed built-in proxy, you can get a complete
-overview of both number of open connections and bytes sent and recieved between
+overview of both number of open connections and bytes sent and received between
 all services by aggregating over these metrics.
 
 For example aggregating over all `upstream` (i.e. outbound) connections which
@@ -1072,7 +1072,7 @@ agent. The table below describes the additional metrics exported by the proxy.
   </tr>
   <tr>
     <td>`consul.proxy.web.inbound.tx_bytes`</td>
-    <td>This increments by the number of bytes transfered to an inbound client
+    <td>This increments by the number of bytes transferred to an inbound client
     connection. Where supported a `dst` label is added indicating the
     service name the proxy represents.</td>
     <td>bytes</td>
@@ -1098,7 +1098,7 @@ agent. The table below describes the additional metrics exported by the proxy.
   </tr>
   <tr>
     <td>`consul.proxy.web.inbound.tx_bytes`</td>
-    <td>This increments by the number of bytes transfered to an upstream
+    <td>This increments by the number of bytes transferred to an upstream
     connection. Where supported a `src` label is added indicating the
     service name the proxy represents, and a `dst` label is added indicating the
     service name the upstream is connecting to.</td>
