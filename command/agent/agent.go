@@ -188,12 +188,13 @@ func (c *cmd) run(args []string) int {
 
 	// Setup the log outputs
 	logConfig := &logger.Config{
-		LogLevel:          config.LogLevel,
-		EnableSyslog:      config.EnableSyslog,
-		SyslogFacility:    config.SyslogFacility,
-		LogFilePath:       config.LogFile,
-		LogRotateDuration: config.LogRotateDuration,
-		LogRotateBytes:    config.LogRotateBytes,
+		LogLevel:             config.LogLevel,
+		EnableSyslog:         config.EnableSyslog,
+		SyslogFacility:       config.SyslogFacility,
+		LogFilePath:          config.LogFile,
+		LogRotateDuration:    config.LogRotateDuration,
+		LogRotateBytes:       config.LogRotateBytes,
+		LogRotateMaxArchives: config.LogRotateMaxArchives,
 	}
 	logFilter, logGate, logWriter, logOutput, ok := logger.Setup(logConfig, c.UI)
 	if !ok {

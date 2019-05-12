@@ -2076,8 +2076,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Checks = []*structs.CheckDefinition{
-					&structs.CheckDefinition{Name: "a", ScriptArgs: []string{"/bin/true"}},
-					&structs.CheckDefinition{Name: "b", ScriptArgs: []string{"/bin/false"}},
+					{Name: "a", ScriptArgs: []string{"/bin/true"}},
+					{Name: "b", ScriptArgs: []string{"/bin/false"}},
 				}
 				rt.DataDir = dataDir
 			},
@@ -2095,7 +2095,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Checks = []*structs.CheckDefinition{
-					&structs.CheckDefinition{Name: "a", GRPC: "localhost:12345/foo", GRPCUseTLS: true},
+					{Name: "a", GRPC: "localhost:12345/foo", GRPCUseTLS: true},
 				}
 				rt.DataDir = dataDir
 			},
@@ -2113,7 +2113,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Checks = []*structs.CheckDefinition{
-					&structs.CheckDefinition{Name: "a", AliasService: "foo"},
+					{Name: "a", AliasService: "foo"},
 				}
 				rt.DataDir = dataDir
 			},
@@ -2133,11 +2133,11 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Services = []*structs.ServiceDefinition{
-					&structs.ServiceDefinition{Name: "a", Port: 80, Weights: &structs.Weights{
+					{Name: "a", Port: 80, Weights: &structs.Weights{
 						Passing: 1,
 						Warning: 1,
 					}},
-					&structs.ServiceDefinition{Name: "b", Port: 90, Meta: map[string]string{"my": "value"}, Weights: &structs.Weights{
+					{Name: "b", Port: 90, Meta: map[string]string{"my": "value"}, Weights: &structs.Weights{
 						Passing: 13,
 						Warning: 1,
 					}},
@@ -2221,12 +2221,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Services = []*structs.ServiceDefinition{
-					&structs.ServiceDefinition{
+					{
 						Name:              "a",
 						Port:              80,
 						EnableTagOverride: true,
 						Checks: []*structs.CheckType{
-							&structs.CheckType{
+							{
 								CheckID:                        types.CheckID("x"),
 								Name:                           "y",
 								DockerContainerID:              "z",
@@ -2297,7 +2297,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			patch: func(rt *RuntimeConfig) {
 				rt.DataDir = dataDir
 				rt.Services = []*structs.ServiceDefinition{
-					&structs.ServiceDefinition{
+					{
 						Name: "web",
 						Port: 8080,
 						Connect: &structs.ServiceConnect{
@@ -2367,7 +2367,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			patch: func(rt *RuntimeConfig) {
 				rt.DataDir = dataDir
 				rt.Services = []*structs.ServiceDefinition{
-					&structs.ServiceDefinition{
+					{
 						Name: "web",
 						Port: 8080,
 						Connect: &structs.ServiceConnect{
@@ -4093,7 +4093,7 @@ func TestFullConfig(t *testing.T) {
 		`}
 
 	tail := map[string][]Source{
-		"json": []Source{
+		"json": {
 			{
 				Name:   "tail.non-user.json",
 				Format: "json",
@@ -4136,7 +4136,7 @@ func TestFullConfig(t *testing.T) {
 				}`,
 			},
 		},
-		"hcl": []Source{
+		"hcl": {
 			{
 				Name:   "tail.non-user.hcl",
 				Format: "hcl",
@@ -4249,7 +4249,7 @@ func TestFullConfig(t *testing.T) {
 		CAPath:                           "mQEN1Mfp",
 		CertFile:                         "7s4QAzDk",
 		Checks: []*structs.CheckDefinition{
-			&structs.CheckDefinition{
+			{
 				ID:         "uAjE6m9Z",
 				Name:       "QsZRGpYr",
 				Notes:      "VJ7Sk4BY",
@@ -4259,8 +4259,8 @@ func TestFullConfig(t *testing.T) {
 				ScriptArgs: []string{"4BAJttck", "4D2NPtTQ"},
 				HTTP:       "dohLcyQ2",
 				Header: map[string][]string{
-					"ZBfTin3L": []string{"1sDbEqYG", "lJGASsWK"},
-					"Ui0nU99X": []string{"LMccm3Qe", "k5H5RggQ"},
+					"ZBfTin3L": {"1sDbEqYG", "lJGASsWK"},
+					"Ui0nU99X": {"LMccm3Qe", "k5H5RggQ"},
 				},
 				Method:                         "aldrIQ4l",
 				TCP:                            "RJQND605",
@@ -4272,7 +4272,7 @@ func TestFullConfig(t *testing.T) {
 				TTL:                            21743 * time.Second,
 				DeregisterCriticalServiceAfter: 14232 * time.Second,
 			},
-			&structs.CheckDefinition{
+			{
 				ID:         "Cqq95BhP",
 				Name:       "3qXpkS0i",
 				Notes:      "sb5qLTex",
@@ -4282,8 +4282,8 @@ func TestFullConfig(t *testing.T) {
 				ScriptArgs: []string{"9s526ogY", "gSlOHj1w"},
 				HTTP:       "yzhgsQ7Y",
 				Header: map[string][]string{
-					"zcqwA8dO": []string{"qb1zx0DL", "sXCxPFsD"},
-					"qxvdnSE9": []string{"6wBPUYdF", "YYh8wtSZ"},
+					"zcqwA8dO": {"qb1zx0DL", "sXCxPFsD"},
+					"qxvdnSE9": {"6wBPUYdF", "YYh8wtSZ"},
 				},
 				Method:                         "gLrztrNw",
 				TCP:                            "4jG5casb",
@@ -4295,7 +4295,7 @@ func TestFullConfig(t *testing.T) {
 				TTL:                            31006 * time.Second,
 				DeregisterCriticalServiceAfter: 2366 * time.Second,
 			},
-			&structs.CheckDefinition{
+			{
 				ID:         "fZaCAXww",
 				Name:       "OOM2eo0f",
 				Notes:      "zXzXI9Gt",
@@ -4465,7 +4465,7 @@ func TestFullConfig(t *testing.T) {
 				},
 				EnableTagOverride: true,
 				Checks: []*structs.CheckType{
-					&structs.CheckType{
+					{
 						CheckID:    "qmfeO5if",
 						Name:       "atDGP7n5",
 						Status:     "pDQKEhWL",
@@ -4739,13 +4739,13 @@ func TestFullConfig(t *testing.T) {
 		VerifyOutgoing:       true,
 		VerifyServerHostname: true,
 		Watches: []map[string]interface{}{
-			map[string]interface{}{
+			{
 				"type":       "key",
 				"datacenter": "GyE6jpeW",
 				"key":        "j9lF1Tve",
 				"handler":    "90N7S4LN",
 			},
-			map[string]interface{}{
+			{
 				"type":       "keyprefix",
 				"datacenter": "fYrl3F5d",
 				"key":        "sl3Dffu7",
@@ -5028,7 +5028,7 @@ func TestSanitize(t *testing.T) {
 			"wan_foo=bar wan_key=baz wan_secret=boom wan_bang=bar",
 		},
 		Services: []*structs.ServiceDefinition{
-			&structs.ServiceDefinition{
+			{
 				Name:  "foo",
 				Token: "bar",
 				Check: structs.CheckType{
@@ -5041,7 +5041,7 @@ func TestSanitize(t *testing.T) {
 			},
 		},
 		Checks: []*structs.CheckDefinition{
-			&structs.CheckDefinition{
+			{
 				Name:  "zoo",
 				Token: "zope",
 			},
@@ -5211,6 +5211,7 @@ func TestSanitize(t *testing.T) {
 		"LogFile": "",
 		"LogRotateBytes": 0,
 		"LogRotateDuration": "0s",
+		"LogRotateMaxArchives": 0,
 		"NodeID": "",
 		"NodeMeta": {},
 		"NodeName": "",

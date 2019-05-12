@@ -844,6 +844,12 @@ type RuntimeConfig struct {
 	// flags: -log-rotate-bytes int
 	LogRotateBytes int
 
+	// LogRotateMaxArchives is the maximum number of log archives to keep
+	//
+	// hcl: log_rotate_max_archives = int
+	// flags: -log-rotate-max-archives int
+	LogRotateMaxArchives int
+
 	// Node ID is a unique ID for this node across space and time. Defaults
 	// to a randomly-generated ID that persists in the data-dir.
 	//

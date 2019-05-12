@@ -1,8 +1,10 @@
 package logger
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -41,11 +43,14 @@ type LogFile struct {
 	//BytesWritten is the number of bytes written in the current log file
 	BytesWritten int64
 
+	// Max past archived log files to keep
+	MaxLogArchives int
+
 	//acquire is the mutex utilized to ensure we have no concurrency issues
 	acquire sync.Mutex
 }
 
-func (l *LogFile) openNew() error {
+func (l *LogFile) getFileNamePattern() string {
 	// Extract the file extension
 	fileExt := filepath.Ext(l.fileName)
 	// If we have no file extension we append .log
@@ -53,16 +58,22 @@ func (l *LogFile) openNew() error {
 		fileExt = ".log"
 	}
 	// Remove the file extension from the filename
-	fileName := strings.TrimSuffix(l.fileName, fileExt)
+	fileNameWithoutExtension := strings.TrimSuffix(l.fileName, fileExt)
+	return fileNameWithoutExtension + "-%s" + fileExt
+}
+
+func (l *LogFile) openNew() error {
+	fileNamePattern := l.getFileNamePattern()
 	// New file name has the format : filename-timestamp.extension
 	createTime := now()
-	newfileName := fileName + "-" + strconv.FormatInt(createTime.UnixNano(), 10) + fileExt
+	newfileName := fmt.Sprintf(fileNamePattern, strconv.FormatInt(createTime.UnixNano(), 10))
 	newfilePath := filepath.Join(l.logPath, newfileName)
 	// Try creating a file. We truncate the file because we are the only authority to write the logs
 	filePointer, err := os.OpenFile(newfilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0640)
 	if err != nil {
 		return err
 	}
+
 	l.FileInfo = filePointer
 	// New file, new bytes tracker, new creation time :)
 	l.LastCreated = createTime
@@ -76,7 +87,35 @@ func (l *LogFile) rotate() error {
 	// Rotate if we hit the byte file limit or the time limit
 	if (l.BytesWritten >= int64(l.MaxBytes) && (l.MaxBytes > 0)) || timeElapsed >= l.duration {
 		l.FileInfo.Close()
+		if err := l.purgeArchivesIfNeeded(); err != nil {
+			fmt.Printf("E! Unable to purge old log file archives: %s", err.Error())
+		}
 		return l.openNew()
+	}
+	return nil
+}
+
+func (l *LogFile) purgeArchivesIfNeeded() error {
+	if l.MaxLogArchives == -1 {
+		return nil
+	}
+	fileNamePattern := l.getFileNamePattern()
+	//get all the files that match the log file pattern
+	globExpression := filepath.Join(l.logPath, fmt.Sprintf(fileNamePattern, "*"))
+	var matches []string
+	var err error
+	if matches, err = filepath.Glob(globExpression); err != nil {
+		return err
+	}
+	//if there are more archives than the configured maximum, then purge
+	if len(matches) > l.MaxLogArchives {
+		//sort files alphanumerically to delete old files first
+		sort.Strings(matches)
+		for _, filename := range matches[:len(matches)-l.MaxLogArchives] {
+			if err = os.Remove(filename); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }

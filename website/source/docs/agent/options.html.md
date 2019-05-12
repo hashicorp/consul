@@ -247,6 +247,8 @@ will exit with an error at startup.
 
 * <a name="_log_rotate_duration"></a><a href="#_log_rotate_duration">`-log-rotate-duration`</a> - to specify the maximum duration a log should be written to before it needs to be rotated. Must be a duration value such as 30s. Defaults to 24h.
 
+* <a name="_log_rotate_max_archives"></a><a href="#_log_rotate_max_archives">`-log-rotate-max-archives`</a> - to specify the maximum number of older log file archives to keep. Defaults 0 (no archives are kept). Use -1 to keep all archives.
+
 * <a name="_join"></a><a href="#_join">`-join`</a> - Address of another agent
   to join upon starting up. This can be
   specified multiple times to specify multiple agents to join. If Consul is
