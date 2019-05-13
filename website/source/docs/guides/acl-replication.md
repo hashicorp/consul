@@ -84,7 +84,7 @@ first time, you will also need to [compelete the bootstrapping process](/consul/
 ## Create the Replication Token for ACL Management
 
 Next, create the replication token for managing ACLs
-created with the following privileges.
+with the following privileges.
 
 - acl = "write" which will allow you to replicate tokens.  
 - operator = "read" for replicating proxy-default configuration entries.
