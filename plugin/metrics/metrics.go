@@ -137,9 +137,7 @@ func (m *Metrics) stopServer() error {
 }
 
 // OnFinalShutdown tears down the metrics listener on shutdown and restart.
-func (m *Metrics) OnFinalShutdown() error {
-	return m.stopServer()
-}
+func (m *Metrics) OnFinalShutdown() error { return m.stopServer() }
 
 func keys(m map[string]struct{}) []string {
 	sx := []string{}

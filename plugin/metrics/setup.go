@@ -27,57 +27,54 @@ func init() {
 }
 
 func setup(c *caddy.Controller) error {
-	m, err := prometheusParse(c)
+	m, err := parse(c)
 	if err != nil {
 		return plugin.Error("prometheus", err)
 	}
 
-	// register the metrics to its address (ensure only one active metrics per address)
-	obj := uniqAddr.Set(m.Addr, m.OnStartup, m)
-	//propagate the real active Registry to current metrics
-	if om, ok := obj.(*Metrics); ok {
-		m.Reg = om.Reg
-	}
+	c.OnStartup(func() error { m.Reg = uniqAddr.Set(m.Addr, m.OnStartup, m).(*Metrics).Reg; return nil })
+	c.OnRestartFailed(func() error { m.Reg = uniqAddr.Set(m.Addr, m.OnStartup, m).(*Metrics).Reg; return nil })
+
+	c.OnStartup(func() error { return uniqAddr.ForEach() })
+	c.OnRestartFailed(func() error { return uniqAddr.ForEach() })
+
+	c.OnStartup(func() error {
+		conf := dnsserver.GetConfig(c)
+		for _, h := range conf.ListenHosts {
+			addrstr := conf.Transport + "://" + net.JoinHostPort(h, conf.Port)
+			for _, p := range conf.Handlers() {
+				vars.PluginEnabled.WithLabelValues(addrstr, conf.Zone, p.Name()).Set(1)
+			}
+		}
+		return nil
+	})
+	c.OnRestartFailed(func() error {
+		conf := dnsserver.GetConfig(c)
+		for _, h := range conf.ListenHosts {
+			addrstr := conf.Transport + "://" + net.JoinHostPort(h, conf.Port)
+			for _, p := range conf.Handlers() {
+				vars.PluginEnabled.WithLabelValues(addrstr, conf.Zone, p.Name()).Set(1)
+			}
+		}
+		return nil
+	})
+
+	c.OnRestart(m.OnRestart)
+	c.OnRestart(func() error { vars.PluginEnabled.Reset(); return nil })
+	c.OnFinalShutdown(m.OnFinalShutdown)
+
+	// Initialize metrics.
+	buildInfo.WithLabelValues(coremain.CoreVersion, coremain.GitCommit, runtime.Version()).Set(1)
 
 	dnsserver.GetConfig(c).AddPlugin(func(next plugin.Handler) plugin.Handler {
 		m.Next = next
 		return m
 	})
 
-	c.OncePerServerBlock(func() error {
-		c.OnStartup(func() error {
-			return uniqAddr.ForEach()
-		})
-		return nil
-	})
-
-	c.OnRestart(func() error {
-		vars.PluginEnabled.Reset()
-		return nil
-	})
-
-	c.OnStartup(func() error {
-		conf := dnsserver.GetConfig(c)
-		plugins := conf.Handlers()
-		for _, h := range conf.ListenHosts {
-			addrstr := conf.Transport + "://" + net.JoinHostPort(h, conf.Port)
-			for _, p := range plugins {
-				vars.PluginEnabled.WithLabelValues(addrstr, conf.Zone, p.Name()).Set(1)
-			}
-		}
-		return nil
-
-	})
-	c.OnRestart(m.OnRestart)
-	c.OnFinalShutdown(m.OnFinalShutdown)
-
-	// Initialize metrics.
-	buildInfo.WithLabelValues(coremain.CoreVersion, coremain.GitCommit, runtime.Version()).Set(1)
-
 	return nil
 }
 
-func prometheusParse(c *caddy.Controller) (*Metrics, error) {
+func parse(c *caddy.Controller) (*Metrics, error) {
 	var met = New(defaultAddr)
 
 	i := 0
