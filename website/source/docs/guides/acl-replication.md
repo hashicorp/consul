@@ -8,13 +8,13 @@ products_used:
 description: Configure tokens, policies, and roles to work across multiple datacenters.
 ---
 
-You can configure tokens, policies, and roles to work across multiple
-datacenters. This provides central configuration of security policies in the
-primary datacenter and failover for the secondary datacenters. If the primary
-datacenter goes offline, the secondary datacenters will still have the security
-policies in place. 
+You can configure tokens, policies and roles to work across multiple datacenters. ACL replication has several benefits. 
 
-### Prerequisites
+1. It enables authentication of nodes and services between multiple datacenters. 
+1. The secondary datacenter can provide failover for all ACL components created in the primary datacenter. 
+1. Sharing policies reduces redundancy for the operator.
+
+## Prerequisites
 
 Before starting this guide, each datacenter will need to have ACLs enabled, the process is outlined in the [Securing Consul with ACLs
 guide](/consul/security-networking/production-acls). This guide includes the additional ACL replication configuration for the Consul
