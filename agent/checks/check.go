@@ -334,8 +334,13 @@ func (c *CheckHTTP) Start() {
 		// For long (>10s) interval checks the http timeout is 10s, otherwise the
 		// timeout is the interval. This means that a check *should* return
 		// before the next check begins.
-		if c.Timeout > 0 && c.Timeout < c.Interval {
-			c.httpClient.Timeout = c.Timeout
+		if c.Timeout > 0 {
+			if c.Timeout > c.Interval {
+				c.Logger.Printf("[WARN] agent: Check Timeout (%q) > Interval (%q), using Interval for %q", c.Timeout, c.Interval, c.CheckID)
+				c.httpClient.Timeout = c.Interval
+			} else {
+				c.httpClient.Timeout = c.Timeout
+			}
 		} else if c.Interval < 10*time.Second {
 			c.httpClient.Timeout = c.Interval
 		}
@@ -471,8 +476,13 @@ func (c *CheckTCP) Start() {
 		// For long (>10s) interval checks the socket timeout is 10s, otherwise
 		// the timeout is the interval. This means that a check *should* return
 		// before the next check begins.
-		if c.Timeout > 0 && c.Timeout < c.Interval {
-			c.dialer.Timeout = c.Timeout
+		if c.Timeout > 0 {
+			if c.Timeout > c.Interval {
+				c.Logger.Printf("[WARN] agent: Check Timeout (%q) > Interval (%q), using Interval for %q", c.Timeout, c.Interval, c.CheckID)
+				c.dialer.Timeout = c.Interval
+			} else {
+				c.dialer.Timeout = c.Timeout
+			}
 		} else if c.Interval < 10*time.Second {
 			c.dialer.Timeout = c.Interval
 		}
