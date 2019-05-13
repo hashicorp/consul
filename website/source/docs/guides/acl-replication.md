@@ -231,7 +231,7 @@ and roles are being replicated.
 
 ## Summary
 
-In this guide you setup token replication on multiple datacenters. This process can be completed on an existing datacenters, with minimal 
+In this guide you setup token replication on multiple datacenters. You can complete this process on an existing datacenter, with minimal 
 modifications. Mainly, you will need to restart the Consul agent when updating
 agent configuration with ACL parameters. 
 
