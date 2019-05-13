@@ -34,7 +34,7 @@ that includes:
 - Enabling token replication on the servers in the secondary datacenter.  
 - Applying the replication token to all the servers in the secondary datacenter. 
 
-This guide is intended to be completed during the initial ACL bootstrapping
+You should complete this guide during the initial ACL bootstrapping
 process. 
 
 -> After ACLs are enabled you must have a privileged token to complete any
