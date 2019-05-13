@@ -67,6 +67,33 @@ Feature: dc / acls / policies / as many / add new: Add new policy
     | token     |
     | role      |
     -------------
+  Scenario: Adding a new policy as a child of [Model] and getting an error
+    Given the url "/v1/acl/policy" responds with from yaml
+    ---
+    status: 500
+    body: |
+      Invalid service policy: acl.ServicePolicy{Name:"service", Policy:"", Sentinel:acl.Sentinel{Code:"", EnforcementLevel:""}, Intentions:""}
+    ---
+    Then I fill in the policies.form with yaml
+    ---
+      Name: New-Policy
+      Description: New Policy Description
+      Rules: key {}
+    ---
+    And I click submit on the policies.form
+    Then the last PUT request was made to "/v1/acl/policy?dc=datacenter" with the body from yaml
+    ---
+      Name: New-Policy
+      Description: New Policy Description
+      Rules: key {}
+    ---
+    And I see error on the policies.form.rules like 'Invalid service policy: acl.ServicePolicy{Name:"service", Policy:"", Sentinel:acl.Sentinel{Code:"", EnforcementLevel:""}, Intentions:""}'
+  Where:
+    -------------
+    | Model     |
+    | token     |
+    | role      |
+    -------------
 @ignore:
   Scenario: Click the cancel form
     Then ok

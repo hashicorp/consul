@@ -96,18 +96,28 @@ export default function(scenario, assert, find, currentPage) {
     .then(['I see $property'], function(property) {
       assert.ok(currentPage()[property], `Expected to see ${property}`);
     })
-    .then(['I see $property on the $component like "$value"'], function(
-      property,
-      component,
-      value
-    ) {
-      const target = currentPage()[component][property];
-      assert.equal(
-        target,
-        value,
-        `Expected to see ${property} on ${component} as ${value}, was ${target}`
-      );
-    })
+    .then(
+      [
+        'I see $property on the $component like "$value"',
+        "I see $property on the $component like '$value'",
+      ],
+      function(property, component, value) {
+        let target;
+        try {
+          if (typeof component === 'string') {
+            property = `${component}.${property}`;
+          }
+          target = find(property);
+        } catch (e) {
+          throw e;
+        }
+        assert.equal(
+          target,
+          value,
+          `Expected to see ${property} on ${component} as ${value}, was ${target}`
+        );
+      }
+    )
     .then(['I see $property like "$value"'], function(property, value) {
       const target = currentPage()[property];
       assert.equal(target, value, `Expected to see ${property} as ${value}, was ${target}`);
