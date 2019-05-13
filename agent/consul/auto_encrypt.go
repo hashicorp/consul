@@ -59,24 +59,25 @@ func (c *Client) AutoEncrypt(servers []string, port int, token string) (*structs
 	}
 	var reply structs.SignResponse
 
-	// Translate host:port to net.TCPAddr to make life easier for
-	// RPCInsecure.
-	addrs := []*net.TCPAddr{}
-	for _, s := range servers {
-		ips, err := resolveAddr(s, c.logger)
-		if err != nil {
-			continue
-		}
-		for _, ip := range ips {
-			addrs = append(addrs, &net.TCPAddr{IP: ip, Port: port})
-		}
-	}
-
-	// Retry implementation modelled after https://github.com/hashicorp/consul/pull/5228.
+	// Retry implementation modeled after https://github.com/hashicorp/consul/pull/5228.
 	// TLDR; there is a 30s window from which a random time is picked.
 	// Repeat until the call is successful.
 	attempts := 0
 	for {
+		// Translate host to net.TCPAddr to make life easier for
+		// RPCInsecure.
+		addrs := []*net.TCPAddr{}
+		for _, s := range servers {
+			ips, err := resolveAddr(s, c.logger)
+			if err != nil {
+				c.logger.Printf("[WARN] agent: AutoEncrypt resolveAddr failed: %v", err)
+				continue
+			}
+			for _, ip := range ips {
+				addrs = append(addrs, &net.TCPAddr{IP: ip, Port: port})
+			}
+		}
+
 		if err = c.RPCInsecure("AutoEncrypt.Sign", &args, &reply, addrs); err == nil {
 			return &reply, pkPEM, nil
 		}
@@ -95,14 +96,7 @@ func (c *Client) AutoEncrypt(servers []string, port int, token string) (*structs
 
 // resolveAddr is used to resolve the address into an address,
 // port, and error. If no port is given, use the default
-func resolveAddr(rawHost string, logger *log.Logger) ([]net.IP, error) {
-	// If it looks like an IP address we are done. The SplitHostPort() above
-	// will make sure the host part is in good shape for parsing, even for
-	// IPv6 addresses.
-	host, _, err := net.SplitHostPort(rawHost)
-	if err != nil {
-		return nil, err
-	}
+func resolveAddr(host string, logger *log.Logger) ([]net.IP, error) {
 	if ip := net.ParseIP(host); ip != nil {
 		return []net.IP{ip}, nil
 	}
@@ -111,7 +105,7 @@ func resolveAddr(rawHost string, logger *log.Logger) ([]net.IP, error) {
 	// hosts to join. If this fails it's not fatal since this isn't a standard
 	// way to query DNS, and we have a fallback below.
 	if ips, err := tcpLookupIP(host, logger); err != nil {
-		logger.Printf("[DEBUG] memberlist: TCP-first lookup failed for '%s', falling back to UDP: %s", rawHost, err)
+		logger.Printf("[DEBUG] memberlist: TCP-first lookup failed for '%s', falling back to UDP: %s", host, err)
 	} else if len(ips) > 0 {
 		return ips, nil
 	}
