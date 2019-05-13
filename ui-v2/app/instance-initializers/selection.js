@@ -1,3 +1,5 @@
+import env from 'consul-ui/env';
+
 const SECONDARY_BUTTON = 2;
 const isSelecting = function(win = window) {
   const selection = win.getSelection();
@@ -12,6 +14,9 @@ const isSelecting = function(win = window) {
 export default {
   name: 'selection',
   initialize(container) {
+    if (env('CONSUL_UI_DISABLE_ANCHOR_SELECTION')) {
+      return;
+    }
     const dom = container.lookup('service:dom');
     const findAnchor = function(el) {
       return el.tagName === 'A' ? el : dom.closest('a', el);

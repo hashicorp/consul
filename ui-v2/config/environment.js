@@ -29,7 +29,10 @@ module.exports = function(environment) {
   };
   // TODO: These should probably go onto APP
   ENV = Object.assign({}, ENV, {
+    // TODO: Let people alter this, as with anchor selection
     CONSUL_UI_DISABLE_REALTIME: false,
+    CONSUL_UI_DISABLE_ANCHOR_SELECTION:
+      typeof process.env.CONSUL_UI_DISABLE_ANCHOR_SELECTION !== 'undefined',
     CONSUL_GIT_SHA: (function() {
       if (process.env.CONSUL_GIT_SHA) {
         return process.env.CONSUL_GIT_SHA;
