@@ -68,7 +68,7 @@ datacenter. Your agent configuration should be similar to the example below.
 
 The `primary_datacenter`
 [parameter](https://www.consul.io/docs/agent/options.html#primary_datacenter)
-sets the primary datacenter to have authority for all ACL information. It is
+sets the primary datacenter to have authority for all ACL information. The reason
 important to also set this on the clients, so that the clients can forward API
 requests to the servers. 
 
