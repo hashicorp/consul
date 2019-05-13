@@ -4,6 +4,7 @@ import { inject as service } from '@ember/service';
 import updateArrayObject from 'consul-ui/utils/update-array-object';
 
 const ERROR_PARSE_RULES = 'Failed to parse ACL rules';
+const ERROR_INVALID_POLICY = 'Invalid service policy';
 const ERROR_NAME_EXISTS = 'Invalid Policy: A Policy with Name';
 
 export default ChildSelectorComponent.extend({
@@ -42,6 +43,7 @@ export default ChildSelectorComponent.extend({
       let message = error.detail;
       switch (true) {
         case message.indexOf(ERROR_PARSE_RULES) === 0:
+        case message.indexOf(ERROR_INVALID_POLICY) === 0:
           prop = 'Rules';
           message = error.detail;
           break;
