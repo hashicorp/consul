@@ -79,7 +79,7 @@ $ consul agent -config-file=server.json
 ```
 
 Complete this process on all agents. If you are configuring ACLs for the
-first time, you will also need to [compelete the bootstrapping process](/consul/security-networking/production-acls).
+first time, you will also need to [compelete the bootstrapping process](/consul/security-networking/production-acls) now.
 
 ## Create the Replication Token for ACL Management
 
