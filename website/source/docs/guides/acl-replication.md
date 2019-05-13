@@ -140,7 +140,7 @@ privileges to complete any action on the secondary servers.
 ### Configure the Servers 
 
 You will need to set the `primary_datacenter` parameter to the name of your
-primary datacenter and `enable_token_replication` to true.  
+primary datacenter and `enable_token_replication` to true on all the servers.  
 
 ```json 
 { 
@@ -161,6 +161,8 @@ Now you can start the agent.
 ```sh 
 $ consul agent -config-file=server.json 
 ``` 
+
+Repeat this process on all the servers.
 
 ### Apply the Replication Token to the Servers
 
