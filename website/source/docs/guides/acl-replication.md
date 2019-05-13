@@ -5,7 +5,7 @@ id: acl-replication
 layout: content_layout
 products_used:
   - Consul
-description: You can configure tokens, policies, and roles to work across multiple datacenters.
+description: Configure tokens, policies, and roles to work across multiple datacenters.
 ---
 
 You can configure tokens, policies, and roles to work across multiple
