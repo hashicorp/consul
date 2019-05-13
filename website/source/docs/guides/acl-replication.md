@@ -14,10 +14,16 @@ primary datacenter and failover for the secondary datacenters. If the primary
 datacenter goes offline, the secondary datacenters will still have the security
 policies in place. 
 
-~> Note, each datacenter will need to have ACLs enabled, the process is outlined in the [Securing Consul with ACLs
+### Prerequisites
+
+Before starting this guide, each datacenter will need to have ACLs enabled, the process is outlined in the [Securing Consul with ACLs
 guide](/consul/security-networking/production-acls). This guide includes the additional ACL replication configuration for the Consul
-agents not covered in the Securing Consul with ACL guide. Additionally,
+agents not covered in the Securing Consul with ACL guide. 
+
+Additionally,
 [Basic Federation with WAN Gossip](/consul/security-networking/datacenters) is required. 
+
+### Introduction 
 
 In this guide, you will setup ACL replication. This is a multi-step process
 that includes:
