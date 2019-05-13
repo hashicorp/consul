@@ -96,7 +96,22 @@ at startup. If you specify "[::]", Consul will
 IPv6 address. If there are **multiple public IPv6 addresses** available, Consul
 will exit with an error at startup.
   Consul uses both TCP and UDP and the same port for both. If you
-  have any firewalls, be sure to allow both protocols. **In Consul 1.0 and later this can be set to a [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template) template that needs to resolve to a single address.**
+  have any firewalls, be sure to allow both protocols. **In Consul 1.0 and later this can be set to a [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template) template that needs to resolve to a single address.** Some example templates:
+
+    ```sh
+    # Using address within a specific CIDR
+    $ consul agent -bind '{{ GetPrivateInterfaces | include "network" "10.0.0.0/8" | attr "address" }}'
+    ```
+
+    ```sh
+    # Using a static network interface name
+    $ consul agent -bind '{{ GetInterfaceIP "eth0" }}'
+    ```
+
+    ```sh
+    # Using regular expression matching for network interface name that is forwardable and up
+    $ consul agent -bind '{{ GetAllInterfaces | include "name" "^eth" | include "flags" "forwardable|up" | attr "address" }}'
+    ```
 
 * <a name="_serf_wan_bind"></a><a href="#_serf_wan_bind">`-serf-wan-bind`</a> -
   The address that should be bound to for Serf WAN gossip communications. By
