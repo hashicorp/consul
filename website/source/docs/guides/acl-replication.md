@@ -23,7 +23,7 @@ agents not covered in the Securing Consul with ACL guide.
 Additionally,
 [Basic Federation with WAN Gossip](/consul/security-networking/datacenters) is required. 
 
-### Introduction 
+## Introduction 
 
 In this guide, you will setup ACL replication. This is a multi-step process
 that includes:
