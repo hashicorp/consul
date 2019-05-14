@@ -478,6 +478,7 @@ func (c *CheckTCP) Start() {
 		// before the next check begins.
 		if c.Timeout > 0 {
 			if c.Timeout > c.Interval {
+
 				c.Logger.Printf("[WARN] agent: Check Timeout (%q) > Interval (%q), using Interval for %q", c.Timeout, c.Interval, c.CheckID)
 				c.dialer.Timeout = c.Interval
 			} else {
@@ -485,6 +486,8 @@ func (c *CheckTCP) Start() {
 			}
 		} else if c.Interval < 10*time.Second {
 			c.dialer.Timeout = c.Interval
+		} else {
+			c.dialer.Timeout = 10 * time.Second
 		}
 	}
 

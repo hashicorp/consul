@@ -322,6 +322,72 @@ func TestCheckHTTP(t *testing.T) {
 	}
 }
 
+func TestChecksTimeoutValues(t *testing.T) {
+	tests := []struct {
+		desc     string
+		timeout  string
+		interval string
+		etimeout string
+	}{
+		// without timeout, default 10s unless interval < 10s
+		{desc: "Default Timeout 10s For Interval 15s", timeout: "", interval: "15s", etimeout: "10s"},
+		{desc: "Default Timeout 10s For Interval 10s", timeout: "", interval: "10s", etimeout: "10s"},
+		{desc: "Default Timeout 9s For Interval 9s", timeout: "", interval: "9s", etimeout: "9s"},
+		// with timeout, max := interval
+		{desc: "Timeout 10s For Interval 10s", timeout: "10s", interval: "10s", etimeout: "10s"},
+		{desc: "Timeout 7s For Interval 10s", timeout: "7s", interval: "10s", etimeout: "7s"},
+		{desc: "Timeout 19s For Interval 10s, real timeout 10s", timeout: "19s", interval: "10s", etimeout: "10s"},
+		{desc: "Timeout 19s For Interval 5s, real timeout 5s", timeout: "19s", interval: "5s", etimeout: "5s"},
+		{desc: "Timeout 19s For Interval 12s, real timeout 12s", timeout: "19s", interval: "12s", etimeout: "12s"},
+	}
+	t.Parallel()
+	notif := mock.NewNotify()
+	timeout := 5 * time.Millisecond
+	server := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		time.Sleep(2 * timeout)
+	}))
+	defer server.Close()
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			timeout, err := time.ParseDuration(tt.timeout)
+			if err != nil {
+				timeout = 0
+			}
+			interval, _ := time.ParseDuration(tt.interval)
+			checkHTTP := &CheckHTTP{
+				Notify:   notif,
+				CheckID:  types.CheckID(fmt.Sprintf("HTTP %q", tt.desc)),
+				HTTP:     server.URL,
+				Timeout:  timeout,
+				Interval: interval,
+				Logger:   log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
+			}
+
+			checkTCP := &CheckTCP{
+				Notify:   notif,
+				CheckID:  types.CheckID(fmt.Sprintf("TCP %q", tt.desc)),
+				TCP:      "tcp://127.0.0.1:65533",
+				Timeout:  timeout,
+				Interval: interval,
+				Logger:   log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
+			}
+
+			checkHTTP.Start()
+			defer checkHTTP.Stop()
+			checkTCP.Start()
+			defer checkTCP.Stop()
+			etimeout, _ := time.ParseDuration(tt.etimeout)
+			if checkHTTP.httpClient.Timeout != etimeout {
+				t.Fatalf("expected HTTP timeout to be %q, was %q", etimeout, checkHTTP.httpClient.Timeout)
+			}
+			if checkTCP.dialer.Timeout != etimeout {
+				t.Fatalf("expected TCP timeout to be %q, was %q", etimeout, checkTCP.dialer.Timeout)
+			}
+		})
+	}
+}
+
 func TestCheckHTTPTimeout(t *testing.T) {
 	t.Parallel()
 	timeout := 5 * time.Millisecond
