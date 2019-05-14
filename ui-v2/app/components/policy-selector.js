@@ -59,6 +59,9 @@ export default ChildSelectorComponent.extend({
     }
   },
   actions: {
+    open: function(e) {
+      this.refreshCodeEditor(e, e.target.parentElement);
+    },
     loadItem: function(e, item, items) {
       const target = e.target;
       // the Details expander toggle, only load on opening

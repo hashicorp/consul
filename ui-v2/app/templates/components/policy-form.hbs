@@ -18,13 +18,13 @@
         {{/each}}
     </div>
   {{/yield-slot}}
-    <label class="type-text{{if item.error.Name ' has-error'}}">
+    <label class="type-text{{if (and item.error.Name (not item.isPristine)) ' has-error'}}">
         <span>Name</span>
         <input type="text" value={{item.Name}} name="{{name}}[Name]" autofocus="autofocus" oninput={{action 'change'}} />
         <em>
           Maximum 128 characters. May only include letters (uppercase and/or lowercase) and/or numbers. Must be unique.
         </em>
-        {{#if item.error.Name}}
+        {{#if (and item.error.Name (not item.isPristine))}}
           <strong>{{item.error.Name.validation}}</strong>
         {{/if}}
     </label>
