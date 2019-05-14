@@ -179,6 +179,15 @@ Annotations can be used to configure the injection behavior.
   6789, respectively. The name of the service is the name of the service
   registered with Consul. This value defaults to no upstreams.
 
+* `consul.hashicorp.com/connect-service-protocol` - For pods that will be
+  registered with Consul's [central configuration](/docs/agent/config_entries.html)
+  feature, information about the protocol the service uses is required. Users
+  can define the protocol directly using this annotation on the pod spec, or by
+  defining a default value for all services using the Helm chart's
+  [defaultProtocol](/docs/platform/k8s/helm.html#v-connectinject-centralconfig-defaultprotocol)
+  option. Specific annotations will always override the default value.
+
+
 ### Deployments, StatefulSets, etc.
 
 The annotations for configuring Connect must be on the pod specification.

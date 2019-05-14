@@ -85,6 +85,14 @@ and consider if they're appropriate for your deployment.
 
   * <a name="v-global-datacenter" href="#v-global-datacenter">`datacenter`</a> (`string: "dc1"`) - The name of the datacenter that the agent cluster should register as. This may not be changed once the cluster is bootstrapped and running, since Consul doesn't yet support an automatic way to change this value.
 
+ * <a name="v-global-pod-security-policies" href="#v-pod-security-policies">`enablePodSecurityPolicies`</a> (`boolean: false`) -
+  This flag controls whether [`PodSecurityPolicies`](https://kubernetes.io/docs/concepts/policy/pod-security-policy/) are created
+  for the Consul components that this chart creates.
+
+  * <a name="v-global-bootstrap-acls" href="#v-global-bootstrap-acls">`bootstrapACLs`</a> (`boolean: false`) - This flag controls
+  whether the Helm chart automatically enables ACLs within the Consul cluster. This requires both Consul servers and clients to be run within
+  Kubernetes. Requires Consul v1.5+ and consul-k8s v0.8.0+.
+
 * <a name="v-server" href="#v-server">`server`</a> - Values that configure running a Consul server within Kubernetes.
 
   * <a name="v-server-enabled" href="#v-server-enabled">`enabled`</a> (`boolean: global.enabled`) - If true, the chart will install all the resources necessary for a Consul server cluster. If you're running Consul externally and want agents within Kubernetes to join that cluster, this should probably be false.
@@ -256,6 +264,7 @@ and consider if they're appropriate for your deployment.
           "sample/annotation2": "bar"
         ```
 
+
 * <a name="v-dns" href="#v-dns">`dns`</a> - Values that configure Consul DNS service.
 
   * <a name="v-dns-enabled" href="#v-dns-enabled">`enabled`</a> (`boolean: global.enabled`) - If true, a `consul-dns` service will be created that exposes port 53 for TCP and UDP to the running Consul agents (servers and clients). This can then be used to [configure kube-dns](/docs/platform/k8s/dns.html). The Helm chart _does not_ automatically configure kube-dns.
@@ -339,6 +348,35 @@ to run the sync program.
       - <a name="v-connectinject-certs-keynamkeyname" href="#v-connectinject-certs-keyname">`keyName`</a> (`string: "tls.key"`) -
       The name of the private key for the certificate file within the
       `secretName` secret.
+
+  * <a name="v-connectinject-acl-bindingrule-selector" href="#v-connectinject-acl-bindingrule-selector">`namespaceSelector`</a> (`string: "serviceaccount.name!=default"`) -
+  A [selector](/docs/acl/acl-auth-methods.html#binding-rules) for restricting automatic injection to only matching services based on
+  their associated service account. By default, services using the `default` Kubernetes service account will not have a proxy injected.
+
+  * <a name="v-connectinject-centralconfig" href="#v-connectinject-centralconfig">`centralConfig`</a> - Values that configure
+  Consul's [central configuration](/docs/agent/config_entries.html) feature (requires Consul v1.5+ and consul-k8s v0.8.1+).
+
+      - <a name="v-connectinject-centralconfig-enabled" href="#v-connectinject-centralconfig-enabled">`enabled`</a> (`boolean: false`) -
+      Turns on the central configuration feature. Pods that have a Connect proxy injected will have their service
+      automatically registered in this central configuration.
+
+      - <a name="v-connectinject-centralconfig-defaultprotocol" href="#v-connectinject-centralconfig-defaultprotocol">`defaultProtocol`</a> (`string: null`) -
+      If defined, this value will be used as the default protocol type for all services registered with the central configuration.
+      This can be overridden by using the
+      [protocol annotation](/docs/platform/k8s/connect.html#consul-hashicorp-com-connect-service-protocol)
+      directly on any pod spec.
+
+      - <a name="v-connectinject-centralconfig-proxydefaults" href="#v-connectinject-centralconfig-proxydefaults">`proxyDefaults`</a> (`string: "{}"`) -
+      This value is a raw json string that will be applied to all Connect proxy sidecar pods. It can include any valid configuration
+      for the configured proxy.
+
+        ```yaml
+        # proxyDefaults values are formatted as a multi-line string:
+        proxyDefaults: |
+          {
+            "envoy_dogstatsd_url": "udp://127.0.0.1:9125"
+          }
+        ```
 
 ## Using the Helm Chart to deploy Consul Enterprise
 
