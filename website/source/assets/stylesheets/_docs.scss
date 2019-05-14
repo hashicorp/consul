@@ -73,3 +73,20 @@
     }
   }
 }
+
+#docs-tiles {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  grid-column-gap: 2em;
+
+  .docs-tiles-tile {
+    border: 1px solid lightgray;
+    border-radius: 3px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, .05);
+    padding: 0 40px;
+
+    h3 {
+      margin-top: 25px;
+    }
+  }
+}

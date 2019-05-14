@@ -23,16 +23,24 @@ export default Component.extend(WithListeners, SlotsMixin, {
   actions: {
     change: function(e, value, item) {
       let event = get(this, 'dom').normalizeEvent(e, value);
+      // currently form-components don't deal with deeply nested forms, only top level
+      // we therefore grab the end of the nest off here,
+      // so role[policy][Rules] will end up as policy[Rules]
+      // but also policy[Rules] will end up as Rules
+      // for now we look for a [ so we know whether this component is deeply
+      // nested or not and we pass the name through as an optional argument to handleEvent
+      // once this component handles deeply nested forms this can go
       const matches = [...event.target.name.matchAll(propRe)];
       const prop = matches[matches.length - 1][0];
-      event = get(this, 'dom').normalizeEvent(
-        `${get(this, 'type')}[${prop}]`,
-        event.target.value,
-        event.target
-      );
+      let name;
+      if (prop.indexOf('[') === -1) {
+        name = `${get(this, 'type')}[${prop}]`;
+      } else {
+        name = prop;
+      }
       const form = get(this, 'form');
       try {
-        form.handleEvent(event);
+        form.handleEvent(event, name);
         this.onchange({ target: this });
       } catch (err) {
         throw err;

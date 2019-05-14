@@ -96,7 +96,22 @@ at startup. If you specify "[::]", Consul will
 IPv6 address. If there are **multiple public IPv6 addresses** available, Consul
 will exit with an error at startup.
   Consul uses both TCP and UDP and the same port for both. If you
-  have any firewalls, be sure to allow both protocols. **In Consul 1.0 and later this can be set to a [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template) template that needs to resolve to a single address.**
+  have any firewalls, be sure to allow both protocols. **In Consul 1.0 and later this can be set to a [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template) template that needs to resolve to a single address.** Some example templates:
+
+    ```sh
+    # Using address within a specific CIDR
+    $ consul agent -bind '{{ GetPrivateInterfaces | include "network" "10.0.0.0/8" | attr "address" }}'
+    ```
+
+    ```sh
+    # Using a static network interface name
+    $ consul agent -bind '{{ GetInterfaceIP "eth0" }}'
+    ```
+
+    ```sh
+    # Using regular expression matching for network interface name that is forwardable and up
+    $ consul agent -bind '{{ GetAllInterfaces | include "name" "^eth" | include "flags" "forwardable|up" | attr "address" }}'
+    ```
 
 * <a name="_serf_wan_bind"></a><a href="#_serf_wan_bind">`-serf-wan-bind`</a> -
   The address that should be bound to for Serf WAN gossip communications. By
@@ -558,7 +573,7 @@ default will automatically work with some tooling.
      a whitelist: any operation not specifically allowed is blocked. *Note*: this will not take effect until
      you've enabled ACLs.
 
-     * <a name="acl_enable_key_list"></a><a href="#acl_enable_key_list">`enable_key_list`</a> - Either "enabled" or "disabled", defaults to "disabled". When enabled, the `list` permission will be required on the prefix being recursively read from the KV store. Regardless of being enabled, the full set of KV entries under the prefix will be filtered to remove any entries that the request's ACL token does not grant at least read persmissions. This option is only available in Consul 1.0 and newer.
+     * <a name="acl_enable_key_list"></a><a href="#acl_enable_key_list">`enable_key_list`</a> - Either "enabled" or "disabled", defaults to "disabled". When enabled, the `list` permission will be required on the prefix being recursively read from the KV store. Regardless of being enabled, the full set of KV entries under the prefix will be filtered to remove any entries that the request's ACL token does not grant at least read permissions. This option is only available in Consul 1.0 and newer.
 
      * <a name="acl_enable_token_replication"></a><a href="#acl_enable_token_replication">`enable_token_replication`</a> - By
      default secondary Consul datacenters will perform replication of only ACL policies and roles.
@@ -816,15 +831,14 @@ default will automatically work with some tooling.
 
     The following sub-keys are available:
 
-    * <a name="bootstrap"></a><a href="#config_entries_bootstrap">`bootstrap`</a>
-        This object allows configuring centralized config entries to be bootstrapped
-        by the leader. These entries will be reloaded during an agent config reload.
+    * <a name="config_entries_bootstrap"></a><a href="#config_entries_bootstrap">`bootstrap`</a>
+        This is a list of inlined config entries to insert into the state store when the Consul server
+        gains leadership. This option is only applicable to server nodes. Each bootstrap
+        entry will be created only if it does not exist. When reloading, any new entries
+        that have been added to the configuration will be processed. See the
+        [configuration entry docs](/docs/agent/config_entries.html) for more details about the
+        contents of each entry.
 
-        The following sub-keys are available:
-
-        * <a name="proxy_defaults"></a><a href="#config_entries_bootstrap_proxy_defaults">`proxy_defaults`</a>
-          This object should contain a mapping of config entry names to an opaque proxy configuration mapping.
-          Currently the only supported name is `global`
 
 * <a name="connect"></a><a href="#connect">`connect`</a>
     This object allows setting options for the Connect feature.
@@ -1115,16 +1129,14 @@ default will automatically work with some tooling.
   be checked using the agent's credentials. This was added in Consul 1.0.1 and defaults to false.
 
 * <a name="enable_central_service_config"></a><a href="#enable_central_service_config">`enable_central_service_config`</a>
-  When set, the Consul agent will look for any centralized service configurations that match a registering service instance. 
-  If it finds any, the agent will merge the centralized defaults with the service instance configuration. This allows for 
+  When set, the Consul agent will look for any centralized service configurations that match a registering service instance.
+  If it finds any, the agent will merge the centralized defaults with the service instance configuration. This allows for
   things like service protocol or proxy configuration to be defined centrally and inherited by any
   affected service registrations.
-  
-  
 
 * <a name="enable_debug"></a><a href="#enable_debug">`enable_debug`</a> When set, enables some
   additional debugging features. Currently, this is only used to access runtime profiling HTTP endpoints, which
-  are available with an `operator:read` ACL regardles of the value of `enable_debug`.
+  are available with an `operator:read` ACL regardless of the value of `enable_debug`.
 
 * <a name="enable_script_checks"></a><a href="#enable_script_checks">`enable_script_checks`</a> Equivalent to the
   [`-enable-script-checks` command-line flag](#_enable_script_checks).
@@ -1355,8 +1367,8 @@ default will automatically work with some tooling.
 
 * <a name="ports"></a><a href="#ports">`ports`</a> This is a nested object that allows setting
   the bind ports for the following keys:
-    * <a name="dns_port"></a><a href="#dns_port">`dns`</a> - The DNS server, -1 to disable. Default 8600.
-    * <a name="http_port"></a><a href="#http_port">`http`</a> - The HTTP API, -1 to disable. Default 8500.
+    * <a name="dns_port"></a><a href="#dns_port">`dns`</a> - The DNS server, -1 to disable. Default 8600. TCP and UDP.
+    * <a name="http_port"></a><a href="#http_port">`http`</a> - The HTTP API, -1 to disable. Default 8500. TCP only.
     * <a name="https_port"></a><a href="#https_port">`https`</a> - The HTTPS
       API, -1 to disable. Default -1 (disabled). **We recommend using `8501`** for
       `https` by convention as some tooling will work automatically with this.
@@ -1365,11 +1377,11 @@ default will automatically work with some tooling.
       `grpc` by convention as some tooling will work automatically with this.
       This is set to `8502` by default when the agent runs in `-dev` mode.
       Currently gRPC is only used to expose Envoy xDS API to Envoy proxies.
-    * <a name="serf_lan_port"></a><a href="#serf_lan_port">`serf_lan`</a> - The Serf LAN port. Default 8301.
+    * <a name="serf_lan_port"></a><a href="#serf_lan_port">`serf_lan`</a> - The Serf LAN port. Default 8301. TCP and UDP.
     * <a name="serf_wan_port"></a><a href="#serf_wan_port">`serf_wan`</a> - The Serf WAN port. Default 8302. Set to -1
       to disable. **Note**: this will disable WAN federation which is not recommended. Various catalog and WAN related
-      endpoints will return errors or empty results.
-    * <a name="server_rpc_port"></a><a href="#server_rpc_port">`server`</a> - Server RPC address. Default 8300.
+      endpoints will return errors or empty results. TCP and UDP.
+    * <a name="server_rpc_port"></a><a href="#server_rpc_port">`server`</a> - Server RPC address. Default 8300. TCP only.
     * <a name="proxy_min_port"></a><a href="#proxy_min_port">`proxy_min_port`</a> [**Deprecated**](/docs/connect/proxies/managed-deprecated.html) - Minimum port number to use for automatically assigned [managed proxies](/docs/connect/proxies/managed-deprecated.html). Default 20000.
     * <a name="proxy_max_port"></a><a href="#proxy_max_port">`proxy_max_port`</a> [**Deprecated**](/docs/connect/proxies/managed-deprecated.html) - Maximum port number to use for automatically assigned [managed proxies](/docs/connect/proxies/managed-deprecated.html). Default 20255.
     * <a name="sidecar_min_port"></a><a
@@ -1732,26 +1744,10 @@ default will automatically work with some tooling.
 ## <a id="ports-used"></a>Ports Used
 
 Consul requires up to 6 different ports to work properly, some on
-TCP, UDP, or both protocols. Below we document the requirements for each
-port.
+TCP, UDP, or both protocols. 
 
-* Server RPC (Default 8300). This is used by servers to handle incoming
-  requests from other agents. TCP only.
-
-* Serf LAN (Default 8301). This is used to handle gossip in the LAN.
-  Required by all agents. TCP and UDP.
-
-* Serf WAN (Default 8302). This is used by servers to gossip over the WAN, to
-  other servers. TCP and UDP. As of Consul 0.8 the WAN join flooding feature requires
-  the Serf WAN port (TCP/UDP) to be listening on both WAN and LAN interfaces. See also:
-   [Consul 0.8.0 CHANGELOG](https://github.com/hashicorp/consul/blob/master/CHANGELOG.md#080-april-5-2017) and [GH-3058](https://github.com/hashicorp/consul/issues/3058)
-
-* HTTP API (Default 8500). This is used by clients to talk to the HTTP
-  API. TCP only.
-
-* DNS Interface (Default 8600). Used to resolve DNS queries. TCP and UDP.
-
-* gRPC API (Default 8302). Currently gRPC is only used to expose Envoy xDS API to Envoy proxies.
+Review the [required ports](/docs/install/ports.html) table for a list of 
+required ports and their default settings. 
 
 ## <a id="reloadable-configuration"></a>Reloadable Configuration
 

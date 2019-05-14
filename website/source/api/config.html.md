@@ -12,8 +12,9 @@ description: |-
 The `/config` endpoints create, update, delete and query central configuration
 entries registered with Consul. See the
 [agent configuration](/docs/agent/options.html#enable_central_service_config)
-for more information on how to enable this functionality for centrally 
-configuring services.
+for more information on how to enable this functionality for centrally
+configuring services and [configuration entries docs](/docs/agent/config_entries.html) for a description
+of the configuration entries content.
 
 ## Apply Configuration
 
@@ -46,9 +47,9 @@ The table below shows this endpoint's support for
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter.
 
-- `cas` `(int: 0)` - Specifies to use a Check-And-Set operation. If the index is 
-  0, Consul will only store the entry if it does not already exist. If the index is 
-  non-zero, the entry is only set if the current index matches the `ModifyIndex` 
+- `cas` `(int: 0)` - Specifies to use a Check-And-Set operation. If the index is
+  0, Consul will only store the entry if it does not already exist. If the index is
+  non-zero, the entry is only set if the current index matches the `ModifyIndex`
   of that entry.
 
 ### Sample Payload
@@ -59,9 +60,6 @@ The table below shows this endpoint's support for
     "Kind": "service-defaults",
     "Name": "web",
     "Protocol": "http",
-    "Connect": {
-        "SidecarProxy": false
-    }
 }
 ```
 
@@ -106,10 +104,10 @@ The table below shows this endpoint's support for
   URL as a query parameter.
 
 - `kind` `(string: <required>)` - Specifies the kind of the entry to read. This
-  is specified as part of the URL. 
+  is specified as part of the URL.
 
 - `name` `(string: <required>)` - Specifies the name of the entry to read. This
-  is specified as part of the URL. 
+  is specified as part of the URL.
 
 ### Sample Request
 
@@ -126,9 +124,6 @@ $ curl \
     "Kind": "service-defaults",
     "Name": "web",
     "Protocol": "http",
-    "Connect": {
-        "SidecarProxy": true
-    },
     "CreateIndex": 15,
     "ModifyIndex": 35
 }
@@ -166,7 +161,7 @@ The table below shows this endpoint's support for
   URL as a query parameter.
 
 - `kind` `(string: <required>)` - Specifies the kind of the entry to list. This
-  is specified as part of the URL. 
+  is specified as part of the URL.
 
 ### Sample Request
 
@@ -184,9 +179,6 @@ $ curl \
         "Kind": "service-defaults",
         "Name": "db",
         "Protocol": "tcp",
-        "Connect": {
-            "SidecarProxy": false
-        },
         "CreateIndex": 16,
         "ModifyIndex": 16
     },
@@ -194,9 +186,6 @@ $ curl \
         "Kind": "service-defaults",
         "Name": "web",
         "Protocol": "http",
-        "Connect": {
-            "SidecarProxy": true
-        },
         "CreateIndex": 13,
         "ModifyIndex": 13
     }
@@ -235,10 +224,10 @@ The table below shows this endpoint's support for
   URL as a query parameter.
 
 - `kind` `(string: <required>)` - Specifies the kind of the entry to delete. This
-  is specified as part of the URL. 
+  is specified as part of the URL.
 
 - `name` `(string: <required>)` - Specifies the name of the entry to delete. This
-  is specified as part of the URL. 
+  is specified as part of the URL.
 
 ### Sample Request
 

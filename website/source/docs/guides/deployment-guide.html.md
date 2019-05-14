@@ -93,6 +93,7 @@ After=network-online.target
 ConditionFileNotEmpty=/etc/consul.d/consul.hcl
 
 [Service]
+Type=notify
 User=consul
 Group=consul
 ExecStart=/usr/local/bin/consul agent -config-dir=/etc/consul.d/

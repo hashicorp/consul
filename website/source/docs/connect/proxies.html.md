@@ -153,7 +153,7 @@ however managed proxy upstreams are now defined a level up in the
 `connect.proxy.upstreams`. The old location is deprecated and will be
 automatically converted into the new for an interim period before support is
 dropped in a future major release. The only difference in format between the
-upstream defintions is that the field `destination_datacenter` has been renamed
+upstream definitions is that the field `destination_datacenter` has been renamed
 to `datacenter` to reflect that it's the discovery target and not necessarily
 the same as the instance that will be returned in the case of a prepared query
 that fails over to another datacenter.
@@ -197,7 +197,7 @@ followed by documentation for each attribute.
 * `local_bind_address` `(string: "")` - Specifies the address to bind a
   local listener to for the application to make outbound connections to this
   upstream. Defaults to `127.0.0.1`.
-* `destination_type` `(string: "")` - Speficied the type of discovery
+* `destination_type` `(string: "")` - Specifies the type of discovery
   query to use to find an instance to connect to. Valid values are `service` or
   `prepared_query`. Defaults to `service`.
 * `datacenter` `(string: "")` - Specifies the datacenter to issue the

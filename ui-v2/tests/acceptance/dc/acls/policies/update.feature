@@ -5,6 +5,7 @@ Feature: dc / acls / policies / update: ACL Policy Update
     And 1 policy model from yaml
     ---
       ID: policy-id
+      Datacenters: []
     ---
     And 3 token models
     When I visit the policy page for yaml
@@ -21,12 +22,16 @@ Feature: dc / acls / policies / update: ACL Policy Update
       Description: [Description]
       Rules: [Rules]
     ---
+    And I click validDatacenters
+    And I click datacenter
     And I submit
     Then a PUT request is made to "/v1/acl/policy/policy-id?dc=datacenter" with the body from yaml
     ---
       Name: [Name]
       Description: [Description]
       Rules: [Rules]
+      Datacenters:
+        - datacenter
     ---
     Then the url should be /datacenter/acls/policies
     And "[data-notification]" has the "notification-update" class

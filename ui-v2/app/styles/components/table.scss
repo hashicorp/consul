@@ -24,7 +24,6 @@ td .kind-proxy {
   @extend %type-icon, %with-proxy;
   text-indent: -9000px !important;
   width: 24px;
-  transform: scale(0.7);
 }
 table:not(.sessions) tbody tr {
   cursor: pointer;

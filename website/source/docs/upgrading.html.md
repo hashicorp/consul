@@ -31,7 +31,7 @@ Consul is A, and version B is released.
 
 2. On each server, install version B of Consul.
 
-3. One server at a time, shut down version A, restart with version B. Wait until
+3. One server at a time, shut down version A via `consul leave` and restart with version B. Wait until
    the server is healthy and has rejoined the cluster before moving on to the
    next server.
 
@@ -54,7 +54,7 @@ version B comes out.
 
 1. On each node, install version B of Consul.
 
-2. One server at a time, shut down version A, and start version B with the
+2. One server at a time, shut down version A via `consul leave` and start version B with the
    `-protocol=PREVIOUS` flag, where "PREVIOUS" is the protocol version of
    version A (which can be discovered by running `consul -v` or `consul
    members`). Wait until the server is healthy and has rejoined the cluster

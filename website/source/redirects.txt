@@ -81,6 +81,7 @@
 /docs/guides/network-segments.html             https://learn.hashicorp.com/consul/day-2-operations/network-segments
 /docs/guides/semaphore.html                    https://learn.hashicorp.com/consul/developer-configuration/semaphore
 /docs/guides/windows-guide.html                https://learn.hashicorp.com/consul/datacenter-deploy/windows
+/docs/guides/consul-containers.html            https://hub.docker.com/_/consul
 
 # NOTE: Do not use this redirects file for intro doc links.
 #       A custom VCL (Varnish) configuration in the Fastly web admin has been

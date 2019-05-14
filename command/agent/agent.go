@@ -232,7 +232,7 @@ func (c *cmd) run(args []string) int {
 	defer agent.ShutdownEndpoints()
 	defer agent.ShutdownAgent()
 
-	if !config.DisableUpdateCheck {
+	if !config.DisableUpdateCheck && !config.DevMode {
 		c.startupUpdateCheck(config)
 	}
 

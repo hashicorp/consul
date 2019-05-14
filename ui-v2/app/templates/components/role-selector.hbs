@@ -8,7 +8,7 @@
   {{/block-slot}}
   {{#block-slot 'body'}}
 
-    <input id="{{name}}_state_role" type="radio" name="{{name}}[state]" value="role" checked={{eq state 'role'}} onchange={{action 'change'}} />
+  <input id="{{name}}_state_role" type="radio" name="{{name}}[state]" value="role" checked={{if (eq state 'role') 'checked'}} onchange={{action 'change'}} />
     {{#role-form form=form dc=dc}}
       {{#block-slot 'policy'}}
 
@@ -23,7 +23,7 @@
       {{/block-slot}}
     {{/role-form}}
 
-    <input id="{{name}}_state_policy" type="radio" name="{{name}}[state]" value="policy" checked={{eq state 'policy'}} onchange={{action 'change'}} />
+    <input id="{{name}}_state_policy" type="radio" name="{{name}}[state]" value="policy" checked={{if (eq state 'policy') 'checked'}} onchange={{action 'change'}} />
     {{policy-form data-test-policy-form name="role[policy]" form=policyForm dc=dc}}
 
   {{/block-slot}}
