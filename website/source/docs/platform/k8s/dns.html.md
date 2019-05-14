@@ -17,7 +17,7 @@ The stub-domain configuration must point to a static IP of a DNS resolver.
 The [Helm chart](/docs/platform/k8s/helm.html) creates a `consul-dns` service
 by default that exports Consul DNS. The cluster IP of this service can be used
 to configure a stub-domain with kube-dns. While the `kube-dns` configuration
-lives in the `kube-system` namepace, the IP just has to be routable so the
+lives in the `kube-system` namespace, the IP just has to be routable so the
 service can live in a different namespace.
 
 ```
