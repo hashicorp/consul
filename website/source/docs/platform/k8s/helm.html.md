@@ -349,7 +349,7 @@ to run the sync program.
       The name of the private key for the certificate file within the
       `secretName` secret.
 
-  * <a name="v-connectinject-acl-bindingrule-selector" href="#v-connectinject-acl-bindingrule-selector">`namespaceSelector`</a> (`string: "serviceaccount.name!=default"`) -
+  * <a name="v-connectinject-acl-bindingrule-selector" href="#v-connectinject-acl-bindingrule-selector">`aclBindingRuleSelector`</a> (`string: "serviceaccount.name!=default"`) -
   A [selector](/docs/acl/acl-auth-methods.html#binding-rules) for restricting automatic injection to only matching services based on
   their associated service account. By default, services using the `default` Kubernetes service account will not have a proxy injected.
 
