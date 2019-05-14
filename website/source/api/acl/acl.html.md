@@ -89,7 +89,7 @@ datacenter. This is intended to be used by operators or by automation checking
 to discover the health of ACL replication.
 
 Please see the [ACL Guide](/docs/agent/options.html#acl_enable_token_replication) replication
-section for more details.
+for more details.
 
 | Method | Path                         | Produces                   |
 | ------ | ---------------------------- | -------------------------- |
