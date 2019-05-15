@@ -16,6 +16,9 @@ import (
 const (
 	ServiceDefaults string = "service-defaults"
 	ProxyDefaults   string = "proxy-defaults"
+	ServiceRouter   string = "service-router"
+	ServiceSplitter string = "service-splitter"
+	ServiceResolver string = "service-resolver"
 
 	ProxyConfigGlobal string = "global"
 
@@ -231,6 +234,10 @@ func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 		"Config":        "",
 	})
 
+	// TODO(rb): see if any changes are needed here for the discovery chain
+
+	// TODO(rb): maybe do an initial kind/Kind switch and do kind-specific decoding?
+
 	var entry ConfigEntry
 
 	kindVal, ok := raw["Kind"]
@@ -340,6 +347,12 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &ServiceConfigEntry{Name: name}, nil
 	case ProxyDefaults:
 		return &ProxyConfigEntry{Name: name}, nil
+	case ServiceRouter:
+		return &ServiceRouterConfigEntry{Name: name}, nil
+	case ServiceSplitter:
+		return &ServiceSplitterConfigEntry{Name: name}, nil
+	case ServiceResolver:
+		return &ServiceResolverConfigEntry{Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}
@@ -348,6 +361,8 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 func ValidateConfigEntryKind(kind string) bool {
 	switch kind {
 	case ServiceDefaults, ProxyDefaults:
+		return true
+	case ServiceRouter, ServiceSplitter, ServiceResolver:
 		return true
 	default:
 		return false

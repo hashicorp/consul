@@ -83,7 +83,10 @@ func (s *Restore) ConfigEntry(c structs.ConfigEntry) error {
 func (s *Store) ConfigEntry(ws memdb.WatchSet, kind, name string) (uint64, structs.ConfigEntry, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
+	return s.configEntryTxn(tx, ws, kind, name)
+}
 
+func (s *Store) configEntryTxn(tx *memdb.Txn, ws memdb.WatchSet, kind, name string) (uint64, structs.ConfigEntry, error) {
 	// Get the index
 	idx := maxIndexTxn(tx, configTableName)
 

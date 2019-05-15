@@ -31,7 +31,7 @@ Usage: consul config <subcommand> [options] [args]
   Configuration system. Here are some simple examples, and more detailed
   examples are available in the subcommands or the documentation.
 
-  Write a config::
+  Write a config:
 
     $ consul config write web.serviceconf.hcl
 

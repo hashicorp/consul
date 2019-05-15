@@ -12,8 +12,12 @@ import (
 )
 
 const (
-	ServiceDefaults   string = "service-defaults"
-	ProxyDefaults     string = "proxy-defaults"
+	ServiceDefaults string = "service-defaults"
+	ProxyDefaults   string = "proxy-defaults"
+	ServiceRouter   string = "service-router"
+	ServiceSplitter string = "service-splitter"
+	ServiceResolver string = "service-resolver"
+
 	ProxyConfigGlobal string = "global"
 )
 
@@ -83,11 +87,33 @@ func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &ServiceConfigEntry{Name: name}, nil
 	case ProxyDefaults:
 		return &ProxyConfigEntry{Name: name}, nil
+	case ServiceRouter:
+		return &ServiceRouterConfigEntry{Name: name}, nil
+	case ServiceSplitter:
+		return &ServiceSplitterConfigEntry{Name: name}, nil
+	case ServiceResolver:
+		return &ServiceResolverConfigEntry{Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}
 }
 
+func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
+	return makeConfigEntry(kind, name)
+}
+
+// DEPRECATED: TODO(rb): remove?
+//
+// DecodeConfigEntry only successfully works on config entry kinds
+// "service-defaults" and "proxy-defaults" (as of Consul 1.5).
+//
+// This is because by parsing HCL into map[string]interface{} and then trying
+// to decode it with mapstructure we run into the problem where hcl generically
+// decodes many things into map[string][]interface{} at intermediate nodes in
+// the resulting structure (for nested structs not otherwise in an enclosing
+// slice). This breaks decoding.
+//
+// Until a better solution is arrived at don't use this method.
 func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 	var entry ConfigEntry
 
