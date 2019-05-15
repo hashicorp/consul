@@ -1,9 +1,15 @@
-const clickEvent = function() {
-  return new MouseEvent('click', {
-    bubbles: true,
-    cancelable: true,
-    view: window,
-  });
+const clickEvent = function($el) {
+  ['mousedown', 'mouseup', 'click']
+    .map(function(type) {
+      return new MouseEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+      });
+    })
+    .forEach(function(event) {
+      $el.dispatchEvent(event);
+    });
 };
 export default function(closest, click = clickEvent) {
   // TODO: Decide whether we should use `e` for ease
@@ -24,7 +30,7 @@ export default function(closest, click = clickEvent) {
     // closest should probably be relaced with a finder function
     const $a = closest('tr', e.target).querySelector('a');
     if ($a) {
-      $a.dispatchEvent(click());
+      click($a);
     }
   };
 }
