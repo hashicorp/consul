@@ -9,24 +9,64 @@ description: |-
 # Connect
 
 Consul Connect provides service-to-service connection authorization
-and encryption using mutual TLS. Applications can use
-[sidecar proxies](/docs/connect/proxies.html)
+and encryption using mutual Transport Layer Security (TLS). Applications can use
+[sidecar proxies](/docs/connect/proxies.html) in a service mesh configuration
 to automatically establish TLS connections for inbound and outbound connections
 without being aware of Connect at all. Applications may also
 [natively integrate with Connect](/docs/connect/native.html)
-for optimal performance and security.
+for optimal performance and security. Connect can help you secure your services
+and provide data about service to service communications.
 
-Connect enables deployment best-practices with service-to-service encryption
-everywhere and identity-based authorization. Rather than authorizing host-based
-access with IP address access rules, Connect uses the registered service
-identity to enforce access control with [intentions](/docs/connect/intentions.html).
-This makes it much easier to reason about access control and also enables
-services to freely move, such as in a scheduled environment with software
-such as Kubernetes or Nomad. Additionally, intention enforcement can be done
-regardless of the underlying network, so Connect works with physical networks,
-cloud networks, software-defined networks, cross-cloud, and more.
+## Security
+
+Connect enables [secure](/docs/connect/security.html) deployment best-practices
+with automatic service-to-service encryption everywhere and identity-based
+authorization. Rather than authorizing host-based access with IP address access
+rules, Connect uses the registered service identity to enforce access control
+with [intentions](/docs/connect/intentions.html). This makes it much easier to
+reason about access control and also enables services to freely move, such as in
+a scheduled environment with software such as Kubernetes or Nomad. Intention
+enforcement can be done regardless of the underlying network, so Connect works
+with physical networks, cloud networks, software-defined networks, cross-cloud,
+and more.
+
+## Observability
+
+When you configure Consul Connect to use sidecar proxies, those proxies "see"
+all the traffic that runs between your services and can collect data about it.
+Consul Connect is able to configure Envoy proxies to collect layer 7 metrics and
+export those to monitoring tools like Prometheus. With a correctly instrumented application Connect can also enable you to collet tracing. Both of these capabilites increase your application's [observability](/docs/connect/observability.html).
+
+One of the key benefits Consul Connect is the uniform and consistent view you
+get of all the services on your network, irrespective of their different
+programming languages and frameworks.
+
+## Getting Started With Connect
+
+There are several ways to try Connect in different environments.
+
+ - The [Connect introduction](https://learn.hashicorp.com/consul/getting-started/connect)
+   in the Getting Started guide provides a simple walk through of getting two
+   services to communicate via Connect using only Consul directly on your local
+   machine.
+
+ - The [Envoy guide](/docs/guides/connect-envoy.html) walks through getting
+   started with Envoy as a proxy, and uses Docker to run components locally
+   without installing anything else.
+
+ - The [Kubernetes documentation](/docs/platform/k8s/run.html) shows how to get
+   from an empty Kubernetes cluster to having Consul installed and Envoy
+   configured to proxy application traffic automatically using the official helm
+   chart.
+
+ - The [Observability guide](https://learn.hashicorp.com/consul/getting-started-k8s/l7-observability-k8s)
+   shows how to deploy a basic metrics collection and visualization pipeline on a
+   Kubernetes cluster using the official Helm charts for Consul, Prometheus, and
+   Grafana.
 
 ## How it Works
+
+### Mutual Transport Layer Security (mTLS)
 
 The core of Connect is based on [mutual TLS](https://en.wikipedia.org/wiki/Mutual_authentication).
 
@@ -65,24 +105,7 @@ local caching, background updating, and support blocking queries. As a result,
 most API calls operate on purely local in-memory data and can respond
 in microseconds.
 
-## Getting Started With Connect
-
-There are several ways to try Connect in different environments.
-
- * The [Connect introduction](https://learn.hashicorp.com/consul/getting-started/connect) in the
-   Getting Started guide provides a simple walk through of getting two services
-   to communicate via Connect using only Consul directly on your local machine.
-
- * The [Envoy guide](https://learn.hashicorp.com/consul/developer-segmentation/connect-envoy) walks through getting
-   started with Envoy as a proxy, and uses Docker to run components locally
-   without installing anything else.
-
- * The [Kubernetes documentation](/docs/platform/k8s/run.html) shows how to get
-   from an empty Kubernetes cluster to having Consul installed and Envoy
-   configured to proxy application traffic automatically using the official helm
-   chart.
-
-## Agent Caching and Performance
+### Agent Caching and Performance
 
 To enable microsecond-speed responses on
 [agent Connect API endpoints](/api/agent/connect.html), the Consul agent
@@ -118,17 +141,16 @@ agent may begin failing and eventually crash. Cache entries do have TTLs
 associated with them and will evict their entries if they're not used. Given
 a long period of inactivity (3 days by default), the cache will empty itself.
 
-## Multi-Datacenter
+### Multi-Datacenter
 
-Using Connect for service-to-service communications across multiple datacenters 
-requires Consul Enterprise. 
+Using Connect for service-to-service communications across multiple datacenters
+requires Consul Enterprise.
 
-With Open Source Consul, Connect may be enabled on multiple Consul datacenters, 
-but only services within the same datacenter can establish Connect-based, 
+With Open Source Consul, Connect may be enabled on multiple Consul datacenters,
+but only services within the same datacenter can establish Connect-based,
 Authenticated and Authorized connections. In this version, Certificate Authority
-configurations and intentions are both local to their respective datacenters; 
+configurations and intentions are both local to their respective datacenters;
 they are not replicated across datacenters.
 
 Full multi-datacenter support for Connect is available in
 [Consul Enterprise](/docs/enterprise/connect-multi-datacenter/index.html).
-
