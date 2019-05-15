@@ -20,4 +20,5 @@ export default Model.extend({
     },
   }),
   Datacenter: attr('string'),
+  SyncTime: attr('number'),
 });
