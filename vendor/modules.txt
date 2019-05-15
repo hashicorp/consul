@@ -188,6 +188,13 @@ github.com/gregjones/httpcache
 github.com/gregjones/httpcache/diskcache
 # github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed
 github.com/hailocab/go-hostpool
+# github.com/hashicorp/consul/api v1.1.0 => ./api
+github.com/hashicorp/consul/api
+github.com/hashicorp/consul/api/watch
+# github.com/hashicorp/consul/sdk v0.1.1 => ./sdk
+github.com/hashicorp/consul/sdk/freeport
+github.com/hashicorp/consul/sdk/testutil/retry
+github.com/hashicorp/consul/sdk/testutil
 # github.com/hashicorp/errwrap v1.0.0
 github.com/hashicorp/errwrap
 # github.com/hashicorp/go-bexpr v0.1.0
@@ -257,7 +264,7 @@ github.com/hashicorp/hil/ast
 github.com/hashicorp/logutils
 # github.com/hashicorp/mdns v1.0.1
 github.com/hashicorp/mdns
-# github.com/hashicorp/memberlist v0.1.3
+# github.com/hashicorp/memberlist v0.1.4
 github.com/hashicorp/memberlist
 # github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69
 github.com/hashicorp/net-rpc-msgpackrpc
@@ -320,7 +327,7 @@ github.com/hashicorp/vault/helper/keysutil
 github.com/hashicorp/vault/helper/kdf
 # github.com/hashicorp/vic v1.5.1-0.20190403131502-bbfe86ec9443
 github.com/hashicorp/vic/pkg/vsphere/tags
-# github.com/hashicorp/yamux v0.0.0-20180604194846-3520598351bb
+# github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d
 github.com/hashicorp/yamux
 # github.com/imdario/mergo v0.3.6
 github.com/imdario/mergo

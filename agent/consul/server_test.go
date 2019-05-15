@@ -69,6 +69,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	config.SerfLANConfig.MemberlistConfig.ProbeTimeout = 50 * time.Millisecond
 	config.SerfLANConfig.MemberlistConfig.ProbeInterval = 100 * time.Millisecond
 	config.SerfLANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
+	config.SerfLANConfig.MemberlistConfig.DeadNodeReclaimTime = 100 * time.Millisecond
 
 	config.SerfWANConfig.MemberlistConfig.BindAddr = "127.0.0.1"
 	config.SerfWANConfig.MemberlistConfig.BindPort = ports[2]
@@ -77,6 +78,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	config.SerfWANConfig.MemberlistConfig.ProbeTimeout = 50 * time.Millisecond
 	config.SerfWANConfig.MemberlistConfig.ProbeInterval = 100 * time.Millisecond
 	config.SerfWANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
+	config.SerfWANConfig.MemberlistConfig.DeadNodeReclaimTime = 100 * time.Millisecond
 
 	config.RaftConfig.LeaderLeaseTimeout = 100 * time.Millisecond
 	config.RaftConfig.HeartbeatTimeout = 200 * time.Millisecond

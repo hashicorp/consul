@@ -953,6 +953,69 @@ func TestLeader_ChangeServerID(t *testing.T) {
 	})
 }
 
+func TestLeader_ChangeNodeID(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	dir3, s3 := testServerDCBootstrap(t, "dc1", false)
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	servers := []*Server{s1, s2, s3}
+
+	// Try to join and wait for all servers to get promoted
+	joinLAN(t, s2, s1)
+	joinLAN(t, s3, s1)
+	for _, s := range servers {
+		testrpc.WaitForTestAgent(t, s.RPC, "dc1")
+		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
+	}
+
+	// Shut down a server, freeing up its address/port
+	s3.Shutdown()
+
+	retry.Run(t, func(r *retry.R) {
+		failed := 0
+		for _, m := range s1.LANMembers() {
+			if m.Status == serf.StatusFailed {
+				failed++
+			}
+		}
+		require.Equal(r, 1, failed)
+	})
+
+	// Bring up a new server with s3's name that will get a different ID
+	dir4, s4 := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = false
+		c.Datacenter = "dc1"
+		c.NodeName = s3.config.NodeName
+	})
+	defer os.RemoveAll(dir4)
+	defer s4.Shutdown()
+	joinLAN(t, s4, s1)
+	servers[2] = s4
+
+	// Make sure the dead server is gone from both Raft and Serf and we're back to 3 total peers
+	retry.Run(t, func(r *retry.R) {
+		r.Check(wantRaft(servers))
+		for _, s := range servers {
+			r.Check(wantPeers(s, 3))
+		}
+	})
+
+	retry.Run(t, func(r *retry.R) {
+		for _, m := range s1.LANMembers() {
+			require.Equal(r, serf.StatusAlive, m.Status)
+		}
+	})
+}
+
 func TestLeader_ACL_Initialization(t *testing.T) {
 	t.Parallel()
 

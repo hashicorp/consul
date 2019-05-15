@@ -537,6 +537,10 @@ func DefaultConfig() *Config {
 	conf.SerfLANConfig.MemberlistConfig.BindPort = DefaultLANSerfPort
 	conf.SerfWANConfig.MemberlistConfig.BindPort = DefaultWANSerfPort
 
+	// Allow dead nodes to be replaced after 30 seconds.
+	conf.SerfLANConfig.MemberlistConfig.DeadNodeReclaimTime = 30 * time.Second
+	conf.SerfWANConfig.MemberlistConfig.DeadNodeReclaimTime = 30 * time.Second
+
 	// Raft protocol version 3 only works with other Consul servers running
 	// 0.8.0 or later.
 	conf.RaftConfig.ProtocolVersion = 3
