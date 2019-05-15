@@ -9,6 +9,15 @@ import (
 	"github.com/hashicorp/consul/acl"
 )
 
+func EnableAdvancedRoutingForProtocol(protocol string) bool {
+	switch protocol {
+	case "http", "http2", "grpc":
+		return true
+	default:
+		return false
+	}
+}
+
 // ServiceRouterConfigEntry defines L7 (e.g. http) routing rules for a named
 // service exposed in Connect.
 //
@@ -253,16 +262,17 @@ func (e *ServiceSplitterConfigEntry) Normalize() error {
 	// weight is 1/10000 or .01%
 
 	if len(e.Splits) > 0 {
-		sumScaled := 0
 		for i, split := range e.Splits {
-			weightScaled := scaleWeight(split.Weight)
-			e.Splits[i].Weight = float32(float32(weightScaled) / 100.0)
-
-			sumScaled += weightScaled
+			e.Splits[i].Weight = NormalizeServiceSplitWeight(split.Weight)
 		}
 	}
 
 	return nil
+}
+
+func NormalizeServiceSplitWeight(weight float32) float32 {
+	weightScaled := scaleWeight(weight)
+	return float32(float32(weightScaled) / 100.0)
 }
 
 func (e *ServiceSplitterConfigEntry) Validate() error {
@@ -439,6 +449,14 @@ type ServiceResolverConfigEntry struct {
 	ConnectTimeout time.Duration `json:",omitempty"`
 
 	RaftIndex
+}
+
+func (e *ServiceResolverConfigEntry) IsDefault() bool {
+	return e.DefaultSubset == "" &&
+		len(e.Subsets) == 0 &&
+		e.Redirect == nil &&
+		len(e.Failover) == 0 &&
+		e.ConnectTimeout == 0
 }
 
 func (e *ServiceResolverConfigEntry) GetKind() string {
@@ -699,32 +717,10 @@ type discoveryChainConfigEntry interface {
 }
 
 func canReadDiscoveryChain(entry discoveryChainConfigEntry, rule acl.Authorizer) bool {
-	if rule.OperatorRead() {
-		return true
-	}
-
-	name := entry.GetName()
-
-	if !rule.ServiceRead(name) {
-		return false
-	}
-
-	for _, svc := range entry.ListRelatedServices() {
-		if svc == name {
-			continue
-		}
-		if !rule.ServiceRead(svc) {
-			return false
-		}
-	}
-	return true
+	return rule.ServiceRead(entry.GetName())
 }
 
 func canWriteDiscoveryChain(entry discoveryChainConfigEntry, rule acl.Authorizer) bool {
-	if rule.OperatorWrite() {
-		return true
-	}
-
 	name := entry.GetName()
 
 	if !rule.ServiceWrite(name, nil) {
@@ -743,4 +739,147 @@ func canWriteDiscoveryChain(entry discoveryChainConfigEntry, rule acl.Authorizer
 		}
 	}
 	return true
+}
+
+// DiscoveryChainConfigEntries wraps just the raw cross-referenced config
+// entries. None of these are defaulted.
+type DiscoveryChainConfigEntries struct {
+	Routers   map[string]*ServiceRouterConfigEntry
+	Splitters map[string]*ServiceSplitterConfigEntry
+	Resolvers map[string]*ServiceResolverConfigEntry
+	Services  map[string]*ServiceConfigEntry
+}
+
+// Fixup ensures that the collection of entries make sense together. Nil maps
+// are initialized, nil values are deleted, and advanced features are disabled
+// if protocol dictates.
+func (e *DiscoveryChainConfigEntries) Fixup() {
+	if e.Services == nil {
+		e.Services = make(map[string]*ServiceConfigEntry)
+	}
+	if e.Routers == nil {
+		e.Routers = make(map[string]*ServiceRouterConfigEntry)
+	}
+	if e.Splitters == nil {
+		e.Splitters = make(map[string]*ServiceSplitterConfigEntry)
+	}
+	if e.Resolvers == nil {
+		e.Resolvers = make(map[string]*ServiceResolverConfigEntry)
+	}
+
+	for name, entry := range e.Routers {
+		if entry == nil {
+			delete(e.Routers, name)
+		} else {
+			if !e.allowAdvancedRouting(name) {
+				delete(e.Routers, name)
+			}
+		}
+	}
+	for name, entry := range e.Splitters {
+		if entry == nil {
+			delete(e.Splitters, name)
+		} else {
+			if !e.allowAdvancedRouting(name) {
+				delete(e.Splitters, name)
+			}
+		}
+	}
+	for name, entry := range e.Resolvers {
+		if entry == nil {
+			delete(e.Resolvers, name)
+		}
+	}
+	for name, entry := range e.Services {
+		if entry == nil {
+			delete(e.Services, name)
+		}
+	}
+}
+
+func (e *DiscoveryChainConfigEntries) allowAdvancedRouting(name string) bool {
+	if e.Services == nil {
+		return false
+	}
+	entry, ok := e.Services[name]
+	if !ok || entry == nil {
+		return false
+	}
+	return EnableAdvancedRoutingForProtocol(entry.Protocol)
+}
+
+func (e *DiscoveryChainConfigEntries) GetRouter(name string) *ServiceRouterConfigEntry {
+	if e.Routers != nil {
+		return e.Routers[name]
+	}
+	return nil
+}
+
+func (e *DiscoveryChainConfigEntries) GetSplitter(name string) *ServiceSplitterConfigEntry {
+	if e.Splitters != nil {
+		return e.Splitters[name]
+	}
+	return nil
+}
+
+func (e *DiscoveryChainConfigEntries) GetResolver(name string) *ServiceResolverConfigEntry {
+	if e.Resolvers != nil {
+		return e.Resolvers[name]
+	}
+	return nil
+}
+
+func (e *DiscoveryChainConfigEntries) GetService(name string) *ServiceConfigEntry {
+	if e.Services != nil {
+		return e.Services[name]
+	}
+	return nil
+}
+
+// AddRouters adds router configs. Convenience function for testing.
+func (e *DiscoveryChainConfigEntries) AddRouters(entries ...*ServiceRouterConfigEntry) {
+	if e.Routers == nil {
+		e.Routers = make(map[string]*ServiceRouterConfigEntry)
+	}
+	for _, entry := range entries {
+		e.Routers[entry.Name] = entry
+	}
+}
+
+// AddSplitters adds splitter configs. Convenience function for testing.
+func (e *DiscoveryChainConfigEntries) AddSplitters(entries ...*ServiceSplitterConfigEntry) {
+	if e.Splitters == nil {
+		e.Splitters = make(map[string]*ServiceSplitterConfigEntry)
+	}
+	for _, entry := range entries {
+		e.Splitters[entry.Name] = entry
+	}
+}
+
+// AddResolvers adds resolver configs. Convenience function for testing.
+func (e *DiscoveryChainConfigEntries) AddResolvers(entries ...*ServiceResolverConfigEntry) {
+	if e.Resolvers == nil {
+		e.Resolvers = make(map[string]*ServiceResolverConfigEntry)
+	}
+	for _, entry := range entries {
+		e.Resolvers[entry.Name] = entry
+	}
+}
+
+// AddServices adds service configs. Convenience function for testing.
+func (e *DiscoveryChainConfigEntries) AddServices(entries ...*ServiceConfigEntry) {
+	if e.Services == nil {
+		e.Services = make(map[string]*ServiceConfigEntry)
+	}
+	for _, entry := range entries {
+		e.Services[entry.Name] = entry
+	}
+}
+
+func (e *DiscoveryChainConfigEntries) IsEmpty() bool {
+	return e.IsChainEmpty() && len(e.Services) == 0
+}
+
+func (e *DiscoveryChainConfigEntries) IsChainEmpty() bool {
+	return len(e.Routers) == 0 && len(e.Splitters) == 0 && len(e.Resolvers) == 0
 }
