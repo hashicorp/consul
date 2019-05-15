@@ -187,7 +187,7 @@ allow read-only access to any node name by using the empty prefix, read-write ac
 the node with the _exact_ name `foo`, and denies all access to any noe name that starts
 with `bar`. 
 
-Since [Agent API](/api/agent.html) utility operations may be reqired before an agent is joined to
+Since [Agent API](/api/agent.html) utility operations may be required before an agent is joined to
 a cluster, or during an outage of the Consul servers or ACL datacenter, a special token may be
 configured with [`acl.tokens.agent_master`](/docs/agent/options.html#acl_tokens_agent_master) to allow
 write access to these operations even if no ACL resolution capability is available.
