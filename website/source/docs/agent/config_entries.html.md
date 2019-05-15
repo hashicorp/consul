@@ -8,9 +8,11 @@ description: |-
 
 # Configuration Entries
 
-Configuration entries can be created to provide cluster-wide defaults for various aspects of Consul. Every configuration
-entry has at least two fields: `Kind` and `Name`. Those two fields are used to uniquely identify a configuration entry.
-When put into configuration files, configuration entries can be specified as HCL or JSON objects.
+Configuration entries can be created to provide cluster-wide defaults for
+various aspects of Consul. Every configuration entry has at least two fields:
+`Kind` and `Name`. Those two fields are used to uniquely identify a
+configuration entry. When put into configuration files, configuration entries
+can be specified as HCL or JSON objects.
 
 Example:
 
@@ -51,7 +53,8 @@ Config {
 
 ### Service Defaults - `service-defaults`
 
-Service defaults control default global values for a service, such as its protocol.
+Service defaults control default global values for a service, such as its
+protocol.
 
 ```hcl
 Kind = "service-defaults"
@@ -63,20 +66,25 @@ Protocol = "http"
 
 * `Name` - Set to the name of the service being configured.
 
-* `Protocol` - Sets the protocol of the service. This is used by Connect proxies for things like observability features.
+* `Protocol` - Sets the protocol of the service. This is used by Connect proxies
+  for things like observability features.
 
 ## Managing Configuration Entries
 
-Configuration entries should be managed with the Consul [CLI](/docs/commands/config.html) or [API](/api/config.html). Additionally,
-as a convenience for initial cluster bootstrapping, configuration entries can be specified in all of the Consul servers's
+Configuration entries should be managed with the Consul
+[CLI](/docs/commands/config.html) or [API](/api/config.html). Additionally, as a
+convenience for initial cluster bootstrapping, configuration entries can be
+specified in all of the Consul servers's
 [configuration files](/docs/agent/options.html#config_entries_bootstrap)
 
 ### Managing Configuration Entries with the CLI
 
 #### Creating or Updating a Configuration Entry
 
-The [`consul config write`](/docs/commands/config/write.html) command is used to create and update configuration entries. This command
-will load either a JSON or HCL file holding the configuration entry definition and then will push this configuration to Consul.
+The [`consul config write`](/docs/commands/config/write.html) command is used to
+create and update configuration entries. This command will load either a JSON or
+HCL file holding the configuration entry definition and then will push this
+configuration to Consul.
 
 Example HCL Configuration File - `proxy-defaults.hcl`:
 
@@ -95,15 +103,18 @@ Then to apply this configuration, run:
 $ consul config write proxy-defaults.hcl
 ```
 
-If you need to make changes to a configuration entry, simple edit that file and then rerun the command.
-This command will not output anything unless there is an error in applying the configuration entry.
-The `write` command also supports a `-cas` option to enable performing a compare-and-swap operation to
-prevent overwriting other unknown modifications.
+If you need to make changes to a configuration entry, simple edit that file and
+then rerun the command. This command will not output anything unless there is an
+error in applying the configuration entry. The `write` command also supports a
+`-cas` option to enable performing a compare-and-swap operation to prevent
+overwriting other unknown modifications.
 
 #### Reading a Configuration Entry
 
-The [`consul config read`](/docs/commands/config/read.html) command is used to read the current value of a configuration entry. The
-configuration entry will be displayed in JSON form which is how its transmitted between the CLI client and Consul's HTTP API.
+The [`consul config read`](/docs/commands/config/read.html) command is used to
+read the current value of a configuration entry. The configuration entry will be
+displayed in JSON form which is how its transmitted between the CLI client and
+Consul's HTTP API.
 
 Example:
 
@@ -118,8 +129,8 @@ $ consul config read -kind service-defaults -name web
 
 #### Listing Configuration Entries
 
-The [`consul config list`](/docs/commands/config/list.html) command is used to list out all the configuration entries for a
-given kind.
+The [`consul config list`](/docs/commands/config/list.html) command is used to
+list out all the configuration entries for a given kind.
 
 Example:
 
@@ -133,8 +144,8 @@ db
 
 #### Deleting Configuration Entries
 
-The [`consul config delete`](/docs/commands/config/delete.html) command is used to delete an entry by specifying both its
-`kind` and `name`.
+The [`consul config delete`](/docs/commands/config/delete.html) command is used
+to delete an entry by specifying both its `kind` and `name`.
 
 Example:
 
@@ -147,15 +158,20 @@ This command will not output anything when the deletion is successful.
 ### Bootstrapping From A Configuration File
 
 
-Configuration entries can be bootstrapped by adding them inline to each Consul server’s configuration file. When a server
-gains leadership, it will attempt to initialize the configuration entries. If a configuration entry does not already exist
-outside of the servers configuration, then it will create it. If a configuration entry does exist, that matches both `kind`
-and `name`, then the server will do nothing.
+Configuration entries can be bootstrapped by adding them inline to each Consul
+server’s configuration file. When a server gains leadership, it will attempt to
+initialize the configuration entries. If a configuration entry does not already
+exist outside of the servers configuration, then it will create it. If a
+configuration entry does exist, that matches both `kind` and `name`, then the
+server will do nothing.
 
 
 ## Using Configuration Entries For Service Defaults
 
-When the agent is [configured](/docs/agent/options.html#enable_central_service_config) to enable central service configurations,
-it will look for service configuration defaults that match a registering service instance. If it finds any, the agent will merge
-those defaults with the service instance configuration. This allows for things like service protocol or proxy configuration to
-be defined globally and inherited by any affected service registrations.
+When the agent is
+[configured](/docs/agent/options.html#enable_central_service_config) to enable
+central service configurations, it will look for service configuration defaults
+that match a registering service instance. If it finds any, the agent will merge
+those defaults with the service instance configuration. This allows for things
+like service protocol or proxy configuration to be defined globally and
+inherited by any affected service registrations.
