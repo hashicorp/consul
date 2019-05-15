@@ -73,7 +73,7 @@ require (
 	github.com/hashicorp/hil v0.0.0-20160711231837-1e86c6b523c5
 	github.com/hashicorp/logutils v1.0.0
 	github.com/hashicorp/mdns v1.0.1 // indirect
-	github.com/hashicorp/memberlist v0.1.3
+	github.com/hashicorp/memberlist v0.1.4
 	github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69
 	github.com/hashicorp/raft v1.0.1-0.20190409200437-d9fe23f7d472
 	github.com/hashicorp/raft-boltdb v0.0.0-20150201200839-d1e82c1ec3f1
