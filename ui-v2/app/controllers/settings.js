@@ -1,17 +1,15 @@
 import Controller from '@ember/controller';
 import { get, set } from '@ember/object';
 import { inject as service } from '@ember/service';
+import { next } from '@ember/runloop';
 
 export default Controller.extend({
   repo: service('settings'),
   dom: service('dom'),
-  wait: service('timeout'),
   confirming: false,
   applyTransition: function() {
-    const wait = get(this, 'wait').execute;
     set(this, 'confirming', true);
-    // TODO: Make 0 default in wait
-    wait(0).then(() => {
+    next(() => {
       set(this, 'confirming', false);
     });
   },
