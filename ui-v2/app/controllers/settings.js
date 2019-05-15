@@ -1,15 +1,16 @@
 import Controller from '@ember/controller';
 import { get, set } from '@ember/object';
 import { inject as service } from '@ember/service';
-import { next } from '@ember/runloop';
 
 export default Controller.extend({
   repo: service('settings'),
   dom: service('dom'),
+  timeout: service('timeout'),
   confirming: false,
   applyTransition: function() {
+    const tick = get(this, 'timeout').tick;
     set(this, 'confirming', true);
-    next(() => {
+    tick().then(() => {
       set(this, 'confirming', false);
     });
   },
