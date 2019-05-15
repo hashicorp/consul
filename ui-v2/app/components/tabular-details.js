@@ -1,17 +1,26 @@
 import Component from '@ember/component';
 import SlotsMixin from 'block-slots';
-import closest from 'consul-ui/utils/dom/closest';
-import clickFirstAnchorFactory from 'consul-ui/utils/dom/click-first-anchor';
-const clickFirstAnchor = clickFirstAnchorFactory(closest);
+import { inject as service } from '@ember/service';
+import { get, set } from '@ember/object';
+import { subscribe } from 'consul-ui/utils/computed/purify';
 
+let uid = 0;
 export default Component.extend(SlotsMixin, {
+  dom: service('dom'),
   onchange: function() {},
+  init: function() {
+    this._super(...arguments);
+    set(this, 'uid', uid++);
+  },
+  inputId: subscribe('name', 'uid', function(name = 'name') {
+    return `tabular-details-${name}-toggle-${uid}_`;
+  }),
   actions: {
     click: function(e) {
-      clickFirstAnchor(e);
+      get(this, 'dom').clickFirstAnchor(e);
     },
-    change: function(item, e) {
-      this.onchange(e, item);
+    change: function(item, items, e) {
+      this.onchange(e, item, items);
     },
   },
 });

@@ -1,0 +1,64 @@
+---
+layout: "docs"
+page_title: "Commands: ACL Token List"
+sidebar_current: "docs-commands-acl-token-list"
+---
+
+# Consul ACL Token List
+
+Command: `consul acl token list`
+
+The `acl token list` command lists all tokens. By default it will not show metadata.
+
+## Usage
+
+Usage: `consul acl token list`
+
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
+
+#### Command Options
+
+* `-meta` - Indicates that token metadata such as the content hash and
+   Raft indices should be shown for each entry.
+
+## Examples
+
+Default listing.
+
+```sh
+$ consul acl token list
+AccessorID:   4d123dff-f460-73c3-02c4-8dd64d136e01
+Description:  Bootstrap Token (Global Management)
+Local:        false
+Create Time:  2018-10-22 11:27:04.479026 -0400 EDT
+Legacy:       false
+Policies:
+   00000000-0000-0000-0000-000000000001 - global-management
+
+AccessorID:   59f86a9b-d3b6-166c-32a0-be4ab3f94caa
+Description:  Super User
+Local:        false
+Create Time:  2018-10-22 15:35:28.787003 -0400 EDT
+Legacy:       false
+Policies:
+   00000000-0000-0000-0000-000000000001 - global-management
+
+AccessorID:   00000000-0000-0000-0000-000000000002
+Description:  Anonymous Token
+Local:        false
+Create Time:  0001-01-01 00:00:00 +0000 UTC
+Legacy:       false
+Policies:
+   06acc965-df4b-5a99-58cb-3250930c6324 - node-services-read
+
+AccessorID:   986193b5-e2b5-eb26-6264-b524ea60cc6d
+Description:  WonderToken
+Local:        false
+Create Time:  2018-10-22 15:33:39.01789 -0400 EDT
+Legacy:       false
+Policies:
+   06acc965-df4b-5a99-58cb-3250930c6324 - node-services-read
+```

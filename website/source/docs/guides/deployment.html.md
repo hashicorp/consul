@@ -5,7 +5,7 @@ sidebar_current: "docs-guides-reference-architecture"
 description: |-
   This document provides recommended practices and a reference
   architecture for HashiCorp Consul production deployments.
-ea_version: 1.3
+ea_version: 1.4
 ---
 
 # Consul Reference Architecture
@@ -43,7 +43,7 @@ or "Burstable CPU".
 
 ~> **NOTE** For large workloads, ensure that the disks support a high number of IOPS to keep up with the rapid Raft log update rate.
 
-For more information on server requirements, review the [server performance](/docs/guides/performance.html) documentation.
+For more information on server requirements, review the [server performance](/docs/install/performance.html) documentation.
 
 ## Infrastructure Diagram
 
@@ -99,7 +99,7 @@ The agent's status directly affects the service discovery results. If an agent i
 
 In addition, the agent also periodically performs a full state sync over TCP which gossips each agent’s understanding of the member list around it (node names, IP addresses, and health status). These operations are expensive relative to the standard gossip protocol mentioned above and are synced at a rate determined by cluster size to keep overhead low. It's typically between 30 seconds and 5 minutes. For more details, refer to [Serf Gossip docs](https://www.serf.io/docs/internals/gossip.html)
 
-In a larger network that spans L2 segments, traffic typically traverses through a firewall and/or a router. ACL or firewall rules must be updated to allow the following ports:
+In a larger network that spans L3 segments, traffic typically traverses through a firewall and/or a router. ACL or firewall rules must be updated to allow the following ports:
 
 | Name          | Port | Flag | Description |
 |---------------|------|------|-------------|
@@ -107,7 +107,7 @@ In a larger network that spans L2 segments, traffic typically traverses through 
 | Serf LAN      | 8301 |      | Used to handle gossip in the LAN. Required by all agents. TCP and UDP. |
 | Serf WAN      | 8302 | `-1` to disable (available in Consul 1.0.7) | Used by servers to gossip over the LAN and WAN to other servers. TCP and UDP. |
 | HTTP API      | 8500 | `-1` to disable | Used by clients to talk to the HTTP API. TCP only. |
-| DNS Interface | 8600 | `-1` to disable | |
+| DNS Interface | 8600 | `-1` to disable | Used to resolve DNS queries. TCP and UDP. |
 
 -> As mentioned in the [datacenter design section](#datacenter-design), network areas and network segments can be used to prevent opening up firewall ports between different subnets.
 
@@ -118,5 +118,5 @@ By default agents will only listen for HTTP and DNS traffic on the local interfa
 - Read [Deployment Guide](/docs/guides/deployment-guide.html) to learn
   the steps required to install and configure a single HashiCorp Consul cluster.
 
-- Read [Server Performance](/docs/guides/performance.html) to learn about
+- Read [Server Performance](/docs/install/performance.html) to learn about
   additional configuration that benefits production deployments.

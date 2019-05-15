@@ -8,21 +8,24 @@ description: |-
 
 # Upgrading Specific Versions
 
-The [upgrading page](/docs/upgrading.html) covers the details of doing
-a standard upgrade. However, specific versions of Consul may have more
-details provided for their upgrades as a result of new features or changed
-behavior. This page is used to document those details separately from the
-standard upgrade flow.
+The [upgrading page](/docs/upgrading.html) covers the details of doing a
+standard upgrade. However, specific versions of Consul may have more details
+provided for their upgrades as a result of new features or changed behavior.
+This page is used to document those details separately from the standard
+upgrade flow.
 
 ## Consul 1.4.0
 
-There are two major features in Consul 1.4.0 that may impact upgrades: a [new ACL system](#acl-upgrade) and [multi-datacenter support for Connect](#connect-multi-datacenter) in the Enterprise version.
+There are two major features in Consul 1.4.0 that may impact upgrades: a [new
+ACL system](#acl-upgrade) and [multi-datacenter support for
+Connect](#connect-multi-datacenter) in the Enterprise version.
 
 ### ACL Upgrade
 
-Consul 1.4.0 includes a [new ACL system](/docs/guides/acl.html) that is
-designed to have a smooth upgrade path but requires care to upgrade components
-in the right order.
+Consul 1.4.0 includes a [new ACL
+system](https://learn.hashicorp.com/consul/security-networking/production-acls)
+that is designed to have a smooth upgrade path but requires care to upgrade
+components in the right order.
 
 **Note:** As with most major version upgrades, you cannot downgrade once the
 upgrade to 1.4.0 is complete as it adds new state to the raft store. As always
@@ -96,7 +99,7 @@ as soon as possible after upgrade, as well as updating any integrations to work
 with the the new ACL [Token](/api/acl/tokens.html) and
 [Policy](/api/acl/policies.html) APIs.
 
-More complete details on how to upgrade "legacy" tokens is available [here](/docs/guides/acl-migrate-tokens.html).
+More complete details on how to upgrade "legacy" tokens is available [here](/docs/acl/acl-migrate-tokens.html).
 
 ### Connect Multi-datacenter
 
@@ -104,21 +107,48 @@ This only applies to users upgrading from an older version of Consul Enterprise 
 
 In addition, this upgrade will only affect clusters where [Connect is enabled](/docs/connect/configuration.html) on your servers before the migration.
 
-Connect multi-datacenter uses the same primary/secondary approach as ACLs and will use the same [primary_datacenter](#primary-datacenter). When a secondary datacenter server restarts with 1.4.0 it will detect it is not the primary and begin an automatic bootstrap of multi-datacenter CA federation.
+Connect multi-datacenter uses the same primary/secondary approach as ACLs and
+will use the same [primary_datacenter](#primary-datacenter). When a secondary
+datacenter server restarts with 1.4.0 it will detect it is not the primary and
+begin an automatic bootstrap of multi-datacenter CA federation.
 
-Datacenters can be upgraded in either order; secondary datacenters will not switch into multi-datacenter mode until all servers in both the secondary and primary datacenter are detected to be running at least Consul 1.4.0. Secondary datacenters monitor this periodically (every few minutes) and will automatically upgrade Connect to use a federated Certificate Authority when they do.
+Datacenters can be upgraded in either order; secondary datacenters will not
+switch into multi-datacenter mode until all servers in both the secondary and
+primary datacenter are detected to be running at least Consul 1.4.0. Secondary
+datacenters monitor this periodically (every few minutes) and will
+automatically upgrade Connect to use a federated Certificate Authority when
+they do.
 
-In general, migrating a Consul cluster from OSS to Enterprise will update the CA to be federated automatically and without impact on Connect traffic. When upgrading Consul Enterprise 1.3.x to Consul Enterprise 1.4.0 upgrades the CA upgrade is seamless, however depending on the size of the cluster, _new_ connection attempts in the secondary datacenter might fail for a short window (typically seconds) while the update is propagated due to the 1.3.x Beta authorization endpoint validating originating cluster in a way that was not fully forwards compatible with migrating between cluster trust domains. That issue is fixed in 1.4.0 as part of General Availability.
+In general, migrating a Consul cluster from OSS to Enterprise will update the
+CA to be federated automatically and without impact on Connect traffic. When
+upgrading Consul Enterprise 1.3.x to Consul Enterprise 1.4.0 upgrades the CA
+upgrade is seamless, however depending on the size of the cluster, _new_
+connection attempts in the secondary datacenter might fail for a short window
+(typically seconds) while the update is propagated due to the 1.3.x Beta
+authorization endpoint validating originating cluster in a way that was not
+fully forwards compatible with migrating between cluster trust domains. That
+issue is fixed in 1.4.0 as part of General Availability.
 
-Once migrated (typically a few seconds). Connect will use the primary datacenter's Certificate Authority as the root of trust for all other datacenters. CA migration or root key changes in the primary will now rotate automatically and without loss of connectivity throughout all datacenters and workloads.
+Once migrated (typically a few seconds). Connect will use the primary
+datacenter's Certificate Authority as the root of trust for all other
+datacenters. CA migration or root key changes in the primary will now rotate
+automatically and without loss of connectivity throughout all datacenters and
+workloads.
 
-For more information see [Connect Multi-datacenter](/docs/enterprise/connect-multi-datacenter/index.html).
+For more information see [Connect
+Multi-datacenter](/docs/enterprise/connect-multi-datacenter/index.html).
 
 ## Consul 1.3.0
 
-This version added support for multiple tag filters in service discovery queries, however it introduced a subtle bug where API calls to `/catalog/service/:name?tag=<tag>` would ignore the tag filter _only during the upgrade_. It only occurs when clients are still running 1.2.3 or earlier but servers have been upgraded. The `/health/service/:name?tag=<tag>` endpoint and DNS interface were _not_ affected.
+This version added support for multiple tag filters in service discovery
+queries, however it introduced a subtle bug where API calls to
+`/catalog/service/:name?tag=<tag>` would ignore the tag filter _only during the
+upgrade_. It only occurs when clients are still running 1.2.3 or earlier but
+servers have been upgraded. The `/health/service/:name?tag=<tag>` endpoint and
+DNS interface were _not_ affected.
 
-For this reason, we recommend you upgrade directly to 1.3.1 which includes only a fix for this issue.
+For this reason, we recommend you upgrade directly to 1.3.1 which includes only
+a fix for this issue.
 
 ## Consul 1.1.0
 
@@ -133,6 +163,7 @@ The following previously deprecated fields and config options have been removed:
  along with the `enable_deprecated_names` option from the metrics configuration.
 
 #### New defaults for Raft Snapshot Creation
+
 Consul 1.0.1 (and earlier versions of Consul) checked for raft snapshots every
 5 seconds, and created new snapshots for every 8192 writes. These defaults cause
 constant disk IO in large busy clusters. Consul 1.1.0 increases these to larger values,
@@ -167,33 +198,81 @@ before proceeding.
 
 #### Carefully Check and Remove Stale Servers During Rolling Upgrades
 
-Consul 1.0 (and earlier versions of Consul when running with [Raft protocol 3](/docs/agent/options.html#_raft_protocol) had an issue where performing rolling updates of Consul servers could result in an outage from old servers remaining in the cluster. [Autopilot](/docs/guides/autopilot.html) would normally remove old servers when new ones come online, but it was also waiting to promote servers to voters in pairs to maintain an odd quorum size. The pairwise promotion feature was removed so that servers become voters as soon as they are stable, allowing Autopilot to remove old servers in a safer way.
+Consul 1.0 (and earlier versions of Consul when running with [Raft protocol
+3](/docs/agent/options.html#_raft_protocol) had an issue where performing
+rolling updates of Consul servers could result in an outage from old servers
+remaining in the cluster.
+[Autopilot](https://learn.hashicorp.com/consul/day-2-operations/autopilot)
+would normally remove old servers when new ones come online, but it was also
+waiting to promote servers to voters in pairs to maintain an odd quorum size.
+The pairwise promotion feature was removed so that servers become voters as
+soon as they are stable, allowing Autopilot to remove old servers in a safer
+way.
 
-When upgrading from Consul 1.0, you may need to manually [force-leave](/docs/commands/force-leave.html) old servers as part of a rolling update to Consul 1.0.1.
+When upgrading from Consul 1.0, you may need to manually
+[force-leave](/docs/commands/force-leave.html) old servers as part of a rolling
+update to Consul 1.0.1.
 
 ## Consul 1.0
 
-Consul 1.0 has several important breaking changes that are documented here. Please be sure to read over all the details here before upgrading.
+Consul 1.0 has several important breaking changes that are documented here.
+Please be sure to read over all the details here before upgrading.
 
 #### Raft Protocol Now Defaults to 3
 
-The [`-raft-protocol`](/docs/agent/options.html#_raft_protocol) default has been changed from 2 to 3, enabling all [Autopilot](/docs/guides/autopilot.html) features by default.
+The [`-raft-protocol`](/docs/agent/options.html#_raft_protocol) default has
+been changed from 2 to 3, enabling all
+[Autopilot](https://learn.hashicorp.com/consul/day-2-operations/autopilot)
+features by default.
 
-Raft protocol version 3 requires Consul running 0.8.0 or newer on all servers in order to work, so if you are upgrading with older servers in a cluster then you will need to set this back to 2 in order to upgrade. See [Raft Protocol Version Compatibility](/docs/upgrade-specific.html#raft-protocol-version-compatibility) for more details. Also the format of `peers.json` used for outage recovery is different when running with the latest Raft protocol. See [Manual Recovery Using peers.json](/docs/guides/outage.html#manual-recovery-using-peers-json) for a description of the required format.
+Raft protocol version 3 requires Consul running 0.8.0 or newer on all servers
+in order to work, so if you are upgrading with older servers in a cluster then
+you will need to set this back to 2 in order to upgrade. See [Raft Protocol
+Version
+Compatibility](/docs/upgrade-specific.html#raft-protocol-version-compatibility)
+for more details. Also the format of `peers.json` used for outage recovery is
+different when running with the latest Raft protocol. See [Manual Recovery
+Using
+peers.json](https://learn.hashicorp.com/consul/day-2-operations/outage#manual-recovery-using-peers-json)
+for a description of the required format.
 
-Please note that the Raft protocol is different from Consul's internal protocol as described on the [Protocol Compatibility Promise](/docs/compatibility.html) page, and as is shown in commands like `consul members` and `consul version`. To see the version of the Raft protocol in use on each server, use the `consul operator raft list-peers` command.
+Please note that the Raft protocol is different from Consul's internal protocol
+as described on the [Protocol Compatibility Promise](/docs/compatibility.html)
+page, and as is shown in commands like `consul members` and `consul version`.
+To see the version of the Raft protocol in use on each server, use the `consul
+operator raft list-peers` command.
 
-The easiest way to upgrade servers is to have each server leave the cluster, upgrade its Consul version, and then add it back. Make sure the new server joins successfully and that the cluster is stable before rolling the upgrade forward to the next server. It's also possible to stand up a new set of servers, and then slowly stand down each of the older servers in a similar fashion.
+The easiest way to upgrade servers is to have each server leave the cluster,
+upgrade its Consul version, and then add it back. Make sure the new server
+joins successfully and that the cluster is stable before rolling the upgrade
+forward to the next server. It's also possible to stand up a new set of
+servers, and then slowly stand down each of the older servers in a similar
+fashion.
 
-When using Raft protocol version 3, servers are identified by their [`-node-id`](/docs/agent/options.html#_node_id) instead of their IP address when Consul makes changes to its internal Raft quorum configuration. This means that once a cluster has been upgraded with servers all running Raft protocol version 3, it will no longer allow servers running any older Raft protocol versions to be added. If running a single Consul server, restarting it in-place will result in that server not being able to elect itself as a leader. To avoid this, either set the Raft protocol back to 2, or use [Manual Recovery Using peers.json](/docs/guides/outage.html#manual-recovery-using-peers-json) to map the server to its node ID in the Raft quorum configuration.
+When using Raft protocol version 3, servers are identified by their
+[`-node-id`](/docs/agent/options.html#_node_id) instead of their IP address
+when Consul makes changes to its internal Raft quorum configuration. This means
+that once a cluster has been upgraded with servers all running Raft protocol
+version 3, it will no longer allow servers running any older Raft protocol
+versions to be added. If running a single Consul server, restarting it in-place
+will result in that server not being able to elect itself as a leader. To avoid
+this, either set the Raft protocol back to 2, or use [Manual Recovery Using
+peers.json](https://learn.hashicorp.com/consul/day-2-operations/outage#manual-recovery-using-peers-json)
+to map the server to its node ID in the Raft quorum configuration.
 
 #### Config Files Require an Extension
 
-As part of supporting the [HCL](https://github.com/hashicorp/hcl#syntax) format for Consul's config files, an `.hcl` or `.json` extension is required for all config files loaded by Consul, even when using the [`-config-file`](/docs/agent/options.html#_config_file) argument to specify a file directly.
+As part of supporting the [HCL](https://github.com/hashicorp/hcl#syntax) format
+for Consul's config files, an `.hcl` or `.json` extension is required for all
+config files loaded by Consul, even when using the
+[`-config-file`](/docs/agent/options.html#_config_file) argument to specify a
+file directly.
 
 #### Deprecated Options Have Been Removed
 
-All of Consul's previously deprecated command line flags and config options have been removed, so these will need to be mapped to their equivalents before upgrading. Here's the complete list of removed options and their equivalents:
+All of Consul's previously deprecated command line flags and config options
+have been removed, so these will need to be mapped to their equivalents before
+upgrading. Here's the complete list of removed options and their equivalents:
 
 | Removed Option | Equivalent |
 | -------------- | ---------- |
@@ -228,19 +307,35 @@ All of Consul's previously deprecated command line flags and config options have
 
 #### `statsite_prefix` Renamed to `metrics_prefix`
 
-Since the `statsite_prefix` configuration option applied to all telemetry providers, `statsite_prefix` was renamed to [`metrics_prefix`](/docs/agent/options.html#telemetry-metrics_prefix). Configuration files will need to be updated when upgrading to this version of Consul.
+Since the `statsite_prefix` configuration option applied to all telemetry
+providers, `statsite_prefix` was renamed to
+[`metrics_prefix`](/docs/agent/options.html#telemetry-metrics_prefix).
+Configuration files will need to be updated when upgrading to this version of
+Consul.
 
 #### `advertise_addrs` Removed
 
-This configuration option was removed since it was redundant with `advertise_addr` and `advertise_addr_wan` in combination with `ports` and also wrongly stated that you could configure both host and port.
+This configuration option was removed since it was redundant with
+`advertise_addr` and `advertise_addr_wan` in combination with `ports` and also
+wrongly stated that you could configure both host and port.
 
 #### Escaping Behavior Changed for go-discover Configs
 
-The format for [`-retry-join`](/docs/agent/options.html#retry-join) and [`-retry-join-wan`](/docs/agent/options.html#retry-join-wan) values that use [go-discover](https://github.com/hashicorp/go-discover) cloud auto joining has changed. Values in `key=val` sequences must no longer be URL encoded and can be provided as literals as long as they do not contain spaces, backslashes `\` or double quotes `"`. If values contain these characters then use double quotes as in `"some key"="some value"`. Special characters within a double quoted string can be escaped with a backslash `\`.
+The format for [`-retry-join`](/docs/agent/options.html#retry-join) and
+[`-retry-join-wan`](/docs/agent/options.html#retry-join-wan) values that use
+[go-discover](https://github.com/hashicorp/go-discover) cloud auto joining has
+changed. Values in `key=val` sequences must no longer be URL encoded and can be
+provided as literals as long as they do not contain spaces, backslashes `\` or
+double quotes `"`. If values contain these characters then use double quotes as
+in `"some key"="some value"`. Special characters within a double quoted string
+can be escaped with a backslash `\`.
 
 #### HTTP Verbs are Enforced in Many HTTP APIs
 
-Many endpoints in the HTTP API that previously took any HTTP verb now check for specific HTTP verbs and enforce them. This may break clients relying on the old behavior. Here's the complete list of updated endpoints and required HTTP verbs:
+Many endpoints in the HTTP API that previously took any HTTP verb now check for
+specific HTTP verbs and enforce them. This may break clients relying on the old
+behavior. Here's the complete list of updated endpoints and required HTTP
+verbs:
 
 | Endpoint | Required HTTP Verb |
 | -------- | ------------------ |
@@ -287,23 +382,37 @@ Many endpoints in the HTTP API that previously took any HTTP verb now check for 
 
 #### Unauthorized KV Requests Return 403
 
-When ACLs are enabled, reading a key with an unauthorized token returns a 403. This previously returned a 404 response.
+When ACLs are enabled, reading a key with an unauthorized token returns a 403.
+This previously returned a 404 response.
 
 #### Config Section of Agent Self Endpoint has Changed
 
-The /v1/agent/self endpoint's `Config` section has often been in flux as it was directly returning one of Consul's internal data structures. This configuration structure has been moved under `DebugConfig`, and is documents as for debugging use and subject to change, and a small set of elements of `Config` have been maintained and documented. See [Read Configuration](/api/agent.html#read-configuration) endpoint documentation for details.
+The /v1/agent/self endpoint's `Config` section has often been in flux as it was
+directly returning one of Consul's internal data structures. This configuration
+structure has been moved under `DebugConfig`, and is documents as for debugging
+use and subject to change, and a small set of elements of `Config` have been
+maintained and documented. See [Read
+Configuration](/api/agent.html#read-configuration) endpoint documentation for
+details.
 
 #### Deprecated `configtest` Command Removed
 
-The `configtest` command was deprecated and has been superseded by the `validate` command.
+The `configtest` command was deprecated and has been superseded by the
+`validate` command.
 
 #### Undocumented Flags in `validate` Command Removed
 
-The `validate` command supported the `-config-file` and `-config-dir` command line flags but did not document them. This support has been removed since the flags are not required.
+The `validate` command supported the `-config-file` and `-config-dir` command
+line flags but did not document them. This support has been removed since the
+flags are not required.
 
 #### Metric Names Updated
 
-Metric names no longer start with `consul.consul`. To help with transitioning dashboards and other metric consumers, the field `enable_deprecated_names` has been added to the telemetry section of the config, which will enable metrics with the old naming scheme to be sent alongside the new ones. The following prefixes were affected:
+Metric names no longer start with `consul.consul`. To help with transitioning
+dashboards and other metric consumers, the field `enable_deprecated_names` has
+been added to the telemetry section of the config, which will enable metrics
+with the old naming scheme to be sent alongside the new ones. The following
+prefixes were affected:
 
 | Prefix |
 | ------ |
@@ -323,35 +432,54 @@ Metric names no longer start with `consul.consul`. To help with transitioning da
 
 #### Checks Validated On Agent Startup
 
-Consul agents now validate health check definitions in their configuration and will fail at startup if any checks are invalid. In previous versions of Consul, invalid health checks would get skipped.
+Consul agents now validate health check definitions in their configuration and
+will fail at startup if any checks are invalid. In previous versions of Consul,
+invalid health checks would get skipped.
 
 ## Consul 0.9.0
 
 #### Script Checks Are Now Opt-In
 
-A new [`enable_script_checks`](/docs/agent/options.html#_enable_script_checks) configuration option was added, and defaults to `false`, meaning that in order to allow an agent to run health checks that execute scripts, this will need to be configured and set to `true`. This provides a safer out-of-the-box configuration for Consul where operators must opt-in to allow script-based health checks.
+A new [`enable_script_checks`](/docs/agent/options.html#_enable_script_checks)
+configuration option was added, and defaults to `false`, meaning that in order
+to allow an agent to run health checks that execute scripts, this will need to
+be configured and set to `true`. This provides a safer out-of-the-box
+configuration for Consul where operators must opt-in to allow script-based
+health checks.
 
-If your cluster uses script health checks please be sure to set this to `true` as part of upgrading agents. If this is set to `true`, you should also enable [ACLs](/docs/guides/acl.html) to provide control over which users are allowed to register health checks that could potentially execute scripts on the agent machines.
+If your cluster uses script health checks please be sure to set this to `true`
+as part of upgrading agents. If this is set to `true`, you should also enable
+[ACLs](https://learn.hashicorp.com/consul/security-networking/production-acls)
+to provide control over which users are allowed to register health checks that
+could potentially execute scripts on the agent machines.
 
 #### Web UI Is No Longer Released Separately
 
-Consul releases will no longer include a `web_ui.zip` file with the compiled web assets. These have been built in to the Consul binary since the 0.7.x series and can be enabled with the [`-ui`](/docs/agent/options.html#_ui) configuration option. These built-in web assets have always been identical to the contents of the `web_ui.zip` file for each release. The [`-ui-dir`](/docs/agent/options.html#_ui_dir) option is still available for hosting customized versions of the web assets, but the vast majority of Consul users can just use the built in web assets.
+Consul releases will no longer include a `web_ui.zip` file with the compiled
+web assets. These have been built in to the Consul binary since the 0.7.x
+series and can be enabled with the [`-ui`](/docs/agent/options.html#_ui)
+configuration option. These built-in web assets have always been identical to
+the contents of the `web_ui.zip` file for each release. The
+[`-ui-dir`](/docs/agent/options.html#_ui_dir) option is still available for
+hosting customized versions of the web assets, but the vast majority of Consul
+users can just use the built in web assets.
 
 ## Consul 0.8.0
 
 #### Upgrade Current Cluster Leader Last
 
-We identified a potential issue with Consul 0.8 that requires the current cluster
-leader to be upgraded last when updating multiple servers. Please see
+We identified a potential issue with Consul 0.8 that requires the current
+cluster leader to be upgraded last when updating multiple servers. Please see
 [this issue](https://github.com/hashicorp/consul/issues/2889) for more details.
 
 #### Command-Line Interface RPC Deprecation
 
-The RPC client interface has been removed. All CLI commands that used RPC and the
-`-rpc-addr` flag to communicate with Consul have been converted to use the HTTP API
-and the appropriate flags for it, and the `rpc` field has been removed from the port
-and address binding configs. You will need to remove these fields from your config files
-and update any scripts that passed a custom `-rpc-addr` to the following commands:
+The RPC client interface has been removed. All CLI commands that used RPC and
+the `-rpc-addr` flag to communicate with Consul have been converted to use the
+HTTP API and the appropriate flags for it, and the `rpc` field has been removed
+from the port and address binding configs. You will need to remove these fields
+from your config files and update any scripts that passed a custom `-rpc-addr`
+to the following commands:
 
 * `force-leave`
 * `info`
@@ -364,25 +492,35 @@ and update any scripts that passed a custom `-rpc-addr` to the following command
 
 #### Version 8 ACLs Are Now Opt-Out
 
-The [`acl_enforce_version_8`](/docs/agent/options.html#acl_enforce_version_8) configuration now defaults to `true` to enable [full version 8 ACL support](/docs/guides/acl.html#version_8_acls) by default. If you are upgrading an existing cluster with ACLs enabled, you will need to set this to `false` during the upgrade on **both Consul agents and Consul servers**. Version 8 ACLs were also changed so that [`acl_datacenter`](/docs/agent/options.html#acl_datacenter) must be set on agents in order to enable the agent-side enforcement of ACLs. This makes for a smoother experience in clusters where ACLs aren't enabled at all, but where the agents would have to wait to contact a Consul server before learning that.
+The [`acl_enforce_version_8`](/docs/agent/options.html#acl_enforce_version_8)
+configuration now defaults to `true` to enable full version 8 ACL support by
+default. If you are upgrading an existing cluster with ACLs enabled, you will
+need to set this to `false` during the upgrade on **both Consul agents and
+Consul servers**. Version 8 ACLs were also changed so that
+[`acl_datacenter`](/docs/agent/options.html#acl_datacenter) must be set on
+agents in order to enable the agent-side enforcement of ACLs. This makes for a
+smoother experience in clusters where ACLs aren't enabled at all, but where the
+agents would have to wait to contact a Consul server before learning that.
 
 #### Remote Exec Is Now Opt-In
 
-The default for [`disable_remote_exec`](/docs/agent/options.html#disable_remote_exec) was
-changed to "true", so now operators need to opt-in to having agents support running
-commands remotely via [`consul exec`](/docs/commands/exec.html).
+The default for
+[`disable_remote_exec`](/docs/agent/options.html#disable_remote_exec) was
+changed to "true", so now operators need to opt-in to having agents support
+running commands remotely via [`consul exec`](/docs/commands/exec.html).
 
 #### Raft Protocol Version Compatibility
 
-When upgrading to Consul 0.8.0 from a version lower than 0.7.0, users will need to
-set the [`-raft-protocol`](/docs/agent/options.html#_raft_protocol) option to 1 in
-order to maintain backwards compatibility with the old servers during the upgrade.
-After the servers have been migrated to version 0.8.0, `-raft-protocol` can be moved
-up to 2 and the servers restarted to match the default.
+When upgrading to Consul 0.8.0 from a version lower than 0.7.0, users will need
+to set the [`-raft-protocol`](/docs/agent/options.html#_raft_protocol) option
+to 1 in order to maintain backwards compatibility with the old servers during
+the upgrade.  After the servers have been migrated to version 0.8.0,
+`-raft-protocol` can be moved up to 2 and the servers restarted to match the
+default.
 
-The Raft protocol must be stepped up in this way; only adjacent version numbers are
-compatible (for example, version 1 cannot talk to version 3). Here is a table of the
-Raft Protocol versions supported by each Consul version:
+The Raft protocol must be stepped up in this way; only adjacent version numbers
+are compatible (for example, version 1 cannot talk to version 3). Here is a
+table of the Raft Protocol versions supported by each Consul version:
 
 <table class="table table-bordered table-striped">
   <tr>
@@ -403,18 +541,30 @@ Raft Protocol versions supported by each Consul version:
   </tr>
 </table>
 
-In order to enable all [Autopilot](/docs/guides/autopilot.html) features, all servers
-in a Consul cluster must be running with Raft protocol version 3 or later.
+In order to enable all
+[Autopilot](https://learn.hashicorp.com/consul/day-2-operations/autopilot)
+features, all servers in a Consul cluster must be running with Raft protocol
+version 3 or later.
 
 ## Consul 0.7.1
 
 #### Child Process Reaping
 
-Child process reaping support has been removed, along with the `reap` configuration option. Reaping is also done via [dumb-init](https://github.com/Yelp/dumb-init) in the [Consul Docker image](https://github.com/hashicorp/docker-consul), so removing it from Consul itself simplifies the code and eases future maintenance for Consul. If you are running Consul as PID 1 in a container you will need to arrange for a wrapper process to reap child processes.
+Child process reaping support has been removed, along with the `reap`
+configuration option. Reaping is also done via
+[dumb-init](https://github.com/Yelp/dumb-init) in the [Consul Docker
+image](https://github.com/hashicorp/docker-consul), so removing it from Consul
+itself simplifies the code and eases future maintenance for Consul. If you are
+running Consul as PID 1 in a container you will need to arrange for a wrapper
+process to reap child processes.
 
 #### DNS Resiliency Defaults
 
-The default for [`max_stale`](/docs/agent/options.html#max_stale) has been increased from 5 seconds to a near-indefinite threshold (10 years) to allow DNS queries to continue to be served in the event of a long outage with no leader. A new telemetry counter was added at `consul.dns.stale_queries` to track when agents serve DNS queries that are stale by more than 5 seconds.
+The default for [`max_stale`](/docs/agent/options.html#max_stale) has been
+increased from 5 seconds to a near-indefinite threshold (10 years) to allow DNS
+queries to continue to be served in the event of a long outage with no leader.
+A new telemetry counter was added at `consul.dns.stale_queries` to track when
+agents serve DNS queries that are stale by more than 5 seconds.
 
 ## Consul 0.7
 
@@ -423,10 +573,10 @@ to be aware of during an upgrade are categorized below.
 
 #### Performance Timing Defaults and Tuning
 
-Consul 0.7 now defaults the DNS configuration to allow for stale queries by defaulting
-[`allow_stale`](/docs/agent/options.html#allow_stale) to true for better utilization
-of available servers. If you want to retain the previous behavior, set the following
-configuration:
+Consul 0.7 now defaults the DNS configuration to allow for stale queries by
+defaulting [`allow_stale`](/docs/agent/options.html#allow_stale) to true for
+better utilization of available servers. If you want to retain the previous
+behavior, set the following configuration:
 
 ```javascript
 {
@@ -439,11 +589,11 @@ configuration:
 Consul also 0.7 introduced support for tuning Raft performance using a new
 [performance configuration block](/docs/agent/options.html#performance). Also,
 the default Raft timing is set to a lower-performance mode suitable for
-[minimal Consul servers](/docs/guides/performance.html#minimum).
+[minimal Consul servers](/docs/install/performance.html#minimum).
 
 To continue to use the high-performance settings that were the default prior to
-Consul 0.7 (recommended for production servers), add the following configuration
-to all Consul servers when upgrading:
+Consul 0.7 (recommended for production servers), add the following
+configuration to all Consul servers when upgrading:
 
 ```javascript
 {
@@ -453,7 +603,7 @@ to all Consul servers when upgrading:
 }
 ```
 
-See the [Server Performance](/docs/guides/performance.html) guide for more details.
+See the [Server Performance](/docs/install/performance.html) guide for more details.
 
 #### Leave-Related Configuration Defaults
 
@@ -515,7 +665,7 @@ the file. Consul 0.7 also uses a new, automatically-created raft/peers.info file
 to avoid ingesting the `peers.json` file on the first start after upgrading (the
 `peers.json` file is simply deleted on the first start after upgrading).
 
-Please be sure to review the [Outage Recovery Guide](/docs/guides/outage.html)
+Please be sure to review the [Outage Recovery Guide](https://learn.hashicorp.com/consul/day-2-operations/outage)
 before upgrading for more details.
 
 ## Consul 0.6.4
@@ -528,7 +678,7 @@ require any ACL to manage them, and prepared queries with a `Name` defined are
 now governed by a new `query` ACL policy that will need to be configured
 after the upgrade.
 
-See the [ACL Guide](/docs/guides/acl.html#prepared_query_acls) for more details
+See the [ACL rules documentation](/docs/acl/acl-rules.html#prepared-query-rules) for more details
 about the new behavior and how it compares to previous versions of Consul.
 
 ## Consul 0.6

@@ -155,6 +155,12 @@ type RuntimeConfig struct {
 	// hcl: acl.token_ttl = "duration"
 	ACLPolicyTTL time.Duration
 
+	// ACLRoleTTL is used to control the time-to-live of cached ACL roles. This has
+	// a major impact on performance. By default, it is set to 30 seconds.
+	//
+	// hcl: acl.role_ttl = "duration"
+	ACLRoleTTL time.Duration
+
 	// ACLToken is the default token used to make requests if a per-request
 	// token is not provided. If not configured the 'anonymous' token is used.
 	//
@@ -496,6 +502,10 @@ type RuntimeConfig struct {
 	// flag: -client string
 	ClientAddrs []*net.IPAddr
 
+	// ConfigEntryBootstrap contains a list of ConfigEntries to ensure are created
+	// If entries of the same Kind/Name exist already these will not update them.
+	ConfigEntryBootstrap []structs.ConfigEntry
+
 	// ConnectEnabled opts the agent into connect. It should be set on all clients
 	// and servers in a cluster for correct connect operation.
 	ConnectEnabled bool
@@ -668,6 +678,12 @@ type RuntimeConfig struct {
 	// the server using the same TLS configuration as the agent (CA, cert,
 	// and key).
 	EnableAgentTLSForChecks bool
+
+	// EnableCentralServiceConfig controls whether the agent should incorporate
+	// centralized config such as service-defaults into local service registrations.
+	//
+	// hcl: enable_central_service_config = (true|false)
+	EnableCentralServiceConfig bool
 
 	// EnableDebug is used to enable various debugging features.
 	//
@@ -1580,17 +1596,19 @@ func (c *RuntimeConfig) Sanitized() map[string]interface{} {
 	return sanitize("rt", reflect.ValueOf(c)).Interface().(map[string]interface{})
 }
 
-func (c *RuntimeConfig) ToTLSUtilConfig() *tlsutil.Config {
-	return &tlsutil.Config{
+func (c *RuntimeConfig) ToTLSUtilConfig() tlsutil.Config {
+	return tlsutil.Config{
 		VerifyIncoming:           c.VerifyIncoming,
 		VerifyIncomingRPC:        c.VerifyIncomingRPC,
 		VerifyIncomingHTTPS:      c.VerifyIncomingHTTPS,
 		VerifyOutgoing:           c.VerifyOutgoing,
+		VerifyServerHostname:     c.VerifyServerHostname,
 		CAFile:                   c.CAFile,
 		CAPath:                   c.CAPath,
 		CertFile:                 c.CertFile,
 		KeyFile:                  c.KeyFile,
 		NodeName:                 c.NodeName,
+		Domain:                   c.DNSDomain,
 		ServerName:               c.ServerName,
 		TLSMinVersion:            c.TLSMinVersion,
 		CipherSuites:             c.TLSCipherSuites,

@@ -1,16 +1,12 @@
-import Component from 'ember-collection/components/ember-collection';
+import CollectionComponent from 'ember-collection/components/ember-collection';
 import needsRevalidate from 'ember-collection/utils/needs-revalidate';
 import identity from 'ember-collection/utils/identity';
 import Grid from 'ember-collection/layouts/grid';
 import SlotsMixin from 'block-slots';
 import WithResizing from 'consul-ui/mixins/with-resizing';
 import style from 'ember-computed-style';
-import qsaFactory from 'consul-ui/utils/dom/qsa-factory';
-import sibling from 'consul-ui/utils/dom/sibling';
-import closest from 'consul-ui/utils/dom/closest';
-import clickFirstAnchorFactory from 'consul-ui/utils/dom/click-first-anchor';
-const clickFirstAnchor = clickFirstAnchorFactory(closest);
 
+import { inject as service } from '@ember/service';
 import { computed, get, set } from '@ember/object';
 /**
  * Heavily extended `ember-collection` component
@@ -24,8 +20,6 @@ import { computed, get, set } from '@ember/object';
  * in the future
  */
 
-// ember doesn't like you using `$` hence `$$`
-const $$ = qsaFactory();
 // need to copy Cell in wholesale as there is no way to import it
 // there is no change made to `Cell` here, its only here as its
 // private in `ember-collection`
@@ -85,13 +79,17 @@ const change = function(e) {
       // 'actions_close' would mean that all menus have been closed
       // therefore we don't need to calculate
       if (e.currentTarget.getAttribute('id') !== 'actions_close') {
-        const $tr = closest('tr', e.currentTarget);
-        const $group = sibling(e.currentTarget, 'ul');
-        const $footer = [...$$('footer[role="contentinfo"]')][0];
+        const dom = get(this, 'dom');
+
+        const $tr = dom.closest('tr', e.currentTarget);
+        const $group = dom.sibling(e.currentTarget, 'ul');
         const groupRect = $group.getBoundingClientRect();
-        const footerRect = $footer.getBoundingClientRect();
         const groupBottom = groupRect.top + $group.clientHeight;
+
+        const $footer = dom.element('footer[role="contentinfo"]');
+        const footerRect = $footer.getBoundingClientRect();
         const footerTop = footerRect.top;
+
         if (groupBottom > footerTop) {
           $group.classList.add('above');
         } else {
@@ -113,39 +111,50 @@ const change = function(e) {
     }
   }
 };
-export default Component.extend(SlotsMixin, WithResizing, {
+export default CollectionComponent.extend(SlotsMixin, WithResizing, {
   tagName: 'table',
   classNames: ['dom-recycling'],
+  classNameBindings: ['hasActions'],
   attributeBindings: ['style'],
   width: 1150,
-  height: 500,
+  rowHeight: 50,
+  maxHeight: 500,
   style: style('getStyle'),
   checked: null,
   hasCaption: false,
+  dom: service('dom'),
   init: function() {
     this._super(...arguments);
     this.change = change.bind(this);
     this.confirming = [];
     // TODO: The row height should auto calculate properly from the CSS
-    this['cell-layout'] = new ZIndexedGrid(get(this, 'width'), 50);
+    this['cell-layout'] = new ZIndexedGrid(get(this, 'width'), get(this, 'rowHeight'));
   },
-  getStyle: computed('height', function() {
+  getStyle: computed('rowHeight', '_items', 'maxRows', 'maxHeight', function() {
+    const maxRows = get(this, 'rows');
+    let height = get(this, 'maxHeight');
+    if (maxRows) {
+      let rows = Math.max(3, get(this._items || [], 'length'));
+      rows = Math.min(maxRows, rows);
+      height = get(this, 'rowHeight') * rows + 29;
+    }
     return {
-      height: get(this, 'height'),
+      height: height,
     };
   }),
   resize: function(e) {
     const $tbody = this.element;
-    const $appContent = [...$$('main > div')][0];
+    const dom = get(this, 'dom');
+    const $appContent = dom.element('main > div');
     if ($appContent) {
       const border = 1;
       const rect = $tbody.getBoundingClientRect();
-      const $footer = [...$$('footer[role="contentinfo"]')][0];
+      const $footer = dom.element('footer[role="contentinfo"]');
       const space = rect.top + $footer.clientHeight + border;
       const height = e.detail.height - space;
-      this.set('height', Math.max(0, height));
+      this.set('maxHeight', Math.max(0, height));
       // TODO: The row height should auto calculate properly from the CSS
-      this['cell-layout'] = new ZIndexedGrid($appContent.clientWidth, 50);
+      this['cell-layout'] = new ZIndexedGrid($appContent.clientWidth, get(this, 'rowHeight'));
       this.updateItems();
       this.updateScrollPosition();
     }
@@ -273,7 +282,7 @@ export default Component.extend(SlotsMixin, WithResizing, {
   },
   actions: {
     click: function(e) {
-      return clickFirstAnchor(e);
+      return get(this, 'dom').clickFirstAnchor(e);
     },
   },
 });

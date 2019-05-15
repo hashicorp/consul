@@ -1,8 +1,19 @@
 <% wrap_layout :inner do %>
   <% content_for :sidebar do %>
     <ul class="nav docs-sidenav">
-      <li<%= sidebar_current('docs-install-install') %>>
+      <li<%= sidebar_current('docs-install') %>>
         <a href="/docs/install/index.html">Installing Consul</a>
+        <ul class="nav">
+          <li<%= sidebar_current("docs-install-ports") %>>
+            <a href="/docs/install/ports.html">Required Ports</a>
+          </li>
+          <li<%= sidebar_current("docs-install-bootstrapping") %>>
+            <a href="/docs/install/bootstrapping.html">Bootstrapping a Datacenter</a>
+          </li>
+          <li<%= sidebar_current("docs-install-performance") %>>
+            <a href="/docs/install/performance.html">Server Performance</a>
+          </li>
+        </ul>
       </li>
 
       <li<%= sidebar_current("docs-upgrading") %>>
@@ -56,20 +67,117 @@
           <li<%= sidebar_current("docs-commands-acl") %>>
             <a href="/docs/commands/acl.html">acl</a>
             <ul class="nav">
+              <li<%= sidebar_current("docs-commands-acl-auth-method") %>>
+                <a href="/docs/commands/acl/auth-method.html">auth-method</a>
+                <ul class="nav">
+                    <li<%= sidebar_current("docs-commands-acl-auth-method-create") %>>
+                        <a href="/docs/commands/acl/auth-method/create.html">create</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-auth-method-delete") %>>
+                        <a href="/docs/commands/acl/auth-method/delete.html">delete</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-auth-method-list") %>>
+                        <a href="/docs/commands/acl/auth-method/list.html">list</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-auth-method-read") %>>
+                        <a href="/docs/commands/acl/auth-method/read.html">read</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-auth-method-update") %>>
+                        <a href="/docs/commands/acl/auth-method/update.html">update</a>
+                    </li>
+                </ul>
+              </li>
+              <li<%= sidebar_current("docs-commands-acl-binding-rule") %>>
+                <a href="/docs/commands/acl/binding-rule.html">binding-rule</a>
+                <ul class="nav">
+                    <li<%= sidebar_current("docs-commands-acl-binding-rule-create") %>>
+                        <a href="/docs/commands/acl/binding-rule/create.html">create</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-binding-rule-delete") %>>
+                        <a href="/docs/commands/acl/binding-rule/delete.html">delete</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-binding-rule-list") %>>
+                        <a href="/docs/commands/acl/binding-rule/list.html">list</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-binding-rule-read") %>>
+                        <a href="/docs/commands/acl/binding-rule/read.html">read</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-binding-rule-update") %>>
+                        <a href="/docs/commands/acl/binding-rule/update.html">update</a>
+                    </li>
+                </ul>
+              </li>
               <li<%= sidebar_current("docs-commands-acl-bootstrap") %>>
-                <a href="/docs/commands/acl/acl-bootstrap.html">bootstrap</a>
+                <a href="/docs/commands/acl/bootstrap.html">bootstrap</a>
               </li>
               <li<%= sidebar_current("docs-commands-acl-policy") %>>
-                <a href="/docs/commands/acl/acl-policy.html">policy</a>
+                <a href="/docs/commands/acl/policy.html">policy</a>
+                <ul class="nav">
+                    <li<%= sidebar_current("docs-commands-acl-policy-create") %>>
+                        <a href="/docs/commands/acl/policy/create.html">create</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-policy-delete") %>>
+                        <a href="/docs/commands/acl/policy/delete.html">delete</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-policy-list") %>>
+                        <a href="/docs/commands/acl/policy/list.html">list</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-policy-read") %>>
+                        <a href="/docs/commands/acl/policy/read.html">read</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-policy-update") %>>
+                        <a href="/docs/commands/acl/policy/update.html">update</a>
+                    </li>
+                </ul>
+              </li>
+              <li<%= sidebar_current("docs-commands-acl-role") %>>
+                <a href="/docs/commands/acl/role.html">role</a>
+                <ul class="nav">
+                    <li<%= sidebar_current("docs-commands-acl-role-create") %>>
+                        <a href="/docs/commands/acl/role/create.html">create</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-role-delete") %>>
+                        <a href="/docs/commands/acl/role/delete.html">delete</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-role-list") %>>
+                        <a href="/docs/commands/acl/role/list.html">list</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-role-read") %>>
+                        <a href="/docs/commands/acl/role/read.html">read</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-role-update") %>>
+                        <a href="/docs/commands/acl/role/update.html">update</a>
+                    </li>
+                </ul>
               </li>
               <li<%= sidebar_current("docs-commands-acl-set-agent-token") %>>
-                <a href="/docs/commands/acl/acl-set-agent-token.html">set-agent-token</a>
+                <a href="/docs/commands/acl/set-agent-token.html">set-agent-token</a>
               </li>
               <li<%= sidebar_current("docs-commands-acl-token") %>>
-                <a href="/docs/commands/acl/acl-token.html">token</a>
+                <a href="/docs/commands/acl/token.html">token</a>
+                <ul class="nav">
+                    <li<%= sidebar_current("docs-commands-acl-token-clone") %>>
+                        <a href="/docs/commands/acl/token/clone.html">clone</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-token-create") %>>
+                        <a href="/docs/commands/acl/token/create.html">create</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-token-delete") %>>
+                        <a href="/docs/commands/acl/token/delete.html">delete</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-token-list") %>>
+                        <a href="/docs/commands/acl/token/list.html">list</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-token-read") %>>
+                        <a href="/docs/commands/acl/token/read.html">read</a>
+                    </li>
+                    <li<%= sidebar_current("docs-commands-acl-token-update") %>>
+                        <a href="/docs/commands/acl/token/update.html">update</a>
+                    </li>
+                </ul>
               </li>
               <li<%= sidebar_current("docs-commands-acl-translate-rules") %>>
-                <a href="/docs/commands/acl/acl-translate-rules.html">translate-rules</a>
+                <a href="/docs/commands/acl/translate-rules.html">translate-rules</a>
               </li>
             </ul>
           </li>
@@ -87,6 +195,23 @@
               </li>
               <li<%= sidebar_current("docs-commands-catalog-services") %>>
                 <a href="/docs/commands/catalog/services.html">services</a>
+              </li>
+            </ul>
+          </li>
+          <li<%= sidebar_current("docs-commands-config") %>>
+            <a href="/docs/commands/config.html">config</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-commands-config-delete") %>>
+                <a href="/docs/commands/config/delete.html">delete</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-config-list") %>>
+                <a href="/docs/commands/config/list.html">list</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-config-read") %>>
+                <a href="/docs/commands/config/read.html">read</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-config-write") %>>
+                <a href="/docs/commands/config/write.html">write</a>
               </li>
             </ul>
           </li>
@@ -178,6 +303,12 @@
           </li>
           <li<%= sidebar_current("docs-commands-lock") %>>
             <a href="/docs/commands/lock.html">lock</a>
+          </li>
+          <li<%= sidebar_current("docs-commands-login") %>>
+            <a href="/docs/commands/login.html">login</a>
+          </li>
+          <li<%= sidebar_current("docs-commands-logout") %>>
+            <a href="/docs/commands/logout.html">logout</a>
           </li>
           <li<%= sidebar_current("docs-commands-maint") %>>
             <a href="/docs/commands/maint.html">maint</a>
@@ -271,17 +402,14 @@
           <li<%= sidebar_current("docs-agent-running") %>>
             <a href="/docs/agent/basics.html">Running and Stopping</a>
           </li>
-          <li<%= sidebar_current("docs-agent-acl-system") %>>
-            <a href="/docs/agent/acl-system.html">ACL System</a>
-          </li>
-          <li<%= sidebar_current("docs-agent-acl-rules") %>>
-            <a href="/docs/agent/acl-rules.html">ACL Rules</a>
-          </li>
           <li<%= sidebar_current("docs-agent-dns") %>>
             <a href="/docs/agent/dns.html">DNS Interface</a>
           </li>
           <li<%= sidebar_current("docs-agent-config") %>>
             <a href="/docs/agent/options.html">Configuration</a>
+          </li>
+          <li<%= sidebar_current("docs-agent-cfg_entries") %>>
+            <a href="/docs/agent/config_entries.html">Configuration Entries</a>
           </li>
           <li<%= sidebar_current("docs-agent-cloud-auto-join") %>>
             <a href="/docs/agent/cloud-auto-join.html">Cloud Auto-join</a>
@@ -295,6 +423,9 @@
           <li<%= sidebar_current("docs-agent-kv") %>>
             <a href="/docs/agent/kv.html">Consul KV</a>
           </li>
+          <li<%= sidebar_current("docs-agent-sentinel") %>>
+            <a href="/docs/agent/sentinel.html">Sentinel</a>
+          </li>
           <li<%= sidebar_current("docs-agent-encryption") %>>
             <a href="/docs/agent/encryption.html">Encryption</a>
           </li>
@@ -305,6 +436,32 @@
             <a href="/docs/agent/watches.html">Watches</a>
           </li>
         </ul>
+      </li>
+
+      <li<%= sidebar_current("docs-acl") %>>
+        <a href="/docs/acl/index.html">Access Control (ACLs)</a>
+        <ul class="nav">
+          <li<%= sidebar_current("docs-acl-system") %>>
+            <a href="/docs/acl/acl-system.html">ACL System</a>
+          </li>
+          <li<%= sidebar_current("docs-acl-rules") %>>
+            <a href="/docs/acl/acl-rules.html">ACL Rules</a>
+          </li>
+          <li<%= sidebar_current("docs-acl-legacy") %>>
+            <a href="/docs/acl/acl-legacy.html">Legacy Mode</a>
+          </li>
+          <li<%= sidebar_current("docs-acl-migration") %>>
+            <a href="/docs/acl/acl-migrate-tokens.html">Token Migration</a>
+          </li>
+          <li<%= sidebar_current("docs-acl-auth-methods") %>>
+            <a href="/docs/acl/acl-auth-methods.html">Auth Methods</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-acl-auth-methods-kubernetes") %>>
+                <a href="/docs/acl/auth-methods/kubernetes.html">Kubernetes</a>
+              </li>
+            </ul>
+          </li>
+         </ul>
       </li>
 
       <li<%= sidebar_current("docs-connect") %>>
@@ -386,6 +543,9 @@
           <li<%= sidebar_current("docs-platform-k8s-connect") %>>
             <a href="/docs/platform/k8s/connect.html">Connect Sidecar</a>
           </li>
+          <li<%= sidebar_current("docs-platform-k8s-ambassador") %>>
+            <a href="/docs/platform/k8s/ambassador.html">Ambassador Integration</a>
+          </li>
         </ul>
       </li>
 
@@ -393,98 +553,10 @@
 
       <li<%= sidebar_current("docs-guides") %>>
         <a href="/docs/guides/index.html">Guides</a>
-        <ul class="nav">
-          <li<%= sidebar_current("docs-guides-acl") %>>
-            <a href="/docs/guides/acl-index.html">ACL Guides</a>
-          </li>
-          <li<%= sidebar_current("docs-guides-servers") %>>
-            <a href="https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/servers">Adding & Removing Servers</a>
-          </li>
-          <li<%= sidebar_current("docs-guides-agent-encryption") %>>
-            <a href="https://learn.hashicorp.com/consul/advanced/day-1-operations/agent-encryption">Agent Communication Encryption</a>
-          </li>
-          <li<%= sidebar_current("docs-guides-autopilot") %>>
-            <a href="https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/autopilot">Autopilot</a>
-          </li>
-          <li<%= sidebar_current("docs-guides-bootstrapping") %>>
-            <a href="/docs/guides/bootstrapping.html">Bootstrapping</a>
-          </li>
-          <li<%= sidebar_current("docs-guides-connect-production") %>>
-            <a href="/docs/guides/connect-production.html">Connect in Production</a>
-          </li>
-          <li<%= sidebar_current("docs-guides-connect-envoy") %>>
-            <a href="/docs/guides/connect-envoy.html">Connect with Envoy</a>
-          </li>
-          <li<%= sidebar_current("docs-guides-consul-cluster-monitoring-metrics") %>>
-            <a href="https://learn.hashicorp.com/consul/advanced/day-1-operations/monitoring">Consul Cluster Monitoring & Metrics</a>
-          </li>
-          <li<%= sidebar_current("docs-guides-consul-containers") %>>
-            <a href="/docs/guides/consul-containers.html">Consul with Containers</a>
-          </li>
-          <li<%= sidebar_current("docs-guides-consul-template") %>>
-            <a href="/docs/guides/consul-template.html">Consul Template</a>
-          </li>
-          <li<%= sidebar_current("docs-guides-consul-aws") %>>
-            <a href="/docs/guides/consul-aws.html">Consul-AWS</a>
-          </li>
-          <li<%= sidebar_current("docs-guides-creating-certificates") %>>
-            <a href="https://learn.hashicorp.com/consul/advanced/day-1-operations/certificates">Creating TLS Certificates</a>
-          </li>
-          <li<%= sidebar_current("docs-guides-backups") %>>
-            <a href="https://learn.hashicorp.com/consul/advanced/day-1-operations/backup">Datacenter Backups</a>
-          </li>
-          <li<%= sidebar_current("docs-guides-deployment-guide") %>>
-            <a href="https://learn.hashicorp.com/consul/advanced/day-1-operations/deployment-guide">Deployment Guide</a>
-          </li>
-          <li<%= sidebar_current("docs-guides-dns-cache") %>>
-            <a href="https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/dns-caching">DNS Caching</a>
-          </li>
-          <li<%= sidebar_current("docs-guides-forwarding") %>>
-            <a href="/docs/guides/forwarding.html">DNS Forwarding</a>
-          </li>
-          <li<%= sidebar_current("docs-guides-external") %>>
-            <a href="/docs/guides/external.html">External Services</a>
-          </li>
-          <li<%= sidebar_current("docs-guides-areas") %>>
-            <a href="/docs/guides/areas.html">Federation (Advanced)</a>
-          </li>
-          <li<%= sidebar_current("docs-guides-datacenters") %>>
-            <a href="/docs/guides/datacenters.html">Federation (Basic)</a>
-          </li>
-          <li<%= sidebar_current("docs-guides-geo-failover") %>>
-            <a href="/docs/guides/geo-failover.html">Geo Failover</a>
-          </li>
-          <li<%= sidebar_current("docs-guides-leader") %>>
-            <a href="/docs/guides/leader-election.html">Leader Election</a>
-          </li>
-          <li<%= sidebar_current("docs-guides-minikube") %>>
-            <a href="/docs/guides/minikube.html">Minikube with Consul</a>
-          </li>
-          <li<%= sidebar_current("docs-guides-monitoring-telegraf") %>>
-            <a href="/docs/guides/monitoring-telegraf.html">Monitoring Consul with Telegraf</a>
-          </li>
-          <li<%= sidebar_current("docs-guides-segments") %>>
-            <a href="/docs/guides/segments.html">Network Segments</a>
-          </li>
-          <li<%= sidebar_current("docs-guides-outage") %>>
-            <a href="https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/outage">Outage Recovery</a>
-          </li>
-          <li<%= sidebar_current("docs-guides-reference-architecture") %>>
-            <a href="https://learn.hashicorp.com/consul/advanced/day-1-operations/reference-architecture">Reference Architecture</a>
-          </li>
-          <li<%= sidebar_current("docs-guides-semaphore") %>>
-            <a href="/docs/guides/semaphore.html">Semaphore</a>
-          </li>
-          <li<%= sidebar_current("docs-guides-sentinel") %>>
-            <a href="/docs/guides/sentinel.html">Sentinel</a>
-          </li>
-          <li<%= sidebar_current("docs-guides-performance") %>>
-            <a href="/docs/guides/performance.html">Server Performance</a>
-          </li>
-          <li<%= sidebar_current("docs-guides-windows-service") %>>
-            <a href="/docs/guides/windows-guide.html">Windows (Service)</a>
-           </li>
-        </ul>
+      </li>
+
+      <li<%= sidebar_current("docs-common-errors") %>>
+        <a href="/docs/common-errors.html">Common Error Messages</a>
       </li>
 
       <li<%= sidebar_current("docs-faq") %>>

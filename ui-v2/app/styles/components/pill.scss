@@ -1,4 +1,45 @@
 @import './pill/index';
-td strong {
+td strong,
+%tag-list span {
   @extend %pill;
+  margin-right: 3px;
+}
+// For the moment pills with classes are iconed ones
+%pill:not([class]) {
+  @extend %frame-gray-900;
+}
+%pill[class] {
+  padding-left: 0;
+  margin-right: 16px;
+}
+%pill[class]::before {
+  @extend %as-pseudo;
+  margin-right: 3px;
+}
+%pill.policy::before {
+  @extend %with-file-fill-icon;
+  opacity: 0.3;
+}
+%pill.policy-management::before {
+  @extend %with-star-icon;
+}
+%pill.policy-service-identity::before {
+  @extend %with-service-identity-icon;
+}
+%pill.role::before {
+  @extend %with-user-plain-icon;
+  opacity: 0.3;
+}
+
+// TODO: These are related to the pill icons, but also to the tables
+// All of this icon assigning stuff should probably go in the eventual
+// refactored /components/icons.scss file
+
+td.policy-service-identity a::after {
+  @extend %with-service-identity-icon, %as-pseudo;
+  margin-left: 3px;
+}
+td.policy-management a::after {
+  @extend %with-star-icon, %as-pseudo;
+  margin-left: 3px;
 }

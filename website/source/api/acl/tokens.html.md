@@ -1,9 +1,9 @@
 ---
 layout: api
-page_title: ACL Policies - HTTP API
+page_title: ACL Tokens - HTTP API
 sidebar_current: api-acl-tokens
 description: |-
-  The /acl/token endpoints manage Consul's ACL Policies.
+  The /acl/token endpoints manage Consul's ACL Tokens.
 ---
 
 -> **1.4.0+:**  The APIs are available in Consul versions 1.4.0 and later. The documentation for the legacy ACL API is [here](/api/acl/legacy.html)
@@ -11,9 +11,10 @@ description: |-
 # ACL Token HTTP API
 
 The `/acl/token` endpoints [create](#create-a-token), [read](#read-a-token),
-[update](#update-a-token), [list](#list-tokens), [clone](#clone-token) and [delete](#delete-a-token)  ACL policies in Consul.
+[update](#update-a-token), [list](#list-tokens), [clone](#clone-a-token) and [delete](#delete-a-token)  ACL policies in Consul.
 
-For more information about ACLs, please see the [ACL Guide](/docs/guides/acl.html).
+For more information on how to setup ACLs, please see
+the [ACL Guide](https://learn.hashicorp.com/consul/advanced/day-1-operations/production-acls).
 
 ## Create a Token
 
@@ -24,10 +25,10 @@ This endpoint creates a new ACL token.
 | `PUT`  | `/acl/token`                 | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -35,17 +36,59 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
+- `AccessorID` `(string: "")` - Specifies a UUID to use as the token's Accessor ID.
+   If not specified a UUID will be generated for this field. Added in v1.5.0.
+
+- `SecretID` `(string: "")` - Specifies a UUID to use as the token's Secret ID.
+   If not specified a UUID will be generated for this field. Added in v1.5.0.
+   **Note**: The SecretID is used to authorize operations against Consul and should
+   be generated from an appropriate cryptographic source.
+
 - `Description` `(string: "")` - Free form human readable description of the token.
 
-- `Policies` `(array<PolicyLink>)` - The list of policies that should
-   be applied to the token. A PolicyLink is an object with an "ID" and/or "Name" field
-   to specify a policy. With the PolicyLink, tokens can be linked to policies either by the
-   policy name or by the policy ID. When policies are linked by name they will be
-   internally resolved to the policy ID. With linking tokens internally by IDs,
-   Consul enables policy renaming without breaking tokens.
+- `Policies` `(array<PolicyLink>)` - The list of policies that should be
+  applied to the token. A PolicyLink is an object with an "ID" and/or "Name"
+  field to specify a policy. With the PolicyLink, tokens can be linked to
+  policies either by the policy name or by the policy ID. When policies are
+  linked by name they will be internally resolved to the policy ID. With
+  linking tokens internally by IDs, Consul enables policy renaming without
+  breaking tokens.
 
-- `Local` `(bool: false)` - If true, indicates that the token should not be replicated
-   globally and instead be local to the current datacenter.
+- `Roles` `(array<RoleLink>)` - The list of roles that should be applied to the
+  token. A RoleLink is an object with an "ID" and/or "Name" field to specify a
+  role. With the RoleLink, tokens can be linked to roles either by the role
+  name or by the role ID. When roles are linked by name they will be internally
+  resolved to the role ID. With linking tokens internally by IDs, Consul
+  enables role renaming without breaking tokens. Added in Consul 1.5.0.
+
+- `ServiceIdentities` `(array<ServiceIdentity>)` - The list of [service
+  identities](/docs/acl/acl-system.html#acl-service-identities) that should be
+  applied to the token.  Added in Consul 1.5.0.
+
+  - `ServiceName` `(string: <required>)` - The name of the service. The name
+    must be no longer than 256 characters, must start and end with a lowercase
+    alphanumeric character, and can only contain lowercase alphanumeric
+    characters as well as `-` and `_`.
+
+  - `Datacenters` `(array<string>)` - Specifies the datacenters the effective
+    policy is valid within. When no datacenters are provided the effective
+    policy is valid in all datacenters including those which do not yet exist
+    but may in the future.
+
+- `Local` `(bool: false)` - If true, indicates that the token should not be
+  replicated globally and instead be local to the current datacenter.
+
+- `ExpirationTime` `(time: "")`- If set this represents the point after which a
+  token should be considered revoked and is eligible for destruction. The
+  default unset value represents NO expiration. This value must be between 1
+  minute and 24 hours in the future. Added in Consul 1.5.0.
+
+- `ExpirationTTL` `(duration: 0s)` - This is a convenience field and if set
+  will initialize the `ExpirationTime` field to a value of `CreateTime +
+  ExpirationTTL`. This field is not persisted beyond its initial use. Can be
+  specified in the form of `"60s"` or `"5m"` (i.e., 60 seconds or 5 minutes,
+  respectively). This value must be no smaller than 1 minute and no longer than
+  24 hours. Added in Consul 1.5.0.
 
 ### Sample Payload
 
@@ -66,9 +109,8 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
-$ curl \
-    --request PUT \
+```sh
+$ curl -X PUT \
     --data @payload.json \
     http://127.0.0.1:8500/v1/acl/token
 ```
@@ -108,10 +150,10 @@ This endpoint reads an ACL token with the given Accessor ID.
 | `GET`  | `/acl/token/:AccessorID`     | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -124,7 +166,7 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
+```sh
 $ curl -X GET http://127.0.0.1:8500/v1/acl/token/6a1253d2-1785-24fd-91c2-f8e78c745511
 ```
 
@@ -169,10 +211,10 @@ specified with the `X-Consul-Token` header or the `token` query parameter.
 | `GET`  | `/acl/token/self`            | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -183,7 +225,7 @@ retrieving the data for a token that you must already possess its secret.
 
 ### Sample Request
 
-```text
+```sh
 $ curl -H "X-Consul-Token: 6a1253d2-1785-24fd-91c2-f8e78c745511" \
    http://127.0.0.1:8500/v1/acl/token/self
 ```
@@ -223,10 +265,10 @@ This endpoint updates an existing ACL token.
 | `PUT`  | `/acl/token/:AccessorID`     | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -246,15 +288,47 @@ The table below shows this endpoint's support for
 - `Description` `(string: "")` - Free form human readable description of this token.
 
 - `Policies` `(array<PolicyLink>)` - This is the list of policies that should
-   be applied to this token. A PolicyLink is an object with an "ID" and/or "Name" field
-   to specify a policy. With this tokens can be linked to policies either by the
-   policy name or by the policy ID. When policies are linked by name they will
-   internally be resolved to the policy ID. With linking tokens internally by IDs,
-   Consul enables policy renaming without breaking tokens.
+  be applied to this token. A PolicyLink is an object with an "ID" and/or
+  "Name" field to specify a policy. With the PolicyLink tokens can be linked to policies
+  either by the policy name or by the policy ID. When policies are linked by
+  name they will internally be resolved to the policy ID. With linking tokens
+  internally by IDs, Consul enables policy renaming without breaking tokens.
 
-- `Local` `(bool: false)` - If true, indicates that this token should not be replicated
-   globally and instead be local to the current datacenter. This value must match the
-   existing value or the request will return an error.
+- `Roles` `(array<RoleLink>)` - The list of roles that should be applied to the
+  token. A RoleLink is an object with an "ID" and/or "Name" field to specify a
+  role. With the RoleLink, tokens can be linked to roles either by the role
+  name or by the role ID. When roles are linked by name they will be internally
+  resolved to the role ID. With linking tokens internally by IDs, Consul
+  enables role renaming without breaking tokens.
+
+- `ServiceIdentities` `(array<ServiceIdentity>)` - The list of [service
+  identities](/docs/acl/acl-system.html#acl-service-identities) that should be
+  applied to the token. Added in Consul 1.5.0.
+
+  - `ServiceName` `(string: <required>)` - The name of the service. The name
+    must be no longer than 256 characters, must start and end with a lowercase
+    alphanumeric character, and can only contain lowercase alphanumeric
+    characters as well as `-` and `_`.
+
+  - `Datacenters` `(array<string>)` - Specifies the datacenters the effective
+    policy is valid within. When no datacenters are provided the effective
+    policy is valid in all datacenters including those which do not yet exist
+    but may in the future.
+
+- `Local` `(bool: false)` - If true, indicates that this token should not be
+  replicated globally and instead be local to the current datacenter. This
+  value must match the existing value or the request will return an error.
+
+- `AuthMethod` `(string: "")` - Specifies the name of the auth method that
+  created this token. This field is immutable so if present in the body then it
+  must match the existing value. If not present then the value will be filled
+  in by Consul.
+
+- `ExpirationTime` `(time: "")` - Specifies the expiration time for the token
+  being updated. This field is immutable so if present in the body then it must
+  match the existing value. If not present then the value will be filled in by
+  Consul.
+
 
 ### Sample Payload
 
@@ -278,9 +352,8 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
-$ curl \
-    --request PUT \
+```sh
+$ curl -X PUT \
     --data @payload.json \
     http://127.0.0.1:8500/v1/acl/token/6a1253d2-1785-24fd-91c2-f8e78c745511
 ```
@@ -323,10 +396,10 @@ This endpoint clones an existing ACL token.
 | `PUT`  | `/acl/token/:AccessorID/clone` | `application/json`        |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -349,9 +422,8 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
-$ curl \
-    --request PUT \
+```sh
+$ curl -X PUT \
     --data @payload.json \
     http://127.0.0.1:8500/v1/acl/token/6a1253d2-1785-24fd-91c2-f8e78c745511/clone
 ```
@@ -397,10 +469,10 @@ Even though the return type is application/json, the value is either true or
 false, indicating whether the delete succeeded.
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -413,8 +485,8 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
-$ curl -XDELETE
+```sh
+$ curl -X DELETE \
     http://127.0.0.1:8500/v1/acl/token/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
 ```
 
@@ -432,10 +504,10 @@ This endpoint lists all the ACL tokens.
 | `GET`  | `/acl/tokens`              | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -443,12 +515,18 @@ The table below shows this endpoint's support for
 
 ## Parameters
 
-- `policy` `(string: "")` - Filters the token list to those tokens that
-are linked with the specific policy ID.
+- `policy` `(string: "")` - Filters the token list to those tokens that are
+  linked with the specific policy ID.
+
+- `role` `(string: "")` - Filters the token list to those tokens that are
+  linked with the specific role ID.
+
+- `authmethod` `(string: "")` - Filters the token list to those tokens that are
+  linked with the specific named auth method.
 
 ## Sample Request
 
-```text
+```sh
 $ curl -X GET http://127.0.0.1:8500/v1/acl/tokens
 ```
 

@@ -3,6 +3,18 @@ package command
 import (
 	"github.com/hashicorp/consul/command/acl"
 	aclagent "github.com/hashicorp/consul/command/acl/agenttokens"
+	aclam "github.com/hashicorp/consul/command/acl/authmethod"
+	aclamcreate "github.com/hashicorp/consul/command/acl/authmethod/create"
+	aclamdelete "github.com/hashicorp/consul/command/acl/authmethod/delete"
+	aclamlist "github.com/hashicorp/consul/command/acl/authmethod/list"
+	aclamread "github.com/hashicorp/consul/command/acl/authmethod/read"
+	aclamupdate "github.com/hashicorp/consul/command/acl/authmethod/update"
+	aclbr "github.com/hashicorp/consul/command/acl/bindingrule"
+	aclbrcreate "github.com/hashicorp/consul/command/acl/bindingrule/create"
+	aclbrdelete "github.com/hashicorp/consul/command/acl/bindingrule/delete"
+	aclbrlist "github.com/hashicorp/consul/command/acl/bindingrule/list"
+	aclbrread "github.com/hashicorp/consul/command/acl/bindingrule/read"
+	aclbrupdate "github.com/hashicorp/consul/command/acl/bindingrule/update"
 	aclbootstrap "github.com/hashicorp/consul/command/acl/bootstrap"
 	aclpolicy "github.com/hashicorp/consul/command/acl/policy"
 	aclpcreate "github.com/hashicorp/consul/command/acl/policy/create"
@@ -10,6 +22,12 @@ import (
 	aclplist "github.com/hashicorp/consul/command/acl/policy/list"
 	aclpread "github.com/hashicorp/consul/command/acl/policy/read"
 	aclpupdate "github.com/hashicorp/consul/command/acl/policy/update"
+	aclrole "github.com/hashicorp/consul/command/acl/role"
+	aclrcreate "github.com/hashicorp/consul/command/acl/role/create"
+	aclrdelete "github.com/hashicorp/consul/command/acl/role/delete"
+	aclrlist "github.com/hashicorp/consul/command/acl/role/list"
+	aclrread "github.com/hashicorp/consul/command/acl/role/read"
+	aclrupdate "github.com/hashicorp/consul/command/acl/role/update"
 	aclrules "github.com/hashicorp/consul/command/acl/rules"
 	acltoken "github.com/hashicorp/consul/command/acl/token"
 	acltclone "github.com/hashicorp/consul/command/acl/token/clone"
@@ -23,6 +41,11 @@ import (
 	catlistdc "github.com/hashicorp/consul/command/catalog/list/dc"
 	catlistnodes "github.com/hashicorp/consul/command/catalog/list/nodes"
 	catlistsvc "github.com/hashicorp/consul/command/catalog/list/services"
+	"github.com/hashicorp/consul/command/config"
+	configdelete "github.com/hashicorp/consul/command/config/delete"
+	configlist "github.com/hashicorp/consul/command/config/list"
+	configread "github.com/hashicorp/consul/command/config/read"
+	configwrite "github.com/hashicorp/consul/command/config/write"
 	"github.com/hashicorp/consul/command/connect"
 	"github.com/hashicorp/consul/command/connect/ca"
 	caget "github.com/hashicorp/consul/command/connect/ca/get"
@@ -51,6 +74,8 @@ import (
 	kvput "github.com/hashicorp/consul/command/kv/put"
 	"github.com/hashicorp/consul/command/leave"
 	"github.com/hashicorp/consul/command/lock"
+	login "github.com/hashicorp/consul/command/login"
+	logout "github.com/hashicorp/consul/command/logout"
 	"github.com/hashicorp/consul/command/maint"
 	"github.com/hashicorp/consul/command/members"
 	"github.com/hashicorp/consul/command/monitor"
@@ -106,6 +131,24 @@ func init() {
 	Register("acl token read", func(ui cli.Ui) (cli.Command, error) { return acltread.New(ui), nil })
 	Register("acl token update", func(ui cli.Ui) (cli.Command, error) { return acltupdate.New(ui), nil })
 	Register("acl token delete", func(ui cli.Ui) (cli.Command, error) { return acltdelete.New(ui), nil })
+	Register("acl role", func(cli.Ui) (cli.Command, error) { return aclrole.New(), nil })
+	Register("acl role create", func(ui cli.Ui) (cli.Command, error) { return aclrcreate.New(ui), nil })
+	Register("acl role list", func(ui cli.Ui) (cli.Command, error) { return aclrlist.New(ui), nil })
+	Register("acl role read", func(ui cli.Ui) (cli.Command, error) { return aclrread.New(ui), nil })
+	Register("acl role update", func(ui cli.Ui) (cli.Command, error) { return aclrupdate.New(ui), nil })
+	Register("acl role delete", func(ui cli.Ui) (cli.Command, error) { return aclrdelete.New(ui), nil })
+	Register("acl auth-method", func(cli.Ui) (cli.Command, error) { return aclam.New(), nil })
+	Register("acl auth-method create", func(ui cli.Ui) (cli.Command, error) { return aclamcreate.New(ui), nil })
+	Register("acl auth-method list", func(ui cli.Ui) (cli.Command, error) { return aclamlist.New(ui), nil })
+	Register("acl auth-method read", func(ui cli.Ui) (cli.Command, error) { return aclamread.New(ui), nil })
+	Register("acl auth-method update", func(ui cli.Ui) (cli.Command, error) { return aclamupdate.New(ui), nil })
+	Register("acl auth-method delete", func(ui cli.Ui) (cli.Command, error) { return aclamdelete.New(ui), nil })
+	Register("acl binding-rule", func(cli.Ui) (cli.Command, error) { return aclbr.New(), nil })
+	Register("acl binding-rule create", func(ui cli.Ui) (cli.Command, error) { return aclbrcreate.New(ui), nil })
+	Register("acl binding-rule list", func(ui cli.Ui) (cli.Command, error) { return aclbrlist.New(ui), nil })
+	Register("acl binding-rule read", func(ui cli.Ui) (cli.Command, error) { return aclbrread.New(ui), nil })
+	Register("acl binding-rule update", func(ui cli.Ui) (cli.Command, error) { return aclbrupdate.New(ui), nil })
+	Register("acl binding-rule delete", func(ui cli.Ui) (cli.Command, error) { return aclbrdelete.New(ui), nil })
 	Register("agent", func(ui cli.Ui) (cli.Command, error) {
 		return agent.New(ui, rev, ver, verPre, verHuman, make(chan struct{})), nil
 	})
@@ -113,6 +156,11 @@ func init() {
 	Register("catalog datacenters", func(ui cli.Ui) (cli.Command, error) { return catlistdc.New(ui), nil })
 	Register("catalog nodes", func(ui cli.Ui) (cli.Command, error) { return catlistnodes.New(ui), nil })
 	Register("catalog services", func(ui cli.Ui) (cli.Command, error) { return catlistsvc.New(ui), nil })
+	Register("config", func(ui cli.Ui) (cli.Command, error) { return config.New(), nil })
+	Register("config delete", func(ui cli.Ui) (cli.Command, error) { return configdelete.New(ui), nil })
+	Register("config list", func(ui cli.Ui) (cli.Command, error) { return configlist.New(ui), nil })
+	Register("config read", func(ui cli.Ui) (cli.Command, error) { return configread.New(ui), nil })
+	Register("config write", func(ui cli.Ui) (cli.Command, error) { return configwrite.New(ui), nil })
 	Register("connect", func(ui cli.Ui) (cli.Command, error) { return connect.New(), nil })
 	Register("connect ca", func(ui cli.Ui) (cli.Command, error) { return ca.New(), nil })
 	Register("connect ca get-config", func(ui cli.Ui) (cli.Command, error) { return caget.New(ui), nil })
@@ -141,6 +189,8 @@ func init() {
 	Register("kv put", func(ui cli.Ui) (cli.Command, error) { return kvput.New(ui), nil })
 	Register("leave", func(ui cli.Ui) (cli.Command, error) { return leave.New(ui), nil })
 	Register("lock", func(ui cli.Ui) (cli.Command, error) { return lock.New(ui), nil })
+	Register("login", func(ui cli.Ui) (cli.Command, error) { return login.New(ui), nil })
+	Register("logout", func(ui cli.Ui) (cli.Command, error) { return logout.New(ui), nil })
 	Register("maint", func(ui cli.Ui) (cli.Command, error) { return maint.New(ui), nil })
 	Register("members", func(ui cli.Ui) (cli.Command, error) { return members.New(ui), nil })
 	Register("monitor", func(ui cli.Ui) (cli.Command, error) { return monitor.New(ui, MakeShutdownCh()), nil })

@@ -1,0 +1,54 @@
+---
+layout: "docs"
+page_title: "Commands: ACL Role Read"
+sidebar_current: "docs-commands-acl-role-read"
+---
+
+# Consul ACL Role Read
+
+Command: `consul acl role read`
+
+The `acl role read` command reads and displays a roles details.
+
+## Usage
+
+Usage: `consul acl role read [options] [args]`
+
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
+
+#### Command Options
+
+* `-id=<string>` - The ID of the role to read. It may be specified as a unique ID
+   prefix but will error if the prefix matches multiple role IDs.
+
+* `-meta` - Indicates that role metadata such as the content hash and raft
+  indices should be shown for each entry.
+
+* `-name=<string>` - The name of the role to read.
+
+## Examples
+
+Get role details:
+
+```sh
+$ consul acl role read -id 57147d87-6bf7-f794-1a6e-7d038c4e4ae9
+ID:           57147d87-6bf7-f794-1a6e-7d038c4e4ae9
+Name:         crawler
+Description:  web crawler role
+Policies:
+   2f8f99c7-edd9-2f09-7e4b-a1f519eb4fc2 - crawler-kv
+```
+
+Get role details by name:
+
+```sh
+$ consul acl role read -name archiver
+ID:           a365fdc9-ac71-e754-0645-7ab6bd747301
+Name:         archiver
+Description:  archiver role
+Service Identities:
+   archiver (Datacenters: dc2)
+```

@@ -14,7 +14,7 @@ const defaultChangeset = function(data, validators) {
   return changeset;
 };
 /**
- * Form builder/Form factory (WIP)
+ * Form builder/Form factory
  * Deals with handling (generally change) events and updating data in response to the change
  * in a typical data down event up manner
  * validations are included currently using ember-changeset-validations
@@ -32,41 +32,42 @@ const defaultChangeset = function(data, validators) {
  */
 export default function(changeset = defaultChangeset, getFormNameProperty = parseElementName) {
   return function(name = '', obj = {}) {
-    let _data;
-    const _name = name;
     const _children = {};
     let _validators = null;
     // TODO make this into a class to reuse prototype
-    return {
+    const form = {
+      data: null,
+      name: name,
       getName: function() {
-        return _name;
+        return this.name;
       },
       setData: function(data) {
         // Array check temporarily for when we get an empty array from repo.status
         if (_validators && !Array.isArray(data)) {
-          _data = changeset(data, _validators);
-        } else {
-          _data = data;
+          data = changeset(data, _validators);
         }
+        set(this, 'data', data);
         return this;
       },
       getData: function() {
-        return _data;
+        return this.data;
       },
       add: function(child) {
         _children[child.getName()] = child;
         return this;
       },
-      handleEvent: function(e) {
+      handleEvent: function(e, targetName) {
         const target = e.target;
-        const parts = getFormNameProperty(target.name);
+        // currently we only use targetName in {{form-component}} for handling deeply
+        // nested forms, once {{form-component}} handles deeply nested forms targetName can go
+        const parts = getFormNameProperty(targetName || target.name);
         // split the form element name from `name[prop]`
         const name = parts[0];
         const prop = parts[1];
         //
         let config = obj;
         // if the name (usually the name of the model) isn't this form, look at its children
-        if (name !== _name) {
+        if (name !== this.getName()) {
           if (this.has(name)) {
             // is its a child form then use the child form
             return this.form(name).handleEvent(e);
@@ -77,9 +78,13 @@ export default function(changeset = defaultChangeset, getFormNameProperty = pars
         }
         const data = this.getData();
         // ember-data/changeset dance
+        // TODO: This works for ember-data RecordSets and Changesets but not for plain js Objects
+        // see settings
         const json = typeof data.toJSON === 'function' ? data.toJSON() : get(data, 'data').toJSON();
         // if the form doesn't include a property then throw so it can be
         // caught outside, therefore the user can deal with things that aren't in the data
+        // TODO: possibly need to add support for deeper properties using `get` here
+        // for example `client.blocking` instead of just `blocking`
         if (!Object.keys(json).includes(prop)) {
           const error = new Error(`${prop} property doesn't exist`);
           error.target = target;
@@ -124,6 +129,20 @@ export default function(changeset = defaultChangeset, getFormNameProperty = pars
         }
         return this;
       },
+      clear: function(cb = {}) {
+        if (typeof cb === 'function') {
+          return (this.clearer = cb);
+        } else {
+          return this.setData(this.clearer(cb)).getData();
+        }
+      },
+      submit: function(cb = {}) {
+        if (typeof cb === 'function') {
+          return (this.submitter = cb);
+        } else {
+          this.submitter(this.getData());
+        }
+      },
       setValidators: function(validators) {
         _validators = validators;
         return this;
@@ -152,5 +171,8 @@ export default function(changeset = defaultChangeset, getFormNameProperty = pars
         return typeof _children[name] !== 'undefined';
       },
     };
+    form.submit = form.submit.bind(form);
+    form.reset = form.reset.bind(form);
+    return form;
   };
 }

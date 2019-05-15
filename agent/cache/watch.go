@@ -95,7 +95,7 @@ func (c *Cache) notifyBlockingQuery(ctx context.Context, t string, r Request, co
 
 		// Check the index of the value returned in the cache entry to be sure it
 		// changed
-		if index < meta.Index {
+		if index == 0 || index < meta.Index {
 			u := UpdateEvent{correlationID, res, meta, err}
 			select {
 			case ch <- u:

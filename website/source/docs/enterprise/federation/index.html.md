@@ -17,7 +17,7 @@ desirable to have topologies like hub-and-spoke with central management
 datacenters and "spoke" datacenters that can't interact with each other.
 
 [Consul Enterprise](https://www.hashicorp.com/consul.html) offers a [network
-area mechanism](/docs/guides/areas.html) that allows operators to
+area mechanism](https://learn.hashicorp.com/consul/day-2-operations/advanced-federation) that allows operators to
 federate Consul datacenters together on a pairwise basis, enabling
 partially-connected network topologies. Once a link is created, Consul agents
 can make queries to the remote datacenter in service of both API and DNS

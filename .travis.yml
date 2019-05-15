@@ -3,12 +3,11 @@ language: go
 go:
   # Please keep this in-sync with the go version we build against in
   # build-support/docker/Build-Go.dockerfile.
-  - "1.11.4"
+  - "1.12.1"
 
 branches:
   only:
     - master
-    - f-acl-ux
 
 matrix:
   include:

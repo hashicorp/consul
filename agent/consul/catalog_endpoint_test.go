@@ -12,8 +12,8 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
@@ -923,6 +923,82 @@ func TestCatalog_ListNodes_NodeMetaFilter(t *testing.T) {
 		if len(out.Nodes) != 0 {
 			r.Fatal(nil)
 		}
+	})
+}
+
+func TestCatalog_RPC_Filter(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// prep the cluster with some data we can use in our filters
+	registerTestCatalogEntries(t, codec)
+
+	// Run the tests against the test server
+
+	t.Run("ListNodes", func(t *testing.T) {
+		args := structs.DCSpecificRequest{
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Filter: "Meta.os == linux"},
+		}
+
+		out := new(structs.IndexedNodes)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, out))
+		require.Len(t, out.Nodes, 2)
+		require.Condition(t, func() bool {
+			return (out.Nodes[0].Node == "foo" && out.Nodes[1].Node == "baz") ||
+				(out.Nodes[0].Node == "baz" && out.Nodes[1].Node == "foo")
+		})
+
+		args.Filter = "Meta.os == linux and Meta.env == qa"
+		out = new(structs.IndexedNodes)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, out))
+		require.Len(t, out.Nodes, 1)
+		require.Equal(t, "baz", out.Nodes[0].Node)
+	})
+
+	t.Run("ServiceNodes", func(t *testing.T) {
+		args := structs.ServiceSpecificRequest{
+			Datacenter:   "dc1",
+			ServiceName:  "redis",
+			QueryOptions: structs.QueryOptions{Filter: "ServiceMeta.version == 1"},
+		}
+
+		out := new(structs.IndexedServiceNodes)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &args, &out))
+		require.Len(t, out.ServiceNodes, 2)
+		require.Condition(t, func() bool {
+			return (out.ServiceNodes[0].Node == "foo" && out.ServiceNodes[1].Node == "bar") ||
+				(out.ServiceNodes[0].Node == "bar" && out.ServiceNodes[1].Node == "foo")
+		})
+
+		args.Filter = "ServiceMeta.version == 2"
+		out = new(structs.IndexedServiceNodes)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &args, &out))
+		require.Len(t, out.ServiceNodes, 1)
+		require.Equal(t, "foo", out.ServiceNodes[0].Node)
+	})
+
+	t.Run("NodeServices", func(t *testing.T) {
+		args := structs.NodeSpecificRequest{
+			Datacenter:   "dc1",
+			Node:         "baz",
+			QueryOptions: structs.QueryOptions{Filter: "Service == web"},
+		}
+
+		out := new(structs.IndexedNodeServices)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &out))
+		require.Len(t, out.NodeServices.Services, 2)
+
+		args.Filter = "Service == web and Meta.version == 2"
+		out = new(structs.IndexedNodeServices)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &out))
+		require.Len(t, out.NodeServices.Services, 1)
 	})
 }
 

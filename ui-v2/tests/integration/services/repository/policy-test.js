@@ -1,6 +1,6 @@
 import { moduleFor, test, skip } from 'ember-qunit';
-const NAME = 'policy';
 import repo from 'consul-ui/tests/helpers/repo';
+const NAME = 'policy';
 moduleFor(`service:repository/${NAME}`, `Integration | Service | ${NAME}`, {
   // Specify the other units that are required for this test.
   integration: true,

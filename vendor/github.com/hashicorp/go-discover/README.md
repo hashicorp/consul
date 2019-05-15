@@ -25,6 +25,7 @@ function.
  * Amazon AWS [Config options](https://github.com/hashicorp/go-discover/blob/master/provider/aws/aws_discover.go#L19-L33)
  * DigitalOcean [Config options](https://github.com/hashicorp/go-discover/blob/master/provider/digitalocean/digitalocean_discover.go#L16-L24)
  * Google Cloud [Config options](https://github.com/hashicorp/go-discover/blob/master/provider/gce/gce_discover.go#L17-L37)
+ * mDNS [Config options](https://github.com/hashicorp/go-discover/blob/master/provider/mdns/mdns_provider.go#L19-L31)
  * Microsoft Azure [Config options](https://github.com/hashicorp/go-discover/blob/master/provider/azure/azure_discover.go#L16-L37)
  * Openstack [Config options](https://github.com/hashicorp/go-discover/blob/master/provider/os/os_discover.go#L23-L38)
  * Scaleway [Config options](https://github.com/hashicorp/go-discover/blob/master/provider/scaleway/scaleway_discover.go#L14-L22)
@@ -57,6 +58,9 @@ provider=digitalocean region=... tag_name=... api_token=...
 
 # Google Cloud
 provider=gce project_name=... zone_pattern=eu-west-* tag_value=consul credentials_file=...
+
+# mDNS
+provider=mdns service=consul domain=local
 
 # Microsoft Azure
 provider=azure tag_name=consul tag_value=... tenant_id=... client_id=... subscription_id=... secret_access_key=...
@@ -153,6 +157,9 @@ for the supported providers is documented in the
 sub-package.
 
 ## Testing
+
+**Note: Due to the `go.sum` checksum errors referenced in [#68](https://github.com/hashicorp/go-discover/issues/68), 
+you will need Go 1.11.4+ to build/test go-discover.**
 
 Configuration tests can be run with Go:
 

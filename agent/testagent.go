@@ -23,10 +23,9 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/lib/freeport"
 	"github.com/hashicorp/consul/logger"
-	"github.com/hashicorp/consul/testutil/retry"
-	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 
 	"github.com/stretchr/testify/require"
 )
@@ -103,6 +102,15 @@ func NewTestAgent(t *testing.T, name string, hcl string) *TestAgent {
 	return a
 }
 
+func NewUnstartedAgent(t *testing.T, name string, hcl string) (*Agent, error) {
+	c := TestConfig(config.Source{Name: name, Format: "hcl", Data: hcl})
+	a, err := New(c)
+	if err != nil {
+		return nil, err
+	}
+	return a, nil
+}
+
 // Start starts a test agent. It fails the test if the agent could not be started.
 func (a *TestAgent) Start(t *testing.T) *TestAgent {
 	require := require.New(t)
@@ -149,7 +157,6 @@ func (a *TestAgent) Start(t *testing.T) *TestAgent {
 		agent.LogWriter = a.LogWriter
 		agent.logger = log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
 		agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
-		agent.tlsConfigurator = tlsutil.NewConfigurator(a.Config.ToTLSUtilConfig())
 
 		// we need the err var in the next exit condition
 		if err := agent.Start(); err == nil {
@@ -272,7 +279,8 @@ func (a *TestAgent) Client() *api.Client {
 // DNSDisableCompression disables compression for all started DNS servers.
 func (a *TestAgent) DNSDisableCompression(b bool) {
 	for _, srv := range a.dnsServers {
-		srv.disableCompression.Store(b)
+		cfg := srv.config.Load().(*dnsConfig)
+		cfg.DisableCompression = b
 	}
 }
 
@@ -388,5 +396,20 @@ func TestACLConfig() string {
 		acl_agent_token = "root"
 		acl_agent_master_token = "towel"
 		acl_enforce_version_8 = true
+	`
+}
+
+func TestACLConfigNew() string {
+	return `
+		primary_datacenter = "dc1"
+		acl {
+			enabled = true
+			default_policy = "deny"
+			tokens {
+				master = "root"
+				agent = "root"
+				agent_master = "towel"
+			}
+		}
 	`
 }

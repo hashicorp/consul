@@ -12,15 +12,16 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 )
 
-const dnsTimeout time.Duration = 2 * time.Second
-const tcpIdleTimeout time.Duration = 8 * time.Second
+const (
+	dnsTimeout     time.Duration = 2 * time.Second
+	tcpIdleTimeout time.Duration = 8 * time.Second
 
-const dohMimeType = "application/dns-udpwireformat"
+	dohMimeType = "application/dns-message"
+)
 
 // A Conn represents a connection to a DNS server.
 type Conn struct {
@@ -88,33 +89,22 @@ func (c *Client) Dial(address string) (conn *Conn, err error) {
 	// create a new dialer with the appropriate timeout
 	var d net.Dialer
 	if c.Dialer == nil {
-		d = net.Dialer{}
+		d = net.Dialer{Timeout: c.getTimeoutForRequest(c.dialTimeout())}
 	} else {
-		d = net.Dialer(*c.Dialer)
+		d = *c.Dialer
 	}
-	d.Timeout = c.getTimeoutForRequest(c.writeTimeout())
 
-	network := "udp"
-	useTLS := false
-
-	switch c.Net {
-	case "tcp-tls":
-		network = "tcp"
-		useTLS = true
-	case "tcp4-tls":
-		network = "tcp4"
-		useTLS = true
-	case "tcp6-tls":
-		network = "tcp6"
-		useTLS = true
-	default:
-		if c.Net != "" {
-			network = c.Net
-		}
+	network := c.Net
+	if network == "" {
+		network = "udp"
 	}
+
+	useTLS := strings.HasPrefix(network, "tcp") && strings.HasSuffix(network, "-tls")
 
 	conn = new(Conn)
 	if useTLS {
+		network = strings.TrimSuffix(network, "-tls")
+
 		conn.Conn, err = tls.DialWithDialer(&d, network, address, c.TLSConfig)
 	} else {
 		conn.Conn, err = d.Dial(network, address)
@@ -122,6 +112,7 @@ func (c *Client) Dial(address string) (conn *Conn, err error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return conn, nil
 }
 
@@ -214,25 +205,13 @@ func (c *Client) exchangeDOH(ctx context.Context, m *Msg, a string) (r *Msg, rtt
 		return nil, 0, err
 	}
 
-	// TODO(tmthrgd): Allow the path to be customised?
-	u := &url.URL{
-		Scheme: "https",
-		Host:   a,
-		Path:   "/.well-known/dns-query",
-	}
-	if u.Port() == "443" {
-		u.Host = u.Hostname()
-	}
-
-	req, err := http.NewRequest(http.MethodPost, u.String(), bytes.NewReader(p))
+	req, err := http.NewRequest(http.MethodPost, a, bytes.NewReader(p))
 	if err != nil {
 		return nil, 0, err
 	}
 
 	req.Header.Set("Content-Type", dohMimeType)
 	req.Header.Set("Accept", dohMimeType)
-
-	t := time.Now()
 
 	hc := http.DefaultClient
 	if c.HTTPClient != nil {
@@ -242,6 +221,8 @@ func (c *Client) exchangeDOH(ctx context.Context, m *Msg, a string) (r *Msg, rtt
 	if ctx != context.Background() && ctx != context.TODO() {
 		req = req.WithContext(ctx)
 	}
+
+	t := time.Now()
 
 	resp, err := hc.Do(req)
 	if err != nil {
@@ -586,7 +567,7 @@ func (c *Client) ExchangeContext(ctx context.Context, m *Msg, a string) (r *Msg,
 	if deadline, ok := ctx.Deadline(); !ok {
 		timeout = 0
 	} else {
-		timeout = deadline.Sub(time.Now())
+		timeout = time.Until(deadline)
 	}
 	// not passing the context to the underlying calls, as the API does not support
 	// context. For timeouts you should set up Client.Dialer and call Client.Exchange.

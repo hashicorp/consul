@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 
 	"github.com/stretchr/testify/require"
 )
@@ -498,6 +498,7 @@ func TestAPI_ACLToken_List(t *testing.T) {
 	defer s.Stop()
 
 	acl := c.ACL()
+	s.WaitForSerfCheck(t)
 
 	policies := prepTokenPolicies(t, acl)
 

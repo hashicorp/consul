@@ -12,13 +12,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/agent/cache"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-msgpack/codec"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/mitchellh/hashstructure"
+
+	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/types"
 )
 
 type MessageType uint8
@@ -26,35 +27,42 @@ type MessageType uint8
 // RaftIndex is used to track the index used while creating
 // or modifying a given struct type.
 type RaftIndex struct {
-	CreateIndex uint64
-	ModifyIndex uint64
+	CreateIndex uint64 `bexpr:"-"`
+	ModifyIndex uint64 `bexpr:"-"`
 }
 
 // These are serialized between Consul servers and stored in Consul snapshots,
 // so entries must only ever be added.
 const (
-	RegisterRequestType        MessageType = 0
-	DeregisterRequestType                  = 1
-	KVSRequestType                         = 2
-	SessionRequestType                     = 3
-	ACLRequestType                         = 4 // DEPRECATED (ACL-Legacy-Compat)
-	TombstoneRequestType                   = 5
-	CoordinateBatchUpdateType              = 6
-	PreparedQueryRequestType               = 7
-	TxnRequestType                         = 8
-	AutopilotRequestType                   = 9
-	AreaRequestType                        = 10
-	ACLBootstrapRequestType                = 11
-	IntentionRequestType                   = 12
-	ConnectCARequestType                   = 13
-	ConnectCAProviderStateType             = 14
-	ConnectCAConfigType                    = 15 // FSM snapshots only.
-	IndexRequestType                       = 16 // FSM snapshots only.
-	ACLTokenSetRequestType                 = 17
-	ACLTokenDeleteRequestType              = 18
-	ACLPolicySetRequestType                = 19
-	ACLPolicyDeleteRequestType             = 20
-	ConnectCALeafRequestType               = 21
+	RegisterRequestType             MessageType = 0
+	DeregisterRequestType                       = 1
+	KVSRequestType                              = 2
+	SessionRequestType                          = 3
+	ACLRequestType                              = 4 // DEPRECATED (ACL-Legacy-Compat)
+	TombstoneRequestType                        = 5
+	CoordinateBatchUpdateType                   = 6
+	PreparedQueryRequestType                    = 7
+	TxnRequestType                              = 8
+	AutopilotRequestType                        = 9
+	AreaRequestType                             = 10
+	ACLBootstrapRequestType                     = 11
+	IntentionRequestType                        = 12
+	ConnectCARequestType                        = 13
+	ConnectCAProviderStateType                  = 14
+	ConnectCAConfigType                         = 15 // FSM snapshots only.
+	IndexRequestType                            = 16 // FSM snapshots only.
+	ACLTokenSetRequestType                      = 17
+	ACLTokenDeleteRequestType                   = 18
+	ACLPolicySetRequestType                     = 19
+	ACLPolicyDeleteRequestType                  = 20
+	ConnectCALeafRequestType                    = 21
+	ConfigEntryRequestType                      = 22
+	ACLRoleSetRequestType                       = 23
+	ACLRoleDeleteRequestType                    = 24
+	ACLBindingRuleSetRequestType                = 25
+	ACLBindingRuleDeleteRequestType             = 26
+	ACLAuthMethodSetRequestType                 = 27
+	ACLAuthMethodDeleteRequestType              = 28
 )
 
 const (
@@ -163,6 +171,10 @@ type QueryOptions struct {
 	// ignored if the endpoint supports background refresh caching. See
 	// https://www.consul.io/api/index.html#agent-caching for more details.
 	StaleIfError time.Duration
+
+	// Filter specifies the go-bexpr filter expression to be used for
+	// filtering the data prior to returning a response
+	Filter string
 }
 
 // IsRead is always true for QueryOption.
@@ -331,10 +343,13 @@ func (r *DCSpecificRequest) CacheInfo() cache.RequestInfo {
 		MustRevalidate: r.MustRevalidate,
 	}
 
-	// To calculate the cache key we only hash the node filters. The
-	// datacenter is handled by the cache framework. The other fields are
+	// To calculate the cache key we only hash the node meta filters and the bexpr filter.
+	// The datacenter is handled by the cache framework. The other fields are
 	// not, but should not be used in any cache types.
-	v, err := hashstructure.Hash(r.NodeMetaFilters, nil)
+	v, err := hashstructure.Hash([]interface{}{
+		r.NodeMetaFilters,
+		r.Filter,
+	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
 		// no cache for this request so the request is forwarded directly
@@ -405,6 +420,7 @@ func (r *ServiceSpecificRequest) CacheInfo() cache.RequestInfo {
 		r.ServiceAddress,
 		r.TagFilter,
 		r.Connect,
+		r.Filter,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
@@ -443,6 +459,7 @@ func (r *NodeSpecificRequest) CacheInfo() cache.RequestInfo {
 
 	v, err := hashstructure.Hash([]interface{}{
 		r.Node,
+		r.Filter,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
@@ -476,7 +493,7 @@ type Node struct {
 	TaggedAddresses map[string]string
 	Meta            map[string]string
 
-	RaftIndex
+	RaftIndex `bexpr:"-"`
 }
 type Nodes []*Node
 
@@ -579,11 +596,11 @@ type ServiceNode struct {
 	ServicePort              int
 	ServiceEnableTagOverride bool
 	// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
-	ServiceProxyDestination string
+	ServiceProxyDestination string `bexpr:"-"`
 	ServiceProxy            ConnectProxyConfig
 	ServiceConnect          ServiceConnect
 
-	RaftIndex
+	RaftIndex `bexpr:"-"`
 }
 
 // PartialClone() returns a clone of the given service node, minus the node-
@@ -694,7 +711,7 @@ type NodeService struct {
 	// may be a service that isn't present in the catalog. This is expected and
 	// allowed to allow for proxies to come up earlier than their target services.
 	// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
-	ProxyDestination string
+	ProxyDestination string `bexpr:"-"`
 
 	// Proxy is the configuration set for Kind = connect-proxy. It is mandatory in
 	// that case and an error to be set for any other kind. This config is part of
@@ -729,9 +746,9 @@ type NodeService struct {
 	// internal only. Right now our agent endpoints return api structs which don't
 	// include it but this is a safety net incase we change that or there is
 	// somewhere this is used in API output.
-	LocallyRegisteredAsSidecar bool `json:"-"`
+	LocallyRegisteredAsSidecar bool `json:"-" bexpr:"-"`
 
-	RaftIndex
+	RaftIndex `bexpr:"-"`
 }
 
 // ServiceConnect are the shared Connect settings between all service
@@ -743,7 +760,7 @@ type ServiceConnect struct {
 	// Proxy configures a connect proxy instance for the service. This is
 	// only used for agent service definitions and is invalid for non-agent
 	// (catalog API) definitions.
-	Proxy *ServiceDefinitionConnectProxy `json:",omitempty"`
+	Proxy *ServiceDefinitionConnectProxy `json:",omitempty" bexpr:"-"`
 
 	// SidecarService is a nested Service Definition to register at the same time.
 	// It's purely a convenience mechanism to allow specifying a sidecar service
@@ -752,7 +769,12 @@ type ServiceConnect struct {
 	// boilerplate needed to register a sidecar service separately, but the end
 	// result is identical to just making a second service registration via any
 	// other means.
-	SidecarService *ServiceDefinition `json:",omitempty"`
+	SidecarService *ServiceDefinition `json:",omitempty" bexpr:"-"`
+}
+
+// IsSidecarProxy returns true if the NodeService is a sidecar proxy.
+func (s *NodeService) IsSidecarProxy() bool {
+	return s.Kind == ServiceKindConnectProxy && s.Proxy.DestinationServiceID != ""
 }
 
 // Validate validates the node service configuration.
@@ -924,9 +946,9 @@ type HealthCheck struct {
 	ServiceName string        // optional service name
 	ServiceTags []string      // optional service tags
 
-	Definition HealthCheckDefinition
+	Definition HealthCheckDefinition `bexpr:"-"`
 
-	RaftIndex
+	RaftIndex `bexpr:"-"`
 }
 
 type HealthCheckDefinition struct {
@@ -1137,6 +1159,150 @@ type IndexedCheckServiceNodes struct {
 type IndexedNodeDump struct {
 	Dump NodeDump
 	QueryMeta
+}
+
+// IndexedConfigEntries has its own encoding logic which differs from
+// ConfigEntryRequest as it has to send a slice of ConfigEntry.
+type IndexedConfigEntries struct {
+	Kind    string
+	Entries []ConfigEntry
+	QueryMeta
+}
+
+func (c *IndexedConfigEntries) MarshalBinary() (data []byte, err error) {
+	// bs will grow if needed but allocate enough to avoid reallocation in common
+	// case.
+	bs := make([]byte, 128)
+	enc := codec.NewEncoderBytes(&bs, msgpackHandle)
+
+	// Encode length.
+	err = enc.Encode(len(c.Entries))
+	if err != nil {
+		return nil, err
+	}
+
+	// Encode kind.
+	err = enc.Encode(c.Kind)
+	if err != nil {
+		return nil, err
+	}
+
+	// Then actual value using alias trick to avoid infinite recursion
+	type Alias IndexedConfigEntries
+	err = enc.Encode(struct {
+		*Alias
+	}{
+		Alias: (*Alias)(c),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return bs, nil
+}
+
+func (c *IndexedConfigEntries) UnmarshalBinary(data []byte) error {
+	// First decode the number of entries.
+	var numEntries int
+	dec := codec.NewDecoderBytes(data, msgpackHandle)
+	if err := dec.Decode(&numEntries); err != nil {
+		return err
+	}
+
+	// Next decode the kind.
+	var kind string
+	if err := dec.Decode(&kind); err != nil {
+		return err
+	}
+
+	// Then decode the slice of ConfigEntries
+	c.Entries = make([]ConfigEntry, numEntries)
+	for i := 0; i < numEntries; i++ {
+		entry, err := MakeConfigEntry(kind, "")
+		if err != nil {
+			return err
+		}
+		c.Entries[i] = entry
+	}
+
+	// Alias juggling to prevent infinite recursive calls back to this decode
+	// method.
+	type Alias IndexedConfigEntries
+	as := struct {
+		*Alias
+	}{
+		Alias: (*Alias)(c),
+	}
+	if err := dec.Decode(&as); err != nil {
+		return err
+	}
+	return nil
+}
+
+type IndexedGenericConfigEntries struct {
+	Entries []ConfigEntry
+	QueryMeta
+}
+
+func (c *IndexedGenericConfigEntries) MarshalBinary() (data []byte, err error) {
+	// bs will grow if needed but allocate enough to avoid reallocation in common
+	// case.
+	bs := make([]byte, 128)
+	enc := codec.NewEncoderBytes(&bs, msgpackHandle)
+
+	if err := enc.Encode(len(c.Entries)); err != nil {
+		return nil, err
+	}
+
+	for _, entry := range c.Entries {
+		if err := enc.Encode(entry.GetKind()); err != nil {
+			return nil, err
+		}
+		if err := enc.Encode(entry); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := enc.Encode(c.QueryMeta); err != nil {
+		return nil, err
+	}
+
+	return bs, nil
+}
+
+func (c *IndexedGenericConfigEntries) UnmarshalBinary(data []byte) error {
+	// First decode the number of entries.
+	var numEntries int
+	dec := codec.NewDecoderBytes(data, msgpackHandle)
+	if err := dec.Decode(&numEntries); err != nil {
+		return err
+	}
+
+	// Then decode the slice of ConfigEntries
+	c.Entries = make([]ConfigEntry, numEntries)
+	for i := 0; i < numEntries; i++ {
+		var kind string
+		if err := dec.Decode(&kind); err != nil {
+			return err
+		}
+
+		entry, err := MakeConfigEntry(kind, "")
+		if err != nil {
+			return err
+		}
+
+		if err := dec.Decode(entry); err != nil {
+			return err
+		}
+
+		c.Entries[i] = entry
+	}
+
+	if err := dec.Decode(&c.QueryMeta); err != nil {
+		return err
+	}
+
+	return nil
+
 }
 
 // DirEntry is used to represent a directory entry. This is

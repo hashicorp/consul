@@ -123,7 +123,7 @@ func Setup(config *Config, ui cli.Ui) (*logutils.LevelFilter, *GatedWriter, *Log
 		if config.LogRotateBytes != 0 {
 			logRotateBytes = config.LogRotateBytes
 		}
-		logFile := &LogFile{fileName: fileName, logPath: dir, duration: logRotateDuration, MaxBytes: logRotateBytes}
+		logFile := &LogFile{logFilter: logFilter, fileName: fileName, logPath: dir, duration: logRotateDuration, MaxBytes: logRotateBytes}
 		writers = append(writers, logFile)
 	}
 

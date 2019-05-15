@@ -4,13 +4,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoyauth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoylistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
+	envoyroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	extauthz "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/ext_authz/v2"
+	envoyhttp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	envoytcp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
+	envoytype "github.com/envoyproxy/go-control-plane/envoy/type"
 	"github.com/envoyproxy/go-control-plane/pkg/util"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
@@ -22,7 +26,7 @@ import (
 
 // listenersFromSnapshot returns the xDS API representation of the "listeners"
 // in the snapshot.
-func listenersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
+func (s *Server) listenersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
 	if cfgSnap == nil {
 		return nil, errors.New("nil config given")
 	}
@@ -32,12 +36,12 @@ func listenersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]pr
 
 	// Configure public listener
 	var err error
-	resources[0], err = makePublicListener(cfgSnap, token)
+	resources[0], err = s.makePublicListener(cfgSnap, token)
 	if err != nil {
 		return nil, err
 	}
 	for i, u := range cfgSnap.Proxy.Upstreams {
-		resources[i+1], err = makeUpstreamListener(&u)
+		resources[i+1], err = s.makeUpstreamListener(&u)
 		if err != nil {
 			return nil, err
 		}
@@ -137,17 +141,23 @@ func injectConnectFilters(cfgSnap *proxycfg.ConfigSnapshot, token string, listen
 	return nil
 }
 
-func makePublicListener(cfgSnap *proxycfg.ConfigSnapshot, token string) (proto.Message, error) {
+func (s *Server) makePublicListener(cfgSnap *proxycfg.ConfigSnapshot, token string) (proto.Message, error) {
 	var l *envoy.Listener
 	var err error
 
-	if listenerJSONRaw, ok := cfgSnap.Proxy.Config["envoy_public_listener_json"]; ok {
-		if listenerJSON, ok := listenerJSONRaw.(string); ok {
-			l, err = makeListenerFromUserConfig(listenerJSON)
-			if err != nil {
-				return l, err
-			}
+	cfg, err := ParseProxyConfig(cfgSnap.Proxy.Config)
+	if err != nil {
+		// Don't hard fail on a config typo, just warn. The parse func returns
+		// default config if there is an error so it's safe to continue.
+		s.Logger.Printf("[WARN] envoy: failed to parse Connect.Proxy.Config: %s", err)
+	}
+
+	if cfg.PublicListenerJSON != "" {
+		l, err = makeListenerFromUserConfig(cfg.PublicListenerJSON)
+		if err != nil {
+			return l, err
 		}
+		// In the happy path don't return yet as we need to inject TLS config still.
 	}
 
 	if l == nil {
@@ -157,16 +167,15 @@ func makePublicListener(cfgSnap *proxycfg.ConfigSnapshot, token string) (proto.M
 			addr = "0.0.0.0"
 		}
 		l = makeListener(PublicListenerName, addr, cfgSnap.Port)
-		tcpProxy, err := makeTCPProxyFilter("public_listener", LocalAppClusterName)
+
+		filter, err := makeListenerFilter(cfg.Protocol, "public_listener", LocalAppClusterName, "", true)
 		if err != nil {
-			return l, err
+			return nil, err
 		}
-		// Setup TCP proxy for now. We inject TLS and authz below for both default
-		// and custom config cases.
 		l.FilterChains = []envoylistener.FilterChain{
 			{
 				Filters: []envoylistener.Filter{
-					tcpProxy,
+					filter,
 				},
 			},
 		}
@@ -176,37 +185,139 @@ func makePublicListener(cfgSnap *proxycfg.ConfigSnapshot, token string) (proto.M
 	return l, err
 }
 
-func makeUpstreamListener(u *structs.Upstream) (proto.Message, error) {
-	if listenerJSONRaw, ok := u.Config["envoy_listener_json"]; ok {
-		if listenerJSON, ok := listenerJSONRaw.(string); ok {
-			return makeListenerFromUserConfig(listenerJSON)
-		}
+func (s *Server) makeUpstreamListener(u *structs.Upstream) (proto.Message, error) {
+	cfg, err := ParseUpstreamConfig(u.Config)
+	if err != nil {
+		// Don't hard fail on a config typo, just warn. The parse func returns
+		// default config if there is an error so it's safe to continue.
+		s.Logger.Printf("[WARN] envoy: failed to parse Upstream[%s].Config: %s",
+			u.Identifier(), err)
 	}
+	if cfg.ListenerJSON != "" {
+		return makeListenerFromUserConfig(cfg.ListenerJSON)
+	}
+
 	addr := u.LocalBindAddress
 	if addr == "" {
 		addr = "127.0.0.1"
 	}
+
 	l := makeListener(u.Identifier(), addr, u.LocalBindPort)
-	tcpProxy, err := makeTCPProxyFilter(u.Identifier(), u.Identifier())
+	filter, err := makeListenerFilter(cfg.Protocol, u.Identifier(), u.Identifier(), "upstream_", false)
 	if err != nil {
-		return l, err
+		return nil, err
 	}
 	l.FilterChains = []envoylistener.FilterChain{
 		{
 			Filters: []envoylistener.Filter{
-				tcpProxy,
+				filter,
 			},
 		},
 	}
 	return l, nil
 }
 
-func makeTCPProxyFilter(name, cluster string) (envoylistener.Filter, error) {
+func makeListenerFilter(protocol, filterName, cluster, statPrefix string, ingress bool) (envoylistener.Filter, error) {
+	switch protocol {
+	case "grpc":
+		return makeHTTPFilter(filterName, cluster, statPrefix, ingress, true, true)
+	case "http2":
+		return makeHTTPFilter(filterName, cluster, statPrefix, ingress, false, true)
+	case "http":
+		return makeHTTPFilter(filterName, cluster, statPrefix, ingress, false, false)
+	case "tcp":
+		fallthrough
+	default:
+		return makeTCPProxyFilter(filterName, cluster, statPrefix)
+	}
+}
+
+func makeTCPProxyFilter(filterName, cluster, statPrefix string) (envoylistener.Filter, error) {
 	cfg := &envoytcp.TcpProxy{
-		StatPrefix: name,
+		StatPrefix: makeStatPrefix("tcp", statPrefix, filterName),
 		Cluster:    cluster,
 	}
 	return makeFilter("envoy.tcp_proxy", cfg)
+}
+
+func makeStatPrefix(protocol, prefix, filterName string) string {
+	// Replace colons here because Envoy does that in the metrics for the actual
+	// clusters but doesn't in the stat prefix here while dashboards assume they
+	// will match.
+	return fmt.Sprintf("%s%s_%s", prefix, strings.Replace(filterName, ":", "_", -1), protocol)
+}
+
+func makeHTTPFilter(filterName, cluster, statPrefix string, ingress, grpc, http2 bool) (envoylistener.Filter, error) {
+	op := envoyhttp.INGRESS
+	if !ingress {
+		op = envoyhttp.EGRESS
+	}
+	proto := "http"
+	if grpc {
+		proto = "grpc"
+	}
+	cfg := &envoyhttp.HttpConnectionManager{
+		StatPrefix: makeStatPrefix(proto, statPrefix, filterName),
+		CodecType:  envoyhttp.AUTO,
+		RouteSpecifier: &envoyhttp.HttpConnectionManager_RouteConfig{
+			RouteConfig: &envoy.RouteConfiguration{
+				Name: filterName,
+				VirtualHosts: []envoyroute.VirtualHost{
+					envoyroute.VirtualHost{
+						Name:    filterName,
+						Domains: []string{"*"},
+						Routes: []envoyroute.Route{
+							envoyroute.Route{
+								Match: envoyroute.RouteMatch{
+									PathSpecifier: &envoyroute.RouteMatch_Prefix{
+										Prefix: "/",
+									},
+									// TODO(banks) Envoy supports matching only valid GRPC
+									// requests which might be nice to add here for gRPC services
+									// but it's not supported in our current envoy SDK version
+									// although docs say it was supported by 1.8.0. Going to defer
+									// that until we've updated the deps.
+								},
+								Action: &envoyroute.Route_Route{
+									Route: &envoyroute.RouteAction{
+										ClusterSpecifier: &envoyroute.RouteAction_Cluster{
+											Cluster: cluster,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		HttpFilters: []*envoyhttp.HttpFilter{
+			&envoyhttp.HttpFilter{
+				Name: "envoy.router",
+			},
+		},
+		Tracing: &envoyhttp.HttpConnectionManager_Tracing{
+			OperationName: op,
+			// Don't trace any requests by default unless the client application
+			// explicitly propagates trace headers that indicate this should be
+			// sampled.
+			RandomSampling: &envoytype.Percent{Value: 0.0},
+		},
+	}
+
+	if http2 {
+		cfg.Http2ProtocolOptions = &envoycore.Http2ProtocolOptions{}
+	}
+
+	if grpc {
+		// Add grpc bridge before router
+		cfg.HttpFilters = append([]*envoyhttp.HttpFilter{&envoyhttp.HttpFilter{
+			Name:   "envoy.grpc_http1_bridge",
+			Config: &types.Struct{},
+		}}, cfg.HttpFilters...)
+	}
+
+	return makeFilter("envoy.http_connection_manager", cfg)
 }
 
 func makeExtAuthFilter(token string) (envoylistener.Filter, error) {
@@ -252,6 +363,9 @@ func makeCommonTLSContext(cfgSnap *proxycfg.ConfigSnapshot) *envoyauth.CommonTls
 	// Concatenate all the root PEMs into one.
 	// TODO(banks): verify this actually works with Envoy (docs are not clear).
 	rootPEMS := ""
+	if cfgSnap.Roots == nil {
+		return nil
+	}
 	for _, root := range cfgSnap.Roots.Roots {
 		rootPEMS += root.RootCert
 	}

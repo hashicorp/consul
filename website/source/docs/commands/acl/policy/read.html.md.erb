@@ -1,0 +1,123 @@
+---
+layout: "docs"
+page_title: "Commands: ACL Policy Read"
+sidebar_current: "docs-commands-acl-policy-read"
+---
+
+# Consul ACL Policy Read
+
+Command: `consul acl policy read`
+
+The `acl policy read` command reads and displays a policies details.
+
+## Usage
+
+Usage: `consul acl policy read [options] [args]`
+
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
+
+#### Command Options
+
+* `-id=<string>` - The ID of the policy to read. It may be specified as a unique ID
+   prefix but will error if the prefix matches multiple policy IDs.
+
+* `-meta` - Indicates that policy metadata such as the content hash and raft
+  indices should be shown for each entry.
+
+* `-name=<string>` - The name of the policy to read.
+
+## Examples
+
+Get policy details:
+
+```sh
+$ consul acl policy read -id 00000000-0000-0000-0000-000000000001
+ID:           00000000-0000-0000-0000-000000000001
+Name:         global-management
+Description:  Builtin Policy that grants unlimited access
+Datacenters:
+Rules:
+
+acl = "write"
+agent_prefix "" {
+   policy = "write"
+}
+event_prefix "" {
+   policy = "write"
+}
+key_prefix "" {
+   policy = "write"
+}
+keyring = "write"
+node_prefix "" {
+   policy = "write"
+}
+operator = "write"
+query_prefix "" {
+   policy = "write"
+}
+service_prefix "" {
+   policy = "write"
+   intentions = "write"
+}
+session_prefix "" {
+   policy = "write"
+}
+```
+
+Get policy details by name:
+
+```sh
+$ consul acl policy read -name "acl-replication"
+ID:           35b8ecb0-707c-ee18-2002-81b238b54b38
+Name:         acl-replication
+Description:  Token capable of replicating ACL policies
+Datacenters:
+Rules:
+acl = "read"
+```
+
+Get policy details (Builtin Policies):
+
+Builtin policies can be accessed by specifying their original name as the value to the `-id` parameter.
+
+```sh
+$ consul acl policy read -id global-management
+ID:           00000000-0000-0000-0000-000000000001
+Name:         global-management
+Description:  Builtin Policy that grants unlimited access
+Datacenters:
+Hash:         b30210b7aba9facd1c57891e3df27669174a08b690cb2905e0797535f75eba69
+Create Index: 4
+Modify Index: 4
+Rules:
+
+acl = "write"
+agent_prefix "" {
+   policy = "write"
+}
+event_prefix "" {
+   policy = "write"
+}
+key_prefix "" {
+   policy = "write"
+}
+keyring = "write"
+node_prefix "" {
+   policy = "write"
+}
+operator = "write"
+query_prefix "" {
+   policy = "write"
+}
+service_prefix "" {
+   policy = "write"
+   intentions = "write"
+}
+session_prefix "" {
+   policy = "write"
+}
+```

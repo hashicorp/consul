@@ -36,13 +36,13 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/watch"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/file"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/consul/watch"
 	multierror "github.com/hashicorp/go-multierror"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/memberlist"
@@ -243,6 +243,10 @@ type Agent struct {
 	// directly.
 	proxyConfig *proxycfg.Manager
 
+	// serviceManager is the manager for combining local service registrations with
+	// the centrally configured proxy/service defaults.
+	serviceManager *ServiceManager
+
 	// xdsServer is the Server instance that serves xDS gRPC API.
 	xdsServer *xds.Server
 
@@ -287,6 +291,7 @@ func New(c *config.RuntimeConfig) (*Agent, error) {
 		endpoints:       make(map[string]string),
 		tokens:          new(token.Store),
 	}
+	a.serviceManager = NewServiceManager(a)
 
 	if err := a.initializeACLs(); err != nil {
 		return nil, err
@@ -393,7 +398,11 @@ func (a *Agent) Start() error {
 	// waiting to discover a consul server
 	consulCfg.ServerUp = a.sync.SyncFull.Trigger
 
-	a.tlsConfigurator = tlsutil.NewConfigurator(c.ToTLSUtilConfig())
+	tlsConfigurator, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), a.logger)
+	if err != nil {
+		return err
+	}
+	a.tlsConfigurator = tlsConfigurator
 
 	// Setup either the client or the server.
 	if c.ServerMode {
@@ -662,10 +671,7 @@ func (a *Agent) listenHTTP() ([]*HTTPServer, error) {
 			var tlscfg *tls.Config
 			_, isTCP := l.(*tcpKeepAliveListener)
 			if isTCP && proto == "https" {
-				tlscfg, err = a.tlsConfigurator.IncomingHTTPSConfig()
-				if err != nil {
-					return err
-				}
+				tlscfg = a.tlsConfigurator.IncomingHTTPSConfig()
 				l = tls.NewListener(l, tlscfg)
 			}
 			srv := &HTTPServer{
@@ -995,6 +1001,9 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	if a.config.ACLPolicyTTL != 0 {
 		base.ACLPolicyTTL = a.config.ACLPolicyTTL
 	}
+	if a.config.ACLRoleTTL != 0 {
+		base.ACLRoleTTL = a.config.ACLRoleTTL
+	}
 	if a.config.ACLDefaultPolicy != "" {
 		base.ACLDefaultPolicy = a.config.ACLDefaultPolicy
 	}
@@ -1129,6 +1138,8 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	if err := a.setupKeyrings(base); err != nil {
 		return nil, fmt.Errorf("Failed to configure keyring: %v", err)
 	}
+
+	base.ConfigEntryBootstrap = a.config.ConfigEntryBootstrap
 
 	return base, nil
 }
@@ -1894,49 +1905,22 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 	return a.addServiceLocked(service, chkTypes, persist, token, source)
 }
 
+// addServiceLocked adds a service entry to the service manager if enabled, or directly
+// to the local state if it is not. This function assumes the state lock is already held.
 func (a *Agent) addServiceLocked(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string, source configSource) error {
-	if service.Service == "" {
-		return fmt.Errorf("Service name missing")
-	}
-	if service.ID == "" && service.Service != "" {
-		service.ID = service.Service
-	}
-	for _, check := range chkTypes {
-		if err := check.Validate(); err != nil {
-			return fmt.Errorf("Check is not valid: %v", err)
-		}
+	if err := a.validateService(service, chkTypes); err != nil {
+		return err
 	}
 
-	// Set default weights if not specified. This is important as it ensures AE
-	// doesn't consider the service different since it has nil weights.
-	if service.Weights == nil {
-		service.Weights = &structs.Weights{Passing: 1, Warning: 1}
+	if a.config.EnableCentralServiceConfig {
+		return a.serviceManager.AddService(service, chkTypes, persist, token, source)
 	}
 
-	// Warn if the service name is incompatible with DNS
-	if InvalidDnsRe.MatchString(service.Service) {
-		a.logger.Printf("[WARN] agent: Service name %q will not be discoverable "+
-			"via DNS due to invalid characters. Valid characters include "+
-			"all alpha-numerics and dashes.", service.Service)
-	} else if len(service.Service) > MaxDNSLabelLength {
-		a.logger.Printf("[WARN] agent: Service name %q will not be discoverable "+
-			"via DNS due to it being too long. Valid lengths are between "+
-			"1 and 63 bytes.", service.Service)
-	}
+	return a.addServiceInternal(service, chkTypes, persist, token, source)
+}
 
-	// Warn if any tags are incompatible with DNS
-	for _, tag := range service.Tags {
-		if InvalidDnsRe.MatchString(tag) {
-			a.logger.Printf("[DEBUG] agent: Service tag %q will not be discoverable "+
-				"via DNS due to invalid characters. Valid characters include "+
-				"all alpha-numerics and dashes.", tag)
-		} else if len(tag) > MaxDNSLabelLength {
-			a.logger.Printf("[DEBUG] agent: Service tag %q will not be discoverable "+
-				"via DNS due to it being too long. Valid lengths are between "+
-				"1 and 63 bytes.", tag)
-		}
-	}
-
+// addServiceInternal adds the given service and checks to the local state.
+func (a *Agent) addServiceInternal(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string, source configSource) error {
 	// Pause the service syncs during modification
 	a.PauseSync()
 	defer a.ResumeSync()
@@ -2026,6 +2010,54 @@ func (a *Agent) addServiceLocked(service *structs.NodeService, chkTypes []*struc
 	return nil
 }
 
+// validateService validates an service and its checks, either returning an error or emitting a
+// warning based on the nature of the error.
+func (a *Agent) validateService(service *structs.NodeService, chkTypes []*structs.CheckType) error {
+	if service.Service == "" {
+		return fmt.Errorf("Service name missing")
+	}
+	if service.ID == "" && service.Service != "" {
+		service.ID = service.Service
+	}
+	for _, check := range chkTypes {
+		if err := check.Validate(); err != nil {
+			return fmt.Errorf("Check is not valid: %v", err)
+		}
+	}
+
+	// Set default weights if not specified. This is important as it ensures AE
+	// doesn't consider the service different since it has nil weights.
+	if service.Weights == nil {
+		service.Weights = &structs.Weights{Passing: 1, Warning: 1}
+	}
+
+	// Warn if the service name is incompatible with DNS
+	if InvalidDnsRe.MatchString(service.Service) {
+		a.logger.Printf("[WARN] agent: Service name %q will not be discoverable "+
+			"via DNS due to invalid characters. Valid characters include "+
+			"all alpha-numerics and dashes.", service.Service)
+	} else if len(service.Service) > MaxDNSLabelLength {
+		a.logger.Printf("[WARN] agent: Service name %q will not be discoverable "+
+			"via DNS due to it being too long. Valid lengths are between "+
+			"1 and 63 bytes.", service.Service)
+	}
+
+	// Warn if any tags are incompatible with DNS
+	for _, tag := range service.Tags {
+		if InvalidDnsRe.MatchString(tag) {
+			a.logger.Printf("[DEBUG] agent: Service tag %q will not be discoverable "+
+				"via DNS due to invalid characters. Valid characters include "+
+				"all alpha-numerics and dashes.", tag)
+		} else if len(tag) > MaxDNSLabelLength {
+			a.logger.Printf("[DEBUG] agent: Service tag %q will not be discoverable "+
+				"via DNS due to it being too long. Valid lengths are between "+
+				"1 and 63 bytes.", tag)
+		}
+	}
+
+	return nil
+}
+
 // cleanupRegistration is called on  registration error to ensure no there are no
 // leftovers after a partial failure
 func (a *Agent) cleanupRegistration(serviceIDs []string, checksIDs []types.CheckID) {
@@ -2065,10 +2097,29 @@ func (a *Agent) removeServiceLocked(serviceID string, persist bool) error {
 		return fmt.Errorf("ServiceID missing")
 	}
 
+	// Shut down the config watch in the service manager if enabled.
+	if a.config.EnableCentralServiceConfig {
+		a.serviceManager.RemoveService(serviceID)
+	}
+
 	checks := a.State.Checks()
 	var checkIDs []types.CheckID
-	for id := range checks {
+	for id, check := range checks {
+		if check.ServiceID != serviceID {
+			continue
+		}
 		checkIDs = append(checkIDs, id)
+	}
+
+	// Remove the associated managed proxy if it exists
+	// This has to be DONE before purging configuration as might might have issues
+	// With ACLs otherwise
+	for proxyID, p := range a.State.Proxies() {
+		if p.Proxy.TargetServiceID == serviceID {
+			if err := a.removeProxyLocked(proxyID, true); err != nil {
+				return err
+			}
+		}
 	}
 
 	// Remove service immediately
@@ -2091,15 +2142,6 @@ func (a *Agent) removeServiceLocked(serviceID string, persist bool) error {
 		}
 		if err := a.removeCheckLocked(checkID, persist); err != nil {
 			return err
-		}
-	}
-
-	// Remove the associated managed proxy if it exists
-	for proxyID, p := range a.State.Proxies() {
-		if p.Proxy.TargetServiceID == serviceID {
-			if err := a.removeProxyLocked(proxyID, true); err != nil {
-				return err
-			}
 		}
 	}
 
@@ -2232,11 +2274,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				chkType.Interval = checks.MinInterval
 			}
 
-			a.tlsConfigurator.AddCheck(string(check.CheckID), chkType.TLSSkipVerify)
-			tlsClientConfig, err := a.tlsConfigurator.OutgoingTLSConfigForCheck(string(check.CheckID))
-			if err != nil {
-				return fmt.Errorf("Failed to set up TLS: %v", err)
-			}
+			tlsClientConfig := a.tlsConfigurator.OutgoingTLSConfigForCheck(chkType.TLSSkipVerify)
 
 			http := &checks.CheckHTTP{
 				Notify:          a.State,
@@ -2287,12 +2325,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 
 			var tlsClientConfig *tls.Config
 			if chkType.GRPCUseTLS {
-				var err error
-				a.tlsConfigurator.AddCheck(string(check.CheckID), chkType.TLSSkipVerify)
-				tlsClientConfig, err = a.tlsConfigurator.OutgoingTLSConfigForCheck(string(check.CheckID))
-				if err != nil {
-					return fmt.Errorf("Failed to set up TLS: %v", err)
-				}
+				tlsClientConfig = a.tlsConfigurator.OutgoingTLSConfigForCheck(chkType.TLSSkipVerify)
 			}
 
 			grpc := &checks.CheckGRPC{
@@ -2431,7 +2464,6 @@ func (a *Agent) removeCheckLocked(checkID types.CheckID, persist bool) error {
 		return fmt.Errorf("CheckID missing")
 	}
 
-	a.tlsConfigurator.RemoveCheck(string(checkID))
 	a.cancelCheckMonitors(checkID)
 	a.State.RemoveCheck(checkID)
 
@@ -3559,6 +3591,10 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	// the checks and service registrations.
 	a.loadTokens(newCfg)
 
+	if err := a.tlsConfigurator.Update(newCfg.ToTLSUtilConfig()); err != nil {
+		return fmt.Errorf("Failed reloading tls configuration: %s", err)
+	}
+
 	// Reload service/check definitions and metadata.
 	if err := a.loadServices(newCfg); err != nil {
 		return fmt.Errorf("Failed reloading services: %s", err)
@@ -3578,6 +3614,18 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	}
 
 	a.loadLimits(newCfg)
+
+	for _, s := range a.dnsServers {
+		if err := s.ReloadConfig(newCfg); err != nil {
+			return fmt.Errorf("Failed reloading dns config : %v", err)
+		}
+	}
+
+	// this only gets used by the consulConfig function and since
+	// that is only ever done during init and reload here then
+	// an in place modification is safe as reloads cannot be
+	// concurrent due to both gaing a full lock on the stateLock
+	a.config.ConfigEntryBootstrap = newCfg.ConfigEntryBootstrap
 
 	// create the config for the rpc server/client
 	consulCfg, err := a.consulConfig()
@@ -3663,6 +3711,15 @@ func (a *Agent) registerCache() {
 	})
 
 	a.cache.RegisterType(cachetype.NodeServicesName, &cachetype.NodeServices{
+		RPC: a,
+	}, &cache.RegisterOptions{
+		// Maintain a blocking query, retry dropped connections quickly
+		Refresh:        true,
+		RefreshTimer:   0 * time.Second,
+		RefreshTimeout: 10 * time.Minute,
+	})
+
+	a.cache.RegisterType(cachetype.ResolvedServiceConfigName, &cachetype.ResolvedServiceConfig{
 		RPC: a,
 	}, &cache.RegisterOptions{
 		// Maintain a blocking query, retry dropped connections quickly

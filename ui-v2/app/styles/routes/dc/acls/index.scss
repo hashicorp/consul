@@ -10,7 +10,7 @@ td a.is-management::after {
   .template-policy.template-list main header .actions,
   .template-token.template-list main header .actions {
     position: relative;
-    top: 50px;
+    top: 45px;
   }
 }
 
@@ -28,4 +28,11 @@ td a.is-management::after {
   html.template-acl.template-edit main header .actions .with-confirmation {
     margin-top: 0;
   }
+}
+[name='role[state]'],
+[name='role[state]'] + * {
+  display: none;
+}
+[name='role[state]']:checked + * {
+  display: block;
 }

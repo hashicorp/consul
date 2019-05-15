@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -22,8 +23,8 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/testutil"
-	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/types"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/pascaldekloe/goe/verify"
@@ -132,6 +133,7 @@ func TestAgent_RPCPing(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	var out struct{}
 	if err := a.RPC("Status.Ping", struct{}{}, &out); err != nil {
@@ -604,12 +606,27 @@ func TestAgent_RemoveService(t *testing.T) {
 
 	// Removing a service with multiple checks works
 	{
+		// add a service to remove
 		srv := &structs.NodeService{
 			ID:      "redis",
 			Service: "redis",
 			Port:    8000,
 		}
 		chkTypes := []*structs.CheckType{
+			&structs.CheckType{TTL: time.Minute},
+			&structs.CheckType{TTL: 30 * time.Second},
+		}
+		if err := a.AddService(srv, chkTypes, false, "", ConfigSourceLocal); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		// add another service that wont be affected
+		srv = &structs.NodeService{
+			ID:      "mysql",
+			Service: "mysql",
+			Port:    3306,
+		}
+		chkTypes = []*structs.CheckType{
 			&structs.CheckType{TTL: time.Minute},
 			&structs.CheckType{TTL: 30 * time.Second},
 		}
@@ -635,12 +652,32 @@ func TestAgent_RemoveService(t *testing.T) {
 			t.Fatalf("check redis:2 should be removed")
 		}
 
-		// Ensure a TTL is setup
+		// Ensure the redis checks are removed
 		if _, ok := a.checkTTLs["service:redis:1"]; ok {
+			t.Fatalf("check ttl for redis:1 should be removed")
+		}
+		if check := a.State.Check(types.CheckID("service:redis:1")); check != nil {
 			t.Fatalf("check ttl for redis:1 should be removed")
 		}
 		if _, ok := a.checkTTLs["service:redis:2"]; ok {
 			t.Fatalf("check ttl for redis:2 should be removed")
+		}
+		if check := a.State.Check(types.CheckID("service:redis:2")); check != nil {
+			t.Fatalf("check ttl for redis:2 should be removed")
+		}
+
+		// check the mysql service is unnafected
+		if _, ok := a.checkTTLs["service:mysql:1"]; !ok {
+			t.Fatalf("check ttl for mysql:1 should not be removed")
+		}
+		if check := a.State.Check(types.CheckID("service:mysql:1")); check == nil {
+			t.Fatalf("check ttl for mysql:1 should not be removed")
+		}
+		if _, ok := a.checkTTLs["service:mysql:2"]; !ok {
+			t.Fatalf("check ttl for mysql:2 should not be removed")
+		}
+		if check := a.State.Check(types.CheckID("service:mysql:2")); check == nil {
+			t.Fatalf("check ttl for mysql:2 should not be removed")
 		}
 	}
 }
@@ -3366,11 +3403,7 @@ func TestAgent_SetupProxyManager(t *testing.T) {
 		ports { http = -1 }
 		data_dir = "` + dataDir + `"
 	`
-	c := TestConfig(
-		// randomPortsSource(false),
-		config.Source{Name: t.Name(), Format: "hcl", Data: hcl},
-	)
-	a, err := New(c)
+	a, err := NewUnstartedAgent(t, t.Name(), hcl)
 	require.NoError(t, err)
 	require.Error(t, a.setupProxyManager(), "setupProxyManager should fail with invalid HTTP API config")
 
@@ -3378,11 +3411,7 @@ func TestAgent_SetupProxyManager(t *testing.T) {
 		ports { http = 8001 }
 		data_dir = "` + dataDir + `"
 	`
-	c = TestConfig(
-		// randomPortsSource(false),
-		config.Source{Name: t.Name(), Format: "hcl", Data: hcl},
-	)
-	a, err = New(c)
+	a, err = NewUnstartedAgent(t, t.Name(), hcl)
 	require.NoError(t, err)
 	require.NoError(t, a.setupProxyManager())
 }
@@ -3542,4 +3571,108 @@ func TestAgent_loadTokens(t *testing.T) {
 		require.Equal("charlie", a.tokens.AgentMasterToken())
 		require.Equal("foxtrot", a.tokens.ReplicationToken())
 	})
+}
+
+func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
+	t.Parallel()
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	defer os.RemoveAll(dataDir)
+	hcl := `
+		data_dir = "` + dataDir + `"
+		verify_outgoing = true
+		ca_file = "../test/ca/root.cer"
+		cert_file = "../test/key/ourdomain.cer"
+		key_file = "../test/key/ourdomain.key"
+		verify_server_hostname = false
+	`
+	a := NewTestAgent(t, t.Name(), hcl)
+	defer a.Shutdown()
+	tlsConf := a.tlsConfigurator.OutgoingRPCConfig()
+	require.True(t, tlsConf.InsecureSkipVerify)
+	require.Len(t, tlsConf.ClientCAs.Subjects(), 1)
+	require.Len(t, tlsConf.RootCAs.Subjects(), 1)
+
+	hcl = `
+		data_dir = "` + dataDir + `"
+		verify_outgoing = true
+		ca_path = "../test/ca_path"
+		cert_file = "../test/key/ourdomain.cer"
+		key_file = "../test/key/ourdomain.key"
+		verify_server_hostname = true
+	`
+	c := TestConfig(config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
+	require.NoError(t, a.ReloadConfig(c))
+	tlsConf = a.tlsConfigurator.OutgoingRPCConfig()
+	require.False(t, tlsConf.InsecureSkipVerify)
+	require.Len(t, tlsConf.RootCAs.Subjects(), 2)
+	require.Len(t, tlsConf.ClientCAs.Subjects(), 2)
+}
+
+func TestAgent_ReloadConfigIncomingRPCConfig(t *testing.T) {
+	t.Parallel()
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	defer os.RemoveAll(dataDir)
+	hcl := `
+		data_dir = "` + dataDir + `"
+		verify_outgoing = true
+		ca_file = "../test/ca/root.cer"
+		cert_file = "../test/key/ourdomain.cer"
+		key_file = "../test/key/ourdomain.key"
+		verify_server_hostname = false
+	`
+	a := NewTestAgent(t, t.Name(), hcl)
+	defer a.Shutdown()
+	tlsConf := a.tlsConfigurator.IncomingRPCConfig()
+	require.NotNil(t, tlsConf.GetConfigForClient)
+	tlsConf, err := tlsConf.GetConfigForClient(nil)
+	require.NoError(t, err)
+	require.NotNil(t, tlsConf)
+	require.True(t, tlsConf.InsecureSkipVerify)
+	require.Len(t, tlsConf.ClientCAs.Subjects(), 1)
+	require.Len(t, tlsConf.RootCAs.Subjects(), 1)
+
+	hcl = `
+		data_dir = "` + dataDir + `"
+		verify_outgoing = true
+		ca_path = "../test/ca_path"
+		cert_file = "../test/key/ourdomain.cer"
+		key_file = "../test/key/ourdomain.key"
+		verify_server_hostname = true
+	`
+	c := TestConfig(config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
+	require.NoError(t, a.ReloadConfig(c))
+	tlsConf, err = tlsConf.GetConfigForClient(nil)
+	require.NoError(t, err)
+	require.False(t, tlsConf.InsecureSkipVerify)
+	require.Len(t, tlsConf.ClientCAs.Subjects(), 2)
+	require.Len(t, tlsConf.RootCAs.Subjects(), 2)
+}
+
+func TestAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
+	t.Parallel()
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	defer os.RemoveAll(dataDir)
+	hcl := `
+		data_dir = "` + dataDir + `"
+		verify_outgoing = true
+		ca_file = "../test/ca/root.cer"
+		cert_file = "../test/key/ourdomain.cer"
+		key_file = "../test/key/ourdomain.key"
+		verify_server_hostname = false
+	`
+	a := NewTestAgent(t, t.Name(), hcl)
+	defer a.Shutdown()
+	tlsConf := a.tlsConfigurator.IncomingRPCConfig()
+
+	hcl = `
+		data_dir = "` + dataDir + `"
+		verify_incoming = true
+	`
+	c := TestConfig(config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
+	require.Error(t, a.ReloadConfig(c))
+	tlsConf, err := tlsConf.GetConfigForClient(nil)
+	require.NoError(t, err)
+	require.Equal(t, tls.NoClientCert, tlsConf.ClientAuth)
+	require.Len(t, tlsConf.ClientCAs.Subjects(), 1)
+	require.Len(t, tlsConf.RootCAs.Subjects(), 1)
 }

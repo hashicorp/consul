@@ -8,7 +8,6 @@ import WithPolicyActions from 'consul-ui/mixins/policy/with-actions';
 export default SingleRoute.extend(WithPolicyActions, {
   repo: service('repository/policy'),
   tokenRepo: service('repository/token'),
-  datacenterRepo: service('repository/dc'),
   model: function(params) {
     const dc = this.modelFor('dc').dc.Name;
     const tokenRepo = get(this, 'tokenRepo');
@@ -16,7 +15,6 @@ export default SingleRoute.extend(WithPolicyActions, {
       return hash({
         ...model,
         ...{
-          datacenters: get(this, 'datacenterRepo').findAll(),
           items: tokenRepo.findByPolicy(get(model.item, 'ID'), dc).catch(function(e) {
             switch (get(e, 'errors.firstObject.status')) {
               case '403':
@@ -31,7 +29,6 @@ export default SingleRoute.extend(WithPolicyActions, {
     });
   },
   setupController: function(controller, model) {
-    this._super(...arguments);
     controller.setProperties(model);
   },
 });

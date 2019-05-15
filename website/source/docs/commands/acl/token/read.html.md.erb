@@ -1,0 +1,71 @@
+---
+layout: "docs"
+page_title: "Commands: ACL Token Read"
+sidebar_current: "docs-commands-acl-token-read"
+---
+
+# Consul ACL Token Read
+
+Command: `consul acl token read`
+
+The `acl token read` command reads and displays a token details.
+
+## Usage
+
+Usage: `consul acl token read [options] [args]`
+
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
+
+#### Command Options
+
+* `-id=<string>` - The ID of the policy to read. It may be specified as a unique ID
+   prefix but will error if the prefix matches multiple policy IDs.
+
+* `-meta` - Indicates that policy metadata such as the content hash and raft
+  indices should be shown for each entry.
+
+* `-self` - Indicates that the current HTTP token should be read by secret ID
+   instead of expecting a -id option.
+
+## Examples
+
+Get token details:
+
+```sh
+$ consul acl token read -id 986
+AccessorID:   986193b5-e2b5-eb26-6264-b524ea60cc6d
+SecretID:     ec15675e-2999-d789-832e-8c4794daa8d7
+Description:  Read Nodes and Services
+Local:        false
+Create Time:  2018-10-22 15:33:39.01789 -0400 EDT
+Policies:
+   06acc965-df4b-5a99-58cb-3250930c6324 - node-services-read
+```
+
+Get token details using the token secret ID:
+
+```sh
+$consul acl token read -self
+AccessorID:   4d123dff-f460-73c3-02c4-8dd64d136e01
+SecretID:     86cddfb9-2760-d947-358d-a2811156bf31
+Description:  Bootstrap Token (Global Management)
+Local:        false
+Create Time:  2018-10-22 11:27:04.479026 -0400 EDT
+Policies:
+   00000000-0000-0000-0000-000000000001 - global-management
+```
+
+Get token details (Builtin Tokens)
+
+```sh
+$ consul acl token read -id anonymous
+AccessorID:   00000000-0000-0000-0000-000000000002
+SecretID:     anonymous
+Description:  Anonymous Token
+Local:        false
+Create Time:  0001-01-01 00:00:00 +0000 UTC
+Policies:
+```

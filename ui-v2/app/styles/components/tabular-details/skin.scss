@@ -3,18 +3,30 @@
 }
 %tabular-details td:only-child {
   cursor: default;
+  border: 0;
 }
 %tabular-detail {
-  border: 1px solid $ui-gray-300;
+  border: 1px solid $gray-300;
   border-radius: $decor-radius-100;
-  box-shadow: 0 8px 10px 0 rgba($ui-black, 0.1);
+  box-shadow: 0 8px 10px 0 rgba($black, 0.1);
   margin-bottom: 20px;
 }
 %tabular-detail::before,
 %tabular-detail > div,
 %tabular-detail > label {
-  background-color: $ui-white;
+  background-color: $white;
 }
 %tabular-detail > label::before {
   transform: rotate(180deg);
+}
+// this is here as its a fake border
+%tabular-detail::before {
+  background: $gray-200;
+  content: '';
+  display: block;
+  height: 1px;
+  position: absolute;
+  bottom: -20px;
+  left: 10px;
+  width: calc(100% - 20px);
 }

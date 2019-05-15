@@ -20,7 +20,6 @@ import (
 	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/checks"
-	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/debug"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
@@ -31,6 +30,7 @@ import (
 	"github.com/hashicorp/consul/lib/file"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/types"
+	bexpr "github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/logutils"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
@@ -219,6 +219,9 @@ func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) 
 	var token string
 	s.parseToken(req, &token)
 
+	var filterExpression string
+	s.parseFilter(req, &filterExpression)
+
 	services := s.agent.State.Services()
 	if err := s.agent.filterServices(token, &services); err != nil {
 		return nil, err
@@ -238,7 +241,12 @@ func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) 
 		agentSvcs[id] = &agentService
 	}
 
-	return agentSvcs, nil
+	filter, err := bexpr.CreateFilter(filterExpression, nil, agentSvcs)
+	if err != nil {
+		return nil, err
+	}
+
+	return filter.Execute(agentSvcs)
 }
 
 // GET /v1/agent/service/:service_id
@@ -403,6 +411,13 @@ func (s *HTTPServer) AgentChecks(resp http.ResponseWriter, req *http.Request) (i
 	var token string
 	s.parseToken(req, &token)
 
+	var filterExpression string
+	s.parseFilter(req, &filterExpression)
+	filter, err := bexpr.CreateFilter(filterExpression, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
 	checks := s.agent.State.Checks()
 	if err := s.agent.filterChecks(token, &checks); err != nil {
 		return nil, err
@@ -417,7 +432,7 @@ func (s *HTTPServer) AgentChecks(resp http.ResponseWriter, req *http.Request) (i
 		}
 	}
 
-	return checks, nil
+	return filter.Execute(checks)
 }
 
 func (s *HTTPServer) AgentMembers(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -571,6 +586,14 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, fmt.Errorf("Invalid check: %v", err))
 		return nil, nil
+	}
+
+	if health.ServiceID != "" {
+		// fixup the service name so that vetCheckRegister requires the right ACLs
+		service := s.agent.State.Service(health.ServiceID)
+		if service != nil {
+			health.ServiceName = service.Service
+		}
 	}
 
 	// Get the provided token, if any, and vet against any ACL policies.
@@ -843,7 +866,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 
 		// see https://github.com/hashicorp/consul/pull/3557 why we need this
 		// and why we should get rid of it.
-		config.TranslateKeys(rawMap, map[string]string{
+		lib.TranslateKeys(rawMap, map[string]string{
 			"enable_tag_override": "EnableTagOverride",
 			// Managed Proxy Config
 			"exec_mode": "ExecMode",

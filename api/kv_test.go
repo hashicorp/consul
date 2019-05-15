@@ -15,6 +15,7 @@ func TestAPI_ClientPutGetDelete(t *testing.T) {
 
 	kv := c.KV()
 
+	s.WaitForSerfCheck(t)
 	// Get a get without a key
 	key := testKey()
 	pair, _, err := kv.Get(key, nil)
@@ -229,6 +230,7 @@ func TestAPI_ClientWatchGet(t *testing.T) {
 
 	kv := c.KV()
 
+	s.WaitForSerfCheck(t)
 	// Get a get without a key
 	key := testKey()
 	pair, meta, err := kv.Get(key, nil)

@@ -86,7 +86,7 @@ The API calls for
 [acquiring a leaf TLS certificate](/api/agent/connect.html#service-leaf-certificate)
 and [reading CA roots](/api/agent/connect.html#certificate-authority-ca-roots)
 both support
-[blocking queries](/api/index.html#blocking-queries). By using blocking
+[blocking queries](/api/features/blocking.html). By using blocking
 queries, an application can efficiently wait for an updated value. For example,
 the leaf certificate API will block until the certificate is near expiration
 or the signing certificates have changed and will issue and return a new
@@ -95,7 +95,7 @@ certificate.
 In some languages, using blocking queries may not be simple. In that case,
 we still recommend using the blocking query parameters but with a very short
 `timeout` value set. Doing this is documented with
-[blocking queries](/api/index.html#blocking-queries). The low timeout will
+[blocking queries](/api/features/blocking.html). The low timeout will
 ensure the API responds quickly. We recommend that applications poll the
 certificate endpoints frequently, such as multiple times per minute.
 

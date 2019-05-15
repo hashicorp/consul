@@ -1,7 +1,7 @@
 ---
 layout: "docs"
 page_title: "ACL System (Legacy)"
-sidebar_current: "docs-guides-acl-legacy"
+sidebar_current: "docs-acl-legacy"
 description: |-
   Consul provides an optional Access Control List (ACL) system which can be used to control access to data and APIs. The ACL system is a Capability-based system that relies on tokens which can have fine grained rules applied to them. It is very similar to AWS IAM in many ways.
 ---
@@ -13,9 +13,70 @@ description: |-
 
 The ACL system described here was Consul's original ACL implementation. In Consul 1.4.0
 the ACL system was rewritten and the legacy system was deprecated. The new ACL guide
-can be found [here](/docs/guides/acl.html).
+can be found [here](https://learn.hashicorp.com/consul/advanced/day-1-operations/acl-guide).
 
-# ACL System
+# New ACL System Differences
+
+The [ACL guide](/docs/guides/acl.html) and [legacy ACL
+guide](/docs/guides/acl-legacy.html) describes the new and old systems in
+detail. Below is a summary of the changes that need to be considered when
+migrating legacy tokens to the new system.
+
+## Token and Policy Separation
+
+You can use a single policy in the new system for all tokens that share access
+rules. For example, all tokens created using the clone endpoint in the legacy
+system can be represented with a single policy and a set of tokens that map to
+that policy.
+
+## Rule Syntax Changes
+
+The most significant change is that rules with selectors _no longer prefix match
+by default_. In the legacy system the following rules would grant access to
+nodes, services and keys _prefixed_ with foo.
+
+```
+node "foo" { policy = "write" }
+service "foo" { policy = "write" }
+key "foo" { policy = "write" }
+```
+
+In the new system the same syntax will only perform _exact_ match on the whole
+node name, service name or key.
+
+In general, exact match is what most operators intended most of the time so the
+same policy can be kept, however if you rely on prefix match behavior then using
+the same syntax will break behavior.
+
+Prefix matching can be expressed in the new ACL system explicitly, making the
+following rules in the new system exactly the same as the rules above in the
+old.
+
+```
+node_prefix "foo" { policy = "write" }
+service_prefix "foo" { policy = "write" }
+key_prefix "foo" { policy = "write" }
+```
+
+## API Separation
+
+The "old" API endpoints below continue to work for backwards compatibility but
+will continue to create or show only "legacy" tokens that can't take full
+advantage of the new ACL system improvements. They are documented fully under
+[Legacy Tokens](/api/acl/legacy.html).
+
+- [`PUT /acl/create` - Create Legacy Token](/api/acl/legacy.html#create-acl-token)
+- [`PUT /acl/update` - Update Legacy Token](/api/acl/legacy.html#update-acl-token)
+- [`PUT /acl/destroy/:uuid` - Delete Legacy Token](/api/acl/legacy.html#delete-acl-token)
+- [`GET /acl/info/:uuid` - Read Legacy Token](/api/acl/legacy.html#read-acl-token)
+- [`PUT /acl/clone/:uuid` - Clone Legacy Token](/api/acl/legacy.html#clone-acl-token)
+- [`GET /acl/list` - List Legacy Tokens](/api/acl/legacy.html#list-acls)
+
+The new ACL system includes new API endpoints to manage
+the [ACL System](/api/acl/acl.html), [Tokens](/api/acl/tokens.html)
+and [Policies](/api/acl/policies.html).
+
+# Legacy ACL System
 
 Consul provides an optional Access Control List (ACL) system which can be used to control
 access to data and APIs. The ACL is

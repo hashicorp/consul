@@ -1,11 +1,13 @@
 import Component from '@ember/component';
 import { get, set } from '@ember/object';
-const $html = document.documentElement;
-const $body = document.body;
+import { inject as service } from '@ember/service';
 export default Component.extend({
+  dom: service('dom'),
   isDropdownVisible: false,
   didInsertElement: function() {
-    $html.classList.remove('template-with-vertical-menu');
+    get(this, 'dom')
+      .root()
+      .classList.remove('template-with-vertical-menu');
   },
   actions: {
     dropdown: function(e) {
@@ -14,12 +16,16 @@ export default Component.extend({
       }
     },
     change: function(e) {
+      const dom = get(this, 'dom');
+      const win = dom.viewport();
+      const $root = dom.root();
+      const $body = dom.element('body');
       if (e.target.checked) {
-        $html.classList.add('template-with-vertical-menu');
-        $body.style.height = $html.style.height = window.innerHeight + 'px';
+        $root.classList.add('template-with-vertical-menu');
+        $body.style.height = $root.style.height = win.innerHeight + 'px';
       } else {
-        $html.classList.remove('template-with-vertical-menu');
-        $body.style.height = $html.style.height = null;
+        $root.classList.remove('template-with-vertical-menu');
+        $body.style.height = $root.style.height = null;
       }
     },
   },

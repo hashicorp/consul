@@ -1,40 +1,35 @@
 @import './icons/index';
 @import './table/index';
+@import './type-icon/index';
+
+html.template-service.template-list td:first-child a span,
+html.template-node.template-show #services td:first-child a span,
+html.template-service.template-show #instances td:first-child a span {
+  @extend %with-external-source-icon;
+  float: left;
+  margin-right: 10px;
+  margin-top: 2px;
+}
+/* This nudges the th in for the external source icons */
+html.template-node.template-show #services th:first-child,
+html.template-service.template-show #instances th:first-child,
+html.template-service.template-list main th:first-child {
+  text-indent: 28px;
+}
+
 td.folder {
   @extend %with-folder;
 }
-td dt.passing {
-  @extend %with-passing;
+td .kind-proxy {
+  @extend %type-icon, %with-proxy;
+  text-indent: -9000px !important;
+  width: 24px;
 }
-td dt.warning {
-  @extend %with-warning;
-}
-td dt.critical {
-  @extend %with-critical;
-}
-td span.zero {
-  @extend %with-no-healthchecks;
-  display: block;
-  text-indent: 20px;
-  color: $ui-gray-400;
-}
-table:not(.sessions) tr {
+table:not(.sessions) tbody tr {
   cursor: pointer;
 }
 table:not(.sessions) td:first-child {
   padding: 0;
-}
-td dt.passing,
-td dt.passing + dd {
-  color: $ui-color-success;
-}
-td dt.warning,
-td dt.warning + dd {
-  color: $ui-color-alert;
-}
-td dt.critical,
-td dt.critical + dd {
-  color: $ui-color-failure;
 }
 /* Header Tooltips/Icon*/
 th {
@@ -42,14 +37,12 @@ th {
 }
 th span {
   @extend %tooltip;
-  @extend %with-info;
-  margin-left: 12px;
-  top: 3px;
-  width: 23px;
-  height: 15px;
+  margin-left: 2px;
+  vertical-align: text-top;
 }
-th span:after {
-  left: -8px;
+th span::after {
+  @extend %with-info-circle-outline-icon, %as-pseudo;
+  opacity: 0.6;
 }
 th span em::after {
   @extend %tooltip-tail;
@@ -68,4 +61,32 @@ th span em {
 th span:hover em::after,
 th span:hover em {
   @extend %blink-in-fade-out-active;
+}
+/* ideally these would be in route css files, but left here as they */
+/* accomplish the same thing (hide non-essential columns for tables) */
+@media #{$--lt-medium-table} {
+  /* Policy > Datacenters */
+  html.template-policy.template-list tr > :nth-child(2) {
+    display: none;
+  }
+  html.template-service.template-list tr > :nth-child(2) {
+    display: none;
+  }
+}
+@media #{$--lt-wide-table} {
+  html.template-intention.template-list tr > :nth-last-child(2) {
+    display: none;
+  }
+  html.template-service.template-list tr > :last-child {
+    display: none;
+  }
+  html.template-node.template-show #services tr > :last-child {
+    display: none;
+  }
+  html.template-node.template-show #lock-sessions tr > :not(:first-child):not(:last-child) {
+    display: none;
+  }
+  html.template-node.template-show #lock-sessions td:last-child {
+    padding: 0;
+  }
 }

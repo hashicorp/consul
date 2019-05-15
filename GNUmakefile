@@ -1,22 +1,20 @@
 SHELL = bash
 GOTOOLS = \
-	github.com/elazarl/go-bindata-assetfs/... \
-	github.com/hashicorp/go-bindata/... \
-	github.com/magiconair/vendorfmt/cmd/vendorfmt \
+	github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs \
+	github.com/hashicorp/go-bindata/go-bindata \
 	github.com/mitchellh/gox \
 	golang.org/x/tools/cmd/cover \
 	golang.org/x/tools/cmd/stringer \
-	github.com/axw/gocov/gocov \
-	gopkg.in/matm/v1/gocov-html \
 	github.com/gogo/protobuf/protoc-gen-gofast \
 	github.com/vektra/mockery/cmd/mockery
 
 GOTAGS ?=
-GOFILES ?= $(shell go list ./... | grep -v /vendor/)
+GOMODULES ?= ./... ./api/... ./sdk/...
+GOFILES ?= $(shell go list $(GOMODULES) | grep -v /vendor/)
 ifeq ($(origin GOTEST_PKGS_EXCLUDE), undefined)
-GOTEST_PKGS ?= "./..."
+GOTEST_PKGS ?= $(GOMODULES)
 else
-GOTEST_PKGS=$(shell go list ./... | sed 's/github.com\/hashicorp\/consul/./' | egrep -v "^($(GOTEST_PKGS_EXCLUDE))$$")
+GOTEST_PKGS=$(shell go list $(GOMODULES) | sed 's/github.com\/hashicorp\/consul/./' | egrep -v "^($(GOTEST_PKGS_EXCLUDE))$$")
 endif
 GOOS?=$(shell go env GOOS)
 GOARCH?=$(shell go env GOARCH)
@@ -26,7 +24,7 @@ ASSETFS_PATH?=agent/bindata_assetfs.go
 # Get the git commit
 GIT_COMMIT?=$(shell git rev-parse --short HEAD)
 GIT_DIRTY?=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true)
-GIT_DESCRIBE?=$(shell git describe --tags --always)
+GIT_DESCRIBE?=$(shell git describe --tags --always --match "v*")
 GIT_IMPORT=github.com/hashicorp/consul/version
 GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY) -X $(GIT_IMPORT).GitDescribe=$(GIT_DESCRIBE)
 
@@ -46,8 +44,8 @@ endif
 CONSUL_DEV_IMAGE?=consul-dev
 GO_BUILD_TAG?=consul-build-go
 UI_BUILD_TAG?=consul-build-ui
-UI_LEGACY_BUILD_TAG?=consul-build-ui-legacy
 BUILD_CONTAINER_NAME?=consul-builder
+CONSUL_IMAGE_VERSION?=latest
 
 DIST_TAG?=1
 DIST_BUILD?=1
@@ -91,7 +89,6 @@ NOGOX?=1
 export NOGOX
 export GO_BUILD_TAG
 export UI_BUILD_TAG
-export UI_LEGACY_BUILD_TAG
 export BUILD_CONTAINER_NAME
 export GIT_COMMIT
 export GIT_DIRTY
@@ -99,6 +96,12 @@ export GIT_DESCRIBE
 export GOTAGS
 export GOLDFLAGS
 
+# Allow skipping docker build during integration tests in CI since we already
+# have a built binary
+ENVOY_INTEG_DEPS?=dev-docker
+ifdef SKIP_DOCKER_BUILD
+ENVOY_INTEG_DEPS=noop
+endif
 
 DEV_PUSH?=0
 ifeq ($(DEV_PUSH),1)
@@ -110,22 +113,23 @@ endif
 # all builds binaries for all targets
 all: bin
 
+# used to make integration dependencies conditional
+noop: ;
+
 bin: tools
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-local.sh
 
 # dev creates binaries for testing locally - these are put into ./bin and $GOPATH
-dev: changelogfmt vendorfmt dev-build
+dev: changelogfmt dev-build
 
 dev-build:
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-local.sh -o $(GOOS) -a $(GOARCH)
 
-dev-docker: go-build-image
-	@docker build -t '$(CONSUL_DEV_IMAGE)' --build-arg 'GIT_COMMIT=$(GIT_COMMIT)' --build-arg 'GIT_DIRTY=$(GIT_DIRTY)' --build-arg 'GIT_DESCRIBE=$(GIT_DESCRIBE)' --build-arg 'CONSUL_BUILD_IMAGE=$(GO_BUILD_TAG)' -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile '$(CURDIR)'
-
-vendorfmt:
-	@echo "--> Formatting vendor/vendor.json"
-	test -x $(GOPATH)/bin/vendorfmt || go get -u github.com/magiconair/vendorfmt/cmd/vendorfmt
-	vendorfmt
+dev-docker: linux
+	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
+	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
+	@echo "Building Consul Development container - $(CONSUL_DEV_IMAGE)"
+	@docker build $(NOCACHE) $(QUIET) -t '$(CONSUL_DEV_IMAGE)' --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) $(CURDIR)/pkg/bin/linux_amd64 -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile
 
 changelogfmt:
 	@echo "--> Making [GH-xxxx] references clickable..."
@@ -149,13 +153,21 @@ dev-tree:
 	@$(SHELL) $(CURDIR)/build-support/scripts/dev.sh $(DEV_PUSH_ARG)
 
 cov:
-	gocov test $(GOFILES) | gocov-html > /tmp/coverage.html
-	open /tmp/coverage.html
+	go test $(GOMODULES) -coverprofile=coverage.out
+	go tool cover -html=coverage.out
 
 test: other-consul dev-build vet test-install-deps test-internal
 
 test-install-deps:
 	go test -tags '$(GOTAGS)' -i $(GOTEST_PKGS)
+
+update-vendor:
+	@echo "--> Running go mod vendor"
+	@go mod vendor
+	@echo "--> Removing vendoring of our own nested modules"
+	@rm -rf vendor/github.com/hashicorp/consul
+	@grep -v "hashicorp/consul/" < vendor/modules.txt > vendor/modules.txt.new
+	@mv vendor/modules.txt.new vendor/modules.txt
 
 test-internal:
 	@echo "--> Running go test"
@@ -227,11 +239,11 @@ vet:
 # changes to the UI assets that aren't checked in.
 static-assets:
 	@go-bindata-assetfs -pkg agent -prefix pkg -o $(ASSETFS_PATH) ./pkg/web_ui/...
-	$(MAKE) format
+	@go fmt $(ASSETFS_PATH)
 
 
 # Build the static web ui and build static assets inside a Docker container
-ui: ui-legacy-docker ui-docker static-assets-docker
+ui: ui-docker static-assets-docker
 
 tools:
 	go get -u -v $(GOTOOLS)
@@ -247,7 +259,7 @@ version:
 	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh -r -g
 
 
-docker-images: go-build-image ui-build-image ui-legacy-build-image
+docker-images: go-build-image ui-build-image
 
 go-build-image:
 	@echo "Building Golang build container"
@@ -256,10 +268,6 @@ go-build-image:
 ui-build-image:
 	@echo "Building UI build container"
 	@docker build $(NOCACHE) $(QUIET) -t $(UI_BUILD_TAG) - < build-support/docker/Build-UI.dockerfile
-
-ui-legacy-build-image:
-	@echo "Building Legacy UI build container"
-	@docker build $(NOCACHE) $(QUIET) -t $(UI_LEGACY_BUILD_TAG) - < build-support/docker/Build-UI-Legacy.dockerfile
 
 static-assets-docker: go-build-image
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh static-assets
@@ -270,11 +278,12 @@ consul-docker: go-build-image
 ui-docker: ui-build-image
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh ui
 
-ui-legacy-docker: ui-legacy-build-image
-	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh ui-legacy
+test-envoy-integ: $(ENVOY_INTEG_DEPS)
+	@$(SHELL) $(CURDIR)/test/integration/connect/envoy/run-tests.sh
 
 proto:
 	protoc agent/connect/ca/plugin/*.proto --gofast_out=plugins=grpc:../../..
 
-.PHONY: all ci bin dev dist cov test test-ci test-internal test-install-deps cover format vet ui static-assets tools vendorfmt
-.PHONY: docker-images go-build-image ui-build-image ui-legacy-build-image static-assets-docker consul-docker ui-docker ui-legacy-docker version proto
+.PHONY: all ci bin dev dist cov test test-ci test-internal test-install-deps cover format vet ui static-assets tools
+.PHONY: docker-images go-build-image ui-build-image static-assets-docker consul-docker ui-docker
+.PHONY: version proto test-envoy-integ

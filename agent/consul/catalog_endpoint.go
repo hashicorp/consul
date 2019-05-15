@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/types"
+	bexpr "github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
 )
@@ -219,6 +220,11 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 		return err
 	}
 
+	filter, err := bexpr.CreateFilter(args.Filter, nil, reply.Nodes)
+	if err != nil {
+		return err
+	}
+
 	return c.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
@@ -239,6 +245,13 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 			if err := c.srv.filterACL(args.Token, reply); err != nil {
 				return err
 			}
+
+			raw, err := filter.Execute(reply.Nodes)
+			if err != nil {
+				return err
+			}
+			reply.Nodes = raw.(structs.Nodes)
+
 			return c.srv.sortNodesByDistanceFrom(args.Source, reply.Nodes)
 		})
 }
@@ -327,7 +340,12 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 		}
 	}
 
-	err := c.srv.blockingQuery(
+	filter, err := bexpr.CreateFilter(args.Filter, nil, reply.ServiceNodes)
+	if err != nil {
+		return err
+	}
+
+	err = c.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
@@ -346,9 +364,19 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 				}
 				reply.ServiceNodes = filtered
 			}
+
 			if err := c.srv.filterACL(args.Token, reply); err != nil {
 				return err
 			}
+
+			// This is safe to do even when the filter is nil - its just a no-op then
+			raw, err := filter.Execute(reply.ServiceNodes)
+			if err != nil {
+				return err
+			}
+
+			reply.ServiceNodes = raw.(structs.ServiceNodes)
+
 			return c.srv.sortNodesByDistanceFrom(args.Source, reply.ServiceNodes)
 		})
 
@@ -400,6 +428,12 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 		return fmt.Errorf("Must provide node")
 	}
 
+	var filterType map[string]*structs.NodeService
+	filter, err := bexpr.CreateFilter(args.Filter, nil, filterType)
+	if err != nil {
+		return err
+	}
+
 	return c.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
@@ -410,6 +444,18 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 			}
 
 			reply.Index, reply.NodeServices = index, services
-			return c.srv.filterACL(args.Token, reply)
+			if err := c.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+
+			if reply.NodeServices != nil {
+				raw, err := filter.Execute(reply.NodeServices.Services)
+				if err != nil {
+					return err
+				}
+				reply.NodeServices.Services = raw.(map[string]*structs.NodeService)
+			}
+
+			return nil
 		})
 }

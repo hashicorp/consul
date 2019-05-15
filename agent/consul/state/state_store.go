@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-memdb"
+	memdb "github.com/hashicorp/go-memdb"
 )
 
 var (
@@ -29,6 +29,11 @@ var (
 	// token with an empty AccessorID.
 	ErrMissingACLTokenAccessor = errors.New("Missing ACL Token AccessorID")
 
+	// ErrTokenHasNoPrivileges is returned when a token set is called on a
+	// token with no policies, roles, or service identities and the caller
+	// requires at least one to be set.
+	ErrTokenHasNoPrivileges = errors.New("Token has no privileges")
+
 	// ErrMissingACLPolicyID is returned when a policy set is called on a
 	// policy with an empty ID.
 	ErrMissingACLPolicyID = errors.New("Missing ACL Policy ID")
@@ -36,6 +41,30 @@ var (
 	// ErrMissingACLPolicyName is returned when a policy set is called on a
 	// policy with an empty Name.
 	ErrMissingACLPolicyName = errors.New("Missing ACL Policy Name")
+
+	// ErrMissingACLRoleID is returned when a role set is called on
+	// a role with an empty ID.
+	ErrMissingACLRoleID = errors.New("Missing ACL Role ID")
+
+	// ErrMissingACLRoleName is returned when a role set is called on
+	// a role with an empty Name.
+	ErrMissingACLRoleName = errors.New("Missing ACL Role Name")
+
+	// ErrMissingACLBindingRuleID is returned when a binding rule set
+	// is called on a binding rule with an empty ID.
+	ErrMissingACLBindingRuleID = errors.New("Missing ACL Binding Rule ID")
+
+	// ErrMissingACLBindingRuleAuthMethod is returned when a binding rule set
+	// is called on a binding rule with an empty AuthMethod.
+	ErrMissingACLBindingRuleAuthMethod = errors.New("Missing ACL Binding Rule Auth Method")
+
+	// ErrMissingACLAuthMethodName is returned when an auth method set is
+	// called on an auth method with an empty Name.
+	ErrMissingACLAuthMethodName = errors.New("Missing ACL Auth Method Name")
+
+	// ErrMissingACLAuthMethodType is returned when an auth method set is
+	// called on an auth method with an empty Type.
+	ErrMissingACLAuthMethodType = errors.New("Missing ACL Auth Method Type")
 
 	// ErrMissingQueryID is returned when a Query set is called on
 	// a Query with an empty ID.
@@ -214,14 +243,19 @@ func (s *Store) maxIndex(tables ...string) uint64 {
 // maxIndexTxn is a helper used to retrieve the highest known index
 // amongst a set of tables in the db.
 func maxIndexTxn(tx *memdb.Txn, tables ...string) uint64 {
+	return maxIndexWatchTxn(tx, nil, tables...)
+}
+
+func maxIndexWatchTxn(tx *memdb.Txn, ws memdb.WatchSet, tables ...string) uint64 {
 	var lindex uint64
 	for _, table := range tables {
-		ti, err := tx.First("index", "id", table)
+		ch, ti, err := tx.FirstWatch("index", "id", table)
 		if err != nil {
 			panic(fmt.Sprintf("unknown index: %s err: %s", table, err))
 		}
 		if idx, ok := ti.(*IndexEntry); ok && idx.Value > lindex {
 			lindex = idx.Value
+			ws.Add(ch)
 		}
 	}
 	return lindex

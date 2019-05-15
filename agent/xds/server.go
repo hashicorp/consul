@@ -51,11 +51,31 @@ const (
 	PublicListenerName = "public_listener"
 
 	// LocalAppClusterName is the name we give the local application "cluster" in
-	// Envoy config.
+	// Envoy config. Note that all cluster names may collide with service names
+	// since we want cluster names and service names to match to enable nice
+	// metrics correlation without massaging prefixes on cluster names.
+	//
+	// We should probably make this more unlikely to collide however changing it
+	// potentially breaks upgrade compatibility without restarting all Envoy's as
+	// it will no longer match their existing cluster name. Changing this will
+	// affect metrics output so could break dashboards (for local app traffic).
+	//
+	// We should probably just make it configurable if anyone actually has
+	// services named "local_app" in the future.
 	LocalAppClusterName = "local_app"
 
 	// LocalAgentClusterName is the name we give the local agent "cluster" in
-	// Envoy config.
+	// Envoy config. Note that all cluster names may collide with service names
+	// since we want cluster names and service names to match to enable nice
+	// metrics correlation without massaging prefixes on cluster names.
+	//
+	// We should probably make this more unlikely to collied however changing it
+	// potentially breaks upgrade compatibility without restarting all Envoy's as
+	// it will no longer match their existing cluster name. Changing this will
+	// affect metrics output so could break dashboards (for local agent traffic).
+	//
+	// We should probably just make it configurable if anyone actually has
+	// services named "local_agent" in the future.
 	LocalAgentClusterName = "local_agent"
 
 	// DefaultAuthCheckFrequency is the default value for
@@ -178,7 +198,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 		},
 		ClusterType: &xDSType{
 			typeURL:   ClusterType,
-			resources: clustersFromSnapshot,
+			resources: s.clustersFromSnapshot,
 			stream:    stream,
 		},
 		RouteType: &xDSType{
@@ -188,7 +208,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 		},
 		ListenerType: &xDSType{
 			typeURL:   ListenerType,
-			resources: listenersFromSnapshot,
+			resources: s.listenersFromSnapshot,
 			stream:    stream,
 		},
 	}
@@ -346,7 +366,13 @@ func (t *xDSType) SendIfNew(cfgSnap *proxycfg.ConfigSnapshot, version uint64, no
 	if err != nil {
 		return err
 	}
-	if resources == nil || len(resources) == 0 {
+	// Zero length resource responses should be ignored and are the result of no
+	// data yet. Notice that this caused a bug originally where we had zero
+	// healthy endpoints for an upstream that would cause Envoy to hang waiting
+	// for the EDS response. This is fixed though by ensuring we send an explicit
+	// empty LoadAssignment resource for the cluster rather than allowing junky
+	// empty resources.
+	if len(resources) == 0 {
 		// Nothing to send yet
 		return nil
 	}
@@ -415,6 +441,8 @@ func (s *Server) Check(ctx context.Context, r *envoyauthz.CheckRequest) (*envoya
 	// Parse destination to know the target service
 	dest, err := connect.ParseCertURIFromString(r.Attributes.Destination.Principal)
 	if err != nil {
+		s.Logger.Printf("[DEBUG] grpc: Connect AuthZ DENIED: bad destination URI: src=%s dest=%s",
+			r.Attributes.Source.Principal, r.Attributes.Destination.Principal)
 		// Treat this as an auth error since Envoy has sent something it considers
 		// valid, it's just not an identity we trust.
 		return deniedResponse("Destination Principal is not a valid Connect identity")
@@ -422,6 +450,8 @@ func (s *Server) Check(ctx context.Context, r *envoyauthz.CheckRequest) (*envoya
 
 	destID, ok := dest.(*connect.SpiffeIDService)
 	if !ok {
+		s.Logger.Printf("[DEBUG] grpc: Connect AuthZ DENIED: bad destination service ID: src=%s dest=%s",
+			r.Attributes.Source.Principal, r.Attributes.Destination.Principal)
 		return deniedResponse("Destination Principal is not a valid Service identity")
 	}
 
@@ -446,14 +476,22 @@ func (s *Server) Check(ctx context.Context, r *envoyauthz.CheckRequest) (*envoya
 	authed, reason, _, err := s.Authz.ConnectAuthorize(token, req)
 	if err != nil {
 		if err == acl.ErrPermissionDenied {
+			s.Logger.Printf("[DEBUG] grpc: Connect AuthZ failed ACL check: %s: src=%s dest=%s",
+				err, r.Attributes.Source.Principal, r.Attributes.Destination.Principal)
 			return nil, status.Error(codes.PermissionDenied, err.Error())
 		}
+		s.Logger.Printf("[DEBUG] grpc: Connect AuthZ failed: %s: src=%s dest=%s",
+			err, r.Attributes.Source.Principal, r.Attributes.Destination.Principal)
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 	if !authed {
+		s.Logger.Printf("[DEBUG] grpc: Connect AuthZ DENIED: src=%s dest=%s reason=%s",
+			r.Attributes.Source.Principal, r.Attributes.Destination.Principal, reason)
 		return deniedResponse(reason)
 	}
 
+	s.Logger.Printf("[DEBUG] grpc: Connect AuthZ ALLOWED: src=%s dest=%s reason=%s",
+		r.Attributes.Source.Principal, r.Attributes.Destination.Principal, reason)
 	return &envoyauthz.CheckResponse{
 		Status: &rpc.Status{
 			Code:    int32(rpc.OK),

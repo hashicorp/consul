@@ -2830,10 +2830,10 @@ func ensureIndexForService(t *testing.T, s *Store, ws memdb.WatchSet, serviceNam
 	}
 }
 
-// TestIndexIndependence test that changes on a given service does not impact the
+// TestStateStore_IndexIndependence test that changes on a given service does not impact the
 // index of other services. It allows to have huge benefits for watches since
 // watchers are notified ONLY when there are changes in the given service
-func TestIndexIndependence(t *testing.T) {
+func TestStateStore_IndexIndependence(t *testing.T) {
 	s := testStateStore(t)
 
 	// Querying with no matches gives an empty response
@@ -2917,56 +2917,395 @@ func TestIndexIndependence(t *testing.T) {
 	}
 }
 
-func TestMissingServiceIndex(t *testing.T) {
-	s := testStateStore(t)
+func TestStateStore_ConnectQueryBlocking(t *testing.T) {
+	tests := []struct {
+		name                   string
+		setupFn                func(s *Store)
+		svc                    string
+		wantBeforeResLen       int
+		wantBeforeWatchSetSize int
+		updateFn               func(s *Store)
+		shouldFire             bool
+		wantAfterIndex         uint64
+		wantAfterResLen        int
+		wantAfterWatchSetSize  int
+	}{
+		{
+			name:             "not affected by non-connect-enabled target service registration",
+			setupFn:          nil,
+			svc:              "test",
+			wantBeforeResLen: 0,
+			// Only the connect index iterator is watched
+			wantBeforeWatchSetSize: 1,
+			updateFn: func(s *Store) {
+				testRegisterService(t, s, 4, "node1", "test")
+			},
+			shouldFire:      false,
+			wantAfterIndex:  4, // No results falls back to global service index
+			wantAfterResLen: 0,
+			// Only the connect index iterator is watched
+			wantAfterWatchSetSize: 1,
+		},
+		{
+			name: "not affected by non-connect-enabled target service de-registration",
+			setupFn: func(s *Store) {
+				testRegisterService(t, s, 4, "node1", "test")
+			},
+			svc:              "test",
+			wantBeforeResLen: 0,
+			// Only the connect index iterator is watched
+			wantBeforeWatchSetSize: 1,
+			updateFn: func(s *Store) {
+				require.NoError(t, s.DeleteService(5, "node1", "test"))
+			},
+			// Note that the old implementation would unblock in this case since it
+			// always watched the target service's index even though some updates
+			// there don't affect Connect result output. This doesn't matter much for
+			// correctness but it causes pointless work.
+			shouldFire:      false,
+			wantAfterIndex:  5, // No results falls back to global service index
+			wantAfterResLen: 0,
+			// Only the connect index iterator is watched
+			wantAfterWatchSetSize: 1,
+		},
+		{
+			name:             "unblocks on first connect-native service registration",
+			setupFn:          nil,
+			svc:              "test",
+			wantBeforeResLen: 0,
+			// Only the connect index iterator is watched
+			wantBeforeWatchSetSize: 1,
+			updateFn: func(s *Store) {
+				testRegisterConnectNativeService(t, s, 4, "node1", "test")
+			},
+			shouldFire:      true,
+			wantAfterIndex:  4,
+			wantAfterResLen: 1,
+			// Should take the optimized path where we only watch the service index
+			// and the connect index iterator.
+			wantAfterWatchSetSize: 2,
+		},
+		{
+			name: "unblocks on subsequent connect-native service registration",
+			setupFn: func(s *Store) {
+				testRegisterConnectNativeService(t, s, 4, "node1", "test")
+			},
+			svc:              "test",
+			wantBeforeResLen: 1,
+			// Should take the optimized path where we only watch the service index
+			// and the connect index iterator.
+			wantBeforeWatchSetSize: 2,
+			updateFn: func(s *Store) {
+				testRegisterConnectNativeService(t, s, 5, "node2", "test")
+			},
+			shouldFire:      true,
+			wantAfterIndex:  5,
+			wantAfterResLen: 2,
+			// Should take the optimized path where we only watch the service index
+			// and the connect index iterator.
+			wantAfterWatchSetSize: 2,
+		},
+		{
+			name: "unblocks on connect-native service de-registration",
+			setupFn: func(s *Store) {
+				testRegisterConnectNativeService(t, s, 4, "node1", "test")
+				testRegisterConnectNativeService(t, s, 5, "node2", "test")
+			},
+			svc:              "test",
+			wantBeforeResLen: 2,
+			// Should take the optimized path where we only watch the service index
+			// and the connect index iterator.
+			wantBeforeWatchSetSize: 2,
+			updateFn: func(s *Store) {
+				require.NoError(t, s.DeleteService(6, "node2", "test"))
+			},
+			shouldFire:      true,
+			wantAfterIndex:  6,
+			wantAfterResLen: 1,
+			// Should take the optimized path where we only watch the service index
+			// and the connect index iterator.
+			wantAfterWatchSetSize: 2,
+		},
+		{
+			name: "unblocks on last connect-native service de-registration",
+			setupFn: func(s *Store) {
+				testRegisterConnectNativeService(t, s, 4, "node1", "test")
+			},
+			svc:              "test",
+			wantBeforeResLen: 1,
+			// Should take the optimized path where we only watch the service index
+			// and the connect index iterator.
+			wantBeforeWatchSetSize: 2,
+			updateFn: func(s *Store) {
+				require.NoError(t, s.DeleteService(6, "node1", "test"))
+			},
+			shouldFire:      true,
+			wantAfterIndex:  6,
+			wantAfterResLen: 0,
+			// Only the connect index iterator is watched
+			wantAfterWatchSetSize: 1,
+		},
+		{
+			name:             "unblocks on first proxy service registration",
+			setupFn:          nil,
+			svc:              "test",
+			wantBeforeResLen: 0,
+			// Only the connect index iterator is watched
+			wantBeforeWatchSetSize: 1,
+			updateFn: func(s *Store) {
+				testRegisterSidecarProxy(t, s, 4, "node1", "test")
+			},
+			shouldFire:      true,
+			wantAfterIndex:  4,
+			wantAfterResLen: 1,
+			// Should take the optimized path where we only watch the service index
+			// and the connect index iterator.
+			wantAfterWatchSetSize: 2,
+		},
+		{
+			name: "unblocks on subsequent proxy service registration",
+			setupFn: func(s *Store) {
+				testRegisterSidecarProxy(t, s, 4, "node1", "test")
+			},
+			svc:              "test",
+			wantBeforeResLen: 1,
+			// Should take the optimized path where we only watch the service index
+			// and the connect index iterator.
+			wantBeforeWatchSetSize: 2,
+			updateFn: func(s *Store) {
+				testRegisterSidecarProxy(t, s, 5, "node2", "test")
+			},
+			shouldFire:      true,
+			wantAfterIndex:  5,
+			wantAfterResLen: 2,
+			// Should take the optimized path where we only watch the service index
+			// and the connect index iterator.
+			wantAfterWatchSetSize: 2,
+		},
+		{
+			name: "unblocks on proxy service de-registration",
+			setupFn: func(s *Store) {
+				testRegisterSidecarProxy(t, s, 4, "node1", "test")
+				testRegisterSidecarProxy(t, s, 5, "node2", "test")
+			},
+			svc:              "test",
+			wantBeforeResLen: 2,
+			// Should take the optimized path where we only watch the service index
+			// and the connect index iterator.
+			wantBeforeWatchSetSize: 2,
+			updateFn: func(s *Store) {
+				require.NoError(t, s.DeleteService(6, "node2", "test-sidecar-proxy"))
+			},
+			shouldFire:      true,
+			wantAfterIndex:  6,
+			wantAfterResLen: 1,
+			// Should take the optimized path where we only watch the service index
+			// and the connect index iterator.
+			wantAfterWatchSetSize: 2,
+		},
+		{
+			name: "unblocks on last proxy service de-registration",
+			setupFn: func(s *Store) {
+				testRegisterSidecarProxy(t, s, 4, "node1", "test")
+			},
+			svc:              "test",
+			wantBeforeResLen: 1,
+			// Should take the optimized path where we only watch the service index
+			// and the connect index iterator.
+			wantBeforeWatchSetSize: 2,
+			updateFn: func(s *Store) {
+				require.NoError(t, s.DeleteService(6, "node1", "test-sidecar-proxy"))
+			},
+			shouldFire:      true,
+			wantAfterIndex:  6,
+			wantAfterResLen: 0,
+			// Only the connect index iterator is watched
+			wantAfterWatchSetSize: 1,
+		},
+		{
+			name: "unblocks on connect-native service health check change",
+			setupFn: func(s *Store) {
+				testRegisterConnectNativeService(t, s, 4, "node1", "test")
+				testRegisterCheck(t, s, 6, "node1", "test", "check1", "passing")
+			},
+			svc:              "test",
+			wantBeforeResLen: 1,
+			// Should take the optimized path where we only watch the service index
+			// and the connect index iterator.
+			wantBeforeWatchSetSize: 2,
+			updateFn: func(s *Store) {
+				testRegisterCheck(t, s, 7, "node1", "test", "check1", "critical")
+			},
+			shouldFire:      true,
+			wantAfterIndex:  7,
+			wantAfterResLen: 1, // critical filtering doesn't happen in the state store method.
+			// Should take the optimized path where we only watch the service index
+			// and the connect index iterator.
+			wantAfterWatchSetSize: 2,
+		},
+		{
+			name: "unblocks on proxy service health check change",
+			setupFn: func(s *Store) {
+				testRegisterSidecarProxy(t, s, 4, "node1", "test")
+				testRegisterCheck(t, s, 6, "node1", "test-sidecar-proxy", "check1", "passing")
+			},
+			svc:              "test",
+			wantBeforeResLen: 1,
+			// Should take the optimized path where we only watch the service index
+			// and the connect index iterator.
+			wantBeforeWatchSetSize: 2,
+			updateFn: func(s *Store) {
+				testRegisterCheck(t, s, 7, "node1", "test-sidecar-proxy", "check1", "critical")
+			},
+			shouldFire:      true,
+			wantAfterIndex:  7,
+			wantAfterResLen: 1, // critical filtering doesn't happen in the state store method.
+			// Should take the optimized path where we only watch the service index
+			// and the connect index iterator.
+			wantAfterWatchSetSize: 2,
+		},
+		{
+			name: "unblocks on connect-native node health check change",
+			setupFn: func(s *Store) {
+				testRegisterConnectNativeService(t, s, 4, "node1", "test")
+				testRegisterCheck(t, s, 6, "node1", "", "check1", "passing")
+			},
+			svc:              "test",
+			wantBeforeResLen: 1,
+			// Should take the optimized path where we only watch the service index
+			// and the connect index iterator.
+			wantBeforeWatchSetSize: 2,
+			updateFn: func(s *Store) {
+				testRegisterCheck(t, s, 7, "node1", "", "check1", "critical")
+			},
+			shouldFire:      true,
+			wantAfterIndex:  7,
+			wantAfterResLen: 1, // critical filtering doesn't happen in the state store method.
+			// Should take the optimized path where we only watch the service index
+			// and the connect index iterator.
+			wantAfterWatchSetSize: 2,
+		},
+		{
+			name: "unblocks on proxy service health check change",
+			setupFn: func(s *Store) {
+				testRegisterSidecarProxy(t, s, 4, "node1", "test")
+				testRegisterCheck(t, s, 6, "node1", "", "check1", "passing")
+			},
+			svc:              "test",
+			wantBeforeResLen: 1,
+			// Should take the optimized path where we only watch the service index
+			// and the connect index iterator.
+			wantBeforeWatchSetSize: 2,
+			updateFn: func(s *Store) {
+				testRegisterCheck(t, s, 7, "node1", "", "check1", "critical")
+			},
+			shouldFire:      true,
+			wantAfterIndex:  7,
+			wantAfterResLen: 1, // critical filtering doesn't happen in the state store method.
+			// Should take the optimized path where we only watch the service index
+			// and the connect index iterator.
+			wantAfterWatchSetSize: 2,
+		},
+		{
+			// See https://github.com/hashicorp/consul/issues/5506. The issue is cause
+			// if the target service exists and is registered meaning it has a
+			// service-specific index. This index is then used for the connect query
+			// even though it is not updated by changes to the actual proxy or it's
+			// checks. If the target service was never registered then it all appears
+			// to work because the code would not find a service index and so fall
+			// back to using the global service index which does change on any update
+			// to proxies.
+			name: "unblocks on proxy service health check change with target service present",
+			setupFn: func(s *Store) {
+				testRegisterService(t, s, 4, "node1", "test") // normal service
+				testRegisterSidecarProxy(t, s, 5, "node1", "test")
+				testRegisterCheck(t, s, 6, "node1", "test-sidecar-proxy", "check1", "passing")
+			},
+			svc:              "test",
+			wantBeforeResLen: 1,
+			// Should take the optimized path where we only watch the service index
+			// and the connect index iterator.
+			wantBeforeWatchSetSize: 2,
+			updateFn: func(s *Store) {
+				testRegisterCheck(t, s, 7, "node1", "test-sidecar-proxy", "check1", "critical")
+			},
+			shouldFire:      true,
+			wantAfterIndex:  7,
+			wantAfterResLen: 1, // critical filtering doesn't happen in the state store method.
+			// Should take the optimized path where we only watch the service index
+			// and the connect index iterator.
+			wantAfterWatchSetSize: 2,
+		},
+		{
+			// See https://github.com/hashicorp/consul/issues/5506. This is the edge
+			// case that the simple solution wouldn't catch.
+			name: "unblocks on different service name proxy-service registration when service is present",
+			setupFn: func(s *Store) {
+				testRegisterSidecarProxy(t, s, 4, "node1", "test")
+			},
+			svc:              "test",
+			wantBeforeResLen: 1,
+			// Should take the optimized path where we only watch the service index
+			// and the connect index iterator.
+			wantBeforeWatchSetSize: 2,
+			updateFn: func(s *Store) {
+				// Register a new result with a different service name could be another
+				// proxy with a different name, but a native instance works too.
+				testRegisterConnectNativeService(t, s, 5, "node2", "test")
+			},
+			shouldFire:      true,
+			wantAfterIndex:  5,
+			wantAfterResLen: 2,
+			// Should take the optimized path where we only watch the teo service
+			// indexes and the connect index iterator.
+			wantAfterWatchSetSize: 3,
+		},
+	}
 
-	// Querying with no matches gives an empty response
-	ws := memdb.NewWatchSet()
-	idx, res, err := s.CheckServiceNodes(ws, "service1")
-	require.Nil(t, err)
-	require.Nil(t, res)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := testStateStore(t)
 
-	// index should be 0 for a non existing service at startup
-	require.Equal(t, uint64(0), idx)
+			// Always create 3 nodes
+			testRegisterNode(t, s, 1, "node1")
+			testRegisterNode(t, s, 2, "node2")
+			testRegisterNode(t, s, 3, "node3")
 
-	testRegisterNode(t, s, 0, "node1")
+			// Setup
+			if tt.setupFn != nil {
+				tt.setupFn(s)
+			}
 
-	// node operations should not affect missing service index
-	ensureServiceVersion(t, s, ws, "service1", 0, 0)
+			require := require.New(t)
 
-	testRegisterService(t, s, 10, "node1", "service1")
-	ensureServiceVersion(t, s, ws, "service1", 10, 1)
+			// Run the query
+			ws := memdb.NewWatchSet()
+			idx, res, err := s.CheckConnectServiceNodes(ws, tt.svc)
+			require.NoError(err)
+			require.Len(res, tt.wantBeforeResLen)
+			require.Len(ws, tt.wantBeforeWatchSetSize)
 
-	s.DeleteService(11, "node1", "service1")
-	// service1 is now missing, its index is now that of the last index a service was
-	// deleted at
-	ensureServiceVersion(t, s, ws, "service1", 11, 0)
+			// Mutate the state store
+			if tt.updateFn != nil {
+				tt.updateFn(s)
+			}
 
-	testRegisterService(t, s, 12, "node1", "service2")
-	ensureServiceVersion(t, s, ws, "service2", 12, 1)
+			fired := watchFired(ws)
+			if tt.shouldFire {
+				require.True(fired, "WatchSet should have fired")
+			} else {
+				require.False(fired, "WatchSet should not have fired")
+			}
 
-	// missing service index does not change even though another service have been
-	// registered
-	ensureServiceVersion(t, s, ws, "service1", 11, 0)
-	ensureServiceVersion(t, s, ws, "i_do_not_exist", 11, 0)
-
-	// registering a service on another node does not affect missing service
-	// index
-	testRegisterNode(t, s, 13, "node2")
-	testRegisterService(t, s, 14, "node2", "service3")
-	ensureServiceVersion(t, s, ws, "service3", 14, 1)
-	ensureServiceVersion(t, s, ws, "service1", 11, 0)
-
-	// unregistering a service bumps missing service index
-	s.DeleteService(15, "node2", "service3")
-	ensureServiceVersion(t, s, ws, "service3", 15, 0)
-	ensureServiceVersion(t, s, ws, "service2", 12, 1)
-	ensureServiceVersion(t, s, ws, "service1", 15, 0)
-	ensureServiceVersion(t, s, ws, "i_do_not_exist", 15, 0)
-
-	// registering again a missing service correctly updates its index
-	testRegisterService(t, s, 16, "node1", "service1")
-	ensureServiceVersion(t, s, ws, "service1", 16, 1)
+			// Re-query the same result. Should return the desired index and len
+			ws = memdb.NewWatchSet()
+			idx, res, err = s.CheckConnectServiceNodes(ws, tt.svc)
+			require.NoError(err)
+			require.Len(res, tt.wantAfterResLen)
+			require.Equal(tt.wantAfterIndex, idx)
+			require.Len(ws, tt.wantAfterWatchSetSize)
+		})
+	}
 }
 
 func TestStateStore_CheckServiceNodes(t *testing.T) {
@@ -3037,8 +3376,8 @@ func TestStateStore_CheckServiceNodes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	// service1 has been registered at idx=6, other different registrations do not count
-	if idx != 6 {
+	// service1 has been updated by node on idx 8
+	if idx != 8 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
@@ -3078,43 +3417,11 @@ func TestStateStore_CheckServiceNodes(t *testing.T) {
 		t.Fatalf("bad")
 	}
 
-	// Overwhelm node and check tracking.
-	idx = 13
-	for i := 0; i < 2*watchLimit; i++ {
-		node := fmt.Sprintf("many%d", i)
-		testRegisterNode(t, s, idx, node)
-		idx++
-		testRegisterCheck(t, s, idx, node, "", "check1", api.HealthPassing)
-		idx++
-		testRegisterService(t, s, idx, node, "service1")
-		idx++
-		testRegisterCheck(t, s, idx, node, "service1", "check2", api.HealthPassing)
-		idx++
-	}
-
-	// Now registering an unrelated node will fire the watch.
-	ws = memdb.NewWatchSet()
-	idx, results, err = s.CheckServiceNodes(ws, "service1")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	testRegisterNode(t, s, idx, "more-nope")
-	idx++
-	if !watchFired(ws) {
-		t.Fatalf("bad")
-	}
-
-	// Also, registering an unrelated check will fire the watch.
-	ws = memdb.NewWatchSet()
-	idx, results, err = s.CheckServiceNodes(ws, "service1")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	testRegisterCheck(t, s, idx, "more-nope", "", "check1", api.HealthPassing)
-	idx++
-	if !watchFired(ws) {
-		t.Fatalf("bad")
-	}
+	// Note that we can't overwhelm chan tracking any more since we optimized it
+	// to only need to watch one chan in the happy path. The only path that does
+	// bees to watch more stuff is where there are no service instances which also
+	// means fewer than watchLimit chans too so effectively no way to trigger
+	// Fallback watch any more.
 }
 
 func TestStateStore_CheckConnectServiceNodes(t *testing.T) {
@@ -3509,4 +3816,30 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 	if watchFired(ws) {
 		t.Fatalf("bad")
 	}
+}
+
+func TestStateStore_ServiceIdxUpdateOnNodeUpdate(t *testing.T) {
+	s := testStateStore(t)
+
+	// Create a service on a node
+	err := s.EnsureNode(10, &structs.Node{Node: "node", Address: "127.0.0.1"})
+	require.Nil(t, err)
+	err = s.EnsureService(12, "node", &structs.NodeService{ID: "srv", Service: "srv", Tags: nil, Address: "", Port: 5000})
+	require.Nil(t, err)
+
+	// Store the current service index
+	ws := memdb.NewWatchSet()
+	lastIdx, _, err := s.ServiceNodes(ws, "srv")
+	require.Nil(t, err)
+
+	// Update the node with some meta
+	err = s.EnsureNode(14, &structs.Node{Node: "node", Address: "127.0.0.1", Meta: map[string]string{"foo": "bar"}})
+	require.Nil(t, err)
+
+	// Read the new service index
+	ws = memdb.NewWatchSet()
+	newIdx, _, err := s.ServiceNodes(ws, "srv")
+	require.Nil(t, err)
+
+	require.True(t, newIdx > lastIdx)
 }

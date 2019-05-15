@@ -84,7 +84,7 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Read an ACL Policy"
+const synopsis = "Read an ACL policy"
 const help = `
 Usage: consul acl policy read [options] POLICY
 

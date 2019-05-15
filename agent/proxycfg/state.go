@@ -170,7 +170,7 @@ func (s *state) initWatches() error {
 				QueryOptions:  structs.QueryOptions{Token: s.token, MaxAge: defaultPreparedQueryPollInterval},
 				QueryIDOrName: u.DestinationName,
 				Connect:       true,
-			}, u.Identifier(), s.ch)
+			}, "upstream:"+u.Identifier(), s.ch)
 		case structs.UpstreamDestTypeService:
 			fallthrough
 		case "": // Treat unset as the default Service type
@@ -179,7 +179,10 @@ func (s *state) initWatches() error {
 				QueryOptions: structs.QueryOptions{Token: s.token},
 				ServiceName:  u.DestinationName,
 				Connect:      true,
-			}, u.Identifier(), s.ch)
+				// Note that Identifier doesn't type-prefix for service any more as it's
+				// the default and makes metrics and other things much cleaner. It's
+				// simpler for us if we have the type to make things unambiguous.
+			}, "upstream:"+serviceIDPrefix+u.Identifier(), s.ch)
 
 			if err != nil {
 				return err
@@ -297,19 +300,21 @@ func (s *state) handleUpdate(u cache.UpdateEvent, snap *ConfigSnapshot) error {
 	default:
 		// Service discovery result, figure out which type
 		switch {
-		case strings.HasPrefix(u.CorrelationID, serviceIDPrefix):
+		case strings.HasPrefix(u.CorrelationID, "upstream:"+serviceIDPrefix):
 			resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
 			if !ok {
 				return fmt.Errorf("invalid type for service response: %T", u.Result)
 			}
-			snap.UpstreamEndpoints[u.CorrelationID] = resp.Nodes
+			svc := strings.TrimPrefix(u.CorrelationID, "upstream:"+serviceIDPrefix)
+			snap.UpstreamEndpoints[svc] = resp.Nodes
 
-		case strings.HasPrefix(u.CorrelationID, preparedQueryIDPrefix):
+		case strings.HasPrefix(u.CorrelationID, "upstream:"+preparedQueryIDPrefix):
 			resp, ok := u.Result.(*structs.PreparedQueryExecuteResponse)
 			if !ok {
 				return fmt.Errorf("invalid type for prepared query response: %T", u.Result)
 			}
-			snap.UpstreamEndpoints[u.CorrelationID] = resp.Nodes
+			pq := strings.TrimPrefix(u.CorrelationID, "upstream:")
+			snap.UpstreamEndpoints[pq] = resp.Nodes
 
 		default:
 			return errors.New("unknown correlation ID")

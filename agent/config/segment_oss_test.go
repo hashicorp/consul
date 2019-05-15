@@ -1,4 +1,4 @@
-// +build !ent
+// +build !consulent
 
 package config
 
@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestSegments(t *testing.T) {

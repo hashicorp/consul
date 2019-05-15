@@ -24,7 +24,8 @@ form table,
 %app-content form dl {
   @extend %form-row;
 }
-%app-content [role='radiogroup'] {
+%app-content form:not(.filter-bar) [role='radiogroup'],
+%modal-window [role='radiogroup'] {
   @extend %radio-group;
 }
 %radio-group label {
@@ -32,6 +33,9 @@ form table,
 }
 .checkbox-group {
   @extend %checkbox-group;
+}
+fieldset > p {
+  color: $gray-400;
 }
 %toggle + .checkbox-group {
   margin-top: -1em;

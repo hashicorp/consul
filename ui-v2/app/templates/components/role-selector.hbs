@@ -1,0 +1,106 @@
+{{#modal-dialog data-test-role-form onclose=(action (mut state) 'role') name="new-role-toggle"}}
+  {{#block-slot 'header'}}
+{{#if (eq state 'role')}}
+    <h2>New Role</h2>
+{{else}}
+    <h2>New Policy</h2>
+{{/if}}
+  {{/block-slot}}
+  {{#block-slot 'body'}}
+
+  <input id="{{name}}_state_role" type="radio" name="{{name}}[state]" value="role" checked={{if (eq state 'role') 'checked'}} onchange={{action 'change'}} />
+    {{#role-form form=form dc=dc}}
+      {{#block-slot 'policy'}}
+
+        {{#policy-selector source=source dc=dc items=item.Policies}}
+          {{#block-slot 'trigger'}}
+            <label for="{{name}}_state_policy" data-test-create-policy class="type-dialog">
+              <span>Create new policy</span>
+            </label>
+          {{/block-slot}}
+        {{/policy-selector}}
+
+      {{/block-slot}}
+    {{/role-form}}
+
+    <input id="{{name}}_state_policy" type="radio" name="{{name}}[state]" value="policy" checked={{if (eq state 'policy') 'checked'}} onchange={{action 'change'}} />
+    {{policy-form data-test-policy-form name="role[policy]" form=policyForm dc=dc}}
+
+  {{/block-slot}}
+  {{#block-slot 'actions' as |close|}}
+
+{{#if (eq state 'role')}}
+    <button type="submit" {{action 'save' item items (queue (action close) (action 'reset'))}} disabled={{if (or item.isSaving item.isPristine item.isInvalid) 'disabled'}}>
+      {{#if item.isSaving }}
+        <div class="progress indeterminate"></div>
+      {{/if}}
+      <span>Create and apply</span>
+    </button>
+    <button type="reset" disabled={{if item.isSaving 'disabled'}} {{action (queue (action close) (action 'reset'))}}>Cancel</button>
+{{else}}
+    <button type="submit" {{action 'dispatch' 'save' (array policy item.Policies (action (mut state) 'role'))}} disabled={{if (or policy.isSaving policy.isPristine policy.isInvalid) 'disabled'}}>
+      {{#if policy.isSaving }}
+        <div class="progress indeterminate"></div>
+      {{/if}}
+      <span>Create and apply</span>
+    </button>
+    <button type="reset" disabled={{if policy.isSaving 'disabled'}} {{action (mut state) 'role'}}>Cancel</button>
+{{/if}}
+
+  {{/block-slot}}
+{{/modal-dialog}}
+
+{{#child-selector repo=repo dc=dc type="role" placeholder="Search for role" items=items}}
+  {{#block-slot 'label'}}
+    Apply an existing role
+  {{/block-slot}}
+  {{#block-slot 'create'}}
+    <label class="type-dialog" for="new-role-toggle">
+      <span>Create new role</span>
+    </label>
+
+  {{/block-slot}}
+  {{#block-slot 'option' as |option|}}
+    {{option.Name}}
+  {{/block-slot}}
+  {{#block-slot 'set'}}
+    {{#tabular-collection
+        data-test-roles
+        rows=5
+        items=(sort-by 'CreateTime:desc' 'Name:asc' items) as |item index|
+    }}
+      {{#block-slot 'header'}}
+        <th>Name</th>
+        <th>Description</th>
+      {{/block-slot}}
+      {{#block-slot 'row'}}
+        <td>
+          <a href={{href-to 'dc.acls.roles.edit' item.ID}}>{{item.Name}}</a>
+        </td>
+        <td>
+          {{item.Description}}
+        </td>
+      {{/block-slot}}
+      {{#block-slot 'actions' as |index change checked|}}
+        {{#confirmation-dialog confirming=false index=index message="Are you sure you want to remove this Role?"}}
+          {{#block-slot 'action' as |confirm|}}
+              {{#action-group index=index onchange=(action change) checked=(if (eq checked index) 'checked')}}
+                  <ul>
+                      <li>
+                          <a data-test-edit href={{href-to 'dc.acls.roles.edit' item.ID}}>Edit</a>
+                      </li>
+                      <li>
+                          <button type="button" class="type-delete" data-test-delete {{action confirm 'remove' item items}}>Remove</button>
+                      </li>
+                  </ul>
+              {{/action-group}}
+          {{/block-slot}}
+          {{#block-slot 'dialog' as |execute cancel message name|}}
+            {{delete-confirmation message=message execute=execute cancel=cancel}}
+          {{/block-slot}}
+        {{/confirmation-dialog}}
+      {{/block-slot}}
+    {{/tabular-collection}}
+
+  {{/block-slot}}
+{{/child-selector}}

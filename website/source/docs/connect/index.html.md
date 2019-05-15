@@ -73,7 +73,7 @@ There are several ways to try Connect in different environments.
    Getting Started guide provides a simple walk through of getting two services
    to communicate via Connect using only Consul directly on your local machine.
 
- * The [Envoy guide](/docs/guides/connect-envoy.html) walks through getting
+ * The [Envoy guide](https://learn.hashicorp.com/consul/developer-segmentation/connect-envoy) walks through getting
    started with Envoy as a proxy, and uses Docker to run components locally
    without installing anything else.
 
@@ -87,7 +87,7 @@ There are several ways to try Connect in different environments.
 To enable microsecond-speed responses on
 [agent Connect API endpoints](/api/agent/connect.html), the Consul agent
 locally caches most Connect-related data and sets up background
-[blocking queries](/api/index.html#blocking-queries) against the server
+[blocking queries](/api/features/blocking.html) against the server
 to update the cache in the background. This allows most API calls such
 as retrieving certificates or authorizing connections to use in-memory
 data and respond very quickly.

@@ -1,6 +1,10 @@
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import { get } from 'consul-ui/tests/helpers/api';
+import { HEADERS_SYMBOL as META } from 'consul-ui/utils/http/consul';
+
+import { createPolicies } from 'consul-ui/tests/helpers/normalizers';
+
 module('Integration | Adapter | token | response', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
@@ -15,6 +19,7 @@ module('Integration | Adapter | token | response', function(hooks) {
         Object.assign({}, item, {
           Datacenter: dc,
           uid: `["${dc}","${item.AccessorID}"]`,
+          Policies: createPolicies(item),
         })
       );
       const actual = adapter.handleResponse(200, {}, payload, request);
@@ -29,7 +34,9 @@ module('Integration | Adapter | token | response', function(hooks) {
     return get(request.url).then(function(payload) {
       const expected = Object.assign({}, payload, {
         Datacenter: dc,
+        [META]: {},
         uid: `["${dc}","${id}"]`,
+        Policies: createPolicies(payload),
       });
       const actual = adapter.handleResponse(200, {}, payload, request);
       assert.deepEqual(actual, expected);

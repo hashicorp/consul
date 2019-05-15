@@ -1,17 +1,3 @@
-@import '../../../components/pill/index';
-html.template-service.template-show main dl {
-  display: flex;
-  margin-bottom: 1.4em;
-}
-html.template-service.template-show main dt {
-  display: none;
-}
-// TODO: Generalize this, also see nodes/index
-html.template-service.template-list td.tags span,
-html.template-service.template-show main dd span {
-  @extend %pill;
-}
-html.template-node.template-show #services th:first-child,
-html.template-service.template-list main th:first-child {
-  text-indent: 28px;
+html.template-instance.template-show #upstreams table tr {
+  cursor: default;
 }

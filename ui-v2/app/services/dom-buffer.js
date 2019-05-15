@@ -11,11 +11,18 @@ export default Service.extend(Evented, {
   },
   add: function(name, dom) {
     this.trigger('add', dom);
-    buffer[name] = dom;
+    if (typeof buffer[name] === 'undefined') {
+      buffer[name] = [];
+    }
+    buffer[name].push(dom);
     return dom;
   },
   remove: function(name) {
-    buffer[name].remove();
-    delete buffer[name];
+    if (typeof buffer[name] !== 'undefined') {
+      buffer[name].forEach(function(item) {
+        item.remove();
+      });
+      delete buffer[name];
+    }
   },
 });

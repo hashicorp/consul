@@ -11,8 +11,11 @@ description: |-
 # ACL Policy HTTP API
 
 The `/acl/policy` endpoints [create](#create-a-policy), [read](#read-a-policy),
-[update](#update-a-policy), [list](#list-policies) and [delete](#delete-a-policy)  ACL policies in Consul.
-For more information about ACLs, please see the [ACL Guide](/docs/guides/acl.html).
+[update](#update-a-policy), [list](#list-policies) and
+[delete](#delete-a-policy)  ACL policies in Consul.  
+
+For more information on how to setup ACLs, please see
+the [ACL Guide](https://learn.hashicorp.com/consul/advanced/day-1-operations/production-acls).
 
 ## Create a Policy
 
@@ -23,10 +26,10 @@ This endpoint creates a new ACL policy.
 | `PUT`  | `/acl/policy`                | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -35,13 +38,13 @@ The table below shows this endpoint's support for
 ### Parameters
 
 - `Name` `(string: <required>)` - Specifies a name for the ACL policy. The name
-   can only contain alphanumeric characters as well as `-` and `_` and must be
-   unique.
+  can contain alphanumeric characters, dashes `-`, and  underscores `_`.
+  This name must be unique.
 
 - `Description` `(string: "")` - Free form human readable description of the policy.
 
 - `Rules` `(string: "")` - Specifies rules for the ACL policy. The format of the
-  `Rules` property is documented in the [ACL Guide](/docs/guides/acl.html).
+  `Rules` property is detailed in the [ACL Rules documentation](/docs/acl/acl-rules.html).
 
 - `Datacenters` `(array<string>)` - Specifies the datacenters the policy is valid within.
    When no datacenters are provided the policy is valid in all datacenters including
@@ -60,9 +63,8 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
-$ curl \
-    --request PUT \
+```sh
+$ curl -X PUT \
     --data @payload.json \
     http://127.0.0.1:8500/v1/acl/policy
 ```
@@ -94,10 +96,10 @@ This endpoint reads an ACL policy with the given ID.
 | `GET`  | `/acl/policy/:id`            | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -110,7 +112,7 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
+```sh
 $ curl -X GET http://127.0.0.1:8500/v1/acl/policy/e359bd81-baca-903e-7e64-1ccd9fdc78f5
 ```
 
@@ -140,10 +142,10 @@ This endpoint updates an existing ACL policy.
 | `PUT`  | `/acl/policy/:id`            | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -162,7 +164,7 @@ The table below shows this endpoint's support for
 - `Description` `(string: "")` - Free form human readable description of this policy.
 
 - `Rules` `(string: "")` - Specifies rules for this ACL policy. The format of the
-  `Rules` property is documented in the [ACL Guide](/docs/guides/acl.html).
+  `Rules` property is detailed in the [ACL Rules documentation](/docs/acl/acl-rules.html).
 
 - `Datacenters` `(array<string>)` - Specifies the datacenters this policy is valid within.
    When no datacenters are provided the policy is valid in all datacenters including
@@ -181,9 +183,8 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
-$ curl \
-    --request PUT \
+```sh
+$ curl -X PUT \
     --data @payload.json \
     http://127.0.0.1:8500/v1/acl/policy/c01a1f82-44be-41b0-a686-685fb6e0f485
 ```
@@ -214,10 +215,10 @@ Even though the return type is application/json, the value is either true or
 false indicating whether the delete succeeded.
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -230,8 +231,8 @@ The table below shows this endpoint's support for
 
 ### Sample Request
 
-```text
-$ curl -X DELETE
+```sh
+$ curl -X DELETE \
     http://127.0.0.1:8500/v1/acl/policy/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
 ```
 
@@ -249,10 +250,10 @@ This endpoint lists all the ACL policies.
 | `GET`  | `/acl/policies`              | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -260,7 +261,7 @@ The table below shows this endpoint's support for
 
 ## Sample Request
 
-```text
+```sh
 $ curl -X GET http://127.0.0.1:8500/v1/acl/policies
 ```
 

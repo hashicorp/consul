@@ -36,6 +36,7 @@ func (s *HTTPServer) UINodes(resp http.ResponseWriter, req *http.Request) (inter
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
+	s.parseFilter(req, &args.Filter)
 
 	// Make the RPC request
 	var out structs.IndexedNodeDump
@@ -120,11 +121,13 @@ func (s *HTTPServer) UIServices(resp http.ResponseWriter, req *http.Request) (in
 		return nil, nil
 	}
 
+	s.parseFilter(req, &args.Filter)
+
 	// Make the RPC request
-	var out structs.IndexedNodeDump
+	var out structs.IndexedCheckServiceNodes
 	defer setMeta(resp, &out.QueryMeta)
 RPC:
-	if err := s.agent.RPC("Internal.NodeDump", &args, &out); err != nil {
+	if err := s.agent.RPC("Internal.ServiceDump", &args, &out); err != nil {
 		// Retry the request allowing stale data if no leader
 		if strings.Contains(err.Error(), structs.ErrNoLeader.Error()) && !args.AllowStale {
 			args.AllowStale = true
@@ -134,10 +137,10 @@ RPC:
 	}
 
 	// Generate the summary
-	return summarizeServices(out.Dump), nil
+	return summarizeServices(out.Nodes), nil
 }
 
-func summarizeServices(dump structs.NodeDump) []*ServiceSummary {
+func summarizeServices(dump structs.CheckServiceNodes) []*ServiceSummary {
 	// Collect the summary information
 	var services []string
 	summary := make(map[string]*ServiceSummary)
@@ -151,48 +154,48 @@ func summarizeServices(dump structs.NodeDump) []*ServiceSummary {
 		return serv
 	}
 
-	// Aggregate all the node information
-	for _, node := range dump {
-		nodeServices := make([]*ServiceSummary, len(node.Services))
-		for idx, service := range node.Services {
-			sum := getService(service.Service)
-			sum.Tags = service.Tags
-			sum.Nodes = append(sum.Nodes, node.Node)
-			sum.Kind = service.Kind
-
-			// If there is an external source, add it to the list of external
-			// sources. We only want to add unique sources so there is extra
-			// accounting here with an unexported field to maintain the set
-			// of sources.
-			if len(service.Meta) > 0 && service.Meta[metaExternalSource] != "" {
-				source := service.Meta[metaExternalSource]
-				if sum.externalSourceSet == nil {
-					sum.externalSourceSet = make(map[string]struct{})
-				}
-				if _, ok := sum.externalSourceSet[source]; !ok {
-					sum.externalSourceSet[source] = struct{}{}
-					sum.ExternalSources = append(sum.ExternalSources, source)
+	for _, csn := range dump {
+		svc := csn.Service
+		sum := getService(svc.Service)
+		sum.Nodes = append(sum.Nodes, csn.Node.Node)
+		sum.Kind = svc.Kind
+		for _, tag := range svc.Tags {
+			found := false
+			for _, existing := range sum.Tags {
+				if existing == tag {
+					found = true
+					break
 				}
 			}
 
-			nodeServices[idx] = sum
+			if !found {
+				sum.Tags = append(sum.Tags, tag)
+			}
 		}
-		for _, check := range node.Checks {
-			var services []*ServiceSummary
-			if check.ServiceName == "" {
-				services = nodeServices
-			} else {
-				services = []*ServiceSummary{getService(check.ServiceName)}
+
+		// If there is an external source, add it to the list of external
+		// sources. We only want to add unique sources so there is extra
+		// accounting here with an unexported field to maintain the set
+		// of sources.
+		if len(svc.Meta) > 0 && svc.Meta[metaExternalSource] != "" {
+			source := svc.Meta[metaExternalSource]
+			if sum.externalSourceSet == nil {
+				sum.externalSourceSet = make(map[string]struct{})
 			}
-			for _, sum := range services {
-				switch check.Status {
-				case api.HealthPassing:
-					sum.ChecksPassing++
-				case api.HealthWarning:
-					sum.ChecksWarning++
-				case api.HealthCritical:
-					sum.ChecksCritical++
-				}
+			if _, ok := sum.externalSourceSet[source]; !ok {
+				sum.externalSourceSet[source] = struct{}{}
+				sum.ExternalSources = append(sum.ExternalSources, source)
+			}
+		}
+
+		for _, check := range csn.Checks {
+			switch check.Status {
+			case api.HealthPassing:
+				sum.ChecksPassing++
+			case api.HealthWarning:
+				sum.ChecksWarning++
+			case api.HealthCritical:
+				sum.ChecksCritical++
 			}
 		}
 	}

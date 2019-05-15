@@ -1,4 +1,7 @@
 {{#app-view class="service show"}}
+    {{#block-slot 'notification' as |status type|}}
+      {{partial 'dc/services/notifications'}}
+    {{/block-slot}}
     {{#block-slot 'breadcrumbs'}}
         <ol>
             <li><a data-test-back href={{href-to 'dc.services'}}>All Services</a></li>
@@ -14,59 +17,38 @@
     {{/if}}
   {{/with}}
 {{/with}}
-      </h1>
-    {{/block-slot}}
-    {{#block-slot 'toolbar'}}
-{{#if (gt items.length 0) }}
-        {{catalog-filter filters=healthFilters search=filters.s status=filters.status onchange=(action 'filter')}}
+{{#if (eq item.Service.Kind 'connect-proxy')}}
+        <span class="kind-proxy">Proxy</span>
 {{/if}}
+      </h1>
+      <label for="toolbar-toggle"></label>
+      {{tab-nav
+          items=(compact
+            (array
+              'Instances'
+              'Tags'
+            )
+          )
+          selected=selectedTab
+      }}
+    {{/block-slot}}
+    {{#block-slot 'actions'}}
+      {{#if urls.service}}
+        {{#templated-anchor data-test-dashboard-anchor href=urls.service vars=(hash Datacenter=dc Service=(hash Name=item.Service.Service)) rel="external"}}Open Dashboard{{/templated-anchor}}
+      {{/if}}
     {{/block-slot}}
     {{#block-slot 'content'}}
-{{#if (gt item.Tags.length 0)}}
-        <dl>
-            <dt>Tags</dt>
-            <dd data-test-tags>
-              {{#each item.Tags as |item|}}
-                <span>{{item}}</span>
-              {{/each}}
-            </dd>
-        </dl>
-{{/if}}
-{{#if (gt unhealthy.length 0) }}
-        <div data-test-unhealthy class="unhealthy">
-            <h2>Unhealthy Nodes</h2>
-            <div>
-                <ul>
-    {{#each unhealthy as |item|}}
-                    {{healthchecked-resource
-                        tagName='li'
-                        data-test-node=item.Node.Node
-                        href=(href-to 'dc.nodes.show' item.Node.Node)
-                        name=item.Node.Node
-                        service=item.Service.ID
-                        address=(concat (default item.Service.Address item.Node.Address) ':' item.Service.Port)
-                        checks=item.Checks
-                    }}
-    {{/each}}
-                </ul>
-            </div>
-        </div>
-{{/if}}
-{{#if (gt healthy.length 0) }}
-        <div data-test-healthy class="healthy">
-            <h2>Healthy Nodes</h2>
-            {{#list-collection cellHeight=113 items=healthy as |item index|}}
-                {{healthchecked-resource
-                    href=(href-to 'dc.nodes.show' item.Node.Node)
-                    data-test-node=item.Node.Node
-                    name=item.Node.Node
-                    service=item.Service.ID
-                    address=(concat (default item.Service.Address item.Node.Address) ':' item.Service.Port)
-                    checks=item.Checks
-                    status=item.Checks.[0].Status
-                }}
-            {{/list-collection}}
-        </div>
-{{/if}}
+        {{#each
+            (compact
+                (array
+                    (hash id=(slugify 'Instances') partial='dc/services/instances')
+                    (hash id=(slugify 'Tags') partial='dc/services/tags')
+                )
+            ) as |panel|
+        }}
+            {{#tab-section id=panel.id selected=(eq (if selectedTab selectedTab '') panel.id) onchange=(action "change")}}
+                {{partial panel.partial}}
+            {{/tab-section}}
+        {{/each}}
     {{/block-slot}}
 {{/app-view}}

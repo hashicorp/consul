@@ -1,0 +1,55 @@
+---
+layout: "docs"
+page_title: "Commands: ACL Auth Method List"
+sidebar_current: "docs-commands-acl-auth-method-list"
+---
+
+# Consul ACL Auth Method List
+
+Command: `consul acl auth-method list`
+
+The `acl auth-method list`s command lists all auth methods. By default it will not show metadata.
+
+## Usage
+
+Usage: `consul acl auth-method list`
+
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
+
+#### Command Options
+
+* `-meta` - Indicates that auth method metadata such as the raft indices should
+  be shown for each entry.
+
+## Examples
+
+Default listing.
+
+```sh
+$ consul acl auth-method list
+minikube:
+   Type:         kubernetes
+   Description:  minikube auth method
+minikube-two:
+   Type:         kubernetes
+   Description:  dev cluster
+```
+
+Show Metadata.
+
+```sh
+$ consul acl auth-method list -meta
+minikube:
+   Type:         kubernetes
+   Description:  minikube auth method
+   Create Index: 443
+   Modify Index: 443
+minikube-two:
+   Type:         kubernetes
+   Description:  dev cluster
+   Create Index: 445
+   Modify Index: 445
+```

@@ -2,9 +2,12 @@ set :base_url, "https://www.consul.io/"
 
 activate :hashicorp do |h|
   h.name        = "consul"
-  h.version     = "1.4.3"
+  h.version     = "1.5.0"
   h.github_slug = "hashicorp/consul"
 end
+
+# Netlify redirects/headers
+proxy '_redirects', 'redirects.txt', ignore: true
 
 helpers do
   # Returns a segment tracking ID such that local development is not

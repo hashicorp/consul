@@ -109,6 +109,15 @@ type Server struct {
 	aclReplicationLock    sync.RWMutex
 	aclReplicationEnabled bool
 
+	// aclTokenReapCancel is used to shut down the ACL Token expiration reap
+	// goroutine when we lose leadership.
+	aclTokenReapCancel  context.CancelFunc
+	aclTokenReapLock    sync.RWMutex
+	aclTokenReapEnabled bool
+
+	aclAuthMethodValidators    map[string]*authMethodValidatorEntry
+	aclAuthMethodValidatorLock sync.RWMutex
+
 	// DEPRECATED (ACL-Legacy-Compat) - only needed while we support both
 	// useNewACLs is used to determine whether we can use new ACLs or not
 	useNewACLs int32
@@ -137,6 +146,10 @@ type Server struct {
 
 	// Consul configuration
 	config *Config
+
+	// configReplicator is used to manage the leaders replication routines for
+	// centralized config
+	configReplicator *Replicator
 
 	// tokens holds ACL tokens initially from the configuration, but can
 	// be updated at runtime, so should always be used instead of going to
@@ -252,11 +265,17 @@ type Server struct {
 	EnterpriseServer
 }
 
+// NewServer is only used to help setting up a server for testing. Normal code
+// exercises NewServerLogger.
 func NewServer(config *Config) (*Server, error) {
-	return NewServerLogger(config, nil, new(token.Store), tlsutil.NewConfigurator(config.ToTLSUtilConfig()))
+	c, err := tlsutil.NewConfigurator(config.ToTLSUtilConfig(), nil)
+	if err != nil {
+		return nil, err
+	}
+	return NewServerLogger(config, nil, new(token.Store), c)
 }
 
-// NewServer is used to construct a new Consul server from the
+// NewServerLogger is used to construct a new Consul server from the
 // configuration, potentially returning an error
 func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tlsConfigurator *tlsutil.Configurator) (*Server, error) {
 	// Check the protocol version.
@@ -296,18 +315,6 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 		}
 	}
 
-	// Create the TLS wrapper for outgoing connections.
-	tlsWrap, err := tlsConfigurator.OutgoingRPCWrapper()
-	if err != nil {
-		return nil, err
-	}
-
-	// Get the incoming TLS config.
-	incomingTLS, err := tlsConfigurator.IncomingRPCConfig()
-	if err != nil {
-		return nil, err
-	}
-
 	// Create the tombstone GC.
 	gc, err := state.NewTombstoneGC(config.TombstoneTTL, config.TombstoneTTLGranularity)
 	if err != nil {
@@ -322,7 +329,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 		LogOutput:  config.LogOutput,
 		MaxTime:    serverRPCCache,
 		MaxStreams: serverMaxStreams,
-		TLSWrapper: tlsWrap,
+		TLSWrapper: tlsConfigurator.OutgoingRPCWrapper(),
 		ForceTLS:   config.VerifyOutgoing,
 	}
 
@@ -338,7 +345,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 		reconcileCh:      make(chan serf.Member, reconcileChSize),
 		router:           router.NewRouter(logger, config.Datacenter),
 		rpcServer:        rpc.NewServer(),
-		rpcTLS:           incomingTLS,
+		rpcTLS:           tlsConfigurator.IncomingRPCConfig(),
 		reassertLeaderCh: make(chan chan error),
 		segmentLAN:       make(map[string]*serf.Serf, len(config.Segments)),
 		sessionTimers:    NewSessionTimers(),
@@ -349,6 +356,19 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 
 	// Initialize enterprise specific server functionality
 	if err := s.initEnterprise(); err != nil {
+		s.Shutdown()
+		return nil, err
+	}
+
+	configReplicatorConfig := ReplicatorConfig{
+		Name:        "Config Entry",
+		ReplicateFn: s.replicateConfig,
+		Rate:        s.config.ConfigReplicationRate,
+		Burst:       s.config.ConfigReplicationBurst,
+		Logger:      logger,
+	}
+	s.configReplicator, err = NewReplicator(&configReplicatorConfig)
+	if err != nil {
 		s.Shutdown()
 		return nil, err
 	}
@@ -373,7 +393,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	}
 
 	// Initialize the RPC layer.
-	if err := s.setupRPC(tlsWrap); err != nil {
+	if err := s.setupRPC(tlsConfigurator.OutgoingRPCWrapper()); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start RPC layer: %v", err)
 	}
@@ -1121,6 +1141,11 @@ func (s *Server) GetLANCoordinate() (lib.CoordinateSet, error) {
 // ReloadConfig is used to have the Server do an online reload of
 // relevant configuration information
 func (s *Server) ReloadConfig(config *Config) error {
+	if s.IsLeader() {
+		// only bootstrap the config entries if we are the leader
+		// this will error if we lose leadership while bootstrapping here.
+		return s.bootstrapConfigEntries(config.ConfigEntryBootstrap)
+	}
 	return nil
 }
 

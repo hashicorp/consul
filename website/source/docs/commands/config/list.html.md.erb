@@ -1,0 +1,34 @@
+---
+layout: "docs"
+page_title: "Commands: Config List"
+sidebar_current: "docs-commands-config-list"
+---
+
+# Consul Config List
+
+Command: `consul config list`
+
+The `config list` command lists all given config entries of the given kind.
+See the [configuration entries docs](/docs/agent/config_entries.html) for more
+details about configuration entries.
+
+## Usage
+
+Usage: `consul config list [options]`
+
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+
+#### Config List Options
+
+* `-kind` - Specifies the kind of the config entry to read.
+
+## Examples
+
+    $ consul config list -kind service-defaults
+    billing
+    db
+    web
+
+

@@ -16,7 +16,7 @@ clusters that have multiple tenants that should not be able to communicate
 with each other.
 
 To get started with Network Segments,
-[read the guide](/docs/guides/segments.html).
+[read the guide](https://learn.hashicorp.com/consul/day-2-operations/network-segments).
 
 # Consul Networking Models
 
@@ -36,8 +36,8 @@ cluster each set per "datacenter". These Consul servers are federated together
 over the WAN. Consul clients make use of resources in federated clusters by
 forwarding RPCs through the Consul servers in their local cluster, but they
 never interact with remote Consul servers directly. There are currently two
-inter-cluster network models: [WAN Gossip (OSS)](/docs/guides/datacenters.html)
-and [Network Areas (Enterprise)](/docs/guides/areas.html).
+inter-cluster network models: [WAN Gossip (OSS)](https://learn.hashicorp.com/consul/security-networking/datacenters)
+and [Network Areas (Enterprise)](https://learn.hashicorp.com/consul/day-2-operations/advanced-federation).
 
 **LAN Gossip Pool**: A set of Consul agents that have full mesh connectivity
 among themselves, and use Serf to maintain a shared view of the members of the

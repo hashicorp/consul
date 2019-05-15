@@ -29,14 +29,19 @@ everything will be in sync within a few seconds.
 | `GET`  | `/agent/services`            | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
 | ---------------- | ----------------- | ------------- | -------------- |
 | `NO`             | `none`            | `none`        | `service:read` |
+
+### Parameters
+
+- `filter` `(string: "")` - Specifies the expression used to filter the
+  queries results prior to returning the data.
 
 ### Sample Request
 
@@ -67,6 +72,38 @@ $ curl \
 }
 ```
 
+### Filtering
+
+The filter is executed against each value in the service mapping with the
+following selectors and filter operations being supported:
+
+| Selector                               | Supported Operations               |
+| -------------------------------------- | ---------------------------------- |
+| `Address`                              | Equal, Not Equal                   |
+| `Connect.Native`                       | Equal, Not Equal                   |
+| `EnableTagOverride`                    | Equal, Not Equal                   |
+| `ID`                                   | Equal, Not Equal                   |
+| `Kind`                                 | Equal, Not Equal                   |
+| `Meta`                                 | In, Not In, Is Empty, Is Not Empty |
+| `Meta.<any>`                           | Equal, Not Equal                   |
+| `Port`                                 | Equal, Not Equal                   |
+| `Proxy.DestinationServiceID`           | Equal, Not Equal                   |
+| `Proxy.DestinationServiceName`         | Equal, Not Equal                   |
+| `Proxy.LocalServiceAddress`            | Equal, Not Equal                   |
+| `Proxy.LocalServicePort`               | Equal, Not Equal                   |
+| `Proxy.Upstreams`                      | Is Empty, Is Not Empty             |
+| `Proxy.Upstreams.Datacenter`           | Equal, Not Equal                   |
+| `Proxy.Upstreams.DestinationName`      | Equal, Not Equal                   |
+| `Proxy.Upstreams.DestinationNamespace` | Equal, Not Equal                   |
+| `Proxy.Upstreams.DestinationType`      | Equal, Not Equal                   |
+| `Proxy.Upstreams.LocalBindAddress`     | Equal, Not Equal                   |
+| `Proxy.Upstreams.LocalBindPort`        | Equal, Not Equal                   |
+| `Service`                              | Equal, Not Equal                   |
+| `Tags`                                 | In, Not In, Is Empty, Is Not Empty |
+| `Weights.Passing`                      | Equal, Not Equal                   |
+| `Weights.Warning`                      | Equal, Not Equal                   |
+
+
 ## Get Service Configuration
 
 This endpoint was added in Consul 1.3.0 and returns the full service definition
@@ -85,17 +122,17 @@ everything will be in sync within a few seconds.
 | `GET`  | `/agent/service/:service_id` | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
 | ---------------- | ----------------- | ------------- | -------------- |
 | `YES`<sup>1</sup>| `none`            | `none`        | `service:read` |
 
 <sup>1</sup> Supports [hash-based
-blocking](/api/index.html#hash-based-blocking-queries) only.
+blocking](/api/features/blocking.html#hash-based-blocking-queries) only.
 
 ### Parameters
 
@@ -148,7 +185,7 @@ $ curl \
 The response has the same structure as the [service
 definition](/docs/agent/services.html) with one extra field `ContentHash` which
 contains the [hash-based blocking
-query](/api/index.html#hash-based-blocking-queries) hash for the result. The
+query](/api/features/blocking.html#hash-based-blocking-queries) hash for the result. The
 same hash is also present in `X-Consul-ContentHash`.
 
 ## Get local service health
@@ -166,10 +203,10 @@ the URL or use Mime Content negotiation by specifying a HTTP Header
 | `GET`  | `/v1/agent/health/service/name/:service_name?format=text` | `text/plain`       |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
 | ---------------- | ----------------- | ------------- | -------------- |
@@ -378,10 +415,10 @@ For "connect-proxy" kind services, the `service:write` ACL for the
 | `PUT`  | `/agent/service/register`    | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |
@@ -541,10 +578,10 @@ is an associated check, that is also deregistered.
 | `PUT`  | `/agent/service/deregister/:service_id` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |
@@ -575,10 +612,10 @@ will be automatically restored on agent restart.
 | `PUT`  | `/agent/service/maintenance/:service_id` | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |

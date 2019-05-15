@@ -3,8 +3,8 @@ import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
 
-import WithBlockingActions from 'consul-ui/mixins/with-blocking-actions';
-export default Route.extend(WithBlockingActions, {
+export default Route.extend({
+  client: service('client/http'),
   repo: service('settings'),
   dcRepo: service('repository/dc'),
   model: function(params) {
@@ -21,11 +21,14 @@ export default Route.extend(WithBlockingActions, {
     });
   },
   setupController: function(controller, model) {
-    this._super(...arguments);
     controller.setProperties(model);
   },
-  // overwrite afterUpdate and afterDelete hooks
-  // to avoid the default 'return to listing page'
-  afterUpdate: function() {},
-  afterDelete: function() {},
+  actions: {
+    update: function(item) {
+      if (!get(item, 'client.blocking')) {
+        get(this, 'client').abort();
+      }
+      get(this, 'repo').persist(item);
+    },
+  },
 });

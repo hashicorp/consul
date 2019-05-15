@@ -87,3 +87,41 @@ func MustPutProperty(disp *ole.IDispatch, name string, params ...interface{}) (r
 	}
 	return r
 }
+
+// PutPropertyRef mutates property reference.
+func PutPropertyRef(disp *ole.IDispatch, name string, params ...interface{}) (result *ole.VARIANT, err error) {
+	return disp.InvokeWithOptionalArgs(name, ole.DISPATCH_PROPERTYPUTREF, params)
+}
+
+// MustPutPropertyRef mutates property reference or panics.
+func MustPutPropertyRef(disp *ole.IDispatch, name string, params ...interface{}) (result *ole.VARIANT) {
+	r, err := PutPropertyRef(disp, name, params...)
+	if err != nil {
+		panic(err.Error())
+	}
+	return r
+}
+
+func ForEach(disp *ole.IDispatch, f func(v *ole.VARIANT) error) error {
+	newEnum, err := disp.GetProperty("_NewEnum")
+	if err != nil {
+		return err
+	}
+	defer newEnum.Clear()
+
+	enum, err := newEnum.ToIUnknown().IEnumVARIANT(ole.IID_IEnumVariant)
+	if err != nil {
+		return err
+	}
+	defer enum.Release()
+
+	for item, length, err := enum.Next(1); length > 0; item, length, err = enum.Next(1) {
+		if err != nil {
+			return err
+		}
+		if ferr := f(&item); ferr != nil {
+			return ferr
+		}
+	}
+	return nil
+}

@@ -2,6 +2,7 @@ package consul
 
 import (
 	"sync/atomic"
+	"time"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -12,7 +13,7 @@ var serverACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
 	// The server's ACL caching has a few underlying assumptions:
 	//
 	// 1 - All policies can be resolved locally. Hence we do not cache any
-	//     unparsed policies as we have memdb for that.
+	//     unparsed policies/roles as we have memdb for that.
 	// 2 - While there could be many identities being used within a DC the
 	//     number of distinct policies and combined multi-policy authorizers
 	//     will be much less.
@@ -25,10 +26,16 @@ var serverACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
 	Policies:       0,
 	ParsedPolicies: 512,
 	Authorizers:    1024,
+	Roles:          0,
 }
 
 func (s *Server) checkTokenUUID(id string) (bool, error) {
 	state := s.fsm.State()
+
+	// We won't check expiration times here. If we generate a UUID that matches
+	// a token that hasn't been reaped yet, then we won't be able to insert the
+	// new token due to a collision.
+
 	if _, token, err := state.ACLTokenGetByAccessor(nil, id); err != nil {
 		return false, err
 	} else if token != nil {
@@ -49,6 +56,28 @@ func (s *Server) checkPolicyUUID(id string) (bool, error) {
 	if _, policy, err := state.ACLPolicyGetByID(nil, id); err != nil {
 		return false, err
 	} else if policy != nil {
+		return false, nil
+	}
+
+	return !structs.ACLIDReserved(id), nil
+}
+
+func (s *Server) checkRoleUUID(id string) (bool, error) {
+	state := s.fsm.State()
+	if _, role, err := state.ACLRoleGetByID(nil, id); err != nil {
+		return false, err
+	} else if role != nil {
+		return false, nil
+	}
+
+	return !structs.ACLIDReserved(id), nil
+}
+
+func (s *Server) checkBindingRuleUUID(id string) (bool, error) {
+	state := s.fsm.State()
+	if _, rule, err := state.ACLBindingRuleGetByID(nil, id); err != nil {
+		return false, err
+	} else if rule != nil {
 		return false, nil
 	}
 
@@ -145,7 +174,7 @@ func (s *Server) ResolveIdentityFromToken(token string) (bool, structs.ACLIdenti
 	index, aclToken, err := s.fsm.State().ACLTokenGetBySecret(nil, token)
 	if err != nil {
 		return true, nil, err
-	} else if aclToken != nil {
+	} else if aclToken != nil && !aclToken.IsExpired(time.Now()) {
 		return true, aclToken, nil
 	}
 
@@ -164,6 +193,20 @@ func (s *Server) ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy,
 	// we may need to allow remote resolution. This is particularly useful to allow updating
 	// the replication token via the API in a non-primary dc.
 	return s.InACLDatacenter() || index > 0, policy, acl.ErrNotFound
+}
+
+func (s *Server) ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error) {
+	index, role, err := s.fsm.State().ACLRoleGetByID(nil, roleID)
+	if err != nil {
+		return true, nil, err
+	} else if role != nil {
+		return true, role, nil
+	}
+
+	// If the max index of the roles table is non-zero then we have acls, until then
+	// we may need to allow remote resolution. This is particularly useful to allow updating
+	// the replication token via the API in a non-primary dc.
+	return s.InACLDatacenter() || index > 0, role, acl.ErrNotFound
 }
 
 func (s *Server) ResolveToken(token string) (acl.Authorizer, error) {

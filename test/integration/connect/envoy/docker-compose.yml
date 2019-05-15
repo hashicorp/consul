@@ -1,0 +1,193 @@
+version: '3.4'
+
+x-workdir:
+  &workdir-volume
+  type: volume
+  source: workdir
+  target: /workdir
+  volume:
+    nocopy: true
+
+volumes:
+  workdir:
+
+services:
+  # This is a dummy container that we use to create volume and keep it
+  # accessible while other containers are down.
+  workdir:
+    image: alpine
+    volumes:
+      - *workdir-volume
+    command:
+      - sleep
+      - "86400"
+
+  consul:
+    image: "consul-dev"
+    command:
+     - "agent"
+     - "-dev"
+     - "-config-dir"
+     - "/workdir/consul"
+     - "-client"
+     - "0.0.0.0"
+    volumes:
+      - *workdir-volume
+    ports:
+      # Exposing to host makes debugging locally a bit easier
+      - "8500:8500"
+      - "8502:8502"
+      # For zipkin which uses this containers network
+      - 9411:9411
+      # Jaeger UI
+      - 16686:16686
+
+  s1:
+    depends_on:
+      - consul
+    image: "fortio/fortio"
+    command:
+     - "server"
+     - "-http-port"
+     - ":8080"
+     - "-grpc-port"
+     - ":8079"
+    network_mode: service:consul
+
+  s2:
+    depends_on:
+      - consul
+    image: "fortio/fortio"
+    command:
+     - "server"
+     - "-http-port"
+     - ":8181"
+     - "-grpc-port"
+     - ":8179"
+    network_mode: service:consul
+
+  s1-sidecar-proxy:
+    depends_on:
+      - consul
+    image: "envoyproxy/envoy:v${ENVOY_VERSION:-1.8.0}"
+    command:
+     - "envoy"
+     - "-c"
+     - "/workdir/envoy/s1-bootstrap.json"
+     - "-l"
+     - "debug"
+     # Hot restart breaks since both envoys seem to interact with each other
+     # despite separate containers that don't share IPC namespace. Not quite
+     # sure how this happens but may be due to unix socket being in some shared
+     # location?
+     - "--disable-hot-restart"
+     - "--drain-time-s"
+     - "1"
+    volumes:
+      - *workdir-volume
+    network_mode: service:consul
+
+  s2-sidecar-proxy:
+    depends_on:
+      - consul
+    image: "envoyproxy/envoy:v${ENVOY_VERSION:-1.8.0}"
+    command:
+     - "envoy"
+     - "-c"
+     - "/workdir/envoy/s2-bootstrap.json"
+     - "-l"
+     - "debug"
+     # Hot restart breaks since both envoys seem to interact with each other
+     # despite separate containers that don't share IPC namespace. Not quite
+     # sure how this happens but may be due to unix socket being in some shared
+     # location?
+     - "--disable-hot-restart"
+     - "--drain-time-s"
+     - "1"
+    volumes:
+      - *workdir-volume
+    network_mode: service:consul
+
+  verify:
+    depends_on:
+      - consul
+    build:
+      context: .
+      dockerfile: Dockerfile-bats
+    tty: true
+    command:
+     - "--pretty"
+     - "/workdir/bats"
+    volumes:
+      - *workdir-volume
+    network_mode: service:consul
+
+  s1-sidecar-proxy-consul-exec:
+    depends_on:
+      - consul
+    build:
+      context: .
+      dockerfile: Dockerfile-consul-envoy
+      args:
+        ENVOY_VERSION: ${ENVOY_VERSION:-1.8.0}
+    command:
+      - "consul"
+      - "connect"
+      - "envoy"
+      - "-sidecar-for"
+      - "s1"
+      - "--"
+      - "-l"
+      - "debug"
+    network_mode: service:consul
+
+  fake-statsd:
+    depends_on:
+      - consul
+    image: "alpine/socat"
+    command:
+      - -u
+      - UDP-RECVFROM:8125,fork,reuseaddr
+      # This magic incantation is needed since Envoy doesn't add newlines and so
+      # we need each packet to be passed to echo to add a new line before
+      # appending.
+      - SYSTEM:'xargs -0 echo >> /workdir/statsd/statsd.log'
+    volumes:
+      - *workdir-volume
+    network_mode: service:consul
+
+  wipe-volumes:
+    volumes:
+      - *workdir-volume
+    image: alpine
+    command:
+      - sh
+      - -c
+      - 'rm -rf /workdir/*'
+
+  # This is a debugging tool run docker-compose up dump-volumes to see the
+  # current state.
+  dump-volumes:
+    volumes:
+      - *workdir-volume
+      - ./:/cwd
+    image: alpine
+    command:
+      - cp
+      - -r
+      - /workdir/.
+      - /cwd/workdir/
+
+  zipkin:
+    volumes:
+      - *workdir-volume
+    image: openzipkin/zipkin
+    network_mode: service:consul
+
+  jaeger:
+    volumes:
+      - *workdir-volume
+    image: jaegertracing/all-in-one:1.11
+    network_mode: service:consul
+    command:
+      - --collector.zipkin.http-port=9411

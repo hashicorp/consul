@@ -75,7 +75,7 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Delete an ACL Token"
+const synopsis = "Delete an ACL token"
 const help = `
 Usage: consul acl token delete [options] -id TOKEN
 

@@ -1,0 +1,50 @@
+%phrase-editor {
+  display: flex;
+  margin-top: 14px;
+  margin-bottom: 5px;
+}
+%phrase-editor ul {
+  overflow: hidden;
+}
+%phrase-editor li {
+  @extend %pill;
+  float: left;
+  margin-right: 4px;
+}
+%phrase-editor span {
+  display: none;
+}
+%phrase-editor label {
+  flex-grow: 1;
+}
+%phrase-editor input {
+  width: 100%;
+  height: 33px;
+  padding: 8px 10px;
+  box-sizing: border-box;
+}
+%phrase-editor button::before {
+  // TODO: Look at why this isn't automatically centering
+  vertical-align: inherit !important;
+}
+@media #{$--horizontal-selects} {
+  %phrase-editor {
+    margin-top: 14px;
+  }
+  %phrase-editor ul {
+    padding-top: 5px;
+    padding-left: 5px;
+  }
+  %phrase-editor input {
+    padding-left: 3px;
+  }
+}
+@media #{$--lt-horizontal-selects} {
+  %phrase-editor {
+    margin-top: 9px;
+  }
+  %phrase-editor label {
+    display: block;
+    margin-top: 5px;
+  }
+}

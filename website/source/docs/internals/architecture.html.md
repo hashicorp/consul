@@ -80,7 +80,7 @@ From a 10,000 foot altitude the architecture of Consul looks like this:
 
 Let's break down this image and describe each piece. First of all, we can see
 that there are two datacenters, labeled "one" and "two". Consul has first
-class support for [multiple datacenters](/docs/guides/datacenters.html) and
+class support for [multiple datacenters](https://learn.hashicorp.com/consul/security-networking/datacenters) and
 expects this to be the common case.
 
 Within each datacenter, we have a mixture of clients and servers. It is expected
@@ -120,7 +120,7 @@ an RPC request to the remote Consul servers for that resource and return the res
 If the remote datacenter is not available, then those resources will also not be
 available, but that won't otherwise affect the local datacenter. There are some special
 situations where a limited subset of data can be replicated, such as with Consul's built-in
-[ACL replication](/docs/guides/acl.html#outages-and-acl-replication) capability, or
+[ACL replication](https://learn.hashicorp.com/consul/day-2-operations/acl-replication) capability, or
 external tools like [consul-replicate](https://github.com/hashicorp/consul-replicate).
 
 In some places, client agents may cache data from the servers to make it

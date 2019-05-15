@@ -1,16 +1,16 @@
 package envoy
 
 import (
-	"bytes"
 	"errors"
 	"flag"
 	"fmt"
-	"html/template"
 	"net"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
+
+	"github.com/mitchellh/mapstructure"
 
 	proxyAgent "github.com/hashicorp/consul/agent/proxyprocess"
 	"github.com/hashicorp/consul/agent/xds"
@@ -42,12 +42,13 @@ type cmd struct {
 	client *api.Client
 
 	// flags
-	proxyID    string
-	sidecarFor string
-	adminBind  string
-	envoyBin   string
-	bootstrap  bool
-	grpcAddr   string
+	proxyID              string
+	sidecarFor           string
+	adminBind            string
+	envoyBin             string
+	bootstrap            bool
+	disableCentralConfig bool
+	grpcAddr             string
 }
 
 func (c *cmd) init() {
@@ -68,11 +69,18 @@ func (c *cmd) init() {
 
 	c.flags.StringVar(&c.adminBind, "admin-bind", "localhost:19000",
 		"The address:port to start envoy's admin server on. Envoy requires this "+
-			"but care must be taked to ensure it's not exposed to untrusted network "+
+			"but care must be taken to ensure it's not exposed to an untrusted network "+
 			"as it has full control over the secrets and config of the proxy.")
 
 	c.flags.BoolVar(&c.bootstrap, "bootstrap", false,
 		"Generate the bootstrap.json but don't exec envoy")
+
+	c.flags.BoolVar(&c.disableCentralConfig, "no-central-config", false,
+		"By default the proxy's bootstrap configuration can be customized "+
+			"centrally. This requires that the command run on the same agent as the "+
+			"proxy will and that the agent is reachable when the command is run. In "+
+			"cases where either assumption is violated this flag will prevent the "+
+			"command attempting to resolve config from the local agent.")
 
 	c.flags.StringVar(&c.grpcAddr, "grpc-addr", "",
 		"Set the agent's gRPC address and port (in http(s)://host:port format). "+
@@ -104,7 +112,7 @@ func (c *cmd) Run(args []string) int {
 		// enabled.
 		c.grpcAddr = "localhost:8502"
 	}
-	if c.http.Token() == "" {
+	if c.http.Token() == "" && c.http.TokenFile() == "" {
 		// Extra check needed since CONSUL_HTTP_TOKEN has not been consulted yet but
 		// calling SetToken with empty will force that to override the
 		if proxyToken := os.Getenv(proxyAgent.EnvProxyToken); proxyToken != "" {
@@ -179,9 +187,14 @@ func (c *cmd) findBinary() (string, error) {
 	return exec.LookPath("envoy")
 }
 
-func (c *cmd) templateArgs() (*templateArgs, error) {
+func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 	httpCfg := api.DefaultConfig()
 	c.http.MergeOntoConfig(httpCfg)
+
+	// Trigger the Client init to do any last-minute updates to the Config.
+	if _, err := api.NewClient(httpCfg); err != nil {
+		return nil, err
+	}
 
 	// Decide on TLS if the scheme is provided and indicates it, if the HTTP env
 	// suggests TLS is supported explicitly (CONSUL_HTTP_SSL) or implicitly
@@ -235,8 +248,18 @@ func (c *cmd) templateArgs() (*templateArgs, error) {
 		return nil, fmt.Errorf("Failed to resolve admin bind address: %s", err)
 	}
 
-	return &templateArgs{
-		ProxyCluster:          c.proxyID,
+	// Ideally the cluster should be the service name. We may or may not have that
+	// yet depending on the arguments used so make a best effort here. In the
+	// common case, even if the command was invoked with proxy-id and we don't
+	// know service name yet, we will after we resolve the proxy's config in a bit
+	// and will update this then.
+	cluster := c.proxyID
+	if c.sidecarFor != "" {
+		cluster = c.sidecarFor
+	}
+
+	return &BootstrapTplArgs{
+		ProxyCluster:          cluster,
 		ProxyID:               c.proxyID,
 		AgentAddress:          agentIP.String(),
 		AgentPort:             agentPort,
@@ -254,13 +277,30 @@ func (c *cmd) generateConfig() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	var t = template.Must(template.New("bootstrap").Parse(bootstrapTemplate))
-	var buf bytes.Buffer
-	err = t.Execute(&buf, args)
-	if err != nil {
-		return nil, err
+
+	var bsCfg BootstrapConfig
+
+	if !c.disableCentralConfig {
+		// Fetch any customization from the registration
+		svc, _, err := c.client.Agent().Service(c.proxyID, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed fetch proxy config from local agent: %s", err)
+		}
+
+		if svc.Proxy == nil {
+			return nil, errors.New("service is not a Connect proxy")
+		}
+
+		// Parse the bootstrap config
+		if err := mapstructure.WeakDecode(svc.Proxy.Config, &bsCfg); err != nil {
+			return nil, fmt.Errorf("failed parsing Proxy.Config: %s", err)
+		}
+
+		// Override cluster now we know the actual service name
+		args.ProxyCluster = svc.Proxy.DestinationServiceName
 	}
-	return buf.Bytes(), nil
+
+	return bsCfg.GenerateJSON(args)
 }
 
 func (c *cmd) lookupProxyIDForSidecar() (string, error) {

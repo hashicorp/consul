@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib/freeport"
+	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/consul/testutil"
-	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
@@ -84,8 +84,10 @@ func TestClient_JoinLAN(t *testing.T) {
 	defer os.RemoveAll(dir2)
 	defer c1.Shutdown()
 
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	// Try to join
 	joinLAN(t, c1, s1)
+	testrpc.WaitForTestAgent(t, c1.RPC, "dc1")
 	retry.Run(t, func(r *retry.R) {
 		if got, want := c1.routers.NumServers(), 1; got != want {
 			r.Fatalf("got %d servers want %d", got, want)

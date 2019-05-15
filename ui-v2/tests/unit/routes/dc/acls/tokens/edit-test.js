@@ -5,6 +5,7 @@ moduleFor('route:dc/acls/tokens/edit', 'Unit | Route | dc/acls/tokens/edit', {
   needs: [
     'service:repository/token',
     'service:repository/policy',
+    'service:repository/role',
     'service:repository/dc',
     'service:feedback',
     'service:logger',

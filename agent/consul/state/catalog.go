@@ -498,6 +498,12 @@ func (s *Store) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) err
 	if err := tx.Insert("index", &IndexEntry{"nodes", idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
+	// Update the node's service indexes as the node information is included
+	// in health queries and we would otherwise miss node updates in some cases
+	// for those queries.
+	if err := s.updateAllServiceIndexesOfNode(tx, idx, node.Node); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
 
 	return nil
 }
@@ -966,22 +972,43 @@ func (s *Store) ServicesByNodeMeta(ws memdb.WatchSet, filters map[string]string)
 //   * block until an instance for this service is available, or another
 //     service is unregistered.
 func maxIndexForService(tx *memdb.Txn, serviceName string, serviceExists, checks bool) uint64 {
+	idx, _ := maxIndexAndWatchChForService(tx, serviceName, serviceExists, checks)
+	return idx
+}
+
+// maxIndexAndWatchChForService return the maximum Raft Index for a service. If
+// the index is not set for the service, it will return the missing service
+// index. The service_last_extinction is set to the last raft index when a
+// service was unregistered (or 0 if no services were ever unregistered). This
+// allows blocking queries to
+//   * return when the last instance of a service is removed
+//   * block until an instance for this service is available, or another
+//     service is unregistered.
+//
+// It also _may_ return a watch chan to add to a WatchSet. It will only return
+// one if the service exists, and has a service index. If it doesn't then nil is
+// returned for the chan. This allows for blocking watchers to _only_ watch this
+// one chan in the common case, falling back to watching all touched MemDB
+// indexes in more complicated cases.
+func maxIndexAndWatchChForService(tx *memdb.Txn, serviceName string, serviceExists, checks bool) (uint64, <-chan struct{}) {
 	if !serviceExists {
 		res, err := tx.First("index", "id", serviceLastExtinctionIndexName)
 		if missingIdx, ok := res.(*IndexEntry); ok && err == nil {
-			return missingIdx.Value
+			// Not safe to only watch the extinction index as it's not updated when
+			// new instances come along so return nil watchCh.
+			return missingIdx.Value, nil
 		}
 	}
 
-	res, err := tx.First("index", "id", serviceIndexName(serviceName))
+	ch, res, err := tx.FirstWatch("index", "id", serviceIndexName(serviceName))
 	if idx, ok := res.(*IndexEntry); ok && err == nil {
-		return idx.Value
+		return idx.Value, ch
 	}
 	if checks {
-		return maxIndexTxn(tx, "nodes", "services", "checks")
+		return maxIndexTxn(tx, "nodes", "services", "checks"), nil
 	}
 
-	return maxIndexTxn(tx, "nodes", "services")
+	return maxIndexTxn(tx, "nodes", "services"), nil
 }
 
 // ConnectServiceNodes returns the nodes associated with a Connect
@@ -1881,18 +1908,97 @@ func (s *Store) checkServiceNodes(ws memdb.WatchSet, serviceName string, connect
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 	}
-	ws.Add(iter.WatchCh())
+	// Note we decide if we want to watch this iterator or not down below. We need
+	// to see if it returned anything first.
 
 	// Return the results.
 	var results structs.ServiceNodes
+
+	// For connect queries we need a list of any proxy service names in the result
+	// set. Rather than have different code path for connect and non-connect, we
+	// use the same one in both cases. For non-empty non-connect results,
+	// serviceNames will always have exactly one element which is the same as
+	// serviceName. For Connect there might be multiple different service names -
+	// one for each service name a proxy is registered under, and the target
+	// service name IFF there is at least one Connect-native instance of that
+	// service. Either way there is usually only one distinct name if proxies are
+	// named consistently but could be multiple.
+	serviceNames := make(map[string]struct{}, 2)
 	for service := iter.Next(); service != nil; service = iter.Next() {
-		results = append(results, service.(*structs.ServiceNode))
+		sn := service.(*structs.ServiceNode)
+		results = append(results, sn)
+		serviceNames[sn.ServiceName] = struct{}{}
 	}
 
-	// Get the table index.
-	idx := maxIndexForService(tx, serviceName, len(results) > 0, true)
+	// watchOptimized tracks if we meet the necessary condition to optimize
+	// WatchSet size. That is that every service name represented in the result
+	// set must have a service-specific index we can watch instead of many radix
+	// nodes for all the actual nodes touched. This saves us watching potentially
+	// thousands of watch chans for large services which may need many goroutines.
+	// It also avoids the performance cliff that is hit when watchLimit is hit
+	// (~682 service instances). See
+	// https://github.com/hashicorp/consul/issues/4984
+	watchOptimized := false
+	idx := uint64(0)
+	if len(serviceNames) > 0 {
+		// Assume optimization will work since it really should at this point. For
+		// safety we'll sanity check this below for each service name.
+		watchOptimized = true
 
-	return s.parseCheckServiceNodes(tx, ws, idx, serviceName, results, err)
+		// Fetch indexes for all names services in result set.
+		for svcName := range serviceNames {
+			// We know service values should exist since the serviceNames map is only
+			// populated if there is at least one result above. so serviceExists arg
+			// below is always true.
+			svcIdx, svcCh := maxIndexAndWatchChForService(tx, svcName, true, true)
+			// Take the max index represented
+			if idx < svcIdx {
+				idx = svcIdx
+			}
+			if svcCh != nil {
+				// Watch the service-specific index for changes in liu of all iradix nodes
+				// for checks etc.
+				ws.Add(svcCh)
+			} else {
+				// Nil svcCh shouldn't really happen since all existent services should
+				// have a service-specific index but just in case it does due to a bug,
+				// fall back to the more expensive old way of watching every radix node
+				// we touch.
+				watchOptimized = false
+			}
+		}
+	} else {
+		// If we have no results, we should use the index of the last service
+		// extinction event so we don't go backwards when services de-register. We
+		// use target serviceName here but it actually doesn't matter. No chan will
+		// be returned as we can't use the optimization in this case (and don't need
+		// to as there is only one chan to watch anyway).
+		idx, _ = maxIndexAndWatchChForService(tx, serviceName, false, true)
+	}
+
+	// Create a nil watchset to pass below, we'll only pass the real one if we
+	// need to. Nil watchers are safe/allowed and saves some allocation too.
+	var fallbackWS memdb.WatchSet
+	if !watchOptimized {
+		// We weren't able to use the optimization of watching only service indexes
+		// for some reason. That means we need to fallback to watching everything we
+		// touch in the DB as normal. We plumb the caller's watchset through (note
+		// it's a map so this is a by-reference assignment.)
+		fallbackWS = ws
+		// We also need to watch the iterator from earlier too.
+		fallbackWS.Add(iter.WatchCh())
+	} else if connect {
+		// If this is a connect query then there is a subtlety to watch out for.
+		// In addition to watching the proxy service indexes for changes above, we
+		// need to still keep an eye on the connect service index in case a new
+		// proxy with a new name registers - we are only watching proxy service
+		// names we know about above so we'd miss that otherwise. Thankfully this
+		// is only ever one extra chan to watch and will catch any changes to
+		// proxy registrations for this target service.
+		ws.Add(iter.WatchCh())
+	}
+
+	return s.parseCheckServiceNodes(tx, fallbackWS, idx, serviceName, results, err)
 }
 
 // CheckServiceTagNodes is used to query all nodes and checks for a given
@@ -2040,6 +2146,27 @@ func (s *Store) NodeDump(ws memdb.WatchSet) (uint64, structs.NodeDump, error) {
 	}
 	ws.Add(nodes.WatchCh())
 	return s.parseNodes(tx, ws, idx, nodes)
+}
+
+func (s *Store) ServiceDump(ws memdb.WatchSet) (uint64, structs.CheckServiceNodes, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the table index
+	idx := maxIndexWatchTxn(tx, ws, "nodes", "services", "checks")
+
+	services, err := tx.Get("services", "id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
+	}
+
+	var results structs.ServiceNodes
+	for service := services.Next(); service != nil; service = services.Next() {
+		sn := service.(*structs.ServiceNode)
+		results = append(results, sn)
+	}
+
+	return s.parseCheckServiceNodes(tx, nil, idx, "", results, err)
 }
 
 // parseNodes takes an iterator over a set of nodes and returns a struct

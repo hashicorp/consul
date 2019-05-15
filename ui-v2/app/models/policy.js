@@ -24,6 +24,10 @@ const model = Model.extend({
   Datacenters: attr(),
   CreateIndex: attr('number'),
   ModifyIndex: attr('number'),
+
+  template: attr('string', {
+    defaultValue: '',
+  }),
 });
 export const ATTRS = writable(model, ['Name', 'Description', 'Rules', 'Datacenters']);
 export default model;
