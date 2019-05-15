@@ -126,14 +126,15 @@ func (a *TestAgent) Start(t *testing.T) *TestAgent {
 		require.NoError(err, fmt.Sprintf("Error creating data dir %s: %s", filepath.Join(TempDir, name), err))
 		hclDataDir = `data_dir = "` + d + `"`
 	}
-	id := NodeID()
 
+	var id string
 	for i := 10; i >= 0; i-- {
 		a.Config = TestConfig(
 			randomPortsSource(a.UseTLS),
 			config.Source{Name: a.Name, Format: "hcl", Data: a.HCL},
 			config.Source{Name: a.Name + ".data_dir", Format: "hcl", Data: hclDataDir},
 		)
+		id = string(a.Config.NodeID)
 
 		// write the keyring
 		if a.Key != "" {

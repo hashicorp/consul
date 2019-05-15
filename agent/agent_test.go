@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -23,6 +25,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/types"
@@ -1123,6 +1126,184 @@ func TestAgent_AddCheck_GRPC(t *testing.T) {
 	if _, ok := a.checkGRPCs["grpchealth"]; !ok {
 		t.Fatalf("missing grpchealth check")
 	}
+}
+
+func TestAgent_RestoreServiceWithAliasCheck(t *testing.T) {
+	// t.Parallel() don't even think about making this parallel
+
+	// This test is very contrived and tests for the absence of race conditions
+	// related to the implementation of alias checks. As such it is slow,
+	// serial, full of sleeps and retries, and not generally a great test to
+	// run all of the time.
+	//
+	// That said it made it incredibly easy to root out various race conditions
+	// quite successfully.
+	//
+	// The original set of races was between:
+	//
+	//   - agent startup reloading Services and Checks from disk
+	//   - API requests to also re-register those same Services and Checks
+	//   - the goroutines for the as-yet-to-be-stopped CheckAlias goroutines
+
+	if os.Getenv("SLOWTEST") != "1" {
+		t.Skip("skipping slow test; set SLOWTEST=1 to run")
+		return
+	}
+
+	// We do this so that the agent logs and the informational messages from
+	// the test itself are interwoven properly.
+	logf := func(t *testing.T, a *TestAgent, format string, args ...interface{}) {
+		a.logger.Printf("[INFO] testharness: "+format, args...)
+	}
+
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	cfg := `
+		server = false
+		bootstrap = false
+	    enable_central_service_config = false
+		data_dir = "` + dataDir + `"
+	`
+	a := &TestAgent{Name: t.Name(), HCL: cfg, DataDir: dataDir}
+	a.LogOutput = testutil.TestWriter(t)
+	a.Start(t)
+	defer os.RemoveAll(dataDir)
+	defer a.Shutdown()
+
+	testCtx, testCancel := context.WithCancel(context.Background())
+	defer testCancel()
+
+	testHTTPServer := launchHTTPCheckServer(t, testCtx)
+	defer testHTTPServer.Close()
+
+	registerServicesAndChecks := func(t *testing.T, a *TestAgent) {
+		// add one persistent service with a simple check
+		require.NoError(t, a.AddService(
+			&structs.NodeService{
+				ID:      "ping",
+				Service: "ping",
+				Port:    8000,
+			},
+			[]*structs.CheckType{
+				&structs.CheckType{
+					HTTP:     testHTTPServer.URL,
+					Method:   "GET",
+					Interval: 5 * time.Second,
+					Timeout:  1 * time.Second,
+				},
+			},
+			true, "", ConfigSourceLocal,
+		))
+
+		// add one persistent sidecar service with an alias check in the manner
+		// of how sidecar_service would add it
+		require.NoError(t, a.AddService(
+			&structs.NodeService{
+				ID:      "ping-sidecar-proxy",
+				Service: "ping-sidecar-proxy",
+				Port:    9000,
+			},
+			[]*structs.CheckType{
+				&structs.CheckType{
+					Name:         "Connect Sidecar Aliasing ping",
+					AliasService: "ping",
+				},
+			},
+			true, "", ConfigSourceLocal,
+		))
+	}
+
+	retryUntilCheckState := func(t *testing.T, a *TestAgent, checkID string, expectedStatus string) {
+		t.Helper()
+		retry.Run(t, func(r *retry.R) {
+			chk := a.State.CheckState(types.CheckID(checkID))
+			if chk == nil {
+				r.Fatalf("check=%q is completely missing", checkID)
+			}
+			if chk.Check.Status != expectedStatus {
+				logf(t, a, "check=%q expected status %q but got %q", checkID, expectedStatus, chk.Check.Status)
+				r.Fatalf("check=%q expected status %q but got %q", checkID, expectedStatus, chk.Check.Status)
+			}
+			logf(t, a, "check %q has reached desired status %q", checkID, expectedStatus)
+		})
+	}
+
+	registerServicesAndChecks(t, a)
+
+	time.Sleep(1 * time.Second)
+
+	retryUntilCheckState(t, a, "service:ping", api.HealthPassing)
+	retryUntilCheckState(t, a, "service:ping-sidecar-proxy", api.HealthPassing)
+
+	logf(t, a, "==== POWERING DOWN ORIGINAL ====")
+
+	require.NoError(t, a.Shutdown())
+
+	time.Sleep(1 * time.Second)
+
+	futureHCL := cfg + `
+node_id = "` + string(a.Config.NodeID) + `"
+node_name = "` + a.Config.NodeName + `"
+	`
+
+	restartOnce := func(idx int, t *testing.T) {
+		t.Helper()
+
+		// Reload and retain former NodeID and data directory.
+		a2 := &TestAgent{Name: t.Name(), HCL: futureHCL, DataDir: dataDir}
+		a2.LogOutput = testutil.TestWriter(t)
+		a2.Start(t)
+		defer a2.Shutdown()
+		a = nil
+
+		// reregister during standup; we use an adjustable timing to try and force a race
+		sleepDur := time.Duration(idx+1) * 500 * time.Millisecond
+		time.Sleep(sleepDur)
+		logf(t, a2, "re-registering checks and services after a delay of %v", sleepDur)
+		for i := 0; i < 20; i++ { // RACE RACE RACE!
+			registerServicesAndChecks(t, a2)
+			time.Sleep(50 * time.Millisecond)
+		}
+
+		time.Sleep(1 * time.Second)
+
+		retryUntilCheckState(t, a2, "service:ping", api.HealthPassing)
+
+		logf(t, a2, "giving the alias check a chance to notice...")
+		time.Sleep(5 * time.Second)
+
+		retryUntilCheckState(t, a2, "service:ping-sidecar-proxy", api.HealthPassing)
+	}
+
+	for i := 0; i < 20; i++ {
+		name := "restart-" + strconv.Itoa(i)
+		ok := t.Run(name, func(t *testing.T) {
+			restartOnce(i, t)
+		})
+		require.True(t, ok, name+" failed")
+	}
+}
+
+func launchHTTPCheckServer(t *testing.T, ctx context.Context) *httptest.Server {
+	ports := freeport.GetT(t, 1)
+	port := ports[0]
+
+	addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
+
+	var lc net.ListenConfig
+	listener, err := lc.Listen(ctx, "tcp", addr)
+	require.NoError(t, err)
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("OK\n"))
+	})
+
+	srv := &httptest.Server{
+		Listener: listener,
+		Config:   &http.Server{Handler: handler},
+	}
+	srv.Start()
+	return srv
 }
 
 func TestAgent_AddCheck_Alias(t *testing.T) {

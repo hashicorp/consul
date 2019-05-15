@@ -33,6 +33,8 @@ type CheckAlias struct {
 	stop     bool
 	stopCh   chan struct{}
 	stopLock sync.Mutex
+
+	stopWg sync.WaitGroup
 }
 
 // AliasNotifier is a CheckNotifier specifically for the Alias check.
@@ -58,15 +60,24 @@ func (c *CheckAlias) Start() {
 // Stop is used to stop the check.
 func (c *CheckAlias) Stop() {
 	c.stopLock.Lock()
-	defer c.stopLock.Unlock()
 	if !c.stop {
 		c.stop = true
 		close(c.stopCh)
 	}
+	c.stopLock.Unlock()
+
+	// Wait until the associated goroutine is definitely complete before
+	// returning to the caller. This is to prevent the new and old checks from
+	// both updating the state of the alias check using possibly stale
+	// information.
+	c.stopWg.Wait()
 }
 
 // run is invoked in a goroutine until Stop() is called.
 func (c *CheckAlias) run(stopCh chan struct{}) {
+	c.stopWg.Add(1)
+	defer c.stopWg.Done()
+
 	// If we have a specific node set, then use a blocking query
 	if c.Node != "" {
 		c.runQuery(stopCh)
@@ -85,13 +96,26 @@ func (c *CheckAlias) runLocal(stopCh chan struct{}) {
 	c.Notify.AddAliasCheck(c.CheckID, c.ServiceID, notifyCh)
 	defer c.Notify.RemoveAliasCheck(c.CheckID, c.ServiceID)
 
+	// maxDurationBetweenUpdates is maximum time we go between explicit
+	// notifications before we re-query the aliased service checks anyway. This
+	// helps in the case we miss an edge triggered event and the alias does not
+	// accurately reflect the underlying service health status.
+	const maxDurationBetweenUpdates = 1 * time.Minute
+
+	var refreshTimer <-chan time.Time
+	extendRefreshTimer := func() {
+		refreshTimer = time.After(maxDurationBetweenUpdates)
+	}
+
 	updateStatus := func() {
 		checks := c.Notify.Checks()
 		checksList := make([]*structs.HealthCheck, 0, len(checks))
 		for _, chk := range checks {
 			checksList = append(checksList, chk)
 		}
+
 		c.processChecks(checksList)
+		extendRefreshTimer()
 	}
 
 	// Immediately run to get the current state of the target service
@@ -99,6 +123,8 @@ func (c *CheckAlias) runLocal(stopCh chan struct{}) {
 
 	for {
 		select {
+		case <-refreshTimer:
+			updateStatus()
 		case <-notifyCh:
 			updateStatus()
 		case <-stopCh:
@@ -202,6 +228,8 @@ func (c *CheckAlias) processChecks(checks []*structs.HealthCheck) {
 
 		msg = "All checks passing."
 	}
+
+	// TODO(rb): if no matching checks found should this default to critical?
 
 	// Update our check value
 	c.Notify.UpdateCheck(c.CheckID, health, msg)

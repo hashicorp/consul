@@ -962,6 +962,18 @@ type HealthCheckDefinition struct {
 	DeregisterCriticalServiceAfter time.Duration       `json:",omitempty"`
 }
 
+func (d *HealthCheckDefinition) Clone() *HealthCheckDefinition {
+	clone := new(HealthCheckDefinition)
+	*clone = *d
+
+	clone.Header = make(map[string][]string)
+	for k, v := range d.Header {
+		clone.Header[k] = cloneStringSlice(v)
+	}
+
+	return clone
+}
+
 func (d *HealthCheckDefinition) MarshalJSON() ([]byte, error) {
 	type Alias HealthCheckDefinition
 	exported := &struct {
@@ -1045,6 +1057,8 @@ func (c *HealthCheck) IsSame(other *HealthCheck) bool {
 func (c *HealthCheck) Clone() *HealthCheck {
 	clone := new(HealthCheck)
 	*clone = *c
+	clone.ServiceTags = cloneStringSlice(c.ServiceTags)
+	clone.Definition = *c.Definition.Clone()
 	return clone
 }
 
@@ -1608,4 +1622,13 @@ func (r *KeyringResponses) Add(v interface{}) {
 
 func (r *KeyringResponses) New() interface{} {
 	return new(KeyringResponses)
+}
+
+func cloneStringSlice(s []string) []string {
+	if len(s) == 0 {
+		return nil
+	}
+	out := make([]string, len(s))
+	copy(out, s)
+	return out
 }
