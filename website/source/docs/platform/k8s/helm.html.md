@@ -166,10 +166,10 @@ and consider if they're appropriate for your deployment.
       to false.
 
         ```yaml
-        extraVolumes:    
+        extraVolumes:
           -  type: "secret"
              name: "consul-certs"
-             load: false        
+             load: false
         ```
 
   * <a name="v-server-affinity" href="#v-server-affinity">`affinity`</a> (`string`) - This value defines the [affinity](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity) for server pods. It defaults to allowing only a single pod on each node, which minimizes risk of the cluster becoming unusable if a node is lost. If you need to run more pods per node (for example, testing on Minikube), set this value to `null`.
@@ -248,10 +248,10 @@ and consider if they're appropriate for your deployment.
       to false.
 
         ```yaml
-        extraVolumes:    
+        extraVolumes:
           -  type: "secret"
              name: "consul-certs"
-             load: false        
+             load: false
         ```
 
   * <a name="v-client-priorityclassname" href="#v-client-priorityclassname">`priorityClassName`</a> (`string`) - This value references an existing Kubernetes [priorityClassName](https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/#pod-priority) that can be assigned to client pods.
@@ -268,6 +268,8 @@ and consider if they're appropriate for your deployment.
 * <a name="v-dns" href="#v-dns">`dns`</a> - Values that configure Consul DNS service.
 
   * <a name="v-dns-enabled" href="#v-dns-enabled">`enabled`</a> (`boolean: global.enabled`) - If true, a `consul-dns` service will be created that exposes port 53 for TCP and UDP to the running Consul agents (servers and clients). This can then be used to [configure kube-dns](/docs/platform/k8s/dns.html). The Helm chart _does not_ automatically configure kube-dns.
+
+  * <a name="v-dns-clusterip" href="#v-dns-clusterip">`clusterIP`</a> (`string`) - If defined, this value configures the cluster IP of the DNS service.
 
 * <a name="v-synccatalog" href="#v-synccatalog">`syncCatalog`</a> - Values that configure the [service sync](/docs/platform/k8s/service-sync.html) process.
 
