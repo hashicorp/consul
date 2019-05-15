@@ -2,7 +2,7 @@ VERSION?="0.3.40"
 
 # The volume mounting steps are a way to exclude all the consul docs from being built
 # in the Consul site build process while still including the index.html page that points
-# users to learn.hashicorp.com
+# users to learn.hashicorp.com. See PR#5847.
 
 build:
 	@echo "==> Starting build in Docker..."
