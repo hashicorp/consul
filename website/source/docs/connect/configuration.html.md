@@ -40,15 +40,20 @@ connection attempts to fail until Connect is enabled on the server agents.
 -> **Note:** Connect is enabled by default when running Consul in
 dev mode with `consul agent -dev`.
 
-~> **Security note:** Enabling Connect is enough to try the feature but doesn't
+!> **Security note:** Enabling Connect is enough to try the feature but doesn't
 automatically ensure complete security. Please read the [Connect production
 guide](https://learn.hashicorp.com/consul/developer-segmentation/connect-production) to understand the additional steps
 needed for a secure deployment.
 
 ## Built-In Proxy Options
 
-This is a complete example of all the configuration options available for the
-built-in proxy. Note that only the `service.connect.proxy.config` and
+Consul comes with a built in L4 proxy for testing and development with Consul
+Connect. Although you can configure the built in proxy using configuration
+entries, it doesn't have the L7 capability necessary for the observability
+features released with Consul 1.5.
+
+Below is a complete example of all the configuration options available
+for the built-in proxy. Note that only the `service.connect.proxy.config` and
 `service.connect.proxy.upsteams[].config` maps are being described here, the
 rest of the service definition is shown for context but is [described
 elsewhere](/docs/connect/proxies.html#managed-proxies).
@@ -127,7 +132,7 @@ All fields are optional with a sane default.
   application_ before giving up. Defaults to `1000` or 1 second.
 
 * <a name="handshake_timeout_ms"></a><a href="#handshake_timeout_ms">`handshake_timeout_ms`</a> - The
-  number of milliseconds the proxy will wait for _incoming_ mTLS connections to 
+  number of milliseconds the proxy will wait for _incoming_ mTLS connections to
   complete the TLS handshake. Defaults to `10000` or 10 seconds.
 
 * <a name="upstreams"></a><a href="#upstreams">`upstreams`</a> - **Deprecated**
