@@ -25,8 +25,8 @@ The two supported `Kind` configuration entries are detailed below.
 
 ### Proxy Defaults - `proxy-defaults`
 
-Proxy defaults allow for configuring global config defaults across all services for Connect proxy configuration. Currently,
-only one global entry is supported.
+Proxy defaults allow for configuring global config defaults across all services
+for Connect proxy configuration. Currently, only one global entry is supported.
 
 ```hcl
 Kind = "proxy-defaults"
@@ -41,12 +41,13 @@ Config {
 
 * `Name` - Must be set to `global`
 
-* `Config` - An arbitrary map of configuration values used by Connect proxies. See
+* `Config` - An arbitrary map of configuration values used by Connect proxies.
+  The available configurations depend on the Connect proxy you use. Any values
+  that Consul uses to bootstrap the proxies can be configured globally here. To
+  explore these options please see the documentation for your chosen proxy.
 
-#### Proxy Configuration References
-
-* [Consul's Builtin Proxy](/docs/connect/configuration.html#built-in-proxy-options)
-* [Envoy](/docs/connect/proxies/envoy.html#bootstrap-configuration)
+  * [Envoy](/docs/connect/proxies/envoy.html#bootstrap-configuration)
+  * [Consul's Builtin Proxy](/docs/connect/configuration.html#built-in-proxy-options)
 
 ### Service Defaults - `service-defaults`
 
