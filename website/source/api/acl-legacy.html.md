@@ -12,7 +12,8 @@ the new ACL [Token](/docs/api/acl-token.html) and [Policy](/docs/api/acl-policy.
 
 # ACL HTTP API
 
-These `/acl` endpoints create, update, destroy, and query ACL tokens in Consul. For more information about ACLs, please see the [ACL Guide](/docs/guides/acl.html).
+These `/acl` endpoints create, update, destroy, and query ACL tokens in Consul. For more information about ACLs, please see the 
+[ACL Guide](https://learn.hashicorp.com/consul/security-networking/production-acls).
 
 ## Bootstrap ACLs
 
@@ -61,7 +62,8 @@ a 403 means that the cluster has already been bootstrapped, at which point you s
 consider the cluster in a potentially compromised state.
 
 The returned token will be a management token which can be used to further configure the
-ACL system. Please see the [ACL Guide](/docs/guides/acl.html) for more details.
+ACL system. Please see the 
+[ACL Guide](https://learn.hashicorp.com/consul/security-networking/production-acls) for more details.
 
 ## Create ACL Token
 
@@ -92,7 +94,7 @@ The table below shows this endpoint's support for
   are: `client` and `management`.
 
 - `Rules` `(string: "")` - Specifies rules for this ACL token. The format of the
-  `Rules` property is documented in the [ACL Guide](/docs/guides/acl.html).
+  `Rules` property is documented in the [ACL Guide](https://learn.hashicorp.com/consul/security-networking/production-acls).
 
 ### Sample Payload
 
@@ -347,8 +349,8 @@ This endpoint returns the status of the ACL replication process in the
 datacenter. This is intended to be used by operators, or by automation checking
 the health of ACL replication.
 
-Please see the [ACL Guide](/docs/guides/acl.html#replication) replication
-section for more details.
+Please see the [ACL Replication Guide](https://learn.hashicorp.com/consul/day-2-operations/acl-replication) for more details. 
+for more details.
 
 | Method | Path                         | Produces                   |
 | ------ | ---------------------------- | -------------------------- |

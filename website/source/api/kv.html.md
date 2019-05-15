@@ -194,7 +194,7 @@ The table below shows this endpoint's support for
   session has locked the key.**
 
     For an example of how to use the lock feature, see the [Leader Election Guide]
-    (/docs/guides/leader-election.html).
+    (https://learn.hashicorp.com/consul/developer-configuration/elections).
 
 - `release` `(string: "")` - Supply a session ID to use in a release operation. This is
   useful when paired with `?acquire=` as it allows clients to yield a lock. This

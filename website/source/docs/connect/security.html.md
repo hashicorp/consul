@@ -35,7 +35,7 @@ configuration also forces all service-to-service communication to be explicitly
 whitelisted via an allow [intention](/docs/connect/intentions.html).
 
 To learn how to enable ACLs, please see the
-[guide on ACLs](/docs/guides/acl.html).
+[guide on ACLs](https://learn.hashicorp.com/consul/security-networking/production-acls).
 
 **If ACLs are enabled but are in default allow mode**, then services will be
 able to communicate by default. Additionally, if a proper anonymous token

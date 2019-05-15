@@ -14,7 +14,7 @@ and federation of Certificate Authority trust.
 
 Sidecar proxy's [upstream configuration](/docs/connect/proxies.html#upstream-configuration-reference) 
 may specify an alternative datacenter or a prepared query that can address services 
-in multiple datacenters (such as the [geo failover](/docs/guides/geo-failover.html) pattern).
+in multiple datacenters (such as the [geo failover](https://learn.hashicorp.com/consul/developer-discovery/geo-failover) pattern).
 
 [Intentions](/docs/connect/intentions.html) verify connections between services by 
 source and destination name seamlessly across datacenters. Support for constraining Intentions 

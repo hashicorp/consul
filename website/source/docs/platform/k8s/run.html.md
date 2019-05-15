@@ -262,7 +262,7 @@ We recommend running Consul on Kubernetes with the same
 [general architecture](/docs/internals/architecture.html)
 as running it anywhere else. There are some benefits Kubernetes can provide
 that eases operating a Consul cluster and we document those below. The standard
-[production deployment guide](/docs/guides/deployment.html) is still an
+[production deployment guide](https://learn.hashicorp.com/consul/datacenter-deploy/deployment-guide) is still an
 important read even if running Consul within Kubernetes.
 
 Each section below will outline the different components of running Consul

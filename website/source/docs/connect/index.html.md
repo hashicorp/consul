@@ -73,7 +73,7 @@ There are several ways to try Connect in different environments.
    Getting Started guide provides a simple walk through of getting two services
    to communicate via Connect using only Consul directly on your local machine.
 
- * The [Envoy guide](/docs/guides/connect-envoy.html) walks through getting
+ * The [Envoy guide](https://learn.hashicorp.com/consul/developer-segmentation/connect-envoy) walks through getting
    started with Envoy as a proxy, and uses Docker to run components locally
    without installing anything else.
 

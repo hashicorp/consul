@@ -103,5 +103,5 @@ an RPC request to the remote Consul servers for that resource and return the res
 If the remote datacenter is not available, then those resources will also not be
 available, but that won't otherwise affect the local datacenter. There are some special
 situations where a limited subset of data can be replicated, such as with Consul's built-in
-[ACL replication](/docs/guides/acl.html#outages-and-acl-replication) capability, or
+[ACL replication](https://learn.hashicorp.com/consul/day-2-operations/acl-replication) capability, or
 external tools like [consul-replicate](https://github.com/hashicorp/consul-replicate).

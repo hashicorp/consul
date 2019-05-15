@@ -44,7 +44,7 @@ The table below shows this endpoint's support for
 - `Description` `(string: "")` - Free form human readable description of the policy.
 
 - `Rules` `(string: "")` - Specifies rules for the ACL policy. The format of the
-  `Rules` property is documented in the [ACL Guide](/docs/guides/acl.html).
+  `Rules` property is detailed in the [ACL Rules documentation](/docs/acl/acl-rules.html).
 
 - `Datacenters` `(array<string>)` - Specifies the datacenters the policy is valid within.
    When no datacenters are provided the policy is valid in all datacenters including
@@ -164,7 +164,7 @@ The table below shows this endpoint's support for
 - `Description` `(string: "")` - Free form human readable description of this policy.
 
 - `Rules` `(string: "")` - Specifies rules for this ACL policy. The format of the
-  `Rules` property is documented in the [ACL Guide](/docs/guides/acl.html).
+  `Rules` property is detailed in the [ACL Rules documentation](/docs/acl/acl-rules.html).
 
 - `Datacenters` `(array<string>)` - Specifies the datacenters this policy is valid within.
    When no datacenters are provided the policy is valid in all datacenters including
