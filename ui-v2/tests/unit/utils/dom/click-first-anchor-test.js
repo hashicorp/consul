@@ -39,16 +39,16 @@ test("it does nothing if an anchor isn't found", function(assert) {
   });
   assert.equal(actual, expected);
 });
-test('it dispatches the result of `click` if an anchor is found', function(assert) {
-  assert.expect(1);
-  const expected = 'click';
+test('it dispatches the result of `mouseup`, `mousedown`, `click` if an anchor is found', function(assert) {
+  assert.expect(3);
+  const expected = ['mousedown', 'mouseup', 'click'];
   const closest = function() {
     return {
       querySelector: function() {
         return {
           dispatchEvent: function(ev) {
             const actual = ev.type;
-            assert.equal(actual, expected);
+            assert.equal(actual, expected.shift());
           },
         };
       },
