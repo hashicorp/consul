@@ -9,7 +9,7 @@ test('it has add and remove methods', function(assert) {
   assert.ok(typeof listeners.add === 'function');
   assert.ok(typeof listeners.remove === 'function');
 });
-test('add returns an remove function', function(assert) {
+test('add returns a remove function', function(assert) {
   const listeners = createListeners();
   const remove = listeners.add({
     addEventListener: function() {},
@@ -63,6 +63,30 @@ test('listeners are removed on remove', function(assert) {
   remove();
   assert.ok(stub.calledOnce);
   assert.ok(stub.calledWith(name, handler));
+});
+test('listeners as functions are removed on remove', function(assert) {
+  const listeners = createListeners();
+  const stub = this.stub();
+  const remove = listeners.add(stub);
+  remove();
+  assert.ok(stub.calledOnce);
+});
+test('listeners as other listeners are removed on remove', function(assert) {
+  const listeners = createListeners();
+  const listeners2 = createListeners();
+  const stub = this.stub();
+  listeners2.add(stub);
+  const remove = listeners.add(listeners2);
+  remove();
+  assert.ok(stub.calledOnce);
+});
+test('listeners as functions of other listeners are removed on remove', function(assert) {
+  const listeners = createListeners();
+  const listeners2 = createListeners();
+  const stub = this.stub();
+  const remove = listeners.add(listeners2.add(stub));
+  remove();
+  assert.ok(stub.calledOnce);
 });
 test('remove returns the original handler', function(assert) {
   const listeners = createListeners();
