@@ -1,6 +1,7 @@
 import { moduleFor, test } from 'ember-qunit';
 import { skip } from 'qunit';
 import repo from 'consul-ui/tests/helpers/repo';
+import { get } from '@ember/object';
 const NAME = 'service';
 moduleFor(`service:repository/${NAME}`, `Integration | Service | ${NAME}`, {
   // Specify the other units that are required for this test.
@@ -8,7 +9,11 @@ moduleFor(`service:repository/${NAME}`, `Integration | Service | ${NAME}`, {
 });
 const dc = 'dc-1';
 const id = 'token-name';
+const now = new Date().getTime();
 test('findByDatacenter returns the correct data for list endpoint', function(assert) {
+  get(this.subject(), 'store').serializerFor(NAME).timestamp = function() {
+    return now;
+  };
   return repo(
     'Service',
     'findAllByDatacenter',
@@ -27,6 +32,7 @@ test('findByDatacenter returns the correct data for list endpoint', function(ass
         expected(function(payload) {
           return payload.map(item =>
             Object.assign({}, item, {
+              SyncTime: now,
               Datacenter: dc,
               uid: `["${dc}","${item.Name}"]`,
             })
@@ -69,7 +75,6 @@ test('findBySlug returns the correct data for item endpoint', function(assert) {
           service.Nodes = nodes;
           service.Tags = payload.Nodes[0].Service.Tags;
           service.meta = {
-            date: undefined,
             cursor: undefined,
           };
 

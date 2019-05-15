@@ -21,6 +21,7 @@ export default Model.extend({
   Datacenter: attr('string'),
   Segment: attr(),
   Coord: attr(),
+  SyncTime: attr('number'),
   meta: attr(),
   hasStatus: function(status) {
     return hasStatus(get(this, 'Checks'), status);
