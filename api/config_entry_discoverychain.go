@@ -34,7 +34,8 @@ type ServiceRouteHTTPMatch struct {
 	Header     []ServiceRouteHTTPMatchHeader     `json:",omitempty"`
 	QueryParam []ServiceRouteHTTPMatchQueryParam `json:",omitempty"`
 
-	Methods []string `json:",omitempty"`
+	// TODO(rb): reenable Methods
+	// Methods []string `json:",omitempty"`
 }
 
 type ServiceRouteHTTPMatchHeader struct {

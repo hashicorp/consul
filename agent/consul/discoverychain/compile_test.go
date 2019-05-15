@@ -11,14 +11,22 @@ import (
 func TestCompile_NoEntries_NoInferDefaults(t *testing.T) {
 	entries := newEntries()
 
-	res, err := Compile("main", "default", "dc1", false, entries)
+	res, err := Compile(CompileRequest{
+		ServiceName:       "main",
+		CurrentNamespace:  "default",
+		CurrentDatacenter: "dc1",
+		InferDefaults:     false,
+		Entries:           entries,
+	})
 	require.NoError(t, err)
 	require.Nil(t, res)
 }
 
 type compileTestCase struct {
-	entries *structs.DiscoveryChainConfigEntries
-	expect  *structs.CompiledDiscoveryChain // the GroupResolverNodes map should have nil values
+	entries        *structs.DiscoveryChainConfigEntries
+	expect         *structs.CompiledDiscoveryChain // the GroupResolverNodes map should have nil values
+	expectErr      string
+	expectGraphErr bool
 }
 
 func TestCompile(t *testing.T) {
@@ -45,9 +53,19 @@ func TestCompile(t *testing.T) {
 		"noop split to resolver with default subset":       testcase_NoopSplit_WithDefaultSubset(),
 		"resolver with default subset":                     testcase_Resolve_WithDefaultSubset(),
 		"resolver with no entries and inferring defaults":  testcase_DefaultResolver(),
+
 		// TODO(rb): handle this case better: "circular split":                                   testcase_CircularSplit(),
 		"all the bells and whistles": testcase_AllBellsAndWhistles(),
 		"multi dc canary":            testcase_MultiDatacenterCanary(),
+
+		// various errors
+		"splitter requires valid protocol": testcase_SplitterRequiresValidProtocol(),
+		"router requires valid protocol":   testcase_RouterRequiresValidProtocol(),
+		"split to unsplittable protocol":   testcase_SplitToUnsplittableProtocol(),
+		"route to unroutable protocol":     testcase_RouteToUnroutableProtocol(),
+		"failover crosses protocols":       testcase_FailoverCrossesProtocols(),
+		"redirect crosses protocols":       testcase_RedirectCrossesProtocols(),
+		"redirect to missing subset":       testcase_RedirectToMissingSubset(),
 	}
 
 	for name, tc := range cases {
@@ -69,26 +87,43 @@ func TestCompile(t *testing.T) {
 				require.NoError(t, entry.Validate())
 			}
 
-			res, err := Compile("main", "default", "dc1", true, tc.entries)
-			require.NoError(t, err)
-
-			// Avoid requiring unnecessary test boilerplate and inject these
-			// ourselves.
-			tc.expect.ServiceName = "main"
-			tc.expect.Namespace = "default"
-			tc.expect.Datacenter = "dc1"
-
-			// These nodes are duplicated elsewhere in the results, so we only
-			// care that the keys are present. Walk the results and nil out the
-			// value payloads so that the require.Equal will still do the work
-			// for us.
-			if len(res.GroupResolverNodes) > 0 {
-				for target, _ := range res.GroupResolverNodes {
-					res.GroupResolverNodes[target] = nil
+			res, err := Compile(CompileRequest{
+				ServiceName:       "main",
+				CurrentNamespace:  "default",
+				CurrentDatacenter: "dc1",
+				InferDefaults:     true,
+				Entries:           tc.entries,
+			})
+			if tc.expectErr != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.expectErr)
+				_, ok := err.(*structs.ConfigEntryGraphError)
+				if tc.expectGraphErr {
+					require.True(t, ok, "%T is not a *ConfigEntryGraphError", err)
+				} else {
+					require.False(t, ok, "did not expect a *ConfigEntryGraphError here: %v", err)
 				}
-			}
+			} else {
+				require.NoError(t, err)
 
-			require.Equal(t, tc.expect, res)
+				// Avoid requiring unnecessary test boilerplate and inject these
+				// ourselves.
+				tc.expect.ServiceName = "main"
+				tc.expect.Namespace = "default"
+				tc.expect.Datacenter = "dc1"
+
+				// These nodes are duplicated elsewhere in the results, so we only
+				// care that the keys are present. Walk the results and nil out the
+				// value payloads so that the require.Equal will still do the work
+				// for us.
+				if len(res.GroupResolverNodes) > 0 {
+					for target, _ := range res.GroupResolverNodes {
+						res.GroupResolverNodes[target] = nil
+					}
+				}
+
+				require.Equal(t, tc.expect, res)
+			}
 		})
 	}
 }
@@ -365,7 +400,7 @@ func testcase_RouteBypassesSplit() compileTestCase {
 			Name: "other",
 			Subsets: map[string]structs.ServiceResolverSubset{
 				"bypass": {
-					Filter: "ServiceMeta.version == bypass",
+					Filter: "Service.Meta.version == bypass",
 				},
 			},
 		},
@@ -554,10 +589,10 @@ func testcase_SubsetSplit() compileTestCase {
 			Name: "main",
 			Subsets: map[string]structs.ServiceResolverSubset{
 				"v1": {
-					Filter: "ServiceMeta.version == 1",
+					Filter: "Service.Meta.version == 1",
 				},
 				"v2": {
-					Filter: "ServiceMeta.version == 2",
+					Filter: "Service.Meta.version == 2",
 				},
 			},
 		},
@@ -718,10 +753,10 @@ func testcase_SplitBypassesSplit() compileTestCase {
 			Name: "next",
 			Subsets: map[string]structs.ServiceResolverSubset{
 				"bypassed": {
-					Filter: "ServiceMeta.version == bypass",
+					Filter: "Service.Meta.version == bypass",
 				},
 				"not-bypassed": {
-					Filter: "ServiceMeta.version != bypass",
+					Filter: "Service.Meta.version != bypass",
 				},
 			},
 		},
@@ -819,10 +854,10 @@ func testcase_ServiceAndSubsetRedirect() compileTestCase {
 			Name: "other",
 			Subsets: map[string]structs.ServiceResolverSubset{
 				"v1": {
-					Filter: "ServiceMeta.version == 1",
+					Filter: "Service.Meta.version == 1",
 				},
 				"v2": {
-					Filter: "ServiceMeta.version == 2",
+					Filter: "Service.Meta.version == 2",
 				},
 			},
 		},
@@ -949,7 +984,7 @@ func testcase_ServiceAndSubsetFailover() compileTestCase {
 			Name: "main",
 			Subsets: map[string]structs.ServiceResolverSubset{
 				"backup": {
-					Filter: "ServiceMeta.version == backup",
+					Filter: "Service.Meta.version == backup",
 				},
 			},
 			Failover: map[string]structs.ServiceResolverFailover{
@@ -1059,8 +1094,8 @@ func testcase_NoopSplit_WithDefaultSubset() compileTestCase {
 			Name:          "main",
 			DefaultSubset: "v2",
 			Subsets: map[string]structs.ServiceResolverSubset{
-				"v1": {Filter: "ServiceMeta.version == 1"},
-				"v2": {Filter: "ServiceMeta.version == 2"},
+				"v1": {Filter: "Service.Meta.version == 1"},
+				"v2": {Filter: "Service.Meta.version == 2"},
 			},
 		},
 	)
@@ -1138,8 +1173,8 @@ func testcase_Resolve_WithDefaultSubset() compileTestCase {
 			Name:          "main",
 			DefaultSubset: "v2",
 			Subsets: map[string]structs.ServiceResolverSubset{
-				"v1": {Filter: "ServiceMeta.version == 1"},
-				"v2": {Filter: "ServiceMeta.version == 2"},
+				"v1": {Filter: "Service.Meta.version == 1"},
+				"v2": {Filter: "Service.Meta.version == 2"},
 			},
 		},
 	)
@@ -1394,9 +1429,9 @@ func testcase_AllBellsAndWhistles() compileTestCase {
 			Name:          "main",
 			DefaultSubset: "default-subset",
 			Subsets: map[string]structs.ServiceResolverSubset{
-				"v1":             {Filter: "ServiceMeta.version == 1"},
-				"v2":             {Filter: "ServiceMeta.version == 2"},
-				"v3":             {Filter: "ServiceMeta.version == 3"},
+				"v1":             {Filter: "Service.Meta.version == 1"},
+				"v2":             {Filter: "Service.Meta.version == 2"},
+				"v3":             {Filter: "Service.Meta.version == 3"},
 				"default-subset": {OnlyPassing: true},
 			},
 		},
@@ -1517,6 +1552,181 @@ func testcase_AllBellsAndWhistles() compileTestCase {
 		},
 	}
 	return compileTestCase{entries: entries, expect: expect}
+}
+
+func testcase_SplitterRequiresValidProtocol() compileTestCase {
+	entries := newEntries()
+	setServiceProtocol(entries, "main", "tcp")
+
+	entries.AddSplitters(
+		&structs.ServiceSplitterConfigEntry{
+			Kind: structs.ServiceSplitter,
+			Name: "main",
+			Splits: []structs.ServiceSplit{
+				{Weight: 90, Namespace: "v1"},
+				{Weight: 10, Namespace: "v2"},
+			},
+		},
+	)
+
+	return compileTestCase{
+		entries:        entries,
+		expectErr:      "does not permit advanced routing or splitting behavior",
+		expectGraphErr: true,
+	}
+}
+
+func testcase_RouterRequiresValidProtocol() compileTestCase {
+	entries := newEntries()
+	setServiceProtocol(entries, "main", "tcp")
+
+	entries.AddRouters(
+		&structs.ServiceRouterConfigEntry{
+			Kind: structs.ServiceRouter,
+			Name: "main",
+			Routes: []structs.ServiceRoute{
+				{
+					Match: &structs.ServiceRouteMatch{
+						HTTP: &structs.ServiceRouteHTTPMatch{
+							PathExact: "/other",
+						},
+					},
+					Destination: &structs.ServiceRouteDestination{
+						Namespace: "other",
+					},
+				},
+			},
+		},
+	)
+	return compileTestCase{
+		entries:        entries,
+		expectErr:      "does not permit advanced routing or splitting behavior",
+		expectGraphErr: true,
+	}
+}
+
+func testcase_SplitToUnsplittableProtocol() compileTestCase {
+	entries := newEntries()
+	setServiceProtocol(entries, "main", "tcp")
+	setServiceProtocol(entries, "other", "tcp")
+
+	entries.AddSplitters(
+		&structs.ServiceSplitterConfigEntry{
+			Kind: structs.ServiceSplitter,
+			Name: "main",
+			Splits: []structs.ServiceSplit{
+				{Weight: 90},
+				{Weight: 10, Service: "other"},
+			},
+		},
+	)
+	return compileTestCase{
+		entries:        entries,
+		expectErr:      "does not permit advanced routing or splitting behavior",
+		expectGraphErr: true,
+	}
+}
+
+func testcase_RouteToUnroutableProtocol() compileTestCase {
+	entries := newEntries()
+	setServiceProtocol(entries, "main", "tcp")
+	setServiceProtocol(entries, "other", "tcp")
+
+	entries.AddRouters(
+		&structs.ServiceRouterConfigEntry{
+			Kind: structs.ServiceRouter,
+			Name: "main",
+			Routes: []structs.ServiceRoute{
+				{
+					Match: &structs.ServiceRouteMatch{
+						HTTP: &structs.ServiceRouteHTTPMatch{
+							PathExact: "/other",
+						},
+					},
+					Destination: &structs.ServiceRouteDestination{
+						Service: "other",
+					},
+				},
+			},
+		},
+	)
+
+	return compileTestCase{
+		entries:        entries,
+		expectErr:      "does not permit advanced routing or splitting behavior",
+		expectGraphErr: true,
+	}
+}
+
+func testcase_FailoverCrossesProtocols() compileTestCase {
+	entries := newEntries()
+	setServiceProtocol(entries, "main", "grpc")
+	setServiceProtocol(entries, "other", "tcp")
+
+	entries.AddResolvers(
+		&structs.ServiceResolverConfigEntry{
+			Kind: structs.ServiceResolver,
+			Name: "main",
+			Failover: map[string]structs.ServiceResolverFailover{
+				"*": structs.ServiceResolverFailover{
+					Service: "other",
+				},
+			},
+		},
+	)
+
+	return compileTestCase{
+		entries:        entries,
+		expectErr:      "uses inconsistent protocols",
+		expectGraphErr: true,
+	}
+}
+
+func testcase_RedirectCrossesProtocols() compileTestCase {
+	entries := newEntries()
+	setServiceProtocol(entries, "main", "grpc")
+	setServiceProtocol(entries, "other", "tcp")
+
+	entries.AddResolvers(
+		&structs.ServiceResolverConfigEntry{
+			Kind: structs.ServiceResolver,
+			Name: "main",
+			Redirect: &structs.ServiceResolverRedirect{
+				Service: "other",
+			},
+		},
+	)
+	return compileTestCase{
+		entries:        entries,
+		expectErr:      "uses inconsistent protocols",
+		expectGraphErr: true,
+	}
+}
+
+func testcase_RedirectToMissingSubset() compileTestCase {
+	entries := newEntries()
+
+	entries.AddResolvers(
+		&structs.ServiceResolverConfigEntry{
+			Kind:           structs.ServiceResolver,
+			Name:           "other",
+			ConnectTimeout: 33 * time.Second,
+		},
+		&structs.ServiceResolverConfigEntry{
+			Kind: structs.ServiceResolver,
+			Name: "main",
+			Redirect: &structs.ServiceResolverRedirect{
+				Service:       "other",
+				ServiceSubset: "v1",
+			},
+		},
+	)
+
+	return compileTestCase{
+		entries:        entries,
+		expectErr:      `does not have a subset named "v1"`,
+		expectGraphErr: true,
+	}
 }
 
 func newSimpleRoute(name string, muts ...func(*structs.ServiceRoute)) structs.ServiceRoute {

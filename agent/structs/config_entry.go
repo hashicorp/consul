@@ -542,3 +542,12 @@ func (c *ConfigEntryResponse) UnmarshalBinary(data []byte) error {
 
 	return nil
 }
+
+// ConfigEntryKindName is a value type useful for maps. You can use:
+//     map[ConfigEntryKindName]Payload
+// instead of:
+//     map[string]map[string]Payload
+type ConfigEntryKindName struct {
+	Kind string
+	Name string
+}

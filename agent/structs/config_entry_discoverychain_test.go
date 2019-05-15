@@ -53,7 +53,7 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 				Name:          "test",
 				DefaultSubset: "gone",
 				Subsets: map[string]ServiceResolverSubset{
-					"v1": {Filter: "ServiceMeta.version == v1"},
+					"v1": {Filter: "Service.Meta.version == v1"},
 				},
 			},
 			validateErr: `DefaultSubset "gone" is not a valid subset`,
@@ -65,7 +65,7 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 				Name:          "test",
 				DefaultSubset: "v1",
 				Subsets: map[string]ServiceResolverSubset{
-					"v1": {Filter: "ServiceMeta.version == v1"},
+					"v1": {Filter: "Service.Meta.version == v1"},
 				},
 			},
 		},
@@ -122,7 +122,7 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 					ServiceSubset: "v1",
 				},
 				Subsets: map[string]ServiceResolverSubset{
-					"v1": {Filter: "ServiceMeta.version == v1"},
+					"v1": {Filter: "Service.Meta.version == v1"},
 				},
 			},
 		},
@@ -157,7 +157,7 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				Subsets: map[string]ServiceResolverSubset{
-					"v1": {Filter: "ServiceMeta.version == v1"},
+					"v1": {Filter: "Service.Meta.version == v1"},
 				},
 				Failover: map[string]ServiceResolverFailover{
 					"v1": ServiceResolverFailover{
@@ -172,13 +172,13 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				Subsets: map[string]ServiceResolverSubset{
-					"v1": {Filter: "ServiceMeta.version == v1"},
+					"v1": {Filter: "Service.Meta.version == v1"},
 				},
 				Failover: map[string]ServiceResolverFailover{
 					"v1": ServiceResolverFailover{},
 				},
 			},
-			validateErr: `Bad Failover["v1"] one of Service, ServiceSubset, or Datacenters is required`,
+			validateErr: `Bad Failover["v1"] one of Service, ServiceSubset, Namespace, or Datacenters is required`,
 		},
 		{
 			name: "failover to self using invalid subset",
@@ -186,7 +186,7 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				Subsets: map[string]ServiceResolverSubset{
-					"v1": {Filter: "ServiceMeta.version == v1"},
+					"v1": {Filter: "Service.Meta.version == v1"},
 				},
 				Failover: map[string]ServiceResolverFailover{
 					"v1": ServiceResolverFailover{
@@ -203,8 +203,8 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				Subsets: map[string]ServiceResolverSubset{
-					"v1": {Filter: "ServiceMeta.version == v1"},
-					"v2": {Filter: "ServiceMeta.version == v2"},
+					"v1": {Filter: "Service.Meta.version == v1"},
+					"v2": {Filter: "Service.Meta.version == v2"},
 				},
 				Failover: map[string]ServiceResolverFailover{
 					"v1": ServiceResolverFailover{
