@@ -41,11 +41,15 @@ export default function(
               return P.resolve();
             }
           : source;
-      this.readyState = 0; // connecting
+      this.readyState = 0; // CONNECTING
       P.resolve()
         .then(() => {
+          // if we are already closed, don't do anything
+          if (this.readyState !== 0) {
+            return;
+          }
           this.readyState = 1; // open
-          // ...that the connection _was just_ opened
+          // the connection _was just_ opened
           this.dispatchEvent({ type: 'open' });
           return run(this, configuration, isClosed);
         })
@@ -63,8 +67,13 @@ export default function(
     }
     close() {
       // additional readyState 3 = CLOSING
-      if (this.readyState !== 2) {
-        this.readyState = 3;
+      switch (this.readyState) {
+        case 0: // CONNECTING
+        case 2: // CLOSED
+          this.readyState = 2; // CLOSED
+          break;
+        default:
+          this.readyState = 3; // CLOSING
       }
     }
   };
