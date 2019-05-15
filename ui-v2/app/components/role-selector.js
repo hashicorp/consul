@@ -12,8 +12,8 @@ export default ChildSelectorComponent.extend({
   type: 'role',
   classNames: ['role-selector'],
   state: 'role',
-  // You have to alias data
-  // is you just set it it loses its reference?
+  // You have to alias data.
+  // If you just set it, it loses its reference?
   policy: alias('policyForm.data'),
   init: function() {
     this._super(...arguments);
