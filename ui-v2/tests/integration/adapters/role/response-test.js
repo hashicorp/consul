@@ -8,8 +8,8 @@ module('Integration | Adapter | role | response', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
   const id = 'role-name';
-  test('handleResponse returns the correct data for list endpoint', function(assert) {
-    const adapter = this.owner.lookup('adapter:role');
+  test('respondForQuery returns the correct data for list endpoint', function(assert) {
+    const serializer = this.owner.lookup('serializer:role');
     const request = {
       url: `/v1/acl/roles?dc=${dc}`,
     };
@@ -17,27 +17,45 @@ module('Integration | Adapter | role | response', function(hooks) {
       const expected = payload.map(item =>
         Object.assign({}, item, {
           Datacenter: dc,
-          uid: `["${dc}","${item.ID}"]`,
           Policies: createPolicies(item),
+          uid: `["${dc}","${item.ID}"]`,
         })
       );
-      const actual = adapter.handleResponse(200, {}, payload, request);
+      const actual = serializer.respondForQuery(
+        function(cb) {
+          const headers = {};
+          const body = payload;
+          return cb(headers, body);
+        },
+        {
+          dc: dc,
+        }
+      );
       assert.deepEqual(actual, expected);
     });
   });
-  test('handleResponse returns the correct data for item endpoint', function(assert) {
-    const adapter = this.owner.lookup('adapter:role');
+  test('respondForQueryRecord returns the correct data for item endpoint', function(assert) {
+    const serializer = this.owner.lookup('serializer:role');
     const request = {
       url: `/v1/acl/role/${id}?dc=${dc}`,
     };
     return get(request.url).then(function(payload) {
       const expected = Object.assign({}, payload, {
         Datacenter: dc,
+        Policies: createPolicies(payload),
         [META]: {},
         uid: `["${dc}","${id}"]`,
-        Policies: createPolicies(payload),
       });
-      const actual = adapter.handleResponse(200, {}, payload, request);
+      const actual = serializer.respondForQueryRecord(
+        function(cb) {
+          const headers = {};
+          const body = payload;
+          return cb(headers, body);
+        },
+        {
+          dc: dc,
+        }
+      );
       assert.deepEqual(actual, expected);
     });
   });

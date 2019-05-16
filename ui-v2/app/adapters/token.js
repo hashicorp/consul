@@ -1,15 +1,10 @@
 import Adapter, { DATACENTER_QUERY_PARAM as API_DATACENTER_KEY } from './application';
 import { inject as service } from '@ember/service';
+import { get } from '@ember/object';
 import { SLUG_KEY } from 'consul-ui/models/token';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 
-import WithPolicies from 'consul-ui/mixins/policy/as-many';
-import WithRoles from 'consul-ui/mixins/role/as-many';
-
-import { get } from '@ember/object';
-
-
-export default Adapter.extend(WithRoles, WithPolicies, {
+export default Adapter.extend({
   store: service('store'),
 
   requestForQuery: function(request, { dc, index, policy }) {
@@ -35,7 +30,7 @@ export default Adapter.extend(WithRoles, WithPolicies, {
     `;
   },
   requestForUpdateRecord: function(request, data) {
-    // TODO: Serializer
+    // TODO: Serializer - Pretty sure this can go now
     // If a token has Rules, use the old API
     if (typeof data['Rules'] !== 'undefined') {
       // TODO: need to clean up vars sent
