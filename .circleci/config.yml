@@ -26,31 +26,97 @@ jobs:
   # Runs go fmt and go vet
   go-fmt-and-vet:
     docker:
-    - image: *GOLANG_IMAGE
+      - image: *GOLANG_IMAGE
     steps:
-    - checkout
-    - restore_cache:
-        keys:
-        - consul-modcache-v1-{{ checksum "go.mod" }}
-    - run:
-        command: go mod download
-    - save_cache:
-        key: consul-modcache-v1-{{ checksum "go.mod" }}
-        paths:
-        - /go/pkg/mod
-    - run:
-        name: check go fmt
-        command: |
-          files=$(go fmt ./...)
-          if [ -n "$files" ]; then
-            echo "The following file(s) do not conform to go fmt:"
-            echo "$files"
-            exit 1
-          fi
-    - run:
-        command: go vet ./...
+      - checkout
+      - restore_cache:
+          keys:
+          - consul-modcache-v1-{{ checksum "go.mod" }}
+      - run:
+          command: go mod download
+      - save_cache:
+          key: consul-modcache-v1-{{ checksum "go.mod" }}
+          paths:
+          - /go/pkg/mod
+      - run:
+          name: check go fmt
+          command: |
+            files=$(go fmt ./...)
+            if [ -n "$files" ]; then
+              echo "The following file(s) do not conform to go fmt:"
+              echo "$files"
+              exit 1
+            fi
+      - run:
+          command: go vet ./...
     environment:
       <<: *ENVIRONMENT
+
+  go-test:
+    docker:
+      - image: *GOLANG_IMAGE
+    parallelism: 4
+    environment:
+      <<: *ENVIRONMENT
+      GOTAGS: '' # No tags for OSS but there are for enterprise
+    steps:
+      - checkout
+      - restore_cache: # restore cache from dev-build job
+          keys:
+          - consul-modcache-v1-{{ checksum "go.mod" }}
+      - attach_workspace:
+          at: /go/bin
+      - run: mkdir -p $TEST_RESULTS_DIR
+      - run: sudo apt-get update && sudo apt-get install -y rsyslog
+      - run: sudo service rsyslog start
+      # Use CircleCI test splitting by classname. Since there are no classes in go,
+      # we fake it by taking everything after github.com/hashicorp/consul/ and setting
+      # it as the classname.
+
+      # This loop writes go test results to <reportname>.xml per go package
+      - run: |
+          for pkg in $(go list ./... | circleci tests split --split-by=timings --timings-type=classname | tr '\n' ' '); do
+            reportname=$(echo $pkg | cut -d '/' -f3- | sed "s#/#_#g")
+            gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/$reportname.xml -- -tags=$GOTAGS $pkg
+          done
+
+      - store_test_results:
+          path: /tmp/test-results
+      - store_artifacts:
+          path: /tmp/test-results
+
+  # split off a job for the API package since it is separate
+  go-test-api:
+    docker:
+      - image: *GOLANG_IMAGE
+    environment:
+      <<: *ENVIRONMENT
+      GOTAGS: '' # No tags for OSS but there are for enterprise
+    steps:
+      - checkout
+      - restore_cache: # restore cache from dev-build job
+          keys:
+          - consul-modcache-v1-{{ checksum "go.mod" }}
+      - attach_workspace:
+          at: /go/bin
+      - run: mkdir -p $TEST_RESULTS_DIR
+      # Use CircleCI test splitting by classname. Since there are no classes in go,
+      # we fake it by taking everything after github.com/hashicorp/consul/ and setting
+      # it as the classname.
+
+      # This loop writes go test results to <reportname>.xml per go package
+      - run:
+          working_directory: api
+          command: |
+            for pkg in $(go list ./... | circleci tests split --split-by=timings --timings-type=classname | tr '\n' ' '); do
+              reportname=$(echo $pkg | cut -d '/' -f3- | sed "s#/#_#g")
+              gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/$reportname.xml -- -tags=$GOTAGS $pkg
+            done
+
+      - store_test_results:
+          path: /tmp/test-results
+      - store_artifacts:
+          path: /tmp/test-results
 
   # build all distros
   build-distros: &build-distros
@@ -97,7 +163,15 @@ jobs:
       - image: *GOLANG_IMAGE
     steps:
       - checkout
-      - run: make dev
+      - restore_cache:
+          keys:
+          - consul-modcache-v1-{{ checksum "go.mod" }}
+      - run:
+          command: make dev
+      - save_cache:
+          key: consul-modcache-v1-{{ checksum "go.mod" }}
+          paths:
+          - /go/pkg/mod
 
       # save dev build to pass to downstream jobs
       - persist_to_workspace:
@@ -361,6 +435,14 @@ workflows:
   test-integrations:
     jobs:
       - dev-build
+      - go-test: &go-test
+          requires:
+            - dev-build
+          filters:
+            branches:
+              only:
+                - /^bug\/flaky-test-.*$/ # only run go tests on bug/flaky-test-* for now since we are fixing tests
+      - go-test-api: *go-test
       - dev-upload-s3:
           requires:
             - dev-build
