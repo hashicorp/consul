@@ -56,7 +56,6 @@ Feature: deleting: Deleting items with confirmations, success and error notifica
     | kv        | DELETE | /v1/kv/key-name?dc=datacenter                                             | kv: key-name                                    |
     | intention | DELETE | /v1/connect/intentions/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=datacenter | intention: ee52203d-989f-4f7a-ab5a-2bef004164ca |
     | token     | DELETE | /v1/acl/token/001fda31-194e-4ff1-a5ec-589abf2cafd0?dc=datacenter          | token: 001fda31-194e-4ff1-a5ec-589abf2cafd0     |
-    | policy    | DELETE | /v1/acl/policy/1981f51d-301a-497b-89a0-05112ef02b4b?dc=datacenter         | policy: 1981f51d-301a-497b-89a0-05112ef02b4b    |
     ----------------------------------------------------------------------------------------------------------------------------------------------------
 @ignore
   Scenario: Sort out the wide tables ^

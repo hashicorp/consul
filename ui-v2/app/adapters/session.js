@@ -28,8 +28,4 @@ export default Adapter.extend({
       PUT /v1/session/destroy/${data[SLUG_KEY]}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
     `;
   },
-  //
-  respondForQueryRecord: function(respond, query) {
-    return this._super(cb => respond((headers, body) => cb(headers, body[0])), query);
-  },
 });
