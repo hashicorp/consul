@@ -54,7 +54,9 @@ for gossip traffic.
 
 
 ~> Note, depending on your environment, the previous secrets may not be
-necessary.  ## Configure Helm Chart 
+necessary.  
+
+## Configure Helm Chart 
 
 Now that you have prepared your Kubernetes cluster, you can customize the Helm
 chart. 	First, you will need to download the latest official Helm chart.
