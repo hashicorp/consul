@@ -44,6 +44,7 @@ type cmd struct {
 	// flags
 	proxyID              string
 	sidecarFor           string
+	adminAccessLogPath   string
 	adminBind            string
 	envoyBin             string
 	bootstrap            bool
@@ -66,6 +67,10 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.envoyBin, "envoy-binary", "",
 		"The full path to the envoy binary to run. By default will just search "+
 			"$PATH. Ignored if -bootstrap is used.")
+
+	c.flags.StringVar(&c.adminAccessLogPath, "admin-access-log-path", "/dev/null",
+		"The path to write the access log for the administration server. If no access "+
+			"log is desired specify \"/dev/null\".")
 
 	c.flags.StringVar(&c.adminBind, "admin-bind", "localhost:19000",
 		"The address:port to start envoy's admin server on. Envoy requires this "+
@@ -258,6 +263,11 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		cluster = c.sidecarFor
 	}
 
+	adminAccessLogPath := c.adminAccessLogPath
+	if len(adminAccessLogPath) == 0 {
+		adminAccessLogPath = "/dev/null"
+	}
+
 	return &BootstrapTplArgs{
 		ProxyCluster:          cluster,
 		ProxyID:               c.proxyID,
@@ -265,6 +275,7 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		AgentPort:             agentPort,
 		AgentTLS:              useTLS,
 		AgentCAFile:           httpCfg.TLSConfig.CAFile,
+		AdminAccessLogPath:    adminAccessLogPath,
 		AdminBindAddress:      adminBindIP.String(),
 		AdminBindPort:         adminPort,
 		Token:                 httpCfg.Token,
