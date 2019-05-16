@@ -327,22 +327,8 @@ func (c *CheckHTTP) Start() {
 
 		// Create the HTTP client.
 		c.httpClient = &http.Client{
-			Timeout:   10 * time.Second,
+			Timeout:   ComputeTimeoutForCheck(c.Logger, c.CheckID, c.Interval, c.Timeout),
 			Transport: trans,
-		}
-
-		// For long (>10s) interval checks the http timeout is 10s, otherwise the
-		// timeout is the interval. This means that a check *should* return
-		// before the next check begins.
-		if c.Timeout > 0 {
-			if c.Timeout > c.Interval {
-				c.Logger.Printf("[WARN] agent: Check Timeout (%q) > Interval (%q), using Interval for %q", c.Timeout, c.Interval, c.CheckID)
-				c.httpClient.Timeout = c.Interval
-			} else {
-				c.httpClient.Timeout = c.Timeout
-			}
-		} else if c.Interval < 10*time.Second {
-			c.httpClient.Timeout = c.Interval
 		}
 	}
 
@@ -463,6 +449,29 @@ type CheckTCP struct {
 	stopLock sync.Mutex
 }
 
+// ComputeTimeoutForCheck compute timeout for checks from interval and timeouts.
+// For long (>10s) interval checks the http timeout is 10s, otherwise the
+// timeout is the interval. This means that a check *should* return
+// before the next check begins.
+func ComputeTimeoutForCheck(logger *log.Logger, name types.CheckID, interval, timeout time.Duration) time.Duration {
+	defaultTimeoutAndInterval := 10 * time.Second
+	if interval <= 0 {
+		interval = defaultTimeoutAndInterval
+	}
+	if timeout > 0 {
+		if timeout <= interval {
+			return timeout
+		}
+		logger.Printf("[WARN] agent: Check Timeout (%q) > Interval (%q), using Interval for %q", timeout, interval, name)
+	} else {
+		if interval > defaultTimeoutAndInterval {
+			return defaultTimeoutAndInterval
+		}
+	}
+	return interval
+
+}
+
 // Start is used to start a TCP check.
 // The check runs until stop is called
 func (c *CheckTCP) Start() {
@@ -476,19 +485,7 @@ func (c *CheckTCP) Start() {
 		// For long (>10s) interval checks the socket timeout is 10s, otherwise
 		// the timeout is the interval. This means that a check *should* return
 		// before the next check begins.
-		if c.Timeout > 0 {
-			if c.Timeout > c.Interval {
-
-				c.Logger.Printf("[WARN] agent: Check Timeout (%q) > Interval (%q), using Interval for %q", c.Timeout, c.Interval, c.CheckID)
-				c.dialer.Timeout = c.Interval
-			} else {
-				c.dialer.Timeout = c.Timeout
-			}
-		} else if c.Interval < 10*time.Second {
-			c.dialer.Timeout = c.Interval
-		} else {
-			c.dialer.Timeout = 10 * time.Second
-		}
+		c.dialer.Timeout = ComputeTimeoutForCheck(c.Logger, c.CheckID, c.Interval, c.Timeout)
 	}
 
 	c.stop = false
@@ -676,10 +673,7 @@ type CheckGRPC struct {
 func (c *CheckGRPC) Start() {
 	c.stopLock.Lock()
 	defer c.stopLock.Unlock()
-	timeout := 10 * time.Second
-	if c.Timeout > 0 {
-		timeout = c.Timeout
-	}
+	timeout := ComputeTimeoutForCheck(c.Logger, c.CheckID, c.Interval, c.Timeout)
 	c.probe = NewGrpcHealthProbe(c.GRPC, timeout, c.TLSClientConfig)
 	c.stop = false
 	c.stopCh = make(chan struct{})
