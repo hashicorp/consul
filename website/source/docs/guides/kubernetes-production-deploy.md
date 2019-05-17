@@ -45,7 +45,7 @@ $ kubectl create clusterrolebinding kubernetes-dashboard -n kube-system --cluste
 ```
 
 Finally, you may need to create Kubernetes secrets to store Consul data. You
-can reference these secrets in the customized values file. 
+can reference these secrets in the customized Helm chart values file. 
 
 If you have purchased Enterprise Consul, the enterprise license file should be
 used with the official image,  `hashicorp/consul-enterprise:1.5.0-ent`.  Enable
