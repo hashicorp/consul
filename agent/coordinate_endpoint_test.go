@@ -88,7 +88,7 @@ func TestCoordinate_Nodes(t *testing.T) {
 	// Check that coordinates are empty before registering a node
 	coordinates, ok := obj.(structs.Coordinates)
 	if !ok {
-		t.Fatalf("expected: structs.Coordinates, received: %v", coordinates)
+		t.Fatalf("expected: structs.Coordinates, received: %+v", obj)
 	}
 
 	if len(coordinates) != 0 {
