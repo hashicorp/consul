@@ -120,7 +120,6 @@ need to configure affinity. Otherwise, the failure of one Kubernetes node could
 cause the loss of multiple Consul servers, and result in quorum loss. By
 default, the example `values.yaml` has affinity configured correctly.  
 
-####
 #### Enterprise License
 
 If you have an [Enterprise
