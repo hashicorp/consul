@@ -121,7 +121,7 @@ cause the loss of multiple Consul servers, and result in quorum loss. By
 default, the example `values.yaml` has affinity configured correctly.  
 
 ####
-Enterprise License
+#### Enterprise License
 
 If you have an [Enterprise
 license](https://www.hashicorp.com/products/consul/enterprise) you should
