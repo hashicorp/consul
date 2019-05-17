@@ -194,7 +194,7 @@ server:
       memory: "32Gi"
       cpu: "4"
       disk: "50Gi"
-  # If using Enterprise, provide your license here
+  # If using Enterprise, reference the Kubernetes secret that holds your license here
   enterpriseLicense:
     secretName: "consul-license"
     secretKey: "key"
