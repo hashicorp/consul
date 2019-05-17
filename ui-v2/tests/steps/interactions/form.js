@@ -1,8 +1,13 @@
 export default function(scenario, find, fillIn, triggerKeyEvent, currentPage) {
+  const dont = `( don't| shouldn't| can't)?`;
   const fillInElement = function(page, name, value) {
     const cm = document.querySelector(`textarea[name="${name}"] + .CodeMirror`);
     if (cm) {
-      cm.CodeMirror.setValue(value);
+      if (!cm.CodeMirror.options.readOnly) {
+        cm.CodeMirror.setValue(value);
+      } else {
+        throw new Error(`The ${name} editor is set to readonly`);
+      }
       return page;
     } else {
       return page.fillIn(name, value);
@@ -22,16 +27,16 @@ export default function(scenario, find, fillIn, triggerKeyEvent, currentPage) {
     })
     .then(
       [
-        'I fill in the $property form with yaml\n$yaml',
-        'I fill in $property with yaml\n$yaml',
-        'I fill in the $property with yaml\n$yaml',
-        'I fill in the property form with json\n$json',
+        `I${dont} fill in the $property form with yaml\n$yaml`,
+        `I${dont} fill in $property with yaml\n$yaml`,
+        `I${dont} fill in the $property with yaml\n$yaml`,
+        `I${dont} fill in the property form with json\n$json`,
 
-        'I fill in the $property form on the $component component with yaml\n$yaml',
-        'I fill in the $property form on the $component component with json\n$json',
-        'I fill in the $property on the $component component with yaml\n$yaml',
+        `I${dont} fill in the $property form on the $component component with yaml\n$yaml`,
+        `I${dont} fill in the $property form on the $component component with json\n$json`,
+        `I${dont} fill in the $property on the $component component with yaml\n$yaml`,
       ],
-      function(property, component, data, next) {
+      function(negative, property, component, data, next) {
         try {
           switch (true) {
             case typeof component === 'string':
@@ -51,7 +56,18 @@ export default function(scenario, find, fillIn, triggerKeyEvent, currentPage) {
           }
           return Object.keys(data).reduce(function(prev, item, i, arr) {
             const name = `${obj.prefix || property}[${item}]`;
-            return fillInElement(prev, name, data[item]);
+            if (negative) {
+              try {
+                fillInElement(prev, name, data[item]);
+                throw new TypeError(`${item} is editable`);
+              } catch (e) {
+                if (e instanceof TypeError) {
+                  throw e;
+                }
+              }
+            } else {
+              return fillInElement(prev, name, data[item]);
+            }
           }, obj);
         } catch (e) {
           throw e;
