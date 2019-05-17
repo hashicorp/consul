@@ -153,7 +153,7 @@ sidecar into all pods. If you would prefer to manually annotate which pods to in
 can set this to false. Setting the 'aclBindingRuleSelector` parameter to
 `serviceaccount.name!=default` ensures that new services do not all receive the
 same token if you are only using a default service account. This setting is
-only necessary if you have enabled ACLs in the server section.
+only necessary if you have enabled ACLs in the global section.
 
 Read more about the [Connect Inject
 parameters](https://www.consul.io/docs/platform/k8s/helm.html#v-connectinject).
