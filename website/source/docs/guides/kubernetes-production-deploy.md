@@ -109,7 +109,7 @@ for quorum and failure tolerance. For most deployments, 3 servers are adequate.
 In the server section set both `replicas` and `bootstrapExpect` to 3. This will
 deploy three servers and cause Consul to wait to perform leader election until
 all three are healthy. The `resources` will depend on your environment; in the
-example below the resources are set for a large environment. 
+example at the end of the guide, the resources are set for a large environment. 
 
 #### Affinity
 
