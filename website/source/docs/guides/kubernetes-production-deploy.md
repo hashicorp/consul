@@ -47,10 +47,11 @@ $ kubectl create clusterrolebinding kubernetes-dashboard -n kube-system --cluste
 Finally, you may need to create Kubernetes secrets to store Consul data. You
 can reference these secrets in the customized Helm chart values file. 
 
-If you have purchased Enterprise Consul, the enterprise license file should be
-used with the official image,  `hashicorp/consul-enterprise:1.5.0-ent`.  Enable
-[encryption](https://www.consul.io/docs/agent/encryption.html#gossip-encryption)
-for gossip traffic. 
+- If you have purchased Enterprise Consul, the enterprise license file should be
+used with the official image,  `hashicorp/consul-enterprise:1.5.0-ent`.  
+
+- Enable
+[encryption](https://www.consul.io/docs/agent/encryption.html#gossip-encryption) to secure gossip traffic within the Consul cluster. 
 
 
 ~> Note, depending on your environment, the previous secrets may not be
@@ -99,8 +100,9 @@ To enable the Consul web UI update the `ui` section to your values file and set
 
 Note, you can also set up a [loadbalancer
 resource](https://github.com/hashicorp/demo-consul-101/tree/master/k8s#implement-load-balancer)
-or other service type in Kubernetes to make it easier to access the UI.  ###
-Consul Servers
+or other service type in Kubernetes to make it easier to access the UI.  
+
+### Consul Servers
 
 For production deployments, you will need to deploy [3 or 5 Consul
 servers](https://www.consul.io/docs/internals/consensus.html#deployment-table)
@@ -132,7 +134,8 @@ parameters](https://www.consul.io/docs/platform/k8s/helm.html#v-server)
 
 A Consul client is deployed on every Kubernetes node, so you do not need to
 specify the number of clients for your deployments. You will need to specify
-resources and enable gRPC. The resources in the example below should be
+resources and enable gRPC. The resources in the example at the end of this guide
+should be
 sufficient for most production scenarios since Consul clients are designed for
 horizontal scalability. Enabling `grpc` enables the GRPC listener on port 8502
 and exposes it to the host. It is required to use Consul Connect.
@@ -181,6 +184,7 @@ global:
 # Configure your Consul servers in this section.
 server:
   enabled: true
+  connect: true
   # Specify three servers that wait till all are healthy to bootstrap the Consul cluster.
   replicas: 3
   bootstrapExpect: 3
@@ -261,7 +265,8 @@ Now you can interact with your Consul cluster through the UI or CLI.
 
 If you exposed the UI using a load balancer it will be available at the
 `LoadBalancer Ingress` IP address and `Port` that is output from the following
-command.
+command. Note, you will need to replace _consul server_ with the server name
+from your cluster.
 
 ```sh 
 $ kubectl describe services consul-server 
