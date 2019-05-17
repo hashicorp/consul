@@ -12,7 +12,10 @@ There are many configuration options exposed for Connect. The only option
 that must be set is the "enabled" option on Consul Servers to enable Connect.
 All other configurations are optional and have reasonable defaults.
 
-## Enable Connect on the Cluster
+-> **Tip:** Connect is enabled by default when running Consul in
+dev mode with `consul agent -dev`.
+
+## Agent Configuration
 
 The first step to use Connect is to enable Connect for your Consul
 cluster. By default, Connect is disabled. Enabling Connect requires changing
@@ -32,122 +35,108 @@ You may also configure Consul to use an external
 [certificate management system](/docs/connect/ca.html), such as
 [Vault](https://vaultproject.io).
 
-No agent-wide configuration is necessary for non-server agents. Services
-and proxies may always register with Connect settings, but they will fail to
-retrieve or verify any TLS certificates. This causes all Connect-based
+Services and proxies may always register with Connect settings, but they will
+fail to retrieve or verify any TLS certificates. This causes all Connect-based
 connection attempts to fail until Connect is enabled on the server agents.
 
--> **Note:** Connect is enabled by default when running Consul in
-dev mode with `consul agent -dev`.
+Other optional Connect configurations that you can set in the server
+configuration file include:
+
+- [the options listed under `connect`](/docs/agent/options.html#connect)
+- [token replication](/docs/agent/options.html#acl_tokens_replication)
+- [dev mode](/docs/agent/options.html#_dev)
+- [server host name verification](/docs/agent/options.html#verify_server_hostname)
+
+No agent-wide configuration is necessary for non-server agents. But if you would
+like to use Envoy as your Connect proxy you will need to [enable
+gRPC](/docs/agent/options.html#grpc_port) on your client agents. Additionally if
+you plan on using the observability features of connect, it can be convenient to
+enable [configuration entries](/docs/agent/options.html#config_entries) and
+[centralized service
+configuration](/docs/agent/options.html#enable_central_service_config).
 
 !> **Security note:** Enabling Connect is enough to try the feature but doesn't
 automatically ensure complete security. Please read the [Connect production
 guide](https://learn.hashicorp.com/consul/developer-segmentation/connect-production) to understand the additional steps
 needed for a secure deployment.
 
-## Built-In Proxy Options
+## Centralized Proxy and Service Configuration
 
-Consul comes with a built in L4 proxy for testing and development with Consul
-Connect. Although you can configure the built in proxy using configuration
-entries, it doesn't have the L7 capability necessary for the observability
-features released with Consul 1.5.
+To account for common Connect use cases where you have many instances of the
+same service, and many colocated sidecar proxies, Consul allows you to customize
+the settings for all of your proxies or services at once using [Configuration
+Entries](/docs/agent/config_entries.html).
 
-Below is a complete example of all the configuration options available
-for the built-in proxy. Note that only the `service.connect.proxy.config` and
-`service.connect.proxy.upsteams[].config` maps are being described here, the
-rest of the service definition is shown for context but is [described
-elsewhere](/docs/connect/proxies.html#managed-proxies).
+You can override for individual proxy instances in their [sidecar service
+definitions](/docs/connect/proxies/sidecar-service.html#sidecar-service-defaults),
+and service instances in their [service
+registrations](/docs/agent/services.html).
 
-```javascript
-{
-  "service": {
-    ...
-    "connect": {
-      "proxy": {
-        "config": {
-          "bind_address": "0.0.0.0",
-          "bind_port": 20000,
-          "tcp_check_address": "192.168.0.1",
-          "disable_tcp_check": false,
-          "local_service_address": "127.0.0.1:1234",
-          "local_connect_timeout_ms": 1000,
-          "handshake_timeout_ms": 10000,
-          "upstreams": [...]
-        },
-        "upstreams": [
-          {
-            ...
-            "config": {
-              "connect_timeout_ms": 1000
-            }
-          }
-        ]
-      }
-    }
-  }
+## Schedulers
+
+Consul Connect is especially useful if you are using an orchestrator like Nomad
+or Kubernetes, because these orchestrators can deploy thousands of services
+which frequently move hosts. Sidecars for each service can be configured through
+these schedulers, and in some cases they can automate Consul configuration,
+sidecar deployment, and service registration.
+
+### Nomad
+
+Connect can be used with Nomad to provide secure service-to-service
+communication between Nomad jobs and task groups. The ability to use the dynamic
+port feature of Nomad makes Connect particularly easy to use. Learn about how to
+configure Connect on Nomad by reading the
+[integration documentation](/docs/connect/platform/nomad.html)
+
+### Kubernetes
+
+The Consul Helm chart can automate much of Consul Connects configuration, and
+makes it easy to automatically inject Envoy sidecars into new pods when they are
+deployed. Learn about the [Helm chart](/docs/platform/k8s/helm.html) in general,
+or if you are already familiar with it, check out it's
+[connect specific configurations](/docs/platform/k8s/connect.html).
+
+## Observability
+
+In order to take advantage of Connect's observability features you will need to:
+
+- Deploy sidecar proxies that are capable of emitting metrics with each of your
+  services. We have first class support for Envoy.
+- Define where your proxies should send metrics that they collect.
+- Define the protocols for each of your services.
+- Define the upstreams for each of your services.
+
+If you are using Envoy as your sidecar proxy, you will need to enable [enable
+gRPC](/docs/agent/options.html#grpc_port) on your client agents. To define the
+metrics destination and service protocol you may want to enable [configuration
+entries](/docs/agent/options.html#config_entries) and [centralized service
+configuration](/docs/agent/options.html#enable_central_service_config). If you
+are using Kubernetes, the Helm chart can simpify much of the necessary
+configuration, which you can learn about in the [observability
+guide](https://learn.hashicorp.com/consul/getting-started-k8s/l7-observability-k8s).
+
+### Metrics Destination
+
+For Envoy the metrics destination can be configured in the proxy configuration
+entry's `config` section.
+
+```
+Kind = "proxy-defaults"
+Name = "global"
+Config {
+   "envoy_dogstatsd_url": "udp://127.0.0.1:9125"
 }
 ```
 
-#### Proxy Config Key Reference
+### Service Protocol
 
-All fields are optional with a sane default.
+The [service protocol](/docs/agent/config_entries.html#protocol) is a documented
+value in the service configuration entry. You can override it in the [service
+registration](/docs/agent/services.html).
 
-* <a name="bind_address"></a><a href="#bind_address">`bind_address`</a> -
-  The address the proxy will bind it's _public_ mTLS listener to. It
-  defaults to the same address the agent binds to.
+### Service Upstreams
 
-* <a name="bind_port"></a><a href="#bind_port">`bind_port`</a> - The
-  port the proxy will bind it's _public_ mTLS listener to. If not provided, the
-  agent will attempt to assign one from its [configured proxy port
-  range](/docs/agent/options.html#proxy_min_port) if available. By default the
-  range is [20000, 20255] and the port is selected at random from that range.
-
-* <a name="tcp_check_address"></a><a
-  href="#tcp_check_address">`tcp_check_address`</a> - The address the agent will
-  run a [TCP health check](/docs/agent/checks.html) against. By default this is
-  the same as the proxy's [bind address](#bind_address) except if the
-  bind_address is `0.0.0.0` or `[::]` in which case this defaults to `127.0.0.1`
-  and assumes the agent can dial the proxy over loopback. For more complex
-  configurations where agent and proxy communicate over a bridge for example,
-  this configuration can be used to specify a different _address_ (but not port)
-  for the agent to use for health checks if it can't talk to the proxy over
-  localhost or it's publicly advertised port. The check always uses the same
-  port that the proxy is bound to.
-
-* <a name="disable_tcp_check"></a><a
-  href="#disable_tcp_check">`disable_tcp_check`</a> - If true, this disables a
-  TCP check being setup for the proxy. Default is false.
-
-* <a name="local_service_address"></a><a href="#local_service_address">`local_service_address`</a> - The
-  `[address]:port` that the proxy should use to connect to the local application
-  instance. By default it assumes `127.0.0.1` as the address and takes the port
-  from the service definition's `port` field. Note that allowing the application
-  to listen on any non-loopback address may expose it externally and bypass
-  Connect's access enforcement. It may be useful though to allow non-standard
-  loopback addresses or where an alternative known-private IP is available for
-  example when using internal networking between containers.
-
-* <a name="local_connect_timeout_ms"></a><a href="#local_connect_timeout_ms">`local_connect_timeout_ms`</a> - The number
-  of milliseconds the proxy will wait to establish a connection to the _local
-  application_ before giving up. Defaults to `1000` or 1 second.
-
-* <a name="handshake_timeout_ms"></a><a href="#handshake_timeout_ms">`handshake_timeout_ms`</a> - The
-  number of milliseconds the proxy will wait for _incoming_ mTLS connections to
-  complete the TLS handshake. Defaults to `10000` or 10 seconds.
-
-* <a name="upstreams"></a><a href="#upstreams">`upstreams`</a> - **Deprecated**
-  Upstreams are now specified in the `connect.proxy` definition. Upstreams
-  specified in the opaque config map here will continue to work for
-  compatibility but it's strongly recommended that you move to using the higher
-  level [upstream
-  configuration](/docs/connect/proxies.html#upstream-configuration).
-
-#### Proxy Upstream Config Key Reference
-
-All fields are optional with a sane default.
-
-* <a name="connect_timeout_ms"></a><a
-  href="#connect_timeout_ms">`connect_timeout_ms`</a> - The number of
-  milliseconds the proxy will wait to establish a TLS connection to the
-  discovered upstream instance before giving up. Defaults to `10000` or 10
-  seconds.
+You can set the upstream for each service using the proxy's
+[`upstream`](/docs/connect/proxies.html#upstreams) sidecar parameter, which can
+be defined in a service's [sidecar
+registration](/docs/connect/proxies/sidecar-service.html).
