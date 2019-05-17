@@ -94,16 +94,15 @@ Feature: dc / acls / policies / as many / add new: Add new policy
     | token     |
     | role      |
     -------------
-@ignore:
-  Scenario: Click the cancel form
-    Then ok
-    # And I click cancel on the policyForm
+  Scenario: Try to edit the Service Identity using the code editor
+    And I click serviceIdentity on the policies.form
+    Then I can't fill in the policies.form with yaml
+    ---
+      Rules: key {}
+    ---
   Where:
     -------------
     | Model     |
     | token     |
     | role      |
     -------------
-@ignore
-  Scenario: Make sure the Service Identity Rules are readonly
-    Then ok
