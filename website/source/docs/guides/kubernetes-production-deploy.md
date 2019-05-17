@@ -146,7 +146,7 @@ Even though you enabled Consul server communication over Connect in the server s
 need to enable `connectInject` by setting `enabled` to `true`. In the
 `connectInject` section you will also configure security features. Enabling the
 `default` parameter will allow the injector to automatically inject the Connect
-sidecar into all pods. If you would prefer to manually annotate injections, you
+sidecar into all pods. If you would prefer to manually annotate which pods to inject, you
 can set this to false. Setting the 'aclBindingRuleSelector` parameter to
 `serviceaccount.name!=default` ensures that new services do not all receive the
 same token if you are only using a default service account. This setting is
