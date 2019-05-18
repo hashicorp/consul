@@ -16,7 +16,8 @@ import (
 
 var (
 	log      = clog.NewWithPlugin("prometheus")
-	uniqAddr = uniq.New()
+	u        = uniq.New()
+	registry = newReg()
 )
 
 func init() {
@@ -31,12 +32,13 @@ func setup(c *caddy.Controller) error {
 	if err != nil {
 		return plugin.Error("prometheus", err)
 	}
+	m.Reg = registry.getOrSet(m.Addr, m.Reg)
 
-	c.OnStartup(func() error { m.Reg = uniqAddr.Set(m.Addr, m.OnStartup, m).(*Metrics).Reg; return nil })
-	c.OnRestartFailed(func() error { m.Reg = uniqAddr.Set(m.Addr, m.OnStartup, m).(*Metrics).Reg; return nil })
+	c.OnStartup(func() error { m.Reg = registry.getOrSet(m.Addr, m.Reg); u.Set(m.Addr, m.OnStartup); return nil })
+	c.OnRestartFailed(func() error { m.Reg = registry.getOrSet(m.Addr, m.Reg); u.Set(m.Addr, m.OnStartup); return nil })
 
-	c.OnStartup(func() error { return uniqAddr.ForEach() })
-	c.OnRestartFailed(func() error { return uniqAddr.ForEach() })
+	c.OnStartup(func() error { return u.ForEach() })
+	c.OnRestartFailed(func() error { return u.ForEach() })
 
 	c.OnStartup(func() error {
 		conf := dnsserver.GetConfig(c)
@@ -75,7 +77,7 @@ func setup(c *caddy.Controller) error {
 }
 
 func parse(c *caddy.Controller) (*Metrics, error) {
-	var met = New(defaultAddr)
+	met := New(defaultAddr)
 
 	i := 0
 	for c.Next() {

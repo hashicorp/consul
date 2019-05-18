@@ -4,7 +4,7 @@ import "testing"
 
 func TestForEach(t *testing.T) {
 	u, i := New(), 0
-	u.Set("test", func() error { i++; return nil }, nil)
+	u.Set("test", func() error { i++; return nil })
 
 	u.ForEach()
 	if i != 1 {

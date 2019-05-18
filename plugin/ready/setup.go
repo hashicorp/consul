@@ -24,7 +24,7 @@ func setup(c *caddy.Controller) error {
 
 	rd := &ready{Addr: addr}
 
-	uniqAddr.Set(addr, rd.onStartup, rd)
+	uniqAddr.Set(addr, rd.onStartup)
 
 	c.OncePerServerBlock(func() error {
 		c.OnStartup(func() error {
