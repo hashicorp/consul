@@ -104,7 +104,7 @@ Precedence cannot be manually overridden today. This is a feature that will
 be added in a later version of Consul.
 
 In the case the two precedence values match, Consul will evaluate
-intentions based on lexographical ordering of the destination then
+intentions based on lexicographical ordering of the destination then
 source name. In practice, this is a moot point since authorizing a connection
 has an exact source and destination value so its impossible for two
 valid non-wildcard intentions to match.
