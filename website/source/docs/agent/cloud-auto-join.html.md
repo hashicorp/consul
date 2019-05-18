@@ -319,7 +319,7 @@ $ consul agent -retry-join "provider=vsphere category_name=consul-role tag_name=
 
 ### Packet
 
-This returns the first private IP address (or the IP addresso of `address type`) of all servers with the given `project` and `auth_token`.
+This returns the first private IP address (or the IP address of `address type`) of all servers with the given `project` and `auth_token`.
 
 ```sh
 $ consul agent -retry-join "provider=packet auth_token=token project=uuid url=... address_type=..."
