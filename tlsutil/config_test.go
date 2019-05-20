@@ -789,10 +789,16 @@ func TestConfigurator_Domain(t *testing.T) {
 func TestConfigurator_VerifyServerHostname(t *testing.T) {
 	c := Configurator{base: &Config{}, autoEncrypt: &autoEncrypt{}}
 	require.False(t, c.VerifyServerHostname())
+
 	c.base.VerifyServerHostname = true
 	c.autoEncrypt.verifyServerHostname = false
 	require.True(t, c.VerifyServerHostname())
+
 	c.base.VerifyServerHostname = false
+	c.autoEncrypt.verifyServerHostname = true
+	require.True(t, c.VerifyServerHostname())
+
+	c.base.VerifyServerHostname = true
 	c.autoEncrypt.verifyServerHostname = true
 	require.True(t, c.VerifyServerHostname())
 }

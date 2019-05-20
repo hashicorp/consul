@@ -19,37 +19,49 @@ import (
 func TestAutoEncryptSign(t *testing.T) {
 	t.Parallel()
 
-	goodRoot := "../../test/ca_path/cert1.crt"
-	badRoot := "../../test/ca/root.cer"
-	dir, s := testServerWithConfig(t, func(c *Config) {
-		c.AutoEncryptAllowTLS = true
-		c.Bootstrap = true
-		c.CAFile = goodRoot
-		c.CertFile = "../../test/key/ourdomain.cer"
-		c.KeyFile = "../../test/key/ourdomain.key"
-	})
-	defer os.RemoveAll(dir)
-	defer s.Shutdown()
-
 	type variant struct {
-		Config   tlsutil.Config
-		RPCError bool
+		Config    tlsutil.Config
+		ConnError bool
+		RPCError  bool
+		Cert      string
+		Key       string
 	}
+	root := "../../test/ca/root.cer"
+	badRoot := "../../test/ca_path/cert1.crt"
 
 	variants := []variant{
-		{Config: tlsutil.Config{AutoEncryptTLS: true}, RPCError: false},
-		{Config: tlsutil.Config{AutoEncryptTLS: true, VerifyServerHostname: false, CAFile: goodRoot}, RPCError: false},
-		{Config: tlsutil.Config{AutoEncryptTLS: true, VerifyServerHostname: true, CAFile: goodRoot}, RPCError: false},
-		{Config: tlsutil.Config{AutoEncryptTLS: true, VerifyServerHostname: false, CAFile: badRoot}, RPCError: false},
-		{Config: tlsutil.Config{AutoEncryptTLS: true, VerifyServerHostname: true, CAFile: badRoot}, RPCError: true},
+		{Config: tlsutil.Config{}, ConnError: false},
+		{Config: tlsutil.Config{CAFile: root}, ConnError: false},
+		{Config: tlsutil.Config{VerifyServerHostname: true, CAFile: root},
+			ConnError: false, RPCError: true}, // VerifyServerHostname fails
+		{Cert: "../../test/key/ourdomain_server.cer", Key: "../../test/key/ourdomain_server.key",
+			Config:    tlsutil.Config{VerifyServerHostname: true, CAFile: root},
+			ConnError: false, RPCError: false}, // VerifyServerHostname fails
+		{Config: tlsutil.Config{CAFile: badRoot}, ConnError: true}, // VerifyOutgoing doesn't pass
 	}
 
 	for i, v := range variants {
-		info := fmt.Sprintf("case %d", i)
-		codec := insecureRPCClient(t, s, v.Config)
-		defer codec.Close()
-
+		cert := v.Cert
+		key := v.Key
+		if cert == "" {
+			cert = "../../test/key/ourdomain.cer"
+		}
+		if key == "" {
+			key = "../../test/key/ourdomain.key"
+		}
+		dir, s := testServerWithConfig(t, func(c *Config) {
+			c.AutoEncryptAllowTLS = true
+			c.Bootstrap = true
+			c.CAFile = root
+			c.VerifyOutgoing = true
+			c.CertFile = cert
+			c.KeyFile = key
+		})
+		defer os.RemoveAll(dir)
+		defer s.Shutdown()
 		testrpc.WaitForLeader(t, s.RPC, "dc1")
+
+		info := fmt.Sprintf("case %d", i)
 
 		// Generate a CSR and request signing
 		id := &connect.SpiffeIDAgent{
@@ -70,13 +82,26 @@ func TestAutoEncryptSign(t *testing.T) {
 			Datacenter: "dc1",
 			CSR:        csr,
 		}
+
+		cfg := v.Config
+		cfg.AutoEncryptTLS = true
+		cfg.Domain = "consul"
+		codec, err := insecureRPCClient(s, cfg)
+		if v.ConnError {
+			require.Error(t, err, info)
+			continue
+
+		}
+
+		require.NoError(t, err, info)
 		var reply structs.SignResponse
 		err = msgpackrpc.CallWithCodec(codec, "AutoEncrypt.Sign", args, &reply)
+		codec.Close()
 		if v.RPCError {
 			require.Error(t, err, info)
-		} else {
-			require.NoError(t, err, info)
+			continue
 		}
+		require.NoError(t, err, info)
 
 		// Get the current CA
 		state := s.fsm.State()

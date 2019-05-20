@@ -25,18 +25,21 @@ func rpcClient(t *testing.T, s *Server) rpc.ClientCodec {
 	return msgpackrpc.NewClientCodec(conn)
 }
 
-func insecureRPCClient(t *testing.T, s *Server, c tlsutil.Config) rpc.ClientCodec {
+func insecureRPCClient(s *Server, c tlsutil.Config) (rpc.ClientCodec, error) {
 	addr := s.config.RPCAdvertise
 	configurator, err := tlsutil.NewConfigurator(c, nil)
 	if err != nil {
-		t.Fatalf("err: %v", err)
+		return nil, err
 	}
 	wrap := configurator.OutgoingRPCWrapper()
 	if wrap == nil {
-		t.Fatalf("wrapper shouldn't be nil")
+		return nil, err
 	}
 	conn, _, err := pool.DialTimeoutWithRPCType(s.config.Datacenter, addr, nil, time.Second, true, wrap, pool.RPCTLSInsecure)
-	return msgpackrpc.NewClientCodec(conn)
+	if err != nil {
+		return nil, err
+	}
+	return msgpackrpc.NewClientCodec(conn), nil
 }
 
 func TestStatusLeader(t *testing.T) {

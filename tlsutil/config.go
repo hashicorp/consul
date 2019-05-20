@@ -646,9 +646,6 @@ func (c *Configurator) log(name string) {
 // no longer supports this mode of operation, we have to do it
 // manually.
 func (c *Configurator) wrapTLSClient(dc string, conn net.Conn) (net.Conn, error) {
-	var err error
-	var tlsConn *tls.Conn
-
 	config := c.OutgoingRPCConfig()
 	verifyServerHostname := c.VerifyServerHostname()
 	verifyOutgoing := c.verifyOutgoing()
@@ -659,7 +656,7 @@ func (c *Configurator) wrapTLSClient(dc string, conn net.Conn) (net.Conn, error)
 		domain = strings.TrimSuffix(domain, ".")
 		config.ServerName = "server." + dc + "." + domain
 	}
-	tlsConn = tls.Client(conn, config)
+	tlsConn := tls.Client(conn, config)
 
 	// If crypto/tls is doing verification, there's no need to do
 	// our own.
@@ -672,7 +669,8 @@ func (c *Configurator) wrapTLSClient(dc string, conn net.Conn) (net.Conn, error)
 		return tlsConn, nil
 	}
 
-	if err = tlsConn.Handshake(); err != nil {
+	err := tlsConn.Handshake()
+	if err != nil {
 		tlsConn.Close()
 		return nil, err
 	}
