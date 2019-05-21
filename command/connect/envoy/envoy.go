@@ -70,7 +70,7 @@ func (c *cmd) init() {
 
 	c.flags.StringVar(&c.adminAccessLogPath, "admin-access-log-path", "/dev/null",
 		"The path to write the access log for the administration server. If no access "+
-			"log is desired specify \"/dev/null\".")
+			"log is desired specify \"/dev/null\". By default it will use \"/dev/null\".")
 
 	c.flags.StringVar(&c.adminBind, "admin-bind", "localhost:19000",
 		"The address:port to start envoy's admin server on. Envoy requires this "+

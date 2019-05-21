@@ -29,7 +29,7 @@ type BootstrapTplArgs struct {
 
 	// AdminAccessLogPath The path to write the access log for the
 	// administration server. If no access log is desired specify
-	// "/dev/null".
+	// "/dev/null". By default it will use "/dev/null".
 	AdminAccessLogPath string
 
 	// AdminBindAddress is the address the Envoy admin server should bind to.
