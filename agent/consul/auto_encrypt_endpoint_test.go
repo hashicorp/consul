@@ -32,12 +32,15 @@ func TestAutoEncryptSign(t *testing.T) {
 	variants := []variant{
 		{Config: tlsutil.Config{}, ConnError: false},
 		{Config: tlsutil.Config{CAFile: root}, ConnError: false},
+		// VerifyOutgoing fails
+		{Config: tlsutil.Config{CAFile: badRoot}, ConnError: true},
+		// VerifyServerHostname fails
 		{Config: tlsutil.Config{VerifyServerHostname: true, CAFile: root},
-			ConnError: false, RPCError: true}, // VerifyServerHostname fails
+			ConnError: false, RPCError: true},
+		// VerifyServerHostname succeeds
 		{Cert: "../../test/key/ourdomain_server.cer", Key: "../../test/key/ourdomain_server.key",
 			Config:    tlsutil.Config{VerifyServerHostname: true, CAFile: root},
-			ConnError: false, RPCError: false}, // VerifyServerHostname fails
-		{Config: tlsutil.Config{CAFile: badRoot}, ConnError: true}, // VerifyOutgoing doesn't pass
+			ConnError: false, RPCError: false},
 	}
 
 	for i, v := range variants {
