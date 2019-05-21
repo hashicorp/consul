@@ -34,6 +34,7 @@ import (
 	"github.com/hashicorp/raft"
 	raftboltdb "github.com/hashicorp/raft-boltdb"
 	"github.com/hashicorp/serf/serf"
+	"google.golang.org/grpc"
 )
 
 // These are the protocol versions that Consul can _understand_. These are
@@ -157,7 +158,8 @@ type Server struct {
 	tokens *token.Store
 
 	// Connection pool to other consul servers
-	connPool *pool.ConnPool
+	connPool   *pool.ConnPool
+	grpcClient *GRPCClient
 
 	// eventChLAN is used to receive events from the
 	// serf cluster in the datacenter
@@ -207,8 +209,9 @@ type Server struct {
 	router *router.Router
 
 	// Listener is used to listen for incoming connections
-	Listener  net.Listener
-	rpcServer *rpc.Server
+	Listener     net.Listener
+	GRPCListener *grpcListener
+	rpcServer    *rpc.Server
 
 	// rpcTLS is the TLS config for incoming TLS requests
 	rpcTLS *tls.Config
@@ -396,6 +399,12 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	if err := s.setupRPC(tlsConfigurator.OutgoingRPCWrapper()); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start RPC layer: %v", err)
+	}
+
+	// Initialize the GRPC listener.
+	if err := s.setupGRPC(); err != nil {
+		s.Shutdown()
+		return nil, fmt.Errorf("Failed to start GRPC layer: %v", err)
 	}
 
 	// Initialize any extra RPC listeners for segments.
@@ -732,6 +741,20 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 		return server.UseTLS
 	}
 	s.raftLayer = NewRaftLayer(s.config.RPCSrcAddr, s.config.RPCAdvertise, wrapper, tlsFunc)
+	return nil
+}
+
+func (s *Server) setupGRPC() error {
+	lis := &grpcListener{
+		addr:  s.Listener.Addr(),
+		conns: make(chan net.Conn),
+	}
+
+	srv := grpc.NewServer()
+	RegisterHealthServer(srv, &HealthGRPCAdapter{Health{s}})
+
+	go srv.Serve(lis)
+	s.GRPCListener = lis
 	return nil
 }
 

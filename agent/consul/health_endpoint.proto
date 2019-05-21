@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package consul;
+
+service Health {
+    rpc Test(TestRequest) returns (TestReply) {}
+} 
+
+message TestRequest {
+    string name = 1;
+}
+  
+message TestReply {
+    string data = 1;
+}

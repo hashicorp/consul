@@ -45,6 +45,27 @@ const (
 	enqueueLimit = 30 * time.Second
 )
 
+type grpcListener struct {
+	conns chan net.Conn
+	addr  net.Addr
+}
+
+func (l *grpcListener) Handle(conn net.Conn) {
+	l.conns <- conn
+}
+
+func (l *grpcListener) Accept() (net.Conn, error) {
+	return <-l.conns, nil
+}
+
+func (l *grpcListener) Addr() net.Addr {
+	return l.addr
+}
+
+func (l *grpcListener) Close() error {
+	return nil
+}
+
 // listen is used to listen for incoming RPC connections
 func (s *Server) listen(listener net.Listener) {
 	for {
@@ -114,6 +135,9 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 	case pool.RPCSnapshot:
 		s.handleSnapshotConn(conn)
 
+	case pool.RPCGRPC:
+		s.handleGRPCConn(conn)
+
 	default:
 		if !s.handleEnterpriseRPCConn(typ, conn, isTLS) {
 			s.logger.Printf("[ERR] consul.rpc: unrecognized RPC byte: %v %s", typ, logConn(conn))
@@ -172,6 +196,10 @@ func (s *Server) handleSnapshotConn(conn net.Conn) {
 			s.logger.Printf("[ERR] consul.rpc: Snapshot RPC error: %v %s", err, logConn(conn))
 		}
 	}()
+}
+
+func (s *Server) handleGRPCConn(conn net.Conn) {
+	s.GRPCListener.Handle(conn)
 }
 
 // canRetry returns true if the given situation is safe for a retry.
