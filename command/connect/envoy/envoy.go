@@ -264,7 +264,7 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 	}
 
 	adminAccessLogPath := c.adminAccessLogPath
-	if len(adminAccessLogPath) == 0 {
+	if adminAccessLogPath == "" {
 		adminAccessLogPath = "/dev/null"
 	}
 
