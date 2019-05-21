@@ -83,7 +83,10 @@ for c in ./case-*/ ; do
 
     # Wipe state
     docker-compose up wipe-volumes
-    rm -rf workdir/*
+    # Note, we use explicit set of dirs so we don't delete .gitignore. Also,
+    # don't wipe logs between runs as they are already split and we need them to
+    # upload as artifacts later.
+    rm -rf workdir/{consul,envoy,bats,statsd}
     mkdir -p workdir/{consul,envoy,bats,statsd,logs}
 
     # Reload consul config from defaults
@@ -96,12 +99,7 @@ for c in ./case-*/ ; do
     # can't use shared volumes)
     docker cp workdir/. envoy_workdir_1:/workdir
 
-    # Restart Consul. We don't just reload because some configs under test don't
-    # work with reload and because you can get different effects from running
-    # tests in isolation which always have fresh Consul vs in the full suite.
-    # It's pretty quick to start and stop so this is better isolation.
-    echo "(Re)starting Consul"
-    docker-compose stop consul
+    # Start consul now as setup script needs it up
     docker-compose up -d consul
 
     # Copy all the test files
@@ -139,6 +137,8 @@ for c in ./case-*/ ; do
     fi
     echo "================================================"
 
+    # Hack consul into the list of containers to stop and dump logs for.
+    REQUIRED_SERVICES="$REQUIRED_SERVICES consul"
 
     # Teardown
     if [ -f "${c}teardown.sh" ] ; then
