@@ -114,16 +114,16 @@ func Test_makeLoadAssignment(t *testing.T) {
 				Endpoints: []envoyendpoint.LocalityLbEndpoints{{
 					LbEndpoints: []envoyendpoint.LbEndpoint{
 						envoyendpoint.LbEndpoint{
-							Endpoint: &envoyendpoint.Endpoint{
+							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{&envoyendpoint.Endpoint{
 								Address: makeAddressPtr("10.10.10.10", 1234),
-							},
+							}},
 							HealthStatus:        core.HealthStatus_HEALTHY,
 							LoadBalancingWeight: makeUint32Value(1),
 						},
 						envoyendpoint.LbEndpoint{
-							Endpoint: &envoyendpoint.Endpoint{
+							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{&envoyendpoint.Endpoint{
 								Address: makeAddressPtr("10.10.10.20", 1234),
-							},
+							}},
 							HealthStatus:        core.HealthStatus_HEALTHY,
 							LoadBalancingWeight: makeUint32Value(1),
 						},
@@ -140,16 +140,16 @@ func Test_makeLoadAssignment(t *testing.T) {
 				Endpoints: []envoyendpoint.LocalityLbEndpoints{{
 					LbEndpoints: []envoyendpoint.LbEndpoint{
 						envoyendpoint.LbEndpoint{
-							Endpoint: &envoyendpoint.Endpoint{
+							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{&envoyendpoint.Endpoint{
 								Address: makeAddressPtr("10.10.10.10", 1234),
-							},
+							}},
 							HealthStatus:        core.HealthStatus_HEALTHY,
 							LoadBalancingWeight: makeUint32Value(10),
 						},
 						envoyendpoint.LbEndpoint{
-							Endpoint: &envoyendpoint.Endpoint{
+							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{&envoyendpoint.Endpoint{
 								Address: makeAddressPtr("10.10.10.20", 1234),
-							},
+							}},
 							HealthStatus:        core.HealthStatus_HEALTHY,
 							LoadBalancingWeight: makeUint32Value(5),
 						},
@@ -166,16 +166,16 @@ func Test_makeLoadAssignment(t *testing.T) {
 				Endpoints: []envoyendpoint.LocalityLbEndpoints{{
 					LbEndpoints: []envoyendpoint.LbEndpoint{
 						envoyendpoint.LbEndpoint{
-							Endpoint: &envoyendpoint.Endpoint{
+							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{&envoyendpoint.Endpoint{
 								Address: makeAddressPtr("10.10.10.10", 1234),
-							},
+							}},
 							HealthStatus:        core.HealthStatus_HEALTHY,
 							LoadBalancingWeight: makeUint32Value(1),
 						},
 						envoyendpoint.LbEndpoint{
-							Endpoint: &envoyendpoint.Endpoint{
+							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{&envoyendpoint.Endpoint{
 								Address: makeAddressPtr("10.10.10.20", 1234),
-							},
+							}},
 							HealthStatus:        core.HealthStatus_UNHEALTHY,
 							LoadBalancingWeight: makeUint32Value(1),
 						},
