@@ -424,14 +424,14 @@ jobs:
 
 workflows:
   version: 2
-  build-distros:
-    jobs:
-      - go-fmt-and-vet
-      - build-386: &require-go-fmt-vet
-          requires:
-            - go-fmt-and-vet
-      - build-amd64: *require-go-fmt-vet
-      - build-arm-arm64: *require-go-fmt-vet
+  # build-distros:
+  #   jobs:
+  #     - go-fmt-and-vet
+  #     - build-386: &require-go-fmt-vet
+  #         requires:
+  #           - go-fmt-and-vet
+  #     - build-amd64: *require-go-fmt-vet
+  #     - build-arm-arm64: *require-go-fmt-vet
   test-integrations:
     jobs:
       - dev-build
@@ -443,48 +443,48 @@ workflows:
               only:
                 - /^bug\/flaky-test-.*$/ # only run go tests on bug/flaky-test-* for now since we are fixing tests
       - go-test-api: *go-test
-      - dev-upload-s3:
-          requires:
-            - dev-build
-          filters:
-            branches:
-              ignore:
-                - /^pull\/.*$/ # only push dev builds from non forks
-      - nomad-integration-master:
-          requires:
-            - dev-build
-      - nomad-integration-0_8:
-          requires:
-            - dev-build
-      - envoy-integration-test-1.8.0:
-          requires:
-            - dev-build
-      - envoy-integration-test-1.9.1:
-          requires:
-            - dev-build
-  website:
-    jobs:
-      - build-website
-      - docs-link-checker:
-          requires:
-            - build-website
-          filters:
-            branches:
-              ignore:
-                - /^pull\/.*$/ # only run link checker on non forks
-      - deploy-website:
-          requires:
-            - docs-link-checker
-          context: static-sites
-          filters:
-            branches:
-              only: stable-website
-  frontend:
-    jobs:
-      - frontend-cache
-      - ember-build:
-          requires:
-            - frontend-cache
-      - ember-test:
-          requires:
-            - ember-build
+  #     - dev-upload-s3:
+  #         requires:
+  #           - dev-build
+  #         filters:
+  #           branches:
+  #             ignore:
+  #               - /^pull\/.*$/ # only push dev builds from non forks
+  #     - nomad-integration-master:
+  #         requires:
+  #           - dev-build
+  #     - nomad-integration-0_8:
+  #         requires:
+  #           - dev-build
+  #     - envoy-integration-test-1.8.0:
+  #         requires:
+  #           - dev-build
+  #     - envoy-integration-test-1.9.1:
+  #         requires:
+  #           - dev-build
+  # website:
+  #   jobs:
+  #     - build-website
+  #     - docs-link-checker:
+  #         requires:
+  #           - build-website
+  #         filters:
+  #           branches:
+  #             ignore:
+  #               - /^pull\/.*$/ # only run link checker on non forks
+  #     - deploy-website:
+  #         requires:
+  #           - docs-link-checker
+  #         context: static-sites
+  #         filters:
+  #           branches:
+  #             only: stable-website
+  # frontend:
+  #   jobs:
+  #     - frontend-cache
+  #     - ember-build:
+  #         requires:
+  #           - frontend-cache
+  #     - ember-test:
+  #         requires:
+  #           - ember-build
