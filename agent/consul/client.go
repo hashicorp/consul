@@ -141,7 +141,6 @@ func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsuti
 		config:          config,
 		connPool:        connPool,
 		eventCh:         make(chan serf.Event, serfEventBacklog),
-		grpcClient:      NewGRPCClient(logger),
 		logger:          logger,
 		shutdownCh:      make(chan struct{}),
 		tlsConfigurator: tlsConfigurator,
@@ -314,6 +313,7 @@ TRY:
 
 	// Make the request.
 	rpcErr := c.connPool.RPC(c.config.Datacenter, server.Addr, server.Version, method, server.UseTLS, args, reply)
+
 	if rpcErr == nil {
 		return nil
 	}
