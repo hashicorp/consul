@@ -875,7 +875,6 @@ func TestLeader_RollRaftServer(t *testing.T) {
 }
 
 func TestLeader_ChangeServerID(t *testing.T) {
-	t.Parallel()
 	conf := func(c *Config) {
 		c.Bootstrap = false
 		c.BootstrapExpect = 3
