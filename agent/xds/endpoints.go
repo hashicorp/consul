@@ -29,7 +29,7 @@ func endpointsFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]pr
 
 func makeEndpoint(clusterName, host string, port int) envoyendpoint.LbEndpoint {
 	return envoyendpoint.LbEndpoint{
-		HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{&envoyendpoint.Endpoint{
+		HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{Endpoint: &envoyendpoint.Endpoint{
 			Address: makeAddressPtr(host, port),
 		},
 		}}

@@ -235,7 +235,7 @@ func makeListenerFilter(protocol, filterName, cluster, statPrefix string, ingres
 func makeTCPProxyFilter(filterName, cluster, statPrefix string) (envoylistener.Filter, error) {
 	cfg := &envoytcp.TcpProxy{
 		StatPrefix:       makeStatPrefix("tcp", statPrefix, filterName),
-		ClusterSpecifier: &envoytcp.TcpProxy_Cluster{cluster},
+		ClusterSpecifier: &envoytcp.TcpProxy_Cluster{Cluster: cluster},
 	}
 	return makeFilter("envoy.tcp_proxy", cfg)
 }
@@ -313,7 +313,7 @@ func makeHTTPFilter(filterName, cluster, statPrefix string, ingress, grpc, http2
 		// Add grpc bridge before router
 		cfg.HttpFilters = append([]*envoyhttp.HttpFilter{&envoyhttp.HttpFilter{
 			Name:       "envoy.grpc_http1_bridge",
-			ConfigType: &envoyhttp.HttpFilter_Config{&types.Struct{}},
+			ConfigType: &envoyhttp.HttpFilter_Config{Config: &types.Struct{}},
 		}}, cfg.HttpFilters...)
 	}
 
@@ -355,7 +355,7 @@ func makeFilter(name string, cfg proto.Message) (envoylistener.Filter, error) {
 
 	return envoylistener.Filter{
 		Name:       name,
-		ConfigType: &envoylistener.Filter_Config{cfgStruct},
+		ConfigType: &envoylistener.Filter_Config{Config: cfgStruct},
 	}, nil
 }
 
