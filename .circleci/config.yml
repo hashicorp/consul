@@ -209,9 +209,6 @@ jobs:
       <<: *ENVIRONMENT
     steps:
       - checkout
-      - restore_cache:
-          keys:
-          - consul-modcache-v1-{{ checksum "go.mod" }}
       # get consul binary
       - attach_workspace:
           at: bin/
