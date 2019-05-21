@@ -4166,6 +4166,7 @@ func TestAgent_Monitor(t *testing.T) {
 		Name:      t.Name(),
 		LogWriter: logWriter,
 		LogOutput: io.MultiWriter(os.Stderr, logWriter),
+		HCL:       `node_name = "invalid!"`,
 	}
 	a.Start(t)
 	defer a.Shutdown()
@@ -4201,7 +4202,7 @@ func TestAgent_Monitor(t *testing.T) {
 		<-done
 
 		got := resp.Body.Bytes()
-		want := []byte("raft: Initial configuration (index=1)")
+		want := []byte(`[WARN] agent: Node name "invalid!" will not be discoverable via DNS`)
 		if !bytes.Contains(got, want) {
 			r.Fatalf("got %q and did not find %q", got, want)
 		}
