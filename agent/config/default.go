@@ -65,6 +65,8 @@ func DefaultSource() Source {
 		server = false
 		syslog_facility = "LOCAL0"
 		tls_min_version = "tls12"
+		sync_coordinate_rate_target = 64
+		sync_coordinate_interval_min = "15s"
 
 		// TODO (slackpad) - Until #3744 is done, we need to keep these
 		// in sync with agent/consul/config.go.
@@ -181,8 +183,6 @@ func NonUserSource() Source {
 		check_deregister_interval_min = "1m"
 		check_reap_interval = "30s"
 		ae_interval = "1m"
-		sync_coordinate_rate_target = 64
-		sync_coordinate_interval_min = "15s"
 
 		# segment_limit is the maximum number of network segments that may be declared.
 		segment_limit = 64
