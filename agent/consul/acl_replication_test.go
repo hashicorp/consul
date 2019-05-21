@@ -376,6 +376,13 @@ func TestACLReplication_Tokens(t *testing.T) {
 		checkSame(r)
 	})
 
+	// Wait for s2 global-management policy
+	retry.Run(t, func(r *retry.R) {
+		_, policy, err := s2.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID)
+		require.NoError(r, err)
+		require.NotNil(t, policy)
+	})
+
 	// add some local tokens to the secondary DC
 	// these shouldn't be deleted by replication
 	for i := 0; i < 50; i++ {
