@@ -57,7 +57,8 @@ type Client struct {
 	useNewACLs int32
 
 	// Connection pool to consul servers
-	connPool *pool.ConnPool
+	connPool   *pool.ConnPool
+	grpcClient *GRPCClient
 
 	// routers is responsible for the selection and maintenance of
 	// Consul servers this agent uses for RPC requests
@@ -140,6 +141,7 @@ func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsuti
 		config:          config,
 		connPool:        connPool,
 		eventCh:         make(chan serf.Event, serfEventBacklog),
+		grpcClient:      NewGRPCClient(logger),
 		logger:          logger,
 		shutdownCh:      make(chan struct{}),
 		tlsConfigurator: tlsConfigurator,
@@ -277,6 +279,10 @@ func (c *Client) Encrypted() bool {
 	return c.serf.EncryptionEnabled()
 }
 
+var grpcAbleEndpoints = map[string]bool{
+	"Health.Test": true,
+}
+
 // RPC is used to forward an RPC call to a consul server, or fail if no servers
 func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 	// This is subtle but we start measuring the time on the client side
@@ -301,7 +307,13 @@ TRY:
 	}
 
 	// Make the request.
-	rpcErr := c.connPool.RPC(c.config.Datacenter, server.Addr, server.Version, method, server.UseTLS, args, reply)
+	var rpcErr error
+	if grpcAbleEndpoints[method] {
+		rpcErr = c.grpcClient.Call(c.config.Datacenter, server, method, args, reply)
+	} else {
+		rpcErr = c.connPool.RPC(c.config.Datacenter, server.Addr, server.Version, method, server.UseTLS, args, reply)
+	}
+
 	if rpcErr == nil {
 		return nil
 	}

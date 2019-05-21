@@ -315,3 +315,30 @@ func TestRPC_ReadyForConsistentReads(t *testing.T) {
 		}
 	})
 }
+
+func TestRPC_GRPC(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	dir1, server := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer server.Shutdown()
+
+	dir2, client := testClient(t)
+	defer os.RemoveAll(dir2)
+	defer client.Shutdown()
+
+	// Try to join
+	testrpc.WaitForLeader(t, server.RPC, "dc1")
+	joinLAN(t, client, server)
+	testrpc.WaitForTestAgent(t, client.RPC, "dc1")
+
+	serverMeta := client.routers.FindServer()
+	require.NotNil(serverMeta)
+
+	// Make a basic RPC call to our test endpoint.
+	var req TestRequest
+	var reply TestReply
+	require.NoError(client.grpcClient.Call("dc1", serverMeta, "Health.Test", &req, &reply))
+	require.Equal(&TestReply{Data: "hello"}, &reply)
+}

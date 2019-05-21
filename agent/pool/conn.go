@@ -17,4 +17,5 @@ const (
 	// that is supported and it might be the only one there
 	// ever is.
 	RPCTLSInsecure = 7
+	RPCGRPC        = 8
 )
