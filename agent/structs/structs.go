@@ -966,9 +966,11 @@ func (d *HealthCheckDefinition) Clone() *HealthCheckDefinition {
 	clone := new(HealthCheckDefinition)
 	*clone = *d
 
-	clone.Header = make(map[string][]string)
-	for k, v := range d.Header {
-		clone.Header[k] = cloneStringSlice(v)
+	if d.Header != nil {
+		clone.Header = make(map[string][]string)
+		for k, v := range d.Header {
+			clone.Header[k] = cloneStringSlice(v)
+		}
 	}
 
 	return clone
