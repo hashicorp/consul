@@ -90,7 +90,7 @@ func TestCoordinate_Nodes(t *testing.T) {
 		// Check that coordinates are empty before registering a node
 		coordinates, ok := obj.(structs.Coordinates)
 		if !ok {
-			t.Fatalf("expected: structs.Coordinates, received: %v", coordinates)
+			t.Fatalf("expected: structs.Coordinates, received: %+v", obj)
 		}
 
 		if len(coordinates) != 0 {
@@ -146,7 +146,7 @@ func TestCoordinate_Nodes(t *testing.T) {
 
 		coordinates, ok := obj.(structs.Coordinates)
 		if !ok {
-			t.Fatalf("expected: structs.Coordinates, received: %v", coordinates)
+			t.Fatalf("expected: structs.Coordinates, received: %+v", obj)
 		}
 		if len(coordinates) != 2 ||
 			coordinates[0].Node != "bar" ||
@@ -165,7 +165,7 @@ func TestCoordinate_Nodes(t *testing.T) {
 
 		coordinates, ok := obj.(structs.Coordinates)
 		if !ok {
-			t.Fatalf("expected: structs.Coordinates, received: %v", coordinates)
+			t.Fatalf("expected: structs.Coordinates, received: %+v", obj)
 		}
 		if len(coordinates) != 0 {
 			t.Fatalf("coordinates should be empty, received: %v", coordinates)
@@ -182,7 +182,7 @@ func TestCoordinate_Nodes(t *testing.T) {
 
 		coordinates, ok := obj.(structs.Coordinates)
 		if !ok {
-			t.Fatalf("expected: structs.Coordinates, received: %v", coordinates)
+			t.Fatalf("expected: structs.Coordinates, received: %+v", obj)
 		}
 		if len(coordinates) != 1 || coordinates[0].Node != "foo" {
 			t.Fatalf("expected: foo received: %v", coordinates)
@@ -199,7 +199,7 @@ func TestCoordinate_Nodes(t *testing.T) {
 
 		coordinates, ok := obj.(structs.Coordinates)
 		if !ok {
-			t.Fatalf("expected: structs.Coordinates, received: %v", coordinates)
+			t.Fatalf("expected: structs.Coordinates, received: %+v", obj)
 		}
 		if len(coordinates) != 1 || coordinates[0].Node != "bar" {
 			t.Fatalf("expected: bar received: %v", coordinates)
