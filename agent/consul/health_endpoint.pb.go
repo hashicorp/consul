@@ -73,7 +73,7 @@ func (m *TestRequest) GetName() string {
 }
 
 type TestReply struct {
-	Data                 string   `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+	Data                 int32    `protobuf:"varint,1,opt,name=data,proto3" json:"data,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -112,11 +112,11 @@ func (m *TestReply) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_TestReply proto.InternalMessageInfo
 
-func (m *TestReply) GetData() string {
+func (m *TestReply) GetData() int32 {
 	if m != nil {
 		return m.Data
 	}
-	return ""
+	return 0
 }
 
 func init() {
@@ -127,17 +127,18 @@ func init() {
 func init() { proto.RegisterFile("health_endpoint.proto", fileDescriptor_7440db10be139ab2) }
 
 var fileDescriptor_7440db10be139ab2 = []byte{
-	// 160 bytes of a gzipped FileDescriptorProto
+	// 168 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x12, 0xcd, 0x48, 0x4d, 0xcc,
 	0x29, 0xc9, 0x88, 0x4f, 0xcd, 0x4b, 0x29, 0xc8, 0xcf, 0xcc, 0x2b, 0xd1, 0x2b, 0x28, 0xca, 0x2f,
 	0xc9, 0x17, 0x62, 0x4b, 0xce, 0xcf, 0x2b, 0x2e, 0xcd, 0x51, 0x52, 0xe4, 0xe2, 0x0e, 0x49, 0x2d,
 	0x2e, 0x09, 0x4a, 0x2d, 0x2c, 0x4d, 0x2d, 0x2e, 0x11, 0x12, 0xe2, 0x62, 0xc9, 0x4b, 0xcc, 0x4d,
 	0x95, 0x60, 0x54, 0x60, 0xd4, 0xe0, 0x0c, 0x02, 0xb3, 0x95, 0xe4, 0xb9, 0x38, 0x21, 0x4a, 0x0a,
-	0x72, 0x2a, 0x41, 0x0a, 0x52, 0x12, 0x4b, 0x12, 0x61, 0x0a, 0x40, 0x6c, 0x23, 0x2b, 0x2e, 0x36,
-	0x0f, 0xb0, 0x25, 0x42, 0x06, 0x5c, 0x2c, 0x20, 0xa5, 0x42, 0xc2, 0x7a, 0x10, 0xe3, 0xf5, 0x90,
-	0xcc, 0x96, 0x12, 0x44, 0x15, 0x2c, 0xc8, 0xa9, 0x54, 0x62, 0x70, 0x12, 0x38, 0xf1, 0x48, 0x8e,
-	0xf1, 0xc2, 0x23, 0x39, 0xc6, 0x07, 0x8f, 0xe4, 0x18, 0x67, 0x3c, 0x96, 0x63, 0x48, 0x62, 0x03,
-	0x3b, 0xd0, 0x18, 0x10, 0x00, 0x00, 0xff, 0xff, 0x1d, 0xbf, 0x75, 0x4e, 0xb9, 0x00, 0x00, 0x00,
+	0x72, 0x2a, 0x41, 0x0a, 0x52, 0x12, 0x4b, 0x12, 0xc1, 0x0a, 0x58, 0x83, 0xc0, 0x6c, 0x23, 0x3b,
+	0x2e, 0x36, 0x0f, 0xb0, 0x25, 0x42, 0x26, 0x5c, 0x6c, 0xc1, 0x25, 0x45, 0xa9, 0x89, 0xb9, 0x42,
+	0xc2, 0x7a, 0x10, 0x0b, 0xf4, 0x90, 0x4c, 0x97, 0x12, 0x44, 0x15, 0x2c, 0xc8, 0xa9, 0x54, 0x62,
+	0x30, 0x60, 0x74, 0x12, 0x38, 0xf1, 0x48, 0x8e, 0xf1, 0xc2, 0x23, 0x39, 0xc6, 0x07, 0x8f, 0xe4,
+	0x18, 0x67, 0x3c, 0x96, 0x63, 0x48, 0x62, 0x03, 0x3b, 0xd2, 0x18, 0x10, 0x00, 0x00, 0xff, 0xff,
+	0x25, 0xbe, 0x44, 0x80, 0xbd, 0x00, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -152,7 +153,7 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type HealthClient interface {
-	Test(ctx context.Context, in *TestRequest, opts ...grpc.CallOption) (*TestReply, error)
+	Stream(ctx context.Context, in *TestRequest, opts ...grpc.CallOption) (Health_StreamClient, error)
 }
 
 type healthClient struct {
@@ -163,60 +164,87 @@ func NewHealthClient(cc *grpc.ClientConn) HealthClient {
 	return &healthClient{cc}
 }
 
-func (c *healthClient) Test(ctx context.Context, in *TestRequest, opts ...grpc.CallOption) (*TestReply, error) {
-	out := new(TestReply)
-	err := c.cc.Invoke(ctx, "/consul.Health/Test", in, out, opts...)
+func (c *healthClient) Stream(ctx context.Context, in *TestRequest, opts ...grpc.CallOption) (Health_StreamClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_Health_serviceDesc.Streams[0], "/consul.Health/Stream", opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &healthStreamClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Health_StreamClient interface {
+	Recv() (*TestReply, error)
+	grpc.ClientStream
+}
+
+type healthStreamClient struct {
+	grpc.ClientStream
+}
+
+func (x *healthStreamClient) Recv() (*TestReply, error) {
+	m := new(TestReply)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 // HealthServer is the server API for Health service.
 type HealthServer interface {
-	Test(context.Context, *TestRequest) (*TestReply, error)
+	Stream(*TestRequest, Health_StreamServer) error
 }
 
 // UnimplementedHealthServer can be embedded to have forward compatible implementations.
 type UnimplementedHealthServer struct {
 }
 
-func (*UnimplementedHealthServer) Test(ctx context.Context, req *TestRequest) (*TestReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Test not implemented")
+func (*UnimplementedHealthServer) Stream(req *TestRequest, srv Health_StreamServer) error {
+	return status.Errorf(codes.Unimplemented, "method Stream not implemented")
 }
 
 func RegisterHealthServer(s *grpc.Server, srv HealthServer) {
 	s.RegisterService(&_Health_serviceDesc, srv)
 }
 
-func _Health_Test_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(TestRequest)
-	if err := dec(in); err != nil {
-		return nil, err
+func _Health_Stream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(TestRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	if interceptor == nil {
-		return srv.(HealthServer).Test(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/consul.Health/Test",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(HealthServer).Test(ctx, req.(*TestRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+	return srv.(HealthServer).Stream(m, &healthStreamServer{stream})
+}
+
+type Health_StreamServer interface {
+	Send(*TestReply) error
+	grpc.ServerStream
+}
+
+type healthStreamServer struct {
+	grpc.ServerStream
+}
+
+func (x *healthStreamServer) Send(m *TestReply) error {
+	return x.ServerStream.SendMsg(m)
 }
 
 var _Health_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "consul.Health",
 	HandlerType: (*HealthServer)(nil),
-	Methods: []grpc.MethodDesc{
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
 		{
-			MethodName: "Test",
-			Handler:    _Health_Test_Handler,
+			StreamName:    "Stream",
+			Handler:       _Health_Stream_Handler,
+			ServerStreams: true,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
 	Metadata: "health_endpoint.proto",
 }
 
@@ -262,11 +290,10 @@ func (m *TestReply) MarshalTo(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.Data) > 0 {
-		dAtA[i] = 0xa
+	if m.Data != 0 {
+		dAtA[i] = 0x8
 		i++
-		i = encodeVarintHealthEndpoint(dAtA, i, uint64(len(m.Data)))
-		i += copy(dAtA[i:], m.Data)
+		i = encodeVarintHealthEndpoint(dAtA, i, uint64(m.Data))
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
@@ -305,9 +332,8 @@ func (m *TestReply) Size() (n int) {
 	}
 	var l int
 	_ = l
-	l = len(m.Data)
-	if l > 0 {
-		n += 1 + l + sovHealthEndpoint(uint64(l))
+	if m.Data != 0 {
+		n += 1 + sovHealthEndpoint(uint64(m.Data))
 	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
@@ -444,10 +470,10 @@ func (m *TestReply) Unmarshal(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
-			if wireType != 2 {
+			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
 			}
-			var stringLen uint64
+			m.Data = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowHealthEndpoint
@@ -457,24 +483,11 @@ func (m *TestReply) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
+				m.Data |= int32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthHealthEndpoint
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthHealthEndpoint
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Data = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipHealthEndpoint(dAtA[iNdEx:])
