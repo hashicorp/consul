@@ -12,5 +12,5 @@ const (
 	RPCMultiplexV2         = 4
 	RPCSnapshot            = 5
 	RPCGossip              = 6
-	RPCGRPC                = 7
+	RPCGRPC                = 8
 )
