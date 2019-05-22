@@ -1,6 +1,8 @@
 ## UNRELEASED
 
-IMPROVEMENTS:
+SECURITY:
+
+* acl: fixed an issue that if an ACL rule is used for prefix matching in a policy, keys not matching that specific prefix can be deleted by a token using that policy even with default_deny settings configured [[GH-5888](https://github.com/hashicorp/consul/issues/5888)]
 
 BUG FIXES:
 
