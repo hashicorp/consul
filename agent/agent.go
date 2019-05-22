@@ -2245,7 +2245,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 	if chkType != nil {
 		maxOutputSize := a.config.CheckOutputMaxSize
 		if maxOutputSize == 0 {
-			maxOutputSize = 4096
+			maxOutputSize = checks.DefaultBufSize
 		}
 		if chkType.OutputMaxSize > 0 && maxOutputSize > chkType.OutputMaxSize {
 			maxOutputSize = chkType.OutputMaxSize

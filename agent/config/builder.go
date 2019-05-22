@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
@@ -966,7 +967,7 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		return fmt.Errorf("'bootstrap_expect > 0' and 'bootstrap = true' are mutually exclusive")
 	}
 	if rt.CheckOutputMaxSize < 1 {
-		return fmt.Errorf("'check_output_max_size must be positive")
+		return fmt.Errorf("check_output_max_size must be positive, to discard check output use the discard_check_output flag")
 	}
 	if rt.AEInterval <= 0 {
 		return fmt.Errorf("ae_interval cannot be %s. Must be positive", rt.AEInterval)
@@ -1178,7 +1179,7 @@ func (b *Builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		Timeout:                        b.durationVal(fmt.Sprintf("check[%s].timeout", id), v.Timeout),
 		TTL:                            b.durationVal(fmt.Sprintf("check[%s].ttl", id), v.TTL),
 		DeregisterCriticalServiceAfter: b.durationVal(fmt.Sprintf("check[%s].deregister_critical_service_after", id), v.DeregisterCriticalServiceAfter),
-		OutputMaxSize:                  b.intValWithDefault(v.OutputMaxSize, 4096),
+		OutputMaxSize:                  b.intValWithDefault(v.OutputMaxSize, checks.DefaultBufSize),
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
@@ -502,7 +503,7 @@ func DefaultConfig() *Config {
 		CoordinateUpdateBatchSize:  128,
 		CoordinateUpdateMaxBatches: 5,
 
-		CheckOutputMaxSize: 4096,
+		CheckOutputMaxSize: checks.DefaultBufSize,
 
 		RPCRate:     rate.Inf,
 		RPCMaxBurst: 1000,

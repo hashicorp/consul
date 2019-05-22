@@ -49,7 +49,7 @@ func TestCheckMonitor_Script(t *testing.T) {
 				Script:        tt.script,
 				Interval:      25 * time.Millisecond,
 				Logger:        log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
-				OutputMaxSize: 4096,
+				OutputMaxSize: DefaultBufSize,
 			}
 			check.Start()
 			defer check.Stop()
@@ -85,7 +85,7 @@ func TestCheckMonitor_Args(t *testing.T) {
 				ScriptArgs:    tt.args,
 				Interval:      25 * time.Millisecond,
 				Logger:        log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
-				OutputMaxSize: 4096,
+				OutputMaxSize: DefaultBufSize,
 			}
 			check.Start()
 			defer check.Stop()
@@ -111,7 +111,7 @@ func TestCheckMonitor_Timeout(t *testing.T) {
 		Interval:      50 * time.Millisecond,
 		Timeout:       25 * time.Millisecond,
 		Logger:        log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
-		OutputMaxSize: 4096,
+		OutputMaxSize: DefaultBufSize,
 	}
 	check.Start()
 	defer check.Stop()
@@ -136,7 +136,7 @@ func TestCheckMonitor_RandomStagger(t *testing.T) {
 		ScriptArgs:    []string{"sh", "-c", "exit 0"},
 		Interval:      25 * time.Millisecond,
 		Logger:        log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
-		OutputMaxSize: 4096,
+		OutputMaxSize: DefaultBufSize,
 	}
 	check.Start()
 	defer check.Stop()
@@ -162,7 +162,7 @@ func TestCheckMonitor_LimitOutput(t *testing.T) {
 		ScriptArgs:    []string{"od", "-N", "81920", "/dev/urandom"},
 		Interval:      25 * time.Millisecond,
 		Logger:        log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
-		OutputMaxSize: 4096,
+		OutputMaxSize: DefaultBufSize,
 	}
 	check.Start()
 	defer check.Stop()
@@ -170,7 +170,7 @@ func TestCheckMonitor_LimitOutput(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	// Allow for extra bytes for the truncation message
-	if len(notif.Output("foo")) > BufSize+100 {
+	if len(notif.Output("foo")) > DefaultBufSize+100 {
 		t.Fatalf("output size is too long")
 	}
 }
@@ -292,7 +292,7 @@ func TestCheckHTTP(t *testing.T) {
 				}
 
 				// Body larger than 4k limit
-				body := bytes.Repeat([]byte{'a'}, 2*BufSize)
+				body := bytes.Repeat([]byte{'a'}, 2*DefaultBufSize)
 				w.WriteHeader(tt.code)
 				w.Write(body)
 			}))
@@ -304,7 +304,7 @@ func TestCheckHTTP(t *testing.T) {
 				CheckID:       types.CheckID("foo"),
 				HTTP:          server.URL,
 				Method:        tt.method,
-				OutputMaxSize: 4096,
+				OutputMaxSize: DefaultBufSize,
 				Header:        tt.header,
 				Interval:      10 * time.Millisecond,
 				Logger:        log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
@@ -319,9 +319,9 @@ func TestCheckHTTP(t *testing.T) {
 				if got, want := notif.State("foo"), tt.status; got != want {
 					r.Fatalf("got state %q want %q", got, want)
 				}
-				// Allow slightly more data than BufSize, for the header
-				if n := len(notif.Output("foo")); n > (BufSize + 256) {
-					r.Fatalf("output too long: %d (%d-byte limit)", n, BufSize)
+				// Allow slightly more data than DefaultBufSize, for the header
+				if n := len(notif.Output("foo")); n > (DefaultBufSize + 256) {
+					r.Fatalf("output too long: %d (%d-byte limit)", n, DefaultBufSize)
 				}
 			})
 		})
@@ -332,7 +332,7 @@ func TestCheckMaxOutputSize(t *testing.T) {
 	t.Parallel()
 	timeout := 5 * time.Millisecond
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, req *http.Request) {
-		body := bytes.Repeat([]byte{'x'}, 2*BufSize)
+		body := bytes.Repeat([]byte{'x'}, 2*DefaultBufSize)
 		writer.WriteHeader(200)
 		writer.Write(body)
 	}))
@@ -415,7 +415,7 @@ func TestCheckHTTP_disablesKeepAlives(t *testing.T) {
 func largeBodyHandler(code int) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Body larger than 4k limit
-		body := bytes.Repeat([]byte{'a'}, 2*BufSize)
+		body := bytes.Repeat([]byte{'a'}, 2*DefaultBufSize)
 		w.WriteHeader(code)
 		w.Write(body)
 	})

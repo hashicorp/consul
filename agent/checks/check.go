@@ -28,10 +28,10 @@ const (
 	// Otherwise we risk fork bombing a system.
 	MinInterval = time.Second
 
-	// BufSize is the maximum size of the captured
-	// check output. Prevents an enormous buffer
+	// DefaultBufSize is the maximum size of the captured
+	// check output by defaut. Prevents an enormous buffer
 	// from being captured
-	BufSize = 4 * 1024 // 4KB
+	DefaultBufSize = 4 * 1024 // 4KB
 
 	// UserAgent is the value of the User-Agent header
 	// for HTTP health checks.
@@ -342,7 +342,7 @@ func (c *CheckHTTP) Start() {
 			c.httpClient.Timeout = c.Interval
 		}
 		if c.OutputMaxSize < 1 {
-			c.OutputMaxSize = 4096
+			c.OutputMaxSize = DefaultBufSize
 		}
 	}
 

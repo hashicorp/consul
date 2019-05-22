@@ -716,9 +716,9 @@ func (s *HTTPServer) AgentCheckUpdate(resp http.ResponseWriter, req *http.Reques
 	}
 
 	total := len(update.Output)
-	if total > checks.BufSize {
+	if total > checks.DefaultBufSize {
 		update.Output = fmt.Sprintf("%s ... (captured %d of %d bytes)",
-			update.Output[:checks.BufSize], checks.BufSize, total)
+			update.Output[:checks.DefaultBufSize], checks.DefaultBufSize, total)
 	}
 
 	checkID := types.CheckID(strings.TrimPrefix(req.URL.Path, "/v1/agent/check/update/"))
