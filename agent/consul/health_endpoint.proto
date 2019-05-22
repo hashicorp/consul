@@ -3,7 +3,7 @@ syntax = "proto3";
 package consul;
 
 service Health {
-    rpc Test(TestRequest) returns (TestReply) {}
+    rpc Stream(TestRequest) returns (stream TestReply) {}
 } 
 
 message TestRequest {
@@ -11,5 +11,5 @@ message TestRequest {
 }
   
 message TestReply {
-    string data = 1;
+    int32 data = 1;
 }
