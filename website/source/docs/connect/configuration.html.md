@@ -90,7 +90,7 @@ configure Connect on Nomad by reading the
 
 ### Kubernetes
 
-The Consul Helm chart can automate much of Consul Connects configuration, and
+The Consul Helm chart can automate much of Consul Connect's configuration, and
 makes it easy to automatically inject Envoy sidecars into new pods when they are
 deployed. Learn about the [Helm chart](/docs/platform/k8s/helm.html) in general,
 or if you are already familiar with it, check out it's
