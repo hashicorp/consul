@@ -130,22 +130,17 @@ func (s *Server) monitorLeadership() {
 }
 
 func (s *Server) leadershipTransfer() {
-	confFuture := s.raft.GetConfiguration()
-	if err := confFuture.Error(); err != nil {
-		s.logger.Printf("[WARN] consul: failed to obtain raft configuration: %v", err)
-		return
-	}
-	for _, server := range confFuture.Configuration().Servers {
-		future := s.raft.LeadershipTransferToServer(server.ID, server.Address)
+	retryCount := 3
+	for i := 0; i < retryCount; i++ {
+		future := s.raft.LeadershipTransfer()
 		if err := future.Error(); err != nil {
-			s.logger.Printf("[DEBUG] consul: failed to transfer leadership to %s: %v", server.ID, err)
+			s.logger.Printf("[ERR] consul: failed to transfer leadership attempt %d/%d: %v", i, retryCount)
 		} else {
-			s.logger.Printf("[DEBUG] consul: successfully to transfered leadership to: %s", server.ID)
+			s.logger.Printf("[ERR] consul: successfully transferred leadership attempt %d/%d", i, retryCount)
 			break
 		}
 
 	}
-	s.logger.Printf("[DEBUG] consul: failed to transfer leadership")
 }
 
 // leaderLoop runs as long as we are the leader to run various
