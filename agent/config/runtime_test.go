@@ -3606,7 +3606,7 @@ func TestFullConfig(t *testing.T) {
 				method = "Dou0nGT5"
 				tcp = "JY6fTTcw"
 				interval = "18714s"
-				output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `,
+				output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `
 				docker_container_id = "qF66POS9"
 				shell = "sOnDy228"
 				tls_skip_verify = true
@@ -3631,7 +3631,7 @@ func TestFullConfig(t *testing.T) {
 					method = "aldrIQ4l"
 					tcp = "RJQND605"
 					interval = "22164s"
-					output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `,,
+					output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `
 					docker_container_id = "ipgdFtjd"
 					shell = "qAeOYy0M"
 					tls_skip_verify = true
@@ -3655,7 +3655,7 @@ func TestFullConfig(t *testing.T) {
 					method = "gLrztrNw"
 					tcp = "4jG5casb"
 					interval = "28767s"
-					output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `,,
+					output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `
 					docker_container_id = "THW6u7rL"
 					shell = "C1Zt3Zwh"
 					tls_skip_verify = true
@@ -3881,7 +3881,7 @@ func TestFullConfig(t *testing.T) {
 						method = "T66MFBfR"
 						tcp = "bNnNfx2A"
 						interval = "22224s"
-						output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `,
+						output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `
 						docker_container_id = "ipgdFtjd"
 						shell = "omVZq7Sz"
 						tls_skip_verify = true
@@ -3903,7 +3903,7 @@ func TestFullConfig(t *testing.T) {
 						method = "ciYHWors"
 						tcp = "FfvCwlqH"
 						interval = "12356s"
-						output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `,
+						output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `
 						docker_container_id = "HBndBU6R"
 						shell = "hVI33JjA"
 						tls_skip_verify = true
@@ -3939,7 +3939,7 @@ func TestFullConfig(t *testing.T) {
 						method = "X5DrovFc"
 						tcp = "ICbxkpSF"
 						interval = "24392s"
-						output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `,
+						output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `
 						docker_container_id = "ZKXr68Yb"
 						shell = "CEfzx0Fo"
 						tls_skip_verify = true
@@ -3978,7 +3978,7 @@ func TestFullConfig(t *testing.T) {
 							method = "5wkAxCUE"
 							tcp = "MN3oA9D2"
 							interval = "32718s"
-							output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `,
+							output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `
 							docker_container_id = "cU15LMet"
 							shell = "nEz9qz2l"
 							tls_skip_verify = true
@@ -4000,7 +4000,7 @@ func TestFullConfig(t *testing.T) {
 							method = "wzByP903"
 							tcp = "2exjZIGE"
 							interval = "5656s"
-							output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `,
+							output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `
 							docker_container_id = "5tDBWpfA"
 							shell = "rlTpLM8s"
 							tls_skip_verify = true
@@ -5117,7 +5117,7 @@ func TestSanitize(t *testing.T) {
 		"CAPath": "",
 		"CertFile": "",
 		"CheckDeregisterIntervalMin": "0s",
-		"CheckOutputMaxSize": checks.DefaultBufSize,
+		"CheckOutputMaxSize": ` + strconv.Itoa(checks.DefaultBufSize) + `,
 		"CheckReapInterval": "0s",
 		"CheckUpdateInterval": "0s",
 		"Checks": [{
@@ -5134,7 +5134,7 @@ func TestSanitize(t *testing.T) {
 			"Method": "",
 			"Name": "zoo",
 			"Notes": "",
-			"OutputMaxSize": checks.DefaultBufSize,
+			"OutputMaxSize": ` + strconv.Itoa(checks.DefaultBufSize) + `,
 			"ScriptArgs": [],
 			"ServiceID": "",
 			"Shell": "",
@@ -5166,7 +5166,7 @@ func TestSanitize(t *testing.T) {
 		"ConsulCoordinateUpdateMaxBatches": 0,
 		"ConsulCoordinateUpdatePeriod": "15s",
 		"ConsulRaftElectionTimeout": "0s",
-		"CheckOutputMaxSize": checks.DefaultBufSize,
+		"CheckOutputMaxSize": ` + strconv.Itoa(checks.DefaultBufSize) + `,
 		"ConsulRaftHeartbeatTimeout": "0s",
 		"ConsulRaftLeaderLeaseTimeout": "0s",
 		"GossipLANGossipInterval": "0s",
@@ -5306,7 +5306,7 @@ func TestSanitize(t *testing.T) {
 				"Method": "",
 				"Name": "blurb",
 				"Notes": "",
-				"OutputMaxSize": checks.DefaultBufSize,
+				"OutputMaxSize": ` + strconv.Itoa(checks.DefaultBufSize) + `,
 				"ScriptArgs": [],
 				"Shell": "",
 				"Status": "",
