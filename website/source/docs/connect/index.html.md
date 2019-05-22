@@ -21,7 +21,7 @@ service communications.
 ## Security
 
 Connect enables secure deployment best-practices with automatic
-service-to-service encryption everywhere, and identity-based authorization.
+service-to-service encryption, and identity-based authorization.
 Connect uses the registered service identity (rather than IP addresses) to
 enforce access control with [intentions](/docs/connect/intentions.html). This
 makes it easier to reason about access control and enables services to be
