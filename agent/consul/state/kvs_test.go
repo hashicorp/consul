@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
 )
@@ -357,6 +359,21 @@ func TestStateStore_KVSSet_KVSGet(t *testing.T) {
 	if result != nil || err != nil || idx != 8 {
 		t.Fatalf("expected (8, nil, nil), got : (%#v, %#v, %#v)", idx, result, err)
 	}
+
+	// setting the same value again does not update the index
+	ws = memdb.NewWatchSet()
+	// Write a new K/V entry to the store.
+	entry = &structs.DirEntry{
+		Key:   "foo",
+		Value: []byte("bar"),
+	}
+	require.Nil(t, s.KVSSet(1, entry))
+	require.Nil(t, s.KVSSet(2, entry))
+
+	idx, _, err = s.KVSGet(ws, entry.Key)
+	require.Nil(t, err)
+
+	require.Equal(t, uint64(1), idx)
 }
 
 func TestStateStore_KVSList(t *testing.T) {
@@ -1430,7 +1447,7 @@ func TestStateStore_KVS_Snapshot_Restore(t *testing.T) {
 	}
 
 	// Verify the snapshot.
-	if idx := snap.LastIndex(); idx != 7 {
+	if idx := snap.LastIndex(); idx != 6 {
 		t.Fatalf("bad index: %d", idx)
 	}
 	iter, err := snap.KVs()

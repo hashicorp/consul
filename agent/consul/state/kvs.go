@@ -131,14 +131,15 @@ func (s *Store) KVSSet(idx uint64, entry *structs.DirEntry) error {
 // whatever the existing session is.
 func (s *Store) kvsSetTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry, updateSession bool) error {
 	// Retrieve an existing KV pair
-	existing, err := tx.First("kvs", "id", entry.Key)
+	existingNode, err := tx.First("kvs", "id", entry.Key)
 	if err != nil {
 		return fmt.Errorf("failed kvs lookup: %s", err)
 	}
+	existing, _ := existingNode.(*structs.DirEntry)
 
 	// Set the indexes.
 	if existing != nil {
-		entry.CreateIndex = existing.(*structs.DirEntry).CreateIndex
+		entry.CreateIndex = existing.CreateIndex
 	} else {
 		entry.CreateIndex = idx
 	}
@@ -148,10 +149,15 @@ func (s *Store) kvsSetTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry, up
 	// session for a new entry is "no session".
 	if !updateSession {
 		if existing != nil {
-			entry.Session = existing.(*structs.DirEntry).Session
+			entry.Session = existing.Session
 		} else {
 			entry.Session = ""
 		}
+	}
+
+	// skip write if the entry did not change
+	if existing != nil && existing.Equal(entry) {
+		return nil
 	}
 
 	// Store the kv pair in the state store and update the index.
