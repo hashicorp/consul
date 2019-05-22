@@ -75,7 +75,7 @@ registrations](/docs/agent/services.html).
 ## Schedulers
 
 Consul Connect is especially useful if you are using an orchestrator like Nomad
-or Kubernetes, because these orchestrators can deploy thousands of services
+or Kubernetes, because these orchestrators can deploy thousands of service instances
 which frequently move hosts. Sidecars for each service can be configured through
 these schedulers, and in some cases they can automate Consul configuration,
 sidecar deployment, and service registration.
