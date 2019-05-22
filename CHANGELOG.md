@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.4.5 (May 22, 2019)
 
 SECURITY:
 
