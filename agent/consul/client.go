@@ -185,6 +185,9 @@ func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsuti
 	c.routers = router.New(c.logger, c.shutdownCh, c.serf, c.connPool)
 	go c.routers.Start()
 
+	// Start GRPC server.
+	c.grpcClient = NewGRPCClient(logger, c.routers)
+
 	// Start LAN event handlers after the router is complete since the event
 	// handlers depend on the router and the router depends on Serf.
 	go c.lanEventHandler()
@@ -310,13 +313,7 @@ TRY:
 	}
 
 	// Make the request.
-	var rpcErr error
-	if grpcAbleEndpoints[method] {
-		rpcErr = c.grpcClient.Call(c.config.Datacenter, server, method, args, reply)
-	} else {
-		rpcErr = c.connPool.RPC(c.config.Datacenter, server.Addr, server.Version, method, server.UseTLS, args, reply)
-	}
-
+	rpcErr := c.connPool.RPC(c.config.Datacenter, server.Addr, server.Version, method, server.UseTLS, args, reply)
 	if rpcErr == nil {
 		return nil
 	}
