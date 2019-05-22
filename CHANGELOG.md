@@ -63,6 +63,11 @@ BUG FIXES:
 * catalog: fix an issue where renaming nodes could cause registration instability [[GH-5518](https://github.com/hashicorp/consul/issues/5518)]
 * network areas (Consul Enterprise): Fixed an issue that could cause a lock to be held unnecessarily causing other operations to hang.
 
+## 1.4.5 (May 22, 2019)
+
+SECURITY:
+
+* acl: fixed an issue that if an ACL rule is used for prefix matching in a policy, keys not matching that specific prefix can be deleted by a token using that policy even with default_deny settings configured [[GH-5888](https://github.com/hashicorp/consul/issues/5888)]
 
 ## 1.4.4 (March 21, 2019)
 
