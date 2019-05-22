@@ -1,9 +1,9 @@
 package consul
 
 import (
-	"context"
 	"fmt"
 	"sort"
+	"time"
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
@@ -22,8 +22,13 @@ type HealthGRPCAdapter struct {
 	Health
 }
 
-func (h *HealthGRPCAdapter) Test(ctx context.Context, in *TestRequest) (*TestReply, error) {
-	return &TestReply{Data: "hello"}, nil
+func (h *HealthGRPCAdapter) Stream(in *TestRequest, stream Health_StreamServer) error {
+	for {
+		if err := stream.Send(&TestReply{Data: int32(time.Now().Second())}); err != nil {
+			return err
+		}
+		time.Sleep(1 * time.Second)
+	}
 }
 
 // ChecksInState is used to get all the checks in a given state

@@ -1,16 +1,15 @@
 package consul
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net"
-	"strings"
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/consul/agent/router"
+	"github.com/hashicorp/consul/agent/structs"
 	"google.golang.org/grpc"
 )
 
@@ -35,27 +34,24 @@ func dialGRPC(addr string, _ time.Duration) (net.Conn, error) {
 type GRPCClient struct {
 	grpcConns     map[string]*grpc.ClientConn
 	grpcConnsLock sync.RWMutex
+	routers       *router.Manager
 	logger        *log.Logger
 }
 
-func NewGRPCClient(logger *log.Logger) *GRPCClient {
+func NewGRPCClient(logger *log.Logger, routers *router.Manager) *GRPCClient {
 	return &GRPCClient{
 		grpcConns: make(map[string]*grpc.ClientConn),
+		routers:   routers,
 		logger:    logger,
 	}
 }
 
-func (c *GRPCClient) Call(dc string, server *metadata.Server, method string, args, reply interface{}) error {
-	conn, err := c.grpcConn(server)
-	if err != nil {
-		return err
+func (c *GRPCClient) GRPCConn() (*grpc.ClientConn, error) {
+	server := c.routers.FindServer()
+	if server == nil {
+		return nil, structs.ErrNoServers
 	}
 
-	c.logger.Printf("[TRACE] Using GRPC for method %s", method)
-	return conn.Invoke(context.Background(), c.grpcPath(method), args, reply)
-}
-
-func (c *GRPCClient) grpcConn(server *metadata.Server) (*grpc.ClientConn, error) {
 	host, _, _ := net.SplitHostPort(server.Addr.String())
 	addr := fmt.Sprintf("%s:%d", host, server.Port)
 
@@ -76,8 +72,4 @@ func (c *GRPCClient) grpcConn(server *metadata.Server) (*grpc.ClientConn, error)
 
 	c.grpcConns[addr] = conn
 	return co, nil
-}
-
-func (c *GRPCClient) grpcPath(p string) string {
-	return grpcBasePath + "." + strings.Replace(p, ".", "/", -1)
 }
