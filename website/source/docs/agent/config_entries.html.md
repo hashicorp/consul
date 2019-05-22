@@ -45,7 +45,7 @@ Config {
 
 * `Config` - An arbitrary map of configuration values used by Connect proxies.
   The available configurations depend on the Connect proxy you use. Any values
-  that Consul uses to bootstrap the proxies can be configured globally here. To
+  that your proxy allows can be configured globally here. To
   explore these options please see the documentation for your chosen proxy.
 
   * [Envoy](/docs/connect/proxies/envoy.html#bootstrap-configuration)
