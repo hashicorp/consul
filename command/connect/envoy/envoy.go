@@ -34,6 +34,8 @@ func New(ui cli.Ui) *cmd {
 	return c
 }
 
+const DefaultAdminAccessLogPath = "/dev/null"
+
 type cmd struct {
 	UI     cli.Ui
 	flags  *flag.FlagSet
@@ -68,9 +70,10 @@ func (c *cmd) init() {
 		"The full path to the envoy binary to run. By default will just search "+
 			"$PATH. Ignored if -bootstrap is used.")
 
-	c.flags.StringVar(&c.adminAccessLogPath, "admin-access-log-path", "/dev/null",
-		"The path to write the access log for the administration server. If no access "+
-			"log is desired specify \"/dev/null\". By default it will use \"/dev/null\".")
+	c.flags.StringVar(&c.adminAccessLogPath, "admin-access-log-path", DefaultAdminAccessLogPath,
+		fmt.Sprintf("The path to write the access log for the administration server. If no access "+
+			"log is desired specify %q. By default it will use %q.",
+			DefaultAdminAccessLogPath, DefaultAdminAccessLogPath))
 
 	c.flags.StringVar(&c.adminBind, "admin-bind", "localhost:19000",
 		"The address:port to start envoy's admin server on. Envoy requires this "+
@@ -265,7 +268,7 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 
 	adminAccessLogPath := c.adminAccessLogPath
 	if adminAccessLogPath == "" {
-		adminAccessLogPath = "/dev/null"
+		adminAccessLogPath = DefaultAdminAccessLogPath
 	}
 
 	return &BootstrapTplArgs{
