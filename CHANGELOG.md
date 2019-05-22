@@ -1,5 +1,11 @@
 ## UNRELEASED
 
+IMPROVEMENTS:
+
+BUG FIXES:
+
+* agent: Fixed an issue where recreating a node using a different ID would prevent the new node from correctly joining. [[GH-5485](https://github.com/hashicorp/consul/pull/5485)]
+
 ## 1.5.0 (May 08, 2019)
 
 SECURITY:
