@@ -647,7 +647,6 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 }
 
 func TestServer_Expect(t *testing.T) {
-	t.Parallel()
 	// All test servers should be in expect=3 mode, except for the 3rd one,
 	// but one with expect=0 can cause a bootstrap to occur from the other
 	// servers as currently implemented.
