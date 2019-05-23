@@ -1204,6 +1204,15 @@ type ACLPolicyBatchDeleteRequest struct {
 	PolicyIDs []string
 }
 
+func cloneStringSlice(s []string) []string {
+	if len(s) == 0 {
+		return nil
+	}
+	out := make([]string, len(s))
+	copy(out, s)
+	return out
+}
+
 // ACLRoleSetRequest is used at the RPC layer for creation and update requests
 type ACLRoleSetRequest struct {
 	Role       ACLRole // The role to upsert
