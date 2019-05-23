@@ -62,7 +62,7 @@ func NewServer(addr string, group []*Config) (*Server, error) {
 	for _, site := range group {
 		if site.Debug {
 			s.debug = true
-			log.D = true
+			log.D.Set()
 		}
 		// set the config per zone
 		s.zones[site.Zone] = site

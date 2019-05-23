@@ -24,7 +24,7 @@ func (p P) log(level string, v ...interface{}) {
 
 // Debug logs as log.Debug.
 func (p P) Debug(v ...interface{}) {
-	if !D {
+	if !D.Value() {
 		return
 	}
 	p.log(debug, v...)
@@ -32,7 +32,7 @@ func (p P) Debug(v ...interface{}) {
 
 // Debugf logs as log.Debugf.
 func (p P) Debugf(format string, v ...interface{}) {
-	if !D {
+	if !D.Value() {
 		return
 	}
 	p.logf(debug, format, v...)

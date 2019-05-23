@@ -17,8 +17,19 @@ func msg() *dns.Msg {
 	m.SetQuestion("example.local.", dns.TypeA)
 	m.SetEdns0(4096, true)
 	m.Id = 10
-
 	return m
+}
+
+func TestNoDebug(t *testing.T) {
+	// Must come first, because set log.D.Set() which is impossible to undo.
+	var f bytes.Buffer
+	golog.SetOutput(&f)
+
+	str := "Hi There!"
+	Hexdumpf(msg(), "%s %d", str, 10)
+	if len(f.Bytes()) != 0 {
+		t.Errorf("Expected no output, got %d bytes", len(f.Bytes()))
+	}
 }
 
 func ExampleLogHexdump() {
@@ -36,7 +47,7 @@ func ExampleLogHexdump() {
 func TestHexdump(t *testing.T) {
 	var f bytes.Buffer
 	golog.SetOutput(&f)
-	log.D = true
+	log.D.Set()
 
 	str := "Hi There!"
 	Hexdump(msg(), str)
@@ -50,7 +61,7 @@ func TestHexdump(t *testing.T) {
 func TestHexdumpf(t *testing.T) {
 	var f bytes.Buffer
 	golog.SetOutput(&f)
-	log.D = true
+	log.D.Set()
 
 	str := "Hi There!"
 	Hexdumpf(msg(), "%s %d", str, 10)
@@ -58,17 +69,5 @@ func TestHexdumpf(t *testing.T) {
 
 	if !strings.Contains(logged, "[DEBUG] "+fmt.Sprintf("%s %d", str, 10)) {
 		t.Errorf("The string %s %d, is not contained in the logged output: %s", str, 10, logged)
-	}
-}
-
-func TestNoDebug(t *testing.T) {
-	var f bytes.Buffer
-	golog.SetOutput(&f)
-	log.D = false
-
-	str := "Hi There!"
-	Hexdumpf(msg(), "%s %d", str, 10)
-	if len(f.Bytes()) != 0 {
-		t.Errorf("Expected no output, got %d bytes", len(f.Bytes()))
 	}
 }
