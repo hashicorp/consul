@@ -598,6 +598,11 @@ func (l *State) UpdateCheck(id types.CheckID, status, output string) {
 
 	// Ensure we only mutate a copy of the check state and put the finalized
 	// version into the checks map when complete.
+	//
+	// Note that we are relying upon the earlier deferred mutex unlock to
+	// happen AFTER this defer. As per the Go spec this is true, but leaving
+	// this note here for the future in case of any refactorings which may not
+	// notice this relationship.
 	c = c.Clone()
 	defer func(c *CheckState) {
 		l.checks[id] = c
