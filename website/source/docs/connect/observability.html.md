@@ -33,18 +33,23 @@ For Envoy the metrics destination can be configured in the proxy configuration
 entry's `config` section.
 
 ```
-Kind = "proxy-defaults"
-Name = "global"
-Config {
+kind = "proxy-defaults"
+name = "global"
+config {
    "envoy_dogstatsd_url": "udp://127.0.0.1:9125"
 }
 ```
 
+Find other possible metrics syncs in the [Connect Envoy documentation](/docs/connect/proxies/envoy.html#bootstrap-configuration).
+
 ### Service Protocol
 
-The [service protocol](/docs/agent/config_entries.html#protocol) is a documented
-value in the service configuration entry. You can override it in the [service
-registration](/docs/agent/services.html).
+You can specify the [service protocol](/docs/agent/config_entries.html#protocol)
+in the `service-defaults` configuration entry. You can override it in the
+[service registration](/docs/agent/services.html). By default, proxies only give
+you L4 metrics. This protocol allows proxies to handle requests at the right L7
+protocol and emit richer L7 metrics. It also allows proxies to make per-request
+load balancing and routing decisions.
 
 ### Service Upstreams
 
