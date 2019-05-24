@@ -1589,7 +1589,7 @@ func (a *Agent) JoinLAN(addrs []string) (n int, err error) {
 			}
 		}
 	} else {
-		a.logger.Printf("[WARN] agent: (LAN) joined: %d Err: %v", n, err)
+		a.logger.Printf("[WARN] agent: (LAN) couldn't join: %d Err: %v", n, err)
 	}
 	return
 }
