@@ -1602,7 +1602,11 @@ func (a *Agent) JoinWAN(addrs []string) (n int, err error) {
 	} else {
 		err = fmt.Errorf("Must be a server to join WAN cluster")
 	}
-	a.logger.Printf("[INFO] agent: (WAN) joined: %d Err: %v", n, err)
+	if err == nil {
+		a.logger.Printf("[INFO] agent: (WAN) joined: %d", n)
+	} else {
+		a.logger.Printf("[WARN] agent: (WAN) couldn't join: %d Err: %v", n, err)
+	}
 	return
 }
 
