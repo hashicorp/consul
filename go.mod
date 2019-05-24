@@ -9,7 +9,6 @@ replace github.com/hashicorp/consul/sdk => ./sdk
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/Azure/go-autorest v10.15.3+incompatible // indirect
-	github.com/DataDog/datadog-go v0.0.0-20160329135253-cc2f4770f4d6 // indirect
 	github.com/Jeffail/gabs v1.1.0 // indirect
 	github.com/Microsoft/go-winio v0.4.3 // indirect
 	github.com/NYTimes/gziphandler v1.0.1
@@ -18,16 +17,13 @@ require (
 	github.com/SermoDigital/jose v0.0.0-20180104203859-803625baeddc // indirect
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
 	github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
-	github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da
+	github.com/armon/go-metrics v0.0.0-20190430140413-ec5e00d3c878
 	github.com/armon/go-radix v0.0.0-20180808171621-7fddfc383310
 	github.com/asaskevich/govalidator v0.0.0-20180319081651-7d2e70ef918f // indirect
-	github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973 // indirect
 	github.com/bitly/go-hostpool v0.0.0-20171023180738-a3a6125de932 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/cenkalti/backoff v2.1.1+incompatible // indirect
-	github.com/circonus-labs/circonus-gometrics v0.0.0-20161109192337-d17a8420c36e // indirect
-	github.com/circonus-labs/circonusllhist v0.0.0-20161110002650-365d370cc145 // indirect
 	github.com/containerd/continuity v0.0.0-20181203112020-004b46473808 // indirect
 	github.com/coredns/coredns v1.1.2
 	github.com/denisenkom/go-mssqldb v0.0.0-20180620032804-94c9c97e8c9f // indirect
@@ -58,12 +54,11 @@ require (
 	github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
 	github.com/hashicorp/go-cleanhttp v0.5.1
 	github.com/hashicorp/go-discover v0.0.0-20190403160810-22221edb15cd
-	github.com/hashicorp/go-hclog v0.0.0-20180402200405-69ff559dc25f // indirect
+	github.com/hashicorp/go-hclog v0.9.1
 	github.com/hashicorp/go-memdb v0.0.0-20180223233045-1289e7fffe71
-	github.com/hashicorp/go-msgpack v0.5.4
+	github.com/hashicorp/go-msgpack v0.5.5
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hashicorp/go-plugin v0.0.0-20180331002553-e8d22c780116
-	github.com/hashicorp/go-retryablehttp v0.0.0-20180531211321-3b087ef2d313 // indirect
 	github.com/hashicorp/go-rootcerts v1.0.0
 	github.com/hashicorp/go-sockaddr v1.0.0
 	github.com/hashicorp/go-syslog v1.0.0
@@ -76,7 +71,7 @@ require (
 	github.com/hashicorp/mdns v1.0.1 // indirect
 	github.com/hashicorp/memberlist v0.1.4
 	github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69
-	github.com/hashicorp/raft v1.0.1-0.20190409200437-d9fe23f7d472
+	github.com/hashicorp/raft v1.1.0
 	github.com/hashicorp/raft-boltdb v0.0.0-20150201200839-d1e82c1ec3f1
 	github.com/hashicorp/serf v0.8.2
 	github.com/hashicorp/vault v0.10.3
@@ -89,7 +84,6 @@ require (
 	github.com/kr/text v0.1.0
 	github.com/lib/pq v0.0.0-20180523175426-90697d60dd84 // indirect
 	github.com/lyft/protoc-gen-validate v0.0.0-20180911180927-64fcb82c878e // indirect
-	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/miekg/dns v1.0.14
 	github.com/mitchellh/cli v1.0.0
 	github.com/mitchellh/copystructure v0.0.0-20160804032330-cdac8253d00f
@@ -103,13 +97,10 @@ require (
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/opencontainers/runc v0.1.1 // indirect
 	github.com/ory/dockertest v3.3.4+incompatible // indirect
-	github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c
+	github.com/pascaldekloe/goe v0.1.0
 	github.com/patrickmn/go-cache v0.0.0-20180527043350-9f6ff22cfff8 // indirect
 	github.com/pkg/errors v0.8.1
-	github.com/prometheus/client_golang v0.0.0-20180328130430-f504d69affe1
-	github.com/prometheus/client_model v0.0.0-20171117100541-99fa1f4be8e5 // indirect
-	github.com/prometheus/common v0.0.0-20180326160409-38c53a9f4bfc // indirect
-	github.com/prometheus/procfs v0.0.0-20180408092902-8b1c2da0d56d // indirect
+	github.com/prometheus/client_golang v0.9.2
 	github.com/ryanuber/columnize v0.0.0-20160712163229-9b3edd62028f
 	github.com/ryanuber/go-glob v0.0.0-20170128012129-256dc444b735 // indirect
 	github.com/shirou/gopsutil v0.0.0-20181107111621-48177ef5f880
