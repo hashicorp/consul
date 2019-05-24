@@ -134,7 +134,7 @@ func (s *Server) leadershipTransfer() {
 	for i := 0; i < retryCount; i++ {
 		future := s.raft.LeadershipTransfer()
 		if err := future.Error(); err != nil {
-			s.logger.Printf("[ERR] consul: failed to transfer leadership attempt %d/%d: %v", i, retryCount)
+			s.logger.Printf("[ERR] consul: failed to transfer leadership attempt %d/%d: %v", i, retryCount, err)
 		} else {
 			s.logger.Printf("[ERR] consul: successfully transferred leadership attempt %d/%d", i, retryCount)
 			break
