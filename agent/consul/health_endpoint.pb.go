@@ -25,25 +25,25 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-type TestRequest struct {
-	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+type SubscribeRequest struct {
+	Key                  string   `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *TestRequest) Reset()         { *m = TestRequest{} }
-func (m *TestRequest) String() string { return proto.CompactTextString(m) }
-func (*TestRequest) ProtoMessage()    {}
-func (*TestRequest) Descriptor() ([]byte, []int) {
+func (m *SubscribeRequest) Reset()         { *m = SubscribeRequest{} }
+func (m *SubscribeRequest) String() string { return proto.CompactTextString(m) }
+func (*SubscribeRequest) ProtoMessage()    {}
+func (*SubscribeRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_7440db10be139ab2, []int{0}
 }
-func (m *TestRequest) XXX_Unmarshal(b []byte) error {
+func (m *SubscribeRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *TestRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *SubscribeRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_TestRequest.Marshal(b, m, deterministic)
+		return xxx_messageInfo_SubscribeRequest.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalTo(b)
@@ -53,44 +53,44 @@ func (m *TestRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) 
 		return b[:n], nil
 	}
 }
-func (m *TestRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TestRequest.Merge(m, src)
+func (m *SubscribeRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SubscribeRequest.Merge(m, src)
 }
-func (m *TestRequest) XXX_Size() int {
+func (m *SubscribeRequest) XXX_Size() int {
 	return m.Size()
 }
-func (m *TestRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_TestRequest.DiscardUnknown(m)
+func (m *SubscribeRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_SubscribeRequest.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_TestRequest proto.InternalMessageInfo
+var xxx_messageInfo_SubscribeRequest proto.InternalMessageInfo
 
-func (m *TestRequest) GetName() string {
+func (m *SubscribeRequest) GetKey() string {
 	if m != nil {
-		return m.Name
+		return m.Key
 	}
 	return ""
 }
 
-type TestReply struct {
-	Data                 int32    `protobuf:"varint,1,opt,name=data,proto3" json:"data,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+type UpdateEvent struct {
+	ServiceHealthUpdate  []*ServiceHealthUpdate `protobuf:"bytes,1,rep,name=serviceHealthUpdate,proto3" json:"serviceHealthUpdate,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
+	XXX_unrecognized     []byte                 `json:"-"`
+	XXX_sizecache        int32                  `json:"-"`
 }
 
-func (m *TestReply) Reset()         { *m = TestReply{} }
-func (m *TestReply) String() string { return proto.CompactTextString(m) }
-func (*TestReply) ProtoMessage()    {}
-func (*TestReply) Descriptor() ([]byte, []int) {
+func (m *UpdateEvent) Reset()         { *m = UpdateEvent{} }
+func (m *UpdateEvent) String() string { return proto.CompactTextString(m) }
+func (*UpdateEvent) ProtoMessage()    {}
+func (*UpdateEvent) Descriptor() ([]byte, []int) {
 	return fileDescriptor_7440db10be139ab2, []int{1}
 }
-func (m *TestReply) XXX_Unmarshal(b []byte) error {
+func (m *UpdateEvent) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *TestReply) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *UpdateEvent) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_TestReply.Marshal(b, m, deterministic)
+		return xxx_messageInfo_UpdateEvent.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalTo(b)
@@ -100,45 +100,172 @@ func (m *TestReply) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return b[:n], nil
 	}
 }
-func (m *TestReply) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TestReply.Merge(m, src)
+func (m *UpdateEvent) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_UpdateEvent.Merge(m, src)
 }
-func (m *TestReply) XXX_Size() int {
+func (m *UpdateEvent) XXX_Size() int {
 	return m.Size()
 }
-func (m *TestReply) XXX_DiscardUnknown() {
-	xxx_messageInfo_TestReply.DiscardUnknown(m)
+func (m *UpdateEvent) XXX_DiscardUnknown() {
+	xxx_messageInfo_UpdateEvent.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_TestReply proto.InternalMessageInfo
+var xxx_messageInfo_UpdateEvent proto.InternalMessageInfo
 
-func (m *TestReply) GetData() int32 {
+func (m *UpdateEvent) GetServiceHealthUpdate() []*ServiceHealthUpdate {
 	if m != nil {
-		return m.Data
+		return m.ServiceHealthUpdate
+	}
+	return nil
+}
+
+type ServiceHealthUpdate struct {
+	Node                 string         `protobuf:"bytes,1,opt,name=node,proto3" json:"node,omitempty"`
+	Address              string         `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
+	Port                 int32          `protobuf:"varint,3,opt,name=port,proto3" json:"port,omitempty"`
+	Checks               []*HealthCheck `protobuf:"bytes,4,rep,name=checks,proto3" json:"checks,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
+	XXX_unrecognized     []byte         `json:"-"`
+	XXX_sizecache        int32          `json:"-"`
+}
+
+func (m *ServiceHealthUpdate) Reset()         { *m = ServiceHealthUpdate{} }
+func (m *ServiceHealthUpdate) String() string { return proto.CompactTextString(m) }
+func (*ServiceHealthUpdate) ProtoMessage()    {}
+func (*ServiceHealthUpdate) Descriptor() ([]byte, []int) {
+	return fileDescriptor_7440db10be139ab2, []int{2}
+}
+func (m *ServiceHealthUpdate) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *ServiceHealthUpdate) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_ServiceHealthUpdate.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *ServiceHealthUpdate) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ServiceHealthUpdate.Merge(m, src)
+}
+func (m *ServiceHealthUpdate) XXX_Size() int {
+	return m.Size()
+}
+func (m *ServiceHealthUpdate) XXX_DiscardUnknown() {
+	xxx_messageInfo_ServiceHealthUpdate.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ServiceHealthUpdate proto.InternalMessageInfo
+
+func (m *ServiceHealthUpdate) GetNode() string {
+	if m != nil {
+		return m.Node
+	}
+	return ""
+}
+
+func (m *ServiceHealthUpdate) GetAddress() string {
+	if m != nil {
+		return m.Address
+	}
+	return ""
+}
+
+func (m *ServiceHealthUpdate) GetPort() int32 {
+	if m != nil {
+		return m.Port
 	}
 	return 0
 }
 
+func (m *ServiceHealthUpdate) GetChecks() []*HealthCheck {
+	if m != nil {
+		return m.Checks
+	}
+	return nil
+}
+
+type HealthCheck struct {
+	Status               string   `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *HealthCheck) Reset()         { *m = HealthCheck{} }
+func (m *HealthCheck) String() string { return proto.CompactTextString(m) }
+func (*HealthCheck) ProtoMessage()    {}
+func (*HealthCheck) Descriptor() ([]byte, []int) {
+	return fileDescriptor_7440db10be139ab2, []int{3}
+}
+func (m *HealthCheck) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *HealthCheck) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_HealthCheck.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *HealthCheck) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_HealthCheck.Merge(m, src)
+}
+func (m *HealthCheck) XXX_Size() int {
+	return m.Size()
+}
+func (m *HealthCheck) XXX_DiscardUnknown() {
+	xxx_messageInfo_HealthCheck.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_HealthCheck proto.InternalMessageInfo
+
+func (m *HealthCheck) GetStatus() string {
+	if m != nil {
+		return m.Status
+	}
+	return ""
+}
+
 func init() {
-	proto.RegisterType((*TestRequest)(nil), "consul.TestRequest")
-	proto.RegisterType((*TestReply)(nil), "consul.TestReply")
+	proto.RegisterType((*SubscribeRequest)(nil), "consul.SubscribeRequest")
+	proto.RegisterType((*UpdateEvent)(nil), "consul.UpdateEvent")
+	proto.RegisterType((*ServiceHealthUpdate)(nil), "consul.ServiceHealthUpdate")
+	proto.RegisterType((*HealthCheck)(nil), "consul.HealthCheck")
 }
 
 func init() { proto.RegisterFile("health_endpoint.proto", fileDescriptor_7440db10be139ab2) }
 
 var fileDescriptor_7440db10be139ab2 = []byte{
-	// 168 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x12, 0xcd, 0x48, 0x4d, 0xcc,
-	0x29, 0xc9, 0x88, 0x4f, 0xcd, 0x4b, 0x29, 0xc8, 0xcf, 0xcc, 0x2b, 0xd1, 0x2b, 0x28, 0xca, 0x2f,
-	0xc9, 0x17, 0x62, 0x4b, 0xce, 0xcf, 0x2b, 0x2e, 0xcd, 0x51, 0x52, 0xe4, 0xe2, 0x0e, 0x49, 0x2d,
-	0x2e, 0x09, 0x4a, 0x2d, 0x2c, 0x4d, 0x2d, 0x2e, 0x11, 0x12, 0xe2, 0x62, 0xc9, 0x4b, 0xcc, 0x4d,
-	0x95, 0x60, 0x54, 0x60, 0xd4, 0xe0, 0x0c, 0x02, 0xb3, 0x95, 0xe4, 0xb9, 0x38, 0x21, 0x4a, 0x0a,
-	0x72, 0x2a, 0x41, 0x0a, 0x52, 0x12, 0x4b, 0x12, 0xc1, 0x0a, 0x58, 0x83, 0xc0, 0x6c, 0x23, 0x3b,
-	0x2e, 0x36, 0x0f, 0xb0, 0x25, 0x42, 0x26, 0x5c, 0x6c, 0xc1, 0x25, 0x45, 0xa9, 0x89, 0xb9, 0x42,
-	0xc2, 0x7a, 0x10, 0x0b, 0xf4, 0x90, 0x4c, 0x97, 0x12, 0x44, 0x15, 0x2c, 0xc8, 0xa9, 0x54, 0x62,
-	0x30, 0x60, 0x74, 0x12, 0x38, 0xf1, 0x48, 0x8e, 0xf1, 0xc2, 0x23, 0x39, 0xc6, 0x07, 0x8f, 0xe4,
-	0x18, 0x67, 0x3c, 0x96, 0x63, 0x48, 0x62, 0x03, 0x3b, 0xd2, 0x18, 0x10, 0x00, 0x00, 0xff, 0xff,
-	0x25, 0xbe, 0x44, 0x80, 0xbd, 0x00, 0x00, 0x00,
+	// 288 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x51, 0xcd, 0x4a, 0xf4, 0x40,
+	0x10, 0xdc, 0xf9, 0xb2, 0x5f, 0x64, 0x3b, 0x97, 0xd0, 0x41, 0x19, 0x14, 0x42, 0x08, 0x0a, 0x01,
+	0x21, 0xc8, 0x7a, 0xf7, 0xa0, 0x08, 0x7b, 0xf1, 0x92, 0xc5, 0x9b, 0x20, 0xf9, 0x69, 0x48, 0xd8,
+	0x25, 0x13, 0x33, 0x93, 0x05, 0xef, 0x3e, 0x84, 0x8f, 0xe4, 0xd1, 0x47, 0x90, 0xf8, 0x22, 0x92,
+	0xc9, 0x0f, 0x8b, 0xee, 0xad, 0xba, 0xbb, 0xa6, 0xab, 0xa6, 0x1a, 0x8e, 0x73, 0x8a, 0xb7, 0x2a,
+	0x7f, 0xa6, 0x32, 0xab, 0x44, 0x51, 0xaa, 0xb0, 0xaa, 0x85, 0x12, 0x68, 0xa6, 0xa2, 0x94, 0xcd,
+	0xd6, 0x3f, 0x07, 0x7b, 0xdd, 0x24, 0x32, 0xad, 0x8b, 0x84, 0x22, 0x7a, 0x69, 0x48, 0x2a, 0xb4,
+	0xc1, 0xd8, 0xd0, 0x2b, 0x67, 0x1e, 0x0b, 0x16, 0x51, 0x07, 0xfd, 0x27, 0xb0, 0x1e, 0xab, 0x2c,
+	0x56, 0x74, 0xbf, 0xa3, 0x52, 0xe1, 0x03, 0x38, 0x92, 0xea, 0x5d, 0x91, 0xd2, 0x4a, 0x2f, 0xef,
+	0x67, 0x9c, 0x79, 0x46, 0x60, 0x2d, 0xcf, 0xc2, 0x7e, 0x75, 0xb8, 0xfe, 0x4b, 0x89, 0x0e, 0xbd,
+	0xf3, 0xdf, 0x18, 0x38, 0x07, 0xc8, 0x88, 0x30, 0x2f, 0x45, 0x46, 0x83, 0x11, 0x8d, 0x91, 0xc3,
+	0x51, 0x9c, 0x65, 0x35, 0x49, 0xc9, 0xff, 0xe9, 0xf6, 0x58, 0x76, 0xec, 0x4a, 0xd4, 0x8a, 0x1b,
+	0x1e, 0x0b, 0xfe, 0x47, 0x1a, 0xe3, 0x25, 0x98, 0x69, 0x4e, 0xe9, 0x46, 0xf2, 0xb9, 0xf6, 0xe6,
+	0x8c, 0xde, 0x7a, 0x9d, 0xbb, 0x6e, 0x16, 0x0d, 0x14, 0xff, 0x02, 0xac, 0xbd, 0x36, 0x9e, 0x80,
+	0x29, 0x55, 0xac, 0x9a, 0x51, 0x68, 0xa8, 0x96, 0x2b, 0x30, 0x7b, 0x1a, 0xde, 0xc0, 0x62, 0xca,
+	0x0e, 0xf9, 0xf4, 0xed, 0x5f, 0x71, 0x9e, 0x4e, 0xa2, 0x7b, 0x11, 0xfa, 0xb3, 0x2b, 0x76, 0x6b,
+	0x7f, 0xb4, 0x2e, 0xfb, 0x6c, 0x5d, 0xf6, 0xd5, 0xba, 0xec, 0xfd, 0xdb, 0x9d, 0x25, 0xa6, 0x3e,
+	0xce, 0xf5, 0x4f, 0x00, 0x00, 0x00, 0xff, 0xff, 0x78, 0xb4, 0x46, 0xa7, 0xb5, 0x01, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -153,7 +280,7 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type HealthClient interface {
-	Stream(ctx context.Context, in *TestRequest, opts ...grpc.CallOption) (Health_StreamClient, error)
+	Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (Health_SubscribeClient, error)
 }
 
 type healthClient struct {
@@ -164,12 +291,12 @@ func NewHealthClient(cc *grpc.ClientConn) HealthClient {
 	return &healthClient{cc}
 }
 
-func (c *healthClient) Stream(ctx context.Context, in *TestRequest, opts ...grpc.CallOption) (Health_StreamClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_Health_serviceDesc.Streams[0], "/consul.Health/Stream", opts...)
+func (c *healthClient) Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (Health_SubscribeClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_Health_serviceDesc.Streams[0], "/consul.Health/Subscribe", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &healthStreamClient{stream}
+	x := &healthSubscribeClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -179,17 +306,17 @@ func (c *healthClient) Stream(ctx context.Context, in *TestRequest, opts ...grpc
 	return x, nil
 }
 
-type Health_StreamClient interface {
-	Recv() (*TestReply, error)
+type Health_SubscribeClient interface {
+	Recv() (*UpdateEvent, error)
 	grpc.ClientStream
 }
 
-type healthStreamClient struct {
+type healthSubscribeClient struct {
 	grpc.ClientStream
 }
 
-func (x *healthStreamClient) Recv() (*TestReply, error) {
-	m := new(TestReply)
+func (x *healthSubscribeClient) Recv() (*UpdateEvent, error) {
+	m := new(UpdateEvent)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -198,39 +325,39 @@ func (x *healthStreamClient) Recv() (*TestReply, error) {
 
 // HealthServer is the server API for Health service.
 type HealthServer interface {
-	Stream(*TestRequest, Health_StreamServer) error
+	Subscribe(*SubscribeRequest, Health_SubscribeServer) error
 }
 
 // UnimplementedHealthServer can be embedded to have forward compatible implementations.
 type UnimplementedHealthServer struct {
 }
 
-func (*UnimplementedHealthServer) Stream(req *TestRequest, srv Health_StreamServer) error {
-	return status.Errorf(codes.Unimplemented, "method Stream not implemented")
+func (*UnimplementedHealthServer) Subscribe(req *SubscribeRequest, srv Health_SubscribeServer) error {
+	return status.Errorf(codes.Unimplemented, "method Subscribe not implemented")
 }
 
 func RegisterHealthServer(s *grpc.Server, srv HealthServer) {
 	s.RegisterService(&_Health_serviceDesc, srv)
 }
 
-func _Health_Stream_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(TestRequest)
+func _Health_Subscribe_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SubscribeRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(HealthServer).Stream(m, &healthStreamServer{stream})
+	return srv.(HealthServer).Subscribe(m, &healthSubscribeServer{stream})
 }
 
-type Health_StreamServer interface {
-	Send(*TestReply) error
+type Health_SubscribeServer interface {
+	Send(*UpdateEvent) error
 	grpc.ServerStream
 }
 
-type healthStreamServer struct {
+type healthSubscribeServer struct {
 	grpc.ServerStream
 }
 
-func (x *healthStreamServer) Send(m *TestReply) error {
+func (x *healthSubscribeServer) Send(m *UpdateEvent) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -240,15 +367,15 @@ var _Health_serviceDesc = grpc.ServiceDesc{
 	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "Stream",
-			Handler:       _Health_Stream_Handler,
+			StreamName:    "Subscribe",
+			Handler:       _Health_Subscribe_Handler,
 			ServerStreams: true,
 		},
 	},
 	Metadata: "health_endpoint.proto",
 }
 
-func (m *TestRequest) Marshal() (dAtA []byte, err error) {
+func (m *SubscribeRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -258,16 +385,16 @@ func (m *TestRequest) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *TestRequest) MarshalTo(dAtA []byte) (int, error) {
+func (m *SubscribeRequest) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	if len(m.Name) > 0 {
+	if len(m.Key) > 0 {
 		dAtA[i] = 0xa
 		i++
-		i = encodeVarintHealthEndpoint(dAtA, i, uint64(len(m.Name)))
-		i += copy(dAtA[i:], m.Name)
+		i = encodeVarintHealthEndpoint(dAtA, i, uint64(len(m.Key)))
+		i += copy(dAtA[i:], m.Key)
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
@@ -275,7 +402,7 @@ func (m *TestRequest) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *TestReply) Marshal() (dAtA []byte, err error) {
+func (m *UpdateEvent) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -285,15 +412,99 @@ func (m *TestReply) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *TestReply) MarshalTo(dAtA []byte) (int, error) {
+func (m *UpdateEvent) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.Data != 0 {
-		dAtA[i] = 0x8
+	if len(m.ServiceHealthUpdate) > 0 {
+		for _, msg := range m.ServiceHealthUpdate {
+			dAtA[i] = 0xa
+			i++
+			i = encodeVarintHealthEndpoint(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
+}
+
+func (m *ServiceHealthUpdate) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ServiceHealthUpdate) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Node) > 0 {
+		dAtA[i] = 0xa
 		i++
-		i = encodeVarintHealthEndpoint(dAtA, i, uint64(m.Data))
+		i = encodeVarintHealthEndpoint(dAtA, i, uint64(len(m.Node)))
+		i += copy(dAtA[i:], m.Node)
+	}
+	if len(m.Address) > 0 {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintHealthEndpoint(dAtA, i, uint64(len(m.Address)))
+		i += copy(dAtA[i:], m.Address)
+	}
+	if m.Port != 0 {
+		dAtA[i] = 0x18
+		i++
+		i = encodeVarintHealthEndpoint(dAtA, i, uint64(m.Port))
+	}
+	if len(m.Checks) > 0 {
+		for _, msg := range m.Checks {
+			dAtA[i] = 0x22
+			i++
+			i = encodeVarintHealthEndpoint(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
+}
+
+func (m *HealthCheck) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *HealthCheck) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Status) > 0 {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintHealthEndpoint(dAtA, i, uint64(len(m.Status)))
+		i += copy(dAtA[i:], m.Status)
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
@@ -310,13 +521,13 @@ func encodeVarintHealthEndpoint(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return offset + 1
 }
-func (m *TestRequest) Size() (n int) {
+func (m *SubscribeRequest) Size() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	l = len(m.Name)
+	l = len(m.Key)
 	if l > 0 {
 		n += 1 + l + sovHealthEndpoint(uint64(l))
 	}
@@ -326,14 +537,62 @@ func (m *TestRequest) Size() (n int) {
 	return n
 }
 
-func (m *TestReply) Size() (n int) {
+func (m *UpdateEvent) Size() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	if m.Data != 0 {
-		n += 1 + sovHealthEndpoint(uint64(m.Data))
+	if len(m.ServiceHealthUpdate) > 0 {
+		for _, e := range m.ServiceHealthUpdate {
+			l = e.Size()
+			n += 1 + l + sovHealthEndpoint(uint64(l))
+		}
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *ServiceHealthUpdate) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Node)
+	if l > 0 {
+		n += 1 + l + sovHealthEndpoint(uint64(l))
+	}
+	l = len(m.Address)
+	if l > 0 {
+		n += 1 + l + sovHealthEndpoint(uint64(l))
+	}
+	if m.Port != 0 {
+		n += 1 + sovHealthEndpoint(uint64(m.Port))
+	}
+	if len(m.Checks) > 0 {
+		for _, e := range m.Checks {
+			l = e.Size()
+			n += 1 + l + sovHealthEndpoint(uint64(l))
+		}
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *HealthCheck) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Status)
+	if l > 0 {
+		n += 1 + l + sovHealthEndpoint(uint64(l))
 	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
@@ -354,7 +613,7 @@ func sovHealthEndpoint(x uint64) (n int) {
 func sozHealthEndpoint(x uint64) (n int) {
 	return sovHealthEndpoint(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
-func (m *TestRequest) Unmarshal(dAtA []byte) error {
+func (m *SubscribeRequest) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -377,15 +636,15 @@ func (m *TestRequest) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: TestRequest: wiretype end group for non-group")
+			return fmt.Errorf("proto: SubscribeRequest: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: TestRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: SubscribeRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -413,7 +672,7 @@ func (m *TestRequest) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Name = string(dAtA[iNdEx:postIndex])
+			m.Key = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -440,7 +699,7 @@ func (m *TestRequest) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *TestReply) Unmarshal(dAtA []byte) error {
+func (m *UpdateEvent) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -463,17 +722,17 @@ func (m *TestReply) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: TestReply: wiretype end group for non-group")
+			return fmt.Errorf("proto: UpdateEvent: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: TestReply: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: UpdateEvent: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ServiceHealthUpdate", wireType)
 			}
-			m.Data = 0
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowHealthEndpoint
@@ -483,11 +742,283 @@ func (m *TestReply) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Data |= int32(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
+			if msglen < 0 {
+				return ErrInvalidLengthHealthEndpoint
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthHealthEndpoint
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ServiceHealthUpdate = append(m.ServiceHealthUpdate, &ServiceHealthUpdate{})
+			if err := m.ServiceHealthUpdate[len(m.ServiceHealthUpdate)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipHealthEndpoint(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthHealthEndpoint
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthHealthEndpoint
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ServiceHealthUpdate) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowHealthEndpoint
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ServiceHealthUpdate: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ServiceHealthUpdate: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Node", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowHealthEndpoint
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthHealthEndpoint
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthHealthEndpoint
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Node = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Address", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowHealthEndpoint
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthHealthEndpoint
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthHealthEndpoint
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Address = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Port", wireType)
+			}
+			m.Port = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowHealthEndpoint
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Port |= int32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Checks", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowHealthEndpoint
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthHealthEndpoint
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthHealthEndpoint
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Checks = append(m.Checks, &HealthCheck{})
+			if err := m.Checks[len(m.Checks)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipHealthEndpoint(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthHealthEndpoint
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthHealthEndpoint
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *HealthCheck) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowHealthEndpoint
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: HealthCheck: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: HealthCheck: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowHealthEndpoint
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthHealthEndpoint
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthHealthEndpoint
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Status = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipHealthEndpoint(dAtA[iNdEx:])

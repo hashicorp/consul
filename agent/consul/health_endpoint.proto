@@ -3,13 +3,24 @@ syntax = "proto3";
 package consul;
 
 service Health {
-    rpc Stream(TestRequest) returns (stream TestReply) {}
+    rpc Subscribe(SubscribeRequest) returns (stream UpdateEvent) {}
 } 
 
-message TestRequest {
-    string name = 1;
+message SubscribeRequest {
+    string key = 1;
 }
   
-message TestReply {
-    int32 data = 1;
+message UpdateEvent {
+    repeated ServiceHealthUpdate serviceHealthUpdate = 1;
+}
+
+message ServiceHealthUpdate {
+    string node = 1;
+    string address = 2;
+    int32 port = 3;
+    repeated HealthCheck checks = 4;
+}
+
+message HealthCheck {
+    string status = 2;
 }

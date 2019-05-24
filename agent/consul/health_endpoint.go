@@ -1,9 +1,10 @@
 package consul
 
 import (
+	"context"
 	"fmt"
 	"sort"
-	"time"
+	"strings"
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -21,12 +22,52 @@ type HealthGRPCAdapter struct {
 	Health
 }
 
-func (h *HealthGRPCAdapter) Stream(in *TestRequest, stream Health_StreamServer) error {
+func (h *HealthGRPCAdapter) Subscribe(in *SubscribeRequest, stream Health_SubscribeServer) error {
+	if !strings.HasPrefix(in.Key, "health/service-nodes/") {
+		return fmt.Errorf("only health/service-nodes requests are supported")
+	}
+
+	service := strings.TrimPrefix(in.Key, "health/service-nodes/")
+
 	for {
-		if err := stream.Send(&TestReply{Data: int32(time.Now().Second())}); err != nil {
+		state := h.srv.fsm.State()
+		ws := memdb.NewWatchSet()
+
+		// This channel will be closed if a snapshot is restored and the
+		// whole state store is abandoned.
+		ws.Add(state.AbandonCh())
+
+		_, checkServiceNodes, err := state.CheckServiceNodes(ws, service)
+		if err != nil {
 			return err
 		}
-		time.Sleep(1 * time.Second)
+
+		var updates []*ServiceHealthUpdate
+		for _, node := range checkServiceNodes {
+			update := ServiceHealthUpdate{
+				Node:    node.Node.Node,
+				Address: node.Node.Address,
+				Port:    int32(node.Service.Port),
+			}
+			if node.Service.Address != "" {
+				update.Address = node.Service.Address
+			}
+			for _, check := range node.Checks {
+				update.Checks = append(update.Checks, &HealthCheck{
+					Status: check.Status,
+				})
+			}
+			updates = append(updates, &update)
+		}
+
+		if err := stream.Send(&UpdateEvent{ServiceHealthUpdate: updates}); err != nil {
+			return err
+		}
+
+		// Wait for an update to the watch set.
+		if err := ws.WatchCtx(stream.Context()); err != context.Canceled {
+			return err
+		}
 	}
 }
 
