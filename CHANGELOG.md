@@ -1,5 +1,9 @@
 ## UNRELEASED
 
+IMPROVEMENTS
+
+* agent: improve startup message when no error occurs [[GH-5896](https://github.com/hashicorp/consul/issues/5896)]
+
 ## 1.5.1 (May 22, 2019)
 
 SECURITY:
