@@ -1581,11 +1581,15 @@ func (a *Agent) ShutdownCh() <-chan struct{} {
 func (a *Agent) JoinLAN(addrs []string) (n int, err error) {
 	a.logger.Printf("[INFO] agent: (LAN) joining: %v", addrs)
 	n, err = a.delegate.JoinLAN(addrs)
-	a.logger.Printf("[INFO] agent: (LAN) joined: %d Err: %v", n, err)
-	if err == nil && a.joinLANNotifier != nil {
-		if notifErr := a.joinLANNotifier.Notify(systemd.Ready); notifErr != nil {
-			a.logger.Printf("[DEBUG] agent: systemd notify failed: %v", notifErr)
+	if err == nil {
+		a.logger.Printf("[INFO] agent: (LAN) joined: %d", n)
+		if a.joinLANNotifier != nil {
+			if notifErr := a.joinLANNotifier.Notify(systemd.Ready); notifErr != nil {
+				a.logger.Printf("[DEBUG] agent: systemd notify failed: %v", notifErr)
+			}
 		}
+	} else {
+		a.logger.Printf("[WARN] agent: (LAN) couldn't join: %d Err: %v", n, err)
 	}
 	return
 }
@@ -1598,7 +1602,11 @@ func (a *Agent) JoinWAN(addrs []string) (n int, err error) {
 	} else {
 		err = fmt.Errorf("Must be a server to join WAN cluster")
 	}
-	a.logger.Printf("[INFO] agent: (WAN) joined: %d Err: %v", n, err)
+	if err == nil {
+		a.logger.Printf("[INFO] agent: (WAN) joined: %d", n)
+	} else {
+		a.logger.Printf("[WARN] agent: (WAN) couldn't join: %d Err: %v", n, err)
+	}
 	return
 }
 
