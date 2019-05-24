@@ -47,13 +47,15 @@ configuration file include:
 - [dev mode](/docs/agent/options.html#_dev)
 - [server host name verification](/docs/agent/options.html#verify_server_hostname)
 
-No agent-wide configuration is necessary for non-server agents. But if you would
-like to use Envoy as your Connect proxy you will need to [enable
-gRPC](/docs/agent/options.html#grpc_port) on your client agents. Additionally if
-you plan on using the observability features of connect, it can be convenient to
-enable [configuration entries](/docs/agent/options.html#config_entries) and
-[centralized service
-configuration](/docs/agent/options.html#enable_central_service_config).
+If you would like to use Envoy as your Connect proxy you will need to [enable
+gRPC](/docs/agent/options.html#grpc_port). Additionally if you plan on using the
+observability features of connect, it can be convenient to enable [configuration
+entries](/docs/agent/options.html#config_entries).
+
+No agent-wide configuration is necessary for client agents but if you plan on
+using the observability features of connect, you may want to enable
+[centralized service configuration](/docs/agent/options.html#enable_central_service_config)
+on clients.
 
 !> **Security note:** Enabling Connect is enough to try the feature but doesn't
 automatically ensure complete security. Please read the [Connect production
@@ -64,12 +66,13 @@ needed for a secure deployment.
 
 To account for common Connect use cases where you have many instances of the
 same service, and many colocated sidecar proxies, Consul allows you to customize
-the settings for all of your proxies or services at once using [Configuration
-Entries](/docs/agent/config_entries.html).
+the settings for all of your proxies or all the instances of a given service at
+once using [Configuration Entries](/docs/agent/config_entries.html).
 
-You can override for individual proxy instances in their [sidecar service
-definitions](/docs/connect/proxies/sidecar-service.html#sidecar-service-defaults),
-and service instances in their [service
+You can override centralized configurations for individual proxy instances in
+their
+[sidecar service definitions](/docs/connect/proxies/sidecar-service.html#sidecar-service-defaults),
+and the default protocols for service instances in their [service
 registrations](/docs/agent/services.html).
 
 ## Schedulers
