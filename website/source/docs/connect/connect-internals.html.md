@@ -1,6 +1,6 @@
 ---
 layout: "docs"
-page_title: "Connect - Internals"
+page_title: "Connect - Architecture"
 sidebar_current: "docs-connect-internals"
 description: |-
   This page details the internals of Consul Connect: mutual TLS, agent caching and performance, and multi-datacenter Enterprise functionality.
@@ -63,12 +63,12 @@ to update the cache in the background. This allows most API calls such
 as retrieving certificates or authorizing connections to use in-memory
 data and respond very quickly.
 
-All data cached locally by the agent is populated on demand. Therefore,
-if Connect is not used at all, the cache does not store any data. On first
-request, the data is loaded from the server and cached. The set of data cached
-is: public CA root certificates, leaf certificates, and intentions. For
-leaf certificates and intentions, only data related to the service requested
-is cached, not the full set of data.
+All data cached locally by the agent is populated on demand. Therefore, if
+Connect is not used at all, the cache does not store any data. On first request,
+the data is loaded from the server and cached. The set of data cached is: public
+CA root certificates, leaf certificates, intentions, and service discovery
+results for upstreams. For leaf certificates and intentions, only data related
+to the service requested is cached, not the full set of data.
 
 Further, the cache is partitioned by ACL token and datacenters. This is done
 to minimize the complexity of the cache and prevent bugs where an ACL token
