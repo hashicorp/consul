@@ -170,51 +170,52 @@ func TestResetSessionTimerLocked(t *testing.T) {
 }
 
 func TestResetSessionTimerLocked_Renew(t *testing.T) {
-	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
 	ttl := 100 * time.Millisecond
 
-	// create the timer
-	s1.createSessionTimer("foo", ttl)
-	if s1.sessionTimers.Get("foo") == nil {
-		t.Fatalf("missing timer")
-	}
-
-	// wait until it is "expired" but at this point
-	// the session still exists.
-	time.Sleep(ttl)
-	if s1.sessionTimers.Get("foo") == nil {
-		t.Fatal("missing timer")
-	}
-
-	// renew the session which will reset the TTL to 2*ttl
-	// since that is the current SessionTTLMultiplier
-	s1.createSessionTimer("foo", ttl)
-
-	// Watch for invalidation
-	renew := time.Now()
-	deadline := renew.Add(2 * structs.SessionTTLMultiplier * ttl)
-	for {
-		now := time.Now()
-		if now.After(deadline) {
-			t.Fatal("should have expired by now")
+	retry.Run(t, func(r *retry.R) {
+		// create the timer and make verify it was created
+		s1.createSessionTimer("foo", ttl)
+		if s1.sessionTimers.Get("foo") == nil {
+			r.Fatalf("missing timer")
 		}
 
-		// timer still exists
-		if s1.sessionTimers.Get("foo") != nil {
-			time.Sleep(time.Millisecond)
-			continue
+		// wait until it is "expired" but still exists
+		// the session will exist until 2*ttl
+		time.Sleep(ttl)
+		if s1.sessionTimers.Get("foo") == nil {
+			r.Fatal("missing timer")
 		}
+	})
 
-		// timer gone
-		if now.Sub(renew) < ttl {
-			t.Fatalf("early invalidate")
+	retry.Run(t, func(r *retry.R) {
+		// renew the session which will reset the TTL to 2*ttl
+		// since that is the current SessionTTLMultiplier
+		s1.createSessionTimer("foo", ttl)
+		if s1.sessionTimers.Get("foo") == nil {
+			r.Fatal("missing timer")
 		}
-		break
-	}
+		renew := time.Now()
+
+		// Ensure invalidation happens after ttl
+		for {
+			// if timer still exists, sleep and continue
+			if s1.sessionTimers.Get("foo") != nil {
+				time.Sleep(time.Millisecond)
+				continue
+			}
+
+			// fail if timer gone before ttl passes
+			now := time.Now()
+			if now.Sub(renew) < ttl {
+				r.Fatalf("early invalidate")
+			}
+			break
+		}
+	})
 }
 
 func TestInvalidateSession(t *testing.T) {
