@@ -4,6 +4,10 @@ IMPROVEMENTS
 
 * agent: improve startup message when no error occurs [[GH-5896](https://github.com/hashicorp/consul/issues/5896)]
 
+BUG FIXES:
+
+* agent: fix several data races and bugs related to node-local alias checks [[GH-5876](https://github.com/hashicorp/consul/issues/5876)]
+
 ## 1.5.1 (May 22, 2019)
 
 SECURITY:
