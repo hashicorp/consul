@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"crypto/tls"
@@ -907,15 +908,21 @@ func decodeBody(resp *http.Response, out interface{}) error {
 		return fmt.Errorf("failed to read response body: %s", err)
 	}
 
-	if err := json.NewDecoder(bytes.NewReader(b)).Decode(out); err != nil {
-		// we got an invalid json response, just return the
-		// body content as an error.
-		// This happens when the Consul agent returns an error like:
-		// "No cluster leader"
-		return fmt.Errorf(string(b))
+	r := bytes.NewReader(b)
+	if err := json.NewDecoder(r).Decode(out); err == nil {
+		return nil
 	}
 
-	return nil
+	// we got an invalid json response, this can occur when the Consul agent
+	// returns an error like: "No cluster leader". Here we try to return a
+	// descriptive error.
+	r.Seek(0, io.SeekStart)
+	l, _, err := bufio.NewReader(r).ReadLine()
+	if err != nil {
+		return fmt.Errorf("failed to read line from response body: %s", err)
+	}
+
+	return fmt.Errorf("HTTP %d: %s", resp.StatusCode, l)
 }
 
 // encodeBody is used to encode a request body
