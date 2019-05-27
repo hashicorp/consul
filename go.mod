@@ -5,7 +5,6 @@ go 1.12
 require (
 	cloud.google.com/go v0.28.0 // indirect
 	github.com/DataDog/dd-trace-go v0.6.1 // indirect
-	github.com/OneOfOne/xxhash v1.2.5 // indirect
 	github.com/Shopify/sarama v1.21.0 // indirect
 	github.com/apache/thrift v0.12.0 // indirect
 	github.com/aws/aws-sdk-go v1.14.17
@@ -15,7 +14,6 @@ require (
 	github.com/coreos/go-systemd v0.0.0-20190212144455-93d5ec2c7f76 // indirect
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
-	github.com/dgryski/go-sip13 v0.0.0-20190329191031-25c5027a8c7b // indirect
 	github.com/dnstap/golang-dnstap v0.0.0-20170829151710-2cf77a2b5e11
 	github.com/evanphx/json-patch v4.1.0+incompatible // indirect
 	github.com/farsightsec/golang-framestream v0.0.0-20181102145529-8a0cb8ba8710
@@ -37,12 +35,10 @@ require (
 	github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af // indirect
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/json-iterator/go v1.1.5 // indirect
-	github.com/kisielk/errcheck v1.2.0 // indirect
-	github.com/kisielk/gotool v1.0.0 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1
 	github.com/mholt/caddy v1.0.0
-	github.com/miekg/dns v1.1.8
+	github.com/miekg/dns v1.1.12
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/opentracing-contrib/go-observer v0.0.0-20170622124052-a52f23424492 // indirect
@@ -54,13 +50,10 @@ require (
 	github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90
 	github.com/prometheus/common v0.4.1
 	github.com/prometheus/procfs v0.0.0-20190523193104-a7aeb8df3389 // indirect
-	github.com/prometheus/tsdb v0.8.0 // indirect
 	github.com/sirupsen/logrus v1.4.2 // indirect
 	github.com/smartystreets/goconvey v0.0.0-20190306220146-200a235640ff // indirect
 	github.com/soheilhy/cmux v0.1.4 // indirect
-	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.3 // indirect
-	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
 	github.com/ugorji/go/codec v0.0.0-20190309163734-c4a1c341dc93 // indirect
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
@@ -70,10 +63,10 @@ require (
 	go.uber.org/zap v1.9.1 // indirect
 	golang.org/x/crypto v0.0.0-20190513172903-22d7a77e9e5f // indirect
 	golang.org/x/net v0.0.0-20190522155817-f3200d17e092 // indirect
+	golang.org/x/sync v0.0.0-20190423024810-112230192c58 // indirect
 	golang.org/x/sys v0.0.0-20190526052359-791d8a0f4d09
 	golang.org/x/text v0.3.2 // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
-	golang.org/x/tools v0.0.0-20190525145741-7be61e1b0e51 // indirect
 	google.golang.org/appengine v1.2.0 // indirect
 	google.golang.org/grpc v1.19.0
 	gopkg.in/DataDog/dd-trace-go.v0 v0.6.1
@@ -88,3 +81,5 @@ require (
 )
 
 replace github.com/DataDog/dd-trace-go v0.6.1 => github.com/datadog/dd-trace-go v0.6.1
+
+replace github.com/miekg/dns v1.1.3 => github.com/miekg/dns v1.1.12
