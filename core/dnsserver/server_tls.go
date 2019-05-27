@@ -44,7 +44,7 @@ func (s *ServerTLS) Serve(l net.Listener) error {
 
 	// Only fill out the TCP server for this one.
 	s.server[tcp] = &dns.Server{Listener: l, Net: "tcp-tls", Handler: dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
-		ctx := context.Background()
+		ctx := context.WithValue(context.Background(), Key{}, s.Server)
 		s.ServeDNS(ctx, w, r)
 	})}
 	s.m.Unlock()

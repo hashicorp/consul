@@ -129,7 +129,8 @@ func (s *ServergRPC) Query(ctx context.Context, in *pb.DnsPacket) (*pb.DnsPacket
 
 	w := &gRPCresponse{localAddr: s.listenAddr, remoteAddr: a, Msg: msg}
 
-	s.ServeDNS(ctx, w, msg)
+	dnsCtx := context.WithValue(ctx, Key{}, s.Server)
+	s.ServeDNS(dnsCtx, w, msg)
 
 	packed, err := w.Msg.Pack()
 	if err != nil {
