@@ -50,6 +50,9 @@ func (c *FSM) applyRegister(buf []byte, index uint64) interface{} {
 		c.logger.Printf("[WARN] consul.fsm: EnsureRegistration failed: %v", err)
 		return err
 	}
+
+	c.publisher.PublishEvent(&req, index)
+
 	return nil
 }
 
@@ -79,6 +82,9 @@ func (c *FSM) applyDeregister(buf []byte, index uint64) interface{} {
 			return err
 		}
 	}
+
+	c.publisher.PublishEvent(&req, index)
+
 	return nil
 }
 

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/go-raftchunking"
@@ -60,6 +61,8 @@ type FSM struct {
 	stateLock sync.RWMutex
 	state     *state.Store
 
+	publisher *EventPublisher
+
 	gc *state.TombstoneGC
 
 	chunker *raftchunking.ChunkingFSM
@@ -77,6 +80,7 @@ func New(gc *state.TombstoneGC, logOutput io.Writer) (*FSM, error) {
 		logger:    log.New(logOutput, "", log.LstdFlags),
 		apply:     make(map[structs.MessageType]command),
 		state:     stateNew,
+		publisher: NewEventPublisher(),
 		gc:        gc,
 	}
 
@@ -218,4 +222,12 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 	// blocking queries won't see any changes and need to be woken up.
 	stateOld.Abandon()
 	return nil
+}
+
+func (c *FSM) Subscribe(subscription *stream.SubscribeRequest) <-chan interface{} {
+	return c.publisher.Subscribe(subscription)
+}
+
+func (c *FSM) Unsubscribe(subscription *stream.SubscribeRequest) {
+	c.publisher.Unsubscribe(subscription)
 }
