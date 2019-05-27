@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package stream;
+
+service Consul {
+    rpc Subscribe(SubscribeRequest) returns (stream Event) {}
+} 
+
+enum Topic {
+    ServiceHealth = 0;
+}
+  
+message SubscribeRequest {
+    Topic topic = 1;
+    string key = 2;
+}
+
+message Event {
+    Topic topic = 1;
+    string key = 2;
+    ServiceHealthUpdate event = 3;
+}
+
+enum CatalogOp {
+    Register = 0;
+    Deregister = 1;
+}
+
+message ServiceHealthUpdate {
+    CatalogOp op = 1;
+    string node = 2;
+    string id = 3;
+    string address = 4;
+    int32 port = 5;
+    repeated HealthCheck checks = 6;
+}
+
+message HealthCheck {
+    string status = 1;
+}
