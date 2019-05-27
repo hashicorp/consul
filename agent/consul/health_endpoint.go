@@ -1,13 +1,13 @@
 package consul
 
 import (
-	"context"
 	"fmt"
 	"sort"
 	"strings"
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	bexpr "github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-memdb"
@@ -22,51 +22,22 @@ type HealthGRPCAdapter struct {
 	Health
 }
 
-func (h *HealthGRPCAdapter) Subscribe(in *SubscribeRequest, stream Health_SubscribeServer) error {
+func (h *HealthGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server stream.Consul_SubscribeServer) error {
 	if !strings.HasPrefix(in.Key, "health/service-nodes/") {
 		return fmt.Errorf("only health/service-nodes requests are supported")
 	}
 
-	service := strings.TrimPrefix(in.Key, "health/service-nodes/")
+	// Register a subscription on this topic/key with the FSM.
+	eventCh := h.srv.fsm.Subscribe(req)
 
 	for {
-		state := h.srv.fsm.State()
-		ws := memdb.NewWatchSet()
-
-		// This channel will be closed if a snapshot is restored and the
-		// whole state store is abandoned.
-		ws.Add(state.AbandonCh())
-
-		_, checkServiceNodes, err := state.CheckServiceNodes(ws, service)
-		if err != nil {
-			return err
-		}
-
-		var updates []*ServiceHealthUpdate
-		for _, node := range checkServiceNodes {
-			update := ServiceHealthUpdate{
-				Node:    node.Node.Node,
-				Address: node.Node.Address,
-				Port:    int32(node.Service.Port),
+		select {
+		case event := <-eventCh:
+			if err := server.Send(event); err != nil {
+				return err
 			}
-			if node.Service.Address != "" {
-				update.Address = node.Service.Address
-			}
-			for _, check := range node.Checks {
-				update.Checks = append(update.Checks, &HealthCheck{
-					Status: check.Status,
-				})
-			}
-			updates = append(updates, &update)
-		}
-
-		if err := stream.Send(&UpdateEvent{ServiceHealthUpdate: updates}); err != nil {
-			return err
-		}
-
-		// Wait for an update to the watch set.
-		if err := ws.WatchCtx(stream.Context()); err != context.Canceled {
-			return err
+		case <-server.Context().Done():
+			return nil
 		}
 	}
 }

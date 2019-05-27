@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
@@ -751,7 +752,7 @@ func (s *Server) setupGRPC() error {
 	}
 
 	srv := grpc.NewServer()
-	RegisterHealthServer(srv, &HealthGRPCAdapter{Health{s}})
+	stream.RegisterConsulServer(srv, &HealthGRPCAdapter{Health{s}})
 
 	go srv.Serve(lis)
 	s.GRPCListener = lis
