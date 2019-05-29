@@ -22,6 +22,10 @@ func podWatchFunc(c kubernetes.Interface, ns string, s labels.Selector) func(opt
 		if s != nil {
 			options.LabelSelector = s.String()
 		}
+		if len(options.FieldSelector) > 0 {
+			options.FieldSelector = options.FieldSelector + ","
+		}
+		options.FieldSelector = options.FieldSelector + "status.phase!=Succeeded,status.phase!=Failed,status.phase!=Unknown"
 		w, err := c.CoreV1().Pods(ns).Watch(options)
 		return w, err
 	}
