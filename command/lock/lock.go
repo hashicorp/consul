@@ -61,8 +61,8 @@ type cmd struct {
 	timeout            time.Duration
 }
 
-func New(ui cli.Ui) *cmd {
-	c := &cmd{UI: ui}
+func New(ui cli.Ui, shutdownCh <-chan struct{}) *cmd {
+	c := &cmd{UI: ui, ShutdownCh: shutdownCh}
 	c.init()
 	return c
 }

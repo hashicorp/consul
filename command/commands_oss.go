@@ -188,7 +188,7 @@ func init() {
 	Register("kv import", func(ui cli.Ui) (cli.Command, error) { return kvimp.New(ui), nil })
 	Register("kv put", func(ui cli.Ui) (cli.Command, error) { return kvput.New(ui), nil })
 	Register("leave", func(ui cli.Ui) (cli.Command, error) { return leave.New(ui), nil })
-	Register("lock", func(ui cli.Ui) (cli.Command, error) { return lock.New(ui), nil })
+	Register("lock", func(ui cli.Ui) (cli.Command, error) { return lock.New(ui, MakeShutdownCh()), nil })
 	Register("login", func(ui cli.Ui) (cli.Command, error) { return login.New(ui), nil })
 	Register("logout", func(ui cli.Ui) (cli.Command, error) { return logout.New(ui), nil })
 	Register("maint", func(ui cli.Ui) (cli.Command, error) { return maint.New(ui), nil })
