@@ -78,7 +78,7 @@ func generateEndpoints(cidr string, client kubernetes.Interface) {
 			},
 		}
 		ep.ObjectMeta.Name = "svc" + strconv.Itoa(count)
-		_, err = client.Core().Endpoints("testns").Create(ep)
+		_, err = client.CoreV1().Endpoints("testns").Create(ep)
 		count += 1
 	}
 }
@@ -121,7 +121,7 @@ func generateSvcs(cidr string, svcType string, client kubernetes.Interface) {
 }
 
 func createClusterIPSvc(suffix int, client kubernetes.Interface, ip net.IP) {
-	client.Core().Services("testns").Create(&api.Service{
+	client.CoreV1().Services("testns").Create(&api.Service{
 		ObjectMeta: meta.ObjectMeta{
 			Name:      "svc" + strconv.Itoa(suffix),
 			Namespace: "testns",
@@ -138,7 +138,7 @@ func createClusterIPSvc(suffix int, client kubernetes.Interface, ip net.IP) {
 }
 
 func createHeadlessSvc(suffix int, client kubernetes.Interface, ip net.IP) {
-	client.Core().Services("testns").Create(&api.Service{
+	client.CoreV1().Services("testns").Create(&api.Service{
 		ObjectMeta: meta.ObjectMeta{
 			Name:      "hdls" + strconv.Itoa(suffix),
 			Namespace: "testns",
@@ -150,7 +150,7 @@ func createHeadlessSvc(suffix int, client kubernetes.Interface, ip net.IP) {
 }
 
 func createExternalSvc(suffix int, client kubernetes.Interface, ip net.IP) {
-	client.Core().Services("testns").Create(&api.Service{
+	client.CoreV1().Services("testns").Create(&api.Service{
 		ObjectMeta: meta.ObjectMeta{
 			Name:      "external" + strconv.Itoa(suffix),
 			Namespace: "testns",

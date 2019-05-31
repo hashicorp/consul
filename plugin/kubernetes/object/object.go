@@ -107,3 +107,9 @@ func (e *Empty) GetClusterName() string { return "" }
 
 // SetClusterName implements the metav1.Object interface.
 func (e *Empty) SetClusterName(clusterName string) {}
+
+// GetManagedFields implements the metav1.Object interface.
+func (e *Empty) GetManagedFields() []v1.ManagedFieldsEntry { return nil }
+
+// SetManagedFields implements the metav1.Object interface.
+func (e *Empty) SetManagedFields(managedFields []v1.ManagedFieldsEntry) {}

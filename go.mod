@@ -25,7 +25,6 @@ require (
 	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf // indirect
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/gophercloud/gophercloud v0.0.0-20190307220656-fe1ba5ce12dd // indirect
-	github.com/gregjones/httpcache v0.0.0-20190212212710-3befbb6ad0cc // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.8.3 // indirect
@@ -44,7 +43,6 @@ require (
 	github.com/opentracing-contrib/go-observer v0.0.0-20170622124052-a52f23424492 // indirect
 	github.com/opentracing/opentracing-go v1.0.2
 	github.com/openzipkin/zipkin-go-opentracing v0.3.4
-	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/prometheus/client_golang v0.9.3
 	github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90
@@ -72,11 +70,12 @@ require (
 	gopkg.in/DataDog/dd-trace-go.v0 v0.6.1
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.42.0 // indirect
-	k8s.io/api v0.0.0-20181204000039-89a74a8d264d
-	k8s.io/apimachinery v0.0.0-20181127025237-2b1284ed4c93
-	k8s.io/client-go v10.0.0+incompatible
-	k8s.io/klog v0.0.0-20181108234604-8139d8cb77af
+	k8s.io/api v0.0.0-20190313235455-40a48860b5ab
+	k8s.io/apimachinery v0.0.0-20190313205120-d7deff9243b1
+	k8s.io/client-go v11.0.0+incompatible
+	k8s.io/klog v0.3.1
 	k8s.io/kube-openapi v0.0.0-20190306001800-15615b16d372 // indirect
+	k8s.io/utils v0.0.0-20190529001817-6999998975a7 // indirect
 	sigs.k8s.io/yaml v1.1.0 // indirect
 )
 
