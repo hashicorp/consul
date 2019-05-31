@@ -24,6 +24,16 @@ tls CERT KEY [CA]
 
 Parameter CA is optional. If not set, system CAs can be used to verify the client certificate
 
+~~~ txt
+tls CERT KEY [CA] {
+    client_auth nocert|request|require|verify_if_given|require_and_verify
+}
+~~~
+
+If client_auth option is specified, it controls the client authentication policy.
+The option value corresponds to the [ClientAuthType values of the Go tls package](https://golang.org/pkg/crypto/tls/#ClientAuthType): NoClientCert, RequestClientCert, RequireAnyClientCert, VerifyClientCertIfGiven, and RequireAndVerifyClientCert, respectively.
+The default is "nocert".  Note that it makes no sense to specify parameter CA unless this option is set to verify_if_given or require_and_verify.
+
 ## Examples
 
 Start a DNS-over-TLS server that picks up incoming DNS-over-TLS queries on port 5553 and uses the
