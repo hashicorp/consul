@@ -7,11 +7,11 @@ import (
 
 // Pod is a stripped down api.Pod with only the items we need for CoreDNS.
 type Pod struct {
+	// Don't add new fields to this struct without talking to the CoreDNS maintainers.
 	Version   string
 	PodIP     string
 	Name      string
 	Namespace string
-	Deleting  bool
 
 	*Empty
 }
@@ -29,9 +29,10 @@ func ToPod(obj interface{}) interface{} {
 		Namespace: pod.GetNamespace(),
 		Name:      pod.GetName(),
 	}
+	// don't add pods that are being deleted.
 	t := pod.ObjectMeta.DeletionTimestamp
-	if t != nil {
-		p.Deleting = !(*t).Time.IsZero()
+	if t != nil && !(*t).Time.IsZero() {
+		return nil
 	}
 
 	*pod = api.Pod{}
@@ -48,7 +49,6 @@ func (p *Pod) DeepCopyObject() runtime.Object {
 		PodIP:     p.PodIP,
 		Namespace: p.Namespace,
 		Name:      p.Name,
-		Deleting:  p.Deleting,
 	}
 	return p1
 }

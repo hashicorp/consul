@@ -7,6 +7,7 @@ import (
 
 // Endpoints is a stripped down api.Endpoints with only the items we need for CoreDNS.
 type Endpoints struct {
+	// Don't add new fields to this struct without talking to the CoreDNS maintainers.
 	Version   string
 	Name      string
 	Namespace string

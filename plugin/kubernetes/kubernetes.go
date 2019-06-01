@@ -372,11 +372,6 @@ func (k *Kubernetes) findPods(r recordRequest, zone string) (pods []msg.Service,
 			continue
 		}
 
-		// exclude pods in the process of termination
-		if p.Deleting {
-			continue
-		}
-
 		// check for matching ip and namespace
 		if ip == p.PodIP && match(namespace, p.Namespace) {
 			s := msg.Service{Key: strings.Join([]string{zonePath, Pod, namespace, podname}, "/"), Host: ip, TTL: k.ttl}
