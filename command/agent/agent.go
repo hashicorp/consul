@@ -223,7 +223,28 @@ func (c *cmd) run(args []string) int {
 	agent.LogWriter = logWriter
 	agent.MemSink = memSink
 
+	segment := config.SegmentName
+	if config.ServerMode {
+		segment = "<all>"
+	}
+
+	c.UI.Info(fmt.Sprintf("       Version: '%s'", c.versionHuman))
+	c.UI.Info(fmt.Sprintf("       Node ID: '%s'", config.NodeID))
+	c.UI.Info(fmt.Sprintf("     Node name: '%s'", config.NodeName))
+	c.UI.Info(fmt.Sprintf("    Datacenter: '%s' (Segment: '%s')", config.Datacenter, segment))
+	c.UI.Info(fmt.Sprintf("        Server: %v (Bootstrap: %v)", config.ServerMode, config.Bootstrap))
+	c.UI.Info(fmt.Sprintf("   Client Addr: %v (HTTP: %d, HTTPS: %d, gRPC: %d, DNS: %d)", config.ClientAddrs,
+		config.HTTPPort, config.HTTPSPort, config.GRPCPort, config.DNSPort))
+	c.UI.Info(fmt.Sprintf("  Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
+		config.SerfPortLAN, config.SerfPortWAN))
+	c.UI.Info(fmt.Sprintf("       Encrypt: Gossip: %v, TLS-Outgoing: %v, TLS-Incoming: %v, Auto-Encrypt-TLS: %t",
+		config.EncryptKey, config.VerifyOutgoing, config.VerifyIncoming, config.AutoEncryptTLS || config.AutoEncryptAllowTLS))
+
+	// Enable log streaming
+	c.UI.Info("")
+	c.UI.Output("Log data will now stream in as it occurs:\n")
 	logGate.Flush()
+
 	if err := agent.Start(); err != nil {
 		c.UI.Error(fmt.Sprintf("Error starting agent: %s", err))
 		return 1
@@ -250,27 +271,7 @@ func (c *cmd) run(args []string) int {
 	// Let the agent know we've finished registration
 	agent.StartSync()
 
-	segment := config.SegmentName
-	if config.ServerMode {
-		segment = "<all>"
-	}
-
 	c.UI.Output("Consul agent running!")
-	c.UI.Info(fmt.Sprintf("       Version: '%s'", c.versionHuman))
-	c.UI.Info(fmt.Sprintf("       Node ID: '%s'", config.NodeID))
-	c.UI.Info(fmt.Sprintf("     Node name: '%s'", config.NodeName))
-	c.UI.Info(fmt.Sprintf("    Datacenter: '%s' (Segment: '%s')", config.Datacenter, segment))
-	c.UI.Info(fmt.Sprintf("        Server: %v (Bootstrap: %v)", config.ServerMode, config.Bootstrap))
-	c.UI.Info(fmt.Sprintf("   Client Addr: %v (HTTP: %d, HTTPS: %d, gRPC: %d, DNS: %d)", config.ClientAddrs,
-		config.HTTPPort, config.HTTPSPort, config.GRPCPort, config.DNSPort))
-	c.UI.Info(fmt.Sprintf("  Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
-		config.SerfPortLAN, config.SerfPortWAN))
-	c.UI.Info(fmt.Sprintf("       Encrypt: Gossip: %v, TLS-Outgoing: %v, TLS-Incoming: %v, Auto-Encrypt-TLS: %t",
-		agent.GossipEncrypted(), config.VerifyOutgoing, config.VerifyIncoming, config.AutoEncryptTLS || config.AutoEncryptAllowTLS))
-
-	// Enable log streaming
-	c.UI.Info("")
-	c.UI.Output("Log data will now stream in as it occurs:\n")
 
 	// wait for signal
 	signalCh := make(chan os.Signal, 10)

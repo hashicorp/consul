@@ -96,7 +96,12 @@ func (c *Client) AutoEncrypt(servers []string, port int, token string) (*structs
 
 // resolveAddr is used to resolve the address into an address,
 // port, and error. If no port is given, use the default
-func resolveAddr(host string, logger *log.Logger) ([]net.IP, error) {
+func resolveAddr(rawHost string, logger *log.Logger) ([]net.IP, error) {
+	host, _, err := net.SplitHostPort(rawHost)
+	if err != nil && err.Error() != "missing port in address" {
+		return nil, err
+	}
+
 	if ip := net.ParseIP(host); ip != nil {
 		return []net.IP{ip}, nil
 	}
