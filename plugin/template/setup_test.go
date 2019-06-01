@@ -36,13 +36,6 @@ func TestSetupParse(t *testing.T) {
 		{`template X`, true},
 		{`template ANY`, true},
 		{`template ANY X`, true},
-		{`template ANY ANY (?P<x>`, true},
-		{
-			`template ANY ANY {
-
-			}`,
-			true,
-		},
 		{
 			`template ANY ANY .* {
 				notavailable
@@ -92,6 +85,13 @@ func TestSetupParse(t *testing.T) {
 			true,
 		},
 		// examples
+		{`template ANY ANY (?P<x>`, false},
+		{
+			`template ANY ANY {
+
+			}`,
+			false,
+		},
 		{
 			`template ANY A example.com {
 				match ip-(?P<a>[0-9]*)-(?P<b>[0-9]*)-(?P<c>[0-9]*)-(?P<d>[0-9]*)[.]example[.]com
