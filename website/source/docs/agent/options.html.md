@@ -573,7 +573,7 @@ default will automatically work with some tooling.
      a whitelist: any operation not specifically allowed is blocked. *Note*: this will not take effect until
      you've enabled ACLs.
 
-     * <a name="acl_enable_key_list"></a><a href="#acl_enable_key_list">`enable_key_list`</a> - Either "enabled" or "disabled", defaults to "disabled". When enabled, the `list` permission will be required on the prefix being recursively read from the KV store. Regardless of being enabled, the full set of KV entries under the prefix will be filtered to remove any entries that the request's ACL token does not grant at least read permissions. This option is only available in Consul 1.0 and newer.
+     * <a name="acl_enable_key_list_policy"></a><a href="#acl_enable_key_list_policy">`enable_key_list_policy`</a> - Either "enabled" or "disabled", defaults to "disabled". When enabled, the `list` permission will be required on the prefix being recursively read from the KV store. Regardless of being enabled, the full set of KV entries under the prefix will be filtered to remove any entries that the request's ACL token does not grant at least read permissions. This option is only available in Consul 1.0 and newer.
 
      * <a name="acl_enable_token_replication"></a><a href="#acl_enable_token_replication">`enable_token_replication`</a> - By
      default secondary Consul datacenters will perform replication of only ACL policies and roles.
