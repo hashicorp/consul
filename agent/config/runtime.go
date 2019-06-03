@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"net"
+	"net/url"
 	"reflect"
 	"strings"
 	"time"
@@ -1382,6 +1383,10 @@ type RuntimeConfig struct {
 	// flag: -ui-dir string
 	UIDir string
 
+	//UIContentPath is a string that sets the external
+	// path to a string. Default: /ui/
+	UIContentPath string
+
 	// UnixSocketGroup contains the group of the file permissions when
 	// Consul binds to UNIX sockets.
 	//
@@ -1740,4 +1745,15 @@ func isUint(t reflect.Type) bool {
 func isFloat(t reflect.Type) bool { return t.Kind() == reflect.Float32 || t.Kind() == reflect.Float64 }
 func isComplex(t reflect.Type) bool {
 	return t.Kind() == reflect.Complex64 || t.Kind() == reflect.Complex128
+}
+
+// UIPathBuilder adds beginning and trailing
+// slashes to UI path, and encodes it
+func (c *RuntimeConfig) UIPathBuilder() string {
+	if c.UIContentPath != "" {
+		UIAscii := url.QueryEscape(c.UIContentPath)
+		return fmt.Sprintf("/%v/", UIAscii)
+	}
+	return "/ui/"
+
 }

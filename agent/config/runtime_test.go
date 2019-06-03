@@ -741,6 +741,16 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.UIDir = "a"
 				rt.DataDir = dataDir
 			},
+			{
+				desc: "-ui-content-path",
+				args: []string{
+					`-ui-content-path=a`,
+					`-data-dir=` + dataDir,
+				},
+				patch: func(rt *RuntimeConfig) {
+					rt.UIContentPath = "a"
+					rt.DataDir = dataDir
+				},
 		},
 
 		// ------------------------------------------------------------

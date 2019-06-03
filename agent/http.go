@@ -227,7 +227,6 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 
 	if s.IsUIEnabled() {
 		var uifs http.FileSystem
-
 		// Use the custom UI dir if provided.
 		if s.agent.config.UIDir != "" {
 			uifs = http.Dir(s.agent.config.UIDir)
@@ -238,7 +237,8 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 		uifs = &redirectFS{fs: uifs}
 
 		mux.Handle("/robots.txt", http.FileServer(uifs))
-		mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(uifs)))
+		//Use the custom UI path if provided.
+		mux.Handle(s.agent.config.UIPathBuilder(), http.StripPrefix(s.agent.config.UIPathBuilder(), http.FileServer(uifs)))
 	}
 
 	// Wrap the whole mux with a handler that bans URLs with non-printable

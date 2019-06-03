@@ -880,6 +880,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		TaggedAddresses:                         c.TaggedAddresses,
 		TranslateWANAddrs:                       b.boolVal(c.TranslateWANAddrs),
 		UIDir:                                   b.stringVal(c.UIDir),
+		UIContentPath:                           b.stringVal(c.UIContentPath),
 		UnixSocketGroup:                         b.stringVal(c.UnixSocket.Group),
 		UnixSocketMode:                          b.stringVal(c.UnixSocket.Mode),
 		UnixSocketUser:                          b.stringVal(c.UnixSocket.User),
@@ -918,6 +919,10 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	if rt.DataDir == "" && !rt.DevMode {
 		return fmt.Errorf("data_dir cannot be empty")
 	}
+	if rt.UIContentPath == "" {
+		return fmt.Errorf("expected: string, received: %s", rt.UIContentPath)
+	}
+
 	if !rt.DevMode {
 		fi, err := os.Stat(rt.DataDir)
 		switch {
