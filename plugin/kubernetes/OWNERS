@@ -1,7 +1,6 @@
 reviewers:
   - bradbeam
   - chrisohaver
-  - fturib
   - johnbelamaric
   - miekg
   - rajansandeep
@@ -9,7 +8,6 @@ reviewers:
 approvers:
   - bradbeam
   - chrisohaver
-  - fturib
   - johnbelamaric
   - miekg
   - rajansandeep
