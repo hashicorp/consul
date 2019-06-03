@@ -83,11 +83,23 @@
   background-color: $yellow-050;
   border-color: $color-warning;
 }
+%frame-yellow-800 {
+  @extend %frame-border-000;
+  background-color: $yellow-500;
+  border-color: $yellow-800;
+  color: $white;
+}
 %frame-green-500 {
   @extend %frame-border-000;
   background-color: $green-050;
   border-color: $green-500;
   color: $green-500;
+}
+%frame-green-800 {
+  @extend %frame-border-000;
+  background-color: $green-500;
+  border-color: $green-800;
+  color: $white;
 }
 %frame-blue-500 {
   @extend %frame-border-000;
@@ -143,6 +155,12 @@
   border-color: $red-800;
   color: $white;
 }
+%frame-red-800 {
+  @extend %frame-border-000;
+  background-color: $red-500;
+  border-color: $red-800;
+  color: $white;
+}
 %frame-red-900 {
   @extend %frame-border-000;
   background-color: $red-700;
@@ -154,4 +172,70 @@
   background-color: $white;
   border-color: $magenta-600;
   color: $magenta-600;
+}
+%frame-magenta-800 {
+  @extend %frame-border-000;
+  background-color: $magenta-500;
+  border-color: $magenta-800;
+  color: $white;
+}
+%frame-steel-300 {
+  @extend %frame-border-000;
+  background-color: $white;
+  border-color: $steel-600;
+  color: $steel-600;
+}
+%frame-steel-800 {
+  @extend %frame-border-000;
+  background-color: $steel-500;
+  border-color: $steel-800;
+  color: $white;
+}
+%frame-cobalt-300 {
+  @extend %frame-border-000;
+  background-color: $white;
+  border-color: $cobalt-600;
+  color: $cobalt-600;
+}
+%frame-cobalt-800 {
+  @extend %frame-border-000;
+  background-color: $cobalt-500;
+  border-color: $cobalt-800;
+  color: $white;
+}
+%frame-indigo-300 {
+  @extend %frame-border-000;
+  background-color: $white;
+  border-color: $indigo-600;
+  color: $indigo-600;
+}
+%frame-indigo-800 {
+  @extend %frame-border-000;
+  background-color: $indigo-500;
+  border-color: $indigo-800;
+  color: $white;
+}
+%frame-teal-300 {
+  @extend %frame-border-000;
+  background-color: $white;
+  border-color: $teal-600;
+  color: $teal-600;
+}
+%frame-teal-800 {
+  @extend %frame-border-000;
+  background-color: $teal-500;
+  border-color: $teal-800;
+  color: $white;
+}
+%frame-cyan-300 {
+  @extend %frame-border-000;
+  background-color: $white;
+  border-color: $cyan-600;
+  color: $cyan-600;
+}
+%frame-cyan-800 {
+  @extend %frame-border-000;
+  background-color: $cyan-500;
+  border-color: $cyan-800;
+  color: $white;
 }

@@ -1,6 +1,9 @@
 @import './icons/index';
-@import './table/index';
+@import '../base/components/table/index';
 @import './type-icon/index';
+table {
+  @extend %table, %table-flex;
+}
 
 html.template-service.template-list td:first-child a span,
 html.template-node.template-show #services td:first-child a span,

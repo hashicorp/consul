@@ -1,0 +1,28 @@
+%tab-nav {
+  clear: both;
+}
+%tab-nav ul {
+  padding: 0;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+}
+%tab-button {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+%tab-button {
+  display: inline-block;
+  padding-top: 13px;
+  padding-bottom: 13px;
+}
+%display-state,
+%display-state + * {
+  display: none;
+}
+%display-state:checked + * {
+  display: block;
+}
+%tab-section > input[type='radio'] {
+  @extend %display-state;
+}

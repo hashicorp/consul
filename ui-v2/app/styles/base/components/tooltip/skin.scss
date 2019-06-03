@@ -1,0 +1,10 @@
+%tooltip-bubble,
+%tooltip-tail {
+  color: $white;
+  background-color: $gray-800;
+}
+%tooltip-bubble {
+  font-weight: normal;
+  border-radius: $decor-radius-200;
+  box-shadow: 0 3px 1px 0 rgba($black, 0.12);
+}

@@ -1,0 +1,9 @@
+@import '../base/components/tooltip/index';
+%app-view h1 span[data-tooltip] {
+  @extend %with-pseudo-tooltip;
+}
+%with-pseudo-tooltip {
+  text-indent: -9000px;
+  font-size: 0;
+  top: -7px;
+}

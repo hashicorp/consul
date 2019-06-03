@@ -1,0 +1,94 @@
+/* decor */
+%button {
+  @extend %user-select-none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+%button:disabled {
+  cursor: default;
+  box-shadow: none;
+}
+%copy-button {
+  @extend %button;
+  min-height: 17px;
+}
+%copy-button::before {
+  @extend %with-copy-action-icon;
+  @extend %as-pseudo;
+  width: 16px;
+  height: 16px;
+  position: absolute;
+  left: 12px;
+}
+%copy-button:not(:empty) {
+  padding-left: 38px !important;
+}
+%primary-button,
+%secondary-button,
+%dangerous-button {
+  @extend %button;
+  border-width: 1px;
+  border-radius: $decor-radius-100;
+  box-shadow: 0 3px 1px 0 rgba($black, 0.12);
+}
+/* color */
+%copy-button {
+  color: $color-action;
+  background-color: $color-transparent;
+}
+%copy-button:hover:not(:disabled):not(:active),
+%copy-button:focus {
+  /*frame-grey frame-blue*/
+  color: $color-action;
+  background-color: $gray-050;
+}
+%copy-button:disabled {
+}
+%copy-button:active {
+  background-color: $gray-200;
+}
+%primary-button {
+  @extend %frame-blue-800;
+}
+%primary-button:hover:not(:disabled):not(:active),
+%primary-button:focus {
+  @extend %frame-blue-700;
+}
+%primary-button:disabled {
+  @extend %frame-blue-600;
+}
+%primary-button:hover:active {
+  @extend %frame-blue-900;
+}
+/**/
+%secondary-button:hover:not(:disabled):not(:active),
+%secondary-button:focus {
+  @extend %frame-gray-300;
+}
+%secondary-button {
+  @extend %frame-gray-400;
+}
+%secondary-button:disabled {
+  color: $gray-600;
+}
+%secondary-button:active {
+  /* %frame-gray-something */
+  @extend %frame-gray-700;
+  background-color: $gray-200;
+  color: $gray-800;
+  border-color: $gray-700;
+}
+/**/
+%dangerous-button {
+  @extend %frame-red-300;
+}
+%dangerous-button:hover:not(:disabled):not(:active),
+%dangerous-button:focus {
+  @extend %frame-red-700;
+}
+%dangerous-button:disabled {
+  @extend %frame-red-600;
+}
+%dangerous-button:hover:active {
+  @extend %frame-red-900;
+}

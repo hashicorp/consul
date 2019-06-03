@@ -1,6 +1,6 @@
 @import './app-view/index';
 @import './filter-bar/index';
-@import './buttons/index';
+@import '../base/components/buttons/index';
 @import './type-icon/index';
 main {
   @extend %app-view;
