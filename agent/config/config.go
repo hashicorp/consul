@@ -264,6 +264,7 @@ type Config struct {
 	Telemetry                        Telemetry                `json:"telemetry,omitempty" hcl:"telemetry" mapstructure:"telemetry"`
 	TranslateWANAddrs                *bool                    `json:"translate_wan_addrs,omitempty" hcl:"translate_wan_addrs" mapstructure:"translate_wan_addrs"`
 	UI                               *bool                    `json:"ui,omitempty" hcl:"ui" mapstructure:"ui"`
+	UIContentPath                    *string                  `json:"uicontentpath,omitempty" hcl:"uicontentpath" mapstructure:"uicontentpath"`
 	UIDir                            *string                  `json:"ui_dir,omitempty" hcl:"ui_dir" mapstructure:"ui_dir"`
 	UnixSocket                       UnixSocket               `json:"unix_sockets,omitempty" hcl:"unix_sockets" mapstructure:"unix_sockets"`
 	VerifyIncoming                   *bool                    `json:"verify_incoming,omitempty" hcl:"verify_incoming" mapstructure:"verify_incoming"`
