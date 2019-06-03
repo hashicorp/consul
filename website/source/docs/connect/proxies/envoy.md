@@ -12,7 +12,7 @@ Consul Connect has first class support for using
 [Envoy](https://www.envoyproxy.io) as a proxy. Consul configures Envoy by
 optionally exposing a gRPC service on the local agent that serves [Envoy's xDS
 configuration
-API](https://github.com/envoyproxy/data-plane-api/blob/master/XDS_PROTOCOL.md).
+API](https://www.envoyproxy.io/docs/envoy/latest/api-docs/xds_protocol).
 
 Consul can configure Envoy sidecars to proxy http/1.1, http2 or gRPC traffic at
 L7 or any other tcp-based protocol at L4. Prior to Consul 1.5.0 Envoy proxies

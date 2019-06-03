@@ -109,7 +109,7 @@ type ConfigManager interface {
 // server is started.
 //
 // A full description of the XDS protocol can be found at
-// https://github.com/envoyproxy/data-plane-api/blob/master/XDS_PROTOCOL.md
+// https://www.envoyproxy.io/docs/envoy/latest/api-docs/xds_protocol
 type Server struct {
 	Logger       *log.Logger
 	CfgMgr       ConfigManager
