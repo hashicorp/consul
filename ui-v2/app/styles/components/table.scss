@@ -77,6 +77,10 @@ th span:hover em {
   }
 }
 @media #{$--lt-wide-table} {
+  /* hide actions on narrow screens, you can always click in do everything from there */
+  tr > .actions {
+    display: none;
+  }
   html.template-intention.template-list tr > :nth-last-child(2) {
     display: none;
   }
