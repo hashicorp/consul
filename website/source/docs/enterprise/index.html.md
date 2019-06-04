@@ -38,13 +38,20 @@ enterprise.
 ### Included in the Enterprise Package
 
 If you are downloading Consul from Amazon S3, then the license is included
-and you do not need to take further action. This is the most common use 
-case.
+in the binary and you do not need to take further action. This is the 
+most common use case.
+
+In the S3 bucket you will find three Enterprise zip packages. The packages with `+pro` and
+`+prem` in the name, are the binaries that include the license. The package
+with `+ent` in the name does not include the license.
 
 ### Applied after Bootstrapping
 
-If you are downloading the enterprise binary from the [releases.hashicorp.com](https://releases.hashicorp.com/consul/), you will need to apply
-the license to the leading server after bootstrapping the cluster. 
+If you are downloading the enterprise binary from the [releases.hashicorp.com](https://releases.hashicorp.com/consul/) or the `+ent` package from Amazon S3, you will need to apply
+the license to the cluster, after completing the bootstrapping process. 
+You can set the license on any agent within the cluster and it will be 
+forwarded to the leading server via the RPC forwarding functionality. 
+Below are your two options for setting the license file. 
 
 You can set the license via the 
 [API](/api/operator/license.html) or the [CLI](/docs/commands/license.html). When
