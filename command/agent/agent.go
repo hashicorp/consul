@@ -214,7 +214,7 @@ func (c *cmd) run(args []string) int {
 
 	// Create the agent
 	c.UI.Output("Starting Consul agent...")
-	agent, err := agent.New(config)
+	agent, err := agent.New(config, c.logger)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error creating agent: %s", err))
 		return 1

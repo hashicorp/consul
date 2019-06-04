@@ -104,7 +104,7 @@ func NewTestAgent(t *testing.T, name string, hcl string) *TestAgent {
 
 func NewUnstartedAgent(t *testing.T, name string, hcl string) (*Agent, error) {
 	c := TestConfig(config.Source{Name: name, Format: "hcl", Data: hcl})
-	a, err := New(c)
+	a, err := New(c, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -147,16 +147,17 @@ func (a *TestAgent) Start(t *testing.T) *TestAgent {
 			writeKey(a.Key, SerfWANKeyring)
 		}
 
-		agent, err := New(a.Config)
-		require.NoError(err, fmt.Sprintf("Error creating agent: %s", err))
-
 		logOutput := a.LogOutput
 		if logOutput == nil {
 			logOutput = os.Stderr
 		}
+		agentLogger := log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
+
+		agent, err := New(a.Config, agentLogger)
+		require.NoError(err, fmt.Sprintf("Error creating agent: %s", err))
+
 		agent.LogOutput = logOutput
 		agent.LogWriter = a.LogWriter
-		agent.logger = log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
 		agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
 
 		// we need the err var in the next exit condition

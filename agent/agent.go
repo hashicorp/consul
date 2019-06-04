@@ -270,7 +270,7 @@ type Agent struct {
 	persistedTokensLock sync.RWMutex
 }
 
-func New(c *config.RuntimeConfig) (*Agent, error) {
+func New(c *config.RuntimeConfig, logger *log.Logger) (*Agent, error) {
 	if c.Datacenter == "" {
 		return nil, fmt.Errorf("Must configure a Datacenter")
 	}
@@ -301,6 +301,14 @@ func New(c *config.RuntimeConfig) (*Agent, error) {
 
 	if err := a.initializeACLs(); err != nil {
 		return nil, err
+	}
+
+	a.logger = logger
+
+	// Retrieve or generate the node ID before setting up the rest of the
+	// agent, which depends on it.
+	if err := a.setupNodeID(c); err != nil {
+		return nil, fmt.Errorf("Failed to setup node ID: %v", err)
 	}
 
 	return a, nil
@@ -353,20 +361,6 @@ func (a *Agent) Start() error {
 	defer a.stateLock.Unlock()
 
 	c := a.config
-
-	logOutput := a.LogOutput
-	if a.logger == nil {
-		if logOutput == nil {
-			logOutput = os.Stderr
-		}
-		a.logger = log.New(logOutput, "", log.LstdFlags)
-	}
-
-	// Retrieve or generate the node ID before setting up the rest of the
-	// agent, which depends on it.
-	if err := a.setupNodeID(c); err != nil {
-		return fmt.Errorf("Failed to setup node ID: %v", err)
-	}
 
 	// Warn if the node name is incompatible with DNS
 	if InvalidDnsRe.MatchString(a.config.NodeName) {
