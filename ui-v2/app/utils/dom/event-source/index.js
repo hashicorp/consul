@@ -15,8 +15,61 @@ import ReopenableEventSourceFactory from 'consul-ui/utils/dom/event-source/reope
 import BlockingEventSourceFactory from 'consul-ui/utils/dom/event-source/blocking';
 import StorageEventSourceFactory from 'consul-ui/utils/dom/event-source/storage';
 
+import EmberObject from '@ember/object';
+import { task } from 'ember-concurrency';
+
+import env from 'consul-ui/env';
+
+let runner;
+switch (env('CONSUL_UI_REALTIME_RUNNER')) {
+  case 'ec':
+    runner = function(target, configuration, isClosed) {
+      return EmberObject.extend({
+        task: task(function* run() {
+          while (!isClosed(target)) {
+            yield target.source.bind(target)(configuration);
+          }
+        }),
+      })
+        .create()
+        .get('task')
+        .perform();
+    };
+    break;
+  case 'generator':
+    runner = async function(target, configuration, isClosed) {
+      const run = function*() {
+        while (!isClosed(target)) {
+          yield target.source.bind(target)(configuration);
+        }
+      };
+      let step = run().next();
+      let res;
+      while (!step.done) {
+        res = await step.value;
+        step = run().next();
+      }
+      return res;
+    };
+    break;
+  case 'async':
+    runner = async function(target, configuration, isClosed) {
+      const run = function() {
+        return target.source.bind(target)(configuration);
+      };
+      let res;
+      while (!isClosed(target)) {
+        res = await run();
+      }
+      return res;
+    };
+    break;
+  default:
+  // use the default runner
+}
+
 // All The EventSource-i
-export const CallableEventSource = CallableEventSourceFactory(EventTarget, Promise);
+export const CallableEventSource = CallableEventSourceFactory(EventTarget, Promise, runner);
 export const ReopenableEventSource = ReopenableEventSourceFactory(CallableEventSource);
 export const BlockingEventSource = BlockingEventSourceFactory(ReopenableEventSource);
 export const StorageEventSource = StorageEventSourceFactory(EventTarget, Promise);
