@@ -7,6 +7,7 @@ IMPROVEMENTS
 BUG FIXES:
 
 * agent: fix several data races and bugs related to node-local alias checks [[GH-5876](https://github.com/hashicorp/consul/issues/5876)]
+* connect: fix proxy address formatting for IPv6 addresses [[GH-5460](https://github.com/hashicorp/consul/issues/5460)]
 
 ## 1.5.1 (May 22, 2019)
 
