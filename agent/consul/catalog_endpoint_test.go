@@ -1624,14 +1624,14 @@ func TestCatalog_ListServices_Stale(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out); err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
 		// Should find the services
 		if len(out.Services) != 1 {
-			t.Fatalf("bad: %#v", out.Services)
+			r.Fatalf("bad: %#v", out.Services)
 		}
 		if !out.KnownLeader {
-			t.Fatalf("should have a leader: %v", out)
+			r.Fatalf("should have a leader: %v", out)
 		}
 	})
 
