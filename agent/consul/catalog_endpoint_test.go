@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1621,18 +1621,19 @@ func TestCatalog_ListServices_Stale(t *testing.T) {
 	waitForLeader(s1, s2)
 
 	testrpc.WaitForLeader(t, s2.RPC, "dc1")
-	if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
 
-	// Should find the services
-	if len(out.Services) != 1 {
-		t.Fatalf("bad: %#v", out.Services)
-	}
-
-	if !out.KnownLeader {
-		t.Fatalf("should have a leader: %v", out)
-	}
+	retry.Run(t, func(r *retry.R) {
+		if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		// Should find the services
+		if len(out.Services) != 1 {
+			t.Fatalf("bad: %#v", out.Services)
+		}
+		if !out.KnownLeader {
+			t.Fatalf("should have a leader: %v", out)
+		}
+	})
 
 	s1.Leave()
 	s1.Shutdown()
