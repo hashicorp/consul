@@ -43,7 +43,7 @@ case.
 
 ### Applied after Bootstrapping
 
-If you are downloading the enterprise binary from the [public hub](https://releases.hashicorp.com/consul/), you will need to apply
+If you are downloading the enterprise binary from the [releases.hashicorp.com](https://releases.hashicorp.com/consul/), you will need to apply
 the license to the leading server after bootstrapping the cluster. 
 
 The license can be set via the 
