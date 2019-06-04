@@ -48,7 +48,7 @@ const cancelable = createCancelable(clickable, is);
 
 const tokenList = tokenListFactory(clickable, attribute, collection, deletable);
 
-const policyForm = policyFormFactory(submitable, cancelable, radiogroup);
+const policyForm = policyFormFactory(submitable, cancelable, radiogroup, text);
 const policySelector = policySelectorFactory(clickable, deletable, collection, alias, policyForm);
 
 const roleForm = roleFormFactory(submitable, cancelable, policySelector);

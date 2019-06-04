@@ -28,7 +28,7 @@
           <strong>{{item.error.Name.validation}}</strong>
         {{/if}}
     </label>
-    <label class="type-text">
+    <label class="type-text" data-test-rules>
         <span>Rules <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
 {{#if (eq item.template '') }}
         {{code-editor syntax='hcl' class=(if item.error.Rules 'error') name=(concat name '[Rules]') value=item.Rules onkeyup=(action 'change' (concat name '[Rules]'))}}
