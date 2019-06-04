@@ -49,5 +49,5 @@ the license to the leading server after bootstrapping the cluster.
 You can set the license via the 
 [API](/api/operator/license.html) or the [CLI](/docs/commands/license.html). When
 you first start Consul, a 30-minute temporary license is available to allow you
-time to license the datacenter. The license should be set within ten minutes of
+time to license the datacenter. You should set the license within ten minutes of
 starting the first Consul process to allow time for the license to propagate.
