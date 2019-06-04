@@ -118,6 +118,11 @@ Usage: `consul snapshot agent [options]`
         "s3_server_side_encryption":false,
         "s3_static_snapshot_name":""
       }
+      "azure_blob_storage": {
+        "account_name": "",
+        "account_key": "",
+        "container_name": ""
+      }
     }
   }
 ```
@@ -255,6 +260,18 @@ The following example IAM policy document assumes that the `aws-s3-bucket` is `c
   ]
 }
 ```
+
+#### Azure Blob Storage options
+
+** Note: This currently only works on non-Solaris platforms due to library limitations **
+
+From Consul Enterprise version `1.5.0` onwards, you can store snapshots in Azure Blob storage.
+
+* `-azure-blob-account-name` and `-azure-blob-account-key` - These arguments supply
+  authentication information for connecting to Azure Blob storage.
+
+* `-azure-blob-container-name` - Container to use. Required for Azure blob storage, and setting this
+  disables local storage.
 
 ## Examples
 
