@@ -34,6 +34,10 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	segment string, listener net.Listener) (*serf.Serf, error) {
 	conf.Init()
 
+	if s.config.DevMode {
+		conf.Tags["dev_mode"] = "true"
+	}
+
 	if wan {
 		conf.NodeName = fmt.Sprintf("%s.%s", s.config.NodeName, s.config.Datacenter)
 	} else {

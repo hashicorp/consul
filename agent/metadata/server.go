@@ -77,6 +77,10 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 	segment := m.Tags["segment"]
 	_, bootstrap := m.Tags["bootstrap"]
 	_, useTLS := m.Tags["use_tls"]
+	_, devMode := m.Tags["dev_mode"]
+	if devMode {
+		return false, nil
+	}
 
 	expect := 0
 	expectStr, ok := m.Tags["expect"]
