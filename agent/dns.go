@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/miekg/dns"
 )
@@ -264,7 +265,7 @@ func recursorAddr(recursor string) (string, error) {
 START:
 	_, _, err := net.SplitHostPort(recursor)
 	if ae, ok := err.(*net.AddrError); ok && ae.Err == "missing port in address" {
-		recursor = fmt.Sprintf("%s:%d", recursor, 53)
+		recursor = ipaddr.FormatAddressPort(recursor, 53)
 		goto START
 	}
 	if err != nil {
