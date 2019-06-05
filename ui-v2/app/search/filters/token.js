@@ -15,6 +15,12 @@ export default function(filterable) {
         .indexOf(sLower) !== -1 ||
       (get(item, 'Policies') || []).some(function(item) {
         return item.Name.toLowerCase().indexOf(sLower) !== -1;
+      }) ||
+      (get(item, 'ServiceIdentities') || []).some(function(item) {
+        return item.ServiceName.toLowerCase().indexOf(sLower) !== -1;
+      }) ||
+      (get(item, 'Roles') || []).some(function(item) {
+        return item.Name.toLowerCase().indexOf(sLower) !== -1;
       })
     );
   });

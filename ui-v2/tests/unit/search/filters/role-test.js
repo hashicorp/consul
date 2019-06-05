@@ -1,43 +1,27 @@
-import getFilter from 'consul-ui/search/filters/token';
+import getFilter from 'consul-ui/search/filters/role';
 import { module, test } from 'qunit';
 
-module('Unit | Search | Filter | token');
+module('Unit | Search | Filter | role');
 
 const filter = getFilter(cb => cb);
 test('items are found by properties', function(assert) {
   [
     {
-      AccessorID: 'HIT-id',
-      Name: 'name',
-      Description: 'description',
-      Policies: [],
-    },
-    {
-      AccessorID: 'id',
       Name: 'name-HIT',
       Description: 'description',
       Policies: [],
     },
     {
-      AccessorID: 'id',
       Name: 'name',
       Description: 'desc-HIT-ription',
       Policies: [],
     },
     {
-      AccessorID: 'id',
       Name: 'name',
       Description: 'description',
       Policies: [{ Name: 'policy' }, { Name: 'policy-HIT' }],
     },
     {
-      AccessorID: 'id',
-      Name: 'name',
-      Description: 'description',
-      Roles: [{ Name: 'role' }, { Name: 'role-HIT' }],
-    },
-    {
-      AccessorID: 'id',
       Name: 'name',
       Description: 'description',
       ServiceIdentities: [
@@ -55,22 +39,14 @@ test('items are found by properties', function(assert) {
 test('items are not found', function(assert) {
   [
     {
-      AccessorID: 'id',
       Name: 'name',
       Description: 'description',
       Policies: [],
     },
     {
-      AccessorID: 'id',
       Name: 'name',
       Description: 'description',
       Policies: [{ Name: 'policy' }, { Name: 'policy-second' }],
-    },
-    {
-      AccessorID: 'id',
-      Name: 'name',
-      Description: 'description',
-      Roles: [{ Name: 'role' }, { Name: 'role-second' }],
     },
     {
       AccessorID: 'id',
@@ -88,16 +64,13 @@ test('items are not found', function(assert) {
 test('arraylike things can be empty', function(assert) {
   [
     {
-      AccessorID: 'id',
       Name: 'name',
       Description: 'description',
     },
     {
-      AccessorID: 'id',
       Name: 'name',
       Description: 'description',
       Policies: null,
-      Roles: null,
       ServiceIdentities: null,
     },
     {
@@ -105,7 +78,6 @@ test('arraylike things can be empty', function(assert) {
       Name: 'name',
       Description: 'description',
       Policies: [],
-      Roles: [],
       ServiceIdentities: [],
     },
   ].forEach(function(item) {
