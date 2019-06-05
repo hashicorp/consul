@@ -111,8 +111,8 @@ export default Service.extend({
         ...{
           'Content-Type': 'application/json; charset=utf-8',
         },
-        ...createHeaders(temp),
         ...get(client, 'settings').findHeaders(),
+        ...createHeaders(temp),
       };
       return new Promise(function(resolve, reject) {
         const options = {
@@ -160,11 +160,18 @@ export default Service.extend({
           },
         };
         if (typeof body !== 'undefined') {
-          if (method !== 'GET' && headers['Content-Type'].indexOf('json') !== -1) {
-            options.data = JSON.stringify(body);
-          } else {
-            // TODO: Does this need urlencoding? Assuming jQuery does this
-            options.data = body;
+          // Only read add HTTP body if we aren't GET
+          // Right now we do this to avoid having to put data in the templates
+          // for write-like actions
+          // potentially we should change things so you _have_ to do that
+          // as doing it this way is a little magical
+          if (method !== 'GET') {
+            if (headers['Content-Type'].indexOf('json') !== -1) {
+              options.data = JSON.stringify(body);
+            } else {
+              // TODO: Does this need urlencoding? Assuming jQuery does this
+              options.data = body;
+            }
           }
         }
         options.beforeSend = function(xhr) {
