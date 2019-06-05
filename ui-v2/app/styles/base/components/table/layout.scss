@@ -26,12 +26,11 @@
 %table td a {
   display: block;
 }
-%table th,
 %table td:not(.actions),
-%table td:not(.actions) a {
+%table td:not(.actions) > * {
   white-space: nowrap;
   text-overflow: ellipsis;
-  overflow: hidden;
+  overflow-x: hidden;
 }
 %table td {
   height: 50px;
