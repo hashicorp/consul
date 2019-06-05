@@ -33,7 +33,10 @@ func (x Xfr) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (in
 	ch := make(chan *dns.Envelope)
 	defer close(ch)
 	tr := new(dns.Transfer)
-	go tr.Out(w, r, ch)
+	go func() {
+		tr.Out(w, r, ch)
+		w.Close()
+	}()
 
 	j, l := 0, 0
 	records = append(records, records[0]) // add closing SOA to the end
@@ -51,7 +54,6 @@ func (x Xfr) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (in
 	}
 
 	w.Hijack()
-	// w.Close() // Client closes connection
 	return dns.RcodeSuccess, nil
 }
 
