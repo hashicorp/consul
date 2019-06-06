@@ -18,6 +18,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	metrics "github.com/armon/go-metrics"
 	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/consul/fsm"
@@ -34,6 +35,7 @@ import (
 	"github.com/hashicorp/raft"
 	raftboltdb "github.com/hashicorp/raft-boltdb"
 	"github.com/hashicorp/serf/serf"
+	"golang.org/x/time/rate"
 )
 
 // These are the protocol versions that Consul can _understand_. These are
@@ -206,6 +208,10 @@ type Server struct {
 	// Enterprise user-defined areas.
 	router *router.Router
 
+	// rpcLimiter is used to rate limit the total number of RPCs initiated
+	// from an agent.
+	rpcLimiter atomic.Value
+
 	// Listener is used to listen for incoming connections
 	Listener  net.Listener
 	rpcServer *rpc.Server
@@ -359,6 +365,8 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 		s.Shutdown()
 		return nil, err
 	}
+
+	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
 
 	configReplicatorConfig := ReplicatorConfig{
 		Name:        "Config Entry",
@@ -1028,6 +1036,19 @@ func (s *Server) RPC(method string, args interface{}, reply interface{}) error {
 		args:   args,
 		reply:  reply,
 	}
+
+	// Enforce the RPC limit.
+	//
+	// "client" metric path because the internal client API is calling to the
+	// internal server API. It's odd that the same request directed to a server is
+	// recorded differently. On the other hand this possibly masks the different
+	// between regular client requests that traverse the network and these which
+	// don't (unless forwarded). This still seems most sane.
+	metrics.IncrCounter([]string{"client", "rpc"}, 1)
+	if !s.rpcLimiter.Load().(*rate.Limiter).Allow() {
+		metrics.IncrCounter([]string{"client", "rpc", "exceeded"}, 1)
+		return structs.ErrRPCRateExceeded
+	}
 	if err := s.rpcServer.ServeRequest(codec); err != nil {
 		return err
 	}
@@ -1038,6 +1059,19 @@ func (s *Server) RPC(method string, args interface{}, reply interface{}) error {
 // input and writing to the streaming output depending on the operation.
 func (s *Server) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer,
 	replyFn structs.SnapshotReplyFn) error {
+
+	// Enforce the RPC limit.
+	//
+	// "client" metric path because the internal client API is calling to the
+	// internal server API. It's odd that the same request directed to a server is
+	// recorded differently. On the other hand this possibly masks the different
+	// between regular client requests that traverse the network and these which
+	// don't (unless forwarded). This still seems most sane.
+	metrics.IncrCounter([]string{"client", "rpc"}, 1)
+	if !s.rpcLimiter.Load().(*rate.Limiter).Allow() {
+		metrics.IncrCounter([]string{"client", "rpc", "exceeded"}, 1)
+		return structs.ErrRPCRateExceeded
+	}
 
 	// Perform the operation.
 	var reply structs.SnapshotResponse
@@ -1141,6 +1175,8 @@ func (s *Server) GetLANCoordinate() (lib.CoordinateSet, error) {
 // ReloadConfig is used to have the Server do an online reload of
 // relevant configuration information
 func (s *Server) ReloadConfig(config *Config) error {
+	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
+
 	if s.IsLeader() {
 		// only bootstrap the config entries if we are the leader
 		// this will error if we lose leadership while bootstrapping here.
