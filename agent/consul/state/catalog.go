@@ -273,6 +273,20 @@ func (s *Store) EnsureRegistration(idx uint64, req *structs.RegisterRequest) err
 		return err
 	}
 
+	// Emit streaming events on any related topics based on the registration.
+	var service string
+	if req.Service != nil {
+		service = req.Service.Service
+	}
+	events, err := s.RegistrationEvents(tx, req.Node, service)
+	if err != nil {
+		return err
+	}
+
+	if err := s.emitEvents(tx, events); err != nil {
+		return err
+	}
+
 	tx.Commit()
 	return nil
 }
@@ -632,6 +646,15 @@ func (s *Store) DeleteNode(idx uint64, nodeName string) error {
 
 	// Call the node deletion.
 	if err := s.deleteNodeTxn(tx, idx, nodeName); err != nil {
+		return err
+	}
+
+	// Emit a delete event for the node.
+	events, err := s.DeregistrationEvents(tx, idx, nodeName)
+	if err != nil {
+		return err
+	}
+	if err := s.emitEvents(tx, events); err != nil {
 		return err
 	}
 
@@ -1258,10 +1281,24 @@ func (s *Store) NodeServices(ws memdb.WatchSet, nodeNameOrID string) (uint64, *s
 	// Get the table index.
 	idx := maxIndexTxn(tx, "nodes", "services")
 
+	services, _, err := s.nodeServicesTxn(tx, ws, nodeNameOrID, "", true)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	return idx, services, nil
+}
+
+// nodeServicesTxn is used to get the service entries on a given node inside a
+// transaction. The asNodeService field controls whether the result is returned as
+// NodeServices or ServiceNodes.
+func (s *Store) nodeServicesTxn(tx *memdb.Txn, ws memdb.WatchSet, nodeNameOrID, serviceName string, asNodeService bool) (
+	*structs.NodeServices, structs.ServiceNodes, error) {
+
 	// Query the node by node name
 	watchCh, n, err := tx.FirstWatch("nodes", "id", nodeNameOrID)
 	if err != nil {
-		return 0, nil, fmt.Errorf("node lookup failed: %s", err)
+		return nil, nil, fmt.Errorf("node lookup failed: %s", err)
 	}
 
 	if n != nil {
@@ -1269,7 +1306,7 @@ func (s *Store) NodeServices(ws memdb.WatchSet, nodeNameOrID string) (uint64, *s
 	} else {
 		if len(nodeNameOrID) < minUUIDLookupLen {
 			ws.Add(watchCh)
-			return 0, nil, nil
+			return nil, nil, nil
 		}
 
 		// Attempt to lookup the node by its node ID
@@ -1278,14 +1315,14 @@ func (s *Store) NodeServices(ws memdb.WatchSet, nodeNameOrID string) (uint64, *s
 			ws.Add(watchCh)
 			// TODO(sean@): We could/should log an error re: the uuid_prefix lookup
 			// failing once a logger has been introduced to the catalog.
-			return 0, nil, nil
+			return nil, nil, nil
 		}
 
 		n = iter.Next()
 		if n == nil {
 			// No nodes matched, even with the Node ID: add a watch on the node name.
 			ws.Add(watchCh)
-			return 0, nil, nil
+			return nil, nil, nil
 		}
 
 		idWatchCh := iter.WatchCh()
@@ -1293,7 +1330,7 @@ func (s *Store) NodeServices(ws memdb.WatchSet, nodeNameOrID string) (uint64, *s
 			// More than one match present: Watch on the node name channel and return
 			// an empty result (node lookups can not be ambiguous).
 			ws.Add(watchCh)
-			return 0, nil, nil
+			return nil, nil, nil
 		}
 
 		ws.Add(idWatchCh)
@@ -1305,23 +1342,37 @@ func (s *Store) NodeServices(ws memdb.WatchSet, nodeNameOrID string) (uint64, *s
 	// Read all of the services
 	services, err := tx.Get("services", "node", nodeName)
 	if err != nil {
-		return 0, nil, fmt.Errorf("failed querying services for node %q: %s", nodeName, err)
+		return nil, nil, fmt.Errorf("failed querying services for node %q: %s", nodeName, err)
 	}
 	ws.Add(services.WatchCh())
 
 	// Initialize the node services struct
-	ns := &structs.NodeServices{
-		Node:     node,
-		Services: make(map[string]*structs.NodeService),
+	var nodeServices *structs.NodeServices
+	var serviceNodes structs.ServiceNodes
+	if asNodeService {
+		nodeServices = &structs.NodeServices{
+			Node:     node,
+			Services: make(map[string]*structs.NodeService),
+		}
+
+		// Add all of the services to the map.
+		for service := services.Next(); service != nil; service = services.Next() {
+			svc := service.(*structs.ServiceNode).ToNodeService()
+			if serviceName == "" || svc.Service == serviceName {
+				nodeServices.Services[svc.ID] = svc
+			}
+		}
+	} else {
+		// Add all of the services to the slice.
+		for service := services.Next(); service != nil; service = services.Next() {
+			svc := service.(*structs.ServiceNode)
+			if serviceName == "" || svc.ServiceName == serviceName {
+				serviceNodes = append(serviceNodes, svc)
+			}
+		}
 	}
 
-	// Add all of the services to the map.
-	for service := services.Next(); service != nil; service = services.Next() {
-		svc := service.(*structs.ServiceNode).ToNodeService()
-		ns.Services[svc.ID] = svc
-	}
-
-	return idx, ns, nil
+	return nodeServices, serviceNodes, nil
 }
 
 // DeleteService is used to delete a given service associated with a node.

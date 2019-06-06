@@ -130,7 +130,8 @@ func (m *SubscribeRequest) GetKey() string {
 type Event struct {
 	Topic                Topic                `protobuf:"varint,1,opt,name=topic,proto3,enum=stream.Topic" json:"topic,omitempty"`
 	Key                  string               `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
-	Event                *ServiceHealthUpdate `protobuf:"bytes,3,opt,name=event,proto3" json:"event,omitempty"`
+	Index                uint64               `protobuf:"varint,3,opt,name=index,proto3" json:"index,omitempty"`
+	ServiceHealth        *ServiceHealthUpdate `protobuf:"bytes,4,opt,name=serviceHealth,proto3" json:"serviceHealth,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -183,9 +184,16 @@ func (m *Event) GetKey() string {
 	return ""
 }
 
-func (m *Event) GetEvent() *ServiceHealthUpdate {
+func (m *Event) GetIndex() uint64 {
 	if m != nil {
-		return m.Event
+		return m.Index
+	}
+	return 0
+}
+
+func (m *Event) GetServiceHealth() *ServiceHealthUpdate {
+	if m != nil {
+		return m.ServiceHealth
 	}
 	return nil
 }
@@ -195,8 +203,9 @@ type ServiceHealthUpdate struct {
 	Node                 string         `protobuf:"bytes,2,opt,name=node,proto3" json:"node,omitempty"`
 	Id                   string         `protobuf:"bytes,3,opt,name=id,proto3" json:"id,omitempty"`
 	Address              string         `protobuf:"bytes,4,opt,name=address,proto3" json:"address,omitempty"`
-	Port                 int32          `protobuf:"varint,5,opt,name=port,proto3" json:"port,omitempty"`
-	Checks               []*HealthCheck `protobuf:"bytes,6,rep,name=checks,proto3" json:"checks,omitempty"`
+	Service              string         `protobuf:"bytes,5,opt,name=service,proto3" json:"service,omitempty"`
+	Port                 int32          `protobuf:"varint,6,opt,name=port,proto3" json:"port,omitempty"`
+	Checks               []*HealthCheck `protobuf:"bytes,7,rep,name=checks,proto3" json:"checks,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
 	XXX_sizecache        int32          `json:"-"`
@@ -263,6 +272,13 @@ func (m *ServiceHealthUpdate) GetAddress() string {
 	return ""
 }
 
+func (m *ServiceHealthUpdate) GetService() string {
+	if m != nil {
+		return m.Service
+	}
+	return ""
+}
+
 func (m *ServiceHealthUpdate) GetPort() int32 {
 	if m != nil {
 		return m.Port
@@ -278,7 +294,11 @@ func (m *ServiceHealthUpdate) GetChecks() []*HealthCheck {
 }
 
 type HealthCheck struct {
-	Status               string   `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Status               string   `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	CheckID              string   `protobuf:"bytes,3,opt,name=checkID,proto3" json:"checkID,omitempty"`
+	ServiceID            string   `protobuf:"bytes,4,opt,name=serviceID,proto3" json:"serviceID,omitempty"`
+	ServiceName          string   `protobuf:"bytes,5,opt,name=serviceName,proto3" json:"serviceName,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -317,9 +337,37 @@ func (m *HealthCheck) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_HealthCheck proto.InternalMessageInfo
 
+func (m *HealthCheck) GetName() string {
+	if m != nil {
+		return m.Name
+	}
+	return ""
+}
+
 func (m *HealthCheck) GetStatus() string {
 	if m != nil {
 		return m.Status
+	}
+	return ""
+}
+
+func (m *HealthCheck) GetCheckID() string {
+	if m != nil {
+		return m.CheckID
+	}
+	return ""
+}
+
+func (m *HealthCheck) GetServiceID() string {
+	if m != nil {
+		return m.ServiceID
+	}
+	return ""
+}
+
+func (m *HealthCheck) GetServiceName() string {
+	if m != nil {
+		return m.ServiceName
 	}
 	return ""
 }
@@ -336,31 +384,36 @@ func init() {
 func init() { proto.RegisterFile("health_endpoint.proto", fileDescriptor_7440db10be139ab2) }
 
 var fileDescriptor_7440db10be139ab2 = []byte{
-	// 384 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x52, 0xcd, 0x8a, 0xd4, 0x40,
-	0x10, 0x9e, 0xce, 0x6c, 0xa2, 0xa9, 0x71, 0x87, 0x6c, 0x2d, 0x4a, 0xb3, 0x42, 0x88, 0x11, 0x21,
-	0xae, 0x30, 0x68, 0xbc, 0x78, 0xde, 0x51, 0xd0, 0x93, 0xd0, 0xab, 0x67, 0xc9, 0x24, 0xc5, 0x4e,
-	0xd8, 0x31, 0xdd, 0xdb, 0xdd, 0x19, 0xf0, 0x4d, 0x7c, 0x13, 0x5f, 0xc1, 0xa3, 0x8f, 0x20, 0xe3,
-	0x8b, 0x48, 0x3a, 0x3f, 0xa8, 0x78, 0xda, 0x5b, 0xfd, 0x7d, 0x5d, 0xdf, 0xd7, 0x5f, 0xc1, 0xfd,
-	0x2d, 0x15, 0x3b, 0xbb, 0xfd, 0x44, 0x4d, 0xa5, 0x64, 0xdd, 0xd8, 0x95, 0xd2, 0xd2, 0x4a, 0x0c,
-	0x8c, 0xd5, 0x54, 0x7c, 0x4e, 0xdf, 0x41, 0x74, 0xd9, 0x6e, 0x4c, 0xa9, 0xeb, 0x0d, 0x09, 0xba,
-	0x69, 0xc9, 0x58, 0x7c, 0x0c, 0xbe, 0x95, 0xaa, 0x2e, 0x39, 0x4b, 0x58, 0xb6, 0xcc, 0x8f, 0x57,
-	0xfd, 0xec, 0xea, 0x43, 0x57, 0x14, 0x7d, 0x0f, 0x23, 0x98, 0x5f, 0xd3, 0x17, 0xee, 0x25, 0x2c,
-	0x0b, 0x45, 0x17, 0xa6, 0x37, 0xe0, 0xbf, 0xd9, 0x53, 0x73, 0x5b, 0x3c, 0xbe, 0x00, 0x9f, 0x3a,
-	0x3c, 0x9f, 0x27, 0x2c, 0x5b, 0xe4, 0x0f, 0x47, 0xd8, 0x25, 0xe9, 0x7d, 0x5d, 0xd2, 0x5b, 0xa7,
-	0xe3, 0xa3, 0xaa, 0x0a, 0x4b, 0xa2, 0x9f, 0x4c, 0xbf, 0x31, 0x38, 0xfd, 0x4f, 0x1b, 0x1f, 0x81,
-	0x27, 0xd5, 0xb0, 0xfe, 0x64, 0x7c, 0x67, 0x5d, 0xd8, 0x62, 0x27, 0xaf, 0xde, 0x2b, 0xe1, 0x49,
-	0x85, 0x08, 0x47, 0x8d, 0xac, 0x68, 0x20, 0xe0, 0x62, 0x5c, 0x82, 0x57, 0x57, 0x6e, 0x7d, 0x28,
-	0xbc, 0xba, 0x42, 0x0e, 0x77, 0x8a, 0xaa, 0xd2, 0x64, 0x0c, 0x3f, 0x72, 0xc5, 0x31, 0xed, 0xd0,
-	0x4a, 0x6a, 0xcb, 0xfd, 0x84, 0x65, 0xbe, 0x70, 0x31, 0x3e, 0x83, 0xa0, 0xdc, 0x52, 0x79, 0x6d,
-	0x78, 0x90, 0xcc, 0xb3, 0x45, 0x7e, 0x3a, 0x2e, 0xee, 0xa9, 0xad, 0xbb, 0x9e, 0x18, 0x46, 0xd2,
-	0x27, 0xb0, 0xf8, 0xa3, 0x8c, 0x0f, 0x20, 0x30, 0xb6, 0xb0, 0xad, 0x71, 0xa4, 0x43, 0x31, 0x64,
-	0xe7, 0x67, 0xe0, 0xbb, 0x5f, 0xc3, 0x13, 0x38, 0xfe, 0x4b, 0x68, 0x34, 0x3b, 0x7f, 0x0a, 0xe1,
-	0x24, 0x09, 0xef, 0xc1, 0x5d, 0x41, 0x57, 0xb5, 0xb1, 0xa4, 0xa3, 0x19, 0x2e, 0x01, 0x5e, 0x93,
-	0x1e, 0x73, 0x96, 0x5f, 0x40, 0xb0, 0x96, 0x8d, 0x69, 0x77, 0xf8, 0x0a, 0xc2, 0xc9, 0x6f, 0xe4,
-	0xd3, 0x17, 0xff, 0x73, 0x02, 0x67, 0x93, 0x67, 0xce, 0xd1, 0x74, 0xf6, 0x9c, 0x5d, 0x44, 0xdf,
-	0x0f, 0x31, 0xfb, 0x71, 0x88, 0xd9, 0xcf, 0x43, 0xcc, 0xbe, 0xfe, 0x8a, 0x67, 0x9b, 0xc0, 0x9d,
-	0xd2, 0xcb, 0xdf, 0x01, 0x00, 0x00, 0xff, 0xff, 0xff, 0xe3, 0x7e, 0xf4, 0x63, 0x02, 0x00, 0x00,
+	// 449 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x92, 0xc1, 0x8e, 0xd3, 0x30,
+	0x10, 0x86, 0xeb, 0xb6, 0xc9, 0x92, 0x29, 0xad, 0xb2, 0xb3, 0x80, 0xac, 0x05, 0x55, 0x21, 0x5c,
+	0xc2, 0x22, 0x55, 0xa8, 0x5c, 0xb8, 0xb2, 0x2d, 0x12, 0xbd, 0x80, 0xe4, 0x85, 0x33, 0x72, 0x93,
+	0xd1, 0x36, 0xda, 0x36, 0x0e, 0xb1, 0xbb, 0x82, 0xe7, 0xe0, 0x00, 0x8f, 0xc4, 0x11, 0xde, 0x00,
+	0x95, 0x17, 0x41, 0x71, 0x9c, 0xd2, 0x45, 0x9c, 0xb8, 0xf9, 0x9f, 0x99, 0x4c, 0xbe, 0xdf, 0xfe,
+	0xe1, 0xee, 0x8a, 0xe4, 0xda, 0xac, 0xde, 0x53, 0x91, 0x95, 0x2a, 0x2f, 0xcc, 0xa4, 0xac, 0x94,
+	0x51, 0xe8, 0x6b, 0x53, 0x91, 0xdc, 0xc4, 0x0b, 0x08, 0x2f, 0xb6, 0x4b, 0x9d, 0x56, 0xf9, 0x92,
+	0x04, 0x7d, 0xd8, 0x92, 0x36, 0xf8, 0x08, 0x3c, 0xa3, 0xca, 0x3c, 0xe5, 0x2c, 0x62, 0xc9, 0x68,
+	0x3a, 0x9c, 0x34, 0xb3, 0x93, 0xb7, 0x75, 0x51, 0x34, 0x3d, 0x0c, 0xa1, 0x77, 0x45, 0x9f, 0x78,
+	0x37, 0x62, 0x49, 0x20, 0xea, 0x63, 0xfc, 0x85, 0x81, 0xf7, 0xf2, 0x9a, 0x8a, 0xff, 0x5d, 0x80,
+	0x77, 0xc0, 0xcb, 0x8b, 0x8c, 0x3e, 0xf2, 0x5e, 0xc4, 0x92, 0xbe, 0x68, 0x04, 0xbe, 0x80, 0xa1,
+	0xa6, 0xea, 0x3a, 0x4f, 0xe9, 0x95, 0x75, 0xc2, 0xfb, 0x11, 0x4b, 0x06, 0xd3, 0xfb, 0xed, 0xd2,
+	0x8b, 0xc3, 0xe6, 0xbb, 0x32, 0x93, 0x86, 0xc4, 0xcd, 0x2f, 0xe2, 0x1f, 0x0c, 0x4e, 0xfe, 0x31,
+	0x86, 0x0f, 0xa1, 0xab, 0x4a, 0x07, 0x79, 0xdc, 0xee, 0x9b, 0x49, 0x23, 0xd7, 0xea, 0xf2, 0x4d,
+	0x29, 0xba, 0xaa, 0x44, 0x84, 0x7e, 0xa1, 0x32, 0x72, 0x98, 0xf6, 0x8c, 0x23, 0xe8, 0xe6, 0x99,
+	0x85, 0x0c, 0x44, 0x37, 0xcf, 0x90, 0xc3, 0x91, 0xcc, 0xb2, 0x8a, 0xb4, 0xb6, 0x6c, 0x81, 0x68,
+	0x65, 0xdd, 0x71, 0x24, 0xdc, 0x6b, 0x3a, 0x4e, 0xd6, 0x7b, 0x4b, 0x55, 0x19, 0xee, 0x47, 0x2c,
+	0xf1, 0x84, 0x3d, 0xe3, 0x13, 0xf0, 0xd3, 0x15, 0xa5, 0x57, 0x9a, 0x1f, 0x45, 0xbd, 0x64, 0x30,
+	0x3d, 0x69, 0x91, 0x1a, 0xe8, 0x59, 0xdd, 0x13, 0x6e, 0x24, 0xfe, 0xcc, 0x60, 0x70, 0x50, 0xb7,
+	0xa0, 0x72, 0x43, 0xd6, 0x4d, 0x0d, 0x2a, 0x37, 0x84, 0xf7, 0xc0, 0xd7, 0x46, 0x9a, 0xad, 0x76,
+	0xf8, 0x4e, 0xd5, 0x58, 0x76, 0xcb, 0x62, 0xee, 0x5c, 0xb4, 0x12, 0x1f, 0x40, 0xe0, 0x08, 0x17,
+	0x73, 0x67, 0xe6, 0x4f, 0x01, 0x23, 0x18, 0x38, 0xf1, 0xba, 0xfe, 0x55, 0x63, 0xe9, 0xb0, 0x74,
+	0x76, 0x0a, 0x9e, 0x7d, 0x64, 0x3c, 0x86, 0xe1, 0x8d, 0x1b, 0x0f, 0x3b, 0x67, 0x8f, 0x21, 0xd8,
+	0xdf, 0x2d, 0xde, 0x86, 0x5b, 0x82, 0x2e, 0x73, 0x6d, 0xa8, 0x0a, 0x3b, 0x38, 0x02, 0x98, 0x53,
+	0xd5, 0x6a, 0x36, 0x3d, 0x07, 0x7f, 0xa6, 0x0a, 0xbd, 0x5d, 0xe3, 0x73, 0x08, 0xf6, 0xf9, 0x44,
+	0xbe, 0x7f, 0xf3, 0xbf, 0x22, 0x7b, 0xba, 0x8f, 0x98, 0x0d, 0x60, 0xdc, 0x79, 0xca, 0xce, 0xc3,
+	0x6f, 0xbb, 0x31, 0xfb, 0xbe, 0x1b, 0xb3, 0x9f, 0xbb, 0x31, 0xfb, 0xfa, 0x6b, 0xdc, 0x59, 0xfa,
+	0x36, 0xfa, 0xcf, 0x7e, 0x07, 0x00, 0x00, 0xff, 0xff, 0x11, 0x5a, 0x63, 0xd5, 0x13, 0x03, 0x00,
+	0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -528,11 +581,16 @@ func (m *Event) MarshalTo(dAtA []byte) (int, error) {
 		i = encodeVarintHealthEndpoint(dAtA, i, uint64(len(m.Key)))
 		i += copy(dAtA[i:], m.Key)
 	}
-	if m.Event != nil {
-		dAtA[i] = 0x1a
+	if m.Index != 0 {
+		dAtA[i] = 0x18
 		i++
-		i = encodeVarintHealthEndpoint(dAtA, i, uint64(m.Event.Size()))
-		n1, err1 := m.Event.MarshalTo(dAtA[i:])
+		i = encodeVarintHealthEndpoint(dAtA, i, uint64(m.Index))
+	}
+	if m.ServiceHealth != nil {
+		dAtA[i] = 0x22
+		i++
+		i = encodeVarintHealthEndpoint(dAtA, i, uint64(m.ServiceHealth.Size()))
+		n1, err1 := m.ServiceHealth.MarshalTo(dAtA[i:])
 		if err1 != nil {
 			return 0, err1
 		}
@@ -582,14 +640,20 @@ func (m *ServiceHealthUpdate) MarshalTo(dAtA []byte) (int, error) {
 		i = encodeVarintHealthEndpoint(dAtA, i, uint64(len(m.Address)))
 		i += copy(dAtA[i:], m.Address)
 	}
+	if len(m.Service) > 0 {
+		dAtA[i] = 0x2a
+		i++
+		i = encodeVarintHealthEndpoint(dAtA, i, uint64(len(m.Service)))
+		i += copy(dAtA[i:], m.Service)
+	}
 	if m.Port != 0 {
-		dAtA[i] = 0x28
+		dAtA[i] = 0x30
 		i++
 		i = encodeVarintHealthEndpoint(dAtA, i, uint64(m.Port))
 	}
 	if len(m.Checks) > 0 {
 		for _, msg := range m.Checks {
-			dAtA[i] = 0x32
+			dAtA[i] = 0x3a
 			i++
 			i = encodeVarintHealthEndpoint(dAtA, i, uint64(msg.Size()))
 			n, err := msg.MarshalTo(dAtA[i:])
@@ -620,11 +684,35 @@ func (m *HealthCheck) MarshalTo(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.Status) > 0 {
+	if len(m.Name) > 0 {
 		dAtA[i] = 0xa
+		i++
+		i = encodeVarintHealthEndpoint(dAtA, i, uint64(len(m.Name)))
+		i += copy(dAtA[i:], m.Name)
+	}
+	if len(m.Status) > 0 {
+		dAtA[i] = 0x12
 		i++
 		i = encodeVarintHealthEndpoint(dAtA, i, uint64(len(m.Status)))
 		i += copy(dAtA[i:], m.Status)
+	}
+	if len(m.CheckID) > 0 {
+		dAtA[i] = 0x1a
+		i++
+		i = encodeVarintHealthEndpoint(dAtA, i, uint64(len(m.CheckID)))
+		i += copy(dAtA[i:], m.CheckID)
+	}
+	if len(m.ServiceID) > 0 {
+		dAtA[i] = 0x22
+		i++
+		i = encodeVarintHealthEndpoint(dAtA, i, uint64(len(m.ServiceID)))
+		i += copy(dAtA[i:], m.ServiceID)
+	}
+	if len(m.ServiceName) > 0 {
+		dAtA[i] = 0x2a
+		i++
+		i = encodeVarintHealthEndpoint(dAtA, i, uint64(len(m.ServiceName)))
+		i += copy(dAtA[i:], m.ServiceName)
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
@@ -673,8 +761,11 @@ func (m *Event) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovHealthEndpoint(uint64(l))
 	}
-	if m.Event != nil {
-		l = m.Event.Size()
+	if m.Index != 0 {
+		n += 1 + sovHealthEndpoint(uint64(m.Index))
+	}
+	if m.ServiceHealth != nil {
+		l = m.ServiceHealth.Size()
 		n += 1 + l + sovHealthEndpoint(uint64(l))
 	}
 	if m.XXX_unrecognized != nil {
@@ -704,6 +795,10 @@ func (m *ServiceHealthUpdate) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovHealthEndpoint(uint64(l))
 	}
+	l = len(m.Service)
+	if l > 0 {
+		n += 1 + l + sovHealthEndpoint(uint64(l))
+	}
 	if m.Port != 0 {
 		n += 1 + sovHealthEndpoint(uint64(m.Port))
 	}
@@ -725,7 +820,23 @@ func (m *HealthCheck) Size() (n int) {
 	}
 	var l int
 	_ = l
+	l = len(m.Name)
+	if l > 0 {
+		n += 1 + l + sovHealthEndpoint(uint64(l))
+	}
 	l = len(m.Status)
+	if l > 0 {
+		n += 1 + l + sovHealthEndpoint(uint64(l))
+	}
+	l = len(m.CheckID)
+	if l > 0 {
+		n += 1 + l + sovHealthEndpoint(uint64(l))
+	}
+	l = len(m.ServiceID)
+	if l > 0 {
+		n += 1 + l + sovHealthEndpoint(uint64(l))
+	}
+	l = len(m.ServiceName)
 	if l > 0 {
 		n += 1 + l + sovHealthEndpoint(uint64(l))
 	}
@@ -934,8 +1045,27 @@ func (m *Event) Unmarshal(dAtA []byte) error {
 			m.Key = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Index", wireType)
+			}
+			m.Index = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowHealthEndpoint
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Index |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Event", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ServiceHealth", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -962,10 +1092,10 @@ func (m *Event) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.Event == nil {
-				m.Event = &ServiceHealthUpdate{}
+			if m.ServiceHealth == nil {
+				m.ServiceHealth = &ServiceHealthUpdate{}
 			}
-			if err := m.Event.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			if err := m.ServiceHealth.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -1139,6 +1269,38 @@ func (m *ServiceHealthUpdate) Unmarshal(dAtA []byte) error {
 			m.Address = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Service", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowHealthEndpoint
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthHealthEndpoint
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthHealthEndpoint
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Service = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 6:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Port", wireType)
 			}
@@ -1157,7 +1319,7 @@ func (m *ServiceHealthUpdate) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 6:
+		case 7:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Checks", wireType)
 			}
@@ -1247,6 +1409,38 @@ func (m *HealthCheck) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowHealthEndpoint
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthHealthEndpoint
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthHealthEndpoint
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Name = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
 			}
 			var stringLen uint64
@@ -1276,6 +1470,102 @@ func (m *HealthCheck) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Status = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CheckID", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowHealthEndpoint
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthHealthEndpoint
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthHealthEndpoint
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CheckID = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ServiceID", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowHealthEndpoint
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthHealthEndpoint
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthHealthEndpoint
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ServiceID = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ServiceName", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowHealthEndpoint
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthHealthEndpoint
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthHealthEndpoint
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ServiceName = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
