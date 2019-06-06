@@ -18,15 +18,15 @@ func TestLog(t *testing.T) {
 	Println("Test logging")
 	if !strings.Contains(buf.String(), "Test logging") {
 		t.Errorf("expected to contain `%s` but got %s", "Test logging", buf.String())
-	}	
+	}
 }
 
 func TestSetupLogging(t *testing.T) {
 	stubPrintf := func(string, ...interface{}) {}
-	stubPrintln := func( ...interface{}) {}
+	stubPrintln := func(...interface{}) {}
 	type args struct {
 		printf  Funcf
-		println  Funcln
+		println Funcln
 	}
 	tests := []struct {
 		name    string
@@ -35,7 +35,7 @@ func TestSetupLogging(t *testing.T) {
 	}{
 		{name: "success", args: args{printf: stubPrintf, println: stubPrintln}, wantErr: false},
 		{name: "missing info", args: args{printf: nil, println: stubPrintln}, wantErr: true},
-		{name: "missing warn", args: args{printf: stubPrintf, println: nil}, wantErr: true},		
+		{name: "missing warn", args: args{printf: stubPrintf, println: nil}, wantErr: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
