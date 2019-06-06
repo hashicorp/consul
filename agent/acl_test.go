@@ -64,7 +64,7 @@ func NewTestACLAgent(name string, hcl string, resolveFn func(string) (acl.Author
 		config.Source{Name: a.Name + ".data_dir", Format: "hcl", Data: hclDataDir},
 	)
 
-	agent, err := New(a.Config)
+	agent, err := New(a.Config, nil)
 	if err != nil {
 		panic(fmt.Sprintf("Error creating agent: %v", err))
 	}
