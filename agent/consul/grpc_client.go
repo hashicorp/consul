@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
@@ -35,21 +36,21 @@ type GRPCClient struct {
 	grpcConns     map[string]*grpc.ClientConn
 	grpcConnsLock sync.RWMutex
 	routers       *router.Manager
-	logger        *log.Logger
 }
 
 func NewGRPCClient(logger *log.Logger, routers *router.Manager) *GRPCClient {
 	return &GRPCClient{
 		grpcConns: make(map[string]*grpc.ClientConn),
 		routers:   routers,
-		logger:    logger,
 	}
 }
 
-func (c *GRPCClient) GRPCConn() (*grpc.ClientConn, error) {
-	server := c.routers.FindServer()
+func (c *GRPCClient) GRPCConn(server *metadata.Server) (*grpc.ClientConn, error) {
 	if server == nil {
-		return nil, structs.ErrNoServers
+		server = c.routers.FindServer()
+		if server == nil {
+			return nil, structs.ErrNoServers
+		}
 	}
 
 	host, _, _ := net.SplitHostPort(server.Addr.String())
