@@ -3,12 +3,10 @@ package consul
 import (
 	"fmt"
 	"sort"
-	"strings"
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
-	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	bexpr "github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-memdb"
@@ -17,30 +15,6 @@ import (
 // Health endpoint is used to query the health information
 type Health struct {
 	srv *Server
-}
-
-type HealthGRPCAdapter struct {
-	Health
-}
-
-func (h *HealthGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server stream.Consul_SubscribeServer) error {
-	if !strings.HasPrefix(in.Key, "health/service-nodes/") {
-		return fmt.Errorf("only health/service-nodes requests are supported")
-	}
-
-	// Register a subscription on this topic/key with the FSM.
-	eventCh := h.srv.fsm.Subscribe(req)
-
-	for {
-		select {
-		case event := <-eventCh:
-			if err := server.Send(event); err != nil {
-				return err
-			}
-		case <-server.Context().Done():
-			return nil
-		}
-	}
 }
 
 // ChecksInState is used to get all the checks in a given state
