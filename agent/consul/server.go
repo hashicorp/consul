@@ -752,7 +752,7 @@ func (s *Server) setupGRPC() error {
 	}
 
 	srv := grpc.NewServer()
-	stream.RegisterConsulServer(srv, &HealthGRPCAdapter{Health{s}})
+	stream.RegisterConsulServer(srv, &ConsulGRPCAdapter{Health{s}})
 
 	go srv.Serve(lis)
 	s.GRPCListener = lis

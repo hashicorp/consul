@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/types"
 	memdb "github.com/hashicorp/go-memdb"
 )
@@ -108,6 +109,8 @@ type Store struct {
 
 	// lockDelay holds expiration times for locks associated with keys.
 	lockDelay *Delay
+
+	publisher *EventPublisher
 }
 
 // Snapshot is used to provide a point-in-time snapshot. It
@@ -157,6 +160,7 @@ func NewStateStore(gc *TombstoneGC) (*Store, error) {
 		abandonCh:    make(chan struct{}),
 		kvsGraveyard: NewGraveyard(gc),
 		lockDelay:    NewDelay(),
+		publisher:    NewEventPublisher(),
 	}
 	return s, nil
 }
@@ -206,6 +210,19 @@ func (s *Snapshot) Close() {
 func (s *Store) Restore() *Restore {
 	tx := s.db.Txn(true)
 	return &Restore{s, tx}
+}
+
+func (s *Store) emitEvents(txn *memdb.Txn, events []stream.Event) error {
+	if s.publisher == nil {
+		return nil
+	}
+
+	if err := s.publisher.PreparePublish(events); err != nil {
+		return err
+	}
+
+	txn.Defer(s.publisher.Commit)
+	return nil
 }
 
 // Abort abandons the changes made by a restore. This or Commit should always be
@@ -281,4 +298,12 @@ func indexUpdateMaxTxn(tx *memdb.Txn, idx uint64, table string) error {
 	}
 
 	return nil
+}
+
+func (s *Store) Subscribe(subscription *stream.SubscribeRequest) <-chan stream.Event {
+	return s.publisher.Subscribe(subscription)
+}
+
+func (s *Store) Unsubscribe(subscription *stream.SubscribeRequest) {
+	s.publisher.Unsubscribe(subscription)
 }
