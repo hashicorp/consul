@@ -18,7 +18,8 @@ message SubscribeRequest {
 message Event {
     Topic topic = 1;
     string key = 2;
-    ServiceHealthUpdate event = 3;
+    uint64 index = 3;
+    ServiceHealthUpdate serviceHealth = 4;
 }
 
 enum CatalogOp {
@@ -31,10 +32,15 @@ message ServiceHealthUpdate {
     string node = 2;
     string id = 3;
     string address = 4;
-    int32 port = 5;
-    repeated HealthCheck checks = 6;
+    string service = 5;
+    int32 port = 6;
+    repeated HealthCheck checks = 7;
 }
 
 message HealthCheck {
-    string status = 1;
+    string name = 1;
+    string status = 2;
+    string checkID = 3;
+    string serviceID = 4;
+    string serviceName = 5;
 }

@@ -2,11 +2,7 @@ package consul
 
 import (
 	"bytes"
-	"context"
-	"fmt"
-	"io"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -14,7 +10,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
@@ -319,82 +314,4 @@ func TestRPC_ReadyForConsistentReads(t *testing.T) {
 			r.Fatalf("Expected server to be ready for consistent reads, got error %v", err)
 		}
 	})
-}
-
-func TestRPC_GRPC(t *testing.T) {
-	t.Parallel()
-
-	require := require.New(t)
-	dir1, server := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer server.Shutdown()
-
-	dir2, client := testClient(t)
-	defer os.RemoveAll(dir2)
-	defer client.Shutdown()
-
-	// Try to join
-	testrpc.WaitForLeader(t, server.RPC, "dc1")
-	joinLAN(t, client, server)
-	testrpc.WaitForTestAgent(t, client.RPC, "dc1")
-
-	serverMeta := client.routers.FindServer()
-	require.NotNil(serverMeta)
-
-	// Register a service with a check and arrange for it to be updated multiple times.
-	go func() {
-		state := server.fsm.State()
-
-		req := &structs.RegisterRequest{
-			Node:    "node1",
-			Address: "1.2.3.4",
-			Service: &structs.NodeService{
-				ID:      "redis1",
-				Service: "redis",
-				Address: "1.1.1.1",
-				Port:    8080,
-			},
-		}
-
-		// Perform multiple registrations, adding a new check each time.
-		for i := 0; i < 5; i++ {
-			req.Check = &structs.HealthCheck{
-				Node:    "node1",
-				CheckID: types.CheckID(fmt.Sprintf("check%d", i)),
-				Name:    fmt.Sprintf("check%d", i),
-			}
-
-			require.NoError(state.EnsureRegistration(uint64(i+3), req))
-			time.Sleep(200 * time.Millisecond)
-		}
-	}()
-
-	// Make a basic RPC call to our streaming endpoint.
-	conn, err := client.grpcClient.GRPCConn()
-	require.NoError(err)
-
-	streamClient := NewHealthClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-
-	stream, err := streamClient.Subscribe(ctx, &SubscribeRequest{Key: "health/service-nodes/redis"})
-	require.NoError(err)
-	var lastCheckCount int32
-	for {
-		reply, err := stream.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			if strings.Contains(err.Error(), "context deadline exceeded") {
-				break
-			}
-			t.Fatal(err)
-		}
-		newCheckCount := int32(len(reply.ServiceHealthUpdate[0].Checks))
-		if lastCheckCount != 0 {
-			require.True(newCheckCount == lastCheckCount+1)
-		}
-		lastCheckCount = newCheckCount
-	}
 }
