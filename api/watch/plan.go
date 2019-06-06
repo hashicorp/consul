@@ -3,12 +3,11 @@ package watch
 import (
 	"context"
 	"fmt"
-	"log"
-	"os"
 	"reflect"
 	"time"
 
 	consulapi "github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/log"
 )
 
 const (
@@ -39,22 +38,14 @@ func (p *Plan) RunWithConfig(address string, conf *consulapi.Config) error {
 		return fmt.Errorf("Failed to connect to agent: %v", err)
 	}
 
-	// Create the logger
-	output := p.LogOutput
-	if output == nil {
-		output = os.Stderr
-	}
-	logger := log.New(output, "", log.LstdFlags)
-
-	return p.RunWithClientAndLogger(client, logger)
+	return p.RunWithClient(client)
 }
 
-// RunWithClientAndLogger runs a watch plan using an external client and
-// log.Logger instance. Using this, the plan's Datacenter, Token and LogOutput
+// RunWithClient runs a watch plan using an external client.
+// Using this, the plan's Datacenter, Token and LogOutput
 // fields are ignored and the passed client is expected to be configured as
 // needed.
-func (p *Plan) RunWithClientAndLogger(client *consulapi.Client,
-	logger *log.Logger) error {
+func (p *Plan) RunWithClient(client *consulapi.Client) error {
 
 	p.client = client
 
@@ -84,7 +75,7 @@ OUTER:
 			if retry > maxBackoffTime {
 				retry = maxBackoffTime
 			}
-			logger.Printf("[ERR] consul.watch: Watch (type: %s) errored: %v, retry in %v",
+			log.Printf("[ERR] consul.watch: Watch (type: %s) errored: %v, retry in %v",
 				p.Type, err, retry)
 			select {
 			case <-time.After(retry):
@@ -117,7 +108,7 @@ OUTER:
 		} else if p.Handler != nil {
 			idx, ok := blockParamVal.(WaitIndexVal)
 			if !ok {
-				logger.Printf("[ERR] consul.watch: Handler only supports index-based " +
+				log.Printf("[ERR] consul.watch: Handler only supports index-based " +
 					" watches but non index-based watch run. Skipping Handler.")
 			}
 			p.Handler(uint64(idx), result)

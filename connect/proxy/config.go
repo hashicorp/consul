@@ -45,7 +45,7 @@ type Config struct {
 
 // Service returns the *connect.Service structure represented by this config.
 func (c *Config) Service(client *api.Client, logger *log.Logger) (*connect.Service, error) {
-	return connect.NewServiceWithLogger(c.ProxiedServiceName, client, logger)
+	return connect.NewServiceWithLogger(c.ProxiedServiceName, client)
 }
 
 // PublicListenerConfig contains the parameters needed for the incoming mTLS
@@ -202,7 +202,7 @@ func NewAgentConfigWatcher(client *api.Client, proxyID string,
 	}
 	w.plan = plan
 	w.plan.HybridHandler = w.handler
-	go w.plan.RunWithClientAndLogger(w.client, w.logger)
+	go w.plan.RunWithClient(w.client)
 	return w, nil
 }
 

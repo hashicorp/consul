@@ -5,14 +5,13 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
-	"log"
 	"net"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/api/watch"
+	"github.com/hashicorp/consul/log"
 	"golang.org/x/net/http2"
 )
 
@@ -49,8 +48,6 @@ type Service struct {
 
 	rootsWatch *watch.Plan
 	leafWatch  *watch.Plan
-
-	logger *log.Logger
 }
 
 // NewService creates and starts a Service. The caller must close the returned
@@ -61,18 +58,15 @@ type Service struct {
 // Consul agent, and with an ACL token that has `service:write` privileges for
 // the service specified.
 func NewService(serviceName string, client *api.Client) (*Service, error) {
-	return NewServiceWithLogger(serviceName, client,
-		log.New(os.Stderr, "", log.LstdFlags))
+	return NewServiceWithLogger(serviceName, client)
 }
 
 // NewServiceWithLogger starts the service with a specified log.Logger.
-func NewServiceWithLogger(serviceName string, client *api.Client,
-	logger *log.Logger) (*Service, error) {
+func NewServiceWithLogger(serviceName string, client *api.Client) (*Service, error) {
 	s := &Service{
 		service:              serviceName,
 		client:               client,
-		logger:               logger,
-		tlsCfg:               newDynamicTLSConfig(defaultTLSConfig(), logger),
+		tlsCfg:               newDynamicTLSConfig(defaultTLSConfig()),
 		httpResolverFromAddr: ConsulResolverFromAddrFunc(client),
 	}
 
@@ -96,32 +90,31 @@ func NewServiceWithLogger(serviceName string, client *api.Client,
 	s.leafWatch = p
 	s.leafWatch.HybridHandler = s.leafWatchHandler
 
-	go s.rootsWatch.RunWithClientAndLogger(client, s.logger)
-	go s.leafWatch.RunWithClientAndLogger(client, s.logger)
+	go s.rootsWatch.RunWithClient(client)
+	go s.leafWatch.RunWithClient(client)
 
 	return s, nil
 }
 
 // NewDevServiceFromCertFiles creates a Service using certificate and key files
 // passed instead of fetching them from the client.
-func NewDevServiceFromCertFiles(serviceID string, logger *log.Logger,
+func NewDevServiceFromCertFiles(serviceID string,
 	caFile, certFile, keyFile string) (*Service, error) {
 
 	tlsCfg, err := devTLSConfigFromFiles(caFile, certFile, keyFile)
 	if err != nil {
 		return nil, err
 	}
-	return NewDevServiceWithTLSConfig(serviceID, logger, tlsCfg)
+	return NewDevServiceWithTLSConfig(serviceID, tlsCfg)
 }
 
 // NewDevServiceWithTLSConfig creates a Service using static TLS config passed.
 // It's mostly useful for testing.
-func NewDevServiceWithTLSConfig(serviceName string, logger *log.Logger,
+func NewDevServiceWithTLSConfig(serviceName string,
 	tlsCfg *tls.Config) (*Service, error) {
 	s := &Service{
 		service: serviceName,
-		logger:  logger,
-		tlsCfg:  newDynamicTLSConfig(tlsCfg, logger),
+		tlsCfg:  newDynamicTLSConfig(tlsCfg),
 	}
 	return s, nil
 }
@@ -171,7 +164,7 @@ func (s *Service) Dial(ctx context.Context, resolver Resolver) (net.Conn, error)
 	if err != nil {
 		return nil, err
 	}
-	s.logger.Printf("[DEBUG] resolved service instance: %s (%s)", addr,
+	log.Printf("[DEBUG] resolved service instance: %s (%s)", addr,
 		certURI.URI())
 	var dialer net.Dialer
 	tcpConn, err := dialer.DialContext(ctx, "tcp", addr)
@@ -201,8 +194,7 @@ func (s *Service) Dial(ctx context.Context, resolver Resolver) (net.Conn, error)
 		tlsConn.Close()
 		return nil, err
 	}
-	s.logger.Printf("[DEBUG] successfully connected to %s (%s)", addr,
-		certURI.URI())
+	log.Printf("[DEBUG] successfully connected to %s (%s)", addr, certURI.URI())
 	return tlsConn, nil
 }
 
@@ -267,7 +259,7 @@ func (s *Service) rootsWatchHandler(blockParam watch.BlockingParamVal, raw inter
 	}
 	v, ok := raw.(*api.CARootList)
 	if !ok || v == nil {
-		s.logger.Println("[ERR] got invalid response from root watch")
+		log.Println("[ERR] got invalid response from root watch")
 		return
 	}
 
@@ -286,14 +278,14 @@ func (s *Service) leafWatchHandler(blockParam watch.BlockingParamVal, raw interf
 	}
 	v, ok := raw.(*api.LeafCert)
 	if !ok || v == nil {
-		s.logger.Println("[ERR] got invalid response from root watch")
+		log.Println("[ERR] got invalid response from root watch")
 		return
 	}
 
 	// Got new leaf, update the tls.Configs
 	cert, err := tls.X509KeyPair([]byte(v.CertPEM), []byte(v.PrivateKeyPEM))
 	if err != nil {
-		s.logger.Printf("[ERR] failed to parse new leaf cert: %s", err)
+		log.Printf("[ERR] failed to parse new leaf cert: %s", err)
 		return
 	}
 

@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/url"
 	"strings"
@@ -16,6 +15,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/log"
 )
 
 // parseLeafX509Cert will parse an X509 certificate
@@ -326,7 +326,7 @@ type tlsCfgUpdate struct {
 // newDynamicTLSConfig returns a dynamicTLSConfig constructed from base.
 // base.Certificates[0] is used as the initial leaf and base.RootCAs is used as
 // the initial roots.
-func newDynamicTLSConfig(base *tls.Config, logger *log.Logger) *dynamicTLSConfig {
+func newDynamicTLSConfig(base *tls.Config) *dynamicTLSConfig {
 	cfg := &dynamicTLSConfig{
 		base: base,
 	}
@@ -334,8 +334,8 @@ func newDynamicTLSConfig(base *tls.Config, logger *log.Logger) *dynamicTLSConfig
 		cfg.leaf = &base.Certificates[0]
 		// If this does error then future calls to Ready will fail
 		// It is better to handle not-Ready rather than failing
-		if err := parseLeafX509Cert(cfg.leaf); err != nil && logger != nil {
-			logger.Printf("[ERR] Error parsing configured leaf certificate: %v", err)
+		if err := parseLeafX509Cert(cfg.leaf); err != nil {
+			log.Printf("[ERR] Error parsing configured leaf certificate: %v", err)
 		}
 	}
 	if base.RootCAs != nil {

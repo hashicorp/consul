@@ -8,7 +8,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"os"
 	"sync/atomic"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -22,8 +21,7 @@ func TestService(t testing.T, service string, ca *structs.CARoot) *Service {
 	t.Helper()
 
 	// Don't need to talk to client since we are setting TLSConfig locally
-	svc, err := NewDevServiceWithTLSConfig(service,
-		log.New(os.Stderr, "", log.LstdFlags), TestTLSConfig(t, service, ca))
+	svc, err := NewDevServiceWithTLSConfig(service, TestTLSConfig(t, service, ca))
 	if err != nil {
 		t.Fatal(err)
 	}
