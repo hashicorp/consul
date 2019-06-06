@@ -319,7 +319,7 @@ $ kubectl apply -f traffic.yaml
 ## Collect Application Metrics
 
 Envoy exposes a huge number of
-[metrics](https://www.envoyproxy.io/docs/envoy/v1.9.1/operations/stats_overview),
+[metrics](https://www.envoyproxy.io/docs/envoy/v1.10.0/operations/stats_overview),
 but you will probably only want to monitor or alert on a subset of them. Which
 metrics are important to monitor will depend on your application. For this
 getting-started guide we have preconfigured an Emojify-specific Grafana
