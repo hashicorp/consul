@@ -89,7 +89,7 @@ func TestStreaming_Subscribe(t *testing.T) {
 	require.NoError(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &req, &out))
 
 	// Make a basic RPC call to our streaming endpoint.
-	conn, err := client.grpcClient.GRPCConn()
+	conn, err := client.grpcClient.GRPCConn(nil)
 	require.NoError(err)
 
 	streamClient := stream.NewConsulClient(conn)
