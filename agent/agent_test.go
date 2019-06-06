@@ -3878,6 +3878,10 @@ func TestAgent_consulConfig(t *testing.T) {
 	defer os.RemoveAll(dataDir)
 	hcl := `
 		data_dir = "` + dataDir + `"
+		verify_incoming = true
+		ca_file = "../test/ca/root.cer"
+		cert_file = "../test/key/ourdomain.cer"
+		key_file = "../test/key/ourdomain.key"
 		auto_encrypt { allow_tls = true }
 	`
 	a := NewTestAgent(t, t.Name(), hcl)
