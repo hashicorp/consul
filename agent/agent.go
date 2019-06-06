@@ -208,6 +208,8 @@ type Agent struct {
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
 
+	InterruptStartCh chan struct{}
+
 	// joinLANNotifier is called after a successful JoinLAN.
 	joinLANNotifier notifier
 
@@ -279,23 +281,24 @@ func New(c *config.RuntimeConfig, logger *log.Logger) (*Agent, error) {
 	}
 
 	a := &Agent{
-		config:          c,
-		checkReapAfter:  make(map[types.CheckID]time.Duration),
-		checkMonitors:   make(map[types.CheckID]*checks.CheckMonitor),
-		checkTTLs:       make(map[types.CheckID]*checks.CheckTTL),
-		checkHTTPs:      make(map[types.CheckID]*checks.CheckHTTP),
-		checkTCPs:       make(map[types.CheckID]*checks.CheckTCP),
-		checkGRPCs:      make(map[types.CheckID]*checks.CheckGRPC),
-		checkDockers:    make(map[types.CheckID]*checks.CheckDocker),
-		checkAliases:    make(map[types.CheckID]*checks.CheckAlias),
-		eventCh:         make(chan serf.UserEvent, 1024),
-		eventBuf:        make([]*UserEvent, 256),
-		joinLANNotifier: &systemd.Notifier{},
-		reloadCh:        make(chan chan error),
-		retryJoinCh:     make(chan error),
-		shutdownCh:      make(chan struct{}),
-		endpoints:       make(map[string]string),
-		tokens:          new(token.Store),
+		config:           c,
+		checkReapAfter:   make(map[types.CheckID]time.Duration),
+		checkMonitors:    make(map[types.CheckID]*checks.CheckMonitor),
+		checkTTLs:        make(map[types.CheckID]*checks.CheckTTL),
+		checkHTTPs:       make(map[types.CheckID]*checks.CheckHTTP),
+		checkTCPs:        make(map[types.CheckID]*checks.CheckTCP),
+		checkGRPCs:       make(map[types.CheckID]*checks.CheckGRPC),
+		checkDockers:     make(map[types.CheckID]*checks.CheckDocker),
+		checkAliases:     make(map[types.CheckID]*checks.CheckAlias),
+		eventCh:          make(chan serf.UserEvent, 1024),
+		eventBuf:         make([]*UserEvent, 256),
+		joinLANNotifier:  &systemd.Notifier{},
+		reloadCh:         make(chan chan error),
+		retryJoinCh:      make(chan error),
+		shutdownCh:       make(chan struct{}),
+		InterruptStartCh: make(chan struct{}),
+		endpoints:        make(map[string]string),
+		tokens:           new(token.Store),
 	}
 	a.serviceManager = NewServiceManager(a)
 
@@ -554,7 +557,7 @@ func (a *Agent) setupClientAutoEncrypt() (*structs.SignResponse, error) {
 	}
 	addrs = append(addrs, retryJoinAddrs(disco, "LAN", a.config.RetryJoinLAN, a.logger)...)
 
-	reply, priv, err := client.AutoEncrypt(addrs, a.config.ServerPort, a.tokens.AgentToken())
+	reply, priv, err := client.AutoEncrypt(addrs, a.config.ServerPort, a.tokens.AgentToken(), a.InterruptStartCh)
 	if err != nil {
 		return nil, err
 	}

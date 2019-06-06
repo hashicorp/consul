@@ -245,7 +245,44 @@ func (c *cmd) run(args []string) int {
 	c.UI.Output("Log data will now stream in as it occurs:\n")
 	logGate.Flush()
 
-	if err := agent.Start(); err != nil {
+	// wait for signal
+	signalCh := make(chan os.Signal, 10)
+	stopCh := make(chan struct{})
+	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
+
+	go func() {
+		for {
+			var sig os.Signal
+			select {
+			case s := <-signalCh:
+				sig = s
+			case <-stopCh:
+				return
+			}
+
+			switch sig {
+			case syscall.SIGPIPE:
+				continue
+
+			case syscall.SIGHUP:
+				err := fmt.Errorf("cannot reload before agent started")
+				c.logger.Printf("[ERR] agent: Caught signal: %s err: %s\n", sig, err)
+
+			default:
+				c.logger.Println("[INFO] agent: Caught signal: ", sig)
+				agent.InterruptStartCh <- struct{}{}
+				return
+			}
+		}
+	}()
+
+	err = agent.Start()
+	signal.Stop(signalCh)
+	select {
+	case stopCh <- struct{}{}:
+	default:
+	}
+	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error starting agent: %s", err))
 		return 1
 	}
@@ -274,7 +311,7 @@ func (c *cmd) run(args []string) int {
 	c.UI.Output("Consul agent running!")
 
 	// wait for signal
-	signalCh := make(chan os.Signal, 10)
+	signalCh = make(chan os.Signal, 10)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
 
 	for {

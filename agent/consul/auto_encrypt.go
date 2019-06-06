@@ -18,7 +18,7 @@ const (
 	retryJitterWindow = 30 * time.Second
 )
 
-func (c *Client) AutoEncrypt(servers []string, port int, token string) (*structs.SignResponse, string, error) {
+func (c *Client) AutoEncrypt(servers []string, port int, token string, interruptCh chan struct{}) (*structs.SignResponse, string, error) {
 	errFn := func(err error) (*structs.SignResponse, string, error) {
 		return nil, "", err
 	}
@@ -64,6 +64,11 @@ func (c *Client) AutoEncrypt(servers []string, port int, token string) (*structs
 	// Repeat until the call is successful.
 	attempts := 0
 	for {
+		select {
+		case <-interruptCh:
+			return errFn(fmt.Errorf("aborting AutoEncrypt because interrupted"))
+		default:
+		}
 		// Translate host to net.TCPAddr to make life easier for
 		// RPCInsecure.
 		addrs := []*net.TCPAddr{}
@@ -88,6 +93,8 @@ func (c *Client) AutoEncrypt(servers []string, port int, token string) (*structs
 		select {
 		case <-time.After(interval):
 			continue
+		case <-interruptCh:
+			return errFn(fmt.Errorf("aborting AutoEncrypt because interrupted"))
 		case <-c.shutdownCh:
 			return errFn(fmt.Errorf("aborting AutoEncrypt because shutting down"))
 		}
