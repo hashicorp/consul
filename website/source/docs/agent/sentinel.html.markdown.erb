@@ -85,7 +85,7 @@ key "haproxy_version" {
     sentinel {
         code = <<EOF
 import "time"
-main = rule { time.hour > 8 and time.hour < 17 }
+main = rule { time.now.hour > 8 and time.now.hour < 17 }
 EOF
     }
 }
