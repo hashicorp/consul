@@ -906,6 +906,8 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	// reDatacenter defines a regexp for a valid datacenter name
 	var reDatacenter = regexp.MustCompile("^[a-z0-9_-]+$")
 
+	// validContentPath defines a regexp for a valid content path name.
+	var validContentPath = regexp.MustCompile(`[^(?!v1)\/A-Za-z0-9\\_\\-]+`)
 	// ----------------------------------------------------------------
 	// check required params we cannot recover from first
 	//
@@ -914,13 +916,17 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		return fmt.Errorf("datacenter cannot be empty")
 	}
 	if !reDatacenter.MatchString(rt.Datacenter) {
-		return fmt.Errorf("datacenter cannot be %q. Please use only [a-z0-9-_].", rt.Datacenter)
+		return fmt.Errorf("datacenter cannot be %q. Please use only [a-z0-9-_]", rt.Datacenter)
 	}
 	if rt.DataDir == "" && !rt.DevMode {
 		return fmt.Errorf("data_dir cannot be empty")
 	}
 	if rt.UIContentPath == "" {
-		return fmt.Errorf("expected: string, received: %s", rt.UIContentPath)
+		return fmt.Errorf("ui-content-path cannot be empty. expected: string, received: %s", rt.UIContentPath)
+	}
+
+	if validContentPath.MatchString(rt.UIContentPath) {
+		return fmt.Errorf("ui-content-path can only contain alphanumeric, -, _, received: %s", rt.UIContentPath)
 	}
 
 	if !rt.DevMode {
