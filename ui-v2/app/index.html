@@ -8,11 +8,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     {{content-for "head"}}
-    <link rel="icon" type="image/png" href="{{rootURL}}assets/favicon-32x32.png" sizes="32x32">
-    <link rel="icon" type="image/png" href="{{rootURL}}assets/favicon-16x16.png" sizes="16x16">
+    <link rel="icon" type="image/png" href="{{.ContentPath}}assets/favicon-32x32.png" sizes="32x32">
+    <link rel="icon" type="image/png" href="{{.ContentPath}}assets/favicon-16x16.png" sizes="16x16">
 
-    <link integrity="" rel="stylesheet" href="{{rootURL}}assets/vendor.css">
-    <link integrity="" rel="stylesheet" href="{{rootURL}}assets/consul-ui.css">
+    <link integrity="" rel="stylesheet" href="{{.ContentPath}}assets/vendor.css">
+    <link integrity="" rel="stylesheet" href="{{.ContentPath}}assets/consul-ui.css">
 
     {{content-for "head-footer"}}
   </head>
@@ -24,7 +24,7 @@
         </div>
     </noscript>
     {{content-for "body"}}
-    <script src="{{rootURL}}assets/vendor.js"></script>
+    <script src="{{.ContentPath}}assets/vendor.js"></script>
     <script>
       var appendScript = function(src) {
         var $script = document.createElement('script');
@@ -32,21 +32,21 @@
         document.body.appendChild($script);
       }
       if(!('TextDecoder' in window)) {
-        appendScript('{{rootURL}}assets/encoding-indexes.js');
-        appendScript('{{rootURL}}assets/encoding.js');
+        appendScript('{{.ContentPath}}assets/encoding-indexes.js');
+        appendScript('{{.ContentPath}}assets/encoding.js');
       }
     </script>
-    <script src="{{rootURL}}assets/consul-ui.js"></script>
+    <script src="{{.ContentPath}}assets/consul-ui.js"></script>
     <script>
       CodeMirror.modeURL = {
         replace: function(n, mode) {
           switch(mode) {
             case 'javascript':
-              return '{{rootURL}}assets/codemirror/mode/javascript/javascript.js';
+              return '{{.ContentPath}}assets/codemirror/mode/javascript/javascript.js';
             case 'ruby':
-              return '{{rootURL}}assets/codemirror/mode/ruby/ruby.js';
+              return '{{.ContentPath}}assets/codemirror/mode/ruby/ruby.js';
             case 'yaml':
-              return '{{rootURL}}assets/codemirror/mode/yaml/yaml.js';
+              return '{{.ContentPath}}assets/codemirror/mode/yaml/yaml.js';
           }
         }
       };

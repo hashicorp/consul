@@ -1,17 +1,21 @@
 package agent
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/pprof"
 	"net/url"
+	"os"
 	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/NYTimes/gziphandler"
@@ -83,16 +87,88 @@ type HTTPServer struct {
 	// proto is filled by the agent to "http" or "https".
 	proto string
 }
+type templatedFile struct {
+	templated *bytes.Reader
+	name      string
+	mode      os.FileMode
+	modTime   time.Time
+}
+
+func newTemplatedFile(buf *bytes.Buffer, raw http.File) *templatedFile {
+	info, _ := raw.Stat()
+	return &templatedFile{
+		templated: bytes.NewReader(buf.Bytes()),
+		name:      info.Name(),
+		mode:      info.Mode(),
+		modTime:   info.ModTime(),
+	}
+}
+
+func (t *templatedFile) Read(p []byte) (n int, err error) {
+	return t.templated.Read(p)
+}
+
+func (t *templatedFile) Seek(offset int64, whence int) (int64, error) {
+	return t.templated.Seek(offset, whence)
+}
+
+func (t *templatedFile) Close() error {
+	return nil
+}
+
+func (t *templatedFile) Readdir(count int) ([]os.FileInfo, error) {
+	return nil, errors.New("not a directory")
+}
+
+func (t *templatedFile) Stat() (os.FileInfo, error) {
+	return t, nil
+}
+
+func (t *templatedFile) Name() string {
+	return t.name
+}
+
+func (t *templatedFile) Size() int64 {
+	return int64(t.templated.Len())
+}
+
+func (t *templatedFile) Mode() os.FileMode {
+	return t.mode
+}
+
+func (t *templatedFile) ModTime() time.Time {
+	return t.modTime
+}
+
+func (t *templatedFile) IsDir() bool {
+	return false
+}
+
+func (t *templatedFile) Sys() interface{} {
+	return nil
+}
 
 type redirectFS struct {
-	fs http.FileSystem
+	fs          http.FileSystem
+	ContentPath string
 }
 
 func (fs *redirectFS) Open(name string) (http.File, error) {
 	file, err := fs.fs.Open(name)
 	if err != nil {
-		file, err = fs.fs.Open("/index.html")
+
+		file, err = fs.fs.Open("index.html")
+		name = "index.html"
 	}
+	if err == nil && name == "index.html" {
+		content, _ := ioutil.ReadAll(file)
+		file.Seek(0, 0)
+		t, _ := template.New("foo").Parse(string(content))
+		var out bytes.Buffer
+		err = t.Execute(&out, fs)
+		file = newTemplatedFile(&out, file)
+	}
+	fmt.Println(name)
 	return file, err
 }
 
@@ -207,7 +283,6 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 
 		handleFuncMetrics(pattern, http.HandlerFunc(wrapper))
 	}
-
 	mux.HandleFunc("/", s.Index)
 	for pattern, fn := range endpoints {
 		thisFn := fn
@@ -234,7 +309,7 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 			fs := assetFS()
 			uifs = fs
 		}
-		uifs = &redirectFS{fs: uifs}
+		uifs = &redirectFS{fs: uifs, ContentPath: s.agent.config.UIPathBuilder()}
 
 		mux.Handle("/robots.txt", http.FileServer(uifs))
 		//Use the custom UI path if provided.
@@ -489,7 +564,7 @@ func (s *HTTPServer) Index(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	// Redirect to the UI endpoint
-	http.Redirect(resp, req, "/ui/", http.StatusMovedPermanently) // 301
+	http.Redirect(resp, req, s.agent.config.UIPathBuilder(), http.StatusMovedPermanently) // 301
 }
 
 // decodeBody is used to decode a JSON request body

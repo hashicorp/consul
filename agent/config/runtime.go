@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"net"
-	"net/url"
 	"reflect"
 	"strings"
 	"time"
@@ -1747,12 +1746,15 @@ func isComplex(t reflect.Type) bool {
 	return t.Kind() == reflect.Complex64 || t.Kind() == reflect.Complex128
 }
 
-// UIPathBuilder adds beginning and trailing
-// slashes to UI path, and encodes it
+// UIPathBuilder checks to see if there was a path set
+// If so, adds beginning and trailing slashes to UI path
 func (c *RuntimeConfig) UIPathBuilder() string {
 	if c.UIContentPath != "" {
-		UIAscii := url.QueryEscape(c.UIContentPath)
-		return fmt.Sprintf("/%v/", UIAscii)
+		var fmtedPath string
+		fmtedPath = strings.Trim(c.UIContentPath, "/")
+		fmtedPath = "/" + fmtedPath + "/"
+		return fmtedPath
+
 	}
 	return "/ui/"
 

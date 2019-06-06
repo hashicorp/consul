@@ -741,16 +741,18 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.UIDir = "a"
 				rt.DataDir = dataDir
 			},
-			{
-				desc: "-ui-content-path",
-				args: []string{
-					`-ui-content-path=a`,
-					`-data-dir=` + dataDir,
-				},
-				patch: func(rt *RuntimeConfig) {
-					rt.UIContentPath = "a"
-					rt.DataDir = dataDir
-				},
+		},
+		{
+			desc: "-ui-content-path",
+			args: []string{
+				`-ui-content-path=a`,
+				`-data-dir=` + dataDir,
+			},
+
+			patch: func(rt *RuntimeConfig) {
+				rt.UIContentPath = "a"
+				rt.DataDir = dataDir
+			},
 		},
 
 		// ------------------------------------------------------------
@@ -5678,6 +5680,44 @@ func TestReadPath(t *testing.T) {
 				t.Fatalf("expected %d sources, got %d", tc.expect, got)
 			}
 		})
+	}
+}
+
+func Test_UIPathBuilder(t *testing.T) {
+	cases := []struct {
+		name     string
+		path     string
+		expected string
+	}{
+		{
+			"Letters only string",
+			"hello",
+			"/hello/",
+		},
+		{
+			"Alphanumeric",
+			"Hello1",
+			"/Hello1/",
+		},
+		{
+			"Hyphen and underscore",
+			"-_",
+			"/-_/",
+		},
+		{
+			"Many slashes",
+			"/hello/ui/1/",
+			"/hello/ui/1/",
+		},
+	}
+
+	for _, tt := range cases {
+		c := &RuntimeConfig{
+			UIContentPath: tt.path,
+		}
+		actual := c.UIPathBuilder()
+		require.Equal(t, actual, tt.expected)
+
 	}
 }
 
