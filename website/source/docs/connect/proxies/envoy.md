@@ -33,7 +33,7 @@ compatible Envoy versions.
 
 | Consul Version | Compatible Envoy Versions |
 |---|---|
-| 1.5.2 and higher | 1.10, 1.9.1, 1.8.0† |
+| 1.5.2 and higher | 1.10.0, 1.9.1, 1.8.0† |
 | 1.5.0, 1.5.1 | 1.9.1, 1.8.0† |
 | 1.3.x, 1.4.x | 1.9.1, 1.8.0†, 1.7.0† |
 
