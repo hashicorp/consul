@@ -163,12 +163,11 @@ func (fs *redirectFS) Open(name string) (http.File, error) {
 	if err == nil && name == "index.html" {
 		content, _ := ioutil.ReadAll(file)
 		file.Seek(0, 0)
-		t, _ := template.New("foo").Parse(string(content))
+		t, _ := template.New("fmtedindex").Parse(string(content))
 		var out bytes.Buffer
 		err = t.Execute(&out, fs)
 		file = newTemplatedFile(&out, file)
 	}
-	fmt.Println(name)
 	return file, err
 }
 
