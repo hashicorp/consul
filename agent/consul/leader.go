@@ -242,7 +242,9 @@ WAIT:
 		case errCh := <-s.reassertLeaderCh:
 			err := reassert()
 			errCh <- err
-			return err
+			if err != nil {
+				return err
+			}
 		}
 	}
 }
