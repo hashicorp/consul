@@ -921,9 +921,6 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	if rt.DataDir == "" && !rt.DevMode {
 		return fmt.Errorf("data_dir cannot be empty")
 	}
-	if rt.UIContentPath == "" {
-		return fmt.Errorf("ui-content-path cannot be empty. expected: string, received: %s", rt.UIContentPath)
-	}
 
 	if validContentPath.MatchString(rt.UIContentPath) {
 		return fmt.Errorf("ui-content-path can only contain alphanumeric, -, _, received: %s", rt.UIContentPath)
