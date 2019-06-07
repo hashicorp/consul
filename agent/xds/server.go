@@ -15,7 +15,8 @@ import (
 	"google.golang.org/grpc/status"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoyauthz "github.com/envoyproxy/go-control-plane/envoy/service/auth/v2alpha"
+	envoyauthz "github.com/envoyproxy/go-control-plane/envoy/service/auth/v2"
+	envoyauthzalpha "github.com/envoyproxy/go-control-plane/envoy/service/auth/v2alpha"
 	envoydisco "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"github.com/gogo/googleapis/google/rpc"
 	"github.com/gogo/protobuf/proto"
@@ -414,8 +415,8 @@ func tokenFromContext(ctx context.Context) string {
 	return ""
 }
 
-// IncrementalAggregatedResources implements envoydisco.AggregatedDiscoveryServiceServer
-func (s *Server) IncrementalAggregatedResources(_ envoydisco.AggregatedDiscoveryService_IncrementalAggregatedResourcesServer) error {
+// DeltaAggregatedResources implements envoydisco.AggregatedDiscoveryServiceServer
+func (s *Server) DeltaAggregatedResources(_ envoydisco.AggregatedDiscoveryService_DeltaAggregatedResourcesServer) error {
 	return errors.New("not implemented")
 }
 
@@ -515,6 +516,16 @@ func (s *Server) GRPCServer(certFile, keyFile string) (*grpc.Server, error) {
 	}
 	srv := grpc.NewServer(opts...)
 	envoydisco.RegisterAggregatedDiscoveryServiceServer(srv, s)
+
+	// Envoy 1.10 changed the package for ext_authz from v2alpha to v2. We still
+	// need to be compatible with 1.9.1 and earlier which only uses v2alpha. While
+	// there is a deprecated compatibility shim option in 1.10, we want to support
+	// first class. Fortunately they are wire-compatible so we can just register a
+	// single service implementation (using the new v2 package definitions) but
+	// using the old v2alpha regiatration function which just exports it on the
+	// old path as well.
 	envoyauthz.RegisterAuthorizationServer(srv, s)
+	envoyauthzalpha.RegisterAuthorizationServer(srv, s)
+
 	return srv, nil
 }

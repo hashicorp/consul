@@ -36,7 +36,7 @@ require (
 	github.com/docker/go-units v0.3.3 // indirect
 	github.com/duosecurity/duo_api_golang v0.0.0-20190308151101-6c680f768e74 // indirect
 	github.com/elazarl/go-bindata-assetfs v0.0.0-20160803192304-e1a2a7ec64b0
-	github.com/envoyproxy/go-control-plane v0.0.0-20180919002855-2137d9196328
+	github.com/envoyproxy/go-control-plane v0.8.0
 	github.com/fatih/structs v0.0.0-20180123065059-ebf56d35bba7 // indirect
 	github.com/go-ldap/ldap v3.0.2+incompatible // indirect
 	github.com/go-ole/go-ole v1.2.1 // indirect
@@ -44,7 +44,8 @@ require (
 	github.com/go-test/deep v1.0.1 // indirect
 	github.com/gocql/gocql v0.0.0-20180617115710-e06f8c1bcd78 // indirect
 	github.com/gogo/googleapis v1.1.0
-	github.com/gogo/protobuf v1.1.1
+	github.com/gogo/protobuf v1.2.1
+	github.com/golang/lint v0.0.0-20180702182130-06c8688daad7 // indirect
 	github.com/golang/protobuf v1.2.0
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
 	github.com/google/go-cmp v0.2.0 // indirect
@@ -117,11 +118,11 @@ require (
 	github.com/stretchr/objx v0.1.1 // indirect
 	github.com/stretchr/testify v1.3.0
 	golang.org/x/crypto v0.0.0-20190325154230-a5d413f7728c
-	golang.org/x/net v0.0.0-20190403144856-b630fd6fe46b
-	golang.org/x/sync v0.0.0-20190227155943-e225da77a7e6
-	golang.org/x/sys v0.0.0-20190403152447-81d4e9dc473e
+	golang.org/x/net v0.0.0-20190503192946-f4e77d36d62c
+	golang.org/x/sync v0.0.0-20190423024810-112230192c58
+	golang.org/x/sys v0.0.0-20190508220229-2d0786266e9c
 	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2
-	google.golang.org/grpc v0.0.0-20180920234847-8997b5fa0873
+	google.golang.org/grpc v1.19.1
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 	gopkg.in/mgo.v2 v2.0.0-20160818020120-3f83fa500528 // indirect
 	gopkg.in/ory-am/dockertest.v3 v3.3.4 // indirect

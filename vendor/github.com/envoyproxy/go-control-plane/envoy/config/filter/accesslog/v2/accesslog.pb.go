@@ -3,16 +3,19 @@
 
 package v2
 
-import proto "github.com/gogo/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-import route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-import _type "github.com/envoyproxy/go-control-plane/envoy/type"
-import types "github.com/gogo/protobuf/types"
-import _ "github.com/lyft/protoc-gen-validate/validate"
+import (
+	fmt "fmt"
+	io "io"
+	math "math"
 
-import io "io"
+	_ "github.com/envoyproxy/protoc-gen-validate/validate"
+	proto "github.com/gogo/protobuf/proto"
+	types "github.com/gogo/protobuf/types"
+
+	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	_type "github.com/envoyproxy/go-control-plane/envoy/type"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -41,6 +44,7 @@ var ComparisonFilter_Op_name = map[int32]string{
 	1: "GE",
 	2: "LE",
 }
+
 var ComparisonFilter_Op_value = map[string]int32{
 	"EQ": 0,
 	"GE": 1,
@@ -50,8 +54,79 @@ var ComparisonFilter_Op_value = map[string]int32{
 func (x ComparisonFilter_Op) String() string {
 	return proto.EnumName(ComparisonFilter_Op_name, int32(x))
 }
+
 func (ComparisonFilter_Op) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_accesslog_227c9aa0019a1c53, []int{2, 0}
+	return fileDescriptor_67bfd82f8b509e9f, []int{2, 0}
+}
+
+type GrpcStatusFilter_Status int32
+
+const (
+	GrpcStatusFilter_OK                  GrpcStatusFilter_Status = 0
+	GrpcStatusFilter_CANCELED            GrpcStatusFilter_Status = 1
+	GrpcStatusFilter_UNKNOWN             GrpcStatusFilter_Status = 2
+	GrpcStatusFilter_INVALID_ARGUMENT    GrpcStatusFilter_Status = 3
+	GrpcStatusFilter_DEADLINE_EXCEEDED   GrpcStatusFilter_Status = 4
+	GrpcStatusFilter_NOT_FOUND           GrpcStatusFilter_Status = 5
+	GrpcStatusFilter_ALREADY_EXISTS      GrpcStatusFilter_Status = 6
+	GrpcStatusFilter_PERMISSION_DENIED   GrpcStatusFilter_Status = 7
+	GrpcStatusFilter_RESOURCE_EXHAUSTED  GrpcStatusFilter_Status = 8
+	GrpcStatusFilter_FAILED_PRECONDITION GrpcStatusFilter_Status = 9
+	GrpcStatusFilter_ABORTED             GrpcStatusFilter_Status = 10
+	GrpcStatusFilter_OUT_OF_RANGE        GrpcStatusFilter_Status = 11
+	GrpcStatusFilter_UNIMPLEMENTED       GrpcStatusFilter_Status = 12
+	GrpcStatusFilter_INTERNAL            GrpcStatusFilter_Status = 13
+	GrpcStatusFilter_UNAVAILABLE         GrpcStatusFilter_Status = 14
+	GrpcStatusFilter_DATA_LOSS           GrpcStatusFilter_Status = 15
+	GrpcStatusFilter_UNAUTHENTICATED     GrpcStatusFilter_Status = 16
+)
+
+var GrpcStatusFilter_Status_name = map[int32]string{
+	0:  "OK",
+	1:  "CANCELED",
+	2:  "UNKNOWN",
+	3:  "INVALID_ARGUMENT",
+	4:  "DEADLINE_EXCEEDED",
+	5:  "NOT_FOUND",
+	6:  "ALREADY_EXISTS",
+	7:  "PERMISSION_DENIED",
+	8:  "RESOURCE_EXHAUSTED",
+	9:  "FAILED_PRECONDITION",
+	10: "ABORTED",
+	11: "OUT_OF_RANGE",
+	12: "UNIMPLEMENTED",
+	13: "INTERNAL",
+	14: "UNAVAILABLE",
+	15: "DATA_LOSS",
+	16: "UNAUTHENTICATED",
+}
+
+var GrpcStatusFilter_Status_value = map[string]int32{
+	"OK":                  0,
+	"CANCELED":            1,
+	"UNKNOWN":             2,
+	"INVALID_ARGUMENT":    3,
+	"DEADLINE_EXCEEDED":   4,
+	"NOT_FOUND":           5,
+	"ALREADY_EXISTS":      6,
+	"PERMISSION_DENIED":   7,
+	"RESOURCE_EXHAUSTED":  8,
+	"FAILED_PRECONDITION": 9,
+	"ABORTED":             10,
+	"OUT_OF_RANGE":        11,
+	"UNIMPLEMENTED":       12,
+	"INTERNAL":            13,
+	"UNAVAILABLE":         14,
+	"DATA_LOSS":           15,
+	"UNAUTHENTICATED":     16,
+}
+
+func (x GrpcStatusFilter_Status) String() string {
+	return proto.EnumName(GrpcStatusFilter_Status_name, int32(x))
+}
+
+func (GrpcStatusFilter_Status) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_67bfd82f8b509e9f, []int{12, 0}
 }
 
 type AccessLog struct {
@@ -62,25 +137,29 @@ type AccessLog struct {
 	// #. "envoy.http_grpc_access_log"
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Filter which is used to determine if the access log needs to be written.
-	Filter *AccessLogFilter `protobuf:"bytes,2,opt,name=filter" json:"filter,omitempty"`
-	// Custom configuration that depends on the access log being instantiated. Built-in configurations
-	// include:
+	Filter *AccessLogFilter `protobuf:"bytes,2,opt,name=filter,proto3" json:"filter,omitempty"`
+	// Custom configuration that depends on the access log being instantiated. Built-in
+	// configurations include:
 	//
 	// #. "envoy.file_access_log": :ref:`FileAccessLog
 	//    <envoy_api_msg_config.accesslog.v2.FileAccessLog>`
 	// #. "envoy.http_grpc_access_log": :ref:`HttpGrpcAccessLogConfig
 	//    <envoy_api_msg_config.accesslog.v2.HttpGrpcAccessLogConfig>`
-	Config               *types.Struct `protobuf:"bytes,3,opt,name=config" json:"config,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
-	XXX_unrecognized     []byte        `json:"-"`
-	XXX_sizecache        int32         `json:"-"`
+	//
+	// Types that are valid to be assigned to ConfigType:
+	//	*AccessLog_Config
+	//	*AccessLog_TypedConfig
+	ConfigType           isAccessLog_ConfigType `protobuf_oneof:"config_type"`
+	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
+	XXX_unrecognized     []byte                 `json:"-"`
+	XXX_sizecache        int32                  `json:"-"`
 }
 
 func (m *AccessLog) Reset()         { *m = AccessLog{} }
 func (m *AccessLog) String() string { return proto.CompactTextString(m) }
 func (*AccessLog) ProtoMessage()    {}
 func (*AccessLog) Descriptor() ([]byte, []int) {
-	return fileDescriptor_accesslog_227c9aa0019a1c53, []int{0}
+	return fileDescriptor_67bfd82f8b509e9f, []int{0}
 }
 func (m *AccessLog) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -97,8 +176,8 @@ func (m *AccessLog) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return b[:n], nil
 	}
 }
-func (dst *AccessLog) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_AccessLog.Merge(dst, src)
+func (m *AccessLog) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AccessLog.Merge(m, src)
 }
 func (m *AccessLog) XXX_Size() int {
 	return m.Size()
@@ -108,6 +187,29 @@ func (m *AccessLog) XXX_DiscardUnknown() {
 }
 
 var xxx_messageInfo_AccessLog proto.InternalMessageInfo
+
+type isAccessLog_ConfigType interface {
+	isAccessLog_ConfigType()
+	MarshalTo([]byte) (int, error)
+	Size() int
+}
+
+type AccessLog_Config struct {
+	Config *types.Struct `protobuf:"bytes,3,opt,name=config,proto3,oneof"`
+}
+type AccessLog_TypedConfig struct {
+	TypedConfig *types.Any `protobuf:"bytes,4,opt,name=typed_config,json=typedConfig,proto3,oneof"`
+}
+
+func (*AccessLog_Config) isAccessLog_ConfigType()      {}
+func (*AccessLog_TypedConfig) isAccessLog_ConfigType() {}
+
+func (m *AccessLog) GetConfigType() isAccessLog_ConfigType {
+	if m != nil {
+		return m.ConfigType
+	}
+	return nil
+}
 
 func (m *AccessLog) GetName() string {
 	if m != nil {
@@ -124,10 +226,91 @@ func (m *AccessLog) GetFilter() *AccessLogFilter {
 }
 
 func (m *AccessLog) GetConfig() *types.Struct {
-	if m != nil {
-		return m.Config
+	if x, ok := m.GetConfigType().(*AccessLog_Config); ok {
+		return x.Config
 	}
 	return nil
+}
+
+func (m *AccessLog) GetTypedConfig() *types.Any {
+	if x, ok := m.GetConfigType().(*AccessLog_TypedConfig); ok {
+		return x.TypedConfig
+	}
+	return nil
+}
+
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*AccessLog) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
+	return _AccessLog_OneofMarshaler, _AccessLog_OneofUnmarshaler, _AccessLog_OneofSizer, []interface{}{
+		(*AccessLog_Config)(nil),
+		(*AccessLog_TypedConfig)(nil),
+	}
+}
+
+func _AccessLog_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*AccessLog)
+	// config_type
+	switch x := m.ConfigType.(type) {
+	case *AccessLog_Config:
+		_ = b.EncodeVarint(3<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Config); err != nil {
+			return err
+		}
+	case *AccessLog_TypedConfig:
+		_ = b.EncodeVarint(4<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.TypedConfig); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("AccessLog.ConfigType has unexpected type %T", x)
+	}
+	return nil
+}
+
+func _AccessLog_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*AccessLog)
+	switch tag {
+	case 3: // config_type.config
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(types.Struct)
+		err := b.DecodeMessage(msg)
+		m.ConfigType = &AccessLog_Config{msg}
+		return true, err
+	case 4: // config_type.typed_config
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(types.Any)
+		err := b.DecodeMessage(msg)
+		m.ConfigType = &AccessLog_TypedConfig{msg}
+		return true, err
+	default:
+		return false, nil
+	}
+}
+
+func _AccessLog_OneofSizer(msg proto.Message) (n int) {
+	m := msg.(*AccessLog)
+	// config_type
+	switch x := m.ConfigType.(type) {
+	case *AccessLog_Config:
+		s := proto.Size(x.Config)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *AccessLog_TypedConfig:
+		s := proto.Size(x.TypedConfig)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case nil:
+	default:
+		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
+	}
+	return n
 }
 
 type AccessLogFilter struct {
@@ -141,6 +324,7 @@ type AccessLogFilter struct {
 	//	*AccessLogFilter_OrFilter
 	//	*AccessLogFilter_HeaderFilter
 	//	*AccessLogFilter_ResponseFlagFilter
+	//	*AccessLogFilter_GrpcStatusFilter
 	FilterSpecifier      isAccessLogFilter_FilterSpecifier `protobuf_oneof:"filter_specifier"`
 	XXX_NoUnkeyedLiteral struct{}                          `json:"-"`
 	XXX_unrecognized     []byte                            `json:"-"`
@@ -151,7 +335,7 @@ func (m *AccessLogFilter) Reset()         { *m = AccessLogFilter{} }
 func (m *AccessLogFilter) String() string { return proto.CompactTextString(m) }
 func (*AccessLogFilter) ProtoMessage()    {}
 func (*AccessLogFilter) Descriptor() ([]byte, []int) {
-	return fileDescriptor_accesslog_227c9aa0019a1c53, []int{1}
+	return fileDescriptor_67bfd82f8b509e9f, []int{1}
 }
 func (m *AccessLogFilter) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -168,8 +352,8 @@ func (m *AccessLogFilter) XXX_Marshal(b []byte, deterministic bool) ([]byte, err
 		return b[:n], nil
 	}
 }
-func (dst *AccessLogFilter) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_AccessLogFilter.Merge(dst, src)
+func (m *AccessLogFilter) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AccessLogFilter.Merge(m, src)
 }
 func (m *AccessLogFilter) XXX_Size() int {
 	return m.Size()
@@ -187,31 +371,34 @@ type isAccessLogFilter_FilterSpecifier interface {
 }
 
 type AccessLogFilter_StatusCodeFilter struct {
-	StatusCodeFilter *StatusCodeFilter `protobuf:"bytes,1,opt,name=status_code_filter,json=statusCodeFilter,oneof"`
+	StatusCodeFilter *StatusCodeFilter `protobuf:"bytes,1,opt,name=status_code_filter,json=statusCodeFilter,proto3,oneof"`
 }
 type AccessLogFilter_DurationFilter struct {
-	DurationFilter *DurationFilter `protobuf:"bytes,2,opt,name=duration_filter,json=durationFilter,oneof"`
+	DurationFilter *DurationFilter `protobuf:"bytes,2,opt,name=duration_filter,json=durationFilter,proto3,oneof"`
 }
 type AccessLogFilter_NotHealthCheckFilter struct {
-	NotHealthCheckFilter *NotHealthCheckFilter `protobuf:"bytes,3,opt,name=not_health_check_filter,json=notHealthCheckFilter,oneof"`
+	NotHealthCheckFilter *NotHealthCheckFilter `protobuf:"bytes,3,opt,name=not_health_check_filter,json=notHealthCheckFilter,proto3,oneof"`
 }
 type AccessLogFilter_TraceableFilter struct {
-	TraceableFilter *TraceableFilter `protobuf:"bytes,4,opt,name=traceable_filter,json=traceableFilter,oneof"`
+	TraceableFilter *TraceableFilter `protobuf:"bytes,4,opt,name=traceable_filter,json=traceableFilter,proto3,oneof"`
 }
 type AccessLogFilter_RuntimeFilter struct {
-	RuntimeFilter *RuntimeFilter `protobuf:"bytes,5,opt,name=runtime_filter,json=runtimeFilter,oneof"`
+	RuntimeFilter *RuntimeFilter `protobuf:"bytes,5,opt,name=runtime_filter,json=runtimeFilter,proto3,oneof"`
 }
 type AccessLogFilter_AndFilter struct {
-	AndFilter *AndFilter `protobuf:"bytes,6,opt,name=and_filter,json=andFilter,oneof"`
+	AndFilter *AndFilter `protobuf:"bytes,6,opt,name=and_filter,json=andFilter,proto3,oneof"`
 }
 type AccessLogFilter_OrFilter struct {
-	OrFilter *OrFilter `protobuf:"bytes,7,opt,name=or_filter,json=orFilter,oneof"`
+	OrFilter *OrFilter `protobuf:"bytes,7,opt,name=or_filter,json=orFilter,proto3,oneof"`
 }
 type AccessLogFilter_HeaderFilter struct {
-	HeaderFilter *HeaderFilter `protobuf:"bytes,8,opt,name=header_filter,json=headerFilter,oneof"`
+	HeaderFilter *HeaderFilter `protobuf:"bytes,8,opt,name=header_filter,json=headerFilter,proto3,oneof"`
 }
 type AccessLogFilter_ResponseFlagFilter struct {
-	ResponseFlagFilter *ResponseFlagFilter `protobuf:"bytes,9,opt,name=response_flag_filter,json=responseFlagFilter,oneof"`
+	ResponseFlagFilter *ResponseFlagFilter `protobuf:"bytes,9,opt,name=response_flag_filter,json=responseFlagFilter,proto3,oneof"`
+}
+type AccessLogFilter_GrpcStatusFilter struct {
+	GrpcStatusFilter *GrpcStatusFilter `protobuf:"bytes,10,opt,name=grpc_status_filter,json=grpcStatusFilter,proto3,oneof"`
 }
 
 func (*AccessLogFilter_StatusCodeFilter) isAccessLogFilter_FilterSpecifier()     {}
@@ -223,6 +410,7 @@ func (*AccessLogFilter_AndFilter) isAccessLogFilter_FilterSpecifier()           
 func (*AccessLogFilter_OrFilter) isAccessLogFilter_FilterSpecifier()             {}
 func (*AccessLogFilter_HeaderFilter) isAccessLogFilter_FilterSpecifier()         {}
 func (*AccessLogFilter_ResponseFlagFilter) isAccessLogFilter_FilterSpecifier()   {}
+func (*AccessLogFilter_GrpcStatusFilter) isAccessLogFilter_FilterSpecifier()     {}
 
 func (m *AccessLogFilter) GetFilterSpecifier() isAccessLogFilter_FilterSpecifier {
 	if m != nil {
@@ -294,6 +482,13 @@ func (m *AccessLogFilter) GetResponseFlagFilter() *ResponseFlagFilter {
 	return nil
 }
 
+func (m *AccessLogFilter) GetGrpcStatusFilter() *GrpcStatusFilter {
+	if x, ok := m.GetFilterSpecifier().(*AccessLogFilter_GrpcStatusFilter); ok {
+		return x.GrpcStatusFilter
+	}
+	return nil
+}
+
 // XXX_OneofFuncs is for the internal use of the proto package.
 func (*AccessLogFilter) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
 	return _AccessLogFilter_OneofMarshaler, _AccessLogFilter_OneofUnmarshaler, _AccessLogFilter_OneofSizer, []interface{}{
@@ -306,6 +501,7 @@ func (*AccessLogFilter) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffe
 		(*AccessLogFilter_OrFilter)(nil),
 		(*AccessLogFilter_HeaderFilter)(nil),
 		(*AccessLogFilter_ResponseFlagFilter)(nil),
+		(*AccessLogFilter_GrpcStatusFilter)(nil),
 	}
 }
 
@@ -356,6 +552,11 @@ func _AccessLogFilter_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
 	case *AccessLogFilter_ResponseFlagFilter:
 		_ = b.EncodeVarint(9<<3 | proto.WireBytes)
 		if err := b.EncodeMessage(x.ResponseFlagFilter); err != nil {
+			return err
+		}
+	case *AccessLogFilter_GrpcStatusFilter:
+		_ = b.EncodeVarint(10<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.GrpcStatusFilter); err != nil {
 			return err
 		}
 	case nil:
@@ -440,6 +641,14 @@ func _AccessLogFilter_OneofUnmarshaler(msg proto.Message, tag, wire int, b *prot
 		err := b.DecodeMessage(msg)
 		m.FilterSpecifier = &AccessLogFilter_ResponseFlagFilter{msg}
 		return true, err
+	case 10: // filter_specifier.grpc_status_filter
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(GrpcStatusFilter)
+		err := b.DecodeMessage(msg)
+		m.FilterSpecifier = &AccessLogFilter_GrpcStatusFilter{msg}
+		return true, err
 	default:
 		return false, nil
 	}
@@ -494,6 +703,11 @@ func _AccessLogFilter_OneofSizer(msg proto.Message) (n int) {
 		n += 1 // tag and wire
 		n += proto.SizeVarint(uint64(s))
 		n += s
+	case *AccessLogFilter_GrpcStatusFilter:
+		s := proto.Size(x.GrpcStatusFilter)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
 	case nil:
 	default:
 		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
@@ -506,7 +720,7 @@ type ComparisonFilter struct {
 	// Comparison operator.
 	Op ComparisonFilter_Op `protobuf:"varint,1,opt,name=op,proto3,enum=envoy.config.filter.accesslog.v2.ComparisonFilter_Op" json:"op,omitempty"`
 	// Value to compare against.
-	Value                *core.RuntimeUInt32 `protobuf:"bytes,2,opt,name=value" json:"value,omitempty"`
+	Value                *core.RuntimeUInt32 `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
 	XXX_unrecognized     []byte              `json:"-"`
 	XXX_sizecache        int32               `json:"-"`
@@ -516,7 +730,7 @@ func (m *ComparisonFilter) Reset()         { *m = ComparisonFilter{} }
 func (m *ComparisonFilter) String() string { return proto.CompactTextString(m) }
 func (*ComparisonFilter) ProtoMessage()    {}
 func (*ComparisonFilter) Descriptor() ([]byte, []int) {
-	return fileDescriptor_accesslog_227c9aa0019a1c53, []int{2}
+	return fileDescriptor_67bfd82f8b509e9f, []int{2}
 }
 func (m *ComparisonFilter) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -533,8 +747,8 @@ func (m *ComparisonFilter) XXX_Marshal(b []byte, deterministic bool) ([]byte, er
 		return b[:n], nil
 	}
 }
-func (dst *ComparisonFilter) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ComparisonFilter.Merge(dst, src)
+func (m *ComparisonFilter) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ComparisonFilter.Merge(m, src)
 }
 func (m *ComparisonFilter) XXX_Size() int {
 	return m.Size()
@@ -562,7 +776,7 @@ func (m *ComparisonFilter) GetValue() *core.RuntimeUInt32 {
 // Filters on HTTP response/status code.
 type StatusCodeFilter struct {
 	// Comparison.
-	Comparison           *ComparisonFilter `protobuf:"bytes,1,opt,name=comparison" json:"comparison,omitempty"`
+	Comparison           *ComparisonFilter `protobuf:"bytes,1,opt,name=comparison,proto3" json:"comparison,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -572,7 +786,7 @@ func (m *StatusCodeFilter) Reset()         { *m = StatusCodeFilter{} }
 func (m *StatusCodeFilter) String() string { return proto.CompactTextString(m) }
 func (*StatusCodeFilter) ProtoMessage()    {}
 func (*StatusCodeFilter) Descriptor() ([]byte, []int) {
-	return fileDescriptor_accesslog_227c9aa0019a1c53, []int{3}
+	return fileDescriptor_67bfd82f8b509e9f, []int{3}
 }
 func (m *StatusCodeFilter) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -589,8 +803,8 @@ func (m *StatusCodeFilter) XXX_Marshal(b []byte, deterministic bool) ([]byte, er
 		return b[:n], nil
 	}
 }
-func (dst *StatusCodeFilter) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_StatusCodeFilter.Merge(dst, src)
+func (m *StatusCodeFilter) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_StatusCodeFilter.Merge(m, src)
 }
 func (m *StatusCodeFilter) XXX_Size() int {
 	return m.Size()
@@ -611,7 +825,7 @@ func (m *StatusCodeFilter) GetComparison() *ComparisonFilter {
 // Filters on total request duration in milliseconds.
 type DurationFilter struct {
 	// Comparison.
-	Comparison           *ComparisonFilter `protobuf:"bytes,1,opt,name=comparison" json:"comparison,omitempty"`
+	Comparison           *ComparisonFilter `protobuf:"bytes,1,opt,name=comparison,proto3" json:"comparison,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -621,7 +835,7 @@ func (m *DurationFilter) Reset()         { *m = DurationFilter{} }
 func (m *DurationFilter) String() string { return proto.CompactTextString(m) }
 func (*DurationFilter) ProtoMessage()    {}
 func (*DurationFilter) Descriptor() ([]byte, []int) {
-	return fileDescriptor_accesslog_227c9aa0019a1c53, []int{4}
+	return fileDescriptor_67bfd82f8b509e9f, []int{4}
 }
 func (m *DurationFilter) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -638,8 +852,8 @@ func (m *DurationFilter) XXX_Marshal(b []byte, deterministic bool) ([]byte, erro
 		return b[:n], nil
 	}
 }
-func (dst *DurationFilter) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_DurationFilter.Merge(dst, src)
+func (m *DurationFilter) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DurationFilter.Merge(m, src)
 }
 func (m *DurationFilter) XXX_Size() int {
 	return m.Size()
@@ -669,7 +883,7 @@ func (m *NotHealthCheckFilter) Reset()         { *m = NotHealthCheckFilter{} }
 func (m *NotHealthCheckFilter) String() string { return proto.CompactTextString(m) }
 func (*NotHealthCheckFilter) ProtoMessage()    {}
 func (*NotHealthCheckFilter) Descriptor() ([]byte, []int) {
-	return fileDescriptor_accesslog_227c9aa0019a1c53, []int{5}
+	return fileDescriptor_67bfd82f8b509e9f, []int{5}
 }
 func (m *NotHealthCheckFilter) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -686,8 +900,8 @@ func (m *NotHealthCheckFilter) XXX_Marshal(b []byte, deterministic bool) ([]byte
 		return b[:n], nil
 	}
 }
-func (dst *NotHealthCheckFilter) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_NotHealthCheckFilter.Merge(dst, src)
+func (m *NotHealthCheckFilter) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_NotHealthCheckFilter.Merge(m, src)
 }
 func (m *NotHealthCheckFilter) XXX_Size() int {
 	return m.Size()
@@ -710,7 +924,7 @@ func (m *TraceableFilter) Reset()         { *m = TraceableFilter{} }
 func (m *TraceableFilter) String() string { return proto.CompactTextString(m) }
 func (*TraceableFilter) ProtoMessage()    {}
 func (*TraceableFilter) Descriptor() ([]byte, []int) {
-	return fileDescriptor_accesslog_227c9aa0019a1c53, []int{6}
+	return fileDescriptor_67bfd82f8b509e9f, []int{6}
 }
 func (m *TraceableFilter) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -727,8 +941,8 @@ func (m *TraceableFilter) XXX_Marshal(b []byte, deterministic bool) ([]byte, err
 		return b[:n], nil
 	}
 }
-func (dst *TraceableFilter) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TraceableFilter.Merge(dst, src)
+func (m *TraceableFilter) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_TraceableFilter.Merge(m, src)
 }
 func (m *TraceableFilter) XXX_Size() int {
 	return m.Size()
@@ -745,7 +959,7 @@ type RuntimeFilter struct {
 	// If found in runtime, this value will replace the default numerator.
 	RuntimeKey string `protobuf:"bytes,1,opt,name=runtime_key,json=runtimeKey,proto3" json:"runtime_key,omitempty"`
 	// The default sampling percentage. If not specified, defaults to 0% with denominator of 100.
-	PercentSampled *_type.FractionalPercent `protobuf:"bytes,2,opt,name=percent_sampled,json=percentSampled" json:"percent_sampled,omitempty"`
+	PercentSampled *_type.FractionalPercent `protobuf:"bytes,2,opt,name=percent_sampled,json=percentSampled,proto3" json:"percent_sampled,omitempty"`
 	// By default, sampling pivots on the header
 	// :ref:`x-request-id<config_http_conn_man_headers_x-request-id>` being present. If
 	// :ref:`x-request-id<config_http_conn_man_headers_x-request-id>` is present, the filter will
@@ -768,7 +982,7 @@ func (m *RuntimeFilter) Reset()         { *m = RuntimeFilter{} }
 func (m *RuntimeFilter) String() string { return proto.CompactTextString(m) }
 func (*RuntimeFilter) ProtoMessage()    {}
 func (*RuntimeFilter) Descriptor() ([]byte, []int) {
-	return fileDescriptor_accesslog_227c9aa0019a1c53, []int{7}
+	return fileDescriptor_67bfd82f8b509e9f, []int{7}
 }
 func (m *RuntimeFilter) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -785,8 +999,8 @@ func (m *RuntimeFilter) XXX_Marshal(b []byte, deterministic bool) ([]byte, error
 		return b[:n], nil
 	}
 }
-func (dst *RuntimeFilter) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_RuntimeFilter.Merge(dst, src)
+func (m *RuntimeFilter) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RuntimeFilter.Merge(m, src)
 }
 func (m *RuntimeFilter) XXX_Size() int {
 	return m.Size()
@@ -822,7 +1036,7 @@ func (m *RuntimeFilter) GetUseIndependentRandomness() bool {
 // Filters are evaluated sequentially and if one of them returns false, the
 // filter returns false immediately.
 type AndFilter struct {
-	Filters              []*AccessLogFilter `protobuf:"bytes,1,rep,name=filters" json:"filters,omitempty"`
+	Filters              []*AccessLogFilter `protobuf:"bytes,1,rep,name=filters,proto3" json:"filters,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
 	XXX_unrecognized     []byte             `json:"-"`
 	XXX_sizecache        int32              `json:"-"`
@@ -832,7 +1046,7 @@ func (m *AndFilter) Reset()         { *m = AndFilter{} }
 func (m *AndFilter) String() string { return proto.CompactTextString(m) }
 func (*AndFilter) ProtoMessage()    {}
 func (*AndFilter) Descriptor() ([]byte, []int) {
-	return fileDescriptor_accesslog_227c9aa0019a1c53, []int{8}
+	return fileDescriptor_67bfd82f8b509e9f, []int{8}
 }
 func (m *AndFilter) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -849,8 +1063,8 @@ func (m *AndFilter) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return b[:n], nil
 	}
 }
-func (dst *AndFilter) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_AndFilter.Merge(dst, src)
+func (m *AndFilter) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AndFilter.Merge(m, src)
 }
 func (m *AndFilter) XXX_Size() int {
 	return m.Size()
@@ -872,7 +1086,7 @@ func (m *AndFilter) GetFilters() []*AccessLogFilter {
 // Filters are evaluated sequentially and if one of them returns true, the
 // filter returns true immediately.
 type OrFilter struct {
-	Filters              []*AccessLogFilter `protobuf:"bytes,2,rep,name=filters" json:"filters,omitempty"`
+	Filters              []*AccessLogFilter `protobuf:"bytes,2,rep,name=filters,proto3" json:"filters,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
 	XXX_unrecognized     []byte             `json:"-"`
 	XXX_sizecache        int32              `json:"-"`
@@ -882,7 +1096,7 @@ func (m *OrFilter) Reset()         { *m = OrFilter{} }
 func (m *OrFilter) String() string { return proto.CompactTextString(m) }
 func (*OrFilter) ProtoMessage()    {}
 func (*OrFilter) Descriptor() ([]byte, []int) {
-	return fileDescriptor_accesslog_227c9aa0019a1c53, []int{9}
+	return fileDescriptor_67bfd82f8b509e9f, []int{9}
 }
 func (m *OrFilter) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -899,8 +1113,8 @@ func (m *OrFilter) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return b[:n], nil
 	}
 }
-func (dst *OrFilter) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_OrFilter.Merge(dst, src)
+func (m *OrFilter) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_OrFilter.Merge(m, src)
 }
 func (m *OrFilter) XXX_Size() int {
 	return m.Size()
@@ -922,7 +1136,7 @@ func (m *OrFilter) GetFilters() []*AccessLogFilter {
 type HeaderFilter struct {
 	// Only requests with a header which matches the specified HeaderMatcher will pass the filter
 	// check.
-	Header               *route.HeaderMatcher `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
+	Header               *route.HeaderMatcher `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -932,7 +1146,7 @@ func (m *HeaderFilter) Reset()         { *m = HeaderFilter{} }
 func (m *HeaderFilter) String() string { return proto.CompactTextString(m) }
 func (*HeaderFilter) ProtoMessage()    {}
 func (*HeaderFilter) Descriptor() ([]byte, []int) {
-	return fileDescriptor_accesslog_227c9aa0019a1c53, []int{10}
+	return fileDescriptor_67bfd82f8b509e9f, []int{10}
 }
 func (m *HeaderFilter) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -949,8 +1163,8 @@ func (m *HeaderFilter) XXX_Marshal(b []byte, deterministic bool) ([]byte, error)
 		return b[:n], nil
 	}
 }
-func (dst *HeaderFilter) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_HeaderFilter.Merge(dst, src)
+func (m *HeaderFilter) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_HeaderFilter.Merge(m, src)
 }
 func (m *HeaderFilter) XXX_Size() int {
 	return m.Size()
@@ -975,7 +1189,7 @@ type ResponseFlagFilter struct {
 	// Only responses with the any of the flags listed in this field will be logged.
 	// This field is optional. If it is not specified, then any response flag will pass
 	// the filter check.
-	Flags                []string `protobuf:"bytes,1,rep,name=flags" json:"flags,omitempty"`
+	Flags                []string `protobuf:"bytes,1,rep,name=flags,proto3" json:"flags,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -985,7 +1199,7 @@ func (m *ResponseFlagFilter) Reset()         { *m = ResponseFlagFilter{} }
 func (m *ResponseFlagFilter) String() string { return proto.CompactTextString(m) }
 func (*ResponseFlagFilter) ProtoMessage()    {}
 func (*ResponseFlagFilter) Descriptor() ([]byte, []int) {
-	return fileDescriptor_accesslog_227c9aa0019a1c53, []int{11}
+	return fileDescriptor_67bfd82f8b509e9f, []int{11}
 }
 func (m *ResponseFlagFilter) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1002,8 +1216,8 @@ func (m *ResponseFlagFilter) XXX_Marshal(b []byte, deterministic bool) ([]byte, 
 		return b[:n], nil
 	}
 }
-func (dst *ResponseFlagFilter) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ResponseFlagFilter.Merge(dst, src)
+func (m *ResponseFlagFilter) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ResponseFlagFilter.Merge(m, src)
 }
 func (m *ResponseFlagFilter) XXX_Size() int {
 	return m.Size()
@@ -1021,7 +1235,69 @@ func (m *ResponseFlagFilter) GetFlags() []string {
 	return nil
 }
 
+// Filters gRPC requests based on their response status. If a gRPC status is not provided, the
+// filter will infer the status from the HTTP status code.
+type GrpcStatusFilter struct {
+	// Logs only responses that have any one of the gRPC statuses in this field.
+	Statuses []GrpcStatusFilter_Status `protobuf:"varint,1,rep,packed,name=statuses,proto3,enum=envoy.config.filter.accesslog.v2.GrpcStatusFilter_Status" json:"statuses,omitempty"`
+	// If included and set to true, the filter will instead block all responses with a gRPC status or
+	// inferred gRPC status enumerated in statuses, and allow all other responses.
+	Exclude              bool     `protobuf:"varint,2,opt,name=exclude,proto3" json:"exclude,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GrpcStatusFilter) Reset()         { *m = GrpcStatusFilter{} }
+func (m *GrpcStatusFilter) String() string { return proto.CompactTextString(m) }
+func (*GrpcStatusFilter) ProtoMessage()    {}
+func (*GrpcStatusFilter) Descriptor() ([]byte, []int) {
+	return fileDescriptor_67bfd82f8b509e9f, []int{12}
+}
+func (m *GrpcStatusFilter) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *GrpcStatusFilter) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_GrpcStatusFilter.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *GrpcStatusFilter) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GrpcStatusFilter.Merge(m, src)
+}
+func (m *GrpcStatusFilter) XXX_Size() int {
+	return m.Size()
+}
+func (m *GrpcStatusFilter) XXX_DiscardUnknown() {
+	xxx_messageInfo_GrpcStatusFilter.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GrpcStatusFilter proto.InternalMessageInfo
+
+func (m *GrpcStatusFilter) GetStatuses() []GrpcStatusFilter_Status {
+	if m != nil {
+		return m.Statuses
+	}
+	return nil
+}
+
+func (m *GrpcStatusFilter) GetExclude() bool {
+	if m != nil {
+		return m.Exclude
+	}
+	return false
+}
+
 func init() {
+	proto.RegisterEnum("envoy.config.filter.accesslog.v2.ComparisonFilter_Op", ComparisonFilter_Op_name, ComparisonFilter_Op_value)
+	proto.RegisterEnum("envoy.config.filter.accesslog.v2.GrpcStatusFilter_Status", GrpcStatusFilter_Status_name, GrpcStatusFilter_Status_value)
 	proto.RegisterType((*AccessLog)(nil), "envoy.config.filter.accesslog.v2.AccessLog")
 	proto.RegisterType((*AccessLogFilter)(nil), "envoy.config.filter.accesslog.v2.AccessLogFilter")
 	proto.RegisterType((*ComparisonFilter)(nil), "envoy.config.filter.accesslog.v2.ComparisonFilter")
@@ -1034,8 +1310,100 @@ func init() {
 	proto.RegisterType((*OrFilter)(nil), "envoy.config.filter.accesslog.v2.OrFilter")
 	proto.RegisterType((*HeaderFilter)(nil), "envoy.config.filter.accesslog.v2.HeaderFilter")
 	proto.RegisterType((*ResponseFlagFilter)(nil), "envoy.config.filter.accesslog.v2.ResponseFlagFilter")
-	proto.RegisterEnum("envoy.config.filter.accesslog.v2.ComparisonFilter_Op", ComparisonFilter_Op_name, ComparisonFilter_Op_value)
+	proto.RegisterType((*GrpcStatusFilter)(nil), "envoy.config.filter.accesslog.v2.GrpcStatusFilter")
 }
+
+func init() {
+	proto.RegisterFile("envoy/config/filter/accesslog/v2/accesslog.proto", fileDescriptor_67bfd82f8b509e9f)
+}
+
+var fileDescriptor_67bfd82f8b509e9f = []byte{
+	// 1321 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x56, 0xcf, 0x6f, 0xdb, 0x46,
+	0x16, 0x36, 0x69, 0x5b, 0x96, 0x9e, 0x6d, 0x69, 0x32, 0xf1, 0xc6, 0x4e, 0x90, 0x35, 0xbc, 0x3c,
+	0x05, 0x59, 0x40, 0x4a, 0x94, 0xdd, 0x00, 0x01, 0x7a, 0xa1, 0xc4, 0x91, 0x45, 0x98, 0x26, 0x9d,
+	0x91, 0x98, 0xb8, 0x2d, 0x10, 0x82, 0x26, 0xc7, 0xb2, 0x10, 0x99, 0x24, 0x48, 0xca, 0x88, 0x8f,
+	0xed, 0xb1, 0xc7, 0xfc, 0x35, 0x41, 0x7b, 0x49, 0x6f, 0xbd, 0xb5, 0xa7, 0x9e, 0x8b, 0x5c, 0x8a,
+	0xfc, 0x17, 0xc5, 0x70, 0x48, 0xda, 0x52, 0x02, 0xc8, 0x2d, 0xda, 0x83, 0x44, 0xce, 0xbc, 0xf7,
+	0x7d, 0xef, 0x07, 0xe7, 0x7d, 0x24, 0x3c, 0x62, 0xc1, 0x45, 0x78, 0xd9, 0xf2, 0xc2, 0xe0, 0x74,
+	0x3c, 0x6a, 0x9d, 0x8e, 0x27, 0x29, 0x8b, 0x5b, 0xae, 0xe7, 0xb1, 0x24, 0x99, 0x84, 0xa3, 0xd6,
+	0x45, 0xfb, 0x6a, 0xd1, 0x8c, 0xe2, 0x30, 0x0d, 0xf1, 0x5e, 0x86, 0x68, 0x0a, 0x44, 0x53, 0x20,
+	0x9a, 0x57, 0x4e, 0x17, 0xed, 0x7b, 0xf7, 0x05, 0xa7, 0x1b, 0x8d, 0x39, 0xde, 0x0b, 0x63, 0xd6,
+	0x3a, 0x71, 0x13, 0x26, 0xf0, 0xf7, 0x76, 0x67, 0xac, 0x71, 0x38, 0x4d, 0x99, 0xf8, 0xcf, 0xed,
+	0x3b, 0xc2, 0x9e, 0x5e, 0x46, 0xac, 0x15, 0xb1, 0xd8, 0x63, 0x41, 0x9a, 0x5b, 0xee, 0x8e, 0xc2,
+	0x70, 0x34, 0x61, 0xad, 0x6c, 0x75, 0x32, 0x3d, 0x6d, 0xb9, 0xc1, 0x65, 0x6e, 0xba, 0x3f, 0x6f,
+	0x4a, 0xd2, 0x78, 0xea, 0x15, 0xc0, 0xed, 0x0b, 0x77, 0x32, 0xf6, 0xdd, 0x94, 0xb5, 0x8a, 0x1b,
+	0x61, 0x50, 0x7e, 0x97, 0xa0, 0xa6, 0x66, 0xa9, 0x1b, 0xe1, 0x08, 0x63, 0x58, 0x09, 0xdc, 0x73,
+	0xb6, 0x23, 0xed, 0x49, 0x0f, 0x6a, 0x34, 0xbb, 0xc7, 0x3a, 0x54, 0x44, 0x89, 0x3b, 0xf2, 0x9e,
+	0xf4, 0x60, 0xbd, 0xfd, 0xb8, 0xb9, 0xa8, 0xfc, 0x66, 0x49, 0xd8, 0xcb, 0x8c, 0x34, 0x27, 0xc0,
+	0x8f, 0xa1, 0x22, 0x50, 0x3b, 0xcb, 0x19, 0xd5, 0x76, 0x53, 0x24, 0xdd, 0x2c, 0x92, 0x6e, 0x0e,
+	0xb2, 0xa4, 0xfb, 0x4b, 0x34, 0x77, 0xc4, 0xcf, 0x60, 0x83, 0xf7, 0xc1, 0x77, 0x72, 0xe0, 0x4a,
+	0x06, 0xdc, 0xfa, 0x04, 0xa8, 0x06, 0x97, 0xfd, 0x25, 0xba, 0x9e, 0xf9, 0x76, 0x33, 0xd7, 0xce,
+	0x26, 0xac, 0x0b, 0x90, 0xc3, 0x77, 0x95, 0x5f, 0xd7, 0xa0, 0x31, 0x97, 0x18, 0x3e, 0x01, 0x9c,
+	0xa4, 0x6e, 0x3a, 0x4d, 0x1c, 0x2f, 0xf4, 0x99, 0x93, 0xd7, 0x29, 0x65, 0x31, 0xda, 0x8b, 0xeb,
+	0x1c, 0x64, 0xd8, 0x6e, 0xe8, 0x33, 0xc1, 0xd7, 0x5f, 0xa2, 0x28, 0x99, 0xdb, 0xc3, 0x5f, 0x43,
+	0xc3, 0x9f, 0xc6, 0x6e, 0x3a, 0x0e, 0x03, 0x67, 0xa6, 0x91, 0x8f, 0x16, 0x07, 0xd0, 0x72, 0x60,
+	0x49, 0x5f, 0xf7, 0x67, 0x76, 0x70, 0x08, 0xdb, 0x41, 0x98, 0x3a, 0x67, 0xcc, 0x9d, 0xa4, 0x67,
+	0x8e, 0x77, 0xc6, 0xbc, 0xd7, 0x45, 0x10, 0xd1, 0xe2, 0xa7, 0x8b, 0x83, 0x98, 0x61, 0xda, 0xcf,
+	0xf0, 0x5d, 0x0e, 0x2f, 0x43, 0x6d, 0x05, 0x9f, 0xd9, 0xc7, 0xaf, 0x00, 0xa5, 0xb1, 0xeb, 0x31,
+	0xf7, 0x64, 0x52, 0xf6, 0x6b, 0xe5, 0xa6, 0xe7, 0x62, 0x58, 0x20, 0xcb, 0x20, 0x8d, 0x74, 0x76,
+	0x0b, 0x1f, 0x43, 0x3d, 0x9e, 0x06, 0xe9, 0xf8, 0xbc, 0x64, 0x5f, 0xcd, 0xd8, 0x5b, 0x8b, 0xd9,
+	0xa9, 0xc0, 0x95, 0xdc, 0x9b, 0xf1, 0xf5, 0x0d, 0x6c, 0x00, 0xb8, 0x81, 0x5f, 0xb0, 0x56, 0x32,
+	0xd6, 0xff, 0xde, 0xe0, 0x2c, 0x07, 0x7e, 0xc9, 0x58, 0x73, 0x8b, 0x05, 0xd6, 0xa1, 0x16, 0xc6,
+	0x05, 0xd9, 0x5a, 0x46, 0xf6, 0x70, 0x31, 0x99, 0x15, 0x97, 0x5c, 0xd5, 0x30, 0xbf, 0xc7, 0x36,
+	0x6c, 0x9e, 0x31, 0xd7, 0x67, 0x25, 0x5d, 0x35, 0xa3, 0x6b, 0x2e, 0xa6, 0xeb, 0x67, 0xb0, 0x92,
+	0x72, 0xe3, 0xec, 0xda, 0x1a, 0x9f, 0xc1, 0x56, 0xcc, 0x92, 0x28, 0x0c, 0x12, 0xe6, 0x9c, 0x4e,
+	0xdc, 0x51, 0xc1, 0x5e, 0xcb, 0xd8, 0xff, 0x77, 0x83, 0x7e, 0xe6, 0xe8, 0xde, 0xc4, 0x1d, 0x95,
+	0x31, 0x70, 0xfc, 0xc9, 0x2e, 0x9f, 0xa2, 0x51, 0x1c, 0x79, 0x4e, 0x3e, 0x4a, 0x79, 0x1c, 0xb8,
+	0xe9, 0x14, 0xed, 0xc7, 0x91, 0x27, 0x26, 0xe9, 0x6a, 0x8a, 0x46, 0x73, 0x7b, 0x9d, 0xbb, 0x80,
+	0x04, 0xd6, 0x49, 0x22, 0xe6, 0x8d, 0x4f, 0xc7, 0x2c, 0xc6, 0xab, 0xef, 0x3e, 0xbe, 0x5f, 0x96,
+	0x94, 0x1f, 0x24, 0x40, 0xdd, 0xf0, 0x3c, 0x72, 0xe3, 0x71, 0x52, 0x0e, 0xc6, 0x73, 0x90, 0xc3,
+	0x28, 0x9b, 0xe4, 0x7a, 0xfb, 0xff, 0x8b, 0x73, 0x98, 0xc7, 0x37, 0xad, 0xa8, 0x03, 0xdf, 0x7f,
+	0x7c, 0xbf, 0xbc, 0xfa, 0xad, 0x24, 0x23, 0x89, 0xca, 0x61, 0x84, 0x9f, 0xc2, 0xea, 0x85, 0x3b,
+	0x99, 0xb2, 0x7c, 0x7c, 0xf7, 0x72, 0x56, 0x37, 0x1a, 0x73, 0x06, 0x2e, 0xf2, 0xc5, 0x11, 0xb4,
+	0xf5, 0x20, 0x7d, 0xd2, 0xa6, 0xc2, 0x5d, 0xb9, 0x0f, 0xb2, 0x15, 0xe1, 0x0a, 0xc8, 0xe4, 0x39,
+	0x5a, 0xe2, 0xd7, 0x7d, 0x82, 0x24, 0x7e, 0x35, 0x08, 0x92, 0x95, 0x18, 0xd0, 0xbc, 0x8c, 0xe0,
+	0x57, 0x00, 0x5e, 0x99, 0xd0, 0xcd, 0xe5, 0x68, 0xbe, 0x88, 0xbc, 0x82, 0xef, 0xb2, 0x0a, 0xae,
+	0x31, 0x2a, 0x11, 0xd4, 0x67, 0x95, 0xe5, 0x1f, 0x8f, 0x78, 0x07, 0xb6, 0x3e, 0x27, 0x33, 0xca,
+	0x2d, 0x68, 0xcc, 0x89, 0x82, 0xf2, 0xa3, 0x04, 0x9b, 0x33, 0xa3, 0x8c, 0x1f, 0xc2, 0x7a, 0xa1,
+	0x09, 0xaf, 0xd9, 0xa5, 0x78, 0x39, 0x75, 0x6a, 0x3c, 0xd2, 0x4a, 0x2c, 0xef, 0x49, 0x14, 0x72,
+	0xeb, 0x01, 0xbb, 0xc4, 0x3d, 0x68, 0xe4, 0xaf, 0x4c, 0x27, 0x71, 0xcf, 0xa3, 0x09, 0xf3, 0xf3,
+	0xc7, 0xf5, 0xef, 0xbc, 0x1a, 0xfe, 0x2e, 0x68, 0xf6, 0x62, 0xd7, 0xe3, 0xd5, 0xbb, 0x93, 0x23,
+	0xe1, 0x4c, 0xeb, 0x39, 0x6a, 0x20, 0x40, 0xf8, 0x0b, 0xb8, 0x37, 0x4d, 0x98, 0x33, 0x0e, 0x7c,
+	0x16, 0xb1, 0xc0, 0xe7, 0x7c, 0xb1, 0x1b, 0xf8, 0xe1, 0x79, 0xc0, 0x92, 0x24, 0xd3, 0xd6, 0x2a,
+	0xdd, 0x99, 0x26, 0x4c, 0xbf, 0x72, 0xa0, 0xa5, 0x5d, 0xf1, 0xa1, 0x56, 0xea, 0x06, 0x7e, 0x09,
+	0x6b, 0xa2, 0x77, 0xc9, 0x8e, 0xb4, 0xb7, 0xfc, 0x97, 0xde, 0xa0, 0x79, 0x5f, 0xdf, 0x4a, 0x72,
+	0x55, 0xa6, 0x05, 0x9b, 0xe2, 0x41, 0xb5, 0x10, 0x94, 0xeb, 0x41, 0xe4, 0xbf, 0x35, 0x88, 0x0d,
+	0x1b, 0xd7, 0x65, 0x06, 0x13, 0xa8, 0x08, 0x99, 0xc9, 0x4f, 0xc9, 0x7f, 0x66, 0xc7, 0x40, 0x7c,
+	0xc7, 0x08, 0xc4, 0xa1, 0x9b, 0x7a, 0x67, 0x73, 0x87, 0x22, 0x07, 0x2b, 0xdf, 0x48, 0x80, 0x3f,
+	0x15, 0x18, 0xfc, 0x1a, 0x56, 0xb9, 0x56, 0x89, 0x4e, 0xd5, 0x3a, 0x36, 0x47, 0x1e, 0xbd, 0x95,
+	0x0e, 0x95, 0x83, 0x58, 0xa7, 0xb2, 0xd1, 0xa7, 0xb2, 0xcd, 0x7f, 0x43, 0x2a, 0x1b, 0x94, 0xca,
+	0x36, 0xff, 0xf5, 0xa8, 0x6c, 0x77, 0xa9, 0x6c, 0x5b, 0x54, 0x36, 0x29, 0x95, 0x35, 0x9d, 0xca,
+	0x3d, 0x9d, 0xca, 0xd4, 0xa0, 0x2b, 0xb6, 0x4a, 0x8e, 0xe9, 0x0a, 0x35, 0x06, 0x84, 0xca, 0x5a,
+	0x97, 0x2e, 0xdb, 0xf4, 0x98, 0xca, 0x03, 0x9d, 0x8a, 0x18, 0xca, 0xcf, 0xcb, 0x80, 0xe6, 0xc5,
+	0x07, 0x9f, 0x42, 0x55, 0xe8, 0x18, 0x13, 0x49, 0xd4, 0xdb, 0xcf, 0xfe, 0xbc, 0x84, 0xe5, 0x5f,
+	0x06, 0x9d, 0x06, 0xcf, 0x1f, 0xde, 0x4a, 0x6b, 0x4a, 0xae, 0x23, 0x25, 0x37, 0xde, 0x81, 0x35,
+	0xf6, 0xc6, 0x9b, 0x4c, 0x7d, 0xa1, 0x27, 0x55, 0x5a, 0x2c, 0x95, 0x77, 0x32, 0x54, 0x04, 0x9e,
+	0x8b, 0x84, 0x75, 0x80, 0x96, 0xf0, 0x06, 0x54, 0xbb, 0xaa, 0xd9, 0x25, 0x06, 0xd1, 0x90, 0x84,
+	0xd7, 0x61, 0xcd, 0x36, 0x0f, 0x4c, 0xeb, 0xa5, 0x89, 0x64, 0xbc, 0x05, 0x48, 0x37, 0x5f, 0xa8,
+	0x86, 0xae, 0x39, 0x2a, 0xdd, 0xb7, 0x0f, 0x89, 0x39, 0x44, 0xcb, 0xf8, 0x5f, 0x70, 0x4b, 0x23,
+	0xaa, 0x66, 0xe8, 0x26, 0x71, 0xc8, 0x71, 0x97, 0x10, 0x8d, 0x68, 0x68, 0x05, 0x6f, 0x42, 0xcd,
+	0xb4, 0x86, 0x4e, 0xcf, 0xb2, 0x4d, 0x0d, 0xad, 0x62, 0x0c, 0x75, 0xd5, 0xa0, 0x44, 0xd5, 0xbe,
+	0x74, 0xc8, 0xb1, 0x3e, 0x18, 0x0e, 0x50, 0x85, 0x23, 0x8f, 0x08, 0x3d, 0xd4, 0x07, 0x03, 0xdd,
+	0x32, 0x1d, 0x8d, 0x98, 0x3a, 0xd1, 0xd0, 0x1a, 0xbe, 0x03, 0x98, 0x92, 0x81, 0x65, 0xd3, 0x2e,
+	0x27, 0xec, 0xab, 0xf6, 0x60, 0x48, 0x34, 0x54, 0xc5, 0xdb, 0x70, 0xbb, 0xa7, 0xea, 0x06, 0xd1,
+	0x9c, 0x23, 0x4a, 0xba, 0x96, 0xa9, 0xe9, 0x43, 0xdd, 0x32, 0x51, 0x8d, 0x27, 0xa9, 0x76, 0x2c,
+	0xca, 0xbd, 0x00, 0x23, 0xd8, 0xb0, 0xec, 0xa1, 0x63, 0xf5, 0x1c, 0xaa, 0x9a, 0xfb, 0x04, 0xad,
+	0xe3, 0x5b, 0xb0, 0x69, 0x9b, 0xfa, 0xe1, 0x91, 0x41, 0x78, 0xc6, 0x44, 0x43, 0x1b, 0xbc, 0x48,
+	0xdd, 0x1c, 0x12, 0x6a, 0xaa, 0x06, 0xda, 0xc4, 0x0d, 0x58, 0xb7, 0x4d, 0xf5, 0x85, 0xaa, 0x1b,
+	0x6a, 0xc7, 0x20, 0xa8, 0xce, 0x73, 0xd7, 0xd4, 0xa1, 0xea, 0x18, 0xd6, 0x60, 0x80, 0x1a, 0xf8,
+	0x36, 0x34, 0x6c, 0x53, 0xb5, 0x87, 0x7d, 0x62, 0x0e, 0xf5, 0xae, 0xca, 0x29, 0x50, 0x87, 0xfe,
+	0xf4, 0x61, 0x57, 0xfa, 0xe5, 0xc3, 0xae, 0xf4, 0xdb, 0x87, 0x5d, 0x09, 0x9a, 0xe3, 0x50, 0x3c,
+	0xba, 0x28, 0x0e, 0xdf, 0x5c, 0x2e, 0x7c, 0x8a, 0x9d, 0xba, 0x5a, 0xac, 0x8e, 0xf8, 0x67, 0xe5,
+	0x91, 0xf4, 0x95, 0x7c, 0xd1, 0x3e, 0xa9, 0x64, 0xdf, 0x98, 0x4f, 0xfe, 0x08, 0x00, 0x00, 0xff,
+	0xff, 0x97, 0xa8, 0x58, 0x3d, 0x28, 0x0c, 0x00, 0x00,
+}
+
 func (m *AccessLog) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -1067,15 +1435,12 @@ func (m *AccessLog) MarshalTo(dAtA []byte) (int, error) {
 		}
 		i += n1
 	}
-	if m.Config != nil {
-		dAtA[i] = 0x1a
-		i++
-		i = encodeVarintAccesslog(dAtA, i, uint64(m.Config.Size()))
-		n2, err := m.Config.MarshalTo(dAtA[i:])
+	if m.ConfigType != nil {
+		nn2, err := m.ConfigType.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n2
+		i += nn2
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
@@ -1083,6 +1448,34 @@ func (m *AccessLog) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
+func (m *AccessLog_Config) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	if m.Config != nil {
+		dAtA[i] = 0x1a
+		i++
+		i = encodeVarintAccesslog(dAtA, i, uint64(m.Config.Size()))
+		n3, err := m.Config.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n3
+	}
+	return i, nil
+}
+func (m *AccessLog_TypedConfig) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	if m.TypedConfig != nil {
+		dAtA[i] = 0x22
+		i++
+		i = encodeVarintAccesslog(dAtA, i, uint64(m.TypedConfig.Size()))
+		n4, err := m.TypedConfig.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n4
+	}
+	return i, nil
+}
 func (m *AccessLogFilter) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -1099,11 +1492,11 @@ func (m *AccessLogFilter) MarshalTo(dAtA []byte) (int, error) {
 	var l int
 	_ = l
 	if m.FilterSpecifier != nil {
-		nn3, err := m.FilterSpecifier.MarshalTo(dAtA[i:])
+		nn5, err := m.FilterSpecifier.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += nn3
+		i += nn5
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
@@ -1117,11 +1510,11 @@ func (m *AccessLogFilter_StatusCodeFilter) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintAccesslog(dAtA, i, uint64(m.StatusCodeFilter.Size()))
-		n4, err := m.StatusCodeFilter.MarshalTo(dAtA[i:])
+		n6, err := m.StatusCodeFilter.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n4
+		i += n6
 	}
 	return i, nil
 }
@@ -1131,11 +1524,11 @@ func (m *AccessLogFilter_DurationFilter) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x12
 		i++
 		i = encodeVarintAccesslog(dAtA, i, uint64(m.DurationFilter.Size()))
-		n5, err := m.DurationFilter.MarshalTo(dAtA[i:])
+		n7, err := m.DurationFilter.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n5
+		i += n7
 	}
 	return i, nil
 }
@@ -1145,11 +1538,11 @@ func (m *AccessLogFilter_NotHealthCheckFilter) MarshalTo(dAtA []byte) (int, erro
 		dAtA[i] = 0x1a
 		i++
 		i = encodeVarintAccesslog(dAtA, i, uint64(m.NotHealthCheckFilter.Size()))
-		n6, err := m.NotHealthCheckFilter.MarshalTo(dAtA[i:])
+		n8, err := m.NotHealthCheckFilter.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n6
+		i += n8
 	}
 	return i, nil
 }
@@ -1159,11 +1552,11 @@ func (m *AccessLogFilter_TraceableFilter) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x22
 		i++
 		i = encodeVarintAccesslog(dAtA, i, uint64(m.TraceableFilter.Size()))
-		n7, err := m.TraceableFilter.MarshalTo(dAtA[i:])
+		n9, err := m.TraceableFilter.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n7
+		i += n9
 	}
 	return i, nil
 }
@@ -1173,11 +1566,11 @@ func (m *AccessLogFilter_RuntimeFilter) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x2a
 		i++
 		i = encodeVarintAccesslog(dAtA, i, uint64(m.RuntimeFilter.Size()))
-		n8, err := m.RuntimeFilter.MarshalTo(dAtA[i:])
+		n10, err := m.RuntimeFilter.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n8
+		i += n10
 	}
 	return i, nil
 }
@@ -1187,11 +1580,11 @@ func (m *AccessLogFilter_AndFilter) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x32
 		i++
 		i = encodeVarintAccesslog(dAtA, i, uint64(m.AndFilter.Size()))
-		n9, err := m.AndFilter.MarshalTo(dAtA[i:])
+		n11, err := m.AndFilter.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n9
+		i += n11
 	}
 	return i, nil
 }
@@ -1201,11 +1594,11 @@ func (m *AccessLogFilter_OrFilter) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x3a
 		i++
 		i = encodeVarintAccesslog(dAtA, i, uint64(m.OrFilter.Size()))
-		n10, err := m.OrFilter.MarshalTo(dAtA[i:])
+		n12, err := m.OrFilter.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n10
+		i += n12
 	}
 	return i, nil
 }
@@ -1215,11 +1608,11 @@ func (m *AccessLogFilter_HeaderFilter) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x42
 		i++
 		i = encodeVarintAccesslog(dAtA, i, uint64(m.HeaderFilter.Size()))
-		n11, err := m.HeaderFilter.MarshalTo(dAtA[i:])
+		n13, err := m.HeaderFilter.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n11
+		i += n13
 	}
 	return i, nil
 }
@@ -1229,11 +1622,25 @@ func (m *AccessLogFilter_ResponseFlagFilter) MarshalTo(dAtA []byte) (int, error)
 		dAtA[i] = 0x4a
 		i++
 		i = encodeVarintAccesslog(dAtA, i, uint64(m.ResponseFlagFilter.Size()))
-		n12, err := m.ResponseFlagFilter.MarshalTo(dAtA[i:])
+		n14, err := m.ResponseFlagFilter.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n12
+		i += n14
+	}
+	return i, nil
+}
+func (m *AccessLogFilter_GrpcStatusFilter) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	if m.GrpcStatusFilter != nil {
+		dAtA[i] = 0x52
+		i++
+		i = encodeVarintAccesslog(dAtA, i, uint64(m.GrpcStatusFilter.Size()))
+		n15, err := m.GrpcStatusFilter.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n15
 	}
 	return i, nil
 }
@@ -1261,11 +1668,11 @@ func (m *ComparisonFilter) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x12
 		i++
 		i = encodeVarintAccesslog(dAtA, i, uint64(m.Value.Size()))
-		n13, err := m.Value.MarshalTo(dAtA[i:])
+		n16, err := m.Value.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n13
+		i += n16
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
@@ -1292,11 +1699,11 @@ func (m *StatusCodeFilter) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintAccesslog(dAtA, i, uint64(m.Comparison.Size()))
-		n14, err := m.Comparison.MarshalTo(dAtA[i:])
+		n17, err := m.Comparison.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n14
+		i += n17
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
@@ -1323,11 +1730,11 @@ func (m *DurationFilter) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintAccesslog(dAtA, i, uint64(m.Comparison.Size()))
-		n15, err := m.Comparison.MarshalTo(dAtA[i:])
+		n18, err := m.Comparison.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n15
+		i += n18
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
@@ -1402,11 +1809,11 @@ func (m *RuntimeFilter) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x12
 		i++
 		i = encodeVarintAccesslog(dAtA, i, uint64(m.PercentSampled.Size()))
-		n16, err := m.PercentSampled.MarshalTo(dAtA[i:])
+		n19, err := m.PercentSampled.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n16
+		i += n19
 	}
 	if m.UseIndependentRandomness {
 		dAtA[i] = 0x18
@@ -1509,11 +1916,11 @@ func (m *HeaderFilter) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintAccesslog(dAtA, i, uint64(m.Header.Size()))
-		n17, err := m.Header.MarshalTo(dAtA[i:])
+		n20, err := m.Header.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n17
+		i += n20
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
@@ -1557,6 +1964,54 @@ func (m *ResponseFlagFilter) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
+func (m *GrpcStatusFilter) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GrpcStatusFilter) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Statuses) > 0 {
+		dAtA22 := make([]byte, len(m.Statuses)*10)
+		var j21 int
+		for _, num := range m.Statuses {
+			for num >= 1<<7 {
+				dAtA22[j21] = uint8(uint64(num)&0x7f | 0x80)
+				num >>= 7
+				j21++
+			}
+			dAtA22[j21] = uint8(num)
+			j21++
+		}
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintAccesslog(dAtA, i, uint64(j21))
+		i += copy(dAtA[i:], dAtA22[:j21])
+	}
+	if m.Exclude {
+		dAtA[i] = 0x10
+		i++
+		if m.Exclude {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i++
+	}
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
+}
+
 func encodeVarintAccesslog(dAtA []byte, offset int, v uint64) int {
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
@@ -1567,6 +2022,9 @@ func encodeVarintAccesslog(dAtA []byte, offset int, v uint64) int {
 	return offset + 1
 }
 func (m *AccessLog) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	l = len(m.Name)
@@ -1577,9 +2035,8 @@ func (m *AccessLog) Size() (n int) {
 		l = m.Filter.Size()
 		n += 1 + l + sovAccesslog(uint64(l))
 	}
-	if m.Config != nil {
-		l = m.Config.Size()
-		n += 1 + l + sovAccesslog(uint64(l))
+	if m.ConfigType != nil {
+		n += m.ConfigType.Size()
 	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
@@ -1587,7 +2044,34 @@ func (m *AccessLog) Size() (n int) {
 	return n
 }
 
+func (m *AccessLog_Config) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Config != nil {
+		l = m.Config.Size()
+		n += 1 + l + sovAccesslog(uint64(l))
+	}
+	return n
+}
+func (m *AccessLog_TypedConfig) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.TypedConfig != nil {
+		l = m.TypedConfig.Size()
+		n += 1 + l + sovAccesslog(uint64(l))
+	}
+	return n
+}
 func (m *AccessLogFilter) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.FilterSpecifier != nil {
@@ -1600,6 +2084,9 @@ func (m *AccessLogFilter) Size() (n int) {
 }
 
 func (m *AccessLogFilter_StatusCodeFilter) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.StatusCodeFilter != nil {
@@ -1609,6 +2096,9 @@ func (m *AccessLogFilter_StatusCodeFilter) Size() (n int) {
 	return n
 }
 func (m *AccessLogFilter_DurationFilter) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.DurationFilter != nil {
@@ -1618,6 +2108,9 @@ func (m *AccessLogFilter_DurationFilter) Size() (n int) {
 	return n
 }
 func (m *AccessLogFilter_NotHealthCheckFilter) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.NotHealthCheckFilter != nil {
@@ -1627,6 +2120,9 @@ func (m *AccessLogFilter_NotHealthCheckFilter) Size() (n int) {
 	return n
 }
 func (m *AccessLogFilter_TraceableFilter) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.TraceableFilter != nil {
@@ -1636,6 +2132,9 @@ func (m *AccessLogFilter_TraceableFilter) Size() (n int) {
 	return n
 }
 func (m *AccessLogFilter_RuntimeFilter) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.RuntimeFilter != nil {
@@ -1645,6 +2144,9 @@ func (m *AccessLogFilter_RuntimeFilter) Size() (n int) {
 	return n
 }
 func (m *AccessLogFilter_AndFilter) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.AndFilter != nil {
@@ -1654,6 +2156,9 @@ func (m *AccessLogFilter_AndFilter) Size() (n int) {
 	return n
 }
 func (m *AccessLogFilter_OrFilter) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.OrFilter != nil {
@@ -1663,6 +2168,9 @@ func (m *AccessLogFilter_OrFilter) Size() (n int) {
 	return n
 }
 func (m *AccessLogFilter_HeaderFilter) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.HeaderFilter != nil {
@@ -1672,6 +2180,9 @@ func (m *AccessLogFilter_HeaderFilter) Size() (n int) {
 	return n
 }
 func (m *AccessLogFilter_ResponseFlagFilter) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.ResponseFlagFilter != nil {
@@ -1680,7 +2191,22 @@ func (m *AccessLogFilter_ResponseFlagFilter) Size() (n int) {
 	}
 	return n
 }
+func (m *AccessLogFilter_GrpcStatusFilter) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.GrpcStatusFilter != nil {
+		l = m.GrpcStatusFilter.Size()
+		n += 1 + l + sovAccesslog(uint64(l))
+	}
+	return n
+}
 func (m *ComparisonFilter) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.Op != 0 {
@@ -1697,6 +2223,9 @@ func (m *ComparisonFilter) Size() (n int) {
 }
 
 func (m *StatusCodeFilter) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.Comparison != nil {
@@ -1710,6 +2239,9 @@ func (m *StatusCodeFilter) Size() (n int) {
 }
 
 func (m *DurationFilter) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.Comparison != nil {
@@ -1723,6 +2255,9 @@ func (m *DurationFilter) Size() (n int) {
 }
 
 func (m *NotHealthCheckFilter) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.XXX_unrecognized != nil {
@@ -1732,6 +2267,9 @@ func (m *NotHealthCheckFilter) Size() (n int) {
 }
 
 func (m *TraceableFilter) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.XXX_unrecognized != nil {
@@ -1741,6 +2279,9 @@ func (m *TraceableFilter) Size() (n int) {
 }
 
 func (m *RuntimeFilter) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	l = len(m.RuntimeKey)
@@ -1761,6 +2302,9 @@ func (m *RuntimeFilter) Size() (n int) {
 }
 
 func (m *AndFilter) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if len(m.Filters) > 0 {
@@ -1776,6 +2320,9 @@ func (m *AndFilter) Size() (n int) {
 }
 
 func (m *OrFilter) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if len(m.Filters) > 0 {
@@ -1791,6 +2338,9 @@ func (m *OrFilter) Size() (n int) {
 }
 
 func (m *HeaderFilter) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.Header != nil {
@@ -1804,6 +2354,9 @@ func (m *HeaderFilter) Size() (n int) {
 }
 
 func (m *ResponseFlagFilter) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if len(m.Flags) > 0 {
@@ -1811,6 +2364,28 @@ func (m *ResponseFlagFilter) Size() (n int) {
 			l = len(s)
 			n += 1 + l + sovAccesslog(uint64(l))
 		}
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *GrpcStatusFilter) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Statuses) > 0 {
+		l = 0
+		for _, e := range m.Statuses {
+			l += sovAccesslog(uint64(e))
+		}
+		n += 1 + sovAccesslog(uint64(l)) + l
+	}
+	if m.Exclude {
+		n += 2
 	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
@@ -1846,7 +2421,7 @@ func (m *AccessLog) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -1874,7 +2449,7 @@ func (m *AccessLog) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1884,6 +2459,9 @@ func (m *AccessLog) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthAccesslog
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthAccesslog
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1903,7 +2481,7 @@ func (m *AccessLog) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1912,6 +2490,9 @@ func (m *AccessLog) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthAccesslog
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthAccesslog
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1936,7 +2517,7 @@ func (m *AccessLog) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1945,15 +2526,52 @@ func (m *AccessLog) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthAccesslog
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthAccesslog
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.Config == nil {
-				m.Config = &types.Struct{}
-			}
-			if err := m.Config.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			v := &types.Struct{}
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			m.ConfigType = &AccessLog_Config{v}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TypedConfig", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAccesslog
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthAccesslog
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthAccesslog
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			v := &types.Any{}
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			m.ConfigType = &AccessLog_TypedConfig{v}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -1962,6 +2580,9 @@ func (m *AccessLog) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthAccesslog
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthAccesslog
 			}
 			if (iNdEx + skippy) > l {
@@ -1992,7 +2613,7 @@ func (m *AccessLogFilter) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -2020,7 +2641,7 @@ func (m *AccessLogFilter) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2029,6 +2650,9 @@ func (m *AccessLogFilter) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthAccesslog
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthAccesslog
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2052,7 +2676,7 @@ func (m *AccessLogFilter) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2061,6 +2685,9 @@ func (m *AccessLogFilter) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthAccesslog
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthAccesslog
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2084,7 +2711,7 @@ func (m *AccessLogFilter) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2093,6 +2720,9 @@ func (m *AccessLogFilter) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthAccesslog
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthAccesslog
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2116,7 +2746,7 @@ func (m *AccessLogFilter) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2125,6 +2755,9 @@ func (m *AccessLogFilter) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthAccesslog
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthAccesslog
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2148,7 +2781,7 @@ func (m *AccessLogFilter) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2157,6 +2790,9 @@ func (m *AccessLogFilter) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthAccesslog
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthAccesslog
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2180,7 +2816,7 @@ func (m *AccessLogFilter) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2189,6 +2825,9 @@ func (m *AccessLogFilter) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthAccesslog
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthAccesslog
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2212,7 +2851,7 @@ func (m *AccessLogFilter) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2221,6 +2860,9 @@ func (m *AccessLogFilter) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthAccesslog
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthAccesslog
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2244,7 +2886,7 @@ func (m *AccessLogFilter) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2253,6 +2895,9 @@ func (m *AccessLogFilter) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthAccesslog
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthAccesslog
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2276,7 +2921,7 @@ func (m *AccessLogFilter) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2285,6 +2930,9 @@ func (m *AccessLogFilter) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthAccesslog
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthAccesslog
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2294,6 +2942,41 @@ func (m *AccessLogFilter) Unmarshal(dAtA []byte) error {
 			}
 			m.FilterSpecifier = &AccessLogFilter_ResponseFlagFilter{v}
 			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field GrpcStatusFilter", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAccesslog
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthAccesslog
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthAccesslog
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			v := &GrpcStatusFilter{}
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			m.FilterSpecifier = &AccessLogFilter_GrpcStatusFilter{v}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipAccesslog(dAtA[iNdEx:])
@@ -2301,6 +2984,9 @@ func (m *AccessLogFilter) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthAccesslog
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthAccesslog
 			}
 			if (iNdEx + skippy) > l {
@@ -2331,7 +3017,7 @@ func (m *ComparisonFilter) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -2359,7 +3045,7 @@ func (m *ComparisonFilter) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Op |= (ComparisonFilter_Op(b) & 0x7F) << shift
+				m.Op |= ComparisonFilter_Op(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2378,7 +3064,7 @@ func (m *ComparisonFilter) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2387,6 +3073,9 @@ func (m *ComparisonFilter) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthAccesslog
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthAccesslog
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2404,6 +3093,9 @@ func (m *ComparisonFilter) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthAccesslog
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthAccesslog
 			}
 			if (iNdEx + skippy) > l {
@@ -2434,7 +3126,7 @@ func (m *StatusCodeFilter) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -2462,7 +3154,7 @@ func (m *StatusCodeFilter) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2471,6 +3163,9 @@ func (m *StatusCodeFilter) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthAccesslog
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthAccesslog
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2488,6 +3183,9 @@ func (m *StatusCodeFilter) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthAccesslog
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthAccesslog
 			}
 			if (iNdEx + skippy) > l {
@@ -2518,7 +3216,7 @@ func (m *DurationFilter) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -2546,7 +3244,7 @@ func (m *DurationFilter) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2555,6 +3253,9 @@ func (m *DurationFilter) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthAccesslog
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthAccesslog
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2572,6 +3273,9 @@ func (m *DurationFilter) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthAccesslog
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthAccesslog
 			}
 			if (iNdEx + skippy) > l {
@@ -2602,7 +3306,7 @@ func (m *NotHealthCheckFilter) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -2623,6 +3327,9 @@ func (m *NotHealthCheckFilter) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthAccesslog
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthAccesslog
 			}
 			if (iNdEx + skippy) > l {
@@ -2653,7 +3360,7 @@ func (m *TraceableFilter) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -2674,6 +3381,9 @@ func (m *TraceableFilter) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthAccesslog
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthAccesslog
 			}
 			if (iNdEx + skippy) > l {
@@ -2704,7 +3414,7 @@ func (m *RuntimeFilter) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -2732,7 +3442,7 @@ func (m *RuntimeFilter) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2742,6 +3452,9 @@ func (m *RuntimeFilter) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthAccesslog
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthAccesslog
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2761,7 +3474,7 @@ func (m *RuntimeFilter) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2770,6 +3483,9 @@ func (m *RuntimeFilter) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthAccesslog
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthAccesslog
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2794,7 +3510,7 @@ func (m *RuntimeFilter) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (int(b) & 0x7F) << shift
+				v |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2807,6 +3523,9 @@ func (m *RuntimeFilter) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthAccesslog
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthAccesslog
 			}
 			if (iNdEx + skippy) > l {
@@ -2837,7 +3556,7 @@ func (m *AndFilter) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -2865,7 +3584,7 @@ func (m *AndFilter) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2874,6 +3593,9 @@ func (m *AndFilter) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthAccesslog
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthAccesslog
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2889,6 +3611,9 @@ func (m *AndFilter) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthAccesslog
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthAccesslog
 			}
 			if (iNdEx + skippy) > l {
@@ -2919,7 +3644,7 @@ func (m *OrFilter) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -2947,7 +3672,7 @@ func (m *OrFilter) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2956,6 +3681,9 @@ func (m *OrFilter) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthAccesslog
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthAccesslog
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2971,6 +3699,9 @@ func (m *OrFilter) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthAccesslog
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthAccesslog
 			}
 			if (iNdEx + skippy) > l {
@@ -3001,7 +3732,7 @@ func (m *HeaderFilter) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -3029,7 +3760,7 @@ func (m *HeaderFilter) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3038,6 +3769,9 @@ func (m *HeaderFilter) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthAccesslog
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthAccesslog
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3055,6 +3789,9 @@ func (m *HeaderFilter) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthAccesslog
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthAccesslog
 			}
 			if (iNdEx + skippy) > l {
@@ -3085,7 +3822,7 @@ func (m *ResponseFlagFilter) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -3113,7 +3850,7 @@ func (m *ResponseFlagFilter) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3123,6 +3860,9 @@ func (m *ResponseFlagFilter) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthAccesslog
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthAccesslog
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3135,6 +3875,152 @@ func (m *ResponseFlagFilter) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthAccesslog
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthAccesslog
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *GrpcStatusFilter) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowAccesslog
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GrpcStatusFilter: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GrpcStatusFilter: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType == 0 {
+				var v GrpcStatusFilter_Status
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowAccesslog
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					v |= GrpcStatusFilter_Status(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				m.Statuses = append(m.Statuses, v)
+			} else if wireType == 2 {
+				var packedLen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowAccesslog
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					packedLen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if packedLen < 0 {
+					return ErrInvalidLengthAccesslog
+				}
+				postIndex := iNdEx + packedLen
+				if postIndex < 0 {
+					return ErrInvalidLengthAccesslog
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				var elementCount int
+				if elementCount != 0 && len(m.Statuses) == 0 {
+					m.Statuses = make([]GrpcStatusFilter_Status, 0, elementCount)
+				}
+				for iNdEx < postIndex {
+					var v GrpcStatusFilter_Status
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflowAccesslog
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						v |= GrpcStatusFilter_Status(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					m.Statuses = append(m.Statuses, v)
+				}
+			} else {
+				return fmt.Errorf("proto: wrong wireType = %d for field Statuses", wireType)
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Exclude", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAccesslog
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Exclude = bool(v != 0)
+		default:
+			iNdEx = preIndex
+			skippy, err := skipAccesslog(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthAccesslog
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthAccesslog
 			}
 			if (iNdEx + skippy) > l {
@@ -3204,8 +4090,11 @@ func skipAccesslog(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			iNdEx += length
 			if length < 0 {
+				return 0, ErrInvalidLengthAccesslog
+			}
+			iNdEx += length
+			if iNdEx < 0 {
 				return 0, ErrInvalidLengthAccesslog
 			}
 			return iNdEx, nil
@@ -3236,6 +4125,9 @@ func skipAccesslog(dAtA []byte) (n int, err error) {
 					return 0, err
 				}
 				iNdEx = start + next
+				if iNdEx < 0 {
+					return 0, ErrInvalidLengthAccesslog
+				}
 			}
 			return iNdEx, nil
 		case 4:
@@ -3254,69 +4146,3 @@ var (
 	ErrInvalidLengthAccesslog = fmt.Errorf("proto: negative length found during unmarshaling")
 	ErrIntOverflowAccesslog   = fmt.Errorf("proto: integer overflow")
 )
-
-func init() {
-	proto.RegisterFile("envoy/config/filter/accesslog/v2/accesslog.proto", fileDescriptor_accesslog_227c9aa0019a1c53)
-}
-
-var fileDescriptor_accesslog_227c9aa0019a1c53 = []byte{
-	// 928 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x95, 0xc1, 0x6f, 0xdb, 0xb6,
-	0x17, 0xc7, 0x2b, 0x26, 0x76, 0xed, 0xd7, 0xc6, 0xd6, 0x8f, 0x08, 0x7e, 0xf1, 0x82, 0x2c, 0xf0,
-	0x74, 0x2a, 0x3a, 0x40, 0xea, 0xdc, 0xad, 0xa7, 0x62, 0x58, 0xed, 0xda, 0xb3, 0x31, 0xaf, 0x59,
-	0x99, 0x1a, 0x2b, 0x36, 0x20, 0x06, 0x2d, 0xd1, 0xb6, 0x50, 0x59, 0x14, 0x28, 0xda, 0x40, 0xae,
-	0x3b, 0xee, 0xd8, 0xeb, 0xfe, 0x91, 0x61, 0xbb, 0x74, 0xb7, 0x1d, 0xf7, 0x27, 0x0c, 0xb9, 0xf5,
-	0xba, 0xbf, 0x60, 0x10, 0x49, 0x29, 0xb6, 0x5b, 0xc0, 0xc1, 0xb0, 0x1d, 0x6c, 0x89, 0x7c, 0xfc,
-	0x7e, 0xde, 0x7b, 0x14, 0xdf, 0x23, 0x3c, 0x60, 0xf1, 0x8a, 0x5f, 0x7a, 0x3e, 0x8f, 0xa7, 0xe1,
-	0xcc, 0x9b, 0x86, 0x91, 0x64, 0xc2, 0xa3, 0xbe, 0xcf, 0xd2, 0x34, 0xe2, 0x33, 0x6f, 0xd5, 0xba,
-	0x1e, 0xb8, 0x89, 0xe0, 0x92, 0xe3, 0xa6, 0x52, 0xb8, 0x5a, 0xe1, 0x6a, 0x85, 0x7b, 0xbd, 0x68,
-	0xd5, 0x3a, 0x3e, 0xd1, 0x4c, 0x9a, 0x84, 0x99, 0xde, 0xe7, 0x82, 0x79, 0x13, 0x9a, 0x32, 0xad,
-	0x3f, 0x3e, 0xdd, 0xb0, 0x0a, 0xbe, 0x94, 0x4c, 0xff, 0x1b, 0x7b, 0x43, 0xdb, 0xe5, 0x65, 0xc2,
-	0xbc, 0x84, 0x09, 0x9f, 0xc5, 0xd2, 0x58, 0x4e, 0x66, 0x9c, 0xcf, 0x22, 0xe6, 0xa9, 0xd1, 0x64,
-	0x39, 0xf5, 0x52, 0x29, 0x96, 0x7e, 0x6e, 0x3d, 0x5a, 0xd1, 0x28, 0x0c, 0xa8, 0x64, 0x5e, 0xfe,
-	0xa2, 0x0d, 0xce, 0x4f, 0x16, 0x54, 0x9f, 0xa8, 0xf8, 0x86, 0x7c, 0x86, 0x31, 0xec, 0xc7, 0x74,
-	0xc1, 0x1a, 0x56, 0xd3, 0xba, 0x57, 0x25, 0xea, 0x1d, 0x0f, 0xa0, 0xac, 0xf3, 0x68, 0xa0, 0xa6,
-	0x75, 0xef, 0x4e, 0xeb, 0x13, 0x77, 0x57, 0x8e, 0x6e, 0x01, 0xec, 0x29, 0x23, 0x31, 0x00, 0xec,
-	0x41, 0x59, 0xab, 0x1a, 0x7b, 0x0a, 0x75, 0xe4, 0xea, 0xa0, 0xdd, 0x3c, 0x68, 0xf7, 0x5c, 0x05,
-	0x4d, 0xcc, 0x32, 0xe7, 0xaf, 0x32, 0xd4, 0xb7, 0x60, 0x78, 0x02, 0x38, 0x95, 0x54, 0x2e, 0xd3,
-	0xb1, 0xcf, 0x03, 0x36, 0x36, 0xb1, 0x59, 0x0a, 0xd8, 0xda, 0x1d, 0xdb, 0xb9, 0xd2, 0x76, 0x78,
-	0xc0, 0x34, 0xaf, 0x7f, 0x8b, 0xd8, 0xe9, 0xd6, 0x1c, 0xfe, 0x1e, 0xea, 0xc1, 0x52, 0x50, 0x19,
-	0xf2, 0x78, 0xbc, 0x91, 0xfc, 0x83, 0xdd, 0x0e, 0x9e, 0x1a, 0x61, 0x81, 0xaf, 0x05, 0x1b, 0x33,
-	0x98, 0xc3, 0x51, 0xcc, 0xe5, 0x78, 0xce, 0x68, 0x24, 0xe7, 0x63, 0x7f, 0xce, 0xfc, 0x57, 0xb9,
-	0x13, 0xbd, 0x2d, 0x8f, 0x76, 0x3b, 0x79, 0xc6, 0x65, 0x5f, 0xe9, 0x3b, 0x99, 0xbc, 0x70, 0x75,
-	0x18, 0xbf, 0x67, 0x1e, 0x5f, 0x80, 0x2d, 0x05, 0xf5, 0x19, 0x9d, 0x44, 0xc5, 0x7e, 0xed, 0xdf,
-	0xf4, 0x5b, 0xbe, 0xc8, 0x95, 0x85, 0x93, 0xba, 0xdc, 0x9c, 0xc2, 0x2f, 0xa1, 0x26, 0x96, 0xb1,
-	0x0c, 0x17, 0x05, 0xbd, 0xa4, 0xe8, 0xde, 0x6e, 0x3a, 0xd1, 0xba, 0x82, 0x7d, 0x20, 0xd6, 0x27,
-	0xf0, 0x10, 0x80, 0xc6, 0x41, 0x4e, 0x2d, 0x2b, 0xea, 0xc7, 0x37, 0x38, 0x7f, 0x71, 0x50, 0x10,
-	0xab, 0x34, 0x1f, 0xe0, 0x01, 0x54, 0xb9, 0xc8, 0x61, 0xb7, 0x15, 0xec, 0xfe, 0x6e, 0xd8, 0x99,
-	0x28, 0x58, 0x15, 0x6e, 0xde, 0xf1, 0x08, 0x0e, 0xe6, 0x8c, 0x06, 0xac, 0xc0, 0x55, 0x14, 0xce,
-	0xdd, 0x8d, 0xeb, 0x2b, 0x59, 0x81, 0xbc, 0x3b, 0x5f, 0x1b, 0xe3, 0x39, 0x1c, 0x0a, 0x96, 0x26,
-	0x3c, 0x4e, 0xd9, 0x78, 0x1a, 0xd1, 0x59, 0x4e, 0xaf, 0x2a, 0xfa, 0xa7, 0x37, 0xd8, 0x4f, 0xa3,
-	0xee, 0x45, 0x74, 0x56, 0xf8, 0xc0, 0xe2, 0x9d, 0xd9, 0xf6, 0x07, 0x60, 0x6b, 0xfd, 0x38, 0x4d,
-	0x98, 0x1f, 0x4e, 0x43, 0x26, 0x70, 0xe9, 0xe7, 0xb7, 0x6f, 0xf6, 0x2c, 0xe7, 0x57, 0x0b, 0xec,
-	0x0e, 0x5f, 0x24, 0x54, 0x84, 0x69, 0x71, 0x68, 0x9f, 0x03, 0xe2, 0x89, 0xaa, 0xb2, 0x5a, 0xeb,
-	0xb3, 0xdd, 0x71, 0x6c, 0xeb, 0xdd, 0xb3, 0xa4, 0x0d, 0xbf, 0xbc, 0x7d, 0xb3, 0x57, 0xfa, 0xc1,
-	0x42, 0xb6, 0x45, 0x10, 0x4f, 0xf0, 0x23, 0x28, 0xad, 0x68, 0xb4, 0x64, 0xa6, 0xb4, 0x9a, 0x86,
-	0x4a, 0x93, 0x30, 0x23, 0x64, 0x9d, 0x31, 0x3f, 0x1e, 0xa3, 0x41, 0x2c, 0x1f, 0xb6, 0x88, 0x5e,
-	0xee, 0x9c, 0x00, 0x3a, 0x4b, 0x70, 0x19, 0x50, 0xf7, 0xb9, 0x7d, 0x2b, 0x7b, 0x7e, 0xd9, 0xb5,
-	0xad, 0xec, 0x39, 0xec, 0xda, 0xc8, 0x11, 0x60, 0x6f, 0x97, 0x38, 0xbe, 0x00, 0xf0, 0x8b, 0x80,
-	0x6e, 0xde, 0x2a, 0xb6, 0x93, 0x30, 0x19, 0xfc, 0xa8, 0x32, 0x58, 0x23, 0x3a, 0x09, 0xd4, 0x36,
-	0xab, 0xfe, 0x3f, 0xf7, 0xf8, 0x7f, 0x38, 0x7c, 0x5f, 0x0b, 0x70, 0xfe, 0x07, 0xf5, 0xad, 0x82,
-	0x75, 0x7e, 0xb3, 0xe0, 0x60, 0xa3, 0xcc, 0xf0, 0x7d, 0xb8, 0x93, 0xd7, 0xeb, 0x2b, 0x76, 0xa9,
-	0x9b, 0x7d, 0xbb, 0x9a, 0x79, 0xda, 0x17, 0xa8, 0x69, 0x11, 0x30, 0xd6, 0xaf, 0xd8, 0x25, 0xee,
-	0x41, 0xdd, 0xdc, 0x33, 0xe3, 0x94, 0x2e, 0x92, 0x88, 0x05, 0xe6, 0x73, 0x7d, 0x68, 0xb2, 0xc9,
-	0xae, 0x22, 0xb7, 0x27, 0xa8, 0x9f, 0x65, 0x4f, 0xa3, 0x6f, 0xf4, 0x62, 0x52, 0x33, 0xaa, 0x73,
-	0x2d, 0xc2, 0x8f, 0xe1, 0x78, 0x99, 0xb2, 0x71, 0x18, 0x07, 0x2c, 0x61, 0x71, 0x90, 0xf1, 0x04,
-	0x8d, 0x03, 0xbe, 0x88, 0x59, 0x9a, 0xaa, 0xbe, 0x57, 0x21, 0x8d, 0x65, 0xca, 0x06, 0xd7, 0x0b,
-	0x48, 0x61, 0x77, 0x02, 0xa8, 0x16, 0x35, 0x8d, 0xbf, 0x85, 0xdb, 0x7a, 0xef, 0xd2, 0x86, 0xd5,
-	0xdc, 0xfb, 0x47, 0x37, 0x92, 0xd9, 0xd7, 0xd7, 0x16, 0xaa, 0x20, 0x92, 0xd3, 0x1c, 0x1f, 0x2a,
-	0x79, 0xb1, 0xaf, 0x3b, 0x41, 0xff, 0xaa, 0x93, 0x11, 0xdc, 0x5d, 0x6f, 0x01, 0xb8, 0x0b, 0x65,
-	0xdd, 0x02, 0xcc, 0x29, 0xf9, 0x68, 0xb3, 0x0c, 0xf4, 0xe5, 0xaf, 0x15, 0x5f, 0x53, 0xe9, 0xcf,
-	0xb7, 0x0e, 0x85, 0x11, 0x3b, 0x12, 0xf0, 0xbb, 0xb5, 0x8f, 0x2f, 0xa0, 0x94, 0xb5, 0x11, 0xbd,
-	0x51, 0xd5, 0x76, 0x3f, 0x13, 0x76, 0x5e, 0x5b, 0x5f, 0x38, 0x9f, 0x8b, 0xc7, 0x04, 0x0d, 0xfb,
-	0x04, 0x8d, 0xb2, 0xdf, 0x0b, 0x82, 0x86, 0x84, 0xa0, 0x51, 0xf6, 0xeb, 0x11, 0x34, 0xea, 0x10,
-	0x34, 0x3a, 0x23, 0xe8, 0x19, 0x21, 0xe8, 0xe9, 0x80, 0xa0, 0xde, 0x80, 0x20, 0x32, 0x24, 0xfb,
-	0xa3, 0x27, 0xdd, 0x97, 0x64, 0x9f, 0x0c, 0xcf, 0xbb, 0x44, 0x63, 0xdb, 0xf6, 0xef, 0x57, 0xa7,
-	0xd6, 0x1f, 0x57, 0xa7, 0xd6, 0x9f, 0x57, 0xa7, 0xd6, 0x77, 0x68, 0xd5, 0x9a, 0x94, 0xd5, 0x55,
-	0xfe, 0xf0, 0xef, 0x00, 0x00, 0x00, 0xff, 0xff, 0x1c, 0x57, 0x65, 0x8d, 0x3b, 0x09, 0x00, 0x00,
-}

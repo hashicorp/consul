@@ -33,7 +33,8 @@ compatible Envoy versions.
 
 | Consul Version | Compatible Envoy Versions |
 |---|---|
-| 1.5.x and higher | 1.9.1, 1.8.0† |
+| 1.5.2 and higher | 1.10.0, 1.9.1, 1.8.0† |
+| 1.5.0, 1.5.1 | 1.9.1, 1.8.0† |
 | 1.3.x, 1.4.x | 1.9.1, 1.8.0†, 1.7.0† |
 
 !> **Security Note:** Envoy versions lower than 1.9.1 are vulnerable to
@@ -41,8 +42,8 @@ compatible Envoy versions.
  [CVE-2019-9901](https://github.com/envoyproxy/envoy/issues/6435). Both are
  related to HTTP request parsing and so only affect Consul Connect users if they
  have configured HTTP routing rules via the ["escape
- hatch"](#custom-configuration). Still, we recommend that you use Envoy 1.9.1 where
- possible.
+ hatch"](#custom-configuration). Still, we recommend that you use the most
+ recent supported Envoy for your Consul version where possible.
 
 ## Getting Started
 
@@ -138,7 +139,7 @@ configuration entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaul
   all metrics produced by the proxy.
 
 - `envoy_stats_flush_interval` - Configures Envoy's
-  [`stats_flush_interval`](https://www.envoyproxy.io/docs/envoy/v1.9.1/api-v2/config/bootstrap/v2/bootstrap.proto#envoy-api-field-config-bootstrap-v2-bootstrap-stats-flush-interval).
+  [`stats_flush_interval`](https://www.envoyproxy.io/docs/envoy/v1.10.0/api-v2/config/bootstrap/v2/bootstrap.proto#envoy-api-field-config-bootstrap-v2-bootstrap-stats-flush-interval).
 
 There are more possibilities available in the [Advanced
 Configuration](#advanced-configuration) section that allow incremental or
@@ -193,7 +194,7 @@ defaults that are inherited by all services.
   - `grpc` - gRPC is a common RPC protocol based on http2. In addition to the
     http2 support above, Envoy listeners will be configured with a
     [gRPC bridge
-    filter](https://www.envoyproxy.io/docs/envoy/v1.9.1/configuration/http_filters/grpc_http1_bridge_filter#config-http-filters-grpc-bridge)
+    filter](https://www.envoyproxy.io/docs/envoy/v1.10.0/configuration/http_filters/grpc_http1_bridge_filter#config-http-filters-grpc-bridge)
     that translates HTTP/1.1 calls into gRPC, and instruments
     metrics with `gRPC-status` trailer codes.
 - `local_connect_timeout_ms` - The number of milliseconds allowed to make
@@ -259,29 +260,29 @@ definition](/docs/connect/proxies.html#proxy-service-definitions) or
 [`sidecar_service`](/docs/connect/proxies/sidecar-service.html) block.
 
 - `envoy_extra_static_clusters_json` - Specifies one or more [Envoy
-  clusters](https://www.envoyproxy.io/docs/envoy/v1.9.1/api-v2/api/v2/cds.proto#cluster)
+  clusters](https://www.envoyproxy.io/docs/envoy/v1.10.0/api-v2/api/v2/cds.proto#cluster)
   that will be appended to the array of [static
-  clusters](https://www.envoyproxy.io/docs/envoy/v1.9.1/api-v2/config/bootstrap/v2/bootstrap.proto#envoy-api-field-config-bootstrap-v2-bootstrap-staticresources-clusters)
+  clusters](https://www.envoyproxy.io/docs/envoy/v1.10.0/api-v2/config/bootstrap/v2/bootstrap.proto#envoy-api-field-config-bootstrap-v2-bootstrap-staticresources-clusters)
   in the bootstrap config. This allows adding custom clusters for tracing sinks
   for example. For a single cluster just encode a single object, for multiple,
   they should be comma separated with no trailing comma suitable for
   interpolating directly into a JSON array inside the braces.
 - `envoy_extra_static_listeners_json` - Similar to
   `envoy_extra_static_clusters_json` but appends [static
-  listener](https://www.envoyproxy.io/docs/envoy/v1.9.1/api-v2/config/bootstrap/v2/bootstrap.proto#envoy-api-field-config-bootstrap-v2-bootstrap-staticresources-listeners) definitions.
+  listener](https://www.envoyproxy.io/docs/envoy/v1.10.0/api-v2/config/bootstrap/v2/bootstrap.proto#envoy-api-field-config-bootstrap-v2-bootstrap-staticresources-listeners) definitions.
   Can be used to setup limited access that bypasses Connect mTLS or
   authorization for health checks or metrics.
 - `envoy_extra_stats_sinks_json` - Similar to `envoy_extra_static_clusters_json`
-  but for [stats sinks](https://www.envoyproxy.io/docs/envoy/v1.9.1/api-v2/config/bootstrap/v2/bootstrap.proto#envoy-api-field-config-bootstrap-v2-bootstrap-stats-sinks). These are appended to any sinks defined by use of the
+  but for [stats sinks](https://www.envoyproxy.io/docs/envoy/v1.10.0/api-v2/config/bootstrap/v2/bootstrap.proto#envoy-api-field-config-bootstrap-v2-bootstrap-stats-sinks). These are appended to any sinks defined by use of the
   higher-level [`envoy_statsd_url`](#envoy_statsd_url) or
   [`envoy_dogstatsd_url`](#envoy_dogstatsd_url) config options.
 - `envoy_stats_config_json` - The entire [stats
-  config](https://www.envoyproxy.io/docs/envoy/v1.9.1/api-v2/config/bootstrap/v2/bootstrap.proto#envoy-api-field-config-bootstrap-v2-bootstrap-stats-config).
+  config](https://www.envoyproxy.io/docs/envoy/v1.10.0/api-v2/config/bootstrap/v2/bootstrap.proto#envoy-api-field-config-bootstrap-v2-bootstrap-stats-config).
   If provided this will override the higher-level
   [`envoy_stats_tags`](#envoy_stats_tags). It allows full control over dynamic
   tag replacements etc.
 - `envoy_tracing_json` - The entire [tracing
-  config](https://www.envoyproxy.io/docs/envoy/v1.9.1/api-v2/config/bootstrap/v2/bootstrap.proto#envoy-api-field-config-bootstrap-v2-bootstrap-tracing).
+  config](https://www.envoyproxy.io/docs/envoy/v1.10.0/api-v2/config/bootstrap/v2/bootstrap.proto#envoy-api-field-config-bootstrap-v2-bootstrap-tracing).
   Most tracing providers will also require adding static clusters to define the
   endpoints to send tracing data to.
 
@@ -305,7 +306,7 @@ definition](/docs/connect/proxies.html#proxy-service-definitions) or
   deviations from the default template may break Consul's ability to correctly
   manage the proxy or enforce it's security model.
 - `envoy_public_listener_json` - Specifies a complete
-  [Listener](https://www.envoyproxy.io/docs/envoy/v1.9.1/api-v2/api/v2/lds.proto)
+  [Listener](https://www.envoyproxy.io/docs/envoy/v1.10.0/api-v2/api/v2/lds.proto)
   to be delivered in place of the main public listener that the proxy used to
   accept inbound connections. This will be used verbatim with the following
   exceptions:
@@ -317,7 +318,7 @@ definition](/docs/connect/proxies.html#proxy-service-definitions) or
     filters array to ensure that all inbound connections are authorized by
     Connect.
 - `envoy_local_cluster_json` - Specifies a complete [Envoy
-  cluster](https://www.envoyproxy.io/docs/envoy/v1.9.1/api-v2/api/v2/cds.proto#cluster)
+  cluster](https://www.envoyproxy.io/docs/envoy/v1.10.0/api-v2/api/v2/cds.proto#cluster)
   to be delivered in place of the local application cluster. This allows
   customization of timeouts, rate limits, load balancing strategy etc.
 
@@ -328,7 +329,7 @@ definition](/docs/connect/proxies.html#proxy-service-definitions) or
 [`sidecar_service`](/docs/connect/proxies/sidecar-service.html) block.
 
 - `envoy_listener_json` - Specifies a complete
-  [Listener](https://www.envoyproxy.io/docs/envoy/v1.9.1/api-v2/api/v2/lds.proto)
+  [Listener](https://www.envoyproxy.io/docs/envoy/v1.10.0/api-v2/api/v2/lds.proto)
   to be delivered in place of the upstream listener that the proxy exposes to
   the application for outbound connections. This will be used verbatim with the
   following exceptions:
@@ -337,7 +338,7 @@ definition](/docs/connect/proxies.html#proxy-service-definitions) or
     means there is no way to override Connect's mutual TLS for the public
     listener.
 - `envoy_cluster_json` - Specifies a complete [Envoy
-  cluster](https://www.envoyproxy.io/docs/envoy/v1.9.1/api-v2/api/v2/cds.proto#cluster)
+  cluster](https://www.envoyproxy.io/docs/envoy/v1.10.0/api-v2/api/v2/cds.proto#cluster)
   to be delivered in place of the discovered upstream cluster. This allows
   customization of timeouts, circuit breaking, rate limits, load balancing
   strategy etc.

@@ -29,10 +29,10 @@ func endpointsFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]pr
 
 func makeEndpoint(clusterName, host string, port int) envoyendpoint.LbEndpoint {
 	return envoyendpoint.LbEndpoint{
-		Endpoint: &envoyendpoint.Endpoint{
+		HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{Endpoint: &envoyendpoint.Endpoint{
 			Address: makeAddressPtr(host, port),
 		},
-	}
+		}}
 }
 
 func makeLoadAssignment(clusterName string, endpoints structs.CheckServiceNodes) *envoy.ClusterLoadAssignment {
@@ -69,9 +69,10 @@ func makeLoadAssignment(clusterName string, endpoints structs.CheckServiceNodes)
 			weight = 128
 		}
 		es = append(es, envoyendpoint.LbEndpoint{
-			Endpoint: &envoyendpoint.Endpoint{
-				Address: makeAddressPtr(addr, ep.Service.Port),
-			},
+			HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
+				Endpoint: &envoyendpoint.Endpoint{
+					Address: makeAddressPtr(addr, ep.Service.Port),
+				}},
 			HealthStatus:        healthStatus,
 			LoadBalancingWeight: makeUint32Value(weight),
 		})

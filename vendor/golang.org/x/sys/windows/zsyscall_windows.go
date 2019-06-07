@@ -86,6 +86,7 @@ var (
 	procFindNextFileW                      = modkernel32.NewProc("FindNextFileW")
 	procFindClose                          = modkernel32.NewProc("FindClose")
 	procGetFileInformationByHandle         = modkernel32.NewProc("GetFileInformationByHandle")
+	procGetFileInformationByHandleEx       = modkernel32.NewProc("GetFileInformationByHandleEx")
 	procGetCurrentDirectoryW               = modkernel32.NewProc("GetCurrentDirectoryW")
 	procSetCurrentDirectoryW               = modkernel32.NewProc("SetCurrentDirectoryW")
 	procCreateDirectoryW                   = modkernel32.NewProc("CreateDirectoryW")
@@ -610,7 +611,7 @@ func ExitProcess(exitcode uint32) {
 	return
 }
 
-func CreateFile(name *uint16, access uint32, mode uint32, sa *SecurityAttributes, createmode uint32, attrs uint32, templatefile int32) (handle Handle, err error) {
+func CreateFile(name *uint16, access uint32, mode uint32, sa *SecurityAttributes, createmode uint32, attrs uint32, templatefile Handle) (handle Handle, err error) {
 	r0, _, e1 := syscall.Syscall9(procCreateFileW.Addr(), 7, uintptr(unsafe.Pointer(name)), uintptr(access), uintptr(mode), uintptr(unsafe.Pointer(sa)), uintptr(createmode), uintptr(attrs), uintptr(templatefile), 0, 0)
 	handle = Handle(r0)
 	if handle == InvalidHandle {
@@ -762,6 +763,18 @@ func FindClose(handle Handle) (err error) {
 
 func GetFileInformationByHandle(handle Handle, data *ByHandleFileInformation) (err error) {
 	r1, _, e1 := syscall.Syscall(procGetFileInformationByHandle.Addr(), 2, uintptr(handle), uintptr(unsafe.Pointer(data)), 0)
+	if r1 == 0 {
+		if e1 != 0 {
+			err = errnoErr(e1)
+		} else {
+			err = syscall.EINVAL
+		}
+	}
+	return
+}
+
+func GetFileInformationByHandleEx(handle Handle, class uint32, outBuffer *byte, outBufferLen uint32) (err error) {
+	r1, _, e1 := syscall.Syscall6(procGetFileInformationByHandleEx.Addr(), 4, uintptr(handle), uintptr(class), uintptr(unsafe.Pointer(outBuffer)), uintptr(outBufferLen), 0, 0)
 	if r1 == 0 {
 		if e1 != 0 {
 			err = errnoErr(e1)

@@ -422,6 +422,13 @@ jobs:
       ENVOY_VERSIONS: "1.9.1"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
+  envoy-integration-test-1.10.0:
+    docker:
+      - image: *GOLANG_IMAGE
+    environment:
+      ENVOY_VERSIONS: "1.10.0"
+    steps: *ENVOY_INTEGRATION_TEST_STEPS
+
 workflows:
   version: 2
   build-distros:
@@ -460,6 +467,9 @@ workflows:
           requires:
             - dev-build
       - envoy-integration-test-1.9.1:
+          requires:
+            - dev-build
+      - envoy-integration-test-1.10.0:
           requires:
             - dev-build
   website:
