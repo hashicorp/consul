@@ -28,7 +28,7 @@ func (u U) Unset(key string) {
 	delete(u.u, key)
 }
 
-// ForEach iterates for u executes f for each element that is 'todo' and sets it to 'done'.
+// ForEach iterates over u and executes f for each element that is 'todo' and sets it to 'done'.
 func (u U) ForEach() error {
 	for k, v := range u.u {
 		if v.state == todo {

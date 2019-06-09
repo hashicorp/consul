@@ -30,10 +30,6 @@ type ready struct {
 }
 
 func (rd *ready) onStartup() error {
-	if rd.Addr == "" {
-		rd.Addr = defAddr
-	}
-
 	ln, err := net.Listen("tcp", rd.Addr)
 	if err != nil {
 		return err
@@ -62,8 +58,6 @@ func (rd *ready) onStartup() error {
 	return nil
 }
 
-func (rd *ready) onRestart() error { return rd.onFinalShutdown() }
-
 func (rd *ready) onFinalShutdown() error {
 	rd.Lock()
 	defer rd.Unlock()
@@ -77,5 +71,3 @@ func (rd *ready) onFinalShutdown() error {
 	rd.done = false
 	return nil
 }
-
-const defAddr = ":8181"

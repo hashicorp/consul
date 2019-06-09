@@ -12,7 +12,9 @@ body containing the list of plugins that are not ready. Once a plugin has signal
 will not be queried again.
 
 Each Server Block that enables the *ready* plugin will have the plugins *in that server block*
-report readiness into the /ready endpoint that runs on the same port.
+report readiness into the /ready endpoint that runs on the same port. This also means that the
+*same* plugin with different configurations (in potentialy *different* Server Blocks) will have
+their readiness reported as the union of their respective readinesses.
 
 ## Syntax
 
@@ -22,7 +24,7 @@ ready [ADDRESS]
 
 *ready* optionally takes an address; the default is `:8181`. The path is fixed to `/ready`. The
 readiness endpoint returns a 200 response code and the word "OK" when this server is ready. It
-returns a 503 otherwise.
+returns a 503 otherwise *and* the list of plugins that are not ready.
 
 ## Plugins
 
