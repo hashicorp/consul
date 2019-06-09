@@ -70,6 +70,7 @@ func AddFlags(fs *flag.FlagSet, f *Flags) {
 	add(&f.Config.DisableKeyringFile, "disable-keyring-file", "Disables the backing up of the keyring to a file.")
 	add(&f.Config.Ports.DNS, "dns-port", "DNS port to use.")
 	add(&f.Config.DNSDomain, "domain", "Domain to use for DNS interface.")
+	add(&f.Config.DNSAltDomains, "alt-domain", "Alternate domain to use for DNS interface.")
 	add(&f.Config.EnableScriptChecks, "enable-script-checks", "Enables health check scripts.")
 	add(&f.Config.EnableLocalScriptChecks, "enable-local-script-checks", "Enables health check scripts from configuration file.")
 	add(&f.Config.HTTPConfig.AllowWriteHTTPFrom, "allow-write-http-from", "Only allow write endpoint calls from given network. CIDR format, can be specified multiple times.")

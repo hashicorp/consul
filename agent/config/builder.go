@@ -495,6 +495,23 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		}
 	}
 
+	// expand dns alt domains
+	uniq = map[string]bool{}
+	dnsAltDomains := []string{}
+	for _, d := range c.DNSAltDomains {
+		x, err := template.Parse(d)
+		if err != nil {
+			return RuntimeConfig{}, fmt.Errorf("Invalid DNS alt. domain template %q: %s", d, err)
+		}
+		for _, domain := range strings.Fields(x) {
+			if uniq[domain] {
+				continue
+			}
+			uniq[domain] = true
+			dnsAltDomains = append(dnsAltDomains, domain)
+		}
+	}
+
 	// Create the default set of tagged addresses.
 	if c.TaggedAddresses == nil {
 		c.TaggedAddresses = make(map[string]string)
@@ -726,6 +743,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		DNSARecordLimit:       b.intVal(c.DNS.ARecordLimit),
 		DNSDisableCompression: b.boolVal(c.DNS.DisableCompression),
 		DNSDomain:             b.stringVal(c.DNSDomain),
+		DNSAltDomains:         dnsAltDomains,
 		DNSEnableTruncate:     b.boolVal(c.DNS.EnableTruncate),
 		DNSMaxStale:           b.durationVal("dns_config.max_stale", c.DNS.MaxStale),
 		DNSNodeTTL:            b.durationVal("dns_config.node_ttl", c.DNS.NodeTTL),
