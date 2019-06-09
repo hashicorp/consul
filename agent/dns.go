@@ -540,10 +540,10 @@ func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *d
 
 	cfg := d.config.Load().(*dnsConfig)
 
+NEXT:
 	// By default the query is in the default datacenter
 	datacenter := d.agent.config.Datacenter
 
-NEXT:
 	// Provide a flag for remembering whether the datacenter name was parsed already.
 	dcParsed := false
 
