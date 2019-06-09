@@ -271,33 +271,6 @@ func (k *Kubernetes) Records(ctx context.Context, state request.Request, exact b
 	return services, err
 }
 
-// serviceFQDN returns the k8s cluster dns spec service FQDN for the service (or endpoint) object.
-func serviceFQDN(obj meta.Object, zone string) string {
-	return dnsutil.Join(obj.GetName(), obj.GetNamespace(), Svc, zone)
-}
-
-// podFQDN returns the k8s cluster dns spec FQDN for the pod.
-func podFQDN(p *object.Pod, zone string) string {
-	if strings.Contains(p.PodIP, ".") {
-		name := strings.Replace(p.PodIP, ".", "-", -1)
-		return dnsutil.Join(name, p.GetNamespace(), Pod, zone)
-	}
-
-	name := strings.Replace(p.PodIP, ":", "-", -1)
-	return dnsutil.Join(name, p.GetNamespace(), Pod, zone)
-}
-
-// endpointFQDN returns a list of k8s cluster dns spec service FQDNs for each subset in the endpoint.
-func endpointFQDN(ep *object.Endpoints, zone string, endpointNameMode bool) []string {
-	var names []string
-	for _, ss := range ep.Subsets {
-		for _, addr := range ss.Addresses {
-			names = append(names, dnsutil.Join(endpointHostname(addr, endpointNameMode), serviceFQDN(ep, zone)))
-		}
-	}
-	return names
-}
-
 func endpointHostname(addr object.EndpointAddress, endpointNameMode bool) string {
 	if addr.Hostname != "" {
 		return addr.Hostname
