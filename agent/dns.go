@@ -78,10 +78,11 @@ type dnsConfig struct {
 // service discovery endpoints using a DNS interface.
 type DNSServer struct {
 	*dns.Server
-	agent  *Agent
-	mux    *dns.ServeMux
-	domain string
-	logger *log.Logger
+	agent      *Agent
+	mux        *dns.ServeMux
+	domain     string
+	altDomains []string
+	logger     *log.Logger
 
 	// config stores the config as an atomic value (for hot-reloading). It is always of type *dnsConfig
 	config atomic.Value
@@ -92,13 +93,20 @@ type DNSServer struct {
 }
 
 func NewDNSServer(a *Agent) (*DNSServer, error) {
-	// Make sure domain is FQDN, make it case insensitive for ServeMux
+	// Make sure domains are FQDN, make them case insensitive for ServeMux
 	domain := dns.Fqdn(strings.ToLower(a.config.DNSDomain))
 
+	var altDomains []string
+	for _, d := range a.config.DNSAltDomains {
+		ad := dns.Fqdn(strings.ToLower(d))
+		altDomains = append(altDomains, ad)
+	}
+
 	srv := &DNSServer{
-		agent:  a,
-		domain: domain,
-		logger: a.logger,
+		agent:      a,
+		domain:     domain,
+		altDomains: altDomains,
+		logger:     a.logger,
 	}
 	cfg, err := GetDNSConfig(a.config)
 	if err != nil {
@@ -183,6 +191,9 @@ func (d *DNSServer) ListenAndServe(network, addr string, notif func()) error {
 	d.mux = dns.NewServeMux()
 	d.mux.HandleFunc("arpa.", d.handlePtr)
 	d.mux.HandleFunc(d.domain, d.handleQuery)
+	for _, ad := range d.altDomains {
+		d.mux.HandleFunc(ad, d.handleQuery)
+	}
 	d.toggleRecursorHandlerFromConfig(cfg)
 
 	d.Server = &dns.Server{
@@ -524,27 +535,46 @@ func (d *DNSServer) dispatch(network string, remoteAddr net.Addr, req, resp *dns
 // doDispatch is used to parse a request and invoke the correct handler.
 // parameter maxRecursionLevel will handle whether recursive call can be performed
 func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *dns.Msg, maxRecursionLevel int) (ecsGlobal bool) {
-	ecsGlobal = true
-	// By default the query is in the default datacenter
-	datacenter := d.agent.config.Datacenter
-
-	// Get the QName without the domain suffix
+	domains := append([]string{d.domain}, d.altDomains...)
 	qName := strings.ToLower(dns.Fqdn(req.Question[0].Name))
-	qName = strings.TrimSuffix(qName, d.domain)
-
-	// Split into the label parts
-	labels := dns.SplitDomainName(qName)
-
-	// Provide a flag for remembering whether the datacenter name was parsed already.
-	var dcParsed bool
 
 	cfg := d.config.Load().(*dnsConfig)
 
+	// By default the query is in the default datacenter
+	datacenter := d.agent.config.Datacenter
+
+NEXT:
+	// Provide a flag for remembering whether the datacenter name was parsed already.
+	dcParsed := false
+
+	var (
+		domain  string
+		trimmed string
+		labels  []string
+		n       int
+	)
+
+	if len(domains) == 0 {
+		goto INVALID
+	}
+	domain, domains = domains[0], domains[1:]
+
+	ecsGlobal = true
+
+	// Get the QName without the domain suffix
+	if !strings.HasSuffix(qName, domain) {
+		goto NEXT
+	}
+	trimmed = strings.TrimSuffix(qName, domain)
+
+	// Split into the label parts
+	labels = dns.SplitDomainName(trimmed)
+
 	// The last label is either "node", "service", "query", "_<protocol>", or a datacenter name
 PARSE:
-	n := len(labels)
+	n = len(labels)
 	if n == 0 {
-		goto INVALID
+		goto NEXT
 	}
 
 	// If this is a SRV query the "service" label is optional, we add it back to use the
@@ -557,7 +587,7 @@ PARSE:
 	switch kind := labels[n-1]; kind {
 	case "service":
 		if n == 1 {
-			goto INVALID
+			goto NEXT
 		}
 
 		// Support RFC 2782 style syntax
@@ -589,7 +619,7 @@ PARSE:
 
 	case "connect":
 		if n == 1 {
-			goto INVALID
+			goto NEXT
 		}
 
 		// name.connect.consul
@@ -597,7 +627,7 @@ PARSE:
 
 	case "node":
 		if n == 1 {
-			goto INVALID
+			goto NEXT
 		}
 
 		// Allow a "." in the node name, just join all the parts
@@ -606,7 +636,7 @@ PARSE:
 
 	case "query":
 		if n == 1 {
-			goto INVALID
+			goto NEXT
 		}
 
 		// Allow a "." in the query name, just join all the parts.
@@ -616,7 +646,7 @@ PARSE:
 
 	case "addr":
 		if n != 2 {
-			goto INVALID
+			goto NEXT
 		}
 
 		switch len(labels[0]) / 2 {
@@ -624,12 +654,12 @@ PARSE:
 		case 4:
 			ip, err := hex.DecodeString(labels[0])
 			if err != nil {
-				goto INVALID
+				goto NEXT
 			}
 
 			resp.Answer = append(resp.Answer, &dns.A{
 				Hdr: dns.RR_Header{
-					Name:   qName + d.domain,
+					Name:   trimmed + d.domain,
 					Rrtype: dns.TypeA,
 					Class:  dns.ClassINET,
 					Ttl:    uint32(cfg.NodeTTL / time.Second),
@@ -640,12 +670,12 @@ PARSE:
 		case 16:
 			ip, err := hex.DecodeString(labels[0])
 			if err != nil {
-				goto INVALID
+				goto NEXT
 			}
 
 			resp.Answer = append(resp.Answer, &dns.AAAA{
 				Hdr: dns.RR_Header{
-					Name:   qName + d.domain,
+					Name:   trimmed + d.domain,
 					Rrtype: dns.TypeAAAA,
 					Class:  dns.ClassINET,
 					Ttl:    uint32(cfg.NodeTTL / time.Second),
@@ -667,7 +697,7 @@ PARSE:
 		//  * foo.service.dc.consul is OK
 		//  * foo.service.dc.stuff.consul is not OK
 		if dcParsed {
-			goto INVALID
+			goto NEXT
 		}
 		dcParsed = true
 
@@ -1602,21 +1632,24 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 // resolveCNAME is used to recursively resolve CNAME records
 func (d *DNSServer) resolveCNAME(cfg *dnsConfig, name string, maxRecursionLevel int) []dns.RR {
 	// If the CNAME record points to a Consul address, resolve it internally
-	// Convert query to lowercase because DNS is case insensitive; d.domain is
-	// already converted
+	// Convert query to lowercase because DNS is case insensitive; d.domain and
+	// d.altDomains are already converted
 
-	if strings.HasSuffix(strings.ToLower(name), "."+d.domain) {
-		if maxRecursionLevel < 1 {
-			d.logger.Printf("[ERR] dns: Infinite recursion detected for %s, won't perform any CNAME resolution.", name)
-			return nil
+	domains := append([]string{d.domain}, d.altDomains...)
+	for _, domain := range domains {
+		if ln := strings.ToLower(name); strings.HasSuffix(ln, "."+domain) {
+			if maxRecursionLevel < 1 {
+				d.logger.Printf("[ERR] dns: Infinite recursion detected for %s, won't perform any CNAME resolution.", name)
+				return nil
+			}
+			req := &dns.Msg{}
+			resp := &dns.Msg{}
+
+			req.SetQuestion(name, dns.TypeANY)
+			d.doDispatch("udp", nil, req, resp, maxRecursionLevel-1)
+
+			return resp.Answer
 		}
-		req := &dns.Msg{}
-		resp := &dns.Msg{}
-
-		req.SetQuestion(name, dns.TypeANY)
-		d.doDispatch("udp", nil, req, resp, maxRecursionLevel-1)
-
-		return resp.Answer
 	}
 
 	// Do nothing if we don't have a recursor
