@@ -146,6 +146,10 @@ $ consul agent -retry-join "provider=gce project_name=... tag_value=..."
 
 #### Authentication & Precedence
 
+Discovery requires a [GCE Service
+Account](https://cloud.google.com/compute/docs/access/service-accounts).
+Credentials are searched using the following paths, in order of precedence.
+
 - Use credentials from `credentials_file`, if provided.
 - Use JSON file from `GOOGLE_APPLICATION_CREDENTIALS` environment variable.
 - Use JSON file in a location known to the gcloud command-line tool.
@@ -153,10 +157,6 @@ $ consul agent -retry-join "provider=gce project_name=... tag_value=..."
     - On other systems, `$HOME/.config/gcloud/application_default_credentials.json`.
 - On Google Compute Engine, use credentials from the metadata
     server. In this final case any provided scopes are ignored.
-
-Discovery requires a [GCE Service
-Account](https://cloud.google.com/compute/docs/access/service-accounts).
-Credentials are searched using the following paths, in order of precedence.
 
 ### IBM SoftLayer
 
