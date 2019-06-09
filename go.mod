@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	cloud.google.com/go v0.39.0 // indirect
-	github.com/DataDog/dd-trace-go v0.6.1 // indirect
+	github.com/DataDog/dd-trace-go v1.14.0
 	github.com/Shopify/sarama v1.21.0 // indirect
 	github.com/apache/thrift v0.12.0 // indirect
 	github.com/aws/aws-sdk-go v1.19.41
@@ -41,6 +41,7 @@ require (
 	github.com/opentracing-contrib/go-observer v0.0.0-20170622124052-a52f23424492 // indirect
 	github.com/opentracing/opentracing-go v1.0.2
 	github.com/openzipkin/zipkin-go-opentracing v0.3.4
+	github.com/philhofer/fwd v1.0.0 // indirect
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/prometheus/client_golang v0.9.3
 	github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90
@@ -49,6 +50,7 @@ require (
 	github.com/sirupsen/logrus v1.4.2 // indirect
 	github.com/soheilhy/cmux v0.1.4 // indirect
 	github.com/spf13/pflag v1.0.3 // indirect
+	github.com/tinylib/msgp v1.1.0 // indirect
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
 	github.com/ugorji/go/codec v0.0.0-20190309163734-c4a1c341dc93 // indirect
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
@@ -67,6 +69,7 @@ require (
 	google.golang.org/genproto v0.0.0-20190530194941-fb225487d101 // indirect
 	google.golang.org/grpc v1.21.0
 	gopkg.in/DataDog/dd-trace-go.v0 v0.6.1
+	gopkg.in/DataDog/dd-trace-go.v1 v1.14.0
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	k8s.io/api v0.0.0-20190313235455-40a48860b5ab
 	k8s.io/apimachinery v0.0.0-20190313205120-d7deff9243b1
@@ -76,7 +79,5 @@ require (
 	k8s.io/utils v0.0.0-20190529001817-6999998975a7 // indirect
 	sigs.k8s.io/yaml v1.1.0 // indirect
 )
-
-replace github.com/DataDog/dd-trace-go v0.6.1 => github.com/datadog/dd-trace-go v0.6.1
 
 replace github.com/miekg/dns v1.1.3 => github.com/miekg/dns v1.1.12
