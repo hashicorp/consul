@@ -10,7 +10,8 @@ import (
 // remote will always be 10.240.0.1 and port 40212. The local address is always 127.0.0.1 and
 // port 53.
 type ResponseWriter struct {
-	TCP bool // if TCP is true we return an TCP connection instead of an UDP one.
+	TCP      bool // if TCP is true we return an TCP connection instead of an UDP one.
+	RemoteIP string
 }
 
 // LocalAddr returns the local address, 127.0.0.1:53 (UDP, TCP if t.TCP is true).
@@ -23,9 +24,13 @@ func (t *ResponseWriter) LocalAddr() net.Addr {
 	return &net.UDPAddr{IP: ip, Port: port, Zone: ""}
 }
 
-// RemoteAddr returns the remote address, always 10.240.0.1:40212 (UDP, TCP is t.TCP is true).
+// RemoteAddr returns the remote address, defaults to 10.240.0.1:40212 (UDP, TCP is t.TCP is true).
 func (t *ResponseWriter) RemoteAddr() net.Addr {
-	ip := net.ParseIP("10.240.0.1")
+	remoteIP := "10.240.0.1"
+	if t.RemoteIP != "" {
+		remoteIP = t.RemoteIP
+	}
+	ip := net.ParseIP(remoteIP)
 	port := 40212
 	if t.TCP {
 		return &net.TCPAddr{IP: ip, Port: port, Zone: ""}

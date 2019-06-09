@@ -20,10 +20,15 @@ type Metadata struct {
 // Name implements the Handler interface.
 func (m *Metadata) Name() string { return "metadata" }
 
+// ContextWithMetadata is exported for use by provider tests
+func ContextWithMetadata(ctx context.Context) context.Context {
+	return context.WithValue(ctx, key{}, md{})
+}
+
 // ServeDNS implements the plugin.Handler interface.
 func (m *Metadata) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 
-	ctx = context.WithValue(ctx, key{}, md{})
+	ctx = ContextWithMetadata(ctx)
 
 	state := request.Request{W: w, Req: r}
 	if plugin.Zones(m.Zones).Matches(state.Name()) != "" {

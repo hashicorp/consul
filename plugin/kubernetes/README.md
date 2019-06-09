@@ -225,3 +225,17 @@ or the word "any"), then that label will match all values.  The labels that acce
 *.service.default.svc.cluster.local. 5	IN A	192.168.25.15
 ```
  This response can be randomized using the `loadbalance` plugin
+
+## Metadata
+
+The kubernetes plugin will publish the following metadata, if the _metadata_
+plugin is also enabled:
+
+ * kubernetes/endpoint: the endpoint name in the query
+ * kubernetes/kind: the resource kind (pod or svc) in the query
+ * kubernetes/namespace: the namespace in the query
+ * kubernetes/port-name: the port name in an SRV query
+ * kubernetes/protocol: the protocol in an SRV query
+ * kubernetes/service: the service name in the query
+ * kubernetes/client-namespace: the client pod's namespace, if `pods verified` mode is enabled
+ * kubernetes/client-pod-name: the client pod's name, if `pods verified` mode is enabled

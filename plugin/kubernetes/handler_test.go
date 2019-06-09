@@ -495,9 +495,12 @@ func (APIConnServeTest) EpIndexReverse(string) []*object.Endpoints { return nil 
 func (APIConnServeTest) SvcIndexReverse(string) []*object.Service  { return nil }
 func (APIConnServeTest) Modified() int64                           { return time.Now().Unix() }
 
-func (APIConnServeTest) PodIndex(string) []*object.Pod {
+func (APIConnServeTest) PodIndex(ip string) []*object.Pod {
+	if ip != "10.240.0.1" {
+		return []*object.Pod{}
+	}
 	a := []*object.Pod{
-		{Namespace: "podns", PodIP: "10.240.0.1"}, // Remote IP set in test.ResponseWriter
+		{Namespace: "podns", Name: "foo", PodIP: "10.240.0.1"}, // Remote IP set in test.ResponseWriter
 	}
 	return a
 }
