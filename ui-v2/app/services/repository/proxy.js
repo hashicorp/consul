@@ -23,7 +23,7 @@ export default RepositoryService.extend({
     return this.findAllBySlug(slug, dc, configuration).then(function(items) {
       let res = {};
       if (get(items, 'length') > 0) {
-        let instance = items.findBy('ServiceProxy.DestinationServiceID', id);
+        let instance = items.filterBy('ServiceProxy.DestinationServiceID', id).findBy('Node', node);
         if (instance) {
           res = instance;
         } else {
