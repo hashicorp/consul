@@ -120,7 +120,7 @@ func TestMetadata(t *testing.T) {
 			md[l] = metadata.ValueFunc(ctx, l)()
 		}
 		if mapsDiffer(tc.Md, md) {
-			t.Errorf("case %d expected metadata %v and got %v", i, tc.Md, md)
+			t.Errorf("Case %d expected metadata %v and got %v", i, tc.Md, md)
 		}
 	}
 }
