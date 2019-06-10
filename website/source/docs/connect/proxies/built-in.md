@@ -3,12 +3,12 @@ layout: "docs"
 page_title: "Connect - Built-in Proxy"
 sidebar_current: "docs-connect-proxies-built-in"
 description: |-
-  Consul Connect comes with a built in proxy for testing and development.
+  Consul Connect comes with a built-in proxy for testing and development.
 ---
 
 # Built-In Proxy Options
 
-Consul comes with a built in L4 proxy for testing and development with Consul
+Consul comes with a built-in L4 proxy for testing and development with Consul
 Connect.
 
 Below is a complete example of all the configuration options available

@@ -1,7 +1,7 @@
 ---
 layout: "docs"
 page_title: "Connect - Proxy Registration"
-sidebar_current: "docs-connect-proxy-registration"
+sidebar_current: "docs-connect-registration"
 description: |-
   To make connect aware of proxies you will need to register them as Consul services. This section describes the process and options for proxy registration.
 ---
