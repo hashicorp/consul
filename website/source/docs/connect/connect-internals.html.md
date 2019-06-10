@@ -46,22 +46,20 @@ also ships with built-in support for [Vault](/docs/connect/ca/vault.html). The P
 and can be extended to support any system by adding additional CA providers.
 
 All APIs required for Connect typically respond in microseconds and impose
-minimal overhead to existing services. This is because the Connect-related
-APIs are all made to the local Consul agent over a loopback interface, and all
-[agent Connect endpoints](/api/agent/connect.html) implement
-local caching, background updating, and support blocking queries. As a result,
-most API calls operate on purely local in-memory data and can respond
-in microseconds.
+minimal overhead to existing services. This is because the Connect-related APIs
+are all made to the local Consul agent over a loopback interface, and all [agent
+Connect endpoints](/api/agent/connect.html) implement local caching, background
+updating, and support blocking queries. Most API calls operate on purely local
+in-memory data.
 
 ## Agent Caching and Performance
 
-To enable microsecond-speed responses on
-[agent Connect API endpoints](/api/agent/connect.html), the Consul agent
-locally caches most Connect-related data and sets up background
-[blocking queries](/api/features/blocking.html) against the server
-to update the cache in the background. This allows most API calls such
-as retrieving certificates or authorizing connections to use in-memory
-data and respond very quickly.
+To enable fast responses on [agent Connect API
+endpoints](/api/agent/connect.html), the Consul agent locally caches most
+Connect-related data and sets up background [blocking
+queries](/api/features/blocking.html) against the server to update the cache in
+the background. This allows most API calls such as retrieving certificates or
+authorizing connections to use in-memory data and respond very quickly.
 
 All data cached locally by the agent is populated on demand. Therefore, if
 Connect is not used at all, the cache does not store any data. On first request,
