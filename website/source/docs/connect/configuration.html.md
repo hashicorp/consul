@@ -48,14 +48,16 @@ configuration file include:
 - [server host name verification](/docs/agent/options.html#verify_server_hostname)
 
 If you would like to use Envoy as your Connect proxy you will need to [enable
-gRPC](/docs/agent/options.html#grpc_port). Additionally if you plan on using the
-observability features of connect, it can be convenient to enable [configuration
-entries](/docs/agent/options.html#config_entries).
+gRPC](/docs/agent/options.html#grpc_port).
 
-No agent-wide configuration is necessary for client agents but if you plan on
-using the observability features of Connect, you may want to enable
-[centralized service configuration](/docs/agent/options.html#enable_central_service_config)
-on clients.
+Additionally if you plan on using the observability features of connect, it can
+be convenient to configure your proxies and services using [configuration
+entries](/docs/agent/config_entries.html) which you can interact with using the
+CLI or API, or by creating configuration entry files. You will want to enable
+[centralized service
+configuration](/docs/agent/options.html#enable_central_service_config) on
+clients, which allows each service's proxy configuration to be managed centrally
+via API.
 
 !> **Security note:** Enabling Connect is enough to try the feature but doesn't
 automatically ensure complete security. Please read the [Connect production
