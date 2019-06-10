@@ -344,7 +344,7 @@ Usage: consul connect envoy [options]
   arguments using -bootstrap.
 
   The proxy requires service:write permissions for the service it represents.
-  The token may be passed via the CLI or the CONSUL_TOKEN environment
+  The token may be passed via the CLI or the CONSUL_HTTP_TOKEN environment
   variable.
 
   The example below shows how to start a local proxy as a sidecar to a "web"
