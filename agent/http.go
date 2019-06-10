@@ -155,12 +155,8 @@ type redirectFS struct {
 
 func (fs *redirectFS) Open(name string) (http.File, error) {
 	file, err := fs.fs.Open(name)
-	if err != nil {
-
+	if name == "/index.html" || err != nil {
 		file, err = fs.fs.Open("index.html")
-		name = "index.html"
-	}
-	if err == nil && name == "index.html" {
 		content, _ := ioutil.ReadAll(file)
 		file.Seek(0, 0)
 		t, _ := template.New("fmtedindex").Parse(string(content))
@@ -311,7 +307,6 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 		uifs = &redirectFS{fs: uifs, ContentPath: s.agent.config.UIPathBuilder()}
 
 		mux.Handle("/robots.txt", http.FileServer(uifs))
-		//Use the custom UI path if provided.
 		mux.Handle(s.agent.config.UIPathBuilder(), http.StripPrefix(s.agent.config.UIPathBuilder(), http.FileServer(uifs)))
 	}
 
