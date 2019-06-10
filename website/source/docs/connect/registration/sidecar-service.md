@@ -1,7 +1,7 @@
 ---
 layout: "docs"
 page_title: "Connect - Sidecar Service Registration"
-sidebar_current: "docs-connect-proxies-sidecar-service"
+sidebar_current: "docs-connect-registration-sidecar-service"
 description: |-
   Sidecar service registrations provide a convenient shorthand for registering a
   sidecar proxy inline with a regular service definition.
@@ -177,4 +177,3 @@ service's ID. This enables the following behavior.
    ID, then a new service instance _and_ a new sidecar instance will be
    registered. The old ones will be removed since they are no longer found in
    the config files.
-
