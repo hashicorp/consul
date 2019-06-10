@@ -54,7 +54,8 @@ func (t *trace) OnStartup() error {
 		case "zipkin":
 			err = t.setupZipkin()
 		case "datadog":
-			t.setupDatadog()
+			tracer := opentracer.New(tracer.WithAgentAddr(t.Endpoint), tracer.WithServiceName(t.serviceName), tracer.WithDebugMode(true))
+			t.tracer = tracer
 		default:
 			err = fmt.Errorf("unknown endpoint type: %s", t.EndpointType)
 		}
@@ -73,11 +74,6 @@ func (t *trace) setupZipkin() error {
 	t.tracer, err = zipkin.NewTracer(recorder, zipkin.ClientServerSameSpan(t.clientServer))
 
 	return err
-}
-
-func (t *trace) setupDatadog() {
-	tracer := opentracer.New(tracer.WithAgentAddr(t.Endpoint), tracer.WithServiceName(t.serviceName), tracer.WithDebugMode(true))
-	t.tracer = tracer
 }
 
 // Name implements the Handler interface.
