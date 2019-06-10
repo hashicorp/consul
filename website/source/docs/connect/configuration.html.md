@@ -53,7 +53,7 @@ observability features of connect, it can be convenient to enable [configuration
 entries](/docs/agent/options.html#config_entries).
 
 No agent-wide configuration is necessary for client agents but if you plan on
-using the observability features of connect, you may want to enable
+using the observability features of Connect, you may want to enable
 [centralized service configuration](/docs/agent/options.html#enable_central_service_config)
 on clients.
 
