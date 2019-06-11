@@ -2,7 +2,13 @@ ROOT:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
 all: build
 
-deps: node_modules
+deps: node_modules clean
+
+clean:
+	rm -rf ./tmp
+
+build-ci: deps
+	yarn run build-ci --output-path=dist
 
 build: deps
 	yarn run build
@@ -19,6 +25,9 @@ test: deps
 test-view: deps
 	yarn run test:view
 
+test-parallel: deps
+	yarn test-parallel
+
 lint: deps
 	yarn run lint:js
 
@@ -31,4 +40,4 @@ steps:
 node_modules: yarn.lock package.json
 	yarn install
 
-.PHONY: all deps build start test test-view lint format
+.PHONY: all deps build start test test-view lint format clean

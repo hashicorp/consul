@@ -6,7 +6,7 @@ module.exports = {
     const vars = {
       appName: config.modulePrefix,
       environment: config.environment,
-      rootURL: config.environment === 'production' ? '{{.ContentPath}}' : rootURL,
+      rootURL: config.environment === 'production' ? '{{.ContentPath}}' : config.rootURL,
       config: config,
     };
     switch (type) {
