@@ -8,7 +8,7 @@ description: |-
 
 # Proxy Registration
 
-To make connect aware of proxies you will need to register them in a [service
+To make Connect aware of proxies you will need to register them in a [service
 definition](/docs/agent/services.html), just like you would register any other service with Consul. This section outlines your options for registering Connect proxies, either using independent registrations, or in nested sidecar registrations.
 
 ## Proxy Service Registration
