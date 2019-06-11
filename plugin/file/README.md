@@ -35,7 +35,7 @@ file DBFILE [ZONES... ] {
 * `transfer` enables zone transfers. It may be specified multiples times. `To` or `from` signals
   the direction. **ADDRESS** must be denoted in CIDR notation (e.g., 127.0.0.1/32) or just as plain
   addresses. The special wildcard `*` means: the entire internet (only valid for 'transfer to').
-  When an address is specified a notify message will be send whenever the zone is reloaded.
+  When an address is specified a notify message will be sent whenever the zone is reloaded.
 * `reload` interval to perform a reload of the zone if the SOA version changes. Default is one minute.
   Value of `0` means to not scan for changes and reload. For example, `30s` checks the zonefile every 30 seconds
   and reloads the zone when serial changes.
