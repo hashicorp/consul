@@ -50,7 +50,7 @@ configuration file include:
 If you would like to use Envoy as your Connect proxy you will need to [enable
 gRPC](/docs/agent/options.html#grpc_port).
 
-Additionally if you plan on using the observability features of connect, it can
+Additionally if you plan on using the observability features of Connect, it can
 be convenient to configure your proxies and services using [configuration
 entries](/docs/agent/config_entries.html) which you can interact with using the
 CLI or API, or by creating configuration entry files. You will want to enable
