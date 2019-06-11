@@ -18,7 +18,7 @@ with Connect](/docs/connect/native.html) for optimal performance and security.
 Connect can help you secure your services and provide data about service-to-service
 communications.
 
-## Security
+## Application Security
 
 Connect enables secure deployment best-practices with automatic
 service-to-service encryption, and identity-based authorization.

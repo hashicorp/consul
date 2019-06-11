@@ -42,7 +42,7 @@ connection attempts to fail until Connect is enabled on the server agents.
 Other optional Connect configurations that you can set in the server
 configuration file include:
 
-- [the options listed under `connect`](/docs/agent/options.html#connect)
+- [certificate authority settings](/docs/agent/options.html#connect)
 - [token replication](/docs/agent/options.html#acl_tokens_replication)
 - [dev mode](/docs/agent/options.html#_dev)
 - [server host name verification](/docs/agent/options.html#verify_server_hostname)
