@@ -2,6 +2,8 @@ package consul
 
 import (
 	"bytes"
+	"fmt"
+	"io"
 	"os"
 	"strings"
 	"testing"
@@ -12,7 +14,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
 // verifySnapshot is a helper that does a snapshot and restore.
@@ -40,17 +42,23 @@ func verifySnapshot(t *testing.T, s *Server, dc, token string) {
 	}
 
 	// Take a snapshot.
+	var reply structs.SnapshotResponse
+	var snap io.ReadCloser
+	var err error
+
 	args := structs.SnapshotRequest{
 		Datacenter: dc,
 		Token:      token,
 		Op:         structs.SnapshotSave,
 	}
-	var reply structs.SnapshotResponse
-	snap, err := SnapshotRPC(s.connPool, s.config.Datacenter, s.config.RPCAddr, false,
-		&args, bytes.NewReader([]byte("")), &reply)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+
+	retry.Run(t, func(r *retry.R) {
+		snap, err = SnapshotRPC(s.connPool, s.config.Datacenter, s.config.RPCAddr, false,
+			&args, bytes.NewReader([]byte("")), &reply)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	})
 	defer snap.Close()
 
 	// Read back the before value.
@@ -120,7 +128,13 @@ func verifySnapshot(t *testing.T, s *Server, dc, token string) {
 	})
 
 	// Restore the snapshot.
-	args.Op = structs.SnapshotRestore
+	args = structs.SnapshotRequest{
+		Datacenter: dc,
+		Token:      token,
+		Op:         structs.SnapshotRestore,
+	}
+	fmt.Println(snap)
+
 	restore, err := SnapshotRPC(s.connPool, s.config.Datacenter, s.config.RPCAddr, false,
 		&args, snap, &reply)
 	if err != nil {
