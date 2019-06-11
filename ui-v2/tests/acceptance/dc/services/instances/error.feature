@@ -7,9 +7,10 @@ Feature: dc / services / instances / error: Visit Service Instance what doesn't 
     ---
       dc: dc1
       service: service-0
+      node: node-0
       id: id-that-doesnt-exist
     ---
-    Then the url should be /dc1/services/service-0/id-that-doesnt-exist
+    Then the url should be /dc1/services/service-0/node-0/id-that-doesnt-exist
     And I see the text "404 (Unable to find instance)" in "[data-test-error]"
 
 
