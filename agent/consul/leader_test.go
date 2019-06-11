@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
 )
@@ -947,7 +947,9 @@ func TestLeader_ChangeServerID(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		r.Check(wantRaft(servers))
 		for _, s := range servers {
-			r.Check(wantPeers(s, 3))
+			if n, err := s.numPeers(); n == 4 || err != nil {
+				r.Errorf("expecting < 4 peers after shutdown")
+			}
 		}
 	})
 }
