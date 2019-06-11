@@ -558,7 +558,7 @@ func (s *HTTPServer) Index(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	// Redirect to the UI endpoint
-		http.Redirect(resp, req, s.agent.config.UIPathBuilder(), http.StatusMovedPermanently) // 301
+	http.Redirect(resp, req, s.agent.config.UIPathBuilder(), http.StatusMovedPermanently) // 301
 }
 
 // decodeBody is used to decode a JSON request body
