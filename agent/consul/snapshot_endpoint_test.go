@@ -56,7 +56,7 @@ func verifySnapshot(t *testing.T, s *Server, dc, token string) {
 		snap, err = SnapshotRPC(s.connPool, s.config.Datacenter, s.config.RPCAddr, false,
 			&args, bytes.NewReader([]byte("")), &reply)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
 	})
 	defer snap.Close()
