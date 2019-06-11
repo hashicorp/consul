@@ -15,7 +15,7 @@ encryption using mutual Transport Layer Security (TLS). Applications can use
 automatically establish TLS connections for inbound and outbound connections
 without being aware of Connect at all. Applications may also [natively integrate
 with Connect](/docs/connect/native.html) for optimal performance and security.
-Connect can help you secure your services and provide data about service to
+Connect can help you secure your services and provide data about service-to-service
 service communications.
 
 ## Security
