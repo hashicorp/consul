@@ -156,7 +156,7 @@ type redirectFS struct {
 func (fs *redirectFS) Open(name string) (http.File, error) {
 	file, err := fs.fs.Open(name)
 	if name == "/index.html" || err != nil {
-		file, err = fs.fs.Open("index.html")
+		file, err = fs.fs.Open("/index.html")
 		content, _ := ioutil.ReadAll(file)
 		file.Seek(0, 0)
 		t, _ := template.New("fmtedindex").Parse(string(content))
@@ -558,7 +558,7 @@ func (s *HTTPServer) Index(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	// Redirect to the UI endpoint
-	http.Redirect(resp, req, s.agent.config.UIPathBuilder(), http.StatusMovedPermanently) // 301
+		http.Redirect(resp, req, s.agent.config.UIPathBuilder(), http.StatusMovedPermanently) // 301
 }
 
 // decodeBody is used to decode a JSON request body
