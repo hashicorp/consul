@@ -163,7 +163,6 @@ func testServerWithConfig(t *testing.T, cb func(*Config)) (string, *Server) {
 	retry.Run(t, func(r *retry.R) {
 		srv, err = newServer(config)
 		if err != nil {
-			srv.Shutdown()
 			os.RemoveAll(dir)
 			r.Fatalf("err: %v", err)
 		}
