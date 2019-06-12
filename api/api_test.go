@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -54,16 +53,11 @@ func makeClientWithConfig(
 		cb1(conf)
 	}
 
-	var server *testutil.TestServer
-	var err error
-
-	retry.Run(t, func(r *retry.R) {
-		// Create server
-		server, err = testutil.NewTestServerConfigT(t, cb2)
-		if err != nil {
-			r.Fatal(err)
-		}
-	})
+	// Create server
+	server, err := testutil.NewTestServerConfigT(t, cb2)
+	if err != nil {
+		t.Fatal(err)
+	}
 	conf.Address = server.HTTPAddr
 
 	// Create client
