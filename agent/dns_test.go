@@ -5544,7 +5544,7 @@ func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
 func TestDNS_AltDomains_Service(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), `
-		alt_domains = [ "foo-domain.", "bar-domain." ]
+		alt_domain = "test-domain."
 	`)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -5570,8 +5570,9 @@ func TestDNS_AltDomains_Service(t *testing.T) {
 
 	questions := []string{
 		"db.service.consul.",
-		"db.service.foo-domain.",
-		"db.service.bar-domain.",
+		"db.service.test-domain.",
+		"db.service.dc1.consul.",
+		"db.service.dc1.test-domain.",
 	}
 
 	for _, question := range questions {
@@ -5616,15 +5617,14 @@ func TestDNS_AltDomains_SOA(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), `
 		node_name = "test-node"
-		alt_domains = [ "foo-domain.", "bar-domain." ]
+		alt_domain = "test-domain."
 	`)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	questions := []string{
 		"test-node.node.consul.",
-		"test-node.node.foo-domain.",
-		"test-node.node.bar-domain.",
+		"test-node.node.test-domain.",
 	}
 
 	for _, question := range questions {
@@ -5658,26 +5658,20 @@ func TestDNS_AltDomains_SOA(t *testing.T) {
 func TestDNS_AltDomains_Overlap(t *testing.T) {
 	// this tests the domain matching logic in DNSServer when encountering more
 	// than one potential match (i.e. ambiguous match)
-	// it should select the domain that produces valid labels when dispatching
+	// it should select the longer matching domain when dispatching
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), `
 		node_name = "test-node"
-		alt_domains = [
-			"bar.",
-			"foo.bar.",
-			"foo.",
-			"baz.foo.bar.",
-			"node.bar.",
-		]
+		alt_domain = "node.consul."
 	`)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	questions := []string{
-		"test-node.node.foo.bar.",
-		"test-node.node.foo.",
-		"test-node.node.baz.foo.bar.",
-		"test-node.node.node.bar.",
+		"test-node.node.consul.",
+		"test-node.node.node.consul.",
+		"test-node.node.dc1.consul.",
+		"test-node.node.node.dc1.consul.",
 	}
 
 	for _, question := range questions {
