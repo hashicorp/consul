@@ -6,7 +6,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/hashicorp/consul/testrpc"
@@ -14,7 +13,6 @@ import (
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/hashicorp/consul/version"
 	"github.com/mitchellh/cli"
 )
 
@@ -85,52 +83,40 @@ func TestRetryJoin(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
+
+	tmpDir := testutil.TempDir(t, "consul")
+	defer os.RemoveAll(tmpDir)
+
+	args := []string{
+		"-server",
+		"-bind", a.Config.BindAddr.String(),
+		"-data-dir", tmpDir,
+		"-node", "Node 11111111-1111-1111-1111-111111111111",
+		"-node-id", "11111111-1111-1111-1111-111111111111",
+		"-advertise", a.Config.BindAddr.String(),
+		"-retry-join", a.Config.SerfBindAddrLAN.String(),
+		"-retry-interval", "1s",
+		"-retry-join-wan", a.Config.SerfBindAddrWAN.String(),
+		"-retry-interval-wan", "1s",
+	}
+
+	ui := cli.NewMockUi()
+	cmd := New(ui, "", "", "", "", nil)
+	go cmd.Run(args)
+
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
-
-	shutdownCh := make(chan struct{})
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-
-		tmpDir := testutil.TempDir(t, "consul")
-		defer os.RemoveAll(tmpDir)
-
-		args := []string{
-			"-server",
-			"-bind", a.Config.BindAddr.String(),
-			"-data-dir", tmpDir,
-			"-node", "Node 11111111-1111-1111-1111-111111111111",
-			"-node-id", "11111111-1111-1111-1111-111111111111",
-			"-advertise", a.Config.BindAddr.String(),
-			"-retry-join", a.Config.SerfBindAddrLAN.String(),
-			"-retry-interval", "1s",
-			"-retry-join-wan", a.Config.SerfBindAddrWAN.String(),
-			"-retry-interval-wan", "1s",
-		}
-
-		ui := cli.NewMockUi()
-		cmd := New(ui, "", version.Version, "", "", shutdownCh)
-		// closing shutdownCh triggers a SIGINT which triggers shutdown without leave
-		// which will return 1
-		if code := cmd.Run(args); code != 1 {
-			t.Log(ui.ErrorWriter.String())
-			t.Fatalf("bad: %d", code)
-		}
-	}()
 
 	retry.Run(t, func(r *retry.R) {
 		if got, want := len(a.LANMembers()), 2; got != want {
 			r.Fatalf("got %d LAN members want %d", got, want)
 		}
+	})
+	
+	retry.Run(t, func(r *retry.R) {
 		if got, want := len(a.WANMembers()), 2; got != want {
 			r.Fatalf("got %d WAN members want %d", got, want)
 		}
 	})
-
-	close(shutdownCh)
-	wg.Wait()
 }
 
 func TestRetryJoinFail(t *testing.T) {
