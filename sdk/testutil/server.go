@@ -301,14 +301,11 @@ func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, e
 
 	// Wait for the server to be ready
 	if cfg.Bootstrap {
-		err = server.waitForLeader()
+		server.waitForLeader(t)
 	} else {
-		err = server.waitForAPI()
+		server.waitForAPI(t)
 	}
-	if err != nil {
-		defer server.Stop()
-		return nil, errors.Wrap(err, "failed waiting for server to start")
-	}
+
 	return server, nil
 }
 
@@ -343,9 +340,8 @@ func (f *failer) FailNow()                { f.failed = true }
 // waitForAPI waits for only the agent HTTP endpoint to start
 // responding. This is an indication that the agent has started,
 // but will likely return before a leader is elected.
-func (s *TestServer) waitForAPI() error {
-	f := &failer{}
-	retry.Run(f, func(r *retry.R) {
+func (s *TestServer) waitForAPI(t *testing.T) {
+	retry.Run(t, func(r *retry.R) {
 		resp, err := s.HTTPClient.Get(s.url("/v1/agent/self"))
 		if err != nil {
 			r.Fatal(err)
@@ -355,24 +351,15 @@ func (s *TestServer) waitForAPI() error {
 			r.Fatal("failed OK response", err)
 		}
 	})
-	if f.failed {
-		return errors.New("failed waiting for API")
-	}
-	return nil
 }
 
 // waitForLeader waits for the Consul server's HTTP API to become
 // available, and then waits for a known leader and an index of
 // 1 or more to be observed to confirm leader election is done.
 // It then waits to ensure the anti-entropy sync has completed.
-func (s *TestServer) waitForLeader() error {
-	f := &failer{}
-	timer := &retry.Timer{
-		Timeout: s.Config.ReadyTimeout,
-		Wait:    250 * time.Millisecond,
-	}
+func (s *TestServer) waitForLeader(t *testing.T) {
 	var index int64
-	retry.RunWith(timer, f, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		// Query the API and check the status code.
 		url := s.url(fmt.Sprintf("/v1/catalog/nodes?index=%d", index))
 		resp, err := s.HTTPClient.Get(url)
@@ -392,31 +379,10 @@ func (s *TestServer) waitForLeader() error {
 		if err != nil {
 			r.Fatal("bad consul index", err)
 		}
-		if index == 0 {
-			r.Fatal("consul index is 0")
-		}
-
-		// Watch for the anti-entropy sync to finish.
-		var v []map[string]interface{}
-		dec := json.NewDecoder(resp.Body)
-		if err := dec.Decode(&v); err != nil {
-			r.Fatal(err)
-		}
-		if len(v) < 1 {
-			r.Fatal("No nodes")
-		}
-		taggedAddresses, ok := v[0]["TaggedAddresses"].(map[string]interface{})
-		if !ok {
-			r.Fatal("Missing tagged addresses")
-		}
-		if _, ok := taggedAddresses["lan"]; !ok {
-			r.Fatal("No lan tagged addresses")
+		if index < 2 {
+			r.Fatal("consul index should be at least 2")
 		}
 	})
-	if f.failed {
-		return errors.New("failed waiting for leader")
-	}
-	return nil
 }
 
 // WaitForSerfCheck ensures we have a node with serfHealth check registered
