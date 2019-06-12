@@ -1,9 +1,9 @@
-/* eslint no-console: "off" */
+/* eslint no-console: "off", no-control-regex: "off" */
+import YAML from 'js-yaml';
 import Inflector from 'ember-inflector';
 import utils from '@ember/test-helpers';
-import getDictionary from '@hashicorp/ember-cli-api-double/dictionary';
 
-import yadda from 'consul-ui/tests/helpers/yadda';
+import Yadda from 'yadda';
 import pages from 'consul-ui/tests/pages';
 import api from 'consul-ui/tests/helpers/api';
 
@@ -13,35 +13,43 @@ const pluralize = function(str) {
   return Inflector.inflector.pluralize(str);
 };
 export default function(assert) {
-  const library = yadda.localisation.English.library(
-    getDictionary(function(model, cb) {
-      switch (model) {
-        case 'datacenter':
-        case 'datacenters':
-        case 'dcs':
-          model = 'dc';
-          break;
-        case 'services':
-          model = 'service';
-          break;
-        case 'nodes':
-          model = 'node';
-          break;
-        case 'kvs':
-          model = 'kv';
-          break;
-        case 'acls':
-          model = 'acl';
-          break;
-        case 'sessions':
-          model = 'session';
-          break;
-        case 'intentions':
-          model = 'intention';
-          break;
-      }
-      cb(null, model);
-    }, yadda)
+  const library = Yadda.localisation.English.library(
+    new Yadda.Dictionary()
+      .define('json', /([^\u0000]*)/, function(val, cb) {
+        cb(null, JSON.parse(val));
+      })
+      .define('yaml', /([^\u0000]*)/, function(val, cb) {
+        cb(null, YAML.safeLoad(val));
+      })
+      .define('model', /(\w+)/, function(model, cb) {
+        switch (model) {
+          case 'datacenter':
+          case 'datacenters':
+          case 'dcs':
+            model = 'dc';
+            break;
+          case 'services':
+            model = 'service';
+            break;
+          case 'nodes':
+            model = 'node';
+            break;
+          case 'kvs':
+            model = 'kv';
+            break;
+          case 'acls':
+            model = 'acl';
+            break;
+          case 'sessions':
+            model = 'session';
+            break;
+          case 'intentions':
+            model = 'intention';
+            break;
+        }
+        cb(null, model);
+      })
+      .define('number', /(\d+)/, Yadda.converters.integer)
   );
   const create = function(number, name, value) {
     // don't return a promise here as
