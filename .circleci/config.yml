@@ -55,7 +55,7 @@ jobs:
   go-test:
     docker:
       - image: *GOLANG_IMAGE
-    parallelism: 4
+    parallelism: 8
     environment:
       <<: *ENVIRONMENT
       GOTAGS: '' # No tags for OSS but there are for enterprise
@@ -75,7 +75,7 @@ jobs:
 
       # This loop writes go test results to <reportname>.xml per go package
       - run: |
-          for pkg in $(go list ./... | grep -v github.com/hashicorp/consul/agent/proxyprocess |circleci tests split --split-by=timings --timings-type=classname | tr '\n' ' '); do
+          for pkg in $(go list ./... | grep -v github.com/hashicorp/consul/agent/proxyprocess | circleci tests split --split-by=timings --timings-type=classname | tr '\n' ' '); do
             reportname=$(echo $pkg | cut -d '/' -f3- | sed "s#/#_#g")
             gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/$reportname.xml -- -tags=$GOTAGS $pkg
           done
@@ -434,24 +434,27 @@ jobs:
       ENVOY_VERSIONS: "1.9.1"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
-  envoy-integration-test-1.10.0:
-    docker:
-      - image: *GOLANG_IMAGE
-    environment:
-      ENVOY_VERSIONS: "1.10.0"
-    steps: *ENVOY_INTEGRATION_TEST_STEPS
-
 workflows:
   version: 2
-  build-distros:
-    jobs:
-      - go-fmt-and-vet
-      - build-386: &require-go-fmt-vet
-          requires:
-            - go-fmt-and-vet
-      - build-amd64: *require-go-fmt-vet
-      - build-arm-arm64: *require-go-fmt-vet
+  # build-distros:
+  #   jobs:
+  #     - go-fmt-and-vet
+  #     - build-386: &require-go-fmt-vet
+  #         requires:
+  #           - go-fmt-and-vet
+  #     - build-amd64: *require-go-fmt-vet
+  #     - build-arm-arm64: *require-go-fmt-vet
   test-integrations:
+    triggers:
+      - schedule:
+          # every 10 mins from 12am-12pm GMT (outside US work hours)
+          # CircleCI doesn't support some cron syntax so it has to look janky
+          # https://circleci.com/docs/2.0/workflows/#specifying-a-valid-schedule
+          cron: "0,10,20,30,40,50 0-12 * * *"
+          filters:
+            branches:
+              only:
+                - /^bug\/flaky-test-.*$/ # only run go tests on bug/flaky-test-* for now since we are fixing tests
     jobs:
       - dev-build
       - go-test: &go-test
@@ -462,51 +465,48 @@ workflows:
               only:
                 - /^bug\/flaky-test-.*$/ # only run go tests on bug/flaky-test-* for now since we are fixing tests
       - go-test-api: *go-test
-      - dev-upload-s3:
-          requires:
-            - dev-build
-          filters:
-            branches:
-              ignore:
-                - /^pull\/.*$/ # only push dev builds from non forks
-      - nomad-integration-master:
-          requires:
-            - dev-build
-      - nomad-integration-0_8:
-          requires:
-            - dev-build
-      - envoy-integration-test-1.8.0:
-          requires:
-            - dev-build
-      - envoy-integration-test-1.9.1:
-          requires:
-            - dev-build
-      - envoy-integration-test-1.10.0:
-          requires:
-            - dev-build
-  website:
-    jobs:
-      - build-website
-      - docs-link-checker:
-          requires:
-            - build-website
-          filters:
-            branches:
-              ignore:
-                - /^pull\/.*$/ # only run link checker on non forks
-      - deploy-website:
-          requires:
-            - docs-link-checker
-          context: static-sites
-          filters:
-            branches:
-              only: stable-website
-  frontend:
-    jobs:
-      - frontend-cache
-      - ember-build:
-          requires:
-            - frontend-cache
-      - ember-test:
-          requires:
-            - ember-build
+  #     - dev-upload-s3:
+  #         requires:
+  #           - dev-build
+  #         filters:
+  #           branches:
+  #             ignore:
+  #               - /^pull\/.*$/ # only push dev builds from non forks
+  #     - nomad-integration-master:
+  #         requires:
+  #           - dev-build
+  #     - nomad-integration-0_8:
+  #         requires:
+  #           - dev-build
+  #     - envoy-integration-test-1.8.0:
+  #         requires:
+  #           - dev-build
+  #     - envoy-integration-test-1.9.1:
+  #         requires:
+  #           - dev-build
+  # website:
+  #   jobs:
+  #     - build-website
+  #     - docs-link-checker:
+  #         requires:
+  #           - build-website
+  #         filters:
+  #           branches:
+  #             ignore:
+  #               - /^pull\/.*$/ # only run link checker on non forks
+  #     - deploy-website:
+  #         requires:
+  #           - docs-link-checker
+  #         context: static-sites
+  #         filters:
+  #           branches:
+  #             only: stable-website
+  # frontend:
+  #   jobs:
+  #     - frontend-cache
+  #     - ember-build:
+  #         requires:
+  #           - frontend-cache
+  #     - ember-test:
+  #         requires:
+  #           - ember-build
