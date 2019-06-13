@@ -77,10 +77,7 @@ func (s *Server) monitorLeadership() {
 				leaderLoop.Add(1)
 				go func(ch chan struct{}) {
 					defer leaderLoop.Done()
-					err := s.leaderLoop(ch)
-					if err != nil {
-						s.leadershipTransfer()
-					}
+					s.leaderLoop(ch)
 				}(weAreLeaderCh)
 				s.logger.Printf("[INFO] consul: cluster leadership acquired")
 
@@ -129,7 +126,7 @@ func (s *Server) monitorLeadership() {
 	}
 }
 
-func (s *Server) leadershipTransfer() {
+func (s *Server) leadershipTransfer() error {
 	retryCount := 3
 	for i := 0; i < retryCount; i++ {
 		future := s.raft.LeadershipTransfer()
@@ -137,15 +134,16 @@ func (s *Server) leadershipTransfer() {
 			s.logger.Printf("[ERR] consul: failed to transfer leadership attempt %d/%d: %v", i, retryCount, err)
 		} else {
 			s.logger.Printf("[ERR] consul: successfully transferred leadership attempt %d/%d", i, retryCount)
-			break
+			return nil
 		}
 
 	}
+	return fmt.Errorf("failed to transfer leadership in %d attempts", retryCount)
 }
 
 // leaderLoop runs as long as we are the leader to run various
 // maintenance activities
-func (s *Server) leaderLoop(stopCh chan struct{}) error {
+func (s *Server) leaderLoop(stopCh chan struct{}) {
 	// Fire a user event indicating a new leader
 	payload := []byte(s.config.NodeName)
 	for name, segment := range s.LANSegments() {
@@ -158,19 +156,6 @@ func (s *Server) leaderLoop(stopCh chan struct{}) error {
 	// has succeeded
 	var reconcileCh chan serf.Member
 	establishedLeader := false
-
-	reassert := func() error {
-		if !establishedLeader {
-			return fmt.Errorf("leadership has not been established")
-		}
-		if err := s.revokeLeadership(); err != nil {
-			return err
-		}
-		if err := s.establishLeadership(); err != nil {
-			return err
-		}
-		return nil
-	}
 
 RECONCILE:
 	// Setup a reconciliation timer
@@ -192,17 +177,15 @@ RECONCILE:
 			s.logger.Printf("[ERR] consul: failed to establish leadership: %v", err)
 			// Immediately revoke leadership since we didn't successfully
 			// establish leadership.
-			if err := s.revokeLeadership(); err != nil {
-				s.logger.Printf("[ERR] consul: failed to revoke leadership: %v", err)
+			s.revokeLeadership()
+			if err := s.leadershipTransfer(); err != nil {
+				s.logger.Printf("[ERR] consul: %v", err)
+				goto WAIT
 			}
-			return err
+			return
 		}
 		establishedLeader = true
-		defer func() {
-			if err := s.revokeLeadership(); err != nil {
-				s.logger.Printf("[ERR] consul: failed to revoke leadership: %v", err)
-			}
-		}()
+		defer s.revokeLeadership()
 	}
 
 	// Reconcile any missing data
@@ -221,7 +204,7 @@ WAIT:
 	// down.
 	select {
 	case <-stopCh:
-		return nil
+		return
 	default:
 	}
 
@@ -230,9 +213,9 @@ WAIT:
 	for {
 		select {
 		case <-stopCh:
-			return nil
+			return
 		case <-s.shutdownCh:
-			return nil
+			return
 		case <-interval:
 			goto RECONCILE
 		case member := <-reconcileCh:
@@ -240,11 +223,19 @@ WAIT:
 		case index := <-s.tombstoneGC.ExpireCh():
 			go s.reapTombstones(index)
 		case errCh := <-s.reassertLeaderCh:
-			err := reassert()
+			if !establishedLeader {
+				errCh <- fmt.Errorf("leadership has not been established")
+				continue
+			}
+			s.revokeLeadership()
+			err := s.establishLeadership()
 			errCh <- err
 			if err != nil {
-				return err
+				if err := s.leadershipTransfer(); err != nil {
+					goto WAIT
+				}
 			}
+
 		}
 	}
 }
@@ -311,15 +302,13 @@ func (s *Server) establishLeadership() error {
 
 // revokeLeadership is invoked once we step down as leader.
 // This is used to cleanup any state that may be specific to a leader.
-func (s *Server) revokeLeadership() error {
+func (s *Server) revokeLeadership() {
 	// Disable the tombstone GC, since it is only useful as a leader
 	s.tombstoneGC.SetEnabled(false)
 
 	// Clear the session timers on either shutdown or step down, since we
 	// are no longer responsible for session expirations.
-	if err := s.clearAllSessionTimers(); err != nil {
-		return err
-	}
+	s.clearAllSessionTimers()
 
 	s.stopConfigReplication()
 
@@ -334,8 +323,8 @@ func (s *Server) revokeLeadership() error {
 	s.stopACLUpgrade()
 
 	s.resetConsistentReadReady()
+
 	s.autopilot.Stop()
-	return nil
 }
 
 // DEPRECATED (ACL-Legacy-Compat) - Remove once old ACL compatibility is removed
