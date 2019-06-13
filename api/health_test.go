@@ -421,6 +421,8 @@ func TestAPI_HealthService_NodeMetaFilter(t *testing.T) {
 	})
 	defer s.Stop()
 
+	s.WaitForSerfCheck(t)
+
 	health := c.Health()
 	retry.Run(t, func(r *retry.R) {
 		// consul service should always exist...
