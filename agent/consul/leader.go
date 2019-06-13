@@ -183,7 +183,7 @@ RECONCILE:
 			// time to leave the leaderLoop since this node is no
 			// longer the leader. If leadershipTransfer() fails, we
 			// will try to acquire it again after
-			// ReconcileInterval.
+			// 5 seconds.
 			if err := s.leadershipTransfer(); err != nil {
 				s.logger.Printf("[ERR] consul: %v", err)
 				interval = time.After(5 * time.Second)
