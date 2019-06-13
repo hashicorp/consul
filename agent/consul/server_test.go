@@ -160,6 +160,8 @@ func testServerWithConfig(t *testing.T, cb func(*Config)) (string, *Server) {
 
 	var srv *Server
 	var err error
+
+	// Retry added to avoid cases where bind addr is already in use
 	retry.Run(t, func(r *retry.R) {
 		srv, err = newServer(config)
 		if err != nil {
