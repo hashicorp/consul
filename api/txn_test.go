@@ -17,6 +17,8 @@ func TestAPI_ClientTxn(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
+	s.WaitForSerfCheck(t)
+
 	session := c.Session()
 	txn := c.Txn()
 

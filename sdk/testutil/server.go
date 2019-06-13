@@ -358,13 +358,12 @@ func (s *TestServer) waitForAPI(t *testing.T) {
 // 1 or more to be observed to confirm leader election is done.
 // It then waits to ensure the anti-entropy sync has completed.
 func (s *TestServer) waitForLeader(t *testing.T) {
-	var index int64
 	retry.Run(t, func(r *retry.R) {
 		// Query the API and check the status code.
-		url := s.url(fmt.Sprintf("/v1/catalog/nodes?index=%d", index))
+		url := s.url("/v1/catalog/nodes")
 		resp, err := s.HTTPClient.Get(url)
 		if err != nil {
-			r.Fatal("failed http get", err)
+			r.Fatalf("failed http get '%s': %v", url, err)
 		}
 		defer resp.Body.Close()
 		if err := s.requireOK(resp); err != nil {
@@ -375,7 +374,7 @@ func (s *TestServer) waitForLeader(t *testing.T) {
 		if leader := resp.Header.Get("X-Consul-KnownLeader"); leader != "true" {
 			r.Fatalf("Consul leader status: %#v", leader)
 		}
-		index, err = strconv.ParseInt(resp.Header.Get("X-Consul-Index"), 10, 64)
+		index, err := strconv.ParseInt(resp.Header.Get("X-Consul-Index"), 10, 64)
 		if err != nil {
 			r.Fatal("bad consul index", err)
 		}
