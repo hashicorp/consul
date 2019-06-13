@@ -178,6 +178,12 @@ RECONCILE:
 			// Immediately revoke leadership since we didn't successfully
 			// establish leadership.
 			s.revokeLeadership()
+
+			// attempt to transfer leadership. If successful it is
+			// time to leave the leaderLoop since this node is no
+			// longer the leader. If leadershipTransfer() fails, we
+			// will try to acquire it again after
+			// ReconcileInterval.
 			if err := s.leadershipTransfer(); err != nil {
 				s.logger.Printf("[ERR] consul: %v", err)
 				goto WAIT
@@ -223,17 +229,36 @@ WAIT:
 		case index := <-s.tombstoneGC.ExpireCh():
 			go s.reapTombstones(index)
 		case errCh := <-s.reassertLeaderCh:
+			// we can get into this state when the initial
+			// establishLeadership has failed as well as the follow
+			// up leadershipTransfer. Afterwards we will be waiting
+			// for the interval to trigger a reconciliation and can
+			// potentially end up here. There is no point to
+			// reassert because this agent was never leader in the
+			// first place.
 			if !establishedLeader {
 				errCh <- fmt.Errorf("leadership has not been established")
 				continue
 			}
+
+			// continue to reassert only if we previously were the
+			// leader, which means revokeLeadership followed by an
+			// establishLeadership().
 			s.revokeLeadership()
 			err := s.establishLeadership()
 			errCh <- err
+
+			// in case reassert failed, which means that
+			// establishLeadership failed, we will try to transfer
+			// leadership. At this time raft thinks we are the
+			// leader, but consul disagrees.
 			if err != nil {
 				if err := s.leadershipTransfer(); err != nil {
 					goto WAIT
 				}
+
+				// leadershipTransfer was successful and it is
+				// time to leave the leaderLoop.
 				return
 			}
 
