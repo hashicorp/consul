@@ -249,13 +249,12 @@ WAIT:
 			err := s.establishLeadership()
 			errCh <- err
 
-			// in case reassert failed, which means that
-			// establishLeadership failed, we will try to transfer
-			// leadership. At this time raft thinks we are the
-			// leader, but consul disagrees.
+			// in case establishLeadership failed, we will try to
+			// transfer leadership. At this time raft thinks we are
+			// the leader, but consul disagrees.
 			if err != nil {
 				if err := s.leadershipTransfer(); err != nil {
-					// establishLeadership was true before,
+					// establishedLeader was true before,
 					// but it no longer is since it revoked
 					// leadership and Leadership transfer
 					// also failed. Which is why it stays
