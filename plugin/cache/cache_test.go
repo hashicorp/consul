@@ -17,7 +17,6 @@ type cacheTestCase struct {
 	test.Case
 	in                 test.Case
 	AuthenticatedData  bool
-	Authoritative      bool
 	RecursionAvailable bool
 	Truncated          bool
 	shouldCache        bool
@@ -25,7 +24,7 @@ type cacheTestCase struct {
 
 var cacheTestCases = []cacheTestCase{
 	{
-		RecursionAvailable: true, AuthenticatedData: true, Authoritative: true,
+		RecursionAvailable: true, AuthenticatedData: true,
 		Case: test.Case{
 			Qname: "miek.nl.", Qtype: dns.TypeMX,
 			Answer: []dns.RR{
@@ -43,7 +42,7 @@ var cacheTestCases = []cacheTestCase{
 		shouldCache: true,
 	},
 	{
-		RecursionAvailable: true, AuthenticatedData: true, Authoritative: true,
+		RecursionAvailable: true, AuthenticatedData: true,
 		Case: test.Case{
 			Qname: "mIEK.nL.", Qtype: dns.TypeMX,
 			Answer: []dns.RR{
@@ -70,7 +69,7 @@ var cacheTestCases = []cacheTestCase{
 		shouldCache: false,
 	},
 	{
-		RecursionAvailable: true, Authoritative: true,
+		RecursionAvailable: true,
 		Case: test.Case{
 			Rcode: dns.RcodeNameError,
 			Qname: "example.org.", Qtype: dns.TypeA,
@@ -88,7 +87,7 @@ var cacheTestCases = []cacheTestCase{
 		shouldCache: true,
 	},
 	{
-		RecursionAvailable: true, Authoritative: false,
+		RecursionAvailable: true,
 		Case: test.Case{
 			Rcode: dns.RcodeServerFailure,
 			Qname: "example.org.", Qtype: dns.TypeA,
@@ -102,7 +101,7 @@ var cacheTestCases = []cacheTestCase{
 		shouldCache: true,
 	},
 	{
-		RecursionAvailable: true, Authoritative: false,
+		RecursionAvailable: true,
 		Case: test.Case{
 			Rcode: dns.RcodeNotImplemented,
 			Qname: "example.org.", Qtype: dns.TypeA,
@@ -116,7 +115,7 @@ var cacheTestCases = []cacheTestCase{
 		shouldCache: true,
 	},
 	{
-		RecursionAvailable: true, Authoritative: true,
+		RecursionAvailable: true,
 		Case: test.Case{
 			Qname: "miek.nl.", Qtype: dns.TypeMX,
 			Do: true,
@@ -138,7 +137,7 @@ var cacheTestCases = []cacheTestCase{
 		shouldCache: false,
 	},
 	{
-		RecursionAvailable: true, Authoritative: true,
+		RecursionAvailable: true,
 		Case: test.Case{
 			Qname: "example.org.", Qtype: dns.TypeMX,
 			Do: true,
@@ -164,7 +163,7 @@ var cacheTestCases = []cacheTestCase{
 func cacheMsg(m *dns.Msg, tc cacheTestCase) *dns.Msg {
 	m.RecursionAvailable = tc.RecursionAvailable
 	m.AuthenticatedData = tc.AuthenticatedData
-	m.Authoritative = tc.Authoritative
+	m.Authoritative = true
 	m.Rcode = tc.Rcode
 	m.Truncated = tc.Truncated
 	m.Answer = tc.in.Answer
