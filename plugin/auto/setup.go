@@ -120,7 +120,7 @@ func autoParse(c *caddy.Controller) (Auto, error) {
 					}
 				}
 
-				// regexp
+				// regexp template
 				if c.NextArg() {
 					a.loader.re, err = regexp.Compile(c.Val())
 					if err != nil {
@@ -129,10 +129,10 @@ func autoParse(c *caddy.Controller) (Auto, error) {
 					if a.loader.re.NumSubexp() == 0 {
 						return a, c.Errf("Need at least one sub expression")
 					}
-				}
 
-				// template
-				if c.NextArg() {
+					if !c.NextArg() {
+						return a, c.ArgErr()
+					}
 					a.loader.template = rewriteToExpand(c.Val())
 				}
 

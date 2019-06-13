@@ -75,6 +75,13 @@ func TestAutoParse(t *testing.T) {
 			}`,
 			true, "/tmp", "bliep", `(.*)`, 10 * time.Second, nil,
 		},
+		// no template specified.
+		{
+			`auto {
+				directory /tmp (.*)
+			}`,
+			true, "/tmp", "", `(.*)`, 60 * time.Second, nil,
+		},
 		// no directory specified.
 		{
 			`auto example.org {
