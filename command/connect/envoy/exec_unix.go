@@ -4,12 +4,12 @@ package envoy
 
 import (
 	"errors"
-	"io"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
+	"syscall"
 
 	"golang.org/x/sys/unix"
 )
@@ -43,26 +43,73 @@ func hasHotRestartOption(argSets ...[]string) bool {
 	return false
 }
 
-func execEnvoy(binary string, prefixArgs, suffixArgs []string, bootstrapJson []byte) error {
-	// Write the Envoy bootstrap config file out to disk in a pocket universe
-	// visible only to the current process (and exec'd future selves).
-	fd, err := writeEphemeralEnvoyTempFile(bootstrapJson)
+func makeBootstrapPipe(bootstrapJSON []byte) (string, error) {
+	dir, err := ioutil.TempDir("", "")
 	if err != nil {
-		return errors.New("Could not write envoy bootstrap config to a temp file: " + err.Error())
+		return dir, err
 	}
 
-	// On unix systems after exec the file descriptors that we should see:
-	//
-	//   0: stdin
-	//   1: stdout
-	//   2: stderr
-	//   ... any open file descriptors from the parent without CLOEXEC set
-	//
-	// Above we explicitly disabled CLOEXEC for our temp file, so assuming
-	// FD numbers survive across execs, it should just be the value of
-	// `fd`. This is accessible as a file itself (trippy!) under
-	// /dev/fd/$FDNUMBER.
-	magicPath := filepath.Join("/dev/fd", strconv.Itoa(int(fd)))
+	pipeFile := filepath.Join(dir, "bootstrap.json")
+
+	err = syscall.Mkfifo(pipeFile, 0600)
+	if err != nil {
+		return dir, err
+	}
+
+	// Create an anonymous pipe for STDIN to the child that will write to the
+	// named pipe.
+	pr, pw, err := os.Pipe()
+	if err != nil {
+		return dir, err
+	}
+
+	// Write the config
+	n, err := pw.Write(bootstrapJSON)
+	if err != nil {
+		return dir, err
+	}
+	if n < len(bootstrapJSON) {
+		return dir, fmt.Errorf("failed writing boostrap to child STDIN: %s", err)
+	}
+
+	err = pw.Close()
+	if err != nil {
+		return dir, err
+	}
+
+	// Start a detached child process that we can securely send the bootstrap via
+	// STDIN and have it write to the pipe. Cat can do this.
+	var attr = os.ProcAttr{
+		Dir: ".",
+		Env: os.Environ(),
+		Files: []*os.File{
+			pr,
+			nil,
+			nil,
+		},
+	}
+	process, err := os.StartProcess("/bin/bash",
+		[]string{"bash", "-c", "cat > " + pipeFile + "; rm -rf " + pipeFile},
+		&attr,
+	)
+	if err != nil {
+		return dir, err
+	}
+
+	err = process.Release()
+	if err != nil {
+		return dir, err
+	}
+
+	return dir, err
+}
+
+func execEnvoy(binary string, prefixArgs, suffixArgs []string, bootstrapJSON []byte) error {
+	tmpDir, err := makeBootstrapPipe(bootstrapJSON)
+	if err != nil {
+		os.RemoveAll(tmpDir)
+		return err
+	}
 
 	// We default to disabling hot restart because it makes it easier to run
 	// multiple envoys locally for testing without them trying to share memory and
@@ -74,10 +121,7 @@ func execEnvoy(binary string, prefixArgs, suffixArgs []string, bootstrapJson []b
 	// First argument needs to be the executable name.
 	envoyArgs := []string{binary}
 	envoyArgs = append(envoyArgs, prefixArgs...)
-	envoyArgs = append(envoyArgs, "--v2-config-only",
-		"--config-path",
-		magicPath,
-	)
+	envoyArgs = append(envoyArgs, "--config-path", filepath.Join(tmpDir, "bootstrap.json"))
 	if disableHotRestart {
 		envoyArgs = append(envoyArgs, "--disable-hot-restart")
 	}
@@ -89,80 +133,4 @@ func execEnvoy(binary string, prefixArgs, suffixArgs []string, bootstrapJson []b
 	}
 
 	return nil
-}
-
-func writeEphemeralEnvoyTempFile(b []byte) (uintptr, error) {
-	f, err := ioutil.TempFile("", "envoy-ephemeral-config")
-	if err != nil {
-		return 0, err
-	}
-
-	errFn := func(err error) (uintptr, error) {
-		_ = f.Close()
-		return 0, err
-	}
-
-	// TempFile already does this, but it's cheap to reinforce that we
-	// WANT the default behavior.
-	if err := f.Chmod(0600); err != nil {
-		return errFn(err)
-	}
-
-	// Immediately unlink the file as we are going to just pass the
-	// file descriptor, not the path.
-	if err = os.Remove(f.Name()); err != nil {
-		return errFn(err)
-	}
-	if _, err = f.Write(b); err != nil {
-		return errFn(err)
-	}
-	// Rewind the file descriptor so Envoy can read it.
-	if _, err = f.Seek(0, io.SeekStart); err != nil {
-		return errFn(err)
-	}
-
-	// Disable CLOEXEC so that this file descriptor is available
-	// to the exec'd Envoy.
-	if err := setCloseOnExec(f.Fd(), false); err != nil {
-		return errFn(err)
-	}
-
-	return f.Fd(), nil
-}
-
-// isCloseOnExec checks the provided file descriptor to see if the CLOEXEC flag
-// is set.
-func isCloseOnExec(fd uintptr) (bool, error) {
-	flags, err := getFdFlags(fd)
-	if err != nil {
-		return false, err
-	}
-	return flags&unix.FD_CLOEXEC != 0, nil
-}
-
-// setCloseOnExec sets or unsets the CLOEXEC flag on the provided file descriptor
-// depending upon the value of the enabled arg.
-func setCloseOnExec(fd uintptr, enabled bool) error {
-	flags, err := getFdFlags(fd)
-	if err != nil {
-		return err
-	}
-
-	newFlags := flags
-	if enabled {
-		newFlags |= unix.FD_CLOEXEC
-	} else {
-		newFlags &= ^unix.FD_CLOEXEC
-	}
-
-	if newFlags == flags {
-		return nil // noop
-	}
-
-	_, err = unix.FcntlInt(fd, unix.F_SETFD, newFlags)
-	return err
-}
-
-func getFdFlags(fd uintptr) (int, error) {
-	return unix.FcntlInt(fd, unix.F_GETFD, 0)
 }

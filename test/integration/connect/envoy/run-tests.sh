@@ -115,7 +115,7 @@ for c in ./case-*/ ; do
 
     # Start containers required
     if [ ! -z "$REQUIRED_SERVICES" ] ; then
-      docker-compose up -d $REQUIRED_SERVICES
+      docker-compose up --build -d $REQUIRED_SERVICES
     fi
 
     # Execute tests
