@@ -186,6 +186,7 @@ RECONCILE:
 			// ReconcileInterval.
 			if err := s.leadershipTransfer(); err != nil {
 				s.logger.Printf("[ERR] consul: %v", err)
+				interval = time.After(5 * time.Second)
 				goto WAIT
 			}
 			return
@@ -254,6 +255,7 @@ WAIT:
 			// leader, but consul disagrees.
 			if err != nil {
 				if err := s.leadershipTransfer(); err != nil {
+					interval = time.After(5 * time.Second)
 					goto WAIT
 				}
 
