@@ -1,5 +1,10 @@
 package api
 
+import (
+	"net"
+	"strconv"
+)
+
 type Weights struct {
 	Passing int
 	Warning int
@@ -16,6 +21,11 @@ type Node struct {
 	ModifyIndex     uint64
 }
 
+type ServiceAddress struct {
+	Address string
+	Port    int
+}
+
 type CatalogService struct {
 	ID                       string
 	Node                     string
@@ -26,6 +36,7 @@ type CatalogService struct {
 	ServiceID                string
 	ServiceName              string
 	ServiceAddress           string
+	ServiceTaggedAddresses   map[string]ServiceAddress
 	ServiceTags              []string
 	ServiceMeta              map[string]string
 	ServicePort              int
@@ -241,4 +252,13 @@ func (c *Catalog) Node(node string, q *QueryOptions) (*CatalogNode, *QueryMeta, 
 		return nil, nil, err
 	}
 	return out, qm, nil
+}
+
+func ParseServiceAddr(addrPort string) (ServiceAddress, error) {
+	port := 0
+	host, portStr, err := net.SplitHostPort(addrPort)
+	if err == nil {
+		port, err = strconv.Atoi(portStr)
+	}
+	return ServiceAddress{Address: host, Port: port}, err
 }

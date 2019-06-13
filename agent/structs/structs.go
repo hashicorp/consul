@@ -591,6 +591,7 @@ type ServiceNode struct {
 	ServiceName              string
 	ServiceTags              []string
 	ServiceAddress           string
+	ServiceTaggedAddresses   map[string]ServiceAddress `json:",omitempty"`
 	ServiceWeights           Weights
 	ServiceMeta              map[string]string
 	ServicePort              int
@@ -613,6 +614,14 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 		nsmeta[k] = v
 	}
 
+	var svcTaggedAddrs map[string]ServiceAddress
+	if len(s.ServiceTaggedAddresses) > 0 {
+		svcTaggedAddrs = make(map[string]ServiceAddress)
+		for k, v := range s.ServiceTaggedAddresses {
+			svcTaggedAddrs[k] = v
+		}
+	}
+
 	return &ServiceNode{
 		// Skip ID, see above.
 		Node: s.Node,
@@ -623,6 +632,7 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 		ServiceName:              s.ServiceName,
 		ServiceTags:              tags,
 		ServiceAddress:           s.ServiceAddress,
+		ServiceTaggedAddresses:   svcTaggedAddrs,
 		ServicePort:              s.ServicePort,
 		ServiceMeta:              nsmeta,
 		ServiceWeights:           s.ServiceWeights,
@@ -646,6 +656,7 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 		Service:           s.ServiceName,
 		Tags:              s.ServiceTags,
 		Address:           s.ServiceAddress,
+		TaggedAddresses:   s.ServiceTaggedAddresses,
 		Port:              s.ServicePort,
 		Meta:              s.ServiceMeta,
 		Weights:           &s.ServiceWeights,
@@ -683,6 +694,16 @@ const (
 	ServiceKindConnectProxy ServiceKind = "connect-proxy"
 )
 
+// Type to hold a address and port of a service
+type ServiceAddress struct {
+	Address string
+	Port    int
+}
+
+func (a ServiceAddress) ToAPIServiceAddress() api.ServiceAddress {
+	return api.ServiceAddress{Address: a.Address, Port: a.Port}
+}
+
 // NodeService is a service provided by a node
 type NodeService struct {
 	// Kind is the kind of service this is. Different kinds of services may
@@ -694,6 +715,7 @@ type NodeService struct {
 	Service           string
 	Tags              []string
 	Address           string
+	TaggedAddresses   map[string]ServiceAddress `json:",omitempty"`
 	Meta              map[string]string
 	Port              int
 	Weights           *Weights
@@ -844,6 +866,7 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 		!reflect.DeepEqual(s.Tags, other.Tags) ||
 		s.Address != other.Address ||
 		s.Port != other.Port ||
+		!reflect.DeepEqual(s.TaggedAddresses, other.TaggedAddresses) ||
 		!reflect.DeepEqual(s.Weights, other.Weights) ||
 		!reflect.DeepEqual(s.Meta, other.Meta) ||
 		s.EnableTagOverride != other.EnableTagOverride ||
@@ -876,6 +899,7 @@ func (s *ServiceNode) IsSameService(other *ServiceNode) bool {
 		s.ServiceName != other.ServiceName ||
 		!reflect.DeepEqual(s.ServiceTags, other.ServiceTags) ||
 		s.ServiceAddress != other.ServiceAddress ||
+		!reflect.DeepEqual(s.ServiceTaggedAddresses, other.ServiceTaggedAddresses) ||
 		s.ServicePort != other.ServicePort ||
 		!reflect.DeepEqual(s.ServiceMeta, other.ServiceMeta) ||
 		!reflect.DeepEqual(s.ServiceWeights, other.ServiceWeights) ||
@@ -915,6 +939,7 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 		ServiceName:              s.Service,
 		ServiceTags:              s.Tags,
 		ServiceAddress:           s.Address,
+		ServiceTaggedAddresses:   s.TaggedAddresses,
 		ServicePort:              s.Port,
 		ServiceMeta:              s.Meta,
 		ServiceWeights:           theWeights,

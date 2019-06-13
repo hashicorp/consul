@@ -3251,6 +3251,16 @@ func TestFullConfig(t *testing.T) {
 				"meta": {
 					"mymeta": "data"
 				},
+				"tagged_addresses": {
+					"lan": {
+						"address": "2d79888a",
+						"port": 2143
+					},
+					"wan": {
+						"address": "d4db85e2",
+						"port": 6109
+					}
+				},
 				"tags": ["nkwshvM5", "NTDWn3ek"],
 				"address": "cOlSOhbp",
 				"token": "msy7iWER",
@@ -3819,6 +3829,16 @@ func TestFullConfig(t *testing.T) {
 				name = "o1ynPkp0"
 				meta = {
 					mymeta = "data"
+				}
+				tagged_addresses = {
+					lan = {
+						address = "2d79888a"
+						port = 2143
+					}
+					wan = {
+						address = "d4db85e2"
+						port = 6109
+					}
 				}
 				tags = ["nkwshvM5", "NTDWn3ek"]
 				address = "cOlSOhbp"
@@ -4603,8 +4623,18 @@ func TestFullConfig(t *testing.T) {
 				},
 			},
 			{
-				ID:      "dLOXpSCI",
-				Name:    "o1ynPkp0",
+				ID:   "dLOXpSCI",
+				Name: "o1ynPkp0",
+				TaggedAddresses: map[string]structs.ServiceAddress{
+					"lan": structs.ServiceAddress{
+						Address: "2d79888a",
+						Port:    2143,
+					},
+					"wan": structs.ServiceAddress{
+						Address: "d4db85e2",
+						Port:    6109,
+					},
+				},
 				Tags:    []string{"nkwshvM5", "NTDWn3ek"},
 				Address: "cOlSOhbp",
 				Token:   "msy7iWER",

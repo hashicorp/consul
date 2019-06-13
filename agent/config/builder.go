@@ -1177,6 +1177,26 @@ func (b *Builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 	}
 }
 
+func (b *Builder) svcTaggedAddresses(v map[string]ServiceAddress) map[string]structs.ServiceAddress {
+	if len(v) <= 0 {
+		return nil
+	}
+
+	svcAddrs := make(map[string]structs.ServiceAddress)
+	for addrName, addrConf := range v {
+		addr := structs.ServiceAddress{}
+		if addrConf.Address != nil {
+			addr.Address = *addrConf.Address
+		}
+		if addrConf.Port != nil {
+			addr.Port = *addrConf.Port
+		}
+
+		svcAddrs[addrName] = addr
+	}
+	return svcAddrs
+}
+
 func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 	if v == nil {
 		return nil
@@ -1215,6 +1235,7 @@ func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		Name:              b.stringVal(v.Name),
 		Tags:              v.Tags,
 		Address:           b.stringVal(v.Address),
+		TaggedAddresses:   b.svcTaggedAddresses(v.TaggedAddresses),
 		Meta:              meta,
 		Port:              b.intVal(v.Port),
 		Token:             b.stringVal(v.Token),

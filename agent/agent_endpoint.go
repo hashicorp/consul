@@ -166,6 +166,15 @@ func buildAgentService(s *structs.NodeService, proxies map[string]*local.Managed
 		}
 		weights.Warning = s.Weights.Warning
 	}
+
+	var taggedAddrs map[string]api.ServiceAddress
+	if len(s.TaggedAddresses) > 0 {
+		taggedAddrs = make(map[string]api.ServiceAddress)
+		for k, v := range s.TaggedAddresses {
+			taggedAddrs[k] = v.ToAPIServiceAddress()
+		}
+	}
+
 	as := api.AgentService{
 		Kind:              api.ServiceKind(s.Kind),
 		ID:                s.ID,
@@ -174,6 +183,7 @@ func buildAgentService(s *structs.NodeService, proxies map[string]*local.Managed
 		Meta:              s.Meta,
 		Port:              s.Port,
 		Address:           s.Address,
+		TaggedAddresses:   taggedAddrs,
 		EnableTagOverride: s.EnableTagOverride,
 		CreateIndex:       s.CreateIndex,
 		ModifyIndex:       s.ModifyIndex,
