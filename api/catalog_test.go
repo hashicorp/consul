@@ -34,7 +34,7 @@ func TestAPI_CatalogNodes(t *testing.T) {
 
 	s.WaitForSerfCheck(t)
 	catalog := c.Catalog()
-	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		nodes, meta, err := catalog.Nodes(nil)
 		// We're not concerned about the createIndex of an agent
 		// Hence we're setting it to the default value
