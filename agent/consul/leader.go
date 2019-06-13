@@ -255,6 +255,14 @@ WAIT:
 			// leader, but consul disagrees.
 			if err != nil {
 				if err := s.leadershipTransfer(); err != nil {
+					// establishLeadership was true before,
+					// but it no longer is since it revoked
+					// leadership and Leadership transfer
+					// also failed. Which is why it stays
+					// in the leaderLoop, but now
+					// establishedLeader needs to be set to
+					// false.
+					establishedLeader = false
 					interval = time.After(5 * time.Second)
 					goto WAIT
 				}
