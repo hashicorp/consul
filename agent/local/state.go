@@ -70,6 +70,9 @@ func (s *ServiceState) Clone() *ServiceState {
 // CheckState describes the state of a health check record.
 type CheckState struct {
 	// Check is the local copy of the health check record.
+	//
+	// Must Clone() the overall CheckState before mutating this. After mutation
+	// reinstall into the checks map.
 	Check *structs.HealthCheck
 
 	// Token is the ACL record to update or delete the health check
@@ -95,12 +98,15 @@ type CheckState struct {
 	Deleted bool
 }
 
-// Clone returns a shallow copy of the object. The check record and the
-// defer timer still point to the original values and must not be
-// modified.
+// Clone returns a shallow copy of the object.
+//
+// The defer timer still points to the original value and must not be modified.
 func (c *CheckState) Clone() *CheckState {
 	c2 := new(CheckState)
 	*c2 = *c
+	if c.Check != nil {
+		c2.Check = c.Check.Clone()
+	}
 	return c2
 }
 
@@ -590,6 +596,18 @@ func (l *State) UpdateCheck(id types.CheckID, status, output string) {
 		return
 	}
 
+	// Ensure we only mutate a copy of the check state and put the finalized
+	// version into the checks map when complete.
+	//
+	// Note that we are relying upon the earlier deferred mutex unlock to
+	// happen AFTER this defer. As per the Go spec this is true, but leaving
+	// this note here for the future in case of any refactorings which may not
+	// notice this relationship.
+	c = c.Clone()
+	defer func(c *CheckState) {
+		l.checks[id] = c
+	}(c)
+
 	// Defer a sync if the output has changed. This is an optimization around
 	// frequent updates of output. Instead, we update the output internally,
 	// and periodically do a write-back to the servers. If there is a status
@@ -651,9 +669,9 @@ func (l *State) Checks() map[types.CheckID]*structs.HealthCheck {
 	return m
 }
 
-// CheckState returns a shallow copy of the current health check state
-// record. The health check record and the deferred check still point to
-// the original values and must not be modified.
+// CheckState returns a shallow copy of the current health check state record.
+//
+// The defer timer still points to the original value and must not be modified.
 func (l *State) CheckState(id types.CheckID) *CheckState {
 	l.RLock()
 	defer l.RUnlock()
@@ -685,8 +703,9 @@ func (l *State) setCheckStateLocked(c *CheckState) {
 }
 
 // CheckStates returns a shallow copy of all health check state records.
-// The health check records and the deferred checks still point to
-// the original values and must not be modified.
+// The map contains a shallow copy of the current check states.
+//
+// The defer timers still point to the original values and must not be modified.
 func (l *State) CheckStates() map[types.CheckID]*CheckState {
 	l.RLock()
 	defer l.RUnlock()
@@ -703,9 +722,9 @@ func (l *State) CheckStates() map[types.CheckID]*CheckState {
 
 // CriticalCheckStates returns the locally registered checks that the
 // agent is aware of and are being kept in sync with the server.
-// The map contains a shallow copy of the current check states but
-// references to the actual check definition which must not be
-// modified.
+// The map contains a shallow copy of the current check states.
+//
+// The defer timers still point to the original values and must not be modified.
 func (l *State) CriticalCheckStates() map[types.CheckID]*CheckState {
 	l.RLock()
 	defer l.RUnlock()

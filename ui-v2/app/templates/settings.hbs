@@ -18,7 +18,7 @@
           <p>
           Add a link to the service detail page in the UI to get quick access to a service-wide metrics dashboard. Enter the dashboard URL into the field below. You can use the placeholders <code>{{'{{Datacenter}}'}}</code> and <code>{{'{{Service.Name}}'}}</code> which will be replaced with the name of the datacenter/service currently being viewed.
           </p>
-          <label class="type-text">
+          <label class={{concat (if confirming 'confirming') ' type-text'}} id="urls_service">
             <span>Link template for services</span>
             <input type="text" name="urls[service]" value={{item.urls.service}} onchange={{action 'change'}} onkeypress={{action 'key'}} onkeydown={{action 'key'}} />
             <em>e.g. https://grafana.example.com/d/1/consul-service-mesh&amp;orgid=1&amp;datacenter={{ '{{Datacenter}}' }}&amp;service-name={{ '{{Service.Name}}' }}</em>

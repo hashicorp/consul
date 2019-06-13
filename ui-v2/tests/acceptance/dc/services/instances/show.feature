@@ -6,9 +6,17 @@ Feature: dc / services / instances / show: Show Service Instance
     ---
     - Service:
         ID: service-0-with-id
+        Meta:
+          external-source: consul
+      Node:
+        Node: node-0
+    - Service:
+        ID: service-0-with-id
         Tags: ['Tag1', 'Tag2']
         Meta:
           external-source: nomad
+      Node:
+        Node: node-1
       Checks:
         - Name: Service check
           ServiceID: service-0
@@ -46,9 +54,10 @@ Feature: dc / services / instances / show: Show Service Instance
     ---
       dc: dc1
       service: service-0
+      node: node-1
       id: service-0-with-id
     ---
-    Then the url should be /dc1/services/service-0/service-0-with-id
+    Then the url should be /dc1/services/service-0/node-1/service-0-with-id
     Then I don't see type on the proxy
     Then I see externalSource like "nomad"
 
@@ -77,9 +86,10 @@ Feature: dc / services / instances / show: Show Service Instance
     ---
       dc: dc1
       service: service-0
+      node: node-0
       id: service-0-with-id
     ---
-    Then the url should be /dc1/services/service-0/service-0-with-id
+    Then the url should be /dc1/services/service-0/node-0/service-0-with-id
     And an external edit results in 0 instance models
     And pause until I see the text "deregistered" in "[data-notification]"
   @ignore

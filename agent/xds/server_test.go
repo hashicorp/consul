@@ -196,7 +196,7 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	// all the others (same version) but NACK the listener. This is the most
 	// subtle part of xDS and the server implementation so I'll elaborate. A full
 	// description of the protocol can be found at
-	// https://github.com/envoyproxy/data-plane-api/blob/master/XDS_PROTOCOL.md.
+	// https://www.envoyproxy.io/docs/envoy/latest/api-docs/xds_protocol
 	// Envoy delays making a followup request for a type until after it has
 	// processed and applied the last response. The next request then will include
 	// the nonce in the last response which acknowledges _receiving_ and handling

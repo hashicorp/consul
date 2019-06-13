@@ -4,6 +4,7 @@
     {
       "@type": "type.googleapis.com/envoy.api.v2.Cluster",
       "name": "local_app",
+      "type": "STATIC",
       "connectTimeout": "1.234s",
       "loadAssignment": {
         "clusterName": "local_app",

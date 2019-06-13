@@ -18,17 +18,17 @@
         {{/each}}
     </div>
   {{/yield-slot}}
-    <label class="type-text{{if item.error.Name ' has-error'}}">
+    <label class="type-text{{if (and item.error.Name (not item.isPristine)) ' has-error'}}">
         <span>Name</span>
         <input type="text" value={{item.Name}} name="{{name}}[Name]" autofocus="autofocus" oninput={{action 'change'}} />
         <em>
           Maximum 128 characters. May only include letters (uppercase and/or lowercase) and/or numbers. Must be unique.
         </em>
-        {{#if item.error.Name}}
+        {{#if (and item.error.Name (not item.isPristine))}}
           <strong>{{item.error.Name.validation}}</strong>
         {{/if}}
     </label>
-    <label class="type-text">
+    <label class="type-text" data-test-rules>
         <span>Rules <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
 {{#if (eq item.template '') }}
         {{code-editor syntax='hcl' class=(if item.error.Rules 'error') name=(concat name '[Rules]') value=item.Rules onkeyup=(action 'change' (concat name '[Rules]'))}}

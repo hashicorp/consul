@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/api/watch"
 	"github.com/hashicorp/consul/connect"
+	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 )
 
@@ -242,7 +243,7 @@ func (w *AgentConfigWatcher) handler(blockVal watch.BlockingParamVal,
 	}
 	cfg.PublicListener.BindAddress = resp.Address
 	cfg.PublicListener.BindPort = resp.Port
-	cfg.PublicListener.LocalServiceAddress = fmt.Sprintf("%s:%d",
+	cfg.PublicListener.LocalServiceAddress = ipaddr.FormatAddressPort(
 		resp.Proxy.LocalServiceAddress, resp.Proxy.LocalServicePort)
 
 	cfg.PublicListener.applyDefaults()

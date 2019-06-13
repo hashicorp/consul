@@ -22,7 +22,7 @@ recommended you do not build anything using Managed proxies and consider using
 registrations](/docs/connect/proxies/sidecar-service.html) instead.
 
 Even though this was a beta feature, managed proxies will continue to work at
-least until Consul 1.5 to prevent disruption to demonstration and
+least until Consul 1.6 to prevent disruption to demonstration and
 proof-of-concept deployments of Consul Connect. Anyone using managed proxies
 though should aim to change their workflow as soon as possible to avoid issues
 with a later upgrade.

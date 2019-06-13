@@ -1041,7 +1041,8 @@ func (c *HealthCheck) IsSame(other *HealthCheck) bool {
 	return true
 }
 
-// Clone returns a distinct clone of the HealthCheck.
+// Clone returns a distinct clone of the HealthCheck. Note that the
+// "ServiceTags" and "Definition.Header" field are not deep copied.
 func (c *HealthCheck) Clone() *HealthCheck {
 	clone := new(HealthCheck)
 	*clone = *c

@@ -734,8 +734,10 @@ func (p *PolicyAuthorizer) KeyWrite(key string, scope sentinel.ScopeFn) bool {
 // delete everything under the prefix. First we must have "write"
 // on the prefix itself
 func (p *PolicyAuthorizer) KeyWritePrefix(prefix string) bool {
+	parentAllows := p.parent.KeyWritePrefix(prefix)
+
 	// Look for a matching rule that denies
-	prefixAllowed := true
+	prefixAllowed := parentAllows
 	found := false
 
 	// Look for a prefix rule that would apply to the prefix we are checking
@@ -755,6 +757,8 @@ func (p *PolicyAuthorizer) KeyWritePrefix(prefix string) bool {
 		return false
 	})
 
+	// This will be false if we had a prefix that didn't allow write or if
+	// there was no prefix rule and the parent policy would deny access.
 	if !prefixAllowed {
 		return false
 	}
@@ -763,7 +767,6 @@ func (p *PolicyAuthorizer) KeyWritePrefix(prefix string) bool {
 	// into account both prefix and exact match rules.
 	deny := false
 	p.keyRules.WalkPrefix(prefix, func(path string, leaf interface{}) bool {
-		found = true
 		rule := leaf.(*policyAuthorizerRadixLeaf)
 
 		if rule.prefix != nil && rule.prefix.(RulePolicy).aclPolicy != PolicyWrite {
@@ -783,13 +786,13 @@ func (p *PolicyAuthorizer) KeyWritePrefix(prefix string) bool {
 		return false
 	}
 
-	// If we had a matching rule, done
+	// If we had a matching prefix rule and it allowed writes, then we can allow the access
 	if found {
 		return true
 	}
 
-	// No matching rule, use the parent.
-	return p.parent.KeyWritePrefix(prefix)
+	// No matching rule, use the parent policy.
+	return parentAllows
 }
 
 // KeyringRead is used to determine if the keyring can be

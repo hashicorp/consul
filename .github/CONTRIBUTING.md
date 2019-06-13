@@ -22,7 +22,7 @@ work on an issue, comment on it first and tell us the approach you want to take.
 * Implement a requested [enhancement](https://github.com/hashicorp/consul/labels/enhancement).
 * Improve our guides and documentation. Consul's [Guides](https://www.consul.io/docs/guides/index.html), [Docs](https://www.consul.io/docs/index.html), and [api godoc](https://godoc.org/github.com/hashicorp/consul/api)
 are deployed from this repo.
-* Respond to questions about usage on the issue tracker or mailing list.
+* Respond to questions about usage on the issue tracker or the Consul section of the [HashiCorp forum]: (https://discuss.hashicorp.com/c/consul)
 
 ### Reporting an Issue:
 >Note: Issues on GitHub for Consul are intended to be related to bugs or feature requests. 

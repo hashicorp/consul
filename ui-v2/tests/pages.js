@@ -48,7 +48,7 @@ const cancelable = createCancelable(clickable, is);
 
 const tokenList = tokenListFactory(clickable, attribute, collection, deletable);
 
-const policyForm = policyFormFactory(submitable, cancelable, radiogroup);
+const policyForm = policyFormFactory(submitable, cancelable, radiogroup, text);
 const policySelector = policySelectorFactory(clickable, deletable, collection, alias, policyForm);
 
 const roleForm = roleFormFactory(submitable, cancelable, policySelector);
@@ -67,11 +67,20 @@ export default {
   acls: create(acls(visitable, deletable, creatable, clickable, attribute, collection, aclFilter)),
   acl: create(acl(visitable, submitable, deletable, cancelable, clickable)),
   policies: create(
-    policies(visitable, deletable, creatable, clickable, attribute, collection, freetextFilter)
+    policies(
+      visitable,
+      deletable,
+      creatable,
+      clickable,
+      attribute,
+      collection,
+      text,
+      freetextFilter
+    )
   ),
   policy: create(policy(visitable, submitable, deletable, cancelable, clickable, tokenList)),
   roles: create(
-    roles(visitable, deletable, creatable, clickable, attribute, collection, freetextFilter)
+    roles(visitable, deletable, creatable, clickable, attribute, collection, text, freetextFilter)
   ),
   // TODO: This needs a policyList
   role: create(role(visitable, submitable, deletable, cancelable, policySelector, tokenList)),

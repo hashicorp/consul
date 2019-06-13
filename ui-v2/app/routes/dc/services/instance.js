@@ -11,7 +11,7 @@ export default Route.extend({
     const proxyRepo = get(this, 'proxyRepo');
     const dc = this.modelFor('dc').dc.Name;
     return hash({
-      item: repo.findInstanceBySlug(params.id, params.name, dc),
+      item: repo.findInstanceBySlug(params.id, params.node, params.name, dc),
     }).then(function(model) {
       // this will not be run in a blocking loop, but this is ok as
       // its highly unlikely that a service will suddenly change to being a
@@ -20,7 +20,7 @@ export default Route.extend({
         proxy:
           get(model.item, 'Kind') === 'connect-proxy'
             ? null
-            : proxyRepo.findInstanceBySlug(params.id, params.name, dc),
+            : proxyRepo.findInstanceBySlug(params.id, params.node, params.name, dc),
         ...model,
       });
     });

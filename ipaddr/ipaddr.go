@@ -4,7 +4,13 @@ import (
 	"fmt"
 	"net"
 	"reflect"
+	"strconv"
 )
+
+// FormatAddressPort Helper for net.JoinHostPort that takes int for port
+func FormatAddressPort(address string, port int) string {
+	return net.JoinHostPort(address, strconv.Itoa(port))
+}
 
 // IsAny checks if the given ip address is an IPv4 or IPv6 ANY address. ip
 // can be either a *net.IP or a string. It panics on another type.

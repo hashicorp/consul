@@ -39,7 +39,15 @@ export default function(scenario, assert, find, currentPage, pauseUntil, plurali
       value
     ) {
       const len = currentPage()[pluralize(model)].filter(function(item) {
-        return item.isVisible && item[property] == value;
+        if (item.isVisible) {
+          let prop = item[property];
+          // cope with pageObjects that can have a multiple: true
+          if (!Array.isArray(prop)) {
+            prop = [prop];
+          }
+          return prop.includes(value);
+        }
+        return false;
       }).length;
       assert.equal(
         len,

@@ -5,8 +5,18 @@ import { inject as service } from '@ember/service';
 export default Controller.extend({
   repo: service('settings'),
   dom: service('dom'),
+  timeout: service('timeout'),
+  confirming: false,
+  applyTransition: function() {
+    const tick = get(this, 'timeout').tick;
+    set(this, 'confirming', true);
+    tick().then(() => {
+      set(this, 'confirming', false);
+    });
+  },
   actions: {
     key: function(e) {
+      this.applyTransition();
       switch (true) {
         case e.keyCode === 13:
           // disable ENTER
