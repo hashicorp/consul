@@ -115,6 +115,8 @@ services:
       context: .
       dockerfile: Dockerfile-bats
     tty: true
+    environment:
+     - ENVOY_VERSION
     command:
      - "--pretty"
      - "/workdir/bats"

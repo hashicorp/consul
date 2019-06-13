@@ -120,7 +120,7 @@ for c in ./case-*/ ; do
 
     # Execute tests
     THISRESULT=1
-    if docker-compose up --build --abort-on-container-exit --exit-code-from verify verify ; then
+    if docker-compose up --build --exit-code-from verify verify ; then
       echo "- - - - - - - - - - - - - - - - - - - - - - - -"
       echoblue -n "CASE $CASE_STR"
       echo -n ": "
