@@ -433,16 +433,16 @@ workflows:
   #     - build-amd64: *require-go-fmt-vet
   #     - build-arm-arm64: *require-go-fmt-vet
   test-integrations:
-    # triggers:
-    #   - schedule:
-    #       # every 10 mins from 12am-12pm GMT (outside US work hours)
-    #       # CircleCI doesn't support some cron syntax so it has to look janky
-    #       # https://circleci.com/docs/2.0/workflows/#specifying-a-valid-schedule
-    #       cron: "0,10,20,30,40,50 0-12 * * *"
-    #       filters:
-    #         branches:
-    #           only:
-    #             - /^bug\/flaky-test-.*$/ # only run go tests on bug/flaky-test-* for now since we are fixing tests
+    triggers:
+      - schedule:
+          # every 10 mins from 12am-12pm GMT (outside US work hours)
+          # CircleCI doesn't support some cron syntax so it has to look janky
+          # https://circleci.com/docs/2.0/workflows/#specifying-a-valid-schedule
+          cron: "0,10,20,30,40,50 0-12 * * *"
+          filters:
+            branches:
+              only:
+                - /^bug\/flaky-test-.*$/ # only run go tests on bug/flaky-test-* for now since we are fixing tests
     jobs:
       - dev-build
       - go-test: &go-test
