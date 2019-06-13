@@ -355,8 +355,7 @@ func (s *TestServer) waitForAPI(t *testing.T) {
 
 // waitForLeader waits for the Consul server's HTTP API to become
 // available, and then waits for a known leader and an index of
-// 1 or more to be observed to confirm leader election is done.
-// It then waits to ensure the anti-entropy sync has completed.
+// 2 or more to be observed to confirm leader election is done.
 func (s *TestServer) waitForLeader(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		// Query the API and check the status code.
