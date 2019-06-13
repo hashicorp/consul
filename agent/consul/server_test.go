@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-uuid"
+	"golang.org/x/time/rate"
 
 	"github.com/stretchr/testify/require"
 )
@@ -988,6 +989,8 @@ func TestServer_Reload(t *testing.T) {
 
 	dir1, s := testServerWithConfig(t, func(c *Config) {
 		c.Build = "1.5.0"
+		c.RPCRate = 500
+		c.RPCMaxBurst = 5000
 	})
 	defer os.RemoveAll(dir1)
 	defer s.Shutdown()
@@ -997,6 +1000,14 @@ func TestServer_Reload(t *testing.T) {
 	s.config.ConfigEntryBootstrap = []structs.ConfigEntry{
 		global_entry_init,
 	}
+
+	limiter := s.rpcLimiter.Load().(*rate.Limiter)
+	require.Equal(t, rate.Limit(500), limiter.Limit())
+	require.Equal(t, 5000, limiter.Burst())
+
+	// Change rate limit
+	s.config.RPCRate = 1000
+	s.config.RPCMaxBurst = 10000
 
 	s.ReloadConfig(s.config)
 
@@ -1008,4 +1019,30 @@ func TestServer_Reload(t *testing.T) {
 	require.Equal(t, global_entry_init.Kind, global.Kind)
 	require.Equal(t, global_entry_init.Name, global.Name)
 	require.Equal(t, global_entry_init.Config, global.Config)
+
+	// Check rate limiter got updated
+	limiter = s.rpcLimiter.Load().(*rate.Limiter)
+	require.Equal(t, rate.Limit(1000), limiter.Limit())
+	require.Equal(t, 10000, limiter.Burst())
+}
+
+func TestServer_RPC_RateLimit(t *testing.T) {
+	t.Parallel()
+	dir1, conf1 := testServerConfig(t)
+	conf1.RPCRate = 2
+	conf1.RPCMaxBurst = 2
+	s1, err := NewServer(conf1)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	retry.Run(t, func(r *retry.R) {
+		var out struct{}
+		if err := s1.RPC("Status.Ping", struct{}{}, &out); err != structs.ErrRPCRateExceeded {
+			r.Fatalf("err: %v", err)
+		}
+	})
 }
