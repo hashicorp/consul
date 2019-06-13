@@ -234,6 +234,7 @@ WAIT:
 				if err := s.leadershipTransfer(); err != nil {
 					goto WAIT
 				}
+				return
 			}
 
 		}
