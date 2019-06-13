@@ -91,10 +91,10 @@ func TestExecCommand_CrossDC(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		if got, want := len(a1.WANMembers()), 2; got != want {
-			t.Fatalf("got %d WAN members on a1 want %d", got, want)
+			r.Fatalf("got %d WAN members on a1 want %d", got, want)
 		}
 		if got, want := len(a2.WANMembers()), 2; got != want {
-			t.Fatalf("got %d WAN members on a2 want %d", got, want)
+			r.Fatalf("got %d WAN members on a2 want %d", got, want)
 		}
 	})
 
