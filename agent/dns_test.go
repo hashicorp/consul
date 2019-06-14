@@ -2345,7 +2345,7 @@ func TestDNS_ServiceLookup_ServiceAddressIPV6(t *testing.T) {
 	}
 }
 
-func TestDNS_ServiceLookup_WanAddress(t *testing.T) {
+func TestDNS_ServiceLookup_WanTranslation(t *testing.T) {
 	t.Parallel()
 	a1 := NewTestAgent(t, t.Name(), `
 		datacenter = "dc1"
@@ -2363,38 +2363,11 @@ func TestDNS_ServiceLookup_WanAddress(t *testing.T) {
 
 	// Join WAN cluster
 	addr := fmt.Sprintf("127.0.0.1:%d", a1.Config.SerfPortWAN)
-	if _, err := a2.JoinWAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	_, err := a2.JoinWAN([]string{addr})
+	require.NoError(t, err)
 	retry.Run(t, func(r *retry.R) {
-		if got, want := len(a1.WANMembers()), 2; got < want {
-			r.Fatalf("got %d WAN members want at least %d", got, want)
-		}
-		if got, want := len(a2.WANMembers()), 2; got < want {
-			r.Fatalf("got %d WAN members want at least %d", got, want)
-		}
-	})
-
-	// Register a remote node with a service. This is in a retry since we
-	// need the datacenter to have a route which takes a little more time
-	// beyond the join, and we don't have direct access to the router here.
-	retry.Run(t, func(r *retry.R) {
-		args := &structs.RegisterRequest{
-			Datacenter: "dc2",
-			Node:       "foo",
-			Address:    "127.0.0.1",
-			TaggedAddresses: map[string]string{
-				"wan": "127.0.0.2",
-			},
-			Service: &structs.NodeService{
-				Service: "db",
-			},
-		}
-
-		var out struct{}
-		if err := a2.RPC("Catalog.Register", args, &out); err != nil {
-			r.Fatalf("err: %v", err)
-		}
+		require.Len(t, a1.WANMembers(), 2)
+		require.Len(t, a2.WANMembers(), 2)
 	})
 
 	// Register an equivalent prepared query.
@@ -2410,126 +2383,173 @@ func TestDNS_ServiceLookup_WanAddress(t *testing.T) {
 				},
 			},
 		}
-		if err := a2.RPC("PreparedQuery.Apply", args, &id); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		require.NoError(t, a2.RPC("PreparedQuery.Apply", args, &id))
 	}
 
-	// Look up the SRV record via service and prepared query.
-	questions := []string{
-		"db.service.dc2.consul.",
-		id + ".query.dc2.consul.",
-	}
-	for _, question := range questions {
-		m := new(dns.Msg)
-		m.SetQuestion(question, dns.TypeSRV)
+	type testCase struct {
+		nodeTaggedAddresses    map[string]string
+		serviceAddress         string
+		serviceTaggedAddresses map[string]structs.ServiceAddress
 
-		c := new(dns.Client)
+		dnsAddr string
 
-		addr := a1.config.DNSAddrs[0]
-		in, _, err := c.Exchange(m, addr.String())
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
-		if len(in.Answer) != 1 {
-			t.Fatalf("Bad: %#v", in)
-		}
-
-		aRec, ok := in.Extra[0].(*dns.A)
-		if !ok {
-			t.Fatalf("Bad: %#v", in.Extra[0])
-		}
-		if aRec.Hdr.Name != "7f000002.addr.dc2.consul." {
-			t.Fatalf("Bad: %#v", in.Extra[0])
-		}
-		if aRec.A.String() != "127.0.0.2" {
-			t.Fatalf("Bad: %#v", in.Extra[0])
-		}
+		expectedPort    uint16
+		expectedAddress string
+		expectedARRName string
 	}
 
-	// Also check the A record directly
-	for _, question := range questions {
-		m := new(dns.Msg)
-		m.SetQuestion(question, dns.TypeA)
-
-		c := new(dns.Client)
-		addr := a1.config.DNSAddrs[0]
-		in, _, err := c.Exchange(m, addr.String())
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
-		if len(in.Answer) != 1 {
-			t.Fatalf("Bad: %#v", in)
-		}
-
-		aRec, ok := in.Answer[0].(*dns.A)
-		if !ok {
-			t.Fatalf("Bad: %#v", in.Answer[0])
-		}
-		if aRec.Hdr.Name != question {
-			t.Fatalf("Bad: %#v", in.Answer[0])
-		}
-		if aRec.A.String() != "127.0.0.2" {
-			t.Fatalf("Bad: %#v", in.Answer[0])
-		}
+	cases := map[string]testCase{
+		"node-addr-from-dc1": testCase{
+			dnsAddr:         a1.config.DNSAddrs[0].String(),
+			expectedPort:    8080,
+			expectedAddress: "127.0.0.1",
+			expectedARRName: "foo.node.dc2.consul.",
+		},
+		"node-wan-from-dc1": testCase{
+			dnsAddr: a1.config.DNSAddrs[0].String(),
+			nodeTaggedAddresses: map[string]string{
+				"wan": "127.0.0.2",
+			},
+			expectedPort:    8080,
+			expectedAddress: "127.0.0.2",
+			expectedARRName: "7f000002.addr.dc2.consul.",
+		},
+		"service-addr-from-dc1": testCase{
+			dnsAddr: a1.config.DNSAddrs[0].String(),
+			nodeTaggedAddresses: map[string]string{
+				"wan": "127.0.0.2",
+			},
+			serviceAddress:  "10.0.1.1",
+			expectedPort:    8080,
+			expectedAddress: "10.0.1.1",
+			expectedARRName: "0a000101.addr.dc2.consul.",
+		},
+		"service-wan-from-dc1": testCase{
+			dnsAddr: a1.config.DNSAddrs[0].String(),
+			nodeTaggedAddresses: map[string]string{
+				"wan": "127.0.0.2",
+			},
+			serviceAddress: "10.0.1.1",
+			serviceTaggedAddresses: map[string]structs.ServiceAddress{
+				"wan": structs.ServiceAddress{
+					Address: "198.18.0.1",
+					Port:    80,
+				},
+			},
+			expectedPort:    80,
+			expectedAddress: "198.18.0.1",
+			expectedARRName: "c6120001.addr.dc2.consul.",
+		},
+		"node-addr-from-dc2": testCase{
+			dnsAddr:         a2.config.DNSAddrs[0].String(),
+			expectedPort:    8080,
+			expectedAddress: "127.0.0.1",
+			expectedARRName: "foo.node.dc2.consul.",
+		},
+		"node-wan-from-dc2": testCase{
+			dnsAddr: a2.config.DNSAddrs[0].String(),
+			nodeTaggedAddresses: map[string]string{
+				"wan": "127.0.0.2",
+			},
+			expectedPort:    8080,
+			expectedAddress: "127.0.0.1",
+			expectedARRName: "foo.node.dc2.consul.",
+		},
+		"service-addr-from-dc2": testCase{
+			dnsAddr: a2.config.DNSAddrs[0].String(),
+			nodeTaggedAddresses: map[string]string{
+				"wan": "127.0.0.2",
+			},
+			serviceAddress:  "10.0.1.1",
+			expectedPort:    8080,
+			expectedAddress: "10.0.1.1",
+			expectedARRName: "0a000101.addr.dc2.consul.",
+		},
+		"service-wan-from-dc2": testCase{
+			dnsAddr: a2.config.DNSAddrs[0].String(),
+			nodeTaggedAddresses: map[string]string{
+				"wan": "127.0.0.2",
+			},
+			serviceAddress: "10.0.1.1",
+			serviceTaggedAddresses: map[string]structs.ServiceAddress{
+				"wan": structs.ServiceAddress{
+					Address: "198.18.0.1",
+					Port:    80,
+				},
+			},
+			expectedPort:    8080,
+			expectedAddress: "10.0.1.1",
+			expectedARRName: "0a000101.addr.dc2.consul.",
+		},
 	}
 
-	// Now query from the same DC and make sure we get the local address
-	for _, question := range questions {
-		m := new(dns.Msg)
-		m.SetQuestion(question, dns.TypeSRV)
+	for name, tc := range cases {
+		name := name
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			// Register a remote node with a service. This is in a retry since we
+			// need the datacenter to have a route which takes a little more time
+			// beyond the join, and we don't have direct access to the router here.
+			retry.Run(t, func(r *retry.R) {
+				args := &structs.RegisterRequest{
+					Datacenter:      "dc2",
+					Node:            "foo",
+					Address:         "127.0.0.1",
+					TaggedAddresses: tc.nodeTaggedAddresses,
+					Service: &structs.NodeService{
+						Service:         "db",
+						Address:         tc.serviceAddress,
+						Port:            8080,
+						TaggedAddresses: tc.serviceTaggedAddresses,
+					},
+				}
 
-		c := new(dns.Client)
-		addr := a2.Config.DNSAddrs[0]
-		in, _, err := c.Exchange(m, addr.String())
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
+				var out struct{}
+				require.NoError(t, a2.RPC("Catalog.Register", args, &out))
+			})
 
-		if len(in.Answer) != 1 {
-			t.Fatalf("Bad: %#v", in)
-		}
+			// Look up the SRV record via service and prepared query.
+			questions := []string{
+				"db.service.dc2.consul.",
+				id + ".query.dc2.consul.",
+			}
+			for _, question := range questions {
+				m := new(dns.Msg)
+				m.SetQuestion(question, dns.TypeSRV)
 
-		aRec, ok := in.Extra[0].(*dns.A)
-		if !ok {
-			t.Fatalf("Bad: %#v", in.Extra[0])
-		}
-		if aRec.Hdr.Name != "foo.node.dc2.consul." {
-			t.Fatalf("Bad: %#v", in.Extra[0])
-		}
-		if aRec.A.String() != "127.0.0.1" {
-			t.Fatalf("Bad: %#v", in.Extra[0])
-		}
-	}
+				c := new(dns.Client)
 
-	// Also check the A record directly from DC2
-	for _, question := range questions {
-		m := new(dns.Msg)
-		m.SetQuestion(question, dns.TypeA)
+				addr := tc.dnsAddr
+				in, _, err := c.Exchange(m, addr)
+				require.NoError(t, err)
+				require.Len(t, in.Answer, 1)
+				srvRec, ok := in.Answer[0].(*dns.SRV)
+				require.True(t, ok, "Bad: %#v", in.Answer[0])
+				require.Equal(t, tc.expectedPort, srvRec.Port)
 
-		c := new(dns.Client)
-		addr := a2.Config.DNSAddrs[0]
-		in, _, err := c.Exchange(m, addr.String())
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
+				aRec, ok := in.Extra[0].(*dns.A)
+				require.True(t, ok, "Bad: %#v", in.Extra[0])
+				require.Equal(t, tc.expectedARRName, aRec.Hdr.Name)
+				require.Equal(t, tc.expectedAddress, aRec.A.String())
+			}
 
-		if len(in.Answer) != 1 {
-			t.Fatalf("Bad: %#v", in)
-		}
+			// Also check the A record directly
+			for _, question := range questions {
+				m := new(dns.Msg)
+				m.SetQuestion(question, dns.TypeA)
 
-		aRec, ok := in.Answer[0].(*dns.A)
-		if !ok {
-			t.Fatalf("Bad: %#v", in.Answer[0])
-		}
-		if aRec.Hdr.Name != question {
-			t.Fatalf("Bad: %#v", in.Answer[0])
-		}
-		if aRec.A.String() != "127.0.0.1" {
-			t.Fatalf("Bad: %#v", in.Answer[0])
-		}
+				c := new(dns.Client)
+				addr := tc.dnsAddr
+				in, _, err := c.Exchange(m, addr)
+				require.NoError(t, err)
+				require.Len(t, in.Answer, 1)
+
+				aRec, ok := in.Answer[0].(*dns.A)
+				require.True(t, ok, "Bad: %#v", in.Answer[0])
+				require.Equal(t, question, aRec.Hdr.Name)
+				require.Equal(t, tc.expectedAddress, aRec.A.String())
+			}
+		})
 	}
 }
 
