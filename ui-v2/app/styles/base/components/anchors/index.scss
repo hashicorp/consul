@@ -1,0 +1,29 @@
+%anchor-decoration,
+%anchor-decoration-active {
+  text-decoration: none;
+}
+%anchor-decoration-intent {
+  text-decoration: underline;
+}
+%anchor,
+%anchor-intent,
+%anchor-active {
+  color: $color-action;
+}
+%anchor-decoration:hover,
+%anchor-decoration:focus {
+  @extend %anchor-decoration-intent;
+}
+%anchor-decoration:active {
+  @extend %anchor-decoration-active;
+}
+%anchor {
+  @extend %anchor-decoration;
+}
+%anchor:hover,
+%anchor:focus {
+  @extend %anchor-intent;
+}
+%anchor:active {
+  @extend %anchor-active;
+}

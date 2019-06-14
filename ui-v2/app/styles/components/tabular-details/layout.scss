@@ -12,6 +12,9 @@
   position: absolute;
   top: 8px;
 }
+%tabular-details-toggle-button span {
+  display: none;
+}
 %tabular-details td > label {
   @extend %tabular-details-toggle-button;
   right: 2px;

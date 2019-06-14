@@ -1,0 +1,48 @@
+%tooltip {
+  position: relative;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  vertical-align: text-top;
+}
+%tooltip-bubble,
+%tooltip-tail {
+  position: absolute;
+  z-index: 1;
+}
+%tooltip-bubble {
+  padding: 12px;
+  white-space: nowrap;
+  content: attr(data-tooltip);
+  text-indent: 0;
+  /* TODO: should this be hardcoded here ? */
+  font-size: 14px;
+  /* structure */
+  min-width: 192px;
+}
+%tooltip-bubble {
+  /* TODO: structure says left aligned, check this is correct */
+  text-align: center;
+}
+
+%tooltip-tail {
+  content: '';
+  transform: scale(1, 0.5);
+  width: 0;
+  height: 0;
+}
+/* TODO: positioning */
+%tooltip-bubble {
+  bottom: calc(100% + 5px);
+}
+%tooltip-tail {
+  left: 50%;
+  margin-left: -9px;
+  bottom: -13px;
+}
+/* TODO: Try and use the same vertical positioning all tooltips */
+/* this is only for pseudo tooltips be want to avoid */
+/* specifiying pseudo in this file */
+%tooltip::after {
+  bottom: calc(100% - 7px);
+}

@@ -1,0 +1,24 @@
+%table th,
+%table td {
+  border-bottom: $decor-border-100;
+}
+%table th {
+  border-color: $gray-300;
+}
+%table td {
+  border-color: $gray-200;
+  color: $gray-500;
+}
+%table th,
+%table td strong {
+  color: $gray-600;
+}
+/* TODO: Add to native selector `tbody th` - will involve moving all
+ * current th's to `thead th` and changing the templates
+ */
+%tbody-th {
+  color: $gray-900;
+}
+%table td:first-child {
+  @extend %tbody-th;
+}
