@@ -245,13 +245,14 @@ func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, e
 
 	b, err := json.Marshal(cfg)
 	if err != nil {
+		os.RemoveAll(tmpdir)
 		return nil, errors.Wrap(err, "failed marshaling json")
 	}
 
 	log.Printf("CONFIG JSON: %s", string(b))
 	configFile := filepath.Join(tmpdir, "config.json")
 	if err := ioutil.WriteFile(configFile, b, 0644); err != nil {
-		defer os.RemoveAll(tmpdir)
+		os.RemoveAll(tmpdir)
 		return nil, errors.Wrap(err, "failed writing config content")
 	}
 
@@ -271,6 +272,7 @@ func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, e
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	if err := cmd.Start(); err != nil {
+		os.RemoveAll(tmpdir)
 		return nil, errors.Wrap(err, "failed starting command")
 	}
 
@@ -300,10 +302,9 @@ func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, e
 	}
 
 	// Wait for the server to be ready
-	if cfg.Bootstrap {
-		server.waitForLeader(t)
-	} else {
-		server.waitForAPI(t)
+	if err := server.waitForAPI(); err != nil {
+		server.Stop()
+		return nil, err
 	}
 
 	return server, nil
@@ -333,23 +334,37 @@ func (s *TestServer) Stop() error {
 // waitForAPI waits for only the agent HTTP endpoint to start
 // responding. This is an indication that the agent has started,
 // but will likely return before a leader is elected.
-func (s *TestServer) waitForAPI(t *testing.T) {
-	retry.Run(t, func(r *retry.R) {
+func (s *TestServer) waitForAPI() error {
+	var failed bool
+	timer := retry.TwoSeconds()
+
+	deadline := time.Now().Add(timer.Timeout)
+	for !time.Now().After(deadline) {
+		time.Sleep(timer.Wait)
+
 		resp, err := s.HTTPClient.Get(s.url("/v1/agent/self"))
 		if err != nil {
-			r.Fatal(err)
+			failed = true
+			continue
 		}
-		defer resp.Body.Close()
-		if err := s.requireOK(resp); err != nil {
-			r.Fatal("failed OK response", err)
+		resp.Body.Close()
+
+		if err = s.requireOK(resp); err != nil {
+			failed = true
+			continue
 		}
-	})
+		failed = false
+	}
+	if failed {
+		return fmt.Errorf("api unavailable")
+	}
+	return nil
 }
 
 // waitForLeader waits for the Consul server's HTTP API to become
 // available, and then waits for a known leader and an index of
 // 2 or more to be observed to confirm leader election is done.
-func (s *TestServer) waitForLeader(t *testing.T) {
+func (s *TestServer) WaitForLeader(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		// Query the API and check the status code.
 		url := s.url("/v1/catalog/nodes")
