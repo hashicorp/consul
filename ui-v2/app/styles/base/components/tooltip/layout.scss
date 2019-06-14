@@ -11,24 +11,38 @@
   z-index: 1;
 }
 %tooltip-bubble {
-  padding: 10px;
-  bottom: calc(100% + 5px);
-  text-align: center;
+  padding: 12px;
   white-space: nowrap;
   content: attr(data-tooltip);
-  font-size: 14px;
   text-indent: 0;
+  /* TODO: should this be hardcoded here ? */
+  font-size: 14px;
+  /* structure */
+  min-width: 192px;
 }
+%tooltip-bubble {
+  /* TODO: structure says left aligned, check this is correct */
+  text-align: center;
+}
+
 %tooltip-tail {
   content: '';
-  left: 50%;
-  margin-left: -10px;
-  top: -10px;
   transform: scale(1, 0.5);
   width: 0;
   height: 0;
-  background-color: transparent !important;
-  border-left: 9px solid transparent;
-  border-right: 9px solid transparent;
-  border-top: 18px solid $gray-800;
+}
+/* TODO: positioning */
+%tooltip-bubble {
+  bottom: calc(100% + 5px);
+}
+%tooltip-tail {
+  left: 50%;
+  margin-left: -9px;
+  bottom: -13px;
+}
+/* TODO: Try and use the same vertical positioning all tooltips */
+/* this is only for pseudo tooltips be want to avoid */
+/* specifiying pseudo in this file */
+%tooltip::after {
+  bottom: calc(100% - 7px);
 }

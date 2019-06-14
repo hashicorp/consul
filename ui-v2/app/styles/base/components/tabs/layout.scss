@@ -16,13 +16,3 @@
   padding-top: 13px;
   padding-bottom: 13px;
 }
-%display-state,
-%display-state + * {
-  display: none;
-}
-%display-state:checked + * {
-  display: block;
-}
-%tab-section > input[type='radio'] {
-  @extend %display-state;
-}

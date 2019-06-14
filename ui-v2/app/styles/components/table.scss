@@ -38,33 +38,20 @@ table:not(.sessions) td:first-child {
 th {
   overflow: visible;
 }
-th span {
-  @extend %tooltip;
-  margin-left: 2px;
-  vertical-align: text-top;
-}
 th span::after {
   @extend %with-info-circle-outline-icon, %as-pseudo;
   opacity: 0.6;
 }
-th span em::after {
-  @extend %tooltip-tail;
-  @extend %blink-in-fade-out;
-  top: auto !important;
-  bottom: -13px;
+th span {
+  @extend %with-tooltip;
+  margin-left: 2px;
 }
 th span em {
-  @extend %tooltip-bubble;
-  @extend %blink-in-fade-out;
   width: 250px;
   font-style: normal;
   white-space: normal !important;
 }
 
-th span:hover em::after,
-th span:hover em {
-  @extend %blink-in-fade-out-active;
-}
 /* ideally these would be in route css files, but left here as they */
 /* accomplish the same thing (hide non-essential columns for tables) */
 @media #{$--lt-medium-table} {

@@ -10,13 +10,13 @@
   @extend %tooltip-bubble;
 }
 %with-pseudo-tooltip::after,
-%with-tooltip::after {
+%with-tooltip [role='tooltip']::after {
   @extend %tooltip-tail;
 }
 
 %with-pseudo-tooltip::after,
 %with-pseudo-tooltip::before,
-%with-tooltip::after,
+%with-tooltip [role='tooltip']::after,
 %with-tooltip [role='tooltip'] {
   @extend %blink-in-fade-out;
 }
@@ -24,9 +24,9 @@
 %with-pseudo-tooltip:hover::before,
 %with-pseudo-tooltip:focus::after,
 %with-pseudo-tooltip:focus::before,
-%with-tooltip:hover::after,
+%with-tooltip:hover [role='tooltip']::after,
 %with-tooltip:hover [role='tooltip'],
-%with-tooltip:focus::after,
+%with-tooltip:focus [role='tooltip']::after,
 %with-tooltip:focus [role='tooltip'] {
   @extend %blink-in-fade-out-active;
 }
