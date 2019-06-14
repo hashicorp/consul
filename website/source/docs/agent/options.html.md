@@ -660,7 +660,7 @@ default will automatically work with some tooling.
   or write privileges, or node read privileges, even if Consul servers aren't present to validate
   any tokens. This should only be used by operators during outages, regular ACL tokens should normally
   be used by applications. This was added in Consul 0.7.2 and is only used when
-  <a href="#acl_enforce_version_8">`acl_enforce_version_8`</a> is set to true. 
+  <a href="#acl_enforce_version_8">`acl_enforce_version_8`</a> is set to true.
 
 *   <a name="acl_agent_token_legacy"></a><a href="#acl_agent_token_legacy">`acl_agent_token`</a> -
     **Deprecated in Consul 1.4.0. See the [`acl.tokens.agent`](#acl_tokens_agent) field instead.**
@@ -668,7 +668,7 @@ default will automatically work with some tooling.
     <a href="#acl_token">`acl_token`</a> will be used. This was added in Consul 0.7.2.
 
     This token must at least have write access to the node name it will register as in order to set any
-    of the node-level information in the catalog such as metadata, or the node's tagged addresses. 
+    of the node-level information in the catalog such as metadata, or the node's tagged addresses.
 
 * <a name="acl_enforce_version_8"></a><a href="#acl_enforce_version_8">`acl_enforce_version_8`</a> -
   **Deprecated in Consul 1.4.0**
@@ -704,7 +704,7 @@ default will automatically work with some tooling.
 
     If there's a partition or other outage affecting the authoritative datacenter, and the
     [`acl_down_policy`](/docs/agent/options.html#acl_down_policy) is set to "extend-cache", tokens not
-    in the cache can be resolved during the outage using the replicated set of ACLs. 
+    in the cache can be resolved during the outage using the replicated set of ACLs.
 
 * <a name="acl_token_legacy"></a><a href="#acl_token_legacy">`acl_token`</a> -
   **Deprecated in Consul 1.4.0. See the [`acl.tokens.default`](#acl_tokens_default) field instead.**
@@ -1387,12 +1387,12 @@ default will automatically work with some tooling.
     * <a name="sidecar_min_port"></a><a
       href="#sidecar_min_port">`sidecar_min_port`</a> - Inclusive minimum port
       number to use for automatically assigned [sidecar service
-      registrations](/docs/connect/proxies/sidecar-service.html). Default 21000.
+      registrations](/docs/connect/registration/sidecar-service.html). Default 21000.
       Set to `0` to disable automatic port assignment.
     * <a name="sidecar_max_port"></a><a
       href="#sidecar_max_port">`sidecar_max_port`</a> - Inclusive maximum port
       number to use for automatically assigned [sidecar service
-      registrations](/docs/connect/proxies/sidecar-service.html). Default 21255.
+      registrations](/docs/connect/registration/sidecar-service.html). Default 21255.
       Set to `0` to disable automatic port assignment.
 
 * <a name="protocol"></a><a href="#protocol">`protocol`</a> Equivalent to the
@@ -1402,7 +1402,7 @@ default will automatically work with some tooling.
   designates the datacenter which is authoritative for ACL information, intentions and is the root
   Certificate Authority for Connect. It must be provided to enable ACLs. All servers and datacenters
   must agree on the primary datacenter. Setting it on the servers is all you need for cluster-level enforcement, but for the APIs to forward properly from the clients, it must be set on them too. In
-  Consul 0.8 and later, this also enables agent-level enforcement of ACLs. 
+  Consul 0.8 and later, this also enables agent-level enforcement of ACLs.
 
 * <a name="raft_protocol"></a><a href="#raft_protocol">`raft_protocol`</a> Equivalent to the
   [`-raft-protocol` command-line flag](#_raft_protocol).
@@ -1744,10 +1744,10 @@ default will automatically work with some tooling.
 ## <a id="ports-used"></a>Ports Used
 
 Consul requires up to 6 different ports to work properly, some on
-TCP, UDP, or both protocols. 
+TCP, UDP, or both protocols.
 
-Review the [required ports](/docs/install/ports.html) table for a list of 
-required ports and their default settings. 
+Review the [required ports](/docs/install/ports.html) table for a list of
+required ports and their default settings.
 
 ## <a id="reloadable-configuration"></a>Reloadable Configuration
 

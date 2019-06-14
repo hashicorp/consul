@@ -49,7 +49,7 @@ Config {
   explore these options please see the documentation for your chosen proxy.
 
   * [Envoy](/docs/connect/proxies/envoy.html#bootstrap-configuration)
-  * [Consul's Builtin Proxy](/docs/connect/configuration.html#built-in-proxy-options)
+  * [Consul's Builtin Proxy](/docs/connect/proxies/built-in.html)
 
 ### Service Defaults - `service-defaults`
 

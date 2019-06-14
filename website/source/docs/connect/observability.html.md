@@ -54,6 +54,6 @@ load balancing and routing decisions.
 ### Service Upstreams
 
 You can set the upstream for each service using the proxy's
-[`upstream`](/docs/connect/proxies.html#upstreams) sidecar parameter, which can
-be defined in a service's [sidecar
-registration](/docs/connect/proxies/sidecar-service.html).
+[`upstreams`](/docs/connect/registration/service-registration.html#upstreams)
+sidecar parameter, which can be defined in a service's [sidecar
+registration](/docs/connect/registration/sidecar-service.html).

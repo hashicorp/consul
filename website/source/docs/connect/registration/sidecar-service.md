@@ -106,9 +106,9 @@ overridden to customize the proxy configuration.
 ```
 
 This example customizes the [proxy
-upstreams](/docs/connect/proxies.html#upstream-configuration-reference)
+upstreams](/docs/connect/registration/service-registration.html#upstream-configuration-reference)
 and some [built-in proxy
-configuration](/docs/connect/configuration.html#built-in-proxy-options).
+configuration](/docs/connect/proxies/built-in.html).
 
 ## Sidecar Service Defaults
 

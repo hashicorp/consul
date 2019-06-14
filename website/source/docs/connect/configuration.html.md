@@ -73,7 +73,7 @@ once using [Configuration Entries](/docs/agent/config_entries.html).
 
 You can override centralized configurations for individual proxy instances in
 their
-[sidecar service definitions](/docs/connect/proxies/sidecar-service.html#sidecar-service-defaults),
+[sidecar service definitions](/docs/connect/registration/sidecar-service.html),
 and the default protocols for service instances in their [service
 registrations](/docs/agent/services.html).
 

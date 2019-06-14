@@ -103,7 +103,7 @@ All fields are optional with a sane default.
   specified in the opaque config map here will continue to work for
   compatibility but it's strongly recommended that you move to using the higher
   level [upstream
-  configuration](/docs/connect/proxies.html#upstream-configuration).
+  configuration](/docs/connect/registration/service-registration.html#upstream-configuration-reference).
 
 ## Proxy Upstream Config Key Reference
 
