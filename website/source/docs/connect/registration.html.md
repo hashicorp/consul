@@ -18,7 +18,7 @@ To register proxies with independent proxy service registrations, you can define
 ## Sidecar Service Registration
 
 To reduce the amount of boilerplate needed for a sidecar proxy,
-application service definitions may define inline, which are an opinionated
+application service definitions may define an inline sidecar service block. This is an opinionated
 shorthand for a separate full proxy registration as described here. For a
 description of the opinionated defaults, see the [sidecar service registrations
 documentation](/docs/connect/registration/sidecar-service.html).
