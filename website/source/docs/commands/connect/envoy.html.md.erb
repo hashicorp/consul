@@ -56,13 +56,13 @@ proxy configuration needed.
 * `-sidecar-for` - The _ID_ (not name if they differ) of the service instance
   this proxy will represent. The target service doesn't need to exist on the
   local agent yet but a [sidecar proxy
-  registration](/docs/connect/proxies.html#sidecar-proxy-fields) with
+  registration](/docs/connect/registration/service-registration.html) with
   `proxy.destination_service_id` equal to the passed value must be present. If
   multiple proxy registrations targeting the same local service instance are
   present the command will error and `-proxy-id` should be used instead.
 
 * `-proxy-id` - The [proxy
-  service](/docs/connect/proxies.html#proxy-service-definitions) ID on the
+  service](/docs/connect/registration/service-registration.html) ID on the
   local agent. This must already be present on the local agent.
 
 -> **Note:** If ACLs are enabled, a token granting `service:write` for the
@@ -98,7 +98,7 @@ allowed to access by [Connect intentions](/docs/connect/intentions.html).
 
 Assume a local service instance is registered on the local agent with a
 sidecar proxy (using the [sidecar service
-registration](/docs/connect/proxies/sidecar-service.html) helper) as below.
+registration](/docs/connect/registration/service-registration.html) helper) as below.
 
 ```hcl
 service {

@@ -465,28 +465,48 @@
       </li>
 
       <li<%= sidebar_current("docs-connect") %>>
-        <a href="/docs/connect/index.html">Connect</a>
+        <a href="/docs/connect/index.html">Connect - Service Mesh</a>
         <ul class="nav">
           <li<%= sidebar_current("docs-connect-config") %>>
             <a href="/docs/connect/configuration.html">Configuration</a>
           </li>
+          <li<%= sidebar_current("docs-connect-observability") %>>
+            <a href="/docs/connect/observability.html">Observability</a>
+          </li>
+        </li>
+        <li<%= sidebar_current("docs-connect-intentions") %>>
+          <a href="/docs/connect/intentions.html">Intentions - Security Policies</a>
+        </li>
+        <li<%= sidebar_current("docs-connect-internals") %>>
+          <a href="/docs/connect/connect-internals.html">Architecture</a>
+        </li>
           <li<%= sidebar_current("docs-connect-proxies") %>>
-            <a href="/docs/connect/proxies.html">Proxies</a>
+            <a href="/docs/connect/proxies.html">Supported Proxies</a>
             <ul class="nav">
-              <li<%= sidebar_current("docs-connect-proxies-sidecar-service") %>>
-                <a href="/docs/connect/proxies/sidecar-service.html">Sidecar Service Registration</a>
-              </li>
               <li<%= sidebar_current("docs-connect-proxies-envoy") %>>
                 <a href="/docs/connect/proxies/envoy.html">Envoy</a>
               </li>
+              <li<%= sidebar_current("docs-connect-proxies-built-in") %>>
+                <a href="/docs/connect/proxies/built-in.html">Built-in Proxy</a>
               </li>
               <li<%= sidebar_current("docs-connect-proxies-integrate") %>>
                 <a href="/docs/connect/proxies/integrate.html">Proxy Integration</a>
               </li>
             </ul>
           </li>
-          <li<%= sidebar_current("docs-connect-intentions") %>>
-            <a href="/docs/connect/intentions.html">Intentions</a>
+          <li<%= sidebar_current("docs-connect-registration") %>>
+            <a href="/docs/connect/registration.html">Registering Proxies</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-connect-registration-service-registration") %>>
+                <a href="/docs/connect/registration/service-registration.html">Proxy Service Registration</a>
+              </li>
+              <li<%= sidebar_current("docs-connect-registration-sidecar-service") %>>
+                <a href="/docs/connect/registration/sidecar-service.html">Sidecar Service Registration</a>
+              </li>
+            </ul>
+          </li>
+          <li<%= sidebar_current("docs-connect-security") %>>
+            <a href="/docs/connect/security.html">Securing Connect</a>
           </li>
           <li<%= sidebar_current("docs-connect-ca") %>>
             <a href="/docs/connect/ca.html">Certificate Management</a>
@@ -515,9 +535,6 @@
           </li>
           <li<%= sidebar_current("docs-connect-platform-k8s") %>>
             <a href="/docs/platform/k8s/connect.html">Kubernetes</a>
-          </li>
-          <li<%= sidebar_current("docs-connect-security") %>>
-            <a href="/docs/connect/security.html">Security</a>
           </li>
         </ul>
       </li>

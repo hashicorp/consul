@@ -23,7 +23,7 @@ plans to support a wider range of features in the next major release
 cycle.
 
 As an interim solution, you can add [custom Envoy configuration](#custom-configuration)
-in the [proxy service definition](/docs/connect/proxies.html) allowing
+in the [proxy service definition](/docs/connect/registration/service-registration.html) allowing
 you to use the more powerful features of Envoy.
 
 ## Supported Versions
@@ -97,8 +97,8 @@ configuration options.
 Users can add the following configuration items to the [global `proxy-defaults`
 configuration entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaults) or override them directly in the `proxy.config` field
 of a [proxy service
-definition](/docs/connect/proxies.html#proxy-service-definitions) or
-[`sidecar_service`](/docs/connect/proxies/sidecar-service.html) block.
+definition](/docs/connect/registration/service-registration.html) or
+[`sidecar_service`](/docs/connect/registration/sidecar-service.html) block.
 
 - `envoy_statsd_url` - A URL in the form `udp://ip:port` identifying a UDP
   StatsD listener that Envoy should deliver metrics to. For example, this may be
@@ -164,13 +164,13 @@ automatically configure its upstream listeners appropriately too as below.
 
 This automated discovery results in Consul auto-populating the `proxy.config`
 and `proxy.upstreams[*].config` fields of the [proxy service
-definition](/docs/connect/proxies.html#proxy-service-definitions) that is
+definition](/docs/connect/registration/service-registration.html) that is
 actually registered.
 
 ### Proxy Config Options
 
 These fields may also be overridden explicitly in the [proxy service
-definition](/docs/connect/proxies.html#proxy-service-definitions), or defined in
+definition](/docs/connect/registration/service-registration.html), or defined in
 the  [global `proxy-defaults` configuration
 entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaults) to act as
 defaults that are inherited by all services.
@@ -205,8 +205,8 @@ defaults that are inherited by all services.
 
 The following configuration items may be overridden directly in the
 `proxy.upstreams[].config` field of a [proxy service
-definition](/docs/connect/proxies.html#proxy-service-definitions) or
-[`sidecar_service`](/docs/connect/proxies/sidecar-service.html) block.
+definition](/docs/connect/registration/service-registration.html) or
+[`sidecar_service`](/docs/connect/registration/sidecar-service.html) block.
 
 - `protocol` - Same as above in main config but affects the listener setup for
   the upstream.
@@ -256,8 +256,8 @@ Users may add the following configuration items to the [global `proxy-defaults`
 configuration
 entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaults) or
 override them directly in the `proxy.config` field of a [proxy service
-definition](/docs/connect/proxies.html#proxy-service-definitions) or
-[`sidecar_service`](/docs/connect/proxies/sidecar-service.html) block.
+definition](/docs/connect/registration/service-registration.html) or
+[`sidecar_service`](/docs/connect/registration/sidecar-service.html) block.
 
 - `envoy_extra_static_clusters_json` - Specifies one or more [Envoy
   clusters](https://www.envoyproxy.io/docs/envoy/v1.10.0/api-v2/api/v2/cds.proto#cluster)
@@ -292,8 +292,8 @@ Users may add the following configuration items to the [global `proxy-defaults`
 configuration
 entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaults) or
 override them directly in the `proxy.config` field of a [proxy service
-definition](/docs/connect/proxies.html#proxy-service-definitions) or
-[`sidecar_service`](/docs/connect/proxies/sidecar-service.html) block.
+definition](/docs/connect/registration/service-registration.html) or
+[`sidecar_service`](/docs/connect/registration/sidecar-service.html) block.
 
 - `envoy_bootstrap_json_tpl` - Specifies a template in Go template syntax that
   is used in place of [the default
@@ -325,8 +325,8 @@ definition](/docs/connect/proxies.html#proxy-service-definitions) or
 
 The following configuration items may be overridden directly in the
 `proxy.upstreams[].config` field of a [proxy service
-definition](/docs/connect/proxies.html#proxy-service-definitions) or
-[`sidecar_service`](/docs/connect/proxies/sidecar-service.html) block.
+definition](/docs/connect/registration/service-registration.html) or
+[`sidecar_service`](/docs/connect/registration/sidecar-service.html) block.
 
 - `envoy_listener_json` - Specifies a complete
   [Listener](https://www.envoyproxy.io/docs/envoy/v1.10.0/api-v2/api/v2/lds.proto)

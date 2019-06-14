@@ -316,6 +316,6 @@ $ curl \
   is a map of primitive values (including arrays and maps) that is set by the
   user.
 
-- `Upstreams` `(array<Upstream>)` - The configured upstreams for the proxy. See 
-[Upstream Configuration Reference](/docs/connect/proxies.html#upstream-configuration-reference)
+- `Upstreams` `(array<Upstream>)` - The configured upstreams for the proxy. See
+[Upstream Configuration Reference](/docs/connect/registration/service-registration.html#upstream-configuration-reference)
 for more details on the format.
