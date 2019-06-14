@@ -2194,6 +2194,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					"service": {
 						"name": "a",
 						"port": 80,
+						"tagged_addresses": {
+							"wan": {
+								"address": "198.18.3.4",
+								"port": 443
+							}
+						},
 						"enable_tag_override": true,
 						"check": {
 							"id": "x",
@@ -2210,6 +2216,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					name = "a"
 					port = 80
 					enable_tag_override = true
+					tagged_addresses = {
+						wan = {
+							address = "198.18.3.4"
+							port = 443
+						}
+					}
 					check = {
 						id = "x"
 						name = "y"
@@ -2222,8 +2234,14 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			patch: func(rt *RuntimeConfig) {
 				rt.Services = []*structs.ServiceDefinition{
 					&structs.ServiceDefinition{
-						Name:              "a",
-						Port:              80,
+						Name: "a",
+						Port: 80,
+						TaggedAddresses: map[string]structs.ServiceAddress{
+							"wan": structs.ServiceAddress{
+								Address: "198.18.3.4",
+								Port:    443,
+							},
+						},
 						EnableTagOverride: true,
 						Checks: []*structs.CheckType{
 							&structs.CheckType{
@@ -5317,6 +5335,7 @@ func TestSanitize(t *testing.T) {
 			"Port": 0,
 			"Proxy": null,
 			"ProxyDestination": "",
+			"TaggedAddresses": {},
 			"Tags": [],
 			"Token": "hidden",
 			"Weights": {

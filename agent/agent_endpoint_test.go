@@ -2503,6 +2503,16 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 		"name":"test",
 		"port":8000,
 		"enable_tag_override": true,
+		"tagged_addresses": {
+			"lan": {
+				"address": "1.2.3.4",
+				"port": 5353
+			},
+			"wan": {
+				"address": "2.3.4.5",
+				"port": 53
+			}
+		},
 		"meta": {
 			"some": "meta",
 			"enable_tag_override": "meta is 'opaque' so should not get translated"
@@ -2595,6 +2605,16 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 			svc := &structs.NodeService{
 				ID:      "test",
 				Service: "test",
+				TaggedAddresses: map[string]structs.ServiceAddress{
+					"lan": {
+						Address: "1.2.3.4",
+						Port:    5353,
+					},
+					"wan": {
+						Address: "2.3.4.5",
+						Port:    53,
+					},
+				},
 				Meta: map[string]string{
 					"some":                "meta",
 					"enable_tag_override": "meta is 'opaque' so should not get translated",

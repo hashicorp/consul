@@ -897,6 +897,9 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 			// DON'T Recurse into these opaque config maps or we might mangle user's
 			// keys. Note empty canonical is a special sentinel to prevent recursion.
 			"Meta": "",
+
+			"tagged_addresses": "TaggedAddresses",
+
 			// upstreams is an array but this prevents recursion into config field of
 			// any item in the array.
 			"Proxy.Config":                   "",
