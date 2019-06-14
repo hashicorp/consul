@@ -13,7 +13,7 @@ per-service proxy sidecar transparently handles inbound and outbound service
 connections, automatically wrapping and verifying TLS connections. Consul
 includes its own built-in L4 proxy and has first class support for Envoy. You
 can chose other proxies to plug in as well. This section describes how to
-configure Envoy or the built-in proxy using connect, and how to integrate the
+configure Envoy or the built-in proxy using Connect, and how to integrate the
 proxy of your choice.
 
 To ensure that services only meke allow external connections are established via
