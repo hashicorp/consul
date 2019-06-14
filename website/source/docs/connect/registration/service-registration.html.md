@@ -5,6 +5,9 @@ sidebar_current: "docs-connect-registration-service-registration"
 description: |-
   A per-service proxy sidecar transparently handles inbound and outbound service connections. You can register these sidecars with sane defaults by nesting their definitions in the service definition.
 ---
+
+# Proxy Service Registration
+
 To function as a Connect proxy, proxies must be declared as a proxy types in
 their service definitions, and provide information about the service they
 represent.
