@@ -3,13 +3,20 @@
 IMPROVEMENTS
 
 * agent: improve startup message when no error occurs [[GH-5896](https://github.com/hashicorp/consul/issues/5896)]
+* connect: provide -admin-access-log-path for envoy [[GH-5858](https://github.com/hashicorp/consul/pull/5858)]
 
 BUG FIXES:
 
 * agent: fix several data races and bugs related to node-local alias checks [[GH-5876](https://github.com/hashicorp/consul/issues/5876)]
+* api: update link to agent caching in comments [[GH-5935](https://github.com/hashicorp/consul/pull/5935)]
 * connect: fix proxy address formatting for IPv6 addresses [[GH-5460](https://github.com/hashicorp/consul/issues/5460)]
+* docs: remove the misleading default separator for listing keys. [[GH-5288](https://github.com/hashicorp/consul/pull/5288)]
+* docs: fix markdown consul operator [[GH-5901](https://github.com/hashicorp/consul/pull/5901)]
+* docs: fixed typo polices/policies [[GH-5894](https://github.com/hashicorp/consul/pull/5894)]
+* docs: fixed typo [[GH-5854](https://github.com/hashicorp/consul/pull/5854)]
+* docs: update default grpc-addr value in connect envoy command [[GH-5886](https://github.com/hashicorp/consul/pull/5886)]
+* docs: fix wording [[GH-5889](https://github.com/hashicorp/consul/pull/5889)]
 * ui: fix service instance linking when multiple non-unique service id's exist on multiple nodes [[GH-5933](https://github.com/hashicorp/consul/pull/5933)]
-
 
 ## 1.5.1 (May 22, 2019)
 
