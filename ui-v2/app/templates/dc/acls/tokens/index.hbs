@@ -48,11 +48,11 @@
                 {{if item.Local 'local' 'global' }}
               </td>
               <td data-test-description>
-                {{default item.Description item.Name}}
+                <p>{{default item.Description item.Name}}</p>
               </td>
               <td colspan={{if (not-eq item.AccessorID token.AccessorID) '2' }}>
 {{#if (token/is-legacy item) }}
-                  Legacy tokens have embedded rules.
+                  <p>Legacy tokens have embedded rules.</p>
 {{ else }}
                   {{#each (append item.Policies item.Roles) as |item|}}
                     <strong data-test-policy class={{policy/typeof item}}>{{item.Name}}</strong>

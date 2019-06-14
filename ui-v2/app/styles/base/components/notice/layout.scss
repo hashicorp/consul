@@ -1,0 +1,11 @@
+%notice {
+  position: relative;
+  padding: 1em;
+  padding-left: 45px;
+}
+%notice::before {
+  position: absolute;
+  left: 20px;
+  top: 18px;
+  margin-top: 0;
+}
