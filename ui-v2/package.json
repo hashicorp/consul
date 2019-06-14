@@ -58,7 +58,6 @@
     "ember-cli-autoprefixer": "^0.8.1",
     "ember-cli-babel": "^6.6.0",
     "ember-cli-cjs-transform": "^1.2.0",
-    "ember-cli-clipboard": "^0.9.0",
     "ember-cli-code-coverage": "^1.0.0-beta.4",
     "ember-cli-dependency-checker": "^2.0.0",
     "ember-cli-eslint": "^4.2.1",
@@ -102,7 +101,8 @@
     "node-sass": "^4.9.3",
     "prettier": "^1.10.2",
     "svgo": "^1.0.5",
-    "text-encoding": "^0.6.4"
+    "text-encoding": "^0.6.4",
+    "clipboard": "^2.0.4"
   },
   "engines": {
     "node": "^4.5 || 6.* || >= 7.*"
