@@ -1,6 +1,7 @@
 package structs
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
@@ -1079,6 +1080,78 @@ func TestSpecificServiceRequest_CacheInfo(t *testing.T) {
 				info.Key = ""
 				require.Equal(t, *tc.want, info)
 			}
+		})
+	}
+}
+
+func TestNodeService_JSON_OmitTaggedAdddresses(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		ns   NodeService
+	}{
+		{
+			"nil",
+			NodeService{
+				TaggedAddresses: nil,
+			},
+		},
+		{
+			"empty",
+			NodeService{
+				TaggedAddresses: make(map[string]ServiceAddress),
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		name := tc.name
+		ns := tc.ns
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			data, err := json.Marshal(ns)
+			require.NoError(t, err)
+			var raw map[string]interface{}
+			err = json.Unmarshal(data, &raw)
+			require.NoError(t, err)
+			require.NotContains(t, raw, "TaggedAddresses")
+			require.NotContains(t, raw, "tagged_addresses")
+		})
+	}
+}
+
+func TestServiceNode_JSON_OmitServiceTaggedAdddresses(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		sn   ServiceNode
+	}{
+		{
+			"nil",
+			ServiceNode{
+				ServiceTaggedAddresses: nil,
+			},
+		},
+		{
+			"empty",
+			ServiceNode{
+				ServiceTaggedAddresses: make(map[string]ServiceAddress),
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		name := tc.name
+		sn := tc.sn
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			data, err := json.Marshal(sn)
+			require.NoError(t, err)
+			var raw map[string]interface{}
+			err = json.Unmarshal(data, &raw)
+			require.NoError(t, err)
+			require.NotContains(t, raw, "ServiceTaggedAddresses")
+			require.NotContains(t, raw, "service_tagged_addresses")
 		})
 	}
 }

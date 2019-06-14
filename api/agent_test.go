@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -1684,4 +1685,40 @@ func TestAPI_AgentHealthService(t *testing.T) {
 	err = agent.PassTTL(fmt.Sprintf("service:%s", testServiceID2), "I am good :)")
 	require.Nil(t, err)
 	requireServiceHealthName(t, testServiceName, HealthPassing, true)
+}
+
+func TestAgentService_JSON_OmitTaggedAdddresses(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		as   AgentService
+	}{
+		{
+			"nil",
+			AgentService{
+				TaggedAddresses: nil,
+			},
+		},
+		{
+			"empty",
+			AgentService{
+				TaggedAddresses: make(map[string]ServiceAddress),
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		name := tc.name
+		as := tc.as
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			data, err := json.Marshal(as)
+			require.NoError(t, err)
+			var raw map[string]interface{}
+			err = json.Unmarshal(data, &raw)
+			require.NoError(t, err)
+			require.NotContains(t, raw, "TaggedAddresses")
+			require.NotContains(t, raw, "tagged_addresses")
+		})
+	}
 }

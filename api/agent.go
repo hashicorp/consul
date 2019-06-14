@@ -82,7 +82,7 @@ type AgentService struct {
 	Meta              map[string]string
 	Port              int
 	Address           string
-	TaggedAddresses   map[string]ServiceAddress
+	TaggedAddresses   map[string]ServiceAddress `json:",omitempty"`
 	Weights           AgentWeights
 	EnableTagOverride bool
 	CreateIndex       uint64 `json:",omitempty" bexpr:"-"`
