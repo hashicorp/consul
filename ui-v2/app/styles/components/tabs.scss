@@ -1,7 +1,12 @@
-@import './tabs/index';
+@import '../base/components/tabs/index';
 .tab-nav {
   @extend %tab-nav;
 }
 .tab-section {
   @extend %tab-section;
+  /* this keeps in-tab-section toolbars flush to the top, see Node Detail > Services */
+  margin-top: 0 !important;
+}
+%tab-button-selected {
+  @extend %frame-magenta-300;
 }

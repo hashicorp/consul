@@ -1,4 +1,24 @@
-@import './notice/index';
+@import '../base/components/notice/index';
+%notice {
+  margin-bottom: 1em;
+}
+/* These need replacing with new icons */
+%notice-success {
+  @extend %with-passing;
+}
+%notice-info {
+  @extend %with-passing; /* needs a better info button*/
+}
+%notice-highlight {
+  @extend %with-star;
+}
+%notice-warning {
+  @extend %with-warning;
+}
+%notice-error {
+  @extend %with-critical;
+}
+/**/
 .notice.warning {
   @extend %notice-warning;
 }

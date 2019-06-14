@@ -1,0 +1,40 @@
+%notice {
+  border-radius: $decor-radius-100;
+  border-width: 1px;
+}
+%notice-success,
+%notice-info,
+%notice-highlight,
+%notice-error,
+%notice-warning {
+  @extend %notice;
+}
+%notice-success {
+  @extend %frame-green-500;
+}
+%notice-info {
+  @extend %frame-blue-500;
+}
+%notice-highlight {
+  @extend %frame-gray-800;
+}
+%notice-warning {
+  @extend %frame-yellow-500;
+}
+%notice-error {
+  @extend %frame-red-500;
+}
+%notice-highlight::before {
+  /* %with-star, bigger */
+  width: 16px;
+  height: 16px;
+}
+%notice-success::before {
+  color: $color-success;
+}
+%notice-info::before {
+  color: $color-action; /* change to info */
+}
+%notice-error::before {
+  color: $color-failure;
+}
