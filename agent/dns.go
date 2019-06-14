@@ -1354,8 +1354,8 @@ func (d *DNSServer) serviceNodeRecords(cfg *dnsConfig, dc string, nodes structs.
 		// Start with the translated address but use the service address,
 		// if specified.
 		addr := d.agent.TranslateAddress(dc, node.Node.Address, node.Node.TaggedAddresses)
-		if node.Service.Address != "" {
-			addr = node.Service.Address
+		if svcAddr := d.agent.TranslateServiceAddress(dc, node.Service.Address, node.Service.TaggedAddresses); svcAddr != "" {
+			addr = svcAddr
 		}
 
 		// If the service address is a CNAME for the service we are looking
@@ -1488,7 +1488,7 @@ func (d *DNSServer) serviceSRVRecords(cfg *dnsConfig, dc string, nodes structs.C
 			},
 			Priority: 1,
 			Weight:   uint16(weight),
-			Port:     uint16(node.Service.Port),
+			Port:     uint16(d.agent.TranslateServicePort(dc, node.Service.Port, node.Service.TaggedAddresses)),
 			Target:   fmt.Sprintf("%s.node.%s.%s", node.Node.Node, dc, d.domain),
 		}
 		resp.Answer = append(resp.Answer, srvRec)
@@ -1496,8 +1496,8 @@ func (d *DNSServer) serviceSRVRecords(cfg *dnsConfig, dc string, nodes structs.C
 		// Start with the translated address but use the service address,
 		// if specified.
 		addr := d.agent.TranslateAddress(dc, node.Node.Address, node.Node.TaggedAddresses)
-		if node.Service.Address != "" {
-			addr = node.Service.Address
+		if svcAddr := d.agent.TranslateServiceAddress(dc, node.Service.Address, node.Service.TaggedAddresses); svcAddr != "" {
+			addr = svcAddr
 		}
 
 		// Add the extra record
