@@ -1,2 +1,2 @@
-import yadda from 'npm:yadda';
+import yadda from 'yadda';
 export default yadda;
