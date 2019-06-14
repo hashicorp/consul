@@ -56,7 +56,7 @@ The table below shows this endpoint's support for
   Only one service with a given `ID` may be present per node. The service
   `Tags`, `Address`, `Meta`, and `Port` fields are all optional. For more
   information about these fields and the implications of setting them,
-  see the [Service - Agent API](https://www.consul.io/api/agent/service.html) page
+  see the [Service - Agent API](/api/agent/service.html) page
   as registering services differs between using this or the Services Agent endpoint.
 
 - `Check` `(Check: nil)` - Specifies to register a check. The register API
@@ -112,6 +112,16 @@ and vice versa. A catalog entry can have either, neither, or both.
       "v1"
     ],
     "Address": "127.0.0.1",
+    "TaggedAddresses": {
+      "lan": {
+        "address": "127.0.0.1",
+        "port": 8000
+      },
+      "wan": {
+        "address": "198.18.0.1",
+        "port": 80
+      }
+    },
     "Meta": {
         "redis_version": "4.0"
     },
@@ -475,6 +485,16 @@ $ curl \
     "ServiceMeta": {
         "foobar_meta_value": "baz"
     },
+    "ServiceTaggedAddresses": {
+      "lan": {
+        "address": "172.17.0.3",
+        "port": 5000
+      },
+      "wan": {
+        "address": "198.18.0.1",
+        "port": 512
+      }
+    },
     "ServiceTags": [
       "tacos"
     ],
@@ -529,6 +549,9 @@ $ curl \
 
 - `ServiceTags` is a list of tags for the service
 
+- `ServiceTaggedAddresses` is the map of explicit LAN and WAN addresses for the
+  service instance. This includes both the address as well as the port.
+
 - `ServiceKind` is the kind of service, usually "". See the Agent
   registration API for more information.
 
@@ -576,6 +599,9 @@ following selectors and filter operations being supported:
 | `ServiceProxy.Upstreams.DestinationType`      | Equal, Not Equal                   |
 | `ServiceProxy.Upstreams.LocalBindAddress`     | Equal, Not Equal                   |
 | `ServiceProxy.Upstreams.LocalBindPort`        | Equal, Not Equal                   |
+| `ServiceTaggedAddresses`                      | In, Not In, Is Empty, Is Not Empty |
+| `ServiceTaggedAddresses.<any>.Address`        | Equal, Not Equal                   |
+| `ServiceTaggedAddresses.<any>.Port`           | Equal, Not Equal                   |
 | `ServiceTags`                                 | In, Not In, Is Empty, Is Not Empty |
 | `ServiceWeights.Passing`                      | Equal, Not Equal                   |
 | `ServiceWeights.Warning`                      | Equal, Not Equal                   |
@@ -662,6 +688,16 @@ $ curl \
     "redis": {
       "ID": "redis",
       "Service": "redis",
+      "TaggedAddresses": {
+        "lan": {
+          "address": "10.1.10.12",
+          "port": 8000,
+        },
+        "wan": {
+          "address": "198.18.1.2",
+          "port": 80
+        }
+      },
       "Tags": [
         "v1"
       ],
@@ -701,6 +737,9 @@ top level Node object. The following selectors and filter operations are support
 | `Proxy.Upstreams.LocalBindAddress`     | Equal, Not Equal                   |
 | `Proxy.Upstreams.LocalBindPort`        | Equal, Not Equal                   |
 | `Service`                              | Equal, Not Equal                   |
+| `TaggedAddresses`                      | In, Not In, Is Empty, Is Not Empty |
+| `TaggedAddresses.<any>.Address`        | Equal, Not Equal                   |
+| `TaggedAddresses.<any>.Port`           | Equal, Not Equal                   |
 | `Tags`                                 | In, Not In, Is Empty, Is Not Empty |
 | `Weights.Passing`                      | Equal, Not Equal                   |
 | `Weights.Warning`                      | Equal, Not Equal                   |
