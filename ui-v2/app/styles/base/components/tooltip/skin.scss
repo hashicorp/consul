@@ -1,0 +1,19 @@
+%tooltip-bubble,
+%tooltip-tail {
+  color: $white;
+  background-color: $gray-500;
+}
+%tooltip-tail {
+  background-color: transparent !important;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-top: 18px solid $gray-500;
+}
+%tooltip-bubble {
+  font-weight: normal;
+  border-radius: $decor-radius-200;
+  /* this isn't quite like the values in structure */
+  /* but this looks closer visually */
+  /* TODO: try and get this closer to structure */
+  box-shadow: 0 2px 5px 0 rgba($black, 0.31);
+}

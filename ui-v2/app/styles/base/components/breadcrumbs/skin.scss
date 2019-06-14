@@ -1,0 +1,21 @@
+%breadcrumbs li {
+  list-style-type: none;
+}
+%breadcrumb::before {
+  content: '❮';
+  line-height: 1;
+  font-size: 0.7em;
+  margin-top: 0.1em;
+}
+%breadcrumb {
+  color: $color-action;
+}
+%breadcrumb-selected {
+  color: $gray-400;
+}
+%breadcrumb::before {
+  color: rgba($color-action, 0.5);
+}
+%breadcrumb-selected::before {
+  color: $gray-300;
+}
