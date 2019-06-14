@@ -3868,7 +3868,7 @@ func TestStateStore_ensureServiceCASTxn(t *testing.T) {
 	require.NoError(t, err)
 	tx.Commit()
 
-	// ensure no update happend
+	// ensure no update happened
 	tx = s.db.Txn(false)
 	_, nsRead, err := s.NodeService("node1", "foo")
 	require.NoError(t, err)
