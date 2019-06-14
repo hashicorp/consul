@@ -1,0 +1,8 @@
+@import './skin';
+@import './layout';
+%breadcrumbs li > * {
+  @extend %breadcrumb;
+}
+%breadcrumbs strong {
+  @extend %breadcrumb-selected;
+}
