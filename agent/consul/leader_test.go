@@ -756,20 +756,20 @@ func TestLeader_ReapTombstones(t *testing.T) {
 
 	// Make sure there's a tombstone.
 	state := s1.fsm.State()
-	func() {
+	retry.Run(t, func(r *retry.R) {
 		snap := state.Snapshot()
 		defer snap.Close()
 		stones, err := snap.Tombstones()
 		if err != nil {
-			t.Fatalf("err: %s", err)
+			r.Fatalf("err: %s", err)
 		}
 		if stones.Next() == nil {
-			t.Fatalf("missing tombstones")
+			r.Fatalf("missing tombstones")
 		}
 		if stones.Next() != nil {
-			t.Fatalf("unexpected extra tombstones")
+			r.Fatalf("unexpected extra tombstones")
 		}
-	}()
+	})
 
 	// Check that the new leader has a pending GC expiration by
 	// watching for the tombstone to get removed.

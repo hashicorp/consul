@@ -1046,26 +1046,28 @@ func TestCatalog_ListNodes_StaleRead(t *testing.T) {
 		QueryOptions: structs.QueryOptions{AllowStale: true},
 	}
 	var out structs.IndexedNodes
-	if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
 
-	found := false
-	for _, n := range out.Nodes {
-		if n.Node == "foo" {
-			found = true
+	retry.Run(t, func(r *retry.R) {
+		if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out); err != nil {
+			t.Fatalf("err: %v", err)
 		}
-	}
-	if !found {
-		t.Fatalf("failed to find foo in %#v", out.Nodes)
-	}
 
-	if out.QueryMeta.LastContact == 0 {
-		t.Fatalf("should have a last contact time")
-	}
-	if !out.QueryMeta.KnownLeader {
-		t.Fatalf("should have known leader")
-	}
+		found := false
+		for _, n := range out.Nodes {
+			if n.Node == "foo" {
+				found = true
+			}
+		}
+		if !found {
+			r.Fatalf("failed to find foo in %#v", out.Nodes)
+		}
+		if out.QueryMeta.LastContact == 0 {
+			r.Fatalf("should have a last contact time")
+		}
+		if !out.QueryMeta.KnownLeader {
+			r.Fatalf("should have known leader")
+		}
+	})
 }
 
 func TestCatalog_ListNodes_ConsistentRead_Fail(t *testing.T) {
