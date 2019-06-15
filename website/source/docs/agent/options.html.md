@@ -213,6 +213,9 @@ will exit with an error at startup.
   in the "consul." domain. This flag can be used to change that domain. All queries in this domain
   are assumed to be handled by Consul and will not be recursively resolved.
 
+* <a name="_alt_domain"></a><a href="#_alt_domain">`-alt-domain`</a> - This flag allows Consul to respond to
+  DNS queries in an alternate domain, in addition to the primary domain. If unset, no alternate domain is used.
+
 * <a name="_enable_script_checks"></a><a
   href="#_enable_script_checks">`-enable-script-checks`</a> This controls
   whether [health checks that execute scripts](/docs/agent/checks.html) are
