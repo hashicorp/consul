@@ -495,6 +495,12 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		}
 	}
 
+	datacenter := strings.ToLower(b.stringVal(c.Datacenter))
+	altDomain := b.stringVal(c.DNSAltDomain)
+	if !isValidAltDomain(altDomain, datacenter) {
+		return RuntimeConfig{}, fmt.Errorf("alt_domain cannot start with {service,connect,node,query,addr,%s}", datacenter)
+	}
+
 	// Create the default set of tagged addresses.
 	if c.TaggedAddresses == nil {
 		c.TaggedAddresses = make(map[string]string)
@@ -586,8 +592,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 			"csr_max_concurrent": "CSRMaxConcurrent",
 		})
 	}
-
-	datacenter := strings.ToLower(b.stringVal(c.Datacenter))
 
 	aclsEnabled := false
 	primaryDatacenter := strings.ToLower(b.stringVal(c.PrimaryDatacenter))
@@ -726,7 +730,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		DNSARecordLimit:       b.intVal(c.DNS.ARecordLimit),
 		DNSDisableCompression: b.boolVal(c.DNS.DisableCompression),
 		DNSDomain:             b.stringVal(c.DNSDomain),
-		DNSAltDomain:          b.stringVal(c.DNSAltDomain),
+		DNSAltDomain:          altDomain,
 		DNSEnableTruncate:     b.boolVal(c.DNS.EnableTruncate),
 		DNSMaxStale:           b.durationVal("dns_config.max_stale", c.DNS.MaxStale),
 		DNSNodeTTL:            b.durationVal("dns_config.node_ttl", c.DNS.NodeTTL),
@@ -1662,4 +1666,17 @@ func isIPAddr(a net.Addr) bool {
 func isUnixAddr(a net.Addr) bool {
 	_, ok := a.(*net.UnixAddr)
 	return ok
+}
+
+// isValidAltDomain returns true iff the given domain may be used
+// as an alternate domain name.
+func isValidAltDomain(domain, datacenter string) bool {
+	// reAltDomain defines a regexp for a valid alternate DNS domain
+	reAltDomain := regexp.MustCompile(
+		fmt.Sprintf(
+			"^(service|connect|node|query|addr|%s)\\.(%s\\.)?",
+			datacenter, datacenter,
+		),
+	)
+	return !reAltDomain.MatchString(domain)
 }
