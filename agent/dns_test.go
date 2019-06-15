@@ -5662,16 +5662,16 @@ func TestDNS_AltDomains_Overlap(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), `
 		node_name = "test-node"
-		alt_domain = "node.consul."
+		alt_domain = "test.consul."
 	`)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	questions := []string{
 		"test-node.node.consul.",
-		"test-node.node.node.consul.",
+		"test-node.node.test.consul.",
 		"test-node.node.dc1.consul.",
-		"test-node.node.node.dc1.consul.",
+		"test-node.node.dc1.test.consul.",
 	}
 
 	for _, question := range questions {
