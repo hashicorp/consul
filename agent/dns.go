@@ -535,7 +535,8 @@ func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *d
 	datacenter := d.agent.config.Datacenter
 
 	// Get the QName without the domain suffix
-	qName := d.trimDomain(dns.Fqdn(req.Question[0].Name))
+	qName := strings.ToLower(dns.Fqdn(req.Question[0].Name))
+	qName = d.trimDomain(qName)
 
 	// Split into the label parts
 	labels := dns.SplitDomainName(qName)
