@@ -20,6 +20,7 @@ BUG FIXES:
 * docs: update default grpc-addr value in connect envoy command [[GH-5886](https://github.com/hashicorp/consul/pull/5886)]
 * docs: fix wording [[GH-5889](https://github.com/hashicorp/consul/pull/5889)]
 * ui: fix service instance linking when multiple non-unique service id's exist on multiple nodes [[GH-5933](https://github.com/hashicorp/consul/pull/5933)]
+* txn: Fixed an issue that would allow a CAS operation on a service to work when it shouldn't have. [[GH-5971](https://github.com/hashicorp/consul/pull/5971)]
 
 ## 1.5.1 (May 22, 2019)
 
