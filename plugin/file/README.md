@@ -67,3 +67,31 @@ Or use a single zone file for multiple zones:
     }
 }
 ~~~
+
+Note that if you have a configuration like the following you may run into a problem of the origin
+not being correctly recognized:
+
+~~~
+. {
+    file db.example.org
+}
+~~~
+
+We omit the origin for the file `db.example.org`, so this references the zone in the server block,
+which, in this case, is the root zone. Any contents of `db.example.org` will then read with that
+origin set; this may or may not do what you want.
+It's better to be explicit here and specify the correct origin. This can be done in two ways:"
+
+~~~
+. {
+    file db.example.org example.org
+}
+~~~
+
+Or
+
+~~~
+example.org {
+    file db.example.org
+}
+~~~
