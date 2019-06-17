@@ -29,7 +29,7 @@ used for a few purposes. Membership information allows clients to automatically 
 servers, reducing the amount of configuration needed. The distributed failure detection
 allows the work of failure detection to be shared by the entire cluster instead of
 concentrated on a few servers. Lastly, the gossip pool allows for reliable and fast
-event broadcasts for events like leader election.
+event broadcasts.
 
 The WAN pool is globally unique, as all servers should participate in the WAN pool
 regardless of datacenter. Membership information provided by the WAN pool allows
