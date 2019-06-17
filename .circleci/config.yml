@@ -1,0 +1,69 @@
+version: 2
+
+initWorkingDir: &initWorkingDir
+  type: shell
+  name: Initialize Working Directory
+  pwd: /
+  command: |
+    mkdir -p ~/go/src/${CIRCLE_PROJECT_USERNAME}/coredns
+    sudo chown -R circleci ~/go
+    mkdir -p ~/go/out/tests
+    mkdir -p ~/go/out/logs
+    mkdir -p /home/circleci/logs
+    GOROOT=$(go env GOROOT)
+    sudo rm -r $(go env GOROOT)
+    sudo mkdir $GOROOT
+    curl https://dl.google.com/go/go1.12.5.linux-amd64.tar.gz | sudo tar xz -C $GOROOT --strip-components=1
+
+integrationDefaults: &integrationDefaults
+  machine:
+    image: ubuntu-1604:201903-01
+  working_directory: ~/go/src/${CIRCLE_PROJECT_USERNAME}/coredns
+  environment:
+    - K8S_VERSION: v1.13.3
+    - KUBECONFIG: /home/circleci/.kube/config
+    - MINIKUBE_VERSION: v0.33.1
+    - MINIKUBE_WANTUPDATENOTIFICATION: false
+    - MINIKUBE_WANTREPORTERRORPROMPT: false
+    - CHANGE_MINIKUBE_NONE_USER: true
+    - MINIKUBE_HOME: /home/circleci
+
+setupKubernetes: &setupKubernetes
+  - run:
+      name: Setup Kubernetes
+      command: ~/go/src/${CIRCLE_PROJECT_USERNAME}/ci/build/kubernetes/minikube_setup.sh
+
+buildCoreDNSImage: &buildCoreDNSImage
+  - run:
+      name: Build latest CoreDNS Docker image
+      command: |
+        cd ~/go/src/${CIRCLE_PROJECT_USERNAME}/coredns
+        make coredns SYSTEM="GOOS=linux" && \
+        docker build -t coredns . && \
+        docker tag coredns localhost:5000/coredns && \
+        docker push localhost:5000/coredns
+
+jobs:
+  kubernetes-tests:
+    <<: *integrationDefaults
+    steps:
+      - <<: *initWorkingDir
+      - checkout
+      - run:
+          name: Get CI repo
+          command : |
+            mkdir -p ~/go/src/${CIRCLE_PROJECT_USERNAME}/ci
+            git clone https://github.com/${CIRCLE_PROJECT_USERNAME}/ci ~/go/src/${CIRCLE_PROJECT_USERNAME}/ci
+      - <<: *setupKubernetes
+      - <<: *buildCoreDNSImage
+      - run:
+          name: Run Kubernetes tests
+          command: |
+            cd ~/go/src/${CIRCLE_PROJECT_USERNAME}/ci/test/kubernetes
+            GO111MODULE=on go test -v ./...
+
+workflows:
+  version: 2
+  integration-tests:
+    jobs:
+      - kubernetes-tests
