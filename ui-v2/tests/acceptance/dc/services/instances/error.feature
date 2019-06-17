@@ -2,7 +2,7 @@
 Feature: dc / services / instances / error: Visit Service Instance what doesn't exist
   Scenario: No instance can be found in the API response
     Given 1 datacenter model with the value "dc1"
-    And 1 service model
+    And 1 instance model
     When I visit the instance page for yaml
     ---
       dc: dc1

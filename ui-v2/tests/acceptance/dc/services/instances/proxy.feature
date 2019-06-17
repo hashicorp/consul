@@ -2,7 +2,7 @@
 Feature: dc / services / instances / proxy: Show Proxy Service Instance
   Scenario: A Proxy Service instance
     Given 1 datacenter model with the value "dc1"
-    And 1 service model from yaml
+    And 1 instance model from yaml
     ---
     - Service:
         Kind: connect-proxy
