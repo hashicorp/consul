@@ -11,7 +11,7 @@ import proxyFactory from 'consul-ui/utils/dom/event-source/proxy';
 import firstResolverFactory from 'consul-ui/utils/dom/event-source/resolver';
 
 import CallableEventSourceFactory from 'consul-ui/utils/dom/event-source/callable';
-import ReopenableEventSourceFactory from 'consul-ui/utils/dom/event-source/reopenable';
+import OpenableEventSourceFactory from 'consul-ui/utils/dom/event-source/openable';
 import BlockingEventSourceFactory from 'consul-ui/utils/dom/event-source/blocking';
 import StorageEventSourceFactory from 'consul-ui/utils/dom/event-source/storage';
 
@@ -70,8 +70,8 @@ switch (env('CONSUL_UI_REALTIME_RUNNER')) {
 
 // All The EventSource-i
 export const CallableEventSource = CallableEventSourceFactory(EventTarget, Promise, runner);
-export const ReopenableEventSource = ReopenableEventSourceFactory(CallableEventSource);
-export const BlockingEventSource = BlockingEventSourceFactory(ReopenableEventSource);
+export const OpenableEventSource = OpenableEventSourceFactory(CallableEventSource);
+export const BlockingEventSource = BlockingEventSourceFactory(OpenableEventSource);
 export const StorageEventSource = StorageEventSourceFactory(EventTarget, Promise);
 
 // various utils
