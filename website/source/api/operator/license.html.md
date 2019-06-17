@@ -146,8 +146,7 @@ $ curl \
 
 ## Resetting the Consul License
 
-This endpoints resets the Consul license to the license the binary came with if
-it is still valid.
+This endpoint resets the Consul license to the license included in the Enterprise binary. If the included license is not valid, the replace will fail.
 
 | Method   | Path                         | Produces                   |
 | -------- | ---------------------------- | -------------------------- |
