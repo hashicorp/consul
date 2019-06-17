@@ -284,8 +284,8 @@ RETRY_ONCE:
 		goto RETRY_ONCE
 	}
 	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
-	if out.NodeServices != nil && out.NodeServices.Node != nil {
-		s.agent.TranslateAddresses(args.Datacenter, out.NodeServices.Node)
+	if out.NodeServices != nil {
+		s.agent.TranslateAddresses(args.Datacenter, out.NodeServices)
 	}
 
 	// TODO: The NodeServices object in IndexedNodeServices is a pointer to

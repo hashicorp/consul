@@ -1,6 +1,7 @@
 package structs
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
@@ -144,7 +145,17 @@ func testServiceNode(t *testing.T) *ServiceNode {
 		ServiceName:    "dogs",
 		ServiceTags:    []string{"prod", "v1"},
 		ServiceAddress: "127.0.0.2",
-		ServicePort:    8080,
+		ServiceTaggedAddresses: map[string]ServiceAddress{
+			"lan": ServiceAddress{
+				Address: "127.0.0.2",
+				Port:    8080,
+			},
+			"wan": ServiceAddress{
+				Address: "198.18.0.1",
+				Port:    80,
+			},
+		},
+		ServicePort: 8080,
 		ServiceMeta: map[string]string{
 			"service": "metadata",
 		},
@@ -241,6 +252,7 @@ func TestStructs_ServiceNode_IsSameService(t *testing.T) {
 	serviceProxyDestination := sn.ServiceProxyDestination
 	serviceProxy := sn.ServiceProxy
 	serviceConnect := sn.ServiceConnect
+	serviceTaggedAddresses := sn.ServiceTaggedAddresses
 
 	n := sn.ToNodeService().ToServiceNode(node)
 	other := sn.ToNodeService().ToServiceNode(node)
@@ -275,6 +287,7 @@ func TestStructs_ServiceNode_IsSameService(t *testing.T) {
 	check(func() { other.ServiceWeights = Weights{Passing: 42, Warning: 41} }, func() { other.ServiceWeights = serviceWeights })
 	check(func() { other.ServiceProxy = ConnectProxyConfig{} }, func() { other.ServiceProxy = serviceProxy })
 	check(func() { other.ServiceConnect = ServiceConnect{} }, func() { other.ServiceConnect = serviceConnect })
+	check(func() { other.ServiceTaggedAddresses = nil }, func() { other.ServiceTaggedAddresses = serviceTaggedAddresses })
 }
 
 func TestStructs_ServiceNode_PartialClone(t *testing.T) {
@@ -321,6 +334,10 @@ func TestStructs_ServiceNode_PartialClone(t *testing.T) {
 	if reflect.DeepEqual(sn, clone) {
 		t.Fatalf("clone wasn't independent of the original for Meta")
 	}
+
+	// ensure that the tagged addresses were copied and not just a pointer to the map
+	sn.ServiceTaggedAddresses["foo"] = ServiceAddress{Address: "consul.is.awesome", Port: 443}
+	require.NotEqual(t, sn, clone)
 }
 
 func TestStructs_ServiceNode_Conversions(t *testing.T) {
@@ -472,6 +489,16 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 		Service: "theservice",
 		Tags:    []string{"foo", "bar"},
 		Address: "127.0.0.1",
+		TaggedAddresses: map[string]ServiceAddress{
+			"lan": ServiceAddress{
+				Address: "127.0.0.1",
+				Port:    3456,
+			},
+			"wan": ServiceAddress{
+				Address: "198.18.0.1",
+				Port:    1234,
+			},
+		},
 		Meta: map[string]string{
 			"meta1": "value1",
 			"meta2": "value2",
@@ -497,6 +524,16 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 		Address:           "127.0.0.1",
 		Port:              1234,
 		EnableTagOverride: true,
+		TaggedAddresses: map[string]ServiceAddress{
+			"wan": ServiceAddress{
+				Address: "198.18.0.1",
+				Port:    1234,
+			},
+			"lan": ServiceAddress{
+				Address: "127.0.0.1",
+				Port:    3456,
+			},
+		},
 		Meta: map[string]string{
 			// We don't care about order
 			"meta2": "value2",
@@ -559,6 +596,7 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 	if !otherServiceNode.IsSameService(otherServiceNodeCopy2) {
 		t.Fatalf("copy should be the same, but was\n %#v\nVS\n %#v", otherServiceNode, otherServiceNodeCopy2)
 	}
+	check(func() { other.TaggedAddresses["lan"] = ServiceAddress{Address: "127.0.0.1", Port: 9999} }, func() { other.TaggedAddresses["lan"] = ServiceAddress{Address: "127.0.0.1", Port: 3456} })
 }
 
 func TestStructs_HealthCheck_IsSame(t *testing.T) {
@@ -1042,6 +1080,78 @@ func TestSpecificServiceRequest_CacheInfo(t *testing.T) {
 				info.Key = ""
 				require.Equal(t, *tc.want, info)
 			}
+		})
+	}
+}
+
+func TestNodeService_JSON_OmitTaggedAdddresses(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		ns   NodeService
+	}{
+		{
+			"nil",
+			NodeService{
+				TaggedAddresses: nil,
+			},
+		},
+		{
+			"empty",
+			NodeService{
+				TaggedAddresses: make(map[string]ServiceAddress),
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		name := tc.name
+		ns := tc.ns
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			data, err := json.Marshal(ns)
+			require.NoError(t, err)
+			var raw map[string]interface{}
+			err = json.Unmarshal(data, &raw)
+			require.NoError(t, err)
+			require.NotContains(t, raw, "TaggedAddresses")
+			require.NotContains(t, raw, "tagged_addresses")
+		})
+	}
+}
+
+func TestServiceNode_JSON_OmitServiceTaggedAdddresses(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		sn   ServiceNode
+	}{
+		{
+			"nil",
+			ServiceNode{
+				ServiceTaggedAddresses: nil,
+			},
+		},
+		{
+			"empty",
+			ServiceNode{
+				ServiceTaggedAddresses: make(map[string]ServiceAddress),
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		name := tc.name
+		sn := tc.sn
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			data, err := json.Marshal(sn)
+			require.NoError(t, err)
+			var raw map[string]interface{}
+			err = json.Unmarshal(data, &raw)
+			require.NoError(t, err)
+			require.NotContains(t, raw, "ServiceTaggedAddresses")
+			require.NotContains(t, raw, "service_tagged_addresses")
 		})
 	}
 }

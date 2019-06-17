@@ -769,13 +769,10 @@ func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 
 	// Wait for the WAN join.
 	addr := fmt.Sprintf("127.0.0.1:%d", a1.Config.SerfPortWAN)
-	if _, err := a2.srv.agent.JoinWAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	_, err := a2.srv.agent.JoinWAN([]string{addr})
+	require.NoError(t, err)
 	retry.Run(t, func(r *retry.R) {
-		if got, want := len(a1.WANMembers()), 2; got < want {
-			r.Fatalf("got %d WAN members want at least %d", got, want)
-		}
+		require.Len(r, a1.WANMembers(), 2)
 	})
 
 	// Register a node with DC2.
@@ -789,51 +786,51 @@ func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 			},
 			Service: &structs.NodeService{
 				Service: "http_wan_translation_test",
+				Address: "127.0.0.1",
+				Port:    8080,
+				TaggedAddresses: map[string]structs.ServiceAddress{
+					"wan": structs.ServiceAddress{
+						Address: "1.2.3.4",
+						Port:    80,
+					},
+				},
 			},
 		}
 
 		var out struct{}
-		if err := a2.RPC("Catalog.Register", args, &out); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		require.NoError(t, a2.RPC("Catalog.Register", args, &out))
 	}
 
 	// Query for the node in DC2 from DC1.
 	req, _ := http.NewRequest("GET", "/v1/catalog/service/http_wan_translation_test?dc=dc2", nil)
 	resp1 := httptest.NewRecorder()
 	obj1, err1 := a1.srv.CatalogServiceNodes(resp1, req)
-	if err1 != nil {
-		t.Fatalf("err: %v", err1)
-	}
-	assertIndex(t, resp1)
+	require.NoError(t, err1)
+	require.NoError(t, checkIndex(resp1))
 
 	// Expect that DC1 gives us a WAN address (since the node is in DC2).
-	nodes1 := obj1.(structs.ServiceNodes)
-	if len(nodes1) != 1 {
-		t.Fatalf("bad: %v", obj1)
-	}
+	nodes1, ok := obj1.(structs.ServiceNodes)
+	require.True(t, ok, "obj1 is not a structs.ServiceNodes")
+	require.Len(t, nodes1, 1)
 	node1 := nodes1[0]
-	if node1.Address != "127.0.0.2" {
-		t.Fatalf("bad: %v", node1)
-	}
+	require.Equal(t, node1.Address, "127.0.0.2")
+	require.Equal(t, node1.ServiceAddress, "1.2.3.4")
+	require.Equal(t, node1.ServicePort, 80)
 
 	// Query DC2 from DC2.
 	resp2 := httptest.NewRecorder()
 	obj2, err2 := a2.srv.CatalogServiceNodes(resp2, req)
-	if err2 != nil {
-		t.Fatalf("err: %v", err2)
-	}
-	assertIndex(t, resp2)
+	require.NoError(t, err2)
+	require.NoError(t, checkIndex(resp2))
 
 	// Expect that DC2 gives us a local address (since the node is in DC2).
-	nodes2 := obj2.(structs.ServiceNodes)
-	if len(nodes2) != 1 {
-		t.Fatalf("bad: %v", obj2)
-	}
+	nodes2, ok := obj2.(structs.ServiceNodes)
+	require.True(t, ok, "obj2 is not a structs.ServiceNodes")
+	require.Len(t, nodes2, 1)
 	node2 := nodes2[0]
-	if node2.Address != "127.0.0.1" {
-		t.Fatalf("bad: %v", node2)
-	}
+	require.Equal(t, node2.Address, "127.0.0.1")
+	require.Equal(t, node2.ServiceAddress, "127.0.0.1")
+	require.Equal(t, node2.ServicePort, 8080)
 }
 
 func TestCatalogServiceNodes_DistanceSort(t *testing.T) {
@@ -1150,13 +1147,10 @@ func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 
 	// Wait for the WAN join.
 	addr := fmt.Sprintf("127.0.0.1:%d", a1.Config.SerfPortWAN)
-	if _, err := a2.srv.agent.JoinWAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	_, err := a2.srv.agent.JoinWAN([]string{addr})
+	require.NoError(t, err)
 	retry.Run(t, func(r *retry.R) {
-		if got, want := len(a1.WANMembers()), 2; got < want {
-			r.Fatalf("got %d WAN members want at least %d", got, want)
-		}
+		require.Len(r, a1.WANMembers(), 2)
 	})
 
 	// Register a node with DC2.
@@ -1170,49 +1164,53 @@ func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 			},
 			Service: &structs.NodeService{
 				Service: "http_wan_translation_test",
+				Address: "127.0.0.1",
+				Port:    8080,
+				TaggedAddresses: map[string]structs.ServiceAddress{
+					"wan": structs.ServiceAddress{
+						Address: "1.2.3.4",
+						Port:    80,
+					},
+				},
 			},
 		}
 
 		var out struct{}
-		if err := a2.RPC("Catalog.Register", args, &out); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		require.NoError(t, a2.RPC("Catalog.Register", args, &out))
 	}
 
 	// Query for the node in DC2 from DC1.
 	req, _ := http.NewRequest("GET", "/v1/catalog/node/foo?dc=dc2", nil)
 	resp1 := httptest.NewRecorder()
 	obj1, err1 := a1.srv.CatalogNodeServices(resp1, req)
-	if err1 != nil {
-		t.Fatalf("err: %v", err1)
-	}
-	assertIndex(t, resp1)
+	require.NoError(t, err1)
+	require.NoError(t, checkIndex(resp1))
 
 	// Expect that DC1 gives us a WAN address (since the node is in DC2).
-	services1 := obj1.(*structs.NodeServices)
-	if len(services1.Services) != 1 {
-		t.Fatalf("bad: %v", obj1)
-	}
-	service1 := services1.Node
-	if service1.Address != "127.0.0.2" {
-		t.Fatalf("bad: %v", service1)
-	}
+	service1, ok := obj1.(*structs.NodeServices)
+	require.True(t, ok, "obj1 is not a *structs.NodeServices")
+	require.NotNil(t, service1.Node)
+	require.Equal(t, service1.Node.Address, "127.0.0.2")
+	require.Len(t, service1.Services, 1)
+	ns1, ok := service1.Services["http_wan_translation_test"]
+	require.True(t, ok, "Missing service http_wan_translation_test")
+	require.Equal(t, "1.2.3.4", ns1.Address)
+	require.Equal(t, 80, ns1.Port)
 
 	// Query DC2 from DC2.
 	resp2 := httptest.NewRecorder()
 	obj2, err2 := a2.srv.CatalogNodeServices(resp2, req)
-	if err2 != nil {
-		t.Fatalf("err: %v", err2)
-	}
-	assertIndex(t, resp2)
+	require.NoError(t, err2)
+	require.NoError(t, checkIndex(resp2))
 
 	// Expect that DC2 gives us a private address (since the node is in DC2).
-	services2 := obj2.(*structs.NodeServices)
-	if len(services2.Services) != 1 {
-		t.Fatalf("bad: %v", obj2)
-	}
-	service2 := services2.Node
-	if service2.Address != "127.0.0.1" {
-		t.Fatalf("bad: %v", service2)
-	}
+	service2 := obj2.(*structs.NodeServices)
+	require.True(t, ok, "obj2 is not a *structs.NodeServices")
+	require.NotNil(t, service2.Node)
+	require.Equal(t, service2.Node.Address, "127.0.0.1")
+	require.Len(t, service2.Services, 1)
+	ns2, ok := service2.Services["http_wan_translation_test"]
+	require.True(t, ok, "Missing service http_wan_translation_test")
+	require.Equal(t, ns2.Address, "127.0.0.1")
+	require.Equal(t, ns2.Port, 8080)
 }

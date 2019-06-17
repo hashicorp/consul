@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -179,6 +180,12 @@ func TestAPI_AgentServices(t *testing.T) {
 		Name: "foo",
 		ID:   "foo",
 		Tags: []string{"bar", "baz"},
+		TaggedAddresses: map[string]ServiceAddress{
+			"lan": ServiceAddress{
+				Address: "198.18.0.1",
+				Port:    80,
+			},
+		},
 		Port: 8000,
 		Check: &AgentServiceCheck{
 			TTL: "15s",
@@ -605,6 +612,16 @@ func TestAPI_AgentServiceAddress(t *testing.T) {
 	reg2 := &AgentServiceRegistration{
 		Name: "foo2",
 		Port: 8000,
+		TaggedAddresses: map[string]ServiceAddress{
+			"lan": ServiceAddress{
+				Address: "192.168.0.43",
+				Port:    8000,
+			},
+			"wan": ServiceAddress{
+				Address: "198.18.0.1",
+				Port:    80,
+			},
+		},
 	}
 	if err := agent.ServiceRegister(reg1); err != nil {
 		t.Fatalf("err: %v", err)
@@ -631,6 +648,13 @@ func TestAPI_AgentServiceAddress(t *testing.T) {
 	if services["foo2"].Address != "" {
 		t.Fatalf("missing Address field in service foo2: %v", services)
 	}
+	require.NotNil(t, services["foo2"].TaggedAddresses)
+	require.Contains(t, services["foo2"].TaggedAddresses, "lan")
+	require.Contains(t, services["foo2"].TaggedAddresses, "wan")
+	require.Equal(t, services["foo2"].TaggedAddresses["lan"].Address, "192.168.0.43")
+	require.Equal(t, services["foo2"].TaggedAddresses["lan"].Port, 8000)
+	require.Equal(t, services["foo2"].TaggedAddresses["wan"].Address, "198.18.0.1")
+	require.Equal(t, services["foo2"].TaggedAddresses["wan"].Port, 80)
 
 	if err := agent.ServiceDeregister("foo"); err != nil {
 		t.Fatalf("err: %v", err)
@@ -1661,4 +1685,40 @@ func TestAPI_AgentHealthService(t *testing.T) {
 	err = agent.PassTTL(fmt.Sprintf("service:%s", testServiceID2), "I am good :)")
 	require.Nil(t, err)
 	requireServiceHealthName(t, testServiceName, HealthPassing, true)
+}
+
+func TestAgentService_JSON_OmitTaggedAdddresses(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		as   AgentService
+	}{
+		{
+			"nil",
+			AgentService{
+				TaggedAddresses: nil,
+			},
+		},
+		{
+			"empty",
+			AgentService{
+				TaggedAddresses: make(map[string]ServiceAddress),
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		name := tc.name
+		as := tc.as
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			data, err := json.Marshal(as)
+			require.NoError(t, err)
+			var raw map[string]interface{}
+			err = json.Unmarshal(data, &raw)
+			require.NoError(t, err)
+			require.NotContains(t, raw, "TaggedAddresses")
+			require.NotContains(t, raw, "tagged_addresses")
+		})
+	}
 }

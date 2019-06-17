@@ -37,6 +37,16 @@ example shows all possible fields, but note that only a few are required.
     "meta": {
       "meta": "for my service"
     },
+    "tagged_addresses": {
+      "lan": {
+        "address": "192.168.0.55",
+        "port": 8000,
+      },
+      "wan": {
+        "address": "198.18.0.23",
+        "port": 80
+      }
+    },
     "port": 8000,
     "enable_tag_override": false,
     "checks": [
@@ -280,7 +290,7 @@ For historical reasons Consul's API uses `CamelCased` parameter names in
 responses, however it's configuration file uses `snake_case` for both HCL and
 JSON representations. For this reason the registration _HTTP APIs_ accept both
 name styles for service definition parameters although APIs will return the
-listings using `CamelCase`. 
+listings using `CamelCase`.
 
 Note though that **all config file formats require
 `snake_case` fields**. We always document service definition examples using

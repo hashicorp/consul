@@ -162,6 +162,19 @@ var expectedFieldConfigNode bexpr.FieldConfigurations = bexpr.FieldConfiguration
 	},
 }
 
+var expectedFieldConfigMapStringServiceAddress bexpr.FieldConfigurations = bexpr.FieldConfigurations{
+	"Address": &bexpr.FieldConfiguration{
+		StructFieldName:     "Address",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+	},
+	"Port": &bexpr.FieldConfiguration{
+		StructFieldName:     "Port",
+		CoerceFn:            bexpr.CoerceInt,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+	},
+}
+
 var expectedFieldConfigNodeService bexpr.FieldConfigurations = bexpr.FieldConfigurations{
 	"Kind": &bexpr.FieldConfiguration{
 		StructFieldName:     "Kind",
@@ -187,6 +200,16 @@ var expectedFieldConfigNodeService bexpr.FieldConfigurations = bexpr.FieldConfig
 		StructFieldName:     "Address",
 		CoerceFn:            bexpr.CoerceString,
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+	},
+	"TaggedAddresses": &bexpr.FieldConfiguration{
+		StructFieldName:     "TaggedAddresses",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchIsEmpty, bexpr.MatchIsNotEmpty, bexpr.MatchIn, bexpr.MatchNotIn},
+		SubFields: bexpr.FieldConfigurations{
+			bexpr.FieldNameAny: &bexpr.FieldConfiguration{
+				SubFields: expectedFieldConfigMapStringServiceAddress,
+			},
+		},
 	},
 	"Meta": &bexpr.FieldConfiguration{
 		StructFieldName:     "Meta",
@@ -275,6 +298,16 @@ var expectedFieldConfigServiceNode bexpr.FieldConfigurations = bexpr.FieldConfig
 		StructFieldName:     "ServiceAddress",
 		CoerceFn:            bexpr.CoerceString,
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+	},
+	"ServiceTaggedAddresses": &bexpr.FieldConfiguration{
+		StructFieldName:     "ServiceTaggedAddresses",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchIsEmpty, bexpr.MatchIsNotEmpty, bexpr.MatchIn, bexpr.MatchNotIn},
+		SubFields: bexpr.FieldConfigurations{
+			bexpr.FieldNameAny: &bexpr.FieldConfiguration{
+				SubFields: expectedFieldConfigMapStringServiceAddress,
+			},
+		},
 	},
 	"ServiceMeta": &bexpr.FieldConfiguration{
 		StructFieldName:     "ServiceMeta",

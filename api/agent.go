@@ -82,6 +82,7 @@ type AgentService struct {
 	Meta              map[string]string
 	Port              int
 	Address           string
+	TaggedAddresses   map[string]ServiceAddress `json:",omitempty"`
 	Weights           AgentWeights
 	EnableTagOverride bool
 	CreateIndex       uint64 `json:",omitempty" bexpr:"-"`
@@ -157,15 +158,16 @@ type MembersOpts struct {
 
 // AgentServiceRegistration is used to register a new service
 type AgentServiceRegistration struct {
-	Kind              ServiceKind       `json:",omitempty"`
-	ID                string            `json:",omitempty"`
-	Name              string            `json:",omitempty"`
-	Tags              []string          `json:",omitempty"`
-	Port              int               `json:",omitempty"`
-	Address           string            `json:",omitempty"`
-	EnableTagOverride bool              `json:",omitempty"`
-	Meta              map[string]string `json:",omitempty"`
-	Weights           *AgentWeights     `json:",omitempty"`
+	Kind              ServiceKind               `json:",omitempty"`
+	ID                string                    `json:",omitempty"`
+	Name              string                    `json:",omitempty"`
+	Tags              []string                  `json:",omitempty"`
+	Port              int                       `json:",omitempty"`
+	Address           string                    `json:",omitempty"`
+	TaggedAddresses   map[string]ServiceAddress `json:",omitempty"`
+	EnableTagOverride bool                      `json:",omitempty"`
+	Meta              map[string]string         `json:",omitempty"`
+	Weights           *AgentWeights             `json:",omitempty"`
 	Check             *AgentServiceCheck
 	Checks            AgentServiceChecks
 	// DEPRECATED (ProxyDestination) - remove this field

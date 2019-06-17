@@ -2194,6 +2194,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					"service": {
 						"name": "a",
 						"port": 80,
+						"tagged_addresses": {
+							"wan": {
+								"address": "198.18.3.4",
+								"port": 443
+							}
+						},
 						"enable_tag_override": true,
 						"check": {
 							"id": "x",
@@ -2210,6 +2216,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					name = "a"
 					port = 80
 					enable_tag_override = true
+					tagged_addresses = {
+						wan = {
+							address = "198.18.3.4"
+							port = 443
+						}
+					}
 					check = {
 						id = "x"
 						name = "y"
@@ -2222,8 +2234,14 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			patch: func(rt *RuntimeConfig) {
 				rt.Services = []*structs.ServiceDefinition{
 					&structs.ServiceDefinition{
-						Name:              "a",
-						Port:              80,
+						Name: "a",
+						Port: 80,
+						TaggedAddresses: map[string]structs.ServiceAddress{
+							"wan": structs.ServiceAddress{
+								Address: "198.18.3.4",
+								Port:    443,
+							},
+						},
 						EnableTagOverride: true,
 						Checks: []*structs.CheckType{
 							&structs.CheckType{
@@ -3251,6 +3269,16 @@ func TestFullConfig(t *testing.T) {
 				"meta": {
 					"mymeta": "data"
 				},
+				"tagged_addresses": {
+					"lan": {
+						"address": "2d79888a",
+						"port": 2143
+					},
+					"wan": {
+						"address": "d4db85e2",
+						"port": 6109
+					}
+				},
 				"tags": ["nkwshvM5", "NTDWn3ek"],
 				"address": "cOlSOhbp",
 				"token": "msy7iWER",
@@ -3819,6 +3847,16 @@ func TestFullConfig(t *testing.T) {
 				name = "o1ynPkp0"
 				meta = {
 					mymeta = "data"
+				}
+				tagged_addresses = {
+					lan = {
+						address = "2d79888a"
+						port = 2143
+					}
+					wan = {
+						address = "d4db85e2"
+						port = 6109
+					}
 				}
 				tags = ["nkwshvM5", "NTDWn3ek"]
 				address = "cOlSOhbp"
@@ -4603,8 +4641,18 @@ func TestFullConfig(t *testing.T) {
 				},
 			},
 			{
-				ID:      "dLOXpSCI",
-				Name:    "o1ynPkp0",
+				ID:   "dLOXpSCI",
+				Name: "o1ynPkp0",
+				TaggedAddresses: map[string]structs.ServiceAddress{
+					"lan": structs.ServiceAddress{
+						Address: "2d79888a",
+						Port:    2143,
+					},
+					"wan": structs.ServiceAddress{
+						Address: "d4db85e2",
+						Port:    6109,
+					},
+				},
 				Tags:    []string{"nkwshvM5", "NTDWn3ek"},
 				Address: "cOlSOhbp",
 				Token:   "msy7iWER",
@@ -5287,6 +5335,7 @@ func TestSanitize(t *testing.T) {
 			"Port": 0,
 			"Proxy": null,
 			"ProxyDestination": "",
+			"TaggedAddresses": {},
 			"Tags": [],
 			"Token": "hidden",
 			"Weights": {

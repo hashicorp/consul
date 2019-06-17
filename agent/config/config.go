@@ -360,19 +360,25 @@ type ServiceWeights struct {
 	Warning *int `json:"warning,omitempty" hcl:"warning" mapstructure:"warning"`
 }
 
+type ServiceAddress struct {
+	Address *string `json:"address,omitempty" hcl:"address" mapstructure:"address"`
+	Port    *int    `json:"port,omitempty" hcl:"port" mapstructure:"port"`
+}
+
 type ServiceDefinition struct {
-	Kind              *string           `json:"kind,omitempty" hcl:"kind" mapstructure:"kind"`
-	ID                *string           `json:"id,omitempty" hcl:"id" mapstructure:"id"`
-	Name              *string           `json:"name,omitempty" hcl:"name" mapstructure:"name"`
-	Tags              []string          `json:"tags,omitempty" hcl:"tags" mapstructure:"tags"`
-	Address           *string           `json:"address,omitempty" hcl:"address" mapstructure:"address"`
-	Meta              map[string]string `json:"meta,omitempty" hcl:"meta" mapstructure:"meta"`
-	Port              *int              `json:"port,omitempty" hcl:"port" mapstructure:"port"`
-	Check             *CheckDefinition  `json:"check,omitempty" hcl:"check" mapstructure:"check"`
-	Checks            []CheckDefinition `json:"checks,omitempty" hcl:"checks" mapstructure:"checks"`
-	Token             *string           `json:"token,omitempty" hcl:"token" mapstructure:"token"`
-	Weights           *ServiceWeights   `json:"weights,omitempty" hcl:"weights" mapstructure:"weights"`
-	EnableTagOverride *bool             `json:"enable_tag_override,omitempty" hcl:"enable_tag_override" mapstructure:"enable_tag_override"`
+	Kind              *string                   `json:"kind,omitempty" hcl:"kind" mapstructure:"kind"`
+	ID                *string                   `json:"id,omitempty" hcl:"id" mapstructure:"id"`
+	Name              *string                   `json:"name,omitempty" hcl:"name" mapstructure:"name"`
+	Tags              []string                  `json:"tags,omitempty" hcl:"tags" mapstructure:"tags"`
+	Address           *string                   `json:"address,omitempty" hcl:"address" mapstructure:"address"`
+	TaggedAddresses   map[string]ServiceAddress `json:"tagged_addresses,omitempty" hcl:"tagged_addresses" mapstructure:"tagged_addresses"`
+	Meta              map[string]string         `json:"meta,omitempty" hcl:"meta" mapstructure:"meta"`
+	Port              *int                      `json:"port,omitempty" hcl:"port" mapstructure:"port"`
+	Check             *CheckDefinition          `json:"check,omitempty" hcl:"check" mapstructure:"check"`
+	Checks            []CheckDefinition         `json:"checks,omitempty" hcl:"checks" mapstructure:"checks"`
+	Token             *string                   `json:"token,omitempty" hcl:"token" mapstructure:"token"`
+	Weights           *ServiceWeights           `json:"weights,omitempty" hcl:"weights" mapstructure:"weights"`
+	EnableTagOverride *bool                     `json:"enable_tag_override,omitempty" hcl:"enable_tag_override" mapstructure:"enable_tag_override"`
 	// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
 	ProxyDestination *string         `json:"proxy_destination,omitempty" hcl:"proxy_destination" mapstructure:"proxy_destination"`
 	Proxy            *ServiceProxy   `json:"proxy,omitempty" hcl:"proxy" mapstructure:"proxy"`
