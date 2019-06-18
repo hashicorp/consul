@@ -454,7 +454,7 @@ jobs:
             # Create a merge branch to run tests on
             git_merge_branch="ci/master-merge-$(date +%Y%m%d%H%M%S)"
             git checkout -b "${git_merge_branch}"
-            latest_oss_commit="$(git rev-parse origin/master)"
+            latest_oss_commit="$(git rev-parse --short origin/master)"
             git merge -m "Merge Consul OSS branch 'master' at commit ${latest_oss_commit}" "${latest_oss_commit}"
             git push origin "${git_merge_branch}"
             sleep 15  # Wait for merge branch to start CircleCI pipeline
@@ -494,7 +494,14 @@ jobs:
             git checkout "${CIRCLE_BRANCH}"
             git merge "${git_merge_branch}"
             git push origin "${CIRCLE_BRANCH}"
-            git push --delete origin "${git_merge_branch}"
+
+            # Create GitHub PR
+            curl -u "${HASHICORP_CI_GITHUB_TOKEN}:" -X POST \
+              --header "Accept: application/json" \
+              -d "{ \"title\": \"Merge master commit ${latest_oss_commit} into release/1-6\", \
+                    \"body\": \"Build status at: ${CIRCLE_BUILD_URL}\", \
+                    \"head\": \"${git_merge_branch}\", \
+                    \"base\": \"release/1-6\"}" https://api.github.com/repos/hashicorp/consul/pulls
 
 workflows:
   version: 2
