@@ -429,8 +429,85 @@ jobs:
       ENVOY_VERSIONS: "1.10.0"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
+  # This job merges master into the 'current' branch (${CIRCLE_BRANCH}) specified
+  # in the branch filtering of the workflow
+  merge-master:
+    docker:
+      - image: *GOLANG_IMAGE
+    steps:
+      - add_ssh_keys:
+          fingerprints:
+          - c6:96:98:82:dc:04:6c:39:dd:ac:83:05:e3:15:1c:98
+      - checkout
+      - run:
+          name: Merge Consul OSS master branch into current branch
+          command: |
+            set -eu -o pipefail
+
+            # Configure Git
+            git config --global user.email "hashicorp-ci@users.noreply.github.com"
+            git config --global user.name "hashicorp-ci"
+
+            # Fetch latest master
+            git fetch origin
+
+            # Create a merge branch to run tests on
+            git_merge_branch="ci/master-merge-$(date +%Y%m%d%H%M%S)"
+            git checkout -b "${git_merge_branch}"
+            latest_oss_commit="$(git rev-parse origin/master)"
+            git merge -m "Merge Consul OSS branch 'master' at commit ${latest_oss_commit}" "${latest_oss_commit}"
+            git push origin "${git_merge_branch}"
+            sleep 15  # Wait for merge branch to start CircleCI pipeline
+
+            # Wait for OSS merge branch CircleCI pipeline to finish
+            # return shallow results for better performance
+            project_url="https://circleci.com/api/v1.1/project/github/hashicorp/consul/tree/${git_merge_branch}?shallow=true"
+            echo "Waiting for master merge branch CI pipeline to finish..."
+            builds=
+            unfinished_builds="will be populated in the until loop below"
+            min_waited=0
+            until [[ -z "${unfinished_builds}" ]]; do
+              builds="$(curl \
+                --header 'Accept: application/json' \
+                --show-error \
+                --silent \
+                "${project_url}")"
+              unfinished_builds="$(echo "${builds}" \
+                | jq --raw-output '.[] | select(.lifecycle!="finished") | .workflows.job_name')"
+              sleep 60
+              let "min_waited += 1"
+              echo "Waited ${min_waited} min..."
+            done
+
+            # Fail this job if the merge branch CI pipeline failed
+            # unsuccessful_builds will be a multiline string variable with a line format of "  $job_name: $build_url"
+            unsuccessful_builds="$(echo "${builds}" \
+              | jq --raw-output '.[] | select(.outcome!="success") | "\(.workflows.job_name): \(.build_url)"')"
+            if [[ -n "${unsuccessful_builds}" ]]; then
+              printf "master merge CI pipeline jobs failed:\n${unsuccessful_builds}\n"
+              git push --delete origin "${git_merge_branch}"
+              exit 1
+            fi
+
+            # CircleCI jobs passed, merging to release branch
+            echo "master merge CI pipeline passed successfully so merging to ${CIRCLE_BRANCH}!"
+            git checkout "${CIRCLE_BRANCH}"
+            git merge "${git_merge_branch}"
+            git push origin "${CIRCLE_BRANCH}"
+            git push --delete origin "${git_merge_branch}"
+
 workflows:
   version: 2
+  merge-master-to-release:
+    jobs:
+      - merge-master
+    triggers:
+      - schedule:
+          cron: "0 2 * * *" # 2AM UTC <> 10PM EST <> 7PM PST should have no impact
+          filters:
+            branches:
+              only:
+                - release/1-6
   build-distros:
     jobs:
       - go-fmt-and-vet
