@@ -5,14 +5,20 @@ package envoy
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	"golang.org/x/sys/unix"
 )
+
+// testSelfExecOverride is a way for the tests to no fork-bomb themselves by
+// self-executing the whole test suite for each case recursively. It's gross but
+// the least gross option I could think of.
+var testSelfExecOverride string
 
 func isHotRestartOption(s string) bool {
 	restartOpts := []string{
@@ -44,72 +50,71 @@ func hasHotRestartOption(argSets ...[]string) bool {
 }
 
 func makeBootstrapPipe(bootstrapJSON []byte) (string, error) {
-	dir, err := ioutil.TempDir("", "")
+	pipeFile := filepath.Join(os.TempDir(),
+		fmt.Sprintf("envoy-%x-bootstrap.json", time.Now().UnixNano()+int64(os.Getpid())))
+
+	err := syscall.Mkfifo(pipeFile, 0600)
 	if err != nil {
-		return dir, err
+		return pipeFile, err
 	}
 
-	pipeFile := filepath.Join(dir, "bootstrap.json")
-
-	err = syscall.Mkfifo(pipeFile, 0600)
+	// Get our own executable path.
+	execPath, err := os.Executable()
 	if err != nil {
-		return dir, err
+		return pipeFile, err
 	}
 
-	// Create an anonymous pipe for STDIN to the child that will write to the
-	// named pipe.
-	pr, pw, err := os.Pipe()
+	if testSelfExecOverride != "" {
+		execPath = testSelfExecOverride
+	} else if strings.HasSuffix(execPath, "/envoy.test") {
+		return pipeFile, fmt.Errorf("I seem to be running in a test binary without " +
+			"overriding the self-executable. Not doing that - it will make you sad. " +
+			"See testSelfExecOverride.")
+	}
+
+	// Exec the pipe-bootstrap internal sub-command which will write the bootstrap
+	// from STDIN to the named pipe (once Envoy opens it) and then clean up the
+	// file for us.
+	cmd := exec.Command(execPath, "connect", "envoy", "pipe-bootstrap", pipeFile)
+	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		return dir, err
+		return pipeFile, err
 	}
 
 	// Write the config
-	n, err := pw.Write(bootstrapJSON)
+	n, err := stdin.Write(bootstrapJSON)
+	// Close STDIN whether it was successful or not
+	stdin.Close()
 	if err != nil {
-		return dir, err
+		return pipeFile, err
 	}
 	if n < len(bootstrapJSON) {
-		return dir, fmt.Errorf("failed writing boostrap to child STDIN: %s", err)
+		return pipeFile, fmt.Errorf("failed writing boostrap to child STDIN: %s", err)
 	}
 
-	err = pw.Close()
+	err = cmd.Start()
 	if err != nil {
-		return dir, err
+		return pipeFile, err
 	}
 
-	// Start a detached child process that we can securely send the bootstrap via
-	// STDIN and have it write to the pipe. Cat can do this.
-	var attr = os.ProcAttr{
-		Dir: ".",
-		Env: os.Environ(),
-		Files: []*os.File{
-			pr,
-			nil,
-			nil,
-		},
-	}
-	process, err := os.StartProcess("/bin/bash",
-		[]string{"bash", "-c", "cat > " + pipeFile + "; rm -rf " + pipeFile},
-		&attr,
-	)
-	if err != nil {
-		return dir, err
-	}
-
-	err = process.Release()
-	if err != nil {
-		return dir, err
-	}
-
-	return dir, err
+	// We can't wait for the process since we need to exec into Envoy before it
+	// will be able to complete so it will be remain as a zombie until Envoy is
+	// killed then will be reaped by the init process (pid 0). This is all a bit
+	// gross but the cleanest workaround I can think of for Envoy 1.10 not
+	// supporting /dev/fd/<fd> config paths any more. So we are done and leaving
+	// the child to run it's course without reaping it.
+	return pipeFile, nil
 }
 
 func execEnvoy(binary string, prefixArgs, suffixArgs []string, bootstrapJSON []byte) error {
-	tmpDir, err := makeBootstrapPipe(bootstrapJSON)
+	pipeFile, err := makeBootstrapPipe(bootstrapJSON)
 	if err != nil {
-		os.RemoveAll(tmpDir)
+		os.RemoveAll(pipeFile)
 		return err
 	}
+	// We don't defer a cleanup since we are about to Exec into Envoy which means
+	// defer will never fire. The child process cleans up for us in the happy
+	// path.
 
 	// We default to disabling hot restart because it makes it easier to run
 	// multiple envoys locally for testing without them trying to share memory and
@@ -121,7 +126,7 @@ func execEnvoy(binary string, prefixArgs, suffixArgs []string, bootstrapJSON []b
 	// First argument needs to be the executable name.
 	envoyArgs := []string{binary}
 	envoyArgs = append(envoyArgs, prefixArgs...)
-	envoyArgs = append(envoyArgs, "--config-path", filepath.Join(tmpDir, "bootstrap.json"))
+	envoyArgs = append(envoyArgs, "--config-path", pipeFile)
 	if disableHotRestart {
 		envoyArgs = append(envoyArgs, "--disable-hot-restart")
 	}
