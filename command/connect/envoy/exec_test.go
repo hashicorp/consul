@@ -186,10 +186,10 @@ func TestHelperProcess(t *testing.T) {
 
 		limitProcessLifetime(2 * time.Minute)
 
-	// This is another level of gross - we are relying on `consul` being on path
-	// and being the correct version but in general that is true under `make
-	// test`. We already make the same assumption for API package tests.
-	testSelfExecOverride = "consul"
+		// This is another level of gross - we are relying on `consul` being on path
+		// and being the correct version but in general that is true under `make
+		// test`. We already make the same assumption for API package tests.
+		testSelfExecOverride = "consul"
 
 		err := execEnvoy(
 			os.Args[0],
