@@ -396,6 +396,21 @@
         </ul>
       </li>
 
+      <li<%= sidebar_current("docs-configuration") %>>
+        <a href="/docs/configuration/index.html">Agent Configuration</a>
+        <ul class="nav">
+          <li<%= sidebar_current("docs-configuration-server") %>>
+            <a href="/docs/configuration/server.html">Server</a>
+          </li>
+          <li<%= sidebar_current("docs-configuration-acl") %>>
+            <a href="/docs/configuration/acl.html">ACLs</a>
+          </li>
+          <li<%= sidebar_current("docs-configuration-connect") %>>
+            <a href="/docs/configuration/connect.html">Connect</a>
+          </li>
+        </ul>
+      </li>
+
       <li<%= sidebar_current("docs-agent") %>>
         <a href="/docs/agent/basics.html">Agent</a>
         <ul class="nav">
@@ -404,9 +419,6 @@
           </li>
           <li<%= sidebar_current("docs-agent-dns") %>>
             <a href="/docs/agent/dns.html">DNS Interface</a>
-          </li>
-          <li<%= sidebar_current("docs-agent-config") %>>
-            <a href="/docs/agent/options.html">Configuration</a>
           </li>
           <li<%= sidebar_current("docs-agent-cfg_entries") %>>
             <a href="/docs/agent/config_entries.html">Configuration Entries</a>
