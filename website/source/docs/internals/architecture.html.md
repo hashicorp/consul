@@ -39,9 +39,7 @@ participating in the Raft quorum, maintaining cluster state, responding to RPC q
 exchanging WAN gossip with other datacenters, and forwarding queries to leaders or
 remote datacenters.
 
-* Datacenter - While the definition of a datacenter seems obvious, there are subtle details
-that must be considered. For example, in EC2, are multiple availability zones considered
-to comprise a single datacenter? We define a datacenter to be a networking environment that is
+* Datacenter - We define a datacenter to be a networking environment that is
 private, low latency, and high bandwidth. This excludes communication that would traverse
 the public internet, but for our purposes multiple availability zones within a single EC2
 region would be considered part of a single datacenter.
