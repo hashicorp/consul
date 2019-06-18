@@ -231,15 +231,15 @@ type RuntimeConfig struct {
 	// records for both UDP and TCP queries.
 	//
 	// This is not normally useful and will be limited based on the querying
-	// protocol, however systems that implemented §6 Rule 9 in RFC3484
-	// may want to set this to `1` in order to subvert §6 Rule 9 and
+	// protocol, however systems that implemented ÃÂ§6 Rule 9 in RFC3484
+	// may want to set this to `1` in order to subvert ÃÂ§6 Rule 9 and
 	// re-obtain the effect of randomized resource records (i.e. each
 	// answer contains only one IP, but the IP changes every request).
 	// RFC3484 sorts answers in a deterministic order, which defeats the
 	// purpose of randomized DNS responses.  This RFC has been obsoleted
 	// by RFC6724 and restores the desired behavior of randomized
 	// responses, however a large number of Linux hosts using glibc(3)
-	// implemented §6 Rule 9 and may need this option (e.g. CentOS 5-6,
+	// implemented ÃÂ§6 Rule 9 and may need this option (e.g. CentOS 5-6,
 	// Debian Squeeze, etc).
 	//
 	// hcl: dns_config { a_record_limit = int }
@@ -519,8 +519,8 @@ type RuntimeConfig struct {
 	// If entries of the same Kind/Name exist already these will not update them.
 	ConfigEntryBootstrap []structs.ConfigEntry
 
-	// AutoEncryptTLS enables the client to request TLS certificates from
-	// the server.
+	// AutoEncryptTLS requires the client to acquire TLS certificates from
+	// servers.
 	AutoEncryptTLS bool
 
 	// AutoEncryptAllowTLS enables the server to respond to

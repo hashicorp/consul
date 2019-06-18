@@ -387,10 +387,10 @@ RETRY_GET:
 // entryKey returns the key for the entry in the cache. See the note
 // about the entry key format in the structure docs for Cache.
 func (c *Cache) entryKey(t string, r *RequestInfo) string {
-	return entryKey(t, r.Datacenter, r.Token, r.Key)
+	return makeEntryKey(t, r.Datacenter, r.Token, r.Key)
 }
 
-func entryKey(t, dc, token, key string) string {
+func makeEntryKey(t, dc, token, key string) string {
 	return fmt.Sprintf("%s/%s/%s/%s", t, dc, token, key)
 }
 
@@ -763,7 +763,7 @@ func (c *Cache) Prepopulate(t string, res FetchResult, dc, token, k string) erro
 	if !ok {
 		return fmt.Errorf("unknown type in cache: %s", t)
 	}
-	key := entryKey(t, dc, token, k)
+	key := makeEntryKey(t, dc, token, k)
 	newEntry := cacheEntry{
 		Valid: true, Value: res.Value, State: res.State, Index: res.Index,
 		FetchedAt: time.Now(), Waiter: make(chan struct{}),

@@ -299,14 +299,13 @@ func New(c *config.RuntimeConfig, logger *log.Logger) (*Agent, error) {
 		InterruptStartCh: make(chan struct{}),
 		endpoints:        make(map[string]string),
 		tokens:           new(token.Store),
+		logger:           logger,
 	}
 	a.serviceManager = NewServiceManager(a)
 
 	if err := a.initializeACLs(); err != nil {
 		return nil, err
 	}
-
-	a.logger = logger
 
 	// Retrieve or generate the node ID before setting up the rest of the
 	// agent, which depends on it.
@@ -437,9 +436,8 @@ func (a *Agent) Start() error {
 	a.registerCache()
 
 	if a.config.AutoEncryptTLS && !a.config.ServerMode {
-		var reply *structs.SignResponse
-		var err error
-		if reply, err = a.setupClientAutoEncrypt(); err != nil {
+		reply, err := a.setupClientAutoEncrypt()
+		if err != nil {
 			return fmt.Errorf("AutoEncrypt failed: %s", err)
 		}
 		if err = a.setupClientAutoEncryptWatching(reply); err != nil {
@@ -557,7 +555,7 @@ func (a *Agent) setupClientAutoEncrypt() (*structs.SignResponse, error) {
 	}
 	addrs = append(addrs, retryJoinAddrs(disco, "LAN", a.config.RetryJoinLAN, a.logger)...)
 
-	reply, priv, err := client.AutoEncrypt(addrs, a.config.ServerPort, a.tokens.AgentToken(), a.InterruptStartCh)
+	reply, priv, err := client.RequestAutoEncryptCerts(addrs, a.config.ServerPort, a.tokens.AgentToken(), a.InterruptStartCh)
 	if err != nil {
 		return nil, err
 	}

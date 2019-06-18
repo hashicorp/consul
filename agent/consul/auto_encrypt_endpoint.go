@@ -33,17 +33,17 @@ func (a *AutoEncrypt) Sign(
 	c := &ConnectCA{srv: a.srv}
 
 	rootsArgs := &structs.DCSpecificRequest{Datacenter: args.Datacenter}
-	roots := &structs.IndexedCARoots{}
-	err := c.Roots(rootsArgs, roots)
+	roots := structs.IndexedCARoots{}
+	err := c.Roots(rootsArgs, &roots)
 
-	cert := &structs.IssuedCert{}
-	err = c.Sign(args, cert)
+	cert := structs.IssuedCert{}
+	err = c.Sign(args, &cert)
 	if err != nil {
 		return err
 	}
 
-	reply.IssuedCert = *cert
-	reply.ConnectCARoots = *roots
+	reply.IssuedCert = cert
+	reply.ConnectCARoots = roots
 	reply.ManualCARoots = a.srv.tlsConfigurator.ManualCAPems()
 	reply.VerifyServerHostname = a.srv.tlsConfigurator.VerifyServerHostname()
 

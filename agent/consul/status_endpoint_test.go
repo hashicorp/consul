@@ -31,11 +31,11 @@ func insecureRPCClient(s *Server, c tlsutil.Config) (rpc.ClientCodec, error) {
 	if err != nil {
 		return nil, err
 	}
-	wrap := configurator.OutgoingRPCWrapper()
-	if wrap == nil {
+	wrapper := configurator.OutgoingRPCWrapper()
+	if wrapper == nil {
 		return nil, err
 	}
-	conn, _, err := pool.DialTimeoutWithRPCType(s.config.Datacenter, addr, nil, time.Second, true, wrap, pool.RPCTLSInsecure)
+	conn, _, err := pool.DialTimeoutWithRPCType(s.config.Datacenter, addr, nil, time.Second, true, wrapper, pool.RPCTLSInsecure)
 	if err != nil {
 		return nil, err
 	}

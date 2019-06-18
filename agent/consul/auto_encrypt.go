@@ -18,7 +18,7 @@ const (
 	retryJitterWindow = 30 * time.Second
 )
 
-func (c *Client) AutoEncrypt(servers []string, port int, token string, interruptCh chan struct{}) (*structs.SignResponse, string, error) {
+func (c *Client) RequestAutoEncryptCerts(servers []string, port int, token string, interruptCh chan struct{}) (*structs.SignResponse, string, error) {
 	errFn := func(err error) (*structs.SignResponse, string, error) {
 		return nil, "", err
 	}
@@ -117,7 +117,7 @@ func resolveAddr(rawHost string, logger *log.Logger) ([]net.IP, error) {
 	// hosts to join. If this fails it's not fatal since this isn't a standard
 	// way to query DNS, and we have a fallback below.
 	if ips, err := tcpLookupIP(host, logger); err != nil {
-		logger.Printf("[DEBUG] memberlist: TCP-first lookup failed for '%s', falling back to UDP: %s", host, err)
+		logger.Printf("[DEBUG] agent: TCP-first lookup failed for '%s', falling back to UDP: %s", host, err)
 	} else if len(ips) > 0 {
 		return ips, nil
 	}
@@ -173,7 +173,7 @@ func tcpLookupIP(host string, logger *log.Logger) ([]net.IP, error) {
 			case (*dns.AAAA):
 				ips = append(ips, rr.AAAA)
 			case (*dns.CNAME):
-				logger.Printf("[DEBUG] memberlist: Ignoring CNAME RR in TCP-first answer for '%s'", host)
+				logger.Printf("[DEBUG] agent: Ignoring CNAME RR in TCP-first answer for '%s'", host)
 			}
 		}
 		return ips, nil
