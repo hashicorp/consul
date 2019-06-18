@@ -1358,6 +1358,14 @@ func (d *DirEntry) Clone() *DirEntry {
 	}
 }
 
+func (d *DirEntry) Equal(o *DirEntry) bool {
+	return d.LockIndex == o.LockIndex &&
+		d.Key == o.Key &&
+		d.Flags == o.Flags &&
+		bytes.Equal(d.Value, o.Value) &&
+		d.Session == o.Session
+}
+
 type DirEntries []*DirEntry
 
 // KVSRequest is used to operate on the Key-Value store
