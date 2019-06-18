@@ -6,6 +6,35 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
+type MeshGatewayMode string
+
+const (
+	// MeshGatewayModeDefault represents no specific mode and should
+	// be used to indicate that a different layer of the configuration
+	// chain should take precedence
+	MeshGatewayModeDefault MeshGatewayMode = ""
+
+	// MeshGatewayModeNone represents that the Upstream Connect connections
+	// should be direct and not flow through a mesh gateway.
+	MeshGatewayModeNone MeshGatewayMode = "none"
+
+	// MeshGatewayModeLocal represents that the Upstrea Connect connections
+	// should be made to a mesh gateway in the local datacenter. This is
+	MeshGatewayModeLocal MeshGatewayMode = "local"
+
+	// MeshGatewayModeRemote represents that the Upstream Connect connections
+	// should be made to a mesh gateway in a remote datacenter.
+	MeshGatewayModeRemote MeshGatewayMode = "remote"
+)
+
+// MeshGatewayConfig controls how Mesh Gateways are configured and used
+// This is a struct to allow for future additions without having more free-hanging
+// configuration items all over the place
+type MeshGatewayConfig struct {
+	// The Mesh Gateway routing mode
+	Mode MeshGatewayMode `json:",omitempty"`
+}
+
 // ConnectProxyConfig describes the configuration needed for any proxy managed
 // or unmanaged. It describes a single logical service's listener and optionally
 // upstreams and sidecar-related config for a single instance. To describe a
@@ -43,6 +72,9 @@ type ConnectProxyConfig struct {
 	// Upstreams describes any upstream dependencies the proxy instance should
 	// setup.
 	Upstreams Upstreams `json:",omitempty"`
+
+	// MeshGateway defines the mesh gateway configuration for this upstream
+	MeshGateway MeshGatewayConfig `json:",omitempty"`
 }
 
 // ToAPI returns the api struct with the same fields. We have duplicates to
@@ -122,6 +154,9 @@ type Upstream struct {
 	// It can be used to pass arbitrary configuration for this specific upstream
 	// to the proxy.
 	Config map[string]interface{} `bexpr:"-"`
+
+	// MeshGateway is the configuration for mesh gateway usage of this upstream
+	MeshGateway MeshGatewayConfig `json:",omitempty"`
 }
 
 // Validate sanity checks the struct is valid

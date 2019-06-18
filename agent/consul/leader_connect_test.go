@@ -229,11 +229,9 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 func TestLeader_SecondaryCA_TransitionFromPrimary(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
-
 	// Initialize dc1 as the primary DC
 	id1, err := uuid.GenerateUUID()
-	require.NoError(err)
+	require.NoError(t, err)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.CAConfig.ClusterID = id1
@@ -246,7 +244,7 @@ func TestLeader_SecondaryCA_TransitionFromPrimary(t *testing.T) {
 
 	// dc2 as a primary DC initially
 	id2, err := uuid.GenerateUUID()
-	require.NoError(err)
+	require.NoError(t, err)
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc2"
@@ -260,8 +258,8 @@ func TestLeader_SecondaryCA_TransitionFromPrimary(t *testing.T) {
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 	args := structs.DCSpecificRequest{Datacenter: "dc2"}
 	var dc2PrimaryRoots structs.IndexedCARoots
-	require.NoError(s2.RPC("ConnectCA.Roots", &args, &dc2PrimaryRoots))
-	require.Len(dc2PrimaryRoots.Roots, 1)
+	require.NoError(t, s2.RPC("ConnectCA.Roots", &args, &dc2PrimaryRoots))
+	require.Len(t, dc2PrimaryRoots.Roots, 1)
 
 	// Set the ExternalTrustDomain to a blank string to simulate an old version (pre-1.4.0)
 	// it's fine to change the roots struct directly here because the RPC endpoint already
@@ -274,7 +272,7 @@ func TestLeader_SecondaryCA_TransitionFromPrimary(t *testing.T) {
 		Roots:      dc2PrimaryRoots.Roots,
 	}
 	resp, err := s2.raftApply(structs.ConnectCARequestType, rootSetArgs)
-	require.NoError(err)
+	require.NoError(t, err)
 	if respErr, ok := resp.(error); ok {
 		t.Fatal(respErr)
 	}
@@ -296,38 +294,40 @@ func TestLeader_SecondaryCA_TransitionFromPrimary(t *testing.T) {
 	testrpc.WaitForLeader(t, s3.RPC, "dc2")
 
 	// Verify the secondary has migrated its TrustDomain and added the new primary's root.
-	args = structs.DCSpecificRequest{Datacenter: "dc1"}
-	var dc1Roots structs.IndexedCARoots
-	require.NoError(s1.RPC("ConnectCA.Roots", &args, &dc1Roots))
-	require.Len(dc1Roots.Roots, 1)
+	retry.Run(t, func(r *retry.R) {
+		args = structs.DCSpecificRequest{Datacenter: "dc1"}
+		var dc1Roots structs.IndexedCARoots
+		require.NoError(r, s1.RPC("ConnectCA.Roots", &args, &dc1Roots))
+		require.Len(r, dc1Roots.Roots, 1)
 
-	args = structs.DCSpecificRequest{Datacenter: "dc2"}
-	var dc2SecondaryRoots structs.IndexedCARoots
-	require.NoError(s3.RPC("ConnectCA.Roots", &args, &dc2SecondaryRoots))
+		args = structs.DCSpecificRequest{Datacenter: "dc2"}
+		var dc2SecondaryRoots structs.IndexedCARoots
+		require.NoError(r, s3.RPC("ConnectCA.Roots", &args, &dc2SecondaryRoots))
 
-	// dc2's TrustDomain should have changed to the primary's
-	require.Equal(dc2SecondaryRoots.TrustDomain, dc1Roots.TrustDomain)
-	require.NotEqual(dc2SecondaryRoots.TrustDomain, dc2PrimaryRoots.TrustDomain)
+		// dc2's TrustDomain should have changed to the primary's
+		require.Equal(r, dc2SecondaryRoots.TrustDomain, dc1Roots.TrustDomain)
+		require.NotEqual(r, dc2SecondaryRoots.TrustDomain, dc2PrimaryRoots.TrustDomain)
 
-	// Both roots should be present and correct
-	require.Len(dc2SecondaryRoots.Roots, 2)
-	var oldSecondaryRoot *structs.CARoot
-	var newSecondaryRoot *structs.CARoot
-	if dc2SecondaryRoots.Roots[0].ID == dc2PrimaryRoots.Roots[0].ID {
-		oldSecondaryRoot = dc2SecondaryRoots.Roots[0]
-		newSecondaryRoot = dc2SecondaryRoots.Roots[1]
-	} else {
-		oldSecondaryRoot = dc2SecondaryRoots.Roots[1]
-		newSecondaryRoot = dc2SecondaryRoots.Roots[0]
-	}
+		// Both roots should be present and correct
+		require.Len(r, dc2SecondaryRoots.Roots, 2)
+		var oldSecondaryRoot *structs.CARoot
+		var newSecondaryRoot *structs.CARoot
+		if dc2SecondaryRoots.Roots[0].ID == dc2PrimaryRoots.Roots[0].ID {
+			oldSecondaryRoot = dc2SecondaryRoots.Roots[0]
+			newSecondaryRoot = dc2SecondaryRoots.Roots[1]
+		} else {
+			oldSecondaryRoot = dc2SecondaryRoots.Roots[1]
+			newSecondaryRoot = dc2SecondaryRoots.Roots[0]
+		}
 
-	// The old root should have its TrustDomain filled in as the old domain.
-	require.Equal(oldSecondaryRoot.ExternalTrustDomain, strings.TrimSuffix(dc2PrimaryRoots.TrustDomain, ".consul"))
+		// The old root should have its TrustDomain filled in as the old domain.
+		require.Equal(r, oldSecondaryRoot.ExternalTrustDomain, strings.TrimSuffix(dc2PrimaryRoots.TrustDomain, ".consul"))
 
-	require.Equal(oldSecondaryRoot.ID, dc2PrimaryRoots.Roots[0].ID)
-	require.Equal(oldSecondaryRoot.RootCert, dc2PrimaryRoots.Roots[0].RootCert)
-	require.Equal(newSecondaryRoot.ID, dc1Roots.Roots[0].ID)
-	require.Equal(newSecondaryRoot.RootCert, dc1Roots.Roots[0].RootCert)
+		require.Equal(r, oldSecondaryRoot.ID, dc2PrimaryRoots.Roots[0].ID)
+		require.Equal(r, oldSecondaryRoot.RootCert, dc2PrimaryRoots.Roots[0].RootCert)
+		require.Equal(r, newSecondaryRoot.ID, dc1Roots.Roots[0].ID)
+		require.Equal(r, newSecondaryRoot.RootCert, dc1Roots.Roots[0].RootCert)
+	})
 }
 
 func TestLeader_SecondaryCA_UpgradeBeforePrimary(t *testing.T) {
@@ -665,6 +665,7 @@ func TestLeader_ReplicateIntentions_forwardToPrimary(t *testing.T) {
 	actual.CreateIndex, actual.ModifyIndex = 0, 0
 	actual.CreatedAt = ixn.Intention.CreatedAt
 	actual.UpdatedAt = ixn.Intention.UpdatedAt
+	actual.Hash = ixn.Intention.Hash
 	ixn.Intention.UpdatePrecedence()
 	assert.Equal(ixn.Intention, actual)
 

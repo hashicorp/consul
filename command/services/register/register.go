@@ -23,6 +23,7 @@ type cmd struct {
 	help  string
 
 	// flags
+	flagKind            string
 	flagId              string
 	flagName            string
 	flagAddress         string
@@ -52,6 +53,7 @@ func (c *cmd) init() {
 	c.flags.Var((*flags.FlagMapValue)(&c.flagTaggedAddresses), "tagged-address",
 		"Tagged address to set on the service, formatted as key=value. This flag "+
 			"may be specified multiple times to set multiple addresses.")
+	c.flags.StringVar(&c.flagKind, "kind", "", "The services 'kind'")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -78,6 +80,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	svcs := []*api.AgentServiceRegistration{&api.AgentServiceRegistration{
+		Kind:            api.ServiceKind(c.flagKind),
 		ID:              c.flagId,
 		Name:            c.flagName,
 		Address:         c.flagAddress,

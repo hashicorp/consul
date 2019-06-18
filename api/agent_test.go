@@ -1574,7 +1574,7 @@ func TestAPI_AgentConnectProxyConfig(t *testing.T) {
 		ProxyServiceID:    "foo-proxy",
 		TargetServiceID:   "foo",
 		TargetServiceName: "foo",
-		ContentHash:       "acdf5eb6f5794a14",
+		ContentHash:       "b58a7e24130d3058",
 		ExecMode:          "daemon",
 		Command:           []string{"consul", "connect", "proxy"},
 		Config: map[string]interface{}{
@@ -1721,4 +1721,35 @@ func TestAgentService_JSON_OmitTaggedAdddresses(t *testing.T) {
 			require.NotContains(t, raw, "tagged_addresses")
 		})
 	}
+}
+
+func TestAgentService_Register_MeshGateway(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	reg := AgentServiceRegistration{
+		Kind:    ServiceKindMeshGateway,
+		Name:    "mesh-gateway",
+		Address: "10.1.2.3",
+		Port:    8443,
+		Proxy: &AgentServiceConnectProxyConfig{
+			Config: map[string]interface{}{
+				"foo": "bar",
+			},
+		},
+	}
+
+	err := agent.ServiceRegister(&reg)
+	require.NoError(t, err)
+
+	svc, _, err := agent.Service("mesh-gateway", nil)
+	require.NoError(t, err)
+	require.NotNil(t, svc)
+	require.Equal(t, ServiceKindMeshGateway, svc.Kind)
+	require.NotNil(t, svc.Proxy)
+	require.Contains(t, svc.Proxy.Config, "foo")
+	require.Equal(t, "bar", svc.Proxy.Config["foo"])
 }

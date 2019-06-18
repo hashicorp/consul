@@ -1,6 +1,9 @@
 package xds
 
 import (
+	"log"
+	"os"
+	"path"
 	"testing"
 
 	"github.com/mitchellh/copystructure"
@@ -10,7 +13,9 @@ import (
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoyendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
+	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	testinf "github.com/mitchellh/go-testing-interface"
 )
 
 func Test_makeLoadAssignment(t *testing.T) {
@@ -192,8 +197,73 @@ func Test_makeLoadAssignment(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := makeLoadAssignment(tt.clusterName, tt.endpoints)
+			got := makeLoadAssignment(tt.clusterName, tt.endpoints, "dc1")
 			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func Test_endpointsFromSnapshot(t *testing.T) {
+
+	tests := []struct {
+		name   string
+		create func(t testinf.T) *proxycfg.ConfigSnapshot
+		// Setup is called before the test starts. It is passed the snapshot from
+		// create func and is allowed to modify it in any way to setup the
+		// test input.
+		setup              func(snap *proxycfg.ConfigSnapshot)
+		overrideGoldenName string
+	}{
+		{
+			name:   "defaults",
+			create: proxycfg.TestConfigSnapshot,
+			setup:  nil, // Default snapshot
+		},
+		{
+			name:   "mesh-gateway",
+			create: proxycfg.TestConfigSnapshotMeshGateway,
+			setup:  nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require := require.New(t)
+
+			// Sanity check default with no overrides first
+			snap := tt.create(t)
+
+			// We need to replace the TLS certs with deterministic ones to make golden
+			// files workable. Note we don't update these otherwise they'd change
+			// golden files for every test case and so not be any use!
+			if snap.ConnectProxy.Leaf != nil {
+				snap.ConnectProxy.Leaf.CertPEM = golden(t, "test-leaf-cert", "")
+				snap.ConnectProxy.Leaf.PrivateKeyPEM = golden(t, "test-leaf-key", "")
+			}
+			if snap.Roots != nil {
+				snap.Roots.Roots[0].RootCert = golden(t, "test-root-cert", "")
+			}
+
+			if tt.setup != nil {
+				tt.setup(snap)
+			}
+
+			// Need server just for logger dependency
+			s := Server{Logger: log.New(os.Stderr, "", log.LstdFlags)}
+
+			endpoints, err := s.endpointsFromSnapshot(snap, "my-token")
+			require.NoError(err)
+			r, err := createResponse(EndpointType, "00000001", "00000001", endpoints)
+			require.NoError(err)
+
+			gotJSON := responseToJSON(t, r)
+
+			gName := tt.name
+			if tt.overrideGoldenName != "" {
+				gName = tt.overrideGoldenName
+			}
+
+			require.JSONEq(golden(t, path.Join("endpoints", gName), gotJSON), gotJSON)
 		})
 	}
 }

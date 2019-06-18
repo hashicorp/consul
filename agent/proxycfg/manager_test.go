@@ -106,16 +106,19 @@ func TestManager_BasicLifecycle(t *testing.T) {
 	// We should see the initial config delivered but not until after the
 	// coalesce timeout
 	expectSnap := &ConfigSnapshot{
-		Kind:    structs.ServiceKindConnectProxy,
-		ProxyID: webProxy.ID,
-		Address: webProxy.Address,
-		Port:    webProxy.Port,
-		Proxy:   webProxy.Proxy,
-		Roots:   roots,
-		Leaf:    leaf,
+		Kind:            structs.ServiceKindConnectProxy,
+		Service:         webProxy.Service,
+		ProxyID:         webProxy.ID,
+		Address:         webProxy.Address,
+		Port:            webProxy.Port,
+		Proxy:           webProxy.Proxy,
+		TaggedAddresses: make(map[string]structs.ServiceAddress),
+		Roots:           roots,
+		Leaf:            leaf,
 		UpstreamEndpoints: map[string]structs.CheckServiceNodes{
 			"db": TestUpstreamNodes(t),
 		},
+		Datacenter: "dc1",
 	}
 	start := time.Now()
 	assertWatchChanRecvs(t, wCh, expectSnap)

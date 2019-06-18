@@ -121,7 +121,7 @@ func (s *Store) caConfigTxn(tx *memdb.Txn, ws memdb.WatchSet) (uint64, *structs.
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed CA config lookup: %s", err)
 	}
-	
+
 	ws.Add(ch)
 
 	config, ok := c.(*structs.CAConfiguration)
@@ -194,7 +194,6 @@ func (s *Store) caSetConfigTxn(idx uint64, tx *memdb.Txn, config *structs.CAConf
 	}
 	config.ModifyIndex = idx
 
-	fmt.Printf("\n\nInserting CA Config: %#v", config)
 	if err := tx.Insert(caConfigTableName, config); err != nil {
 		return fmt.Errorf("failed updating CA config: %s", err)
 	}
@@ -279,7 +278,6 @@ func (s *Store) CARootActive(ws memdb.WatchSet) (uint64, *structs.CARoot, error)
 //
 // The first boolean result returns whether the transaction succeeded or not.
 func (s *Store) CARootSetCAS(idx, cidx uint64, rs []*structs.CARoot) (bool, error) {
-	fmt.Printf("\n\nSetting the CA Roots: idx: %d, cidx: %d - %#v\n", idx, cidx, rs)
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
@@ -327,7 +325,6 @@ func (s *Store) CARootSetCAS(idx, cidx uint64, rs []*structs.CARoot) (bool, erro
 
 	// Insert all
 	for _, r := range rs {
-		fmt.Printf("Inserting CA Root: %#v\n", r)
 		if err := tx.Insert(caRootTableName, r); err != nil {
 			return false, err
 		}
@@ -338,7 +335,6 @@ func (s *Store) CARootSetCAS(idx, cidx uint64, rs []*structs.CARoot) (bool, erro
 		return false, fmt.Errorf("failed updating index: %s", err)
 	}
 
-	fmt.Printf("\n\n")
 	tx.Commit()
 	return true, nil
 }
@@ -468,21 +464,21 @@ func (s *Store) CALeafSetIndex(index uint64) error {
 func (s *Store) CARootsAndConfig(ws memdb.WatchSet) (uint64, structs.CARoots, *structs.CAConfiguration, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	
+
 	confIdx, config, err := s.caConfigTxn(tx, ws)
 	if err != nil {
 		return 0, nil, nil, fmt.Errorf("failed CA config lookup: %v", err)
 	}
-	
+
 	rootsIdx, roots, err := s.caRootsTxn(tx, ws)
 	if err != nil {
 		return 0, nil, nil, fmt.Errorf("failed CA roots lookup: %v", err)
 	}
-	
+
 	idx := rootsIdx
 	if confIdx > idx {
 		idx = confIdx
 	}
-	
+
 	return idx, roots, config, nil
 }

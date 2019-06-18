@@ -27,6 +27,14 @@ type fieldConfigTest struct {
 	expected bexpr.FieldConfigurations
 }
 
+var expectedFieldConfigMeshGatewayConfig bexpr.FieldConfigurations = bexpr.FieldConfigurations{
+	"Mode": &bexpr.FieldConfiguration{
+		StructFieldName:     "Mode",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+	},
+}
+
 var expectedFieldConfigUpstreams bexpr.FieldConfigurations = bexpr.FieldConfigurations{
 	"DestinationType": &bexpr.FieldConfiguration{
 		StructFieldName:     "DestinationType",
@@ -58,6 +66,10 @@ var expectedFieldConfigUpstreams bexpr.FieldConfigurations = bexpr.FieldConfigur
 		CoerceFn:            bexpr.CoerceInt,
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
 	},
+	"MeshGateway": &bexpr.FieldConfiguration{
+		StructFieldName: "MeshGateway",
+		SubFields:       expectedFieldConfigMeshGatewayConfig,
+	},
 }
 
 var expectedFieldConfigConnectProxyConfig bexpr.FieldConfigurations = bexpr.FieldConfigurations{
@@ -85,6 +97,10 @@ var expectedFieldConfigConnectProxyConfig bexpr.FieldConfigurations = bexpr.Fiel
 		StructFieldName:     "Upstreams",
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchIsEmpty, bexpr.MatchIsNotEmpty},
 		SubFields:           expectedFieldConfigUpstreams,
+	},
+	"MeshGateway": &bexpr.FieldConfiguration{
+		StructFieldName: "MeshGateway",
+		SubFields:       expectedFieldConfigMeshGatewayConfig,
 	},
 }
 

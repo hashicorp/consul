@@ -277,7 +277,7 @@ type Server struct {
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
 
-	// State for enterprise leader logic
+	// State for multi-dc connect leader logic
 	connectLock    sync.RWMutex
 	connectEnabled bool
 	connectCh      chan struct{}

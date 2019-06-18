@@ -23,6 +23,11 @@ const (
 	// service proxies another service within Consul and speaks the connect
 	// protocol.
 	ServiceKindConnectProxy ServiceKind = "connect-proxy"
+
+	// ServiceKindMeshGateway is a Mesh Gateway for the Connect feature. This
+	// service will proxy connections based off the SNI header set by other
+	// connect proxies
+	ServiceKindMeshGateway ServiceKind = "mesh-gateway"
 )
 
 // ProxyExecMode is the execution mode for a managed Connect proxy.
@@ -120,12 +125,12 @@ type AgentServiceConnectProxy struct {
 // AgentServiceConnectProxyConfig is the proxy configuration in a connect-proxy
 // ServiceDefinition or response.
 type AgentServiceConnectProxyConfig struct {
-	DestinationServiceName string
+	DestinationServiceName string                 `json:",omitempty"`
 	DestinationServiceID   string                 `json:",omitempty"`
 	LocalServiceAddress    string                 `json:",omitempty"`
 	LocalServicePort       int                    `json:",omitempty"`
 	Config                 map[string]interface{} `json:",omitempty" bexpr:"-"`
-	Upstreams              []Upstream
+	Upstreams              []Upstream             `json:",omitempty"`
 }
 
 // AgentMember represents a cluster member known to the agent

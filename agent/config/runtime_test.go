@@ -3564,6 +3564,17 @@ func TestFullConfig(t *testing.T) {
 							}
 						]
 					}
+				},
+				{
+					"id": "kvVqbwSE",
+					"kind": "mesh-gateway",
+					"name": "gw-primary-dc",
+					"port": 27147,
+					"proxy": {
+						"config": {
+							"1CuJHVfw" : "Kzqsa7yc"
+						}
+					}
 				}
 			],
 			"session_ttl_min": "26627s",
@@ -4156,6 +4167,17 @@ func TestFullConfig(t *testing.T) {
 							},
 						]
 					}
+				},
+				{
+					id = "kvVqbwSE"
+					kind = "mesh-gateway"
+					name = "gw-primary-dc"
+					port = 27147
+					proxy {
+						config {
+							"1CuJHVfw" = "Kzqsa7yc"
+						}
+					}
 				}
 			]
 			session_ttl_min = "26627s"
@@ -4733,6 +4755,21 @@ func TestFullConfig(t *testing.T) {
 							LocalBindPort:        11884,
 							LocalBindAddress:     "127.24.88.0",
 						},
+					},
+				},
+				Weights: &structs.Weights{
+					Passing: 1,
+					Warning: 1,
+				},
+			},
+			{
+				ID:   "kvVqbwSE",
+				Kind: "mesh-gateway",
+				Name: "gw-primary-dc",
+				Port: 27147,
+				Proxy: &structs.ConnectProxyConfig{
+					Config: map[string]interface{}{
+						"1CuJHVfw": "Kzqsa7yc",
 					},
 				},
 				Weights: &structs.Weights{

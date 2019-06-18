@@ -20,6 +20,8 @@ const (
 	rootsWatchID                     = "roots"
 	leafWatchID                      = "leaf"
 	intentionsWatchID                = "intentions"
+	serviceListWatchID               = "service-list"
+	datacentersWatchID               = "datacenters"
 	serviceIDPrefix                  = string(structs.UpstreamDestTypeService) + ":"
 	preparedQueryIDPrefix            = string(structs.UpstreamDestTypePreparedQuery) + ":"
 	defaultPreparedQueryPollInterval = 30 * time.Second
@@ -38,12 +40,14 @@ type state struct {
 	ctx    context.Context
 	cancel func()
 
-	kind     structs.ServiceKind
-	proxyID  string
-	address  string
-	port     int
-	proxyCfg structs.ConnectProxyConfig
-	token    string
+	kind            structs.ServiceKind
+	service         string
+	proxyID         string
+	address         string
+	port            int
+	taggedAddresses map[string]structs.ServiceAddress
+	proxyCfg        structs.ConnectProxyConfig
+	token           string
 
 	ch     chan cache.UpdateEvent
 	snapCh chan ConfigSnapshot
@@ -58,8 +62,8 @@ type state struct {
 // The returned state needs it's required dependencies to be set before Watch
 // can be called.
 func newState(ns *structs.NodeService, token string) (*state, error) {
-	if ns.Kind != structs.ServiceKindConnectProxy {
-		return nil, errors.New("not a connect-proxy")
+	if ns.Kind != structs.ServiceKindConnectProxy && ns.Kind != structs.ServiceKindMeshGateway {
+		return nil, errors.New("not a connect-proxy or mesh-gateway")
 	}
 
 	// Copy the config map
@@ -72,13 +76,20 @@ func newState(ns *structs.NodeService, token string) (*state, error) {
 		return nil, errors.New("failed to copy proxy config")
 	}
 
+	taggedAddresses := make(map[string]structs.ServiceAddress)
+	for k, v := range ns.TaggedAddresses {
+		taggedAddresses[k] = v
+	}
+
 	return &state{
-		kind:     ns.Kind,
-		proxyID:  ns.ID,
-		address:  ns.Address,
-		port:     ns.Port,
-		proxyCfg: proxyCfg,
-		token:    token,
+		kind:            ns.Kind,
+		service:         ns.Service,
+		proxyID:         ns.ID,
+		address:         ns.Address,
+		port:            ns.Port,
+		taggedAddresses: taggedAddresses,
+		proxyCfg:        proxyCfg,
+		token:           token,
 		// 10 is fairly arbitrary here but allow for the 3 mandatory and a
 		// reasonable number of upstream watches to all deliver their initial
 		// messages in parallel without blocking the cache.Notify loops. It's not a
@@ -123,8 +134,43 @@ func (s *state) initWatches() error {
 	switch s.kind {
 	case structs.ServiceKindConnectProxy:
 		return s.initWatchesConnectProxy()
+	case structs.ServiceKindMeshGateway:
+		return s.initWatchesMeshGateway()
 	default:
 		return fmt.Errorf("Unsupported service kind")
+	}
+}
+
+func (s *state) watchConnectProxyService(correlationId string, service string, dc string, filter string, meshGatewayMode structs.MeshGatewayMode) error {
+	switch meshGatewayMode {
+	case structs.MeshGatewayModeRemote:
+		return s.cache.Notify(s.ctx, cachetype.InternalServiceDumpName, &structs.ServiceDumpRequest{
+			Datacenter:     dc,
+			QueryOptions:   structs.QueryOptions{Token: s.token},
+			ServiceKind:    structs.ServiceKindMeshGateway,
+			UseServiceKind: true,
+		}, correlationId, s.ch)
+	case structs.MeshGatewayModeLocal:
+		return s.cache.Notify(s.ctx, cachetype.InternalServiceDumpName, &structs.ServiceDumpRequest{
+			Datacenter:     s.source.Datacenter,
+			QueryOptions:   structs.QueryOptions{Token: s.token},
+			ServiceKind:    structs.ServiceKindMeshGateway,
+			UseServiceKind: true,
+		}, correlationId, s.ch)
+	default:
+		// This includes both the None and Default modes on purpose
+		return s.cache.Notify(s.ctx, cachetype.HealthServicesName, &structs.ServiceSpecificRequest{
+			Datacenter: dc,
+			QueryOptions: structs.QueryOptions{
+				Token:  s.token,
+				Filter: filter,
+			},
+			ServiceName: service,
+			Connect:     true,
+			// Note that Identifier doesn't type-prefix for service any more as it's
+			// the default and makes metrics and other things much cleaner. It's
+			// simpler for us if we have the type to make things unambiguous.
+		}, correlationId, s.ch)
 	}
 }
 
@@ -186,17 +232,14 @@ func (s *state) initWatchesConnectProxy() error {
 		case structs.UpstreamDestTypeService:
 			fallthrough
 		case "": // Treat unset as the default Service type
-			err = s.cache.Notify(s.ctx, cachetype.HealthServicesName, &structs.ServiceSpecificRequest{
-				Datacenter:   dc,
-				QueryOptions: structs.QueryOptions{Token: s.token},
-				ServiceName:  u.DestinationName,
-				Connect:      true,
-				// Note that Identifier doesn't type-prefix for service any more as it's
-				// the default and makes metrics and other things much cleaner. It's
-				// simpler for us if we have the type to make things unambiguous.
-			}, "upstream:"+serviceIDPrefix+u.Identifier(), s.ch)
+			meshGateway := structs.MeshGatewayModeNone
 
-			if err != nil {
+			// TODO (mesh-gateway)- maybe allow using a gateway within a datacenter at some point
+			if dc != s.source.Datacenter {
+				meshGateway = u.MeshGateway.Mode
+			}
+
+			if err := s.watchConnectProxyService("upstream:"+serviceIDPrefix+u.Identifier(), u.DestinationName, dc, "", meshGateway); err != nil {
 				return err
 			}
 
@@ -207,6 +250,43 @@ func (s *state) initWatchesConnectProxy() error {
 	return nil
 }
 
+// initWatchesMeshGateway sets up the watches needed based on the current mesh gateway registration
+func (s *state) initWatchesMeshGateway() error {
+	// Watch for root changes
+	err := s.cache.Notify(s.ctx, cachetype.ConnectCARootName, &structs.DCSpecificRequest{
+		Datacenter:   s.source.Datacenter,
+		QueryOptions: structs.QueryOptions{Token: s.token},
+	}, rootsWatchID, s.ch)
+	if err != nil {
+		return err
+	}
+
+	// Watch for all services
+	err = s.cache.Notify(s.ctx, cachetype.CatalogListServicesName, &structs.DCSpecificRequest{
+		Datacenter:   s.source.Datacenter,
+		QueryOptions: structs.QueryOptions{Token: s.token},
+	}, serviceListWatchID, s.ch)
+
+	if err != nil {
+		return err
+	}
+
+	// Eventually we will have to watch connect enable instances for each service as well as the
+	// destination services themselves but those notifications will be setup later. However we
+	// cannot setup those watches until we know what the services are. from the service list
+	// watch above
+
+	err = s.cache.Notify(s.ctx, cachetype.CatalogDatacentersName, &structs.DatacentersRequest{
+		QueryOptions: structs.QueryOptions{Token: s.token, MaxAge: 30 * time.Second},
+	}, datacentersWatchID, s.ch)
+
+	// Once we start getting notified about the datacenters we will setup watches on the
+	// gateways within those other datacenters. We cannot do that here because we don't
+	// know what they are yet.
+
+	return err
+}
+
 func (s *state) run() {
 	// Close the channel we return from Watch when we stop so consumers can stop
 	// watching and clean up their goroutines. It's important we do this here and
@@ -215,16 +295,25 @@ func (s *state) run() {
 	defer close(s.snapCh)
 
 	snap := ConfigSnapshot{
-		Kind:    s.kind,
-		ProxyID: s.proxyID,
-		Address: s.address,
-		Port:    s.port,
-		Proxy:   s.proxyCfg,
+		Kind:            s.kind,
+		Service:         s.service,
+		ProxyID:         s.proxyID,
+		Address:         s.address,
+		Port:            s.port,
+		TaggedAddresses: s.taggedAddresses,
+		Proxy:           s.proxyCfg,
+		Datacenter:      s.source.Datacenter,
 	}
 
 	switch s.kind {
 	case structs.ServiceKindConnectProxy:
-		snap.UpstreamEndpoints = make(map[string]structs.CheckServiceNodes)
+		snap.ConnectProxy.UpstreamEndpoints = make(map[string]structs.CheckServiceNodes)
+	case structs.ServiceKindMeshGateway:
+		snap.MeshGateway.WatchedServices = make(map[string]context.CancelFunc)
+		snap.MeshGateway.WatchedDatacenters = make(map[string]context.CancelFunc)
+		// TODO (mesh-gateway) - maybe reuse UpstreamEndpoints?
+		snap.MeshGateway.ServiceGroups = make(map[string]structs.CheckServiceNodes)
+		snap.MeshGateway.GatewayGroups = make(map[string]structs.CheckServiceNodes)
 	}
 
 	// This turns out to be really fiddly/painful by just using time.Timer.C
@@ -303,6 +392,8 @@ func (s *state) handleUpdate(u cache.UpdateEvent, snap *ConfigSnapshot) error {
 	switch s.kind {
 	case structs.ServiceKindConnectProxy:
 		return s.handleUpdateConnectProxy(u, snap)
+	case structs.ServiceKindMeshGateway:
+		return s.handleUpdateMeshGateway(u, snap)
 	default:
 		return fmt.Errorf("Unsupported service kind")
 	}
@@ -321,7 +412,7 @@ func (s *state) handleUpdateConnectProxy(u cache.UpdateEvent, snap *ConfigSnapsh
 		if !ok {
 			return fmt.Errorf("invalid type for leaf response: %T", u.Result)
 		}
-		snap.Leaf = leaf
+		snap.ConnectProxy.Leaf = leaf
 	case intentionsWatchID:
 		// Not in snapshot currently, no op
 	default:
@@ -333,7 +424,7 @@ func (s *state) handleUpdateConnectProxy(u cache.UpdateEvent, snap *ConfigSnapsh
 				return fmt.Errorf("invalid type for service response: %T", u.Result)
 			}
 			svc := strings.TrimPrefix(u.CorrelationID, "upstream:"+serviceIDPrefix)
-			snap.UpstreamEndpoints[svc] = resp.Nodes
+			snap.ConnectProxy.UpstreamEndpoints[svc] = resp.Nodes
 
 		case strings.HasPrefix(u.CorrelationID, "upstream:"+preparedQueryIDPrefix):
 			resp, ok := u.Result.(*structs.PreparedQueryExecuteResponse)
@@ -341,12 +432,138 @@ func (s *state) handleUpdateConnectProxy(u cache.UpdateEvent, snap *ConfigSnapsh
 				return fmt.Errorf("invalid type for prepared query response: %T", u.Result)
 			}
 			pq := strings.TrimPrefix(u.CorrelationID, "upstream:")
-			snap.UpstreamEndpoints[pq] = resp.Nodes
+			snap.ConnectProxy.UpstreamEndpoints[pq] = resp.Nodes
 
 		default:
 			return errors.New("unknown correlation ID")
 		}
 	}
+	return nil
+}
+
+func (s *state) handleUpdateMeshGateway(u cache.UpdateEvent, snap *ConfigSnapshot) error {
+	switch u.CorrelationID {
+	case rootsWatchID:
+		roots, ok := u.Result.(*structs.IndexedCARoots)
+		if !ok {
+			return fmt.Errorf("invalid type for roots response: %T", u.Result)
+		}
+		snap.Roots = roots
+	case serviceListWatchID:
+		services, ok := u.Result.(*structs.IndexedServices)
+		if !ok {
+			return fmt.Errorf("invalid type for services response: %T", u.Result)
+		}
+
+		for svcName := range services.Services {
+			if _, ok := snap.MeshGateway.WatchedServices[svcName]; !ok {
+				ctx, cancel := context.WithCancel(s.ctx)
+				err := s.cache.Notify(ctx, cachetype.HealthServicesName, &structs.ServiceSpecificRequest{
+					Datacenter:   s.source.Datacenter,
+					QueryOptions: structs.QueryOptions{Token: s.token},
+					ServiceName:  svcName,
+					Connect:      true,
+				}, fmt.Sprintf("connect-service:%s", svcName), s.ch)
+
+				if err != nil {
+					s.logger.Printf("[ERR] mesh-gateway: failed to register watch for connect-service:%s", svcName)
+					cancel()
+					return err
+				}
+
+				// TODO (mesh-gateway) also should watch the resolver config for the service here
+				snap.MeshGateway.WatchedServices[svcName] = cancel
+			}
+		}
+
+		for svcName, cancelFn := range snap.MeshGateway.WatchedServices {
+			if _, ok := services.Services[svcName]; !ok {
+				delete(snap.MeshGateway.WatchedServices, svcName)
+				cancelFn()
+			}
+		}
+	case datacentersWatchID:
+		datacentersRaw, ok := u.Result.(*[]string)
+		if !ok {
+			return fmt.Errorf("invalid type for datacenters response: %T", u.Result)
+		}
+		if datacentersRaw == nil {
+			return fmt.Errorf("invalid response with a nil datacenter list")
+		}
+
+		datacenters := *datacentersRaw
+
+		for _, dc := range datacenters {
+			if dc == s.source.Datacenter {
+				continue
+			}
+
+			if _, ok := snap.MeshGateway.WatchedDatacenters[dc]; !ok {
+				ctx, cancel := context.WithCancel(s.ctx)
+				err := s.cache.Notify(ctx, cachetype.InternalServiceDumpName, &structs.ServiceDumpRequest{
+					Datacenter:     dc,
+					QueryOptions:   structs.QueryOptions{Token: s.token},
+					ServiceKind:    structs.ServiceKindMeshGateway,
+					UseServiceKind: true,
+				}, fmt.Sprintf("mesh-gateway:%s", dc), s.ch)
+
+				if err != nil {
+					s.logger.Printf("[ERR] mesh-gateway: failed to register watch for mesh-gateway:%s", dc)
+					cancel()
+					return err
+				}
+
+				snap.MeshGateway.WatchedDatacenters[dc] = cancel
+			}
+		}
+
+		for dc, cancelFn := range snap.MeshGateway.WatchedDatacenters {
+			found := false
+			for _, dcCurrent := range datacenters {
+				if dcCurrent == dc {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				delete(snap.MeshGateway.WatchedDatacenters, dc)
+				cancelFn()
+			}
+		}
+	default:
+		switch {
+		case strings.HasPrefix(u.CorrelationID, "connect-service:"):
+			resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
+			if !ok {
+				return fmt.Errorf("invalid type for service response: %T", u.Result)
+			}
+
+			svc := strings.TrimPrefix(u.CorrelationID, "connect-service:")
+
+			if len(resp.Nodes) > 0 {
+				snap.MeshGateway.ServiceGroups[svc] = resp.Nodes
+			} else if _, ok := snap.MeshGateway.ServiceGroups[svc]; ok {
+				delete(snap.MeshGateway.ServiceGroups, svc)
+			}
+		case strings.HasPrefix(u.CorrelationID, "mesh-gateway:"):
+			resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
+			if !ok {
+				return fmt.Errorf("invalid type for service response: %T", u.Result)
+			}
+
+			dc := strings.TrimPrefix(u.CorrelationID, "mesh-gateway:")
+
+			if len(resp.Nodes) > 0 {
+				snap.MeshGateway.GatewayGroups[dc] = resp.Nodes
+			} else if _, ok := snap.MeshGateway.GatewayGroups[dc]; ok {
+				delete(snap.MeshGateway.GatewayGroups, dc)
+			}
+		default:
+			// do nothing for now
+		}
+	}
+
 	return nil
 }
 

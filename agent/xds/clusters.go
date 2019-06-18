@@ -28,6 +28,8 @@ func (s *Server) clustersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token st
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
 		return s.clustersFromSnapshotConnectProxy(cfgSnap, token)
+	case structs.ServiceKindMeshGateway:
+		return s.clustersFromSnapshotMeshGateway(cfgSnap, token)
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
@@ -36,9 +38,6 @@ func (s *Server) clustersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token st
 // clustersFromSnapshot returns the xDS API representation of the "clusters"
 // (upstreams) in the snapshot.
 func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
-	if cfgSnap == nil {
-		return nil, errors.New("nil config given")
-	}
 	// Include the "app" cluster for the public listener
 	clusters := make([]proto.Message, len(cfgSnap.Proxy.Upstreams)+1)
 
@@ -53,6 +52,42 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	return clusters, nil
+}
+
+// clustersFromSnapshotMeshGateway returns the xDS API representation of the "clusters"
+// for a mesh gateway. This will include 1 cluster per remote datacenter as well as
+// 1 cluster for each service subset.
+func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
+	// TODO (mesh-gateway) will need to generate 1 cluster for each service subset as well.
+
+	// 1 cluster per remote dc + 1 cluster per local service
+	clusters := make([]proto.Message, len(cfgSnap.MeshGateway.GatewayGroups)+len(cfgSnap.MeshGateway.ServiceGroups))
+
+	var err error
+	idx := 0
+	// generate the remote dc clusters
+	for dc, _ := range cfgSnap.MeshGateway.GatewayGroups {
+		clusterName := DatacenterSNI(dc, cfgSnap)
+
+		clusters[idx], err = s.makeMeshGatewayCluster(clusterName, cfgSnap)
+		if err != nil {
+			return nil, err
+		}
+		idx += 1
+	}
+
+	// generate the per-service clusters
+	for svc, _ := range cfgSnap.MeshGateway.ServiceGroups {
+		clusterName := ServiceSNI(svc, "default", cfgSnap.Datacenter, cfgSnap)
+
+		clusters[idx], err = s.makeMeshGatewayCluster(clusterName, cfgSnap)
+		if err != nil {
+			return nil, err
+		}
+		idx += 1
 	}
 
 	return clusters, nil
@@ -108,6 +143,16 @@ func (s *Server) makeUpstreamCluster(upstream structs.Upstream, cfgSnap *proxycf
 	var c *envoy.Cluster
 	var err error
 
+	ns := "default"
+	if upstream.DestinationNamespace != "" {
+		ns = upstream.DestinationNamespace
+	}
+	dc := cfgSnap.Datacenter
+	if upstream.Datacenter != "" {
+		dc = upstream.Datacenter
+	}
+	sni := ServiceSNI(upstream.DestinationName, ns, dc, cfgSnap)
+
 	cfg, err := ParseUpstreamConfig(upstream.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
@@ -146,6 +191,7 @@ func (s *Server) makeUpstreamCluster(upstream structs.Upstream, cfgSnap *proxycf
 	// Enable TLS upstream with the configured client certificate.
 	c.TlsContext = &envoyauth.UpstreamTlsContext{
 		CommonTlsContext: makeCommonTLSContext(cfgSnap),
+		Sni:              sni,
 	}
 
 	return c, nil
@@ -195,4 +241,28 @@ func makeClusterFromUserConfig(configJSON string) (*envoy.Cluster, error) {
 	// No @type so try decoding as a straight listener.
 	err := jsonpb.UnmarshalString(configJSON, &c)
 	return &c, err
+}
+
+func (s *Server) makeMeshGatewayCluster(clusterName string, cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Cluster, error) {
+	cfg, err := ParseMeshGatewayConfig(cfgSnap.Proxy.Config)
+	if err != nil {
+		// Don't hard fail on a config typo, just warn. The parse func returns
+		// default config if there is an error so it's safe to continue.
+		s.Logger.Printf("[WARN] envoy: failed to parse mesh gateway config: %s", err)
+	}
+
+	return &envoy.Cluster{
+		Name:                 clusterName,
+		ConnectTimeout:       time.Duration(cfg.ConnectTimeoutMs) * time.Millisecond,
+		ClusterDiscoveryType: &envoy.Cluster_Type{Type: envoy.Cluster_EDS},
+		EdsClusterConfig: &envoy.Cluster_EdsClusterConfig{
+			EdsConfig: &envoycore.ConfigSource{
+				ConfigSourceSpecifier: &envoycore.ConfigSource_Ads{
+					Ads: &envoycore.AggregatedConfigSource{},
+				},
+			},
+		},
+		// Having an empty config enables outlier detection with default config.
+		OutlierDetection: &envoycluster.OutlierDetection{},
+	}, nil
 }

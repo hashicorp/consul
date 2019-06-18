@@ -560,6 +560,16 @@ type Node struct {
 
 	RaftIndex `bexpr:"-"`
 }
+
+func (n *Node) BestAddress(wan bool) string {
+	if wan {
+		if addr, ok := n.TaggedAddresses["wan"]; ok {
+			return addr
+		}
+	}
+	return n.Address
+}
+
 type Nodes []*Node
 
 // IsSame return whether nodes are similar without taking into account
@@ -757,6 +767,11 @@ const (
 	// service proxies another service within Consul and speaks the connect
 	// protocol.
 	ServiceKindConnectProxy ServiceKind = "connect-proxy"
+
+	// ServiceKindMeshGateway is a Mesh Gateway for the Connect feature. This
+	// service will proxy connections based off the SNI header set by other
+	// connect proxies
+	ServiceKindMeshGateway ServiceKind = "mesh-gateway"
 )
 
 func ServiceKindFromString(kind string) (ServiceKind, error) {
@@ -852,12 +867,28 @@ type NodeService struct {
 	RaftIndex `bexpr:"-"`
 }
 
+func (ns *NodeService) BestAddress(wan bool) (string, int) {
+	addr := ns.Address
+	port := ns.Port
+
+	if wan {
+		if wan, ok := ns.TaggedAddresses["wan"]; ok {
+			addr = wan.Address
+			if wan.Port != 0 {
+				port = wan.Port
+			}
+		}
+	}
+	return addr, port
+}
+
 // ServiceConnect are the shared Connect settings between all service
 // definitions from the agent to the state store.
 type ServiceConnect struct {
 	// Native is true when this service can natively understand Connect.
 	Native bool `json:",omitempty"`
 
+	// DEPRECATED(managed-proxies) - Remove with the rest of managed proxies
 	// Proxy configures a connect proxy instance for the service. This is
 	// only used for agent service definitions and is invalid for non-agent
 	// (catalog API) definitions.
@@ -876,6 +907,11 @@ type ServiceConnect struct {
 // IsSidecarProxy returns true if the NodeService is a sidecar proxy.
 func (s *NodeService) IsSidecarProxy() bool {
 	return s.Kind == ServiceKindConnectProxy && s.Proxy.DestinationServiceID != ""
+}
+
+func (s *NodeService) IsMeshGateway() bool {
+	// TODO (mesh-gateway) any other things to check?
+	return s.Kind == ServiceKindMeshGateway
 }
 
 // Validate validates the node service configuration.
@@ -910,6 +946,43 @@ func (s *NodeService) Validate() error {
 		if s.Connect.Native {
 			result = multierror.Append(result, fmt.Errorf(
 				"A Proxy cannot also be Connect Native, only typical services"))
+		}
+	}
+
+	// MeshGateway validation
+	if s.Kind == ServiceKindMeshGateway {
+		// Gateways must have a port
+		if s.Port == 0 {
+			result = multierror.Append(result, fmt.Errorf("Port must be non-zero for a Mesh Gateway"))
+		}
+
+		// Gateways cannot have sidecars
+		if s.Connect.SidecarService != nil {
+			result = multierror.Append(result, fmt.Errorf("Mesh Gateways cannot have a sidecar service defined"))
+		}
+
+		if s.Connect.Proxy != nil {
+			result = multierror.Append(result, fmt.Errorf("The Connect.Proxy configuration is invalid for Mesh Gateways"))
+		}
+
+		if s.Proxy.DestinationServiceName != "" {
+			result = multierror.Append(result, fmt.Errorf("The Proxy.DestinationServiceName configuration is invalid for Mesh Gateways"))
+		}
+
+		if s.Proxy.DestinationServiceID != "" {
+			result = multierror.Append(result, fmt.Errorf("The Proxy.DestinationServiceID configuration is invalid for Mesh Gateways"))
+		}
+
+		if s.Proxy.LocalServiceAddress != "" {
+			result = multierror.Append(result, fmt.Errorf("The Proxy.LocalServiceAddress configuration is invalid for Mesh Gateways"))
+		}
+
+		if s.Proxy.LocalServicePort != 0 {
+			result = multierror.Append(result, fmt.Errorf("The Proxy.LocalServicePort configuration is invalid for Mesh Gateways"))
+		}
+
+		if len(s.Proxy.Upstreams) != 0 {
+			result = multierror.Append(result, fmt.Errorf("The Proxy.Upstreams configuration is invalid for Mesh Gateways"))
 		}
 	}
 
@@ -1166,6 +1239,28 @@ type CheckServiceNode struct {
 	Service *NodeService
 	Checks  HealthChecks
 }
+
+func (csn *CheckServiceNode) BestAddress(wan bool) (string, int) {
+	// TODO (mesh-gateway) needs a test
+	// best address
+	// wan
+	//   wan svc addr
+	//   svc addr
+	//   wan node addr
+	//   node addr
+	// lan
+	//   svc addr
+	//   node addr
+
+	addr, port := csn.Service.BestAddress(wan)
+
+	if addr == "" {
+		addr = csn.Node.BestAddress(wan)
+	}
+
+	return addr, port
+}
+
 type CheckServiceNodes []CheckServiceNode
 
 // Shuffle does an in-place random shuffle using the Fisher-Yates algorithm.

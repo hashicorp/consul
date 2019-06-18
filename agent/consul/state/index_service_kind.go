@@ -9,7 +9,9 @@ import (
 
 // IndexServiceKind indexes a *struct.ServiceNode for querying by
 // the services kind. We need a custom indexer because of the default
-// kind being the empty string
+// kind being the empty string. The StringFieldIndex in memdb seems to
+// treate the empty string as missing and doesn't work correctly when we actually
+// want to index ""
 type IndexServiceKind struct{}
 
 func (idx *IndexServiceKind) FromObject(obj interface{}) (bool, []byte, error) {

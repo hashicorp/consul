@@ -46,9 +46,11 @@ type ConfigEntry interface {
 // ServiceConfiguration is the top-level struct for the configuration of a service
 // across the entire cluster.
 type ServiceConfigEntry struct {
-	Kind     string
-	Name     string
-	Protocol string
+	Kind        string
+	Name        string
+	Protocol    string
+	MeshGateway MeshGatewayConfig `json:",omitempty"`
+
 	// TODO(banks): enable this once we have upstreams supported too. Enabling
 	// sidecars actually makes no sense and adds complications when you don't
 	// allow upstreams to be specified centrally too.
@@ -111,9 +113,10 @@ type ConnectConfiguration struct {
 
 // ProxyConfigEntry is the top-level struct for global proxy configuration defaults.
 type ProxyConfigEntry struct {
-	Kind   string
-	Name   string
-	Config map[string]interface{}
+	Kind        string
+	Name        string
+	Config      map[string]interface{}
+	MeshGateway MeshGatewayConfig `json:",omitempty"`
 
 	RaftIndex
 }
@@ -231,6 +234,8 @@ func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 		"connect":       "Connect",
 		"sidecar_proxy": "SidecarProxy",
 		"protocol":      "Protocol",
+		"mesh_gateway":  "MeshGateway",
+		"mode":          "Mode",
 		"Config":        "",
 	})
 
@@ -431,6 +436,7 @@ func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {
 type ServiceConfigResponse struct {
 	ProxyConfig     map[string]interface{}
 	UpstreamConfigs map[string]map[string]interface{}
+	MeshGateway     MeshGatewayConfig `json:",omitempty"`
 	QueryMeta
 }
 

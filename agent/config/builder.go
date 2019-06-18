@@ -1295,6 +1295,8 @@ func (b *Builder) serviceKindVal(v *string) structs.ServiceKind {
 	switch *v {
 	case string(structs.ServiceKindConnectProxy):
 		return structs.ServiceKindConnectProxy
+	case string(structs.ServiceKindMeshGateway):
+		return structs.ServiceKindMeshGateway
 	default:
 		return structs.ServiceKindTypical
 	}

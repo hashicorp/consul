@@ -32,6 +32,7 @@ func TestAPI_ConnectIntentionCreateListGetUpdateDelete(t *testing.T) {
 	ixn.UpdatedAt = actual.UpdatedAt
 	ixn.CreateIndex = actual.CreateIndex
 	ixn.ModifyIndex = actual.ModifyIndex
+	ixn.Hash = actual.Hash
 	require.Equal(ixn, actual)
 
 	// Get it
@@ -49,6 +50,7 @@ func TestAPI_ConnectIntentionCreateListGetUpdateDelete(t *testing.T) {
 	require.NoError(err)
 	ixn.UpdatedAt = actual.UpdatedAt
 	ixn.ModifyIndex = actual.ModifyIndex
+	ixn.Hash = actual.Hash
 	require.Equal(ixn, actual)
 
 	// Delete it

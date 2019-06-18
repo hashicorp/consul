@@ -28,10 +28,39 @@ type ConfigEntry interface {
 	GetModifyIndex() uint64
 }
 
+type MeshGatewayMode string
+
+const (
+	// MeshGatewayModeDefault represents no specific mode and should
+	// be used to indicate that a different layer of the configuration
+	// chain should take precedence
+	MeshGatewayModeDefault MeshGatewayMode = ""
+
+	// MeshGatewayModeNone represents that the Upstream Connect connections
+	// should be direct and not flow through a mesh gateway.
+	MeshGatewayModeNone MeshGatewayMode = "none"
+
+	// MeshGatewayModeLocal represents that the Upstrea Connect connections
+	// should be made to a mesh gateway in the local datacenter. This is
+	MeshGatewayModeLocal MeshGatewayMode = "local"
+
+	// MeshGatewayModeRemote represents that the Upstream Connect connections
+	// should be made to a mesh gateway in a remote datacenter.
+	MeshGatewayModeRemote MeshGatewayMode = "remote"
+)
+
+// MeshGatewayConfig controls how Mesh Gateways are used for upstream Connect
+// services
+type MeshGatewayConfig struct {
+	// Mode is the mode that should be used for the upstream connection.
+	Mode MeshGatewayMode
+}
+
 type ServiceConfigEntry struct {
 	Kind        string
 	Name        string
 	Protocol    string
+	MeshGateway MeshGatewayConfig
 	CreateIndex uint64
 	ModifyIndex uint64
 }
@@ -56,6 +85,7 @@ type ProxyConfigEntry struct {
 	Kind        string
 	Name        string
 	Config      map[string]interface{}
+	MeshGateway MeshGatewayConfig
 	CreateIndex uint64
 	ModifyIndex uint64
 }

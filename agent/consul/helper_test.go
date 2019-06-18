@@ -166,19 +166,15 @@ func waitForNewACLs(t *testing.T, server *Server) {
 	require.False(t, server.UseLegacyACLs(), "Server cannot use new ACLs")
 }
 
-func waitForNewACLReplication(t *testing.T, server *Server, expectedReplicationType structs.ACLReplicationType) {
-	var (
-		replTyp structs.ACLReplicationType
-		running bool
-	)
+func waitForNewACLReplication(t *testing.T, server *Server, expectedReplicationType structs.ACLReplicationType, minPolicyIndex, minTokenIndex, minRoleIndex uint64) {
 	retry.Run(t, func(r *retry.R) {
-		replTyp, running = server.getACLReplicationStatusRunningType()
-		require.Equal(r, expectedReplicationType, replTyp, "Server not running new replicator yet")
-		require.True(r, running, "Server not running new replicator yet")
+		status := server.getACLReplicationStatus()
+		require.Equal(r, expectedReplicationType, status.ReplicationType, "Server not running new replicator yet")
+		require.True(r, status.Running, "Server not running new replicator yet")
+		require.True(r, status.ReplicatedIndex >= minPolicyIndex, "Server hasn't replicated enough policies")
+		require.True(r, status.ReplicatedTokenIndex >= minTokenIndex, "Server hasn't replicated enough tokens")
+		require.True(r, status.ReplicatedRoleIndex >= minRoleIndex, "Server hasn't replicated enough roles")
 	})
-
-	require.Equal(t, expectedReplicationType, replTyp, "Server not running new replicator yet")
-	require.True(t, running, "Server not running new replicator yet")
 }
 
 func seeEachOther(a, b []serf.Member, addra, addrb string) bool {
@@ -496,7 +492,7 @@ func registerTestCatalogEntries(t *testing.T, codec rpc.ClientCodec) {
 	registerTestCatalogEntriesMap(t, codec, registrations)
 }
 
-func registerTestCatalogEntries2(t *testing.T, codec rpc.ClientCodec) {
+func registerTestCatalogEntriesMeshGateway(t *testing.T, codec rpc.ClientCodec) {
 	t.Helper()
 
 	registrations := map[string]*structs.RegisterRequest{
@@ -513,7 +509,7 @@ func registerTestCatalogEntries2(t *testing.T, codec rpc.ClientCodec) {
 				Address: "198.18.1.4",
 			},
 		},
-		"Service rproxy": &structs.RegisterRequest{
+		"Service web-proxy": &structs.RegisterRequest{
 			Datacenter: "dc1",
 			Node:       "proxy",
 			ID:         types.NodeID("2d31602c-3291-4f94-842d-446bc2f945ce"),

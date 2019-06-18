@@ -182,6 +182,44 @@ func TestConfig_Apply(t *testing.T) {
 	}
 }
 
+func TestConfig_Apply_ProxyDefaultsMeshGateway(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	// Create some config entries.
+	body := bytes.NewBuffer([]byte(`
+	{
+		"Kind": "proxy-defaults",
+		"Name": "global",
+		"MeshGateway": {
+			"Mode": "local"
+		}
+	}`))
+
+	req, _ := http.NewRequest("PUT", "/v1/config", body)
+	resp := httptest.NewRecorder()
+	_, err := a.srv.ConfigApply(resp, req)
+	require.NoError(t, err)
+	require.Equal(t, 200, resp.Code, "!200 Response Code: %s", resp.Body.String())
+
+	// Get the remaining entry.
+	{
+		args := structs.ConfigEntryQuery{
+			Kind:       structs.ProxyDefaults,
+			Name:       "global",
+			Datacenter: "dc1",
+		}
+		var out structs.ConfigEntryResponse
+		require.NoError(t, a.RPC("ConfigEntry.Get", &args, &out))
+		require.NotNil(t, out.Entry)
+		entry := out.Entry.(*structs.ProxyConfigEntry)
+		require.Equal(t, structs.MeshGatewayModeLocal, entry.MeshGateway.Mode)
+	}
+}
+
 func TestConfig_Apply_CAS(t *testing.T) {
 	t.Parallel()
 

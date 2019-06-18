@@ -195,8 +195,10 @@ func buildAgentService(s *structs.NodeService, proxies map[string]*local.Managed
 	if as.Meta == nil {
 		as.Meta = map[string]string{}
 	}
-	// Attach Unmanaged Proxy config if exists
-	if s.Kind == structs.ServiceKindConnectProxy {
+	// Attach Proxy config if exists
+	if s.Kind == structs.ServiceKindConnectProxy ||
+		s.Kind == structs.ServiceKindMeshGateway {
+
 		as.Proxy = s.Proxy.ToAPI()
 		// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
 		// Also set the deprecated ProxyDestination
@@ -376,7 +378,9 @@ func (s *HTTPServer) AgentService(resp http.ResponseWriter, req *http.Request) (
 				}
 			}
 
-			if svc.Kind == structs.ServiceKindConnectProxy {
+			if svc.Kind == structs.ServiceKindConnectProxy ||
+				svc.Kind == structs.ServiceKindMeshGateway {
+
 				proxy = svc.Proxy.ToAPI()
 			}
 

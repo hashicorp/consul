@@ -496,7 +496,7 @@ func TestInternal_ServiceDump_Kind(t *testing.T) {
 
 	// prep the cluster with some data we can use in our filters
 	registerTestCatalogEntries(t, codec)
-	registerTestCatalogEntries2(t, codec)
+	registerTestCatalogEntriesMeshGateway(t, codec)
 
 	doRequest := func(t *testing.T, kind structs.ServiceKind) structs.CheckServiceNodes {
 		t.Helper()
