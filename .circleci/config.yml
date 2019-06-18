@@ -455,12 +455,13 @@ jobs:
             git_merge_branch="ci/master-merge-$(date +%Y%m%d%H%M%S)"
             git checkout -b "${git_merge_branch}"
             latest_oss_commit="$(git rev-parse origin/master)"
-            git merge -m "Merge Consul OSS branch 'master' at commit ${latest_oss_commit}" origin/master
+            git merge -m "Merge Consul OSS branch 'master' at commit ${latest_oss_commit}" "${latest_oss_commit}"
             git push origin "${git_merge_branch}"
             sleep 15  # Wait for merge branch to start CircleCI pipeline
 
             # Wait for OSS merge branch CircleCI pipeline to finish
-            project_url="https://circleci.com/api/v1.1/project/github/hashicorp/consul/tree/${git_merge_branch}"
+            # return shallow results for better performance
+            project_url="https://circleci.com/api/v1.1/project/github/hashicorp/consul/tree/${git_merge_branch}?shallow=true"
             echo "Waiting for master merge branch CI pipeline to finish..."
             builds=
             unfinished_builds="will be populated in the until loop below"
@@ -470,7 +471,6 @@ jobs:
                 --header 'Accept: application/json' \
                 --show-error \
                 --silent \
-                --user "${CIRCLECI_API_TOKEN}:" \
                 "${project_url}")"
               unfinished_builds="$(echo "${builds}" \
                 | jq --raw-output '.[] | select(.lifecycle!="finished") | .workflows.job_name')"
@@ -482,7 +482,7 @@ jobs:
             # Fail this job if the merge branch CI pipeline failed
             # unsuccessful_builds will be a multiline string variable with a line format of "  $job_name: $build_url"
             unsuccessful_builds="$(echo "${builds}" \
-              | jq --raw-output '.[] | select(.outcome!="success") | "  \(.workflows.job_name): \(.build_url)"')"
+              | jq --raw-output '.[] | select(.outcome!="success") | "\(.workflows.job_name): \(.build_url)"')"
             if [[ -n "${unsuccessful_builds}" ]]; then
               printf "master merge CI pipeline jobs failed:\n${unsuccessful_builds}\n"
               git push --delete origin "${git_merge_branch}"
