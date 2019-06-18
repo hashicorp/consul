@@ -8,6 +8,7 @@ go:
 branches:
   only:
     - master
+    - release/1-6
 
 matrix:
   include:
