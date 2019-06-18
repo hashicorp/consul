@@ -1147,6 +1147,13 @@ func (s *Store) ServiceAddressNodes(ws memdb.WatchSet, address string) (uint64, 
 		svc := service.(*structs.ServiceNode)
 		if svc.ServiceAddress == address {
 			results = append(results, svc)
+		} else {
+			for _, addr := range svc.ServiceTaggedAddresses {
+				if addr.Address == address {
+					results = append(results, svc)
+					break
+				}
+			}
 		}
 	}
 
