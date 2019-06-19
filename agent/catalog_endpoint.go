@@ -74,12 +74,33 @@ func (s *HTTPServer) CatalogDatacenters(resp http.ResponseWriter, req *http.Requ
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_datacenters"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
 
+	args := structs.DatacentersRequest{}
+	s.parseConsistency(resp, req, &args.QueryOptions)
+	parseCacheControl(resp, req, &args.QueryOptions)
 	var out []string
-	if err := s.agent.RPC("Catalog.ListDatacenters", struct{}{}, &out); err != nil {
-		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_datacenters"}, 1,
-			[]metrics.Label{{Name: "node", Value: s.nodeName()}})
-		return nil, err
+
+	if args.QueryOptions.UseCache {
+		raw, m, err := s.agent.cache.Get(cachetype.CatalogDatacentersName, &args)
+		if err != nil {
+			metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_datacenters"}, 1,
+				[]metrics.Label{{Name: "node", Value: s.nodeName()}})
+			return nil, err
+		}
+		reply, ok := raw.(*[]string)
+		if !ok {
+			// This should never happen, but we want to protect against panics
+			return nil, fmt.Errorf("internal error: response type not correct")
+		}
+		defer setCacheMeta(resp, &m)
+		out = *reply
+	} else {
+		if err := s.agent.RPC("Catalog.ListDatacenters", &args, &out); err != nil {
+			metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_datacenters"}, 1,
+				[]metrics.Label{{Name: "node", Value: s.nodeName()}})
+			return nil, err
+		}
 	}
+
 	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_datacenters"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
 	return out, nil
