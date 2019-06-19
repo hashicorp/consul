@@ -133,20 +133,37 @@ func (s *HTTPServer) CatalogServices(resp http.ResponseWriter, req *http.Request
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
-
 	var out structs.IndexedServices
 	defer setMeta(resp, &out.QueryMeta)
-RETRY_ONCE:
-	if err := s.agent.RPC("Catalog.ListServices", &args, &out); err != nil {
-		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_services"}, 1,
-			[]metrics.Label{{Name: "node", Value: s.nodeName()}})
-		return nil, err
+
+	if args.QueryOptions.UseCache {
+		raw, m, err := s.agent.cache.Get(cachetype.CatalogListServicesName, &args)
+		if err != nil {
+			metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_services"}, 1,
+				[]metrics.Label{{Name: "node", Value: s.nodeName()}})
+			return nil, err
+		}
+		reply, ok := raw.(*structs.IndexedServices)
+		if !ok {
+			// This should never happen, but we want to protect against panics
+			return nil, fmt.Errorf("internal error: response type not correct")
+		}
+		defer setCacheMeta(resp, &m)
+		out = *reply
+	} else {
+	RETRY_ONCE:
+		if err := s.agent.RPC("Catalog.ListServices", &args, &out); err != nil {
+			metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_services"}, 1,
+				[]metrics.Label{{Name: "node", Value: s.nodeName()}})
+			return nil, err
+		}
+		if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
+			args.AllowStale = false
+			args.MaxStaleDuration = 0
+			goto RETRY_ONCE
+		}
 	}
-	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
-		args.AllowStale = false
-		args.MaxStaleDuration = 0
-		goto RETRY_ONCE
-	}
+
 	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 
 	// Use empty map instead of nil
