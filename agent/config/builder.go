@@ -880,7 +880,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		TaggedAddresses:                         c.TaggedAddresses,
 		TranslateWANAddrs:                       b.boolVal(c.TranslateWANAddrs),
 		UIDir:                                   b.stringVal(c.UIDir),
-		UIContentPath:                           b.stringVal(c.UIContentPath),
+		UIContentPath:                           UIPathBuilder(b.stringVal(b.Flags.Config.UIContentPath)),
 		UnixSocketGroup:                         b.stringVal(c.UnixSocket.Group),
 		UnixSocketMode:                          b.stringVal(c.UnixSocket.Mode),
 		UnixSocketUser:                          b.stringVal(c.UnixSocket.User),
@@ -907,7 +907,8 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	var reDatacenter = regexp.MustCompile("^[a-z0-9_-]+$")
 
 	// validContentPath defines a regexp for a valid content path name.
-	var validContentPath = regexp.MustCompile(`[^(?!v1)\/A-Za-z0-9\\_\\-]+`)
+	var validContentPath = regexp.MustCompile(`^[A-Za-z0-9/_-]+$`)
+	var hasVersion = regexp.MustCompile(`^/v\d+/$`)
 	// ----------------------------------------------------------------
 	// check required params we cannot recover from first
 	//
@@ -922,8 +923,12 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		return fmt.Errorf("data_dir cannot be empty")
 	}
 
-	if validContentPath.MatchString(rt.UIContentPath) {
-		return fmt.Errorf("ui-content-path can only contain alphanumeric, -, _, received: %s", rt.UIContentPath)
+	if !validContentPath.MatchString(rt.UIContentPath) {
+		return fmt.Errorf("ui-content-path can only contain alphanumeric, -, _, or /. received: %s", rt.UIContentPath)
+	}
+
+	if hasVersion.MatchString(rt.UIContentPath) {
+		return fmt.Errorf("ui-content-path cannot have 'v[0-9]'. received: %s", rt.UIContentPath)
 	}
 
 	if !rt.DevMode {
@@ -979,7 +984,7 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		return fmt.Errorf("autopilot.max_trailing_logs cannot be %d. Must be greater than or equal to zero", rt.AutopilotMaxTrailingLogs)
 	}
 	if rt.ACLDatacenter != "" && !reDatacenter.MatchString(rt.ACLDatacenter) {
-		return fmt.Errorf("acl_datacenter cannot be %q. Please use only [a-z0-9-_].", rt.ACLDatacenter)
+		return fmt.Errorf("acl_datacenter cannot be %q. Please use only [a-z0-9-_]", rt.ACLDatacenter)
 	}
 	if rt.EnableUI && rt.UIDir != "" {
 		return fmt.Errorf(
@@ -1669,4 +1674,18 @@ func isIPAddr(a net.Addr) bool {
 func isUnixAddr(a net.Addr) bool {
 	_, ok := a.(*net.UnixAddr)
 	return ok
+}
+
+// UIPathBuilder checks to see if there was a path set
+// If so, adds beginning and trailing slashes to UI path
+func UIPathBuilder(UIContentString string) string {
+	if UIContentString != "" {
+		var fmtedPath string
+		fmtedPath = strings.Trim(UIContentString, "/")
+		fmtedPath = "/" + fmtedPath + "/"
+		return fmtedPath
+
+	}
+	return "/ui/"
+
 }

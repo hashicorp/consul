@@ -1745,17 +1745,3 @@ func isFloat(t reflect.Type) bool { return t.Kind() == reflect.Float32 || t.Kind
 func isComplex(t reflect.Type) bool {
 	return t.Kind() == reflect.Complex64 || t.Kind() == reflect.Complex128
 }
-
-// UIPathBuilder checks to see if there was a path set
-// If so, adds beginning and trailing slashes to UI path
-func (c *RuntimeConfig) UIPathBuilder() string {
-	if c.UIContentPath != "" {
-		var fmtedPath string
-		fmtedPath = strings.Trim(c.UIContentPath, "/")
-		fmtedPath = "/" + fmtedPath + "/"
-		return fmtedPath
-
-	}
-	return "/ui/"
-
-}

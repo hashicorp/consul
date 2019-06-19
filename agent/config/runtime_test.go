@@ -745,12 +745,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		{
 			desc: "-ui-content-path",
 			args: []string{
-				`-ui-content-path=a`,
+				`-ui-content-path=/a/b`,
 				`-data-dir=` + dataDir,
 			},
 
 			patch: func(rt *RuntimeConfig) {
-				rt.UIContentPath = "a"
+				rt.UIContentPath = "/a/b/"
 				rt.DataDir = dataDir
 			},
 		},
@@ -5343,6 +5343,7 @@ func TestSanitize(t *testing.T) {
 			"StatsiteAddr": ""
 		},
 		"TranslateWANAddrs": false,
+		"UIContentPath": "/ui/",
 		"UIDir": "",
 		"UnixSocketGroup": "",
 		"UnixSocketMode": "",
@@ -5712,11 +5713,8 @@ func Test_UIPathBuilder(t *testing.T) {
 	}
 
 	for _, tt := range cases {
-		c := &RuntimeConfig{
-			UIContentPath: tt.path,
-		}
-		actual := c.UIPathBuilder()
-		require.Equal(t, actual, tt.expected)
+		actual := UIPathBuilder(tt.path)
+		require.Equal(t, tt.expected, actual)
 
 	}
 }
