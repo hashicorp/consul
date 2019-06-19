@@ -32,6 +32,7 @@ import (
 	"github.com/hashicorp/consul/sentinel"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/raft"
 	raftboltdb "github.com/hashicorp/raft-boltdb"
 	"github.com/hashicorp/serf/serf"
@@ -548,7 +549,13 @@ func (s *Server) setupRaft() error {
 
 	// Make sure we set the LogOutput.
 	s.config.RaftConfig.LogOutput = s.config.LogOutput
-	s.config.RaftConfig.Logger = s.logger
+	raftLogger := hclog.New(&hclog.LoggerOptions{
+		Name:       "raft",
+		Level:      hclog.LevelFromString(s.config.LogLevel),
+		Output:     s.config.LogOutput,
+		TimeFormat: `2006/01/02 15:04:05`,
+	})
+	s.config.RaftConfig.Logger = raftLogger
 
 	// Versions of the Raft protocol below 3 require the LocalID to match the network
 	// address of the transport.

@@ -13,7 +13,7 @@ github.com/Azure/go-autorest/autorest/validation
 github.com/Azure/go-autorest/logger
 github.com/Azure/go-autorest/version
 github.com/Azure/go-autorest/autorest/date
-# github.com/DataDog/datadog-go v0.0.0-20160329135253-cc2f4770f4d6
+# github.com/DataDog/datadog-go v2.2.0+incompatible
 github.com/DataDog/datadog-go/statsd
 # github.com/Jeffail/gabs v1.1.0
 github.com/Jeffail/gabs
@@ -37,7 +37,7 @@ github.com/SermoDigital/jose
 github.com/StackExchange/wmi
 # github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
 github.com/armon/circbuf
-# github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da
+# github.com/armon/go-metrics v0.0.0-20190430140413-ec5e00d3c878
 github.com/armon/go-metrics
 github.com/armon/go-metrics/circonus
 github.com/armon/go-metrics/datadog
@@ -82,11 +82,12 @@ github.com/beorn7/perks/quantile
 github.com/bgentry/speakeasy
 # github.com/boltdb/bolt v1.3.1
 github.com/boltdb/bolt
-# github.com/circonus-labs/circonus-gometrics v0.0.0-20161109192337-d17a8420c36e
+# github.com/circonus-labs/circonus-gometrics v2.3.1+incompatible
 github.com/circonus-labs/circonus-gometrics
 github.com/circonus-labs/circonus-gometrics/api
 github.com/circonus-labs/circonus-gometrics/checkmgr
-# github.com/circonus-labs/circonusllhist v0.0.0-20161110002650-365d370cc145
+github.com/circonus-labs/circonus-gometrics/api/config
+# github.com/circonus-labs/circonusllhist v0.1.3
 github.com/circonus-labs/circonusllhist
 # github.com/coredns/coredns v1.1.2
 github.com/coredns/coredns/plugin/pkg/dnsutil
@@ -214,19 +215,19 @@ github.com/hashicorp/go-discover/provider/scaleway
 github.com/hashicorp/go-discover/provider/softlayer
 github.com/hashicorp/go-discover/provider/triton
 github.com/hashicorp/go-discover/provider/vsphere
-# github.com/hashicorp/go-hclog v0.0.0-20180402200405-69ff559dc25f
+# github.com/hashicorp/go-hclog v0.9.1
 github.com/hashicorp/go-hclog
 # github.com/hashicorp/go-immutable-radix v1.0.0
 github.com/hashicorp/go-immutable-radix
 # github.com/hashicorp/go-memdb v0.0.0-20180223233045-1289e7fffe71
 github.com/hashicorp/go-memdb
-# github.com/hashicorp/go-msgpack v0.5.4
+# github.com/hashicorp/go-msgpack v0.5.5
 github.com/hashicorp/go-msgpack/codec
 # github.com/hashicorp/go-multierror v1.0.0
 github.com/hashicorp/go-multierror
 # github.com/hashicorp/go-plugin v0.0.0-20180331002553-e8d22c780116
 github.com/hashicorp/go-plugin
-# github.com/hashicorp/go-retryablehttp v0.0.0-20180531211321-3b087ef2d313
+# github.com/hashicorp/go-retryablehttp v0.5.3
 github.com/hashicorp/go-retryablehttp
 # github.com/hashicorp/go-rootcerts v1.0.0
 github.com/hashicorp/go-rootcerts
@@ -264,7 +265,7 @@ github.com/hashicorp/mdns
 github.com/hashicorp/memberlist
 # github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69
 github.com/hashicorp/net-rpc-msgpackrpc
-# github.com/hashicorp/raft v1.0.1-0.20190409200437-d9fe23f7d472
+# github.com/hashicorp/raft v1.1.0
 github.com/hashicorp/raft
 # github.com/hashicorp/raft-boltdb v0.0.0-20150201200839-d1e82c1ec3f1
 github.com/hashicorp/raft-boltdb
@@ -390,7 +391,7 @@ github.com/nicolai86/scaleway-sdk
 github.com/oklog/run
 # github.com/packethost/packngo v0.1.1-0.20180711074735-b9cb5096f54c
 github.com/packethost/packngo
-# github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c
+# github.com/pascaldekloe/goe v0.1.0
 github.com/pascaldekloe/goe/verify
 # github.com/patrickmn/go-cache v0.0.0-20180527043350-9f6ff22cfff8
 github.com/patrickmn/go-cache
@@ -405,16 +406,17 @@ github.com/posener/complete
 github.com/posener/complete/cmd/install
 github.com/posener/complete/cmd
 github.com/posener/complete/match
-# github.com/prometheus/client_golang v0.0.0-20180328130430-f504d69affe1
+# github.com/prometheus/client_golang v0.9.2
 github.com/prometheus/client_golang/prometheus
 github.com/prometheus/client_golang/prometheus/promhttp
-# github.com/prometheus/client_model v0.0.0-20171117100541-99fa1f4be8e5
+github.com/prometheus/client_golang/prometheus/internal
+# github.com/prometheus/client_model v0.0.0-20180712105110-5c3871d89910
 github.com/prometheus/client_model/go
-# github.com/prometheus/common v0.0.0-20180326160409-38c53a9f4bfc
+# github.com/prometheus/common v0.0.0-20181126121408-4724e9255275
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/model
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
-# github.com/prometheus/procfs v0.0.0-20180408092902-8b1c2da0d56d
+# github.com/prometheus/procfs v0.0.0-20181204211112-1dc9a6cbc91a
 github.com/prometheus/procfs
 github.com/prometheus/procfs/nfs
 github.com/prometheus/procfs/xfs
@@ -454,6 +456,8 @@ github.com/stretchr/objx
 github.com/stretchr/testify/require
 github.com/stretchr/testify/mock
 github.com/stretchr/testify/assert
+# github.com/tv42/httpunix v0.0.0-20150427012821-b75d8614f926
+github.com/tv42/httpunix
 # github.com/vmware/govmomi v0.18.0
 github.com/vmware/govmomi
 github.com/vmware/govmomi/find
