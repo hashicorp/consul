@@ -155,8 +155,20 @@ type redirectFS struct {
 
 func (fs *redirectFS) Open(name string) (http.File, error) {
 	file, err := fs.fs.Open(name)
-	if name == "/index.html" || err != nil {
+	if err != nil {
 		file, err = fs.fs.Open("/index.html")
+	}
+	return file, err
+}
+
+type templatedIndexFS struct {
+	fs          http.FileSystem
+	ContentPath string
+}
+
+func (fs *templatedIndexFS) Open(name string) (http.File, error) {
+	file, err := fs.fs.Open(name)
+	if err == nil && name == "/index.html" {
 		content, _ := ioutil.ReadAll(file)
 		file.Seek(0, 0)
 		t, _ := template.New("fmtedindex").Parse(string(content))
@@ -164,6 +176,7 @@ func (fs *redirectFS) Open(name string) (http.File, error) {
 		err = t.Execute(&out, fs)
 		file = newTemplatedFile(&out, file)
 	}
+
 	return file, err
 }
 
@@ -304,10 +317,9 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 			fs := assetFS()
 			uifs = fs
 		}
-		uifs = &redirectFS{fs: uifs, ContentPath: s.agent.config.UIPathBuilder()}
-
+		uifs = &redirectFS{fs: &templatedIndexFS{fs: uifs, ContentPath: s.agent.config.UIContentPath}}
 		mux.Handle("/robots.txt", http.FileServer(uifs))
-		mux.Handle(s.agent.config.UIPathBuilder(), http.StripPrefix(s.agent.config.UIPathBuilder(), http.FileServer(uifs)))
+		mux.Handle(s.agent.config.UIContentPath, http.StripPrefix(s.agent.config.UIContentPath, http.FileServer(uifs)))
 	}
 
 	// Wrap the whole mux with a handler that bans URLs with non-printable
@@ -558,7 +570,7 @@ func (s *HTTPServer) Index(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	// Redirect to the UI endpoint
-	http.Redirect(resp, req, s.agent.config.UIPathBuilder(), http.StatusMovedPermanently) // 301
+	http.Redirect(resp, req, s.agent.config.UIContentPath, http.StatusMovedPermanently) // 301
 }
 
 // decodeBody is used to decode a JSON request body
