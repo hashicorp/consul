@@ -11,9 +11,12 @@ test('it has add and remove methods', function(assert) {
 });
 test('add returns a remove function', function(assert) {
   const listeners = createListeners();
-  const remove = listeners.add({
-    addEventListener: function() {},
-  });
+  const remove = listeners.add(
+    {
+      addEventListener: function() {},
+    },
+    'click'
+  );
   assert.ok(typeof remove === 'function');
 });
 test('remove returns an array of removed handlers (the return of a saved remove)', function(assert) {
@@ -49,6 +52,29 @@ test('listeners are added on add', function(assert) {
   listeners.add(target, name, handler);
   assert.ok(stub.calledOnce);
   assert.ok(stub.calledWith(name, handler));
+});
+test('listeners as objects are added on add and removed on remove', function(assert) {
+  const listeners = createListeners();
+  const addStub = this.stub();
+  const removeStub = this.stub();
+  const target = {
+    addEventListener: addStub,
+    removeEventListener: removeStub,
+  };
+  const handler = function(e) {};
+  const remove = listeners.add(target, {
+    message: handler,
+    error: handler,
+  });
+  assert.ok(addStub.calledTwice);
+  assert.ok(addStub.calledWith('message', handler));
+  assert.ok(addStub.calledWith('error', handler));
+
+  remove();
+
+  assert.ok(removeStub.calledTwice);
+  assert.ok(removeStub.calledWith('message', handler));
+  assert.ok(removeStub.calledWith('error', handler));
 });
 test('listeners are removed on remove', function(assert) {
   const listeners = createListeners();
@@ -88,7 +114,7 @@ test('listeners as functions of other listeners are removed on remove', function
   remove();
   assert.ok(stub.calledOnce);
 });
-test('remove returns the original handler', function(assert) {
+test('remove returns an array containing the original handler', function(assert) {
   const listeners = createListeners();
   const target = {
     addEventListener: function() {},
@@ -98,6 +124,6 @@ test('remove returns the original handler', function(assert) {
   const expected = this.stub();
   const remove = listeners.add(target, name, expected);
   const actual = remove();
-  actual();
+  actual[0]();
   assert.ok(expected.calledOnce);
 });
