@@ -4741,7 +4741,7 @@ func TestFullConfig(t *testing.T) {
 			"wan":      "78.63.37.19",
 		},
 		TranslateWANAddrs:    true,
-		UIContentPath:		  "/ui/",
+		UIContentPath:        "/ui/",
 		UIDir:                "11IFzAUn",
 		UnixSocketUser:       "E0nB1DwA",
 		UnixSocketGroup:      "8pFodrV8",
