@@ -8,7 +8,7 @@ export default Component.extend({
   item: '',
   didInsertElement: function() {
     this._super(...arguments);
-    // TODO: ref
+    // TODO: use {{ref}}
     this.input = get(this, 'dom').element('input', this.element);
   },
   onchange: function(e) {},
