@@ -8,7 +8,8 @@ export default function(filterable) {
         .indexOf(term) !== -1 ||
       get(item, 'Service.ID')
         .toLowerCase()
-        .indexOf(term) !== -1
+        .indexOf(term) !== -1 ||
+      `${get(item, 'Service.Address')}:${get(item, 'Service.Port')}`.indexOf(term) !== -1
     );
   });
 }
