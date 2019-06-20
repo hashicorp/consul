@@ -2,7 +2,7 @@
 Feature: dc / services / instances / show: Show Service Instance
   Background:
     Given 1 datacenter model with the value "dc1"
-    And 1 service model from yaml
+    And 2 instance models from yaml
     ---
     - Service:
         ID: service-0-with-id
@@ -16,7 +16,7 @@ Feature: dc / services / instances / show: Show Service Instance
         Meta:
           external-source: nomad
       Node:
-        Node: node-1
+        Node: another-node
       Checks:
         - Name: Service check
           ServiceID: service-0
@@ -54,10 +54,10 @@ Feature: dc / services / instances / show: Show Service Instance
     ---
       dc: dc1
       service: service-0
-      node: node-1
+      node: another-node
       id: service-0-with-id
     ---
-    Then the url should be /dc1/services/service-0/node-1/service-0-with-id
+    Then the url should be /dc1/services/service-0/another-node/service-0-with-id
     Then I don't see type on the proxy
     Then I see externalSource like "nomad"
 
