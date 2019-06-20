@@ -28,11 +28,6 @@ This means Consul communication is protected against eavesdropping, tampering,
 and spoofing. This makes it possible to run Consul over untrusted networks such
 as EC2 and other shared hosting providers.
 
-~> **Advanced Topic!** This page covers the technical details of
-the security model of Consul. You don't need to know these details to
-operate and use Consul. These details are documented here for those who wish
-to learn about them without having to go spelunking through the source code.
-
 ## Secure Configuration
 
 The Consul threat model is only applicable if Consul is running in a secure
