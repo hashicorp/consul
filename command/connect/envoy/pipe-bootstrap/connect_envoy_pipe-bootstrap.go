@@ -30,7 +30,13 @@ func (c *cmd) Run(args []string) int {
 	// This should never be alive for very long. In case bad things happen and
 	// Envoy never starts limit how long we live before just exiting so we can't
 	// accumulate tons of these zombie children.
-	time.AfterFunc(10*time.Second, func() { os.Exit(99) })
+	time.AfterFunc(10*time.Second, func() {
+		// Force cleanup
+		if len(args) > 0 {
+			os.RemoveAll(args[0])
+		}
+		os.Exit(99)
+	})
 
 	// Read from STDIN, write to the named pipe provided in the only positional arg
 	if len(args) != 1 {
@@ -54,7 +60,11 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	f.Close()
+	err = f.Close()
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
 
 	// Removed named pipe now we sent it. Even if Envoy has not yet read it, we
 	// know it has opened it and has the file descriptor since our write above
