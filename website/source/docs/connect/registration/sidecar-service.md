@@ -46,8 +46,10 @@ definitions:
 
 ```json
 {
-  "name": "web",
-  "port": 8080,
+  "service": {
+    "name": "web",
+    "port": 8080,
+  }
 }
 {
   "name": "web-sidecar-proxy",
