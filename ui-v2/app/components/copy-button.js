@@ -2,12 +2,10 @@ import Component from '@ember/component';
 import { get } from '@ember/object';
 import { inject as service } from '@ember/service';
 
-import config from 'consul-ui/config/environment';
-
 import WithListeners from 'consul-ui/mixins/with-listeners';
 
 export default Component.extend(WithListeners, {
-  clipboard: service(`clipboard/${config.environment === 'test' ? `local-storage` : `os`}`),
+  clipboard: service(`clipboard/os`),
   tagName: 'button',
   classNames: ['copy-btn'],
   buttonType: 'button',
