@@ -455,7 +455,9 @@ jobs:
             git_merge_branch="ci/master-merge-$(date +%Y%m%d%H%M%S)"
             git checkout -b "${git_merge_branch}"
             latest_oss_commit="$(git rev-parse origin/master)"
-            git merge -m "Merge Consul OSS branch 'master' at commit ${latest_oss_commit}" "${latest_oss_commit}"
+            # adding two merge messages will add them into different paragraphs which will achieve what is in
+            # https://help.github.com/en/articles/about-status-checks#skipping-and-requesting-checks-for-individual-commits
+            git merge -m "Merge Consul OSS branch 'master' at commit ${latest_oss_commit}" -m "skip-checks: true" "${latest_oss_commit}"
             git push origin "${git_merge_branch}"
             sleep 15  # Wait for merge branch to start CircleCI pipeline
 
