@@ -380,6 +380,55 @@ func (r *DCSpecificRequest) CacheMinIndex() uint64 {
 	return r.QueryOptions.MinQueryIndex
 }
 
+type ServiceDumpRequest struct {
+	Datacenter     string
+	ServiceKind    ServiceKind
+	UseServiceKind bool
+	Source         QuerySource
+	QueryOptions
+}
+
+func (r *ServiceDumpRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+func (r *ServiceDumpRequest) CacheInfo() cache.RequestInfo {
+	info := cache.RequestInfo{
+		Token:          r.Token,
+		Datacenter:     r.Datacenter,
+		MinIndex:       r.MinQueryIndex,
+		Timeout:        r.MaxQueryTime,
+		MaxAge:         r.MaxAge,
+		MustRevalidate: r.MustRevalidate,
+	}
+
+	// When we are not using the service kind we want to normalize the ServiceKind
+	keyKind := ServiceKindTypical
+	if r.UseServiceKind {
+		keyKind = r.ServiceKind
+	}
+	// To calculate the cache key we only hash the node meta filters and the bexpr filter.
+	// The datacenter is handled by the cache framework. The other fields are
+	// not, but should not be used in any cache types.
+	v, err := hashstructure.Hash([]interface{}{
+		keyKind,
+		r.UseServiceKind,
+		r.Filter,
+	}, nil)
+	if err == nil {
+		// If there is an error, we don't set the key. A blank key forces
+		// no cache for this request so the request is forwarded directly
+		// to the server.
+		info.Key = strconv.FormatUint(v, 10)
+	}
+
+	return info
+}
+
+func (r *ServiceDumpRequest) CacheMinIndex() uint64 {
+	return r.QueryOptions.MinQueryIndex
+}
+
 // ServiceSpecificRequest is used to query about a specific service
 type ServiceSpecificRequest struct {
 	Datacenter      string
@@ -709,6 +758,20 @@ const (
 	// protocol.
 	ServiceKindConnectProxy ServiceKind = "connect-proxy"
 )
+
+func ServiceKindFromString(kind string) (ServiceKind, error) {
+	switch kind {
+	case string(ServiceKindTypical):
+		return ServiceKindTypical, nil
+	case string(ServiceKindConnectProxy):
+		return ServiceKindConnectProxy, nil
+	case string(ServiceKindMeshGateway):
+		return ServiceKindMeshGateway, nil
+	default:
+		// have to return something and it may as well be typical
+		return ServiceKindTypical, fmt.Errorf("Invalid service kind: %s", kind)
+	}
+}
 
 // Type to hold a address and port of a service
 type ServiceAddress struct {

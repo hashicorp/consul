@@ -493,6 +493,49 @@ func registerTestCatalogEntries(t *testing.T, codec rpc.ClientCodec) {
 		},
 	}
 
+	registerTestCatalogEntriesMap(t, codec, registrations)
+}
+
+func registerTestCatalogEntries2(t *testing.T, codec rpc.ClientCodec) {
+	t.Helper()
+
+	registrations := map[string]*structs.RegisterRequest{
+		"Service mg-gw": &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "gateway",
+			ID:         types.NodeID("72e18a4c-85ec-4520-978f-2fc0378b06aa"),
+			Address:    "10.1.2.3",
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindMeshGateway,
+				ID:      "mg-gw-01",
+				Service: "mg-gw",
+				Port:    8443,
+				Address: "198.18.1.4",
+			},
+		},
+		"Service rproxy": &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "proxy",
+			ID:         types.NodeID("2d31602c-3291-4f94-842d-446bc2f945ce"),
+			Address:    "10.1.2.4",
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				ID:      "web-proxy",
+				Service: "web-proxy",
+				Port:    8443,
+				Address: "198.18.1.5",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "web",
+				},
+			},
+		},
+	}
+
+	registerTestCatalogEntriesMap(t, codec, registrations)
+}
+
+func registerTestCatalogEntriesMap(t *testing.T, codec rpc.ClientCodec, registrations map[string]*structs.RegisterRequest) {
+	t.Helper()
 	for name, reg := range registrations {
 		err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", reg, nil)
 		require.NoError(t, err, "Failed catalog registration %q: %v", name, err)

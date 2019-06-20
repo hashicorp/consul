@@ -116,7 +116,7 @@ RPC:
 // ServiceSummary which provides overview information for the service
 func (s *HTTPServer) UIServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Parse arguments
-	args := structs.DCSpecificRequest{}
+	args := structs.ServiceDumpRequest{}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
