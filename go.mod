@@ -82,7 +82,6 @@ require (
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/kr/text v0.1.0
 	github.com/lib/pq v0.0.0-20180523175426-90697d60dd84 // indirect
-	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/miekg/dns v1.0.14
 	github.com/mitchellh/cli v1.0.0
 	github.com/mitchellh/copystructure v0.0.0-20160804032330-cdac8253d00f
