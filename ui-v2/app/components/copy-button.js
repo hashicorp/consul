@@ -5,7 +5,7 @@ import { inject as service } from '@ember/service';
 import WithListeners from 'consul-ui/mixins/with-listeners';
 
 export default Component.extend(WithListeners, {
-  clipboard: service(`clipboard/os`),
+  clipboard: service('clipboard/os'),
   tagName: 'button',
   classNames: ['copy-btn'],
   buttonType: 'button',
