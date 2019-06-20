@@ -55,7 +55,7 @@ jobs:
   go-test:
     docker:
       - image: *GOLANG_IMAGE
-    parallelism: 4
+    parallelism: 8
     environment:
       <<: *ENVIRONMENT
       GOTAGS: '' # No tags for OSS but there are for enterprise
@@ -124,6 +124,7 @@ jobs:
       - image: *GOLANG_IMAGE
     environment: &build-env
       GOXPARALLEL: 2 # CircleCI containers are 2 CPU x 4GB RAM
+    resource_class: large
     steps:
       - checkout
       - run: make tools
@@ -577,6 +578,7 @@ workflows:
             branches:
               only:
                 - /^bug\/flaky-test-.*$/ # only run go tests on bug/flaky-test-* for now since we are fixing tests
+                - release/1-6
       - go-test-api: *go-test
       - dev-upload-s3:
           requires:
