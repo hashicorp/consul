@@ -7,7 +7,7 @@ export default function(P = Promise) {
     if (current != null) {
       // immediately resolve if we have previous cached data
       return P.resolve(current.data).then(function(cached) {
-        source.reopen();
+        source.open();
         return cached;
       });
     }

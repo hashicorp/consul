@@ -4,7 +4,7 @@ import {
   cache,
   resolve,
   CallableEventSource,
-  ReopenableEventSource,
+  OpenableEventSource,
   BlockingEventSource,
   StorageEventSource,
 } from 'consul-ui/utils/dom/event-source/index';
@@ -16,7 +16,7 @@ module('Unit | Utility | dom/event source/index');
 test('it works', function(assert) {
   // All The EventSource
   assert.ok(typeof CallableEventSource === 'function');
-  assert.ok(typeof ReopenableEventSource === 'function');
+  assert.ok(typeof OpenableEventSource === 'function');
   assert.ok(typeof BlockingEventSource === 'function');
   assert.ok(typeof StorageEventSource === 'function');
 

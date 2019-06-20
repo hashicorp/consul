@@ -44,8 +44,8 @@ export default function(ObjProxy, ArrProxy, createListeners) {
       close: function() {
         return source.close(...arguments);
       },
-      reopen: function() {
-        return source.reopen(...arguments);
+      open: function() {
+        return source.open(...arguments);
       },
       willDestroy: function() {
         this.listeners.remove();
