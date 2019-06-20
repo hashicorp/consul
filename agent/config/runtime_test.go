@@ -5343,7 +5343,7 @@ func TestSanitize(t *testing.T) {
 			"StatsiteAddr": ""
 		},
 		"TranslateWANAddrs": false,
-		"UIContentPath": "/ui/",
+		"UIContentPath": "",
 		"UIDir": "",
 		"UnixSocketGroup": "",
 		"UnixSocketMode": "",
