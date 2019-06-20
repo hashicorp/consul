@@ -1,6 +1,5 @@
 import { moduleForComponent, test } from 'ember-qunit';
 import hbs from 'htmlbars-inline-precompile';
-import { get } from '@ember/object';
 
 moduleForComponent('phrase-editor', 'Integration | Component | phrase editor', {
   integration: true,
