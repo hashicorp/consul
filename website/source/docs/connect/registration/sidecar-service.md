@@ -30,9 +30,11 @@ To register a service instance with a sidecar, all that's needed is:
 
 ```json
 {
-  "name": "web",
-  "port": 8080,
-  "connect": { "sidecar_service": {} }
+  "service": {
+    "name": "web",
+    "port": 8080,
+    "connect": { "sidecar_service": {} }
+  }
 }
 ```
 
@@ -44,8 +46,10 @@ definitions:
 
 ```json
 {
-  "name": "web",
-  "port": 8080,
+  "service": {
+    "name": "web",
+    "port": 8080,
+  }
 }
 {
   "name": "web-sidecar-proxy",
