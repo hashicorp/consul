@@ -9,7 +9,7 @@ export default function(eventSource = EventSource) {
       super(...arguments);
       this.configuration = configuration;
     }
-    reopen() {
+    open() {
       switch (this.readyState) {
         case 3: // CLOSING
           this.readyState = 1;
@@ -18,6 +18,7 @@ export default function(eventSource = EventSource) {
           eventSource.apply(this, [this.source, this.configuration]);
           break;
       }
+      return this;
     }
   };
 }
