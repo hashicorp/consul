@@ -489,6 +489,20 @@ jobs:
               exit 1
             fi
 
+            current_ref=$(git rev-parse HEAD)
+            # Set CLA check  to pass
+            echo "Setting CLA check"
+            curl -u "${HASHICORP_CI_GITHUB_TOKEN}:" -X POST \
+              --header "Accept: application/json" \
+              --show-error \
+              --silent \
+              --fail \
+              --output /dev/null \
+              -d "{ \"state\": \"success\", \
+                    \"target_url\": \"https://cla.hashicorp.com/hashicorp/consul\", \
+                    \"description\": \"Contributor License Agreement is signed.\", \
+                    \"context\": \"license/cla\"}" https://api.github.com/repos/hashicorp/consul/statuses/${current_ref}
+
             # CircleCI jobs passed, merging to release branch
             echo "master merge CI pipeline passed successfully so merging to ${CIRCLE_BRANCH}!"
             git checkout "${CIRCLE_BRANCH}"
