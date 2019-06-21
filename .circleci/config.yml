@@ -485,7 +485,6 @@ jobs:
               | jq --raw-output '.[] | select(.outcome!="success") | "\(.workflows.job_name): \(.build_url)"')"
             if [[ -n "${unsuccessful_builds}" ]]; then
               printf "master merge CI pipeline jobs failed:\n${unsuccessful_builds}\n"
-              git push --delete origin "${git_merge_branch}"
               curl -X POST -H 'Content-type: application/json' \
               --data \
               "{ \
