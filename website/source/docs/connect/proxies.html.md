@@ -16,8 +16,8 @@ can chose other proxies to plug in as well. This section describes how to
 configure Envoy or the built-in proxy using Connect, and how to integrate the
 proxy of your choice.
 
-To ensure that services only meke allow external connections are established via
-the Connect protocol they should only accept connections on a loopback address.
+To ensure that services only allow external connections established via
+the Connect protocol, you should configure all services to only accept connections on a loopback address.
 
 ~> **Deprecation Note:** Managed Proxies are a deprecated method for deploying
 sidecar proxies, as of Consul 1.3. See [managed proxy
