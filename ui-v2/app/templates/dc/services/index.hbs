@@ -10,7 +10,12 @@
     {{/block-slot}}
     {{#block-slot 'toolbar'}}
 {{#if (gt items.length 0) }}
-    {{#phrase-editor placeholder=(if (eq terms.length 0) 'service:name tag:name status:critical search-term' '') items=terms searchable=searchable}}{{/phrase-editor}}
+      {{phrase-editor
+        placeholder='service:name tag:name status:critical search-term'
+        value=(slice 0 terms.length terms)
+        onchange=(action (mut terms) value='target.value')
+        searchable=searchable
+      }}
 {{/if}}
     {{/block-slot}}
     {{#block-slot 'content'}}
