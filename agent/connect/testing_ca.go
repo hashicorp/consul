@@ -13,6 +13,7 @@ import (
 	"math/big"
 	"net/url"
 	"sync/atomic"
+	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -279,16 +280,6 @@ func testPrivateKey(t testing.T) (crypto.Signer, string) {
 // fit in that for now.
 func testSerialNumber() (*big.Int, error) {
 	return rand.Int(rand.Reader, (&big.Int{}).Exp(big.NewInt(2), big.NewInt(63), nil))
-}
-
-// testUUID generates a UUID for testing.
-func testUUID(t testing.T) string {
-	ret, err := uuid.GenerateUUID()
-	if err != nil {
-		t.Fatalf("Unable to generate a UUID, %s", err)
-	}
-
-	return ret
 }
 
 // TestAgentRPC is an interface that an RPC client must implement. This is a
