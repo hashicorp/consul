@@ -22,7 +22,7 @@ to learn about them without having to go spelunking through the source code.
 Before describing the architecture, we provide a glossary of terms to help
 clarify what is being discussed:
 
-* Agent - An agent is the long running daemon on every nde of the Consul cluster.
+* Agent - An agent is the long running daemon on every node of the Consul cluster.
 It is started by running `consul agent`. The agent is able to run in either *client*
 or *server* mode. Since all nodes must be running an agent, it is simpler to refer to
 them as being either a client or server, but there are other instances of the agent. All
