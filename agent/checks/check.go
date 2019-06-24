@@ -223,12 +223,17 @@ type CheckTTL struct {
 	stop     bool
 	stopCh   chan struct{}
 	stopLock sync.Mutex
+
+	OutputMaxSize int
 }
 
 // Start is used to start a check ttl, runs until Stop()
 func (c *CheckTTL) Start() {
 	c.stopLock.Lock()
 	defer c.stopLock.Unlock()
+	if c.OutputMaxSize < 1 {
+		c.OutputMaxSize = DefaultBufSize
+	}
 	c.stop = false
 	c.stopCh = make(chan struct{})
 	c.timer = time.NewTimer(c.TTL)
@@ -279,7 +284,11 @@ func (c *CheckTTL) getExpiredOutput() string {
 func (c *CheckTTL) SetStatus(status, output string) {
 	c.Logger.Printf("[DEBUG] agent: Check %q status is now %s", c.CheckID, status)
 	c.Notify.UpdateCheck(c.CheckID, status, output)
-
+	total := len(output)
+	if total > c.OutputMaxSize {
+		output = fmt.Sprintf("%s ... (captured %d of %d bytes)",
+			output[:c.OutputMaxSize], c.OutputMaxSize, total)
+	}
 	// Store the last output so we can retain it if the TTL expires.
 	c.lastOutputLock.Lock()
 	c.lastOutput = output
