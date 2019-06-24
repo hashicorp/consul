@@ -16,7 +16,7 @@ Please review the following documentation to understand how Consul works.
 * [Architecture](/docs/internals/architecture.html)
 * [Consensus Protocol](docs/internals/consensus.html)
 * [Gossip Protocol](/docs/internals/gossip.html)
-* [Network Coordinates](docs/internals/coordinates.html)
+* [Network Coordinates](/docs/internals/coordinates.html)
 * [Sessions](/docs/internals/sessions.html)
 * [Anti-Entropy](/docs/internals/anti-entropy.html)
 * [Security Model](/docs/internals/security.html)
