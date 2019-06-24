@@ -18,7 +18,7 @@ Please review the following documentation to understand how Consul works.
 * [Gossip Protocol](/docs/internals/gossip.html)
 * [Network Coordinates](docs/internals/coordinates.html)
 * [Sessions](docs/internals/sessions.html)
-* [Anti-Entropy](docs/internals/anti-entropy.html)
+* [Anti-Entropy](/docs/internals/anti-entropy.html)
 * [Security Model](/docs/internals/security.html)
 
 You should also be familiar with [Jepsen testing](/docs/internals/jepsen.html), before deploying 
