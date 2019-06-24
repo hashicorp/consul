@@ -277,6 +277,15 @@ type Server struct {
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
 
+	// State for enterprise leader logic
+	connectLock    sync.RWMutex
+	connectEnabled bool
+	connectCh      chan struct{}
+
+	// State for whether this datacenter is acting as a secondary CA.
+	actingSecondaryCA   bool
+	actingSecondaryLock sync.RWMutex
+
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseServer
 }
@@ -1256,6 +1265,10 @@ func (s *Server) resetConsistentReadReady() {
 // Returns true if this server is ready to serve consistent reads
 func (s *Server) isReadyForConsistentReads() bool {
 	return atomic.LoadInt32(&s.readyForConsistentReads) == 1
+}
+
+func (s *Server) intentionReplicationEnabled() bool {
+	return s.config.ConnectEnabled && s.config.Datacenter != s.config.PrimaryDatacenter
 }
 
 // peersInfoContent is used to help operators understand what happened to the

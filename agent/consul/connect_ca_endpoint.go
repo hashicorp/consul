@@ -30,8 +30,9 @@ var (
 	// variable points to. Clients need to compare using `err.Error() ==
 	// consul.ErrRateLimited.Error()` which is very sad. Short of replacing our
 	// RPC mechanism it's hard to know how to make that much better though.
-	ErrConnectNotEnabled = errors.New("Connect must be enabled in order to use this endpoint")
-	ErrRateLimited       = errors.New("Rate limit reached, try again later")
+	ErrConnectNotEnabled    = errors.New("Connect must be enabled in order to use this endpoint")
+	ErrRateLimited          = errors.New("Rate limit reached, try again later")
+	ErrNotPrimaryDatacenter = errors.New("not the primary datacenter")
 )
 
 const (
@@ -553,6 +554,53 @@ func (s *ConnectCA) Sign(
 		reply.Agent = agentID.Agent
 		reply.AgentURI = cert.URIs[0].String()
 	}
+
+	return nil
+}
+
+// SignIntermediate signs an intermediate certificate for a remote datacenter.
+func (s *ConnectCA) SignIntermediate(
+	args *structs.CASignRequest,
+	reply *string) error {
+	// Exit early if Connect hasn't been enabled.
+	if !s.srv.config.ConnectEnabled {
+		return ErrConnectNotEnabled
+	}
+
+	if done, err := s.srv.forward("ConnectCA.SignIntermediate", args, args, reply); done {
+		return err
+	}
+
+	// Verify we are allowed to serve this request
+	if s.srv.config.PrimaryDatacenter != s.srv.config.Datacenter {
+		return ErrNotPrimaryDatacenter
+	}
+
+	// This action requires operator write access.
+	rule, err := s.srv.ResolveToken(args.Token)
+	if err != nil {
+		return err
+	}
+	if rule != nil && !rule.OperatorWrite() {
+		return acl.ErrPermissionDenied
+	}
+
+	provider, _ := s.srv.getCAProvider()
+	if provider == nil {
+		return fmt.Errorf("internal error: CA provider is nil")
+	}
+
+	csr, err := connect.ParseCSR(args.CSR)
+	if err != nil {
+		return err
+	}
+
+	cert, err := provider.SignIntermediate(csr)
+	if err != nil {
+		return err
+	}
+
+	*reply = cert
 
 	return nil
 }

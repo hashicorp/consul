@@ -327,7 +327,7 @@ func (s *Server) establishLeadership() error {
 
 	s.startConfigReplication()
 
-	s.startEnterpriseLeader()
+	s.startConnectLeader()
 
 	s.startCARootPruning()
 
@@ -347,7 +347,7 @@ func (s *Server) revokeLeadership() {
 
 	s.stopConfigReplication()
 
-	s.stopEnterpriseLeader()
+	s.stopConnectLeader()
 
 	s.stopCARootPruning()
 
