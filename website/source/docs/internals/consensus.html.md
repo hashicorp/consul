@@ -14,11 +14,6 @@ The consensus protocol is based on
 ["Raft: In search of an Understandable Consensus Algorithm"](https://ramcloud.stanford.edu/wiki/download/attachments/11370504/raft.pdf).
 For a visual explanation of Raft, see [The Secret Lives of Data](http://thesecretlivesofdata.com/raft).
 
-~> **Advanced Topic!** This page covers technical details of
-the internals of Consul. You don't need to know these details to effectively
-operate and use Consul. These details are documented here for those who wish
-to learn about them without having to go spelunking through the source code.
-
 ## Raft Protocol Overview
 
 Raft is a consensus algorithm that is based on
