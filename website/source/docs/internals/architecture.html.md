@@ -12,9 +12,7 @@ Consul is a complex system that has many different moving parts. To help
 users and developers of Consul form a mental model of how it works, this
 page documents the system architecture.
 
-## Glossary
-
-Before describing the architecture, we recommend reading the 
+-> Before describing the architecture, we recommend reading the 
 [glossary](/docs/glossary) of terms to help
 clarify what is being discussed.
 
