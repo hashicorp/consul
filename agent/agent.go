@@ -3738,6 +3738,20 @@ func (a *Agent) registerCache() {
 		RefreshTimer:   0 * time.Second,
 		RefreshTimeout: 10 * time.Minute,
 	})
+
+	a.cache.RegisterType(cachetype.CatalogListServicesName, &cachetype.CatalogListServices{
+		RPC: a,
+	}, &cache.RegisterOptions{
+		Refresh:        true,
+		RefreshTimer:   0 * time.Second,
+		RefreshTimeout: 10 * time.Minute,
+	})
+
+	a.cache.RegisterType(cachetype.CatalogDatacentersName, &cachetype.CatalogDatacenters{
+		RPC: a,
+	}, &cache.RegisterOptions{
+		Refresh: false,
+	})
 }
 
 // defaultProxyCommand returns the default Connect managed proxy command.

@@ -321,6 +321,22 @@ type QuerySource struct {
 	Ip         string
 }
 
+type DatacentersRequest struct {
+	QueryOptions
+}
+
+func (r *DatacentersRequest) CacheInfo() cache.RequestInfo {
+	return cache.RequestInfo{
+		Token:          "",
+		Datacenter:     "",
+		MinIndex:       0,
+		Timeout:        r.MaxQueryTime,
+		MaxAge:         r.MaxAge,
+		MustRevalidate: r.MustRevalidate,
+		Key:            "catalog-datacenters", // must not be empty for cache to work
+	}
+}
+
 // DCSpecificRequest is used to query about a specific DC
 type DCSpecificRequest struct {
 	Datacenter      string

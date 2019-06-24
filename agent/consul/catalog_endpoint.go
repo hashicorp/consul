@@ -200,7 +200,7 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 }
 
 // ListDatacenters is used to query for the list of known datacenters
-func (c *Catalog) ListDatacenters(args *struct{}, reply *[]string) error {
+func (c *Catalog) ListDatacenters(args *structs.DatacentersRequest, reply *[]string) error {
 	dcs, err := c.srv.router.GetDatacentersByDistance()
 	if err != nil {
 		return err
