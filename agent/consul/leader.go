@@ -1368,10 +1368,10 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 				Warning: 1,
 			},
 			Meta: map[string]string{
-				"consul_voter":  strconv.FormatBool(!parts.NonVoter),
-				"raft_version":  strconv.Itoa(parts.RaftVersion),
-				"serf_protocol": fmt.Sprintf("%v (%v .. %v)", member.ProtocolCur, member.ProtocolMin, member.ProtocolMax),
-				"version":       parts.Build.String(),
+				"booted_as_consul_voter": strconv.FormatBool(!parts.NonVoter),
+				"raft_version":           strconv.Itoa(parts.RaftVersion),
+				"serf_protocol":          fmt.Sprintf("%v (%v .. %v)", member.ProtocolCur, member.ProtocolMin, member.ProtocolMax),
+				"version":                parts.Build.String(),
 			},
 		}
 
