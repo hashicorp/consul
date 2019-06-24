@@ -487,9 +487,35 @@ jobs:
               | jq --raw-output '.[] | select(.outcome!="success") | "\(.workflows.job_name): \(.build_url)"')"
             if [[ -n "${unsuccessful_builds}" ]]; then
               printf "master merge CI pipeline jobs failed:\n${unsuccessful_builds}\n"
-              git push --delete origin "${git_merge_branch}"
+              curl -X POST -H 'Content-type: application/json' \
+              --data \
+              "{ \
+                \"attachments\": [ \
+                  { \
+                    \"fallback\": \"Nightly Master Merge Failed!\", \
+                    \"text\": \"Nightly *master* merge into *release/1-6* failed!\n\nBuild Log: ${CIRCLE_BUILD_URL}\n\nAttempted merge from: https://github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/tree/${git_merge_branch}\n\nThere may be a merge conflict to resolve.\", \
+                    \"footer\": \"${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}\", \
+                    \"ts\": \"$(date +%s)\", \
+                    \"color\": \"danger\" \
+                  } \
+                ] \
+              }" ${CONSUL_SLACK_WEBHOOK_URL}
               exit 1
             fi
+
+            current_ref=$(git rev-parse HEAD)
+            # Set CLA check to pass
+            echo "Setting CLA check"
+            curl -u "${HASHICORP_CI_GITHUB_TOKEN}:" -X POST \
+              --header "Accept: application/json" \
+              --show-error \
+              --silent \
+              --fail \
+              --output /dev/null \
+              -d "{ \"state\": \"success\", \
+                    \"target_url\": \"https://cla.hashicorp.com/hashicorp/consul\", \
+                    \"description\": \"Contributor License Agreement is signed.\", \
+                    \"context\": \"license/cla\"}" https://api.github.com/repos/hashicorp/consul/statuses/${current_ref}
 
             # CircleCI jobs passed, merging to release branch
             echo "master merge CI pipeline passed successfully so merging to ${CIRCLE_BRANCH}!"
@@ -497,6 +523,19 @@ jobs:
             git merge "${git_merge_branch}"
             git push origin "${CIRCLE_BRANCH}"
             git push --delete origin "${git_merge_branch}"
+            curl -X POST -H 'Content-type: application/json' \
+              --data \
+              "{ \
+                \"attachments\": [ \
+                  { \
+                    \"fallback\": \"Nightly master merge success!\", \
+                    \"text\": \"Nightly *master* merge into *release/1-6* succeeded!\", \
+                    \"footer\": \"${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}\", \
+                    \"ts\": \"$(date +%s)\", \
+                    \"color\": \"good\" \
+                  } \
+                ] \
+              }" ${CONSUL_SLACK_WEBHOOK_URL}
 
 workflows:
   version: 2
