@@ -19,9 +19,23 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
+// clustersFromSnapshot returns the xDS API representation of the "clusters" in the snapshot.
+func (s *Server) clustersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
+	if cfgSnap == nil {
+		return nil, errors.New("nil config given")
+	}
+
+	switch cfgSnap.Kind {
+	case structs.ServiceKindConnectProxy:
+		return s.clustersFromSnapshotConnectProxy(cfgSnap, token)
+	default:
+		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
+	}
+}
+
 // clustersFromSnapshot returns the xDS API representation of the "clusters"
 // (upstreams) in the snapshot.
-func (s *Server) clustersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
+func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
 	if cfgSnap == nil {
 		return nil, errors.New("nil config given")
 	}

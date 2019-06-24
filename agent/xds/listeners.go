@@ -24,9 +24,23 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-// listenersFromSnapshot returns the xDS API representation of the "listeners"
-// in the snapshot.
+// listenersFromSnapshot returns the xDS API representation of the "listeners" in the snapshot.
 func (s *Server) listenersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
+	if cfgSnap == nil {
+		return nil, errors.New("nil config given")
+	}
+
+	switch cfgSnap.Kind {
+	case structs.ServiceKindConnectProxy:
+		return s.listenersFromSnapshotConnectProxy(cfgSnap, token)
+	default:
+		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
+	}
+}
+
+// listenersFromSnapshotConnectProxy returns the xDS API representation of the "listeners"
+// in the snapshot.
+func (s *Server) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
 	if cfgSnap == nil {
 		return nil, errors.New("nil config given")
 	}

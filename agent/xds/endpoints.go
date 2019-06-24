@@ -2,6 +2,7 @@ package xds
 
 import (
 	"errors"
+	"fmt"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -14,8 +15,22 @@ import (
 )
 
 // endpointsFromSnapshot returns the xDS API representation of the "endpoints"
-// (upstream instances) in the snapshot.
 func endpointsFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
+	if cfgSnap == nil {
+		return nil, errors.New("nil config given")
+	}
+
+	switch cfgSnap.Kind {
+	case structs.ServiceKindConnectProxy:
+		return endpointsFromSnapshotConnectProxy(cfgSnap, token)
+	default:
+		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
+	}
+}
+
+// endpointsFromSnapshotConnectProxy returns the xDS API representation of the "endpoints"
+// (upstream instances) in the snapshot.
+func endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
 	if cfgSnap == nil {
 		return nil, errors.New("nil config given")
 	}

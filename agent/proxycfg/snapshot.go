@@ -9,6 +9,7 @@ import (
 // It is meant to be point-in-time coherent and is used to deliver the current
 // config state to observers who need it to be pushed in (e.g. XDS server).
 type ConfigSnapshot struct {
+	Kind              structs.ServiceKind
 	ProxyID           string
 	Address           string
 	Port              int
@@ -22,7 +23,12 @@ type ConfigSnapshot struct {
 
 // Valid returns whether or not the snapshot has all required fields filled yet.
 func (s *ConfigSnapshot) Valid() bool {
-	return s.Roots != nil && s.Leaf != nil
+	switch s.Kind {
+	case structs.ServiceKindConnectProxy:
+		return s.Roots != nil && s.Leaf != nil
+	default:
+		return false
+	}
 }
 
 // Clone makes a deep copy of the snapshot we can send to other goroutines

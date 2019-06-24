@@ -38,6 +38,7 @@ type state struct {
 	ctx    context.Context
 	cancel func()
 
+	kind     structs.ServiceKind
 	proxyID  string
 	address  string
 	port     int
@@ -72,6 +73,7 @@ func newState(ns *structs.NodeService, token string) (*state, error) {
 	}
 
 	return &state{
+		kind:     ns.Kind,
 		proxyID:  ns.ID,
 		address:  ns.Address,
 		port:     ns.Port,
@@ -116,9 +118,19 @@ func (s *state) Close() error {
 	return nil
 }
 
-// initWatches sets up the watches needed based on current proxy registration
-// state.
+// initWatches sets up the watches needed for the particular service
 func (s *state) initWatches() error {
+	switch s.kind {
+	case structs.ServiceKindConnectProxy:
+		return s.initWatchesConnectProxy()
+	default:
+		return fmt.Errorf("Unsupported service kind")
+	}
+}
+
+// initWatchesConnectProxy sets up the watches needed based on current proxy registration
+// state.
+func (s *state) initWatchesConnectProxy() error {
 	// Watch for root changes
 	err := s.cache.Notify(s.ctx, cachetype.ConnectCARootName, &structs.DCSpecificRequest{
 		Datacenter:   s.source.Datacenter,
@@ -203,12 +215,18 @@ func (s *state) run() {
 	defer close(s.snapCh)
 
 	snap := ConfigSnapshot{
-		ProxyID:           s.proxyID,
-		Address:           s.address,
-		Port:              s.port,
-		Proxy:             s.proxyCfg,
-		UpstreamEndpoints: make(map[string]structs.CheckServiceNodes),
+		Kind:    s.kind,
+		ProxyID: s.proxyID,
+		Address: s.address,
+		Port:    s.port,
+		Proxy:   s.proxyCfg,
 	}
+
+	switch s.kind {
+	case structs.ServiceKindConnectProxy:
+		snap.UpstreamEndpoints = make(map[string]structs.CheckServiceNodes)
+	}
+
 	// This turns out to be really fiddly/painful by just using time.Timer.C
 	// directly in the code below since you can't detect when a timer is stopped
 	// vs waiting in order to know to reset it. So just use a chan to send
@@ -282,6 +300,15 @@ func (s *state) run() {
 }
 
 func (s *state) handleUpdate(u cache.UpdateEvent, snap *ConfigSnapshot) error {
+	switch s.kind {
+	case structs.ServiceKindConnectProxy:
+		return s.handleUpdateConnectProxy(u, snap)
+	default:
+		return fmt.Errorf("Unsupported service kind")
+	}
+}
+
+func (s *state) handleUpdateConnectProxy(u cache.UpdateEvent, snap *ConfigSnapshot) error {
 	switch u.CorrelationID {
 	case rootsWatchID:
 		roots, ok := u.Result.(*structs.IndexedCARoots)
@@ -340,7 +367,7 @@ func (s *state) Changed(ns *structs.NodeService, token string) bool {
 	if ns == nil {
 		return true
 	}
-	return ns.Kind != structs.ServiceKindConnectProxy ||
+	return ns.Kind != s.kind ||
 		s.proxyID != ns.ID ||
 		s.address != ns.Address ||
 		s.port != ns.Port ||
