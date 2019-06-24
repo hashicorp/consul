@@ -22,10 +22,10 @@ to learn about them without having to go spelunking through the source code.
 Before describing the architecture, we provide a glossary of terms to help
 clarify what is being discussed:
 
-* Agent - An agent is the long running daemon on every member of the Consul cluster.
+* Agent - An agent is the long running daemon on every node of the Consul cluster.
 It is started by running `consul agent`. The agent is able to run in either *client*
 or *server* mode. Since all nodes must be running an agent, it is simpler to refer to
-the node as being either a client or server, but there are other instances of the agent. All
+them as being either a client or server. All
 agents can run the DNS or HTTP interfaces, and are responsible for running checks and
 keeping services in sync.
 
@@ -56,9 +56,9 @@ and our implementation is described [here](/docs/internals/consensus.html).
 [gossip protocol](https://en.wikipedia.org/wiki/Gossip_protocol) that is used for multiple purposes.
 Serf provides membership, failure detection, and event broadcast. Our use of these
 is described more in the [gossip documentation](/docs/internals/gossip.html). It is enough to know
-that gossip involves random node-to-node communication, primarily over UDP.
+that gossip involves random agent-to-agent communication, primarily over UDP.
 
-* LAN Gossip - Refers to the LAN gossip pool which contains nodes that are all
+* LAN Gossip - Refers to the LAN gossip pool which contains agents that are all
 located on the same local area network or datacenter.
 
 * WAN Gossip - Refers to the WAN gossip pool which contains only servers. These
@@ -87,12 +87,12 @@ availability in the case of failure and performance, as consensus gets progressi
 slower as more machines are added. However, there is no limit to the number of clients,
 and they can easily scale into the thousands or tens of thousands.
 
-All the nodes that are in a datacenter participate in a [gossip protocol](/docs/internals/gossip.html).
-This means there is a gossip pool that contains all the nodes for a given datacenter. This serves
+All the agents that are in a datacenter participate in a [gossip protocol](/docs/internals/gossip.html).
+This means there is a gossip pool that contains all the agents for a given datacenter. This serves
 a few purposes: first, there is no need to configure clients with the addresses of servers;
-discovery is done automatically. Second, the work of detecting node failures
+discovery is done automatically. Second, the work of detecting agent failures
 is not placed on the servers but is distributed. This makes failure detection much more
-scalable than naive heartbeating schemes. Thirdly, it is used as a messaging layer to notify
+scalable than naive heartbeating schemes. It also provides failure detection for the nodes; if the agent is not reachable, than the node may have experienced a failure. Thirdly, it is used as a messaging layer to notify
 when important events such as leader election take place.
 
 The servers in each datacenter are all part of a single Raft peer set. This means that
@@ -101,9 +101,9 @@ is responsible for processing all queries and transactions. Transactions must al
 all peers as part of the [consensus protocol](/docs/internals/consensus.html). Because of this
 requirement, when a non-leader server receives an RPC request, it forwards it to the cluster leader.
 
-The server nodes also operate as part of a WAN gossip pool. This pool is different from the LAN pool
+The server agents also operate as part of a WAN gossip pool. This pool is different from the LAN pool
 as it is optimized for the higher latency of the internet and is expected to contain only
-other Consul server nodes. The purpose of this pool is to allow datacenters to discover each
+other Consul server agents. The purpose of this pool is to allow datacenters to discover each
 other in a low-touch manner. Bringing a new datacenter online is as easy as joining the existing
 WAN gossip pool. Because the servers are all operating in this pool, it also enables cross-datacenter
 requests. When a server receives a request for a different datacenter, it forwards it to a random
