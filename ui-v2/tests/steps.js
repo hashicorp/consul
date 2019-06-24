@@ -70,6 +70,9 @@ export default function(assert, library, pages, utils) {
     }
     return obj;
   };
+  const clipboard = function() {
+    return window.localStorage.getItem('clipboard');
+  };
   models(library, utils.create);
   http(library, utils.respondWith, utils.set);
   visit(library, pages, setCurrentPage);
@@ -79,7 +82,7 @@ export default function(assert, library, pages, utils) {
   assertHttp(library, assert, utils.lastNthRequest);
   assertModel(library, assert, find, getCurrentPage, pauseUntil, utils.pluralize);
   assertPage(library, assert, find, getCurrentPage);
-  assertDom(library, assert, pauseUntil, utils.find, utils.currentURL);
+  assertDom(library, assert, pauseUntil, utils.find, utils.currentURL, clipboard);
   assertForm(library, assert, find, getCurrentPage);
 
   return library.given(["I'm using a legacy token"], function(number, model, data) {

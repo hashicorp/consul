@@ -115,12 +115,12 @@ for c in ./case-*/ ; do
 
     # Start containers required
     if [ ! -z "$REQUIRED_SERVICES" ] ; then
-      docker-compose up -d $REQUIRED_SERVICES
+      docker-compose up --build -d $REQUIRED_SERVICES
     fi
 
     # Execute tests
     THISRESULT=1
-    if docker-compose up --build --abort-on-container-exit --exit-code-from verify verify ; then
+    if docker-compose up --build --exit-code-from verify verify ; then
       echo "- - - - - - - - - - - - - - - - - - - - - - - -"
       echoblue -n "CASE $CASE_STR"
       echo -n ": "
