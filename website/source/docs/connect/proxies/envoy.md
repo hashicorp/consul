@@ -216,15 +216,15 @@ definition](/docs/connect/registration/service-registration.html) or
 
 ## Advanced Configuration
 
-To support more flexibility when configuring Envoy, several "lower-level" options exist that
-exist that require knowledge of Envoy's configuration format.
-Many allow configuring a subsection of either the bootstrap or
+To support more flexibility when configuring Envoy, several "lower-level" options exist
+that require knowledge of Envoy's configuration format.
+Many options allow configuring a subsection of either the bootstrap or
 dynamic configuration using your own custom protobuf config.
 
 We separate these into two sets, [Advanced Bootstrap
 Options](#advanced-bootstrap-options) and [Escape Hatch
-Overrides](#escape-hatch-overrides). Both require writing Envoy config in it's
-protobuf JSON encoding. Advanced options are smaller chunks that might
+Overrides](#escape-hatch-overrides). Both require writing Envoy config in the
+protobuf JSON encoding. Advanced options covers smaller chunks that might
 commonly need to be set for tasks like configuring tracing. In contrast, escape hatches
 give almost complete control over the proxy setup, but require operators to
 manually code the entire configuration in protobuf JSON.
