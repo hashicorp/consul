@@ -6,9 +6,9 @@ require (
 	cloud.google.com/go v0.40.0 // indirect
 	github.com/Shopify/sarama v1.21.0 // indirect
 	github.com/apache/thrift v0.12.0 // indirect
-	github.com/aws/aws-sdk-go v1.20.3
+	github.com/aws/aws-sdk-go v1.20.5
 	github.com/coreos/bbolt v1.3.2 // indirect
-	github.com/coreos/etcd v3.3.11+incompatible
+	github.com/coreos/etcd v3.3.13+incompatible
 	github.com/coreos/go-semver v0.2.0 // indirect
 	github.com/coreos/go-systemd v0.0.0-20190212144455-93d5ec2c7f76 // indirect
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
@@ -34,8 +34,9 @@ require (
 	github.com/mholt/caddy v1.0.0
 	github.com/miekg/dns v1.1.14
 	github.com/opentracing-contrib/go-observer v0.0.0-20170622124052-a52f23424492 // indirect
-	github.com/opentracing/opentracing-go v1.0.2
-	github.com/openzipkin/zipkin-go-opentracing v0.3.4
+	github.com/opentracing/opentracing-go v1.1.0
+	github.com/openzipkin-contrib/zipkin-go-opentracing v0.3.5 // indirect
+	github.com/openzipkin/zipkin-go-opentracing v0.3.5
 	github.com/philhofer/fwd v1.0.0 // indirect
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/prometheus/client_golang v1.0.0
@@ -46,7 +47,6 @@ require (
 	github.com/spf13/pflag v1.0.3 // indirect
 	github.com/tinylib/msgp v1.1.0 // indirect
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
-	github.com/ugorji/go/codec v0.0.0-20190309163734-c4a1c341dc93 // indirect
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
 	go.etcd.io/bbolt v1.3.2 // indirect
 	go.uber.org/atomic v1.3.2 // indirect
@@ -64,7 +64,7 @@ require (
 	k8s.io/api v0.0.0-20190313235455-40a48860b5ab
 	k8s.io/apimachinery v0.0.0-20190313205120-d7deff9243b1
 	k8s.io/client-go v11.0.0+incompatible
-	k8s.io/klog v0.3.2
+	k8s.io/klog v0.3.3
 	k8s.io/kube-openapi v0.0.0-20190306001800-15615b16d372 // indirect
 	k8s.io/utils v0.0.0-20190529001817-6999998975a7 // indirect
 	sigs.k8s.io/yaml v1.1.0 // indirect
