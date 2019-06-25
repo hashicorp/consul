@@ -628,6 +628,7 @@ func (a *Agent) setupClientAutoEncryptWatching(reply *structs.SignResponse) erro
 					if !ok {
 						err := fmt.Errorf("invalid type for roots response: %T", u.Result)
 						a.logger.Printf("[ERR] %s watch error: %s", u.CorrelationID, err)
+						continue
 					}
 					pems := []string{}
 					for _, root := range roots.Roots {
@@ -639,6 +640,7 @@ func (a *Agent) setupClientAutoEncryptWatching(reply *structs.SignResponse) erro
 					if !ok {
 						err := fmt.Errorf("invalid type for leaf response: %T", u.Result)
 						a.logger.Printf("[ERR] %s watch error: %s", u.CorrelationID, err)
+						continue
 					}
 					a.tlsConfigurator.UpdateAutoEncryptCert(leaf.CertPEM, leaf.PrivateKeyPEM)
 				}
