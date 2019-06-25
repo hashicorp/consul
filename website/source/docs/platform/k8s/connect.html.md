@@ -174,10 +174,37 @@ Annotations can be used to configure the injection behavior.
 
 * `consul.hashicorp.com/connect-service-upstreams` - The list of upstream
   services that this pod needs to connect to via Connect along with a static
-  local port to listen for those connections. Example: `db:1234,auth:6789`
-  will start two local listeners for `db` on port 1234 and `auth` on port
-  6789, respectively. The name of the service is the name of the service
-  registered with Consul. This value defaults to no upstreams.
+  local port to listen for those connections. 
+
+    * Services
+
+        The name of the service is the name of the service registered with Consul. You can optionally specify datacenters with this annotation. 
+        
+        ```annotations:
+        "consul.hashicorp.com/connect-service-upstreams":"[service-name]:[port]:[optional datacenter]"
+        ```
+
+    * [Prepared Query](https://www.consul.io/docs/connect/proxies.html#upstreams)
+
+        ```annotations:
+        "consul.hashicorp.com/connect-service-upstreams": "prepared_query:[query name]:[port]"
+        ````
+
+    * Multiple Upstreams
+
+        If you would like to specify multiple services or upstreams, delimit them with commas
+
+        ```annotations:
+        "consul.hashicorp.com/connect-service-upstreams":"[service-name]:[port]:[optional datacenter],[service-name]:[port]:[optional datacenter]"
+        ```
+
+        ```annotations:
+        "consul.hashicorp.com/connect-service-upstreams":"[service-name]:[port]:[optional datacenter],prepared_query:[query name]:[port]"
+        ```
+        
+      
+
+
 
 * `consul.hashicorp.com/connect-service-protocol` - For pods that will be
   registered with Consul's [central configuration](/docs/agent/config_entries.html)

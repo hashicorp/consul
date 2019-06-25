@@ -528,7 +528,8 @@ service definition keys for compatibility with the config file format.
 
 - `Proxy` `(Proxy: nil)` - From 1.2.3 on, specifies the configuration for a
   Connect proxy instance. This is only valid if `Kind == "connect-proxy"`. See
-  the [Proxy documentation](/docs/connect/proxies.html) for full details.
+  the [Proxy documentation](/docs/connect/registration/service-registration.html)
+  for full details.
 
 - `Connect` `(Connect: nil)` - Specifies the
   [configuration for Connect](/docs/connect/configuration.html). See the
@@ -591,7 +592,7 @@ For the `Connect` field, the parameters are:
   in [Managed Proxy Deprecation](/docs/connect/proxies/managed-deprecated.html).
 - `SidecarService` `(ServiceDefinition: nil)` - Specifies an optional nested
   service definition to register. For more information see
-  [Sidecar Service Registration](/docs/connect/proxies/sidecar-service.html).
+  [Sidecar Service Registration](/docs/connect/registration/sidecar-service.html).
 
 ### Sample Payload
 

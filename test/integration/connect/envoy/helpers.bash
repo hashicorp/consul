@@ -76,6 +76,26 @@ function assert_proxy_presents_cert_uri {
   echo "$CERT" | grep -Eo "URI:spiffe://([a-zA-Z0-9-]+).consul/ns/default/dc/dc1/svc/$SERVICENAME"
 }
 
+function assert_envoy_version {
+  local ADMINPORT=$1
+  run retry_default curl -f -s localhost:$ADMINPORT/server_info
+  [ "$status" -eq 0 ]
+  # Envoy 1.8.0 returns a plain text line like
+  # envoy 5d25f466c3410c0dfa735d7d4358beb76b2da507/1.8.0/Clean/DEBUG live 3 3 0
+  # Later versions return JSON.
+  if (echo $output | grep '^envoy') ; then
+    VERSION=$(echo $output | cut -d ' ' -f 2)
+  else
+    VERSION=$(echo $output | jq -r '.version')
+  fi
+  echo "Status=$status"
+  echo "Output=$output"
+  echo "---"
+  echo "Got version=$VERSION"
+  echo "Want version=$ENVOY_VERSION"
+  echo $VERSION | grep "/$ENVOY_VERSION/"
+}
+
 function get_envoy_listener_filters {
   local HOSTPORT=$1
   run retry_default curl -s -f $HOSTPORT/config_dump

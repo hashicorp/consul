@@ -130,7 +130,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    --request PUT
+    --request PUT \
     http://127.0.0.1:8500/v1/session/destroy/adf4238a-882b-9ddc-4a9d-5b6758e4159e
 ```
 

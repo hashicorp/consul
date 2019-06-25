@@ -4,8 +4,37 @@ set -e
 PROJECT="consul"
 PROJECT_URL="www.consul.io"
 FASTLY_SERVICE_ID="7GrxRJP3PVBuqQbyxYQ0MV"
-FASTLY_DICTIONARY_ID="7d0yAgSHAQ2efWKeUC3kqW"
 REDIRECTS_FILE="./source/redirects.txt"
+EXTERNAL_REDIRECTS_DICT_ID="6jIf0fzbdc8TQerhjkPBc4"
+RELATIVE_REDIRECTS_DICT_ID="431fGfpCzjVIESAwTBVjlf"
+
+# This function posts a dictionary of key-value pairs for redirects to Fastly
+function post_redirects {
+    # Arguments:
+    #   $1 - jq_query
+    #   $2 - dictionary_id
+    #   $3 - jq_args
+    #
+    # Returns:
+    #   0 - success
+    #   * - failure
+
+    declare -a arr=("${!3}")
+
+    # Do not post empty items (the API gets sad)
+     if [ "${#arr[@]}" -ne 0 ]; then
+         json="$(jq "${arr[@]}" "$1" <<<'{"items": []}')"
+
+        # Post the JSON body
+        curl \
+        --request "PATCH" \
+        --header "Fastly-Key: $FASTLY_API_KEY" \
+        --header "Content-type: application/json" \
+        --header "Accept: application/json" \
+        --data "$json"\
+        "https://api.fastly.com/service/$FASTLY_SERVICE_ID/dictionary/$2/items"
+     fi
+}
 
 # Ensure the proper AWS environment variables are set
 if [ -z "$AWS_ACCESS_KEY_ID" ]; then
@@ -137,30 +166,34 @@ if [ -z "$NO_REDIRECTS" ] || [ ! test -f $REDIRECTS_FILE ]; then
   done
 
   # Build the payload for single-request updates.
-  jq_args=()
-  jq_query="."
+  jq_args_external=()
+  jq_query_external="."
+  jq_args_relative=()
+  jq_query_relative="."
   for (( i=0; i<${#fields[@]}; i+=2 )); do
-    original="${fields[i]}"
-    redirect="${fields[i+1]}"
-    echo "Redirecting ${original} -> ${redirect}"
-    jq_args+=(--arg "key$((i/2))" "${original}")
-    jq_args+=(--arg "value$((i/2))" "${redirect}")
-    jq_query+="| .items |= (. + [{op: \"upsert\", item_key: \$key$((i/2)), item_value: \$value$((i/2))}])"
+    # if the redirect is external, add the entries to the external list
+    if [[ "${fields[i+1]}" =~ http[s]*:\/\/ ]]; then
+        external_original="${fields[i]}"
+        external_redirect="${fields[i+1]}"
+        echo "Redirecting external ${external_original} -> ${external_redirect}"
+        # The key and value indexes are for the whole redirects file so it may not be contiguous
+        # This doesn't matter at the end as long as the query matches the same key/value items
+        jq_args_external+=(--arg "key$((i/2))" "${external_original}")
+        jq_args_external+=(--arg "value$((i/2))" "${external_redirect}")
+        jq_query_external+="| .items |= (. + [{op: \"upsert\", item_key: \$key$((i/2)), item_value: \$value$((i/2))}])"
+    else
+        relative_original="${fields[i]}"
+        relative_redirect="${fields[i+1]}"
+        echo "Redirecting relative ${relative_original} -> ${relative_redirect}"
+        # The key and value indexes are for the whole redirects file so it may not be contiguous
+        # This doesn't matter at the end as long as the query matches the same key/value items
+        jq_args_relative+=(--arg "key$((i/2))" "${relative_original}")
+        jq_args_relative+=(--arg "value$((i/2))" "${relative_redirect}")
+        jq_query_relative+="| .items |= (. + [{op: \"upsert\", item_key: \$key$((i/2)), item_value: \$value$((i/2))}])"
+    fi
   done
-
-  # Do not post empty items (the API gets sad)
-  if [ "${#jq_args[@]}" -ne 0 ]; then
-    json="$(jq "${jq_args[@]}" "${jq_query}" <<<'{"items": []}')"
-
-    # Post the JSON body
-    curl \
-      --request "PATCH" \
-      --header "Fastly-Key: $FASTLY_API_KEY" \
-      --header "Content-type: application/json" \
-      --header "Accept: application/json" \
-      --data "$json"\
-      "https://api.fastly.com/service/$FASTLY_SERVICE_ID/dictionary/$FASTLY_DICTIONARY_ID/items"
-  fi
+    post_redirects "$jq_query_external" $EXTERNAL_REDIRECTS_DICT_ID jq_args_external[@]
+    post_redirects "$jq_query_relative" $RELATIVE_REDIRECTS_DICT_ID jq_args_relative[@]
 fi
 
 # Perform a purge of the surrogate key.

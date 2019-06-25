@@ -963,14 +963,8 @@ func TestServer_RevokeLeadershipIdempotent(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	err := s1.revokeLeadership()
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = s1.revokeLeadership()
-	if err != nil {
-		t.Fatal(err)
-	}
+	s1.revokeLeadership()
+	s1.revokeLeadership()
 }
 
 func TestServer_Reload(t *testing.T) {

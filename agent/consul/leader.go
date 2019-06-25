@@ -126,6 +126,21 @@ func (s *Server) monitorLeadership() {
 	}
 }
 
+func (s *Server) leadershipTransfer() error {
+	retryCount := 3
+	for i := 0; i < retryCount; i++ {
+		future := s.raft.LeadershipTransfer()
+		if err := future.Error(); err != nil {
+			s.logger.Printf("[ERR] consul: failed to transfer leadership attempt %d/%d: %v", i, retryCount, err)
+		} else {
+			s.logger.Printf("[ERR] consul: successfully transferred leadership attempt %d/%d", i, retryCount)
+			return nil
+		}
+
+	}
+	return fmt.Errorf("failed to transfer leadership in %d attempts", retryCount)
+}
+
 // leaderLoop runs as long as we are the leader to run various
 // maintenance activities
 func (s *Server) leaderLoop(stopCh chan struct{}) {
@@ -141,19 +156,6 @@ func (s *Server) leaderLoop(stopCh chan struct{}) {
 	// has succeeded
 	var reconcileCh chan serf.Member
 	establishedLeader := false
-
-	reassert := func() error {
-		if !establishedLeader {
-			return fmt.Errorf("leadership has not been established")
-		}
-		if err := s.revokeLeadership(); err != nil {
-			return err
-		}
-		if err := s.establishLeadership(); err != nil {
-			return err
-		}
-		return nil
-	}
 
 RECONCILE:
 	// Setup a reconciliation timer
@@ -175,17 +177,22 @@ RECONCILE:
 			s.logger.Printf("[ERR] consul: failed to establish leadership: %v", err)
 			// Immediately revoke leadership since we didn't successfully
 			// establish leadership.
-			if err := s.revokeLeadership(); err != nil {
-				s.logger.Printf("[ERR] consul: failed to revoke leadership: %v", err)
+			s.revokeLeadership()
+
+			// attempt to transfer leadership. If successful it is
+			// time to leave the leaderLoop since this node is no
+			// longer the leader. If leadershipTransfer() fails, we
+			// will try to acquire it again after
+			// 5 seconds.
+			if err := s.leadershipTransfer(); err != nil {
+				s.logger.Printf("[ERR] consul: %v", err)
+				interval = time.After(5 * time.Second)
+				goto WAIT
 			}
-			goto WAIT
+			return
 		}
 		establishedLeader = true
-		defer func() {
-			if err := s.revokeLeadership(); err != nil {
-				s.logger.Printf("[ERR] consul: failed to revoke leadership: %v", err)
-			}
-		}()
+		defer s.revokeLeadership()
 	}
 
 	// Reconcile any missing data
@@ -223,7 +230,47 @@ WAIT:
 		case index := <-s.tombstoneGC.ExpireCh():
 			go s.reapTombstones(index)
 		case errCh := <-s.reassertLeaderCh:
-			errCh <- reassert()
+			// we can get into this state when the initial
+			// establishLeadership has failed as well as the follow
+			// up leadershipTransfer. Afterwards we will be waiting
+			// for the interval to trigger a reconciliation and can
+			// potentially end up here. There is no point to
+			// reassert because this agent was never leader in the
+			// first place.
+			if !establishedLeader {
+				errCh <- fmt.Errorf("leadership has not been established")
+				continue
+			}
+
+			// continue to reassert only if we previously were the
+			// leader, which means revokeLeadership followed by an
+			// establishLeadership().
+			s.revokeLeadership()
+			err := s.establishLeadership()
+			errCh <- err
+
+			// in case establishLeadership failed, we will try to
+			// transfer leadership. At this time raft thinks we are
+			// the leader, but consul disagrees.
+			if err != nil {
+				if err := s.leadershipTransfer(); err != nil {
+					// establishedLeader was true before,
+					// but it no longer is since it revoked
+					// leadership and Leadership transfer
+					// also failed. Which is why it stays
+					// in the leaderLoop, but now
+					// establishedLeader needs to be set to
+					// false.
+					establishedLeader = false
+					interval = time.After(5 * time.Second)
+					goto WAIT
+				}
+
+				// leadershipTransfer was successful and it is
+				// time to leave the leaderLoop.
+				return
+			}
+
 		}
 	}
 }
@@ -290,15 +337,13 @@ func (s *Server) establishLeadership() error {
 
 // revokeLeadership is invoked once we step down as leader.
 // This is used to cleanup any state that may be specific to a leader.
-func (s *Server) revokeLeadership() error {
+func (s *Server) revokeLeadership() {
 	// Disable the tombstone GC, since it is only useful as a leader
 	s.tombstoneGC.SetEnabled(false)
 
 	// Clear the session timers on either shutdown or step down, since we
 	// are no longer responsible for session expirations.
-	if err := s.clearAllSessionTimers(); err != nil {
-		return err
-	}
+	s.clearAllSessionTimers()
 
 	s.stopConfigReplication()
 
@@ -313,8 +358,8 @@ func (s *Server) revokeLeadership() error {
 	s.stopACLUpgrade()
 
 	s.resetConsistentReadReady()
+
 	s.autopilot.Stop()
-	return nil
 }
 
 // DEPRECATED (ACL-Legacy-Compat) - Remove once old ACL compatibility is removed

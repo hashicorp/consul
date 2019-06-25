@@ -279,6 +279,12 @@ jobs:
           paths:
             - ~/project/website/vendor/bundle
 
+      # exclude guides directory since they moved to learn.hashicorp.com
+      # keep index.html which points to learn
+      - run:
+          name: exclude guides
+          command: find ./source/docs/guides -type f -not -name 'index.html.md' -delete
+
       - run:
           name: middleman build
           command: bundle exec middleman build
@@ -310,6 +316,12 @@ jobs:
       - run:
           name: install gems
           command: bundle check || bundle install --path vendor/bundle --retry=3
+
+      # exclude guides directory since they moved to learn.hashicorp.com
+      # keep index.html which points to learn
+      - run:
+          name: exclude guides
+          command: find ./source/docs/guides -type f -not -name 'index.html.md' -delete
 
       # rerun build with 'ENV=production' to add analytics
       - run:

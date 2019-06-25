@@ -8,13 +8,14 @@ description: |-
 
 # Connect-Native App Integration
 
-Applications can natively integrate with the Connect API to support
-accepting and establishing connections to other Connect services without
-the overhead of a [proxy sidecar](/docs/connect/proxies.html). This option 
-is especially useful for applications that may be experiencing performance issues 
-with the proxy sidecar deployment. This page will cover the high-level overview 
-of integration, registering the service, etc. For language-specific examples, 
-see the sidebar navigation to the left.
+Applications can natively integrate with the Connect API to support accepting
+and establishing connections to other Connect services without the overhead of a
+[proxy sidecar](/docs/connect/proxies.html). This option  is especially useful
+for applications that may be experiencing performance issues  with the proxy
+sidecar deployment. This page will cover the high-level overview  of
+integration, registering the service, etc. For language-specific examples,  see
+the sidebar navigation to the left. It is also required if your service uses
+relies on a dynamic set of upstream services.
 
 Connect is just basic mutual TLS. This means that almost any application
 can easily integrate with Connect. There is no custom protocol in use;

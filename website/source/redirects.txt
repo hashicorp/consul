@@ -38,23 +38,24 @@
 #
 
 # Consul Redirects
-/api.html                                  https://www.consul.io/api/index.html
-/api/acl.html                              https://www.consul.io/api/acl/acl.html
-/docs/agent/acl-rules.html                 https://www.consul.io/docs/acl/acl-rules.html
-/docs/agent/acl-system.html                https://www.consul.io/docs/acl/acl-system.html
-/docs/agent/http.html                      https://www.consul.io/api/index.html
-/docs/guides/acl-legacy.html               https://www.consul.io/docs/acl/acl-legacy.html
-/docs/guide/acl-migrate-tokens.html        https://www.consul.io/docs/acl/acl-migrate-tokens.html
-/docs/guides/acl-migrate-tokens.html       https://www.consul.io/docs/acl/acl-migrate-tokens.html
-/docs/guides/bootstrapping.html            https://www.consul.io/docs/install/bootstrapping.html
-/docs/guides/sentinel.html                 https://www.consul.io/docs/agent/sentinel.html
+/api.html                                  /api/index.html
+/api/acl.html                              /api/acl/acl.html
+/docs/agent/acl-rules.html                 /docs/acl/acl-rules.html
+/docs/agent/acl-system.html                /docs/acl/acl-system.html
+/docs/agent/http.html                      /api/index.html
+/docs/guides/acl-legacy.html               /docs/acl/acl-legacy.html
+/docs/guide/acl-migrate-tokens.html        /docs/acl/acl-migrate-tokens.html
+/docs/guides/acl-migrate-tokens.html       /docs/acl/acl-migrate-tokens.html
+/docs/guides/bootstrapping.html            /docs/install/bootstrapping.html
+/docs/guides/sentinel.html                 /docs/agent/sentinel.html
+/docs/connect/proxies/sidecar-service.html /docs/connect/registration/sidecar-service.html
 
 # CLI renames
-/docs/commands/acl/acl-bootstrap.html       https://www.consul.io/docs/commands/acl/bootstrap.html
-/docs/commands/acl/acl-policy.html          https://www.consul.io/docs/commands/acl/policy.html
-/docs/commands/acl/acl-set-agent-token.html https://www.consul.io/docs/commands/acl/set-agent-token.html
-/docs/commands/acl/acl-token.html           https://www.consul.io/docs/commands/acl/token.html
-/docs/commands/acl/acl-translate-rules.html https://www.consul.io/docs/commands/acl/translate-rules.html
+/docs/commands/acl/acl-bootstrap.html       /docs/commands/acl/bootstrap.html
+/docs/commands/acl/acl-policy.html          /docs/commands/acl/policy.html
+/docs/commands/acl/acl-set-agent-token.html /docs/commands/acl/set-agent-token.html
+/docs/commands/acl/acl-token.html           /docs/commands/acl/token.html
+/docs/commands/acl/acl-translate-rules.html /docs/commands/acl/translate-rules.html
 
 # Consul Learn Redirects
 /docs/guides/acl.html                          https://learn.hashicorp.com/consul/security-networking/production-acls

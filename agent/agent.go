@@ -1131,6 +1131,7 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	}
 
 	// Setup the loggers
+	base.LogLevel = a.config.LogLevel
 	base.LogOutput = a.LogOutput
 
 	// This will set up the LAN keyring, as well as the WAN and any segments

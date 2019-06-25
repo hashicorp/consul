@@ -138,7 +138,7 @@ is routable and configured by some other system.
 
 ClusterIP services are synced by default as of `consul-k8s` version 0.3.0. In 
 many Kubernetes clusters, ClusterIPs may not be accessible outside of the cluster,
-so you may end up with services registered in Consul that are not routeable. To
+so you may end up with services registered in Consul that are not routable. To
 skip syncing ClusterIP services, set [`syncClusterIPServices`](/docs/platform/k8s/helm.html#v-synccatalog-clusterip-sync)
 to `false` in the Helm chart values file.
 

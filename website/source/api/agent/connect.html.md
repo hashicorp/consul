@@ -221,10 +221,10 @@ $ curl \
 ## Managed Proxy Configuration ([Deprecated](/docs/connect/proxies/managed-deprecated.html))
 
 This endpoint returns the configuration for a [managed
-proxy](/docs/connect/proxies.html). Ths endpoint is only useful for _managed
+proxy](/docs/connect/proxies.html). This endpoint is only useful for _managed
 proxies_ and not relevant for unmanaged proxies. This endpoint will be removed
 in a future major release as part of [managed proxy
-deprecation].(/docs/connect/proxies/managed-deprecated.html). The equivalent API
+deprecation](/docs/connect/proxies/managed-deprecated.html). The equivalent API
 for use will all future proxies is the more generic `
 
 Managed proxy configuration is set in the service definition. When Consul
@@ -316,6 +316,6 @@ $ curl \
   is a map of primitive values (including arrays and maps) that is set by the
   user.
 
-- `Upstreams` `(array<Upstream>)` - The configured upstreams for the proxy. See 
-[Upstream Configuration Reference](/docs/connect/proxies.html#upstream-configuration-reference)
+- `Upstreams` `(array<Upstream>)` - The configured upstreams for the proxy. See
+[Upstream Configuration Reference](/docs/connect/registration/service-registration.html#upstream-configuration-reference)
 for more details on the format.

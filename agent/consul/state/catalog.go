@@ -785,7 +785,7 @@ func (s *Store) ensureServiceCASTxn(tx *memdb.Txn, idx uint64, node string, svc 
 	if svc.ModifyIndex != 0 && existing == nil {
 		return false, nil
 	}
-	e, ok := existing.(*structs.Node)
+	e, ok := existing.(*structs.ServiceNode)
 	if ok && svc.ModifyIndex != 0 && svc.ModifyIndex != e.ModifyIndex {
 		return false, nil
 	}
