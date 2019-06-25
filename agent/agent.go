@@ -2877,16 +2877,14 @@ func (a *Agent) updateTTLCheck(checkID types.CheckID, status, output string) err
 	if !ok {
 		return fmt.Errorf("CheckID %q does not have associated TTL", checkID)
 	}
-
+	stateCheck, ok := a.State.Checks()[checkID]
+	if !ok {
+		return fmt.Errorf("CheckID %q does not have a state check TTL", checkID)
+	}
 	// Set the status through CheckTTL to reset the TTL.
 	outputTruncated := check.SetStatus(status, output)
-	stateCheck := a.State.Checks()[checkID]
-	if stateCheck != nil {
-		stateCheck.Output = outputTruncated
-		stateCheck.Status = status
-	} else {
-		a.logger.Printf("[WARN] agent: Unexpected missing state for check %v", checkID)
-	}
+	stateCheck.Output = outputTruncated
+	stateCheck.Status = status
 	// We don't write any files in dev mode so bail here.
 	if a.config.DataDir == "" {
 		return nil
