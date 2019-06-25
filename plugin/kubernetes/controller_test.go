@@ -79,7 +79,7 @@ func generateEndpoints(cidr string, client kubernetes.Interface) {
 		}
 		ep.ObjectMeta.Name = "svc" + strconv.Itoa(count)
 		_, err = client.CoreV1().Endpoints("testns").Create(ep)
-		count += 1
+		count++
 	}
 }
 
@@ -94,17 +94,17 @@ func generateSvcs(cidr string, svcType string, client kubernetes.Interface) {
 	case "clusterip":
 		for ip := ip.Mask(ipnet.Mask); ipnet.Contains(ip); inc(ip) {
 			createClusterIPSvc(count, client, ip)
-			count += 1
+			count++
 		}
 	case "headless":
 		for ip := ip.Mask(ipnet.Mask); ipnet.Contains(ip); inc(ip) {
 			createHeadlessSvc(count, client, ip)
-			count += 1
+			count++
 		}
 	case "external":
 		for ip := ip.Mask(ipnet.Mask); ipnet.Contains(ip); inc(ip) {
 			createExternalSvc(count, client, ip)
-			count += 1
+			count++
 		}
 	default:
 		for ip := ip.Mask(ipnet.Mask); ipnet.Contains(ip); inc(ip) {
@@ -115,7 +115,7 @@ func generateSvcs(cidr string, svcType string, client kubernetes.Interface) {
 			} else if count%3 == 2 {
 				createExternalSvc(count, client, ip)
 			}
-			count += 1
+			count++
 		}
 	}
 }

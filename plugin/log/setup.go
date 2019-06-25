@@ -104,7 +104,7 @@ func logParse(c *caddy.Controller) ([]Rule, error) {
 			classes[response.All] = struct{}{}
 		}
 
-		for i := len(rules) - 1; i >= length; i -= 1 {
+		for i := len(rules) - 1; i >= length; i-- {
 			rules[i].Class = classes
 		}
 	}

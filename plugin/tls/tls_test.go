@@ -50,7 +50,7 @@ func TestTLS(t *testing.T) {
 func TestTLSClientAuthentication(t *testing.T) {
 	// Invalid configurations are tested in the general test case.  In this test we only look into specific details of valid client_auth options.
 	tests := []struct {
-		option string			// tls plugin option(s)
+		option       string             // tls plugin option(s)
 		expectedType tls.ClientAuthType // expected authentication type.
 	}{
 		// By default, or if 'nocert' is specified, no cert should be requested.

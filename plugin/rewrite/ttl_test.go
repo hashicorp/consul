@@ -12,7 +12,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-func TestNewTtlRule(t *testing.T) {
+func TestNewTTLRule(t *testing.T) {
 	tests := []struct {
 		next         string
 		args         []string
@@ -36,7 +36,7 @@ func TestNewTtlRule(t *testing.T) {
 	}
 	for i, tc := range tests {
 		failed := false
-		rule, err := newTtlRule(tc.next, tc.args...)
+		rule, err := newTTLRule(tc.next, tc.args...)
 		if err != nil {
 			failed = true
 		}
@@ -71,13 +71,13 @@ func TestTtlRewrite(t *testing.T) {
 		args         []string
 		expectedType reflect.Type
 	}{
-		{[]string{"stop", "ttl", "srv1.coredns.rocks", "1"}, reflect.TypeOf(&exactTtlRule{})},
-		{[]string{"stop", "ttl", "exact", "srv15.coredns.rocks", "15"}, reflect.TypeOf(&exactTtlRule{})},
-		{[]string{"stop", "ttl", "prefix", "srv30", "30"}, reflect.TypeOf(&prefixTtlRule{})},
-		{[]string{"stop", "ttl", "suffix", "45.coredns.rocks", "45"}, reflect.TypeOf(&suffixTtlRule{})},
-		{[]string{"stop", "ttl", "substring", "rv50", "50"}, reflect.TypeOf(&substringTtlRule{})},
-		{[]string{"stop", "ttl", "regex", `(srv10)\.(coredns)\.(rocks)`, "10"}, reflect.TypeOf(&regexTtlRule{})},
-		{[]string{"stop", "ttl", "regex", `(srv20)\.(coredns)\.(rocks)`, "20"}, reflect.TypeOf(&regexTtlRule{})},
+		{[]string{"stop", "ttl", "srv1.coredns.rocks", "1"}, reflect.TypeOf(&exactTTLRule{})},
+		{[]string{"stop", "ttl", "exact", "srv15.coredns.rocks", "15"}, reflect.TypeOf(&exactTTLRule{})},
+		{[]string{"stop", "ttl", "prefix", "srv30", "30"}, reflect.TypeOf(&prefixTTLRule{})},
+		{[]string{"stop", "ttl", "suffix", "45.coredns.rocks", "45"}, reflect.TypeOf(&suffixTTLRule{})},
+		{[]string{"stop", "ttl", "substring", "rv50", "50"}, reflect.TypeOf(&substringTTLRule{})},
+		{[]string{"stop", "ttl", "regex", `(srv10)\.(coredns)\.(rocks)`, "10"}, reflect.TypeOf(&regexTTLRule{})},
+		{[]string{"stop", "ttl", "regex", `(srv20)\.(coredns)\.(rocks)`, "20"}, reflect.TypeOf(&regexTTLRule{})},
 	}
 	for i, r := range ruleset {
 		rule, err := newRule(r.args...)
@@ -90,10 +90,10 @@ func TestTtlRewrite(t *testing.T) {
 		}
 		rules = append(rules, rule)
 	}
-	doTtlTests(rules, t)
+	doTTLTests(rules, t)
 }
 
-func doTtlTests(rules []Rule, t *testing.T) {
+func doTTLTests(rules []Rule, t *testing.T) {
 	tests := []struct {
 		from      string
 		fromType  uint16
