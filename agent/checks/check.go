@@ -281,7 +281,8 @@ func (c *CheckTTL) getExpiredOutput() string {
 
 // SetStatus is used to update the status of the check,
 // and to renew the TTL. If expired, TTL is restarted.
-func (c *CheckTTL) SetStatus(status, output string) {
+// output is returned (might be truncated)
+func (c *CheckTTL) SetStatus(status, output string) string {
 	c.Logger.Printf("[DEBUG] agent: Check %q status is now %s", c.CheckID, status)
 	c.Notify.UpdateCheck(c.CheckID, status, output)
 	total := len(output)
@@ -295,6 +296,7 @@ func (c *CheckTTL) SetStatus(status, output string) {
 	c.lastOutputLock.Unlock()
 
 	c.timer.Reset(c.TTL)
+	return output
 }
 
 // CheckHTTP is used to periodically make an HTTP request to

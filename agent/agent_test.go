@@ -1405,7 +1405,7 @@ func TestAgent_updateTTLCheck(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
-
+	checkBufSize := 100
 	health := &structs.HealthCheck{
 		Node:    "foo",
 		CheckID: "mem",
@@ -1413,7 +1413,8 @@ func TestAgent_updateTTLCheck(t *testing.T) {
 		Status:  api.HealthCritical,
 	}
 	chk := &structs.CheckType{
-		TTL: 15 * time.Second,
+		TTL:           15 * time.Second,
+		OutputMaxSize: checkBufSize,
 	}
 
 	// Add check and update it.
@@ -1432,6 +1433,19 @@ func TestAgent_updateTTLCheck(t *testing.T) {
 	}
 	if status.Output != "foo" {
 		t.Fatalf("bad: %v", status)
+	}
+
+	if err := a.updateTTLCheck("mem", api.HealthCritical, strings.Repeat("--bad-- ", 5*checkBufSize)); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Ensure we have a check mapping.
+	status = a.State.Checks()["mem"]
+	if status.Status != api.HealthCritical {
+		t.Fatalf("bad: %v", status)
+	}
+	if len(status.Output) > checkBufSize*2 {
+		t.Fatalf("bad: %v", len(status.Output))
 	}
 }
 

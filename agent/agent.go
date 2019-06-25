@@ -2259,10 +2259,11 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 
 			ttl := &checks.CheckTTL{
-				Notify:  a.State,
-				CheckID: check.CheckID,
-				TTL:     chkType.TTL,
-				Logger:  a.logger,
+				Notify:        a.State,
+				CheckID:       check.CheckID,
+				TTL:           chkType.TTL,
+				Logger:        a.logger,
+				OutputMaxSize: maxOutputSize,
 			}
 
 			// Restore persisted state, if any
@@ -2878,8 +2879,14 @@ func (a *Agent) updateTTLCheck(checkID types.CheckID, status, output string) err
 	}
 
 	// Set the status through CheckTTL to reset the TTL.
-	check.SetStatus(status, output)
-
+	outputTruncated := check.SetStatus(status, output)
+	stateCheck := a.State.Checks()[checkID]
+	if stateCheck != nil {
+		stateCheck.Output = outputTruncated
+		stateCheck.Status = status
+	} else {
+		a.logger.Printf("[WARN] agent: Unexpected missing state for check %v", checkID)
+	}
 	// We don't write any files in dev mode so bail here.
 	if a.config.DataDir == "" {
 		return nil
@@ -2887,7 +2894,7 @@ func (a *Agent) updateTTLCheck(checkID types.CheckID, status, output string) err
 
 	// Persist the state so the TTL check can come up in a good state after
 	// an agent restart, especially with long TTL values.
-	if err := a.persistCheckState(check, status, output); err != nil {
+	if err := a.persistCheckState(check, status, outputTruncated); err != nil {
 		return fmt.Errorf("failed persisting state for check %q: %s", checkID, err)
 	}
 

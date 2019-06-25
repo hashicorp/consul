@@ -2360,7 +2360,7 @@ func TestAgent_UpdateCheck(t *testing.T) {
 		// isn't super brittle.
 		state := a.State.Checks()["test"]
 		if state.Status != api.HealthPassing || len(state.Output) > 2*checks.DefaultBufSize {
-			t.Fatalf("bad: %v", state)
+			t.Fatalf("bad: %v, (len:=%d)", state, len(state.Output))
 		}
 	})
 
