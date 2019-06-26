@@ -284,12 +284,12 @@ func (c *CheckTTL) getExpiredOutput() string {
 // output is returned (might be truncated)
 func (c *CheckTTL) SetStatus(status, output string) string {
 	c.Logger.Printf("[DEBUG] agent: Check %q status is now %s", c.CheckID, status)
-	c.Notify.UpdateCheck(c.CheckID, status, output)
 	total := len(output)
 	if total > c.OutputMaxSize {
 		output = fmt.Sprintf("%s ... (captured %d of %d bytes)",
 			output[:c.OutputMaxSize], c.OutputMaxSize, total)
 	}
+	c.Notify.UpdateCheck(c.CheckID, status, output)
 	// Store the last output so we can retain it if the TTL expires.
 	c.lastOutputLock.Lock()
 	c.lastOutput = output
