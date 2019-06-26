@@ -4408,7 +4408,7 @@ func TestFullConfig(t *testing.T) {
 		DNSAllowStale:                    true,
 		DNSDisableCompression:            true,
 		DNSDomain:                        "7W1xXSqd",
-		DNSAltDomain:					  "1789hsd",
+		DNSAltDomain:                     "1789hsd",
 		DNSEnableTruncate:                true,
 		DNSMaxStale:                      29685 * time.Second,
 		DNSNodeTTL:                       7084 * time.Second,
