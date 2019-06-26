@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -411,14 +412,14 @@ func retryLoopBackoff(stopCh <-chan struct{}, loopFn func() error, errFn func(er
 // diffIntentions computes the difference between the local and remote intentions
 // and returns lists of deletes and updates.
 func diffIntentions(local, remote structs.Intentions) (structs.Intentions, structs.Intentions) {
-	localIdx := make(map[string]uint64, len(local))
+	localIdx := make(map[string][]byte, len(local))
 	remoteIdx := make(map[string]struct{}, len(remote))
 
 	var deletes structs.Intentions
 	var updates structs.Intentions
 
 	for _, intention := range local {
-		localIdx[intention.ID] = intention.ModifyIndex
+		localIdx[intention.ID] = intention.Hash
 	}
 	for _, intention := range remote {
 		remoteIdx[intention.ID] = struct{}{}
@@ -431,10 +432,10 @@ func diffIntentions(local, remote structs.Intentions) (structs.Intentions, struc
 	}
 
 	for _, intention := range remote {
-		existingIdx, ok := localIdx[intention.ID]
+		existingHash, ok := localIdx[intention.ID]
 		if !ok {
 			updates = append(updates, intention)
-		} else if existingIdx < intention.ModifyIndex {
+		} else if bytes.Compare(existingHash, intention.Hash) != 0 {
 			updates = append(updates, intention)
 		}
 	}
