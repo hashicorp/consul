@@ -497,9 +497,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 
 	datacenter := strings.ToLower(b.stringVal(c.Datacenter))
 	altDomain := b.stringVal(c.DNSAltDomain)
-	if !isValidAltDomain(altDomain, datacenter) {
-		return RuntimeConfig{}, fmt.Errorf("alt_domain cannot start with {service,connect,node,query,addr,%s}", datacenter)
-	}
 
 	// Create the default set of tagged addresses.
 	if c.TaggedAddresses == nil {
@@ -953,6 +950,9 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		if ipaddr.IsAny(a) {
 			return fmt.Errorf("DNS recursor address cannot be 0.0.0.0, :: or [::]")
 		}
+	}
+	if !isValidAltDomain(rt.DNSAltDomain, rt.Datacenter) {
+		return fmt.Errorf("alt_domain cannot start with {service,connect,node,query,addr,%s}", rt.Datacenter)
 	}
 	if rt.Bootstrap && !rt.ServerMode {
 		return fmt.Errorf("'bootstrap = true' requires 'server = true'")
@@ -1668,10 +1668,9 @@ func isUnixAddr(a net.Addr) bool {
 	return ok
 }
 
-// isValidAltDomain returns true iff the given domain may be used
-// as an alternate domain name.
+// isValidAltDomain returns true iff the given domain is not prefixed
+// by keywords used when dispatching DNS requests
 func isValidAltDomain(domain, datacenter string) bool {
-	// reAltDomain defines a regexp for a valid alternate DNS domain
 	reAltDomain := regexp.MustCompile(
 		fmt.Sprintf(
 			"^(service|connect|node|query|addr|%s)\\.(%s\\.)?",
