@@ -224,7 +224,7 @@ dynamic configuration using your own custom protobuf config.
 We separate these into two sets, [Advanced Bootstrap
 Options](#advanced-bootstrap-options) and [Escape Hatch
 Overrides](#escape-hatch-overrides). Both require writing Envoy config in the
-protobuf JSON encoding. Advanced options covers smaller chunks that might
+protobuf JSON encoding. Advanced options cover smaller chunks that might
 commonly need to be set for tasks like configuring tracing. In contrast, escape hatches
 give almost complete control over the proxy setup, but require operators to
 manually code the entire configuration in protobuf JSON.
