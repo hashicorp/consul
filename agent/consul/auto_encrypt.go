@@ -23,6 +23,14 @@ func (c *Client) RequestAutoEncryptCerts(servers []string, port int, token strin
 		return nil, "", err
 	}
 
+	// Check if we know about a server already through gossip. Depending on
+	// how the agent joined, there might already be one. Also in case this
+	// gets called because the cert expired.
+	server := c.routers.FindServer()
+	if server != nil {
+		servers = []string{server.Addr.String()}
+	}
+
 	if len(servers) == 0 {
 		return errFn(fmt.Errorf("No servers to request AutoEncrypt.Sign"))
 	}

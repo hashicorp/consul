@@ -626,6 +626,27 @@ func (c *Configurator) OutgoingRPCWrapper() DCWrapper {
 	}
 }
 
+// AutoEncryptCertNotAfter returns NotAfter from the auto_encrypt cert. In case
+// there is no cert, it will return a time in the past.
+func (c *Configurator) AutoEncryptCertNotAfter() time.Time {
+	c.RLock()
+	tlsCert := c.autoEncrypt.cert
+	c.RUnlock()
+	if tlsCert == nil {
+		return time.Now().AddDate(0, 0, -1)
+	}
+	cert, err := x509.ParseCertificate(tlsCert.Certificate[0])
+	if err != nil {
+		return time.Now().AddDate(0, 0, -1)
+	}
+	return cert.NotAfter
+}
+
+// AutoEncryptCertExpired returns if the auto_encrypt cert is expired.
+func (c *Configurator) AutoEncryptCertExpired() bool {
+	return c.AutoEncryptCertNotAfter().Before(time.Now())
+}
+
 // This function acquires a read lock because it reads from the config.
 func (c *Configurator) log(name string) {
 	if c.logger != nil {

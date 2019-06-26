@@ -802,3 +802,18 @@ func TestConfigurator_VerifyServerHostname(t *testing.T) {
 	c.autoEncrypt.verifyServerHostname = true
 	require.True(t, c.VerifyServerHostname())
 }
+
+func TestConfigurator_AutoEncrytCertExpired(t *testing.T) {
+	c := Configurator{base: &Config{}, autoEncrypt: &autoEncrypt{}}
+	require.True(t, c.AutoEncryptCertExpired())
+
+	cert, err := loadKeyPair("../test/key/something_expired.cer", "../test/key/something_expired.key")
+	require.NoError(t, err)
+	c.autoEncrypt.cert = cert
+	require.True(t, c.AutoEncryptCertExpired())
+
+	cert, err = loadKeyPair("../test/key/ourdomain.cer", "../test/key/ourdomain.key")
+	require.NoError(t, err)
+	c.autoEncrypt.cert = cert
+	require.False(t, c.AutoEncryptCertExpired())
+}

@@ -440,7 +440,11 @@ func (a *Agent) Start() error {
 		if err != nil {
 			return fmt.Errorf("AutoEncrypt failed: %s", err)
 		}
-		if err = a.setupClientAutoEncryptWatching(reply); err != nil {
+		rootsReq, leafReq, err := a.setupClientAutoEncryptCache(reply)
+		if err != nil {
+			return fmt.Errorf("AutoEncrypt failed: %s", err)
+		}
+		if err = a.setupClientAutoEncryptWatching(rootsReq, leafReq); err != nil {
 			return fmt.Errorf("AutoEncrypt failed: %s", err)
 		}
 		a.logger.Printf("[INFO] AutoEncrypt: upgraded to TLS")
@@ -571,7 +575,7 @@ func (a *Agent) setupClientAutoEncrypt() (*structs.SignResponse, error) {
 
 }
 
-func (a *Agent) setupClientAutoEncryptWatching(reply *structs.SignResponse) error {
+func (a *Agent) setupClientAutoEncryptCache(reply *structs.SignResponse) (*structs.DCSpecificRequest, *cachetype.ConnectCALeafRequest, error) {
 	rootsReq := &structs.DCSpecificRequest{
 		Datacenter:   a.config.Datacenter,
 		QueryOptions: structs.QueryOptions{Token: a.tokens.AgentToken()},
@@ -580,7 +584,7 @@ func (a *Agent) setupClientAutoEncryptWatching(reply *structs.SignResponse) erro
 	// prepolutate roots cache
 	rootRes := cache.FetchResult{Value: &reply.ConnectCARoots, Index: reply.ConnectCARoots.QueryMeta.Index}
 	if err := a.cache.Prepopulate(cachetype.ConnectCARootName, rootRes, a.config.Datacenter, a.tokens.AgentToken(), rootsReq.CacheInfo().Key); err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	leafReq := &cachetype.ConnectCALeafRequest{
@@ -592,9 +596,12 @@ func (a *Agent) setupClientAutoEncryptWatching(reply *structs.SignResponse) erro
 	// prepolutate leaf cache
 	certRes := cache.FetchResult{Value: &reply.IssuedCert, Index: reply.ConnectCARoots.QueryMeta.Index}
 	if err := a.cache.Prepopulate(cachetype.ConnectCALeafName, certRes, a.config.Datacenter, a.tokens.AgentToken(), leafReq.Key()); err != nil {
-		return err
+		return nil, nil, err
 	}
+	return rootsReq, leafReq, nil
+}
 
+func (a *Agent) setupClientAutoEncryptWatching(rootsReq *structs.DCSpecificRequest, leafReq *cachetype.ConnectCALeafRequest) error {
 	// setup watches
 	ch := make(chan cache.UpdateEvent, 10)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -613,6 +620,7 @@ func (a *Agent) setupClientAutoEncryptWatching(reply *structs.SignResponse) erro
 		return err
 	}
 
+	// Setup actions in case the watches are firing.
 	go func() {
 		for {
 			select {
@@ -643,6 +651,48 @@ func (a *Agent) setupClientAutoEncryptWatching(reply *structs.SignResponse) erro
 						continue
 					}
 					a.tlsConfigurator.UpdateAutoEncryptCert(leaf.CertPEM, leaf.PrivateKeyPEM)
+				}
+			}
+		}
+	}()
+
+	// Setup safety net in case the auto_encrypt cert doesn't get renewed
+	// in time. The agent would be stuck in that case because the watches
+	// never use the AutoEncrypt.Sign endpoint.
+	go func() {
+		for {
+
+			// Check 10sec after cert expires. The agent cache
+			// should be handling the expiration and renew before
+			// it.
+			// If there is no cert, AutoEncryptCertNotAfter returns
+			// a value in the past which immediately triggers the
+			// renew, but this case shouldn't happen because at
+			// this point, auto_encrypt was just being setup
+			// successfully.
+			interval := a.tlsConfigurator.AutoEncryptCertNotAfter().Sub(time.Now().Add(10 * time.Second))
+			a.logger.Printf("[DEBUG] AutoEncrypt: client certificate expiration check in %s", interval)
+			select {
+			case <-a.shutdownCh:
+				return
+			case <-time.After(interval):
+				// check auto encrypt client cert expiration
+				if a.tlsConfigurator.AutoEncryptCertExpired() {
+					a.logger.Printf("[DEBUG] AutoEncrypt: client certificate expired.")
+					reply, err := a.setupClientAutoEncrypt()
+					if err != nil {
+						a.logger.Printf("[ERR] AutoEncrypt: client certificate expired, failed to renew: %s", err)
+						// in case of an error, try again in one minute
+						interval = time.Minute
+						continue
+					}
+					_, _, err = a.setupClientAutoEncryptCache(reply)
+					if err != nil {
+						a.logger.Printf("[ERR] AutoEncrypt: client certificate expired, failed to populate cache: %s", err)
+						// in case of an error, try again in one minute
+						interval = time.Minute
+						continue
+					}
 				}
 			}
 		}
