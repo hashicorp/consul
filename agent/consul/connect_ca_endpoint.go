@@ -316,39 +316,23 @@ func (s *ConnectCA) Roots(
 		return ErrConnectNotEnabled
 	}
 
-	// Load the ClusterID to generate TrustDomain. We do this outside the loop
-	// since by definition this value should be immutable once set for lifetime of
-	// the cluster so we don't need to look it up more than once. We also don't
-	// have to worry about non-atomicity between the config fetch transaction and
-	// the CARoots transaction below since this field must remain immutable. Do
-	// not re-use this state/config for other logic that might care about changes
-	// of config during the blocking query below.
-	{
-		state := s.srv.fsm.State()
-		_, config, err := state.CAConfig()
-		if err != nil {
-			return err
-		}
-
-		// Check CA is actually bootstrapped...
-		if config != nil {
-			// Build TrustDomain based on the ClusterID stored.
-			signingID := connect.SpiffeIDSigningForCluster(config)
-			if signingID == nil {
-				// If CA is bootstrapped at all then this should never happen but be
-				// defensive.
-				return errors.New("no cluster trust domain setup")
-			}
-			reply.TrustDomain = signingID.Host()
-		}
-	}
-
 	return s.srv.blockingQuery(
 		&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, roots, err := state.CARoots(ws)
+			index, roots, config, err := state.CARootsAndConfig(ws)
 			if err != nil {
 				return err
+			}
+
+			if config != nil {
+				// Build TrustDomain based on the ClusterID stored.
+				signingID := connect.SpiffeIDSigningForCluster(config)
+				if signingID == nil {
+					// If CA is bootstrapped at all then this should never happen but be
+					// defensive.
+					return errors.New("no cluster trust domain setup")
+				}
+				reply.TrustDomain = signingID.Host()
 			}
 
 			reply.Index, reply.Roots = index, roots
@@ -415,6 +399,8 @@ func (s *ConnectCA) Sign(
 	provider, caRoot := s.srv.getCAProvider()
 	if provider == nil {
 		return fmt.Errorf("internal error: CA provider is nil")
+	} else if caRoot == nil {
+		return fmt.Errorf("internal error: CA root is nil")
 	}
 
 	// Verify that the CSR entity is in the cluster's trust domain
