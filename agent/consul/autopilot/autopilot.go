@@ -22,7 +22,8 @@ type Delegate interface {
 	NotifyHealth(OperatorHealthReply)
 	PromoteNonVoters(*Config, OperatorHealthReply) ([]raft.Server, error)
 	Raft() *raft.Raft
-	Serf() *serf.Serf
+	SerfLAN() *serf.Serf
+	SerfWAN() *serf.Serf
 }
 
 // Autopilot is a mechanism for automatically managing the Raft
@@ -175,6 +176,7 @@ func (a *Autopilot) RemoveDeadServers() {
 
 // pruneDeadServers removes up to numPeers/2 failed servers
 func (a *Autopilot) pruneDeadServers() error {
+	fmt.Printf("Hi from pruneDeadServers!")
 	conf := a.delegate.AutopilotConfig()
 	if conf == nil || !conf.CleanupDeadServers {
 		return nil
@@ -195,7 +197,7 @@ func (a *Autopilot) pruneDeadServers() error {
 		staleRaftServers[string(server.Address)] = server
 	}
 
-	serfLAN := a.delegate.Serf()
+	serfLAN := a.delegate.SerfLAN()
 	for _, member := range serfLAN.Members() {
 		server, err := a.delegate.IsServer(member)
 		if err != nil {
@@ -216,6 +218,7 @@ func (a *Autopilot) pruneDeadServers() error {
 					go serfLAN.RemoveFailedNode(member.Name)
 				} else {
 					failed = append(failed, member.Name)
+
 				}
 			}
 		}
@@ -233,6 +236,21 @@ func (a *Autopilot) pruneDeadServers() error {
 		for _, node := range failed {
 			a.logger.Printf("[INFO] autopilot: Attempting removal of failed server node %q", node)
 			go serfLAN.RemoveFailedNode(node)
+
+		}
+		// If SerfLAN was removing servers, WAN should too.
+		// Check serfWAN for any failed servers
+		serfWAN := a.delegate.SerfLAN()
+		for _, member := range serfWAN.Members() {
+			_, err := a.delegate.IsServer(member)
+			if err != nil {
+				a.logger.Printf("[INFO] autopilot: Error parsing server info for %q: %s", member.Name, err)
+				continue
+			}
+			if member.Status == serf.StatusFailed {
+				a.logger.Printf("[INFO] autopilot: Attempting removal of failed server node %q", member.Name)
+				go serfWAN.RemoveFailedNode(member.Name)
+			}
 		}
 
 		minRaftProtocol, err := a.MinRaftProtocol()
@@ -260,7 +278,7 @@ func (a *Autopilot) pruneDeadServers() error {
 
 // MinRaftProtocol returns the lowest supported Raft protocol among alive servers
 func (a *Autopilot) MinRaftProtocol() (int, error) {
-	return minRaftProtocol(a.delegate.Serf().Members(), a.delegate.IsServer)
+	return minRaftProtocol(a.delegate.SerfLAN().Members(), a.delegate.IsServer)
 }
 
 func minRaftProtocol(members []serf.Member, serverFunc func(serf.Member) (*ServerInfo, error)) (int, error) {
@@ -369,7 +387,7 @@ func (a *Autopilot) updateClusterHealth() error {
 	// Get the the serf members which are Consul servers
 	var serverMembers []serf.Member
 	serverMap := make(map[string]*ServerInfo)
-	for _, member := range a.delegate.Serf().Members() {
+	for _, member := range a.delegate.SerfLAN().Members() {
 		if member.Status == serf.StatusLeft {
 			continue
 		}
