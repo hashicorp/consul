@@ -516,6 +516,8 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 			Datacenter: req.Datacenter,
 			Agent:      req.Agent,
 		}
+	} else {
+		return result, errors.New("URI must be either service or agent")
 	}
 
 	// Create a new private key
