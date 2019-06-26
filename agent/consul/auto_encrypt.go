@@ -69,9 +69,9 @@ func (c *Client) RequestAutoEncryptCerts(servers []string, port int, token strin
 			return errFn(fmt.Errorf("aborting AutoEncrypt because interrupted"))
 		default:
 		}
+
 		// Translate host to net.TCPAddr to make life easier for
 		// RPCInsecure.
-		addrs := []*net.TCPAddr{}
 		for _, s := range servers {
 			ips, err := resolveAddr(s, c.logger)
 			if err != nil {
@@ -79,17 +79,20 @@ func (c *Client) RequestAutoEncryptCerts(servers []string, port int, token strin
 				continue
 			}
 			for _, ip := range ips {
-				addrs = append(addrs, &net.TCPAddr{IP: ip, Port: port})
+				addr := net.TCPAddr{IP: ip, Port: port}
+
+				if err = c.connPool.RPC(c.config.Datacenter, &addr, 0, "AutoEncrypt.Sign", true, &args, &reply); err == nil {
+					return &reply, pkPEM, nil
+				} else {
+					c.logger.Printf("[WARN] agent: AutoEncrypt failed: %v", err)
+				}
 			}
 		}
-
-		if err = c.RPCInsecure("AutoEncrypt.Sign", &args, &reply, addrs); err == nil {
-			return &reply, pkPEM, nil
-		}
+		attempts++
 
 		delay := lib.RandomStagger(retryJitterWindow)
 		interval := (time.Duration(attempts) * delay) + delay
-		c.logger.Printf("[WARN] agent: AutoEncrypt failed: %v, retrying in %v", err, interval)
+		c.logger.Printf("[WARN] agent: retrying AutoEncrypt in %v", interval)
 		select {
 		case <-time.After(interval):
 			continue

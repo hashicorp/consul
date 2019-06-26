@@ -420,6 +420,36 @@ START:
 
 // RPC is used to make an RPC call to a remote host
 func (p *ConnPool) RPC(dc string, addr net.Addr, version int, method string, useTLS bool, args interface{}, reply interface{}) error {
+	if method == "AutoEncrypt.Sign" {
+		return p.rpcInsecure(dc, addr, method, args, reply)
+	} else {
+		return p.rpc(dc, addr, version, method, useTLS, args, reply)
+	}
+}
+
+// rpcInsecure is used to make an RPC call to a remote host.
+// It doesn't actually use any of the pooling, it is here so that it is
+// transparent for the consumer. The pool cannot be used because
+// AutoEncrypt.Sign is a one-off call and it doesn't make sense to pool that
+// connection if it is not being reused.
+func (p *ConnPool) rpcInsecure(dc string, addr net.Addr, method string, args interface{}, reply interface{}) error {
+	var codec rpc.ClientCodec
+	conn, _, err := p.DialTimeoutInsecure(dc, addr, 1*time.Second, p.TLSConfigurator.OutgoingRPCWrapper())
+	if err != nil {
+		return fmt.Errorf("rpcinsecure error establishing connection: %v", err)
+	}
+	codec = msgpackrpc.NewClientCodec(conn)
+
+	// Make the RPC call
+	err = msgpackrpc.CallWithCodec(codec, method, args, reply)
+	if err != nil {
+		return fmt.Errorf("rpcinsecure error making call: %v", err)
+	}
+
+	return nil
+}
+
+func (p *ConnPool) rpc(dc string, addr net.Addr, version int, method string, useTLS bool, args interface{}, reply interface{}) error {
 	p.once.Do(p.init)
 
 	// Get a usable client

@@ -162,6 +162,7 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 	}
 }
 
+// handleInsecureConsulConn is used to service a single Consul INSECURERPC connection
 func (s *Server) handleInsecureConn(conn net.Conn) {
 	defer conn.Close()
 	rpcCodec := msgpackrpc.NewServerCodec(conn)
