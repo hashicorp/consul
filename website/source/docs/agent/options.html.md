@@ -465,6 +465,8 @@ will exit with an error at startup.
   the Web UI resources for Consul. This will automatically enable the Web UI. The directory must be
   readable to the agent. Starting with Consul version 0.7.0 and later, the Web UI assets are included in the binary so this flag is no longer necessary; specifying only the `-ui` flag is enough to enable the Web UI. Specifying both the '-ui' and '-ui-dir' flags will result in an error.
 
+* <a name="_ui_content_path"></a><a href="#_ui_content_path">`-ui-content-path`</a> - This flag provides the option to change the path the Consul UI loads from and will be displayed in the browser. By default, the path is `/ui/`, for example `http://localhost:8500/ui/`. Only alphanumerics, `-`, and `_` are allowed in a custom path. `/v1/` is not allowed as it would overwrite the API endpoint. 
+
 ## <a name="configuration_files"></a>Configuration Files
 
 In addition to the command-line options, configuration can be put into

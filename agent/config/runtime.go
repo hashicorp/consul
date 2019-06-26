@@ -1387,6 +1387,10 @@ type RuntimeConfig struct {
 	// flag: -ui-dir string
 	UIDir string
 
+	//UIContentPath is a string that sets the external
+	// path to a string. Default: /ui/
+	UIContentPath string
+
 	// UnixSocketGroup contains the group of the file permissions when
 	// Consul binds to UNIX sockets.
 	//

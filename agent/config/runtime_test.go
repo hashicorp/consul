@@ -743,6 +743,18 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DataDir = dataDir
 			},
 		},
+		{
+			desc: "-ui-content-path",
+			args: []string{
+				`-ui-content-path=/a/b`,
+				`-data-dir=` + dataDir,
+			},
+
+			patch: func(rt *RuntimeConfig) {
+				rt.UIContentPath = "/a/b/"
+				rt.DataDir = dataDir
+			},
+		},
 
 		// ------------------------------------------------------------
 		// ports and addresses
@@ -4760,6 +4772,7 @@ func TestFullConfig(t *testing.T) {
 			"wan":      "78.63.37.19",
 		},
 		TranslateWANAddrs:    true,
+		UIContentPath:        "/ui/",
 		UIDir:                "11IFzAUn",
 		UnixSocketUser:       "E0nB1DwA",
 		UnixSocketGroup:      "8pFodrV8",
@@ -5369,6 +5382,7 @@ func TestSanitize(t *testing.T) {
 			"StatsiteAddr": ""
 		},
 		"TranslateWANAddrs": false,
+		"UIContentPath": "",
 		"UIDir": "",
 		"UnixSocketGroup": "",
 		"UnixSocketMode": "",
@@ -5706,6 +5720,41 @@ func TestReadPath(t *testing.T) {
 				t.Fatalf("expected %d sources, got %d", tc.expect, got)
 			}
 		})
+	}
+}
+
+func Test_UIPathBuilder(t *testing.T) {
+	cases := []struct {
+		name     string
+		path     string
+		expected string
+	}{
+		{
+			"Letters only string",
+			"hello",
+			"/hello/",
+		},
+		{
+			"Alphanumeric",
+			"Hello1",
+			"/Hello1/",
+		},
+		{
+			"Hyphen and underscore",
+			"-_",
+			"/-_/",
+		},
+		{
+			"Many slashes",
+			"/hello/ui/1/",
+			"/hello/ui/1/",
+		},
+	}
+
+	for _, tt := range cases {
+		actual := UIPathBuilder(tt.path)
+		require.Equal(t, tt.expected, actual)
+
 	}
 }
 
