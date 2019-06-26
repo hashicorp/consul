@@ -132,6 +132,14 @@ will exit with an error at startup.
   [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
   template
 
+* <a name="check_output_max_size"></a><a href="#check_output_max_size">`-check_output_max_size`</a> -
+  Override the default limit of 4k for maximum size of checks, this is a positive
+  value.
+  By limiting this size, it allows to put less pressure on Consul servers when
+  many checks are having a very large output in their checks.
+  In order to completely disable check output capture, it is possible to
+  use <a href="#discard_check_output">`discard_check_output`</a>.
+
 * <a name="_client"></a><a href="#_client">`-client`</a> - The address to which
   Consul will bind client interfaces, including the HTTP and DNS servers. By
   default, this is "127.0.0.1", allowing only loopback connections. In Consul

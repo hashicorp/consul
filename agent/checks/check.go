@@ -28,10 +28,10 @@ const (
 	// Otherwise we risk fork bombing a system.
 	MinInterval = time.Second
 
-	// BufSize is the maximum size of the captured
-	// check output. Prevents an enormous buffer
+	// DefaultBufSize is the maximum size of the captured
+	// check output by defaut. Prevents an enormous buffer
 	// from being captured
-	BufSize = 4 * 1024 // 4KB
+	DefaultBufSize = 4 * 1024 // 4KB
 
 	// UserAgent is the value of the User-Agent header
 	// for HTTP health checks.
@@ -56,13 +56,14 @@ type CheckNotifier interface {
 // determine the health of a given check. It is compatible with
 // nagios plugins and expects the output in the same format.
 type CheckMonitor struct {
-	Notify     CheckNotifier
-	CheckID    types.CheckID
-	Script     string
-	ScriptArgs []string
-	Interval   time.Duration
-	Timeout    time.Duration
-	Logger     *log.Logger
+	Notify        CheckNotifier
+	CheckID       types.CheckID
+	Script        string
+	ScriptArgs    []string
+	Interval      time.Duration
+	Timeout       time.Duration
+	Logger        *log.Logger
+	OutputMaxSize int
 
 	stop     bool
 	stopCh   chan struct{}
@@ -122,7 +123,7 @@ func (c *CheckMonitor) check() {
 	}
 
 	// Collect the output
-	output, _ := circbuf.NewBuffer(BufSize)
+	output, _ := circbuf.NewBuffer(int64(c.OutputMaxSize))
 	cmd.Stdout = output
 	cmd.Stderr = output
 	exec.SetSysProcAttr(cmd)
@@ -222,12 +223,17 @@ type CheckTTL struct {
 	stop     bool
 	stopCh   chan struct{}
 	stopLock sync.Mutex
+
+	OutputMaxSize int
 }
 
 // Start is used to start a check ttl, runs until Stop()
 func (c *CheckTTL) Start() {
 	c.stopLock.Lock()
 	defer c.stopLock.Unlock()
+	if c.OutputMaxSize < 1 {
+		c.OutputMaxSize = DefaultBufSize
+	}
 	c.stop = false
 	c.stopCh = make(chan struct{})
 	c.timer = time.NewTimer(c.TTL)
@@ -275,16 +281,22 @@ func (c *CheckTTL) getExpiredOutput() string {
 
 // SetStatus is used to update the status of the check,
 // and to renew the TTL. If expired, TTL is restarted.
-func (c *CheckTTL) SetStatus(status, output string) {
+// output is returned (might be truncated)
+func (c *CheckTTL) SetStatus(status, output string) string {
 	c.Logger.Printf("[DEBUG] agent: Check %q status is now %s", c.CheckID, status)
+	total := len(output)
+	if total > c.OutputMaxSize {
+		output = fmt.Sprintf("%s ... (captured %d of %d bytes)",
+			output[:c.OutputMaxSize], c.OutputMaxSize, total)
+	}
 	c.Notify.UpdateCheck(c.CheckID, status, output)
-
 	// Store the last output so we can retain it if the TTL expires.
 	c.lastOutputLock.Lock()
 	c.lastOutput = output
 	c.lastOutputLock.Unlock()
 
 	c.timer.Reset(c.TTL)
+	return output
 }
 
 // CheckHTTP is used to periodically make an HTTP request to
@@ -303,6 +315,7 @@ type CheckHTTP struct {
 	Timeout         time.Duration
 	Logger          *log.Logger
 	TLSClientConfig *tls.Config
+	OutputMaxSize   int
 
 	httpClient *http.Client
 	stop       bool
@@ -338,6 +351,9 @@ func (c *CheckHTTP) Start() {
 			c.httpClient.Timeout = c.Timeout
 		} else if c.Interval < 10*time.Second {
 			c.httpClient.Timeout = c.Interval
+		}
+		if c.OutputMaxSize < 1 {
+			c.OutputMaxSize = DefaultBufSize
 		}
 	}
 
@@ -413,7 +429,7 @@ func (c *CheckHTTP) check() {
 	defer resp.Body.Close()
 
 	// Read the response into a circular buffer to limit the size
-	output, _ := circbuf.NewBuffer(BufSize)
+	output, _ := circbuf.NewBuffer(int64(c.OutputMaxSize))
 	if _, err := io.Copy(output, resp.Body); err != nil {
 		c.Logger.Printf("[WARN] agent: Check %q error while reading body: %s", c.CheckID, err)
 	}
