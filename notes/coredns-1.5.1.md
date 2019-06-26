@@ -3,7 +3,7 @@ title = "CoreDNS-1.5.1 Release"
 description = "CoreDNS-1.5.1 Release Notes."
 tags = ["Release", "1.5.1", "Notes"]
 release = "1.5.1"
-date = "2019-06-20T13:03:07+00:01"
+date = "2019-06-26T13:03:07+00:01"
 author = "coredns"
 +++
 
@@ -19,7 +19,10 @@ PR](https://github.com/coredns/coredns/pull/2793) otherwise we'll remove it in t
 # Plugins
 
 * A new plugin [*any*](/plugins/any) that block ANY queries according to [RFC 8482](https://tools.ietf.org/html/rfc8482) was added.
-* Failed reload fixes for: [*ready*](/plugins/ready), [*health*](/plugins/health) and [*prometheus*](/plugins/metrics) - when CoreDNS reloads and the Corefile is invalid these plugins now keep on working.
+* Failed reload fixes for: [*ready*](/plugins/ready), [*health*](/plugins/health) and
+  [*prometheus*](/plugins/metrics) - when CoreDNS reloads and the Corefile is invalid these plugins
+  now keep on working. The [*reload*](/plugin/reload) also gained a metric that export failed
+  reloads. ([PR](https://github.com/coredns/coredns/pull/2922).
 * [*tls*](/plugins/tls) now has a `client_auth` option that allows verification of client TLS certificates. Note that the default behavior continues to be to not require validation, however in version 1.6.0 this default will change to `required_and_verify` if the CA is provided.
 * [*kubernetes*](/plugins/kubernetes) can now publish metadata about the request and, if `pods verified` is enabled, about the client Pod. To enable this, you must enable the [*metadata*](/plugins/metadata) plugin.
   And also return pod IPs for running pods, instead of just the first

@@ -1,3 +1,8 @@
+# This Makefile generates the manual pages from the markdown README.mds. It depends
+# on https://github.com/mmarkdown/mmark to be installed. Generally we want this to be
+# updated before doing a release. The Debian package, for instance, looks at these pages
+# and will install them on your system.
+
 MMARK:=mmark -man
 PLUGINS:=$(wildcard plugin/*/README.md)
 READMES:=$(subst plugin/,,$(PLUGINS))

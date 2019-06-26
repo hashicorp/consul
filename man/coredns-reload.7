@@ -134,6 +134,14 @@ In general be careful with assigning new port and expecting reload to work fully
 Also any \fB\fCimport\fR statement is not discovered by this plugin. This means if any of these imported files
 changes the \fIreload\fP plugin is ignorant of that fact.
 
+.SH "METRICS"
+.PP
+If monitoring is enabled (via the \fIprometheus\fP directive) then the following metric is exported:
+
+.IP \(bu 4
+\fB\fCcoredns_reload_failed_count_total{}\fR - counts the number of failed reload attempts.
+
+
 .SH "ALSO SEE"
 .PP
 See coredns-import(7) and corefile(5).
