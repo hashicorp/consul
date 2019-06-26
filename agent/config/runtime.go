@@ -1651,7 +1651,6 @@ func cleanRetryJoin(a string) string {
 func sanitize(name string, v reflect.Value) reflect.Value {
 	typ := v.Type()
 	switch {
-
 	// check before isStruct and isPtr
 	case isNetAddr(typ):
 		if v.IsNil() {
@@ -1666,6 +1665,8 @@ func sanitize(name string, v reflect.Value) reflect.Value {
 			return reflect.ValueOf("unix://" + x.String())
 		case *net.IPAddr:
 			return reflect.ValueOf(x.IP.String())
+		case *net.IPNet:
+			return reflect.ValueOf(x.String())
 		default:
 			return v
 		}
