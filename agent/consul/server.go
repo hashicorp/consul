@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -957,6 +958,10 @@ func (s *Server) WANMembers() []serf.Member {
 func (s *Server) RemoveFailedNode(node string) error {
 	if err := s.serfLAN.RemoveFailedNode(node); err != nil {
 		return err
+	}
+	//If node is not nodename.datacenter, make it so
+	if !strings.HasSuffix(node, "."+s.config.Datacenter) {
+		node = node + "." + s.config.Datacenter
 	}
 	if s.serfWAN != nil {
 		if err := s.serfWAN.RemoveFailedNode(node); err != nil {

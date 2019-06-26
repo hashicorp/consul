@@ -222,15 +222,10 @@ func (a *Autopilot) pruneDeadServers() error {
 			}
 		}
 	}
-	var failedWAN []string
 	serfWAN := a.delegate.SerfWAN()
 	//if serfWAN is empty, do nothing
 	if serfWAN != nil {
-		for _, member := range serfWAN.Members() {
-			if member.Status == serf.StatusFailed {
-				failedWAN = append(failed, member.Name)
-			}
-		}
+		a.pruneSerfWAN(serfWAN, serfLAN)
 	}
 
 	// We can bail early if there's nothing to do.
@@ -246,14 +241,6 @@ func (a *Autopilot) pruneDeadServers() error {
 			a.logger.Printf("[INFO] autopilot: Attempting removal of failed server node %q", node)
 			go serfLAN.RemoveFailedNode(node)
 
-		}
-		// If SerfLAN was removing servers, WAN should too.
-		// Check serfWAN for any failed servers
-		if failedWAN != nil {
-			for _, node := range failedWAN {
-				a.logger.Printf("[INFO] autopilot: Attempting removal of failed server node %q", node)
-				go serfWAN.RemoveFailedNode(node)
-			}
 		}
 
 		minRaftProtocol, err := a.MinRaftProtocol()
@@ -539,5 +526,29 @@ func IsPotentialVoter(suffrage raft.ServerSuffrage) bool {
 		return true
 	default:
 		return false
+	}
+}
+
+//For each member in serfWAN check to see if it
+//is failed - then check to see if it is a serfLAN
+//member, remove it.
+func (a *Autopilot) pruneSerfWAN(serfWAN *serf.Serf, serfLAN *serf.Serf) {
+	for _, memberWAN := range serfWAN.Members() {
+		found := false
+		if memberWAN.Status == serf.StatusFailed {
+			for _, memberLAN := range serfLAN.Members() {
+				memberDC := fmt.Sprintf("%v.%v", memberLAN.Name, memberLAN.Tags["dc"])
+				if memberWAN.Name == memberDC && memberLAN.Status != serf.StatusLeft {
+					found = true
+				}
+			}
+			//If it is not found in memberLANs list as left then check if
+			// we've already removed it. If not, let's do that
+			if found == false {
+				a.logger.Printf("[INFO] autopilot: Attempting removal of failed server node %q", memberWAN.Name)
+				go serfWAN.RemoveFailedNode(memberWAN.Name)
+			}
+
+		}
 	}
 }
