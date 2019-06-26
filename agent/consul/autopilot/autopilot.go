@@ -222,6 +222,16 @@ func (a *Autopilot) pruneDeadServers() error {
 			}
 		}
 	}
+	var failedWAN []string
+	serfWAN := a.delegate.SerfWAN()
+	//if serfWAN is empty, do nothing
+	if serfWAN != nil {
+		for _, member := range serfWAN.Members() {
+			if member.Status == serf.StatusFailed {
+				failedWAN = append(failed, member.Name)
+			}
+		}
+	}
 
 	// We can bail early if there's nothing to do.
 	removalCount := len(failed) + len(staleRaftServers)
@@ -239,11 +249,10 @@ func (a *Autopilot) pruneDeadServers() error {
 		}
 		// If SerfLAN was removing servers, WAN should too.
 		// Check serfWAN for any failed servers
-		serfWAN := a.delegate.SerfWAN()
-		for _, member := range serfWAN.Members() {
-			if member.Status == serf.StatusFailed {
-				a.logger.Printf("[INFO] autopilot: Attempting removal of failed server node %q", member.Name)
-				go serfWAN.RemoveFailedNode(member.Name)
+		if failedWAN != nil {
+			for _, node := range failedWAN {
+				a.logger.Printf("[INFO] autopilot: Attempting removal of failed server node %q", node)
+				go serfWAN.RemoveFailedNode(node)
 			}
 		}
 
