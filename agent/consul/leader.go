@@ -1363,6 +1363,17 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 			ID:      structs.ConsulServiceID,
 			Service: structs.ConsulServiceName,
 			Port:    parts.Port,
+			Weights: &structs.Weights{
+				Passing: 1,
+				Warning: 1,
+			},
+			Meta: map[string]string{
+				"raft_version":          strconv.Itoa(parts.RaftVersion),
+				"serf_protocol_current": strconv.FormatUint(uint64(member.ProtocolCur), 10),
+				"serf_protocol_min":     strconv.FormatUint(uint64(member.ProtocolMin), 10),
+				"serf_protocol_max":     strconv.FormatUint(uint64(member.ProtocolMax), 10),
+				"version":               parts.Build.String(),
+			},
 		}
 
 		// Attempt to join the consul server
