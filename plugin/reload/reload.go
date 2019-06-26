@@ -83,6 +83,7 @@ func hook(event caddy.EventName, info interface{}) error {
 					_, err := instance.Restart(corefile)
 					if err != nil {
 						log.Errorf("Corefile changed but reload failed: %s", err)
+						FailedCount.Add(1)
 						continue
 					}
 					// we are done, if the plugin was not set used, then it is not.

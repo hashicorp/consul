@@ -92,6 +92,12 @@ In general be careful with assigning new port and expecting reload to work fully
 Also any `import` statement is not discovered by this plugin. This means if any of these imported files
 changes the *reload* plugin is ignorant of that fact.
 
+## Metrics
+
+ If monitoring is enabled (via the *prometheus* directive) then the following metric is exported:
+
+* `coredns_reload_failed_count_total{}` - counts the number of failed reload attempts.
+
 ## Also See
 
 See coredns-import(7) and corefile(5).
