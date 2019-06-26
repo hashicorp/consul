@@ -149,8 +149,7 @@ func (t *templatedFile) Sys() interface{} {
 }
 
 type redirectFS struct {
-	fs          http.FileSystem
-	ContentPath string
+	fs http.FileSystem
 }
 
 func (fs *redirectFS) Open(name string) (http.File, error) {
