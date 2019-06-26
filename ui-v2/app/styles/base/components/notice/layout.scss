@@ -1,11 +1,13 @@
 %notice {
   position: relative;
   padding: 1em;
-  padding-left: 45px;
+}
+/* this is probably skin */
+%notice {
+  padding-left: calc(1em + 32px);
 }
 %notice::before {
   position: absolute;
-  left: 20px;
-  top: 18px;
-  margin-top: 0;
+  left: 16px;
+  top: 16px;
 }
