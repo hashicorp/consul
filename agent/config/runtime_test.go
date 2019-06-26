@@ -345,6 +345,53 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
+			desc: "-alt-domain",
+			args: []string{
+				`-alt-domain=alt`,
+				`-data-dir=` + dataDir,
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.DNSAltDomain = "alt"
+				rt.DataDir = dataDir
+			},
+		},
+		{
+			desc: "-alt-domain can't be prefixed by DC",
+			args: []string{
+				`-datacenter=a`,
+				`-alt-domain=a.alt`,
+				`-data-dir=` + dataDir,
+			},
+			err: "alt_domain cannot start with {service,connect,node,query,addr,a}",
+		},
+		{
+			desc: "-alt-domain can't be prefixed by service",
+			args: []string{
+				`-alt-domain=service.alt`,
+				`-data-dir=` + dataDir,
+			},
+			err: "alt_domain cannot start with {service,connect,node,query,addr,dc1}",
+		},
+		{
+			desc: "-alt-domain can be prefixed by non-keywords",
+			args: []string{
+				`-alt-domain=mydomain.alt`,
+				`-data-dir=` + dataDir,
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.DNSAltDomain = "mydomain.alt"
+				rt.DataDir = dataDir
+			},
+		},
+		{
+			desc: "-alt-domain can't be prefixed by DC",
+			args: []string{
+				`-alt-domain=dc1.alt`,
+				`-data-dir=` + dataDir,
+			},
+			err: "alt_domain cannot start with {service,connect,node,query,addr,dc1}",
+		},
+		{
 			desc: "-enable-script-checks",
 			args: []string{
 				`-enable-script-checks`,
@@ -3144,6 +3191,7 @@ func TestFullConfig(t *testing.T) {
 			"discard_check_output": true,
 			"discovery_max_stale": "5s",
 			"domain": "7W1xXSqd",
+			"alt_domain": "1789hsd",
 			"dns_config": {
 				"allow_stale": true,
 				"a_record_limit": 29907,
@@ -3713,6 +3761,7 @@ func TestFullConfig(t *testing.T) {
 			discard_check_output = true
 			discovery_max_stale = "5s"
 			domain = "7W1xXSqd"
+			alt_domain = "1789hsd"
 			dns_config {
 				allow_stale = true
 				a_record_limit = 29907
@@ -4359,6 +4408,7 @@ func TestFullConfig(t *testing.T) {
 		DNSAllowStale:                    true,
 		DNSDisableCompression:            true,
 		DNSDomain:                        "7W1xXSqd",
+		DNSAltDomain:					  "1789hsd",
 		DNSEnableTruncate:                true,
 		DNSMaxStale:                      29685 * time.Second,
 		DNSNodeTTL:                       7084 * time.Second,
@@ -5153,6 +5203,7 @@ func TestSanitize(t *testing.T) {
 		"DNSAllowStale": false,
 		"DNSDisableCompression": false,
 		"DNSDomain": "",
+		"DNSAltDomain": "",
 		"DNSEnableTruncate": false,
 		"DNSMaxStale": "0s",
 		"DNSNodeMetaTXT": false,
