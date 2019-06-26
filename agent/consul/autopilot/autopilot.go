@@ -176,7 +176,6 @@ func (a *Autopilot) RemoveDeadServers() {
 
 // pruneDeadServers removes up to numPeers/2 failed servers
 func (a *Autopilot) pruneDeadServers() error {
-	fmt.Printf("Hi from pruneDeadServers!")
 	conf := a.delegate.AutopilotConfig()
 	if conf == nil || !conf.CleanupDeadServers {
 		return nil
@@ -240,13 +239,8 @@ func (a *Autopilot) pruneDeadServers() error {
 		}
 		// If SerfLAN was removing servers, WAN should too.
 		// Check serfWAN for any failed servers
-		serfWAN := a.delegate.SerfLAN()
+		serfWAN := a.delegate.SerfWAN()
 		for _, member := range serfWAN.Members() {
-			_, err := a.delegate.IsServer(member)
-			if err != nil {
-				a.logger.Printf("[INFO] autopilot: Error parsing server info for %q: %s", member.Name, err)
-				continue
-			}
 			if member.Status == serf.StatusFailed {
 				a.logger.Printf("[INFO] autopilot: Attempting removal of failed server node %q", member.Name)
 				go serfWAN.RemoveFailedNode(member.Name)
