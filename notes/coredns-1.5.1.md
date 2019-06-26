@@ -3,11 +3,11 @@ title = "CoreDNS-1.5.1 Release"
 description = "CoreDNS-1.5.1 Release Notes."
 tags = ["Release", "1.5.1", "Notes"]
 release = "1.5.1"
-date = "2019-06-26T13:03:07+00:01"
+date = 2019-06-26T13:54:47+01:00
 author = "coredns"
 +++
 
-The CoreDNS team has relased
+The CoreDNS team has released
 [CoreDNS-1.5.1](https://github.com/coredns/coredns/releases/tag/v1.5.1).
 
 Various bugfixes, better documentation and cleanups.
