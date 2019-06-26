@@ -39,6 +39,31 @@ documented below in the
 [reload command](/docs/commands/reload.html) can also be used to trigger a
 configuration reload.
 
+## <a id="ports-used"></a>Ports Used
+
+Consul requires up to 6 different ports to work properly, some on
+TCP, UDP, or both protocols.
+
+Review the [required ports](/docs/install/ports.html) table for a list of
+required ports and their default settings.
+
+## <a id="reloadable-configuration"></a>Reloadable Configuration
+
+Reloading configuration does not reload all configuration items. The
+items which are reloaded include:
+
+* Log level
+* Checks
+* Services
+* Watches
+* HTTP Client Address
+* TLS Configuration
+  * Please be aware that this is currently limited to reload a configuration that is already TLS enabled. You cannot enable or disable TLS only with reloading.
+* <a href="#node_meta">Node Metadata</a>
+* <a href="#telemetry-prefix_filter">Metric Prefix Filter</a>
+* <a href="#discard_check_output">Discard Check Output</a>
+* <a href="#limits">RPC rate limiting</a>
+
 ## <a name="commandline_options"></a>Command-line Options
 
 The options below are all specified on the command-line.
@@ -1741,27 +1766,4 @@ default will automatically work with some tooling.
    [watch documentation](/docs/agent/watches.html) for more detail. Watches can be
    modified when the configuration is reloaded.
 
-## <a id="ports-used"></a>Ports Used
 
-Consul requires up to 6 different ports to work properly, some on
-TCP, UDP, or both protocols.
-
-Review the [required ports](/docs/install/ports.html) table for a list of
-required ports and their default settings.
-
-## <a id="reloadable-configuration"></a>Reloadable Configuration
-
-Reloading configuration does not reload all configuration items. The
-items which are reloaded include:
-
-* Log level
-* Checks
-* Services
-* Watches
-* HTTP Client Address
-* TLS Configuration
-  * Please be aware that this is currently limited to reload a configuration that is already TLS enabled. You cannot enable or disable TLS only with reloading.
-* <a href="#node_meta">Node Metadata</a>
-* <a href="#telemetry-prefix_filter">Metric Prefix Filter</a>
-* <a href="#discard_check_output">Discard Check Output</a>
-* <a href="#limits">RPC rate limiting</a>

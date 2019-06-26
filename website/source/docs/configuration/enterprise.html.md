@@ -3,8 +3,12 @@ layout: "docs"
 page_title: "Configuration"
 sidebar_current: "docs-configuration-enterprise"
 description: |-
-  The 
+  These options configure Consul Enterprise features
 ---
+
+# Consul Enterprise Options 
+
+These options configure Consul Enterprise features. 
 
 * <a name="segment"></a><a href="#segment">`segment`</a> (Enterprise-only) Equivalent to the
   [`-segment` command-line flag](#_segment).

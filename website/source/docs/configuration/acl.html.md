@@ -7,13 +7,11 @@ description: |-
 ---
 
 
-# ACL 
+# ACL Options
 
-This object allows a number of sub-keys to be set which controls the ACL system. To learn more about the ACL system, read the reference documentation. 
+This object allows a number of sub-keys to be set which controls the ACL system. To learn more about the ACL system, read the [reference documentation](). 
 
-ACLs must be configured in the agent's configuration file, there are no command-line options. 
-
-## ACL Options
+ACLs must be configured in the agent's configuration file, there are no command-line options. Unless otherwise noted, all settings apply to both servers and clients. 
 
 
 * <a name="acl"></a><a href="#acl">`acl`</a> - This object allows a number
