@@ -1,5 +1,9 @@
 ## UNRELEASED
 
+FEATURE
+
+* tls: auto_encrypt enables automatic RPC cert provisioning for consul clients [[GH-5597](https://github.com/hashicorp/consul/pull/5597)]
+
 IMPROVEMENTS
 
 * ui: allow for customization of consul UI path [[GH-5950](https://github.com/hashicorp/consul/pull/5950)]
