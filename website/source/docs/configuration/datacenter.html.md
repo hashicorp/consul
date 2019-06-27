@@ -198,6 +198,11 @@ These options allow you to configure datacenter-wide behavior including communic
   to the Consul raft log in environments where health checks have volatile output like
   timestamps, process ids, ...
 
+* <a name="disable_keyring_file"></a><a href="#disable_keyring_file">`disable_keyring_file`</a> - Equivalent to the
+  `-disable-keyring-file` command-line flag. If set,
+  the keyring will not be persisted to a file. Any installed keys will be lost on shutdown, and only the given
+  `-encrypt` key will be available on startup. This defaults to false.
+
 * <a name="discovery_max_stale"></a><a href="#discovery_max_stale">`discovery_max_stale`</a> - Enables
   stale requests for all service discovery HTTP endpoints. This is equivalent to the
   [`max_stale`](#max_stale) configuration for DNS requests. If this value is zero (default), all service
@@ -214,14 +219,14 @@ These options allow you to configure datacenter-wide behavior including communic
 
     The following sub-keys are available:
 
-    * <a name="allow_stale"></a><a href="#allow_stale">`allow_stale`</a> - Enables a stale query
+  * <a name="allow_stale"></a><a href="#allow_stale">`allow_stale`</a> - Enables a stale query
       for DNS information. This allows any Consul server, rather than only the leader, to service
       the request. The advantage of this is you get linear read scalability with Consul servers.
       In versions of Consul prior to 0.7, this defaulted to false, meaning all requests are serviced
       by the leader, providing stronger consistency but less throughput and higher latency. In Consul
       0.7 and later, this defaults to true for better utilization of available servers.
 
-    * <a name="max_stale"></a><a href="#max_stale">`max_stale`</a> - When [`allow_stale`](#allow_stale)
+  * <a name="max_stale"></a><a href="#max_stale">`max_stale`</a> - When [`allow_stale`](#allow_stale)
       is specified, this is used to limit how stale results are allowed to be. If a Consul server is
       behind the leader by more than `max_stale`, the query will be re-evaluated on the leader to get
       more up-to-date results. Prior to Consul 0.7.1 this defaulted to 5 seconds; in Consul 0.7.1
@@ -230,42 +235,42 @@ These options allow you to configure datacenter-wide behavior including communic
       leader, so this lets Consul continue serving requests in long outage scenarios where no leader can
       be elected.
 
-    * <a name="node_ttl"></a><a href="#node_ttl">`node_ttl`</a> - By default, this is "0s", so all
+  * <a name="node_ttl"></a><a href="#node_ttl">`node_ttl`</a> - By default, this is "0s", so all
       node lookups are served with a 0 TTL value. DNS caching for node lookups can be enabled by
       setting this value. This should be specified with the "s" suffix for second or "m" for minute.
 
-    * <a name="service_ttl"></a><a href="#service_ttl">`service_ttl`</a> - This is a sub-object
+  * <a name="service_ttl"></a><a href="#service_ttl">`service_ttl`</a> - This is a sub-object
       which allows for setting a TTL on service lookups with a per-service policy. The "*" wildcard
       service can be used when there is no specific policy available for a service. By default, all
       services are served with a 0 TTL value. DNS caching for service lookups can be enabled by
       setting this value.
 
-    * <a name="enable_truncate"></a><a href="#enable_truncate">`enable_truncate`</a> - If set to
+  * <a name="enable_truncate"></a><a href="#enable_truncate">`enable_truncate`</a> - If set to
       true, a UDP DNS query that would return more than 3 records, or more than would fit into a valid
       UDP response, will set the truncated flag, indicating to clients that they should re-query
       using TCP to get the full set of records.
 
-    * <a name="only_passing"></a><a href="#only_passing">`only_passing`</a> - If set to true, any
+  * <a name="only_passing"></a><a href="#only_passing">`only_passing`</a> - If set to true, any
       nodes whose health checks are warning or critical will be excluded from DNS results. If false,
       the default, only nodes whose healthchecks are failing as critical will be excluded. For
       service lookups, the health checks of the node itself, as well as the service-specific checks
       are considered. For example, if a node has a health check that is critical then all services on
       that node will be excluded because they are also considered critical.
 
-    * <a name="recursor_timeout"></a><a href="#recursor_timeout">`recursor_timeout`</a> - Timeout used
+  * <a name="recursor_timeout"></a><a href="#recursor_timeout">`recursor_timeout`</a> - Timeout used
       by Consul when recursively querying an upstream DNS server. See <a href="#recursors">`recursors`</a>
       for more details. Default is 2s. This is available in Consul 0.7 and later.
 
-    * <a name="disable_compression"></a><a href="#disable_compression">`disable_compression`</a> - If
+  * <a name="disable_compression"></a><a href="#disable_compression">`disable_compression`</a> - If
       set to true, DNS responses will not be compressed. Compression was added and enabled by default
       in Consul 0.7.
 
-    * <a name="udp_answer_limit"></a><a href="#udp_answer_limit">`udp_answer_limit`</a> - Limit the number of
+  * <a name="udp_answer_limit"></a><a href="#udp_answer_limit">`udp_answer_limit`</a> - Limit the number of
       resource records contained in the answer section of a UDP-based DNS
       response. This parameter applies only to UDP DNS queries that are less than 512 bytes. This setting is deprecated
       and replaced in Consul 1.0.7 by <a href="#a_record_limit">`a_record_limit`</a>.
 
-    * <a name="a_record_limit"></a><a href="#a_record_limit">`a_record_limit`</a> - Limit the number of
+  * <a name="a_record_limit"></a><a href="#a_record_limit">`a_record_limit`</a> - Limit the number of
       resource records contained in the answer section of a A, AAAA or ANY DNS response (both TCP and UDP).
       When answering a question, Consul will use the complete list of
       matching hosts, shuffle the list randomly, and then limit the number of
@@ -278,44 +283,46 @@ These options allow you to configure datacenter-wide behavior including communic
       [RFC 3484](https://tools.ietf.org/html/rfc3484) has been obsoleted by
       [RFC 6724](https://tools.ietf.org/html/rfc6724) and as a result it should
       be increasingly uncommon to need to change this value with modern
-      resolvers).
+      resolvers.
 
-* <a name="domain"></a><a href="#domain">`domain`</a> Equivalent to the
-  [`-domain` command-line flag](#_domain).
-
-    * <a name="enable_additional_node_meta_txt"></a><a href="#enable_additional_node_meta_txt">`enable_additional_node_meta_txt`</a> -
+  * <a name="enable_additional_node_meta_txt"></a><a href="#enable_additional_node_meta_txt">`enable_additional_node_meta_txt`</a> -
       When set to true, Consul will add TXT records for Node metadata into the Additional section of the DNS responses for several
       query types such as SRV queries. When set to false those records are not emitted. This does not impact the behavior of those
       same TXT records when they would be added to the Answer section of the response like when querying with type TXT or ANY. This
       defaults to true.
 
-    * <a name="soa"></a><a href="#soa">`soa`</a> Allow to tune the setting set up in SOA.
+  * <a name="soa"></a><a href="#soa">`soa`</a> Allow to tune the setting set up in SOA.
       Non specified values fallback to their default values, all values are integers and
       expressed as seconds.
       <br/><br/>
       The following settings are available:
 
-      * <a name="soa_expire"></a><a href="#soa_expire">`expire`</a> -
+    * <a name="soa_expire"></a><a href="#soa_expire">`expire`</a> -
         Configure SOA Expire duration in seconds, default value is 86400, ie: 24 hours.
 
-      * <a name="soa_min_ttl"></a><a href="#soa_min_ttl">`min_ttl`</a> -
+    * <a name="soa_min_ttl"></a><a href="#soa_min_ttl">`min_ttl`</a> -
         Configure SOA DNS minimum TTL.
         As explained in [RFC-2308](https://tools.ietf.org/html/rfc2308) this also controls
         negative cache TTL in most implementations. Default value is 0, ie: no minimum
         delay or negative TTL.
 
-      * <a name="soa_refresh"></a><a href="#soa_refresh">`refresh`</a> -
+    * <a name="soa_refresh"></a><a href="#soa_refresh">`refresh`</a> -
         Configure SOA Refresh duration in seconds, default value is `3600`, ie: 1 hour.
 
-      * <a name="soa_retry"></a><a href="#soa_retry">`retry`</a> -
+    * <a name="soa_retry"></a><a href="#soa_retry">`retry`</a> -
         Configures the Retry duration expressed in seconds, default value is
         600, ie: 10 minutes.
 
-    * <a name="dns_use_cache"></a><a href="#dns_use_cache">`use_cache`</a> - When set to true, DNS resolution will use the agent cache described
+  * <a name="dns_use_cache"></a><a href="#dns_use_cache">`use_cache`</a> - When set to true, DNS resolution will use the agent cache described
       in [agent caching](/api/features/caching.html). This setting affects all service and prepared queries DNS requests. Implies [`allow_stale`](#allow_stale)
 
-    * <a name="dns_cache_max_age"></a><a href="#dns_cache_max_age">`cache_max_age`</a> - When [use_cache](#dns_use_cache) is enabled, the agent
+  * <a name="dns_cache_max_age"></a><a href="#dns_cache_max_age">`cache_max_age`</a> - When [use_cache](#dns_use_cache) is enabled, the agent
       will attempt to re-fetch the result from the servers if the cached value is older than this duration. See: [agent caching](/api/features/caching.html).
+
+* <a name="domain"></a><a href="#domain">`domain`</a> Equivalent to the
+  `-domain` command-line flag. By default, Consul responds to DNS queries
+  in the "consul." domain. This flag can be used to change that domain. All queries in this domain
+  are assumed to be handled by Consul and will not be recursively resolved.
 
 * <a name="enable_agent_tls_for_checks"></a><a href="#enable_agent_tls_for_checks">`enable_agent_tls_for_checks`</a>
   When set, uses a subset of the agent's TLS configuration (`key_file`, `cert_file`, `ca_file`, `ca_path`, and
@@ -333,7 +340,10 @@ These options allow you to configure datacenter-wide behavior including communic
   are available with an `operator:read` ACL regardless of the value of `enable_debug`.
 
 * <a name="enable_script_checks"></a><a href="#enable_script_checks">`enable_script_checks`</a> Equivalent to the
-  [`-enable-script-checks` command-line flag](#_enable_script_checks).
+  `-enable-script-checks` command-line flag. This controls
+  whether [health checks that execute scripts](/docs/agent/checks.html) are
+  enabled on this agent, and defaults to `false` so operators must opt-in to
+  allowing these. This was added in Consul 0.9.0.
 
     ~> **Security Warning:** Enabling script checks in some configurations may
   introduce a remote execution vulnerability which is known to be targeted by
@@ -342,13 +352,25 @@ These options allow you to configure datacenter-wide behavior including communic
   for more details.
 
 * <a name="enable_local_script_checks"></a><a href="#enable_local_script_checks">`enable_local_script_checks`</a> Equivalent to the
-  [`-enable-local-script-checks` command-line flag](#_enable_local_script_checks).
+  `-enable-local-script-checks` command-line flag. Like `enable_script_checks`, but only enable them when they are defined in the local
+  configuration files. Script checks defined in HTTP API registrations will still not be allowed.
 
 * <a name="enable_syslog"></a><a href="#enable_syslog">`enable_syslog`</a> Equivalent to
   the [`-syslog` command-line flag](#_syslog).
 
 * <a name="encrypt"></a><a href="#encrypt">`encrypt`</a> Equivalent to the
-  [`-encrypt` command-line flag](#_encrypt).
+  `-encrypt` command-line flag. Specifies the secret key to
+  use for encryption of Consul
+  network traffic. This key must be 16-bytes that are Base64-encoded. The
+  easiest way to create an encryption key is to use
+  [`consul keygen`](/docs/commands/keygen.html). All
+  nodes within a cluster must share the same encryption key to communicate.
+  The provided key is automatically persisted to the data directory and loaded
+  automatically whenever the agent is restarted. This means that to encrypt
+  Consul's gossip protocol, this option only needs to be provided once on each
+  agent's initial startup sequence. If it is provided after Consul has been
+  initialized with an encryption key, then the provided key is ignored and
+  a warning will be displayed.
 
 * <a name="encrypt_verify_incoming"></a><a href="#encrypt_verify_incoming">`encrypt_verify_incoming`</a> -
   This is an optional parameter that can be used to disable enforcing encryption for incoming gossip in order
@@ -361,9 +383,6 @@ These options allow you to configure datacenter-wide behavior including communic
   to upshift from unencrypted to encrypted gossip on a running cluster. See [this section]
   (/docs/agent/encryption.html#configuring-gossip-encryption-on-an-existing-cluster) for more information.
   Defaults to true.
-
-* <a name="disable_keyring_file"></a><a href="#disable_keyring_file">`disable_keyring_file`</a> - Equivalent to the
-  [`-disable-keyring-file` command-line flag](#_disable_keyring_file).
 
 * <a name="gossip_lan"></a><a href="#gossip_lan">`gossip_lan`</a> - **(Advanced)** This object contains a number of sub-keys
   which can be set to tune the LAN gossip communications. These are only provided for users running especially large
@@ -515,12 +534,14 @@ These options allow you to configure datacenter-wide behavior including communic
 
 * <a name="ports"></a><a href="#ports">`ports`</a> This is a nested object that allows setting
   the bind ports for the following keys:
-    * <a name="dns_port"></a><a href="#dns_port">`dns`</a> - The DNS server, -1 to disable. Default 8600. TCP and UDP.
+    * <a name="dns_port"></a><a href="#dns_port">`dns`</a> - The DNS port to listen on. This is available in Consul 0.7 and later.The DNS server, -1 to disable. Default 8600. TCP and UDP. The command-line flag is `-dns_port`.
     * <a name="http_port"></a><a href="#http_port">`http`</a> - The HTTP API, -1 to disable. Default 8500. TCP only.
     * <a name="https_port"></a><a href="#https_port">`https`</a> - The HTTPS
       API, -1 to disable. Default -1 (disabled). **We recommend using `8501`** for
       `https` by convention as some tooling will work automatically with this.
-    * <a name="grpc_port"></a><a href="#grpc_port">`grpc`</a> - The gRPC API, -1
+    * <a name="grpc_port"></a><a href="#grpc_port">`grpc`</a> - The gRPC API
+      port to listen on. Default -1 (gRPC disabled). See [ports](#ports)
+      documentation for more detail. The command-line flag is `-grcp_port`. The gRPC API, -1
       to disable. Default -1 (disabled). **We recommend using `8502`** for
       `grpc` by convention as some tooling will work automatically with this.
       This is set to `8502` by default when the agent runs in `-dev` mode.
