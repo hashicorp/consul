@@ -28,10 +28,15 @@ type ProxyConfig struct {
 	LocalConnectTimeoutMs int `mapstructure:"local_connect_timeout_ms"`
 
 	// Protocol describes the service's protocol. Valid values are "tcp",
-	// "http" and "grpc". Anything else is treated as tcp. The enables protocol
-	// aware features like per-request metrics and connection pooling, tracing,
-	// routing etc.
+	// "http" and "grpc". Anything else is treated as tcp. This enables
+	// protocol aware features like per-request metrics and connection
+	// pooling, tracing, routing etc.
 	Protocol string `mapstructure:"protocol"`
+
+	// BindAddress overrides the address the proxy's listener binds. This
+	// enables proxies in network namespaces to bind to a different address
+	// than the host address.
+	BindAddress string `mapstructure:"bind_address"`
 }
 
 // ParseProxyConfig returns the ProxyConfig parsed from the an opaque map. If an

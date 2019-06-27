@@ -28,6 +28,12 @@ func TestListenersFromSnapshot(t *testing.T) {
 			setup: nil, // Default snapshot
 		},
 		{
+			name: "listener-bind-address",
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.Config["bind_address"] = "127.0.0.2"
+			},
+		},
+		{
 			name: "http-public-listener",
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Config["protocol"] = "http"

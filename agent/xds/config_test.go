@@ -60,6 +60,17 @@ func TestParseProxyConfig(t *testing.T) {
 			},
 		},
 		{
+			name: "bind address override, string",
+			input: map[string]interface{}{
+				"bind_address": "127.0.0.2",
+			},
+			want: ProxyConfig{
+				LocalConnectTimeoutMs: 5000,
+				Protocol:              "tcp",
+				BindAddress:           "127.0.0.2",
+			},
+		},
+		{
 			name: "local connect timeout override, string",
 			input: map[string]interface{}{
 				"local_connect_timeout_ms": "1000",

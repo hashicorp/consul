@@ -197,6 +197,8 @@ defaults that are inherited by all services.
     filter](https://www.envoyproxy.io/docs/envoy/v1.10.0/configuration/http_filters/grpc_http1_bridge_filter#config-http-filters-grpc-bridge)
     that translates HTTP/1.1 calls into gRPC, and instruments
     metrics with `gRPC-status` trailer codes.
+- `bind_address` - Override the address Envoy's public listener binds to. By
+  default Envoy will bind to the service address.
 - `local_connect_timeout_ms` - The number of milliseconds allowed to make
   connections to the local application instance before timing out. Defaults to 5000
   (5 seconds).
