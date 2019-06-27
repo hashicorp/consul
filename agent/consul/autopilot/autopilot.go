@@ -183,7 +183,7 @@ func (a *Autopilot) pruneDeadServers() error {
 
 	// Failed servers are known to Serf and marked failed, and stale servers
 	// are known to Raft but not Serf.
-	var failed []string
+	var failed []serf.Member
 	staleRaftServers := make(map[string]raft.Server)
 	raftNode := a.delegate.Raft()
 	future := raftNode.GetConfiguration()
@@ -216,16 +216,11 @@ func (a *Autopilot) pruneDeadServers() error {
 					a.logger.Printf("[INFO] autopilot: Attempting removal of failed server node %q", member.Name)
 					go serfLAN.RemoveFailedNode(member.Name)
 				} else {
-					failed = append(failed, member.Name)
+					failed = append(failed, member)
 
 				}
 			}
 		}
-	}
-	serfWAN := a.delegate.SerfWAN()
-	//if serfWAN is empty, do nothing
-	if serfWAN != nil {
-		a.pruneSerfWAN(serfWAN, serfLAN)
 	}
 
 	// We can bail early if there's nothing to do.
@@ -238,8 +233,12 @@ func (a *Autopilot) pruneDeadServers() error {
 	peers := NumPeers(raftConfig)
 	if removalCount < peers/2 {
 		for _, node := range failed {
-			a.logger.Printf("[INFO] autopilot: Attempting removal of failed server node %q", node)
-			go serfLAN.RemoveFailedNode(node)
+			a.logger.Printf("[INFO] autopilot: Attempting removal of failed server node %q", node.Name)
+			go serfLAN.RemoveFailedNode(node.Name)
+			serfWAN := a.delegate.SerfWAN()
+			if serfWAN != nil {
+				go serfWAN.RemoveFailedNode(fmt.Sprintf("%s.%s", node.Name, node.Tags["dc"]))
+			}
 
 		}
 
@@ -526,29 +525,5 @@ func IsPotentialVoter(suffrage raft.ServerSuffrage) bool {
 		return true
 	default:
 		return false
-	}
-}
-
-//For each member in serfWAN check to see if it
-//is failed - then check to see if it is a serfLAN
-//member, remove it.
-func (a *Autopilot) pruneSerfWAN(serfWAN *serf.Serf, serfLAN *serf.Serf) {
-	for _, memberWAN := range serfWAN.Members() {
-		found := false
-		if memberWAN.Status == serf.StatusFailed {
-			for _, memberLAN := range serfLAN.Members() {
-				memberDC := fmt.Sprintf("%v.%v", memberLAN.Name, memberLAN.Tags["dc"])
-				if memberWAN.Name == memberDC && memberLAN.Status != serf.StatusLeft {
-					found = true
-				}
-			}
-			//If it is not found in memberLANs list as left then check if
-			// we've already removed it. If not, let's do that
-			if found == false {
-				a.logger.Printf("[INFO] autopilot: Attempting removal of failed server node %q", memberWAN.Name)
-				go serfWAN.RemoveFailedNode(memberWAN.Name)
-			}
-
-		}
 	}
 }
