@@ -93,7 +93,7 @@ func TestAutoEncryptSign(t *testing.T) {
 			}
 
 			require.NoError(t, err, info)
-			var reply structs.SignResponse
+			var reply structs.SignedResponse
 			err = msgpackrpc.CallWithCodec(codec, "AutoEncrypt.Sign", args, &reply)
 			codec.Close()
 			if test.RPCError {
