@@ -482,9 +482,10 @@ type Upstream struct {
 	// DestinationType would be better as an int constant but even with custom
 	// JSON marshallers it causes havoc with all the mapstructure mangling we do
 	// on service definitions in various places.
-	DestinationType      *string `json:"destination_type,omitempty" hcl:"destination_type" mapstructure:"destination_type"`
-	DestinationNamespace *string `json:"destination_namespace,omitempty" hcl:"destination_namespace" mapstructure:"destination_namespace"`
-	DestinationName      *string `json:"destination_name,omitempty" hcl:"destination_name" mapstructure:"destination_name"`
+	DestinationType      *string  `json:"destination_type,omitempty" hcl:"destination_type" mapstructure:"destination_type"`
+	DestinationNamespace *string  `json:"destination_namespace,omitempty" hcl:"destination_namespace" mapstructure:"destination_namespace"`
+	DestinationName      *string  `json:"destination_name,omitempty" hcl:"destination_name" mapstructure:"destination_name"`
+	DestinationTags      []string `json:"destination_tags,omitempty" hcl:"destination_tags" mapstructure:"destination_tags"`
 
 	// Datacenter that the service discovery request should be run against. Note
 	// for prepared queries, the actual results might be from a different

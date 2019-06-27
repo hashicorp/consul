@@ -1550,7 +1550,7 @@ func TestAPI_AgentConnectProxyConfig(t *testing.T) {
 		ProxyServiceID:    "foo-proxy",
 		TargetServiceID:   "foo",
 		TargetServiceName: "foo",
-		ContentHash:       "acdf5eb6f5794a14",
+		ContentHash:       "a35dc8b113ab6d00",
 		ExecMode:          "daemon",
 		Command:           []string{"consul", "connect", "proxy"},
 		Config: map[string]interface{}{

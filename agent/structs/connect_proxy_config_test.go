@@ -38,6 +38,13 @@ func TestConnectProxyConfig_ToAPI(t *testing.T) {
 						LocalBindPort:    2345,
 						LocalBindAddress: "127.10.10.10",
 					},
+					{
+						DestinationType: UpstreamDestTypeService,
+						DestinationName: "foo",
+						DestinationTags: []string{"tagone", "tagtwo"},
+						Datacenter:      "dc1",
+						LocalBindPort:   3456,
+					},
 				},
 			},
 			want: &api.AgentServiceConnectProxyConfig{
@@ -61,6 +68,13 @@ func TestConnectProxyConfig_ToAPI(t *testing.T) {
 						Datacenter:       "dc1",
 						LocalBindPort:    2345,
 						LocalBindAddress: "127.10.10.10",
+					},
+					{
+						DestinationType: UpstreamDestTypeService,
+						DestinationName: "foo",
+						DestinationTags: []string{"tagone", "tagtwo"},
+						Datacenter:      "dc1",
+						LocalBindPort:   3456,
 					},
 				},
 			},
@@ -91,6 +105,7 @@ func TestUpstream_MarshalJSON(t *testing.T) {
 			want: `{
 				"DestinationType": "service",
 				"DestinationName": "foo",
+				"DestinationTags": null,
 				"Datacenter": "dc1",
 				"LocalBindPort": 1234,
 				"Config": null
@@ -108,6 +123,8 @@ func TestUpstream_MarshalJSON(t *testing.T) {
 			want: `{
 				"DestinationType": "prepared_query",
 				"DestinationName": "foo",
+				"DestinationTags": null,
+				"Datacenter": "dc1",
 				"Datacenter": "dc1",
 				"LocalBindPort": 1234,
 				"Config": null

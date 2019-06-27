@@ -43,6 +43,11 @@ var expectedFieldConfigUpstreams bexpr.FieldConfigurations = bexpr.FieldConfigur
 		CoerceFn:            bexpr.CoerceString,
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
 	},
+	"DestinationTags": &bexpr.FieldConfiguration{
+		StructFieldName:     "DestinationTags",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchIsEmpty, bexpr.MatchIsNotEmpty, bexpr.MatchIn, bexpr.MatchNotIn},
+	},
 	"Datacenter": &bexpr.FieldConfiguration{
 		StructFieldName:     "Datacenter",
 		CoerceFn:            bexpr.CoerceString,

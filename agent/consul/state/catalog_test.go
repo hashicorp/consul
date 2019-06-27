@@ -3534,7 +3534,7 @@ func TestStateStore_CheckServiceTagNodes(t *testing.T) {
 	}
 
 	ws := memdb.NewWatchSet()
-	idx, nodes, err := s.CheckServiceTagNodes(ws, "db", []string{"master"})
+	idx, nodes, err := s.CheckServiceTagNodes(ws, "db", false, []string{"master"})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

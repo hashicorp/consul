@@ -1306,6 +1306,7 @@ func (b *Builder) upstreamsVal(v []Upstream) structs.Upstreams {
 			DestinationType:      b.stringVal(u.DestinationType),
 			DestinationNamespace: b.stringVal(u.DestinationNamespace),
 			DestinationName:      b.stringVal(u.DestinationName),
+			DestinationTags:      u.DestinationTags,
 			Datacenter:           b.stringVal(u.Datacenter),
 			LocalBindAddress:     b.stringVal(u.LocalBindAddress),
 			LocalBindPort:        b.intVal(u.LocalBindPort),

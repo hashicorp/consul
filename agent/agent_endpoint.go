@@ -865,6 +865,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 			"exec_mode": "ExecMode",
 			// Proxy Upstreams
 			"destination_name":      "DestinationName",
+			"destination_tags":      "DestinationTags",
 			"destination_type":      "DestinationType",
 			"destination_namespace": "DestinationNamespace",
 			"local_bind_port":       "LocalBindPort",

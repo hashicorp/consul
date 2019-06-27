@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -698,6 +698,99 @@ func TestHealth_ServiceNodes_MultipleServiceTags(t *testing.T) {
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2))
 
 	nodes := out2.Nodes
+	require.Len(t, nodes, 1)
+	require.Equal(t, nodes[0].Node.Node, "foo")
+	require.Contains(t, nodes[0].Service.Tags, "v2")
+	require.Contains(t, nodes[0].Service.Tags, "master")
+	require.Equal(t, nodes[0].Checks[0].Status, api.HealthPassing)
+}
+
+func TestHealth_ServiceNodes_ConnectMultipleServiceTags(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	var out struct{}
+
+	svcConnect := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Kind:    structs.ServiceKindConnectProxy,
+			ID:      "db-sidecar-proxy",
+			Service: "db-sidecar-proxy",
+			Tags:    []string{"master", "v2"},
+			Port:    21000,
+			Proxy: structs.ConnectProxyConfig{
+				DestinationServiceName: "db",
+				DestinationServiceID:   "db",
+			},
+		},
+		Check: &structs.HealthCheck{
+			Name:      "db sidecar proxy health",
+			Status:    api.HealthPassing,
+			ServiceID: "db-sidecar-proxy",
+		},
+	}
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &svcConnect, &out))
+
+	svcConnect = structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "bar",
+		Address:    "127.0.0.2",
+		Service: &structs.NodeService{
+			Kind:    structs.ServiceKindConnectProxy,
+			ID:      "db-sidecar-proxy",
+			Service: "db-sidecar-proxy",
+			Tags:    []string{"slave", "v2"},
+			Port:    21000,
+			Proxy: structs.ConnectProxyConfig{
+				DestinationServiceName: "db",
+				DestinationServiceID:   "db",
+			},
+		},
+		Check: &structs.HealthCheck{
+			Name:      "db sidecar proxy health",
+			Status:    api.HealthPassing,
+			ServiceID: "db-sidecar-proxy",
+		},
+	}
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &svcConnect, &out))
+
+	var out2 structs.IndexedCheckServiceNodes
+
+	requestAllConnectNodes := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "db",
+		Connect:     true,
+	}
+
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &requestAllConnectNodes, &out2))
+
+	nodes := out2.Nodes
+
+	require.Len(t, nodes, 2)
+	require.Equal(t, nodes[0].Checks[0].Status, api.HealthPassing)
+	require.Equal(t, nodes[1].Checks[0].Status, api.HealthPassing)
+
+	requestConnectNodeByTags := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "db",
+		ServiceTags: []string{"master", "v2"},
+		TagFilter:   true,
+		Connect:     true,
+	}
+
+	var out3 structs.IndexedCheckServiceNodes
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &requestConnectNodeByTags, &out3))
+
+	nodes = out3.Nodes
 	require.Len(t, nodes, 1)
 	require.Equal(t, nodes[0].Node.Node, "foo")
 	require.Contains(t, nodes[0].Service.Tags, "v2")

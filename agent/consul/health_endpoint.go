@@ -153,9 +153,11 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 
 	// Determine the function we'll call
 	var f func(memdb.WatchSet, *state.Store, *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error)
-	switch {
-	case args.Connect:
+	switch true {
+	case args.Connect && !args.TagFilter:
 		f = h.serviceNodesConnect
+	case args.Connect && args.TagFilter:
+		f = h.serviceNodesTagFilter
 	case args.TagFilter:
 		f = h.serviceNodesTagFilter
 	default:
@@ -257,9 +259,9 @@ func (h *Health) serviceNodesTagFilter(ws memdb.WatchSet, s *state.Store, args *
 	// Agents < v1.3.0 populate the ServiceTag field. In this case,
 	// use ServiceTag instead of the ServiceTags field.
 	if args.ServiceTag != "" {
-		return s.CheckServiceTagNodes(ws, args.ServiceName, []string{args.ServiceTag})
+		return s.CheckServiceTagNodes(ws, args.ServiceName, args.Connect, []string{args.ServiceTag})
 	}
-	return s.CheckServiceTagNodes(ws, args.ServiceName, args.ServiceTags)
+	return s.CheckServiceTagNodes(ws, args.ServiceName, args.Connect, args.ServiceTags)
 }
 
 func (h *Health) serviceNodesDefault(ws memdb.WatchSet, s *state.Store, args *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error) {

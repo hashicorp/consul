@@ -317,7 +317,7 @@ func TestAgent_Service(t *testing.T) {
 		Service:     "web-sidecar-proxy",
 		Port:        8000,
 		Proxy:       expectProxy.ToAPI(),
-		ContentHash: "3442362e971c43d1",
+		ContentHash: "90ef6e538c2c2e0",
 		Weights: api.AgentWeights{
 			Passing: 1,
 			Warning: 1,
@@ -327,7 +327,7 @@ func TestAgent_Service(t *testing.T) {
 	// Copy and modify
 	updatedResponse := *expectedResponse
 	updatedResponse.Port = 9999
-	updatedResponse.ContentHash = "90b5c19bf0f5073"
+	updatedResponse.ContentHash = "34479cd210d1d142"
 
 	// Simple response for non-proxy service registered in TestAgent config
 	expectWebResponse := &api.AgentService{
@@ -624,7 +624,7 @@ func TestAgent_Service_DeprecatedManagedProxy(t *testing.T) {
 		Service:     "web-proxy",
 		Port:        9999,
 		Address:     "10.10.10.10",
-		ContentHash: "e24f099e42e88317",
+		ContentHash: "53323ea517449367",
 		Proxy: &api.AgentServiceConnectProxyConfig{
 			DestinationServiceID:   "web",
 			DestinationServiceName: "web",
@@ -2524,8 +2524,8 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 					"destination_type": "service",
 					"destination_namespace": "default",
 					"destination_name": "db",
-		      "local_bind_address": "` + tt.ip + `",
-		      "local_bind_port": 1234,
+					"local_bind_address": "` + tt.ip + `",
+					"local_bind_port": 1234,
 					"config": {
 						"destination_type": "proxy.upstreams.config is 'opaque' so should not get translated"
 					}
@@ -2570,6 +2570,7 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 							"destination_type": "service",
 							"destination_namespace": "default",
 							"destination_name": "db",
+							"destination_tags": ["b_tag","c_tag","a_tag"],
 							"local_bind_address": "` + tt.ip + `",
 							"local_bind_port": 1234,
 							"config": {
@@ -2674,6 +2675,7 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 						{
 							DestinationType:      structs.UpstreamDestTypeService,
 							DestinationName:      "db",
+							DestinationTags:      []string{"b_tag", "c_tag", "a_tag"},
 							DestinationNamespace: "default",
 							LocalBindAddress:     tt.ip,
 							LocalBindPort:        1234,
@@ -5157,7 +5159,7 @@ func TestAgentConnectProxyConfig_Blocking(t *testing.T) {
 		ProxyServiceID:    "test-proxy",
 		TargetServiceID:   "test",
 		TargetServiceName: "test",
-		ContentHash:       "a7c93585b6d70445",
+		ContentHash:       "896cd70a98fef705",
 		ExecMode:          "daemon",
 		Command:           []string{"tubes.sh"},
 		Config: map[string]interface{}{
@@ -5178,7 +5180,7 @@ func TestAgentConnectProxyConfig_Blocking(t *testing.T) {
 	ur, err := copystructure.Copy(expectedResponse)
 	require.NoError(t, err)
 	updatedResponse := ur.(*api.ConnectProxyConfig)
-	updatedResponse.ContentHash = "aedc0ca0f3f7794e"
+	updatedResponse.ContentHash = "2ddc07d62b35360b"
 	updatedResponse.Upstreams = append(updatedResponse.Upstreams, api.Upstream{
 		DestinationType: "service",
 		DestinationName: "cache",

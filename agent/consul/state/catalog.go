@@ -2003,12 +2003,22 @@ func (s *Store) checkServiceNodes(ws memdb.WatchSet, serviceName string, connect
 
 // CheckServiceTagNodes is used to query all nodes and checks for a given
 // service, filtering out services that don't contain the given tag.
-func (s *Store) CheckServiceTagNodes(ws memdb.WatchSet, serviceName string, tags []string) (uint64, structs.CheckServiceNodes, error) {
+func (s *Store) CheckServiceTagNodes(ws memdb.WatchSet, serviceName string, connect bool, tags []string) (uint64, structs.CheckServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
+	f := func() (memdb.ResultIterator, error) {
+		return tx.Get("services", "service", serviceName)
+	}
+
+	if connect {
+		f = func() (memdb.ResultIterator, error) {
+			return tx.Get("services", "connect", serviceName)
+		}
+	}
+
 	// Query the state store for the service.
-	iter, err := tx.Get("services", "service", serviceName)
+	iter, err := f()
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 	}

@@ -289,6 +289,7 @@ type Upstream struct {
 	DestinationType      UpstreamDestType `json:",omitempty"`
 	DestinationNamespace string           `json:",omitempty"`
 	DestinationName      string
+	DestinationTags      []string
 	Datacenter           string                 `json:",omitempty"`
 	LocalBindAddress     string                 `json:",omitempty"`
 	LocalBindPort        int                    `json:",omitempty"`

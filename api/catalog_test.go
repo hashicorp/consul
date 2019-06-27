@@ -474,6 +474,7 @@ func testUpstreams(t *testing.T) []Upstream {
 		{
 			DestinationType: UpstreamDestTypePreparedQuery,
 			DestinationName: "geo-cache",
+			DestinationTags: []string{"tagone", "tagtwo"},
 			LocalBindPort:   8181,
 		},
 	}

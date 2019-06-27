@@ -2,6 +2,8 @@ package structs
 
 import (
 	"fmt"
+	"sort"
+	"strings"
 
 	"github.com/hashicorp/consul/api"
 )
@@ -104,6 +106,7 @@ type Upstream struct {
 	DestinationType      string
 	DestinationNamespace string `json:",omitempty"`
 	DestinationName      string
+	DestinationTags      []string
 
 	// Datacenter that the service discovery request should be run against. Note
 	// for prepared queries, the actual results might be from a different
@@ -150,6 +153,7 @@ func (u *Upstream) ToAPI() api.Upstream {
 		DestinationType:      api.UpstreamDestType(u.DestinationType),
 		DestinationNamespace: u.DestinationNamespace,
 		DestinationName:      u.DestinationName,
+		DestinationTags:      u.DestinationTags,
 		Datacenter:           u.Datacenter,
 		LocalBindAddress:     u.LocalBindAddress,
 		LocalBindPort:        u.LocalBindPort,
@@ -167,6 +171,23 @@ func (u *Upstream) Identifier() string {
 	if u.Datacenter != "" {
 		name += "?dc=" + u.Datacenter
 	}
+
+	if len(u.DestinationTags) > 0 {
+		destinationTags := u.DestinationTags
+		// We do sorting because CacheInfo() method on ServiceSpecificRequest
+		// do the same when constructing a request to cache and we need
+		// to guarantee that name of key of service in the cache will
+		// relevant for request from "connect sidecar" proxy
+		sort.Strings(destinationTags)
+
+		tags := fmt.Sprintf(
+			"#%s",
+			strings.Join(destinationTags, "#"),
+		)
+
+		name += tags
+	}
+
 	typ := u.DestinationType
 	// Service is default type so never prefix it. This is more readable and long
 	// term it is the only type that matters so we can drop the prefix and have
@@ -188,6 +209,7 @@ func UpstreamFromAPI(u api.Upstream) Upstream {
 		DestinationType:      string(u.DestinationType),
 		DestinationNamespace: u.DestinationNamespace,
 		DestinationName:      u.DestinationName,
+		DestinationTags:      u.DestinationTags,
 		Datacenter:           u.Datacenter,
 		LocalBindAddress:     u.LocalBindAddress,
 		LocalBindPort:        u.LocalBindPort,

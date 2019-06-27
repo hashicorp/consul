@@ -179,6 +179,8 @@ func (s *state) initWatches() error {
 				QueryOptions: structs.QueryOptions{Token: s.token},
 				ServiceName:  u.DestinationName,
 				Connect:      true,
+				ServiceTags:  u.DestinationTags,
+				TagFilter:    len(u.DestinationTags) > 0,
 				// Note that Identifier doesn't type-prefix for service any more as it's
 				// the default and makes metrics and other things much cleaner. It's
 				// simpler for us if we have the type to make things unambiguous.
