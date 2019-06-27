@@ -1,0 +1,7 @@
+<input id={{concat 'sort-control-value-' elementId}} type="radio" value="Name" name={{concat 'sort-control-' name}} onchange={{action 'change'}} />
+{{#if checked}}
+<input id={{concat 'sort-control-direction-' elementId}} type="checkbox" onchange={{action 'change'}} />
+{{/if}}
+<label for={{if checked (concat 'sort-control-direction-' elementId) (concat 'sort-control-value-' elementId)}}>
+  {{yield}}
+</label>
