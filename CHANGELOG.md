@@ -7,8 +7,10 @@ IMPROVEMENTS
 * agent: make sure client agent rate limits apply when hitting the client interface on a server directly [[GH-5927](https://github.com/hashicorp/consul/pull/5927)]
 * agent: use stale requests when performing full sync [[GH-5873](https://github.com/hashicorp/consul/pull/5873)]
 * agent: transfer leadership when establishLeadership fails [[GH-5247](https://github.com/hashicorp/consul/pull/5247)]
+* agent: added metadata information about servers into consul service description [[GH-5455](https://github.com/hashicorp/consul/pull/5455)]
 * connect: provide -admin-access-log-path for envoy [[GH-5858](https://github.com/hashicorp/consul/pull/5858)]
 * connect: upgrade Envoy xDS protocol to support Envoy 1.10 [[GH-5872](https://github.com/hashicorp/consul/pull/5872)]
+* dns: support alt domains for dns resolution [[GH-5940](https://github.com/hashicorp/consul/pull/5940)]
 * license (enterprise): add command to reset license to builtin one
 * ui: Improve linking between sidecars and proxies and their services/service instances [[GH-5944](https://github.com/hashicorp/consul/pull/5944)]
 * ui: Add ability to search for tokens by policy, role or service identity name [[GH-5811](https://github.com/hashicorp/consul/pull/5811)]
