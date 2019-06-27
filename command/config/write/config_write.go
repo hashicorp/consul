@@ -44,6 +44,43 @@ func (c *cmd) init() {
 	c.help = flags.Usage(help, c.flags)
 }
 
+type genericConfig struct {
+	Kind1 string `hcl:"Kind"`
+	Kind2 string `hcl:"kind"`
+}
+
+func (c *genericConfig) Kind() string {
+	if c.Kind1 != "" {
+		return c.Kind1
+	}
+	return c.Kind2
+}
+
+func decodeConfigEntryFromHCL(data string) (api.ConfigEntry, error) {
+	// For why this is necessary see the comment block on api.DecodeConfigEntry.
+	var generic genericConfig
+	err := hcl.Decode(&generic, data)
+	if err != nil {
+		return nil, err
+	}
+
+	kindVal := generic.Kind()
+	if kindVal == "" {
+		return nil, fmt.Errorf("Payload does not contain a kind/Kind key at the top level")
+	}
+
+	entry, err := api.MakeConfigEntry(kindVal, "")
+	if err != nil {
+		return nil, err
+	}
+
+	err = hcl.Decode(entry, data)
+	if err != nil {
+		return nil, err
+	}
+	return entry, nil
+}
+
 func (c *cmd) Run(args []string) int {
 	if err := c.flags.Parse(args); err != nil {
 		return 1
@@ -61,15 +98,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	// parse the data
-	var raw map[string]interface{}
-	err = hcl.Decode(&raw, data)
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Failed to decode config entry input: %v", err))
-		return 1
-	}
-
-	entry, err := api.DecodeConfigEntry(raw)
+	entry, err := decodeConfigEntryFromHCL(string(data))
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Failed to decode config entry input: %v", err))
 		return 1
