@@ -120,7 +120,7 @@ func TestRetryJoin(t *testing.T) {
 		}
 	}()
 
-	retry.Run(t, func(r *retry.R) {
+	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
 		if got, want := len(a.LANMembers()), 2; got != want {
 			r.Fatalf("got %d LAN members want %d", got, want)
 		}
