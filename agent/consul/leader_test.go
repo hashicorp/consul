@@ -1308,11 +1308,10 @@ func TestLeader_ParseCARoot(t *testing.T) {
 		provider             string
 		clusterID            string
 		expectedError        bool
-		expectedDomain       string
 		expectedSigningKeyID string
 	}
 	tests := []test{
-		{"", "consul", "cluster", true, "", ""},
+		{"", "consul", "cluster", true, ""},
 		{
 			`-----BEGIN CERTIFICATE-----
 MIIDHDCCAsKgAwIBAgIQS+meruRVzrmVwEhXNrtk9jAKBggqhkjOPQQDAjCBuTEL
@@ -1332,7 +1331,7 @@ NTo0ZjozNDpmNDozYjpmYzo5YTpkNzo4Mjo2YjpkYzpmODo3YjphMTo5ZDAtBgNV
 HREEJjAkghFjbGllbnQuZGMxLmNvbnN1bIIJbG9jYWxob3N0hwR/AAABMAoGCCqG
 SM49BAMCA0gAMEUCIHcLS74KSQ7RA+edwOprmkPTh1nolwXz9/y9CJ5nMVqEAiEA
 h1IHCbxWsUT3AiARwj5/D/CUppy6BHIFkvcpOCQoVyo=
------END CERTIFICATE-----`, "consul", "cluster", false, "",
+-----END CERTIFICATE-----`, "consul", "cluster", false,
 			"38:34:3a:61:34:3a:65:66:3a:31:61:3a:63:38:3a:35:33:3a:31:30:3a:35:61:3a:63:35:3a:65:61:3a:63:65:3a:61:61:3a:30:64:3a:36:66:3a:63:39:3a:33:38:3a:33:64:3a:61:66:3a:34:35:3a:61:65:3a:39:39:3a:38:63:3a:62:62:3a:32:37:3a:62:63:3a:62:33:3a:66:61:3a:66:30:3a:33:31:3a:31:34:3a:38:65:3a:33:34",
 		},
 	}
@@ -1342,11 +1341,12 @@ h1IHCbxWsUT3AiARwj5/D/CUppy6BHIFkvcpOCQoVyo=
 			require.Error(t, err)
 		}
 		if test.pem != "" {
+			require.Equal(t, test.expectedSigningKeyID, root.SigningKeyID)
+
+			// just to make sure these two are not the same
 			rootCert, err := connect.ParseCert(test.pem)
 			require.NoError(t, err)
-			// just to make sure these two are not the same
 			require.NotEqual(t, rootCert.AuthorityKeyId, rootCert.SubjectKeyId)
-			require.Equal(t, connect.HexString(rootCert.SubjectKeyId), root.SigningKeyID)
 		}
 	}
 }
