@@ -598,8 +598,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		connectEnabled = true
 	}
 
-	datacenter := strings.ToLower(b.stringVal(c.Datacenter))
-
 	aclsEnabled := false
 	primaryDatacenter := strings.ToLower(b.stringVal(c.PrimaryDatacenter))
 	if c.ACLDatacenter != nil {
