@@ -280,7 +280,7 @@ func New(c *config.RuntimeConfig, logger *log.Logger) (*Agent, error) {
 		return nil, fmt.Errorf("Must configure a DataDir")
 	}
 
-	a := &Agent{
+	a := Agent{
 		config:           c,
 		checkReapAfter:   make(map[types.CheckID]time.Duration),
 		checkMonitors:    make(map[types.CheckID]*checks.CheckMonitor),
@@ -301,7 +301,7 @@ func New(c *config.RuntimeConfig, logger *log.Logger) (*Agent, error) {
 		tokens:           new(token.Store),
 		logger:           logger,
 	}
-	a.serviceManager = NewServiceManager(a)
+	a.serviceManager = NewServiceManager(&a)
 
 	if err := a.initializeACLs(); err != nil {
 		return nil, err
@@ -313,7 +313,7 @@ func New(c *config.RuntimeConfig, logger *log.Logger) (*Agent, error) {
 		return nil, fmt.Errorf("Failed to setup node ID: %v", err)
 	}
 
-	return a, nil
+	return &a, nil
 }
 
 func LocalConfig(cfg *config.RuntimeConfig) local.Config {
