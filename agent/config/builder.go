@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
@@ -788,6 +789,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		CAPath:                                  b.stringVal(c.CAPath),
 		CertFile:                                b.stringVal(c.CertFile),
 		CheckUpdateInterval:                     b.durationVal("check_update_interval", c.CheckUpdateInterval),
+		CheckOutputMaxSize:                      b.intValWithDefault(c.CheckOutputMaxSize, 4096),
 		Checks:                                  checks,
 		ClientAddrs:                             clientAddrs,
 		ConfigEntryBootstrap:                    configEntries,
@@ -882,6 +884,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		TaggedAddresses:                         c.TaggedAddresses,
 		TranslateWANAddrs:                       b.boolVal(c.TranslateWANAddrs),
 		UIDir:                                   b.stringVal(c.UIDir),
+		UIContentPath:                           UIPathBuilder(b.stringVal(b.Flags.Config.UIContentPath)),
 		UnixSocketGroup:                         b.stringVal(c.UnixSocket.Group),
 		UnixSocketMode:                          b.stringVal(c.UnixSocket.Mode),
 		UnixSocketUser:                          b.stringVal(c.UnixSocket.User),
@@ -907,6 +910,9 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	// reDatacenter defines a regexp for a valid datacenter name
 	var reDatacenter = regexp.MustCompile("^[a-z0-9_-]+$")
 
+	// validContentPath defines a regexp for a valid content path name.
+	var validContentPath = regexp.MustCompile(`^[A-Za-z0-9/_-]+$`)
+	var hasVersion = regexp.MustCompile(`^/v\d+/$`)
 	// ----------------------------------------------------------------
 	// check required params we cannot recover from first
 	//
@@ -915,11 +921,20 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		return fmt.Errorf("datacenter cannot be empty")
 	}
 	if !reDatacenter.MatchString(rt.Datacenter) {
-		return fmt.Errorf("datacenter cannot be %q. Please use only [a-z0-9-_].", rt.Datacenter)
+		return fmt.Errorf("datacenter cannot be %q. Please use only [a-z0-9-_]", rt.Datacenter)
 	}
 	if rt.DataDir == "" && !rt.DevMode {
 		return fmt.Errorf("data_dir cannot be empty")
 	}
+
+	if !validContentPath.MatchString(rt.UIContentPath) {
+		return fmt.Errorf("ui-content-path can only contain alphanumeric, -, _, or /. received: %s", rt.UIContentPath)
+	}
+
+	if hasVersion.MatchString(rt.UIContentPath) {
+		return fmt.Errorf("ui-content-path cannot have 'v[0-9]'. received: %s", rt.UIContentPath)
+	}
+
 	if !rt.DevMode {
 		fi, err := os.Stat(rt.DataDir)
 		switch {
@@ -969,6 +984,9 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	if rt.BootstrapExpect > 0 && rt.Bootstrap {
 		return fmt.Errorf("'bootstrap_expect > 0' and 'bootstrap = true' are mutually exclusive")
 	}
+	if rt.CheckOutputMaxSize < 1 {
+		return fmt.Errorf("check_output_max_size must be positive, to discard check output use the discard_check_output flag")
+	}
 	if rt.AEInterval <= 0 {
 		return fmt.Errorf("ae_interval cannot be %s. Must be positive", rt.AEInterval)
 	}
@@ -976,7 +994,7 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		return fmt.Errorf("autopilot.max_trailing_logs cannot be %d. Must be greater than or equal to zero", rt.AutopilotMaxTrailingLogs)
 	}
 	if rt.ACLDatacenter != "" && !reDatacenter.MatchString(rt.ACLDatacenter) {
-		return fmt.Errorf("acl_datacenter cannot be %q. Please use only [a-z0-9-_].", rt.ACLDatacenter)
+		return fmt.Errorf("acl_datacenter cannot be %q. Please use only [a-z0-9-_]", rt.ACLDatacenter)
 	}
 	if rt.EnableUI && rt.UIDir != "" {
 		return fmt.Errorf(
@@ -1179,6 +1197,7 @@ func (b *Builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		Timeout:                        b.durationVal(fmt.Sprintf("check[%s].timeout", id), v.Timeout),
 		TTL:                            b.durationVal(fmt.Sprintf("check[%s].ttl", id), v.TTL),
 		DeregisterCriticalServiceAfter: b.durationVal(fmt.Sprintf("check[%s].deregister_critical_service_after", id), v.DeregisterCriticalServiceAfter),
+		OutputMaxSize:                  b.intValWithDefault(v.OutputMaxSize, checks.DefaultBufSize),
 	}
 }
 
@@ -1352,11 +1371,15 @@ func (b *Builder) durationVal(name string, v *string) (d time.Duration) {
 	return b.durationValWithDefault(name, v, 0)
 }
 
-func (b *Builder) intVal(v *int) int {
+func (b *Builder) intValWithDefault(v *int, defaultVal int) int {
 	if v == nil {
-		return 0
+		return defaultVal
 	}
 	return *v
+}
+
+func (b *Builder) intVal(v *int) int {
+	return b.intValWithDefault(v, 0)
 }
 
 func (b *Builder) portVal(name string, v *int) int {
@@ -1668,7 +1691,7 @@ func isUnixAddr(a net.Addr) bool {
 	return ok
 }
 
-// isValidAltDomain returns true iff the given domain is not prefixed
+// isValidAltDomain returns true if the given domain is not prefixed
 // by keywords used when dispatching DNS requests
 func isValidAltDomain(domain, datacenter string) bool {
 	reAltDomain := regexp.MustCompile(
@@ -1678,4 +1701,17 @@ func isValidAltDomain(domain, datacenter string) bool {
 		),
 	)
 	return !reAltDomain.MatchString(domain)
+}
+
+// UIPathBuilder checks to see if there was a path set
+// If so, adds beginning and trailing slashes to UI path
+func UIPathBuilder(UIContentString string) string {
+	if UIContentString != "" {
+		var fmtedPath string
+		fmtedPath = strings.Trim(UIContentString, "/")
+		fmtedPath = "/" + fmtedPath + "/"
+		return fmtedPath
+
+	}
+	return "/ui/"
 }

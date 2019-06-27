@@ -19,7 +19,6 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
-	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/debug"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
@@ -713,12 +712,6 @@ func (s *HTTPServer) AgentCheckUpdate(resp http.ResponseWriter, req *http.Reques
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Invalid check status: '%s'", update.Status)
 		return nil, nil
-	}
-
-	total := len(update.Output)
-	if total > checks.BufSize {
-		update.Output = fmt.Sprintf("%s ... (captured %d of %d bytes)",
-			update.Output[:checks.BufSize], checks.BufSize, total)
 	}
 
 	checkID := types.CheckID(strings.TrimPrefix(req.URL.Path, "/v1/agent/check/update/"))

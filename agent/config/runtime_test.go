@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -786,6 +787,18 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.UIDir = "a"
+				rt.DataDir = dataDir
+			},
+		},
+		{
+			desc: "-ui-content-path",
+			args: []string{
+				`-ui-content-path=/a/b`,
+				`-data-dir=` + dataDir,
+			},
+
+			patch: func(rt *RuntimeConfig) {
+				rt.UIContentPath = "/a/b/"
 				rt.DataDir = dataDir
 			},
 		},
@@ -2123,8 +2136,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Checks = []*structs.CheckDefinition{
-					&structs.CheckDefinition{Name: "a", ScriptArgs: []string{"/bin/true"}},
-					&structs.CheckDefinition{Name: "b", ScriptArgs: []string{"/bin/false"}},
+					&structs.CheckDefinition{Name: "a", ScriptArgs: []string{"/bin/true"}, OutputMaxSize: checks.DefaultBufSize},
+					&structs.CheckDefinition{Name: "b", ScriptArgs: []string{"/bin/false"}, OutputMaxSize: checks.DefaultBufSize},
 				}
 				rt.DataDir = dataDir
 			},
@@ -2142,7 +2155,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Checks = []*structs.CheckDefinition{
-					&structs.CheckDefinition{Name: "a", GRPC: "localhost:12345/foo", GRPCUseTLS: true},
+					&structs.CheckDefinition{Name: "a", GRPC: "localhost:12345/foo", GRPCUseTLS: true, OutputMaxSize: checks.DefaultBufSize},
 				}
 				rt.DataDir = dataDir
 			},
@@ -2160,7 +2173,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Checks = []*structs.CheckDefinition{
-					&structs.CheckDefinition{Name: "a", AliasService: "foo"},
+					&structs.CheckDefinition{Name: "a", AliasService: "foo", OutputMaxSize: checks.DefaultBufSize},
 				}
 				rt.DataDir = dataDir
 			},
@@ -2279,6 +2292,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 								DockerContainerID:              "z",
 								DeregisterCriticalServiceAfter: 10 * time.Second,
 								ScriptArgs:                     []string{"a", "b"},
+								OutputMaxSize:                  checks.DefaultBufSize,
 							},
 						},
 						Weights: &structs.Weights{
@@ -2544,8 +2558,9 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 								Port: 2345,
 								Checks: structs.CheckTypes{
 									{
-										TCP:      "127.0.0.1:2345",
-										Interval: 10 * time.Second,
+										TCP:           "127.0.0.1:2345",
+										Interval:      10 * time.Second,
+										OutputMaxSize: checks.DefaultBufSize,
 									},
 								},
 								Proxy: &structs.ConnectProxyConfig{
@@ -2639,8 +2654,9 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 								Port: 2345,
 								Checks: structs.CheckTypes{
 									{
-										TCP:      "127.0.0.1:2345",
-										Interval: 10 * time.Second,
+										TCP:           "127.0.0.1:2345",
+										Interval:      10 * time.Second,
+										OutputMaxSize: checks.DefaultBufSize,
 									},
 								},
 								Proxy: &structs.ConnectProxyConfig{
@@ -3072,6 +3088,7 @@ func TestFullConfig(t *testing.T) {
 					"f3r6xFtM": [ "RyuIdDWv", "QbxEcIUM" ]
 				},
 				"method": "Dou0nGT5",
+				"output_max_size": ` + strconv.Itoa(checks.DefaultBufSize) + `,
 				"tcp": "JY6fTTcw",
 				"interval": "18714s",
 				"docker_container_id": "qF66POS9",
@@ -3098,6 +3115,7 @@ func TestFullConfig(t *testing.T) {
 					"method": "aldrIQ4l",
 					"tcp": "RJQND605",
 					"interval": "22164s",
+					"output_max_size": ` + strconv.Itoa(checks.DefaultBufSize) + `,
 					"docker_container_id": "ipgdFtjd",
 					"shell": "qAeOYy0M",
 					"tls_skip_verify": true,
@@ -3121,6 +3139,7 @@ func TestFullConfig(t *testing.T) {
 					"method": "gLrztrNw",
 					"tcp": "4jG5casb",
 					"interval": "28767s",
+					"output_max_size": ` + strconv.Itoa(checks.DefaultBufSize) + `,
 					"docker_container_id": "THW6u7rL",
 					"shell": "C1Zt3Zwh",
 					"tls_skip_verify": true,
@@ -3322,6 +3341,7 @@ func TestFullConfig(t *testing.T) {
 					"method": "9afLm3Mj",
 					"tcp": "fjiLFqVd",
 					"interval": "23926s",
+					"output_max_size": ` + strconv.Itoa(checks.DefaultBufSize) + `,
 					"docker_container_id": "dO5TtRHk",
 					"shell": "e6q2ttES",
 					"tls_skip_verify": true,
@@ -3344,6 +3364,7 @@ func TestFullConfig(t *testing.T) {
 						"method": "T66MFBfR",
 						"tcp": "bNnNfx2A",
 						"interval": "22224s",
+						"output_max_size": ` + strconv.Itoa(checks.DefaultBufSize) + `,
 						"docker_container_id": "ipgdFtjd",
 						"shell": "omVZq7Sz",
 						"tls_skip_verify": true,
@@ -3365,6 +3386,7 @@ func TestFullConfig(t *testing.T) {
 						"method": "ciYHWors",
 						"tcp": "FfvCwlqH",
 						"interval": "12356s",
+						"output_max_size": ` + strconv.Itoa(checks.DefaultBufSize) + `,
 						"docker_container_id": "HBndBU6R",
 						"shell": "hVI33JjA",
 						"tls_skip_verify": true,
@@ -3400,6 +3422,7 @@ func TestFullConfig(t *testing.T) {
 						"method": "X5DrovFc",
 						"tcp": "ICbxkpSF",
 						"interval": "24392s",
+						"output_max_size": ` + strconv.Itoa(checks.DefaultBufSize) + `,
 						"docker_container_id": "ZKXr68Yb",
 						"shell": "CEfzx0Fo",
 						"tls_skip_verify": true,
@@ -3438,6 +3461,7 @@ func TestFullConfig(t *testing.T) {
 							"method": "5wkAxCUE",
 							"tcp": "MN3oA9D2",
 							"interval": "32718s",
+							"output_max_size": ` + strconv.Itoa(checks.DefaultBufSize) + `,
 							"docker_container_id": "cU15LMet",
 							"shell": "nEz9qz2l",
 							"tls_skip_verify": true,
@@ -3459,6 +3483,7 @@ func TestFullConfig(t *testing.T) {
 							"method": "wzByP903",
 							"tcp": "2exjZIGE",
 							"interval": "5656s",
+							"output_max_size": ` + strconv.Itoa(checks.DefaultBufSize) + `,
 							"docker_container_id": "5tDBWpfA",
 							"shell": "rlTpLM8s",
 							"tls_skip_verify": true,
@@ -3641,6 +3666,7 @@ func TestFullConfig(t *testing.T) {
 				method = "Dou0nGT5"
 				tcp = "JY6fTTcw"
 				interval = "18714s"
+				output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `
 				docker_container_id = "qF66POS9"
 				shell = "sOnDy228"
 				tls_skip_verify = true
@@ -3665,6 +3691,7 @@ func TestFullConfig(t *testing.T) {
 					method = "aldrIQ4l"
 					tcp = "RJQND605"
 					interval = "22164s"
+					output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `
 					docker_container_id = "ipgdFtjd"
 					shell = "qAeOYy0M"
 					tls_skip_verify = true
@@ -3688,6 +3715,7 @@ func TestFullConfig(t *testing.T) {
 					method = "gLrztrNw"
 					tcp = "4jG5casb"
 					interval = "28767s"
+					output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `
 					docker_container_id = "THW6u7rL"
 					shell = "C1Zt3Zwh"
 					tls_skip_verify = true
@@ -3914,6 +3942,7 @@ func TestFullConfig(t *testing.T) {
 						method = "T66MFBfR"
 						tcp = "bNnNfx2A"
 						interval = "22224s"
+						output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `
 						docker_container_id = "ipgdFtjd"
 						shell = "omVZq7Sz"
 						tls_skip_verify = true
@@ -3935,6 +3964,7 @@ func TestFullConfig(t *testing.T) {
 						method = "ciYHWors"
 						tcp = "FfvCwlqH"
 						interval = "12356s"
+						output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `
 						docker_container_id = "HBndBU6R"
 						shell = "hVI33JjA"
 						tls_skip_verify = true
@@ -3970,6 +4000,7 @@ func TestFullConfig(t *testing.T) {
 						method = "X5DrovFc"
 						tcp = "ICbxkpSF"
 						interval = "24392s"
+						output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `
 						docker_container_id = "ZKXr68Yb"
 						shell = "CEfzx0Fo"
 						tls_skip_verify = true
@@ -4008,6 +4039,7 @@ func TestFullConfig(t *testing.T) {
 							method = "5wkAxCUE"
 							tcp = "MN3oA9D2"
 							interval = "32718s"
+							output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `
 							docker_container_id = "cU15LMet"
 							shell = "nEz9qz2l"
 							tls_skip_verify = true
@@ -4029,6 +4061,7 @@ func TestFullConfig(t *testing.T) {
 							method = "wzByP903"
 							tcp = "2exjZIGE"
 							interval = "5656s"
+							output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `
 							docker_container_id = "5tDBWpfA"
 							shell = "rlTpLM8s"
 							tls_skip_verify = true
@@ -4297,6 +4330,7 @@ func TestFullConfig(t *testing.T) {
 		CAFile:                           "erA7T0PM",
 		CAPath:                           "mQEN1Mfp",
 		CertFile:                         "7s4QAzDk",
+		CheckOutputMaxSize:               checks.DefaultBufSize,
 		Checks: []*structs.CheckDefinition{
 			&structs.CheckDefinition{
 				ID:         "uAjE6m9Z",
@@ -4314,6 +4348,7 @@ func TestFullConfig(t *testing.T) {
 				Method:                         "aldrIQ4l",
 				TCP:                            "RJQND605",
 				Interval:                       22164 * time.Second,
+				OutputMaxSize:                  checks.DefaultBufSize,
 				DockerContainerID:              "ipgdFtjd",
 				Shell:                          "qAeOYy0M",
 				TLSSkipVerify:                  true,
@@ -4335,6 +4370,7 @@ func TestFullConfig(t *testing.T) {
 					"qxvdnSE9": []string{"6wBPUYdF", "YYh8wtSZ"},
 				},
 				Method:                         "gLrztrNw",
+				OutputMaxSize:                  checks.DefaultBufSize,
 				TCP:                            "4jG5casb",
 				Interval:                       28767 * time.Second,
 				DockerContainerID:              "THW6u7rL",
@@ -4358,6 +4394,7 @@ func TestFullConfig(t *testing.T) {
 					"f3r6xFtM": {"RyuIdDWv", "QbxEcIUM"},
 				},
 				Method:                         "Dou0nGT5",
+				OutputMaxSize:                  checks.DefaultBufSize,
 				TCP:                            "JY6fTTcw",
 				Interval:                       18714 * time.Second,
 				DockerContainerID:              "qF66POS9",
@@ -4527,6 +4564,7 @@ func TestFullConfig(t *testing.T) {
 							"cVFpko4u": {"gGqdEB6k", "9LsRo22u"},
 						},
 						Method:                         "X5DrovFc",
+						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "ICbxkpSF",
 						Interval:                       24392 * time.Second,
 						DockerContainerID:              "ZKXr68Yb",
@@ -4575,6 +4613,7 @@ func TestFullConfig(t *testing.T) {
 							"1UJXjVrT": {"OJgxzTfk", "xZZrFsq7"},
 						},
 						Method:                         "5wkAxCUE",
+						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "MN3oA9D2",
 						Interval:                       32718 * time.Second,
 						DockerContainerID:              "cU15LMet",
@@ -4596,6 +4635,7 @@ func TestFullConfig(t *testing.T) {
 							"vr7wY7CS": {"EtCoNPPL", "9vAarJ5s"},
 						},
 						Method:                         "wzByP903",
+						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "2exjZIGE",
 						Interval:                       5656 * time.Second,
 						DockerContainerID:              "5tDBWpfA",
@@ -4681,6 +4721,7 @@ func TestFullConfig(t *testing.T) {
 							"SHOVq1Vv": {"jntFhyym", "GYJh32pp"},
 						},
 						Method:                         "T66MFBfR",
+						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "bNnNfx2A",
 						Interval:                       22224 * time.Second,
 						DockerContainerID:              "ipgdFtjd",
@@ -4702,6 +4743,7 @@ func TestFullConfig(t *testing.T) {
 							"p2UI34Qz": {"UsG1D0Qh", "NHhRiB6s"},
 						},
 						Method:                         "ciYHWors",
+						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "FfvCwlqH",
 						Interval:                       12356 * time.Second,
 						DockerContainerID:              "HBndBU6R",
@@ -4723,6 +4765,7 @@ func TestFullConfig(t *testing.T) {
 							"l4HwQ112": {"fk56MNlo", "dhLK56aZ"},
 						},
 						Method:                         "9afLm3Mj",
+						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "fjiLFqVd",
 						Interval:                       23926 * time.Second,
 						DockerContainerID:              "dO5TtRHk",
@@ -4779,6 +4822,7 @@ func TestFullConfig(t *testing.T) {
 			"wan":      "78.63.37.19",
 		},
 		TranslateWANAddrs:    true,
+		UIContentPath:        "/ui/",
 		UIDir:                "11IFzAUn",
 		UnixSocketUser:       "E0nB1DwA",
 		UnixSocketGroup:      "8pFodrV8",
@@ -5060,6 +5104,7 @@ func TestConfigDecodeBytes(t *testing.T) {
 func TestSanitize(t *testing.T) {
 	rt := RuntimeConfig{
 		BindAddr:             &net.IPAddr{IP: net.ParseIP("127.0.0.1")},
+		CheckOutputMaxSize:   checks.DefaultBufSize,
 		SerfAdvertiseAddrLAN: &net.TCPAddr{IP: net.ParseIP("1.2.3.4"), Port: 5678},
 		DNSAddrs: []net.Addr{
 			&net.TCPAddr{IP: net.ParseIP("1.2.3.4"), Port: 5678},
@@ -5082,7 +5127,8 @@ func TestSanitize(t *testing.T) {
 				Name:  "foo",
 				Token: "bar",
 				Check: structs.CheckType{
-					Name: "blurb",
+					Name:          "blurb",
+					OutputMaxSize: checks.DefaultBufSize,
 				},
 				Weights: &structs.Weights{
 					Passing: 67,
@@ -5092,8 +5138,9 @@ func TestSanitize(t *testing.T) {
 		},
 		Checks: []*structs.CheckDefinition{
 			&structs.CheckDefinition{
-				Name:  "zoo",
-				Token: "zope",
+				Name:          "zoo",
+				Token:         "zope",
+				OutputMaxSize: checks.DefaultBufSize,
 			},
 		},
 	}
@@ -5133,6 +5180,7 @@ func TestSanitize(t *testing.T) {
 		"CAPath": "",
 		"CertFile": "",
 		"CheckDeregisterIntervalMin": "0s",
+		"CheckOutputMaxSize": ` + strconv.Itoa(checks.DefaultBufSize) + `,
 		"CheckReapInterval": "0s",
 		"CheckUpdateInterval": "0s",
 		"Checks": [{
@@ -5149,6 +5197,7 @@ func TestSanitize(t *testing.T) {
 			"Method": "",
 			"Name": "zoo",
 			"Notes": "",
+			"OutputMaxSize": ` + strconv.Itoa(checks.DefaultBufSize) + `,
 			"ScriptArgs": [],
 			"ServiceID": "",
 			"Shell": "",
@@ -5180,6 +5229,7 @@ func TestSanitize(t *testing.T) {
 		"ConsulCoordinateUpdateMaxBatches": 0,
 		"ConsulCoordinateUpdatePeriod": "15s",
 		"ConsulRaftElectionTimeout": "0s",
+		"CheckOutputMaxSize": ` + strconv.Itoa(checks.DefaultBufSize) + `,
 		"ConsulRaftHeartbeatTimeout": "0s",
 		"ConsulRaftLeaderLeaseTimeout": "0s",
 		"GossipLANGossipInterval": "0s",
@@ -5320,6 +5370,7 @@ func TestSanitize(t *testing.T) {
 				"Method": "",
 				"Name": "blurb",
 				"Notes": "",
+				"OutputMaxSize": ` + strconv.Itoa(checks.DefaultBufSize) + `,
 				"ScriptArgs": [],
 				"Shell": "",
 				"Status": "",
@@ -5382,6 +5433,7 @@ func TestSanitize(t *testing.T) {
 			"StatsiteAddr": ""
 		},
 		"TranslateWANAddrs": false,
+		"UIContentPath": "",
 		"UIDir": "",
 		"UnixSocketGroup": "",
 		"UnixSocketMode": "",
@@ -5719,6 +5771,41 @@ func TestReadPath(t *testing.T) {
 				t.Fatalf("expected %d sources, got %d", tc.expect, got)
 			}
 		})
+	}
+}
+
+func Test_UIPathBuilder(t *testing.T) {
+	cases := []struct {
+		name     string
+		path     string
+		expected string
+	}{
+		{
+			"Letters only string",
+			"hello",
+			"/hello/",
+		},
+		{
+			"Alphanumeric",
+			"Hello1",
+			"/Hello1/",
+		},
+		{
+			"Hyphen and underscore",
+			"-_",
+			"/-_/",
+		},
+		{
+			"Many slashes",
+			"/hello/ui/1/",
+			"/hello/ui/1/",
+		},
+	}
+
+	for _, tt := range cases {
+		actual := UIPathBuilder(tt.path)
+		require.Equal(t, tt.expected, actual)
+
 	}
 }
 

@@ -2,13 +2,21 @@
 Feature: dc / services / instances / show: Show Service Instance
   Background:
     Given 1 datacenter model with the value "dc1"
-    And 1 service model from yaml
+    And 2 instance models from yaml
     ---
+    - Service:
+        ID: service-0-with-id
+        Meta:
+          external-source: consul
+      Node:
+        Node: node-0
     - Service:
         ID: service-0-with-id
         Tags: ['Tag1', 'Tag2']
         Meta:
           external-source: nomad
+      Node:
+        Node: another-node
       Checks:
         - Name: Service check
           ServiceID: service-0
@@ -46,9 +54,10 @@ Feature: dc / services / instances / show: Show Service Instance
     ---
       dc: dc1
       service: service-0
+      node: another-node
       id: service-0-with-id
     ---
-    Then the url should be /dc1/services/service-0/service-0-with-id
+    Then the url should be /dc1/services/service-0/another-node/service-0-with-id
     Then I don't see type on the proxy
     Then I see externalSource like "nomad"
 
@@ -77,9 +86,10 @@ Feature: dc / services / instances / show: Show Service Instance
     ---
       dc: dc1
       service: service-0
+      node: node-0
       id: service-0-with-id
     ---
-    Then the url should be /dc1/services/service-0/service-0-with-id
+    Then the url should be /dc1/services/service-0/node-0/service-0-with-id
     And an external edit results in 0 instance models
     And pause until I see the text "deregistered" in "[data-notification]"
   @ignore

@@ -149,7 +149,7 @@ added.
 ## Migration Examples
 
 Below are two detailed examples of the two high-level strategies for creating
-polices discussed above. It should be noted these are intended to clarify the
+policies discussed above. It should be noted these are intended to clarify the
 concrete steps you might take. **We don't recommend you perform production
 migrations with ad-hoc terminal commands**. Combining these or something similar
 into a script might be appropriate.

@@ -281,10 +281,7 @@ func TestClearAllSessionTimers(t *testing.T) {
 	s1.createSessionTimer("bar", 10*time.Millisecond)
 	s1.createSessionTimer("baz", 10*time.Millisecond)
 
-	err := s1.clearAllSessionTimers()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	s1.clearAllSessionTimers()
 
 	// sessionTimers is guarded by the lock
 	if s1.sessionTimers.Len() != 0 {

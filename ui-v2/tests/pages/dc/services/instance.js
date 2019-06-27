@@ -1,6 +1,6 @@
 export default function(visitable, attribute, collection, text, radiogroup) {
   return {
-    visit: visitable('/:dc/services/:service/:id'),
+    visit: visitable('/:dc/services/:service/:node/:id'),
     externalSource: attribute('data-test-external-source', 'h1 span'),
     tabs: radiogroup('tab', ['service-checks', 'node-checks', 'upstreams', 'tags']),
     serviceChecks: collection('#service-checks [data-test-healthchecks] li', {}),

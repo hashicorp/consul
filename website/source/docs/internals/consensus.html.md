@@ -14,11 +14,6 @@ The consensus protocol is based on
 ["Raft: In search of an Understandable Consensus Algorithm"](https://ramcloud.stanford.edu/wiki/download/attachments/11370504/raft.pdf).
 For a visual explanation of Raft, see [The Secret Lives of Data](http://thesecretlivesofdata.com/raft).
 
-~> **Advanced Topic!** This page covers technical details of
-the internals of Consul. You don't need to know these details to effectively
-operate and use Consul. These details are documented here for those who wish
-to learn about them without having to go spelunking through the source code.
-
 ## Raft Protocol Overview
 
 Raft is a consensus algorithm that is based on
@@ -30,8 +25,8 @@ There are a few key terms to know when discussing Raft:
 
 * Log - The primary unit of work in a Raft system is a log entry. The problem
 of consistency can be decomposed into a *replicated log*. A log is an ordered
-sequence of entries. We consider the log consistent if all members agree on
-the entries and their order.
+sequence of entries. Entries includes any cluster change: adding nodes, adding services, new key-value pairs, etc. We consider the log consistent
+if all members agree on the entries and their order.
 
 * FSM - [Finite State Machine](https://en.wikipedia.org/wiki/Finite-state_machine).
 An FSM is a collection of finite states with transitions between them. As new logs

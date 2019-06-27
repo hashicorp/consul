@@ -44,7 +44,7 @@ block](/docs/agent/options.html#acl).
 
 Datacenters can be upgraded in any order although secondaries will remain in
 [Legacy ACL mode](#legacy-acl-mode) until the primary datacenter is fully
-ugraded.
+upgraded.
 
 Each datacenter should follow the [standard rolling upgrade
 procedure](/docs/upgrading.html#standard-upgrades).

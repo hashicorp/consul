@@ -22,6 +22,8 @@ import (
 	uuid "github.com/hashicorp/go-uuid"
 )
 
+const fullSyncReadMaxStale = 2 * time.Second
+
 // Config is the configuration for the State.
 type Config struct {
 	AdvertiseAddr       string
@@ -1046,9 +1048,13 @@ func (l *State) Stats() map[string]string {
 func (l *State) updateSyncState() error {
 	// Get all checks and services from the master
 	req := structs.NodeSpecificRequest{
-		Datacenter:   l.config.Datacenter,
-		Node:         l.config.NodeName,
-		QueryOptions: structs.QueryOptions{Token: l.tokens.AgentToken()},
+		Datacenter: l.config.Datacenter,
+		Node:       l.config.NodeName,
+		QueryOptions: structs.QueryOptions{
+			Token:            l.tokens.AgentToken(),
+			AllowStale:       true,
+			MaxStaleDuration: fullSyncReadMaxStale,
+		},
 	}
 
 	var out1 structs.IndexedNodeServices

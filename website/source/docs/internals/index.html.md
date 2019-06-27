@@ -8,8 +8,18 @@ description: |-
 
 # Consul Internals
 
-This section covers some of the internals of Consul, such as the architecture,
-consensus and gossip protocols, and security model.
+This section covers some of the internals of Consul. Understanding the internals of Consul is necessary to successfully
+use it in production. 
 
--> **Note:** Knowing about the internals of Consul is not necessary to successfully
-use it. We document it here to be completely transparent about how Consul works.
+Please review the following documentation to understand how Consul works.
+
+* [Architecture](/docs/internals/architecture.html)
+* [Consensus Protocol](/docs/internals/consensus.html)
+* [Gossip Protocol](/docs/internals/gossip.html)
+* [Network Coordinates](/docs/internals/coordinates.html)
+* [Sessions](/docs/internals/sessions.html)
+* [Anti-Entropy](/docs/internals/anti-entropy.html)
+* [Security Model](/docs/internals/security.html)
+
+You should also be familiar with [Jepsen testing](/docs/internals/jepsen.html), before deploying 
+a production datacenter. 

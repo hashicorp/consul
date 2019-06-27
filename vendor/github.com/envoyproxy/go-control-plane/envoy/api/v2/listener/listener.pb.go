@@ -3,18 +3,20 @@
 
 package listener
 
-import proto "github.com/gogo/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-import core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-import _ "github.com/gogo/protobuf/gogoproto"
-import types "github.com/gogo/protobuf/types"
-import _ "github.com/lyft/protoc-gen-validate/validate"
+import (
+	bytes "bytes"
+	fmt "fmt"
+	io "io"
+	math "math"
 
-import bytes "bytes"
+	_ "github.com/envoyproxy/protoc-gen-validate/validate"
+	_ "github.com/gogo/protobuf/gogoproto"
+	proto "github.com/gogo/protobuf/proto"
+	types "github.com/gogo/protobuf/types"
 
-import io "io"
+	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -26,6 +28,37 @@ var _ = math.Inf
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
+
+type FilterChainMatch_ConnectionSourceType int32
+
+const (
+	// Any connection source matches.
+	FilterChainMatch_ANY FilterChainMatch_ConnectionSourceType = 0
+	// Match a connection originating from the same host.
+	FilterChainMatch_LOCAL FilterChainMatch_ConnectionSourceType = 1
+	// Match a connection originating from a different host.
+	FilterChainMatch_EXTERNAL FilterChainMatch_ConnectionSourceType = 2
+)
+
+var FilterChainMatch_ConnectionSourceType_name = map[int32]string{
+	0: "ANY",
+	1: "LOCAL",
+	2: "EXTERNAL",
+}
+
+var FilterChainMatch_ConnectionSourceType_value = map[string]int32{
+	"ANY":      0,
+	"LOCAL":    1,
+	"EXTERNAL": 2,
+}
+
+func (x FilterChainMatch_ConnectionSourceType) String() string {
+	return proto.EnumName(FilterChainMatch_ConnectionSourceType_name, int32(x))
+}
+
+func (FilterChainMatch_ConnectionSourceType) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_0ced541f18749edd, []int{1, 0}
+}
 
 type Filter struct {
 	// The name of the filter to instantiate. The name must match a supported
@@ -42,19 +75,21 @@ type Filter struct {
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Filter specific configuration which depends on the filter being
 	// instantiated. See the supported filters for further documentation.
-	Config *types.Struct `protobuf:"bytes,2,opt,name=config" json:"config,omitempty"`
-	// [#not-implemented-hide:]
-	DeprecatedV1         *Filter_DeprecatedV1 `protobuf:"bytes,3,opt,name=deprecated_v1,json=deprecatedV1" json:"deprecated_v1,omitempty"` // Deprecated: Do not use.
-	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
-	XXX_unrecognized     []byte               `json:"-"`
-	XXX_sizecache        int32                `json:"-"`
+	//
+	// Types that are valid to be assigned to ConfigType:
+	//	*Filter_Config
+	//	*Filter_TypedConfig
+	ConfigType           isFilter_ConfigType `protobuf_oneof:"config_type"`
+	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
+	XXX_unrecognized     []byte              `json:"-"`
+	XXX_sizecache        int32               `json:"-"`
 }
 
 func (m *Filter) Reset()         { *m = Filter{} }
 func (m *Filter) String() string { return proto.CompactTextString(m) }
 func (*Filter) ProtoMessage()    {}
 func (*Filter) Descriptor() ([]byte, []int) {
-	return fileDescriptor_listener_3375c0acf9db00a4, []int{0}
+	return fileDescriptor_0ced541f18749edd, []int{0}
 }
 func (m *Filter) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -71,8 +106,8 @@ func (m *Filter) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return b[:n], nil
 	}
 }
-func (dst *Filter) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Filter.Merge(dst, src)
+func (m *Filter) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Filter.Merge(m, src)
 }
 func (m *Filter) XXX_Size() int {
 	return m.Size()
@@ -83,6 +118,30 @@ func (m *Filter) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_Filter proto.InternalMessageInfo
 
+type isFilter_ConfigType interface {
+	isFilter_ConfigType()
+	Equal(interface{}) bool
+	MarshalTo([]byte) (int, error)
+	Size() int
+}
+
+type Filter_Config struct {
+	Config *types.Struct `protobuf:"bytes,2,opt,name=config,proto3,oneof"`
+}
+type Filter_TypedConfig struct {
+	TypedConfig *types.Any `protobuf:"bytes,4,opt,name=typed_config,json=typedConfig,proto3,oneof"`
+}
+
+func (*Filter_Config) isFilter_ConfigType()      {}
+func (*Filter_TypedConfig) isFilter_ConfigType() {}
+
+func (m *Filter) GetConfigType() isFilter_ConfigType {
+	if m != nil {
+		return m.ConfigType
+	}
+	return nil
+}
+
 func (m *Filter) GetName() string {
 	if m != nil {
 		return m.Name
@@ -91,66 +150,91 @@ func (m *Filter) GetName() string {
 }
 
 func (m *Filter) GetConfig() *types.Struct {
-	if m != nil {
-		return m.Config
+	if x, ok := m.GetConfigType().(*Filter_Config); ok {
+		return x.Config
 	}
 	return nil
 }
 
-// Deprecated: Do not use.
-func (m *Filter) GetDeprecatedV1() *Filter_DeprecatedV1 {
-	if m != nil {
-		return m.DeprecatedV1
+func (m *Filter) GetTypedConfig() *types.Any {
+	if x, ok := m.GetConfigType().(*Filter_TypedConfig); ok {
+		return x.TypedConfig
 	}
 	return nil
 }
 
-// [#not-implemented-hide:]
-type Filter_DeprecatedV1 struct {
-	Type                 string   `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*Filter) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
+	return _Filter_OneofMarshaler, _Filter_OneofUnmarshaler, _Filter_OneofSizer, []interface{}{
+		(*Filter_Config)(nil),
+		(*Filter_TypedConfig)(nil),
+	}
 }
 
-func (m *Filter_DeprecatedV1) Reset()         { *m = Filter_DeprecatedV1{} }
-func (m *Filter_DeprecatedV1) String() string { return proto.CompactTextString(m) }
-func (*Filter_DeprecatedV1) ProtoMessage()    {}
-func (*Filter_DeprecatedV1) Descriptor() ([]byte, []int) {
-	return fileDescriptor_listener_3375c0acf9db00a4, []int{0, 0}
-}
-func (m *Filter_DeprecatedV1) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *Filter_DeprecatedV1) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_Filter_DeprecatedV1.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
-		if err != nil {
-			return nil, err
+func _Filter_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*Filter)
+	// config_type
+	switch x := m.ConfigType.(type) {
+	case *Filter_Config:
+		_ = b.EncodeVarint(2<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Config); err != nil {
+			return err
 		}
-		return b[:n], nil
+	case *Filter_TypedConfig:
+		_ = b.EncodeVarint(4<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.TypedConfig); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("Filter.ConfigType has unexpected type %T", x)
 	}
-}
-func (dst *Filter_DeprecatedV1) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Filter_DeprecatedV1.Merge(dst, src)
-}
-func (m *Filter_DeprecatedV1) XXX_Size() int {
-	return m.Size()
-}
-func (m *Filter_DeprecatedV1) XXX_DiscardUnknown() {
-	xxx_messageInfo_Filter_DeprecatedV1.DiscardUnknown(m)
+	return nil
 }
 
-var xxx_messageInfo_Filter_DeprecatedV1 proto.InternalMessageInfo
-
-func (m *Filter_DeprecatedV1) GetType() string {
-	if m != nil {
-		return m.Type
+func _Filter_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*Filter)
+	switch tag {
+	case 2: // config_type.config
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(types.Struct)
+		err := b.DecodeMessage(msg)
+		m.ConfigType = &Filter_Config{msg}
+		return true, err
+	case 4: // config_type.typed_config
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(types.Any)
+		err := b.DecodeMessage(msg)
+		m.ConfigType = &Filter_TypedConfig{msg}
+		return true, err
+	default:
+		return false, nil
 	}
-	return ""
+}
+
+func _Filter_OneofSizer(msg proto.Message) (n int) {
+	m := msg.(*Filter)
+	// config_type
+	switch x := m.ConfigType.(type) {
+	case *Filter_Config:
+		s := proto.Size(x.Config)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *Filter_TypedConfig:
+		s := proto.Size(x.TypedConfig)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case nil:
+	default:
+		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
+	}
+	return n
 }
 
 // Specifies the match criteria for selecting a specific filter chain for a
@@ -167,8 +251,9 @@ func (m *Filter_DeprecatedV1) GetType() string {
 // 3. Server name (e.g. SNI for TLS protocol),
 // 4. Transport protocol.
 // 5. Application protocols (e.g. ALPN for TLS protocol).
+// 6. Source type (e.g. any, local or external network).
 //
-// For criterias that allow ranges or wildcards, the most specific value in any
+// For criteria that allow ranges or wildcards, the most specific value in any
 // of the configured filter chains that matches the incoming connection is going
 // to be used (e.g. for SNI ``www.example.com`` the most specific match would be
 // ``www.example.com``, then ``*.example.com``, then ``*.com``, then any filter
@@ -181,27 +266,29 @@ func (m *Filter_DeprecatedV1) GetType() string {
 type FilterChainMatch struct {
 	// Optional destination port to consider when use_original_dst is set on the
 	// listener in determining a filter chain match.
-	DestinationPort *types.UInt32Value `protobuf:"bytes,8,opt,name=destination_port,json=destinationPort" json:"destination_port,omitempty"`
+	DestinationPort *types.UInt32Value `protobuf:"bytes,8,opt,name=destination_port,json=destinationPort,proto3" json:"destination_port,omitempty"`
 	// If non-empty, an IP address and prefix length to match addresses when the
 	// listener is bound to 0.0.0.0/:: or when use_original_dst is specified.
-	PrefixRanges []*core.CidrRange `protobuf:"bytes,3,rep,name=prefix_ranges,json=prefixRanges" json:"prefix_ranges,omitempty"`
+	PrefixRanges []*core.CidrRange `protobuf:"bytes,3,rep,name=prefix_ranges,json=prefixRanges,proto3" json:"prefix_ranges,omitempty"`
 	// If non-empty, an IP address and suffix length to match addresses when the
 	// listener is bound to 0.0.0.0/:: or when use_original_dst is specified.
 	// [#not-implemented-hide:]
 	AddressSuffix string `protobuf:"bytes,4,opt,name=address_suffix,json=addressSuffix,proto3" json:"address_suffix,omitempty"`
 	// [#not-implemented-hide:]
-	SuffixLen *types.UInt32Value `protobuf:"bytes,5,opt,name=suffix_len,json=suffixLen" json:"suffix_len,omitempty"`
+	SuffixLen *types.UInt32Value `protobuf:"bytes,5,opt,name=suffix_len,json=suffixLen,proto3" json:"suffix_len,omitempty"`
+	// Specifies the connection source IP match type. Can be any, local or external network.
+	SourceType FilterChainMatch_ConnectionSourceType `protobuf:"varint,12,opt,name=source_type,json=sourceType,proto3,enum=envoy.api.v2.listener.FilterChainMatch_ConnectionSourceType" json:"source_type,omitempty"`
 	// The criteria is satisfied if the source IP address of the downstream
 	// connection is contained in at least one of the specified subnets. If the
 	// parameter is not specified or the list is empty, the source IP address is
 	// ignored.
 	// [#not-implemented-hide:]
-	SourcePrefixRanges []*core.CidrRange `protobuf:"bytes,6,rep,name=source_prefix_ranges,json=sourcePrefixRanges" json:"source_prefix_ranges,omitempty"`
+	SourcePrefixRanges []*core.CidrRange `protobuf:"bytes,6,rep,name=source_prefix_ranges,json=sourcePrefixRanges,proto3" json:"source_prefix_ranges,omitempty"`
 	// The criteria is satisfied if the source port of the downstream connection
 	// is contained in at least one of the specified ports. If the parameter is
 	// not specified, the source port is ignored.
 	// [#not-implemented-hide:]
-	SourcePorts []*types.UInt32Value `protobuf:"bytes,7,rep,name=source_ports,json=sourcePorts" json:"source_ports,omitempty"`
+	SourcePorts []*types.UInt32Value `protobuf:"bytes,7,rep,name=source_ports,json=sourcePorts,proto3" json:"source_ports,omitempty"`
 	// If non-empty, a list of server names (e.g. SNI for TLS protocol) to consider when determining
 	// a filter chain match. Those values will be compared against the server names of a new
 	// connection, when detected by one of the listener filters.
@@ -215,7 +302,7 @@ type FilterChainMatch struct {
 	//
 	//   See the :ref:`FAQ entry <faq_how_to_setup_sni>` on how to configure SNI for more
 	//   information.
-	ServerNames []string `protobuf:"bytes,11,rep,name=server_names,json=serverNames" json:"server_names,omitempty"`
+	ServerNames []string `protobuf:"bytes,11,rep,name=server_names,json=serverNames,proto3" json:"server_names,omitempty"`
 	// If non-empty, a transport protocol to consider when determining a filter chain match.
 	// This value will be compared against the transport protocol of a new connection, when
 	// it's detected by one of the listener filters.
@@ -245,7 +332,7 @@ type FilterChainMatch struct {
 	//   However, the use of ALPN is pretty much limited to the HTTP/2 traffic on the Internet,
 	//   and matching on values other than ``h2`` is going to lead to a lot of false negatives,
 	//   unless all connecting clients are known to use ALPN.
-	ApplicationProtocols []string `protobuf:"bytes,10,rep,name=application_protocols,json=applicationProtocols" json:"application_protocols,omitempty"`
+	ApplicationProtocols []string `protobuf:"bytes,10,rep,name=application_protocols,json=applicationProtocols,proto3" json:"application_protocols,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -255,7 +342,7 @@ func (m *FilterChainMatch) Reset()         { *m = FilterChainMatch{} }
 func (m *FilterChainMatch) String() string { return proto.CompactTextString(m) }
 func (*FilterChainMatch) ProtoMessage()    {}
 func (*FilterChainMatch) Descriptor() ([]byte, []int) {
-	return fileDescriptor_listener_3375c0acf9db00a4, []int{1}
+	return fileDescriptor_0ced541f18749edd, []int{1}
 }
 func (m *FilterChainMatch) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -272,8 +359,8 @@ func (m *FilterChainMatch) XXX_Marshal(b []byte, deterministic bool) ([]byte, er
 		return b[:n], nil
 	}
 }
-func (dst *FilterChainMatch) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_FilterChainMatch.Merge(dst, src)
+func (m *FilterChainMatch) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_FilterChainMatch.Merge(m, src)
 }
 func (m *FilterChainMatch) XXX_Size() int {
 	return m.Size()
@@ -310,6 +397,13 @@ func (m *FilterChainMatch) GetSuffixLen() *types.UInt32Value {
 		return m.SuffixLen
 	}
 	return nil
+}
+
+func (m *FilterChainMatch) GetSourceType() FilterChainMatch_ConnectionSourceType {
+	if m != nil {
+		return m.SourceType
+	}
+	return FilterChainMatch_ANY
 }
 
 func (m *FilterChainMatch) GetSourcePrefixRanges() []*core.CidrRange {
@@ -351,25 +445,25 @@ func (m *FilterChainMatch) GetApplicationProtocols() []string {
 // various other parameters.
 type FilterChain struct {
 	// The criteria to use when matching a connection to this filter chain.
-	FilterChainMatch *FilterChainMatch `protobuf:"bytes,1,opt,name=filter_chain_match,json=filterChainMatch" json:"filter_chain_match,omitempty"`
+	FilterChainMatch *FilterChainMatch `protobuf:"bytes,1,opt,name=filter_chain_match,json=filterChainMatch,proto3" json:"filter_chain_match,omitempty"`
 	// The TLS context for this filter chain.
-	TlsContext *auth.DownstreamTlsContext `protobuf:"bytes,2,opt,name=tls_context,json=tlsContext" json:"tls_context,omitempty"`
+	TlsContext *auth.DownstreamTlsContext `protobuf:"bytes,2,opt,name=tls_context,json=tlsContext,proto3" json:"tls_context,omitempty"`
 	// A list of individual network filters that make up the filter chain for
 	// connections established with the listener. Order matters as the filters are
 	// processed sequentially as connection events happen. Note: If the filter
 	// list is empty, the connection will close by default.
-	Filters []Filter `protobuf:"bytes,3,rep,name=filters" json:"filters"`
+	Filters []Filter `protobuf:"bytes,3,rep,name=filters,proto3" json:"filters"`
 	// Whether the listener should expect a PROXY protocol V1 header on new
 	// connections. If this option is enabled, the listener will assume that that
 	// remote address of the connection is the one specified in the header. Some
 	// load balancers including the AWS ELB support this option. If the option is
 	// absent or set to false, Envoy will use the physical peer address of the
 	// connection as the remote address.
-	UseProxyProto *types.BoolValue `protobuf:"bytes,4,opt,name=use_proxy_proto,json=useProxyProto" json:"use_proxy_proto,omitempty"`
+	UseProxyProto *types.BoolValue `protobuf:"bytes,4,opt,name=use_proxy_proto,json=useProxyProto,proto3" json:"use_proxy_proto,omitempty"`
 	// [#not-implemented-hide:] filter chain metadata.
-	Metadata *core.Metadata `protobuf:"bytes,5,opt,name=metadata" json:"metadata,omitempty"`
+	Metadata *core.Metadata `protobuf:"bytes,5,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// See :ref:`base.TransportSocket<envoy_api_msg_core.TransportSocket>` description.
-	TransportSocket      *core.TransportSocket `protobuf:"bytes,6,opt,name=transport_socket,json=transportSocket" json:"transport_socket,omitempty"`
+	TransportSocket      *core.TransportSocket `protobuf:"bytes,6,opt,name=transport_socket,json=transportSocket,proto3" json:"transport_socket,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -379,7 +473,7 @@ func (m *FilterChain) Reset()         { *m = FilterChain{} }
 func (m *FilterChain) String() string { return proto.CompactTextString(m) }
 func (*FilterChain) ProtoMessage()    {}
 func (*FilterChain) Descriptor() ([]byte, []int) {
-	return fileDescriptor_listener_3375c0acf9db00a4, []int{2}
+	return fileDescriptor_0ced541f18749edd, []int{2}
 }
 func (m *FilterChain) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -396,8 +490,8 @@ func (m *FilterChain) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) 
 		return b[:n], nil
 	}
 }
-func (dst *FilterChain) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_FilterChain.Merge(dst, src)
+func (m *FilterChain) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_FilterChain.Merge(m, src)
 }
 func (m *FilterChain) XXX_Size() int {
 	return m.Size()
@@ -458,19 +552,23 @@ type ListenerFilter struct {
 	// * :ref:`envoy.listener.original_dst <config_listener_filters_original_dst>`
 	// * :ref:`envoy.listener.tls_inspector <config_listener_filters_tls_inspector>`
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	// Filter specific configuration which depends on the filter being
-	// instantiated. See the supported filters for further documentation.
-	Config               *types.Struct `protobuf:"bytes,2,opt,name=config" json:"config,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
-	XXX_unrecognized     []byte        `json:"-"`
-	XXX_sizecache        int32         `json:"-"`
+	// Filter specific configuration which depends on the filter being instantiated.
+	// See the supported filters for further documentation.
+	//
+	// Types that are valid to be assigned to ConfigType:
+	//	*ListenerFilter_Config
+	//	*ListenerFilter_TypedConfig
+	ConfigType           isListenerFilter_ConfigType `protobuf_oneof:"config_type"`
+	XXX_NoUnkeyedLiteral struct{}                    `json:"-"`
+	XXX_unrecognized     []byte                      `json:"-"`
+	XXX_sizecache        int32                       `json:"-"`
 }
 
 func (m *ListenerFilter) Reset()         { *m = ListenerFilter{} }
 func (m *ListenerFilter) String() string { return proto.CompactTextString(m) }
 func (*ListenerFilter) ProtoMessage()    {}
 func (*ListenerFilter) Descriptor() ([]byte, []int) {
-	return fileDescriptor_listener_3375c0acf9db00a4, []int{3}
+	return fileDescriptor_0ced541f18749edd, []int{3}
 }
 func (m *ListenerFilter) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -487,8 +585,8 @@ func (m *ListenerFilter) XXX_Marshal(b []byte, deterministic bool) ([]byte, erro
 		return b[:n], nil
 	}
 }
-func (dst *ListenerFilter) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ListenerFilter.Merge(dst, src)
+func (m *ListenerFilter) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListenerFilter.Merge(m, src)
 }
 func (m *ListenerFilter) XXX_Size() int {
 	return m.Size()
@@ -499,6 +597,30 @@ func (m *ListenerFilter) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_ListenerFilter proto.InternalMessageInfo
 
+type isListenerFilter_ConfigType interface {
+	isListenerFilter_ConfigType()
+	Equal(interface{}) bool
+	MarshalTo([]byte) (int, error)
+	Size() int
+}
+
+type ListenerFilter_Config struct {
+	Config *types.Struct `protobuf:"bytes,2,opt,name=config,proto3,oneof"`
+}
+type ListenerFilter_TypedConfig struct {
+	TypedConfig *types.Any `protobuf:"bytes,3,opt,name=typed_config,json=typedConfig,proto3,oneof"`
+}
+
+func (*ListenerFilter_Config) isListenerFilter_ConfigType()      {}
+func (*ListenerFilter_TypedConfig) isListenerFilter_ConfigType() {}
+
+func (m *ListenerFilter) GetConfigType() isListenerFilter_ConfigType {
+	if m != nil {
+		return m.ConfigType
+	}
+	return nil
+}
+
 func (m *ListenerFilter) GetName() string {
 	if m != nil {
 		return m.Name
@@ -507,19 +629,165 @@ func (m *ListenerFilter) GetName() string {
 }
 
 func (m *ListenerFilter) GetConfig() *types.Struct {
-	if m != nil {
-		return m.Config
+	if x, ok := m.GetConfigType().(*ListenerFilter_Config); ok {
+		return x.Config
 	}
 	return nil
 }
 
+func (m *ListenerFilter) GetTypedConfig() *types.Any {
+	if x, ok := m.GetConfigType().(*ListenerFilter_TypedConfig); ok {
+		return x.TypedConfig
+	}
+	return nil
+}
+
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*ListenerFilter) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
+	return _ListenerFilter_OneofMarshaler, _ListenerFilter_OneofUnmarshaler, _ListenerFilter_OneofSizer, []interface{}{
+		(*ListenerFilter_Config)(nil),
+		(*ListenerFilter_TypedConfig)(nil),
+	}
+}
+
+func _ListenerFilter_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*ListenerFilter)
+	// config_type
+	switch x := m.ConfigType.(type) {
+	case *ListenerFilter_Config:
+		_ = b.EncodeVarint(2<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Config); err != nil {
+			return err
+		}
+	case *ListenerFilter_TypedConfig:
+		_ = b.EncodeVarint(3<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.TypedConfig); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("ListenerFilter.ConfigType has unexpected type %T", x)
+	}
+	return nil
+}
+
+func _ListenerFilter_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*ListenerFilter)
+	switch tag {
+	case 2: // config_type.config
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(types.Struct)
+		err := b.DecodeMessage(msg)
+		m.ConfigType = &ListenerFilter_Config{msg}
+		return true, err
+	case 3: // config_type.typed_config
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(types.Any)
+		err := b.DecodeMessage(msg)
+		m.ConfigType = &ListenerFilter_TypedConfig{msg}
+		return true, err
+	default:
+		return false, nil
+	}
+}
+
+func _ListenerFilter_OneofSizer(msg proto.Message) (n int) {
+	m := msg.(*ListenerFilter)
+	// config_type
+	switch x := m.ConfigType.(type) {
+	case *ListenerFilter_Config:
+		s := proto.Size(x.Config)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *ListenerFilter_TypedConfig:
+		s := proto.Size(x.TypedConfig)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case nil:
+	default:
+		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
+	}
+	return n
+}
+
 func init() {
+	proto.RegisterEnum("envoy.api.v2.listener.FilterChainMatch_ConnectionSourceType", FilterChainMatch_ConnectionSourceType_name, FilterChainMatch_ConnectionSourceType_value)
 	proto.RegisterType((*Filter)(nil), "envoy.api.v2.listener.Filter")
-	proto.RegisterType((*Filter_DeprecatedV1)(nil), "envoy.api.v2.listener.Filter.DeprecatedV1")
 	proto.RegisterType((*FilterChainMatch)(nil), "envoy.api.v2.listener.FilterChainMatch")
 	proto.RegisterType((*FilterChain)(nil), "envoy.api.v2.listener.FilterChain")
 	proto.RegisterType((*ListenerFilter)(nil), "envoy.api.v2.listener.ListenerFilter")
 }
+
+func init() {
+	proto.RegisterFile("envoy/api/v2/listener/listener.proto", fileDescriptor_0ced541f18749edd)
+}
+
+var fileDescriptor_0ced541f18749edd = []byte{
+	// 883 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xbc, 0x54, 0xcf, 0x6e, 0xe3, 0x44,
+	0x18, 0xaf, 0x93, 0x34, 0x4d, 0x3e, 0x27, 0xad, 0x19, 0x65, 0x55, 0x53, 0x76, 0xb3, 0x21, 0x80,
+	0x88, 0x90, 0x70, 0x44, 0x7a, 0x00, 0x04, 0x08, 0xc5, 0xa1, 0xa8, 0xac, 0xd2, 0x10, 0x39, 0xdd,
+	0x0a, 0xb8, 0x58, 0x53, 0x67, 0x92, 0x0e, 0x38, 0x33, 0xd6, 0xcc, 0x24, 0xdb, 0x5c, 0x79, 0x1a,
+	0xb4, 0xe2, 0x05, 0xe0, 0xc4, 0x71, 0x8f, 0x3c, 0x01, 0x82, 0xde, 0x78, 0x8a, 0x45, 0x1e, 0xdb,
+	0xa1, 0x49, 0xa3, 0x65, 0xc5, 0x61, 0x6f, 0x33, 0xdf, 0xf7, 0xfb, 0xfd, 0xe6, 0xfb, 0x3b, 0xf0,
+	0x36, 0x61, 0x0b, 0xbe, 0x6c, 0xe3, 0x88, 0xb6, 0x17, 0x9d, 0x76, 0x48, 0xa5, 0x22, 0x8c, 0x88,
+	0xd5, 0xc1, 0x89, 0x04, 0x57, 0x1c, 0xdd, 0xd3, 0x28, 0x07, 0x47, 0xd4, 0x59, 0x74, 0x9c, 0xcc,
+	0x79, 0xf4, 0x70, 0x8d, 0x1c, 0x70, 0x41, 0xda, 0x78, 0x3c, 0x16, 0x44, 0xca, 0x84, 0x77, 0x74,
+	0x7f, 0x0d, 0x80, 0xe7, 0xea, 0xaa, 0x1d, 0x10, 0xa1, 0xb6, 0x7a, 0x35, 0xfd, 0x12, 0x4b, 0x92,
+	0x7a, 0x5f, 0x9f, 0x72, 0x3e, 0x0d, 0x49, 0x5b, 0xdf, 0x2e, 0xe7, 0x93, 0x36, 0x66, 0xcb, 0x8c,
+	0xb8, 0xe9, 0x92, 0x4a, 0xcc, 0x83, 0x4c, 0xb6, 0xbe, 0xe9, 0x7d, 0x22, 0x70, 0x14, 0x11, 0x91,
+	0x05, 0x75, 0xb8, 0xc0, 0x21, 0x1d, 0x63, 0x45, 0xda, 0xd9, 0x21, 0x75, 0xd4, 0xa6, 0x7c, 0xca,
+	0xf5, 0xb1, 0x1d, 0x9f, 0x12, 0x6b, 0xf3, 0xa9, 0x01, 0xc5, 0x2f, 0x69, 0xa8, 0x88, 0x40, 0x0f,
+	0xa0, 0xc0, 0xf0, 0x8c, 0xd8, 0x46, 0xc3, 0x68, 0x95, 0xdd, 0xf2, 0xaf, 0x7f, 0xff, 0x96, 0x2f,
+	0x88, 0x5c, 0xc3, 0xf0, 0xb4, 0x19, 0x7d, 0x00, 0xc5, 0x80, 0xb3, 0x09, 0x9d, 0xda, 0xb9, 0x86,
+	0xd1, 0x32, 0x3b, 0x87, 0x4e, 0x12, 0x89, 0x93, 0x45, 0xe2, 0x8c, 0x74, 0x9c, 0xa7, 0x3b, 0x5e,
+	0x0a, 0x44, 0x1f, 0x43, 0x45, 0x2d, 0x23, 0x32, 0xf6, 0x53, 0x62, 0x41, 0x13, 0x6b, 0x77, 0x88,
+	0x5d, 0xb6, 0x3c, 0xdd, 0xf1, 0x4c, 0x8d, 0xed, 0x69, 0xa8, 0x5b, 0x05, 0x33, 0x21, 0xf9, 0xb1,
+	0xf5, 0x51, 0xa1, 0x94, 0xb7, 0x0a, 0xcd, 0xbf, 0x76, 0xc1, 0x4a, 0x82, 0xed, 0x5d, 0x61, 0xca,
+	0xce, 0xb0, 0x0a, 0xae, 0xd0, 0x05, 0x58, 0x63, 0x22, 0x15, 0x65, 0x58, 0x51, 0xce, 0xfc, 0x88,
+	0x0b, 0x65, 0x97, 0xf4, 0x43, 0xf7, 0xef, 0x3c, 0xf4, 0xf8, 0x2b, 0xa6, 0x8e, 0x3b, 0x17, 0x38,
+	0x9c, 0x13, 0xb7, 0x1a, 0x27, 0x58, 0x7a, 0xaf, 0x68, 0x3f, 0x7f, 0x9e, 0x6f, 0x19, 0xde, 0xc1,
+	0x2d, 0x91, 0x21, 0x17, 0x0a, 0x75, 0xa1, 0x1a, 0x09, 0x32, 0xa1, 0xd7, 0xbe, 0xc0, 0x6c, 0x4a,
+	0xa4, 0x9d, 0x6f, 0xe4, 0xb5, 0xe8, 0xda, 0xb4, 0xc4, 0x7d, 0x75, 0x7a, 0x74, 0x2c, 0xbc, 0x18,
+	0xe4, 0x55, 0x12, 0x8a, 0xbe, 0x48, 0xf4, 0x0e, 0xec, 0xa7, 0x13, 0xe3, 0xcb, 0xf9, 0x64, 0x42,
+	0xaf, 0x75, 0x05, 0xca, 0x5e, 0x35, 0xb5, 0x8e, 0xb4, 0x11, 0x7d, 0x02, 0x90, 0xb8, 0xfd, 0x90,
+	0x30, 0x7b, 0xf7, 0xbf, 0x63, 0xf7, 0xca, 0x09, 0xbe, 0x4f, 0x18, 0xa2, 0x60, 0x4a, 0x3e, 0x17,
+	0x01, 0xd1, 0x85, 0xb2, 0x2b, 0x0d, 0xa3, 0xb5, 0xdf, 0xf9, 0xd4, 0xd9, 0x3a, 0xd2, 0xce, 0x66,
+	0xf1, 0x9c, 0x1e, 0x67, 0x8c, 0x04, 0x71, 0xce, 0x23, 0x2d, 0x72, 0xbe, 0x8c, 0x88, 0x0b, 0x71,
+	0x65, 0x76, 0x7f, 0x34, 0x72, 0x96, 0xe1, 0x81, 0x5c, 0xd9, 0xd1, 0x00, 0x6a, 0xe9, 0x53, 0xeb,
+	0x85, 0x29, 0xbe, 0x44, 0x61, 0x50, 0xc2, 0x1c, 0xde, 0x2e, 0xcf, 0xe7, 0x50, 0xc9, 0xf4, 0xb8,
+	0x50, 0xd2, 0xde, 0x4b, 0x75, 0x5e, 0x94, 0x79, 0x9a, 0x6c, 0xdc, 0x21, 0x89, 0xde, 0x84, 0x8a,
+	0x24, 0x62, 0x41, 0x84, 0x1f, 0x4f, 0xa8, 0xb4, 0xcd, 0x46, 0xbe, 0x55, 0xf6, 0xcc, 0xc4, 0x36,
+	0x88, 0x4d, 0xe8, 0x7d, 0x40, 0x4a, 0x60, 0x26, 0xe3, 0x17, 0x7c, 0xad, 0x18, 0xf0, 0xd0, 0x2e,
+	0xeb, 0x36, 0xbc, 0xb6, 0xf2, 0x0c, 0x53, 0x07, 0x3a, 0x86, 0x7b, 0x38, 0x8a, 0x42, 0x1a, 0xa4,
+	0xc3, 0x94, 0xda, 0xa5, 0x0d, 0x5a, 0xba, 0x76, 0xcb, 0x99, 0x71, 0x64, 0xf3, 0x23, 0xa8, 0x6d,
+	0xab, 0x23, 0xda, 0x83, 0x7c, 0x77, 0xf0, 0xad, 0xb5, 0x83, 0xca, 0xb0, 0xdb, 0xff, 0xba, 0xd7,
+	0xed, 0x5b, 0x06, 0xaa, 0x40, 0xe9, 0xe4, 0x9b, 0xf3, 0x13, 0x6f, 0xd0, 0xed, 0x5b, 0xb9, 0x47,
+	0x85, 0x92, 0x61, 0xe5, 0x3c, 0x53, 0x32, 0xea, 0x8f, 0xf9, 0x0c, 0x53, 0x26, 0x9b, 0xbf, 0xe4,
+	0xc1, 0xbc, 0xd5, 0x26, 0xf4, 0x18, 0xd0, 0x44, 0x5f, 0xfd, 0x20, 0xbe, 0xfb, 0xb3, 0xb8, 0x6f,
+	0x7a, 0x47, 0xcd, 0xce, 0xbb, 0x2f, 0xd9, 0x66, 0xcf, 0x9a, 0x6c, 0x6e, 0xcd, 0x29, 0x98, 0x2a,
+	0x94, 0xf1, 0x62, 0x2a, 0x72, 0xad, 0xd2, 0x95, 0xde, 0xd0, 0x8b, 0x7f, 0x34, 0xe7, 0x0b, 0xfe,
+	0x84, 0x49, 0x25, 0x08, 0x9e, 0x9d, 0x87, 0xb2, 0x97, 0xc0, 0x3d, 0x50, 0xab, 0x33, 0xfa, 0x0c,
+	0xf6, 0x12, 0xf5, 0x6c, 0x43, 0x1e, 0xbc, 0x30, 0x2a, 0xb7, 0xf0, 0xec, 0x8f, 0x87, 0x3b, 0x5e,
+	0xc6, 0x41, 0x2e, 0x1c, 0xcc, 0x65, 0x3c, 0x51, 0xfc, 0x7a, 0x99, 0xd4, 0x3b, 0xfd, 0x26, 0x8e,
+	0xee, 0xcc, 0x81, 0xcb, 0x79, 0x98, 0x4c, 0x41, 0x75, 0x2e, 0xc9, 0x30, 0x66, 0xe8, 0x26, 0xa0,
+	0x0f, 0xa1, 0x34, 0x23, 0x0a, 0x8f, 0xb1, 0xc2, 0xe9, 0xfa, 0xbc, 0xb1, 0x65, 0x18, 0xcf, 0x52,
+	0x88, 0xb7, 0x02, 0xa3, 0x33, 0xb0, 0xfe, 0x9d, 0x0e, 0xc9, 0x83, 0x1f, 0x88, 0xb2, 0x8b, 0x5a,
+	0xa0, 0xb9, 0x45, 0xe0, 0x3c, 0x83, 0x8e, 0x34, 0xd2, 0x3b, 0x50, 0xeb, 0x86, 0xe6, 0xcf, 0x06,
+	0xec, 0xf7, 0xd3, 0x74, 0x5f, 0xd9, 0xa7, 0x9a, 0xff, 0xbf, 0x9f, 0xaa, 0xfb, 0xfd, 0x4f, 0x37,
+	0x75, 0xe3, 0xd9, 0x4d, 0xdd, 0xf8, 0xfd, 0xa6, 0x6e, 0xfc, 0x79, 0x53, 0x37, 0xe0, 0x2d, 0xca,
+	0x93, 0xbc, 0x75, 0x3b, 0xb6, 0xf7, 0xd1, 0xad, 0x66, 0x29, 0xea, 0xe2, 0x0f, 0x8d, 0xef, 0x4a,
+	0x99, 0xeb, 0x69, 0xee, 0xf0, 0x44, 0x53, 0xba, 0x11, 0x75, 0x2e, 0x3a, 0x4e, 0x06, 0x1c, 0x8c,
+	0x2e, 0x8b, 0x3a, 0xae, 0xe3, 0x7f, 0x02, 0x00, 0x00, 0xff, 0xff, 0x4f, 0xcc, 0x41, 0xcc, 0x92,
+	0x07, 0x00, 0x00,
+}
+
 func (this *Filter) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
@@ -542,10 +810,13 @@ func (this *Filter) Equal(that interface{}) bool {
 	if this.Name != that1.Name {
 		return false
 	}
-	if !this.Config.Equal(that1.Config) {
+	if that1.ConfigType == nil {
+		if this.ConfigType != nil {
+			return false
+		}
+	} else if this.ConfigType == nil {
 		return false
-	}
-	if !this.DeprecatedV1.Equal(that1.DeprecatedV1) {
+	} else if !this.ConfigType.Equal(that1.ConfigType) {
 		return false
 	}
 	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
@@ -553,14 +824,14 @@ func (this *Filter) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *Filter_DeprecatedV1) Equal(that interface{}) bool {
+func (this *Filter_Config) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*Filter_DeprecatedV1)
+	that1, ok := that.(*Filter_Config)
 	if !ok {
-		that2, ok := that.(Filter_DeprecatedV1)
+		that2, ok := that.(Filter_Config)
 		if ok {
 			that1 = &that2
 		} else {
@@ -572,10 +843,31 @@ func (this *Filter_DeprecatedV1) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if this.Type != that1.Type {
+	if !this.Config.Equal(that1.Config) {
 		return false
 	}
-	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+	return true
+}
+func (this *Filter_TypedConfig) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Filter_TypedConfig)
+	if !ok {
+		that2, ok := that.(Filter_TypedConfig)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.TypedConfig.Equal(that1.TypedConfig) {
 		return false
 	}
 	return true
@@ -614,6 +906,9 @@ func (this *FilterChainMatch) Equal(that interface{}) bool {
 		return false
 	}
 	if !this.SuffixLen.Equal(that1.SuffixLen) {
+		return false
+	}
+	if this.SourceType != that1.SourceType {
 		return false
 	}
 	if len(this.SourcePrefixRanges) != len(that1.SourcePrefixRanges) {
@@ -725,10 +1020,64 @@ func (this *ListenerFilter) Equal(that interface{}) bool {
 	if this.Name != that1.Name {
 		return false
 	}
-	if !this.Config.Equal(that1.Config) {
+	if that1.ConfigType == nil {
+		if this.ConfigType != nil {
+			return false
+		}
+	} else if this.ConfigType == nil {
+		return false
+	} else if !this.ConfigType.Equal(that1.ConfigType) {
 		return false
 	}
 	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return false
+	}
+	return true
+}
+func (this *ListenerFilter_Config) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*ListenerFilter_Config)
+	if !ok {
+		that2, ok := that.(ListenerFilter_Config)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Config.Equal(that1.Config) {
+		return false
+	}
+	return true
+}
+func (this *ListenerFilter_TypedConfig) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*ListenerFilter_TypedConfig)
+	if !ok {
+		that2, ok := that.(ListenerFilter_TypedConfig)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.TypedConfig.Equal(that1.TypedConfig) {
 		return false
 	}
 	return true
@@ -754,59 +1103,47 @@ func (m *Filter) MarshalTo(dAtA []byte) (int, error) {
 		i = encodeVarintListener(dAtA, i, uint64(len(m.Name)))
 		i += copy(dAtA[i:], m.Name)
 	}
+	if m.ConfigType != nil {
+		nn1, err := m.ConfigType.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += nn1
+	}
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
+}
+
+func (m *Filter_Config) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
 	if m.Config != nil {
 		dAtA[i] = 0x12
 		i++
 		i = encodeVarintListener(dAtA, i, uint64(m.Config.Size()))
-		n1, err := m.Config.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n1
-	}
-	if m.DeprecatedV1 != nil {
-		dAtA[i] = 0x1a
-		i++
-		i = encodeVarintListener(dAtA, i, uint64(m.DeprecatedV1.Size()))
-		n2, err := m.DeprecatedV1.MarshalTo(dAtA[i:])
+		n2, err := m.Config.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n2
 	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
-	}
 	return i, nil
 }
-
-func (m *Filter_DeprecatedV1) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *Filter_DeprecatedV1) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Type) > 0 {
-		dAtA[i] = 0xa
+func (m *Filter_TypedConfig) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	if m.TypedConfig != nil {
+		dAtA[i] = 0x22
 		i++
-		i = encodeVarintListener(dAtA, i, uint64(len(m.Type)))
-		i += copy(dAtA[i:], m.Type)
-	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+		i = encodeVarintListener(dAtA, i, uint64(m.TypedConfig.Size()))
+		n3, err := m.TypedConfig.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n3
 	}
 	return i, nil
 }
-
 func (m *FilterChainMatch) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -844,11 +1181,11 @@ func (m *FilterChainMatch) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x2a
 		i++
 		i = encodeVarintListener(dAtA, i, uint64(m.SuffixLen.Size()))
-		n3, err := m.SuffixLen.MarshalTo(dAtA[i:])
+		n4, err := m.SuffixLen.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n3
+		i += n4
 	}
 	if len(m.SourcePrefixRanges) > 0 {
 		for _, msg := range m.SourcePrefixRanges {
@@ -878,11 +1215,11 @@ func (m *FilterChainMatch) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x42
 		i++
 		i = encodeVarintListener(dAtA, i, uint64(m.DestinationPort.Size()))
-		n4, err := m.DestinationPort.MarshalTo(dAtA[i:])
+		n5, err := m.DestinationPort.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n4
+		i += n5
 	}
 	if len(m.TransportProtocol) > 0 {
 		dAtA[i] = 0x4a
@@ -920,6 +1257,11 @@ func (m *FilterChainMatch) MarshalTo(dAtA []byte) (int, error) {
 			i += copy(dAtA[i:], s)
 		}
 	}
+	if m.SourceType != 0 {
+		dAtA[i] = 0x60
+		i++
+		i = encodeVarintListener(dAtA, i, uint64(m.SourceType))
+	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
 	}
@@ -945,21 +1287,21 @@ func (m *FilterChain) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintListener(dAtA, i, uint64(m.FilterChainMatch.Size()))
-		n5, err := m.FilterChainMatch.MarshalTo(dAtA[i:])
+		n6, err := m.FilterChainMatch.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n5
+		i += n6
 	}
 	if m.TlsContext != nil {
 		dAtA[i] = 0x12
 		i++
 		i = encodeVarintListener(dAtA, i, uint64(m.TlsContext.Size()))
-		n6, err := m.TlsContext.MarshalTo(dAtA[i:])
+		n7, err := m.TlsContext.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n6
+		i += n7
 	}
 	if len(m.Filters) > 0 {
 		for _, msg := range m.Filters {
@@ -977,31 +1319,31 @@ func (m *FilterChain) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x22
 		i++
 		i = encodeVarintListener(dAtA, i, uint64(m.UseProxyProto.Size()))
-		n7, err := m.UseProxyProto.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n7
-	}
-	if m.Metadata != nil {
-		dAtA[i] = 0x2a
-		i++
-		i = encodeVarintListener(dAtA, i, uint64(m.Metadata.Size()))
-		n8, err := m.Metadata.MarshalTo(dAtA[i:])
+		n8, err := m.UseProxyProto.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n8
 	}
-	if m.TransportSocket != nil {
-		dAtA[i] = 0x32
+	if m.Metadata != nil {
+		dAtA[i] = 0x2a
 		i++
-		i = encodeVarintListener(dAtA, i, uint64(m.TransportSocket.Size()))
-		n9, err := m.TransportSocket.MarshalTo(dAtA[i:])
+		i = encodeVarintListener(dAtA, i, uint64(m.Metadata.Size()))
+		n9, err := m.Metadata.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n9
+	}
+	if m.TransportSocket != nil {
+		dAtA[i] = 0x32
+		i++
+		i = encodeVarintListener(dAtA, i, uint64(m.TransportSocket.Size()))
+		n10, err := m.TransportSocket.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n10
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
@@ -1030,15 +1372,12 @@ func (m *ListenerFilter) MarshalTo(dAtA []byte) (int, error) {
 		i = encodeVarintListener(dAtA, i, uint64(len(m.Name)))
 		i += copy(dAtA[i:], m.Name)
 	}
-	if m.Config != nil {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintListener(dAtA, i, uint64(m.Config.Size()))
-		n10, err := m.Config.MarshalTo(dAtA[i:])
+	if m.ConfigType != nil {
+		nn11, err := m.ConfigType.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n10
+		i += nn11
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
@@ -1046,6 +1385,34 @@ func (m *ListenerFilter) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
+func (m *ListenerFilter_Config) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	if m.Config != nil {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintListener(dAtA, i, uint64(m.Config.Size()))
+		n12, err := m.Config.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n12
+	}
+	return i, nil
+}
+func (m *ListenerFilter_TypedConfig) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	if m.TypedConfig != nil {
+		dAtA[i] = 0x1a
+		i++
+		i = encodeVarintListener(dAtA, i, uint64(m.TypedConfig.Size()))
+		n13, err := m.TypedConfig.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n13
+	}
+	return i, nil
+}
 func encodeVarintListener(dAtA []byte, offset int, v uint64) int {
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
@@ -1056,40 +1423,52 @@ func encodeVarintListener(dAtA []byte, offset int, v uint64) int {
 	return offset + 1
 }
 func (m *Filter) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	l = len(m.Name)
 	if l > 0 {
 		n += 1 + l + sovListener(uint64(l))
 	}
+	if m.ConfigType != nil {
+		n += m.ConfigType.Size()
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *Filter_Config) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
 	if m.Config != nil {
 		l = m.Config.Size()
 		n += 1 + l + sovListener(uint64(l))
 	}
-	if m.DeprecatedV1 != nil {
-		l = m.DeprecatedV1.Size()
-		n += 1 + l + sovListener(uint64(l))
-	}
-	if m.XXX_unrecognized != nil {
-		n += len(m.XXX_unrecognized)
-	}
 	return n
 }
-
-func (m *Filter_DeprecatedV1) Size() (n int) {
+func (m *Filter_TypedConfig) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
-	l = len(m.Type)
-	if l > 0 {
+	if m.TypedConfig != nil {
+		l = m.TypedConfig.Size()
 		n += 1 + l + sovListener(uint64(l))
-	}
-	if m.XXX_unrecognized != nil {
-		n += len(m.XXX_unrecognized)
 	}
 	return n
 }
-
 func (m *FilterChainMatch) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if len(m.PrefixRanges) > 0 {
@@ -1138,6 +1517,9 @@ func (m *FilterChainMatch) Size() (n int) {
 			n += 1 + l + sovListener(uint64(l))
 		}
 	}
+	if m.SourceType != 0 {
+		n += 1 + sovListener(uint64(m.SourceType))
+	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
 	}
@@ -1145,6 +1527,9 @@ func (m *FilterChainMatch) Size() (n int) {
 }
 
 func (m *FilterChain) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.FilterChainMatch != nil {
@@ -1180,18 +1565,45 @@ func (m *FilterChain) Size() (n int) {
 }
 
 func (m *ListenerFilter) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	l = len(m.Name)
 	if l > 0 {
 		n += 1 + l + sovListener(uint64(l))
 	}
+	if m.ConfigType != nil {
+		n += m.ConfigType.Size()
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *ListenerFilter_Config) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
 	if m.Config != nil {
 		l = m.Config.Size()
 		n += 1 + l + sovListener(uint64(l))
 	}
-	if m.XXX_unrecognized != nil {
-		n += len(m.XXX_unrecognized)
+	return n
+}
+func (m *ListenerFilter_TypedConfig) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.TypedConfig != nil {
+		l = m.TypedConfig.Size()
+		n += 1 + l + sovListener(uint64(l))
 	}
 	return n
 }
@@ -1224,7 +1636,7 @@ func (m *Filter) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -1252,7 +1664,7 @@ func (m *Filter) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1262,6 +1674,9 @@ func (m *Filter) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthListener
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthListener
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1281,7 +1696,7 @@ func (m *Filter) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1290,19 +1705,21 @@ func (m *Filter) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthListener
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthListener
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.Config == nil {
-				m.Config = &types.Struct{}
-			}
-			if err := m.Config.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			v := &types.Struct{}
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			m.ConfigType = &Filter_Config{v}
 			iNdEx = postIndex
-		case 3:
+		case 4:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DeprecatedV1", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field TypedConfig", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -1314,7 +1731,7 @@ func (m *Filter) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1323,15 +1740,17 @@ func (m *Filter) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthListener
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthListener
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.DeprecatedV1 == nil {
-				m.DeprecatedV1 = &Filter_DeprecatedV1{}
-			}
-			if err := m.DeprecatedV1.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			v := &types.Any{}
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			m.ConfigType = &Filter_TypedConfig{v}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -1342,84 +1761,7 @@ func (m *Filter) Unmarshal(dAtA []byte) error {
 			if skippy < 0 {
 				return ErrInvalidLengthListener
 			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *Filter_DeprecatedV1) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowListener
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: DeprecatedV1: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: DeprecatedV1: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowListener
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthListener
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Type = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipListener(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthListener
 			}
 			if (iNdEx + skippy) > l {
@@ -1450,7 +1792,7 @@ func (m *FilterChainMatch) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -1478,7 +1820,7 @@ func (m *FilterChainMatch) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1487,6 +1829,9 @@ func (m *FilterChainMatch) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthListener
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthListener
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1509,7 +1854,7 @@ func (m *FilterChainMatch) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1519,6 +1864,9 @@ func (m *FilterChainMatch) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthListener
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthListener
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1538,7 +1886,7 @@ func (m *FilterChainMatch) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1547,6 +1895,9 @@ func (m *FilterChainMatch) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthListener
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthListener
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1571,7 +1922,7 @@ func (m *FilterChainMatch) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1580,6 +1931,9 @@ func (m *FilterChainMatch) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthListener
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthListener
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1602,7 +1956,7 @@ func (m *FilterChainMatch) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1611,6 +1965,9 @@ func (m *FilterChainMatch) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthListener
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthListener
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1633,7 +1990,7 @@ func (m *FilterChainMatch) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1642,6 +1999,9 @@ func (m *FilterChainMatch) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthListener
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthListener
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1666,7 +2026,7 @@ func (m *FilterChainMatch) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1676,6 +2036,9 @@ func (m *FilterChainMatch) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthListener
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthListener
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1695,7 +2058,7 @@ func (m *FilterChainMatch) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1705,6 +2068,9 @@ func (m *FilterChainMatch) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthListener
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthListener
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1724,7 +2090,7 @@ func (m *FilterChainMatch) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1734,11 +2100,33 @@ func (m *FilterChainMatch) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthListener
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthListener
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
 			m.ServerNames = append(m.ServerNames, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
+		case 12:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SourceType", wireType)
+			}
+			m.SourceType = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowListener
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.SourceType |= FilterChainMatch_ConnectionSourceType(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skipListener(dAtA[iNdEx:])
@@ -1746,6 +2134,9 @@ func (m *FilterChainMatch) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthListener
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthListener
 			}
 			if (iNdEx + skippy) > l {
@@ -1776,7 +2167,7 @@ func (m *FilterChain) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -1804,7 +2195,7 @@ func (m *FilterChain) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1813,6 +2204,9 @@ func (m *FilterChain) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthListener
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthListener
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1837,7 +2231,7 @@ func (m *FilterChain) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1846,6 +2240,9 @@ func (m *FilterChain) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthListener
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthListener
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1870,7 +2267,7 @@ func (m *FilterChain) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1879,6 +2276,9 @@ func (m *FilterChain) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthListener
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthListener
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1901,7 +2301,7 @@ func (m *FilterChain) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1910,6 +2310,9 @@ func (m *FilterChain) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthListener
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthListener
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1934,7 +2337,7 @@ func (m *FilterChain) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1943,6 +2346,9 @@ func (m *FilterChain) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthListener
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthListener
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1967,7 +2373,7 @@ func (m *FilterChain) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1976,6 +2382,9 @@ func (m *FilterChain) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthListener
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthListener
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1993,6 +2402,9 @@ func (m *FilterChain) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthListener
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthListener
 			}
 			if (iNdEx + skippy) > l {
@@ -2023,7 +2435,7 @@ func (m *ListenerFilter) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -2051,7 +2463,7 @@ func (m *ListenerFilter) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2061,6 +2473,9 @@ func (m *ListenerFilter) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthListener
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthListener
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2080,7 +2495,7 @@ func (m *ListenerFilter) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2089,15 +2504,52 @@ func (m *ListenerFilter) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthListener
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthListener
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.Config == nil {
-				m.Config = &types.Struct{}
-			}
-			if err := m.Config.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			v := &types.Struct{}
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			m.ConfigType = &ListenerFilter_Config{v}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TypedConfig", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowListener
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthListener
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthListener
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			v := &types.Any{}
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			m.ConfigType = &ListenerFilter_TypedConfig{v}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -2106,6 +2558,9 @@ func (m *ListenerFilter) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthListener
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthListener
 			}
 			if (iNdEx + skippy) > l {
@@ -2175,8 +2630,11 @@ func skipListener(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			iNdEx += length
 			if length < 0 {
+				return 0, ErrInvalidLengthListener
+			}
+			iNdEx += length
+			if iNdEx < 0 {
 				return 0, ErrInvalidLengthListener
 			}
 			return iNdEx, nil
@@ -2207,6 +2665,9 @@ func skipListener(dAtA []byte) (n int, err error) {
 					return 0, err
 				}
 				iNdEx = start + next
+				if iNdEx < 0 {
+					return 0, ErrInvalidLengthListener
+				}
 			}
 			return iNdEx, nil
 		case 4:
@@ -2225,60 +2686,3 @@ var (
 	ErrInvalidLengthListener = fmt.Errorf("proto: negative length found during unmarshaling")
 	ErrIntOverflowListener   = fmt.Errorf("proto: integer overflow")
 )
-
-func init() {
-	proto.RegisterFile("envoy/api/v2/listener/listener.proto", fileDescriptor_listener_3375c0acf9db00a4)
-}
-
-var fileDescriptor_listener_3375c0acf9db00a4 = []byte{
-	// 782 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x54, 0x41, 0x4f, 0xdb, 0x48,
-	0x18, 0x5d, 0x27, 0xd9, 0x90, 0x8c, 0x13, 0xc8, 0x8e, 0x40, 0x58, 0x59, 0x08, 0xd9, 0x68, 0x57,
-	0x1b, 0x21, 0xad, 0x2d, 0xcc, 0x4a, 0x7b, 0x58, 0xad, 0x56, 0x04, 0x5a, 0xb5, 0x15, 0x20, 0xe4,
-	0x40, 0x0e, 0xbd, 0xb8, 0x83, 0x3d, 0x09, 0xa3, 0x3a, 0x33, 0xd6, 0xcc, 0x38, 0x84, 0x7f, 0x54,
-	0xf5, 0x1f, 0xb4, 0xea, 0xa1, 0x47, 0x8e, 0xed, 0x1f, 0xa8, 0xaa, 0xdc, 0xfa, 0x2b, 0xa8, 0x3c,
-	0xb6, 0x43, 0x02, 0x11, 0xed, 0xa5, 0xb7, 0x6f, 0xbe, 0xef, 0xbd, 0x97, 0x37, 0xdf, 0xbc, 0x18,
-	0xfc, 0x8e, 0xe9, 0x88, 0x5d, 0x59, 0x28, 0x24, 0xd6, 0xc8, 0xb6, 0x02, 0x22, 0x24, 0xa6, 0x98,
-	0x4f, 0x0b, 0x33, 0xe4, 0x4c, 0x32, 0xb8, 0xa6, 0x50, 0x26, 0x0a, 0x89, 0x39, 0xb2, 0xcd, 0x6c,
-	0x58, 0xdf, 0x9a, 0x23, 0x7b, 0x8c, 0x63, 0x0b, 0xf9, 0x3e, 0xc7, 0x42, 0x24, 0xbc, 0xfa, 0xc6,
-	0x1c, 0x00, 0x45, 0xf2, 0xc2, 0xf2, 0x30, 0x97, 0x0b, 0xa7, 0x8a, 0x7e, 0x8e, 0x04, 0xce, 0xa6,
-	0x03, 0xc6, 0x06, 0x01, 0xb6, 0xd4, 0xe9, 0x3c, 0xea, 0x5b, 0x42, 0xf2, 0xc8, 0xcb, 0xb8, 0x8d,
-	0xbb, 0xd3, 0x4b, 0x8e, 0xc2, 0x10, 0xf3, 0xec, 0x97, 0xd7, 0x47, 0x28, 0x20, 0x3e, 0x92, 0xd8,
-	0xca, 0x8a, 0x74, 0xb0, 0x3a, 0x60, 0x03, 0xa6, 0x4a, 0x2b, 0xae, 0x92, 0x6e, 0xeb, 0xa3, 0x06,
-	0x8a, 0x8f, 0x49, 0x20, 0x31, 0x87, 0x9b, 0xa0, 0x40, 0xd1, 0x10, 0x1b, 0x5a, 0x53, 0x6b, 0x97,
-	0x3b, 0xe5, 0xb7, 0x5f, 0xde, 0xe7, 0x0b, 0x3c, 0xd7, 0xd4, 0x1c, 0xd5, 0x86, 0x16, 0x28, 0x7a,
-	0x8c, 0xf6, 0xc9, 0xc0, 0xc8, 0x35, 0xb5, 0xb6, 0x6e, 0xaf, 0x9b, 0x89, 0x13, 0x33, 0x73, 0x62,
-	0x76, 0x95, 0x4f, 0x27, 0x85, 0xc1, 0x2e, 0xa8, 0xfa, 0x38, 0xe4, 0xd8, 0x43, 0x12, 0xfb, 0xee,
-	0x68, 0xc7, 0xc8, 0x2b, 0xde, 0xb6, 0xb9, 0x70, 0xa7, 0x66, 0xe2, 0xc2, 0x3c, 0x98, 0x52, 0x7a,
-	0x3b, 0x9d, 0x9c, 0xa1, 0x39, 0x15, 0x7f, 0xa6, 0x53, 0x6f, 0x81, 0xca, 0x2c, 0x02, 0x42, 0x50,
-	0x90, 0x57, 0x61, 0x6a, 0xda, 0x51, 0x75, 0xeb, 0x5d, 0x01, 0xd4, 0x12, 0xb5, 0xfd, 0x0b, 0x44,
-	0xe8, 0x11, 0x92, 0xde, 0x05, 0xdc, 0x03, 0xd5, 0x90, 0xe3, 0x3e, 0x19, 0xbb, 0x1c, 0xd1, 0x01,
-	0x16, 0x46, 0xbe, 0x99, 0x6f, 0xeb, 0xf6, 0xc6, 0xbc, 0x9b, 0xf8, 0x2d, 0xcc, 0x7d, 0xe2, 0x73,
-	0x27, 0x06, 0x39, 0x95, 0x84, 0xa2, 0x0e, 0x02, 0xfe, 0x01, 0x96, 0xd3, 0x57, 0x76, 0x45, 0xd4,
-	0xef, 0x93, 0xb1, 0x51, 0x50, 0xbf, 0x5a, 0x4d, 0xbb, 0x5d, 0xd5, 0x84, 0xff, 0x02, 0x90, 0x8c,
-	0xdd, 0x00, 0x53, 0xe3, 0x67, 0x75, 0xe9, 0x8d, 0x7b, 0xcb, 0x3a, 0x7b, 0x4a, 0xe5, 0xae, 0xdd,
-	0x43, 0x41, 0x84, 0x9d, 0x72, 0x82, 0x3f, 0xc4, 0x14, 0x1e, 0x83, 0x55, 0xc1, 0x22, 0xee, 0x61,
-	0x77, 0xde, 0x6d, 0xf1, 0x3b, 0xdc, 0xc2, 0x84, 0x79, 0x32, 0xeb, 0xf9, 0x7f, 0x50, 0xc9, 0xf4,
-	0x18, 0x97, 0xc2, 0x58, 0x4a, 0x75, 0x1e, 0xb2, 0xa3, 0xa7, 0x3a, 0x31, 0x01, 0xf6, 0x40, 0xcd,
-	0xc7, 0x42, 0x12, 0x8a, 0x24, 0x61, 0x54, 0xa9, 0x18, 0xa5, 0x6f, 0xdf, 0xa9, 0x53, 0x8d, 0xf3,
-	0x53, 0xda, 0x2e, 0x1a, 0x37, 0x37, 0xf9, 0xb6, 0xe6, 0xac, 0xcc, 0x88, 0xc4, 0xc2, 0xf0, 0x2f,
-	0x00, 0x25, 0x47, 0x54, 0xc4, 0x82, 0xae, 0x52, 0xf0, 0x58, 0x60, 0x94, 0xd5, 0x42, 0x7f, 0x99,
-	0x4e, 0x4e, 0xd2, 0x01, 0xdc, 0x05, 0x6b, 0x28, 0x0c, 0x03, 0xe2, 0xa5, 0x36, 0xd2, 0xbe, 0x30,
-	0x40, 0x33, 0xdf, 0x2e, 0x3b, 0xab, 0x33, 0xc3, 0x8c, 0x23, 0xe0, 0x6f, 0xa0, 0x22, 0x30, 0x1f,
-	0x61, 0xee, 0xc6, 0x09, 0x16, 0x86, 0xae, 0xb0, 0x7a, 0xd2, 0x3b, 0x8e, 0x5b, 0xcf, 0x0a, 0x25,
-	0xad, 0x96, 0x73, 0x74, 0x41, 0x89, 0xeb, 0xb3, 0x21, 0x22, 0x54, 0xb4, 0xde, 0xe4, 0x81, 0x3e,
-	0x13, 0x1f, 0x78, 0x06, 0x60, 0x5f, 0x1d, 0x5d, 0x2f, 0x3e, 0xbb, 0xc3, 0x38, 0x4f, 0x2a, 0x70,
-	0xba, 0xfd, 0xe7, 0x83, 0x61, 0xbe, 0x8d, 0x9f, 0x53, 0xeb, 0xdf, 0x0d, 0xe4, 0x13, 0xa0, 0xcb,
-	0x40, 0xb8, 0x1e, 0xa3, 0x12, 0x8f, 0x65, 0xfa, 0xa7, 0xba, 0xa3, 0x17, 0x7f, 0x38, 0xcc, 0x03,
-	0x76, 0x49, 0x85, 0xe4, 0x18, 0x0d, 0x4f, 0x03, 0xb1, 0x9f, 0xc0, 0x1d, 0x20, 0xa7, 0x35, 0xfc,
-	0x0f, 0x2c, 0x25, 0xea, 0x59, 0xa8, 0x37, 0x1f, 0x74, 0xd5, 0x29, 0x5c, 0x7f, 0xda, 0xfa, 0xc9,
-	0xc9, 0x38, 0xb0, 0x03, 0x56, 0x22, 0x11, 0xe7, 0x8d, 0x8d, 0xaf, 0x92, 0xc5, 0xaa, 0x5c, 0xeb,
-	0x76, 0xfd, 0xde, 0x03, 0x77, 0x18, 0x0b, 0x92, 0x8c, 0x54, 0x23, 0x81, 0x4f, 0x62, 0x86, 0xda,
-	0x36, 0xfc, 0x07, 0x94, 0x86, 0x58, 0x22, 0x1f, 0x49, 0x94, 0x26, 0xfe, 0xd7, 0x05, 0x51, 0x3d,
-	0x4a, 0x21, 0xce, 0x14, 0x0c, 0x8f, 0x40, 0xed, 0x36, 0x06, 0x82, 0x79, 0x2f, 0xb1, 0x34, 0x8a,
-	0x4a, 0xa0, 0xb5, 0x40, 0xe0, 0x34, 0x83, 0x76, 0x15, 0xd2, 0x59, 0x91, 0xf3, 0x8d, 0xd6, 0x0b,
-	0xb0, 0x7c, 0x98, 0xde, 0xf6, 0xc7, 0x7c, 0xd5, 0x3a, 0x7f, 0xbf, 0x9a, 0x34, 0xb4, 0xeb, 0x49,
-	0x43, 0xfb, 0x30, 0x69, 0x68, 0x9f, 0x27, 0x0d, 0xed, 0x79, 0x29, 0xdb, 0xef, 0xeb, 0xdc, 0xfa,
-	0x23, 0x65, 0x79, 0x2f, 0x24, 0x66, 0xcf, 0x36, 0x33, 0x27, 0xc7, 0xdd, 0xf3, 0xa2, 0x92, 0xdb,
-	0xfd, 0x1a, 0x00, 0x00, 0xff, 0xff, 0x9f, 0x6b, 0xd4, 0x7d, 0x76, 0x06, 0x00, 0x00,
-}

@@ -467,6 +467,11 @@ type RuntimeConfig struct {
 	// hcl: check_update_interval = "duration"
 	CheckUpdateInterval time.Duration
 
+	// Maximum size for the output of a healtcheck
+	// hcl check_output_max_size int
+	// flag: -check_output_max_size int
+	CheckOutputMaxSize int
+
 	// Checks contains the provided check definitions.
 	//
 	// hcl: checks = [
@@ -1389,6 +1394,10 @@ type RuntimeConfig struct {
 	// hcl: ui_dir = string
 	// flag: -ui-dir string
 	UIDir string
+
+	//UIContentPath is a string that sets the external
+	// path to a string. Default: /ui/
+	UIContentPath string
 
 	// UnixSocketGroup contains the group of the file permissions when
 	// Consul binds to UNIX sockets.

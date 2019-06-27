@@ -19,11 +19,11 @@ export default RepositoryService.extend({
     }
     return this.get('store').query(this.getModelName(), query);
   },
-  findInstanceBySlug: function(id, slug, dc, configuration) {
+  findInstanceBySlug: function(id, node, slug, dc, configuration) {
     return this.findAllBySlug(slug, dc, configuration).then(function(items) {
       let res = {};
       if (get(items, 'length') > 0) {
-        let instance = items.findBy('ServiceProxy.DestinationServiceID', id);
+        let instance = items.filterBy('ServiceProxy.DestinationServiceID', id).findBy('Node', node);
         if (instance) {
           res = instance;
         } else {

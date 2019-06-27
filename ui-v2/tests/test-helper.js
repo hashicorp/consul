@@ -6,6 +6,8 @@ import './helpers/flash-message';
 import loadEmberExam from 'ember-exam/test-support/load';
 
 loadEmberExam();
-setApplication(Application.create(config.APP));
+const application = Application.create(config.APP);
+application.inject('component:copy-button', 'clipboard', 'service:clipboard/local-storage');
+setApplication(application);
 
 start();

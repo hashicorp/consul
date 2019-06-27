@@ -27,6 +27,11 @@ type BootstrapTplArgs struct {
 	// TLS is enabled.
 	AgentCAFile string
 
+	// AdminAccessLogPath The path to write the access log for the
+	// administration server. If no access log is desired specify
+	// "/dev/null". By default it will use "/dev/null".
+	AdminAccessLogPath string
+
 	// AdminBindAddress is the address the Envoy admin server should bind to.
 	AdminBindAddress string
 
@@ -86,7 +91,7 @@ type BootstrapTplArgs struct {
 
 const bootstrapTemplate = `{
   "admin": {
-    "access_log_path": "/dev/null",
+    "access_log_path": "{{ .AdminAccessLogPath }}",
     "address": {
       "socket_address": {
         "address": "{{ .AdminBindAddress }}",

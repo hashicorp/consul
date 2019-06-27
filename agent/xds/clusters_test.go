@@ -134,6 +134,7 @@ func expectClustersJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot, to
 			{
 				"@type": "type.googleapis.com/envoy.api.v2.Cluster",
 				"name": "local_app",
+				"type": "STATIC",
 				"connectTimeout": "5s",
 				"loadAssignment": {
 					"clusterName": "local_app",

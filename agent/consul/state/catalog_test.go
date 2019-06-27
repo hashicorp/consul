@@ -3843,3 +3843,68 @@ func TestStateStore_ServiceIdxUpdateOnNodeUpdate(t *testing.T) {
 
 	require.True(t, newIdx > lastIdx)
 }
+
+func TestStateStore_ensureServiceCASTxn(t *testing.T) {
+	s := testStateStore(t)
+
+	testRegisterNode(t, s, 1, "node1")
+
+	// Register a service
+	testRegisterService(t, s, 2, "node1", "foo")
+
+	ns := structs.NodeService{
+		ID:      "foo",
+		Service: "foo",
+		// the testRegisterServices registers it with 111 as a port
+		RaftIndex: structs.RaftIndex{
+			ModifyIndex: 0,
+		},
+	}
+
+	// attempt to update with a 0 index
+	tx := s.db.Txn(true)
+	update, err := s.ensureServiceCASTxn(tx, 3, "node1", &ns)
+	require.False(t, update)
+	require.NoError(t, err)
+	tx.Commit()
+
+	// ensure no update happened
+	tx = s.db.Txn(false)
+	_, nsRead, err := s.NodeService("node1", "foo")
+	require.NoError(t, err)
+	require.NotNil(t, nsRead)
+	require.Equal(t, uint64(2), nsRead.ModifyIndex)
+	tx.Commit()
+
+	ns.ModifyIndex = 99
+	// attempt to update with a non-matching index
+	tx = s.db.Txn(true)
+	update, err = s.ensureServiceCASTxn(tx, 4, "node1", &ns)
+	require.False(t, update)
+	require.NoError(t, err)
+	tx.Commit()
+
+	// ensure no update happend
+	tx = s.db.Txn(false)
+	_, nsRead, err = s.NodeService("node1", "foo")
+	require.NoError(t, err)
+	require.NotNil(t, nsRead)
+	require.Equal(t, uint64(2), nsRead.ModifyIndex)
+	tx.Commit()
+
+	ns.ModifyIndex = 2
+	// update with the matching modify index
+	tx = s.db.Txn(true)
+	update, err = s.ensureServiceCASTxn(tx, 7, "node1", &ns)
+	require.True(t, update)
+	require.NoError(t, err)
+	tx.Commit()
+
+	// ensure the update happened
+	tx = s.db.Txn(false)
+	_, nsRead, err = s.NodeService("node1", "foo")
+	require.NoError(t, err)
+	require.NotNil(t, nsRead)
+	require.Equal(t, uint64(7), nsRead.ModifyIndex)
+	tx.Commit()
+}
